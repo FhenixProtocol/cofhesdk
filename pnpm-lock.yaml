@@ -94,6 +94,24 @@ importers:
         specifier: 5.5.4
         version: 5.5.4
 
+  packages/permits:
+    devDependencies:
+      '@cofhesdk/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
+      '@cofhesdk/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      eslint:
+        specifier: ^8.57.0
+        version: 8.57.1
+      tsup:
+        specifier: ^8.0.2
+        version: 8.0.2(typescript@5.5.4)
+      typescript:
+        specifier: 5.5.4
+        version: 5.5.4
+
   packages/tsconfig: {}
 
   packages/utils:
