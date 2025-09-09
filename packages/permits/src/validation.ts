@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { isAddress, zeroAddress } from 'viem'
-import { Permit, PermitOptions, ValidationResult } from './types'
+import { Permit, ValidationResult } from './types'
 
 const SerializedSealingPair = z.object({
 	privateKey: z.string(),
@@ -49,7 +49,7 @@ type zPermitType = z.infer<typeof zPermitWithDefaults>
  * this check ensures that IF an external validator is applied, that both `validatorId` and `validatorContract` are populated,
  * ELSE ensures that both `validatorId` and `validatorContract` are empty
  */
-const PermitRefineValidator = [
+const ExternalValidatorRefinement = [
 	(data: zPermitType) =>
 		(data.validatorId !== 0 && data.validatorContract !== zeroAddress) || (data.validatorId === 0 && data.validatorContract === zeroAddress),
 	{
@@ -58,136 +58,220 @@ const PermitRefineValidator = [
 	},
 ] as const
 
-/**
- * SuperRefinement that checks a Permits signatures
- * checkRecipient - whether to validate that `recipient` is empty for permit with type <self>, and populated for <sharing | recipient>
- * checkSealingPair - only the fully formed permit requires the sealing pair, it can be optional for permit create params
- * checkExistingSignatures - not optional - checks that the permit's type matches the populated signature fields
- * checkSigned - checks that the active user's signature has been signed and added. <self | signed> -> issuerSignature, <recipient> -> recipientSignature
- */
-const PermitSignaturesSuperRefinement = (options: { checkRecipient: boolean; checkSealingPair: boolean; checkSigned: boolean }) => {
-	return (data: zPermitType, ctx: z.RefinementCtx) => {
-		// Check Recipient
-		//    If type <self | sharing>, `Permit.recipient` must be zeroAddress
-		//    If type <recipient>, `Permit.recipient` must not be zeroAddress
-		if (options.checkRecipient) {
-			if (data.type === 'self' && data.recipient !== zeroAddress)
-				ctx.addIssue({
-					code: z.ZodIssueCode.custom,
-					path: ['recipient'],
-					message: `Permit (type '${data.type}') recipient :: must be empty (zeroAddress)`,
-				})
-			if ((data.type === 'recipient' || data.type === 'sharing') && data.recipient === zeroAddress) {
-				ctx.addIssue({
-					code: z.ZodIssueCode.custom,
-					path: ['recipient'],
-					message: `Permit (type '${data.type}') recipient :: must not be empty`,
-				})
-			}
-		}
-
-		// Check Sealing Pair
-		if (options.checkSealingPair && 'sealingPair' in data && data.sealingPair == null)
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				path: ['sealingPair'],
-				message: `Permit sealingPair :: must not be empty`,
-			})
-
-		// Check existing signatures match type (not checking this user's signature, but the other signature)
-		//     If type <self | sharing>, `Permit.recipientSignature` must be empty
-		//     If type <recipient>, `Permit.issuerSignature` must not be empty
-		if ((data.type === 'self' || data.type === 'sharing') && data.recipientSignature !== '0x') {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				path: ['recipientSignature'],
-				message: `Permit (type '${data.type}') recipientSignature :: should not be populated by the issuer`,
-			})
-		}
-		if (data.type === 'recipient' && data.issuerSignature === '0x') {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				path: ['issuerSignature'],
-				message: `Permit (type 'recipient') issuerSignature :: \`issuer\` must sign the Permit before sharing it with \`recipient\``,
-			})
-		}
-
-		// Check Signed
-		//     If type <self | sharing>, `Permit.issuerSignature` must not be empty
-		//     If type <recipient>, `Permit.recipientSignature` must not be empty
-		if (options.checkSigned) {
-			if ((data.type === 'self' || data.type === 'sharing') && data.issuerSignature === '0x')
-				ctx.addIssue({
-					code: z.ZodIssueCode.custom,
-					path: ['issuerSignature'],
-					message: `Permit (type '${data.type}') issuerSignature :: must be populated with issuer's signature. Use \`PermitUtils.sign\` or create permit with \`PermitUtils.createAndSign\``,
-				})
-			if (data.type === 'recipient' && data.recipientSignature === '0x') {
-				ctx.addIssue({
-					code: z.ZodIssueCode.custom,
-					path: ['recipientSignature'],
-					message: `Permit (type 'recipient') recipientSignature :: must be populated with recipient's signature. Use \`PermitUtils.sign\` or create permit with \`PermitUtils.createAndSign\``,
-				})
-			}
-		}
-
-		return
-	}
-}
+// ============================================================================
+// SELF PERMIT VALIDATORS
+// ============================================================================
 
 /**
- * Validator for the params used when creating a fresh Permit
- * Has defaults added that will be populated in the options object
- * Signatures superRefinement checks only the recipient, sealingPair and signatures are not necessary in the Permit params
+ * Validator for self permit creation options
  */
-export const PermitParamsValidator = zPermitWithDefaults.refine(...PermitRefineValidator).superRefine(
-	PermitSignaturesSuperRefinement({
-		checkRecipient: true,
-		checkSealingPair: false, // SealingPair not required when creating a fresh permit
-		checkSigned: false, // Signature not required when creating a fresh permit
+export const SelfPermitOptionsValidator = z
+	.object({
+		type: z.literal('self'),
+		issuer: z
+			.string()
+			.refine((val) => isAddress(val), {
+				message: 'Self permit issuer :: invalid address',
+			})
+			.refine((val) => val !== zeroAddress, {
+				message: 'Self permit issuer :: must not be zeroAddress',
+			}),
+		name: z.string().optional().default('Unnamed Permit'),
+		expiration: z.number().optional().default(1000000000000),
+		recipient: z
+			.string()
+			.optional()
+			.default(zeroAddress)
+			.refine((val) => isAddress(val), {
+				message: 'Self permit recipient :: invalid address',
+			})
+			.refine((val) => val === zeroAddress, {
+				message: 'Self permit recipient :: must be zeroAddress',
+			}),
+		validatorId: z.number().optional().default(0),
+		validatorContract: z
+			.string()
+			.optional()
+			.default(zeroAddress)
+			.refine((val) => isAddress(val), {
+				message: 'Self permit validatorContract :: invalid address',
+			}),
+		issuerSignature: z.string().optional().default('0x'),
+		recipientSignature: z.string().optional().default('0x'),
 	})
-)
+	.refine(...ExternalValidatorRefinement)
 
 /**
- * Validator for a Permit that is expected to be fully formed
- * Does not allow optional values or offer defaults
- * Validates that the correct signatures are populated
- * Validates sealingPair is populated
+ * Validator for fully formed self permits
  */
-export const FullyFormedPermitValidator = zPermitWithSealingPair
-	.required()
-	.refine(...PermitRefineValidator)
-	.superRefine(
-		PermitSignaturesSuperRefinement({
-			checkRecipient: true,
-			checkSealingPair: true,
-			checkSigned: true,
-		})
-	)
+export const SelfPermitValidator = zPermitWithSealingPair
+	.refine((data) => data.type === 'self', {
+		message: "Self permit :: type must be 'self'",
+	})
+	.refine((data) => data.recipient === zeroAddress, {
+		message: 'Self permit :: recipient must be zeroAddress',
+	})
+	.refine((data) => data.issuerSignature !== '0x', {
+		message: 'Self permit :: issuerSignature must be populated',
+	})
+	.refine((data) => data.recipientSignature === '0x', {
+		message: 'Self permit :: recipientSignature must be empty',
+	})
+	.refine(...ExternalValidatorRefinement)
+
+// ============================================================================
+// SHARING PERMIT VALIDATORS
+// ============================================================================
 
 /**
- * Validates permit creation options
+ * Validator for sharing permit creation options
  */
-export const validatePermitOptions = (options: PermitOptions): { success: boolean; data?: PermitOptions; error?: any } => {
-	const result = PermitParamsValidator.safeParse(options)
-	return {
-		success: result.success,
-		data: result.success ? result.data : undefined,
-		error: result.success ? undefined : result.error,
-	}
-}
+export const SharingPermitOptionsValidator = z
+	.object({
+		type: z.literal('sharing'),
+		issuer: z
+			.string()
+			.refine((val) => isAddress(val), {
+				message: 'Sharing permit issuer :: invalid address',
+			})
+			.refine((val) => val !== zeroAddress, {
+				message: 'Sharing permit issuer :: must not be zeroAddress',
+			}),
+		recipient: z
+			.string()
+			.refine((val) => isAddress(val), {
+				message: 'Sharing permit recipient :: invalid address',
+			})
+			.refine((val) => val !== zeroAddress, {
+				message: 'Sharing permit recipient :: must not be zeroAddress',
+			}),
+		name: z.string().optional().default('Unnamed Permit'),
+		expiration: z.number().optional().default(1000000000000),
+		validatorId: z.number().optional().default(0),
+		validatorContract: z
+			.string()
+			.optional()
+			.default(zeroAddress)
+			.refine((val) => isAddress(val), {
+				message: 'Sharing permit validatorContract :: invalid address',
+			}),
+		issuerSignature: z.string().optional().default('0x'),
+		recipientSignature: z.string().optional().default('0x'),
+	})
+	.refine(...ExternalValidatorRefinement)
 
 /**
- * Validates a fully formed permit
+ * Validator for fully formed sharing permits
  */
-export const validatePermit = (permit: Permit): { success: boolean; data?: Permit; error?: any } => {
-	const result = FullyFormedPermitValidator.safeParse(permit)
-	return {
-		success: result.success,
-		data: result.success ? permit : undefined,
-		error: result.success ? undefined : result.error,
-	}
-}
+export const SharingPermitValidator = zPermitWithSealingPair
+	.refine((data) => data.type === 'sharing', {
+		message: "Sharing permit :: type must be 'sharing'",
+	})
+	.refine((data) => data.recipient !== zeroAddress, {
+		message: 'Sharing permit :: recipient must not be zeroAddress',
+	})
+	.refine((data) => data.issuerSignature !== '0x', {
+		message: 'Sharing permit :: issuerSignature must be populated',
+	})
+	.refine((data) => data.recipientSignature === '0x', {
+		message: 'Sharing permit :: recipientSignature must be empty',
+	})
+	.refine(...ExternalValidatorRefinement)
+
+// ============================================================================
+// IMPORT/RECIPIENT PERMIT VALIDATORS
+// ============================================================================
+
+/**
+ * Validator for import permit creation options (recipient receiving shared permit)
+ */
+export const ImportPermitOptionsValidator = z
+	.object({
+		type: z.literal('recipient'),
+		issuer: z
+			.string()
+			.refine((val) => isAddress(val), {
+				message: 'Import permit issuer :: invalid address',
+			})
+			.refine((val) => val !== zeroAddress, {
+				message: 'Import permit issuer :: must not be zeroAddress',
+			}),
+		recipient: z
+			.string()
+			.refine((val) => isAddress(val), {
+				message: 'Import permit recipient :: invalid address',
+			})
+			.refine((val) => val !== zeroAddress, {
+				message: 'Import permit recipient :: must not be zeroAddress',
+			}),
+		issuerSignature: z.string().refine((val) => val !== '0x', {
+			message: 'Import permit :: issuerSignature must be provided',
+		}),
+		name: z.string().optional().default('Unnamed Permit'),
+		expiration: z.number().optional().default(1000000000000),
+		validatorId: z.number().optional().default(0),
+		validatorContract: z
+			.string()
+			.optional()
+			.default(zeroAddress)
+			.refine((val) => isAddress(val), {
+				message: 'Import permit validatorContract :: invalid address',
+			}),
+		recipientSignature: z.string().optional().default('0x'),
+	})
+	.refine(...ExternalValidatorRefinement)
+
+/**
+ * Validator for fully formed import/recipient permits
+ */
+export const ImportPermitValidator = zPermitWithSealingPair
+	.refine((data) => data.type === 'recipient', {
+		message: "Import permit :: type must be 'recipient'",
+	})
+	.refine((data) => data.recipient !== zeroAddress, {
+		message: 'Import permit :: recipient must not be zeroAddress',
+	})
+	.refine((data) => data.issuerSignature !== '0x', {
+		message: 'Import permit :: issuerSignature must be populated',
+	})
+	.refine((data) => data.recipientSignature !== '0x', {
+		message: 'Import permit :: recipientSignature must be populated',
+	})
+	.refine(...ExternalValidatorRefinement)
+
+// ============================================================================
+// VALIDATION FUNCTIONS
+// ============================================================================
+
+/**
+ * Validates self permit creation options
+ */
+export const validateSelfPermitOptions = (options: any) => SelfPermitOptionsValidator.safeParse(options)
+
+/**
+ * Validates sharing permit creation options
+ */
+export const validateSharingPermitOptions = (options: any) => SharingPermitOptionsValidator.safeParse(options)
+
+/**
+ * Validates import permit creation options
+ */
+export const validateImportPermitOptions = (options: any) => ImportPermitOptionsValidator.safeParse(options)
+
+/**
+ * Validates a fully formed self permit
+ */
+export const validateSelfPermit = (permit: any) => SelfPermitValidator.safeParse(permit)
+
+/**
+ * Validates a fully formed sharing permit
+ */
+export const validateSharingPermit = (permit: any) => SharingPermitValidator.safeParse(permit)
+
+/**
+ * Validates a fully formed import/recipient permit
+ */
+export const validateImportPermit = (permit: any) => ImportPermitValidator.safeParse(permit)
 
 /**
  * Simple validation functions for common checks
