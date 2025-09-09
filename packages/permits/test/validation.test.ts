@@ -1,82 +1,197 @@
 import { describe, it, expect } from 'vitest'
-import { ValidationUtils, validatePermitOptions, validatePermit, Permit, PermitOptions } from '../src/index'
+import {
+	ValidationUtils,
+	validateSelfPermitOptions,
+	validateSharingPermitOptions,
+	validateImportPermitOptions,
+	validateSelfPermit,
+	validateSharingPermit,
+	validateImportPermit,
+	Permit,
+	SelfPermitOptions,
+	SharingPermitOptions,
+	ImportPermitOptions,
+} from '../src/index'
 import { createMockPermit } from './utils'
 
 describe('Validation Tests', () => {
-	describe('validatePermitOptions', () => {
-		it('should validate valid permit options', () => {
-			const options: PermitOptions = {
+	describe('validateSelfPermitOptions', () => {
+		it('should validate valid self permit options', () => {
+			const options: SelfPermitOptions = {
 				type: 'self',
-				issuer: '0x1234567890123456789012345678901234567890',
+				issuer: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', // Bob's address
 				name: 'Test Permit',
 			}
 
-			const result = validatePermitOptions(options)
+			const result = validateSelfPermitOptions(options)
 			expect(result.success).toBe(true)
 			expect(result.data).toBeDefined()
 		})
 
 		it('should reject invalid address', () => {
-			const options: PermitOptions = {
+			const options: SelfPermitOptions = {
 				type: 'self',
 				issuer: 'invalid-address',
 				name: 'Test Permit',
 			}
 
-			const result = validatePermitOptions(options)
+			const result = validateSelfPermitOptions(options)
 			expect(result.success).toBe(false)
 			expect(result.error).toBeDefined()
 		})
 
 		it('should reject zero address', () => {
-			const options: PermitOptions = {
+			const options: SelfPermitOptions = {
 				type: 'self',
 				issuer: '0x0000000000000000000000000000000000000000',
 				name: 'Test Permit',
 			}
 
-			const result = validatePermitOptions(options)
+			const result = validateSelfPermitOptions(options)
 			expect(result.success).toBe(false)
 			expect(result.error).toBeDefined()
 		})
+	})
 
-		it('should validate sharing permit with recipient', () => {
-			const options: PermitOptions = {
+	describe('validateSharingPermitOptions', () => {
+		it('should validate valid sharing permit options', () => {
+			const options: SharingPermitOptions = {
 				type: 'sharing',
-				issuer: '0x1234567890123456789012345678901234567890',
-				recipient: '0x0987654321098765432109876543210987654321',
+				issuer: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', // Bob's address
+				recipient: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8', // Alice's address
 				name: 'Sharing Permit',
 			}
 
-			const result = validatePermitOptions(options)
+			const result = validateSharingPermitOptions(options)
 			expect(result.success).toBe(true)
 		})
 
-		it('should reject sharing permit without recipient', () => {
-			const options: PermitOptions = {
+		it('should reject sharing permit with zero recipient', () => {
+			const options: SharingPermitOptions = {
 				type: 'sharing',
-				issuer: '0x1234567890123456789012345678901234567890',
+				issuer: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', // Bob's address
 				recipient: '0x0000000000000000000000000000000000000000',
 				name: 'Sharing Permit',
 			}
 
-			const result = validatePermitOptions(options)
+			const result = validateSharingPermitOptions(options)
+			expect(result.success).toBe(false)
+		})
+
+		it('should reject sharing permit with invalid recipient', () => {
+			const options: SharingPermitOptions = {
+				type: 'sharing',
+				issuer: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', // Bob's address
+				recipient: 'invalid-address',
+				name: 'Sharing Permit',
+			}
+
+			const result = validateSharingPermitOptions(options)
 			expect(result.success).toBe(false)
 		})
 	})
 
-	describe('validatePermit', () => {
-		it('should validate valid permit', async () => {
-			const permit = await createMockPermit()
-			permit.issuerSignature = '0x1234567890abcdef'
+	describe('validateImportPermitOptions', () => {
+		it('should validate valid import permit options', () => {
+			const options: ImportPermitOptions = {
+				type: 'recipient',
+				issuer: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', // Bob's address
+				recipient: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8', // Alice's address
+				issuerSignature: '0x1234567890abcdef',
+				name: 'Import Permit',
+			}
 
-			const result = validatePermit(permit)
+			const result = validateImportPermitOptions(options)
 			expect(result.success).toBe(true)
 		})
 
-		it('should reject permit with missing sealing pair', async () => {
+		it('should reject import permit with empty signature', () => {
+			const options: ImportPermitOptions = {
+				type: 'recipient',
+				issuer: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', // Bob's address
+				recipient: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8', // Alice's address
+				issuerSignature: '0x',
+				name: 'Import Permit',
+			}
+
+			const result = validateImportPermitOptions(options)
+			expect(result.success).toBe(false)
+		})
+
+		it('should reject import permit with invalid signature', () => {
+			const options: ImportPermitOptions = {
+				type: 'recipient',
+				issuer: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', // Bob's address
+				recipient: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8', // Alice's address
+				issuerSignature: '0x',
+				name: 'Import Permit',
+			}
+
+			const result = validateImportPermitOptions(options)
+			expect(result.success).toBe(false)
+		})
+	})
+
+	describe('validateSelfPermit', () => {
+		it('should validate valid self permit', async () => {
+			const permit = await createMockPermit()
+			permit.type = 'self'
+			permit.issuerSignature = '0x1234567890abcdef'
+
+			const result = validateSelfPermit(permit)
+			expect(result.success).toBe(true)
+		})
+
+		it('should reject self permit with missing sealing pair', async () => {
 			const permit = { ...(await createMockPermit()), sealingPair: undefined }
-			const result = validatePermit(permit as unknown as Permit)
+			permit.type = 'self'
+			const result = validateSelfPermit(permit as unknown as Permit)
+			expect(result.success).toBe(false)
+		})
+	})
+
+	describe('validateSharingPermit', () => {
+		it('should validate valid sharing permit', async () => {
+			const permit = await createMockPermit()
+			permit.type = 'sharing'
+			permit.issuerSignature = '0x1234567890abcdef'
+			permit.recipient = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8' // Alice's address
+
+			const result = validateSharingPermit(permit)
+			expect(result.success).toBe(true)
+		})
+
+		it('should reject sharing permit with zero recipient', async () => {
+			const permit = await createMockPermit()
+			permit.type = 'sharing'
+			permit.issuerSignature = '0x1234567890abcdef'
+			permit.recipient = '0x0000000000000000000000000000000000000000'
+
+			const result = validateSharingPermit(permit)
+			expect(result.success).toBe(false)
+		})
+	})
+
+	describe('validateImportPermit', () => {
+		it('should validate valid import permit', async () => {
+			const permit = await createMockPermit()
+			permit.type = 'recipient'
+			permit.issuerSignature = '0x1234567890abcdef'
+			permit.recipient = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8' // Alice's address
+			permit.recipientSignature = '0xabcdef1234567890'
+
+			const result = validateImportPermit(permit)
+			expect(result.success).toBe(true)
+		})
+
+		it('should reject import permit with empty recipient signature', async () => {
+			const permit = await createMockPermit()
+			permit.type = 'recipient'
+			permit.issuerSignature = '0x1234567890abcdef'
+			permit.recipient = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8' // Alice's address
+			permit.recipientSignature = '0x'
+
+			const result = validateImportPermit(permit)
 			expect(result.success).toBe(false)
 		})
 	})
