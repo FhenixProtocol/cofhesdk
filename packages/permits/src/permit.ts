@@ -1,7 +1,15 @@
 import { keccak256, toHex, zeroAddress } from 'viem'
 import { parseAbi, type PublicClient, type WalletClient } from 'viem'
-import { Permit, PermitOptions, SerializedPermit, EIP712Domain, Permission, EthEncryptedData } from './types'
-import { validatePermitOptions, validatePermit, ValidationUtils } from './validation'
+import { Permit, SelfPermitOptions, SharingPermitOptions, ImportPermitOptions, SerializedPermit, EIP712Domain, Permission, EthEncryptedData } from './types'
+import {
+	validateSelfPermitOptions,
+	validateSharingPermitOptions,
+	validateImportPermitOptions,
+	validateSelfPermit,
+	validateSharingPermit,
+	validateImportPermit,
+	ValidationUtils,
+} from './validation'
 import { SignatureUtils } from './signature'
 import { GenerateSealingKey, SealingKey } from './sealing'
 
@@ -10,43 +18,61 @@ import { GenerateSealingKey, SealingKey } from './sealing'
  */
 export const PermitUtils = {
 	/**
-	 * Create a new permit from options
+	 * Create a self permit for personal use
 	 */
-	create: async (options: PermitOptions): Promise<Permit> => {
-		const validation = validatePermitOptions(options)
+	createSelf: async (options: SelfPermitOptions): Promise<Permit> => {
+		const validation = validateSelfPermitOptions(options)
 
 		if (!validation.success) {
-			throw new Error('PermitUtils :: create :: Parsing PermitOptions failed ' + JSON.stringify(validation.error, null, 2))
+			throw new Error('PermitUtils :: createSelf :: Parsing SelfPermitOptions failed ' + JSON.stringify(validation.error, null, 2))
 		}
 
-		const parsed = validation.data!
 		// Always generate a new sealing key - users cannot provide their own
 		const sealingPair = await GenerateSealingKey()
 
-		// The validation function applies defaults, so we can safely cast to the full Permit type
-		const validatedData = parsed as {
-			name: string
-			type: 'self' | 'sharing' | 'recipient'
-			issuer: string
-			expiration: number
-			recipient: string
-			validatorId: number
-			validatorContract: string
-			issuerSignature: string
-			recipientSignature: string
+		return {
+			...validation.data,
+			sealingPair,
+			_signedDomain: undefined,
+		}
+	},
+
+	/**
+	 * Create a sharing permit to be shared with another user
+	 */
+	createSharing: async (options: SharingPermitOptions): Promise<Permit> => {
+		const validation = validateSharingPermitOptions(options)
+
+		if (!validation.success) {
+			throw new Error('PermitUtils :: createSharing :: Parsing SharingPermitOptions failed ' + JSON.stringify(validation.error, null, 2))
 		}
 
+		// Always generate a new sealing key - users cannot provide their own
+		const sealingPair = await GenerateSealingKey()
+
 		return {
-			name: validatedData.name,
-			type: validatedData.type,
-			issuer: validatedData.issuer,
-			expiration: validatedData.expiration,
-			recipient: validatedData.recipient,
-			validatorId: validatedData.validatorId,
-			validatorContract: validatedData.validatorContract,
+			...validation.data,
 			sealingPair,
-			issuerSignature: validatedData.issuerSignature,
-			recipientSignature: validatedData.recipientSignature,
+			_signedDomain: undefined,
+		}
+	},
+
+	/**
+	 * Import a shared permit (recipient receiving a shared permit)
+	 */
+	importShared: async (options: ImportPermitOptions): Promise<Permit> => {
+		const validation = validateImportPermitOptions(options)
+
+		if (!validation.success) {
+			throw new Error('PermitUtils :: importShared :: Parsing ImportPermitOptions failed ' + JSON.stringify(validation.error, null, 2))
+		}
+
+		// Always generate a new sealing key - users cannot provide their own
+		const sealingPair = await GenerateSealingKey()
+
+		return {
+			...validation.data,
+			sealingPair,
 			_signedDomain: undefined,
 		}
 	},
@@ -90,10 +116,26 @@ export const PermitUtils = {
 	},
 
 	/**
-	 * Create and sign a permit in one operation
+	 * Create and sign a self permit in one operation
 	 */
-	createAndSign: async (options: PermitOptions, walletClient: WalletClient, publicClient: PublicClient): Promise<Permit> => {
-		const permit = await PermitUtils.create(options)
+	createSelfAndSign: async (options: SelfPermitOptions, walletClient: WalletClient, publicClient: PublicClient): Promise<Permit> => {
+		const permit = await PermitUtils.createSelf(options)
+		return PermitUtils.sign(permit, walletClient, publicClient)
+	},
+
+	/**
+	 * Create and sign a sharing permit in one operation
+	 */
+	createSharingAndSign: async (options: SharingPermitOptions, walletClient: WalletClient, publicClient: PublicClient): Promise<Permit> => {
+		const permit = await PermitUtils.createSharing(options)
+		return PermitUtils.sign(permit, walletClient, publicClient)
+	},
+
+	/**
+	 * Import and sign a shared permit in one operation
+	 */
+	importSharedAndSign: async (options: ImportPermitOptions, walletClient: WalletClient, publicClient: PublicClient): Promise<Permit> => {
+		const permit = await PermitUtils.importShared(options)
 		return PermitUtils.sign(permit, walletClient, publicClient)
 	},
 
@@ -130,7 +172,15 @@ export const PermitUtils = {
 	 * Validate a permit
 	 */
 	validate: (permit: Permit) => {
-		return validatePermit(permit)
+		if (permit.type === 'self') {
+			return validateSelfPermit(permit)
+		} else if (permit.type === 'sharing') {
+			return validateSharingPermit(permit)
+		} else if (permit.type === 'recipient') {
+			return validateImportPermit(permit)
+		} else {
+			throw new Error('PermitUtils :: validate :: Invalid permit type')
+		}
 	},
 
 	/**
@@ -138,7 +188,8 @@ export const PermitUtils = {
 	 */
 	getPermission: (permit: Permit, skipValidation = false): Permission => {
 		if (!skipValidation) {
-			const validationResult = validatePermit(permit)
+			const validationResult = PermitUtils.validate(permit)
+
 			if (!validationResult.success) {
 				throw new Error(
 					`PermitUtils :: getPermission :: permit validation failed - ${JSON.stringify(validationResult.error, null, 2)} ${JSON.stringify(permit, null, 2)}`

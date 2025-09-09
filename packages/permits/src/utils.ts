@@ -1,5 +1,7 @@
 // Utility functions for sealing key operations
 
+declare const BigInt: (value: string | number | bigint) => bigint // eslint-disable-line @typescript-eslint/no-unused-vars
+
 export const fromHexString = (hexString: string): Uint8Array => {
 	const cleanString = hexString.length % 2 === 1 ? `0${hexString}` : hexString
 	const arr = cleanString.replace(/^0x/, '').match(/.{1,2}/g)

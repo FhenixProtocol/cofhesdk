@@ -12,14 +12,13 @@ This package is designed for internal usage within `@cofhesdk/core` but may be i
 
 ## Usage
 
-### Create a Permit for Self-Usage
+### Create a Self Permit
 
 ```typescript
 import { PermitUtils } from '@cofhesdk/permits'
 
 // Create a permit for yourself
-const permit = await PermitUtils.create({
-	type: 'self',
+const permit = await PermitUtils.createSelf({
 	issuer: '0x1234...',
 	name: 'My Data Access',
 	expiration: Math.floor(Date.now() / 1000) + 86400, // 24 hours
@@ -29,12 +28,11 @@ const permit = await PermitUtils.create({
 const signedPermit = await PermitUtils.sign(permit, walletClient, publicClient)
 ```
 
-### Create and Sign in One Step
+### Create and Sign Self Permit in One Step
 
 ```typescript
-const permit = await PermitUtils.createAndSign(
+const permit = await PermitUtils.createSelfAndSign(
 	{
-		type: 'self',
 		issuer: '0x1234...',
 		name: 'My Data Access',
 		expiration: Math.floor(Date.now() / 1000) + 86400,
@@ -44,13 +42,26 @@ const permit = await PermitUtils.createAndSign(
 )
 ```
 
-### Create a Permit to be Shared
+### Create a Sharing Permit
 
 ```typescript
 // Create a permit to share with another user
-const sharingPermit = await PermitUtils.createAndSign(
+const sharingPermit = await PermitUtils.createSharing({
+	issuer: '0x1234...',
+	recipient: '0x5678...',
+	name: 'Shared Data Access',
+	expiration: Math.floor(Date.now() / 1000) + 86400,
+})
+
+// Sign the sharing permit
+const signedSharingPermit = await PermitUtils.sign(sharingPermit, walletClient, publicClient)
+```
+
+### Create and Sign Sharing Permit in One Step
+
+```typescript
+const sharingPermit = await PermitUtils.createSharingAndSign(
 	{
-		type: 'sharing',
 		issuer: '0x1234...',
 		recipient: '0x5678...',
 		name: 'Shared Data Access',
@@ -61,28 +72,39 @@ const sharingPermit = await PermitUtils.createAndSign(
 )
 ```
 
-### Receiving a Shared Permit
+### Import a Shared Permit
 
 ```typescript
 // Import a shared permit from another user
-const importingPermit = {
+const importedPermit = await PermitUtils.importShared({
 	issuer: '0x1234...',
 	recipient: '0x5678...',
 	issuerSignature: '0x...',
 	name: 'Shared Data Access',
 	expiration: 1234567890,
-	validatorId: 0,
-	validatorContract: '0x0000000000000000000000000000000000000000',
-	sealingPair: {
-		privateKey: '...',
-		publicKey: '...',
-	},
-}
-
-const importedPermit = PermitUtils.deserialize(importingPermit)
+})
 
 // Sign as recipient to activate the permit
 const recipientPermit = await PermitUtils.sign(importedPermit, walletClient, publicClient)
+
+// Store the activated permit
+permitStore.setPermit(chainId, account, recipientPermit)
+```
+
+### Import and Sign Shared Permit in One Step
+
+```typescript
+const recipientPermit = await PermitUtils.importSharedAndSign(
+	{
+		issuer: '0x1234...',
+		recipient: '0x5678...',
+		issuerSignature: '0x...',
+		name: 'Shared Data Access',
+		expiration: 1234567890,
+	},
+	walletClient,
+	publicClient
+)
 
 // Store the activated permit
 permitStore.setPermit(chainId, account, recipientPermit)
@@ -140,8 +162,12 @@ const decryptedValue = PermitUtils.unseal(permit, encryptedData)
 
 ### PermitUtils
 
-- `create(options)` - Create a new permit
-- `createAndSign(options, walletClient, publicClient)` - Create and sign in one step
+- `createSelf(options)` - Create a self permit
+- `createSharing(options)` - Create a sharing permit
+- `importShared(options)` - Import a shared permit
+- `createSelfAndSign(options, walletClient, publicClient)` - Create and sign self permit
+- `createSharingAndSign(options, walletClient, publicClient)` - Create and sign sharing permit
+- `importSharedAndSign(options, walletClient, publicClient)` - Import and sign shared permit
 - `sign(permit, walletClient, publicClient)` - Sign an existing permit
 - `validate(permit)` - Validate a permit
 - `serialize(permit)` - Serialize for storage
