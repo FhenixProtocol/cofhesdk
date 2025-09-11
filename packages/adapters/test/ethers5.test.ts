@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { sepolia } from 'viem/chains'
 import { parseEther } from 'viem'
 import { Ethers5Adapter } from '../src/ethers5'
 import { createMockEIP1193Provider } from './test-utils'
@@ -19,12 +18,12 @@ describe('Ethers5Adapter', () => {
 
   it('should work with real JsonRpcProvider and Wallet', async () => {
     
-    const result = await Ethers5Adapter(wallet, { rpcUrl: testRpcUrl })
+    const result = await Ethers5Adapter(provider, wallet)
     
     expect(result).toHaveProperty('publicClient')
     expect(result).toHaveProperty('walletClient')
-    expect(result.publicClient.chain).toEqual(sepolia)
-    expect(result.walletClient.chain).toEqual(sepolia)
+    expect(result.publicClient).toBeDefined()
+    expect(result.walletClient).toBeDefined()
   })
 
   it('should work with Web3Provider signer', async () => {
@@ -32,34 +31,31 @@ describe('Ethers5Adapter', () => {
     const web3Provider = new ethers5.providers.Web3Provider(mockEthereum as any)
     const wallet = new ethers5.Wallet('0x' + '1'.repeat(64), web3Provider)
     
-    const result = await Ethers5Adapter(wallet, { rpcUrl: testRpcUrl })
+    const result = await Ethers5Adapter(web3Provider, wallet)
     
     expect(result).toHaveProperty('publicClient')
     expect(result).toHaveProperty('walletClient')
   })
 
-  it('should work with custom chain', async () => {
-    const result = await Ethers5Adapter(wallet, { 
-      chain: sepolia,
-      rpcUrl: testRpcUrl 
-    })
+  it('should work without configuration', async () => {
+    const result = await Ethers5Adapter(provider, wallet)
     
     expect(result).toHaveProperty('publicClient')
     expect(result).toHaveProperty('walletClient')
-    expect(result.publicClient.chain).toEqual(sepolia)
-    expect(result.walletClient.chain).toEqual(sepolia)
+    expect(result.publicClient).toBeDefined()
+    expect(result.walletClient).toBeDefined()
   })
 
   it('should throw error when signer has no provider', async () => {
     const signerWithoutProvider = { provider: null }
     
     await expect(async () => {
-      await Ethers5Adapter(signerWithoutProvider as any)
-    }).rejects.toThrow('No RPC URL or EIP-1193 provider')
+      await Ethers5Adapter(signerWithoutProvider as any, wallet)
+    }).rejects.toThrow('Provider does not support EIP-1193 interface')
   })
 
   it('should work with real network call', async () => {
-    const result = await Ethers5Adapter(wallet, { rpcUrl: testRpcUrl })
+    const result = await Ethers5Adapter(provider, wallet)
     
     // Test real network call
     const chainId = await result.publicClient.getChainId()
@@ -69,7 +65,7 @@ describe('Ethers5Adapter', () => {
 
   describe('Provider Functions', () => {
     it('should support getChainId', async () => {
-      const { publicClient } = await Ethers5Adapter(wallet, { rpcUrl: testRpcUrl })
+      const { publicClient } = await Ethers5Adapter(provider, wallet)
       
       const chainId = await publicClient.getChainId()
       expect(typeof chainId).toBe('number')
@@ -77,7 +73,7 @@ describe('Ethers5Adapter', () => {
     }, 10000)
 
     it('should support call (contract read)', async () => {
-      const { publicClient } = await Ethers5Adapter(wallet, { rpcUrl: testRpcUrl })
+      const { publicClient } = await Ethers5Adapter(provider, wallet)
       
       // Test eth_call - get ETH balance of zero address
       const balance = await publicClient.getBalance({ 
@@ -87,7 +83,7 @@ describe('Ethers5Adapter', () => {
     }, 10000)
 
     it('should support request (raw RPC)', async () => {
-      const { publicClient } = await Ethers5Adapter(wallet, { rpcUrl: testRpcUrl })
+      const { publicClient } = await Ethers5Adapter(provider, wallet)
       
       // Test raw RPC request - viem requires both method and params
       const blockNumber = await publicClient.request({ 
@@ -101,7 +97,7 @@ describe('Ethers5Adapter', () => {
 
   describe('Signer Functions', () => {
     it('should support getAddress', async () => {
-      const { walletClient } = await Ethers5Adapter(wallet, { rpcUrl: testRpcUrl })
+      const { walletClient } = await Ethers5Adapter(provider, wallet)
       
       const addresses = await walletClient.getAddresses()
       expect(Array.isArray(addresses)).toBe(true)
@@ -110,7 +106,7 @@ describe('Ethers5Adapter', () => {
     }, 10000)
 
     it('should support signTypedData', async () => {
-      const { walletClient } = await Ethers5Adapter(wallet)
+      const { walletClient } = await Ethers5Adapter(provider, wallet)
       
       const domain = {
         name: 'Test',
@@ -137,10 +133,7 @@ describe('Ethers5Adapter', () => {
     }, 10000)
 
     it('should support sendTransaction', async () => {
-      const { publicClient, walletClient } = await Ethers5Adapter(wallet, {
-        chain: sepolia,
-        rpcUrl: testRpcUrl,
-      })
+      const { publicClient, walletClient } = await Ethers5Adapter(provider, wallet)
       
       // Try to send a transaction - this will fail due to insufficient funds
       try {

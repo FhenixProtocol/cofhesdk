@@ -40,7 +40,7 @@ import { ethers } from 'ethers'
 const provider = new ethers.providers.JsonRpcProvider('https://your-rpc-url')
 const signer = new ethers.Wallet('your-private-key', provider)
 
-const { publicClient, walletClient } = Ethers5Adapter(signer, provider)
+const { publicClient, walletClient } = await Ethers5Adapter(provider, signer)
 ```
 
 ### Ethers v6 Adapter
@@ -52,7 +52,7 @@ import { ethers } from 'ethers'
 const provider = new ethers.JsonRpcProvider('https://your-rpc-url')
 const signer = new ethers.Wallet('your-private-key', provider)
 
-const { publicClient, walletClient } = Ethers6Adapter(signer, provider)
+const { publicClient, walletClient } = await Ethers6Adapter(provider, signer)
 ```
 
 ### Viem Adapter
@@ -80,12 +80,20 @@ const { publicClient: viemPublic, walletClient: viemWallet } = WagmiAdapter(wall
 
 ```typescript
 import { HardhatSignerAdapter } from '@cofhesdk/adapters'
+import { hardhat } from 'viem/chains'
 
 // In a Hardhat script or test
 const [signer] = await hre.ethers.getSigners()
-const provider = hre.ethers.provider
 
-const { publicClient, walletClient } = HardhatSignerAdapter(signer, provider)
+const { publicClient, walletClient } = await HardhatSignerAdapter(signer)
+
+// For operations that need chain info, provide it directly
+const hash = await walletClient.sendTransaction({
+  account: await signer.getAddress(),
+  to: '0x...',
+  value: parseEther("1"),
+  chain: hardhat, // Provide chain when needed
+})
 ```
 
 ## EIP-1193 Compatibility

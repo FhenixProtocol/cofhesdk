@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { sepolia } from 'viem/chains'
-import { parseEther, createPublicClient, createWalletClient, http, custom } from 'viem'
+import { parseEther, createPublicClient, createWalletClient, http } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { WagmiAdapter } from '../src/wagmi'
 
@@ -12,16 +11,14 @@ describe('WagmiAdapter', () => {
   let walletClient: ReturnType<typeof createWalletClient>
 
   beforeEach(() => {
-    // Create common setup for all tests
+    // Create common setup for all tests - no chain needed
     account = privateKeyToAccount('0x' + '1'.repeat(64) as `0x${string}`)
     
     publicClient = createPublicClient({
-      chain: sepolia,
       transport: http(testRpcUrl),
     })
 
     walletClient = createWalletClient({
-      chain: sepolia,
       transport: http(testRpcUrl),
       account,
     })
@@ -37,7 +34,7 @@ describe('WagmiAdapter', () => {
   })
 
   it('should throw error when wallet client is missing', async () => {
-    const mockPublicClient = { chain: sepolia } as any
+    const mockPublicClient = {} as any
     
     await expect(async () => {
       await WagmiAdapter(null as any, mockPublicClient)
@@ -45,7 +42,7 @@ describe('WagmiAdapter', () => {
   })
 
   it('should throw error when public client is missing', async () => {
-    const mockWalletClient = { chain: sepolia } as any
+    const mockWalletClient = {} as any
     
     await expect(async () => {
       await WagmiAdapter(mockWalletClient, null as any)
@@ -58,7 +55,7 @@ describe('WagmiAdapter', () => {
       
       const chainId = await resultPublic.getChainId()
       expect(typeof chainId).toBe('number')
-      expect(chainId).toBe(SEPOLIA_CHAIN_ID) // Sepolia
+      expect(chainId).toBe(SEPOLIA_CHAIN_ID)
     }, 10000)
 
     it('should support call (contract read)', async () => {
