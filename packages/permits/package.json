@@ -13,18 +13,8 @@
 		"build": "tsup src/index.ts --format esm,cjs --dts",
 		"dev": "tsup src/index.ts --format esm,cjs --watch --dts",
 		"lint": "eslint \"src/**/*.ts*\"",
-		"clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
-		"test": "vitest",
-		"coverage": "vitest run --coverage"
-	},
-	"dependencies": {
-		"immer": "^10.1.1",
-		"tweetnacl": "^1.0.3",
-		"zod": "^3.23.8",
-		"zustand": "^5.0.1"
-	},
-	"peerDependencies": {
-		"viem": "^2.0.0"
+		"type-check": "tsc --noEmit",
+		"clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
 	},
 	"devDependencies": {
 		"@cofhesdk/tsconfig": "workspace:*",

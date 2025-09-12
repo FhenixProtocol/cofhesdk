@@ -1,4 +1,4 @@
-name: Test
+name: Type Check
 
 on:
   push:
@@ -7,8 +7,8 @@ on:
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
-  test:
-    name: Test
+  type-check:
+    name: Type Check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
@@ -27,5 +27,8 @@ jobs:
       - name: Install Dependencies
         run: pnpm i
 
-      - name: Run Tests
-        run: pnpm test
+      - name: Run Linting
+        run: pnpm lint
+
+      - name: Run Type Check
+        run: pnpm type-check

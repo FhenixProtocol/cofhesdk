@@ -12,6 +12,7 @@
 	"scripts": {
 		"dev": "tsup src/index.tsx --format esm,cjs --watch --dts --external react",
 		"lint": "eslint \"src/**/*.ts*\"",
+		"type-check": "tsc --noEmit",
 		"clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
 	},
 	"devDependencies": {
