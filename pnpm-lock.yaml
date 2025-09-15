@@ -39,6 +39,31 @@ importers:
         specifier: 5.5.4
         version: 5.5.4
 
+  packages/chains:
+    dependencies:
+      zod:
+        specifier: ^3.22.0
+        version: 3.25.76
+    devDependencies:
+      '@cofhesdk/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
+      '@cofhesdk/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      eslint:
+        specifier: ^8.57.0
+        version: 8.57.1
+      tsup:
+        specifier: ^8.0.2
+        version: 8.0.2(typescript@5.5.4)
+      typescript:
+        specifier: 5.5.4
+        version: 5.5.4
+      vitest:
+        specifier: ^1.0.0
+        version: 1.6.0
+
   packages/core:
     dependencies:
       react:
@@ -6254,7 +6279,7 @@ packages:
       local-pkg: 0.5.1
       magic-string: 0.30.19
       pathe: 1.1.2
-      picocolors: 1.0.0
+      picocolors: 1.1.1
       std-env: 3.9.0
       strip-literal: 2.1.1
       tinybench: 2.9.0
