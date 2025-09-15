@@ -1,12 +1,5 @@
-import {
-  fromHexString,
-  toBeArray,
-  toBigInt,
-  toHexString,
-  isBigIntOrNumber,
-  isString,
-} from "./utils";
-import * as nacl from "tweetnacl";
+import { fromHexString, toBeArray, toBigInt, toHexString, isBigIntOrNumber, isString } from './utils';
+import * as nacl from 'tweetnacl';
 
 const PRIVATE_KEY_LENGTH = 64;
 const PUBLIC_KEY_LENGTH = 64;
@@ -54,20 +47,12 @@ export class SealingKey {
 
   unseal = (parsedData: EthEncryptedData): bigint => {
     // Ensure all parameters are Uint8Array
-    const nonce =
-      parsedData.nonce instanceof Uint8Array
-        ? parsedData.nonce
-        : new Uint8Array(parsedData.nonce);
+    const nonce = parsedData.nonce instanceof Uint8Array ? parsedData.nonce : new Uint8Array(parsedData.nonce);
 
     const ephemPublicKey =
-      parsedData.public_key instanceof Uint8Array
-        ? parsedData.public_key
-        : new Uint8Array(parsedData.public_key);
+      parsedData.public_key instanceof Uint8Array ? parsedData.public_key : new Uint8Array(parsedData.public_key);
 
-    const dataToDecrypt =
-      parsedData.data instanceof Uint8Array
-        ? parsedData.data
-        : new Uint8Array(parsedData.data);
+    const dataToDecrypt = parsedData.data instanceof Uint8Array ? parsedData.data : new Uint8Array(parsedData.data);
 
     // Make sure the private key is also a Uint8Array
     const privateKeyBytes = fromHexString(this.privateKey);
@@ -79,15 +64,10 @@ export class SealingKey {
     // console.log("dataToDecrypt length:", dataToDecrypt.length);
 
     // call the nacl box function to decrypt the data
-    const decryptedMessage = nacl.box.open(
-      dataToDecrypt,
-      nonce,
-      ephemPublicKey,
-      privateKeyBytes,
-    );
+    const decryptedMessage = nacl.box.open(dataToDecrypt, nonce, ephemPublicKey, privateKeyBytes);
 
     if (!decryptedMessage) {
-      throw new Error("Failed to decrypt message");
+      throw new Error('Failed to decrypt message');
     }
 
     return toBigInt(decryptedMessage);
@@ -119,10 +99,7 @@ export class SealingKey {
    * @static
    * @throws Will throw if the provided publicKey or value do not meet defined preconditions.
    */
-  static seal = (
-    value: bigint | number,
-    publicKey: string,
-  ): EthEncryptedData => {
+  static seal = (value: bigint | number, publicKey: string): EthEncryptedData => {
     isString(publicKey);
     isBigIntOrNumber(value);
 
@@ -131,12 +108,7 @@ export class SealingKey {
 
     const nonce = nacl.randomBytes(nacl.box.nonceLength);
 
-    const encryptedMessage = nacl.box(
-      toBeArray(value),
-      nonce,
-      fromHexString(publicKey),
-      ephemeralKeyPair.secretKey,
-    );
+    const encryptedMessage = nacl.box(toBeArray(value), nonce, fromHexString(publicKey), ephemeralKeyPair.secretKey);
 
     return {
       data: encryptedMessage,
@@ -155,8 +127,5 @@ export class SealingKey {
 export const GenerateSealingKey = async (): Promise<SealingKey> => {
   const sodiumKeypair = nacl.box.keyPair();
 
-  return new SealingKey(
-    toHexString(sodiumKeypair.secretKey),
-    toHexString(sodiumKeypair.publicKey),
-  );
+  return new SealingKey(toHexString(sodiumKeypair.secretKey), toHexString(sodiumKeypair.publicKey));
 };
