@@ -1,9 +1,9 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 /**
  * Environment schema for cofhejs chains
  */
-export const EnvironmentSchema = z.enum(["MOCK", "TESTNET", "MAINNET"]);
+export const EnvironmentSchema = z.enum(['MOCK', 'TESTNET', 'MAINNET']);
 
 /**
  * Zod schema for CofheChain validation

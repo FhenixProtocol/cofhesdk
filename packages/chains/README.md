@@ -5,17 +5,17 @@ Chain configurations for `cofhesdk`. Used internally by `@cofhesdk/core`. Should
 ## Usage
 
 ```typescript
-import { sepolia, arbSepolia, baseSepolia, hardhat, chains, getChainById, getChainByName } from '@cofhesdk/chains'
+import { sepolia, arbSepolia, baseSepolia, hardhat, chains, getChainById, getChainByName } from '@cofhesdk/chains';
 
 // Use individual chains
-console.log(sepolia.name) // "Sepolia"
+console.log(sepolia.name); // "Sepolia"
 
 // Find chains
-const chain = getChainById(11155111) // sepolia
-const chainByName = getChainByName('sepolia') // sepolia
+const chain = getChainById(11155111); // sepolia
+const chainByName = getChainByName('sepolia'); // sepolia
 
 // Access all chains
-Object.values(chains)
+Object.values(chains);
 ```
 
 ## Available Chains
