@@ -1,13 +1,13 @@
-import { defineConfig } from "tsup";
+import { defineConfig } from 'tsup';
 
 export default defineConfig({
   entry: {
-    ".": "src/index.tsx",
+    '.': 'src/index.tsx',
   },
   banner: {
     js: "'use client'",
   },
-  format: ["cjs", "esm"],
-  external: ["react"],
+  format: ['cjs', 'esm'],
+  external: ['react'],
   dts: true,
 });
