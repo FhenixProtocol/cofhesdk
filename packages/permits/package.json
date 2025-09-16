@@ -1,35 +1,45 @@
 {
-	"name": "@cofhesdk/permits",
-	"version": "0.0.0",
-	"main": "./dist/index.js",
-	"module": "./dist/index.mjs",
-	"types": "./dist/index.d.ts",
-	"sideEffects": false,
-	"license": "MIT",
-	"files": [
-		"dist/**"
-	],
-	"scripts": {
-		"build": "tsup src/index.ts --format esm,cjs --dts",
-		"dev": "tsup src/index.ts --format esm,cjs --watch --dts",
-		"lint": "eslint \"src/**/*.ts*\"",
-		"type-check": "tsc --noEmit",
-		"clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
-	},
-	"devDependencies": {
-		"@cofhesdk/tsconfig": "workspace:*",
-		"eslint": "^8.57.0",
-		"@cofhesdk/eslint-config": "workspace:*",
-		"tsup": "^8.0.2",
-		"typescript": "5.5.4",
-		"@typescript-eslint/eslint-plugin": "7.2.0",
-		"@vitest/coverage-v8": "1.1.0",
-		"prettier": "3.2.5",
-		"rimraf": "^6.0.1",
-		"viem": "^2.0.0",
-		"vitest": "1.6.0"
-	},
-	"publishConfig": {
-		"access": "public"
-	}
+  "name": "@cofhesdk/permits",
+  "version": "0.0.0",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "license": "MIT",
+  "files": [
+    "dist/**"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts",
+    "dev": "tsup src/index.ts --format esm,cjs --watch --dts",
+    "lint": "eslint \"src/**/*.ts*\"",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
+    "test": "vitest",
+    "coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@cofhesdk/tsconfig": "workspace:*",
+    "eslint": "^8.57.0",
+    "@cofhesdk/eslint-config": "workspace:*",
+    "tsup": "^8.0.2",
+    "typescript": "5.5.4",
+    "@typescript-eslint/eslint-plugin": "7.2.0",
+    "@vitest/coverage-v8": "1.1.0",
+    "prettier": "3.2.5",
+    "rimraf": "^6.0.1",
+    "vitest": "1.6.0"
+  },
+  "dependencies": {
+    "immer": "^10.1.1",
+    "tweetnacl": "^1.0.3",
+    "zod": "^3.23.8",
+    "zustand": "^5.0.1"
+  },
+  "peerDependencies": {
+    "viem": "^2.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }
