@@ -2,7 +2,7 @@ import type { PublicClient, WalletClient, Chain, Hex } from "viem";
 import { createWalletClient, custom } from "viem";
 
 
-type SmartAccountClientLike = {
+type SmartAccountClient = {
     account: { address: `0x${string}` };
     // Sends a UserOperation, returns a hash (usually userOpHash)
     // eslint-disable-next-line no-unused-vars
@@ -18,7 +18,7 @@ type SmartAccountClientLike = {
  * - publicClient: passthrough of the given viem PublicClient
  * - walletClient: viem WalletClient-shaped object whose sendTransaction/sign* delegate to the smart account
  */
-export function smartWalletViemAdapter(publicClient: PublicClient, smartAccountClient: SmartAccountClientLike, opts: { chain?: Chain } = {}): { publicClient: PublicClient; walletClient: WalletClient } {
+export function smartWalletViemAdapter(publicClient: PublicClient, smartAccountClient: SmartAccountClient, opts: { chain?: Chain } = {}): { publicClient: PublicClient; walletClient: WalletClient } {
     const chain = opts.chain ?? (publicClient as any).chain;
 
     // Use the existing publicClient for all JSON-RPC calls
@@ -76,8 +76,8 @@ export function smartWalletViemAdapter(publicClient: PublicClient, smartAccountC
             if (typeof smartAccountClient.signMessage === "function") {
                 return smartAccountClient.signMessage(args);
             }
-            // @ts-expect-error — base may not support signing for a JSON-RPC account
-            return base.signMessage(args);
+            // Fallback to base signMessage if smart account doesn't support it
+            return base.signMessage({...args, account: base.account });
         },
 
         /**
