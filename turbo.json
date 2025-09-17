@@ -1,21 +1,26 @@
 {
 	"$schema": "https://turborepo.com/schema.json",
+	"globalEnv": ["HOME", "USERPROFILE"],
 	"tasks": {
 		"build": {
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
 			"outputs": ["dist/**"],
-			"dependsOn": ["^build"]
+			"dependsOn": ["^build"],
+			"env": ["HOME", "USERPROFILE"]
 		},
 		"test": {
 			"dependsOn": []
 		},
-		"lint": {},
+		"lint": {
+			"env": ["HOME", "USERPROFILE"]
+		},
 		"type-check": {
 			"dependsOn": []
 		},
 		"dev": {
 			"cache": false,
-			"persistent": true
+			"persistent": true,
+			"env": ["HOME", "USERPROFILE"]
 		},
 		"clean": {
 			"cache": false
