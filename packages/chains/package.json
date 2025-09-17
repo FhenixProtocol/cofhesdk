@@ -1,35 +1,36 @@
 {
-	"name": "@cofhesdk/chains",
-	"version": "0.0.0",
-	"description": "Chain configurations for coFhe SDK",
-	"main": "./dist/index.js",
-	"module": "./dist/index.mjs",
-	"types": "./dist/index.d.ts",
-	"sideEffects": false,
-	"license": "MIT",
-	"files": [
-		"dist/**"
-	],
-	"scripts": {
-		"build": "tsup src/index.ts --format esm,cjs --dts",
-		"dev": "tsup src/index.ts --format esm,cjs --watch --dts",
-		"lint": "eslint \"src/**/*.ts\"",
-		"clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
-		"test": "vitest"
-	},
-	"devDependencies": {
-		"@cofhesdk/tsconfig": "workspace:*",
-		"@cofhesdk/eslint-config": "workspace:*",
-		"eslint": "^8.57.0",
-		"tsup": "^8.0.2",
-		"typescript": "5.5.4",
-		"vitest": "^1.0.0",
-		"zod": "^3.22.0"
-	},
-	"dependencies": {
-		"zod": "^3.22.0"
-	},
-	"publishConfig": {
-		"access": "public"
-	}
+  "name": "@cofhesdk/chains",
+  "version": "0.0.0",
+  "description": "Chain configurations for coFhe SDK",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "license": "MIT",
+  "files": [
+    "dist/**"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts",
+    "dev": "tsup src/index.ts --format esm,cjs --watch --dts",
+    "lint": "eslint \"src/**/*.ts\"",
+    "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
+    "test": "vitest",
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@cofhesdk/tsconfig": "workspace:*",
+    "@cofhesdk/eslint-config": "workspace:*",
+    "eslint": "^8.57.0",
+    "tsup": "^8.0.2",
+    "typescript": "5.5.4",
+    "vitest": "^1.0.0",
+    "zod": "^3.22.0"
+  },
+  "dependencies": {
+    "zod": "^3.22.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }
