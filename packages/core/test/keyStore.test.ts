@@ -183,7 +183,20 @@ describe('KeyStore', () => {
 
     it('should handle missing rehydrate method', async () => {
       if (keysStore.persist) {
-        keysStore.persist.rehydrate = undefined;
+        // Temporarily disable rehydrate to test fallback
+        const originalRehydrate = keysStore.persist.rehydrate;
+        (keysStore.persist as any).rehydrate = undefined;
+        
+        try {
+          // Should not throw
+          await expect(rehydrateKeysStore()).resolves.not.toThrow();
+        } finally {
+          // Restore original method
+          keysStore.persist.rehydrate = originalRehydrate;
+        }
+      } else {
+        // Should not throw
+        await expect(rehydrateKeysStore()).resolves.not.toThrow();
       }
       
       // Should not throw

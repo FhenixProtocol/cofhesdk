@@ -16,8 +16,8 @@
 		"type-check": "tsc --noEmit",
 		"clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
 		"test": "pnpm run test:all",
-		"test:node": "vitest --config vitest.config.ts --reporter=verbose",
-		"test:browser": "vitest --config vitest.browser.config.ts --reporter=verbose",
+		"test:node": "vitest --config vitest.config.mts --reporter=verbose",
+		"test:browser": "vitest --config vitest.browser.config.mts --reporter=verbose",
 		"test:all": "pnpm run test:node --run && pnpm run test:browser --run",
 		"coverage": "vitest run --coverage"
 	},
@@ -25,13 +25,13 @@
 		"@cofhesdk/eslint-config": "workspace:*",
 		"@cofhesdk/tsconfig": "workspace:*",
 		"@types/node": "^20.0.0",
-		"@vitest/browser": "^3.2.4",
-		"@vitest/coverage-v8": "^3.2.4",
+		"@vitest/browser": "1.6.0",
+		"@vitest/coverage-v8": "1.6.0",
 		"eslint": "^8.57.0",
 		"playwright": "^1.55.0",
 		"tsup": "^8.0.2",
 		"typescript": "5.5.4",
-		"vitest": "^3.2.4"
+		"vitest": "1.6.0"
 	},
 	"dependencies": {
 		"idb-keyval": "^6.2.1",
