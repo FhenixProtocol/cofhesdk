@@ -94,6 +94,9 @@ importers:
 
   packages/core:
     dependencies:
+      viem:
+        specifier: ^2.0.0
+        version: 2.37.5(typescript@5.5.4)(zod@3.25.76)
       zod:
         specifier: ^3.22.0
         version: 3.25.76
