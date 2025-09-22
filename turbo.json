@@ -1,29 +1,29 @@
 {
-	"$schema": "https://turborepo.com/schema.json",
-	"globalEnv": ["HOME", "USERPROFILE"],
-	"tasks": {
-		"build": {
-			"inputs": ["$TURBO_DEFAULT$", ".env*"],
-			"outputs": ["dist/**"],
-			"dependsOn": ["^build"],
-			"env": ["HOME", "USERPROFILE"]
-		},
-		"test": {
-			"dependsOn": []
-		},
-		"lint": {
-			"env": ["HOME", "USERPROFILE"]
-		},
-		"type-check": {
-			"dependsOn": []
-		},
-		"dev": {
-			"cache": false,
-			"persistent": true,
-			"env": ["HOME", "USERPROFILE"]
-		},
-		"clean": {
-			"cache": false
-		}
-	}
+  "$schema": "https://turborepo.com/schema.json",
+  "globalEnv": ["HOME", "USERPROFILE"],
+  "tasks": {
+    "build": {
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": ["dist/**"],
+      "dependsOn": ["^build"],
+      "env": ["HOME", "USERPROFILE"]
+    },
+    "test": {
+      "dependsOn": ["^build"]
+    },
+    "lint": {
+      "env": ["HOME", "USERPROFILE"]
+    },
+    "type-check": {
+      "dependsOn": ["^build"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "env": ["HOME", "USERPROFILE"]
+    },
+    "clean": {
+      "cache": false
+    }
+  }
 }
