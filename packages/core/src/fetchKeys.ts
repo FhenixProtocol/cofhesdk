@@ -51,7 +51,7 @@ const fetchFhePublicKey = async (
   try {
     tfhePublicKeySerializer(pk_buff);
   } catch (err) {
-    throw new Error(`Error serializing public key ${err}`);
+    throw new Error(`Error serializing FHE publicKey; ${err}`);
   }
 
   // Store result
@@ -66,6 +66,7 @@ const fetchCrs = async (
 ) => {
   // Escape if key already exists
   const storedKey = getCrs(chainId);
+  console.log('storedKey', storedKey);
   if (storedKey != null) return;
 
   let crs_data: string | undefined = undefined;
@@ -92,18 +93,22 @@ const fetchCrs = async (
   try {
     compactPkeCrsSerializer(crs_buff);
   } catch (err) {
-    throw new Error(`Error serializing CRS ${err}`);
+    console.error(`Error serializing CRS ${err}`);
+    throw new Error(`Error serializing CRS; ${err}`);
   }
 
   setCrs(chainId, crs_buff);
 };
 
 /**
- * Retrieves the FHE public key from the provider.
- * If the key already exists in the store it is returned, else it is fetched, stored, and returned
+ * Retrieves the FHE public key and the CRS from the provider.
+ * If the key/crs already exists in the store it is returned, else it is fetched, stored, and returned
+ * @param {CofhesdkConfig} config - The configuration object for the CoFHE SDK
  * @param {number} chainId - The chain to fetch the FHE key for, if no chainId provided, undefined is returned
  * @param securityZone - The security zone for which to retrieve the key (default 0).
- * @returns {Promise<TfheCompactPublicKey>} - The retrieved public key.
+ * @param tfhePublicKeySerializer - The serializer for the FHE public key (used for validation).
+ * @param compactPkeCrsSerializer - The serializer for the CRS (used for validation).
+ * @returns {Promise<void>} - A promise that resolves when the keys are fetched and stored.
  */
 export const fetchKeys = async (
   config: CofhesdkConfig,
@@ -118,7 +123,10 @@ export const fetchKeys = async (
     throw new Error(`Error fetching keys; coFheUrl not found in config for chainId ${chainId}`);
   }
 
-  return Promise.all([
+  // await fetchFhePublicKey(coFheUrl, chainId, securityZone, tfhePublicKeySerializer);
+  // await fetchCrs(coFheUrl, chainId, securityZone, compactPkeCrsSerializer);
+
+  await Promise.all([
     fetchFhePublicKey(coFheUrl, chainId, securityZone, tfhePublicKeySerializer),
     fetchCrs(coFheUrl, chainId, securityZone, compactPkeCrsSerializer),
   ]);
