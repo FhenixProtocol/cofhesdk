@@ -1,3 +1,4 @@
+import { hardhat } from '@cofhesdk/chains';
 import { CofhesdkConfig } from './config';
 import { getCrs, getFheKey, setCrs, setFheKey } from './keyStore';
 import { fromHexString } from './utils';
@@ -146,8 +147,8 @@ export const fetchMultichainKeys = async (
   compactPkeCrsSerializer: Serializer
 ) => {
   await Promise.all(
-    config.supportedChains.map((chain) =>
-      fetchKeys(config, chain.id, securityZone, tfhePublicKeySerializer, compactPkeCrsSerializer)
-    )
+    config.supportedChains
+      .filter((chain) => chain.id !== hardhat.id)
+      .map((chain) => fetchKeys(config, chain.id, securityZone, tfhePublicKeySerializer, compactPkeCrsSerializer))
   );
 };
