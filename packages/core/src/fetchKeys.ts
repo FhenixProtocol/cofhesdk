@@ -5,13 +5,13 @@ import { fromHexString } from './utils';
 
 const PUBLIC_KEY_LENGTH_MIN = 15_000;
 // eslint-disable-next-line no-unused-vars
-type Serializer = (buff: Uint8Array) => void;
+export type FheKeySerializer = (buff: Uint8Array) => void;
 
 const fetchFhePublicKey = async (
   coFheUrl: string,
   chainId: number,
   securityZone: number,
-  tfhePublicKeySerializer: Serializer
+  tfhePublicKeySerializer: FheKeySerializer
 ) => {
   // Escape if key already exists
   const storedKey = getFheKey(chainId, securityZone);
@@ -63,7 +63,7 @@ const fetchCrs = async (
   coFheUrl: string,
   chainId: number,
   securityZone: number,
-  compactPkeCrsSerializer: Serializer
+  compactPkeCrsSerializer: FheKeySerializer
 ) => {
   // Escape if key already exists
   const storedKey = getCrs(chainId);
@@ -114,8 +114,8 @@ export const fetchKeys = async (
   config: CofhesdkConfig,
   chainId: number,
   securityZone: number = 0,
-  tfhePublicKeySerializer: Serializer,
-  compactPkeCrsSerializer: Serializer
+  tfhePublicKeySerializer: FheKeySerializer,
+  compactPkeCrsSerializer: FheKeySerializer
 ) => {
   // Get cofhe url from config
   const coFheUrl = config.supportedChains.find((chain) => chain.id === chainId)?.coFheUrl;
@@ -143,8 +143,8 @@ export const fetchKeys = async (
 export const fetchMultichainKeys = async (
   config: CofhesdkConfig,
   securityZone: number = 0,
-  tfhePublicKeySerializer: Serializer,
-  compactPkeCrsSerializer: Serializer
+  tfhePublicKeySerializer: FheKeySerializer,
+  compactPkeCrsSerializer: FheKeySerializer
 ) => {
   await Promise.all(
     config.supportedChains
