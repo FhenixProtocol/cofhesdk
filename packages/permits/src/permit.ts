@@ -2,9 +2,9 @@ import { keccak256, toHex, zeroAddress } from 'viem';
 import { parseAbi, type PublicClient, type WalletClient } from 'viem';
 import {
   Permit,
-  SelfPermitOptions,
-  SharingPermitOptions,
-  ImportPermitOptions,
+  CreateSelfPermitOptions,
+  CreateSharingPermitOptions,
+  ImportSharedPermitOptions,
   SerializedPermit,
   EIP712Domain,
   Permission,
@@ -29,7 +29,7 @@ export const PermitUtils = {
   /**
    * Create a self permit for personal use
    */
-  createSelf: async (options: SelfPermitOptions): Promise<Permit> => {
+  createSelf: async (options: CreateSelfPermitOptions): Promise<Permit> => {
     const validation = validateSelfPermitOptions(options);
 
     if (!validation.success) {
@@ -51,7 +51,7 @@ export const PermitUtils = {
   /**
    * Create a sharing permit to be shared with another user
    */
-  createSharing: async (options: SharingPermitOptions): Promise<Permit> => {
+  createSharing: async (options: CreateSharingPermitOptions): Promise<Permit> => {
     const validation = validateSharingPermitOptions(options);
 
     if (!validation.success) {
@@ -74,8 +74,12 @@ export const PermitUtils = {
   /**
    * Import a shared permit (recipient receiving a shared permit)
    */
-  importShared: async (options: ImportPermitOptions): Promise<Permit> => {
-    const validation = validateImportPermitOptions(options);
+  importShared: async (options: ImportSharedPermitOptions): Promise<Permit> => {
+    if (options.type != null && options.type !== 'sharing') {
+      throw new Error(`PermitUtils :: importShared :: Invalid permit type <${options.type}>, must be "sharing"`);
+    }
+
+    const validation = validateImportPermitOptions({ ...options, type: 'recipient' });
 
     if (!validation.success) {
       throw new Error(
@@ -94,9 +98,23 @@ export const PermitUtils = {
   },
 
   /**
+   * Import a shared permit from a json object
+   */
+  importSharedFromJson: async (data: any): Promise<Permit> => {
+    return PermitUtils.importShared(data);
+  },
+
+  /**
+   * Import a shared permit as a json string
+   */
+  importSharedFromString: async (data: string): Promise<Permit> => {
+    return PermitUtils.importSharedFromJson(JSON.parse(data));
+  },
+
+  /**
    * Sign a permit with the provided wallet client
    */
-  sign: async (permit: Permit, walletClient: WalletClient, publicClient: PublicClient): Promise<Permit> => {
+  sign: async (permit: Permit, publicClient: PublicClient, walletClient: WalletClient): Promise<Permit> => {
     if (walletClient == null || walletClient.account == null) {
       throw new Error(
         'PermitUtils :: sign - walletClient undefined, you must pass in a `walletClient` for the connected user to create a permit signature'
@@ -137,36 +155,60 @@ export const PermitUtils = {
    * Create and sign a self permit in one operation
    */
   createSelfAndSign: async (
-    options: SelfPermitOptions,
-    walletClient: WalletClient,
-    publicClient: PublicClient
+    options: CreateSelfPermitOptions,
+    publicClient: PublicClient,
+    walletClient: WalletClient
   ): Promise<Permit> => {
     const permit = await PermitUtils.createSelf(options);
-    return PermitUtils.sign(permit, walletClient, publicClient);
+    return PermitUtils.sign(permit, publicClient, walletClient);
   },
 
   /**
    * Create and sign a sharing permit in one operation
    */
   createSharingAndSign: async (
-    options: SharingPermitOptions,
-    walletClient: WalletClient,
-    publicClient: PublicClient
+    options: CreateSharingPermitOptions,
+    publicClient: PublicClient,
+    walletClient: WalletClient
   ): Promise<Permit> => {
     const permit = await PermitUtils.createSharing(options);
-    return PermitUtils.sign(permit, walletClient, publicClient);
+    return PermitUtils.sign(permit, publicClient, walletClient);
   },
 
   /**
    * Import and sign a shared permit in one operation
    */
   importSharedAndSign: async (
-    options: ImportPermitOptions,
-    walletClient: WalletClient,
-    publicClient: PublicClient
+    options: ImportSharedPermitOptions,
+    publicClient: PublicClient,
+    walletClient: WalletClient
   ): Promise<Permit> => {
     const permit = await PermitUtils.importShared(options);
-    return PermitUtils.sign(permit, walletClient, publicClient);
+    return PermitUtils.sign(permit, publicClient, walletClient);
+  },
+
+  /**
+   * Import and sign a shared permit in one operation from a json object
+   */
+  importSharedAndSignFromJson: async (
+    data: any,
+    publicClient: PublicClient,
+    walletClient: WalletClient
+  ): Promise<Permit> => {
+    const permit = await PermitUtils.importSharedFromJson(data);
+    return PermitUtils.sign(permit, publicClient, walletClient);
+  },
+
+  /**
+   * Import and sign a shared permit in one operation from a json string
+   */
+  importSharedAndSignFromString: async (
+    data: string,
+    publicClient: PublicClient,
+    walletClient: WalletClient
+  ): Promise<Permit> => {
+    const permit = await PermitUtils.importSharedFromString(data);
+    return PermitUtils.sign(permit, publicClient, walletClient);
   },
 
   /**

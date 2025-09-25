@@ -8,16 +8,16 @@ import {
   validateSharingPermit,
   validateImportPermit,
   Permit,
-  SelfPermitOptions,
-  SharingPermitOptions,
-  ImportPermitOptions,
+  CreateSelfPermitOptions,
+  CreateSharingPermitOptions,
+  ImportSharedPermitOptions,
 } from '../src/index';
 import { createMockPermit } from './utils';
 
 describe('Validation Tests', () => {
   describe('validateSelfPermitOptions', () => {
     it('should validate valid self permit options', () => {
-      const options: SelfPermitOptions = {
+      const options: CreateSelfPermitOptions = {
         type: 'self',
         issuer: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', // Bob's address
         name: 'Test Permit',
@@ -29,7 +29,7 @@ describe('Validation Tests', () => {
     });
 
     it('should reject invalid address', () => {
-      const options: SelfPermitOptions = {
+      const options: CreateSelfPermitOptions = {
         type: 'self',
         issuer: 'invalid-address',
         name: 'Test Permit',
@@ -41,7 +41,7 @@ describe('Validation Tests', () => {
     });
 
     it('should reject zero address', () => {
-      const options: SelfPermitOptions = {
+      const options: CreateSelfPermitOptions = {
         type: 'self',
         issuer: '0x0000000000000000000000000000000000000000',
         name: 'Test Permit',
@@ -55,7 +55,7 @@ describe('Validation Tests', () => {
 
   describe('validateSharingPermitOptions', () => {
     it('should validate valid sharing permit options', () => {
-      const options: SharingPermitOptions = {
+      const options: CreateSharingPermitOptions = {
         type: 'sharing',
         issuer: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', // Bob's address
         recipient: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8', // Alice's address
@@ -67,7 +67,7 @@ describe('Validation Tests', () => {
     });
 
     it('should reject sharing permit with zero recipient', () => {
-      const options: SharingPermitOptions = {
+      const options: CreateSharingPermitOptions = {
         type: 'sharing',
         issuer: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', // Bob's address
         recipient: '0x0000000000000000000000000000000000000000',
@@ -79,7 +79,7 @@ describe('Validation Tests', () => {
     });
 
     it('should reject sharing permit with invalid recipient', () => {
-      const options: SharingPermitOptions = {
+      const options: CreateSharingPermitOptions = {
         type: 'sharing',
         issuer: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', // Bob's address
         recipient: 'invalid-address',
@@ -93,7 +93,7 @@ describe('Validation Tests', () => {
 
   describe('validateImportPermitOptions', () => {
     it('should validate valid import permit options', () => {
-      const options: ImportPermitOptions = {
+      const options: ImportSharedPermitOptions = {
         type: 'recipient',
         issuer: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', // Bob's address
         recipient: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8', // Alice's address
@@ -106,7 +106,7 @@ describe('Validation Tests', () => {
     });
 
     it('should reject import permit with empty signature', () => {
-      const options: ImportPermitOptions = {
+      const options: ImportSharedPermitOptions = {
         type: 'recipient',
         issuer: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', // Bob's address
         recipient: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8', // Alice's address
@@ -119,7 +119,7 @@ describe('Validation Tests', () => {
     });
 
     it('should reject import permit with invalid signature', () => {
-      const options: ImportPermitOptions = {
+      const options: ImportSharedPermitOptions = {
         type: 'recipient',
         issuer: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', // Bob's address
         recipient: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8', // Alice's address

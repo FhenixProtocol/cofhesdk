@@ -2,9 +2,9 @@
 export type {
   Permit,
   PermitOptions,
-  SelfPermitOptions,
-  SharingPermitOptions,
-  ImportPermitOptions,
+  CreateSelfPermitOptions as SelfPermitOptions,
+  CreateSharingPermitOptions as SharingPermitOptions,
+  ImportSharedPermitOptions as ImportPermitOptions,
   SerializedPermit,
   PermitMetadata,
   Permission,
