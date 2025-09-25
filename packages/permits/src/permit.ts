@@ -72,14 +72,34 @@ export const PermitUtils = {
   },
 
   /**
-   * Import a shared permit (recipient receiving a shared permit)
+   * Import a shared permit from various input formats
    */
-  importShared: async (options: ImportSharedPermitOptions): Promise<Permit> => {
-    if (options.type != null && options.type !== 'sharing') {
-      throw new Error(`PermitUtils :: importShared :: Invalid permit type <${options.type}>, must be "sharing"`);
+  importShared: async (options: ImportSharedPermitOptions | any | string): Promise<Permit> => {
+    let parsedOptions: ImportSharedPermitOptions;
+
+    // Handle different input types
+    if (typeof options === 'string') {
+      // Parse JSON string
+      try {
+        parsedOptions = JSON.parse(options);
+      } catch (error) {
+        throw new Error(`PermitUtils :: importShared :: Failed to parse JSON string: ${error}`);
+      }
+    } else if (typeof options === 'object' && options !== null) {
+      // Handle both ImportSharedPermitOptions and any object
+      parsedOptions = options;
+    } else {
+      throw new Error(
+        'PermitUtils :: importShared :: Invalid input type, expected ImportSharedPermitOptions, object, or string'
+      );
     }
 
-    const validation = validateImportPermitOptions({ ...options, type: 'recipient' });
+    // Validate type if provided
+    if (parsedOptions.type != null && parsedOptions.type !== 'sharing') {
+      throw new Error(`PermitUtils :: importShared :: Invalid permit type <${parsedOptions.type}>, must be "sharing"`);
+    }
+
+    const validation = validateImportPermitOptions({ ...parsedOptions, type: 'recipient' });
 
     if (!validation.success) {
       throw new Error(
@@ -95,20 +115,6 @@ export const PermitUtils = {
       sealingPair,
       _signedDomain: undefined,
     };
-  },
-
-  /**
-   * Import a shared permit from a json object
-   */
-  importSharedFromJson: async (data: any): Promise<Permit> => {
-    return PermitUtils.importShared(data);
-  },
-
-  /**
-   * Import a shared permit as a json string
-   */
-  importSharedFromString: async (data: string): Promise<Permit> => {
-    return PermitUtils.importSharedFromJson(JSON.parse(data));
   },
 
   /**
@@ -176,38 +182,14 @@ export const PermitUtils = {
   },
 
   /**
-   * Import and sign a shared permit in one operation
+   * Import and sign a shared permit in one operation from various input formats
    */
   importSharedAndSign: async (
-    options: ImportSharedPermitOptions,
+    options: ImportSharedPermitOptions | any | string,
     publicClient: PublicClient,
     walletClient: WalletClient
   ): Promise<Permit> => {
     const permit = await PermitUtils.importShared(options);
-    return PermitUtils.sign(permit, publicClient, walletClient);
-  },
-
-  /**
-   * Import and sign a shared permit in one operation from a json object
-   */
-  importSharedAndSignFromJson: async (
-    data: any,
-    publicClient: PublicClient,
-    walletClient: WalletClient
-  ): Promise<Permit> => {
-    const permit = await PermitUtils.importSharedFromJson(data);
-    return PermitUtils.sign(permit, publicClient, walletClient);
-  },
-
-  /**
-   * Import and sign a shared permit in one operation from a json string
-   */
-  importSharedAndSignFromString: async (
-    data: string,
-    publicClient: PublicClient,
-    walletClient: WalletClient
-  ): Promise<Permit> => {
-    const permit = await PermitUtils.importSharedFromString(data);
     return PermitUtils.sign(permit, publicClient, walletClient);
   },
 

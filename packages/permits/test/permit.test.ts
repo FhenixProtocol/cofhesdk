@@ -140,7 +140,7 @@ describe('PermitUtils Tests', () => {
 
       const stringOptions = JSON.stringify(options);
 
-      const permit = await PermitUtils.importSharedFromString(stringOptions);
+      const permit = await PermitUtils.importShared(stringOptions);
 
       expect(permit.type).toBe('recipient');
     });
@@ -238,7 +238,7 @@ describe('PermitUtils Tests', () => {
 
       const stringOptions = JSON.stringify(options);
 
-      const permit = await PermitUtils.importSharedAndSignFromString(stringOptions, publicClient, aliceWalletClient);
+      const permit = await PermitUtils.importSharedAndSign(stringOptions, publicClient, aliceWalletClient);
 
       expect(permit.type).toBe('recipient');
       expect(permit.recipientSignature).toBeDefined();
@@ -255,7 +255,7 @@ describe('PermitUtils Tests', () => {
 
       const jsonOptions = JSON.parse(JSON.stringify(options));
 
-      const permit = await PermitUtils.importSharedAndSignFromJson(jsonOptions, publicClient, aliceWalletClient);
+      const permit = await PermitUtils.importSharedAndSign(jsonOptions, publicClient, aliceWalletClient);
 
       expect(permit.type).toBe('recipient');
       expect(permit.recipientSignature).toBeDefined();
