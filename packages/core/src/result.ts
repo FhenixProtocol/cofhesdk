@@ -79,6 +79,7 @@ export const isCofhesdkError = (error: unknown): error is CofhesdkError => {
 };
 
 export const InternalCofhesdkError = (internalError: unknown): CofhesdkError => {
+  if (isCofhesdkError(internalError)) return internalError;
   const error = internalError instanceof Error ? internalError : undefined;
   return new CofhesdkError({
     code: CofhesdkErrorCode.InternalError,
