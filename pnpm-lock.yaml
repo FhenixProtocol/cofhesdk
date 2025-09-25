@@ -116,6 +116,9 @@ importers:
       '@cofhesdk/eslint-config':
         specifier: workspace:*
         version: link:../eslint-config
+      '@cofhesdk/permits':
+        specifier: workspace:*
+        version: link:../permits
       '@cofhesdk/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * @vitest-environment node
  */
@@ -19,7 +18,7 @@ import {
 import { createMockPermit } from './utils';
 
 describe('Storage Tests', () => {
-  const chainId = '1';
+  const chainId = 1;
   const account = '0x1234567890123456789012345678901234567890';
 
   beforeEach(() => {

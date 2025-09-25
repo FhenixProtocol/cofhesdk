@@ -14,15 +14,15 @@ const store = createStore<SdkStore>()(() => ({
   walletClient: null,
 }));
 
-const getConfig = () => {
+const getConfig = (): CofhesdkConfig | null => {
   return store.getState().config;
 };
 
-const getPublicClient = () => {
+const getPublicClient = (): PublicClient | null => {
   return store.getState().publicClient;
 };
 
-const getWalletClient = () => {
+const getWalletClient = (): WalletClient | null => {
   return store.getState().walletClient;
 };
 

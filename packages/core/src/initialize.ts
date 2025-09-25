@@ -24,15 +24,16 @@ export const initialize = async (
   // Fetch FHE keys
   await initializeFheKeys(config, publicClient, tfhePublicKeySerializer, compactPkeCrsSerializer);
 
-  // TODO: Store config and clients in storage
+  // Store config and clients in storage
   sdkStore.setConfig(config);
   sdkStore.setPublicClient(publicClient);
   sdkStore.setWalletClient(walletClient);
 
-  // TODO: Generate permit if config.generatePermitDuringInit is true
-  // if (config.generatePermitDuringInitialization) {
-  //   generatePermit(config, publicClient, walletClient);
-  // }
+  // Generate permit if configured
+  if (config.generatePermitDuringInitialization) {
+    console.log('TODO: Generate permit');
+    // generatePermit(config, publicClient, walletClient);
+  }
 };
 
 const initializeFheKeys = async (

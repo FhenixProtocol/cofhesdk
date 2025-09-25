@@ -1,8 +1,8 @@
 {
-	"extends": "@cofhesdk/tsconfig/base.json",
-	"include": ["."],
-	"exclude": ["dist", "build", "node_modules"],
-	"compilerOptions": {
-		"module": "NodeNext"
-	}
+  "extends": "@cofhesdk/tsconfig/base.json",
+  "include": [".", "../core/src/result.ts"],
+  "exclude": ["dist", "build", "node_modules"],
+  "compilerOptions": {
+    "module": "NodeNext"
+  }
 }

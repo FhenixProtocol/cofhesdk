@@ -25,6 +25,7 @@
     "@cofhesdk/eslint-config": "workspace:*",
     "@cofhesdk/tsconfig": "workspace:*",
     "@cofhesdk/chains": "workspace:*",
+    "@cofhesdk/permits": "workspace:*",
     "@types/node": "^20.0.0",
     "@vitest/browser": "1.6.0",
     "@vitest/coverage-v8": "1.6.0",
