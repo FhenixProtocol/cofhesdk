@@ -6,6 +6,7 @@ import {
   CreateSharingPermitOptions,
   Permit,
   permitStore,
+  SerializedPermit,
 } from '@cofhesdk/permits';
 import { sdkStore } from './sdkStore';
 import { CofhesdkError, CofhesdkErrorCode, InternalCofhesdkError } from './result';
@@ -36,7 +37,8 @@ const storeActivePermit = async (permit: Permit, publicClient: any, walletClient
 };
 
 // Helper to resolve context with defaults
-const resolveContext = async (chainId?: number, account?: string) => {
+const resolveContext = async (options?: GetPermitsOptions) => {
+  const { chainId, account } = options ?? {};
   const { publicClient, walletClient } = getValidatedClients();
   const resolvedChainId = chainId ?? (await publicClient.getChainId());
   const resolvedAccount = account ?? walletClient.account!.address;
@@ -76,43 +78,62 @@ const importShared = async (options: ImportSharedPermitOptions | any | string) =
   return createPermitWithSign(options, PermitUtils.importSharedAndSign);
 };
 
+// PERMIT UTILS
+
+const getHash = (permit: Permit) => {
+  return PermitUtils.getHash(permit);
+};
+
+const serialize = (permit: Permit) => {
+  return PermitUtils.serialize(permit);
+};
+
+const deserialize = (serialized: SerializedPermit) => {
+  return PermitUtils.deserialize(serialized);
+};
+
 // GET
 
-const getPermit = async ({ chainId, account, hash }: { chainId?: number; account?: string; hash: string }) => {
-  const { resolvedChainId, resolvedAccount } = await resolveContext(chainId, account);
+type GetPermitsOptions = {
+  chainId?: number;
+  account?: string;
+};
+
+const getPermit = async (hash: string, options?: GetPermitsOptions) => {
+  const { resolvedChainId, resolvedAccount } = await resolveContext(options);
   return permitStore.getPermit(resolvedChainId, resolvedAccount, hash);
 };
 
-const getPermits = async ({ chainId, account }: { chainId?: number; account?: string }) => {
-  const { resolvedChainId, resolvedAccount } = await resolveContext(chainId, account);
+const getPermits = async (options?: GetPermitsOptions) => {
+  const { resolvedChainId, resolvedAccount } = await resolveContext(options);
   return permitStore.getPermits(resolvedChainId, resolvedAccount);
 };
 
-const getActivePermit = async ({ chainId, account }: { chainId?: number; account?: string }) => {
-  const { resolvedChainId, resolvedAccount } = await resolveContext(chainId, account);
+const getActivePermit = async (options?: GetPermitsOptions) => {
+  const { resolvedChainId, resolvedAccount } = await resolveContext(options);
   return permitStore.getActivePermit(resolvedChainId, resolvedAccount);
 };
 
-const getActivePermitHash = async ({ chainId, account }: { chainId?: number; account?: string }) => {
-  const { resolvedChainId, resolvedAccount } = await resolveContext(chainId, account);
+const getActivePermitHash = async (options?: GetPermitsOptions) => {
+  const { resolvedChainId, resolvedAccount } = await resolveContext(options);
   return permitStore.getActivePermitHash(resolvedChainId, resolvedAccount);
 };
 
-const selectActivePermit = async ({ chainId, account, hash }: { chainId?: number; account?: string; hash: string }) => {
-  const { resolvedChainId, resolvedAccount } = await resolveContext(chainId, account);
+const selectActivePermit = async (hash: string, options?: GetPermitsOptions) => {
+  const { resolvedChainId, resolvedAccount } = await resolveContext(options);
   const permit = await permitStore.setActivePermitHash(resolvedChainId, resolvedAccount, hash);
   return permit;
 };
 
 // REMOVE
 
-const removePermit = async ({ chainId, account, hash }: { chainId?: number; account?: string; hash: string }) => {
-  const { resolvedChainId, resolvedAccount } = await resolveContext(chainId, account);
+const removePermit = async (hash: string, options?: GetPermitsOptions) => {
+  const { resolvedChainId, resolvedAccount } = await resolveContext(options);
   await permitStore.removePermit(resolvedChainId, resolvedAccount, hash);
 };
 
-const removeActivePermit = async ({ chainId, account }: { chainId?: number; account?: string }) => {
-  const { resolvedChainId, resolvedAccount } = await resolveContext(chainId, account);
+const removeActivePermit = async (options?: GetPermitsOptions) => {
+  const { resolvedChainId, resolvedAccount } = await resolveContext(options);
   await permitStore.removeActivePermitHash(resolvedChainId, resolvedAccount);
 };
 
@@ -122,6 +143,10 @@ export const permits = {
   createSelf,
   createSharing,
   importShared,
+
+  getHash,
+  serialize,
+  deserialize,
 
   getPermit,
   getPermits,
