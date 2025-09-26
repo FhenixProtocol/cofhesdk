@@ -1,4 +1,5 @@
 /* eslint-disable no-unused-vars */
+import { CofhesdkError, CofhesdkErrorCode } from './error';
 import {
   ImportSharedPermitOptions,
   PermitUtils,
@@ -9,7 +10,7 @@ import {
   SerializedPermit,
 } from '@cofhesdk/permits';
 import { sdkStore } from './sdkStore';
-import { CofhesdkError, CofhesdkErrorCode, InternalCofhesdkError } from './result';
+import { Result, resultWrapper } from './result';
 import { PublicClient, WalletClient } from 'viem';
 
 // HELPERS
@@ -49,19 +50,13 @@ const resolveContext = async (options?: GetPermitsOptions) => {
 const createPermitWithSign = async <T>(
   options: T,
   permitMethod: (options: T, publicClient: PublicClient, walletClient: WalletClient) => Promise<Permit>
-) => {
-  const { publicClient, walletClient } = getValidatedClients();
-
-  let permit: Permit;
-  try {
-    permit = await permitMethod(options, publicClient, walletClient);
-  } catch (error) {
-    throw InternalCofhesdkError(error);
-  }
-
-  await storeActivePermit(permit, publicClient, walletClient);
-
-  return permit;
+): Promise<Result<Permit>> => {
+  return resultWrapper(async () => {
+    const { publicClient, walletClient } = getValidatedClients();
+    const permit = await permitMethod(options, publicClient, walletClient);
+    await storeActivePermit(permit, publicClient, walletClient);
+    return permit;
+  });
 };
 
 // CREATE
@@ -70,17 +65,17 @@ const createPermitWithSign = async <T>(
  * Create a permit usable by the connected user
  * Stores the permit and selects it as the active permit
  * @param options - The options for creating a self permit
- * @returns The created permit
+ * @returns The created permit or error
  */
-const createSelf = async (options: CreateSelfPermitOptions) => {
+const createSelf = async (options: CreateSelfPermitOptions): Promise<Result<Permit>> => {
   return createPermitWithSign(options, PermitUtils.createSelfAndSign);
 };
 
-const createSharing = async (options: CreateSharingPermitOptions) => {
+const createSharing = async (options: CreateSharingPermitOptions): Promise<Result<Permit>> => {
   return createPermitWithSign(options, PermitUtils.createSharingAndSign);
 };
 
-const importShared = async (options: ImportSharedPermitOptions | any | string) => {
+const importShared = async (options: ImportSharedPermitOptions | any | string): Promise<Result<Permit>> => {
   return createPermitWithSign(options, PermitUtils.importSharedAndSign);
 };
 
@@ -105,42 +100,55 @@ type GetPermitsOptions = {
   account?: string;
 };
 
-const getPermit = async (hash: string, options?: GetPermitsOptions) => {
-  const { resolvedChainId, resolvedAccount } = await resolveContext(options);
-  return permitStore.getPermit(resolvedChainId, resolvedAccount, hash);
+const getPermit = async (hash: string, options?: GetPermitsOptions): Promise<Result<Permit | undefined>> => {
+  return resultWrapper(async () => {
+    const { resolvedChainId, resolvedAccount } = await resolveContext(options);
+    return permitStore.getPermit(resolvedChainId, resolvedAccount, hash);
+  });
 };
 
-const getPermits = async (options?: GetPermitsOptions) => {
-  const { resolvedChainId, resolvedAccount } = await resolveContext(options);
-  return permitStore.getPermits(resolvedChainId, resolvedAccount);
+const getPermits = async (options?: GetPermitsOptions): Promise<Result<Record<string, Permit>>> => {
+  return resultWrapper(async () => {
+    const { resolvedChainId, resolvedAccount } = await resolveContext(options);
+    return permitStore.getPermits(resolvedChainId, resolvedAccount);
+  });
 };
 
-const getActivePermit = async (options?: GetPermitsOptions) => {
-  const { resolvedChainId, resolvedAccount } = await resolveContext(options);
-  return permitStore.getActivePermit(resolvedChainId, resolvedAccount);
+const getActivePermit = async (options?: GetPermitsOptions): Promise<Result<Permit | undefined>> => {
+  return resultWrapper(async () => {
+    const { resolvedChainId, resolvedAccount } = await resolveContext(options);
+    return permitStore.getActivePermit(resolvedChainId, resolvedAccount);
+  });
 };
 
-const getActivePermitHash = async (options?: GetPermitsOptions) => {
-  const { resolvedChainId, resolvedAccount } = await resolveContext(options);
-  return permitStore.getActivePermitHash(resolvedChainId, resolvedAccount);
+const getActivePermitHash = async (options?: GetPermitsOptions): Promise<Result<string | undefined>> => {
+  return resultWrapper(async () => {
+    const { resolvedChainId, resolvedAccount } = await resolveContext(options);
+    return permitStore.getActivePermitHash(resolvedChainId, resolvedAccount);
+  });
 };
 
-const selectActivePermit = async (hash: string, options?: GetPermitsOptions) => {
-  const { resolvedChainId, resolvedAccount } = await resolveContext(options);
-  const permit = await permitStore.setActivePermitHash(resolvedChainId, resolvedAccount, hash);
-  return permit;
+const selectActivePermit = async (hash: string, options?: GetPermitsOptions): Promise<Result<void>> => {
+  return resultWrapper(async () => {
+    const { resolvedChainId, resolvedAccount } = await resolveContext(options);
+    await permitStore.setActivePermitHash(resolvedChainId, resolvedAccount, hash);
+  });
 };
 
 // REMOVE
 
-const removePermit = async (hash: string, options?: GetPermitsOptions) => {
-  const { resolvedChainId, resolvedAccount } = await resolveContext(options);
-  await permitStore.removePermit(resolvedChainId, resolvedAccount, hash);
+const removePermit = async (hash: string, options?: GetPermitsOptions): Promise<Result<void>> => {
+  return resultWrapper(async () => {
+    const { resolvedChainId, resolvedAccount } = await resolveContext(options);
+    await permitStore.removePermit(resolvedChainId, resolvedAccount, hash);
+  });
 };
 
-const removeActivePermit = async (options?: GetPermitsOptions) => {
-  const { resolvedChainId, resolvedAccount } = await resolveContext(options);
-  await permitStore.removeActivePermitHash(resolvedChainId, resolvedAccount);
+const removeActivePermit = async (options?: GetPermitsOptions): Promise<Result<void>> => {
+  return resultWrapper(async () => {
+    const { resolvedChainId, resolvedAccount } = await resolveContext(options);
+    await permitStore.removeActivePermitHash(resolvedChainId, resolvedAccount);
+  });
 };
 
 // EXPORT

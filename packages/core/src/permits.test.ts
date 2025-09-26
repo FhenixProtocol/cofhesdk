@@ -10,8 +10,9 @@ import { createPublicClient, createWalletClient, http, PublicClient, WalletClien
 import { arbitrumSepolia } from 'viem/chains';
 import { permits } from './permits';
 import { sdkStore } from './sdkStore';
-import { permitStore, PermitUtils } from '@cofhesdk/permits';
+import { permitStore } from '@cofhesdk/permits';
 import { privateKeyToAccount } from 'viem/accounts';
+import { expectResultSuccess } from './result.test';
 
 // Test private keys (well-known test keys from Anvil/Hardhat)
 const BOB_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'; // Bob - always issuer
@@ -60,13 +61,14 @@ describe('Core Permits Tests with Real Clients', () => {
   describe('Permit Creation', () => {
     it('should create and store self permit', async () => {
       const result = await permits.createSelf({ name: 'Test Self Permit', issuer: bobAddress });
+      const permit = expectResultSuccess(result);
 
-      expect(result).toBeDefined();
-      expect(result.name).toBe('Test Self Permit');
-      expect(result.type).toBe('self');
-      expect(result.issuer).toBe(bobAddress);
-      expect(result.issuerSignature).toBeDefined();
-      expect(result.issuerSignature).not.toBe('0x');
+      expect(permit).toBeDefined();
+      expect(permit.name).toBe('Test Self Permit');
+      expect(permit.type).toBe('self');
+      expect(permit.issuer).toBe(bobAddress);
+      expect(permit.issuerSignature).toBeDefined();
+      expect(permit.issuerSignature).not.toBe('0x');
 
       // Verify localStorage
       const storedData = localStorage.getItem('cofhejs-permits');
@@ -82,14 +84,14 @@ describe('Core Permits Tests with Real Clients', () => {
         issuer: bobAddress,
         recipient: aliceAddress,
       });
+      const permit = expectResultSuccess(result);
 
-      expect(result).toBeDefined();
-      expect(result.name).toBe('Test Sharing Permit');
-      expect(result.type).toBe('sharing');
-      expect(result.issuer).toBe(bobAddress);
-      expect(result.recipient).toBe(aliceAddress);
-      expect(result.issuerSignature).toBeDefined();
-      expect(result.issuerSignature).not.toBe('0x');
+      expect(permit.name).toBe('Test Sharing Permit');
+      expect(permit.type).toBe('sharing');
+      expect(permit.issuer).toBe(bobAddress);
+      expect(permit.recipient).toBe(aliceAddress);
+      expect(permit.issuerSignature).toBeDefined();
+      expect(permit.issuerSignature).not.toBe('0x');
 
       // Verify localStorage
       const storedData = localStorage.getItem('cofhejs-permits');
@@ -101,11 +103,12 @@ describe('Core Permits Tests with Real Clients', () => {
 
     it('should import shared permit from JSON string', async () => {
       // First create a sharing permit to import
-      const sharingPermit = await permits.createSharing({
+      const sharingResult = await permits.createSharing({
         name: 'Original Sharing Permit',
         issuer: bobAddress,
         recipient: aliceAddress,
       });
+      const sharingPermit = expectResultSuccess(sharingResult);
 
       // Export the permit as JSON string
       const permitJson = JSON.stringify({
@@ -121,14 +124,14 @@ describe('Core Permits Tests with Real Clients', () => {
 
       // Import the permit as a different user
       const result = await permits.importShared(permitJson);
+      const permit = expectResultSuccess(result);
 
-      expect(result).toBeDefined();
-      expect(result.name).toBe('Original Sharing Permit');
-      expect(result.type).toBe('recipient');
-      expect(result.issuer).toBe(bobAddress);
-      expect(result.recipient).toBe(aliceAddress);
-      expect(result.recipientSignature).toBeDefined();
-      expect(result.recipientSignature).not.toBe('0x');
+      expect(permit.name).toBe('Original Sharing Permit');
+      expect(permit.type).toBe('recipient');
+      expect(permit.issuer).toBe(bobAddress);
+      expect(permit.recipient).toBe(aliceAddress);
+      expect(permit.recipientSignature).toBeDefined();
+      expect(permit.recipientSignature).not.toBe('0x');
     });
   });
 
@@ -138,39 +141,41 @@ describe('Core Permits Tests with Real Clients', () => {
 
     beforeEach(async () => {
       // Create a real permit for testing
-      createdPermit = await permits.createSelf({ name: 'Test Permit', issuer: bobAddress });
+      const result = await permits.createSelf({ name: 'Test Permit', issuer: bobAddress });
+      createdPermit = expectResultSuccess(result);
       permitHash = permits.getHash(createdPermit);
     });
 
     it('should get permit by hash', async () => {
       const result = await permits.getPermit(permitHash);
-      expect(result).toBeDefined();
-      expect(result?.name).toBe('Test Permit');
-      expect(result?.type).toBe('self');
+      const permit = expectResultSuccess(result);
+      expect(permit?.name).toBe('Test Permit');
+      expect(permit?.type).toBe('self');
     });
 
     it('should get all permits', async () => {
       const result = await permits.getPermits({});
-      expect(result).toBeDefined();
-      expect(Object.keys(result).length).toBeGreaterThan(0);
+      const allPermits = expectResultSuccess(result);
+      expect(Object.keys(allPermits).length).toBeGreaterThan(0);
     });
 
     it('should get active permit', async () => {
       const result = await permits.getActivePermit({});
-      expect(result).toBeDefined();
-      expect(result?.name).toBe('Test Permit');
+      const permit = expectResultSuccess(result);
+      expect(permit?.name).toBe('Test Permit');
     });
 
     it('should get active permit hash', async () => {
       const result = await permits.getActivePermitHash({});
-      expect(result).toBeDefined();
-      expect(typeof result).toBe('string');
+      const hash = expectResultSuccess(result);
+      expect(typeof hash).toBe('string');
     });
   });
 
   describe('localStorage Integration', () => {
     it('should persist permits to localStorage', async () => {
-      const createdPermit = await permits.createSelf({ name: 'Test Permit', issuer: bobAddress });
+      const result = await permits.createSelf({ name: 'Test Permit', issuer: bobAddress });
+      const createdPermit = expectResultSuccess(result);
 
       const storedData = localStorage.getItem('cofhejs-permits');
       expect(storedData).toBeDefined();
@@ -191,9 +196,9 @@ describe('Core Permits Tests with Real Clients', () => {
 
   describe('Real Network Integration', () => {
     it('should create permit with real EIP712 domain from Arbitrum Sepolia', async () => {
-      const permit = await permits.createSelf({ name: 'Real Network Permit', issuer: bobAddress });
+      const result = await permits.createSelf({ name: 'Real Network Permit', issuer: bobAddress });
+      const permit = expectResultSuccess(result);
 
-      expect(permit).toBeDefined();
       expect(permit._signedDomain).toBeDefined();
       expect(permit._signedDomain?.chainId).toBe(chainId);
       expect(permit._signedDomain?.name).toBeDefined();
@@ -211,11 +216,13 @@ describe('Core Permits Tests with Real Clients', () => {
       });
 
       // Verify both permits exist
-      const allPermits = await permits.getPermits({});
+      const allPermitsResult = await permits.getPermits({});
+      const allPermits = expectResultSuccess(allPermitsResult);
       expect(Object.keys(allPermits).length).toBeGreaterThanOrEqual(2);
 
       // Verify active permit is the last created one
-      const activePermit = await permits.getActivePermit({});
+      const activePermitResult = await permits.getActivePermit({});
+      const activePermit = expectResultSuccess(activePermitResult);
       expect(activePermit?.name).toBe('Permit 2');
     });
   });
