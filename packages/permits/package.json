@@ -19,15 +19,16 @@
     "coverage": "vitest run --coverage"
   },
   "devDependencies": {
-    "@cofhesdk/tsconfig": "workspace:*",
-    "eslint": "^8.57.0",
     "@cofhesdk/eslint-config": "workspace:*",
-    "tsup": "^8.0.2",
-    "typescript": "5.5.4",
+    "@cofhesdk/tsconfig": "workspace:*",
     "@typescript-eslint/eslint-plugin": "7.2.0",
     "@vitest/coverage-v8": "1.1.0",
+    "eslint": "^8.57.0",
+    "happy-dom": "^15.0.0",
     "prettier": "3.2.5",
     "rimraf": "^6.0.1",
+    "tsup": "^8.0.2",
+    "typescript": "5.5.4",
     "vitest": "1.6.0"
   },
   "dependencies": {
