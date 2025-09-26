@@ -4,7 +4,7 @@ import { CofhesdkError, CofhesdkErrorCode } from './error';
 
 export const expectResultError = <T>(result: Result<T>, errorPartial: string) => {
   expect(result.success).to.eq(false, 'Result should be an error');
-  expect(result.error).to.include(errorPartial, `Error should contain error partial: ${errorPartial}`);
+  expect(result.error!.message).to.include(errorPartial, `Error should contain error partial: ${errorPartial}`);
 };
 
 export const expectResultSuccess = <T>(result: Result<T>): T => {
@@ -58,13 +58,11 @@ describe('Result Type', () => {
 describe('Error Utilities', () => {
   describe('ResultErrOrInternal', () => {
     it('should wrap unknown errors as internal errors', () => {
-      const result = ResultErrOrInternal('string error');
+      const result = ResultErrOrInternal(new Error('string error'));
       expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toBeInstanceOf(CofhesdkError);
-        expect(result.error.code).toBe(CofhesdkErrorCode.InternalError);
-        expect(result.error.message).toBe('An internal error occurred: string error');
-      }
+      expect(result.error!).toBeInstanceOf(CofhesdkError);
+      expect(result.error!.code).toBe(CofhesdkErrorCode.InternalError);
+      expect(result.error!.message).toBe('An internal error occurred: string error');
     });
 
     it('should preserve CofhesdkError instances', () => {
@@ -74,19 +72,15 @@ describe('Error Utilities', () => {
       });
       const result = ResultErrOrInternal(originalError);
       expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toBe(originalError);
-      }
+      expect(result.error!).toBe(originalError);
     });
 
     it('should handle Error instances', () => {
       const error = new Error('Standard error');
       const result = ResultErrOrInternal(error);
       expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toBeInstanceOf(CofhesdkError);
-        expect(result.error.cause).toBe(error);
-      }
+      expect(result.error!).toBeInstanceOf(CofhesdkError);
+      expect(result.error!.cause).toBe(error);
     });
   });
 });
