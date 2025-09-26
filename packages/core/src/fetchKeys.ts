@@ -123,9 +123,6 @@ export const fetchKeys = async (
     throw new Error(`Error fetching keys; coFheUrl not found in config for chainId ${chainId}`);
   }
 
-  // await fetchFhePublicKey(coFheUrl, chainId, securityZone, tfhePublicKeySerializer);
-  // await fetchCrs(coFheUrl, chainId, securityZone, compactPkeCrsSerializer);
-
   await Promise.all([
     fetchFhePublicKey(coFheUrl, chainId, securityZone, tfhePublicKeySerializer),
     fetchCrs(coFheUrl, chainId, securityZone, compactPkeCrsSerializer),
