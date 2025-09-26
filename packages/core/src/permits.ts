@@ -66,6 +66,12 @@ const createPermitWithSign = async <T>(
 
 // CREATE
 
+/**
+ * Create a permit usable by the connected user
+ * Stores the permit and selects it as the active permit
+ * @param options - The options for creating a self permit
+ * @returns The created permit
+ */
 const createSelf = async (options: CreateSelfPermitOptions) => {
   return createPermitWithSign(options, PermitUtils.createSelfAndSign);
 };
