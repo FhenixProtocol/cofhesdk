@@ -17,7 +17,7 @@ export const CofhesdkConfigSchema = z.object({
   /** List of supported chain configurations */
   supportedChains: z.array(z.custom<CofheChain>()),
   /** Strategy for fetching FHE keys */
-  keyFetchingStrategy: z.enum(['CONNECTED_CHAIN', 'SUPPORTED_CHAINS']).optional().default('SUPPORTED_CHAINS'),
+  keyFetchingStrategy: z.enum(['CONNECTED_CHAIN', 'SUPPORTED_CHAINS']).optional().default('CONNECTED_CHAIN'),
   /** Whether to generate a permit during initialization */
   generatePermitDuringInitialization: z.boolean().optional().default(false),
 });

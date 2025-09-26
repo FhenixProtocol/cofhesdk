@@ -32,7 +32,7 @@ describe('createCofhesdkConfig', () => {
 
     expectValidConfigItem('keyFetchingStrategy', 'CONNECTED_CHAIN', 'CONNECTED_CHAIN');
     expectValidConfigItem('keyFetchingStrategy', 'SUPPORTED_CHAINS', 'SUPPORTED_CHAINS');
-    expectValidConfigItem('keyFetchingStrategy', undefined, 'SUPPORTED_CHAINS');
+    expectValidConfigItem('keyFetchingStrategy', undefined, 'CONNECTED_CHAIN');
   });
 
   it('generatePermitDuringInitialization', () => {
