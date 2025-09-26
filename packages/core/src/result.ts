@@ -1,63 +1,5 @@
 /* eslint-disable no-unused-vars */
-
-export enum CofhesdkErrorCode {
-  InternalError = 'INTERNAL_ERROR',
-  UnknownEnvironment = 'UNKNOWN_ENVIRONMENT',
-  InitTfheFailed = 'INIT_TFHE_FAILED',
-  InitViemFailed = 'INIT_VIEM_FAILED',
-  InitEthersFailed = 'INIT_ETHERS_FAILED',
-  NotInitialized = 'NOT_INITIALIZED',
-  MissingPublicClient = 'MISSING_PUBLIC_CLIENT',
-  MissingWalletClient = 'MISSING_WALLET_CLIENT',
-  MissingProviderParam = 'MISSING_PROVIDER_PARAM',
-  EmptySecurityZonesParam = 'EMPTY_SECURITY_ZONES_PARAM',
-  InvalidPermitData = 'INVALID_PERMIT_DATA',
-  InvalidPermitDomain = 'INVALID_PERMIT_DOMAIN',
-  PermitNotFound = 'PERMIT_NOT_FOUND',
-  CannotRemoveLastPermit = 'CANNOT_REMOVE_LAST_PERMIT',
-  AccountUninitialized = 'ACCOUNT_UNINITIALIZED',
-  ChainIdUninitialized = 'CHAIN_ID_UNINITIALIZED',
-  FheKeyNotFound = 'FHE_KEY_NOT_FOUND',
-  CrsNotFound = 'CRS_NOT_FOUND',
-  ProviderNotInitialized = 'PROVIDER_NOT_INITIALIZED',
-  SignerNotInitialized = 'SIGNER_NOT_INITIALIZED',
-  SealOutputFailed = 'SEAL_OUTPUT_FAILED',
-  SealOutputReturnedNull = 'SEAL_OUTPUT_RETURNED_NULL',
-  InvalidUtype = 'INVALID_UTYPE',
-  DecryptFailed = 'DECRYPT_FAILED',
-  DecryptReturnedNull = 'DECRYPT_RETURNED_NULL',
-  ZkVerifyInsertPackedCtHashesFailed = 'ZK_VERIFY_INSERT_PACKED_CT_HASHES_FAILED',
-  ZkVerifySignFailed = 'ZK_VERIFY_SIGN_FAILED',
-  ZkVerifyFailed = 'ZK_VERIFY_FAILED',
-  EncryptRemainingInItems = 'ENCRYPT_REMAINING_IN_ITEMS',
-  ZkUninitialized = 'ZK_UNINITIALIZED',
-  ZkVerifierUrlUninitialized = 'ZK_VERIFIER_URL_UNINITIALIZED',
-}
-
-export class CofhesdkError extends Error {
-  public readonly code: CofhesdkErrorCode;
-  public readonly cause?: Error;
-
-  constructor({ code, message, cause }: { code: CofhesdkErrorCode; message: string; cause?: Error }) {
-    super(message);
-    this.name = 'CofhesdkError';
-    this.code = code;
-    this.cause = cause;
-
-    // Maintains proper stack trace for where our error was thrown (only available on V8)
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, CofhesdkError);
-    }
-  }
-
-  serialize(): string {
-    return JSON.stringify({
-      code: this.code,
-      message: this.message,
-      cause: this.cause,
-    });
-  }
-}
+import { CofhesdkError, InternalCofhesdkError, CofhesdkErrorCode } from './error';
 
 export type Result<T> = { success: true; data: T; error: null } | { success: false; data: null; error: CofhesdkError };
 
@@ -73,56 +15,9 @@ export const ResultOk = <T>(data: T): Result<T> => ({
   error: null,
 });
 
-export const isCofhesdkError = (error: unknown): error is CofhesdkError => {
-  if (error instanceof CofhesdkError) return true;
-  return false;
-};
-
-export const InternalCofhesdkError = (internalError: unknown): CofhesdkError => {
-  if (isCofhesdkError(internalError)) return internalError;
-  const error = internalError instanceof Error ? internalError : undefined;
-  return new CofhesdkError({
-    code: CofhesdkErrorCode.InternalError,
-    message: `An internal error occurred: ${error?.message ?? 'Unknown error'}`,
-    cause: error,
-  });
-};
-
 export const ResultErrOrInternal = <T>(error: unknown): Result<T> => {
-  if (isCofhesdkError(error)) {
-    return ResultErr(error);
-  }
-  return ResultErr(
-    new CofhesdkError({
-      code: CofhesdkErrorCode.InternalError,
-      message: 'An internal error occurred',
-      cause: error instanceof Error ? error : undefined,
-    })
-  );
+  return ResultErr(InternalCofhesdkError(error));
 };
-
-export function wrapFunction<Args extends any[], R>(fn: (...args: Args) => R): (...args: Args) => Result<R> {
-  return (...args: Args) => {
-    try {
-      return ResultOk(fn(...args));
-    } catch (err) {
-      return ResultErrOrInternal(err);
-    }
-  };
-}
-
-export function wrapFunctionAsync<Args extends any[], R>(
-  fn: (...args: Args) => Promise<R>
-): (...args: Args) => Promise<Result<R>> {
-  return async (...args: Args) => {
-    try {
-      const result = await fn(...args);
-      return ResultOk(result);
-    } catch (error) {
-      return ResultErrOrInternal(error);
-    }
-  };
-}
 
 export const ResultHttpError = (error: unknown, url: string, status?: number): CofhesdkError => {
   if (error instanceof CofhesdkError) return error;
@@ -141,4 +36,24 @@ export const ResultValidationError = (message: string): CofhesdkError => {
     code: CofhesdkErrorCode.InvalidPermitData,
     message,
   });
+};
+
+// Async resultWrapper
+export const resultWrapper = async <T>(fn: () => Promise<T>): Promise<Result<T>> => {
+  try {
+    const result = await fn();
+    return ResultOk(result);
+  } catch (error) {
+    return ResultErrOrInternal(error);
+  }
+};
+
+// Sync resultWrapper
+export const resultWrapperSync = <T>(fn: () => T): Result<T> => {
+  try {
+    const result = fn();
+    return ResultOk(result);
+  } catch (error) {
+    return ResultErrOrInternal(error);
+  }
 };
