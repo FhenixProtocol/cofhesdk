@@ -1,5 +1,4 @@
 /* eslint-disable no-unused-vars */
-import { CofhesdkError, CofhesdkErrorCode } from './error';
 import {
   ImportSharedPermitOptions,
   PermitUtils,
@@ -15,19 +14,6 @@ import { PublicClient, WalletClient } from 'viem';
 
 // HELPERS
 
-// Helper function to validate and get clients
-const getValidatedClients = () => {
-  const publicClient = sdkStore.getPublicClient();
-  if (!publicClient)
-    throw new CofhesdkError({ code: CofhesdkErrorCode.MissingPublicClient, message: 'Public client missing' });
-
-  const walletClient = sdkStore.getWalletClient();
-  if (!walletClient)
-    throw new CofhesdkError({ code: CofhesdkErrorCode.MissingWalletClient, message: 'Wallet client missing' });
-
-  return { publicClient, walletClient };
-};
-
 // Helper function to store permit as active permit
 const storeActivePermit = async (permit: Permit, publicClient: any, walletClient: any) => {
   const chainId = await publicClient.getChainId();
@@ -40,7 +26,7 @@ const storeActivePermit = async (permit: Permit, publicClient: any, walletClient
 // Helper to resolve context with defaults
 const resolveContext = async (options?: GetPermitsOptions) => {
   const { chainId, account } = options ?? {};
-  const { publicClient, walletClient } = getValidatedClients();
+  const { publicClient, walletClient } = sdkStore.getValidatedClients();
   const resolvedChainId = chainId ?? (await publicClient.getChainId());
   const resolvedAccount = account ?? walletClient.account!.address;
   return { resolvedChainId, resolvedAccount };
@@ -52,7 +38,7 @@ const createPermitWithSign = async <T>(
   permitMethod: (options: T, publicClient: PublicClient, walletClient: WalletClient) => Promise<Permit>
 ): Promise<Result<Permit>> => {
   return resultWrapper(async () => {
-    const { publicClient, walletClient } = getValidatedClients();
+    const { publicClient, walletClient } = sdkStore.getValidatedClients();
     const permit = await permitMethod(options, publicClient, walletClient);
     await storeActivePermit(permit, publicClient, walletClient);
     return permit;

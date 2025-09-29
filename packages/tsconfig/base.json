@@ -8,6 +8,7 @@
     "forceConsistentCasingInFileNames": true,
     "inlineSources": false,
     "isolatedModules": true,
+    "lib": ["ES2020"],
     "moduleResolution": "NodeNext",
     "noUnusedLocals": false,
     "noUnusedParameters": false,

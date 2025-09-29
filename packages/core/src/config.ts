@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import type { CofheChain } from '@cofhesdk/chains';
+import { CofheChain } from '@cofhesdk/chains';
+import { WalletClient } from 'viem';
 
 /**
  * Usable config type inferred from the schema
@@ -8,6 +9,11 @@ export type CofhesdkConfig = {
   supportedChains: CofheChain[];
   keyFetchingStrategy: 'CONNECTED_CHAIN' | 'SUPPORTED_CHAINS';
   generatePermitDuringInitialization: boolean;
+  _internal?: CofhesdkInternalConfig;
+};
+
+export type CofhesdkInternalConfig = {
+  zkvWalletClient?: WalletClient;
 };
 
 /**
@@ -20,6 +26,12 @@ export const CofhesdkConfigSchema = z.object({
   keyFetchingStrategy: z.enum(['CONNECTED_CHAIN', 'SUPPORTED_CHAINS']).optional().default('CONNECTED_CHAIN'),
   /** Whether to generate a permit during initialization */
   generatePermitDuringInitialization: z.boolean().optional().default(false),
+  /** Internal configuration */
+  _internal: z
+    .object({
+      zkvWalletClient: z.any().optional(),
+    })
+    .optional(),
 });
 
 /**
