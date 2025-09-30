@@ -27,7 +27,8 @@ const fetchFhePublicKey = async (
       },
       body: JSON.stringify({ securityZone }),
     });
-    pk_data = (await pk_res.json()).publicKey;
+    const json = (await pk_res.json()) as { publicKey: string };
+    pk_data = json.publicKey;
   } catch (err) {
     throw new Error(`Error fetching FHE publicKey; fetching from CoFHE failed with error ${err}`);
   }
@@ -79,7 +80,8 @@ const fetchCrs = async (
       },
       body: JSON.stringify({ securityZone }),
     });
-    crs_data = (await crs_res.json()).crs;
+    const json = (await crs_res.json()) as { crs: string };
+    crs_data = json.crs;
   } catch (err) {
     throw new Error(`Error fetching CRS; fetching failed with error ${err}`);
   }

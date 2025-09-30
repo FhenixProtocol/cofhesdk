@@ -1,9 +1,14 @@
 /**
  * @vitest-environment happy-dom
  */
+/* eslint-disable no-unused-vars */
 
 // Type declarations for happy-dom environment
-declare const localStorage: Storage;
+declare const localStorage: {
+  clear: () => void;
+  getItem: (name: string) => string | null;
+  setItem: (name: string, value: string) => void;
+};
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {

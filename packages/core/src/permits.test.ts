@@ -1,10 +1,7 @@
 /**
  * @vitest-environment happy-dom
  */
-
-// Type declarations for happy-dom environment
-declare const localStorage: Storage;
-
+/* eslint-disable no-unused-vars */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createPublicClient, createWalletClient, http, PublicClient, WalletClient } from 'viem';
 import { arbitrumSepolia } from 'viem/chains';
@@ -13,6 +10,14 @@ import { sdkStore } from './sdkStore';
 import { permitStore } from '@cofhesdk/permits';
 import { privateKeyToAccount } from 'viem/accounts';
 import { expectResultSuccess } from './result.test';
+import 'happy-dom';
+
+// Type declarations for happy-dom environment
+declare const localStorage: {
+  clear: () => void;
+  getItem: (name: string) => string | null;
+  setItem: (name: string, value: string) => void;
+};
 
 // Test private keys (well-known test keys from Anvil/Hardhat)
 const BOB_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'; // Bob - always issuer

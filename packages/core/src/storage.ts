@@ -1,6 +1,7 @@
 /* eslint-disable no-undef */
 
 // Determine if we're in a browser environment
+declare const window: any;
 const isBrowser = typeof window !== 'undefined' && !!window.indexedDB;
 
 // Memory storage fallback
