@@ -10,7 +10,6 @@ import { sdkStore } from './sdkStore';
 import { permitStore } from '@cofhesdk/permits';
 import { privateKeyToAccount } from 'viem/accounts';
 import { expectResultSuccess } from './result.test';
-import 'happy-dom';
 
 // Type declarations for happy-dom environment
 declare const localStorage: {
