@@ -2,17 +2,24 @@ import { createStore } from 'zustand/vanilla';
 import { CofhesdkConfig } from './config';
 import { PublicClient, WalletClient } from 'viem';
 import { CofhesdkError, CofhesdkErrorCode } from './error';
+import { ZkBuilderAndCrsGenerator } from './encrypt/zkPackProveVerify';
 
 type SdkStore = {
   config: CofhesdkConfig | null;
   publicClient: PublicClient | null;
   walletClient: WalletClient | null;
+
+  // Platform specific
+  zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator | null;
 };
 
 const store = createStore<SdkStore>()(() => ({
   config: null,
   publicClient: null,
   walletClient: null,
+
+  // Platform specific
+  zkBuilderAndCrsGenerator: null,
 }));
 
 const getConfig = (): CofhesdkConfig | null => {
@@ -41,6 +48,14 @@ const setPublicClient = (publicClient: PublicClient) => {
 
 const setWalletClient = (walletClient: WalletClient) => {
   store.setState({ walletClient });
+};
+
+const setZkBuilderAndCrsGenerator = (zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator) => {
+  store.setState({ zkBuilderAndCrsGenerator });
+};
+
+const getZkBuilderAndCrsGenerator = () => {
+  return store.getState().zkBuilderAndCrsGenerator;
 };
 
 const clearSdkStore = () => {
@@ -81,10 +96,12 @@ export const sdkStore = {
   getPublicClient,
   getWalletClient,
   getZkvWalletClient,
+  getZkBuilderAndCrsGenerator,
 
   setConfig,
   setPublicClient,
   setWalletClient,
+  setZkBuilderAndCrsGenerator,
 
   clearSdkStore,
 

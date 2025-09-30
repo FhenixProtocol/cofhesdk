@@ -4,6 +4,7 @@ import { keysStorage } from './keyStore';
 import { sdkStore } from './sdkStore';
 import { fetchKeys, fetchMultichainKeys, FheKeySerializer } from './fetchKeys';
 import { permits } from './permits';
+import { ZkBuilderAndCrsGenerator } from './encrypt/zkPackProveVerify';
 
 /**
  * Initializes the CoFHE SDK
@@ -16,6 +17,7 @@ export const initialize = async (
   config: CofhesdkConfig,
   publicClient: PublicClient,
   walletClient: WalletClient,
+  zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator,
   tfhePublicKeySerializer: FheKeySerializer,
   compactPkeCrsSerializer: FheKeySerializer
 ) => {
@@ -23,6 +25,7 @@ export const initialize = async (
   sdkStore.setConfig(config);
   sdkStore.setPublicClient(publicClient);
   sdkStore.setWalletClient(walletClient);
+  sdkStore.setZkBuilderAndCrsGenerator(zkBuilderAndCrsGenerator);
 
   // Fetch FHE keys
   await initializeFheKeys(config, publicClient, tfhePublicKeySerializer, compactPkeCrsSerializer);

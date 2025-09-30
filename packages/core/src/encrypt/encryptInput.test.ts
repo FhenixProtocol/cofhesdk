@@ -9,10 +9,12 @@ import { PublicClient, createPublicClient, http, WalletClient, createWalletClien
 import { privateKeyToAccount } from 'viem/accounts';
 import { arbitrumSepolia } from 'viem/chains';
 import { sdkStore } from '../sdkStore';
-import { createCofhesdkConfig } from '../config';
+import { CofhesdkConfig, createCofhesdkConfig } from '../config';
 import { arbSepolia as cofhesdk_arbitrumSepolia } from '@cofhesdk/chains';
 import { ZkBuilderAndCrsGenerator } from './zkPackProveVerify';
 import { keysStorage } from '../keyStore';
+
+const MockZkVerifierUrl = 'http://localhost:3001';
 
 const stringifyWithBigInt = (obj: any): string => JSON.stringify(obj, (_, v) => (typeof v === 'bigint' ? `${v}n` : v));
 
@@ -120,7 +122,7 @@ const mockFetch = vi.fn();
 global.fetch = mockFetch;
 const setupZkVerifyMock = () => {
   mockFetch.mockImplementation((url: string, options: any) => {
-    if (url === 'http://localhost:3001/verify') {
+    if (url === `${MockZkVerifierUrl}/verify`) {
       const body = JSON.parse(options.body as string);
       const { packed_list, account_addr, security_zone, chain_id } = body;
 
@@ -160,6 +162,28 @@ const setupZkVerifyMock = () => {
 const insertMockKeys = (chainId: number, securityZone: number) => {
   keysStorage.setFheKey(chainId, securityZone, new Uint8Array([1, 2, 3, 4, 5]));
   keysStorage.setCrs(chainId, new Uint8Array([6, 7, 8, 9, 10]));
+};
+
+const insertMockChainConfig = (chainId: number, zkVerifierUrl: string) => {
+  sdkStore.setConfig(
+    createCofhesdkConfig({
+      supportedChains: [
+        {
+          id: chainId,
+          name: 'Mock Chain',
+          network: 'Mock Network',
+          coFheUrl: MockZkVerifierUrl,
+          thresholdNetworkUrl: MockZkVerifierUrl,
+          environment: 'TESTNET',
+          verifierUrl: zkVerifierUrl,
+        },
+      ],
+    })
+  );
+};
+
+const insertMockZkBuilderAndCrsGenerator = (zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator) => {
+  sdkStore.setZkBuilderAndCrsGenerator(zkBuilderAndCrsGenerator);
 };
 
 class MockZkProvenList {
@@ -207,8 +231,6 @@ describe('EncryptInputsBuilder', () => {
       inputs: [Encryptable.uint128(100n)] as [EncryptableUint128],
       sender: defaultSender,
       chainId: defaultChainId,
-      zkVerifierUrl: 'http://localhost:3001',
-      zkBuilderAndCrsGenerator: mockZkBuilderAndCrsGenerator,
     };
   };
 
@@ -218,13 +240,13 @@ describe('EncryptInputsBuilder', () => {
     setupZkVerifyMock();
 
     insertMockKeys(defaultChainId, 0);
+    insertMockChainConfig(defaultChainId, MockZkVerifierUrl);
+    insertMockZkBuilderAndCrsGenerator(mockZkBuilderAndCrsGenerator);
 
     builder = new EncryptInputsBuilder({
       inputs: [Encryptable.uint128(100n)] as [EncryptableUint128],
       sender: '0x1234567890123456789012345678901234567890',
       chainId: 1,
-      zkVerifierUrl: 'http://localhost:3001',
-      zkBuilderAndCrsGenerator: mockZkBuilderAndCrsGenerator,
     });
   });
 
@@ -272,8 +294,6 @@ describe('EncryptInputsBuilder', () => {
         inputs: [Encryptable.uint128(100n)] as [EncryptableUint128],
         sender: undefined,
         chainId: 1,
-        zkVerifierUrl: 'http://localhost:3001',
-        zkBuilderAndCrsGenerator: mockZkBuilderAndCrsGenerator,
       });
 
       const result = await builder.encrypt();
@@ -317,8 +337,6 @@ describe('EncryptInputsBuilder', () => {
         inputs: [Encryptable.uint128(100n)] as [EncryptableUint128],
         sender: '0x1234567890123456789012345678901234567890',
         chainId: undefined,
-        zkVerifierUrl: 'http://localhost:3001',
-        zkBuilderAndCrsGenerator: mockZkBuilderAndCrsGenerator,
       });
 
       const result = await builder.encrypt();
@@ -327,13 +345,24 @@ describe('EncryptInputsBuilder', () => {
   });
 
   describe('zkVerifierUrl', () => {
+    it('should throw if config not set', async () => {
+      sdkStore.setConfig(undefined as unknown as CofhesdkConfig);
+      const result = await builder.encrypt();
+      expectResultError(result, CofhesdkErrorCode.MissingConfig);
+    });
+
+    it('should throw if chain not supported', async () => {
+      insertMockChainConfig(999, MockZkVerifierUrl);
+      const result = await builder.encrypt();
+      expectResultError(result, CofhesdkErrorCode.UnsupportedChain);
+    });
+
     it('should throw if zkVerifierUrl is not set', async () => {
+      insertMockChainConfig(defaultChainId, undefined as unknown as string);
       builder = new EncryptInputsBuilder({
         inputs: [Encryptable.uint128(100n)] as [EncryptableUint128],
         sender: '0x1234567890123456789012345678901234567890',
         chainId: 1,
-        zkVerifierUrl: undefined,
-        zkBuilderAndCrsGenerator: mockZkBuilderAndCrsGenerator,
       });
 
       const result = await builder.encrypt();
@@ -547,11 +576,11 @@ describe('encryptInputs', () => {
       })
     );
 
-    const builder = encryptInputs([Encryptable.uint128(100n)] as [EncryptableUint128], mockZkBuilderAndCrsGenerator);
+    const builder = encryptInputs([Encryptable.uint128(100n)] as [EncryptableUint128]);
 
     expect(builder).toBeInstanceOf(EncryptInputsBuilder);
     expect(builder.getSender()).toBe(bobWalletClient.account!.address);
     expect(builder.getChainId()).toBe(cofhesdk_arbitrumSepolia.id);
-    expect(builder.getZkVerifierUrl()).toBe(cofhesdk_arbitrumSepolia.verifierUrl);
+    expect(builder.getResolvedZkVerifierUrl()).toBe(cofhesdk_arbitrumSepolia.verifierUrl);
   });
 });

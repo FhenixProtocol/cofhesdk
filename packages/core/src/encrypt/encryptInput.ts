@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 
-import { ZkBuilderAndCrsGenerator, zkPack, zkProve, zkVerify } from './zkPackProveVerify';
+import { zkPack, zkProve, zkVerify } from './zkPackProveVerify';
 import { CofhesdkError, CofhesdkErrorCode } from '../error';
 import { Result, resultWrapper } from '../result';
 import { EncryptSetStateFn, EncryptStep, EncryptedItemInput, EncryptedItemInputs } from '../types';
@@ -10,56 +10,41 @@ import { sdkStore } from '../sdkStore';
 import { hardhat } from 'viem/chains';
 import { keysStorage } from '../keyStore';
 
-export function encryptInputs<T extends any[]>(
-  inputs: [...T],
-  zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator
-): EncryptInputsBuilder<[...T]> {
+export function encryptInputs<T extends any[]>(inputs: [...T]): EncryptInputsBuilder<[...T]> {
   const publicClient = sdkStore.getPublicClient();
   const chainId = publicClient?.chain?.id;
 
   const walletClient = sdkStore.getWalletClient();
   const sender = walletClient?.account?.address;
 
-  const config = sdkStore.getConfig();
-  const zkVerifierUrl = config?.supportedChains.find((chain) => chain.id === chainId)?.verifierUrl;
-
   return new EncryptInputsBuilder<[...T]>({
     inputs,
     sender,
     chainId,
-    zkVerifierUrl,
-    zkBuilderAndCrsGenerator,
   });
 }
 
+/**
+ * External dependencies:
+ * - sdkStore.getPublicClient()
+ * - sdkStore.getWalletClient()
+ * - sdkStore.getConfig()
+ * - sdkStore.getZkBuilderAndCrsGenerator()
+ * - keysStorage.getFheKey()
+ * - keysStorage.getCrs()
+ */
 export class EncryptInputsBuilder<T extends any[]> {
   private sender: string | undefined;
   private chainId: number | undefined;
   private securityZone: number;
   private stepCallback?: EncryptSetStateFn;
-  private zkVerifierUrl: string | undefined;
   private inputItems: [...T];
 
-  // Platform specific generator function
-  private zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator;
-
-  constructor(params: {
-    inputs: [...T];
-    sender?: string;
-    chainId?: number;
-    securityZone?: number;
-    zkVerifierUrl?: string;
-
-    zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator;
-  }) {
+  constructor(params: { inputs: [...T]; sender?: string; chainId?: number; securityZone?: number }) {
     this.inputItems = params.inputs;
     this.sender = params.sender;
     this.chainId = params.chainId;
     this.securityZone = params.securityZone ?? 0;
-    this.zkVerifierUrl = params.zkVerifierUrl;
-
-    // Platform specific generator function
-    this.zkBuilderAndCrsGenerator = params.zkBuilderAndCrsGenerator;
   }
 
   /**
@@ -114,6 +99,9 @@ export class EncryptInputsBuilder<T extends any[]> {
     return this.chainId;
   }
 
+  /**
+   * @returns The resolved chainId, throws if not undefined
+   */
   getResolvedChainId(): number {
     if (this.chainId) return this.chainId;
     throw new CofhesdkError({
@@ -123,15 +111,34 @@ export class EncryptInputsBuilder<T extends any[]> {
     });
   }
 
-  getZkVerifierUrl(): string | undefined {
-    return this.zkVerifierUrl;
-  }
-
+  /**
+   * @returns The resolved zkVerifierUrl for the current chainId.
+   */
   getResolvedZkVerifierUrl(): string {
-    if (this.zkVerifierUrl) return this.zkVerifierUrl;
+    const chainId = this.getResolvedChainId();
+    const config = sdkStore.getConfig();
+
+    if (!config) {
+      throw new CofhesdkError({
+        code: CofhesdkErrorCode.MissingConfig,
+        message: 'encryptInputs.getResolvedZkVerifierUrl(): Config fetched from sdkStore is not initialized',
+      });
+    }
+
+    const supportedChain = config.supportedChains.find((chain) => chain.id === chainId);
+    if (!supportedChain) {
+      throw new CofhesdkError({
+        code: CofhesdkErrorCode.UnsupportedChain,
+        message: `encryptInputs.getResolvedZkVerifierUrl(): Unsupported chain <${chainId}>`,
+      });
+    }
+
+    const zkVerifierUrl = supportedChain.verifierUrl;
+    if (zkVerifierUrl) return zkVerifierUrl;
+
     throw new CofhesdkError({
       code: CofhesdkErrorCode.ZkVerifierUrlUninitialized,
-      message: 'zkVerifierUrl is not initialized',
+      message: `encryptInputs.getResolvedZkVerifierUrl(): ZkVerifierUrl is not initialized for chain <${chainId}>`,
     });
   }
 
@@ -170,7 +177,7 @@ export class EncryptInputsBuilder<T extends any[]> {
 
     throw new CofhesdkError({
       code: CofhesdkErrorCode.EncryptRemainingInItems,
-      message: 'Some encrypted inputs remaining after replacement',
+      message: 'encryptInputs.replaceEncryptableItems(): Some encrypted inputs remaining after replacement',
     });
   }
 
@@ -181,23 +188,30 @@ export class EncryptInputsBuilder<T extends any[]> {
    */
   private generateZkBuilderAndCrs() {
     const fheKey = keysStorage.getFheKey(this.chainId, this.securityZone);
-    const crs = keysStorage.getCrs(this.chainId);
-
     if (!fheKey) {
       throw new CofhesdkError({
         code: CofhesdkErrorCode.FheKeyNotFound,
-        message: `FHE key not found for chainId ${this.chainId} and securityZone ${this.securityZone}`,
+        message: `encryptInputs.generateZkBuilderAndCrs(): FHE key not found for chainId <${this.chainId}> and securityZone <${this.securityZone}>`,
       });
     }
 
+    const crs = keysStorage.getCrs(this.chainId);
     if (!crs) {
       throw new CofhesdkError({
         code: CofhesdkErrorCode.CrsNotFound,
-        message: `CRS not found for chainId ${this.chainId}`,
+        message: `encryptInputs.generateZkBuilderAndCrs(): CRS not found for chainId <${this.chainId}>`,
       });
     }
 
-    return this.zkBuilderAndCrsGenerator(fheKey, crs);
+    const zkBuilderAndCrsGenerator = sdkStore.getZkBuilderAndCrsGenerator();
+    if (!zkBuilderAndCrsGenerator) {
+      throw new CofhesdkError({
+        code: CofhesdkErrorCode.ZkBuilderAndCrsGeneratorNotFound,
+        message: `encryptInputs.generateZkBuilderAndCrs(): ZkBuilderAndCrsGenerator not found`,
+      });
+    }
+
+    return zkBuilderAndCrsGenerator(fheKey, crs);
   }
 
   /**
