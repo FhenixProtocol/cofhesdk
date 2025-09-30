@@ -1,35 +1,34 @@
 /* eslint-disable no-unused-vars */
 
-import { ZkPackProveVerify } from './zkPackProveVerify';
+import { ZkCiphertextListBuilder, ZkCompactPkeCrs, ZkPackProveVerify } from './zkPackProveVerify';
 import { CofhesdkError, CofhesdkErrorCode } from '../error';
 import { Result, resultWrapper } from '../result';
 import { EncryptSetStateFn, EncryptStep, EncryptedItemInput, EncryptedItemInputs } from '../types';
 import { encryptExtract, encryptReplace } from './encryptUtils';
 import { mockEncrypt } from './mockEncryptInput';
+import { sdkStore } from '../sdkStore';
+import { hardhat } from 'viem/chains';
 
 export class EncryptInputsBuilder<T extends any[]> {
-  private sender: string;
-  private chainId: string;
-  private isTestnet: boolean;
+  private sender: string | undefined;
+  private chainId: number | undefined;
   private securityZone: number;
   private stepCallback?: EncryptSetStateFn;
+  private zkVerifierUrl: string | undefined;
   private inputItems: [...T];
-  private zkVerifierUrl: string;
   private zk: ZkPackProveVerify<any>;
 
   constructor(params: {
     inputs: [...T];
-    sender: string;
-    chainId: string;
-    isTestnet: boolean;
+    sender?: string;
+    chainId?: number;
     securityZone?: number;
-    zkVerifierUrl: string;
+    zkVerifierUrl?: string;
     zk: ZkPackProveVerify<any>;
   }) {
     this.inputItems = params.inputs;
     this.sender = params.sender;
     this.chainId = params.chainId;
-    this.isTestnet = params.isTestnet;
     this.securityZone = params.securityZone ?? 0;
     this.zkVerifierUrl = params.zkVerifierUrl;
     this.zk = params.zk;
@@ -56,8 +55,17 @@ export class EncryptInputsBuilder<T extends any[]> {
     return this;
   }
 
-  getSender(): string {
+  getSender(): string | undefined {
     return this.sender;
+  }
+
+  getResolvedSender(): string {
+    if (this.sender) return this.sender;
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.SenderUninitialized,
+      message:
+        'encryptInputs.getResolvedSender(): Sender is not initialized, check that the walletClient is initialized, or manually set it with .setSender()',
+    });
   }
 
   setSecurityZone(securityZone: number): EncryptInputsBuilder<T> {
@@ -67,6 +75,36 @@ export class EncryptInputsBuilder<T extends any[]> {
 
   getSecurityZone(): number {
     return this.securityZone;
+  }
+
+  setChainId(chainId: number): EncryptInputsBuilder<T> {
+    this.chainId = chainId;
+    return this;
+  }
+
+  getChainId(): number | undefined {
+    return this.chainId;
+  }
+
+  getResolvedChainId(): number {
+    if (this.chainId) return this.chainId;
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.ChainIdUninitialized,
+      message:
+        'encryptInputs.getResolvedChainId(): Chain ID is not initialized, check that the publicClient is initialized, or manually set it with .setChainId()',
+    });
+  }
+
+  getZkVerifierUrl(): string | undefined {
+    return this.zkVerifierUrl;
+  }
+
+  getResolvedZkVerifierUrl(): string {
+    if (this.zkVerifierUrl) return this.zkVerifierUrl;
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.ZkVerifierUrlUninitialized,
+      message: 'zkVerifierUrl is not initialized',
+    });
   }
 
   /**
@@ -120,10 +158,16 @@ export class EncryptInputsBuilder<T extends any[]> {
    * @returns The encrypted inputs.
    */
   async encrypt(): Promise<Result<[...EncryptedItemInputs<T>]>> {
-    if (this.isTestnet)
-      return resultWrapper(async () => await mockEncrypt(this.inputItems, this.securityZone, this.stepCallback));
-
     return resultWrapper(async () => {
+      const sender = this.getResolvedSender();
+      const chainId = this.getResolvedChainId();
+      const zkVerifierUrl = this.getResolvedZkVerifierUrl();
+
+      // On hardhat, interact with MockZkVerifier contract instead of CoFHE
+      if (chainId === hardhat.id) {
+        return await mockEncrypt(this.inputItems, sender, this.securityZone, this.stepCallback);
+      }
+
       this.fireCallback(EncryptStep.Extract);
 
       const encryptableItems = this.getExtractedEncryptableItems();
@@ -134,11 +178,11 @@ export class EncryptInputsBuilder<T extends any[]> {
 
       this.fireCallback(EncryptStep.Prove);
 
-      await this.zk.prove(this.sender, this.securityZone, this.chainId);
+      await this.zk.prove(sender, this.securityZone, chainId);
 
       this.fireCallback(EncryptStep.Verify);
 
-      const verifyResults = await this.zk.verify(this.zkVerifierUrl, this.sender, this.securityZone, this.chainId);
+      const verifyResults = await this.zk.verify(zkVerifierUrl, sender, this.securityZone, chainId);
 
       // Add securityZone and utype to the verify results
       const inItems: EncryptedItemInput[] = verifyResults.map(
@@ -159,4 +203,29 @@ export class EncryptInputsBuilder<T extends any[]> {
       return preparedInputItems;
     });
   }
+}
+
+export function encryptInputs<T extends any[]>(
+  inputs: [...T],
+  builder: ZkCiphertextListBuilder,
+  crs: ZkCompactPkeCrs
+): EncryptInputsBuilder<[...T]> {
+  const publicClient = sdkStore.getPublicClient();
+  const chainId = publicClient?.chain?.id;
+
+  const walletClient = sdkStore.getWalletClient();
+  const sender = walletClient?.account?.address;
+
+  const config = sdkStore.getConfig();
+  const zkVerifierUrl = config?.supportedChains.find((chain) => chain.id === chainId)?.verifierUrl;
+
+  const zkPackProveVerify = new ZkPackProveVerify(builder, crs);
+
+  return new EncryptInputsBuilder<[...T]>({
+    inputs,
+    sender,
+    chainId,
+    zkVerifierUrl,
+    zk: zkPackProveVerify,
+  });
 }

@@ -1,11 +1,17 @@
 /* eslint-disable no-unused-vars */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { EncryptInputsBuilder } from './encryptInput';
-import { VerifyResult, ZkPackProveVerify } from './zkPackProveVerify';
+import { encryptInputs, EncryptInputsBuilder } from './encryptInput';
+import { ZkPackProveVerify } from './zkPackProveVerify';
 import { Result } from '../result';
 import { EncryptableItem, FheTypes, Encryptable, EncryptableUint128, EncryptStep } from '../types';
 import { CofhesdkError, CofhesdkErrorCode } from '../error';
 import { fromHexString, toHexString } from '../utils';
+import { PublicClient, createPublicClient, http, WalletClient, createWalletClient } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { arbitrumSepolia } from 'viem/chains';
+import { sdkStore } from '../sdkStore';
+import { createCofhesdkConfig } from '../config';
+import { arbSepolia as cofhesdk_arbitrumSepolia } from '@cofhesdk/chains';
 
 const stringifyWithBigInt = (obj: any): string => JSON.stringify(obj, (_, v) => (typeof v === 'bigint' ? `${v}n` : v));
 
@@ -20,7 +26,7 @@ const parseWithBigInt = (str: string): any =>
 // packMetadata function removed as it's no longer needed
 const unpackMetadata = (metadata: string) => {
   const [signer, securityZone, chainId] = metadata.split('-');
-  return { signer, securityZone: parseInt(securityZone), chainId };
+  return { signer, securityZone: parseInt(securityZone), chainId: parseInt(chainId) };
 };
 
 export const deconstructZkPoKMetadata = (
@@ -182,13 +188,12 @@ describe('EncryptInputsBuilder', () => {
   };
 
   const defaultSender = '0x1234567890123456789012345678901234567890';
-  const defaultChainId = '1';
+  const defaultChainId = 1;
   const createDefaultParams = () => {
     return {
       inputs: [Encryptable.uint128(100n)] as [EncryptableUint128],
       sender: defaultSender,
       chainId: defaultChainId,
-      isTestnet: false,
       zkVerifierUrl: 'http://localhost:3001',
       zk: new ZkPackProveVerify(new MockZkListBuilder(), mockCrs),
     };
@@ -201,8 +206,7 @@ describe('EncryptInputsBuilder', () => {
     builder = new EncryptInputsBuilder({
       inputs: [Encryptable.uint128(100n)] as [EncryptableUint128],
       sender: '0x1234567890123456789012345678901234567890',
-      chainId: '1',
-      isTestnet: false,
+      chainId: 1,
       zkVerifierUrl: 'http://localhost:3001',
       zk: new ZkPackProveVerify(new MockZkListBuilder(), mockCrs),
     });
@@ -246,6 +250,19 @@ describe('EncryptInputsBuilder', () => {
       expect(result.getSender()).toBe(sender);
       expect(result.getSecurityZone()).toBe(securityZone);
     });
+
+    it('should throw an error if sender is not set', async () => {
+      builder = new EncryptInputsBuilder({
+        inputs: [Encryptable.uint128(100n)] as [EncryptableUint128],
+        sender: undefined,
+        chainId: 1,
+        zkVerifierUrl: 'http://localhost:3001',
+        zk: new ZkPackProveVerify(new MockZkListBuilder(), mockCrs),
+      });
+
+      const result = await builder.encrypt();
+      expectResultError(result, CofhesdkErrorCode.SenderUninitialized);
+    });
   });
 
   describe('setSecurityZone', () => {
@@ -268,6 +285,43 @@ describe('EncryptInputsBuilder', () => {
       expect(result).toBe(builder);
       expect(result.getSender()).toBe(sender);
       expect(result.getSecurityZone()).toBe(securityZone);
+    });
+  });
+
+  describe('setChainId', () => {
+    it('should set chain id and return builder for chaining', () => {
+      const chainId = 2;
+      const result = builder.setChainId(chainId);
+      expect(result).toBe(builder);
+      expect(result.getChainId()).toBe(chainId);
+    });
+
+    it('should throw an error if chain id is not set', async () => {
+      builder = new EncryptInputsBuilder({
+        inputs: [Encryptable.uint128(100n)] as [EncryptableUint128],
+        sender: '0x1234567890123456789012345678901234567890',
+        chainId: undefined,
+        zkVerifierUrl: 'http://localhost:3001',
+        zk: new ZkPackProveVerify(new MockZkListBuilder(), mockCrs),
+      });
+
+      const result = await builder.encrypt();
+      expectResultError(result, CofhesdkErrorCode.ChainIdUninitialized);
+    });
+  });
+
+  describe('zkVerifierUrl', () => {
+    it('should throw if zkVerifierUrl is not set', async () => {
+      builder = new EncryptInputsBuilder({
+        inputs: [Encryptable.uint128(100n)] as [EncryptableUint128],
+        sender: '0x1234567890123456789012345678901234567890',
+        chainId: 1,
+        zkVerifierUrl: undefined,
+        zk: new ZkPackProveVerify(new MockZkListBuilder(), mockCrs),
+      });
+
+      const result = await builder.encrypt();
+      expectResultError(result, CofhesdkErrorCode.ZkVerifierUrlUninitialized);
     });
   });
 
@@ -443,5 +497,56 @@ describe('EncryptInputsBuilder', () => {
       expect(encryptedMetadata2.securityZone).toBe(securityZone);
       expect(encryptedMetadata2.chainId).toBe(defaultChainId);
     });
+  });
+});
+
+// Test private keys (well-known test keys from Anvil/Hardhat)
+const BOB_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'; // Bob - always issuer
+const ALICE_PRIVATE_KEY = '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d'; // Alice - always recipient
+
+// Create real viem clients for Arbitrum Sepolia
+const publicClient: PublicClient = createPublicClient({
+  chain: arbitrumSepolia,
+  transport: http(),
+});
+
+const bobWalletClient: WalletClient = createWalletClient({
+  chain: arbitrumSepolia,
+  transport: http(),
+  account: privateKeyToAccount(BOB_PRIVATE_KEY),
+});
+
+const aliceWalletClient: WalletClient = createWalletClient({
+  chain: arbitrumSepolia,
+  transport: http(),
+  account: privateKeyToAccount(ALICE_PRIVATE_KEY),
+});
+
+describe('encryptInputs', () => {
+  it('should initialize the builder correctly and encrypt', async () => {
+    sdkStore.setPublicClient(publicClient);
+    sdkStore.setWalletClient(bobWalletClient);
+    sdkStore.setConfig(
+      createCofhesdkConfig({
+        supportedChains: [cofhesdk_arbitrumSepolia],
+      })
+    );
+
+    const mockCrs = {
+      free: () => {},
+      serialize: () => new Uint8Array(),
+      safe_serialize: () => new Uint8Array(),
+    };
+
+    const builder = encryptInputs(
+      [Encryptable.uint128(100n)] as [EncryptableUint128],
+      new MockZkListBuilder(),
+      mockCrs
+    );
+
+    expect(builder).toBeInstanceOf(EncryptInputsBuilder);
+    expect(builder.getSender()).toBe(bobWalletClient.account!.address);
+    expect(builder.getChainId()).toBe(cofhesdk_arbitrumSepolia.id);
+    expect(builder.getZkVerifierUrl()).toBe(cofhesdk_arbitrumSepolia.verifierUrl);
   });
 });

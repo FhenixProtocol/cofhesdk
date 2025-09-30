@@ -49,7 +49,7 @@ const clearSdkStore = () => {
 
 // Validated
 
-// Helper function to validate and get clients
+// Fetch public and wallet clients, throw if missing
 const getValidatedClients = () => {
   const publicClient = sdkStore.getPublicClient();
   if (!publicClient)
@@ -60,6 +60,16 @@ const getValidatedClients = () => {
     throw new CofhesdkError({ code: CofhesdkErrorCode.MissingWalletClient, message: 'Wallet client missing' });
 
   return { publicClient, walletClient };
+};
+
+// Fetch supported chain config, throw if missing
+const getSupportedChainConfig = (chainId: number) => {
+  const config = sdkStore.getConfig();
+  if (!config) throw new CofhesdkError({ code: CofhesdkErrorCode.MissingConfig, message: 'Config missing' });
+  const supportedChainConfig = config.supportedChains.find((chain) => chain.id === chainId);
+  if (!supportedChainConfig)
+    throw new CofhesdkError({ code: CofhesdkErrorCode.UnsupportedChain, message: 'Unsupported chain' });
+  return supportedChainConfig;
 };
 
 // Barrel
@@ -79,4 +89,5 @@ export const sdkStore = {
   clearSdkStore,
 
   getValidatedClients,
+  getSupportedChainConfig,
 };

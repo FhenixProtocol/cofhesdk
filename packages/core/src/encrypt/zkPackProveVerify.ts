@@ -123,9 +123,9 @@ export const zkProve = async (
   crs: ZkCompactPkeCrs,
   address: string,
   securityZone: number,
-  chainId: string
+  chainId: number
 ): Promise<Uint8Array> => {
-  const metadata = constructZkPoKMetadata(address, securityZone, parseInt(chainId));
+  const metadata = constructZkPoKMetadata(address, securityZone, chainId);
 
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -170,7 +170,7 @@ export const zkVerify = async (
   serializedBytes: Uint8Array,
   address: string,
   securityZone: number,
-  chainId: string
+  chainId: number
 ): Promise<VerifyResult[]> => {
   // Convert bytearray to hex string
   const packed_list = toHexString(serializedBytes);
@@ -182,7 +182,7 @@ export const zkVerify = async (
     packed_list,
     account_addr: address,
     security_zone: sz_byte[0],
-    chain_id: parseInt(chainId),
+    chain_id: chainId,
   };
 
   const body = JSON.stringify(payload);
@@ -251,14 +251,14 @@ export class ZkPackProveVerify<B extends ZkCiphertextListBuilder> {
     return this.builder;
   }
 
-  prove(address: string, securityZone: number, chainId: string): Promise<Uint8Array> {
+  prove(address: string, securityZone: number, chainId: number): Promise<Uint8Array> {
     return zkProve(this.builder, this.crs, address, securityZone, chainId).then((result) => {
       this.proof = result;
       return result;
     });
   }
 
-  verify(verifierUrl: string, address: string, securityZone: number, chainId: string): Promise<VerifyResult[]> {
+  verify(verifierUrl: string, address: string, securityZone: number, chainId: number): Promise<VerifyResult[]> {
     if (!this.proof) {
       throw new Error('Must call prove() before verify()');
     }

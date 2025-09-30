@@ -14,22 +14,23 @@ export const MockZkVerifierAddress = '0x0000000000000000000000000000000000000100
 // Private key of the account expected to sign the encrypted inputs
 export const MockEncryptedInputSignerPkey = '0x6c8d7f768a6bb4aafe85e8a2f5a9680355239c7e14646ed62b044e39de154512';
 
-async function mockZkVerifySign(items: EncryptableItem[], securityZone: number): Promise<VerifyResult[]> {
+async function mockZkVerifySign(
+  items: EncryptableItem[],
+  sender: string,
+  securityZone: number
+): Promise<VerifyResult[]> {
   const { publicClient, walletClient } = sdkStore.getValidatedClients();
   const zkvWalletClient = sdkStore.getZkvWalletClient() ?? walletClient;
-  const user = walletClient.account!.address;
 
   // Create array to store results
   const results = [];
 
-  const chainId = await publicClient.getChainId();
-
   const calcCtHashesArgs = [
     items.map(({ data }) => BigInt(data)),
     items.map(({ utype }) => utype),
-    user,
+    sender as `0x${string}`,
     securityZone,
-    BigInt(chainId),
+    BigInt(hardhat.id),
   ] as const;
 
   const ctHashes = await publicClient.readContract({
@@ -107,6 +108,7 @@ async function mockZkVerifySign(items: EncryptableItem[], securityZone: number):
 
 export async function mockEncrypt<T extends any[]>(
   item: [...T],
+  sender: string,
   securityZone = 0,
   setStateCallback?: EncryptSetStateFn
 ): Promise<[...EncryptedItemInputs<T>]> {
@@ -126,7 +128,7 @@ export async function mockEncrypt<T extends any[]>(
 
   await sleep(500);
 
-  const signedResults = await mockZkVerifySign(encryptableItems, securityZone);
+  const signedResults = await mockZkVerifySign(encryptableItems, sender, securityZone);
 
   const inItems: EncryptedItemInput[] = signedResults.map(({ ct_hash, signature }, index) => ({
     ctHash: BigInt(ct_hash),
