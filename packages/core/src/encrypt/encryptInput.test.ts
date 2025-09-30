@@ -11,6 +11,8 @@ import { arbitrumSepolia } from 'viem/chains';
 import { sdkStore } from '../sdkStore';
 import { createCofhesdkConfig } from '../config';
 import { arbSepolia as cofhesdk_arbitrumSepolia } from '@cofhesdk/chains';
+import { ZkBuilderAndCrsGenerator } from './zkPackProveVerify';
+import { keysStorage } from '../keyStore';
 
 const stringifyWithBigInt = (obj: any): string => JSON.stringify(obj, (_, v) => (typeof v === 'bigint' ? `${v}n` : v));
 
@@ -97,6 +99,19 @@ class MockZkListBuilder {
   }
 }
 
+const MockCrs = {
+  free: () => {},
+  serialize: () => new Uint8Array(),
+  safe_serialize: () => new Uint8Array(),
+};
+
+const mockZkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator = (fhe: Uint8Array, crs: Uint8Array) => {
+  return {
+    zkBuilder: new MockZkListBuilder(),
+    zkCrs: MockCrs,
+  };
+};
+
 // Setup fetch mock for http://localhost:3001/verify
 // Simulates verification of zk proof
 // Returns {ctHash: stringified value, signature: `${account_addr}-${security_zone}-${chain_id}-`, recid: 0}
@@ -142,6 +157,11 @@ const setupZkVerifyMock = () => {
   });
 };
 
+const insertMockKeys = (chainId: number, securityZone: number) => {
+  keysStorage.setFheKey(chainId, securityZone, new Uint8Array([1, 2, 3, 4, 5]));
+  keysStorage.setCrs(chainId, new Uint8Array([6, 7, 8, 9, 10]));
+};
+
 class MockZkProvenList {
   private items: EncryptableItem[];
   private metadata: Uint8Array;
@@ -180,12 +200,6 @@ export const expectResultError = <T>(result: Result<T>, errorCode?: CofhesdkErro
 };
 
 describe('EncryptInputsBuilder', () => {
-  const mockCrs = {
-    free: () => {},
-    serialize: () => new Uint8Array(),
-    safe_serialize: () => new Uint8Array(),
-  };
-
   const defaultSender = '0x1234567890123456789012345678901234567890';
   const defaultChainId = 1;
   const createDefaultParams = () => {
@@ -194,8 +208,7 @@ describe('EncryptInputsBuilder', () => {
       sender: defaultSender,
       chainId: defaultChainId,
       zkVerifierUrl: 'http://localhost:3001',
-      builder: new MockZkListBuilder(),
-      crs: mockCrs,
+      zkBuilderAndCrsGenerator: mockZkBuilderAndCrsGenerator,
     };
   };
 
@@ -203,13 +216,15 @@ describe('EncryptInputsBuilder', () => {
 
   beforeEach(() => {
     setupZkVerifyMock();
+
+    insertMockKeys(defaultChainId, 0);
+
     builder = new EncryptInputsBuilder({
       inputs: [Encryptable.uint128(100n)] as [EncryptableUint128],
       sender: '0x1234567890123456789012345678901234567890',
       chainId: 1,
       zkVerifierUrl: 'http://localhost:3001',
-      builder: new MockZkListBuilder(),
-      crs: mockCrs,
+      zkBuilderAndCrsGenerator: mockZkBuilderAndCrsGenerator,
     });
   });
 
@@ -258,8 +273,7 @@ describe('EncryptInputsBuilder', () => {
         sender: undefined,
         chainId: 1,
         zkVerifierUrl: 'http://localhost:3001',
-        builder: new MockZkListBuilder(),
-        crs: mockCrs,
+        zkBuilderAndCrsGenerator: mockZkBuilderAndCrsGenerator,
       });
 
       const result = await builder.encrypt();
@@ -304,8 +318,7 @@ describe('EncryptInputsBuilder', () => {
         sender: '0x1234567890123456789012345678901234567890',
         chainId: undefined,
         zkVerifierUrl: 'http://localhost:3001',
-        builder: new MockZkListBuilder(),
-        crs: mockCrs,
+        zkBuilderAndCrsGenerator: mockZkBuilderAndCrsGenerator,
       });
 
       const result = await builder.encrypt();
@@ -320,8 +333,7 @@ describe('EncryptInputsBuilder', () => {
         sender: '0x1234567890123456789012345678901234567890',
         chainId: 1,
         zkVerifierUrl: undefined,
-        builder: new MockZkListBuilder(),
-        crs: mockCrs,
+        zkBuilderAndCrsGenerator: mockZkBuilderAndCrsGenerator,
       });
 
       const result = await builder.encrypt();
@@ -392,6 +404,8 @@ describe('EncryptInputsBuilder', () => {
       const overriddenZone = 7;
       builder.setSecurityZone(overriddenZone);
 
+      insertMockKeys(defaultChainId, overriddenZone);
+
       const result = expectResultSuccess(await builder.encrypt());
 
       // Verify result embedded metadata
@@ -451,6 +465,8 @@ describe('EncryptInputsBuilder', () => {
       const sender = '0x9999999999999999999999999999999999999999';
       const securityZone = 3;
 
+      insertMockKeys(defaultChainId, securityZone);
+
       const stepCallback = vi.fn();
       const result = await builder
         .setSender(sender)
@@ -474,6 +490,8 @@ describe('EncryptInputsBuilder', () => {
     it('should maintain state across method calls', async () => {
       const sender = '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
       const securityZone = 99;
+
+      insertMockKeys(defaultChainId, securityZone);
 
       builder.setSender(sender);
       builder.setSecurityZone(securityZone);
@@ -506,7 +524,6 @@ describe('EncryptInputsBuilder', () => {
 
 // Test private keys (well-known test keys from Anvil/Hardhat)
 const BOB_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'; // Bob - always issuer
-const ALICE_PRIVATE_KEY = '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d'; // Alice - always recipient
 
 // Create real viem clients for Arbitrum Sepolia
 const publicClient: PublicClient = createPublicClient({
@@ -520,12 +537,6 @@ const bobWalletClient: WalletClient = createWalletClient({
   account: privateKeyToAccount(BOB_PRIVATE_KEY),
 });
 
-const aliceWalletClient: WalletClient = createWalletClient({
-  chain: arbitrumSepolia,
-  transport: http(),
-  account: privateKeyToAccount(ALICE_PRIVATE_KEY),
-});
-
 describe('encryptInputs', () => {
   it('should initialize the builder correctly and encrypt', async () => {
     sdkStore.setPublicClient(publicClient);
@@ -536,17 +547,7 @@ describe('encryptInputs', () => {
       })
     );
 
-    const mockCrs = {
-      free: () => {},
-      serialize: () => new Uint8Array(),
-      safe_serialize: () => new Uint8Array(),
-    };
-
-    const builder = encryptInputs(
-      [Encryptable.uint128(100n)] as [EncryptableUint128],
-      new MockZkListBuilder(),
-      mockCrs
-    );
+    const builder = encryptInputs([Encryptable.uint128(100n)] as [EncryptableUint128], mockZkBuilderAndCrsGenerator);
 
     expect(builder).toBeInstanceOf(EncryptInputsBuilder);
     expect(builder.getSender()).toBe(bobWalletClient.account!.address);

@@ -50,6 +50,11 @@ export type ZkCiphertextListBuilder = {
   ): ZkProvenCiphertextList;
 };
 
+export type ZkBuilderAndCrsGenerator = (
+  fhe: Uint8Array,
+  crs: Uint8Array
+) => { zkBuilder: ZkCiphertextListBuilder; zkCrs: ZkCompactPkeCrs };
+
 // ===== CONSTANTS =====
 
 export const MAX_UINT8: bigint = 255n;

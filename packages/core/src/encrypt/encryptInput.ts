@@ -1,13 +1,36 @@
 /* eslint-disable no-unused-vars */
 
-import { VerifyResult, ZkCiphertextListBuilder, ZkCompactPkeCrs, zkPack, zkProve, zkVerify } from './zkPackProveVerify';
+import { ZkBuilderAndCrsGenerator, zkPack, zkProve, zkVerify } from './zkPackProveVerify';
 import { CofhesdkError, CofhesdkErrorCode } from '../error';
 import { Result, resultWrapper } from '../result';
-import { EncryptSetStateFn, EncryptStep, EncryptableItem, EncryptedItemInput, EncryptedItemInputs } from '../types';
+import { EncryptSetStateFn, EncryptStep, EncryptedItemInput, EncryptedItemInputs } from '../types';
 import { encryptExtract, encryptReplace } from './encryptUtils';
 import { mockEncrypt } from './mockEncryptInput';
 import { sdkStore } from '../sdkStore';
 import { hardhat } from 'viem/chains';
+import { keysStorage } from '../keyStore';
+
+export function encryptInputs<T extends any[]>(
+  inputs: [...T],
+  zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator
+): EncryptInputsBuilder<[...T]> {
+  const publicClient = sdkStore.getPublicClient();
+  const chainId = publicClient?.chain?.id;
+
+  const walletClient = sdkStore.getWalletClient();
+  const sender = walletClient?.account?.address;
+
+  const config = sdkStore.getConfig();
+  const zkVerifierUrl = config?.supportedChains.find((chain) => chain.id === chainId)?.verifierUrl;
+
+  return new EncryptInputsBuilder<[...T]>({
+    inputs,
+    sender,
+    chainId,
+    zkVerifierUrl,
+    zkBuilderAndCrsGenerator,
+  });
+}
 
 export class EncryptInputsBuilder<T extends any[]> {
   private sender: string | undefined;
@@ -17,8 +40,8 @@ export class EncryptInputsBuilder<T extends any[]> {
   private zkVerifierUrl: string | undefined;
   private inputItems: [...T];
 
-  private zkBuilder: ZkCiphertextListBuilder;
-  private zkCrs: ZkCompactPkeCrs;
+  // Platform specific generator function
+  private zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator;
 
   constructor(params: {
     inputs: [...T];
@@ -27,8 +50,7 @@ export class EncryptInputsBuilder<T extends any[]> {
     securityZone?: number;
     zkVerifierUrl?: string;
 
-    builder: ZkCiphertextListBuilder;
-    crs: ZkCompactPkeCrs;
+    zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator;
   }) {
     this.inputItems = params.inputs;
     this.sender = params.sender;
@@ -36,8 +58,8 @@ export class EncryptInputsBuilder<T extends any[]> {
     this.securityZone = params.securityZone ?? 0;
     this.zkVerifierUrl = params.zkVerifierUrl;
 
-    this.zkBuilder = params.builder;
-    this.zkCrs = params.crs;
+    // Platform specific generator function
+    this.zkBuilderAndCrsGenerator = params.zkBuilderAndCrsGenerator;
   }
 
   /**
@@ -153,6 +175,32 @@ export class EncryptInputsBuilder<T extends any[]> {
   }
 
   /**
+   * Generates the ZkCiphertextListBuilder and ZkCompactPkeCrs instances from the FHE key and CRS.
+   *
+   * @returns The ZkCiphertextListBuilder and ZkCompactPkeCrs instances.
+   */
+  private generateZkBuilderAndCrs() {
+    const fheKey = keysStorage.getFheKey(this.chainId, this.securityZone);
+    const crs = keysStorage.getCrs(this.chainId);
+
+    if (!fheKey) {
+      throw new CofhesdkError({
+        code: CofhesdkErrorCode.FheKeyNotFound,
+        message: `FHE key not found for chainId ${this.chainId} and securityZone ${this.securityZone}`,
+      });
+    }
+
+    if (!crs) {
+      throw new CofhesdkError({
+        code: CofhesdkErrorCode.CrsNotFound,
+        message: `CRS not found for chainId ${this.chainId}`,
+      });
+    }
+
+    return this.zkBuilderAndCrsGenerator(fheKey, crs);
+  }
+
+  /**
    * Final step of the encryption process. MUST BE CALLED LAST IN THE CHAIN.
    *
    * This will:
@@ -174,17 +222,19 @@ export class EncryptInputsBuilder<T extends any[]> {
         return await mockEncrypt(this.inputItems, sender, this.securityZone, this.stepCallback);
       }
 
+      let { zkBuilder, zkCrs } = this.generateZkBuilderAndCrs();
+
       this.fireCallback(EncryptStep.Extract);
 
       const encryptableItems = this.getExtractedEncryptableItems();
 
       this.fireCallback(EncryptStep.Pack);
 
-      this.zkBuilder = zkPack(encryptableItems, this.zkBuilder);
+      zkBuilder = zkPack(encryptableItems, zkBuilder);
 
       this.fireCallback(EncryptStep.Prove);
 
-      const proof = await zkProve(this.zkBuilder, this.zkCrs, sender, this.securityZone, chainId);
+      const proof = await zkProve(zkBuilder, zkCrs, sender, this.securityZone, chainId);
 
       this.fireCallback(EncryptStep.Verify);
 
@@ -209,28 +259,4 @@ export class EncryptInputsBuilder<T extends any[]> {
       return preparedInputItems;
     });
   }
-}
-
-export function encryptInputs<T extends any[]>(
-  inputs: [...T],
-  builder: ZkCiphertextListBuilder,
-  crs: ZkCompactPkeCrs
-): EncryptInputsBuilder<[...T]> {
-  const publicClient = sdkStore.getPublicClient();
-  const chainId = publicClient?.chain?.id;
-
-  const walletClient = sdkStore.getWalletClient();
-  const sender = walletClient?.account?.address;
-
-  const config = sdkStore.getConfig();
-  const zkVerifierUrl = config?.supportedChains.find((chain) => chain.id === chainId)?.verifierUrl;
-
-  return new EncryptInputsBuilder<[...T]>({
-    inputs,
-    sender,
-    chainId,
-    zkVerifierUrl,
-    builder,
-    crs,
-  });
 }
