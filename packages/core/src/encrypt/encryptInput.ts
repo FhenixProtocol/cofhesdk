@@ -1,9 +1,9 @@
 /* eslint-disable no-unused-vars */
 
-import { ZkCiphertextListBuilder, ZkCompactPkeCrs, ZkPackProveVerify } from './zkPackProveVerify';
+import { VerifyResult, ZkCiphertextListBuilder, ZkCompactPkeCrs, zkPack, zkProve, zkVerify } from './zkPackProveVerify';
 import { CofhesdkError, CofhesdkErrorCode } from '../error';
 import { Result, resultWrapper } from '../result';
-import { EncryptSetStateFn, EncryptStep, EncryptedItemInput, EncryptedItemInputs } from '../types';
+import { EncryptSetStateFn, EncryptStep, EncryptableItem, EncryptedItemInput, EncryptedItemInputs } from '../types';
 import { encryptExtract, encryptReplace } from './encryptUtils';
 import { mockEncrypt } from './mockEncryptInput';
 import { sdkStore } from '../sdkStore';
@@ -16,7 +16,9 @@ export class EncryptInputsBuilder<T extends any[]> {
   private stepCallback?: EncryptSetStateFn;
   private zkVerifierUrl: string | undefined;
   private inputItems: [...T];
-  private zk: ZkPackProveVerify<any>;
+
+  private zkBuilder: ZkCiphertextListBuilder;
+  private zkCrs: ZkCompactPkeCrs;
 
   constructor(params: {
     inputs: [...T];
@@ -24,14 +26,18 @@ export class EncryptInputsBuilder<T extends any[]> {
     chainId?: number;
     securityZone?: number;
     zkVerifierUrl?: string;
-    zk: ZkPackProveVerify<any>;
+
+    builder: ZkCiphertextListBuilder;
+    crs: ZkCompactPkeCrs;
   }) {
     this.inputItems = params.inputs;
     this.sender = params.sender;
     this.chainId = params.chainId;
     this.securityZone = params.securityZone ?? 0;
     this.zkVerifierUrl = params.zkVerifierUrl;
-    this.zk = params.zk;
+
+    this.zkBuilder = params.builder;
+    this.zkCrs = params.crs;
   }
 
   /**
@@ -174,15 +180,15 @@ export class EncryptInputsBuilder<T extends any[]> {
 
       this.fireCallback(EncryptStep.Pack);
 
-      this.zk.pack(encryptableItems);
+      this.zkBuilder = zkPack(encryptableItems, this.zkBuilder);
 
       this.fireCallback(EncryptStep.Prove);
 
-      await this.zk.prove(sender, this.securityZone, chainId);
+      const proof = await zkProve(this.zkBuilder, this.zkCrs, sender, this.securityZone, chainId);
 
       this.fireCallback(EncryptStep.Verify);
 
-      const verifyResults = await this.zk.verify(zkVerifierUrl, sender, this.securityZone, chainId);
+      const verifyResults = await zkVerify(zkVerifierUrl, proof, sender, this.securityZone, chainId);
 
       // Add securityZone and utype to the verify results
       const inItems: EncryptedItemInput[] = verifyResults.map(
@@ -219,13 +225,12 @@ export function encryptInputs<T extends any[]>(
   const config = sdkStore.getConfig();
   const zkVerifierUrl = config?.supportedChains.find((chain) => chain.id === chainId)?.verifierUrl;
 
-  const zkPackProveVerify = new ZkPackProveVerify(builder, crs);
-
   return new EncryptInputsBuilder<[...T]>({
     inputs,
     sender,
     chainId,
     zkVerifierUrl,
-    zk: zkPackProveVerify,
+    builder,
+    crs,
   });
 }

@@ -233,35 +233,3 @@ export const zkVerify = async (
 const concatSigRecid = (signature: string, recid: number): string => {
   return signature + (recid + 27).toString(16).padStart(2, '0');
 };
-
-// ===== CLASS =====
-
-export class ZkPackProveVerify<B extends ZkCiphertextListBuilder> {
-  builder: B;
-  crs: ZkCompactPkeCrs;
-  proof: Uint8Array | null = null;
-
-  constructor(builder: B, crs: ZkCompactPkeCrs) {
-    this.builder = builder;
-    this.crs = crs;
-  }
-
-  pack(items: EncryptableItem[]): B {
-    this.builder = zkPack(items, this.builder) as B;
-    return this.builder;
-  }
-
-  prove(address: string, securityZone: number, chainId: number): Promise<Uint8Array> {
-    return zkProve(this.builder, this.crs, address, securityZone, chainId).then((result) => {
-      this.proof = result;
-      return result;
-    });
-  }
-
-  verify(verifierUrl: string, address: string, securityZone: number, chainId: number): Promise<VerifyResult[]> {
-    if (!this.proof) {
-      throw new Error('Must call prove() before verify()');
-    }
-    return zkVerify(verifierUrl, this.proof, address, securityZone, chainId);
-  }
-}

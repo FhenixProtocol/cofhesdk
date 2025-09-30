@@ -1,7 +1,6 @@
 /* eslint-disable no-unused-vars */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { encryptInputs, EncryptInputsBuilder } from './encryptInput';
-import { ZkPackProveVerify } from './zkPackProveVerify';
 import { Result } from '../result';
 import { EncryptableItem, FheTypes, Encryptable, EncryptableUint128, EncryptStep } from '../types';
 import { CofhesdkError, CofhesdkErrorCode } from '../error';
@@ -195,7 +194,8 @@ describe('EncryptInputsBuilder', () => {
       sender: defaultSender,
       chainId: defaultChainId,
       zkVerifierUrl: 'http://localhost:3001',
-      zk: new ZkPackProveVerify(new MockZkListBuilder(), mockCrs),
+      builder: new MockZkListBuilder(),
+      crs: mockCrs,
     };
   };
 
@@ -208,7 +208,8 @@ describe('EncryptInputsBuilder', () => {
       sender: '0x1234567890123456789012345678901234567890',
       chainId: 1,
       zkVerifierUrl: 'http://localhost:3001',
-      zk: new ZkPackProveVerify(new MockZkListBuilder(), mockCrs),
+      builder: new MockZkListBuilder(),
+      crs: mockCrs,
     });
   });
 
@@ -257,7 +258,8 @@ describe('EncryptInputsBuilder', () => {
         sender: undefined,
         chainId: 1,
         zkVerifierUrl: 'http://localhost:3001',
-        zk: new ZkPackProveVerify(new MockZkListBuilder(), mockCrs),
+        builder: new MockZkListBuilder(),
+        crs: mockCrs,
       });
 
       const result = await builder.encrypt();
@@ -302,7 +304,8 @@ describe('EncryptInputsBuilder', () => {
         sender: '0x1234567890123456789012345678901234567890',
         chainId: undefined,
         zkVerifierUrl: 'http://localhost:3001',
-        zk: new ZkPackProveVerify(new MockZkListBuilder(), mockCrs),
+        builder: new MockZkListBuilder(),
+        crs: mockCrs,
       });
 
       const result = await builder.encrypt();
@@ -317,7 +320,8 @@ describe('EncryptInputsBuilder', () => {
         sender: '0x1234567890123456789012345678901234567890',
         chainId: 1,
         zkVerifierUrl: undefined,
-        zk: new ZkPackProveVerify(new MockZkListBuilder(), mockCrs),
+        builder: new MockZkListBuilder(),
+        crs: mockCrs,
       });
 
       const result = await builder.encrypt();
