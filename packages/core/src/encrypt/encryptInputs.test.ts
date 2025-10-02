@@ -162,16 +162,8 @@ const mockTfhePublicKeySerializer: FheKeySerializer = (buff: Uint8Array) => {
   return buff;
 };
 
-const insertMockTfhePublicKeySerializer = () => {
-  sdkStore.setTfhePublicKeySerializer(mockTfhePublicKeySerializer);
-};
-
 const mockCompactPkeCrsSerializer: FheKeySerializer = (buff: Uint8Array) => {
   return buff;
-};
-
-const insertMockCompactPkeCrsSerializer = () => {
-  sdkStore.setCompactPkeCrsSerializer(mockCompactPkeCrsSerializer);
 };
 
 const mockZkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator = (fhe: Uint8Array, crs: Uint8Array) => {
@@ -179,10 +171,6 @@ const mockZkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator = (fhe: Uint8Array,
     zkBuilder: new MockZkListBuilder(),
     zkCrs: MockCrs,
   };
-};
-
-const insertMockZkBuilderAndCrsGenerator = () => {
-  sdkStore.setZkBuilderAndCrsGenerator(mockZkBuilderAndCrsGenerator);
 };
 
 const createMockCofhesdkConfig = (chainId: number, zkVerifierUrl: string) => {
@@ -199,10 +187,6 @@ const createMockCofhesdkConfig = (chainId: number, zkVerifierUrl: string) => {
       },
     ],
   });
-};
-
-const insertMockChainConfig = (chainId: number, zkVerifierUrl: string) => {
-  sdkStore.setConfig(createMockCofhesdkConfig(chainId, zkVerifierUrl));
 };
 
 class MockZkProvenList {
@@ -261,18 +245,8 @@ describe('EncryptInputsBuilder', () => {
 
   beforeEach(() => {
     setupZkVerifyMock();
-
     insertMockKeys(defaultChainId, 0);
-
-    builder = new EncryptInputsBuilder({
-      inputs: [Encryptable.uint128(100n)] as [EncryptableUint128],
-      sender: '0x1234567890123456789012345678901234567890',
-      chainId: 1,
-      config: createMockCofhesdkConfig(defaultChainId, MockZkVerifierUrl),
-      tfhePublicKeySerializer: mockTfhePublicKeySerializer,
-      compactPkeCrsSerializer: mockCompactPkeCrsSerializer,
-      zkBuilderAndCrsGenerator: mockZkBuilderAndCrsGenerator,
-    });
+    builder = new EncryptInputsBuilder(createDefaultParams());
   });
 
   describe('constructor and initialization', () => {
@@ -290,30 +264,27 @@ describe('EncryptInputsBuilder', () => {
     });
 
     it('should throw an error if config is not set', async () => {
-      sdkStore.setConfig(undefined as unknown as CofhesdkConfig);
       const builder = new EncryptInputsBuilder({
         ...createDefaultParams(),
-        config: undefined,
+        config: undefined as unknown as CofhesdkConfig,
       });
       const result = await builder.encrypt();
       expectResultError(result, CofhesdkErrorCode.MissingConfig);
     });
 
     it('should throw an error if tfhePublicKeySerializer is not set', async () => {
-      sdkStore.setTfhePublicKeySerializer(undefined as unknown as FheKeySerializer);
       const builder = new EncryptInputsBuilder({
         ...createDefaultParams(),
-        tfhePublicKeySerializer: undefined,
+        tfhePublicKeySerializer: undefined as unknown as FheKeySerializer,
       });
       const result = await builder.encrypt();
       expectResultError(result, CofhesdkErrorCode.MissingTfhePublicKeySerializer);
     });
 
     it('should throw an error if compactPkeCrsSerializer is not set', async () => {
-      sdkStore.setCompactPkeCrsSerializer(undefined as unknown as FheKeySerializer);
       const builder = new EncryptInputsBuilder({
         ...createDefaultParams(),
-        compactPkeCrsSerializer: undefined,
+        compactPkeCrsSerializer: undefined as unknown as FheKeySerializer,
       });
       const result = await builder.encrypt();
       expectResultError(result, CofhesdkErrorCode.MissingCompactPkeCrsSerializer);
@@ -346,12 +317,8 @@ describe('EncryptInputsBuilder', () => {
 
     it('should throw an error if sender is not set', async () => {
       builder = new EncryptInputsBuilder({
-        inputs: [Encryptable.uint128(100n)] as [EncryptableUint128],
+        ...createDefaultParams(),
         sender: undefined,
-        chainId: 1,
-        config: createMockCofhesdkConfig(defaultChainId, MockZkVerifierUrl),
-        tfhePublicKeySerializer: mockTfhePublicKeySerializer,
-        compactPkeCrsSerializer: mockCompactPkeCrsSerializer,
       });
 
       const result = await builder.encrypt();
@@ -392,8 +359,7 @@ describe('EncryptInputsBuilder', () => {
 
     it('should throw an error if chain id is not set', async () => {
       builder = new EncryptInputsBuilder({
-        inputs: [Encryptable.uint128(100n)] as [EncryptableUint128],
-        sender: '0x1234567890123456789012345678901234567890',
+        ...createDefaultParams(),
         chainId: undefined,
       });
 
@@ -627,9 +593,9 @@ describe('encryptInputs', () => {
     );
 
     // Store inserts for platform specific dependencies
-    insertMockZkBuilderAndCrsGenerator();
-    insertMockTfhePublicKeySerializer();
-    insertMockCompactPkeCrsSerializer();
+    sdkStore.setZkBuilderAndCrsGenerator(mockZkBuilderAndCrsGenerator);
+    sdkStore.setTfhePublicKeySerializer(mockTfhePublicKeySerializer);
+    sdkStore.setCompactPkeCrsSerializer(mockCompactPkeCrsSerializer);
 
     const builder = encryptInputs([Encryptable.uint128(100n)] as [EncryptableUint128]);
 
