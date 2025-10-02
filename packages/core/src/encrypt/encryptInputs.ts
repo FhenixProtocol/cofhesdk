@@ -206,7 +206,7 @@ export class EncryptInputsBuilder<T extends any[]> {
     const zkBuilderAndCrsGenerator = sdkStore.getZkBuilderAndCrsGenerator();
     if (!zkBuilderAndCrsGenerator) {
       throw new CofhesdkError({
-        code: CofhesdkErrorCode.ZkBuilderAndCrsGeneratorNotFound,
+        code: CofhesdkErrorCode.MissingZkBuilderAndCrsGenerator,
         message: `encryptInputs.generateZkBuilderAndCrs(): ZkBuilderAndCrsGenerator not found`,
       });
     }

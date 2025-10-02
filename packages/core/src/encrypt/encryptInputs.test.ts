@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { encryptInputs, EncryptInputsBuilder } from './encryptInput';
+import { encryptInputs, EncryptInputsBuilder } from './encryptInputs';
 import { Result } from '../result';
 import { EncryptableItem, FheTypes, Encryptable, EncryptableUint128, EncryptStep } from '../types';
 import { CofhesdkError, CofhesdkErrorCode } from '../error';
