@@ -7,7 +7,13 @@ import { WalletClient } from 'viem';
  */
 export type CofhesdkConfig = {
   supportedChains: CofheChain[];
-  keyFetchingStrategy: 'CONNECTED_CHAIN' | 'SUPPORTED_CHAINS';
+  /**
+   * Strategy for fetching FHE keys
+   * - CONNECTED_CHAIN: Fetch keys for the connected chain (provided by the publicClient)
+   * - SUPPORTED_CHAINS: Fetch keys for all supported chains (provided by the supportedChains config)
+   * - OFF: Do not fetch keys (fetching occurs during encryptInputs)
+   * */
+  fheKeysPrefetching: 'CONNECTED_CHAIN' | 'SUPPORTED_CHAINS' | 'OFF';
   generatePermitDuringInitialization: boolean;
   _internal?: CofhesdkInternalConfig;
 };
@@ -23,7 +29,7 @@ export const CofhesdkConfigSchema = z.object({
   /** List of supported chain configurations */
   supportedChains: z.array(z.custom<CofheChain>()),
   /** Strategy for fetching FHE keys */
-  keyFetchingStrategy: z.enum(['CONNECTED_CHAIN', 'SUPPORTED_CHAINS']).optional().default('CONNECTED_CHAIN'),
+  fheKeysPrefetching: z.enum(['CONNECTED_CHAIN', 'SUPPORTED_CHAINS', 'OFF']).optional().default('OFF'),
   /** Whether to generate a permit during initialization */
   generatePermitDuringInitialization: z.boolean().optional().default(false),
   /** Internal configuration */

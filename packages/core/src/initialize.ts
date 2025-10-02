@@ -73,13 +73,15 @@ const initializeFheKeys = async (
   // Hydrate keyStore
   await keysStorage.rehydrateKeysStore();
 
-  if (config.keyFetchingStrategy === 'SUPPORTED_CHAINS') {
+  if (config.fheKeysPrefetching === 'SUPPORTED_CHAINS') {
     await fetchMultichainKeys(config, 0, tfhePublicKeySerializer, compactPkeCrsSerializer);
     return;
   }
 
-  const connectedChainId = await publicClient.getChainId();
-  await fetchKeys(config, connectedChainId, 0, tfhePublicKeySerializer, compactPkeCrsSerializer);
+  if (config.fheKeysPrefetching === 'CONNECTED_CHAIN') {
+    const connectedChainId = await publicClient.getChainId();
+    await fetchKeys(config, connectedChainId, 0, tfhePublicKeySerializer, compactPkeCrsSerializer);
+  }
 };
 
 const initializePermitGeneration = async (config: CofhesdkConfig, walletClient: WalletClient) => {
