@@ -220,6 +220,7 @@ export function isEncryptableItem(value: unknown): value is EncryptableItem {
 }
 
 export enum EncryptStep {
+  FetchKeys = 'fetchKeys',
   Extract = 'extract',
   Pack = 'pack',
   Prove = 'prove',

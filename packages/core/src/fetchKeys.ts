@@ -15,7 +15,7 @@ const fetchFhePublicKey = async (
 ) => {
   // Escape if key already exists
   const storedKey = getFheKey(chainId, securityZone);
-  if (storedKey != null) return;
+  if (storedKey != null) return storedKey;
 
   let pk_data: string | undefined = undefined;
 
@@ -58,6 +58,8 @@ const fetchFhePublicKey = async (
 
   // Store result
   setFheKey(chainId, securityZone, pk_buff);
+
+  return pk_buff;
 };
 
 const fetchCrs = async (
@@ -68,7 +70,7 @@ const fetchCrs = async (
 ) => {
   // Escape if key already exists
   const storedKey = getCrs(chainId);
-  if (storedKey != null) return;
+  if (storedKey != null) return storedKey;
 
   let crs_data: string | undefined = undefined;
 
@@ -100,6 +102,8 @@ const fetchCrs = async (
   }
 
   setCrs(chainId, crs_buff);
+
+  return crs_buff;
 };
 
 /**
@@ -119,13 +123,19 @@ export const fetchKeys = async (
   tfhePublicKeySerializer: FheKeySerializer,
   compactPkeCrsSerializer: FheKeySerializer
 ) => {
-  // Get cofhe url from config
-  const coFheUrl = config.supportedChains.find((chain) => chain.id === chainId)?.coFheUrl;
+  // Get supported chain from config
+  const supportedChain = config.supportedChains.find((chain) => chain.id === chainId);
+  if (supportedChain == null) {
+    throw new Error(`Error fetching keys; supported chain not found in config for chainId ${chainId}`);
+  }
+
+  // Get cofhe url from supported chain
+  const coFheUrl = supportedChain.coFheUrl;
   if (coFheUrl == null) {
     throw new Error(`Error fetching keys; coFheUrl not found in config for chainId ${chainId}`);
   }
 
-  await Promise.all([
+  return await Promise.all([
     fetchFhePublicKey(coFheUrl, chainId, securityZone, tfhePublicKeySerializer),
     fetchCrs(coFheUrl, chainId, securityZone, compactPkeCrsSerializer),
   ]);

@@ -13,6 +13,7 @@ import { CofhesdkConfig, createCofhesdkConfig } from '../config';
 import { arbSepolia as cofhesdk_arbitrumSepolia } from '@cofhesdk/chains';
 import { ZkBuilderAndCrsGenerator } from './zkPackProveVerify';
 import { keysStorage } from '../keyStore';
+import { FheKeySerializer } from '../fetchKeys';
 
 const MockZkVerifierUrl = 'http://localhost:3001';
 
@@ -107,13 +108,6 @@ const MockCrs = {
   safe_serialize: () => new Uint8Array(),
 };
 
-const mockZkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator = (fhe: Uint8Array, crs: Uint8Array) => {
-  return {
-    zkBuilder: new MockZkListBuilder(),
-    zkCrs: MockCrs,
-  };
-};
-
 // Setup fetch mock for http://localhost:3001/verify
 // Simulates verification of zk proof
 // Returns {ctHash: stringified value, signature: `${account_addr}-${security_zone}-${chain_id}-`, recid: 0}
@@ -164,26 +158,51 @@ const insertMockKeys = (chainId: number, securityZone: number) => {
   keysStorage.setCrs(chainId, new Uint8Array([6, 7, 8, 9, 10]));
 };
 
-const insertMockChainConfig = (chainId: number, zkVerifierUrl: string) => {
-  sdkStore.setConfig(
-    createCofhesdkConfig({
-      supportedChains: [
-        {
-          id: chainId,
-          name: 'Mock Chain',
-          network: 'Mock Network',
-          coFheUrl: MockZkVerifierUrl,
-          thresholdNetworkUrl: MockZkVerifierUrl,
-          environment: 'TESTNET',
-          verifierUrl: zkVerifierUrl,
-        },
-      ],
-    })
-  );
+const mockTfhePublicKeySerializer: FheKeySerializer = (buff: Uint8Array) => {
+  return buff;
 };
 
-const insertMockZkBuilderAndCrsGenerator = (zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator) => {
-  sdkStore.setZkBuilderAndCrsGenerator(zkBuilderAndCrsGenerator);
+const insertMockTfhePublicKeySerializer = () => {
+  sdkStore.setTfhePublicKeySerializer(mockTfhePublicKeySerializer);
+};
+
+const mockCompactPkeCrsSerializer: FheKeySerializer = (buff: Uint8Array) => {
+  return buff;
+};
+
+const insertMockCompactPkeCrsSerializer = () => {
+  sdkStore.setCompactPkeCrsSerializer(mockCompactPkeCrsSerializer);
+};
+
+const mockZkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator = (fhe: Uint8Array, crs: Uint8Array) => {
+  return {
+    zkBuilder: new MockZkListBuilder(),
+    zkCrs: MockCrs,
+  };
+};
+
+const insertMockZkBuilderAndCrsGenerator = () => {
+  sdkStore.setZkBuilderAndCrsGenerator(mockZkBuilderAndCrsGenerator);
+};
+
+const createMockCofhesdkConfig = (chainId: number, zkVerifierUrl: string) => {
+  return createCofhesdkConfig({
+    supportedChains: [
+      {
+        id: chainId,
+        name: 'Mock Chain',
+        network: 'Mock Network',
+        coFheUrl: MockZkVerifierUrl,
+        thresholdNetworkUrl: MockZkVerifierUrl,
+        environment: 'TESTNET',
+        verifierUrl: zkVerifierUrl,
+      },
+    ],
+  });
+};
+
+const insertMockChainConfig = (chainId: number, zkVerifierUrl: string) => {
+  sdkStore.setConfig(createMockCofhesdkConfig(chainId, zkVerifierUrl));
 };
 
 class MockZkProvenList {
@@ -231,6 +250,10 @@ describe('EncryptInputsBuilder', () => {
       inputs: [Encryptable.uint128(100n)] as [EncryptableUint128],
       sender: defaultSender,
       chainId: defaultChainId,
+      config: createMockCofhesdkConfig(defaultChainId, MockZkVerifierUrl),
+      tfhePublicKeySerializer: mockTfhePublicKeySerializer,
+      compactPkeCrsSerializer: mockCompactPkeCrsSerializer,
+      zkBuilderAndCrsGenerator: mockZkBuilderAndCrsGenerator,
     };
   };
 
@@ -240,13 +263,15 @@ describe('EncryptInputsBuilder', () => {
     setupZkVerifyMock();
 
     insertMockKeys(defaultChainId, 0);
-    insertMockChainConfig(defaultChainId, MockZkVerifierUrl);
-    insertMockZkBuilderAndCrsGenerator(mockZkBuilderAndCrsGenerator);
 
     builder = new EncryptInputsBuilder({
       inputs: [Encryptable.uint128(100n)] as [EncryptableUint128],
       sender: '0x1234567890123456789012345678901234567890',
       chainId: 1,
+      config: createMockCofhesdkConfig(defaultChainId, MockZkVerifierUrl),
+      tfhePublicKeySerializer: mockTfhePublicKeySerializer,
+      compactPkeCrsSerializer: mockCompactPkeCrsSerializer,
+      zkBuilderAndCrsGenerator: mockZkBuilderAndCrsGenerator,
     });
   });
 
@@ -262,6 +287,36 @@ describe('EncryptInputsBuilder', () => {
       });
       // We can't directly test private properties, but we can test behavior
       expect(builderWithDefaultZone).toBeInstanceOf(EncryptInputsBuilder);
+    });
+
+    it('should throw an error if config is not set', async () => {
+      sdkStore.setConfig(undefined as unknown as CofhesdkConfig);
+      const builder = new EncryptInputsBuilder({
+        ...createDefaultParams(),
+        config: undefined,
+      });
+      const result = await builder.encrypt();
+      expectResultError(result, CofhesdkErrorCode.MissingConfig);
+    });
+
+    it('should throw an error if tfhePublicKeySerializer is not set', async () => {
+      sdkStore.setTfhePublicKeySerializer(undefined as unknown as FheKeySerializer);
+      const builder = new EncryptInputsBuilder({
+        ...createDefaultParams(),
+        tfhePublicKeySerializer: undefined,
+      });
+      const result = await builder.encrypt();
+      expectResultError(result, CofhesdkErrorCode.MissingTfhePublicKeySerializer);
+    });
+
+    it('should throw an error if compactPkeCrsSerializer is not set', async () => {
+      sdkStore.setCompactPkeCrsSerializer(undefined as unknown as FheKeySerializer);
+      const builder = new EncryptInputsBuilder({
+        ...createDefaultParams(),
+        compactPkeCrsSerializer: undefined,
+      });
+      const result = await builder.encrypt();
+      expectResultError(result, CofhesdkErrorCode.MissingCompactPkeCrsSerializer);
     });
   });
 
@@ -294,6 +349,9 @@ describe('EncryptInputsBuilder', () => {
         inputs: [Encryptable.uint128(100n)] as [EncryptableUint128],
         sender: undefined,
         chainId: 1,
+        config: createMockCofhesdkConfig(defaultChainId, MockZkVerifierUrl),
+        tfhePublicKeySerializer: mockTfhePublicKeySerializer,
+        compactPkeCrsSerializer: mockCompactPkeCrsSerializer,
       });
 
       const result = await builder.encrypt();
@@ -345,24 +403,15 @@ describe('EncryptInputsBuilder', () => {
   });
 
   describe('zkVerifierUrl', () => {
-    it('should throw if config not set', async () => {
-      sdkStore.setConfig(undefined as unknown as CofhesdkConfig);
-      const result = await builder.encrypt();
-      expectResultError(result, CofhesdkErrorCode.MissingConfig);
-    });
-
-    it('should throw if chain not supported', async () => {
-      insertMockChainConfig(999, MockZkVerifierUrl);
-      const result = await builder.encrypt();
-      expectResultError(result, CofhesdkErrorCode.UnsupportedChain);
-    });
-
     it('should throw if zkVerifierUrl is not set', async () => {
-      insertMockChainConfig(defaultChainId, undefined as unknown as string);
       builder = new EncryptInputsBuilder({
         inputs: [Encryptable.uint128(100n)] as [EncryptableUint128],
         sender: '0x1234567890123456789012345678901234567890',
         chainId: 1,
+        config: createMockCofhesdkConfig(defaultChainId, undefined as unknown as string),
+        tfhePublicKeySerializer: mockTfhePublicKeySerializer,
+        compactPkeCrsSerializer: mockCompactPkeCrsSerializer,
+        zkBuilderAndCrsGenerator: mockZkBuilderAndCrsGenerator,
       });
 
       const result = await builder.encrypt();
@@ -393,13 +442,14 @@ describe('EncryptInputsBuilder', () => {
       const result = expectResultSuccess(await builder.encrypt());
 
       // Verify step callbacks were called in order
-      expect(stepCallback).toHaveBeenCalledTimes(6);
-      expect(stepCallback).toHaveBeenNthCalledWith(1, EncryptStep.Extract);
-      expect(stepCallback).toHaveBeenNthCalledWith(2, EncryptStep.Pack);
-      expect(stepCallback).toHaveBeenNthCalledWith(3, EncryptStep.Prove);
-      expect(stepCallback).toHaveBeenNthCalledWith(4, EncryptStep.Verify);
-      expect(stepCallback).toHaveBeenNthCalledWith(5, EncryptStep.Replace);
-      expect(stepCallback).toHaveBeenNthCalledWith(6, EncryptStep.Done);
+      expect(stepCallback).toHaveBeenCalledTimes(7);
+      expect(stepCallback).toHaveBeenNthCalledWith(1, EncryptStep.FetchKeys);
+      expect(stepCallback).toHaveBeenNthCalledWith(2, EncryptStep.Extract);
+      expect(stepCallback).toHaveBeenNthCalledWith(3, EncryptStep.Pack);
+      expect(stepCallback).toHaveBeenNthCalledWith(4, EncryptStep.Prove);
+      expect(stepCallback).toHaveBeenNthCalledWith(5, EncryptStep.Verify);
+      expect(stepCallback).toHaveBeenNthCalledWith(6, EncryptStep.Replace);
+      expect(stepCallback).toHaveBeenNthCalledWith(7, EncryptStep.Done);
 
       // Verify result structure
       expect(result).toBeDefined();
@@ -505,7 +555,7 @@ describe('EncryptInputsBuilder', () => {
       const resultData = expectResultSuccess(result);
 
       expect(result).toBeDefined();
-      expect(stepCallback).toHaveBeenCalledTimes(6);
+      expect(stepCallback).toHaveBeenCalledTimes(7);
 
       // Verify result embedded metadata
       const [encrypted] = resultData;
@@ -576,11 +626,16 @@ describe('encryptInputs', () => {
       })
     );
 
+    // Store inserts for platform specific dependencies
+    insertMockZkBuilderAndCrsGenerator();
+    insertMockTfhePublicKeySerializer();
+    insertMockCompactPkeCrsSerializer();
+
     const builder = encryptInputs([Encryptable.uint128(100n)] as [EncryptableUint128]);
 
     expect(builder).toBeInstanceOf(EncryptInputsBuilder);
     expect(builder.getSender()).toBe(bobWalletClient.account!.address);
     expect(builder.getChainId()).toBe(cofhesdk_arbitrumSepolia.id);
-    expect(builder.getResolvedZkVerifierUrl()).toBe(cofhesdk_arbitrumSepolia.verifierUrl);
+    expect(builder.getZkVerifierUrlOrThrow()).toBe(cofhesdk_arbitrumSepolia.verifierUrl);
   });
 });

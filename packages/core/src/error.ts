@@ -17,10 +17,6 @@ export enum CofhesdkErrorCode {
   CannotRemoveLastPermit = 'CANNOT_REMOVE_LAST_PERMIT',
   AccountUninitialized = 'ACCOUNT_UNINITIALIZED',
   ChainIdUninitialized = 'CHAIN_ID_UNINITIALIZED',
-  FheKeyNotFound = 'FHE_KEY_NOT_FOUND',
-  CrsNotFound = 'CRS_NOT_FOUND',
-  ProviderNotInitialized = 'PROVIDER_NOT_INITIALIZED',
-  SignerNotInitialized = 'SIGNER_NOT_INITIALIZED',
   SealOutputFailed = 'SEAL_OUTPUT_FAILED',
   SealOutputReturnedNull = 'SEAL_OUTPUT_RETURNED_NULL',
   InvalidUtype = 'INVALID_UTYPE',
@@ -38,6 +34,9 @@ export enum CofhesdkErrorCode {
   MissingZkBuilderAndCrsGenerator = 'MISSING_ZK_BUILDER_AND_CRS_GENERATOR',
   MissingTfhePublicKeySerializer = 'MISSING_TFHE_PUBLIC_KEY_SERIALIZER',
   MissingCompactPkeCrsSerializer = 'MISSING_COMPACT_PKE_CRS_SERIALIZER',
+  MissingFheKey = 'MISSING_FHE_KEY',
+  MissingCrs = 'MISSING_CRS',
+  FetchKeysFailed = 'FETCH_KEYS_FAILED',
 }
 
 export class CofhesdkError extends Error {
