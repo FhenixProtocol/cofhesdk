@@ -49,7 +49,7 @@ type zPermitType = z.infer<typeof zPermitWithDefaults>;
  * this check ensures that IF an external validator is applied, that both `validatorId` and `validatorContract` are populated,
  * ELSE ensures that both `validatorId` and `validatorContract` are empty
  */
-const ExternalValidatorRefinement = [
+const ValidatorContractRefinement = [
   (data: zPermitType) =>
     (data.validatorId !== 0 && data.validatorContract !== zeroAddress) ||
     (data.validatorId === 0 && data.validatorContract === zeroAddress),
@@ -68,7 +68,7 @@ const ExternalValidatorRefinement = [
  */
 export const SelfPermitOptionsValidator = z
   .object({
-    type: z.literal('self'),
+    type: z.literal('self').optional().default('self'),
     issuer: z
       .string()
       .refine((val) => isAddress(val), {
@@ -100,7 +100,7 @@ export const SelfPermitOptionsValidator = z
     issuerSignature: z.string().optional().default('0x'),
     recipientSignature: z.string().optional().default('0x'),
   })
-  .refine(...ExternalValidatorRefinement);
+  .refine(...ValidatorContractRefinement);
 
 /**
  * Validator for fully formed self permits
@@ -118,7 +118,7 @@ export const SelfPermitValidator = zPermitWithSealingPair
   .refine((data) => data.recipientSignature === '0x', {
     message: 'Self permit :: recipientSignature must be empty',
   })
-  .refine(...ExternalValidatorRefinement);
+  .refine(...ValidatorContractRefinement);
 
 // ============================================================================
 // SHARING PERMIT VALIDATORS
@@ -129,7 +129,7 @@ export const SelfPermitValidator = zPermitWithSealingPair
  */
 export const SharingPermitOptionsValidator = z
   .object({
-    type: z.literal('sharing'),
+    type: z.literal('sharing').optional().default('sharing'),
     issuer: z
       .string()
       .refine((val) => isAddress(val), {
@@ -159,7 +159,7 @@ export const SharingPermitOptionsValidator = z
     issuerSignature: z.string().optional().default('0x'),
     recipientSignature: z.string().optional().default('0x'),
   })
-  .refine(...ExternalValidatorRefinement);
+  .refine(...ValidatorContractRefinement);
 
 /**
  * Validator for fully formed sharing permits
@@ -177,7 +177,7 @@ export const SharingPermitValidator = zPermitWithSealingPair
   .refine((data) => data.recipientSignature === '0x', {
     message: 'Sharing permit :: recipientSignature must be empty',
   })
-  .refine(...ExternalValidatorRefinement);
+  .refine(...ValidatorContractRefinement);
 
 // ============================================================================
 // IMPORT/RECIPIENT PERMIT VALIDATORS
@@ -188,7 +188,7 @@ export const SharingPermitValidator = zPermitWithSealingPair
  */
 export const ImportPermitOptionsValidator = z
   .object({
-    type: z.literal('recipient'),
+    type: z.literal('recipient').optional().default('recipient'),
     issuer: z
       .string()
       .refine((val) => isAddress(val), {
@@ -220,7 +220,7 @@ export const ImportPermitOptionsValidator = z
       }),
     recipientSignature: z.string().optional().default('0x'),
   })
-  .refine(...ExternalValidatorRefinement);
+  .refine(...ValidatorContractRefinement);
 
 /**
  * Validator for fully formed import/recipient permits
@@ -238,7 +238,7 @@ export const ImportPermitValidator = zPermitWithSealingPair
   .refine((data) => data.recipientSignature !== '0x', {
     message: 'Import permit :: recipientSignature must be populated',
   })
-  .refine(...ExternalValidatorRefinement);
+  .refine(...ValidatorContractRefinement);
 
 // ============================================================================
 // VALIDATION FUNCTIONS

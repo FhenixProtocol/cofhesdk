@@ -4,7 +4,7 @@ import { produce } from 'immer';
 import { Permit, SerializedPermit } from './types';
 import { PermitUtils } from './permit';
 
-type ChainRecord<T> = Record<string, T>;
+type ChainRecord<T> = Record<number, T>;
 type AccountRecord<T> = Record<string, T>;
 type HashRecord<T> = Record<string, T>;
 
@@ -27,7 +27,6 @@ export const _permitStore = createStore<PermitsStore>()(
 
 export const clearStaleStore = () => {
   // Any is used here because we do not have types of the previous store
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const state = _permitStore.getState() as any;
 
   // Check if the store has the expected structure
@@ -45,7 +44,7 @@ export const clearStaleStore = () => {
 };
 
 export const getPermit = (
-  chainId: string | undefined,
+  chainId: number | undefined,
   account: string | undefined,
   hash: string | undefined
 ): Permit | undefined => {
@@ -58,7 +57,7 @@ export const getPermit = (
   return PermitUtils.deserialize(savedPermit);
 };
 
-export const getActivePermit = (chainId: string | undefined, account: string | undefined): Permit | undefined => {
+export const getActivePermit = (chainId: number | undefined, account: string | undefined): Permit | undefined => {
   clearStaleStore();
   if (chainId == null || account == null) return;
 
@@ -66,7 +65,7 @@ export const getActivePermit = (chainId: string | undefined, account: string | u
   return getPermit(chainId, account, activePermitHash);
 };
 
-export const getPermits = (chainId: string | undefined, account: string | undefined): Record<string, Permit> => {
+export const getPermits = (chainId: number | undefined, account: string | undefined): Record<string, Permit> => {
   clearStaleStore();
   if (chainId == null || account == null) return {};
 
@@ -79,7 +78,7 @@ export const getPermits = (chainId: string | undefined, account: string | undefi
   );
 };
 
-export const setPermit = (chainId: string, account: string, permit: Permit) => {
+export const setPermit = (chainId: number, account: string, permit: Permit) => {
   clearStaleStore();
   _permitStore.setState(
     produce<PermitsStore>((state) => {
@@ -90,7 +89,7 @@ export const setPermit = (chainId: string, account: string, permit: Permit) => {
   );
 };
 
-export const removePermit = (chainId: string, account: string, hash: string, force?: boolean) => {
+export const removePermit = (chainId: number, account: string, hash: string, force?: boolean) => {
   clearStaleStore();
   _permitStore.setState(
     produce<PermitsStore>((state) => {
@@ -122,13 +121,13 @@ export const removePermit = (chainId: string, account: string, hash: string, for
   );
 };
 
-export const getActivePermitHash = (chainId: string | undefined, account: string | undefined): string | undefined => {
+export const getActivePermitHash = (chainId: number | undefined, account: string | undefined): string | undefined => {
   clearStaleStore();
   if (chainId == null || account == null) return undefined;
   return _permitStore.getState().activePermitHash[chainId]?.[account];
 };
 
-export const setActivePermitHash = (chainId: string, account: string, hash: string) => {
+export const setActivePermitHash = (chainId: number, account: string, hash: string) => {
   clearStaleStore();
   _permitStore.setState(
     produce<PermitsStore>((state) => {
@@ -138,7 +137,7 @@ export const setActivePermitHash = (chainId: string, account: string, hash: stri
   );
 };
 
-export const removeActivePermitHash = (chainId: string, account: string) => {
+export const removeActivePermitHash = (chainId: number, account: string) => {
   clearStaleStore();
   _permitStore.setState(
     produce<PermitsStore>((state) => {

@@ -10,16 +10,12 @@ export default defineConfig({
       headless: true,
     },
     globals: true,
-    include: ['test/**/*.browser.test.ts'],
+    include: ['./**/*.browser.test.ts'],
+    exclude: ['node_modules'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      exclude: [
-        'node_modules/**',
-        'dist/**',
-        'test/**',
-        '**/*.config.ts',
-      ],
+      exclude: ['node_modules/**', 'dist/**', 'test/**', '**/*.config.ts'],
     },
   },
 });

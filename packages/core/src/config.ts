@@ -1,5 +1,20 @@
 import { z } from 'zod';
-import type { CofheChain } from '@cofhesdk/chains';
+import { CofheChain } from '@cofhesdk/chains';
+import { WalletClient } from 'viem';
+
+/**
+ * Usable config type inferred from the schema
+ */
+export type CofhesdkConfig = {
+  supportedChains: CofheChain[];
+  keyFetchingStrategy: 'CONNECTED_CHAIN' | 'SUPPORTED_CHAINS';
+  generatePermitDuringInitialization: boolean;
+  _internal?: CofhesdkInternalConfig;
+};
+
+export type CofhesdkInternalConfig = {
+  zkvWalletClient?: WalletClient;
+};
 
 /**
  * Zod schema for configuration validation
@@ -7,12 +22,22 @@ import type { CofheChain } from '@cofhesdk/chains';
 export const CofhesdkConfigSchema = z.object({
   /** List of supported chain configurations */
   supportedChains: z.array(z.custom<CofheChain>()),
+  /** Strategy for fetching FHE keys */
+  keyFetchingStrategy: z.enum(['CONNECTED_CHAIN', 'SUPPORTED_CHAINS']).optional().default('CONNECTED_CHAIN'),
+  /** Whether to generate a permit during initialization */
+  generatePermitDuringInitialization: z.boolean().optional().default(false),
+  /** Internal configuration */
+  _internal: z
+    .object({
+      zkvWalletClient: z.any().optional(),
+    })
+    .optional(),
 });
 
 /**
- * Configuration type inferred from the schema
+ * Input config type inferred from the schema
  */
-export type CofhesdkConfig = z.infer<typeof CofhesdkConfigSchema>;
+export type CofhesdkInputConfig = z.input<typeof CofhesdkConfigSchema>;
 
 /**
  * Creates and validates a cofhesdk configuration
@@ -20,7 +45,7 @@ export type CofhesdkConfig = z.infer<typeof CofhesdkConfigSchema>;
  * @returns The validated configuration
  * @throws {Error} If the configuration is invalid
  */
-export function createCofhesdkConfig(config: CofhesdkConfig): CofhesdkConfig {
+export function createCofhesdkConfig(config: CofhesdkInputConfig): CofhesdkConfig {
   const result = CofhesdkConfigSchema.safeParse(config);
 
   if (!result.success) {
@@ -29,3 +54,14 @@ export function createCofhesdkConfig(config: CofhesdkConfig): CofhesdkConfig {
 
   return result.data;
 }
+
+/**
+ * Access the CofhesdkConfig object directly by providing the key.
+ * This is powerful when you use OnchainKit utilities outside of the React context.
+ */
+export const getCofhesdkConfigItem = <K extends keyof CofhesdkConfig>(
+  config: CofhesdkConfig,
+  key: K
+): CofhesdkConfig[K] => {
+  return config[key];
+};

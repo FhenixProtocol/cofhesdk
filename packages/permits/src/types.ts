@@ -140,8 +140,8 @@ export type PermitOptions =
     >;
 
 // Specific option types for each permit creation method
-export type SelfPermitOptions = {
-  type: 'self';
+export type CreateSelfPermitOptions = {
+  type?: 'self';
   issuer: string;
   name?: string;
   expiration?: number;
@@ -149,8 +149,8 @@ export type SelfPermitOptions = {
   validatorContract?: string;
 };
 
-export type SharingPermitOptions = {
-  type: 'sharing';
+export type CreateSharingPermitOptions = {
+  type?: 'sharing';
   issuer: string;
   recipient: string;
   name?: string;
@@ -159,8 +159,8 @@ export type SharingPermitOptions = {
   validatorContract?: string;
 };
 
-export type ImportPermitOptions = {
-  type: 'recipient';
+export type ImportSharedPermitOptions = {
+  type?: 'sharing';
   issuer: string;
   recipient: string;
   issuerSignature: string;
