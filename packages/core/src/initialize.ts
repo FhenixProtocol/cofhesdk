@@ -5,27 +5,57 @@ import { sdkStore } from './sdkStore';
 import { fetchKeys, fetchMultichainKeys, FheKeySerializer } from './fetchKeys';
 import { permits } from './permits';
 import { ZkBuilderAndCrsGenerator } from './encrypt/zkPackProveVerify';
+import { CofhesdkError, CofhesdkErrorCode } from './error';
 
 /**
  * Initializes the CoFHE SDK
- * @param {CofhesdkConfig} config - The configuration object for the CoFHE SDK
- * @param {PublicClient} publicClient - The public client for the CoFHE SDK
- * @param {WalletClient} walletClient - The wallet client for the CoFHE SDK
+ * @param {CofhesdkConfig} config - Configuration object for the CoFHE SDK
+ * @param {ZkBuilderAndCrsGenerator} zkBuilderAndCrsGenerator - Platform specific zk builder and crs generator
+ * @param {FheKeySerializer} tfhePublicKeySerializer - Platform specific tfhe public key serializer
+ * @param {FheKeySerializer} compactPkeCrsSerializer - Platform specific compact pke crs serializer
  * @returns {Promise<void>} - A promise that resolves when the CoFHE SDK is initialized
  */
-export const initialize = async (
+export const configure = async (
   config: CofhesdkConfig,
-  publicClient: PublicClient,
-  walletClient: WalletClient,
   zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator,
   tfhePublicKeySerializer: FheKeySerializer,
   compactPkeCrsSerializer: FheKeySerializer
 ) => {
   // Store config and clients in storage
   sdkStore.setConfig(config);
+  sdkStore.setZkBuilderAndCrsGenerator(zkBuilderAndCrsGenerator);
+  sdkStore.setTfhePublicKeySerializer(tfhePublicKeySerializer);
+  sdkStore.setCompactPkeCrsSerializer(compactPkeCrsSerializer);
+};
+
+export const connect = async (publicClient: PublicClient, walletClient: WalletClient) => {
   sdkStore.setPublicClient(publicClient);
   sdkStore.setWalletClient(walletClient);
-  sdkStore.setZkBuilderAndCrsGenerator(zkBuilderAndCrsGenerator);
+
+  // Fetch config
+  const config = sdkStore.getConfig();
+  if (!config) {
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.MissingConfig,
+      message: 'connect: Config not found, ensure initialize() has been called',
+    });
+  }
+
+  const tfhePublicKeySerializer = sdkStore.getTfhePublicKeySerializer();
+  if (!tfhePublicKeySerializer) {
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.MissingTfhePublicKeySerializer,
+      message: 'connect: TfhePublicKeySerializer not found, ensure initialize() has been called',
+    });
+  }
+
+  const compactPkeCrsSerializer = sdkStore.getCompactPkeCrsSerializer();
+  if (!compactPkeCrsSerializer) {
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.MissingCompactPkeCrsSerializer,
+      message: 'connect: CompactPkeCrsSerializer not found, ensure initialize() has been called',
+    });
+  }
 
   // Fetch FHE keys
   await initializeFheKeys(config, publicClient, tfhePublicKeySerializer, compactPkeCrsSerializer);

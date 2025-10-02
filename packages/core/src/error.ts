@@ -35,7 +35,9 @@ export enum CofhesdkErrorCode {
   SenderUninitialized = 'SENDER_UNINITIALIZED',
   MissingConfig = 'MISSING_CONFIG',
   UnsupportedChain = 'UNSUPPORTED_CHAIN',
-  ZkBuilderAndCrsGeneratorNotFound = 'ZK_BUILDER_AND_CRS_GENERATOR_NOT_FOUND',
+  MissingZkBuilderAndCrsGenerator = 'MISSING_ZK_BUILDER_AND_CRS_GENERATOR',
+  MissingTfhePublicKeySerializer = 'MISSING_TFHE_PUBLIC_KEY_SERIALIZER',
+  MissingCompactPkeCrsSerializer = 'MISSING_COMPACT_PKE_CRS_SERIALIZER',
 }
 
 export class CofhesdkError extends Error {

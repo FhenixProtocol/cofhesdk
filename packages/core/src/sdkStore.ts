@@ -3,6 +3,7 @@ import { CofhesdkConfig } from './config';
 import { PublicClient, WalletClient } from 'viem';
 import { CofhesdkError, CofhesdkErrorCode } from './error';
 import { ZkBuilderAndCrsGenerator } from './encrypt/zkPackProveVerify';
+import { FheKeySerializer } from './fetchKeys';
 
 type SdkStore = {
   config: CofhesdkConfig | null;
@@ -11,6 +12,8 @@ type SdkStore = {
 
   // Platform specific
   zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator | null;
+  tfhePublicKeySerializer: FheKeySerializer | null;
+  compactPkeCrsSerializer: FheKeySerializer | null;
 };
 
 const store = createStore<SdkStore>()(() => ({
@@ -20,6 +23,8 @@ const store = createStore<SdkStore>()(() => ({
 
   // Platform specific
   zkBuilderAndCrsGenerator: null,
+  tfhePublicKeySerializer: null,
+  compactPkeCrsSerializer: null,
 }));
 
 const getConfig = (): CofhesdkConfig | null => {
@@ -56,6 +61,22 @@ const setZkBuilderAndCrsGenerator = (zkBuilderAndCrsGenerator: ZkBuilderAndCrsGe
 
 const getZkBuilderAndCrsGenerator = () => {
   return store.getState().zkBuilderAndCrsGenerator;
+};
+
+const setTfhePublicKeySerializer = (tfhePublicKeySerializer: FheKeySerializer) => {
+  store.setState({ tfhePublicKeySerializer });
+};
+
+const setCompactPkeCrsSerializer = (compactPkeCrsSerializer: FheKeySerializer) => {
+  store.setState({ compactPkeCrsSerializer });
+};
+
+const getTfhePublicKeySerializer = () => {
+  return store.getState().tfhePublicKeySerializer;
+};
+
+const getCompactPkeCrsSerializer = () => {
+  return store.getState().compactPkeCrsSerializer;
 };
 
 const clearSdkStore = () => {
@@ -97,11 +118,15 @@ export const sdkStore = {
   getWalletClient,
   getZkvWalletClient,
   getZkBuilderAndCrsGenerator,
+  getTfhePublicKeySerializer,
+  getCompactPkeCrsSerializer,
 
   setConfig,
   setPublicClient,
   setWalletClient,
   setZkBuilderAndCrsGenerator,
+  setTfhePublicKeySerializer,
+  setCompactPkeCrsSerializer,
 
   clearSdkStore,
 
