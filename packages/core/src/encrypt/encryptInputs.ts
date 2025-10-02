@@ -13,59 +13,25 @@ import { CofhesdkConfig } from '../config';
 
 export function encryptInputs<T extends any[]>(inputs: [...T]): EncryptInputsBuilder<[...T]> {
   const publicClient = sdkStore.getPublicClient();
-
-  // ChainId can be overridden in the builder, so don't throw if doesn't exist yet
   const chainId = publicClient?.chain?.id;
 
   const walletClient = sdkStore.getWalletClient();
-
-  // Sender can be overridden in the builder, so don't throw if doesn't exist yet
   const sender = walletClient?.account?.address;
 
   const config = sdkStore.getConfig();
-  // Config must already be set in the sdkStore
-  if (!config) {
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.MissingConfig,
-      message: 'encryptInputs(): Config not found in sdkStore',
-    });
-  }
 
   const tfhePublicKeySerializer = sdkStore.getTfhePublicKeySerializer();
-  // TfhePublicKeySerializer must already be set in the sdkStore
-  if (!tfhePublicKeySerializer) {
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.MissingTfhePublicKeySerializer,
-      message: 'encryptInputs(): TfhePublicKeySerializer not found in sdkStore',
-    });
-  }
-
   const compactPkeCrsSerializer = sdkStore.getCompactPkeCrsSerializer();
-  // CompactPkeCrsSerializer must already be set in the sdkStore
-  if (!compactPkeCrsSerializer) {
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.MissingCompactPkeCrsSerializer,
-      message: 'encryptInputs(): CompactPkeCrsSerializer not found in sdkStore',
-    });
-  }
-
   const zkBuilderAndCrsGenerator = sdkStore.getZkBuilderAndCrsGenerator();
-  // ZkBuilderAndCrsGenerator must already be set in the sdkStore
-  if (!zkBuilderAndCrsGenerator) {
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.MissingZkBuilderAndCrsGenerator,
-      message: 'encryptInputs(): ZkBuilderAndCrsGenerator not found in sdkStore',
-    });
-  }
 
   return new EncryptInputsBuilder<[...T]>({
     inputs,
     sender,
     chainId,
-    config,
-    tfhePublicKeySerializer,
-    compactPkeCrsSerializer,
-    zkBuilderAndCrsGenerator,
+    config: config ?? undefined,
+    tfhePublicKeySerializer: tfhePublicKeySerializer ?? undefined,
+    compactPkeCrsSerializer: compactPkeCrsSerializer ?? undefined,
+    zkBuilderAndCrsGenerator: zkBuilderAndCrsGenerator ?? undefined,
   });
 }
 
@@ -74,10 +40,10 @@ type EncryptInputsBuilderParams<T extends any[]> = {
   sender?: string;
   chainId?: number;
   securityZone?: number;
-  config: CofhesdkConfig;
-  tfhePublicKeySerializer: FheKeySerializer;
-  compactPkeCrsSerializer: FheKeySerializer;
-  zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator;
+  config: CofhesdkConfig | undefined;
+  tfhePublicKeySerializer: FheKeySerializer | undefined;
+  compactPkeCrsSerializer: FheKeySerializer | undefined;
+  zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator | undefined;
 };
 
 /**
@@ -96,10 +62,10 @@ export class EncryptInputsBuilder<T extends any[]> {
   private inputItems: [...T];
 
   // Config and stuff
-  private config: CofhesdkConfig;
-  private tfhePublicKeySerializer: FheKeySerializer;
-  private compactPkeCrsSerializer: FheKeySerializer;
-  private zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator;
+  private config: CofhesdkConfig | undefined;
+  private tfhePublicKeySerializer: FheKeySerializer | undefined;
+  private compactPkeCrsSerializer: FheKeySerializer | undefined;
+  private zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator | undefined;
 
   constructor(params: EncryptInputsBuilderParams<T>) {
     this.inputItems = params.inputs;
