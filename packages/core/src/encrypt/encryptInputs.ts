@@ -80,6 +80,14 @@ type EncryptInputsBuilderParams<T extends any[]> = {
   zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator;
 };
 
+/**
+ * EncryptInputsBuilder exposes a builder pattern for encrypting inputs.
+ * sender, securityZone, and chainId can be overridden in the builder.
+ * config, tfhePublicKeySerializer, compactPkeCrsSerializer, and zkBuilderAndCrsGenerator are required to be set in the builder.
+ *
+ * @dev All errors must be throw in `encrypt`, which wraps them in a Result.
+ * Do not throw errors in the constructor or in the builder methods.
+ */
 export class EncryptInputsBuilder<T extends any[]> {
   private sender: string | undefined;
   private chainId: number | undefined;
