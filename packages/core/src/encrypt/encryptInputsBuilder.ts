@@ -4,7 +4,6 @@ import { ZkBuilderAndCrsGenerator, zkPack, zkProve, zkVerify } from './zkPackPro
 import { CofhesdkError, CofhesdkErrorCode } from '../error';
 import { Result, resultWrapper } from '../result';
 import { EncryptSetStateFn, EncryptStep, EncryptableItem, EncryptedItemInput, EncryptedItemInputs } from '../types';
-import { encryptExtract, encryptReplace } from './encryptUtils';
 import { cofheMocksZkVerifySign } from './cofheMocksZkVerifySign';
 import { hardhat } from 'viem/chains';
 import { fetchKeys, FheKeySerializer } from '../fetchKeys';

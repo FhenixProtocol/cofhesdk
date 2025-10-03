@@ -17,7 +17,34 @@ import type {
 } from '@cofhesdk/permits';
 import { PermitUtils } from '@cofhesdk/permits';
 import { DecryptHandlesBuilder } from './decrypt/decryptHandleBuilder';
-import { FheTypes } from './types';
+import { EncryptableItem, FheTypes } from './types';
+
+export type CofhesdkClient = {
+  // --- state access ---
+  getSnapshot(): ConnectStateSnapshot;
+  subscribe(listener: Listener): () => void;
+
+  // --- initialization results ---
+  // (functions that may be run during initialization based on config)
+  readonly initializationResults: {
+    keyFetchResult: Promise<Result<boolean>>;
+  };
+
+  // --- convenience flags (read-only) ---
+  readonly connected: boolean;
+  readonly connecting: boolean;
+
+  // --- config & platform-specific ---
+  readonly config: CofhesdkConfig;
+
+  connect(publicClient: PublicClient, walletClient: WalletClient): Promise<Result<boolean>>;
+  /**
+   * Types docstring
+   */
+  encryptInputs<T extends EncryptableItem[]>(inputs: [...T]): EncryptInputsBuilder<[...T]>;
+  decryptHandle<U extends FheTypes>(ctHash: bigint, utype: U): DecryptHandlesBuilder<U>;
+  permits: ClientPermits;
+};
 
 export type ConnectStateSnapshot = {
   connected: boolean;
@@ -28,13 +55,6 @@ export type ConnectStateSnapshot = {
 };
 
 type Listener = (snapshot: ConnectStateSnapshot) => void;
-
-type CofhesdkClientParams = {
-  config: CofhesdkConfig;
-  zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator;
-  tfhePublicKeySerializer: FheKeySerializer;
-  compactPkeCrsSerializer: FheKeySerializer;
-};
 
 export type ClientPermits = {
   getSnapshot: typeof permits.getSnapshot;
@@ -62,28 +82,11 @@ export type ClientPermits = {
   deserialize: typeof PermitUtils.deserialize;
 };
 
-export type CofhesdkClient = {
-  // --- state access ---
-  getSnapshot(): ConnectStateSnapshot;
-  subscribe(listener: Listener): () => void;
-
-  // --- initialization results ---
-  // (functions that may be run during initialization based on config)
-  readonly initializationResults: {
-    keyFetchResult: Promise<Result<boolean>>;
-  };
-
-  // --- convenience flags (read-only) ---
-  readonly connected: boolean;
-  readonly connecting: boolean;
-
-  // --- config & platform-specific ---
-  readonly config: CofhesdkConfig;
-
-  connect(publicClient: PublicClient, walletClient: WalletClient): Promise<Result<boolean>>;
-  encryptInputs<T extends any[]>(inputs: [...T]): EncryptInputsBuilder<[...T]>;
-  decryptHandle<U extends FheTypes>(ctHash: bigint, utype: U): DecryptHandlesBuilder<U>;
-  permits: ClientPermits;
+type CofhesdkClientParams = {
+  config: CofhesdkConfig;
+  zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator;
+  tfhePublicKeySerializer: FheKeySerializer;
+  compactPkeCrsSerializer: FheKeySerializer;
 };
 
 /**
@@ -199,7 +202,7 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
 
   // CLIENT OPERATIONS
 
-  function encryptInputs<T extends any[]>(inputs: [...T]): EncryptInputsBuilder<[...T]> {
+  function encryptInputs<T extends EncryptableItem[]>(inputs: [...T]): EncryptInputsBuilder<[...T]> {
     const state = connectStore.getState();
 
     return new EncryptInputsBuilder({
@@ -370,14 +373,14 @@ async function _getChainId(publicClient: PublicClient) {
   } catch (e) {
     throw new CofhesdkError({
       code: CofhesdkErrorCode.PublicWalletGetChainIdFailed,
-      message: 'connect(): publicClient.getChainId() failed',
+      message: 'publicClient.getChainId() failed',
       cause: e instanceof Error ? e : undefined,
     });
   }
   if (chainId === null) {
     throw new CofhesdkError({
       code: CofhesdkErrorCode.PublicWalletGetChainIdFailed,
-      message: 'connect(): publicClient.getChainId() returned null',
+      message: 'publicClient.getChainId() returned null',
     });
   }
   return chainId;
@@ -390,14 +393,14 @@ async function _getAddresses(walletClient: WalletClient) {
   } catch (e) {
     throw new CofhesdkError({
       code: CofhesdkErrorCode.PublicWalletGetAddressesFailed,
-      message: 'connect(): walletClient.getAddresses() failed',
+      message: 'walletClient.getAddresses() failed',
       cause: e instanceof Error ? e : undefined,
     });
   }
   if (addresses.length === 0) {
     throw new CofhesdkError({
       code: CofhesdkErrorCode.PublicWalletGetAddressesFailed,
-      message: 'connect(): walletClient.getAddresses() returned an empty array',
+      message: 'walletClient.getAddresses() returned an empty array',
     });
   }
   return addresses;

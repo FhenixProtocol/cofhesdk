@@ -476,14 +476,12 @@ describe('EncryptInputsBuilder', () => {
       const result = expectResultSuccess(await builder.encrypt());
 
       // Verify step callbacks were called in order
-      expect(stepCallback).toHaveBeenCalledTimes(7);
+      expect(stepCallback).toHaveBeenCalledTimes(5);
       expect(stepCallback).toHaveBeenNthCalledWith(1, EncryptStep.FetchKeys);
-      expect(stepCallback).toHaveBeenNthCalledWith(2, EncryptStep.Extract);
-      expect(stepCallback).toHaveBeenNthCalledWith(3, EncryptStep.Pack);
-      expect(stepCallback).toHaveBeenNthCalledWith(4, EncryptStep.Prove);
-      expect(stepCallback).toHaveBeenNthCalledWith(5, EncryptStep.Verify);
-      expect(stepCallback).toHaveBeenNthCalledWith(6, EncryptStep.Replace);
-      expect(stepCallback).toHaveBeenNthCalledWith(7, EncryptStep.Done);
+      expect(stepCallback).toHaveBeenNthCalledWith(2, EncryptStep.Pack);
+      expect(stepCallback).toHaveBeenNthCalledWith(3, EncryptStep.Prove);
+      expect(stepCallback).toHaveBeenNthCalledWith(4, EncryptStep.Verify);
+      expect(stepCallback).toHaveBeenNthCalledWith(5, EncryptStep.Done);
 
       // Verify result structure
       expect(result).toBeDefined();
@@ -589,7 +587,7 @@ describe('EncryptInputsBuilder', () => {
       const resultData = expectResultSuccess(result);
 
       expect(result).toBeDefined();
-      expect(stepCallback).toHaveBeenCalledTimes(7);
+      expect(stepCallback).toHaveBeenCalledTimes(5);
 
       // Verify result embedded metadata
       const [encrypted] = resultData;

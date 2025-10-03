@@ -4,6 +4,7 @@ import { createCofhesdkConfig } from './config';
 import { CofhesdkErrorCode } from './error';
 import type { PublicClient, WalletClient } from 'viem';
 import { EncryptInputsBuilder } from './encrypt/encryptInputsBuilder';
+import { Encryptable } from './types';
 
 // Mock dependencies
 vi.mock('./keyStore', () => ({
@@ -167,7 +168,7 @@ describe('createCofhesdkClient', () => {
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(CofhesdkErrorCode.PublicWalletGetChainIdFailed);
-      expect(result.error?.message).toBe('connect(): publicClient.getChainId() failed');
+      expect(result.error?.message).toBe('publicClient.getChainId() failed');
       expect(result.error?.cause).toBe(error);
       expect(client.connected).toBe(false);
     });
@@ -181,7 +182,7 @@ describe('createCofhesdkClient', () => {
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(CofhesdkErrorCode.PublicWalletGetChainIdFailed);
-      expect(result.error?.message).toBe('connect(): publicClient.getChainId() returned null');
+      expect(result.error?.message).toBe('publicClient.getChainId() returned null');
       expect(result.error?.cause).toBe(undefined);
       expect(client.connected).toBe(false);
     });
@@ -196,7 +197,7 @@ describe('createCofhesdkClient', () => {
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(CofhesdkErrorCode.PublicWalletGetAddressesFailed);
-      expect(result.error?.message).toBe('connect(): walletClient.getAddresses() failed');
+      expect(result.error?.message).toBe('walletClient.getAddresses() failed');
       expect(result.error?.cause).toBe(error);
       expect(client.connected).toBe(false);
     });
@@ -209,7 +210,7 @@ describe('createCofhesdkClient', () => {
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(CofhesdkErrorCode.PublicWalletGetAddressesFailed);
-      expect(result.error?.message).toBe('connect(): walletClient.getAddresses() returned an empty array');
+      expect(result.error?.message).toBe('walletClient.getAddresses() returned an empty array');
       expect(result.error?.cause).toBe(undefined);
       expect(client.connected).toBe(false);
     });
@@ -231,7 +232,9 @@ describe('createCofhesdkClient', () => {
 
   describe('encryptInputs', () => {
     it('should throw if not connected', async () => {
-      const result = await client.encryptInputs([1, 2, 3]).encrypt();
+      const result = await client
+        .encryptInputs([Encryptable.uint8(1n), Encryptable.uint8(2n), Encryptable.uint8(3n)])
+        .encrypt();
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(CofhesdkErrorCode.SenderUninitialized);
     });
@@ -242,7 +245,7 @@ describe('createCofhesdkClient', () => {
 
       await client.connect(publicClient, walletClient);
 
-      const builder = await client.encryptInputs([1, 2, 3]);
+      const builder = await client.encryptInputs([Encryptable.uint8(1n), Encryptable.uint8(2n), Encryptable.uint8(3n)]);
 
       expect(builder).toBeDefined();
       expect(builder).toBeInstanceOf(EncryptInputsBuilder);
