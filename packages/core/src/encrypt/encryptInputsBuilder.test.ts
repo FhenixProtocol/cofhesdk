@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { encryptInputs, EncryptInputsBuilder } from './encryptInputs';
+import { EncryptInputsBuilder } from './encryptInputsBuilder';
 import { Result } from '../result';
 import { EncryptableItem, FheTypes, Encryptable, EncryptableUint128, EncryptStep } from '../types';
 import { CofhesdkError, CofhesdkErrorCode } from '../error';
@@ -8,14 +8,27 @@ import { fromHexString, toHexString } from '../utils';
 import { PublicClient, createPublicClient, http, WalletClient, createWalletClient } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { arbitrumSepolia } from 'viem/chains';
-import { sdkStore } from '../sdkStore';
 import { CofhesdkConfig, createCofhesdkConfig } from '../config';
-import { arbSepolia as cofhesdk_arbitrumSepolia } from '@cofhesdk/chains';
 import { ZkBuilderAndCrsGenerator } from './zkPackProveVerify';
 import { keysStorage } from '../keyStore';
 import { FheKeySerializer } from '../fetchKeys';
 
 const MockZkVerifierUrl = 'http://localhost:3001';
+
+// Test private keys (well-known test keys from Anvil/Hardhat)
+const BOB_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'; // Bob - always issuer
+
+// Create real viem clients for Arbitrum Sepolia
+const publicClient: PublicClient = createPublicClient({
+  chain: arbitrumSepolia,
+  transport: http(),
+});
+
+const bobWalletClient: WalletClient = createWalletClient({
+  chain: arbitrumSepolia,
+  transport: http(),
+  account: privateKeyToAccount(BOB_PRIVATE_KEY),
+});
 
 const stringifyWithBigInt = (obj: any): string => JSON.stringify(obj, (_, v) => (typeof v === 'bigint' ? `${v}n` : v));
 
@@ -234,7 +247,11 @@ describe('EncryptInputsBuilder', () => {
       inputs: [Encryptable.uint128(100n)] as [EncryptableUint128],
       sender: defaultSender,
       chainId: defaultChainId,
+
       config: createMockCofhesdkConfig(defaultChainId, MockZkVerifierUrl),
+      publicClient: publicClient,
+      walletClient: bobWalletClient,
+
       tfhePublicKeySerializer: mockTfhePublicKeySerializer,
       compactPkeCrsSerializer: mockCompactPkeCrsSerializer,
       zkBuilderAndCrsGenerator: mockZkBuilderAndCrsGenerator,
@@ -564,44 +581,5 @@ describe('EncryptInputsBuilder', () => {
       expect(encryptedMetadata2.securityZone).toBe(securityZone);
       expect(encryptedMetadata2.chainId).toBe(defaultChainId);
     });
-  });
-});
-
-// Test private keys (well-known test keys from Anvil/Hardhat)
-const BOB_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'; // Bob - always issuer
-
-// Create real viem clients for Arbitrum Sepolia
-const publicClient: PublicClient = createPublicClient({
-  chain: arbitrumSepolia,
-  transport: http(),
-});
-
-const bobWalletClient: WalletClient = createWalletClient({
-  chain: arbitrumSepolia,
-  transport: http(),
-  account: privateKeyToAccount(BOB_PRIVATE_KEY),
-});
-
-describe('encryptInputs', () => {
-  it('should initialize the builder correctly and encrypt', async () => {
-    sdkStore.setPublicClient(publicClient);
-    sdkStore.setWalletClient(bobWalletClient);
-    sdkStore.setConfig(
-      createCofhesdkConfig({
-        supportedChains: [cofhesdk_arbitrumSepolia],
-      })
-    );
-
-    // Store inserts for platform specific dependencies
-    sdkStore.setZkBuilderAndCrsGenerator(mockZkBuilderAndCrsGenerator);
-    sdkStore.setTfhePublicKeySerializer(mockTfhePublicKeySerializer);
-    sdkStore.setCompactPkeCrsSerializer(mockCompactPkeCrsSerializer);
-
-    const builder = encryptInputs([Encryptable.uint128(100n)] as [EncryptableUint128]);
-
-    expect(builder).toBeInstanceOf(EncryptInputsBuilder);
-    expect(builder.getSender()).toBe(bobWalletClient.account!.address);
-    expect(builder.getChainId()).toBe(cofhesdk_arbitrumSepolia.id);
-    expect(builder.getZkVerifierUrlOrThrow()).toBe(cofhesdk_arbitrumSepolia.verifierUrl);
   });
 });

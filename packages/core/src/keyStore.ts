@@ -1,5 +1,5 @@
 import { createStore } from 'zustand/vanilla';
-import { persist, createJSONStorage, PersistOptions } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { produce } from 'immer';
 import { getStorage } from './storage';
 

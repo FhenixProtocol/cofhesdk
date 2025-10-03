@@ -5,10 +5,17 @@ import { PublicClient, WalletClient } from 'viem';
 import { fetchMultichainKeys, FheKeySerializer } from './fetchKeys';
 import { ZkBuilderAndCrsGenerator } from './encrypt/zkPackProveVerify';
 import { CofhesdkError, CofhesdkErrorCode } from './error';
-import { EncryptInputsBuilder } from './encrypt/encryptInputs';
+import { EncryptInputsBuilder } from './encrypt/encryptInputsBuilder';
 import { Result, ResultOk, resultWrapper } from './result';
 import { keysStorage } from './keyStore';
-import { Permit } from '@cofhesdk/permits';
+import { permits } from './permits';
+import type {
+  CreateSelfPermitOptions,
+  CreateSharingPermitOptions,
+  ImportSharedPermitOptions,
+  Permit,
+} from '@cofhesdk/permits';
+import { PermitUtils } from '@cofhesdk/permits';
 
 export type ConnectStateSnapshot = {
   connected: boolean;
@@ -25,6 +32,32 @@ type CofhesdkClientParams = {
   zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator;
   tfhePublicKeySerializer: FheKeySerializer;
   compactPkeCrsSerializer: FheKeySerializer;
+};
+
+export type ClientPermits = {
+  getSnapshot: typeof permits.getSnapshot;
+  subscribe: typeof permits.subscribe;
+
+  // Creation methods (require connection, no params)
+  createSelf: (options: CreateSelfPermitOptions) => Promise<Result<Permit>>;
+  createSharing: (options: CreateSharingPermitOptions) => Promise<Result<Permit>>;
+  importShared: (options: ImportSharedPermitOptions | any | string) => Promise<Result<Permit>>;
+
+  // Retrieval methods (chainId/account optional)
+  getPermit: (hash: string, chainId?: number, account?: string) => Promise<Result<Permit | undefined>>;
+  getPermits: (chainId?: number, account?: string) => Promise<Result<Record<string, Permit>>>;
+  getActivePermit: (chainId?: number, account?: string) => Promise<Result<Permit | undefined>>;
+  getActivePermitHash: (chainId?: number, account?: string) => Promise<Result<string | undefined>>;
+
+  // Mutation methods (chainId/account optional)
+  selectActivePermit: (hash: string, chainId?: number, account?: string) => Promise<Result<void>>;
+  removePermit: (hash: string, chainId?: number, account?: string) => Promise<Result<void>>;
+  removeActivePermit: (chainId?: number, account?: string) => Promise<Result<void>>;
+
+  // Utils
+  getHash: typeof PermitUtils.getHash;
+  serialize: typeof PermitUtils.serialize;
+  deserialize: typeof PermitUtils.deserialize;
 };
 
 export type CofhesdkClient = {
@@ -47,6 +80,7 @@ export type CofhesdkClient = {
 
   connect(publicClient: PublicClient, walletClient: WalletClient): Promise<Result<boolean>>;
   encryptInputs<T extends any[]>(inputs: [...T]): Promise<EncryptInputsBuilder<[...T]>>;
+  permits: ClientPermits;
 };
 
 /**
@@ -171,12 +205,98 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
       inputs,
       sender: state.address!,
       chainId: state.chainId!,
+
       config: opts.config,
+      publicClient: _publicClient ?? undefined,
+      walletClient: _walletClient ?? undefined,
+      zkvWalletClient: opts.config._internal?.zkvWalletClient,
+
       tfhePublicKeySerializer: opts.tfhePublicKeySerializer,
       compactPkeCrsSerializer: opts.compactPkeCrsSerializer,
       zkBuilderAndCrsGenerator: opts.zkBuilderAndCrsGenerator,
     });
   }
+
+  // PERMITS - Context-aware wrapper
+
+  const _getChainIdAndAccount = (chainId?: number, account?: string) => {
+    const state = connectStore.getState();
+    const _chainId = chainId ?? state.chainId;
+    const _account = account ?? state.address;
+
+    if (_chainId == null || _account == null) {
+      throw new CofhesdkError({
+        code: CofhesdkErrorCode.NotInitialized,
+        message: 'ChainId or account not available. Connect first or provide explicitly.',
+      });
+    }
+
+    return { chainId: _chainId, account: _account };
+  };
+
+  const clientPermits: ClientPermits = {
+    // Pass through store access
+    getSnapshot: permits.getSnapshot,
+    subscribe: permits.subscribe,
+
+    // Creation methods (require connection)
+    createSelf: async (options: CreateSelfPermitOptions) => {
+      _requireConnected();
+      return permits.createSelf(options, _publicClient!, _walletClient!);
+    },
+
+    createSharing: async (options: CreateSharingPermitOptions) => {
+      _requireConnected();
+      return permits.createSharing(options, _publicClient!, _walletClient!);
+    },
+
+    importShared: async (options: ImportSharedPermitOptions | any | string) => {
+      _requireConnected();
+      return permits.importShared(options, _publicClient!, _walletClient!);
+    },
+
+    // Retrieval methods (auto-fill chainId/account)
+    getPermit: async (hash: string, chainId?: number, account?: string) => {
+      const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
+      return permits.getPermit(_chainId, _account, hash);
+    },
+
+    getPermits: async (chainId?: number, account?: string) => {
+      const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
+      return permits.getPermits(_chainId, _account);
+    },
+
+    getActivePermit: async (chainId?: number, account?: string) => {
+      const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
+      return permits.getActivePermit(_chainId, _account);
+    },
+
+    getActivePermitHash: async (chainId?: number, account?: string) => {
+      const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
+      return permits.getActivePermitHash(_chainId, _account);
+    },
+
+    // Mutation methods (auto-fill chainId/account)
+    selectActivePermit: async (hash: string, chainId?: number, account?: string) => {
+      const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
+      return permits.selectActivePermit(_chainId, _account, hash);
+    },
+
+    removePermit: async (hash: string, chainId?: number, account?: string) => {
+      const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
+      return permits.removePermit(_chainId, _account, hash);
+    },
+
+    removeActivePermit: async (chainId?: number, account?: string) => {
+      const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
+      return permits.removeActivePermit(_chainId, _account);
+    },
+
+    // Utils (no context needed)
+    getHash: permits.getHash,
+    serialize: permits.serialize,
+    deserialize: permits.deserialize,
+  };
 
   return {
     // Zustand reactive accessors (don't export store directly to prevent mutation)
@@ -197,12 +317,11 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
     },
 
     // config & platform-specific (read-only)
-    get config() {
-      return opts.config;
-    },
+    config: opts.config,
 
     connect,
     encryptInputs,
+    permits: clientPermits,
 
     // Add SDK-specific methods below that require connection
     // Example:

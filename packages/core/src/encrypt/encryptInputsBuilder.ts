@@ -6,41 +6,22 @@ import { Result, resultWrapper } from '../result';
 import { EncryptSetStateFn, EncryptStep, EncryptedItemInput, EncryptedItemInputs } from '../types';
 import { encryptExtract, encryptReplace } from './encryptUtils';
 import { mockEncrypt } from './mockEncryptInput';
-import { sdkStore } from '../sdkStore';
 import { hardhat } from 'viem/chains';
 import { fetchKeys, FheKeySerializer } from '../fetchKeys';
 import { CofhesdkConfig } from '../config';
-
-export function encryptInputs<T extends any[]>(inputs: [...T]): EncryptInputsBuilder<[...T]> {
-  const publicClient = sdkStore.getPublicClient();
-  const chainId = publicClient?.chain?.id;
-
-  const walletClient = sdkStore.getWalletClient();
-  const sender = walletClient?.account?.address;
-
-  const config = sdkStore.getConfig();
-
-  const tfhePublicKeySerializer = sdkStore.getTfhePublicKeySerializer();
-  const compactPkeCrsSerializer = sdkStore.getCompactPkeCrsSerializer();
-  const zkBuilderAndCrsGenerator = sdkStore.getZkBuilderAndCrsGenerator();
-
-  return new EncryptInputsBuilder<[...T]>({
-    inputs,
-    sender,
-    chainId,
-    config: config ?? undefined,
-    tfhePublicKeySerializer: tfhePublicKeySerializer ?? undefined,
-    compactPkeCrsSerializer: compactPkeCrsSerializer ?? undefined,
-    zkBuilderAndCrsGenerator: zkBuilderAndCrsGenerator ?? undefined,
-  });
-}
+import { PublicClient, WalletClient } from 'viem';
 
 type EncryptInputsBuilderParams<T extends any[]> = {
   inputs: [...T];
   sender?: string;
   chainId?: number;
   securityZone?: number;
+
   config: CofhesdkConfig | undefined;
+  publicClient?: PublicClient | undefined;
+  walletClient?: WalletClient | undefined;
+  zkvWalletClient?: WalletClient | undefined;
+
   tfhePublicKeySerializer: FheKeySerializer | undefined;
   compactPkeCrsSerializer: FheKeySerializer | undefined;
   zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator | undefined;
@@ -63,6 +44,9 @@ export class EncryptInputsBuilder<T extends any[]> {
 
   // Config and stuff
   private config: CofhesdkConfig | undefined;
+  private publicClient: PublicClient | undefined;
+  private walletClient: WalletClient | undefined;
+  private zkvWalletClient: WalletClient | undefined;
   private tfhePublicKeySerializer: FheKeySerializer | undefined;
   private compactPkeCrsSerializer: FheKeySerializer | undefined;
   private zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator | undefined;
@@ -73,8 +57,11 @@ export class EncryptInputsBuilder<T extends any[]> {
     this.chainId = params.chainId;
     this.securityZone = params.securityZone ?? 0;
 
-    // Config and stuff
     this.config = params.config;
+    this.publicClient = params.publicClient;
+    this.walletClient = params.walletClient;
+    this.zkvWalletClient = params.zkvWalletClient;
+
     this.tfhePublicKeySerializer = params.tfhePublicKeySerializer;
     this.compactPkeCrsSerializer = params.compactPkeCrsSerializer;
     this.zkBuilderAndCrsGenerator = params.zkBuilderAndCrsGenerator;
@@ -309,7 +296,28 @@ export class EncryptInputsBuilder<T extends any[]> {
 
       // On hardhat, interact with MockZkVerifier contract instead of CoFHE
       if (chainId === hardhat.id) {
-        return await mockEncrypt(this.inputItems, sender, this.securityZone, this.stepCallback);
+        if (!this.publicClient) {
+          throw new CofhesdkError({
+            code: CofhesdkErrorCode.MissingPublicClient,
+            message: 'encryptInputs.encrypt(): Public client not found',
+          });
+        }
+        if (!this.walletClient) {
+          throw new CofhesdkError({
+            code: CofhesdkErrorCode.MissingWalletClient,
+            message: 'encryptInputs.encrypt(): Wallet client not found',
+          });
+        }
+
+        return await mockEncrypt(
+          this.inputItems,
+          sender,
+          this.securityZone,
+          this.stepCallback,
+          this.publicClient,
+          this.walletClient,
+          this.zkvWalletClient
+        );
       }
 
       this.fireCallback(EncryptStep.FetchKeys);

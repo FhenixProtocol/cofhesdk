@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
-  _permitStore,
+  permitStore,
   getPermit,
   getActivePermit,
   getPermits,
@@ -22,11 +22,11 @@ describe('Storage Tests', () => {
   const account = '0x1234567890123456789012345678901234567890';
 
   beforeEach(() => {
-    _permitStore.setState({ permits: {}, activePermitHash: {} });
+    permitStore.resetStore();
   });
 
   afterEach(() => {
-    _permitStore.setState({ permits: {}, activePermitHash: {} });
+    permitStore.resetStore();
   });
 
   describe('Permit Storage', () => {

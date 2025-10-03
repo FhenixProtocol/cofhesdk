@@ -1,13 +1,21 @@
 import { EncryptableItem, EncryptSetStateFn, EncryptedItemInputs, EncryptStep, EncryptedItemInput } from '../types';
 import { encryptExtract, encryptReplace } from './encryptUtils';
 import { VerifyResult } from './zkPackProveVerify';
-import { createWalletClient, http, encodePacked, keccak256, hashMessage, toBytes } from 'viem';
+import {
+  createWalletClient,
+  http,
+  encodePacked,
+  keccak256,
+  hashMessage,
+  toBytes,
+  PublicClient,
+  WalletClient,
+} from 'viem';
 import { MockZkVerifierAbi } from './MockZkVerifierAbi';
 import { hardhat } from 'viem/chains';
 import { CofhesdkError, CofhesdkErrorCode } from '../error';
 import { privateKeyToAccount } from 'viem/accounts';
 import { sleep } from '../utils';
-import { sdkStore } from '../sdkStore';
 
 // Address the Mock ZkVerifier contract is deployed to on the Hardhat chain
 export const MockZkVerifierAddress = '0x0000000000000000000000000000000000000100';
@@ -17,10 +25,12 @@ export const MockEncryptedInputSignerPkey = '0x6c8d7f768a6bb4aafe85e8a2f5a968035
 async function mockZkVerifySign(
   items: EncryptableItem[],
   sender: string,
-  securityZone: number
+  securityZone: number,
+  publicClient: PublicClient,
+  walletClient: WalletClient,
+  zkvWalletClient: WalletClient | undefined
 ): Promise<VerifyResult[]> {
-  const { publicClient, walletClient } = sdkStore.getValidatedClients();
-  const zkvWalletClient = sdkStore.getZkvWalletClient() ?? walletClient;
+  const _walletClient = zkvWalletClient ?? walletClient;
 
   // Create array to store results
   const results = [];
@@ -51,9 +61,9 @@ async function mockZkVerifySign(
       itemsWithCtHashes.map(({ data }) => BigInt(data)),
     ] as const;
 
-    const zkvInsertPackedHashesAccount = zkvWalletClient.account!;
+    const zkvInsertPackedHashesAccount = _walletClient.account!;
 
-    await (zkvWalletClient ?? walletClient).writeContract({
+    await _walletClient.writeContract({
       address: MockZkVerifierAddress,
       abi: MockZkVerifierAbi,
       functionName: 'insertPackedCtHashes',
@@ -71,6 +81,7 @@ async function mockZkVerifySign(
 
   // Create wallet client for the encrypted input signer
   // This wallet won't send a transaction, so gas isn't needed
+  // This wallet doesn't even need to be connected to the network
   const encInputSignerClient = createWalletClient({
     chain: hardhat,
     transport: http(),
@@ -110,7 +121,10 @@ export async function mockEncrypt<T extends any[]>(
   item: [...T],
   sender: string,
   securityZone = 0,
-  setStateCallback?: EncryptSetStateFn
+  setStateCallback: EncryptSetStateFn | undefined,
+  publicClient: PublicClient,
+  walletClient: WalletClient,
+  zkvWalletClient: WalletClient | undefined
 ): Promise<[...EncryptedItemInputs<T>]> {
   setStateCallback?.(EncryptStep.Extract);
 
@@ -128,7 +142,14 @@ export async function mockEncrypt<T extends any[]>(
 
   await sleep(500);
 
-  const signedResults = await mockZkVerifySign(encryptableItems, sender, securityZone);
+  const signedResults = await mockZkVerifySign(
+    encryptableItems,
+    sender,
+    securityZone,
+    publicClient,
+    walletClient,
+    zkvWalletClient
+  );
 
   const inItems: EncryptedItemInput[] = signedResults.map(({ ct_hash, signature }, index) => ({
     ctHash: BigInt(ct_hash),

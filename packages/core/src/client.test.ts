@@ -3,7 +3,7 @@ import { createCofhesdkClient, CofhesdkClient, ConnectStateSnapshot } from './cl
 import { createCofhesdkConfig } from './config';
 import { CofhesdkErrorCode } from './error';
 import type { PublicClient, WalletClient } from 'viem';
-import { EncryptInputsBuilder } from './encrypt/encryptInputs';
+import { EncryptInputsBuilder } from './encrypt/encryptInputsBuilder';
 
 // Mock dependencies
 vi.mock('./keyStore', () => ({
@@ -284,6 +284,27 @@ describe('createCofhesdkClient', () => {
     it('should resolve keyFetchResult', async () => {
       const result = await client.initializationResults.keyFetchResult;
       expect(result.success).toBe(true);
+    });
+  });
+
+  describe('permits', () => {
+    it('should expose permits', () => {
+      expect(client.permits).toBeDefined();
+      expect(client.permits).toHaveProperty('getSnapshot');
+      expect(client.permits).toHaveProperty('subscribe');
+      expect(client.permits).toHaveProperty('createSelf');
+      expect(client.permits).toHaveProperty('createSharing');
+      expect(client.permits).toHaveProperty('importShared');
+      expect(client.permits).toHaveProperty('getHash');
+      expect(client.permits).toHaveProperty('serialize');
+      expect(client.permits).toHaveProperty('deserialize');
+      expect(client.permits).toHaveProperty('getPermit');
+      expect(client.permits).toHaveProperty('getPermits');
+      expect(client.permits).toHaveProperty('getActivePermit');
+      expect(client.permits).toHaveProperty('getActivePermitHash');
+      expect(client.permits).toHaveProperty('removePermit');
+      expect(client.permits).toHaveProperty('selectActivePermit');
+      expect(client.permits).toHaveProperty('removeActivePermit');
     });
   });
 });

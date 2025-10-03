@@ -54,7 +54,7 @@ export {
   setActivePermitHash,
   removeActivePermitHash,
   clearStaleStore,
-} from './storage';
+} from './store';
 
 // Sealing utilities
 export { SealingKey, GenerateSealingKey } from './sealing';
@@ -65,4 +65,4 @@ export * from './types';
 export * from './permit';
 export * from './validation';
 export * from './signature';
-export * from './storage';
+export * from './store';
