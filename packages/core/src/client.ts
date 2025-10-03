@@ -1,10 +1,12 @@
 /* eslint-disable no-unused-vars */
 import { CofhesdkConfig } from './config';
 import { PublicClient, WalletClient } from 'viem';
-import { FheKeySerializer } from './fetchKeys';
+import { fetchMultichainKeys, FheKeySerializer } from './fetchKeys';
 import { ZkBuilderAndCrsGenerator } from './encrypt/zkPackProveVerify';
 import { CofhesdkError, CofhesdkErrorCode } from './error';
 import { EncryptInputsBuilder } from './encrypt/encryptInputs';
+import { Result, ResultOk, resultWrapper } from './result';
+import { keysStorage } from './keyStore';
 
 export type ClientSnapshot = {
   connected: boolean;
@@ -16,7 +18,7 @@ export type ClientSnapshot = {
 
 type Listener = (snapshot: ClientSnapshot) => void;
 
-type InitOptions = {
+type CofhesdkClientParams = {
   config: CofhesdkConfig;
   zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator;
   tfhePublicKeySerializer: FheKeySerializer;
@@ -28,6 +30,13 @@ export type CofhesdkClient = {
   getSnapshot(): ClientSnapshot;
   subscribe(listener: Listener): () => void;
 
+  // --- initialization results ---
+  // (functions that may be run during initialization based on config)
+  readonly initializationResults: {
+    keyFetchResult: Promise<Result<boolean>>;
+    generatePermitResult: Promise<Result<boolean>>;
+  };
+
   // --- convenience flags (read-only) ---
   readonly connected: boolean;
   readonly connecting: boolean;
@@ -35,16 +44,16 @@ export type CofhesdkClient = {
   // --- config & platform-specific ---
   readonly config: CofhesdkConfig;
 
-  connect(publicClient: PublicClient, walletClient: WalletClient): Promise<void>;
+  connect(publicClient: PublicClient, walletClient: WalletClient): Promise<Result<boolean>>;
   encryptInputs<T extends any[]>(inputs: [...T]): Promise<EncryptInputsBuilder<[...T]>>;
 };
 
 /**
  * Creates a CoFHE SDK client instance
- * @param {InitOptions} opts - Initialization options including config and platform-specific serializers
+ * @param {CofhesdkClientParams} opts - Initialization options including config and platform-specific serializers
  * @returns {CofhesdkClient} - The CoFHE SDK client instance
  */
-export function createCofhesdkClient(opts: InitOptions): CofhesdkClient {
+export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient {
   // refs captured in closure
   let _publicClient: PublicClient | null = null;
   let _walletClient: WalletClient | null = null;
@@ -61,7 +70,7 @@ export function createCofhesdkClient(opts: InitOptions): CofhesdkClient {
   };
 
   // single-flight + abortable warmup
-  let _connectPromise: Promise<void> | null = null;
+  let _connectPromise: Promise<Result<boolean>> | null = null;
 
   const _requireConnected = () => {
     if (!state.connected || !_publicClient || !_walletClient) {
@@ -84,16 +93,43 @@ export function createCofhesdkClient(opts: InitOptions): CofhesdkClient {
     }
   };
 
+  // INITIALIZATION
+
+  const keyFetchResult = resultWrapper(async () => {
+    // Hydrate keyStore
+    await keysStorage.rehydrateKeysStore();
+
+    // If configured, fetch keys for all supported chains
+    if (opts.config.fheKeysPrefetching === 'SUPPORTED_CHAINS') {
+      await fetchMultichainKeys(opts.config, 0, opts.tfhePublicKeySerializer, opts.compactPkeCrsSerializer);
+      return true;
+    }
+
+    return false;
+  });
+
+  const generatePermitResult = resultWrapper(async () => {
+    if (opts.config.permitGeneration !== 'ON_CONNECT') return false;
+    // TODO: Generate permit if not generated or not valid
+    return true;
+  });
+
   // LIFECYCLE
 
   async function connect(publicClient: PublicClient, walletClient: WalletClient) {
-    if (state.connected && _publicClient === publicClient && _walletClient === walletClient) return Promise.resolve();
+    // Exit if already connected and clients are the same
+    if (state.connected && _publicClient === publicClient && _walletClient === walletClient)
+      return Promise.resolve(ResultOk(true));
+
+    // Exit if already connecting
     if (_connectPromise) return _connectPromise;
 
+    // Set connecting state
     set({ connecting: true, connectError: null, connected: false });
 
-    _connectPromise = (async () => {
-      try {
+    _connectPromise = resultWrapper(
+      async () => {
+        // Get chain ID
         const chainId = await publicClient.getChainId();
         if (chainId === null) {
           throw new CofhesdkError({
@@ -101,7 +137,7 @@ export function createCofhesdkClient(opts: InitOptions): CofhesdkClient {
             message: 'Chain ID is not initialized. Call connect() first.',
           });
         }
-        state.chainId = chainId;
+        set({ chainId });
 
         const addresses = await walletClient.getAddresses();
         if (addresses.length === 0) {
@@ -110,19 +146,23 @@ export function createCofhesdkClient(opts: InitOptions): CofhesdkClient {
             message: 'No addresses found. Call connect() first.',
           });
         }
-        state.address = addresses[0];
+        set({ address: addresses[0] });
 
         _publicClient = publicClient;
         _walletClient = walletClient;
+
         set({ connected: true });
-      } catch (e) {
+
+        return true;
+      },
+      (e) => {
         set({ connectError: e, connected: false });
-        throw e;
-      } finally {
+      },
+      () => {
         set({ connecting: false });
         _connectPromise = null;
       }
-    })();
+    );
 
     return _connectPromise;
   }
@@ -150,6 +190,12 @@ export function createCofhesdkClient(opts: InitOptions): CofhesdkClient {
       listeners.add(run);
       run(state);
       return () => listeners.delete(run);
+    },
+
+    // initialization results
+    initializationResults: {
+      keyFetchResult,
+      generatePermitResult,
     },
 
     // flags (read-only: reflect snapshot)

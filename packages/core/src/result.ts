@@ -39,12 +39,20 @@ export const ResultValidationError = (message: string): CofhesdkError => {
 };
 
 // Async resultWrapper
-export const resultWrapper = async <T>(fn: () => Promise<T>): Promise<Result<T>> => {
+export const resultWrapper = async <T>(
+  tryFn: () => Promise<T>,
+  catchFn?: (error: CofhesdkError) => void,
+  finallyFn?: () => void
+): Promise<Result<T>> => {
   try {
-    const result = await fn();
+    const result = await tryFn();
     return ResultOk(result);
   } catch (error) {
-    return ResultErrOrInternal(error);
+    const result = ResultErrOrInternal(error);
+    catchFn?.(result.error!);
+    return result as Result<T>;
+  } finally {
+    finallyFn?.();
   }
 };
 

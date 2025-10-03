@@ -85,7 +85,7 @@ const initializeFheKeys = async (
 };
 
 const initializePermitGeneration = async (config: CofhesdkConfig, walletClient: WalletClient) => {
-  if (!config.generatePermitDuringInitialization) return;
+  if (config.permitGeneration !== 'ON_CONNECT') return;
 
   // Check if permit already exists
   const permit = await permits.getPermit(walletClient.account!.address);
