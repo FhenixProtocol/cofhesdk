@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createCofhesdkClient, CofhesdkClient, ClientSnapshot } from './client';
+import { createCofhesdkClient, CofhesdkClient, ConnectStateSnapshot } from './client';
 import { createCofhesdkConfig } from './config';
 import { CofhesdkErrorCode } from './error';
 import type { PublicClient, WalletClient } from 'viem';
@@ -67,7 +67,7 @@ describe('createCofhesdkClient', () => {
 
   describe('reactive state', () => {
     it('should notify subscribers of state changes', async () => {
-      const states: ClientSnapshot[] = [];
+      const states: ConnectStateSnapshot[] = [];
       client.subscribe((snapshot) => states.push(snapshot));
 
       const publicClient = createMockPublicClient();
@@ -88,7 +88,7 @@ describe('createCofhesdkClient', () => {
     });
 
     it('should stop notifications after unsubscribe', async () => {
-      const states: ClientSnapshot[] = [];
+      const states: ConnectStateSnapshot[] = [];
       const unsubscribe = client.subscribe((snapshot) => states.push(snapshot));
 
       unsubscribe();
@@ -157,7 +157,22 @@ describe('createCofhesdkClient', () => {
       expect(result.success).toBe(true);
     });
 
-    it('should handle missing chain ID', async () => {
+    it('should handle getChainId throwing an error', async () => {
+      const publicClient = createMockPublicClient();
+      const error = new Error('Network error');
+      publicClient.getChainId = vi.fn().mockRejectedValue(error);
+      const walletClient = createMockWalletClient();
+
+      const result = await client.connect(publicClient, walletClient);
+
+      expect(result.success).toBe(false);
+      expect(result.error?.code).toBe(CofhesdkErrorCode.PublicWalletGetChainIdFailed);
+      expect(result.error?.message).toBe('connect(): publicClient.getChainId() failed');
+      expect(result.error?.cause).toBe(error);
+      expect(client.connected).toBe(false);
+    });
+
+    it('should handle getChainId returning null', async () => {
       const publicClient = createMockPublicClient();
       publicClient.getChainId = vi.fn().mockResolvedValue(null);
       const walletClient = createMockWalletClient();
@@ -165,24 +180,44 @@ describe('createCofhesdkClient', () => {
       const result = await client.connect(publicClient, walletClient);
 
       expect(result.success).toBe(false);
-      expect(result.error?.code).toBe(CofhesdkErrorCode.NotInitialized);
+      expect(result.error?.code).toBe(CofhesdkErrorCode.PublicWalletGetChainIdFailed);
+      expect(result.error?.message).toBe('connect(): publicClient.getChainId() returned null');
+      expect(result.error?.cause).toBe(undefined);
       expect(client.connected).toBe(false);
     });
 
-    it('should handle missing addresses', async () => {
+    it('should handle getAddresses throwing an error', async () => {
+      const publicClient = createMockPublicClient();
+      const error = new Error('Network error');
+      const walletClient = createMockWalletClient();
+      walletClient.getAddresses = vi.fn().mockRejectedValue(error);
+
+      const result = await client.connect(publicClient, walletClient);
+
+      expect(result.success).toBe(false);
+      expect(result.error?.code).toBe(CofhesdkErrorCode.PublicWalletGetAddressesFailed);
+      expect(result.error?.message).toBe('connect(): walletClient.getAddresses() failed');
+      expect(result.error?.cause).toBe(error);
+      expect(client.connected).toBe(false);
+    });
+
+    it('should handle getAddresses returning an empty array', async () => {
       const publicClient = createMockPublicClient();
       const walletClient = createMockWalletClient([]);
 
       const result = await client.connect(publicClient, walletClient);
 
       expect(result.success).toBe(false);
-      expect(result.error?.code).toBe(CofhesdkErrorCode.NotInitialized);
+      expect(result.error?.code).toBe(CofhesdkErrorCode.PublicWalletGetAddressesFailed);
+      expect(result.error?.message).toBe('connect(): walletClient.getAddresses() returned an empty array');
+      expect(result.error?.cause).toBe(undefined);
       expect(client.connected).toBe(false);
     });
 
     it('should store error in state on failure', async () => {
       const publicClient = createMockPublicClient();
-      publicClient.getChainId = vi.fn().mockRejectedValue(new Error('Network error'));
+      const error = new Error('Network error');
+      publicClient.getChainId = vi.fn().mockRejectedValue(error);
       const walletClient = createMockWalletClient();
 
       const result = await client.connect(publicClient, walletClient);

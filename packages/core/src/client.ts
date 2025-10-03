@@ -10,7 +10,7 @@ import { Result, ResultOk, resultWrapper } from './result';
 import { keysStorage } from './keyStore';
 import { Permit } from '@cofhesdk/permits';
 
-export type ClientSnapshot = {
+export type ConnectStateSnapshot = {
   connected: boolean;
   connecting: boolean;
   connectError: unknown | null;
@@ -18,7 +18,7 @@ export type ClientSnapshot = {
   address: string | null;
 };
 
-type Listener = (snapshot: ClientSnapshot) => void;
+type Listener = (snapshot: ConnectStateSnapshot) => void;
 
 type CofhesdkClientParams = {
   config: CofhesdkConfig;
@@ -29,7 +29,7 @@ type CofhesdkClientParams = {
 
 export type CofhesdkClient = {
   // --- state access ---
-  getSnapshot(): ClientSnapshot;
+  getSnapshot(): ConnectStateSnapshot;
   subscribe(listener: Listener): () => void;
 
   // --- initialization results ---
@@ -60,7 +60,7 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
   let _walletClient: WalletClient | null = null;
 
   // Zustand store for reactive state management
-  const store = createStore<ClientSnapshot>(() => ({
+  const connectStore = createStore<ConnectStateSnapshot>(() => ({
     connected: false,
     connecting: false,
     connectError: null,
@@ -69,15 +69,15 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
   }));
 
   // Helper to update state
-  const updateState = (partial: Partial<ClientSnapshot>) => {
-    store.setState((state) => ({ ...state, ...partial }));
+  const updateConnectState = (partial: Partial<ConnectStateSnapshot>) => {
+    connectStore.setState((state) => ({ ...state, ...partial }));
   };
 
   // single-flight + abortable warmup
   let _connectPromise: Promise<Result<boolean>> | null = null;
 
   const _requireConnected = () => {
-    const state = store.getState();
+    const state = connectStore.getState();
     if (!state.connected || !_publicClient || !_walletClient) {
       throw new CofhesdkError({
         code: CofhesdkErrorCode.NotInitialized,
@@ -122,7 +122,7 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
   // LIFECYCLE
 
   async function connect(publicClient: PublicClient, walletClient: WalletClient) {
-    const state = store.getState();
+    const state = connectStore.getState();
 
     // Exit if already connected and clients are the same
     if (state.connected && _publicClient === publicClient && _walletClient === walletClient)
@@ -132,38 +132,24 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
     if (_connectPromise) return _connectPromise;
 
     // Set connecting state
-    updateState({ connecting: true, connectError: null, connected: false });
+    updateConnectState({ connecting: true, connectError: null, connected: false });
 
     _connectPromise = resultWrapper(
       // try
       async () => {
-        // Get chain ID
-        const chainId = await publicClient.getChainId();
-        if (chainId === null) {
-          throw new CofhesdkError({
-            code: CofhesdkErrorCode.NotInitialized,
-            message: 'Chain ID is not initialized. Call connect() first.',
-          });
-        }
-
-        const addresses = await walletClient.getAddresses();
-        if (addresses.length === 0) {
-          throw new CofhesdkError({
-            code: CofhesdkErrorCode.NotInitialized,
-            message: 'No addresses found. Call connect() first.',
-          });
-        }
-
         _publicClient = publicClient;
         _walletClient = walletClient;
 
-        updateState({ connecting: false, connected: true, chainId, address: addresses[0] });
+        const chainId = await _getChainId(publicClient);
+        const addresses = await _getAddresses(walletClient);
+
+        updateConnectState({ connecting: false, connected: true, chainId, address: addresses[0] });
 
         return true;
       },
       // catch
       (e) => {
-        updateState({ connecting: false, connected: false, connectError: e });
+        updateConnectState({ connecting: false, connected: false, connectError: e });
       },
       // finally
       () => {
@@ -179,7 +165,7 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
   async function encryptInputs<T extends any[]>(inputs: [...T]): Promise<EncryptInputsBuilder<[...T]>> {
     _requireConnected();
 
-    const state = store.getState();
+    const state = connectStore.getState();
 
     return new EncryptInputsBuilder({
       inputs,
@@ -194,8 +180,8 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
 
   return {
     // Zustand reactive accessors (don't export store directly to prevent mutation)
-    getSnapshot: store.getState,
-    subscribe: store.subscribe,
+    getSnapshot: connectStore.getState,
+    subscribe: connectStore.subscribe,
 
     // initialization results
     initializationResults: {
@@ -204,10 +190,10 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
 
     // flags (read-only: reflect snapshot)
     get connected() {
-      return store.getState().connected;
+      return connectStore.getState().connected;
     },
     get connecting() {
-      return store.getState().connecting;
+      return connectStore.getState().connecting;
     },
 
     // config & platform-specific (read-only)
@@ -225,4 +211,46 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
     //   // Use _publicClient and _walletClient for implementation
     // },
   };
+}
+
+// Pure utility functions
+
+async function _getChainId(publicClient: PublicClient) {
+  let chainId: number | null = null;
+  try {
+    chainId = await publicClient.getChainId();
+  } catch (e) {
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.PublicWalletGetChainIdFailed,
+      message: 'connect(): publicClient.getChainId() failed',
+      cause: e instanceof Error ? e : undefined,
+    });
+  }
+  if (chainId === null) {
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.PublicWalletGetChainIdFailed,
+      message: 'connect(): publicClient.getChainId() returned null',
+    });
+  }
+  return chainId;
+}
+
+async function _getAddresses(walletClient: WalletClient) {
+  let addresses: string[] = [];
+  try {
+    addresses = await walletClient.getAddresses();
+  } catch (e) {
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.PublicWalletGetAddressesFailed,
+      message: 'connect(): walletClient.getAddresses() failed',
+      cause: e instanceof Error ? e : undefined,
+    });
+  }
+  if (addresses.length === 0) {
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.PublicWalletGetAddressesFailed,
+      message: 'connect(): walletClient.getAddresses() returned an empty array',
+    });
+  }
+  return addresses;
 }

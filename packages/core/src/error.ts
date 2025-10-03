@@ -37,6 +37,8 @@ export enum CofhesdkErrorCode {
   MissingFheKey = 'MISSING_FHE_KEY',
   MissingCrs = 'MISSING_CRS',
   FetchKeysFailed = 'FETCH_KEYS_FAILED',
+  PublicWalletGetChainIdFailed = 'PUBLIC_WALLET_GET_CHAIN_ID_FAILED',
+  PublicWalletGetAddressesFailed = 'PUBLIC_WALLET_GET_ADDRESSES_FAILED',
 }
 
 export class CofhesdkError extends Error {
