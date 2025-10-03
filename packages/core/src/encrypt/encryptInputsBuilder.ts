@@ -36,6 +36,7 @@ type EncryptInputsBuilderParams<T extends EncryptableItem[]> = {
  * @dev All errors must be throw in `encrypt`, which wraps them in a Result.
  * Do not throw errors in the constructor or in the builder methods.
  */
+
 export class EncryptInputsBuilder<T extends EncryptableItem[]> {
   private sender: string | undefined;
   private chainId: number | undefined;
@@ -407,17 +408,17 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> {
    * Final step of the encryption process. MUST BE CALLED LAST IN THE CHAIN.
    *
    * This will:
-   * - Extract the encryptable items from the inputs
    * - Pack the encryptable items into a zk proof
    * - Prove the zk proof
    * - Verify the zk proof with CoFHE
-   * - Replace the encrypted inputs with the verified encrypted inputs
    * - Package and return the encrypted inputs
    *
    * Example:
    * ```typescript
    * const encrypted = await encryptInputs([Encryptable.uint128(10n)])
-   *   .encrypt();
+   *   .setSender('0x123...890')  // optional
+   *   .setChainId(11155111)      // optional
+   *   .encrypt();                // execute
    * ```
    *
    * @returns The encrypted inputs.

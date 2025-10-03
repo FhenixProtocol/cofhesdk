@@ -66,6 +66,20 @@ export class DecryptHandlesBuilder<U extends FheTypes> {
     this.connectPromise = params.connectPromise;
   }
 
+  /**
+   * @param chainId - Chain to decrypt values from. Used to fetch the threshold network URL and use the correct permit.
+   *
+   * If not provided, the chainId will be fetched from the connected publicClient.
+   *
+   * Example:
+   * ```typescript
+   * const unsealed = await decryptHandle(ctHash, utype)
+   *   .setChainId(11155111)
+   *   .decrypt();
+   * ```
+   *
+   * @returns The chainable DecryptHandlesBuilder instance.
+   */
   setChainId(chainId: number): DecryptHandlesBuilder<U> {
     this.chainId = chainId;
     return this;
@@ -75,7 +89,77 @@ export class DecryptHandlesBuilder<U extends FheTypes> {
     return this.chainId;
   }
 
-  async getChainIdOrThrow(): Promise<number> {
+  /**
+   * @param account - Account to decrypt values from. Used to fetch the correct permit.
+   *
+   * If not provided, the account will be fetched from the connected walletClient.
+   *
+   * Example:
+   * ```typescript
+   * const unsealed = await decryptHandle(ctHash, utype)
+   *   .setAccount('0x1234567890123456789012345678901234567890')
+   *   .decrypt();
+   * ```
+   *
+   * @returns The chainable DecryptHandlesBuilder instance.
+   */
+  setAccount(account: string): DecryptHandlesBuilder<U> {
+    this.account = account;
+    return this;
+  }
+
+  getAccount(): string | undefined {
+    return this.account;
+  }
+
+  /**
+   * @param permitHash - Permit hash to decrypt values from. Used to fetch the correct permit.
+   *
+   * If not provided, the active permit for the chainId and account will be used.
+   * If `setPermit()` is called, it will be used regardless of chainId, account, or permitHash.
+   *
+   * Example:
+   * ```typescript
+   * const unsealed = await decryptHandle(ctHash, utype)
+   *   .setPermitHash('0x1234567890123456789012345678901234567890')
+   *   .decrypt();
+   * ```
+   *
+   * @returns The chainable DecryptHandlesBuilder instance.
+   */
+  setPermitHash(permitHash: string): DecryptHandlesBuilder<U> {
+    this.permitHash = permitHash;
+    return this;
+  }
+
+  getPermitHash(): string | undefined {
+    return this.permitHash;
+  }
+
+  /**
+   * @param permit - Permit to decrypt values with. If provided, it will be used regardless of chainId, account, or permitHash.
+   *
+   * If not provided, the permit will be determined by chainId, account, and permitHash.
+   *
+   * Example:
+   * ```typescript
+   * const unsealed = await decryptHandle(ctHash, utype)
+   *   .setPermit(permit)
+   *   .decrypt();
+   * ```
+   *
+   * @returns The chainable DecryptHandlesBuilder instance.
+   */
+  setPermit(permit: Permit): DecryptHandlesBuilder<U> {
+    this.permit = permit;
+    return this;
+  }
+
+  getPermit(): Permit | undefined {
+    return this.permit;
+  }
+
+  private async getChainIdOrThrow(): Promise<number> {
     if (this.chainId) return this.chainId;
 
     if (this.publicClient) {
@@ -97,16 +181,7 @@ export class DecryptHandlesBuilder<U extends FheTypes> {
     });
   }
 
-  setAccount(account: string): DecryptHandlesBuilder<U> {
-    this.account = account;
-    return this;
-  }
-
-  getAccount(): string | undefined {
-    return this.account;
-  }
-
-  async getAccountOrThrow(): Promise<string> {
+  private async getAccountOrThrow(): Promise<string> {
     if (this.account) return this.account;
 
     if (this.walletClient) {
@@ -128,25 +203,37 @@ export class DecryptHandlesBuilder<U extends FheTypes> {
     });
   }
 
-  setPermitHash(permitHash: string): DecryptHandlesBuilder<U> {
-    this.permitHash = permitHash;
-    return this;
+  private getConfigOrThrow(): CofhesdkConfig {
+    if (this.config) return this.config;
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.MissingConfig,
+      message: 'decryptHandlesBuilder.getConfigOrThrow(): Config fetched from sdkStore is not initialized',
+    });
   }
 
-  getPermitHash(): string | undefined {
-    return this.permitHash;
+  private getThresholdNetworkUrlOrThrow(chainId: number): string {
+    const config = this.getConfigOrThrow();
+
+    const supportedChain = config.supportedChains.find((chain) => chain.id === chainId);
+    if (!supportedChain) {
+      throw new CofhesdkError({
+        code: CofhesdkErrorCode.UnsupportedChain,
+        message: `decryptHandlesBuilder.getThresholdNetworkUrlOrThrow(): Unsupported chain <${chainId}>`,
+      });
+    }
+
+    const thresholdNetworkUrl = supportedChain.thresholdNetworkUrl;
+    if (!thresholdNetworkUrl) {
+      throw new CofhesdkError({
+        code: CofhesdkErrorCode.ThresholdNetworkUrlUninitialized,
+        message: `decryptHandlesBuilder.getThresholdNetworkUrlOrThrow(): Threshold network URL is not initialized for chain <${chainId}>`,
+      });
+    }
+
+    return thresholdNetworkUrl;
   }
 
-  setPermit(permit: Permit): DecryptHandlesBuilder<U> {
-    this.permit = permit;
-    return this;
-  }
-
-  getPermit(): Permit | undefined {
-    return this.permit;
-  }
-
-  async getResolvedPermit(): Promise<Permit> {
+  private async getResolvedPermit(): Promise<Permit> {
     if (this.permit) return this.permit;
 
     const chainId = await this.getChainIdOrThrow();
@@ -175,35 +262,26 @@ export class DecryptHandlesBuilder<U extends FheTypes> {
     return permit;
   }
 
-  getConfigOrThrow(): CofhesdkConfig {
-    if (this.config) return this.config;
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.MissingConfig,
-      message: 'decryptHandlesBuilder.getConfigOrThrow(): Config fetched from sdkStore is not initialized',
-    });
-  }
-
-  getThresholdNetworkUrlOrThrow(chainId: number): string {
-    const config = this.getConfigOrThrow();
-    const supportedChain = config.supportedChains.find((chain) => chain.id === chainId);
-    if (!supportedChain) {
-      throw new CofhesdkError({
-        code: CofhesdkErrorCode.UnsupportedChain,
-        message: `decryptHandlesBuilder.getThresholdNetworkUrlOrThrow(): Unsupported chain <${chainId}>`,
-      });
-    }
-
-    const thresholdNetworkUrl = supportedChain.thresholdNetworkUrl;
-    if (!thresholdNetworkUrl) {
-      throw new CofhesdkError({
-        code: CofhesdkErrorCode.ThresholdNetworkUrlUninitialized,
-        message: `decryptHandlesBuilder.getThresholdNetworkUrlOrThrow(): Threshold network URL is not initialized for chain <${chainId}>`,
-      });
-    }
-
-    return thresholdNetworkUrl;
-  }
-
+  /**
+   * Final step of the decryption process. MUST BE CALLED LAST IN THE CHAIN.
+   *
+   * This will:
+   * - Use a permit based on provided permit OR chainId + account + permitHash
+   * - Check permit validity
+   * - Call CoFHE `/sealoutput` with the permit, which returns a sealed (encrypted) item
+   * - Unseal the sealed item with the permit
+   * - Return the unsealed item
+   *
+   * Example:
+   * ```typescript
+   * const unsealed = await decryptHandle(ctHash, utype)
+   *   .setChainId(11155111)      // optional
+   *   .setAccount('0x123...890') // optional
+   *   .decrypt();                // execute
+   * ```
+   *
+   * @returns The unsealed item.
+   */
   decrypt(): Promise<Result<UnsealedItem<U>>> {
     return resultWrapper(async () => {
       // Wait for connection
