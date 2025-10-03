@@ -3,15 +3,16 @@
 import { ZkBuilderAndCrsGenerator, zkPack, zkProve, zkVerify } from './zkPackProveVerify';
 import { CofhesdkError, CofhesdkErrorCode } from '../error';
 import { Result, resultWrapper } from '../result';
-import { EncryptSetStateFn, EncryptStep, EncryptedItemInput, EncryptedItemInputs } from '../types';
+import { EncryptSetStateFn, EncryptStep, EncryptableItem, EncryptedItemInput, EncryptedItemInputs } from '../types';
 import { encryptExtract, encryptReplace } from './encryptUtils';
-import { mockEncrypt } from './mockEncryptInput';
+import { cofheMocksZkVerifySign } from './cofheMocksZkVerifySign';
 import { hardhat } from 'viem/chains';
 import { fetchKeys, FheKeySerializer } from '../fetchKeys';
 import { CofhesdkConfig } from '../config';
 import { PublicClient, WalletClient } from 'viem';
+import { sleep } from '../utils';
 
-type EncryptInputsBuilderParams<T extends any[]> = {
+type EncryptInputsBuilderParams<T extends EncryptableItem[]> = {
   inputs: [...T];
   sender?: string;
   chainId?: number;
@@ -36,14 +37,13 @@ type EncryptInputsBuilderParams<T extends any[]> = {
  * @dev All errors must be throw in `encrypt`, which wraps them in a Result.
  * Do not throw errors in the constructor or in the builder methods.
  */
-export class EncryptInputsBuilder<T extends any[]> {
+export class EncryptInputsBuilder<T extends EncryptableItem[]> {
   private sender: string | undefined;
   private chainId: number | undefined;
   private securityZone: number;
   private stepCallback?: EncryptSetStateFn;
   private inputItems: [...T];
 
-  // Config and stuff
   private config: CofhesdkConfig | undefined;
   private publicClient: PublicClient | undefined;
   private walletClient: WalletClient | undefined;
@@ -72,11 +72,9 @@ export class EncryptInputsBuilder<T extends any[]> {
   }
 
   /**
-   * @param sender - The overridden msg.sender of the transaction that will consume the encrypted inputs.
+   * @param sender - Account that will create the tx using the encrypted inputs.
    *
-   * If not provided, the account initialized in `cofhejs.initialize` will be used.
-   * Used when msg.sender is known to be different from the account initialized in `cofhejs.initialize`,
-   * for example when using a paymaster.
+   * If not provided, the account will be fetched from the connected walletClient.
    *
    * Example:
    * ```typescript
@@ -85,7 +83,7 @@ export class EncryptInputsBuilder<T extends any[]> {
    *   .encrypt();
    * ```
    *
-   * @returns The EncryptInputsBuilder instance.
+   * @returns The chainable EncryptInputsBuilder instance.
    */
   setSender(sender: string): EncryptInputsBuilder<T> {
     this.sender = sender;
@@ -96,37 +94,20 @@ export class EncryptInputsBuilder<T extends any[]> {
     return this.sender;
   }
 
-  async getSenderOrThrow(): Promise<string> {
-    if (this.sender) return this.sender;
-
-    if (this.walletClient) {
-      try {
-        const sender = (await this.walletClient.getAddresses())?.[0];
-        if (sender) return sender;
-      } catch (error) {
-        throw new CofhesdkError({
-          code: CofhesdkErrorCode.PublicWalletGetAddressesFailed,
-          message: 'encryptInputs.getSenderOrThrow(): walletClient.getAddresses() failed',
-          cause: error instanceof Error ? error : undefined,
-        });
-      }
-    }
-
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.SenderUninitialized,
-      message: 'encryptInputs.getSenderOrThrow(): Sender is not set and walletClient is not provided',
-    });
-  }
-
-  setSecurityZone(securityZone: number): EncryptInputsBuilder<T> {
-    this.securityZone = securityZone;
-    return this;
-  }
-
-  getSecurityZone(): number {
-    return this.securityZone;
-  }
-
+  /**
+   * @param chainId - Chain that will consume the encrypted inputs.
+   *
+   * If not provided, the chainId will be fetched from the connected publicClient.
+   *
+   * Example:
+   * ```typescript
+   * const encrypted = await encryptInputs([Encryptable.uint128(10n)])
+   *   .setChainId(11155111)
+   *   .encrypt();
+   * ```
+   *
+   * @returns The chainable EncryptInputsBuilder instance.
+   */
   setChainId(chainId: number): EncryptInputsBuilder<T> {
     this.chainId = chainId;
     return this;
@@ -137,83 +118,30 @@ export class EncryptInputsBuilder<T extends any[]> {
   }
 
   /**
-   * @returns The resolved chainId, throws if not undefined
+   * @param securityZone - Security zone to encrypt the inputs for.
+   *
+   * If not provided, the default securityZone 0 will be used.
+   *
+   * Example:
+   * ```typescript
+   * const encrypted = await encryptInputs([Encryptable.uint128(10n)])
+   *   .setSecurityZone(1)
+   *   .encrypt();
+   * ```
+   *
+   * @returns The chainable EncryptInputsBuilder instance.
    */
-  async getChainIdOrThrow(): Promise<number> {
-    if (this.chainId) return this.chainId;
+  setSecurityZone(securityZone: number): EncryptInputsBuilder<T> {
+    this.securityZone = securityZone;
+    return this;
+  }
 
-    if (this.publicClient) {
-      try {
-        const chainId = await this.publicClient.getChainId();
-        if (chainId) return chainId;
-      } catch (error) {
-        throw new CofhesdkError({
-          code: CofhesdkErrorCode.PublicWalletGetChainIdFailed,
-          message: 'encryptInputs.getChainIdOrThrow(): publicClient.getChainId() failed',
-          cause: error instanceof Error ? error : undefined,
-        });
-      }
-    }
-
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.ChainIdUninitialized,
-      message: 'encryptInputs.getChainIdOrThrow(): Chain ID is not set and publicClient is not provided',
-    });
+  getSecurityZone(): number {
+    return this.securityZone;
   }
 
   /**
-   * @returns The resolved config from the sdkStore.
-   */
-  getConfigOrThrow(): CofhesdkConfig {
-    if (this.config) return this.config;
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.MissingConfig,
-      message: 'encryptInputs.getConfigOrThrow(): Config fetched from sdkStore is not initialized',
-    });
-  }
-
-  getTfhePublicKeySerializerOrThrow(): FheKeySerializer {
-    if (this.tfhePublicKeySerializer) return this.tfhePublicKeySerializer;
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.MissingTfhePublicKeySerializer,
-      message: 'encryptInputs.getTfhePublicKeySerializerOrThrow(): TfhePublicKeySerializer not found',
-    });
-  }
-
-  getCompactPkeCrsSerializerOrThrow(): FheKeySerializer {
-    if (this.compactPkeCrsSerializer) return this.compactPkeCrsSerializer;
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.MissingCompactPkeCrsSerializer,
-      message: 'encryptInputs.getCompactPkeCrsSerializerOrThrow(): CompactPkeCrsSerializer not found',
-    });
-  }
-
-  /**
-   * @returns The resolved zkVerifierUrl for the current chainId.
-   */
-  async getZkVerifierUrlOrThrow(): Promise<string> {
-    const config = this.getConfigOrThrow();
-    const chainId = await this.getChainIdOrThrow();
-
-    const supportedChain = config.supportedChains.find((chain) => chain.id === chainId);
-    if (!supportedChain) {
-      throw new CofhesdkError({
-        code: CofhesdkErrorCode.UnsupportedChain,
-        message: `encryptInputs.getZkVerifierUrlOrThrow(): Unsupported chain <${chainId}>`,
-      });
-    }
-
-    const zkVerifierUrl = supportedChain.verifierUrl;
-    if (zkVerifierUrl) return zkVerifierUrl;
-
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.ZkVerifierUrlUninitialized,
-      message: `encryptInputs.getZkVerifierUrlOrThrow(): ZkVerifierUrl is not initialized for chain <${chainId}>`,
-    });
-  }
-
-  /**
-   * @param callback - A function that will be called with the current step of the encryption process.
+   * @param callback - Function to be called with the encryption step.
    *
    * Useful for debugging and tracking the progress of the encryption process.
    * Useful for a UI element that shows the progress of the encryption process.
@@ -232,29 +160,120 @@ export class EncryptInputsBuilder<T extends any[]> {
     return this;
   }
 
+  getStepCallback(): EncryptSetStateFn | undefined {
+    return this.stepCallback;
+  }
+
+  private async getSenderOrThrow(): Promise<string> {
+    if (this.sender) return this.sender;
+
+    if (this.walletClient) {
+      try {
+        const sender = (await this.walletClient.getAddresses())?.[0];
+        if (sender) return sender;
+      } catch (error) {
+        throw new CofhesdkError({
+          code: CofhesdkErrorCode.PublicWalletGetAddressesFailed,
+          message: 'walletClient.getAddresses() failed',
+          cause: error instanceof Error ? error : undefined,
+        });
+      }
+    }
+
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.SenderUninitialized,
+      message: 'Sender is not set and walletClient is not provided',
+    });
+  }
+
+  private async getChainIdOrThrow(): Promise<number> {
+    if (this.chainId) return this.chainId;
+
+    if (this.publicClient) {
+      try {
+        const chainId = await this.publicClient.getChainId();
+        if (chainId) return chainId;
+      } catch (error) {
+        throw new CofhesdkError({
+          code: CofhesdkErrorCode.PublicWalletGetChainIdFailed,
+          message: 'publicClient.getChainId() failed',
+          cause: error instanceof Error ? error : undefined,
+        });
+      }
+    }
+
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.ChainIdUninitialized,
+      message: 'Chain ID is not set and publicClient is not provided',
+    });
+  }
+
+  private getPublicClientOrThrow(): PublicClient {
+    if (this.publicClient) return this.publicClient;
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.MissingPublicClient,
+      message: 'Public client not found',
+    });
+  }
+
+  private getWalletClientOrThrow(): WalletClient {
+    if (this.walletClient) return this.walletClient;
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.MissingWalletClient,
+      message: 'Wallet client not found',
+    });
+  }
+
+  private getConfigOrThrow(): CofhesdkConfig {
+    if (this.config) return this.config;
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.MissingConfig,
+      message: 'EncryptInputsBuilder config is undefined',
+    });
+  }
+
+  private getTfhePublicKeySerializerOrThrow(): FheKeySerializer {
+    if (this.tfhePublicKeySerializer) return this.tfhePublicKeySerializer;
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.MissingTfhePublicKeySerializer,
+      message: 'EncryptInputsBuilder tfhePublicKeySerializer is undefined',
+    });
+  }
+
+  private getCompactPkeCrsSerializerOrThrow(): FheKeySerializer {
+    if (this.compactPkeCrsSerializer) return this.compactPkeCrsSerializer;
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.MissingCompactPkeCrsSerializer,
+      message: 'EncryptInputsBuilder compactPkeCrsSerializer is undefined',
+    });
+  }
+
+  private async getZkVerifierUrlOrThrow(): Promise<string> {
+    const config = this.getConfigOrThrow();
+    const chainId = await this.getChainIdOrThrow();
+
+    const supportedChain = config.supportedChains.find((chain) => chain.id === chainId);
+    if (!supportedChain) {
+      throw new CofhesdkError({
+        code: CofhesdkErrorCode.UnsupportedChain,
+        message: `Unsupported chain <${chainId}>`,
+      });
+    }
+
+    const zkVerifierUrl = supportedChain.verifierUrl;
+    if (zkVerifierUrl) return zkVerifierUrl;
+
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.ZkVerifierUrlUninitialized,
+      message: `EncryptInputsBuilder config.supportedChains.verifierUrl is not initialized for chain <${chainId}>`,
+    });
+  }
+
   private fireCallback(step: EncryptStep) {
     if (!this.stepCallback) return;
     this.stepCallback(step);
   }
 
-  private getExtractedEncryptableItems() {
-    return encryptExtract(this.inputItems);
-  }
-
-  private replaceEncryptableItems(inItems: EncryptedItemInput[]) {
-    const [prepared, remaining] = encryptReplace(this.inputItems, inItems);
-    if (remaining.length === 0) return prepared;
-
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.EncryptRemainingInItems,
-      message: 'encryptInputs.replaceEncryptableItems(): Some encrypted inputs remaining after replacement',
-    });
-  }
-
-  /**
-   * Fetches the FHE key and CRS instances from CoFHE
-   * @returns The FHE key and CRS instances.
-   */
   private async fetchFheKeyAndCrs(): Promise<{ fheKey: Uint8Array; crs: Uint8Array }> {
     const config = this.getConfigOrThrow();
     const chainId = await this.getChainIdOrThrow();
@@ -270,42 +289,119 @@ export class EncryptInputsBuilder<T extends any[]> {
     } catch (error) {
       throw new CofhesdkError({
         code: CofhesdkErrorCode.FetchKeysFailed,
-        message: `encryptInputs.fetchFheKeyAndCrs(): Failed to fetch FHE key and CRS`,
+        message: `Failed to fetch FHE key and CRS`,
       });
     }
 
     if (!fheKey) {
       throw new CofhesdkError({
         code: CofhesdkErrorCode.MissingFheKey,
-        message: `encryptInputs.generateZkBuilderAndCrs(): FHE key not found`,
+        message: `FHE key not found`,
       });
     }
 
     if (!crs) {
       throw new CofhesdkError({
         code: CofhesdkErrorCode.MissingCrs,
-        message: `encryptInputs.generateZkBuilderAndCrs(): CRS not found for chainId <${this.chainId}>`,
+        message: `CRS not found for chainId <${this.chainId}>`,
       });
     }
 
     return { fheKey, crs };
   }
 
-  /**
-   * Generates the ZkCiphertextListBuilder and ZkCompactPkeCrs instances from the FHE key and CRS.
-   *
-   * @returns The ZkCiphertextListBuilder and ZkCompactPkeCrs instances.
-   */
   private generateZkBuilderAndCrs(fheKey: Uint8Array, crs: Uint8Array) {
     const zkBuilderAndCrsGenerator = this.zkBuilderAndCrsGenerator;
     if (!zkBuilderAndCrsGenerator) {
       throw new CofhesdkError({
         code: CofhesdkErrorCode.MissingZkBuilderAndCrsGenerator,
-        message: `encryptInputs.generateZkBuilderAndCrs(): ZkBuilderAndCrsGenerator not found`,
+        message: `EncryptInputsBuilder zkBuilderAndCrsGenerator is undefined`,
       });
     }
 
     return zkBuilderAndCrsGenerator(fheKey, crs);
+  }
+
+  /**
+   * @dev Encrypt against the cofheMocks instead of CoFHE
+   *
+   * In the cofheMocks, the MockZkVerifier contract is deployed on hardhat to a fixed address, this contract handles mocking the zk verifying.
+   * cofheMocksInsertPackedHashes - stores the ctHashes and their plaintext values for on-chain mocking of FHE operations.
+   * cofheMocksZkCreateProofSignatures - creates signatures to be included in the encrypted inputs. The signers address is known and verified in the mock contracts.
+   */
+  private async mocksEncrypt(sender: string): Promise<[...EncryptedItemInputs<T>]> {
+    this.fireCallback(EncryptStep.FetchKeys);
+
+    await sleep(100);
+
+    this.fireCallback(EncryptStep.Pack);
+
+    await sleep(100);
+
+    this.fireCallback(EncryptStep.Prove);
+
+    await sleep(500);
+
+    this.fireCallback(EncryptStep.Verify);
+
+    await sleep(500);
+
+    const signedResults = await cofheMocksZkVerifySign(
+      this.inputItems,
+      sender,
+      this.securityZone,
+      this.getPublicClientOrThrow(),
+      this.getWalletClientOrThrow(),
+      this.zkvWalletClient
+    );
+
+    const encryptedInputs: EncryptedItemInput[] = signedResults.map(({ ct_hash, signature }, index) => ({
+      ctHash: BigInt(ct_hash),
+      securityZone: this.securityZone,
+      utype: this.inputItems[index].utype,
+      signature,
+    }));
+
+    this.fireCallback(EncryptStep.Done);
+
+    return encryptedInputs as [...EncryptedItemInputs<T>];
+  }
+
+  /**
+   * In the production context, perform a true encryption with the CoFHE coprocessor.
+   */
+  private async productionEncrypt(sender: string, chainId: number): Promise<[...EncryptedItemInputs<T>]> {
+    this.fireCallback(EncryptStep.FetchKeys);
+
+    const { fheKey, crs } = await this.fetchFheKeyAndCrs();
+    let { zkBuilder, zkCrs } = this.generateZkBuilderAndCrs(fheKey, crs);
+
+    this.fireCallback(EncryptStep.Pack);
+
+    zkBuilder = zkPack(this.inputItems, zkBuilder);
+
+    this.fireCallback(EncryptStep.Prove);
+
+    const proof = await zkProve(zkBuilder, zkCrs, sender, this.securityZone, chainId);
+
+    this.fireCallback(EncryptStep.Verify);
+
+    const zkVerifierUrl = await this.getZkVerifierUrlOrThrow();
+    const verifyResults = await zkVerify(zkVerifierUrl, proof, sender, this.securityZone, chainId);
+
+    // Add securityZone and utype to the verify results
+    const encryptedInputs: EncryptedItemInput[] = verifyResults.map(
+      ({ ct_hash, signature }: { ct_hash: string; signature: string }, index: number) => ({
+        ctHash: BigInt(ct_hash),
+        securityZone: this.securityZone,
+        utype: this.inputItems[index].utype,
+        signature,
+      })
+    );
+
+    this.fireCallback(EncryptStep.Done);
+
+    return encryptedInputs as [...EncryptedItemInputs<T>];
   }
 
   /**
@@ -315,7 +411,15 @@ export class EncryptInputsBuilder<T extends any[]> {
    * - Extract the encryptable items from the inputs
    * - Pack the encryptable items into a zk proof
    * - Prove the zk proof
-   * - Verify the zk proof
+   * - Verify the zk proof with CoFHE
+   * - Replace the encrypted inputs with the verified encrypted inputs
+   * - Package and return the encrypted inputs
+   *
+   * Example:
+   * ```typescript
+   * const encrypted = await encryptInputs([Encryptable.uint128(10n)])
+   *   .encrypt();
+   * ```
    *
    * @returns The encrypted inputs.
    */
@@ -332,69 +436,10 @@ export class EncryptInputsBuilder<T extends any[]> {
 
       // On hardhat, interact with MockZkVerifier contract instead of CoFHE
       if (chainId === hardhat.id) {
-        if (!this.publicClient) {
-          throw new CofhesdkError({
-            code: CofhesdkErrorCode.MissingPublicClient,
-            message: 'encryptInputs.encrypt(): Public client not found',
-          });
-        }
-        if (!this.walletClient) {
-          throw new CofhesdkError({
-            code: CofhesdkErrorCode.MissingWalletClient,
-            message: 'encryptInputs.encrypt(): Wallet client not found',
-          });
-        }
-
-        return await mockEncrypt(
-          this.inputItems,
-          sender,
-          this.securityZone,
-          this.stepCallback,
-          this.publicClient,
-          this.walletClient,
-          this.zkvWalletClient
-        );
+        return await this.mocksEncrypt(sender);
       }
 
-      this.fireCallback(EncryptStep.FetchKeys);
-
-      const { fheKey, crs } = await this.fetchFheKeyAndCrs();
-      let { zkBuilder, zkCrs } = this.generateZkBuilderAndCrs(fheKey, crs);
-
-      this.fireCallback(EncryptStep.Extract);
-
-      const encryptableItems = this.getExtractedEncryptableItems();
-
-      this.fireCallback(EncryptStep.Pack);
-
-      zkBuilder = zkPack(encryptableItems, zkBuilder);
-
-      this.fireCallback(EncryptStep.Prove);
-
-      const proof = await zkProve(zkBuilder, zkCrs, sender, this.securityZone, chainId);
-
-      this.fireCallback(EncryptStep.Verify);
-
-      const zkVerifierUrl = await this.getZkVerifierUrlOrThrow();
-      const verifyResults = await zkVerify(zkVerifierUrl, proof, sender, this.securityZone, chainId);
-
-      // Add securityZone and utype to the verify results
-      const inItems: EncryptedItemInput[] = verifyResults.map(
-        ({ ct_hash, signature }: { ct_hash: string; signature: string }, index: number) => ({
-          ctHash: BigInt(ct_hash),
-          securityZone: this.securityZone,
-          utype: encryptableItems[index].utype,
-          signature,
-        })
-      );
-
-      this.fireCallback(EncryptStep.Replace);
-
-      const preparedInputItems = this.replaceEncryptableItems(inItems);
-
-      this.fireCallback(EncryptStep.Done);
-
-      return preparedInputItems;
+      return await this.productionEncrypt(sender, chainId);
     });
   }
 }
