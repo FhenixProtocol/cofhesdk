@@ -14,7 +14,15 @@ export type CofhesdkConfig = {
    * - OFF: Do not fetch keys (fetching occurs during encryptInputs)
    * */
   fheKeysPrefetching: 'CONNECTED_CHAIN' | 'SUPPORTED_CHAINS' | 'OFF';
-  generatePermitDuringInitialization: boolean;
+  /**
+   * How permits are generated
+   * - ON_CONNECT: Generate a permit when client.connect() is called
+   * - ON_DECRYPT_HANDLES: Generate a permit when client.decryptHandles() is called
+   * - MANUAL: Generate a permit manually using client.generatePermit()
+   */
+  permitGeneration: 'ON_CONNECT' | 'ON_DECRYPT_HANDLES' | 'MANUAL';
+  /** Default permit expiration in seconds, default is 30 days */
+  defaultPermitExpiration: number;
   _internal?: CofhesdkInternalConfig;
 };
 
@@ -30,8 +38,13 @@ export const CofhesdkConfigSchema = z.object({
   supportedChains: z.array(z.custom<CofheChain>()),
   /** Strategy for fetching FHE keys */
   fheKeysPrefetching: z.enum(['CONNECTED_CHAIN', 'SUPPORTED_CHAINS', 'OFF']).optional().default('OFF'),
-  /** Whether to generate a permit during initialization */
-  generatePermitDuringInitialization: z.boolean().optional().default(false),
+  /** How permits are generated */
+  permitGeneration: z.enum(['ON_CONNECT', 'ON_DECRYPT_HANDLES', 'MANUAL']).optional().default('ON_CONNECT'),
+  /** Default permit expiration in seconds, default is 30 days */
+  defaultPermitExpiration: z
+    .number()
+    .optional()
+    .default(60 * 60 * 24 * 30),
   /** Internal configuration */
   _internal: z
     .object({

@@ -36,13 +36,22 @@ describe('createCofhesdkConfig', () => {
     expectValidConfigItem('fheKeysPrefetching', undefined, 'OFF');
   });
 
-  it('generatePermitDuringInitialization', () => {
-    expectInvalidConfigItem('generatePermitDuringInitialization', 'not-a-boolean');
-    expectInvalidConfigItem('generatePermitDuringInitialization', null);
+  it('permitGeneration', () => {
+    expectInvalidConfigItem('permitGeneration', 'not-a-boolean');
+    expectInvalidConfigItem('permitGeneration', null);
 
-    expectValidConfigItem('generatePermitDuringInitialization', true, true);
-    expectValidConfigItem('generatePermitDuringInitialization', false, false);
-    expectValidConfigItem('generatePermitDuringInitialization', undefined, false);
+    expectValidConfigItem('permitGeneration', 'ON_CONNECT', 'ON_CONNECT');
+    expectValidConfigItem('permitGeneration', 'ON_DECRYPT_HANDLES', 'ON_DECRYPT_HANDLES');
+    expectValidConfigItem('permitGeneration', 'MANUAL', 'MANUAL');
+    expectValidConfigItem('permitGeneration', undefined, 'ON_CONNECT');
+  });
+
+  it('defaultPermitExpiration', () => {
+    expectInvalidConfigItem('defaultPermitExpiration', 'not-a-number');
+    expectInvalidConfigItem('defaultPermitExpiration', null);
+
+    expectValidConfigItem('defaultPermitExpiration', 5, 5);
+    expectValidConfigItem('defaultPermitExpiration', undefined, 60 * 60 * 24 * 30);
   });
 
   it('should get config item', () => {
