@@ -231,7 +231,9 @@ describe('createCofhesdkClient', () => {
 
   describe('encryptInputs', () => {
     it('should throw if not connected', async () => {
-      await expect(client.encryptInputs([1, 2, 3])).rejects.toThrow('Not connected');
+      const result = await client.encryptInputs([1, 2, 3]).encrypt();
+      expect(result.success).toBe(false);
+      expect(result.error?.code).toBe(CofhesdkErrorCode.SenderUninitialized);
     });
 
     it('should create EncryptInputsBuilder when connected', async () => {
@@ -247,32 +249,6 @@ describe('createCofhesdkClient', () => {
       expect(builder).toHaveProperty('encrypt');
       expect(builder.getChainId()).toBe(123);
       expect(builder.getSender()).toBe('0xtest');
-    });
-
-    it('should throw if address not initialized', async () => {
-      const publicClient = createMockPublicClient();
-      const walletClient = createMockWalletClient();
-
-      await client.connect(publicClient, walletClient);
-
-      // Manually corrupt state to test validation
-      const snapshot = client.getSnapshot();
-      (snapshot as any).address = null;
-
-      await expect(client.encryptInputs([1])).rejects.toThrow('Address is not initialized');
-    });
-
-    it('should throw if chainId not initialized', async () => {
-      const publicClient = createMockPublicClient();
-      const walletClient = createMockWalletClient();
-
-      await client.connect(publicClient, walletClient);
-
-      // Manually corrupt state to test validation
-      const snapshot = client.getSnapshot();
-      (snapshot as any).chainId = null;
-
-      await expect(client.encryptInputs([1])).rejects.toThrow('Chain ID is not initialized');
     });
   });
 

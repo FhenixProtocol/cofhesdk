@@ -81,8 +81,8 @@ export type CofhesdkClient = {
   readonly config: CofhesdkConfig;
 
   connect(publicClient: PublicClient, walletClient: WalletClient): Promise<Result<boolean>>;
-  encryptInputs<T extends any[]>(inputs: [...T]): Promise<EncryptInputsBuilder<[...T]>>;
-  decryptHandle<U extends FheTypes>(ctHash: bigint, utype: U): Promise<DecryptHandlesBuilder<U>>;
+  encryptInputs<T extends any[]>(inputs: [...T]): EncryptInputsBuilder<[...T]>;
+  decryptHandle<U extends FheTypes>(ctHash: bigint, utype: U): DecryptHandlesBuilder<U>;
   permits: ClientPermits;
 };
 
@@ -199,7 +199,7 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
 
   // CLIENT OPERATIONS
 
-  async function encryptInputs<T extends any[]>(inputs: [...T]): Promise<EncryptInputsBuilder<[...T]>> {
+  function encryptInputs<T extends any[]>(inputs: [...T]): EncryptInputsBuilder<[...T]> {
     const state = connectStore.getState();
 
     return new EncryptInputsBuilder({
@@ -219,7 +219,7 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
     });
   }
 
-  async function decryptHandle<U extends FheTypes>(ctHash: bigint, utype: U): Promise<DecryptHandlesBuilder<U>> {
+  function decryptHandle<U extends FheTypes>(ctHash: bigint, utype: U): DecryptHandlesBuilder<U> {
     const state = connectStore.getState();
 
     return new DecryptHandlesBuilder({

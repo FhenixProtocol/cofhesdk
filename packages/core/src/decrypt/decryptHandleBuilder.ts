@@ -78,24 +78,22 @@ export class DecryptHandlesBuilder<U extends FheTypes> {
   async getChainIdOrThrow(): Promise<number> {
     if (this.chainId) return this.chainId;
 
-    let chainId: number | undefined;
-    try {
-      chainId = await this.publicClient?.getChainId();
-    } catch (e) {
-      throw new CofhesdkError({
-        code: CofhesdkErrorCode.PublicWalletGetChainIdFailed,
-        message:
-          'decryptHandlesBuilder.getChainIdOrThrow(): publicClient.getChainId() failed, check that the publicClient is initialized, or manually set it with .setChainId()',
-        cause: e instanceof Error ? e : undefined,
-      });
+    if (this.publicClient) {
+      try {
+        const chainId = await this.publicClient.getChainId();
+        if (chainId) return chainId;
+      } catch (error) {
+        throw new CofhesdkError({
+          code: CofhesdkErrorCode.PublicWalletGetChainIdFailed,
+          message: 'decryptHandlesBuilder.getChainIdOrThrow(): publicClient.getChainId() failed',
+          cause: error instanceof Error ? error : undefined,
+        });
+      }
     }
-
-    if (chainId) return chainId;
 
     throw new CofhesdkError({
       code: CofhesdkErrorCode.ChainIdUninitialized,
-      message:
-        'decryptHandlesBuilder.getChainIdOrThrow(): Chain ID is not initialized, check that the publicClient is initialized, or manually set it with .setChainId()',
+      message: 'decryptHandlesBuilder.getChainIdOrThrow(): Chain ID is not set and publicClient is not provided',
     });
   }
 
@@ -111,24 +109,22 @@ export class DecryptHandlesBuilder<U extends FheTypes> {
   async getAccountOrThrow(): Promise<string> {
     if (this.account) return this.account;
 
-    let account: string | undefined;
-    try {
-      account = (await this.walletClient?.getAddresses())?.[0];
-    } catch (e) {
-      throw new CofhesdkError({
-        code: CofhesdkErrorCode.PublicWalletGetAddressesFailed,
-        message:
-          'decryptHandlesBuilder.getAccountOrThrow(): walletClient.getAddresses() failed, check that the walletClient is initialized, or manually set it with .setAccount()',
-        cause: e instanceof Error ? e : undefined,
-      });
+    if (this.walletClient) {
+      try {
+        const account = (await this.walletClient.getAddresses())?.[0];
+        if (account) return account;
+      } catch (error) {
+        throw new CofhesdkError({
+          code: CofhesdkErrorCode.PublicWalletGetAddressesFailed,
+          message: 'decryptHandlesBuilder.getAccountOrThrow(): walletClient.getAddresses() failed',
+          cause: error instanceof Error ? error : undefined,
+        });
+      }
     }
-
-    if (account) return account;
 
     throw new CofhesdkError({
       code: CofhesdkErrorCode.AccountUninitialized,
-      message:
-        'decryptHandlesBuilder.getAccountOrThrow(): Account is not initialized, check that the walletClient is initialized, or manually set it with .setAccount()',
+      message: 'decryptHandlesBuilder.getAccountOrThrow(): Account is not set and walletClient is not provided',
     });
   }
 

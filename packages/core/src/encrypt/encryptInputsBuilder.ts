@@ -99,23 +99,22 @@ export class EncryptInputsBuilder<T extends any[]> {
   async getSenderOrThrow(): Promise<string> {
     if (this.sender) return this.sender;
 
-    let sender: string | undefined;
-    try {
-      sender = (await this.walletClient?.getAddresses())?.[0];
-    } catch (error) {
-      throw new CofhesdkError({
-        code: CofhesdkErrorCode.PublicWalletGetAddressesFailed,
-        message: 'encryptInputs.getSenderOrThrow(): walletClient.getAddresses() failed',
-        cause: error instanceof Error ? error : undefined,
-      });
+    if (this.walletClient) {
+      try {
+        const sender = (await this.walletClient.getAddresses())?.[0];
+        if (sender) return sender;
+      } catch (error) {
+        throw new CofhesdkError({
+          code: CofhesdkErrorCode.PublicWalletGetAddressesFailed,
+          message: 'encryptInputs.getSenderOrThrow(): walletClient.getAddresses() failed',
+          cause: error instanceof Error ? error : undefined,
+        });
+      }
     }
-
-    if (sender) return sender;
 
     throw new CofhesdkError({
       code: CofhesdkErrorCode.SenderUninitialized,
-      message:
-        'encryptInputs.getSenderOrThrow(): Sender is not initialized, check that the walletClient is initialized, or manually set it with .setSender()',
+      message: 'encryptInputs.getSenderOrThrow(): Sender is not set and walletClient is not provided',
     });
   }
 
@@ -143,23 +142,22 @@ export class EncryptInputsBuilder<T extends any[]> {
   async getChainIdOrThrow(): Promise<number> {
     if (this.chainId) return this.chainId;
 
-    let chainId: number | undefined;
-    try {
-      chainId = await this.publicClient?.getChainId();
-    } catch (error) {
-      throw new CofhesdkError({
-        code: CofhesdkErrorCode.PublicWalletGetChainIdFailed,
-        message: 'encryptInputs.getChainIdOrThrow(): publicClient.getChainId() failed',
-        cause: error instanceof Error ? error : undefined,
-      });
+    if (this.publicClient) {
+      try {
+        const chainId = await this.publicClient.getChainId();
+        if (chainId) return chainId;
+      } catch (error) {
+        throw new CofhesdkError({
+          code: CofhesdkErrorCode.PublicWalletGetChainIdFailed,
+          message: 'encryptInputs.getChainIdOrThrow(): publicClient.getChainId() failed',
+          cause: error instanceof Error ? error : undefined,
+        });
+      }
     }
-
-    if (chainId) return chainId;
 
     throw new CofhesdkError({
       code: CofhesdkErrorCode.ChainIdUninitialized,
-      message:
-        'encryptInputs.getChainIdOrThrow(): Chain ID is not initialized, check that the publicClient is initialized, or manually set it with .setChainId()',
+      message: 'encryptInputs.getChainIdOrThrow(): Chain ID is not set and publicClient is not provided',
     });
   }
 
