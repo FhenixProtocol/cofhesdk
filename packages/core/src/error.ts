@@ -28,6 +28,7 @@ export enum CofhesdkErrorCode {
   EncryptRemainingInItems = 'ENCRYPT_REMAINING_IN_ITEMS',
   ZkUninitialized = 'ZK_UNINITIALIZED',
   ZkVerifierUrlUninitialized = 'ZK_VERIFIER_URL_UNINITIALIZED',
+  ThresholdNetworkUrlUninitialized = 'THRESHOLD_NETWORK_URL_UNINITIALIZED',
   SenderUninitialized = 'SENDER_UNINITIALIZED',
   MissingConfig = 'MISSING_CONFIG',
   UnsupportedChain = 'UNSUPPORTED_CHAIN',

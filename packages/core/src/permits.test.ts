@@ -8,7 +8,6 @@ import { arbitrumSepolia } from 'viem/chains';
 import { permits } from './permits';
 import { permitStore } from '@cofhesdk/permits';
 import { privateKeyToAccount } from 'viem/accounts';
-import { expectResultSuccess } from './result.test';
 
 // Type declarations for happy-dom environment
 declare const localStorage: {
@@ -58,12 +57,11 @@ describe('Core Permits Tests', () => {
 
   describe('Permit Creation', () => {
     it('should create and store self permit', async () => {
-      const result = await permits.createSelf(
+      const permit = await permits.createSelf(
         { name: 'Test Self Permit', issuer: bobAddress },
         publicClient,
         bobWalletClient
       );
-      const permit = expectResultSuccess(result);
 
       expect(permit).toBeDefined();
       expect(permit.name).toBe('Test Self Permit');
@@ -81,7 +79,7 @@ describe('Core Permits Tests', () => {
     });
 
     it('should create and store sharing permit', async () => {
-      const result = await permits.createSharing(
+      const permit = await permits.createSharing(
         {
           name: 'Test Sharing Permit',
           issuer: bobAddress,
@@ -90,7 +88,6 @@ describe('Core Permits Tests', () => {
         publicClient,
         bobWalletClient
       );
-      const permit = expectResultSuccess(result);
 
       expect(permit.name).toBe('Test Sharing Permit');
       expect(permit.type).toBe('sharing');
@@ -109,7 +106,7 @@ describe('Core Permits Tests', () => {
 
     it('should import shared permit from JSON string', async () => {
       // First create a sharing permit to import
-      const sharingResult = await permits.createSharing(
+      const sharingPermit = await permits.createSharing(
         {
           name: 'Original Sharing Permit',
           issuer: bobAddress,
@@ -118,7 +115,6 @@ describe('Core Permits Tests', () => {
         publicClient,
         bobWalletClient
       );
-      const sharingPermit = expectResultSuccess(sharingResult);
 
       // Export the permit as JSON string
       const permitJson = JSON.stringify({
@@ -133,8 +129,7 @@ describe('Core Permits Tests', () => {
       });
 
       // Import the permit as Alice (recipient)
-      const result = await permits.importShared(permitJson, publicClient, aliceWalletClient);
-      const permit = expectResultSuccess(result);
+      const permit = await permits.importShared(permitJson, publicClient, aliceWalletClient);
 
       expect(permit.name).toBe('Original Sharing Permit');
       expect(permit.type).toBe('recipient');
@@ -151,49 +146,43 @@ describe('Core Permits Tests', () => {
 
     beforeEach(async () => {
       // Create a real permit for testing
-      const result = await permits.createSelf(
+      createdPermit = await permits.createSelf(
         { name: 'Test Permit', issuer: bobAddress },
         publicClient,
         bobWalletClient
       );
-      createdPermit = expectResultSuccess(result);
       permitHash = permits.getHash(createdPermit);
     });
 
     it('should get permit by hash', async () => {
-      const result = await permits.getPermit(chainId, bobAddress, permitHash);
-      const permit = expectResultSuccess(result);
+      const permit = await permits.getPermit(chainId, bobAddress, permitHash);
       expect(permit?.name).toBe('Test Permit');
       expect(permit?.type).toBe('self');
     });
 
     it('should get all permits', async () => {
-      const result = await permits.getPermits(chainId, bobAddress);
-      const allPermits = expectResultSuccess(result);
+      const allPermits = await permits.getPermits(chainId, bobAddress);
       expect(Object.keys(allPermits).length).toBeGreaterThan(0);
     });
 
     it('should get active permit', async () => {
-      const result = await permits.getActivePermit(chainId, bobAddress);
-      const permit = expectResultSuccess(result);
+      const permit = await permits.getActivePermit(chainId, bobAddress);
       expect(permit?.name).toBe('Test Permit');
     });
 
     it('should get active permit hash', async () => {
-      const result = await permits.getActivePermitHash(chainId, bobAddress);
-      const hash = expectResultSuccess(result);
+      const hash = await permits.getActivePermitHash(chainId, bobAddress);
       expect(typeof hash).toBe('string');
     });
   });
 
   describe('localStorage Integration', () => {
     it('should persist permits to localStorage', async () => {
-      const result = await permits.createSelf(
+      const createdPermit = await permits.createSelf(
         { name: 'Test Permit', issuer: bobAddress },
         publicClient,
         bobWalletClient
       );
-      const createdPermit = expectResultSuccess(result);
 
       const storedData = localStorage.getItem('cofhejs-permits');
       expect(storedData).toBeDefined();
@@ -214,12 +203,11 @@ describe('Core Permits Tests', () => {
 
   describe('Real Network Integration', () => {
     it('should create permit with real EIP712 domain from Arbitrum Sepolia', async () => {
-      const result = await permits.createSelf(
+      const permit = await permits.createSelf(
         { name: 'Real Network Permit', issuer: bobAddress },
         publicClient,
         bobWalletClient
       );
-      const permit = expectResultSuccess(result);
 
       expect(permit._signedDomain).toBeDefined();
       expect(permit._signedDomain?.chainId).toBe(chainId);
@@ -242,13 +230,11 @@ describe('Core Permits Tests', () => {
       );
 
       // Verify both permits exist
-      const allPermitsResult = await permits.getPermits(chainId, bobAddress);
-      const allPermits = expectResultSuccess(allPermitsResult);
+      const allPermits = await permits.getPermits(chainId, bobAddress);
       expect(Object.keys(allPermits).length).toBeGreaterThanOrEqual(2);
 
       // Verify active permit is the last created one
-      const activePermitResult = await permits.getActivePermit(chainId, bobAddress);
-      const activePermit = expectResultSuccess(activePermitResult);
+      const activePermit = await permits.getActivePermit(chainId, bobAddress);
       expect(activePermit?.name).toBe('Permit 2');
     });
   });

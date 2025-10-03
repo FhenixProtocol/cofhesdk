@@ -8,7 +8,6 @@ import {
   permitStore,
   SerializedPermit,
 } from '@cofhesdk/permits';
-import { Result, resultWrapper } from './result';
 import { PublicClient, WalletClient } from 'viem';
 
 // HELPERS
@@ -28,12 +27,10 @@ const createPermitWithSign = async <T>(
   publicClient: PublicClient,
   walletClient: WalletClient,
   permitMethod: (options: T, publicClient: PublicClient, walletClient: WalletClient) => Promise<Permit>
-): Promise<Result<Permit>> => {
-  return resultWrapper(async () => {
-    const permit = await permitMethod(options, publicClient, walletClient);
-    await storeActivePermit(permit, publicClient, walletClient);
-    return permit;
-  });
+): Promise<Permit> => {
+  const permit = await permitMethod(options, publicClient, walletClient);
+  await storeActivePermit(permit, publicClient, walletClient);
+  return permit;
 };
 
 // CREATE
@@ -48,7 +45,7 @@ const createSelf = async (
   options: CreateSelfPermitOptions,
   publicClient: PublicClient,
   walletClient: WalletClient
-): Promise<Result<Permit>> => {
+): Promise<Permit> => {
   return createPermitWithSign(options, publicClient, walletClient, PermitUtils.createSelfAndSign);
 };
 
@@ -56,7 +53,7 @@ const createSharing = async (
   options: CreateSharingPermitOptions,
   publicClient: PublicClient,
   walletClient: WalletClient
-): Promise<Result<Permit>> => {
+): Promise<Permit> => {
   return createPermitWithSign(options, publicClient, walletClient, PermitUtils.createSharingAndSign);
 };
 
@@ -64,7 +61,7 @@ const importShared = async (
   options: ImportSharedPermitOptions | any | string,
   publicClient: PublicClient,
   walletClient: WalletClient
-): Promise<Result<Permit>> => {
+): Promise<Permit> => {
   return createPermitWithSign(options, publicClient, walletClient, PermitUtils.importSharedAndSign);
 };
 
@@ -84,48 +81,34 @@ const deserialize = (serialized: SerializedPermit) => {
 
 // GET
 
-const getPermit = async (chainId: number, account: string, hash: string): Promise<Result<Permit | undefined>> => {
-  return resultWrapper(async () => {
-    return permitStore.getPermit(chainId, account, hash);
-  });
+const getPermit = async (chainId: number, account: string, hash: string): Promise<Permit | undefined> => {
+  return permitStore.getPermit(chainId, account, hash);
 };
 
-const getPermits = async (chainId: number, account: string): Promise<Result<Record<string, Permit>>> => {
-  return resultWrapper(async () => {
-    return permitStore.getPermits(chainId, account);
-  });
+const getPermits = async (chainId: number, account: string): Promise<Record<string, Permit>> => {
+  return permitStore.getPermits(chainId, account);
 };
 
-const getActivePermit = async (chainId: number, account: string): Promise<Result<Permit | undefined>> => {
-  return resultWrapper(async () => {
-    return permitStore.getActivePermit(chainId, account);
-  });
+const getActivePermit = async (chainId: number, account: string): Promise<Permit | undefined> => {
+  return permitStore.getActivePermit(chainId, account);
 };
 
-const getActivePermitHash = async (chainId: number, account: string): Promise<Result<string | undefined>> => {
-  return resultWrapper(async () => {
-    return permitStore.getActivePermitHash(chainId, account);
-  });
+const getActivePermitHash = async (chainId: number, account: string): Promise<string | undefined> => {
+  return permitStore.getActivePermitHash(chainId, account);
 };
 
-const selectActivePermit = async (chainId: number, account: string, hash: string): Promise<Result<void>> => {
-  return resultWrapper(async () => {
-    await permitStore.setActivePermitHash(chainId, account, hash);
-  });
+const selectActivePermit = async (chainId: number, account: string, hash: string): Promise<void> => {
+  await permitStore.setActivePermitHash(chainId, account, hash);
 };
 
 // REMOVE
 
-const removePermit = async (chainId: number, account: string, hash: string): Promise<Result<void>> => {
-  return resultWrapper(async () => {
-    await permitStore.removePermit(chainId, account, hash);
-  });
+const removePermit = async (chainId: number, account: string, hash: string): Promise<void> => {
+  await permitStore.removePermit(chainId, account, hash);
 };
 
-const removeActivePermit = async (chainId: number, account: string): Promise<Result<void>> => {
-  return resultWrapper(async () => {
-    await permitStore.removeActivePermitHash(chainId, account);
-  });
+const removeActivePermit = async (chainId: number, account: string): Promise<void> => {
+  await permitStore.removeActivePermitHash(chainId, account);
 };
 
 // EXPORT

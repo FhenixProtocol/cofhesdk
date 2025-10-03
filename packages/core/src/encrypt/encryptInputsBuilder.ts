@@ -21,6 +21,7 @@ type EncryptInputsBuilderParams<T extends any[]> = {
   publicClient?: PublicClient | undefined;
   walletClient?: WalletClient | undefined;
   zkvWalletClient?: WalletClient | undefined;
+  connectPromise?: Promise<Result<boolean>> | undefined;
 
   tfhePublicKeySerializer: FheKeySerializer | undefined;
   compactPkeCrsSerializer: FheKeySerializer | undefined;
@@ -47,6 +48,8 @@ export class EncryptInputsBuilder<T extends any[]> {
   private publicClient: PublicClient | undefined;
   private walletClient: WalletClient | undefined;
   private zkvWalletClient: WalletClient | undefined;
+  private connectPromise: Promise<Result<boolean>> | undefined;
+
   private tfhePublicKeySerializer: FheKeySerializer | undefined;
   private compactPkeCrsSerializer: FheKeySerializer | undefined;
   private zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator | undefined;
@@ -61,6 +64,7 @@ export class EncryptInputsBuilder<T extends any[]> {
     this.publicClient = params.publicClient;
     this.walletClient = params.walletClient;
     this.zkvWalletClient = params.zkvWalletClient;
+    this.connectPromise = params.connectPromise;
 
     this.tfhePublicKeySerializer = params.tfhePublicKeySerializer;
     this.compactPkeCrsSerializer = params.compactPkeCrsSerializer;
@@ -92,8 +96,22 @@ export class EncryptInputsBuilder<T extends any[]> {
     return this.sender;
   }
 
-  getSenderOrThrow(): string {
+  async getSenderOrThrow(): Promise<string> {
     if (this.sender) return this.sender;
+
+    let sender: string | undefined;
+    try {
+      sender = (await this.walletClient?.getAddresses())?.[0];
+    } catch (error) {
+      throw new CofhesdkError({
+        code: CofhesdkErrorCode.PublicWalletGetAddressesFailed,
+        message: 'encryptInputs.getSenderOrThrow(): walletClient.getAddresses() failed',
+        cause: error instanceof Error ? error : undefined,
+      });
+    }
+
+    if (sender) return sender;
+
     throw new CofhesdkError({
       code: CofhesdkErrorCode.SenderUninitialized,
       message:
@@ -122,8 +140,22 @@ export class EncryptInputsBuilder<T extends any[]> {
   /**
    * @returns The resolved chainId, throws if not undefined
    */
-  getChainIdOrThrow(): number {
+  async getChainIdOrThrow(): Promise<number> {
     if (this.chainId) return this.chainId;
+
+    let chainId: number | undefined;
+    try {
+      chainId = await this.publicClient?.getChainId();
+    } catch (error) {
+      throw new CofhesdkError({
+        code: CofhesdkErrorCode.PublicWalletGetChainIdFailed,
+        message: 'encryptInputs.getChainIdOrThrow(): publicClient.getChainId() failed',
+        cause: error instanceof Error ? error : undefined,
+      });
+    }
+
+    if (chainId) return chainId;
+
     throw new CofhesdkError({
       code: CofhesdkErrorCode.ChainIdUninitialized,
       message:
@@ -161,9 +193,9 @@ export class EncryptInputsBuilder<T extends any[]> {
   /**
    * @returns The resolved zkVerifierUrl for the current chainId.
    */
-  getZkVerifierUrlOrThrow(): string {
-    const chainId = this.getChainIdOrThrow();
+  async getZkVerifierUrlOrThrow(): Promise<string> {
     const config = this.getConfigOrThrow();
+    const chainId = await this.getChainIdOrThrow();
 
     const supportedChain = config.supportedChains.find((chain) => chain.id === chainId);
     if (!supportedChain) {
@@ -227,7 +259,7 @@ export class EncryptInputsBuilder<T extends any[]> {
    */
   private async fetchFheKeyAndCrs(): Promise<{ fheKey: Uint8Array; crs: Uint8Array }> {
     const config = this.getConfigOrThrow();
-    const chainId = this.getChainIdOrThrow();
+    const chainId = await this.getChainIdOrThrow();
     const compactPkeCrsSerializer = this.getCompactPkeCrsSerializerOrThrow();
     const tfhePublicKeySerializer = this.getTfhePublicKeySerializerOrThrow();
     const securityZone = this.getSecurityZone();
@@ -291,8 +323,14 @@ export class EncryptInputsBuilder<T extends any[]> {
    */
   async encrypt(): Promise<Result<[...EncryptedItemInputs<T>]>> {
     return resultWrapper(async () => {
-      const sender = this.getSenderOrThrow();
-      const chainId = this.getChainIdOrThrow();
+      // Wait for connection
+      if (this.connectPromise) {
+        const result = await this.connectPromise;
+        if (!result.success) throw result.error;
+      }
+
+      const sender = await this.getSenderOrThrow();
+      const chainId = await this.getChainIdOrThrow();
 
       // On hardhat, interact with MockZkVerifier contract instead of CoFHE
       if (chainId === hardhat.id) {
@@ -339,7 +377,7 @@ export class EncryptInputsBuilder<T extends any[]> {
 
       this.fireCallback(EncryptStep.Verify);
 
-      const zkVerifierUrl = this.getZkVerifierUrlOrThrow();
+      const zkVerifierUrl = await this.getZkVerifierUrlOrThrow();
       const verifyResults = await zkVerify(zkVerifierUrl, proof, sender, this.securityZone, chainId);
 
       // Add securityZone and utype to the verify results

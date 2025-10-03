@@ -61,6 +61,7 @@ export const FheUintUTypes = [
   FheTypes.Uint128,
   FheTypes.Uint256,
 ] as const;
+export type FheUintUTypesType = (typeof FheUintUTypes)[number];
 
 /**
  * List of All FHE types (uints, bool, and address)
@@ -230,3 +231,11 @@ export enum EncryptStep {
 }
 
 export type EncryptSetStateFn = (state: EncryptStep) => void;
+
+export type UnsealedItem<U extends FheTypes> = U extends FheTypes.Bool
+  ? boolean
+  : U extends FheTypes.Uint160
+    ? string
+    : U extends FheUintUTypesType
+      ? bigint
+      : never;
