@@ -135,6 +135,7 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
     updateState({ connecting: true, connectError: null, connected: false });
 
     _connectPromise = resultWrapper(
+      // try
       async () => {
         // Get chain ID
         const chainId = await publicClient.getChainId();
@@ -144,7 +145,6 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
             message: 'Chain ID is not initialized. Call connect() first.',
           });
         }
-        updateState({ chainId });
 
         const addresses = await walletClient.getAddresses();
         if (addresses.length === 0) {
@@ -153,20 +153,20 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
             message: 'No addresses found. Call connect() first.',
           });
         }
-        updateState({ address: addresses[0] });
 
         _publicClient = publicClient;
         _walletClient = walletClient;
 
-        updateState({ connected: true });
+        updateState({ connecting: false, connected: true, chainId, address: addresses[0] });
 
         return true;
       },
+      // catch
       (e) => {
-        updateState({ connectError: e, connected: false });
+        updateState({ connecting: false, connected: false, connectError: e });
       },
+      // finally
       () => {
-        updateState({ connecting: false });
         _connectPromise = null;
       }
     );

@@ -6,6 +6,7 @@ describe('createCofhesdkConfig', () => {
   const validBaseConfig: CofhesdkInputConfig = {
     supportedChains: [],
   };
+
   const expectInvalidConfigItem = (item: keyof CofhesdkConfig, value: any) => {
     const config = { ...validBaseConfig, [item]: value };
     expect(() => createCofhesdkConfig(config as CofhesdkInputConfig)).toThrow('Invalid cofhesdk configuration:');
