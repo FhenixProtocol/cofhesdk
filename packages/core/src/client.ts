@@ -1,4 +1,5 @@
 /* eslint-disable no-unused-vars */
+import { createStore } from 'zustand/vanilla';
 import { CofhesdkConfig } from './config';
 import { PublicClient, WalletClient } from 'viem';
 import { fetchMultichainKeys, FheKeySerializer } from './fetchKeys';
@@ -7,6 +8,7 @@ import { CofhesdkError, CofhesdkErrorCode } from './error';
 import { EncryptInputsBuilder } from './encrypt/encryptInputs';
 import { Result, ResultOk, resultWrapper } from './result';
 import { keysStorage } from './keyStore';
+import { Permit } from '@cofhesdk/permits';
 
 export type ClientSnapshot = {
   connected: boolean;
@@ -34,7 +36,6 @@ export type CofhesdkClient = {
   // (functions that may be run during initialization based on config)
   readonly initializationResults: {
     keyFetchResult: Promise<Result<boolean>>;
-    generatePermitResult: Promise<Result<boolean>>;
   };
 
   // --- convenience flags (read-only) ---
@@ -58,21 +59,25 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
   let _publicClient: PublicClient | null = null;
   let _walletClient: WalletClient | null = null;
 
-  // reactive state
-  let state: ClientSnapshot = { connected: false, connecting: false, connectError: null, chainId: null, address: null };
-  const listeners = new Set<Listener>();
-  const emit = () => {
-    for (const l of listeners) l(state);
-  };
-  const set = (next: Partial<ClientSnapshot>) => {
-    state = { ...state, ...next };
-    emit();
+  // Zustand store for reactive state management
+  const store = createStore<ClientSnapshot>(() => ({
+    connected: false,
+    connecting: false,
+    connectError: null,
+    chainId: null,
+    address: null,
+  }));
+
+  // Helper to update state
+  const updateState = (partial: Partial<ClientSnapshot>) => {
+    store.setState((state) => ({ ...state, ...partial }));
   };
 
   // single-flight + abortable warmup
   let _connectPromise: Promise<Result<boolean>> | null = null;
 
   const _requireConnected = () => {
+    const state = store.getState();
     if (!state.connected || !_publicClient || !_walletClient) {
       throw new CofhesdkError({
         code: CofhesdkErrorCode.NotInitialized,
@@ -117,6 +122,8 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
   // LIFECYCLE
 
   async function connect(publicClient: PublicClient, walletClient: WalletClient) {
+    const state = store.getState();
+
     // Exit if already connected and clients are the same
     if (state.connected && _publicClient === publicClient && _walletClient === walletClient)
       return Promise.resolve(ResultOk(true));
@@ -125,7 +132,7 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
     if (_connectPromise) return _connectPromise;
 
     // Set connecting state
-    set({ connecting: true, connectError: null, connected: false });
+    updateState({ connecting: true, connectError: null, connected: false });
 
     _connectPromise = resultWrapper(
       async () => {
@@ -137,7 +144,7 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
             message: 'Chain ID is not initialized. Call connect() first.',
           });
         }
-        set({ chainId });
+        updateState({ chainId });
 
         const addresses = await walletClient.getAddresses();
         if (addresses.length === 0) {
@@ -146,20 +153,20 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
             message: 'No addresses found. Call connect() first.',
           });
         }
-        set({ address: addresses[0] });
+        updateState({ address: addresses[0] });
 
         _publicClient = publicClient;
         _walletClient = walletClient;
 
-        set({ connected: true });
+        updateState({ connected: true });
 
         return true;
       },
       (e) => {
-        set({ connectError: e, connected: false });
+        updateState({ connectError: e, connected: false });
       },
       () => {
-        set({ connecting: false });
+        updateState({ connecting: false });
         _connectPromise = null;
       }
     );
@@ -171,6 +178,8 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
 
   async function encryptInputs<T extends any[]>(inputs: [...T]): Promise<EncryptInputsBuilder<[...T]>> {
     _requireConnected();
+
+    const state = store.getState();
 
     return new EncryptInputsBuilder({
       inputs,
@@ -184,26 +193,21 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
   }
 
   return {
-    // reactive accessors
-    getSnapshot: () => state,
-    subscribe(run) {
-      listeners.add(run);
-      run(state);
-      return () => listeners.delete(run);
-    },
+    // Zustand reactive accessors (don't export store directly to prevent mutation)
+    getSnapshot: store.getState,
+    subscribe: store.subscribe,
 
     // initialization results
     initializationResults: {
       keyFetchResult,
-      generatePermitResult,
     },
 
     // flags (read-only: reflect snapshot)
     get connected() {
-      return state.connected;
+      return store.getState().connected;
     },
     get connecting() {
-      return state.connecting;
+      return store.getState().connecting;
     },
 
     // config & platform-specific (read-only)
@@ -218,7 +222,7 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
     // Example:
     // async encryptData(data: unknown) {
     //   requireConnected();
-    //   // Use pub and wal for implementation
+    //   // Use _publicClient and _walletClient for implementation
     // },
   };
 }
