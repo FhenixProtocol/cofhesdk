@@ -112,13 +112,7 @@ describe('createCofhesdkClient', () => {
       const result = await client.connect(publicClient, walletClient);
 
       expect(result.success).toBe(true);
-
-      expect(result.data?.success).toBe(true);
-      expect(result.data?.publicClient).toBe(publicClient);
-      expect(result.data?.walletClient).toBe(walletClient);
-      expect(result.data?.chainId).toBe(11155111);
-      expect(result.data?.account).toBe('0xabcd');
-      expect(result.data?.error).toBe(undefined);
+      expect(result.data).toBe(true);
 
       expect(client.connected).toBe(true);
       expect(client.connecting).toBe(false);

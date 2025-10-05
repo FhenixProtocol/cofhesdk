@@ -251,7 +251,6 @@ describe('EncryptInputsBuilder', () => {
       config: createMockCofhesdkConfig(defaultChainId, MockZkVerifierUrl),
       publicClient: publicClient,
       walletClient: bobWalletClient,
-      connectPromise: undefined,
 
       tfhePublicKeySerializer: mockTfhePublicKeySerializer,
       compactPkeCrsSerializer: mockCompactPkeCrsSerializer,
@@ -333,41 +332,13 @@ describe('EncryptInputsBuilder', () => {
       expect(result.getSecurityZone()).toBe(securityZone);
     });
 
-    it('should fetch account from walletClient if not set', async () => {
-      builder = new EncryptInputsBuilder({
+    it('should throw an error if account is not set', async () => {
+      const builder = new EncryptInputsBuilder({
         ...createDefaultParams(),
         account: undefined,
-        walletClient: {
-          getAddresses: vi.fn().mockResolvedValue([defaultSender]),
-        } as unknown as WalletClient,
       });
       const result = await builder.encrypt();
-      expectResultSuccess(result);
-    });
-
-    it('should throw an error if walletClient.getAddresses() fails', async () => {
-      builder = new EncryptInputsBuilder({
-        ...createDefaultParams(),
-        account: undefined,
-        walletClient: {
-          getAddresses: vi.fn().mockRejectedValue(new Error('Failed to get addresses')),
-        } as unknown as WalletClient,
-      });
-      const result = await builder.encrypt();
-      expectResultError(result, CofhesdkErrorCode.PublicWalletGetAddressesFailed);
-    });
-
-    it('should throw an error if walletClient.getAddresses() returns an empty array', async () => {
-      builder = new EncryptInputsBuilder({
-        ...createDefaultParams(),
-        account: undefined,
-        walletClient: {
-          getAddresses: vi.fn().mockResolvedValue([]),
-        } as unknown as WalletClient,
-      });
-
-      const result = await builder.encrypt();
-      expectResultError(result, CofhesdkErrorCode.PublicWalletGetAddressesFailed);
+      expectResultError(result, CofhesdkErrorCode.AccountUninitialized);
     });
   });
 
@@ -402,38 +373,13 @@ describe('EncryptInputsBuilder', () => {
       expect(result.getChainId()).toBe(chainId);
     });
 
-    it('should fetch chainId from publicClient if not set', async () => {
-      builder = new EncryptInputsBuilder({
+    it('should throw an error if chainId is not set', async () => {
+      const builder = new EncryptInputsBuilder({
         ...createDefaultParams(),
         chainId: undefined,
-        publicClient: {
-          getChainId: vi.fn().mockResolvedValue(defaultChainId),
-        } as unknown as PublicClient,
-      });
-      const result = await builder.encrypt();
-      expectResultSuccess(result);
-    });
-
-    it('should throw an error if chainId is not set and publicClient is not provided', async () => {
-      builder = new EncryptInputsBuilder({
-        ...createDefaultParams(),
-        chainId: undefined,
-        publicClient: undefined,
       });
       const result = await builder.encrypt();
       expectResultError(result, CofhesdkErrorCode.ChainIdUninitialized);
-    });
-
-    it('should throw an error if publicClient.getChainId() fails', async () => {
-      builder = new EncryptInputsBuilder({
-        ...createDefaultParams(),
-        chainId: undefined,
-        publicClient: {
-          getChainId: vi.fn().mockRejectedValue(new Error('Failed to get chain id')),
-        } as unknown as PublicClient,
-      });
-      const result = await builder.encrypt();
-      expectResultError(result, CofhesdkErrorCode.PublicWalletGetChainIdFailed);
     });
   });
 

@@ -56,7 +56,7 @@ export type CofhesdkClient = {
   // --- config & platform-specific ---
   readonly config: CofhesdkConfig;
 
-  connect(publicClient: PublicClient, walletClient: WalletClient): Promise<Result<CofhesdkClientConnectReturnType>>;
+  connect(publicClient: PublicClient, walletClient: WalletClient): Promise<Result<boolean>>;
   /**
    * Types docstring
    */
@@ -106,15 +106,6 @@ export type CofhesdkClientParams = {
   zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator;
   tfhePublicKeySerializer: FheKeySerializer;
   compactPkeCrsSerializer: FheKeySerializer;
-};
-
-export type CofhesdkClientConnectReturnType<T extends boolean = boolean> = {
-  success: T;
-  publicClient: T extends true ? PublicClient : undefined;
-  walletClient: T extends true ? WalletClient : undefined;
-  chainId: T extends true ? number : undefined;
-  account: T extends true ? string : undefined;
-  error: T extends true ? undefined : CofhesdkError;
 };
 
 // FHE TYPES

@@ -16,7 +16,6 @@ import {
   EncryptableItem,
   FheTypes,
   CofhesdkClientPermits,
-  CofhesdkClientConnectReturnType,
 } from './types';
 import { getPublicClientChainID, getWalletClientAccount } from './utils';
 
@@ -45,7 +44,7 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
   };
 
   // single-flight + abortable warmup
-  let _connectPromise: Promise<Result<CofhesdkClientConnectReturnType>> | undefined = undefined;
+  let _connectPromise: Promise<Result<boolean>> | undefined = undefined;
 
   const _requireConnected = () => {
     const state = connectStore.getState();
@@ -53,7 +52,7 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
       throw new CofhesdkError({
         code: CofhesdkErrorCode.NotConnected,
         message: 'Client must be connected, account and chainId must be initialized',
-        hint: 'Ensure client.connect() has been called.',
+        hint: 'Ensure client.connect() has been called and awaited.',
         context: {
           connected: state.connected,
           account: state.account,
@@ -80,32 +79,20 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
     return false;
   });
 
-  const generatePermitResult = resultWrapper(async () => {
-    if (opts.config.permitGeneration !== 'ON_CONNECT') return false;
-    // TODO: Generate permit if not generated or not valid
-    return true;
-  });
-
   // LIFECYCLE
 
   async function connect(publicClient: PublicClient, walletClient: WalletClient) {
     const state = connectStore.getState();
 
     // Exit if already connected and clients are the same
-    if (state.connected && _publicClient === publicClient && _walletClient === walletClient)
-      return Promise.resolve(
-        ResultOk({
-          success: true,
-          publicClient,
-          walletClient,
-          chainId: state.chainId,
-          account: state.account,
-          error: undefined,
-        })
-      );
+    if (state.connected && _publicClient === publicClient && _walletClient === walletClient) {
+      return Promise.resolve(ResultOk(true));
+    }
 
     // Exit if already connecting
-    if (_connectPromise) return _connectPromise;
+    if (_connectPromise && _publicClient === publicClient && _walletClient === walletClient) {
+      return _connectPromise;
+    }
 
     // Set connecting state
     updateConnectState({ connecting: true, connectError: null, connected: false });
@@ -121,26 +108,12 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
 
         updateConnectState({ connecting: false, connected: true, chainId, account });
 
-        return {
-          success: true,
-          publicClient,
-          walletClient,
-          chainId,
-          account,
-          error: undefined,
-        };
+        return true;
       },
       // catch
       (e) => {
         updateConnectState({ connecting: false, connected: false, connectError: e });
-        return {
-          success: false,
-          publicClient: undefined,
-          walletClient: undefined,
-          chainId: undefined,
-          account: undefined,
-          error: e,
-        };
+        return false;
       },
       // finally
       () => {
@@ -165,7 +138,6 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
       publicClient: _publicClient ?? undefined,
       walletClient: _walletClient ?? undefined,
       zkvWalletClient: opts.config._internal?.zkvWalletClient,
-      connectPromise: _connectPromise ?? undefined,
 
       tfhePublicKeySerializer: opts.tfhePublicKeySerializer,
       compactPkeCrsSerializer: opts.compactPkeCrsSerializer,
@@ -185,7 +157,6 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
       config: opts.config,
       publicClient: _publicClient ?? undefined,
       walletClient: _walletClient ?? undefined,
-      connectPromise: _connectPromise ?? undefined,
     });
   }
 

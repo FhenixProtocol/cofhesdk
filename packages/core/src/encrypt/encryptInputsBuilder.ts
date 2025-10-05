@@ -48,7 +48,6 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
       config: params.config,
       publicClient: params.publicClient,
       walletClient: params.walletClient,
-      connectPromise: params.connectPromise,
       chainId: params.chainId,
       account: params.account,
     });
@@ -361,8 +360,6 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    */
   async encrypt(): Promise<Result<[...EncryptedItemInputs<T>]>> {
     return resultWrapper(async () => {
-      await this.waitForConnection();
-
       const account = await this.getAccountOrThrow();
       const chainId = await this.getChainIdOrThrow();
 

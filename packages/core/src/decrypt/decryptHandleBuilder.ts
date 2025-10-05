@@ -43,7 +43,6 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
       config: params.config,
       publicClient: params.publicClient,
       walletClient: params.walletClient,
-      connectPromise: params.connectPromise,
       chainId: params.chainId,
       account: params.account,
     });
@@ -280,9 +279,6 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
    */
   decrypt(): Promise<Result<UnsealedItem<U>>> {
     return resultWrapper(async () => {
-      // Wait for connection
-      await this.waitForConnection();
-
       // Ensure utype is valid
       this.validateUtypeOrThrow();
 
