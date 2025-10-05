@@ -13,12 +13,12 @@ export async function cofheMocksSealOutput(
   utype: FheTypes,
   permit: Permit,
   publicClient: PublicClient,
-  mocksDecryptDelay: number
+  mocksSealOutputDelay: number
 ): Promise<bigint> {
   // Configurable delay before decrypting the output to simulate the CoFHE decrypt processing time
   // Recommended 1000ms on web
   // Recommended 0ms on hardhat (will be called during tests no need for fake delay)
-  if (mocksDecryptDelay > 0) await sleep(mocksDecryptDelay);
+  if (mocksSealOutputDelay > 0) await sleep(mocksSealOutputDelay);
 
   const permission = PermitUtils.getPermission(permit, true);
   const permissionWithBigInts = {

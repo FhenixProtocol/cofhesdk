@@ -209,7 +209,9 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
    * On hardhat, interact with MockZkVerifier contract instead of CoFHE
    */
   private async mocksSealOutput(permit: Permit): Promise<bigint> {
-    return cofheMocksSealOutput(this.ctHash, this.utype, permit, this.getPublicClientOrThrow(), 0);
+    const config = this.getConfigOrThrow();
+    const mocksSealOutputDelay = config.mocks.sealOutputDelay;
+    return cofheMocksSealOutput(this.ctHash, this.utype, permit, this.getPublicClientOrThrow(), mocksSealOutputDelay);
   }
 
   /**
