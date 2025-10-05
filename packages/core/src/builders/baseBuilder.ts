@@ -12,6 +12,8 @@ export type BaseBuilderParams = {
 
   chainId?: number;
   account?: string;
+
+  requireConnected?: () => void;
 };
 
 /**
@@ -26,6 +28,8 @@ export abstract class BaseBuilder {
   protected chainId: number | undefined;
   protected account: string | undefined;
 
+  protected requireConnected: (() => void) | undefined;
+
   constructor(params: BaseBuilderParams) {
     this.config = params.config;
     this.publicClient = params.publicClient;
@@ -33,6 +37,8 @@ export abstract class BaseBuilder {
 
     this.chainId = params.chainId;
     this.account = params.account;
+
+    this.requireConnected = params.requireConnected;
   }
 
   /**
@@ -120,5 +126,13 @@ export abstract class BaseBuilder {
         walletClient: this.walletClient,
       },
     });
+  }
+
+  /**
+   * Requires the client to be connected
+   * @throws {CofhesdkError} If client is not connected
+   */
+  protected requireConnectedOrThrow(): void {
+    if (this.requireConnected) this.requireConnected();
   }
 }

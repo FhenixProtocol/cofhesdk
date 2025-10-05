@@ -279,6 +279,9 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
    */
   decrypt(): Promise<Result<UnsealedItem<U>>> {
     return resultWrapper(async () => {
+      // Ensure cofhe client is connected
+      await this.requireConnectedOrThrow();
+
       // Ensure utype is valid
       this.validateUtypeOrThrow();
 

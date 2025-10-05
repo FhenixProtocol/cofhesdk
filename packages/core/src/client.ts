@@ -46,6 +46,7 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
   // single-flight + abortable warmup
   let _connectPromise: Promise<Result<boolean>> | undefined = undefined;
 
+  // Called before any operation, throws of connection not yet established
   const _requireConnected = () => {
     const state = connectStore.getState();
     if (!state.connected || !_publicClient || !_walletClient || !state.account || !state.chainId) {
@@ -142,6 +143,8 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
       tfhePublicKeySerializer: opts.tfhePublicKeySerializer,
       compactPkeCrsSerializer: opts.compactPkeCrsSerializer,
       zkBuilderAndCrsGenerator: opts.zkBuilderAndCrsGenerator,
+
+      requireConnected: _requireConnected,
     });
   }
 
@@ -157,6 +160,8 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
       config: opts.config,
       publicClient: _publicClient ?? undefined,
       walletClient: _walletClient ?? undefined,
+
+      requireConnected: _requireConnected,
     });
   }
 
