@@ -155,6 +155,20 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     return this.stepCallback;
   }
 
+  /**
+   * Fires the step callback if set
+   */
+  private fireCallback(step: EncryptStep) {
+    if (!this.stepCallback) return;
+    this.stepCallback(step);
+  }
+
+  /**
+   * tfhePublicKeySerializer is a platform-specific dependency injected into core/createCofhesdkClient by web/createCofhesdkClient and node/createCofhesdkClient
+   * web/ uses zama "tfhe"
+   * node/ uses zama "node-tfhe"
+   * Users should not set this manually.
+   */
   private getTfhePublicKeySerializerOrThrow(): FheKeySerializer {
     if (this.tfhePublicKeySerializer) return this.tfhePublicKeySerializer;
     throw new CofhesdkError({
@@ -167,6 +181,12 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     });
   }
 
+  /**
+   * compactPkeCrsSerializer is a platform-specific dependency injected into core/createCofhesdkClient by web/createCofhesdkClient and node/createCofhesdkClient
+   * web/ uses zama "tfhe"
+   * node/ uses zama "node-tfhe"
+   * Users should not set this manually.
+   */
   private getCompactPkeCrsSerializerOrThrow(): FheKeySerializer {
     if (this.compactPkeCrsSerializer) return this.compactPkeCrsSerializer;
     throw new CofhesdkError({
@@ -179,17 +199,20 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     });
   }
 
+  /**
+   * zkVerifierUrl is included in the chains exported from @cofhesdk/chains for use in CofhesdkConfig.supportedChains
+   * Users should generally not set this manually.
+   */
   private async getZkVerifierUrl(): Promise<string> {
     const config = this.getConfigOrThrow();
     const chainId = await this.getChainIdOrThrow();
     return getZkVerifierUrlOrThrow(config, chainId);
   }
 
-  private fireCallback(step: EncryptStep) {
-    if (!this.stepCallback) return;
-    this.stepCallback(step);
-  }
-
+  /**
+   * Fetches the FHE key and CRS from the CoFHE API
+   * If the key/crs already exists in the store it is returned, else it is fetched, stored, and returned
+   */
   private async fetchFheKeyAndCrs(): Promise<{ fheKey: Uint8Array; crs: Uint8Array }> {
     const config = this.getConfigOrThrow();
     const chainId = await this.getChainIdOrThrow();
@@ -240,6 +263,14 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     return { fheKey, crs };
   }
 
+  /**
+   * zkBuilderAndCrsGenerator is a platform-specific dependency injected into core/createCofhesdkClient by web/createCofhesdkClient and node/createCofhesdkClient
+   * web/ uses zama "tfhe"
+   * node/ uses zama "node-tfhe"
+   * Users should not set this manually.
+   *
+   * Generates the zkBuilder and zkCrs from the fheKey and crs
+   */
   private generateZkBuilderAndCrs(fheKey: Uint8Array, crs: Uint8Array) {
     const zkBuilderAndCrsGenerator = this.zkBuilderAndCrsGenerator;
 
