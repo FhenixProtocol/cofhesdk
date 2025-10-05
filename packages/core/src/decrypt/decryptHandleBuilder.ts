@@ -1,11 +1,14 @@
 import { FheTypes, UnsealedItem } from '../types';
 import { getThresholdNetworkUrlOrThrow } from '../config';
-import { EthEncryptedData, Permission, Permit, PermitUtils } from '@cofhesdk/permits';
+import { Permit, PermitUtils } from '@cofhesdk/permits';
 import { Result, resultWrapper } from '../result';
 import { CofhesdkError, CofhesdkErrorCode } from '../error';
 import { permits } from '../permits';
 import { isValidUtype, convertViaUtype } from './decryptUtils';
 import { BaseBuilder, BaseBuilderParams } from '../builders/baseBuilder';
+import { hardhat } from '@cofhesdk/chains';
+import { cofheMocksSealOutput } from './cofheMocksSealOutput';
+import { tnSealOutput } from './tnSealOutput';
 
 /**
  * API
@@ -202,59 +205,21 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
     return permit;
   }
 
-  private async fetchSealedData(
-    thresholdNetworkUrl: string,
-    permission: Permission,
-    chainId: number
-  ): Promise<EthEncryptedData> {
-    let sealed: EthEncryptedData | undefined;
-    let errorMessage: string | undefined;
-    let sealOutputResult: { sealed: EthEncryptedData; error_message: string } | undefined;
+  /**
+   * On hardhat, interact with MockZkVerifier contract instead of CoFHE
+   */
+  private async mocksSealOutput(permit: Permit): Promise<bigint> {
+    return cofheMocksSealOutput(this.ctHash, this.utype, permit, this.getPublicClientOrThrow(), 0);
+  }
 
-    const body = {
-      ct_tempkey: this.ctHash.toString(16).padStart(64, '0'),
-      host_chain_id: chainId,
-      permit: permission,
-    };
-
-    try {
-      const sealOutputRes = await fetch(`${thresholdNetworkUrl}/sealoutput`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-      });
-
-      sealOutputResult = (await sealOutputRes.json()) as { sealed: EthEncryptedData; error_message: string };
-      sealed = sealOutputResult.sealed;
-      errorMessage = sealOutputResult.error_message;
-    } catch (e) {
-      throw new CofhesdkError({
-        code: CofhesdkErrorCode.SealOutputFailed,
-        message: `sealOutput request failed`,
-        hint: 'Ensure the threshold network URL is valid.',
-        cause: e instanceof Error ? e : undefined,
-        context: {
-          thresholdNetworkUrl,
-          body,
-        },
-      });
-    }
-
-    if (sealed == null) {
-      throw new CofhesdkError({
-        code: CofhesdkErrorCode.SealOutputReturnedNull,
-        message: `sealOutput request returned no data | Caused by: ${errorMessage}`,
-        context: {
-          thresholdNetworkUrl,
-          body,
-          sealOutputResult,
-        },
-      });
-    }
-
-    return sealed;
+  /**
+   * In the production context, perform a true decryption with the CoFHE coprocessor.
+   */
+  private async productionSealOutput(chainId: number, permit: Permit): Promise<bigint> {
+    const thresholdNetworkUrl = this.getThresholdNetworkUrl(chainId);
+    const permission = PermitUtils.getPermission(permit, true);
+    const sealed = await tnSealOutput(this.ctHash, chainId, permission, thresholdNetworkUrl);
+    return PermitUtils.unseal(permit, sealed);
   }
 
   /**
@@ -298,16 +263,13 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
       // Check permit validity on-chain
       // TODO: PermitUtils.validateOnChain(permit, this.publicClient);
 
-      // Get threshold network URL
-      const thresholdNetworkUrl = this.getThresholdNetworkUrl(chainId);
+      let unsealed: bigint;
 
-      // Extract permission
-      const permission = PermitUtils.getPermission(permit, true);
-
-      // Fetch sealed data from CoFHE
-      const sealed = await this.fetchSealedData(thresholdNetworkUrl, permission, chainId);
-
-      const unsealed = PermitUtils.unseal(permit, sealed);
+      if (chainId === hardhat.id) {
+        unsealed = await this.mocksSealOutput(permit);
+      } else {
+        unsealed = await this.productionSealOutput(chainId, permit);
+      }
 
       return convertViaUtype(this.utype, unsealed);
     });

@@ -217,7 +217,7 @@ describe('Validation Tests', () => {
         const permit = {
           ...(await createMockPermit()),
           type: 'self' as const,
-          issuerSignature: '0x1234567890abcdef',
+          issuerSignature: '0x1234567890abcdef' as `0x${string}`,
         };
         expect(ValidationUtils.isSigned(permit)).toBe(true);
       });
@@ -226,7 +226,7 @@ describe('Validation Tests', () => {
         const permit = {
           ...(await createMockPermit()),
           type: 'self' as const,
-          issuerSignature: '0x',
+          issuerSignature: '0x' as `0x${string}`,
         };
         expect(ValidationUtils.isSigned(permit)).toBe(false);
       });
@@ -235,7 +235,7 @@ describe('Validation Tests', () => {
         const permit = {
           ...(await createMockPermit()),
           type: 'recipient' as const,
-          recipientSignature: '0x1234567890abcdef',
+          recipientSignature: '0x1234567890abcdef' as `0x${string}`,
         };
         expect(ValidationUtils.isSigned(permit)).toBe(true);
       });
@@ -244,7 +244,7 @@ describe('Validation Tests', () => {
         const permit = {
           ...(await createMockPermit()),
           type: 'recipient' as const,
-          recipientSignature: '0x',
+          recipientSignature: '0x' as `0x${string}`,
         };
         expect(ValidationUtils.isSigned(permit)).toBe(false);
       });
@@ -255,7 +255,7 @@ describe('Validation Tests', () => {
         const permit = {
           ...(await createMockPermit()),
           expiration: Math.floor(Date.now() / 1000) + 3600,
-          issuerSignature: '0x1234567890abcdef',
+          issuerSignature: '0x1234567890abcdef' as `0x${string}`,
         };
         const result = ValidationUtils.isValid(permit);
         expect(result.valid).toBe(true);
@@ -266,7 +266,7 @@ describe('Validation Tests', () => {
         const permit = {
           ...(await createMockPermit()),
           expiration: Math.floor(Date.now() / 1000) - 3600,
-          issuerSignature: '0x1234567890abcdef',
+          issuerSignature: '0x1234567890abcdef' as `0x${string}`,
         };
         const result = ValidationUtils.isValid(permit);
         expect(result.valid).toBe(false);
@@ -277,7 +277,7 @@ describe('Validation Tests', () => {
         const permit = {
           ...(await createMockPermit()),
           expiration: Math.floor(Date.now() / 1000) + 3600,
-          issuerSignature: '0x',
+          issuerSignature: '0x' as `0x${string}`,
         };
         const result = ValidationUtils.isValid(permit);
         expect(result.valid).toBe(false);

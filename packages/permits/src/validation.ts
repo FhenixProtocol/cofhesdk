@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { isAddress, zeroAddress } from 'viem';
 import { Permit, ValidationResult } from './types';
+import { is0xPrefixed } from './utils';
 
 const SerializedSealingPair = z.object({
   privateKey: z.string(),
@@ -97,8 +98,20 @@ export const SelfPermitOptionsValidator = z
       .refine((val) => isAddress(val), {
         message: 'Self permit validatorContract :: invalid address',
       }),
-    issuerSignature: z.string().optional().default('0x'),
-    recipientSignature: z.string().optional().default('0x'),
+    issuerSignature: z
+      .string()
+      .optional()
+      .default('0x')
+      .refine((val) => is0xPrefixed(val), {
+        message: 'Self permit issuerSignature :: must be 0x prefixed',
+      }),
+    recipientSignature: z
+      .string()
+      .optional()
+      .default('0x')
+      .refine((val) => is0xPrefixed(val), {
+        message: 'Self permit recipientSignature :: must be 0x prefixed',
+      }),
   })
   .refine(...ValidatorContractRefinement);
 
@@ -156,8 +169,20 @@ export const SharingPermitOptionsValidator = z
       .refine((val) => isAddress(val), {
         message: 'Sharing permit validatorContract :: invalid address',
       }),
-    issuerSignature: z.string().optional().default('0x'),
-    recipientSignature: z.string().optional().default('0x'),
+    issuerSignature: z
+      .string()
+      .optional()
+      .default('0x')
+      .refine((val) => is0xPrefixed(val), {
+        message: 'Sharing permit issuerSignature :: must be 0x prefixed',
+      }),
+    recipientSignature: z
+      .string()
+      .optional()
+      .default('0x')
+      .refine((val) => is0xPrefixed(val), {
+        message: 'Sharing permit recipientSignature :: must be 0x prefixed',
+      }),
   })
   .refine(...ValidatorContractRefinement);
 
@@ -205,9 +230,14 @@ export const ImportPermitOptionsValidator = z
       .refine((val) => val !== zeroAddress, {
         message: 'Import permit recipient :: must not be zeroAddress',
       }),
-    issuerSignature: z.string().refine((val) => val !== '0x', {
-      message: 'Import permit :: issuerSignature must be provided',
-    }),
+    issuerSignature: z
+      .string()
+      .refine((val) => is0xPrefixed(val), {
+        message: 'Import permit issuerSignature :: must be 0x prefixed',
+      })
+      .refine((val) => val !== '0x', {
+        message: 'Import permit :: issuerSignature must be provided',
+      }),
     name: z.string().optional().default('Unnamed Permit'),
     expiration: z.number().optional().default(1000000000000),
     validatorId: z.number().optional().default(0),
@@ -218,7 +248,13 @@ export const ImportPermitOptionsValidator = z
       .refine((val) => isAddress(val), {
         message: 'Import permit validatorContract :: invalid address',
       }),
-    recipientSignature: z.string().optional().default('0x'),
+    recipientSignature: z
+      .string()
+      .optional()
+      .default('0x')
+      .refine((val) => is0xPrefixed(val), {
+        message: 'Import permit recipientSignature :: must be 0x prefixed',
+      }),
   })
   .refine(...ValidatorContractRefinement);
 

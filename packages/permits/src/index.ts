@@ -1,7 +1,6 @@
 // Core types
 export type {
   Permit,
-  PermitOptions,
   CreateSelfPermitOptions as SelfPermitOptions,
   CreateSharingPermitOptions as SharingPermitOptions,
   ImportSharedPermitOptions as ImportPermitOptions,

@@ -45,7 +45,7 @@ describe('Storage Tests', () => {
       const permit1 = await createMockPermit();
       const permit2 = {
         ...(await createMockPermit()),
-        issuer: '0x0987654321098765432109876543210987654321',
+        issuer: '0x0987654321098765432109876543210987654321' as `0x${string}`,
       };
 
       const hash1 = PermitUtils.getHash(permit1);
@@ -109,7 +109,7 @@ describe('Storage Tests', () => {
       const permit2 = {
         ...(await createMockPermit()),
         name: 'Second Permit',
-        issuer: '0x0987654321098765432109876543210987654321', // Different issuer
+        issuer: '0x0987654321098765432109876543210987654321' as `0x${string}`, // Different issuer
       };
 
       const hash1 = PermitUtils.getHash(permit1);

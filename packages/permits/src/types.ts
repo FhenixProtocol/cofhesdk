@@ -45,7 +45,7 @@ export interface Permit {
   /**
    * (base) User that initially created the permission, target of data fetching
    */
-  issuer: string;
+  issuer: `0x${string}`;
   /**
    * (base) Expiration timestamp
    */
@@ -54,7 +54,7 @@ export interface Permit {
    * (sharing) The user that this permission will be shared with
    * ** optional, use `address(0)` to disable **
    */
-  recipient: string;
+  recipient: `0x${string}`;
   /**
    * (issuer defined validation) An id used to query a contract to check this permissions validity
    * ** optional, use `0` to disable **
@@ -64,7 +64,7 @@ export interface Permit {
    * (issuer defined validation) The contract to query to determine permission validity
    * ** optional, user `address(0)` to disable **
    */
-  validatorContract: string;
+  validatorContract: `0x${string}`;
   /**
    * (base) The publicKey of a sealingPair used to re-encrypt `issuer`s confidential data
    *   (non-sharing) Populated by `issuer`
@@ -77,13 +77,13 @@ export interface Permit {
    *   (non-sharing) < issuer, expiration, recipient, validatorId, validatorContract, sealingKey >
    *   (sharing)     < issuer, expiration, recipient, validatorId, validatorContract >
    */
-  issuerSignature: string;
+  issuerSignature: `0x${string}`;
   /**
    * (sharing) `signTypedData` signature created by `recipient` with format:
    * (sharing) < sealingKey, issuerSignature>
    * ** required for shared permits **
    */
-  recipientSignature: string;
+  recipientSignature: `0x${string}`;
   /**
    * EIP712 domain used to sign this permit.
    * Should not be set manually, included in metadata as part of serialization flows.
@@ -107,37 +107,6 @@ export interface PermitMetadata {
 /**
  * Utility types for permit creation
  */
-export type PickPartial<T, F extends keyof T> = Expand<Omit<T, F> & Partial<Pick<T, F>>>;
-
-export type PermitCore = Expand<
-  Pick<Permit, 'issuer'> & Partial<Pick<Permit, 'recipient' | 'validatorId' | 'validatorContract'>>
->;
-
-export type PermitOptions =
-  // Self permit requires at minimum `issuer`, excludes `recipient`, `recipientSignature`, and `sealingPair`
-  | Expand<
-      Partial<Omit<Permit, 'recipient' | 'recipientSignature' | 'sealingPair'>> & {
-        type: 'self';
-        issuer: string;
-      }
-    >
-  // Sharing permit requires at minimum `issuer` and `recipient`, excludes `recipientSignature` and `sealingPair`
-  | Expand<
-      Partial<Omit<Permit, 'recipientSignature' | 'sealingPair'>> & {
-        type: 'sharing';
-        issuer: string;
-        recipient: string;
-      }
-    >
-  // Recipient permit requires the full issuer's permit, excludes `sealingPair`
-  | Expand<
-      Partial<Omit<Permit, 'sealingPair'>> & {
-        type: 'recipient';
-        issuer: string;
-        recipient: string;
-        issuerSignature: string;
-      }
-    >;
 
 // Specific option types for each permit creation method
 export type CreateSelfPermitOptions = {
@@ -183,7 +152,7 @@ export type SerializedPermit = Omit<Permit, 'sealingPair'> & {
  */
 export type Permission = Expand<
   Omit<Permit, 'name' | 'type' | 'sealingPair'> & {
-    sealingKey: string;
+    sealingKey: `0x${string}`;
   }
 >;
 
