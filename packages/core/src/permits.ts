@@ -133,5 +133,3 @@ export const permits = {
   selectActivePermit,
   removeActivePermit,
 };
-
-export type ClientPermits = typeof permits;

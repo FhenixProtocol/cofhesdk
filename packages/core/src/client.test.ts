@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createCofhesdkClient, CofhesdkClient, ConnectStateSnapshot } from './client';
+import { createCofhesdkClient } from './client';
+import { CofhesdkClient, CofhesdkClientConnectionState } from './types';
 import { createCofhesdkConfig } from './config';
 import { CofhesdkErrorCode } from './error';
 import type { PublicClient, WalletClient } from 'viem';
@@ -50,9 +51,9 @@ describe('createCofhesdkClient', () => {
       const snapshot = client.getSnapshot();
       expect(snapshot.connected).toBe(false);
       expect(snapshot.connecting).toBe(false);
-      expect(snapshot.connectError).toBe(null);
-      expect(snapshot.chainId).toBe(null);
-      expect(snapshot.address).toBe(null);
+      expect(snapshot.connectError).toBe(undefined);
+      expect(snapshot.chainId).toBe(undefined);
+      expect(snapshot.account).toBe(undefined);
     });
 
     it('should expose convenience flags', () => {
@@ -68,7 +69,7 @@ describe('createCofhesdkClient', () => {
 
   describe('reactive state', () => {
     it('should notify subscribers of state changes', async () => {
-      const states: ConnectStateSnapshot[] = [];
+      const states: CofhesdkClientConnectionState[] = [];
       client.subscribe((snapshot) => states.push(snapshot));
 
       const publicClient = createMockPublicClient();
@@ -78,18 +79,18 @@ describe('createCofhesdkClient', () => {
       // Expect states[0] to be the connecting state
       expect(states[0].connecting).toBe(true);
       expect(states[0].connected).toBe(false);
-      expect(states[0].chainId).toBe(null);
-      expect(states[0].address).toBe(null);
+      expect(states[0].chainId).toBe(undefined);
+      expect(states[0].account).toBe(undefined);
 
       // Expect states[1] to be the connected state
       expect(states[1].connected).toBe(true);
       expect(states[1].connecting).toBe(false);
       expect(states[1].chainId).toBe(11155111);
-      expect(states[1].address).toBe('0x1234567890123456789012345678901234567890');
+      expect(states[1].account).toBe('0x1234567890123456789012345678901234567890');
     });
 
     it('should stop notifications after unsubscribe', async () => {
-      const states: ConnectStateSnapshot[] = [];
+      const states: CofhesdkClientConnectionState[] = [];
       const unsubscribe = client.subscribe((snapshot) => states.push(snapshot));
 
       unsubscribe();
@@ -111,13 +112,20 @@ describe('createCofhesdkClient', () => {
       const result = await client.connect(publicClient, walletClient);
 
       expect(result.success).toBe(true);
-      expect(result.data).toBe(true);
+
+      expect(result.data?.success).toBe(true);
+      expect(result.data?.publicClient).toBe(publicClient);
+      expect(result.data?.walletClient).toBe(walletClient);
+      expect(result.data?.chainId).toBe(11155111);
+      expect(result.data?.account).toBe('0xabcd');
+      expect(result.data?.error).toBe(undefined);
+
       expect(client.connected).toBe(true);
       expect(client.connecting).toBe(false);
 
       const snapshot = client.getSnapshot();
       expect(snapshot.chainId).toBe(11155111);
-      expect(snapshot.address).toBe('0xabcd');
+      expect(snapshot.account).toBe('0xabcd');
     });
 
     it('should set connecting state during connection', async () => {
@@ -168,7 +176,7 @@ describe('createCofhesdkClient', () => {
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(CofhesdkErrorCode.PublicWalletGetChainIdFailed);
-      expect(result.error?.message).toBe('publicClient.getChainId() failed | Caused by: Network error');
+      expect(result.error?.message).toBe('getting chain ID from public client failed | Caused by: Network error');
       expect(result.error?.cause).toBe(error);
       expect(client.connected).toBe(false);
     });
@@ -182,7 +190,7 @@ describe('createCofhesdkClient', () => {
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(CofhesdkErrorCode.PublicWalletGetChainIdFailed);
-      expect(result.error?.message).toBe('publicClient.getChainId() returned null');
+      expect(result.error?.message).toBe('chain ID from public client is null');
       expect(result.error?.cause).toBe(undefined);
       expect(client.connected).toBe(false);
     });
@@ -197,7 +205,7 @@ describe('createCofhesdkClient', () => {
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(CofhesdkErrorCode.PublicWalletGetAddressesFailed);
-      expect(result.error?.message).toBe('walletClient.getAddresses() failed | Caused by: Network error');
+      expect(result.error?.message).toBe('getting address from wallet client failed | Caused by: Network error');
       expect(result.error?.cause).toBe(error);
       expect(client.connected).toBe(false);
     });
@@ -210,7 +218,7 @@ describe('createCofhesdkClient', () => {
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(CofhesdkErrorCode.PublicWalletGetAddressesFailed);
-      expect(result.error?.message).toBe('walletClient.getAddresses() returned an empty array');
+      expect(result.error?.message).toBe('address from wallet client is null');
       expect(result.error?.cause).toBe(undefined);
       expect(client.connected).toBe(false);
     });
@@ -236,7 +244,7 @@ describe('createCofhesdkClient', () => {
         .encryptInputs([Encryptable.uint8(1n), Encryptable.uint8(2n), Encryptable.uint8(3n)])
         .encrypt();
       expect(result.success).toBe(false);
-      expect(result.error?.code).toBe(CofhesdkErrorCode.SenderUninitialized);
+      expect(result.error?.code).toBe(CofhesdkErrorCode.AccountUninitialized);
     });
 
     it('should create EncryptInputsBuilder when connected', async () => {
@@ -251,7 +259,7 @@ describe('createCofhesdkClient', () => {
       expect(builder).toBeInstanceOf(EncryptInputsBuilder);
       expect(builder).toHaveProperty('encrypt');
       expect(builder.getChainId()).toBe(123);
-      expect(builder.getSender()).toBe('0xtest');
+      expect(builder.getAccount()).toBe('0xtest');
     });
   });
 

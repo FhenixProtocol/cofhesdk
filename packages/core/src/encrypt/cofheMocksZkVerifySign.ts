@@ -29,14 +29,14 @@ type EncryptableItemWithCtHash = EncryptableItem & {
  */
 async function calcCtHashes(
   items: EncryptableItem[],
-  sender: string,
+  account: string,
   securityZone: number,
   publicClient: PublicClient
 ): Promise<EncryptableItemWithCtHash[]> {
   const calcCtHashesArgs = [
     items.map(({ data }) => BigInt(data)),
     items.map(({ utype }) => utype),
-    sender as `0x${string}`,
+    account as `0x${string}`,
     securityZone,
     BigInt(hardhat.id),
   ] as const;
@@ -53,8 +53,31 @@ async function calcCtHashes(
   } catch (err) {
     throw new CofhesdkError({
       code: CofhesdkErrorCode.ZkMocksCalcCtHashesFailed,
-      message: `mockZkVerifySign calcCtHashes failed: ${err}`,
+      message: `mockZkVerifySign calcCtHashes failed while calling zkVerifyCalcCtHashesPacked`,
       cause: err instanceof Error ? err : undefined,
+      context: {
+        address: MocksZkVerifierAddress,
+        items,
+        account,
+        securityZone,
+        publicClient,
+        calcCtHashesArgs,
+      },
+    });
+  }
+
+  if (ctHashes.length !== items.length) {
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.ZkMocksCalcCtHashesFailed,
+      message: `mockZkVerifySign calcCtHashes returned incorrect number of ctHashes`,
+      context: {
+        items,
+        account,
+        securityZone,
+        publicClient,
+        calcCtHashesArgs,
+        ctHashes,
+      },
     });
   }
 
@@ -84,8 +107,13 @@ async function insertCtHashes(items: EncryptableItemWithCtHash[], walletClient: 
   } catch (err) {
     throw new CofhesdkError({
       code: CofhesdkErrorCode.ZkMocksInsertCtHashesFailed,
-      message: `mockZkVerifySign insertPackedCtHashes failed: ${err}`,
+      message: `mockZkVerifySign insertPackedCtHashes failed while calling insertPackedCtHashes`,
       cause: err instanceof Error ? err : undefined,
+      context: {
+        items,
+        walletClient,
+        insertPackedCtHashesArgs,
+      },
     });
   }
 }
@@ -95,18 +123,31 @@ async function insertCtHashes(items: EncryptableItemWithCtHash[], walletClient: 
  * Locally, we create the proof signatures from the known proof signer account.
  */
 async function createProofSignatures(items: EncryptableItemWithCtHash[], securityZone: number): Promise<string[]> {
+  let signatures: string[] = [];
+
+  // Create wallet client for the encrypted input signer
+  // This wallet won't send a transaction, so gas isn't needed
+  // This wallet doesn't need to be connected to the network
+  let encInputSignerClient: WalletClient | undefined;
+
   try {
-    // Create wallet client for the encrypted input signer
-    // This wallet won't send a transaction, so gas isn't needed
-    // This wallet doesn't even need to be connected to the network
-    const encInputSignerClient = createWalletClient({
+    encInputSignerClient = createWalletClient({
       chain: hardhat,
       transport: http(),
       account: privateKeyToAccount(MocksEncryptedInputSignerPkey),
     });
+  } catch (err) {
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.ZkMocksCreateProofSignatureFailed,
+      message: `mockZkVerifySign createProofSignatures failed while creating wallet client`,
+      cause: err instanceof Error ? err : undefined,
+      context: {
+        MocksEncryptedInputSignerPkey,
+      },
+    });
+  }
 
-    let signatures: string[] = [];
-
+  try {
     for (const item of items) {
       // Pack the data into bytes and hash it
       const packedData = encodePacked(['uint256', 'int32', 'uint8'], [BigInt(item.data), securityZone, item.utype]);
@@ -116,19 +157,37 @@ async function createProofSignatures(items: EncryptableItemWithCtHash[], securit
       const ethSignedHash = hashMessage({ raw: toBytes(messageHash) });
 
       // Sign the message
-      const signature = await encInputSignerClient.signMessage({ message: { raw: toBytes(ethSignedHash) } });
+      const signature = await encInputSignerClient.signMessage({
+        message: { raw: toBytes(ethSignedHash) },
+        account: encInputSignerClient.account!,
+      });
 
       signatures.push(signature);
     }
-
-    return signatures;
   } catch (err) {
     throw new CofhesdkError({
       code: CofhesdkErrorCode.ZkMocksCreateProofSignatureFailed,
-      message: `mockZkVerifySign createProofSignatures failed: ${err}`,
+      message: `mockZkVerifySign createProofSignatures failed while calling signMessage`,
       cause: err instanceof Error ? err : undefined,
+      context: {
+        items,
+        securityZone,
+      },
     });
   }
+
+  if (signatures.length !== items.length) {
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.ZkMocksCreateProofSignatureFailed,
+      message: `mockZkVerifySign createProofSignatures returned incorrect number of signatures`,
+      context: {
+        items,
+        securityZone,
+      },
+    });
+  }
+
+  return signatures;
 }
 
 /**
@@ -137,7 +196,7 @@ async function createProofSignatures(items: EncryptableItemWithCtHash[], securit
  */
 export async function cofheMocksZkVerifySign(
   items: EncryptableItem[],
-  sender: string,
+  account: string,
   securityZone: number,
   publicClient: PublicClient,
   walletClient: WalletClient,
@@ -147,7 +206,7 @@ export async function cofheMocksZkVerifySign(
   const _walletClient = zkvWalletClient ?? walletClient;
 
   // Call MockZkVerifier contract to calculate the ctHashes
-  const encryptableItems = await calcCtHashes(items, sender, securityZone, publicClient);
+  const encryptableItems = await calcCtHashes(items, account, securityZone, publicClient);
 
   // Insert the ctHashes into the MockZkVerifier contract
   await insertCtHashes(encryptableItems, _walletClient);

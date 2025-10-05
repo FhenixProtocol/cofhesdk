@@ -1,11 +1,11 @@
-import { PublicClient, WalletClient } from 'viem';
 import { FheTypes, UnsealedItem } from '../types';
-import { CofhesdkConfig } from '../config';
-import { EthEncryptedData, Permit, PermitUtils } from '@cofhesdk/permits';
+import { getThresholdNetworkUrlOrThrow } from '../config';
+import { EthEncryptedData, Permission, Permit, PermitUtils } from '@cofhesdk/permits';
 import { Result, resultWrapper } from '../result';
 import { CofhesdkError, CofhesdkErrorCode } from '../error';
 import { permits } from '../permits';
 import { isValidUtype, convertViaUtype } from './decryptUtils';
+import { BaseBuilder, BaseBuilderParams } from '../builders/baseBuilder';
 
 /**
  * API
@@ -25,45 +25,33 @@ import { isValidUtype, convertViaUtype } from './decryptUtils';
  * Returns a Result<UnsealedItem<U>>
  */
 
-type DecryptHandlesBuilderParams<U extends FheTypes> = {
+type DecryptHandlesBuilderParams<U extends FheTypes> = BaseBuilderParams & {
   ctHash: bigint;
   utype: U;
-  chainId?: number;
-  account?: string;
   permitHash?: string;
   permit?: Permit;
-
-  config: CofhesdkConfig | undefined;
-  publicClient: PublicClient | undefined;
-  walletClient: WalletClient | undefined;
-  connectPromise: Promise<Result<boolean>> | undefined;
 };
 
-export class DecryptHandlesBuilder<U extends FheTypes> {
+export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
   private ctHash: bigint;
   private utype: U;
-  private chainId?: number;
-  private account?: string;
   private permitHash?: string;
   private permit?: Permit;
 
-  private config: CofhesdkConfig | undefined;
-  private publicClient: PublicClient | undefined;
-  private walletClient: WalletClient | undefined;
-  private connectPromise: Promise<Result<boolean>> | undefined;
-
   constructor(params: DecryptHandlesBuilderParams<U>) {
+    super({
+      config: params.config,
+      publicClient: params.publicClient,
+      walletClient: params.walletClient,
+      connectPromise: params.connectPromise,
+      chainId: params.chainId,
+      account: params.account,
+    });
+
     this.ctHash = params.ctHash;
     this.utype = params.utype;
-    this.chainId = params.chainId;
-    this.account = params.account;
     this.permitHash = params.permitHash;
     this.permit = params.permit;
-
-    this.config = params.config;
-    this.publicClient = params.publicClient;
-    this.walletClient = params.walletClient;
-    this.connectPromise = params.connectPromise;
   }
 
   /**
@@ -159,78 +147,20 @@ export class DecryptHandlesBuilder<U extends FheTypes> {
     return this.permit;
   }
 
-  private async getChainIdOrThrow(): Promise<number> {
-    if (this.chainId) return this.chainId;
-
-    if (this.publicClient) {
-      try {
-        const chainId = await this.publicClient.getChainId();
-        if (chainId) return chainId;
-      } catch (error) {
-        throw new CofhesdkError({
-          code: CofhesdkErrorCode.PublicWalletGetChainIdFailed,
-          message: 'decryptHandlesBuilder.getChainIdOrThrow(): publicClient.getChainId() failed',
-          cause: error instanceof Error ? error : undefined,
-        });
-      }
-    }
-
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.ChainIdUninitialized,
-      message: 'decryptHandlesBuilder.getChainIdOrThrow(): Chain ID is not set and publicClient is not provided',
-    });
-  }
-
-  private async getAccountOrThrow(): Promise<string> {
-    if (this.account) return this.account;
-
-    if (this.walletClient) {
-      try {
-        const account = (await this.walletClient.getAddresses())?.[0];
-        if (account) return account;
-      } catch (error) {
-        throw new CofhesdkError({
-          code: CofhesdkErrorCode.PublicWalletGetAddressesFailed,
-          message: 'decryptHandlesBuilder.getAccountOrThrow(): walletClient.getAddresses() failed',
-          cause: error instanceof Error ? error : undefined,
-        });
-      }
-    }
-
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.AccountUninitialized,
-      message: 'decryptHandlesBuilder.getAccountOrThrow(): Account is not set and walletClient is not provided',
-    });
-  }
-
-  private getConfigOrThrow(): CofhesdkConfig {
-    if (this.config) return this.config;
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.MissingConfig,
-      message: 'decryptHandlesBuilder.getConfigOrThrow(): Config fetched from sdkStore is not initialized',
-    });
-  }
-
-  private getThresholdNetworkUrlOrThrow(chainId: number): string {
+  private getThresholdNetworkUrl(chainId: number): string {
     const config = this.getConfigOrThrow();
+    return getThresholdNetworkUrlOrThrow(config, chainId);
+  }
 
-    const supportedChain = config.supportedChains.find((chain) => chain.id === chainId);
-    if (!supportedChain) {
+  private validateUtypeOrThrow(): void {
+    if (!isValidUtype(this.utype))
       throw new CofhesdkError({
-        code: CofhesdkErrorCode.UnsupportedChain,
-        message: `decryptHandlesBuilder.getThresholdNetworkUrlOrThrow(): Unsupported chain <${chainId}>`,
+        code: CofhesdkErrorCode.InvalidUtype,
+        message: `Invalid utype to decrypt to`,
+        context: {
+          utype: this.utype,
+        },
       });
-    }
-
-    const thresholdNetworkUrl = supportedChain.thresholdNetworkUrl;
-    if (!thresholdNetworkUrl) {
-      throw new CofhesdkError({
-        code: CofhesdkErrorCode.ThresholdNetworkUrlUninitialized,
-        message: `decryptHandlesBuilder.getThresholdNetworkUrlOrThrow(): Threshold network URL is not initialized for chain <${chainId}>`,
-      });
-    }
-
-    return thresholdNetworkUrl;
   }
 
   private async getResolvedPermit(): Promise<Permit> {
@@ -245,7 +175,13 @@ export class DecryptHandlesBuilder<U extends FheTypes> {
       if (!permit) {
         throw new CofhesdkError({
           code: CofhesdkErrorCode.PermitNotFound,
-          message: `Permit with account <${account}> and hash <${this.permitHash}> not found for chainId <${chainId}>`,
+          message: `Permit with hash <${this.permitHash}> not found for account <${account}> and chainId <${chainId}>`,
+          hint: 'Ensure the permit exists and is valid.',
+          context: {
+            chainId,
+            account,
+            permitHash: this.permitHash,
+          },
         });
       }
       return permit;
@@ -257,9 +193,69 @@ export class DecryptHandlesBuilder<U extends FheTypes> {
       throw new CofhesdkError({
         code: CofhesdkErrorCode.PermitNotFound,
         message: `Active permit not found for chainId <${chainId}> and account <${account}>`,
+        hint: 'Ensure a permit exists for this account on this chain.',
+        context: {
+          chainId,
+          account,
+        },
       });
     }
     return permit;
+  }
+
+  private async fetchSealedData(
+    thresholdNetworkUrl: string,
+    permission: Permission,
+    chainId: number
+  ): Promise<EthEncryptedData> {
+    let sealed: EthEncryptedData | undefined;
+    let errorMessage: string | undefined;
+    let sealOutputResult: { sealed: EthEncryptedData; error_message: string } | undefined;
+
+    const body = {
+      ct_tempkey: this.ctHash.toString(16).padStart(64, '0'),
+      host_chain_id: chainId,
+      permit: permission,
+    };
+
+    try {
+      const sealOutputRes = await fetch(`${thresholdNetworkUrl}/sealoutput`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
+
+      sealOutputResult = (await sealOutputRes.json()) as { sealed: EthEncryptedData; error_message: string };
+      sealed = sealOutputResult.sealed;
+      errorMessage = sealOutputResult.error_message;
+    } catch (e) {
+      throw new CofhesdkError({
+        code: CofhesdkErrorCode.SealOutputFailed,
+        message: `sealOutput request failed`,
+        hint: 'Ensure the threshold network URL is valid.',
+        cause: e instanceof Error ? e : undefined,
+        context: {
+          thresholdNetworkUrl,
+          body,
+        },
+      });
+    }
+
+    if (sealed == null) {
+      throw new CofhesdkError({
+        code: CofhesdkErrorCode.SealOutputReturnedNull,
+        message: `sealOutput request returned no data | Caused by: ${errorMessage}`,
+        context: {
+          thresholdNetworkUrl,
+          body,
+          sealOutputResult,
+        },
+      });
+    }
+
+    return sealed;
   }
 
   /**
@@ -285,10 +281,10 @@ export class DecryptHandlesBuilder<U extends FheTypes> {
   decrypt(): Promise<Result<UnsealedItem<U>>> {
     return resultWrapper(async () => {
       // Wait for connection
-      if (this.connectPromise) {
-        const result = await this.connectPromise;
-        if (!result.success) throw result.error;
-      }
+      await this.waitForConnection();
+
+      // Ensure utype is valid
+      this.validateUtypeOrThrow();
 
       // Resolve permit
       const permit = await this.getResolvedPermit();
@@ -304,53 +300,15 @@ export class DecryptHandlesBuilder<U extends FheTypes> {
       // TODO: PermitUtils.validateOnChain(permit, this.publicClient);
 
       // Get threshold network URL
-      const thresholdNetworkUrl = this.getThresholdNetworkUrlOrThrow(chainId);
+      const thresholdNetworkUrl = this.getThresholdNetworkUrl(chainId);
 
       // Extract permission
       const permission = PermitUtils.getPermission(permit, true);
 
-      let sealed: EthEncryptedData | undefined;
-      let errorMessage: string | undefined;
-
-      try {
-        const body = {
-          ct_tempkey: this.ctHash.toString(16).padStart(64, '0'),
-          host_chain_id: chainId,
-          permit: permission,
-        };
-        const sealOutputRes = await fetch(`${thresholdNetworkUrl}/sealoutput`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(body),
-        });
-
-        const sealOutput = (await sealOutputRes.json()) as { sealed: EthEncryptedData; error_message: string };
-        sealed = sealOutput.sealed;
-        errorMessage = sealOutput.error_message;
-      } catch (e) {
-        throw new CofhesdkError({
-          code: CofhesdkErrorCode.SealOutputFailed,
-          message: `sealOutput request failed`,
-        });
-      }
-
-      if (sealed == null) {
-        throw new CofhesdkError({
-          code: CofhesdkErrorCode.SealOutputReturnedNull,
-          message: `sealed data not found :: ${errorMessage}`,
-        });
-      }
+      // Fetch sealed data from CoFHE
+      const sealed = await this.fetchSealedData(thresholdNetworkUrl, permission, chainId);
 
       const unsealed = PermitUtils.unseal(permit, sealed);
-
-      if (!isValidUtype(this.utype)) {
-        throw new CofhesdkError({
-          code: CofhesdkErrorCode.InvalidUtype,
-          message: `invalid utype :: ${this.utype}`,
-        });
-      }
 
       return convertViaUtype(this.utype, unsealed);
     });

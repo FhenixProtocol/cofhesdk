@@ -7,21 +7,16 @@ import { EncryptSetStateFn, EncryptStep, EncryptableItem, EncryptedItemInput, En
 import { cofheMocksZkVerifySign } from './cofheMocksZkVerifySign';
 import { hardhat } from 'viem/chains';
 import { fetchKeys, FheKeySerializer } from '../fetchKeys';
-import { CofhesdkConfig } from '../config';
-import { PublicClient, WalletClient } from 'viem';
+import { getZkVerifierUrlOrThrow } from '../config';
+import { WalletClient } from 'viem';
 import { sleep } from '../utils';
+import { BaseBuilder, BaseBuilderParams } from '../builders/baseBuilder';
 
-type EncryptInputsBuilderParams<T extends EncryptableItem[]> = {
+type EncryptInputsBuilderParams<T extends EncryptableItem[]> = BaseBuilderParams & {
   inputs: [...T];
-  sender?: string;
-  chainId?: number;
   securityZone?: number;
 
-  config: CofhesdkConfig | undefined;
-  publicClient?: PublicClient | undefined;
-  walletClient?: WalletClient | undefined;
   zkvWalletClient?: WalletClient | undefined;
-  connectPromise?: Promise<Result<boolean>> | undefined;
 
   tfhePublicKeySerializer: FheKeySerializer | undefined;
   compactPkeCrsSerializer: FheKeySerializer | undefined;
@@ -30,41 +25,38 @@ type EncryptInputsBuilderParams<T extends EncryptableItem[]> = {
 
 /**
  * EncryptInputsBuilder exposes a builder pattern for encrypting inputs.
- * sender, securityZone, and chainId can be overridden in the builder.
+ * account, securityZone, and chainId can be overridden in the builder.
  * config, tfhePublicKeySerializer, compactPkeCrsSerializer, and zkBuilderAndCrsGenerator are required to be set in the builder.
  *
  * @dev All errors must be throw in `encrypt`, which wraps them in a Result.
  * Do not throw errors in the constructor or in the builder methods.
  */
 
-export class EncryptInputsBuilder<T extends EncryptableItem[]> {
-  private sender: string | undefined;
-  private chainId: number | undefined;
+export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuilder {
   private securityZone: number;
   private stepCallback?: EncryptSetStateFn;
   private inputItems: [...T];
 
-  private config: CofhesdkConfig | undefined;
-  private publicClient: PublicClient | undefined;
-  private walletClient: WalletClient | undefined;
   private zkvWalletClient: WalletClient | undefined;
-  private connectPromise: Promise<Result<boolean>> | undefined;
 
   private tfhePublicKeySerializer: FheKeySerializer | undefined;
   private compactPkeCrsSerializer: FheKeySerializer | undefined;
   private zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator | undefined;
 
   constructor(params: EncryptInputsBuilderParams<T>) {
+    super({
+      config: params.config,
+      publicClient: params.publicClient,
+      walletClient: params.walletClient,
+      connectPromise: params.connectPromise,
+      chainId: params.chainId,
+      account: params.account,
+    });
+
     this.inputItems = params.inputs;
-    this.sender = params.sender;
-    this.chainId = params.chainId;
     this.securityZone = params.securityZone ?? 0;
 
-    this.config = params.config;
-    this.publicClient = params.publicClient;
-    this.walletClient = params.walletClient;
     this.zkvWalletClient = params.zkvWalletClient;
-    this.connectPromise = params.connectPromise;
 
     this.tfhePublicKeySerializer = params.tfhePublicKeySerializer;
     this.compactPkeCrsSerializer = params.compactPkeCrsSerializer;
@@ -72,26 +64,26 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> {
   }
 
   /**
-   * @param sender - Account that will create the tx using the encrypted inputs.
+   * @param account - Account that will create the tx using the encrypted inputs.
    *
    * If not provided, the account will be fetched from the connected walletClient.
    *
    * Example:
    * ```typescript
    * const encrypted = await encryptInputs([Encryptable.uint128(10n)])
-   *   .setSender("0x123")
+   *   .setAccount("0x123")
    *   .encrypt();
    * ```
    *
    * @returns The chainable EncryptInputsBuilder instance.
    */
-  setSender(sender: string): EncryptInputsBuilder<T> {
-    this.sender = sender;
+  setAccount(account: string): EncryptInputsBuilder<T> {
+    this.account = account;
     return this;
   }
 
-  getSender(): string | undefined {
-    return this.sender;
+  getAccount(): string | undefined {
+    return this.account;
   }
 
   /**
@@ -164,79 +156,15 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> {
     return this.stepCallback;
   }
 
-  private async getSenderOrThrow(): Promise<string> {
-    if (this.sender) return this.sender;
-
-    if (this.walletClient) {
-      try {
-        const sender = (await this.walletClient.getAddresses())?.[0];
-        if (sender) return sender;
-      } catch (error) {
-        throw new CofhesdkError({
-          code: CofhesdkErrorCode.PublicWalletGetAddressesFailed,
-          message: 'walletClient.getAddresses() failed',
-          cause: error instanceof Error ? error : undefined,
-        });
-      }
-    }
-
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.SenderUninitialized,
-      message: 'Sender is not set and walletClient is not provided',
-    });
-  }
-
-  private async getChainIdOrThrow(): Promise<number> {
-    if (this.chainId) return this.chainId;
-
-    if (this.publicClient) {
-      try {
-        const chainId = await this.publicClient.getChainId();
-        if (chainId) return chainId;
-      } catch (error) {
-        throw new CofhesdkError({
-          code: CofhesdkErrorCode.PublicWalletGetChainIdFailed,
-          message: 'publicClient.getChainId() failed',
-          cause: error instanceof Error ? error : undefined,
-        });
-      }
-    }
-
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.ChainIdUninitialized,
-      message: 'Chain ID is not set and publicClient is not provided',
-    });
-  }
-
-  private getPublicClientOrThrow(): PublicClient {
-    if (this.publicClient) return this.publicClient;
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.MissingPublicClient,
-      message: 'Public client not found',
-    });
-  }
-
-  private getWalletClientOrThrow(): WalletClient {
-    if (this.walletClient) return this.walletClient;
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.MissingWalletClient,
-      message: 'Wallet client not found',
-    });
-  }
-
-  private getConfigOrThrow(): CofhesdkConfig {
-    if (this.config) return this.config;
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.MissingConfig,
-      message: 'EncryptInputsBuilder config is undefined',
-    });
-  }
-
   private getTfhePublicKeySerializerOrThrow(): FheKeySerializer {
     if (this.tfhePublicKeySerializer) return this.tfhePublicKeySerializer;
     throw new CofhesdkError({
       code: CofhesdkErrorCode.MissingTfhePublicKeySerializer,
       message: 'EncryptInputsBuilder tfhePublicKeySerializer is undefined',
+      hint: 'Ensure client has been created with a tfhePublicKeySerializer.',
+      context: {
+        tfhePublicKeySerializer: this.tfhePublicKeySerializer,
+      },
     });
   }
 
@@ -245,28 +173,17 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> {
     throw new CofhesdkError({
       code: CofhesdkErrorCode.MissingCompactPkeCrsSerializer,
       message: 'EncryptInputsBuilder compactPkeCrsSerializer is undefined',
+      hint: 'Ensure client has been created with a compactPkeCrsSerializer.',
+      context: {
+        compactPkeCrsSerializer: this.compactPkeCrsSerializer,
+      },
     });
   }
 
-  private async getZkVerifierUrlOrThrow(): Promise<string> {
+  private async getZkVerifierUrl(): Promise<string> {
     const config = this.getConfigOrThrow();
     const chainId = await this.getChainIdOrThrow();
-
-    const supportedChain = config.supportedChains.find((chain) => chain.id === chainId);
-    if (!supportedChain) {
-      throw new CofhesdkError({
-        code: CofhesdkErrorCode.UnsupportedChain,
-        message: `Unsupported chain <${chainId}>`,
-      });
-    }
-
-    const zkVerifierUrl = supportedChain.verifierUrl;
-    if (zkVerifierUrl) return zkVerifierUrl;
-
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.ZkVerifierUrlUninitialized,
-      message: `EncryptInputsBuilder config.supportedChains.verifierUrl is not initialized for chain <${chainId}>`,
-    });
+    return getZkVerifierUrlOrThrow(config, chainId);
   }
 
   private fireCallback(step: EncryptStep) {
@@ -287,9 +204,16 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> {
     try {
       [fheKey, crs] = await fetchKeys(config, chainId, securityZone, compactPkeCrsSerializer, tfhePublicKeySerializer);
     } catch (error) {
-      throw new CofhesdkError({
+      throw CofhesdkError.fromError(error, {
         code: CofhesdkErrorCode.FetchKeysFailed,
         message: `Failed to fetch FHE key and CRS`,
+        context: {
+          config,
+          chainId,
+          securityZone,
+          compactPkeCrsSerializer,
+          tfhePublicKeySerializer,
+        },
       });
     }
 
@@ -297,6 +221,10 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> {
       throw new CofhesdkError({
         code: CofhesdkErrorCode.MissingFheKey,
         message: `FHE key not found`,
+        context: {
+          chainId,
+          securityZone,
+        },
       });
     }
 
@@ -304,6 +232,9 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> {
       throw new CofhesdkError({
         code: CofhesdkErrorCode.MissingCrs,
         message: `CRS not found for chainId <${this.chainId}>`,
+        context: {
+          chainId,
+        },
       });
     }
 
@@ -312,10 +243,15 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> {
 
   private generateZkBuilderAndCrs(fheKey: Uint8Array, crs: Uint8Array) {
     const zkBuilderAndCrsGenerator = this.zkBuilderAndCrsGenerator;
+
     if (!zkBuilderAndCrsGenerator) {
       throw new CofhesdkError({
         code: CofhesdkErrorCode.MissingZkBuilderAndCrsGenerator,
-        message: `EncryptInputsBuilder zkBuilderAndCrsGenerator is undefined`,
+        message: `zkBuilderAndCrsGenerator is undefined`,
+        hint: 'Ensure client has been created with a zkBuilderAndCrsGenerator.',
+        context: {
+          zkBuilderAndCrsGenerator: this.zkBuilderAndCrsGenerator,
+        },
       });
     }
 
@@ -329,7 +265,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> {
    * cofheMocksInsertPackedHashes - stores the ctHashes and their plaintext values for on-chain mocking of FHE operations.
    * cofheMocksZkCreateProofSignatures - creates signatures to be included in the encrypted inputs. The signers address is known and verified in the mock contracts.
    */
-  private async mocksEncrypt(sender: string): Promise<[...EncryptedItemInputs<T>]> {
+  private async mocksEncrypt(account: string): Promise<[...EncryptedItemInputs<T>]> {
     this.fireCallback(EncryptStep.FetchKeys);
 
     await sleep(100);
@@ -348,7 +284,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> {
 
     const signedResults = await cofheMocksZkVerifySign(
       this.inputItems,
-      sender,
+      account,
       this.securityZone,
       this.getPublicClientOrThrow(),
       this.getWalletClientOrThrow(),
@@ -370,7 +306,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> {
   /**
    * In the production context, perform a true encryption with the CoFHE coprocessor.
    */
-  private async productionEncrypt(sender: string, chainId: number): Promise<[...EncryptedItemInputs<T>]> {
+  private async productionEncrypt(account: string, chainId: number): Promise<[...EncryptedItemInputs<T>]> {
     this.fireCallback(EncryptStep.FetchKeys);
 
     const { fheKey, crs } = await this.fetchFheKeyAndCrs();
@@ -382,12 +318,12 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> {
 
     this.fireCallback(EncryptStep.Prove);
 
-    const proof = await zkProve(zkBuilder, zkCrs, sender, this.securityZone, chainId);
+    const proof = await zkProve(zkBuilder, zkCrs, account, this.securityZone, chainId);
 
     this.fireCallback(EncryptStep.Verify);
 
-    const zkVerifierUrl = await this.getZkVerifierUrlOrThrow();
-    const verifyResults = await zkVerify(zkVerifierUrl, proof, sender, this.securityZone, chainId);
+    const zkVerifierUrl = await this.getZkVerifierUrl();
+    const verifyResults = await zkVerify(zkVerifierUrl, proof, account, this.securityZone, chainId);
 
     // Add securityZone and utype to the verify results
     const encryptedInputs: EncryptedItemInput[] = verifyResults.map(
@@ -416,7 +352,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> {
    * Example:
    * ```typescript
    * const encrypted = await encryptInputs([Encryptable.uint128(10n)])
-   *   .setSender('0x123...890')  // optional
+   *   .setAccount('0x123...890') // optional
    *   .setChainId(11155111)      // optional
    *   .encrypt();                // execute
    * ```
@@ -425,21 +361,17 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> {
    */
   async encrypt(): Promise<Result<[...EncryptedItemInputs<T>]>> {
     return resultWrapper(async () => {
-      // Wait for connection
-      if (this.connectPromise) {
-        const result = await this.connectPromise;
-        if (!result.success) throw result.error;
-      }
+      await this.waitForConnection();
 
-      const sender = await this.getSenderOrThrow();
+      const account = await this.getAccountOrThrow();
       const chainId = await this.getChainIdOrThrow();
 
       // On hardhat, interact with MockZkVerifier contract instead of CoFHE
       if (chainId === hardhat.id) {
-        return await this.mocksEncrypt(sender);
+        return await this.mocksEncrypt(account);
       }
 
-      return await this.productionEncrypt(sender, chainId);
+      return await this.productionEncrypt(account, chainId);
     });
   }
 }

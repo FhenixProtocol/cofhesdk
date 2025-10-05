@@ -31,7 +31,6 @@ export enum CofhesdkErrorCode {
   ZkUninitialized = 'ZK_UNINITIALIZED',
   ZkVerifierUrlUninitialized = 'ZK_VERIFIER_URL_UNINITIALIZED',
   ThresholdNetworkUrlUninitialized = 'THRESHOLD_NETWORK_URL_UNINITIALIZED',
-  SenderUninitialized = 'SENDER_UNINITIALIZED',
   MissingConfig = 'MISSING_CONFIG',
   UnsupportedChain = 'UNSUPPORTED_CHAIN',
   MissingZkBuilderAndCrsGenerator = 'MISSING_ZK_BUILDER_AND_CRS_GENERATOR',
@@ -44,25 +43,32 @@ export enum CofhesdkErrorCode {
   PublicWalletGetAddressesFailed = 'PUBLIC_WALLET_GET_ADDRESSES_FAILED',
 }
 
+export type CofhesdkErrorParams = {
+  code: CofhesdkErrorCode;
+  message: string;
+  cause?: Error;
+  hint?: string;
+  context?: Record<string, unknown>;
+};
+
+/**
+ * CofhesdkError class
+ * This class is used to create errors that are specific to the CoFHE SDK
+ * It extends the Error class and adds a code, cause, hint, and context
+ * The code is used to identify the type of error
+ * The cause is used to indicate the inner error that caused the CofhesdkError
+ * The hint is used to provide a hint about how to fix the error
+ * The context is used to provide additional context about the state that caused the error
+ * The serialize method is used to serialize the error to a JSON string
+ * The toString method is used to provide a human-readable string representation of the error
+ */
 export class CofhesdkError extends Error {
   public readonly code: CofhesdkErrorCode;
   public readonly cause?: Error;
   public readonly hint?: string;
   public readonly context?: Record<string, unknown>;
 
-  constructor({
-    code,
-    message,
-    cause,
-    hint,
-    context,
-  }: {
-    code: CofhesdkErrorCode;
-    message: string;
-    cause?: Error;
-    hint?: string;
-    context?: Record<string, unknown>;
-  }) {
+  constructor({ code, message, cause, hint, context }: CofhesdkErrorParams) {
     // If there's a cause, append its message to provide full context
     const fullMessage = cause ? `${message} | Caused by: ${cause.message}` : message;
 
@@ -77,6 +83,25 @@ export class CofhesdkError extends Error {
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, CofhesdkError);
     }
+  }
+
+  /**
+   * Creates a CofhesdkError from an unknown error
+   * If the error is a CofhesdkError, it is returned unchanged, else a new CofhesdkError is created
+   * If a wrapperError is provided, it is used to create the new CofhesdkError, else a default is used
+   */
+  static fromError(error: unknown, wrapperError?: CofhesdkErrorParams): CofhesdkError {
+    if (isCofhesdkError(error)) return error;
+
+    const cause = error instanceof Error ? error : new Error(`${error}`);
+
+    return new CofhesdkError({
+      code: wrapperError?.code ?? CofhesdkErrorCode.InternalError,
+      message: wrapperError?.message ?? 'An internal error occurred',
+      hint: wrapperError?.hint,
+      context: wrapperError?.context,
+      cause: cause,
+    });
   }
 
   /**
@@ -130,17 +155,4 @@ export class CofhesdkError extends Error {
   }
 }
 
-export const isCofhesdkError = (error: unknown): error is CofhesdkError =>
-  error instanceof CofhesdkError;
-
-export const InternalCofhesdkError = (internalError: unknown): CofhesdkError => {
-  if (isCofhesdkError(internalError)) return internalError;
-
-  const error = internalError instanceof Error ? internalError : undefined;
-
-  return new CofhesdkError({
-    code: CofhesdkErrorCode.InternalError,
-    message: 'An internal error occurred',
-    cause: error,
-  });
-};
+export const isCofhesdkError = (error: unknown): error is CofhesdkError => error instanceof CofhesdkError;

@@ -1,94 +1,24 @@
 /* eslint-disable no-unused-vars */
 import { createStore } from 'zustand/vanilla';
-import { CofhesdkConfig } from './config';
 import { PublicClient, WalletClient } from 'viem';
-import { fetchMultichainKeys, FheKeySerializer } from './fetchKeys';
-import { ZkBuilderAndCrsGenerator } from './encrypt/zkPackProveVerify';
+import { fetchMultichainKeys } from './fetchKeys';
 import { CofhesdkError, CofhesdkErrorCode } from './error';
 import { EncryptInputsBuilder } from './encrypt/encryptInputsBuilder';
 import { Result, ResultOk, resultWrapper } from './result';
 import { keysStorage } from './keyStore';
 import { permits } from './permits';
-import type {
-  CreateSelfPermitOptions,
-  CreateSharingPermitOptions,
-  ImportSharedPermitOptions,
-  Permit,
-} from '@cofhesdk/permits';
-import { PermitUtils } from '@cofhesdk/permits';
+import type { CreateSelfPermitOptions, CreateSharingPermitOptions, ImportSharedPermitOptions } from '@cofhesdk/permits';
 import { DecryptHandlesBuilder } from './decrypt/decryptHandleBuilder';
-import { EncryptableItem, FheTypes } from './types';
-import { getPublicClientChainID, getWalletClientAddress } from './utils';
-
-export type CofhesdkClient = {
-  // --- state access ---
-  getSnapshot(): ConnectStateSnapshot;
-  subscribe(listener: Listener): () => void;
-
-  // --- initialization results ---
-  // (functions that may be run during initialization based on config)
-  readonly initializationResults: {
-    keyFetchResult: Promise<Result<boolean>>;
-  };
-
-  // --- convenience flags (read-only) ---
-  readonly connected: boolean;
-  readonly connecting: boolean;
-
-  // --- config & platform-specific ---
-  readonly config: CofhesdkConfig;
-
-  connect(publicClient: PublicClient, walletClient: WalletClient): Promise<Result<boolean>>;
-  /**
-   * Types docstring
-   */
-  encryptInputs<T extends EncryptableItem[]>(inputs: [...T]): EncryptInputsBuilder<[...T]>;
-  decryptHandle<U extends FheTypes>(ctHash: bigint, utype: U): DecryptHandlesBuilder<U>;
-  permits: ClientPermits;
-};
-
-export type ConnectStateSnapshot = {
-  connected: boolean;
-  connecting: boolean;
-  connectError: unknown | null;
-  chainId: number | null;
-  address: string | null;
-};
-
-type Listener = (snapshot: ConnectStateSnapshot) => void;
-
-export type ClientPermits = {
-  getSnapshot: typeof permits.getSnapshot;
-  subscribe: typeof permits.subscribe;
-
-  // Creation methods (require connection, no params)
-  createSelf: (options: CreateSelfPermitOptions) => Promise<Result<Permit>>;
-  createSharing: (options: CreateSharingPermitOptions) => Promise<Result<Permit>>;
-  importShared: (options: ImportSharedPermitOptions | any | string) => Promise<Result<Permit>>;
-
-  // Retrieval methods (chainId/account optional)
-  getPermit: (hash: string, chainId?: number, account?: string) => Promise<Result<Permit | undefined>>;
-  getPermits: (chainId?: number, account?: string) => Promise<Result<Record<string, Permit>>>;
-  getActivePermit: (chainId?: number, account?: string) => Promise<Result<Permit | undefined>>;
-  getActivePermitHash: (chainId?: number, account?: string) => Promise<Result<string | undefined>>;
-
-  // Mutation methods (chainId/account optional)
-  selectActivePermit: (hash: string, chainId?: number, account?: string) => Promise<Result<void>>;
-  removePermit: (hash: string, chainId?: number, account?: string) => Promise<Result<void>>;
-  removeActivePermit: (chainId?: number, account?: string) => Promise<Result<void>>;
-
-  // Utils
-  getHash: typeof PermitUtils.getHash;
-  serialize: typeof PermitUtils.serialize;
-  deserialize: typeof PermitUtils.deserialize;
-};
-
-type CofhesdkClientParams = {
-  config: CofhesdkConfig;
-  zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator;
-  tfhePublicKeySerializer: FheKeySerializer;
-  compactPkeCrsSerializer: FheKeySerializer;
-};
+import {
+  CofhesdkClient,
+  CofhesdkClientParams,
+  CofhesdkClientConnectionState,
+  EncryptableItem,
+  FheTypes,
+  CofhesdkClientPermits,
+  CofhesdkClientConnectReturnType,
+} from './types';
+import { getPublicClientChainID, getWalletClientAccount } from './utils';
 
 /**
  * Creates a CoFHE SDK client instance
@@ -97,42 +27,42 @@ type CofhesdkClientParams = {
  */
 export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient {
   // refs captured in closure
-  let _publicClient: PublicClient | null = null;
-  let _walletClient: WalletClient | null = null;
+  let _publicClient: PublicClient | undefined = undefined;
+  let _walletClient: WalletClient | undefined = undefined;
 
   // Zustand store for reactive state management
-  const connectStore = createStore<ConnectStateSnapshot>(() => ({
+  const connectStore = createStore<CofhesdkClientConnectionState>(() => ({
     connected: false,
     connecting: false,
-    connectError: null,
-    chainId: null,
-    address: null,
+    connectError: undefined,
+    chainId: undefined,
+    account: undefined,
   }));
 
   // Helper to update state
-  const updateConnectState = (partial: Partial<ConnectStateSnapshot>) => {
+  const updateConnectState = (partial: Partial<CofhesdkClientConnectionState>) => {
     connectStore.setState((state) => ({ ...state, ...partial }));
   };
 
   // single-flight + abortable warmup
-  let _connectPromise: Promise<Result<boolean>> | null = null;
+  let _connectPromise: Promise<Result<CofhesdkClientConnectReturnType>> | undefined = undefined;
 
   const _requireConnected = () => {
     const state = connectStore.getState();
-    if (!state.connected || !_publicClient || !_walletClient || !state.address || !state.chainId) {
+    if (!state.connected || !_publicClient || !_walletClient || !state.account || !state.chainId) {
       throw new CofhesdkError({
         code: CofhesdkErrorCode.NotConnected,
-        message: 'Client must be connected, address and chainId must be initialized',
+        message: 'Client must be connected, account and chainId must be initialized',
         hint: 'Ensure client.connect() has been called.',
         context: {
           connected: state.connected,
-          address: state.address,
+          account: state.account,
           chainId: state.chainId,
           publicClient: _publicClient,
           walletClient: _walletClient,
         },
       });
-    } 
+    }
   };
 
   // INITIALIZATION
@@ -163,7 +93,16 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
 
     // Exit if already connected and clients are the same
     if (state.connected && _publicClient === publicClient && _walletClient === walletClient)
-      return Promise.resolve(ResultOk(true));
+      return Promise.resolve(
+        ResultOk({
+          success: true,
+          publicClient,
+          walletClient,
+          chainId: state.chainId,
+          account: state.account,
+          error: undefined,
+        })
+      );
 
     // Exit if already connecting
     if (_connectPromise) return _connectPromise;
@@ -178,19 +117,34 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
         _walletClient = walletClient;
 
         const chainId = await getPublicClientChainID(publicClient);
-        const address = await getWalletClientAddress(walletClient);
+        const account = await getWalletClientAccount(walletClient);
 
-        updateConnectState({ connecting: false, connected: true, chainId, address });
+        updateConnectState({ connecting: false, connected: true, chainId, account });
 
-        return true;
+        return {
+          success: true,
+          publicClient,
+          walletClient,
+          chainId,
+          account,
+          error: undefined,
+        };
       },
       // catch
       (e) => {
         updateConnectState({ connecting: false, connected: false, connectError: e });
+        return {
+          success: false,
+          publicClient: undefined,
+          walletClient: undefined,
+          chainId: undefined,
+          account: undefined,
+          error: e,
+        };
       },
       // finally
       () => {
-        _connectPromise = null;
+        _connectPromise = undefined;
       }
     );
 
@@ -204,7 +158,7 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
 
     return new EncryptInputsBuilder({
       inputs,
-      sender: state.address ?? undefined,
+      account: state.account ?? undefined,
       chainId: state.chainId ?? undefined,
 
       config: opts.config,
@@ -226,7 +180,7 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
       ctHash,
       utype,
       chainId: state.chainId ?? undefined,
-      account: state.address ?? undefined,
+      account: state.account ?? undefined,
 
       config: opts.config,
       publicClient: _publicClient ?? undefined,
@@ -240,7 +194,7 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
   const _getChainIdAndAccount = (chainId?: number, account?: string) => {
     const state = connectStore.getState();
     const _chainId = chainId ?? state.chainId;
-    const _account = account ?? state.address;
+    const _account = account ?? state.account;
 
     if (_chainId == null || _account == null) {
       throw new CofhesdkError({
@@ -257,7 +211,7 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
     return { chainId: _chainId, account: _account };
   };
 
-  const clientPermits: ClientPermits = {
+  const clientPermits: CofhesdkClientPermits = {
     // Pass through store access
     getSnapshot: permits.getSnapshot,
     subscribe: permits.subscribe,

@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import { CofhesdkError, InternalCofhesdkError, CofhesdkErrorCode } from './error';
+import { CofhesdkError, CofhesdkErrorCode } from './error';
 
 export type Result<T> = { success: true; data: T; error: null } | { success: false; data: null; error: CofhesdkError };
 
@@ -16,7 +16,7 @@ export const ResultOk = <T>(data: T): Result<T> => ({
 });
 
 export const ResultErrOrInternal = <T>(error: unknown): Result<T> => {
-  return ResultErr(InternalCofhesdkError(error));
+  return ResultErr(CofhesdkError.fromError(error));
 };
 
 export const ResultHttpError = (error: unknown, url: string, status?: number): CofhesdkError => {

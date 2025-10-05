@@ -1,5 +1,5 @@
-import { PublicClient, WalletClient } from "viem";
-import { CofhesdkError, CofhesdkErrorCode } from "./error";
+import { PublicClient, WalletClient } from 'viem';
+import { CofhesdkError, CofhesdkErrorCode } from './error';
 
 export const toHexString = (bytes: Uint8Array) =>
   bytes.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
@@ -44,12 +44,10 @@ export const hexToBytes = (hex: string): Uint8Array => {
 
 export const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-
-
 export async function getPublicClientChainID(publicClient: PublicClient) {
   let chainId: number | null = null;
   try {
-    chainId = publicClient.chain?.id ?? await publicClient.getChainId();
+    chainId = publicClient.chain?.id ?? (await publicClient.getChainId());
   } catch (e) {
     throw new CofhesdkError({
       code: CofhesdkErrorCode.PublicWalletGetChainIdFailed,
@@ -66,7 +64,7 @@ export async function getPublicClientChainID(publicClient: PublicClient) {
   return chainId;
 }
 
-export async function getWalletClientAddress(walletClient: WalletClient) {
+export async function getWalletClientAccount(walletClient: WalletClient) {
   let address: string | undefined;
   try {
     address = walletClient.account?.address;

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { CofheChain } from '@cofhesdk/chains';
 import { WalletClient } from 'viem';
+import { CofhesdkError, CofhesdkErrorCode } from './error';
 
 /**
  * Usable config type inferred from the schema
@@ -84,3 +85,97 @@ export const getCofhesdkConfigItem = <K extends keyof CofhesdkConfig>(
 ): CofhesdkConfig[K] => {
   return config[key];
 };
+
+/**
+ * Gets a supported chain from config by chainId, throws if not found
+ * @param config - The cofhesdk configuration
+ * @param chainId - The chain ID to look up
+ * @returns The supported chain configuration
+ * @throws {CofhesdkError} If the chain is not found in the config
+ */
+export function getSupportedChainOrThrow(config: CofhesdkConfig, chainId: number): CofheChain {
+  const supportedChain = config.supportedChains.find((chain) => chain.id === chainId);
+
+  if (!supportedChain) {
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.UnsupportedChain,
+      message: `Config does not support chain <${chainId}>`,
+      hint: 'Ensure config passed to client has been created with this chain in the config.supportedChains array.',
+      context: {
+        chainId,
+        supportedChainIds: config.supportedChains.map((c) => c.id),
+      },
+    });
+  }
+
+  return supportedChain;
+}
+
+/**
+ * Gets the CoFHE URL for a chain, throws if not found
+ * @param config - The cofhesdk configuration
+ * @param chainId - The chain ID to look up
+ * @returns The CoFHE URL for the chain
+ * @throws {CofhesdkError} If the chain or URL is not found
+ */
+export function getCoFheUrlOrThrow(config: CofhesdkConfig, chainId: number): string {
+  const supportedChain = getSupportedChainOrThrow(config, chainId);
+  const url = supportedChain.coFheUrl;
+
+  if (!url) {
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.MissingConfig,
+      message: `CoFHE URL is not configured for chain <${chainId}>`,
+      hint: 'Ensure this chain config includes a coFheUrl property.',
+      context: { chainId },
+    });
+  }
+
+  return url;
+}
+
+/**
+ * Gets the ZK verifier URL for a chain, throws if not found
+ * @param config - The cofhesdk configuration
+ * @param chainId - The chain ID to look up
+ * @returns The ZK verifier URL for the chain
+ * @throws {CofhesdkError} If the chain or URL is not found
+ */
+export function getZkVerifierUrlOrThrow(config: CofhesdkConfig, chainId: number): string {
+  const supportedChain = getSupportedChainOrThrow(config, chainId);
+  const url = supportedChain.verifierUrl;
+
+  if (!url) {
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.ZkVerifierUrlUninitialized,
+      message: `ZK verifier URL is not configured for chain <${chainId}>`,
+      hint: 'Ensure this chain config includes a verifierUrl property.',
+      context: { chainId },
+    });
+  }
+
+  return url;
+}
+
+/**
+ * Gets the threshold network URL for a chain, throws if not found
+ * @param config - The cofhesdk configuration
+ * @param chainId - The chain ID to look up
+ * @returns The threshold network URL for the chain
+ * @throws {CofhesdkError} If the chain or URL is not found
+ */
+export function getThresholdNetworkUrlOrThrow(config: CofhesdkConfig, chainId: number): string {
+  const supportedChain = getSupportedChainOrThrow(config, chainId);
+  const url = supportedChain.thresholdNetworkUrl;
+
+  if (!url) {
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.ThresholdNetworkUrlUninitialized,
+      message: `Threshold network URL is not configured for chain <${chainId}>`,
+      hint: 'Ensure this chain config includes a thresholdNetworkUrl property.',
+      context: { chainId },
+    });
+  }
+
+  return url;
+}
