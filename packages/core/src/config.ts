@@ -24,6 +24,15 @@ export type CofhesdkConfig = {
   permitGeneration: 'ON_CONNECT' | 'ON_DECRYPT_HANDLES' | 'MANUAL';
   /** Default permit expiration in seconds, default is 30 days */
   defaultPermitExpiration: number;
+  /** Mocks configs */
+  mocks: {
+    /**
+     * Length of the simulated seal output delay in milliseconds
+     * Default 1000ms on web
+     * Default 0ms on hardhat (will be called during tests no need for fake delay)
+     */
+    sealOutputDelay: number;
+  };
   _internal?: CofhesdkInternalConfig;
 };
 
@@ -46,6 +55,13 @@ export const CofhesdkConfigSchema = z.object({
     .number()
     .optional()
     .default(60 * 60 * 24 * 30),
+  /** Mocks configs */
+  mocks: z
+    .object({
+      sealOutputDelay: z.number().optional().default(0),
+    })
+    .optional()
+    .default({ sealOutputDelay: 0 }),
   /** Internal configuration */
   _internal: z
     .object({

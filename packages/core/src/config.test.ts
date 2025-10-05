@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
   createCofhesdkConfig,
-  CofhesdkConfig,
   getCofhesdkConfigItem,
   CofhesdkInputConfig,
   getSupportedChainOrThrow,
@@ -16,14 +15,31 @@ describe('createCofhesdkConfig', () => {
     supportedChains: [],
   };
 
-  const expectInvalidConfigItem = (item: keyof CofhesdkConfig, value: any) => {
-    const config = { ...validBaseConfig, [item]: value };
+  const setNestedValue = (obj: any, path: string, value: any): void => {
+    const keys = path.split('.');
+    const lastKey = keys.pop()!;
+    const target = keys.reduce((acc, key) => {
+      if (!acc[key]) acc[key] = {};
+      return acc[key];
+    }, obj);
+    target[lastKey] = value;
+  };
+
+  const getNestedValue = (obj: any, path: string): any => {
+    return path.split('.').reduce((acc, key) => acc?.[key], obj);
+  };
+
+  const expectInvalidConfigItem = (path: string, value: any): void => {
+    const config = { ...validBaseConfig };
+    setNestedValue(config, path, value);
     expect(() => createCofhesdkConfig(config as CofhesdkInputConfig)).toThrow('Invalid cofhesdk configuration:');
   };
-  const expectValidConfigItem = (item: keyof CofhesdkConfig, value: any, expectedValue: any) => {
-    const config = { ...validBaseConfig, [item]: value };
+
+  const expectValidConfigItem = (path: string, value: any, expectedValue: any): void => {
+    const config = { ...validBaseConfig };
+    setNestedValue(config, path, value);
     const result = createCofhesdkConfig(config);
-    expect(result[item]).toEqual(expectedValue);
+    expect(getNestedValue(result, path)).toEqual(expectedValue);
   };
 
   it('supportedChains', () => {
@@ -62,6 +78,22 @@ describe('createCofhesdkConfig', () => {
 
     expectValidConfigItem('defaultPermitExpiration', 5, 5);
     expectValidConfigItem('defaultPermitExpiration', undefined, 60 * 60 * 24 * 30);
+  });
+
+  it('mocks', () => {
+    expectInvalidConfigItem('mocks', 'not-an-object');
+    expectInvalidConfigItem('mocks', null);
+
+    expectValidConfigItem('mocks', { sealOutputDelay: 1000 }, { sealOutputDelay: 1000 });
+    expectValidConfigItem('mocks', undefined, { sealOutputDelay: 0 });
+  });
+
+  it('mocks.sealOutputDelay', () => {
+    expectInvalidConfigItem('mocks.sealOutputDelay', 'not-a-number');
+    expectInvalidConfigItem('mocks.sealOutputDelay', null);
+
+    expectValidConfigItem('mocks.sealOutputDelay', undefined, 0);
+    expectValidConfigItem('mocks.sealOutputDelay', 1000, 1000);
   });
 
   it('should get config item', () => {
