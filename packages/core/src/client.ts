@@ -18,6 +18,7 @@ import type {
 import { PermitUtils } from '@cofhesdk/permits';
 import { DecryptHandlesBuilder } from './decrypt/decryptHandleBuilder';
 import { EncryptableItem, FheTypes } from './types';
+import { getPublicClientChainID, getWalletClientAddress } from './utils';
 
 export type CofhesdkClient = {
   // --- state access ---
@@ -118,24 +119,20 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
 
   const _requireConnected = () => {
     const state = connectStore.getState();
-    if (!state.connected || !_publicClient || !_walletClient) {
+    if (!state.connected || !_publicClient || !_walletClient || !state.address || !state.chainId) {
       throw new CofhesdkError({
-        code: CofhesdkErrorCode.NotInitialized,
-        message: 'Not connected. Call connect() first.',
+        code: CofhesdkErrorCode.NotConnected,
+        message: 'Client must be connected, address and chainId must be initialized',
+        hint: 'Ensure client.connect() has been called.',
+        context: {
+          connected: state.connected,
+          address: state.address,
+          chainId: state.chainId,
+          publicClient: _publicClient,
+          walletClient: _walletClient,
+        },
       });
-    }
-    if (!state.address) {
-      throw new CofhesdkError({
-        code: CofhesdkErrorCode.NotInitialized,
-        message: 'Address is not initialized. Call connect() first.',
-      });
-    }
-    if (!state.chainId) {
-      throw new CofhesdkError({
-        code: CofhesdkErrorCode.NotInitialized,
-        message: 'Chain ID is not initialized. Call connect() first.',
-      });
-    }
+    } 
   };
 
   // INITIALIZATION
@@ -180,10 +177,10 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
         _publicClient = publicClient;
         _walletClient = walletClient;
 
-        const chainId = await _getChainId(publicClient);
-        const addresses = await _getAddresses(walletClient);
+        const chainId = await getPublicClientChainID(publicClient);
+        const address = await getWalletClientAddress(walletClient);
 
-        updateConnectState({ connecting: false, connected: true, chainId, address: addresses[0] });
+        updateConnectState({ connecting: false, connected: true, chainId, address });
 
         return true;
       },
@@ -247,8 +244,13 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
 
     if (_chainId == null || _account == null) {
       throw new CofhesdkError({
-        code: CofhesdkErrorCode.NotInitialized,
-        message: 'ChainId or account not available. Connect first or provide explicitly.',
+        code: CofhesdkErrorCode.NotConnected,
+        message: 'ChainId or account not available.',
+        hint: 'Ensure client.connect() has been called, or provide chainId and account explicitly.',
+        context: {
+          chainId: _chainId,
+          account: _account,
+        },
       });
     }
 
@@ -362,46 +364,4 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
     //   // Use _publicClient and _walletClient for implementation
     // },
   };
-}
-
-// Pure utility functions
-
-async function _getChainId(publicClient: PublicClient) {
-  let chainId: number | null = null;
-  try {
-    chainId = await publicClient.getChainId();
-  } catch (e) {
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.PublicWalletGetChainIdFailed,
-      message: 'publicClient.getChainId() failed',
-      cause: e instanceof Error ? e : undefined,
-    });
-  }
-  if (chainId === null) {
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.PublicWalletGetChainIdFailed,
-      message: 'publicClient.getChainId() returned null',
-    });
-  }
-  return chainId;
-}
-
-async function _getAddresses(walletClient: WalletClient) {
-  let addresses: string[] = [];
-  try {
-    addresses = await walletClient.getAddresses();
-  } catch (e) {
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.PublicWalletGetAddressesFailed,
-      message: 'walletClient.getAddresses() failed',
-      cause: e instanceof Error ? e : undefined,
-    });
-  }
-  if (addresses.length === 0) {
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.PublicWalletGetAddressesFailed,
-      message: 'walletClient.getAddresses() returned an empty array',
-    });
-  }
-  return addresses;
 }

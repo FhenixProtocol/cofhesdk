@@ -6,7 +6,7 @@ export enum CofhesdkErrorCode {
   InitTfheFailed = 'INIT_TFHE_FAILED',
   InitViemFailed = 'INIT_VIEM_FAILED',
   InitEthersFailed = 'INIT_ETHERS_FAILED',
-  NotInitialized = 'NOT_INITIALIZED',
+  NotConnected = 'NOT_CONNECTED',
   MissingPublicClient = 'MISSING_PUBLIC_CLIENT',
   MissingWalletClient = 'MISSING_WALLET_CLIENT',
   MissingProviderParam = 'MISSING_PROVIDER_PARAM',
@@ -47,12 +47,31 @@ export enum CofhesdkErrorCode {
 export class CofhesdkError extends Error {
   public readonly code: CofhesdkErrorCode;
   public readonly cause?: Error;
+  public readonly hint?: string;
+  public readonly context?: Record<string, unknown>;
 
-  constructor({ code, message, cause }: { code: CofhesdkErrorCode; message: string; cause?: Error }) {
-    super(message);
+  constructor({
+    code,
+    message,
+    cause,
+    hint,
+    context,
+  }: {
+    code: CofhesdkErrorCode;
+    message: string;
+    cause?: Error;
+    hint?: string;
+    context?: Record<string, unknown>;
+  }) {
+    // If there's a cause, append its message to provide full context
+    const fullMessage = cause ? `${message} | Caused by: ${cause.message}` : message;
+
+    super(fullMessage);
     this.name = 'CofhesdkError';
     this.code = code;
     this.cause = cause;
+    this.hint = hint;
+    this.context = context;
 
     // Maintains proper stack trace for where our error was thrown (only available on V8)
     if (Error.captureStackTrace) {
@@ -60,26 +79,68 @@ export class CofhesdkError extends Error {
     }
   }
 
+  /**
+   * Serializes the error to JSON string with proper handling of Error objects
+   */
   serialize(): string {
     return JSON.stringify({
+      name: this.name,
       code: this.code,
       message: this.message,
-      cause: this.cause,
+      hint: this.hint,
+      context: this.context,
+      cause: this.cause
+        ? {
+            name: this.cause.name,
+            message: this.cause.message,
+            stack: this.cause.stack,
+          }
+        : undefined,
+      stack: this.stack,
     });
+  }
+
+  /**
+   * Returns a human-readable string representation of the error
+   */
+  toString(): string {
+    const parts = [`${this.name} [${this.code}]: ${this.message}`];
+
+    if (this.hint) {
+      parts.push(`Hint: ${this.hint}`);
+    }
+
+    if (this.context && Object.keys(this.context).length > 0) {
+      parts.push(`Context: ${JSON.stringify(this.context, null, 2)}`);
+    }
+
+    if (this.stack) {
+      parts.push(`\nStack trace:`);
+      parts.push(this.stack);
+    }
+
+    if (this.cause) {
+      parts.push(`\nCaused by: ${this.cause.name}: ${this.cause.message}`);
+      if (this.cause.stack) {
+        parts.push(this.cause.stack);
+      }
+    }
+
+    return parts.join('\n');
   }
 }
 
-export const isCofhesdkError = (error: unknown): error is CofhesdkError => {
-  if (error instanceof CofhesdkError) return true;
-  return false;
-};
+export const isCofhesdkError = (error: unknown): error is CofhesdkError =>
+  error instanceof CofhesdkError;
 
 export const InternalCofhesdkError = (internalError: unknown): CofhesdkError => {
   if (isCofhesdkError(internalError)) return internalError;
+
   const error = internalError instanceof Error ? internalError : undefined;
+
   return new CofhesdkError({
     code: CofhesdkErrorCode.InternalError,
-    message: `An internal error occurred: ${error?.message ?? 'Unknown error'}`,
+    message: 'An internal error occurred',
     cause: error,
   });
 };

@@ -168,7 +168,7 @@ describe('createCofhesdkClient', () => {
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(CofhesdkErrorCode.PublicWalletGetChainIdFailed);
-      expect(result.error?.message).toBe('publicClient.getChainId() failed');
+      expect(result.error?.message).toBe('publicClient.getChainId() failed | Caused by: Network error');
       expect(result.error?.cause).toBe(error);
       expect(client.connected).toBe(false);
     });
@@ -197,7 +197,7 @@ describe('createCofhesdkClient', () => {
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(CofhesdkErrorCode.PublicWalletGetAddressesFailed);
-      expect(result.error?.message).toBe('walletClient.getAddresses() failed');
+      expect(result.error?.message).toBe('walletClient.getAddresses() failed | Caused by: Network error');
       expect(result.error?.cause).toBe(error);
       expect(client.connected).toBe(false);
     });
