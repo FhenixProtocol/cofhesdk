@@ -1,5 +1,5 @@
-import { EncryptableItem } from '../types';
-import { VerifyResult } from './zkPackProveVerify';
+import { EncryptableItem, FheTypes } from '../types';
+import { MAX_ENCRYPTABLE_BITS, VerifyResult } from './zkPackProveVerify';
 import {
   createWalletClient,
   http,
@@ -23,6 +23,62 @@ export const MocksEncryptedInputSignerPkey = '0x6c8d7f768a6bb4aafe85e8a2f5a96803
 type EncryptableItemWithCtHash = EncryptableItem & {
   ctHash: bigint;
 };
+
+/**
+ * The mocks don't use a tfhe builder, so we check the encryptable bits here to preserve parity
+ */
+export async function cofheMocksCheckEncryptableBits(items: EncryptableItem[]): Promise<void> {
+  let totalBits = 0;
+  for (const item of items) {
+    switch (item.utype) {
+      case FheTypes.Bool: {
+        totalBits += 1;
+        break;
+      }
+      case FheTypes.Uint8: {
+        totalBits += 8;
+        break;
+      }
+      case FheTypes.Uint16: {
+        totalBits += 16;
+        break;
+      }
+      case FheTypes.Uint32: {
+        totalBits += 32;
+        break;
+      }
+      case FheTypes.Uint64: {
+        totalBits += 64;
+        break;
+      }
+      case FheTypes.Uint128: {
+        totalBits += 128;
+        break;
+      }
+      // [U256-DISABLED]
+      // case FheTypes.Uint256: {
+      //   totalBits += 256;
+      //   break;
+      // }
+      case FheTypes.Uint160: {
+        totalBits += 160;
+        break;
+      }
+    }
+  }
+  if (totalBits > MAX_ENCRYPTABLE_BITS) {
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.ZkPackFailed,
+      message: `Total bits ${totalBits} exceeds ${MAX_ENCRYPTABLE_BITS}`,
+      hint: `Ensure that the total bits of the items to encrypt does not exceed ${MAX_ENCRYPTABLE_BITS}`,
+      context: {
+        totalBits,
+        maxBits: MAX_ENCRYPTABLE_BITS,
+        items,
+      },
+    });
+  }
+}
 
 /**
  * In the mocks context, we use the MockZkVerifier contract to calculate the ctHashes.

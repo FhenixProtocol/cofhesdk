@@ -498,6 +498,50 @@ describe('EncryptInputsBuilder', () => {
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
     });
+
+    it('should throw an error if total bits exceeds 2048', async () => {
+      const builder = new EncryptInputsBuilder({
+        ...createDefaultParams(),
+        inputs: [
+          Encryptable.uint128(100n),
+          Encryptable.uint128(100n),
+          Encryptable.uint128(100n),
+          Encryptable.uint128(100n),
+          Encryptable.uint128(100n),
+          Encryptable.uint128(100n),
+          Encryptable.uint128(100n),
+          Encryptable.uint128(100n),
+          Encryptable.uint128(100n),
+          Encryptable.uint128(100n),
+          Encryptable.uint128(100n),
+          Encryptable.uint128(100n),
+          Encryptable.uint128(100n),
+          Encryptable.uint128(100n),
+          Encryptable.uint128(100n),
+          Encryptable.uint128(100n),
+          Encryptable.uint128(100n),
+          Encryptable.uint128(100n),
+          Encryptable.uint128(100n),
+          Encryptable.uint128(100n),
+        ],
+      });
+      const result = await builder.encrypt();
+      expectResultError(result, CofhesdkErrorCode.ZkPackFailed);
+    });
+
+    it('should throw an error if utype is invalid', async () => {
+      const builder = new EncryptInputsBuilder({
+        ...createDefaultParams(),
+        inputs: [
+          {
+            data: 10n,
+            utype: FheTypes.Uint10, // Invalid utype
+          },
+        ] as unknown as [EncryptableItem],
+      });
+      const result = await builder.encrypt();
+      expectResultError(result, CofhesdkErrorCode.ZkPackFailed);
+    });
   });
 
   // TODO: Implement error handling tests

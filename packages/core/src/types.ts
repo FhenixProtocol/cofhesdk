@@ -15,7 +15,6 @@ import { ZkBuilderAndCrsGenerator } from './encrypt/zkPackProveVerify';
 import { FheKeySerializer } from './fetchKeys';
 import { permits } from './permits';
 import { Result } from './result';
-import { CofhesdkError } from './error';
 
 // UTILS
 
@@ -152,7 +151,8 @@ export const FheUintUTypes = [
   FheTypes.Uint32,
   FheTypes.Uint64,
   FheTypes.Uint128,
-  FheTypes.Uint256,
+  // [U256-DISABLED]
+  // FheTypes.Uint256,
 ] as const;
 export type FheUintUTypesType = (typeof FheUintUTypes)[number];
 
@@ -166,7 +166,8 @@ export const FheAllUTypes = [
   FheTypes.Uint32,
   FheTypes.Uint64,
   FheTypes.Uint128,
-  FheTypes.Uint256,
+  // [U256-DISABLED]
+  // FheTypes.Uint256,
   FheTypes.Uint160,
 ] as const;
 type FheAllUTypesType = (typeof FheAllUTypes)[number];
@@ -233,10 +234,11 @@ export type EncryptableUint128 = {
   data: string | bigint;
   utype: FheTypes.Uint128;
 };
-export type EncryptableUint256 = {
-  data: string | bigint;
-  utype: FheTypes.Uint256;
-};
+// [U256-DISABLED]
+// export type EncryptableUint256 = {
+//   data: string | bigint;
+//   utype: FheTypes.Uint256;
+// };
 export type EncryptableAddress = {
   data: string | bigint;
   utype: FheTypes.Uint160;
@@ -257,8 +259,9 @@ export const Encryptable = {
     ({ data, securityZone, utype: FheTypes.Uint64 }) as EncryptableUint64,
   uint128: (data: EncryptableUint128['data'], securityZone = 0) =>
     ({ data, securityZone, utype: FheTypes.Uint128 }) as EncryptableUint128,
-  uint256: (data: EncryptableUint256['data'], securityZone = 0) =>
-    ({ data, securityZone, utype: FheTypes.Uint256 }) as EncryptableUint256,
+  // [U256-DISABLED]
+  // uint256: (data: EncryptableUint256['data'], securityZone = 0) =>
+  //   ({ data, securityZone, utype: FheTypes.Uint256 }) as EncryptableUint256,
 } as const;
 
 export type EncryptableItem =
@@ -268,7 +271,8 @@ export type EncryptableItem =
   | EncryptableUint32
   | EncryptableUint64
   | EncryptableUint128
-  | EncryptableUint256
+  // [U256-DISABLED]
+  // | EncryptableUint256
   | EncryptableAddress;
 
 // COFHE Encrypt
@@ -284,11 +288,12 @@ export type EncryptableToEncryptedItemInputMap<E extends EncryptableItem> = E ex
           ? EncryptedUint64Input
           : E extends EncryptableUint128
             ? EncryptedUint128Input
-            : E extends EncryptableUint256
-              ? EncryptedUint256Input
-              : E extends EncryptableAddress
-                ? EncryptedAddressInput
-                : never;
+            : // [U256-DISABLED]
+              // : E extends EncryptableUint256
+              //   ? EncryptedUint256Input
+              E extends EncryptableAddress
+              ? EncryptedAddressInput
+              : never;
 
 export type EncryptedItemInputs<T> = T extends Primitive
   ? LiteralToPrimitive<T>
