@@ -57,6 +57,37 @@ If you need direct access to the TFHE utilities for advanced use cases:
 - `compactPkeCrsSerializer` - Serializer for Compact PKE CRS
 - `zkBuilderAndCrsGenerator` - Generator for ZK builders and CRS
 
+## Testing
+
+All tests in this package run in a **browser environment** using Playwright's Chromium.
+
+### Running Tests
+
+```bash
+# Run tests in browser
+pnpm test
+
+# Run tests with coverage
+pnpm coverage
+```
+
+Tests use real `tfhe` WASM and run in a headless Chromium browser. This ensures that:
+
+- TFHE initialization works correctly in browsers
+- WebAssembly modules load properly
+- Encryption operations work end-to-end in the browser environment
+
+### Test Configuration
+
+Tests are configured via `vitest.config.mts` to:
+
+- Run in headless Chromium (via Playwright)
+- Use real tfhe WASM module
+- Test real encryption operations
+- Verify browser-specific APIs
+
+All test files use the `.test.ts` suffix (no `.browser.test.ts` needed since all tests are browser tests).
+
 ## License
 
 MIT

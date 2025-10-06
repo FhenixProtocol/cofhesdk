@@ -12,6 +12,7 @@ import { CofhesdkConfig, createCofhesdkConfig } from '../config';
 import { ZkBuilderAndCrsGenerator } from './zkPackProveVerify';
 import { keysStorage } from '../keyStore';
 import { FheKeySerializer } from '../fetchKeys';
+import { expectResultSuccess, expectResultError } from '../../test/test-utils';
 
 const MockZkVerifierUrl = 'http://localhost:3001';
 
@@ -221,27 +222,6 @@ class MockZkProvenList {
     return new TextEncoder().encode(json);
   }
 }
-
-export const expectResultSuccess = <T>(result: Result<T>): T => {
-  expect(result.error).toBe(null);
-  expect(result.success).toBe(true);
-  expect(result.data).not.toBe(null);
-  return result.data as T;
-};
-
-export const expectResultError = <T>(result: Result<T>, errorCode?: CofhesdkErrorCode, errorMessage?: string): void => {
-  expect(result.success).toBe(false);
-  expect(result.data).toBe(null);
-  expect(result.error).not.toBe(null);
-  const error = result.error as CofhesdkError;
-  expect(error).toBeInstanceOf(CofhesdkError);
-  if (errorCode) {
-    expect(error.code).toBe(errorCode);
-  }
-  if (errorMessage) {
-    expect(error.message).toBe(errorMessage);
-  }
-};
 
 describe('EncryptInputsBuilder', () => {
   const defaultSender = '0x1234567890123456789012345678901234567890';

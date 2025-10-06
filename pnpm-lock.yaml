@@ -311,12 +311,18 @@ importers:
       '@cofhesdk/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig
+      '@vitest/browser':
+        specifier: 1.6.0
+        version: 1.6.0(playwright@1.55.0)(vitest@1.6.0)
       '@vitest/coverage-v8':
         specifier: 1.6.0
         version: 1.6.0(vitest@1.6.0)
       eslint:
         specifier: ^8.57.0
         version: 8.57.1
+      playwright:
+        specifier: ^1.55.0
+        version: 1.55.0
       tsup:
         specifier: ^8.0.2
         version: 8.0.2(typescript@5.5.4)
@@ -328,7 +334,7 @@ importers:
         version: 2.37.5(typescript@5.5.4)(zod@3.25.76)
       vitest:
         specifier: 1.6.0
-        version: 1.6.0(happy-dom@15.11.7)
+        version: 1.6.0(@types/node@20.19.15)(@vitest/browser@1.6.0)
 
 packages:
 
@@ -1674,7 +1680,7 @@ packages:
     resolution: {integrity: sha512-R8LcPeWZol2zR8mmH3JeKQ6QRCFb7XgUhV9ZlGhHLGyg4wpPiPZNQOOWhFZhxKw8u//yTbNGI42Bx/3paXEQ+Q==}
     dependencies:
       '@jridgewell/resolve-uri': 3.1.1
-      '@jridgewell/sourcemap-codec': 1.4.15
+      '@jridgewell/sourcemap-codec': 1.5.5
     dev: true
 
   /@jridgewell/trace-mapping@0.3.30:
