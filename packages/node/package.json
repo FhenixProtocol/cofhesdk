@@ -1,0 +1,38 @@
+{
+  "name": "@cofhesdk/node",
+  "version": "0.0.0",
+  "description": "CoFHE SDK for Node.js with node-tfhe integration",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "license": "MIT",
+  "files": [
+    "dist/**"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts",
+    "dev": "tsup src/index.ts --format esm,cjs --watch --dts",
+    "lint": "eslint \"src/**/*.ts*\"",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
+    "test": "vitest",
+    "coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@cofhesdk/eslint-config": "workspace:*",
+    "@cofhesdk/tsconfig": "workspace:*",
+    "@vitest/coverage-v8": "1.6.0",
+    "eslint": "^8.57.0",
+    "tsup": "^8.0.2",
+    "typescript": "5.5.4",
+    "vitest": "1.6.0"
+  },
+  "dependencies": {
+    "@cofhesdk/core": "workspace:*",
+    "node-tfhe": "0.11.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

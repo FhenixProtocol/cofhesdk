@@ -3,7 +3,7 @@
 import { ZkBuilderAndCrsGenerator, zkPack, zkProve, zkVerify } from './zkPackProveVerify';
 import { CofhesdkError, CofhesdkErrorCode } from '../error';
 import { Result, resultWrapper } from '../result';
-import { EncryptSetStateFn, EncryptStep, EncryptableItem, EncryptedItemInput, EncryptedItemInputs } from '../types';
+import { EncryptSetStateFn, EncryptStep, EncryptableItem, EncryptedItemInput, EncryptedItemInputs, TfheInitializer } from '../types';
 import { cofheMocksCheckEncryptableBits, cofheMocksZkVerifySign } from './cofheMocksZkVerifySign';
 import { hardhat } from 'viem/chains';
 import { fetchKeys, FheKeySerializer } from '../fetchKeys';
@@ -21,6 +21,7 @@ type EncryptInputsBuilderParams<T extends EncryptableItem[]> = BaseBuilderParams
   tfhePublicKeySerializer: FheKeySerializer | undefined;
   compactPkeCrsSerializer: FheKeySerializer | undefined;
   zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator | undefined;
+  initTfhe: TfheInitializer | undefined;
 };
 
 /**
@@ -42,6 +43,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   private tfhePublicKeySerializer: FheKeySerializer | undefined;
   private compactPkeCrsSerializer: FheKeySerializer | undefined;
   private zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator | undefined;
+  private initTfhe: TfheInitializer | undefined;
 
   constructor(params: EncryptInputsBuilderParams<T>) {
     super({
@@ -60,6 +62,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     this.tfhePublicKeySerializer = params.tfhePublicKeySerializer;
     this.compactPkeCrsSerializer = params.compactPkeCrsSerializer;
     this.zkBuilderAndCrsGenerator = params.zkBuilderAndCrsGenerator;
+    this.initTfhe = params.initTfhe;
   }
 
   /**
@@ -210,6 +213,28 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   }
 
   /**
+   * initTfhe is a platform-specific dependency injected into core/createCofhesdkClient by web/createCofhesdkClient and node/createCofhesdkClient
+   * web/ uses zama "tfhe"
+   * node/ uses zama "node-tfhe"
+   * Users should not set this manually.
+   */
+  private async initTfheOrThrow() {
+    if (!this.initTfhe) return;
+
+    try {
+      await this.initTfhe();
+    } catch (error) {
+      throw CofhesdkError.fromError(error, {
+        code: CofhesdkErrorCode.InitTfheFailed,
+        message: `Failed to initialize TFHE`,
+        context: {
+          initTfhe: this.initTfhe,
+        },
+      });
+    }
+  }
+
+  /**
    * Fetches the FHE key and CRS from the CoFHE API
    * If the key/crs already exists in the store it is returned, else it is fetched, stored, and returned
    */
@@ -341,6 +366,10 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   private async productionEncrypt(account: string, chainId: number): Promise<[...EncryptedItemInputs<T>]> {
     this.fireCallback(EncryptStep.FetchKeys);
 
+    // Deferred initialization of tfhe wasm until encrypt is called
+    await this.initTfheOrThrow();
+
+    // Deferred fetching of fheKey and crs until encrypt is called
     const { fheKey, crs } = await this.fetchFheKeyAndCrs();
     let { zkBuilder, zkCrs } = this.generateZkBuilderAndCrs(fheKey, crs);
 

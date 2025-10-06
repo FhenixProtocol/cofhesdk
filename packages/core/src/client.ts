@@ -143,6 +143,7 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
       tfhePublicKeySerializer: opts.tfhePublicKeySerializer,
       compactPkeCrsSerializer: opts.compactPkeCrsSerializer,
       zkBuilderAndCrsGenerator: opts.zkBuilderAndCrsGenerator,
+      initTfhe: opts.initTfhe,
 
       requireConnected: _requireConnected,
     });

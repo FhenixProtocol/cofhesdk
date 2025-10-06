@@ -100,11 +100,14 @@ export type CofhesdkClientPermits = {
   deserialize: typeof PermitUtils.deserialize;
 };
 
+export type TfheInitializer = () => Promise<void>;
+
 export type CofhesdkClientParams = {
   config: CofhesdkConfig;
   zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator;
   tfhePublicKeySerializer: FheKeySerializer;
   compactPkeCrsSerializer: FheKeySerializer;
+  initTfhe: TfheInitializer;
 };
 
 // FHE TYPES
