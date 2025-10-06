@@ -3,7 +3,14 @@
 import { ZkBuilderAndCrsGenerator, zkPack, zkProve, zkVerify } from './zkPackProveVerify';
 import { CofhesdkError, CofhesdkErrorCode } from '../error';
 import { Result, resultWrapper } from '../result';
-import { EncryptSetStateFn, EncryptStep, EncryptableItem, EncryptedItemInput, EncryptedItemInputs, TfheInitializer } from '../types';
+import {
+  EncryptSetStateFn,
+  EncryptStep,
+  EncryptableItem,
+  EncryptedItemInput,
+  EncryptedItemInputs,
+  TfheInitializer,
+} from '../types';
 import { cofheMocksCheckEncryptableBits, cofheMocksZkVerifySign } from './cofheMocksZkVerifySign';
 import { hardhat } from 'viem/chains';
 import { fetchKeys, FheKeySerializer } from '../fetchKeys';
@@ -52,6 +59,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
       walletClient: params.walletClient,
       chainId: params.chainId,
       account: params.account,
+      requireConnected: params.requireConnected,
     });
 
     this.inputItems = params.inputs;
@@ -249,7 +257,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     let crs: Uint8Array | undefined;
 
     try {
-      [fheKey, crs] = await fetchKeys(config, chainId, securityZone, compactPkeCrsSerializer, tfhePublicKeySerializer);
+      [fheKey, crs] = await fetchKeys(config, chainId, securityZone, tfhePublicKeySerializer, compactPkeCrsSerializer);
     } catch (error) {
       throw CofhesdkError.fromError(error, {
         code: CofhesdkErrorCode.FetchKeysFailed,

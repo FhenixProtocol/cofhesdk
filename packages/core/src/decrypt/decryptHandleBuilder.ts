@@ -48,6 +48,7 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
       walletClient: params.walletClient,
       chainId: params.chainId,
       account: params.account,
+      requireConnected: params.requireConnected,
     });
 
     this.ctHash = params.ctHash;
