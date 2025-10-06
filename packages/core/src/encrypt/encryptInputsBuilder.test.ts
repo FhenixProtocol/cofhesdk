@@ -293,10 +293,10 @@ describe('EncryptInputsBuilder', () => {
       expectResultError(result, CofhesdkErrorCode.MissingCompactPkeCrsSerializer);
     });
 
-    it('should throw an error if initTfhe is not set', async () => {
+    it('should throw an error if initTfhe throws an error', async () => {
       const builder = new EncryptInputsBuilder({
         ...createDefaultParams(),
-        initTfhe: undefined as unknown as TfheInitializer,
+        initTfhe: vi.fn().mockRejectedValue(new Error('Failed to initialize TFHE')),
       });
       const result = await builder.encrypt();
       expectResultError(result, CofhesdkErrorCode.InitTfheFailed);

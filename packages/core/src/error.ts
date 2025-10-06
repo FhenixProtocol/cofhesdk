@@ -110,7 +110,7 @@ export class CofhesdkError extends Error {
    * Serializes the error to JSON string with proper handling of Error objects
    */
   serialize(): string {
-    return JSON.stringify({
+    return bigintSafeJsonStringify({
       name: this.name,
       code: this.code,
       message: this.message,
@@ -138,7 +138,7 @@ export class CofhesdkError extends Error {
     }
 
     if (this.context && Object.keys(this.context).length > 0) {
-      parts.push(`Context: ${JSON.stringify(this.context, null, 2)}`);
+      parts.push(`Context: ${bigintSafeJsonStringify(this.context)}`);
     }
 
     if (this.stack) {
@@ -156,5 +156,14 @@ export class CofhesdkError extends Error {
     return parts.join('\n');
   }
 }
+
+const bigintSafeJsonStringify = (value: unknown): string => {
+  return JSON.stringify(value, (key, value) => {
+    if (typeof value === 'bigint') {
+      return `${value}n`;
+    }
+    return value;
+  });
+};
 
 export const isCofhesdkError = (error: unknown): error is CofhesdkError => error instanceof CofhesdkError;

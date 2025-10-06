@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import { createCofhesdkClient } from './index';
 import { createCofhesdkConfig, CofhesdkClient } from '@cofhesdk/core';
 import type { PublicClient, WalletClient } from 'viem';
@@ -69,13 +69,12 @@ describe('@cofhesdk/web - Client', () => {
     }, 30000);
 
     it('should handle network errors', async () => {
-      // Create a client with invalid URL
-      const badPublicClient = createPublicClient({
-        chain: viemArbitrumSepolia,
-        transport: http('http://invalid-url-that-does-not-exist.local'),
-      });
-
-      const result = await cofhesdkClient.connect(badPublicClient, walletClient);
+      const result = await cofhesdkClient.connect(
+        {
+          getChainId: vi.fn().mockRejectedValue(new Error('Network error')),
+        } as unknown as PublicClient,
+        walletClient
+      );
 
       expect(result.success).toBe(false);
       expect(cofhesdkClient.connected).toBe(false);

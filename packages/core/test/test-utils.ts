@@ -7,8 +7,8 @@ import { Result, CofhesdkError, CofhesdkErrorCode } from '../src';
  */
 export const expectResultSuccess = <T>(result: Result<T>): NonNullable<T> => {
   expect(result.error, `Result error: ${result.error?.toString()}`).toBe(null);
-  expect(result.success, `Result: ${result}`).toBe(true);
-  expect(result.data, `Result: ${result}`).not.toBe(null);
+  expect(result.success, `Result: ${bigintSafeJsonStringify(result)}`).toBe(true);
+  expect(result.data, `Result: ${bigintSafeJsonStringify(result)}`).not.toBe(null);
   return result.data!;
 };
 
@@ -20,9 +20,9 @@ export const expectResultError = <T>(
   errorCode?: CofhesdkErrorCode,
   errorMessage?: string
 ): CofhesdkError => {
-  expect(result.success, `Result: ${result}`).toBe(false);
-  expect(result.data, `Result: ${result}`).toBe(null);
-  expect(result.error, `Result: ${result}`).not.toBe(null);
+  expect(result.success, `Result: ${bigintSafeJsonStringify(result)}`).toBe(false);
+  expect(result.data, `Result: ${bigintSafeJsonStringify(result)}`).toBe(null);
+  expect(result.error, `Result: ${bigintSafeJsonStringify(result)}`).not.toBe(null);
   const error = result.error as CofhesdkError;
   expect(error, `Result error: ${result.error?.toString()}`).toBeInstanceOf(CofhesdkError);
   if (errorCode) {
@@ -32,4 +32,13 @@ export const expectResultError = <T>(
     expect(error.message, `Result error: ${result.error?.toString()}`).toBe(errorMessage);
   }
   return error;
+};
+
+const bigintSafeJsonStringify = (value: unknown): string => {
+  return JSON.stringify(value, (key, value) => {
+    if (typeof value === 'bigint') {
+      return `${value}n`;
+    }
+    return value;
+  });
 };
