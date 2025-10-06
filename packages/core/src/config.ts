@@ -1,14 +1,38 @@
 import { z } from 'zod';
 import { CofheChain } from '@cofhesdk/chains';
 import { WalletClient } from 'viem';
+import { CofhesdkError, CofhesdkErrorCode } from './error';
 
 /**
  * Usable config type inferred from the schema
  */
 export type CofhesdkConfig = {
   supportedChains: CofheChain[];
-  keyFetchingStrategy: 'CONNECTED_CHAIN' | 'SUPPORTED_CHAINS';
-  generatePermitDuringInitialization: boolean;
+  /**
+   * Strategy for fetching FHE keys
+   * - CONNECTED_CHAIN: Fetch keys for the connected chain (provided by the publicClient)
+   * - SUPPORTED_CHAINS: Fetch keys for all supported chains (provided by the supportedChains config)
+   * - OFF: Do not fetch keys (fetching occurs during encryptInputs)
+   * */
+  fheKeysPrefetching: 'CONNECTED_CHAIN' | 'SUPPORTED_CHAINS' | 'OFF';
+  /**
+   * How permits are generated
+   * - ON_CONNECT: Generate a permit when client.connect() is called
+   * - ON_DECRYPT_HANDLES: Generate a permit when client.decryptHandles() is called
+   * - MANUAL: Generate a permit manually using client.generatePermit()
+   */
+  permitGeneration: 'ON_CONNECT' | 'ON_DECRYPT_HANDLES' | 'MANUAL';
+  /** Default permit expiration in seconds, default is 30 days */
+  defaultPermitExpiration: number;
+  /** Mocks configs */
+  mocks: {
+    /**
+     * Length of the simulated seal output delay in milliseconds
+     * Default 1000ms on web
+     * Default 0ms on hardhat (will be called during tests no need for fake delay)
+     */
+    sealOutputDelay: number;
+  };
   _internal?: CofhesdkInternalConfig;
 };
 
@@ -23,9 +47,21 @@ export const CofhesdkConfigSchema = z.object({
   /** List of supported chain configurations */
   supportedChains: z.array(z.custom<CofheChain>()),
   /** Strategy for fetching FHE keys */
-  keyFetchingStrategy: z.enum(['CONNECTED_CHAIN', 'SUPPORTED_CHAINS']).optional().default('CONNECTED_CHAIN'),
-  /** Whether to generate a permit during initialization */
-  generatePermitDuringInitialization: z.boolean().optional().default(false),
+  fheKeysPrefetching: z.enum(['CONNECTED_CHAIN', 'SUPPORTED_CHAINS', 'OFF']).optional().default('OFF'),
+  /** How permits are generated */
+  permitGeneration: z.enum(['ON_CONNECT', 'ON_DECRYPT_HANDLES', 'MANUAL']).optional().default('ON_CONNECT'),
+  /** Default permit expiration in seconds, default is 30 days */
+  defaultPermitExpiration: z
+    .number()
+    .optional()
+    .default(60 * 60 * 24 * 30),
+  /** Mocks configs */
+  mocks: z
+    .object({
+      sealOutputDelay: z.number().optional().default(0),
+    })
+    .optional()
+    .default({ sealOutputDelay: 0 }),
   /** Internal configuration */
   _internal: z
     .object({
@@ -65,3 +101,97 @@ export const getCofhesdkConfigItem = <K extends keyof CofhesdkConfig>(
 ): CofhesdkConfig[K] => {
   return config[key];
 };
+
+/**
+ * Gets a supported chain from config by chainId, throws if not found
+ * @param config - The cofhesdk configuration
+ * @param chainId - The chain ID to look up
+ * @returns The supported chain configuration
+ * @throws {CofhesdkError} If the chain is not found in the config
+ */
+export function getSupportedChainOrThrow(config: CofhesdkConfig, chainId: number): CofheChain {
+  const supportedChain = config.supportedChains.find((chain) => chain.id === chainId);
+
+  if (!supportedChain) {
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.UnsupportedChain,
+      message: `Config does not support chain <${chainId}>`,
+      hint: 'Ensure config passed to client has been created with this chain in the config.supportedChains array.',
+      context: {
+        chainId,
+        supportedChainIds: config.supportedChains.map((c) => c.id),
+      },
+    });
+  }
+
+  return supportedChain;
+}
+
+/**
+ * Gets the CoFHE URL for a chain, throws if not found
+ * @param config - The cofhesdk configuration
+ * @param chainId - The chain ID to look up
+ * @returns The CoFHE URL for the chain
+ * @throws {CofhesdkError} If the chain or URL is not found
+ */
+export function getCoFheUrlOrThrow(config: CofhesdkConfig, chainId: number): string {
+  const supportedChain = getSupportedChainOrThrow(config, chainId);
+  const url = supportedChain.coFheUrl;
+
+  if (!url) {
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.MissingConfig,
+      message: `CoFHE URL is not configured for chain <${chainId}>`,
+      hint: 'Ensure this chain config includes a coFheUrl property.',
+      context: { chainId },
+    });
+  }
+
+  return url;
+}
+
+/**
+ * Gets the ZK verifier URL for a chain, throws if not found
+ * @param config - The cofhesdk configuration
+ * @param chainId - The chain ID to look up
+ * @returns The ZK verifier URL for the chain
+ * @throws {CofhesdkError} If the chain or URL is not found
+ */
+export function getZkVerifierUrlOrThrow(config: CofhesdkConfig, chainId: number): string {
+  const supportedChain = getSupportedChainOrThrow(config, chainId);
+  const url = supportedChain.verifierUrl;
+
+  if (!url) {
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.ZkVerifierUrlUninitialized,
+      message: `ZK verifier URL is not configured for chain <${chainId}>`,
+      hint: 'Ensure this chain config includes a verifierUrl property.',
+      context: { chainId },
+    });
+  }
+
+  return url;
+}
+
+/**
+ * Gets the threshold network URL for a chain, throws if not found
+ * @param config - The cofhesdk configuration
+ * @param chainId - The chain ID to look up
+ * @returns The threshold network URL for the chain
+ * @throws {CofhesdkError} If the chain or URL is not found
+ */
+export function getThresholdNetworkUrlOrThrow(config: CofhesdkConfig, chainId: number): string {
+  const supportedChain = getSupportedChainOrThrow(config, chainId);
+  const url = supportedChain.thresholdNetworkUrl;
+
+  if (!url) {
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.ThresholdNetworkUrlUninitialized,
+      message: `Threshold network URL is not configured for chain <${chainId}>`,
+      hint: 'Ensure this chain config includes a thresholdNetworkUrl property.',
+      context: { chainId },
+    });
+  }
+
+  return url;
+}

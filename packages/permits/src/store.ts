@@ -146,6 +146,11 @@ export const removeActivePermitHash = (chainId: number, account: string) => {
   );
 };
 
+export const resetStore = () => {
+  clearStaleStore();
+  _permitStore.setState({ permits: {}, activePermitHash: {} });
+};
+
 export const permitStore = {
   store: _permitStore,
 
@@ -158,4 +163,6 @@ export const permitStore = {
   getActivePermitHash,
   setActivePermitHash,
   removeActivePermitHash,
+
+  resetStore,
 };

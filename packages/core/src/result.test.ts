@@ -62,7 +62,7 @@ describe('Error Utilities', () => {
       expect(result.success).toBe(false);
       expect(result.error!).toBeInstanceOf(CofhesdkError);
       expect(result.error!.code).toBe(CofhesdkErrorCode.InternalError);
-      expect(result.error!.message).toBe('An internal error occurred: string error');
+      expect(result.error!.message).toBe('An internal error occurred | Caused by: string error');
     });
 
     it('should preserve CofhesdkError instances', () => {

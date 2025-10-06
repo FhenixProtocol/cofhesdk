@@ -122,7 +122,7 @@ describe('fetchKeys', () => {
         mockTfhePublicKeySerializer,
         mockCompactPkeCrsSerializer
       )
-    ).rejects.toThrow('Error fetching keys; supported chain not found in config for chainId 999');
+    ).rejects.toThrow('Config does not support chain <999>');
   });
 
   it('should throw error when FHE public key serialization fails', async () => {

@@ -12,13 +12,13 @@ declare const localStorage: {
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
-  _permitStore,
   getPermit,
   setPermit,
   removePermit,
   getActivePermitHash,
   setActivePermitHash,
   PermitUtils,
+  permitStore,
 } from '../src/index';
 
 import { createMockPermit } from './utils';
@@ -30,13 +30,13 @@ describe('Permits localStorage Tests', () => {
   beforeEach(() => {
     // Clear localStorage and reset store state
     localStorage.clear();
-    _permitStore.setState({ permits: {}, activePermitHash: {} });
+    permitStore.resetStore();
   });
 
   afterEach(() => {
     // Clean up after each test
     localStorage.clear();
-    _permitStore.setState({ permits: {}, activePermitHash: {} });
+    permitStore.resetStore();
   });
 
   it('should persist permits to localStorage', async () => {
@@ -92,7 +92,7 @@ describe('Permits localStorage Tests', () => {
 
     // Store should handle this gracefully
     expect(() => {
-      _permitStore.getState();
+      permitStore.store.getState();
     }).not.toThrow();
   });
 

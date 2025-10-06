@@ -6,10 +6,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createPublicClient, createWalletClient, http, PublicClient, WalletClient } from 'viem';
 import { arbitrumSepolia } from 'viem/chains';
 import { permits } from './permits';
-import { sdkStore } from './sdkStore';
 import { permitStore } from '@cofhesdk/permits';
 import { privateKeyToAccount } from 'viem/accounts';
-import { expectResultSuccess } from './result.test';
 
 // Type declarations for happy-dom environment
 declare const localStorage: {
@@ -45,27 +43,25 @@ const bobAddress = bobWalletClient.account!.address;
 const aliceAddress = aliceWalletClient.account!.address;
 const chainId = 421614; // Arbitrum Sepolia
 
-describe('Core Permits Tests with Real Clients', () => {
-  beforeEach(async () => {
+describe('Core Permits Tests', () => {
+  beforeEach(() => {
     // Clear localStorage and reset stores
     localStorage.clear();
-    sdkStore.clearSdkStore();
     permitStore.store.setState({ permits: {}, activePermitHash: {} });
-
-    sdkStore.setPublicClient(publicClient);
-    sdkStore.setWalletClient(bobWalletClient);
   });
 
   afterEach(() => {
     localStorage.clear();
-    sdkStore.clearSdkStore();
     permitStore.store.setState({ permits: {}, activePermitHash: {} });
   });
 
   describe('Permit Creation', () => {
     it('should create and store self permit', async () => {
-      const result = await permits.createSelf({ name: 'Test Self Permit', issuer: bobAddress });
-      const permit = expectResultSuccess(result);
+      const permit = await permits.createSelf(
+        { name: 'Test Self Permit', issuer: bobAddress },
+        publicClient,
+        bobWalletClient
+      );
 
       expect(permit).toBeDefined();
       expect(permit.name).toBe('Test Self Permit');
@@ -83,12 +79,15 @@ describe('Core Permits Tests with Real Clients', () => {
     });
 
     it('should create and store sharing permit', async () => {
-      const result = await permits.createSharing({
-        name: 'Test Sharing Permit',
-        issuer: bobAddress,
-        recipient: aliceAddress,
-      });
-      const permit = expectResultSuccess(result);
+      const permit = await permits.createSharing(
+        {
+          name: 'Test Sharing Permit',
+          issuer: bobAddress,
+          recipient: aliceAddress,
+        },
+        publicClient,
+        bobWalletClient
+      );
 
       expect(permit.name).toBe('Test Sharing Permit');
       expect(permit.type).toBe('sharing');
@@ -107,12 +106,15 @@ describe('Core Permits Tests with Real Clients', () => {
 
     it('should import shared permit from JSON string', async () => {
       // First create a sharing permit to import
-      const sharingResult = await permits.createSharing({
-        name: 'Original Sharing Permit',
-        issuer: bobAddress,
-        recipient: aliceAddress,
-      });
-      const sharingPermit = expectResultSuccess(sharingResult);
+      const sharingPermit = await permits.createSharing(
+        {
+          name: 'Original Sharing Permit',
+          issuer: bobAddress,
+          recipient: aliceAddress,
+        },
+        publicClient,
+        bobWalletClient
+      );
 
       // Export the permit as JSON string
       const permitJson = JSON.stringify({
@@ -126,9 +128,8 @@ describe('Core Permits Tests with Real Clients', () => {
         issuerSignature: sharingPermit.issuerSignature,
       });
 
-      // Import the permit as a different user
-      const result = await permits.importShared(permitJson);
-      const permit = expectResultSuccess(result);
+      // Import the permit as Alice (recipient)
+      const permit = await permits.importShared(permitJson, publicClient, aliceWalletClient);
 
       expect(permit.name).toBe('Original Sharing Permit');
       expect(permit.type).toBe('recipient');
@@ -145,41 +146,43 @@ describe('Core Permits Tests with Real Clients', () => {
 
     beforeEach(async () => {
       // Create a real permit for testing
-      const result = await permits.createSelf({ name: 'Test Permit', issuer: bobAddress });
-      createdPermit = expectResultSuccess(result);
+      createdPermit = await permits.createSelf(
+        { name: 'Test Permit', issuer: bobAddress },
+        publicClient,
+        bobWalletClient
+      );
       permitHash = permits.getHash(createdPermit);
     });
 
     it('should get permit by hash', async () => {
-      const result = await permits.getPermit(permitHash);
-      const permit = expectResultSuccess(result);
+      const permit = await permits.getPermit(chainId, bobAddress, permitHash);
       expect(permit?.name).toBe('Test Permit');
       expect(permit?.type).toBe('self');
     });
 
     it('should get all permits', async () => {
-      const result = await permits.getPermits({});
-      const allPermits = expectResultSuccess(result);
+      const allPermits = await permits.getPermits(chainId, bobAddress);
       expect(Object.keys(allPermits).length).toBeGreaterThan(0);
     });
 
     it('should get active permit', async () => {
-      const result = await permits.getActivePermit({});
-      const permit = expectResultSuccess(result);
+      const permit = await permits.getActivePermit(chainId, bobAddress);
       expect(permit?.name).toBe('Test Permit');
     });
 
     it('should get active permit hash', async () => {
-      const result = await permits.getActivePermitHash({});
-      const hash = expectResultSuccess(result);
+      const hash = await permits.getActivePermitHash(chainId, bobAddress);
       expect(typeof hash).toBe('string');
     });
   });
 
   describe('localStorage Integration', () => {
     it('should persist permits to localStorage', async () => {
-      const result = await permits.createSelf({ name: 'Test Permit', issuer: bobAddress });
-      const createdPermit = expectResultSuccess(result);
+      const createdPermit = await permits.createSelf(
+        { name: 'Test Permit', issuer: bobAddress },
+        publicClient,
+        bobWalletClient
+      );
 
       const storedData = localStorage.getItem('cofhejs-permits');
       expect(storedData).toBeDefined();
@@ -200,8 +203,11 @@ describe('Core Permits Tests with Real Clients', () => {
 
   describe('Real Network Integration', () => {
     it('should create permit with real EIP712 domain from Arbitrum Sepolia', async () => {
-      const result = await permits.createSelf({ name: 'Real Network Permit', issuer: bobAddress });
-      const permit = expectResultSuccess(result);
+      const permit = await permits.createSelf(
+        { name: 'Real Network Permit', issuer: bobAddress },
+        publicClient,
+        bobWalletClient
+      );
 
       expect(permit._signedDomain).toBeDefined();
       expect(permit._signedDomain?.chainId).toBe(chainId);
@@ -212,21 +218,23 @@ describe('Core Permits Tests with Real Clients', () => {
 
     it('should handle multiple permits on real network', async () => {
       // Create multiple permits
-      await permits.createSelf({ name: 'Permit 1', issuer: bobAddress });
-      await permits.createSharing({
-        name: 'Permit 2',
-        issuer: bobAddress,
-        recipient: aliceAddress,
-      });
+      await permits.createSelf({ name: 'Permit 1', issuer: bobAddress }, publicClient, bobWalletClient);
+      await permits.createSharing(
+        {
+          name: 'Permit 2',
+          issuer: bobAddress,
+          recipient: aliceAddress,
+        },
+        publicClient,
+        bobWalletClient
+      );
 
       // Verify both permits exist
-      const allPermitsResult = await permits.getPermits({});
-      const allPermits = expectResultSuccess(allPermitsResult);
+      const allPermits = await permits.getPermits(chainId, bobAddress);
       expect(Object.keys(allPermits).length).toBeGreaterThanOrEqual(2);
 
       // Verify active permit is the last created one
-      const activePermitResult = await permits.getActivePermit({});
-      const activePermit = expectResultSuccess(activePermitResult);
+      const activePermit = await permits.getActivePermit(chainId, bobAddress);
       expect(activePermit?.name).toBe('Permit 2');
     });
   });

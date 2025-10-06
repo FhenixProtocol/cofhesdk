@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { encryptInputs, EncryptInputsBuilder } from './encryptInputs';
+import { EncryptInputsBuilder } from './encryptInputsBuilder';
 import { Result } from '../result';
 import { EncryptableItem, FheTypes, Encryptable, EncryptableUint128, EncryptStep } from '../types';
 import { CofhesdkError, CofhesdkErrorCode } from '../error';
@@ -8,14 +8,27 @@ import { fromHexString, toHexString } from '../utils';
 import { PublicClient, createPublicClient, http, WalletClient, createWalletClient } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { arbitrumSepolia } from 'viem/chains';
-import { sdkStore } from '../sdkStore';
 import { CofhesdkConfig, createCofhesdkConfig } from '../config';
-import { arbSepolia as cofhesdk_arbitrumSepolia } from '@cofhesdk/chains';
 import { ZkBuilderAndCrsGenerator } from './zkPackProveVerify';
 import { keysStorage } from '../keyStore';
 import { FheKeySerializer } from '../fetchKeys';
 
 const MockZkVerifierUrl = 'http://localhost:3001';
+
+// Test private keys (well-known test keys from Anvil/Hardhat)
+const BOB_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'; // Bob - always issuer
+
+// Create real viem clients for Arbitrum Sepolia
+const publicClient: PublicClient = createPublicClient({
+  chain: arbitrumSepolia,
+  transport: http(),
+});
+
+const bobWalletClient: WalletClient = createWalletClient({
+  chain: arbitrumSepolia,
+  transport: http(),
+  account: privateKeyToAccount(BOB_PRIVATE_KEY),
+});
 
 const stringifyWithBigInt = (obj: any): string => JSON.stringify(obj, (_, v) => (typeof v === 'bigint' ? `${v}n` : v));
 
@@ -232,9 +245,13 @@ describe('EncryptInputsBuilder', () => {
   const createDefaultParams = () => {
     return {
       inputs: [Encryptable.uint128(100n)] as [EncryptableUint128],
-      sender: defaultSender,
+      account: defaultSender,
       chainId: defaultChainId,
+
       config: createMockCofhesdkConfig(defaultChainId, MockZkVerifierUrl),
+      publicClient: publicClient,
+      walletClient: bobWalletClient,
+
       tfhePublicKeySerializer: mockTfhePublicKeySerializer,
       compactPkeCrsSerializer: mockCompactPkeCrsSerializer,
       zkBuilderAndCrsGenerator: mockZkBuilderAndCrsGenerator,
@@ -291,14 +308,14 @@ describe('EncryptInputsBuilder', () => {
     });
   });
 
-  describe('setSender', () => {
+  describe('sender', () => {
     it('should set sender and return builder for chaining', () => {
       const sender = '0x9876543210987654321098765432109876543210';
 
-      const result = builder.setSender(sender);
+      const result = builder.setAccount(sender);
 
       expect(result).toBe(builder);
-      expect(result.getSender()).toBe(sender);
+      expect(result.getAccount()).toBe(sender);
     });
 
     it('should allow chaining with other methods', () => {
@@ -306,23 +323,22 @@ describe('EncryptInputsBuilder', () => {
       const securityZone = 5;
 
       const result = builder
-        .setSender(sender)
+        .setAccount(sender)
         .setSecurityZone(securityZone)
         .setStepCallback(() => {});
 
       expect(result).toBe(builder);
-      expect(result.getSender()).toBe(sender);
+      expect(result.getAccount()).toBe(sender);
       expect(result.getSecurityZone()).toBe(securityZone);
     });
 
-    it('should throw an error if sender is not set', async () => {
-      builder = new EncryptInputsBuilder({
+    it('should throw an error if account is not set', async () => {
+      const builder = new EncryptInputsBuilder({
         ...createDefaultParams(),
-        sender: undefined,
+        account: undefined,
       });
-
       const result = await builder.encrypt();
-      expectResultError(result, CofhesdkErrorCode.SenderUninitialized);
+      expectResultError(result, CofhesdkErrorCode.AccountUninitialized);
     });
   });
 
@@ -340,16 +356,16 @@ describe('EncryptInputsBuilder', () => {
 
       const result = builder
         .setSecurityZone(securityZone)
-        .setSender(sender)
+        .setAccount(sender)
         .setStepCallback(() => {});
 
       expect(result).toBe(builder);
-      expect(result.getSender()).toBe(sender);
+      expect(result.getAccount()).toBe(sender);
       expect(result.getSecurityZone()).toBe(securityZone);
     });
   });
 
-  describe('setChainId', () => {
+  describe('chainId', () => {
     it('should set chain id and return builder for chaining', () => {
       const chainId = 2;
       const result = builder.setChainId(chainId);
@@ -357,12 +373,11 @@ describe('EncryptInputsBuilder', () => {
       expect(result.getChainId()).toBe(chainId);
     });
 
-    it('should throw an error if chain id is not set', async () => {
-      builder = new EncryptInputsBuilder({
+    it('should throw an error if chainId is not set', async () => {
+      const builder = new EncryptInputsBuilder({
         ...createDefaultParams(),
         chainId: undefined,
       });
-
       const result = await builder.encrypt();
       expectResultError(result, CofhesdkErrorCode.ChainIdUninitialized);
     });
@@ -372,7 +387,7 @@ describe('EncryptInputsBuilder', () => {
     it('should throw if zkVerifierUrl is not set', async () => {
       builder = new EncryptInputsBuilder({
         inputs: [Encryptable.uint128(100n)] as [EncryptableUint128],
-        sender: '0x1234567890123456789012345678901234567890',
+        account: '0x1234567890123456789012345678901234567890',
         chainId: 1,
         config: createMockCofhesdkConfig(defaultChainId, undefined as unknown as string),
         tfhePublicKeySerializer: mockTfhePublicKeySerializer,
@@ -408,14 +423,12 @@ describe('EncryptInputsBuilder', () => {
       const result = expectResultSuccess(await builder.encrypt());
 
       // Verify step callbacks were called in order
-      expect(stepCallback).toHaveBeenCalledTimes(7);
+      expect(stepCallback).toHaveBeenCalledTimes(5);
       expect(stepCallback).toHaveBeenNthCalledWith(1, EncryptStep.FetchKeys);
-      expect(stepCallback).toHaveBeenNthCalledWith(2, EncryptStep.Extract);
-      expect(stepCallback).toHaveBeenNthCalledWith(3, EncryptStep.Pack);
-      expect(stepCallback).toHaveBeenNthCalledWith(4, EncryptStep.Prove);
-      expect(stepCallback).toHaveBeenNthCalledWith(5, EncryptStep.Verify);
-      expect(stepCallback).toHaveBeenNthCalledWith(6, EncryptStep.Replace);
-      expect(stepCallback).toHaveBeenNthCalledWith(7, EncryptStep.Done);
+      expect(stepCallback).toHaveBeenNthCalledWith(2, EncryptStep.Pack);
+      expect(stepCallback).toHaveBeenNthCalledWith(3, EncryptStep.Prove);
+      expect(stepCallback).toHaveBeenNthCalledWith(4, EncryptStep.Verify);
+      expect(stepCallback).toHaveBeenNthCalledWith(5, EncryptStep.Done);
 
       // Verify result structure
       expect(result).toBeDefined();
@@ -430,9 +443,9 @@ describe('EncryptInputsBuilder', () => {
       expect(encryptedMetadata.chainId).toBe(defaultChainId);
     });
 
-    it('should use overridden sender when set', async () => {
+    it('should use overridden account when set', async () => {
       const overriddenSender = '0x5555555555555555555555555555555555555555';
-      builder.setSender(overriddenSender);
+      builder.setAccount(overriddenSender);
 
       const result = expectResultSuccess(await builder.encrypt());
 
@@ -514,14 +527,14 @@ describe('EncryptInputsBuilder', () => {
 
       const stepCallback = vi.fn();
       const result = await builder
-        .setSender(sender)
+        .setAccount(sender)
         .setSecurityZone(securityZone)
         .setStepCallback(stepCallback)
         .encrypt();
       const resultData = expectResultSuccess(result);
 
       expect(result).toBeDefined();
-      expect(stepCallback).toHaveBeenCalledTimes(7);
+      expect(stepCallback).toHaveBeenCalledTimes(5);
 
       // Verify result embedded metadata
       const [encrypted] = resultData;
@@ -538,7 +551,7 @@ describe('EncryptInputsBuilder', () => {
 
       insertMockKeys(defaultChainId, securityZone);
 
-      builder.setSender(sender);
+      builder.setAccount(sender);
       builder.setSecurityZone(securityZone);
 
       // Call encrypt multiple times to ensure state is maintained
@@ -564,44 +577,5 @@ describe('EncryptInputsBuilder', () => {
       expect(encryptedMetadata2.securityZone).toBe(securityZone);
       expect(encryptedMetadata2.chainId).toBe(defaultChainId);
     });
-  });
-});
-
-// Test private keys (well-known test keys from Anvil/Hardhat)
-const BOB_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'; // Bob - always issuer
-
-// Create real viem clients for Arbitrum Sepolia
-const publicClient: PublicClient = createPublicClient({
-  chain: arbitrumSepolia,
-  transport: http(),
-});
-
-const bobWalletClient: WalletClient = createWalletClient({
-  chain: arbitrumSepolia,
-  transport: http(),
-  account: privateKeyToAccount(BOB_PRIVATE_KEY),
-});
-
-describe('encryptInputs', () => {
-  it('should initialize the builder correctly and encrypt', async () => {
-    sdkStore.setPublicClient(publicClient);
-    sdkStore.setWalletClient(bobWalletClient);
-    sdkStore.setConfig(
-      createCofhesdkConfig({
-        supportedChains: [cofhesdk_arbitrumSepolia],
-      })
-    );
-
-    // Store inserts for platform specific dependencies
-    sdkStore.setZkBuilderAndCrsGenerator(mockZkBuilderAndCrsGenerator);
-    sdkStore.setTfhePublicKeySerializer(mockTfhePublicKeySerializer);
-    sdkStore.setCompactPkeCrsSerializer(mockCompactPkeCrsSerializer);
-
-    const builder = encryptInputs([Encryptable.uint128(100n)] as [EncryptableUint128]);
-
-    expect(builder).toBeInstanceOf(EncryptInputsBuilder);
-    expect(builder.getSender()).toBe(bobWalletClient.account!.address);
-    expect(builder.getChainId()).toBe(cofhesdk_arbitrumSepolia.id);
-    expect(builder.getZkVerifierUrlOrThrow()).toBe(cofhesdk_arbitrumSepolia.verifierUrl);
   });
 });

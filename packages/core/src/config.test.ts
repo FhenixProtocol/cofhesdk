@@ -1,19 +1,45 @@
 import { describe, it, expect } from 'vitest';
-import { createCofhesdkConfig, CofhesdkConfig, getCofhesdkConfigItem, CofhesdkInputConfig } from './config.js';
+import {
+  createCofhesdkConfig,
+  getCofhesdkConfigItem,
+  CofhesdkInputConfig,
+  getSupportedChainOrThrow,
+  getCoFheUrlOrThrow,
+  getZkVerifierUrlOrThrow,
+  getThresholdNetworkUrlOrThrow,
+} from './config.js';
 import { sepolia, hardhat } from '@cofhesdk/chains';
 
 describe('createCofhesdkConfig', () => {
   const validBaseConfig: CofhesdkInputConfig = {
     supportedChains: [],
   };
-  const expectInvalidConfigItem = (item: keyof CofhesdkConfig, value: any) => {
-    const config = { ...validBaseConfig, [item]: value };
+
+  const setNestedValue = (obj: any, path: string, value: any): void => {
+    const keys = path.split('.');
+    const lastKey = keys.pop()!;
+    const target = keys.reduce((acc, key) => {
+      if (!acc[key]) acc[key] = {};
+      return acc[key];
+    }, obj);
+    target[lastKey] = value;
+  };
+
+  const getNestedValue = (obj: any, path: string): any => {
+    return path.split('.').reduce((acc, key) => acc?.[key], obj);
+  };
+
+  const expectInvalidConfigItem = (path: string, value: any): void => {
+    const config = { ...validBaseConfig };
+    setNestedValue(config, path, value);
     expect(() => createCofhesdkConfig(config as CofhesdkInputConfig)).toThrow('Invalid cofhesdk configuration:');
   };
-  const expectValidConfigItem = (item: keyof CofhesdkConfig, value: any, expectedValue: any) => {
-    const config = { ...validBaseConfig, [item]: value };
+
+  const expectValidConfigItem = (path: string, value: any, expectedValue: any): void => {
+    const config = { ...validBaseConfig };
+    setNestedValue(config, path, value);
     const result = createCofhesdkConfig(config);
-    expect(result[item]).toEqual(expectedValue);
+    expect(getNestedValue(result, path)).toEqual(expectedValue);
   };
 
   it('supportedChains', () => {
@@ -26,22 +52,48 @@ describe('createCofhesdkConfig', () => {
     expectValidConfigItem('supportedChains', [sepolia, hardhat], [sepolia, hardhat]);
   });
 
-  it('keyFetchingStrategy', () => {
-    expectInvalidConfigItem('keyFetchingStrategy', 'invalid-option');
-    expectInvalidConfigItem('keyFetchingStrategy', 5);
+  it('fheKeysPrefetching', () => {
+    expectInvalidConfigItem('fheKeysPrefetching', 'invalid-option');
+    expectInvalidConfigItem('fheKeysPrefetching', 5);
 
-    expectValidConfigItem('keyFetchingStrategy', 'CONNECTED_CHAIN', 'CONNECTED_CHAIN');
-    expectValidConfigItem('keyFetchingStrategy', 'SUPPORTED_CHAINS', 'SUPPORTED_CHAINS');
-    expectValidConfigItem('keyFetchingStrategy', undefined, 'CONNECTED_CHAIN');
+    expectValidConfigItem('fheKeysPrefetching', 'CONNECTED_CHAIN', 'CONNECTED_CHAIN');
+    expectValidConfigItem('fheKeysPrefetching', 'SUPPORTED_CHAINS', 'SUPPORTED_CHAINS');
+    expectValidConfigItem('fheKeysPrefetching', 'OFF', 'OFF');
+    expectValidConfigItem('fheKeysPrefetching', undefined, 'OFF');
   });
 
-  it('generatePermitDuringInitialization', () => {
-    expectInvalidConfigItem('generatePermitDuringInitialization', 'not-a-boolean');
-    expectInvalidConfigItem('generatePermitDuringInitialization', null);
+  it('permitGeneration', () => {
+    expectInvalidConfigItem('permitGeneration', 'not-a-boolean');
+    expectInvalidConfigItem('permitGeneration', null);
 
-    expectValidConfigItem('generatePermitDuringInitialization', true, true);
-    expectValidConfigItem('generatePermitDuringInitialization', false, false);
-    expectValidConfigItem('generatePermitDuringInitialization', undefined, false);
+    expectValidConfigItem('permitGeneration', 'ON_CONNECT', 'ON_CONNECT');
+    expectValidConfigItem('permitGeneration', 'ON_DECRYPT_HANDLES', 'ON_DECRYPT_HANDLES');
+    expectValidConfigItem('permitGeneration', 'MANUAL', 'MANUAL');
+    expectValidConfigItem('permitGeneration', undefined, 'ON_CONNECT');
+  });
+
+  it('defaultPermitExpiration', () => {
+    expectInvalidConfigItem('defaultPermitExpiration', 'not-a-number');
+    expectInvalidConfigItem('defaultPermitExpiration', null);
+
+    expectValidConfigItem('defaultPermitExpiration', 5, 5);
+    expectValidConfigItem('defaultPermitExpiration', undefined, 60 * 60 * 24 * 30);
+  });
+
+  it('mocks', () => {
+    expectInvalidConfigItem('mocks', 'not-an-object');
+    expectInvalidConfigItem('mocks', null);
+
+    expectValidConfigItem('mocks', { sealOutputDelay: 1000 }, { sealOutputDelay: 1000 });
+    expectValidConfigItem('mocks', undefined, { sealOutputDelay: 0 });
+  });
+
+  it('mocks.sealOutputDelay', () => {
+    expectInvalidConfigItem('mocks.sealOutputDelay', 'not-a-number');
+    expectInvalidConfigItem('mocks.sealOutputDelay', null);
+
+    expectValidConfigItem('mocks.sealOutputDelay', undefined, 0);
+    expectValidConfigItem('mocks.sealOutputDelay', 1000, 1000);
   });
 
   it('should get config item', () => {
@@ -53,5 +105,72 @@ describe('createCofhesdkConfig', () => {
 
     const supportedChains = getCofhesdkConfigItem(result, 'supportedChains');
     expect(supportedChains).toEqual(config.supportedChains);
+  });
+});
+
+describe('Config helper functions', () => {
+  const config = createCofhesdkConfig({
+    supportedChains: [sepolia, hardhat],
+  });
+
+  describe('getSupportedChainOrThrow', () => {
+    it('should return chain when found', () => {
+      expect(getSupportedChainOrThrow(config, sepolia.id)).toEqual(sepolia);
+    });
+
+    it('should throw UnsupportedChain error when not found', () => {
+      expect(() => getSupportedChainOrThrow(config, 999999)).toThrow();
+    });
+  });
+
+  describe('getCoFheUrlOrThrow', () => {
+    it('should return coFheUrl', () => {
+      expect(getCoFheUrlOrThrow(config, sepolia.id)).toBe(sepolia.coFheUrl);
+    });
+
+    it('should throw when chain not found', () => {
+      expect(() => getCoFheUrlOrThrow(config, 999999)).toThrow();
+    });
+
+    it('should throw MissingConfig when url not set', () => {
+      const configWithoutUrl = createCofhesdkConfig({
+        supportedChains: [{ ...sepolia, coFheUrl: undefined } as any],
+      });
+      expect(() => getCoFheUrlOrThrow(configWithoutUrl, sepolia.id)).toThrow();
+    });
+  });
+
+  describe('getZkVerifierUrlOrThrow', () => {
+    it('should return verifierUrl', () => {
+      expect(getZkVerifierUrlOrThrow(config, sepolia.id)).toBe(sepolia.verifierUrl);
+    });
+
+    it('should throw when chain not found', () => {
+      expect(() => getZkVerifierUrlOrThrow(config, 999999)).toThrow();
+    });
+
+    it('should throw ZkVerifierUrlUninitialized when url not set', () => {
+      const configWithoutUrl = createCofhesdkConfig({
+        supportedChains: [{ ...sepolia, verifierUrl: undefined } as any],
+      });
+      expect(() => getZkVerifierUrlOrThrow(configWithoutUrl, sepolia.id)).toThrow();
+    });
+  });
+
+  describe('getThresholdNetworkUrlOrThrow', () => {
+    it('should return thresholdNetworkUrl', () => {
+      expect(getThresholdNetworkUrlOrThrow(config, sepolia.id)).toBe(sepolia.thresholdNetworkUrl);
+    });
+
+    it('should throw when chain not found', () => {
+      expect(() => getThresholdNetworkUrlOrThrow(config, 999999)).toThrow();
+    });
+
+    it('should throw ThresholdNetworkUrlUninitialized when url not set', () => {
+      const configWithoutUrl = createCofhesdkConfig({
+        supportedChains: [{ ...sepolia, thresholdNetworkUrl: undefined } as any],
+      });
+      expect(() => getThresholdNetworkUrlOrThrow(configWithoutUrl, sepolia.id)).toThrow();
+    });
   });
 });

@@ -1,5 +1,5 @@
 import { hardhat } from '@cofhesdk/chains';
-import { CofhesdkConfig } from './config';
+import { CofhesdkConfig, getCoFheUrlOrThrow } from './config';
 import { getCrs, getFheKey, setCrs, setFheKey } from './keyStore';
 import { fromHexString } from './utils';
 
@@ -123,17 +123,8 @@ export const fetchKeys = async (
   tfhePublicKeySerializer: FheKeySerializer,
   compactPkeCrsSerializer: FheKeySerializer
 ) => {
-  // Get supported chain from config
-  const supportedChain = config.supportedChains.find((chain) => chain.id === chainId);
-  if (supportedChain == null) {
-    throw new Error(`Error fetching keys; supported chain not found in config for chainId ${chainId}`);
-  }
-
-  // Get cofhe url from supported chain
-  const coFheUrl = supportedChain.coFheUrl;
-  if (coFheUrl == null) {
-    throw new Error(`Error fetching keys; coFheUrl not found in config for chainId ${chainId}`);
-  }
+  // Get cofhe url from config
+  const coFheUrl = getCoFheUrlOrThrow(config, chainId);
 
   return await Promise.all([
     fetchFhePublicKey(coFheUrl, chainId, securityZone, tfhePublicKeySerializer),

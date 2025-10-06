@@ -1,5 +1,24 @@
 /* eslint-disable no-unused-vars */
 
+import {
+  CreateSelfPermitOptions,
+  Permit,
+  CreateSharingPermitOptions,
+  ImportSharedPermitOptions,
+  PermitUtils,
+} from '@cofhesdk/permits';
+import { PublicClient, WalletClient } from 'viem';
+import { CofhesdkConfig } from './config';
+import { DecryptHandlesBuilder } from './decrypt/decryptHandleBuilder';
+import { EncryptInputsBuilder } from './encrypt/encryptInputsBuilder';
+import { ZkBuilderAndCrsGenerator } from './encrypt/zkPackProveVerify';
+import { FheKeySerializer } from './fetchKeys';
+import { permits } from './permits';
+import { Result } from './result';
+import { CofhesdkError } from './error';
+
+// UTILS
+
 export type Primitive = null | undefined | string | number | boolean | symbol | bigint;
 export type LiteralToPrimitive<T> = T extends number
   ? number
@@ -16,6 +35,80 @@ export type LiteralToPrimitive<T> = T extends number
             : T extends undefined
               ? undefined
               : never;
+
+// CLIENT
+
+export type CofhesdkClient = {
+  // --- state access ---
+  getSnapshot(): CofhesdkClientConnectionState;
+  subscribe(listener: Listener): () => void;
+
+  // --- initialization results ---
+  // (functions that may be run during initialization based on config)
+  readonly initializationResults: {
+    keyFetchResult: Promise<Result<boolean>>;
+  };
+
+  // --- convenience flags (read-only) ---
+  readonly connected: boolean;
+  readonly connecting: boolean;
+
+  // --- config & platform-specific ---
+  readonly config: CofhesdkConfig;
+
+  connect(publicClient: PublicClient, walletClient: WalletClient): Promise<Result<boolean>>;
+  /**
+   * Types docstring
+   */
+  encryptInputs<T extends EncryptableItem[]>(inputs: [...T]): EncryptInputsBuilder<[...T]>;
+  decryptHandle<U extends FheTypes>(ctHash: bigint, utype: U): DecryptHandlesBuilder<U>;
+  permits: CofhesdkClientPermits;
+};
+
+export type CofhesdkClientConnectionState = {
+  connected: boolean;
+  connecting: boolean;
+  connectError: unknown | undefined;
+  chainId: number | undefined;
+  account: string | undefined;
+};
+
+type Listener = (snapshot: CofhesdkClientConnectionState) => void;
+
+export type CofhesdkClientPermits = {
+  getSnapshot: typeof permits.getSnapshot;
+  subscribe: typeof permits.subscribe;
+
+  // Creation methods (require connection, no params)
+  createSelf: (options: CreateSelfPermitOptions) => Promise<Result<Permit>>;
+  createSharing: (options: CreateSharingPermitOptions) => Promise<Result<Permit>>;
+  importShared: (options: ImportSharedPermitOptions | any | string) => Promise<Result<Permit>>;
+
+  // Retrieval methods (chainId/account optional)
+  getPermit: (hash: string, chainId?: number, account?: string) => Promise<Result<Permit | undefined>>;
+  getPermits: (chainId?: number, account?: string) => Promise<Result<Record<string, Permit>>>;
+  getActivePermit: (chainId?: number, account?: string) => Promise<Result<Permit | undefined>>;
+  getActivePermitHash: (chainId?: number, account?: string) => Promise<Result<string | undefined>>;
+
+  // Mutation methods (chainId/account optional)
+  selectActivePermit: (hash: string, chainId?: number, account?: string) => Promise<Result<void>>;
+  removePermit: (hash: string, chainId?: number, account?: string) => Promise<Result<void>>;
+  removeActivePermit: (chainId?: number, account?: string) => Promise<Result<void>>;
+
+  // Utils
+  getHash: typeof PermitUtils.getHash;
+  serialize: typeof PermitUtils.serialize;
+  deserialize: typeof PermitUtils.deserialize;
+};
+
+export type CofhesdkClientParams = {
+  config: CofhesdkConfig;
+  zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator;
+  tfhePublicKeySerializer: FheKeySerializer;
+  compactPkeCrsSerializer: FheKeySerializer;
+};
+
+// FHE TYPES
 
 export enum FheTypes {
   Bool = 0,
@@ -61,6 +154,7 @@ export const FheUintUTypes = [
   FheTypes.Uint128,
   FheTypes.Uint256,
 ] as const;
+export type FheUintUTypesType = (typeof FheUintUTypes)[number];
 
 /**
  * List of All FHE types (uints, bool, and address)
@@ -76,6 +170,8 @@ export const FheAllUTypes = [
   FheTypes.Uint160,
 ] as const;
 type FheAllUTypesType = (typeof FheAllUTypes)[number];
+
+// ENCRYPT
 
 export type EncryptedNumber = {
   data: Uint8Array;
@@ -221,12 +317,20 @@ export function isEncryptableItem(value: unknown): value is EncryptableItem {
 
 export enum EncryptStep {
   FetchKeys = 'fetchKeys',
-  Extract = 'extract',
   Pack = 'pack',
   Prove = 'prove',
   Verify = 'verify',
-  Replace = 'replace',
   Done = 'done',
 }
 
 export type EncryptSetStateFn = (state: EncryptStep) => void;
+
+// DECRYPT
+
+export type UnsealedItem<U extends FheTypes> = U extends FheTypes.Bool
+  ? boolean
+  : U extends FheTypes.Uint160
+    ? string
+    : U extends FheUintUTypesType
+      ? bigint
+      : never;

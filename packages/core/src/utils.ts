@@ -1,3 +1,6 @@
+import { PublicClient, WalletClient } from 'viem';
+import { CofhesdkError, CofhesdkErrorCode } from './error';
+
 export const toHexString = (bytes: Uint8Array) =>
   bytes.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
 
@@ -40,3 +43,46 @@ export const hexToBytes = (hex: string): Uint8Array => {
 };
 
 export const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export async function getPublicClientChainID(publicClient: PublicClient) {
+  let chainId: number | null = null;
+  try {
+    chainId = publicClient.chain?.id ?? (await publicClient.getChainId());
+  } catch (e) {
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.PublicWalletGetChainIdFailed,
+      message: 'getting chain ID from public client failed',
+      cause: e instanceof Error ? e : undefined,
+    });
+  }
+  if (chainId === null) {
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.PublicWalletGetChainIdFailed,
+      message: 'chain ID from public client is null',
+    });
+  }
+  return chainId;
+}
+
+export async function getWalletClientAccount(walletClient: WalletClient) {
+  let address: string | undefined;
+  try {
+    address = walletClient.account?.address;
+    if (!address) {
+      address = (await walletClient.getAddresses())?.[0];
+    }
+  } catch (e) {
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.PublicWalletGetAddressesFailed,
+      message: 'getting address from wallet client failed',
+      cause: e instanceof Error ? e : undefined,
+    });
+  }
+  if (!address) {
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.PublicWalletGetAddressesFailed,
+      message: 'address from wallet client is null',
+    });
+  }
+  return address;
+}

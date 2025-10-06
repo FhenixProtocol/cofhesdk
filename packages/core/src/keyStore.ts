@@ -21,7 +21,30 @@ export const keysStore = createStore<KeysStore>()(
     }),
     {
       name: 'cofhesdk-keys',
+      // TODO: Use storage from config (web -> indexedDB, node -> filesystem)
       storage: createJSONStorage(() => getStorage()),
+      merge: (persistedState, currentState) => {
+        const persisted = persistedState as KeysStore;
+        const current = currentState as KeysStore;
+
+        // Deep merge for fhe
+        // Combine both loops by iterating over the union of keys from both current.fhe and persisted.fhe
+        const mergedFhe: KeysStore['fhe'] = { ...persisted.fhe };
+        const allChainIds = new Set([...Object.keys(current.fhe), ...Object.keys(persisted.fhe)]);
+        for (const chainId of allChainIds) {
+          const persistedZones = persisted.fhe[chainId] || {};
+          const currentZones = current.fhe[chainId] || {};
+          mergedFhe[chainId] = { ...persistedZones, ...currentZones };
+        }
+
+        // Deep merge for crs (shallow, as value is Uint8Array|undefined])
+        const mergedCrs: KeysStore['crs'] = { ...persisted.crs, ...current.crs };
+
+        return {
+          fhe: mergedFhe,
+          crs: mergedCrs,
+        };
+      },
     }
   )
 );

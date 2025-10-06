@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import { CofhesdkError, InternalCofhesdkError, CofhesdkErrorCode } from './error';
+import { CofhesdkError, CofhesdkErrorCode } from './error';
 
 export type Result<T> = { success: true; data: T; error: null } | { success: false; data: null; error: CofhesdkError };
 
@@ -16,7 +16,7 @@ export const ResultOk = <T>(data: T): Result<T> => ({
 });
 
 export const ResultErrOrInternal = <T>(error: unknown): Result<T> => {
-  return ResultErr(InternalCofhesdkError(error));
+  return ResultErr(CofhesdkError.fromError(error));
 };
 
 export const ResultHttpError = (error: unknown, url: string, status?: number): CofhesdkError => {
@@ -39,12 +39,20 @@ export const ResultValidationError = (message: string): CofhesdkError => {
 };
 
 // Async resultWrapper
-export const resultWrapper = async <T>(fn: () => Promise<T>): Promise<Result<T>> => {
+export const resultWrapper = async <T>(
+  tryFn: () => Promise<T>,
+  catchFn?: (error: CofhesdkError) => void,
+  finallyFn?: () => void
+): Promise<Result<T>> => {
   try {
-    const result = await fn();
+    const result = await tryFn();
     return ResultOk(result);
   } catch (error) {
-    return ResultErrOrInternal(error);
+    const result = ResultErrOrInternal(error);
+    catchFn?.(result.error!);
+    return result as Result<T>;
+  } finally {
+    finallyFn?.();
   }
 };
 
