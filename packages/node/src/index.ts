@@ -29,8 +29,6 @@ async function initTfhe(): Promise<void> {
  * Validates that the buffer can be deserialized into a TfheCompactPublicKey
  */
 export const tfhePublicKeySerializer: FheKeySerializer = (buff: Uint8Array): void => {
-  const checksum = buff.reduce((sum, byte) => (sum + byte) % 256, 0);
-  console.log('tfhePublicKeySerializer', buff.length, checksum);
   TfheCompactPublicKey.deserialize(buff);
 };
 

@@ -136,9 +136,6 @@ describe('fetchKeys', () => {
   });
 
   it('should throw error when CRS serialization fails', async () => {
-    const existingCrs = keysStorage.getCrs(sepolia.id);
-    console.log('existingCrs', existingCrs);
-
     mockCompactPkeCrsSerializer.mockImplementation(() => {
       throw new Error('Serialization failed');
     });
