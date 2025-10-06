@@ -64,44 +64,52 @@ export const MAX_UINT64: bigint = 18446744073709551615n; // 2^64 - 1
 export const MAX_UINT128: bigint = 340282366920938463463374607431768211455n; // 2^128 - 1
 export const MAX_UINT256: bigint = 115792089237316195423570985008687907853269984665640564039457584007913129640319n; // 2^256 - 1
 export const MAX_UINT160: bigint = 1461501637330902918203684832716283019655932542975n; // 2^160 - 1
+export const MAX_ENCRYPTABLE_BITS: number = 2048;
 
 // ===== CORE FUNCTIONS =====
 
 export const zkPack = (items: EncryptableItem[], builder: ZkCiphertextListBuilder): ZkCiphertextListBuilder => {
+  let totalBits = 0;
   for (const item of items) {
     switch (item.utype) {
       case FheTypes.Bool: {
         builder.push_boolean(item.data);
+        totalBits += 1;
         break;
       }
       case FheTypes.Uint8: {
         const bint = toBigIntOrThrow(item.data);
         validateBigIntInRange(bint, MAX_UINT8);
         builder.push_u8(parseInt(bint.toString()));
+        totalBits += 8;
         break;
       }
       case FheTypes.Uint16: {
         const bint = toBigIntOrThrow(item.data);
         validateBigIntInRange(bint, MAX_UINT16);
         builder.push_u16(parseInt(bint.toString()));
+        totalBits += 16;
         break;
       }
       case FheTypes.Uint32: {
         const bint = toBigIntOrThrow(item.data);
         validateBigIntInRange(bint, MAX_UINT32);
         builder.push_u32(parseInt(bint.toString()));
+        totalBits += 32;
         break;
       }
       case FheTypes.Uint64: {
         const bint = toBigIntOrThrow(item.data);
         validateBigIntInRange(bint, MAX_UINT64);
         builder.push_u64(bint);
+        totalBits += 64;
         break;
       }
       case FheTypes.Uint128: {
         const bint = toBigIntOrThrow(item.data);
         validateBigIntInRange(bint, MAX_UINT128);
         builder.push_u128(bint);
+        totalBits += 128;
         break;
       }
       // [U256-DISABLED]
@@ -109,15 +117,40 @@ export const zkPack = (items: EncryptableItem[], builder: ZkCiphertextListBuilde
       //   const bint = toBigIntOrThrow(item.data);
       //   validateBigIntInRange(bint, MAX_UINT256);
       //   builder.push_u256(bint);
+      //   totalBits += 256;
       //   break;
       // }
       case FheTypes.Uint160: {
         const bint = toBigIntOrThrow(item.data);
         validateBigIntInRange(bint, MAX_UINT160);
         builder.push_u160(bint);
+        totalBits += 160;
         break;
       }
+      default: {
+        throw new CofhesdkError({
+          code: CofhesdkErrorCode.ZkPackFailed,
+          message: `Invalid utype: ${(item as any).utype}`,
+          hint: `Ensure that the utype is valid, using the Encryptable type, for example: Encryptable.uint128(100n)`,
+          context: {
+            item,
+          },
+        });
+      }
     }
+  }
+
+  if (totalBits > MAX_ENCRYPTABLE_BITS) {
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.ZkPackFailed,
+      message: `Total bits ${totalBits} exceeds ${MAX_ENCRYPTABLE_BITS}`,
+      hint: `Ensure that the total bits of the items to encrypt does not exceed ${MAX_ENCRYPTABLE_BITS}`,
+      context: {
+        totalBits,
+        maxBits: MAX_ENCRYPTABLE_BITS,
+        items,
+      },
+    });
   }
 
   return builder;

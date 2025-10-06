@@ -4,7 +4,7 @@ import { ZkBuilderAndCrsGenerator, zkPack, zkProve, zkVerify } from './zkPackPro
 import { CofhesdkError, CofhesdkErrorCode } from '../error';
 import { Result, resultWrapper } from '../result';
 import { EncryptSetStateFn, EncryptStep, EncryptableItem, EncryptedItemInput, EncryptedItemInputs } from '../types';
-import { cofheMocksZkVerifySign } from './cofheMocksZkVerifySign';
+import { cofheMocksCheckEncryptableBits, cofheMocksZkVerifySign } from './cofheMocksZkVerifySign';
 import { hardhat } from 'viem/chains';
 import { fetchKeys, FheKeySerializer } from '../fetchKeys';
 import { getZkVerifierUrlOrThrow } from '../config';
@@ -301,6 +301,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     await sleep(100);
 
     this.fireCallback(EncryptStep.Pack);
+
+    await cofheMocksCheckEncryptableBits(this.inputItems);
 
     await sleep(100);
 

@@ -27,6 +27,8 @@ export enum CofhesdkErrorCode {
   ZkMocksVerifySignFailed = 'ZK_MOCKS_VERIFY_SIGN_FAILED',
   ZkMocksCreateProofSignatureFailed = 'ZK_MOCKS_CREATE_PROOF_SIGNATURE_FAILED',
   ZkVerifyFailed = 'ZK_VERIFY_FAILED',
+  ZkPackFailed = 'ZK_PACK_FAILED',
+  ZkProveFailed = 'ZK_PROVE_FAILED',
   EncryptRemainingInItems = 'ENCRYPT_REMAINING_IN_ITEMS',
   ZkUninitialized = 'ZK_UNINITIALIZED',
   ZkVerifierUrlUninitialized = 'ZK_VERIFIER_URL_UNINITIALIZED',
