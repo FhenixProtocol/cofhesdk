@@ -26,6 +26,7 @@ const fetchFhePublicKey = async (
 
   // const storedKeyValid = true;
   console.log('Found stored key', {
+    storedKeyNullish: storedKey == null,
     storedKeyLen: storedKey?.length,
     storedKeySlice: `${storedKey?.slice(0, 10)}...${storedKey?.slice(-10)}`,
   });
