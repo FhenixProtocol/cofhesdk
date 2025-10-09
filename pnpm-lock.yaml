@@ -192,6 +192,9 @@ importers:
       '@cofhesdk/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.15
       '@vitest/coverage-v8':
         specifier: 1.6.0
         version: 1.6.0(vitest@1.6.0)
@@ -209,7 +212,7 @@ importers:
         version: 2.37.5(typescript@5.5.4)(zod@3.25.76)
       vitest:
         specifier: 1.6.0
-        version: 1.6.0(happy-dom@15.11.7)
+        version: 1.6.0(@types/node@20.19.15)(@vitest/browser@1.6.0)
 
   packages/permits:
     dependencies:
@@ -334,7 +337,7 @@ importers:
         version: 2.37.5(typescript@5.5.4)(zod@3.25.76)
       vitest:
         specifier: 1.6.0
-        version: 1.6.0(@types/node@20.19.15)(@vitest/browser@1.6.0)
+        version: 1.6.0(@vitest/browser@1.6.0)
 
 packages:
 
@@ -7943,6 +7946,63 @@ packages:
         optional: true
     dependencies:
       '@types/node': 20.19.15
+      '@vitest/browser': 1.6.0(playwright@1.55.0)(vitest@1.6.0)
+      '@vitest/expect': 1.6.0
+      '@vitest/runner': 1.6.0
+      '@vitest/snapshot': 1.6.0
+      '@vitest/spy': 1.6.0
+      '@vitest/utils': 1.6.0
+      acorn-walk: 8.3.4
+      chai: 4.5.0
+      debug: 4.4.0(supports-color@8.1.1)
+      execa: 8.0.1
+      local-pkg: 0.5.1
+      magic-string: 0.30.19
+      pathe: 1.1.2
+      picocolors: 1.1.1
+      std-env: 3.9.0
+      strip-literal: 2.1.1
+      tinybench: 2.9.0
+      tinypool: 0.8.4
+      vite: 5.4.20(@types/node@20.19.15)
+      vite-node: 1.6.0(@types/node@20.19.15)
+      why-is-node-running: 2.3.0
+    transitivePeerDependencies:
+      - less
+      - lightningcss
+      - sass
+      - sass-embedded
+      - stylus
+      - sugarss
+      - supports-color
+      - terser
+    dev: true
+
+  /vitest@1.6.0(@vitest/browser@1.6.0):
+    resolution: {integrity: sha512-H5r/dN06swuFnzNFhq/dnz37bPXnq8xB2xB5JOVk8K09rUtoeNN+LHWkoQ0A/i3hvbUKKcCei9KpbxqHMLhLLA==}
+    engines: {node: ^18.0.0 || >=20.0.0}
+    hasBin: true
+    peerDependencies:
+      '@edge-runtime/vm': '*'
+      '@types/node': ^18.0.0 || >=20.0.0
+      '@vitest/browser': 1.6.0
+      '@vitest/ui': 1.6.0
+      happy-dom: '*'
+      jsdom: '*'
+    peerDependenciesMeta:
+      '@edge-runtime/vm':
+        optional: true
+      '@types/node':
+        optional: true
+      '@vitest/browser':
+        optional: true
+      '@vitest/ui':
+        optional: true
+      happy-dom:
+        optional: true
+      jsdom:
+        optional: true
+    dependencies:
       '@vitest/browser': 1.6.0(playwright@1.55.0)(vitest@1.6.0)
       '@vitest/expect': 1.6.0
       '@vitest/runner': 1.6.0

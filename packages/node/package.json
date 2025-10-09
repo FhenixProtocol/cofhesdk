@@ -28,7 +28,8 @@
     "tsup": "^8.0.2",
     "typescript": "5.5.4",
     "viem": "^2.0.0",
-    "vitest": "1.6.0"
+    "vitest": "1.6.0",
+    "@types/node": "^20.0.0"
   },
   "dependencies": {
     "@cofhesdk/core": "workspace:*",
