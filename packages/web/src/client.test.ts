@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
-import { createCofhesdkClient } from './index';
+import { createCofhesdkClient } from './index.js';
 import { createCofhesdkConfig, CofhesdkClient } from '@cofhesdk/core';
 import type { PublicClient, WalletClient } from 'viem';
 import { createPublicClient, createWalletClient, http } from 'viem';

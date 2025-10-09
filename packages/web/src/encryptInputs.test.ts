@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
-import { createCofhesdkClient } from './index';
+import { createCofhesdkClient } from './index.js';
 import {
   createCofhesdkConfig,
   Encryptable,
