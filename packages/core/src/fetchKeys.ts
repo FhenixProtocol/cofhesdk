@@ -7,14 +7,6 @@ const PUBLIC_KEY_LENGTH_MIN = 15_000;
 // eslint-disable-next-line no-unused-vars
 export type FheKeySerializer = (buff: Uint8Array) => void;
 
-// const validateFheKey = (buff: Uint8Array) => {
-//   if (buff.length < PUBLIC_KEY_LENGTH_MIN) {
-//     throw new Error(
-//       `Error serializing FHE publicKey; got shorter than expected key length: ${buff.length}. Expected length >= ${PUBLIC_KEY_LENGTH_MIN}`
-//     );
-//   }
-// };
-
 const fetchFhePublicKey = async (
   coFheUrl: string,
   chainId: number,
@@ -23,14 +15,6 @@ const fetchFhePublicKey = async (
 ) => {
   // Escape if key already exists
   const storedKey = getFheKey(chainId, securityZone);
-
-  // const storedKeyValid = true;
-  console.log('Found stored key', {
-    storedKeyNullish: storedKey == null,
-    storedKeyLen: storedKey?.length,
-    storedKeySlice: `${storedKey?.slice(0, 10)}...${storedKey?.slice(-10)}`,
-  });
-
   if (storedKey != null && storedKey.length > 0) return storedKey;
 
   let pk_data: string | undefined = undefined;
@@ -64,11 +48,6 @@ const fetchFhePublicKey = async (
   }
 
   const pk_buff = fromHexString(pk_data);
-
-  console.log({
-    pk_buffLen: pk_buff.length,
-    pk_dataLen: pk_data.length,
-  });
 
   // Check validity by serializing
   try {

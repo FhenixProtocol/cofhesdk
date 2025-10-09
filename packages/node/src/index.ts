@@ -45,12 +45,6 @@ export const compactPkeCrsSerializer: FheKeySerializer = (buff: Uint8Array): voi
  * This is used internally by the SDK to create encrypted inputs
  */
 export const zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator = (fhe: Uint8Array, crs: Uint8Array) => {
-  console.log('node zkBuilderAndCrsGenerator', {
-    fheLen: fhe.length,
-    crsLen: crs.length,
-    fheSlice: `${fhe.slice(0, 10)}...${fhe.slice(-10)}`,
-    crsSlice: `${crs.slice(0, 10)}...${crs.slice(-10)}`,
-  });
   const fhePublicKey = TfheCompactPublicKey.deserialize(fhe);
   const zkBuilder = ProvenCompactCiphertextList.builder(fhePublicKey);
   const zkCrs = CompactPkeCrs.deserialize(crs);
