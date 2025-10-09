@@ -31,7 +31,7 @@ const fetchFhePublicKey = async (
     storedKeySlice: `${storedKey?.slice(0, 10)}...${storedKey?.slice(-10)}`,
   });
 
-  if (storedKey != null) return storedKey;
+  if (storedKey != null && storedKey.length >= PUBLIC_KEY_LENGTH_MIN) return storedKey;
 
   let pk_data: string | undefined = undefined;
 
@@ -91,7 +91,7 @@ const fetchCrs = async (
 ) => {
   // Escape if key already exists
   const storedKey = getCrs(chainId);
-  if (storedKey != null) return storedKey;
+  if (storedKey != null && storedKey.length >= PUBLIC_KEY_LENGTH_MIN) return storedKey;
 
   let crs_data: string | undefined = undefined;
 
