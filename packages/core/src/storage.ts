@@ -51,7 +51,7 @@ export const getStorage = (): IStorage => {
         const data = await fs.promises.readFile(filePath, 'utf8').catch(() => null);
         return data ? JSON.parse(data) : null;
       } catch (e) {
-        console.warn('Node.js filesystem modules not available, falling back to memory storage');
+        console.warn('Node.js filesystem modules not available, falling back to memory storage' + e);
         return memoryStorage[name] || null;
       }
     },
@@ -68,7 +68,7 @@ export const getStorage = (): IStorage => {
         const filePath = path.join(storageDir, `${name}.json`);
         await fs.promises.writeFile(filePath, JSON.stringify(value));
       } catch (e) {
-        console.warn('Node.js filesystem modules not available, falling back to memory storage');
+        console.warn('Node.js filesystem modules not available, falling back to memory storage' + e);
         memoryStorage[name] = JSON.stringify(value);
       }
     },
@@ -84,7 +84,7 @@ export const getStorage = (): IStorage => {
         const filePath = path.join(storageDir, `${name}.json`);
         await fs.promises.unlink(filePath).catch(() => {});
       } catch (e) {
-        console.warn('Node.js filesystem modules not available, falling back to memory storage');
+        console.warn('Node.js filesystem modules not available, falling back to memory storage' + e);
         delete memoryStorage[name];
       }
     },

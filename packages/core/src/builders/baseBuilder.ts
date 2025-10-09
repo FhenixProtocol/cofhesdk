@@ -6,14 +6,14 @@ import { CofhesdkError, CofhesdkErrorCode } from '../error';
  * Base parameters that all builders need
  */
 export type BaseBuilderParams = {
-  config?: CofhesdkConfig | undefined;
-  publicClient?: PublicClient | undefined;
-  walletClient?: WalletClient | undefined;
+  config: CofhesdkConfig | undefined;
+  publicClient: PublicClient | undefined;
+  walletClient: WalletClient | undefined;
 
-  chainId?: number;
-  account?: string;
+  chainId: number | undefined;
+  account: string | undefined;
 
-  requireConnected?: () => void;
+  requireConnected: (() => void) | undefined;
 };
 
 /**

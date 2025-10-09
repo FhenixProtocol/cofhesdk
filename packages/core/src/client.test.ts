@@ -36,6 +36,7 @@ const createTestClient = (): CofhesdkClient => {
     zkBuilderAndCrsGenerator: {} as any,
     tfhePublicKeySerializer: {} as any,
     compactPkeCrsSerializer: {} as any,
+    initTfhe: () => Promise.resolve(),
   });
 };
 
@@ -238,7 +239,7 @@ describe('createCofhesdkClient', () => {
         .encryptInputs([Encryptable.uint8(1n), Encryptable.uint8(2n), Encryptable.uint8(3n)])
         .encrypt();
       expect(result.success).toBe(false);
-      expect(result.error?.code).toBe(CofhesdkErrorCode.AccountUninitialized);
+      expect(result.error?.code).toBe(CofhesdkErrorCode.NotConnected);
     });
 
     it('should create EncryptInputsBuilder when connected', async () => {

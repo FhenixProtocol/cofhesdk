@@ -15,7 +15,7 @@ const fetchFhePublicKey = async (
 ) => {
   // Escape if key already exists
   const storedKey = getFheKey(chainId, securityZone);
-  if (storedKey != null) return storedKey;
+  if (storedKey != null && storedKey.length > 0) return storedKey;
 
   let pk_data: string | undefined = undefined;
 
@@ -70,7 +70,7 @@ const fetchCrs = async (
 ) => {
   // Escape if key already exists
   const storedKey = getCrs(chainId);
-  if (storedKey != null) return storedKey;
+  if (storedKey != null && storedKey.length > 0) return storedKey;
 
   let crs_data: string | undefined = undefined;
 

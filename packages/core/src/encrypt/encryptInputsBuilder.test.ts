@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EncryptInputsBuilder } from './encryptInputsBuilder';
 import { Result } from '../result';
-import { EncryptableItem, FheTypes, Encryptable, EncryptableUint128, EncryptStep } from '../types';
+import { EncryptableItem, FheTypes, Encryptable, EncryptableUint128, EncryptStep, TfheInitializer } from '../types';
 import { CofhesdkError, CofhesdkErrorCode } from '../error';
 import { fromHexString, toHexString } from '../utils';
 import { PublicClient, createPublicClient, http, WalletClient, createWalletClient } from 'viem';
@@ -12,6 +12,7 @@ import { CofhesdkConfig, createCofhesdkConfig } from '../config';
 import { ZkBuilderAndCrsGenerator } from './zkPackProveVerify';
 import { keysStorage } from '../keyStore';
 import { FheKeySerializer } from '../fetchKeys';
+import { expectResultSuccess, expectResultError } from '../../test/test-utils';
 
 const MockZkVerifierUrl = 'http://localhost:3001';
 
@@ -179,6 +180,10 @@ const mockCompactPkeCrsSerializer: FheKeySerializer = (buff: Uint8Array) => {
   return buff;
 };
 
+const mockInitTfhe: TfheInitializer = () => {
+  return Promise.resolve();
+};
+
 const mockZkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator = (fhe: Uint8Array, crs: Uint8Array) => {
   return {
     zkBuilder: new MockZkListBuilder(),
@@ -218,27 +223,6 @@ class MockZkProvenList {
   }
 }
 
-export const expectResultSuccess = <T>(result: Result<T>): T => {
-  expect(result.error).toBe(null);
-  expect(result.success).toBe(true);
-  expect(result.data).not.toBe(null);
-  return result.data as T;
-};
-
-export const expectResultError = <T>(result: Result<T>, errorCode?: CofhesdkErrorCode, errorMessage?: string): void => {
-  expect(result.success).toBe(false);
-  expect(result.data).toBe(null);
-  expect(result.error).not.toBe(null);
-  const error = result.error as CofhesdkError;
-  expect(error).toBeInstanceOf(CofhesdkError);
-  if (errorCode) {
-    expect(error.code).toBe(errorCode);
-  }
-  if (errorMessage) {
-    expect(error.message).toBe(errorMessage);
-  }
-};
-
 describe('EncryptInputsBuilder', () => {
   const defaultSender = '0x1234567890123456789012345678901234567890';
   const defaultChainId = 1;
@@ -255,6 +239,8 @@ describe('EncryptInputsBuilder', () => {
       tfhePublicKeySerializer: mockTfhePublicKeySerializer,
       compactPkeCrsSerializer: mockCompactPkeCrsSerializer,
       zkBuilderAndCrsGenerator: mockZkBuilderAndCrsGenerator,
+      initTfhe: mockInitTfhe,
+      requireConnected: vi.fn(),
     };
   };
 
@@ -305,6 +291,34 @@ describe('EncryptInputsBuilder', () => {
       });
       const result = await builder.encrypt();
       expectResultError(result, CofhesdkErrorCode.MissingCompactPkeCrsSerializer);
+    });
+
+    it('should throw an error if initTfhe throws an error', async () => {
+      const builder = new EncryptInputsBuilder({
+        ...createDefaultParams(),
+        initTfhe: vi.fn().mockRejectedValue(new Error('Failed to initialize TFHE')),
+      });
+      const result = await builder.encrypt();
+      expectResultError(result, CofhesdkErrorCode.InitTfheFailed);
+    });
+
+    it('should throw an error if initTfhe throws', async () => {
+      const mockInitTfhe = vi.fn().mockRejectedValue(new Error('Failed to initialize TFHE'));
+      const builder = new EncryptInputsBuilder({
+        ...createDefaultParams(),
+        initTfhe: mockInitTfhe,
+      });
+      const result = await builder.encrypt();
+      expectResultError(result, CofhesdkErrorCode.InitTfheFailed);
+    });
+
+    it('should not throw an error if initTfhe is set', async () => {
+      const builder = new EncryptInputsBuilder({
+        ...createDefaultParams(),
+        initTfhe: mockInitTfhe,
+      });
+      const result = await builder.encrypt();
+      expectResultSuccess(result);
     });
   });
 
@@ -386,13 +400,11 @@ describe('EncryptInputsBuilder', () => {
   describe('zkVerifierUrl', () => {
     it('should throw if zkVerifierUrl is not set', async () => {
       builder = new EncryptInputsBuilder({
+        ...createDefaultParams(),
         inputs: [Encryptable.uint128(100n)] as [EncryptableUint128],
         account: '0x1234567890123456789012345678901234567890',
         chainId: 1,
         config: createMockCofhesdkConfig(defaultChainId, undefined as unknown as string),
-        tfhePublicKeySerializer: mockTfhePublicKeySerializer,
-        compactPkeCrsSerializer: mockCompactPkeCrsSerializer,
-        zkBuilderAndCrsGenerator: mockZkBuilderAndCrsGenerator,
       });
 
       const result = await builder.encrypt();

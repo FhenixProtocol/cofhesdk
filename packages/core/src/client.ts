@@ -49,7 +49,8 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
   // Called before any operation, throws of connection not yet established
   const _requireConnected = () => {
     const state = connectStore.getState();
-    if (!state.connected || !_publicClient || !_walletClient || !state.account || !state.chainId) {
+    const notConnected = !state.connected || !_publicClient || !_walletClient || !state.account || !state.chainId;
+    if (notConnected) {
       throw new CofhesdkError({
         code: CofhesdkErrorCode.NotConnected,
         message: 'Client must be connected, account and chainId must be initialized',
@@ -143,6 +144,7 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
       tfhePublicKeySerializer: opts.tfhePublicKeySerializer,
       compactPkeCrsSerializer: opts.compactPkeCrsSerializer,
       zkBuilderAndCrsGenerator: opts.zkBuilderAndCrsGenerator,
+      initTfhe: opts.initTfhe,
 
       requireConnected: _requireConnected,
     });
