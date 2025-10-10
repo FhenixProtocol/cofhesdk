@@ -1,21 +1,32 @@
 import { hardhat } from '@cofhesdk/chains';
 import { CofhesdkConfig, getCoFheUrlOrThrow } from './config';
-import { getCrs, getFheKey, setCrs, setFheKey } from './keyStore';
+import { KeysStorage } from './keyStore';
 import { fromHexString } from './utils';
 
 const PUBLIC_KEY_LENGTH_MIN = 15_000;
 // eslint-disable-next-line no-unused-vars
 export type FheKeySerializer = (buff: Uint8Array) => void;
 
+const checkKeyValidity = (key: Uint8Array | undefined, serializer: FheKeySerializer) => {
+  if (key == null || key.length === 0) return false;
+  try {
+    serializer(key);
+    return true;
+  } catch (err) {
+    return false;
+  }
+};
+
 const fetchFhePublicKey = async (
   coFheUrl: string,
   chainId: number,
   securityZone: number,
-  tfhePublicKeySerializer: FheKeySerializer
+  tfhePublicKeySerializer: FheKeySerializer,
+  keysStorage?: KeysStorage | null
 ) => {
   // Escape if key already exists
-  const storedKey = getFheKey(chainId, securityZone);
-  if (storedKey != null && storedKey.length > 0) return storedKey;
+  const storedKey = keysStorage?.getFheKey(chainId, securityZone);
+  if (checkKeyValidity(storedKey, tfhePublicKeySerializer)) return storedKey!;
 
   let pk_data: string | undefined = undefined;
 
@@ -57,7 +68,7 @@ const fetchFhePublicKey = async (
   }
 
   // Store result
-  setFheKey(chainId, securityZone, pk_buff);
+  keysStorage?.setFheKey(chainId, securityZone, pk_buff);
 
   return pk_buff;
 };
@@ -66,11 +77,12 @@ const fetchCrs = async (
   coFheUrl: string,
   chainId: number,
   securityZone: number,
-  compactPkeCrsSerializer: FheKeySerializer
+  compactPkeCrsSerializer: FheKeySerializer,
+  keysStorage?: KeysStorage | null
 ) => {
   // Escape if key already exists
-  const storedKey = getCrs(chainId);
-  if (storedKey != null && storedKey.length > 0) return storedKey;
+  const storedKey = keysStorage?.getCrs(chainId);
+  if (checkKeyValidity(storedKey, compactPkeCrsSerializer)) return storedKey!;
 
   let crs_data: string | undefined = undefined;
 
@@ -101,7 +113,7 @@ const fetchCrs = async (
     throw new Error(`Error serializing CRS; ${err}`);
   }
 
-  setCrs(chainId, crs_buff);
+  keysStorage?.setCrs(chainId, crs_buff);
 
   return crs_buff;
 };
@@ -114,21 +126,23 @@ const fetchCrs = async (
  * @param securityZone - The security zone for which to retrieve the key (default 0).
  * @param tfhePublicKeySerializer - The serializer for the FHE public key (used for validation).
  * @param compactPkeCrsSerializer - The serializer for the CRS (used for validation).
- * @returns {Promise<void>} - A promise that resolves when the keys are fetched and stored.
+ * @param keysStorage - The keys storage instance to use (optional)
+ * @returns {Promise<[Uint8Array, Uint8Array]>} - A promise that resolves to [fheKey, crs]
  */
 export const fetchKeys = async (
   config: CofhesdkConfig,
   chainId: number,
   securityZone: number = 0,
   tfhePublicKeySerializer: FheKeySerializer,
-  compactPkeCrsSerializer: FheKeySerializer
-) => {
+  compactPkeCrsSerializer: FheKeySerializer,
+  keysStorage?: KeysStorage | null
+): Promise<[Uint8Array, Uint8Array]> => {
   // Get cofhe url from config
   const coFheUrl = getCoFheUrlOrThrow(config, chainId);
 
   return await Promise.all([
-    fetchFhePublicKey(coFheUrl, chainId, securityZone, tfhePublicKeySerializer),
-    fetchCrs(coFheUrl, chainId, securityZone, compactPkeCrsSerializer),
+    fetchFhePublicKey(coFheUrl, chainId, securityZone, tfhePublicKeySerializer, keysStorage),
+    fetchCrs(coFheUrl, chainId, securityZone, compactPkeCrsSerializer, keysStorage),
   ]);
 };
 
@@ -138,17 +152,21 @@ export const fetchKeys = async (
  * @param {number} securityZone - The security zone for which to retrieve the key (default 0).
  * @param tfhePublicKeySerializer - The serializer for the FHE public key (used for validation).
  * @param compactPkeCrsSerializer - The serializer for the CRS (used for validation).
+ * @param keysStorage - The keys storage instance to use (optional)
  * @returns {Promise<void>} - A promise that resolves when the keys are fetched and stored.
  */
 export const fetchMultichainKeys = async (
   config: CofhesdkConfig,
   securityZone: number = 0,
   tfhePublicKeySerializer: FheKeySerializer,
-  compactPkeCrsSerializer: FheKeySerializer
-) => {
+  compactPkeCrsSerializer: FheKeySerializer,
+  keysStorage?: KeysStorage | null
+): Promise<void> => {
   await Promise.all(
     config.supportedChains
       .filter((chain) => chain.id !== hardhat.id)
-      .map((chain) => fetchKeys(config, chain.id, securityZone, tfhePublicKeySerializer, compactPkeCrsSerializer))
+      .map((chain) =>
+        fetchKeys(config, chain.id, securityZone, tfhePublicKeySerializer, compactPkeCrsSerializer, keysStorage)
+      )
   );
 };
