@@ -63,7 +63,14 @@ export const CofhesdkConfigSchema = z.object({
     .optional()
     .default(60 * 60 * 24 * 30),
   /** Storage method for fhe keys (defaults to indexedDB on web, filesystem on node) */
-  fheKeyStorage: z.custom<IStorage | null>().optional().default(null),
+  fheKeyStorage: z
+    .object({
+      getItem: z.function().args(z.string()).returns(z.promise(z.any())),
+      setItem: z.function().args(z.string(), z.any()).returns(z.promise(z.void())),
+      removeItem: z.function().args(z.string()).returns(z.promise(z.void())),
+    })
+    .or(z.null())
+    .default(null),
   /** Mocks configs */
   mocks: z
     .object({
@@ -83,7 +90,6 @@ export const CofhesdkConfigSchema = z.object({
  * Input config type inferred from the schema
  */
 export type CofhesdkInputConfig = z.input<typeof CofhesdkConfigSchema>;
-
 /**
  * Creates and validates a cofhesdk configuration
  * @param config - The configuration object to validate

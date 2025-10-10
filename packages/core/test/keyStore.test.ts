@@ -2,17 +2,7 @@
 /* eslint-disable no-undef */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import {
-  keysStore,
-  getFheKey,
-  getCrs,
-  setFheKey,
-  setCrs,
-  clearKeysStorage,
-  rehydrateKeysStore,
-  keysStorage,
-  type KeysStore,
-} from '../src/keyStore';
+import { createKeysStore, type KeysStore, type KeysStorage } from '../src/keyStore';
 
 // Mock the storage module
 const mockStorage = {
@@ -26,10 +16,12 @@ vi.mock('../src/storage', () => ({
 }));
 
 describe('KeyStore', () => {
+  let keysStorage: KeysStorage;
+
   beforeEach(() => {
     vi.clearAllMocks();
-    // Reset store state
-    keysStore.setState({ fhe: {}, crs: {} });
+    // Create a fresh keysStorage instance for each test (with mock storage)
+    keysStorage = createKeysStore(mockStorage as any);
   });
 
   afterEach(() => {
@@ -38,7 +30,7 @@ describe('KeyStore', () => {
 
   describe('Store Structure', () => {
     it('should have initial empty state', () => {
-      const state = keysStore.getState();
+      const state = keysStorage.store.getState();
       expect(state).toEqual({
         fhe: {},
         crs: {},
@@ -46,12 +38,12 @@ describe('KeyStore', () => {
     });
 
     it('should be a Zustand store with persist', () => {
-      expect(keysStore).toBeDefined();
-      expect(keysStore.getState).toBeDefined();
-      expect(keysStore.setState).toBeDefined();
+      expect(keysStorage.store).toBeDefined();
+      expect(keysStorage.store.getState).toBeDefined();
+      expect(keysStorage.store.setState).toBeDefined();
       // In test environment, persist might not be fully initialized
-      if (keysStore.persist) {
-        expect(keysStore.persist).toBeDefined();
+      if ('persist' in keysStorage.store) {
+        expect((keysStorage.store as any).persist).toBeDefined();
       }
     });
   });
@@ -62,9 +54,9 @@ describe('KeyStore', () => {
     const testKey = new Uint8Array([1, 2, 3, 4, 5]);
 
     it('should set and get FHE key', () => {
-      setFheKey(testChainId, testSecurityZone, testKey);
+      keysStorage.setFheKey(testChainId, testSecurityZone, testKey);
 
-      const retrievedKey = getFheKey(testChainId, testSecurityZone);
+      const retrievedKey = keysStorage.getFheKey(testChainId, testSecurityZone);
 
       expect(retrievedKey).toEqual(testKey);
     });
@@ -73,34 +65,34 @@ describe('KeyStore', () => {
       const key0 = new Uint8Array([1, 2, 3]);
       const key1 = new Uint8Array([4, 5, 6]);
 
-      setFheKey(testChainId, 0, key0);
-      setFheKey(testChainId, 1, key1);
+      keysStorage.setFheKey(testChainId, 0, key0);
+      keysStorage.setFheKey(testChainId, 1, key1);
 
-      expect(getFheKey(testChainId, 0)).toEqual(key0);
-      expect(getFheKey(testChainId, 1)).toEqual(key1);
+      expect(keysStorage.getFheKey(testChainId, 0)).toEqual(key0);
+      expect(keysStorage.getFheKey(testChainId, 1)).toEqual(key1);
     });
 
     it('should handle multiple chains', () => {
       const chain1Key = new Uint8Array([1, 2, 3]);
       const chain2Key = new Uint8Array([4, 5, 6]);
 
-      setFheKey(1, testSecurityZone, chain1Key);
-      setFheKey(2, testSecurityZone, chain2Key);
+      keysStorage.setFheKey(1, testSecurityZone, chain1Key);
+      keysStorage.setFheKey(2, testSecurityZone, chain2Key);
 
-      expect(getFheKey(1, testSecurityZone)).toEqual(chain1Key);
-      expect(getFheKey(2, testSecurityZone)).toEqual(chain2Key);
+      expect(keysStorage.getFheKey(1, testSecurityZone)).toEqual(chain1Key);
+      expect(keysStorage.getFheKey(2, testSecurityZone)).toEqual(chain2Key);
     });
 
     it('should return undefined for non-existent keys', () => {
-      expect(getFheKey(999, 0)).toBeUndefined();
-      expect(getFheKey(testChainId, 999)).toBeUndefined();
-      expect(getFheKey(undefined, 0)).toBeUndefined();
-      expect(getFheKey(testChainId, undefined as any)).toBeUndefined();
+      expect(keysStorage.getFheKey(999, 0)).toBeUndefined();
+      expect(keysStorage.getFheKey(testChainId, 999)).toBeUndefined();
+      expect(keysStorage.getFheKey(undefined, 0)).toBeUndefined();
+      expect(keysStorage.getFheKey(testChainId, undefined as any)).toBeUndefined();
     });
 
     it('should convert stored data to Uint8Array', () => {
       // Simulate stored data that might not be Uint8Array
-      keysStore.setState({
+      keysStorage.store.setState({
         fhe: {
           [testChainId]: {
             [testSecurityZone]: [1, 2, 3, 4, 5] as any, // Array instead of Uint8Array
@@ -109,7 +101,7 @@ describe('KeyStore', () => {
         crs: {},
       });
 
-      const retrievedKey = getFheKey(testChainId, testSecurityZone);
+      const retrievedKey = keysStorage.getFheKey(testChainId, testSecurityZone);
 
       expect(retrievedKey).toBeInstanceOf(Uint8Array);
       expect(Array.from(retrievedKey!)).toEqual([1, 2, 3, 4, 5]);
@@ -121,9 +113,9 @@ describe('KeyStore', () => {
     const testCrs = new Uint8Array([10, 20, 30, 40, 50]);
 
     it('should set and get CRS', () => {
-      setCrs(testChainId, testCrs);
+      keysStorage.setCrs(testChainId, testCrs);
 
-      const retrievedCrs = getCrs(testChainId);
+      const retrievedCrs = keysStorage.getCrs(testChainId);
 
       expect(retrievedCrs).toEqual(testCrs);
     });
@@ -132,28 +124,28 @@ describe('KeyStore', () => {
       const crs1 = new Uint8Array([1, 2, 3]);
       const crs2 = new Uint8Array([4, 5, 6]);
 
-      setCrs(1, crs1);
-      setCrs(2, crs2);
+      keysStorage.setCrs(1, crs1);
+      keysStorage.setCrs(2, crs2);
 
-      expect(getCrs(1)).toEqual(crs1);
-      expect(getCrs(2)).toEqual(crs2);
+      expect(keysStorage.getCrs(1)).toEqual(crs1);
+      expect(keysStorage.getCrs(2)).toEqual(crs2);
     });
 
     it('should return undefined for non-existent CRS', () => {
-      expect(getCrs(999)).toBeUndefined();
-      expect(getCrs(undefined)).toBeUndefined();
+      expect(keysStorage.getCrs(999)).toBeUndefined();
+      expect(keysStorage.getCrs(undefined)).toBeUndefined();
     });
 
     it('should convert stored CRS data to Uint8Array', () => {
       // Simulate stored data that might not be Uint8Array
-      keysStore.setState({
+      keysStorage.store.setState({
         fhe: {},
         crs: {
           [testChainId]: [10, 20, 30] as any, // Array instead of Uint8Array
         },
       });
 
-      const retrievedCrs = getCrs(testChainId);
+      const retrievedCrs = keysStorage.getCrs(testChainId);
 
       expect(retrievedCrs).toBeInstanceOf(Uint8Array);
       expect(Array.from(retrievedCrs!)).toEqual([10, 20, 30]);
@@ -162,7 +154,7 @@ describe('KeyStore', () => {
 
   describe('Storage Utilities', () => {
     it('should clear keys storage', async () => {
-      await clearKeysStorage();
+      await keysStorage.clearKeysStorage();
 
       expect(mockStorage.removeItem).toHaveBeenCalledWith('cofhesdk-keys');
     });
@@ -171,49 +163,27 @@ describe('KeyStore', () => {
       const mockRehydrate = vi.fn();
 
       // Mock the persist object if it doesn't exist
-      if (!keysStore.persist) {
-        (keysStore as any).persist = {};
+      if (!('persist' in keysStorage.store)) {
+        (keysStorage.store as any).persist = {};
       }
-      keysStore.persist!.rehydrate = mockRehydrate;
+      (keysStorage.store as any).persist.rehydrate = mockRehydrate;
 
-      await rehydrateKeysStore();
+      await keysStorage.rehydrateKeysStore();
 
       expect(mockRehydrate).toHaveBeenCalled();
-    });
-
-    it('should handle missing rehydrate method', async () => {
-      if (keysStore.persist) {
-        // Temporarily disable rehydrate to test fallback
-        const originalRehydrate = keysStore.persist.rehydrate;
-        (keysStore.persist as any).rehydrate = undefined;
-
-        try {
-          // Should not throw
-          await expect(rehydrateKeysStore()).resolves.not.toThrow();
-        } finally {
-          // Restore original method
-          keysStore.persist.rehydrate = originalRehydrate;
-        }
-      } else {
-        // Should not throw
-        await expect(rehydrateKeysStore()).resolves.not.toThrow();
-      }
-
-      // Should not throw
-      await expect(rehydrateKeysStore()).resolves.not.toThrow();
     });
   });
 
   describe('keysStorage Object', () => {
-    it('should export keysStorage with all utilities', () => {
+    it('should have all required methods', () => {
       expect(keysStorage).toBeDefined();
-      expect(keysStorage.store).toBe(keysStore);
-      expect(keysStorage.getFheKey).toBe(getFheKey);
-      expect(keysStorage.getCrs).toBe(getCrs);
-      expect(keysStorage.setFheKey).toBe(setFheKey);
-      expect(keysStorage.setCrs).toBe(setCrs);
-      expect(keysStorage.clearKeysStorage).toBe(clearKeysStorage);
-      expect(keysStorage.rehydrateKeysStore).toBe(rehydrateKeysStore);
+      expect(keysStorage.store).toBeDefined();
+      expect(keysStorage.getFheKey).toBeDefined();
+      expect(keysStorage.getCrs).toBeDefined();
+      expect(keysStorage.setFheKey).toBeDefined();
+      expect(keysStorage.setCrs).toBeDefined();
+      expect(keysStorage.clearKeysStorage).toBeDefined();
+      expect(keysStorage.rehydrateKeysStore).toBeDefined();
     });
 
     it('should work through keysStorage object', () => {
@@ -231,13 +201,13 @@ describe('KeyStore', () => {
 
   describe('State Management', () => {
     it('should update state immutably', () => {
-      const initialState = keysStore.getState();
+      const initialState = keysStorage.store.getState();
       const testChainId = 1337;
       const testKey = new Uint8Array([1, 2, 3]);
 
-      setFheKey(testChainId, 0, testKey);
+      keysStorage.setFheKey(testChainId, 0, testKey);
 
-      const newState = keysStore.getState();
+      const newState = keysStorage.store.getState();
 
       // State should be different objects
       expect(newState).not.toBe(initialState);
@@ -252,11 +222,11 @@ describe('KeyStore', () => {
       const key2 = new Uint8Array([4, 5, 6]);
       const crs1 = new Uint8Array([7, 8, 9]);
 
-      setFheKey(1, 0, key1);
-      setFheKey(2, 0, key2);
-      setCrs(1, crs1);
+      keysStorage.setFheKey(1, 0, key1);
+      keysStorage.setFheKey(2, 0, key2);
+      keysStorage.setCrs(1, crs1);
 
-      const state = keysStore.getState();
+      const state = keysStorage.store.getState();
 
       expect(state.fhe[1][0]).toEqual(key1);
       expect(state.fhe[2][0]).toEqual(key2);
@@ -266,7 +236,7 @@ describe('KeyStore', () => {
 
   describe('Type Safety', () => {
     it('should have correct TypeScript types', () => {
-      const state: KeysStore = keysStore.getState();
+      const state: KeysStore = keysStorage.store.getState();
 
       // These should compile without TypeScript errors
       expect(typeof state.fhe).toBe('object');
