@@ -67,20 +67,19 @@ export const zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator = (fhe: Uint8Arr
 export function createCofhesdkConfig(config: CofhesdkInputConfig): CofhesdkConfig {
   return createCofhesdkConfigCore({
     ...config,
-    fheKeyStorage: config.fheKeyStorage ?? createWebStorage(),
+    fheKeyStorage: config.fheKeyStorage === null ? null : config.fheKeyStorage ?? createWebStorage(),
   });
 }
 
 /**
  * Creates a CoFHE SDK client instance for web with TFHE automatically configured
  * TFHE will be initialized automatically on first encryption - no manual setup required
- * @param config - The CoFHE SDK input configuration (fheKeyStorage will default to IndexedDB if not provided)
+ * @param config - The CoFHE SDK configuration (use createCofhesdkConfig to create with web defaults)
  * @returns The CoFHE SDK client instance
  */
-export function createCofhesdkClient(config: CofhesdkInputConfig): CofhesdkClient {
-  const validatedConfig = createCofhesdkConfig(config);
+export function createCofhesdkClient(config: CofhesdkConfig): CofhesdkClient {
   return createCofhesdkClientCore({
-    config: validatedConfig,
+    config,
     zkBuilderAndCrsGenerator,
     tfhePublicKeySerializer,
     compactPkeCrsSerializer,
