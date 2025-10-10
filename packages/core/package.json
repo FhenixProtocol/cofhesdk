@@ -15,10 +15,7 @@
     "lint": "eslint \"src/**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
-    "test": "pnpm run test:all",
-    "test:node": "vitest --config vitest.config.mts --reporter=verbose",
-    "test:browser": "vitest --config vitest.browser.config.mts --reporter=verbose",
-    "test:all": "pnpm run test:node --run && pnpm run test:browser --run",
+    "test": "vitest --config vitest.config.mts --reporter=verbose",
     "coverage": "vitest run --coverage"
   },
   "devDependencies": {

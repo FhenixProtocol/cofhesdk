@@ -110,6 +110,12 @@ export type CofhesdkClientParams = {
   initTfhe: TfheInitializer;
 };
 
+export interface IStorage {
+  getItem: (name: string) => Promise<any>;
+  setItem: (name: string, value: any) => Promise<void>;
+  removeItem: (name: string) => Promise<void>;
+}
+
 // FHE TYPES
 
 export enum FheTypes {

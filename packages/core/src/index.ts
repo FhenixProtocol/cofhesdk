@@ -12,6 +12,7 @@ export type {
   CofhesdkClientParams,
   CofhesdkClientConnectionState,
   CofhesdkClientPermits,
+  IStorage,
   // Primitive types
   Primitive,
   LiteralToPrimitive,
@@ -67,9 +68,6 @@ export type { FheKeySerializer } from './fetchKeys';
 // Key storage
 export { createKeysStore } from './keyStore';
 export type { KeysStorage, KeysStore } from './keyStore';
-
-// Storage interface
-export type { IStorage } from './storage';
 
 // Builders (exported via client, but can be imported directly for typing)
 export { EncryptInputsBuilder } from './encrypt/encryptInputsBuilder';

@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { CofheChain } from '@cofhesdk/chains';
 import { WalletClient } from 'viem';
 import { CofhesdkError, CofhesdkErrorCode } from './error';
-import { IStorage } from './storage';
+import { IStorage } from './types';
 
 /**
  * Usable config type inferred from the schema

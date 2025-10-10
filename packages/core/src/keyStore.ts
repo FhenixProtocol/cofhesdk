@@ -2,7 +2,7 @@
 import { createStore, StoreApi } from 'zustand/vanilla';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { produce } from 'immer';
-import { IStorage } from './storage';
+import { IStorage } from './types';
 
 // Type definitions
 type ChainRecord<T> = Record<string, T>;
