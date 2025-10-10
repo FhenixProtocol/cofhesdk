@@ -9,9 +9,15 @@ import { Encryptable } from './types';
 
 // Mock dependencies
 vi.mock('./keyStore', () => ({
-  keysStorage: {
+  createKeysStore: vi.fn(() => ({
     rehydrateKeysStore: vi.fn().mockResolvedValue(undefined),
-  },
+    getFheKey: vi.fn(),
+    getCrs: vi.fn(),
+    setFheKey: vi.fn(),
+    setCrs: vi.fn(),
+    clearKeysStorage: vi.fn(),
+    store: {} as any,
+  })),
 }));
 
 vi.mock('./fetchKeys', () => ({

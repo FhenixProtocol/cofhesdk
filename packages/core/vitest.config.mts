@@ -5,7 +5,7 @@ export default defineConfig({
     environment: 'node',
     globals: true,
     include: ['./**/*.test.ts'],
-    exclude: ['./**/*.browser.test.ts', 'node_modules'], // Exclude browser tests from Node.js runs
+    exclude: ['node_modules'],
     testTimeout: 10000,
     coverage: {
       provider: 'v8',

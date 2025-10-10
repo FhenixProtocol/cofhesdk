@@ -1,13 +1,19 @@
 // Re-export everything from core except createCofhesdkClient
 export * from '@cofhesdk/core';
 
+// Export node-specific storage
+export { createNodeStorage } from './storage';
+import { createNodeStorage } from './storage';
+
 // Import node-tfhe for Node.js
 import { TfheCompactPublicKey, ProvenCompactCiphertextList, CompactPkeCrs, init_panic_hook } from 'node-tfhe';
 
 import {
   createCofhesdkClient as createCofhesdkClientCore,
+  createCofhesdkConfig as createCofhesdkConfigCore,
   type CofhesdkClient,
   type CofhesdkConfig,
+  type CofhesdkInputConfig,
   type ZkBuilderAndCrsGenerator,
   type FheKeySerializer,
 } from '@cofhesdk/core';
@@ -53,9 +59,21 @@ export const zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator = (fhe: Uint8Arr
 };
 
 /**
+ * Creates a CoFHE SDK configuration for Node.js with filesystem storage as default
+ * @param config - The CoFHE SDK input configuration (fheKeyStorage will default to filesystem if not provided)
+ * @returns The CoFHE SDK configuration with Node.js defaults applied
+ */
+export function createCofhesdkConfig(config: CofhesdkInputConfig): CofhesdkConfig {
+  return createCofhesdkConfigCore({
+    ...config,
+    fheKeyStorage: config.fheKeyStorage === null ? null : config.fheKeyStorage ?? createNodeStorage(),
+  });
+}
+
+/**
  * Creates a CoFHE SDK client instance for Node.js with node-tfhe automatically configured
  * TFHE will be initialized automatically on first encryption - no manual setup required
- * @param config - The CoFHE SDK configuration
+ * @param config - The CoFHE SDK configuration (use createCofhesdkConfig to create with Node.js defaults)
  * @returns The CoFHE SDK client instance
  */
 export function createCofhesdkClient(config: CofhesdkConfig): CofhesdkClient {

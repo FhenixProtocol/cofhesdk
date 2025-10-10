@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { CofheChain } from '@cofhesdk/chains';
 import { WalletClient } from 'viem';
 import { CofhesdkError, CofhesdkErrorCode } from './error';
+import { IStorage } from './types';
 
 /**
  * Usable config type inferred from the schema
@@ -24,6 +25,12 @@ export type CofhesdkConfig = {
   permitGeneration: 'ON_CONNECT' | 'ON_DECRYPT_HANDLES' | 'MANUAL';
   /** Default permit expiration in seconds, default is 30 days */
   defaultPermitExpiration: number;
+  /**
+   * Storage scheme for the fetched fhe keys
+   * FHE keys are large, and caching prevents re-fetching them on each encryptInputs call
+   * (defaults to indexedDB on web, filesystem on node)
+   */
+  fheKeyStorage: IStorage | null;
   /** Mocks configs */
   mocks: {
     /**
@@ -55,6 +62,15 @@ export const CofhesdkConfigSchema = z.object({
     .number()
     .optional()
     .default(60 * 60 * 24 * 30),
+  /** Storage method for fhe keys (defaults to indexedDB on web, filesystem on node) */
+  fheKeyStorage: z
+    .object({
+      getItem: z.function().args(z.string()).returns(z.promise(z.any())),
+      setItem: z.function().args(z.string(), z.any()).returns(z.promise(z.void())),
+      removeItem: z.function().args(z.string()).returns(z.promise(z.void())),
+    })
+    .or(z.null())
+    .default(null),
   /** Mocks configs */
   mocks: z
     .object({
@@ -74,7 +90,6 @@ export const CofhesdkConfigSchema = z.object({
  * Input config type inferred from the schema
  */
 export type CofhesdkInputConfig = z.input<typeof CofhesdkConfigSchema>;
-
 /**
  * Creates and validates a cofhesdk configuration
  * @param config - The configuration object to validate

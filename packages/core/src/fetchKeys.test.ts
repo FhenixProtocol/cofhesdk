@@ -4,13 +4,14 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { fetchKeys, fetchMultichainKeys } from './fetchKeys';
 import { CofhesdkConfig, createCofhesdkConfig } from './config';
-import { keysStorage } from './keyStore';
+import { createKeysStore, KeysStorage } from './keyStore';
 import { sepolia, arbSepolia } from '@cofhesdk/chains';
 
 describe('fetchKeys', () => {
   let config: CofhesdkConfig;
   let mockTfhePublicKeySerializer: any;
   let mockCompactPkeCrsSerializer: any;
+  let keysStorage: KeysStorage;
 
   beforeEach(async () => {
     // Reset all mocks
@@ -25,21 +26,16 @@ describe('fetchKeys', () => {
     mockTfhePublicKeySerializer = vi.fn();
     mockCompactPkeCrsSerializer = vi.fn();
 
-    // Clear store and storage
-    await keysStorage.clearKeysStorage();
-    keysStorage.store.setState({ fhe: {}, crs: {} });
+    // Create a fresh keysStorage instance for each test (non-persisted)
+    keysStorage = createKeysStore(null);
   });
 
   afterEach(async () => {
     vi.restoreAllMocks();
-
-    // Clear store and storage
-    await keysStorage.clearKeysStorage();
-    keysStorage.store.setState({ fhe: {}, crs: {} });
   });
 
   it('should fetch and store FHE public key and CRS for Sepolia when not cached', async () => {
-    await fetchKeys(config, sepolia.id, 0, mockTfhePublicKeySerializer, mockCompactPkeCrsSerializer);
+    await fetchKeys(config, sepolia.id, 0, mockTfhePublicKeySerializer, mockCompactPkeCrsSerializer, keysStorage);
 
     // Verify keys were stored
     const storedFheKey = keysStorage.getFheKey(sepolia.id, 0);
@@ -52,7 +48,7 @@ describe('fetchKeys', () => {
   });
 
   it('should fetch and store FHE public key and CRS for Arbitrum Sepolia when not cached', async () => {
-    await fetchKeys(config, arbSepolia.id, 0, mockTfhePublicKeySerializer, mockCompactPkeCrsSerializer);
+    await fetchKeys(config, arbSepolia.id, 0, mockTfhePublicKeySerializer, mockCompactPkeCrsSerializer, keysStorage);
 
     // Verify keys were stored
     const storedFheKey = keysStorage.getFheKey(arbSepolia.id, 0);
@@ -69,7 +65,7 @@ describe('fetchKeys', () => {
     const mockCachedKey = new Uint8Array([1, 2, 3]);
     keysStorage.setFheKey(sepolia.id, 0, mockCachedKey);
 
-    await fetchKeys(config, sepolia.id, 0, mockTfhePublicKeySerializer, mockCompactPkeCrsSerializer);
+    await fetchKeys(config, sepolia.id, 0, mockTfhePublicKeySerializer, mockCompactPkeCrsSerializer, keysStorage);
 
     // Verify the cached key wasn't overwritten
     const retrievedKey = keysStorage.getFheKey(sepolia.id, 0);
@@ -85,7 +81,7 @@ describe('fetchKeys', () => {
     const mockCachedCrs = new Uint8Array([4, 5, 6]);
     keysStorage.setCrs(sepolia.id, mockCachedCrs);
 
-    await fetchKeys(config, sepolia.id, 0, mockTfhePublicKeySerializer, mockCompactPkeCrsSerializer);
+    await fetchKeys(config, sepolia.id, 0, mockTfhePublicKeySerializer, mockCompactPkeCrsSerializer, keysStorage);
 
     // Verify the cached CRS wasn't overwritten
     const retrievedCrs = keysStorage.getCrs(sepolia.id);
@@ -103,7 +99,7 @@ describe('fetchKeys', () => {
     keysStorage.setFheKey(sepolia.id, 0, mockCachedKey);
     keysStorage.setCrs(sepolia.id, mockCachedCrs);
 
-    await fetchKeys(config, sepolia.id, 0, mockTfhePublicKeySerializer, mockCompactPkeCrsSerializer);
+    await fetchKeys(config, sepolia.id, 0, mockTfhePublicKeySerializer, mockCompactPkeCrsSerializer, keysStorage);
 
     // Verify both keys remain unchanged
     const retrievedKey = keysStorage.getFheKey(sepolia.id, 0);
@@ -120,7 +116,8 @@ describe('fetchKeys', () => {
         999, // Non-existent chain
         0,
         mockTfhePublicKeySerializer,
-        mockCompactPkeCrsSerializer
+        mockCompactPkeCrsSerializer,
+        keysStorage
       )
     ).rejects.toThrow('Config does not support chain <999>');
   });
@@ -131,7 +128,7 @@ describe('fetchKeys', () => {
     });
 
     await expect(
-      fetchKeys(config, sepolia.id, 0, mockTfhePublicKeySerializer, mockCompactPkeCrsSerializer)
+      fetchKeys(config, sepolia.id, 0, mockTfhePublicKeySerializer, mockCompactPkeCrsSerializer, keysStorage)
     ).rejects.toThrow('Error serializing FHE publicKey; Error: Serialization failed');
   });
 
@@ -141,12 +138,12 @@ describe('fetchKeys', () => {
     });
 
     await expect(
-      fetchKeys(config, sepolia.id, 0, mockTfhePublicKeySerializer, mockCompactPkeCrsSerializer)
+      fetchKeys(config, sepolia.id, 0, mockTfhePublicKeySerializer, mockCompactPkeCrsSerializer, keysStorage)
     ).rejects.toThrow('Error serializing CRS; Error: Serialization failed');
   });
 
   it('should fetch and store FHE public key and CRS for all chains in the config', async () => {
-    await fetchMultichainKeys(config, 0, mockTfhePublicKeySerializer, mockCompactPkeCrsSerializer);
+    await fetchMultichainKeys(config, 0, mockTfhePublicKeySerializer, mockCompactPkeCrsSerializer, keysStorage);
 
     // Verify keys were stored
     const storedFheKey = keysStorage.getFheKey(sepolia.id, 0);

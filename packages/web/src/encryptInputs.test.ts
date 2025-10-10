@@ -1,14 +1,6 @@
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
-import { createCofhesdkClient } from './index.js';
-import {
-  createCofhesdkConfig,
-  Encryptable,
-  FheTypes,
-  CofhesdkClient,
-  Result,
-  CofhesdkErrorCode,
-  CofhesdkError,
-} from '@cofhesdk/core';
+import { createCofhesdkClient, createCofhesdkConfig } from './index.js';
+import { Encryptable, FheTypes, CofhesdkClient, Result, CofhesdkErrorCode, CofhesdkError } from '@cofhesdk/core';
 import type { PublicClient, WalletClient } from 'viem';
 import { createPublicClient, createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
@@ -59,7 +51,6 @@ describe('@cofhesdk/web - Encrypt Inputs Browser Tests', () => {
     const config = createCofhesdkConfig({
       supportedChains: [cofhesdkArbSepolia],
     });
-
     cofhesdkClient = createCofhesdkClient(config);
   });
 

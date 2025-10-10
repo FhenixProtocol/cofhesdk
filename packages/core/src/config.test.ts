@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+/* eslint-disable no-unused-vars */
+import { describe, it, expect, vi } from 'vitest';
 import {
   createCofhesdkConfig,
   getCofhesdkConfigItem,
@@ -29,9 +30,17 @@ describe('createCofhesdkConfig', () => {
     return path.split('.').reduce((acc, key) => acc?.[key], obj);
   };
 
-  const expectInvalidConfigItem = (path: string, value: any): void => {
+  const expectInvalidConfigItem = (path: string, value: any, log = false): void => {
     const config = { ...validBaseConfig };
     setNestedValue(config, path, value);
+    if (log) {
+      console.log('expect config invalid', path, value, config);
+      try {
+        createCofhesdkConfig(config as CofhesdkInputConfig);
+      } catch (e) {
+        console.log('expect config invalid', path, value, config, e);
+      }
+    }
     expect(() => createCofhesdkConfig(config as CofhesdkInputConfig)).toThrow('Invalid cofhesdk configuration:');
   };
 
@@ -78,6 +87,44 @@ describe('createCofhesdkConfig', () => {
 
     expectValidConfigItem('defaultPermitExpiration', 5, 5);
     expectValidConfigItem('defaultPermitExpiration', undefined, 60 * 60 * 24 * 30);
+  });
+
+  it('fheKeyStorage', async () => {
+    expectInvalidConfigItem('fheKeyStorage', 'not-an-object');
+
+    expectValidConfigItem('fheKeyStorage', undefined, null);
+    expectValidConfigItem('fheKeyStorage', null, null);
+
+    let getItemCalled = false;
+    let setItemCalled = false;
+    let removeItemCalled = false;
+
+    const fakeStorage = {
+      getItem: (name: string) => {
+        getItemCalled = true;
+        return Promise.resolve(null);
+      },
+      setItem: (name: string, value: any) => {
+        setItemCalled = true;
+        return Promise.resolve();
+      },
+      removeItem: (name: string) => {
+        removeItemCalled = true;
+        return Promise.resolve();
+      },
+    };
+
+    const config = { ...validBaseConfig, fheKeyStorage: fakeStorage };
+    const result = createCofhesdkConfig(config);
+
+    expect(result.fheKeyStorage).not.toBeNull();
+    await result.fheKeyStorage!.getItem('test');
+    await result.fheKeyStorage!.setItem('test', 'test');
+    await result.fheKeyStorage!.removeItem('test');
+
+    expect(getItemCalled).toBe(true);
+    expect(setItemCalled).toBe(true);
+    expect(removeItemCalled).toBe(true);
   });
 
   it('mocks', () => {

@@ -5,7 +5,7 @@ import { fetchMultichainKeys } from './fetchKeys';
 import { CofhesdkError, CofhesdkErrorCode } from './error';
 import { EncryptInputsBuilder } from './encrypt/encryptInputsBuilder';
 import { Result, ResultOk, resultWrapper } from './result';
-import { keysStorage } from './keyStore';
+import { createKeysStore } from './keyStore';
 import { permits } from './permits';
 import type { CreateSelfPermitOptions, CreateSharingPermitOptions, ImportSharedPermitOptions } from '@cofhesdk/permits';
 import { DecryptHandlesBuilder } from './decrypt/decryptHandleBuilder';
@@ -25,6 +25,10 @@ import { getPublicClientChainID, getWalletClientAccount } from './utils';
  * @returns {CofhesdkClient} - The CoFHE SDK client instance
  */
 export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient {
+  // Create keysStorage instance using configured storage
+  const keysStorage = createKeysStore(opts.config.fheKeyStorage);
+  if (opts.config.fheKeyStorage != null) keysStorage.rehydrateKeysStore();
+
   // refs captured in closure
   let _publicClient: PublicClient | undefined = undefined;
   let _walletClient: WalletClient | undefined = undefined;
@@ -69,12 +73,15 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
   // INITIALIZATION
 
   const keyFetchResult = resultWrapper(async () => {
-    // Hydrate keyStore
-    await keysStorage.rehydrateKeysStore();
-
     // If configured, fetch keys for all supported chains
     if (opts.config.fheKeysPrefetching === 'SUPPORTED_CHAINS') {
-      await fetchMultichainKeys(opts.config, 0, opts.tfhePublicKeySerializer, opts.compactPkeCrsSerializer);
+      await fetchMultichainKeys(
+        opts.config,
+        0,
+        opts.tfhePublicKeySerializer,
+        opts.compactPkeCrsSerializer,
+        keysStorage
+      );
       return true;
     }
 
@@ -145,6 +152,8 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
       compactPkeCrsSerializer: opts.compactPkeCrsSerializer,
       zkBuilderAndCrsGenerator: opts.zkBuilderAndCrsGenerator,
       initTfhe: opts.initTfhe,
+
+      keysStorage,
 
       requireConnected: _requireConnected,
     });

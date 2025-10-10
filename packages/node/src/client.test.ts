@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
-import { createCofhesdkClient } from './index';
-import { createCofhesdkConfig, CofhesdkClient } from '@cofhesdk/core';
+import { createCofhesdkClient, createCofhesdkConfig } from './index';
+import { CofhesdkClient } from '@cofhesdk/core';
 import type { PublicClient, WalletClient } from 'viem';
 import { createPublicClient, createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
@@ -35,7 +35,6 @@ describe('@cofhesdk/node - Client Integration Tests', () => {
     const config = createCofhesdkConfig({
       supportedChains: [cofhesdkArbSepolia],
     });
-
     cofhesdkClient = createCofhesdkClient(config);
   });
 
@@ -44,6 +43,11 @@ describe('@cofhesdk/node - Client Integration Tests', () => {
       expect(cofhesdkClient).toBeDefined();
       expect(cofhesdkClient.config).toBeDefined();
       expect(cofhesdkClient.connected).toBe(false);
+    });
+
+    it('should automatically use filesystem storage as default', () => {
+      expect(cofhesdkClient.config.fheKeyStorage).toBeDefined();
+      expect(cofhesdkClient.config.fheKeyStorage).not.toBeNull();
     });
 
     it('should have all expected methods', () => {

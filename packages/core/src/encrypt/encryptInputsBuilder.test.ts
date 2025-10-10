@@ -10,7 +10,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { arbitrumSepolia } from 'viem/chains';
 import { CofhesdkConfig, createCofhesdkConfig } from '../config';
 import { ZkBuilderAndCrsGenerator } from './zkPackProveVerify';
-import { keysStorage } from '../keyStore';
+import { createKeysStore, KeysStorage } from '../keyStore';
 import { FheKeySerializer } from '../fetchKeys';
 import { expectResultSuccess, expectResultError } from '../../test/test-utils';
 
@@ -167,6 +167,9 @@ const setupZkVerifyMock = () => {
   });
 };
 
+// Create a test keysStorage instance (non-persisted for tests)
+let keysStorage: KeysStorage;
+
 const insertMockKeys = (chainId: number, securityZone: number) => {
   keysStorage.setFheKey(chainId, securityZone, new Uint8Array([1, 2, 3, 4, 5]));
   keysStorage.setCrs(chainId, new Uint8Array([6, 7, 8, 9, 10]));
@@ -240,6 +243,7 @@ describe('EncryptInputsBuilder', () => {
       compactPkeCrsSerializer: mockCompactPkeCrsSerializer,
       zkBuilderAndCrsGenerator: mockZkBuilderAndCrsGenerator,
       initTfhe: mockInitTfhe,
+      keysStorage: keysStorage,
       requireConnected: vi.fn(),
     };
   };
@@ -247,6 +251,8 @@ describe('EncryptInputsBuilder', () => {
   let builder: EncryptInputsBuilder<[EncryptableUint128]>;
 
   beforeEach(() => {
+    // Create a fresh keysStorage instance for each test (non-persisted)
+    keysStorage = createKeysStore(null);
     setupZkVerifyMock();
     insertMockKeys(defaultChainId, 0);
     builder = new EncryptInputsBuilder(createDefaultParams());

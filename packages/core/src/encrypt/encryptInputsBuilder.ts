@@ -18,6 +18,7 @@ import { getZkVerifierUrlOrThrow } from '../config';
 import { WalletClient } from 'viem';
 import { sleep } from '../utils';
 import { BaseBuilder, BaseBuilderParams } from '../builders/baseBuilder';
+import { KeysStorage } from '../keyStore';
 
 type EncryptInputsBuilderParams<T extends EncryptableItem[]> = BaseBuilderParams & {
   inputs: [...T];
@@ -29,6 +30,8 @@ type EncryptInputsBuilderParams<T extends EncryptableItem[]> = BaseBuilderParams
   compactPkeCrsSerializer: FheKeySerializer | undefined;
   zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator | undefined;
   initTfhe: TfheInitializer | undefined;
+
+  keysStorage: KeysStorage | undefined;
 };
 
 /**
@@ -52,6 +55,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   private zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator | undefined;
   private initTfhe: TfheInitializer | undefined;
 
+  private keysStorage: KeysStorage | undefined;
+
   constructor(params: EncryptInputsBuilderParams<T>) {
     super({
       config: params.config,
@@ -71,6 +76,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     this.compactPkeCrsSerializer = params.compactPkeCrsSerializer;
     this.zkBuilderAndCrsGenerator = params.zkBuilderAndCrsGenerator;
     this.initTfhe = params.initTfhe;
+
+    this.keysStorage = params.keysStorage;
   }
 
   /**
@@ -257,7 +264,14 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     let crs: Uint8Array | undefined;
 
     try {
-      [fheKey, crs] = await fetchKeys(config, chainId, securityZone, tfhePublicKeySerializer, compactPkeCrsSerializer);
+      [fheKey, crs] = await fetchKeys(
+        config,
+        chainId,
+        securityZone,
+        tfhePublicKeySerializer,
+        compactPkeCrsSerializer,
+        this.keysStorage
+      );
     } catch (error) {
       throw CofhesdkError.fromError(error, {
         code: CofhesdkErrorCode.FetchKeysFailed,

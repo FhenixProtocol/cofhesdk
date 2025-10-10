@@ -15,10 +15,7 @@
     "lint": "eslint \"src/**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
-    "test": "pnpm run test:all",
-    "test:node": "vitest --config vitest.config.mts --reporter=verbose",
-    "test:browser": "vitest --config vitest.browser.config.mts --reporter=verbose",
-    "test:all": "pnpm run test:node --run && pnpm run test:browser --run",
+    "test": "vitest --config vitest.config.mts --reporter=verbose",
     "coverage": "vitest run --coverage"
   },
   "devDependencies": {
@@ -36,7 +33,6 @@
     "vitest": "1.6.0"
   },
   "dependencies": {
-    "idb-keyval": "^6.2.1",
     "immer": "^10.1.1",
     "zustand": "^5.0.1",
     "zod": "^3.22.0",
