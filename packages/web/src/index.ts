@@ -1,6 +1,9 @@
 // Re-export everything from core except createCofhesdkClient
 export * from '@cofhesdk/core';
 
+// Export web-specific storage
+export { createWebStorage } from './storage.js';
+
 // Import tfhe for web
 import init, { init_panic_hook, TfheCompactPublicKey, ProvenCompactCiphertextList, CompactPkeCrs } from 'tfhe';
 

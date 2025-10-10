@@ -1,6 +1,9 @@
 // Re-export everything from core except createCofhesdkClient
 export * from '@cofhesdk/core';
 
+// Export node-specific storage
+export { createNodeStorage } from './storage';
+
 // Import node-tfhe for Node.js
 import { TfheCompactPublicKey, ProvenCompactCiphertextList, CompactPkeCrs, init_panic_hook } from 'node-tfhe';
 

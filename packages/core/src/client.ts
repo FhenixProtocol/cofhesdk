@@ -6,7 +6,6 @@ import { CofhesdkError, CofhesdkErrorCode } from './error';
 import { EncryptInputsBuilder } from './encrypt/encryptInputsBuilder';
 import { Result, ResultOk, resultWrapper } from './result';
 import { createKeysStore } from './keyStore';
-import { getStorage } from './storage';
 import { permits } from './permits';
 import type { CreateSelfPermitOptions, CreateSharingPermitOptions, ImportSharedPermitOptions } from '@cofhesdk/permits';
 import { DecryptHandlesBuilder } from './decrypt/decryptHandleBuilder';
@@ -26,9 +25,8 @@ import { getPublicClientChainID, getWalletClientAccount } from './utils';
  * @returns {CofhesdkClient} - The CoFHE SDK client instance
  */
 export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient {
-  // Create keysStorage instance using configured storage or default
-  // TODO: Remove getStorage() once defaults in /web and /node are set
-  const keysStorage = createKeysStore(opts.config.fheKeyStorage || getStorage());
+  // Create keysStorage instance using configured storage
+  const keysStorage = createKeysStore(opts.config.fheKeyStorage);
   if (opts.config.fheKeyStorage != null) keysStorage.rehydrateKeysStore();
 
   // refs captured in closure
