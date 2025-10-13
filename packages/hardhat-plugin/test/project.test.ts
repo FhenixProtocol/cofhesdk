@@ -1,4 +1,5 @@
-import { describe, it, expect } from "vitest";
+import { expect } from "chai";
+import { describe, it } from "mocha";
 import { TASK_COFHE_MOCKS_DEPLOY, TASK_COFHE_USE_FAUCET } from "../src/consts";
 import { useEnvironment } from "./helpers";
 import {
@@ -29,27 +30,27 @@ describe("Cofhe Hardhat Plugin", () => {
         TASK_MANAGER_ADDRESS,
       );
       const tmExists = await taskManager.exists();
-      expect(tmExists).toBe(true);
+      expect(tmExists).to.be.true;
 
       const aclAddress = await taskManager.acl();
 
       const acl = await hre.ethers.getContractAt("MockACL", aclAddress);
       const aclExists = await acl.exists();
-      expect(aclExists).toBe(true);
+      expect(aclExists).to.be.true;
 
       const queryDecrypter = await hre.ethers.getContractAt(
         "MockQueryDecrypter",
         MOCKS_QUERY_DECRYPTER_ADDRESS,
       );
       const qdExists = await queryDecrypter.exists();
-      expect(qdExists).toBe(true);
+      expect(qdExists).to.be.true;
 
       const zkVerifier = await hre.ethers.getContractAt(
         "MockZkVerifier",
         MOCKS_ZK_VERIFIER_ADDRESS,
       );
       const zkVerifierExists = await zkVerifier.exists();
-      expect(zkVerifierExists).toBe(true);
+      expect(zkVerifierExists).to.be.true;
     });
   });
 });

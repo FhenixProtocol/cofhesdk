@@ -1,4 +1,5 @@
-import { describe, it, expect } from "vitest";
+import { expect } from "chai";
+import { describe, it } from "mocha";
 import { useEnvironment } from "./helpers";
 import {
   MOCKS_QUERY_DECRYPTER_ADDRESS,
@@ -21,25 +22,28 @@ describe("Deploy Mocks Task", () => {
     await hre.run(TASK_COFHE_MOCKS_DEPLOY);
 
     const taskManager = await hre.ethers.getContractAt(
-      "TaskManager",
+      "MockTaskManager",
       TASK_MANAGER_ADDRESS,
     );
-    expect(await taskManager.exists()).toBe(true);
+    expect(await taskManager.exists()).to.be.true;
 
-    const acl = await hre.ethers.getContractAt("ACL", await taskManager.acl());
-    expect(await acl.exists()).toBe(true);
+    const acl = await hre.ethers.getContractAt(
+      "MockACL",
+      await taskManager.acl(),
+    );
+    expect(await acl.exists()).to.be.true;
 
     const zkVerifier = await hre.ethers.getContractAt(
       "MockZkVerifier",
       MOCKS_ZK_VERIFIER_ADDRESS,
     );
-    expect(await zkVerifier.exists()).toBe(true);
+    expect(await zkVerifier.exists()).to.be.true;
 
     const queryDecrypter = await hre.ethers.getContractAt(
       "MockQueryDecrypter",
       MOCKS_QUERY_DECRYPTER_ADDRESS,
     );
-    expect(await queryDecrypter.exists()).toBe(true);
+    expect(await queryDecrypter.exists()).to.be.true;
   });
 
   it("should deploy mocks with test bed", async () => {
@@ -50,17 +54,17 @@ describe("Deploy Mocks Task", () => {
 
     // Verify contracts are deployed
     const taskManager = await hre.ethers.getContractAt(
-      "TaskManager",
+      "MockTaskManager",
       TASK_MANAGER_ADDRESS,
     );
-    expect(await taskManager.exists()).toBe(true);
+    expect(await taskManager.exists()).to.be.true;
 
     // Verify test bed is deployed
     const testBedBytecode = await getTestBedBytecode(hre);
-    expect(testBedBytecode.length).toBeGreaterThan(2);
+    expect(testBedBytecode.length).to.be.greaterThan(2);
 
     const testBed = await hre.ethers.getContractAt("TestBed", TEST_BED_ADDRESS);
-    expect(await testBed.exists()).toBe(true);
+    expect(await testBed.exists()).to.be.true;
   });
 
   it("should deploy mocks without test bed", async () => {
@@ -71,13 +75,13 @@ describe("Deploy Mocks Task", () => {
 
     // Verify mock contracts are deployed
     const taskManager = await hre.ethers.getContractAt(
-      "TaskManager",
+      "MockTaskManager",
       TASK_MANAGER_ADDRESS,
     );
-    expect(await taskManager.exists()).toBe(true);
+    expect(await taskManager.exists()).to.be.true;
 
     // Verify test bed is not deployed
     const testBedBytecode = await getTestBedBytecode(hre);
-    expect(testBedBytecode).toBe("0x");
+    expect(testBedBytecode).to.equal("0x");
   });
 });

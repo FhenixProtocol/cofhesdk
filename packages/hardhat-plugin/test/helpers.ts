@@ -1,13 +1,10 @@
 import { resetHardhatContext } from "hardhat/plugins-testing";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import path from "path";
-import { beforeEach, afterEach } from "vitest";
 
-// Extend the HardhatRuntimeEnvironment to include ethers and cofhesdk
-declare module "hardhat/types/runtime" {
-  interface HardhatRuntimeEnvironment {
-    ethers: any;
-    cofhesdk: any;
+declare module "mocha" {
+  interface Context {
+    hre: HardhatRuntimeEnvironment;
   }
 }
 

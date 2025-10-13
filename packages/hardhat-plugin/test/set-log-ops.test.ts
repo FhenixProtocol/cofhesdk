@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { expect } from "chai";
+import { describe, it, beforeEach } from "mocha";
 import { useEnvironment } from "./helpers";
 import { TASK_MANAGER_ADDRESS } from "../src/consts";
 import {
@@ -17,7 +18,7 @@ describe("Set Log Ops Task", () => {
     await hre.run(TASK_COFHE_MOCKS_DEPLOY, { silent: true });
 
     taskManager = await hre.ethers.getContractAt(
-      "TaskManager",
+      "MockTaskManager",
       TASK_MANAGER_ADDRESS,
     );
   });
@@ -25,7 +26,7 @@ describe("Set Log Ops Task", () => {
   const expectLogOps = async (enabled: boolean) => {
     const logOps = await taskManager.logOps();
     console.log(`${enabled ? "├ " : ""}(hh-test) Logging Enabled?`, logOps);
-    expect(logOps).toBe(enabled);
+    expect(logOps).to.equal(enabled);
   };
 
   it("(task) should enable logging", async () => {
@@ -38,7 +39,7 @@ describe("Set Log Ops Task", () => {
       enable: true,
     });
 
-    expect(await taskManager.logOps()).toBe(true);
+    expect(await taskManager.logOps()).to.be.true;
   });
 
   it("(function) should enable logging", async () => {

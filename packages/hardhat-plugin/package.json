@@ -14,9 +14,8 @@
     "dev": "tsup src/index.ts --format esm,cjs --watch --dts",
     "lint": "eslint \"src/**/*.ts*\"",
     "type-check": "tsc --noEmit",
-    "test": "vitest",
-    "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage",
+    "test": "mocha --exit --recursive --timeout 60000 'test/*.test.ts'",
+    "coverage": "nyc mocha --exit --recursive --timeout 60000 'test/*.test.ts'",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
   },
   "dependencies": {
@@ -38,16 +37,19 @@
     "@nomicfoundation/hardhat-ethers": "^3.0.5",
     "@types/chai": "^4.1.7",
     "@types/fs-extra": "^11.0.4",
+    "@types/mocha": "^10.0.0",
     "@types/node": "^20.0.0",
     "@types/sinon": "^17.0.4",
     "chai": "^4.2.0",
     "eslint": "^8.57.0",
     "fs-extra": "^11.2.0",
     "hardhat": "^2.19.0",
+    "mocha": "^10.0.0",
+    "nyc": "^15.1.0",
     "sinon": "^20.0.0",
+    "ts-node": "^10.9.0",
     "tsup": "^8.0.2",
-    "typescript": "5.5.4",
-    "vitest": "1.6.0"
+    "typescript": "5.5.4"
   },
   "peerDependencies": {
     "hardhat": "^2.0.0",
