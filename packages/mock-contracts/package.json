@@ -40,7 +40,8 @@
     "@openzeppelin/contracts-upgradeable": "^5.0.0"
   },
   "devDependencies": {
-    "forge-std": "github:foundry-rs/forge-std"
+    "forge-std": "github:foundry-rs/forge-std",
+    "hardhat": "^2.24.1"
   },
   "publishConfig": {
     "access": "public"

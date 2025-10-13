@@ -186,6 +186,9 @@ importers:
       forge-std:
         specifier: github:foundry-rs/forge-std
         version: github.com/foundry-rs/forge-std/0051db19c2edc30e6b7147c6d029dc71aa621874
+      hardhat:
+        specifier: ^2.24.1
+        version: 2.26.3(typescript@5.5.4)
 
   packages/node:
     dependencies:

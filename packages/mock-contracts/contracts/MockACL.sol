@@ -14,7 +14,7 @@ import { TASK_MANAGER_ADDRESS } from '@fhenixprotocol/cofhe-contracts/FHE.sol';
  *         By defining and enforcing these permissions, the ACL ensures that encrypted data remains secure while still being usable
  *         within authorized contexts.
  */
-contract ACL is Ownable2Step, MockPermissioned {
+contract MockACL is Ownable2Step, MockPermissioned {
   /// @notice Returned if the delegatee contract is already delegatee for sender & delegator addresses.
   error AlreadyDelegated();
 
