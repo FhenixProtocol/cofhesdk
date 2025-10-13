@@ -5,14 +5,14 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import path from "path";
 
 const paths = [
-  "@fhenixprotocol/cofhe-mock-contracts/ACL.sol",
-  "@fhenixprotocol/cofhe-mock-contracts/MockCoFHE.sol",
-  "@fhenixprotocol/cofhe-mock-contracts/MockQueryDecrypter.sol",
-  "@fhenixprotocol/cofhe-mock-contracts/MockTaskManager.sol",
-  "@fhenixprotocol/cofhe-mock-contracts/MockZkVerifier.sol",
-  "@fhenixprotocol/cofhe-mock-contracts/TestBed.sol",
+  "@cofhesdk/mock-contracts/MockACL.sol",
+  "@cofhesdk/mock-contracts/MockCoFHE.sol",
+  "@cofhesdk/mock-contracts/MockQueryDecrypter.sol",
+  "@cofhesdk/mock-contracts/MockTaskManager.sol",
+  "@cofhesdk/mock-contracts/MockZkVerifier.sol",
+  "@cofhesdk/mock-contracts/TestBed.sol",
 ];
-const pluginName = "cofhe-mock-contracts";
+const pluginName = "@cofhesdk/mock-contracts";
 
 const generate = function (dependency: string) {
   return [

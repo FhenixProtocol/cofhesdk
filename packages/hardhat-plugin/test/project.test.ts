@@ -1,6 +1,6 @@
 // tslint:disable-next-line no-implicit-dependencies
 import { expect } from "chai";
-import { TASK_COFHE_MOCKS_DEPLOY, TASK_COFHE_USE_FAUCET } from "../src/const";
+import { TASK_COFHE_MOCKS_DEPLOY, TASK_COFHE_USE_FAUCET } from "../src/consts";
 import { useEnvironment } from "./helpers";
 import {
   QUERY_DECRYPTER_ADDRESS,

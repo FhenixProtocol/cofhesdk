@@ -6,7 +6,7 @@ import {
   TEST_BED_ADDRESS,
   ZK_VERIFIER_ADDRESS,
 } from "../src/addresses";
-import { TASK_COFHE_MOCKS_DEPLOY } from "../src/const";
+import { TASK_COFHE_MOCKS_DEPLOY } from "../src/consts";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 describe("Deploy Mocks Task", function () {

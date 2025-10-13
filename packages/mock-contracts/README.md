@@ -34,11 +34,11 @@ forge install fhenixprotocol/cofhe-mock-contracts
 
 ## Usages and Integrations
 
-Both `cofhejs` and `cofhe-hardhat-plugin` interact directly with the cofhe-mock-contracts.
+`cofhesdk` is designed to work with mock contracts in a testing / hardhat environment. `cofhesdk/hardhat-plugin` deploys the mock contracts in this repo, and the `cofhesdkClient` detects a testnet chain and interacts correctly using the mocks rather than the true CoFHE coprocessor.
 
-When installed and imported in the `hardhat.config.ts`, `cofhe-hardhat-plugin` will watch for Hardhat `node` and `test` tasks, and will inject the necessary mock contracts into the hardhat testnet chain at fixed addresses.
+When installed and imported in the `hardhat.config.ts`, `cofhesdk/hardhat-plugin` will watch for Hardhat `node` and `test` tasks, and will deploy the mocks to the hardhat testnet chain at fixed addresses.
 
-Once deployed, interaction with the mock contracts is handled by `cofhejs`. `cofhejs` checks for the existence of mock contracts at known addresses, and if they exist, marks the current connection as a testnet. On testnet chains, `cofhejs` will exit from the default flow when `cofhejs.encrypt` or `cofhejs.unseal` are used.
+Once deployed, interaction with the mock contracts is handled by the `cofhesdkClient` (created with `createCofhesdkClient(...)`). The client checks for the existence of mock contracts at known addresses, and if they exist, marks the current connection as a testnet.
 
 ## Logging
 
@@ -64,22 +64,22 @@ When a mock decryption is requested, a random number between 1 and 10 is generat
 
 ### ZkVerifying
 
-A key component of CoFHE is the ability to pre-encrypt inputs in a secure and verifiable way. `cofhejs` prepares these inputs automatically, and requests a verification signature from the coprocessor `ZkVerifier` module. The zkVerifier returns a signature indicating that the encrypted ciphertext is valid, and has been stored on the Fhenix L2 blockchain.
+A key component of CoFHE is the ability to pre-encrypt inputs in a secure and verifiable way. `cofhesdk` prepares these inputs automatically, and requests a verification signature from the coprocessor `ZkVerifier` module. The zkVerifier returns a signature indicating that the encrypted ciphertext is valid, and has been stored on the Fhenix L2 blockchain.
 
 The mocks are then responsible for mocking two actions:
 
 1. Creating the signature.
 2. Storing the plaintext value on-chain.
 
-The `MockZkVerifier` contract handles the on-chain storage of encrypted inputs. The signature creation is handled in `cofhejs` when executing against a testnet.
+The `MockZkVerifier` contract handles the on-chain storage of encrypted inputs. The signature creation is handled automatically within `cofhesdkClient.encryptInputs` when executing against a testnet.
 
 ### Off-chain Decryption / Sealing
 
-Off-chain decryption is performed by calling the `cofhejs.unseal` function with a valid `ctHash` and a valid `permit` [todo link].
+Off-chain decryption is performed by calling the `cofhesdkClient.decryptHandle` function with a valid `ctHash` and a valid `permit` [todo link].
 
 When interacting with CoFHE this request is routed to the Threshold Network, which will perform the decryption operation, ultimately returning a decrypted result.
 
-When working with the mocks, `cofhejs` will instead query the `MockQueryDecrypter` contract, which will verify the request `permit`, and return the decrypted result.
+When working with the mocks, the `cofhesdkClient` will instead query the `MockQueryDecrypter` contract, which will verify the request `permit`, and return the decrypted result.
 
 ### Using Foundry
 

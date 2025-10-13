@@ -1,30 +1,33 @@
 import chalk from "chalk";
 import { extendConfig, extendEnvironment, task, types } from "hardhat/config";
 
-import { localcofheFundAccount } from "./common";
+import { localcofheFundAccount } from "./fund";
 import {
+  MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
   TASK_COFHE_MOCKS_DEPLOY,
   TASK_COFHE_MOCKS_SET_LOG_OPS,
   TASK_COFHE_USE_FAUCET,
-} from "./const";
+} from "./consts";
 import { TASK_TEST, TASK_NODE } from "hardhat/builtin-tasks/task-names";
-import { deployMocks, DeployMocksArgs } from "./deploy-mocks";
-import { mock_setLoggingEnabled, mock_withLogs } from "./mock-logs";
-import { mock_expectPlaintext } from "./mockUtils";
-import { mock_getPlaintext } from "./mockUtils";
+import { deployMocks, DeployMocksArgs } from "./deployMockContracts";
+import { mock_setLoggingEnabled, mock_withLogs } from "./mocksLogging";
+import { mock_expectPlaintext } from "./mocksUtils";
+import { mock_getPlaintext } from "./mocksUtils";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import {
-  cofhejs_initializeWithHardhatSigner,
-  HHSignerInitializationParams,
-  isPermittedCofheEnvironment,
-} from "./networkUtils";
-import { Permit, Result } from "cofhejs/node";
+  CofhesdkClient,
+  CofhesdkConfig,
+  createCofhesdkClient,
+  Result,
+} from "@cofhesdk/node";
 import {
   expectResultError,
   expectResultPartialValue,
   expectResultSuccess,
   expectResultValue,
-} from "./result";
+} from "./expectResultUtils";
+import { PublicClient, WalletClient } from "viem";
+import { HardhatSignerAdapter } from "@cofhesdk/adapters";
 
 /**
  * Configuration interface for the CoFHE Hardhat plugin.
@@ -32,7 +35,7 @@ import {
  */
 declare module "hardhat/types/config" {
   interface HardhatUserConfig {
-    cofhe?: {
+    cofhesdk?: {
       /** Whether to log mock operations (default: true) */
       logMocks?: boolean;
       /** Whether to show gas usage warnings for mock operations (default: true) */
@@ -41,8 +44,10 @@ declare module "hardhat/types/config" {
   }
 
   interface HardhatConfig {
-    cofhe: {
+    cofhesdk: {
+      /** Whether to log mock operations (default: true) */
       logMocks: boolean;
+      /** Whether to show gas usage warnings for mock operations (default: true) */
       gasWarning: boolean;
     };
   }
@@ -103,9 +108,9 @@ extendConfig((config, userConfig) => {
   }
 
   // Add cofhe config
-  config.cofhe = {
-    logMocks: userConfig.cofhe?.logMocks ?? true,
-    gasWarning: userConfig.cofhe?.gasWarning ?? true,
+  config.cofhesdk = {
+    logMocks: userConfig.cofhesdk?.logMocks ?? true,
+    gasWarning: userConfig.cofhesdk?.gasWarning ?? true,
   };
 });
 
@@ -163,7 +168,7 @@ task(
   .setAction(async ({ deployTestBed, silent }: DeployMocksArgs, hre) => {
     await deployMocks(hre, {
       deployTestBed: deployTestBed ?? true,
-      gasWarning: hre.config.cofhe.gasWarning ?? true,
+      gasWarning: hre.config.cofhesdk.gasWarning ?? true,
       silent: silent ?? false,
     });
   });
@@ -172,7 +177,7 @@ task(TASK_TEST, "Deploy mock contracts on hardhat").setAction(
   async ({}, hre, runSuper) => {
     await deployMocks(hre, {
       deployTestBed: true,
-      gasWarning: hre.config.cofhe.gasWarning ?? true,
+      gasWarning: hre.config.cofhesdk.gasWarning ?? true,
     });
     return runSuper();
   },
@@ -182,7 +187,7 @@ task(TASK_NODE, "Deploy mock contracts on hardhat").setAction(
   async ({}, hre, runSuper) => {
     await deployMocks(hre, {
       deployTestBed: true,
-      gasWarning: hre.config.cofhe.gasWarning ?? true,
+      gasWarning: hre.config.cofhesdk.gasWarning ?? true,
     });
     return runSuper();
   },
@@ -198,12 +203,11 @@ task(TASK_COFHE_MOCKS_SET_LOG_OPS, "Set logging for the Mock CoFHE contracts")
 
 // MOCK UTILS
 
-export * from "./mockUtils";
-export * from "./networkUtils";
-export * from "./result";
-export * from "./common";
-export * from "./mock-logs";
-export * from "./deploy-mocks";
+export * from "./mocksUtils";
+export * from "./expectResultUtils";
+export * from "./fund";
+export * from "./mocksLogging";
+export * from "./deployMockContracts";
 
 /**
  * Runtime environment extensions for the CoFHE Hardhat plugin.
@@ -211,27 +215,24 @@ export * from "./deploy-mocks";
  */
 declare module "hardhat/types/runtime" {
   export interface HardhatRuntimeEnvironment {
-    cofhe: {
+    cofhesdk: {
       /**
-       * Initialize `cofhejs` using a Hardhat signer
+       * Create a CoFHE SDK client instance
+       * @param {CofhesdkConfig} config - The CoFHE SDK configuration (use createCofhesdkConfig to create with Node.js defaults)
+       * @returns {Promise<CofhesdkClient>} The CoFHE SDK client instance
+       */
+      createCofhesdkClient: (config: CofhesdkConfig) => Promise<CofhesdkClient>;
+      /**
+       * Create viem clients from a Hardhat ethers signer, to be used with `cofhesdkClient.connect(...)`
        * @param {HardhatEthersSigner} signer - The Hardhat ethers signer to use
-       * @param {HHSignerInitializationParams} params - Optional initialization parameters to be passed to `cofhejs`
-       * @returns {Promise<Result<Permit | undefined>>} The initialized CoFHE instance
+       * @returns {Promise<{ publicClient: PublicClient; walletClient: WalletClient }>} The viem clients
        */
-      initializeWithHardhatSigner: (
+      hardhatSignerAdapter: (
         signer: HardhatEthersSigner,
-        params?: HHSignerInitializationParams,
-      ) => Promise<Result<Permit | undefined>>;
+      ) => Promise<{ publicClient: PublicClient; walletClient: WalletClient }>;
 
       /**
-       * Check if a CoFHE environment is permitted for the current network
-       * @param {string} env - The environment name to check. Must be "MOCK" | "LOCAL" | "TESTNET" | "MAINNET"
-       * @returns {boolean} Whether the environment is permitted
-       */
-      isPermittedEnvironment: (env: string) => boolean;
-
-      /**
-       * Assert that a Result type (see cofhejs) returned from a function is successful and return its value
+       * Assert that a Result type returned from a function is successful and return its value (result.success === true)
        * @param {Result<T>} result - The Result to check
        * @returns {T} The inner data of the Result (non null)
        */
@@ -240,7 +241,7 @@ declare module "hardhat/types/runtime" {
       ) => Promise<T>;
 
       /**
-       * Assert that a Result type (see cofhejs) contains an error matching the partial string
+       * Assert that a Result type contains an error matching the partial string (result.success === false && result.error.includes(errorPartial))
        * @param {Result<T>} result - The Result to check
        * @param {string} errorPartial - The partial error string to match
        */
@@ -250,7 +251,7 @@ declare module "hardhat/types/runtime" {
       ) => Promise<void>;
 
       /**
-       * Assert that a Result type (see cofhejs) contains a specific value
+       * Assert that a Result type contains a specific value (result.success === true && result.data === value)
        * @param {Result<T>} result - The Result to check
        * @param {T} value - The inner data of the Result (non null)
        */
@@ -260,7 +261,7 @@ declare module "hardhat/types/runtime" {
       ) => Promise<T>;
 
       /**
-       * Assert that a Result type (see cofhejs) contains a value matching the partial object
+       * Assert that a Result type contains a value matching the partial object (result.success === true && result.data.includes(partial))
        * @param {Result<T>} result - The Result to check
        * @param {Partial<T>} partial - The partial object to match against
        * @returns {T} The inner data of the Result (non null)
@@ -277,6 +278,14 @@ declare module "hardhat/types/runtime" {
          * Execute a block of code with cofhe mock contracts logging enabled.
          *
          * _(If logging only a function, we recommend passing the function name as the closureName (ex "counter.increment()"))_
+         *
+         * Example usage:
+         *
+         * ```ts
+         * await hre.cofhesdk.mocks.withLogs("counter.increment()", async () => {
+         *   await counter.increment();
+         * });
+         * ```
          *
          * Expected output:
          * ```
@@ -344,20 +353,31 @@ declare module "hardhat/types/runtime" {
   }
 }
 
-extendConfig((config) => {
-  config.cofhe = config.cofhe || {};
-});
-
 extendEnvironment((hre) => {
-  hre.cofhe = {
-    initializeWithHardhatSigner: async (
-      signer: HardhatEthersSigner,
-      params?: HHSignerInitializationParams,
-    ) => {
-      return cofhejs_initializeWithHardhatSigner(hre, signer, params);
+  hre.cofhesdk = {
+    createCofhesdkClient: async (config: CofhesdkConfig) => {
+      // Create zkv wallet client
+      // This wallet interacts with the MockZkVerifier contract so that the user's connected wallet doesn't have to
+      const zkvHhSigner = await hre.ethers.getImpersonatedSigner(
+        MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
+      );
+      const { walletClient: zkvWalletClient } =
+        await HardhatSignerAdapter(zkvHhSigner);
+
+      // Inject zkv wallet client into config
+      const configWithZkvWalletClient = {
+        ...config,
+        _internal: {
+          ...config._internal,
+          zkvWalletClient,
+        },
+      };
+
+      // Create cofhesdk client
+      return createCofhesdkClient(configWithZkvWalletClient);
     },
-    isPermittedEnvironment: (env: string) => {
-      return isPermittedCofheEnvironment(hre, env);
+    hardhatSignerAdapter: async (signer: HardhatEthersSigner) => {
+      return HardhatSignerAdapter(signer);
     },
     expectResultSuccess: async <T>(result: Result<T> | Promise<Result<T>>) => {
       const awaitedResult = await result;

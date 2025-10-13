@@ -4,8 +4,8 @@ import { TASK_MANAGER_ADDRESS } from "../src/addresses";
 import {
   TASK_COFHE_MOCKS_DEPLOY,
   TASK_COFHE_MOCKS_SET_LOG_OPS,
-} from "../src/const";
-import { mock_setLoggingEnabled, mock_withLogs } from "../src/mock-logs";
+} from "../src/consts";
+import { mock_setLoggingEnabled, mock_withLogs } from "../src/mocksLogging";
 import { Contract } from "ethers";
 
 describe("Set Log Ops Task", function () {

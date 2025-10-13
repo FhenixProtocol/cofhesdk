@@ -71,7 +71,7 @@ describe('Core Permits Tests', () => {
       expect(permit.issuerSignature).not.toBe('0x');
 
       // Verify localStorage
-      const storedData = localStorage.getItem('cofhejs-permits');
+      const storedData = localStorage.getItem('cofhesdk-permits');
       expect(storedData).toBeDefined();
       const parsedData = JSON.parse(storedData!);
       expect(parsedData.state.permits[chainId][bobAddress]).toBeDefined();
@@ -97,7 +97,7 @@ describe('Core Permits Tests', () => {
       expect(permit.issuerSignature).not.toBe('0x');
 
       // Verify localStorage
-      const storedData = localStorage.getItem('cofhejs-permits');
+      const storedData = localStorage.getItem('cofhesdk-permits');
       expect(storedData).toBeDefined();
       const parsedData = JSON.parse(storedData!);
       expect(parsedData.state.permits[chainId][bobAddress]).toBeDefined();
@@ -184,7 +184,7 @@ describe('Core Permits Tests', () => {
         bobWalletClient
       );
 
-      const storedData = localStorage.getItem('cofhejs-permits');
+      const storedData = localStorage.getItem('cofhesdk-permits');
       expect(storedData).toBeDefined();
 
       const parsedData = JSON.parse(storedData!);

@@ -1,23 +1,14 @@
-import {
-  checkNetworkAndSkip,
-  hardhatSetCode,
-  logDeployment,
-  logEmpty,
-  logError,
-  logSuccess,
-  logWarning,
-} from "./utils";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import {
   TASK_MANAGER_ADDRESS,
-  ZK_VERIFIER_ADDRESS,
-  QUERY_DECRYPTER_ADDRESS,
+  MOCKS_ZK_VERIFIER_ADDRESS,
+  MOCKS_QUERY_DECRYPTER_ADDRESS,
   TEST_BED_ADDRESS,
-} from "./addresses";
+  MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
+} from "./consts";
 import { Contract } from "ethers";
-import { compileMockContractPaths } from "./compile-mock-contracts";
+import { compileMockContractPaths } from "./compileMockContracts";
 import chalk from "chalk";
-import { MOCK_ZK_VERIFIER_SIGNER_ADDRESS } from "./const";
 
 // Deploy
 
@@ -25,14 +16,15 @@ const deployMockTaskManager = async (hre: HardhatRuntimeEnvironment) => {
   const [signer] = await hre.ethers.getSigners();
 
   // Deploy MockTaskManager
-  const TaskManagerArtifact = await hre.artifacts.readArtifact("TaskManager");
+  const TaskManagerArtifact =
+    await hre.artifacts.readArtifact("MockTaskManager");
   await hardhatSetCode(
     hre,
     TASK_MANAGER_ADDRESS,
     TaskManagerArtifact.deployedBytecode,
   );
   const taskManager = await hre.ethers.getContractAt(
-    "TaskManager",
+    "MockTaskManager",
     TASK_MANAGER_ADDRESS,
   );
 
@@ -54,15 +46,15 @@ const deployMockACL = async (hre: HardhatRuntimeEnvironment) => {
   const [signer] = await hre.ethers.getSigners();
 
   // Deploy ACL implementation
-  const aclFactory = await hre.ethers.getContractFactory("ACL");
+  const aclFactory = await hre.ethers.getContractFactory("MockACL");
   const acl = await aclFactory.deploy(signer.address);
   await acl.waitForDeployment();
 
   // Check if ACL exists
   const exists = await acl.exists();
   if (!exists) {
-    logError("ACL does not exist", 2);
-    throw new Error("ACL does not exist");
+    logError("MockACL does not exist", 2);
+    throw new Error("MockACL does not exist");
   }
 
   return acl;
@@ -72,12 +64,12 @@ const deployMockZkVerifier = async (hre: HardhatRuntimeEnvironment) => {
   const zkVerifierArtifact = await hre.artifacts.readArtifact("MockZkVerifier");
   await hardhatSetCode(
     hre,
-    ZK_VERIFIER_ADDRESS,
+    MOCKS_ZK_VERIFIER_ADDRESS,
     zkVerifierArtifact.deployedBytecode,
   );
   const zkVerifier = await hre.ethers.getContractAt(
     "MockZkVerifier",
-    ZK_VERIFIER_ADDRESS,
+    MOCKS_ZK_VERIFIER_ADDRESS,
   );
 
   const zkVerifierExists = await zkVerifier.exists();
@@ -93,17 +85,16 @@ const deployMockQueryDecrypter = async (
   hre: HardhatRuntimeEnvironment,
   acl: Contract,
 ) => {
-  const queryDecrypterArtifact = await hre.artifacts.readArtifact(
-    "MockQueryDecrypter",
-  );
+  const queryDecrypterArtifact =
+    await hre.artifacts.readArtifact("MockQueryDecrypter");
   await hardhatSetCode(
     hre,
-    QUERY_DECRYPTER_ADDRESS,
+    MOCKS_QUERY_DECRYPTER_ADDRESS,
     queryDecrypterArtifact.deployedBytecode,
   );
   const queryDecrypter = await hre.ethers.getContractAt(
     "MockQueryDecrypter",
-    QUERY_DECRYPTER_ADDRESS,
+    MOCKS_QUERY_DECRYPTER_ADDRESS,
   );
 
   // Initialize MockQueryDecrypter
@@ -135,7 +126,7 @@ const deployTestBedContract = async (hre: HardhatRuntimeEnvironment) => {
 
 const fundZkVerifierSigner = async (hre: HardhatRuntimeEnvironment) => {
   const zkVerifierSigner = await hre.ethers.getSigner(
-    MOCK_ZK_VERIFIER_SIGNER_ADDRESS,
+    MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
   );
   await hre.network.provider.send("hardhat_setBalance", [
     zkVerifierSigner.address,
@@ -211,12 +202,12 @@ export const deployMocks = async (
 
   await fundZkVerifierSigner(hre);
   logSuccessIfNoisy(
-    `ZkVerifier signer (${MOCK_ZK_VERIFIER_SIGNER_ADDRESS}) funded`,
+    `ZkVerifier signer (${MOCKS_ZK_VERIFIER_SIGNER_ADDRESS}) funded`,
     1,
   );
 
   const zkVerifierSignerBalance = await hre.ethers.provider.getBalance(
-    MOCK_ZK_VERIFIER_SIGNER_ADDRESS,
+    MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
   );
   logSuccessIfNoisy(`ETH balance: ${zkVerifierSignerBalance.toString()}`, 2);
 
@@ -243,10 +234,59 @@ export const deployMocks = async (
   if (options.gasWarning) {
     logEmptyIfNoisy();
     logWarningIfNoisy(
-      "When using mocks, FHE operations (eg FHE.add / FHE.mul) report a higher gas price due to additional on-chain mocking logic. Deploy your contracts on a testnet chain to check the true gas costs.\n(Disable this warning by setting 'cofhejs.gasWarning' to false in your hardhat config",
+      "When using mocks, FHE operations (eg FHE.add / FHE.mul) report a higher gas price due to additional on-chain mocking logic. Deploy your contracts on a testnet chain to check the true gas costs.\n(Disable this warning by setting 'cofhesdk.gasWarning' to false in your hardhat config",
       0,
     );
   }
 
   logEmptyIfNoisy();
+};
+
+// Utils
+
+const hardhatSetCode = async (
+  hre: HardhatRuntimeEnvironment,
+  address: string,
+  bytecode: string,
+) => {
+  await hre.network.provider.send("hardhat_setCode", [address, bytecode]);
+};
+
+// Network
+
+const checkNetworkAndSkip = async (hre: HardhatRuntimeEnvironment) => {
+  const network = hre.network.name;
+  const isHardhat = network === "hardhat";
+  if (!isHardhat)
+    logSuccess(
+      `cofhe-hardhat-plugin - deploy mocks - skipped on non-hardhat network ${network}`,
+      0,
+    );
+  return isHardhat;
+};
+
+// Logging
+
+const logEmpty = () => {
+  console.log("");
+};
+
+const logSuccess = (message: string, indent = 1) => {
+  console.log(chalk.green(`${"  ".repeat(indent)}✓ ${message}`));
+};
+
+const logWarning = (message: string, indent = 1) => {
+  console.log(
+    chalk.bold(chalk.yellow(`${"  ".repeat(indent)}⚠ NOTE:`)),
+    message,
+  );
+};
+
+const logError = (message: string, indent = 1) => {
+  console.log(chalk.red(`${"  ".repeat(indent)}✗ ${message}`));
+};
+
+const logDeployment = (contractName: string, address: string) => {
+  const paddedName = `${contractName} deployed`.padEnd(36);
+  logSuccess(`${paddedName} ${chalk.bold(address)}`);
 };

@@ -1,4 +1,4 @@
-import { TASK_MANAGER_ADDRESS, ZK_VERIFIER_ADDRESS } from "./addresses";
+import { TASK_MANAGER_ADDRESS, MOCKS_ZK_VERIFIER_ADDRESS } from "./consts";
 import { expect } from "chai";
 import { ethers } from "ethers";
 import { HardhatEthersProvider } from "@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider";
@@ -10,7 +10,7 @@ const mock_checkIsTestnet = async (
   // Testnet is checked by testing if MockZkVerifier is deployed
 
   // Get bytecode at ZK_VERIFIER_ADDRESS
-  const bytecode = await provider.getCode(ZK_VERIFIER_ADDRESS);
+  const bytecode = await provider.getCode(MOCKS_ZK_VERIFIER_ADDRESS);
 
   // If bytecode is empty, we are on a testnet
   const isTestnet = bytecode.length === 0;
