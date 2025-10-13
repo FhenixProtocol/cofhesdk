@@ -1,9 +1,9 @@
 {
   "extends": "@cofhesdk/tsconfig/base.json",
   "compilerOptions": {
-    "module": "NodeNext",
-    "types": ["mocha", "chai", "node"]
+    "types": ["node"],
+    "module": "NodeNext"
   },
-  "include": ["src/**/*", "src/fund.ts", "test/**/*"],
-  "exclude": ["dist", "node_modules"]
+  "include": ["."],
+  "exclude": ["dist", "build", "node_modules"]
 }
