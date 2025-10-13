@@ -17,7 +17,9 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import {
   CofhesdkClient,
   CofhesdkConfig,
+  CofhesdkInputConfig,
   createCofhesdkClient,
+  createCofhesdkConfig,
   Result,
 } from "@cofhesdk/node";
 import {
@@ -217,11 +219,19 @@ declare module "hardhat/types/runtime" {
   export interface HardhatRuntimeEnvironment {
     cofhesdk: {
       /**
+       * Create a CoFHE SDK configuration for use with cofhesdk.createCofhesdkClient(...)
+       * @param {CofhesdkInputConfig} config - The CoFHE SDK input configuration
+       * @returns {CofhesdkConfig} The CoFHE SDK configuration
+       */
+      createCofhesdkConfig: (
+        config: CofhesdkInputConfig,
+      ) => Promise<CofhesdkConfig>;
+      /**
        * Create a CoFHE SDK client instance
        * @param {CofhesdkConfig} config - The CoFHE SDK configuration (use createCofhesdkConfig to create with Node.js defaults)
        * @returns {Promise<CofhesdkClient>} The CoFHE SDK client instance
        */
-      createCofhesdkClient: (config: CofhesdkConfig) => Promise<CofhesdkClient>;
+      createCofhesdkClient: (config: CofhesdkConfig) => CofhesdkClient;
       /**
        * Create viem clients from a Hardhat ethers signer, to be used with `cofhesdkClient.connect(...)`
        * @param {HardhatEthersSigner} signer - The Hardhat ethers signer to use
@@ -355,7 +365,7 @@ declare module "hardhat/types/runtime" {
 
 extendEnvironment((hre) => {
   hre.cofhesdk = {
-    createCofhesdkClient: async (config: CofhesdkConfig) => {
+    createCofhesdkConfig: async (config: CofhesdkInputConfig) => {
       // Create zkv wallet client
       // This wallet interacts with the MockZkVerifier contract so that the user's connected wallet doesn't have to
       const zkvHhSigner = await hre.ethers.getImpersonatedSigner(
@@ -373,8 +383,10 @@ extendEnvironment((hre) => {
         },
       };
 
-      // Create cofhesdk client
-      return createCofhesdkClient(configWithZkvWalletClient);
+      return createCofhesdkConfig(configWithZkvWalletClient);
+    },
+    createCofhesdkClient: (config: CofhesdkConfig) => {
+      return createCofhesdkClient(config);
     },
     hardhatSignerAdapter: async (signer: HardhatEthersSigner) => {
       return HardhatSignerAdapter(signer);

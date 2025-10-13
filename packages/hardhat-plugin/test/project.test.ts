@@ -1,52 +1,55 @@
-// tslint:disable-next-line no-implicit-dependencies
-import { expect } from "chai";
+import { describe, it, expect } from "vitest";
 import { TASK_COFHE_MOCKS_DEPLOY, TASK_COFHE_USE_FAUCET } from "../src/consts";
 import { useEnvironment } from "./helpers";
 import {
-  QUERY_DECRYPTER_ADDRESS,
+  MOCKS_QUERY_DECRYPTER_ADDRESS,
   TASK_MANAGER_ADDRESS,
-  ZK_VERIFIER_ADDRESS,
-} from "../src/addresses";
+  MOCKS_ZK_VERIFIER_ADDRESS,
+} from "../src/consts";
 
-describe("Cofhe Hardhat Plugin", function () {
-  describe("Localcofhe Faucet command", async function () {
-    useEnvironment("localcofhe");
-    it("checks that the faucet works", async function () {
-      await this.hre.run(TASK_COFHE_USE_FAUCET);
+describe("Cofhe Hardhat Plugin", () => {
+  describe("Localcofhe Faucet command", () => {
+    const getHre = useEnvironment("localcofhe");
+
+    it("checks that the faucet works", async () => {
+      const hre = getHre();
+      await hre.run(TASK_COFHE_USE_FAUCET);
     });
   });
 
-  describe("Hardhat Mocks", async () => {
-    useEnvironment("hardhat");
-    it("checks that the mocks are deployed", async function () {
-      await this.hre.run(TASK_COFHE_MOCKS_DEPLOY);
+  describe("Hardhat Mocks", () => {
+    const getHre = useEnvironment("hardhat");
 
-      const taskManager = await this.hre.ethers.getContractAt(
-        "TaskManager",
+    it("checks that the mocks are deployed", async () => {
+      const hre = getHre();
+      await hre.run(TASK_COFHE_MOCKS_DEPLOY);
+
+      const taskManager = await hre.ethers.getContractAt(
+        "MockTaskManager",
         TASK_MANAGER_ADDRESS,
       );
       const tmExists = await taskManager.exists();
-      expect(tmExists).to.equal(true);
+      expect(tmExists).toBe(true);
 
       const aclAddress = await taskManager.acl();
 
-      const acl = await this.hre.ethers.getContractAt("ACL", aclAddress);
+      const acl = await hre.ethers.getContractAt("MockACL", aclAddress);
       const aclExists = await acl.exists();
-      expect(aclExists).to.equal(true);
+      expect(aclExists).toBe(true);
 
-      const queryDecrypter = await this.hre.ethers.getContractAt(
+      const queryDecrypter = await hre.ethers.getContractAt(
         "MockQueryDecrypter",
-        QUERY_DECRYPTER_ADDRESS,
+        MOCKS_QUERY_DECRYPTER_ADDRESS,
       );
       const qdExists = await queryDecrypter.exists();
-      expect(qdExists).to.equal(true);
+      expect(qdExists).toBe(true);
 
-      const zkVerifier = await this.hre.ethers.getContractAt(
+      const zkVerifier = await hre.ethers.getContractAt(
         "MockZkVerifier",
-        ZK_VERIFIER_ADDRESS,
+        MOCKS_ZK_VERIFIER_ADDRESS,
       );
       const zkVerifierExists = await zkVerifier.exists();
-      expect(zkVerifierExists).to.equal(true);
+      expect(zkVerifierExists).toBe(true);
     });
   });
 });

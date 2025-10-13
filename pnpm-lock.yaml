@@ -176,6 +176,9 @@ importers:
       '@cofhesdk/adapters':
         specifier: workspace:*
         version: link:../adapters
+      '@cofhesdk/chains':
+        specifier: workspace:*
+        version: link:../chains
       '@cofhesdk/mock-contracts':
         specifier: workspace:*
         version: link:../mock-contracts

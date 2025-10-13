@@ -1,0 +1,11 @@
+{
+  "name": "localcofhe-test-fixture",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "hardhat": "^2.26.3",
+    "@nomicfoundation/hardhat-ethers": "^3.0.0",
+    "ethers": "^6.0.0"
+  }
+}
