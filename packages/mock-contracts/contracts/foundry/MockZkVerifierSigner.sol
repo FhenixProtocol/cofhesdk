@@ -4,10 +4,10 @@
 pragma solidity >=0.8.19 <0.9.0;
 
 import { console } from 'forge-std/console.sol';
-import { EncryptedInput } from '@fhenixprotocol/cofhe-contracts/ICofhe.sol';
 import { Test } from 'forge-std/Test.sol';
 import { MessageHashUtils } from '@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol';
-import { SIGNER_PRIVATE_KEY } from '../contracts/MockCoFHE.sol';
+import { EncryptedInput } from '@fhenixprotocol/cofhe-contracts/ICofhe.sol';
+import { SIGNER_PRIVATE_KEY } from '../MockCoFHE.sol';
 
 /**
  * @dev Generates valid signatures for encrypted inputs.

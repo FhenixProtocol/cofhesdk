@@ -2,15 +2,15 @@
 pragma solidity ^0.8.13;
 
 import { Test } from 'forge-std/Test.sol';
-import { MockTaskManager } from '../contracts/MockTaskManager.sol';
-import { MockACL } from '../contracts/MockACL.sol';
+import { MockTaskManager } from '../MockTaskManager.sol';
+import { MockACL } from '../MockACL.sol';
 import '@fhenixprotocol/cofhe-contracts/FHE.sol';
-import { MockZkVerifier } from '../contracts/MockZkVerifier.sol';
+import { MockZkVerifier } from '../MockZkVerifier.sol';
 import { MockZkVerifierSigner } from './MockZkVerifierSigner.sol';
 import { MessageHashUtils } from '@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol';
-import { Permission, PermissionUtils } from '../contracts/Permissioned.sol';
-import { MockQueryDecrypter } from '../contracts/MockQueryDecrypter.sol';
-import { SIGNER_ADDRESS } from '../contracts/MockCoFHE.sol';
+import { Permission, PermissionUtils } from '../Permissioned.sol';
+import { MockQueryDecrypter } from '../MockQueryDecrypter.sol';
+import { SIGNER_ADDRESS } from '../MockCoFHE.sol';
 
 abstract contract CoFheTest is Test {
   MockTaskManager public mockTaskManager;
