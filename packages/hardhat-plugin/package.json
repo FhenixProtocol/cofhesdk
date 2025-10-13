@@ -1,0 +1,71 @@
+{
+  "name": "cofhe-hardhat-plugin",
+  "version": "0.3.0",
+  "description": "Hardhat TypeScript plugin boilerplate",
+  "repository": "github:FhenixProtocol/cofhe-hardhat-plugin",
+  "author": "Fhe Labs",
+  "license": "MIT",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "keywords": [
+    "ethereum",
+    "smart-contracts",
+    "hardhat",
+    "hardhat-plugin",
+    "fhe",
+    "fhenix",
+    "cofhe"
+  ],
+  "scripts": {
+    "lint": "eslint --config ./.eslintrc.json --ignore-path ./.eslintignore ./**/*.ts",
+    "test": "mocha --exit --recursive --timeout 60000 --require 'mocha-fixtures.mjs' 'test/*.test.ts'",
+    "build": "tsc",
+    "watch": "tsc -w",
+    "prepublishOnly": "npm run build"
+  },
+  "files": [
+    "dist/src/",
+    "src/",
+    "LICENSE",
+    "README.md"
+  ],
+  "devDependencies": {
+    "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
+    "@nomicfoundation/hardhat-ethers": "^3.0.5",
+    "@types/chai": "^4.1.7",
+    "@types/eslint": "^8",
+    "@types/fs-extra": "^11.0.4",
+    "@types/mocha": "^5.2.6",
+    "@types/node": "^16.18.76",
+    "@types/sinon": "^17.0.4",
+    "@typescript-eslint/eslint-plugin": "latest",
+    "@typescript-eslint/parser": "latest",
+    "chai": "^4.2.0",
+    "cofhejs": "file:../cofhejs",
+    "eslint": "^8.26.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "fs-extra": "^11.2.0",
+    "hardhat": "^2.11.0",
+    "mocha": "^10.4.0",
+    "prettier": "2.0.5",
+    "sinon": "^20.0.0",
+    "ts-node": "^8.1.0",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@fhenixprotocol/cofhe-contracts": "0.0.13",
+    "@fhenixprotocol/cofhe-mock-contracts": "^0.3.0",
+    "@openzeppelin/contracts": "^5.0.0",
+    "@openzeppelin/contracts-upgradeable": "^5.0.0",
+    "axios": "^1.6.5",
+    "chalk": "^4.1.2",
+    "fast-glob": "^3.3.2"
+  },
+  "peerDependencies": {
+    "cofhejs": "file:../cofhejs",
+    "hardhat": "^2.11.0",
+    "@nomicfoundation/hardhat-ethers": "^3.0.5",
+    "ethers": "^6.10.0"
+  }
+}
