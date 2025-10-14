@@ -9,7 +9,6 @@ import { arbitrumSepolia as viemArbitrumSepolia } from 'viem/chains';
 
 // Real test setup - runs in browser with real tfhe
 const TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
-const TEST_ACCOUNT = privateKeyToAccount(TEST_PRIVATE_KEY).address;
 
 const expectResultSuccess = <T>(result: Result<T>): T => {
   expect(result.success, `Result error: ${result.error?.toString()}`).toBe(true);
@@ -79,7 +78,7 @@ describe('@cofhesdk/web - Encrypt Inputs Browser Tests', () => {
     }, 60000);
   });
 
-  describe('Browser Encryption - Single Values', () => {
+  describe('Browser Encryption', () => {
     it('should encrypt a bool with real TFHE in browser', async () => {
       await cofhesdkClient.connect(publicClient, walletClient);
 
@@ -93,86 +92,6 @@ describe('@cofhesdk/web - Encrypt Inputs Browser Tests', () => {
       expect(encrypted[0].signature).toBeDefined();
       expect(typeof encrypted[0].signature).toBe('string');
       expect(encrypted[0].securityZone).toBe(0);
-    }, 60000);
-
-    it('should encrypt uint8 with real TFHE in browser', async () => {
-      await cofhesdkClient.connect(publicClient, walletClient);
-
-      const result = await cofhesdkClient.encryptInputs([Encryptable.uint8(255n)]).encrypt();
-      const encrypted = expectResultSuccess(result);
-
-      expect(encrypted.length).toBe(1);
-      expect(encrypted[0].utype).toBe(FheTypes.Uint8);
-      expect(encrypted[0].ctHash).toBeDefined();
-      expect(encrypted[0].signature).toBeDefined();
-      expect(encrypted[0].securityZone).toBe(0);
-    }, 60000);
-
-    it('should encrypt uint16 with real TFHE in browser', async () => {
-      await cofhesdkClient.connect(publicClient, walletClient);
-
-      const result = await cofhesdkClient.encryptInputs([Encryptable.uint16(65535n)]).encrypt();
-      const encrypted = expectResultSuccess(result);
-
-      expect(encrypted.length).toBe(1);
-      expect(encrypted[0].utype).toBe(FheTypes.Uint16);
-    }, 60000);
-
-    it('should encrypt uint32 with real TFHE in browser', async () => {
-      await cofhesdkClient.connect(publicClient, walletClient);
-
-      const result = await cofhesdkClient.encryptInputs([Encryptable.uint32(4294967295n)]).encrypt();
-      const encrypted = expectResultSuccess(result);
-
-      expect(encrypted.length).toBe(1);
-      expect(encrypted[0].utype).toBe(FheTypes.Uint32);
-    }, 60000);
-
-    it('should encrypt uint64 with real TFHE in browser', async () => {
-      await cofhesdkClient.connect(publicClient, walletClient);
-
-      const result = await cofhesdkClient.encryptInputs([Encryptable.uint64(18446744073709551615n)]).encrypt();
-      const encrypted = expectResultSuccess(result);
-      expect(encrypted.length).toBe(1);
-      expect(encrypted[0].utype).toBe(FheTypes.Uint64);
-    }, 60000);
-
-    it('should encrypt uint128 with real TFHE in browser', async () => {
-      await cofhesdkClient.connect(publicClient, walletClient);
-
-      const largeValue = 340282366920938463463374607431768211455n; // Max uint128
-      const result = await cofhesdkClient.encryptInputs([Encryptable.uint128(largeValue)]).encrypt();
-      const encrypted = expectResultSuccess(result);
-
-      expect(encrypted.length).toBe(1);
-      expect(encrypted[0].utype).toBe(FheTypes.Uint128);
-    }, 60000);
-
-    it('should encrypt address with real TFHE in browser', async () => {
-      await cofhesdkClient.connect(publicClient, walletClient);
-
-      const testAddress = '0x742d35Cc6634C0532925a3b844D16faC4c175E99';
-      const result = await cofhesdkClient.encryptInputs([Encryptable.address(testAddress)]).encrypt();
-      const encrypted = expectResultSuccess(result);
-
-      expect(encrypted.length).toBe(1);
-      expect(encrypted[0].utype).toBe(FheTypes.Uint160);
-    }, 60000);
-  });
-
-  describe('Browser Encryption - Multiple Values', () => {
-    it('should encrypt multiple values in one batch', async () => {
-      await cofhesdkClient.connect(publicClient, walletClient);
-
-      const inputs = [Encryptable.bool(true), Encryptable.uint8(100n), Encryptable.uint128(1000n)];
-
-      const result = await cofhesdkClient.encryptInputs(inputs).encrypt();
-      const encrypted = expectResultSuccess(result);
-
-      expect(encrypted.length).toBe(3);
-      expect(encrypted[0].utype).toBe(FheTypes.Bool);
-      expect(encrypted[1].utype).toBe(FheTypes.Uint8);
-      expect(encrypted[2].utype).toBe(FheTypes.Uint128);
     }, 60000);
 
     it('should encrypt all supported types together', async () => {

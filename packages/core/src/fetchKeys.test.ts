@@ -62,7 +62,7 @@ describe('fetchKeys', () => {
 
   it('should not fetch FHE key if already cached', async () => {
     // Pre-populate with a cached key
-    const mockCachedKey = new Uint8Array([1, 2, 3]);
+    const mockCachedKey = '0x1234567890';
     keysStorage.setFheKey(sepolia.id, 0, mockCachedKey);
 
     await fetchKeys(config, sepolia.id, 0, mockTfhePublicKeySerializer, mockCompactPkeCrsSerializer, keysStorage);
@@ -78,7 +78,7 @@ describe('fetchKeys', () => {
 
   it('should not fetch CRS if already cached', async () => {
     // Pre-populate with a cached CRS
-    const mockCachedCrs = new Uint8Array([4, 5, 6]);
+    const mockCachedCrs = '0x2345678901';
     keysStorage.setCrs(sepolia.id, mockCachedCrs);
 
     await fetchKeys(config, sepolia.id, 0, mockTfhePublicKeySerializer, mockCompactPkeCrsSerializer, keysStorage);
@@ -94,8 +94,8 @@ describe('fetchKeys', () => {
 
   it('should not make any network calls if both keys are cached', async () => {
     // Pre-populate both keys
-    const mockCachedKey = new Uint8Array([1, 2, 3]);
-    const mockCachedCrs = new Uint8Array([4, 5, 6]);
+    const mockCachedKey = '0x1234567890';
+    const mockCachedCrs = '0x2345678901';
     keysStorage.setFheKey(sepolia.id, 0, mockCachedKey);
     keysStorage.setCrs(sepolia.id, mockCachedCrs);
 

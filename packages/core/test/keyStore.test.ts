@@ -51,7 +51,7 @@ describe('KeyStore', () => {
   describe('FHE Key Management', () => {
     const testChainId = 1337;
     const testSecurityZone = 0;
-    const testKey = new Uint8Array([1, 2, 3, 4, 5]);
+    const testKey = '0x1234567890';
 
     it('should set and get FHE key', () => {
       keysStorage.setFheKey(testChainId, testSecurityZone, testKey);
@@ -62,8 +62,8 @@ describe('KeyStore', () => {
     });
 
     it('should handle multiple security zones', () => {
-      const key0 = new Uint8Array([1, 2, 3]);
-      const key1 = new Uint8Array([4, 5, 6]);
+      const key0 = '0x1234567890';
+      const key1 = '0x2345678901';
 
       keysStorage.setFheKey(testChainId, 0, key0);
       keysStorage.setFheKey(testChainId, 1, key1);
@@ -73,8 +73,8 @@ describe('KeyStore', () => {
     });
 
     it('should handle multiple chains', () => {
-      const chain1Key = new Uint8Array([1, 2, 3]);
-      const chain2Key = new Uint8Array([4, 5, 6]);
+      const chain1Key = '0x1234567890';
+      const chain2Key = '0x2345678901';
 
       keysStorage.setFheKey(1, testSecurityZone, chain1Key);
       keysStorage.setFheKey(2, testSecurityZone, chain2Key);
@@ -89,28 +89,11 @@ describe('KeyStore', () => {
       expect(keysStorage.getFheKey(undefined, 0)).toBeUndefined();
       expect(keysStorage.getFheKey(testChainId, undefined as any)).toBeUndefined();
     });
-
-    it('should convert stored data to Uint8Array', () => {
-      // Simulate stored data that might not be Uint8Array
-      keysStorage.store.setState({
-        fhe: {
-          [testChainId]: {
-            [testSecurityZone]: [1, 2, 3, 4, 5] as any, // Array instead of Uint8Array
-          },
-        },
-        crs: {},
-      });
-
-      const retrievedKey = keysStorage.getFheKey(testChainId, testSecurityZone);
-
-      expect(retrievedKey).toBeInstanceOf(Uint8Array);
-      expect(Array.from(retrievedKey!)).toEqual([1, 2, 3, 4, 5]);
-    });
   });
 
   describe('CRS Management', () => {
     const testChainId = 1337;
-    const testCrs = new Uint8Array([10, 20, 30, 40, 50]);
+    const testCrs = '0x1234567890';
 
     it('should set and get CRS', () => {
       keysStorage.setCrs(testChainId, testCrs);
@@ -121,8 +104,8 @@ describe('KeyStore', () => {
     });
 
     it('should handle multiple chains for CRS', () => {
-      const crs1 = new Uint8Array([1, 2, 3]);
-      const crs2 = new Uint8Array([4, 5, 6]);
+      const crs1 = '0x1234567890';
+      const crs2 = '0x2345678901';
 
       keysStorage.setCrs(1, crs1);
       keysStorage.setCrs(2, crs2);
@@ -134,21 +117,6 @@ describe('KeyStore', () => {
     it('should return undefined for non-existent CRS', () => {
       expect(keysStorage.getCrs(999)).toBeUndefined();
       expect(keysStorage.getCrs(undefined)).toBeUndefined();
-    });
-
-    it('should convert stored CRS data to Uint8Array', () => {
-      // Simulate stored data that might not be Uint8Array
-      keysStorage.store.setState({
-        fhe: {},
-        crs: {
-          [testChainId]: [10, 20, 30] as any, // Array instead of Uint8Array
-        },
-      });
-
-      const retrievedCrs = keysStorage.getCrs(testChainId);
-
-      expect(retrievedCrs).toBeInstanceOf(Uint8Array);
-      expect(Array.from(retrievedCrs!)).toEqual([10, 20, 30]);
     });
   });
 
@@ -188,8 +156,8 @@ describe('KeyStore', () => {
 
     it('should work through keysStorage object', () => {
       const testChainId = 1337;
-      const testKey = new Uint8Array([1, 2, 3]);
-      const testCrs = new Uint8Array([4, 5, 6]);
+      const testKey = '0x1234567890';
+      const testCrs = '0x2345678901';
 
       keysStorage.setFheKey(testChainId, 0, testKey);
       keysStorage.setCrs(testChainId, testCrs);
@@ -203,7 +171,7 @@ describe('KeyStore', () => {
     it('should update state immutably', () => {
       const initialState = keysStorage.store.getState();
       const testChainId = 1337;
-      const testKey = new Uint8Array([1, 2, 3]);
+      const testKey = '0x1234567890';
 
       keysStorage.setFheKey(testChainId, 0, testKey);
 
@@ -218,9 +186,9 @@ describe('KeyStore', () => {
     });
 
     it('should preserve existing data when adding new keys', () => {
-      const key1 = new Uint8Array([1, 2, 3]);
-      const key2 = new Uint8Array([4, 5, 6]);
-      const crs1 = new Uint8Array([7, 8, 9]);
+      const key1 = '0x1234567890';
+      const key2 = '0x2345678901';
+      const crs1 = '0x3456789012';
 
       keysStorage.setFheKey(1, 0, key1);
       keysStorage.setFheKey(2, 0, key2);
@@ -247,11 +215,11 @@ describe('KeyStore', () => {
       const securityZone = 0;
 
       if (state.fhe[chainId] && state.fhe[chainId][securityZone]) {
-        expect(state.fhe[chainId][securityZone]).toBeInstanceOf(Uint8Array);
+        expect(state.fhe[chainId][securityZone]).toBeInstanceOf(String);
       }
 
       if (state.crs[chainId]) {
-        expect(state.crs[chainId]).toBeInstanceOf(Uint8Array);
+        expect(state.crs[chainId]).toBeInstanceOf(String);
       }
     });
   });
