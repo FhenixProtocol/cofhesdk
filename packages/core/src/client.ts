@@ -77,8 +77,8 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
       await fetchMultichainKeys(
         opts.config,
         0,
-        opts.tfhePublicKeySerializer,
-        opts.compactPkeCrsSerializer,
+        opts.tfhePublicKeyDeserializer,
+        opts.compactPkeCrsDeserializer,
         keysStorage
       );
       return true;
@@ -147,8 +147,8 @@ export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient
       walletClient: _walletClient ?? undefined,
       zkvWalletClient: opts.config._internal?.zkvWalletClient,
 
-      tfhePublicKeySerializer: opts.tfhePublicKeySerializer,
-      compactPkeCrsSerializer: opts.compactPkeCrsSerializer,
+      tfhePublicKeyDeserializer: opts.tfhePublicKeyDeserializer,
+      compactPkeCrsDeserializer: opts.compactPkeCrsDeserializer,
       zkBuilderAndCrsGenerator: opts.zkBuilderAndCrsGenerator,
       initTfhe: opts.initTfhe,
 

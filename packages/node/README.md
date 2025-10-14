@@ -51,8 +51,8 @@ Creates a CoFHE SDK client instance for Node.js with node-tfhe automatically con
 
 If you need direct access to the TFHE utilities for advanced use cases:
 
-- `tfhePublicKeySerializer` - Serializer for TFHE public keys
-- `compactPkeCrsSerializer` - Serializer for Compact PKE CRS
+- `tfhePublicKeyDeserializer` - Serializer for TFHE public keys
+- `compactPkeCrsDeserializer` - Serializer for Compact PKE CRS
 - `zkBuilderAndCrsGenerator` - Generator for ZK builders and CRS
 
 ## Testing

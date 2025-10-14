@@ -11,7 +11,7 @@ import { arbitrumSepolia } from 'viem/chains';
 import { CofhesdkConfig, createCofhesdkConfig } from '../config';
 import { ZkBuilderAndCrsGenerator } from './zkPackProveVerify';
 import { createKeysStore, KeysStorage } from '../keyStore';
-import { FheKeySerializer } from '../fetchKeys';
+import { FheKeyDeserializer } from '../fetchKeys';
 import { expectResultSuccess, expectResultError } from '../../test/test-utils';
 
 const MockZkVerifierUrl = 'http://localhost:3001';
@@ -175,11 +175,11 @@ const insertMockKeys = (chainId: number, securityZone: number) => {
   keysStorage.setCrs(chainId, '0x1234567890');
 };
 
-const mockTfhePublicKeySerializer: FheKeySerializer = (buff: string) => {
+const mockTfhePublicKeyDeserializer: FheKeyDeserializer = (buff: string) => {
   return buff;
 };
 
-const mockCompactPkeCrsSerializer: FheKeySerializer = (buff: string) => {
+const mockCompactPkeCrsDeserializer: FheKeyDeserializer = (buff: string) => {
   return buff;
 };
 
@@ -239,8 +239,8 @@ describe('EncryptInputsBuilder', () => {
       publicClient: publicClient,
       walletClient: bobWalletClient,
 
-      tfhePublicKeySerializer: mockTfhePublicKeySerializer,
-      compactPkeCrsSerializer: mockCompactPkeCrsSerializer,
+      tfhePublicKeyDeserializer: mockTfhePublicKeyDeserializer,
+      compactPkeCrsDeserializer: mockCompactPkeCrsDeserializer,
       zkBuilderAndCrsGenerator: mockZkBuilderAndCrsGenerator,
       initTfhe: mockInitTfhe,
       keysStorage: keysStorage,
@@ -281,22 +281,22 @@ describe('EncryptInputsBuilder', () => {
       expectResultError(result, CofhesdkErrorCode.MissingConfig);
     });
 
-    it('should throw an error if tfhePublicKeySerializer is not set', async () => {
+    it('should throw an error if tfhePublicKeyDeserializer is not set', async () => {
       const builder = new EncryptInputsBuilder({
         ...createDefaultParams(),
-        tfhePublicKeySerializer: undefined as unknown as FheKeySerializer,
+        tfhePublicKeyDeserializer: undefined as unknown as FheKeyDeserializer,
       });
       const result = await builder.encrypt();
-      expectResultError(result, CofhesdkErrorCode.MissingTfhePublicKeySerializer);
+      expectResultError(result, CofhesdkErrorCode.MissingTfhePublicKeyDeserializer);
     });
 
-    it('should throw an error if compactPkeCrsSerializer is not set', async () => {
+    it('should throw an error if compactPkeCrsDeserializer is not set', async () => {
       const builder = new EncryptInputsBuilder({
         ...createDefaultParams(),
-        compactPkeCrsSerializer: undefined as unknown as FheKeySerializer,
+        compactPkeCrsDeserializer: undefined as unknown as FheKeyDeserializer,
       });
       const result = await builder.encrypt();
-      expectResultError(result, CofhesdkErrorCode.MissingCompactPkeCrsSerializer);
+      expectResultError(result, CofhesdkErrorCode.MissingCompactPkeCrsDeserializer);
     });
 
     it('should throw an error if initTfhe throws an error', async () => {

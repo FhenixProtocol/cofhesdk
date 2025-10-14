@@ -63,7 +63,7 @@ export type { Result } from './result';
 
 // Key fetching
 export { fetchKeys, fetchMultichainKeys } from './fetchKeys';
-export type { FheKeySerializer } from './fetchKeys';
+export type { FheKeyDeserializer } from './fetchKeys';
 
 // Key storage
 export { createKeysStore } from './keyStore';

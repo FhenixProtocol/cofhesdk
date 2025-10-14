@@ -9,8 +9,8 @@ import { sepolia, arbSepolia } from '@cofhesdk/chains';
 
 describe('fetchKeys', () => {
   let config: CofhesdkConfig;
-  let mockTfhePublicKeySerializer: any;
-  let mockCompactPkeCrsSerializer: any;
+  let mockTfhePublicKeyDeserializer: any;
+  let mockCompactPkeCrsDeserializer: any;
   let keysStorage: KeysStorage;
 
   beforeEach(async () => {
@@ -23,8 +23,8 @@ describe('fetchKeys', () => {
     });
 
     // Setup mock serializers
-    mockTfhePublicKeySerializer = vi.fn();
-    mockCompactPkeCrsSerializer = vi.fn();
+    mockTfhePublicKeyDeserializer = vi.fn();
+    mockCompactPkeCrsDeserializer = vi.fn();
 
     // Create a fresh keysStorage instance for each test (non-persisted)
     keysStorage = createKeysStore(null);
@@ -35,7 +35,7 @@ describe('fetchKeys', () => {
   });
 
   it('should fetch and store FHE public key and CRS for Sepolia when not cached', async () => {
-    await fetchKeys(config, sepolia.id, 0, mockTfhePublicKeySerializer, mockCompactPkeCrsSerializer, keysStorage);
+    await fetchKeys(config, sepolia.id, 0, mockTfhePublicKeyDeserializer, mockCompactPkeCrsDeserializer, keysStorage);
 
     // Verify keys were stored
     const storedFheKey = keysStorage.getFheKey(sepolia.id, 0);
@@ -43,12 +43,19 @@ describe('fetchKeys', () => {
 
     expect(storedFheKey).toBeDefined();
     expect(storedCrs).toBeDefined();
-    expect(mockTfhePublicKeySerializer).toHaveBeenCalled();
-    expect(mockCompactPkeCrsSerializer).toHaveBeenCalled();
+    expect(mockTfhePublicKeyDeserializer).toHaveBeenCalled();
+    expect(mockCompactPkeCrsDeserializer).toHaveBeenCalled();
   });
 
   it('should fetch and store FHE public key and CRS for Arbitrum Sepolia when not cached', async () => {
-    await fetchKeys(config, arbSepolia.id, 0, mockTfhePublicKeySerializer, mockCompactPkeCrsSerializer, keysStorage);
+    await fetchKeys(
+      config,
+      arbSepolia.id,
+      0,
+      mockTfhePublicKeyDeserializer,
+      mockCompactPkeCrsDeserializer,
+      keysStorage
+    );
 
     // Verify keys were stored
     const storedFheKey = keysStorage.getFheKey(arbSepolia.id, 0);
@@ -56,8 +63,8 @@ describe('fetchKeys', () => {
 
     expect(storedFheKey).toBeDefined();
     expect(storedCrs).toBeDefined();
-    expect(mockTfhePublicKeySerializer).toHaveBeenCalled();
-    expect(mockCompactPkeCrsSerializer).toHaveBeenCalled();
+    expect(mockTfhePublicKeyDeserializer).toHaveBeenCalled();
+    expect(mockCompactPkeCrsDeserializer).toHaveBeenCalled();
   });
 
   it('should not fetch FHE key if already cached', async () => {
@@ -65,7 +72,7 @@ describe('fetchKeys', () => {
     const mockCachedKey = '0x1234567890';
     keysStorage.setFheKey(sepolia.id, 0, mockCachedKey);
 
-    await fetchKeys(config, sepolia.id, 0, mockTfhePublicKeySerializer, mockCompactPkeCrsSerializer, keysStorage);
+    await fetchKeys(config, sepolia.id, 0, mockTfhePublicKeyDeserializer, mockCompactPkeCrsDeserializer, keysStorage);
 
     // Verify the cached key wasn't overwritten
     const retrievedKey = keysStorage.getFheKey(sepolia.id, 0);
@@ -81,7 +88,7 @@ describe('fetchKeys', () => {
     const mockCachedCrs = '0x2345678901';
     keysStorage.setCrs(sepolia.id, mockCachedCrs);
 
-    await fetchKeys(config, sepolia.id, 0, mockTfhePublicKeySerializer, mockCompactPkeCrsSerializer, keysStorage);
+    await fetchKeys(config, sepolia.id, 0, mockTfhePublicKeyDeserializer, mockCompactPkeCrsDeserializer, keysStorage);
 
     // Verify the cached CRS wasn't overwritten
     const retrievedCrs = keysStorage.getCrs(sepolia.id);
@@ -99,7 +106,7 @@ describe('fetchKeys', () => {
     keysStorage.setFheKey(sepolia.id, 0, mockCachedKey);
     keysStorage.setCrs(sepolia.id, mockCachedCrs);
 
-    await fetchKeys(config, sepolia.id, 0, mockTfhePublicKeySerializer, mockCompactPkeCrsSerializer, keysStorage);
+    await fetchKeys(config, sepolia.id, 0, mockTfhePublicKeyDeserializer, mockCompactPkeCrsDeserializer, keysStorage);
 
     // Verify both keys remain unchanged
     const retrievedKey = keysStorage.getFheKey(sepolia.id, 0);
@@ -115,35 +122,35 @@ describe('fetchKeys', () => {
         config,
         999, // Non-existent chain
         0,
-        mockTfhePublicKeySerializer,
-        mockCompactPkeCrsSerializer,
+        mockTfhePublicKeyDeserializer,
+        mockCompactPkeCrsDeserializer,
         keysStorage
       )
     ).rejects.toThrow('Config does not support chain <999>');
   });
 
   it('should throw error when FHE public key serialization fails', async () => {
-    mockTfhePublicKeySerializer.mockImplementation(() => {
+    mockTfhePublicKeyDeserializer.mockImplementation(() => {
       throw new Error('Serialization failed');
     });
 
     await expect(
-      fetchKeys(config, sepolia.id, 0, mockTfhePublicKeySerializer, mockCompactPkeCrsSerializer, keysStorage)
+      fetchKeys(config, sepolia.id, 0, mockTfhePublicKeyDeserializer, mockCompactPkeCrsDeserializer, keysStorage)
     ).rejects.toThrow('Error serializing FHE publicKey; Error: Serialization failed');
   });
 
   it('should throw error when CRS serialization fails', async () => {
-    mockCompactPkeCrsSerializer.mockImplementation(() => {
+    mockCompactPkeCrsDeserializer.mockImplementation(() => {
       throw new Error('Serialization failed');
     });
 
     await expect(
-      fetchKeys(config, sepolia.id, 0, mockTfhePublicKeySerializer, mockCompactPkeCrsSerializer, keysStorage)
+      fetchKeys(config, sepolia.id, 0, mockTfhePublicKeyDeserializer, mockCompactPkeCrsDeserializer, keysStorage)
     ).rejects.toThrow('Error serializing CRS; Error: Serialization failed');
   });
 
   it('should fetch and store FHE public key and CRS for all chains in the config', async () => {
-    await fetchMultichainKeys(config, 0, mockTfhePublicKeySerializer, mockCompactPkeCrsSerializer, keysStorage);
+    await fetchMultichainKeys(config, 0, mockTfhePublicKeyDeserializer, mockCompactPkeCrsDeserializer, keysStorage);
 
     // Verify keys were stored
     const storedFheKey = keysStorage.getFheKey(sepolia.id, 0);
@@ -155,7 +162,7 @@ describe('fetchKeys', () => {
     expect(storedCrs).toBeDefined();
     expect(storedFheKeyArb).toBeDefined();
     expect(storedCrsArb).toBeDefined();
-    expect(mockTfhePublicKeySerializer).toHaveBeenCalled();
-    expect(mockCompactPkeCrsSerializer).toHaveBeenCalled();
+    expect(mockTfhePublicKeyDeserializer).toHaveBeenCalled();
+    expect(mockCompactPkeCrsDeserializer).toHaveBeenCalled();
   });
 });

@@ -15,7 +15,7 @@ import {
   type CofhesdkConfig,
   type CofhesdkInputConfig,
   type ZkBuilderAndCrsGenerator,
-  type FheKeySerializer,
+  type FheKeyDeserializer,
 } from '@cofhesdk/core';
 
 /**
@@ -45,7 +45,7 @@ const fromHexString = (hexString: string): Uint8Array => {
  * Serializer for TFHE public keys
  * Validates that the buffer can be deserialized into a TfheCompactPublicKey
  */
-const tfhePublicKeySerializer: FheKeySerializer = (buff: string): void => {
+const tfhePublicKeyDeserializer: FheKeyDeserializer = (buff: string): void => {
   TfheCompactPublicKey.deserialize(fromHexString(buff));
 };
 
@@ -53,7 +53,7 @@ const tfhePublicKeySerializer: FheKeySerializer = (buff: string): void => {
  * Serializer for Compact PKE CRS
  * Validates that the buffer can be deserialized into ZkCompactPkePublicParams
  */
-const compactPkeCrsSerializer: FheKeySerializer = (buff: string): void => {
+const compactPkeCrsDeserializer: FheKeyDeserializer = (buff: string): void => {
   CompactPkeCrs.deserialize(fromHexString(buff));
 };
 
@@ -91,8 +91,8 @@ export function createCofhesdkClient(config: CofhesdkConfig): CofhesdkClient {
   return createCofhesdkClientCore({
     config,
     zkBuilderAndCrsGenerator,
-    tfhePublicKeySerializer,
-    compactPkeCrsSerializer,
+    tfhePublicKeyDeserializer,
+    compactPkeCrsDeserializer,
     initTfhe,
   });
 }
