@@ -10,16 +10,16 @@ type SecurityZoneRecord<T> = Record<number, T>;
 
 // Keys store for FHE keys and CRS
 export type KeysStore = {
-  fhe: ChainRecord<SecurityZoneRecord<Uint8Array | undefined>>;
-  crs: ChainRecord<Uint8Array | undefined>;
+  fhe: ChainRecord<SecurityZoneRecord<string | undefined>>;
+  crs: ChainRecord<string | undefined>;
 };
 
 export type KeysStorage = {
   store: StoreApi<KeysStore>;
-  getFheKey: (chainId: number | undefined, securityZone?: number) => Uint8Array | undefined;
-  getCrs: (chainId: number | undefined) => Uint8Array | undefined;
-  setFheKey: (chainId: number, securityZone: number, key: Uint8Array) => void;
-  setCrs: (chainId: number, crs: Uint8Array) => void;
+  getFheKey: (chainId: number | undefined, securityZone?: number) => string | undefined;
+  getCrs: (chainId: number | undefined) => string | undefined;
+  setFheKey: (chainId: number, securityZone: number, key: string) => void;
+  setCrs: (chainId: number, crs: string) => void;
   clearKeysStorage: () => Promise<void>;
   rehydrateKeysStore: () => Promise<void>;
 };
@@ -75,16 +75,16 @@ export function createKeysStore(storage: IStorage | null): KeysStorage {
   const getFheKey = (chainId: number | undefined, securityZone = 0) => {
     if (chainId == null || securityZone == null) return undefined;
     const stored = keysStore.getState().fhe[chainId]?.[securityZone];
-    return stored ? new Uint8Array(stored) : undefined;
+    return stored;
   };
 
   const getCrs = (chainId: number | undefined) => {
     if (chainId == null) return undefined;
     const stored = keysStore.getState().crs[chainId];
-    return stored ? new Uint8Array(stored) : undefined;
+    return stored;
   };
 
-  const setFheKey = (chainId: number, securityZone: number, key: Uint8Array) => {
+  const setFheKey = (chainId: number, securityZone: number, key: string) => {
     keysStore.setState(
       produce<KeysStore>((state: KeysStore) => {
         if (state.fhe[chainId] == null) state.fhe[chainId] = {};
@@ -93,7 +93,7 @@ export function createKeysStore(storage: IStorage | null): KeysStorage {
     );
   };
 
-  const setCrs = (chainId: number, crs: Uint8Array) => {
+  const setCrs = (chainId: number, crs: string) => {
     keysStore.setState(
       produce<KeysStore>((state: KeysStore) => {
         state.crs[chainId] = crs;
@@ -110,6 +110,7 @@ export function createKeysStore(storage: IStorage | null): KeysStorage {
 
   const rehydrateKeysStore = async () => {
     if ('persist' in keysStore) {
+      if ((keysStore.persist as any).hasHydrated()) return;
       await (keysStore.persist as any).rehydrate();
     }
   };

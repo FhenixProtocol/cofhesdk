@@ -51,8 +51,8 @@ export type ZkCiphertextListBuilder = {
 };
 
 export type ZkBuilderAndCrsGenerator = (
-  fhe: Uint8Array,
-  crs: Uint8Array
+  fhe: string,
+  crs: string
 ) => { zkBuilder: ZkCiphertextListBuilder; zkCrs: ZkCompactPkeCrs };
 
 // ===== CONSTANTS =====

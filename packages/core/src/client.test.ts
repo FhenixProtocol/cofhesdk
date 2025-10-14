@@ -40,8 +40,8 @@ const createTestClient = (): CofhesdkClient => {
   return createCofhesdkClient({
     config,
     zkBuilderAndCrsGenerator: {} as any,
-    tfhePublicKeySerializer: {} as any,
-    compactPkeCrsSerializer: {} as any,
+    tfhePublicKeyDeserializer: {} as any,
+    compactPkeCrsDeserializer: {} as any,
     initTfhe: () => Promise.resolve(),
   });
 };

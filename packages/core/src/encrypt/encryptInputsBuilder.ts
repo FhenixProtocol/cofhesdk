@@ -13,7 +13,7 @@ import {
 } from '../types';
 import { cofheMocksCheckEncryptableBits, cofheMocksZkVerifySign } from './cofheMocksZkVerifySign';
 import { hardhat } from 'viem/chains';
-import { fetchKeys, FheKeySerializer } from '../fetchKeys';
+import { fetchKeys, FheKeyDeserializer } from '../fetchKeys';
 import { getZkVerifierUrlOrThrow } from '../config';
 import { WalletClient } from 'viem';
 import { sleep } from '../utils';
@@ -26,8 +26,8 @@ type EncryptInputsBuilderParams<T extends EncryptableItem[]> = BaseBuilderParams
 
   zkvWalletClient?: WalletClient | undefined;
 
-  tfhePublicKeySerializer: FheKeySerializer | undefined;
-  compactPkeCrsSerializer: FheKeySerializer | undefined;
+  tfhePublicKeyDeserializer: FheKeyDeserializer | undefined;
+  compactPkeCrsDeserializer: FheKeyDeserializer | undefined;
   zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator | undefined;
   initTfhe: TfheInitializer | undefined;
 
@@ -37,7 +37,7 @@ type EncryptInputsBuilderParams<T extends EncryptableItem[]> = BaseBuilderParams
 /**
  * EncryptInputsBuilder exposes a builder pattern for encrypting inputs.
  * account, securityZone, and chainId can be overridden in the builder.
- * config, tfhePublicKeySerializer, compactPkeCrsSerializer, and zkBuilderAndCrsGenerator are required to be set in the builder.
+ * config, tfhePublicKeyDeserializer, compactPkeCrsDeserializer, and zkBuilderAndCrsGenerator are required to be set in the builder.
  *
  * @dev All errors must be throw in `encrypt`, which wraps them in a Result.
  * Do not throw errors in the constructor or in the builder methods.
@@ -50,8 +50,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
 
   private zkvWalletClient: WalletClient | undefined;
 
-  private tfhePublicKeySerializer: FheKeySerializer | undefined;
-  private compactPkeCrsSerializer: FheKeySerializer | undefined;
+  private tfhePublicKeyDeserializer: FheKeyDeserializer | undefined;
+  private compactPkeCrsDeserializer: FheKeyDeserializer | undefined;
   private zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator | undefined;
   private initTfhe: TfheInitializer | undefined;
 
@@ -72,8 +72,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
 
     this.zkvWalletClient = params.zkvWalletClient;
 
-    this.tfhePublicKeySerializer = params.tfhePublicKeySerializer;
-    this.compactPkeCrsSerializer = params.compactPkeCrsSerializer;
+    this.tfhePublicKeyDeserializer = params.tfhePublicKeyDeserializer;
+    this.compactPkeCrsDeserializer = params.compactPkeCrsDeserializer;
     this.zkBuilderAndCrsGenerator = params.zkBuilderAndCrsGenerator;
     this.initTfhe = params.initTfhe;
 
@@ -182,37 +182,37 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   }
 
   /**
-   * tfhePublicKeySerializer is a platform-specific dependency injected into core/createCofhesdkClient by web/createCofhesdkClient and node/createCofhesdkClient
+   * tfhePublicKeyDeserializer is a platform-specific dependency injected into core/createCofhesdkClient by web/createCofhesdkClient and node/createCofhesdkClient
    * web/ uses zama "tfhe"
    * node/ uses zama "node-tfhe"
    * Users should not set this manually.
    */
-  private getTfhePublicKeySerializerOrThrow(): FheKeySerializer {
-    if (this.tfhePublicKeySerializer) return this.tfhePublicKeySerializer;
+  private getTfhePublicKeyDeserializerOrThrow(): FheKeyDeserializer {
+    if (this.tfhePublicKeyDeserializer) return this.tfhePublicKeyDeserializer;
     throw new CofhesdkError({
-      code: CofhesdkErrorCode.MissingTfhePublicKeySerializer,
-      message: 'EncryptInputsBuilder tfhePublicKeySerializer is undefined',
-      hint: 'Ensure client has been created with a tfhePublicKeySerializer.',
+      code: CofhesdkErrorCode.MissingTfhePublicKeyDeserializer,
+      message: 'EncryptInputsBuilder tfhePublicKeyDeserializer is undefined',
+      hint: 'Ensure client has been created with a tfhePublicKeyDeserializer.',
       context: {
-        tfhePublicKeySerializer: this.tfhePublicKeySerializer,
+        tfhePublicKeyDeserializer: this.tfhePublicKeyDeserializer,
       },
     });
   }
 
   /**
-   * compactPkeCrsSerializer is a platform-specific dependency injected into core/createCofhesdkClient by web/createCofhesdkClient and node/createCofhesdkClient
+   * compactPkeCrsDeserializer is a platform-specific dependency injected into core/createCofhesdkClient by web/createCofhesdkClient and node/createCofhesdkClient
    * web/ uses zama "tfhe"
    * node/ uses zama "node-tfhe"
    * Users should not set this manually.
    */
-  private getCompactPkeCrsSerializerOrThrow(): FheKeySerializer {
-    if (this.compactPkeCrsSerializer) return this.compactPkeCrsSerializer;
+  private getCompactPkeCrsDeserializerOrThrow(): FheKeyDeserializer {
+    if (this.compactPkeCrsDeserializer) return this.compactPkeCrsDeserializer;
     throw new CofhesdkError({
-      code: CofhesdkErrorCode.MissingCompactPkeCrsSerializer,
-      message: 'EncryptInputsBuilder compactPkeCrsSerializer is undefined',
-      hint: 'Ensure client has been created with a compactPkeCrsSerializer.',
+      code: CofhesdkErrorCode.MissingCompactPkeCrsDeserializer,
+      message: 'EncryptInputsBuilder compactPkeCrsDeserializer is undefined',
+      hint: 'Ensure client has been created with a compactPkeCrsDeserializer.',
       context: {
-        compactPkeCrsSerializer: this.compactPkeCrsSerializer,
+        compactPkeCrsDeserializer: this.compactPkeCrsDeserializer,
       },
     });
   }
@@ -253,23 +253,35 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    * Fetches the FHE key and CRS from the CoFHE API
    * If the key/crs already exists in the store it is returned, else it is fetched, stored, and returned
    */
-  private async fetchFheKeyAndCrs(): Promise<{ fheKey: Uint8Array; crs: Uint8Array }> {
+  private async fetchFheKeyAndCrs(): Promise<{ fheKey: string; crs: string }> {
     const config = this.getConfigOrThrow();
     const chainId = await this.getChainIdOrThrow();
-    const compactPkeCrsSerializer = this.getCompactPkeCrsSerializerOrThrow();
-    const tfhePublicKeySerializer = this.getTfhePublicKeySerializerOrThrow();
+    const compactPkeCrsDeserializer = this.getCompactPkeCrsDeserializerOrThrow();
+    const tfhePublicKeyDeserializer = this.getTfhePublicKeyDeserializerOrThrow();
     const securityZone = this.getSecurityZone();
 
-    let fheKey: Uint8Array | undefined;
-    let crs: Uint8Array | undefined;
+    try {
+      await this.keysStorage?.rehydrateKeysStore();
+    } catch (error) {
+      throw CofhesdkError.fromError(error, {
+        code: CofhesdkErrorCode.RehydrateKeysStoreFailed,
+        message: `Failed to rehydrate keys store`,
+        context: {
+          keysStorage: this.keysStorage,
+        },
+      });
+    }
+
+    let fheKey: string | undefined;
+    let crs: string | undefined;
 
     try {
       [fheKey, crs] = await fetchKeys(
         config,
         chainId,
         securityZone,
-        tfhePublicKeySerializer,
-        compactPkeCrsSerializer,
+        tfhePublicKeyDeserializer,
+        compactPkeCrsDeserializer,
         this.keysStorage
       );
     } catch (error) {
@@ -280,8 +292,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
           config,
           chainId,
           securityZone,
-          compactPkeCrsSerializer,
-          tfhePublicKeySerializer,
+          compactPkeCrsDeserializer,
+          tfhePublicKeyDeserializer,
         },
       });
     }
@@ -318,7 +330,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    *
    * Generates the zkBuilder and zkCrs from the fheKey and crs
    */
-  private generateZkBuilderAndCrs(fheKey: Uint8Array, crs: Uint8Array) {
+  private generateZkBuilderAndCrs(fheKey: string, crs: string) {
     const zkBuilderAndCrsGenerator = this.zkBuilderAndCrsGenerator;
 
     if (!zkBuilderAndCrsGenerator) {

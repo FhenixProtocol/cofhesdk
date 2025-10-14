@@ -36,13 +36,14 @@ export enum CofhesdkErrorCode {
   MissingConfig = 'MISSING_CONFIG',
   UnsupportedChain = 'UNSUPPORTED_CHAIN',
   MissingZkBuilderAndCrsGenerator = 'MISSING_ZK_BUILDER_AND_CRS_GENERATOR',
-  MissingTfhePublicKeySerializer = 'MISSING_TFHE_PUBLIC_KEY_SERIALIZER',
-  MissingCompactPkeCrsSerializer = 'MISSING_COMPACT_PKE_CRS_SERIALIZER',
+  MissingTfhePublicKeyDeserializer = 'MISSING_TFHE_PUBLIC_KEY_DESERIALIZER',
+  MissingCompactPkeCrsDeserializer = 'MISSING_COMPACT_PKE_CRS_DESERIALIZER',
   MissingFheKey = 'MISSING_FHE_KEY',
   MissingCrs = 'MISSING_CRS',
   FetchKeysFailed = 'FETCH_KEYS_FAILED',
   PublicWalletGetChainIdFailed = 'PUBLIC_WALLET_GET_CHAIN_ID_FAILED',
   PublicWalletGetAddressesFailed = 'PUBLIC_WALLET_GET_ADDRESSES_FAILED',
+  RehydrateKeysStoreFailed = 'REHYDRATE_KEYS_STORE_FAILED',
 }
 
 export type CofhesdkErrorParams = {

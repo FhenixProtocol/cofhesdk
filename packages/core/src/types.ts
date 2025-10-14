@@ -12,7 +12,7 @@ import { CofhesdkConfig } from './config';
 import { DecryptHandlesBuilder } from './decrypt/decryptHandleBuilder';
 import { EncryptInputsBuilder } from './encrypt/encryptInputsBuilder';
 import { ZkBuilderAndCrsGenerator } from './encrypt/zkPackProveVerify';
-import { FheKeySerializer } from './fetchKeys';
+import { FheKeyDeserializer } from './fetchKeys';
 import { permits } from './permits';
 import { Result } from './result';
 
@@ -105,8 +105,8 @@ export type TfheInitializer = () => Promise<void>;
 export type CofhesdkClientParams = {
   config: CofhesdkConfig;
   zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator;
-  tfhePublicKeySerializer: FheKeySerializer;
-  compactPkeCrsSerializer: FheKeySerializer;
+  tfhePublicKeyDeserializer: FheKeyDeserializer;
+  compactPkeCrsDeserializer: FheKeyDeserializer;
   initTfhe: TfheInitializer;
 };
 

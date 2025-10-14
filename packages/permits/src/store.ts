@@ -21,7 +21,7 @@ export const _permitStore = createStore<PermitsStore>()(
       permits: {},
       activePermitHash: {},
     }),
-    { name: 'cofhejs-permits' }
+    { name: 'cofhesdk-permits' }
   )
 );
 

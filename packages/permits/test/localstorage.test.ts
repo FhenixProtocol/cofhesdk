@@ -46,7 +46,7 @@ describe('Permits localStorage Tests', () => {
     setPermit(chainId, account, permit);
 
     // Verify data is stored in localStorage
-    const storedData = localStorage.getItem('cofhejs-permits');
+    const storedData = localStorage.getItem('cofhesdk-permits');
     expect(storedData).toBeDefined();
 
     const parsedData = JSON.parse(storedData!);
@@ -61,7 +61,7 @@ describe('Permits localStorage Tests', () => {
     setActivePermitHash(chainId, account, hash);
 
     // Verify active permit hash is stored
-    const storedData = localStorage.getItem('cofhejs-permits');
+    const storedData = localStorage.getItem('cofhesdk-permits');
     expect(storedData).toBeDefined();
 
     const parsedData = JSON.parse(storedData!);
@@ -88,7 +88,7 @@ describe('Permits localStorage Tests', () => {
 
   it('should handle corrupted localStorage data gracefully', () => {
     // Set invalid JSON in localStorage
-    localStorage.setItem('cofhejs-permits', 'invalid json');
+    localStorage.setItem('cofhesdk-permits', 'invalid json');
 
     // Store should handle this gracefully
     expect(() => {
@@ -104,14 +104,14 @@ describe('Permits localStorage Tests', () => {
     setActivePermitHash(chainId, account, hash);
 
     // Verify data exists
-    let storedData = localStorage.getItem('cofhejs-permits');
+    let storedData = localStorage.getItem('cofhesdk-permits');
     expect(storedData).toBeDefined();
 
     // Remove permit
     removePermit(chainId, account, hash, true);
 
     // Verify data is cleaned up
-    storedData = localStorage.getItem('cofhejs-permits');
+    storedData = localStorage.getItem('cofhesdk-permits');
     const parsedData = JSON.parse(storedData!);
     expect(parsedData.state.permits[chainId][account][hash]).toBeUndefined();
     expect(parsedData.state.activePermitHash[chainId][account]).toBeUndefined();
