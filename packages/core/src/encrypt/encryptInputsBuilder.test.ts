@@ -171,15 +171,15 @@ const setupZkVerifyMock = () => {
 let keysStorage: KeysStorage;
 
 const insertMockKeys = (chainId: number, securityZone: number) => {
-  keysStorage.setFheKey(chainId, securityZone, new Uint8Array([1, 2, 3, 4, 5]));
-  keysStorage.setCrs(chainId, new Uint8Array([6, 7, 8, 9, 10]));
+  keysStorage.setFheKey(chainId, securityZone, '0x1234567890');
+  keysStorage.setCrs(chainId, '0x1234567890');
 };
 
-const mockTfhePublicKeySerializer: FheKeySerializer = (buff: Uint8Array) => {
+const mockTfhePublicKeySerializer: FheKeySerializer = (buff: string) => {
   return buff;
 };
 
-const mockCompactPkeCrsSerializer: FheKeySerializer = (buff: Uint8Array) => {
+const mockCompactPkeCrsSerializer: FheKeySerializer = (buff: string) => {
   return buff;
 };
 
@@ -187,7 +187,7 @@ const mockInitTfhe: TfheInitializer = () => {
   return Promise.resolve();
 };
 
-const mockZkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator = (fhe: Uint8Array, crs: Uint8Array) => {
+const mockZkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator = (fhe: string, crs: string) => {
   return {
     zkBuilder: new MockZkListBuilder(),
     zkCrs: MockCrs,

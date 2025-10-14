@@ -1,19 +1,18 @@
 import { hardhat } from '@cofhesdk/chains';
 import { CofhesdkConfig, getCoFheUrlOrThrow } from './config';
 import { KeysStorage } from './keyStore';
-import { fromHexString } from './utils';
 
 const PUBLIC_KEY_LENGTH_MIN = 15_000;
 // eslint-disable-next-line no-unused-vars
-export type FheKeySerializer = (buff: Uint8Array) => void;
+export type FheKeySerializer = (buff: string) => void;
 
-const checkKeyValidity = (key: Uint8Array | undefined, serializer: FheKeySerializer) => {
-  if (key == null || key.length === 0) return false;
+const checkKeyValidity = (key: string | undefined, serializer: FheKeySerializer) => {
+  if (key == null || key.length === 0) return [false, `Key is null or empty <${key}>`];
   try {
     serializer(key);
-    return true;
+    return [true, `Key is valid`];
   } catch (err) {
-    return false;
+    return [false, `Serialization failed <${err}> key length <${key.length}>`];
   }
 };
 
@@ -26,7 +25,8 @@ const fetchFhePublicKey = async (
 ) => {
   // Escape if key already exists
   const storedKey = keysStorage?.getFheKey(chainId, securityZone);
-  if (checkKeyValidity(storedKey, tfhePublicKeySerializer)) return storedKey!;
+  const [storedKeyValid] = checkKeyValidity(storedKey, tfhePublicKeySerializer);
+  if (storedKeyValid) return storedKey!;
 
   let pk_data: string | undefined = undefined;
 
@@ -58,19 +58,17 @@ const fetchFhePublicKey = async (
     );
   }
 
-  const pk_buff = fromHexString(pk_data);
-
   // Check validity by serializing
   try {
-    tfhePublicKeySerializer(pk_buff);
+    tfhePublicKeySerializer(pk_data);
   } catch (err) {
     throw new Error(`Error serializing FHE publicKey; ${err}`);
   }
 
   // Store result
-  keysStorage?.setFheKey(chainId, securityZone, pk_buff);
+  keysStorage?.setFheKey(chainId, securityZone, pk_data);
 
-  return pk_buff;
+  return pk_data;
 };
 
 const fetchCrs = async (
@@ -82,7 +80,8 @@ const fetchCrs = async (
 ) => {
   // Escape if key already exists
   const storedKey = keysStorage?.getCrs(chainId);
-  if (checkKeyValidity(storedKey, compactPkeCrsSerializer)) return storedKey!;
+  const [storedKeyValid] = checkKeyValidity(storedKey, compactPkeCrsSerializer);
+  if (storedKeyValid) return storedKey!;
 
   let crs_data: string | undefined = undefined;
 
@@ -104,18 +103,16 @@ const fetchCrs = async (
     throw new Error(`Error fetching CRS; invalid: missing or not a string`);
   }
 
-  const crs_buff = fromHexString(crs_data);
-
   try {
-    compactPkeCrsSerializer(crs_buff);
+    compactPkeCrsSerializer(crs_data);
   } catch (err) {
     console.error(`Error serializing CRS ${err}`);
     throw new Error(`Error serializing CRS; ${err}`);
   }
 
-  keysStorage?.setCrs(chainId, crs_buff);
+  keysStorage?.setCrs(chainId, crs_data);
 
-  return crs_buff;
+  return crs_data;
 };
 
 /**
@@ -127,7 +124,7 @@ const fetchCrs = async (
  * @param tfhePublicKeySerializer - The serializer for the FHE public key (used for validation).
  * @param compactPkeCrsSerializer - The serializer for the CRS (used for validation).
  * @param keysStorage - The keys storage instance to use (optional)
- * @returns {Promise<[Uint8Array, Uint8Array]>} - A promise that resolves to [fheKey, crs]
+ * @returns {Promise<[string, string]>} - A promise that resolves to [fheKey, crs]
  */
 export const fetchKeys = async (
   config: CofhesdkConfig,
@@ -136,7 +133,7 @@ export const fetchKeys = async (
   tfhePublicKeySerializer: FheKeySerializer,
   compactPkeCrsSerializer: FheKeySerializer,
   keysStorage?: KeysStorage | null
-): Promise<[Uint8Array, Uint8Array]> => {
+): Promise<[string, string]> => {
   // Get cofhe url from config
   const coFheUrl = getCoFheUrlOrThrow(config, chainId);
 

@@ -253,15 +253,27 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    * Fetches the FHE key and CRS from the CoFHE API
    * If the key/crs already exists in the store it is returned, else it is fetched, stored, and returned
    */
-  private async fetchFheKeyAndCrs(): Promise<{ fheKey: Uint8Array; crs: Uint8Array }> {
+  private async fetchFheKeyAndCrs(): Promise<{ fheKey: string; crs: string }> {
     const config = this.getConfigOrThrow();
     const chainId = await this.getChainIdOrThrow();
     const compactPkeCrsSerializer = this.getCompactPkeCrsSerializerOrThrow();
     const tfhePublicKeySerializer = this.getTfhePublicKeySerializerOrThrow();
     const securityZone = this.getSecurityZone();
 
-    let fheKey: Uint8Array | undefined;
-    let crs: Uint8Array | undefined;
+    try {
+      await this.keysStorage?.rehydrateKeysStore();
+    } catch (error) {
+      throw CofhesdkError.fromError(error, {
+        code: CofhesdkErrorCode.RehydrateKeysStoreFailed,
+        message: `Failed to rehydrate keys store`,
+        context: {
+          keysStorage: this.keysStorage,
+        },
+      });
+    }
+
+    let fheKey: string | undefined;
+    let crs: string | undefined;
 
     try {
       [fheKey, crs] = await fetchKeys(
@@ -318,7 +330,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    *
    * Generates the zkBuilder and zkCrs from the fheKey and crs
    */
-  private generateZkBuilderAndCrs(fheKey: Uint8Array, crs: Uint8Array) {
+  private generateZkBuilderAndCrs(fheKey: string, crs: string) {
     const zkBuilderAndCrsGenerator = this.zkBuilderAndCrsGenerator;
 
     if (!zkBuilderAndCrsGenerator) {

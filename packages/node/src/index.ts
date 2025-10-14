@@ -31,29 +31,39 @@ async function initTfhe(): Promise<void> {
 }
 
 /**
+ * Utility to convert the hex string key to a Uint8Array for use with tfhe
+ */
+const fromHexString = (hexString: string): Uint8Array => {
+  const cleanString = hexString.length % 2 === 1 ? `0${hexString}` : hexString;
+  const arr = cleanString.replace(/^0x/, '').match(/.{1,2}/g);
+  if (!arr) return new Uint8Array();
+  return new Uint8Array(arr.map((byte) => parseInt(byte, 16)));
+};
+
+/**
  * Serializer for TFHE public keys
  * Validates that the buffer can be deserialized into a TfheCompactPublicKey
  */
-export const tfhePublicKeySerializer: FheKeySerializer = (buff: Uint8Array): void => {
-  TfheCompactPublicKey.deserialize(buff);
+const tfhePublicKeySerializer: FheKeySerializer = (buff: string): void => {
+  TfheCompactPublicKey.deserialize(fromHexString(buff));
 };
 
 /**
  * Serializer for Compact PKE CRS
  * Validates that the buffer can be deserialized into ZkCompactPkePublicParams
  */
-export const compactPkeCrsSerializer: FheKeySerializer = (buff: Uint8Array): void => {
-  CompactPkeCrs.deserialize(buff);
+const compactPkeCrsSerializer: FheKeySerializer = (buff: string): void => {
+  CompactPkeCrs.deserialize(fromHexString(buff));
 };
 
 /**
  * Creates a ZK builder and CRS from FHE public key and CRS buffers
  * This is used internally by the SDK to create encrypted inputs
  */
-export const zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator = (fhe: Uint8Array, crs: Uint8Array) => {
-  const fhePublicKey = TfheCompactPublicKey.deserialize(fhe);
+const zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator = (fhe: string, crs: string) => {
+  const fhePublicKey = TfheCompactPublicKey.deserialize(fromHexString(fhe));
   const zkBuilder = ProvenCompactCiphertextList.builder(fhePublicKey);
-  const zkCrs = CompactPkeCrs.deserialize(crs);
+  const zkCrs = CompactPkeCrs.deserialize(fromHexString(crs));
 
   return { zkBuilder, zkCrs };
 };

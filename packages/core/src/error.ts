@@ -43,6 +43,7 @@ export enum CofhesdkErrorCode {
   FetchKeysFailed = 'FETCH_KEYS_FAILED',
   PublicWalletGetChainIdFailed = 'PUBLIC_WALLET_GET_CHAIN_ID_FAILED',
   PublicWalletGetAddressesFailed = 'PUBLIC_WALLET_GET_ADDRESSES_FAILED',
+  RehydrateKeysStoreFailed = 'REHYDRATE_KEYS_STORE_FAILED',
 }
 
 export type CofhesdkErrorParams = {

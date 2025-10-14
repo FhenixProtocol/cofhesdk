@@ -27,7 +27,6 @@ import { getPublicClientChainID, getWalletClientAccount } from './utils';
 export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient {
   // Create keysStorage instance using configured storage
   const keysStorage = createKeysStore(opts.config.fheKeyStorage);
-  if (opts.config.fheKeyStorage != null) keysStorage.rehydrateKeysStore();
 
   // refs captured in closure
   let _publicClient: PublicClient | undefined = undefined;
