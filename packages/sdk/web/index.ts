@@ -1,8 +1,8 @@
 // Web specific functionality only
 
 import {
-  createCofhesdkClient as createCofhesdkClientCore,
-  createCofhesdkConfig as createCofhesdkConfigCore,
+  createCofhesdkClientBase,
+  createCofhesdkConfigBase,
   type CofhesdkClient,
   type CofhesdkConfig,
   type CofhesdkInputConfig,
@@ -10,7 +10,7 @@ import {
   type FheKeyDeserializer,
 } from '@/core';
 
-// Export web-specific storage
+// Import web-specific storage (internal use only)
 import { createWebStorage } from './storage.js';
 
 // Import tfhe for web
@@ -73,7 +73,7 @@ const zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator = (fhe: string, crs: st
  * @returns The CoFHE SDK configuration with web defaults applied
  */
 export function createCofhesdkConfig(config: CofhesdkInputConfig): CofhesdkConfig {
-  return createCofhesdkConfigCore({
+  return createCofhesdkConfigBase({
     ...config,
     fheKeyStorage: config.fheKeyStorage === null ? null : config.fheKeyStorage ?? createWebStorage(),
   });
@@ -86,7 +86,7 @@ export function createCofhesdkConfig(config: CofhesdkInputConfig): CofhesdkConfi
  * @returns The CoFHE SDK client instance
  */
 export function createCofhesdkClient(config: CofhesdkConfig): CofhesdkClient {
-  return createCofhesdkClientCore({
+  return createCofhesdkClientBase({
     config,
     zkBuilderAndCrsGenerator,
     tfhePublicKeyDeserializer,

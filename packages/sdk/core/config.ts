@@ -92,12 +92,12 @@ export const CofhesdkConfigSchema = z.object({
  */
 export type CofhesdkInputConfig = z.input<typeof CofhesdkConfigSchema>;
 /**
- * Creates and validates a cofhesdk configuration
+ * Creates and validates a cofhesdk configuration (base implementation)
  * @param config - The configuration object to validate
  * @returns The validated configuration
  * @throws {Error} If the configuration is invalid
  */
-export function createCofhesdkConfig(config: CofhesdkInputConfig): CofhesdkConfig {
+export function createCofhesdkConfigBase(config: CofhesdkInputConfig): CofhesdkConfig {
   const result = CofhesdkConfigSchema.safeParse(config);
 
   if (!result.success) {

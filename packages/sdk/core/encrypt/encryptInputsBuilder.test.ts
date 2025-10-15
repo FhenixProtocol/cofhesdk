@@ -14,7 +14,7 @@ import { fromHexString, toHexString } from '../utils.js';
 import { type PublicClient, createPublicClient, http, type WalletClient, createWalletClient } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { arbitrumSepolia } from 'viem/chains';
-import { type CofhesdkConfig, createCofhesdkConfig } from '../config.js';
+import { type CofhesdkConfig, createCofhesdkConfigBase } from '../config.js';
 import { type ZkBuilderAndCrsGenerator } from './zkPackProveVerify.js';
 import { type KeysStorage, createKeysStore } from '../keyStore.js';
 import { type FheKeyDeserializer } from '../fetchKeys.js';
@@ -201,7 +201,7 @@ const mockZkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator = (fhe: string, crs
 };
 
 const createMockCofhesdkConfig = (chainId: number, zkVerifierUrl: string) => {
-  return createCofhesdkConfig({
+  return createCofhesdkConfigBase({
     supportedChains: [
       {
         id: chainId,
