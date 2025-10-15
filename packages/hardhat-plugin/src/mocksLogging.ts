@@ -1,13 +1,10 @@
-import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { TASK_MANAGER_ADDRESS } from "./consts.js";
-import chalk from "chalk";
+import { HardhatRuntimeEnvironment } from 'hardhat/types';
+import { TASK_MANAGER_ADDRESS } from './consts.js';
+import chalk from 'chalk';
 
 const getDeployedMockTaskManager = async (hre: HardhatRuntimeEnvironment) => {
   // Fetch the deployed MockTaskManager
-  const taskManager = await hre.ethers.getContractAt(
-    "MockTaskManager",
-    TASK_MANAGER_ADDRESS,
-  );
+  const taskManager = await hre.ethers.getContractAt('MockTaskManager', TASK_MANAGER_ADDRESS);
 
   return taskManager;
 };
@@ -17,10 +14,7 @@ const getLoggingEnabled = async (hre: HardhatRuntimeEnvironment) => {
   return await taskManager.logOps();
 };
 
-const setLoggingEnabled = async (
-  hre: HardhatRuntimeEnvironment,
-  enabled: boolean,
-) => {
+const setLoggingEnabled = async (hre: HardhatRuntimeEnvironment, enabled: boolean) => {
   const taskManager = await getDeployedMockTaskManager(hre);
   await taskManager.setLogOps(enabled);
 };
@@ -40,7 +34,7 @@ const printLogsBlockEnd = () => {
 export const mock_setLoggingEnabled = async (
   hre: HardhatRuntimeEnvironment,
   enabled: boolean,
-  closureName?: string,
+  closureName?: string
 ) => {
   try {
     const initiallyEnabled = await getLoggingEnabled(hre);
@@ -49,9 +43,7 @@ export const mock_setLoggingEnabled = async (
 
     // Only print if enabling logs
     if (enabled) {
-      printLogsEnabledMessage(
-        `${closureName ? `"${chalk.bold(closureName)}" logs:` : "Logs:"}`,
-      );
+      printLogsEnabledMessage(`${closureName ? `"${chalk.bold(closureName)}" logs:` : 'Logs:'}`);
     }
 
     // Only print if disabling logs AND logs currently enabled
@@ -59,14 +51,14 @@ export const mock_setLoggingEnabled = async (
       printLogsBlockEnd();
     }
   } catch (error) {
-    console.log(chalk.red("mock_setLoggingEnabled error"), error);
+    console.log(chalk.red('mock_setLoggingEnabled error'), error);
   }
 };
 
 export const mock_withLogs = async (
   hre: HardhatRuntimeEnvironment,
   closureName: string,
-  closure: () => Promise<void>,
+  closure: () => Promise<void>
 ) => {
   const initiallyEnabled = await getLoggingEnabled(hre);
 
