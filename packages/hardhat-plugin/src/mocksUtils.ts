@@ -1,7 +1,7 @@
-import { TASK_MANAGER_ADDRESS, MOCKS_ZK_VERIFIER_ADDRESS } from "./consts";
+import { TASK_MANAGER_ADDRESS, MOCKS_ZK_VERIFIER_ADDRESS } from "./consts.js";
 import { expect } from "chai";
 import { ethers } from "ethers";
-import { HardhatEthersProvider } from "@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider";
+import { type HardhatEthersProvider } from "@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider";
 
 const mock_checkIsTestnet = async (
   fnName: string,

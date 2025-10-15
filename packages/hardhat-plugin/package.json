@@ -1,6 +1,7 @@
 {
   "name": "@cofhesdk/hardhat-plugin",
   "version": "0.0.0",
+  "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -19,10 +20,8 @@
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
   },
   "dependencies": {
-    "@cofhesdk/node": "workspace:*",
+    "cofhesdk": "workspace:*",
     "@cofhesdk/mock-contracts": "workspace:*",
-    "@cofhesdk/adapters": "workspace:*",
-    "@cofhesdk/chains": "workspace:*",
     "@fhenixprotocol/cofhe-contracts": "0.0.13",
     "@openzeppelin/contracts": "^5.0.0",
     "@openzeppelin/contracts-upgradeable": "^5.0.0",

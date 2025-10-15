@@ -5,9 +5,9 @@ import {
   MOCKS_QUERY_DECRYPTER_ADDRESS,
   TEST_BED_ADDRESS,
   MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
-} from "./consts";
-import { Contract } from "ethers";
-import { compileMockContractPaths } from "./compileMockContracts";
+} from "./consts.js";
+import { type Contract } from "ethers";
+import { compileMockContractPaths } from "./compileMockContracts.js";
 import chalk from "chalk";
 
 // Deploy
