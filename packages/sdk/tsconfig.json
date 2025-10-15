@@ -12,6 +12,6 @@
     "verbatimModuleSyntax": true,
     "noEmit": true
   },
-  "include": ["**/*.ts", "**/*.tsx"],
+  "include": ["**/*.ts", "**/*.tsx", "hardhat.config.cjs"],
   "exclude": ["node_modules", "dist"]
 }
