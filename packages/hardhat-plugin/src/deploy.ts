@@ -1,4 +1,7 @@
-import { HardhatRuntimeEnvironment } from 'hardhat/types';
+import { type HardhatRuntimeEnvironment } from 'hardhat/types';
+import chalk from 'chalk';
+import { Contract } from 'ethers';
+
 import {
   TASK_MANAGER_ADDRESS,
   MOCKS_ZK_VERIFIER_ADDRESS,
@@ -6,9 +9,7 @@ import {
   TEST_BED_ADDRESS,
   MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
 } from './consts.js';
-import { type Contract } from 'ethers';
-import { compileMockContractPaths } from './compileMockContracts.js';
-import chalk from 'chalk';
+import { compileMockContractPaths } from './compile.js';
 
 // Deploy
 
@@ -33,7 +34,7 @@ const deployMockTaskManager = async (hre: HardhatRuntimeEnvironment) => {
   return taskManager;
 };
 
-const deployMockACL = async (hre: HardhatRuntimeEnvironment) => {
+const deployMockACL = async (hre: HardhatRuntimeEnvironment): Promise<Contract> => {
   // Get Signer
   const [signer] = await hre.ethers.getSigners();
 

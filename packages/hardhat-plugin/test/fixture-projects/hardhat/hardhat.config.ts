@@ -1,17 +1,17 @@
 // We load the plugin here.
-import { HardhatUserConfig } from "hardhat/types";
-import "@nomicfoundation/hardhat-ethers";
+import { type HardhatUserConfig } from 'hardhat/types';
+import '@nomicfoundation/hardhat-ethers';
 
-import "../../../src";
+import '../../../src';
 
 const config: HardhatUserConfig = {
   solidity: {
-    version: "0.8.25",
+    version: '0.8.25',
     settings: {
-      evmVersion: "cancun",
+      evmVersion: 'cancun',
     },
   },
-  defaultNetwork: "hardhat",
+  defaultNetwork: 'hardhat',
 
   paths: {
     // newPath: "asd",

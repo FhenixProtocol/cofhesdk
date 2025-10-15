@@ -1,35 +1,29 @@
-import { expect } from "chai";
-import { describe, it, beforeEach } from "mocha";
-import { useEnvironment } from "./helpers";
-import { TASK_MANAGER_ADDRESS } from "../src/consts";
-import {
-  TASK_COFHE_MOCKS_DEPLOY,
-  TASK_COFHE_MOCKS_SET_LOG_OPS,
-} from "../src/consts";
-import { mock_setLoggingEnabled, mock_withLogs } from "../src/mocksLogging";
-import { Contract } from "ethers";
+import { expect } from 'chai';
+import { describe, it, beforeEach } from 'mocha';
+import { Contract } from 'ethers';
 
-describe("Set Log Ops Task", () => {
-  const getHre = useEnvironment("hardhat");
+import { useEnvironment } from './helpers.js';
+import { TASK_MANAGER_ADDRESS, TASK_COFHE_MOCKS_DEPLOY, TASK_COFHE_MOCKS_SET_LOG_OPS } from '../src/consts.js';
+import { mock_setLoggingEnabled, mock_withLogs } from '../src/logging.js';
+
+describe('Set Log Ops Task', () => {
+  const getHre = useEnvironment('hardhat');
   let taskManager: Contract;
 
   beforeEach(async () => {
     const hre = getHre();
     await hre.run(TASK_COFHE_MOCKS_DEPLOY, { silent: true });
 
-    taskManager = await hre.ethers.getContractAt(
-      "MockTaskManager",
-      TASK_MANAGER_ADDRESS,
-    );
+    taskManager = await hre.ethers.getContractAt('MockTaskManager', TASK_MANAGER_ADDRESS);
   });
 
   const expectLogOps = async (enabled: boolean) => {
     const logOps = await taskManager.logOps();
-    console.log(`${enabled ? "├ " : ""}(hh-test) Logging Enabled?`, logOps);
+    console.log(`${enabled ? '├ ' : ''}(hh-test) Logging Enabled?`, logOps);
     expect(logOps).to.equal(enabled);
   };
 
-  it("(task) should enable logging", async () => {
+  it('(task) should enable logging', async () => {
     const hre = getHre();
     // Verify initial state
     await expectLogOps(false);
@@ -42,7 +36,7 @@ describe("Set Log Ops Task", () => {
     expect(await taskManager.logOps()).to.be.true;
   });
 
-  it("(function) should enable logging", async () => {
+  it('(function) should enable logging', async () => {
     const hre = getHre();
     // Verify initial state
     await expectLogOps(false);
@@ -60,7 +54,7 @@ describe("Set Log Ops Task", () => {
     await expectLogOps(false);
   });
 
-  it("(task) should disable logging", async () => {
+  it('(task) should disable logging', async () => {
     const hre = getHre();
     await hre.cofhesdk.mocks.enableLogs();
     await expectLogOps(true);
@@ -73,7 +67,7 @@ describe("Set Log Ops Task", () => {
     await expectLogOps(false);
   });
 
-  it("(function) should disable logging", async () => {
+  it('(function) should disable logging', async () => {
     const hre = getHre();
     await hre.cofhesdk.mocks.enableLogs();
 
@@ -92,15 +86,12 @@ describe("Set Log Ops Task", () => {
     await expectLogOps(false);
   });
 
-  it("(function) mock_withLogs should enable logging", async () => {
+  it('(function) mock_withLogs should enable logging', async () => {
     const hre = getHre();
-    await hre.cofhesdk.mocks.withLogs(
-      "'hre.cofhesdk.mocks.withLogs' logging enabled?",
-      async () => {
-        // Verify logging is enabled inside the closure
-        await expectLogOps(true);
-      },
-    );
+    await hre.cofhesdk.mocks.withLogs("'hre.cofhesdk.mocks.withLogs' logging enabled?", async () => {
+      // Verify logging is enabled inside the closure
+      await expectLogOps(true);
+    });
 
     // Verify logging is disabled outside of the closure
     await expectLogOps(false);

@@ -1,15 +1,12 @@
 {
   "extends": "@cofhesdk/tsconfig/base.json",
   "compilerOptions": {
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
     "outDir": "dist",
     "rootDir": ".",
     "baseUrl": ".",
     "paths": {
       "@/*": ["*/index.ts"]
     },
-    "verbatimModuleSyntax": true,
     "noEmit": true
   },
   "include": ["**/*.ts", "**/*.tsx", "hardhat.config.cjs"],
