@@ -1,41 +1,41 @@
-import chalk from "chalk";
-import { extendConfig, extendEnvironment, task, types } from "hardhat/config";
+import chalk from 'chalk';
+import { extendConfig, extendEnvironment, task, types } from 'hardhat/config';
 
-import { localcofheFundAccount } from "./fund.js";
+import { localcofheFundAccount } from './fund.js';
 import {
   MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
   TASK_COFHE_MOCKS_DEPLOY,
   TASK_COFHE_MOCKS_SET_LOG_OPS,
   TASK_COFHE_USE_FAUCET,
-} from "./consts.js";
-import { TASK_TEST, TASK_NODE } from "hardhat/builtin-tasks/task-names";
-import { deployMocks, type DeployMocksArgs } from "./deployMockContracts.js";
-import { mock_setLoggingEnabled, mock_withLogs } from "./mocksLogging.js";
-import { mock_expectPlaintext } from "./mocksUtils.js";
-import { mock_getPlaintext } from "./mocksUtils.js";
-import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
+} from './consts.js';
+import { TASK_TEST, TASK_NODE } from 'hardhat/builtin-tasks/task-names';
+import { deployMocks, type DeployMocksArgs } from './deployMockContracts.js';
+import { mock_setLoggingEnabled, mock_withLogs } from './mocksLogging.js';
+import { mock_expectPlaintext } from './mocksUtils.js';
+import { mock_getPlaintext } from './mocksUtils.js';
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 import {
   type CofhesdkClient,
   type CofhesdkConfig,
   type CofhesdkInputConfig,
   createCofhesdkClient,
   createCofhesdkConfig,
-} from "cofhesdk/node";
-import { type Result } from "cofhesdk/core";
+} from 'cofhesdk/node';
+import { type Result } from 'cofhesdk/core';
 import {
   expectResultError,
   expectResultPartialValue,
   expectResultSuccess,
   expectResultValue,
-} from "./expectResultUtils.js";
-import { type PublicClient, type WalletClient } from "viem";
-import { HardhatSignerAdapter } from "cofhesdk/adapters";
+} from './expectResultUtils.js';
+import { type PublicClient, type WalletClient } from 'viem';
+import { HardhatSignerAdapter } from 'cofhesdk/adapters';
 
 /**
  * Configuration interface for the CoFHE Hardhat plugin.
  * Allows users to configure mock logging and gas warning settings.
  */
-declare module "hardhat/types/config" {
+declare module 'hardhat/types/config' {
   interface HardhatUserConfig {
     cofhesdk?: {
       /** Whether to log mock operations (default: true) */
@@ -63,47 +63,43 @@ extendConfig((config, userConfig) => {
 
   // Default config
   config.networks.localcofhe = {
-    gas: "auto",
+    gas: 'auto',
     gasMultiplier: 1.2,
-    gasPrice: "auto",
+    gasPrice: 'auto',
     timeout: 10_000,
     httpHeaders: {},
-    url: "http://127.0.0.1:42069",
+    url: 'http://127.0.0.1:42069',
     accounts: [
-      "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
-      "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
-      "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a",
-      "0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6",
+      '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
+      '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d',
+      '0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a',
+      '0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6',
     ],
   };
 
   // Only add Sepolia config if user hasn't defined it
-  if (!userConfig.networks?.["eth-sepolia"]) {
-    config.networks["eth-sepolia"] = {
-      url:
-        process.env.SEPOLIA_RPC_URL ||
-        "https://ethereum-sepolia.publicnode.com",
+  if (!userConfig.networks?.['eth-sepolia']) {
+    config.networks['eth-sepolia'] = {
+      url: process.env.SEPOLIA_RPC_URL || 'https://ethereum-sepolia.publicnode.com',
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 11155111,
-      gas: "auto",
+      gas: 'auto',
       gasMultiplier: 1.2,
-      gasPrice: "auto",
+      gasPrice: 'auto',
       timeout: 60_000,
       httpHeaders: {},
     };
   }
 
   // Only add Arbitrum Sepolia config if user hasn't defined it
-  if (!userConfig.networks?.["arb-sepolia"]) {
-    config.networks["arb-sepolia"] = {
-      url:
-        process.env.ARBITRUM_SEPOLIA_RPC_URL ||
-        "https://sepolia-rollup.arbitrum.io/rpc",
+  if (!userConfig.networks?.['arb-sepolia']) {
+    config.networks['arb-sepolia'] = {
+      url: process.env.ARBITRUM_SEPOLIA_RPC_URL || 'https://sepolia-rollup.arbitrum.io/rpc',
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 421614,
-      gas: "auto",
+      gas: 'auto',
       gasMultiplier: 1.2,
-      gasPrice: "auto",
+      gasPrice: 'auto',
       timeout: 60_000,
       httpHeaders: {},
     };
@@ -120,16 +116,14 @@ type UseFaucetArgs = {
   address?: string;
 };
 
-task(TASK_COFHE_USE_FAUCET, "Fund an account from the funder")
-  .addOptionalParam("address", "Address to fund", undefined, types.string)
+task(TASK_COFHE_USE_FAUCET, 'Fund an account from the funder')
+  .addOptionalParam('address', 'Address to fund', undefined, types.string)
   .setAction(async ({ address }: UseFaucetArgs, hre) => {
     const { network } = hre;
     const { name: networkName } = network;
 
-    if (networkName !== "localcofhe") {
-      console.info(
-        chalk.yellow(`Programmatic faucet only supported for localcofhe`),
-      );
+    if (networkName !== 'localcofhe') {
+      console.info(chalk.yellow(`Programmatic faucet only supported for localcofhe`));
       return;
     }
 
@@ -143,30 +137,15 @@ task(TASK_COFHE_USE_FAUCET, "Fund an account from the funder")
     try {
       await localcofheFundAccount(hre, address);
     } catch (e) {
-      console.info(
-        chalk.red(`failed to get funds from localcofhe for ${address}: ${e}`),
-      );
+      console.info(chalk.red(`failed to get funds from localcofhe for ${address}: ${e}`));
     }
   });
 
 // DEPLOY TASKS
 
-task(
-  TASK_COFHE_MOCKS_DEPLOY,
-  "Deploys the mock contracts on the Hardhat network",
-)
-  .addOptionalParam(
-    "deployTestBed",
-    "Whether to deploy the test bed",
-    true,
-    types.boolean,
-  )
-  .addOptionalParam(
-    "silent",
-    "Whether to suppress output",
-    false,
-    types.boolean,
-  )
+task(TASK_COFHE_MOCKS_DEPLOY, 'Deploys the mock contracts on the Hardhat network')
+  .addOptionalParam('deployTestBed', 'Whether to deploy the test bed', true, types.boolean)
+  .addOptionalParam('silent', 'Whether to suppress output', false, types.boolean)
   .setAction(async ({ deployTestBed, silent }: DeployMocksArgs, hre) => {
     await deployMocks(hre, {
       deployTestBed: deployTestBed ?? true,
@@ -175,47 +154,43 @@ task(
     });
   });
 
-task(TASK_TEST, "Deploy mock contracts on hardhat").setAction(
-  async ({}, hre, runSuper) => {
-    await deployMocks(hre, {
-      deployTestBed: true,
-      gasWarning: hre.config.cofhesdk.gasWarning ?? true,
-    });
-    return runSuper();
-  },
-);
+task(TASK_TEST, 'Deploy mock contracts on hardhat').setAction(async ({}, hre, runSuper) => {
+  await deployMocks(hre, {
+    deployTestBed: true,
+    gasWarning: hre.config.cofhesdk.gasWarning ?? true,
+  });
+  return runSuper();
+});
 
-task(TASK_NODE, "Deploy mock contracts on hardhat").setAction(
-  async ({}, hre, runSuper) => {
-    await deployMocks(hre, {
-      deployTestBed: true,
-      gasWarning: hre.config.cofhesdk.gasWarning ?? true,
-    });
-    return runSuper();
-  },
-);
+task(TASK_NODE, 'Deploy mock contracts on hardhat').setAction(async ({}, hre, runSuper) => {
+  await deployMocks(hre, {
+    deployTestBed: true,
+    gasWarning: hre.config.cofhesdk.gasWarning ?? true,
+  });
+  return runSuper();
+});
 
 // SET LOG OPS
 
-task(TASK_COFHE_MOCKS_SET_LOG_OPS, "Set logging for the Mock CoFHE contracts")
-  .addParam("enable", "Whether to enable logging", false, types.boolean)
+task(TASK_COFHE_MOCKS_SET_LOG_OPS, 'Set logging for the Mock CoFHE contracts')
+  .addParam('enable', 'Whether to enable logging', false, types.boolean)
   .setAction(async ({ enable }, hre) => {
     await mock_setLoggingEnabled(hre, enable);
   });
 
 // MOCK UTILS
 
-export * from "./mocksUtils.js";
-export * from "./expectResultUtils.js";
-export * from "./fund.js";
-export * from "./mocksLogging.js";
-export * from "./deployMockContracts.js";
+export * from './mocksUtils.js';
+export * from './expectResultUtils.js';
+export * from './fund.js';
+export * from './mocksLogging.js';
+export * from './deployMockContracts.js';
 
 /**
  * Runtime environment extensions for the CoFHE Hardhat plugin.
  * Provides access to CoFHE initialization, environment checks, and mock utilities.
  */
-declare module "hardhat/types/runtime" {
+declare module 'hardhat/types/runtime' {
   export interface HardhatRuntimeEnvironment {
     cofhesdk: {
       /**
@@ -223,9 +198,7 @@ declare module "hardhat/types/runtime" {
        * @param {CofhesdkInputConfig} config - The CoFHE SDK input configuration
        * @returns {CofhesdkConfig} The CoFHE SDK configuration
        */
-      createCofhesdkConfig: (
-        config: CofhesdkInputConfig,
-      ) => Promise<CofhesdkConfig>;
+      createCofhesdkConfig: (config: CofhesdkInputConfig) => Promise<CofhesdkConfig>;
       /**
        * Create a CoFHE SDK client instance
        * @param {CofhesdkConfig} config - The CoFHE SDK configuration (use createCofhesdkConfig to create with Node.js defaults)
@@ -238,7 +211,7 @@ declare module "hardhat/types/runtime" {
        * @returns {Promise<{ publicClient: PublicClient; walletClient: WalletClient }>} The viem clients
        */
       hardhatSignerAdapter: (
-        signer: HardhatEthersSigner,
+        signer: HardhatEthersSigner
       ) => Promise<{ publicClient: PublicClient; walletClient: WalletClient }>;
 
       /**
@@ -246,29 +219,21 @@ declare module "hardhat/types/runtime" {
        * @param {Result<T>} result - The Result to check
        * @returns {T} The inner data of the Result (non null)
        */
-      expectResultSuccess: <T>(
-        result: Result<T> | Promise<Result<T>>,
-      ) => Promise<T>;
+      expectResultSuccess: <T>(result: Result<T> | Promise<Result<T>>) => Promise<T>;
 
       /**
        * Assert that a Result type contains an error matching the partial string (result.success === false && result.error.includes(errorPartial))
        * @param {Result<T>} result - The Result to check
        * @param {string} errorPartial - The partial error string to match
        */
-      expectResultError: <T>(
-        result: Result<T> | Promise<Result<T>>,
-        errorPartial: string,
-      ) => Promise<void>;
+      expectResultError: <T>(result: Result<T> | Promise<Result<T>>, errorPartial: string) => Promise<void>;
 
       /**
        * Assert that a Result type contains a specific value (result.success === true && result.data === value)
        * @param {Result<T>} result - The Result to check
        * @param {T} value - The inner data of the Result (non null)
        */
-      expectResultValue: <T>(
-        result: Result<T> | Promise<Result<T>>,
-        value: T,
-      ) => Promise<T>;
+      expectResultValue: <T>(result: Result<T> | Promise<Result<T>>, value: T) => Promise<T>;
 
       /**
        * Assert that a Result type contains a value matching the partial object (result.success === true && result.data.includes(partial))
@@ -276,10 +241,7 @@ declare module "hardhat/types/runtime" {
        * @param {Partial<T>} partial - The partial object to match against
        * @returns {T} The inner data of the Result (non null)
        */
-      expectResultPartialValue: <T>(
-        result: Result<T> | Promise<Result<T>>,
-        partial: Partial<T>,
-      ) => Promise<T>;
+      expectResultPartialValue: <T>(result: Result<T> | Promise<Result<T>>, partial: Partial<T>) => Promise<T>;
 
       mocks: {
         /**
@@ -310,10 +272,7 @@ declare module "hardhat/types/runtime" {
          * @param {string} closureName - Name of the code block to log within
          * @param {() => Promise<void>} closure - The async function to execute
          */
-        withLogs: (
-          closureName: string,
-          closure: () => Promise<void>,
-        ) => Promise<void>;
+        withLogs: (closureName: string, closure: () => Promise<void>) => Promise<void>;
 
         /**
          * **[MOCKS ONLY]**
@@ -354,10 +313,7 @@ declare module "hardhat/types/runtime" {
          * @param {bigint} ctHash - The ciphertext hash to check
          * @param {bigint} expectedValue - The expected plaintext value
          */
-        expectPlaintext: (
-          ctHash: bigint,
-          expectedValue: bigint,
-        ) => Promise<void>;
+        expectPlaintext: (ctHash: bigint, expectedValue: bigint) => Promise<void>;
       };
     };
   }
@@ -368,11 +324,8 @@ extendEnvironment((hre) => {
     createCofhesdkConfig: async (config: CofhesdkInputConfig) => {
       // Create zkv wallet client
       // This wallet interacts with the MockZkVerifier contract so that the user's connected wallet doesn't have to
-      const zkvHhSigner = await hre.ethers.getImpersonatedSigner(
-        MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
-      );
-      const { walletClient: zkvWalletClient } =
-        await HardhatSignerAdapter(zkvHhSigner);
+      const zkvHhSigner = await hre.ethers.getImpersonatedSigner(MOCKS_ZK_VERIFIER_SIGNER_ADDRESS);
+      const { walletClient: zkvWalletClient } = await HardhatSignerAdapter(zkvHhSigner);
 
       // Inject zkv wallet client into config
       const configWithZkvWalletClient = {
@@ -395,24 +348,15 @@ extendEnvironment((hre) => {
       const awaitedResult = await result;
       return expectResultSuccess(awaitedResult);
     },
-    expectResultError: async <T>(
-      result: Result<T> | Promise<Result<T>>,
-      errorPartial: string,
-    ) => {
+    expectResultError: async <T>(result: Result<T> | Promise<Result<T>>, errorPartial: string) => {
       const awaitedResult = await result;
       return expectResultError(awaitedResult, errorPartial);
     },
-    expectResultValue: async <T>(
-      result: Result<T> | Promise<Result<T>>,
-      value: T,
-    ) => {
+    expectResultValue: async <T>(result: Result<T> | Promise<Result<T>>, value: T) => {
       const awaitedResult = await result;
       return expectResultValue(awaitedResult, value);
     },
-    expectResultPartialValue: async <T>(
-      result: Result<T> | Promise<Result<T>>,
-      partial: Partial<T>,
-    ) => {
+    expectResultPartialValue: async <T>(result: Result<T> | Promise<Result<T>>, partial: Partial<T>) => {
       const awaitedResult = await result;
       return expectResultPartialValue(awaitedResult, partial);
     },
