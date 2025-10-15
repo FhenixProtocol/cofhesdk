@@ -2,7 +2,7 @@
 import { type HardhatUserConfig } from 'hardhat/types';
 import '@nomicfoundation/hardhat-ethers';
 
-import '../../../src';
+import '../src';
 
 const config: HardhatUserConfig = {
   solidity: {

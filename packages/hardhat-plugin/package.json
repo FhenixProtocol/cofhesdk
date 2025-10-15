@@ -15,8 +15,10 @@
     "dev": "tsup src/index.ts --format esm,cjs --watch --dts",
     "lint": "eslint \"src/**/*.ts*\"",
     "type-check": "tsc --noEmit",
-    "test": "mocha --exit --recursive --timeout 60000 'test/*.test.ts'",
-    "coverage": "nyc mocha --exit --recursive --timeout 60000 'test/*.test.ts'",
+    "mocha-test": "mocha --exit --recursive --timeout 60000 'test/*.test.ts'",
+    "mocha-coverage": "nyc mocha --exit --recursive --timeout 60000 'test/*.test.ts'",
+    "test": "vitest",
+    "coverage": "vitest run --coverage",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
   },
   "dependencies": {
@@ -48,7 +50,9 @@
     "sinon": "^20.0.0",
     "ts-node": "^10.9.0",
     "tsup": "^8.0.2",
-    "typescript": "5.5.4"
+    "typescript": "5.5.4",
+    "@vitest/coverage-v8": "^3.0.0",
+    "vitest": "^3.0.0"
   },
   "peerDependencies": {
     "hardhat": "^2.0.0",
