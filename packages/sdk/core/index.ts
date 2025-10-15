@@ -1,8 +1,8 @@
-// Client
-export { createCofhesdkClient } from './client.js';
+// Client (base implementations)
+export { createCofhesdkClientBase } from './client.js';
 
-// Configuration
-export { createCofhesdkConfig, getCofhesdkConfigItem } from './config.js';
+// Configuration (base implementations)
+export { createCofhesdkConfigBase, getCofhesdkConfigItem } from './config.js';
 export type { CofhesdkConfig, CofhesdkInputConfig, CofhesdkInternalConfig } from './config.js';
 
 // Types

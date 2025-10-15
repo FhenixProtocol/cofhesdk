@@ -5,7 +5,7 @@ import { sepolia, arbSepolia } from '@/chains';
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { fetchKeys, fetchMultichainKeys } from './fetchKeys.js';
-import { type CofhesdkConfig, createCofhesdkConfig } from './config.js';
+import { type CofhesdkConfig, createCofhesdkConfigBase } from './config.js';
 import { createKeysStore, type KeysStorage } from './keyStore.js';
 
 describe('fetchKeys', () => {
@@ -19,7 +19,7 @@ describe('fetchKeys', () => {
     vi.clearAllMocks();
 
     // Setup config with real chains
-    config = createCofhesdkConfig({
+    config = createCofhesdkConfigBase({
       supportedChains: [sepolia, arbSepolia],
     });
 

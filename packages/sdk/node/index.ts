@@ -1,8 +1,8 @@
 // Node.js specific functionality only
 
 import {
-  createCofhesdkClient as createCofhesdkClientCore,
-  createCofhesdkConfig as createCofhesdkConfigCore,
+  createCofhesdkClientBase,
+  createCofhesdkConfigBase,
   type CofhesdkClient,
   type CofhesdkConfig,
   type CofhesdkInputConfig,
@@ -10,8 +10,7 @@ import {
   type FheKeyDeserializer,
 } from '@/core';
 
-// Export node-specific storage
-export { createNodeStorage } from './storage.js';
+// Import node-specific storage (internal use only)
 import { createNodeStorage } from './storage.js';
 
 // Import node-tfhe for Node.js
@@ -73,7 +72,7 @@ const zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator = (fhe: string, crs: st
  * @returns The CoFHE SDK configuration with Node.js defaults applied
  */
 export function createCofhesdkConfig(config: CofhesdkInputConfig): CofhesdkConfig {
-  return createCofhesdkConfigCore({
+  return createCofhesdkConfigBase({
     ...config,
     fheKeyStorage: config.fheKeyStorage === null ? null : config.fheKeyStorage ?? createNodeStorage(),
   });
@@ -86,7 +85,7 @@ export function createCofhesdkConfig(config: CofhesdkInputConfig): CofhesdkConfi
  * @returns The CoFHE SDK client instance
  */
 export function createCofhesdkClient(config: CofhesdkConfig): CofhesdkClient {
-  return createCofhesdkClientCore({
+  return createCofhesdkClientBase({
     config,
     zkBuilderAndCrsGenerator,
     tfhePublicKeyDeserializer,

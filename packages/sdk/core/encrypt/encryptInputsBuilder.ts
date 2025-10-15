@@ -182,7 +182,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   }
 
   /**
-   * tfhePublicKeyDeserializer is a platform-specific dependency injected into core/createCofhesdkClient by web/createCofhesdkClient and node/createCofhesdkClient
+   * tfhePublicKeyDeserializer is a platform-specific dependency injected into core/createCofhesdkClientBase by web/createCofhesdkClient and node/createCofhesdkClient
    * web/ uses zama "tfhe"
    * node/ uses zama "node-tfhe"
    * Users should not set this manually.
@@ -200,7 +200,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   }
 
   /**
-   * compactPkeCrsDeserializer is a platform-specific dependency injected into core/createCofhesdkClient by web/createCofhesdkClient and node/createCofhesdkClient
+   * compactPkeCrsDeserializer is a platform-specific dependency injected into core/createCofhesdkClientBase by web/createCofhesdkClient and node/createCofhesdkClient
    * web/ uses zama "tfhe"
    * node/ uses zama "node-tfhe"
    * Users should not set this manually.
@@ -228,7 +228,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   }
 
   /**
-   * initTfhe is a platform-specific dependency injected into core/createCofhesdkClient by web/createCofhesdkClient and node/createCofhesdkClient
+   * initTfhe is a platform-specific dependency injected into core/createCofhesdkClientBase by web/createCofhesdkClient and node/createCofhesdkClient
    * web/ uses zama "tfhe"
    * node/ uses zama "node-tfhe"
    * Users should not set this manually.
@@ -323,7 +323,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   }
 
   /**
-   * zkBuilderAndCrsGenerator is a platform-specific dependency injected into core/createCofhesdkClient by web/createCofhesdkClient and node/createCofhesdkClient
+   * zkBuilderAndCrsGenerator is a platform-specific dependency injected into core/createCofhesdkClientBase by web/createCofhesdkClient and node/createCofhesdkClient
    * web/ uses zama "tfhe"
    * node/ uses zama "node-tfhe"
    * Users should not set this manually.
