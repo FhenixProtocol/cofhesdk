@@ -1,8 +1,9 @@
-import fs from 'fs';
+/* eslint-disable no-unused-vars */
+import * as fs from 'fs';
+import * as path from 'path';
 import { task } from 'hardhat/config';
 import { HardhatPluginError } from 'hardhat/plugins';
-import { HardhatRuntimeEnvironment } from 'hardhat/types';
-import path from 'path';
+import { type HardhatRuntimeEnvironment } from 'hardhat/types/runtime';
 
 const paths = [
   'cofhesdk/mock-contracts/contracts/MockACL.sol',

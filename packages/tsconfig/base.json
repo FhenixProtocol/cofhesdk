@@ -8,13 +8,16 @@
     "forceConsistentCasingInFileNames": true,
     "inlineSources": false,
     "isolatedModules": true,
-    "lib": ["ES2020"],
-    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "module": "ES2022",
+    "target": "ES2022",
+    "moduleResolution": "bundler",
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "preserveWatchOutput": true,
     "skipLibCheck": true,
-    "strict": true
+    "strict": true,
+    "verbatimModuleSyntax": true
   },
   "exclude": ["node_modules"]
 }

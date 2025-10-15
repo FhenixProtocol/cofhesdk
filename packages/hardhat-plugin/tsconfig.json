@@ -1,11 +1,8 @@
 {
   "extends": "@cofhesdk/tsconfig/base.json",
   "compilerOptions": {
-    "types": ["node"],
-    "module": "NodeNext",
-    "verbatimModuleSyntax": true,
-    "noEmit": true
+    "types": ["node"]
   },
-  "include": ["."],
+  "include": ["**/*.ts"],
   "exclude": ["dist", "build", "node_modules"]
 }

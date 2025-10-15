@@ -1,5 +1,14 @@
+/* eslint-disable no-empty-pattern */
+/* eslint-disable turbo/no-undeclared-env-vars */
+/* eslint-disable no-unused-vars */
 import chalk from 'chalk';
+import { type PublicClient, type WalletClient } from 'viem';
 import { extendConfig, extendEnvironment, task, types } from 'hardhat/config';
+import { TASK_TEST, TASK_NODE } from 'hardhat/builtin-tasks/task-names';
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
+import { type CofhesdkClient, type CofhesdkConfig, type CofhesdkInputConfig, type Result } from 'cofhesdk';
+import { createCofhesdkClient, createCofhesdkConfig } from 'cofhesdk/node';
+import { HardhatSignerAdapter } from 'cofhesdk/adapters';
 
 import { localcofheFundAccount } from './fund.js';
 import {
@@ -8,28 +17,16 @@ import {
   TASK_COFHE_MOCKS_SET_LOG_OPS,
   TASK_COFHE_USE_FAUCET,
 } from './consts.js';
-import { TASK_TEST, TASK_NODE } from 'hardhat/builtin-tasks/task-names';
-import { deployMocks, type DeployMocksArgs } from './deployMockContracts.js';
-import { mock_setLoggingEnabled, mock_withLogs } from './mocksLogging.js';
-import { mock_expectPlaintext } from './mocksUtils.js';
-import { mock_getPlaintext } from './mocksUtils.js';
-import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
-import {
-  type CofhesdkClient,
-  type CofhesdkConfig,
-  type CofhesdkInputConfig,
-  createCofhesdkClient,
-  createCofhesdkConfig,
-} from 'cofhesdk/node';
-import { type Result } from 'cofhesdk/core';
+import { deployMocks, type DeployMocksArgs } from './deploy.js';
+import { mock_setLoggingEnabled, mock_withLogs } from './logging.js';
+import { mock_expectPlaintext } from './utils.js';
+import { mock_getPlaintext } from './utils.js';
 import {
   expectResultError,
   expectResultPartialValue,
   expectResultSuccess,
   expectResultValue,
 } from './expectResultUtils.js';
-import { type PublicClient, type WalletClient } from 'viem';
-import { HardhatSignerAdapter } from 'cofhesdk/adapters';
 
 /**
  * Configuration interface for the CoFHE Hardhat plugin.
@@ -80,7 +77,7 @@ extendConfig((config, userConfig) => {
   // Only add Sepolia config if user hasn't defined it
   if (!userConfig.networks?.['eth-sepolia']) {
     config.networks['eth-sepolia'] = {
-      url: process.env.SEPOLIA_RPC_URL || 'https://ethereum-sepolia.publicnode.com',
+      url: process.env.SEPOLIA_RPC_URL ?? 'https://ethereum-sepolia.publicnode.com',
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 11155111,
       gas: 'auto',
@@ -94,7 +91,7 @@ extendConfig((config, userConfig) => {
   // Only add Arbitrum Sepolia config if user hasn't defined it
   if (!userConfig.networks?.['arb-sepolia']) {
     config.networks['arb-sepolia'] = {
-      url: process.env.ARBITRUM_SEPOLIA_RPC_URL || 'https://sepolia-rollup.arbitrum.io/rpc',
+      url: process.env.ARBITRUM_SEPOLIA_RPC_URL ?? 'https://sepolia-rollup.arbitrum.io/rpc',
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 421614,
       gas: 'auto',
@@ -180,11 +177,11 @@ task(TASK_COFHE_MOCKS_SET_LOG_OPS, 'Set logging for the Mock CoFHE contracts')
 
 // MOCK UTILS
 
-export * from './mocksUtils.js';
+export * from './utils.js';
 export * from './expectResultUtils.js';
 export * from './fund.js';
-export * from './mocksLogging.js';
-export * from './deployMockContracts.js';
+export * from './logging.js';
+export * from './deploy.js';
 
 /**
  * Runtime environment extensions for the CoFHE Hardhat plugin.

@@ -218,7 +218,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   }
 
   /**
-   * zkVerifierUrl is included in the chains exported from @cofhesdk/chains for use in CofhesdkConfig.supportedChains
+   * zkVerifierUrl is included in the chains exported from cofhesdk/chains for use in CofhesdkConfig.supportedChains
    * Users should generally not set this manually.
    */
   private async getZkVerifierUrl(): Promise<string> {
