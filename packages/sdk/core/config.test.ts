@@ -3,7 +3,7 @@ import { sepolia, hardhat } from '@/chains';
 
 import { describe, it, expect, vi } from 'vitest';
 import {
-  createCofhesdkConfigBase,
+  createCofhesdkConfig,
   getCofhesdkConfigItem,
   type CofhesdkInputConfig,
   getSupportedChainOrThrow,
@@ -12,7 +12,7 @@ import {
   getThresholdNetworkUrlOrThrow,
 } from './config.js';
 
-describe('createCofhesdkConfigBase', () => {
+describe('createCofhesdkConfig', () => {
   const validBaseConfig: CofhesdkInputConfig = {
     supportedChains: [],
   };
@@ -37,18 +37,18 @@ describe('createCofhesdkConfigBase', () => {
     if (log) {
       console.log('expect config invalid', path, value, config);
       try {
-        createCofhesdkConfigBase(config as CofhesdkInputConfig);
+        createCofhesdkConfig(config as CofhesdkInputConfig);
       } catch (e) {
         console.log('expect config invalid', path, value, config, e);
       }
     }
-    expect(() => createCofhesdkConfigBase(config as CofhesdkInputConfig)).toThrow('Invalid cofhesdk configuration:');
+    expect(() => createCofhesdkConfig(config as CofhesdkInputConfig)).toThrow('Invalid cofhesdk configuration:');
   };
 
   const expectValidConfigItem = (path: string, value: any, expectedValue: any): void => {
     const config = { ...validBaseConfig };
     setNestedValue(config, path, value);
-    const result = createCofhesdkConfigBase(config);
+    const result = createCofhesdkConfig(config);
     expect(getNestedValue(result, path)).toEqual(expectedValue);
   };
 
@@ -116,7 +116,7 @@ describe('createCofhesdkConfigBase', () => {
     };
 
     const config = { ...validBaseConfig, fheKeyStorage: fakeStorage };
-    const result = createCofhesdkConfigBase(config);
+    const result = createCofhesdkConfig(config);
 
     expect(result.fheKeyStorage).not.toBeNull();
     await result.fheKeyStorage!.getItem('test');
@@ -149,7 +149,7 @@ describe('createCofhesdkConfigBase', () => {
       supportedChains: [sepolia],
     };
 
-    const result = createCofhesdkConfigBase(config);
+    const result = createCofhesdkConfig(config);
 
     const supportedChains = getCofhesdkConfigItem(result, 'supportedChains');
     expect(supportedChains).toEqual(config.supportedChains);
@@ -157,7 +157,7 @@ describe('createCofhesdkConfigBase', () => {
 });
 
 describe('Config helper functions', () => {
-  const config = createCofhesdkConfigBase({
+  const config = createCofhesdkConfig({
     supportedChains: [sepolia, hardhat],
   });
 
@@ -181,7 +181,7 @@ describe('Config helper functions', () => {
     });
 
     it('should throw MissingConfig when url not set', () => {
-      const configWithoutUrl = createCofhesdkConfigBase({
+      const configWithoutUrl = createCofhesdkConfig({
         supportedChains: [{ ...sepolia, coFheUrl: undefined } as any],
       });
       expect(() => getCoFheUrlOrThrow(configWithoutUrl, sepolia.id)).toThrow();
@@ -198,7 +198,7 @@ describe('Config helper functions', () => {
     });
 
     it('should throw ZkVerifierUrlUninitialized when url not set', () => {
-      const configWithoutUrl = createCofhesdkConfigBase({
+      const configWithoutUrl = createCofhesdkConfig({
         supportedChains: [{ ...sepolia, verifierUrl: undefined } as any],
       });
       expect(() => getZkVerifierUrlOrThrow(configWithoutUrl, sepolia.id)).toThrow();
@@ -215,7 +215,7 @@ describe('Config helper functions', () => {
     });
 
     it('should throw ThresholdNetworkUrlUninitialized when url not set', () => {
-      const configWithoutUrl = createCofhesdkConfigBase({
+      const configWithoutUrl = createCofhesdkConfig({
         supportedChains: [{ ...sepolia, thresholdNetworkUrl: undefined } as any],
       });
       expect(() => getThresholdNetworkUrlOrThrow(configWithoutUrl, sepolia.id)).toThrow();

@@ -1,8 +1,8 @@
 // Node.js specific functionality only
 
 import {
-  createCofhesdkClientBase,
-  createCofhesdkConfigBase,
+  createCofhesdkClient as createCofhesdkClientCore,
+  createCofhesdkConfig as createCofhesdkConfigCore,
   type CofhesdkClient,
   type CofhesdkConfig,
   type CofhesdkInputConfig,
@@ -10,7 +10,8 @@ import {
   type FheKeyDeserializer,
 } from '@/core';
 
-// Import node-specific storage (internal use only)
+// Export node-specific storage
+export { createNodeStorage } from './storage.js';
 import { createNodeStorage } from './storage.js';
 
 // Import node-tfhe for Node.js
@@ -19,14 +20,13 @@ import { TfheCompactPublicKey, ProvenCompactCiphertextList, CompactPkeCrs, init_
 /**
  * Internal function to initialize TFHE for Node.js
  * Called automatically on first encryption - users don't need to call this manually
- * @returns true if TFHE was initialized, false if already initialized
+ * @internal
  */
 let tfheInitialized = false;
-async function initTfhe(): Promise<boolean> {
-  if (tfheInitialized) return false;
+async function initTfhe(): Promise<void> {
+  if (tfheInitialized) return;
   await init_panic_hook();
   tfheInitialized = true;
-  return true;
 }
 
 /**
@@ -73,7 +73,7 @@ const zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator = (fhe: string, crs: st
  * @returns The CoFHE SDK configuration with Node.js defaults applied
  */
 export function createCofhesdkConfig(config: CofhesdkInputConfig): CofhesdkConfig {
-  return createCofhesdkConfigBase({
+  return createCofhesdkConfigCore({
     ...config,
     fheKeyStorage: config.fheKeyStorage === null ? null : config.fheKeyStorage ?? createNodeStorage(),
   });
@@ -86,7 +86,7 @@ export function createCofhesdkConfig(config: CofhesdkInputConfig): CofhesdkConfi
  * @returns The CoFHE SDK client instance
  */
 export function createCofhesdkClient(config: CofhesdkConfig): CofhesdkClient {
-  return createCofhesdkClientBase({
+  return createCofhesdkClientCore({
     config,
     zkBuilderAndCrsGenerator,
     tfhePublicKeyDeserializer,

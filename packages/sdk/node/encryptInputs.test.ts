@@ -76,7 +76,7 @@ describe('@cofhesdk/node - Encrypt Inputs', () => {
       // Second encryption should reuse initialization
       const result2 = await cofhesdkClient.encryptInputs([Encryptable.uint64(50n)]).encrypt();
       expectResultSuccess(result2);
-    }, 120000);
+    }, 60000);
   });
 
   describe('Real Encryption', () => {

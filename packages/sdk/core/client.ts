@@ -21,11 +21,11 @@ import {
 import { getPublicClientChainID, getWalletClientAccount } from './utils.js';
 
 /**
- * Creates a CoFHE SDK client instance (base implementation)
+ * Creates a CoFHE SDK client instance
  * @param {CofhesdkClientParams} opts - Initialization options including config and platform-specific serializers
  * @returns {CofhesdkClient} - The CoFHE SDK client instance
  */
-export function createCofhesdkClientBase(opts: CofhesdkClientParams): CofhesdkClient {
+export function createCofhesdkClient(opts: CofhesdkClientParams): CofhesdkClient {
   // Create keysStorage instance using configured storage
   const keysStorage = createKeysStore(opts.config.fheKeyStorage);
 

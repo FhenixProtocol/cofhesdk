@@ -23,11 +23,11 @@ const fetchFhePublicKey = async (
   securityZone: number,
   tfhePublicKeyDeserializer: FheKeyDeserializer,
   keysStorage?: KeysStorage | null
-): Promise<[string, boolean]> => {
+) => {
   // Escape if key already exists
   const storedKey = keysStorage?.getFheKey(chainId, securityZone);
   const [storedKeyValid] = checkKeyValidity(storedKey, tfhePublicKeyDeserializer);
-  if (storedKeyValid) return [storedKey!, false];
+  if (storedKeyValid) return storedKey!;
 
   let pk_data: string | undefined = undefined;
 
@@ -69,7 +69,7 @@ const fetchFhePublicKey = async (
   // Store result
   keysStorage?.setFheKey(chainId, securityZone, pk_data);
 
-  return [pk_data, true];
+  return pk_data;
 };
 
 const fetchCrs = async (
@@ -78,11 +78,11 @@ const fetchCrs = async (
   securityZone: number,
   compactPkeCrsDeserializer: FheKeyDeserializer,
   keysStorage?: KeysStorage | null
-): Promise<[string, boolean]> => {
+) => {
   // Escape if key already exists
   const storedKey = keysStorage?.getCrs(chainId);
   const [storedKeyValid] = checkKeyValidity(storedKey, compactPkeCrsDeserializer);
-  if (storedKeyValid) return [storedKey!, false];
+  if (storedKeyValid) return storedKey!;
 
   let crs_data: string | undefined = undefined;
 
@@ -113,7 +113,7 @@ const fetchCrs = async (
 
   keysStorage?.setCrs(chainId, crs_data);
 
-  return [crs_data, true];
+  return crs_data;
 };
 
 /**
@@ -125,7 +125,7 @@ const fetchCrs = async (
  * @param tfhePublicKeyDeserializer - The serializer for the FHE public key (used for validation).
  * @param compactPkeCrsDeserializer - The serializer for the CRS (used for validation).
  * @param keysStorage - The keys storage instance to use (optional)
- * @returns {Promise<[[string, boolean], [string, boolean]]>} - A promise that resolves to [[fheKey, fheKeyFetchedFromCoFHE], [crs, crsFetchedFromCoFHE]]
+ * @returns {Promise<[string, string]>} - A promise that resolves to [fheKey, crs]
  */
 export const fetchKeys = async (
   config: CofhesdkConfig,
@@ -134,7 +134,7 @@ export const fetchKeys = async (
   tfhePublicKeyDeserializer: FheKeyDeserializer,
   compactPkeCrsDeserializer: FheKeyDeserializer,
   keysStorage?: KeysStorage | null
-): Promise<[[string, boolean], [string, boolean]]> => {
+): Promise<[string, string]> => {
   // Get cofhe url from config
   const coFheUrl = getCoFheUrlOrThrow(config, chainId);
 

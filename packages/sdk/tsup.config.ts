@@ -2,7 +2,6 @@ import { defineConfig } from 'tsup';
 
 export default defineConfig({
   entry: {
-    core: 'core/index.ts',
     adapters: 'adapters/index.ts',
     chains: 'chains/index.ts',
     permits: 'permits/index.ts',

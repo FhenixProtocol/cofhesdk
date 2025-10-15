@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createCofhesdkClientBase } from './client.js';
+import { createCofhesdkClient } from './client.js';
 import { type CofhesdkClient, type CofhesdkClientConnectionState } from './types.js';
-import { createCofhesdkConfigBase } from './config.js';
+import { createCofhesdkConfig } from './config.js';
 import { CofhesdkErrorCode } from './error.js';
 import { type PublicClient, type WalletClient } from 'viem';
 import { EncryptInputsBuilder } from './encrypt/encryptInputsBuilder.js';
@@ -36,17 +36,17 @@ const createMockWalletClient = (addresses = ['0x12345678901234567890123456789012
   }) as any;
 
 const createTestClient = (): CofhesdkClient => {
-  const config = createCofhesdkConfigBase({ supportedChains: [] });
-  return createCofhesdkClientBase({
+  const config = createCofhesdkConfig({ supportedChains: [] });
+  return createCofhesdkClient({
     config,
     zkBuilderAndCrsGenerator: {} as any,
     tfhePublicKeyDeserializer: {} as any,
     compactPkeCrsDeserializer: {} as any,
-    initTfhe: () => Promise.resolve(false),
+    initTfhe: () => Promise.resolve(),
   });
 };
 
-describe('createCofhesdkClientBase', () => {
+describe('createCofhesdkClient', () => {
   let client: CofhesdkClient;
 
   beforeEach(() => {

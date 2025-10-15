@@ -1,41 +1,41 @@
 {
-  "name": "cofhesdk",
+  "name": "@cofhesdk/sdk",
   "version": "0.0.0",
   "type": "module",
-  "description": "SDK for Fhenix COFHE coprocessor interaction",
-  "main": "./dist/core.cjs",
-  "module": "./dist/core.js",
-  "types": "./dist/core.d.ts",
-  "browser": "./dist/web.js",
+  "description": "CoFHE SDK - Complete SDK for FHE operations on Fhenix",
+  "main": "./dist/node.js",
+  "module": "./dist/node.mjs",
+  "types": "./dist/node.d.ts",
+  "browser": "./dist/web.mjs",
   "exports": {
     ".": {
-      "import": "./dist/core.js",
-      "require": "./dist/core.cjs",
-      "types": "./dist/core.d.ts"
+      "import": "./dist/node.mjs",
+      "require": "./dist/node.js",
+      "types": "./dist/node.d.ts"
     },
     "./adapters": {
-      "import": "./dist/adapters.js",
-      "require": "./dist/adapters.cjs",
+      "import": "./dist/adapters.mjs",
+      "require": "./dist/adapters.js",
       "types": "./dist/adapters.d.ts"
     },
     "./chains": {
-      "import": "./dist/chains.js",
-      "require": "./dist/chains.cjs",
+      "import": "./dist/chains.mjs",
+      "require": "./dist/chains.js",
       "types": "./dist/chains.d.ts"
     },
     "./permits": {
-      "import": "./dist/permits.js",
-      "require": "./dist/permits.cjs",
+      "import": "./dist/permits.mjs",
+      "require": "./dist/permits.js",
       "types": "./dist/permits.d.ts"
     },
     "./node": {
-      "import": "./dist/node.js",
-      "require": "./dist/node.cjs",
+      "import": "./dist/node.mjs",
+      "require": "./dist/node.js",
       "types": "./dist/node.d.ts"
     },
     "./web": {
-      "import": "./dist/web.js",
-      "require": "./dist/web.cjs",
+      "import": "./dist/web.mjs",
+      "require": "./dist/web.js",
       "types": "./dist/web.d.ts"
     }
   },
@@ -89,14 +89,13 @@
     "@cofhesdk/eslint-config": "workspace:*",
     "@cofhesdk/tsconfig": "workspace:*",
     "@types/node": "^20.0.0",
-    "@vitest/browser": "^3.0.0",
-    "@vitest/coverage-v8": "^3.0.0",
+    "@vitest/browser": "1.6.0",
+    "@vitest/coverage-v8": "1.6.0",
     "eslint": "^8.57.0",
-    "happy-dom": "^15.0.0",
     "playwright": "^1.55.0",
     "tsup": "^8.0.2",
     "typescript": "5.5.4",
-    "vitest": "^3.0.0",
+    "vitest": "1.6.0",
     "ethers5": "npm:ethers@^5.7.2",
     "ethers6": "npm:ethers@^6.13.0",
     "hardhat": "^2.19.0",

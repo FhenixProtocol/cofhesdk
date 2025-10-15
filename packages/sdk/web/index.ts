@@ -1,8 +1,8 @@
 // Web specific functionality only
 
 import {
-  createCofhesdkClientBase,
-  createCofhesdkConfigBase,
+  createCofhesdkClient as createCofhesdkClientCore,
+  createCofhesdkConfig as createCofhesdkConfigCore,
   type CofhesdkClient,
   type CofhesdkConfig,
   type CofhesdkInputConfig,
@@ -10,7 +10,7 @@ import {
   type FheKeyDeserializer,
 } from '@/core';
 
-// Import web-specific storage (internal use only)
+// Export web-specific storage
 import { createWebStorage } from './storage.js';
 
 // Import tfhe for web
@@ -19,15 +19,14 @@ import init, { init_panic_hook, TfheCompactPublicKey, ProvenCompactCiphertextLis
 /**
  * Internal function to initialize TFHE for web
  * Called automatically on first encryption - users don't need to call this manually
- * @returns true if TFHE was initialized, false if already initialized
+ * @internal
  */
 let tfheInitialized = false;
-async function initTfhe(): Promise<boolean> {
-  if (tfheInitialized) return false;
+async function initTfhe(): Promise<void> {
+  if (tfheInitialized) return;
   await init();
   await init_panic_hook();
   tfheInitialized = true;
-  return true;
 }
 
 /**
@@ -74,7 +73,7 @@ const zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator = (fhe: string, crs: st
  * @returns The CoFHE SDK configuration with web defaults applied
  */
 export function createCofhesdkConfig(config: CofhesdkInputConfig): CofhesdkConfig {
-  return createCofhesdkConfigBase({
+  return createCofhesdkConfigCore({
     ...config,
     fheKeyStorage: config.fheKeyStorage === null ? null : config.fheKeyStorage ?? createWebStorage(),
   });
@@ -87,7 +86,7 @@ export function createCofhesdkConfig(config: CofhesdkInputConfig): CofhesdkConfi
  * @returns The CoFHE SDK client instance
  */
 export function createCofhesdkClient(config: CofhesdkConfig): CofhesdkClient {
-  return createCofhesdkClientBase({
+  return createCofhesdkClientCore({
     config,
     zkBuilderAndCrsGenerator,
     tfhePublicKeyDeserializer,
