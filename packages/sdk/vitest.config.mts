@@ -1,4 +1,3 @@
-// vitest.config.ts
 import { defineConfig } from 'vitest/config';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
@@ -64,6 +63,7 @@ export default defineConfig({
           poolOptions: { threads: { singleThread: true } },
           isolate: false,
         },
+        resolve: { alias },
       },
     ],
   },

@@ -1,5 +1,5 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { TASK_MANAGER_ADDRESS } from "./consts";
+import { TASK_MANAGER_ADDRESS } from "./consts.js";
 import chalk from "chalk";
 
 const getDeployedMockTaskManager = async (hre: HardhatRuntimeEnvironment) => {

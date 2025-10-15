@@ -5,12 +5,12 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import path from "path";
 
 const paths = [
-  "@cofhesdk/mock-contracts/contracts/MockACL.sol",
-  "@cofhesdk/mock-contracts/contracts/MockCoFHE.sol",
-  "@cofhesdk/mock-contracts/contracts/MockQueryDecrypter.sol",
-  "@cofhesdk/mock-contracts/contracts/MockTaskManager.sol",
-  "@cofhesdk/mock-contracts/contracts/MockZkVerifier.sol",
-  "@cofhesdk/mock-contracts/contracts/TestBed.sol",
+  "cofhesdk/mock-contracts/contracts/MockACL.sol",
+  "cofhesdk/mock-contracts/contracts/MockCoFHE.sol",
+  "cofhesdk/mock-contracts/contracts/MockQueryDecrypter.sol",
+  "cofhesdk/mock-contracts/contracts/MockTaskManager.sol",
+  "cofhesdk/mock-contracts/contracts/MockZkVerifier.sol",
+  "cofhesdk/mock-contracts/contracts/TestBed.sol",
 ];
 const pluginName = "cofhesdk-mock-contracts";
 

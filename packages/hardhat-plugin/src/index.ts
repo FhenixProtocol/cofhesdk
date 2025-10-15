@@ -1,35 +1,35 @@
 import chalk from "chalk";
 import { extendConfig, extendEnvironment, task, types } from "hardhat/config";
 
-import { localcofheFundAccount } from "./fund";
+import { localcofheFundAccount } from "./fund.js";
 import {
   MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
   TASK_COFHE_MOCKS_DEPLOY,
   TASK_COFHE_MOCKS_SET_LOG_OPS,
   TASK_COFHE_USE_FAUCET,
-} from "./consts";
+} from "./consts.js";
 import { TASK_TEST, TASK_NODE } from "hardhat/builtin-tasks/task-names";
-import { deployMocks, DeployMocksArgs } from "./deployMockContracts";
-import { mock_setLoggingEnabled, mock_withLogs } from "./mocksLogging";
-import { mock_expectPlaintext } from "./mocksUtils";
-import { mock_getPlaintext } from "./mocksUtils";
+import { deployMocks, type DeployMocksArgs } from "./deployMockContracts.js";
+import { mock_setLoggingEnabled, mock_withLogs } from "./mocksLogging.js";
+import { mock_expectPlaintext } from "./mocksUtils.js";
+import { mock_getPlaintext } from "./mocksUtils.js";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import {
-  CofhesdkClient,
-  CofhesdkConfig,
-  CofhesdkInputConfig,
+  type CofhesdkClient,
+  type CofhesdkConfig,
+  type CofhesdkInputConfig,
   createCofhesdkClient,
   createCofhesdkConfig,
-  Result,
-} from "@cofhesdk/node";
+} from "cofhesdk/node";
+import { type Result } from "cofhesdk/core";
 import {
   expectResultError,
   expectResultPartialValue,
   expectResultSuccess,
   expectResultValue,
-} from "./expectResultUtils";
-import { PublicClient, WalletClient } from "viem";
-import { HardhatSignerAdapter } from "@cofhesdk/adapters";
+} from "./expectResultUtils.js";
+import { type PublicClient, type WalletClient } from "viem";
+import { HardhatSignerAdapter } from "cofhesdk/adapters";
 
 /**
  * Configuration interface for the CoFHE Hardhat plugin.
@@ -205,11 +205,11 @@ task(TASK_COFHE_MOCKS_SET_LOG_OPS, "Set logging for the Mock CoFHE contracts")
 
 // MOCK UTILS
 
-export * from "./mocksUtils";
-export * from "./expectResultUtils";
-export * from "./fund";
-export * from "./mocksLogging";
-export * from "./deployMockContracts";
+export * from "./mocksUtils.js";
+export * from "./expectResultUtils.js";
+export * from "./fund.js";
+export * from "./mocksLogging.js";
+export * from "./deployMockContracts.js";
 
 /**
  * Runtime environment extensions for the CoFHE Hardhat plugin.
