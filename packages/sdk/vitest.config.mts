@@ -9,7 +9,6 @@ const alias = { '@': resolve(__dirname, './') }; // or './src'
 export default defineConfig({
   resolve: { alias },
 
-  // global config (applies to all projects)
   test: {
     globals: true,
     coverage: {
@@ -18,24 +17,25 @@ export default defineConfig({
       exclude: ['node_modules/**', 'dist/**', '**/*.config.*'],
     },
 
-    // 👇 Vitest 3: define projects here
     projects: [
+      // NODE (*.test.ts)
       {
-        // inherit root config
         extends: true,
         test: {
           name: 'node',
           environment: 'node',
           include: ['**/*.test.ts'],
-          exclude: ['web/**', 'node_modules/**', 'dist/**'],
+          exclude: ['**/*.web.test.ts', '**/*.hh2.test.ts', 'node_modules/**', 'dist/**'],
         },
         resolve: { alias },
       },
+
+      // WEB (*.web.test.ts)
       {
         extends: true,
         test: {
           name: 'web',
-          include: ['web/**/*.test.ts'],
+          include: ['**/*.web.test.ts'],
           environment: 'browser',
           browser: {
             enabled: true,
@@ -51,6 +51,19 @@ export default defineConfig({
           esbuildOptions: { target: 'esnext' },
         },
         server: { fs: { allow: ['..'] } },
+      },
+
+      // HARDHAT 2 (*.hh2.test.ts)
+      {
+        extends: true,
+        test: {
+          name: 'hardhat-2',
+          include: ['**/*.hh2.test.ts'],
+          environment: 'node',
+          pool: 'threads',
+          poolOptions: { threads: { singleThread: true } },
+          isolate: false,
+        },
       },
     ],
   },
