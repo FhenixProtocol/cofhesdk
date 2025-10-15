@@ -1,58 +1,57 @@
+// vitest.config.ts
 import { defineConfig } from 'vitest/config';
-import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const alias = { '@': resolve(__dirname, './') }; // or './src'
 
 export default defineConfig({
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './'),
-    },
-  },
+  resolve: { alias },
+
+  // global config (applies to all projects)
   test: {
-    environment: 'node',
-
-    // Browser environment configuration
-    browser: {
-      enabled: true,
-      name: 'chromium',
-      provider: 'playwright',
-      headless: true,
-    },
-
-    // Custom environment resolver
-    environmentMatchGlobs: [
-      // All .web.test.ts files use browser environment
-      ['**/*.web.test.ts', 'browser'],
-      // All .test.ts files use node environment (default)
-      ['**/*.test.ts', 'node'],
-    ],
-
-    include: ['**/*.test.ts', '**/*.web.test.ts'],
-    exclude: ['node_modules/**', 'dist/**'],
     globals: true,
-    testTimeout: 10000,
-
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      exclude: ['node_modules/**', 'dist/**', '**/*.config.ts', '**/*.config.mts'],
+      exclude: ['node_modules/**', 'dist/**', '**/*.config.*'],
     },
-  },
 
-  // Optimize dependency handling
-  optimizeDeps: {
-    exclude: ['tfhe', 'node-tfhe'], // Don't pre-bundle tfhe to preserve WASM loading
-    esbuildOptions: {
-      target: 'esnext', // Ensure modern JS features for WASM
-    },
-  },
-
-  // Handle WASM files as assets
-  assetsInclude: ['**/*.wasm'],
-
-  // Allow serving files from node_modules for WASM access
-  server: {
-    fs: {
-      allow: ['..'],
-    },
+    // 👇 Vitest 3: define projects here
+    projects: [
+      {
+        // inherit root config
+        extends: true,
+        test: {
+          name: 'node',
+          environment: 'node',
+          include: ['**/*.test.ts'],
+          exclude: ['web/**', 'node_modules/**', 'dist/**'],
+        },
+        resolve: { alias },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'web',
+          include: ['web/**/*.test.ts'],
+          environment: 'browser',
+          browser: {
+            enabled: true,
+            name: 'chromium',
+            provider: 'playwright',
+            headless: true,
+          },
+        },
+        resolve: { alias },
+        assetsInclude: ['**/*.wasm'],
+        optimizeDeps: {
+          exclude: ['tfhe', 'node-tfhe'],
+          esbuildOptions: { target: 'esnext' },
+        },
+        server: { fs: { allow: ['..'] } },
+      },
+    ],
   },
 });
