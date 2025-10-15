@@ -1,8 +1,8 @@
 {
-  "name": "@cofhesdk/sdk",
+  "name": "cofhesdk",
   "version": "0.0.0",
   "type": "module",
-  "description": "CoFHE SDK - Complete SDK for FHE operations on Fhenix",
+  "description": "SDK for Fhenix COFHE coprocessor interaction",
   "main": "./dist/node.js",
   "module": "./dist/node.mjs",
   "types": "./dist/node.d.ts",
