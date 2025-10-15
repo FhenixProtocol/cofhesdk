@@ -31,7 +31,7 @@ importers:
     dependencies:
       '@wagmi/core':
         specifier: ^2.0.0
-        version: 2.20.3(typescript@5.5.4)(viem@2.37.5)
+        version: 2.20.3(immer@10.1.3)(typescript@5.5.4)(viem@2.37.5)
       ethers:
         specifier: ^5.0.0 || ^6.0.0
         version: 6.15.0
@@ -62,7 +62,7 @@ importers:
         version: 2.26.3(ts-node@10.9.2)(typescript@5.5.4)
       tsup:
         specifier: ^8.0.2
-        version: 8.0.2(ts-node@10.9.2)(typescript@5.5.4)
+        version: 8.0.2(typescript@5.5.4)
       typescript:
         specifier: 5.5.4
         version: 5.5.4
@@ -84,7 +84,7 @@ importers:
         version: 8.57.1
       tsup:
         specifier: ^8.0.2
-        version: 8.0.2(ts-node@10.9.2)(typescript@5.5.4)
+        version: 8.0.2(typescript@5.5.4)
       typescript:
         specifier: 5.5.4
         version: 5.5.4
@@ -136,7 +136,7 @@ importers:
         version: 1.55.0
       tsup:
         specifier: ^8.0.2
-        version: 8.0.2(ts-node@10.9.2)(typescript@5.5.4)
+        version: 8.0.2(typescript@5.5.4)
       typescript:
         specifier: 5.5.4
         version: 5.5.4
@@ -313,7 +313,7 @@ importers:
         version: 8.57.1
       tsup:
         specifier: ^8.0.2
-        version: 8.0.2(ts-node@10.9.2)(typescript@5.5.4)
+        version: 8.0.2(typescript@5.5.4)
       typescript:
         specifier: 5.5.4
         version: 5.5.4
@@ -368,13 +368,117 @@ importers:
         version: 6.0.1
       tsup:
         specifier: ^8.0.2
-        version: 8.0.2(ts-node@10.9.2)(typescript@5.5.4)
+        version: 8.0.2(typescript@5.5.4)
       typescript:
         specifier: 5.5.4
         version: 5.5.4
       vitest:
         specifier: 1.6.0
         version: 1.6.0(happy-dom@15.11.7)
+
+  packages/react:
+    dependencies:
+      react:
+        specifier: ^18.2.0
+        version: 18.2.0
+    devDependencies:
+      '@cofhesdk/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
+      '@cofhesdk/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      '@types/react':
+        specifier: ^18.2.61
+        version: 18.2.61
+      '@types/react-dom':
+        specifier: ^18.2.19
+        version: 18.2.19
+      eslint:
+        specifier: ^8.57.0
+        version: 8.57.1
+      tsup:
+        specifier: ^8.0.2
+        version: 8.0.2(typescript@5.5.4)
+      typescript:
+        specifier: 5.5.4
+        version: 5.5.4
+
+  packages/sdk:
+    dependencies:
+      '@wagmi/core':
+        specifier: ^2.0.0
+        version: 2.20.3(immer@10.1.3)(typescript@5.5.4)(viem@2.37.5)
+      ethers:
+        specifier: ^5.0.0 || ^6.0.0
+        version: 6.15.0
+      idb-keyval:
+        specifier: ^6.2.1
+        version: 6.2.2
+      immer:
+        specifier: ^10.1.1
+        version: 10.1.3
+      node-tfhe:
+        specifier: 0.11.1
+        version: 0.11.1
+      tfhe:
+        specifier: 0.11.1
+        version: 0.11.1
+      tweetnacl:
+        specifier: ^1.0.3
+        version: 1.0.3
+      viem:
+        specifier: ^2.0.0
+        version: 2.37.5(typescript@5.5.4)(zod@3.25.76)
+      zod:
+        specifier: ^3.22.0
+        version: 3.25.76
+      zustand:
+        specifier: ^5.0.1
+        version: 5.0.8(immer@10.1.3)
+    devDependencies:
+      '@cofhesdk/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
+      '@cofhesdk/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      '@nomicfoundation/hardhat-ethers':
+        specifier: ^3.0.0
+        version: 3.1.0(ethers@6.15.0)(hardhat@2.26.3)
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.15
+      '@vitest/browser':
+        specifier: 1.6.0
+        version: 1.6.0(playwright@1.55.0)(vitest@1.6.0)
+      '@vitest/coverage-v8':
+        specifier: 1.6.0
+        version: 1.6.0(vitest@1.6.0)
+      eslint:
+        specifier: ^8.57.0
+        version: 8.57.1
+      ethers5:
+        specifier: npm:ethers@^5.7.2
+        version: /ethers@5.8.0
+      ethers6:
+        specifier: npm:ethers@^6.13.0
+        version: /ethers@6.15.0
+      hardhat:
+        specifier: ^2.19.0
+        version: 2.26.3(ts-node@10.9.2)(typescript@5.5.4)
+      playwright:
+        specifier: ^1.55.0
+        version: 1.55.0
+      tsup:
+        specifier: ^8.0.2
+        version: 8.0.2(typescript@5.5.4)
+      typescript:
+        specifier: 5.5.4
+        version: 5.5.4
+      vitest:
+        specifier: 1.6.0
+        version: 1.6.0(@types/node@20.19.15)(@vitest/browser@1.6.0)
 
   packages/tsconfig: {}
 
@@ -401,7 +505,7 @@ importers:
         version: 8.57.0
       tsup:
         specifier: ^8.0.2
-        version: 8.0.2(ts-node@10.9.2)(typescript@5.5.4)
+        version: 8.0.2(typescript@5.5.4)
       typescript:
         specifier: 5.5.4
         version: 5.5.4
@@ -441,7 +545,7 @@ importers:
         version: 1.55.0
       tsup:
         specifier: ^8.0.2
-        version: 8.0.2(ts-node@10.9.2)(typescript@5.5.4)
+        version: 8.0.2(typescript@5.5.4)
       typescript:
         specifier: 5.5.4
         version: 5.5.4
@@ -3322,7 +3426,7 @@ packages:
       pretty-format: 29.7.0
     dev: true
 
-  /@wagmi/core@2.20.3(typescript@5.5.4)(viem@2.37.5):
+  /@wagmi/core@2.20.3(immer@10.1.3)(typescript@5.5.4)(viem@2.37.5):
     resolution: {integrity: sha512-gsbuHnWxf0AYZISvR8LvF/vUCIq6/ZwT5f5/FKd6wLA7Wq05NihCvmQpIgrcVbpSJPL67wb6S8fXm3eJGJA1vQ==}
     peerDependencies:
       '@tanstack/query-core': '>=5.0.0'
@@ -3338,7 +3442,7 @@ packages:
       mipd: 0.0.7(typescript@5.5.4)
       typescript: 5.5.4
       viem: 2.37.5(typescript@5.5.4)(zod@3.25.76)
-      zustand: 5.0.0
+      zustand: 5.0.0(immer@10.1.3)
     transitivePeerDependencies:
       - '@types/react'
       - immer
@@ -3360,12 +3464,12 @@ packages:
       typescript: 5.5.4
       zod: 3.25.76
 
-  /acorn-jsx@5.3.2(acorn@8.11.3):
+  /acorn-jsx@5.3.2(acorn@8.15.0):
     resolution: {integrity: sha512-rq9s+JNhf0IChjtDXxllJ7g41oZk5SlXtp0LHwyA5cejwn7vKmKp4pPri6YEePv2PU65sAsegbXtIinmDFDXgQ==}
     peerDependencies:
       acorn: ^6.0.0 || ^7.0.0 || ^8.0.0
     dependencies:
-      acorn: 8.11.3
+      acorn: 8.15.0
     dev: true
 
   /acorn-walk@8.3.4:
@@ -3373,11 +3477,6 @@ packages:
     engines: {node: '>=0.4.0'}
     dependencies:
       acorn: 8.15.0
-    dev: true
-
-  /acorn@8.11.3:
-    resolution: {integrity: sha512-Y9rRfJG5jcKOE0CLisYbojUjIrIEE7AGMzA/Sm4BslANhbS+cDMpgBdcPT91oJ7OuJ9hYJBx59RjbhxVnrF8Xg==}
-    engines: {node: '>=0.4.0'}
     dev: true
 
   /acorn@8.15.0:
@@ -4873,8 +4972,8 @@ packages:
     resolution: {integrity: sha512-oruZaFkjorTpF32kDSI5/75ViwGeZginGGy2NoOSg3Q9bnwlnmDm4HLnkl0RE3n+njDXR037aY1+x58Z/zFdwQ==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
     dependencies:
-      acorn: 8.11.3
-      acorn-jsx: 5.3.2(acorn@8.11.3)
+      acorn: 8.15.0
+      acorn-jsx: 5.3.2(acorn@8.15.0)
       eslint-visitor-keys: 3.4.3
     dev: true
 
@@ -8078,6 +8177,45 @@ packages:
       joycon: 3.1.1
       postcss-load-config: 4.0.2(ts-node@10.9.2)
       resolve-from: 5.0.0
+      rollup: 4.50.1
+      source-map: 0.8.0-beta.0
+      sucrase: 3.34.0
+      tree-kill: 1.2.2
+      typescript: 5.5.4
+    transitivePeerDependencies:
+      - supports-color
+      - ts-node
+    dev: true
+
+  /tsup@8.0.2(typescript@5.5.4):
+    resolution: {integrity: sha512-NY8xtQXdH7hDUAZwcQdY/Vzlw9johQsaqf7iwZ6g1DOUlFYQ5/AtVAjTvihhEyeRlGo4dLRVHtrRaL35M1daqQ==}
+    engines: {node: '>=18'}
+    hasBin: true
+    peerDependencies:
+      '@microsoft/api-extractor': ^7.36.0
+      '@swc/core': ^1
+      postcss: ^8.4.12
+      typescript: '>=4.5.0'
+    peerDependenciesMeta:
+      '@microsoft/api-extractor':
+        optional: true
+      '@swc/core':
+        optional: true
+      postcss:
+        optional: true
+      typescript:
+        optional: true
+    dependencies:
+      bundle-require: 4.0.2(esbuild@0.19.7)
+      cac: 6.7.14
+      chokidar: 3.5.3
+      debug: 4.4.0(supports-color@8.1.1)
+      esbuild: 0.19.7
+      execa: 5.1.1
+      globby: 11.1.0
+      joycon: 3.1.1
+      postcss-load-config: 4.0.2(ts-node@10.9.2)
+      resolve-from: 5.0.0
       rollup: 4.5.1
       source-map: 0.8.0-beta.0
       sucrase: 3.34.0
@@ -9024,7 +9162,7 @@ packages:
   /zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
-  /zustand@5.0.0:
+  /zustand@5.0.0(immer@10.1.3):
     resolution: {integrity: sha512-LE+VcmbartOPM+auOjCCLQOsQ05zUTp8RkgwRzefUk+2jISdMMFnxvyTjA4YNWr5ZGXYbVsEMZosttuxUBkojQ==}
     engines: {node: '>=12.20.0'}
     peerDependencies:
@@ -9041,6 +9179,8 @@ packages:
         optional: true
       use-sync-external-store:
         optional: true
+    dependencies:
+      immer: 10.1.3
     dev: false
 
   /zustand@5.0.8(immer@10.1.3):
