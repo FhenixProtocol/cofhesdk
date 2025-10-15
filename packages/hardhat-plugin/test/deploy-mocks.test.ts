@@ -1,8 +1,7 @@
-import { expect } from 'chai';
-import { describe, it } from 'mocha';
+import { expect, describe, it } from 'vitest';
 import { type HardhatRuntimeEnvironment } from 'hardhat/types';
 
-import { useEnvironment } from './helpers.js';
+// import { useEnvironment } from './helpers.js';
 import {
   MOCKS_QUERY_DECRYPTER_ADDRESS,
   TASK_MANAGER_ADDRESS,
@@ -10,16 +9,17 @@ import {
   MOCKS_ZK_VERIFIER_ADDRESS,
 } from '../src/consts.js';
 import { TASK_COFHE_MOCKS_DEPLOY } from '../src/consts.js';
+import hre from 'hardhat';
 
 describe('Deploy Mocks Task', () => {
   const getTestBedBytecode = async (hre: HardhatRuntimeEnvironment) => {
     return await hre.ethers.provider.getCode(TEST_BED_ADDRESS);
   };
 
-  const getHre = useEnvironment('hardhat');
+  // const getHre = useEnvironment('hardhat');
 
   it('should deploy mock contracts', async () => {
-    const hre = getHre();
+    // const hre = getHre();
     await hre.run(TASK_COFHE_MOCKS_DEPLOY);
 
     const taskManager = await hre.ethers.getContractAt('MockTaskManager', TASK_MANAGER_ADDRESS);
@@ -36,7 +36,7 @@ describe('Deploy Mocks Task', () => {
   });
 
   it('should deploy mocks with test bed', async () => {
-    const hre = getHre();
+    // const hre = getHre();
     await hre.run(TASK_COFHE_MOCKS_DEPLOY, {
       deployTestBed: true,
     });
@@ -54,7 +54,7 @@ describe('Deploy Mocks Task', () => {
   });
 
   it('should deploy mocks without test bed', async () => {
-    const hre = getHre();
+    // const hre = getHre();
     await hre.run(TASK_COFHE_MOCKS_DEPLOY, {
       deployTestBed: false,
     });

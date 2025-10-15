@@ -1,15 +1,16 @@
 import { expect } from 'chai';
-import { describe, it } from 'mocha';
+import { describe, it } from 'vitest';
 import { hardhat } from 'cofhesdk/chains';
 
 import { TASK_COFHE_MOCKS_DEPLOY } from '../src/consts.js';
-import { useEnvironment } from './helpers.js';
+// import { useEnvironment } from './helpers.js';
+import hre from 'hardhat';
 
 describe('CoFHE SDK Client Integration', () => {
-  const getHre = useEnvironment('hardhat');
+  // const getHre = useEnvironment('hardhat');
 
   it('should create a cofhesdk client', async () => {
-    const hre = getHre();
+    // const hre = getHre();
 
     // Deploy mocks first
     await hre.run(TASK_COFHE_MOCKS_DEPLOY, { silent: true });
@@ -27,7 +28,7 @@ describe('CoFHE SDK Client Integration', () => {
   });
 
   it('should create a cofhesdk config and client', async () => {
-    const hre = getHre();
+    // const hre = getHre();
 
     // Deploy mocks first
     await hre.run(TASK_COFHE_MOCKS_DEPLOY, { silent: true });
@@ -52,7 +53,7 @@ describe('CoFHE SDK Client Integration', () => {
   });
 
   it('should handle config creation with custom options', async () => {
-    const hre = getHre();
+    // const hre = getHre();
 
     // Deploy mocks first
     await hre.run(TASK_COFHE_MOCKS_DEPLOY, { silent: true });
@@ -86,7 +87,7 @@ describe('CoFHE SDK Client Integration', () => {
   });
 
   it('should connect client with viem clients', async () => {
-    const hre = getHre();
+    // const hre = getHre();
 
     // Deploy mocks first
     await hre.run(TASK_COFHE_MOCKS_DEPLOY, { silent: true });

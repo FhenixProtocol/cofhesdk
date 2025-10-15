@@ -1,7 +1,5 @@
-import { expect } from 'chai';
-import { describe, it } from 'mocha';
-
-import { useEnvironment } from './helpers.js';
+// import { useEnvironment } from './helpers.js';
+import { expect, describe, it } from 'vitest';
 import {
   MOCKS_QUERY_DECRYPTER_ADDRESS,
   TASK_MANAGER_ADDRESS,
@@ -9,22 +7,23 @@ import {
   TASK_COFHE_MOCKS_DEPLOY,
   TASK_COFHE_USE_FAUCET,
 } from '../src/consts.js';
+import hre from 'hardhat';
 
 describe('Cofhe Hardhat Plugin', () => {
   describe('Localcofhe Faucet command', () => {
-    const getHre = useEnvironment('localcofhe');
+    // const getHre = useEnvironment('localcofhe');
 
     it('checks that the faucet works', async () => {
-      const hre = getHre();
+      // const hre = getHre();
       await hre.run(TASK_COFHE_USE_FAUCET);
     });
   });
 
   describe('Hardhat Mocks', () => {
-    const getHre = useEnvironment('hardhat');
+    // const getHre = useEnvironment('hardhat');
 
     it('checks that the mocks are deployed', async () => {
-      const hre = getHre();
+      // const hre = getHre();
       await hre.run(TASK_COFHE_MOCKS_DEPLOY);
 
       const taskManager = await hre.ethers.getContractAt('MockTaskManager', TASK_MANAGER_ADDRESS);
