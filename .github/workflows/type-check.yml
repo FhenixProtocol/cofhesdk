@@ -27,6 +27,11 @@ jobs:
       - name: Install Dependencies
         run: pnpm i
 
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
       - name: Run Linting
         run: pnpm lint
 
