@@ -25,7 +25,7 @@
     "cofhe"
   ],
   "scripts": {
-    "build": "echo 'No build step needed for Solidity contracts'",
+    "build": "forge build && ts-node --transpile-only build-artifacts.ts",
     "test": "forge test -vvv",
     "test:coverage": "forge coverage",
     "anvil": "anvil --code-size-limit 100000",
@@ -40,8 +40,10 @@
     "@openzeppelin/contracts-upgradeable": "^5.0.0"
   },
   "devDependencies": {
+    "@types/node": "^20.0.0",
     "forge-std": "github:foundry-rs/forge-std",
-    "hardhat": "^2.24.1"
+    "hardhat": "^2.24.1",
+    "ts-node": "^10.9.0"
   },
   "publishConfig": {
     "access": "public"

@@ -1,6 +1,5 @@
 {
   "extends": "@cofhesdk/tsconfig/base.json",
-  "compilerOptions": {},
-  "include": ["**/*.ts", "test/hardhat.config.ts"],
-  "exclude": ["dist", "build", "node_modules"]
+  "include": ["./src", "./test"],
+  "exclude": ["dist", "node_modules"]
 }

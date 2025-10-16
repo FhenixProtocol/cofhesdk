@@ -8,8 +8,14 @@ import {
   MOCKS_QUERY_DECRYPTER_ADDRESS,
   TEST_BED_ADDRESS,
   MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
+  MOCKS_ACL_ADDRESS,
 } from './consts.js';
-import { compileMockContractPaths } from './compile.js';
+
+import MockTaskManagerArtifact from '@cofhesdk/mock-contracts/dist/artifacts/MockTaskManager.json';
+import MockACLArtifact from '@cofhesdk/mock-contracts/dist/artifacts/MockACL.json';
+import MockZkVerifierArtifact from '@cofhesdk/mock-contracts/dist/artifacts/MockZkVerifier.json';
+import MockQueryDecrypterArtifact from '@cofhesdk/mock-contracts/dist/artifacts/MockQueryDecrypter.json';
+import TestBedArtifact from '@cofhesdk/mock-contracts/dist/artifacts/TestBed.json';
 
 // Deploy
 
@@ -17,9 +23,8 @@ const deployMockTaskManager = async (hre: HardhatRuntimeEnvironment) => {
   const [signer] = await hre.ethers.getSigners();
 
   // Deploy MockTaskManager
-  const TaskManagerArtifact = await hre.artifacts.readArtifact('MockTaskManager');
-  await hardhatSetCode(hre, TASK_MANAGER_ADDRESS, TaskManagerArtifact.deployedBytecode);
-  const taskManager = await hre.ethers.getContractAt('MockTaskManager', TASK_MANAGER_ADDRESS);
+  await hardhatSetCode(hre, TASK_MANAGER_ADDRESS, MockTaskManagerArtifact.deployedBytecode);
+  const taskManager = await hre.ethers.getContractAt(MockTaskManagerArtifact.abi, TASK_MANAGER_ADDRESS);
 
   // Initialize MockTaskManager
   const initTx = await taskManager.initialize(signer.address);
@@ -35,13 +40,9 @@ const deployMockTaskManager = async (hre: HardhatRuntimeEnvironment) => {
 };
 
 const deployMockACL = async (hre: HardhatRuntimeEnvironment): Promise<Contract> => {
-  // Get Signer
-  const [signer] = await hre.ethers.getSigners();
-
-  // Deploy ACL implementation
-  const aclFactory = await hre.ethers.getContractFactory('MockACL');
-  const acl = await aclFactory.deploy(signer.address);
-  await acl.waitForDeployment();
+  // Deploy MockACL
+  await hardhatSetCode(hre, MOCKS_ACL_ADDRESS, MockACLArtifact.deployedBytecode);
+  const acl = await hre.ethers.getContractAt(MockACLArtifact.abi, MOCKS_ACL_ADDRESS);
 
   // Check if ACL exists
   const exists = await acl.exists();
@@ -54,9 +55,8 @@ const deployMockACL = async (hre: HardhatRuntimeEnvironment): Promise<Contract> 
 };
 
 const deployMockZkVerifier = async (hre: HardhatRuntimeEnvironment) => {
-  const zkVerifierArtifact = await hre.artifacts.readArtifact('MockZkVerifier');
-  await hardhatSetCode(hre, MOCKS_ZK_VERIFIER_ADDRESS, zkVerifierArtifact.deployedBytecode);
-  const zkVerifier = await hre.ethers.getContractAt('MockZkVerifier', MOCKS_ZK_VERIFIER_ADDRESS);
+  await hardhatSetCode(hre, MOCKS_ZK_VERIFIER_ADDRESS, MockZkVerifierArtifact.deployedBytecode);
+  const zkVerifier = await hre.ethers.getContractAt(MockZkVerifierArtifact.abi, MOCKS_ZK_VERIFIER_ADDRESS);
 
   const zkVerifierExists = await zkVerifier.exists();
   if (!zkVerifierExists) {
@@ -68,9 +68,8 @@ const deployMockZkVerifier = async (hre: HardhatRuntimeEnvironment) => {
 };
 
 const deployMockQueryDecrypter = async (hre: HardhatRuntimeEnvironment, acl: Contract) => {
-  const queryDecrypterArtifact = await hre.artifacts.readArtifact('MockQueryDecrypter');
-  await hardhatSetCode(hre, MOCKS_QUERY_DECRYPTER_ADDRESS, queryDecrypterArtifact.deployedBytecode);
-  const queryDecrypter = await hre.ethers.getContractAt('MockQueryDecrypter', MOCKS_QUERY_DECRYPTER_ADDRESS);
+  await hardhatSetCode(hre, MOCKS_QUERY_DECRYPTER_ADDRESS, MockQueryDecrypterArtifact.deployedBytecode);
+  const queryDecrypter = await hre.ethers.getContractAt(MockQueryDecrypterArtifact.abi, MOCKS_QUERY_DECRYPTER_ADDRESS);
 
   // Initialize MockQueryDecrypter
   const initTx = await queryDecrypter.initialize(TASK_MANAGER_ADDRESS, await acl.getAddress());
@@ -87,9 +86,8 @@ const deployMockQueryDecrypter = async (hre: HardhatRuntimeEnvironment, acl: Con
 };
 
 const deployTestBedContract = async (hre: HardhatRuntimeEnvironment) => {
-  const testBedFactory = await hre.artifacts.readArtifact('TestBed');
-  await hardhatSetCode(hre, TEST_BED_ADDRESS, testBedFactory.deployedBytecode);
-  const testBed = await hre.ethers.getContractAt('TestBed', TEST_BED_ADDRESS);
+  await hardhatSetCode(hre, TEST_BED_ADDRESS, TestBedArtifact.deployedBytecode);
+  const testBed = await hre.ethers.getContractAt(TestBedArtifact.abi, TEST_BED_ADDRESS);
   await testBed.waitForDeployment();
   return testBed;
 };
@@ -156,7 +154,7 @@ export const deployMocks = async (
   logEmptyIfNoisy();
 
   // Compile mock contracts
-  await compileMockContractPaths(hre);
+  // await compileMockContractPaths(hre);
   logEmptyIfNoisy();
   logSuccessIfNoisy('Mock contracts compiled', 1);
 
