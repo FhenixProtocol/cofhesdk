@@ -27,6 +27,13 @@ import {
   expectResultSuccess,
   expectResultValue,
 } from './expectResultUtils.js';
+export {
+  MockACLArtifact,
+  MockQueryDecrypterArtifact,
+  MockTaskManagerArtifact,
+  MockZkVerifierArtifact,
+  TestBedArtifact,
+} from '@cofhesdk/mock-contracts';
 
 /**
  * Configuration interface for the CoFHE Hardhat plugin.

@@ -11,11 +11,13 @@ import {
   MOCKS_ACL_ADDRESS,
 } from './consts.js';
 
-import MockTaskManagerArtifact from '@cofhesdk/mock-contracts/dist/artifacts/MockTaskManager.json';
-import MockACLArtifact from '@cofhesdk/mock-contracts/dist/artifacts/MockACL.json';
-import MockZkVerifierArtifact from '@cofhesdk/mock-contracts/dist/artifacts/MockZkVerifier.json';
-import MockQueryDecrypterArtifact from '@cofhesdk/mock-contracts/dist/artifacts/MockQueryDecrypter.json';
-import TestBedArtifact from '@cofhesdk/mock-contracts/dist/artifacts/TestBed.json';
+import {
+  MockTaskManagerArtifact,
+  MockACLArtifact,
+  MockZkVerifierArtifact,
+  MockQueryDecrypterArtifact,
+  TestBedArtifact,
+} from '@cofhesdk/mock-contracts';
 
 // Deploy
 

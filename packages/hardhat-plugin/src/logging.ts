@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import { type HardhatRuntimeEnvironment } from 'hardhat/types';
 import { TASK_MANAGER_ADDRESS } from './consts';
-import MockTaskManagerArtifact from '@cofhesdk/mock-contracts/dist/artifacts/MockTaskManager.json';
+import { MockTaskManagerArtifact } from '@cofhesdk/mock-contracts';
 
 const getDeployedMockTaskManager = async (hre: HardhatRuntimeEnvironment) => {
   // Fetch the deployed MockTaskManager
