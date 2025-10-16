@@ -1,12 +1,8 @@
 {
+  "extends": "@cofhesdk/tsconfig/base.json",
   "compilerOptions": {
-    "target": "es2020",
-    "module": "commonjs",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "outDir": "dist"
+    "noEmit": true
   },
-  "include": ["build-artifacts.ts"]
+  "include": ["./src", "./scripts"],
+  "exclude": ["node_modules", "dist"]
 }
