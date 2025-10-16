@@ -2,13 +2,10 @@
   "name": "@cofhesdk/mock-contracts",
   "version": "0.0.0",
   "description": "Mock smart contracts for testing CoFHE with FHE primitives locally",
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
+  "main": "./src/index.js",
   "sideEffects": false,
   "license": "MIT",
   "files": [
-    "dist/**",
     "contracts/**/*.sol",
     "foundry/**/*.sol",
     "test/**/*.sol",
@@ -28,7 +25,7 @@
     "cofhe"
   ],
   "scripts": {
-    "build": "forge build && npx tsx scripts/build-artifacts.ts && tsup",
+    "build": "forge build && ts-node --transpile-only build-artifacts.ts",
     "test": "forge test -vvv",
     "test:coverage": "forge coverage",
     "anvil": "anvil --code-size-limit 100000",
@@ -43,11 +40,10 @@
     "@openzeppelin/contracts-upgradeable": "^5.0.0"
   },
   "devDependencies": {
-    "@cofhesdk/tsconfig": "workspace:*",
     "@types/node": "^20.0.0",
     "forge-std": "github:foundry-rs/forge-std",
-    "tsup": "^8.0.2",
-    "hardhat": "^2.24.1"
+    "hardhat": "^2.24.1",
+    "ts-node": "^10.9.0"
   },
   "publishConfig": {
     "access": "public"

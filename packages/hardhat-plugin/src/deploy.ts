@@ -11,13 +11,11 @@ import {
   MOCKS_ACL_ADDRESS,
 } from './consts.js';
 
-import {
-  MockTaskManagerArtifact,
-  MockACLArtifact,
-  MockZkVerifierArtifact,
-  MockQueryDecrypterArtifact,
-  TestBedArtifact,
-} from '@cofhesdk/mock-contracts';
+import MockTaskManagerArtifact from '@cofhesdk/mock-contracts/dist/artifacts/MockTaskManager.json';
+import MockACLArtifact from '@cofhesdk/mock-contracts/dist/artifacts/MockACL.json';
+import MockZkVerifierArtifact from '@cofhesdk/mock-contracts/dist/artifacts/MockZkVerifier.json';
+import MockQueryDecrypterArtifact from '@cofhesdk/mock-contracts/dist/artifacts/MockQueryDecrypter.json';
+import TestBedArtifact from '@cofhesdk/mock-contracts/dist/artifacts/TestBed.json';
 
 // Deploy
 
@@ -156,6 +154,7 @@ export const deployMocks = async (
   logEmptyIfNoisy();
 
   // Compile mock contracts
+  // await compileMockContractPaths(hre);
   logEmptyIfNoisy();
   logSuccessIfNoisy('Mock contracts compiled', 1);
 
