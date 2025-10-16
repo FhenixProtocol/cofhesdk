@@ -1,7 +1,7 @@
 {
-  "name": "hardhat-project",
+  "name": "@cofhesdk/hardhat-plugin(tests)",
   "scripts": {
-    "test": "npx hardhat test --show-stack-traces",
+    "test": "npx hardhat test",
     "compile": "npx hardhat compile",
     "clean": "npx hardhat clean"
   },

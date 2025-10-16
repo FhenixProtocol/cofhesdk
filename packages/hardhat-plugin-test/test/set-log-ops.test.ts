@@ -1,7 +1,8 @@
 import hre from 'hardhat';
 import { expect } from 'chai';
-import { TASK_COFHE_MOCKS_DEPLOY, TASK_MANAGER_ADDRESS, TASK_COFHE_MOCKS_SET_LOG_OPS, LogOpsAbi } from './consts';
+import { TASK_COFHE_MOCKS_DEPLOY, TASK_COFHE_MOCKS_SET_LOG_OPS } from './consts';
 import { Contract } from 'ethers';
+import { MockTaskManagerArtifact } from '@cofhesdk/hardhat-plugin';
 
 describe('Set Log Ops Task', () => {
   let taskManager: Contract;
@@ -9,7 +10,9 @@ describe('Set Log Ops Task', () => {
   beforeEach(async () => {
     await hre.run(TASK_COFHE_MOCKS_DEPLOY, { silent: true });
 
-    taskManager = await hre.ethers.getContractAt(LogOpsAbi, TASK_MANAGER_ADDRESS);
+    taskManager = await hre.ethers.getContractAt(MockTaskManagerArtifact.abi, MockTaskManagerArtifact.fixedAddress);
+
+    await taskManager.setLogOps(false);
   });
 
   const expectLogOps = async (enabled: boolean) => {
@@ -68,10 +71,12 @@ describe('Set Log Ops Task', () => {
 
     await hre.cofhesdk.mocks.enableLogs();
 
-    await expectLogOps(false);
+    await expectLogOps(true);
   });
 
   it('(function) mock_withLogs should enable logging', async () => {
+    await expectLogOps(false);
+
     await hre.cofhesdk.mocks.withLogs("'hre.cofhesdk.mocks.withLogs' logging enabled?", async () => {
       // Verify logging is enabled inside the closure
       await expectLogOps(true);
