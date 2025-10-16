@@ -1,5 +1,5 @@
 {
   "extends": "@cofhesdk/tsconfig/base.json",
-  "include": ["./src", "./test"],
+  "include": ["**/*.ts", ".eslint.cjs", "tsup.config.ts"],
   "exclude": ["dist", "node_modules"]
 }
