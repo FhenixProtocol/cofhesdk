@@ -3,7 +3,6 @@
 pragma solidity >=0.8.25 <0.9.0;
 
 import { Strings } from '@openzeppelin/contracts/utils/Strings.sol';
-import { Ownable2Step, Ownable } from '@openzeppelin/contracts/access/Ownable2Step.sol';
 import { MockPermissioned, Permission } from './Permissioned.sol';
 import { TASK_MANAGER_ADDRESS } from '@fhenixprotocol/cofhe-contracts/FHE.sol';
 
@@ -14,7 +13,7 @@ import { TASK_MANAGER_ADDRESS } from '@fhenixprotocol/cofhe-contracts/FHE.sol';
  *         By defining and enforcing these permissions, the ACL ensures that encrypted data remains secure while still being usable
  *         within authorized contexts.
  */
-contract MockACL is Ownable2Step, MockPermissioned {
+contract MockACL is MockPermissioned {
   /// @notice Returned if the delegatee contract is already delegatee for sender & delegator addresses.
   error AlreadyDelegated();
 
@@ -67,7 +66,7 @@ contract MockACL is Ownable2Step, MockPermissioned {
     keccak256(abi.encode(uint256(keccak256('cofhe.storage.ACL')) - 1)) & ~bytes32(uint256(0xff));
 
   /// @custom:oz-upgrades-unsafe-allow constructor
-  constructor(address initialOwner) MockPermissioned() Ownable(initialOwner) {}
+  constructor() {}
 
   function exists() public pure returns (bool) {
     return true;

@@ -3,39 +3,39 @@
   "version": "0.0.0",
   "type": "module",
   "description": "SDK for Fhenix COFHE coprocessor interaction",
-  "main": "./dist/core.js",
-  "module": "./dist/core.mjs",
+  "main": "./dist/core.cjs",
+  "module": "./dist/core.js",
   "types": "./dist/core.d.ts",
-  "browser": "./dist/web.mjs",
+  "browser": "./dist/web.js",
   "exports": {
     ".": {
-      "import": "./dist/core.mjs",
-      "require": "./dist/core.js",
+      "import": "./dist/core.js",
+      "require": "./dist/core.cjs",
       "types": "./dist/core.d.ts"
     },
     "./adapters": {
-      "import": "./dist/adapters.mjs",
-      "require": "./dist/adapters.js",
+      "import": "./dist/adapters.js",
+      "require": "./dist/adapters.cjs",
       "types": "./dist/adapters.d.ts"
     },
     "./chains": {
-      "import": "./dist/chains.mjs",
-      "require": "./dist/chains.js",
+      "import": "./dist/chains.js",
+      "require": "./dist/chains.cjs",
       "types": "./dist/chains.d.ts"
     },
     "./permits": {
-      "import": "./dist/permits.mjs",
-      "require": "./dist/permits.js",
+      "import": "./dist/permits.js",
+      "require": "./dist/permits.cjs",
       "types": "./dist/permits.d.ts"
     },
     "./node": {
-      "import": "./dist/node.mjs",
-      "require": "./dist/node.js",
+      "import": "./dist/node.js",
+      "require": "./dist/node.cjs",
       "types": "./dist/node.d.ts"
     },
     "./web": {
-      "import": "./dist/web.mjs",
-      "require": "./dist/web.js",
+      "import": "./dist/web.js",
+      "require": "./dist/web.cjs",
       "types": "./dist/web.d.ts"
     }
   },

@@ -55,6 +55,8 @@ export const compileMockContractPaths = async (hre: HardhatRuntimeEnvironment) =
   for (const dependency of paths) {
     const fullPath = path.join(directory, dependency);
 
+    console.warn({ fullPath });
+
     if (!fs.existsSync(path.dirname(fullPath))) {
       fs.mkdirSync(path.dirname(fullPath), { recursive: true });
     }
@@ -63,9 +65,9 @@ export const compileMockContractPaths = async (hre: HardhatRuntimeEnvironment) =
   }
 
   try {
-    await hre.run('compile:silent');
+    await hre.run('compile');
   } finally {
-    fs.rmSync(directory, { recursive: true });
+    // fs.rmSync(directory, { recursive: true });
   }
 };
 
