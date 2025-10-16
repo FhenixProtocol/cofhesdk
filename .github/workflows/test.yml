@@ -33,7 +33,7 @@ jobs:
           version: nightly
 
       - name: Install Playwright Browsers
-        run: cd packages/core && pnpm exec playwright install chromium --with-deps
+        run: cd packages/sdk && pnpm exec playwright install chromium --with-deps
 
       - name: Run Tests
         run: pnpm test
