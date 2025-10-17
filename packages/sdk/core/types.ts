@@ -101,7 +101,7 @@ export type CofhesdkClientPermits = {
   deserialize: typeof PermitUtils.deserialize;
 };
 
-export type TfheInitializer = () => Promise<void>;
+export type TfheInitializer = () => Promise<boolean>;
 
 export type CofhesdkClientParams = {
   config: CofhesdkConfig;
@@ -331,14 +331,15 @@ export function isEncryptableItem(value: unknown): value is EncryptableItem {
 }
 
 export enum EncryptStep {
+  InitTfhe = 'initTfhe',
   FetchKeys = 'fetchKeys',
   Pack = 'pack',
   Prove = 'prove',
   Verify = 'verify',
-  Done = 'done',
 }
 
-export type EncryptSetStateFn = (state: EncryptStep) => void;
+export type EncryptStepCallbackContext = Record<string, any> & { isStart: boolean; isEnd: boolean; duration: number };
+export type EncryptStepCallbackFunction = (state: EncryptStep, context?: EncryptStepCallbackContext) => void;
 
 // DECRYPT
 

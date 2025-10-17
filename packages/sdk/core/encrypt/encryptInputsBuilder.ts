@@ -4,12 +4,13 @@ import { type ZkBuilderAndCrsGenerator, zkPack, zkProve, zkVerify } from './zkPa
 import { CofhesdkError, CofhesdkErrorCode } from '../error.js';
 import { type Result, resultWrapper } from '../result.js';
 import {
-  type EncryptSetStateFn,
+  type EncryptStepCallbackFunction,
   EncryptStep,
   type EncryptableItem,
   type EncryptedItemInput,
   type EncryptedItemInputs,
   type TfheInitializer,
+  type EncryptStepCallbackContext,
 } from '../types.js';
 import { cofheMocksCheckEncryptableBits, cofheMocksZkVerifySign } from './cofheMocksZkVerifySign.js';
 import { hardhat } from 'viem/chains';
@@ -45,7 +46,7 @@ type EncryptInputsBuilderParams<T extends EncryptableItem[]> = BaseBuilderParams
 
 export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuilder {
   private securityZone: number;
-  private stepCallback?: EncryptSetStateFn;
+  private stepCallback?: EncryptStepCallbackFunction;
   private inputItems: [...T];
 
   private zkvWalletClient: WalletClient | undefined;
@@ -56,6 +57,14 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   private initTfhe: TfheInitializer | undefined;
 
   private keysStorage: KeysStorage | undefined;
+
+  private stepTimestamps: Record<EncryptStep, number> = {
+    [EncryptStep.InitTfhe]: 0,
+    [EncryptStep.FetchKeys]: 0,
+    [EncryptStep.Pack]: 0,
+    [EncryptStep.Prove]: 0,
+    [EncryptStep.Verify]: 0,
+  };
 
   constructor(params: EncryptInputsBuilderParams<T>) {
     super({
@@ -164,21 +173,33 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    *
    * @returns The EncryptInputsBuilder instance.
    */
-  setStepCallback(callback: EncryptSetStateFn): EncryptInputsBuilder<T> {
+  setStepCallback(callback: EncryptStepCallbackFunction): EncryptInputsBuilder<T> {
     this.stepCallback = callback;
     return this;
   }
 
-  getStepCallback(): EncryptSetStateFn | undefined {
+  getStepCallback(): EncryptStepCallbackFunction | undefined {
     return this.stepCallback;
   }
 
   /**
    * Fires the step callback if set
    */
-  private fireCallback(step: EncryptStep) {
+  private fireStepStart(
+    step: EncryptStep,
+    context: Omit<EncryptStepCallbackContext, 'isStart' | 'isEnd' | 'duration'> = {}
+  ) {
     if (!this.stepCallback) return;
-    this.stepCallback(step);
+    this.stepTimestamps[step] = Date.now();
+    this.stepCallback(step, { ...context, isStart: true, isEnd: false, duration: 0 });
+  }
+  private fireStepEnd(
+    step: EncryptStep,
+    context: Omit<EncryptStepCallbackContext, 'isStart' | 'isEnd' | 'duration'> = {}
+  ) {
+    if (!this.stepCallback) return;
+    const duration = Date.now() - this.stepTimestamps[step];
+    this.stepCallback(step, { ...context, isStart: false, isEnd: true, duration });
   }
 
   /**
@@ -233,11 +254,11 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    * node/ uses zama "node-tfhe"
    * Users should not set this manually.
    */
-  private async initTfheOrThrow() {
-    if (!this.initTfhe) return;
+  private async initTfheOrThrow(): Promise<boolean> {
+    if (!this.initTfhe) return false;
 
     try {
-      await this.initTfhe();
+      return await this.initTfhe();
     } catch (error) {
       throw CofhesdkError.fromError(error, {
         code: CofhesdkErrorCode.InitTfheFailed,
@@ -253,7 +274,12 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    * Fetches the FHE key and CRS from the CoFHE API
    * If the key/crs already exists in the store it is returned, else it is fetched, stored, and returned
    */
-  private async fetchFheKeyAndCrs(): Promise<{ fheKey: string; crs: string }> {
+  private async fetchFheKeyAndCrs(): Promise<{
+    fheKey: string;
+    fheKeyFetchedFromCoFHE: boolean;
+    crs: string;
+    crsFetchedFromCoFHE: boolean;
+  }> {
     const config = this.getConfigOrThrow();
     const chainId = await this.getChainIdOrThrow();
     const compactPkeCrsDeserializer = this.getCompactPkeCrsDeserializerOrThrow();
@@ -273,10 +299,12 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     }
 
     let fheKey: string | undefined;
+    let fheKeyFetchedFromCoFHE: boolean = false;
     let crs: string | undefined;
+    let crsFetchedFromCoFHE: boolean = false;
 
     try {
-      [fheKey, crs] = await fetchKeys(
+      [[fheKey, fheKeyFetchedFromCoFHE], [crs, crsFetchedFromCoFHE]] = await fetchKeys(
         config,
         chainId,
         securityZone,
@@ -319,7 +347,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
       });
     }
 
-    return { fheKey, crs };
+    return { fheKey, fheKeyFetchedFromCoFHE, crs, crsFetchedFromCoFHE };
   }
 
   /**
@@ -355,24 +383,25 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    * cofheMocksZkCreateProofSignatures - creates signatures to be included in the encrypted inputs. The signers address is known and verified in the mock contracts.
    */
   private async mocksEncrypt(account: string): Promise<[...EncryptedItemInputs<T>]> {
-    this.fireCallback(EncryptStep.FetchKeys);
-
+    this.fireStepStart(EncryptStep.InitTfhe);
     await sleep(100);
+    this.fireStepEnd(EncryptStep.InitTfhe, { tfheInitializationExecuted: false });
 
-    this.fireCallback(EncryptStep.Pack);
+    this.fireStepStart(EncryptStep.FetchKeys);
+    await sleep(100);
+    this.fireStepEnd(EncryptStep.FetchKeys, { fheKeyFetchedFromCoFHE: false, crsFetchedFromCoFHE: false });
 
+    this.fireStepStart(EncryptStep.Pack);
     await cofheMocksCheckEncryptableBits(this.inputItems);
-
     await sleep(100);
+    this.fireStepEnd(EncryptStep.Pack);
 
-    this.fireCallback(EncryptStep.Prove);
-
+    this.fireStepStart(EncryptStep.Prove);
     await sleep(500);
+    this.fireStepEnd(EncryptStep.Prove);
 
-    this.fireCallback(EncryptStep.Verify);
-
+    this.fireStepStart(EncryptStep.Verify);
     await sleep(500);
-
     const signedResults = await cofheMocksZkVerifySign(
       this.inputItems,
       account,
@@ -381,15 +410,13 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
       this.getWalletClientOrThrow(),
       this.zkvWalletClient
     );
-
     const encryptedInputs: EncryptedItemInput[] = signedResults.map(({ ct_hash, signature }, index) => ({
       ctHash: BigInt(ct_hash),
       securityZone: this.securityZone,
       utype: this.inputItems[index].utype,
       signature,
     }));
-
-    this.fireCallback(EncryptStep.Done);
+    this.fireStepEnd(EncryptStep.Verify);
 
     return encryptedInputs as [...EncryptedItemInputs<T>];
   }
@@ -398,28 +425,40 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    * In the production context, perform a true encryption with the CoFHE coprocessor.
    */
   private async productionEncrypt(account: string, chainId: number): Promise<[...EncryptedItemInputs<T>]> {
-    this.fireCallback(EncryptStep.FetchKeys);
+    this.fireStepStart(EncryptStep.InitTfhe);
 
     // Deferred initialization of tfhe wasm until encrypt is called
-    await this.initTfheOrThrow();
+    // Returns true if tfhe was initialized, false if already initialized
+    const tfheInitializationExecuted = await this.initTfheOrThrow();
+
+    this.fireStepEnd(EncryptStep.InitTfhe, { tfheInitializationExecuted });
+
+    this.fireStepStart(EncryptStep.FetchKeys);
 
     // Deferred fetching of fheKey and crs until encrypt is called
-    const { fheKey, crs } = await this.fetchFheKeyAndCrs();
+    // if the key/crs is already in the store, it is not fetched from the CoFHE API
+    const { fheKey, fheKeyFetchedFromCoFHE, crs, crsFetchedFromCoFHE } = await this.fetchFheKeyAndCrs();
     let { zkBuilder, zkCrs } = this.generateZkBuilderAndCrs(fheKey, crs);
 
-    this.fireCallback(EncryptStep.Pack);
+    this.fireStepEnd(EncryptStep.FetchKeys, { fheKeyFetchedFromCoFHE, crsFetchedFromCoFHE });
+
+    this.fireStepStart(EncryptStep.Pack);
 
     zkBuilder = zkPack(this.inputItems, zkBuilder);
 
-    this.fireCallback(EncryptStep.Prove);
+    this.fireStepEnd(EncryptStep.Pack);
+
+    this.fireStepStart(EncryptStep.Prove);
 
     const proof = await zkProve(zkBuilder, zkCrs, account, this.securityZone, chainId);
 
-    this.fireCallback(EncryptStep.Verify);
+    this.fireStepEnd(EncryptStep.Prove);
+
+    this.fireStepStart(EncryptStep.Verify);
 
     const zkVerifierUrl = await this.getZkVerifierUrl();
-    const verifyResults = await zkVerify(zkVerifierUrl, proof, account, this.securityZone, chainId);
 
+    const verifyResults = await zkVerify(zkVerifierUrl, proof, account, this.securityZone, chainId);
     // Add securityZone and utype to the verify results
     const encryptedInputs: EncryptedItemInput[] = verifyResults.map(
       ({ ct_hash, signature }: { ct_hash: string; signature: string }, index: number) => ({
@@ -430,7 +469,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
       })
     );
 
-    this.fireCallback(EncryptStep.Done);
+    this.fireStepEnd(EncryptStep.Verify);
 
     return encryptedInputs as [...EncryptedItemInputs<T>];
   }

@@ -19,14 +19,15 @@ import init, { init_panic_hook, TfheCompactPublicKey, ProvenCompactCiphertextLis
 /**
  * Internal function to initialize TFHE for web
  * Called automatically on first encryption - users don't need to call this manually
- * @internal
+ * @returns true if TFHE was initialized, false if already initialized
  */
 let tfheInitialized = false;
-async function initTfhe(): Promise<void> {
-  if (tfheInitialized) return;
+async function initTfhe(): Promise<boolean> {
+  if (tfheInitialized) return false;
   await init();
   await init_panic_hook();
   tfheInitialized = true;
+  return true;
 }
 
 /**
