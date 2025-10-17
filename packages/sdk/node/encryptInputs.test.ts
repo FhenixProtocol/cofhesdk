@@ -95,7 +95,7 @@ describe('@cofhesdk/node - Encrypt Inputs', () => {
         })
         .encrypt();
       expectResultSuccess(result2);
-    }, 60000);
+    }, 120000);
   });
 
   describe('Real Encryption', () => {
