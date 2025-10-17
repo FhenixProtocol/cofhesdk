@@ -449,16 +449,96 @@ describe('EncryptInputsBuilder', () => {
       // Verify step callbacks were called in order
       expect(stepCallback).toHaveBeenCalledTimes(10);
 
-      expect(stepCallback).toHaveBeenNthCalledWith(1, EncryptStep.InitTfhe);
-      expect(stepCallback).toHaveBeenNthCalledWith(2, EncryptStep.InitTfhe);
-      expect(stepCallback).toHaveBeenNthCalledWith(3, EncryptStep.FetchKeys);
-      expect(stepCallback).toHaveBeenNthCalledWith(4, EncryptStep.FetchKeys);
-      expect(stepCallback).toHaveBeenNthCalledWith(5, EncryptStep.Pack);
-      expect(stepCallback).toHaveBeenNthCalledWith(6, EncryptStep.Pack);
-      expect(stepCallback).toHaveBeenNthCalledWith(7, EncryptStep.Prove);
-      expect(stepCallback).toHaveBeenNthCalledWith(8, EncryptStep.Prove);
-      expect(stepCallback).toHaveBeenNthCalledWith(9, EncryptStep.Verify);
-      expect(stepCallback).toHaveBeenNthCalledWith(10, EncryptStep.Verify);
+      expect(stepCallback).toHaveBeenNthCalledWith(
+        1,
+        EncryptStep.InitTfhe,
+        expect.objectContaining({
+          isStart: true,
+          isEnd: false,
+          duration: 0,
+        })
+      );
+      expect(stepCallback).toHaveBeenNthCalledWith(
+        2,
+        EncryptStep.InitTfhe,
+        expect.objectContaining({
+          isStart: false,
+          isEnd: true,
+          duration: expect.any(Number),
+        })
+      );
+      expect(stepCallback).toHaveBeenNthCalledWith(
+        3,
+        EncryptStep.FetchKeys,
+        expect.objectContaining({
+          isStart: true,
+          isEnd: false,
+          duration: 0,
+        })
+      );
+      expect(stepCallback).toHaveBeenNthCalledWith(
+        4,
+        EncryptStep.FetchKeys,
+        expect.objectContaining({
+          isStart: false,
+          isEnd: true,
+          duration: expect.any(Number),
+        })
+      );
+      expect(stepCallback).toHaveBeenNthCalledWith(
+        5,
+        EncryptStep.Pack,
+        expect.objectContaining({
+          isStart: true,
+          isEnd: false,
+          duration: 0,
+        })
+      );
+      expect(stepCallback).toHaveBeenNthCalledWith(
+        6,
+        EncryptStep.Pack,
+        expect.objectContaining({
+          isStart: false,
+          isEnd: true,
+          duration: expect.any(Number),
+        })
+      );
+      expect(stepCallback).toHaveBeenNthCalledWith(
+        7,
+        EncryptStep.Prove,
+        expect.objectContaining({
+          isStart: true,
+          isEnd: false,
+          duration: 0,
+        })
+      );
+      expect(stepCallback).toHaveBeenNthCalledWith(
+        8,
+        EncryptStep.Prove,
+        expect.objectContaining({
+          isStart: false,
+          isEnd: true,
+          duration: expect.any(Number),
+        })
+      );
+      expect(stepCallback).toHaveBeenNthCalledWith(
+        9,
+        EncryptStep.Verify,
+        expect.objectContaining({
+          isStart: true,
+          isEnd: false,
+          duration: 0,
+        })
+      );
+      expect(stepCallback).toHaveBeenNthCalledWith(
+        10,
+        EncryptStep.Verify,
+        expect.objectContaining({
+          isStart: false,
+          isEnd: true,
+          duration: expect.any(Number),
+        })
+      );
 
       // Verify result structure
       expect(result).toBeDefined();
