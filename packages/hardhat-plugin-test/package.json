@@ -1,0 +1,17 @@
+{
+  "name": "@cofhesdk/hardhat-plugin(tests)",
+  "scripts": {
+    "test": "npx hardhat test",
+    "compile": "npx hardhat compile",
+    "clean": "npx hardhat clean"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^6.0.0",
+    "@nomicfoundation/hardhat-ethers": "^3.0.5",
+    "ethers": "^6.0.0",
+    "hardhat": "^2.26.3",
+    "cofhesdk": "workspace:*",
+    "@cofhesdk/hardhat-plugin": "workspace:*",
+    "@cofhesdk/mock-contracts": "workspace:*"
+  }
+}

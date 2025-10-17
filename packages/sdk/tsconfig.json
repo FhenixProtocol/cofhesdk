@@ -1,0 +1,14 @@
+{
+  "extends": "@cofhesdk/tsconfig/base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["*/index.ts"]
+    },
+    "noEmit": true
+  },
+  "include": ["**/*.ts", "**/*.tsx", "hardhat.config.cjs", ".eslint.cjs", "vitest.config.mts"],
+  "exclude": ["node_modules", "dist"]
+}

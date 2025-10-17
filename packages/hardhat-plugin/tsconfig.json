@@ -1,9 +1,5 @@
 {
   "extends": "@cofhesdk/tsconfig/base.json",
-  "compilerOptions": {
-    "types": ["node"],
-    "module": "NodeNext"
-  },
-  "include": ["."],
-  "exclude": ["dist", "build", "node_modules"]
+  "include": ["**/*.ts", ".eslint.cjs", "tsup.config.ts"],
+  "exclude": ["dist", "node_modules"]
 }

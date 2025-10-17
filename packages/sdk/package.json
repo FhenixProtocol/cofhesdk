@@ -1,0 +1,108 @@
+{
+  "name": "cofhesdk",
+  "version": "0.0.0",
+  "type": "module",
+  "description": "SDK for Fhenix COFHE coprocessor interaction",
+  "main": "./dist/core.cjs",
+  "module": "./dist/core.js",
+  "types": "./dist/core.d.ts",
+  "browser": "./dist/web.js",
+  "exports": {
+    ".": {
+      "import": "./dist/core.js",
+      "require": "./dist/core.cjs",
+      "types": "./dist/core.d.ts"
+    },
+    "./adapters": {
+      "import": "./dist/adapters.js",
+      "require": "./dist/adapters.cjs",
+      "types": "./dist/adapters.d.ts"
+    },
+    "./chains": {
+      "import": "./dist/chains.js",
+      "require": "./dist/chains.cjs",
+      "types": "./dist/chains.d.ts"
+    },
+    "./permits": {
+      "import": "./dist/permits.js",
+      "require": "./dist/permits.cjs",
+      "types": "./dist/permits.d.ts"
+    },
+    "./node": {
+      "import": "./dist/node.js",
+      "require": "./dist/node.cjs",
+      "types": "./dist/node.d.ts"
+    },
+    "./web": {
+      "import": "./dist/web.js",
+      "require": "./dist/web.cjs",
+      "types": "./dist/web.d.ts"
+    }
+  },
+  "sideEffects": false,
+  "license": "MIT",
+  "files": [
+    "dist/**"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint \"**/*.ts*\"",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "immer": "^10.1.1",
+    "zustand": "^5.0.1",
+    "zod": "^3.22.0",
+    "viem": "^2.0.0",
+    "node-tfhe": "0.11.1",
+    "idb-keyval": "^6.2.1",
+    "tfhe": "0.11.1",
+    "tweetnacl": "^1.0.3"
+  },
+  "peerDependencies": {
+    "viem": "^2.0.0",
+    "@wagmi/core": "^2.0.0",
+    "ethers": "^5.0.0 || ^6.0.0",
+    "hardhat": "^2.0.0",
+    "@nomicfoundation/hardhat-ethers": "^3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@wagmi/core": {
+      "optional": true
+    },
+    "ethers": {
+      "optional": true
+    },
+    "hardhat": {
+      "optional": true
+    },
+    "@nomicfoundation/hardhat-ethers": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@cofhesdk/eslint-config": "workspace:*",
+    "@cofhesdk/tsconfig": "workspace:*",
+    "@types/node": "^20.0.0",
+    "@vitest/browser": "^3.0.0",
+    "@vitest/coverage-v8": "^3.0.0",
+    "eslint": "^8.57.0",
+    "happy-dom": "^15.0.0",
+    "playwright": "^1.55.0",
+    "tsup": "^8.0.2",
+    "typescript": "5.5.4",
+    "vitest": "^3.0.0",
+    "ethers5": "npm:ethers@^5.7.2",
+    "ethers6": "npm:ethers@^6.13.0",
+    "hardhat": "^2.19.0",
+    "@nomicfoundation/hardhat-ethers": "^3.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
