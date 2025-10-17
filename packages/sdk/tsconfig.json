@@ -9,6 +9,6 @@
     },
     "noEmit": true
   },
-  "include": ["**/*.ts", "**/*.tsx", "hardhat.config.cjs", ".eslint.cjs"],
+  "include": ["**/*.ts", "**/*.tsx", "hardhat.config.cjs", ".eslint.cjs", "vitest.config.mts"],
   "exclude": ["node_modules", "dist"]
 }
