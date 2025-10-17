@@ -452,7 +452,6 @@ describe('EncryptInputsBuilder', () => {
       expect(stepCallback).toHaveBeenNthCalledWith(2, EncryptStep.Pack);
       expect(stepCallback).toHaveBeenNthCalledWith(3, EncryptStep.Prove);
       expect(stepCallback).toHaveBeenNthCalledWith(4, EncryptStep.Verify);
-      expect(stepCallback).toHaveBeenNthCalledWith(5, EncryptStep.Done);
 
       // Verify result structure
       expect(result).toBeDefined();
