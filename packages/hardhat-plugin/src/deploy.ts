@@ -156,7 +156,6 @@ export const deployMocks = async (
   logEmptyIfNoisy();
 
   // Compile mock contracts
-  // await compileMockContractPaths(hre);
   logEmptyIfNoisy();
   logSuccessIfNoisy('Mock contracts compiled', 1);
 

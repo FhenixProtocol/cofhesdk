@@ -69,31 +69,12 @@ describe('@cofhesdk/node - Encrypt Inputs', () => {
     it('should handle multiple encryptions without re-initializing', async () => {
       await cofhesdkClient.connect(publicClient, walletClient);
 
-      let t = Date.now();
-      console.log('NODE MULTI_ENCRYPT START', 'Time:', t);
-
       // First encryption
-      const result1 = await cofhesdkClient
-        .encryptInputs([Encryptable.uint128(100n)])
-        .setStepCallback((step) => {
-          const stepTime = Date.now();
-          const delta = stepTime - t;
-          t = stepTime;
-          console.log('NODE MULTI_ENCRYPT TX1 STEP:', step, 'Time:', delta);
-        })
-        .encrypt();
+      const result1 = await cofhesdkClient.encryptInputs([Encryptable.uint128(100n)]).encrypt();
       expectResultSuccess(result1);
 
       // Second encryption should reuse initialization
-      const result2 = await cofhesdkClient
-        .encryptInputs([Encryptable.uint64(50n)])
-        .setStepCallback((step) => {
-          const stepTime = Date.now();
-          const delta = stepTime - t;
-          t = stepTime;
-          console.log('NODE MULTI_ENCRYPT TX2 STEP:', step, 'Time:', delta);
-        })
-        .encrypt();
+      const result2 = await cofhesdkClient.encryptInputs([Encryptable.uint64(50n)]).encrypt();
       expectResultSuccess(result2);
     }, 120000);
   });
