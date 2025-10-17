@@ -190,7 +190,7 @@ const mockCompactPkeCrsDeserializer: FheKeyDeserializer = (buff: string) => {
 };
 
 const mockInitTfhe: TfheInitializer = () => {
-  return Promise.resolve();
+  return Promise.resolve(true);
 };
 
 const mockZkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator = (fhe: string, crs: string) => {
@@ -447,11 +447,18 @@ describe('EncryptInputsBuilder', () => {
       const result = expectResultSuccess(await builder.encrypt());
 
       // Verify step callbacks were called in order
-      expect(stepCallback).toHaveBeenCalledTimes(5);
-      expect(stepCallback).toHaveBeenNthCalledWith(1, EncryptStep.FetchKeys);
-      expect(stepCallback).toHaveBeenNthCalledWith(2, EncryptStep.Pack);
-      expect(stepCallback).toHaveBeenNthCalledWith(3, EncryptStep.Prove);
-      expect(stepCallback).toHaveBeenNthCalledWith(4, EncryptStep.Verify);
+      expect(stepCallback).toHaveBeenCalledTimes(10);
+
+      expect(stepCallback).toHaveBeenNthCalledWith(1, EncryptStep.InitTfhe);
+      expect(stepCallback).toHaveBeenNthCalledWith(2, EncryptStep.InitTfhe);
+      expect(stepCallback).toHaveBeenNthCalledWith(3, EncryptStep.FetchKeys);
+      expect(stepCallback).toHaveBeenNthCalledWith(4, EncryptStep.FetchKeys);
+      expect(stepCallback).toHaveBeenNthCalledWith(5, EncryptStep.Pack);
+      expect(stepCallback).toHaveBeenNthCalledWith(6, EncryptStep.Pack);
+      expect(stepCallback).toHaveBeenNthCalledWith(7, EncryptStep.Prove);
+      expect(stepCallback).toHaveBeenNthCalledWith(8, EncryptStep.Prove);
+      expect(stepCallback).toHaveBeenNthCalledWith(9, EncryptStep.Verify);
+      expect(stepCallback).toHaveBeenNthCalledWith(10, EncryptStep.Verify);
 
       // Verify result structure
       expect(result).toBeDefined();
@@ -601,7 +608,7 @@ describe('EncryptInputsBuilder', () => {
       const resultData = expectResultSuccess(result);
 
       expect(result).toBeDefined();
-      expect(stepCallback).toHaveBeenCalledTimes(5);
+      expect(stepCallback).toHaveBeenCalledTimes(10);
 
       // Verify result embedded metadata
       const [encrypted] = resultData;

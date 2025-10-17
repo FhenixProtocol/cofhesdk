@@ -36,7 +36,17 @@ describe('fetchKeys', () => {
   });
 
   it('should fetch and store FHE public key and CRS for Sepolia when not cached', async () => {
-    await fetchKeys(config, sepolia.id, 0, mockTfhePublicKeyDeserializer, mockCompactPkeCrsDeserializer, keysStorage);
+    const [[fheKey, fheKeyFetchedFromCoFHE], [crs, crsFetchedFromCoFHE]] = await fetchKeys(
+      config,
+      sepolia.id,
+      0,
+      mockTfhePublicKeyDeserializer,
+      mockCompactPkeCrsDeserializer,
+      keysStorage
+    );
+
+    expect(fheKeyFetchedFromCoFHE).toBe(true);
+    expect(crsFetchedFromCoFHE).toBe(true);
 
     // Verify keys were stored
     const storedFheKey = keysStorage.getFheKey(sepolia.id, 0);
@@ -49,7 +59,7 @@ describe('fetchKeys', () => {
   });
 
   it('should fetch and store FHE public key and CRS for Arbitrum Sepolia when not cached', async () => {
-    await fetchKeys(
+    const [[fheKey, fheKeyFetchedFromCoFHE], [crs, crsFetchedFromCoFHE]] = await fetchKeys(
       config,
       arbSepolia.id,
       0,
@@ -57,6 +67,9 @@ describe('fetchKeys', () => {
       mockCompactPkeCrsDeserializer,
       keysStorage
     );
+
+    expect(fheKeyFetchedFromCoFHE).toBe(true);
+    expect(crsFetchedFromCoFHE).toBe(true);
 
     // Verify keys were stored
     const storedFheKey = keysStorage.getFheKey(arbSepolia.id, 0);
@@ -73,7 +86,17 @@ describe('fetchKeys', () => {
     const mockCachedKey = '0x1234567890';
     keysStorage.setFheKey(sepolia.id, 0, mockCachedKey);
 
-    await fetchKeys(config, sepolia.id, 0, mockTfhePublicKeyDeserializer, mockCompactPkeCrsDeserializer, keysStorage);
+    const [[fheKey, fheKeyFetchedFromCoFHE], [crs, crsFetchedFromCoFHE]] = await fetchKeys(
+      config,
+      sepolia.id,
+      0,
+      mockTfhePublicKeyDeserializer,
+      mockCompactPkeCrsDeserializer,
+      keysStorage
+    );
+
+    expect(fheKeyFetchedFromCoFHE).toBe(false);
+    expect(crsFetchedFromCoFHE).toBe(true);
 
     // Verify the cached key wasn't overwritten
     const retrievedKey = keysStorage.getFheKey(sepolia.id, 0);
@@ -89,7 +112,17 @@ describe('fetchKeys', () => {
     const mockCachedCrs = '0x2345678901';
     keysStorage.setCrs(sepolia.id, mockCachedCrs);
 
-    await fetchKeys(config, sepolia.id, 0, mockTfhePublicKeyDeserializer, mockCompactPkeCrsDeserializer, keysStorage);
+    const [[fheKey, fheKeyFetchedFromCoFHE], [crs, crsFetchedFromCoFHE]] = await fetchKeys(
+      config,
+      sepolia.id,
+      0,
+      mockTfhePublicKeyDeserializer,
+      mockCompactPkeCrsDeserializer,
+      keysStorage
+    );
+
+    expect(fheKeyFetchedFromCoFHE).toBe(true);
+    expect(crsFetchedFromCoFHE).toBe(false);
 
     // Verify the cached CRS wasn't overwritten
     const retrievedCrs = keysStorage.getCrs(sepolia.id);
@@ -107,7 +140,17 @@ describe('fetchKeys', () => {
     keysStorage.setFheKey(sepolia.id, 0, mockCachedKey);
     keysStorage.setCrs(sepolia.id, mockCachedCrs);
 
-    await fetchKeys(config, sepolia.id, 0, mockTfhePublicKeyDeserializer, mockCompactPkeCrsDeserializer, keysStorage);
+    const [[fheKey, fheKeyFetchedFromCoFHE], [crs, crsFetchedFromCoFHE]] = await fetchKeys(
+      config,
+      sepolia.id,
+      0,
+      mockTfhePublicKeyDeserializer,
+      mockCompactPkeCrsDeserializer,
+      keysStorage
+    );
+
+    expect(fheKeyFetchedFromCoFHE).toBe(false);
+    expect(crsFetchedFromCoFHE).toBe(false);
 
     // Verify both keys remain unchanged
     const retrievedKey = keysStorage.getFheKey(sepolia.id, 0);
