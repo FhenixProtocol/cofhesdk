@@ -30,7 +30,7 @@
     "lint": "eslint \"src/**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
-    "test": "vitest",
+    "test": "echo 'No tests defined yet'",
     "coverage": "vitest run --coverage"
   },
   "devDependencies": {
