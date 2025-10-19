@@ -1,4 +1,4 @@
-import { FheTypeValue } from './utils.js';
+import type { FheTypeValue } from './utils.js';
 
 export const logBlockStart = (message: string) => {
   console.log("┌──────────────────┬──────────────────────────────────────────────────");

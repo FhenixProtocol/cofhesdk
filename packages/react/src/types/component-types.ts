@@ -1,4 +1,4 @@
-import { FheTypeValue } from '../utils/utils.js';
+import type { FheTypeValue } from '../utils/utils.js';
 
 // Base props for all components
 export interface BaseProps {

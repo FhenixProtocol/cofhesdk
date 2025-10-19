@@ -11,15 +11,13 @@
   },
   "dependencies": {
     "@cofhesdk/react": "workspace:*",
-    "@cofhesdk/web": "workspace:*",
-    "@cofhesdk/adapters": "workspace:*",
-    "@cofhesdk/chains": "workspace:*",
+    "cofhesdk": "workspace:*",
     "@mui/icons-material": "^5.0.0",
     "@mui/material": "^5.0.0",
     "@emotion/react": "^11.0.0",
     "@emotion/styled": "^11.0.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
     "viem": "^2.0.0",
     "clsx": "^2.0.0",
     "tailwind-merge": "^2.0.0"
