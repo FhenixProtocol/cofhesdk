@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { CofhesdkClient } from '@cofhesdk/web';
-import type { CofheContextValue, CofheProviderProps, CofheClientConfig } from '../types/index.js';
+import { createContext, useContext, useEffect, useState } from 'react';
+import type { CofhesdkClient } from 'cofhesdk';
+import type { CofheContextValue, CofheProviderProps } from '../types/index.js';
 
 const CofheContext = createContext<CofheContextValue | undefined>(undefined);
 
