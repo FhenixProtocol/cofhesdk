@@ -2,10 +2,11 @@
  * Creates a debounced function that delays invoking func until after wait milliseconds
  * have elapsed since the last time the debounced function was invoked.
  */
-export const debounce = <T extends (...args: any[]) => any>(
+/* eslint-disable @typescript-eslint/no-unused-vars */
+export const debounce = <T extends (..._args: any[]) => any>(
     func: T,
     wait: number
-  ): ((...args: Parameters<T>) => void) => {
+  ): ((..._args: Parameters<T>) => void) => {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
   
     return (...args: Parameters<T>) => {
