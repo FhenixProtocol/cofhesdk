@@ -1,8 +1,9 @@
 import { useState, useCallback } from 'react';
 import { useCofheContext } from '../providers/CofheProvider.js';
-import { Encryptable, type EncryptableItem } from '@cofhesdk/web';
-import { FheTypeValue } from '../utils/utils.js';
-import { EncryptionStep } from '../types/component-types.js';
+import { Encryptable } from 'cofhesdk';
+import type { EncryptableItem } from 'cofhesdk';
+import type { FheTypeValue } from '../utils/utils.js';
+import type { EncryptionStep } from '../types/component-types.js';
 
 export interface UseEncryptInputReturn {
   onEncryptInput: (type: FheTypeValue, value: string) => Promise<any>;

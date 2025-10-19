@@ -1,8 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { BaseProps, DropdownOption, ComponentSize, EncryptionProgressData, EncryptionResultData, EncryptionStartData } from '../types/component-types.js';
+import { useState, useRef, useEffect } from 'react';
+import type { BaseProps, DropdownOption, ComponentSize, EncryptionProgressData, EncryptionResultData, EncryptionStartData } from '../types/component-types.js';
 import { cn } from '../utils/cn.js';
 import { debounce } from '../utils/debounce.js';
-import { FheTypesList, FheTypeValue } from '../utils/utils.js';
+import { FheTypesList, type FheTypeValue } from '../utils/utils.js';
 import SecurityIcon from '@mui/icons-material/Security';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';

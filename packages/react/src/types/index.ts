@@ -1,4 +1,4 @@
-import type { CofhesdkClient } from '@cofhesdk/web';
+import type { CofhesdkClient } from 'cofhesdk';
 
 export interface CofheContextValue {
   client: CofhesdkClient | null;
