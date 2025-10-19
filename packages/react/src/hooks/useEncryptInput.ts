@@ -6,7 +6,7 @@ import type { FheTypeValue } from '../utils/utils.js';
 import type { EncryptionStep } from '../types/component-types.js';
 
 export interface UseEncryptInputReturn {
-  onEncryptInput: (type: FheTypeValue, value: string) => Promise<any>;
+  onEncryptInput: (_type: FheTypeValue, _value: string) => Promise<any>;
   isEncryptingInput: boolean;
   encryptionStep: EncryptionStep | null;
   encryptionProgress: number;

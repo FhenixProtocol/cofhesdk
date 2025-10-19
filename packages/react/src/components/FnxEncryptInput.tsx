@@ -29,17 +29,17 @@ export interface FnxEncryptInputProps extends BaseProps {
   /** Debounce delay for validation in milliseconds (default: 300) */
   debounceMs?: number;
   /** Callback when text changes */
-  onTextChange?: (value: string) => void;
+  onTextChange?: (_value: string) => void;
   /** Callback when encryption type selection changes */
-  onTypeChange?: (value: string) => void;
+  onTypeChange?: (_value: string) => void;
   /** Callback when encryption starts */
-  onEncryptStart?: (data: EncryptionStartData) => void;
+  onEncryptStart?: (_data: EncryptionStartData) => void;
   /** Callback for encryption progress updates */
-  onEncryptProgress?: (data: EncryptionProgressData) => void;
+  onEncryptProgress?: (_data: EncryptionProgressData) => void;
   /** Callback when encryption completes successfully */
-  onEncryptComplete?: (data: EncryptionResultData) => void;
+  onEncryptComplete?: (_data: EncryptionResultData) => void;
   /** Callback when encryption fails */
-  onEncryptError?: (error: string) => void;
+  onEncryptError?: (_error: string) => void;
 }
 
 export const FnxEncryptInput: React.FC<FnxEncryptInputProps> = ({
@@ -68,7 +68,7 @@ export const FnxEncryptInput: React.FC<FnxEncryptInputProps> = ({
   const [encryptedResult, setEncryptedResult] = useState<any>(null);
   const [copySuccess, setCopySuccess] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const { onEncryptInput, isEncryptingInput, encryptionStep, encryptionProgress, encryptionProgressLabel, inputEncryptionDisabled } = useEncryptInput();
+  const { onEncryptInput, isEncryptingInput, encryptionStep, encryptionProgress, encryptionProgressLabel } = useEncryptInput();
 
 
   // Debounced validation function
@@ -149,21 +149,6 @@ export const FnxEncryptInput: React.FC<FnxEncryptInputProps> = ({
     'text-xs font-medium text-gray-700 dark:text-gray-300',
     (disabled || isEncryptingInput) && 'cursor-not-allowed opacity-50',
     isDropdownOpen && 'bg-gray-200 dark:bg-gray-600'
-  );
-
-  // Dropdown menu with custom scrollbar
-  const dropdownMenuClasses = cn(
-    'absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-50',
-    'py-1 max-h-48 overflow-y-auto',
-    // Custom scrollbar using CSS classes
-    '[&::-webkit-scrollbar]:w-2',
-    '[&::-webkit-scrollbar-track]:bg-transparent',
-    '[&::-webkit-scrollbar-thumb]:bg-gray-300',
-    '[&::-webkit-scrollbar-thumb]:rounded-full',
-    '[&::-webkit-scrollbar-thumb]:border-transparent',
-    'dark:[&::-webkit-scrollbar-thumb]:bg-gray-600',
-    '[&::-webkit-scrollbar-thumb:hover]:bg-gray-400',
-    'dark:[&::-webkit-scrollbar-thumb:hover]:bg-gray-500'
   );
 
   const dropdownItemClasses = (isSelected: boolean, isCompatible: boolean) => cn(
