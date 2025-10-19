@@ -1,5 +1,9 @@
 {
   "extends": "@cofhesdk/tsconfig/react-library.json",
+  "compilerOptions": {
+    "moduleResolution": "NodeNext",
+    "module": "NodeNext"
+  },
   "include": [
     "."
   ],
