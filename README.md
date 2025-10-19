@@ -48,11 +48,25 @@ This Turborepo has some additional tools already setup for you:
 
 ### Useful commands
 
-- `yarn build` - Build all packages and the docs site
-- `yarn dev` - Develop all packages and the docs site
-- `yarn lint` - Lint all packages
-- `yarn changeset` - Generate a changeset
-- `yarn clean` - Clean up all `node_modules` and `dist` folders (runs each package's clean script)
+- `pnpm build` - Build all packages
+- `pnpm dev` - Develop all packages
+- `pnpm lint` - Lint all packages
+- `pnpm changeset` - Generate a changeset
+- `pnpm clean` - Clean up all `node_modules` and `dist` folders (runs each package's clean script)
+
+### React Components Example
+
+To see the React components in action:
+
+```bash
+# Run the interactive example
+./run-example.sh
+
+# Or manually:
+cd example && pnpm dev
+```
+
+Visit `http://localhost:3000` to explore all React components with live examples.
 
 ### Changing the npm organization scope
 

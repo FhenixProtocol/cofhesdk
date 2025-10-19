@@ -1,22 +1,23 @@
 {
-  "name": "@cofhesdk/web",
+  "name": "@cofhesdk/react",
   "version": "0.0.0",
   "type": "module",
-  "description": "CoFHE SDK for web browsers with tfhe integration",
+  "description": "React hooks and components for CoFHE SDK",
   "main": "./dist/index.cjs",
-  "module": "./dist/index.mjs",
+  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "import": {
         "types": "./dist/index.d.ts",
-        "default": "./dist/index.mjs"
+        "default": "./dist/index.js"
       },
       "require": {
         "types": "./dist/index.d.cts",
         "default": "./dist/index.cjs"
       }
-    }
+    },
+    "./styles.css": "./dist/styles.css"
   },
   "sideEffects": false,
   "license": "MIT",
@@ -33,25 +34,35 @@
     "coverage": "vitest run --coverage"
   },
   "devDependencies": {
-    "@cofhesdk/chains": "workspace:*",
     "@cofhesdk/eslint-config": "workspace:*",
     "@cofhesdk/tsconfig": "workspace:*",
-    "@vitest/browser": "1.6.0",
+    "@mui/icons-material": "^5.0.0",
+    "@mui/material": "^5.0.0",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
     "@vitest/coverage-v8": "1.6.0",
+    "autoprefixer": "^10.4.0",
     "eslint": "^8.57.0",
-    "playwright": "^1.55.0",
+    "postcss": "^8.4.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "tailwindcss": "^3.3.0",
     "tsup": "^8.0.2",
     "typescript": "5.5.4",
-    "viem": "^2.0.0",
     "vitest": "1.6.0"
   },
   "dependencies": {
     "@cofhesdk/core": "workspace:*",
-    "idb-keyval": "^6.2.1",
-    "tfhe": "0.11.1"
+    "@cofhesdk/web": "workspace:*",
+    "@cofhesdk/adapters": "workspace:*",
+    "clsx": "^2.0.0",
+    "tailwind-merge": "^2.0.0"
   },
   "peerDependencies": {
-    "viem": "^2.0.0"
+    "@mui/icons-material": "^5.0.0",
+    "@mui/material": "^5.0.0",
+    "react": "^16.8.0 || ^17.0.0 || ^18.0.0",
+    "react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0"
   },
   "publishConfig": {
     "access": "public"
