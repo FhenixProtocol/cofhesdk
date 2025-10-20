@@ -1,0 +1,66 @@
+name: Publish
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  beta-snapshot:
+    if: ${{ !contains(github.event.head_commit.message, 'Version Packages') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm 8
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - name: Ensure latest npm
+        run: npm i -g npm@latest
+
+      - name: Install Dependencies
+        run: pnpm i --frozen-lockfile
+
+      - name: Publish Beta Snapshot
+        run: pnpm run beta:snapshot
+
+  stable-release:
+    if: ${{ contains(github.event.head_commit.message, 'Version Packages') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm 8
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - name: Ensure latest npm
+        run: npm i -g npm@latest
+
+      - name: Install Dependencies
+        run: pnpm i --frozen-lockfile
+
+      - name: Publish Stable
+        run: pnpm release
