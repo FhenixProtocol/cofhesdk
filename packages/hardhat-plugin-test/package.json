@@ -1,5 +1,6 @@
 {
   "name": "@cofhe/hardhat-plugin(tests)",
+  "private": true,
   "scripts": {
     "test": "npx hardhat test",
     "compile": "npx hardhat compile",
