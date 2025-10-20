@@ -1,16 +1,12 @@
 # cofhesdk
 
 This repo contains the full toolkit for interacting with Fhenix's CoFHE coprocessor.
-The repo is split into the following packages
+The repo is split into the following packages:
 
-- `@cofhesdk/adapters` Adapters which convert various providers and signers into a standardized format for use within cofhesdk.
-- `@cofhesdk/permits` Create, share, and manage CoFHE permits, which are used to authenticate accounts during decryption.
-- `@cofhesdk/core` Fetches FHE keys, encrypts inputs, decrypts handles.
-- `@cofhesdk/web` Wrapper around `/core` with web specific logic injected (web tfhe, localstorage / indexdb, etc)
-- `@cofhesdk/node` Wrapper around `/core` with node specific logic (node tfhe, filesystem storage, etc)
-- `@cofhesdk/react` Package including react hooks and pre-built components for easy development
-- `@cofhesdk/mock-contracts` Mock contracts replicating the off-chain CoFHE functionality, but on chain. Used by hh-plugin
-- `@cofhesdk/hh-plugin` Configures hardhat, deploys mock contracts, exposes utility functions for better testing
+- `cofhesdk` Core SDK that fetches FHE keys, encrypts inputs, decrypts handles, and exposes subpath modules such as `cofhesdk/adapters`, `cofhesdk/permits`, `cofhesdk/web`, and `cofhesdk/node`.
+- `@cofhesdk/react` React-specific hooks and pre-built components for building CoFHE-enabled frontends.
+- `@cofhesdk/mock-contracts` Mock contracts replicating the off-chain CoFHE functionality on-chain for local testing.
+- `@cofhesdk/hardhat-plugin` Hardhat plugin that deploys mock contracts and provides utilities for testing CoFHE flows.
 
 # Turborepo Design System starter with Changesets
 
@@ -30,11 +26,13 @@ This Turborepo includes the following:
 
 ### Apps and Packages
 
-- `@cofhesdk/docs`: A placeholder documentation site powered by [Next.js](https://nextjs.org/)
-- `@cofhesdk/core`: core React components
-- `@cofhesdk/utils`: shared React utilities
-- `@cofhesdk/tsconfig`: shared `tsconfig.json`s used throughout the monorepo
-- `@cofhesdk/eslint-config`: ESLint preset
+- `cofhesdk`: Core SDK with adapters, permits, node, and web subpath exports.
+- `@cofhesdk/react`: React bindings and components built on top of the core SDK.
+- `@cofhesdk/mock-contracts`: Solidity contracts and build pipeline for local CoFHE testing.
+- `@cofhesdk/hardhat-plugin`: Hardhat integration that deploys mock contracts and exposes CoFHE utilities.
+- `@cofhesdk/hardhat-plugin(tests)`: Tests for the hardhat-plugin.
+- `@cofhesdk/eslint-config`: Shared ESLint preset.
+- `@cofhesdk/tsconfig`: Shared TypeScript configuration.
 
 Each package and app is 100% [TypeScript](https://www.typescriptlang.org/).
 
