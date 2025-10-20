@@ -35,6 +35,11 @@ jobs:
       - name: Install Dependencies
         run: pnpm i --frozen-lockfile
 
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
       - name: Publish Beta Snapshot
         run: pnpm run beta:snapshot
 
@@ -61,6 +66,11 @@ jobs:
 
       - name: Install Dependencies
         run: pnpm i --frozen-lockfile
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
 
       - name: Publish Stable
         run: pnpm release
