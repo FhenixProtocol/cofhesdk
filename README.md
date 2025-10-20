@@ -30,7 +30,7 @@ This Turborepo includes the following:
 - `@cofhesdk/react`: React bindings and components built on top of the core SDK.
 - `@cofhesdk/mock-contracts`: Solidity contracts and build pipeline for local CoFHE testing.
 - `@cofhesdk/hardhat-plugin`: Hardhat integration that deploys mock contracts and exposes CoFHE utilities.
-- `@cofhesdk/hardhat-plugin(tests)`: TODO: next version hardhat plugin?
+- `@cofhesdk/hardhat-plugin(tests)`: Tests for the hardhat-plugin.
 - `@cofhesdk/eslint-config`: Shared ESLint preset.
 - `@cofhesdk/tsconfig`: Shared TypeScript configuration.
 
