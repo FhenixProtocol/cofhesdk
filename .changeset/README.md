@@ -1,142 +1,86 @@
-# Changesets
+# Changesets & Publishing
 
-This directory contains the configuration and changeset files for managing versioning and publishing of the `@cofhesdk` monorepo packages.
+This directory contains configuration and changeset files for managing versioning and publishing for the `cofhesdk` monorepo.
 
-## What are Changesets?
+## Overview
 
-Changesets are a way to manage versioning and publishing in monorepos. They help you:
+- We use Changesets for versioning and changelogs.
+- We publish via a single GitHub Actions workflow at `.github/workflows/publish.yml` using npm Trusted Publishers (OIDC) — no long‑lived tokens.
+- Beta “snapshot” releases publish automatically on every merge to `master`.
+- Stable releases publish when the Changesets “Version Packages” PR is merged.
+- The following packages publish in lockstep (same version) via a Changesets fixed group:
+  - `cofhesdk`
+  - `@cofhesdk/mock-contracts`
+  - `@cofhesdk/hardhat-plugin`
 
-- Track what changes you've made to each package
-- Automatically bump versions based on the type of changes
-- Generate changelogs
-- Coordinate releases across multiple packages
+## Contributor workflow
 
-## Repository Structure
-
-This monorepo contains the following packages:
-
-- `@cofhesdk/permits` - Core permits functionality
-- `@cofhesdk/core` - React components and UI primitives
-- `@cofhesdk/adapters` - Adapter utilities
-- `@cofhesdk/utils` - Shared utility functions
-- `@cofhesdk/eslint-config` - ESLint configuration
-- `@cofhesdk/tsconfig` - TypeScript configuration
-
-## How to Use Changesets
-
-### 1. Creating a Changeset
-
-When you make changes to any package, create a changeset to document what changed:
+1. Create a changeset describing your change:
 
 ```bash
 pnpm changeset
 ```
 
-This will:
+2. Commit the generated file under `.changeset/*.md` with your PR.
 
-- Show you which packages have changed
-- Ask you to select which packages are affected
-- Ask you to select the type of change (patch, minor, or major)
-- Ask you to write a description of the changes
+3. When your PR is merged to `master`:
+   - CI will publish a beta snapshot to npm under the `beta` dist‑tag using a commit‑suffixed prerelease version.
+   - Consumers can install betas with `npm i <pkg>@beta`.
 
-### 2. Types of Changes
+## Maintainer workflow
 
-- **Patch** (`0.0.1` → `0.0.2`): Bug fixes, small improvements
-- **Minor** (`0.0.1` → `0.1.0`): New features, new APIs (backward compatible)
-- **Major** (`0.0.1` → `1.0.0`): Breaking changes, removed APIs
+1. Review and merge the auto‑opened Changesets “Version Packages” PR when you’re ready to cut a stable.
+2. On merge, CI runs the stable job in `.github/workflows/publish.yml` and publishes to the `latest` dist‑tag.
+3. All three packages publish together with the same version due to the fixed group in `.changeset/config.json`.
 
-### 3. Changeset Files
-
-When you create a changeset, a new file will be created in this directory with a format like:
-
-```
----
-"@cofhesdk/permits": patch
-"@cofhesdk/core": minor
----
-
-Add new permit validation functionality and update core components
-```
-
-### 4. Versioning Packages
-
-To apply changesets and bump package versions:
-
-```bash
-pnpm version-packages
-```
-
-This will:
-
-- Read all changeset files
-- Update package.json versions
-- Update changelogs
-- Remove the changeset files
-
-### 5. Publishing
-
-To publish packages to npm:
-
-```bash
-pnpm release
-```
-
-This will:
-
-- Build all packages
-- Publish to npm registry
-- Create git tags
-
-## Automated Workflow
-
-This repository uses GitHub Actions for automated releases:
-
-1. **Pull Request Creation**: When changesets are merged to `main`, the changesets bot creates a "Version Packages" PR
-2. **Review**: Review the version bumps and changelog updates
-3. **Merge**: Merge the PR to trigger the release
-4. **Publish**: GitHub Actions automatically publishes to npm
-
-## Configuration
-
-The changeset configuration is in `config.json`:
-
-- **Base Branch**: `main`
-- **Access**: `public` (packages are published publicly)
-- **Update Internal Dependencies**: `patch` (internal deps get patch bumps)
-- **Ignore**: `@cofhesdk/docs` (docs package is not published)
-
-## Best Practices
-
-1. **Create changesets for every change** that affects a package's public API
-2. **Be descriptive** in your changeset messages - they become the changelog
-3. **Group related changes** in a single changeset when possible
-4. **Review version bumps** before merging the "Version Packages" PR
-5. **Test thoroughly** before publishing major versions
-
-## Common Commands
+## Commands
 
 ```bash
 # Create a new changeset
 pnpm changeset
 
-# Apply changesets and bump versions
+# Apply changesets locally (rarely needed; CI handles versioning)
 pnpm version-packages
 
-# Build and publish packages
+# Publish stable locally (avoid; CI handles this)
 pnpm release
 
-# Check what changesets are pending
+# Beta snapshot locally (for debugging only; CI handles this)
+pnpm run beta:snapshot
+
+# Inspect pending changesets
 pnpm changeset status
 ```
 
+## CI details
+
+- Workflow: `.github/workflows/publish.yml`
+- Triggers: `push` to `master`
+  - Beta job runs when commit message does NOT contain `Version Packages`
+  - Stable job runs when commit message DOES contain `Version Packages`
+- OIDC permissions are enabled (`id-token: write`, `contents: read`); npm provenance is enabled by default.
+
+## Configuration
+
+- Base branch: `master` (see `.changeset/config.json`)
+- Access: `public`
+- updateInternalDependencies: `patch`
+- fixed: `[["cofhesdk", "@cofhesdk/mock-contracts", "@cofhesdk/hardhat-plugin"]]`
+
+## Best practices
+
+- Always include a changeset with user‑visible changes.
+- Keep descriptions clear; they become the changelog.
+- Merge the “Version Packages” PR only when you’re ready for a stable release.
+- For emergency hotfixes, prefer a small changeset + fast Version PR merge rather than local/manual publishes.
+
 ## Troubleshooting
 
-- **Missing changeset**: If you forget to create a changeset, you can create one after the fact
-- **Wrong version type**: You can edit changeset files before running `version-packages`
-- **Publishing issues**: Check that you have the correct npm permissions and tokens
+- CI didn’t publish beta: ensure the merge commit message doesn’t include `Version Packages` and the workflow ran.
+- CI didn’t publish stable: ensure you merged the auto “Version Packages” PR and the workflow ran the stable job.
+- Private deps install errors: Trusted Publishers covers publish, not install; use a read‑only token for installs if needed.
 
-## Resources
+## References
 
-- [Changesets Documentation](https://github.com/changesets/changesets)
-- [Common Questions](https://github.com/changesets/changesets/blob/main/docs/common-questions.md)
-- [Automating Changesets](https://github.com/changesets/changesets/blob/main/docs/automating-changesets.md)
+- Changesets: https://github.com/changesets/changesets
+- npm Trusted Publishers (OIDC): https://docs.npmjs.com/trusted-publishers
