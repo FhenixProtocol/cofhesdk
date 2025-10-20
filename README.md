@@ -26,11 +26,13 @@ This Turborepo includes the following:
 
 ### Apps and Packages
 
-- `@cofhesdk/docs`: A placeholder documentation site powered by [Next.js](https://nextjs.org/)
-- `@cofhesdk/core`: core React components
-- `@cofhesdk/utils`: shared React utilities
-- `@cofhesdk/tsconfig`: shared `tsconfig.json`s used throughout the monorepo
-- `@cofhesdk/eslint-config`: ESLint preset
+- `cofhesdk`: Core SDK with adapters, permits, node, and web subpath exports.
+- `@cofhesdk/react`: React bindings and components built on top of the core SDK.
+- `@cofhesdk/mock-contracts`: Solidity contracts and build pipeline for local CoFHE testing.
+- `@cofhesdk/hardhat-plugin`: Hardhat integration that deploys mock contracts and exposes CoFHE utilities.
+- `@cofhesdk/hardhat-plugin(tests)`: TODO: next version hardhat plugin?
+- `@cofhesdk/eslint-config`: Shared ESLint preset.
+- `@cofhesdk/tsconfig`: Shared TypeScript configuration.
 
 Each package and app is 100% [TypeScript](https://www.typescriptlang.org/).
 
