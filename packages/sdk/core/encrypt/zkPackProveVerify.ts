@@ -6,6 +6,16 @@ import { toBigIntOrThrow, validateBigIntInRange, toHexString, hexToBytes } from 
 
 // ===== TYPES =====
 
+/**
+ * Optional data for worker-based proof generation
+ */
+export type ZkProveWorkerData = {
+  fheKeyHex: string;
+  crsHex: string;
+  items: EncryptableItem[];
+  useWorker?: boolean;
+};
+
 export type VerifyResultRaw = {
   ct_hash: string;
   signature: string;
@@ -156,13 +166,58 @@ export const zkPack = (items: EncryptableItem[], builder: ZkCiphertextListBuilde
   return builder;
 };
 
+// Global worker function reference (set by web platform)
+let zkProveWithWorkerFn: ((
+  fheKeyHex: string,
+  crsHex: string,
+  items: EncryptableItem[],
+  address: string,
+  securityZone: number,
+  chainId: number
+) => Promise<Uint8Array>) | null = null;
+
+/**
+ * Set the worker function (called by web platform initialization)
+ */
+export function setZkProveWorkerFunction(
+  fn: ((
+    fheKeyHex: string,
+    crsHex: string,
+    items: EncryptableItem[],
+    address: string,
+    securityZone: number,
+    chainId: number
+  ) => Promise<Uint8Array>) | null
+) {
+  zkProveWithWorkerFn = fn;
+}
+
 export const zkProve = async (
   builder: ZkCiphertextListBuilder,
   crs: ZkCompactPkeCrs,
   address: string,
   securityZone: number,
-  chainId: number
+  chainId: number,
+  workerData?: ZkProveWorkerData
 ): Promise<Uint8Array> => {
+  // Try worker path if data is available and worker is enabled
+  if (workerData?.useWorker && zkProveWithWorkerFn) {
+    try {
+      return await zkProveWithWorkerFn(
+        workerData.fheKeyHex,
+        workerData.crsHex,
+        workerData.items,
+        address,
+        securityZone,
+        chainId
+      );
+    } catch (error) {
+      // Fall back to main thread on worker error
+      console.warn('[zkProve] Worker failed, falling back to main thread:', error);
+    }
+  }
+
+  // Main thread path (original implementation)
   const metadata = constructZkPoKMetadata(address, securityZone, chainId);
 
   return new Promise((resolve) => {
@@ -178,7 +233,7 @@ export const zkProve = async (
   });
 };
 
-const constructZkPoKMetadata = (accountAddr: string, securityZone: number, chainId: number): Uint8Array => {
+export const constructZkPoKMetadata = (accountAddr: string, securityZone: number, chainId: number): Uint8Array => {
   // Decode the account address from hex
   const accountAddrNoPrefix = accountAddr.startsWith('0x') ? accountAddr.slice(2) : accountAddr;
   const accountBytes = hexToBytes(accountAddrNoPrefix);
