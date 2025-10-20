@@ -74,6 +74,5 @@ export { EncryptInputsBuilder } from './encrypt/encryptInputsBuilder.js';
 export { DecryptHandlesBuilder } from './decrypt/decryptHandleBuilder.js';
 
 // ZK utilities
-export type { ZkBuilderAndCrsGenerator } from './encrypt/zkPackProveVerify.js';
-
-export { MOCKS_ZK_VERIFIER_SIGNER_ADDRESS } from './encrypt/cofheMocksZkVerifySign.js';
+export type { ZkBuilderAndCrsGenerator, ZkProveWorkerData } from './encrypt/zkPackProveVerify.js';
+export { setZkProveWorkerFunction, constructZkPoKMetadata } from './encrypt/zkPackProveVerify.js';
