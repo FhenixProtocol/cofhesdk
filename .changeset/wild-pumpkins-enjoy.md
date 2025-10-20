@@ -1,6 +1,5 @@
 ---
-'@cofhesdk/permits': minor
-'@cofhesdk/core': minor
+'cofhesdk': minor
 ---
 
 Create cofhesdk client, hook in permits.
