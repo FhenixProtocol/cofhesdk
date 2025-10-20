@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Component-specific styles for proper dropdown behavior */
+@layer components {
+  .cofhe-dropdown-container {
+    @apply relative;
+  }
+  
+  .cofhe-dropdown-menu {
+    @apply absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-50;
+    @apply py-1 max-h-48 overflow-y-auto;
+  }
+  
+  /* Custom scrollbar for dropdown */
+  .cofhe-dropdown-menu::-webkit-scrollbar {
+    @apply w-2;
+  }
+  
+  .cofhe-dropdown-menu::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  
+  .cofhe-dropdown-menu::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full border-transparent;
+  }
+  
+  .dark .cofhe-dropdown-menu::-webkit-scrollbar-thumb {
+    @apply bg-gray-600;
+  }
+  
+  .cofhe-dropdown-menu::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400;
+  }
+  
+  .dark .cofhe-dropdown-menu::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-500;
+  }
+}

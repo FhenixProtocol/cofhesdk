@@ -8,6 +8,7 @@ export default defineConfig({
     permits: 'permits/index.ts',
     node: 'node/index.ts',
     web: 'web/index.ts',
+    'zkProve.worker': 'web/zkProve.worker.ts',
   },
   format: ['esm', 'cjs'],
   dts: true,
