@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 
-import { type ZkBuilderAndCrsGenerator, zkPack, zkProve, zkVerify } from './zkPackProveVerify.js';
+import { type ZkBuilderAndCrsGenerator, type ZkProveWorkerData, zkPack, zkProve, zkVerify } from './zkPackProveVerify.js';
 import { CofhesdkError, CofhesdkErrorCode } from '../error.js';
 import { type Result, resultWrapper } from '../result.js';
 import {
@@ -57,6 +57,9 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   private initTfhe: TfheInitializer | undefined;
 
   private keysStorage: KeysStorage | undefined;
+
+  // Worker-based proof generation data
+  private workerData?: ZkProveWorkerData;
 
   private stepTimestamps: Record<EncryptStep, number> = {
     [EncryptStep.InitTfhe]: 0,
@@ -434,10 +437,19 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     this.fireStepEnd(EncryptStep.InitTfhe, { tfheInitializationExecuted });
 
     this.fireStepStart(EncryptStep.FetchKeys);
-
+    
     // Deferred fetching of fheKey and crs until encrypt is called
     // if the key/crs is already in the store, it is not fetched from the CoFHE API
     const { fheKey, fheKeyFetchedFromCoFHE, crs, crsFetchedFromCoFHE } = await this.fetchFheKeyAndCrs();
+    
+    // Prepare worker data for proof generation
+    this.workerData = {
+      fheKeyHex: fheKey,
+      crsHex: crs,
+      items: this.inputItems,
+      useWorker: true,
+    };
+    
     let { zkBuilder, zkCrs } = this.generateZkBuilderAndCrs(fheKey, crs);
 
     this.fireStepEnd(EncryptStep.FetchKeys, { fheKeyFetchedFromCoFHE, crsFetchedFromCoFHE });
@@ -449,15 +461,13 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     this.fireStepEnd(EncryptStep.Pack);
 
     this.fireStepStart(EncryptStep.Prove);
-
-    const proof = await zkProve(zkBuilder, zkCrs, account, this.securityZone, chainId);
-
+    const proof = await zkProve(zkBuilder, zkCrs, account, this.securityZone, chainId, this.workerData);
     this.fireStepEnd(EncryptStep.Prove);
 
     this.fireStepStart(EncryptStep.Verify);
 
     const zkVerifierUrl = await this.getZkVerifierUrl();
-
+    
     const verifyResults = await zkVerify(zkVerifierUrl, proof, account, this.securityZone, chainId);
     // Add securityZone and utype to the verify results
     const encryptedInputs: EncryptedItemInput[] = verifyResults.map(
