@@ -1,5 +1,5 @@
 {
-  "extends": "@cofhesdk/tsconfig/base.json",
+  "extends": "@cofhe/tsconfig/base.json",
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": ".",

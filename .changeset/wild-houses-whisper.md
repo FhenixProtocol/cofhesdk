@@ -1,10 +1,8 @@
 ---
-'@cofhesdk/core': minor
-'@cofhesdk/node': minor
-'@cofhesdk/web': minor
+'@cofhe/sdk': minor
 ---
 
-Create cofhesdk/node and cofhesdk/web
+Create @cofhe/sdk/node and @cofhe/sdk/web
 
 Additional changes:
 

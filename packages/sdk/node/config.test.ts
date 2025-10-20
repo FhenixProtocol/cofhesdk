@@ -3,7 +3,7 @@ import { arbSepolia } from '@/chains';
 import { describe, it, expect } from 'vitest';
 import { createCofhesdkConfig, createCofhesdkClient } from './index.js';
 
-describe('@cofhesdk/node - Config', () => {
+describe('@cofhe/node - Config', () => {
   describe('createCofhesdkConfig', () => {
     it('should automatically inject filesystem storage as default', () => {
       const config = createCofhesdkConfig({

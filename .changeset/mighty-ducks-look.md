@@ -1,10 +1,7 @@
 ---
-"@cofhesdk/hardhat-plugin": minor
-"@cofhesdk/mock-contracts": minor
-"@cofhesdk/adapters": minor
-"@cofhesdk/permits": minor
-"@cofhesdk/chains": minor
-"@cofhesdk/core": minor
+'@cofhe/hardhat-plugin': minor
+'@cofhe/mock-contracts': minor
+'@cofhe/sdk': minor
 ---
 
-Migrate cofhe-mock-contracts and cofhe-hardhat-plugin into cofhesdk.
+Migrate cofhe-mock-contracts and cofhe-hardhat-plugin into @cofhe/sdk.

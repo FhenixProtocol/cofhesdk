@@ -6,7 +6,7 @@ import {
   MockQueryDecrypterArtifact,
   MockTaskManagerArtifact,
   MockZkVerifierArtifact,
-} from '@cofhesdk/hardhat-plugin';
+} from '@cofhe/hardhat-plugin';
 
 describe('Cofhe Hardhat Plugin', () => {
   describe('Localcofhe Faucet command', () => {

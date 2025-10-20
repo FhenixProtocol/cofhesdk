@@ -1,4 +1,4 @@
-import { type Result } from 'cofhesdk';
+import { type Result } from '@cofhe/sdk';
 import { expect } from 'chai';
 
 export const expectResultError = <T>(result: Result<T>, errorPartial: string) => {

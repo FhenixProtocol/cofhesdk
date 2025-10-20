@@ -1,5 +1,5 @@
 {
-  "name": "@cofhesdk/react",
+  "name": "@cofhe/react",
   "version": "0.0.0",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -17,8 +17,8 @@
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
   },
   "devDependencies": {
-    "@cofhesdk/tsconfig": "workspace:*",
-    "@cofhesdk/eslint-config": "workspace:*",
+    "@cofhe/tsconfig": "workspace:*",
+    "@cofhe/eslint-config": "workspace:*",
     "@types/react": "^18.2.61",
     "@types/react-dom": "^18.2.19",
     "eslint": "^8.57.0",

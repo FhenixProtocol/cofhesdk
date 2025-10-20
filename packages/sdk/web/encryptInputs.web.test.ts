@@ -27,7 +27,7 @@ const expectResultError = <T>(result: Result<T>, errorCode?: CofhesdkErrorCode):
   }
 };
 
-describe('@cofhesdk/web - Encrypt Inputs Browser Tests', () => {
+describe('@cofhe/web - Encrypt Inputs Browser Tests', () => {
   let cofhesdkClient: CofhesdkClient;
   let publicClient: PublicClient;
   let walletClient: WalletClient;

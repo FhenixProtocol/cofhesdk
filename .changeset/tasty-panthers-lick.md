@@ -1,7 +1,5 @@
 ---
-'@cofhesdk/core': minor
-'@cofhesdk/node': minor
-'@cofhesdk/web': minor
+'@cofhe/sdk': minor
 ---
 
-Move storage handling from /core to /web (indexdb storage) and /node (filesystem storage with memory fallback). fheKeysStorage has been added to the cofhesdk config, and it is auto-populated in each environment.
+Move storage handling to web/node targets; add `fheKeysStorage` config with environment-specific defaults.

@@ -2,7 +2,7 @@ import hre from 'hardhat';
 import { expect } from 'chai';
 import { TASK_COFHE_MOCKS_DEPLOY, TASK_COFHE_MOCKS_SET_LOG_OPS } from './consts';
 import { Contract } from 'ethers';
-import { MockTaskManagerArtifact } from '@cofhesdk/hardhat-plugin';
+import { MockTaskManagerArtifact } from '@cofhe/hardhat-plugin';
 
 describe('Set Log Ops Task', () => {
   let taskManager: Contract;

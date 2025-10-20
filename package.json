@@ -11,7 +11,8 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "turbo run build --filter=@cofhesdk/docs^... && changeset publish"
+    "release": "turbo run build && changeset publish",
+    "beta:snapshot": "changeset version --snapshot beta && pnpm -r build && changeset publish --tag beta"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.1",

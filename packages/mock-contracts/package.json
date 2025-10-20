@@ -1,5 +1,5 @@
 {
-  "name": "@cofhesdk/mock-contracts",
+  "name": "@cofhe/mock-contracts",
   "version": "0.0.0",
   "description": "Mock smart contracts for testing CoFHE with FHE primitives locally",
   "main": "./dist/index.js",
@@ -43,7 +43,7 @@
     "@openzeppelin/contracts-upgradeable": "^5.0.0"
   },
   "devDependencies": {
-    "@cofhesdk/tsconfig": "workspace:*",
+    "@cofhe/tsconfig": "workspace:*",
     "@types/node": "^20.0.0",
     "forge-std": "github:foundry-rs/forge-std",
     "tsup": "^8.0.2",

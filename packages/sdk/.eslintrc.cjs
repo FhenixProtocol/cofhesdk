@@ -1,6 +1,6 @@
 /** @type {import("eslint").Linter.Config} */
 module.exports = {
-  extends: ['@cofhesdk/eslint-config/library'],
+  extends: ['@cofhe/eslint-config/library'],
   parser: '@typescript-eslint/parser',
   parserOptions: {
     project: true,

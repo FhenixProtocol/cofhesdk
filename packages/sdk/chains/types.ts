@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 /**
- * Environment schema for cofhesdk chains
+ * Environment schema for @cofhe/sdk chains
  */
 export const EnvironmentSchema = z.enum(['MOCK', 'TESTNET', 'MAINNET']);
 
