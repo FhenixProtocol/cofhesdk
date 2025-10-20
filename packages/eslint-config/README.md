@@ -1,3 +1,3 @@
-# `@cofhesdk/eslint-config`
+# `@cofhe/eslint-config`
 
 Collection of internal eslint configurations.

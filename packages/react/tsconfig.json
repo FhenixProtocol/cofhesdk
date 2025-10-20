@@ -1,5 +1,5 @@
 {
-	"extends": "@cofhesdk/tsconfig/react-library.json",
-	"include": ["."],
-	"exclude": ["dist", "build", "node_modules"]
+  "extends": "@cofhe/tsconfig/react-library.json",
+  "include": ["."],
+  "exclude": ["dist", "build", "node_modules"]
 }

@@ -8,7 +8,7 @@ import {
   MockTaskManagerArtifact,
   MockZkVerifierArtifact,
   TestBedArtifact,
-} from '@cofhesdk/hardhat-plugin';
+} from '@cofhe/hardhat-plugin';
 
 describe('Deploy Mocks Task', () => {
   const getTestBedBytecode = async (hre: HardhatRuntimeEnvironment) => {

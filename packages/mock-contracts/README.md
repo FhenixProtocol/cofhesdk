@@ -34,7 +34,7 @@ forge install fhenixprotocol/cofhe-mock-contracts
 
 ## Usages and Integrations
 
-`cofhesdk` is designed to work with mock contracts in a testing / hardhat environment. `cofhesdk/hardhat-plugin` deploys the mock contracts in this repo, and the `cofhesdkClient` detects a testnet chain and interacts correctly using the mocks rather than the true CoFHE coprocessor.
+`@cofhe/sdk` is designed to work with mock contracts in a testing / hardhat environment. `cofhesdk/hardhat-plugin` deploys the mock contracts in this repo, and the `cofhesdkClient` detects a testnet chain and interacts correctly using the mocks rather than the true CoFHE coprocessor.
 
 When installed and imported in the `hardhat.config.ts`, `cofhesdk/hardhat-plugin` will watch for Hardhat `node` and `test` tasks, and will deploy the mocks to the hardhat testnet chain at fixed addresses.
 

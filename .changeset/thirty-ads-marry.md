@@ -1,5 +1,5 @@
 ---
-'cofhesdk': minor
+'@cofhe/sdk': minor
 ---
 
-Add cofhesdk config type and parsing.
+Add @cofhe/sdk config type and parsing.

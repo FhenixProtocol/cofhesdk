@@ -17,7 +17,7 @@ import {
   MockZkVerifierArtifact,
   MockQueryDecrypterArtifact,
   TestBedArtifact,
-} from '@cofhesdk/mock-contracts';
+} from '@cofhe/mock-contracts';
 
 // Deploy
 
@@ -195,7 +195,7 @@ export const deployMocks = async (
   if (options.gasWarning) {
     logEmptyIfNoisy();
     logWarningIfNoisy(
-      "When using mocks, FHE operations (eg FHE.add / FHE.mul) report a higher gas price due to additional on-chain mocking logic. Deploy your contracts on a testnet chain to check the true gas costs.\n(Disable this warning by setting 'cofhesdk.gasWarning' to false in your hardhat config",
+      "When using mocks, FHE operations (eg FHE.add / FHE.mul) report a higher gas price due to additional on-chain mocking logic. Deploy your contracts on a testnet chain to check the true gas costs.\n(Disable this warning by setting '@cofhe/sdk.gasWarning' to false in your hardhat config",
       0
     );
   }

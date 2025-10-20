@@ -56,9 +56,12 @@ importers:
 
   packages/hardhat-plugin:
     dependencies:
-      '@cofhesdk/mock-contracts':
+      '@cofhe/mock-contracts':
         specifier: workspace:*
         version: link:../mock-contracts
+      '@cofhe/sdk':
+        specifier: workspace:*
+        version: link:../sdk
       '@fhenixprotocol/cofhe-contracts':
         specifier: 0.0.13
         version: 0.0.13
@@ -74,9 +77,6 @@ importers:
       chalk:
         specifier: ^4.1.2
         version: 4.1.2
-      cofhesdk:
-        specifier: workspace:*
-        version: link:../sdk
       ethers:
         specifier: ^5.0.0 || ^6.0.0
         version: 6.15.0
@@ -87,10 +87,10 @@ importers:
         specifier: ^2.0.0
         version: 2.37.5(typescript@5.5.4)(zod@3.25.76)
     devDependencies:
-      '@cofhesdk/eslint-config':
+      '@cofhe/eslint-config':
         specifier: workspace:*
         version: link:../eslint-config
-      '@cofhesdk/tsconfig':
+      '@cofhe/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig
       '@nomicfoundation/hardhat-ethers':
@@ -138,21 +138,21 @@ importers:
 
   packages/hardhat-plugin-test:
     devDependencies:
-      '@cofhesdk/hardhat-plugin':
+      '@cofhe/hardhat-plugin':
         specifier: workspace:*
         version: link:../hardhat-plugin
-      '@cofhesdk/mock-contracts':
+      '@cofhe/mock-contracts':
         specifier: workspace:*
         version: link:../mock-contracts
+      '@cofhe/sdk':
+        specifier: workspace:*
+        version: link:../sdk
       '@nomicfoundation/hardhat-ethers':
         specifier: ^3.0.5
         version: 3.1.0(ethers@6.15.0)(hardhat@2.26.3)
       '@nomicfoundation/hardhat-toolbox':
         specifier: ^6.0.0
         version: 6.1.0(@nomicfoundation/hardhat-chai-matchers@2.1.0)(@nomicfoundation/hardhat-ethers@3.1.0)(@nomicfoundation/hardhat-ignition-ethers@0.15.14)(@nomicfoundation/hardhat-network-helpers@1.1.0)(@nomicfoundation/hardhat-verify@2.1.1)(@typechain/ethers-v6@0.5.1)(@typechain/hardhat@9.1.0)(@types/chai@4.3.20)(@types/mocha@10.0.10)(@types/node@20.19.15)(chai@4.5.0)(ethers@6.15.0)(hardhat-gas-reporter@2.3.0)(hardhat@2.26.3)(solidity-coverage@0.8.16)(ts-node@10.9.2)(typechain@8.3.2)(typescript@5.5.4)
-      cofhesdk:
-        specifier: workspace:*
-        version: link:../sdk
       ethers:
         specifier: ^6.0.0
         version: 6.15.0
@@ -172,7 +172,7 @@ importers:
         specifier: ^5.0.0
         version: 5.4.0(@openzeppelin/contracts@5.4.0)
     devDependencies:
-      '@cofhesdk/tsconfig':
+      '@cofhe/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig
       '@types/node':
@@ -186,7 +186,7 @@ importers:
         version: 2.26.3(ts-node@10.9.2)(typescript@5.5.4)
       tsup:
         specifier: ^8.0.2
-        version: 8.0.2
+        version: 8.0.2(typescript@5.5.4)
 
   packages/react:
     dependencies:
@@ -194,10 +194,10 @@ importers:
         specifier: ^18.2.0
         version: 18.2.0
     devDependencies:
-      '@cofhesdk/eslint-config':
+      '@cofhe/eslint-config':
         specifier: workspace:*
         version: link:../eslint-config
-      '@cofhesdk/tsconfig':
+      '@cofhe/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig
       '@types/react':
@@ -249,10 +249,10 @@ importers:
         specifier: ^5.0.1
         version: 5.0.8(immer@10.1.3)
     devDependencies:
-      '@cofhesdk/eslint-config':
+      '@cofhe/eslint-config':
         specifier: workspace:*
         version: link:../eslint-config
-      '@cofhesdk/tsconfig':
+      '@cofhe/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig
       '@nomicfoundation/hardhat-ethers':
@@ -8758,44 +8758,6 @@ packages:
 
   /tsort@0.0.1:
     resolution: {integrity: sha512-Tyrf5mxF8Ofs1tNoxA13lFeZ2Zrbd6cKbuH3V+MQ5sb6DtBj5FjrXVsRWT8YvNAQTqNoz66dz1WsbigI22aEnw==}
-    dev: true
-
-  /tsup@8.0.2:
-    resolution: {integrity: sha512-NY8xtQXdH7hDUAZwcQdY/Vzlw9johQsaqf7iwZ6g1DOUlFYQ5/AtVAjTvihhEyeRlGo4dLRVHtrRaL35M1daqQ==}
-    engines: {node: '>=18'}
-    hasBin: true
-    peerDependencies:
-      '@microsoft/api-extractor': ^7.36.0
-      '@swc/core': ^1
-      postcss: ^8.4.12
-      typescript: '>=4.5.0'
-    peerDependenciesMeta:
-      '@microsoft/api-extractor':
-        optional: true
-      '@swc/core':
-        optional: true
-      postcss:
-        optional: true
-      typescript:
-        optional: true
-    dependencies:
-      bundle-require: 4.0.2(esbuild@0.19.7)
-      cac: 6.7.14
-      chokidar: 3.5.3
-      debug: 4.4.3
-      esbuild: 0.19.7
-      execa: 5.1.1
-      globby: 11.1.0
-      joycon: 3.1.1
-      postcss-load-config: 4.0.2
-      resolve-from: 5.0.0
-      rollup: 4.50.1
-      source-map: 0.8.0-beta.0
-      sucrase: 3.34.0
-      tree-kill: 1.2.2
-    transitivePeerDependencies:
-      - supports-color
-      - ts-node
     dev: true
 
   /tsup@8.0.2(typescript@5.5.4):

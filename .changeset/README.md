@@ -1,6 +1,6 @@
 # Changesets & Publishing
 
-This directory contains configuration and changeset files for managing versioning and publishing for the `cofhesdk` monorepo.
+This directory contains configuration and changeset files for managing versioning and publishing for the `@cofhe/sdk` monorepo.
 
 ## Overview
 
@@ -9,9 +9,9 @@ This directory contains configuration and changeset files for managing versionin
 - Beta “snapshot” releases publish automatically on every merge to `master`.
 - Stable releases publish when the Changesets “Version Packages” PR is merged.
 - The following packages publish in lockstep (same version) via a Changesets fixed group:
-  - `cofhesdk`
-  - `@cofhesdk/mock-contracts`
-  - `@cofhesdk/hardhat-plugin`
+  - `@cofhe/sdk`
+  - `@cofhe/mock-contracts`
+  - `@cofhe/hardhat-plugin`
 
 ## Contributor workflow
 
@@ -65,7 +65,7 @@ pnpm changeset status
 - Base branch: `master` (see `.changeset/config.json`)
 - Access: `public`
 - updateInternalDependencies: `patch`
-- fixed: `[["cofhesdk", "@cofhesdk/mock-contracts", "@cofhesdk/hardhat-plugin"]]`
+- fixed: `[["@cofhe/sdk", "@cofhe/mock-contracts", "@cofhe/hardhat-plugin"]]`
 
 ## Best practices
 

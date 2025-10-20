@@ -6,9 +6,9 @@ import { type PublicClient, type WalletClient } from 'viem';
 import { extendConfig, extendEnvironment, task, types } from 'hardhat/config';
 import { TASK_TEST, TASK_NODE } from 'hardhat/builtin-tasks/task-names';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
-import { type CofhesdkClient, type CofhesdkConfig, type CofhesdkInputConfig, type Result } from 'cofhesdk';
-import { createCofhesdkClient, createCofhesdkConfig } from 'cofhesdk/node';
-import { HardhatSignerAdapter } from 'cofhesdk/adapters';
+import { type CofhesdkClient, type CofhesdkConfig, type CofhesdkInputConfig, type Result } from '@cofhe/sdk';
+import { createCofhesdkClient, createCofhesdkConfig } from '@cofhe/sdk/node';
+import { HardhatSignerAdapter } from '@cofhe/sdk/adapters';
 
 import { localcofheFundAccount } from './fund.js';
 import {
@@ -33,7 +33,7 @@ export {
   MockTaskManagerArtifact,
   MockZkVerifierArtifact,
   TestBedArtifact,
-} from '@cofhesdk/mock-contracts';
+} from '@cofhe/mock-contracts';
 
 /**
  * Configuration interface for the CoFHE Hardhat plugin.

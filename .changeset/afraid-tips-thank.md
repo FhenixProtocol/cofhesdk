@@ -1,5 +1,5 @@
 ---
-'cofhesdk': patch
+'@cofhe/sdk': patch
 ---
 
 Add duration and context information to the step callback function for encryptInputs. Split fetch keys step into InitTfhe and FetchKeys.

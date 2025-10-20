@@ -1,4 +1,4 @@
-# @cofhesdk/mock-contracts Changelog
+# @cofhe/mock-contracts Changelog
 
 This changelog is maintained by Changesets and will be populated on each release.
 

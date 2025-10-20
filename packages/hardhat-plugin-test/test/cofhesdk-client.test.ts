@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { hardhat } from 'cofhesdk/chains';
+import { hardhat } from '@cofhe/sdk/chains';
 import { TASK_COFHE_MOCKS_DEPLOY } from './consts';
 import hre from 'hardhat';
 
@@ -20,7 +20,7 @@ describe('CoFHE SDK Client Integration', () => {
     expect(walletClient.getAddresses).to.not.be.undefined;
   });
 
-  it('should create a cofhesdk config and client', async () => {
+  it('should create a @cofhe/sdk config and client', async () => {
     // Deploy mocks first
     await hre.run(TASK_COFHE_MOCKS_DEPLOY, { silent: true });
 

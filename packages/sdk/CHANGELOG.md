@@ -1,4 +1,4 @@
-# cofhesdk Changelog
+# @cofhe/sdk Changelog
 
 This changelog is maintained by Changesets and will be populated on each release.
 

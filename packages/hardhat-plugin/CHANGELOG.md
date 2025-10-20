@@ -1,4 +1,4 @@
-# @cofhesdk/hardhat-plugin Changelog
+# @cofhe/hardhat-plugin Changelog
 
 This changelog is maintained by Changesets and will be populated on each release.
 

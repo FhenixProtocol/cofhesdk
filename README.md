@@ -1,12 +1,12 @@
-# cofhesdk
+# @cofhe/sdk
 
 This repo contains the full toolkit for interacting with Fhenix's CoFHE coprocessor.
 The repo is split into the following packages:
 
-- `cofhesdk` Core SDK that fetches FHE keys, encrypts inputs, decrypts handles, and exposes subpath modules such as `cofhesdk/adapters`, `cofhesdk/permits`, `cofhesdk/web`, and `cofhesdk/node`.
-- `@cofhesdk/react` React-specific hooks and pre-built components for building CoFHE-enabled frontends.
-- `@cofhesdk/mock-contracts` Mock contracts replicating the off-chain CoFHE functionality on-chain for local testing.
-- `@cofhesdk/hardhat-plugin` Hardhat plugin that deploys mock contracts and provides utilities for testing CoFHE flows.
+- `@cofhe/sdk` Core SDK that fetches FHE keys, encrypts inputs, decrypts handles, and exposes subpath modules such as `@cofhe/sdk/adapters`, `@cofhe/sdk/permits`, `@cofhe/sdk/web`, and `@cofhe/sdk/node`.
+- `@cofhe/react` React-specific hooks and pre-built components for building CoFHE-enabled frontends.
+- `@cofhe/mock-contracts` Mock contracts replicating the off-chain CoFHE functionality on-chain for local testing.
+- `@cofhe/hardhat-plugin` Hardhat plugin that deploys mock contracts and provides utilities for testing CoFHE flows.
 
 # Turborepo Design System starter with Changesets
 
@@ -26,13 +26,13 @@ This Turborepo includes the following:
 
 ### Apps and Packages
 
-- `cofhesdk`: Core SDK with adapters, permits, node, and web subpath exports.
-- `@cofhesdk/react`: React bindings and components built on top of the core SDK.
-- `@cofhesdk/mock-contracts`: Solidity contracts and build pipeline for local CoFHE testing.
-- `@cofhesdk/hardhat-plugin`: Hardhat integration that deploys mock contracts and exposes CoFHE utilities.
-- `@cofhesdk/hardhat-plugin(tests)`: Tests for the hardhat-plugin.
-- `@cofhesdk/eslint-config`: Shared ESLint preset.
-- `@cofhesdk/tsconfig`: Shared TypeScript configuration.
+- `@cofhe/sdk`: Core SDK with adapters, permits, node, and web subpath exports.
+- `@cofhe/react`: React bindings and components built on top of the core SDK.
+- `@cofhe/mock-contracts`: Solidity contracts and build pipeline for local CoFHE testing.
+- `@cofhe/hardhat-plugin`: Hardhat integration that deploys mock contracts and exposes CoFHE utilities.
+- `@cofhe/hardhat-plugin(tests)`: Tests for the hardhat-plugin.
+- `@cofhe/eslint-config`: Shared ESLint preset.
+- `@cofhe/tsconfig`: Shared TypeScript configuration.
 
 Each package and app is 100% [TypeScript](https://www.typescriptlang.org/).
 
@@ -54,7 +54,7 @@ This Turborepo has some additional tools already setup for you:
 
 ### Changing the npm organization scope
 
-The npm organization scope for this design system starter is `@cofhesdk`. To change this, it's a bit manual at the moment, but you'll need to do the following:
+The npm organization scope for this design system starter is `@cofhe`. To change this, it's a bit manual at the moment, but you'll need to do the following:
 
 - Rename folders in `packages/*` to replace `acme` with your desired scope
 - Search and replace `acme` with your desired scope

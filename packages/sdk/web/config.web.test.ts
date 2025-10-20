@@ -3,7 +3,7 @@ import { arbSepolia } from '@/chains';
 import { describe, it, expect } from 'vitest';
 import { createCofhesdkConfig, createCofhesdkClient } from './index.js';
 
-describe('@cofhesdk/web - Config', () => {
+describe('@cofhe/web - Config', () => {
   describe('createCofhesdkConfig', () => {
     it('should automatically inject IndexedDB storage as default', () => {
       const config = createCofhesdkConfig({
