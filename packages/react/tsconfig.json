@@ -4,12 +4,6 @@
     "moduleResolution": "NodeNext",
     "module": "NodeNext"
   },
-  "include": [
-    "."
-  ],
-  "exclude": [
-    "dist",
-    "build",
-    "node_modules"
-  ]
+  "include": ["."],
+  "exclude": ["dist", "build", "node_modules"]
 }
