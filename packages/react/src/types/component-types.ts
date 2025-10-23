@@ -20,7 +20,7 @@ export interface DropdownOption {
 }
 
 // Encryption step types
-export type EncryptionStep = 'fetchKeys' | 'pack' | 'prove' | 'verify' | 'done';
+export type EncryptionStep = 'initTfhe' | 'fetchKeys' | 'pack' | 'prove' | 'verify' | 'done';
 
 // Encryption progress data
 export interface EncryptionProgressData {

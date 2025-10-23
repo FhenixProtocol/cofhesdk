@@ -6,6 +6,8 @@
 /// <reference lib="webworker" />
 /* eslint-disable no-undef */
 
+import type { ZkProveWorkerRequest, ZkProveWorkerResponse } from '../core/encrypt/zkPackProveVerify.js';
+
 // TFHE module (will be initialized on first use)
 let tfheModule: any = null;
 let initialized = false;
@@ -40,39 +42,17 @@ function fromHexString(hexString: string): Uint8Array {
 }
 
 /**
- * Message types
- */
-interface WorkerRequest {
-  id: string;
-  type: 'zkProve';
-  fheKeyHex: string;
-  crsHex: string;
-  items: Array<{
-    utype: string;
-    data: any;
-  }>;
-  metadata: number[]; // Uint8Array serialized as array
-}
-
-interface WorkerResponse {
-  id: string;
-  type: 'success' | 'error';
-  result?: number[];
-  error?: string;
-}
-
-/**
  * Main message handler
  */
 self.onmessage = async (event: MessageEvent) => {
-  const { id, type, fheKeyHex, crsHex, items, metadata } = event.data as WorkerRequest;
+  const { id, type, fheKeyHex, crsHex, items, metadata } = event.data as ZkProveWorkerRequest;
   
   if (type !== 'zkProve') {
     self.postMessage({
       id,
       type: 'error',
       error: 'Invalid message type',
-    } as WorkerResponse);
+    } as ZkProveWorkerResponse);
     return;
   }
   
@@ -135,7 +115,7 @@ self.onmessage = async (event: MessageEvent) => {
       id,
       type: 'success',
       result: Array.from(result),
-    } as WorkerResponse);
+    } as ZkProveWorkerResponse);
     
   } catch (error) {
     // Send error response
@@ -143,10 +123,13 @@ self.onmessage = async (event: MessageEvent) => {
       id,
       type: 'error',
       error: error instanceof Error ? error.message : String(error),
-    } as WorkerResponse);
+    } as ZkProveWorkerResponse);
   }
 };
 
-// Signal ready
-self.postMessage({ type: 'ready' });
+// Signal ready - send proper message format
+self.postMessage({ 
+  id: 'init', 
+  type: 'ready' 
+} as ZkProveWorkerResponse);
 

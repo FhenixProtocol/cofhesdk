@@ -7,14 +7,42 @@ import { toBigIntOrThrow, validateBigIntInRange, toHexString, hexToBytes } from 
 // ===== TYPES =====
 
 /**
- * Optional data for worker-based proof generation
+ * Worker function type for ZK proof generation
+ * Platform-specific implementations (web) can provide this to enable worker-based proofs
  */
-export type ZkProveWorkerData = {
+export type ZkProveWorkerFunction = (
+  fheKeyHex: string,
+  crsHex: string,
+  items: EncryptableItem[],
+  address: string,
+  securityZone: number,
+  chainId: number
+) => Promise<Uint8Array>;
+
+/**
+ * Message sent from main thread to worker to request proof generation
+ */
+export interface ZkProveWorkerRequest {
+  id: string;
+  type: 'zkProve';
   fheKeyHex: string;
   crsHex: string;
-  items: EncryptableItem[];
-  useWorker?: boolean;
-};
+  items: Array<{
+    utype: string;
+    data: any;
+  }>;
+  metadata: number[]; // Uint8Array serialized as array
+}
+
+/**
+ * Message sent from worker back to main thread with proof result
+ */
+export interface ZkProveWorkerResponse {
+  id: string;
+  type: 'success' | 'error' | 'ready';
+  result?: number[]; // Uint8Array serialized as array
+  error?: string;
+}
 
 export type VerifyResultRaw = {
   ct_hash: string;
@@ -166,58 +194,47 @@ export const zkPack = (items: EncryptableItem[], builder: ZkCiphertextListBuilde
   return builder;
 };
 
-// Global worker function reference (set by web platform)
-let zkProveWithWorkerFn: ((
+/**
+ * Generates ZK proof using Web Worker (offloads heavy WASM computation)
+ * Calls the platform-specific worker function with serialized data
+ * @param workerFn - Platform-specific worker function (provided by web/index.ts)
+ * @param fheKeyHex - Hex-encoded FHE public key for worker deserialization
+ * @param crsHex - Hex-encoded CRS for worker deserialization
+ * @param items - Encryptable items to pack in the worker
+ * @param address - Account address for metadata
+ * @param securityZone - Security zone for metadata
+ * @param chainId - Chain ID for metadata
+ * @returns The serialized proven ciphertext list
+ */
+export const zkProveWithWorker = async (
+  workerFn: ZkProveWorkerFunction,
   fheKeyHex: string,
   crsHex: string,
   items: EncryptableItem[],
   address: string,
   securityZone: number,
   chainId: number
-) => Promise<Uint8Array>) | null = null;
+): Promise<Uint8Array> => {
+  return await workerFn(fheKeyHex, crsHex, items, address, securityZone, chainId);
+};
 
 /**
- * Set the worker function (called by web platform initialization)
+ * Generates ZK proof using main thread (synchronous WASM)
+ * This is the fallback when workers are disabled or unavailable
+ * @param builder - The ZK ciphertext list builder with packed inputs
+ * @param crs - The Compact PKE CRS for proof generation
+ * @param address - Account address for metadata
+ * @param securityZone - Security zone for metadata
+ * @param chainId - Chain ID for metadata
+ * @returns The serialized proven ciphertext list
  */
-export function setZkProveWorkerFunction(
-  fn: ((
-    fheKeyHex: string,
-    crsHex: string,
-    items: EncryptableItem[],
-    address: string,
-    securityZone: number,
-    chainId: number
-  ) => Promise<Uint8Array>) | null
-) {
-  zkProveWithWorkerFn = fn;
-}
-
 export const zkProve = async (
   builder: ZkCiphertextListBuilder,
   crs: ZkCompactPkeCrs,
   address: string,
   securityZone: number,
-  chainId: number,
-  workerData?: ZkProveWorkerData
+  chainId: number
 ): Promise<Uint8Array> => {
-  // Try worker path if data is available and worker is enabled
-  if (workerData?.useWorker && zkProveWithWorkerFn) {
-    try {
-      return await zkProveWithWorkerFn(
-        workerData.fheKeyHex,
-        workerData.crsHex,
-        workerData.items,
-        address,
-        securityZone,
-        chainId
-      );
-    } catch (error) {
-      // Fall back to main thread on worker error
-      console.warn('[zkProve] Worker failed, falling back to main thread:', error);
-    }
-  }
-
-  // Main thread path (original implementation)
   const metadata = constructZkPoKMetadata(address, securityZone, chainId);
 
   return new Promise((resolve) => {

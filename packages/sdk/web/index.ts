@@ -9,9 +9,8 @@ import {
   type ZkBuilderAndCrsGenerator,
   type FheKeyDeserializer,
   type EncryptableItem,
-  FheTypes,
-  setZkProveWorkerFunction,
   constructZkPoKMetadata,
+  fheTypeToString,
 } from '@/core';
 
 // Import web-specific storage (internal use only)
@@ -76,46 +75,6 @@ const zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator = (fhe: string, crs: st
 };
 
 /**
- * Convert FheTypes enum to string name for worker communication
- */
-function fheTypeToString(utype: FheTypes): string {
-  switch (utype) {
-    case FheTypes.Bool:
-      return 'bool';
-    case FheTypes.Uint4:
-      return 'uint4';
-    case FheTypes.Uint8:
-      return 'uint8';
-    case FheTypes.Uint16:
-      return 'uint16';
-    case FheTypes.Uint32:
-      return 'uint32';
-    case FheTypes.Uint64:
-      return 'uint64';
-    case FheTypes.Uint128:
-      return 'uint128';
-    case FheTypes.Uint160:
-      return 'uint160';
-    case FheTypes.Uint256:
-      return 'uint256';
-    case FheTypes.Uint512:
-      return 'uint512';
-    case FheTypes.Uint1024:
-      return 'uint1024';
-    case FheTypes.Uint2048:
-      return 'uint2048';
-    case FheTypes.Uint2:
-      return 'uint2';
-    case FheTypes.Uint6:
-      return 'uint6';
-    case FheTypes.Uint10:
-      return 'uint10';
-    default:
-      throw new Error(`Unknown FheType: ${utype}`);
-  }
-}
-
-/**
  * Worker-enabled zkProve function
  * This submits proof generation to a Web Worker
  */
@@ -129,7 +88,7 @@ async function zkProveWithWorker(
 ): Promise<Uint8Array> {
   const metadata = constructZkPoKMetadata(address, securityZone, chainId);
   
-  // Serialize items for worker (convert enum to string name)
+  // Serialize items for worker (convert enum to string name using core utility)
   const serializedItems = items.map(item => ({
     utype: fheTypeToString(item.utype),
     data: typeof item.data === 'bigint' ? item.data.toString() : item.data,
@@ -138,14 +97,6 @@ async function zkProveWithWorker(
   // Submit to worker
   const workerManager = getWorkerManager();
   return await workerManager.submitProof(fheKeyHex, crsHex, serializedItems, metadata);
-}
-
-// Initialize worker function if workers are available
-if (areWorkersAvailable()) {
-  setZkProveWorkerFunction(zkProveWithWorker);
-  console.log('[CoFHE SDK Web] Worker-based proof generation enabled');
-} else {
-  console.warn('[CoFHE SDK Web] Workers not available, using main thread for proofs');
 }
 
 /**
@@ -163,7 +114,7 @@ export function createCofhesdkConfig(config: CofhesdkInputConfig): CofhesdkConfi
 /**
  * Creates a CoFHE SDK client instance for web with TFHE automatically configured
  * TFHE will be initialized automatically on first encryption - no manual setup required
- * Workers are automatically used for ZK proof generation if available
+ * Workers are automatically enabled if available (can be disabled via config.useWorkers)
  * @param config - The CoFHE SDK configuration (use createCofhesdkConfig to create with web defaults)
  * @returns The CoFHE SDK client instance
  */
@@ -174,6 +125,9 @@ export function createCofhesdkClient(config: CofhesdkConfig): CofhesdkClient {
     tfhePublicKeyDeserializer,
     compactPkeCrsDeserializer,
     initTfhe,
+    // Always provide the worker function if available - config.useWorkers controls usage
+    // areWorkersAvailable will return true if the Worker API is available and false in Node.js
+    zkProveWorkerFn: areWorkersAvailable() ? zkProveWithWorker : undefined,
   });
 }
 

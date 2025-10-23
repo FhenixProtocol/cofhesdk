@@ -5,6 +5,34 @@ import type { EncryptableItem } from 'cofhesdk';
 import type { FheTypeValue } from '../utils/utils.js';
 import type { EncryptionStep } from '../types/component-types.js';
 
+// Map SDK encrypt steps to UI display info
+const STEP_CONFIG: Record<EncryptionStep, { label: string; progress: number }> = {
+  'initTfhe': {
+    label: 'Initializing TFHE...',
+    progress: 5,
+  },
+  'fetchKeys': {
+    label: 'Fetching FHE keys...',
+    progress: 20,
+  },
+  'pack': {
+    label: 'Packing data...',
+    progress: 40,
+  },
+  'prove': {
+    label: 'Generating proof...',
+    progress: 70,
+  },
+  'verify': {
+    label: 'Verifying...',
+    progress: 90,
+  },
+  'done': {
+    label: 'Encryption complete!',
+    progress: 100,
+  },
+};
+
 export interface UseEncryptInputReturn {
   onEncryptInput: (_type: FheTypeValue, _value: string) => Promise<any>;
   isEncryptingInput: boolean;
@@ -31,30 +59,6 @@ export function useEncryptInput(): UseEncryptInputReturn {
     setError(null);
 
     try {
-      // Set initial state
-      setEncryptionStep('fetchKeys');
-      setEncryptionProgress(10);
-      setEncryptionProgressLabel('Fetching FHE keys...');
-
-      // Simulate progress updates
-      setTimeout(() => {
-        setEncryptionStep('pack');
-        setEncryptionProgress(30);
-        setEncryptionProgressLabel('Packing data...');
-      }, 100);
-
-      setTimeout(() => {
-        setEncryptionStep('prove');
-        setEncryptionProgress(60);
-        setEncryptionProgressLabel('Generating proof...');
-      }, 200);
-
-      setTimeout(() => {
-        setEncryptionStep('verify');
-        setEncryptionProgress(90);
-        setEncryptionProgressLabel('Verifying...');
-      }, 300);
-
       // Convert value based on type
       let convertedValue: number | bigint | boolean | string;
       
@@ -96,8 +100,27 @@ export function useEncryptInput(): UseEncryptInputReturn {
           encryptableItem = Encryptable.uint32(BigInt(convertedValue));
       }
 
-      // Perform encryption
-      const encryptionBuilder = client.encryptInputs([encryptableItem]);
+      // Perform encryption with real-time step tracking
+      const encryptionBuilder = client.encryptInputs([encryptableItem]).setStepCallback((step, context) => {
+        const stepConfig = STEP_CONFIG[step as EncryptionStep];
+        
+        if (stepConfig) {
+          // Update UI with real step information
+          setEncryptionStep(step as EncryptionStep);
+          setEncryptionProgress(stepConfig.progress);
+          setEncryptionProgressLabel(stepConfig.label);
+        }
+        
+        // Log worker status for debugging (prove step only)
+        if (step === 'prove' && context?.isEnd) {
+          console.log('[Encryption] Worker Status:', {
+            useWorker: context.useWorker,
+            usedWorker: context.usedWorker,
+            workerFailedError: context.workerFailedError,
+            duration: context.duration + 'ms'
+          });
+        }
+      });
       const result = await encryptionBuilder.encrypt();
       
       if (!result.success) {
