@@ -29,9 +29,9 @@ describe('@cofhesdk/web - Worker vs Main Thread Output Validation', () => {
   });
 
   const testCases = [
-    { name: 'uint8', encryptable: Encryptable.uint8(42) },
-    { name: 'uint16', encryptable: Encryptable.uint16(1000) },
-    { name: 'uint32', encryptable: Encryptable.uint32(100000) },
+    { name: 'uint8', encryptable: Encryptable.uint8(42n) },
+    { name: 'uint16', encryptable: Encryptable.uint16(1000n) },
+    { name: 'uint32', encryptable: Encryptable.uint32(100000n) },
     { name: 'uint64', encryptable: Encryptable.uint64(1000000n) },
     { name: 'uint128', encryptable: Encryptable.uint128(10000000000n) },
     // uint256 is disabled: [U256-DISABLED]
@@ -83,9 +83,9 @@ describe('@cofhesdk/web - Worker vs Main Thread Output Validation', () => {
 
     const result = await client
       .encryptInputs([
-        Encryptable.uint8(1),
-        Encryptable.uint16(2),
-        Encryptable.uint32(3),
+        Encryptable.uint8(1n),
+        Encryptable.uint16(2n),
+        Encryptable.uint32(3n),
         Encryptable.uint64(4n),
         Encryptable.bool(true),
       ])

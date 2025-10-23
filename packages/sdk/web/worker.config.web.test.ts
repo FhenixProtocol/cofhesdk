@@ -225,7 +225,7 @@ describe('@cofhesdk/web - Worker Configuration Tests', () => {
 
       expectResultSuccess(result);
       expect(result.data).toBeDefined();
-      expect(result.data.length).toBe(1);
+      expect(result.data?.length).toBe(1);
     }, 60000);
 
     it('should encrypt multiple values with fallback', async () => {
@@ -246,7 +246,7 @@ describe('@cofhesdk/web - Worker Configuration Tests', () => {
         .encrypt();
 
       expectResultSuccess(result);
-      expect(result.data.length).toBe(3);
+      expect(result.data?.length).toBe(3);
     }, 60000);
   });
 });
