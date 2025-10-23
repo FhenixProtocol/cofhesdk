@@ -1,5 +1,6 @@
 import { type PublicClient, type WalletClient } from 'viem';
 import { CofhesdkError, CofhesdkErrorCode } from './error.js';
+import { FheTypes } from './types.js';
 
 export const toHexString = (bytes: Uint8Array) =>
   bytes.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
@@ -85,4 +86,45 @@ export async function getWalletClientAccount(walletClient: WalletClient) {
     });
   }
   return address;
+}
+
+/**
+ * Converts FheTypes enum to string representation for serialization
+ * Used when passing data to Web Workers or other serialization contexts
+ */
+export function fheTypeToString(utype: FheTypes): string {
+  switch (utype) {
+    case FheTypes.Bool:
+      return 'bool';
+    case FheTypes.Uint4:
+      return 'uint4';
+    case FheTypes.Uint8:
+      return 'uint8';
+    case FheTypes.Uint16:
+      return 'uint16';
+    case FheTypes.Uint32:
+      return 'uint32';
+    case FheTypes.Uint64:
+      return 'uint64';
+    case FheTypes.Uint128:
+      return 'uint128';
+    case FheTypes.Uint160:
+      return 'uint160';
+    case FheTypes.Uint256:
+      return 'uint256';
+    case FheTypes.Uint512:
+      return 'uint512';
+    case FheTypes.Uint1024:
+      return 'uint1024';
+    case FheTypes.Uint2048:
+      return 'uint2048';
+    case FheTypes.Uint2:
+      return 'uint2';
+    case FheTypes.Uint6:
+      return 'uint6';
+    case FheTypes.Uint10:
+      return 'uint10';
+    default:
+      throw new Error(`Unknown FheType: ${utype}`);
+  }
 }

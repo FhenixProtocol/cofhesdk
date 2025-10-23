@@ -3,6 +3,8 @@
  * Manages worker lifecycle and request/response handling
  */
 
+import type { ZkProveWorkerRequest, ZkProveWorkerResponse } from '@/core';
+
 // Declare Worker type for environments where it's not available
 declare const Worker: any;
 
@@ -10,25 +12,6 @@ interface PendingRequest {
   resolve: (value: Uint8Array) => void;
   reject: (error: Error) => void;
   timeoutId: ReturnType<typeof setTimeout>;
-}
-
-interface WorkerRequest {
-  id: string;
-  type: 'zkProve';
-  fheKeyHex: string;
-  crsHex: string;
-  items: Array<{
-    utype: string;
-    data: any;
-  }>;
-  metadata: number[];
-}
-
-interface WorkerResponse {
-  id: string;
-  type: 'success' | 'error' | 'ready';
-  result?: number[];
-  error?: string;
 }
 
 class ZkProveWorkerManager {
@@ -74,7 +57,7 @@ class ZkProveWorkerManager {
 
         // Set up message handler
         (this.worker as any).onmessage = (event: any) => {
-          const { id, type, result, error } = event.data as WorkerResponse;
+          const { id, type, result, error } = event.data as ZkProveWorkerResponse;
 
           // Handle ready signal
           if (type === 'ready') {
@@ -105,11 +88,14 @@ class ZkProveWorkerManager {
 
         // Set up error handler
         (this.worker as any).onerror = (error: any) => {
-          console.error('[Worker Manager] Worker error:', error);
+          console.error('[Worker Manager] Worker error event:', error);
+          console.error('[Worker Manager] Error message:', error.message);
+          console.error('[Worker Manager] Error filename:', error.filename);
+          console.error('[Worker Manager] Error lineno:', error.lineno);
           
           // Reject initialization if not ready yet
           if (!this.workerReady) {
-            reject(new Error('Worker failed to initialize'));
+            reject(new Error(`Worker failed to initialize: ${error.message || 'Unknown error'}`));
           }
 
           // Reject all pending requests
@@ -161,7 +147,7 @@ class ZkProveWorkerManager {
       this.pendingRequests.set(id, { resolve, reject, timeoutId });
 
       // Send message to worker
-      const message: WorkerRequest = {
+      const message: ZkProveWorkerRequest = {
         id,
         type: 'zkProve',
         fheKeyHex,

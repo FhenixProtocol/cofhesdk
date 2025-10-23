@@ -152,6 +152,7 @@ export function createCofhesdkClientBase(opts: CofhesdkClientParams): CofhesdkCl
       compactPkeCrsDeserializer: opts.compactPkeCrsDeserializer,
       zkBuilderAndCrsGenerator: opts.zkBuilderAndCrsGenerator,
       initTfhe: opts.initTfhe,
+      zkProveWorkerFn: opts.zkProveWorkerFn,
 
       keysStorage,
 
