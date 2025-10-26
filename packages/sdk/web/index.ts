@@ -135,3 +135,21 @@ export { terminateWorker };
  * Check if workers are available
  */
 export { areWorkersAvailable };
+
+/**
+ * Test helper: Create a client with custom worker function (for testing fallback behavior)
+ * @internal - Only for testing purposes
+ */
+export function createCofhesdkClientWithCustomWorker(
+  config: CofhesdkConfig,
+  customZkProveWorkerFn: (fheKeyHex: string, crsHex: string, items: EncryptableItem[], metadata: Uint8Array) => Promise<Uint8Array>
+): CofhesdkClient {
+  return createCofhesdkClientBase({
+    config,
+    zkBuilderAndCrsGenerator,
+    tfhePublicKeyDeserializer,
+    compactPkeCrsDeserializer,
+    initTfhe,
+    zkProveWorkerFn: customZkProveWorkerFn,
+  });
+}
