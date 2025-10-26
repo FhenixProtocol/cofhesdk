@@ -75,7 +75,7 @@ export { DecryptHandlesBuilder } from './decrypt/decryptHandleBuilder.js';
 
 // ZK utilities
 export type { ZkBuilderAndCrsGenerator, ZkProveWorkerFunction, ZkProveWorkerRequest, ZkProveWorkerResponse } from './encrypt/zkPackProveVerify.js';
-export { constructZkPoKMetadata, zkProveWithWorker } from './encrypt/zkPackProveVerify.js';
+export { zkProveWithWorker } from './encrypt/zkPackProveVerify.js';
 
 // Utils
 export { fheTypeToString } from './utils.js';

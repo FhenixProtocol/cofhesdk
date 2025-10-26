@@ -14,9 +14,7 @@ export type ZkProveWorkerFunction = (
   fheKeyHex: string,
   crsHex: string,
   items: EncryptableItem[],
-  address: string,
-  securityZone: number,
-  chainId: number
+  metadata: Uint8Array
 ) => Promise<Uint8Array>;
 
 /**
@@ -196,14 +194,12 @@ export const zkPack = (items: EncryptableItem[], builder: ZkCiphertextListBuilde
 
 /**
  * Generates ZK proof using Web Worker (offloads heavy WASM computation)
- * Calls the platform-specific worker function with serialized data
+ * Serializes items and calls the platform-specific worker function
  * @param workerFn - Platform-specific worker function (provided by web/index.ts)
  * @param fheKeyHex - Hex-encoded FHE public key for worker deserialization
  * @param crsHex - Hex-encoded CRS for worker deserialization
  * @param items - Encryptable items to pack in the worker
- * @param address - Account address for metadata
- * @param securityZone - Security zone for metadata
- * @param chainId - Chain ID for metadata
+ * @param metadata - Pre-constructed ZK PoK metadata
  * @returns The serialized proven ciphertext list
  */
 export const zkProveWithWorker = async (
@@ -211,11 +207,9 @@ export const zkProveWithWorker = async (
   fheKeyHex: string,
   crsHex: string,
   items: EncryptableItem[],
-  address: string,
-  securityZone: number,
-  chainId: number
+  metadata: Uint8Array
 ): Promise<Uint8Array> => {
-  return await workerFn(fheKeyHex, crsHex, items, address, securityZone, chainId);
+  return await workerFn(fheKeyHex, crsHex, items, metadata);
 };
 
 /**
@@ -223,20 +217,14 @@ export const zkProveWithWorker = async (
  * This is the fallback when workers are disabled or unavailable
  * @param builder - The ZK ciphertext list builder with packed inputs
  * @param crs - The Compact PKE CRS for proof generation
- * @param address - Account address for metadata
- * @param securityZone - Security zone for metadata
- * @param chainId - Chain ID for metadata
+ * @param metadata - Pre-constructed ZK PoK metadata
  * @returns The serialized proven ciphertext list
  */
 export const zkProve = async (
   builder: ZkCiphertextListBuilder,
   crs: ZkCompactPkeCrs,
-  address: string,
-  securityZone: number,
-  chainId: number
+  metadata: Uint8Array
 ): Promise<Uint8Array> => {
-  const metadata = constructZkPoKMetadata(address, securityZone, chainId);
-
   return new Promise((resolve) => {
     setTimeout(() => {
       const compactList = builder.build_with_proof_packed(
@@ -250,6 +238,10 @@ export const zkProve = async (
   });
 };
 
+/**
+ * Constructs the ZK Proof of Knowledge metadata for the proof
+ * @internal - Used internally within the encrypt module
+ */
 export const constructZkPoKMetadata = (accountAddr: string, securityZone: number, chainId: number): Uint8Array => {
   // Decode the account address from hex
   const accountAddrNoPrefix = accountAddr.startsWith('0x') ? accountAddr.slice(2) : accountAddr;
