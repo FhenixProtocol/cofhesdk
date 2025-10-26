@@ -1,12 +1,12 @@
 import { arbSepolia as cofhesdkArbSepolia } from '@/chains';
-import { Encryptable, type CofhesdkClient, type Result } from '@/core';
+import { Encryptable, type Result } from '@/core';
 
-import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import type { PublicClient, WalletClient } from 'viem';
 import { createPublicClient, createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { arbitrumSepolia as viemArbitrumSepolia } from 'viem/chains';
-import { createCofhesdkClient, createCofhesdkConfig } from './index.js';
+import { createCofhesdkClient, createCofhesdkConfig, createCofhesdkClientWithCustomWorker } from './index.js';
 
 const TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 
@@ -160,15 +160,6 @@ describe('@cofhesdk/web - Worker Configuration Tests', () => {
 
       // Should use worker since we overrode to true
       expect(proveContext.useWorker).toBe(true);
-      
-      // Note: Workers may fail to initialize in Playwright test environment
-      // Verify fallback works correctly if worker fails
-      expect(proveContext.usedWorker).toBeDefined();
-      
-      if (!proveContext.usedWorker) {
-        console.log('Worker fallback occurred (expected in test env):', proveContext.workerFailedError);
-        expect(proveContext.workerFailedError).toBeDefined();
-      }
     }, 60000);
   });
 
@@ -209,44 +200,138 @@ describe('@cofhesdk/web - Worker Configuration Tests', () => {
   });
 
   describe('Worker fallback behavior', () => {
-    it('should complete encryption even if worker fails', async () => {
+    it('should fallback to main thread when worker fails', async () => {
       const config = createCofhesdkConfig({
         supportedChains: [cofhesdkArbSepolia],
         useWorkers: true,
       });
 
-      const client = createCofhesdkClient(config);
+      // Create a worker function that ALWAYS fails
+      const failingWorkerFn = async () => {
+        throw new Error('Worker failed intentionally');
+      };
+
+      // Inject the failing worker into the client
+      const client = createCofhesdkClientWithCustomWorker(config, failingWorkerFn);
       await client.connect(publicClient, walletClient);
 
-      // Should succeed with fallback to main thread
+      // Track step callbacks to verify fallback
+      let proveContext: any;
       const result = await client
         .encryptInputs([Encryptable.uint128(100n)])
+        .setStepCallback((step, context) => {
+          if (step === 'prove' && context?.isEnd) {
+            proveContext = context;
+          }
+        })
         .encrypt();
 
+      // Verify encryption succeeded via fallback to main thread
       expectResultSuccess(result);
-      expect(result.data).toBeDefined();
       expect(result.data?.length).toBe(1);
+      
+      // Verify worker was attempted but failed, triggering fallback
+      expect(proveContext).toBeDefined();
+      expect(proveContext.useWorker).toBe(true); // Worker was requested
+      expect(proveContext.usedWorker).toBe(false); // But it failed
+      expect(proveContext.workerFailedError).toBe('Worker failed intentionally');
     }, 60000);
 
-    it('should encrypt multiple values with fallback', async () => {
+    it('should fallback when encrypting multiple values', async () => {
       const config = createCofhesdkConfig({
         supportedChains: [cofhesdkArbSepolia],
         useWorkers: true,
       });
 
-      const client = createCofhesdkClient(config);
+      // Failing worker with different error message
+      const failingWorkerFn = async () => {
+        throw new Error('Worker unavailable');
+      };
+
+      const client = createCofhesdkClientWithCustomWorker(config, failingWorkerFn);
       await client.connect(publicClient, walletClient);
 
+      let proveContext: any;
       const result = await client
         .encryptInputs([
           Encryptable.uint128(100n),
           Encryptable.uint64(50n),
           Encryptable.bool(true),
         ])
+        .setStepCallback((step, context) => {
+          if (step === 'prove' && context?.isEnd) {
+            proveContext = context;
+          }
+        })
+        .encrypt();
+
+      // All values should encrypt successfully via fallback
+      expectResultSuccess(result);
+      expect(result.data?.length).toBe(3);
+      
+      // Verify fallback occurred
+      expect(proveContext.useWorker).toBe(true);
+      expect(proveContext.usedWorker).toBe(false);
+      expect(proveContext.workerFailedError).toBe('Worker unavailable');
+    }, 60000);
+
+    it('should handle async worker errors gracefully', async () => {
+      const config = createCofhesdkConfig({
+        supportedChains: [cofhesdkArbSepolia],
+        useWorkers: true,
+      });
+
+      // Worker that fails after a delay
+      const asyncFailingWorkerFn = async () => {
+        await new Promise(resolve => setTimeout(resolve, 10));
+        throw new Error('Async worker failure');
+      };
+
+      const client = createCofhesdkClientWithCustomWorker(config, asyncFailingWorkerFn);
+      await client.connect(publicClient, walletClient);
+
+      let proveContext: any;
+      const result = await client
+        .encryptInputs([Encryptable.uint8(42n)])
+        .setStepCallback((step, context) => {
+          if (step === 'prove' && context?.isEnd) {
+            proveContext = context;
+          }
+        })
         .encrypt();
 
       expectResultSuccess(result);
-      expect(result.data?.length).toBe(3);
+      expect(proveContext.useWorker).toBe(true);
+      expect(proveContext.usedWorker).toBe(false);
+      expect(proveContext.workerFailedError).toBe('Async worker failure');
+    }, 60000);
+
+    it('should work without worker when explicitly disabled', async () => {
+      const config = createCofhesdkConfig({
+        supportedChains: [cofhesdkArbSepolia],
+        useWorkers: true, // Config says use workers
+      });
+
+      const client = createCofhesdkClient(config);
+      await client.connect(publicClient, walletClient);
+
+      let proveContext: any;
+      const result = await client
+        .encryptInputs([Encryptable.uint8(42n)])
+        .setUseWorker(false) // But override to disable worker
+        .setStepCallback((step, context) => {
+          if (step === 'prove' && context?.isEnd) {
+            proveContext = context;
+          }
+        })
+        .encrypt();
+
+      expectResultSuccess(result);
+      
+      // Should NOT attempt worker at all
+      expect(proveContext.useWorker).toBe(false);
+      expect(proveContext.usedWorker).toBe(false);
+      expect(proveContext.workerFailedError).toBeUndefined();
     }, 60000);
   });
 });
