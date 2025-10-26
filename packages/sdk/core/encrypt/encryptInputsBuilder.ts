@@ -31,7 +31,7 @@ type EncryptInputsBuilderParams<T extends EncryptableItem[]> = BaseBuilderParams
   compactPkeCrsDeserializer: FheKeyDeserializer | undefined;
   zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator | undefined;
   initTfhe: TfheInitializer | undefined;
-  zkProveWorkerFn?: ZkProveWorkerFunction | undefined;
+  zkProveWorkerFn: ZkProveWorkerFunction | undefined;
 
   keysStorage: KeysStorage | undefined;
 };
@@ -56,7 +56,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   private compactPkeCrsDeserializer: FheKeyDeserializer | undefined;
   private zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator | undefined;
   private initTfhe: TfheInitializer | undefined;
-  private zkProveWorkerFn?: ZkProveWorkerFunction | undefined;
+  private zkProveWorkerFn: ZkProveWorkerFunction | undefined;
 
   private keysStorage: KeysStorage | undefined;
 
