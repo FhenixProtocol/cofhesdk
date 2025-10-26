@@ -144,6 +144,17 @@ describe('createCofhesdkConfigBase', () => {
     expectValidConfigItem('mocks.sealOutputDelay', 1000, 1000);
   });
 
+  it('useWorkers', () => {
+    expectInvalidConfigItem('useWorkers', 'not-a-boolean');
+    expectInvalidConfigItem('useWorkers', null);
+    expectInvalidConfigItem('useWorkers', 123);
+    expectInvalidConfigItem('useWorkers', {});
+
+    expectValidConfigItem('useWorkers', true, true);
+    expectValidConfigItem('useWorkers', false, false);
+    expectValidConfigItem('useWorkers', undefined, true); // defaults to true
+  });
+
   it('should get config item', () => {
     const config: CofhesdkInputConfig = {
       supportedChains: [sepolia],
