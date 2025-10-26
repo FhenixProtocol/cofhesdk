@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 
-import { type ZkBuilderAndCrsGenerator, type ZkProveWorkerFunction, zkPack, zkProve, zkProveWithWorker, zkVerify } from './zkPackProveVerify.js';
+import { type ZkBuilderAndCrsGenerator, type ZkProveWorkerFunction, zkPack, zkProve, zkProveWithWorker, zkVerify, constructZkPoKMetadata } from './zkPackProveVerify.js';
 import { CofhesdkError, CofhesdkErrorCode } from '../error.js';
 import { type Result, resultWrapper } from '../result.js';
 import {
@@ -496,6 +496,9 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
 
     this.fireStepStart(EncryptStep.Prove);
 
+    // Construct metadata once (used by both worker and main thread paths)
+    const metadata = constructZkPoKMetadata(account, this.securityZone, chainId);
+
     let proof: Uint8Array | null = null;
     let usedWorker = false;
     let workerFailedError: string | undefined;
@@ -509,9 +512,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
           fheKey,
           crs,
           this.inputItems,
-          account,
-          this.securityZone,
-          chainId
+          metadata
         );
         usedWorker = true;
       } catch (error) {
@@ -522,7 +523,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
 
     if (proof == null) {
       // Use main thread directly (workers disabled or unavailable)
-      proof = await zkProve(zkBuilder, zkCrs, account, this.securityZone, chainId);
+      proof = await zkProve(zkBuilder, zkCrs, metadata);
       usedWorker = false;
     }
 

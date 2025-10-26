@@ -9,7 +9,6 @@ import {
   type ZkBuilderAndCrsGenerator,
   type FheKeyDeserializer,
   type EncryptableItem,
-  constructZkPoKMetadata,
   fheTypeToString,
 } from '@/core';
 
@@ -82,13 +81,9 @@ async function zkProveWithWorker(
   fheKeyHex: string,
   crsHex: string,
   items: EncryptableItem[],
-  address: string,
-  securityZone: number,
-  chainId: number
+  metadata: Uint8Array
 ): Promise<Uint8Array> {
-  const metadata = constructZkPoKMetadata(address, securityZone, chainId);
-  
-  // Serialize items for worker (convert enum to string name using core utility)
+  // Serialize items for worker (convert enum to string name)
   const serializedItems = items.map(item => ({
     utype: fheTypeToString(item.utype),
     data: typeof item.data === 'bigint' ? item.data.toString() : item.data,
