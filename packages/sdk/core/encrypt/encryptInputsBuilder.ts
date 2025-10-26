@@ -496,7 +496,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
 
     this.fireStepStart(EncryptStep.Prove);
 
-    let proof: Uint8Array;
+    let proof: Uint8Array | null = null;
     let usedWorker = false;
     let workerFailedError: string | undefined;
 
@@ -515,13 +515,12 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
         );
         usedWorker = true;
       } catch (error) {
-        // Fallback to main thread on worker error
+        // Worker failed - capture error for debugging
         workerFailedError = error instanceof Error ? error.message : String(error);
-        
-        proof = await zkProve(zkBuilder, zkCrs, account, this.securityZone, chainId);
-        usedWorker = false;
       }
-    } else {
+    }
+
+    if (proof == null) {
       // Use main thread directly (workers disabled or unavailable)
       proof = await zkProve(zkBuilder, zkCrs, account, this.securityZone, chainId);
       usedWorker = false;
