@@ -187,6 +187,23 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   }
 
   /**
+   * Gets the current worker configuration.
+   *
+   * @returns Whether Web Workers are enabled for this encryption.
+   *
+   * Example:
+   * ```typescript
+   * const builder = encryptInputs([Encryptable.uint128(10n)]);
+   * console.log(builder.getUseWorker()); // true (from config)
+   * builder.setUseWorker(false);
+   * console.log(builder.getUseWorker()); // false (overridden)
+   * ```
+   */
+  getUseWorker(): boolean {
+    return this.useWorker;
+  }
+
+  /**
    * @param callback - Function to be called with the encryption step.
    *
    * Useful for debugging and tracking the progress of the encryption process.

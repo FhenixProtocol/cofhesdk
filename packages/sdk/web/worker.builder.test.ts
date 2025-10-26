@@ -75,6 +75,61 @@ describe('@cofhesdk/web - EncryptInputsBuilder Worker Methods', () => {
           .setUseWorker(false);
       }).not.toThrow();
     });
+
+    it('should have getUseWorker method', () => {
+      const config = createCofhesdkConfig({
+        supportedChains: [cofhesdkArbSepolia],
+      });
+
+      const client = createCofhesdkClient(config);
+      const builder = client.encryptInputs([Encryptable.uint128(100n)]);
+
+      expect(builder).toHaveProperty('getUseWorker');
+      expect(typeof builder.getUseWorker).toBe('function');
+    });
+
+    it('should return current useWorker value', () => {
+      const configWithWorkers = createCofhesdkConfig({
+        supportedChains: [cofhesdkArbSepolia],
+        useWorkers: true,
+      });
+
+      const configWithoutWorkers = createCofhesdkConfig({
+        supportedChains: [cofhesdkArbSepolia],
+        useWorkers: false,
+      });
+
+      const clientWithWorkers = createCofhesdkClient(configWithWorkers);
+      const clientWithoutWorkers = createCofhesdkClient(configWithoutWorkers);
+
+      const builderWithWorkers = clientWithWorkers.encryptInputs([Encryptable.uint128(100n)]);
+      const builderWithoutWorkers = clientWithoutWorkers.encryptInputs([Encryptable.uint128(100n)]);
+
+      // Should reflect config values
+      expect(builderWithWorkers.getUseWorker()).toBe(true);
+      expect(builderWithoutWorkers.getUseWorker()).toBe(false);
+    });
+
+    it('should reflect changes from setUseWorker', () => {
+      const config = createCofhesdkConfig({
+        supportedChains: [cofhesdkArbSepolia],
+        useWorkers: true,
+      });
+
+      const client = createCofhesdkClient(config);
+      const builder = client.encryptInputs([Encryptable.uint128(100n)]);
+
+      // Initial value from config
+      expect(builder.getUseWorker()).toBe(true);
+
+      // After setting to false
+      builder.setUseWorker(false);
+      expect(builder.getUseWorker()).toBe(false);
+
+      // After setting back to true
+      builder.setUseWorker(true);
+      expect(builder.getUseWorker()).toBe(true);
+    });
   });
 
   describe('Worker function availability', () => {
