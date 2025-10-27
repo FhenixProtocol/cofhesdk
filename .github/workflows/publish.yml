@@ -81,6 +81,8 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # required for tagging
 
       - name: Setup pnpm 8
         uses: pnpm/action-setup@v3
@@ -104,5 +106,11 @@ jobs:
         with:
           version: nightly
 
-      - name: Publish Stable
-        run: pnpm release
+      - name: Publish and Tag with Changesets
+        uses: changesets/action@v1
+        with:
+          publish: pnpm release
+          createGithubReleases: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
