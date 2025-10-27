@@ -81,7 +81,11 @@ pnpm changeset status
 
 - CI didn't publish beta: ensure the merge commit message doesn't include `Version Packages` and the workflow ran.
 - CI didn't publish stable: ensure you merged the auto "Version Packages" PR and the workflow ran the stable job.
-- Docs didn't deploy: ensure GitHub Pages is enabled in repository settings and the workflow has completed successfully.
+- Docs didn't deploy: 
+  - Ensure GitHub Pages is configured to use "GitHub Actions" as the source in repository settings
+  - Check that the workflow has completed successfully
+  - Verify `pages: write` permission is set in the workflow
+  - For custom domains, configure them through repository settings (Settings → Pages → Custom domain), not via CNAME file
 - Private deps install errors: Trusted Publishers covers publish, not install; use a read‑only token for installs if needed.
 
 ## References

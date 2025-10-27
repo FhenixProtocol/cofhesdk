@@ -8,6 +8,7 @@ permissions:
   id-token: write
   contents: write
   pull-requests: write
+  pages: write
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
@@ -117,10 +118,15 @@ jobs:
       - name: Build Docs Site
         run: pnpm --filter @cofhe/site build
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./packages/site/dist
-          cname: docs.cofhe.io  # Update with your actual docs domain
+          path: './packages/site/dist'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
 
