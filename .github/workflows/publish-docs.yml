@@ -2,7 +2,6 @@ name: Publish Docs
 
 on:
   workflow_dispatch:
-  push:
 
 permissions:
   contents: write
@@ -19,10 +18,10 @@ jobs:
         with:
           version: 8
 
-      - name: Setup Node.js 20.x
+      - name: Setup Node.js 22.x
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Install Dependencies
         run: pnpm i --frozen-lockfile
