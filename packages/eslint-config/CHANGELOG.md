@@ -1,5 +1,11 @@
 # @cofhe/eslint-config
 
+## 0.1.2
+
+### Patch Changes
+
+- 6bd9a3b: Use changeset/action in release workflow to push tags.
+
 ## 0.1.1
 
 ### Patch Changes
