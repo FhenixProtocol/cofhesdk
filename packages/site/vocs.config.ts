@@ -5,10 +5,15 @@ export default defineConfig({
   title: 'Cofhe SDK Docs',
   titleTemplate: '%s - Cofhe SDK',
   description: 'Documentation for the Cofhe SDK',
+  rootDir: '.',
   sidebar: [
     {
       text: 'Getting Started',
       link: '/getting-started',
+    },
+    {
+      text: "Migrating from `cofhejs`",
+      link: '/docs/migrating-from-cofhejs',
     },
     {
       text: 'Example',
@@ -18,15 +23,15 @@ export default defineConfig({
   socials: [
     {
       icon: 'github',
-      link: 'https://github.com/wevm/viem',
+      link: 'https://github.com/fhenixprotocol/cofhesdk',
     },
     {
       icon: 'discord',
-      link: 'https://discord.gg/xCUz9FRcXD',
+      link: 'https://discord.gg/fhenix',
     },
     {
       icon: 'x',
-      link: 'https://x.com/wevm_dev',
+      link: 'https://x.com/fhenix',
     },
   ],
   topNav: [
