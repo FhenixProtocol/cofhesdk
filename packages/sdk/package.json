@@ -42,7 +42,15 @@
   "sideEffects": false,
   "license": "MIT",
   "files": [
-    "dist/**"
+    "dist/**",
+    "core/**",
+    "adapters/**", 
+    "chains/**",
+    "permits/**",
+    "node/**",
+    "web/**",
+    "tsconfig.json",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsup",

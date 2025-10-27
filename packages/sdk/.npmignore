@@ -1,0 +1,14 @@
+# Include dist, source files, and documentation
+# Everything else is ignored
+*
+!dist/
+!core/
+!adapters/
+!chains/
+!permits/
+!node/
+!web/
+!package.json
+!README.md
+!CHANGELOG.md
+!tsconfig.json
