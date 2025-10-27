@@ -6,6 +6,11 @@
   "types": "./dist/index.d.ts",
   "sideEffects": false,
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/FhenixProtocol/cofhesdk.git",
+    "directory": "packages/hardhat-plugin"
+  },
   "files": [
     "dist/**",
     "src/**",
