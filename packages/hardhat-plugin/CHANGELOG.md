@@ -1,5 +1,18 @@
 # @cofhe/hardhat-plugin Changelog
 
+## 0.1.1
+
+### Patch Changes
+
+- a1d1323: Add repository info to package.json of public packages to fix npm publish provenance issue.
+- d232d11: Ensure publish includes correct src and dist files
+- b6521fb: Update publish workflow to create versioning PR upon merge with changeset.
+- Updated dependencies [a1d1323]
+- Updated dependencies [d232d11]
+- Updated dependencies [b6521fb]
+  - @cofhe/mock-contracts@0.1.1
+  - @cofhe/sdk@0.1.1
+
 ## 0.1.0
 
 ### Minor Changes

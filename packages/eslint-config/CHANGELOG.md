@@ -1,5 +1,13 @@
 # @cofhe/eslint-config
 
+## 0.1.1
+
+### Patch Changes
+
+- 877dfb9: Versioning packages attempt 2
+- f64892c: Versioning packages attepmt 3
+- 47fbe93: Workflow testing changeset
+
 ## 0.1.0
 
 ### Minor Changes

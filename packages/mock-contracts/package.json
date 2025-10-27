@@ -1,6 +1,6 @@
 {
   "name": "@cofhe/mock-contracts",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Mock smart contracts for testing CoFHE with FHE primitives locally",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",

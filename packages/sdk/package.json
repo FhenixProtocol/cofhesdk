@@ -1,6 +1,6 @@
 {
   "name": "@cofhe/sdk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "SDK for Fhenix COFHE coprocessor interaction",
   "main": "./dist/core.cjs",
@@ -49,7 +49,7 @@
   "files": [
     "dist/**",
     "core/**",
-    "adapters/**", 
+    "adapters/**",
     "chains/**",
     "permits/**",
     "node/**",
