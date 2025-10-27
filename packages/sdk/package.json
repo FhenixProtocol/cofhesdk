@@ -49,7 +49,6 @@
     "permits/**",
     "node/**",
     "web/**",
-    "tsconfig.json",
     "CHANGELOG.md"
   ],
   "scripts": {
