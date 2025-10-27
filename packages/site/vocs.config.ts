@@ -1,5 +1,5 @@
 import { defineConfig } from 'vocs'
-import pkg from '../sdk/package.json'
+import pkg from './package.json'
 
 export default defineConfig({
   title: 'Cofhe SDK Docs',
