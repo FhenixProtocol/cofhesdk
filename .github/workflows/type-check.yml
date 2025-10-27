@@ -1,8 +1,9 @@
 name: Type Check
 
 on:
-  push:
   pull_request:
+  push:
+    branches: [master]
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
