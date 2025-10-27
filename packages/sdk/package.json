@@ -42,7 +42,14 @@
   "sideEffects": false,
   "license": "MIT",
   "files": [
-    "dist/**"
+    "dist/**",
+    "core/**",
+    "adapters/**", 
+    "chains/**",
+    "permits/**",
+    "node/**",
+    "web/**",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsup",

@@ -9,11 +9,13 @@
   "license": "MIT",
   "files": [
     "dist/**",
+    "src/**",
     "contracts/**/*.sol",
     "foundry/**/*.sol",
     "test/**/*.sol",
     "foundry.toml",
-    "remappings.txt"
+    "remappings.txt",
+    "CHANGELOG.md"
   ],
   "keywords": [
     "blockchain",
