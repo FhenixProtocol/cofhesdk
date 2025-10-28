@@ -27,6 +27,9 @@ import {
   expectResultSuccess,
   expectResultValue,
 } from './expectResultUtils.js';
+import type { Contract } from 'ethers';
+import { MockACLArtifact, MockQueryDecrypterArtifact, MockTaskManagerArtifact, MockZkVerifierArtifact, TestBedArtifact } from '@cofhe/mock-contracts';
+import { hardhat } from '@cofhe/sdk/chains';
 export {
   MockACLArtifact,
   MockQueryDecrypterArtifact,
@@ -158,7 +161,7 @@ task(TASK_COFHE_MOCKS_DEPLOY, 'Deploys the mock contracts on the Hardhat network
     });
   });
 
-task(TASK_TEST, 'Deploy mock contracts on hardhat').setAction(async ({}, hre, runSuper) => {
+task(TASK_TEST, 'Deploy mock contracts on hardhat').setAction(async ({ }, hre, runSuper) => {
   await deployMocks(hre, {
     deployTestBed: true,
     gasWarning: hre.config.cofhesdk.gasWarning ?? true,
@@ -166,7 +169,7 @@ task(TASK_TEST, 'Deploy mock contracts on hardhat').setAction(async ({}, hre, ru
   return runSuper();
 });
 
-task(TASK_NODE, 'Deploy mock contracts on hardhat').setAction(async ({}, hre, runSuper) => {
+task(TASK_NODE, 'Deploy mock contracts on hardhat').setAction(async ({ }, hre, runSuper) => {
   await deployMocks(hre, {
     deployTestBed: true,
     gasWarning: hre.config.cofhesdk.gasWarning ?? true,
@@ -217,6 +220,21 @@ declare module 'hardhat/types/runtime' {
       hardhatSignerAdapter: (
         signer: HardhatEthersSigner
       ) => Promise<{ publicClient: PublicClient; walletClient: WalletClient }>;
+      /**
+       * Connect a CoFHE SDK client with a Hardhat ethers signer
+       * @param {CofhesdkClient} client - The CoFHE SDK client to connect
+       * @param {HardhatEthersSigner} signer - The Hardhat ethers signer to use
+       * @returns {Promise<boolean>} True if the connection was successful
+       */
+      connectWithHardhatSigner: (client: CofhesdkClient, signer: HardhatEthersSigner) => Promise<Result<boolean>>;
+      /**
+       * Create and connect to a batteries included client.
+       * Also generates a self-usage a permit for the signer.
+       * If customization is needed, use createCofhesdkClient and connectWithHardhatSigner.
+       * @param {HardhatEthersSigner} signer - The Hardhat ethers signer to use (optional - defaults to first signer)
+       * @returns {Promise<CofhesdkClient>} The CoFHE SDK client instance
+       */
+      createBatteriesIncludedCofhesdkClient: (signer?: HardhatEthersSigner) => Promise<CofhesdkClient>;
 
       /**
        * Assert that a Result type returned from a function is successful and return its value (result.success === true)
@@ -318,6 +336,37 @@ declare module 'hardhat/types/runtime' {
          * @param {bigint} expectedValue - The expected plaintext value
          */
         expectPlaintext: (ctHash: bigint, expectedValue: bigint) => Promise<void>;
+
+        /**
+         * Get the MockTaskManager contract
+         * @returns {Promise<Contract>} The MockTaskManager contract
+         */
+        getMockTaskManager: () => Promise<Contract>;
+
+        /**
+         * Get the MockACL contract
+         * @returns {Promise<Contract>} The MockACL contract
+         */
+        getMockACL: () => Promise<Contract>;
+
+        /**
+         * Get the MockQueryDecrypter contract
+         * @returns {Promise<Contract>} The MockQueryDecrypter contract
+         */
+        getMockQueryDecrypter: () => Promise<Contract>;
+
+
+        /**
+         * Get the MockZkVerifier contract
+         * @returns {Promise<Contract>} The MockZkVerifier contract
+         */
+        getMockZkVerifier: () => Promise<Contract>;
+
+        /**
+         * Get the TestBed contract
+         * @returns {Promise<Contract>} The TestBed contract
+         */
+        getTestBed: () => Promise<Contract>;
       };
     };
   }
@@ -347,6 +396,35 @@ extendEnvironment((hre) => {
     },
     hardhatSignerAdapter: async (signer: HardhatEthersSigner) => {
       return HardhatSignerAdapter(signer);
+    },
+    connectWithHardhatSigner: async (client: CofhesdkClient, signer: HardhatEthersSigner) => {
+      const { publicClient, walletClient } = await HardhatSignerAdapter(signer);
+      return client.connect(publicClient, walletClient);
+    },
+    createBatteriesIncludedCofhesdkClient: async (signer?: HardhatEthersSigner) => {
+      // Get signer if not provided
+      if (!signer) {
+        [signer] = await hre.ethers.getSigners();
+      }
+
+      // Create config
+      const config = await hre.cofhesdk.createCofhesdkConfig({
+        supportedChains: [hardhat],
+      });
+
+      // Create client
+      const client = hre.cofhesdk.createCofhesdkClient(config);
+
+      // Connect client
+      await hre.cofhesdk.connectWithHardhatSigner(client, signer);
+
+      // Create self-usage permit
+      await client.permits.createSelf({
+        issuer: signer.address,
+      });
+
+      // Return client
+      return client;
     },
     expectResultSuccess: async <T>(result: Result<T> | Promise<Result<T>>) => {
       const awaitedResult = await result;
@@ -384,6 +462,23 @@ extendEnvironment((hre) => {
       expectPlaintext: async (ctHash: bigint, expectedValue: bigint) => {
         const [signer] = await hre.ethers.getSigners();
         return mock_expectPlaintext(signer.provider, ctHash, expectedValue);
+      },
+      getMockTaskManager: async () => {
+        return await hre.ethers.getContractAt(MockTaskManagerArtifact.abi, MockTaskManagerArtifact.fixedAddress);
+      },
+      getMockACL: async () => {
+        const tm = await hre.ethers.getContractAt(MockTaskManagerArtifact.abi, MockTaskManagerArtifact.fixedAddress);
+        const aclAddress = await tm.acl();
+        return await hre.ethers.getContractAt(MockACLArtifact.abi, aclAddress);
+      },
+      getMockQueryDecrypter: async () => {
+        return await hre.ethers.getContractAt(MockQueryDecrypterArtifact.abi, MockQueryDecrypterArtifact.fixedAddress);
+      },
+      getMockZkVerifier: async () => {
+        return await hre.ethers.getContractAt(MockZkVerifierArtifact.abi, MockZkVerifierArtifact.fixedAddress);
+      },
+      getTestBed: async () => {
+        return await hre.ethers.getContractAt(TestBedArtifact.abi, TestBedArtifact.fixedAddress);
       },
     },
   };

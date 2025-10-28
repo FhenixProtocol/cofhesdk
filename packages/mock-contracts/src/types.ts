@@ -3,4 +3,5 @@ export type MocksArtifact = {
   fixedAddress: string;
   abi: any;
   deployedBytecode: string;
+  bytecode: string;
 };

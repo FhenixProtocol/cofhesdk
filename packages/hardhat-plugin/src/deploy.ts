@@ -8,7 +8,6 @@ import {
   MOCKS_QUERY_DECRYPTER_ADDRESS,
   TEST_BED_ADDRESS,
   MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
-  MOCKS_ACL_ADDRESS,
 } from './consts.js';
 
 import {
@@ -42,9 +41,8 @@ const deployMockTaskManager = async (hre: HardhatRuntimeEnvironment) => {
 };
 
 const deployMockACL = async (hre: HardhatRuntimeEnvironment): Promise<Contract> => {
-  // Deploy MockACL
-  await hardhatSetCode(hre, MOCKS_ACL_ADDRESS, MockACLArtifact.deployedBytecode);
-  const acl = await hre.ethers.getContractAt(MockACLArtifact.abi, MOCKS_ACL_ADDRESS);
+  // Deploy MockACL (uses ethers to deploy to ensure constructor called and EIP712 domain set)
+  const acl = await ethersDeployContract(hre, MockACLArtifact.abi, MockACLArtifact.bytecode);
 
   // Check if ACL exists
   const exists = await acl.exists();
@@ -155,10 +153,6 @@ export const deployMocks = async (
   logSuccessIfNoisy(chalk.bold('cofhe-hardhat-plugin :: deploy mocks'), 0);
   logEmptyIfNoisy();
 
-  // Compile mock contracts
-  logEmptyIfNoisy();
-  logSuccessIfNoisy('Mock contracts compiled', 1);
-
   // Deploy mock contracts
   const taskManager = await deployMockTaskManager(hre);
   logDeploymentIfNoisy('MockTaskManager', await taskManager.getAddress());
@@ -208,6 +202,16 @@ export const deployMocks = async (
 const hardhatSetCode = async (hre: HardhatRuntimeEnvironment, address: string, bytecode: string) => {
   await hre.network.provider.send('hardhat_setCode', [address, bytecode]);
 };
+
+const ethersDeployContract = async (hre: HardhatRuntimeEnvironment, abi: any, bytecode: string) => {
+  const [signer] = await hre.ethers.getSigners();
+
+  const factory = new hre.ethers.ContractFactory(abi, bytecode, signer);
+  const contract = await factory.deploy(/* constructor args */);
+  await contract.waitForDeployment();
+
+  return contract as Contract;
+}
 
 // Network
 
