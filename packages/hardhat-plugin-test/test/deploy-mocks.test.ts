@@ -1,9 +1,7 @@
-import { type HardhatRuntimeEnvironment } from 'hardhat/types';
 import hre from 'hardhat';
 import { expect } from 'chai';
 import { TASK_COFHE_MOCKS_DEPLOY } from './consts';
 import {
-  MockACLArtifact,
   MockQueryDecrypterArtifact,
   MockTaskManagerArtifact,
   MockZkVerifierArtifact,
@@ -11,10 +9,6 @@ import {
 } from '@cofhe/hardhat-plugin';
 
 describe('Deploy Mocks Task', () => {
-  const getTestBedBytecode = async (hre: HardhatRuntimeEnvironment) => {
-    return await hre.ethers.provider.getCode(TestBedArtifact.fixedAddress);
-  };
-
   it('should deploy mock contracts', async () => {
     await hre.run(TASK_COFHE_MOCKS_DEPLOY);
 

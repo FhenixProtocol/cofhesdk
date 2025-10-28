@@ -1,15 +1,5 @@
-import { type HardhatRuntimeEnvironment } from 'hardhat/types';
 import hre from 'hardhat';
-import { expect } from 'chai';
 import { TASK_COFHE_MOCKS_DEPLOY } from './consts';
-import {
-    MockACLArtifact,
-    MockQueryDecrypterArtifact,
-    MockTaskManagerArtifact,
-    MockZkVerifierArtifact,
-    TestBedArtifact,
-} from '@cofhe/hardhat-plugin';
-import { hardhat } from '@cofhe/sdk/chains';
 import { FheTypes } from '@cofhe/sdk';
 
 describe('Permit Unseal Test', () => {
@@ -26,12 +16,11 @@ describe('Permit Unseal Test', () => {
             issuer: signer.address
         });
 
-        const permit = hre.cofhesdk.expectResultSuccess(permitResult);
+        const permit = await hre.cofhesdk.expectResultSuccess(permitResult);
 
         // Add number to TestBed
         const testBed = await hre.cofhesdk.mocks.getTestBed();
         await testBed.setNumberTrivial(7);
-
         const ctHash = await testBed.numberHash();
 
         // Decrypt number from TestBed
@@ -40,7 +29,7 @@ describe('Permit Unseal Test', () => {
             .setPermit(permit)
             .decrypt();
 
-        hre.cofhesdk.expectResultSuccess(unsealed);
-        hre.cofhesdk.expectResultValue(unsealed, 7);
+        await hre.cofhesdk.expectResultSuccess(unsealed);
+        await hre.cofhesdk.expectResultValue(unsealed, 7n);
     });
 });
