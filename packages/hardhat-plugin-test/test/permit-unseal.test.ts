@@ -10,13 +10,9 @@ describe('Permit Unseal Test', () => {
 
         const client = await hre.cofhesdk.createBatteriesIncludedCofhesdkClient(signer);
 
-        // TODO: Ensure permit is passed from client to DecryptHandlesBuilder (its not currently being passed)
-
-        const permitResult = await client.permits.createSelf({
+        await client.permits.createSelf({
             issuer: signer.address
         });
-
-        const permit = await hre.cofhesdk.expectResultSuccess(permitResult);
 
         // Add number to TestBed
         const testBed = await hre.cofhesdk.mocks.getTestBed();
@@ -26,7 +22,6 @@ describe('Permit Unseal Test', () => {
         // Decrypt number from TestBed
         const unsealed = await client
             .decryptHandle(ctHash, FheTypes.Uint32)
-            .setPermit(permit)
             .decrypt();
 
         await hre.cofhesdk.expectResultSuccess(unsealed);
