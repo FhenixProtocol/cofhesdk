@@ -27,6 +27,11 @@ describe('Deploy Mocks Task', () => {
     // ACL
 
     const aclFromCofhesdk = await hre.cofhesdk.mocks.getMockACL();
+    const eip712domain = await aclFromCofhesdk.eip712Domain();
+    const [fields, name, version, chainId, verifyingContract] = eip712domain;
+    expect(name).to.equal('ACL');
+    expect(version).to.equal('1');
+
     expect(await aclFromCofhesdk.exists()).to.be.true;
     expect(await aclFromCofhesdk.getAddress()).to.be.equal(await taskManager.acl());
 
