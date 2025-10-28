@@ -3,7 +3,7 @@ import fs from 'fs';
 
 const contracts = {
   MockTaskManager: '0xeA30c4B8b44078Bbf8a6ef5b9f1eC1626C7848D9',
-  MockACL: '0x0000000000000000000000000000000000000400',
+  MockACL: '0x0000000000000000000000000000000000000000',
   MockZkVerifier: '0x0000000000000000000000000000000000000100',
   MockQueryDecrypter: '0x0000000000000000000000000000000000000200',
   TestBed: '0x0000000000000000000000000000000000000300',
@@ -25,12 +25,14 @@ function inspect(contract: string, field: string): any {
 for (const [name, fixedAddress] of Object.entries(contracts)) {
   const abi = inspect(name, 'abi');
   const deployedBytecode = inspect(name, 'deployedBytecode');
+  const bytecode = inspect(name, 'bytecode');
 
   const artifact = {
     contractName: name,
     fixedAddress,
     abi,
     deployedBytecode,
+    bytecode,
   };
 
   fs.writeFileSync(
