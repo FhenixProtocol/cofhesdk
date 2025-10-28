@@ -66,7 +66,7 @@ contract MockACL is MockPermissioned {
     keccak256(abi.encode(uint256(keccak256('cofhe.storage.ACL')) - 1)) & ~bytes32(uint256(0xff));
 
   /// @custom:oz-upgrades-unsafe-allow constructor
-  constructor() {}
+  constructor() MockPermissioned() {}
 
   function exists() public pure returns (bool) {
     return true;
