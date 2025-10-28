@@ -18,42 +18,48 @@ describe('Deploy Mocks Task', () => {
   it('should deploy mock contracts', async () => {
     await hre.run(TASK_COFHE_MOCKS_DEPLOY);
 
+    // TASK MANAGER
+
     const taskManager = await hre.ethers.getContractAt(
       MockTaskManagerArtifact.abi,
       MockTaskManagerArtifact.fixedAddress
     );
     expect(await taskManager.exists()).to.be.true;
 
-    const acl = await hre.ethers.getContractAt(MockACLArtifact.abi, MockACLArtifact.fixedAddress);
-    expect(await acl.exists()).to.be.true;
+    const taskManagerFromCofhesdk = await hre.cofhesdk.mocks.getMockTaskManager();
+    expect(await taskManagerFromCofhesdk.exists()).to.be.true;
+    expect(await taskManagerFromCofhesdk.getAddress()).to.be.equal(MockTaskManagerArtifact.fixedAddress);
+
+    // ACL
+
+    const aclFromCofhesdk = await hre.cofhesdk.mocks.getMockACL();
+    expect(await aclFromCofhesdk.exists()).to.be.true;
+    expect(await aclFromCofhesdk.getAddress()).to.be.equal(await taskManager.acl());
+
+    // ZK VERIFIER
 
     const zkVerifier = await hre.ethers.getContractAt(MockZkVerifierArtifact.abi, MockZkVerifierArtifact.fixedAddress);
     expect(await zkVerifier.exists()).to.be.true;
+
+    const zkVerifierFromCofhesdk = await hre.cofhesdk.mocks.getMockZkVerifier();
+    expect(await zkVerifierFromCofhesdk.exists()).to.be.true;
+    expect(await zkVerifierFromCofhesdk.getAddress()).to.be.equal(MockZkVerifierArtifact.fixedAddress);
+
+    // QUERY DECRYPTER
 
     const queryDecrypter = await hre.ethers.getContractAt(
       MockQueryDecrypterArtifact.abi,
       MockQueryDecrypterArtifact.fixedAddress
     );
     expect(await queryDecrypter.exists()).to.be.true;
-  });
 
-  it('should deploy mocks with test bed', async () => {
-    await hre.run(TASK_COFHE_MOCKS_DEPLOY, {
-      deployTestBed: true,
-    });
+    const queryDecrypterFromCofhesdk = await hre.cofhesdk.mocks.getMockQueryDecrypter();
+    expect(await queryDecrypterFromCofhesdk.exists()).to.be.true;
+    expect(await queryDecrypterFromCofhesdk.getAddress()).to.be.equal(MockQueryDecrypterArtifact.fixedAddress);
 
-    // Verify contracts are deployed
-    const taskManager = await hre.ethers.getContractAt(
-      MockTaskManagerArtifact.abi,
-      MockTaskManagerArtifact.fixedAddress
-    );
-    expect(await taskManager.exists()).to.be.true;
+    // TEST BED
 
-    // Verify test bed is deployed
-    const testBedBytecode = await getTestBedBytecode(hre);
-    expect(testBedBytecode.length).to.be.greaterThan(2);
-
-    const testBed = await hre.ethers.getContractAt(TestBedArtifact.abi, TestBedArtifact.fixedAddress);
-    expect(await testBed.exists()).to.be.true;
+    const testBedFromCofhesdk = await hre.cofhesdk.mocks.getTestBed();
+    expect(await testBedFromCofhesdk.getAddress()).to.be.equal(TestBedArtifact.fixedAddress);
   });
 });
