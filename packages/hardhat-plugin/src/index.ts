@@ -229,6 +229,7 @@ declare module 'hardhat/types/runtime' {
       connectWithHardhatSigner: (client: CofhesdkClient, signer: HardhatEthersSigner) => Promise<Result<boolean>>;
       /**
        * Create and connect to a batteries included client.
+       * Also generates a self-usage a permit for the signer.
        * If customization is needed, use createCofhesdkClient and connectWithHardhatSigner.
        * @param {HardhatEthersSigner} signer - The Hardhat ethers signer to use (optional - defaults to first signer)
        * @returns {Promise<CofhesdkClient>} The CoFHE SDK client instance
@@ -401,14 +402,28 @@ extendEnvironment((hre) => {
       return client.connect(publicClient, walletClient);
     },
     createBatteriesIncludedCofhesdkClient: async (signer?: HardhatEthersSigner) => {
+      // Get signer if not provided
       if (!signer) {
         [signer] = await hre.ethers.getSigners();
       }
+
+      // Create config
       const config = await hre.cofhesdk.createCofhesdkConfig({
         supportedChains: [hardhat],
       });
+
+      // Create client
       const client = hre.cofhesdk.createCofhesdkClient(config);
+
+      // Connect client
       await hre.cofhesdk.connectWithHardhatSigner(client, signer);
+
+      // Create self-usage permit
+      await client.permits.createSelf({
+        issuer: signer.address,
+      });
+
+      // Return client
       return client;
     },
     expectResultSuccess: async <T>(result: Result<T> | Promise<Result<T>>) => {
