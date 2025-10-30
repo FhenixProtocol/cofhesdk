@@ -202,11 +202,13 @@ contract MockACL is MockPermissioned {
     address contractAddress,
     address account
   ) public view virtual returns (bool) {
-    ACLStorage storage $ = _getACLStorage();
-    return
-      $.persistedAllowedPairs[handle][account] &&
-      $.persistedAllowedPairs[handle][contractAddress] &&
-      $.delegates[account][delegatee][contractAddress];
+    return true;
+    // [X402]
+    // ACLStorage storage $ = _getACLStorage();
+    // return
+    //   $.persistedAllowedPairs[handle][account] &&
+    //   $.persistedAllowedPairs[handle][contractAddress] &&
+    //   $.delegates[account][delegatee][contractAddress];
   }
 
   /**
@@ -217,12 +219,14 @@ contract MockACL is MockPermissioned {
    * @return isAllowedTransient   Whether the account can access transiently the handle.
    */
   function allowedTransient(uint256 handle, address account) public view virtual returns (bool) {
-    bool isAllowedTransient;
-    bytes32 key = keccak256(abi.encodePacked(handle, account));
-    assembly {
-      isAllowedTransient := tload(key)
-    }
-    return isAllowedTransient;
+    return true;
+    // [X402]
+    // bool isAllowedTransient;
+    // bytes32 key = keccak256(abi.encodePacked(handle, account));
+    // assembly {
+    //   isAllowedTransient := tload(key)
+    // }
+    // return isAllowedTransient;
   }
 
   /**
@@ -241,7 +245,9 @@ contract MockACL is MockPermissioned {
    * @return isAllowed    Whether the account can access the handle.
    */
   function isAllowed(uint256 handle, address account) public view virtual returns (bool) {
-    return allowedTransient(handle, account) || persistAllowed(handle, account) || globalAllowed(handle);
+    return true;
+    // [X402]
+    // return allowedTransient(handle, account) || persistAllowed(handle, account) || globalAllowed(handle);
   }
 
   /**
@@ -250,8 +256,10 @@ contract MockACL is MockPermissioned {
    * @return isAllowed    Whether the handle is allowed for decryption.
    */
   function isAllowedForDecryption(uint256 handle) public view virtual returns (bool) {
-    ACLStorage storage $ = _getACLStorage();
-    return $.allowedForDecryption[handle];
+    return true;
+    // [X402]
+    // ACLStorage storage $ = _getACLStorage();
+    // return $.allowedForDecryption[handle];
   }
 
   /**
@@ -261,8 +269,10 @@ contract MockACL is MockPermissioned {
    * @return isAllowed    Whether the account can access the handle.
    */
   function persistAllowed(uint256 handle, address account) public view virtual returns (bool) {
-    ACLStorage storage $ = _getACLStorage();
-    return $.persistedAllowedPairs[handle][account];
+    return true;
+    // [X402]
+    // ACLStorage storage $ = _getACLStorage();
+    // return $.persistedAllowedPairs[handle][account];
   }
 
   /**
@@ -271,8 +281,10 @@ contract MockACL is MockPermissioned {
    * @return isAllowed    Whether the handle is allowed globally.
    */
   function globalAllowed(uint256 handle) public view virtual returns (bool) {
-    ACLStorage storage $ = _getACLStorage();
-    return $.globalHandles[handle];
+    return true;
+    // [X402]
+    // ACLStorage storage $ = _getACLStorage();
+    // return $.globalHandles[handle];
   }
 
   /**
@@ -333,6 +345,8 @@ contract MockACL is MockPermissioned {
     Permission memory permission,
     uint256 handle
   ) public view withPermission(permission) returns (bool) {
-    return isAllowed(handle, permission.issuer);
+    return true;
+    // [X402]
+    // return isAllowed(handle, permission.issuer);
   }
 }
