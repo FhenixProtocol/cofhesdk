@@ -47,4 +47,17 @@ contract MockAttester {
     if (!success) return (false, '');
     return (true, abi.encodePacked(lhsHash, rhsHash, functionId));
   }
+
+  function validateAttestation(
+    uint256 lhs,
+    uint256 rhs,
+    FunctionId functionId,
+    bytes memory proof
+  ) public view returns (bool isValid) {
+    try mockTaskManager.checkAttestationProof(lhs, rhs, functionId, proof) returns (bool valid) {
+      return valid;
+    } catch {
+      return false;
+    }
+  }
 }
