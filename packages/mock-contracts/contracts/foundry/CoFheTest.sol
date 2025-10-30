@@ -10,6 +10,7 @@ import { MockZkVerifierSigner } from './MockZkVerifierSigner.sol';
 import { MessageHashUtils } from '@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol';
 import { Permission, PermissionUtils } from '../Permissioned.sol';
 import { MockQueryDecrypter } from '../MockQueryDecrypter.sol';
+import { MockAttester } from '../MockAttester.sol';
 import { SIGNER_ADDRESS } from '../MockCoFHE.sol';
 
 abstract contract CoFheTest is Test {
@@ -18,10 +19,12 @@ abstract contract CoFheTest is Test {
   MockZkVerifierSigner public mockZkVerifierSigner;
   MockACL public mockAcl;
   MockQueryDecrypter public mockQueryDecrypter;
+  MockAttester public mockAttester;
 
   address constant QUERY_DECRYPTER_ADDRESS = address(512);
   address constant ZK_VERIFIER_ADDRESS = address(256);
   address constant ZK_VERIFIER_SIGNER_ADDRESS = address(257);
+  address constant ATTESETER_ADDRESS = address(258);
   address public constant ACL_ADDRESS = 0xa6Ea4b5291d044D93b73b3CFf3109A1128663E8B;
 
   bool private _log = false;
@@ -81,6 +84,12 @@ abstract contract CoFheTest is Test {
     mockQueryDecrypter = MockQueryDecrypter(QUERY_DECRYPTER_ADDRESS);
     vm.label(address(mockQueryDecrypter), 'MockQueryDecrypter');
     mockQueryDecrypter.initialize(TASK_MANAGER_ADDRESS, address(mockAcl));
+
+    // ATTESTER
+    deployCodeTo('MockAttester.sol:MockAttester', ATTESETER_ADDRESS);
+    mockAttester = MockAttester(ATTESETER_ADDRESS);
+    vm.label(address(mockAttester), 'MockAttester');
+    mockAttester.initialize(TASK_MANAGER_ADDRESS);
 
     // SET LOG OPS
 

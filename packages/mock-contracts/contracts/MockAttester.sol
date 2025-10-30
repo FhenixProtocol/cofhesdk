@@ -13,6 +13,14 @@ contract MockAttester {
   error InvalidAttestationFunction(FunctionId functionId);
   error AttestationInputNotPermitted(uint256 handle);
 
+  function initialize(address _mockTaskManagerAddress) public {
+    mockTaskManager = MockTaskManager(_mockTaskManagerAddress);
+  }
+
+  function exists() public pure returns (bool) {
+    return true;
+  }
+
   function _attestPlaintextPlaintext(
     uint256 lhsPlaintext,
     uint256 rhsPlaintext,
@@ -38,7 +46,7 @@ contract MockAttester {
     uint256 rhsPlaintext = mockTaskManager.mockStorage(rhsHash);
     success = _attestPlaintextPlaintext(lhsPlaintext, rhsPlaintext, functionId);
     if (!success) return (false, '');
-    return (true, abi.encodePacked(lhsPlaintext, rhsPlaintext, functionId));
+    return (true, abi.encodePacked(lhsPlaintext, rhsHash, functionId));
   }
 
   function attestEncryptedEncrypted(

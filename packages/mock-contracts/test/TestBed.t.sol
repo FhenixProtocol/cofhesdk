@@ -5,11 +5,14 @@ import { Test } from 'forge-std/Test.sol';
 import { TestBed } from '../contracts/TestBed.sol';
 import { CoFheTest } from '../contracts/foundry/CoFheTest.sol';
 import { FHE, InEuint32, euint8, euint256 } from '../contracts/cofhe/FHE.sol';
+import { Permission } from '../contracts/Permissioned.sol';
+import { FunctionId } from '../contracts/cofhe/ICofhe.sol';
 
 contract TestBedTest is Test, CoFheTest {
   TestBed private testbed;
 
-  address private user = makeAddr('user');
+  uint256 private privateKey = 0x111122223333444455556666777788889999AAAABBBBCCCCDDDDEEEEFFFF0000;
+  address private user = vm.addr(privateKey);
 
   function setUp() public {
     // optional ... enable verbose logging from fhe mocks
@@ -56,5 +59,27 @@ contract TestBedTest is Test, CoFheTest {
     }
 
     assertHashValue(euint256.unwrap(c), expected);
+  }
+
+  function testAttestation() public {
+    uint8 lhs = 10;
+    euint8 rhs = FHE.asEuint8(10);
+
+    Permission memory permission = createPermissionSelf(user);
+    permission = signPermissionSelf(permission, privateKey);
+
+    (bool success, bytes memory proof) = mockAttester.attestPlaintextEncrypted(
+      lhs,
+      euint8.unwrap(rhs),
+      FunctionId.eq,
+      permission
+    );
+    assertTrue(success);
+
+    bool isValid = mockAttester.validateAttestation(lhs, euint8.unwrap(rhs), FunctionId.eq, proof);
+    assertTrue(isValid);
+
+    isValid = FHE.checkEqProof(lhs, euint8.unwrap(rhs), proof);
+    assertTrue(isValid);
   }
 }
