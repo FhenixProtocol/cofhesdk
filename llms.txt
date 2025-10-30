@@ -1,0 +1,9 @@
+# Cofhe SDK Docs
+
+> Documentation for the Cofhe SDK
+
+## Docs
+
+- [Example](/example): This is an example page.
+- [Get started](/getting-started): Hello world!
+- [Migrating from ](/docs/migrating-from-cofhejs): `cofhesdk` is an improved replacement for `cofhejs`. Improvements are focused around:

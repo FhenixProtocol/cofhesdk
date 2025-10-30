@@ -1,0 +1,77 @@
+# Cofhe SDK Docs
+
+> Documentation for the Cofhe SDK
+
+## Example
+
+This is an example page.
+
+
+## Get started
+
+Hello world!
+
+
+## Migrating from `cofhejs`
+
+`cofhesdk` is an improved replacement for `cofhejs`. Improvements are focused around:
+
+* explicit api
+* developer experience
+* flexibility
+
+#### Key Changes:
+
+* Functions are encapsulated in a new `client` class.
+* No longer need to wait for initialization (keys fetched during encrypt)
+* Permits must be explicitly generated, preventing unknown signature requests in users' wallets.
+* Top level configuration of cofhesdk behavior.
+* Explicit overrides and settings in `encryptInputs` and `decryptHandle` functions.
+* Better feedback and error handling in functions.
+* Better multichain usage
+
+#### Requirements:
+
+* Node.js: 18+
+* React: 18+
+* TypeScript: 5+
+* Wagmi: 2+
+* Viem: 2+
+
+#### Installation:
+
+```bash
+npm install @cofhe/sdk
+```
+
+#### Migration
+
+##### Initializing the library
+
+`cofhejs` is initialized with `cofhejs.initializeWithViem(...)`. Initialization involves fetching FHE keys, connecting to the supplied provider and signer, and
+`cofhesdk` encapsulates all functions in a new `client`, which is created with a `config` param
+
+* link to config api for full breakdown of options
+
+##### Encrypting inputs
+
+* Why - more explicit, more customizable, loads keys during encrypt
+* Old - example (encrypt)
+* New - example (encryptInputs)
+* Customizable - setAccount, setChainId, setSecurityZone, setStepCallback
+
+##### Decrypting handles
+
+* Why - more explicit, more customizable
+* Old - example (unseal)
+* New - example (decryptHandle)
+* Customizable - setAccount, setChainId, setPermitHash, setPermit
+
+##### Permits
+
+* Why - Permits require a user signature (must be transparent and understandable), permits are complex with overlapping use cases, so a more explicit api was needed
+* Why - Better type safety
+* Old - example of auto-generation, example of usage in unseal
+* New - example of manual generation, example of usage in decryptHandle
+*
+
