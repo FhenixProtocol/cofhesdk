@@ -3,8 +3,8 @@
 
 pragma solidity >=0.8.19 <0.9.0;
 
-import { TASK_MANAGER_ADDRESS } from '@fhenixprotocol/cofhe-contracts/FHE.sol';
-import { EncryptedInput } from '@fhenixprotocol/cofhe-contracts/ICofhe.sol';
+import { TASK_MANAGER_ADDRESS } from './cofhe/FHE.sol';
+import { EncryptedInput } from './cofhe/ICofhe.sol';
 import { MockTaskManager } from './MockTaskManager.sol';
 
 contract MockZkVerifier {

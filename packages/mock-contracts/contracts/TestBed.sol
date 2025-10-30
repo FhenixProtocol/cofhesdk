@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import '@fhenixprotocol/cofhe-contracts/FHE.sol';
+import './cofhe/FHE.sol';
 
 contract TestBed {
   euint32 public eNumber;
