@@ -6,10 +6,12 @@ pragma solidity >=0.8.19 <0.9.0;
 import { TASK_MANAGER_ADDRESS } from './cofhe/FHE.sol';
 import { EncryptedInput, FunctionId } from './cofhe/ICofhe.sol';
 import { MockTaskManager } from './MockTaskManager.sol';
+import { Permission } from './Permissioned.sol';
 
 contract MockAttester {
   MockTaskManager public mockTaskManager;
   error InvalidAttestationFunction(FunctionId functionId);
+  error AttestationInputNotPermitted(uint256 handle);
 
   function _attestPlaintextPlaintext(
     uint256 lhsPlaintext,
@@ -28,8 +30,11 @@ contract MockAttester {
   function attestPlaintextEncrypted(
     uint256 lhsPlaintext,
     uint256 rhsHash,
-    FunctionId functionId
+    FunctionId functionId,
+    Permission memory permission
   ) public view returns (bool success, bytes memory proof) {
+    if (!mockTaskManager.isAllowedWithPermission(permission, rhsHash)) revert AttestationInputNotPermitted(rhsHash);
+
     uint256 rhsPlaintext = mockTaskManager.mockStorage(rhsHash);
     success = _attestPlaintextPlaintext(lhsPlaintext, rhsPlaintext, functionId);
     if (!success) return (false, '');
@@ -39,8 +44,12 @@ contract MockAttester {
   function attestEncryptedEncrypted(
     uint256 lhsHash,
     uint256 rhsHash,
-    FunctionId functionId
+    FunctionId functionId,
+    Permission memory permission
   ) public view returns (bool success, bytes memory proof) {
+    if (!mockTaskManager.isAllowedWithPermission(permission, lhsHash)) revert AttestationInputNotPermitted(lhsHash);
+    if (!mockTaskManager.isAllowedWithPermission(permission, rhsHash)) revert AttestationInputNotPermitted(rhsHash);
+
     uint256 lhsPlaintext = mockTaskManager.mockStorage(lhsHash);
     uint256 rhsPlaintext = mockTaskManager.mockStorage(rhsHash);
     success = _attestPlaintextPlaintext(lhsPlaintext, rhsPlaintext, functionId);

@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import { Test } from 'forge-std/Test.sol';
 import { MockTaskManager } from '../MockTaskManager.sol';
 import { MockACL } from '../MockACL.sol';
-import '@fhenixprotocol/cofhe-contracts/FHE.sol';
+import '../cofhe/FHE.sol';
 import { MockZkVerifier } from '../MockZkVerifier.sol';
 import { MockZkVerifierSigner } from './MockZkVerifierSigner.sol';
 import { MessageHashUtils } from '@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol';
