@@ -7,7 +7,7 @@ import { MockACL, Permission } from './MockACL.sol';
 import { Strings } from '@openzeppelin/contracts/utils/Strings.sol';
 import { ECDSA } from '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
 import { MockCoFHE } from './MockCoFHE.sol';
-import { ITaskManager, FunctionId, Utils, EncryptedInput } from '@fhenixprotocol/cofhe-contracts/ICofhe.sol';
+import { ITaskManager, FunctionId, Utils, EncryptedInput } from './cofhe/ICofhe.sol';
 
 error DecryptionResultNotReady(uint256 ctHash);
 // Input validation errors
@@ -22,6 +22,7 @@ error InvalidInputForFunction(string functionName, uint8 inputType);
 error InvalidSecurityZone(int32 zone, int32 min, int32 max);
 error InvalidSignature();
 error InvalidSigner(address signer, address expectedSigner);
+error InvalidAttestationProof();
 
 // Access control errors
 error InvalidAddress();
@@ -175,6 +176,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     owner = initialOwner;
     initialized = true;
     verifierSigner = address(0);
+    attestationProofSigner = address(0);
   }
 
   modifier onlyOwner() {
@@ -217,6 +219,10 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   MockACL public acl;
 
   address private verifierSigner;
+
+  // [X402]
+  // Attestation proof signer;
+  address private attestationProofSigner;
 
   // Storage contract for plaintext results of decrypt operations
   // PlaintextsStorage public plaintextsStorage;
@@ -589,5 +595,31 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
 
   function isAllowedWithPermission(Permission memory permission, uint256 handle) public view returns (bool) {
     return acl.isAllowedWithPermission(permission, handle);
+  }
+
+  // [X402]
+
+  function setAttestationProofSigner(address signer) external onlyOwner {
+    attestationProofSigner = signer;
+  }
+
+  function checkAttestationProof(
+    uint256 lhs,
+    uint256 rhs,
+    FunctionId functionId,
+    bytes memory proof
+  ) external pure returns (bool) {
+    // UNCOMMENT WHEN PROOF IS REAL SIGNATURE
+    // bytes memory combined = abi.encodePacked(lhs, rhs, functionId);
+    // bytes32 expectedHash = keccak256(combined);
+    // address signer = ECDSA.recover(expectedHash, proof);
+    // if (signer != attestationProofSigner) revert InvalidAttestationProof(signer, attestationProofSigner);
+    // return true;
+
+    // MOCK PROOF CHECK
+    bytes memory expectedProof = abi.encodePacked(lhs, rhs, functionId);
+    bool isValid = keccak256(expectedProof) == keccak256(proof);
+    if (!isValid) revert InvalidAttestationProof();
+    return isValid;
   }
 }

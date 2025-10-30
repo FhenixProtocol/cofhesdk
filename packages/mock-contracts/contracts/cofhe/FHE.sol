@@ -125,7 +125,7 @@ library Common {
   }
 
   //   [X402]
-  function validateAttestationFunction(FunctionId functionId) internal pure returns (bool) {
+  function validateAttestationFunction(FunctionId functionId) internal pure {
     if (
       functionId == FunctionId.eq ||
       functionId == FunctionId.ne ||
@@ -221,7 +221,7 @@ library Impl {
     uint256 lhs,
     uint256 rhs,
     FunctionId functionId,
-    bytes32 proof
+    bytes memory proof
   ) internal returns (bool) {
     Common.validateAttestationFunction(functionId);
     return ITaskManager(TASK_MANAGER_ADDRESS).checkAttestationProof(lhs, rhs, functionId, proof);
@@ -3737,10 +3737,10 @@ library FHE {
   ///  - If encrypted value - use the unwrapped value `euint256.unwrap(value)`.
   /// @param lhs of comparison.
   /// @param rhs of comparison.
-  /// @param proof of the attestation proof.
+  /// @param gteProof of the attestation proof.
   /// @return true if the proof is valid, reverts otherwise.
-  function checkGteProof(uint256 lhs, uint256 rhs, bytes32 proof) internal returns (bool) {
-    return Impl.checkAttestationProof(lhs, rhs, FunctionId.gte, proof);
+  function checkGteProof(uint256 lhs, uint256 rhs, bytes memory gteProof) internal returns (bool) {
+    return Impl.checkAttestationProof(lhs, rhs, FunctionId.gte, gteProof);
   }
 
   /// [X402]
@@ -3752,10 +3752,10 @@ library FHE {
   ///  - If encrypted value - use the unwrapped value `euint256.unwrap(value)`.
   /// @param lhs of comparison.
   /// @param rhs of comparison.
-  /// @param proof of the attestation proof.
+  /// @param lteProof of the attestation proof.
   /// @return true if the proof is valid, reverts otherwise.
-  function checkLteProof(uint256 lhs, uint256 rhs, bytes32 proof) internal returns (bool) {
-    return Impl.checkAttestationProof(lhs, rhs, FunctionId.lte, proof);
+  function checkLteProof(uint256 lhs, uint256 rhs, bytes memory lteProof) internal returns (bool) {
+    return Impl.checkAttestationProof(lhs, rhs, FunctionId.lte, lteProof);
   }
 
   /// [X402]
@@ -3767,10 +3767,10 @@ library FHE {
   ///  - If encrypted value - use the unwrapped value `euint256.unwrap(value)`.
   /// @param lhs of comparison.
   /// @param rhs of comparison.
-  /// @param proof of the attestation proof.
+  /// @param ltProof of the attestation proof.
   /// @return true if the proof is valid, reverts otherwise.
-  function checkLtProof(uint256 lhs, uint256 rhs, bytes32 proof) internal returns (bool) {
-    return Impl.checkAttestationProof(lhs, rhs, FunctionId.lt, proof);
+  function checkLtProof(uint256 lhs, uint256 rhs, bytes memory ltProof) internal returns (bool) {
+    return Impl.checkAttestationProof(lhs, rhs, FunctionId.lt, ltProof);
   }
 
   /// [X402]
@@ -3782,10 +3782,10 @@ library FHE {
   ///  - If encrypted value - use the unwrapped value `euint256.unwrap(value)`.
   /// @param lhs of comparison.
   /// @param rhs of comparison.
-  /// @param proof of the attestation proof.
+  /// @param gtProof of the attestation proof.
   /// @return true if the proof is valid, reverts otherwise.
-  function checkGtProof(uint256 lhs, uint256 rhs, bytes32 proof) internal returns (bool) {
-    return Impl.checkAttestationProof(lhs, rhs, FunctionId.gt, proof);
+  function checkGtProof(uint256 lhs, uint256 rhs, bytes memory gtProof) internal returns (bool) {
+    return Impl.checkAttestationProof(lhs, rhs, FunctionId.gt, gtProof);
   }
 
   /// [X402]
@@ -3797,10 +3797,10 @@ library FHE {
   ///  - If encrypted value - use the unwrapped value `euint256.unwrap(value)`.
   /// @param lhs of comparison.
   /// @param rhs of comparison.
-  /// @param proof of the attestation proof.
+  /// @param eqProof of the attestation proof.
   /// @return true if the proof is valid, reverts otherwise.
-  function checkEqProof(uint256 lhs, uint256 rhs, bytes32 proof) internal returns (bool) {
-    return Impl.checkAttestationProof(lhs, rhs, FunctionId.eq, proof);
+  function checkEqProof(uint256 lhs, uint256 rhs, bytes memory eqProof) internal returns (bool) {
+    return Impl.checkAttestationProof(lhs, rhs, FunctionId.eq, eqProof);
   }
 
   /// [X402]
@@ -3812,10 +3812,10 @@ library FHE {
   ///  - If encrypted value - use the unwrapped value `euint256.unwrap(value)`.
   /// @param lhs of comparison.
   /// @param rhs of comparison.
-  /// @param proof of the attestation proof.
+  /// @param neProof of the attestation proof.
   /// @return true if the proof is valid, reverts otherwise.
-  function checkNeProof(uint256 lhs, uint256 rhs, bytes32 proof) internal returns (bool) {
-    return Impl.checkAttestationProof(lhs, rhs, FunctionId.ne, proof);
+  function checkNeProof(uint256 lhs, uint256 rhs, bytes memory neProof) internal returns (bool) {
+    return Impl.checkAttestationProof(lhs, rhs, FunctionId.ne, neProof);
   }
 }
 // ********** BINDING DEFS ************* //
