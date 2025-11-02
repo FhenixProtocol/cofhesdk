@@ -352,13 +352,13 @@ describe('Core Permits Tests', () => {
       const permit = await permits.getOrCreateSharingPermit(
         publicClient,
         bobWalletClient,
-        chainId,
-        bobAddress,
         {
           issuer: bobAddress,
           recipient: aliceAddress,
           name: 'New Sharing Permit',
-        }
+        },
+        chainId,
+        bobAddress
       );
 
       expect(permit).toBeDefined();
@@ -389,13 +389,13 @@ describe('Core Permits Tests', () => {
       const permit = await permits.getOrCreateSharingPermit(
         publicClient,
         bobWalletClient,
-        chainId,
-        bobAddress,
         {
           issuer: bobAddress,
           recipient: aliceAddress,
           name: 'Should Not Create This',
-        }
+        },
+        chainId,
+        bobAddress
       );
 
       expect(permit.name).toBe('First Sharing Permit');
@@ -418,13 +418,13 @@ describe('Core Permits Tests', () => {
       const permit = await permits.getOrCreateSharingPermit(
         publicClient,
         bobWalletClient,
-        chainId,
-        bobAddress,
         {
           issuer: bobAddress,
           recipient: aliceAddress,
           name: 'New Sharing Permit',
-        }
+        },
+        chainId,
+        bobAddress
       );
 
       expect(permit.name).toBe('New Sharing Permit');
@@ -435,23 +435,17 @@ describe('Core Permits Tests', () => {
       expect(Object.keys(allPermits).length).toBe(2);
     });
 
-    it('should throw error when options not provided and no active permit exists', async () => {
-      await expect(
-        permits.getOrCreateSharingPermit(publicClient, bobWalletClient, chainId, bobAddress)
-      ).rejects.toThrow('CreateSharingPermitOptions with recipient is required when creating a new sharing permit');
-    });
-
     it('should use default chainId and account when not provided', async () => {
       const permit = await permits.getOrCreateSharingPermit(
         publicClient,
         bobWalletClient,
-        undefined,
-        undefined,
         {
           issuer: bobAddress,
           recipient: aliceAddress,
           name: 'Test Sharing Permit',
-        }
+        },        
+        undefined,
+        undefined,
       );
 
       expect(permit).toBeDefined();
@@ -480,13 +474,13 @@ describe('Core Permits Tests', () => {
       const sharingPermit = await permits.getOrCreateSharingPermit(
         publicClient,
         bobWalletClient,
-        chainId,
-        bobAddress,
         {
           issuer: bobAddress,
           recipient: aliceAddress,
           name: 'Sharing Permit',
-        }
+        },        
+        chainId,
+        bobAddress
       );
       expect(sharingPermit.type).toBe('sharing');
 

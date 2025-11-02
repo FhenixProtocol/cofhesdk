@@ -147,9 +147,9 @@ const getOrCreateSelfPermit = async (
 const getOrCreateSharingPermit = async (
   publicClient: PublicClient,
   walletClient: WalletClient,
+  options: CreateSharingPermitOptions,
   chainId?: number,
   account?: string,
-  options?: CreateSharingPermitOptions
 ): Promise<Permit> => {
   const _chainId = chainId ?? (await publicClient.getChainId());
   const _account = account ?? walletClient.account!.address;
@@ -161,10 +161,6 @@ const getOrCreateSharingPermit = async (
     return activePermit;
   }
 
-  // No active permit or wrong type, create new one
-  if (!options) {
-    throw new Error('CreateSharingPermitOptions with recipient is required when creating a new sharing permit');
-  }
   return createSharing(options, publicClient, walletClient);
 };
 
