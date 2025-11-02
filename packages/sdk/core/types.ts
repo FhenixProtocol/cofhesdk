@@ -343,10 +343,6 @@ export type EncryptStepCallbackContext = Record<string, any> & {
   isStart: boolean;
   isEnd: boolean;
   duration: number;
-  // Worker-specific debugging info (for Prove step)
-  useWorker?: boolean;
-  usedWorker?: boolean;
-  workerFailedError?: string;
 };
 export type EncryptStepCallbackFunction = (state: EncryptStep, context?: EncryptStepCallbackContext) => void;
 
