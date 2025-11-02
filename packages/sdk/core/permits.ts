@@ -161,10 +161,6 @@ const getOrCreateSharingPermit = async (
     return activePermit;
   }
 
-  // No active permit or wrong type, create new one
-  if (!options) {
-    throw new Error('CreateSharingPermitOptions with recipient is required when creating a new sharing permit');
-  }
   return createSharing(options, publicClient, walletClient);
 };
 
