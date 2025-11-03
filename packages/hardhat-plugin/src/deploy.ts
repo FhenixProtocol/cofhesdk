@@ -7,7 +7,6 @@ import {
   MOCKS_ZK_VERIFIER_ADDRESS,
   MOCKS_QUERY_DECRYPTER_ADDRESS,
   TEST_BED_ADDRESS,
-  MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
 } from './consts.js';
 
 import {
@@ -17,6 +16,7 @@ import {
   MockQueryDecrypterArtifact,
   TestBedArtifact,
 } from '@cofhe/mock-contracts';
+import { MOCKS_ZK_VERIFIER_SIGNER_ADDRESS } from '@cofhe/sdk';
 
 // Deploy
 
@@ -211,7 +211,7 @@ const ethersDeployContract = async (hre: HardhatRuntimeEnvironment, abi: any, by
   await contract.waitForDeployment();
 
   return contract as Contract;
-}
+};
 
 // Network
 
