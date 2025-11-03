@@ -6,17 +6,18 @@ import { type PublicClient, type WalletClient } from 'viem';
 import { extendConfig, extendEnvironment, task, types } from 'hardhat/config';
 import { TASK_TEST, TASK_NODE } from 'hardhat/builtin-tasks/task-names';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
-import { type CofhesdkClient, type CofhesdkConfig, type CofhesdkInputConfig, type Result } from '@cofhe/sdk';
+import {
+  MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
+  type CofhesdkClient,
+  type CofhesdkConfig,
+  type CofhesdkInputConfig,
+  type Result,
+} from '@cofhe/sdk';
 import { createCofhesdkClient, createCofhesdkConfig } from '@cofhe/sdk/node';
 import { HardhatSignerAdapter } from '@cofhe/sdk/adapters';
 
 import { localcofheFundAccount } from './fund.js';
-import {
-  MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
-  TASK_COFHE_MOCKS_DEPLOY,
-  TASK_COFHE_MOCKS_SET_LOG_OPS,
-  TASK_COFHE_USE_FAUCET,
-} from './consts.js';
+import { TASK_COFHE_MOCKS_DEPLOY, TASK_COFHE_MOCKS_SET_LOG_OPS, TASK_COFHE_USE_FAUCET } from './consts.js';
 import { deployMocks, type DeployMocksArgs } from './deploy.js';
 import { mock_setLoggingEnabled, mock_withLogs } from './logging.js';
 import { mock_expectPlaintext } from './utils.js';

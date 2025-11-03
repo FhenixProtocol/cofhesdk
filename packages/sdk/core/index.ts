@@ -75,3 +75,5 @@ export { DecryptHandlesBuilder } from './decrypt/decryptHandleBuilder.js';
 
 // ZK utilities
 export type { ZkBuilderAndCrsGenerator } from './encrypt/zkPackProveVerify.js';
+
+export { MOCKS_ZK_VERIFIER_SIGNER_ADDRESS } from './encrypt/cofheMocksZkVerifySign.js';

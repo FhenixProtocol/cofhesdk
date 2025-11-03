@@ -15,10 +15,15 @@ import { hardhat } from 'viem/chains';
 import { CofhesdkError, CofhesdkErrorCode } from '../error.js';
 import { privateKeyToAccount } from 'viem/accounts';
 
+import * as chains from 'viem/chains';
+
 // Address the Mock ZkVerifier contract is deployed to on the Hardhat chain
 export const MocksZkVerifierAddress = '0x0000000000000000000000000000000000000100';
-// Private key of the account expected to sign the encrypted inputs
-export const MocksEncryptedInputSignerPkey = '0x6c8d7f768a6bb4aafe85e8a2f5a9680355239c7e14646ed62b044e39de154512';
+
+// PK & address pair for zk verifier
+export const MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY =
+  '0x6C8D7F768A6BB4AAFE85E8A2F5A9680355239C7E14646ED62B044E39DE154512';
+export const MOCKS_ZK_VERIFIER_SIGNER_ADDRESS = '0x6E12D8C87503D4287c294f2Fdef96ACd9DFf6bd2';
 
 type EncryptableItemWithCtHash = EncryptableItem & {
   ctHash: bigint;
@@ -190,7 +195,7 @@ async function createProofSignatures(items: EncryptableItemWithCtHash[], securit
     encInputSignerClient = createWalletClient({
       chain: hardhat,
       transport: http(),
-      account: privateKeyToAccount(MocksEncryptedInputSignerPkey),
+      account: privateKeyToAccount(MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY),
     });
   } catch (err) {
     throw new CofhesdkError({
@@ -198,7 +203,7 @@ async function createProofSignatures(items: EncryptableItemWithCtHash[], securit
       message: `mockZkVerifySign createProofSignatures failed while creating wallet client`,
       cause: err instanceof Error ? err : undefined,
       context: {
-        MocksEncryptedInputSignerPkey,
+        MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY,
       },
     });
   }
@@ -246,6 +251,12 @@ async function createProofSignatures(items: EncryptableItemWithCtHash[], securit
   return signatures;
 }
 
+const zkVerifierMockClient = createWalletClient({
+  account: privateKeyToAccount(MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY),
+  chain: chains.hardhat,
+  transport: http(chains.hardhat.rpcUrls.default.http[0]), // hardhat RPC URL
+});
+
 /**
  * Transforms the encryptable items into EncryptedInputs ready to be used in a transaction on the hardhat chain.
  * The EncryptedInputs are returned in the same format as from CoFHE, and include on-chain verifiable signatures.
@@ -259,7 +270,7 @@ export async function cofheMocksZkVerifySign(
   zkvWalletClient: WalletClient | undefined
 ): Promise<VerifyResult[]> {
   // Use config.mocks.zkvWalletClient if provided, otherwise use connected walletClient
-  const _walletClient = zkvWalletClient ?? walletClient;
+  const _walletClient = zkvWalletClient ?? zkVerifierMockClient;
 
   // Call MockZkVerifier contract to calculate the ctHashes
   const encryptableItems = await calcCtHashes(items, account, securityZone, publicClient);
