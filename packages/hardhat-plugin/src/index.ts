@@ -198,7 +198,6 @@ export * from './expectResultUtils.js';
 export * from './fund.js';
 export * from './logging.js';
 export * from './deploy.js';
-export { MOCKS_ZK_VERIFIER_SIGNER_ADDRESS } from './consts.js';
 
 /**
  * Runtime environment extensions for the CoFHE Hardhat plugin.
