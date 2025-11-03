@@ -28,7 +28,13 @@ import {
   expectResultValue,
 } from './expectResultUtils.js';
 import type { Contract } from 'ethers';
-import { MockACLArtifact, MockQueryDecrypterArtifact, MockTaskManagerArtifact, MockZkVerifierArtifact, TestBedArtifact } from '@cofhe/mock-contracts';
+import {
+  MockACLArtifact,
+  MockQueryDecrypterArtifact,
+  MockTaskManagerArtifact,
+  MockZkVerifierArtifact,
+  TestBedArtifact,
+} from '@cofhe/mock-contracts';
 import { hardhat } from '@cofhe/sdk/chains';
 export {
   MockACLArtifact,
@@ -161,7 +167,7 @@ task(TASK_COFHE_MOCKS_DEPLOY, 'Deploys the mock contracts on the Hardhat network
     });
   });
 
-task(TASK_TEST, 'Deploy mock contracts on hardhat').setAction(async ({ }, hre, runSuper) => {
+task(TASK_TEST, 'Deploy mock contracts on hardhat').setAction(async ({}, hre, runSuper) => {
   await deployMocks(hre, {
     deployTestBed: true,
     gasWarning: hre.config.cofhesdk.gasWarning ?? true,
@@ -169,7 +175,7 @@ task(TASK_TEST, 'Deploy mock contracts on hardhat').setAction(async ({ }, hre, r
   return runSuper();
 });
 
-task(TASK_NODE, 'Deploy mock contracts on hardhat').setAction(async ({ }, hre, runSuper) => {
+task(TASK_NODE, 'Deploy mock contracts on hardhat').setAction(async ({}, hre, runSuper) => {
   await deployMocks(hre, {
     deployTestBed: true,
     gasWarning: hre.config.cofhesdk.gasWarning ?? true,
@@ -192,6 +198,7 @@ export * from './expectResultUtils.js';
 export * from './fund.js';
 export * from './logging.js';
 export * from './deploy.js';
+export { MOCKS_ZK_VERIFIER_SIGNER_ADDRESS } from './consts.js';
 
 /**
  * Runtime environment extensions for the CoFHE Hardhat plugin.
@@ -354,7 +361,6 @@ declare module 'hardhat/types/runtime' {
          * @returns {Promise<Contract>} The MockQueryDecrypter contract
          */
         getMockQueryDecrypter: () => Promise<Contract>;
-
 
         /**
          * Get the MockZkVerifier contract
