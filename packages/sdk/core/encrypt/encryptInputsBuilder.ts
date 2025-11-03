@@ -496,11 +496,9 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   async encrypt(): Promise<Result<[...EncryptedItemInputs<T>]>> {
     return resultWrapper(async () => {
       // Ensure cofhe client is connected
-      await this.requireConnectedOrThrow();
-
+      this.requireConnectedOrThrow();
       const account = await this.getAccountOrThrow();
       const chainId = await this.getChainIdOrThrow();
-
       // On hardhat, interact with MockZkVerifier contract instead of CoFHE
       if (chainId === hardhat.id) {
         return await this.mocksEncrypt(account);
