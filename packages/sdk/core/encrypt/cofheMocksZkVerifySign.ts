@@ -258,7 +258,7 @@ export async function cofheMocksZkVerifySign(
   walletClient: WalletClient,
   zkvWalletClient: WalletClient | undefined
 ): Promise<VerifyResult[]> {
-  // Use config.mocks.zkvWalletClient if provided, otherwise use connected walletClient
+  // Use config._internal?.zkvWalletClient if provided, otherwise use connected walletClient
   const _walletClient = zkvWalletClient ?? walletClient;
 
   // Call MockZkVerifier contract to calculate the ctHashes
