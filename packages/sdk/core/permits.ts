@@ -139,9 +139,9 @@ const getOrCreateSelfPermit = async (
  * Get the active sharing permit or create a new one if it doesn't exist
  * @param publicClient - The public client
  * @param walletClient - The wallet client
+ * @param options - The options for creating a sharing permit (required)
  * @param chainId - Optional chain ID (will use publicClient if not provided)
  * @param account - Optional account (will use walletClient if not provided)
- * @param options - The options for creating a sharing permit
  * @returns The existing or newly created permit
  */
 const getOrCreateSharingPermit = async (
