@@ -222,6 +222,21 @@ export function createCofhesdkClientBase(opts: CofhesdkClientParams): CofhesdkCl
         return permits.importShared(options, _publicClient!, _walletClient!);
       }),
 
+    // Get or create methods (require connection)
+    getOrCreateSelfPermit: async (chainId?: number, account?: string, options?: CreateSelfPermitOptions) =>
+      resultWrapper(async () => {
+        _requireConnected();
+        const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
+        return permits.getOrCreateSelfPermit(_publicClient!, _walletClient!, _chainId, _account, options);
+      }),
+
+    getOrCreateSharingPermit: async (options: CreateSharingPermitOptions, chainId?: number, account?: string) =>
+      resultWrapper(async () => {
+        _requireConnected();
+        const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
+        return permits.getOrCreateSharingPermit(_publicClient!, _walletClient!, options, _chainId, _account);
+      }),
+
     // Retrieval methods (auto-fill chainId/account)
     getPermit: async (hash: string, chainId?: number, account?: string) =>
       resultWrapper(async () => {
