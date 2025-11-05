@@ -6,6 +6,42 @@ import { toBigIntOrThrow, validateBigIntInRange, toHexString, hexToBytes } from 
 
 // ===== TYPES =====
 
+/**
+ * Worker function type for ZK proof generation
+ * Platform-specific implementations (web) can provide this to enable worker-based proofs
+ */
+export type ZkProveWorkerFunction = (
+  fheKeyHex: string,
+  crsHex: string,
+  items: EncryptableItem[],
+  metadata: Uint8Array
+) => Promise<Uint8Array>;
+
+/**
+ * Message sent from main thread to worker to request proof generation
+ */
+export interface ZkProveWorkerRequest {
+  id: string;
+  type: 'zkProve';
+  fheKeyHex: string;
+  crsHex: string;
+  items: Array<{
+    utype: string;
+    data: any;
+  }>;
+  metadata: number[]; // Uint8Array serialized as array
+}
+
+/**
+ * Message sent from worker back to main thread with proof result
+ */
+export interface ZkProveWorkerResponse {
+  id: string;
+  type: 'success' | 'error' | 'ready';
+  result?: number[]; // Uint8Array serialized as array
+  error?: string;
+}
+
 export type VerifyResultRaw = {
   ct_hash: string;
   signature: string;
@@ -156,15 +192,39 @@ export const zkPack = (items: EncryptableItem[], builder: ZkCiphertextListBuilde
   return builder;
 };
 
+/**
+ * Generates ZK proof using Web Worker (offloads heavy WASM computation)
+ * Serializes items and calls the platform-specific worker function
+ * @param workerFn - Platform-specific worker function (provided by web/index.ts)
+ * @param fheKeyHex - Hex-encoded FHE public key for worker deserialization
+ * @param crsHex - Hex-encoded CRS for worker deserialization
+ * @param items - Encryptable items to pack in the worker
+ * @param metadata - Pre-constructed ZK PoK metadata
+ * @returns The serialized proven ciphertext list
+ */
+export const zkProveWithWorker = async (
+  workerFn: ZkProveWorkerFunction,
+  fheKeyHex: string,
+  crsHex: string,
+  items: EncryptableItem[],
+  metadata: Uint8Array
+): Promise<Uint8Array> => {
+  return await workerFn(fheKeyHex, crsHex, items, metadata);
+};
+
+/**
+ * Generates ZK proof using main thread (synchronous WASM)
+ * This is the fallback when workers are disabled or unavailable
+ * @param builder - The ZK ciphertext list builder with packed inputs
+ * @param crs - The Compact PKE CRS for proof generation
+ * @param metadata - Pre-constructed ZK PoK metadata
+ * @returns The serialized proven ciphertext list
+ */
 export const zkProve = async (
   builder: ZkCiphertextListBuilder,
   crs: ZkCompactPkeCrs,
-  address: string,
-  securityZone: number,
-  chainId: number
+  metadata: Uint8Array
 ): Promise<Uint8Array> => {
-  const metadata = constructZkPoKMetadata(address, securityZone, chainId);
-
   return new Promise((resolve) => {
     setTimeout(() => {
       const compactList = builder.build_with_proof_packed(
@@ -178,7 +238,11 @@ export const zkProve = async (
   });
 };
 
-const constructZkPoKMetadata = (accountAddr: string, securityZone: number, chainId: number): Uint8Array => {
+/**
+ * Constructs the ZK Proof of Knowledge metadata for the proof
+ * @internal - Used internally within the encrypt module
+ */
+export const constructZkPoKMetadata = (accountAddr: string, securityZone: number, chainId: number): Uint8Array => {
   // Decode the account address from hex
   const accountAddrNoPrefix = accountAddr.startsWith('0x') ? accountAddr.slice(2) : accountAddr;
   const accountBytes = hexToBytes(accountAddrNoPrefix);

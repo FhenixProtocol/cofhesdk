@@ -3,6 +3,7 @@
   "extends": "./base.json",
   "compilerOptions": {
     "jsx": "react-jsx",
-    "lib": ["dom", "ES2015"]
+    "lib": ["dom", "ES2020"],
+    "target": "es2020"
   }
 }

@@ -12,7 +12,7 @@ import { type PublicClient, type WalletClient } from 'viem';
 import { type CofhesdkConfig } from './config.js';
 import { DecryptHandlesBuilder } from './decrypt/decryptHandleBuilder.js';
 import { EncryptInputsBuilder } from './encrypt/encryptInputsBuilder.js';
-import { type ZkBuilderAndCrsGenerator } from './encrypt/zkPackProveVerify.js';
+import { type ZkBuilderAndCrsGenerator, type ZkProveWorkerFunction } from './encrypt/zkPackProveVerify.js';
 import { type FheKeyDeserializer } from './fetchKeys.js';
 import { permits } from './permits.js';
 import { type Result } from './result.js';
@@ -113,6 +113,7 @@ export type CofhesdkClientParams = {
   tfhePublicKeyDeserializer: FheKeyDeserializer;
   compactPkeCrsDeserializer: FheKeyDeserializer;
   initTfhe: TfheInitializer;
+  zkProveWorkerFn?: ZkProveWorkerFunction;
 };
 
 export interface IStorage {
@@ -342,7 +343,11 @@ export enum EncryptStep {
   Verify = 'verify',
 }
 
-export type EncryptStepCallbackContext = Record<string, any> & { isStart: boolean; isEnd: boolean; duration: number };
+export type EncryptStepCallbackContext = Record<string, any> & {
+  isStart: boolean;
+  isEnd: boolean;
+  duration: number;
+};
 export type EncryptStepCallbackFunction = (state: EncryptStep, context?: EncryptStepCallbackContext) => void;
 
 // DECRYPT

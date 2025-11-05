@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 
-import { type ZkBuilderAndCrsGenerator, zkPack, zkProve, zkVerify } from './zkPackProveVerify.js';
+import { type ZkBuilderAndCrsGenerator, type ZkProveWorkerFunction, zkPack, zkProve, zkProveWithWorker, zkVerify, constructZkPoKMetadata } from './zkPackProveVerify.js';
 import { CofhesdkError, CofhesdkErrorCode } from '../error.js';
 import { type Result, resultWrapper } from '../result.js';
 import {
@@ -31,6 +31,7 @@ type EncryptInputsBuilderParams<T extends EncryptableItem[]> = BaseBuilderParams
   compactPkeCrsDeserializer: FheKeyDeserializer | undefined;
   zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator | undefined;
   initTfhe: TfheInitializer | undefined;
+  zkProveWorkerFn: ZkProveWorkerFunction | undefined;
 
   keysStorage: KeysStorage | undefined;
 };
@@ -55,8 +56,12 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   private compactPkeCrsDeserializer: FheKeyDeserializer | undefined;
   private zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator | undefined;
   private initTfhe: TfheInitializer | undefined;
+  private zkProveWorkerFn: ZkProveWorkerFunction | undefined;
 
   private keysStorage: KeysStorage | undefined;
+
+  // Worker configuration (from config, overrideable)
+  private useWorker: boolean;
 
   private stepTimestamps: Record<EncryptStep, number> = {
     [EncryptStep.InitTfhe]: 0,
@@ -85,8 +90,12 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     this.compactPkeCrsDeserializer = params.compactPkeCrsDeserializer;
     this.zkBuilderAndCrsGenerator = params.zkBuilderAndCrsGenerator;
     this.initTfhe = params.initTfhe;
+    this.zkProveWorkerFn = params.zkProveWorkerFn;
 
     this.keysStorage = params.keysStorage;
+
+    // Initialize useWorker from config (can be overridden via setUseWorker)
+    this.useWorker = params.config?.useWorkers ?? true;
   }
 
   /**
@@ -156,6 +165,42 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
 
   getSecurityZone(): number {
     return this.securityZone;
+  }
+
+  /**
+   * @param useWorker - Whether to use Web Workers for ZK proof generation.
+   *
+   * Overrides the config-level useWorkers setting for this specific encryption.
+   *
+   * Example:
+   * ```typescript
+   * const encrypted = await encryptInputs([Encryptable.uint128(10n)])
+   *   .setUseWorker(false)
+   *   .encrypt();
+   * ```
+   *
+   * @returns The chainable EncryptInputsBuilder instance.
+   */
+  setUseWorker(useWorker: boolean): EncryptInputsBuilder<T> {
+    this.useWorker = useWorker;
+    return this;
+  }
+
+  /**
+   * Gets the current worker configuration.
+   *
+   * @returns Whether Web Workers are enabled for this encryption.
+   *
+   * Example:
+   * ```typescript
+   * const builder = encryptInputs([Encryptable.uint128(10n)]);
+   * console.log(builder.getUseWorker()); // true (from config)
+   * builder.setUseWorker(false);
+   * console.log(builder.getUseWorker()); // false (overridden)
+   * ```
+   */
+  getUseWorker(): boolean {
+    return this.useWorker;
   }
 
   /**
@@ -434,10 +479,11 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     this.fireStepEnd(EncryptStep.InitTfhe, { tfheInitializationExecuted });
 
     this.fireStepStart(EncryptStep.FetchKeys);
-
+    
     // Deferred fetching of fheKey and crs until encrypt is called
     // if the key/crs is already in the store, it is not fetched from the CoFHE API
     const { fheKey, fheKeyFetchedFromCoFHE, crs, crsFetchedFromCoFHE } = await this.fetchFheKeyAndCrs();
+    
     let { zkBuilder, zkCrs } = this.generateZkBuilderAndCrs(fheKey, crs);
 
     this.fireStepEnd(EncryptStep.FetchKeys, { fheKeyFetchedFromCoFHE, crsFetchedFromCoFHE });
@@ -450,14 +496,47 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
 
     this.fireStepStart(EncryptStep.Prove);
 
-    const proof = await zkProve(zkBuilder, zkCrs, account, this.securityZone, chainId);
+    // Construct metadata once (used by both worker and main thread paths)
+    const metadata = constructZkPoKMetadata(account, this.securityZone, chainId);
 
-    this.fireStepEnd(EncryptStep.Prove);
+    let proof: Uint8Array | null = null;
+    let usedWorker = false;
+    let workerFailedError: string | undefined;
+
+    // Decision logic: try worker if enabled and available, fallback to main thread
+    if (this.useWorker && this.zkProveWorkerFn) {
+      try {
+        // Call worker function directly (no packing needed, worker does it)
+        proof = await zkProveWithWorker(
+          this.zkProveWorkerFn,
+          fheKey,
+          crs,
+          this.inputItems,
+          metadata
+        );
+        usedWorker = true;
+      } catch (error) {
+        // Worker failed - capture error for debugging
+        workerFailedError = error instanceof Error ? error.message : String(error);
+      }
+    }
+
+    if (proof == null) {
+      // Use main thread directly (workers disabled or unavailable)
+      proof = await zkProve(zkBuilder, zkCrs, metadata);
+      usedWorker = false;
+    }
+
+    this.fireStepEnd(EncryptStep.Prove, {
+      useWorker: this.useWorker,
+      usedWorker,
+      workerFailedError,
+    });
 
     this.fireStepStart(EncryptStep.Verify);
 
     const zkVerifierUrl = await this.getZkVerifierUrl();
-
+    
     const verifyResults = await zkVerify(zkVerifierUrl, proof, account, this.securityZone, chainId);
     // Add securityZone and utype to the verify results
     const encryptedInputs: EncryptedItemInput[] = verifyResults.map(

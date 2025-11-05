@@ -32,6 +32,12 @@ export type CofhesdkConfig = {
    * (defaults to indexedDB on web, filesystem on node)
    */
   fheKeyStorage: IStorage | null;
+  /**
+   * Whether to use Web Workers for ZK proof generation (web platform only)
+   * When enabled, heavy WASM computation is offloaded to prevent UI freezing
+   * Default: true
+   */
+  useWorkers: boolean;
   /** Mocks configs */
   mocks: {
     /**
@@ -72,6 +78,8 @@ export const CofhesdkConfigSchema = z.object({
     })
     .or(z.null())
     .default(null),
+  /** Whether to use Web Workers for ZK proof generation (web platform only) */
+  useWorkers: z.boolean().optional().default(true),
   /** Mocks configs */
   mocks: z
     .object({

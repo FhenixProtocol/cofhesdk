@@ -249,6 +249,7 @@ describe('EncryptInputsBuilder', () => {
       compactPkeCrsDeserializer: mockCompactPkeCrsDeserializer,
       zkBuilderAndCrsGenerator: mockZkBuilderAndCrsGenerator,
       initTfhe: mockInitTfhe,
+      zkProveWorkerFn: undefined,
       keysStorage: keysStorage,
       requireConnected: vi.fn(),
     };
