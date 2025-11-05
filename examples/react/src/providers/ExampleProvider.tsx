@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { createCofhesdkClient, createCofhesdkConfig } from 'cofhesdk/web';
+import { createCofhesdkClient, createCofhesdkConfig } from '@cofhe/sdk/web';
 import { createPublicClient, createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { sepolia } from 'viem/chains';
-import { sepolia as cofheSepoliaChain } from 'cofhesdk/chains';
-import { CofheProvider } from '@cofhesdk/react';
-import type { CofhesdkClient } from 'cofhesdk';
+import { sepolia as cofheSepoliaChain } from '@cofhe/sdk/chains';
+import { CofheProvider } from '@cofhe/react';
+import type { CofhesdkClient } from '@cofhe/sdk';
 
 interface ExampleContextType {
   isInitialized: boolean;

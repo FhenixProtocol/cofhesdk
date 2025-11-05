@@ -10,8 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@cofhesdk/react": "workspace:*",
-    "cofhesdk": "workspace:*",
+    "@cofhe/react": "workspace:*",
+    "@cofhe/sdk": "workspace:*",
     "@mui/icons-material": "^5.0.0",
     "@mui/material": "^5.0.0",
     "@emotion/react": "^11.0.0",

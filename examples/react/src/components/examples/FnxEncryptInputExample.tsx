@@ -1,5 +1,5 @@
 import React from 'react';
-import { FnxEncryptInput, FheTypesList } from '@cofhesdk/react';
+import { FnxEncryptInput, FheTypesList } from '@cofhe/react';
 
 export const FnxEncryptInputExample: React.FC = () => {
   return (

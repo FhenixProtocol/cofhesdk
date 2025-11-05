@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useEncryptInput } from '@cofhesdk/react';
+import { useEncryptInput } from '@cofhe/react';
 import { useExample } from '../../providers/ExampleProvider';
 
 export const HooksExample: React.FC = () => {

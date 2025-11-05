@@ -112,13 +112,13 @@ For production, replace the initialization in `ExampleProvider.tsx` with your ac
 After exploring the examples, you can use these components in your own project:
 
 ```bash
-npm install @cofhesdk/react cofhesdk
+npm install @cofhe/react cofhesdk
 ```
 
 ```tsx
-import { CofheProvider, FnxEncryptInput } from '@cofhesdk/react';
-import { createCofhesdkClient, createCofhesdkConfig } from 'cofhesdk/web';
-import { sepolia } from 'cofhesdk/chains';
+import { CofheProvider, FnxEncryptInput } from '@cofhe/react';
+import { createCofhesdkClient, createCofhesdkConfig } from '@cofhe/sdk/web';
+import { sepolia } from '@cofhe/sdk/chains';
 
 const config = createCofhesdkConfig({
   supportedChains: [sepolia],
