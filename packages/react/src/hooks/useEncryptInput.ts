@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useCofheContext } from '../providers/CofheProvider.js';
-import { Encryptable } from 'cofhesdk';
-import type { EncryptableItem } from 'cofhesdk';
+import { Encryptable } from '@cofhe/sdk';
+import type { EncryptableItem } from '@cofhe/sdk';
 import type { FheTypeValue } from '../utils/utils.js';
 import type { EncryptionStep } from '../types/component-types.js';
 

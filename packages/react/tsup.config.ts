@@ -9,7 +9,7 @@ export default defineConfig({
   splitting: false,
   sourcemap: true,
   clean: true,
-  external: ['react', 'react-dom', '@mui/material', '@mui/icons-material'],
+  external: ['react', 'react-dom', '@mui/material', '@mui/icons-material', '@cofhe/sdk'],
   esbuildOptions(options) {
     options.jsx = 'automatic';
   },

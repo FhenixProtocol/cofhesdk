@@ -257,9 +257,27 @@ importers:
 
   packages/react:
     dependencies:
+      '@cofhe/sdk':
+        specifier: workspace:*
+        version: link:../sdk
+      '@mui/icons-material':
+        specifier: ^5.0.0
+        version: 5.18.0(@mui/material@5.18.0)(@types/react@18.2.61)(react@18.3.1)
+      '@mui/material':
+        specifier: ^5.0.0
+        version: 5.18.0(@emotion/react@11.14.0)(@emotion/styled@11.14.1)(@types/react@18.2.61)(react-dom@18.3.1)(react@18.3.1)
+      clsx:
+        specifier: ^2.0.0
+        version: 2.1.1
       react:
-        specifier: ^18.2.0
-        version: 18.2.0
+        specifier: ^16.8.0 || ^17.0.0 || ^18.0.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^16.8.0 || ^17.0.0 || ^18.0.0
+        version: 18.3.1(react@18.3.1)
+      tailwind-merge:
+        specifier: ^2.0.0
+        version: 2.6.0
     devDependencies:
       '@cofhe/eslint-config':
         specifier: workspace:*
@@ -8624,13 +8642,6 @@ packages:
       prop-types: 15.8.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
-    dev: false
-
-  /react@18.2.0:
-    resolution: {integrity: sha512-/3IjMdb2L9QbBdWiW5e3P2/npwMBaU9mHCSCUzNln0ZCYbcfTsGbTJrU/kGemdH2IWmB2ioZ+zkxtmq6g09fGQ==}
-    engines: {node: '>=0.10.0'}
-    dependencies:
-      loose-envify: 1.4.0
     dev: false
 
   /react@18.3.1:

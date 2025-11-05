@@ -77,5 +77,7 @@ export { DecryptHandlesBuilder } from './decrypt/decryptHandleBuilder.js';
 export type { ZkBuilderAndCrsGenerator, ZkProveWorkerFunction, ZkProveWorkerRequest, ZkProveWorkerResponse } from './encrypt/zkPackProveVerify.js';
 export { zkProveWithWorker } from './encrypt/zkPackProveVerify.js';
 
+export { MOCKS_ZK_VERIFIER_SIGNER_ADDRESS } from './encrypt/cofheMocksZkVerifySign.js';
+
 // Utils
 export { fheTypeToString } from './utils.js';
