@@ -244,7 +244,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    */
   private async getZkVerifierUrl(): Promise<string> {
     const config = this.getConfigOrThrow();
-    const chainId = await this.getChainIdOrThrow();
+    const chainId = this.getChainIdOrThrow();
     return getZkVerifierUrlOrThrow(config, chainId);
   }
 
@@ -281,7 +281,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     crsFetchedFromCoFHE: boolean;
   }> {
     const config = this.getConfigOrThrow();
-    const chainId = await this.getChainIdOrThrow();
+    const chainId = this.getChainIdOrThrow();
     const compactPkeCrsDeserializer = this.getCompactPkeCrsDeserializerOrThrow();
     const tfhePublicKeyDeserializer = this.getTfhePublicKeyDeserializerOrThrow();
     const securityZone = this.getSecurityZone();
@@ -497,8 +497,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     return resultWrapper(async () => {
       // Ensure cofhe client is connected
       this.requireConnectedOrThrow();
-      const account = await this.getAccountOrThrow();
-      const chainId = await this.getChainIdOrThrow();
+      const account = this.getAccountOrThrow();
+      const chainId = this.getChainIdOrThrow();
       // On hardhat, interact with MockZkVerifier contract instead of CoFHE
       if (chainId === hardhat.id) {
         return await this.mocksEncrypt(account);

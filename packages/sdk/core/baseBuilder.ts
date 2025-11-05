@@ -46,7 +46,7 @@ export abstract class BaseBuilder {
    * @returns The chain ID
    * @throws {CofhesdkError} If chainId is not set and publicClient is not available
    */
-  protected async getChainIdOrThrow(): Promise<number> {
+  protected getChainIdOrThrow(): number {
     if (this.chainId) return this.chainId;
 
     throw new CofhesdkError({
@@ -64,7 +64,7 @@ export abstract class BaseBuilder {
    * @returns The account address
    * @throws {CofhesdkError} If account is not set and walletClient is not available
    */
-  protected async getAccountOrThrow(): Promise<string> {
+  protected getAccountOrThrow(): string {
     if (this.account) return this.account;
 
     throw new CofhesdkError({
