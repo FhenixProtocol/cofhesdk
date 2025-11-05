@@ -497,6 +497,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     return resultWrapper(async () => {
       // Ensure cofhe client is connected
       this.requireConnectedOrThrow();
+      
       const account = this.getAccountOrThrow();
       const chainId = this.getChainIdOrThrow();
       // On hardhat, interact with MockZkVerifier contract instead of CoFHE
