@@ -17,13 +17,23 @@ import { privateKeyToAccount } from 'viem/accounts';
 
 // Address the Mock ZkVerifier contract is deployed to on the Hardhat chain
 export const MocksZkVerifierAddress = '0x0000000000000000000000000000000000000100';
-// Private key of the account expected to sign the encrypted inputs
-export const MocksEncryptedInputSignerPkey = '0x6c8d7f768a6bb4aafe85e8a2f5a9680355239c7e14646ed62b044e39de154512';
+
+// PK & address pair for zk verifier
+export const MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY =
+  '0x6C8D7F768A6BB4AAFE85E8A2F5A9680355239C7E14646ED62B044E39DE154512';
+export const MOCKS_ZK_VERIFIER_SIGNER_ADDRESS = '0x6E12D8C87503D4287c294f2Fdef96ACd9DFf6bd2';
 
 type EncryptableItemWithCtHash = EncryptableItem & {
   ctHash: bigint;
 };
 
+function createMockZkVerifierSigner() {
+  return createWalletClient({
+    chain: hardhat,
+    transport: http(),
+    account: privateKeyToAccount(MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY),
+  });
+}
 /**
  * The mocks don't use a tfhe builder, so we check the encryptable bits here to preserve parity
  */
@@ -187,18 +197,14 @@ async function createProofSignatures(items: EncryptableItemWithCtHash[], securit
   let encInputSignerClient: WalletClient | undefined;
 
   try {
-    encInputSignerClient = createWalletClient({
-      chain: hardhat,
-      transport: http(),
-      account: privateKeyToAccount(MocksEncryptedInputSignerPkey),
-    });
+    encInputSignerClient = createMockZkVerifierSigner();
   } catch (err) {
     throw new CofhesdkError({
       code: CofhesdkErrorCode.ZkMocksCreateProofSignatureFailed,
       message: `mockZkVerifySign createProofSignatures failed while creating wallet client`,
       cause: err instanceof Error ? err : undefined,
       context: {
-        MocksEncryptedInputSignerPkey,
+        MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY,
       },
     });
   }
@@ -259,7 +265,7 @@ export async function cofheMocksZkVerifySign(
   zkvWalletClient: WalletClient | undefined
 ): Promise<VerifyResult[]> {
   // Use config._internal?.zkvWalletClient if provided, otherwise use connected walletClient
-  const _walletClient = zkvWalletClient ?? walletClient;
+  const _walletClient = zkvWalletClient ?? createMockZkVerifierSigner();
 
   // Call MockZkVerifier contract to calculate the ctHashes
   const encryptableItems = await calcCtHashes(items, account, securityZone, publicClient);
