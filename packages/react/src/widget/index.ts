@@ -6,6 +6,24 @@ import { createCofhesdkConfig as createCofhesdkConfigWeb } from '@cofhe/sdk/web'
  * Zod schema for widget configuration validation
  */
 export const CofhesdkWidgetConfigSchema = z.object({
+  shareablePermits: z.boolean().optional().default(false),
+  portalShieldUnshield: z.boolean().optional().default(true),
+  autogeneratePermits: z.boolean().optional().default(true),
+  permitExpirationOptions: z
+    .array(
+      z.object({
+        label: z.string(),
+        intervalSeconds: z.number().min(0),
+      })
+    )
+    .optional()
+    .default([
+      { label: '1 Day', intervalSeconds: 86400 },
+      { label: '1 Week', intervalSeconds: 604800 },
+      { label: '1 Month', intervalSeconds: 2592000 },
+    ]),
+  defaultPermitExpirationSeconds: z.number().optional().default(604800), // 1 week
+  pinnedTokens: z.record(z.number(), z.string()).optional().default({}),
   position: z.enum(['bottom-right', 'bottom-left', 'top-right', 'top-left']).optional().default('bottom-right'),
 });
 
