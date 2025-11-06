@@ -24,7 +24,7 @@ export const Overview: React.FC = () => {
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border">
         <h2 className="text-xl font-semibold mb-4">Getting Started</h2>
         <pre className="bg-gray-900 text-gray-100 p-3 rounded text-sm overflow-x-auto">
-{`npm install @cofhe/react @cofhesdk/web @cofhesdk/adapters`}
+{`npm install @cofhe/react @cofhe/sdk`}
         </pre>
       </div>
     </div>

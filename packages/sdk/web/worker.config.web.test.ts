@@ -15,7 +15,7 @@ const expectResultSuccess = <T>(result: Result<T>): T => {
   return result.data!;
 };
 
-describe('@cofhesdk/web - Worker Configuration Tests', () => {
+describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
   let publicClient: PublicClient;
   let walletClient: WalletClient;
 
