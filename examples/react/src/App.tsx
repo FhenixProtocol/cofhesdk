@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Navigation } from './components/Navigation';
 import { ComponentRenderer } from './components/ComponentRenderer';
 import { ExampleProvider } from './providers/ExampleProvider';
@@ -22,15 +22,17 @@ function App() {
 
   return (
     <ExampleProvider>
-      <div className={`min-h-screen flex ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
-        <Navigation 
+      <div
+        className={`min-h-screen flex ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}
+      >
+        <Navigation
           activeComponent={activeComponent}
           onComponentSelect={setActiveComponent}
           isDarkMode={isDarkMode}
           onToggleDarkMode={toggleDarkMode}
         />
-        <ComponentRenderer 
-          activeComponent={activeComponent} 
+        <ComponentRenderer
+          activeComponent={activeComponent}
           isDarkMode={isDarkMode}
         />
       </div>

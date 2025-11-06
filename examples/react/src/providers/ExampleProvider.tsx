@@ -29,7 +29,9 @@ interface ExampleProviderProps {
   children: React.ReactNode;
 }
 
-export const ExampleProvider: React.FC<ExampleProviderProps> = ({ children }) => {
+export const ExampleProvider: React.FC<ExampleProviderProps> = ({
+  children,
+}) => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +50,8 @@ export const ExampleProvider: React.FC<ExampleProviderProps> = ({ children }) =>
 
     try {
       // Create a mock private key for examples (DO NOT use in production)
-      const mockPrivateKey = '0x1234567890123456789012345678901234567890123456789012345678901234';
+      const mockPrivateKey =
+        '0x1234567890123456789012345678901234567890123456789012345678901234';
       const account = privateKeyToAccount(mockPrivateKey);
 
       // Create public client (provider) for Sepolia
@@ -74,7 +77,10 @@ export const ExampleProvider: React.FC<ExampleProviderProps> = ({ children }) =>
       // Create CoFHE SDK client
       const cofheClient = createCofhesdkClient(config);
       // Connect the client
-      const connectResult = await cofheClient.connect(publicClient, walletClient);
+      const connectResult = await cofheClient.connect(
+        publicClient,
+        walletClient,
+      );
       console.log('--------------------------------');
       console.log('connectResult', connectResult);
       console.log('--------------------------------');
