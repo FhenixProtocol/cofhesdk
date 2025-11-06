@@ -15,6 +15,11 @@
   },
   "sideEffects": false,
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/FhenixProtocol/cofhesdk.git",
+    "directory": "packages/react"
+  },
   "files": [
     "dist/**"
   ],
