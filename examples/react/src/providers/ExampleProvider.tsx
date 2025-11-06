@@ -105,9 +105,7 @@ export const ExampleProvider: React.FC<ExampleProviderProps> = ({ children }) =>
 
   return (
     <ExampleContext.Provider value={value}>
-      <CofheProvider client={client}>
-        {children}
-      </CofheProvider>
+      <CofheProvider client={client || undefined}>{children}</CofheProvider>
     </ExampleContext.Provider>
   );
 };
