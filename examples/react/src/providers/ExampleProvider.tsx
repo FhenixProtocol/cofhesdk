@@ -42,7 +42,7 @@ export const ExampleProvider: React.FC<ExampleProviderProps> = ({ children }) =>
 
   const initialize = async () => {
     if (isInitialized || isInitializing) return;
-    
+
     setIsInitializing(true);
     setError(null);
 
@@ -50,7 +50,7 @@ export const ExampleProvider: React.FC<ExampleProviderProps> = ({ children }) =>
       // Create a mock private key for examples (DO NOT use in production)
       const mockPrivateKey = '0x1234567890123456789012345678901234567890123456789012345678901234';
       const account = privateKeyToAccount(mockPrivateKey);
-      
+
       // Create public client (provider) for Sepolia
       const publicClient = createPublicClient({
         chain: sepolia,
@@ -68,7 +68,7 @@ export const ExampleProvider: React.FC<ExampleProviderProps> = ({ children }) =>
       const inputConfig = {
         supportedChains: [cofheSepoliaChain],
       };
-  
+
       const config = createCofhesdkConfig(inputConfig);
 
       // Create CoFHE SDK client
@@ -78,7 +78,7 @@ export const ExampleProvider: React.FC<ExampleProviderProps> = ({ children }) =>
       console.log('--------------------------------');
       console.log('connectResult', connectResult);
       console.log('--------------------------------');
-      
+
       if (!connectResult.success) {
         throw connectResult.error;
       }
