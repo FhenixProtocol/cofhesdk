@@ -10,7 +10,7 @@ import { createCofhesdkClient, createCofhesdkConfig } from './index.js';
 
 const TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 
-describe('@cofhesdk/web - Worker vs Main Thread Output Validation', () => {
+describe('@cofhe/sdk/web - Worker vs Main Thread Output Validation', () => {
   let publicClient: PublicClient;
   let walletClient: WalletClient;
 

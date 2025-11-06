@@ -3,7 +3,7 @@ import { createCofhesdkClient, createCofhesdkConfig } from './index.js';
 import { Encryptable } from '@/core';
 import { arbSepolia as cofhesdkArbSepolia } from '@/chains';
 
-describe('@cofhesdk/web - EncryptInputsBuilder Worker Methods', () => {
+describe('@cofhe/sdk/web - EncryptInputsBuilder Worker Methods', () => {
 
   describe('setUseWorker method', () => {
     it('should have setUseWorker method on EncryptInputsBuilder', () => {
