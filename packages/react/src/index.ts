@@ -17,3 +17,5 @@ export { createCofhesdkConfig } from './widget/index';
 
 // Types
 export type { CofheContextValue, CofheProviderProps, CofheClientConfig } from './types/index.js';
+
+export { createCofhesdkClient } from '@cofhe/sdk/web';
