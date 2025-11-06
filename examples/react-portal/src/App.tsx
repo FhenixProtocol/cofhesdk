@@ -1,37 +1,26 @@
-import { useState } from 'react';
-import reactLogo from './assets/react.svg';
-import viteLogo from '/vite.svg';
 import './App.css';
-import { createCofhesdkConfig } from '@cofhe/react';
-const config = createCofhesdkConfig({
-  client: { supportedChains: [] },
-  widget: {},
-});
+import { CofheProviderLocal } from './utils/cofhe.config';
+import { QueryProvider } from './utils/query';
+import { useEncrypt } from './hooks/useEncrypt';
 
-console.log('Cofhesdk Config:', config);
+function Inner() {
+  const { data: encrypted, error, isLoading: isEncrypting } = useEncrypt('12345');
+  console.log('Encrypted data:', encrypted);
+  const rendered = {
+    isEncrypting,
+    error,
+    encrypted,
+  };
+  return <pre>{JSON.stringify(rendered, null, 2)}</pre>;
+}
 
 function App() {
-  const [count, setCount] = useState(0);
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>count is {count}</button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">Click on the Vite and React logos to learn more</p>
-    </>
+    <QueryProvider>
+      <CofheProviderLocal>
+        <Inner />
+      </CofheProviderLocal>
+    </QueryProvider>
   );
 }
 
