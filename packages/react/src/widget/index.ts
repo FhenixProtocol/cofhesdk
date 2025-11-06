@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { type CofhesdkConfig, type CofhesdkInputConfig } from '@cofhe/sdk';
 import { createCofhesdkConfig as createCofhesdkConfigWeb } from '@cofhe/sdk/web';
-type WidgetPosition = 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
 
 /**
  * Zod schema for widget configuration validation
@@ -20,9 +19,7 @@ export type CofhesdkWidgetInputConfig = {
 
 export type CofhesdkWidgetConfig = {
   client: CofhesdkConfig;
-  widget: {
-    position: WidgetPosition;
-  };
+  widget: z.input<typeof CofhesdkWidgetConfigSchema>;
 };
 /**
  * Creates a CoFHE SDK Client and Widget configuration reasonable defaults

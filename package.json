@@ -1,7 +1,7 @@
 {
   "private": true,
   "scripts": {
-    "build": "turbo run build",
+    "build": "turbo run build --filter='!./examples/*'",
     "dev": "turbo run dev",
     "test": "turbo run test",
     "lint": "turbo run lint",
