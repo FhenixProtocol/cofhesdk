@@ -75,9 +75,9 @@ export const ExampleProvider: React.FC<ExampleProviderProps> = ({ children }) =>
       const cofheClient = createCofhesdkClient(config);
       // Connect the client
       const connectResult = await cofheClient.connect(publicClient, walletClient);
-      console.log("--------------------------------")
+      console.log('--------------------------------');
       console.log('connectResult', connectResult);
-      console.log("--------------------------------")
+      console.log('--------------------------------');
       
       if (!connectResult.success) {
         throw connectResult.error;
