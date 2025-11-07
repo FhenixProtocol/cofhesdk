@@ -10,5 +10,6 @@ export function useEncrypt(value: string) {
       // Simulate an encryption operation
       return fn.onEncryptInput('uint128', value);
     },
+    retry: false, // prevent default 3 exponentialy timed retries
   });
 }
