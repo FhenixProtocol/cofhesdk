@@ -1,13 +1,13 @@
-# @cofhesdk/react
+# @cofhe/react
 
 React component and hook for the CoFHE SDK - featuring the advanced FnxEncryptInput component.
 
 ## Installation
 
 ```bash
-npm install @cofhesdk/react @cofhesdk/web @cofhesdk/adapters @mui/icons-material @mui/material
+npm install @cofhe/react @cofhe/sdk @mui/icons-material @mui/material
 # or
-pnpm add @cofhesdk/react @cofhesdk/web @cofhesdk/adapters @mui/icons-material @mui/material
+pnpm add @cofhe/react @cofhe/sdk @mui/icons-material @mui/material
 ```
 
 ## Quick Start
@@ -15,9 +15,9 @@ pnpm add @cofhesdk/react @cofhesdk/web @cofhesdk/adapters @mui/icons-material @m
 ### 1. Wrap your app with CofheProvider
 
 ```tsx
-import { CofheProvider } from '@cofhesdk/react';
-import '@cofhesdk/react/styles.css'; // Import component styles
-import { createCofhesdkClient } from '@cofhesdk/web';
+import { CofheProvider } from '@cofhe/react';
+import '@cofhe/react/styles.css'; // Import component styles
+import { createCofhesdkClient } from '@cofhe/sdk/web';
 
 const client = createCofhesdkClient(config);
 
@@ -33,7 +33,7 @@ function App() {
 ### 2. Use the FnxEncryptInput component
 
 ```tsx
-import { FnxEncryptInput, FheTypesList } from '@cofhesdk/react';
+import { FnxEncryptInput, FheTypesList } from '@cofhe/react';
 
 function MyComponent() {
   return (
@@ -51,7 +51,7 @@ function MyComponent() {
 ### 3. Use the hook directly for custom implementations
 
 ```tsx
-import { useEncryptInput } from '@cofhesdk/react';
+import { useEncryptInput } from '@cofhe/react';
 
 function CustomComponent() {
   const { onEncryptInput, isEncryptingInput, encryptionProgress } = useEncryptInput();
@@ -133,7 +133,7 @@ const {
 The package includes Tailwind CSS styles. Import them in your app:
 
 ```tsx
-import '@cofhesdk/react/styles.css';
+import '@cofhe/react/styles.css';
 ```
 
 If you're using Tailwind CSS in your project, the component classes will work automatically.
@@ -147,9 +147,9 @@ If you're using Tailwind CSS in your project, the component classes will work au
 - `react-dom` ^16.8.0 || ^17.0.0 || ^18.0.0
 
 ### CoFHE SDK Dependencies
-- `@cofhesdk/web` - Web-specific CoFHE SDK
-- `@cofhesdk/adapters` - Provider adapters
-- `@cofhesdk/chains` - Chain configurations
+- `@cofhe/sdk/web` - Web-specific CoFHE SDK
+- `@cofhe/sdk/adapters` - Provider adapters
+- `@cofhe/sdk/chains` - Chain configurations
 
 ## Example
 

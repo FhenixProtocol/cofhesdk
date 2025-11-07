@@ -1,6 +1,5 @@
 {
   "name": "@cofhe/react",
-  "private": true,
   "version": "0.1.0",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -16,6 +15,11 @@
   },
   "sideEffects": false,
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/FhenixProtocol/cofhesdk.git",
+    "directory": "packages/react"
+  },
   "files": [
     "dist/**"
   ],
@@ -32,7 +36,8 @@
     "@types/react": "^18.2.61",
     "@types/react-dom": "^18.2.19",
     "eslint": "^8.57.0",
-    "tsup": "^8.0.2",
+    "tailwindcss": "3.4.18",
+    "tsup": "^8.5.0",
     "typescript": "5.5.4"
   },
   "dependencies": {
