@@ -16,10 +16,11 @@ function Inner() {
   } = useEncrypt(value, 'uint128', {
     enabled: false, // only run on explicit refetch, a callback fn call
   });
+  if (error) console.error('Debug Encrypted data:', error);
   // console.log('Encrypted data:', encrypted);
   const rendered = {
     isEncrypting,
-    error,
+    error: error ? error.message : null,
     // tiny one-liner replacer to make BigInt visible in the browser
     encrypted: JSON.stringify(encrypted, (_k, v) => (typeof v === 'bigint' ? `${v}n` : v)),
   };
