@@ -11,7 +11,13 @@ import type {
   EncryptStep,
   EncryptStepCallbackContext,
 } from '@cofhe/sdk';
-import { useQuery, type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
+import {
+  useMutation,
+  useQuery,
+  type UseMutationResult,
+  type UseQueryOptions,
+  type UseQueryResult,
+} from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 type Options = Omit<UseQueryOptions<EncryptedInput, Error>, 'queryKey' | 'queryFn'>;
@@ -72,8 +78,6 @@ function useStepsState(): StepsState {
 
   const reset = useCallback(() => setSteps([]), []);
   return {
-    // steps,
-    // setSteps,
     onStep,
     reset,
     compactSteps,
@@ -136,30 +140,35 @@ async function encryptValue({
   return result.data[0];
 }
 
+type FheMutationResult = UseMutationResult<
+  EncryptedInput,
+  Error,
+  {
+    value: string;
+    type: FheTypeValue;
+  },
+  unknown
+>;
+
 export function useEncryptValueViaCallback(): {
   stepsState: StepsState;
-  encryptValueCall: ({ value, type }: { value: string; type: FheTypeValue }) => Promise<EncryptedInput>;
+  mutation: FheMutationResult;
 } {
   const client = useCofheContext().client;
   const stepsState = useStepsState();
   const { onStep } = stepsState;
-
-  const encryptValueCall = useCallback(
-    ({ value, type }: { value: string; type: FheTypeValue }) => {
-      if (!client) {
-        throw new Error('CoFHE client not initialized');
-      }
-      return encryptValue({
+  const mutationResult: FheMutationResult = useMutation({
+    mutationFn: ({ value, type }: { value: string; type: FheTypeValue }) =>
+      encryptValue({
         value,
         type,
         client,
         onStep,
-      });
-    },
-    [client]
-  );
+      }),
+  });
+
   return {
     stepsState,
-    encryptValueCall,
+    mutation: mutationResult,
   };
 }

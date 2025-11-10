@@ -9,8 +9,9 @@ import { useState } from 'react';
 function Inner() {
   const [value, setValue] = useState('12345');
   const {
-    queryResult: { data: encrypted, error, isFetching: isEncrypting, refetch: refetchFromHookArgs },
+    // queryResult: { data: encrypted, error, isFetching: isEncrypting, refetch: refetchFromHookArgs },
     // stepsState: { lastStep, compactSteps },
+    // rawStreps,
     // rawStreps,
   } = useEncryptFromArgs(value, 'uint128', {
     enabled: false, // only run on explicit refetch, a callback fn call
@@ -18,7 +19,8 @@ function Inner() {
 
   const {
     stepsState: { lastStep, compactSteps },
-    encryptValueCall,
+    // mutation: { mutateAsync: encryptValueCall, error: errorCall, isPending: isEncryptingCall, data: encryptedCall },
+    mutation: { mutateAsync: encryptValueCall, error, isPending: isEncrypting, data: encrypted },
   } = useEncryptValueViaCallback();
 
   // const { encryptValueCall, stepsState } = useEncryptValueCall();
@@ -32,11 +34,16 @@ function Inner() {
   };
 
   async function tmp() {
-    // will always succeed as it's a call to refetch. Will contain 'error' if something went wrong
+    // this will always succeed as it's a call to refetch. Will contain 'error' if something went wrong
     // const result = await refetchFromHookArgs();
 
-    const encryptValueCallResult = await encryptValueCall({ value, type: 'uint128' });
-    debugger;
+    // but this will throw if something goes wrong
+    try {
+      const encryptValueCallResult = await encryptValueCall({ value, type: 'uint128' });
+    } catch (e) {
+      console.error('Error during encryption via callback:', e);
+      throw e;
+    }
   }
 
   return (
