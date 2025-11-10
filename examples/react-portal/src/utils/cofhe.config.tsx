@@ -1,9 +1,10 @@
 import { CofheProvider, createCofhesdkClient, createCofhesdkConfig } from '@cofhe/react';
 import { useEffect } from 'react';
 import { usePublicClient, useWalletClient } from 'wagmi';
+import { sepolia, baseSepolia } from '@cofhe/sdk/chains';
 
 const cofheConfig = createCofhesdkConfig({
-  client: { supportedChains: [] },
+  client: { supportedChains: [sepolia, baseSepolia] },
   widget: {},
 });
 
@@ -20,7 +21,9 @@ export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) 
     async function handleConnect() {
       if (!publicClient || !walletClient) return;
 
-      await cofheSdkClient.connect(publicClient, walletClient);
+      const connectionResult = await cofheSdkClient.connect(publicClient, walletClient);
+      const initializationResults = await cofheSdkClient.initializationResults.keyFetchResult;
+      debugger;
     }
     handleConnect();
   }, [walletClient, publicClient]);
