@@ -112,8 +112,9 @@ export function useEncryptFromCallbackArgs(): {
 } {
   const client = useCofheContext().client;
   const stepsState = useStepsState();
-  const { onStep } = stepsState;
+  const { onStep, reset } = stepsState;
   const mutationResult = useMutation({
+    onMutate: reset,
     mutationFn: ({ value, type }: { value: string; type: FheTypeValue }) =>
       encryptValue({
         value,
@@ -141,8 +142,9 @@ export function useEncryptFromHookArgs(
 } {
   const client = useCofheContext().client;
   const stepsState = useStepsState();
-  const { onStep } = stepsState;
+  const { onStep, reset } = stepsState;
   const mutationResult = useMutation({
+    onMutate: reset,
     mutationFn: () =>
       encryptValue({
         value,
