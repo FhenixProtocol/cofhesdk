@@ -9,13 +9,13 @@ import { useState } from 'react';
 function Inner() {
   const [value, setValue] = useState('12345');
   const {
-    // stepsState: { lastStep, compactSteps },
-    // mutation: { error, isPending: isEncrypting, data: encrypted, mutateAsync: mutateAsyncArgsFromHook },
+    stepsState: { lastStep, compactSteps },
+    mutation: { variables, error, isPending: isEncrypting, data: encrypted, mutateAsync: mutateAsyncArgsFromHook },
   } = useEncryptFromHookArgs(value, 'uint128');
 
   const {
-    stepsState: { lastStep, compactSteps },
-    mutation: { error, isPending: isEncrypting, data: encrypted, mutateAsync: mutateAsyncArgsFromCallback },
+    // stepsState: { lastStep, compactSteps },
+    // mutation: { variables, error, isPending: isEncrypting, data: encrypted, mutateAsync: mutateAsyncArgsFromCallback },
   } = useEncryptFromCallbackArgs();
 
   // const { encryptValueCall, stepsState } = useEncryptValueCall();
@@ -24,12 +24,13 @@ function Inner() {
 
   async function tmp() {
     try {
-      const result = await mutateAsyncArgsFromCallback({
-        value,
-        type: 'uint128',
-      });
+      // const result = await mutateAsyncArgsFromCallback({
+      //   value,
+      //   type: 'uint128',
+      // });
+      const result = await mutateAsyncArgsFromHook();
     } catch (e) {
-      console.error('Error during encryption via callback args:', e);
+      console.error('Error during encryption:', e);
     }
   }
 
@@ -37,7 +38,9 @@ function Inner() {
     isEncrypting,
     error: error ? error.message : null,
     // tiny one-liner replacer to make BigInt visible in the browser
-    encrypted: JSON.stringify(encrypted, (_k, v) => (typeof v === 'bigint' ? `${v}n` : v)),
+    // encrypted: JSON.stringify(encrypted, (_k, v) => (typeof v === 'bigint' ? `${v}n` : v)),
+    encrypted,
+    variables,
   };
 
   return (
