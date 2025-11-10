@@ -11,16 +11,8 @@ import type {
   EncryptStep,
   EncryptStepCallbackContext,
 } from '@cofhe/sdk';
-import {
-  useMutation,
-  useQuery,
-  type UseMutationResult,
-  type UseQueryOptions,
-  type UseQueryResult,
-} from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-
-type Options = Omit<UseQueryOptions<EncryptedInput, Error>, 'queryKey' | 'queryFn'>;
+import { useMutation, type UseMutationResult } from '@tanstack/react-query';
+import { useCallback, useMemo, useState } from 'react';
 
 type EncryptedInput =
   | EncryptedBoolInput
@@ -30,8 +22,6 @@ type EncryptedInput =
   | EncryptedUint64Input
   | EncryptedUint128Input
   | EncryptedAddressInput;
-
-type UseEncryptQueryResult = UseQueryResult<EncryptedInput, Error>;
 
 type EncryptionStep = { step: EncryptStep; context?: EncryptStepCallbackContext };
 type StepWithOrder = `${number}_${EncryptStep}_${'start' | 'stop'}`;
@@ -57,10 +47,6 @@ type StepsState = {
   compactSteps: CompactSteps;
   lastStep: EncryptionStep | null;
 };
-type UseEncryptResult = {
-  queryResult: UseEncryptQueryResult;
-  stepsState: StepsState;
-};
 
 function useStepsState(): StepsState {
   const [steps, setSteps] = useState<EncryptionStep[]>([]);
@@ -82,37 +68,6 @@ function useStepsState(): StepsState {
     reset,
     compactSteps,
     lastStep,
-  };
-}
-
-export function useEncryptFromArgs(value: string, type: FheTypeValue, options: Options = {}): UseEncryptResult {
-  const client = useCofheContext().client;
-
-  const stepsState = useStepsState();
-  const { onStep, reset: resetSteps } = stepsState;
-
-  useEffect(() => {
-    resetSteps();
-  }, [value, type]);
-
-  // probably it should rather be a mutation?
-  const queryResult = useQuery({
-    queryKey: ['encrypt', value, type],
-    queryFn: async () => {
-      return encryptValue({
-        client,
-        value,
-        type,
-        onStep,
-      });
-    },
-    retry: false, // prevent default 3 exponentialy timed retries
-    ...options,
-  });
-
-  return {
-    queryResult,
-    stepsState,
   };
 }
 
@@ -140,7 +95,7 @@ async function encryptValue({
   return result.data[0];
 }
 
-type FheMutationResult = UseMutationResult<
+type UseMutationResultEncryptFromCallbackArgs = UseMutationResult<
   EncryptedInput,
   Error,
   {
@@ -150,15 +105,45 @@ type FheMutationResult = UseMutationResult<
   unknown
 >;
 
-export function useEncryptValueViaCallback(): {
+// sometimes it's hadny to inject args into mutation
+export function useEncryptFromCallbackArgs(): {
   stepsState: StepsState;
-  mutation: FheMutationResult;
+  mutation: UseMutationResultEncryptFromCallbackArgs;
 } {
   const client = useCofheContext().client;
   const stepsState = useStepsState();
   const { onStep } = stepsState;
-  const mutationResult: FheMutationResult = useMutation({
+  const mutationResult = useMutation({
     mutationFn: ({ value, type }: { value: string; type: FheTypeValue }) =>
+      encryptValue({
+        value,
+        type,
+        client,
+        onStep,
+      }),
+  });
+
+  return {
+    stepsState,
+    mutation: mutationResult,
+  };
+}
+
+type UseMutationResultEncryptFromHookArgs = UseMutationResult<EncryptedInput, Error, void, unknown>;
+
+// sometimes it's hadny to inject args into the hook and then call mutation without args
+export function useEncryptFromHookArgs(
+  value: string,
+  type: FheTypeValue
+): {
+  stepsState: StepsState;
+  mutation: UseMutationResultEncryptFromHookArgs;
+} {
+  const client = useCofheContext().client;
+  const stepsState = useStepsState();
+  const { onStep } = stepsState;
+  const mutationResult = useMutation({
+    mutationFn: () =>
       encryptValue({
         value,
         type,
