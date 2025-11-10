@@ -10,23 +10,21 @@ import type {
   EncryptStep,
   EncryptStepCallbackContext,
 } from '@cofhe/sdk';
-import { useQuery, type UseQueryResult } from '@tanstack/react-query';
+import { useQuery, type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 
-type Options = {
-  enabled?: boolean;
-};
+type Options = Omit<UseQueryOptions<EncryptedInput, Error>, 'queryKey' | 'queryFn'>;
 
-type useEncryptQueryResult = UseQueryResult<
+type EncryptedInput =
   | EncryptedBoolInput
   | EncryptedUint8Input
   | EncryptedUint16Input
   | EncryptedUint32Input
   | EncryptedUint64Input
   | EncryptedUint128Input
-  | EncryptedAddressInput,
-  Error
->;
+  | EncryptedAddressInput;
+
+type UseEncryptQueryResult = UseQueryResult<EncryptedInput, Error>;
 
 type EncryptionStep = { step: EncryptStep; context?: EncryptStepCallbackContext };
 type StepWithOrder = `${number}_${EncryptStep}_${'start' | 'stop'}`;
@@ -45,14 +43,14 @@ function validateAndCompactizeSteps(encSteps: EncryptionStep[]): CompactSteps {
   return result;
 }
 
-type useEncryptResult = {
-  queryResult: useEncryptQueryResult;
+type UseEncryptResult = {
+  queryResult: UseEncryptQueryResult;
   rawStreps: EncryptionStep[];
   lastStep: EncryptionStep | null;
   compactSteps: CompactSteps;
 };
 
-export function useEncrypt(value: string, type: FheTypeValue, options: Options = {}): useEncryptResult {
+export function useEncrypt(value: string, type: FheTypeValue, options: Options = {}): UseEncryptResult {
   const client = useCofheContext().client;
 
   const [steps, setSteps] = useState<EncryptionStep[]>([]);
