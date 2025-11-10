@@ -10,14 +10,24 @@ function Inner() {
   const [value, setValue] = useState('12345');
   const {
     // // mutation: { variables, error, isPending: isEncrypting, data: encrypted, mutateAsync: mutateAsyncArgsFromHook },
-    // stepsState: { lastStep, compactSteps },
-    // api: { variables, error, isEncrypting, data: encrypted, mutateAsync: mutateAsyncFromHook },
-  } = useEncryptFromHookArgs(value, 'uint128');
+    stepsState: { lastStep, compactSteps },
+    api: { variables, error, isEncrypting, data: encrypted, mutateAsync: mutateAsyncFromHook },
+  } = useEncryptFromHookArgs(value, 'uint128', {
+    onError: (err) => {
+      console.error('Encryption error (from callback args):', err);
+    },
+    onSuccess: (data) => {
+      console.log('Encryption success (from callback args):', data);
+    },
+    onMutate(variables, context) {
+      console.log('Encryption started (from callback args):', { variables });
+    },
+  });
 
   const {
     // // mutation: { variables, error, isPending: isEncrypting, data: encrypted, mutateAsync: mutateAsyncArgsFromCallback },
-    stepsState: { lastStep, compactSteps },
-    api: { variables, error, isEncrypting, data: encrypted, mutateAsync: mutateAsyncArgsFromCallback },
+    // stepsState: { lastStep, compactSteps },
+    // api: { variables, error, isEncrypting, data: encrypted, mutateAsync: mutateAsyncArgsFromCallback },
   } = useEncryptFromCallbackArgs();
 
   // const { encryptValueCall, stepsState } = useEncryptValueCall();
@@ -26,11 +36,11 @@ function Inner() {
 
   async function tmp() {
     try {
-      const result = await mutateAsyncArgsFromCallback({
-        value,
-        type: 'uint128',
-      });
-      // const result = await mutateAsyncFromHook();
+      // const result = await mutateAsyncArgsFromCallback({
+      //   value,
+      //   type: 'uint128',
+      // });
+      const result = await mutateAsyncFromHook();
     } catch (e) {
       console.error('Error during encryption:', e);
     }
