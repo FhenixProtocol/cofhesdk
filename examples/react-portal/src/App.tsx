@@ -4,14 +4,16 @@ import { QueryProvider } from './utils/query';
 import { useEncrypt } from './hooks/useEncrypt';
 import { Providers as WagmiProviders } from './utils/wagmi';
 import { Wallet } from './components/Wallet';
+import { useState } from 'react';
 
 function Inner() {
+  const [value, setValue] = useState('12345');
   const {
     queryResult: { data: encrypted, error, isFetching: isEncrypting, refetch: runEncryption },
     lastStep,
     compactSteps,
     // rawStreps,
-  } = useEncrypt('12345', 'uint128', {
+  } = useEncrypt(value, 'uint128', {
     enabled: false, // only run on explicit refetch, a callback fn call
   });
   // console.log('Encrypted data:', encrypted);
@@ -28,7 +30,11 @@ function Inner() {
         textAlign: 'left',
       }}
     >
-      <button onClick={() => runEncryption()}>refetch</button>
+      <div style={{ marginBottom: 8 }}>
+        <label style={{ marginRight: 8 }}>Value to encrypt:</label>
+        <input value={value} onChange={(e) => setValue(e.target.value)} style={{ marginRight: 8 }} />
+        <button onClick={() => runEncryption()}>Encrypt</button>
+      </div>
       <pre>{JSON.stringify(rendered, (_k, v) => (typeof v === 'bigint' ? `${v}n` : v), 2)}</pre>
       <pre>{JSON.stringify({ lastStep, compactSteps }, null, 2)}</pre>
     </div>
