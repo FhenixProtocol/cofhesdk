@@ -6,7 +6,7 @@ import { Providers as WagmiProviders } from './utils/wagmi';
 import { Wallet } from './components/Wallet';
 
 function Inner() {
-  const { data: encrypted, error, isLoading: isEncrypting, refetch } = useEncrypt('12345');
+  const { data: encrypted, error, isLoading: isEncrypting, refetch } = useEncrypt('12345', { enabled: false });
   // console.log('Encrypted data:', encrypted);
   const rendered = {
     isEncrypting,

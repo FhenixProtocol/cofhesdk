@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 type Options = {
   enabled?: boolean;
 };
+
 export function useEncrypt(value: string, options: Options = {}) {
   const fn = useEncryptInput();
   const result = useQuery({
