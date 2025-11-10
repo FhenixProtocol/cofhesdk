@@ -11,7 +11,7 @@ import type {
   EncryptStepCallbackContext,
 } from '@cofhe/sdk';
 import { useQuery, type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 type Options = Omit<UseQueryOptions<EncryptedInput, Error>, 'queryKey' | 'queryFn'>;
 
@@ -56,9 +56,13 @@ export function useEncrypt(value: string, type: FheTypeValue, options: Options =
 
   const [steps, setSteps] = useState<EncryptionStep[]>([]);
 
+  useEffect(() => {
+    setSteps([]);
+  }, [value, type]);
+
   // probably it should rather be a mutation?
   const queryResult = useQuery({
-    queryKey: ['encrypt', value],
+    queryKey: ['encrypt', value, type],
     queryFn: async () => {
       setSteps([]);
       if (!client) throw new Error('CoFHE client not initialized');
