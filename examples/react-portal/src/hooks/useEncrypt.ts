@@ -208,19 +208,17 @@ export function useEncryptFromHookArgs(
   const { onMutate, ...restOptions } = options;
   const mutationResult = useMutation({
     onMutate: (arg1, arg2) => {
+      variables.current = { value, type };
       resetSteps();
       return onMutate?.(arg1, arg2);
     },
-    mutationFn: async () => {
-      variables.current = { value, type };
-      const encryptedValue = await encryptValue({
+    mutationFn: () =>
+      encryptValue({
         value,
         type,
         client,
         onStep,
-      });
-      return encryptedValue;
-    },
+      }),
     ...restOptions,
   });
 
