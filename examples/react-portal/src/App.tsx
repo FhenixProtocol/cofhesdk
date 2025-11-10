@@ -9,26 +9,28 @@ import { useState } from 'react';
 function Inner() {
   const [value, setValue] = useState('12345');
   const {
-    stepsState: { lastStep, compactSteps },
-    mutation: { variables, error, isPending: isEncrypting, data: encrypted, mutateAsync: mutateAsyncArgsFromHook },
+    // // mutation: { variables, error, isPending: isEncrypting, data: encrypted, mutateAsync: mutateAsyncArgsFromHook },
+    // stepsState: { lastStep, compactSteps },
+    // api: { variables, error, isEncrypting, data: encrypted, mutateAsync: mutateAsyncFromHook },
   } = useEncryptFromHookArgs(value, 'uint128');
 
   const {
-    // stepsState: { lastStep, compactSteps },
-    // mutation: { variables, error, isPending: isEncrypting, data: encrypted, mutateAsync: mutateAsyncArgsFromCallback },
+    // // mutation: { variables, error, isPending: isEncrypting, data: encrypted, mutateAsync: mutateAsyncArgsFromCallback },
+    stepsState: { lastStep, compactSteps },
+    api: { variables, error, isEncrypting, data: encrypted, mutateAsync: mutateAsyncArgsFromCallback },
   } = useEncryptFromCallbackArgs();
 
   // const { encryptValueCall, stepsState } = useEncryptValueCall();
-  if (error) console.error('Debug Encrypted data:', error);
+  // if (error) console.error('Debug Encrypted data:', error);
   // console.log('Encrypted data:', encrypted);
 
   async function tmp() {
     try {
-      // const result = await mutateAsyncArgsFromCallback({
-      //   value,
-      //   type: 'uint128',
-      // });
-      const result = await mutateAsyncArgsFromHook();
+      const result = await mutateAsyncArgsFromCallback({
+        value,
+        type: 'uint128',
+      });
+      // const result = await mutateAsyncFromHook();
     } catch (e) {
       console.error('Error during encryption:', e);
     }

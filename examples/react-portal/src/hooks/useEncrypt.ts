@@ -11,8 +11,8 @@ import type {
   EncryptStep,
   EncryptStepCallbackContext,
 } from '@cofhe/sdk';
-import { useMutation, type UseMutationResult } from '@tanstack/react-query';
-import { useCallback, useMemo, useState } from 'react';
+import { useMutation, type UseMutateAsyncFunction, type UseMutationResult } from '@tanstack/react-query';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 type EncryptedInput =
   | EncryptedBoolInput
@@ -108,7 +108,18 @@ type UseMutationResultEncryptFromCallbackArgs = UseMutationResult<
 // sometimes it's hadny to inject args into mutation
 export function useEncryptFromCallbackArgs(): {
   stepsState: StepsState;
-  mutation: UseMutationResultEncryptFromCallbackArgs;
+  _mutation: UseMutationResultEncryptFromCallbackArgs;
+  api: TEncryptApi<
+    UseMutateAsyncFunction<
+      EncryptedInput,
+      Error,
+      {
+        value: string;
+        type: FheTypeValue;
+      },
+      void
+    >
+  >;
 } {
   const client = useCofheContext().client;
   const stepsState = useStepsState();
@@ -123,14 +134,33 @@ export function useEncryptFromCallbackArgs(): {
         onStep,
       }),
   });
+  // const vars = mutationResult.variables;
+  const api = {
+    variables: mutationResult.variables,
+    error: mutationResult.error,
+    isEncrypting: mutationResult.isPending,
+    data: mutationResult.data,
+    mutateAsync: mutationResult.mutateAsync,
+  };
 
   return {
     stepsState,
-    mutation: mutationResult,
+    _mutation: mutationResult,
+    api,
   };
 }
 
+type EncryptableInput = { value: string; type: FheTypeValue };
+
 type UseMutationResultEncryptFromHookArgs = UseMutationResult<EncryptedInput, Error, void, unknown>;
+
+type TEncryptApi<TMutateAsyncCallback> = {
+  variables: EncryptableInput | undefined;
+  error: Error | null;
+  isEncrypting: boolean;
+  data: EncryptedInput | undefined;
+  mutateAsync: TMutateAsyncCallback;
+};
 
 // sometimes it's hadny to inject args into the hook and then call mutation without args
 export function useEncryptFromHookArgs(
@@ -138,24 +168,39 @@ export function useEncryptFromHookArgs(
   type: FheTypeValue
 ): {
   stepsState: StepsState;
-  mutation: UseMutationResultEncryptFromHookArgs;
+  _mutation: UseMutationResultEncryptFromHookArgs;
+  api: TEncryptApi<UseMutateAsyncFunction<EncryptedInput, Error, void, void>>;
 } {
   const client = useCofheContext().client;
   const stepsState = useStepsState();
   const { onStep, reset: resetSteps } = stepsState;
+  const variables = useRef<EncryptableInput | undefined>(undefined);
+
   const mutationResult = useMutation({
     onMutate: resetSteps,
-    mutationFn: () =>
-      encryptValue({
+    mutationFn: async () => {
+      variables.current = { value, type };
+      const encryptedValue = await encryptValue({
         value,
         type,
         client,
         onStep,
-      }),
+      });
+      return encryptedValue;
+    },
   });
+
+  const api = {
+    variables: variables.current,
+    error: mutationResult.error,
+    isEncrypting: mutationResult.isPending,
+    data: mutationResult.data,
+    mutateAsync: mutationResult.mutateAsync,
+  };
 
   return {
     stepsState,
-    mutation: mutationResult,
+    _mutation: mutationResult,
+    api,
   };
 }
