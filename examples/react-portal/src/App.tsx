@@ -1,7 +1,7 @@
 import './App.css';
 import { CofheProviderLocal } from './utils/cofhe.config';
 import { QueryProvider } from './utils/query';
-import { useEncrypt } from './hooks/useEncrypt';
+import { useEncryptFromArgs, useEncryptValueViaCallback } from './hooks/useEncrypt';
 import { Providers as WagmiProviders } from './utils/wagmi';
 import { Wallet } from './components/Wallet';
 import { useState } from 'react';
@@ -10,12 +10,13 @@ function Inner() {
   const [value, setValue] = useState('12345');
   const {
     queryResult: { data: encrypted, error, isFetching: isEncrypting, refetch: runEncryption },
-    lastStep,
-    compactSteps,
+    stepsState: { lastStep, compactSteps },
     // rawStreps,
-  } = useEncrypt(value, 'uint128', {
+  } = useEncryptFromArgs(value, 'uint128', {
     enabled: false, // only run on explicit refetch, a callback fn call
   });
+
+  // const { encryptValueCall, stepsState } = useEncryptValueCall();
   if (error) console.error('Debug Encrypted data:', error);
   // console.log('Encrypted data:', encrypted);
   const rendered = {
@@ -26,9 +27,8 @@ function Inner() {
   };
 
   async function tmp() {
+    // will always succeed as it's a call to refetch. Will contain 'error' if something went wrong
     const result = await runEncryption();
-    // debugger;
-    return result;
   }
 
   return (

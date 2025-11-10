@@ -12,7 +12,7 @@ import type {
   EncryptStepCallbackContext,
 } from '@cofhe/sdk';
 import { useQuery, type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 type Options = Omit<UseQueryOptions<EncryptedInput, Error>, 'queryKey' | 'queryFn'>;
 
@@ -45,48 +45,70 @@ function validateAndCompactizeSteps(encSteps: EncryptionStep[]): CompactSteps {
   return result;
 }
 
+type StepsState = {
+  onStep: (step: EncryptStep, context?: EncryptStepCallbackContext) => void;
+  reset: () => void;
+  compactSteps: CompactSteps;
+  lastStep: EncryptionStep | null;
+};
 type UseEncryptResult = {
   queryResult: UseEncryptQueryResult;
-  rawStreps: EncryptionStep[];
-  lastStep: EncryptionStep | null;
-  compactSteps: CompactSteps;
+  stepsState: StepsState;
 };
 
-export function useEncrypt(value: string, type: FheTypeValue, options: Options = {}): UseEncryptResult {
+function useStepsState(): StepsState {
+  const [steps, setSteps] = useState<EncryptionStep[]>([]);
+  const onStep = useCallback((step: EncryptStep, context?: EncryptStepCallbackContext) => {
+    if (step === 'initTfhe' && context?.isStart) {
+      // init with a single-element array
+      setSteps([{ step, context }]);
+    } else {
+      setSteps((prev) => [...prev, { step, context }]);
+    }
+  }, []);
+
+  const compactSteps = useMemo(() => validateAndCompactizeSteps(steps), [steps]);
+  const lastStep = steps.length > 0 ? steps[steps.length - 1] : null;
+
+  const reset = useCallback(() => setSteps([]), []);
+  return {
+    // steps,
+    // setSteps,
+    onStep,
+    reset,
+    compactSteps,
+    lastStep,
+  };
+}
+
+export function useEncryptFromArgs(value: string, type: FheTypeValue, options: Options = {}): UseEncryptResult {
   const client = useCofheContext().client;
 
-  const [steps, setSteps] = useState<EncryptionStep[]>([]);
+  const stepsState = useStepsState();
+  const { onStep, reset: resetSteps } = stepsState;
 
   useEffect(() => {
-    setSteps([]);
+    resetSteps();
   }, [value, type]);
 
   // probably it should rather be a mutation?
   const queryResult = useQuery({
     queryKey: ['encrypt', value, type],
     queryFn: async () => {
-      setSteps([]);
       return encryptValue({
         client,
         value,
         type,
-        onStep: (step, context) => {
-          setSteps((prev) => [...prev, { step, context }]);
-        },
+        onStep,
       });
     },
     retry: false, // prevent default 3 exponentialy timed retries
     ...options,
   });
 
-  const compactSteps = useMemo(() => validateAndCompactizeSteps(steps), [steps]);
-  const lastStep = steps.length > 0 ? steps[steps.length - 1] : null;
-
   return {
     queryResult,
-    rawStreps: steps,
-    lastStep,
-    compactSteps: compactSteps,
+    stepsState,
   };
 }
 
@@ -112,4 +134,29 @@ async function encryptValue({
   }
 
   return result.data[0];
+}
+
+export function useEncryptValueCallback() {
+  const client = useCofheContext().client;
+  const stepsState = useStepsState();
+  const { onStep } = stepsState;
+
+  const encryptValueCall = useCallback(
+    ({ value, type }: { value: string; type: FheTypeValue }) => {
+      if (!client) {
+        throw new Error('CoFHE client not initialized');
+      }
+      return encryptValue({
+        value,
+        type,
+        client,
+        onStep,
+      });
+    },
+    [client]
+  );
+  return {
+    stepsState,
+    encryptValueCall,
+  };
 }
