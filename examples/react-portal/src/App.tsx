@@ -7,11 +7,11 @@ import { Wallet } from './components/Wallet';
 
 function Inner() {
   const {
-    data: encrypted,
-    error,
-    isFetching: isEncrypting,
-    refetch: runEncryption,
-  } = useEncrypt('12345', {
+    queryResult: { data: encrypted, error, isFetching: isEncrypting, refetch: runEncryption },
+    lastStep,
+    compactSteps,
+    // rawStreps,
+  } = useEncrypt('12345', 'uint128', {
     enabled: false, // only run on explicit refetch, a callback fn call
   });
   // console.log('Encrypted data:', encrypted);
@@ -23,9 +23,14 @@ function Inner() {
   };
 
   return (
-    <div>
+    <div
+      style={{
+        textAlign: 'left',
+      }}
+    >
       <button onClick={() => runEncryption()}>refetch</button>
       <pre>{JSON.stringify(rendered, (_k, v) => (typeof v === 'bigint' ? `${v}n` : v), 2)}</pre>
+      <pre>{JSON.stringify({ lastStep, compactSteps }, null, 2)}</pre>
     </div>
   );
 }

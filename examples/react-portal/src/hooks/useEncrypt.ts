@@ -1,22 +1,91 @@
-import { useEncryptInput } from '@cofhe/react';
-import { useQuery } from '@tanstack/react-query';
+import { createEncryptableItem, useCofheContext, type FheTypeValue } from '@cofhe/react';
+import type {
+  EncryptedAddressInput,
+  EncryptedBoolInput,
+  EncryptedUint128Input,
+  EncryptedUint16Input,
+  EncryptedUint32Input,
+  EncryptedUint64Input,
+  EncryptedUint8Input,
+  EncryptStep,
+  EncryptStepCallbackContext,
+} from '@cofhe/sdk';
+import { useQuery, type UseQueryResult } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
 
 type Options = {
   enabled?: boolean;
 };
 
-export function useEncrypt(value: string, options: Options = {}) {
-  const fn = useEncryptInput();
-  const result = useQuery({
+type useEncryptQueryResult = UseQueryResult<
+  | EncryptedBoolInput
+  | EncryptedUint8Input
+  | EncryptedUint16Input
+  | EncryptedUint32Input
+  | EncryptedUint64Input
+  | EncryptedUint128Input
+  | EncryptedAddressInput,
+  Error
+>;
+
+type EncryptionStep = { step: EncryptStep; context?: EncryptStepCallbackContext };
+type StepWithOrder = `${number}_${EncryptStep}_${'start' | 'stop'}`;
+type CompactSteps = Partial<Record<StepWithOrder, number | undefined>>;
+function validateAndCompactizeSteps(encSteps: EncryptionStep[]): CompactSteps {
+  const result: CompactSteps = {};
+  encSteps.forEach((encStep, index) => {
+    const postfix = encStep.context?.isStart ? 'start' : encStep.context?.isEnd ? 'stop' : null;
+    if (!postfix) throw new Error('Invalid step context: must be start or end');
+
+    const idx: StepWithOrder = `${index}_${encStep.step}_${postfix}`;
+
+    result[idx] = encStep.context?.duration;
+  });
+
+  return result;
+}
+
+type useEncryptResult = {
+  queryResult: useEncryptQueryResult;
+  rawStreps: EncryptionStep[];
+  lastStep: EncryptionStep | null;
+  compactSteps: CompactSteps;
+};
+
+export function useEncrypt(value: string, type: FheTypeValue, options: Options = {}): useEncryptResult {
+  const client = useCofheContext().client;
+
+  const [steps, setSteps] = useState<EncryptionStep[]>([]);
+  const queryResult = useQuery({
     queryKey: ['encrypt', value],
     queryFn: async () => {
-      console.log('Encrypting value:', value);
-      // Simulate an encryption operation
-      return fn.onEncryptInput('uint128', value);
+      setSteps([]);
+      if (!client) throw new Error('CoFHE client not initialized');
+
+      const encryptableItem = createEncryptableItem(value, type);
+      const encryptionBuilder = client.encryptInputs([encryptableItem]).setStepCallback((step, context) => {
+        setSteps((prevSteps) => [...prevSteps, { step, context }]);
+        console.log(`[Encryption Step] ${step}`, context);
+      });
+      const result = await encryptionBuilder.encrypt();
+
+      if (!result.success) {
+        throw result.error;
+      }
+
+      return result.data[0];
     },
     retry: false, // prevent default 3 exponentialy timed retries
     ...options,
   });
 
-  return result;
+  const compactSteps = useMemo(() => validateAndCompactizeSteps(steps), [steps]);
+  const lastStep = steps.length > 0 ? steps[steps.length - 1] : null;
+
+  return {
+    queryResult,
+    rawStreps: steps,
+    lastStep,
+    compactSteps: compactSteps,
+  };
 }
