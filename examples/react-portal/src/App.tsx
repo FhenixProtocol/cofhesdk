@@ -25,6 +25,12 @@ function Inner() {
     encrypted: JSON.stringify(encrypted, (_k, v) => (typeof v === 'bigint' ? `${v}n` : v)),
   };
 
+  async function tmp() {
+    const result = await runEncryption();
+    // debugger;
+    return result;
+  }
+
   return (
     <div
       style={{
@@ -34,7 +40,7 @@ function Inner() {
       <div style={{ marginBottom: 8 }}>
         <label style={{ marginRight: 8 }}>Value to encrypt:</label>
         <input value={value} onChange={(e) => setValue(e.target.value)} style={{ marginRight: 8 }} />
-        <button onClick={() => runEncryption()}>Encrypt</button>
+        <button onClick={() => tmp()}>Encrypt</button>
       </div>
       <pre>{JSON.stringify(rendered, (_k, v) => (typeof v === 'bigint' ? `${v}n` : v), 2)}</pre>
       <pre>{JSON.stringify({ lastStep, compactSteps }, null, 2)}</pre>

@@ -313,7 +313,6 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     try {
       return await this.initTfhe();
     } catch (error) {
-      debugger;
       throw CofhesdkError.fromError(error, {
         code: CofhesdkErrorCode.InitTfheFailed,
         message: `Failed to initialize TFHE`,

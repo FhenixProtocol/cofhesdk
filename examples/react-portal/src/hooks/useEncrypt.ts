@@ -1,5 +1,6 @@
 import { createEncryptableItem, useCofheContext, type FheTypeValue } from '@cofhe/react';
 import type {
+  CofhesdkClient,
   EncryptedAddressInput,
   EncryptedBoolInput,
   EncryptedUint128Input,
@@ -65,19 +66,14 @@ export function useEncrypt(value: string, type: FheTypeValue, options: Options =
     queryKey: ['encrypt', value, type],
     queryFn: async () => {
       setSteps([]);
-      if (!client) throw new Error('CoFHE client not initialized');
-
-      const encryptableItem = createEncryptableItem(value, type);
-      const encryptionBuilder = client.encryptInputs([encryptableItem]).setStepCallback((step, context) => {
-        setSteps((prevSteps) => [...prevSteps, { step, context }]);
+      return encryptValue({
+        client,
+        value,
+        type,
+        onStep: (step, context) => {
+          setSteps((prev) => [...prev, { step, context }]);
+        },
       });
-      const result = await encryptionBuilder.encrypt();
-
-      if (!result.success) {
-        throw result.error;
-      }
-
-      return result.data[0];
     },
     retry: false, // prevent default 3 exponentialy timed retries
     ...options,
@@ -92,4 +88,28 @@ export function useEncrypt(value: string, type: FheTypeValue, options: Options =
     lastStep,
     compactSteps: compactSteps,
   };
+}
+
+async function encryptValue({
+  client,
+  value,
+  type,
+  onStep,
+}: {
+  client: CofhesdkClient | null;
+  value: string;
+  type: FheTypeValue;
+  onStep: (step: EncryptStep, context?: EncryptStepCallbackContext) => void;
+}): Promise<EncryptedInput> {
+  if (!client) throw new Error('CoFHE client not initialized');
+
+  const encryptableItem = createEncryptableItem(value, type);
+  const encryptionBuilder = client.encryptInputs([encryptableItem]).setStepCallback(onStep);
+  const result = await encryptionBuilder.encrypt();
+
+  if (!result.success) {
+    throw result.error;
+  }
+
+  return result.data[0];
 }
