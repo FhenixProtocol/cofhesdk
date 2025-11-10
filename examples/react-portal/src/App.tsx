@@ -9,12 +9,17 @@ import { useState } from 'react';
 function Inner() {
   const [value, setValue] = useState('12345');
   const {
-    queryResult: { data: encrypted, error, isFetching: isEncrypting, refetch: runEncryption },
-    stepsState: { lastStep, compactSteps },
+    queryResult: { data: encrypted, error, isFetching: isEncrypting, refetch: refetchFromHookArgs },
+    // stepsState: { lastStep, compactSteps },
     // rawStreps,
   } = useEncryptFromArgs(value, 'uint128', {
     enabled: false, // only run on explicit refetch, a callback fn call
   });
+
+  const {
+    stepsState: { lastStep, compactSteps },
+    encryptValueCall,
+  } = useEncryptValueViaCallback();
 
   // const { encryptValueCall, stepsState } = useEncryptValueCall();
   if (error) console.error('Debug Encrypted data:', error);
@@ -28,7 +33,10 @@ function Inner() {
 
   async function tmp() {
     // will always succeed as it's a call to refetch. Will contain 'error' if something went wrong
-    const result = await runEncryption();
+    // const result = await refetchFromHookArgs();
+
+    const encryptValueCallResult = await encryptValueCall({ value, type: 'uint128' });
+    debugger;
   }
 
   return (

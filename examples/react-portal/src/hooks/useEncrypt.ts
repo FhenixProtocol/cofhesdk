@@ -136,7 +136,10 @@ async function encryptValue({
   return result.data[0];
 }
 
-export function useEncryptValueCallback() {
+export function useEncryptValueViaCallback(): {
+  stepsState: StepsState;
+  encryptValueCall: ({ value, type }: { value: string; type: FheTypeValue }) => Promise<EncryptedInput>;
+} {
   const client = useCofheContext().client;
   const stepsState = useStepsState();
   const { onStep } = stepsState;
