@@ -11,7 +11,7 @@ function Inner() {
   const rendered = {
     isEncrypting,
     error,
-    encrypted,
+    encrypted: encrypted?.toString(),
   };
 
   return (
