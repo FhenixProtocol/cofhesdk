@@ -29,6 +29,7 @@ type UseEncryptQueryResult = UseQueryResult<EncryptedInput, Error>;
 type EncryptionStep = { step: EncryptStep; context?: EncryptStepCallbackContext };
 type StepWithOrder = `${number}_${EncryptStep}_${'start' | 'stop'}`;
 type CompactSteps = Partial<Record<StepWithOrder, number | undefined>>;
+
 function validateAndCompactizeSteps(encSteps: EncryptionStep[]): CompactSteps {
   const result: CompactSteps = {};
   encSteps.forEach((encStep, index) => {
@@ -54,6 +55,8 @@ export function useEncrypt(value: string, type: FheTypeValue, options: Options =
   const client = useCofheContext().client;
 
   const [steps, setSteps] = useState<EncryptionStep[]>([]);
+
+  // probably it should rather be a mutation?
   const queryResult = useQuery({
     queryKey: ['encrypt', value],
     queryFn: async () => {
@@ -63,7 +66,6 @@ export function useEncrypt(value: string, type: FheTypeValue, options: Options =
       const encryptableItem = createEncryptableItem(value, type);
       const encryptionBuilder = client.encryptInputs([encryptableItem]).setStepCallback((step, context) => {
         setSteps((prevSteps) => [...prevSteps, { step, context }]);
-        console.log(`[Encryption Step] ${step}`, context);
       });
       const result = await encryptionBuilder.encrypt();
 
