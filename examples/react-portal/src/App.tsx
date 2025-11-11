@@ -1,7 +1,7 @@
 import './App.css';
 import { CofheProviderLocal } from './utils/cofhe.config';
 import { QueryProvider } from './utils/query';
-import { useEncryptFromCallbackArgs, useEncryptFromHookArgs } from './hooks/useEncrypt';
+import { useEncryptAsync, useEncryptSync } from './hooks/useEncrypt';
 import { Providers as WagmiProviders } from './utils/wagmi';
 import { Wallet } from './components/Wallet';
 import { useState } from 'react';
@@ -30,8 +30,8 @@ function Inner() {
   const {
     // mutation: { variables, error, isPending: isEncrypting, data: encrypted, mutateAsync: mutateAsyncArgsFromCallback },
     stepsState: { lastStep, compactSteps },
-    api: { variables, error, isEncrypting, data: encrypted, mutateAsync: mutateAsyncArgsFromCallback },
-  } = useEncryptFromCallbackArgs();
+    api: { variables, error, isEncrypting, data: encrypted, encrypt: encryptAsync },
+  } = useEncryptAsync();
 
   // const { encryptValueCall, stepsState } = useEncryptValueCall();
   // if (error) console.error('Debug Encrypted data:', error);
@@ -39,7 +39,7 @@ function Inner() {
 
   async function tmp() {
     try {
-      const result = await mutateAsyncArgsFromCallback({
+      const result = await encryptAsync({
         value,
         type: 'uint128',
       });
