@@ -30,5 +30,9 @@ export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) 
     handleConnect();
   }, [walletClient, publicClient]);
 
-  return <CofheProvider client={cofheSdkClient}>{children}</CofheProvider>;
+  return (
+    <CofheProvider client={cofheSdkClient} widgetConfig={config.widget}>
+      {children}
+    </CofheProvider>
+  );
 };

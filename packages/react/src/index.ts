@@ -9,7 +9,7 @@ export { useEncryptInput } from './hooks/index.js';
 export { createEncryptableItem, type UseEncryptInputReturn } from './hooks/useEncryptInput';
 
 // Components
-export { FnxEncryptInput } from './components/index.js';
+export { FnxEncryptInput, FloatingCofhePortal } from './components/index.js';
 
 // Utils
 export { FheTypesList, fheTypeToString, encryptedValueToString, type FheTypeValue } from './utils/index.js';

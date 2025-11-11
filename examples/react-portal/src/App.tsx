@@ -5,7 +5,7 @@ import { useEncryptAsync } from './hooks/useEncrypt';
 import { Providers as WagmiProviders } from './utils/wagmi';
 import { Wallet } from './components/Wallet';
 import { useState } from 'react';
-
+import { FloatingCofhePortal } from '@cofhe/react';
 function Inner() {
   const [value, setValue] = useState('12345');
   // const {
@@ -80,6 +80,7 @@ function App() {
     <WagmiProviders>
       <QueryProvider>
         <CofheProviderLocal>
+          <FloatingCofhePortal />
           <Wallet />
           <Inner />
         </CofheProviderLocal>
