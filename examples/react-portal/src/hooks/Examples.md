@@ -31,21 +31,21 @@ import type { FheTypeValue } from '@cofhe/react';
   // ...
 ```
 
-This way you can call the encryption function and handle results or exceptions asynchronously.
+This way you can call the encryption function and handle results or exceptions asynchronously. For example, save those results into state so that they can be rendered.
 
-In that case, you'll likely need to manage state for results and errors so they can be rendered.
+Or you can just grab that from the extended hook API as described in the next section.
 
-Otherwise, you can use the sync hook option.
+# Synchronous API and encryption handling
 
-# Synchronous encryption handling
-
-You can pass the value to encrypt directly to the hook.
+You can pass the value to encrypt directly to the hook, synchronously:
 ```js
 const {
     isConnected,
     api: { encrypt: encryptSync, error, isEncrypting, data: encrypted },
   } = useEncryptSync({ value: '12345678', type: 'uint128' });
 ```
+
+For both flavours, `useEncryptSync` and `useEncryptAsync` you have a synchronous acccess to `error`, `isEncrypting` and `data`.
 
 Then, at some point you need to trigger the encryption. For example, automatically when your component renders:
 ```js
