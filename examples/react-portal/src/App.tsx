@@ -1,7 +1,7 @@
 import './App.css';
 import { CofheProviderLocal } from './utils/cofhe.config';
 import { QueryProvider } from './utils/query';
-import { useEncryptAsync, useEncryptSync } from './hooks/useEncrypt';
+import { useEncryptAsync } from './hooks/useEncrypt';
 import { Providers as WagmiProviders } from './utils/wagmi';
 import { Wallet } from './components/Wallet';
 import { useState } from 'react';
@@ -12,7 +12,7 @@ function Inner() {
   //   // _mutation: { variables /* nb, those are variables of mutation fn, not of the encrypting query */,  error, isPending: isEncrypting, data: encrypted, mutateAsync: mutateAsyncFromHook },
   //   // stepsState: { lastStep, compactSteps },
   //   // api: { variables, error, isEncrypting, data: encrypted, mutateAsync: mutateAsyncFromHook },
-  // } = useEncryptFromHookArgs(
+  // } = useEncryptSync(
   //   { value, type: 'uint128' }
   //   // ,{
   //   //   onError: (err) => {
@@ -43,7 +43,7 @@ function Inner() {
         value,
         type: 'uint128',
       });
-      // const result = await mutateAsyncFromHook();
+      console.log('Encryption result (from called fn):', result);
     } catch (e) {
       console.error('Error during encryption:', e);
     }

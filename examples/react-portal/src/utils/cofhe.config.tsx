@@ -14,6 +14,7 @@ const cofheConfig = createCofhesdkConfig({
 // console.log('Cofhesdk Config:', cofheConfig);
 
 const config = createCofhesdkConfig(cofheConfig);
+// eslint-disable-next-line react-refresh/only-export-components
 export const cofheSdkClient = createCofhesdkClient(config.client);
 
 export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) => {
