@@ -1,14 +1,14 @@
-# Quick start / useEncrypt 
+# Quick start / useEncrypt
 
-There're two flavours of hooks that help you encrypt values.
-Async variation gives you more control, while the Sync can be less verbose and more native to react 
+There are two flavours of hooks that help you encrypt values.
+The async variation gives you more control, while the sync variation is less verbose and more native to React.
 
-# Pre-requisites
-The CoFHE SDK provider must be set up and be a parent to a component consuming any of the useEncrypt hoks
+## Prerequisites
+The CoFHE SDK provider must be set up and be a parent to any component that consumes the `useEncrypt` hooks.
 
 # Minimalistic (async)
 
-Essentially all you need to encrypt is the encryption function:
+Essentially, all you need to encrypt is the encryption function:
 ```
   const {
     api: { encrypt: encryptAsync },
@@ -31,15 +31,15 @@ import type { FheTypeValue } from '@cofhe/react';
   // ...
 ```
 
-This way you can call the encryption function, handle the results or exceptions the way you wish asynchronously.
+This way you can call the encryption function and handle results or exceptions asynchronously.
 
-But in such case you would likely need to take care of the state storage for results and errors to make them available for render.
+In that case, you'll likely need to manage state for results and errors so they can be rendered.
 
-Otherwise you can look into the Sync hook option
+Otherwise, you can use the sync hook option.
 
 # Synchronous encryption handling
 
-You can pass the value to encrypt directly to the hook
+You can pass the value to encrypt directly to the hook.
 ```
 const {
     isConnected,
@@ -47,7 +47,7 @@ const {
   } = useEncryptSync({ value: '12345678', type: 'uint128' });
 ```
 
-then at some point you need to trigger the encryption. For example automatically upon render of your component:
+Then, at some point you need to trigger the encryption. For example, automatically when your component renders:
 ```
  useEffect(() => {
     if (isConnected) encryptSync();
@@ -55,7 +55,7 @@ then at some point you need to trigger the encryption. For example automatically
   }, [isConnected]);
 ```
 
-Then you will be able to access details of the execution synchronously through the lifecycle of the encryption process, should it end with a successful encryption or an error
+Then you will be able to access details of the execution synchronously through the lifecycle of the encryption process, whether it ends successfully or with an error.
 
 ```
 return isEncrypting
@@ -64,7 +64,7 @@ return isEncrypting
       ? `error: ${error.message}`
       : encrypted
         ? `encrypted: ${JSON.stringify(encrypted, (_k, v) => (typeof v === 'bigint' ? `${v}n` : v), 2)}`
-        : 'no data (mutation function not caled?)';
+  : 'no data (mutation function not called?)';
 ```
 
 # Extras
@@ -90,7 +90,7 @@ return isEncrypting
 
 ## Detailed encryption progress
 
-The encryption process is multistage. If you need to track the progress on more granualr level than just whether it's in progress, succeeded or failed, you can access encryption step state like this:
+The encryption process is multi-stage. If you need to track progress at a more granular level than just whether it's in progress, succeeded, or failed, you can access encryption step state like this:
 ```
 const {    
     stepsState: { lastStep },
