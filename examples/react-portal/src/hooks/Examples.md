@@ -9,7 +9,7 @@ The CoFHE SDK provider must be set up and be a parent to any component that cons
 # Minimalistic (async)
 
 Essentially, all you need to encrypt is the encryption function:
-```
+```js
   const {
     api: { encrypt: encryptAsync },
   } = useEncryptAsync();
@@ -17,7 +17,7 @@ Essentially, all you need to encrypt is the encryption function:
 ```
 
 You can then use it inside your effect function:
-```
+```js
 import type { FheTypeValue } from '@cofhe/react';
 
   // ...
@@ -40,7 +40,7 @@ Otherwise, you can use the sync hook option.
 # Synchronous encryption handling
 
 You can pass the value to encrypt directly to the hook.
-```
+```js
 const {
     isConnected,
     api: { encrypt: encryptSync, error, isEncrypting, data: encrypted },
@@ -48,7 +48,7 @@ const {
 ```
 
 Then, at some point you need to trigger the encryption. For example, automatically when your component renders:
-```
+```js
  useEffect(() => {
     if (isConnected) encryptSync();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -57,7 +57,7 @@ Then, at some point you need to trigger the encryption. For example, automatical
 
 Then you will be able to access details of the execution synchronously through the lifecycle of the encryption process, whether it ends successfully or with an error.
 
-```
+```js
 return isEncrypting
     ? 'is encrypting...'
     : error
@@ -71,7 +71,7 @@ return isEncrypting
 
 ## Lifecycle callbacks
 
-```
+```js
   const {
     api: { encrypt: encryptAsync },
   } = useEncryptAsync({
@@ -91,7 +91,7 @@ return isEncrypting
 ## Detailed encryption progress
 
 The encryption process is multi-stage. If you need to track progress at a more granular level than just whether it's in progress, succeeded, or failed, you can access encryption step state like this:
-```
+```js
 const {    
     stepsState: { lastStep },
     api: { encrypt: encryptAsync },
@@ -99,7 +99,7 @@ const {
 ```
 
 E.g.
-```
+```js
  return lastStep?.step === 'verify' && lastStep.context?.isEnd
     ? `Encryption completed successfully!`
     : `Current encryption step: ${lastStep?.step}`;
