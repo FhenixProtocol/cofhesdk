@@ -78,13 +78,14 @@ function useStepsState(): StepsState {
 
 async function encryptValue({
   client,
-  value,
-  type,
+  input: { value, type },
   onStep,
 }: {
   client: CofhesdkClient | null;
-  value: string;
-  type: FheTypeValue;
+  input: {
+    value: string;
+    type: FheTypeValue;
+  };
   onStep: (step: EncryptStep, context?: EncryptStepCallbackContext) => void;
 }): Promise<EncryptedInput> {
   if (!client) throw new Error('CoFHE client not initialized');
@@ -123,22 +124,19 @@ type UseMutationOptionsFromCallbackArgs = Omit<
   'mutationFn' | 'mutationKey'
 >;
 
-// sometimes it's hadny to inject args into mutation
-export function useEncryptFromCallbackArgs(options: UseMutationOptionsFromCallbackArgs = {}): {
+type UseEncryptResult<TMutationResult, TMutationFn> = {
   stepsState: StepsState;
-  _mutation: UseMutationResultEncryptFromCallbackArgs;
-  api: TEncryptApi<
-    UseMutateAsyncFunction<
-      EncryptedInput,
-      Error,
-      {
-        value: string;
-        type: FheTypeValue;
-      },
-      void
-    >
-  >;
-} {
+  _mutation: TMutationResult;
+  api: TEncryptApi<TMutationFn>;
+};
+
+// sometimes it's hadny to inject args into mutation
+export function useEncryptFromCallbackArgs(
+  options: UseMutationOptionsFromCallbackArgs = {}
+): UseEncryptResult<
+  UseMutationResultEncryptFromCallbackArgs,
+  UseMutateAsyncFunction<EncryptedInput, Error, EncryptableInput, void>
+> {
   const client = useCofheContext().client;
   const stepsState = useStepsState();
   const { onStep, reset: resetSteps } = stepsState;
@@ -149,10 +147,9 @@ export function useEncryptFromCallbackArgs(options: UseMutationOptionsFromCallba
       resetSteps();
       return onMutate?.(arg1, arg2);
     },
-    mutationFn: ({ value, type }: { value: string; type: FheTypeValue }) =>
+    mutationFn: (input: EncryptableInput) =>
       encryptValue({
-        value,
-        type,
+        input,
         client,
         onStep,
       }),
@@ -193,14 +190,9 @@ type TEncryptApi<TMutateAsyncCallback> = {
 
 // sometimes it's hadny to inject args into the hook and then call mutation without args
 export function useEncryptFromHookArgs(
-  value: string,
-  type: FheTypeValue,
+  input: EncryptableInput,
   options: UseMutationOptionsEncryptFromHookArgs = {}
-): {
-  stepsState: StepsState;
-  _mutation: UseMutationResultEncryptFromHookArgs;
-  api: TEncryptApi<UseMutateAsyncFunction<EncryptedInput, Error, void, void>>;
-} {
+): UseEncryptResult<UseMutationResultEncryptFromHookArgs, UseMutateAsyncFunction<EncryptedInput, Error, void, void>> {
   const client = useCofheContext().client;
   const stepsState = useStepsState();
   const { onStep, reset: resetSteps } = stepsState;
@@ -208,14 +200,13 @@ export function useEncryptFromHookArgs(
   const { onMutate, ...restOptions } = options;
   const mutationResult = useMutation({
     onMutate: (arg1, arg2) => {
-      variables.current = { value, type };
+      variables.current = input;
       resetSteps();
       return onMutate?.(arg1, arg2);
     },
     mutationFn: () =>
       encryptValue({
-        value,
-        type,
+        input,
         client,
         onStep,
       }),
