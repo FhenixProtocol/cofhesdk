@@ -6,6 +6,7 @@ export { CofheProvider, useCofheContext } from './providers/index.js';
 
 // Hooks
 export { useEncryptInput } from './hooks/index.js';
+export type { EncryptInputOptions, UseEncryptInputReturn } from './hooks/index.js';
 
 // Components
 export { FnxEncryptInput } from './components/index.js';
