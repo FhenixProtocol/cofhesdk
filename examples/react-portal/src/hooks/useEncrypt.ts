@@ -83,10 +83,7 @@ async function encryptValue({
   onStep,
 }: {
   client: CofhesdkClient | null;
-  input: {
-    value: string;
-    type: FheTypeValue;
-  };
+  input: EncryptableInput;
   onStep: (step: EncryptStep, context?: EncryptStepCallbackContext) => void;
 }): Promise<EncryptedInput> {
   if (!client) throw new Error('CoFHE client not initialized');
@@ -102,26 +99,10 @@ async function encryptValue({
   return result.data[0];
 }
 
-type UseMutationResultEncryptAsync = UseMutationResult<
-  EncryptedInput,
-  Error,
-  {
-    value: string;
-    type: FheTypeValue;
-  },
-  unknown
->;
+type UseMutationResultEncryptAsync = UseMutationResult<EncryptedInput, Error, EncryptableInput, unknown>;
 
 type UseMutationOptionsAsync = Omit<
-  UseMutationOptions<
-    EncryptedInput,
-    Error,
-    {
-      value: string;
-      type: FheTypeValue;
-    },
-    void
-  >,
+  UseMutationOptions<EncryptedInput, Error, EncryptableInput, void>,
   'mutationFn' | 'mutationKey'
 >;
 
