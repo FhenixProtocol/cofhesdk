@@ -24,6 +24,7 @@ export const CofhesdkWidgetConfigSchema = z.object({
     ]),
   defaultPermitExpirationSeconds: z.number().optional().default(604800), // 1 week
   pinnedTokens: z.record(z.number(), z.string()).optional().default({}),
+  //TODO:  tokenList:
   position: z.enum(['bottom-right', 'bottom-left', 'top-right', 'top-left']).optional().default('bottom-right'),
 });
 
