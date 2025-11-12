@@ -33,8 +33,14 @@ const STEP_CONFIG: Record<EncryptionStep, { label: string; progress: number }> =
   },
 };
 
+export interface EncryptInputOptions {
+  account?: string;
+  chainId?: number;
+  securityZone?: number;
+}
+
 export interface UseEncryptInputReturn {
-  onEncryptInput: (_type: FheTypeValue, _value: string) => Promise<any>;
+  onEncryptInput: (_type: FheTypeValue, _value: string, _options?: EncryptInputOptions) => Promise<any>;
   isEncryptingInput: boolean;
   encryptionStep: EncryptionStep | null;
   encryptionProgress: number;
@@ -50,7 +56,7 @@ export function useEncryptInput(): UseEncryptInputReturn {
   const [encryptionProgress, setEncryptionProgress] = useState<number>(0);
   const [encryptionProgressLabel, setEncryptionProgressLabel] = useState<string>('');
 
-  const onEncryptInput = useCallback(async (type: FheTypeValue, value: string) => {
+  const onEncryptInput = useCallback(async (type: FheTypeValue, value: string, options?: EncryptInputOptions) => {
     if (!client) {
       throw new Error('CoFHE client not initialized');
     }
@@ -101,7 +107,7 @@ export function useEncryptInput(): UseEncryptInputReturn {
       }
 
       // Perform encryption with real-time step tracking
-      const encryptionBuilder = client.encryptInputs([encryptableItem]).setStepCallback((step, context) => {
+      let encryptionBuilder = client.encryptInputs([encryptableItem]).setStepCallback((step, context) => {
         const stepConfig = STEP_CONFIG[step as EncryptionStep];
         
         if (stepConfig) {
@@ -121,6 +127,18 @@ export function useEncryptInput(): UseEncryptInputReturn {
           });
         }
       });
+
+      // Apply optional builder methods
+      if (options?.account) {
+        encryptionBuilder = encryptionBuilder.setAccount(options.account);
+      }
+      if (options?.chainId) {
+        encryptionBuilder = encryptionBuilder.setChainId(options.chainId);
+      }
+      if (options?.securityZone !== undefined) {
+        encryptionBuilder = encryptionBuilder.setSecurityZone(options.securityZone);
+      }
+
       const result = await encryptionBuilder.encrypt();
       
       if (!result.success) {
