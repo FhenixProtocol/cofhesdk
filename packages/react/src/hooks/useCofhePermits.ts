@@ -1,6 +1,6 @@
 import type { CofhesdkClient, CofhesdkClientPermits } from '@cofhe/sdk';
 import { useCofheContext } from '../providers';
-import { useMemo, useSyncExternalStore } from 'react';
+import { useCallback, useMemo, useSyncExternalStore } from 'react';
 import { NOOP_CALLBACK } from '../utils';
 import { PERMIT_STORE_DEFAULTS, PermitUtils, type Permit } from '@cofhe/sdk/permits';
 import { useCofheConnection } from './useCofheConnection';
@@ -29,6 +29,11 @@ type UseCofhePermitsResult = {
     hash: string;
     permit: Permit;
   }[];
+
+  // eslint-disable-next-line no-unused-vars
+  removePermit: (hashToRemove: string) => void;
+  // eslint-disable-next-line no-unused-vars
+  setActivePermitHash: (hashToSet: string) => void;
 };
 // sync core store
 export const useCofhePermits = (): UseCofhePermitsResult => {
@@ -86,9 +91,29 @@ export const useCofhePermits = (): UseCofhePermitsResult => {
     [allPermits]
   );
 
+  const removePermit = useCallback(
+    (hashToRemove: string) => {
+      if (!client || !chainId || !account)
+        throw new Error('Client, chainId, and account must be defined to remove a permit');
+      client.permits.removePermit(hashToRemove, chainId, account);
+    },
+    [client, chainId, account]
+  );
+
+  const setActivePermitHash = useCallback(
+    (hashToSet: string) => {
+      if (!client || !chainId || !account)
+        throw new Error('Client, chainId, and account must be defined to set active permit hash');
+      client.permits.selectActivePermit(hashToSet, chainId, account);
+    },
+    [client, chainId, account]
+  );
+
   return {
     state,
     activePermit: connected ? activePermitData : undefined,
     allPermitsWithHashes,
+    removePermit,
+    setActivePermitHash,
   };
 };
