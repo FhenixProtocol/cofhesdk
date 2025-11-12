@@ -170,8 +170,8 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
   private async getResolvedPermit(): Promise<Permit> {
     if (this.permit) return this.permit;
 
-    const chainId = await this.getChainIdOrThrow();
-    const account = await this.getAccountOrThrow();
+    const chainId = this.getChainIdOrThrow();
+    const account = this.getAccountOrThrow();
 
     // Fetch with permit hash
     if (this.permitHash) {
@@ -249,7 +249,7 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
   decrypt(): Promise<Result<UnsealedItem<U>>> {
     return resultWrapper(async () => {
       // Ensure cofhe client is connected
-      await this.requireConnectedOrThrow();
+      this.requireConnectedOrThrow();
 
       // Ensure utype is valid
       this.validateUtypeOrThrow();
@@ -258,7 +258,7 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
       const permit = await this.getResolvedPermit();
 
       // Ensure permit validity
-      await PermitUtils.validate(permit);
+      PermitUtils.validate(permit);
 
       // Extract chainId from signed permit
       // Use this chainId to fetch the threshold network URL since this.chainId may be undefined
