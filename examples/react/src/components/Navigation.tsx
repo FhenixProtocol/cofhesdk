@@ -58,9 +58,11 @@ const StatusDetailsInline: React.FC<{ isDarkMode: boolean }> = ({ isDarkMode }) 
 const Permits: React.FC = () => {
   const { state: permitsState } = useCofhePermits();
   return (
-    <div>
-      Permits State:
-      <pre>{JSON.stringify(permitsState, null, 2)}</pre>
+    <div className="mb-4">
+      <div className="text-sm font-medium text-gray-700 dark:text-gray-300">Permits</div>
+      <pre className="mt-2 text-xs bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100 p-2 rounded max-h-36 overflow-auto whitespace-pre-wrap">
+        {JSON.stringify(permitsState, null, 2)}
+      </pre>
     </div>
   );
 };
