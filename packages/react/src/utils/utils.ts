@@ -1,3 +1,5 @@
+import { Encryptable, type EncryptableItem } from '@cofhe/sdk';
+
 // FHE Types for the current CoFHE SDK
 export type FheTypeValue = 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'uint128' | 'bool' | 'address';
 
@@ -54,3 +56,46 @@ export const FheTypesList: FheTypeOption[] = [
 ];
 
 export const NOOP_CALLBACK = () => () => {};
+
+export function createEncryptableItem(value: string, type: FheTypeValue): EncryptableItem {
+  // Convert value based on type
+  let convertedValue: number | bigint | boolean | string;
+
+  if (type === 'bool') {
+    convertedValue = value.toLowerCase() === 'true' || value === '1';
+  } else if (type === 'address') {
+    convertedValue = value as string | bigint;
+  } else {
+    // Numeric types
+    convertedValue = value.includes('.') ? parseFloat(value) : parseInt(value, 10);
+  }
+
+  // Create encryptable item
+  let encryptableItem: EncryptableItem;
+  switch (type) {
+    case 'bool':
+      encryptableItem = Encryptable.bool(convertedValue as boolean);
+      break;
+    case 'uint8':
+      encryptableItem = Encryptable.uint8(BigInt(convertedValue));
+      break;
+    case 'uint16':
+      encryptableItem = Encryptable.uint16(BigInt(convertedValue));
+      break;
+    case 'uint32':
+      encryptableItem = Encryptable.uint32(BigInt(convertedValue));
+      break;
+    case 'uint64':
+      encryptableItem = Encryptable.uint64(BigInt(convertedValue));
+      break;
+    case 'uint128':
+      encryptableItem = Encryptable.uint128(BigInt(convertedValue));
+      break;
+    case 'address':
+      encryptableItem = Encryptable.address(convertedValue as string | bigint);
+      break;
+    default:
+      encryptableItem = Encryptable.uint32(BigInt(convertedValue));
+  }
+  return encryptableItem;
+}
