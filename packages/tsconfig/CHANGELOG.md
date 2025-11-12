@@ -1,5 +1,11 @@
 # @cofhe/tsconfig
 
+## 0.1.1
+
+### Patch Changes
+
+- 4057a76: Add WebWorker for zkProve
+
 ## 0.1.0
 
 ### Minor Changes
