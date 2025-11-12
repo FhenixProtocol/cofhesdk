@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useCofheConnection } from '@cofhe/react';
+import { useCofheConnection, useCofhePermits } from '@cofhe/react';
 interface NavigationProps {
   activeComponent: string;
   onComponentSelect: (component: string) => void;
@@ -55,6 +55,16 @@ const StatusDetailsInline: React.FC<{ isDarkMode: boolean }> = ({ isDarkMode }) 
   );
 };
 
+const Permits: React.FC = () => {
+  const { state: permitsState } = useCofhePermits();
+  return (
+    <div>
+      Permits State:
+      <pre>{JSON.stringify(permitsState, null, 2)}</pre>
+    </div>
+  );
+};
+
 export const Navigation: React.FC<NavigationProps> = ({
   activeComponent,
   onComponentSelect,
@@ -85,6 +95,8 @@ export const Navigation: React.FC<NavigationProps> = ({
             CoFHE SDK Ready
           </div>
         </div>
+        {/*  Permits */}
+        <Permits />
 
         {/* Dark Mode Toggle */}
         <div className="mb-6">
