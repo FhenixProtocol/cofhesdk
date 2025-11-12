@@ -1,5 +1,20 @@
 # @cofhe/hardhat-plugin Changelog
 
+## 0.2.0
+
+### Patch Changes
+
+- e121108: Fix ACL permission invalid issue. MockACL needs real deployment since etching doesn't call the constructor, so the EIP712 is uninitialized. Also adds additional utility functions to hardhat-plugin:
+  - `hre.cofhesdk.connectWithHardhatSigner(client, signer)` - Connect to client with hardhat ethers signer.
+  - `hre.cofhesdk.createBatteriesIncludedCofhesdkClient()` - Creates a batteries included client with signer connected.
+  - `hre.cofhesdk.mocks.getMockTaskManager()` - Gets deployed Mock Taskmanager
+  - `hre.cofhesdk.mocks.getMockACL()` - Gets deployed Mock ACL
+- Updated dependencies [e121108]
+- Updated dependencies [4057a76]
+- Updated dependencies [dba2759]
+  - @cofhe/mock-contracts@0.2.0
+  - @cofhe/sdk@0.2.0
+
 ## 0.1.1
 
 ### Patch Changes
