@@ -5,7 +5,7 @@ import './styles.css';
 export { CofheProvider, useCofheContext } from './providers/index.js';
 
 // Hooks
-export { useEncryptInput } from './hooks/index.js';
+export { useEncryptInput, useCofheConnection } from './hooks/index';
 
 // Components
 export { FnxEncryptInput } from './components/index.js';
@@ -14,8 +14,4 @@ export { FnxEncryptInput } from './components/index.js';
 export { FheTypesList, fheTypeToString, encryptedValueToString } from './utils/index.js';
 
 // Types
-export type {
-  CofheContextValue,
-  CofheProviderProps,
-  CofheClientConfig,
-} from './types/index.js';
+export type { CofheContextValue, CofheProviderProps, CofheClientConfig } from './types/index.js';
