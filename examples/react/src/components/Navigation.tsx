@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useCofheConnection } from '@cofhe/react';
 interface NavigationProps {
   activeComponent: string;
@@ -12,6 +12,50 @@ const components = [
   { id: 'fnx-encrypt-input', label: 'FnxEncryptInput', description: 'Advanced input with type selection' },
   { id: 'hooks-example', label: 'Hooks Usage', description: 'Using useEncryptInput hook directly' },
 ];
+
+const StatusDetailsInline: React.FC<{ connectionState: any; isDarkMode: boolean }> = ({
+  connectionState,
+  isDarkMode,
+}) => {
+  const [open, setOpen] = useState(false);
+  const details = connectionState ? JSON.stringify(connectionState, null, 2) : 'Not connected';
+
+  return (
+    <>
+      <span className="ml-2 inline-flex items-center space-x-2">
+        <span
+          className={`inline-block w-3 h-3 rounded-full ${connectionState?.connected ? 'bg-green-500' : 'bg-red-500'}`}
+          aria-hidden
+        />
+        <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+          {connectionState?.connected ? 'Connected ✅' : 'Disconnected ❌'}
+        </span>
+        <button
+          onClick={() => setOpen((s) => !s)}
+          className={`ml-2 text-xs underline focus:outline-none ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}
+        >
+          Show details
+        </button>
+      </span>
+
+      {open && (
+        <div
+          className={`fixed left-20 top-24 z-50 w-100 max-h-[60vh] overflow-auto p-3 rounded shadow-lg text-xs ${
+            isDarkMode ? 'bg-gray-800 text-gray-100' : 'bg-white text-gray-800'
+          }`}
+        >
+          <div className="flex justify-between items-start mb-2">
+            <strong className="text-sm">Connection details</strong>
+            <button onClick={() => setOpen(false)} className="ml-2 text-xs opacity-70">
+              ✕
+            </button>
+          </div>
+          <pre className="whitespace-pre-wrap m-0">{details}</pre>
+        </div>
+      )}
+    </>
+  );
+};
 
 export const Navigation: React.FC<NavigationProps> = ({
   activeComponent,
@@ -35,7 +79,9 @@ export const Navigation: React.FC<NavigationProps> = ({
         {/* Status */}
         <div className="mb-6">
           <h3 className={`text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-            Connection Status: <pre>{JSON.stringify(connectionState, null, 2)}</pre>
+            Connection Status:
+            {/* simple inline indicator + details button — avoids hover tooltip and clipping */}
+            <StatusDetailsInline connectionState={connectionState} isDarkMode={isDarkMode} />
           </h3>
           <div
             className={`text-sm p-2 rounded ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'}`}
