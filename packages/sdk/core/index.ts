@@ -1,5 +1,5 @@
 // Client (base implementations)
-export { createCofhesdkClientBase } from './client.js';
+export { createCofhesdkClientBase, CONNECT_STORE_DEFAULTS } from './client.js';
 
 // Configuration (base implementations)
 export { createCofhesdkConfigBase, getCofhesdkConfigItem } from './config.js';
@@ -74,7 +74,12 @@ export { EncryptInputsBuilder } from './encrypt/encryptInputsBuilder.js';
 export { DecryptHandlesBuilder } from './decrypt/decryptHandleBuilder.js';
 
 // ZK utilities
-export type { ZkBuilderAndCrsGenerator, ZkProveWorkerFunction, ZkProveWorkerRequest, ZkProveWorkerResponse } from './encrypt/zkPackProveVerify.js';
+export type {
+  ZkBuilderAndCrsGenerator,
+  ZkProveWorkerFunction,
+  ZkProveWorkerRequest,
+  ZkProveWorkerResponse,
+} from './encrypt/zkPackProveVerify.js';
 export { zkProveWithWorker } from './encrypt/zkPackProveVerify.js';
 
 export { MOCKS_ZK_VERIFIER_SIGNER_ADDRESS } from './encrypt/cofheMocksZkVerifySign.js';
