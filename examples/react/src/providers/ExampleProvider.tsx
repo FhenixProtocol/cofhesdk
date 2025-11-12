@@ -1,3 +1,4 @@
+// is unused currently but may be used in the future
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { createCofhesdkClient, createCofhesdkConfig } from '@cofhe/sdk/web';
 import { createPublicClient, createWalletClient, http } from 'viem';
