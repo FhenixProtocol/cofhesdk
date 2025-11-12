@@ -13,11 +13,9 @@ const components = [
   { id: 'hooks-example', label: 'Hooks Usage', description: 'Using useEncryptInput hook directly' },
 ];
 
-const StatusDetailsInline: React.FC<{ connectionState: any; isDarkMode: boolean }> = ({
-  connectionState,
-  isDarkMode,
-}) => {
+const StatusDetailsInline: React.FC<{ isDarkMode: boolean }> = ({ isDarkMode }) => {
   const [open, setOpen] = useState(false);
+  const connectionState = useCofheConnection();
   const details = connectionState ? JSON.stringify(connectionState, null, 2) : 'Not connected';
 
   return (
@@ -63,8 +61,6 @@ export const Navigation: React.FC<NavigationProps> = ({
   isDarkMode,
   onToggleDarkMode,
 }) => {
-  const connectionState = useCofheConnection();
-
   return (
     <div
       className={`w-80 h-screen ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-r overflow-y-auto`}
@@ -81,7 +77,7 @@ export const Navigation: React.FC<NavigationProps> = ({
           <h3 className={`text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
             Connection Status:
             {/* simple inline indicator + details button — avoids hover tooltip and clipping */}
-            <StatusDetailsInline connectionState={connectionState} isDarkMode={isDarkMode} />
+            <StatusDetailsInline isDarkMode={isDarkMode} />
           </h3>
           <div
             className={`text-sm p-2 rounded ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'}`}
