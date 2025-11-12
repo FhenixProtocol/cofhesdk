@@ -175,7 +175,7 @@ type TEncryptApi<TMutateAsyncCallback> = {
   encrypt: TMutateAsyncCallback;
 };
 
-// sometimes it's hadny to inject args into the hook and then call mutation without args
+// sometimes it's handy to inject args into the hook and then call mutation without args
 export function useEncryptSync(
   input: EncryptableInput,
   options: UseMutationOptionsEncryptSync = {}
