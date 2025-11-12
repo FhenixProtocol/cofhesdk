@@ -20,6 +20,13 @@ import {
 } from './types.js';
 import { getPublicClientChainID, getWalletClientAccount } from './utils.js';
 
+export const CONNECT_STORE_DEFAULTS: CofhesdkClientConnectionState = {
+  connected: false,
+  connecting: false,
+  connectError: undefined,
+  chainId: undefined,
+  account: undefined,
+};
 /**
  * Creates a CoFHE SDK client instance (base implementation)
  * @param {CofhesdkClientParams} opts - Initialization options including config and platform-specific serializers
@@ -34,13 +41,8 @@ export function createCofhesdkClientBase(opts: CofhesdkClientParams): CofhesdkCl
   let _walletClient: WalletClient | undefined = undefined;
 
   // Zustand store for reactive state management
-  const connectStore = createStore<CofhesdkClientConnectionState>(() => ({
-    connected: false,
-    connecting: false,
-    connectError: undefined,
-    chainId: undefined,
-    account: undefined,
-  }));
+
+  const connectStore = createStore<CofhesdkClientConnectionState>(() => CONNECT_STORE_DEFAULTS);
 
   // Helper to update state
   const updateConnectState = (partial: Partial<CofhesdkClientConnectionState>) => {
