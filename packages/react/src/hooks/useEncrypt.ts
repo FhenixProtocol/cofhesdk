@@ -116,7 +116,7 @@ type UseEncryptResult<TMutationResult, TMutationFn> = {
   isConnected: boolean;
 };
 
-// sometimes it's hadny to inject args into mutation
+// sometimes it's handy to inject args into mutation
 export function useEncryptAsync(
   options: UseMutationOptionsAsync = {}
 ): UseEncryptResult<
