@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { useEncryptInput } from '@cofhe/react';
-import { useExample } from '../../providers/ExampleProvider';
+import { useCofheContext, useEncryptInput } from '@cofhe/react';
 
 export const HooksExample: React.FC = () => {
-  const { client, isInitialized, error } = useExample();
+  const { client, isInitialized, error } = useCofheContext();
   const { onEncryptInput, isEncryptingInput } = useEncryptInput();
   const [results, setResults] = useState<any>(null);
 
@@ -36,12 +35,12 @@ export const HooksExample: React.FC = () => {
                 <div className="text-2xl font-bold">{client ? '✅' : '❌'}</div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">Client</div>
               </div>
-              
+
               <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                 <div className="text-2xl font-bold">{isInitialized ? '✅' : '❌'}</div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">Initialized</div>
               </div>
-              
+
               <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                 <div className="text-2xl font-bold">{error ? '❌' : '✅'}</div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">No Errors</div>
@@ -68,9 +67,7 @@ export const HooksExample: React.FC = () => {
             <h3 className="text-lg font-semibold mb-3">Results</h3>
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border">
               <pre className="text-sm overflow-x-auto">
-                {JSON.stringify(results, (key, value) => 
-                  typeof value === 'bigint' ? value.toString() : value, 2
-                )}
+                {JSON.stringify(results, (key, value) => (typeof value === 'bigint' ? value.toString() : value), 2)}
               </pre>
             </div>
           </div>
