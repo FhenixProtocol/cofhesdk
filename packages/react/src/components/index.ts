@@ -1,2 +1,2 @@
 export { FnxEncryptInput } from './FnxEncryptInput.js';
-export { FloatingCofheButton } from './FloatingCofhePortal';
+export { FloatingCofheButton } from './FloatingCofheButton.js';
