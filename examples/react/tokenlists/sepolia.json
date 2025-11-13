@@ -15,6 +15,17 @@
       "extensions": {
         "coingeckoId": "weth"
       }
+    },
+    {
+      "chainId": 11155111,
+      "address": "0xaa8e23fb1079ea71e0a56f48a2aa51851d8433d0",
+      "name": "Tether USD",
+      "symbol": "USDT",
+      "decimals": 6,
+      "logoURI": "https://tokens.cofhe.io/logo/usdt.png",
+      "extensions": {
+        "coingeckoId": "tether"
+      }
     }
   ]
 }
