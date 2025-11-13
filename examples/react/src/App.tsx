@@ -3,7 +3,7 @@ import { Navigation } from './components/Navigation';
 import { ComponentRenderer } from './components/ComponentRenderer';
 import { Providers as WagmiProviders } from './utils/wagmi';
 import { CofheProviderLocal } from './utils/cofhe.config';
-import { FloatingCofhePortal } from '@cofhe/react';
+import { FloatingCofheButton } from '@cofhe/react';
 
 function App() {
   const [activeComponent, setActiveComponent] = useState<string>('overview');
@@ -25,7 +25,7 @@ function App() {
   return (
     <WagmiProviders>
       <CofheProviderLocal>
-        <FloatingCofhePortal />
+        <FloatingCofheButton />
         <div className={`min-h-screen flex ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
           <Navigation
             activeComponent={activeComponent}

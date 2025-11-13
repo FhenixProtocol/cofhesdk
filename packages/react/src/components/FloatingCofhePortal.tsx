@@ -1,6 +1,6 @@
 import { useCofheContext } from '../providers';
 
-export const FloatingCofhePortal: React.FC = () => {
+export const FloatingCofheButton: React.FC = () => {
   const widgetConfig = useCofheContext().widgetConfig;
 
   return (
@@ -16,7 +16,7 @@ export const FloatingCofhePortal: React.FC = () => {
         border: '1px solid #ccc',
       }}
     >
-      <div>portal config:</div>
+      <div>widget config:</div>
       <pre>{JSON.stringify(widgetConfig, null, 2)}</pre>
     </div>
   );
