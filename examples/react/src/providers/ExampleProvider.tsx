@@ -1,11 +1,10 @@
+// this context & provider unused currently but may be used in the future
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { createCofhesdkClient, createCofhesdkConfig } from '@cofhe/sdk/web';
-import { createPublicClient, createWalletClient, http } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
-import { sepolia } from 'viem/chains';
 import { sepolia as cofheSepoliaChain } from '@cofhe/sdk/chains';
 import { CofheProvider } from '@cofhe/react';
 import type { CofhesdkClient } from '@cofhe/sdk';
+import { createMockWalletAndPublicClient } from '../utils/misc';
 
 interface ExampleContextType {
   isInitialized: boolean;
@@ -47,22 +46,7 @@ export const ExampleProvider: React.FC<ExampleProviderProps> = ({ children }) =>
     setError(null);
 
     try {
-      // Create a mock private key for examples (DO NOT use in production)
-      const mockPrivateKey = '0x1234567890123456789012345678901234567890123456789012345678901234';
-      const account = privateKeyToAccount(mockPrivateKey);
-
-      // Create public client (provider) for Sepolia
-      const publicClient = createPublicClient({
-        chain: sepolia,
-        transport: http('https://sepolia.gateway.tenderly.co'), // Public Sepolia RPC
-      });
-
-      // Create wallet client (signer) for Sepolia
-      const walletClient = createWalletClient({
-        account,
-        chain: sepolia,
-        transport: http('https://sepolia.gateway.tenderly.co'),
-      });
+      const { walletClient, publicClient } = createMockWalletAndPublicClient();
 
       // Create CoFHE SDK configuration
       const inputConfig = {

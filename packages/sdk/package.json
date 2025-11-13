@@ -70,14 +70,14 @@
     "immer": "^10.1.1",
     "zustand": "^5.0.1",
     "zod": "^3.22.0",
-    "viem": "^2.0.0",
+    "viem": "^2.38.6",
     "node-tfhe": "0.11.1",
     "idb-keyval": "^6.2.1",
     "tfhe": "0.11.1",
     "tweetnacl": "^1.0.3"
   },
   "peerDependencies": {
-    "viem": "^2.0.0",
+    "viem": "^2.38.6",
     "@wagmi/core": "^2.0.0",
     "ethers": "^5.0.0 || ^6.0.0",
     "hardhat": "^2.0.0",

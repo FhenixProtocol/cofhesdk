@@ -4,7 +4,7 @@ import type { CofheContextValue, CofheProviderProps } from '../types/index.js';
 
 const CofheContext = createContext<CofheContextValue | undefined>(undefined);
 
-export function CofheProvider({ children, client: providedClient, config }: CofheProviderProps) {
+export function CofheProvider({ children, client: providedClient, config, widgetConfig }: CofheProviderProps) {
   const [client, setClient] = useState<CofhesdkClient | null>(providedClient || null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -33,13 +33,10 @@ export function CofheProvider({ children, client: providedClient, config }: Cofh
     client,
     isInitialized,
     error,
+    widgetConfig,
   };
 
-  return (
-    <CofheContext.Provider value={contextValue}>
-      {children}
-    </CofheContext.Provider>
-  );
+  return <CofheContext.Provider value={contextValue}>{children}</CofheContext.Provider>;
 }
 
 export function useCofheContext(): CofheContextValue {
