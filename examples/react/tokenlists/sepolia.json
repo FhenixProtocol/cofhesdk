@@ -1,0 +1,20 @@
+{
+  "name": "CoFHE Sepolia Tokenlist",
+  "timestamp": "2025-11-13T12:00:00Z",
+  "version": { "major": 1, "minor": 0, "patch": 0 },
+  "logoURI": "https://cdn.prod.website-files.com/6864e9aed9e0a3fac7810db8/68a473dd63e0265d2d6cf9a3_(fhenix_)%20(16).svg",
+  "keywords": ["sepolia", "weth", "wrapped-ether"],
+  "tokens": [
+    {
+      "chainId": 11155111,
+      "address": "0x7b79995e5f793a07bc00c21412e50ecae098e7f9",
+      "name": "Wrapped Ether",
+      "symbol": "WETH",
+      "decimals": 18,
+      "logoURI": "https://tokens.cofhe.io/logo/weth.png",
+      "extensions": {
+        "coingeckoId": "weth"
+      }
+    }
+  ]
+}
