@@ -26,7 +26,7 @@ type UseTokenListsInput = {
   chainId: number;
 };
 type UseTokenListsOptions = Omit<UseQueryOptions<TokenList, Error>, 'queryKey' | 'queryFn' | 'select'>;
-// returns array of loaded tokens lists for the current network
+// Returns array of query results for token lists for the current network
 export function useTokenLists(
   { chainId }: UseTokenListsInput,
   queryOptions?: UseTokenListsOptions
