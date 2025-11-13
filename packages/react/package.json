@@ -24,8 +24,8 @@
     "dist/**"
   ],
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
+    "build": "tsup && cp src/styles.css dist/styles.css",
+    "dev": "tsup --watch & while sleep 1; do cp src/styles.css dist/styles.css; done # tsup doesn't fully suppport css, handle it manually",
     "lint": "eslint \"src/**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"

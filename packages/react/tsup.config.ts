@@ -1,7 +1,9 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-  entry: ['src/index.ts', 'src/styles.css'],
+  // Keep only JS/TS entry files in tsup. We'll copy CSS to `dist` in a post-build step
+  // to avoid tsup generating a malformed CSS source map.
+  entry: ['src/index.ts'],
   format: ['cjs', 'esm'],
   dts: {
     resolve: true,
