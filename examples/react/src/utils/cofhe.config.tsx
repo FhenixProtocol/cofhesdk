@@ -2,6 +2,7 @@ import { CofheProvider, createCofhesdkClient, createCofhesdkConfig } from '@cofh
 import { useEffect } from 'react';
 import { usePublicClient, useWalletClient } from 'wagmi';
 import { sepolia, baseSepolia } from '@cofhe/sdk/chains';
+import { createMockWalletAndPublicClient } from './misc';
 
 const cofheConfig = createCofhesdkConfig({
   client: {
@@ -18,14 +19,19 @@ const config = createCofhesdkConfig(cofheConfig);
 export const cofheSdkClient = createCofhesdkClient(config.client);
 
 export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) => {
-  const { data: walletClient } = useWalletClient();
+  const walletClientResult = useWalletClient();
+  const { data: walletClient } = walletClientResult;
   const publicClient = usePublicClient();
 
   useEffect(() => {
     async function handleConnect() {
-      if (!publicClient || !walletClient) return;
+      if (cofheSdkClient.connecting || cofheSdkClient.connected) return;
+      // NB: fallback to mock clients if no wallet is connected
 
-      await cofheSdkClient.connect(publicClient, walletClient);
+      const pairToUse =
+        walletClient && publicClient ? { walletClient, publicClient } : createMockWalletAndPublicClient();
+
+      await cofheSdkClient.connect(pairToUse.publicClient, pairToUse.walletClient);
     }
     handleConnect();
   }, [walletClient, publicClient]);
