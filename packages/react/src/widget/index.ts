@@ -27,16 +27,18 @@ export const CofhesdkWidgetConfigSchema = z.object({
   // then transform them into number-keyed records for downstream usage.
   pinnedTokens: z.record(z.string()).optional().default({
     11155111: '0x7b79995e5f793a07bc00c21412e50ecae098e7f9', // sepolia weth
-    84531: '0x4200000000000000000000000000000000000006', // base sepolia weth
-    421613: '0x980b62da83eff3d4576c647993b0c1d7faf17c73', // arbitrum sepolia weth
+    // 84531: '0x4200000000000000000000000000000000000006', // base sepolia weth
+    // 421613: '0x980b62da83eff3d4576c647993b0c1d7faf17c73', // arbitrum sepolia weth
   }),
   tokenLists: z
     .record(z.array(z.string()))
     .optional()
     .default({
-      11155111: ['https://tokens.cofhe.io/sepolia.json'],
-      84531: ['https://tokens.cofhe.io/base-sepolia.json'],
-      421613: ['https://tokens.cofhe.io/arbitrum-sepolia.json'],
+      11155111: [
+        'https://raw.githubusercontent.com/FhenixProtocol/cofhesdk/33800006fbe1a740485d50fc9c13b8e9af404c5a/examples/react/tokenlists/sepolia.json',
+      ],
+      // 84531: ['https://tokens.cofhe.io/base-sepolia.json'],
+      // 421613: ['https://tokens.cofhe.io/arbitrum-sepolia.json'],
     }),
   position: z.enum(['bottom-right', 'bottom-left', 'top-right', 'top-left']).optional().default('bottom-right'),
 });
