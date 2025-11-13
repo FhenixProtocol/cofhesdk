@@ -4,7 +4,7 @@ import { ComponentRenderer } from './components/ComponentRenderer';
 import { ExampleProvider } from './providers/ExampleProvider';
 
 function App() {
-  const [activeComponent, setActiveComponent] = useState<string>('overview');
+  const [activeComponent, setActiveComponent] = useState<string>('fnx-floating-button');
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
 
   const toggleDarkMode = () => {
