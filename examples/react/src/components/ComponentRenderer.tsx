@@ -1,6 +1,7 @@
 import React from 'react';
 import { Overview } from './examples/Overview';
 import { FnxEncryptInputExample } from './examples/FnxEncryptInputExample';
+import { FnxFloatingButtonExample } from './examples/FnxFloatingButtonExample';
 import { HooksExample } from './examples/HooksExample';
 
 interface ComponentRendererProps {
@@ -18,6 +19,8 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
         return <Overview />;
       case 'fnx-encrypt-input':
         return <FnxEncryptInputExample />;
+      case 'fnx-floating-button':
+        return <FnxFloatingButtonExample />;
       case 'hooks-example':
         return <HooksExample />;
       default:
