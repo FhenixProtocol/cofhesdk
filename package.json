@@ -2,6 +2,7 @@
   "private": true,
   "scripts": {
     "build": "turbo run build --filter='!./examples/*'",
+    "build-clean": "rm -rf .turbo node_modules/.cache packages/react/dist packages/react/node_modules/.cache && pnpm build",
     "dev": "turbo run dev",
     "test": "turbo run test",
     "lint": "turbo run lint",

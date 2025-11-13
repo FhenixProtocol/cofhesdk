@@ -1,0 +1,9 @@
+{
+  "watch": ["src"],
+  "ext": "ts,tsx,css",
+  "ignore": ["dist", "node_modules"],
+  "exec": "rm -rf dist && tsup",
+  "legacyWatch": true,
+  "delay": "500"
+}
+
