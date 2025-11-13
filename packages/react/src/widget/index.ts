@@ -38,7 +38,7 @@ export type CofhesdkWidgetInputConfig = {
 
 export type CofhesdkWidgetConfig = {
   client: CofhesdkConfig;
-  widget: z.input<typeof CofhesdkWidgetConfigSchema>;
+  widget: z.output<typeof CofhesdkWidgetConfigSchema>;
 };
 /**
  * Creates a CoFHE SDK Client and Widget configuration reasonable defaults
