@@ -25,7 +25,7 @@
   ],
   "scripts": {
     "build": "tsup",
-    "dev": "tsup --watch",
+    "dev": "nodemon",
     "lint": "eslint \"src/**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
@@ -36,6 +36,7 @@
     "@types/react": "^18.2.61",
     "@types/react-dom": "^18.2.19",
     "eslint": "^8.57.0",
+    "nodemon": "^3.1.11",
     "tailwindcss": "3.4.18",
     "tsup": "^8.5.0",
     "typescript": "5.5.4"

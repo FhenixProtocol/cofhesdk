@@ -294,6 +294,9 @@ importers:
       eslint:
         specifier: ^8.57.0
         version: 8.57.1
+      nodemon:
+        specifier: ^3.1.11
+        version: 3.1.11
       tailwindcss:
         specifier: 3.4.18
         version: 3.4.18
@@ -452,7 +455,7 @@ packages:
       '@babel/traverse': 7.23.4
       '@babel/types': 7.23.4
       convert-source-map: 2.0.0
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@5.5.0)
       gensync: 1.0.0-beta.2
       json5: 2.2.3
       semver: 6.3.1
@@ -475,7 +478,7 @@ packages:
       '@babel/types': 7.28.5
       '@jridgewell/remapping': 2.3.5
       convert-source-map: 2.0.0
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@5.5.0)
       gensync: 1.0.0-beta.2
       json5: 2.2.3
       semver: 6.3.1
@@ -772,7 +775,7 @@ packages:
       '@babel/helper-split-export-declaration': 7.22.6
       '@babel/parser': 7.28.4
       '@babel/types': 7.28.4
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@5.5.0)
       globals: 11.12.0
     transitivePeerDependencies:
       - supports-color
@@ -788,7 +791,7 @@ packages:
       '@babel/parser': 7.28.5
       '@babel/template': 7.27.2
       '@babel/types': 7.28.5
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@5.5.0)
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -1808,7 +1811,7 @@ packages:
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
     dependencies:
       ajv: 6.12.6
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@5.5.0)
       espree: 9.6.1
       globals: 13.24.0
       ignore: 5.3.1
@@ -2200,7 +2203,7 @@ packages:
     engines: {node: '>=10.10.0'}
     dependencies:
       '@humanwhocodes/object-schema': 2.0.2
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@5.5.0)
       minimatch: 3.1.2
     transitivePeerDependencies:
       - supports-color
@@ -2679,7 +2682,7 @@ packages:
       '@nomicfoundation/ignition-core': 0.15.13
       '@nomicfoundation/ignition-ui': 0.15.12
       chalk: 4.1.2
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@5.5.0)
       fs-extra: 10.1.0
       hardhat: 2.26.3(ts-node@10.9.2)(typescript@5.5.4)
       json5: 2.2.3
@@ -2749,7 +2752,7 @@ packages:
       '@ethersproject/abi': 5.8.0
       '@ethersproject/address': 5.8.0
       cbor: 8.1.0
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@5.5.0)
       hardhat: 2.26.3(ts-node@10.9.2)(typescript@5.5.4)
       lodash.clonedeep: 4.5.0
       picocolors: 1.1.1
@@ -2766,7 +2769,7 @@ packages:
       '@ethersproject/address': 5.6.1
       '@nomicfoundation/solidity-analyzer': 0.1.2
       cbor: 9.0.2
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@5.5.0)
       ethers: 6.15.0
       fs-extra: 10.1.0
       immer: 10.0.2
@@ -3693,7 +3696,7 @@ packages:
       '@typescript-eslint/type-utils': 6.17.0(eslint@8.57.1)(typescript@5.5.4)
       '@typescript-eslint/utils': 6.17.0(eslint@8.57.1)(typescript@5.5.4)
       '@typescript-eslint/visitor-keys': 6.17.0
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@5.5.0)
       eslint: 8.57.1
       graphemer: 1.4.0
       ignore: 5.3.2
@@ -3748,7 +3751,7 @@ packages:
       '@typescript-eslint/types': 6.17.0
       '@typescript-eslint/typescript-estree': 6.17.0(typescript@5.5.4)
       '@typescript-eslint/visitor-keys': 6.17.0
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@5.5.0)
       eslint: 8.57.1
       typescript: 5.5.4
     transitivePeerDependencies:
@@ -3812,7 +3815,7 @@ packages:
     dependencies:
       '@typescript-eslint/typescript-estree': 6.17.0(typescript@5.5.4)
       '@typescript-eslint/utils': 6.17.0(eslint@8.57.1)(typescript@5.5.4)
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@5.5.0)
       eslint: 8.57.1
       ts-api-utils: 1.0.3(typescript@5.5.4)
       typescript: 5.5.4
@@ -3832,7 +3835,7 @@ packages:
     dependencies:
       '@typescript-eslint/typescript-estree': 7.1.0(typescript@5.5.4)
       '@typescript-eslint/utils': 7.1.0(eslint@8.57.1)(typescript@5.5.4)
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@5.5.0)
       eslint: 8.57.1
       ts-api-utils: 1.0.3(typescript@5.5.4)
       typescript: 5.5.4
@@ -3866,7 +3869,7 @@ packages:
     dependencies:
       '@typescript-eslint/types': 5.62.0
       '@typescript-eslint/visitor-keys': 5.62.0
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@5.5.0)
       globby: 11.1.0
       is-glob: 4.0.3
       semver: 7.5.4
@@ -3887,7 +3890,7 @@ packages:
     dependencies:
       '@typescript-eslint/types': 6.17.0
       '@typescript-eslint/visitor-keys': 6.17.0
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@5.5.0)
       globby: 11.1.0
       is-glob: 4.0.3
       minimatch: 9.0.3
@@ -3909,7 +3912,7 @@ packages:
     dependencies:
       '@typescript-eslint/types': 7.1.0
       '@typescript-eslint/visitor-keys': 7.1.0
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@5.5.0)
       globby: 11.1.0
       is-glob: 4.0.3
       minimatch: 9.0.3
@@ -4120,7 +4123,7 @@ packages:
       '@bcoe/v8-coverage': 1.0.2
       '@vitest/browser': 3.2.4(playwright@1.55.0)(vitest@3.2.4)
       ast-v8-to-istanbul: 0.3.6
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@5.5.0)
       istanbul-lib-coverage: 3.2.2
       istanbul-lib-report: 3.0.1
       istanbul-lib-source-maps: 5.0.6
@@ -4277,7 +4280,7 @@ packages:
     resolution: {integrity: sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==}
     engines: {node: '>= 6.0.0'}
     dependencies:
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@5.5.0)
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -5288,7 +5291,7 @@ packages:
       supports-color: 8.1.1
     dev: true
 
-  /debug@4.4.3:
+  /debug@4.4.3(supports-color@5.5.0):
     resolution: {integrity: sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==}
     engines: {node: '>=6.0'}
     peerDependencies:
@@ -5298,6 +5301,7 @@ packages:
         optional: true
     dependencies:
       ms: 2.1.3
+      supports-color: 5.5.0
     dev: true
 
   /decamelize-keys@1.1.1:
@@ -5828,7 +5832,7 @@ packages:
       eslint: '*'
       eslint-plugin-import: '*'
     dependencies:
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@5.5.0)
       enhanced-resolve: 5.12.0
       eslint: 8.57.1
       eslint-module-utils: 2.8.0(@typescript-eslint/parser@6.17.0)(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
@@ -6578,7 +6582,7 @@ packages:
       debug:
         optional: true
     dependencies:
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@5.5.0)
     dev: true
 
   /for-each@0.3.3:
@@ -7070,7 +7074,7 @@ packages:
       boxen: 5.1.2
       chokidar: 4.0.3
       ci-info: 2.0.0
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@5.5.0)
       enquirer: 2.4.1
       env-paths: 2.2.1
       ethereum-cryptography: 1.2.0
@@ -7241,7 +7245,7 @@ packages:
     engines: {node: '>= 6'}
     dependencies:
       agent-base: 6.0.2
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@5.5.0)
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -7265,6 +7269,10 @@ packages:
   /idb-keyval@6.2.2:
     resolution: {integrity: sha512-yjD9nARJ/jb1g+CvD0tlhUHOrJ9Sy0P8T9MF3YaLlHnSRpwPfpTX0XIvpmw3gAJUmEu3FiICLBDPXVwyEvrleg==}
     dev: false
+
+  /ignore-by-default@1.0.1:
+    resolution: {integrity: sha512-Ius2VYcGNk7T90CppJqcIkS5ooHUZyIQK+ClZfMfMNFEF9VSE73Fq+906u/CWu92x4gzZMWOwfFYckPObzdEbA==}
+    dev: true
 
   /ignore@5.3.1:
     resolution: {integrity: sha512-5Fytz/IraMjqpwfd34ke28PTVMjZjJG2MPn5t7OE4eUCUNf8BAa7b5WUS9/Qvr6mwOQS7Mk6vdsMno5he+T8Xw==}
@@ -7611,7 +7619,7 @@ packages:
     engines: {node: '>=10'}
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@5.5.0)
       istanbul-lib-coverage: 3.2.2
     transitivePeerDependencies:
       - supports-color
@@ -8314,6 +8322,23 @@ packages:
     resolution: {integrity: sha512-QFkIeIZ5IbdvhpkzImwakL2+sZFCTXCwGvOacE1NczR+zgrg5ixHU9KpjuuIi1YbbKFGJEMoSUmivDktuzFaKg==}
     dev: false
 
+  /nodemon@3.1.11:
+    resolution: {integrity: sha512-is96t8F/1//UHAjNPHpbsNY46ELPpftGUoSVNXwUfMk/qdjSylYrWSu1XavVTBOn526kFiOR733ATgNBCQyH0g==}
+    engines: {node: '>=10'}
+    hasBin: true
+    dependencies:
+      chokidar: 3.6.0
+      debug: 4.4.3(supports-color@5.5.0)
+      ignore-by-default: 1.0.1
+      minimatch: 3.1.2
+      pstree.remy: 1.1.8
+      semver: 7.7.3
+      simple-update-notifier: 2.0.0
+      supports-color: 5.5.0
+      touch: 3.1.1
+      undefsafe: 2.0.5
+    dev: true
+
   /nofilter@3.1.0:
     resolution: {integrity: sha512-l2NNj07e9afPnhAhvgVrCD/oy2Ai1yfLpuo3EpiO1jFTsB4sFz6oIfAfSZyQzVpkZQ9xS8ZS5g1jCBgq4Hwo0g==}
     engines: {node: '>=12.19'}
@@ -8912,6 +8937,10 @@ packages:
     resolution: {integrity: sha512-b/YwNhb8lk1Zz2+bXXpS/LK9OisiZZ1SNsSLxN1x2OXVEhW2Ckr/7mWE5vrC1ZTiJlD9g19jWszTmJsB+oEpFQ==}
     dev: true
 
+  /pstree.remy@1.1.8:
+    resolution: {integrity: sha512-77DZwxQmxKnu3aR542U+X8FypNzbfJ+C5XQDk3uWjWxn6151aIMGthWYRXTqT1E5oJvg+ljaa2OJi+VfvCOQ8w==}
+    dev: true
+
   /punycode@2.3.1:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
     engines: {node: '>=6'}
@@ -9475,6 +9504,13 @@ packages:
   /signal-exit@4.1.0:
     resolution: {integrity: sha512-bzyZ1e88w9O1iNJbKnOlvYTrWPDl46O1bG0D3XInv+9tkPrxrN8jUUTiFlDkkmKWgn1M6CfIA13SuGqOa9Korw==}
     engines: {node: '>=14'}
+    dev: true
+
+  /simple-update-notifier@2.0.0:
+    resolution: {integrity: sha512-a2B9Y0KlNXl9u/vsW6sTIu9vGEpfKu2wRV6l1H3XEas/0gUIzGzBoP/IouTcUQbm9JWZLH3COxyn03TYlFax6w==}
+    engines: {node: '>=10'}
+    dependencies:
+      semver: 7.7.3
     dev: true
 
   /sirv@3.0.2:
@@ -10053,6 +10089,11 @@ packages:
     engines: {node: '>=6'}
     dev: true
 
+  /touch@3.1.1:
+    resolution: {integrity: sha512-r0eojU4bI8MnHr8c5bNo7lJDdI2qXlWWJk6a9EAFG7vbhTjElYhBVS3/miuE0uOuoLdb8Mc/rVfsmm6eo5o9GA==}
+    hasBin: true
+    dev: true
+
   /tr46@1.0.1:
     resolution: {integrity: sha512-dTpowEjclQ7Kgx5SdBkqRzVhERQXov8/l9Ft9dVM9fmg0W0KQSVaXX9T4i6twCPNtYiZM53lpSSUAwJbFPOHxA==}
     dependencies:
@@ -10213,7 +10254,7 @@ packages:
       cac: 6.7.14
       chokidar: 4.0.3
       consola: 3.4.2
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@5.5.0)
       esbuild: 0.25.12
       fix-dts-default-cjs-exports: 1.0.1
       joycon: 3.1.1
@@ -10377,7 +10418,7 @@ packages:
       typescript: '>=4.3.0'
     dependencies:
       '@types/prettier': 2.7.3
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@5.5.0)
       fs-extra: 7.0.1
       glob: 7.1.7
       js-sha3: 0.8.0
@@ -10472,6 +10513,10 @@ packages:
       has-bigints: 1.0.2
       has-symbols: 1.0.3
       which-boxed-primitive: 1.0.2
+    dev: true
+
+  /undefsafe@2.0.5:
+    resolution: {integrity: sha512-WxONCrssBM8TSPRqN5EmsjVrsv4A8X12J4ArBiiayv3DyyG3ZlIg6yysuuSYdZsVz3TKcTg2fd//Ujd4CHV1iA==}
     dev: true
 
   /undici-types@6.19.8:
@@ -10588,7 +10633,7 @@ packages:
     hasBin: true
     dependencies:
       cac: 6.7.14
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@5.5.0)
       es-module-lexer: 1.7.0
       pathe: 2.0.3
       vite: 5.4.20(@types/node@20.19.15)
@@ -10705,7 +10750,7 @@ packages:
       '@vitest/spy': 3.2.4
       '@vitest/utils': 3.2.4
       chai: 5.3.3
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@5.5.0)
       expect-type: 1.2.2
       happy-dom: 15.11.7
       magic-string: 0.30.19
