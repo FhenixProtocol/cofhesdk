@@ -1,4 +1,4 @@
-import type { CofhesdkClient, CofhesdkClientPermits } from '@cofhe/sdk';
+import type { CofhesdkClient } from '@cofhe/sdk';
 import { useCofheContext } from '../providers';
 import { useCallback, useMemo, useSyncExternalStore } from 'react';
 import { NOOP_CALLBACK } from '../utils';
@@ -13,30 +13,11 @@ const subscribeToPermitsConstructor = (client: CofhesdkClient) => (onStoreChange
 
 const getPermitsSnapshotConstructor = (client: CofhesdkClient) => () => client.permits.getSnapshot();
 
-type PermitsState = ReturnType<CofhesdkClientPermits['getSnapshot']>;
+// type PermitsState = ReturnType<CofhesdkClientPermits['getSnapshot']>;
 
 const DEFAULT_SNAPSHOT_GETTER = () => PERMIT_STORE_DEFAULTS;
 
-type UseCofhePermitsResult = {
-  state: PermitsState; // whole permits store by account by chain
-  // context-specific values for the current chain and current account
-  activePermit?: {
-    hash: string;
-    permit: Permit;
-    isValid: boolean;
-  };
-  allPermitsWithHashes: {
-    hash: string;
-    permit: Permit;
-  }[];
-
-  // eslint-disable-next-line no-unused-vars
-  removePermit: (hashToRemove: string) => void;
-  // eslint-disable-next-line no-unused-vars
-  setActivePermitHash: (hashToSet: string) => void;
-};
-// sync core store
-export const useCofhePermits = (): UseCofhePermitsResult => {
+const useCofhePermitsStore = () => {
   const client = useCofheContext().client;
   const { subscribeToConnection, getConnectionSnapshot } = useMemo(() => {
     return {
@@ -51,8 +32,19 @@ export const useCofhePermits = (): UseCofhePermitsResult => {
     getConnectionSnapshot || DEFAULT_SNAPSHOT_GETTER,
     getConnectionSnapshot || undefined
   );
+  return { state, client };
+};
 
+export const useCofheActivePermit = ():
+  | {
+      hash: string;
+      permit: Permit;
+      isValid: boolean;
+    }
+  | undefined => {
   const { account, chainId, connected } = useCofheConnection();
+
+  const { state } = useCofhePermitsStore();
 
   const allPermits = chainId && account ? state.permits[chainId]?.[account] : undefined;
   // active permit
@@ -60,20 +52,25 @@ export const useCofhePermits = (): UseCofhePermitsResult => {
   const hash = account && chainId ? state.activePermitHash[chainId]?.[account] : undefined;
   const serialized = hash && allPermits ? allPermits[hash] : undefined;
 
-  const { permit, isValid } = useMemo(() => {
+  const permitData = useMemo(() => {
     const _permit = serialized ? PermitUtils.deserialize(serialized) : undefined;
+    if (!_permit || !hash) return undefined;
+    return {
+      permit: _permit,
+      isValid: _permit ? PermitUtils.isValid(_permit).valid : false,
+      hash,
+    };
+  }, [serialized, hash]);
 
-    return { permit: _permit, isValid: _permit ? PermitUtils.isValid(_permit).valid : false };
-  }, [serialized]);
+  return connected ? permitData : undefined;
+};
 
-  const activePermitData =
-    hash && permit
-      ? {
-          hash,
-          permit,
-          isValid,
-        }
-      : undefined;
+export const useCofheAllPermits = (): { hash: string; permit: Permit }[] => {
+  const { account, chainId, connected } = useCofheConnection();
+
+  const { state } = useCofhePermitsStore();
+
+  const allPermits = chainId && account ? state.permits[chainId]?.[account] : undefined;
 
   const allPermitsWithHashes = useMemo(
     () =>
@@ -91,7 +88,15 @@ export const useCofhePermits = (): UseCofhePermitsResult => {
     [allPermits]
   );
 
-  const removePermit = useCallback(
+  return connected ? allPermitsWithHashes : [];
+};
+
+export const useCofheRemovePermit = () => {
+  const { account, chainId } = useCofheConnection();
+
+  const { client } = useCofhePermitsStore();
+
+  return useCallback(
     (hashToRemove: string) => {
       if (!client || !chainId || !account)
         throw new Error('Client, chainId, and account must be defined to remove a permit');
@@ -99,8 +104,14 @@ export const useCofhePermits = (): UseCofhePermitsResult => {
     },
     [client, chainId, account]
   );
+};
 
-  const setActivePermitHash = useCallback(
+export const useCofheSelectPermit = () => {
+  const { account, chainId } = useCofheConnection();
+
+  const { client } = useCofhePermitsStore();
+
+  return useCallback(
     (hashToSet: string) => {
       if (!client || !chainId || !account)
         throw new Error('Client, chainId, and account must be defined to set active permit hash');
@@ -108,12 +119,4 @@ export const useCofhePermits = (): UseCofhePermitsResult => {
     },
     [client, chainId, account]
   );
-
-  return {
-    state,
-    activePermit: connected ? activePermitData : undefined,
-    allPermitsWithHashes,
-    removePermit,
-    setActivePermitHash,
-  };
 };

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useCofheConnection, useCofhePermits } from '@cofhe/react';
+import { useCofheActivePermit, useCofheAllPermits, useCofheConnection, useCofhePermits } from '@cofhe/react';
 interface NavigationProps {
   activeComponent: string;
   onComponentSelect: (component: string) => void;
@@ -56,7 +56,12 @@ const StatusDetailsInline: React.FC<{ isDarkMode: boolean }> = ({ isDarkMode }) 
 };
 
 const Permits: React.FC = () => {
-  const permits = useCofhePermits();
+  const allPermits = useCofheAllPermits();
+  const activePermit = useCofheActivePermit();
+  const permits = {
+    allPermits,
+    activePermit,
+  };
   return (
     <div className="mb-4">
       <div className="text-sm font-medium text-gray-700 dark:text-gray-300">Permits</div>
