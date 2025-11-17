@@ -1,7 +1,8 @@
 {
   "private": true,
   "scripts": {
-    "build": "turbo run build --filter='!./examples/*'",
+    "build": "turbo run build",
+    "build:packages": "turbo run build --filter='./packages/**'",
     "dev": "turbo run dev",
     "test": "turbo run test",
     "lint": "turbo run lint",
@@ -11,8 +12,8 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "turbo run build && changeset publish",
-    "beta:snapshot": "changeset version --snapshot beta && pnpm -r build && changeset publish --tag beta"
+    "release": "pnpm run build:packages && changeset publish",
+    "beta:snapshot": "changeset version --snapshot beta && pnpm -r build:packages && changeset publish --tag beta"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.1",
