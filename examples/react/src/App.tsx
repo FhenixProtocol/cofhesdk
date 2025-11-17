@@ -3,10 +3,9 @@ import { Navigation } from './components/Navigation';
 import { ComponentRenderer } from './components/ComponentRenderer';
 import { Providers as WagmiProviders } from './utils/wagmi';
 import { CofheProviderLocal } from './utils/cofhe.config';
-import { FloatingCofheButton } from '@cofhe/react';
 
 function App() {
-  const [activeComponent, setActiveComponent] = useState<string>('overview');
+  const [activeComponent, setActiveComponent] = useState<string>('fnx-floating-button');
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
 
   const toggleDarkMode = () => {
@@ -25,7 +24,6 @@ function App() {
   return (
     <WagmiProviders>
       <CofheProviderLocal>
-        <FloatingCofheButton />
         <div className={`min-h-screen flex ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
           <Navigation
             activeComponent={activeComponent}
