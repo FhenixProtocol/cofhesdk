@@ -45,7 +45,7 @@ const {
   } = useEncryptSync({ value: '12345678', type: 'uint128' });
 ```
 
-For both flavours, `useEncryptSync` and `useEncryptAsync` you have a synchronous acccess to `error`, `isEncrypting` and `data`.
+For both flavours, `useEncryptSync` and `useEncryptAsync` you have a synchronous access to `error`, `isEncrypting` and `data`.
 
 Then, at some point you need to trigger the encryption. For example, automatically when your component renders:
 ```js

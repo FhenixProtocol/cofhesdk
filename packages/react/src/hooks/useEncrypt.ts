@@ -194,7 +194,7 @@ function prepareEncryptable<U extends FheTypeValue>(utype: U, value: MutationInp
   return encryptableFactory[utype](value);
 }
 type MutationInput<T extends keyof MutationInputMap> = MutationInputMap[T];
-// sometimes it's hadny to inject args into mutation
+
 export function useEncryptAsync<T extends FheTypeValue>(
   encryptionOptions: EncryptionOptions<T>,
   mutationOptions: UseMutationOptionsAsync<T> = {}
