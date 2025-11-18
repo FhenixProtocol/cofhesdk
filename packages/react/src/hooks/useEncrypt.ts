@@ -22,6 +22,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useCofheConnection } from './useCofheConnection';
 import { useCofheContext } from '../providers';
 import { type FheTypeValue } from '../utils';
+import { assert } from 'ts-essentials';
 
 type EncryptedInput<T extends FheTypeValue> = EncryptResultByFheTypeValue<T>;
 
@@ -162,39 +163,28 @@ function prepareEncryptable<U extends FheTypeValue>(
 ): EncryptableItemByFheTypeValue<U> {
   switch (utype) {
     case 'bool':
-      if (typeof value !== 'boolean') {
-        throw new Error('Expected boolean value for type bool');
-      }
+      assert(typeof value === 'boolean', 'Expected boolean value for type bool');
       return Encryptable.bool(value) as EncryptableItemByFheTypeValue<U>;
     case 'address':
-      if (typeof value !== 'string') {
-        throw new Error('Expected string value for type address');
-      }
+      assert(typeof value === 'string', 'Expected string value for type address');
       return Encryptable.address(value) as EncryptableItemByFheTypeValue<U>;
     case 'uint8':
-      if (typeof value !== 'bigint' && typeof value !== 'string') {
-        throw new Error('Expected bigint or string value for type uint8');
-      }
+      assert(typeof value === 'bigint' || typeof value === 'string', 'Expected bigint or string value for type uint8');
       return Encryptable.uint8(value) as EncryptableItemByFheTypeValue<U>;
     case 'uint16':
-      if (typeof value !== 'bigint' && typeof value !== 'string') {
-        throw new Error('Expected bigint or string value for type uint8');
-      }
+      assert(typeof value === 'bigint' || typeof value === 'string', 'Expected bigint or string value for type uint16');
       return Encryptable.uint16(value) as EncryptableItemByFheTypeValue<U>;
     case 'uint32':
-      if (typeof value !== 'bigint' && typeof value !== 'string') {
-        throw new Error('Expected bigint or string value for type uint8');
-      }
+      assert(typeof value === 'bigint' || typeof value === 'string', 'Expected bigint or string value for type uint32');
       return Encryptable.uint32(value) as EncryptableItemByFheTypeValue<U>;
     case 'uint64':
-      if (typeof value !== 'bigint' && typeof value !== 'string') {
-        throw new Error('Expected bigint or string value for type uint8');
-      }
+      assert(typeof value === 'bigint' || typeof value === 'string', 'Expected bigint or string value for type uint64');
       return Encryptable.uint64(value) as EncryptableItemByFheTypeValue<U>;
     case 'uint128':
-      if (typeof value !== 'bigint' && typeof value !== 'string') {
-        throw new Error('Expected bigint or string value for type uint8');
-      }
+      assert(
+        typeof value === 'bigint' || typeof value === 'string',
+        'Expected bigint or string value for type uint128'
+      );
       return Encryptable.uint128(value) as EncryptableItemByFheTypeValue<U>;
   }
   throw new Error(`Unsupported FHE type value: ${utype}`);
