@@ -41,7 +41,13 @@ export function useTokenLists(
       refetchOnMount: false,
       refetchOnWindowFocus: false,
       queryKey: ['tokenList', chainId, url],
-      queryFn: async ({ signal }): Promise<TokenList> => await (await fetch(url, { signal })).json(),
+      queryFn: async ({ signal }): Promise<TokenList> => {
+        const res = await fetch(url, { signal });
+        if (!res.ok) {
+          throw new Error(`Failed to fetch token list: ${res.status} ${res.statusText}`);
+        }
+        return await res.json();
+      },
       select: (data) => {
         const filtered = {
           ...data,
