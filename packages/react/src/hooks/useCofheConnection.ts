@@ -29,3 +29,18 @@ export const useCofheConnection = (): CofhesdkClientConnectionState => {
     getConnectionSnapshot || undefined
   );
 };
+
+export const useCofheIsConnected = (): boolean => {
+  const { connected } = useCofheConnection();
+  return connected;
+};
+
+export const useCofheAccount = (): string | undefined => {
+  const { account } = useCofheConnection();
+  return account;
+};
+
+export const useCofheChainId = (): number | undefined => {
+  const { chainId } = useCofheConnection();
+  return chainId;
+};

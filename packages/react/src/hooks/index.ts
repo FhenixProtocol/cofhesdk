@@ -1,4 +1,9 @@
-export { useEncryptInput } from './useEncryptInput.js';
+export { useEncryptInput } from './useEncryptInput';
 export { useCofheConnection } from './useCofheConnection';
-export { useCofhePermits } from './useCofhePermits';
 export { useEncryptSync, useEncryptAsync } from './useEncrypt';
+export {
+  useCofheActivePermit,
+  useCofheAllPermits,
+  useCofheRemovePermit,
+  useCofheSelectPermit,
+} from './useCofhePermits';

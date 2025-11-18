@@ -5,13 +5,23 @@ import './styles.css';
 export { CofheProvider, useCofheContext } from './providers/index.js';
 
 // Hooks
-export { useEncryptInput, useEncryptAsync, useEncryptSync, useCofheConnection, useCofhePermits } from './hooks/index';
+
+export {
+  useEncryptAsync,
+  useEncryptSync,
+  useEncryptInput,
+  useCofheConnection,
+  useCofheActivePermit,
+  useCofheAllPermits,
+  useCofheRemovePermit,
+  useCofheSelectPermit,
+} from './hooks/index';
 
 // Components
-export { FnxEncryptInput } from './components/index.js';
+export { FnxEncryptInput } from './components/index';
 
 // Utils
-export { FheTypesList, fheTypeToString, encryptedValueToString } from './utils/index.js';
+export { FheTypesList, fheTypeToString, encryptedValueToString } from './utils/index';
 
 // Types
-export type { CofheContextValue, CofheProviderProps, CofheClientConfig } from './types/index.js';
+export type { CofheContextValue, CofheProviderProps, CofheClientConfig } from './types/index';
