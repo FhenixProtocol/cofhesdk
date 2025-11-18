@@ -156,38 +156,42 @@ type MutationInputMap = {
   uint64: bigint;
   uint128: bigint;
 };
+const encryptableFactory: {
+  // eslint-disable-next-line no-unused-vars
+  [K in FheTypeValue]: (value: MutationInputMap[K]) => EncryptableItemMap[K];
+} = {
+  bool: (value) => {
+    assert(typeof value === 'boolean', 'Expected boolean value for type bool');
+    return Encryptable.bool(value);
+  },
+  address: (value) => {
+    assert(typeof value === 'string', 'Expected string value for type address');
+    return Encryptable.address(value);
+  },
+  uint8: (value) => {
+    assert(typeof value === 'bigint' || typeof value === 'string', 'Expected bigint or string value for type uint8');
+    return Encryptable.uint8(value);
+  },
+  uint16: (value) => {
+    assert(typeof value === 'bigint' || typeof value === 'string', 'Expected bigint or string value for type uint16');
+    return Encryptable.uint16(value);
+  },
+  uint32: (value) => {
+    assert(typeof value === 'bigint' || typeof value === 'string', 'Expected bigint or string value for type uint32');
+    return Encryptable.uint32(value);
+  },
+  uint64: (value) => {
+    assert(typeof value === 'bigint' || typeof value === 'string', 'Expected bigint or string value for type uint64');
+    return Encryptable.uint64(value);
+  },
+  uint128: (value) => {
+    assert(typeof value === 'bigint' || typeof value === 'string', 'Expected bigint or string value for type uint128');
+    return Encryptable.uint128(value);
+  },
+};
 
-function prepareEncryptable<U extends FheTypeValue>(
-  utype: U,
-  value: MutationInput<U>
-): EncryptableItemByFheTypeValue<U> {
-  switch (utype) {
-    case 'bool':
-      assert(typeof value === 'boolean', 'Expected boolean value for type bool');
-      return Encryptable.bool(value) as EncryptableItemByFheTypeValue<U>;
-    case 'address':
-      assert(typeof value === 'string', 'Expected string value for type address');
-      return Encryptable.address(value) as EncryptableItemByFheTypeValue<U>;
-    case 'uint8':
-      assert(typeof value === 'bigint' || typeof value === 'string', 'Expected bigint or string value for type uint8');
-      return Encryptable.uint8(value) as EncryptableItemByFheTypeValue<U>;
-    case 'uint16':
-      assert(typeof value === 'bigint' || typeof value === 'string', 'Expected bigint or string value for type uint16');
-      return Encryptable.uint16(value) as EncryptableItemByFheTypeValue<U>;
-    case 'uint32':
-      assert(typeof value === 'bigint' || typeof value === 'string', 'Expected bigint or string value for type uint32');
-      return Encryptable.uint32(value) as EncryptableItemByFheTypeValue<U>;
-    case 'uint64':
-      assert(typeof value === 'bigint' || typeof value === 'string', 'Expected bigint or string value for type uint64');
-      return Encryptable.uint64(value) as EncryptableItemByFheTypeValue<U>;
-    case 'uint128':
-      assert(
-        typeof value === 'bigint' || typeof value === 'string',
-        'Expected bigint or string value for type uint128'
-      );
-      return Encryptable.uint128(value) as EncryptableItemByFheTypeValue<U>;
-  }
-  throw new Error(`Unsupported FHE type value: ${utype}`);
+function prepareEncryptable<U extends FheTypeValue>(utype: U, value: MutationInputMap[U]): EncryptableItemMap[U] {
+  return encryptableFactory[utype](value);
 }
 type MutationInput<T extends keyof MutationInputMap> = MutationInputMap[T];
 // sometimes it's hadny to inject args into mutation
