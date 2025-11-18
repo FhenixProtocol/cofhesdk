@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { cn } from '../../utils/cn.js';
-import fhenixIcon from './assets/fhenix-icon.png';
+import fhenixIconBlack from './assets/fhenix-icon-black.png';
+import fhenixIconWhite from './assets/fhenix-icon-white.png';
 import CloseIcon from '@mui/icons-material/Close';
 
 interface FloatingIconProps {
@@ -23,7 +24,7 @@ export const FloatingIcon: React.FC<FloatingIconProps> = ({
     <CloseIcon className="fnx-icon-close" />
   ) : (
     <img 
-      src={fhenixIcon} 
+      src={darkMode ? fhenixIconWhite : fhenixIconBlack} 
       alt="Fhenix" 
       className="fnx-icon-image"
     />
