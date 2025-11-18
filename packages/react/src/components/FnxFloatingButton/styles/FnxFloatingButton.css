@@ -16,17 +16,14 @@
     --fnx-border-radius: 18px;
     
     --fnx-status-radius: 10px;
-    --fnx-statua-bar-offset: calc(var(--fnx-button-size) * -0.5);
-    --fnx-content-offset: calc(var(--fnx-button-size) * 0.5);
+    --fnx-statua-bar-offset: calc(var(--fnx-button-size) / -2);
+    --fnx-content-offset: calc(var(--fnx-button-size) / 2);
     
     /* Scale factors */
     --fnx-hover-scale: 1.1;
     
     /* Typography */
     --fnx-settings-icon-size: 20px;
-    
-    /* Effects */
-    --fnx-icon-z-index: 1;
     
     /* Animation timing */
     --fnx-transition-duration: 300ms;
@@ -79,7 +76,7 @@
   outline: none !important;
   border-radius: var(--fnx-border-radius);
   position: relative;
-  z-index: var(--fnx-icon-z-index);
+  z-index: 1;
   color: var(--fnx-text-primary);
 }
 

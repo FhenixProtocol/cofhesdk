@@ -96,24 +96,26 @@ export const FnxFloatingButton: React.FC<FnxFloatingButtonProps> = ({
 
   const currentPopupContent = pages[currentPage];
 
+  const expandPanel = () => {
+    setIsExpanded(true);
+    setTimeout(() => {
+      setShowPopupPanel(true);
+    }, OPEN_DELAY);
+  };
+
+  const collapsePanel = () => {
+    setShowPopupPanel(false);
+    setTimeout(() => {
+      setIsExpanded(false);
+    }, CLOSE_DELAY);
+  };
+
   const handleClick = () => {
-    const newExpandedState = !isExpanded;
-
-    // Handle popup delay
-    if (newExpandedState) {
-      // Opening: bar first, then popup after delay
-      setIsExpanded(true);
-      setTimeout(() => {
-        setShowPopupPanel(true);
-      }, OPEN_DELAY);
+    if (isExpanded) {
+      collapsePanel();
     } else {
-      // Closing: popup first, then bar after popup animation
-      setShowPopupPanel(false);
-      setTimeout(() => {
-        setIsExpanded(false);
-      }, CLOSE_DELAY);
+      expandPanel();
     }
-
     onClick?.();
   };
 
@@ -133,9 +135,6 @@ export const FnxFloatingButton: React.FC<FnxFloatingButtonProps> = ({
         `z-[${zIndex}]`,
         className
       )}
-      style={{
-        // '--fnx-bar-width': `${expandedWidth}px`,
-      } as React.CSSProperties}
     >
       <ContentSection
         className={contentSectionClassName}
