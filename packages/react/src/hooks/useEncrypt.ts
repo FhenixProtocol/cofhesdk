@@ -16,7 +16,7 @@ import {
   type UseMutationOptions,
   type UseMutationResult,
 } from '@tanstack/react-query';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useCofheConnection } from './useCofheConnection';
 import { useCofheContext } from '../providers';
 import { createEncryptableItem, type FheTypeValue } from '../utils';
@@ -29,6 +29,16 @@ type EncryptedInput =
   | EncryptedUint64Input
   | EncryptedUint128Input
   | EncryptedAddressInput;
+
+type EncryptableInput = { value: string; type: FheTypeValue };
+
+type TEncryptApi<TMutateAsyncCallback> = {
+  variables: EncryptableInput | undefined;
+  error: Error | null;
+  isEncrypting: boolean;
+  data: EncryptedInput | undefined;
+  encrypt: TMutateAsyncCallback;
+};
 
 type EncryptionStep = { step: EncryptStep; context?: EncryptStepCallbackContext };
 type StepWithOrder = `${number}_${EncryptStep}_${'start' | 'stop'}`;
@@ -104,10 +114,7 @@ async function encryptValue({
 
 type UseMutationResultEncryptAsync = UseMutationResult<EncryptedInput, Error, EncryptableInput, unknown>;
 
-type UseMutationOptionsAsync = Omit<
-  UseMutationOptions<EncryptedInput, Error, EncryptableInput, void>,
-  'mutationFn' | 'mutationKey'
->;
+type UseMutationOptionsAsync = Omit<UseMutationOptions<EncryptedInput, Error, EncryptableInput, void>, 'mutationFn'>;
 
 type UseEncryptResult<TMutationResult, TMutationFn> = {
   stepsState: StepsState;
@@ -127,8 +134,10 @@ export function useEncryptAsync(
   const stepsState = useStepsState();
   const { onStep, reset: resetSteps } = stepsState;
 
-  const { onMutate, ...restOptions } = options;
+  const { onMutate, mutationKey: mutationKeyPostfix, ...restOptions } = options;
+
   const mutationResult = useMutation({
+    mutationKey: ['encryption', mutationKeyPostfix],
     onMutate: (arg1, arg2) => {
       resetSteps();
       return onMutate?.(arg1, arg2);
@@ -144,64 +153,6 @@ export function useEncryptAsync(
   // const vars = mutationResult.variables;
   const api = {
     variables: mutationResult.variables,
-    error: mutationResult.error,
-    isEncrypting: mutationResult.isPending,
-    data: mutationResult.data,
-    encrypt: mutationResult.mutateAsync,
-  };
-
-  return {
-    stepsState,
-    _mutation: mutationResult,
-    api,
-    isConnected: useCofheConnection().connected,
-  };
-}
-
-type EncryptableInput = { value: string; type: FheTypeValue };
-
-type UseMutationResultEncryptSync = UseMutationResult<EncryptedInput, Error, void, unknown>;
-
-type UseMutationOptionsEncryptSync = Omit<
-  UseMutationOptions<EncryptedInput, Error, void, void>,
-  'mutationFn' | 'mutationKey'
->;
-
-type TEncryptApi<TMutateAsyncCallback> = {
-  variables: EncryptableInput | undefined;
-  error: Error | null;
-  isEncrypting: boolean;
-  data: EncryptedInput | undefined;
-  encrypt: TMutateAsyncCallback;
-};
-
-// sometimes it's hadny to inject args into the hook and then call mutation without args
-export function useEncryptSync(
-  input: EncryptableInput,
-  options: UseMutationOptionsEncryptSync = {}
-): UseEncryptResult<UseMutationResultEncryptSync, UseMutateAsyncFunction<EncryptedInput, Error, void, void>> {
-  const client = useCofheContext().client;
-  const stepsState = useStepsState();
-  const { onStep, reset: resetSteps } = stepsState;
-  const variables = useRef<EncryptableInput | undefined>(undefined);
-  const { onMutate, ...restOptions } = options;
-  const mutationResult = useMutation({
-    onMutate: (arg1, arg2) => {
-      variables.current = input;
-      resetSteps();
-      return onMutate?.(arg1, arg2);
-    },
-    mutationFn: () =>
-      encryptValue({
-        input,
-        client,
-        onStep,
-      }),
-    ...restOptions,
-  });
-
-  const api = {
-    variables: variables.current,
     error: mutationResult.error,
     isEncrypting: mutationResult.isPending,
     data: mutationResult.data,

@@ -8,7 +8,6 @@ export { CofheProvider, useCofheContext } from './providers/index.js';
 
 export {
   useEncryptAsync,
-  useEncryptSync,
   useEncryptInput,
   useCofheConnection,
   useCofheActivePermit,
