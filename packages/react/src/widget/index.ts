@@ -23,8 +23,6 @@ export const CofhesdkWidgetConfigSchema = z.object({
       { label: '1 Month', intervalSeconds: 2592000 },
     ]),
   defaultPermitExpirationSeconds: z.number().optional().default(604800), // 1 week
-  // Accept object keys as strings (JS object keys are always strings at runtime),
-  // then transform them into number-keyed records for downstream usage.
   pinnedTokens: z.record(z.string()).optional().default({
     11155111: '0x7b79995e5f793a07bc00c21412e50ecae098e7f9', // sepolia weth
     // 84531: '0x4200000000000000000000000000000000000006', // base sepolia weth
