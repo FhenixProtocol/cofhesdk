@@ -2,7 +2,7 @@
   "watch": ["src"],
   "ext": "ts,tsx,css",
   "ignore": ["dist", "node_modules"],
-  "exec": "rm -rf dist && tsup && tailwindcss -i ./src/styles.css -o ./dist/styles.css",
+  "exec": "rm -rf dist && tsup && postcss ./src/styles.css -o ./dist/styles.css",
   "legacyWatch": true,
   "delay": "500"
 }

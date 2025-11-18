@@ -7,7 +7,7 @@ interface TokenListPageProps {
 
 export const TokenListPage: React.FC<TokenListPageProps> = ({ onBack, darkMode }) => {
   return (
-    <div className={`space-y-3 ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>
+    <div className="fnx-text-primary space-y-3">
       <button
         onClick={onBack}
         className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity"

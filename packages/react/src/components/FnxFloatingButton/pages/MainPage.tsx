@@ -5,7 +5,7 @@ interface MainPageProps {
 
 export const MainPage: React.FC<MainPageProps> = ({ onNavigateToTokenList, darkMode }) => {
   return (
-    <div className={`space-y-3 ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>
+    <div className="fnx-text-primary space-y-3">
       <p className="text-sm font-medium">Main Menu</p>
       <button
         onClick={onNavigateToTokenList}

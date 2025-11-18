@@ -24,8 +24,8 @@
     "dist/**"
   ],
   "scripts": {
-    "build": "tsup && tailwindcss -i ./src/styles.css -o ./dist/styles.css --minify",
-    "dev": "tsup --watch & while sleep 1; do tailwindcss -i ./src/styles.css -o ./dist/styles.css; done",
+    "build": "tsup && postcss ./src/styles.css -o ./dist/styles.css --minify",
+    "dev": "tsup --watch & while sleep 1; do postcss ./src/styles.css -o ./dist/styles.css; done",
     "dev-wsl": "nodemon",
     "lint": "eslint \"src/**/*.ts*\"",
     "type-check": "tsc --noEmit",
@@ -38,6 +38,8 @@
     "@types/react-dom": "^18.2.19",
     "eslint": "^8.57.0",
     "nodemon": "^3.1.11",
+    "postcss-cli": "^11.0.1",
+    "postcss-import": "^16.1.1",
     "tailwindcss": "3.4.18",
     "tsup": "^8.5.0",
     "typescript": "5.5.4"

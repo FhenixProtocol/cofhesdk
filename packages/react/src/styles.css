@@ -1,9 +1,12 @@
+/* Import component styles */
+@import './components/FnxFloatingButton/styles/FnxFloatingButton.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Component-specific styles for proper dropdown behavior */
 @layer components {
+  /* Component-specific styles for proper dropdown behavior */
   .cofhe-dropdown-container {
     @apply relative;
   }

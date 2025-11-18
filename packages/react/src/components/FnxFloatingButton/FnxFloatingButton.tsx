@@ -8,26 +8,34 @@ import { ContentSection } from './ContentSection.js';
 import { MainPage, SettingsPage, TokenListPage } from './pages/index.js';
 
 export type FloatingButtonPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+export type FloatingButtonSize = 'small' | 'medium' | 'large';
+export type FloatingButtonPositionType = 'fixed' | 'absolute';
 
 // TODOS:
 // - Get svgs instead of pngs
 // - Define configuration that needs to move to global react config
 // - Improve expand animation so it will roll out from the floating button
-// - Create dark mode
-// - Create css that contains the styles for the floating button and the content section
 
-// Glow effect constant
-export const GLOW_SHADOW = '0 0 6px 0 rgba(10, 217, 220, 0.50)';
+const OPEN_DELAY = 500; // Delay before showing popup in ms
+const CLOSE_DELAY = 300; // Delay before closing bar after popup closes
 
 export interface FnxFloatingButtonProps extends BaseProps {
   /** Position of the floating button */
   position?: FloatingButtonPosition;
-  /** Size of the button in pixels */
-  size?: number;
-  /** Background color */
-  backgroundColor?: string;
+  
+  /** Allow predefined sizes */
+  size?: FloatingButtonSize;
+
+  buttonClassName?: string;
+  statusBarClassName?: string;
+  contentSectionClassName?: string;
+
   /** Click handler */
   onClick?: () => void;
+  /** Z-index value (default: 9999) */
+  zIndex?: number;
+  /** Position type: 'fixed' stays on screen, 'absolute' positions within parent (default: 'fixed') */
+  positionType?: FloatingButtonPositionType;
   /** Dark mode for the button (independent of page theme) */
   darkMode?: boolean;
 }
@@ -43,15 +51,15 @@ export const FnxFloatingButton: React.FC<FnxFloatingButtonProps> = ({
   className,
   testId,
   position,
-  size = 56,
-  backgroundColor = '#DAFEFF',
+  size = 'large',
   onClick,
+  zIndex = 9999,
+  positionType = 'fixed',
   darkMode = false,
+  buttonClassName,
+  statusBarClassName,
+  contentSectionClassName,
 }) => {
-  // Internal constants
-  const zIndex = 9999;
-  const positionType = 'fixed';
-  const expandedWidth = 340;
   const widgetConfig = useCofheContext().widgetConfig;
 
   // Use prop position if provided, otherwise use widgetConfig position
@@ -66,7 +74,6 @@ export const FnxFloatingButton: React.FC<FnxFloatingButtonProps> = ({
 
   const isLeftSide = effectivePosition.includes('left');
   const isTopSide = effectivePosition.includes('top');
-  const borderRadius = size * 0.37;
 
   // Page navigation handlers
   const navigateToSettings = () => setPageHistory((prev) => [...prev, 'settings']);
@@ -98,44 +105,43 @@ export const FnxFloatingButton: React.FC<FnxFloatingButtonProps> = ({
       setIsExpanded(true);
       setTimeout(() => {
         setShowPopupPanel(true);
-      }, popupDelay);
+      }, OPEN_DELAY);
     } else {
       // Closing: popup first, then bar after popup animation
       setShowPopupPanel(false);
       setTimeout(() => {
         setIsExpanded(false);
-      }, 300); // Wait for popup close animation (300ms)
+      }, CLOSE_DELAY);
     }
 
     onClick?.();
   };
 
-  const gapSize = 48; // Gap between button and panel content
-  const popupDelay = 500; // Delay before showing popup in ms
 
   return (
     <div
       data-testid={testId}
       className={cn(
-        positionType === 'fixed' ? 'fixed' : 'absolute',
+        'fnx-floating-button',
+        darkMode && 'dark',
+        size,
+        positionType,
         'flex',
         positionStyles[effectivePosition],
         // bottom-* opens UP (popup above), top-* opens DOWN (popup below)
-        isTopSide ? 'flex-col-reverse items-start' : 'flex-col items-start'
+        isTopSide ? 'flex-col-reverse items-start' : 'flex-col items-start',
+        `z-[${zIndex}]`,
+        className
       )}
       style={{
-        zIndex,
-      }}
+        // '--fnx-bar-width': `${expandedWidth}px`,
+      } as React.CSSProperties}
     >
       <ContentSection
+        className={contentSectionClassName}
         showPopupPanel={showPopupPanel}
         isTopSide={isTopSide}
-        isLeftSide={isLeftSide}
-        expandedWidth={expandedWidth}
-        gapSize={gapSize}
-        size={size}
-        backgroundColor={backgroundColor}
-        borderRadius={borderRadius}
+        isLeftSide={isLeftSide}       
       >
         {currentPopupContent}
       </ContentSection>
@@ -143,23 +149,16 @@ export const FnxFloatingButton: React.FC<FnxFloatingButtonProps> = ({
       {/* Button and Bar Row */}
       <div className={cn('flex items-center', isLeftSide ? 'flex-row' : 'flex-row-reverse')}>
         <FloatingIcon
-          size={size}
-          backgroundColor={backgroundColor}
-          borderRadius={borderRadius}
           onClick={handleClick}
-          className={className}
+          className={buttonClassName}
           isExpanded={isExpanded}
           darkMode={darkMode}
         />
 
         <StatusBarSection
+          className={statusBarClassName}
           isExpanded={isExpanded}
-          expandedWidth={expandedWidth}
-          gapSize={gapSize}
-          size={size}
           isLeftSide={isLeftSide}
-          backgroundColor={backgroundColor}
-          borderRadius={borderRadius}
           onSettingsClick={navigateToSettings}
           darkMode={darkMode}
         />

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { FnxFloatingButton } from '@cofhe/react';
+import { FnxFloatingButton, type FloatingButtonSize } from '@cofhe/react';
 // Example with Material UI icons
 export const FnxFloatingButtonExample: React.FC = () => {
   const [position, setPosition] = useState<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'>('bottom-right');
   const [clickCount, setClickCount] = useState(0);
-  const [buttonSize, setButtonSize] = useState(56);
+  const [buttonSize, setButtonSize] = useState<FloatingButtonSize>('large');
+  const [darkMode, setDarkMode] = useState(false);
 
   return (
     <div className="space-y-8">
@@ -43,15 +44,38 @@ export const FnxFloatingButtonExample: React.FC = () => {
 
             {/* Size */}
             <div className="mb-6">
-              <label className="block text-sm font-medium mb-2">Size: {buttonSize}px</label>
-              <input
-                type="range"
-                min="40"
-                max="80"
-                value={buttonSize}
-                onChange={(e) => setButtonSize(Number(e.target.value))}
-                className="w-full"
-              />
+              <label className="block text-sm font-medium mb-2">Size:</label>
+              <div className="flex flex-wrap gap-2">
+                {(['small', 'medium', 'large'] as const).map((size) => (
+                  <button
+                    key={size}
+                    onClick={() => setButtonSize(size)}
+                    className={`px-4 py-2 rounded-lg text-sm transition-colors capitalize ${
+                      buttonSize === size
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Dark Mode Toggle */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium mb-2">Dark Mode:</label>
+              <button
+                onClick={() => setDarkMode(!darkMode)}
+                className={`px-4 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 ${
+                  darkMode
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                <span>{darkMode ? '🌙' : '☀️'}</span>
+                <span>{darkMode ? 'Dark Mode' : 'Light Mode'}</span>
+              </button>
             </div>
 
             {/* Preview */}
@@ -85,11 +109,8 @@ function MyApp() {
       
       <FnxFloatingButton
         position="bottom-right"
-        icon={<AddIcon />}
-        backgroundColor="#3b82f6"
-        size={56}
+        size="large"
         onClick={() => console.log('Clicked!')}
-        title="Add new item"
       />
     </div>
   );
@@ -112,13 +133,8 @@ function MyApp() {
       
       <FnxFloatingButton
         position="bottom-right"
-        icon={<AddIcon />}
-        backgroundColor="#3b82f6"
-        size={56}
-        expandable={true}
-        expandedWidth={250}
+        size="large"
         onClick={() => console.log('Clicked!')}
-        title="Toggle menu"
       />
     </div>
   );
@@ -190,20 +206,6 @@ function MyApp() {
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                     Button size in pixels
-                  </td>
-                </tr>
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-300">
-                    backgroundColor
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                    string
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    '#3b82f6'
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                    Background color
                   </td>
                 </tr>
                 <tr>
@@ -314,6 +316,7 @@ function MyApp() {
       <FnxFloatingButton
         position={position}
         size={buttonSize}
+        darkMode={darkMode}
         onClick={() => setClickCount(prev => prev + 1)}
       />
     </div>
