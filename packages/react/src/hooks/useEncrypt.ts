@@ -156,6 +156,49 @@ type MutationInputMap = {
   uint128: bigint;
 };
 
+function prepareEncryptable<U extends FheTypeValue>(
+  utype: U,
+  value: MutationInput<U>
+): EncryptableItemByFheTypeValue<U> {
+  switch (utype) {
+    case 'bool':
+      if (typeof value !== 'boolean') {
+        throw new Error('Expected boolean value for type bool');
+      }
+      return Encryptable.bool(value) as EncryptableItemByFheTypeValue<U>;
+    case 'address':
+      if (typeof value !== 'string') {
+        throw new Error('Expected string value for type address');
+      }
+      return Encryptable.address(value) as EncryptableItemByFheTypeValue<U>;
+    case 'uint8':
+      if (typeof value !== 'bigint' && typeof value !== 'string') {
+        throw new Error('Expected bigint or string value for type uint8');
+      }
+      return Encryptable.uint8(value) as EncryptableItemByFheTypeValue<U>;
+    case 'uint16':
+      if (typeof value !== 'bigint' && typeof value !== 'string') {
+        throw new Error('Expected bigint or string value for type uint8');
+      }
+      return Encryptable.uint16(value) as EncryptableItemByFheTypeValue<U>;
+    case 'uint32':
+      if (typeof value !== 'bigint' && typeof value !== 'string') {
+        throw new Error('Expected bigint or string value for type uint8');
+      }
+      return Encryptable.uint32(value) as EncryptableItemByFheTypeValue<U>;
+    case 'uint64':
+      if (typeof value !== 'bigint' && typeof value !== 'string') {
+        throw new Error('Expected bigint or string value for type uint8');
+      }
+      return Encryptable.uint64(value) as EncryptableItemByFheTypeValue<U>;
+    case 'uint128':
+      if (typeof value !== 'bigint' && typeof value !== 'string') {
+        throw new Error('Expected bigint or string value for type uint8');
+      }
+      return Encryptable.uint128(value) as EncryptableItemByFheTypeValue<U>;
+  }
+  throw new Error(`Unsupported FHE type value: ${utype}`);
+}
 type MutationInput<T extends keyof MutationInputMap> = MutationInputMap[T];
 // sometimes it's hadny to inject args into mutation
 export function useEncryptAsync<T extends FheTypeValue>(
@@ -182,9 +225,7 @@ export function useEncryptAsync<T extends FheTypeValue>(
         onStepChange?.(step, context);
       };
 
-      /* eslint-enable no-redeclare, no-unused-vars */
-      // TODO: unhardcode and remove type assertion
-      const input = Encryptable.uint128(123n) as EncryptableItemByFheTypeValue<T>;
+      const input = prepareEncryptable(utype, mutationInput);
 
       const encrypted = await encryptValue({
         input,
