@@ -85,6 +85,6 @@ export function useTokens(chainId: number): Token[] {
       }
     });
     return Array.from(map.values());
-  }, [tokenLists, chainId]);
+  }, [tokenLists]);
   return tokens;
 }
