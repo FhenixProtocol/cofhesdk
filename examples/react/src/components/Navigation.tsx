@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useCofheActivePermit, useCofheAllPermits, useCofheConnection, useEncryptAsync } from '@cofhe/react';
-import { FheTypes } from '@cofhe/sdk';
+
 interface NavigationProps {
   activeComponent: string;
   onComponentSelect: (component: string) => void;
@@ -23,7 +23,7 @@ const StatusDetailsInline: React.FC<{ isDarkMode: boolean }> = ({ isDarkMode }) 
   const {
     isConnected,
     api: { encrypt, data: encrypted, variables },
-  } = useEncryptAsync({ utype: 'uint32' });
+  } = useEncryptAsync({ utype: 'uint64' });
 
   useEffect(() => {
     if (!isConnected) return;

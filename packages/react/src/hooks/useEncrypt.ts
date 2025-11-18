@@ -1,14 +1,14 @@
 import {
+  Encryptable,
   type CofhesdkClient,
-  type EncryptableItem,
-  type EncryptedAddressInput,
-  type EncryptedBoolInput,
+  type EncryptableAddress,
+  type EncryptableBool,
+  type EncryptableUint128,
+  type EncryptableUint16,
+  type EncryptableUint32,
+  type EncryptableUint64,
+  type EncryptableUint8,
   type EncryptedItemInputs,
-  type EncryptedUint128Input,
-  type EncryptedUint16Input,
-  type EncryptedUint32Input,
-  type EncryptedUint64Input,
-  type EncryptedUint8Input,
   type EncryptStep,
   type EncryptStepCallbackContext,
 } from '@cofhe/sdk';
@@ -21,23 +21,16 @@ import {
 import { useCallback, useMemo, useState } from 'react';
 import { useCofheConnection } from './useCofheConnection';
 import { useCofheContext } from '../providers';
-import { createEncryptableItemTyped, type FheTypeValue } from '../utils';
+import { type FheTypeValue } from '../utils';
 
-type EncryptedInput =
-  | EncryptedBoolInput
-  | EncryptedUint8Input
-  | EncryptedUint16Input
-  | EncryptedUint32Input
-  | EncryptedUint64Input
-  | EncryptedUint128Input
-  | EncryptedAddressInput;
+type EncryptedInput<T extends FheTypeValue> = EncryptResultByFheTypeValue<T>;
 
 type TEncryptApi<T extends FheTypeValue> = {
   variables: MutationInput<T> | undefined;
   error: Error | null;
   isEncrypting: boolean;
-  data: EncryptedInput | undefined;
-  encrypt: UseMutateAsyncFunction<EncryptedInput, Error, MutationInput<T>, void>;
+  data: EncryptedInput<T> | undefined;
+  encrypt: UseMutateAsyncFunction<EncryptedInput<T>, Error, MutationInput<T>, void>;
 };
 
 type EncryptionStep = { step: EncryptStep; context?: EncryptStepCallbackContext };
@@ -89,16 +82,30 @@ function useStepsState(): StepsState {
   };
 }
 
-async function encryptValue<T extends EncryptableItem>({
+type EncryptableItemMap = {
+  bool: EncryptableBool;
+  address: EncryptableAddress;
+  uint8: EncryptableUint8;
+  uint16: EncryptableUint16;
+  uint32: EncryptableUint32;
+  uint64: EncryptableUint64;
+  uint128: EncryptableUint128;
+};
+
+type EncryptableItemByFheTypeValue<T extends FheTypeValue> = EncryptableItemMap[T];
+
+type EncryptResultByFheTypeValue<T extends FheTypeValue> = EncryptedItemInputs<EncryptableItemByFheTypeValue<T>>;
+
+async function encryptValue<T extends FheTypeValue>({
   client,
   input,
   onStep,
 }: {
   client: CofhesdkClient | null;
-  input: T;
+  input: EncryptableItemByFheTypeValue<T>;
   // eslint-disable-next-line no-unused-vars
   onStep: (step: EncryptStep, context?: EncryptStepCallbackContext) => void;
-}): Promise<EncryptedItemInputs<T>> {
+}): Promise<EncryptResultByFheTypeValue<T>> {
   if (!client) throw new Error('CoFHE client not initialized');
 
   const encryptionBuilder = client.encryptInputs([input]).setStepCallback(onStep);
@@ -112,14 +119,14 @@ async function encryptValue<T extends EncryptableItem>({
 }
 
 type UseMutationResultEncryptAsync<T extends FheTypeValue> = UseMutationResult<
-  EncryptedInput,
+  EncryptedInput<T>,
   Error,
   MutationInput<T>,
   unknown
 >;
 
 type UseMutationOptionsAsync<T extends FheTypeValue> = Omit<
-  UseMutationOptions<EncryptedInput, Error, MutationInput<T>, void>,
+  UseMutationOptions<EncryptedInput<T>, Error, MutationInput<T>, void>,
   'mutationFn'
 >;
 
@@ -135,6 +142,7 @@ type EncryptionOptions<T extends FheTypeValue> = {
   account?: string;
   chainId?: number;
   securityZone?: number;
+  // eslint-disable-next-line no-unused-vars
   onStepChange?: (step: EncryptStep, context?: EncryptStepCallbackContext) => void;
 };
 
@@ -160,13 +168,13 @@ export function useEncryptAsync<T extends FheTypeValue>(
 
   const { onMutate, mutationKey: mutationKeyPostfix, ...restOptions } = mutationOptions;
 
-  const mutationResult = useMutation<EncryptedInput, Error, MutationInput<T>, void>({
+  const mutationResult = useMutation<EncryptedInput<T>, Error, MutationInput<T>, void>({
     mutationKey: ['encryption', mutationKeyPostfix],
     onMutate: (arg1, arg2) => {
       resetSteps();
       return onMutate?.(arg1, arg2);
     },
-    mutationFn: (mutationInput: MutationInput<T>) => {
+    mutationFn: async (mutationInput) => {
       const { utype, onStepChange } = encryptionOptions;
       // Forward steps to both internal and external handlers
       const combinedOnStep = (step: EncryptStep, context?: EncryptStepCallbackContext) => {
@@ -174,46 +182,16 @@ export function useEncryptAsync<T extends FheTypeValue>(
         onStepChange?.(step, context);
       };
 
-      // Helper to correlate the generic S with the value type so narrowing works inside the switch
-      /* eslint-disable no-redeclare, no-unused-vars */
-      function buildInput(type: 'bool', value: MutationInput<'bool'>): EncryptableItem;
-      function buildInput(type: 'address', value: MutationInput<'address'>): EncryptableItem;
-      function buildInput(type: 'uint8', value: MutationInput<'uint8'>): EncryptableItem;
-      function buildInput(type: 'uint16', value: MutationInput<'uint16'>): EncryptableItem;
-      function buildInput(type: 'uint32', value: MutationInput<'uint32'>): EncryptableItem;
-      function buildInput(type: 'uint64', value: MutationInput<'uint64'>): EncryptableItem;
-      function buildInput(type: 'uint128', value: MutationInput<'uint128'>): EncryptableItem;
-      function buildInput<S extends FheTypeValue>(type: S, value: MutationInput<S>): EncryptableItem;
-      function buildInput(type: FheTypeValue, value: boolean | string | bigint): EncryptableItem {
-        switch (type) {
-          case 'bool':
-            return createEncryptableItemTyped(value as MutationInput<'bool'>, 'bool');
-          case 'address':
-            return createEncryptableItemTyped(value as MutationInput<'address'>, 'address');
-          case 'uint8':
-            return createEncryptableItemTyped(value as MutationInput<'uint8'>, 'uint8');
-          case 'uint16':
-            return createEncryptableItemTyped(value as MutationInput<'uint16'>, 'uint16');
-          case 'uint32':
-            return createEncryptableItemTyped(value as MutationInput<'uint32'>, 'uint32');
-          case 'uint64':
-            return createEncryptableItemTyped(value as MutationInput<'uint64'>, 'uint64');
-          case 'uint128':
-            return createEncryptableItemTyped(value as MutationInput<'uint128'>, 'uint128');
-          default: {
-            const _exhaustive: never = type as never;
-            throw new Error(`Unsupported FHE type: ${String(_exhaustive)}`);
-          }
-        }
-      }
       /* eslint-enable no-redeclare, no-unused-vars */
-      const input = buildInput(utype, mutationInput);
+      // TODO: unhardcode and remove type assertion
+      const input = Encryptable.uint128(123n) as EncryptableItemByFheTypeValue<T>;
 
-      return encryptValue({
+      const encrypted = await encryptValue({
         input,
         client,
         onStep: combinedOnStep,
       });
+      return encrypted;
     },
     ...restOptions,
   });
