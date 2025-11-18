@@ -8,7 +8,7 @@ export { CofheProvider, useCofheContext } from './providers/index.js';
 export { useEncryptInput } from './hooks/index.js';
 
 // Components
-export { FnxEncryptInput, FloatingCofhePortal } from './components/index.js';
+export { FnxEncryptInput, FloatingCofheButton } from './components/index.js';
 
 // Utils
 export { FheTypesList, fheTypeToString, encryptedValueToString, type FheTypeValue } from './utils/index.js';

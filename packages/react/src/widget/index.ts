@@ -7,7 +7,7 @@ import { createCofhesdkConfig as createCofhesdkConfigWeb } from '@cofhe/sdk/web'
  */
 export const CofhesdkWidgetConfigSchema = z.object({
   shareablePermits: z.boolean().optional().default(false),
-  portalShieldUnshield: z.boolean().optional().default(true),
+  enableShieldUnshield: z.boolean().optional().default(true),
   autogeneratePermits: z.boolean().optional().default(true),
   permitExpirationOptions: z
     .array(
@@ -56,7 +56,7 @@ export type CofhesdkWidgetConfig = {
   widget: z.output<typeof CofhesdkWidgetConfigSchema>;
 };
 /**
- * Creates a CoFHE SDK Client and Widget configuration reasonable defaults
+ * Creates a CoFHE SDK Client and Widget configuration with reasonable defaults
  * @param config - {widget, client} The CoFHE SDK Client and Widget input configurations (fheKeyStorage will default to IndexedDB if not provided)
  * @returns The CoFHE SDK Client and Widget configuration with Web defaults applied
  */
