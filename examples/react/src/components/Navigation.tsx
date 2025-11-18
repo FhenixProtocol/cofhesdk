@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { useCofheActivePermit, useCofheAllPermits, useCofheConnection, useEncryptSync } from '@cofhe/react';
+import React, { useState } from 'react';
+import { useCofheActivePermit, useCofheAllPermits, useCofheConnection } from '@cofhe/react';
 interface NavigationProps {
   activeComponent: string;
   onComponentSelect: (component: string) => void;
@@ -17,28 +17,6 @@ const StatusDetailsInline: React.FC<{ isDarkMode: boolean }> = ({ isDarkMode }) 
   const [open, setOpen] = useState(false);
   const connectionState = useCofheConnection();
   const details = connectionState ? JSON.stringify(connectionState, null, 2) : 'Not connected';
-
-  // TMP
-  const {
-    isConnected,
-    api: { encrypt, data: encrypted, variables },
-  } = useEncryptSync({
-    value: '123',
-    type: 'uint32',
-  });
-
-  useEffect(() => {
-    if (!isConnected) return;
-    // just to suppress unused variable warning
-    console.log('calling the encrypt function');
-    encrypt();
-  }, [isConnected]);
-
-  console.log('encryption', {
-    isConnected,
-    encrypted,
-    variables,
-  });
 
   return (
     <>
