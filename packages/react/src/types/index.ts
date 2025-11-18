@@ -1,5 +1,6 @@
 import type { CofhesdkClient } from '@cofhe/sdk';
 import type { CofhesdkWidgetConfig } from '../widget/index.js';
+import type { QueryClient } from '@tanstack/react-query';
 
 export interface CofheContextValue {
   client: CofhesdkClient | null;
@@ -13,6 +14,7 @@ export interface CofheProviderProps {
   client?: CofhesdkClient;
   config?: CofheClientConfig;
   widgetConfig?: CofhesdkWidgetConfig['widget'];
+  queryClient?: QueryClient;
 }
 
 export interface CofheClientConfig {
