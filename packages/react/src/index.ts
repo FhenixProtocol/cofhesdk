@@ -5,7 +5,6 @@ import './styles.css';
 export { CofheProvider, useCofheContext } from './providers/index.js';
 
 // Hooks
-
 export {
   useEncrypt,
   useEncryptInput,
