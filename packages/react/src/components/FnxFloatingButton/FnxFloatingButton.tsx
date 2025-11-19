@@ -4,6 +4,7 @@ import { cn } from '../../utils/cn.js';
 import { useCofheContext } from '../../providers';
 import { FloatingIcon } from './FloatingIcon.js';
 import { StatusBarSection } from './StatusBarSection.js';
+import { StatusBarContent } from './StatusBarContent.js';
 import { ContentSection } from './ContentSection.js';
 import { FnxFloatingButtonProvider } from './FnxFloatingButtonContext.js';
 
@@ -131,7 +132,9 @@ const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
           className={statusBarClassName}
           isExpanded={isExpanded}
           isLeftSide={isLeftSide}
-        />
+        >
+          <StatusBarContent />
+        </StatusBarSection>
       </div>
     </div>
   );
