@@ -30,6 +30,7 @@ const StatusDetailsInline: React.FC<{ isDarkMode: boolean }> = ({ isDarkMode }) 
     // just to suppress unused variable warning
     console.log('calling the encrypt function');
     encrypt([123n, 321n, 111n], {
+      // securityZone: 4,
       onStepChange: (step, context) => {
         console.log('encryption step from custom overriding fn', step, context);
       },
