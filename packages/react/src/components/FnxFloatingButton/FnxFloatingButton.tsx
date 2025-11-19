@@ -5,7 +5,7 @@ import { useCofheContext } from '../../providers';
 import { FloatingIcon } from './FloatingIcon.js';
 import { StatusBarSection } from './StatusBarSection.js';
 import { ContentSection } from './ContentSection.js';
-import { MainPage, SettingsPage, TokenListPage } from './pages/index.js';
+import { FnxFloatingButtonProvider } from './FnxFloatingButtonContext.js';
 
 export type FloatingButtonPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 export type FloatingButtonSize = 'small' | 'medium' | 'large';
@@ -47,7 +47,7 @@ const positionStyles: Record<FloatingButtonPosition, string> = {
   'bottom-right': 'bottom-4 right-4',
 };
 
-export const FnxFloatingButton: React.FC<FnxFloatingButtonProps> = ({
+const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
   className,
   testId,
   position,
@@ -67,34 +67,9 @@ export const FnxFloatingButton: React.FC<FnxFloatingButtonProps> = ({
 
   const [isExpanded, setIsExpanded] = useState(false);
   const [showPopupPanel, setShowPopupPanel] = useState(false);
-  const [pageHistory, setPageHistory] = useState<Array<'main' | 'settings' | 'tokenlist'>>(['main']);
-
-  // These are always enabled for this component
-  const currentPage = pageHistory[pageHistory.length - 1];
 
   const isLeftSide = effectivePosition.includes('left');
   const isTopSide = effectivePosition.includes('top');
-
-  // Page navigation handlers
-  const navigateToSettings = () => setPageHistory((prev) => [...prev, 'settings']);
-  const navigateToTokenList = () => setPageHistory((prev) => [...prev, 'tokenlist']);
-  const navigateBack = () => {
-    setPageHistory((prev) => {
-      if (prev.length > 1) {
-        return prev.slice(0, -1);
-      }
-      return prev;
-    });
-  };
-
-  // Page configuration
-  const pages = {
-    main: <MainPage onNavigateToTokenList={navigateToTokenList} darkMode={darkMode} />,
-    settings: <SettingsPage onBack={navigateBack} darkMode={darkMode} />,
-    tokenlist: <TokenListPage onBack={navigateBack} darkMode={darkMode} />,
-  };
-
-  const currentPopupContent = pages[currentPage];
 
   const expandPanel = () => {
     setIsExpanded(true);
@@ -140,10 +115,8 @@ export const FnxFloatingButton: React.FC<FnxFloatingButtonProps> = ({
         className={contentSectionClassName}
         showPopupPanel={showPopupPanel}
         isTopSide={isTopSide}
-        isLeftSide={isLeftSide}       
-      >
-        {currentPopupContent}
-      </ContentSection>
+        isLeftSide={isLeftSide}
+      />
 
       {/* Button and Bar Row */}
       <div className={cn('flex items-center', isLeftSide ? 'flex-row' : 'flex-row-reverse')}>
@@ -158,10 +131,16 @@ export const FnxFloatingButton: React.FC<FnxFloatingButtonProps> = ({
           className={statusBarClassName}
           isExpanded={isExpanded}
           isLeftSide={isLeftSide}
-          onSettingsClick={navigateToSettings}
-          darkMode={darkMode}
         />
       </div>
     </div>
+  );
+};
+
+export const FnxFloatingButton: React.FC<FnxFloatingButtonProps> = (props) => {
+  return (
+    <FnxFloatingButtonProvider darkMode={props.darkMode ?? false}>
+      <FnxFloatingButtonInner {...props} />
+    </FnxFloatingButtonProvider>
   );
 };

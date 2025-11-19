@@ -1,5 +1,7 @@
 import { cn } from '../../utils/cn.js';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext.js';
+import { MainPage, SettingsPage, TokenListPage } from './pages/index.js';
 
 const CONTENT_TRANSITION_DURATION = 150; // Duration in milliseconds for content fade transition
 
@@ -9,7 +11,6 @@ interface ContentSectionProps {
   isTopSide: boolean;
   isLeftSide: boolean;
   contentPadding?: number;
-  children?: React.ReactNode;
 }
 
 export const ContentSection: React.FC<ContentSectionProps> = ({
@@ -18,36 +19,43 @@ export const ContentSection: React.FC<ContentSectionProps> = ({
   isTopSide,
   isLeftSide,
   contentPadding = 16,
-  children,
 }) => {
+  const { currentPage } = useFnxFloatingButtonContext();
+
+  // Page configuration - memoized to prevent recreating on every render
+  const pages = useMemo(() => ({
+    main: <MainPage />,
+    settings: <SettingsPage />,
+    tokenlist: <TokenListPage />,
+  }), []);
+
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [displayedContent, setDisplayedContent] = useState(children);
+  const [displayedContent, setDisplayedContent] = useState(() => pages[currentPage]);
   const [contentHeight, setContentHeight] = useState<number>(0);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // Measure content height automatically
+  // Measure content height automatically - only when displayedContent or showPopupPanel changes
   useEffect(() => {
-    if (contentRef.current && showPopupPanel) {
+    if (contentRef.current && showPopupPanel && !isTransitioning) {
       // Add padding top and bottom (2 * padding)
       const height = contentRef.current.clientHeight + (contentPadding * 2);
       setContentHeight(height);
     }
-  }, [displayedContent, showPopupPanel, contentPadding]);
+  }, [displayedContent, showPopupPanel, contentPadding, isTransitioning]);
 
-  // Animate content changes
+  // Update content when page changes
   useEffect(() => {
-    if (!showPopupPanel) return;
-    
-    // Fade out old content
-    setIsTransitioning(true);
-    
-    setTimeout(() => {
-      // Swap content
-      setDisplayedContent(children);
-      // Fade in new content
+    if (!showPopupPanel) {
+      setIsTransitioning(true);
+      setTimeout(() => {
+        setDisplayedContent(pages[currentPage]);
+        setIsTransitioning(false);
+      }, CONTENT_TRANSITION_DURATION);
+    } else {
+      setDisplayedContent(pages[currentPage]);
       setIsTransitioning(false);
-    }, CONTENT_TRANSITION_DURATION);
-  }, [children, showPopupPanel]);
+    }
+  }, [currentPage, showPopupPanel]);
 
   return (
     <div
