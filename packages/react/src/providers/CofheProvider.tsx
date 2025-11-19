@@ -1,10 +1,17 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { CofhesdkClient } from '@cofhe/sdk';
 import type { CofheContextValue, CofheProviderProps } from '../types/index.js';
+import { QueryProvider } from './QueryProvider.js';
 
 const CofheContext = createContext<CofheContextValue | undefined>(undefined);
 
-export function CofheProvider({ children, client: providedClient, config, widgetConfig }: CofheProviderProps) {
+export function CofheProvider({
+  children,
+  client: providedClient,
+  config,
+  widgetConfig,
+  queryClient,
+}: CofheProviderProps) {
   const [client, setClient] = useState<CofhesdkClient | null>(providedClient || null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -36,7 +43,11 @@ export function CofheProvider({ children, client: providedClient, config, widget
     widgetConfig,
   };
 
-  return <CofheContext.Provider value={contextValue}>{children}</CofheContext.Provider>;
+  return (
+    <CofheContext.Provider value={contextValue}>
+      <QueryProvider queryClient={queryClient}>{children}</QueryProvider>
+    </CofheContext.Provider>
+  );
 }
 
 export function useCofheContext(): CofheContextValue {
