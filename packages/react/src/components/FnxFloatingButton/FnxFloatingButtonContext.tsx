@@ -1,7 +1,12 @@
 import { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
+import type { FloatingButtonPosition } from './FnxFloatingButton.js';
+import { useCofheContext } from '../../providers';
 
 export type FloatingButtonPage = 'main' | 'settings' | 'tokenlist';
+
+const OPEN_DELAY = 500; // Delay before showing popup in ms
+const CLOSE_DELAY = 300; // Delay before closing bar after popup closes
 
 interface FnxFloatingButtonContextValue {
   pageHistory: FloatingButtonPage[];
@@ -10,6 +15,14 @@ interface FnxFloatingButtonContextValue {
   navigateToTokenList: () => void;
   navigateBack: () => void;
   darkMode: boolean;
+  effectivePosition: FloatingButtonPosition;
+  isExpanded: boolean;
+  showPopupPanel: boolean;
+  isLeftSide: boolean;
+  isTopSide: boolean;
+  expandPanel: () => void;
+  collapsePanel: () => void;
+  handleClick: (externalOnClick?: () => void) => void;
 }
 
 const FnxFloatingButtonContext = createContext<FnxFloatingButtonContextValue | null>(null);
@@ -17,15 +30,47 @@ const FnxFloatingButtonContext = createContext<FnxFloatingButtonContextValue | n
 interface FnxFloatingButtonProviderProps {
   children: ReactNode;
   darkMode: boolean;
+  position?: FloatingButtonPosition;
 }
 
 export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps> = ({
   children,
   darkMode,
+  position,
 }) => {
+  const widgetConfig = useCofheContext().widgetConfig;
+  const effectivePosition = position || widgetConfig?.position || 'bottom-right';
+
   const [pageHistory, setPageHistory] = useState<FloatingButtonPage[]>(['main']);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [showPopupPanel, setShowPopupPanel] = useState(false);
 
   const currentPage = pageHistory[pageHistory.length - 1];
+  const isLeftSide = effectivePosition.includes('left');
+  const isTopSide = effectivePosition.includes('top');
+
+  const expandPanel = () => {
+    setIsExpanded(true);
+    setTimeout(() => {
+      setShowPopupPanel(true);
+    }, OPEN_DELAY);
+  };
+
+  const collapsePanel = () => {
+    setShowPopupPanel(false);
+    setTimeout(() => {
+      setIsExpanded(false);
+    }, CLOSE_DELAY);
+  };
+
+  const handleClick = (externalOnClick?: () => void) => {
+    if (isExpanded) {
+      collapsePanel();
+    } else {
+      expandPanel();
+    }
+    externalOnClick?.();
+  };
 
   const navigateToSettings = () => {
     setPageHistory((prev) => [...prev, 'settings']);
@@ -53,6 +98,14 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
         navigateToTokenList,
         navigateBack,
         darkMode,
+        effectivePosition,
+        isExpanded,
+        showPopupPanel,
+        isLeftSide,
+        isTopSide,
+        expandPanel,
+        collapsePanel,
+        handleClick,
       }}
     >
       {children}

@@ -4,18 +4,14 @@ import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext.js';
 
 interface StatusBarSectionProps {
   className?: string;
-  isExpanded: boolean;
-  isLeftSide: boolean;
   children?: ReactNode;
 }
 
 export const StatusBarSection: React.FC<StatusBarSectionProps> = ({
   className,
-  isExpanded,
-  isLeftSide,
   children,
 }) => {
-  const { darkMode } = useFnxFloatingButtonContext();
+  const { darkMode, isExpanded, isLeftSide } = useFnxFloatingButtonContext();
   
   return (
     <div

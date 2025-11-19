@@ -7,20 +7,14 @@ const CONTENT_TRANSITION_DURATION = 150; // Duration in milliseconds for content
 
 interface ContentSectionProps {
   className?: string;
-  showPopupPanel: boolean;
-  isTopSide: boolean;
-  isLeftSide: boolean;
   contentPadding?: number;
 }
 
 export const ContentSection: React.FC<ContentSectionProps> = ({
   className,
-  showPopupPanel,
-  isTopSide,
-  isLeftSide,
   contentPadding = 16,
 }) => {
-  const { currentPage } = useFnxFloatingButtonContext();
+  const { currentPage, showPopupPanel, isTopSide, isLeftSide } = useFnxFloatingButtonContext();
 
   // Page configuration - memoized to prevent recreating on every render
   const pages = useMemo(() => ({

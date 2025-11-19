@@ -1,12 +1,10 @@
-import { useState } from 'react';
 import type { BaseProps } from '../../types/component-types.js';
 import { cn } from '../../utils/cn.js';
-import { useCofheContext } from '../../providers';
 import { FloatingIcon } from './FloatingIcon.js';
 import { StatusBarSection } from './StatusBarSection.js';
 import { StatusBarContent } from './StatusBarContent.js';
 import { ContentSection } from './ContentSection.js';
-import { FnxFloatingButtonProvider } from './FnxFloatingButtonContext.js';
+import { FnxFloatingButtonProvider, useFnxFloatingButtonContext } from './FnxFloatingButtonContext.js';
 
 export type FloatingButtonPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 export type FloatingButtonSize = 'small' | 'medium' | 'large';
@@ -16,9 +14,6 @@ export type FloatingButtonPositionType = 'fixed' | 'absolute';
 // - Get svgs instead of pngs
 // - Define configuration that needs to move to global react config
 // - Improve expand animation so it will roll out from the floating button
-
-const OPEN_DELAY = 500; // Delay before showing popup in ms
-const CLOSE_DELAY = 300; // Delay before closing bar after popup closes
 
 export interface FnxFloatingButtonProps extends BaseProps {
   /** Position of the floating button */
@@ -51,50 +46,21 @@ const positionStyles: Record<FloatingButtonPosition, string> = {
 const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
   className,
   testId,
-  position,
   size = 'large',
   onClick,
   zIndex = 9999,
   positionType = 'fixed',
-  darkMode = false,
   buttonClassName,
   statusBarClassName,
   contentSectionClassName,
 }) => {
-  const widgetConfig = useCofheContext().widgetConfig;
-
-  // Use prop position if provided, otherwise use widgetConfig position
-  const effectivePosition = position || widgetConfig?.position || 'bottom-right';
-
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [showPopupPanel, setShowPopupPanel] = useState(false);
-
-  const isLeftSide = effectivePosition.includes('left');
-  const isTopSide = effectivePosition.includes('top');
-
-  const expandPanel = () => {
-    setIsExpanded(true);
-    setTimeout(() => {
-      setShowPopupPanel(true);
-    }, OPEN_DELAY);
-  };
-
-  const collapsePanel = () => {
-    setShowPopupPanel(false);
-    setTimeout(() => {
-      setIsExpanded(false);
-    }, CLOSE_DELAY);
-  };
-
-  const handleClick = () => {
-    if (isExpanded) {
-      collapsePanel();
-    } else {
-      expandPanel();
-    }
-    onClick?.();
-  };
-
+  const {
+    effectivePosition,
+    isTopSide,
+    isLeftSide,
+    handleClick,
+    darkMode,
+  } = useFnxFloatingButtonContext();
 
   return (
     <div
@@ -114,24 +80,17 @@ const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
     >
       <ContentSection
         className={contentSectionClassName}
-        showPopupPanel={showPopupPanel}
-        isTopSide={isTopSide}
-        isLeftSide={isLeftSide}
       />
 
       {/* Button and Bar Row */}
       <div className={cn('flex items-center', isLeftSide ? 'flex-row' : 'flex-row-reverse')}>
         <FloatingIcon
-          onClick={handleClick}
+          onClick={() => handleClick(onClick)}
           className={buttonClassName}
-          isExpanded={isExpanded}
-          darkMode={darkMode}
         />
 
         <StatusBarSection
           className={statusBarClassName}
-          isExpanded={isExpanded}
-          isLeftSide={isLeftSide}
         >
           <StatusBarContent />
         </StatusBarSection>
@@ -142,7 +101,7 @@ const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
 
 export const FnxFloatingButton: React.FC<FnxFloatingButtonProps> = (props) => {
   return (
-    <FnxFloatingButtonProvider darkMode={props.darkMode ?? false}>
+    <FnxFloatingButtonProvider darkMode={props.darkMode ?? false} position={props.position}>
       <FnxFloatingButtonInner {...props} />
     </FnxFloatingButtonProvider>
   );

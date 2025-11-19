@@ -3,20 +3,18 @@ import { cn } from '../../utils/cn.js';
 import fhenixIconBlack from './assets/fhenix-icon-black.png';
 import fhenixIconWhite from './assets/fhenix-icon-white.png';
 import CloseIcon from '@mui/icons-material/Close';
+import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext.js';
 
 interface FloatingIconProps {
   onClick: () => void;
   className?: string;
-  isExpanded: boolean;
-  darkMode: boolean;
 }
 
 export const FloatingIcon: React.FC<FloatingIconProps> = ({
   onClick,
   className,
-  isExpanded,
-  darkMode,
 }) => {
+  const { isExpanded, darkMode } = useFnxFloatingButtonContext();
   const [isHovered, setIsHovered] = useState(false);
 
   // Show X when expanded, otherwise show custom icon or fhenix logo
