@@ -2,6 +2,9 @@
 
 > Documentation for the Cofhe SDK
 
+Getting started with cofhesdk
+
+
 ## Example
 
 This is an example page.
@@ -10,6 +13,23 @@ This is an example page.
 ## Get started
 
 Hello world!
+
+
+Getting started with cofhesdk hardhat plugin (TOP LEVEL)
+
+
+Getting started with cofhesdk react
+
+
+Getting started with cofhesdk hardhat plugin
+
+
+Getting started with foundry.
+
+Soon.
+
+
+example.mdx
 
 
 ## Migrating from `cofhejs`

@@ -1,0 +1,1 @@
+import{u as s,j as e}from"./index-CqnVSNou.js";const c=void 0;function o(t){const n={p:"p",...s(),...t.components};return e.jsx(n.p,{children:"Getting started with cofhesdk react"})}function a(t={}){const{wrapper:n}={...s(),...t.components};return n?e.jsx(n,{...t,children:e.jsx(o,{...t})}):o(t)}export{a as default,c as frontmatter};

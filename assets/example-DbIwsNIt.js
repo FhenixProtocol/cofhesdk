@@ -1,0 +1,1 @@
+import{u as s,j as e}from"./index-CqnVSNou.js";const c=void 0;function o(n){const t={p:"p",...s(),...n.components};return e.jsx(t.p,{children:"example.mdx"})}function m(n={}){const{wrapper:t}={...s(),...n.components};return t?e.jsx(t,{...n,children:e.jsx(o,{...n})}):o(n)}export{m as default,c as frontmatter};
