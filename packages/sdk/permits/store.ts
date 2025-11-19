@@ -15,14 +15,12 @@ type PermitsStore = {
 
 // Stores generated permits for each user, a hash indicating the active permit for each user
 // Can be used to create reactive hooks
+export const PERMIT_STORE_DEFAULTS: PermitsStore = {
+  permits: {},
+  activePermitHash: {},
+};
 export const _permitStore = createStore<PermitsStore>()(
-  persist(
-    () => ({
-      permits: {},
-      activePermitHash: {},
-    }),
-    { name: 'cofhesdk-permits' }
-  )
+  persist(() => PERMIT_STORE_DEFAULTS, { name: 'cofhesdk-permits' })
 );
 
 export const clearStaleStore = () => {
