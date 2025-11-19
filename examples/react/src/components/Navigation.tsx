@@ -29,7 +29,11 @@ const StatusDetailsInline: React.FC<{ isDarkMode: boolean }> = ({ isDarkMode }) 
     if (!isConnected) return;
     // just to suppress unused variable warning
     console.log('calling the encrypt function');
-    encrypt(true).then((v) => {
+    encrypt(true, {
+      onStepChange: (step, context) => {
+        console.log('encryption step from custom overriding fn', step, context);
+      },
+    }).then((v) => {
       console.log('encryption result', v);
     });
   }, [isConnected]);

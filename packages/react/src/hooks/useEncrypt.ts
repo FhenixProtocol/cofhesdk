@@ -31,7 +31,12 @@ type TEncryptApi<T extends FheTypeValue> = {
   error: Error | null;
   isEncrypting: boolean;
   data: EncryptedInput<T> | undefined;
-  encrypt: UseMutateAsyncFunction<EncryptedInput<T>, Error, MutationInput<T>, void>;
+  encrypt: (
+    // eslint-disable-next-line no-unused-vars
+    value: MutationInputMap[T],
+    // eslint-disable-next-line no-unused-vars
+    overridingEncryptionOptions?: Omit<EncryptionOptions<T>, 'utype'>
+  ) => Promise<EncryptedItemInputs<EncryptableItemByFheTypeValue<T>>>;
 };
 
 type EncryptionStep = { step: EncryptStep; context?: EncryptStepCallbackContext };
@@ -193,7 +198,10 @@ const encryptableFactory: {
 function prepareEncryptable<U extends FheTypeValue>(utype: U, value: MutationInputMap[U]): EncryptableItemMap[U] {
   return encryptableFactory[utype](value);
 }
-type MutationInput<T extends keyof MutationInputMap> = MutationInputMap[T];
+type MutationInput<T extends FheTypeValue> = {
+  value: MutationInputMap[T];
+  options: Omit<EncryptionOptions<T>, 'utype'>; // utype is provided in the hook args only
+};
 
 export function useEncryptAsync<T extends FheTypeValue>(
   encryptionOptions: EncryptionOptions<T>,
@@ -212,14 +220,20 @@ export function useEncryptAsync<T extends FheTypeValue>(
       return onMutate?.(arg1, arg2);
     },
     mutationFn: async (mutationInput) => {
-      const { utype, onStepChange } = encryptionOptions;
+      // const { utype, onStepChange } = encryptionOptions;
+
+      const { value, options: overridingEncryptionOptions } = mutationInput;
+      const mergedOptions = { ...encryptionOptions, ...overridingEncryptionOptions };
+
+      const { utype, onStepChange } = mergedOptions;
+
       // Forward steps to both internal and external handlers
       const combinedOnStep = (step: EncryptStep, context?: EncryptStepCallbackContext) => {
         handleStepStateChange(step, context);
         onStepChange?.(step, context);
       };
 
-      const input = prepareEncryptable(utype, mutationInput);
+      const input = prepareEncryptable(utype, value);
 
       const encrypted = await encryptValue({
         input,
@@ -230,13 +244,25 @@ export function useEncryptAsync<T extends FheTypeValue>(
     },
     ...restOptions,
   });
+
+  const mutateAsync = mutationResult.mutateAsync;
+
+  const encryptFn = useCallback(
+    async (value: MutationInputMap[T], overridingEncryptionOptions: Omit<EncryptionOptions<T>, 'utype'> = {}) => {
+      return mutateAsync({
+        value,
+        options: overridingEncryptionOptions,
+      });
+    },
+    [mutateAsync]
+  );
   // const vars = mutationResult.variables;
   const api = {
     variables: mutationResult.variables,
     error: mutationResult.error,
     isEncrypting: mutationResult.isPending,
     data: mutationResult.data,
-    encrypt: mutationResult.mutateAsync,
+    encrypt: encryptFn,
   };
 
   return {
