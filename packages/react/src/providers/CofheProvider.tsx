@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { CofhesdkClient } from '@cofhe/sdk';
 import type { CofheContextValue, CofheProviderProps } from '../types/index.js';
+import { QueryProvider } from './QueryProvider';
 
 const CofheContext = createContext<CofheContextValue | undefined>(undefined);
 
@@ -37,7 +38,7 @@ export function CofheProvider({ children, client: providedClient, config }: Cofh
 
   return (
     <CofheContext.Provider value={contextValue}>
-      {children}
+      <QueryProvider>{children}</QueryProvider>
     </CofheContext.Provider>
   );
 }
