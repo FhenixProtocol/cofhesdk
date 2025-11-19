@@ -53,6 +53,7 @@ export {
   setActivePermitHash,
   removeActivePermitHash,
   clearStaleStore,
+  PERMIT_STORE_DEFAULTS,
 } from './store.js';
 
 // Sealing utilities
