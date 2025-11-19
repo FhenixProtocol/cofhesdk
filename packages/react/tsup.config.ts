@@ -14,5 +14,13 @@ export default defineConfig({
   external: ['react', 'react-dom', '@mui/material', '@mui/icons-material', '@cofhe/sdk'],
   esbuildOptions(options) {
     options.jsx = 'automatic';
+    // Handle image imports as data URLs
+    options.loader = {
+      ...options.loader,
+      '.png': 'dataurl',
+      '.jpg': 'dataurl',
+      '.jpeg': 'dataurl',
+      '.svg': 'dataurl',
+    };
   },
 });
