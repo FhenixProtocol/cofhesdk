@@ -1,25 +1,54 @@
-import { defineConfig } from 'vocs'
-import pkg from './package.json'
+import { defineConfig } from 'vocs';
+import pkg from './package.json';
 
 export default defineConfig({
   title: 'Cofhe SDK Docs',
   titleTemplate: '%s - Cofhe SDK',
   description: 'Documentation for the Cofhe SDK',
   rootDir: '.',
-  sidebar: [
-    {
-      text: 'Getting Started',
-      link: '/getting-started',
+  sidebar: {
+    '/docs': [
+      {
+        text: 'Getting Started',
+        link: '/docs',
+      },
+      {
+        text: 'Migrating from `cofhejs`',
+        link: '/docs/migrating-from-cofhejs',
+      },
+      {
+        text: 'Example',
+        link: '/docs/example',
+      },
+    ],
+    '/hardhat': {
+      backLink: true,
+      items: [
+        {
+          text: 'Getting Started',
+          link: '/hardhat',
+        },
+      ],
     },
-    {
-      text: "Migrating from `cofhejs`",
-      link: '/docs/migrating-from-cofhejs',
+    '/foundry': {
+      backLink: true,
+      items: [
+        {
+          text: 'Getting Started',
+          link: '/foundry/getting-started',
+        },
+      ],
     },
-    {
-      text: 'Example',
-      link: '/example',
+    '/react': {
+      backLink: true,
+      items: [
+        {
+          text: 'Getting Started',
+          link: '/react/getting-started',
+        },
+      ],
     },
-  ],
+  },
   socials: [
     {
       icon: 'github',
@@ -35,36 +64,10 @@ export default defineConfig({
     },
   ],
   topNav: [
-    { text: 'Docs', link: '/docs/getting-started', match: '/docs' },
-    {
-      text: 'Extensions',
-      items: [
-        {
-          text: 'Account Abstraction',
-          link: '/account-abstraction',
-        },
-        {
-          text: 'OP Stack',
-          link: '/op-stack',
-        },
-        {
-          text: 'USDC (Circle)',
-          link: '/circle-usdc',
-        },
-        {
-          text: 'ZKsync',
-          link: '/zksync',
-        },
-        {
-          text: 'Experimental',
-          link: '/experimental',
-        },
-      ],
-    },
-    {
-      text: 'Examples',
-      link: 'https://github.com/wevm/viem/tree/main/examples',
-    },
+    { text: 'Docs', link: './docs', match: '/docs' },
+    { text: 'Hardhat', link: './hardhat', match: '/hardhat' },
+    { text: 'Foundry', link: './foundry/getting-started', match: '/foundry' },
+    { text: 'React', link: './react/getting-started', match: '/react' },
     {
       text: `v${pkg.version}`,
       items: [
@@ -79,4 +82,4 @@ export default defineConfig({
       ],
     },
   ],
-})
+});
