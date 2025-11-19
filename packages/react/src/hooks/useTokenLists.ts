@@ -75,14 +75,13 @@ export function useTokens(chainId: number): Token[] {
   const tokens = useMemo(() => {
     const map = new Map<string, Token>();
     tokenLists.forEach((result) => {
-      if (result.data) {
-        result.data.tokens.forEach((token) => {
-          const key = `${token.chainId}-${token.address.toLowerCase()}`;
-          if (!map.has(key)) {
-            map.set(key, token);
-          }
-        });
-      }
+      if (!result.data) return;
+
+      result.data.tokens.forEach((token) => {
+        const key = `${token.chainId}-${token.address.toLowerCase()}`;
+        if (map.has(key)) return;
+        map.set(key, token);
+      });
     });
     return Array.from(map.values());
   }, [tokenLists]);
