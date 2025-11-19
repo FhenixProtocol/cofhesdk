@@ -32,9 +32,7 @@ export const CofhesdkWidgetConfigSchema = z.object({
     .record(z.array(z.string()))
     .optional()
     .default({
-      11155111: [
-        'https://raw.githubusercontent.com/FhenixProtocol/cofhesdk/33800006fbe1a740485d50fc9c13b8e9af404c5a/examples/react/tokenlists/sepolia.json',
-      ],
+      11155111: ['https://storage.googleapis.com/cofhesdk/sepolia.json'],
       // 84531: ['https://tokens.cofhe.io/base-sepolia.json'],
       // 421613: ['https://tokens.cofhe.io/arbitrum-sepolia.json'],
     }),
