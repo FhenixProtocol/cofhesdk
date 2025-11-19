@@ -12,31 +12,36 @@ import {
   type EncryptStep,
   type EncryptStepCallbackContext,
 } from '@cofhe/sdk';
-import {
-  useMutation,
-  type UseMutateAsyncFunction,
-  type UseMutationOptions,
-  type UseMutationResult,
-} from '@tanstack/react-query';
+import { useMutation, type UseMutationOptions, type UseMutationResult } from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
 import { useCofheConnection } from './useCofheConnection';
 import { useCofheContext } from '../providers';
 import { type FheTypeValue } from '../utils';
 import { assert } from 'ts-essentials';
 
-type EncryptedInput<T extends FheTypeValue> = EncryptResultByFheTypeValue<T>;
+type EncryptedInput<T extends FheTypeValue> = EncryptResultByFheTypeValue<T> | EncryptResultByFheTypeValue<T>[];
 
 type TEncryptApi<T extends FheTypeValue> = {
   variables: MutationInput<T> | undefined;
   error: Error | null;
   isEncrypting: boolean;
   data: EncryptedInput<T> | undefined;
-  encrypt: (
-    // eslint-disable-next-line no-unused-vars
-    value: MutationInputMap[T],
-    // eslint-disable-next-line no-unused-vars
-    overridingEncryptionOptions?: Omit<EncryptionOptions<T>, 'utype'>
-  ) => Promise<EncryptedItemInputs<EncryptableItemByFheTypeValue<T>>>;
+  encrypt: {
+    // Single value overload
+    (
+      // eslint-disable-next-line no-unused-vars
+      value: MutationInputMap[T],
+      // eslint-disable-next-line no-unused-vars
+      overridingEncryptionOptions?: Omit<EncryptionOptions<T>, 'utype'>
+    ): Promise<EncryptedItemInputs<EncryptableItemByFheTypeValue<T>>>;
+    // Multiple values overload
+    (
+      // eslint-disable-next-line no-unused-vars
+      value: MutationInputMap[T][],
+      // eslint-disable-next-line no-unused-vars
+      overridingEncryptionOptions?: Omit<EncryptionOptions<T>, 'utype'>
+    ): Promise<EncryptedItemInputs<EncryptableItemByFheTypeValue<T>>[]>;
+  };
 };
 
 type EncryptionStep = { step: EncryptStep; context?: EncryptStepCallbackContext };
@@ -108,20 +113,22 @@ async function encryptValue<T extends FheTypeValue>({
   onStep,
 }: {
   client: CofhesdkClient | null;
-  input: EncryptableItemByFheTypeValue<T>;
+  input: EncryptableItemByFheTypeValue<T> | EncryptableItemByFheTypeValue<T>[];
   // eslint-disable-next-line no-unused-vars
   onStep: (step: EncryptStep, context?: EncryptStepCallbackContext) => void;
-}): Promise<EncryptResultByFheTypeValue<T>> {
+}): Promise<EncryptResultByFheTypeValue<T> | EncryptResultByFheTypeValue<T>[]> {
   if (!client) throw new Error('CoFHE client not initialized');
 
-  const encryptionBuilder = client.encryptInputs([input]).setStepCallback(onStep);
+  const inputsArray = Array.isArray(input) ? input : [input];
+  const encryptionBuilder = client.encryptInputs(inputsArray).setStepCallback(onStep);
   const result = await encryptionBuilder.encrypt();
 
   if (!result.success) {
     throw result.error;
   }
 
-  return result.data[0];
+  const data = result.data as EncryptedItemInputs<EncryptableItemByFheTypeValue<T>>[];
+  return Array.isArray(input) ? data : data[0];
 }
 
 type UseMutationResultEncryptAsync<T extends FheTypeValue> = UseMutationResult<
@@ -199,7 +206,7 @@ function prepareEncryptable<U extends FheTypeValue>(utype: U, value: MutationInp
   return encryptableFactory[utype](value);
 }
 type MutationInput<T extends FheTypeValue> = {
-  value: MutationInputMap[T];
+  value: MutationInputMap[T] | MutationInputMap[T][];
   options: Omit<EncryptionOptions<T>, 'utype'>; // utype is provided in the hook args only
 };
 
@@ -233,7 +240,9 @@ export function useEncryptAsync<T extends FheTypeValue>(
         onStepChange?.(step, context);
       };
 
-      const input = prepareEncryptable(utype, value);
+      const input = Array.isArray(value)
+        ? (value.map((v) => prepareEncryptable(utype, v)) as EncryptableItemByFheTypeValue<T>[])
+        : prepareEncryptable(utype, value);
 
       const encrypted = await encryptValue({
         input,
@@ -248,14 +257,17 @@ export function useEncryptAsync<T extends FheTypeValue>(
   const mutateAsync = mutationResult.mutateAsync;
 
   const encryptFn = useCallback(
-    async (value: MutationInputMap[T], overridingEncryptionOptions: Omit<EncryptionOptions<T>, 'utype'> = {}) => {
+    async (
+      value: MutationInputMap[T] | MutationInputMap[T][],
+      overridingEncryptionOptions: Omit<EncryptionOptions<T>, 'utype'> = {}
+    ) => {
       return mutateAsync({
         value,
         options: overridingEncryptionOptions,
       });
     },
     [mutateAsync]
-  );
+  ) as TEncryptApi<T>['encrypt'];
   // const vars = mutationResult.variables;
   const api = {
     variables: mutationResult.variables,

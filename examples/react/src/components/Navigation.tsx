@@ -23,13 +23,13 @@ const StatusDetailsInline: React.FC<{ isDarkMode: boolean }> = ({ isDarkMode }) 
   const {
     isConnected,
     api: { encrypt, data: encrypted, variables },
-  } = useEncryptAsync({ utype: 'bool' });
+  } = useEncryptAsync({ utype: 'uint32' });
 
   useEffect(() => {
     if (!isConnected) return;
     // just to suppress unused variable warning
     console.log('calling the encrypt function');
-    encrypt(true, {
+    encrypt([123n, 321n, 111n], {
       onStepChange: (step, context) => {
         console.log('encryption step from custom overriding fn', step, context);
       },
