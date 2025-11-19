@@ -1,6 +1,6 @@
 export { useEncryptInput } from './useEncryptInput';
 export { useCofheConnection } from './useCofheConnection';
-export { useEncryptAsync } from './useEncrypt';
+export { useEncrypt } from './useEncrypt';
 export {
   useCofheActivePermit,
   useCofheAllPermits,

@@ -219,7 +219,7 @@ type MutationInput<T extends FheTypeValue> = {
   options: Omit<EncryptionOptions<T>, 'utype'>; // utype is provided in the hook args only
 };
 
-export function useEncryptAsync<T extends FheTypeValue>(
+export function useEncrypt<T extends FheTypeValue>(
   encryptionOptions: EncryptionOptions<T>,
   mutationOptions: UseMutationOptionsAsync<T> = {}
 ): UseEncryptResult<T> {
