@@ -107,20 +107,29 @@ type EncryptableItemByFheTypeValue<T extends FheTypeValue> = EncryptableItemMap[
 
 type EncryptResultByFheTypeValue<T extends FheTypeValue> = EncryptedItemInputs<EncryptableItemByFheTypeValue<T>>;
 
+type EncryptionFnOptions<T extends FheTypeValue> = Omit<EncryptionOptions<T>, 'utype'>;
+
 async function encryptValue<T extends FheTypeValue>({
   client,
   input,
-  onStep,
+  encryptionOptions,
 }: {
   client: CofhesdkClient | null;
   input: EncryptableItemByFheTypeValue<T> | EncryptableItemByFheTypeValue<T>[];
-  // eslint-disable-next-line no-unused-vars
-  onStep: (step: EncryptStep, context?: EncryptStepCallbackContext) => void;
+  encryptionOptions?: EncryptionFnOptions<T>;
 }): Promise<EncryptResultByFheTypeValue<T> | EncryptResultByFheTypeValue<T>[]> {
   if (!client) throw new Error('CoFHE client not initialized');
 
+  const { onStepChange, account, chainId, securityZone } = encryptionOptions || {};
+
   const inputsArray = Array.isArray(input) ? input : [input];
-  const encryptionBuilder = client.encryptInputs(inputsArray).setStepCallback(onStep);
+  const encryptionBuilder = client.encryptInputs(inputsArray);
+
+  if (onStepChange) encryptionBuilder.setStepCallback(onStepChange);
+  if (account) encryptionBuilder.setAccount(account);
+  if (chainId) encryptionBuilder.setChainId(chainId);
+  if (securityZone) encryptionBuilder.setSecurityZone(securityZone);
+
   const result = await encryptionBuilder.encrypt();
 
   if (!result.success) {
@@ -232,10 +241,10 @@ export function useEncryptAsync<T extends FheTypeValue>(
       const { value, options: overridingEncryptionOptions } = mutationInput;
       const mergedOptions = { ...encryptionOptions, ...overridingEncryptionOptions };
 
-      const { utype, onStepChange } = mergedOptions;
+      const { utype, onStepChange, ...restOfTheOptions } = mergedOptions;
 
       // Forward steps to both internal and external handlers
-      const combinedOnStep = (step: EncryptStep, context?: EncryptStepCallbackContext) => {
+      const combinedOnStepChange = (step: EncryptStep, context?: EncryptStepCallbackContext) => {
         handleStepStateChange(step, context);
         onStepChange?.(step, context);
       };
@@ -247,7 +256,10 @@ export function useEncryptAsync<T extends FheTypeValue>(
       const encrypted = await encryptValue({
         input,
         client,
-        onStep: combinedOnStep,
+        encryptionOptions: {
+          ...restOfTheOptions,
+          onStepChange: combinedOnStepChange,
+        },
       });
       return encrypted;
     },
