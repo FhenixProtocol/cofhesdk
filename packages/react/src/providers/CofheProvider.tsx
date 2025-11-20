@@ -5,13 +5,7 @@ import { QueryProvider } from './QueryProvider.js';
 
 const CofheContext = createContext<CofheContextValue | undefined>(undefined);
 
-export function CofheProvider({
-  children,
-  client: providedClient,
-  config,
-  widgetConfig,
-  queryClient,
-}: CofheProviderProps) {
+export function CofheProvider({ children, client: providedClient, config, queryClient }: CofheProviderProps) {
   const [client, setClient] = useState<CofhesdkClient | null>(providedClient || null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -40,7 +34,7 @@ export function CofheProvider({
     client,
     isInitialized,
     error,
-    widgetConfig,
+    config,
   };
 
   return (
