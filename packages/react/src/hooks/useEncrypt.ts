@@ -110,7 +110,7 @@ type UseMutationOptionsAsync<T extends EncryptableItem | EncryptableItem[]> = Om
 >;
 
 type UseEncryptResult<T extends EncryptableItem | EncryptableItem[]> = {
-  encrypt: (options?: EncryptionOptions<T>) => Promise<EncryptedInputs<T>>;
+  encrypt: <U extends T = T>(options?: EncryptionOptions<U>) => Promise<EncryptedInputs<U>>;
   data: EncryptedItemInputs<T> | undefined;
   error: Error | null;
   isEncrypting: boolean;
@@ -168,8 +168,8 @@ export function useEncrypt<T extends EncryptableItem | EncryptableItem[]>(
   const mutateAsync = mutationResult.mutateAsync;
 
   const encryptFn = useCallback(
-    async (options?: EncryptionOptions<T>) => {
-      return mutateAsync(options ?? {}) as Promise<EncryptedInputs<T>>;
+    async <U extends T = T>(options?: EncryptionOptions<U>) => {
+      return mutateAsync(options ?? {}) as Promise<EncryptedInputs<U>>;
     },
     [mutateAsync]
   );
@@ -234,7 +234,7 @@ const Component = () => {
 
   // Example 3 - useEncrypt with no inputs but with input types included, encrypt function with inputs
   // RESULT - Can narrow data type to [EncryptableUint128, EncryptableUint128] if input types are provided
-  const { encrypt: encrypt3, data: data3, error: error3 } = useEncrypt<[EncryptableUint128, EncryptableUint128]>({});
+  const { encrypt: encrypt3, data: data3, error: error3 } = useEncrypt({});
 
   encrypt3({
     input: [Encryptable.uint128(10n), Encryptable.uint128(10n)],
@@ -250,7 +250,7 @@ const Component = () => {
 
   const handleThing = async () => {
     const result = await encrypt3({
-      input: [Encryptable.uint128(10n), Encryptable.uint128(10n)],
+      input: [Encryptable.uint128(10n), Encryptable.uint128(10n), Encryptable.bool(true)],
     });
   };
   handleThing();
