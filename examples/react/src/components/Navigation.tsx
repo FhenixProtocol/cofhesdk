@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useCofheActivePermit, useCofheAllPermits, useCofheConnection, useCofhePermits } from '@cofhe/react';
+import { useCofheActivePermit, useCofheAllPermits, useCofheConnection } from '@cofhe/react';
 interface NavigationProps {
   activeComponent: string;
   onComponentSelect: (component: string) => void;

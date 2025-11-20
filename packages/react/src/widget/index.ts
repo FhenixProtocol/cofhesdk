@@ -42,24 +42,22 @@ export const CofhesdkWidgetConfigSchema = z.object({
 /**
  * Input config type inferred from the schema
  */
-export type CofhesdkWidgetInputConfig = {
-  client: CofhesdkInputConfig;
-  widget: z.input<typeof CofhesdkWidgetConfigSchema>;
+export type CofhesdkWidgetInputConfig = CofhesdkInputConfig & {
+  react: z.input<typeof CofhesdkWidgetConfigSchema>;
 };
 
-export type CofhesdkWidgetConfig = {
-  client: CofhesdkConfig;
-  widget: z.output<typeof CofhesdkWidgetConfigSchema>;
+export type CofhesdkConfigWithWidget = CofhesdkConfig & {
+  react: z.output<typeof CofhesdkWidgetConfigSchema>;
 };
 /**
  * Creates a CoFHE SDK Client and Widget configuration with reasonable defaults
  * @param config - {widget, client} The CoFHE SDK Client and Widget input configurations (fheKeyStorage will default to IndexedDB if not provided)
  * @returns The CoFHE SDK Client and Widget configuration with Web defaults applied
  */
-export function createCofhesdkConfig(config: CofhesdkWidgetInputConfig): CofhesdkWidgetConfig {
-  const { widget: widgetConfigInput, client: webConfigInput } = config;
+export function createCofhesdkConfig(config: CofhesdkWidgetInputConfig): CofhesdkConfigWithWidget {
+  const { react: widgetConfigInput, ...webConfig } = config;
 
-  const webClientConfig = createCofhesdkConfigWeb(webConfigInput);
+  const webClientConfig = createCofhesdkConfigWeb(webConfig);
   const widgetConfigResult = CofhesdkWidgetConfigSchema.safeParse(widgetConfigInput);
 
   if (!widgetConfigResult.success) {
@@ -67,7 +65,7 @@ export function createCofhesdkConfig(config: CofhesdkWidgetInputConfig): Cofhesd
   }
 
   return {
-    client: webClientConfig,
-    widget: widgetConfigResult.data,
+    ...webClientConfig,
+    react: widgetConfigResult.data,
   };
 }
