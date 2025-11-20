@@ -75,7 +75,7 @@ function useStepsState(): StepsState {
 async function encryptValue<T extends EncryptableItem | EncryptableArray>(
   client: CofhesdkClient | null,
   options: EncryptionOptions<T>
-): Promise<EncryptedItemInputs<T>> {
+): Promise<EncryptedInputs<T>> {
   if (!client) throw new Error('CoFHE client not initialized');
   if (!options.input) throw new Error('Encryption options must include an input');
 
@@ -96,27 +96,30 @@ async function encryptValue<T extends EncryptableItem | EncryptableArray>(
     throw result.error;
   }
 
-  if (Array.isArray(input)) return result.data as EncryptedItemInputs<T>;
-  return result.data[0] as EncryptedItemInputs<T>;
+  if (Array.isArray(input)) {
+    return result.data as EncryptedInputs<T>;
+  }
+
+  return result.data[0] as EncryptedInputs<T>;
 }
 
 type UseMutationResultEncryptAsync<T extends EncryptableItem | EncryptableArray> = UseMutationResult<
-  EncryptedItemInputs<T>,
+  EncryptedInputs<T>,
   Error,
   EncryptionOptions<T>,
   unknown
 >;
 
 type UseMutationOptionsAsync<T extends EncryptableItem | EncryptableArray> = Omit<
-  UseMutationOptions<EncryptedItemInputs<T>, Error, EncryptionOptions<T>, void>,
+  UseMutationOptions<EncryptedInputs<T>, Error, EncryptionOptions<T>, void>,
   'mutationFn'
 >;
 
 type UseEncryptResult<T extends EncryptableItem | EncryptableArray> = {
-  encrypt: <const U extends EncryptableItem | EncryptableArray>(
+  encrypt: <const U extends T>(
     options?: EncryptionOptions<U>
   ) => Promise<EncryptedInputs<U>>;
-  data: EncryptedItemInputs<T> | undefined;
+  data: EncryptedInputs<T> | undefined;
   error: Error | null;
   isEncrypting: boolean;
   stepsState: StepsState;
@@ -142,7 +145,7 @@ export function useEncrypt<T extends EncryptableItem | EncryptableArray>(
 
   const { onMutate, mutationKey: mutationKeyPostfix, ...restOptions } = mutationOptions;
 
-  const mutationResult = useMutation<EncryptedItemInputs<T>, Error, EncryptionOptions<T>, void>({
+  const mutationResult = useMutation<EncryptedInputs<T>, Error, EncryptionOptions<T>, void>({
     mutationKey: ['encryption', mutationKeyPostfix],
     onMutate: (arg1, arg2) => {
       resetSteps();
@@ -173,8 +176,10 @@ export function useEncrypt<T extends EncryptableItem | EncryptableArray>(
   const mutateAsync = mutationResult.mutateAsync;
 
   const encryptFn = useCallback(
-    async <const U extends EncryptableItem | EncryptableArray>(options?: EncryptionOptions<U>) => {
-      return mutateAsync((options ?? {}) as EncryptionOptions<T>) as Promise<EncryptedInputs<U>>;
+    async <const U extends T>(options?: EncryptionOptions<U>) => {
+      const variables: EncryptionOptions<T> = (options ?? ({} as EncryptionOptions<U>));
+      const encrypted = await mutateAsync(variables);
+      return encrypted as EncryptedInputs<U>;
     },
     [mutateAsync]
   );
