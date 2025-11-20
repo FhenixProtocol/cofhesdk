@@ -16,10 +16,13 @@ import { useCallback, useMemo, useState } from 'react';
 import { useCofheConnection } from './useCofheConnection';
 import { useCofheContext } from '../providers';
 
-type EncryptedInputs<T extends EncryptableItem | EncryptableItem[]> =
-  T extends Array<EncryptableItem> ? EncryptedItemInputs<[...T]> : EncryptedItemInputs<T>;
-type ArrayifyEncryptableInputs<T extends EncryptableItem | EncryptableItem[]> =
-  T extends Array<EncryptableItem> ? [...T] : [T];
+type EncryptableArray = readonly EncryptableItem[];
+type EncryptedInputs<T extends EncryptableItem | EncryptableArray> = T extends EncryptableArray
+  ? EncryptedItemInputs<[...T]>
+  : EncryptedItemInputs<T>;
+type ArrayifyEncryptableInputs<T extends EncryptableItem | EncryptableArray> = T extends EncryptableArray
+  ? [...T]
+  : [T];
 
 type EncryptionStep = { step: EncryptStep; context?: EncryptStepCallbackContext };
 type StepWithOrder = `${number}_${EncryptStep}_${'start' | 'stop'}`;
@@ -69,7 +72,7 @@ function useStepsState(): StepsState {
   };
 }
 
-async function encryptValue<T extends EncryptableItem | EncryptableItem[]>(
+async function encryptValue<T extends EncryptableItem | EncryptableArray>(
   client: CofhesdkClient | null,
   options: EncryptionOptions<T>
 ): Promise<EncryptedItemInputs<T>> {
@@ -97,20 +100,22 @@ async function encryptValue<T extends EncryptableItem | EncryptableItem[]>(
   return result.data[0] as EncryptedItemInputs<T>;
 }
 
-type UseMutationResultEncryptAsync<T extends EncryptableItem | EncryptableItem[]> = UseMutationResult<
+type UseMutationResultEncryptAsync<T extends EncryptableItem | EncryptableArray> = UseMutationResult<
   EncryptedItemInputs<T>,
   Error,
   EncryptionOptions<T>,
   unknown
 >;
 
-type UseMutationOptionsAsync<T extends EncryptableItem | EncryptableItem[]> = Omit<
+type UseMutationOptionsAsync<T extends EncryptableItem | EncryptableArray> = Omit<
   UseMutationOptions<EncryptedItemInputs<T>, Error, EncryptionOptions<T>, void>,
   'mutationFn'
 >;
 
-type UseEncryptResult<T extends EncryptableItem | EncryptableItem[]> = {
-  encrypt: <U extends T = T>(options?: EncryptionOptions<U>) => Promise<EncryptedInputs<U>>;
+type UseEncryptResult<T extends EncryptableItem | EncryptableArray> = {
+  encrypt: <const U extends EncryptableItem | EncryptableArray>(
+    options?: EncryptionOptions<U>
+  ) => Promise<EncryptedInputs<U>>;
   data: EncryptedItemInputs<T> | undefined;
   error: Error | null;
   isEncrypting: boolean;
@@ -119,7 +124,7 @@ type UseEncryptResult<T extends EncryptableItem | EncryptableItem[]> = {
   _mutation: UseMutationResultEncryptAsync<T>;
 };
 
-type EncryptionOptions<T extends EncryptableItem | EncryptableItem[]> = {
+type EncryptionOptions<T extends EncryptableItem | EncryptableArray> = {
   input?: T;
   account?: string;
   chainId?: number;
@@ -127,7 +132,7 @@ type EncryptionOptions<T extends EncryptableItem | EncryptableItem[]> = {
   onStepChange?: (step: EncryptStep, context?: EncryptStepCallbackContext) => void;
 };
 
-export function useEncrypt<T extends EncryptableItem | EncryptableItem[]>(
+export function useEncrypt<T extends EncryptableItem | EncryptableArray>(
   encryptionOptions: EncryptionOptions<T> = {},
   mutationOptions: UseMutationOptionsAsync<T> = {}
 ): UseEncryptResult<T> {
@@ -168,8 +173,8 @@ export function useEncrypt<T extends EncryptableItem | EncryptableItem[]>(
   const mutateAsync = mutationResult.mutateAsync;
 
   const encryptFn = useCallback(
-    async <U extends T = T>(options?: EncryptionOptions<U>) => {
-      return mutateAsync(options ?? {}) as Promise<EncryptedInputs<U>>;
+    async <const U extends EncryptableItem | EncryptableArray>(options?: EncryptionOptions<U>) => {
+      return mutateAsync((options ?? {}) as EncryptionOptions<T>) as Promise<EncryptedInputs<U>>;
     },
     [mutateAsync]
   );
@@ -231,6 +236,8 @@ const Component = () => {
   } = useEncrypt({
     input: [Encryptable.uint128(10n), Encryptable.uint128(10n)] as const,
   });
+
+  // const res2 = encrypt2({ input: [Encryptable.uint128(15n), Encryptable.uint128(10n)] });
 
   // Example 3 - useEncrypt with no inputs but with input types included, encrypt function with inputs
   // RESULT - Can narrow data type to [EncryptableUint128, EncryptableUint128] if input types are provided
