@@ -50,9 +50,9 @@ export type CofhesdkConfigWithWidget = CofhesdkConfig & {
   react: z.output<typeof CofhesdkWidgetConfigSchema>;
 };
 /**
- * Creates a CoFHE SDK Client and Widget configuration with reasonable defaults
- * @param config - {widget, client} The CoFHE SDK Client and Widget input configurations (fheKeyStorage will default to IndexedDB if not provided)
- * @returns The CoFHE SDK Client and Widget configuration with Web defaults applied
+ * Creates a CoFHE SDK client plus React widget configuration with reasonable defaults.
+ * @param config - Cofhesdk client input merged with a `react` object (fheKeyStorage defaults to IndexedDB when omitted).
+ * @returns The combined client configuration with a validated `react` section and Web defaults applied.
  */
 export function createCofhesdkConfig(config: CofhesdkWidgetInputConfig): CofhesdkConfigWithWidget {
   const { react: widgetConfigInput, ...webConfig } = config;
