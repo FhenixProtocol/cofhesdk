@@ -1,6 +1,5 @@
 import type { IStorage } from '@/core';
 import { constructClient } from 'iframe-shared-storage';
-//
 /**
  * Creates a web storage implementation using IndexedDB
  * @returns IStorage implementation for browser environments
@@ -12,10 +11,9 @@ const client = constructClient({
     messagingOptions: {
       enableLog: 'both',
     },
+    iframeReadyTimeoutMs: 1000, // if the iframe is not initied during this interval AND a reuqest is made, such request will throw an error
   },
 });
-
-console.log('client', client);
 
 const indexedDBKeyval = client.indexedDBKeyval;
 
@@ -23,25 +21,32 @@ if (!indexedDBKeyval) {
   throw new Error('IndexedDBKeyval is not available in the client');
 }
 
-let initialized = false;
 export const createWebStorage = (): IStorage => {
   return {
     getItem: async (name: string) => {
-      console.log('Getting item from IndexedDB:', name);
-      if (!initialized) {
-        // TODO: fix this ugly hack to wait for the iframe to initialize
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+      try {
+        return await indexedDBKeyval.get(name);
+      } catch (e) {
+        // TODO: outer context seems to swallow errors. Need sorting out
+        console.error('Error getting item from storage', e);
+        throw e;
       }
-
-      return await indexedDBKeyval.get(name);
     },
     setItem: async (name: string, value: any) => {
-      console.log('Setting item in IndexedDB:', name, value);
-      await indexedDBKeyval.set(name, value);
+      try {
+        await indexedDBKeyval.set(name, value);
+      } catch (e) {
+        console.error('Error setting item in storage', e);
+        throw e;
+      }
     },
     removeItem: async (name: string) => {
-      console.log('Removing item from IndexedDB:', name);
-      await indexedDBKeyval.del(name);
+      try {
+        await indexedDBKeyval.del(name);
+      } catch (e) {
+        console.error('Error removing item from storage', e);
+        throw e;
+      }
     },
   };
 };
