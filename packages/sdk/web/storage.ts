@@ -8,7 +8,7 @@ import { constructClient } from 'iframe-shared-storage';
 
 const client = constructClient({
   iframe: {
-    src: 'https://iframe-storage.vercel.app/hub.html',
+    src: 'https://iframe-shared-storage.vercel.app/hub.html',
     messagingOptions: {
       enableLog: 'both',
     },
