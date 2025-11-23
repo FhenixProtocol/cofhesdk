@@ -23,29 +23,13 @@ export const createWebStorage = (): IStorage => {
   }
   return {
     getItem: async (name: string) => {
-      try {
         return await indexedDBKeyval.get(name);
-      } catch (e) {
-        // TODO: outer context seems to swallow errors. Need sorting out
-        console.error('Error getting item from storage', e);
-        throw e;
-      }
     },
     setItem: async (name: string, value: any) => {
-      try {
         await indexedDBKeyval.set(name, value);
-      } catch (e) {
-        console.error('Error setting item in storage', e);
-        throw e;
-      }
     },
     removeItem: async (name: string) => {
-      try {
         await indexedDBKeyval.del(name);
-      } catch (e) {
-        console.error('Error removing item from storage', e);
-        throw e;
-      }
     },
   };
 };
