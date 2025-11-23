@@ -10,7 +10,7 @@ export const createWebStorage = (): IStorage => {
     iframe: {
       src: 'https://iframe-shared-storage.vercel.app/hub.html',
       messagingOptions: {
-        enableLog: 'both',
+        // enableLog: 'both',
       },
       iframeReadyTimeoutMs: 1000, // if the iframe is not initied during this interval AND a reuqest is made, such request will throw an error
     },
