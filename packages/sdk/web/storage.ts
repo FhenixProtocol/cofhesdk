@@ -4,7 +4,6 @@ import { constructClient } from 'iframe-shared-storage';
  * Creates a web storage implementation using IndexedDB
  * @returns IStorage implementation for browser environments
  */
-
 export const createWebStorage = (): IStorage => {
   const client = constructClient({
     iframe: {
@@ -17,10 +16,6 @@ export const createWebStorage = (): IStorage => {
   });
 
   const indexedDBKeyval = client.indexedDBKeyval;
-
-  if (!indexedDBKeyval) {
-    throw new Error('IndexedDBKeyval is not available in the client');
-  }
   return {
     getItem: async (name: string) => {
       // IndexedDBKeyval returns undefined if not found, but we want null (a json-deserialized value is expected)
