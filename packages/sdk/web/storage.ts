@@ -23,7 +23,8 @@ export const createWebStorage = (): IStorage => {
   }
   return {
     getItem: async (name: string) => {
-        return await indexedDBKeyval.get(name);
+      // IndexedDBKeyval returns undefined if not found, but we want null (a json-deserialized value is expected)
+      return (await indexedDBKeyval.get(name)) ?? null;
     },
     setItem: async (name: string, value: any) => {
         await indexedDBKeyval.set(name, value);
