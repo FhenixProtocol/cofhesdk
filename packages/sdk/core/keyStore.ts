@@ -53,6 +53,8 @@ export function createKeysStore(storage: IStorage | null): KeysStorage {
   const keysStore = storage
     ? createStore<KeysStore>()(
         persist(() => DEFAULT_KEYS_STORE, {
+          // because earleir tests were written with on-init hydration skipped (due to the error suppression in zustand), returning this flag to fix test (i.e. KeyStore > Storage Utilities > should rehydrate keys store)
+          skipHydration: true,
           // if onRehydrateStorage is not passed here, the errors thrown by storage layer are swallowed by zustand here: https://github.com/pmndrs/zustand/blob/39a391b6c1ff9aa89b81694d9bdb21da37dd4ac6/src/middleware/persist.ts#L321
           onRehydrateStorage: () => (_state?, _error?) => {
             if (_error) throw new Error(`onRehydrateStorage: Error rehydrating keys store: ${_error}`);
