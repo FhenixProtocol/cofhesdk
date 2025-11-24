@@ -1,39 +1,18 @@
-import { createContext, useContext, useEffect, useState } from 'react';
-import type { CofhesdkClient } from '@cofhe/sdk';
+import { createContext, useContext, useMemo } from 'react';
 import type { CofheContextValue, CofheProviderProps } from '../types/index.js';
 import { QueryProvider } from './QueryProvider.js';
+import { createCofhesdkClient } from '@cofhe/sdk/web';
 
 const CofheContext = createContext<CofheContextValue | undefined>(undefined);
 
-export function CofheProvider({ children, client: providedClient, config, queryClient }: CofheProviderProps) {
-  const [client, setClient] = useState<CofhesdkClient | null>(providedClient || null);
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+export function CofheProvider(props: CofheProviderProps) {
+  const { children, config, queryClient } = props;
+  const providedClient = 'client' in props ? props.client : undefined;
 
-  useEffect(() => {
-    if (providedClient) {
-      setClient(providedClient);
-      setIsInitialized(true);
-      return;
-    }
-
-    if (config) {
-      try {
-        // Initialize client with config
-        // This would need to be implemented based on the actual CofheClient constructor
-        // const newClient = new CofheClient(config);
-        // setClient(newClient);
-        setIsInitialized(true);
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error('Failed to initialize CoFHE client'));
-      }
-    }
-  }, [providedClient, config]);
+  const client = useMemo(() => providedClient ?? createCofhesdkClient(config), [providedClient, config]);
 
   const contextValue: CofheContextValue = {
     client,
-    isInitialized,
-    error,
     config,
   };
 
