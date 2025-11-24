@@ -35,7 +35,8 @@ export const CofhesdkReactConfigSchema = z.object({
       11155111: ['https://storage.googleapis.com/cofhesdk/sepolia.json'],
       // 84531: ['https://tokens.cofhe.io/base-sepolia.json'],
       // 421613: ['https://tokens.cofhe.io/arbitrum-sepolia.json'],
-    }),
+    })
+    .transform((lists) => lists as Partial<Record<number, string[]>>),
   position: z.enum(['bottom-right', 'bottom-left', 'top-right', 'top-left']).optional().default('bottom-right'),
 });
 
