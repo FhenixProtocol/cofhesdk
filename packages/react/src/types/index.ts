@@ -1,20 +1,26 @@
 import type { CofhesdkClient } from '@cofhe/sdk';
-import type { CofhesdkConfigWithWidget } from '../config';
+import type { CofhesdkConfigWithReact } from '../config';
 import type { QueryClient } from '@tanstack/react-query';
 
 export interface CofheContextValue {
-  client: CofhesdkClient | null;
-  isInitialized: boolean;
-  error: Error | null;
-  config?: CofhesdkConfigWithWidget;
+  client: CofhesdkClient;
+  config: CofhesdkConfigWithReact;
 }
 
-export interface CofheProviderProps {
+export type CofheProviderProps = {
   children: React.ReactNode;
-  client?: CofhesdkClient;
-  config?: CofhesdkConfigWithWidget;
   queryClient?: QueryClient;
-}
+} & (
+  | {
+      // can provide either pre-created client together with the config it was created with
+      client: CofhesdkClient;
+      config: CofhesdkConfigWithReact;
+    }
+  | {
+      // ... or just provide config to create the client internally
+      config: CofhesdkConfigWithReact;
+    }
+);
 
 export interface CofheClientConfig {
   // Add configuration options as needed
