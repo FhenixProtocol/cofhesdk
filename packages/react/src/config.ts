@@ -3,9 +3,9 @@ import { type CofhesdkConfig, type CofhesdkInputConfig } from '@cofhe/sdk';
 import { createCofhesdkConfig as createCofhesdkConfigWeb } from '@cofhe/sdk/web';
 
 /**
- * Zod schema for widget configuration validation
+ * Zod schema for react configuration validation
  */
-export const CofhesdkWidgetConfigSchema = z.object({
+export const CofhesdkReactConfigSchema = z.object({
   shareablePermits: z.boolean().optional().default(false),
   enableShieldUnshield: z.boolean().optional().default(true),
   autogeneratePermits: z.boolean().optional().default(true),
@@ -42,30 +42,30 @@ export const CofhesdkWidgetConfigSchema = z.object({
 /**
  * Input config type inferred from the schema
  */
-export type CofhesdkWidgetInputConfig = CofhesdkInputConfig & {
-  react: z.input<typeof CofhesdkWidgetConfigSchema>;
+export type CofhesdkReactInputConfig = CofhesdkInputConfig & {
+  react: z.input<typeof CofhesdkReactConfigSchema>;
 };
 
-export type CofhesdkConfigWithWidget = CofhesdkConfig & {
-  react: z.output<typeof CofhesdkWidgetConfigSchema>;
+export type CofhesdkConfigWithReact = CofhesdkConfig & {
+  react: z.output<typeof CofhesdkReactConfigSchema>;
 };
 /**
- * Creates a CoFHE SDK client plus React widget configuration with reasonable defaults.
+ * Creates a CoFHE SDK client plus React react configuration with reasonable defaults.
  * @param config - Cofhesdk client input merged with a `react` object (fheKeyStorage defaults to IndexedDB when omitted).
  * @returns The combined client configuration with a validated `react` section and Web defaults applied.
  */
-export function createCofhesdkConfig(config: CofhesdkWidgetInputConfig): CofhesdkConfigWithWidget {
-  const { react: widgetConfigInput, ...webConfig } = config;
+export function createCofhesdkConfig(config: CofhesdkReactInputConfig): CofhesdkConfigWithReact {
+  const { react: reactConfigInput, ...webConfig } = config;
 
   const webClientConfig = createCofhesdkConfigWeb(webConfig);
-  const widgetConfigResult = CofhesdkWidgetConfigSchema.safeParse(widgetConfigInput);
+  const reactConfigResult = CofhesdkReactConfigSchema.safeParse(reactConfigInput);
 
-  if (!widgetConfigResult.success) {
-    throw new Error(`Invalid cofhesdk widget configuration: ${widgetConfigResult.error.message}`);
+  if (!reactConfigResult.success) {
+    throw new Error(`Invalid cofhesdk react configuration: ${reactConfigResult.error.message}`);
   }
 
   return {
     ...webClientConfig,
-    react: widgetConfigResult.data,
+    react: reactConfigResult.data,
   };
 }
