@@ -28,18 +28,22 @@
     "dev": "tsup --watch",
     "lint": "eslint \"src/**/*.ts*\"",
     "type-check": "tsc --noEmit",
-    "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
+    "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
+    "test": "vitest"
   },
   "devDependencies": {
     "@cofhe/eslint-config": "workspace:*",
     "@cofhe/tsconfig": "workspace:*",
+    "@testing-library/react": "^15.0.0",
     "@types/react": "^18.2.61",
     "@types/react-dom": "^18.2.19",
     "eslint": "^8.57.0",
     "tailwindcss": "3.4.18",
     "ts-essentials": "^10.1.1",
     "tsup": "^8.5.0",
-    "typescript": "5.5.4"
+    "typescript": "5.5.4",
+    "jsdom": "^25.0.1",
+    "vitest": "^3.0.0"
   },
   "dependencies": {
     "@cofhe/sdk": "workspace:*",
