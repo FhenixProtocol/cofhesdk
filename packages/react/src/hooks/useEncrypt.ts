@@ -12,7 +12,7 @@ import {
   type EncryptStepCallbackContext,
 } from '@cofhe/sdk';
 import { useMutation, type UseMutationOptions, type UseMutationResult } from '@tanstack/react-query';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useCofheConnection } from './useCofheConnection';
 import { useCofheContext } from '../providers';
 
@@ -39,30 +39,38 @@ function validateAndCompactizeSteps(encSteps: EncryptionStep[]): CompactSteps {
   return result;
 }
 
+// Key is identifier for each encryption mutation call
 type StepsState = {
-  onStep: (step: EncryptStep, context?: EncryptStepCallbackContext) => void;
+  onStep: (key: string, step: EncryptStep, context?: EncryptStepCallbackContext) => void;
+  onSetKey: (key: string | null) => void;
   reset: () => void;
   compactSteps: CompactSteps;
   lastStep: EncryptionStep | null;
 };
 
 function useStepsState(): StepsState {
-  const [steps, setSteps] = useState<EncryptionStep[]>([]);
-  const onStep = useCallback((step: EncryptStep, context?: EncryptStepCallbackContext) => {
+  const [steps, setSteps] = useState<Record<string, EncryptionStep[]>>({});
+  const [currentKey, setCurrentKey] = useState<string | null>(null);
+  const onStep = useCallback((key: string, step: EncryptStep, context?: EncryptStepCallbackContext) => {
     if (step === EncryptStep.InitTfhe && context?.isStart) {
       // init with a single-element array
-      setSteps([{ step, context }]);
+      setSteps((prev) => ({ ...prev, [key]: [{ step, context }] }));
     } else {
-      setSteps((prev) => [...prev, { step, context }]);
+      setSteps((prev) => ({ ...prev, [key]: [...prev[key], { step, context }] }));
     }
   }, []);
 
-  const compactSteps = useMemo(() => validateAndCompactizeSteps(steps), [steps]);
-  const lastStep = steps.length > 0 ? steps[steps.length - 1] : null;
+  const onSetKey = useCallback((key: string | null) => {
+    setCurrentKey(key);
+  }, []);
 
-  const reset = useCallback(() => setSteps([]), []);
+  const compactSteps = useMemo(() => validateAndCompactizeSteps(currentKey ? steps[currentKey] : []), [steps, currentKey]);
+  const lastStep = currentKey ? steps[currentKey][steps[currentKey].length - 1] : null;
+
+  const reset = useCallback(() => setSteps({}), []);
   return {
     onStep,
+    onSetKey,
     reset,
     compactSteps,
     lastStep,
@@ -133,7 +141,8 @@ export function useEncrypt<T extends EncryptableItem | EncryptableItem[]>(
 ): UseEncryptResult<T> {
   const client = useCofheContext().client;
   const stepsState = useStepsState();
-  const { onStep: handleStepStateChange, reset: resetSteps } = stepsState;
+  const mutationKey = useRef<string | null>(null);
+  const { onStep: handleStepStateChange, onSetKey: handleStepSetKey, reset: resetSteps } = stepsState;
 
   const { onMutate, mutationKey: mutationKeyPostfix, ...restOptions } = mutationOptions;
 
@@ -141,9 +150,15 @@ export function useEncrypt<T extends EncryptableItem | EncryptableItem[]>(
     mutationKey: ['encryption', mutationKeyPostfix],
     onMutate: (arg1, arg2) => {
       resetSteps();
+      handleStepSetKey(null);
+      mutationKey.current = null;
       return onMutate?.(arg1, arg2);
     },
     mutationFn: async (mutationEncryptionOptions) => {
+      const key = crypto.randomUUID();
+      mutationKey.current = key;
+      handleStepSetKey(key);
+
       const mergedOptions = { ...mutationEncryptionOptions, ...encryptionOptions };
 
       if (!mergedOptions.input) {
@@ -152,7 +167,7 @@ export function useEncrypt<T extends EncryptableItem | EncryptableItem[]>(
 
       // Forward steps to both internal and external handlers
       const combinedOnStepChange = (step: EncryptStep, context?: EncryptStepCallbackContext) => {
-        handleStepStateChange(step, context);
+        handleStepStateChange(key, step, context);
         mergedOptions.onStepChange?.(step, context);
       };
 
@@ -160,6 +175,11 @@ export function useEncrypt<T extends EncryptableItem | EncryptableItem[]>(
         ...mergedOptions,
         onStepChange: combinedOnStepChange,
       });
+
+      // Does this actually return an error if the mutation call was replaced?
+      if (mutationKey.current !== key) {
+        throw new Error('Encryption call was replaced');
+      }
 
       return encrypted;
     },
