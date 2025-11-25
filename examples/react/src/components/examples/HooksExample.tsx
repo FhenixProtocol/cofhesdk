@@ -1,22 +1,18 @@
-import React, { useState } from 'react';
-import { useCofheConnection, useCofheContext, useEncrypt, useEncryptInput } from '@cofhe/react';
+import React from 'react';
+import { useCofheConnection, useCofheContext, useEncrypt } from '@cofhe/react';
 import { Encryptable } from '@cofhe/sdk';
 
 export const HooksExample: React.FC = () => {
   const { client } = useCofheContext();
   const { connected: isInitialized, connectError: error } = useCofheConnection();
-  // const { onEncryptInput, isEncryptingInput } = useEncryptInput();
   const { stepsState, encrypt, data: encryptData, error: encryptError } = useEncrypt();
-  const [results, setResults] = useState<any>(null);
 
   const handleDirectEncryption = async () => {
     try {
       const result = await encrypt({ input: Encryptable.uint128(123n) });
-      // setResults({ direct: result });
       console.log('Direct encryption result:', result);
     } catch (err) {
       console.error('Direct encryption error:', err);
-      // setResults({ error: err instanceof Error ? err.message : 'Unknown error' });
     }
   };
 
@@ -75,12 +71,12 @@ export const HooksExample: React.FC = () => {
           </div>
         </div>
 
-        {results && (
+        {encryptData && (
           <div>
             <h3 className="text-lg font-semibold mb-3">Results</h3>
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border">
               <pre className="text-sm overflow-x-auto">
-                {JSON.stringify(results, (_, value) => (typeof value === 'bigint' ? value.toString() : value), 2)}
+                {JSON.stringify(encryptData, (_, value) => (typeof value === 'bigint' ? value.toString() : value), 2)}
               </pre>
             </div>
           </div>
