@@ -63,7 +63,6 @@ export function useTokenBalance(
         args: [account],
       })) as bigint;
 
-
       return parseFloat(formatUnits(balance, decimals)).toFixed(displayDecimals);
     },
     enabled: !!publicClient && !!account && !!tokenAddress,
@@ -169,6 +168,76 @@ export function useTokenMetadata(
       }
 
       return { decimals, symbol, name };
+    },
+    enabled: !!publicClient && !!tokenAddress,
+    ...queryOptions,
+  });
+}
+
+/**
+ * Hook to get token decimals from ERC20 contract
+ * @param tokenAddress - Token contract address
+ * @param queryOptions - Optional React Query options
+ * @returns Query result with decimals as number
+ */
+export function useTokenDecimals(
+  tokenAddress: Address | undefined,
+  queryOptions?: Omit<UseQueryOptions<number, Error>, 'queryKey' | 'queryFn' | 'enabled'>
+): UseQueryResult<number, Error> {
+  const publicClient = useCofhePublicClient();
+  
+  return useQuery({
+    queryKey: ['tokenDecimals', tokenAddress],
+    queryFn: async (): Promise<number> => {
+      if (!publicClient) {
+        throw new Error('PublicClient is required to fetch token decimals');
+      }
+      if (!tokenAddress) {
+        throw new Error('Token address is required');
+      }
+
+      const decimals = (await publicClient.readContract({
+        address: tokenAddress,
+        abi: ERC20_DECIMALS_ABI,
+        functionName: 'decimals',
+      })) as number;
+
+      return decimals;
+    },
+    enabled: !!publicClient && !!tokenAddress,
+    ...queryOptions,
+  });
+}
+
+/**
+ * Hook to get token symbol from ERC20 contract
+ * @param tokenAddress - Token contract address
+ * @param queryOptions - Optional React Query options
+ * @returns Query result with symbol as string
+ */
+export function useTokenSymbol(
+  tokenAddress: Address | undefined,
+  queryOptions?: Omit<UseQueryOptions<string, Error>, 'queryKey' | 'queryFn' | 'enabled'>
+): UseQueryResult<string, Error> {
+  const publicClient = useCofhePublicClient();
+  
+  return useQuery({
+    queryKey: ['tokenSymbol', tokenAddress],
+    queryFn: async (): Promise<string> => {
+      if (!publicClient) {
+        throw new Error('PublicClient is required to fetch token symbol');
+      }
+      if (!tokenAddress) {
+        throw new Error('Token address is required');
+      }
+
+      const symbol = (await publicClient.readContract({
+        address: tokenAddress,
+        abi: ERC20_SYMBOL_ABI,
+        functionName: 'symbol',
+      })) as string;
+
+      return symbol;
     },
     enabled: !!publicClient && !!tokenAddress,
     ...queryOptions,
