@@ -1,10 +1,9 @@
 {
   "watch": ["src"],
   "ext": "ts,tsx,css",
-  "ignore": ["dist", "node_modules"],
+  "ignore": ["dist", "node_modules", "**/*.test.ts", "**/*.test.tsx"],
   "exec": "rm -rf dist && tsup && postcss ./src/styles.css -o ./dist/styles.css",
   "legacyWatch": true,
-  "delay": "500"
+  "delay": "500",
+  "verbose": true
 }
-  
-  

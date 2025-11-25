@@ -316,11 +316,8 @@ export function createCofhesdkClientBase(opts: CofhesdkClientParams): CofhesdkCl
     decryptHandle,
     permits: clientPermits,
 
-    // Add SDK-specific methods below that require connection
-    // Example:
-    // async encryptData(data: unknown) {
-    //   requireConnected();
-    //   // Use _publicClient and _walletClient for implementation
-    // },
+    // Expose clients (read-only)
+    getPublicClient: () => _publicClient,
+    getWalletClient: () => _walletClient,
   };
 }
