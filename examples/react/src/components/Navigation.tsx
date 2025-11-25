@@ -10,6 +10,7 @@ interface NavigationProps {
 const components = [
   { id: 'overview', label: 'Overview', description: 'Introduction to FnxEncryptInput component' },
   { id: 'fnx-encrypt-input', label: 'FnxEncryptInput', description: 'Advanced input with type selection' },
+  { id: 'fnx-floating-button', label: 'FnxFloatingButton', description: 'Floating action button component' },
   { id: 'hooks-example', label: 'Hooks Usage', description: 'Using useEncryptInput hook directly' },
 ];
 

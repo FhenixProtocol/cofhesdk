@@ -203,9 +203,10 @@ export function useEncrypt<T extends EncryptableItem | EncryptableArray>(
         mergedOptions.onStepChange?.(step, context);
       };
 
-      mergedOptions.onStepChange = combinedOnStepChange;
-
-      const encrypted = await encryptValue(client, mergedOptions);
+      const encrypted = await encryptValue(client, {
+        ...mergedOptions,
+        onStepChange: combinedOnStepChange,
+      });
 
       return encrypted;
     },
