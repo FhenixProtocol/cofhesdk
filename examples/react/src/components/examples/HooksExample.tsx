@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { useCofheContext, useEncryptInput } from '@cofhe/react';
+import { useCofheConnection, useCofheContext, useEncryptInput } from '@cofhe/react';
 
 export const HooksExample: React.FC = () => {
-  const { client, isInitialized, error } = useCofheContext();
+  const { client } = useCofheContext();
+  const { connected: isInitialized, connectError: error } = useCofheConnection();
   const { onEncryptInput, isEncryptingInput } = useEncryptInput();
   const [results, setResults] = useState<any>(null);
 
@@ -67,7 +68,7 @@ export const HooksExample: React.FC = () => {
             <h3 className="text-lg font-semibold mb-3">Results</h3>
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border">
               <pre className="text-sm overflow-x-auto">
-                {JSON.stringify(results, (key, value) => (typeof value === 'bigint' ? value.toString() : value), 2)}
+                {JSON.stringify(results, (_, value) => (typeof value === 'bigint' ? value.toString() : value), 2)}
               </pre>
             </div>
           </div>

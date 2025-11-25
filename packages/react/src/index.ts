@@ -21,7 +21,7 @@ export { MainPage, SettingsPage, TokenListPage } from './components/FnxFloatingB
 // Utils
 export { FheTypesList, fheTypeToString, encryptedValueToString, type FheTypeValue } from './utils/index';
 
-export { createCofhesdkConfig } from './widget/index';
+export { createCofhesdkConfig } from './config';
 
 // Types
 export type { CofheContextValue, CofheProviderProps, CofheClientConfig } from './types/index';

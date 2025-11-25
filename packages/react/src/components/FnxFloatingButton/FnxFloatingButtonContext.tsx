@@ -38,8 +38,8 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   darkMode,
   position,
 }) => {
-  const widgetConfig = useCofheContext().widgetConfig;
-  const effectivePosition = position || widgetConfig?.position || 'bottom-right';
+  const widgetConfig = useCofheContext().config.react;
+  const effectivePosition = position || widgetConfig.position;
 
   const [pageHistory, setPageHistory] = useState<FloatingButtonPage[]>(['main']);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -120,4 +120,3 @@ export const useFnxFloatingButtonContext = (): FnxFloatingButtonContextValue => 
   }
   return context;
 };
-

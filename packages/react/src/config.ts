@@ -3,9 +3,9 @@ import { type CofhesdkConfig, type CofhesdkInputConfig } from '@cofhe/sdk';
 import { createCofhesdkConfig as createCofhesdkConfigWeb } from '@cofhe/sdk/web';
 
 /**
- * Zod schema for widget configuration validation
+ * Zod schema for react configuration validation
  */
-export const CofhesdkWidgetConfigSchema = z.object({
+export const CofhesdkReactConfigSchema = z.object({
   shareablePermits: z.boolean().optional().default(false),
   enableShieldUnshield: z.boolean().optional().default(true),
   autogeneratePermits: z.boolean().optional().default(true),
@@ -35,39 +35,38 @@ export const CofhesdkWidgetConfigSchema = z.object({
       11155111: ['https://storage.googleapis.com/cofhesdk/sepolia.json'],
       // 84531: ['https://tokens.cofhe.io/base-sepolia.json'],
       // 421613: ['https://tokens.cofhe.io/arbitrum-sepolia.json'],
-    }),
+    })
+    .transform((lists) => lists as Partial<Record<number, string[]>>),
   position: z.enum(['bottom-right', 'bottom-left', 'top-right', 'top-left']).optional().default('bottom-right'),
 });
 
 /**
  * Input config type inferred from the schema
  */
-export type CofhesdkWidgetInputConfig = {
-  client: CofhesdkInputConfig;
-  widget: z.input<typeof CofhesdkWidgetConfigSchema>;
+export type CofhesdkReactInputConfig = CofhesdkInputConfig & {
+  react: z.input<typeof CofhesdkReactConfigSchema>;
 };
 
-export type CofhesdkWidgetConfig = {
-  client: CofhesdkConfig;
-  widget: z.output<typeof CofhesdkWidgetConfigSchema>;
+export type CofhesdkConfigWithReact = CofhesdkConfig & {
+  react: z.output<typeof CofhesdkReactConfigSchema>;
 };
 /**
- * Creates a CoFHE SDK Client and Widget configuration with reasonable defaults
- * @param config - {widget, client} The CoFHE SDK Client and Widget input configurations (fheKeyStorage will default to IndexedDB if not provided)
- * @returns The CoFHE SDK Client and Widget configuration with Web defaults applied
+ * Creates a CoFHE SDK client plus React react configuration with reasonable defaults.
+ * @param config - Cofhesdk client input merged with a `react` object (fheKeyStorage defaults to IndexedDB when omitted).
+ * @returns The combined client configuration with a validated `react` section and Web defaults applied.
  */
-export function createCofhesdkConfig(config: CofhesdkWidgetInputConfig): CofhesdkWidgetConfig {
-  const { widget: widgetConfigInput, client: webConfigInput } = config;
+export function createCofhesdkConfig(config: CofhesdkReactInputConfig): CofhesdkConfigWithReact {
+  const { react: reactConfigInput, ...webConfig } = config;
 
-  const webClientConfig = createCofhesdkConfigWeb(webConfigInput);
-  const widgetConfigResult = CofhesdkWidgetConfigSchema.safeParse(widgetConfigInput);
+  const webClientConfig = createCofhesdkConfigWeb(webConfig);
+  const reactConfigResult = CofhesdkReactConfigSchema.safeParse(reactConfigInput);
 
-  if (!widgetConfigResult.success) {
-    throw new Error(`Invalid cofhesdk widget configuration: ${widgetConfigResult.error.message}`);
+  if (!reactConfigResult.success) {
+    throw new Error(`Invalid cofhesdk react configuration: ${reactConfigResult.error.message}`);
   }
 
   return {
-    client: webClientConfig,
-    widget: widgetConfigResult.data,
+    ...webClientConfig,
+    react: reactConfigResult.data,
   };
 }
