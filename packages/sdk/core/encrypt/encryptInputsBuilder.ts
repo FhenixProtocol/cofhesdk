@@ -21,6 +21,12 @@ import { sleep } from '../utils.js';
 import { BaseBuilder, type BaseBuilderParams } from '../baseBuilder.js';
 import { type KeysStorage } from '../keyStore.js';
 
+const createAbortError = (): Error => {
+  const error = new Error('Encryption aborted');
+  error.name = 'AbortError';
+  return error;
+};
+
 type EncryptInputsBuilderParams<T extends EncryptableItem[]> = BaseBuilderParams & {
   inputs: [...T];
   securityZone?: number;
@@ -59,6 +65,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   private zkProveWorkerFn: ZkProveWorkerFunction | undefined;
 
   private keysStorage: KeysStorage | undefined;
+  private abortSignal?: AbortSignal;
 
   // Worker configuration (from config, overrideable)
   private useWorker: boolean;
@@ -186,6 +193,11 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     return this;
   }
 
+  setAbortSignal(signal?: AbortSignal): EncryptInputsBuilder<T> {
+    this.abortSignal = signal ?? undefined;
+    return this;
+  }
+
   /**
    * Gets the current worker configuration.
    *
@@ -201,6 +213,59 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    */
   getUseWorker(): boolean {
     return this.useWorker;
+  }
+
+  private throwIfAborted(): void {
+    if (this.abortSignal?.aborted) {
+      throw createAbortError();
+    }
+  }
+
+  private async runWithAbort<TValue>(factory: () => Promise<TValue>): Promise<TValue> {
+    this.throwIfAborted();
+
+    const signal = this.abortSignal;
+    if (!signal) {
+      return await factory();
+    }
+
+    return await new Promise<TValue>((resolve, reject) => {
+      if (signal.aborted) {
+        reject(createAbortError());
+        return;
+      }
+
+      let aborted = false;
+      const cleanup = () => signal.removeEventListener('abort', onAbort);
+      const onAbort = () => {
+        aborted = true;
+        cleanup();
+        reject(createAbortError());
+      };
+
+      signal.addEventListener('abort', onAbort, { once: true });
+
+      let promise: Promise<TValue>;
+      try {
+        promise = factory();
+      } catch (error) {
+        cleanup();
+        reject(error);
+        return;
+      }
+
+      promise
+        .then((value) => {
+          if (aborted) return;
+          cleanup();
+          resolve(value);
+        })
+        .catch((error) => {
+          if (aborted) return;
+          cleanup();
+          reject(error);
+        });
+    });
   }
 
   /**
@@ -332,7 +397,9 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     const securityZone = this.getSecurityZone();
 
     try {
-      await this.keysStorage?.rehydrateKeysStore();
+      if (this.keysStorage) {
+        await this.runWithAbort(() => this.keysStorage!.rehydrateKeysStore());
+      }
     } catch (error) {
       throw CofhesdkError.fromError(error, {
         code: CofhesdkErrorCode.RehydrateKeysStoreFailed,
@@ -355,7 +422,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
         securityZone,
         tfhePublicKeyDeserializer,
         compactPkeCrsDeserializer,
-        this.keysStorage
+        this.keysStorage,
+        this.abortSignal
       );
     } catch (error) {
       throw CofhesdkError.fromError(error, {
@@ -428,32 +496,40 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    * cofheMocksZkCreateProofSignatures - creates signatures to be included in the encrypted inputs. The signers address is known and verified in the mock contracts.
    */
   private async mocksEncrypt(account: string): Promise<[...EncryptedItemInputs<T>]> {
+    this.throwIfAborted();
     this.fireStepStart(EncryptStep.InitTfhe);
-    await sleep(100);
+    await this.runWithAbort(() => sleep(100));
     this.fireStepEnd(EncryptStep.InitTfhe, { tfheInitializationExecuted: false });
 
+    this.throwIfAborted();
     this.fireStepStart(EncryptStep.FetchKeys);
-    await sleep(100);
+    await this.runWithAbort(() => sleep(100));
     this.fireStepEnd(EncryptStep.FetchKeys, { fheKeyFetchedFromCoFHE: false, crsFetchedFromCoFHE: false });
 
+    this.throwIfAborted();
     this.fireStepStart(EncryptStep.Pack);
     await cofheMocksCheckEncryptableBits(this.inputItems);
-    await sleep(100);
+    this.throwIfAborted();
+    await this.runWithAbort(() => sleep(100));
     this.fireStepEnd(EncryptStep.Pack);
 
+    this.throwIfAborted();
     this.fireStepStart(EncryptStep.Prove);
-    await sleep(500);
+    await this.runWithAbort(() => sleep(500));
     this.fireStepEnd(EncryptStep.Prove);
 
+    this.throwIfAborted();
     this.fireStepStart(EncryptStep.Verify);
-    await sleep(500);
-    const signedResults = await cofheMocksZkVerifySign(
-      this.inputItems,
-      account,
-      this.securityZone,
-      this.getPublicClientOrThrow(),
-      this.getWalletClientOrThrow(),
-      this.zkvWalletClient
+    await this.runWithAbort(() => sleep(500));
+    const signedResults = await this.runWithAbort(() =>
+      cofheMocksZkVerifySign(
+        this.inputItems,
+        account,
+        this.securityZone,
+        this.getPublicClientOrThrow(),
+        this.getWalletClientOrThrow(),
+        this.zkvWalletClient
+      )
     );
     const encryptedInputs: EncryptedItemInput[] = signedResults.map(({ ct_hash, signature }, index) => ({
       ctHash: BigInt(ct_hash),
@@ -470,14 +546,16 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    * In the production context, perform a true encryption with the CoFHE coprocessor.
    */
   private async productionEncrypt(account: string, chainId: number): Promise<[...EncryptedItemInputs<T>]> {
+    this.throwIfAborted();
     this.fireStepStart(EncryptStep.InitTfhe);
 
     // Deferred initialization of tfhe wasm until encrypt is called
     // Returns true if tfhe was initialized, false if already initialized
-    const tfheInitializationExecuted = await this.initTfheOrThrow();
+    const tfheInitializationExecuted = await this.runWithAbort(() => this.initTfheOrThrow());
 
     this.fireStepEnd(EncryptStep.InitTfhe, { tfheInitializationExecuted });
 
+    this.throwIfAborted();
     this.fireStepStart(EncryptStep.FetchKeys);
     
     // Deferred fetching of fheKey and crs until encrypt is called
@@ -488,12 +566,14 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
 
     this.fireStepEnd(EncryptStep.FetchKeys, { fheKeyFetchedFromCoFHE, crsFetchedFromCoFHE });
 
+    this.throwIfAborted();
     this.fireStepStart(EncryptStep.Pack);
 
     zkBuilder = zkPack(this.inputItems, zkBuilder);
 
     this.fireStepEnd(EncryptStep.Pack);
 
+    this.throwIfAborted();
     this.fireStepStart(EncryptStep.Prove);
 
     // Construct metadata once (used by both worker and main thread paths)
@@ -507,12 +587,14 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     if (this.useWorker && this.zkProveWorkerFn) {
       try {
         // Call worker function directly (no packing needed, worker does it)
-        proof = await zkProveWithWorker(
-          this.zkProveWorkerFn,
-          fheKey,
-          crs,
-          this.inputItems,
-          metadata
+        proof = await this.runWithAbort(() =>
+          zkProveWithWorker(
+            this.zkProveWorkerFn!,
+            fheKey,
+            crs,
+            this.inputItems,
+            metadata
+          )
         );
         usedWorker = true;
       } catch (error) {
@@ -523,7 +605,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
 
     if (proof == null) {
       // Use main thread directly (workers disabled or unavailable)
-      proof = await zkProve(zkBuilder, zkCrs, metadata);
+      proof = await this.runWithAbort(() => zkProve(zkBuilder, zkCrs, metadata));
       usedWorker = false;
     }
 
@@ -533,11 +615,12 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
       workerFailedError,
     });
 
+    this.throwIfAborted();
     this.fireStepStart(EncryptStep.Verify);
 
     const zkVerifierUrl = await this.getZkVerifierUrl();
     
-    const verifyResults = await zkVerify(zkVerifierUrl, proof, account, this.securityZone, chainId);
+    const verifyResults = await zkVerify(zkVerifierUrl, proof, account, this.securityZone, chainId, this.abortSignal);
     // Add securityZone and utype to the verify results
     const encryptedInputs: EncryptedItemInput[] = verifyResults.map(
       ({ ct_hash, signature }: { ct_hash: string; signature: string }, index: number) => ({
@@ -576,6 +659,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     return resultWrapper(async () => {
       // Ensure cofhe client is connected
       this.requireConnectedOrThrow();
+      this.throwIfAborted();
       
       const account = this.getAccountOrThrow();
       const chainId = this.getChainIdOrThrow();

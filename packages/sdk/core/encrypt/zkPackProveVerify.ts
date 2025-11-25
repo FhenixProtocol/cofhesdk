@@ -272,7 +272,8 @@ export const zkVerify = async (
   serializedBytes: Uint8Array,
   address: string,
   securityZone: number,
-  chainId: number
+  chainId: number,
+  signal?: AbortSignal
 ): Promise<VerifyResult[]> => {
   // Convert bytearray to hex string
   const packed_list = toHexString(serializedBytes);
@@ -297,6 +298,7 @@ export const zkVerify = async (
         'Content-Type': 'application/json',
       },
       body,
+      signal,
     });
 
     if (!response.ok) {

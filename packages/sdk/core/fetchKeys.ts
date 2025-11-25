@@ -22,7 +22,8 @@ const fetchFhePublicKey = async (
   chainId: number,
   securityZone: number,
   tfhePublicKeyDeserializer: FheKeyDeserializer,
-  keysStorage?: KeysStorage | null
+  keysStorage?: KeysStorage | null,
+  signal?: AbortSignal
 ): Promise<[string, boolean]> => {
   // Escape if key already exists
   const storedKey = keysStorage?.getFheKey(chainId, securityZone);
@@ -38,6 +39,7 @@ const fetchFhePublicKey = async (
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ securityZone }),
+      signal,
     });
     const json = (await pk_res.json()) as { publicKey: string };
     pk_data = json.publicKey;
@@ -77,7 +79,8 @@ const fetchCrs = async (
   chainId: number,
   securityZone: number,
   compactPkeCrsDeserializer: FheKeyDeserializer,
-  keysStorage?: KeysStorage | null
+  keysStorage?: KeysStorage | null,
+  signal?: AbortSignal
 ): Promise<[string, boolean]> => {
   // Escape if key already exists
   const storedKey = keysStorage?.getCrs(chainId);
@@ -93,6 +96,7 @@ const fetchCrs = async (
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ securityZone }),
+      signal,
     });
     const json = (await crs_res.json()) as { crs: string };
     crs_data = json.crs;
@@ -133,14 +137,15 @@ export const fetchKeys = async (
   securityZone: number = 0,
   tfhePublicKeyDeserializer: FheKeyDeserializer,
   compactPkeCrsDeserializer: FheKeyDeserializer,
-  keysStorage?: KeysStorage | null
+  keysStorage?: KeysStorage | null,
+  signal?: AbortSignal
 ): Promise<[[string, boolean], [string, boolean]]> => {
   // Get cofhe url from config
   const coFheUrl = getCoFheUrlOrThrow(config, chainId);
 
   return await Promise.all([
-    fetchFhePublicKey(coFheUrl, chainId, securityZone, tfhePublicKeyDeserializer, keysStorage),
-    fetchCrs(coFheUrl, chainId, securityZone, compactPkeCrsDeserializer, keysStorage),
+    fetchFhePublicKey(coFheUrl, chainId, securityZone, tfhePublicKeyDeserializer, keysStorage, signal),
+    fetchCrs(coFheUrl, chainId, securityZone, compactPkeCrsDeserializer, keysStorage, signal),
   ]);
 };
 
@@ -158,13 +163,22 @@ export const fetchMultichainKeys = async (
   securityZone: number = 0,
   tfhePublicKeyDeserializer: FheKeyDeserializer,
   compactPkeCrsDeserializer: FheKeyDeserializer,
-  keysStorage?: KeysStorage | null
+  keysStorage?: KeysStorage | null,
+  signal?: AbortSignal
 ): Promise<void> => {
   await Promise.all(
     config.supportedChains
       .filter((chain) => chain.id !== hardhat.id)
       .map((chain) =>
-        fetchKeys(config, chain.id, securityZone, tfhePublicKeyDeserializer, compactPkeCrsDeserializer, keysStorage)
+        fetchKeys(
+          config,
+          chain.id,
+          securityZone,
+          tfhePublicKeyDeserializer,
+          compactPkeCrsDeserializer,
+          keysStorage,
+          signal
+        )
       )
   );
 };

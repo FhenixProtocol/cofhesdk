@@ -12,7 +12,7 @@ import {
   type EncryptStepCallbackContext,
 } from '@cofhe/sdk';
 import { useMutation, type UseMutationOptions, type UseMutationResult } from '@tanstack/react-query';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useCofheConnection } from './useCofheConnection';
 import { useCofheContext } from '../providers';
 
@@ -89,6 +89,7 @@ async function encryptValue<T extends EncryptableItem | EncryptableArray>(
   if (account) encryptionBuilder.setAccount(account);
   if (chainId) encryptionBuilder.setChainId(chainId);
   if (securityZone) encryptionBuilder.setSecurityZone(securityZone);
+  if (options.signal) encryptionBuilder.setAbortSignal(options.signal);
 
   const result = await encryptionBuilder.encrypt();
 
@@ -116,6 +117,7 @@ type UseMutationOptionsAsync<T extends EncryptableItem | EncryptableArray> = Omi
 
 type UseEncryptResult<T extends EncryptableItem | EncryptableArray> = {
   encrypt: <const U extends T>(options?: EncryptionOptions<U>) => Promise<EncryptedInputs<U>>;
+  cancel: () => void;
   data: EncryptedInputs<T> | undefined;
   error: Error | null;
   isEncrypting: boolean;
@@ -129,8 +131,34 @@ type EncryptionOptions<T extends EncryptableItem | EncryptableArray> = {
   account?: string;
   chainId?: number;
   securityZone?: number;
+  signal?: AbortSignal;
   onStepChange?: (step: EncryptStep, context?: EncryptStepCallbackContext) => void;
 };
+
+type AbortHandle = {
+  controller: AbortController;
+  cleanup?: () => void;
+};
+
+function createAbortHandle(externalSignal?: AbortSignal): AbortHandle {
+  const controller = new AbortController();
+  let cleanup: (() => void) | undefined;
+
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      controller.abort();
+    } else {
+      const onAbort = () => controller.abort();
+      externalSignal.addEventListener('abort', onAbort);
+      cleanup = () => externalSignal.removeEventListener('abort', onAbort);
+    }
+  }
+
+  return {
+    controller,
+    cleanup,
+  };
+}
 
 export function useEncrypt<T extends EncryptableItem | EncryptableArray>(
   encryptionOptions: EncryptionOptions<T> = {},
@@ -139,6 +167,20 @@ export function useEncrypt<T extends EncryptableItem | EncryptableArray>(
   const client = useCofheContext().client;
   const stepsState = useStepsState();
   const { onStep: handleStepStateChange, reset: resetSteps } = stepsState;
+  const abortHandleRef = useRef<AbortHandle | null>(null);
+
+  const cancelOngoingEncryption = useCallback(() => {
+    if (!abortHandleRef.current) return;
+    abortHandleRef.current.controller.abort();
+    abortHandleRef.current.cleanup?.();
+    abortHandleRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      cancelOngoingEncryption();
+    };
+  }, [cancelOngoingEncryption]);
 
   const { onMutate, mutationKey: mutationKeyPostfix, ...restOptions } = mutationOptions;
 
@@ -149,7 +191,7 @@ export function useEncrypt<T extends EncryptableItem | EncryptableArray>(
       return onMutate?.(arg1, arg2);
     },
     mutationFn: async (mutationEncryptionOptions) => {
-      const mergedOptions = { ...mutationEncryptionOptions, ...encryptionOptions };
+      const mergedOptions = { ...encryptionOptions, ...mutationEncryptionOptions };
 
       if (!mergedOptions.input) {
         throw new Error('Encryption options must include an input');
@@ -174,15 +216,36 @@ export function useEncrypt<T extends EncryptableItem | EncryptableArray>(
 
   const encryptFn = useCallback(
     async <const U extends T>(options?: EncryptionOptions<U>) => {
-      const variables: EncryptionOptions<T> = options ?? {};
-      const encrypted = await mutateAsync(variables);
-      return encrypted as EncryptedInputs<U>;
+      cancelOngoingEncryption();
+
+      const abortHandle = createAbortHandle(options?.signal);
+      abortHandleRef.current = abortHandle;
+
+      const variables: EncryptionOptions<T> = {
+        ...options,
+        signal: abortHandle.controller.signal,
+      };
+
+      try {
+        const encrypted = await mutateAsync(variables);
+        return encrypted as EncryptedInputs<U>;
+      } finally {
+        abortHandle.cleanup?.();
+        if (abortHandleRef.current === abortHandle) {
+          abortHandleRef.current = null;
+        }
+      }
     },
-    [mutateAsync]
+    [cancelOngoingEncryption, mutateAsync]
   );
+
+  const cancel = useCallback(() => {
+    cancelOngoingEncryption();
+  }, [cancelOngoingEncryption]);
 
   return {
     encrypt: encryptFn,
+    cancel,
     data: mutationResult.data,
     error: mutationResult.error,
     isEncrypting: mutationResult.isPending,
