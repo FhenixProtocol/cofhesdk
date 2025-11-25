@@ -10,17 +10,11 @@ export interface CofheContextValue {
 export type CofheProviderProps = {
   children: React.ReactNode;
   queryClient?: QueryClient;
-} & (
-  | {
-      // can provide either pre-created client together with the config it was created with
-      client: CofhesdkClient;
-      config: CofhesdkConfigWithReact;
-    }
-  | {
-      // ... or just provide config to create the client internally
-      config: CofhesdkConfigWithReact;
-    }
-);
+  // can provide either pre-created client together with the config it was created with
+  client?: CofhesdkClient;
+  // ... or just provide config to create the client internally
+  config: CofhesdkConfigWithReact;
+};
 
 export interface CofheClientConfig {
   // Add configuration options as needed

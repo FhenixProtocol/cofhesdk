@@ -7,9 +7,9 @@ const CofheContext = createContext<CofheContextValue | undefined>(undefined);
 
 export function CofheProvider(props: CofheProviderProps) {
   const { children, config, queryClient } = props;
-  const providedClient = 'client' in props ? props.client : undefined;
 
-  const client = useMemo(() => providedClient ?? createCofhesdkClient(config), [providedClient, config]);
+  // use provided client or create a new one out of the config
+  const client = useMemo(() => props.client ?? createCofhesdkClient(config), [props.client, config]);
 
   const contextValue: CofheContextValue = {
     client,
