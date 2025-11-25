@@ -123,6 +123,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
         .encryptInputs([Encryptable.uint128(100n)])
         .setUseWorker(false) // Override to false
         .setStepCallback((step, context) => {
+          console.log('should override config with setUseWorker(false) - Step:', step, context);
           if (step === 'prove' && context?.isEnd) {
             proveContext = context;
           }
