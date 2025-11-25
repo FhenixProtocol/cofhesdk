@@ -99,7 +99,6 @@ async function encryptValue<T extends EncryptableItem | EncryptableArray>(
   if (Array.isArray(input)) {
     return result.data as EncryptedInputs<T>;
   }
-
   return result.data[0] as EncryptedInputs<T>;
 }
 
@@ -116,9 +115,7 @@ type UseMutationOptionsAsync<T extends EncryptableItem | EncryptableArray> = Omi
 >;
 
 type UseEncryptResult<T extends EncryptableItem | EncryptableArray> = {
-  encrypt: <const U extends T>(
-    options?: EncryptionOptions<U>
-  ) => Promise<EncryptedInputs<U>>;
+  encrypt: <const U extends T>(options?: EncryptionOptions<U>) => Promise<EncryptedInputs<U>>;
   data: EncryptedInputs<T> | undefined;
   error: Error | null;
   isEncrypting: boolean;
@@ -177,7 +174,7 @@ export function useEncrypt<T extends EncryptableItem | EncryptableArray>(
 
   const encryptFn = useCallback(
     async <const U extends T>(options?: EncryptionOptions<U>) => {
-      const variables: EncryptionOptions<T> = (options ?? ({} as EncryptionOptions<U>));
+      const variables: EncryptionOptions<T> = options ?? {};
       const encrypted = await mutateAsync(variables);
       return encrypted as EncryptedInputs<U>;
     },
@@ -242,11 +239,9 @@ const Component = () => {
     input: [Encryptable.uint128(10n), Encryptable.uint128(10n)] as const,
   });
 
-  // const res2 = encrypt2({ input: [Encryptable.uint128(15n), Encryptable.uint128(10n)] });
-
   // Example 3 - useEncrypt with no inputs but with input types included, encrypt function with inputs
   // RESULT - Can narrow data type to [EncryptableUint128, EncryptableUint128] if input types are provided
-  const { encrypt: encrypt3, data: data3, error: error3 } = useEncrypt({});
+  const { encrypt: encrypt3, data: data3, error: error3 } = useEncrypt<[EncryptableUint128, EncryptableUint128]>({});
 
   encrypt3({
     input: [Encryptable.uint128(10n), Encryptable.uint128(10n)],
@@ -262,7 +257,7 @@ const Component = () => {
 
   const handleThing = async () => {
     const result = await encrypt3({
-      input: [Encryptable.uint128(10n), Encryptable.uint128(10n), Encryptable.bool(true)],
+      input: [Encryptable.uint128(10n), Encryptable.uint128(10n)],
     });
   };
   handleThing();
