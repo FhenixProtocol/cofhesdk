@@ -7,15 +7,10 @@ import { createMockWalletAndPublicClient } from './misc';
 const cofheConfig = createCofhesdkConfig({
   supportedChains: [sepolia, baseSepolia],
   // useWorkers: true, // Enable Web Workers
-
   react: {},
 });
 
-// console.log('Cofhesdk Config:', cofheConfig);
-
-const config = createCofhesdkConfig(cofheConfig);
-// eslint-disable-next-line react-refresh/only-export-components
-export const cofheSdkClient = createCofhesdkClient(config);
+const cofheSdkClient = createCofhesdkClient(cofheConfig);
 
 export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) => {
   const walletClientResult = useWalletClient();
@@ -36,7 +31,7 @@ export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) 
   }, [walletClient, publicClient]);
 
   return (
-    <CofheProvider client={cofheSdkClient} config={config}>
+    <CofheProvider cofhesdkClient={cofheSdkClient} config={cofheConfig}>
       {children}
     </CofheProvider>
   );
