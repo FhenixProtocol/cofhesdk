@@ -83,7 +83,12 @@ describe('@cofhe/web - Encrypt Inputs Browser Tests', () => {
     it('should encrypt a bool with real TFHE in browser', async () => {
       await cofhesdkClient.connect(publicClient, walletClient);
 
-      const result = await cofhesdkClient.encryptInputs([Encryptable.bool(true)]).encrypt();
+      const result = await cofhesdkClient
+        .encryptInputs([Encryptable.bool(true)])
+        .setStepCallback((step, context) => {
+          console.log('should encrypt a bool with real TFHE in browser - Step:', step, context);
+        })
+        .encrypt();
       const encrypted = expectResultSuccess(result);
 
       expect(encrypted.length).toBe(1);
