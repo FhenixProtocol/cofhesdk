@@ -12,7 +12,7 @@ import {
   type EncryptStepCallbackContext,
 } from '@cofhe/sdk';
 import { useMutation, type UseMutationOptions, type UseMutationResult } from '@tanstack/react-query';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useCofheConnection } from './useCofheConnection';
 import { useCofheContext } from '../providers';
 
