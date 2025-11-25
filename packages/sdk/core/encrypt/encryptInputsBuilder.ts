@@ -338,9 +338,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     const compactPkeCrsDeserializer = this.getCompactPkeCrsDeserializerOrThrow();
     const tfhePublicKeyDeserializer = this.getTfhePublicKeyDeserializerOrThrow();
     const securityZone = this.getSecurityZone();
-
+    const uuid = Math.random().toString(36).substring(2);
     try {
-      const uuid = Math.random().toString(36).substring(2);
       console.log('Attempting to rehydrate keys store before fetching keys ', uuid);
       await this.keysStorage?.rehydrateKeysStore(uuid);
     } catch (error) {
@@ -352,6 +351,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
         },
       });
     }
+    console.log('after rehydrate', uuid);
 
     let fheKey: string | undefined;
     let fheKeyFetchedFromCoFHE: boolean = false;
@@ -359,6 +359,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     let crsFetchedFromCoFHE: boolean = false;
 
     try {
+      console.log('before fetching keys', uuid);
       [[fheKey, fheKeyFetchedFromCoFHE], [crs, crsFetchedFromCoFHE]] = await fetchKeys(
         config,
         chainId,
@@ -367,6 +368,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
         compactPkeCrsDeserializer,
         this.keysStorage
       );
+      console.log('after fetching keys', uuid);
     } catch (error) {
       throw CofhesdkError.fromError(error, {
         code: CofhesdkErrorCode.FetchKeysFailed,

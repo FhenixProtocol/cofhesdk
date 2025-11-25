@@ -134,6 +134,7 @@ export function createKeysStore(storage: IStorage | null): KeysStorage {
       console.log('has rehydrated?:', (keysStore.persist as any).hasHydrated(), args);
       if ((keysStore.persist as any).hasHydrated()) return;
       await (keysStore.persist as any).rehydrate();
+      console.log('after rehydrated:', args);
     }
   };
 

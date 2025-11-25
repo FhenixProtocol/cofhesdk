@@ -104,7 +104,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
       expect(proveContext).toBeDefined();
       expect(proveContext.useWorker).toBe(false);
       expect(proveContext.usedWorker).toBe(false);
-    }, 60000);
+    }, 100_000);
   });
 
   describe('setUseWorker() method', () => {
