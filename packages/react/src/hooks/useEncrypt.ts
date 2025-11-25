@@ -42,31 +42,39 @@ function validateAndCompactizeSteps(encSteps: EncryptionStep[]): CompactSteps {
   return result;
 }
 
+// Key is identifier for each encryption mutation call
 type StepsState = {
-  onStep: (step: EncryptStep, context?: EncryptStepCallbackContext) => void;
-  reset: () => void;
+  onStep: (key: string, step: EncryptStep, context?: EncryptStepCallbackContext) => void;
+  onSetKey: (key: string | null) => void;
   compactSteps: CompactSteps;
   lastStep: EncryptionStep | null;
 };
 
 function useStepsState(): StepsState {
-  const [steps, setSteps] = useState<EncryptionStep[]>([]);
-  const onStep = useCallback((step: EncryptStep, context?: EncryptStepCallbackContext) => {
+  const [steps, setSteps] = useState<Record<string, EncryptionStep[]>>({});
+  const [currentKey, setCurrentKey] = useState<string | null>(null);
+  const onStep = useCallback((key: string, step: EncryptStep, context?: EncryptStepCallbackContext) => {
     if (step === EncryptStep.InitTfhe && context?.isStart) {
       // init with a single-element array
-      setSteps([{ step, context }]);
+      setSteps((prev) => ({ ...prev, [key]: [{ step, context }] }));
     } else {
-      setSteps((prev) => [...prev, { step, context }]);
+      setSteps((prev) => ({ ...prev, [key]: [...prev[key], { step, context }] }));
     }
   }, []);
 
-  const compactSteps = useMemo(() => validateAndCompactizeSteps(steps), [steps]);
-  const lastStep = steps.length > 0 ? steps[steps.length - 1] : null;
+  const onSetKey = useCallback((key: string | null) => {
+    setCurrentKey(key);
+  }, []);
 
-  const reset = useCallback(() => setSteps([]), []);
+  const compactSteps = useMemo(
+    () => validateAndCompactizeSteps(currentKey ? steps[currentKey] : []),
+    [steps, currentKey]
+  );
+  const lastStep = currentKey ? steps[currentKey][steps[currentKey].length - 1] : null;
+
   return {
     onStep,
-    reset,
+    onSetKey,
     compactSteps,
     lastStep,
   };
@@ -138,17 +146,18 @@ export function useEncrypt<T extends EncryptableItem | EncryptableArray>(
 ): UseEncryptResult<T> {
   const client = useCofheContext().client;
   const stepsState = useStepsState();
-  const { onStep: handleStepStateChange, reset: resetSteps } = stepsState;
+  const { onStep: handleStepStateChange, onSetKey: handleStepSetKey } = stepsState;
 
   const { onMutate, mutationKey: mutationKeyPostfix, ...restOptions } = mutationOptions;
 
   const mutationResult = useMutation<EncryptedInputs<T>, Error, EncryptionOptions<T>, void>({
     mutationKey: ['encryption', mutationKeyPostfix],
     onMutate: (arg1, arg2) => {
-      resetSteps();
       return onMutate?.(arg1, arg2);
     },
     mutationFn: async (mutationEncryptionOptions) => {
+      const key = crypto.randomUUID();
+      handleStepSetKey(key);
       const mergedOptions = { ...encryptionOptions, ...mutationEncryptionOptions };
 
       if (!mergedOptions.input) {
@@ -157,7 +166,7 @@ export function useEncrypt<T extends EncryptableItem | EncryptableArray>(
 
       // Forward steps to both internal and external handlers
       const combinedOnStepChange = (step: EncryptStep, context?: EncryptStepCallbackContext) => {
-        handleStepStateChange(step, context);
+        handleStepStateChange(key, step, context);
         mergedOptions.onStepChange?.(step, context);
       };
 
@@ -229,9 +238,14 @@ const Component = () => {
   // RESULT - Cannot narrow data type to [EncryptableUint128, EncryptableUint128] if no inputs are provided
   const { encrypt, data, error } = useEncrypt();
 
-  const result = encrypt({
+  const result1 = encrypt({
     input: [Encryptable.uint128(10n), Encryptable.uint128(10n)],
   });
+  const result2 = encrypt({
+    input: [Encryptable.uint128(10n), Encryptable.uint128(10n)],
+  });
+
+  // DATA will never show result from result1, will only show result from result2
 
   // Example 2 - useEncrypt with inputs
   // RESULT - Can narrow data type to [EncryptableUint128, EncryptableUint128] if inputs are provided

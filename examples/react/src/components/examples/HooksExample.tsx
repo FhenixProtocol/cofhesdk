@@ -6,7 +6,7 @@ export const HooksExample: React.FC = () => {
   const { client } = useCofheContext();
   const { connected: isInitialized, connectError: error } = useCofheConnection();
   // const { onEncryptInput, isEncryptingInput } = useEncryptInput();
-  const { stepsState, encrypt } = useEncrypt();
+  const { stepsState, encrypt, data: encryptData, error: encryptError } = useEncrypt();
   const [results, setResults] = useState<any>(null);
 
   const handleDirectEncryption = async () => {
@@ -23,6 +23,12 @@ export const HooksExample: React.FC = () => {
   return (
     <div className="space-y-8">
       <pre>{JSON.stringify(stepsState, (_, value) => (typeof value === 'bigint' ? value.toString() : value), 2)}</pre>
+      <pre>
+        Data: {JSON.stringify(encryptData, (_, value) => (typeof value === 'bigint' ? value.toString() : value), 2)}
+      </pre>
+      <pre>
+        Error: {JSON.stringify(encryptError, (_, value) => (typeof value === 'bigint' ? value.toString() : value), 2)}
+      </pre>
       <div>
         <h2 className="text-2xl font-bold mb-4">useEncryptInput Hook Usage</h2>
         <p className="text-gray-600 dark:text-gray-400 mb-6">
