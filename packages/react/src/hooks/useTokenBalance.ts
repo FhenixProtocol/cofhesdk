@@ -373,7 +373,7 @@ export function useTokenConfidentialBalance(
  * @returns Pinned token address for current chain, or undefined if none
  */
 export function usePinnedTokenAddress(): Address | undefined {
-  const { widgetConfig } = useCofheContext();
+  const widgetConfig = useCofheContext().config.react;
   const chainId = useCofheChainId();
 
   if (!chainId || !widgetConfig?.pinnedTokens) {
