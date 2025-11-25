@@ -1,8 +1,14 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useMemo } from 'react';
 
-// Create a client
-const queryClient = new QueryClient();
-
-export const QueryProvider = ({ children }: { children: React.ReactNode }) => {
+export const QueryProvider = ({
+  children,
+  queryClient: overridingQueryClient,
+}: {
+  children: React.ReactNode;
+  queryClient?: QueryClient;
+}) => {
+  // Create a client if not provided
+  const queryClient = useMemo(() => overridingQueryClient ?? new QueryClient(), [overridingQueryClient]);
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 };

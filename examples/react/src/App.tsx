@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Navigation } from './components/Navigation';
 import { ComponentRenderer } from './components/ComponentRenderer';
-import { ExampleProvider } from './providers/ExampleProvider';
+import { Providers as WagmiProviders } from './utils/wagmi';
+import { CofheProviderLocal } from './utils/cofhe.config';
 
 function App() {
-  const [activeComponent, setActiveComponent] = useState<string>('overview');
+  const [activeComponent, setActiveComponent] = useState<string>('fnx-floating-button');
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
 
   const toggleDarkMode = () => {
@@ -21,17 +22,19 @@ function App() {
   }, [isDarkMode]);
 
   return (
-    <ExampleProvider>
-      <div className={`min-h-screen flex ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
-        <Navigation
-          activeComponent={activeComponent}
-          onComponentSelect={setActiveComponent}
-          isDarkMode={isDarkMode}
-          onToggleDarkMode={toggleDarkMode}
-        />
-        <ComponentRenderer activeComponent={activeComponent} isDarkMode={isDarkMode} />
-      </div>
-    </ExampleProvider>
+    <WagmiProviders>
+      <CofheProviderLocal>
+        <div className={`min-h-screen flex ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+          <Navigation
+            activeComponent={activeComponent}
+            onComponentSelect={setActiveComponent}
+            isDarkMode={isDarkMode}
+            onToggleDarkMode={toggleDarkMode}
+          />
+          <ComponentRenderer activeComponent={activeComponent} isDarkMode={isDarkMode} />
+        </div>
+      </CofheProviderLocal>
+    </WagmiProviders>
   );
 }
 
