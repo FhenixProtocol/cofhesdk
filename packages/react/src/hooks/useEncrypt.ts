@@ -43,7 +43,6 @@ function validateAndCompactizeSteps(encSteps: EncryptionStep[]): CompactSteps {
 type StepsState = {
   onStep: (key: string, step: EncryptStep, context?: EncryptStepCallbackContext) => void;
   onSetKey: (key: string | null) => void;
-  reset: () => void;
   compactSteps: CompactSteps;
   lastStep: EncryptionStep | null;
 };
@@ -64,14 +63,15 @@ function useStepsState(): StepsState {
     setCurrentKey(key);
   }, []);
 
-  const compactSteps = useMemo(() => validateAndCompactizeSteps(currentKey ? steps[currentKey] : []), [steps, currentKey]);
+  const compactSteps = useMemo(
+    () => validateAndCompactizeSteps(currentKey ? steps[currentKey] : []),
+    [steps, currentKey]
+  );
   const lastStep = currentKey ? steps[currentKey][steps[currentKey].length - 1] : null;
 
-  const reset = useCallback(() => setSteps({}), []);
   return {
     onStep,
     onSetKey,
-    reset,
     compactSteps,
     lastStep,
   };
@@ -141,22 +141,17 @@ export function useEncrypt<T extends EncryptableItem | EncryptableItem[]>(
 ): UseEncryptResult<T> {
   const client = useCofheContext().client;
   const stepsState = useStepsState();
-  const mutationKey = useRef<string | null>(null);
-  const { onStep: handleStepStateChange, onSetKey: handleStepSetKey, reset: resetSteps } = stepsState;
+  const { onStep: handleStepStateChange, onSetKey: handleStepSetKey } = stepsState;
 
   const { onMutate, mutationKey: mutationKeyPostfix, ...restOptions } = mutationOptions;
 
   const mutationResult = useMutation<EncryptedItemInputs<T>, Error, EncryptionOptions<T>, void>({
     mutationKey: ['encryption', mutationKeyPostfix],
     onMutate: (arg1, arg2) => {
-      resetSteps();
-      handleStepSetKey(null);
-      mutationKey.current = null;
       return onMutate?.(arg1, arg2);
     },
     mutationFn: async (mutationEncryptionOptions) => {
       const key = crypto.randomUUID();
-      mutationKey.current = key;
       handleStepSetKey(key);
 
       const mergedOptions = { ...mutationEncryptionOptions, ...encryptionOptions };
@@ -175,11 +170,6 @@ export function useEncrypt<T extends EncryptableItem | EncryptableItem[]>(
         ...mergedOptions,
         onStepChange: combinedOnStepChange,
       });
-
-      // Does this actually return an error if the mutation call was replaced?
-      if (mutationKey.current !== key) {
-        throw new Error('Encryption call was replaced');
-      }
 
       return encrypted;
     },
@@ -239,9 +229,14 @@ const Component = () => {
   // RESULT - Cannot narrow data type to [EncryptableUint128, EncryptableUint128] if no inputs are provided
   const { encrypt, data, error } = useEncrypt();
 
-  const result = encrypt({
+  const result1 = encrypt({
     input: [Encryptable.uint128(10n), Encryptable.uint128(10n)],
   });
+  const result2 = encrypt({
+    input: [Encryptable.uint128(10n), Encryptable.uint128(10n)],
+  });
+
+  // DATA will never show result from result1, will only show result from result2
 
   // Example 2 - useEncrypt with inputs
   // RESULT - Can narrow data type to [EncryptableUint128, EncryptableUint128] if inputs are provided
