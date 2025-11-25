@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import type { FloatingButtonPosition } from './FnxFloatingButton.js';
 import { useCofheContext } from '../../providers';
 
-export type FloatingButtonPage = 'main' | 'settings' | 'tokenlist';
+export type FloatingButtonPage = 'main' | 'settings' | 'tokenlist' | 'send' | 'shield' | 'portfolio' | 'activity';
 
 const OPEN_DELAY = 500; // Delay before showing popup in ms
 const CLOSE_DELAY = 300; // Delay before closing bar after popup closes
@@ -13,6 +13,10 @@ interface FnxFloatingButtonContextValue {
   currentPage: FloatingButtonPage;
   navigateToSettings: () => void;
   navigateToTokenList: () => void;
+  navigateToSend: () => void;
+  navigateToShield: () => void;
+  navigateToPortfolio: () => void;
+  navigateToActivity: () => void;
   navigateBack: () => void;
   darkMode: boolean;
   effectivePosition: FloatingButtonPosition;
@@ -23,6 +27,7 @@ interface FnxFloatingButtonContextValue {
   expandPanel: () => void;
   collapsePanel: () => void;
   handleClick: (externalOnClick?: () => void) => void;
+  onChainSwitch?: (chainId: number) => Promise<void>;
 }
 
 const FnxFloatingButtonContext = createContext<FnxFloatingButtonContextValue | null>(null);
@@ -31,12 +36,14 @@ interface FnxFloatingButtonProviderProps {
   children: ReactNode;
   darkMode: boolean;
   position?: FloatingButtonPosition;
+  onChainSwitch?: (chainId: number) => Promise<void>;
 }
 
 export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps> = ({
   children,
   darkMode,
   position,
+  onChainSwitch,
 }) => {
   const widgetConfig = useCofheContext().config.react;
   const effectivePosition = position || widgetConfig.position;
@@ -80,6 +87,22 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
     setPageHistory((prev) => [...prev, 'tokenlist']);
   };
 
+  const navigateToSend = () => {
+    setPageHistory((prev) => [...prev, 'send']);
+  };
+
+  const navigateToShield = () => {
+    setPageHistory((prev) => [...prev, 'shield']);
+  };
+
+  const navigateToPortfolio = () => {
+    setPageHistory((prev) => [...prev, 'tokenlist']); // Portfolio shows TokenListPage
+  };
+
+  const navigateToActivity = () => {
+    setPageHistory((prev) => [...prev, 'activity']);
+  };
+
   const navigateBack = () => {
     setPageHistory((prev) => {
       if (prev.length > 1) {
@@ -96,6 +119,10 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
         currentPage,
         navigateToSettings,
         navigateToTokenList,
+        navigateToSend,
+        navigateToShield,
+        navigateToPortfolio,
+        navigateToActivity,
         navigateBack,
         darkMode,
         effectivePosition,
@@ -106,6 +133,7 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
         expandPanel,
         collapsePanel,
         handleClick,
+        onChainSwitch,
       }}
     >
       {children}
