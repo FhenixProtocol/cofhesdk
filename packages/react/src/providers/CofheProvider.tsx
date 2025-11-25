@@ -9,10 +9,13 @@ export function CofheProvider(props: CofheProviderProps) {
   const { children, config, queryClient } = props;
 
   // use provided client or create a new one out of the config
-  const client = useMemo(() => props.client ?? createCofhesdkClient(config), [props.client, config]);
+  const cofhesdkClient = useMemo(
+    () => props.cofhesdkClient ?? createCofhesdkClient(config),
+    [props.cofhesdkClient, config]
+  );
 
   const contextValue: CofheContextValue = {
-    client,
+    client: cofhesdkClient,
     config,
   };
 
