@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useCofheActivePermit, useCofheAllPermits, useCofheConnection } from '@cofhe/react';
+import { useWalletConnection } from '../utils/cofhe.config';
 interface NavigationProps {
   activeComponent: string;
   onComponentSelect: (component: string) => void;
@@ -17,7 +18,12 @@ const components = [
 const StatusDetailsInline: React.FC<{ isDarkMode: boolean }> = ({ isDarkMode }) => {
   const [open, setOpen] = useState(false);
   const connectionState = useCofheConnection();
+  const { isUsingBrowserWallet } = useWalletConnection();
   const details = connectionState ? JSON.stringify(connectionState, null, 2) : 'Not connected';
+  
+  const statusText = connectionState?.connected 
+    ? (isUsingBrowserWallet ? 'Connected ✅' : 'Connected (internal) ✅')
+    : 'Disconnected ❌';
 
   return (
     <>
@@ -27,7 +33,7 @@ const StatusDetailsInline: React.FC<{ isDarkMode: boolean }> = ({ isDarkMode }) 
           aria-hidden
         />
         <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
-          {connectionState?.connected ? 'Connected ✅' : 'Disconnected ❌'}
+          {statusText}
         </span>
         <button
           onClick={() => setOpen((s) => !s)}
@@ -79,6 +85,21 @@ export const Navigation: React.FC<NavigationProps> = ({
   isDarkMode,
   onToggleDarkMode,
 }) => {
+  const { connectBrowserWallet, isUsingBrowserWallet } = useWalletConnection();
+  const [isConnecting, setIsConnecting] = useState(false);
+
+  const handleConnectBrowserWallet = async () => {
+    setIsConnecting(true);
+    try {
+      await connectBrowserWallet();
+    } catch (error) {
+      console.error('Failed to connect browser wallet:', error);
+      alert('Failed to connect wallet. Please make sure MetaMask or another wallet extension is installed.');
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
   return (
     <div
       className={`w-80 h-screen ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-r overflow-y-auto`}
@@ -103,6 +124,43 @@ export const Navigation: React.FC<NavigationProps> = ({
             CoFHE SDK Ready
           </div>
         </div>
+
+        {/* Wallet Connection Section */}
+        <div className="mb-6">
+          {isUsingBrowserWallet ? (
+            <div className={`p-3 rounded-lg border-2 ${isDarkMode ? 'bg-green-900/20 border-green-600' : 'bg-green-50 border-green-500'}`}>
+              <div className={`text-sm font-medium mb-1 ${isDarkMode ? 'text-green-400' : 'text-green-700'}`}>
+                🌐 Browser Wallet Connected
+              </div>
+              <div className={`text-xs ${isDarkMode ? 'text-green-300' : 'text-green-600'}`}>
+                Using MetaMask or injected wallet
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className={`p-3 rounded-lg border ${isDarkMode ? 'bg-gray-700/50 border-gray-600' : 'bg-gray-50 border-gray-300'}`}>
+                <div className={`text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  🔒 Internal Wallet Active
+                </div>
+                <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Using mock wallet for testing
+                </div>
+              </div>
+              <button
+                onClick={handleConnectBrowserWallet}
+                disabled={isConnecting}
+                className={`w-full mt-2 px-3 py-2 text-sm rounded-lg transition-colors ${
+                  isDarkMode
+                    ? 'bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-700 disabled:text-gray-400'
+                    : 'bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500'
+                }`}
+              >
+                {isConnecting ? 'Connecting...' : 'Connect Browser Wallet'}
+              </button>
+            </>
+          )}
+        </div>
+
         {/*  Permits */}
         <Permits />
 

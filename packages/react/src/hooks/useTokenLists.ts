@@ -42,7 +42,9 @@ export function useTokenLists(
       refetchOnWindowFocus: false,
       queryKey: ['tokenList', chainId, url],
       queryFn: async ({ signal }): Promise<TokenList> => {
-        const res = await fetch(url, { signal });
+        const timestamp = Date.now();
+        const urlWithCacheBust = `${url}${url.includes('?') ? '&' : '?'}v=${timestamp}`;
+        const res = await fetch(urlWithCacheBust, { signal });
         if (!res.ok) {
           throw new Error(`Failed to fetch token list: ${res.status} ${res.statusText}`);
         }
