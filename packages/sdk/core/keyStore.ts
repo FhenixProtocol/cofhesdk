@@ -21,7 +21,7 @@ export type KeysStorage = {
   setFheKey: (chainId: number, securityZone: number, key: string) => void;
   setCrs: (chainId: number, crs: string) => void;
   clearKeysStorage: () => Promise<void>;
-  rehydrateKeysStore: () => Promise<void>;
+  rehydrateKeysStore: (args?: any) => Promise<void>;
 };
 
 function isValidPersistedState(state: unknown): state is KeysStore {
@@ -127,8 +127,11 @@ export function createKeysStore(storage: IStorage | null): KeysStorage {
     // If no storage, this is a no-op
   };
 
-  const rehydrateKeysStore = async () => {
+  const rehydrateKeysStore = async (...args: any) => {
+    console.log('Rehydrating keys store with args:', args);
     if ('persist' in keysStore) {
+      console.log('Rehydrating keys store with args: persist is in keystore', args);
+      console.log('has rehydrated?:', (keysStore.persist as any).hasHydrated(), args);
       if ((keysStore.persist as any).hasHydrated()) return;
       await (keysStore.persist as any).rehydrate();
     }
