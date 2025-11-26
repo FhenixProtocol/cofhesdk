@@ -1,7 +1,7 @@
 import { cn } from '../../utils/cn.js';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext.js';
-import { MainPage, SettingsPage, TokenListPage } from './pages/index.js';
+import { MainPage, SettingsPage, TokenListPage, SendPage, ShieldPage, ActivityPage } from './pages/index.js';
 
 const CONTENT_TRANSITION_DURATION = 150; // Duration in milliseconds for content fade transition
 
@@ -21,6 +21,10 @@ export const ContentSection: React.FC<ContentSectionProps> = ({
     main: <MainPage />,
     settings: <SettingsPage />,
     tokenlist: <TokenListPage />,
+    send: <SendPage />,
+    shield: <ShieldPage />,
+    portfolio: <TokenListPage />, // Portfolio shows TokenListPage
+    activity: <ActivityPage />,
   }), []);
 
   const [isTransitioning, setIsTransitioning] = useState(false);

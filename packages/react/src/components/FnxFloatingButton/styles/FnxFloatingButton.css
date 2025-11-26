@@ -8,12 +8,27 @@
     --fnx-glow-color: rgba(10, 217, 220, 0.50);
     --fnx-border-color: rgba(0, 0, 0, 0.5);
     
+    /* MainPage colors */
+    --fnx-card-bg: #E0F7FA;
+    --fnx-card-border: #B2EBF2;
+    --fnx-icon-bg: #ffffff;
+    --fnx-button-bg: #E0F7FA;
+    --fnx-button-hover-bg: #0AD9DC99;
+    --fnx-button-hover-text: #ffffff;
+    --fnx-dropdown-bg: #ffffff;
+    --fnx-dropdown-border: #e5e7eb;
+    --fnx-dropdown-hover-bg: #f3f4f6;
+    --fnx-hover-overlay: rgba(255, 255, 255, 0.1);
+    --fnx-positive-change: #16a34a;
+    --fnx-pattern-overlay: rgba(0, 0, 0, 0.02);
+    --fnx-button-border: #08989A;
+    
     /* Sizing - defaults, will be overridden by inline CSS variables */
     --fnx-button-size: 48px;
     --fnx-icon-size: 38px;
     --fnx-bar-width: 340px;
     --fnx-gap-size: 48px;
-    --fnx-border-radius: 18px;
+    --fnx-border-radius: 0x;
     
     --fnx-status-radius: 10px;
     --fnx-statua-bar-offset: calc(var(--fnx-button-size) / -2);
@@ -38,6 +53,21 @@
     --fnx-text-status: #e0e0e0;
     --fnx-glow-color: rgba(10, 217, 220, 0.50);
     --fnx-border-color: rgba(255, 255, 255, 0.3);
+    
+    /* MainPage dark mode colors */
+    --fnx-card-bg: #1a3a3f;
+    --fnx-card-border: #2d5a5f;
+    --fnx-icon-bg: #374151;
+    --fnx-button-bg: #1a3a3f;
+    --fnx-button-hover-bg: #00ACC1;
+    --fnx-button-hover-text: #ffffff;
+    --fnx-dropdown-bg: #1f2937;
+    --fnx-dropdown-border: #374151;
+    --fnx-dropdown-hover-bg: #374151;
+    --fnx-hover-overlay: rgba(255, 255, 255, 0.1);
+    --fnx-positive-change: #4ade80;
+    --fnx-pattern-overlay: rgba(255, 255, 255, 0.02);
+    --fnx-button-border: #08989A;
   }
 
   /* Placeholder for different sizes */
@@ -220,5 +250,61 @@
 
 .fnx-content-inner[data-transitioning="false"] {
   opacity: 1;
+}
+
+/* MainPage styles */
+.fnx-main-page {
+  background-image: 
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 10px,
+      var(--fnx-pattern-overlay) 10px,
+      var(--fnx-pattern-overlay) 20px
+    );
+  background-size: 20px 20px;
+}
+
+/* MainPage component utility classes */
+.fnx-card-bg {
+  background-color: var(--fnx-card-bg);
+}
+
+.fnx-card-border {
+  border-color: var(--fnx-card-border);
+}
+
+.fnx-icon-bg {
+  background-color: var(--fnx-icon-bg);
+}
+
+.fnx-nav-button {
+  background-color: var(--fnx-button-bg);
+  transition: background-color var(--fnx-transition-duration-fast) ease-in-out, color var(--fnx-transition-duration-fast) ease-in-out;
+  border: 1px solid var(--fnx-button-border);  
+}
+
+.fnx-nav-button:hover {
+  background-color: var(--fnx-button-hover-bg);
+}
+
+.fnx-dropdown-bg {
+  background-color: var(--fnx-dropdown-bg);
+}
+
+.fnx-dropdown-border {
+  border-color: var(--fnx-dropdown-border);
+}
+
+.fnx-dropdown-hover:hover {
+  background-color: var(--fnx-dropdown-hover-bg);
+}
+
+.fnx-hover-overlay:hover {
+  background-color: var(--fnx-hover-overlay);
+}
+
+.fnx-positive-change {
+  color: var(--fnx-positive-change);
 }
 
