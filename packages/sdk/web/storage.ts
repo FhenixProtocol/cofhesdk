@@ -11,7 +11,9 @@ export const createWebStorage = (): IStorage => {
       messagingOptions: {
         enableLog: 'both',
       },
+
       iframeReadyTimeoutMs: 30_000, // if the iframe is not initied during this interval AND a reuqest is made, such request will throw an error
+      methodCallTimeoutMs: 10_000, // if a method call is not answered during this interval, the call will throw an error
     },
   });
 
