@@ -5,6 +5,7 @@ import { StatusBarSection } from './StatusBarSection.js';
 import { StatusBarContent } from './StatusBarContent.js';
 import { ContentSection } from './ContentSection.js';
 import { FnxFloatingButtonProvider, useFnxFloatingButtonContext } from './FnxFloatingButtonContext.js';
+import { useCofheWalletClient } from '../../hooks/useCofheConnection.js';
 
 export type FloatingButtonPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 export type FloatingButtonSize = 'small' | 'medium' | 'large';
@@ -18,7 +19,7 @@ export type FloatingButtonPositionType = 'fixed' | 'absolute';
 export interface FnxFloatingButtonProps extends BaseProps {
   /** Position of the floating button */
   position?: FloatingButtonPosition;
-  
+
   /** Allow predefined sizes */
   size?: FloatingButtonSize;
 
@@ -56,13 +57,7 @@ const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
   statusBarClassName,
   contentSectionClassName,
 }) => {
-  const {
-    effectivePosition,
-    isTopSide,
-    isLeftSide,
-    handleClick,
-    darkMode,
-  } = useFnxFloatingButtonContext();
+  const { effectivePosition, isTopSide, isLeftSide, handleClick, darkMode } = useFnxFloatingButtonContext();
 
   return (
     <div
@@ -80,20 +75,13 @@ const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
         className
       )}
     >
-      <ContentSection
-        className={contentSectionClassName}
-      />
+      <ContentSection className={contentSectionClassName} />
 
       {/* Button and Bar Row */}
       <div className={cn('flex items-center', isLeftSide ? 'flex-row' : 'flex-row-reverse')}>
-        <FloatingIcon
-          onClick={() => handleClick(onClick)}
-          className={buttonClassName}
-        />
+        <FloatingIcon onClick={() => handleClick(onClick)} className={buttonClassName} />
 
-        <StatusBarSection
-          className={statusBarClassName}
-        >
+        <StatusBarSection className={statusBarClassName}>
           <StatusBarContent />
         </StatusBarSection>
       </div>
@@ -101,14 +89,28 @@ const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
   );
 };
 
+const BugDemo = () => {
+  console.log('Rendering BugDemo component');
+  const stuckWalletClient = useCofheWalletClient();
+
+  const stuckConnectedAddress = stuckWalletClient?.account?.address;
+
+  return (
+    <div>
+      <h3>Bug Demo:</h3>
+      {stuckConnectedAddress}
+    </div>
+  );
+};
 export const FnxFloatingButton: React.FC<FnxFloatingButtonProps> = (props) => {
   return (
-    <FnxFloatingButtonProvider 
-      darkMode={props.darkMode ?? false} 
+    <FnxFloatingButtonProvider
+      darkMode={props.darkMode ?? false}
       position={props.position}
       onChainSwitch={props.onChainSwitch}
     >
       <FnxFloatingButtonInner {...props} />
+      <BugDemo />
     </FnxFloatingButtonProvider>
   );
 };

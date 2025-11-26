@@ -3,21 +3,7 @@ import { Navigation } from './components/Navigation';
 import { ComponentRenderer } from './components/ComponentRenderer';
 import { Providers as WagmiProviders } from './utils/wagmi';
 import { CofheProviderLocal } from './utils/cofhe.config';
-import { useCofheWalletClient } from '@cofhe/react';
-
-const BugDemo = () => {
-  console.log('Rendering BugDemo component');
-  const stuckWalletClient = useCofheWalletClient();
-
-  const stuckConnectedAddress = stuckWalletClient?.account?.address;
-
-  return (
-    <div>
-      <h3>Bug Demo:</h3>
-      {stuckConnectedAddress}
-    </div>
-  );
-};
+import { FnxFloatingButton, useCofheWalletClient } from '@cofhe/react';
 
 function App() {
   const [activeComponent, setActiveComponent] = useState<string>('fnx-floating-button');
@@ -39,7 +25,8 @@ function App() {
   return (
     <WagmiProviders>
       <CofheProviderLocal>
-        <BugDemo />
+        <FnxFloatingButton />
+
         <div className={`min-h-screen flex ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
           <Navigation
             activeComponent={activeComponent}
