@@ -1,14 +1,6 @@
 /* eslint-disable no-unused-vars */
 
-import {
-  type ZkBuilderAndCrsGenerator,
-  type ZkProveWorkerFunction,
-  zkPack,
-  zkProve,
-  zkProveWithWorker,
-  zkVerify,
-  constructZkPoKMetadata,
-} from './zkPackProveVerify.js';
+import { type ZkBuilderAndCrsGenerator, type ZkProveWorkerFunction, zkPack, zkProve, zkProveWithWorker, zkVerify, constructZkPoKMetadata } from './zkPackProveVerify.js';
 import { CofhesdkError, CofhesdkErrorCode } from '../error.js';
 import { type Result, resultWrapper } from '../result.js';
 import {
@@ -338,10 +330,9 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     const compactPkeCrsDeserializer = this.getCompactPkeCrsDeserializerOrThrow();
     const tfhePublicKeyDeserializer = this.getTfhePublicKeyDeserializerOrThrow();
     const securityZone = this.getSecurityZone();
-    const uuid = Math.random().toString(36).substring(2);
+
     try {
-      console.log('Attempting to rehydrate keys store before fetching keys ', uuid);
-      await this.keysStorage?.rehydrateKeysStore(uuid);
+      await this.keysStorage?.rehydrateKeysStore();
     } catch (error) {
       throw CofhesdkError.fromError(error, {
         code: CofhesdkErrorCode.RehydrateKeysStoreFailed,
@@ -351,7 +342,6 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
         },
       });
     }
-    console.log('after rehydrate', uuid);
 
     let fheKey: string | undefined;
     let fheKeyFetchedFromCoFHE: boolean = false;
@@ -359,7 +349,6 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     let crsFetchedFromCoFHE: boolean = false;
 
     try {
-      console.log('before fetching keys', uuid);
       [[fheKey, fheKeyFetchedFromCoFHE], [crs, crsFetchedFromCoFHE]] = await fetchKeys(
         config,
         chainId,
@@ -368,7 +357,6 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
         compactPkeCrsDeserializer,
         this.keysStorage
       );
-      console.log('after fetching keys', uuid);
     } catch (error) {
       throw CofhesdkError.fromError(error, {
         code: CofhesdkErrorCode.FetchKeysFailed,
@@ -491,11 +479,11 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     this.fireStepEnd(EncryptStep.InitTfhe, { tfheInitializationExecuted });
 
     this.fireStepStart(EncryptStep.FetchKeys);
-
+    
     // Deferred fetching of fheKey and crs until encrypt is called
     // if the key/crs is already in the store, it is not fetched from the CoFHE API
     const { fheKey, fheKeyFetchedFromCoFHE, crs, crsFetchedFromCoFHE } = await this.fetchFheKeyAndCrs();
-
+    
     let { zkBuilder, zkCrs } = this.generateZkBuilderAndCrs(fheKey, crs);
 
     this.fireStepEnd(EncryptStep.FetchKeys, { fheKeyFetchedFromCoFHE, crsFetchedFromCoFHE });
@@ -519,7 +507,13 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     if (this.useWorker && this.zkProveWorkerFn) {
       try {
         // Call worker function directly (no packing needed, worker does it)
-        proof = await zkProveWithWorker(this.zkProveWorkerFn, fheKey, crs, this.inputItems, metadata);
+        proof = await zkProveWithWorker(
+          this.zkProveWorkerFn,
+          fheKey,
+          crs,
+          this.inputItems,
+          metadata
+        );
         usedWorker = true;
       } catch (error) {
         // Worker failed - capture error for debugging
@@ -542,7 +536,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     this.fireStepStart(EncryptStep.Verify);
 
     const zkVerifierUrl = await this.getZkVerifierUrl();
-
+    
     const verifyResults = await zkVerify(zkVerifierUrl, proof, account, this.securityZone, chainId);
     // Add securityZone and utype to the verify results
     const encryptedInputs: EncryptedItemInput[] = verifyResults.map(
@@ -582,7 +576,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     return resultWrapper(async () => {
       // Ensure cofhe client is connected
       this.requireConnectedOrThrow();
-
+      
       const account = this.getAccountOrThrow();
       const chainId = this.getChainIdOrThrow();
       // On hardhat, interact with MockZkVerifier contract instead of CoFHE

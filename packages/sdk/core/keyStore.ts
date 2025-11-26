@@ -139,15 +139,8 @@ export function createKeysStore(storage: IStorage | null): KeysStorage {
 
   const rehydrateKeysStore = async (...args: any) => {
     if (!isStoreWithPersist(keysStore)) return;
-
-    console.log('Rehydrating keys store with args:', args);
-    if ('persist' in keysStore) {
-      console.log('Rehydrating keys store with args: persist is in keystore', args);
-      console.log('has rehydrated?:', (keysStore.persist as any).hasHydrated(), args);
-      if (keysStore.persist.hasHydrated()) return;
-      await keysStore.persist.rehydrate();
-      console.log('after rehydrated:', args);
-    }
+    if (keysStore.persist.hasHydrated()) return;
+    await keysStore.persist.rehydrate();
   };
 
   return {

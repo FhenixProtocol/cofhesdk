@@ -4,8 +4,16 @@ import { Encryptable } from '@cofhe/sdk';
 
 export const HooksExample: React.FC = () => {
   const { client } = useCofheContext();
-  const { connected: isInitialized, connectError: error } = useCofheConnection();
-  const { stepsState, encrypt, data: encryptData, error: encryptError } = useEncrypt();
+  const { connectError } = useCofheConnection();
+
+  const {
+    stepsState,
+    encrypt,
+    data: encryptData,
+    error: encryptError,
+    isEncrypting: isEncryptingInput,
+    isConnected: isInitialized,
+  } = useEncrypt();
 
   const handleDirectEncryption = async () => {
     try {
@@ -48,7 +56,7 @@ export const HooksExample: React.FC = () => {
               </div>
 
               <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <div className="text-2xl font-bold">{error ? '❌' : '✅'}</div>
+                <div className="text-2xl font-bold">{connectError ? '❌' : '✅'}</div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">No Errors</div>
               </div>
             </div>
@@ -60,13 +68,10 @@ export const HooksExample: React.FC = () => {
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border mb-4">
             <button
               onClick={handleDirectEncryption}
-              // disabled={!isInitialized || isEncryptingInput}
+              disabled={!isInitialized || isEncryptingInput}
               className="px-4 py-2 bg-blue-500 text-white rounded-lg disabled:bg-gray-300"
             >
-              {
-                // isEncryptingInput ? 'Encrypting...' :
-                'Encrypt Value (123)'
-              }
+              {isEncryptingInput ? 'Encrypting...' : 'Encrypt Value (123)'}
             </button>
           </div>
         </div>

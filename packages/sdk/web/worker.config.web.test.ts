@@ -50,7 +50,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
       const result = await client
         .encryptInputs([Encryptable.uint128(100n)])
         .setStepCallback((step, context) => {
-          if (step === 'prove' && context?.isEnd) {
+          if (step === 'prove' && context?.isEnd) {     
             proveContext = context;
           }
         })
@@ -91,7 +91,6 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
       const result = await client
         .encryptInputs([Encryptable.uint128(100n)])
         .setStepCallback((step, context) => {
-          console.log('should disable workers when useWorkers: false - Step:', step, context);
           if (step === 'prove' && context?.isEnd) {
             proveContext = context;
           }
@@ -104,7 +103,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
       expect(proveContext).toBeDefined();
       expect(proveContext.useWorker).toBe(false);
       expect(proveContext.usedWorker).toBe(false);
-    }, 100_000);
+    }, 60000);
   });
 
   describe('setUseWorker() method', () => {
@@ -123,7 +122,6 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
         .encryptInputs([Encryptable.uint128(100n)])
         .setUseWorker(false) // Override to false
         .setStepCallback((step, context) => {
-          console.log('should override config with setUseWorker(false) - Step:', step, context);
           if (step === 'prove' && context?.isEnd) {
             proveContext = context;
           }
@@ -231,7 +229,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
       // Verify encryption succeeded via fallback to main thread
       expectResultSuccess(result);
       expect(result.data?.length).toBe(1);
-
+      
       // Verify worker was attempted but failed, triggering fallback
       expect(proveContext).toBeDefined();
       expect(proveContext.useWorker).toBe(true); // Worker was requested
@@ -255,7 +253,11 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
 
       let proveContext: any;
       const result = await client
-        .encryptInputs([Encryptable.uint128(100n), Encryptable.uint64(50n), Encryptable.bool(true)])
+        .encryptInputs([
+          Encryptable.uint128(100n),
+          Encryptable.uint64(50n),
+          Encryptable.bool(true),
+        ])
         .setStepCallback((step, context) => {
           if (step === 'prove' && context?.isEnd) {
             proveContext = context;
@@ -266,7 +268,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
       // All values should encrypt successfully via fallback
       expectResultSuccess(result);
       expect(result.data?.length).toBe(3);
-
+      
       // Verify fallback occurred
       expect(proveContext.useWorker).toBe(true);
       expect(proveContext.usedWorker).toBe(false);
@@ -281,7 +283,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
 
       // Worker that fails after a delay
       const asyncFailingWorkerFn = async () => {
-        await new Promise((resolve) => setTimeout(resolve, 10));
+        await new Promise(resolve => setTimeout(resolve, 10));
         throw new Error('Async worker failure');
       };
 
@@ -325,7 +327,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
         .encrypt();
 
       expectResultSuccess(result);
-
+      
       // Should NOT attempt worker at all
       expect(proveContext.useWorker).toBe(false);
       expect(proveContext.usedWorker).toBe(false);
@@ -333,3 +335,4 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
     }, 60000);
   });
 });
+
