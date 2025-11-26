@@ -42,6 +42,7 @@ export type {
   UnsealedItem,
   // Util types
   EncryptStepCallbackFunction as EncryptSetStateFn,
+  EncryptStepCallbackContext,
 } from './types.js';
 export { FheTypes, FheUintUTypes, FheAllUTypes, Encryptable, isEncryptableItem, EncryptStep } from './types.js';
 

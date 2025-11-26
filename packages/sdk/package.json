@@ -67,7 +67,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "iframe-shared-storage": "^1.0.28",
+    "iframe-shared-storage": "^1.0.34",
     "immer": "^10.1.1",
     "node-tfhe": "0.11.1",
     "tfhe": "0.11.1",
