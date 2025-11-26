@@ -21,7 +21,7 @@ export type KeysStorage = {
   setFheKey: (chainId: number, securityZone: number, key: string) => void;
   setCrs: (chainId: number, crs: string) => void;
   clearKeysStorage: () => Promise<void>;
-  rehydrateKeysStore: (args?: any) => Promise<void>;
+  rehydrateKeysStore: () => Promise<void>;
 };
 
 function isValidPersistedState(state: unknown): state is KeysStore {
@@ -41,43 +41,6 @@ function isValidPersistedState(state: unknown): state is KeysStore {
 const DEFAULT_KEYS_STORE: KeysStore = {
   fhe: {},
   crs: {},
-};
-
-const createStoreWithPersit = (storage: IStorage) => {
-  const result = createStore<KeysStore>()(
-    persist(() => DEFAULT_KEYS_STORE, {
-      // because earleir tests were written with on-init hydration skipped (due to the error suppression in zustand), returning this flag to fix test (i.e. KeyStore > Storage Utilities > should rehydrate keys store)
-      skipHydration: true,
-      // if onRehydrateStorage is not passed here, the errors thrown by storage layer are swallowed by zustand here: https://github.com/pmndrs/zustand/blob/39a391b6c1ff9aa89b81694d9bdb21da37dd4ac6/src/middleware/persist.ts#L321
-      onRehydrateStorage: () => (_state?, _error?) => {
-        if (_error) throw new Error(`onRehydrateStorage: Error rehydrating keys store: ${_error}`);
-      },
-      name: 'cofhesdk-keys',
-      storage: createJSONStorage(() => storage),
-      merge: (persistedState, currentState) => {
-        const persisted = isValidPersistedState(persistedState) ? persistedState : DEFAULT_KEYS_STORE;
-        const current = currentState as KeysStore;
-
-        // Deep merge for fhe
-        const mergedFhe: KeysStore['fhe'] = { ...persisted.fhe };
-        const allChainIds = new Set([...Object.keys(current.fhe), ...Object.keys(persisted.fhe)]);
-        for (const chainId of allChainIds) {
-          const persistedZones = persisted.fhe[chainId] || {};
-          const currentZones = current.fhe[chainId] || {};
-          mergedFhe[chainId] = { ...persistedZones, ...currentZones };
-        }
-
-        // Deep merge for crs
-        const mergedCrs: KeysStore['crs'] = { ...persisted.crs, ...current.crs };
-
-        return {
-          fhe: mergedFhe,
-          crs: mergedCrs,
-        };
-      },
-    })
-  );
-  return result;
 };
 
 type StoreWithPersist = ReturnType<typeof createStoreWithPersit>;
@@ -137,7 +100,7 @@ export function createKeysStore(storage: IStorage | null): KeysStorage {
     // If no storage, this is a no-op
   };
 
-  const rehydrateKeysStore = async (...args: any) => {
+  const rehydrateKeysStore = async () => {
     if (!isStoreWithPersist(keysStore)) return;
     if (keysStore.persist.hasHydrated()) return;
     await keysStore.persist.rehydrate();
@@ -152,4 +115,41 @@ export function createKeysStore(storage: IStorage | null): KeysStorage {
     clearKeysStorage,
     rehydrateKeysStore,
   };
+}
+
+function createStoreWithPersit(storage: IStorage) {
+  const result = createStore<KeysStore>()(
+    persist(() => DEFAULT_KEYS_STORE, {
+      // because earleir tests were written with on-init hydration skipped (due to the error suppression in zustand), returning this flag to fix test (i.e. KeyStore > Storage Utilities > should rehydrate keys store)
+      skipHydration: true,
+      // if onRehydrateStorage is not passed here, the errors thrown by storage layer are swallowed by zustand here: https://github.com/pmndrs/zustand/blob/39a391b6c1ff9aa89b81694d9bdb21da37dd4ac6/src/middleware/persist.ts#L321
+      onRehydrateStorage: () => (_state?, _error?) => {
+        if (_error) throw new Error(`onRehydrateStorage: Error rehydrating keys store: ${_error}`);
+      },
+      name: 'cofhesdk-keys',
+      storage: createJSONStorage(() => storage),
+      merge: (persistedState, currentState) => {
+        const persisted = isValidPersistedState(persistedState) ? persistedState : DEFAULT_KEYS_STORE;
+        const current = currentState as KeysStore;
+
+        // Deep merge for fhe
+        const mergedFhe: KeysStore['fhe'] = { ...persisted.fhe };
+        const allChainIds = new Set([...Object.keys(current.fhe), ...Object.keys(persisted.fhe)]);
+        for (const chainId of allChainIds) {
+          const persistedZones = persisted.fhe[chainId] || {};
+          const currentZones = current.fhe[chainId] || {};
+          mergedFhe[chainId] = { ...persistedZones, ...currentZones };
+        }
+
+        // Deep merge for crs
+        const mergedCrs: KeysStore['crs'] = { ...persisted.crs, ...current.crs };
+
+        return {
+          fhe: mergedFhe,
+          crs: mergedCrs,
+        };
+      },
+    })
+  );
+  return result;
 }
