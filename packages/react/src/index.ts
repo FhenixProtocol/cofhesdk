@@ -12,6 +12,8 @@ export {
   useCofheAllPermits,
   useCofheRemovePermit,
   useCofheSelectPermit,
+  useCofheWalletClient,
+  useCofhePublicClient,
 } from './hooks/index';
 
 // Components
