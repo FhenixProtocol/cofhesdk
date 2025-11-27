@@ -56,7 +56,7 @@ const quickActions = [
 ];
 
 export const PermitsPage: React.FC = () => {
-  const { navigateBack } = useFnxFloatingButtonContext();
+  const { navigateBack, navigateToGeneratePermit } = useFnxFloatingButtonContext();
 
   return (
     <div className="fnx-text-primary text-sm">
@@ -119,6 +119,7 @@ export const PermitsPage: React.FC = () => {
                   key={id}
                   type="button"
                   className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#0E2F3F] px-4 py-3 text-base font-semibold text-[#0E2F3F] transition-colors hover:bg-[#0E2F3F]/5 dark:border-white/60 dark:text-white dark:hover:bg-white/5"
+                  onClick={id === 'generate' ? navigateToGeneratePermit : undefined}
                 >
                   <Icon fontSize="small" />
                   <span>{label}</span>
