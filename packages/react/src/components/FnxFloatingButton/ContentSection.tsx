@@ -2,7 +2,7 @@ import { cn } from '../../utils/cn.js';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext.js';
 import { MainPage, SettingsPage, TokenListPage } from './pages/index.js';
-import { PermitsPage } from './pages/PermitsPage/index.js';
+import { PermitsPage } from './pages/PermitsPage';
 
 const CONTENT_TRANSITION_DURATION = 150; // Duration in milliseconds for content fade transition
 
@@ -13,7 +13,7 @@ interface ContentSectionProps {
 
 export const ContentSection: React.FC<ContentSectionProps> = ({
   className,
-  contentPadding = 16,
+  contentPadding = 0,
 }) => {
   const { currentPage, showPopupPanel, isTopSide, isLeftSide } = useFnxFloatingButtonContext();
 
