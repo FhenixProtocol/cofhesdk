@@ -1,5 +1,13 @@
 # @cofhe/sdk Changelog
 
+## 0.2.0
+
+### Patch Changes
+
+- 4057a76: Add WebWorker for zkProve
+- dba2759: Add getOrCreate permit functions
+- 7c861af: Remove `initializationResults` from cofhesdk client.
+
 ## 0.1.1
 
 ### Patch Changes
