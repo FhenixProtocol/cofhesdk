@@ -1,5 +1,3 @@
-/* eslint-disable no-unused-vars */
-
 import { type ZkBuilderAndCrsGenerator, type ZkProveWorkerFunction, zkPack, zkProve, zkProveWithWorker, zkVerify, constructZkPoKMetadata } from './zkPackProveVerify.js';
 import { CofhesdkError, CofhesdkErrorCode } from '../error.js';
 import { type Result, resultWrapper } from '../result.js';

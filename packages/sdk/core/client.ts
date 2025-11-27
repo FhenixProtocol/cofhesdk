@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import type { CreateSelfPermitOptions, CreateSharingPermitOptions, ImportSharedPermitOptions } from '@/permits';
 
 import { createStore } from 'zustand/vanilla';

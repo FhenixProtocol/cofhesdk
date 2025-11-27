@@ -1,5 +1,3 @@
-/* eslint-disable no-unused-vars */
-
 export enum CofhesdkErrorCode {
   InternalError = 'INTERNAL_ERROR',
   UnknownEnvironment = 'UNKNOWN_ENVIRONMENT',

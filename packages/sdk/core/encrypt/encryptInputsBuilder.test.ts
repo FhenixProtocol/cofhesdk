@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EncryptInputsBuilder } from './encryptInputsBuilder.js';
 import {

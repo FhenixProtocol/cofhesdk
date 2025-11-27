@@ -4,7 +4,6 @@ import { type CofhesdkConfig, getCoFheUrlOrThrow } from './config.js';
 import { type KeysStorage } from './keyStore.js';
 
 const PUBLIC_KEY_LENGTH_MIN = 15_000;
-// eslint-disable-next-line no-unused-vars
 export type FheKeyDeserializer = (buff: string) => void;
 
 const checkKeyValidity = (key: string | undefined, serializer: FheKeyDeserializer) => {
