@@ -143,28 +143,3 @@ export const fetchKeys = async (
     fetchCrs(coFheUrl, chainId, securityZone, compactPkeCrsDeserializer, keysStorage),
   ]);
 };
-
-/**
- * Fetches the FHE public key and the CRS for all chains in the config
- * @param {CofhesdkConfig} config - The configuration object for the CoFHE SDK
- * @param {number} securityZone - The security zone for which to retrieve the key (default 0).
- * @param tfhePublicKeyDeserializer - The serializer for the FHE public key (used for validation).
- * @param compactPkeCrsDeserializer - The serializer for the CRS (used for validation).
- * @param keysStorage - The keys storage instance to use (optional)
- * @returns {Promise<void>} - A promise that resolves when the keys are fetched and stored.
- */
-export const fetchMultichainKeys = async (
-  config: CofhesdkConfig,
-  securityZone: number = 0,
-  tfhePublicKeyDeserializer: FheKeyDeserializer,
-  compactPkeCrsDeserializer: FheKeyDeserializer,
-  keysStorage?: KeysStorage | null
-): Promise<void> => {
-  await Promise.all(
-    config.supportedChains
-      .filter((chain) => chain.id !== hardhat.id)
-      .map((chain) =>
-        fetchKeys(config, chain.id, securityZone, tfhePublicKeyDeserializer, compactPkeCrsDeserializer, keysStorage)
-      )
-  );
-};

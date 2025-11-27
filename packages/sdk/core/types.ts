@@ -43,12 +43,6 @@ export type CofhesdkClient = {
   getSnapshot(): CofhesdkClientConnectionState;
   subscribe(listener: Listener): () => void;
 
-  // --- initialization results ---
-  // (functions that may be run during initialization based on config)
-  readonly initializationResults: {
-    keyFetchResult: Promise<Result<boolean>>;
-  };
-
   // --- convenience flags (read-only) ---
   readonly connected: boolean;
   readonly connecting: boolean;
