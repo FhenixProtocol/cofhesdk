@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import type { FloatingButtonPosition } from './FnxFloatingButton.js';
 import { useCofheContext } from '../../providers';
 
-export type FloatingButtonPage = 'main' | 'settings' | 'tokenlist';
+export type FloatingButtonPage = 'main' | 'settings' | 'tokenlist' | 'permits';
 
 const OPEN_DELAY = 500; // Delay before showing popup in ms
 const CLOSE_DELAY = 300; // Delay before closing bar after popup closes
@@ -41,7 +41,7 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   const widgetConfig = useCofheContext().config.react;
   const effectivePosition = position || widgetConfig.position;
 
-  const [pageHistory, setPageHistory] = useState<FloatingButtonPage[]>(['main']);
+  const [pageHistory, setPageHistory] = useState<FloatingButtonPage[]>(['permits']);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showPopupPanel, setShowPopupPanel] = useState(false);
 
