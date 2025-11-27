@@ -113,18 +113,6 @@ describe('@cofhe/web - Client', () => {
     }, 30000);
   });
 
-  describe('Initialization Results', () => {
-    it('should have keyFetchResult promise', () => {
-      expect(cofhesdkClient.initializationResults).toBeDefined();
-      expect(cofhesdkClient.initializationResults.keyFetchResult).toBeInstanceOf(Promise);
-    });
-
-    it('should resolve keyFetchResult', async () => {
-      const result = await cofhesdkClient.initializationResults.keyFetchResult;
-      expect(result.success).toBe(true);
-    });
-  });
-
   describe('Builder Creation', () => {
     it('should create encrypt builder after connection', async () => {
       await cofhesdkClient.connect(publicClient, walletClient);

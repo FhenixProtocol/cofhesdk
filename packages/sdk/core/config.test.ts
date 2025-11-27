@@ -62,16 +62,6 @@ describe('createCofhesdkConfigBase', () => {
     expectValidConfigItem('supportedChains', [sepolia, hardhat], [sepolia, hardhat]);
   });
 
-  it('fheKeysPrefetching', () => {
-    expectInvalidConfigItem('fheKeysPrefetching', 'invalid-option');
-    expectInvalidConfigItem('fheKeysPrefetching', 5);
-
-    expectValidConfigItem('fheKeysPrefetching', 'CONNECTED_CHAIN', 'CONNECTED_CHAIN');
-    expectValidConfigItem('fheKeysPrefetching', 'SUPPORTED_CHAINS', 'SUPPORTED_CHAINS');
-    expectValidConfigItem('fheKeysPrefetching', 'OFF', 'OFF');
-    expectValidConfigItem('fheKeysPrefetching', undefined, 'OFF');
-  });
-
   it('permitGeneration', () => {
     expectInvalidConfigItem('permitGeneration', 'not-a-boolean');
     expectInvalidConfigItem('permitGeneration', null);

@@ -42,14 +42,12 @@ describe('@cofhe/web - Config', () => {
     it('should preserve all other config options', () => {
       const config = createCofhesdkConfig({
         supportedChains: [arbSepolia],
-        fheKeysPrefetching: 'OFF',
         mocks: {
           sealOutputDelay: 500,
         },
       });
 
       expect(config.supportedChains).toEqual([arbSepolia]);
-      expect(config.fheKeysPrefetching).toBe('OFF');
       expect(config.mocks.sealOutputDelay).toBe(500);
       expect(config.fheKeyStorage).toBeDefined();
     });
