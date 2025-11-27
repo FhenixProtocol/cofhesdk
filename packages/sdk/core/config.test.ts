@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import { sepolia, hardhat } from '@/chains';
 
 import { describe, it, expect, vi } from 'vitest';

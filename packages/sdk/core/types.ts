@@ -1,5 +1,3 @@
-/* eslint-disable no-unused-vars */
-
 import {
   type CreateSelfPermitOptions,
   type Permit,
