@@ -34,6 +34,8 @@
   "devDependencies": {
     "@cofhe/eslint-config": "workspace:*",
     "@cofhe/tsconfig": "workspace:*",
+    "@svgr/core": "^8.1.0",
+    "@svgr/plugin-jsx": "^8.1.0",
     "@types/react": "^18.2.61",
     "@types/react-dom": "^18.2.19",
     "eslint": "^8.57.0",
