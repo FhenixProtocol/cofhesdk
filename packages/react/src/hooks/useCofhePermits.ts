@@ -75,15 +75,25 @@ export const useCofheAllPermits = (): { hash: string; permit: Permit }[] => {
   const allPermitsWithHashes = useMemo(
     () =>
       allPermits
-        ? Object.keys(allPermits).map((hash) => {
-            const serializedPermit = allPermits[hash];
-            if (!serializedPermit) throw new Error('Permit data missing');
+        ? Object.keys(allPermits)
+            .filter((hash) => {
+              const serializedPermit = allPermits[hash];
+              if (!serializedPermit) {
+                // TODO: revisit: right now, the way removal works, is that a key remains, but the value becomes undefined. https://github.com/FhenixProtocol/cofhesdk/blob/master/packages/sdk/permits/store.ts#L113
+                // should we remove key too? or just silgnelty skip, like here
+                return false;
+              }
+              return true;
+            })
+            .map((hash) => {
+              const serializedPermit = allPermits[hash];
+              if (!serializedPermit) throw new Error('Permit data missing');
 
-            return {
-              hash,
-              permit: PermitUtils.deserialize(serializedPermit),
-            };
-          })
+              return {
+                hash,
+                permit: PermitUtils.deserialize(serializedPermit),
+              };
+            })
         : [],
     [allPermits]
   );
