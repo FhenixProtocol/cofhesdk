@@ -6,9 +6,9 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import NorthIcon from '@mui/icons-material/North';
 import SouthIcon from '@mui/icons-material/South';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { ValidationUtils } from '@cofhe/sdk/permits';
-import { useCofheAllPermits } from '../../../../hooks';
+import { useCofheAllPermits, useCofheRemovePermit } from '../../../../hooks';
 import { useFnxFloatingButtonContext } from '../../FnxFloatingButtonContext.js';
 import { Accordion, AccordionSection } from '../../Accordion.js';
 
@@ -53,6 +53,7 @@ const quickActions = [
 
 export const PermitsListPage: React.FC = () => {
   const allPermits = useCofheAllPermits();
+  const removePermit = useCofheRemovePermit();
   const { navigateBack, navigateToGeneratePermit, navigateToReceivePermit } = useFnxFloatingButtonContext();
 
   const generatedPermits = useMemo<PermitRow[]>(() => {
@@ -77,6 +78,15 @@ export const PermitsListPage: React.FC = () => {
       navigateToReceivePermit();
     }
   };
+
+  const handleGeneratedPermitAction = useCallback(
+    (action: PermitRow['actions'][number], permitId: string) => {
+      if (action === 'delete') {
+        removePermit(permitId);
+      }
+    },
+    [removePermit]
+  );
 
   return (
     <div className="fnx-text-primary text-sm">
@@ -130,6 +140,7 @@ export const PermitsListPage: React.FC = () => {
                               className="rounded-md border border-[#0E2F3F]/40 p-1.5 transition-colors hover:bg-[#0E2F3F]/10 dark:border-white/40 dark:hover:bg-white/10"
                               aria-label={actionLabels[action]}
                               type="button"
+                              onClick={() => handleGeneratedPermitAction(action, permit.id)}
                             >
                               <Icon fontSize="small" />
                             </button>
