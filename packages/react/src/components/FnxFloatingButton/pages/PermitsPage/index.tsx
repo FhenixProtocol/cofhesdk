@@ -6,6 +6,9 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import NorthIcon from '@mui/icons-material/North';
 import SouthIcon from '@mui/icons-material/South';
+import { useMemo } from 'react';
+import { ValidationUtils } from '@cofhe/sdk/permits';
+import { useCofheAllPermits } from '../../../../hooks';
 import { useFnxFloatingButtonContext } from '../../FnxFloatingButtonContext.js';
 
 type PermitStatus = 'active' | 'expired';
@@ -16,14 +19,6 @@ interface PermitRow {
   status: PermitStatus;
   actions: Array<'copy' | 'delete' | 'refresh'>;
 }
-
-const generatedPermits: PermitRow[] = [
-  { id: 'default', name: 'Default', status: 'active', actions: ['delete'] },
-  { id: 'rogue', name: 'Rogue {revocable}', status: 'active', actions: ['copy', 'delete'] },
-  { id: 'yonatan', name: 'Yonatan', status: 'active', actions: ['copy', 'delete'] },
-  { id: 'placeholder-1', name: '{Permit name}', status: 'expired', actions: ['refresh', 'delete'] },
-  { id: 'placeholder-2', name: '{Permit name}', status: 'expired', actions: ['refresh', 'delete'] },
-];
 
 const actionIconMap = {
   copy: ContentCopyIcon,
@@ -56,7 +51,21 @@ const quickActions = [
 ];
 
 export const PermitsPage: React.FC = () => {
+  const allPermits = useCofheAllPermits();
   const { navigateBack, navigateToGeneratePermit, navigateToReceivePermit } = useFnxFloatingButtonContext();
+
+  const generatedPermits = useMemo<PermitRow[]>(() => {
+    return allPermits.map(({ hash, permit }) => {
+      const status: PermitStatus = ValidationUtils.isExpired(permit) ? 'expired' : 'active';
+      const actions: PermitRow['actions'] = status === 'active' ? ['copy', 'delete'] : ['refresh', 'delete'];
+      return {
+        id: hash,
+        name: permit.name,
+        status,
+        actions,
+      };
+    });
+  }, [allPermits]);
 
   const handleQuickAction = (actionId: string) => {
     if (actionId === 'generate') {
@@ -93,33 +102,37 @@ export const PermitsPage: React.FC = () => {
                 className="absolute left-1 top-0 bottom-0 border-l border-[#0E2F3F]/30 dark:border-white/40"
                 aria-hidden
               />
-              <div className="space-y-1.5">
-                {generatedPermits.map((permit) => (
-                  <div key={permit.id} className="grid grid-cols-[120px_1fr_auto] items-center gap-3 pl-4">
-                    <span
-                      className={`inline-flex items-center justify-center rounded-md px-3 py-1 text-sm font-semibold ${statusStyles[permit.status]}`}
-                    >
-                      {permit.status === 'active' ? 'Active' : 'Expired'}
-                    </span>
-                    <span className="text-base font-medium text-[#0E2F3F] dark:text-white">{permit.name}</span>
-                    <div className="flex items-center gap-2 text-[#0E2F3F] dark:text-white">
-                      {permit.actions.map((action) => {
-                        const Icon = actionIconMap[action];
-                        return (
-                          <button
-                            key={action}
-                            className="rounded-md border border-[#0E2F3F]/40 p-1.5 transition-colors hover:bg-[#0E2F3F]/10 dark:border-white/40 dark:hover:bg-white/10"
-                            aria-label={actionLabels[action]}
-                            type="button"
-                          >
-                            <Icon fontSize="small" />
-                          </button>
-                        );
-                      })}
+              {generatedPermits.length === 0 ? (
+                <div className="pl-4 text-sm text-[#0E2F3F]/70 dark:text-white/80">No permits yet.</div>
+              ) : (
+                <div className="space-y-1.5">
+                  {generatedPermits.map((permit) => (
+                    <div key={permit.id} className="grid grid-cols-[120px_1fr_auto] items-center gap-3 pl-4">
+                      <span
+                        className={`inline-flex items-center justify-center rounded-md px-3 py-1 text-sm font-semibold ${statusStyles[permit.status]}`}
+                      >
+                        {permit.status === 'active' ? 'Active' : 'Expired'}
+                      </span>
+                      <span className="text-base font-medium text-[#0E2F3F] dark:text-white">{permit.name}</span>
+                      <div className="flex items-center gap-2 text-[#0E2F3F] dark:text-white">
+                        {permit.actions.map((action) => {
+                          const Icon = actionIconMap[action];
+                          return (
+                            <button
+                              key={action}
+                              className="rounded-md border border-[#0E2F3F]/40 p-1.5 transition-colors hover:bg-[#0E2F3F]/10 dark:border-white/40 dark:hover:bg-white/10"
+                              aria-label={actionLabels[action]}
+                              type="button"
+                            >
+                              <Icon fontSize="small" />
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </section>
 
