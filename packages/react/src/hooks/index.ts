@@ -7,3 +7,4 @@ export {
   useCofheRemovePermit,
   useCofheSelectPermit,
 } from './useCofhePermits';
+export { useCofheClient } from './useCofheClient';
