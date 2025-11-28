@@ -14,12 +14,7 @@ interface AccordionProps {
   onChange?: (id: string) => void;
 }
 
-export const Accordion = ({
-  children,
-  defaultActiveId = null,
-  activeId,
-  onChange,
-}: AccordionProps) => {
+export const Accordion = ({ children, defaultActiveId = null, activeId, onChange }: AccordionProps) => {
   const [internalActiveId, setInternalActiveId] = useState<string | null>(defaultActiveId);
   const resolvedActiveId = activeId ?? internalActiveId;
 
@@ -35,7 +30,7 @@ export const Accordion = ({
 
       onChange?.(id);
     },
-    [activeId, onChange, resolvedActiveId],
+    [activeId, onChange, resolvedActiveId]
   );
 
   const contextValue = useMemo<AccordionContextValue>(
@@ -43,7 +38,7 @@ export const Accordion = ({
       activeId: resolvedActiveId,
       toggle: handleToggle,
     }),
-    [handleToggle, resolvedActiveId],
+    [handleToggle, resolvedActiveId]
   );
 
   return <AccordionContext.Provider value={contextValue}>{children}</AccordionContext.Provider>;
@@ -80,12 +75,7 @@ export const AccordionSection = ({
 
   return (
     <section className={sectionClassName}>
-      <button
-        type="button"
-        className={triggerClassName}
-        aria-expanded={isOpen}
-        onClick={() => toggle(id)}
-      >
+      <button type="button" className={triggerClassName} aria-expanded={isOpen} onClick={() => toggle(id)}>
         {renderHeader(isOpen)}
       </button>
       {isOpen ? <div className={contentClassName}>{children}</div> : null}

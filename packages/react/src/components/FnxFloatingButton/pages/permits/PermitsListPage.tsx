@@ -153,21 +153,22 @@ export const PermitsListPage: React.FC = () => {
                 </>
               )}
             >
-              <div className="grid grid-cols-2 gap-4">
-                {quickActions.map(({ id, label, icon: Icon }) => (
-                  <button
-                    key={id}
-                    type="button"
-                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#0E2F3F] px-4 py-3 text-base font-semibold text-[#0E2F3F] transition-colors hover:bg-[#0E2F3F]/5 dark:border-white/60 dark:text-white dark:hover:bg-white/5"
-                    onClick={() => handleQuickAction(id)}
-                  >
-                    <Icon fontSize="small" />
-                    <span>{label}</span>
-                  </button>
-                ))}
-              </div>
+              TODO
             </AccordionSection>
           </Accordion>
+          <div className="grid grid-cols-2 gap-4">
+            {quickActions.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                type="button"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#0E2F3F] px-4 py-3 text-base font-semibold text-[#0E2F3F] transition-colors hover:bg-[#0E2F3F]/5 dark:border-white/60 dark:text-white dark:hover:bg-white/5"
+                onClick={() => handleQuickAction(id)}
+              >
+                <Icon fontSize="small" />
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>
