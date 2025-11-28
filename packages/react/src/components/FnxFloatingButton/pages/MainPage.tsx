@@ -1,7 +1,7 @@
 import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext.js';
 
 export const MainPage: React.FC = () => {
-  const { navigateToTokenList } = useFnxFloatingButtonContext();
+  const { navigateToTokenList, navigateToPermits } = useFnxFloatingButtonContext();
 
   return (
     <div className="fnx-text-primary space-y-3">
@@ -12,7 +12,12 @@ export const MainPage: React.FC = () => {
       >
         View Token List
       </button>
+      <button
+        onClick={navigateToPermits}
+        className="w-full px-3 py-2 text-sm rounded border border-current hover:bg-gray-100 hover:bg-opacity-10 transition-colors"
+      >
+        View Permits
+      </button>
     </div>
   );
 };
-

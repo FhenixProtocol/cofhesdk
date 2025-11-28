@@ -13,6 +13,7 @@ interface FnxFloatingButtonContextValue {
   currentPage: FloatingButtonPage;
   navigateToSettings: () => void;
   navigateToTokenList: () => void;
+  navigateToPermits: () => void;
   navigateToGeneratePermit: () => void;
   navigateToReceivePermit: () => void;
   navigateBack: () => void;
@@ -43,7 +44,7 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   const widgetConfig = useCofheContext().config.react;
   const effectivePosition = position || widgetConfig.position;
 
-  const [pageHistory, setPageHistory] = useState<FloatingButtonPage[]>(['permits']);
+  const [pageHistory, setPageHistory] = useState<FloatingButtonPage[]>(['main']);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showPopupPanel, setShowPopupPanel] = useState(false);
 
@@ -82,6 +83,10 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
     setPageHistory((prev) => [...prev, 'tokenlist']);
   };
 
+  const navigateToPermits = () => {
+    setPageHistory((prev) => [...prev, 'permits']);
+  };
+
   const navigateBack = () => {
     setPageHistory((prev) => {
       if (prev.length > 1) {
@@ -106,6 +111,7 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
         currentPage,
         navigateToSettings,
         navigateToTokenList,
+        navigateToPermits,
         navigateToGeneratePermit,
         navigateToReceivePermit,
         navigateBack,
