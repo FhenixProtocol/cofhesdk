@@ -79,7 +79,7 @@ export const SelfPermitOptionsValidator = z
         message: 'Self permit issuer :: must not be zeroAddress',
       }),
     name: z.string().optional().default('Unnamed Permit'),
-    expiration: z.number().optional().default(1000000000000),
+    expiration: z.number().optional().default(1000000000000), // todo: misleading default?
     recipient: z
       .string()
       .optional()
