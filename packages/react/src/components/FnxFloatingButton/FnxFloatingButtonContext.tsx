@@ -3,7 +3,13 @@ import type { ReactNode } from 'react';
 import type { FloatingButtonPosition } from './FnxFloatingButton.js';
 import { useCofheContext } from '../../providers';
 
-export type FloatingButtonPage = 'main' | 'settings' | 'tokenlist' | 'permits' | 'generatePermit';
+export type FloatingButtonPage =
+  | 'main'
+  | 'settings'
+  | 'tokenlist'
+  | 'permits'
+  | 'generatePermit'
+  | 'receivePermit';
 
 const OPEN_DELAY = 500; // Delay before showing popup in ms
 const CLOSE_DELAY = 300; // Delay before closing bar after popup closes
@@ -14,6 +20,7 @@ interface FnxFloatingButtonContextValue {
   navigateToSettings: () => void;
   navigateToTokenList: () => void;
   navigateToGeneratePermit: () => void;
+  navigateToReceivePermit: () => void;
   navigateBack: () => void;
   darkMode: boolean;
   effectivePosition: FloatingButtonPosition;
@@ -94,6 +101,10 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
     setPageHistory((prev) => [...prev, 'generatePermit']);
   };
 
+  const navigateToReceivePermit = () => {
+    setPageHistory((prev) => [...prev, 'receivePermit']);
+  };
+
   return (
     <FnxFloatingButtonContext.Provider
       value={{
@@ -102,6 +113,7 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
         navigateToSettings,
         navigateToTokenList,
         navigateToGeneratePermit,
+        navigateToReceivePermit,
         navigateBack,
         darkMode,
         effectivePosition,
