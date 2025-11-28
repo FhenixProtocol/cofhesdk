@@ -107,6 +107,7 @@ export const removePermit = (chainId: number, account: string, hash: string, for
           state.activePermitHash[chainId][account] = otherPermitHash;
         } else {
           if (!force) {
+            // TODO: is swallowed. Fix it
             throw new Error('Cannot remove the last permit without force flag');
           }
           // Clear the active hash when removing the last permit with force
