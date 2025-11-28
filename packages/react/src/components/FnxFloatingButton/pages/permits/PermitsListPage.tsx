@@ -6,10 +6,11 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import NorthIcon from '@mui/icons-material/North';
 import SouthIcon from '@mui/icons-material/South';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { ValidationUtils } from '@cofhe/sdk/permits';
 import { useCofheAllPermits } from '../../../../hooks';
 import { useFnxFloatingButtonContext } from '../../FnxFloatingButtonContext.js';
+import { Accordion, AccordionSection } from '../../Accordion.js';
 
 type PermitStatus = 'active' | 'expired';
 
@@ -53,7 +54,6 @@ const quickActions = [
 export const PermitsListPage: React.FC = () => {
   const allPermits = useCofheAllPermits();
   const { navigateBack, navigateToGeneratePermit, navigateToReceivePermit } = useFnxFloatingButtonContext();
-  const [activeSection, setActiveSection] = useState<'generated' | 'received'>('generated');
 
   const generatedPermits = useMemo<PermitRow[]>(() => {
     return allPermits.map(({ hash, permit }) => {
@@ -78,13 +78,6 @@ export const PermitsListPage: React.FC = () => {
     }
   };
 
-  const handleSectionToggle = (section: 'generated' | 'received') => {
-    if (activeSection === section) {
-      return;
-    }
-    setActiveSection(section);
-  };
-
   return (
     <div className="fnx-text-primary text-sm">
       <div className="rounded-2xl border border-[#154054] bg-white p-5 shadow-[0_25px_60px_rgba(13,53,71,0.15)] transition-colors dark:border-[#2C6D80] dark:bg-[#1F1F1F]">
@@ -100,77 +93,67 @@ export const PermitsListPage: React.FC = () => {
         </div>
 
         <div className="space-y-6 pt-2">
-          <section>
-            <button
-              type="button"
-              className="flex w-full items-center justify-between text-left text-base font-semibold text-[#0E2F3F] transition-opacity hover:opacity-80 dark:text-white"
-              aria-expanded={activeSection === 'generated'}
-              onClick={() => handleSectionToggle('generated')}
-            >
-              <span>Generated:</span>
-              {activeSection === 'generated' ? (
-                <KeyboardArrowUpIcon fontSize="small" />
-              ) : (
-                <KeyboardArrowDownIcon fontSize="small" />
+          <Accordion defaultActiveId="generated">
+            <AccordionSection
+              id="generated"
+              triggerClassName="flex w-full items-center justify-between text-left text-base font-semibold text-[#0E2F3F] transition-opacity hover:opacity-80 dark:text-white"
+              contentClassName="relative mt-4 pl-4"
+              renderHeader={(isOpen) => (
+                <>
+                  <span>Generated:</span>
+                  {isOpen ? <KeyboardArrowUpIcon fontSize="small" /> : <KeyboardArrowDownIcon fontSize="small" />}
+                </>
               )}
-            </button>
-            {activeSection === 'generated' && (
-              <div className="relative mt-4 pl-4">
-                <span
-                  className="absolute left-1 top-0 bottom-0 border-l border-[#0E2F3F]/30 dark:border-white/40"
-                  aria-hidden
-                />
-                {generatedPermits.length === 0 ? (
-                  <div className="pl-4 text-sm text-[#0E2F3F]/70 dark:text-white/80">No permits yet.</div>
-                ) : (
-                  <div className="space-y-1.5">
-                    {generatedPermits.map((permit) => (
-                      <div key={permit.id} className="grid grid-cols-[120px_1fr_auto] items-center gap-3 pl-4">
-                        <span
-                          className={`inline-flex items-center justify-center rounded-md px-3 py-1 text-sm font-semibold ${statusStyles[permit.status]}`}
-                        >
-                          {permit.status === 'active' ? 'Active' : 'Expired'}
-                        </span>
-                        <span className="text-base font-medium text-[#0E2F3F] dark:text-white">{permit.name}</span>
-                        <div className="flex items-center gap-2 text-[#0E2F3F] dark:text-white">
-                          {permit.actions.map((action) => {
-                            const Icon = actionIconMap[action];
-                            return (
-                              <button
-                                key={action}
-                                className="rounded-md border border-[#0E2F3F]/40 p-1.5 transition-colors hover:bg-[#0E2F3F]/10 dark:border-white/40 dark:hover:bg-white/10"
-                                aria-label={actionLabels[action]}
-                                type="button"
-                              >
-                                <Icon fontSize="small" />
-                              </button>
-                            );
-                          })}
-                        </div>
+            >
+              <span
+                className="absolute left-1 top-0 bottom-0 border-l border-[#0E2F3F]/30 dark:border-white/40"
+                aria-hidden
+              />
+              {generatedPermits.length === 0 ? (
+                <div className="pl-4 text-sm text-[#0E2F3F]/70 dark:text-white/80">No permits yet.</div>
+              ) : (
+                <div className="space-y-1.5">
+                  {generatedPermits.map((permit) => (
+                    <div key={permit.id} className="grid grid-cols-[120px_1fr_auto] items-center gap-3 pl-4">
+                      <span
+                        className={`inline-flex items-center justify-center rounded-md px-3 py-1 text-sm font-semibold ${statusStyles[permit.status]}`}
+                      >
+                        {permit.status === 'active' ? 'Active' : 'Expired'}
+                      </span>
+                      <span className="text-base font-medium text-[#0E2F3F] dark:text-white">{permit.name}</span>
+                      <div className="flex items-center gap-2 text-[#0E2F3F] dark:text-white">
+                        {permit.actions.map((action) => {
+                          const Icon = actionIconMap[action];
+                          return (
+                            <button
+                              key={action}
+                              className="rounded-md border border-[#0E2F3F]/40 p-1.5 transition-colors hover:bg-[#0E2F3F]/10 dark:border-white/40 dark:hover:bg-white/10"
+                              aria-label={actionLabels[action]}
+                              type="button"
+                            >
+                              <Icon fontSize="small" />
+                            </button>
+                          );
+                        })}
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </section>
-
-          <section>
-            <button
-              type="button"
-              className="flex w-full items-center justify-between text-left text-base font-semibold text-[#0E2F3F] transition-opacity hover:opacity-80 dark:text-white"
-              aria-expanded={activeSection === 'received'}
-              onClick={() => handleSectionToggle('received')}
-            >
-              <span>Received</span>
-              {activeSection === 'received' ? (
-                <KeyboardArrowUpIcon fontSize="small" />
-              ) : (
-                <KeyboardArrowDownIcon fontSize="small" />
+                    </div>
+                  ))}
+                </div>
               )}
-            </button>
-            {activeSection === 'received' && (
-              <div className="mt-4 grid grid-cols-2 gap-4">
+            </AccordionSection>
+
+            <AccordionSection
+              id="received"
+              triggerClassName="flex w-full items-center justify-between text-left text-base font-semibold text-[#0E2F3F] transition-opacity hover:opacity-80 dark:text-white"
+              contentClassName="mt-4"
+              renderHeader={(isOpen) => (
+                <>
+                  <span>Received</span>
+                  {isOpen ? <KeyboardArrowUpIcon fontSize="small" /> : <KeyboardArrowDownIcon fontSize="small" />}
+                </>
+              )}
+            >
+              <div className="grid grid-cols-2 gap-4">
                 {quickActions.map(({ id, label, icon: Icon }) => (
                   <button
                     key={id}
@@ -183,8 +166,8 @@ export const PermitsListPage: React.FC = () => {
                   </button>
                 ))}
               </div>
-            )}
-          </section>
+            </AccordionSection>
+          </Accordion>
         </div>
       </div>
     </div>
