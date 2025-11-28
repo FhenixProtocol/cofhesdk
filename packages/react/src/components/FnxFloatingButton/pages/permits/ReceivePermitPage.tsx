@@ -1,6 +1,6 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import PermitReceiveIcon from '../assets/fhenix-permit-receive.svg';
-import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext.js';
+import PermitReceiveIcon from './assets/fhenix-permit-receive.svg';
+import { useFnxFloatingButtonContext } from '../../FnxFloatingButtonContext.js';
 
 export const ReceivePermitPage: React.FC = () => {
   const { navigateBack, darkMode } = useFnxFloatingButtonContext();

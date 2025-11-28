@@ -1,7 +1,7 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext.js';
-import PermitIcon from '../assets/fhenix-permit-icon.svg';
+import { useFnxFloatingButtonContext } from '../../FnxFloatingButtonContext.js';
+import PermitIcon from './assets/fhenix-permit-icon.svg';
 
 const expiryOptions = ['1 day', '1 week', '1 month'];
 

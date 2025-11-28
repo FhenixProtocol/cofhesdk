@@ -50,7 +50,7 @@ const quickActions = [
   },
 ];
 
-export const PermitsPage: React.FC = () => {
+export const PermitsListPage: React.FC = () => {
   const allPermits = useCofheAllPermits();
   const { navigateBack, navigateToGeneratePermit, navigateToReceivePermit } = useFnxFloatingButtonContext();
 
