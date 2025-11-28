@@ -89,11 +89,16 @@ export const PermitsPage: React.FC = () => {
               <KeyboardArrowUpIcon fontSize="small" />
             </div>
             <div className="relative mt-4 pl-4">
-              <span className="absolute left-1 top-0 bottom-0 border-l border-[#0E2F3F]/30 dark:border-white/40" aria-hidden />
+              <span
+                className="absolute left-1 top-0 bottom-0 border-l border-[#0E2F3F]/30 dark:border-white/40"
+                aria-hidden
+              />
               <div className="space-y-1.5">
                 {generatedPermits.map((permit) => (
                   <div key={permit.id} className="grid grid-cols-[120px_1fr_auto] items-center gap-3 pl-4">
-                    <span className={`inline-flex items-center justify-center rounded-md px-3 py-1 text-sm font-semibold ${statusStyles[permit.status]}`}>
+                    <span
+                      className={`inline-flex items-center justify-center rounded-md px-3 py-1 text-sm font-semibold ${statusStyles[permit.status]}`}
+                    >
                       {permit.status === 'active' ? 'Active' : 'Expired'}
                     </span>
                     <span className="text-base font-medium text-[#0E2F3F] dark:text-white">{permit.name}</span>
