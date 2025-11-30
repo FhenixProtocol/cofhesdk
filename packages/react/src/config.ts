@@ -24,8 +24,8 @@ export const CofhesdkReactConfigSchema = z.object({
     ]),
   defaultPermitExpirationSeconds: z.number().optional().default(604800), // 1 week
   pinnedTokens: z.record(z.string()).optional().default({
-    11155111: '0x7b79995e5f793a07bc00c21412e50ecae098e7f9', // sepolia weth
-    // 84531: '0x4200000000000000000000000000000000000006', // base sepolia weth
+    11155111: '0x87A3effB84CBE1E4caB6Ab430139eC41d156D55A', // sepolia weth
+    84532: '0xbED96aa98a49FeA71fcC55d755b915cF022a9159', // base sepolia weth
     // 421613: '0x980b62da83eff3d4576c647993b0c1d7faf17c73', // arbitrum sepolia weth
   }),
   tokenLists: z
@@ -33,7 +33,7 @@ export const CofhesdkReactConfigSchema = z.object({
     .optional()
     .default({
       11155111: ['https://storage.googleapis.com/cofhesdk/sepolia.json'],
-      // 84531: ['https://tokens.cofhe.io/base-sepolia.json'],
+      84532: ['https://storage.googleapis.com/cofhesdk/base-sepolia.json'],
       // 421613: ['https://tokens.cofhe.io/arbitrum-sepolia.json'],
     })
     .transform((lists) => lists as Partial<Record<number, string[]>>),
