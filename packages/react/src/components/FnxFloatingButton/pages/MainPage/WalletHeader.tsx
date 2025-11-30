@@ -1,17 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
-import { cn } from '../../../../utils/cn.js';
-import { truncateAddress } from '../../../../utils/utils.js';
-import { MdOutlineAccountBalanceWallet } from "react-icons/md";
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import { MdOutlineSettings } from "react-icons/md";
+import { MdOutlineSettings, MdOutlineAccountBalanceWallet } from 'react-icons/md';
+import { getChainById, type CofheChain } from '@cofhe/sdk/chains';
+import { cn } from '../../../../utils/cn.js';
 import { useFnxFloatingButtonContext, FloatingButtonPage } from '../../FnxFloatingButtonContext.js';
 import { useCofheAccount, useCofheChainId, useCofheSupportedChains } from '../../../../hooks/useCofheConnection.js';
-import { getChainById } from '@cofhe/sdk/chains';
-import type { CofheChain } from '@cofhe/sdk/chains';
+import { AddressButton } from '../../components/AddressButton.js';
 
 export const WalletHeader: React.FC = () => {
   const { navigateTo, onChainSwitch } = useFnxFloatingButtonContext();
-  const [copied, setCopied] = useState(false);
   const [showNetworkDropdown, setShowNetworkDropdown] = useState(false);
   const [switchingChain, setSwitchingChain] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -37,22 +34,9 @@ export const WalletHeader: React.FC = () => {
     };
   }, [showNetworkDropdown]);
 
-  const truncatedAddress = truncateAddress(walletAddress) || 'Not connected';
-
   // Get network name from SDK chains
   const chain = chainId ? getChainById(chainId) : undefined;
   const currentNetwork = chain?.name || 'Eth';
-
-  const handleCopyAddress = async () => {
-    if (!walletAddress) return;
-    try {
-      await navigator.clipboard.writeText(walletAddress);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy address:', err);
-    }
-  };
 
   const handleChainSwitch = async (targetChain: CofheChain) => {
     if (targetChain.id === chainId || !onChainSwitch) {
@@ -74,21 +58,10 @@ export const WalletHeader: React.FC = () => {
   return (
     <div className="flex items-center justify-between mb-4">
       {/* Left: Wallet Address */}
-      <button
-        onClick={handleCopyAddress}
-        disabled={!walletAddress}
-        className={cn(
-          'flex items-center gap-2 px-2 py-1 rounded fnx-hover-overlay transition-colors',
-          'fnx-text-primary text-sm',
-          !walletAddress && 'opacity-50 cursor-not-allowed'
-        )}
-      >
-        <MdOutlineAccountBalanceWallet className="w-4 h-4" />
-        <span className="font-mono">{truncatedAddress}</span>
-        {copied && walletAddress && (
-          <span className="text-xs opacity-70">Copied!</span>
-        )}
-      </button>
+      <AddressButton 
+        address={walletAddress} 
+        icon={<MdOutlineAccountBalanceWallet className="w-4 h-4" />}
+      />
 
 
       {/* Right: Network Selector + Settings */}
