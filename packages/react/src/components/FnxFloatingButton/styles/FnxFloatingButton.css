@@ -40,6 +40,9 @@
     /* Typography */
     --fnx-settings-icon-size: 20px;
     
+    /* Token list */
+    --fnx-token-list-max-height: 250px;
+    
     /* Animation timing */
     --fnx-transition-duration: 300ms;
     --fnx-transition-duration-fast: 200ms;
@@ -306,5 +309,14 @@
 
 .fnx-positive-change {
   color: var(--fnx-positive-change);
+}
+
+/* TokenListPage styles */
+.fnx-token-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-height: var(--fnx-token-list-max-height);
+  overflow-y: auto;
 }
 
