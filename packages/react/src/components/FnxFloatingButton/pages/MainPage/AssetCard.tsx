@@ -6,6 +6,7 @@ import { useTokenConfidentialBalance, useTokenMetadata, useNativeBalance, usePin
 import { useTokens } from '../../../../hooks/useTokenLists.js';
 import { useCofheChainId } from '../../../../hooks/useCofheConnection.js';
 import { useMemo, useState, useEffect } from 'react';
+import defaultTokenIcon from '../../assets/default-token.webp';
 
 export const AssetCard: React.FC = () => {
   // const pinnedTokenAddress = "0x8ee52408ED5b0e396aA779Fd52F7fbc20A4b33Fb"; // Base sepolia
@@ -20,13 +21,13 @@ export const AssetCard: React.FC = () => {
   const tokenDecimals = tokenMetadata?.decimals;
   const tokenSymbol = tokenMetadata?.symbol;
   
-  // Find token icon from token lists if available
+  // Find token icon from token lists if available, otherwise use default
   const tokenIcon = useMemo(() => {
-    if (!pinnedTokenAddress || !chainId) return undefined;
+    if (!pinnedTokenAddress || !chainId) return defaultTokenIcon;
     const token = tokens.find(
       (t) => t.chainId === chainId && t.address.toLowerCase() === pinnedTokenAddress.toLowerCase()
     );
-    return token?.logoURI;
+    return token?.logoURI || defaultTokenIcon;
   }, [pinnedTokenAddress, chainId, tokens]);
   
   const [iconError, setIconError] = useState(false);
@@ -90,16 +91,12 @@ export const AssetCard: React.FC = () => {
         <div className="flex items-start gap-3 flex-1">
           {/* Asset Icon */}
           <div className="w-12 h-12 rounded-full fnx-icon-bg flex items-center justify-center flex-shrink-0 overflow-hidden">
-            {tokenIcon && !iconError ? (
-              <img 
-                src={tokenIcon} 
-                alt={tokenSymbol || 'Token'} 
-                className="w-full h-full object-cover"
-                onError={() => setIconError(true)}
-              />
-            ) : (
-              <span className="text-xl">⟠</span>
-            )}
+            <img 
+              src={iconError ? defaultTokenIcon : tokenIcon} 
+              alt={tokenSymbol || 'Token'} 
+              className="w-full h-full object-cover"
+              onError={() => setIconError(true)}
+            />
           </div>
 
           {/* Ticker and Privacy */}
