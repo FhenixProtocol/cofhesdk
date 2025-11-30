@@ -1,5 +1,4 @@
-import type { Address, Abi } from 'viem';
-import { parseAbi, getAbiItem, keccak256, toHex } from 'viem';
+import { getAbiItem, keccak256, toHex, type Address, type Abi } from 'viem';
 import { useCofhePublicClient } from './useCofheConnection.js';
 
 /**
@@ -56,7 +55,7 @@ export async function detectContractType<T extends string>(
   typeSelectors: Record<T, (abi: Abi) => `0x${string}`[]>,
   abis: Record<T, Abi>
 ): Promise<T | null> {
-  const bytecode = await publicClient.getBytecode({ address });
+  const bytecode = await publicClient.getCode({ address });
   if (!bytecode) return null;
 
   const scores: Record<string, number> = {};

@@ -1,6 +1,5 @@
 import { useQuery, type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
-import type { Address, Abi } from 'viem';
-import { parseAbi } from 'viem';
+import { parseAbi, formatUnits, type Address, type Abi } from 'viem';
 import { FheTypes } from '@cofhe/sdk';
 import { useCofheAccount, useCofheChainId, useCofhePublicClient } from './useCofheConnection.js';
 import { useCofheContext } from '../providers/CofheProvider.js';
@@ -64,13 +63,8 @@ export function useTokenBalance(
         args: [account],
       })) as bigint;
 
-      // Normalize by decimals: divide by 10^decimals
-      const divisor = BigInt(10 ** decimals);
-      const normalizedValue = Number(balance) / Number(divisor);
 
-      // Format as string with limited decimal places
-      // Use displayDecimals places, but remove trailing zeros
-      return normalizedValue.toFixed(displayDecimals).replace(/\.?0+$/, '');
+      return parseFloat(formatUnits(balance, decimals)).toFixed(displayDecimals);
     },
     enabled: !!publicClient && !!account && !!tokenAddress,
     ...queryOptions,
@@ -110,12 +104,7 @@ export function useNativeBalance(
         address: account,
       });
 
-      // Normalize by decimals: divide by 10^decimals
-      const divisor = BigInt(10 ** decimals);
-      const normalizedValue = Number(balance) / Number(divisor);
-
-      // Format as string with limited decimal places
-      return normalizedValue.toFixed(displayDecimals).replace(/\.?0+$/, '');
+      return parseFloat(formatUnits(balance, decimals)).toFixed(displayDecimals);
     },
     enabled: !!publicClient && !!account,
     ...queryOptions,
@@ -185,77 +174,6 @@ export function useTokenMetadata(
     ...queryOptions,
   });
 }
-
-/**
- * Hook to get token decimals from ERC20 contract
- * @param tokenAddress - Token contract address
- * @param queryOptions - Optional React Query options
- * @returns Query result with decimals as number
- */
-export function useTokenDecimals(
-  tokenAddress: Address | undefined,
-  queryOptions?: Omit<UseQueryOptions<number, Error>, 'queryKey' | 'queryFn' | 'enabled'>
-): UseQueryResult<number, Error> {
-  const publicClient = useCofhePublicClient();
-  
-  return useQuery({
-    queryKey: ['tokenDecimals', tokenAddress],
-    queryFn: async (): Promise<number> => {
-      if (!publicClient) {
-        throw new Error('PublicClient is required to fetch token decimals');
-      }
-      if (!tokenAddress) {
-        throw new Error('Token address is required');
-      }
-
-      const decimals = (await publicClient.readContract({
-        address: tokenAddress,
-        abi: ERC20_DECIMALS_ABI,
-        functionName: 'decimals',
-      })) as number;
-
-      return decimals;
-    },
-    enabled: !!publicClient && !!tokenAddress,
-    ...queryOptions,
-  });
-}
-
-/**
- * Hook to get token symbol from ERC20 contract
- * @param tokenAddress - Token contract address
- * @param queryOptions - Optional React Query options
- * @returns Query result with symbol as string
- */
-export function useTokenSymbol(
-  tokenAddress: Address | undefined,
-  queryOptions?: Omit<UseQueryOptions<string, Error>, 'queryKey' | 'queryFn' | 'enabled'>
-): UseQueryResult<string, Error> {
-  const publicClient = useCofhePublicClient();
-  
-  return useQuery({
-    queryKey: ['tokenSymbol', tokenAddress],
-    queryFn: async (): Promise<string> => {
-      if (!publicClient) {
-        throw new Error('PublicClient is required to fetch token symbol');
-      }
-      if (!tokenAddress) {
-        throw new Error('Token address is required');
-      }
-
-      const symbol = (await publicClient.readContract({
-        address: tokenAddress,
-        abi: ERC20_SYMBOL_ABI,
-        functionName: 'symbol',
-      })) as string;
-
-      return symbol;
-    },
-    enabled: !!publicClient && !!tokenAddress,
-    ...queryOptions,
-  });
-}
-
 
 const CONFIDENTIAL_TYPE_SELECTORS = {
   TypeA: (abi: Abi) => getSelectorsFromAbi(abi, ['encBalanceOf']),

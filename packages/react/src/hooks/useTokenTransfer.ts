@@ -1,7 +1,6 @@
 /* Placeholder hook for token transfer, didn't used it yet, code needs to be updated */
 import { useMutation, type UseMutationOptions, type UseMutationResult } from '@tanstack/react-query';
-import type { Address, Abi } from 'viem';
-import { parseAbi } from 'viem';
+import { parseAbi, type Address, type Abi } from 'viem';
 import { useCofhePublicClient, useCofheWalletClient } from './useCofheConnection.js';
 import { detectContractType, getSelectorsFromAbi } from './useTokenContractDetection.js';
 
