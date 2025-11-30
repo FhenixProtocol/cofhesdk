@@ -6,7 +6,10 @@ import { useTokenConfidentialBalance, useTokenMetadata, useNativeBalance, usePin
 import { useTokens } from '../../../../hooks/useTokenLists.js';
 import { useCofheChainId } from '../../../../hooks/useCofheConnection.js';
 import { useMemo, useState, useEffect } from 'react';
+import { formatUnits } from 'viem';
 import defaultTokenIcon from '../../assets/default-token.webp';
+
+const BALANCE_DECIMAL_PRECISION = 5;
 
 export const AssetCard: React.FC = () => {
   // const pinnedTokenAddress = "0x8ee52408ED5b0e396aA779Fd52F7fbc20A4b33Fb"; // Base sepolia
@@ -49,10 +52,10 @@ export const AssetCard: React.FC = () => {
   // Determine which balance to show
   const displayBalance = useMemo(() => {
     if (pinnedTokenAddress && confidentialBalance !== undefined && tokenDecimals) {
-      // Normalize confidential balance by decimals and format for display
-      const divisor = BigInt(10 ** tokenDecimals);
-      const normalizedValue = Number(confidentialBalance) / Number(divisor);
-      return normalizedValue.toFixed(5).replace(/\.?0+$/, '');
+      // Format confidential balance using viem's formatUnits
+      const formatted = formatUnits(confidentialBalance, tokenDecimals);
+      // Show up to specified decimal places
+      return parseFloat(formatted).toFixed(BALANCE_DECIMAL_PRECISION);
     }
     if (!pinnedTokenAddress && nativeBalance) {
       return nativeBalance;

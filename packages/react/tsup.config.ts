@@ -21,6 +21,7 @@ export default defineConfig({
       '.jpg': 'dataurl',
       '.jpeg': 'dataurl',
       '.svg': 'dataurl',
+      '.webp': 'dataurl',
     };
   },
 });
