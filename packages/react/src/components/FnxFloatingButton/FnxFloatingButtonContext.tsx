@@ -3,7 +3,14 @@ import type { ReactNode } from 'react';
 import type { FloatingButtonPosition } from './FnxFloatingButton.js';
 import { useCofheContext } from '../../providers';
 
-export type FloatingButtonPage = 'main' | 'settings' | 'tokenlist' | 'send' | 'shield' | 'portfolio' | 'activity';
+export enum FloatingButtonPage {
+  Main = 'main',
+  Settings = 'settings',
+  TokenList = 'tokenlist',
+  Send = 'send',
+  Shield = 'shield',
+  Activity = 'activity',
+}
 
 const OPEN_DELAY = 500; // Delay before showing popup in ms
 const CLOSE_DELAY = 300; // Delay before closing bar after popup closes
@@ -11,12 +18,7 @@ const CLOSE_DELAY = 300; // Delay before closing bar after popup closes
 interface FnxFloatingButtonContextValue {
   pageHistory: FloatingButtonPage[];
   currentPage: FloatingButtonPage;
-  navigateToSettings: () => void;
-  navigateToTokenList: () => void;
-  navigateToSend: () => void;
-  navigateToShield: () => void;
-  navigateToPortfolio: () => void;
-  navigateToActivity: () => void;
+  navigateTo: (page: FloatingButtonPage) => void;
   navigateBack: () => void;
   darkMode: boolean;
   effectivePosition: FloatingButtonPosition;
@@ -48,7 +50,7 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   const widgetConfig = useCofheContext().config.react;
   const effectivePosition = position || widgetConfig.position;
 
-  const [pageHistory, setPageHistory] = useState<FloatingButtonPage[]>(['main']);
+  const [pageHistory, setPageHistory] = useState<FloatingButtonPage[]>([FloatingButtonPage.Main]);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showPopupPanel, setShowPopupPanel] = useState(false);
 
@@ -79,28 +81,8 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
     externalOnClick?.();
   };
 
-  const navigateToSettings = () => {
-    setPageHistory((prev) => [...prev, 'settings']);
-  };
-
-  const navigateToTokenList = () => {
-    setPageHistory((prev) => [...prev, 'tokenlist']);
-  };
-
-  const navigateToSend = () => {
-    setPageHistory((prev) => [...prev, 'send']);
-  };
-
-  const navigateToShield = () => {
-    setPageHistory((prev) => [...prev, 'shield']);
-  };
-
-  const navigateToPortfolio = () => {
-    setPageHistory((prev) => [...prev, 'tokenlist']); // Portfolio shows TokenListPage
-  };
-
-  const navigateToActivity = () => {
-    setPageHistory((prev) => [...prev, 'activity']);
+  const navigateTo = (page: FloatingButtonPage) => {
+    setPageHistory((prev) => [...prev, page]);
   };
 
   const navigateBack = () => {
@@ -117,12 +99,7 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
       value={{
         pageHistory,
         currentPage,
-        navigateToSettings,
-        navigateToTokenList,
-        navigateToSend,
-        navigateToShield,
-        navigateToPortfolio,
-        navigateToActivity,
+        navigateTo,
         navigateBack,
         darkMode,
         effectivePosition,

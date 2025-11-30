@@ -3,50 +3,41 @@ import { GoArrowUpRight } from "react-icons/go";
 import { IoIosSwap } from "react-icons/io";
 import { AiOutlinePieChart } from "react-icons/ai";
 import { TbShieldPlus } from "react-icons/tb";
-import { useFnxFloatingButtonContext } from '../../FnxFloatingButtonContext.js';
+import { useFnxFloatingButtonContext, FloatingButtonPage } from '../../FnxFloatingButtonContext.js';
 
-type NavItem = 'send' | 'shield' | 'portfolio' | 'activity';
+type NavItem = {
+  id: FloatingButtonPage;
+  label: string;
+  icon: React.ReactNode;
+};
 
 export const BottomNavigation: React.FC = () => {
-  const { navigateToSend, navigateToShield, navigateToPortfolio, navigateToActivity, expandPanel } = useFnxFloatingButtonContext();
+  const { navigateTo, expandPanel } = useFnxFloatingButtonContext();
   const iconClassName = "w-4 h-4";
   
-  const handleNavClick = (id: NavItem) => {
+  const handleNavClick = (page: FloatingButtonPage) => {
     expandPanel(); // Ensure panel is expanded
-    switch (id) {
-      case 'send':
-        navigateToSend();
-        break;
-      case 'shield':
-        navigateToShield();
-        break;
-      case 'portfolio':
-        navigateToPortfolio();
-        break;
-      case 'activity':
-        navigateToActivity();
-        break;
-    }
+    navigateTo(page);
   };
 
-  const navItems: Array<{ id: NavItem; label: string; icon: React.ReactNode }> = [
+  const navItems: NavItem[] = [
     {
-      id: 'send',
+      id: FloatingButtonPage.Send,
       label: 'Send',
       icon: <GoArrowUpRight className={iconClassName} />,
     },
     {
-      id: 'shield',
+      id: FloatingButtonPage.Shield,
       label: 'Shield',
       icon: <TbShieldPlus className={iconClassName} />,
     },
     {
-      id: 'portfolio',
+      id: FloatingButtonPage.TokenList,
       label: 'Portfolio',
       icon: <AiOutlinePieChart className={iconClassName} />,
     },
     {
-      id: 'activity',
+      id: FloatingButtonPage.Activity,
       label: 'Activity',
       icon: <IoIosSwap className={iconClassName} />,
     },

@@ -4,13 +4,13 @@ import { truncateAddress } from '../../../../utils/utils.js';
 import { MdOutlineAccountBalanceWallet } from "react-icons/md";
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { MdOutlineSettings } from "react-icons/md";
-import { useFnxFloatingButtonContext } from '../../FnxFloatingButtonContext.js';
+import { useFnxFloatingButtonContext, FloatingButtonPage } from '../../FnxFloatingButtonContext.js';
 import { useCofheAccount, useCofheChainId, useCofheSupportedChains } from '../../../../hooks/useCofheConnection.js';
 import { getChainById } from '@cofhe/sdk/chains';
 import type { CofheChain } from '@cofhe/sdk/chains';
 
 export const WalletHeader: React.FC = () => {
-  const { navigateToSettings, onChainSwitch } = useFnxFloatingButtonContext();
+  const { navigateTo, onChainSwitch } = useFnxFloatingButtonContext();
   const [copied, setCopied] = useState(false);
   const [showNetworkDropdown, setShowNetworkDropdown] = useState(false);
   const [switchingChain, setSwitchingChain] = useState(false);
@@ -143,7 +143,7 @@ export const WalletHeader: React.FC = () => {
 
         {/* Settings Icon */}
         <button
-          onClick={navigateToSettings}
+          onClick={() => navigateTo(FloatingButtonPage.Settings)}
           className={cn(
             'p-1 rounded fnx-hover-overlay transition-colors',
             'fnx-text-primary'
