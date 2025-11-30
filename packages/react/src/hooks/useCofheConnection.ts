@@ -47,15 +47,15 @@ export const useCofheChainId = (): number | undefined => {
 
 export const useCofheSupportedChains = () => {
   const client = useCofheContext().client;
-  return client?.config?.supportedChains || [];
+  return client.config.supportedChains;
 };
 
 export const useCofhePublicClient = () => {
   const client = useCofheContext().client;
-  return client?.getPublicClient();
+  return client.getPublicClient();
 };
 
 export const useCofheWalletClient = () => {
   const client = useCofheContext().client;
-  return client?.getWalletClient();
+  return client.getWalletClient();
 };

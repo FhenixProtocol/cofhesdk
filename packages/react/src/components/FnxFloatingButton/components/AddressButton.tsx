@@ -4,7 +4,7 @@ import { cn } from '../../../utils/cn.js';
 import { truncateAddress } from '../../../utils/utils.js';
 
 interface AddressButtonProps {
-  address: string | undefined;
+  address: string | null | undefined;
   className?: string;
   icon?: React.ReactNode;
   showCopyIcon?: boolean;
