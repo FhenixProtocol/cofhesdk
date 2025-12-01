@@ -8,6 +8,7 @@ permissions:
   id-token: write
   contents: write
   pull-requests: write
+  pages: write
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
@@ -54,10 +55,10 @@ jobs:
         with:
           version: 8
 
-      - name: Setup Node.js 20.x
+      - name: Setup Node.js 22.x
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           registry-url: https://registry.npmjs.org
 
       - name: Ensure latest npm
@@ -89,10 +90,10 @@ jobs:
         with:
           version: 8
 
-      - name: Setup Node.js 20.x
+      - name: Setup Node.js 22.x
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           registry-url: https://registry.npmjs.org
 
       - name: Ensure latest npm
@@ -113,4 +114,19 @@ jobs:
           createGithubReleases: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Docs Site
+        run: pnpm --filter @cofhe/site build
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './packages/site/dist'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
 

@@ -3,7 +3,15 @@
   "changelog": "@changesets/cli/changelog",
   "baseBranch": "master",
   "commit": false,
-  "fixed": [["@cofhe/sdk", "@cofhe/mock-contracts", "@cofhe/hardhat-plugin", "@cofhe/react"]],
+  "fixed": [
+    [
+      "@cofhe/sdk",
+      "@cofhe/mock-contracts",
+      "@cofhe/hardhat-plugin",
+      "@cofhe/react",
+      "@cofhe/site"
+    ]
+  ],
   "linked": [],
   "access": "public",
   "updateInternalDependencies": "patch"

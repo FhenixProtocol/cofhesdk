@@ -12,6 +12,7 @@ This directory contains configuration and changeset files for managing versionin
   - `@cofhe/sdk`
   - `@cofhe/mock-contracts`
   - `@cofhe/hardhat-plugin`
+  - `@cofhe/site` (versioned with the group, deploys docs but doesn't publish to npm)
 
 ## Contributor workflow
 
@@ -29,9 +30,10 @@ pnpm changeset
 
 ## Maintainer workflow
 
-1. Review and merge the auto‑opened Changesets “Version Packages” PR when you’re ready to cut a stable.
+1. Review and merge the auto‑opened Changesets "Version Packages" PR when you're ready to cut a stable.
 2. On merge, CI runs the stable job in `.github/workflows/publish.yml` and publishes to the `latest` dist‑tag.
-3. All three packages publish together with the same version due to the fixed group in `.changeset/config.json`.
+3. All packages publish together with the same version due to the fixed group in `.changeset/config.json`.
+4. The docs site (`@cofhe/site`) is automatically built and deployed to GitHub Pages when stable versions are published.
 
 ## Commands
 
@@ -58,6 +60,7 @@ pnpm changeset status
 - Triggers: `push` to `master`
   - Beta job runs when commit message does NOT contain `Version Packages`
   - Stable job runs when commit message DOES contain `Version Packages`
+  - Docs deployment runs after stable releases to GitHub Pages
 - OIDC permissions are enabled (`id-token: write`, `contents: read`); npm provenance is enabled by default.
 
 ## Configuration
@@ -65,7 +68,7 @@ pnpm changeset status
 - Base branch: `master` (see `.changeset/config.json`)
 - Access: `public`
 - updateInternalDependencies: `patch`
-- fixed: `[["@cofhe/sdk", "@cofhe/mock-contracts", "@cofhe/hardhat-plugin"]]`
+- fixed: `[["@cofhe/sdk", "@cofhe/mock-contracts", "@cofhe/hardhat-plugin", "@cofhe/site"]]`
 
 ## Best practices
 
@@ -76,8 +79,13 @@ pnpm changeset status
 
 ## Troubleshooting
 
-- CI didn’t publish beta: ensure the merge commit message doesn’t include `Version Packages` and the workflow ran.
-- CI didn’t publish stable: ensure you merged the auto “Version Packages” PR and the workflow ran the stable job.
+- CI didn't publish beta: ensure the merge commit message doesn't include `Version Packages` and the workflow ran.
+- CI didn't publish stable: ensure you merged the auto "Version Packages" PR and the workflow ran the stable job.
+- Docs didn't deploy: 
+  - Ensure GitHub Pages is configured to use "GitHub Actions" as the source in repository settings
+  - Check that the workflow has completed successfully
+  - Verify `pages: write` permission is set in the workflow
+  - For custom domains, configure them through repository settings (Settings → Pages → Custom domain), not via CNAME file
 - Private deps install errors: Trusted Publishers covers publish, not install; use a read‑only token for installs if needed.
 
 ## References
