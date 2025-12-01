@@ -13,9 +13,11 @@ export interface UsePermitFormResult {
   receiverError: string | null;
   isValid: boolean;
   isSubmitting: boolean;
+  durationSeconds: number;
   handleNameChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleReceiverChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   toggleIsSelf: (checked: boolean) => void;
+  setDurationSeconds: (seconds: number) => void;
   handleSubmit: () => Promise<void>;
   reset: () => void;
 }
@@ -28,6 +30,7 @@ export function usePermitForm(options: UsePermitFormOptions = {}): UsePermitForm
   const [error, setError] = useState<string | null>(null);
   const [receiverError, setReceiverError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [durationSeconds, setDurationSeconds] = useState(7 * 24 * 60 * 60);
   const cofheClient = useCofheClient();
 
   const isValid = !!permitName.trim() && (isSelf || isValidAddress(receiver));
@@ -71,7 +74,7 @@ export function usePermitForm(options: UsePermitFormOptions = {}): UsePermitForm
     try {
       const { account } = cofheClient.getSnapshot();
       if (!account) throw new Error('No connected account found');
-      const expiration = Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60;
+      const expiration = Math.floor(Date.now() / 1000) + durationSeconds;
       if (isSelf) {
         await cofheClient.permits.createSelf({
           expiration,
@@ -96,7 +99,7 @@ export function usePermitForm(options: UsePermitFormOptions = {}): UsePermitForm
     } finally {
       setIsSubmitting(false);
     }
-  }, [isSubmitting, permitName, isSelf, receiver, cofheClient, onSuccess]);
+  }, [isSubmitting, permitName, isSelf, receiver, durationSeconds, cofheClient, onSuccess]);
 
   const reset = useCallback(() => {
     setPermitName('');
@@ -114,9 +117,11 @@ export function usePermitForm(options: UsePermitFormOptions = {}): UsePermitForm
     receiverError,
     isValid,
     isSubmitting,
+    durationSeconds,
     handleNameChange,
     handleReceiverChange,
     toggleIsSelf,
+    setDurationSeconds,
     handleSubmit,
     reset,
   };

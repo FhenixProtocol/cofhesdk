@@ -3,8 +3,13 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { usePermitForm } from './usePermitForm.js';
 import { useFnxFloatingButtonContext } from '../../FnxFloatingButtonContext.js';
 import PermitIcon from './assets/fhenix-permit-icon.svg';
+import clsx from 'clsx';
 
-const expiryOptions = ['1 day', '1 week', '1 month'];
+const expiryOptions = [
+  { label: '1 day', seconds: 1 * 24 * 60 * 60 },
+  { label: '1 week', seconds: 7 * 24 * 60 * 60 },
+  { label: '1 month', seconds: 30 * 24 * 60 * 60 },
+] as const;
 
 export const GeneratePermitPage: React.FC = () => {
   const { navigateToPermits, navigateBack, darkMode } = useFnxFloatingButtonContext();
@@ -18,9 +23,11 @@ export const GeneratePermitPage: React.FC = () => {
     receiverError,
     isValid,
     isSubmitting,
+    durationSeconds,
     handleNameChange,
     handleReceiverChange,
     toggleIsSelf,
+    setDurationSeconds,
     handleSubmit,
   } = usePermitForm({
     onSuccess: navigateToPermits, // TODO: also add toast here?
@@ -104,11 +111,18 @@ export const GeneratePermitPage: React.FC = () => {
             <div className="grid grid-cols-3 gap-3">
               {expiryOptions.map((option) => (
                 <button
-                  key={option}
+                  key={option.label}
                   type="button"
-                  className="rounded-xl border border-[#0E2F3F] px-4 py-3 text-base font-semibold text-[#0E2F3F] transition-colors hover:bg-[#0E2F3F]/5 dark:border-white/50 dark:text-white dark:hover:bg-white/10"
+                  className={clsx(
+                    'rounded-xl border px-4 py-3 text-base font-semibold transition-colors',
+                    durationSeconds === option.seconds
+                      ? 'border-[#0E2F3F] bg-[#0E2F3F]/10 text-[#0E2F3F] dark:border-white dark:bg-white/10 dark:text-white'
+                      : 'border-[#0E2F3F] text-[#0E2F3F] hover:bg-[#0E2F3F]/5 dark:border-white/50 dark:text-white dark:hover:bg-white/10'
+                  )}
+                  onClick={() => setDurationSeconds(option.seconds)}
+                  aria-pressed={durationSeconds === option.seconds}
                 >
-                  {option}
+                  {option.label}
                 </button>
               ))}
             </div>
