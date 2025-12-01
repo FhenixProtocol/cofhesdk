@@ -4,26 +4,11 @@ import { usePermitForm } from './usePermitForm.js';
 import { useFnxFloatingButtonContext } from '../../FnxFloatingButtonContext.js';
 import PermitIcon from './assets/fhenix-permit-icon.svg';
 import clsx from 'clsx';
-import { useState, useMemo } from 'react';
-
-const expiryOptions = [
-  { label: '1 day', seconds: 1 * 24 * 60 * 60 },
-  { label: '1 week', seconds: 7 * 24 * 60 * 60 },
-  { label: '1 month', seconds: 30 * 24 * 60 * 60 },
-] as const;
-
-const unitSeconds = {
-  hours: 60 * 60,
-  days: 24 * 60 * 60,
-  weeks: 7 * 24 * 60 * 60,
-  months: 30 * 24 * 60 * 60,
-} as const;
+import { usePermitDuration } from './usePermitDuration.js';
 
 export const GeneratePermitPage: React.FC = () => {
   const { navigateToPermits, navigateBack, darkMode } = useFnxFloatingButtonContext();
   const permitIconColor = darkMode ? '#FFFFFF' : '#00314E';
-  const [customCount, setCustomCount] = useState<number | ''>('');
-  const [customUnit, setCustomUnit] = useState<'days' | 'weeks' | 'months' | 'hours'>('days');
 
   const {
     permitName,
@@ -42,14 +27,8 @@ export const GeneratePermitPage: React.FC = () => {
   } = usePermitForm({
     onSuccess: navigateToPermits, // TODO: also add toast here?
   });
-
-  const applyCustomDuration = (count: number | '', unit: typeof customUnit) => {
-    setCustomCount(count);
-    setCustomUnit(unit);
-    if (typeof count === 'number' && count > 0) {
-      setDurationSeconds(count * unitSeconds[unit]);
-    }
-  };
+  const { presets, units, customCount, customUnit, selectPreset, setCustomCount, setCustomUnit, applyCustom } =
+    usePermitDuration({ onDurationChange: setDurationSeconds, initialSeconds: durationSeconds });
 
   return (
     <div className="fnx-text-primary text-sm">
@@ -127,7 +106,7 @@ export const GeneratePermitPage: React.FC = () => {
           <div className="space-y-4">
             <p className="text-base font-semibold text-[#0E2F3F] dark:text-white">Expiring in:</p>
             <div className="grid grid-cols-3 gap-3">
-              {expiryOptions.map((option) => (
+              {presets.map((option) => (
                 <button
                   key={option.label}
                   type="button"
@@ -137,7 +116,7 @@ export const GeneratePermitPage: React.FC = () => {
                       ? 'border-[#0E2F3F] bg-[#0E2F3F]/10 text-[#0E2F3F] dark:border-white dark:bg-white/10 dark:text-white'
                       : 'border-[#0E2F3F] text-[#0E2F3F] hover:bg-[#0E2F3F]/5 dark:border-white/50 dark:text-white dark:hover:bg-white/10'
                   )}
-                  onClick={() => setDurationSeconds(option.seconds)}
+                  onClick={() => selectPreset(option.seconds)}
                   aria-pressed={durationSeconds === option.seconds}
                 >
                   {option.label}
@@ -155,7 +134,7 @@ export const GeneratePermitPage: React.FC = () => {
                     value={customCount}
                     onChange={(e) => {
                       const v = e.target.value === '' ? '' : Math.max(1, Number(e.target.value));
-                      applyCustomDuration(v, customUnit);
+                      applyCustom(v, customUnit);
                     }}
                     className="w-full bg-transparent outline-none placeholder:text-[#355366] dark:placeholder:text-white/60"
                     aria-label="Custom duration count"
@@ -164,22 +143,15 @@ export const GeneratePermitPage: React.FC = () => {
                 <div className="flex items-center gap-2 rounded-xl border border-[#0E2F3F]/40 px-3 py-2 text-base font-semibold text-[#0E2F3F] dark:border-white/40 dark:text-white">
                   <select
                     value={customUnit}
-                    onChange={(e) => applyCustomDuration(customCount, e.target.value as typeof customUnit)}
+                    onChange={(e) => setCustomUnit(e.target.value as typeof customUnit)}
                     className="bg-transparent outline-none appearance-none pr-5"
                     aria-label="Custom duration unit"
                   >
-                    <option value="days" className="text-[#0E2F3F]">
-                      days
-                    </option>
-                    <option value="weeks" className="text-[#0E2F3F]">
-                      weeks
-                    </option>
-                    <option value="months" className="text-[#0E2F3F]">
-                      months
-                    </option>
-                    <option value="hours" className="text-[#0E2F3F]">
-                      hours
-                    </option>
+                    {units.map((u) => (
+                      <option key={u} value={u} className="text-[#0E2F3F]">
+                        {u}
+                      </option>
+                    ))}
                   </select>
                   <KeyboardArrowDownIcon fontSize="small" />
                 </div>
