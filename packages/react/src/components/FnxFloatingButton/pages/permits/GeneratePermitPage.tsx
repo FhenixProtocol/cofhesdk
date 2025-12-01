@@ -7,10 +7,12 @@ import PermitIcon from './assets/fhenix-permit-icon.svg';
 const expiryOptions = ['1 day', '1 week', '1 month'];
 
 export const GeneratePermitPage: React.FC = () => {
-  const { navigateBack, darkMode } = useFnxFloatingButtonContext();
+  const { navigateToPermits, navigateBack, darkMode } = useFnxFloatingButtonContext();
   const permitIconColor = darkMode ? '#FFFFFF' : '#00314E';
 
-  const { permitName, error, isValid, handleChange, handleSubmit } = usePermitForm();
+  const { permitName, error, isValid, isSubmitting, handleChange, handleSubmit } = usePermitForm({
+    onSuccess: navigateToPermits, // TODO: also add toast here?
+  });
 
   return (
     <div className="fnx-text-primary text-sm">
@@ -102,11 +104,14 @@ export const GeneratePermitPage: React.FC = () => {
           </button>
           <button
             type="button"
-            disabled={!isValid}
-            className={`rounded-xl border border-[#0EA5A7] bg-[#6ED8E1] py-3 text-base font-semibold text-[#0E2F3F] transition-opacity dark:border-[#0EA5A7] dark:bg-[#0EA5A7] dark:text-white ${isValid ? 'hover:opacity-90' : 'opacity-50 cursor-not-allowed'}`}
+            disabled={!isValid || isSubmitting}
+            aria-busy={isSubmitting}
+            className={`rounded-xl border border-[#0EA5A7] bg-[#6ED8E1] py-3 text-base font-semibold text-[#0E2F3F] transition-opacity dark:border-[#0EA5A7] dark:bg-[#0EA5A7] dark:text-white ${
+              isValid && !isSubmitting ? 'hover:opacity-90' : 'opacity-50 cursor-not-allowed'
+            }`}
             onClick={handleSubmit}
           >
-            Generate / Delegate
+            {isSubmitting ? 'Generating…' : 'Generate / Delegate'}
           </button>
         </div>
       </div>
