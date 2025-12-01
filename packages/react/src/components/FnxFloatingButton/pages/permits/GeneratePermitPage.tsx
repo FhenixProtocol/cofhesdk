@@ -1,17 +1,16 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import { useState } from 'react';
+import { usePermitForm } from './usePermitForm.js';
 import { useFnxFloatingButtonContext } from '../../FnxFloatingButtonContext.js';
 import PermitIcon from './assets/fhenix-permit-icon.svg';
-import { useCofheClient } from '../../../../hooks/useCofheClient.js';
 
 const expiryOptions = ['1 day', '1 week', '1 month'];
 
 export const GeneratePermitPage: React.FC = () => {
-  const [permitName, setPermitName] = useState('');
-  const cofheClient = useCofheClient();
   const { navigateBack, darkMode } = useFnxFloatingButtonContext();
   const permitIconColor = darkMode ? '#FFFFFF' : '#00314E';
+
+  const { permitName, error, isValid, handleChange, handleSubmit } = usePermitForm();
 
   return (
     <div className="fnx-text-primary text-sm">
@@ -57,11 +56,12 @@ export const GeneratePermitPage: React.FC = () => {
                 type="text"
                 placeholder="Permit name"
                 value={permitName}
-                onChange={(e) => setPermitName(e.target.value)}
+                onChange={handleChange}
                 className="w-full bg-transparent outline-none placeholder:text-[#355366] dark:placeholder:text-white/60"
                 aria-label="Permit name"
               />
             </div>
+            {error && <p className="px-4 pt-1 text-xs font-medium text-[#F0784F] dark:text-[#F0784F]">{error}</p>}
           </div>
 
           <div className="space-y-4">
@@ -102,17 +102,9 @@ export const GeneratePermitPage: React.FC = () => {
           </button>
           <button
             type="button"
-            className="rounded-xl border border-[#0EA5A7] bg-[#6ED8E1] py-3 text-base font-semibold text-[#0E2F3F] transition-opacity hover:opacity-90 dark:border-[#0EA5A7] dark:bg-[#0EA5A7] dark:text-white"
-            onClick={() => {
-              const { account } = cofheClient.getSnapshot();
-              if (!account) throw new Error('No connected account found');
-
-              cofheClient.permits.createSelf({
-                expiration: Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60, // 1 week from now
-                issuer: account,
-                name: permitName,
-              });
-            }}
+            disabled={!isValid}
+            className={`rounded-xl border border-[#0EA5A7] bg-[#6ED8E1] py-3 text-base font-semibold text-[#0E2F3F] transition-opacity dark:border-[#0EA5A7] dark:bg-[#0EA5A7] dark:text-white ${isValid ? 'hover:opacity-90' : 'opacity-50 cursor-not-allowed'}`}
+            onClick={handleSubmit}
           >
             Generate / Delegate
           </button>
