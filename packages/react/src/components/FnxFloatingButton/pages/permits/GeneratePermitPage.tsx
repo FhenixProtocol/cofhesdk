@@ -4,6 +4,7 @@ import { usePermitForm } from './usePermitForm.js';
 import { useFnxFloatingButtonContext } from '../../FnxFloatingButtonContext.js';
 import PermitIcon from './assets/fhenix-permit-icon.svg';
 import clsx from 'clsx';
+import { useState, useMemo } from 'react';
 
 const expiryOptions = [
   { label: '1 day', seconds: 1 * 24 * 60 * 60 },
@@ -11,9 +12,18 @@ const expiryOptions = [
   { label: '1 month', seconds: 30 * 24 * 60 * 60 },
 ] as const;
 
+const unitSeconds = {
+  hours: 60 * 60,
+  days: 24 * 60 * 60,
+  weeks: 7 * 24 * 60 * 60,
+  months: 30 * 24 * 60 * 60,
+} as const;
+
 export const GeneratePermitPage: React.FC = () => {
   const { navigateToPermits, navigateBack, darkMode } = useFnxFloatingButtonContext();
   const permitIconColor = darkMode ? '#FFFFFF' : '#00314E';
+  const [customCount, setCustomCount] = useState<number | ''>('');
+  const [customUnit, setCustomUnit] = useState<'days' | 'weeks' | 'months' | 'hours'>('days');
 
   const {
     permitName,
@@ -32,6 +42,14 @@ export const GeneratePermitPage: React.FC = () => {
   } = usePermitForm({
     onSuccess: navigateToPermits, // TODO: also add toast here?
   });
+
+  const applyCustomDuration = (count: number | '', unit: typeof customUnit) => {
+    setCustomCount(count);
+    setCustomUnit(unit);
+    if (typeof count === 'number' && count > 0) {
+      setDurationSeconds(count * unitSeconds[unit]);
+    }
+  };
 
   return (
     <div className="fnx-text-primary text-sm">
@@ -130,10 +148,39 @@ export const GeneratePermitPage: React.FC = () => {
               <p className="text-sm font-semibold text-[#0E2F3F] dark:text-white">Or:</p>
               <div className="flex flex-wrap items-center gap-3">
                 <div className="flex-1 rounded-xl border border-[#0E2F3F]/40 bg-[#F4F6F8] px-4 py-3 text-base font-semibold text-[#0E2F3F] dark:border-white/30 dark:bg-transparent dark:text-white">
-                  {'{Custom # of}'}
+                  <input
+                    type="number"
+                    min={1}
+                    placeholder="Custom # of"
+                    value={customCount}
+                    onChange={(e) => {
+                      const v = e.target.value === '' ? '' : Math.max(1, Number(e.target.value));
+                      applyCustomDuration(v, customUnit);
+                    }}
+                    className="w-full bg-transparent outline-none placeholder:text-[#355366] dark:placeholder:text-white/60"
+                    aria-label="Custom duration count"
+                  />
                 </div>
-                <div className="flex items-center gap-2 rounded-xl border border-[#0E2F3F]/40 px-4 py-3 text-base font-semibold text-[#0E2F3F] dark:border-white/40 dark:text-white">
-                  <span>days</span>
+                <div className="flex items-center gap-2 rounded-xl border border-[#0E2F3F]/40 px-3 py-2 text-base font-semibold text-[#0E2F3F] dark:border-white/40 dark:text-white">
+                  <select
+                    value={customUnit}
+                    onChange={(e) => applyCustomDuration(customCount, e.target.value as typeof customUnit)}
+                    className="bg-transparent outline-none appearance-none pr-5"
+                    aria-label="Custom duration unit"
+                  >
+                    <option value="days" className="text-[#0E2F3F]">
+                      days
+                    </option>
+                    <option value="weeks" className="text-[#0E2F3F]">
+                      weeks
+                    </option>
+                    <option value="months" className="text-[#0E2F3F]">
+                      months
+                    </option>
+                    <option value="hours" className="text-[#0E2F3F]">
+                      hours
+                    </option>
+                  </select>
                   <KeyboardArrowDownIcon fontSize="small" />
                 </div>
               </div>
