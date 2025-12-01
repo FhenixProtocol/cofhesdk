@@ -10,7 +10,19 @@ export const GeneratePermitPage: React.FC = () => {
   const { navigateToPermits, navigateBack, darkMode } = useFnxFloatingButtonContext();
   const permitIconColor = darkMode ? '#FFFFFF' : '#00314E';
 
-  const { permitName, error, isValid, isSubmitting, handleChange, handleSubmit } = usePermitForm({
+  const {
+    permitName,
+    receiver,
+    isSelf,
+    error,
+    receiverError,
+    isValid,
+    isSubmitting,
+    handleNameChange,
+    handleReceiverChange,
+    toggleIsSelf,
+    handleSubmit,
+  } = usePermitForm({
     onSuccess: navigateToPermits, // TODO: also add toast here?
   });
 
@@ -46,11 +58,15 @@ export const GeneratePermitPage: React.FC = () => {
           <div className="rounded-2xl border border-[#0E2F3F]/30 dark:border-white/30">
             <div className="flex items-center justify-between px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[#0E2F3F]/70 dark:text-white/70">
               <span>Name</span>
-              <label className="flex items-center gap-2 text-sm font-medium text-[#0E2F3F] dark:text-white">
+              <label className="flex items-center gap-2 text-sm font-medium text-[#0E2F3F] dark:text-white cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-[#0E2F3F] dark:accent-white"
+                  checked={isSelf}
+                  onChange={(e) => toggleIsSelf(e.target.checked)}
+                  aria-label="Self permit"
+                />
                 <span>Self permit</span>
-                <span className="inline-flex h-4 w-4 items-center justify-center rounded border border-current">
-                  <span className="h-2 w-2 bg-[#0E2F3F] dark:bg-white" />
-                </span>
               </label>
             </div>
             <div className="border-t border-[#0E2F3F]/15 bg-[#F4F6F8] px-4 py-3 text-base font-semibold text-[#0E2F3F] dark:border-white/15 dark:bg-transparent dark:text-white">
@@ -58,12 +74,29 @@ export const GeneratePermitPage: React.FC = () => {
                 type="text"
                 placeholder="Permit name"
                 value={permitName}
-                onChange={handleChange}
+                onChange={handleNameChange}
                 className="w-full bg-transparent outline-none placeholder:text-[#355366] dark:placeholder:text-white/60"
                 aria-label="Permit name"
               />
             </div>
             {error && <p className="px-4 pt-1 text-xs font-medium text-[#F0784F] dark:text-[#F0784F]">{error}</p>}
+            {!isSelf && (
+              <>
+                <div className="mt-3 border-t border-[#0E2F3F]/15 bg-[#F4F6F8] px-4 py-3 text-base font-semibold text-[#0E2F3F] dark:border-white/15 dark:bg-transparent dark:text-white">
+                  <input
+                    type="text"
+                    placeholder="Receiver address (0x...)"
+                    value={receiver}
+                    onChange={handleReceiverChange}
+                    className="w-full bg-transparent outline-none placeholder:text-[#355366] dark:placeholder:text-white/60"
+                    aria-label="Receiver address"
+                  />
+                </div>
+                {receiverError && (
+                  <p className="px-4 pt-1 text-xs font-medium text-[#F0784F] dark:text-[#F0784F]">{receiverError}</p>
+                )}
+              </>
+            )}
           </div>
 
           <div className="space-y-4">
