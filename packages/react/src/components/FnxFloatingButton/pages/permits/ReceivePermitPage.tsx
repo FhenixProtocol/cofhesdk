@@ -1,10 +1,44 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PermitReceiveIcon from './assets/fhenix-permit-receive.svg';
 import { useFnxFloatingButtonContext } from '../../FnxFloatingButtonContext.js';
+import { useState } from 'react';
+import { useCofheClient } from '../../../../hooks';
 
 export const ReceivePermitPage: React.FC = () => {
   const { navigateBack, darkMode } = useFnxFloatingButtonContext();
+  const client = useCofheClient();
+  const [permitData, setPermitData] = useState('');
+  const [permitName, setPermitName] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const permitIconColor = darkMode ? '#FFFFFF' : '#00314E';
+
+  const onSubmit = async () => {
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    if (!permitData.trim()) {
+      setErrorMsg('Please paste permit data.');
+      return;
+    }
+    try {
+      setIsSubmitting(true);
+      // Import shared permit from textarea content (JSON string or object)
+      const result = await client.permits.importShared(permitData.trim());
+      if (!result.success) {
+        throw result.error;
+      }
+      // Optionally update name if provided (store already handles name from input data)
+      setSuccessMsg('Permit received and set active.');
+      // Navigate back to permits list
+      navigateBack();
+    } catch (err: any) {
+      const message = err?.message ?? 'Failed to import permit';
+      setErrorMsg(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   return (
     <div className="fnx-text-primary text-sm">
       <div className="space-y-5 rounded-2xl border border-[#154054] bg-white p-5 shadow-[0_25px_60px_rgba(13,53,71,0.15)] transition-colors dark:border-[#2C6D80] dark:bg-[#1F1F1F]">
@@ -44,6 +78,8 @@ export const ReceivePermitPage: React.FC = () => {
               rows={3}
               placeholder="Paste permit data"
               className="w-full rounded-xl border border-[#0E2F3F]/30 bg-[#F4F6F8] px-4 py-3 text-sm text-[#0E2F3F] outline-none transition focus:border-[#0EA5A7] dark:border-white/30 dark:bg-transparent dark:text-white dark:placeholder:text-white/50"
+              value={permitData}
+              onChange={(e) => setPermitData(e.target.value)}
             />
           </div>
           <div className="space-y-2">
@@ -55,8 +91,12 @@ export const ReceivePermitPage: React.FC = () => {
               type="text"
               placeholder="Add a permit name (optional)"
               className="w-full rounded-xl border border-[#0E2F3F]/30 bg-[#F4F6F8] px-4 py-3 text-sm text-[#0E2F3F] outline-none transition focus:border-[#0EA5A7] dark:border-white/30 dark:bg-transparent dark:text-white dark:placeholder:text-white/50"
+              value={permitName}
+              onChange={(e) => setPermitName(e.target.value)}
             />
           </div>
+          {errorMsg && <div className="text-red-600 text-sm">{errorMsg}</div>}
+          {successMsg && <div className="text-green-600 text-sm">{successMsg}</div>}
         </section>
 
         <div className="grid grid-cols-2 gap-3 pt-2">
@@ -69,9 +109,11 @@ export const ReceivePermitPage: React.FC = () => {
           </button>
           <button
             type="button"
-            className="rounded-xl border border-[#0EA5A7] bg-[#6ED8E1] py-3 text-base font-semibold text-[#0E2F3F] transition-opacity hover:opacity-90 dark:border-[#0EA5A7] dark:bg-[#0EA5A7] dark:text-white"
+            className="rounded-xl border border-[#0EA5A7] bg-[#6ED8E1] py-3 text-base font-semibold text-[#0E2F3F] transition-opacity hover:opacity-90 dark:border-[#0EA5A7] dark:bg-[#0EA5A7] dark:text-white disabled:opacity-60"
+            disabled={isSubmitting}
+            onClick={onSubmit}
           >
-            Sign Permit
+            {isSubmitting ? 'Signing…' : 'Sign Permit'}
           </button>
         </div>
       </div>
