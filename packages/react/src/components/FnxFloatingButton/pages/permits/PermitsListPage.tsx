@@ -94,7 +94,7 @@ export const PermitsListPage: React.FC = () => {
           id: hash,
           name: permit.name,
           status,
-          actions: [],
+          actions: ['delete'],
         };
       });
   }, [allPermits]);
@@ -240,7 +240,7 @@ export const PermitsListPage: React.FC = () => {
               ) : (
                 <div className="space-y-1.5">
                   {receivedPermits.map((permit) => (
-                    <div key={permit.id} className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-3">
+                    <div key={permit.id} className="grid grid-cols-[96px_minmax(0,1fr)_auto] items-center gap-3">
                       <span
                         className={`inline-flex items-center justify-center rounded-md px-3 py-1 text-sm font-semibold ${statusStyles[permit.status]}`}
                       >
@@ -253,6 +253,23 @@ export const PermitsListPage: React.FC = () => {
                       >
                         {permit.name}
                       </span>
+                      <div className="flex shrink-0 items-center gap-2 text-[#0E2F3F] dark:text-white">
+                        {permit.actions.map((action) => {
+                          const Icon = actionIconMap[action];
+                          return (
+                            <button
+                              key={action}
+                              className="rounded-md border border-[#0E2F3F]/40 p-1.5 transition-colors hover:bg-[#0E2F3F]/10 dark:border-white/40 dark:hover:bg-white/10"
+                              aria-label={actionLabels[action]}
+                              type="button"
+                              title={actionLabels[action]}
+                              onClick={() => removePermit(permit.id)}
+                            >
+                              <Icon fontSize="small" />
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   ))}
                 </div>
