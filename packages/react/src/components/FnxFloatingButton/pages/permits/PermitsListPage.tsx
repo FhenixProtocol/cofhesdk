@@ -85,6 +85,20 @@ export const PermitsListPage: React.FC = () => {
       });
   }, [allPermits]);
 
+  const receivedPermits = useMemo<PermitRow[]>(() => {
+    return allPermits
+      .filter(({ permit }) => permit.type === 'recipient')
+      .map(({ hash, permit }) => {
+        const status: PermitStatus = ValidationUtils.isExpired(permit) ? 'expired' : 'active';
+        return {
+          id: hash,
+          name: permit.name,
+          status,
+          actions: [],
+        };
+      });
+  }, [allPermits]);
+
   const handleQuickAction = (actionId: string) => {
     if (actionId === 'generate') {
       navigateToGeneratePermit();
@@ -197,7 +211,28 @@ export const PermitsListPage: React.FC = () => {
                 </>
               )}
             >
-              TODO
+              {receivedPermits.length === 0 ? (
+                <div className="pl-1 text-sm text-[#0E2F3F]/70 dark:text-white/80">No permits yet.</div>
+              ) : (
+                <div className="space-y-1.5">
+                  {receivedPermits.map((permit) => (
+                    <div key={permit.id} className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-3">
+                      <span
+                        className={`inline-flex items-center justify-center rounded-md px-3 py-1 text-sm font-semibold ${statusStyles[permit.status]}`}
+                      >
+                        {permit.status === 'active' ? 'Active' : 'Expired'}
+                      </span>
+                      <span
+                        className="min-w-0 truncate text-base font-medium text-[#0E2F3F] dark:text-white"
+                        title={permit.name}
+                        aria-label={permit.name}
+                      >
+                        {permit.name}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </AccordionSection>
           </Accordion>
           <div className="grid grid-cols-2 gap-4">
