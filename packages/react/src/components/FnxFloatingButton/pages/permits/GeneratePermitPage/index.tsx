@@ -1,12 +1,12 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { usePermitForm } from './usePermitForm.js';
-import { useFnxFloatingButtonContext } from '../../FnxFloatingButtonContext.js';
-import PermitIcon from './assets/fhenix-permit-icon.svg';
-import { usePermitDuration } from './usePermitDuration.js';
-import { NameSection } from './GeneratePermitPage/components/NameSection.js';
-import { SelfToggle } from './GeneratePermitPage/components/SelfToggle.js';
-import { ReceiverSection } from './GeneratePermitPage/components/ReceiverSection.js';
-import { ExpirySection } from './GeneratePermitPage/components/ExpirySection.js';
+import { usePermitForm } from './hooks/usePermitForm.js';
+import { useFnxFloatingButtonContext } from '../../../FnxFloatingButtonContext.js';
+import PermitIcon from '../assets/fhenix-permit-icon.svg';
+import { usePermitDuration } from './hooks/usePermitDuration.js';
+import { NameSection } from './components/NameSection.js';
+import { SelfToggle } from './components/SelfToggle.js';
+import { ReceiverSection } from './components/ReceiverSection.js';
+import { ExpirySection } from './components/ExpirySection.js';
 
 export const GeneratePermitPage: React.FC = () => {
   const { navigateToPermits, navigateBack, darkMode } = useFnxFloatingButtonContext();
