@@ -41,6 +41,22 @@ export const ContentSection: React.FC<ContentSectionProps> = ({
     }
   }, [displayedContent, showPopupPanel, contentPadding, isTransitioning]);
 
+  // React to dynamic size changes inside the active page (e.g., toggling fields)
+  useEffect(() => {
+    if (!showPopupPanel) return;
+    const el = contentRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const newHeight = entry.contentRect.height + contentPadding * 2;
+        setContentHeight((prev) => (prev !== newHeight ? newHeight : prev));
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [showPopupPanel, contentPadding]);
+
   // Update content when page changes
   useEffect(() => {
     if (!showPopupPanel) {
