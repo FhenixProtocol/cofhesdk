@@ -1,6 +1,5 @@
 /* eslint-disable no-empty-pattern */
 /* eslint-disable turbo/no-undeclared-env-vars */
-/* eslint-disable no-unused-vars */
 import chalk from 'chalk';
 import { type PublicClient, type WalletClient } from 'viem';
 import { extendConfig, extendEnvironment, task, types } from 'hardhat/config';

@@ -1,5 +1,3 @@
-/* eslint-disable no-unused-vars */
-
 import {
   type CreateSelfPermitOptions,
   type Permit,
@@ -42,12 +40,6 @@ export type CofhesdkClient = {
   // --- state access ---
   getSnapshot(): CofhesdkClientConnectionState;
   subscribe(listener: Listener): () => void;
-
-  // --- initialization results ---
-  // (functions that may be run during initialization based on config)
-  readonly initializationResults: {
-    keyFetchResult: Promise<Result<boolean>>;
-  };
 
   // --- convenience flags (read-only) ---
   readonly connected: boolean;

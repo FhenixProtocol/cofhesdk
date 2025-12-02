@@ -5,7 +5,6 @@ import { createWalletClient, custom } from "viem";
 type SmartAccountClient = {
     account: { address: `0x${string}` };
     // Sends a UserOperation, returns a hash (usually userOpHash)
-    // eslint-disable-next-line no-unused-vars
     sendTransaction: (tx: any) => Promise<`0x${string}`>;
     // EIP-712 via smart account (e.g., Safe EIP-1271)
     signTypedData: (_args: { domain: any; types: Record<string, any>; primaryType: string; message: Record<string, any> }) => Promise<`0x${string}`>;

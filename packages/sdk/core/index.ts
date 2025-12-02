@@ -63,7 +63,7 @@ export {
 export type { Result } from './result.js';
 
 // Key fetching
-export { fetchKeys, fetchMultichainKeys } from './fetchKeys.js';
+export { fetchKeys } from './fetchKeys.js';
 export type { FheKeyDeserializer } from './fetchKeys.js';
 
 // Key storage

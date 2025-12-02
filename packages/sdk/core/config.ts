@@ -11,13 +11,6 @@ import { type IStorage } from './types.js';
 export type CofhesdkConfig = {
   supportedChains: CofheChain[];
   /**
-   * Strategy for fetching FHE keys
-   * - CONNECTED_CHAIN: Fetch keys for the connected chain (provided by the publicClient)
-   * - SUPPORTED_CHAINS: Fetch keys for all supported chains (provided by the supportedChains config)
-   * - OFF: Do not fetch keys (fetching occurs during encryptInputs)
-   * */
-  fheKeysPrefetching: 'CONNECTED_CHAIN' | 'SUPPORTED_CHAINS' | 'OFF';
-  /**
    * How permits are generated
    * - ON_CONNECT: Generate a permit when client.connect() is called
    * - ON_DECRYPT_HANDLES: Generate a permit when client.decryptHandles() is called
@@ -60,8 +53,6 @@ export type CofhesdkInternalConfig = {
 export const CofhesdkConfigSchema = z.object({
   /** List of supported chain configurations */
   supportedChains: z.array(z.custom<CofheChain>()),
-  /** Strategy for fetching FHE keys */
-  fheKeysPrefetching: z.enum(['CONNECTED_CHAIN', 'SUPPORTED_CHAINS', 'OFF']).optional().default('OFF'),
   /** How permits are generated */
   permitGeneration: z.enum(['ON_CONNECT', 'ON_DECRYPT_HANDLES', 'MANUAL']).optional().default('ON_CONNECT'),
   /** Default permit expiration in seconds, default is 30 days */

@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import { createPublicClient, createWalletClient, custom } from 'viem';
 import { type AdapterResult } from './types.js';
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers.js';

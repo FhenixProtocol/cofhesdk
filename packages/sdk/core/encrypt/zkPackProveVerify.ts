@@ -1,5 +1,3 @@
-/* eslint-disable no-unused-vars */
-
 import { CofhesdkError, CofhesdkErrorCode } from '../error.js';
 import { type EncryptableItem, FheTypes } from '../types.js';
 import { toBigIntOrThrow, validateBigIntInRange, toHexString, hexToBytes } from '../utils.js';

@@ -1,6 +1,4 @@
 /* eslint-disable no-redeclare */
-/* eslint-disable no-unused-vars */
-
 import { type EncryptableItem, isEncryptableItem, type EncryptedItemInput, type EncryptedItemInputs } from '../types.js';
 
 export function encryptExtract<T>(item: T): EncryptableItem[];
