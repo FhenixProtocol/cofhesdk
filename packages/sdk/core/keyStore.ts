@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import { createStore, type StoreApi } from 'zustand/vanilla';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { produce } from 'immer';

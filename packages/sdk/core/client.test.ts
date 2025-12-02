@@ -20,10 +20,6 @@ vi.mock('./keyStore', () => ({
   })),
 }));
 
-vi.mock('./fetchKeys', () => ({
-  fetchMultichainKeys: vi.fn().mockResolvedValue(undefined),
-}));
-
 // Test helpers
 const createMockPublicClient = (chainId = 11155111): PublicClient =>
   ({
@@ -261,17 +257,6 @@ describe('createCofhesdkClientBase', () => {
       expect(builder).toHaveProperty('encrypt');
       expect(builder.getChainId()).toBe(123);
       expect(builder.getAccount()).toBe('0xtest');
-    });
-  });
-
-  describe('initializationResults', () => {
-    it('should have keyFetchResult promise', () => {
-      expect(client.initializationResults.keyFetchResult).toBeInstanceOf(Promise);
-    });
-
-    it('should resolve keyFetchResult', async () => {
-      const result = await client.initializationResults.keyFetchResult;
-      expect(result.success).toBe(true);
     });
   });
 

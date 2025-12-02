@@ -1,6 +1,5 @@
 // Utility functions for sealing key operations
 
-// eslint-disable-next-line no-unused-vars
 declare const BigInt: (value: string | number | bigint) => bigint;
 
 export const fromHexString = (hexString: string): Uint8Array => {

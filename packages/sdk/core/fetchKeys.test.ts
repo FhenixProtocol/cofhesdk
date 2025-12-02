@@ -4,7 +4,7 @@
 import { sepolia, arbSepolia } from '@/chains';
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { fetchKeys, fetchMultichainKeys } from './fetchKeys.js';
+import { fetchKeys } from './fetchKeys.js';
 import { type CofhesdkConfig, createCofhesdkConfigBase } from './config.js';
 import { createKeysStore, type KeysStorage } from './keyStore.js';
 
@@ -191,22 +191,5 @@ describe('fetchKeys', () => {
     await expect(
       fetchKeys(config, sepolia.id, 0, mockTfhePublicKeyDeserializer, mockCompactPkeCrsDeserializer, keysStorage)
     ).rejects.toThrow('Error serializing CRS; Error: Serialization failed');
-  });
-
-  it('should fetch and store FHE public key and CRS for all chains in the config', async () => {
-    await fetchMultichainKeys(config, 0, mockTfhePublicKeyDeserializer, mockCompactPkeCrsDeserializer, keysStorage);
-
-    // Verify keys were stored
-    const storedFheKey = keysStorage.getFheKey(sepolia.id, 0);
-    const storedCrs = keysStorage.getCrs(sepolia.id);
-    const storedFheKeyArb = keysStorage.getFheKey(arbSepolia.id, 0);
-    const storedCrsArb = keysStorage.getCrs(arbSepolia.id);
-
-    expect(storedFheKey).toBeDefined();
-    expect(storedCrs).toBeDefined();
-    expect(storedFheKeyArb).toBeDefined();
-    expect(storedCrsArb).toBeDefined();
-    expect(mockTfhePublicKeyDeserializer).toHaveBeenCalled();
-    expect(mockCompactPkeCrsDeserializer).toHaveBeenCalled();
   });
 });

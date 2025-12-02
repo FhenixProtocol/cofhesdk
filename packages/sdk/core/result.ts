@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import { CofhesdkError, CofhesdkErrorCode } from './error.js';
 
 export type Result<T> = { success: true; data: T; error: null } | { success: false; data: null; error: CofhesdkError };

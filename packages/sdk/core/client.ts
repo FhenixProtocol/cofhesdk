@@ -1,9 +1,7 @@
-/* eslint-disable no-unused-vars */
 import type { CreateSelfPermitOptions, CreateSharingPermitOptions, ImportSharedPermitOptions } from '@/permits';
 
 import { createStore } from 'zustand/vanilla';
 import { type PublicClient, type WalletClient } from 'viem';
-import { fetchMultichainKeys } from './fetchKeys.js';
 import { CofhesdkError, CofhesdkErrorCode } from './error.js';
 import { EncryptInputsBuilder } from './encrypt/encryptInputsBuilder.js';
 import { type Result, ResultOk, resultWrapper } from './result.js';
@@ -71,24 +69,6 @@ export function createCofhesdkClientBase(opts: CofhesdkClientParams): CofhesdkCl
       });
     }
   };
-
-  // INITIALIZATION
-
-  const keyFetchResult = resultWrapper(async () => {
-    // If configured, fetch keys for all supported chains
-    if (opts.config.fheKeysPrefetching === 'SUPPORTED_CHAINS') {
-      await fetchMultichainKeys(
-        opts.config,
-        0,
-        opts.tfhePublicKeyDeserializer,
-        opts.compactPkeCrsDeserializer,
-        keysStorage
-      );
-      return true;
-    }
-
-    return false;
-  });
 
   // LIFECYCLE
 
@@ -295,11 +275,6 @@ export function createCofhesdkClientBase(opts: CofhesdkClientParams): CofhesdkCl
     getSnapshot: connectStore.getState,
     subscribe: connectStore.subscribe,
 
-    // initialization results
-    initializationResults: {
-      keyFetchResult,
-    },
-
     // flags (read-only: reflect snapshot)
     get connected() {
       return connectStore.getState().connected;
@@ -315,12 +290,5 @@ export function createCofhesdkClientBase(opts: CofhesdkClientParams): CofhesdkCl
     encryptInputs,
     decryptHandle,
     permits: clientPermits,
-
-    // Add SDK-specific methods below that require connection
-    // Example:
-    // async encryptData(data: unknown) {
-    //   requireConnected();
-    //   // Use _publicClient and _walletClient for implementation
-    // },
   };
 }

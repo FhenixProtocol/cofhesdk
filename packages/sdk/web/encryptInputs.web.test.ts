@@ -158,7 +158,6 @@ describe('@cofhe/web - Encrypt Inputs Browser Tests', () => {
             verifierUrl: 'http://invalid-verifier-url.local',
           },
         ],
-        fheKeysPrefetching: 'OFF',
       });
 
       const badClient = createCofhesdkClient(badConfig);

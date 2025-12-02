@@ -1,7 +1,6 @@
 /**
  * @vitest-environment happy-dom
  */
-/* eslint-disable no-unused-vars */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
