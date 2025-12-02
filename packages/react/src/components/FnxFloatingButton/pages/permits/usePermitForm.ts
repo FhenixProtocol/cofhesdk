@@ -9,7 +9,8 @@ export interface UsePermitFormResult {
   permitName: string;
   receiver: string;
   isSelf: boolean;
-  error: string | null;
+  error: string | null; // global/submit error
+  nameError: string | null; // field-specific error for name
   receiverError: string | null;
   isValid: boolean;
   isSubmitting: boolean;
@@ -28,6 +29,7 @@ export function usePermitForm(options: UsePermitFormOptions = {}): UsePermitForm
   const [receiver, setReceiver] = useState('');
   const [isSelf, setIsSelf] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [nameError, setNameError] = useState<string | null>(null);
   const [receiverError, setReceiverError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [durationSeconds, setDurationSeconds] = useState(7 * 24 * 60 * 60);
@@ -38,9 +40,9 @@ export function usePermitForm(options: UsePermitFormOptions = {}): UsePermitForm
   const handleNameChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setPermitName(e.target.value);
-      if (error) setError(null);
+      if (nameError) setNameError(null);
     },
-    [error]
+    [nameError]
   );
 
   const handleReceiverChange = useCallback(
@@ -61,7 +63,7 @@ export function usePermitForm(options: UsePermitFormOptions = {}): UsePermitForm
     if (isSubmitting) return;
     const nameToUse = permitName.trim();
     if (!nameToUse) {
-      setError('Permit name is required.');
+      setNameError('Permit name is required.');
       return;
     }
     if (!isSelf) {
@@ -92,6 +94,7 @@ export function usePermitForm(options: UsePermitFormOptions = {}): UsePermitForm
       setPermitName('');
       setReceiver('');
       setError(null);
+      setNameError(null);
       setReceiverError(null);
       onSuccess?.();
     } catch (e: any) {
@@ -106,6 +109,7 @@ export function usePermitForm(options: UsePermitFormOptions = {}): UsePermitForm
     setReceiver('');
     setIsSelf(true);
     setError(null);
+    setNameError(null);
     setReceiverError(null);
   }, []);
 
@@ -114,6 +118,7 @@ export function usePermitForm(options: UsePermitFormOptions = {}): UsePermitForm
     receiver,
     isSelf,
     error,
+    nameError,
     receiverError,
     isValid,
     isSubmitting,

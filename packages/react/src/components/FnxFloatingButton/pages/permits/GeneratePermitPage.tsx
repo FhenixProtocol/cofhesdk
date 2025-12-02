@@ -184,6 +184,7 @@ export const GeneratePermitPage: React.FC = () => {
     receiver,
     isSelf,
     error,
+    nameError,
     receiverError,
     isValid,
     isSubmitting,
@@ -233,10 +234,19 @@ export const GeneratePermitPage: React.FC = () => {
           </p>
         </div>
 
+        {error && (
+          <div
+            role="alert"
+            className="rounded-xl border border-[#F0784F] bg-[#F0784F]/10 px-4 py-3 text-sm font-medium text-[#0E2F3F] dark:border-[#C8542D] dark:bg-[#C8542D]/15 dark:text-white"
+          >
+            {error}
+          </div>
+        )}
+
         <section className="space-y-3">
           <NameSection
             permitName={permitName}
-            error={error}
+            error={nameError}
             onNameChange={handleNameChange}
             headerRight={<SelfToggle isSelf={isSelf} onToggleSelf={toggleIsSelf} />}
           />
