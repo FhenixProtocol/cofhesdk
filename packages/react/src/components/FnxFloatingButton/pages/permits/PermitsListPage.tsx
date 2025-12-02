@@ -118,7 +118,31 @@ export const PermitsListPage: React.FC = () => {
       if (action === 'copy') {
         const permit = allPermits.find((p) => p.hash === permitId);
         if (permit) {
-          const textToCopy = JSON.stringify(permit.permit, null, 2);
+          // type ImportSharedPermitOptions = {
+          //     type?: 'sharing';
+          //     issuer: string;
+          //     recipient: string;
+          //     issuerSignature: string;
+          //     name?: string;
+          //     expiration?: number;
+          //     validatorId?: number;
+          //     validatorContract?: string;
+          // }
+          const { type, issuer, recipient, issuerSignature, expiration, validatorContract, validatorId } =
+            permit.permit;
+          const textToCopy = JSON.stringify(
+            {
+              type,
+              issuer,
+              recipient,
+              issuerSignature,
+              expiration,
+              validatorContract,
+              validatorId,
+            },
+            null,
+            2
+          );
           void copyWithFeedback(permitId, textToCopy);
         }
       }
