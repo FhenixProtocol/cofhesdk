@@ -1,6 +1,7 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import CheckIcon from '@mui/icons-material/Check';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
@@ -11,6 +12,7 @@ import { ValidationUtils } from '@cofhe/sdk/permits';
 import { useCofheAllPermits, useCofheRemovePermit } from '../../../../hooks';
 import { useFnxFloatingButtonContext } from '../../FnxFloatingButtonContext.js';
 import { Accordion, AccordionSection } from '../../Accordion.js';
+import { useCopyFeedback } from '../../../../hooks/useCopyFeedback';
 
 type PermitStatus = 'active' | 'expired';
 
@@ -56,6 +58,8 @@ export const PermitsListPage: React.FC = () => {
   const removePermit = useCofheRemovePermit();
   const { navigateBack, navigateToGeneratePermit, navigateToReceivePermit } = useFnxFloatingButtonContext();
 
+  const { isCopied, copyWithFeedback } = useCopyFeedback();
+
   const generatedPermits = useMemo<PermitRow[]>(() => {
     return allPermits.map(({ hash, permit }) => {
       const status: PermitStatus = ValidationUtils.isExpired(permit) ? 'expired' : 'active';
@@ -94,11 +98,12 @@ export const PermitsListPage: React.FC = () => {
       if (action === 'copy') {
         const permit = allPermits.find((p) => p.hash === permitId);
         if (permit) {
-          navigator.clipboard.writeText(JSON.stringify(permit.permit, null, 2));
+          const textToCopy = JSON.stringify(permit.permit, null, 2);
+          void copyWithFeedback(permitId, textToCopy);
         }
       }
     },
-    [removePermit]
+    [removePermit, allPermits, copyWithFeedback]
   );
 
   return (
@@ -153,15 +158,18 @@ export const PermitsListPage: React.FC = () => {
                       <div className="flex shrink-0 items-center gap-2 text-[#0E2F3F] dark:text-white">
                         {permit.actions.map((action) => {
                           const Icon = actionIconMap[action];
+                          const copiedState = action === 'copy' && isCopied(permit.id);
                           return (
                             <button
                               key={action}
                               className="rounded-md border border-[#0E2F3F]/40 p-1.5 transition-colors hover:bg-[#0E2F3F]/10 dark:border-white/40 dark:hover:bg-white/10"
-                              aria-label={actionLabels[action]}
+                              aria-label={copiedState ? 'Copied!' : actionLabels[action]}
                               type="button"
+                              title={copiedState ? 'Copied!' : actionLabels[action]}
+                              disabled={copiedState}
                               onClick={() => handleGeneratedPermitAction(action, permit.id)}
                             >
-                              <Icon fontSize="small" />
+                              {copiedState ? <CheckIcon fontSize="small" color="success" /> : <Icon fontSize="small" />}
                             </button>
                           );
                         })}
