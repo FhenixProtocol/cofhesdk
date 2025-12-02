@@ -61,22 +61,28 @@ export const PermitsListPage: React.FC = () => {
   const { isCopied, copyWithFeedback } = useCopyFeedback();
 
   const generatedPermits = useMemo<PermitRow[]>(() => {
-    return allPermits.map(({ hash, permit }) => {
-      const status: PermitStatus = ValidationUtils.isExpired(permit) ? 'expired' : 'active';
-      const actions: PermitRow['actions'] = [];
-      if (status === 'active') {
-        if (permit.type === 'sharing') actions.push('copy');
-      } else {
-        actions.push('refresh');
-      }
-      actions.push('delete');
-      return {
-        id: hash,
-        name: permit.name,
-        status,
-        actions,
-      };
-    });
+    return allPermits
+      .filter(
+        ({ permit }) =>
+          // type === receipient is received, not generated
+          permit.type !== 'recipient'
+      )
+      .map(({ hash, permit }) => {
+        const status: PermitStatus = ValidationUtils.isExpired(permit) ? 'expired' : 'active';
+        const actions: PermitRow['actions'] = [];
+        if (status === 'active') {
+          if (permit.type === 'sharing') actions.push('copy');
+        } else {
+          actions.push('refresh');
+        }
+        actions.push('delete');
+        return {
+          id: hash,
+          name: permit.name,
+          status,
+          actions,
+        };
+      });
   }, [allPermits]);
 
   const handleQuickAction = (actionId: string) => {
