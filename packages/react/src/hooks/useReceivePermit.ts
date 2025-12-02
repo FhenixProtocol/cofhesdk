@@ -31,7 +31,20 @@ export function useReceivePermit(onSuccess?: () => void): UseReceivePermitReturn
 
     try {
       setIsSubmitting(true);
-      const result = await client.permits.importShared(permitData.trim());
+      // If user provided a name, override the incoming permit's name
+      let importArg: any | string = permitData.trim();
+      if (permitName.trim()) {
+        try {
+          const parsed = JSON.parse(permitData.trim());
+          importArg = { ...parsed, name: permitName.trim() };
+        } catch (e) {
+          setErrorMsg('Invalid permit data. Expected JSON.');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      const result = await client.permits.importShared(importArg);
       if (!result.success) throw result.error;
 
       setSuccessMsg('Permit received and set active.');
@@ -42,7 +55,7 @@ export function useReceivePermit(onSuccess?: () => void): UseReceivePermitReturn
     } finally {
       setIsSubmitting(false);
     }
-  }, [client, permitData, onSuccess]);
+  }, [client, permitData, permitName, onSuccess]);
 
   return {
     permitData,
