@@ -90,6 +90,13 @@ export const PermitsListPage: React.FC = () => {
       if (action === 'delete') {
         removePermit(permitId);
       }
+
+      if (action === 'copy') {
+        const permit = allPermits.find((p) => p.hash === permitId);
+        if (permit) {
+          navigator.clipboard.writeText(JSON.stringify(permit.permit, null, 2));
+        }
+      }
     },
     [removePermit]
   );
