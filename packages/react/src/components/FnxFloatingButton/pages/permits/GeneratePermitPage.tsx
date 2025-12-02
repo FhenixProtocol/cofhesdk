@@ -10,12 +10,14 @@ type NameSectionProps = {
   permitName: string;
   error?: string | null;
   onNameChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  headerRight?: React.ReactNode;
 };
 
-const NameSection: React.FC<NameSectionProps> = ({ permitName, error, onNameChange }) => (
+const NameSection: React.FC<NameSectionProps> = ({ permitName, error, onNameChange, headerRight }) => (
   <div className="rounded-2xl border border-[#0E2F3F]/30 dark:border-white/30">
     <div className="flex items-center justify-between px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[#0E2F3F]/70 dark:text-white/70">
       <span>Name</span>
+      {headerRight}
     </div>
     <div className="border-t border-[#0E2F3F]/15 bg-[#F4F6F8] px-4 py-3 text-base font-semibold text-[#0E2F3F] dark:border-white/15 dark:bg-transparent dark:text-white">
       <input
@@ -42,25 +44,20 @@ type SelfToggleProps = {
 };
 
 const SelfToggle: React.FC<SelfToggleProps> = ({ isSelf, onToggleSelf }) => (
-  <div className="rounded-2xl border border-[#0E2F3F]/30 dark:border-white/30">
-    <div className="flex items-center justify-between px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[#0E2F3F]/70 dark:text-white/70">
-      <span>Permit Type</span>
-      <label
-        htmlFor="self-permit"
-        className="flex items-center gap-2 text-sm font-medium text-[#0E2F3F] dark:text-white cursor-pointer"
-      >
-        <input
-          id="self-permit"
-          type="checkbox"
-          className="h-4 w-4 accent-[#0E2F3F] dark:accent-white"
-          checked={isSelf}
-          onChange={(e) => onToggleSelf(e.target.checked)}
-          aria-label="Self permit"
-        />
-        <span>Self</span>
-      </label>
-    </div>
-  </div>
+  <label
+    htmlFor="self-permit"
+    className="flex items-center gap-2 text-sm font-medium text-[#0E2F3F] dark:text-white cursor-pointer"
+  >
+    <span>Self permit</span>
+    <input
+      id="self-permit"
+      type="checkbox"
+      className="h-4 w-4 accent-[#0E2F3F] dark:accent-white"
+      checked={isSelf}
+      onChange={(e) => onToggleSelf(e.target.checked)}
+      aria-label="Self permit"
+    />
+  </label>
 );
 
 type ReceiverSectionProps = {
@@ -237,9 +234,12 @@ export const GeneratePermitPage: React.FC = () => {
         </div>
 
         <section className="space-y-3">
-          <SelfToggle isSelf={isSelf} onToggleSelf={toggleIsSelf} />
-
-          <NameSection permitName={permitName} error={error} onNameChange={handleNameChange} />
+          <NameSection
+            permitName={permitName}
+            error={error}
+            onNameChange={handleNameChange}
+            headerRight={<SelfToggle isSelf={isSelf} onToggleSelf={toggleIsSelf} />}
+          />
 
           {!isSelf && (
             <ReceiverSection
