@@ -14,7 +14,7 @@ type NameSectionProps = {
 };
 
 const NameSection: React.FC<NameSectionProps> = ({ permitName, error, onNameChange, headerRight }) => (
-  <div className="rounded-2xl border border-[#0E2F3F]/30 dark:border-white/30">
+  <div className="rounded-2xl border border-[#0E2F3F]/30 dark:border-white/30 overflow-hidden">
     <div className="flex items-center justify-between px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[#0E2F3F]/70 dark:text-white/70">
       <span>Name</span>
       {headerRight}
@@ -67,7 +67,7 @@ type ReceiverSectionProps = {
 };
 
 const ReceiverSection: React.FC<ReceiverSectionProps> = ({ receiver, receiverError, onReceiverChange }) => (
-  <div className="rounded-2xl border border-[#0E2F3F]/30 dark:border-white/30">
+  <div className="rounded-2xl border border-[#0E2F3F]/30 dark:border-white/30 overflow-hidden">
     <div className="flex items-center justify-between px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[#0E2F3F]/70 dark:text-white/70">
       <span>Receiver</span>
     </div>
