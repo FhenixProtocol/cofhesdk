@@ -1,8 +1,7 @@
 import { cn } from '../../utils/cn.js';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext.js';
-import { MainPage, SettingsPage, TokenListPage, GeneratePermitPage, ReceivePermitPage } from './pages/index.js';
-import { PermitsListPage } from './pages/permits/PermitsListPage.js';
+import { MainPage, SettingsPage, TokenListPage, GeneratePermitPage, ReceivePermitPage, PermitsListPage } from './pages/index.js';
 
 const CONTENT_TRANSITION_DURATION = 150; // Duration in milliseconds for content fade transition
 
@@ -104,3 +103,4 @@ export const ContentSection: React.FC<ContentSectionProps> = ({
     </div>
   );
 };
+
