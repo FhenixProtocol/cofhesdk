@@ -1,10 +1,10 @@
 import SettingsIcon from '@mui/icons-material/Settings';
 import logoBlack from './assets/logo-black.png';
 import logoWhite from './assets/logo-white.png';
-import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext.js';
+import { useFnxFloatingButtonContext, FloatingButtonPage } from './FnxFloatingButtonContext.js';
 
 export const StatusBarContent: React.FC = () => {
-  const { darkMode, navigateToSettings } = useFnxFloatingButtonContext();
+  const { darkMode, navigateTo } = useFnxFloatingButtonContext();
 
   return (
     <>
@@ -21,7 +21,7 @@ export const StatusBarContent: React.FC = () => {
       
       {/* Settings Icon */}
       <button
-        onClick={navigateToSettings}
+        onClick={() => navigateTo(FloatingButtonPage.Settings)}
         className="fnx-text-primary p-1 rounded hover:bg-white hover:bg-opacity-10 transition-colors"
       >
         <SettingsIcon className="fnx-settings-icon" />

@@ -54,3 +54,38 @@ export const FheTypesList: FheTypeOption[] = [
 ];
 
 export const NOOP_CALLBACK = () => () => {};
+
+/**
+ * Truncates an Ethereum address to show first 4 and last 4 characters
+ * @param address - The full Ethereum address (0x...)
+ * @param startChars - Number of characters to show at the start (default: 4)
+ * @param endChars - Number of characters to show at the end (default: 4)
+ * @param separator - Separator string between start and end (default: '***')
+ * @returns Truncated address string, or undefined if address is invalid
+ * 
+ * @example
+ * truncateAddress('0x1234567890abcdef1234567890abcdef12345678')
+ * // Returns: '0x12***5678'
+ */
+export function truncateAddress(
+  address: string | undefined | null,
+  startChars: number = 4,
+  endChars: number = 4,
+  separator: string = '***'
+): string | undefined {
+  if (!address) return undefined;
+  
+  // Remove 0x prefix for calculation, but keep it in the result
+  const addressWithoutPrefix = address.startsWith('0x') ? address.slice(2) : address;
+  
+  // Validate address length (should be 40 hex characters after 0x)
+  if (addressWithoutPrefix.length < startChars + endChars) {
+    return address; // Return as-is if too short to truncate
+  }
+  
+  const prefix = address.startsWith('0x') ? '0x' : '';
+  const start = addressWithoutPrefix.slice(0, startChars);
+  const end = addressWithoutPrefix.slice(-endChars);
+  
+  return `${prefix}${start}${separator}${end}`;
+}

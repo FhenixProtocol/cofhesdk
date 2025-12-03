@@ -290,5 +290,9 @@ export function createCofhesdkClientBase(opts: CofhesdkClientParams): CofhesdkCl
     encryptInputs,
     decryptHandle,
     permits: clientPermits,
+
+    // Expose clients (read-only)
+    getPublicClient: () => _publicClient,
+    getWalletClient: () => _walletClient,
   };
 }

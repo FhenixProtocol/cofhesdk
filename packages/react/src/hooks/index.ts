@@ -1,5 +1,5 @@
 export { useEncryptInput } from './useEncryptInput';
-export { useCofheConnection } from './useCofheConnection';
+export { useCofheConnection, useCofhePublicClient } from './useCofheConnection';
 export { useEncrypt } from './useEncrypt';
 export {
   useCofheActivePermit,
@@ -7,3 +7,6 @@ export {
   useCofheRemovePermit,
   useCofheSelectPermit,
 } from './useCofhePermits';
+export { useTokenBalance, useNativeBalance, useTokenConfidentialBalance, useTokenMetadata, usePinnedTokenAddress, type TokenMetadata } from './useTokenBalance';
+export { useTokenTransfer } from './useTokenTransfer';
+export { useCofheWalletClient } from './useCofheConnection';

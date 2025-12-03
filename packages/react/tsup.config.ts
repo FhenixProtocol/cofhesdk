@@ -11,7 +11,7 @@ export default defineConfig({
   splitting: false,
   sourcemap: true,
   clean: true,
-  external: ['react', 'react-dom', '@mui/material', '@mui/icons-material', '@cofhe/sdk'],
+  external: ['react', 'react-dom', '@mui/material', '@mui/icons-material', '@cofhe/sdk', 'viem'],
   esbuildOptions(options) {
     options.jsx = 'automatic';
     // Handle image imports as data URLs
@@ -21,6 +21,7 @@ export default defineConfig({
       '.jpg': 'dataurl',
       '.jpeg': 'dataurl',
       '.svg': 'dataurl',
+      '.webp': 'dataurl',
     };
   },
 });
