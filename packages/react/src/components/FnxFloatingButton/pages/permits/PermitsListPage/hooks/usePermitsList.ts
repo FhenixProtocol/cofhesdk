@@ -1,16 +1,17 @@
 import { useCallback, useMemo } from 'react';
-import { ValidationUtils } from '@cofhe/sdk/permits';
+import { ValidationUtils, type Permit } from '@cofhe/sdk/permits';
 import { useCofheAllPermits, useCofheRemovePermit } from '../../../../../../hooks';
 import { useFnxFloatingButtonContext } from '../../../../FnxFloatingButtonContext';
 import { useCopyFeedback } from '../../../../../../hooks/useCopyFeedback';
 
 export type PermitStatus = 'active' | 'expired';
+export type PermitAction = 'copy' | 'delete';
 
 export interface PermitRow {
   id: string;
   name: string;
   status: PermitStatus;
-  actions: Array<'copy' | 'delete' | 'refresh'>;
+  actions: PermitAction[];
 }
 
 export type QuickActionId = 'generate' | 'receive';
@@ -26,11 +27,9 @@ export const usePermitsList = () => {
       .filter(({ permit }) => permit.type !== 'recipient')
       .map(({ hash, permit }) => {
         const status: PermitStatus = ValidationUtils.isExpired(permit) ? 'expired' : 'active';
-        const actions: PermitRow['actions'] = [];
+        const actions: PermitAction[] = [];
         if (status === 'active') {
           if (permit.type === 'sharing') actions.push('copy');
-        } else {
-          if (permit.type === 'self') actions.push('refresh');
         }
         actions.push('delete');
         return {
@@ -70,7 +69,7 @@ export const usePermitsList = () => {
   );
 
   const handleGeneratedPermitAction = useCallback(
-    (action: PermitRow['actions'][number], permitId: string) => {
+    (action: PermitAction, permitId: string) => {
       if (action === 'delete') {
         removePermit(permitId);
         return;
