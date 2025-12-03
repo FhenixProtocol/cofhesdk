@@ -89,3 +89,26 @@ export function truncateAddress(
   
   return `${prefix}${start}${separator}${end}`;
 }
+
+/**
+ * Sanitizes numeric input to only allow numbers and a single decimal point
+ * @param value - The input value to sanitize
+ * @returns Sanitized value with only numbers and at most one decimal point
+ * 
+ * @example
+ * sanitizeNumericInput('123.45.67') // Returns: '123.4567'
+ * sanitizeNumericInput('abc123.45') // Returns: '123.45'
+ * sanitizeNumericInput('123') // Returns: '123'
+ */
+export function sanitizeNumericInput(value: string): string {
+  // Only allow numbers and decimal point
+  const cleaned = value.replace(/[^0-9.]/g, '');
+  
+  // Ensure only one decimal point
+  const parts = cleaned.split('.');
+  if (parts.length > 2) {
+    return parts[0] + '.' + parts.slice(1).join('');
+  }
+  
+  return cleaned;
+}

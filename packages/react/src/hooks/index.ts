@@ -7,6 +7,6 @@ export {
   useCofheRemovePermit,
   useCofheSelectPermit,
 } from './useCofhePermits';
-export { useTokenBalance, useNativeBalance, useTokenConfidentialBalance, useTokenMetadata, usePinnedTokenAddress, type TokenMetadata } from './useTokenBalance';
+export { useTokenBalance, useNativeBalance, useTokenConfidentialBalance, useTokenMetadata, useTokenDecimals, useTokenSymbol, usePinnedTokenAddress, type TokenMetadata } from './useTokenBalance';
 export { useTokenTransfer } from './useTokenTransfer';
 export { useCofheWalletClient } from './useCofheConnection';

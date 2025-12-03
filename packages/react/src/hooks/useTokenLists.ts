@@ -8,6 +8,12 @@ export type Token = {
   decimals: number;
   name: string;
   logoURI?: string;
+  extensions: {
+    fhenix: {
+      confidentialityType: 'wrapped' | 'pure' | 'dual';
+      confidentialValueType: 'uint64' | 'uint128';
+    };
+  };
 };
 
 type TokenList = {
@@ -34,7 +40,7 @@ export function useTokenLists(
   const widgetConfig = useCofheContext().config.react;
   const tokensListsUrls = widgetConfig.tokenLists[chainId];
 
-  const queriesOptions: UseQueryOptions<TokenList, Error, TokenList>[] =
+  const queriesOptions: UseQueryOptions<TokenList, Error>[] =
     tokensListsUrls?.map((url) => ({
       cacheTime: Infinity,
       staleTime: Infinity,
@@ -50,13 +56,12 @@ export function useTokenLists(
         }
         return await res.json();
       },
-      select: (data) => {
-        const filtered = {
+      select: (data: TokenList): TokenList => {
+        // filter only tokens for the current chain (some lists contain multiple chains)
+        return {
           ...data,
-          // filter only tokens for the current chain (some lists contain multiple chains)
           tokens: data.tokens.filter((token) => token.chainId === chainId),
         };
-        return filtered;
       },
       ...queryOptions,
     })) || [];

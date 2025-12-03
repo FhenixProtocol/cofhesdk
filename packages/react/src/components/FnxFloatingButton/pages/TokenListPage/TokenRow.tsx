@@ -1,0 +1,72 @@
+import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
+import { cn } from '../../../../utils/cn.js';
+import { useFnxFloatingButtonContext, type TokenListMode, type NativeToken } from '../../FnxFloatingButtonContext.js';
+import type { Token } from '../../../../hooks/useTokenLists.js';
+import { TokenIcon } from '../../components/TokenIcon.js';
+import { TokenBalance } from '../../components/TokenBalance.js';
+
+export const TokenRow: React.FC<{ 
+  token: Token | NativeToken; 
+  mode: TokenListMode 
+}> = ({ token, mode }) => {
+  const { selectToken, navigateToTokenInfo } = useFnxFloatingButtonContext();
+
+  const handleClick = () => {
+    const tokenData = {
+      address: token.address,
+      name: token.name,
+      symbol: token.symbol,
+      decimals: token.decimals,
+      logoURI: token.logoURI,
+      isNative: 'isNative' in token ? token.isNative : false,
+    };
+
+    if (mode === 'select') {
+      selectToken(tokenData);
+    } else {
+      // In view mode, navigate to token info page
+      navigateToTokenInfo(tokenData);
+    }
+  };
+
+  const isNative = 'isNative' in token && token.isNative;
+  const tokenObj = isNative ? undefined : (token as Token);
+
+  return (
+    <div
+      onClick={handleClick}
+      className={cn(
+        'flex items-center justify-between p-1',
+        'hover:bg-white hover:bg-opacity-5 transition-colors',
+        'cursor-pointer',
+      )}
+    >
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        {/* Token Icon */}
+        <TokenIcon logoURI={token.logoURI} alt={token.name} size="sm" />
+
+        {/* Token Name and Symbol */}
+        <div className="flex items-center gap-1 min-w-0 flex-1">
+          <span className="text-sm font-medium fnx-text-primary truncate">{token.name}</span>
+          <span className="text-xxxs opacity-70 fnx-text-primary">({token.symbol})</span>
+        </div>
+      </div>
+
+      {/* Balance and Arrow */}
+      <div className="flex items-center gap-2">
+        <TokenBalance
+          token={tokenObj}
+          tokenAddress={isNative ? undefined : token.address}
+          isNative={isNative}
+          symbol={token.symbol}
+          showSymbol={false}
+          size="sm"
+          decimalPrecision={5}
+          className="font-medium"
+        />
+        <KeyboardArrowRightIcon className="w-5 h-5 fnx-text-primary opacity-60 flex-shrink-0" />
+      </div>
+    </div>
+  );
+};
+
