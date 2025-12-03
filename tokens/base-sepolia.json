@@ -13,7 +13,11 @@
       "decimals": 18,
       "logoURI": "https://storage.googleapis.com/cofhesdk/token-icons/eth.webp",
       "extensions": {
-        "coingeckoId": "eeth"
+        "coingeckoId": "eeth",
+        "fhenix": {
+          "confidentialityType": "wrapped",
+          "confidentialValueType": "uint128"
+        }
       }
     },
     {
@@ -24,7 +28,11 @@
       "decimals": 6,
       "logoURI": "https://storage.googleapis.com/cofhesdk/token-icons/usdc.webp",
       "extensions": {
-        "coingeckoId": "eusdc"
+        "coingeckoId": "eusdc",
+        "fhenix": {
+          "confidentialityType": "wrapped",
+          "confidentialValueType": "uint128"
+        }
       }
     },
     {
@@ -35,7 +43,11 @@
       "decimals": 6,
       "logoURI": "https://storage.googleapis.com/cofhesdk/token-icons/usdc.webp",
       "extensions": {
-        "coingeckoId": "eusdc"
+        "coingeckoId": "eusdc",
+        "fhenix": {
+          "confidentialityType": "pure",
+          "confidentialValueType": "uint64"
+        }
       }
     }    
   ]
