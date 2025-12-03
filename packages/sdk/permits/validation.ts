@@ -8,6 +8,8 @@ const SerializedSealingPair = z.object({
   publicKey: z.string(),
 });
 
+const DEFAULT_EXPIRATION_FN = () => Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 days from now
+
 const zPermitWithDefaults = z.object({
   name: z.string().optional().default('Unnamed Permit'),
   type: z.enum(['self', 'sharing', 'recipient']),
@@ -19,7 +21,7 @@ const zPermitWithDefaults = z.object({
     .refine((val) => val !== zeroAddress, {
       message: 'Permit issuer :: must not be zeroAddress',
     }),
-  expiration: z.number().optional().default(1000000000000),
+  expiration: z.number().optional().default(DEFAULT_EXPIRATION_FN),
   recipient: z
     .string()
     .optional()
@@ -79,7 +81,7 @@ export const SelfPermitOptionsValidator = z
         message: 'Self permit issuer :: must not be zeroAddress',
       }),
     name: z.string().optional().default('Unnamed Permit'),
-    expiration: z.number().optional().default(1000000000000), // todo: misleading default?
+    expiration: z.number().optional().default(DEFAULT_EXPIRATION_FN),
     recipient: z
       .string()
       .optional()
@@ -160,7 +162,7 @@ export const SharingPermitOptionsValidator = z
         message: 'Sharing permit recipient :: must not be zeroAddress',
       }),
     name: z.string().optional().default('Unnamed Permit'),
-    expiration: z.number().optional().default(1000000000000),
+    expiration: z.number().optional().default(DEFAULT_EXPIRATION_FN),
     validatorId: z.number().optional().default(0),
     validatorContract: z
       .string()
@@ -239,7 +241,7 @@ export const ImportPermitOptionsValidator = z
         message: 'Import permit :: issuerSignature must be provided',
       }),
     name: z.string().optional().default('Unnamed Permit'),
-    expiration: z.number().optional().default(1000000000000),
+    expiration: z.number().optional().default(DEFAULT_EXPIRATION_FN),
     validatorId: z.number().optional().default(0),
     validatorContract: z
       .string()
