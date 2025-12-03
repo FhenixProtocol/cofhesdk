@@ -1,7 +1,7 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import PermitReceiveIcon from './assets/fhenix-permit-receive.svg';
-import { useFnxFloatingButtonContext } from '../../FnxFloatingButtonContext.js';
-import { useReceivePermit } from '../../../../hooks/useReceivePermit.js';
+import PermitReceiveIcon from '../assets/fhenix-permit-receive.svg';
+import { useFnxFloatingButtonContext } from '../../../FnxFloatingButtonContext.js';
+import { useReceivePermit } from './hooks/useReceivePermit.js';
 
 export const ReceivePermitPage: React.FC = () => {
   const { navigateBack, darkMode } = useFnxFloatingButtonContext();
@@ -82,7 +82,7 @@ export const ReceivePermitPage: React.FC = () => {
             disabled={isSubmitting}
             onClick={submit}
           >
-            {isSubmitting ? 'Signing…' : 'Sign Permit'}
+            {isSubmitting ? 'Signing...' : 'Sign Permit'}
           </button>
         </div>
       </div>
