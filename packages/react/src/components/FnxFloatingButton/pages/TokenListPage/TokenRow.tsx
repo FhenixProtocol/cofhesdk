@@ -1,64 +1,36 @@
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
-import { useTokenConfidentialBalance } from '../../../../hooks/useTokenBalance.js';
-import { useCofheAccount } from '../../../../hooks/useCofheConnection.js';
-import { useMemo, useState, useEffect } from 'react';
 import { cn } from '../../../../utils/cn.js';
-import { formatUnits } from 'viem';
-import type { Address } from 'viem';
-import { useFnxFloatingButtonContext, type TokenListMode } from '../../FnxFloatingButtonContext.js';
+import { useFnxFloatingButtonContext, type TokenListMode, type NativeToken } from '../../FnxFloatingButtonContext.js';
+import type { Token } from '../../../../hooks/useTokenLists.js';
+import { TokenIcon } from '../../components/TokenIcon.js';
+import { TokenBalance } from '../../components/TokenBalance.js';
 
-type TokenWithBalance = {
-  address: string;
-  name: string;
-  symbol: string;
-  decimals: number;
-  logoURI?: string;
-  balance: string;
-  isNative: boolean;
-};
-
-export const TokenRow: React.FC<{ token: TokenWithBalance; mode: TokenListMode }> = ({ token, mode }) => {
-  const account = useCofheAccount();
-  const { selectToken } = useFnxFloatingButtonContext();
-  const [iconError, setIconError] = useState(false);
-
-  // Get confidential token balance if it's not native
-  const { data: confidentialBalance } = useTokenConfidentialBalance(
-    {
-      tokenAddress: token.address as Address,
-      accountAddress: account as Address | undefined,
-    }
-  );
-
-  useEffect(() => {
-    setIconError(false);
-  }, [token.logoURI]);
-
-  // Determine display balance
-  const displayBalance = useMemo(() => {
-    if (token.isNative) {
-      return token.balance;
-    }
-    
-    if (confidentialBalance !== undefined && token.decimals) {
-      return formatUnits(confidentialBalance, token.decimals);
-    }
-    
-    return '0';
-  }, [token.isNative, token.balance, token.decimals, confidentialBalance]);
+export const TokenRow: React.FC<{ 
+  token: Token | NativeToken; 
+  mode: TokenListMode 
+}> = ({ token, mode }) => {
+  const { selectToken, navigateToTokenInfo } = useFnxFloatingButtonContext();
 
   const handleClick = () => {
+    const tokenData = {
+      address: token.address,
+      name: token.name,
+      symbol: token.symbol,
+      decimals: token.decimals,
+      logoURI: token.logoURI,
+      isNative: 'isNative' in token ? token.isNative : false,
+    };
+
     if (mode === 'select') {
-      selectToken({
-        address: token.address,
-        name: token.name,
-        symbol: token.symbol,
-        decimals: token.decimals,
-        logoURI: token.logoURI,
-        isNative: token.isNative,
-      });
+      selectToken(tokenData);
+    } else {
+      // In view mode, navigate to token info page
+      navigateToTokenInfo(tokenData);
     }
   };
+
+  const isNative = 'isNative' in token && token.isNative;
+  const tokenObj = isNative ? undefined : (token as Token);
 
   return (
     <div
@@ -66,23 +38,12 @@ export const TokenRow: React.FC<{ token: TokenWithBalance; mode: TokenListMode }
       className={cn(
         'flex items-center justify-between p-1',
         'hover:bg-white hover:bg-opacity-5 transition-colors',
-        mode === 'select' ? 'cursor-pointer' : 'cursor-default',
+        'cursor-pointer',
       )}
     >
       <div className="flex items-center gap-3 flex-1 min-w-0">
         {/* Token Icon */}
-        <div className="w-5 h-5 rounded-full fnx-icon-bg flex items-center justify-center flex-shrink-0 overflow-hidden">
-          {token.logoURI && !iconError ? (
-            <img
-              src={token.logoURI}
-              alt={token.name}
-              className="w-full h-full object-cover"
-              onError={() => setIconError(true)}
-            />
-          ) : (
-            <span className="text-lg">⟠</span>
-          )}
-        </div>
+        <TokenIcon logoURI={token.logoURI} alt={token.name} size="sm" />
 
         {/* Token Name and Symbol */}
         <div className="flex items-center gap-1 min-w-0 flex-1">
@@ -93,9 +54,16 @@ export const TokenRow: React.FC<{ token: TokenWithBalance; mode: TokenListMode }
 
       {/* Balance and Arrow */}
       <div className="flex items-center gap-2">
-        <div className="flex items-center gap-1">
-          <span className="text-sm font-medium fnx-text-primary">{displayBalance}</span>
-        </div>
+        <TokenBalance
+          token={tokenObj}
+          tokenAddress={isNative ? undefined : token.address}
+          isNative={isNative}
+          symbol={token.symbol}
+          showSymbol={false}
+          size="sm"
+          decimalPrecision={5}
+          className="font-medium"
+        />
         <KeyboardArrowRightIcon className="w-5 h-5 fnx-text-primary opacity-60 flex-shrink-0" />
       </div>
     </div>

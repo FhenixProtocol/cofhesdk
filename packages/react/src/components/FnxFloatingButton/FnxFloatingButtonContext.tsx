@@ -7,12 +7,22 @@ export enum FloatingButtonPage {
   Main = 'main',
   Settings = 'settings',
   TokenList = 'tokenlist',
+  TokenInfo = 'tokeninfo',
   Send = 'send',
   Shield = 'shield',
   Activity = 'activity',
 }
 
 export type TokenListMode = 'view' | 'select';
+
+export type NativeToken = {
+  address: 'native';
+  name: 'Ether';
+  symbol: 'ETH';
+  decimals: 18;
+  logoURI?: string;
+  isNative: true;
+};
 
 export type SelectedToken = {
   address: string;
@@ -46,6 +56,11 @@ interface FnxFloatingButtonContextValue {
   selectedToken: SelectedToken;
   navigateToTokenListForSelection: () => void;
   selectToken: (token: SelectedToken) => void;
+  // Token viewing
+  viewingToken: SelectedToken;
+  navigateToTokenInfo: (token: SelectedToken) => void;
+  // Config
+  showNativeTokenInList: boolean;
 }
 
 const FnxFloatingButtonContext = createContext<FnxFloatingButtonContextValue | null>(null);
@@ -65,12 +80,14 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
 }) => {
   const widgetConfig = useCofheContext().config.react;
   const effectivePosition = position || widgetConfig.position;
+  const showNativeTokenInList = widgetConfig.showNativeTokenInList;
 
   const [pageHistory, setPageHistory] = useState<FloatingButtonPage[]>([FloatingButtonPage.Main]);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showPopupPanel, setShowPopupPanel] = useState(false);
   const [tokenListMode, setTokenListMode] = useState<TokenListMode>('view');
   const [selectedToken, setSelectedToken] = useState<SelectedToken>(null);
+  const [viewingToken, setViewingToken] = useState<SelectedToken>(null);
 
   const currentPage = pageHistory[pageHistory.length - 1];
   const isLeftSide = effectivePosition.includes('left');
@@ -122,6 +139,11 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
     navigateBack(); // Return to previous page after selection
   };
 
+  const navigateToTokenInfo = (token: SelectedToken) => {
+    setViewingToken(token);
+    navigateTo(FloatingButtonPage.TokenInfo);
+  };
+
   return (
     <FnxFloatingButtonContext.Provider
       value={{
@@ -143,6 +165,9 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
         selectedToken,
         navigateToTokenListForSelection,
         selectToken,
+        viewingToken,
+        navigateToTokenInfo,
+        showNativeTokenInList,
       }}
     >
       {children}

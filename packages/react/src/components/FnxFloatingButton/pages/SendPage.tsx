@@ -1,5 +1,7 @@
 import { useState, useMemo } from 'react';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
+import { type Address, isAddress, formatUnits } from 'viem';
 import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext.js';
 import { useCofheContext } from '../../../providers/CofheProvider.js';
 import { useCofheAccount, useCofheChainId } from '../../../hooks/useCofheConnection.js';
@@ -8,22 +10,21 @@ import {
   useTokenMetadata, 
   usePinnedTokenAddress 
 } from '../../../hooks/useTokenBalance.js';
+import { useTokens } from '../../../hooks/useTokenLists.js';
 import { useEncryptInput } from '../../../hooks/useEncryptInput.js';
-import { useCofheWalletClient } from '../../../hooks/useCofheConnection.js';
-import { parseAbi, type Address, isAddress } from 'viem';
+import { useTokenTransfer, type EncryptedValue } from '../../../hooks/useTokenTransfer.js';
 import { cn } from '../../../utils/cn.js';
-import { truncateAddress } from '../../../utils/utils.js';
-
-const SEND_TOKENS_ABI = parseAbi([
-  'function sendTokens(address to, uint256 amount, uint256 nonce) returns (bool)'
-]);
+import { truncateAddress, sanitizeNumericInput } from '../../../utils/utils.js';
+import { TokenIcon } from '../components/TokenIcon.js';
+import { TokenBalance } from '../components/TokenBalance.js';
 
 export const SendPage: React.FC = () => {
   const { navigateBack, selectedToken, navigateToTokenListForSelection } = useFnxFloatingButtonContext();
   const { client } = useCofheContext();
   const account = useCofheAccount();
   const chainId = useCofheChainId();
-  const walletClient = useCofheWalletClient();
+  const tokenTransfer = useTokenTransfer();
+  const tokens = useTokens(chainId ?? 0);
   
   const pinnedTokenAddress = usePinnedTokenAddress();
   // Use selected token if available, otherwise fall back to pinned token
@@ -31,13 +32,24 @@ export const SendPage: React.FC = () => {
     ? (selectedToken.address as Address)
     : pinnedTokenAddress;
   
+  // Find token from token list to get confidentialityType
+  const tokenFromList = useMemo(() => {
+    if (!activeTokenAddress || !chainId) return null;
+    return tokens.find(
+      (t) => t.chainId === chainId && t.address.toLowerCase() === activeTokenAddress.toLowerCase()
+    ) || null;
+  }, [activeTokenAddress, chainId, tokens]);
+  
   const { data: tokenMetadata } = useTokenMetadata(activeTokenAddress);
-  // The hook requires a non-undefined Address, so we provide a fallback
-  // The hook's internal enabled check will prevent query execution if the address is invalid
-  // We use a sentinel address that will fail the enabled check (but TypeScript needs a valid Address type)
-  const tokenAddressForHook: Address = activeTokenAddress || ('0x0000000000000000000000000000000000000000' as Address);
+
   const { data: confidentialBalance } = useTokenConfidentialBalance(
-    { tokenAddress: tokenAddressForHook }
+    { 
+      token: tokenFromList ?? undefined,
+      accountAddress: account as Address,
+    },
+    {
+      enabled: !!tokenFromList && !!activeTokenAddress && !!account,
+    }
   );
   
   // Use selected token metadata if available, otherwise use fetched metadata
@@ -48,21 +60,15 @@ export const SendPage: React.FC = () => {
     logoURI: undefined,
   } : null);
   
-  const { onEncryptInput, isEncryptingInput, encryptionStep, encryptionProgressLabel } = useEncryptInput();
+  const { onEncryptInput, isEncryptingInput, encryptionProgressLabel } = useEncryptInput();
   
   const [amount, setAmount] = useState('');
   const [recipientAddress, setRecipientAddress] = useState('');
-  const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  
+  const isSending = tokenTransfer.isPending;
 
-  // Calculate available balance in display format
-  const availableBalance = useMemo(() => {
-    if (!confidentialBalance || !tokenMetadata?.decimals) return '0.00';
-    const divisor = BigInt(10 ** tokenMetadata.decimals);
-    const normalizedValue = Number(confidentialBalance) / Number(divisor);
-    return normalizedValue.toFixed(5).replace(/\.?0+$/, '');
-  }, [confidentialBalance, tokenMetadata?.decimals]);
 
   // Validate recipient address
   const isValidAddress = useMemo(() => {
@@ -84,7 +90,7 @@ export const SendPage: React.FC = () => {
   }, [amount, tokenMetadata?.decimals, confidentialBalance]);
 
   const handleSend = async () => {
-    if (!activeTokenAddress || !tokenMetadata || !walletClient || !account || !client) {
+    if (!activeTokenAddress || !tokenMetadata || !account || !client) {
       setError('Missing required data. Please ensure wallet is connected and a token is selected.');
       return;
     }
@@ -99,7 +105,6 @@ export const SendPage: React.FC = () => {
       return;
     }
 
-    setIsSending(true);
     setError(null);
     setSuccess(null);
 
@@ -115,27 +120,33 @@ export const SendPage: React.FC = () => {
         throw new Error('Amount exceeds maximum supported value (uint128 max)');
       }
 
-      // Encrypt the amount using uint128 type (largest supported FHE type)
-      const encryptedAmount = await onEncryptInput('uint128', amountInSmallestUnit.toString());
+      // Ensure we have a token from the list
+      if (!tokenFromList) {
+        throw new Error('Token not found in token list');
+      }
+
+      // Encrypt the amount using the token's confidentialValueType
+      const confidentialValueType = tokenFromList.extensions.fhenix.confidentialValueType;
+      const encryptedAmount = await onEncryptInput(confidentialValueType, amountInSmallestUnit.toString());
       
       if (!encryptedAmount || !encryptedAmount.ctHash) {
         throw new Error('Failed to encrypt amount');
       }
 
-      // Extract the ciphertext hash (ctHash) from the encrypted result
-      const ctHash = encryptedAmount.ctHash;
+      // Construct encrypted value struct
+      const encryptedValue: EncryptedValue = {
+        ctHash: BigInt(encryptedAmount.ctHash),
+        securityZone: encryptedAmount.securityZone ?? 0,
+        utype: encryptedAmount.utype ?? 0,
+        signature: encryptedAmount.signature as `0x${string}`,
+      };
 
-      // Call sendTokens with encrypted amount
-      // Note: The contract may expect the encrypted value directly or wrapped
-      // Adjust based on your contract's actual implementation
-      // Using 'as any' to bypass type checking since CofheChain doesn't match viem Chain type
-      // The walletClient should handle the chain internally
-      const hash = await walletClient.writeContract({
-        address: activeTokenAddress,
-        abi: SEND_TOKENS_ABI,
-        functionName: 'sendTokens',
-        args: [recipientAddress as Address, ctHash, 0n],
-      } as any);
+      // Use the token transfer hook to send encrypted tokens
+      const hash = await tokenTransfer.mutateAsync({
+        token: tokenFromList,
+        to: recipientAddress as Address,
+        encryptedValue,
+      });
 
       setSuccess(`Transaction sent! Hash: ${truncateAddress(hash)}`);
       setAmount('');
@@ -147,14 +158,13 @@ export const SendPage: React.FC = () => {
       const errorMessage = err instanceof Error ? err.message : 'Failed to send tokens';
       setError(errorMessage);
       console.error('Send error:', err);
-    } finally {
-      setIsSending(false);
     }
   };
 
   const handleMaxAmount = () => {
-    if (availableBalance) {
-      setAmount(availableBalance);
+    // Calculate available balance for MAX button
+    if (confidentialBalance && tokenMetadata?.decimals) {
+      setAmount(formatUnits(confidentialBalance, tokenMetadata.decimals));
     }
   };
 
@@ -166,57 +176,69 @@ export const SendPage: React.FC = () => {
         className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity mb-2"
       >
         <ArrowBackIcon style={{ fontSize: 16 }} />
-        <span>Back</span>
+        <p className="text-sm font-medium">Shielded Transfer</p>
       </button>
 
       {/* Asset Section */}
-      <div className="fnx-card-bg rounded-lg p-4 border fnx-card-border">
+      <div className="fnx-card-bg rounded-lg p-2 border fnx-card-border">
         <div className="flex items-center justify-between mb-2">
           <label className="block text-xs font-medium opacity-70">Asset to be sent</label>
-          <button
-            onClick={navigateToTokenListForSelection}
-            className="text-xs text-blue-500 hover:text-blue-400 transition-colors"
-          >
-            Change →
-          </button>
         </div>
         <div className="flex items-center gap-3">
           {/* Token Icon */}
-          <div className="w-10 h-10 rounded-full fnx-icon-bg flex items-center justify-center flex-shrink-0 overflow-hidden">
-            {displayToken?.logoURI ? (
-              <img
-                src={displayToken.logoURI}
-                alt={displayToken.name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <span className="text-lg">⟠</span>
-            )}
-          </div>
+          <TokenIcon 
+            logoURI={displayToken?.logoURI || tokenFromList?.logoURI} 
+            alt={displayToken?.name || 'Token'}
+            size="md"
+          />
           
-          {/* Amount Input */}
-          <div className="flex-1">
+          {/* Amount Input and Symbol on same line, centered with logo */}
+          <div className="flex-1 flex items-center gap-1 min-w-0">
             <input
-              type="number"
-              step="any"
+              type="text"
+              inputMode="decimal"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={(e) => {
+                setAmount(sanitizeNumericInput(e.target.value));
+              }}
               placeholder="0.00"
-              className="w-full bg-transparent text-2xl font-bold fnx-text-primary outline-none placeholder:opacity-50"
+              className="flex-1 min-w-0 bg-transparent text-2xl font-bold fnx-text-primary outline-none placeholder:opacity-50"
             />
-            <div className="flex items-center justify-between mt-1">
-              <span className="text-xs opacity-70">{displayToken?.symbol || tokenMetadata?.symbol || 'TOKEN'}</span>
-              <button
-                onClick={handleMaxAmount}
-                className="text-xs text-blue-500 hover:text-blue-400 transition-colors"
-              >
-                MAX
-              </button>
-            </div>
+            <button
+              onClick={navigateToTokenListForSelection}
+              className="flex items-center gap-1 text-2xl font-bold fnx-text-primary hover:opacity-80 transition-opacity whitespace-nowrap flex-shrink-0"
+            >
+              <span>{displayToken?.symbol || tokenMetadata?.symbol || 'TOKEN'}</span>
+              <KeyboardArrowRightIcon className="w-5 h-5 fnx-text-primary opacity-60 flex-shrink-0" />
+            </button>
           </div>
         </div>
-        <div className="mt-2 text-xs opacity-70">
-          Available {availableBalance} {displayToken?.symbol || tokenMetadata?.symbol || ''}
+        <div className="flex items-center gap-3 -mt-1 text-xs opacity-70">
+          {/* Invisible placeholder to align with icon above */}
+          <div className="w-10 flex-shrink-0" />
+          
+          {/* Available text and MAX button */}
+          <div className="flex-1 flex items-center justify-start min-w-0 gap-2">
+            <span className="text-xs opacity-70">
+              Available{' '}
+            </span>
+            <TokenBalance
+              token={tokenFromList ?? undefined}
+              tokenAddress={activeTokenAddress ?? undefined}
+              isNative={false}
+              symbol={displayToken?.symbol || tokenMetadata?.symbol}
+              showSymbol={true}
+              size="sm"
+              decimalPrecision={5}
+              className="text-xs opacity-70 font-medium"
+            />
+            <button
+              onClick={handleMaxAmount}
+              className="fnx-max-button text-xxxs ml-1 font-medium px-0.5 py-0.2 rounded"
+            >
+              MAX
+            </button>
+          </div>
         </div>
       </div>
 
@@ -230,10 +252,7 @@ export const SendPage: React.FC = () => {
       {/* Recipient Address */}
       <div className="fnx-card-bg rounded-lg p-4 border fnx-card-border">
         <div className="flex items-center justify-between mb-2">
-          <label className="block text-xs font-medium opacity-70">Address:</label>
-          <button className="text-xs text-blue-500 hover:text-blue-400 transition-colors">
-            saved addresses →
-          </button>
+          <label className="block text-xs font-medium opacity-70">Recipient Address:</label>
         </div>
         <input
           type="text"
@@ -276,14 +295,14 @@ export const SendPage: React.FC = () => {
         onClick={handleSend}
         disabled={!isValidAddress || !isValidAmount || isSending || isEncryptingInput || !activeTokenAddress}
         className={cn(
-          "w-full py-3 px-4 rounded-lg font-medium transition-all",
+          "fnx-send-button w-full py-3 px-4 font-small",
           "flex items-center justify-center gap-2",
           isValidAddress && isValidAmount && !isSending && !isEncryptingInput && pinnedTokenAddress
-            ? "bg-blue-500 hover:bg-blue-600 text-white"
-            : "bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed"
+            ? "fnx-send-button-enabled"
+            : "fnx-send-button-disabled"
         )}
       >
-        <span>Preview Send</span>
+        <span>Send</span>
         <span className="text-lg">↗</span>
       </button>
     </div>

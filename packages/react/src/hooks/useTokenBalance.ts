@@ -1,19 +1,16 @@
 import { useQuery, type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
-import { parseAbi, formatUnits, type Address, type Abi } from 'viem';
+import { formatUnits, type Address } from 'viem';
 import { FheTypes } from '@cofhe/sdk';
 import { useCofheAccount, useCofheChainId, useCofhePublicClient } from './useCofheConnection.js';
 import { useCofheContext } from '../providers/CofheProvider.js';
-import { detectContractType, getSelectorsFromAbi } from './useTokenContractDetection.js';
-
-// ERC20 ABIs
-const ERC20_BALANCE_OF_ABI = parseAbi(['function balanceOf(address owner) view returns (uint256)']);
-const ERC20_DECIMALS_ABI = parseAbi(['function decimals() view returns (uint8)']);
-const ERC20_SYMBOL_ABI = parseAbi(['function symbol() view returns (string)']);
-const ERC20_NAME_ABI = parseAbi(['function name() view returns (string)']);
-
-// Confidential token ABIs for different contract types
-const CONFIDENTIAL_TYPE_A_ABI = parseAbi(['function encBalanceOf(address account) view returns (uint256)']); // Used in Redact
-const CONFIDENTIAL_TYPE_B_ABI = parseAbi(['function confidentialBalanceOf(address account) view returns (uint256)']); // Used in Base mini app (402)
+import type { Token } from './useTokenLists.js';
+import { CONFIDENTIAL_ABIS } from '../constants/confidentialTokenABIs.js';
+import {
+  ERC20_BALANCE_OF_ABI,
+  ERC20_DECIMALS_ABI,
+  ERC20_SYMBOL_ABI,
+  ERC20_NAME_ABI,
+} from '../constants/erc20ABIs.js';
 
 type UseTokenBalanceInput = {
   /** Token contract address */
@@ -244,48 +241,64 @@ export function useTokenSymbol(
   });
 }
 
-const CONFIDENTIAL_TYPE_SELECTORS = {
-  TypeA: (abi: Abi) => getSelectorsFromAbi(abi, ['encBalanceOf']),
-  TypeB: (abi: Abi) => getSelectorsFromAbi(abi, ['confidentialBalanceOf']),
-};
-
-const CONFIDENTIAL_ABIS = {
-  TypeA: CONFIDENTIAL_TYPE_A_ABI,
-  TypeB: CONFIDENTIAL_TYPE_B_ABI,
-};
 
 /**
  * Hook to get confidential token balance (encrypted balance) and decrypt it
- * Supports multiple contract types:
- * - TypeA: uses `encBalanceOf(address)` function
- * - TypeB: uses `confidentialBalanceOf(address)` function
- * @param input - Token address and optional accountAddress
+ * Uses confidentialityType from token structure to determine which ABI/function to use:
+ * - wrapped: uses `encBalanceOf(address)` function
+ * - pure: uses `confidentialBalanceOf(address)` function
+ * - dual: uses `TBD_DUAL_FUNCTION_NAME` function
+ * @param input - Token object and optional accountAddress
  * @param queryOptions - Optional React Query options
  * @returns Query result with decrypted balance as bigint
  */
 export function useTokenConfidentialBalance(
-  { tokenAddress, accountAddress }: { tokenAddress: Address; accountAddress?: Address },
-  queryOptions?: Omit<UseQueryOptions<bigint, Error>, 'queryKey' | 'queryFn' | 'enabled'>
+  { 
+    token,
+    accountAddress 
+  }: { 
+    token: Token | undefined;
+    accountAddress: Address;
+  },
+  queryOptions?: Omit<UseQueryOptions<bigint, Error>, 'queryKey' | 'queryFn'>
 ): UseQueryResult<bigint, Error> {
-  const connectedAccount = useCofheAccount();
   const publicClient = useCofhePublicClient();
   const { client } = useCofheContext();
-  const account = accountAddress || (connectedAccount as Address | undefined);
+
+  // Extract values from token object (only if token exists)
+  const tokenAddress = token?.address as Address | undefined;
+  const confidentialityType = token?.extensions.fhenix.confidentialityType;
+  const confidentialValueType = token?.extensions.fhenix.confidentialValueType;
+
+  // Merge enabled conditions: both our internal checks and user-provided enabled must be true
+  const baseEnabled = !!publicClient && !!accountAddress && !!token && !!tokenAddress && !!confidentialityType && !!confidentialValueType;
+  const userEnabled = queryOptions?.enabled ?? true;
+  const enabled = baseEnabled && userEnabled;
+
+  // Extract enabled from queryOptions to avoid override
+  const { enabled: _, ...restQueryOptions } = queryOptions || {};
 
   return useQuery({
-    queryKey: ['tokenConfidentialBalance', tokenAddress, account],
+    queryKey: ['tokenConfidentialBalance', tokenAddress, accountAddress, confidentialityType, confidentialValueType],
     queryFn: async (): Promise<bigint> => {
       if (!publicClient) {
         throw new Error('PublicClient is required to fetch confidential token balance');
       }
-      if (!account) {
-        throw new Error('Account address is required to fetch confidential token balance');
+
+      if (!token) {
+        throw new Error('Token is required to fetch confidential token balance');
       }
+
       if (!tokenAddress) {
-        throw new Error('Token address is required');
+        throw new Error('Token address is required to fetch confidential token balance');
       }
-      if (!client) {
-        throw new Error('CoFHE client is required to decrypt confidential balance');
+
+      if (!confidentialityType) {
+        throw new Error('confidentialityType is required in token extensions');
+      }
+
+      if (!confidentialValueType) {
+        throw new Error('confidentialValueType is required in token extensions');
       }
 
       // Make sure we have an active permit
@@ -294,55 +307,32 @@ export function useTokenConfidentialBalance(
         throw permit.error || new Error('Failed to get or create self permit');
       }
 
-      console.log('permit', permit);
-
-      // Detect contract type
-      const type = await detectContractType(
-        tokenAddress,
-        publicClient,
-        CONFIDENTIAL_TYPE_SELECTORS,
-        CONFIDENTIAL_ABIS
-      );
-
-      if (!type) {
-        throw new Error(`Unknown confidential token type for ${tokenAddress}. Could not detect TypeA or TypeB.`);
+      // Throw error if dual type is used (not yet implemented)
+      if (confidentialityType === 'dual') {
+        throw new Error('Dual confidentiality type is not yet implemented');
       }
 
-      console.log('type', type);
-
-      // Call the appropriate function based on detected type
-      let ctHash: bigint;
-      switch (type) {
-        case 'TypeA': {
-          ctHash = (await publicClient.readContract({
-            address: tokenAddress,
-            abi: CONFIDENTIAL_TYPE_A_ABI,
-            functionName: 'encBalanceOf',
-            args: [account],
-          })) as bigint;
-          break;
-        }
-        case 'TypeB': {
-          ctHash = (await publicClient.readContract({
-            address: tokenAddress,
-            abi: CONFIDENTIAL_TYPE_B_ABI,
-            functionName: 'confidentialBalanceOf',
-            args: [account],
-          })) as bigint;
-          break;
-        }
-        default:
-          throw new Error(`Unsupported confidential token type: ${type}`);
+      // Get the appropriate ABI and function name based on confidentialityType
+      const contractConfig = CONFIDENTIAL_ABIS[confidentialityType];
+      if (!contractConfig) {
+        throw new Error(`Unsupported confidentialityType: ${confidentialityType}`);
       }
 
-      console.log('ctHash', ctHash);
+      // Call the appropriate function based on confidentialityType
+      const ctHash = (await publicClient.readContract({
+            address: tokenAddress,
+        abi: contractConfig.abi,
+        functionName: contractConfig.functionName,
+        args: [accountAddress],
+          })) as bigint;
+
+      // Map confidentialValueType to FheTypes
+      const fheType = confidentialValueType === 'uint64' ? FheTypes.Uint64 : FheTypes.Uint128;
 
       // Decrypt the encrypted balance using SDK
       const unsealedResult = await client
-        .decryptHandle(ctHash, FheTypes.Uint128)
+        .decryptHandle(ctHash, fheType)
         .decrypt();
-
-      console.log('unsealedResult', unsealedResult);
 
       if (!unsealedResult.success) {
         throw unsealedResult.error || new Error('Failed to decrypt confidential balance');
@@ -350,8 +340,8 @@ export function useTokenConfidentialBalance(
 
       return unsealedResult.data as bigint;
     },
-    enabled: !!publicClient && !!account && !!tokenAddress && !!client,
-    ...queryOptions,
+    enabled,
+    ...restQueryOptions,
   });
 }
 
@@ -363,7 +353,7 @@ export function usePinnedTokenAddress(): Address | undefined {
   const widgetConfig = useCofheContext().config.react;
   const chainId = useCofheChainId();
 
-  if (!chainId || !widgetConfig?.pinnedTokens) {
+  if (!chainId) {
     return undefined;
   }
 
