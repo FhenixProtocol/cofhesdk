@@ -53,6 +53,52 @@ const quickActions = [
   },
 ];
 
+type QuickActionId = (typeof quickActions)[number]['id'];
+
+interface PermitItemProps {
+  permit: PermitRow;
+  onAction: (action: PermitRow['actions'][number], id: string) => void;
+  isCopied?: (id: string) => boolean;
+}
+
+const PermitItem: React.FC<PermitItemProps> = ({ permit, onAction, isCopied }) => {
+  return (
+    <div className="grid grid-cols-[96px_minmax(0,1fr)_auto] items-center gap-3 pl-4">
+      <span
+        className={`inline-flex items-center justify-center rounded-md px-3 py-1 text-sm font-semibold ${statusStyles[permit.status]}`}
+      >
+        {permit.status === 'active' ? 'Active' : 'Expired'}
+      </span>
+      <span
+        className="min-w-0 truncate text-base font-medium text-[#0E2F3F] dark:text-white"
+        title={permit.name}
+        aria-label={permit.name}
+      >
+        {permit.name}
+      </span>
+      <div className="flex shrink-0 items-center gap-2 text-[#0E2F3F] dark:text-white">
+        {permit.actions.map((action) => {
+          const Icon = actionIconMap[action];
+          const copiedState = action === 'copy' && isCopied?.(permit.id);
+          return (
+            <button
+              key={action}
+              className="rounded-md border border-[#0E2F3F]/40 p-1.5 transition-colors hover:bg-[#0E2F3F]/10 dark:border-white/40 dark:hover:bg-white/10"
+              aria-label={copiedState ? 'Copied!' : actionLabels[action]}
+              type="button"
+              title={copiedState ? 'Copied!' : actionLabels[action]}
+              disabled={Boolean(copiedState)}
+              onClick={() => onAction(action, permit.id)}
+            >
+              {copiedState ? <CheckIcon fontSize="small" color="success" /> : <Icon fontSize="small" />}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 export const PermitsListPage: React.FC = () => {
   const allPermits = useCofheAllPermits();
   const removePermit = useCofheRemovePermit();
@@ -73,7 +119,9 @@ export const PermitsListPage: React.FC = () => {
         if (status === 'active') {
           if (permit.type === 'sharing') actions.push('copy');
         } else {
-          actions.push('refresh');
+          // only expired items can be refreshed
+          // but only self-generated
+          if (permit.type === 'self') actions.push('refresh');
         }
         actions.push('delete');
         return {
@@ -99,52 +147,48 @@ export const PermitsListPage: React.FC = () => {
       });
   }, [allPermits]);
 
-  const handleQuickAction = (actionId: string) => {
-    if (actionId === 'generate') {
-      navigateToGeneratePermit();
-      return;
-    }
-    if (actionId === 'receive') {
-      navigateToReceivePermit();
-    }
-  };
+  const handleQuickAction = useCallback(
+    (actionId: QuickActionId) => {
+      if (actionId === 'generate') {
+        navigateToGeneratePermit();
+        return;
+      }
+      if (actionId === 'receive') {
+        navigateToReceivePermit();
+      }
+    },
+    [navigateToGeneratePermit, navigateToReceivePermit]
+  );
 
   const handleGeneratedPermitAction = useCallback(
     (action: PermitRow['actions'][number], permitId: string) => {
       if (action === 'delete') {
         removePermit(permitId);
+        return;
       }
 
       if (action === 'copy') {
         const permit = allPermits.find((p) => p.hash === permitId);
-        if (permit) {
-          // type ImportSharedPermitOptions = {
-          //     type?: 'sharing';
-          //     issuer: string;
-          //     recipient: string;
-          //     issuerSignature: string;
-          //     name?: string;
-          //     expiration?: number;
-          //     validatorId?: number;
-          //     validatorContract?: string;
-          // }
-          const { type, issuer, recipient, issuerSignature, expiration, validatorContract, validatorId } =
-            permit.permit;
-          const textToCopy = JSON.stringify(
-            {
-              type,
-              issuer,
-              recipient,
-              issuerSignature,
-              expiration,
-              validatorContract,
-              validatorId,
-            },
-            null,
-            2
-          );
-          void copyWithFeedback(permitId, textToCopy);
-        }
+        if (!permit) return;
+        const { type, issuer, recipient, issuerSignature, expiration, validatorContract, validatorId } = permit.permit;
+        const textToCopy = JSON.stringify(
+          {
+            type,
+            issuer,
+            recipient,
+            issuerSignature,
+            expiration,
+            validatorContract,
+            validatorId,
+          },
+          null,
+          2
+        );
+        void copyWithFeedback(permitId, textToCopy);
+      }
+
+      if (action === 'refresh') {
+        // TODO: implement refresh flow when available
       }
     },
     [removePermit, allPermits, copyWithFeedback]
@@ -186,39 +230,12 @@ export const PermitsListPage: React.FC = () => {
               ) : (
                 <div className="space-y-1.5">
                   {generatedPermits.map((permit) => (
-                    <div key={permit.id} className="grid grid-cols-[96px_minmax(0,1fr)_auto] items-center gap-3 pl-4">
-                      <span
-                        className={`inline-flex items-center justify-center rounded-md px-3 py-1 text-sm font-semibold ${statusStyles[permit.status]}`}
-                      >
-                        {permit.status === 'active' ? 'Active' : 'Expired'}
-                      </span>
-                      <span
-                        className="min-w-0 truncate text-base font-medium text-[#0E2F3F] dark:text-white"
-                        title={permit.name}
-                        aria-label={permit.name}
-                      >
-                        {permit.name}
-                      </span>
-                      <div className="flex shrink-0 items-center gap-2 text-[#0E2F3F] dark:text-white">
-                        {permit.actions.map((action) => {
-                          const Icon = actionIconMap[action];
-                          const copiedState = action === 'copy' && isCopied(permit.id);
-                          return (
-                            <button
-                              key={action}
-                              className="rounded-md border border-[#0E2F3F]/40 p-1.5 transition-colors hover:bg-[#0E2F3F]/10 dark:border-white/40 dark:hover:bg-white/10"
-                              aria-label={copiedState ? 'Copied!' : actionLabels[action]}
-                              type="button"
-                              title={copiedState ? 'Copied!' : actionLabels[action]}
-                              disabled={copiedState}
-                              onClick={() => handleGeneratedPermitAction(action, permit.id)}
-                            >
-                              {copiedState ? <CheckIcon fontSize="small" color="success" /> : <Icon fontSize="small" />}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
+                    <PermitItem
+                      key={permit.id}
+                      permit={permit}
+                      onAction={handleGeneratedPermitAction}
+                      isCopied={isCopied}
+                    />
                   ))}
                 </div>
               )}
@@ -240,37 +257,14 @@ export const PermitsListPage: React.FC = () => {
               ) : (
                 <div className="space-y-1.5">
                   {receivedPermits.map((permit) => (
-                    <div key={permit.id} className="grid grid-cols-[96px_minmax(0,1fr)_auto] items-center gap-3">
-                      <span
-                        className={`inline-flex items-center justify-center rounded-md px-3 py-1 text-sm font-semibold ${statusStyles[permit.status]}`}
-                      >
-                        {permit.status === 'active' ? 'Active' : 'Expired'}
-                      </span>
-                      <span
-                        className="min-w-0 truncate text-base font-medium text-[#0E2F3F] dark:text-white"
-                        title={permit.name}
-                        aria-label={permit.name}
-                      >
-                        {permit.name}
-                      </span>
-                      <div className="flex shrink-0 items-center gap-2 text-[#0E2F3F] dark:text-white">
-                        {permit.actions.map((action) => {
-                          const Icon = actionIconMap[action];
-                          return (
-                            <button
-                              key={action}
-                              className="rounded-md border border-[#0E2F3F]/40 p-1.5 transition-colors hover:bg-[#0E2F3F]/10 dark:border-white/40 dark:hover:bg-white/10"
-                              aria-label={actionLabels[action]}
-                              type="button"
-                              title={actionLabels[action]}
-                              onClick={() => removePermit(permit.id)}
-                            >
-                              <Icon fontSize="small" />
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
+                    <PermitItem
+                      key={permit.id}
+                      permit={permit}
+                      onAction={() =>
+                        // only deletion is available for received permits
+                        removePermit(permit.id)
+                      }
+                    />
                   ))}
                 </div>
               )}
