@@ -87,50 +87,22 @@ export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) 
   );
 
   useEffect(() => {
-    async function handleConnect() {
+    async function handleCofheConnect() {
       if (cofheSdkClient.connecting) return;
+
+      // skip this effect until walletClient is avaialble
+      if (hasExplicitlyConnected && !walletClient) return;
 
       // Only use browser wallet if explicitly connected via button
       // Otherwise, always use internal wallet (even if wagmi auto-connected)
       const useBrowserWallet = hasExplicitlyConnected && walletClient && publicClient && isWagmiConnected;
       setIsUsingBrowserWallet(!!useBrowserWallet);
 
-      // Get current connection state
-      const currentSnapshot = cofheSdkClient.getSnapshot();
-
-      // If already connected, check if we need to reconnect
-      if (currentSnapshot.connected) {
-        if (useBrowserWallet && walletClient && publicClient) {
-          // Check if account and chainId match
-          try {
-            const addresses = await walletClient.getAddresses();
-            const currentAccount = addresses[0];
-            const currentChainId = await publicClient.getChainId();
-
-            if (currentAccount === currentSnapshot.account && currentChainId === currentSnapshot.chainId) {
-              return; // Already connected with same browser wallet and chain
-            }
-          } catch {
-            // If we can't get addresses or chainId, reconnect
-          }
-        } else if (!useBrowserWallet) {
-          // Using internal wallet - if already connected with internal, don't reconnect
-          // We'll reconnect if switching from browser to internal
-          if (!hasExplicitlyConnected) {
-            // Still using internal, check if we need to reconnect
-            // Only reconnect if not connected yet
-            if (currentSnapshot.connected) {
-              return; // Already connected with internal wallet
-            }
-          }
-        }
-      }
-
       const pairToUse = useBrowserWallet ? { walletClient, publicClient } : createMockWalletAndPublicClient();
-
       await cofheSdkClient.connect(pairToUse.publicClient, pairToUse.walletClient);
     }
-    handleConnect();
+
+    handleCofheConnect();
   }, [walletClient, publicClient, isWagmiConnected, hasExplicitlyConnected, wagmiChainId]);
 
   return (
