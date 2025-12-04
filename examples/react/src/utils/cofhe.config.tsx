@@ -38,7 +38,7 @@ export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) 
   const publicClient = usePublicClient();
   const { connectAsync } = useConnect();
   const { isConnected: isWagmiConnected, chainId: wagmiChainId } = useAccount();
-  const { switchChain: wagmiSwitchChain } = useSwitchChain();
+  const { switchChainAsync: wagmiSwitchChainAsync } = useSwitchChain();
 
   // Connect browser wallet function
   const connectBrowserWallet = useCallback(async () => {
@@ -56,7 +56,7 @@ export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) 
   // Switch chain function
   const switchChain = useCallback(
     async (chainId: number) => {
-      if (!isWagmiConnected || !wagmiSwitchChain) {
+      if (!isWagmiConnected) {
         // If not using browser wallet, we can't switch chains
         // The cofhe client will handle chain switching internally
         return;
@@ -69,7 +69,7 @@ export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) 
         }
 
         // Switch chain using wagmi
-        await wagmiSwitchChain({ chainId });
+        await wagmiSwitchChainAsync({ chainId });
 
         // The useEffect below will handle reconnecting cofhe client when chainId changes
       } catch (error) {
@@ -77,7 +77,7 @@ export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) 
         throw error;
       }
     },
-    [isWagmiConnected, wagmiSwitchChain, wagmiChainId],
+    [isWagmiConnected, wagmiSwitchChainAsync, wagmiChainId],
   );
 
   useEffect(() => {
