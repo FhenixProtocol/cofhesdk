@@ -1,6 +1,6 @@
 import { CofheProvider, createCofhesdkClient, createCofhesdkConfig } from '@cofhe/react';
 import { useEffect, useState, useCallback, createContext, useContext } from 'react';
-import { usePublicClient, useWalletClient, useConnect, useAccount, useSwitchChain } from 'wagmi';
+import { usePublicClient, useWalletClient, useConnect, useAccount, useSwitchChain, injected } from 'wagmi';
 import { sepolia, baseSepolia } from '@cofhe/sdk/chains';
 import { createMockWalletAndPublicClient } from './misc';
 
@@ -29,11 +29,14 @@ export const useWalletConnection = (): WalletConnectionContextValue => {
   return context;
 };
 
+// Wagmi injected connector instance: dynamically connect upon clicking on a "Connect" button to avoid auto-connect
+const injectedProvider = injected({ shimDisconnect: true });
+
 export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) => {
   const walletClientResult = useWalletClient();
   const { data: walletClient } = walletClientResult;
   const publicClient = usePublicClient();
-  const { connectAsync, connectors } = useConnect();
+  const { connectAsync } = useConnect();
   const { isConnected: isWagmiConnected, chainId: wagmiChainId } = useAccount();
   const { switchChain: wagmiSwitchChain } = useSwitchChain();
   const [isUsingBrowserWallet, setIsUsingBrowserWallet] = useState(false);
@@ -42,26 +45,19 @@ export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) 
   // Connect browser wallet function
   const connectBrowserWallet = useCallback(async () => {
     try {
-      // Find injected connector (MetaMask, etc.)
-      const injectedConnector = connectors.find((c) => c.id === 'injected' || c.type === 'injected');
-      const connectorToUse = injectedConnector || connectors[0];
-
-      if (!connectorToUse) {
-        throw new Error('No wallet connector available');
-      }
+      // Connect via wagmi
+      await connectAsync({ connector: injectedProvider });
 
       // Mark that we've explicitly requested browser wallet connection
       setHasExplicitlyConnected(true);
 
-      // Connect via wagmi
-      await connectAsync({ connector: connectorToUse });
-
       // The useEffect below will handle reconnecting cofhe client when walletClient changes
     } catch (error) {
+      setHasExplicitlyConnected(false);
       console.error('Failed to connect browser wallet:', error);
       throw error;
     }
-  }, [connectAsync, connectors]);
+  }, [connectAsync]);
 
   // Switch chain function
   const switchChain = useCallback(
