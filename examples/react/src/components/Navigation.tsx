@@ -20,9 +20,11 @@ const StatusDetailsInline: React.FC<{ isDarkMode: boolean }> = ({ isDarkMode }) 
   const connectionState = useCofheConnection();
   const { isUsingBrowserWallet } = useWalletConnection();
   const details = connectionState ? JSON.stringify(connectionState, null, 2) : 'Not connected';
-  
-  const statusText = connectionState?.connected 
-    ? (isUsingBrowserWallet ? 'Connected ✅' : 'Connected (internal) ✅')
+
+  const statusText = connectionState?.connected
+    ? isUsingBrowserWallet
+      ? 'Connected injected ✅'
+      : 'Connected (internal) ✅'
     : 'Disconnected ❌';
 
   return (
@@ -32,9 +34,7 @@ const StatusDetailsInline: React.FC<{ isDarkMode: boolean }> = ({ isDarkMode }) 
           className={`inline-block w-3 h-3 rounded-full ${connectionState?.connected ? 'bg-green-500' : 'bg-red-500'}`}
           aria-hidden
         />
-        <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
-          {statusText}
-        </span>
+        <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>{statusText}</span>
         <button
           onClick={() => setOpen((s) => !s)}
           className={`ml-2 text-xs underline focus:outline-none ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}
@@ -128,7 +128,9 @@ export const Navigation: React.FC<NavigationProps> = ({
         {/* Wallet Connection Section */}
         <div className="mb-6">
           {isUsingBrowserWallet ? (
-            <div className={`p-3 rounded-lg border-2 ${isDarkMode ? 'bg-green-900/20 border-green-600' : 'bg-green-50 border-green-500'}`}>
+            <div
+              className={`p-3 rounded-lg border-2 ${isDarkMode ? 'bg-green-900/20 border-green-600' : 'bg-green-50 border-green-500'}`}
+            >
               <div className={`text-sm font-medium mb-1 ${isDarkMode ? 'text-green-400' : 'text-green-700'}`}>
                 🌐 Browser Wallet Connected
               </div>
@@ -138,7 +140,9 @@ export const Navigation: React.FC<NavigationProps> = ({
             </div>
           ) : (
             <>
-              <div className={`p-3 rounded-lg border ${isDarkMode ? 'bg-gray-700/50 border-gray-600' : 'bg-gray-50 border-gray-300'}`}>
+              <div
+                className={`p-3 rounded-lg border ${isDarkMode ? 'bg-gray-700/50 border-gray-600' : 'bg-gray-50 border-gray-300'}`}
+              >
                 <div className={`text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                   🔒 Internal Wallet Active
                 </div>
