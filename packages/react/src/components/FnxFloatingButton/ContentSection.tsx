@@ -32,14 +32,22 @@ export const ContentSection: React.FC<ContentSectionProps> = ({
   const [contentHeight, setContentHeight] = useState<number>(0);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // Measure content height automatically - only when displayedContent or showPopupPanel changes
+
+  // React to dynamic size changes inside the active page (e.g., toggling fields)
   useEffect(() => {
-    if (contentRef.current && showPopupPanel && !isTransitioning) {
-      // Add padding top and bottom (2 * padding)
-      const height = contentRef.current.clientHeight + (contentPadding * 2);
-      setContentHeight(height);
-    }
-  }, [displayedContent, showPopupPanel, contentPadding, isTransitioning]);
+    if (!showPopupPanel) return;
+    const el = contentRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const newHeight = entry.contentRect.height + contentPadding * 2;
+        setContentHeight((prev) => (prev !== newHeight ? newHeight : prev));
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [showPopupPanel, contentPadding]);
 
   // Update content when page changes
   useEffect(() => {

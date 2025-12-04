@@ -227,7 +227,7 @@
 /* ContentSection styles */
 .fnx-content-container {
   width: calc(var(--fnx-bar-width) + var(--fnx-gap-size) + var(--fnx-content-offset));
-  overflow: visible;
+  overflow: hidden;
 }
 
 .fnx-content-container[data-left="true"] {
