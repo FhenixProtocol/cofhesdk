@@ -1,5 +1,5 @@
 import { CofheProvider, createCofhesdkClient, createCofhesdkConfig } from '@cofhe/react';
-import { useEffect, useState, useCallback, createContext, useContext } from 'react';
+import { useEffect, useCallback, createContext, useContext } from 'react';
 import { usePublicClient, useWalletClient, useConnect, useAccount, useSwitchChain, injected } from 'wagmi';
 import { sepolia, baseSepolia } from '@cofhe/sdk/chains';
 import { createMockWalletAndPublicClient } from './misc';
@@ -39,8 +39,6 @@ export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) 
   const { connectAsync } = useConnect();
   const { isConnected: isWagmiConnected, chainId: wagmiChainId } = useAccount();
   const { switchChain: wagmiSwitchChain } = useSwitchChain();
-  const [isUsingBrowserWallet, setIsUsingBrowserWallet] = useState(false);
-  const [hasExplicitlyConnected, setHasExplicitlyConnected] = useState(false);
 
   // Connect browser wallet function
   const connectBrowserWallet = useCallback(async () => {
@@ -48,12 +46,8 @@ export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) 
       // Connect via wagmi
       await connectAsync({ connector: injectedProvider });
 
-      // Mark that we've explicitly requested browser wallet connection
-      setHasExplicitlyConnected(true);
-
       // The useEffect below will handle reconnecting cofhe client when walletClient changes
     } catch (error) {
-      setHasExplicitlyConnected(false);
       console.error('Failed to connect browser wallet:', error);
       throw error;
     }
@@ -62,7 +56,7 @@ export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) 
   // Switch chain function
   const switchChain = useCallback(
     async (chainId: number) => {
-      if (!isUsingBrowserWallet || !wagmiSwitchChain) {
+      if (!isWagmiConnected || !wagmiSwitchChain) {
         // If not using browser wallet, we can't switch chains
         // The cofhe client will handle chain switching internally
         return;
@@ -83,30 +77,31 @@ export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) 
         throw error;
       }
     },
-    [isUsingBrowserWallet, wagmiSwitchChain, wagmiChainId],
+    [isWagmiConnected, wagmiSwitchChain, wagmiChainId],
   );
 
   useEffect(() => {
+    function assertAndGetWagmiPair() {
+      if (!walletClient) throw new Error('Wallet client is undefined');
+      if (!publicClient) throw new Error('Public client is undefined');
+      return { walletClient, publicClient };
+    }
+
     async function handleCofheConnect() {
       if (cofheSdkClient.connecting) return;
+      if (isWagmiConnected && !walletClient) return; // Wait for walletClient to be available
 
-      // skip this effect until walletClient is avaialble
-      if (hasExplicitlyConnected && !walletClient) return;
-
-      // Only use browser wallet if explicitly connected via button
-      // Otherwise, always use internal wallet (even if wagmi auto-connected)
-      const useBrowserWallet = hasExplicitlyConnected && walletClient && publicClient && isWagmiConnected;
-      setIsUsingBrowserWallet(!!useBrowserWallet);
-
-      const pairToUse = useBrowserWallet ? { walletClient, publicClient } : createMockWalletAndPublicClient();
+      const pairToUse = isWagmiConnected ? assertAndGetWagmiPair() : createMockWalletAndPublicClient();
       await cofheSdkClient.connect(pairToUse.publicClient, pairToUse.walletClient);
     }
 
     handleCofheConnect();
-  }, [walletClient, publicClient, isWagmiConnected, hasExplicitlyConnected, wagmiChainId]);
+  }, [walletClient, publicClient, isWagmiConnected, wagmiChainId]);
 
   return (
-    <WalletConnectionContext.Provider value={{ connectBrowserWallet, isUsingBrowserWallet, switchChain }}>
+    <WalletConnectionContext.Provider
+      value={{ connectBrowserWallet, isUsingBrowserWallet: isWagmiConnected, switchChain }}
+    >
       <CofheProvider cofhesdkClient={cofheSdkClient} config={cofheConfig}>
         {children}
       </CofheProvider>
