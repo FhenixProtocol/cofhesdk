@@ -28,6 +28,9 @@ jobs:
       - name: Install Dependencies
         run: pnpm i
 
+      - name: Check Formatting
+        run: pnpm format:check
+
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
