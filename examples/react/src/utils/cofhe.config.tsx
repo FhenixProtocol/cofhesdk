@@ -44,7 +44,7 @@ export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) 
   const connectBrowserWallet = useCallback(async () => {
     try {
       // Connect via wagmi
-      await connectAsync({ connector: injectedProvider });
+      await connectAsync({ connector: injectedProvider, chainId: cofheConfig.supportedChains[0].id });
 
       // The useEffect below will handle reconnecting cofhe client when walletClient changes
     } catch (error) {
