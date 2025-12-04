@@ -1,7 +1,36 @@
 import { defineConfig } from 'tsup';
+import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { transform } from '@svgr/core';
 import jsxPlugin from '@svgr/plugin-jsx';
+
+const srcDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), 'src');
+
+const srcAliasPlugin = {
+  name: 'src-alias',
+  setup(build: any) {
+    build.onResolve({ filter: /^@\// }, (args: any) => {
+      const relativePath = args.path.slice(2); // drop '@/'
+      const candidate = path.resolve(srcDir, relativePath);
+      if (existsSync(candidate)) {
+        return { path: candidate };
+      }
+      if (candidate.endsWith('.js')) {
+        const tsCandidate = candidate.replace(/\.js$/, '.ts');
+        if (existsSync(tsCandidate)) {
+          return { path: tsCandidate };
+        }
+        const tsxCandidate = candidate.replace(/\.js$/, '.tsx');
+        if (existsSync(tsxCandidate)) {
+          return { path: tsxCandidate };
+        }
+      }
+      return { path: candidate };
+    });
+  },
+};
 
 export default defineConfig({
   // Keep only JS/TS entry files in tsup. We'll copy CSS to `dist` in a post-build step
@@ -15,6 +44,7 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   esbuildPlugins: [
+    srcAliasPlugin,
     {
       name: 'svg-to-react',
       setup(build) {

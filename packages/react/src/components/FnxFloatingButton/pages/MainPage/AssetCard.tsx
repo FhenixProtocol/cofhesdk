@@ -1,10 +1,15 @@
-import { cn } from '../../../../utils/cn.js';
+import { cn } from '@/utils/cn.js';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import { useTokenConfidentialBalance, useTokenMetadata, useNativeBalance, usePinnedTokenAddress } from '../../../../hooks/useTokenBalance.js';
-import { useTokens } from '../../../../hooks/useTokenLists.js';
-import { useCofheChainId } from '../../../../hooks/useCofheConnection.js';
+import {
+  useTokenConfidentialBalance,
+  useTokenMetadata,
+  useNativeBalance,
+  usePinnedTokenAddress,
+} from '@/hooks/useTokenBalance.js';
+import { useTokens } from '@/hooks/useTokenLists.js';
+import { useCofheChainId } from '@/hooks/useCofheConnection.js';
 import { useMemo, useState, useEffect } from 'react';
 import { formatUnits } from 'viem';
 import defaultTokenIcon from '../../assets/default-token.webp';
@@ -137,4 +142,3 @@ export const AssetCard: React.FC = () => {
     </div>
   );
 };
-

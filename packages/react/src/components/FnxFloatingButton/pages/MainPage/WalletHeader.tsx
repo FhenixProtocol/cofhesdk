@@ -2,9 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { MdOutlineSettings, MdOutlineAccountBalanceWallet } from 'react-icons/md';
 import { getChainById, type CofheChain } from '@cofhe/sdk/chains';
-import { cn } from '../../../../utils/cn.js';
+import { cn } from '@/utils/cn.js';
 import { useFnxFloatingButtonContext, FloatingButtonPage } from '../../FnxFloatingButtonContext.js';
-import { useCofheAccount, useCofheChainId, useCofheSupportedChains } from '../../../../hooks/useCofheConnection.js';
+import { useCofheAccount, useCofheChainId, useCofheSupportedChains } from '@/hooks/useCofheConnection.js';
 import { AddressButton } from '../../components/AddressButton.js';
 
 export const WalletHeader: React.FC = () => {
@@ -128,4 +128,3 @@ export const WalletHeader: React.FC = () => {
     </div>
   );
 };
-

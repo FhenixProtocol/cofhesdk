@@ -6,8 +6,8 @@ import SouthIcon from '@mui/icons-material/South';
 import type { ElementType } from 'react';
 import { Accordion, AccordionSection } from '../../../Accordion.js';
 import { PermitItem } from './components/PermitItem';
-import { usePermitsList } from '../../../../../hooks/permits/index.js';
-import type { PermitRow, PermitStatus, QuickActionId } from '../../../../../hooks/permits/index.js';
+import { usePermitsList } from '@/hooks/permits/index.js';
+import type { PermitRow, PermitStatus, QuickActionId } from '@/hooks/permits/index.js';
 
 type QuickAction = { id: QuickActionId; label: string; icon: ElementType };
 
