@@ -45,17 +45,17 @@ export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) 
       // Find injected connector (MetaMask, etc.)
       const injectedConnector = connectors.find((c) => c.id === 'injected' || c.type === 'injected');
       const connectorToUse = injectedConnector || connectors[0];
-      
+
       if (!connectorToUse) {
         throw new Error('No wallet connector available');
       }
 
       // Mark that we've explicitly requested browser wallet connection
       setHasExplicitlyConnected(true);
-      
+
       // Connect via wagmi
       await connect({ connector: connectorToUse });
-      
+
       // The useEffect below will handle reconnecting cofhe client when walletClient changes
     } catch (error) {
       console.error('Failed to connect browser wallet:', error);
@@ -64,28 +64,31 @@ export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) 
   }, [connect, connectors]);
 
   // Switch chain function
-  const switchChain = useCallback(async (chainId: number) => {
-    if (!isUsingBrowserWallet || !wagmiSwitchChain) {
-      // If not using browser wallet, we can't switch chains
-      // The cofhe client will handle chain switching internally
-      return;
-    }
-
-    try {
-      // Check if chain is already active
-      if (wagmiChainId === chainId) {
-        return; // Already on this chain
+  const switchChain = useCallback(
+    async (chainId: number) => {
+      if (!isUsingBrowserWallet || !wagmiSwitchChain) {
+        // If not using browser wallet, we can't switch chains
+        // The cofhe client will handle chain switching internally
+        return;
       }
 
-      // Switch chain using wagmi
-      await wagmiSwitchChain({ chainId });
-      
-      // The useEffect below will handle reconnecting cofhe client when chainId changes
-    } catch (error) {
-      console.error('Failed to switch chain:', error);
-      throw error;
-    }
-  }, [isUsingBrowserWallet, wagmiSwitchChain, wagmiChainId]);
+      try {
+        // Check if chain is already active
+        if (wagmiChainId === chainId) {
+          return; // Already on this chain
+        }
+
+        // Switch chain using wagmi
+        await wagmiSwitchChain({ chainId });
+
+        // The useEffect below will handle reconnecting cofhe client when chainId changes
+      } catch (error) {
+        console.error('Failed to switch chain:', error);
+        throw error;
+      }
+    },
+    [isUsingBrowserWallet, wagmiSwitchChain, wagmiChainId],
+  );
 
   useEffect(() => {
     async function handleConnect() {
@@ -98,7 +101,7 @@ export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) 
 
       // Get current connection state
       const currentSnapshot = cofheSdkClient.getSnapshot();
-      
+
       // If already connected, check if we need to reconnect
       if (currentSnapshot.connected) {
         if (useBrowserWallet && walletClient && publicClient) {
@@ -107,11 +110,8 @@ export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) 
             const addresses = await walletClient.getAddresses();
             const currentAccount = addresses[0];
             const currentChainId = await publicClient.getChainId();
-            
-            if (
-              currentAccount === currentSnapshot.account &&
-              currentChainId === currentSnapshot.chainId
-            ) {
+
+            if (currentAccount === currentSnapshot.account && currentChainId === currentSnapshot.chainId) {
               return; // Already connected with same browser wallet and chain
             }
           } catch {
@@ -130,9 +130,7 @@ export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) 
         }
       }
 
-      const pairToUse = useBrowserWallet
-        ? { walletClient, publicClient }
-        : createMockWalletAndPublicClient();
+      const pairToUse = useBrowserWallet ? { walletClient, publicClient } : createMockWalletAndPublicClient();
 
       await cofheSdkClient.connect(pairToUse.publicClient, pairToUse.walletClient);
     }
