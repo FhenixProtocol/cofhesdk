@@ -11,6 +11,8 @@ const config = createConfig({
   // to avoid eager connection attempts by wagmi: 1. disable multiInjectedProviderDiscovery 2. don't pass injected() into connectors
   multiInjectedProviderDiscovery: false,
   connectors: [],
+  // storage = null in order to prevent the very first render with "connected" state from localStorage
+  storage: null,
   ssr: false,
   syncConnectedChain: true,
 });
