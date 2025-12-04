@@ -33,7 +33,7 @@ export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) 
   const walletClientResult = useWalletClient();
   const { data: walletClient } = walletClientResult;
   const publicClient = usePublicClient();
-  const { connect, connectors } = useConnect();
+  const { connectAsync, connectors } = useConnect();
   const { isConnected: isWagmiConnected, chainId: wagmiChainId } = useAccount();
   const { switchChain: wagmiSwitchChain } = useSwitchChain();
   const [isUsingBrowserWallet, setIsUsingBrowserWallet] = useState(false);
@@ -54,14 +54,14 @@ export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) 
       setHasExplicitlyConnected(true);
 
       // Connect via wagmi
-      await connect({ connector: connectorToUse });
+      await connectAsync({ connector: connectorToUse });
 
       // The useEffect below will handle reconnecting cofhe client when walletClient changes
     } catch (error) {
       console.error('Failed to connect browser wallet:', error);
       throw error;
     }
-  }, [connect, connectors]);
+  }, [connectAsync, connectors]);
 
   // Switch chain function
   const switchChain = useCallback(
