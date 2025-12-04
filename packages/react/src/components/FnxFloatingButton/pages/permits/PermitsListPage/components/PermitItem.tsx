@@ -2,7 +2,7 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
-import type { PermitRow, PermitStatus } from '../hooks/usePermitsList';
+import type { PermitRow, PermitStatus } from '../../../../../../hooks/permits/index.js';
 import React from 'react';
 
 const actionIconMap = {

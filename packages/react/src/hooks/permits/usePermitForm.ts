@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { useCofheClient } from '../../../../../../hooks/useCofheClient.js';
+import { useCofheClient } from '../useCofheClient.js';
 
 export interface UsePermitFormOptions {
   onSuccess?: () => void;

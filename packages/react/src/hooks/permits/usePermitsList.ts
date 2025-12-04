@@ -1,8 +1,8 @@
 import { useCallback, useMemo } from 'react';
 import { ValidationUtils, type Permit } from '@cofhe/sdk/permits';
-import { useCofheAllPermits, useCofheRemovePermit } from '../../../../../../hooks';
-import { FloatingButtonPage, useFnxFloatingButtonContext } from '../../../../FnxFloatingButtonContext';
-import { useCopyFeedback } from '../../../../../../hooks/useCopyFeedback';
+import { useCofheAllPermits, useCofheRemovePermit } from '../useCofhePermits.js';
+import { FloatingButtonPage, useFnxFloatingButtonContext } from '../../components/FnxFloatingButton/FnxFloatingButtonContext.js';
+import { useCopyFeedback } from '../useCopyFeedback.js';
 
 export type PermitStatus = 'active' | 'expired';
 export type PermitAction = 'copy' | 'delete';

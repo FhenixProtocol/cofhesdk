@@ -18,3 +18,4 @@ export {
 } from './useTokenBalance';
 export { useTokenTransfer } from './useTokenTransfer';
 export { useCofheWalletClient } from './useCofheConnection';
+export * from './permits';

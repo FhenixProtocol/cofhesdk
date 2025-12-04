@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { useCofheContext } from '../../../../../../providers/CofheProvider.js';
+import { useCofheContext } from '../../providers/CofheProvider.js';
 
 export type UseReceivePermitReturn = {
   permitData: string;

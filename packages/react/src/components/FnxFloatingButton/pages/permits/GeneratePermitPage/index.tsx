@@ -1,8 +1,7 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { usePermitForm } from './hooks/usePermitForm.js';
+import { usePermitDuration, usePermitForm } from '../../../../../hooks/permits/index.js';
 import { FloatingButtonPage, useFnxFloatingButtonContext } from '../../../FnxFloatingButtonContext.js';
 import PermitIcon from '../assets/fhenix-permit-icon.svg';
-import { usePermitDuration } from './hooks/usePermitDuration.js';
 import { NameSection } from './components/NameSection.js';
 import { SelfToggle } from './components/SelfToggle.js';
 import { ReceiverSection } from './components/ReceiverSection.js';
