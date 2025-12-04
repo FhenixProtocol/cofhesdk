@@ -72,20 +72,9 @@ export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) 
         return;
       }
 
-      try {
-        // Check if chain is already active
-        if (wagmiChainId === chainId) {
-          return; // Already on this chain
-        }
-
-        // Switch chain using wagmi
-        await wagmiSwitchChainAsync({ chainId });
-
-        // The useEffect below will handle reconnecting cofhe client when chainId changes
-      } catch (error) {
-        console.error('Failed to switch chain:', error);
-        throw error;
-      }
+      // Switch chain using wagmi
+      // this will change cofheChainId via the useEffect above, and will trigger cofhe re-connection in the hook below
+      await wagmiSwitchChainAsync({ chainId });
     },
     [isWagmiConnected, wagmiSwitchChainAsync, wagmiChainId],
   );
