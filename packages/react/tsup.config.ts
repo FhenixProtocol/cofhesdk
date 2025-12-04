@@ -14,7 +14,6 @@ export default defineConfig({
   splitting: false,
   sourcemap: true,
   clean: true,
-  external: ['react', 'react-dom', '@mui/material', '@mui/icons-material', '@cofhe/sdk'],
   esbuildPlugins: [
     {
       name: 'svg-to-react',
@@ -36,6 +35,7 @@ export default defineConfig({
       },
     },
   ],
+  external: ['react', 'react-dom', '@mui/material', '@mui/icons-material', '@cofhe/sdk', 'viem'],
   esbuildOptions(options) {
     options.jsx = 'automatic';
     // Handle image imports as data URLs
@@ -44,6 +44,8 @@ export default defineConfig({
       '.png': 'dataurl',
       '.jpg': 'dataurl',
       '.jpeg': 'dataurl',
+      '.svg': 'dataurl',
+      '.webp': 'dataurl',
     };
   },
 });

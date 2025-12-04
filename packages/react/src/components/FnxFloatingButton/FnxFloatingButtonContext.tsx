@@ -3,7 +3,17 @@ import type { ReactNode } from 'react';
 import type { FloatingButtonPosition } from './FnxFloatingButton.js';
 import { useCofheContext } from '../../providers';
 
-export type FloatingButtonPage = 'main' | 'settings' | 'tokenlist' | 'permits' | 'generatePermit' | 'receivePermit';
+export enum FloatingButtonPage {
+  Main = 'main',
+  Settings = 'settings',
+  TokenList = 'tokenlist',
+  Send = 'send',
+  Shield = 'shield',
+  Activity = 'activity',
+  Permits = 'permits',
+  GeneratePermits = 'generatePermit',
+  ReceivePermits = 'receivePermit',
+}
 
 const OPEN_DELAY = 500; // Delay before showing popup in ms
 const CLOSE_DELAY = 300; // Delay before closing bar after popup closes
@@ -11,11 +21,7 @@ const CLOSE_DELAY = 300; // Delay before closing bar after popup closes
 interface FnxFloatingButtonContextValue {
   pageHistory: FloatingButtonPage[];
   currentPage: FloatingButtonPage;
-  navigateToSettings: () => void;
-  navigateToTokenList: () => void;
-  navigateToPermits: () => void;
-  navigateToGeneratePermit: () => void;
-  navigateToReceivePermit: () => void;
+  navigateTo: (page: FloatingButtonPage) => void;
   navigateBack: () => void;
   darkMode: boolean;
   effectivePosition: FloatingButtonPosition;
@@ -26,6 +32,7 @@ interface FnxFloatingButtonContextValue {
   expandPanel: () => void;
   collapsePanel: () => void;
   handleClick: (externalOnClick?: () => void) => void;
+  onChainSwitch?: (chainId: number) => Promise<void>;
 }
 
 const FnxFloatingButtonContext = createContext<FnxFloatingButtonContextValue | null>(null);
@@ -34,17 +41,19 @@ interface FnxFloatingButtonProviderProps {
   children: ReactNode;
   darkMode: boolean;
   position?: FloatingButtonPosition;
+  onChainSwitch?: (chainId: number) => Promise<void>;
 }
 
 export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps> = ({
   children,
   darkMode,
   position,
+  onChainSwitch,
 }) => {
   const widgetConfig = useCofheContext().config.react;
   const effectivePosition = position || widgetConfig.position;
 
-  const [pageHistory, setPageHistory] = useState<FloatingButtonPage[]>(['main']);
+  const [pageHistory, setPageHistory] = useState<FloatingButtonPage[]>([FloatingButtonPage.Main]);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showPopupPanel, setShowPopupPanel] = useState(false);
 
@@ -75,16 +84,8 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
     externalOnClick?.();
   };
 
-  const navigateToSettings = () => {
-    setPageHistory((prev) => [...prev, 'settings']);
-  };
-
-  const navigateToTokenList = () => {
-    setPageHistory((prev) => [...prev, 'tokenlist']);
-  };
-
-  const navigateToPermits = () => {
-    setPageHistory((prev) => [...prev, 'permits']);
+  const navigateTo = (page: FloatingButtonPage) => {
+    setPageHistory((prev) => [...prev, page]);
   };
 
   const navigateBack = () => {
@@ -96,24 +97,12 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
     });
   };
 
-  const navigateToGeneratePermit = () => {
-    setPageHistory((prev) => [...prev, 'generatePermit']);
-  };
-
-  const navigateToReceivePermit = () => {
-    setPageHistory((prev) => [...prev, 'receivePermit']);
-  };
-
   return (
     <FnxFloatingButtonContext.Provider
       value={{
         pageHistory,
         currentPage,
-        navigateToSettings,
-        navigateToTokenList,
-        navigateToPermits,
-        navigateToGeneratePermit,
-        navigateToReceivePermit,
+        navigateTo,
         navigateBack,
         darkMode,
         effectivePosition,
@@ -124,6 +113,7 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
         expandPanel,
         collapsePanel,
         handleClick,
+        onChainSwitch,
       }}
     >
       {children}

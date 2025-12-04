@@ -55,6 +55,10 @@ export type CofhesdkClient = {
   encryptInputs<T extends EncryptableItem[]>(inputs: [...T]): EncryptInputsBuilder<[...T]>;
   decryptHandle<U extends FheTypes>(ctHash: bigint, utype: U): DecryptHandlesBuilder<U>;
   permits: CofhesdkClientPermits;
+
+  // --- client accessors ---
+  getPublicClient(): PublicClient | undefined;
+  getWalletClient(): WalletClient | undefined;
 };
 
 export type CofhesdkClientConnectionState = {

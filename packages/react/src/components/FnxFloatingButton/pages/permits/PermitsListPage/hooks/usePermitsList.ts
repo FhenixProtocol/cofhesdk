@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { ValidationUtils, type Permit } from '@cofhe/sdk/permits';
 import { useCofheAllPermits, useCofheRemovePermit } from '../../../../../../hooks';
-import { useFnxFloatingButtonContext } from '../../../../FnxFloatingButtonContext';
+import { FloatingButtonPage, useFnxFloatingButtonContext } from '../../../../FnxFloatingButtonContext';
 import { useCopyFeedback } from '../../../../../../hooks/useCopyFeedback';
 
 export type PermitStatus = 'active' | 'expired';
@@ -19,7 +19,7 @@ export type QuickActionId = 'generate' | 'receive';
 export const usePermitsList = () => {
   const allPermits = useCofheAllPermits();
   const removePermit = useCofheRemovePermit();
-  const { navigateBack, navigateToGeneratePermit, navigateToReceivePermit } = useFnxFloatingButtonContext();
+  const { navigateBack, navigateTo } = useFnxFloatingButtonContext();
   const { isCopied, copyWithFeedback } = useCopyFeedback();
 
   const generatedPermits = useMemo<PermitRow[]>(() => {
@@ -58,14 +58,14 @@ export const usePermitsList = () => {
   const handleQuickAction = useCallback(
     (actionId: QuickActionId) => {
       if (actionId === 'generate') {
-        navigateToGeneratePermit();
+        navigateTo(FloatingButtonPage.GeneratePermits);
         return;
       }
       if (actionId === 'receive') {
-        navigateToReceivePermit();
+        navigateTo(FloatingButtonPage.ReceivePermits);
       }
     },
-    [navigateToGeneratePermit, navigateToReceivePermit]
+    [navigateTo]
   );
 
   const handleGeneratedPermitAction = useCallback(

@@ -1,6 +1,6 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { usePermitForm } from './hooks/usePermitForm.js';
-import { useFnxFloatingButtonContext } from '../../../FnxFloatingButtonContext.js';
+import { FloatingButtonPage, useFnxFloatingButtonContext } from '../../../FnxFloatingButtonContext.js';
 import PermitIcon from '../assets/fhenix-permit-icon.svg';
 import { usePermitDuration } from './hooks/usePermitDuration.js';
 import { NameSection } from './components/NameSection.js';
@@ -9,7 +9,7 @@ import { ReceiverSection } from './components/ReceiverSection.js';
 import { ExpirySection } from './components/ExpirySection.js';
 
 export const GeneratePermitPage: React.FC = () => {
-  const { navigateToPermits, navigateBack, darkMode } = useFnxFloatingButtonContext();
+  const { navigateBack, darkMode, navigateTo } = useFnxFloatingButtonContext();
   const permitIconColor = darkMode ? '#FFFFFF' : '#00314E';
 
   const {
@@ -28,7 +28,7 @@ export const GeneratePermitPage: React.FC = () => {
     setDurationSeconds,
     handleSubmit,
   } = usePermitForm({
-    onSuccess: navigateToPermits, // TODO: also add toast here?
+    onSuccess: () => navigateTo(FloatingButtonPage.Permits), // TODO: also add toast here?
   });
   const { presets, units, customCount, customUnit, selectPreset, setCustomCount, setCustomUnit, applyCustom } =
     usePermitDuration({ onDurationChange: setDurationSeconds, initialSeconds: durationSeconds });
