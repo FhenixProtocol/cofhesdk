@@ -101,7 +101,6 @@ const selectActivePermit = async (chainId: number, account: string, hash: string
   await permitStore.setActivePermitHash(chainId, account, hash);
 };
 
-
 // GET OR CREATE
 
 /**
@@ -148,7 +147,7 @@ const getOrCreateSharingPermit = async (
   walletClient: WalletClient,
   options: CreateSharingPermitOptions,
   chainId?: number,
-  account?: string,
+  account?: string
 ): Promise<Permit> => {
   const _chainId = chainId ?? (await publicClient.getChainId());
   const _account = account ?? walletClient.account!.address;
@@ -165,13 +164,11 @@ const getOrCreateSharingPermit = async (
 
 // REMOVE
 
-const removePermit = async (chainId: number, account: string, hash: string): Promise<void> => {
-  await permitStore.removePermit(chainId, account, hash);
-};
+const removePermit = async (chainId: number, account: string, hash: string): Promise<void> =>
+  permitStore.removePermit(chainId, account, hash);
 
-const removeActivePermit = async (chainId: number, account: string): Promise<void> => {
-  await permitStore.removeActivePermitHash(chainId, account);
-};
+const removeActivePermit = async (chainId: number, account: string): Promise<void> =>
+  permitStore.removeActivePermitHash(chainId, account);
 
 // EXPORT
 

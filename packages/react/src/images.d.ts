@@ -14,8 +14,9 @@ declare module '*.jpeg' {
 }
 
 declare module '*.svg' {
-  const value: string;
-  export default value;
+  import type { FC, SVGProps } from 'react';
+  const component: FC<SVGProps<SVGSVGElement>>;
+  export default component;
 }
 
 declare module '*.gif' {
@@ -27,4 +28,3 @@ declare module '*.webp' {
   const value: string;
   export default value;
 }
-

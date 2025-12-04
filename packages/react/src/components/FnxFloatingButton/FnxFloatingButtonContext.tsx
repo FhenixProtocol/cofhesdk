@@ -10,6 +10,9 @@ export enum FloatingButtonPage {
   Send = 'send',
   Shield = 'shield',
   Activity = 'activity',
+  Permits = 'permits',
+  GeneratePermits = 'generatePermit',
+  ReceivePermits = 'receivePermit',
 }
 
 const OPEN_DELAY = 500; // Delay before showing popup in ms

@@ -348,12 +348,15 @@ describe('PermitUtils Tests', () => {
 
   describe('getHash', () => {
     it('should generate consistent hash for same permit data', async () => {
+      const expiration = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
       const permit1 = await PermitUtils.createSelf({
+        expiration,
         issuer: bobAddress,
         name: 'Test Permit',
       });
 
       const permit2 = await PermitUtils.createSelf({
+        expiration,
         issuer: bobAddress,
         name: 'Test Permit',
       });
