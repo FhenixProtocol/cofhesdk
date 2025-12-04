@@ -8,11 +8,11 @@ import { useCofheAccount, useCofheChainId, useCofheSupportedChains } from '../..
 import { AddressButton } from '../../components/AddressButton.js';
 
 export const WalletHeader: React.FC = () => {
-  const { navigateTo, onChainSwitch } = useFnxFloatingButtonContext();
+  const { navigateTo, onSelectChain } = useFnxFloatingButtonContext();
   const [showNetworkDropdown, setShowNetworkDropdown] = useState(false);
   const [switchingChain, setSwitchingChain] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  
+
   // Get wallet address and chain ID from CofheProvider
   const walletAddress = useCofheAccount();
   const chainId = useCofheChainId();
@@ -39,14 +39,14 @@ export const WalletHeader: React.FC = () => {
   const currentNetwork = chain?.name || 'Eth';
 
   const handleChainSwitch = async (targetChain: CofheChain) => {
-    if (targetChain.id === chainId || !onChainSwitch) {
+    if (targetChain.id === chainId || !onSelectChain) {
       setShowNetworkDropdown(false);
       return;
     }
 
     setSwitchingChain(true);
     try {
-      await onChainSwitch(targetChain.id);
+      await onSelectChain(targetChain.id);
       setShowNetworkDropdown(false);
     } catch (error) {
       console.error('Failed to switch chain:', error);
@@ -58,11 +58,7 @@ export const WalletHeader: React.FC = () => {
   return (
     <div className="flex items-center justify-between mb-4">
       {/* Left: Wallet Address */}
-      <AddressButton 
-        address={walletAddress} 
-        icon={<MdOutlineAccountBalanceWallet className="w-4 h-4" />}
-      />
-
+      <AddressButton address={walletAddress} icon={<MdOutlineAccountBalanceWallet className="w-4 h-4" />} />
 
       {/* Right: Network Selector + Settings */}
       <div className="flex items-center gap-2">
@@ -87,9 +83,7 @@ export const WalletHeader: React.FC = () => {
           {showNetworkDropdown && (
             <div className="absolute right-0 top-full mt-1 fnx-dropdown-bg rounded shadow-lg p-2 min-w-[140px] z-10 border fnx-dropdown-border">
               {supportedChains.length === 0 ? (
-                <div className="px-2 py-1 text-sm fnx-text-primary opacity-50">
-                  No supported chains
-                </div>
+                <div className="px-2 py-1 text-sm fnx-text-primary opacity-50">No supported chains</div>
               ) : (
                 supportedChains.map((supportedChain) => {
                   const isActive = supportedChain.id === chainId;
@@ -117,15 +111,11 @@ export const WalletHeader: React.FC = () => {
         {/* Settings Icon */}
         <button
           onClick={() => navigateTo(FloatingButtonPage.Settings)}
-          className={cn(
-            'p-1 rounded fnx-hover-overlay transition-colors',
-            'fnx-text-primary'
-          )}
+          className={cn('p-1 rounded fnx-hover-overlay transition-colors', 'fnx-text-primary')}
         >
-          <MdOutlineSettings className="w-4 h-4"/>
+          <MdOutlineSettings className="w-4 h-4" />
         </button>
       </div>
     </div>
   );
 };
-
