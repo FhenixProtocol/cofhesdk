@@ -26,9 +26,10 @@ interface PermitItemProps {
   permit: PermitRow;
   onAction: (action: PermitRow['actions'][number], id: string) => void;
   isCopied?: (id: string) => boolean;
+  onSelect?: (id: string) => void;
 }
 
-export const PermitItem: React.FC<PermitItemProps> = ({ permit, onAction, isCopied }) => {
+export const PermitItem: React.FC<PermitItemProps> = ({ permit, onAction, isCopied, onSelect }) => {
   return (
     <div className="grid grid-cols-[96px_minmax(0,1fr)_auto] items-center gap-3 pl-4">
       <span
@@ -36,13 +37,25 @@ export const PermitItem: React.FC<PermitItemProps> = ({ permit, onAction, isCopi
       >
         {permit.status === 'active' ? 'Active' : 'Expired'}
       </span>
-      <span
-        className="min-w-0 truncate text-base font-medium text-[#0E2F3F] dark:text-white"
-        title={permit.name}
-        aria-label={permit.name}
-      >
-        {permit.name}
-      </span>
+      {onSelect ? (
+        <button
+          type="button"
+          className="min-w-0 w-full truncate text-left text-base font-medium text-[#0E2F3F] transition-colors hover:text-[#0E2F3F]/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#0E2F3F]/30 dark:text-white dark:hover:text-white/80"
+          title={permit.name}
+          aria-label={permit.name}
+          onClick={() => onSelect(permit.id)}
+        >
+          {permit.name}
+        </button>
+      ) : (
+        <span
+          className="min-w-0 truncate text-base font-medium text-[#0E2F3F] dark:text-white"
+          title={permit.name}
+          aria-label={permit.name}
+        >
+          {permit.name}
+        </span>
+      )}
       <div className="flex shrink-0 items-center gap-2 text-[#0E2F3F] dark:text-white">
         {permit.actions.map((action) => {
           const Icon = actionIconMap[action];

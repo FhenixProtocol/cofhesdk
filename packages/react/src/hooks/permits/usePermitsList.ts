@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { ValidationUtils, type Permit } from '@cofhe/sdk/permits';
 import { useCofheAllPermits, useCofheRemovePermit } from '../useCofhePermits.js';
 import { FloatingButtonPage, useFnxFloatingButtonContext } from '../../components/FnxFloatingButton/FnxFloatingButtonContext.js';
+import { usePermitSelection } from '@/components/FnxFloatingButton/pages/permits/PermitSelectionContext.js';
 import { useCopyFeedback } from '../useCopyFeedback.js';
 
 export type PermitStatus = 'active' | 'expired';
@@ -20,6 +21,7 @@ export const usePermitsList = () => {
   const allPermits = useCofheAllPermits();
   const removePermit = useCofheRemovePermit();
   const { navigateBack, navigateTo } = useFnxFloatingButtonContext();
+  const { selectPermit } = usePermitSelection();
   const { isCopied, copyWithFeedback } = useCopyFeedback();
 
   const generatedPermits = useMemo<PermitRow[]>(() => {
@@ -66,6 +68,14 @@ export const usePermitsList = () => {
       }
     },
     [navigateTo]
+  );
+
+  const handlePermitSelect = useCallback(
+    (permitId: string) => {
+      selectPermit(permitId);
+      navigateTo(FloatingButtonPage.PermitDetails);
+    },
+    [navigateTo, selectPermit]
   );
 
   const handleGeneratedPermitAction = useCallback(
@@ -118,6 +128,7 @@ export const usePermitsList = () => {
     handleQuickAction,
     handleGeneratedPermitAction,
     handleReceivedPermitDelete,
+    handlePermitSelect,
     navigateBack,
   };
 };

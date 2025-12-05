@@ -10,6 +10,7 @@ import {
   GeneratePermitPage,
   ReceivePermitPage,
   PermitsListPage,
+  PermitDetailsPage,
 } from './pages/index.js';
 import { FloatingButtonPage, useFnxFloatingButtonContext } from './FnxFloatingButtonContext.js';
 
@@ -35,6 +36,7 @@ export const ContentSection: React.FC<ContentSectionProps> = ({ className, conte
       [FloatingButtonPage.Permits]: <PermitsListPage />,
       [FloatingButtonPage.GeneratePermits]: <GeneratePermitPage />,
       [FloatingButtonPage.ReceivePermits]: <ReceivePermitPage />,
+      [FloatingButtonPage.PermitDetails]: <PermitDetailsPage />,
     }),
     []
   );

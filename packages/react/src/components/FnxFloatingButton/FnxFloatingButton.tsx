@@ -5,6 +5,7 @@ import { StatusBarSection } from './StatusBarSection.js';
 import { StatusBarContent } from './StatusBarContent.js';
 import { ContentSection } from './ContentSection.js';
 import { FnxFloatingButtonProvider, useFnxFloatingButtonContext } from './FnxFloatingButtonContext.js';
+import { PermitSelectionProvider } from './pages/permits/PermitSelectionContext.js';
 
 export type FloatingButtonPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 export type FloatingButtonSize = 'small' | 'medium' | 'large';
@@ -80,9 +81,11 @@ const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
         className
       )}
     >
-      <ContentSection
-        className={contentSectionClassName}
-      />
+      <PermitSelectionProvider>
+        <ContentSection
+          className={contentSectionClassName}
+        />
+      </PermitSelectionProvider>
 
       {/* Button and Bar Row */}
       <div className={cn('flex items-center', isLeftSide ? 'flex-row' : 'flex-row-reverse')}>

@@ -24,6 +24,7 @@ export const PermitsListPage: React.FC = () => {
     handleQuickAction,
     handleGeneratedPermitAction,
     handleReceivedPermitDelete,
+    handlePermitSelect,
     navigateBack,
   } = usePermitsList();
 
@@ -68,6 +69,7 @@ export const PermitsListPage: React.FC = () => {
                       permit={permit}
                       onAction={handleGeneratedPermitAction}
                       isCopied={isCopied}
+                      onSelect={() => handlePermitSelect(permit.id)}
                     />
                   ))}
                 </div>
@@ -94,6 +96,7 @@ export const PermitsListPage: React.FC = () => {
                       key={permit.id}
                       permit={permit}
                       onAction={() => handleReceivedPermitDelete(permit.id)}
+                      onSelect={() => handlePermitSelect(permit.id)}
                     />
                   ))}
                 </div>
