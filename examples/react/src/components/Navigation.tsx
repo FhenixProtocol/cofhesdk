@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useCofheActivePermit, useCofheAllPermits, useCofheConnection } from '@cofhe/react';
-import { useWalletConnection } from '../utils/cofhe.config';
+import { useConnectBrowserWallet } from '../utils/useConnectBrowserWallet';
+import { useIsUsingBrowserWallet } from '../utils/useIsUsingBrowserWallet';
 interface NavigationProps {
   activeComponent: string;
   onComponentSelect: (component: string) => void;
@@ -18,7 +19,7 @@ const components = [
 const StatusDetailsInline: React.FC<{ isDarkMode: boolean }> = ({ isDarkMode }) => {
   const [open, setOpen] = useState(false);
   const connectionState = useCofheConnection();
-  const { isUsingBrowserWallet } = useWalletConnection();
+  const isUsingBrowserWallet = useIsUsingBrowserWallet();
   const details = connectionState ? JSON.stringify(connectionState, null, 2) : 'Not connected';
 
   const statusText = connectionState?.connected
@@ -85,7 +86,9 @@ export const Navigation: React.FC<NavigationProps> = ({
   isDarkMode,
   onToggleDarkMode,
 }) => {
-  const { connectBrowserWallet, isUsingBrowserWallet } = useWalletConnection();
+  const isUsingBrowserWallet = useIsUsingBrowserWallet();
+  const connectBrowserWallet = useConnectBrowserWallet();
+
   const [isConnecting, setIsConnecting] = useState(false);
 
   const handleConnectBrowserWallet = async () => {

@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { FnxFloatingButton, type FloatingButtonSize } from '@cofhe/react';
-import { useWalletConnection } from '../../utils/cofhe.config';
+import { useLocalSwitchChain } from '../../utils/useLocalSwitchChain';
 
 // Example with Material UI icons
 export const FnxFloatingButtonExample: React.FC = () => {
-  const { switchChain } = useWalletConnection();
+  const localSwitchChain = useLocalSwitchChain();
   const [position, setPosition] = useState<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'>('bottom-right');
   const [clickCount, setClickCount] = useState(0);
   const [buttonSize, setButtonSize] = useState<FloatingButtonSize>('large');
@@ -265,7 +265,7 @@ function MyApp() {
         size={buttonSize}
         darkMode={darkMode}
         onClick={() => setClickCount((prev) => prev + 1)}
-        onSelectChain={switchChain}
+        onSelectChain={localSwitchChain}
       />
     </div>
   );
