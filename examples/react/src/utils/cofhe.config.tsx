@@ -1,5 +1,5 @@
 import { CofheProvider, createCofhesdkClient, createCofhesdkConfig } from '@cofhe/react';
-import { useEffect, useCallback, createContext, useContext, useState } from 'react';
+import { useEffect, useCallback, createContext, useContext, useState, useMemo } from 'react';
 import { usePublicClient, useWalletClient, useConnect, useAccount, useSwitchChain, injected } from 'wagmi';
 import { sepolia, baseSepolia } from '@cofhe/sdk/chains';
 import { createMockWalletAndPublicClient } from './misc';
@@ -16,7 +16,7 @@ const cofheSdkClient = createCofhesdkClient(cofheConfig);
 interface WalletConnectionContextValue {
   connectBrowserWallet: () => Promise<void>;
   isUsingBrowserWallet: boolean;
-  switchChain: (chainId: number) => Promise<void>;
+  switchChain: (chainId: number) => Promise<void> | void;
 }
 
 const WalletConnectionContext = createContext<WalletConnectionContextValue | null>(null);
@@ -41,19 +41,12 @@ export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) 
   const { isConnected: isWagmiConnected, chainId: wagmiChainId } = useAccount();
   const { switchChainAsync: wagmiSwitchChainAsync } = useSwitchChain();
 
-  // this store is driven by wagmi if connected, otherwise manual
-  const [cofheChainId, setCofheChainId] = useState<number>(DEFAULT_CHAIN_ID);
-
-  useEffect(() => {
-    if (isWagmiConnected && wagmiChainId) {
-      setCofheChainId(wagmiChainId);
-    }
-  }, [isWagmiConnected, wagmiChainId]);
+  const [mockWalletCofheChainId, setMockWalletCofheChainId] = useState<number>(DEFAULT_CHAIN_ID);
 
   // Connect browser wallet function
   const connectBrowserWallet = useCallback(async () => {
     try {
-      // Connect via wagmi
+      // Connect via wagmi, force to switch to the supported chain (as it can be on unsupported, in such case this will throw an error)
       await connectAsync({ connector: injectedProvider, chainId: cofheConfig.supportedChains[0].id });
 
       // The useEffect below will handle reconnecting cofhe client when walletClient changes
@@ -64,42 +57,42 @@ export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) 
   }, [connectAsync]);
 
   // Switch chain function
-  const switchChain = useCallback(
+  const switchWagmiChain = useCallback(
     async (chainId: number) => {
-      if (!isWagmiConnected) {
-        // The cofhe client will handle chain switching by re-connecting in the hook below
-        setCofheChainId(chainId);
-        return;
-      }
-
       // Switch chain using wagmi
-      // this will change cofheChainId via the useEffect above, and will trigger cofhe re-connection in the hook below
-      await wagmiSwitchChainAsync({ chainId });
+      // this will will trigger cofhe re-connection in the effect below
+      const chain = await wagmiSwitchChainAsync({ chainId });
+      console.log('Switched wagmi chain to:', chain);
     },
     [isWagmiConnected, wagmiSwitchChainAsync, wagmiChainId],
   );
 
-  useEffect(() => {
-    function assertAndGetWagmiPair() {
-      if (!walletClient) throw new Error('Wallet client is undefined');
-      if (!publicClient) throw new Error('Public client is undefined');
+  const pairToUse = useMemo(() => {
+    if (isWagmiConnected && walletClient && publicClient) {
+      // if wagmi is connected, use its clients
       return { walletClient, publicClient };
     }
+    // otherwise, use mock wallet and public client
+    return createMockWalletAndPublicClient(mockWalletCofheChainId);
+  }, [isWagmiConnected, walletClient, publicClient, mockWalletCofheChainId]);
 
+  useEffect(() => {
     async function handleCofheConnect() {
       if (cofheSdkClient.connecting) return;
-      if (isWagmiConnected && !walletClient) return; // Wait for walletClient to be available
 
-      const pairToUse = isWagmiConnected ? assertAndGetWagmiPair() : createMockWalletAndPublicClient(cofheChainId);
       await cofheSdkClient.connect(pairToUse.publicClient, pairToUse.walletClient);
     }
 
     handleCofheConnect();
-  }, [walletClient, publicClient, isWagmiConnected, cofheChainId]);
+  }, [pairToUse]);
 
   return (
     <WalletConnectionContext.Provider
-      value={{ connectBrowserWallet, isUsingBrowserWallet: isWagmiConnected, switchChain }}
+      value={{
+        connectBrowserWallet,
+        isUsingBrowserWallet: isWagmiConnected,
+        switchChain: isWagmiConnected ? switchWagmiChain : setMockWalletCofheChainId,
+      }}
     >
       <CofheProvider cofhesdkClient={cofheSdkClient} config={cofheConfig}>
         {children}
