@@ -18,7 +18,7 @@ export type FloatingButtonPositionType = 'fixed' | 'absolute';
 export interface FnxFloatingButtonProps extends BaseProps {
   /** Position of the floating button */
   position?: FloatingButtonPosition;
-  
+
   /** Allow predefined sizes */
   size?: FloatingButtonSize;
 
@@ -35,7 +35,7 @@ export interface FnxFloatingButtonProps extends BaseProps {
   /** Dark mode for the button (independent of page theme) */
   darkMode?: boolean;
   /** Chain switch handler - called when user selects a different chain in the network dropdown */
-  onChainSwitch?: (chainId: number) => Promise<void>;
+  onSelectChain?: (chainId: number) => Promise<void> | void;
 }
 
 const positionStyles: Record<FloatingButtonPosition, string> = {
@@ -56,13 +56,7 @@ const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
   statusBarClassName,
   contentSectionClassName,
 }) => {
-  const {
-    effectivePosition,
-    isTopSide,
-    isLeftSide,
-    handleClick,
-    darkMode,
-  } = useFnxFloatingButtonContext();
+  const { effectivePosition, isTopSide, isLeftSide, handleClick, darkMode } = useFnxFloatingButtonContext();
 
   return (
     <div
@@ -80,20 +74,13 @@ const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
         className
       )}
     >
-      <ContentSection
-        className={contentSectionClassName}
-      />
+      <ContentSection className={contentSectionClassName} />
 
       {/* Button and Bar Row */}
       <div className={cn('flex items-center', isLeftSide ? 'flex-row' : 'flex-row-reverse')}>
-        <FloatingIcon
-          onClick={() => handleClick(onClick)}
-          className={buttonClassName}
-        />
+        <FloatingIcon onClick={() => handleClick(onClick)} className={buttonClassName} />
 
-        <StatusBarSection
-          className={statusBarClassName}
-        >
+        <StatusBarSection className={statusBarClassName}>
           <StatusBarContent />
         </StatusBarSection>
       </div>
@@ -103,10 +90,10 @@ const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
 
 export const FnxFloatingButton: React.FC<FnxFloatingButtonProps> = (props) => {
   return (
-    <FnxFloatingButtonProvider 
-      darkMode={props.darkMode ?? false} 
+    <FnxFloatingButtonProvider
+      darkMode={props.darkMode ?? false}
       position={props.position}
-      onChainSwitch={props.onChainSwitch}
+      onSelectChain={props.onSelectChain}
     >
       <FnxFloatingButtonInner {...props} />
     </FnxFloatingButtonProvider>

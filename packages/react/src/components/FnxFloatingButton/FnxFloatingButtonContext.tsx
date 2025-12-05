@@ -29,7 +29,7 @@ interface FnxFloatingButtonContextValue {
   expandPanel: () => void;
   collapsePanel: () => void;
   handleClick: (externalOnClick?: () => void) => void;
-  onSelectChain?: (chainId: number) => Promise<void>;
+  onSelectChain?: (chainId: number) => Promise<void> | void;
 }
 
 const FnxFloatingButtonContext = createContext<FnxFloatingButtonContextValue | null>(null);
@@ -38,7 +38,7 @@ interface FnxFloatingButtonProviderProps {
   children: ReactNode;
   darkMode: boolean;
   position?: FloatingButtonPosition;
-  onSelectChain?: (chainId: number) => Promise<void>;
+  onSelectChain?: (chainId: number) => Promise<void> | void;
 }
 
 export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps> = ({

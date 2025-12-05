@@ -15,7 +15,8 @@ export const FnxFloatingButtonExample: React.FC = () => {
       <div>
         <h2 className="text-2xl font-bold mb-4">FnxFloatingButton</h2>
         <p className="text-gray-600 dark:text-gray-400 mb-6">
-          A customizable floating action button (FAB) that stays on top of your content. Perfect for primary actions in your app.
+          A customizable floating action button (FAB) that stays on top of your content. Perfect for primary actions in
+          your app.
         </p>
       </div>
 
@@ -24,7 +25,6 @@ export const FnxFloatingButtonExample: React.FC = () => {
         <div>
           <h3 className="text-lg font-semibold mb-3">Interactive Demo</h3>
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border mb-4">
-            
             {/* Position */}
             <div className="mb-6">
               <label className="block text-sm font-medium mb-2">Position:</label>
@@ -83,12 +83,8 @@ export const FnxFloatingButtonExample: React.FC = () => {
 
             {/* Preview */}
             <div className="mb-4">
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-                Click count: {clickCount}
-              </p>
-              <p className="text-xs text-gray-400 dark:text-gray-500">
-                Look at the {position} corner of this page!
-              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Click count: {clickCount}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">Look at the {position} corner of this page!</p>
               <p className="text-xs text-blue-500 dark:text-blue-400 mt-2">
                 💡 Click the button to toggle the expandable panel
               </p>
@@ -102,7 +98,7 @@ export const FnxFloatingButtonExample: React.FC = () => {
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border mb-4">
             <pre className="text-sm overflow-x-auto">
               <code className="text-gray-800 dark:text-gray-200">
-{`import { FnxFloatingButton } from '@cofhe/react';
+                {`import { FnxFloatingButton } from '@cofhe/react';
 import AddIcon from '@mui/icons-material/Add';
 
 function MyApp() {
@@ -126,7 +122,7 @@ function MyApp() {
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border">
             <pre className="text-sm overflow-x-auto">
               <code className="text-gray-800 dark:text-gray-200">
-{`import { FnxFloatingButton } from '@cofhe/react';
+                {`import { FnxFloatingButton } from '@cofhe/react';
 import AddIcon from '@mui/icons-material/Add';
 
 function MyApp() {
@@ -179,104 +175,62 @@ function MyApp() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                     'bottom-right'
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                    Position of the button
-                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">Position of the button</td>
                 </tr>
                 <tr>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-300">
                     icon
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                    React.ReactNode
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    -
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                    Icon to display
-                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">React.ReactNode</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">-</td>
+                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">Icon to display</td>
                 </tr>
                 <tr>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-300">
                     size
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                    number
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    56
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                    Button size in pixels
-                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">number</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">56</td>
+                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">Button size in pixels</td>
                 </tr>
                 <tr>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-300">
                     iconColor
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                    string
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    '#ffffff'
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                    Icon color
-                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">string</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">'#ffffff'</td>
+                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">Icon color</td>
                 </tr>
                 <tr>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-300">
                     onClick
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                    () =&gt; void
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    -
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                    Click handler
-                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">() =&gt; void</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">-</td>
+                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">Click handler</td>
                 </tr>
                 <tr>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-300">
                     title
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                    string
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    -
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                    Tooltip text
-                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">string</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">-</td>
+                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">Tooltip text</td>
                 </tr>
                 <tr>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-300">
                     zIndex
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                    number
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    9999
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                    Z-index value
-                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">number</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">9999</td>
+                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">Z-index value</td>
                 </tr>
                 <tr>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-300">
                     positionType
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                    'fixed' | 'absolute'
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    'fixed'
-                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">'fixed' | 'absolute'</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">'fixed'</td>
                   <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                     Position type (fixed stays on screen)
                   </td>
@@ -285,26 +239,16 @@ function MyApp() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-300">
                     expandable
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                    boolean
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    false
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                    Enable expandable panel
-                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">boolean</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">false</td>
+                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">Enable expandable panel</td>
                 </tr>
                 <tr>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-300">
                     expandedWidth
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                    number
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    250
-                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">number</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">250</td>
                   <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                     Width of expanded panel in pixels
                   </td>
@@ -320,10 +264,9 @@ function MyApp() {
         position={position}
         size={buttonSize}
         darkMode={darkMode}
-        onClick={() => setClickCount(prev => prev + 1)}
-        onChainSwitch={switchChain}
+        onClick={() => setClickCount((prev) => prev + 1)}
+        onSelectChain={switchChain}
       />
     </div>
   );
 };
-

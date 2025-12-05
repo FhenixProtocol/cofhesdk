@@ -91,7 +91,9 @@ export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) 
       value={{
         connectBrowserWallet,
         isUsingBrowserWallet: isWagmiConnected,
-        switchChain: isWagmiConnected ? switchWagmiChain : setMockWalletCofheChainId,
+        switchChain: isWagmiConnected
+          ? switchWagmiChain // if connected to a wallet - request wallet change switch
+          : setMockWalletCofheChainId, // for mock wallet, switching chain = changing the state, which will change pairToUse and recreate clients
       }}
     >
       <CofheProvider cofhesdkClient={cofheSdkClient} config={cofheConfig}>
