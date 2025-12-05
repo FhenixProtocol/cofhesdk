@@ -87,19 +87,14 @@ export const Navigation: React.FC<NavigationProps> = ({
   onToggleDarkMode,
 }) => {
   const isUsingBrowserWallet = useIsUsingBrowserWallet();
-  const connectBrowserWallet = useConnectBrowserWallet();
-
-  const [isConnecting, setIsConnecting] = useState(false);
+  const { connectBrowserWallet, isConnecting } = useConnectBrowserWallet();
 
   const handleConnectBrowserWallet = async () => {
-    setIsConnecting(true);
     try {
       await connectBrowserWallet();
     } catch (error) {
       console.error('Failed to connect browser wallet:', error);
       alert('Failed to connect wallet. Please make sure MetaMask or another wallet extension is installed.');
-    } finally {
-      setIsConnecting(false);
     }
   };
 

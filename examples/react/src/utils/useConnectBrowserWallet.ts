@@ -7,7 +7,7 @@ const injectedProvider = injected({ shimDisconnect: true });
 
 export const useConnectBrowserWallet = () => {
   const cofheConfig = useCofheContext().client.config;
-  const { connectAsync } = useConnect();
+  const { connectAsync, isPending: isConnecting } = useConnect();
   // Connect browser wallet function
   const connectBrowserWallet = useCallback(async () => {
     try {
@@ -24,5 +24,8 @@ export const useConnectBrowserWallet = () => {
     }
   }, [connectAsync]);
 
-  return connectBrowserWallet;
+  return {
+    connectBrowserWallet,
+    isConnecting,
+  };
 };
