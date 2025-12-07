@@ -1,6 +1,8 @@
-import SettingsIcon from '@mui/icons-material/Settings';
-import logoBlack from './assets/logo-black.png';
-import logoWhite from './assets/logo-white.png';
+import { MdOutlineSettings } from 'react-icons/md';
+import { IoIosCheckmarkCircleOutline } from "react-icons/io";
+import { cn } from '../../utils/cn.js';
+import logoBlack from './assets/fhenix-icon-black.png';
+import logoWhite from './assets/fhenix-icon-white.png';
 import { useFnxFloatingButtonContext, FloatingButtonPage } from './FnxFloatingButtonContext.js';
 
 export const StatusBarContent: React.FC = () => {
@@ -15,17 +17,21 @@ export const StatusBarContent: React.FC = () => {
         className="fnx-status-logo"
       />
       {/* Status */}
-      <div className="fnx-status-badge-inline fnx-text-status text-sm px-3 py-2">
-        <span className="opacity-70">Status:</span> <span className="font-medium">Connected</span>
+      <div className="flex items-center gap-1 ml-auto mr-2">
+        <span className="text-green-500"><IoIosCheckmarkCircleOutline /></span>
+        <span className="font-medium">Connected*</span>
       </div>
       
-      {/* Settings Icon */}
-      <button
-        onClick={() => navigateTo(FloatingButtonPage.Settings)}
-        className="fnx-text-primary p-1 rounded hover:bg-white hover:bg-opacity-10 transition-colors"
-      >
-        <SettingsIcon className="fnx-settings-icon" />
-      </button>
+        {/* Settings Icon */}
+        <button
+          onClick={() => navigateTo(FloatingButtonPage.Settings)}
+          className={cn(
+            'p-1 rounded fnx-hover-overlay transition-colors',
+            'fnx-text-primary'
+          )}
+        >
+          <MdOutlineSettings className="w-4 h-4"/>
+        </button>
     </>
   );
 };

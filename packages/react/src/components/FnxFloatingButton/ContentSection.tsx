@@ -73,12 +73,10 @@ export const ContentSection: React.FC<ContentSectionProps> = ({
         'flex'
       )}
       data-left={isLeftSide}
+      data-open={showPopupPanel}
     >
       <div
-        className={cn(
-          'fnx-content-panel',
-          showPopupPanel && 'fnx-glow'
-        )}
+        className={cn('fnx-content-panel')}
         data-open={showPopupPanel}
         style={{
           '--fnx-content-height': showPopupPanel ? `${contentHeight}px` : undefined,

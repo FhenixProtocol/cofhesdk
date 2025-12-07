@@ -180,7 +180,7 @@ export const SendPage: React.FC = () => {
       </button>
 
       {/* Asset Section */}
-      <div className="fnx-card-bg rounded-lg p-2 border fnx-card-border">
+      <div className="fnx-card-bg p-2 border fnx-card-border">
         <div className="flex items-center justify-between mb-2">
           <label className="block text-xs font-medium opacity-70">Asset to be sent</label>
         </div>
@@ -250,7 +250,7 @@ export const SendPage: React.FC = () => {
       </div>
 
       {/* Recipient Address */}
-      <div className="fnx-card-bg rounded-lg p-4 border fnx-card-border">
+      <div className="fnx-card-bg p-4 border fnx-card-border">
         <div className="flex items-center justify-between mb-2">
           <label className="block text-xs font-medium opacity-70">Recipient Address:</label>
         </div>
@@ -260,7 +260,7 @@ export const SendPage: React.FC = () => {
           onChange={(e) => setRecipientAddress(e.target.value)}
           placeholder="0x..."
           className={cn(
-            "w-full bg-transparent fnx-text-primary outline-none border-b pb-2",
+            "w-full bg-transparent fnx-text-primary outline-none border-b pb-2 px-2",
             "placeholder:opacity-50",
             isValidAddress ? "border-green-500" : recipientAddress ? "border-red-500" : "fnx-card-border"
           )}

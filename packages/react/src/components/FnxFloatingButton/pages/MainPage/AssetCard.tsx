@@ -6,8 +6,10 @@ import { useCofheChainId } from '../../../../hooks/useCofheConnection.js';
 import { useMemo } from 'react';
 import { TokenIcon } from '../../components/TokenIcon.js';
 import { TokenBalance } from '../../components/TokenBalance.js';
+import { useFnxFloatingButtonContext } from '../../FnxFloatingButtonContext.js';
 
 export const AssetCard: React.FC = () => {
+  const { navigateToTokenInfo } = useFnxFloatingButtonContext();
   // const pinnedTokenAddress = "0x8ee52408ED5b0e396aA779Fd52F7fbc20A4b33Fb"; // Base sepolia
   // const pinnedTokenAddress = "0xbED96aa98a49FeA71fcC55d755b915cF022a9159"; // Redact (Sepolia)
   const pinnedTokenAddress = usePinnedTokenAddress();
@@ -36,10 +38,22 @@ export const AssetCard: React.FC = () => {
     return 'ETH';
   }, [pinnedTokenAddress, tokenSymbol]);
 
+  const handleClick = () => {
+    navigateToTokenInfo({
+      address: pinnedTokenAddress ?? 'native',
+      name: tokenFromList?.name ?? ticker,
+      symbol: ticker,
+      decimals: tokenMetadata?.decimals ?? 18,
+      logoURI: tokenFromList?.logoURI,
+      isNative: !pinnedTokenAddress,
+    });
+  };
+
   return (
     <div
+      onClick={handleClick}
       className={cn(
-        'fnx-card-bg rounded-lg p-4 mb-4 cursor-pointer',
+        'fnx-card-bg p-4 mb-4 cursor-pointer',
         'hover:opacity-90 transition-opacity',
         'border fnx-card-border'
       )}

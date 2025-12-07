@@ -1,18 +1,18 @@
 @layer base {
   .fnx-floating-button {
     /* Theme colors */
-    --fnx-bg-primary: #DAFEFF;
+    --fnx-bg-primary: #ffffff;
     --fnx-bg-status: #FFF8E1;
     --fnx-text-primary: #000000;
     --fnx-text-status: #1f2937;
     --fnx-glow-color: rgba(10, 217, 220, 0.50);
-    --fnx-border-color: rgba(0, 0, 0, 0.5);
+    --fnx-border-color: #e2e8f0;
     
     /* MainPage colors */
-    --fnx-card-bg: #E0F7FA;
-    --fnx-card-border: #B2EBF2;
+    --fnx-card-bg: #F5F5F5;
+    --fnx-card-border: #4E4E4E;
     --fnx-icon-bg: #ffffff;
-    --fnx-button-bg: #E0F7FA;
+    --fnx-button-bg: #ffffff;
     --fnx-button-hover-bg: #0AD9DC99;
     --fnx-button-hover-text: #ffffff;
     --fnx-dropdown-bg: #ffffff;
@@ -30,6 +30,9 @@
     --fnx-send-button-enabled-text: #ffffff;
     --fnx-send-button-disabled-bg: #d1d5db;
     --fnx-send-button-disabled-text: #6b7280;
+    --fnx-corner-accent-color: #0AD9DC;
+    --fnx-corner-size: 10px;
+    --fnx-content-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     
     /* Sizing - defaults, will be overridden by inline CSS variables */
     --fnx-button-size: 48px;
@@ -66,10 +69,10 @@
     --fnx-border-color: rgba(255, 255, 255, 0.3);
     
     /* MainPage dark mode colors */
-    --fnx-card-bg: #1a3a3f;
-    --fnx-card-border: #2d5a5f;
+    --fnx-card-bg: #333333;
+    --fnx-card-border: #9E9E9E;
     --fnx-icon-bg: #374151;
-    --fnx-button-bg: #1a3a3f;
+    --fnx-button-bg: #595959;
     --fnx-button-hover-bg: #00ACC1;
     --fnx-button-hover-text: #ffffff;
     --fnx-dropdown-bg: #1f2937;
@@ -79,7 +82,7 @@
     --fnx-positive-change: #4ade80;
     --fnx-pattern-overlay: rgba(255, 255, 255, 0.02);
     --fnx-button-border: #08989A;
-    --fnx-button-default-text: #00314E;
+    --fnx-button-default-text: #FFFFFF;
     --fnx-button-default-border: #5F6368;
     --fnx-button-default-font-weight: 500;
     --fnx-send-button-enabled-bg: #08989A;
@@ -87,6 +90,8 @@
     --fnx-send-button-enabled-text: #ffffff;
     --fnx-send-button-disabled-bg: #374151;
     --fnx-send-button-disabled-text: #9ca3af;
+    --fnx-corner-accent-color: #0AD9DC;
+    --fnx-content-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
   }
 
   /* Placeholder for different sizes */
@@ -121,29 +126,31 @@
   width: var(--fnx-button-size);
   height: var(--fnx-button-size);
   background-color: var(--fnx-bg-primary);
-  border: none !important;
+  border: 1px solid var(--fnx-border-color) !important;
   outline: none !important;
   border-radius: var(--fnx-border-radius);
   position: relative;
   z-index: 1;
   color: var(--fnx-text-primary);
+  box-shadow: var(--fnx-content-shadow);
+  transition: box-shadow var(--fnx-transition-duration) ease-in-out;
 }
 
 .fnx-floating-icon:focus {
   outline: none !important;
-  border: none !important;
-  box-shadow: 0 0 6px 0 var(--fnx-glow-color) !important;
+  /* border: none !important;
+  box-shadow: 0 0 6px 0 var(--fnx-glow-color) !important; */
 }
 
 .fnx-floating-icon:focus-visible {
   outline: none !important;
-  border: none !important;
-  box-shadow: 0 0 6px 0 var(--fnx-glow-color) !important;
+  /* border: none !important;
+  box-shadow: 0 0 6px 0 var(--fnx-glow-color) !important; */
 }
 
 .fnx-floating-icon:active {
   outline: none !important;
-  border: none !important;
+  /* border: none !important; */
 }
 
 .fnx-icon-inner {
@@ -163,6 +170,33 @@
   height: var(--fnx-icon-size);
   object-fit: contain;
 }
+
+/* FloatingIcon corner accents (2 opposite corners) - Optional */
+/* .fnx-floating-icon::before,
+.fnx-floating-icon::after {
+  content: '';
+  position: absolute;
+  width: var(--fnx-corner-size);
+  height: var(--fnx-corner-size);
+  border: 2px solid var(--fnx-corner-accent-color);
+  z-index: 2;
+}
+
+.fnx-floating-icon::before {
+  top: 0;
+  left: 0;
+  border-right: none;
+  border-bottom: none;
+  border-top-left-radius: var(--fnx-border-radius);
+}
+
+.fnx-floating-icon::after {
+  bottom: 0;
+  right: 0;
+  border-left: none;
+  border-top: none;
+  border-bottom-right-radius: var(--fnx-border-radius);
+} */
 
 /* StatusBarSection styles */
 .fnx-status-bar-container {
@@ -189,28 +223,60 @@
   height: var(--fnx-button-size);
   background-color: var(--fnx-bg-primary);
   border-radius: var(--fnx-border-radius);
+  border: 1px solid var(--fnx-border-color);
   color: var(--fnx-text-primary);
-  transition: transform var(--fnx-transition-duration) ease-in-out, opacity var(--fnx-transition-duration) ease-in-out;
+  position: relative;
+  transition: transform var(--fnx-transition-duration) ease-in-out, opacity var(--fnx-transition-duration) ease-in-out, box-shadow var(--fnx-transition-duration) ease-in-out;
 }
 
 .fnx-status-bar[data-expanded="false"][data-left="true"] {
-  transform: translateX(calc(var(--fnx-bar-width) * -1));
+  transform: translateX(calc(var(--fnx-button-size) / -2));
   opacity: 0;
+  box-shadow: none;
 }
 
 .fnx-status-bar[data-expanded="false"][data-left="false"] {
-  transform: translateX(var(--fnx-bar-width));
+  transform: translateX(calc(var(--fnx-button-size) / 2));
   opacity: 0;
+  box-shadow: none;
 }
 
 .fnx-status-bar[data-expanded="true"] {
   transform: translateX(0);
   opacity: 1;
+  box-shadow: var(--fnx-content-shadow);
 }
+
+/* StatusBar corner accents (2 opposite corners) - Optional */
+/* .fnx-status-bar[data-expanded="true"]::before,
+.fnx-status-bar[data-expanded="true"]::after {
+  content: '';
+  position: absolute;
+  width: var(--fnx-corner-size);
+  height: var(--fnx-corner-size);
+  border: 2px solid var(--fnx-corner-accent-color);
+  z-index: 2;
+}
+
+.fnx-status-bar[data-expanded="true"]::before {
+  top: 0;
+  left: 0;
+  border-right: none;
+  border-bottom: none;
+  border-top-left-radius: var(--fnx-border-radius);
+}
+
+.fnx-status-bar[data-expanded="true"]::after {
+  bottom: 0;
+  right: 0;
+  border-left: none;
+  border-top: none;
+  border-bottom-right-radius: var(--fnx-border-radius); 
+} */
 
 .fnx-status-logo {
   /*height: 48px;*/
-  width: 120px;
+  width: 40px;
   flex-shrink: 0;
 }
 
@@ -228,7 +294,69 @@
 .fnx-content-container {
   width: calc(var(--fnx-bar-width) + var(--fnx-gap-size) + var(--fnx-content-offset));
   overflow: hidden;
+  position: relative;
+  transition: box-shadow var(--fnx-transition-duration) ease-in-out;
 }
+
+.fnx-content-container[data-open="true"] {
+  border: 1px solid var(--fnx-border-color);
+  box-shadow: var(--fnx-content-shadow);
+}
+
+/* Corner accent styles - common base - COMMENTED OUT */
+/*
+.fnx-content-container[data-open="true"]::before,
+.fnx-content-container[data-open="true"]::after,
+.fnx-content-panel[data-open="true"]::before,
+.fnx-content-panel[data-open="true"]::after {
+  content: '';
+  position: absolute;
+  width: var(--fnx-corner-size);
+  height: var(--fnx-corner-size);
+  border: 2px solid var(--fnx-corner-accent-color);
+}
+
+Container corners (bottom)
+.fnx-content-container[data-open="true"]::before,
+.fnx-content-container[data-open="true"]::after {
+  z-index: 2;
+  bottom: 0;
+  border-top: none;
+}
+
+.fnx-content-container[data-open="true"]::before {
+  left: 0;
+  border-right: none;
+  border-bottom-left-radius: var(--fnx-border-radius);
+}
+
+.fnx-content-container[data-open="true"]::after {
+  right: 0;
+  border-left: none;
+  border-bottom-right-radius: var(--fnx-border-radius);
+}
+
+Panel corners (top)
+.fnx-content-panel[data-open="true"]::before,
+.fnx-content-panel[data-open="true"]::after {
+  z-index: 1;
+  top: 0;
+  border-bottom: none;
+}
+
+.fnx-content-panel[data-open="true"]::before {
+  left: 0;
+  border-right: none;
+  border-top-left-radius: var(--fnx-border-radius);
+}
+
+.fnx-content-panel[data-open="true"]::after {
+  right: 0;
+  border-left: none;
+  border-top-right-radius: var(--fnx-border-radius);
+}
+*/
+
 
 .fnx-content-container[data-left="true"] {
   justify-content: flex-start;
@@ -242,14 +370,15 @@
   width: calc(var(--fnx-bar-width) + var(--fnx-gap-size) + var(--fnx-content-offset));
   background-color: var(--fnx-bg-primary);
   border-radius: var(--fnx-border-radius);
-  transition: height var(--fnx-transition-duration) ease-in-out, opacity var(--fnx-transition-duration) ease-in-out, padding var(--fnx-transition-duration) ease-in-out, box-shadow var(--fnx-transition-duration) ease-in-out;
+  transition: height var(--fnx-transition-duration) ease-in-out, opacity var(--fnx-transition-duration) ease-in-out, padding var(--fnx-transition-duration) ease-in-out;
+  position: relative;
 }
+
 
 .fnx-content-panel[data-open="false"] {
   height: 0;
   opacity: 0;
   padding: 0;
-  box-shadow: none;
 }
 
 .fnx-content-panel[data-open="true"] {
@@ -273,7 +402,7 @@
 
 /* MainPage styles */
 .fnx-main-page {
-  background-image: 
+  /* background-image: 
     repeating-linear-gradient(
       45deg,
       transparent,
@@ -281,7 +410,7 @@
       var(--fnx-pattern-overlay) 10px,
       var(--fnx-pattern-overlay) 20px
     );
-  background-size: 20px 20px;
+  background-size: 20px 20px; */
 }
 
 /* MainPage component utility classes */
@@ -290,7 +419,10 @@
 }
 
 .fnx-card-border {
-  border-color: var(--fnx-card-border);
+  border-left: 1px solid var(--fnx-card-border);
+  border-bottom: 1px solid var(--fnx-card-border);
+  border-top: none;
+  border-right: none;
 }
 
 .fnx-icon-bg {
@@ -361,7 +493,8 @@
   border-color: var(--fnx-dropdown-border);
 }
 
-.fnx-dropdown-hover:hover {
+.fnx-dropdown-hover:hover,
+.fnx-dropdown-hover:focus {
   background-color: var(--fnx-dropdown-hover-bg);
 }
 
