@@ -1,7 +1,8 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { FloatingButtonPosition } from './FnxFloatingButton.js';
 import { useCofheContext } from '../../providers';
+import { checkPendingTransactions, stopPendingTransactionPolling } from '../../stores/transactionStore.js';
 
 export enum FloatingButtonPage {
   Main = 'main',
@@ -78,11 +79,21 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   position,
   onChainSwitch,
 }) => {
-  const widgetConfig = useCofheContext().config.react;
+  const { client: cofhesdkClient, config } = useCofheContext();
+  const widgetConfig = config.react;
   const effectivePosition = position || widgetConfig.position;
   const showNativeTokenInList = widgetConfig.showNativeTokenInList;
 
   const [pageHistory, setPageHistory] = useState<FloatingButtonPage[]>([FloatingButtonPage.Main]);
+
+  // Check pending transactions on mount
+  useEffect(() => {
+    checkPendingTransactions(() => cofhesdkClient.getPublicClient());
+    
+    return () => {
+      stopPendingTransactionPolling();
+    };
+  }, [cofhesdkClient]);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showPopupPanel, setShowPopupPanel] = useState(false);
   const [tokenListMode, setTokenListMode] = useState<TokenListMode>('view');

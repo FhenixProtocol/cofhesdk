@@ -146,6 +146,7 @@ export const SendPage: React.FC = () => {
         token: tokenFromList,
         to: recipientAddress as Address,
         encryptedValue,
+        amount: amountInSmallestUnit,
       });
 
       setSuccess(`Transaction sent! Hash: ${truncateAddress(hash)}`);

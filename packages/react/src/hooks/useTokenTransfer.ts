@@ -1,8 +1,10 @@
 import { useMutation, type UseMutationOptions, type UseMutationResult } from '@tanstack/react-query';
 import { type Address } from 'viem';
-import { useCofheWalletClient } from './useCofheConnection.js';
+import { useCofheWalletClient, useCofheChainId, useCofheAccount, useCofhePublicClient } from './useCofheConnection.js';
 import type { Token } from './useTokenLists.js';
 import { TRANSFER_ABIS } from '../constants/confidentialTokenABIs.js';
+import { useTransactionStore, TransactionActionType, TransactionStatus } from '../stores/transactionStore.js';
+
 
 // Encrypted value struct type
 export type EncryptedValue = {
@@ -20,6 +22,8 @@ type UseTokenTransferInput = {
   to: Address;
   /** Encrypted value struct (ctHash, securityZone, utype, signature) */
   encryptedValue: EncryptedValue;
+  /** Amount being transferred (for transaction history) */
+  amount: bigint;
 };
 
 type UseTokenTransferOptions = Omit<
@@ -37,6 +41,11 @@ export function useTokenTransfer(
   options?: UseTokenTransferOptions
 ): UseMutationResult<`0x${string}`, Error, UseTokenTransferInput> {
   const walletClient = useCofheWalletClient();
+  const publicClient = useCofhePublicClient();
+  const chainId = useCofheChainId();
+  const account = useCofheAccount();
+  const addTransaction = useTransactionStore((state) => state.addTransaction);
+  const updateTransactionStatus = useTransactionStore((state) => state.updateTransactionStatus);
 
   return useMutation({
     mutationFn: async (input: UseTokenTransferInput) => {
@@ -73,7 +82,7 @@ export function useTokenTransfer(
         signature: input.encryptedValue.signature,
       };
 
-          const hash = await walletClient.writeContract({
+      const hash = await walletClient.writeContract({
         address: tokenAddress,
         abi: contractConfig.abi,
         functionName: contractConfig.functionName,
@@ -82,9 +91,36 @@ export function useTokenTransfer(
         chain: undefined,
       });
 
-          return hash;
+      // Record transaction in store
+      if (chainId && account) {
+        addTransaction({
+          hash,
+          tokenSymbol: input.token.symbol,
+          tokenAmount: input.amount,
+          tokenDecimals: input.token.decimals,
+          tokenAddress: input.token.address,
+          chainId,
+          actionType: TransactionActionType.ShieldSend,
+          account,
+        });
+
+        // Watch for transaction confirmation in background
+        if (publicClient) {
+          publicClient.waitForTransactionReceipt({ hash })
+            .then((receipt) => {
+              const status = receipt.status === 'success' 
+                ? TransactionStatus.Confirmed 
+                : TransactionStatus.Failed;
+              updateTransactionStatus(chainId, hash, status);
+            })
+            .catch(() => {
+              updateTransactionStatus(chainId, hash, TransactionStatus.Failed);
+            });
+        }
+      }
+
+      return hash;
     },
     ...options,
   });
 }
-
