@@ -5,7 +5,6 @@ import { StatusBarSection } from './StatusBarSection.js';
 import { StatusBarContent } from './StatusBarContent.js';
 import { ContentSection } from './ContentSection.js';
 import { FnxFloatingButtonProvider, useFnxFloatingButtonContext } from './FnxFloatingButtonContext.js';
-import { PermitSelectionProvider } from './pages/permits/PermitSelectionContext.js';
 
 export type FloatingButtonPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 export type FloatingButtonSize = 'small' | 'medium' | 'large';
@@ -19,7 +18,7 @@ export type FloatingButtonPositionType = 'fixed' | 'absolute';
 export interface FnxFloatingButtonProps extends BaseProps {
   /** Position of the floating button */
   position?: FloatingButtonPosition;
-  
+
   /** Allow predefined sizes */
   size?: FloatingButtonSize;
 
@@ -57,13 +56,7 @@ const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
   statusBarClassName,
   contentSectionClassName,
 }) => {
-  const {
-    effectivePosition,
-    isTopSide,
-    isLeftSide,
-    handleClick,
-    darkMode,
-  } = useFnxFloatingButtonContext();
+  const { effectivePosition, isTopSide, isLeftSide, handleClick, darkMode } = useFnxFloatingButtonContext();
 
   return (
     <div
@@ -81,22 +74,13 @@ const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
         className
       )}
     >
-      <PermitSelectionProvider>
-        <ContentSection
-          className={contentSectionClassName}
-        />
-      </PermitSelectionProvider>
+      <ContentSection className={contentSectionClassName} />
 
       {/* Button and Bar Row */}
       <div className={cn('flex items-center', isLeftSide ? 'flex-row' : 'flex-row-reverse')}>
-        <FloatingIcon
-          onClick={() => handleClick(onClick)}
-          className={buttonClassName}
-        />
+        <FloatingIcon onClick={() => handleClick(onClick)} className={buttonClassName} />
 
-        <StatusBarSection
-          className={statusBarClassName}
-        >
+        <StatusBarSection className={statusBarClassName}>
           <StatusBarContent />
         </StatusBarSection>
       </div>
@@ -106,8 +90,8 @@ const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
 
 export const FnxFloatingButton: React.FC<FnxFloatingButtonProps> = (props) => {
   return (
-    <FnxFloatingButtonProvider 
-      darkMode={props.darkMode ?? false} 
+    <FnxFloatingButtonProvider
+      darkMode={props.darkMode ?? false}
       position={props.position}
       onChainSwitch={props.onChainSwitch}
     >

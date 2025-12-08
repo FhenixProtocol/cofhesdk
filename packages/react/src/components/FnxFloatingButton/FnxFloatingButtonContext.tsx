@@ -2,6 +2,7 @@ import { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { FloatingButtonPosition } from './FnxFloatingButton.js';
 import { useCofheContext } from '../../providers';
+import { type PermitDetailsPageProps } from './pages/permits/PermitDetailsPage/index.js';
 
 export enum FloatingButtonPage {
   Main = 'main',
@@ -19,10 +20,35 @@ export enum FloatingButtonPage {
 const OPEN_DELAY = 500; // Delay before showing popup in ms
 const CLOSE_DELAY = 300; // Delay before closing bar after popup closes
 
+// Consumers can augment this map via declaration merging or module-local typing.
+// By default, props are typed as unknown per page.
+export type FloatingButtonPagePropsMap = {
+  [FloatingButtonPage.Main]: void;
+  [FloatingButtonPage.Settings]: void;
+  [FloatingButtonPage.TokenList]: void;
+  [FloatingButtonPage.Send]: void;
+  [FloatingButtonPage.Shield]: void;
+  [FloatingButtonPage.Activity]: void;
+  [FloatingButtonPage.Permits]: void;
+  [FloatingButtonPage.GeneratePermits]: void;
+  [FloatingButtonPage.ReceivePermits]: void;
+  [FloatingButtonPage.PermitDetails]: PermitDetailsPageProps;
+};
+
+type PageState<K extends FloatingButtonPage = FloatingButtonPage> = {
+  page: K;
+  props?: FloatingButtonPagePropsMap[K];
+};
+
 interface FnxFloatingButtonContextValue {
-  pageHistory: FloatingButtonPage[];
-  currentPage: FloatingButtonPage;
-  navigateTo: (page: FloatingButtonPage) => void;
+  pageHistory: PageState[];
+  currentPage: PageState;
+  navigateTo: {
+    <K extends FloatingButtonPage>(
+      page: K,
+      ...args: FloatingButtonPagePropsMap[K] extends void ? [] : [props: FloatingButtonPagePropsMap[K]]
+    ): void;
+  };
   navigateBack: () => void;
   darkMode: boolean;
   effectivePosition: FloatingButtonPosition;
@@ -54,7 +80,7 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   const widgetConfig = useCofheContext().config.react;
   const effectivePosition = position || widgetConfig.position;
 
-  const [pageHistory, setPageHistory] = useState<FloatingButtonPage[]>([FloatingButtonPage.Main]);
+  const [pageHistory, setPageHistory] = useState<PageState[]>([{ page: FloatingButtonPage.Main }]);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showPopupPanel, setShowPopupPanel] = useState(false);
 
@@ -85,8 +111,9 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
     externalOnClick?.();
   };
 
-  const navigateTo = (page: FloatingButtonPage) => {
-    setPageHistory((prev) => [...prev, page]);
+  const navigateTo = <K extends FloatingButtonPage>(page: K, ...args: any[]) => {
+    const props = (args[0] ?? undefined) as FloatingButtonPagePropsMap[K] | undefined;
+    setPageHistory((prev) => [...prev, { page, props }]);
   };
 
   const navigateBack = () => {

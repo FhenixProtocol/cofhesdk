@@ -2,8 +2,10 @@ import { useCallback, useMemo } from 'react';
 import { zeroAddress } from 'viem';
 import { PermitUtils } from '@cofhe/sdk/permits';
 import { useCofheActivePermit, useCofheAllPermits, useCofheSelectPermit } from '../useCofhePermits.js';
-import { usePermitSelection } from '@/components/FnxFloatingButton/pages/permits/PermitSelectionContext.js';
-import { useFnxFloatingButtonContext } from '@/components/FnxFloatingButton/FnxFloatingButtonContext.js';
+import {
+  useFnxFloatingButtonContext,
+  FloatingButtonPage,
+} from '@/components/FnxFloatingButton/FnxFloatingButtonContext.js';
 import { useCopyFeedback } from '../useCopyFeedback.js';
 import { truncateAddress } from '@/utils/utils.js';
 
@@ -39,18 +41,16 @@ const formatExpirationLabel = (expiration?: number) => {
   return { label: `${minutes} Minute${minutes === 1 ? '' : 's'}`, expired: false };
 };
 
-export const usePermitDetailsPage = () => {
+export const usePermitDetailsPage = (selectedPermitHash: string) => {
   const allPermits = useCofheAllPermits();
   const activePermit = useCofheActivePermit();
   const selectActivePermit = useCofheSelectPermit();
-  const { selectedPermitId, clearSelection } = usePermitSelection();
-  const { navigateBack } = useFnxFloatingButtonContext();
+  const { navigateBack, currentPage } = useFnxFloatingButtonContext();
   const { isCopied, copyWithFeedback } = useCopyFeedback();
 
   const selectedPermit = useMemo(() => {
-    if (!selectedPermitId) return undefined;
-    return allPermits.find((entry) => entry.hash === selectedPermitId);
-  }, [allPermits, selectedPermitId]);
+    return allPermits.find((entry) => entry.hash === selectedPermitHash);
+  }, [allPermits, currentPage]);
 
   const permitLabel = useMemo(() => {
     const permit = selectedPermit?.permit;
@@ -77,9 +77,8 @@ export const usePermitDetailsPage = () => {
   }, [exportedPermit]);
 
   const handleBack = useCallback(() => {
-    clearSelection();
     navigateBack();
-  }, [clearSelection, navigateBack]);
+  }, [navigateBack]);
 
   const handleCopy = useCallback(() => {
     if (!permitJson) return;

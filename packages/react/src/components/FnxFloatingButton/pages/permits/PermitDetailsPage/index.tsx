@@ -3,7 +3,11 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
 import { usePermitDetailsPage } from '@/hooks/permits/index.js';
 
-export const PermitDetailsPage: React.FC = () => {
+export type PermitDetailsPageProps = {
+  selectedPermitHash: string;
+};
+
+export const PermitDetailsPage: React.FC<PermitDetailsPageProps> = ({ selectedPermitHash }) => {
   const {
     permitLabel,
     permitJson,
@@ -15,7 +19,7 @@ export const PermitDetailsPage: React.FC = () => {
     hasSelection,
     isCopyComplete,
     isActivePermit,
-  } = usePermitDetailsPage();
+  } = usePermitDetailsPage(selectedPermitHash);
 
   if (!hasSelection) {
     return (
@@ -72,7 +76,9 @@ export const PermitDetailsPage: React.FC = () => {
           </div>
 
           <div className="rounded-xl border border-[#0E2F3F]/15 bg-[#EEF6F8] p-4 dark:border-white/10 dark:bg-[#102027]">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#0E2F3F]/70 dark:text-white/70">Expiring in</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#0E2F3F]/70 dark:text-white/70">
+              Expiring in
+            </p>
             <p
               className={`mt-1 text-2xl font-semibold ${
                 expirationInfo.expired ? 'text-[#D14324]' : 'text-[#0E2F3F] dark:text-white'
