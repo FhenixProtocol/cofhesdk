@@ -19,30 +19,35 @@ const CONTENT_TRANSITION_DURATION = 150; // Duration in milliseconds for content
 interface ContentSectionProps {
   className?: string;
   contentPadding?: number;
+  pageProps?: Partial<Record<FloatingButtonPage, Record<string, unknown>>>;
 }
 
-export const ContentSection: React.FC<ContentSectionProps> = ({ className, contentPadding = 0 }) => {
+export const ContentSection: React.FC<ContentSectionProps> = ({ className, contentPadding = 0, pageProps }) => {
   const { currentPage, showPopupPanel, isTopSide, isLeftSide } = useFnxFloatingButtonContext();
 
   // Page configuration - memoized to prevent recreating on every render
   const pages = useMemo(
     () => ({
-      [FloatingButtonPage.Main]: <MainPage />,
-      [FloatingButtonPage.Settings]: <SettingsPage />,
-      [FloatingButtonPage.TokenList]: <TokenListPage />,
-      [FloatingButtonPage.Send]: <SendPage />,
-      [FloatingButtonPage.Shield]: <ShieldPage />,
-      [FloatingButtonPage.Activity]: <ActivityPage />,
-      [FloatingButtonPage.Permits]: <PermitsListPage />,
-      [FloatingButtonPage.GeneratePermits]: <GeneratePermitPage />,
-      [FloatingButtonPage.ReceivePermits]: <ReceivePermitPage />,
-      [FloatingButtonPage.PermitDetails]: <PermitDetailsPage />,
+      [FloatingButtonPage.Main]: MainPage,
+      [FloatingButtonPage.Settings]: SettingsPage,
+      [FloatingButtonPage.TokenList]: TokenListPage,
+      [FloatingButtonPage.Send]: SendPage,
+      [FloatingButtonPage.Shield]: ShieldPage,
+      [FloatingButtonPage.Activity]: ActivityPage,
+      [FloatingButtonPage.Permits]: PermitsListPage,
+      [FloatingButtonPage.GeneratePermits]: GeneratePermitPage,
+      [FloatingButtonPage.ReceivePermits]: ReceivePermitPage,
+      [FloatingButtonPage.PermitDetails]: PermitDetailsPage,
     }),
     []
   );
 
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [displayedContent, setDisplayedContent] = useState(() => pages[currentPage]);
+  const [displayedContent, setDisplayedContent] = useState(() => {
+    const PageComp = pages[currentPage];
+    const props = pageProps?.[currentPage] ?? {};
+    return <PageComp {...props} />;
+  });
   const [contentHeight, setContentHeight] = useState<number>(0);
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -76,14 +81,18 @@ export const ContentSection: React.FC<ContentSectionProps> = ({ className, conte
     if (!showPopupPanel) {
       setIsTransitioning(true);
       setTimeout(() => {
-        setDisplayedContent(pages[currentPage]);
+        const PageComp = pages[currentPage];
+        const props = pageProps?.[currentPage] ?? {};
+        setDisplayedContent(<PageComp {...props} />);
         setIsTransitioning(false);
       }, CONTENT_TRANSITION_DURATION);
     } else {
-      setDisplayedContent(pages[currentPage]);
+      const PageComp = pages[currentPage];
+      const props = pageProps?.[currentPage] ?? {};
+      setDisplayedContent(<PageComp {...props} />);
       setIsTransitioning(false);
     }
-  }, [currentPage, showPopupPanel]);
+  }, [currentPage, showPopupPanel, pageProps]);
 
   return (
     <div
