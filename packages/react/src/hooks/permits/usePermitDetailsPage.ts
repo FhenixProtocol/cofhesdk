@@ -2,10 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { zeroAddress } from 'viem';
 import { PermitUtils } from '@cofhe/sdk/permits';
 import { useCofheActivePermit, useCofheAllPermits, useCofheSelectPermit } from '../useCofhePermits.js';
-import {
-  useFnxFloatingButtonContext,
-  FloatingButtonPage,
-} from '@/components/FnxFloatingButton/FnxFloatingButtonContext.js';
+import { useFnxFloatingButtonContext } from '@/components/FnxFloatingButton/FnxFloatingButtonContext.js';
 import { useCopyFeedback } from '../useCopyFeedback.js';
 import { truncateAddress } from '@/utils/utils.js';
 
@@ -66,15 +63,10 @@ export const usePermitDetailsPage = (selectedPermitHash: string) => {
     [selectedPermit?.permit.expiration]
   );
 
-  const exportedPermit = useMemo(() => {
+  const permitJson = useMemo(() => {
     if (!selectedPermit) return undefined;
     return PermitUtils.export(selectedPermit.permit);
   }, [selectedPermit]);
-
-  const permitJson = useMemo(() => {
-    if (!exportedPermit) return '';
-    return JSON.stringify(exportedPermit, null, 2);
-  }, [exportedPermit]);
 
   const handleBack = useCallback(() => {
     navigateBack();
