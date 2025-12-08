@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { useCofheClient } from '../useCofheClient.js';
+import { useCofheCreatePermitMutation } from './useCofheCreatePermitMutation';
 
 export interface UsePermitFormOptions {
   onSuccess?: () => void;
@@ -31,9 +31,8 @@ export function usePermitForm(options: UsePermitFormOptions = {}): UsePermitForm
   const [error, setError] = useState<string | null>(null);
   const [nameError, setNameError] = useState<string | null>(null);
   const [receiverError, setReceiverError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [durationSeconds, setDurationSeconds] = useState(7 * 24 * 60 * 60);
-  const cofheClient = useCofheClient();
+  const createPermit = useCofheCreatePermitMutation();
 
   const isValid = !!permitName.trim() && (isSelf || isValidAddress(receiver));
 
@@ -60,7 +59,7 @@ export function usePermitForm(options: UsePermitFormOptions = {}): UsePermitForm
   }, []);
 
   const handleSubmit = useCallback(async () => {
-    if (isSubmitting) return;
+    if (createPermit.isPending) return;
     const nameToUse = permitName.trim();
     if (!nameToUse) {
       setNameError('Permit name is required.');
@@ -72,25 +71,13 @@ export function usePermitForm(options: UsePermitFormOptions = {}): UsePermitForm
         return;
       }
     }
-    setIsSubmitting(true);
     try {
-      const { account } = cofheClient.getSnapshot();
-      if (!account) throw new Error('No connected account found');
-      const expiration = Math.floor(Date.now() / 1000) + durationSeconds;
-      if (isSelf) {
-        await cofheClient.permits.createSelf({
-          expiration,
-          issuer: account,
-          name: nameToUse,
-        });
-      } else {
-        await cofheClient.permits.createSharing({
-          expiration,
-          issuer: account,
-          recipient: receiver.trim() as `0x${string}`,
-          name: nameToUse,
-        });
-      }
+      await createPermit.mutateAsync({
+        name: nameToUse,
+        isSelf,
+        receiver: isSelf ? undefined : (receiver.trim() as `0x${string}`),
+        expirationSeconds: Math.floor(Date.now() / 1000) + durationSeconds,
+      });
       setPermitName('');
       setReceiver('');
       setError(null);
@@ -99,10 +86,8 @@ export function usePermitForm(options: UsePermitFormOptions = {}): UsePermitForm
       onSuccess?.();
     } catch (e: any) {
       setError(e?.message ?? 'Failed to create permit');
-    } finally {
-      setIsSubmitting(false);
     }
-  }, [isSubmitting, permitName, isSelf, receiver, durationSeconds, cofheClient, onSuccess]);
+  }, [createPermit.isPending, permitName, isSelf, receiver, durationSeconds, onSuccess]);
 
   const reset = useCallback(() => {
     setPermitName('');
@@ -121,7 +106,7 @@ export function usePermitForm(options: UsePermitFormOptions = {}): UsePermitForm
     nameError,
     receiverError,
     isValid,
-    isSubmitting,
+    isSubmitting: createPermit.isPending,
     durationSeconds,
     handleNameChange,
     handleReceiverChange,
