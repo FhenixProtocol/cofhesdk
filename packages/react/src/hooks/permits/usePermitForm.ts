@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { useCofheCreatePermitMutation } from './useCofheCreatePermitMutation';
+import { useCofheCreatePermitMutation, type CreatePermitArgs } from './useCofheCreatePermitMutation';
 
 export interface UsePermitFormOptions {
   onSuccess?: () => void;
@@ -72,12 +72,11 @@ export function usePermitForm(options: UsePermitFormOptions = {}): UsePermitForm
       }
     }
     try {
-      await createPermit.mutateAsync({
-        name: nameToUse,
-        isSelf,
-        receiver: isSelf ? undefined : (receiver.trim() as `0x${string}`),
-        expirationSeconds: Math.floor(Date.now() / 1000) + durationSeconds,
-      });
+      const expirationSeconds = Math.floor(Date.now() / 1000) + durationSeconds;
+      const args: CreatePermitArgs = isSelf
+        ? { name: nameToUse, isSelf: true, expirationSeconds }
+        : { name: nameToUse, isSelf: false, receiver: receiver.trim() as `0x${string}`, expirationSeconds };
+      await createPermit.mutateAsync(args);
       setPermitName('');
       setReceiver('');
       setError(null);

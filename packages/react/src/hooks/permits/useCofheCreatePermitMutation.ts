@@ -1,18 +1,25 @@
 import { useMutation } from '@tanstack/react-query';
 import { useCofheClient } from '../useCofheClient.js';
 
-export interface CreatePermitArgs {
-  name: string;
-  isSelf: boolean;
-  receiver?: `0x${string}`;
-  expirationSeconds: number; // unix timestamp (seconds)
-}
+export type CreatePermitArgs =
+  | {
+      name: string;
+      isSelf: true;
+      expirationSeconds: number; // unix timestamp (seconds)
+    }
+  | {
+      name: string;
+      isSelf: false;
+      receiver: `0x${string}`;
+      expirationSeconds: number; // unix timestamp (seconds)
+    };
 
 export const useCofheCreatePermitMutation = () => {
   const cofheClient = useCofheClient();
 
   return useMutation<void, Error, CreatePermitArgs>({
-    mutationFn: async ({ name, isSelf, receiver, expirationSeconds }) => {
+    mutationFn: async (args) => {
+      const { name, isSelf, expirationSeconds } = args;
       const { account } = cofheClient.getSnapshot();
       if (!account) throw new Error('No connected account found');
 
@@ -25,12 +32,10 @@ export const useCofheCreatePermitMutation = () => {
         return;
       }
 
-      if (!receiver) throw new Error('Valid receiver address is required.');
-
       await cofheClient.permits.createSharing({
         expiration: expirationSeconds,
         issuer: account,
-        recipient: receiver,
+        recipient: args.receiver,
         name: name.trim(),
       });
     },
