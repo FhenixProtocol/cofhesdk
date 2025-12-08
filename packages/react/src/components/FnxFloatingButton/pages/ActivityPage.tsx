@@ -8,11 +8,7 @@ export const ActivityPage: React.FC = () => {
   const { navigateBack } = useFnxFloatingButtonContext();
   const chainId = useCofheChainId();
   const account = useCofheAccount();
-  
-  // Get the getAllTransactions function from the store
   const getAllTransactions = useTransactionStore((state) => state.getAllTransactions);
-  
-  // Get transactions safely
   const transactions = chainId ? getAllTransactions(chainId, account ?? undefined) : [];
 
   return (

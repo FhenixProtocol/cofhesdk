@@ -85,20 +85,19 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   const showNativeTokenInList = widgetConfig.showNativeTokenInList;
 
   const [pageHistory, setPageHistory] = useState<FloatingButtonPage[]>([FloatingButtonPage.Main]);
-
-  // Check pending transactions on mount
-  useEffect(() => {
-    checkPendingTransactions(() => cofhesdkClient.getPublicClient());
-    
-    return () => {
-      stopPendingTransactionPolling();
-    };
-  }, [cofhesdkClient]);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showPopupPanel, setShowPopupPanel] = useState(false);
   const [tokenListMode, setTokenListMode] = useState<TokenListMode>('view');
   const [selectedToken, setSelectedToken] = useState<SelectedToken>(null);
   const [viewingToken, setViewingToken] = useState<SelectedToken>(null);
+
+  // Check pending transactions on mount
+  useEffect(() => {
+    checkPendingTransactions(() => cofhesdkClient.getPublicClient());
+    return () => {
+      stopPendingTransactionPolling();
+    };
+  }, [cofhesdkClient]);
 
   const currentPage = pageHistory[pageHistory.length - 1];
   const isLeftSide = effectivePosition.includes('left');

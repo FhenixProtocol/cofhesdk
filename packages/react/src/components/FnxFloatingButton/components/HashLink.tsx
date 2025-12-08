@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { LuCopy, LuCheck, LuExternalLink } from 'react-icons/lu';
 import { cn } from '../../../utils/cn.js';
-import { truncateHash } from '../../../utils/utils.js';
-import { getBlockExplorerUrl } from '../../../utils/utils.js';
+import { truncateHash, getBlockExplorerTxUrl, getBlockExplorerAddressUrl, getBlockExplorerTokenUrl } from '../../../utils/utils.js';
 
 export type HashLinkType = 'tx' | 'address' | 'token';
 
@@ -26,23 +25,16 @@ export const HashLink: React.FC<HashLinkProps> = ({
   iconSize = 14,
   extraShort = false,
 }) => {
-  const blockExplorerUrl = chainId ? getBlockExplorerUrl(chainId) : undefined;
-
   const start = extraShort ? 5 : 6;
   const end = extraShort ? 3 : 4;
   const ellipsed = truncateHash(hash, start, end);
 
-  const getHref = () => {
-    if (!blockExplorerUrl) return undefined;
+  const getHref = (): string | undefined => {
+    if (!chainId) return undefined;
     switch (type) {
-      case 'tx':
-        return `${blockExplorerUrl}/tx/${hash}`;
-      case 'address':
-        return `${blockExplorerUrl}/address/${hash}`;
-      case 'token':
-        return `${blockExplorerUrl}/token/${hash}`;
-      default:
-        return undefined;
+      case 'tx': return getBlockExplorerTxUrl(chainId, hash);
+      case 'address': return getBlockExplorerAddressUrl(chainId, hash);
+      case 'token': return getBlockExplorerTokenUrl(chainId, hash);
     }
   };
 

@@ -189,4 +189,3 @@ export const formatRelativeTime = (timestamp: number): string => {
   if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
   return 'Just now';
 };
-

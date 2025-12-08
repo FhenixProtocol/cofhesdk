@@ -47,17 +47,7 @@ const actionToStringMap: Record<TransactionActionType, TransactionActionString> 
   [TransactionActionType.Unshield]: 'Unshield',
 };
 
-const stringToActionMap = Object.entries(actionToStringMap).reduce<
-  Record<TransactionActionString, TransactionActionType>
->((acc, [k, v]) => {
-  acc[v] = Number(k) as TransactionActionType;
-  return acc;
-}, {} as Record<TransactionActionString, TransactionActionType>);
-
 export const actionToString = (a: TransactionActionType): TransactionActionString => actionToStringMap[a];
-
-export const stringToAction = (s: string): TransactionActionType | undefined =>
-  stringToActionMap[s as TransactionActionString];
 
 const statusToStringMap: Record<TransactionStatus, TransactionStatusString> = {
   [TransactionStatus.Pending]: 'Pending',
