@@ -215,9 +215,43 @@ let pendingTransactionInterval: ReturnType<typeof setInterval> | null = null;
 // Type for public client (minimal interface needed)
 type MinimalPublicClient = {
   getTransactionReceipt: (args: { hash: `0x${string}` }) => Promise<{ status: 'success' | 'reverted' } | null>;
+  waitForTransactionReceipt?: (args: { hash: `0x${string}` }) => Promise<{ status: 'success' | 'reverted' }>;
 };
 
 type PublicClientGetter = (chainId: number) => MinimalPublicClient | null | undefined;
+
+/**
+ * Add a transaction and watch for its confirmation in background
+ * @param transaction - Transaction data (without status and timestamp)
+ * @param publicClient - Public client to watch for confirmation (optional)
+ * @param enabled - Whether recording is enabled (default: false)
+ */
+export const addTransactionAndWatch = (
+  transaction: Omit<Transaction, 'status' | 'timestamp'>,
+  publicClient?: MinimalPublicClient | null,
+  enabled = false
+): void => {
+  if (!enabled) return;
+
+  const { addTransaction, updateTransactionStatus } = useTransactionStore.getState();
+  
+  // Add transaction to store
+  addTransaction(transaction);
+
+  // Watch for confirmation in background
+  if (publicClient?.waitForTransactionReceipt) {
+    publicClient.waitForTransactionReceipt({ hash: transaction.hash as `0x${string}` })
+      .then((receipt) => {
+        const status = receipt.status === 'success' 
+          ? TransactionStatus.Confirmed 
+          : TransactionStatus.Failed;
+        updateTransactionStatus(transaction.chainId, transaction.hash, status);
+      })
+      .catch(() => {
+        updateTransactionStatus(transaction.chainId, transaction.hash, TransactionStatus.Failed);
+      });
+  }
+};
 
 // Function to check specific pending transactions
 const checkSpecificPendingTransactions = async (

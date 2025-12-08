@@ -40,6 +40,7 @@ export {
   TransactionActionType,
   actionToString,
   statusToString,
+  addTransactionAndWatch,
   checkPendingTransactions,
   stopPendingTransactionPolling,
   type Transaction,

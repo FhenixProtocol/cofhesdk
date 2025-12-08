@@ -39,6 +39,8 @@ export const CofhesdkReactConfigSchema = z.object({
     .transform((lists) => lists as Partial<Record<number, string[]>>),
   position: z.enum(['bottom-right', 'bottom-left', 'top-right', 'top-left']).optional().default('bottom-right'),
   showNativeTokenInList: z.boolean().optional().default(false),
+  /** Whether to record transaction history (for activity page). Default: false */
+  recordTransactionHistory: z.boolean().optional().default(false),
 });
 
 /**

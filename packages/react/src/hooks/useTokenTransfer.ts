@@ -1,9 +1,10 @@
 import { useMutation, type UseMutationOptions, type UseMutationResult } from '@tanstack/react-query';
 import { type Address } from 'viem';
 import { useCofheWalletClient, useCofheChainId, useCofheAccount, useCofhePublicClient } from './useCofheConnection.js';
+import { useCofheContext } from '../providers/index.js';
 import type { Token } from './useTokenLists.js';
 import { TRANSFER_ABIS } from '../constants/confidentialTokenABIs.js';
-import { useTransactionStore, TransactionActionType, TransactionStatus } from '../stores/transactionStore.js';
+import { addTransactionAndWatch, TransactionActionType } from '../stores/transactionStore.js';
 
 
 // Encrypted value struct type
@@ -44,8 +45,7 @@ export function useTokenTransfer(
   const publicClient = useCofhePublicClient();
   const chainId = useCofheChainId();
   const account = useCofheAccount();
-  const addTransaction = useTransactionStore((state) => state.addTransaction);
-  const updateTransactionStatus = useTransactionStore((state) => state.updateTransactionStatus);
+  const { recordTransactionHistory } = useCofheContext().config.react;
 
   return useMutation({
     mutationFn: async (input: UseTokenTransferInput) => {
@@ -91,9 +91,9 @@ export function useTokenTransfer(
         chain: undefined,
       });
 
-      // Record transaction in store
+      // Record transaction and watch for confirmation
       if (chainId && account) {
-        addTransaction({
+        addTransactionAndWatch({
           hash,
           tokenSymbol: input.token.symbol,
           tokenAmount: input.amount,
@@ -102,21 +102,7 @@ export function useTokenTransfer(
           chainId,
           actionType: TransactionActionType.ShieldSend,
           account,
-        });
-
-        // Watch for transaction confirmation in background
-        if (publicClient) {
-          publicClient.waitForTransactionReceipt({ hash })
-            .then((receipt) => {
-              const status = receipt.status === 'success' 
-                ? TransactionStatus.Confirmed 
-                : TransactionStatus.Failed;
-              updateTransactionStatus(chainId, hash, status);
-            })
-            .catch(() => {
-              updateTransactionStatus(chainId, hash, TransactionStatus.Failed);
-            });
-        }
+        }, publicClient, recordTransactionHistory);
       }
 
       return hash;
