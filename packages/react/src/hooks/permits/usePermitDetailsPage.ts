@@ -88,6 +88,8 @@ export const usePermitDetailsPage = (selectedPermitHash: string) => {
     ? new Date(selectedPermit.permit.expiration * 1000).toLocaleString()
     : undefined;
 
+  const isShareablePermit = selectedPermit?.permit?.type === 'sharing';
+
   return {
     permitLabel,
     permitJson,
@@ -99,5 +101,6 @@ export const usePermitDetailsPage = (selectedPermitHash: string) => {
     hasSelection: Boolean(selectedPermit),
     isCopyComplete: isCopied(COPY_KEY),
     isActivePermit,
+    isShareablePermit,
   };
 };

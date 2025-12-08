@@ -19,6 +19,7 @@ export const PermitDetailsPage: React.FC<PermitDetailsPageProps> = ({ selectedPe
     hasSelection,
     isCopyComplete,
     isActivePermit,
+    isShareablePermit,
   } = usePermitDetailsPage(selectedPermitHash);
 
   if (!hasSelection) {
@@ -60,15 +61,21 @@ export const PermitDetailsPage: React.FC<PermitDetailsPageProps> = ({ selectedPe
           <div>
             <div className="flex items-center justify-between text-sm font-semibold text-[#0E2F3F] dark:text-white">
               <span>Permit data</span>
-              <button
-                type="button"
-                className="rounded-md border border-[#0E2F3F]/30 p-1.5 text-[#0E2F3F] transition-colors hover:bg-[#0E2F3F]/10 dark:border-white/30 dark:text-white dark:hover:bg-white/10"
-                onClick={handleCopy}
-                aria-label={isCopyComplete ? 'Copied permit data' : 'Copy permit data'}
-                title={isCopyComplete ? 'Copied permit data' : 'Copy permit data'}
-              >
-                {isCopyComplete ? <CheckIcon fontSize="small" color="success" /> : <ContentCopyIcon fontSize="small" />}
-              </button>
+              {isShareablePermit ? (
+                <button
+                  type="button"
+                  className="rounded-md border border-[#0E2F3F]/30 p-1.5 text-[#0E2F3F] transition-colors hover:bg-[#0E2F3F]/10 dark:border-white/30 dark:text-white dark:hover:bg-white/10"
+                  onClick={handleCopy}
+                  aria-label={isCopyComplete ? 'Copied permit data' : 'Copy permit data'}
+                  title={isCopyComplete ? 'Copied permit data' : 'Copy permit data'}
+                >
+                  {isCopyComplete ? (
+                    <CheckIcon fontSize="small" color="success" />
+                  ) : (
+                    <ContentCopyIcon fontSize="small" />
+                  )}
+                </button>
+              ) : null}
             </div>
             <div className="mt-3 rounded-xl border border-[#0E2F3F]/15 bg-[#F8FAFB] p-3 font-mono text-xs text-[#0E2F3F] dark:border-white/10 dark:bg-[#121212] dark:text-white/80">
               <pre className="max-h-60 whitespace-pre-wrap break-words text-left">{permitJson}</pre>
