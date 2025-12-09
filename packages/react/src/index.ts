@@ -15,6 +15,7 @@ export {
   useCofheSelectPermit,
   useCofhePublicClient,
   useCofheWalletClient,
+  useCofheClient,
 } from './hooks/index';
 
 // Components
@@ -22,7 +23,34 @@ export { FnxEncryptInput, FnxFloatingButton } from './components/index.js';
 export { MainPage, SettingsPage, TokenListPage } from './components/FnxFloatingButton/pages/index.js';
 
 // Utils
-export { FheTypesList, fheTypeToString, encryptedValueToString, type FheTypeValue } from './utils/index';
+export {
+  FheTypesList,
+  fheTypeToString,
+  encryptedValueToString,
+  getBlockExplorerUrl,
+  getBlockExplorerTxUrl,
+  getBlockExplorerAddressUrl,
+  getBlockExplorerTokenUrl,
+  formatRelativeTime,
+  truncateHash,
+  type FheTypeValue,
+} from './utils/index';
+
+// Stores
+export {
+  useTransactionStore,
+  TransactionStatus,
+  TransactionActionType,
+  actionToString,
+  statusToString,
+  addTransactionAndWatch,
+  checkPendingTransactions,
+  stopPendingTransactionPolling,
+  type Transaction,
+  type TransactionStore,
+  type TransactionStatusString,
+  type TransactionActionString,
+} from './stores/transactionStore.js';
 
 export { createCofhesdkConfig } from './config';
 
