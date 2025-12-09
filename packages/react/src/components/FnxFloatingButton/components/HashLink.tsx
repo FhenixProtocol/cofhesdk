@@ -72,7 +72,7 @@ interface CopyButtonProps {
   size?: number;
   className?: string;
 }
-
+// TODO: This will be replaced with the new copy system from another PR
 export const CopyButton: React.FC<CopyButtonProps> = ({ text, size = 14, className }) => {
   const [copied, setCopied] = useState(false);
 
