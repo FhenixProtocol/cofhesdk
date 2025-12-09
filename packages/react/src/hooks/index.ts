@@ -13,6 +13,8 @@ export {
   useNativeBalance,
   useTokenConfidentialBalance,
   useTokenMetadata,
+  useTokenDecimals,
+  useTokenSymbol,
   usePinnedTokenAddress,
   type TokenMetadata,
 } from './useTokenBalance';

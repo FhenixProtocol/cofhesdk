@@ -1,13 +1,15 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { FloatingButtonPosition } from './FnxFloatingButton.js';
 import { useCofheContext } from '../../providers';
 import { type PermitDetailsPageProps } from './pages/permits/PermitDetailsPage/index.js';
+import { checkPendingTransactions, stopPendingTransactionPolling } from '../../stores/transactionStore.js';
 
 export enum FloatingButtonPage {
   Main = 'main',
   Settings = 'settings',
   TokenList = 'tokenlist',
+  TokenInfo = 'tokeninfo',
   Send = 'send',
   Shield = 'shield',
   Activity = 'activity',
@@ -16,6 +18,26 @@ export enum FloatingButtonPage {
   ReceivePermits = 'receivePermit',
   PermitDetails = 'permitDetails',
 }
+
+export type TokenListMode = 'view' | 'select';
+
+export type NativeToken = {
+  address: 'native';
+  name: 'Ether';
+  symbol: 'ETH';
+  decimals: 18;
+  logoURI?: string;
+  isNative: true;
+};
+
+export type SelectedToken = {
+  address: string;
+  name: string;
+  symbol: string;
+  decimals: number;
+  logoURI?: string;
+  isNative: boolean;
+} | null;
 
 const OPEN_DELAY = 500; // Delay before showing popup in ms
 const CLOSE_DELAY = 300; // Delay before closing bar after popup closes
@@ -26,6 +48,7 @@ export type FloatingButtonPagePropsMap = {
   [FloatingButtonPage.Main]: void;
   [FloatingButtonPage.Settings]: void;
   [FloatingButtonPage.TokenList]: void;
+  [FloatingButtonPage.TokenInfo]: void;
   [FloatingButtonPage.Send]: void;
   [FloatingButtonPage.Shield]: void;
   [FloatingButtonPage.Activity]: void;
@@ -60,6 +83,16 @@ interface FnxFloatingButtonContextValue {
   collapsePanel: () => void;
   handleClick: (externalOnClick?: () => void) => void;
   onChainSwitch?: (chainId: number) => Promise<void>;
+  // Token selection
+  tokenListMode: TokenListMode;
+  selectedToken: SelectedToken;
+  navigateToTokenListForSelection: () => void;
+  selectToken: (token: SelectedToken) => void;
+  // Token viewing
+  viewingToken: SelectedToken;
+  navigateToTokenInfo: (token: SelectedToken) => void;
+  // Config
+  showNativeTokenInList: boolean;
 }
 
 const FnxFloatingButtonContext = createContext<FnxFloatingButtonContextValue | null>(null);
@@ -77,12 +110,25 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   position,
   onChainSwitch,
 }) => {
-  const widgetConfig = useCofheContext().config.react;
+  const { client: cofhesdkClient, config } = useCofheContext();
+  const widgetConfig = config.react;
   const effectivePosition = position || widgetConfig.position;
+  const showNativeTokenInList = widgetConfig.showNativeTokenInList;
 
   const [pageHistory, setPageHistory] = useState<PageState[]>([{ page: FloatingButtonPage.Main }]);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showPopupPanel, setShowPopupPanel] = useState(false);
+  const [tokenListMode, setTokenListMode] = useState<TokenListMode>('view');
+  const [selectedToken, setSelectedToken] = useState<SelectedToken>(null);
+  const [viewingToken, setViewingToken] = useState<SelectedToken>(null);
+
+  // Check pending transactions on mount
+  useEffect(() => {
+    checkPendingTransactions(() => cofhesdkClient.getPublicClient());
+    return () => {
+      stopPendingTransactionPolling();
+    };
+  }, [cofhesdkClient]);
 
   const currentPage = pageHistory[pageHistory.length - 1];
   const isLeftSide = effectivePosition.includes('left');
@@ -125,6 +171,21 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
     });
   };
 
+  const navigateToTokenListForSelection = () => {
+    setTokenListMode('select');
+    navigateTo(FloatingButtonPage.TokenList);
+  };
+
+  const selectToken = (token: SelectedToken) => {
+    setSelectedToken(token);
+    navigateBack(); // Return to previous page after selection
+  };
+
+  const navigateToTokenInfo = (token: SelectedToken) => {
+    setViewingToken(token);
+    navigateTo(FloatingButtonPage.TokenInfo);
+  };
+
   return (
     <FnxFloatingButtonContext.Provider
       value={{
@@ -142,6 +203,13 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
         collapsePanel,
         handleClick,
         onChainSwitch,
+        tokenListMode,
+        selectedToken,
+        navigateToTokenListForSelection,
+        selectToken,
+        viewingToken,
+        navigateToTokenInfo,
+        showNativeTokenInList,
       }}
     >
       {children}

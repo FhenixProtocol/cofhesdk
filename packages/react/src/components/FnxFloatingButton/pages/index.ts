@@ -5,6 +5,7 @@ export { PermitsListPage } from './permits/PermitsListPage';
 export { GeneratePermitPage } from './permits/GeneratePermitPage';
 export { ReceivePermitPage } from './permits/ReceivePermitPage';
 export { PermitDetailsPage } from './permits/PermitDetailsPage';
+export { TokenInfoPage } from './TokenInfoPage.js';
 export { SendPage } from './SendPage.js';
 export { ShieldPage } from './ShieldPage.js';
 export { ActivityPage } from './ActivityPage.js';

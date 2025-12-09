@@ -9,6 +9,7 @@ import {
   SendPage,
   SettingsPage,
   ShieldPage,
+  TokenInfoPage,
   TokenListPage,
 } from './pages';
 
@@ -18,6 +19,7 @@ export const pages: Record<FloatingButtonPage, FC<any>> = {
   [FloatingButtonPage.Main]: MainPage,
   [FloatingButtonPage.Settings]: SettingsPage,
   [FloatingButtonPage.TokenList]: TokenListPage,
+  [FloatingButtonPage.TokenInfo]: TokenInfoPage,
   [FloatingButtonPage.Send]: SendPage,
   [FloatingButtonPage.Shield]: ShieldPage,
   [FloatingButtonPage.Activity]: ActivityPage,

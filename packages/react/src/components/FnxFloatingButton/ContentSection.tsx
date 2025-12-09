@@ -14,8 +14,6 @@ interface ContentSectionProps {
 export const ContentSection: React.FC<ContentSectionProps> = ({ className, contentPadding = 0 }) => {
   const { currentPage, showPopupPanel, isTopSide, isLeftSide } = useFnxFloatingButtonContext();
 
-  // Page configuration - memoized to prevent recreating on every render
-
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [displayedContent, setDisplayedContent] = useState(() => {
     const PageComp = pages[currentPage.page];
@@ -24,15 +22,6 @@ export const ContentSection: React.FC<ContentSectionProps> = ({ className, conte
   });
   const [contentHeight, setContentHeight] = useState<number>(0);
   const contentRef = useRef<HTMLDivElement>(null);
-
-  // Measure content height automatically - only when displayedContent or showPopupPanel changes
-  useEffect(() => {
-    if (contentRef.current && showPopupPanel && !isTransitioning) {
-      // Add padding top and bottom (2 * padding)
-      const height = contentRef.current.clientHeight + contentPadding * 2;
-      setContentHeight(height);
-    }
-  }, [displayedContent, showPopupPanel, contentPadding, isTransitioning]);
 
   // React to dynamic size changes inside the active page (e.g., toggling fields)
   useEffect(() => {
@@ -78,6 +67,7 @@ export const ContentSection: React.FC<ContentSectionProps> = ({ className, conte
         'flex'
       )}
       data-left={isLeftSide}
+      data-open={showPopupPanel}
     >
       <div
         className={cn('fnx-content-panel', showPopupPanel && 'fnx-glow')}
