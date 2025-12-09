@@ -16,10 +16,10 @@ interface ChainIconProps {
 }
 
 export const ChainIcon: React.FC<ChainIconProps> = ({ chainId, className }) => {
-  const iconSrc = chainId ? chainIcons[chainId] : undefined;
+  const Icon = chainId ? chainIcons[chainId] : undefined;
 
-  if (iconSrc) {
-    return <img src={iconSrc} alt="" className={cn('w-4 h-4 flex-shrink-0', className)} />;
+  if (Icon) {
+    return <Icon className={cn('w-4 h-4 flex-shrink-0', className)} />;
   }
 
   // Fallback icon
