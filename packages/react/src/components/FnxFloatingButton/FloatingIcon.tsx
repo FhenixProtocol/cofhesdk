@@ -34,7 +34,7 @@ export const FloatingIcon: React.FC<FloatingIconProps> = ({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       className={cn(
-        'fnx-floating-icon fnx-glow',
+        'fnx-floating-icon',
         darkMode && 'dark',
         'transition-all duration-200 ease-in-out',
         'flex items-center justify-center cursor-pointer flex-shrink-0',

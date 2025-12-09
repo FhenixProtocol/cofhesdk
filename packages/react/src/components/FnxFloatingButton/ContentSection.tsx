@@ -1,17 +1,18 @@
 import { cn } from '../../utils/cn.js';
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useFnxFloatingButtonContext, FloatingButtonPage } from './FnxFloatingButtonContext.js';
 import {
   MainPage,
   SettingsPage,
   TokenListPage,
+  TokenInfoPage,
   SendPage,
   ShieldPage,
   ActivityPage,
+  PermitsListPage,
   GeneratePermitPage,
   ReceivePermitPage,
-  PermitsListPage,
 } from './pages/index.js';
-import { FloatingButtonPage, useFnxFloatingButtonContext } from './FnxFloatingButtonContext.js';
 
 const CONTENT_TRANSITION_DURATION = 150; // Duration in milliseconds for content fade transition
 
@@ -29,6 +30,7 @@ export const ContentSection: React.FC<ContentSectionProps> = ({ className, conte
       [FloatingButtonPage.Main]: <MainPage />,
       [FloatingButtonPage.Settings]: <SettingsPage />,
       [FloatingButtonPage.TokenList]: <TokenListPage />,
+      [FloatingButtonPage.TokenInfo]: <TokenInfoPage />,
       [FloatingButtonPage.Send]: <SendPage />,
       [FloatingButtonPage.Shield]: <ShieldPage />,
       [FloatingButtonPage.Activity]: <ActivityPage />,
@@ -43,15 +45,6 @@ export const ContentSection: React.FC<ContentSectionProps> = ({ className, conte
   const [displayedContent, setDisplayedContent] = useState(() => pages[currentPage]);
   const [contentHeight, setContentHeight] = useState<number>(0);
   const contentRef = useRef<HTMLDivElement>(null);
-
-  // Measure content height automatically - only when displayedContent or showPopupPanel changes
-  useEffect(() => {
-    if (contentRef.current && showPopupPanel && !isTransitioning) {
-      // Add padding top and bottom (2 * padding)
-      const height = contentRef.current.clientHeight + contentPadding * 2;
-      setContentHeight(height);
-    }
-  }, [displayedContent, showPopupPanel, contentPadding, isTransitioning]);
 
   // React to dynamic size changes inside the active page (e.g., toggling fields)
   useEffect(() => {
@@ -93,6 +86,7 @@ export const ContentSection: React.FC<ContentSectionProps> = ({ className, conte
         'flex'
       )}
       data-left={isLeftSide}
+      data-open={showPopupPanel}
     >
       <div
         className={cn('fnx-content-panel', showPopupPanel && 'fnx-glow')}

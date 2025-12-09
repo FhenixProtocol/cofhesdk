@@ -1,72 +1,33 @@
 import { cn } from '@/utils/cn.js';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
-import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import {
-  useTokenConfidentialBalance,
-  useTokenMetadata,
-  useNativeBalance,
-  usePinnedTokenAddress,
-} from '@/hooks/useTokenBalance.js';
-import { useTokens } from '@/hooks/useTokenLists.js';
-import { useCofheChainId } from '@/hooks/useCofheConnection.js';
-import { useMemo, useState, useEffect } from 'react';
-import { formatUnits } from 'viem';
-import defaultTokenIcon from '../../assets/default-token.webp';
-
-const BALANCE_DECIMAL_PRECISION = 5;
+import { useTokenMetadata, usePinnedTokenAddress } from '../../../../hooks/useTokenBalance.js';
+import { useTokens } from '../../../../hooks/useTokenLists.js';
+import { useCofheChainId } from '../../../../hooks/useCofheConnection.js';
+import { useMemo } from 'react';
+import { TokenIcon } from '../../components/TokenIcon.js';
+import { TokenBalance } from '../../components/TokenBalance.js';
+import { useFnxFloatingButtonContext } from '../../FnxFloatingButtonContext.js';
 
 export const AssetCard: React.FC = () => {
+  const { navigateToTokenInfo } = useFnxFloatingButtonContext();
   // const pinnedTokenAddress = "0x8ee52408ED5b0e396aA779Fd52F7fbc20A4b33Fb"; // Base sepolia
   // const pinnedTokenAddress = "0xbED96aa98a49FeA71fcC55d755b915cF022a9159"; // Redact (Sepolia)
   const pinnedTokenAddress = usePinnedTokenAddress();
-  
+
   const chainId = useCofheChainId();
   const tokens = useTokens(chainId ?? 0);
-  
+
   // Get token metadata (decimals and symbol) using multicall for efficiency
   const { data: tokenMetadata } = useTokenMetadata(pinnedTokenAddress);
-  const tokenDecimals = tokenMetadata?.decimals;
   const tokenSymbol = tokenMetadata?.symbol;
-  
-  // Find token icon from token lists if available, otherwise use default
-  const tokenIcon = useMemo(() => {
-    if (!pinnedTokenAddress || !chainId) return defaultTokenIcon;
-    const token = tokens.find(
-      (t) => t.chainId === chainId && t.address.toLowerCase() === pinnedTokenAddress.toLowerCase()
-    );
-    return token?.logoURI || defaultTokenIcon;
-  }, [pinnedTokenAddress, chainId, tokens]);
-  
-  const [iconError, setIconError] = useState(false);
-  
-  // Reset icon error when token icon changes
-  useEffect(() => {
-    setIconError(false);
-  }, [tokenIcon]);
-  
-  // Get confidential token balance if pinned token exists, otherwise get native balance
-  const { data: confidentialBalance } = useTokenConfidentialBalance(
-    {
-      tokenAddress: pinnedTokenAddress!,
-    }
-  );
-  
-  const { data: nativeBalance } = useNativeBalance();
 
-  // Determine which balance to show
-  const displayBalance = useMemo(() => {
-    if (pinnedTokenAddress && confidentialBalance !== undefined && tokenDecimals) {
-      // Format confidential balance using viem's formatUnits
-      const formatted = formatUnits(confidentialBalance, tokenDecimals);
-      // Show up to specified decimal places
-      return parseFloat(formatted).toFixed(BALANCE_DECIMAL_PRECISION);
-    }
-    if (!pinnedTokenAddress && nativeBalance) {
-      return nativeBalance;
-    }
-    return '0.00';
-  }, [pinnedTokenAddress, confidentialBalance, tokenDecimals, nativeBalance]);
+  // Find token from token lists to get icon and confidentialityType
+  const tokenFromList = useMemo(() => {
+    if (!pinnedTokenAddress || !chainId) return null;
+    return (
+      tokens.find((t) => t.chainId === chainId && t.address.toLowerCase() === pinnedTokenAddress.toLowerCase()) || null
+    );
+  }, [pinnedTokenAddress, chainId, tokens]);
 
   // Determine ticker symbol
   const ticker = useMemo(() => {
@@ -77,42 +38,38 @@ export const AssetCard: React.FC = () => {
     return 'ETH';
   }, [pinnedTokenAddress, tokenSymbol]);
 
-  // Mock data for privacy metrics and change - replace with actual data when available
-  const asset = {
-    ticker,
-    balance: displayBalance,
-    change: '+1.32%',
-    privacyHidden: 65,
-    privacyVisible: 35,
+  const handleClick = () => {
+    navigateToTokenInfo({
+      address: pinnedTokenAddress ?? 'native',
+      name: tokenFromList?.name ?? ticker,
+      symbol: ticker,
+      decimals: tokenMetadata?.decimals ?? 18,
+      logoURI: tokenFromList?.logoURI,
+      isNative: !pinnedTokenAddress,
+    });
   };
 
   return (
     <div
+      onClick={handleClick}
       className={cn(
-        'fnx-card-bg rounded-lg p-4 mb-4 cursor-pointer',
+        'fnx-card-bg p-4 mb-4 cursor-pointer',
         'hover:opacity-90 transition-opacity',
         'border fnx-card-border'
       )}
     >
-      <div className="flex items-start justify-between">
+      <div className="flex items-center justify-between">
         {/* Left Side: Icon, Ticker, Privacy Metrics */}
-        <div className="flex items-start gap-3 flex-1">
+        <div className="flex items-center gap-3 flex-1">
           {/* Asset Icon */}
-          <div className="w-12 h-12 rounded-full fnx-icon-bg flex items-center justify-center flex-shrink-0 overflow-hidden">
-            <img 
-              src={iconError ? defaultTokenIcon : tokenIcon} 
-              alt={tokenSymbol || 'Token'} 
-              className="w-full h-full object-cover"
-              onError={() => setIconError(true)}
-            />
-          </div>
+          <TokenIcon logoURI={tokenFromList?.logoURI} alt={tokenSymbol || 'Token'} size="md" />
 
           {/* Ticker and Privacy */}
           <div className="flex flex-col gap-1">
-            <h3 className="text-lg font-bold fnx-text-primary">{asset.ticker}</h3>
-            
-            {/* Privacy Metrics */}
-            <div className="flex items-center gap-2 text-xs fnx-text-primary opacity-80">
+            <h3 className="text-lg font-bold fnx-text-primary">{ticker}</h3>
+
+            {/* Privacy Metrics Placeholder for future implementation */}
+            {/* <div className="flex items-center gap-2 text-xs fnx-text-primary opacity-80">
               <div className="flex items-center gap-1">
                 <VisibilityOffIcon className="w-3 h-3" />
                 <span>{asset.privacyHidden}%</span>
@@ -122,19 +79,26 @@ export const AssetCard: React.FC = () => {
                 <VisibilityIcon className="w-3 h-3" />
                 <span>{asset.privacyVisible}%</span>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
 
         {/* Right Side: Balance, Change, Arrow */}
         <div className="flex items-center gap-2">
           <div className="flex flex-col items-end">
-            <div className="text-2xl font-bold fnx-text-primary">
-              {asset.balance}
-            </div>
-            <div className="text-sm fnx-positive-change font-medium">
+            <TokenBalance
+              token={tokenFromList ?? undefined}
+              tokenAddress={pinnedTokenAddress ?? undefined}
+              isNative={!pinnedTokenAddress}
+              symbol={ticker}
+              showSymbol={false}
+              size="xl"
+              decimalPrecision={5}
+              className="font-bold"
+            />
+            {/* <div className="text-sm fnx-positive-change font-medium">
               {asset.change}
-            </div>
+            </div> */}
           </div>
           <KeyboardArrowRightIcon className="w-5 h-5 fnx-text-primary opacity-60" />
         </div>

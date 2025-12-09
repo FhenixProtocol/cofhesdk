@@ -1,3 +1,59 @@
+import * as viemChains from 'viem/chains';
+
+// Build a lookup map of chainId -> viem chain (for block explorers, etc.)
+const viemChainById = Object.values(viemChains).reduce<Record<number, (typeof viemChains)[keyof typeof viemChains]>>(
+  (acc, chain) => {
+    if (chain && typeof chain === 'object' && 'id' in chain) {
+      acc[chain.id] = chain;
+    }
+    return acc;
+  },
+  {}
+);
+
+/**
+ * Gets the block explorer URL for a given chain ID
+ * @param chainId - The chain ID to look up
+ * @returns The block explorer base URL, or undefined if not found
+ */
+export const getBlockExplorerUrl = (chainId: number): string | undefined => {
+  const chain = viemChainById[chainId];
+  return chain?.blockExplorers?.default?.url;
+};
+
+/**
+ * Gets the block explorer transaction URL for a given chain ID and transaction hash
+ * @param chainId - The chain ID
+ * @param hash - The transaction hash
+ * @returns The full transaction URL, or undefined if chain not found
+ */
+export const getBlockExplorerTxUrl = (chainId: number, hash: string): string | undefined => {
+  const baseUrl = getBlockExplorerUrl(chainId);
+  return baseUrl ? `${baseUrl}/tx/${hash}` : undefined;
+};
+
+/**
+ * Gets the block explorer address URL for a given chain ID and address
+ * @param chainId - The chain ID
+ * @param address - The address
+ * @returns The full address URL, or undefined if chain not found
+ */
+export const getBlockExplorerAddressUrl = (chainId: number, address: string): string | undefined => {
+  const baseUrl = getBlockExplorerUrl(chainId);
+  return baseUrl ? `${baseUrl}/address/${address}` : undefined;
+};
+
+/**
+ * Gets the block explorer token URL for a given chain ID and token address
+ * @param chainId - The chain ID
+ * @param tokenAddress - The token contract address
+ * @returns The full token URL, or undefined if chain not found
+ */
+export const getBlockExplorerTokenUrl = (chainId: number, tokenAddress: string): string | undefined => {
+  const baseUrl = getBlockExplorerUrl(chainId);
+  return baseUrl ? `${baseUrl}/token/${tokenAddress}` : undefined;
+};
+
 // FHE Types for the current CoFHE SDK
 export type FheTypeValue = 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'uint128' | 'bool' | 'address';
 
@@ -56,36 +112,80 @@ export const FheTypesList: FheTypeOption[] = [
 export const NOOP_CALLBACK = () => () => {};
 
 /**
- * Truncates an Ethereum address to show first 4 and last 4 characters
+ * Truncates a hex string (address or hash) to show beginning and end with ellipsis
+ * @param value - The hex string to truncate (address, hash, etc.)
+ * @param start - Number of characters to show at the start (default: 6, includes 0x)
+ * @param end - Number of characters to show at the end (default: 4)
+ * @returns Truncated string, or original if too short
+ * 
+ * @example
+ * truncateHash('0x1234567890abcdef1234567890abcdef12345678')
+ * // Returns: '0x1234...5678'
+ */
+export const truncateHash = (value: string, start = 6, end = 4): string => {
+  if (value.length <= start + end) return value;
+  return `${value.slice(0, start)}...${value.slice(-end)}`;
+};
+
+/**
+ * Truncates an Ethereum address (alias for truncateHash with address-friendly defaults)
  * @param address - The full Ethereum address (0x...)
- * @param startChars - Number of characters to show at the start (default: 4)
- * @param endChars - Number of characters to show at the end (default: 4)
- * @param separator - Separator string between start and end (default: '***')
+ * @param start - Number of characters to show at the start (default: 6, includes 0x)
+ * @param end - Number of characters to show at the end (default: 4)
  * @returns Truncated address string, or undefined if address is invalid
  * 
  * @example
  * truncateAddress('0x1234567890abcdef1234567890abcdef12345678')
- * // Returns: '0x12***5678'
+ * // Returns: '0x1234...5678'
  */
 export function truncateAddress(
   address: string | undefined | null,
-  startChars: number = 4,
-  endChars: number = 4,
-  separator: string = '***'
+  start: number = 6,
+  end: number = 4
 ): string | undefined {
   if (!address) return undefined;
+  return truncateHash(address, start, end);
+}
+
+/**
+ * Sanitizes numeric input to only allow numbers and a single decimal point
+ * @param value - The input value to sanitize
+ * @returns Sanitized value with only numbers and at most one decimal point
+ * 
+ * @example
+ * sanitizeNumericInput('123.45.67') // Returns: '123.4567'
+ * sanitizeNumericInput('abc123.45') // Returns: '123.45'
+ * sanitizeNumericInput('123') // Returns: '123'
+ */
+export function sanitizeNumericInput(value: string): string {
+  // Only allow numbers and decimal point
+  const cleaned = value.replace(/[^0-9.]/g, '');
   
-  // Remove 0x prefix for calculation, but keep it in the result
-  const addressWithoutPrefix = address.startsWith('0x') ? address.slice(2) : address;
-  
-  // Validate address length (should be 40 hex characters after 0x)
-  if (addressWithoutPrefix.length < startChars + endChars) {
-    return address; // Return as-is if too short to truncate
+  // Ensure only one decimal point
+  const parts = cleaned.split('.');
+  if (parts.length > 2) {
+    return parts[0] + '.' + parts.slice(1).join('');
   }
   
-  const prefix = address.startsWith('0x') ? '0x' : '';
-  const start = addressWithoutPrefix.slice(0, startChars);
-  const end = addressWithoutPrefix.slice(-endChars);
-  
-  return `${prefix}${start}${separator}${end}`;
+  return cleaned;
 }
+
+/**
+ * Formats a timestamp as a relative time string (e.g., "2 hours ago")
+ * @param timestamp - Unix timestamp in milliseconds
+ * @returns Formatted relative time string
+ */
+export const formatRelativeTime = (timestamp: number): string => {
+  const now = Date.now();
+  const diff = now - timestamp;
+  
+  const seconds = Math.floor(diff / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+  
+  if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
+  if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+  if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+  return 'Just now';
+};

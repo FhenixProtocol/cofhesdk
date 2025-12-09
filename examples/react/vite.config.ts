@@ -11,7 +11,9 @@ export default defineConfig({
       allow: ['..', '../..'], // Allow serving files from parent directories (for node_modules)
     },
     headers: {
-      'Cross-Origin-Embedder-Policy': 'require-corp',
+      // Use 'credentialless' instead of 'require-corp' to allow external images
+      // while still enabling SharedArrayBuffer for WASM
+      'Cross-Origin-Embedder-Policy': 'credentialless',
       'Cross-Origin-Opener-Policy': 'same-origin',
     },
   },
