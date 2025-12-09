@@ -75,15 +75,17 @@ export const useCofheAllPermits = (): { hash: string; permit: Permit }[] => {
   const allPermitsWithHashes = useMemo(
     () =>
       allPermits
-        ? Object.keys(allPermits).map((hash) => {
-            const serializedPermit = allPermits[hash];
-            if (!serializedPermit) throw new Error('Permit data missing');
+        ? Object.keys(allPermits)
+            .filter((hash) => !!allPermits[hash])
+            .map((hash) => {
+              const serializedPermit = allPermits[hash];
+              if (!serializedPermit) throw new Error('Permit data missing');
 
-            return {
-              hash,
-              permit: PermitUtils.deserialize(serializedPermit),
-            };
-          })
+              return {
+                hash,
+                permit: PermitUtils.deserialize(serializedPermit),
+              };
+            })
         : [],
     [allPermits]
   );
@@ -97,10 +99,12 @@ export const useCofheRemovePermit = () => {
   const { client } = useCofhePermitsStore();
 
   return useCallback(
-    (hashToRemove: string) => {
+    async (hashToRemove: string) => {
       if (!client || !chainId || !account)
         throw new Error('Client, chainId, and account must be defined to remove a permit');
-      client.permits.removePermit(hashToRemove, chainId, account);
+
+      const result = await client.permits.removePermit(hashToRemove, chainId, account);
+      if (result.error) throw result.error;
     },
     [client, chainId, account]
   );

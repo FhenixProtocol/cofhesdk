@@ -1,4 +1,4 @@
-import { cn } from '../../../../utils/cn.js';
+import { cn } from '@/utils/cn.js';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import { useTokenMetadata, usePinnedTokenAddress } from '../../../../hooks/useTokenBalance.js';
 import { useTokens } from '../../../../hooks/useTokenLists.js';
@@ -13,20 +13,20 @@ export const AssetCard: React.FC = () => {
   // const pinnedTokenAddress = "0x8ee52408ED5b0e396aA779Fd52F7fbc20A4b33Fb"; // Base sepolia
   // const pinnedTokenAddress = "0xbED96aa98a49FeA71fcC55d755b915cF022a9159"; // Redact (Sepolia)
   const pinnedTokenAddress = usePinnedTokenAddress();
-  
+
   const chainId = useCofheChainId();
   const tokens = useTokens(chainId ?? 0);
-  
+
   // Get token metadata (decimals and symbol) using multicall for efficiency
   const { data: tokenMetadata } = useTokenMetadata(pinnedTokenAddress);
   const tokenSymbol = tokenMetadata?.symbol;
-  
+
   // Find token from token lists to get icon and confidentialityType
   const tokenFromList = useMemo(() => {
     if (!pinnedTokenAddress || !chainId) return null;
-    return tokens.find(
-      (t) => t.chainId === chainId && t.address.toLowerCase() === pinnedTokenAddress.toLowerCase()
-    ) || null;
+    return (
+      tokens.find((t) => t.chainId === chainId && t.address.toLowerCase() === pinnedTokenAddress.toLowerCase()) || null
+    );
   }, [pinnedTokenAddress, chainId, tokens]);
 
   // Determine ticker symbol
@@ -62,16 +62,12 @@ export const AssetCard: React.FC = () => {
         {/* Left Side: Icon, Ticker, Privacy Metrics */}
         <div className="flex items-center gap-3 flex-1">
           {/* Asset Icon */}
-          <TokenIcon 
-            logoURI={tokenFromList?.logoURI} 
-              alt={tokenSymbol || 'Token'} 
-            size="md"
-            />
+          <TokenIcon logoURI={tokenFromList?.logoURI} alt={tokenSymbol || 'Token'} size="md" />
 
           {/* Ticker and Privacy */}
           <div className="flex flex-col gap-1">
             <h3 className="text-lg font-bold fnx-text-primary">{ticker}</h3>
-            
+
             {/* Privacy Metrics Placeholder for future implementation */}
             {/* <div className="flex items-center gap-2 text-xs fnx-text-primary opacity-80">
               <div className="flex items-center gap-1">
@@ -110,4 +106,3 @@ export const AssetCard: React.FC = () => {
     </div>
   );
 };
-

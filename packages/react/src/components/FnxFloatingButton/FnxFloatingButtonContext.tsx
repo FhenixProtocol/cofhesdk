@@ -12,6 +12,9 @@ export enum FloatingButtonPage {
   Send = 'send',
   Shield = 'shield',
   Activity = 'activity',
+  Permits = 'permits',
+  GeneratePermits = 'generatePermit',
+  ReceivePermits = 'receivePermit',
 }
 
 export type TokenListMode = 'view' | 'select';

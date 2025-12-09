@@ -1,7 +1,18 @@
 import { cn } from '../../utils/cn.js';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useFnxFloatingButtonContext, FloatingButtonPage } from './FnxFloatingButtonContext.js';
-import { MainPage, SettingsPage, TokenListPage, TokenInfoPage, SendPage, ShieldPage, ActivityPage } from './pages/index.js';
+import {
+  MainPage,
+  SettingsPage,
+  TokenListPage,
+  TokenInfoPage,
+  SendPage,
+  ShieldPage,
+  ActivityPage,
+  PermitsListPage,
+  GeneratePermitPage,
+  ReceivePermitPage,
+} from './pages/index.js';
 
 const CONTENT_TRANSITION_DURATION = 150; // Duration in milliseconds for content fade transition
 
@@ -10,28 +21,30 @@ interface ContentSectionProps {
   contentPadding?: number;
 }
 
-export const ContentSection: React.FC<ContentSectionProps> = ({
-  className,
-  contentPadding = 16,
-}) => {
+export const ContentSection: React.FC<ContentSectionProps> = ({ className, contentPadding = 0 }) => {
   const { currentPage, showPopupPanel, isTopSide, isLeftSide } = useFnxFloatingButtonContext();
 
   // Page configuration - memoized to prevent recreating on every render
-  const pages = useMemo(() => ({
-    [FloatingButtonPage.Main]: <MainPage />,
-    [FloatingButtonPage.Settings]: <SettingsPage />,
-    [FloatingButtonPage.TokenList]: <TokenListPage />,
-    [FloatingButtonPage.TokenInfo]: <TokenInfoPage />,
-    [FloatingButtonPage.Send]: <SendPage />,
-    [FloatingButtonPage.Shield]: <ShieldPage />,
-    [FloatingButtonPage.Activity]: <ActivityPage />,
-  }), []);
+  const pages = useMemo(
+    () => ({
+      [FloatingButtonPage.Main]: <MainPage />,
+      [FloatingButtonPage.Settings]: <SettingsPage />,
+      [FloatingButtonPage.TokenList]: <TokenListPage />,
+      [FloatingButtonPage.TokenInfo]: <TokenInfoPage />,
+      [FloatingButtonPage.Send]: <SendPage />,
+      [FloatingButtonPage.Shield]: <ShieldPage />,
+      [FloatingButtonPage.Activity]: <ActivityPage />,
+      [FloatingButtonPage.Permits]: <PermitsListPage />,
+      [FloatingButtonPage.GeneratePermits]: <GeneratePermitPage />,
+      [FloatingButtonPage.ReceivePermits]: <ReceivePermitPage />,
+    }),
+    []
+  );
 
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [displayedContent, setDisplayedContent] = useState(() => pages[currentPage]);
   const [contentHeight, setContentHeight] = useState<number>(0);
   const contentRef = useRef<HTMLDivElement>(null);
-
 
   // React to dynamic size changes inside the active page (e.g., toggling fields)
   useEffect(() => {
@@ -76,22 +89,19 @@ export const ContentSection: React.FC<ContentSectionProps> = ({
       data-open={showPopupPanel}
     >
       <div
-        className={cn('fnx-content-panel')}
+        className={cn('fnx-content-panel', showPopupPanel && 'fnx-glow')}
         data-open={showPopupPanel}
-        style={{
-          '--fnx-content-height': showPopupPanel ? `${contentHeight}px` : undefined,
-          '--fnx-content-padding': `${contentPadding}px`,
-        } as React.CSSProperties}
+        style={
+          {
+            '--fnx-content-height': showPopupPanel ? `${contentHeight}px` : undefined,
+            '--fnx-content-padding': `${contentPadding}px`,
+          } as React.CSSProperties
+        }
       >
-        <div
-          ref={contentRef}
-          className="fnx-content-inner"
-          data-transitioning={isTransitioning}
-        >
+        <div ref={contentRef} className="fnx-content-inner" data-transitioning={isTransitioning}>
           {displayedContent}
         </div>
       </div>
     </div>
   );
 };
-

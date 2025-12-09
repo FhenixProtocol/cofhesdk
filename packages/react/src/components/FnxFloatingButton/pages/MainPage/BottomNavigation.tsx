@@ -1,4 +1,4 @@
-import { cn } from '../../../../utils/cn.js';
+import { cn } from '@/utils/cn.js';
 import { GoArrowUpRight } from "react-icons/go";
 import { IoIosSwap } from "react-icons/io";
 import { AiOutlinePieChart } from "react-icons/ai";
@@ -62,4 +62,3 @@ export const BottomNavigation: React.FC = () => {
     </div>
   );
 };
-
