@@ -7,7 +7,9 @@ import { createMockWalletAndPublicClient } from './misc';
 const cofheConfig = createCofhesdkConfig({
   supportedChains: [sepolia, baseSepolia],
   // useWorkers: true, // Enable Web Workers
-  react: {},
+  react: {
+    recordTransactionHistory: true, // Enable activity page in floating button
+  },
 });
 
 const cofheSdkClient = createCofhesdkClient(cofheConfig);

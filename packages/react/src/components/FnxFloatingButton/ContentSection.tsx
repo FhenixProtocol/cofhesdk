@@ -1,7 +1,7 @@
 import { cn } from '../../utils/cn.js';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useFnxFloatingButtonContext, FloatingButtonPage } from './FnxFloatingButtonContext.js';
-import { MainPage, SettingsPage, TokenListPage, SendPage, ShieldPage, ActivityPage } from './pages/index.js';
+import { MainPage, SettingsPage, TokenListPage, TokenInfoPage, SendPage, ShieldPage, ActivityPage } from './pages/index.js';
 
 const CONTENT_TRANSITION_DURATION = 150; // Duration in milliseconds for content fade transition
 
@@ -21,6 +21,7 @@ export const ContentSection: React.FC<ContentSectionProps> = ({
     [FloatingButtonPage.Main]: <MainPage />,
     [FloatingButtonPage.Settings]: <SettingsPage />,
     [FloatingButtonPage.TokenList]: <TokenListPage />,
+    [FloatingButtonPage.TokenInfo]: <TokenInfoPage />,
     [FloatingButtonPage.Send]: <SendPage />,
     [FloatingButtonPage.Shield]: <ShieldPage />,
     [FloatingButtonPage.Activity]: <ActivityPage />,
@@ -31,14 +32,22 @@ export const ContentSection: React.FC<ContentSectionProps> = ({
   const [contentHeight, setContentHeight] = useState<number>(0);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // Measure content height automatically - only when displayedContent or showPopupPanel changes
+
+  // React to dynamic size changes inside the active page (e.g., toggling fields)
   useEffect(() => {
-    if (contentRef.current && showPopupPanel && !isTransitioning) {
-      // Add padding top and bottom (2 * padding)
-      const height = contentRef.current.clientHeight + (contentPadding * 2);
-      setContentHeight(height);
-    }
-  }, [displayedContent, showPopupPanel, contentPadding, isTransitioning]);
+    if (!showPopupPanel) return;
+    const el = contentRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const newHeight = entry.contentRect.height + contentPadding * 2;
+        setContentHeight((prev) => (prev !== newHeight ? newHeight : prev));
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [showPopupPanel, contentPadding]);
 
   // Update content when page changes
   useEffect(() => {
@@ -64,12 +73,10 @@ export const ContentSection: React.FC<ContentSectionProps> = ({
         'flex'
       )}
       data-left={isLeftSide}
+      data-open={showPopupPanel}
     >
       <div
-        className={cn(
-          'fnx-content-panel',
-          showPopupPanel && 'fnx-glow'
-        )}
+        className={cn('fnx-content-panel')}
         data-open={showPopupPanel}
         style={{
           '--fnx-content-height': showPopupPanel ? `${contentHeight}px` : undefined,

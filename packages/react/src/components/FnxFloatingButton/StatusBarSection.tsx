@@ -21,7 +21,7 @@ export const StatusBarSection: React.FC<StatusBarSectionProps> = ({
     >
       <div
         className={cn(
-          'fnx-status-bar fnx-glow flex items-center',
+          'fnx-status-bar flex items-center',
           darkMode && 'dark'
         )}
         data-expanded={isExpanded}
