@@ -5,7 +5,7 @@ import { cn } from '../../../utils/cn.js';
 import sepolia from '../assets/chains/11155111.svg';
 import baseSepolia from '../assets/chains/84532.svg';
 
-const chainIcons: Record<number, string> = {
+const chainIcons: Record<number, React.FC<React.SVGProps<SVGSVGElement>>> = {
   11155111: sepolia,
   84532: baseSepolia,
 };
@@ -19,13 +19,7 @@ export const ChainIcon: React.FC<ChainIconProps> = ({ chainId, className }) => {
   const iconSrc = chainId ? chainIcons[chainId] : undefined;
 
   if (iconSrc) {
-    return (
-      <img 
-        src={iconSrc} 
-        alt="" 
-        className={cn('w-4 h-4 flex-shrink-0', className)} 
-      />
-    );
+    return <img src={iconSrc} alt="" className={cn('w-4 h-4 flex-shrink-0', className)} />;
   }
 
   // Fallback icon
@@ -35,4 +29,3 @@ export const ChainIcon: React.FC<ChainIconProps> = ({ chainId, className }) => {
     </div>
   );
 };
-
