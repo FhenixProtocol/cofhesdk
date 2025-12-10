@@ -241,13 +241,10 @@ describe('Core Permits Tests', () => {
 
   describe('getOrCreateSelfPermit', () => {
     it('should create a new self permit when none exists', async () => {
-      const permit = await permits.getOrCreateSelfPermit(
-        publicClient,
-        bobWalletClient,
-        chainId,
-        bobAddress,
-        { issuer: bobAddress, name: 'New Self Permit' }
-      );
+      const permit = await permits.getOrCreateSelfPermit(publicClient, bobWalletClient, chainId, bobAddress, {
+        issuer: bobAddress,
+        name: 'New Self Permit',
+      });
 
       expect(permit).toBeDefined();
       expect(permit.name).toBe('New Self Permit');
@@ -269,13 +266,10 @@ describe('Core Permits Tests', () => {
       );
 
       // Call getOrCreateSelfPermit - should return existing
-      const permit = await permits.getOrCreateSelfPermit(
-        publicClient,
-        bobWalletClient,
-        chainId,
-        bobAddress,
-        { issuer: bobAddress, name: 'Should Not Create This' }
-      );
+      const permit = await permits.getOrCreateSelfPermit(publicClient, bobWalletClient, chainId, bobAddress, {
+        issuer: bobAddress,
+        name: 'Should Not Create This',
+      });
 
       expect(permit.name).toBe('First Self Permit');
       expect(permits.getHash(permit)).toBe(permits.getHash(firstPermit));
@@ -298,13 +292,10 @@ describe('Core Permits Tests', () => {
       );
 
       // Call getOrCreateSelfPermit - should create new since active is sharing type
-      const permit = await permits.getOrCreateSelfPermit(
-        publicClient,
-        bobWalletClient,
-        chainId,
-        bobAddress,
-        { issuer: bobAddress, name: 'New Self Permit' }
-      );
+      const permit = await permits.getOrCreateSelfPermit(publicClient, bobWalletClient, chainId, bobAddress, {
+        issuer: bobAddress,
+        name: 'New Self Permit',
+      });
 
       expect(permit.name).toBe('New Self Permit');
       expect(permit.type).toBe('self');
@@ -315,12 +306,7 @@ describe('Core Permits Tests', () => {
     });
 
     it('should use default options when none provided', async () => {
-      const permit = await permits.getOrCreateSelfPermit(
-        publicClient,
-        bobWalletClient,
-        chainId,
-        bobAddress
-      );
+      const permit = await permits.getOrCreateSelfPermit(publicClient, bobWalletClient, chainId, bobAddress);
 
       expect(permit).toBeDefined();
       expect(permit.type).toBe('self');
@@ -329,13 +315,10 @@ describe('Core Permits Tests', () => {
     });
 
     it('should use default chainId and account when not provided', async () => {
-      const permit = await permits.getOrCreateSelfPermit(
-        publicClient,
-        bobWalletClient,
-        undefined,
-        undefined,
-        { issuer: bobAddress, name: 'Test Permit' }
-      );
+      const permit = await permits.getOrCreateSelfPermit(publicClient, bobWalletClient, undefined, undefined, {
+        issuer: bobAddress,
+        name: 'Test Permit',
+      });
 
       expect(permit).toBeDefined();
       expect(permit.issuer).toBe(bobAddress);
@@ -407,11 +390,7 @@ describe('Core Permits Tests', () => {
 
     it('should create new sharing permit when active permit is self type', async () => {
       // Create a self permit first
-      await permits.createSelf(
-        { name: 'Self Permit', issuer: bobAddress },
-        publicClient,
-        bobWalletClient
-      );
+      await permits.createSelf({ name: 'Self Permit', issuer: bobAddress }, publicClient, bobWalletClient);
 
       // Call getOrCreateSharingPermit - should create new since active is self type
       const permit = await permits.getOrCreateSharingPermit(
@@ -442,9 +421,9 @@ describe('Core Permits Tests', () => {
           issuer: bobAddress,
           recipient: aliceAddress,
           name: 'Test Sharing Permit',
-        },        
+        },
         undefined,
-        undefined,
+        undefined
       );
 
       expect(permit).toBeDefined();
@@ -460,13 +439,10 @@ describe('Core Permits Tests', () => {
   describe('getOrCreate - Multiple Types Scenarios', () => {
     it('should handle switching between self and sharing permits', async () => {
       // Create self permit
-      const selfPermit = await permits.getOrCreateSelfPermit(
-        publicClient,
-        bobWalletClient,
-        chainId,
-        bobAddress,
-        { issuer: bobAddress, name: 'Self Permit' }
-      );
+      const selfPermit = await permits.getOrCreateSelfPermit(publicClient, bobWalletClient, chainId, bobAddress, {
+        issuer: bobAddress,
+        name: 'Self Permit',
+      });
       expect(selfPermit.type).toBe('self');
 
       // Create sharing permit (should create new one)
@@ -477,7 +453,7 @@ describe('Core Permits Tests', () => {
           issuer: bobAddress,
           recipient: aliceAddress,
           name: 'Sharing Permit',
-        },        
+        },
         chainId,
         bobAddress
       );
@@ -495,22 +471,16 @@ describe('Core Permits Tests', () => {
 
     it('should correctly handle sequential getOrCreate calls', async () => {
       // First call - creates new
-      const permit1 = await permits.getOrCreateSelfPermit(
-        publicClient,
-        bobWalletClient,
-        chainId,
-        bobAddress,
-        { issuer: bobAddress, name: 'Permit 1' }
-      );
+      const permit1 = await permits.getOrCreateSelfPermit(publicClient, bobWalletClient, chainId, bobAddress, {
+        issuer: bobAddress,
+        name: 'Permit 1',
+      });
 
       // Second call - returns existing
-      const permit2 = await permits.getOrCreateSelfPermit(
-        publicClient,
-        bobWalletClient,
-        chainId,
-        bobAddress,
-        { issuer: bobAddress, name: 'Permit 2' }
-      );
+      const permit2 = await permits.getOrCreateSelfPermit(publicClient, bobWalletClient, chainId, bobAddress, {
+        issuer: bobAddress,
+        name: 'Permit 2',
+      });
 
       // Should be the same permit
       expect(permits.getHash(permit1)).toBe(permits.getHash(permit2));

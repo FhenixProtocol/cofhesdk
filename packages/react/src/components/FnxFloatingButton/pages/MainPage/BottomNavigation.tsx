@@ -1,8 +1,8 @@
 import { cn } from '@/utils/cn.js';
-import { GoArrowUpRight } from "react-icons/go";
-import { IoIosSwap } from "react-icons/io";
-import { AiOutlinePieChart } from "react-icons/ai";
-import { TbShieldPlus } from "react-icons/tb";
+import { GoArrowUpRight } from 'react-icons/go';
+import { IoIosSwap } from 'react-icons/io';
+import { AiOutlinePieChart } from 'react-icons/ai';
+import { TbShieldPlus } from 'react-icons/tb';
 import { useFnxFloatingButtonContext, FloatingButtonPage } from '../../FnxFloatingButtonContext.js';
 
 type NavItem = {
@@ -13,8 +13,8 @@ type NavItem = {
 
 export const BottomNavigation: React.FC = () => {
   const { navigateTo, expandPanel } = useFnxFloatingButtonContext();
-  const iconClassName = "w-4 h-4";
-  
+  const iconClassName = 'w-4 h-4';
+
   const handleNavClick = (page: FloatingButtonPage) => {
     expandPanel(); // Ensure panel is expanded
     navigateTo(page);

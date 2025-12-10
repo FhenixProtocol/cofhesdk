@@ -1,6 +1,6 @@
-import type { PublicClient, WalletClient } from 'viem'
+import type { PublicClient, WalletClient } from 'viem';
 
 export interface AdapterResult {
-	publicClient: PublicClient
-	walletClient: WalletClient
+  publicClient: PublicClient;
+  walletClient: WalletClient;
 }

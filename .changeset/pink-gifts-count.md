@@ -1,6 +1,6 @@
 ---
-"@cofhe/tsconfig": patch
-"@cofhe/sdk": patch
+'@cofhe/tsconfig': patch
+'@cofhe/sdk': patch
 ---
 
 Add WebWorker for zkProve

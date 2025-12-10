@@ -9,6 +9,7 @@ This directory contains example applications demonstrating how to use the CoFHE 
 Interactive React application showcasing all CoFHE SDK React components and hooks.
 
 **Features:**
+
 - Interactive component demonstrations
 - Dark mode support
 - Real-time encryption status
@@ -16,6 +17,7 @@ Interactive React application showcasing all CoFHE SDK React components and hook
 - TypeScript support
 
 **Get Started:**
+
 ```bash
 cd react
 pnpm install
@@ -25,6 +27,7 @@ pnpm dev
 Visit `http://localhost:3000` to see the examples in action.
 
 **Components Showcased:**
+
 - EncryptionButton - Simple button for single value encryption
 - EncryptionForm - Multi-field form for batch encryption
 - FnxEncryptInput - Advanced input with type selection and progress

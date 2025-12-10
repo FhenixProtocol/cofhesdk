@@ -53,17 +53,15 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
   const account = useCofheAccount();
   const chainId = useCofheChainId();
   const tokens = useTokens(chainId ?? 0);
-  
+
   // Determine which account address to use
   const effectiveAccountAddress = accountAddress ?? account;
-  
+
   // Find token from list if tokenAddress is provided but token is not
   const tokenFromList = useMemo(() => {
     if (token) return token;
     if (!tokenAddress || !chainId || isNative) return null;
-    return tokens.find(
-      (t) => t.chainId === chainId && t.address.toLowerCase() === tokenAddress.toLowerCase()
-    ) || null;
+    return tokens.find((t) => t.chainId === chainId && t.address.toLowerCase() === tokenAddress.toLowerCase()) || null;
   }, [token, tokenAddress, chainId, tokens, isNative]);
 
   // Get confidential balance for non-native tokens
@@ -105,7 +103,7 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
     if (isNative) {
       return nativeBalance || (showZeroWhenLoading ? '0.00' : '');
     }
-    
+
     if (confidentialBalance !== undefined && decimals !== undefined) {
       const formatted = formatUnits(confidentialBalance, decimals);
       // Format to specified decimal precision
@@ -113,7 +111,7 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
       if (isNaN(numValue)) return showZeroWhenLoading ? '0.00' : '';
       return numValue.toFixed(decimalPrecision);
     }
-    
+
     return showZeroWhenLoading ? '0.00' : '';
   }, [isNative, nativeBalance, confidentialBalance, decimals, decimalPrecision, showZeroWhenLoading]);
 
@@ -138,4 +136,3 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
     </span>
   );
 };
-

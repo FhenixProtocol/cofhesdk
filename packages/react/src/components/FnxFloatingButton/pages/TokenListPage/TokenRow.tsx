@@ -5,9 +5,9 @@ import type { Token } from '../../../../hooks/useTokenLists.js';
 import { TokenIcon } from '../../components/TokenIcon.js';
 import { TokenBalance } from '../../components/TokenBalance.js';
 
-export const TokenRow: React.FC<{ 
-  token: Token | NativeToken; 
-  mode: TokenListMode 
+export const TokenRow: React.FC<{
+  token: Token | NativeToken;
+  mode: TokenListMode;
 }> = ({ token, mode }) => {
   const { selectToken, navigateToTokenInfo } = useFnxFloatingButtonContext();
 
@@ -38,7 +38,7 @@ export const TokenRow: React.FC<{
       className={cn(
         'flex items-center justify-between p-1',
         'hover:bg-white hover:bg-opacity-5 transition-colors',
-        'cursor-pointer',
+        'cursor-pointer'
       )}
     >
       <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -69,4 +69,3 @@ export const TokenRow: React.FC<{
     </div>
   );
 };
-

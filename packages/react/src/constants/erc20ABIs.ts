@@ -23,4 +23,3 @@ export const ERC20_SYMBOL_ABI = parseAbi(['function symbol() view returns (strin
  * Standard ERC20 name function ABI
  */
 export const ERC20_NAME_ABI = parseAbi(['function name() view returns (string)']);
-

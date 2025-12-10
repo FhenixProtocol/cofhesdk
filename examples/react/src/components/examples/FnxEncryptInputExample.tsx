@@ -58,7 +58,7 @@ export const FnxEncryptInputExample: React.FC = () => {
                 onEncryptComplete={(data) => console.log('Large encrypt:', data)}
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium mb-2">Small Size</label>
               <FnxEncryptInput
@@ -76,7 +76,10 @@ export const FnxEncryptInputExample: React.FC = () => {
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {FheTypesList.map((type) => (
-                <div key={type.value} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded">
+                <div
+                  key={type.value}
+                  className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded"
+                >
                   <div>
                     <span className="font-mono text-sm font-medium">{type.label}</span>
                     <div className="text-xs text-gray-500">{type.description}</div>
