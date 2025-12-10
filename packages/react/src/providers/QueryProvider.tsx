@@ -1,6 +1,12 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useMemo } from 'react';
+import { shouldPassToErrorBoundary } from './errors';
 
+function isNonRetryableError(error: unknown): boolean {
+  // NB: be granular here. F.x. no need to retry "bad permit error"
+  // for now, disable retries on all errors that are whitelisted as handled by the err boundary
+  return shouldPassToErrorBoundary(error);
+}
 export const QueryProvider = ({
   children,
   queryClient: overridingQueryClient,
@@ -14,11 +20,10 @@ export const QueryProvider = ({
     return new QueryClient({
       defaultOptions: {
         queries: {
-          retry(failureCount, error) {
-            console.error('Query error on retry. Retry attempt # ' + failureCount, error);
+          throwOnError: (error) => shouldPassToErrorBoundary(error),
+          retry: (failureCount, error) =>
             // default query behavior - 3 retries
-            return failureCount < 3;
-          },
+            isNonRetryableError(error) ? false : failureCount < 3,
         },
       },
     });
