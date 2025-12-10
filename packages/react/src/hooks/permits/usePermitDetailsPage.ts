@@ -4,39 +4,9 @@ import { PermitUtils } from '@cofhe/sdk/permits';
 import { useCofheActivePermit, useCofheAllPermits, useCofheSelectPermit } from '../useCofhePermits.js';
 import { useFnxFloatingButtonContext } from '@/components/FnxFloatingButton/FnxFloatingButtonContext.js';
 import { useCopyFeedback } from '../useCopyFeedback.js';
-import { truncateAddress } from '@/utils/utils.js';
+import { formatExpirationLabel, truncateAddress } from '@/utils/utils.js';
 
 const COPY_KEY = 'permit-details-json';
-
-const formatExpirationLabel = (expiration?: number) => {
-  if (!expiration) {
-    return { label: 'Unknown', expired: false };
-  }
-
-  const now = Math.floor(Date.now() / 1000);
-  const diff = expiration - now;
-
-  if (diff <= 0) {
-    return { label: 'Expired', expired: true };
-  }
-
-  const day = 60 * 60 * 24;
-  const hour = 60 * 60;
-  const minute = 60;
-
-  if (diff >= day) {
-    const days = Math.ceil(diff / day);
-    return { label: `${days} Day${days === 1 ? '' : 's'}`, expired: false };
-  }
-
-  if (diff >= hour) {
-    const hours = Math.ceil(diff / hour);
-    return { label: `${hours} Hour${hours === 1 ? '' : 's'}`, expired: false };
-  }
-
-  const minutes = Math.max(1, Math.ceil(diff / minute));
-  return { label: `${minutes} Minute${minutes === 1 ? '' : 's'}`, expired: false };
-};
 
 export const usePermitDetailsPage = (selectedPermitHash: string) => {
   const allPermits = useCofheAllPermits();
