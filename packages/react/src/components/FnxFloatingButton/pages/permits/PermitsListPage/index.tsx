@@ -6,7 +6,6 @@ import SouthIcon from '@mui/icons-material/South';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import AutorenewIcon from '@mui/icons-material/Autorenew';
 import type { ElementType, FC } from 'react';
 import { Accordion, AccordionSection } from '../../../Accordion.js';
 import { PermitItem } from './components/PermitItem';
@@ -26,8 +25,8 @@ export const PermitsListPage: React.FC = () => {
     receivedPermits,
     isCopied,
     handleQuickAction,
-    handleGeneratedPermitAction,
-    handleReceivedPermitDelete,
+    handleCopy,
+    handleDelete,
     handlePermitSelect,
     navigateBack,
   } = usePermitsList();
@@ -70,28 +69,13 @@ export const PermitsListPage: React.FC = () => {
                   {generatedPermits.map((permit) => {
                     return (
                       <PermitItem key={permit.id} permit={permit} onSelect={() => handlePermitSelect(permit.id)}>
-                        {permit.actions.map((action) => {
-                          if (action === 'copy') {
-                            const copied = isCopied(permit.id);
-                            return (
-                              <CopyPermitActionButton
-                                key={action}
-                                copied={copied}
-                                onClick={() => handleGeneratedPermitAction('copy', permit.id)}
-                              />
-                            );
-                          }
-                          if (action === 'delete') {
-                            return (
-                              <DeletePermitActionButton
-                                key={action}
-                                onClick={() => handleGeneratedPermitAction('delete', permit.id)}
-                              />
-                            );
-                          }
-                          // ignore refresh for now
-                          return null;
-                        })}
+                        {/* Explicit buttons, ignore refresh */}
+                        {permit.actions.includes('copy') && (
+                          <CopyPermitActionButton copied={isCopied(permit.id)} onClick={() => handleCopy(permit.id)} />
+                        )}
+                        {permit.actions.includes('delete') && (
+                          <DeletePermitActionButton onClick={() => handleDelete(permit.id)} />
+                        )}
                       </PermitItem>
                     );
                   })}
@@ -116,7 +100,7 @@ export const PermitsListPage: React.FC = () => {
                 <div className="space-y-1.5">
                   {receivedPermits.map((permit) => (
                     <PermitItem key={permit.id} permit={permit} onSelect={() => handlePermitSelect(permit.id)}>
-                      <DeletePermitActionButton onClick={() => handleReceivedPermitDelete(permit.id)} />
+                      <DeletePermitActionButton onClick={() => handleDelete(permit.id)} />
                     </PermitItem>
                   ))}
                 </div>
