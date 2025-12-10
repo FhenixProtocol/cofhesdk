@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { ValidationUtils, type Permit } from '@cofhe/sdk/permits';
+import { type Permit } from '@cofhe/sdk/permits';
 import { useCofheAllPermits, useCofheRemovePermit } from '../useCofhePermits.js';
 import {
   FloatingButtonPage,
@@ -8,14 +8,6 @@ import {
 import { useCopyFeedback } from '../useCopyFeedback.js';
 
 export type PermitStatus = 'active' | 'expired';
-export type PermitAction = 'copy' | 'delete';
-
-export interface PermitRow {
-  id: string;
-  name: string;
-  status: PermitStatus;
-  actions: PermitAction[];
-}
 
 export type QuickActionId = 'generate' | 'receive';
 
@@ -25,37 +17,12 @@ export const usePermitsList = () => {
   const { navigateBack, navigateTo } = useFnxFloatingButtonContext();
   const { isCopied, copyWithFeedback } = useCopyFeedback();
 
-  const generatedPermits = useMemo<PermitRow[]>(() => {
-    return allPermits
-      .filter(({ permit }) => permit.type !== 'recipient')
-      .map(({ hash, permit }) => {
-        const status: PermitStatus = ValidationUtils.isExpired(permit) ? 'expired' : 'active';
-        const actions: PermitAction[] = [];
-        if (status === 'active') {
-          if (permit.type === 'sharing') actions.push('copy');
-        }
-        actions.push('delete');
-        return {
-          id: hash,
-          name: permit.name,
-          status,
-          actions,
-        };
-      });
+  const generatedPermits = useMemo<{ permit: Permit; hash: string }[]>(() => {
+    return allPermits.filter(({ permit }) => permit.type !== 'recipient');
   }, [allPermits]);
 
-  const receivedPermits = useMemo<PermitRow[]>(() => {
-    return allPermits
-      .filter(({ permit }) => permit.type === 'recipient')
-      .map(({ hash, permit }) => {
-        const status: PermitStatus = ValidationUtils.isExpired(permit) ? 'expired' : 'active';
-        return {
-          id: hash,
-          name: permit.name,
-          status,
-          actions: ['delete'],
-        };
-      });
+  const receivedPermits = useMemo<{ permit: Permit; hash: string }[]>(() => {
+    return allPermits.filter(({ permit }) => permit.type === 'recipient');
   }, [allPermits]);
 
   const handleQuickAction = useCallback(
@@ -71,47 +38,41 @@ export const usePermitsList = () => {
     [navigateTo]
   );
 
-  const handleGeneratedPermitAction = useCallback(
-    (action: PermitAction, permitId: string) => {
-      if (action === 'delete') {
-        removePermit(permitId);
-        return;
-      }
-
-      if (action === 'copy') {
-        const permit = allPermits.find((p) => p.hash === permitId);
-        if (!permit) return;
-        const { type, issuer, recipient, issuerSignature, expiration, validatorContract, validatorId } = permit.permit;
-        const textToCopy = JSON.stringify(
-          {
-            type,
-            issuer,
-            recipient,
-            issuerSignature,
-            expiration,
-            validatorContract,
-            validatorId,
-          },
-          null,
-          2
-        );
-        void copyWithFeedback(permitId, textToCopy);
-        return;
-      }
-
-      if (action === 'refresh') {
-        // TODO: implement refresh flow when available
-        return;
-      }
+  const handlePermitSelect = useCallback(
+    (permitId: string) => {
+      navigateTo(FloatingButtonPage.PermitDetails, { selectedPermitHash: permitId });
     },
-    [removePermit, allPermits, copyWithFeedback]
+    [navigateTo]
   );
 
-  const handleReceivedPermitDelete = useCallback(
+  const handleDelete = useCallback(
     (permitId: string) => {
       removePermit(permitId);
     },
     [removePermit]
+  );
+
+  const handleCopy = useCallback(
+    (permitId: string) => {
+      const permit = allPermits.find((p) => p.hash === permitId);
+      if (!permit) return;
+      const { type, issuer, recipient, issuerSignature, expiration, validatorContract, validatorId } = permit.permit;
+      const textToCopy = JSON.stringify(
+        {
+          type,
+          issuer,
+          recipient,
+          issuerSignature,
+          expiration,
+          validatorContract,
+          validatorId,
+        },
+        null,
+        2
+      );
+      void copyWithFeedback(permitId, textToCopy);
+    },
+    [allPermits, copyWithFeedback]
   );
 
   return {
@@ -119,8 +80,9 @@ export const usePermitsList = () => {
     receivedPermits,
     isCopied,
     handleQuickAction,
-    handleGeneratedPermitAction,
-    handleReceivedPermitDelete,
+    handleCopy,
+    handleDelete,
+    handlePermitSelect,
     navigateBack,
   };
 };

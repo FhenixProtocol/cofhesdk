@@ -1,18 +1,8 @@
 import { cn } from '../../utils/cn.js';
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { useFnxFloatingButtonContext, FloatingButtonPage } from './FnxFloatingButtonContext.js';
-import {
-  MainPage,
-  SettingsPage,
-  TokenListPage,
-  TokenInfoPage,
-  SendPage,
-  ShieldPage,
-  ActivityPage,
-  PermitsListPage,
-  GeneratePermitPage,
-  ReceivePermitPage,
-} from './pages/index.js';
+
+import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
+import { pages } from './const';
 
 const CONTENT_TRANSITION_DURATION = 150; // Duration in milliseconds for content fade transition
 
@@ -24,25 +14,12 @@ interface ContentSectionProps {
 export const ContentSection: React.FC<ContentSectionProps> = ({ className, contentPadding = 16 }) => {
   const { currentPage, showPopupPanel, isTopSide, isLeftSide } = useFnxFloatingButtonContext();
 
-  // Page configuration - memoized to prevent recreating on every render
-  const pages = useMemo(
-    () => ({
-      [FloatingButtonPage.Main]: <MainPage />,
-      [FloatingButtonPage.Settings]: <SettingsPage />,
-      [FloatingButtonPage.TokenList]: <TokenListPage />,
-      [FloatingButtonPage.TokenInfo]: <TokenInfoPage />,
-      [FloatingButtonPage.Send]: <SendPage />,
-      [FloatingButtonPage.Shield]: <ShieldPage />,
-      [FloatingButtonPage.Activity]: <ActivityPage />,
-      [FloatingButtonPage.Permits]: <PermitsListPage />,
-      [FloatingButtonPage.GeneratePermits]: <GeneratePermitPage />,
-      [FloatingButtonPage.ReceivePermits]: <ReceivePermitPage />,
-    }),
-    []
-  );
-
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [displayedContent, setDisplayedContent] = useState(() => pages[currentPage]);
+  const [displayedContent, setDisplayedContent] = useState(() => {
+    const PageComp = pages[currentPage.page];
+    const props = currentPage.props ?? {};
+    return <PageComp {...props} />;
+  });
   const [contentHeight, setContentHeight] = useState<number>(0);
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -64,15 +41,19 @@ export const ContentSection: React.FC<ContentSectionProps> = ({ className, conte
 
   // Update content when page changes
   useEffect(() => {
+    function renderPage() {
+      const PageComp = pages[currentPage.page];
+      const props = currentPage.props ?? {};
+      setDisplayedContent(<PageComp {...props} />);
+      setIsTransitioning(false);
+    }
     if (!showPopupPanel) {
       setIsTransitioning(true);
       setTimeout(() => {
-        setDisplayedContent(pages[currentPage]);
-        setIsTransitioning(false);
+        renderPage();
       }, CONTENT_TRANSITION_DURATION);
     } else {
-      setDisplayedContent(pages[currentPage]);
-      setIsTransitioning(false);
+      renderPage();
     }
   }, [currentPage, showPopupPanel]);
 

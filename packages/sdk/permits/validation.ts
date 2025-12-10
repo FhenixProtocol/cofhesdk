@@ -8,7 +8,7 @@ const SerializedSealingPair = z.object({
   publicKey: z.string(),
 });
 
-const DEFAULT_EXPIRATION_FN = () => Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 days from now
+const DEFAULT_EXPIRATION_FN = () => Math.round(Date.now() / 1000) + 7 * 24 * 60 * 60; // 7 days from now
 
 const zPermitWithDefaults = z.object({
   name: z.string().optional().default('Unnamed Permit'),
