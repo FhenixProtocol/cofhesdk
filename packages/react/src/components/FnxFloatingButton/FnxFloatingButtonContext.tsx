@@ -64,15 +64,25 @@ type PageState<K extends FloatingButtonPage = FloatingButtonPage> = {
   props?: FloatingButtonPagePropsMap[K];
 };
 
+export type PagesWithProps = {
+  [K in FloatingButtonPage]: FloatingButtonPagePropsMap[K] extends void ? never : K;
+}[FloatingButtonPage];
+
+export type PagesWithoutProps = {
+  [K in FloatingButtonPage]: FloatingButtonPagePropsMap[K] extends void ? K : never;
+}[FloatingButtonPage];
+
+type NavigateToFn = {
+  // Pages that don't require props: call with just the page
+  <K extends PagesWithoutProps>(page: K): void;
+  // Pages that require props: enforce passing props
+  <K extends PagesWithProps>(page: K, props: FloatingButtonPagePropsMap[K]): void;
+};
+
 interface FnxFloatingButtonContextValue {
   pageHistory: PageState[];
   currentPage: PageState;
-  navigateTo: {
-    <K extends FloatingButtonPage>(
-      page: K,
-      ...args: FloatingButtonPagePropsMap[K] extends void ? [] : [props: FloatingButtonPagePropsMap[K]]
-    ): void;
-  };
+  navigateTo: NavigateToFn;
   navigateBack: () => void;
   darkMode: boolean;
   effectivePosition: FloatingButtonPosition;
@@ -159,10 +169,13 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
     externalOnClick?.();
   };
 
-  const navigateTo = <K extends FloatingButtonPage>(page: K, ...args: any[]) => {
-    const props = (args[0] ?? undefined) as FloatingButtonPagePropsMap[K] | undefined;
+  function navigateTo<K extends PagesWithoutProps>(page: K): void;
+  // eslint-disable-next-line no-redeclare
+  function navigateTo<K extends PagesWithProps>(page: K, props: FloatingButtonPagePropsMap[K]): void;
+  // eslint-disable-next-line no-redeclare
+  function navigateTo(page: FloatingButtonPage, props?: FloatingButtonPagePropsMap[FloatingButtonPage]): void {
     setPageHistory((prev) => [...prev, { page, props }]);
-  };
+  }
 
   const navigateBack = () => {
     setPageHistory((prev) => {

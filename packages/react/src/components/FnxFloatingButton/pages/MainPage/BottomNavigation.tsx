@@ -3,10 +3,14 @@ import { GoArrowUpRight } from 'react-icons/go';
 import { IoMdKey } from 'react-icons/io';
 import { AiOutlinePieChart } from 'react-icons/ai';
 import { TbShieldPlus } from 'react-icons/tb';
-import { useFnxFloatingButtonContext, FloatingButtonPage } from '../../FnxFloatingButtonContext.js';
+import {
+  useFnxFloatingButtonContext,
+  FloatingButtonPage,
+  type PagesWithoutProps,
+} from '../../FnxFloatingButtonContext.js';
 
 type NavItem = {
-  id: FloatingButtonPage;
+  id: PagesWithoutProps;
   label: string;
   icon: React.ReactNode;
 };
@@ -15,7 +19,7 @@ export const BottomNavigation: React.FC = () => {
   const { navigateTo, expandPanel } = useFnxFloatingButtonContext();
   const iconClassName = 'w-4 h-4';
 
-  const handleNavClick = (page: FloatingButtonPage) => {
+  const handleNavClick = (page: PagesWithoutProps) => {
     expandPanel(); // Ensure panel is expanded
     navigateTo(page);
   };
