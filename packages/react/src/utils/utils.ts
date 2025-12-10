@@ -117,7 +117,7 @@ export const NOOP_CALLBACK = () => () => {};
  * @param start - Number of characters to show at the start (default: 6, includes 0x)
  * @param end - Number of characters to show at the end (default: 4)
  * @returns Truncated string, or original if too short
- * 
+ *
  * @example
  * truncateHash('0x1234567890abcdef1234567890abcdef12345678')
  * // Returns: '0x1234...5678'
@@ -133,7 +133,7 @@ export const truncateHash = (value: string, start = 6, end = 4): string => {
  * @param start - Number of characters to show at the start (default: 6, includes 0x)
  * @param end - Number of characters to show at the end (default: 4)
  * @returns Truncated address string, or undefined if address is invalid
- * 
+ *
  * @example
  * truncateAddress('0x1234567890abcdef1234567890abcdef12345678')
  * // Returns: '0x1234...5678'
@@ -151,7 +151,7 @@ export function truncateAddress(
  * Sanitizes numeric input to only allow numbers and a single decimal point
  * @param value - The input value to sanitize
  * @returns Sanitized value with only numbers and at most one decimal point
- * 
+ *
  * @example
  * sanitizeNumericInput('123.45.67') // Returns: '123.4567'
  * sanitizeNumericInput('abc123.45') // Returns: '123.45'
@@ -160,13 +160,13 @@ export function truncateAddress(
 export function sanitizeNumericInput(value: string): string {
   // Only allow numbers and decimal point
   const cleaned = value.replace(/[^0-9.]/g, '');
-  
+
   // Ensure only one decimal point
   const parts = cleaned.split('.');
   if (parts.length > 2) {
     return parts[0] + '.' + parts.slice(1).join('');
   }
-  
+
   return cleaned;
 }
 
@@ -178,14 +178,44 @@ export function sanitizeNumericInput(value: string): string {
 export const formatRelativeTime = (timestamp: number): string => {
   const now = Date.now();
   const diff = now - timestamp;
-  
+
   const seconds = Math.floor(diff / 1000);
   const minutes = Math.floor(seconds / 60);
   const hours = Math.floor(minutes / 60);
   const days = Math.floor(hours / 24);
-  
+
   if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
   if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
   if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
   return 'Just now';
+};
+
+export const formatExpirationLabel = (expiration?: number) => {
+  if (!expiration) {
+    return { label: 'Unknown', expired: false };
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const diff = expiration - now;
+
+  if (diff <= 0) {
+    return { label: 'Expired', expired: true };
+  }
+
+  const day = 60 * 60 * 24;
+  const hour = 60 * 60;
+  const minute = 60;
+
+  if (diff >= day) {
+    const days = Math.ceil(diff / day);
+    return { label: `${days} Day${days === 1 ? '' : 's'}`, expired: false };
+  }
+
+  if (diff >= hour) {
+    const hours = Math.ceil(diff / hour);
+    return { label: `${hours} Hour${hours === 1 ? '' : 's'}`, expired: false };
+  }
+
+  const minutes = Math.max(1, Math.ceil(diff / minute));
+  return { label: `${minutes} Minute${minutes === 1 ? '' : 's'}`, expired: false };
 };

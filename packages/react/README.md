@@ -80,6 +80,7 @@ function CustomComponent() {
 Advanced input component with integrated features:
 
 ### Features
+
 - ✅ **Type Selection Dropdown** - Choose from uint8, uint16, uint32, uint64, uint128, bool, address
 - ✅ **Real-time Input Validation** - Validates input against selected FHE type
 - ✅ **Progress Tracking** - Shows encryption steps with progress bar
@@ -119,12 +120,12 @@ Hook for custom encryption workflows with progress tracking:
 
 ```tsx
 const {
-  onEncryptInput,           // (type, value) => Promise<encrypted>
-  isEncryptingInput,        // boolean - encryption in progress
-  encryptionStep,           // Current step: 'fetchKeys' | 'pack' | 'prove' | 'verify' | 'done'
-  encryptionProgress,       // Progress percentage (0-100)
-  encryptionProgressLabel,  // Human-readable progress label
-  inputEncryptionDisabled,  // boolean - whether encryption is disabled
+  onEncryptInput, // (type, value) => Promise<encrypted>
+  isEncryptingInput, // boolean - encryption in progress
+  encryptionStep, // Current step: 'fetchKeys' | 'pack' | 'prove' | 'verify' | 'done'
+  encryptionProgress, // Progress percentage (0-100)
+  encryptionProgressLabel, // Human-readable progress label
+  inputEncryptionDisabled, // boolean - whether encryption is disabled
 } = useEncryptInput();
 ```
 
@@ -141,12 +142,14 @@ If you're using Tailwind CSS in your project, the component classes will work au
 ## Dependencies
 
 ### Required Peer Dependencies
+
 - `@mui/icons-material` ^5.0.0
-- `@mui/material` ^5.0.0  
+- `@mui/material` ^5.0.0
 - `react` ^16.8.0 || ^17.0.0 || ^18.0.0
 - `react-dom` ^16.8.0 || ^17.0.0 || ^18.0.0
 
 ### CoFHE SDK Dependencies
+
 - `@cofhe/sdk/web` - Web-specific CoFHE SDK
 - `@cofhe/sdk/adapters` - Provider adapters
 - `@cofhe/sdk/chains` - Chain configurations

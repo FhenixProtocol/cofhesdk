@@ -16,11 +16,7 @@ const sizeClasses = {
   xl: 'text-lg',
 };
 
-export const LoadingDots: React.FC<LoadingDotsProps> = ({
-  size = 'md',
-  className,
-  variant = 'primary',
-}) => {
+export const LoadingDots: React.FC<LoadingDotsProps> = ({ size = 'md', className, variant = 'primary' }) => {
   return (
     <span
       className={cn(
@@ -36,4 +32,3 @@ export const LoadingDots: React.FC<LoadingDotsProps> = ({
     </span>
   );
 };
-

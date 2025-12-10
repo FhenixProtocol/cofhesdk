@@ -10,12 +10,6 @@ export const MainPage: React.FC = () => {
       <WalletHeader />
       <AssetCard />
       <BottomNavigation />
-      <button
-        onClick={() => navigateTo(FloatingButtonPage.Permits)}
-        className="w-full px-3 py-2 text-sm rounded border border-current hover:bg-gray-100 hover:bg-opacity-10 transition-colors"
-      >
-        View Permits
-      </button>
     </div>
   );
 };

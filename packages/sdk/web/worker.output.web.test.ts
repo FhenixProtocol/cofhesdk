@@ -82,4 +82,3 @@ describe('@cofhe/sdk/web - Worker vs Main Thread Output Validation', () => {
     // in the encryption process, so we don't check equality
   }, 90000);
 });
-

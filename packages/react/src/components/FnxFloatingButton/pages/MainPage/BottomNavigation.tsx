@@ -1,21 +1,25 @@
 import { cn } from '@/utils/cn.js';
-import { GoArrowUpRight } from "react-icons/go";
-import { IoIosSwap } from "react-icons/io";
-import { AiOutlinePieChart } from "react-icons/ai";
-import { TbShieldPlus } from "react-icons/tb";
-import { useFnxFloatingButtonContext, FloatingButtonPage } from '../../FnxFloatingButtonContext.js';
+import { GoArrowUpRight } from 'react-icons/go';
+import { IoMdKey } from 'react-icons/io';
+import { AiOutlinePieChart } from 'react-icons/ai';
+import { TbShieldPlus } from 'react-icons/tb';
+import {
+  useFnxFloatingButtonContext,
+  FloatingButtonPage,
+  type PagesWithoutProps,
+} from '../../FnxFloatingButtonContext.js';
 
 type NavItem = {
-  id: FloatingButtonPage;
+  id: PagesWithoutProps;
   label: string;
   icon: React.ReactNode;
 };
 
 export const BottomNavigation: React.FC = () => {
   const { navigateTo, expandPanel } = useFnxFloatingButtonContext();
-  const iconClassName = "w-4 h-4";
-  
-  const handleNavClick = (page: FloatingButtonPage) => {
+  const iconClassName = 'w-4 h-4';
+
+  const handleNavClick = (page: PagesWithoutProps) => {
     expandPanel(); // Ensure panel is expanded
     navigateTo(page);
   };
@@ -37,9 +41,9 @@ export const BottomNavigation: React.FC = () => {
       icon: <AiOutlinePieChart className={iconClassName} />,
     },
     {
-      id: FloatingButtonPage.Activity,
-      label: 'Activity',
-      icon: <IoIosSwap className={iconClassName} />,
+      id: FloatingButtonPage.Permits,
+      label: 'Permits',
+      icon: <IoMdKey className={iconClassName} />,
     },
   ];
 

@@ -135,7 +135,7 @@ export const useTransactionStore: UseBoundStore<StoreApi<TransactionStore>> = cr
         set((state) => {
           const chainTxs = state.transactions[chainId];
           if (!chainTxs || !chainTxs[hash]) return state;
-          
+
           return {
             transactions: {
               ...state.transactions,
@@ -198,7 +198,6 @@ export const useTransactionStore: UseBoundStore<StoreApi<TransactionStore>> = cr
   )
 );
 
-
 // Pending transaction polling
 let pendingTransactionInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -224,17 +223,16 @@ export const addTransactionAndWatch = (
   if (!enabled) return;
 
   const { addTransaction, updateTransactionStatus } = useTransactionStore.getState();
-  
+
   // Add transaction to store
   addTransaction(transaction);
 
   // Watch for confirmation in background
   if (publicClient?.waitForTransactionReceipt) {
-    publicClient.waitForTransactionReceipt({ hash: transaction.hash as `0x${string}` })
+    publicClient
+      .waitForTransactionReceipt({ hash: transaction.hash as `0x${string}` })
       .then((receipt) => {
-        const status = receipt.status === 'success' 
-          ? TransactionStatus.Confirmed 
-          : TransactionStatus.Failed;
+        const status = receipt.status === 'success' ? TransactionStatus.Confirmed : TransactionStatus.Failed;
         updateTransactionStatus(transaction.chainId, transaction.hash, status);
       })
       .catch(() => {
@@ -259,11 +257,9 @@ const checkSpecificPendingTransactions = async (
       }
 
       const receipt = await publicClient.getTransactionReceipt({ hash: tx.hash as `0x${string}` });
-      
+
       if (receipt) {
-        const status = receipt.status === 'success' 
-          ? TransactionStatus.Confirmed 
-          : TransactionStatus.Failed;
+        const status = receipt.status === 'success' ? TransactionStatus.Confirmed : TransactionStatus.Failed;
         useTransactionStore.getState().updateTransactionStatus(tx.chainId, tx.hash, status);
       } else {
         stillPending.push(tx);
@@ -286,9 +282,7 @@ export const stopPendingTransactionPolling = (): void => {
 };
 
 // Function to check all pending transactions - call this on app load
-export const checkPendingTransactions = async (
-  getPublicClient: PublicClientGetter
-): Promise<void> => {
+export const checkPendingTransactions = async (getPublicClient: PublicClientGetter): Promise<void> => {
   // Clear any existing interval
   stopPendingTransactionPolling();
 
@@ -315,7 +309,7 @@ export const checkPendingTransactions = async (
   if (stillPending.length > 0) {
     pendingTransactionInterval = setInterval(async () => {
       stillPending = await checkSpecificPendingTransactions(stillPending, getPublicClient);
-      
+
       // If no more pending transactions, stop polling
       if (stillPending.length === 0) {
         stopPendingTransactionPolling();

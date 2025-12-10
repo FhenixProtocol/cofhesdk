@@ -14,7 +14,7 @@ export const ShieldPage: React.FC = () => {
         <ArrowBackIcon style={{ fontSize: 16 }} />
         <p className="text-sm font-medium">Shield</p>
       </button>
-      
+
       <p className="text-xs">Shield content goes here</p>
     </div>
   );

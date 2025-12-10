@@ -10,10 +10,7 @@ interface FloatingIconProps {
   className?: string;
 }
 
-export const FloatingIcon: React.FC<FloatingIconProps> = ({
-  onClick,
-  className,
-}) => {
+export const FloatingIcon: React.FC<FloatingIconProps> = ({ onClick, className }) => {
   const { isExpanded, darkMode } = useFnxFloatingButtonContext();
   const [isHovered, setIsHovered] = useState(false);
 
@@ -21,11 +18,7 @@ export const FloatingIcon: React.FC<FloatingIconProps> = ({
   const displayIcon = isExpanded ? (
     <CloseIcon className="fnx-icon-close" />
   ) : (
-    <img 
-      src={darkMode ? fhenixIconWhite : fhenixIconBlack} 
-      alt="Fhenix" 
-      className="fnx-icon-image"
-    />
+    <img src={darkMode ? fhenixIconWhite : fhenixIconBlack} alt="Fhenix" className="fnx-icon-image" />
   );
 
   return (
@@ -43,13 +36,9 @@ export const FloatingIcon: React.FC<FloatingIconProps> = ({
         className
       )}
     >
-      <div
-        className="fnx-icon-inner flex items-center justify-center"
-        data-hovered={isHovered}
-      >
+      <div className="fnx-icon-inner flex items-center justify-center" data-hovered={isHovered}>
         {displayIcon}
       </div>
     </button>
   );
 };
-

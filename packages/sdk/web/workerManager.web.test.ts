@@ -18,7 +18,7 @@ describe('WorkerManager (Browser)', () => {
     it('should initialize worker successfully', async () => {
       const manager = getWorkerManager();
       expect(manager).toBeDefined();
-      
+
       // Worker should be available
       expect(areWorkersAvailable()).toBe(true);
     });
@@ -38,21 +38,14 @@ describe('WorkerManager (Browser)', () => {
   describe('submitProof', () => {
     it('should reject invalid data with error message', async () => {
       const manager = getWorkerManager();
-      
+
       // Submit with invalid data - should fail quickly
-      await expect(
-        manager.submitProof(
-          'invalid',
-          'invalid',
-          [],
-          new Uint8Array()
-        )
-      ).rejects.toThrow();
+      await expect(manager.submitProof('invalid', 'invalid', [], new Uint8Array())).rejects.toThrow();
     }, 35000);
 
     it('should reject invalid message type', async () => {
       const manager = getWorkerManager();
-      
+
       // Submit with invalid data that will cause worker error
       await expect(
         manager.submitProof(
@@ -78,7 +71,7 @@ describe('WorkerManager (Browser)', () => {
 
       // All should reject (invalid data), but shouldn't crash
       const results = await Promise.allSettled(requests);
-      
+
       expect(results).toHaveLength(3);
       results.forEach((result) => {
         expect(result.status).toBe('rejected');
@@ -107,12 +100,7 @@ describe('WorkerManager (Browser)', () => {
       const manager = getWorkerManager();
 
       // Start a request (will timeout)
-      const proofPromise = manager.submitProof(
-        'test',
-        'test',
-        [],
-        new Uint8Array()
-      );
+      const proofPromise = manager.submitProof('test', 'test', [], new Uint8Array());
 
       // Terminate immediately
       setTimeout(() => {
@@ -124,4 +112,3 @@ describe('WorkerManager (Browser)', () => {
     }, 5000);
   });
 });
-

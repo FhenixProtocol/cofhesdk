@@ -8,19 +8,25 @@ import { parseAbi, type Abi } from 'viem';
  * ABI for wrapped confidentiality type tokens (e.g., Redact)
  * Uses `encBalanceOf(address)` function
  */
-export const CONFIDENTIAL_TYPE_WRAPPED_ABI = parseAbi(['function encBalanceOf(address account) view returns (uint256)']);
+export const CONFIDENTIAL_TYPE_WRAPPED_ABI = parseAbi([
+  'function encBalanceOf(address account) view returns (uint256)',
+]);
 
 /**
  * ABI for pure confidentiality type tokens (e.g., Base mini app)
  * Uses `confidentialBalanceOf(address)` function
  */
-export const CONFIDENTIAL_TYPE_PURE_ABI = parseAbi(['function confidentialBalanceOf(address account) view returns (uint256)']);
+export const CONFIDENTIAL_TYPE_PURE_ABI = parseAbi([
+  'function confidentialBalanceOf(address account) view returns (uint256)',
+]);
 
 /**
  * ABI for dual confidentiality type tokens (TBD - to be implemented)
  * Uses `TBD_DUAL_FUNCTION_NAME(address)` function
  */
-export const CONFIDENTIAL_TYPE_DUAL_ABI = parseAbi(['function TBD_DUAL_FUNCTION_NAME(address account) view returns (uint256)']);
+export const CONFIDENTIAL_TYPE_DUAL_ABI = parseAbi([
+  'function TBD_DUAL_FUNCTION_NAME(address account) view returns (uint256)',
+]);
 
 /**
  * Map confidentialityType to balance ABIs and function names
@@ -141,4 +147,3 @@ export const TRANSFER_ABIS = {
     functionName: 'TBD_DUAL_FUNCTION_NAME' as const,
   },
 } as const;
-

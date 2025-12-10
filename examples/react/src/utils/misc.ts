@@ -1,27 +1,44 @@
-import { createPublicClient, createWalletClient, http } from 'viem';
+import { createPublicClient, createWalletClient, http, type PublicClient, type WalletClient } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { sepolia } from 'viem/chains';
+import { baseSepolia, sepolia } from 'viem/chains';
 
-export function createMockWalletAndPublicClient() {
+const chains = [baseSepolia, sepolia] as const;
+const transports = {
+  [sepolia.id]: http('https://sepolia.gateway.tenderly.co'),
+  [baseSepolia.id]: http('https://base-sepolia.gateway.tenderly.co'),
+} as const;
+
+export function createMockWalletAndPublicClient(chainId: number): {
+  walletClient: WalletClient;
+  publicClient: PublicClient;
+} {
   // Create a mock private key for examples (DO NOT use in production)
   const mockPrivateKey = '0x1234567890123456789012345678901234567890123456789012345678901234';
   const account = privateKeyToAccount(mockPrivateKey);
 
-  // Create public client (provider) for Sepolia
+  const chain = chains.find((c) => c.id === chainId);
+  if (!chain) {
+    throw new Error(`Chain with ID ${chainId} not found in configured chains.`);
+  }
+  const transport = transports[chain.id];
+  if (!transport) {
+    throw new Error(`Transport for chain ID ${chainId} not found in configured transports.`);
+  }
+  // Create public client (provider)
   const publicClient = createPublicClient({
-    chain: sepolia,
-    transport: http('https://sepolia.gateway.tenderly.co'), // Public Sepolia RPC
+    chain,
+    transport,
   });
 
-  // Create wallet client (signer) for Sepolia
+  // Create wallet client (signer)
   const walletClient = createWalletClient({
     account,
-    chain: sepolia,
-    transport: http('https://sepolia.gateway.tenderly.co'),
+    chain,
+    transport,
   });
 
   return {
     walletClient,
-    publicClient,
+    publicClient: publicClient as PublicClient,
   };
 }

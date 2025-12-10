@@ -17,8 +17,8 @@ interface TransactionItemProps {
 }
 
 const ActionIcon: React.FC<{ actionType: TransactionActionType }> = ({ actionType }) => {
-  const iconClassName = "w-5 h-5";
-  
+  const iconClassName = 'w-5 h-5';
+
   switch (actionType) {
     case TransactionActionType.ShieldSend:
       return <GoArrowUpRight className={iconClassName} />;
@@ -32,7 +32,7 @@ const ActionIcon: React.FC<{ actionType: TransactionActionType }> = ({ actionTyp
 };
 
 export const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
-  const statusColorClass = 
+  const statusColorClass =
     transaction.status === TransactionStatus.Pending
       ? 'text-yellow-600 dark:text-yellow-400'
       : transaction.status === TransactionStatus.Confirmed
@@ -50,30 +50,19 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({ transaction })
         {/* Transaction Details */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-sm font-semibold fnx-text-primary">
-              {actionToString(transaction.actionType)}
-            </span>
+            <span className="text-sm font-semibold fnx-text-primary">{actionToString(transaction.actionType)}</span>
             <span className="text-sm font-semibold fnx-text-primary">
               {formatUnits(transaction.tokenAmount, transaction.tokenDecimals)} {transaction.tokenSymbol}
             </span>
           </div>
-          
+
           <div className="flex items-center justify-between gap-2 mt-1">
-            <span className={cn('text-xs font-medium', statusColorClass)}>
-              {statusToString(transaction.status)}
-            </span>
-            <span className="text-xs fnx-text-primary opacity-60">
-              {formatRelativeTime(transaction.timestamp)}
-            </span>
+            <span className={cn('text-xs font-medium', statusColorClass)}>{statusToString(transaction.status)}</span>
+            <span className="text-xs fnx-text-primary opacity-60">{formatRelativeTime(transaction.timestamp)}</span>
           </div>
 
           <div className="mt-1">
-            <HashLink
-              type="tx"
-              hash={transaction.hash}
-              chainId={transaction.chainId}
-              copyable
-            />
+            <HashLink type="tx" hash={transaction.hash} chainId={transaction.chainId} copyable />
           </div>
         </div>
       </div>

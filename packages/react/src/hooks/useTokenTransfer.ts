@@ -6,7 +6,6 @@ import type { Token } from './useTokenLists.js';
 import { TRANSFER_ABIS } from '../constants/confidentialTokenABIs.js';
 import { addTransactionAndWatch, TransactionActionType } from '../stores/transactionStore.js';
 
-
 // Encrypted value struct type
 export type EncryptedValue = {
   ctHash: bigint;
@@ -14,7 +13,6 @@ export type EncryptedValue = {
   utype: number;
   signature: `0x${string}`;
 };
-
 
 type UseTokenTransferInput = {
   /** Token object with confidentialityType */
@@ -27,10 +25,7 @@ type UseTokenTransferInput = {
   amount: bigint;
 };
 
-type UseTokenTransferOptions = Omit<
-  UseMutationOptions<`0x${string}`, Error, UseTokenTransferInput>,
-  'mutationFn'
->;
+type UseTokenTransferOptions = Omit<UseMutationOptions<`0x${string}`, Error, UseTokenTransferInput>, 'mutationFn'>;
 
 /**
  * Hook to transfer encrypted tokens based on token confidentialityType
@@ -93,16 +88,20 @@ export function useTokenTransfer(
 
       // Record transaction and watch for confirmation
       if (chainId && account) {
-        addTransactionAndWatch({
-          hash,
-          tokenSymbol: input.token.symbol,
-          tokenAmount: input.amount,
-          tokenDecimals: input.token.decimals,
-          tokenAddress: input.token.address,
-          chainId,
-          actionType: TransactionActionType.ShieldSend,
-          account,
-        }, publicClient, recordTransactionHistory);
+        addTransactionAndWatch(
+          {
+            hash,
+            tokenSymbol: input.token.symbol,
+            tokenAmount: input.amount,
+            tokenDecimals: input.token.decimals,
+            tokenAddress: input.token.address,
+            chainId,
+            actionType: TransactionActionType.ShieldSend,
+            account,
+          },
+          publicClient,
+          recordTransactionHistory
+        );
       }
 
       return hash;

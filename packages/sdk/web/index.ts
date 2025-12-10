@@ -84,11 +84,11 @@ async function zkProveWithWorker(
   metadata: Uint8Array
 ): Promise<Uint8Array> {
   // Serialize items for worker (convert enum to string name)
-  const serializedItems = items.map(item => ({
+  const serializedItems = items.map((item) => ({
     utype: fheTypeToString(item.utype),
     data: typeof item.data === 'bigint' ? item.data.toString() : item.data,
   }));
-  
+
   // Submit to worker
   const workerManager = getWorkerManager();
   return await workerManager.submitProof(fheKeyHex, crsHex, serializedItems, metadata);
@@ -142,7 +142,12 @@ export { areWorkersAvailable };
  */
 export function createCofhesdkClientWithCustomWorker(
   config: CofhesdkConfig,
-  customZkProveWorkerFn: (fheKeyHex: string, crsHex: string, items: EncryptableItem[], metadata: Uint8Array) => Promise<Uint8Array>
+  customZkProveWorkerFn: (
+    fheKeyHex: string,
+    crsHex: string,
+    items: EncryptableItem[],
+    metadata: Uint8Array
+  ) => Promise<Uint8Array>
 ): CofhesdkClient {
   return createCofhesdkClientBase({
     config,

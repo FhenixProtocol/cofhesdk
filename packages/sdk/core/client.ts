@@ -24,6 +24,8 @@ export const CONNECT_STORE_DEFAULTS: CofhesdkClientConnectionState = {
   connectError: undefined,
   chainId: undefined,
   account: undefined,
+  publicClient: undefined,
+  walletClient: undefined,
 };
 /**
  * Creates a CoFHE SDK client instance (base implementation)
@@ -33,10 +35,6 @@ export const CONNECT_STORE_DEFAULTS: CofhesdkClientConnectionState = {
 export function createCofhesdkClientBase(opts: CofhesdkClientParams): CofhesdkClient {
   // Create keysStorage instance using configured storage
   const keysStorage = createKeysStore(opts.config.fheKeyStorage);
-
-  // refs captured in closure
-  let _publicClient: PublicClient | undefined = undefined;
-  let _walletClient: WalletClient | undefined = undefined;
 
   // Zustand store for reactive state management
 
@@ -49,11 +47,13 @@ export function createCofhesdkClientBase(opts: CofhesdkClientParams): CofhesdkCl
 
   // single-flight + abortable warmup
   let _connectPromise: Promise<Result<boolean>> | undefined = undefined;
+  let _connectPromiseClients: { publicClient: PublicClient; walletClient: WalletClient } | undefined = undefined;
 
   // Called before any operation, throws of connection not yet established
   const _requireConnected = () => {
     const state = connectStore.getState();
-    const notConnected = !state.connected || !_publicClient || !_walletClient || !state.account || !state.chainId;
+    const notConnected =
+      !state.connected || !state.account || !state.chainId || !state.publicClient || !state.walletClient;
     if (notConnected) {
       throw new CofhesdkError({
         code: CofhesdkErrorCode.NotConnected,
@@ -63,8 +63,8 @@ export function createCofhesdkClientBase(opts: CofhesdkClientParams): CofhesdkCl
           connected: state.connected,
           account: state.account,
           chainId: state.chainId,
-          publicClient: _publicClient,
-          walletClient: _walletClient,
+          publicClient: state.publicClient,
+          walletClient: state.walletClient,
         },
       });
     }
@@ -76,39 +76,57 @@ export function createCofhesdkClientBase(opts: CofhesdkClientParams): CofhesdkCl
     const state = connectStore.getState();
 
     // Exit if already connected and clients are the same
-    if (state.connected && _publicClient === publicClient && _walletClient === walletClient) {
+    if (state.connected && state.publicClient === publicClient && state.walletClient === walletClient) {
       return Promise.resolve(ResultOk(true));
     }
 
     // Exit if already connecting
-    if (_connectPromise && _publicClient === publicClient && _walletClient === walletClient) {
+    if (
+      _connectPromise &&
+      _connectPromiseClients &&
+      _connectPromiseClients.publicClient === publicClient &&
+      _connectPromiseClients.walletClient === walletClient
+    ) {
       return _connectPromise;
     }
 
     // Set connecting state
-    updateConnectState({ connecting: true, connectError: null, connected: false });
+    updateConnectState({
+      connecting: true,
+      connectError: null,
+      connected: false,
+      chainId: undefined,
+      account: undefined,
+      publicClient: undefined,
+      walletClient: undefined,
+    });
 
+    _connectPromiseClients = { publicClient, walletClient };
     _connectPromise = resultWrapper(
       // try
       async () => {
-        _publicClient = publicClient;
-        _walletClient = walletClient;
-
         const chainId = await getPublicClientChainID(publicClient);
         const account = await getWalletClientAccount(walletClient);
 
-        updateConnectState({ connecting: false, connected: true, chainId, account });
+        updateConnectState({ connecting: false, connected: true, chainId, account, publicClient, walletClient });
 
         return true;
       },
       // catch
       (e) => {
-        updateConnectState({ connecting: false, connected: false, connectError: e });
+        updateConnectState({
+          connecting: false,
+          connected: false,
+          connectError: e,
+          publicClient: undefined,
+          walletClient: undefined,
+        });
         return false;
       },
       // finally
       () => {
         _connectPromise = undefined;
+        _connectPromiseClients = undefined;
       }
     );
 
@@ -126,8 +144,8 @@ export function createCofhesdkClientBase(opts: CofhesdkClientParams): CofhesdkCl
       chainId: state.chainId ?? undefined,
 
       config: opts.config,
-      publicClient: _publicClient ?? undefined,
-      walletClient: _walletClient ?? undefined,
+      publicClient: state.publicClient ?? undefined,
+      walletClient: state.walletClient ?? undefined,
       zkvWalletClient: opts.config._internal?.zkvWalletClient,
 
       tfhePublicKeyDeserializer: opts.tfhePublicKeyDeserializer,
@@ -152,8 +170,8 @@ export function createCofhesdkClientBase(opts: CofhesdkClientParams): CofhesdkCl
       account: state.account ?? undefined,
 
       config: opts.config,
-      publicClient: _publicClient ?? undefined,
-      walletClient: _walletClient ?? undefined,
+      publicClient: state.publicClient ?? undefined,
+      walletClient: state.walletClient ?? undefined,
 
       requireConnected: _requireConnected,
     });
@@ -190,19 +208,22 @@ export function createCofhesdkClientBase(opts: CofhesdkClientParams): CofhesdkCl
     createSelf: async (options: CreateSelfPermitOptions) =>
       resultWrapper(async () => {
         _requireConnected();
-        return permits.createSelf(options, _publicClient!, _walletClient!);
+        const { publicClient, walletClient } = connectStore.getState();
+        return permits.createSelf(options, publicClient!, walletClient!);
       }),
 
     createSharing: async (options: CreateSharingPermitOptions) =>
       resultWrapper(async () => {
         _requireConnected();
-        return permits.createSharing(options, _publicClient!, _walletClient!);
+        const { publicClient, walletClient } = connectStore.getState();
+        return permits.createSharing(options, publicClient!, walletClient!);
       }),
 
     importShared: async (options: ImportSharedPermitOptions | any | string) =>
       resultWrapper(async () => {
         _requireConnected();
-        return permits.importShared(options, _publicClient!, _walletClient!);
+        const { publicClient, walletClient } = connectStore.getState();
+        return permits.importShared(options, publicClient!, walletClient!);
       }),
 
     // Get or create methods (require connection)
@@ -210,14 +231,16 @@ export function createCofhesdkClientBase(opts: CofhesdkClientParams): CofhesdkCl
       resultWrapper(async () => {
         _requireConnected();
         const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
-        return permits.getOrCreateSelfPermit(_publicClient!, _walletClient!, _chainId, _account, options);
+        const { publicClient, walletClient } = connectStore.getState();
+        return permits.getOrCreateSelfPermit(publicClient!, walletClient!, _chainId, _account, options);
       }),
 
     getOrCreateSharingPermit: async (options: CreateSharingPermitOptions, chainId?: number, account?: string) =>
       resultWrapper(async () => {
         _requireConnected();
         const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
-        return permits.getOrCreateSharingPermit(_publicClient!, _walletClient!, options, _chainId, _account);
+        const { publicClient, walletClient } = connectStore.getState();
+        return permits.getOrCreateSharingPermit(publicClient!, walletClient!, options, _chainId, _account);
       }),
 
     // Retrieval methods (auto-fill chainId/account)
@@ -291,8 +314,11 @@ export function createCofhesdkClientBase(opts: CofhesdkClientParams): CofhesdkCl
     decryptHandle,
     permits: clientPermits,
 
-    // Expose clients (read-only)
-    getPublicClient: () => _publicClient,
-    getWalletClient: () => _walletClient,
+    // Add SDK-specific methods below that require connection
+    // Example:
+    // async encryptData(data: unknown) {
+    //   requireConnected();
+    //   // Use state.publicClient and state.walletClient for implementation
+    // },
   };
 }

@@ -93,12 +93,12 @@ const getActivePermit = async (chainId: number, account: string): Promise<Permit
   return permitStore.getActivePermit(chainId, account);
 };
 
-const getActivePermitHash = async (chainId: number, account: string): Promise<string | undefined> => {
+const getActivePermitHash = (chainId: number, account: string): string | undefined => {
   return permitStore.getActivePermitHash(chainId, account);
 };
 
-const selectActivePermit = async (chainId: number, account: string, hash: string): Promise<void> => {
-  await permitStore.setActivePermitHash(chainId, account, hash);
+const selectActivePermit = (chainId: number, account: string, hash: string): void => {
+  permitStore.setActivePermitHash(chainId, account, hash);
 };
 
 // GET OR CREATE
