@@ -335,10 +335,6 @@ export function useTokenConfidentialBalance(
 
       return unsealedResult.data as bigint;
     },
-    retry(failureCount, error) {
-      console.error(`useTokenConfidentialBalance: attempt ${failureCount} failed with error:`, error);
-      return failureCount < 3;
-    },
     enabled,
     ...restQueryOptions,
   });
