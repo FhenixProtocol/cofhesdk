@@ -28,13 +28,5 @@ jobs:
       - name: Install Dependencies
         run: pnpm i
 
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
-        with:
-          version: nightly
-
-      - name: Install Playwright Browsers
-        run: cd packages/sdk && pnpm exec playwright install chromium --with-deps
-
-      - name: Run Tests
-        run: pnpm test
+      - name: Check Formatting
+        run: pnpm format:check
