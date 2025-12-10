@@ -1,5 +1,10 @@
 /* eslint-disable no-redeclare */
-import { type EncryptableItem, isEncryptableItem, type EncryptedItemInput, type EncryptedItemInputs } from '../types.js';
+import {
+  type EncryptableItem,
+  isEncryptableItem,
+  type EncryptedItemInput,
+  type EncryptedItemInputs,
+} from '../types.js';
 
 export function encryptExtract<T>(item: T): EncryptableItem[];
 export function encryptExtract<T extends any[]>(item: [...T]): EncryptableItem[];

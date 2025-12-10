@@ -6,10 +6,7 @@ export const SettingsPage: React.FC = () => {
 
   return (
     <div className="fnx-text-primary space-y-3">
-      <button
-        onClick={navigateBack}
-        className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity"
-      >
+      <button onClick={navigateBack} className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity">
         <ArrowBackIcon style={{ fontSize: 16 }} />
         <span>Back</span>
       </button>
@@ -18,4 +15,3 @@ export const SettingsPage: React.FC = () => {
     </div>
   );
 };
-

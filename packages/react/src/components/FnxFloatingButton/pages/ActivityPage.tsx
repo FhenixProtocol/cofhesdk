@@ -22,7 +22,7 @@ export const ActivityPage: React.FC = () => {
         <ArrowBackIcon style={{ fontSize: 16 }} />
         <p className="text-sm font-medium">Activity</p>
       </button>
-      
+
       {transactions.length === 0 ? (
         <div className="py-8 text-center">
           <p className="text-sm fnx-text-primary opacity-60">No transactions found</p>

@@ -1,7 +1,12 @@
 import { useState } from 'react';
 import { LuCopy, LuCheck, LuExternalLink } from 'react-icons/lu';
 import { cn } from '../../../utils/cn.js';
-import { truncateHash, getBlockExplorerTxUrl, getBlockExplorerAddressUrl, getBlockExplorerTokenUrl } from '../../../utils/utils.js';
+import {
+  truncateHash,
+  getBlockExplorerTxUrl,
+  getBlockExplorerAddressUrl,
+  getBlockExplorerTokenUrl,
+} from '../../../utils/utils.js';
 
 export type HashLinkType = 'tx' | 'address' | 'token';
 
@@ -32,9 +37,12 @@ export const HashLink: React.FC<HashLinkProps> = ({
   const getHref = (): string | undefined => {
     if (!chainId) return undefined;
     switch (type) {
-      case 'tx': return getBlockExplorerTxUrl(chainId, hash);
-      case 'address': return getBlockExplorerAddressUrl(chainId, hash);
-      case 'token': return getBlockExplorerTokenUrl(chainId, hash);
+      case 'tx':
+        return getBlockExplorerTxUrl(chainId, hash);
+      case 'address':
+        return getBlockExplorerAddressUrl(chainId, hash);
+      case 'token':
+        return getBlockExplorerTokenUrl(chainId, hash);
     }
   };
 
@@ -83,7 +91,7 @@ export const CopyButton: React.FC<CopyButtonProps> = ({ text, size = 14, classNa
       setCopied(true);
       setTimeout(() => setCopied(false), 800);
     } catch (err) {
-        console.error('Failed to copy address:', err);
+      console.error('Failed to copy address:', err);
     }
   };
 
@@ -91,10 +99,7 @@ export const CopyButton: React.FC<CopyButtonProps> = ({ text, size = 14, classNa
     <button
       type="button"
       onClick={handleCopy}
-      className={cn(
-        'fnx-text-primary opacity-50 hover:opacity-100 transition-opacity cursor-pointer',
-        className
-      )}
+      className={cn('fnx-text-primary opacity-50 hover:opacity-100 transition-opacity cursor-pointer', className)}
       title="Copy to clipboard"
     >
       {copied ? (
@@ -105,4 +110,3 @@ export const CopyButton: React.FC<CopyButtonProps> = ({ text, size = 14, classNa
     </button>
   );
 };
-

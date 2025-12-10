@@ -17,7 +17,7 @@ let initialized = false;
  */
 async function initTfhe() {
   if (initialized) return;
-  
+
   try {
     // Dynamic import of tfhe module
     tfheModule = await import('tfhe');
@@ -46,7 +46,7 @@ function fromHexString(hexString: string): Uint8Array {
  */
 self.onmessage = async (event: MessageEvent) => {
   const { id, type, fheKeyHex, crsHex, items, metadata } = event.data as ZkProveWorkerRequest;
-  
+
   if (type !== 'zkProve') {
     self.postMessage({
       id,
@@ -55,25 +55,25 @@ self.onmessage = async (event: MessageEvent) => {
     } as ZkProveWorkerResponse);
     return;
   }
-  
+
   try {
     // Initialize TFHE if needed
     await initTfhe();
-    
+
     if (!tfheModule) {
       throw new Error('TFHE module not initialized');
     }
-    
+
     // Deserialize FHE public key and CRS from hex strings
     const fheKeyBytes = fromHexString(fheKeyHex);
     const crsBytes = fromHexString(crsHex);
-    
+
     const fheKey = tfheModule.TfheCompactPublicKey.deserialize(fheKeyBytes);
     const crs = tfheModule.CompactPkeCrs.deserialize(crsBytes);
-    
+
     // Create builder
     const builder = tfheModule.ProvenCompactCiphertextList.builder(fheKey);
-    
+
     // Pack all items (duplicate of zkPack logic)
     for (const item of items) {
       switch (item.utype) {
@@ -102,21 +102,20 @@ self.onmessage = async (event: MessageEvent) => {
           throw new Error(`Unsupported type: ${item.utype}`);
       }
     }
-    
+
     // THE HEAVY OPERATION - but in worker thread!
     const metadataBytes = new Uint8Array(metadata);
     const compactList = builder.build_with_proof_packed(crs, metadataBytes, 1);
-    
+
     // Serialize result
     const result = compactList.serialize();
-    
+
     // Send success response
     self.postMessage({
       id,
       type: 'success',
       result: Array.from(result),
     } as ZkProveWorkerResponse);
-    
   } catch (error) {
     // Send error response
     self.postMessage({
@@ -128,8 +127,7 @@ self.onmessage = async (event: MessageEvent) => {
 };
 
 // Signal ready - send proper message format
-self.postMessage({ 
-  id: 'init', 
-  type: 'ready' 
+self.postMessage({
+  id: 'init',
+  type: 'ready',
 } as ZkProveWorkerResponse);
-

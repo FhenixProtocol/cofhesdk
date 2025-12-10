@@ -10,12 +10,7 @@ interface AddressButtonProps {
   showCopyIcon?: boolean;
 }
 
-export const AddressButton: React.FC<AddressButtonProps> = ({
-  address,
-  className,
-  icon,
-  showCopyIcon = true,
-}) => {
+export const AddressButton: React.FC<AddressButtonProps> = ({ address, className, icon, showCopyIcon = true }) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopyAddress = async () => {
@@ -43,17 +38,8 @@ export const AddressButton: React.FC<AddressButtonProps> = ({
     >
       {icon}
       <span className="font-mono">{truncatedAddress}</span>
-      {showCopyIcon && address && (
-        copied ? (
-          <MdCheck className="w-3 h-3" />
-        ) : (
-          <MdContentCopy className="w-3 h-3" />
-        )
-      )}
-      {copied && !showCopyIcon && (
-        <span className="text-xs opacity-70">Copied!</span>
-      )}
+      {showCopyIcon && address && (copied ? <MdCheck className="w-3 h-3" /> : <MdContentCopy className="w-3 h-3" />)}
+      {copied && !showCopyIcon && <span className="text-xs opacity-70">Copied!</span>}
     </button>
   );
 };
-
