@@ -41,19 +41,19 @@ export const ContentSection: React.FC<ContentSectionProps> = ({ className, conte
 
   // Update content when page changes
   useEffect(() => {
-    if (!showPopupPanel) {
-      setIsTransitioning(true);
-      setTimeout(() => {
-        const PageComp = pages[currentPage.page];
-        const props = currentPage.props ?? {};
-        setDisplayedContent(<PageComp {...props} />);
-        setIsTransitioning(false);
-      }, CONTENT_TRANSITION_DURATION);
-    } else {
+    function renderPage() {
       const PageComp = pages[currentPage.page];
       const props = currentPage.props ?? {};
       setDisplayedContent(<PageComp {...props} />);
       setIsTransitioning(false);
+    }
+    if (!showPopupPanel) {
+      setIsTransitioning(true);
+      setTimeout(() => {
+        renderPage();
+      }, CONTENT_TRANSITION_DURATION);
+    } else {
+      renderPage();
     }
   }, [currentPage, showPopupPanel]);
 
