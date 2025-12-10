@@ -3,7 +3,7 @@ name: Type Check
 on:
   pull_request:
   push:
-    branches: [master]
+    branches: [master, staging]
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
