@@ -318,10 +318,10 @@ export function useTokenConfidentialBalance(
         args: [accountAddress],
       })) as bigint;
 
-      // if (ctHash === 0n) {
-      //   // no ciphertext means no confidential balance
-      //   return 0n;
-      // }
+      if (ctHash === 0n) {
+        // no ciphertext means no confidential balance
+        return 0n;
+      }
 
       // Map confidentialValueType to FheTypes
       const fheType = confidentialValueType === 'uint64' ? FheTypes.Uint64 : FheTypes.Uint128;
