@@ -294,10 +294,7 @@ export function useTokenConfidentialBalance(
       }
 
       // Make sure we have an active permit
-      const permit = await client.permits.getOrCreateSelfPermit();
-      if (!permit.success) {
-        throw permit.error || new Error('Failed to get or create self permit');
-      }
+      const permit = await client.permits.getActivePermit();
 
       // Throw error if dual type is used (not yet implemented)
       if (confidentialityType === 'dual') {
