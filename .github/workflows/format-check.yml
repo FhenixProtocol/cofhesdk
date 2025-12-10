@@ -1,4 +1,4 @@
-name: Test
+name: Check Formatting
 
 on:
   pull_request:
@@ -9,7 +9,7 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
   test:
-    name: Test
+    name: Check Formatting
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
