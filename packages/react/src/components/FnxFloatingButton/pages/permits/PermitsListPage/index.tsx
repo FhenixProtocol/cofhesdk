@@ -68,7 +68,7 @@ export const PermitsListPage: React.FC = () => {
                 <div className="space-y-1.5">
                   {generatedPermits.map(({ permit, hash }) => {
                     return (
-                      <PermitItem key={hash} permit={permit} onSelect={() => handlePermitSelect(hash)}>
+                      <PermitItem key={hash} hash={hash} permit={permit} onSelect={() => handlePermitSelect(hash)}>
                         {permit.type === 'sharing' && (
                           <CopyPermitActionButton copied={isCopied(hash)} onClick={() => handleCopy(hash)} />
                         )}
@@ -96,7 +96,7 @@ export const PermitsListPage: React.FC = () => {
               ) : (
                 <div className="space-y-1.5">
                   {receivedPermits.map(({ permit, hash }) => (
-                    <PermitItem key={hash} permit={permit} onSelect={() => handlePermitSelect(hash)}>
+                    <PermitItem key={hash} hash={hash} permit={permit} onSelect={() => handlePermitSelect(hash)}>
                       <DeletePermitActionButton onClick={() => handleDelete(hash)} />
                     </PermitItem>
                   ))}

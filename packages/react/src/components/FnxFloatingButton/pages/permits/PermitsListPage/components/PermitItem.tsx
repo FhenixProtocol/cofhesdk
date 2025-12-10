@@ -1,5 +1,5 @@
-import type { PermitRow, PermitStatus } from '@/hooks/permits/index.js';
-import { ValidationUtils } from '@cofhe/sdk/permits';
+import type { PermitStatus } from '@/hooks/permits/index.js';
+import { ValidationUtils, type Permit } from '@cofhe/sdk/permits';
 import type { FC, ReactNode } from 'react';
 
 const statusStyles: Record<PermitStatus, string> = {
@@ -8,19 +8,20 @@ const statusStyles: Record<PermitStatus, string> = {
 };
 
 interface PermitItemProps {
-  permit: PermitRow;
+  permit: Permit;
+  hash: string;
   onSelect?: (id: string) => void;
   children?: ReactNode;
 }
 
-export const PermitItem: FC<PermitItemProps> = ({ permit, onSelect, children }) => {
+export const PermitItem: FC<PermitItemProps> = ({ permit, onSelect, children, hash }) => {
   const status: PermitStatus = ValidationUtils.isExpired(permit) ? 'expired' : 'active';
   return (
     <div className="grid grid-cols-[96px_minmax(0,1fr)_auto] items-center gap-3 pl-4">
       <span
         className={`inline-flex items-center justify-center rounded-md px-3 py-1 text-sm font-semibold ${statusStyles[status]}`}
       >
-        {permit.status === 'active' ? 'Active' : 'Expired'}
+        {status === 'active' ? 'Active' : 'Expired'}
       </span>
       {onSelect ? (
         <button
@@ -28,7 +29,7 @@ export const PermitItem: FC<PermitItemProps> = ({ permit, onSelect, children }) 
           className="min-w-0 w-full truncate text-left text-base font-medium text-[#0E2F3F] transition-colors hover:text-[#0E2F3F]/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#0E2F3F]/30 dark:text-white dark:hover:text-white/80"
           title={permit.name}
           aria-label={permit.name}
-          onClick={() => onSelect(permit.id)}
+          onClick={() => onSelect(hash)}
         >
           {permit.name}
         </button>
