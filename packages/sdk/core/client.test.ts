@@ -57,6 +57,8 @@ describe('createCofhesdkClientBase', () => {
       expect(snapshot.connectError).toBe(undefined);
       expect(snapshot.chainId).toBe(undefined);
       expect(snapshot.account).toBe(undefined);
+      expect(snapshot.publicClient).toBe(undefined);
+      expect(snapshot.walletClient).toBe(undefined);
     });
 
     it('should expose convenience flags', () => {
@@ -84,12 +86,16 @@ describe('createCofhesdkClientBase', () => {
       expect(states[0].connected).toBe(false);
       expect(states[0].chainId).toBe(undefined);
       expect(states[0].account).toBe(undefined);
+      expect(states[0].publicClient).toBe(undefined);
+      expect(states[0].walletClient).toBe(undefined);
 
       // Expect states[1] to be the connected state
       expect(states[1].connected).toBe(true);
       expect(states[1].connecting).toBe(false);
       expect(states[1].chainId).toBe(11155111);
       expect(states[1].account).toBe('0x1234567890123456789012345678901234567890');
+      expect(states[1].publicClient).toBe(publicClient);
+      expect(states[1].walletClient).toBe(walletClient);
     });
 
     it('should stop notifications after unsubscribe', async () => {
@@ -123,6 +129,8 @@ describe('createCofhesdkClientBase', () => {
       const snapshot = client.getSnapshot();
       expect(snapshot.chainId).toBe(11155111);
       expect(snapshot.account).toBe('0xabcd');
+      expect(snapshot.publicClient).toBe(publicClient);
+      expect(snapshot.walletClient).toBe(walletClient);
     });
 
     it('should set connecting state during connection', async () => {
@@ -232,6 +240,8 @@ describe('createCofhesdkClientBase', () => {
       const snapshot = client.getSnapshot();
       expect(snapshot.connectError).toBeTruthy();
       expect(snapshot.connected).toBe(false);
+      expect(snapshot.publicClient).toBe(undefined);
+      expect(snapshot.walletClient).toBe(undefined);
     });
   });
 

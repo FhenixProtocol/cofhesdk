@@ -8,7 +8,7 @@ import { useCofheChainId, useCofheSupportedChains } from '../../../hooks/useCofh
 import { ChainIcon } from './ChainIcon.js';
 
 export const ChainSelect: React.FC = () => {
-  const { onChainSwitch, darkMode } = useFnxFloatingButtonContext();
+  const { onSelectChain, darkMode } = useFnxFloatingButtonContext();
   const chainId = useCofheChainId();
   const supportedChains = useCofheSupportedChains();
 
@@ -20,14 +20,14 @@ export const ChainSelect: React.FC = () => {
   const currentNetwork = chain?.name || 'Eth';
 
   const handleChainSwitch = async (targetChain: CofheChain) => {
-    if (targetChain.id === chainId || !onChainSwitch) {
+    if (targetChain.id === chainId || !onSelectChain) {
       setOpen(false);
       return;
     }
 
     setSwitchingChain(true);
     try {
-      await onChainSwitch(targetChain.id);
+      await onSelectChain(targetChain.id);
       setOpen(false);
     } catch (error) {
       console.error('Failed to switch chain:', error);
@@ -62,9 +62,7 @@ export const ChainSelect: React.FC = () => {
           align="end"
         >
           {supportedChains.length === 0 ? (
-            <div className="px-2 py-1 text-sm fnx-text-primary opacity-50">
-              No supported chains
-            </div>
+            <div className="px-2 py-1 text-sm fnx-text-primary opacity-50">No supported chains</div>
           ) : (
             supportedChains.map((supportedChain) => {
               const isActive = supportedChain.id === chainId;
