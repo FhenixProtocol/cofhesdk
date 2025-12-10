@@ -13,6 +13,8 @@ export {
   useCofheAllPermits,
   useCofheRemovePermit,
   useCofheSelectPermit,
+  useCofhePublicClient,
+  useCofheWalletClient,
   useCofheClient,
 } from './hooks/index';
 

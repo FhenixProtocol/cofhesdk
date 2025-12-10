@@ -50,12 +50,6 @@ export const useCofheSupportedChains = () => {
   return client.config.supportedChains;
 };
 
-export const useCofhePublicClient = () => {
-  const client = useCofheContext().client;
-  return client.getPublicClient();
-};
+export const useCofhePublicClient = () => useCofheConnection().publicClient;
 
-export const useCofheWalletClient = () => {
-  const client = useCofheContext().client;
-  return client.getWalletClient();
-};
+export const useCofheWalletClient = () => useCofheConnection().walletClient;

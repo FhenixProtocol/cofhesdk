@@ -4,6 +4,7 @@ import type { FloatingButtonPosition } from './FnxFloatingButton.js';
 import { useCofheContext } from '../../providers';
 import { type PermitDetailsPageProps } from './pages/permits/PermitDetailsPage/index.js';
 import { checkPendingTransactions, stopPendingTransactionPolling } from '../../stores/transactionStore.js';
+import { useCofhePublicClient } from '@/hooks/useCofheConnection.js';
 
 export enum FloatingButtonPage {
   Main = 'main',
@@ -82,7 +83,7 @@ interface FnxFloatingButtonContextValue {
   expandPanel: () => void;
   collapsePanel: () => void;
   handleClick: (externalOnClick?: () => void) => void;
-  onChainSwitch?: (chainId: number) => Promise<void>;
+  onSelectChain?: (chainId: number) => Promise<void> | void;
   // Token selection
   tokenListMode: TokenListMode;
   selectedToken: SelectedToken;
@@ -101,14 +102,14 @@ interface FnxFloatingButtonProviderProps {
   children: ReactNode;
   darkMode: boolean;
   position?: FloatingButtonPosition;
-  onChainSwitch?: (chainId: number) => Promise<void>;
+  onSelectChain?: (chainId: number) => Promise<void> | void;
 }
 
 export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps> = ({
   children,
   darkMode,
   position,
-  onChainSwitch,
+  onSelectChain,
 }) => {
   const { client: cofhesdkClient, config } = useCofheContext();
   const widgetConfig = config.react;
@@ -121,10 +122,11 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   const [tokenListMode, setTokenListMode] = useState<TokenListMode>('view');
   const [selectedToken, setSelectedToken] = useState<SelectedToken>(null);
   const [viewingToken, setViewingToken] = useState<SelectedToken>(null);
+  const publicClient = useCofhePublicClient();
 
   // Check pending transactions on mount
   useEffect(() => {
-    checkPendingTransactions(() => cofhesdkClient.getPublicClient());
+    checkPendingTransactions(() => publicClient);
     return () => {
       stopPendingTransactionPolling();
     };
@@ -202,7 +204,7 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
         expandPanel,
         collapsePanel,
         handleClick,
-        onChainSwitch,
+        onSelectChain,
         tokenListMode,
         selectedToken,
         navigateToTokenListForSelection,

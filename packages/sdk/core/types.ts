@@ -55,10 +55,6 @@ export type CofhesdkClient = {
   encryptInputs<T extends EncryptableItem[]>(inputs: [...T]): EncryptInputsBuilder<[...T]>;
   decryptHandle<U extends FheTypes>(ctHash: bigint, utype: U): DecryptHandlesBuilder<U>;
   permits: CofhesdkClientPermits;
-
-  // --- client accessors ---
-  getPublicClient(): PublicClient | undefined;
-  getWalletClient(): WalletClient | undefined;
 };
 
 export type CofhesdkClientConnectionState = {
@@ -67,6 +63,8 @@ export type CofhesdkClientConnectionState = {
   connectError: unknown | undefined;
   chainId: number | undefined;
   account: string | undefined;
+  publicClient: PublicClient | undefined;
+  walletClient: WalletClient | undefined;
 };
 
 type Listener = (snapshot: CofhesdkClientConnectionState) => void;
@@ -87,8 +85,16 @@ export type CofhesdkClientPermits = {
   getActivePermitHash: (chainId?: number, account?: string) => Promise<Result<string | undefined>>;
 
   // Get or create methods (get active or create new, chainId/account optional)
-  getOrCreateSelfPermit: (chainId?: number, account?: string, options?: CreateSelfPermitOptions) => Promise<Result<Permit>>;
-  getOrCreateSharingPermit: (options: CreateSharingPermitOptions, chainId?: number, account?: string) => Promise<Result<Permit>>;
+  getOrCreateSelfPermit: (
+    chainId?: number,
+    account?: string,
+    options?: CreateSelfPermitOptions
+  ) => Promise<Result<Permit>>;
+  getOrCreateSharingPermit: (
+    options: CreateSharingPermitOptions,
+    chainId?: number,
+    account?: string
+  ) => Promise<Result<Permit>>;
 
   // Mutation methods (chainId/account optional)
   selectActivePermit: (hash: string, chainId?: number, account?: string) => Promise<Result<void>>;

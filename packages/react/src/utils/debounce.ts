@@ -3,19 +3,18 @@
  * have elapsed since the last time the debounced function was invoked.
  */
 export const debounce = <T extends (..._args: any[]) => any>(
-    func: T,
-    wait: number
-  ): ((..._args: Parameters<T>) => void) => {
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-  
-    return (...args: Parameters<T>) => {
-      if (timeoutId !== null) {
-        clearTimeout(timeoutId);
-      }
-      
-      timeoutId = setTimeout(() => {
-        func(...args);
-      }, wait);
-    };
+  func: T,
+  wait: number
+): ((..._args: Parameters<T>) => void) => {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  return (...args: Parameters<T>) => {
+    if (timeoutId !== null) {
+      clearTimeout(timeoutId);
+    }
+
+    timeoutId = setTimeout(() => {
+      func(...args);
+    }, wait);
   };
-  
+};

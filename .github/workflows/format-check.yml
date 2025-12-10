@@ -1,4 +1,4 @@
-name: Type Check
+name: Check Formatting
 
 on:
   pull_request:
@@ -8,8 +8,8 @@ on:
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
-  type-check:
-    name: Type Check
+  test:
+    name: Check Formatting
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
@@ -28,13 +28,5 @@ jobs:
       - name: Install Dependencies
         run: pnpm i
 
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
-        with:
-          version: nightly
-
-      - name: Run Linting
-        run: pnpm lint
-
-      - name: Run Type Check
-        run: pnpm type-check
+      - name: Check Formatting
+        run: pnpm format:check

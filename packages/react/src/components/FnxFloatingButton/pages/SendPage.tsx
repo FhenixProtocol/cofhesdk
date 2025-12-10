@@ -5,10 +5,10 @@ import { type Address, isAddress, formatUnits } from 'viem';
 import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext.js';
 import { useCofheContext } from '../../../providers/CofheProvider.js';
 import { useCofheAccount, useCofheChainId } from '../../../hooks/useCofheConnection.js';
-import { 
-  useTokenConfidentialBalance, 
-  useTokenMetadata, 
-  usePinnedTokenAddress 
+import {
+  useTokenConfidentialBalance,
+  useTokenMetadata,
+  usePinnedTokenAddress,
 } from '../../../hooks/useTokenBalance.js';
 import { useTokens } from '../../../hooks/useTokenLists.js';
 import { useEncryptInput } from '../../../hooks/useEncryptInput.js';
@@ -25,25 +25,24 @@ export const SendPage: React.FC = () => {
   const chainId = useCofheChainId();
   const tokenTransfer = useTokenTransfer();
   const tokens = useTokens(chainId ?? 0);
-  
+
   const pinnedTokenAddress = usePinnedTokenAddress();
   // Use selected token if available, otherwise fall back to pinned token
-  const activeTokenAddress = selectedToken && !selectedToken.isNative 
-    ? (selectedToken.address as Address)
-    : pinnedTokenAddress;
-  
+  const activeTokenAddress =
+    selectedToken && !selectedToken.isNative ? (selectedToken.address as Address) : pinnedTokenAddress;
+
   // Find token from token list to get confidentialityType
   const tokenFromList = useMemo(() => {
     if (!activeTokenAddress || !chainId) return null;
-    return tokens.find(
-      (t) => t.chainId === chainId && t.address.toLowerCase() === activeTokenAddress.toLowerCase()
-    ) || null;
+    return (
+      tokens.find((t) => t.chainId === chainId && t.address.toLowerCase() === activeTokenAddress.toLowerCase()) || null
+    );
   }, [activeTokenAddress, chainId, tokens]);
-  
+
   const { data: tokenMetadata } = useTokenMetadata(activeTokenAddress);
 
   const { data: confidentialBalance } = useTokenConfidentialBalance(
-    { 
+    {
       token: tokenFromList ?? undefined,
       accountAddress: account as Address,
     },
@@ -51,24 +50,27 @@ export const SendPage: React.FC = () => {
       enabled: !!tokenFromList && !!activeTokenAddress && !!account,
     }
   );
-  
+
   // Use selected token metadata if available, otherwise use fetched metadata
-  const displayToken = selectedToken || (tokenMetadata ? {
-    name: tokenMetadata.name,
-    symbol: tokenMetadata.symbol,
-    decimals: tokenMetadata.decimals,
-    logoURI: undefined,
-  } : null);
-  
+  const displayToken =
+    selectedToken ||
+    (tokenMetadata
+      ? {
+          name: tokenMetadata.name,
+          symbol: tokenMetadata.symbol,
+          decimals: tokenMetadata.decimals,
+          logoURI: undefined,
+        }
+      : null);
+
   const { onEncryptInput, isEncryptingInput, encryptionProgressLabel } = useEncryptInput();
-  
+
   const [amount, setAmount] = useState('');
   const [recipientAddress, setRecipientAddress] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  
-  const isSending = tokenTransfer.isPending;
 
+  const isSending = tokenTransfer.isPending;
 
   // Validate recipient address
   const isValidAddress = useMemo(() => {
@@ -110,9 +112,7 @@ export const SendPage: React.FC = () => {
 
     try {
       // Convert amount to token's smallest unit (considering decimals)
-      const amountInSmallestUnit = BigInt(
-        Math.floor(parseFloat(amount) * 10 ** tokenMetadata.decimals)
-      );
+      const amountInSmallestUnit = BigInt(Math.floor(parseFloat(amount) * 10 ** tokenMetadata.decimals));
 
       // Check if amount exceeds uint128 max value (2^128 - 1)
       const UINT128_MAX = BigInt('340282366920938463463374607431768211455'); // 2^128 - 1
@@ -128,7 +128,7 @@ export const SendPage: React.FC = () => {
       // Encrypt the amount using the token's confidentialValueType
       const confidentialValueType = tokenFromList.extensions.fhenix.confidentialValueType;
       const encryptedAmount = await onEncryptInput(confidentialValueType, amountInSmallestUnit.toString());
-      
+
       if (!encryptedAmount || !encryptedAmount.ctHash) {
         throw new Error('Failed to encrypt amount');
       }
@@ -152,7 +152,7 @@ export const SendPage: React.FC = () => {
       setSuccess(`Transaction sent! Hash: ${truncateAddress(hash)}`);
       setAmount('');
       setRecipientAddress('');
-      
+
       // Clear success message after 5 seconds
       setTimeout(() => setSuccess(null), 5000);
     } catch (err) {
@@ -187,12 +187,12 @@ export const SendPage: React.FC = () => {
         </div>
         <div className="flex items-center gap-3">
           {/* Token Icon */}
-          <TokenIcon 
-            logoURI={displayToken?.logoURI || tokenFromList?.logoURI} 
+          <TokenIcon
+            logoURI={displayToken?.logoURI || tokenFromList?.logoURI}
             alt={displayToken?.name || 'Token'}
             size="md"
           />
-          
+
           {/* Amount Input and Symbol on same line, centered with logo */}
           <div className="flex-1 flex items-center gap-1 min-w-0">
             <input
@@ -217,12 +217,10 @@ export const SendPage: React.FC = () => {
         <div className="flex items-center gap-3 -mt-1 text-xs opacity-70">
           {/* Invisible placeholder to align with icon above */}
           <div className="w-10 flex-shrink-0" />
-          
+
           {/* Available text and MAX button */}
           <div className="flex-1 flex items-center justify-start min-w-0 gap-2">
-            <span className="text-xs opacity-70">
-              Available{' '}
-            </span>
+            <span className="text-xs opacity-70">Available </span>
             <TokenBalance
               token={tokenFromList ?? undefined}
               tokenAddress={activeTokenAddress ?? undefined}
@@ -261,9 +259,9 @@ export const SendPage: React.FC = () => {
           onChange={(e) => setRecipientAddress(e.target.value)}
           placeholder="0x..."
           className={cn(
-            "w-full bg-transparent fnx-text-primary outline-none border-b pb-2 px-2",
-            "placeholder:opacity-50",
-            isValidAddress ? "border-green-500" : recipientAddress ? "border-red-500" : "fnx-card-border"
+            'w-full bg-transparent fnx-text-primary outline-none border-b pb-2 px-2',
+            'placeholder:opacity-50',
+            isValidAddress ? 'border-green-500' : recipientAddress ? 'border-red-500' : 'fnx-card-border'
           )}
         />
       </div>
@@ -296,11 +294,11 @@ export const SendPage: React.FC = () => {
         onClick={handleSend}
         disabled={!isValidAddress || !isValidAmount || isSending || isEncryptingInput || !activeTokenAddress}
         className={cn(
-          "fnx-send-button w-full py-3 px-4 font-small",
-          "flex items-center justify-center gap-2",
+          'fnx-send-button w-full py-3 px-4 font-small',
+          'flex items-center justify-center gap-2',
           isValidAddress && isValidAmount && !isSending && !isEncryptingInput && pinnedTokenAddress
-            ? "fnx-send-button-enabled"
-            : "fnx-send-button-disabled"
+            ? 'fnx-send-button-enabled'
+            : 'fnx-send-button-disabled'
         )}
       >
         <span>Send</span>

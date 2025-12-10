@@ -35,7 +35,7 @@ export interface FnxFloatingButtonProps extends BaseProps {
   /** Dark mode for the button (independent of page theme) */
   darkMode?: boolean;
   /** Chain switch handler - called when user selects a different chain in the network dropdown */
-  onChainSwitch?: (chainId: number) => Promise<void>;
+  onSelectChain?: (chainId: number) => Promise<void> | void;
 }
 
 const positionStyles: Record<FloatingButtonPosition, string> = {
@@ -93,7 +93,7 @@ export const FnxFloatingButton: React.FC<FnxFloatingButtonProps> = (props) => {
     <FnxFloatingButtonProvider
       darkMode={props.darkMode ?? false}
       position={props.position}
-      onChainSwitch={props.onChainSwitch}
+      onSelectChain={props.onSelectChain}
     >
       <FnxFloatingButtonInner {...props} />
     </FnxFloatingButtonProvider>

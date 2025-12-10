@@ -1,5 +1,5 @@
 ---
-"@cofhe/sdk": patch
+'@cofhe/sdk': patch
 ---
 
 Remove `initializationResults` from cofhesdk client.

@@ -4,7 +4,6 @@ import { Encryptable } from '@/core';
 import { arbSepolia as cofhesdkArbSepolia } from '@/chains';
 
 describe('@cofhe/sdk/web - EncryptInputsBuilder Worker Methods', () => {
-
   describe('setUseWorker method', () => {
     it('should have setUseWorker method on EncryptInputsBuilder', () => {
       const config = createCofhesdkConfig({
@@ -37,7 +36,7 @@ describe('@cofhe/sdk/web - EncryptInputsBuilder Worker Methods', () => {
       });
 
       const client = createCofhesdkClient(config);
-      
+
       // Should be able to chain setUseWorker with setStepCallback
       const builder = client
         .encryptInputs([Encryptable.uint128(100n)])
@@ -54,11 +53,9 @@ describe('@cofhe/sdk/web - EncryptInputsBuilder Worker Methods', () => {
       });
 
       const client = createCofhesdkClient(config);
-      
+
       expect(() => {
-        client
-          .encryptInputs([Encryptable.uint128(100n)])
-          .setUseWorker(true);
+        client.encryptInputs([Encryptable.uint128(100n)]).setUseWorker(true);
       }).not.toThrow();
     });
 
@@ -68,11 +65,9 @@ describe('@cofhe/sdk/web - EncryptInputsBuilder Worker Methods', () => {
       });
 
       const client = createCofhesdkClient(config);
-      
+
       expect(() => {
-        client
-          .encryptInputs([Encryptable.uint128(100n)])
-          .setUseWorker(false);
+        client.encryptInputs([Encryptable.uint128(100n)]).setUseWorker(false);
       }).not.toThrow();
     });
 
@@ -174,4 +169,3 @@ describe('@cofhe/sdk/web - EncryptInputsBuilder Worker Methods', () => {
     });
   });
 });
-

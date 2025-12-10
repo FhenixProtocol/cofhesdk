@@ -38,10 +38,9 @@ export const TokenIcon: React.FC<TokenIconProps> = ({
     setIconError(false);
   }, [logoURI]);
 
-  const containerClassName = className || cn(
-    sizeClasses[size],
-    'rounded-full fnx-icon-bg flex items-center justify-center flex-shrink-0 overflow-hidden'
-  );
+  const containerClassName =
+    className ||
+    cn(sizeClasses[size], 'rounded-full fnx-icon-bg flex items-center justify-center flex-shrink-0 overflow-hidden');
 
   return (
     <div className={containerClassName}>
@@ -54,4 +53,3 @@ export const TokenIcon: React.FC<TokenIconProps> = ({
     </div>
   );
 };
-

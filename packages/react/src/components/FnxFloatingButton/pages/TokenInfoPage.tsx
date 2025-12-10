@@ -16,18 +16,16 @@ export const TokenInfoPage: React.FC = () => {
   const tokenFromList = useMemo(() => {
     if (!viewingToken || !chainId) return null;
     if (viewingToken.isNative) return null;
-    return tokens.find(
-      (t) => t.chainId === chainId && t.address.toLowerCase() === viewingToken.address.toLowerCase()
-    ) || null;
+    return (
+      tokens.find((t) => t.chainId === chainId && t.address.toLowerCase() === viewingToken.address.toLowerCase()) ||
+      null
+    );
   }, [viewingToken, chainId, tokens]);
 
   if (!viewingToken) {
     return (
       <div className="fnx-text-primary space-y-3">
-        <button
-          onClick={navigateBack}
-          className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity"
-        >
+        <button onClick={navigateBack} className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity">
           <ArrowBackIcon style={{ fontSize: 16 }} />
           <span>Back</span>
         </button>
@@ -39,21 +37,14 @@ export const TokenInfoPage: React.FC = () => {
   return (
     <div className="fnx-text-primary space-y-4">
       {/* Header */}
-      <button
-        onClick={navigateBack}
-        className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity"
-      >
+      <button onClick={navigateBack} className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity">
         <ArrowBackIcon style={{ fontSize: 16 }} />
         <span>Back</span>
       </button>
 
       {/* Token Icon and Name */}
       <div className="flex flex-col items-center gap-3">
-        <TokenIcon 
-          logoURI={viewingToken.logoURI || tokenFromList?.logoURI} 
-          alt={viewingToken.name}
-          size="xl"
-        />
+        <TokenIcon logoURI={viewingToken.logoURI || tokenFromList?.logoURI} alt={viewingToken.name} size="xl" />
         <div className="flex flex-col items-center gap-1">
           <h2 className="text-xl font-bold">{viewingToken.name}</h2>
           <p className="text-sm opacity-70">{viewingToken.symbol}</p>
@@ -80,16 +71,13 @@ export const TokenInfoPage: React.FC = () => {
       {/* Token Details */}
       <div className="space-y-3">
         <h3 className="text-sm font-medium">Token Details</h3>
-        
+
         {/* Address */}
         {!viewingToken.isNative && (
           <div className="fnx-card-bg rounded-lg p-3 border fnx-card-border">
             <div className="flex flex-col gap-2">
               <p className="text-xxxs opacity-70">Contract Address</p>
-              <AddressButton 
-                address={viewingToken.address} 
-                className="w-full justify-start"
-              />
+              <AddressButton address={viewingToken.address} className="w-full justify-start" />
             </div>
           </div>
         )}
@@ -107,9 +95,7 @@ export const TokenInfoPage: React.FC = () => {
           <div className="fnx-card-bg rounded-lg p-3 border fnx-card-border">
             <div className="flex items-center justify-between">
               <p className="text-xxxs opacity-70">Confidentiality Type</p>
-              <p className="text-sm font-medium capitalize">
-                {tokenFromList.extensions.fhenix.confidentialityType}
-              </p>
+              <p className="text-sm font-medium capitalize">{tokenFromList.extensions.fhenix.confidentialityType}</p>
             </div>
           </div>
         )}
@@ -127,4 +113,3 @@ export const TokenInfoPage: React.FC = () => {
     </div>
   );
 };
-

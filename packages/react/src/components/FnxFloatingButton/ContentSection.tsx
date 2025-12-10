@@ -11,7 +11,7 @@ interface ContentSectionProps {
   contentPadding?: number;
 }
 
-export const ContentSection: React.FC<ContentSectionProps> = ({ className, contentPadding = 0 }) => {
+export const ContentSection: React.FC<ContentSectionProps> = ({ className, contentPadding = 16 }) => {
   const { currentPage, showPopupPanel, isTopSide, isLeftSide } = useFnxFloatingButtonContext();
 
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -70,7 +70,7 @@ export const ContentSection: React.FC<ContentSectionProps> = ({ className, conte
       data-open={showPopupPanel}
     >
       <div
-        className={cn('fnx-content-panel', showPopupPanel && 'fnx-glow')}
+        className={cn('fnx-content-panel')}
         data-open={showPopupPanel}
         style={
           {

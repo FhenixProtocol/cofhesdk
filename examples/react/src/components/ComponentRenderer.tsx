@@ -9,10 +9,7 @@ interface ComponentRendererProps {
   isDarkMode: boolean;
 }
 
-export const ComponentRenderer: React.FC<ComponentRendererProps> = ({ 
-  activeComponent,
-  isDarkMode
-}) => {
+export const ComponentRenderer: React.FC<ComponentRendererProps> = ({ activeComponent, isDarkMode }) => {
   const renderComponent = () => {
     switch (activeComponent) {
       case 'overview':
@@ -31,9 +28,7 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
   return (
     <div className={`flex-1 overflow-y-auto ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
       <div className="max-w-4xl mx-auto p-8">
-        <div className={isDarkMode ? 'text-white' : 'text-gray-900'}>
-          {renderComponent()}
-        </div>
+        <div className={isDarkMode ? 'text-white' : 'text-gray-900'}>{renderComponent()}</div>
       </div>
     </div>
   );
