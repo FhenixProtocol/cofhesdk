@@ -66,16 +66,13 @@ export const PermitsListPage: React.FC = () => {
                 <div className="pl-4 text-sm text-[#0E2F3F]/70 dark:text-white/80">No permits yet.</div>
               ) : (
                 <div className="space-y-1.5">
-                  {generatedPermits.map((permit) => {
+                  {generatedPermits.map(({ permit, hash }) => {
                     return (
-                      <PermitItem key={permit.id} permit={permit} onSelect={() => handlePermitSelect(permit.id)}>
-                        {/* Explicit buttons, ignore refresh */}
-                        {permit.actions.includes('copy') && (
-                          <CopyPermitActionButton copied={isCopied(permit.id)} onClick={() => handleCopy(permit.id)} />
+                      <PermitItem key={hash} permit={permit} onSelect={() => handlePermitSelect(hash)}>
+                        {permit.type === 'sharing' && (
+                          <CopyPermitActionButton copied={isCopied(hash)} onClick={() => handleCopy(hash)} />
                         )}
-                        {permit.actions.includes('delete') && (
-                          <DeletePermitActionButton onClick={() => handleDelete(permit.id)} />
-                        )}
+                        <DeletePermitActionButton onClick={() => handleDelete(hash)} />
                       </PermitItem>
                     );
                   })}
@@ -98,9 +95,9 @@ export const PermitsListPage: React.FC = () => {
                 <div className="pl-1 text-sm text-[#0E2F3F]/70 dark:text-white/80">No permits yet.</div>
               ) : (
                 <div className="space-y-1.5">
-                  {receivedPermits.map((permit) => (
-                    <PermitItem key={permit.id} permit={permit} onSelect={() => handlePermitSelect(permit.id)}>
-                      <DeletePermitActionButton onClick={() => handleDelete(permit.id)} />
+                  {receivedPermits.map(({ permit, hash }) => (
+                    <PermitItem key={hash} permit={permit} onSelect={() => handlePermitSelect(hash)}>
+                      <DeletePermitActionButton onClick={() => handleDelete(hash)} />
                     </PermitItem>
                   ))}
                 </div>

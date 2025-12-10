@@ -1,4 +1,5 @@
 import type { PermitRow, PermitStatus } from '@/hooks/permits/index.js';
+import { ValidationUtils } from '@cofhe/sdk/permits';
 import type { FC, ReactNode } from 'react';
 
 const statusStyles: Record<PermitStatus, string> = {
@@ -13,10 +14,11 @@ interface PermitItemProps {
 }
 
 export const PermitItem: FC<PermitItemProps> = ({ permit, onSelect, children }) => {
+  const status: PermitStatus = ValidationUtils.isExpired(permit) ? 'expired' : 'active';
   return (
     <div className="grid grid-cols-[96px_minmax(0,1fr)_auto] items-center gap-3 pl-4">
       <span
-        className={`inline-flex items-center justify-center rounded-md px-3 py-1 text-sm font-semibold ${statusStyles[permit.status]}`}
+        className={`inline-flex items-center justify-center rounded-md px-3 py-1 text-sm font-semibold ${statusStyles[status]}`}
       >
         {permit.status === 'active' ? 'Active' : 'Expired'}
       </span>
