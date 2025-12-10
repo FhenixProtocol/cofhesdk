@@ -5,12 +5,7 @@ import { useCofheAccount, useCofheChainId, useCofhePublicClient } from './useCof
 import { useCofheContext } from '../providers/CofheProvider.js';
 import type { Token } from './useTokenLists.js';
 import { CONFIDENTIAL_ABIS } from '../constants/confidentialTokenABIs.js';
-import {
-  ERC20_BALANCE_OF_ABI,
-  ERC20_DECIMALS_ABI,
-  ERC20_SYMBOL_ABI,
-  ERC20_NAME_ABI,
-} from '../constants/erc20ABIs.js';
+import { ERC20_BALANCE_OF_ABI, ERC20_DECIMALS_ABI, ERC20_SYMBOL_ABI, ERC20_NAME_ABI } from '../constants/erc20ABIs.js';
 
 type UseTokenBalanceInput = {
   /** Token contract address */
@@ -23,10 +18,7 @@ type UseTokenBalanceInput = {
   displayDecimals?: number;
 };
 
-type UseTokenBalanceOptions = Omit<
-  UseQueryOptions<string, Error>,
-  'queryKey' | 'queryFn' | 'enabled'
->;
+type UseTokenBalanceOptions = Omit<UseQueryOptions<string, Error>, 'queryKey' | 'queryFn' | 'enabled'>;
 
 /**
  * Hook to get ERC20 token balance and return normalized display value
@@ -124,7 +116,7 @@ export function useTokenMetadata(
   queryOptions?: Omit<UseQueryOptions<TokenMetadata, Error>, 'queryKey' | 'queryFn' | 'enabled'>
 ): UseQueryResult<TokenMetadata, Error> {
   const publicClient = useCofhePublicClient();
-  
+
   return useQuery({
     queryKey: ['tokenMetadata', tokenAddress],
     queryFn: async (): Promise<TokenMetadata> => {
@@ -182,7 +174,7 @@ export function useTokenDecimals(
   queryOptions?: Omit<UseQueryOptions<number, Error>, 'queryKey' | 'queryFn' | 'enabled'>
 ): UseQueryResult<number, Error> {
   const publicClient = useCofhePublicClient();
-  
+
   return useQuery({
     queryKey: ['tokenDecimals', tokenAddress],
     queryFn: async (): Promise<number> => {
@@ -217,7 +209,7 @@ export function useTokenSymbol(
   queryOptions?: Omit<UseQueryOptions<string, Error>, 'queryKey' | 'queryFn' | 'enabled'>
 ): UseQueryResult<string, Error> {
   const publicClient = useCofhePublicClient();
-  
+
   return useQuery({
     queryKey: ['tokenSymbol', tokenAddress],
     queryFn: async (): Promise<string> => {
@@ -241,7 +233,6 @@ export function useTokenSymbol(
   });
 }
 
-
 /**
  * Hook to get confidential token balance (encrypted balance) and decrypt it
  * Uses confidentialityType from token structure to determine which ABI/function to use:
@@ -253,10 +244,10 @@ export function useTokenSymbol(
  * @returns Query result with decrypted balance as bigint
  */
 export function useTokenConfidentialBalance(
-  { 
+  {
     token,
-    accountAddress 
-  }: { 
+    accountAddress,
+  }: {
     token: Token | undefined;
     accountAddress: Address;
   },
@@ -271,7 +262,8 @@ export function useTokenConfidentialBalance(
   const confidentialValueType = token?.extensions.fhenix.confidentialValueType;
 
   // Merge enabled conditions: both our internal checks and user-provided enabled must be true
-  const baseEnabled = !!publicClient && !!accountAddress && !!token && !!tokenAddress && !!confidentialityType && !!confidentialValueType;
+  const baseEnabled =
+    !!publicClient && !!accountAddress && !!token && !!tokenAddress && !!confidentialityType && !!confidentialValueType;
   const userEnabled = queryOptions?.enabled ?? true;
   const enabled = baseEnabled && userEnabled;
 
@@ -320,25 +312,32 @@ export function useTokenConfidentialBalance(
 
       // Call the appropriate function based on confidentialityType
       const ctHash = (await publicClient.readContract({
-            address: tokenAddress,
+        address: tokenAddress,
         abi: contractConfig.abi,
         functionName: contractConfig.functionName,
         args: [accountAddress],
-          })) as bigint;
+      })) as bigint;
+
+      // if (ctHash === 0n) {
+      //   // no ciphertext means no confidential balance
+      //   return 0n;
+      // }
 
       // Map confidentialValueType to FheTypes
       const fheType = confidentialValueType === 'uint64' ? FheTypes.Uint64 : FheTypes.Uint128;
 
       // Decrypt the encrypted balance using SDK
-      const unsealedResult = await client
-        .decryptHandle(ctHash, fheType)
-        .decrypt();
+      const unsealedResult = await client.decryptHandle(ctHash, fheType).decrypt();
 
       if (!unsealedResult.success) {
         throw unsealedResult.error || new Error('Failed to decrypt confidential balance');
       }
 
       return unsealedResult.data as bigint;
+    },
+    retry(failureCount, error) {
+      console.error(`useTokenConfidentialBalance: attempt ${failureCount} failed with error:`, error);
+      return failureCount < 3;
     },
     enabled,
     ...restQueryOptions,
@@ -360,4 +359,3 @@ export function usePinnedTokenAddress(): Address | undefined {
   const pinnedTokenAddress = widgetConfig.pinnedTokens[chainId.toString()];
   return pinnedTokenAddress as Address | undefined;
 }
-
