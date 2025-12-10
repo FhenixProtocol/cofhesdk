@@ -9,20 +9,49 @@ export function shouldPassToErrorBoundary(_error: unknown): boolean {
   return false;
 }
 
-const Fallback: React.FC<FallbackProps> = () => {
-  // only whitelisted errors will reach here (refer to `shouldPassToErrorBoundary`)
-  // f.x. if it's Permit error - redirect to Permit Creation screen
-  return <div>TODO: redirect to error screen</div>;
+const DEFAULT_ERROR_HANDLERS: ErrorFallback[] = [
+  {
+    checkFn: (error: unknown) => true,
+    component: (props: FallbackProps) => <DefaultFallback {...props} />,
+  },
+];
+
+type ErrorFallback = {
+  checkFn: (error: unknown) => boolean;
+  component: React.FC<FallbackProps>;
 };
 
-export const CofheErrorBoundary: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <ErrorBoundary
-    FallbackComponent={Fallback}
-    onError={(error, info) => {
-      // Centralized logging without rendering a fallback UI
-      console.error('[cofhesdk][ErrorBoundary] error:', error, info);
-    }}
-  >
-    {children}
-  </ErrorBoundary>
-);
+const DefaultFallback: React.FC<FallbackProps> = ({ error }) => {
+  if (!shouldPassToErrorBoundary(error)) {
+    throw new Error('Error not handled by DefaultFallback and should not reach here');
+  }
+  return <pre>{JSON.stringify(error, null, 2)}</pre>;
+};
+
+export const CofheErrorBoundary: React.FC<{ children: React.ReactNode; errorFallbacks: ErrorFallback[] }> = ({
+  children,
+  errorFallbacks,
+}) => {
+  const mergedErrorFallbacks = [...(errorFallbacks || []), ...DEFAULT_ERROR_HANDLERS];
+  const fallback: React.FC<FallbackProps> = ({ error, resetErrorBoundary }) => {
+    for (const ef of mergedErrorFallbacks) {
+      if (ef.checkFn(error)) {
+        const Component = ef.component;
+        return <Component error={error} resetErrorBoundary={resetErrorBoundary} />;
+      }
+    }
+    // Fallback to default
+    return <DefaultFallback error={error} resetErrorBoundary={resetErrorBoundary} />;
+  };
+  return (
+    <ErrorBoundary
+      FallbackComponent={fallback}
+      onError={(error, info) => {
+        // Centralized logging without rendering a fallback UI
+        console.error('[cofhesdk][ErrorBoundary] error:', error, info);
+      }}
+    >
+      {children}
+    </ErrorBoundary>
+  );
+};

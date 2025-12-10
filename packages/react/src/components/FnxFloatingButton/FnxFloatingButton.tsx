@@ -4,7 +4,14 @@ import { FloatingIcon } from './FloatingIcon.js';
 import { StatusBarSection } from './StatusBarSection.js';
 import { StatusBarContent } from './StatusBarContent.js';
 import { ContentSection } from './ContentSection.js';
-import { FnxFloatingButtonProvider, useFnxFloatingButtonContext } from './FnxFloatingButtonContext.js';
+import {
+  FloatingButtonPage,
+  FnxFloatingButtonProvider,
+  useFnxFloatingButtonContext,
+  type PageState,
+} from './FnxFloatingButtonContext.js';
+import { CofheErrorBoundary } from '@/providers/errors.js';
+import { CofhesdkError, CofhesdkErrorCode } from '@cofhe/sdk';
 
 export type FloatingButtonPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 export type FloatingButtonSize = 'small' | 'medium' | 'large';
@@ -36,6 +43,8 @@ export interface FnxFloatingButtonProps extends BaseProps {
   darkMode?: boolean;
   /** Chain switch handler - called when user selects a different chain in the network dropdown */
   onSelectChain?: (chainId: number) => Promise<void> | void;
+
+  overriddingPage?: PageState<FloatingButtonPage>;
 }
 
 const positionStyles: Record<FloatingButtonPosition, string> = {
@@ -55,6 +64,7 @@ const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
   buttonClassName,
   statusBarClassName,
   contentSectionClassName,
+  overriddingPage,
 }) => {
   const { effectivePosition, isTopSide, isLeftSide, handleClick, darkMode } = useFnxFloatingButtonContext();
 
@@ -74,7 +84,7 @@ const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
         className
       )}
     >
-      <ContentSection className={contentSectionClassName} />
+      <ContentSection className={contentSectionClassName} overriddingPage={overriddingPage} />
 
       {/* Button and Bar Row */}
       <div className={cn('flex items-center', isLeftSide ? 'flex-row' : 'flex-row-reverse')}>
@@ -88,6 +98,10 @@ const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
   );
 };
 
+const FnxFloatingButtonBase: React.FC<FnxFloatingButtonProps> = (props) => {
+  return <FnxFloatingButtonInner {...props} />;
+};
+
 export const FnxFloatingButton: React.FC<FnxFloatingButtonProps> = (props) => {
   return (
     <FnxFloatingButtonProvider
@@ -95,7 +109,35 @@ export const FnxFloatingButton: React.FC<FnxFloatingButtonProps> = (props) => {
       position={props.position}
       onSelectChain={props.onSelectChain}
     >
-      <FnxFloatingButtonInner {...props} />
+      <CofheErrorBoundary
+        errorFallbacks={
+          // only whitelisted errors will reach here (refer to `shouldPassToErrorBoundary`)
+          // f.x. if it's Permit error - redirect to Permit Creation screen
+          [
+            {
+              checkFn: (error: unknown) =>
+                error instanceof CofhesdkError && error.code === CofhesdkErrorCode.PermitNotFound,
+              component: ({ resetErrorBoundary, error }) => {
+                return (
+                  <FnxFloatingButtonBase
+                    {...props}
+                    overriddingPage={{
+                      page: FloatingButtonPage.GeneratePermits,
+                      props: {
+                        headerMessage: <div>{error.message}</div>,
+                        // resetting error boundary will re-render previously failed components (i.e. the normal aka {children}, non-fallback flow), so essentially will navigate the user back
+                        onSuccessNavigateTo: () => resetErrorBoundary(),
+                      },
+                    }}
+                  />
+                );
+              },
+            },
+          ]
+        }
+      >
+        <FnxFloatingButtonBase {...props} />
+      </CofheErrorBoundary>
     </FnxFloatingButtonProvider>
   );
 };

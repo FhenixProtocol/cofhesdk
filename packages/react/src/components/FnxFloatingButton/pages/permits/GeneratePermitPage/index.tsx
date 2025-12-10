@@ -6,8 +6,13 @@ import { NameSection } from './components/NameSection.js';
 import { SelfToggle } from './components/SelfToggle.js';
 import { ReceiverSection } from './components/ReceiverSection.js';
 import { ExpirySection } from './components/ExpirySection.js';
+import type { ReactNode } from 'react';
 
-export const GeneratePermitPage: React.FC = () => {
+export type GeneratePermitPageProps = {
+  onSuccessNavigateTo?: () => void;
+  headerMessage?: ReactNode;
+};
+export const GeneratePermitPage: React.FC<GeneratePermitPageProps> = ({ onSuccessNavigateTo, headerMessage }) => {
   const { navigateBack, darkMode, navigateTo } = useFnxFloatingButtonContext();
   const permitIconColor = darkMode ? '#FFFFFF' : '#00314E';
 
@@ -27,7 +32,11 @@ export const GeneratePermitPage: React.FC = () => {
     setDurationSeconds,
     handleSubmit,
   } = usePermitForm({
-    onSuccess: () => navigateTo(FloatingButtonPage.Permits), // TODO: also add toast here?
+    onSuccess: () => {
+      // TODO: also add toast here in any case
+      // by default navigate to permits list, but if arrived here from elsewhere, go back where we came from
+      onSuccessNavigateTo ? onSuccessNavigateTo() : navigateTo(FloatingButtonPage.Permits);
+    },
   });
   const { presets, units, customCount, customUnit, selectPreset, setCustomCount, setCustomUnit, applyCustom } =
     usePermitDuration({ onDurationChange: setDurationSeconds, initialSeconds: durationSeconds });
@@ -65,7 +74,7 @@ export const GeneratePermitPage: React.FC = () => {
             connected wallet.
           </p>
         </div>
-
+        {headerMessage}
         {error && (
           <div
             role="alert"

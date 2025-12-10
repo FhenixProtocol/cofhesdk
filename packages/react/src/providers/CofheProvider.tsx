@@ -21,11 +21,9 @@ export function CofheProvider(props: CofheProviderProps) {
   };
 
   return (
-    <CofheErrorBoundary>
-      <CofheContext.Provider value={contextValue}>
-        <QueryProvider queryClient={queryClient}>{children}</QueryProvider>
-      </CofheContext.Provider>
-    </CofheErrorBoundary>
+    <CofheContext.Provider value={contextValue}>
+      <QueryProvider queryClient={queryClient}>{children}</QueryProvider>
+    </CofheContext.Provider>
   );
 }
 

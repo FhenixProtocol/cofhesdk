@@ -1,7 +1,7 @@
 import { cn } from '../../utils/cn.js';
 import { useState, useEffect, useRef, useMemo } from 'react';
 
-import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
+import { FloatingButtonPage, useFnxFloatingButtonContext, type PageState } from './FnxFloatingButtonContext';
 import { pages } from './const';
 
 const CONTENT_TRANSITION_DURATION = 150; // Duration in milliseconds for content fade transition
@@ -9,10 +9,14 @@ const CONTENT_TRANSITION_DURATION = 150; // Duration in milliseconds for content
 interface ContentSectionProps {
   className?: string;
   contentPadding?: number;
+  // intended for a case like: bring user to Generate Permit page, without affecting the history stack
+  overriddingPage?: PageState<FloatingButtonPage>;
 }
 
-export const ContentSection: React.FC<ContentSectionProps> = ({ className, contentPadding = 16 }) => {
-  const { currentPage, showPopupPanel, isTopSide, isLeftSide } = useFnxFloatingButtonContext();
+export const ContentSection: React.FC<ContentSectionProps> = ({ className, contentPadding = 16, overriddingPage }) => {
+  const { currentPage: pageFromContext, showPopupPanel, isTopSide, isLeftSide } = useFnxFloatingButtonContext();
+
+  const currentPage = overriddingPage ?? pageFromContext;
 
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [displayedContent, setDisplayedContent] = useState(() => {

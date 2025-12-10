@@ -5,6 +5,7 @@ import { useCofheContext } from '../../providers';
 import { type PermitDetailsPageProps } from './pages/permits/PermitDetailsPage/index.js';
 import { checkPendingTransactions, stopPendingTransactionPolling } from '../../stores/transactionStore.js';
 import { useCofhePublicClient } from '@/hooks/useCofheConnection.js';
+import type { GeneratePermitPageProps } from './pages/permits/GeneratePermitPage/index.js';
 
 export enum FloatingButtonPage {
   Main = 'main',
@@ -54,12 +55,12 @@ export type FloatingButtonPagePropsMap = {
   [FloatingButtonPage.Shield]: void;
   [FloatingButtonPage.Activity]: void;
   [FloatingButtonPage.Permits]: void;
-  [FloatingButtonPage.GeneratePermits]: void;
+  [FloatingButtonPage.GeneratePermits]: GeneratePermitPageProps;
   [FloatingButtonPage.ReceivePermits]: void;
   [FloatingButtonPage.PermitDetails]: PermitDetailsPageProps;
 };
 
-type PageState<K extends FloatingButtonPage = FloatingButtonPage> = {
+export type PageState<K extends FloatingButtonPage = FloatingButtonPage> = {
   page: K;
   props?: FloatingButtonPagePropsMap[K];
 };

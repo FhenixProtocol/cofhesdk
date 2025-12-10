@@ -28,7 +28,7 @@ export const usePermitsList = () => {
   const handleQuickAction = useCallback(
     (actionId: QuickActionId) => {
       if (actionId === 'generate') {
-        navigateTo(FloatingButtonPage.GeneratePermits);
+        navigateTo(FloatingButtonPage.GeneratePermits, {});
         return;
       }
       if (actionId === 'receive') {
