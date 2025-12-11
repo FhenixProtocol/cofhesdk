@@ -12,7 +12,7 @@ import {
   useCofheConfidentialTokenBalance,
 } from '../../../hooks/useCofheTokenBalance.js';
 import { useCofheTokens } from '../../../hooks/useCofheTokenLists.js';
-import { useCofheTokenShield, useCofheTokenUnshield, useCofheClaimUnshield, useCofheUnshieldClaimStatus, useCofheWrappedClaims } from '../../../hooks/useCofheTokenShield.js';
+import { useCofheTokenShield, useCofheTokenUnshield, useCofheClaimUnshield, useCofheUnshieldClaims } from '../../../hooks/useCofheTokenShield.js';
 import { cn } from '../../../utils/cn.js';
 import { truncateHash } from '../../../utils/utils.js';
 import { ShieldMeter, ActionButton, AmountInput, TokenBalance } from '../components/index.js';
@@ -91,16 +91,23 @@ export const ShieldPage: React.FC = () => {
     { enabled: !!tokenFromList && !!account }
   );
 
+  // Unified unshield claims hook - works for both dual and wrapped tokens
+  const { data: unshieldClaims, refetch: refetchClaims } = useCofheUnshieldClaims(
+    {
+      token: tokenFromList,
+      accountAddress: account as Address,
+    },
+    {
+      enabled: !!tokenFromList && !!account && (confidentialityType === 'dual' || confidentialityType === 'wrapped'),
+      refetchInterval: 5000,
+    }
+  );
+
   // Function to refresh all balances and claims
   const refreshBalances = async () => {
     setIsRefreshingBalances(true);
     try {
-      const refetchPromises: Promise<unknown>[] = [refetchPublic(), refetchConfidential()];
-      // Only refetch wrapped claims for wrapped tokens
-      if (isWrappedToken) {
-        refetchPromises.push(refetchWrappedClaims());
-      }
-      await Promise.all(refetchPromises);
+      await Promise.all([refetchPublic(), refetchConfidential(), refetchClaims()]);
     } finally {
       setIsRefreshingBalances(false);
     }
@@ -143,36 +150,6 @@ export const ShieldPage: React.FC = () => {
       throw err;
     }
   };
-
-  // Check for pending unshield claim (dual tokens only)
-  const { data: unshieldClaim } = useCofheUnshieldClaimStatus(
-    {
-      tokenAddress: activeTokenAddress as Address,
-      accountAddress: account as Address,
-    },
-    {
-      enabled:
-        !!activeTokenAddress &&
-        !!account &&
-        tokenFromList?.extensions.fhenix.confidentialityType === 'dual',
-      refetchInterval: 5000,
-    }
-  );
-
-  // Check for pending claims (wrapped tokens only)
-  const { data: wrappedClaims, refetch: refetchWrappedClaims } = useCofheWrappedClaims(
-    {
-      tokenAddress: activeTokenAddress as Address,
-      accountAddress: account as Address,
-    },
-    {
-      enabled:
-        !!activeTokenAddress &&
-        !!account &&
-        tokenFromList?.extensions.fhenix.confidentialityType === 'wrapped',
-      refetchInterval: 5000,
-    }
-  );
 
   // Use selected token metadata if available, otherwise use fetched metadata
   const displayToken =
@@ -370,20 +347,20 @@ export const ShieldPage: React.FC = () => {
             isProcessing={isProcessing}
           />
 
-          {/* Wrapped token claim button */}
-          {wrappedClaims?.hasClaimable && tokenMetadata && (
+          {/* Claim button (unified for dual and wrapped) */}
+          {unshieldClaims?.hasClaimable && tokenMetadata && (
             <ActionButton
               onClick={handleClaim}
               disabled={claimUnshield.isPending || isRefreshingBalances}
-              label={claimUnshield.isPending ? 'Claiming...' : `Claim ${formatUnits(wrappedClaims.claimableAmount, tokenMetadata.decimals)} ${erc20Symbol}`}
+              label={claimUnshield.isPending ? 'Claiming...' : `Claim ${formatUnits(unshieldClaims.claimableAmount, tokenMetadata.decimals)} ${erc20Symbol}`}
               className="mt-2"
             />
           )}
 
-          {/* Wrapped token pending notice */}
-          {wrappedClaims?.hasPending && tokenMetadata && !wrappedClaims.hasClaimable && (
+          {/* Pending decryption notice */}
+          {unshieldClaims?.hasPending && tokenMetadata && !unshieldClaims.hasClaimable && (
             <p className="text-xxs text-yellow-600 dark:text-yellow-400 mt-2 text-center">
-              Pending: {formatUnits(wrappedClaims.pendingAmount, tokenMetadata.decimals)} {erc20Symbol}
+              Pending: {formatUnits(unshieldClaims.pendingAmount, tokenMetadata.decimals)} {erc20Symbol}
             </p>
           )}
         </div>
@@ -416,30 +393,6 @@ export const ShieldPage: React.FC = () => {
           />
         </div>
       </div>
-
-      {/* Pending Claim Notice (for dual tokens) */}
-      {unshieldClaim && !unshieldClaim.claimed && (
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-2">
-          <p className="text-xs text-yellow-800 dark:text-yellow-200 mb-1">
-            Pending claim:{' '}
-            {tokenMetadata
-              ? formatUnits(unshieldClaim.requestedAmount, tokenMetadata.decimals)
-              : unshieldClaim.requestedAmount.toString()}{' '}
-            {tokenSymbol}
-          </p>
-          {unshieldClaim.decrypted ? (
-            <ActionButton
-              onClick={handleClaim}
-              disabled={claimUnshield.isPending}
-              label={claimUnshield.isPending ? 'Claiming...' : 'Claim Now'}
-            />
-          ) : (
-            <p className="text-xs text-yellow-700 dark:text-yellow-300">
-              Waiting for decryption...
-            </p>
-          )}
-        </div>
-      )}
 
       {/* Not Shieldable Token Warning */}
       {tokenFromList && !isShieldableToken && (
