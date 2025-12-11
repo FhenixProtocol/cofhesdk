@@ -2,7 +2,7 @@ import {
   FnxFloatingButtonBase,
   type FnxFloatingButtonProps,
 } from '@/components/FnxFloatingButton/FnxFloatingButtonBase';
-import { FloatingButtonPage, type PageState } from '@/components/FnxFloatingButton/FnxFloatingButtonContext';
+import { FloatingButtonPage, type PageState } from '@/components/FnxFloatingButton/pagesConfig/types';
 import { CofhesdkError, CofhesdkErrorCode } from '@cofhe/sdk';
 import { QueryErrorResetBoundary } from '@tanstack/react-query';
 import { useMemo } from 'react';

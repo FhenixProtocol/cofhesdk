@@ -4,7 +4,8 @@ import { FloatingIcon } from './FloatingIcon';
 import { StatusBarSection } from './StatusBarSection';
 import { StatusBarContent } from './StatusBarContent';
 import { ContentSection } from './ContentSection';
-import { useFnxFloatingButtonContext, type PageState } from './FnxFloatingButtonContext';
+import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
+import type { PageState } from './pagesConfig/types';
 
 export type FloatingButtonPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 export type FloatingButtonSize = 'small' | 'medium' | 'large';

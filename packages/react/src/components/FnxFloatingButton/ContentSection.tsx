@@ -1,8 +1,9 @@
-import { cn } from '../../utils/cn.js';
+import { cn } from '../../utils/cn';
 import { useState, useEffect, useRef, useMemo } from 'react';
 
-import { useFnxFloatingButtonContext, type PageState } from './FnxFloatingButtonContext';
-import { pages } from './const';
+import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
+import { pages } from './pagesConfig/const';
+import type { PageState } from './pagesConfig/types';
 
 const CONTENT_TRANSITION_DURATION = 150; // Duration in milliseconds for content fade transition
 

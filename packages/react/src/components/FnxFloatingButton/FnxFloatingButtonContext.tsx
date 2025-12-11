@@ -2,24 +2,15 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { FloatingButtonPosition } from './FnxFloatingButtonBase';
 import { useCofheContext } from '../../providers';
-import { type PermitDetailsPageProps } from './pages/permits/PermitDetailsPage/index';
 import { checkPendingTransactions, stopPendingTransactionPolling } from '../../stores/transactionStore';
 import { useCofhePublicClient } from '@/hooks/useCofheConnection';
-import type { GeneratePermitPageProps } from './pages/permits/GeneratePermitPage/index';
-
-export enum FloatingButtonPage {
-  Main = 'main',
-  Settings = 'settings',
-  TokenList = 'tokenlist',
-  TokenInfo = 'tokeninfo',
-  Send = 'send',
-  Shield = 'shield',
-  Activity = 'activity',
-  Permits = 'permits',
-  GeneratePermits = 'generatePermit',
-  ReceivePermits = 'receivePermit',
-  PermitDetails = 'permitDetails',
-}
+import {
+  FloatingButtonPage,
+  type FloatingButtonPagePropsMap,
+  type PageState,
+  type PagesWithoutProps,
+  type PagesWithProps,
+} from './pagesConfig/types';
 
 export type TokenListMode = 'view' | 'select';
 
@@ -43,35 +34,6 @@ export type SelectedToken = {
 
 const OPEN_DELAY = 500; // Delay before showing popup in ms
 const CLOSE_DELAY = 300; // Delay before closing bar after popup closes
-
-// Consumers can augment this map via declaration merging or module-local typing.
-// By default, props are typed as unknown per page.
-export type FloatingButtonPagePropsMap = {
-  [FloatingButtonPage.Main]: void;
-  [FloatingButtonPage.Settings]: void;
-  [FloatingButtonPage.TokenList]: void;
-  [FloatingButtonPage.TokenInfo]: void;
-  [FloatingButtonPage.Send]: void;
-  [FloatingButtonPage.Shield]: void;
-  [FloatingButtonPage.Activity]: void;
-  [FloatingButtonPage.Permits]: void;
-  [FloatingButtonPage.GeneratePermits]: GeneratePermitPageProps;
-  [FloatingButtonPage.ReceivePermits]: void;
-  [FloatingButtonPage.PermitDetails]: PermitDetailsPageProps;
-};
-
-export type PageState<K extends FloatingButtonPage = FloatingButtonPage> = {
-  page: K;
-  props?: FloatingButtonPagePropsMap[K];
-};
-
-export type PagesWithProps = {
-  [K in FloatingButtonPage]: FloatingButtonPagePropsMap[K] extends void ? never : K;
-}[FloatingButtonPage];
-
-export type PagesWithoutProps = {
-  [K in FloatingButtonPage]: FloatingButtonPagePropsMap[K] extends void ? K : never;
-}[FloatingButtonPage];
 
 type NavigateToFn = {
   // Pages that don't require props: call with just the page

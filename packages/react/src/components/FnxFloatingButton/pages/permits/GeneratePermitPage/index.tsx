@@ -1,12 +1,13 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { usePermitDuration, usePermitForm } from '@/hooks/permits/index.js';
-import { FloatingButtonPage, useFnxFloatingButtonContext } from '../../../FnxFloatingButtonContext.js';
+import { usePermitDuration, usePermitForm } from '@/hooks/permits/index';
+import { useFnxFloatingButtonContext } from '../../../FnxFloatingButtonContext';
 import PermitIcon from '../assets/fhenix-permit-icon.svg';
-import { NameSection } from './components/NameSection.js';
-import { SelfToggle } from './components/SelfToggle.js';
-import { ReceiverSection } from './components/ReceiverSection.js';
-import { ExpirySection } from './components/ExpirySection.js';
+import { NameSection } from './components/NameSection';
+import { SelfToggle } from './components/SelfToggle';
+import { ReceiverSection } from './components/ReceiverSection';
+import { ExpirySection } from './components/ExpirySection';
 import type { ReactNode } from 'react';
+import { FloatingButtonPage } from '@/components/FnxFloatingButton/pagesConfig/types';
 
 export type GeneratePermitPageProps = {
   onSuccessNavigateTo?: () => void;
