@@ -292,9 +292,7 @@ export function useTokenConfidentialBalance(
       if (!confidentialValueType) {
         throw new Error('confidentialValueType is required in token extensions');
       }
-
-      // Make sure we have an active permit
-      const permit = await client.permits.getActivePermit();
+      // NB: no need to cehck for Permit validity and existence here. If something is wrong with the Permit, ErrorBoundary will catch that and will redirect the user to Permit generation page.
 
       // Throw error if dual type is used (not yet implemented)
       if (confidentialityType === 'dual') {

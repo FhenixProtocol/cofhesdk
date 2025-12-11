@@ -19,6 +19,8 @@ const FALLBACK_BY_ERROR_TYPE: ErrorFallbackDefinition[] = [
           headerMessage: <div>{error.message}</div>,
           // resetting error boundary will re-render previously failed components (i.e. the normal aka {children}, non-fallback flow), so essentially will navigate the user back
           onSuccessNavigateTo: () => resetErrorBoundary(),
+          onCancel: () => resetErrorBoundary(),
+          onBack: () => resetErrorBoundary(),
         },
       })),
   },
