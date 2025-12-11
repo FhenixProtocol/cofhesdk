@@ -259,14 +259,17 @@ export const ShieldPage: React.FC = () => {
   };
 
   const handleClaim = async () => {
-    if (!tokenFromList || !publicClient) {
+    if (!tokenFromList || !publicClient || !unshieldClaims) {
       setError('Missing token data');
       return;
     }
 
     try {
       await executeTransaction(
-        () => claimUnshield.mutateAsync({ token: tokenFromList }),
+        () => claimUnshield.mutateAsync({ 
+          token: tokenFromList,
+          amount: unshieldClaims.claimableAmount,
+        }),
         'Claim complete!',
         'Failed to claim tokens'
       );
