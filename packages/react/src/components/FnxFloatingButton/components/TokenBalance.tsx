@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
 import type { Address } from 'viem';
-import { usePublicTokenBalance, useConfidentialTokenBalance, useNativeBalance } from '../../../hooks/useTokenBalance.js';
+import { useCofhePublicTokenBalance, useCofheConfidentialTokenBalance, useCofheNativeBalance } from '../../../hooks/useCofheTokenBalance.js';
 import { useCofheAccount } from '../../../hooks/useCofheConnection.js';
-import { useTokens, type Token } from '../../../hooks/useTokenLists.js';
+import { useCofheTokens, type Token } from '../../../hooks/useCofheTokenLists.js';
 import { useCofheChainId } from '../../../hooks/useCofheConnection.js';
 import { cn } from '../../../utils/cn.js';
 import { LoadingDots } from './LoadingDots.js';
@@ -63,7 +63,7 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
 }) => {
   const account = useCofheAccount();
   const chainId = useCofheChainId();
-  const tokens = useTokens(chainId ?? 0);
+  const tokens = useCofheTokens(chainId ?? 0);
 
   // If value is provided, use it directly (skip fetching)
   const useProvidedValue = value !== undefined;
@@ -82,7 +82,7 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
   const {
     numericValue: publicBalanceNum,
     isLoading: isLoadingPublic,
-  } = usePublicTokenBalance(
+  } = useCofhePublicTokenBalance(
     { token: tokenFromList, accountAddress: effectiveAccountAddress, displayDecimals: decimalPrecision },
     { enabled: !useProvidedValue && !isNative && balanceType === BalanceType.Public && !!tokenFromList && !!effectiveAccountAddress }
   );
@@ -90,13 +90,13 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
   const {
     numericValue: confidentialBalanceNum,
     isLoading: isLoadingConfidential,
-  } = useConfidentialTokenBalance(
+  } = useCofheConfidentialTokenBalance(
     { token: tokenFromList, accountAddress: effectiveAccountAddress, displayDecimals: decimalPrecision },
     { enabled: !useProvidedValue && !isNative && balanceType === BalanceType.Confidential && !!tokenFromList && !!effectiveAccountAddress }
   );
 
   // Get native balance for native tokens
-  const { data: nativeBalance, isLoading: isLoadingNative } = useNativeBalance(
+  const { data: nativeBalance, isLoading: isLoadingNative } = useCofheNativeBalance(
     effectiveAccountAddress,
     18,
     decimalPrecision,

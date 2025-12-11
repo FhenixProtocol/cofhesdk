@@ -3,7 +3,7 @@ import { formatUnits, type Address } from 'viem';
 import { FheTypes } from '@cofhe/sdk';
 import { useCofheAccount, useCofheChainId, useCofhePublicClient } from './useCofheConnection.js';
 import { useCofheContext } from '../providers/CofheProvider.js';
-import { type Token, ETH_ADDRESS } from './useTokenLists.js';
+import { type Token, ETH_ADDRESS } from './useCofheTokenLists.js';
 import { CONFIDENTIAL_ABIS } from '../constants/confidentialTokenABIs.js';
 import { ERC20_BALANCE_OF_ABI, ERC20_DECIMALS_ABI, ERC20_SYMBOL_ABI, ERC20_NAME_ABI } from '../constants/erc20ABIs.js';
 import { useFnxFloatingButtonContext } from '@/components/FnxFloatingButton/FnxFloatingButtonContext.js';
@@ -31,7 +31,7 @@ type UseTokenBalanceOptions = Omit<UseQueryOptions<string, Error>, 'queryKey' | 
  * @param queryOptions - Optional React Query options
  * @returns Query result with normalized balance as string
  */
-export function useTokenBalance(
+export function useCofheTokenBalance(
   { tokenAddress, decimals, accountAddress, displayDecimals = 5 }: UseTokenBalanceInput,
   queryOptions?: UseTokenBalanceOptions
 ): UseQueryResult<string, Error> {
@@ -76,7 +76,7 @@ export function useTokenBalance(
  * @param queryOptions - Optional React Query options
  * @returns Query result with normalized balance as string
  */
-export function useNativeBalance(
+export function useCofheNativeBalance(
   accountAddress?: Address,
   decimals: number = 18,
   displayDecimals: number = 5,
@@ -120,7 +120,7 @@ export type TokenMetadata = {
  * @param queryOptions - Optional React Query options
  * @returns Query result with token metadata (decimals, symbol, and name)
  */
-export function useTokenMetadata(
+export function useCofheTokenMetadata(
   tokenAddress: Address | undefined,
   queryOptions?: Omit<UseQueryOptions<TokenMetadata, Error>, 'queryKey' | 'queryFn' | 'enabled'>
 ): UseQueryResult<TokenMetadata, Error> {
@@ -178,7 +178,7 @@ export function useTokenMetadata(
  * @param queryOptions - Optional React Query options
  * @returns Query result with decimals as number
  */
-export function useTokenDecimals(
+export function useCofheTokenDecimals(
   tokenAddress: Address | undefined,
   queryOptions?: Omit<UseQueryOptions<number, Error>, 'queryKey' | 'queryFn' | 'enabled'>
 ): UseQueryResult<number, Error> {
@@ -213,7 +213,7 @@ export function useTokenDecimals(
  * @param queryOptions - Optional React Query options
  * @returns Query result with symbol as string
  */
-export function useTokenSymbol(
+export function useCofheTokenSymbol(
   tokenAddress: Address | undefined,
   queryOptions?: Omit<UseQueryOptions<string, Error>, 'queryKey' | 'queryFn' | 'enabled'>
 ): UseQueryResult<string, Error> {
@@ -252,7 +252,7 @@ export function useTokenSymbol(
  * @param queryOptions - Optional React Query options
  * @returns Query result with decrypted balance as bigint
  */
-export function useTokenConfidentialBalance(
+export function useCofheTokenConfidentialBalance(
   {
     token,
     accountAddress,
@@ -348,7 +348,7 @@ export function useTokenConfidentialBalance(
  * Hook to get pinned token address for the current chain
  * @returns Pinned token address for current chain, or undefined if none
  */
-export function usePinnedTokenAddress(): Address | undefined {
+export function useCofhePinnedTokenAddress(): Address | undefined {
   const widgetConfig = useCofheContext().config.react;
   const chainId = useCofheChainId();
 
@@ -396,7 +396,7 @@ type UsePublicTokenBalanceResult = {
  * @param options - Query options
  * @returns Balance data with formatted string, numeric value, loading state, and refetch function
  */
-export function usePublicTokenBalance(
+export function useCofhePublicTokenBalance(
   { token, accountAddress, displayDecimals = 5 }: UsePublicTokenBalanceInput,
   options?: UsePublicTokenBalanceOptions
 ): UsePublicTokenBalanceResult {
@@ -413,7 +413,7 @@ export function usePublicTokenBalance(
   const isNativeEthPair = erc20Pair?.address?.toLowerCase() === ETH_ADDRESS.toLowerCase();
 
   // Native ETH balance (for wrapped ETH tokens)
-  const { data: nativeBalance, isLoading: isLoadingNative, refetch: refetchNative } = useNativeBalance(
+  const { data: nativeBalance, isLoading: isLoadingNative, refetch: refetchNative } = useCofheNativeBalance(
     account as Address,
     18,
     displayDecimals,
@@ -421,7 +421,7 @@ export function usePublicTokenBalance(
   );
 
   // ERC20 balance for wrapped tokens (from erc20Pair address)
-  const { data: wrappedErc20Balance, isLoading: isLoadingWrappedErc20, refetch: refetchWrappedErc20 } = useTokenBalance(
+  const { data: wrappedErc20Balance, isLoading: isLoadingWrappedErc20, refetch: refetchWrappedErc20 } = useCofheTokenBalance(
     {
       tokenAddress: (erc20Pair?.address ?? '0x') as Address,
       decimals: erc20Pair?.decimals ?? 18,
@@ -432,7 +432,7 @@ export function usePublicTokenBalance(
   );
 
   // ERC20 balance for dual tokens (from token's own address)
-  const { data: dualPublicBalance, isLoading: isLoadingDualPublic, refetch: refetchDualPublic } = useTokenBalance(
+  const { data: dualPublicBalance, isLoading: isLoadingDualPublic, refetch: refetchDualPublic } = useCofheTokenBalance(
     {
       tokenAddress: (token?.address ?? '0x') as Address,
       decimals: token?.decimals ?? 18,
@@ -508,13 +508,13 @@ type UseConfidentialTokenBalanceResult = {
  * @param options - Query options
  * @returns Balance data with raw bigint, formatted string, numeric value, loading state, and refetch function
  */
-export function useConfidentialTokenBalance(
+export function useCofheConfidentialTokenBalance(
   { token, accountAddress, displayDecimals = 5 }: UseConfidentialTokenBalanceInput,
   options?: UseConfidentialTokenBalanceOptions
 ): UseConfidentialTokenBalanceResult {
   const { enabled: userEnabled = true, ...restOptions } = options ?? {};
 
-  const { data, isLoading, refetch } = useTokenConfidentialBalance(
+  const { data, isLoading, refetch } = useCofheTokenConfidentialBalance(
     {
       token: token ?? undefined,
       accountAddress: accountAddress as Address,

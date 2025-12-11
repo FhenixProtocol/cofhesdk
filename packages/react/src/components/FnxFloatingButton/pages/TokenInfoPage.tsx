@@ -1,7 +1,7 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext.js';
 import { useCofheChainId } from '../../../hooks/useCofheConnection.js';
-import { useTokens } from '../../../hooks/useTokenLists.js';
+import { useCofheTokens } from '../../../hooks/useCofheTokenLists.js';
 import { useMemo } from 'react';
 import { TokenIcon } from '../components/TokenIcon.js';
 import { AddressButton } from '../components/AddressButton.js';
@@ -10,7 +10,7 @@ import { TokenBalance } from '../components/TokenBalance.js';
 export const TokenInfoPage: React.FC = () => {
   const { navigateBack, viewingToken } = useFnxFloatingButtonContext();
   const chainId = useCofheChainId();
-  const tokens = useTokens(chainId ?? 0);
+  const tokens = useCofheTokens(chainId ?? 0);
 
   // Find the full token object from the token list
   const tokenFromList = useMemo(() => {

@@ -6,13 +6,13 @@ import { type Address, formatUnits, parseUnits } from 'viem';
 import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext.js';
 import { useCofheAccount, useCofheChainId, useCofhePublicClient } from '../../../hooks/useCofheConnection.js';
 import {
-  useTokenMetadata,
-  usePinnedTokenAddress,
-  usePublicTokenBalance,
-  useConfidentialTokenBalance,
-} from '../../../hooks/useTokenBalance.js';
-import { useTokens } from '../../../hooks/useTokenLists.js';
-import { useTokenShield, useTokenUnshield, useClaimUnshield, useUnshieldClaimStatus, useWrappedClaims } from '../../../hooks/useTokenShield.js';
+  useCofheTokenMetadata,
+  useCofhePinnedTokenAddress,
+  useCofhePublicTokenBalance,
+  useCofheConfidentialTokenBalance,
+} from '../../../hooks/useCofheTokenBalance.js';
+import { useCofheTokens } from '../../../hooks/useCofheTokenLists.js';
+import { useCofheTokenShield, useCofheTokenUnshield, useCofheClaimUnshield, useCofheUnshieldClaimStatus, useCofheWrappedClaims } from '../../../hooks/useCofheTokenShield.js';
 import { cn } from '../../../utils/cn.js';
 import { truncateHash } from '../../../utils/utils.js';
 import { ShieldMeter, ActionButton, AmountInput, TokenBalance } from '../components/index.js';
@@ -26,7 +26,7 @@ export const ShieldPage: React.FC = () => {
   const account = useCofheAccount();
   const chainId = useCofheChainId();
   const publicClient = useCofhePublicClient();
-  const tokens = useTokens(chainId ?? 0);
+  const tokens = useCofheTokens(chainId ?? 0);
 
   // Separate states for shield and unshield amounts
   const [shieldAmount, setShieldAmount] = useState('');
@@ -37,11 +37,11 @@ export const ShieldPage: React.FC = () => {
   const [isRefreshingBalances, setIsRefreshingBalances] = useState(false);
   const [isWaitingForConfirmation, setIsWaitingForConfirmation] = useState(false);
 
-  const tokenShield = useTokenShield();
-  const tokenUnshield = useTokenUnshield();
-  const claimUnshield = useClaimUnshield();
+  const tokenShield = useCofheTokenShield();
+  const tokenUnshield = useCofheTokenUnshield();
+  const claimUnshield = useCofheClaimUnshield();
 
-  const pinnedTokenAddress = usePinnedTokenAddress();
+  const pinnedTokenAddress = useCofhePinnedTokenAddress();
 
   // Use selected token if available, otherwise fall back to pinned token
   const activeTokenAddress =
@@ -65,7 +65,7 @@ export const ShieldPage: React.FC = () => {
     );
   }, [activeTokenAddress, chainId, shieldableTokens]);
 
-  const { data: tokenMetadata } = useTokenMetadata(activeTokenAddress);
+  const { data: tokenMetadata } = useCofheTokenMetadata(activeTokenAddress);
 
   // Determine token type
   const confidentialityType = tokenFromList?.extensions.fhenix.confidentialityType;
@@ -76,7 +76,7 @@ export const ShieldPage: React.FC = () => {
     numericValue: publicBalanceNum,
     isLoading: isLoadingPublic,
     refetch: refetchPublic,
-  } = usePublicTokenBalance(
+  } = useCofhePublicTokenBalance(
     { token: tokenFromList, accountAddress: account as Address, displayDecimals: DISPLAY_DECIMALS },
     { enabled: !!tokenFromList && !!account }
   );
@@ -86,7 +86,7 @@ export const ShieldPage: React.FC = () => {
     numericValue: confidentialBalanceNum,
     isLoading: isLoadingConfidential,
     refetch: refetchConfidential,
-  } = useConfidentialTokenBalance(
+  } = useCofheConfidentialTokenBalance(
     { token: tokenFromList, accountAddress: account as Address, displayDecimals: DISPLAY_DECIMALS },
     { enabled: !!tokenFromList && !!account }
   );
@@ -145,7 +145,7 @@ export const ShieldPage: React.FC = () => {
   };
 
   // Check for pending unshield claim (dual tokens only)
-  const { data: unshieldClaim } = useUnshieldClaimStatus(
+  const { data: unshieldClaim } = useCofheUnshieldClaimStatus(
     {
       tokenAddress: activeTokenAddress as Address,
       accountAddress: account as Address,
@@ -160,7 +160,7 @@ export const ShieldPage: React.FC = () => {
   );
 
   // Check for pending claims (wrapped tokens only)
-  const { data: wrappedClaims, refetch: refetchWrappedClaims } = useWrappedClaims(
+  const { data: wrappedClaims, refetch: refetchWrappedClaims } = useCofheWrappedClaims(
     {
       tokenAddress: activeTokenAddress as Address,
       accountAddress: account as Address,
