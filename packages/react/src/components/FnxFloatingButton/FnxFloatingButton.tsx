@@ -4,14 +4,9 @@ import { FloatingIcon } from './FloatingIcon.js';
 import { StatusBarSection } from './StatusBarSection.js';
 import { StatusBarContent } from './StatusBarContent.js';
 import { ContentSection } from './ContentSection.js';
-import {
-  FloatingButtonPage,
-  FnxFloatingButtonProvider,
-  useFnxFloatingButtonContext,
-  type PageState,
-} from './FnxFloatingButtonContext.js';
+import { FnxFloatingButtonProvider, useFnxFloatingButtonContext, type PageState } from './FnxFloatingButtonContext.js';
 import { CofheErrorBoundary } from '@/providers/errors.js';
-import { CofhesdkError, CofhesdkErrorCode } from '@cofhe/sdk';
+import { constructErrorFallbacksWithFloatingButtonProps } from '@/providers/error-fallbacks.js';
 
 export type FloatingButtonPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 export type FloatingButtonSize = 'small' | 'medium' | 'large';
@@ -43,7 +38,7 @@ export interface FnxFloatingButtonProps extends BaseProps {
   darkMode?: boolean;
   /** Chain switch handler - called when user selects a different chain in the network dropdown */
   onSelectChain?: (chainId: number) => Promise<void> | void;
-
+  // is used for error handling (i.e. override to Permit Creation page on PermitNotFound error)
   overriddingPage?: PageState;
 }
 
@@ -98,7 +93,7 @@ const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
   );
 };
 
-const FnxFloatingButtonBase: React.FC<FnxFloatingButtonProps> = (props) => {
+export const FnxFloatingButtonBase: React.FC<FnxFloatingButtonProps> = (props) => {
   return <FnxFloatingButtonInner {...props} />;
 };
 
@@ -113,27 +108,7 @@ export const FnxFloatingButton: React.FC<FnxFloatingButtonProps> = (props) => {
         errorFallbacks={
           // only whitelisted errors will reach here (refer to `shouldPassToErrorBoundary`)
           // f.x. if it's Permit error - redirect to Permit Creation screen
-          [
-            {
-              checkFn: (error: unknown) =>
-                error instanceof CofhesdkError && error.code === CofhesdkErrorCode.PermitNotFound,
-              component: ({ resetErrorBoundary, error }) => {
-                return (
-                  <FnxFloatingButtonBase
-                    {...props}
-                    overriddingPage={{
-                      page: FloatingButtonPage.GeneratePermits,
-                      props: {
-                        headerMessage: <div>{error.message}</div>,
-                        // resetting error boundary will re-render previously failed components (i.e. the normal aka {children}, non-fallback flow), so essentially will navigate the user back
-                        onSuccessNavigateTo: () => resetErrorBoundary(),
-                      },
-                    }}
-                  />
-                );
-              },
-            },
-          ]
+          constructErrorFallbacksWithFloatingButtonProps(props)
         }
       >
         <FnxFloatingButtonBase {...props} />

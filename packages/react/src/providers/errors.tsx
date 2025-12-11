@@ -1,19 +1,14 @@
 import { CofhesdkError, CofhesdkErrorCode } from '@cofhe/sdk';
 import { useMemo } from 'react';
 import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
+import type { ErrorFallback } from './error-fallbacks';
 
 export function shouldPassToErrorBoundary(_error: unknown): boolean {
-  // TODO: f.x. permit -> need to be passed here in order to redirect
   if (_error instanceof CofhesdkError) {
     if (_error.code === CofhesdkErrorCode.PermitNotFound) return true;
   }
   return false;
 }
-
-type ErrorFallback = {
-  checkFn: (error: unknown) => boolean;
-  component: React.FC<FallbackProps>;
-};
 
 function constructFallbackRouter(errorFallbacks: ErrorFallback[]): React.FC<FallbackProps> {
   const fallback: React.FC<FallbackProps> = ({ error, resetErrorBoundary }) => {
@@ -36,7 +31,7 @@ export const CofheErrorBoundary: React.FC<{ children: React.ReactNode; errorFall
   const FallbackRouter = useMemo(() => constructFallbackRouter(errorFallbacks), [errorFallbacks]);
   return (
     <ErrorBoundary
-      // FallbackRouter will route to appropriate component based on the error type
+      // FallbackRouter will route to appropriate component based on the error type and code
       FallbackComponent={FallbackRouter}
       onError={(error, info) => {
         console.error('[cofhesdk][ErrorBoundary] error:', error, info);
