@@ -3,11 +3,8 @@ import { GoArrowUpRight } from 'react-icons/go';
 import { IoMdKey } from 'react-icons/io';
 import { AiOutlinePieChart } from 'react-icons/ai';
 import { TbShieldPlus } from 'react-icons/tb';
-import {
-  useFnxFloatingButtonContext,
-  FloatingButtonPage,
-  type PagesWithoutProps,
-} from '../../FnxFloatingButtonContext.js';
+import { useFnxFloatingButtonContext } from '../../FnxFloatingButtonContext.js';
+import { FloatingButtonPage, type PagesWithoutProps } from '../../pagesConfig/types.js';
 
 type NavItem = {
   id: PagesWithoutProps;
