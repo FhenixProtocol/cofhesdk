@@ -6,13 +6,13 @@ import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext.js';
 import { useCofheContext } from '../../../providers/CofheProvider.js';
 import { useCofheAccount, useCofheChainId } from '../../../hooks/useCofheConnection.js';
 import {
-  useTokenConfidentialBalance,
-  useTokenMetadata,
-  usePinnedTokenAddress,
-} from '../../../hooks/useTokenBalance.js';
-import { useTokens } from '../../../hooks/useTokenLists.js';
-import { useEncryptInput } from '../../../hooks/useEncryptInput.js';
-import { useTokenTransfer, type EncryptedValue } from '../../../hooks/useTokenTransfer.js';
+  useCofheTokenConfidentialBalance,
+  useCofheTokenMetadata,
+  useCofhePinnedTokenAddress,
+} from '../../../hooks/useCofheTokenBalance.js';
+import { useCofheTokens } from '../../../hooks/useCofheTokenLists.js';
+import { useCofheEncryptInput } from '../../../hooks/useCofheEncryptInput.js';
+import { useCofheTokenTransfer, type EncryptedValue } from '../../../hooks/useCofheTokenTransfer.js';
 import { cn } from '../../../utils/cn.js';
 import { truncateAddress, sanitizeNumericInput } from '../../../utils/utils.js';
 import { TokenIcon } from '../components/TokenIcon.js';
@@ -23,10 +23,10 @@ export const SendPage: React.FC = () => {
   const { client } = useCofheContext();
   const account = useCofheAccount();
   const chainId = useCofheChainId();
-  const tokenTransfer = useTokenTransfer();
-  const tokens = useTokens(chainId ?? 0);
+  const tokenTransfer = useCofheTokenTransfer();
+  const tokens = useCofheTokens(chainId ?? 0);
 
-  const pinnedTokenAddress = usePinnedTokenAddress();
+  const pinnedTokenAddress = useCofhePinnedTokenAddress();
   // Use selected token if available, otherwise fall back to pinned token
   const activeTokenAddress =
     selectedToken && !selectedToken.isNative ? (selectedToken.address as Address) : pinnedTokenAddress;
@@ -39,9 +39,9 @@ export const SendPage: React.FC = () => {
     );
   }, [activeTokenAddress, chainId, tokens]);
 
-  const { data: tokenMetadata } = useTokenMetadata(activeTokenAddress);
+  const { data: tokenMetadata } = useCofheTokenMetadata(activeTokenAddress);
 
-  const { data: confidentialBalance } = useTokenConfidentialBalance(
+  const { data: confidentialBalance } = useCofheTokenConfidentialBalance(
     {
       token: tokenFromList ?? undefined,
       accountAddress: account as Address,
@@ -63,7 +63,7 @@ export const SendPage: React.FC = () => {
         }
       : null);
 
-  const { onEncryptInput, isEncryptingInput, encryptionProgressLabel } = useEncryptInput();
+  const { onEncryptInput, isEncryptingInput, encryptionProgressLabel } = useCofheEncryptInput();
 
   const [amount, setAmount] = useState('');
   const [recipientAddress, setRecipientAddress] = useState('');

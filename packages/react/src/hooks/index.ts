@@ -1,6 +1,6 @@
-export { useEncryptInput } from './useEncryptInput';
+export { useCofheEncryptInput } from './useCofheEncryptInput';
 export { useCofheConnection, useCofhePublicClient } from './useCofheConnection';
-export { useEncrypt } from './useEncrypt';
+export { useCofheEncrypt } from './useCofheEncrypt';
 export {
   useCofheActivePermit,
   useCofheAllPermits,
@@ -9,26 +9,28 @@ export {
 } from './useCofhePermits';
 export { useCofheClient } from './useCofheClient';
 export {
-  useTokenBalance,
-  useNativeBalance,
-  useTokenConfidentialBalance,
-  useTokenMetadata,
-  useTokenDecimals,
-  useTokenSymbol,
-  usePinnedTokenAddress,
+  useCofheTokenBalance,
+  useCofheNativeBalance,
+  useCofheTokenConfidentialBalance,
+  useCofheTokenMetadata,
+  useCofheTokenDecimals,
+  useCofheTokenSymbol,
+  useCofhePinnedTokenAddress,
+  useCofhePublicTokenBalance,
+  useCofheConfidentialTokenBalance,
   type TokenMetadata,
-} from './useTokenBalance';
-export { useTokenTransfer } from './useTokenTransfer';
+} from './useCofheTokenBalance';
+export { useCofheTokenTransfer } from './useCofheTokenTransfer';
 export {
-  useTokenShield,
-  useTokenUnshield,
-  useClaimUnshield,
-  useUnshieldClaimStatus,
-  useWrappedClaims,
+  useCofheTokenShield,
+  useCofheTokenUnshield,
+  useCofheClaimUnshield,
+  useCofheUnshieldClaimStatus,
+  useCofheWrappedClaims,
   type UnshieldClaim,
   type WrappedClaim,
   type WrappedClaimsSummary,
-} from './useTokenShield';
+} from './useCofheTokenShield';
 export { useCofheWalletClient } from './useCofheConnection';
-export { useTokens, useTokenLists, ETH_ADDRESS, type Token, type Erc20Pair } from './useTokenLists';
+export { useCofheTokens, useCofheTokenLists, ETH_ADDRESS, type Token, type Erc20Pair } from './useCofheTokenLists';
 export * from './permits';

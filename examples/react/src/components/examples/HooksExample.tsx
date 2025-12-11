@@ -1,5 +1,5 @@
 import React from 'react';
-import { useCofheConnection, useCofheContext, useEncrypt } from '@cofhe/react';
+import { useCofheConnection, useCofheContext, useCofheEncrypt } from '@cofhe/react';
 import { Encryptable } from '@cofhe/sdk';
 
 export const HooksExample: React.FC = () => {
@@ -13,7 +13,7 @@ export const HooksExample: React.FC = () => {
     error: encryptError,
     isEncrypting: isEncryptingInput,
     isConnected: isInitialized,
-  } = useEncrypt();
+  } = useCofheEncrypt();
 
   const handleDirectEncryption = async () => {
     try {

@@ -42,7 +42,7 @@ export interface UseEncryptInputReturn {
   inputEncryptionDisabled: boolean;
 }
 
-export function useEncryptInput(): UseEncryptInputReturn {
+export function useCofheEncryptInput(): UseEncryptInputReturn {
   const { client } = useCofheContext();
   const [isEncrypting, setIsEncrypting] = useState(false);
   const [error, setError] = useState<Error | null>(null);

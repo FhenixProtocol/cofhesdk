@@ -14,7 +14,7 @@ import SecurityIcon from '@mui/icons-material/Security';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
-import { useEncryptInput } from '../hooks/useEncryptInput.js';
+import { useCofheEncryptInput } from '../hooks/useCofheEncryptInput.js';
 
 export interface FnxEncryptInputProps extends BaseProps {
   /** Placeholder text for the text field */
@@ -76,7 +76,7 @@ export const FnxEncryptInput: React.FC<FnxEncryptInputProps> = ({
   const [copySuccess, setCopySuccess] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { onEncryptInput, isEncryptingInput, encryptionStep, encryptionProgress, encryptionProgressLabel } =
-    useEncryptInput();
+    useCofheEncryptInput();
 
   // Debounced validation function
   const debouncedValidation = useRef(

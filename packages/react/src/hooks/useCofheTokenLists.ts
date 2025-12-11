@@ -52,7 +52,7 @@ type UseTokenListsInput = {
 };
 type UseTokenListsOptions = Omit<UseQueryOptions<TokenList, Error>, 'queryKey' | 'queryFn' | 'select'>;
 // Returns array of query results for token lists for the current network
-export function useTokenLists(
+export function useCofheTokenLists(
   { chainId }: UseTokenListsInput,
   queryOptions?: UseTokenListsOptions
 ): UseTokenListsResult {
@@ -96,8 +96,8 @@ export function selectTokensFromTokensList(tokenList: TokenList): Token[] {
   return tokenList.tokens;
 }
 
-export function useTokens(chainId: number): Token[] {
-  const tokenLists = useTokenLists({ chainId });
+export function useCofheTokens(chainId: number): Token[] {
+  const tokenLists = useCofheTokenLists({ chainId });
   const tokens = useMemo(() => {
     const map = new Map<string, Token>();
     tokenLists.forEach((result) => {

@@ -2,7 +2,7 @@ import { useMutation, useQuery, type UseMutationOptions, type UseMutationResult,
 import { type Address } from 'viem';
 import { useCofheWalletClient, useCofheChainId, useCofheAccount, useCofhePublicClient } from './useCofheConnection.js';
 import { useCofheContext } from '../providers/index.js';
-import { type Token, ETH_ADDRESS } from './useTokenLists.js';
+import { type Token, ETH_ADDRESS } from './useCofheTokenLists.js';
 import {
   SHIELD_ABIS,
   UNSHIELD_ABIS,
@@ -66,7 +66,7 @@ type UseClaimUnshieldOptions = Omit<UseMutationOptions<`0x${string}`, Error, Use
  * @param options - Optional React Query mutation options
  * @returns Mutation result with transaction hash
  */
-export function useTokenShield(
+export function useCofheTokenShield(
   options?: UseTokenShieldOptions
 ): UseMutationResult<`0x${string}`, Error, UseTokenShieldInput> {
   const walletClient = useCofheWalletClient();
@@ -216,7 +216,7 @@ export function useTokenShield(
  * @param options - Optional React Query mutation options
  * @returns Mutation result with transaction hash
  */
-export function useTokenUnshield(
+export function useCofheTokenUnshield(
   options?: UseTokenUnshieldOptions
 ): UseMutationResult<`0x${string}`, Error, UseTokenUnshieldInput> {
   const walletClient = useCofheWalletClient();
@@ -315,7 +315,7 @@ export function useTokenUnshield(
  * @param options - Optional React Query mutation options
  * @returns Mutation result with transaction hash
  */
-export function useClaimUnshield(
+export function useCofheClaimUnshield(
   options?: UseClaimUnshieldOptions
 ): UseMutationResult<`0x${string}`, Error, UseClaimUnshieldInput> {
   const walletClient = useCofheWalletClient();
@@ -381,7 +381,7 @@ type UseUnshieldClaimOptions = Omit<UseQueryOptions<UnshieldClaim | null, Error>
  * @param queryOptions - Optional React Query options
  * @returns Query result with UnshieldClaim or null if no pending claim
  */
-export function useUnshieldClaimStatus(
+export function useCofheUnshieldClaimStatus(
   input: UseUnshieldClaimInput,
   queryOptions?: UseUnshieldClaimOptions
 ): UseQueryResult<UnshieldClaim | null, Error> {
@@ -479,7 +479,7 @@ type UseWrappedClaimsOptions = Omit<UseQueryOptions<WrappedClaimsSummary, Error>
  * @param queryOptions - Optional React Query options
  * @returns Query result with WrappedClaimsSummary
  */
-export function useWrappedClaims(
+export function useCofheWrappedClaims(
   input: UseWrappedClaimsInput,
   queryOptions?: UseWrappedClaimsOptions
 ): UseQueryResult<WrappedClaimsSummary, Error> {

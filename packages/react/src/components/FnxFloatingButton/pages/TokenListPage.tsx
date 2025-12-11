@@ -1,6 +1,6 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useFnxFloatingButtonContext, type NativeToken } from '../FnxFloatingButtonContext.js';
-import { useTokens, type Token } from '../../../hooks/useTokenLists.js';
+import { useCofheTokens, type Token } from '../../../hooks/useCofheTokenLists.js';
 import { useCofheChainId } from '../../../hooks/useCofheConnection.js';
 import { useMemo } from 'react';
 import { TokenRow } from './TokenListPage/TokenRow.js';
@@ -8,7 +8,7 @@ import { TokenRow } from './TokenListPage/TokenRow.js';
 export const TokenListPage: React.FC = () => {
   const { navigateBack, tokenListMode, showNativeTokenInList } = useFnxFloatingButtonContext();
   const chainId = useCofheChainId();
-  const tokens = useTokens(chainId ?? 0);
+  const tokens = useCofheTokens(chainId ?? 0);
 
   // Combine native token (if enabled) and confidential tokens
   const allTokens: Array<Token | NativeToken> = useMemo(() => {
