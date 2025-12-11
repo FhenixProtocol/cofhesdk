@@ -21,8 +21,7 @@ export {
   useCofheTokenShield,
   useCofheTokenUnshield,
   useCofheClaimUnshield,
-  useCofheUnshieldClaimStatus,
-  useCofheWrappedClaims,
+  useCofheUnshieldClaims,
   useCofheTokenBalance,
   useCofheNativeBalance,
   useCofheTokenConfidentialBalance,
@@ -37,8 +36,7 @@ export {
   type Token,
   type Erc20Pair,
   type UnshieldClaim,
-  type WrappedClaim,
-  type WrappedClaimsSummary,
+  type UnshieldClaimsSummary,
   type TokenMetadata,
 } from './hooks/index';
 

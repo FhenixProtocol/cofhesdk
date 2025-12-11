@@ -363,97 +363,13 @@ export function useCofheClaimUnshield(
 }
 
 // ============================================================================
-// Unshield Claim Status Hook
-// ============================================================================
-
-type UseUnshieldClaimInput = {
-  /** Token address */
-  tokenAddress: Address;
-  /** Account address (optional, defaults to connected account) */
-  accountAddress?: Address;
-};
-
-type UseUnshieldClaimOptions = Omit<UseQueryOptions<UnshieldClaim | null, Error>, 'queryKey' | 'queryFn'>;
-
-/**
- * Hook to check pending unshield claim status for dual tokens
- * @param input - Token address and optional account address
- * @param queryOptions - Optional React Query options
- * @returns Query result with UnshieldClaim or null if no pending claim
- */
-export function useCofheUnshieldClaimStatus(
-  input: UseUnshieldClaimInput,
-  queryOptions?: UseUnshieldClaimOptions
-): UseQueryResult<UnshieldClaim | null, Error> {
-  const publicClient = useCofhePublicClient();
-  const connectedAccount = useCofheAccount();
-  const account = input.accountAddress || (connectedAccount as Address | undefined);
-
-  return useQuery({
-    queryKey: ['unshieldClaim', input.tokenAddress, account],
-    queryFn: async (): Promise<UnshieldClaim | null> => {
-      if (!publicClient) {
-        throw new Error('PublicClient is required to fetch unshield claim');
-      }
-      if (!account) {
-        throw new Error('Account address is required to fetch unshield claim');
-      }
-
-      const result = await publicClient.readContract({
-        address: input.tokenAddress,
-        abi: DUAL_GET_UNSHIELD_CLAIM_ABI,
-        functionName: 'getUserUnshieldClaim',
-        args: [account],
-      });
-
-      // Check if there's an active claim (ctHash != 0 and not claimed)
-      const claim = result as {
-        ctHash: bigint;
-        requestedAmount: bigint;
-        decryptedAmount: bigint;
-        decrypted: boolean;
-        claimed: boolean;
-      };
-
-      if (claim.ctHash === 0n) {
-        return null;
-      }
-
-      return {
-        ctHash: claim.ctHash,
-        requestedAmount: claim.requestedAmount,
-        decryptedAmount: claim.decryptedAmount,
-        decrypted: claim.decrypted,
-        claimed: claim.claimed,
-      };
-    },
-    enabled: !!publicClient && !!account && !!input.tokenAddress,
-    ...queryOptions,
-  });
-}
-
-// ============================================================================
-// Wrapped Token Claims Hook
+// Unified Unshield Claims Hook
 // ============================================================================
 
 /**
- * Wrapped token claim structure (from getUserClaims)
+ * Unified unshield claims summary - works for both dual and wrapped tokens
  */
-export type WrappedClaim = {
-  ctHash: bigint;
-  requestedAmount: bigint;
-  decryptedAmount: bigint;
-  decrypted: boolean;
-  to: Address;
-  claimed: boolean;
-};
-
-/**
- * Summary of wrapped token claims
- */
-export type WrappedClaimsSummary = {
-  /** All claims (including pending and claimable) */
-  claims: WrappedClaim[];
+export type UnshieldClaimsSummary = {
   /** Total amount that can be claimed now (decrypted and not claimed) */
   claimableAmount: bigint;
   /** Total amount pending decryption */
@@ -464,68 +380,127 @@ export type WrappedClaimsSummary = {
   hasPending: boolean;
 };
 
-type UseWrappedClaimsInput = {
-  /** Token address */
-  tokenAddress: Address;
+type UseUnshieldClaimsInput = {
+  /** Token object with confidentialityType */
+  token: Token | null;
   /** Account address (optional, defaults to connected account) */
   accountAddress?: Address;
 };
 
-type UseWrappedClaimsOptions = Omit<UseQueryOptions<WrappedClaimsSummary, Error>, 'queryKey' | 'queryFn'>;
+type UseUnshieldClaimsOptions = Omit<UseQueryOptions<UnshieldClaimsSummary, Error>, 'queryKey' | 'queryFn'>;
 
 /**
- * Hook to fetch all claims for wrapped tokens
- * @param input - Token address and optional account address
+ * Unified hook to fetch unshield claims for any token type (dual or wrapped)
+ * @param input - Token object and optional account address
  * @param queryOptions - Optional React Query options
- * @returns Query result with WrappedClaimsSummary
+ * @returns Query result with UnshieldClaimsSummary
  */
-export function useCofheWrappedClaims(
-  input: UseWrappedClaimsInput,
-  queryOptions?: UseWrappedClaimsOptions
-): UseQueryResult<WrappedClaimsSummary, Error> {
+export function useCofheUnshieldClaims(
+  input: UseUnshieldClaimsInput,
+  queryOptions?: UseUnshieldClaimsOptions
+): UseQueryResult<UnshieldClaimsSummary, Error> {
   const publicClient = useCofhePublicClient();
   const connectedAccount = useCofheAccount();
   const account = input.accountAddress || (connectedAccount as Address | undefined);
 
+  const token = input.token;
+  const tokenAddress = token?.address as Address | undefined;
+  const confidentialityType = token?.extensions.fhenix.confidentialityType;
+
   return useQuery({
-    queryKey: ['wrappedClaims', input.tokenAddress, account],
-    queryFn: async (): Promise<WrappedClaimsSummary> => {
+    queryKey: ['unshieldClaims', tokenAddress, confidentialityType, account],
+    queryFn: async (): Promise<UnshieldClaimsSummary> => {
       if (!publicClient) {
-        throw new Error('PublicClient is required to fetch wrapped claims');
+        throw new Error('PublicClient is required to fetch unshield claims');
       }
       if (!account) {
-        throw new Error('Account address is required to fetch wrapped claims');
+        throw new Error('Account address is required to fetch unshield claims');
+      }
+      if (!tokenAddress) {
+        throw new Error('Token address is required');
       }
 
-      const result = await publicClient.readContract({
-        address: input.tokenAddress,
-        abi: WRAPPED_GET_USER_CLAIMS_ABI,
-        functionName: 'getUserClaims',
-        args: [account],
-      });
+      if (confidentialityType === 'dual') {
+        // Dual tokens: single claim via getUserUnshieldClaim
+        const result = await publicClient.readContract({
+          address: tokenAddress,
+          abi: DUAL_GET_UNSHIELD_CLAIM_ABI,
+          functionName: 'getUserUnshieldClaim',
+          args: [account],
+        });
 
-      const claims = (result as WrappedClaim[]).filter(c => !c.claimed);
-      
-      let claimableAmount = 0n;
-      let pendingAmount = 0n;
+        const claim = result as {
+          ctHash: bigint;
+          requestedAmount: bigint;
+          decryptedAmount: bigint;
+          decrypted: boolean;
+          claimed: boolean;
+        };
 
-      for (const claim of claims) {
-        if (claim.decrypted) {
-          claimableAmount += claim.decryptedAmount;
-        } else {
-          pendingAmount += claim.requestedAmount;
+        // No active claim
+        if (claim.ctHash === 0n || claim.claimed) {
+          return {
+            claimableAmount: 0n,
+            pendingAmount: 0n,
+            hasClaimable: false,
+            hasPending: false,
+          };
         }
+
+        return {
+          claimableAmount: claim.decrypted ? claim.decryptedAmount : 0n,
+          pendingAmount: claim.decrypted ? 0n : claim.requestedAmount,
+          hasClaimable: claim.decrypted,
+          hasPending: !claim.decrypted,
+        };
+      } else if (confidentialityType === 'wrapped') {
+        // Wrapped tokens: multiple claims via getUserClaims
+        const result = await publicClient.readContract({
+          address: tokenAddress,
+          abi: WRAPPED_GET_USER_CLAIMS_ABI,
+          functionName: 'getUserClaims',
+          args: [account],
+        });
+
+        type WrappedClaimResult = {
+          ctHash: bigint;
+          requestedAmount: bigint;
+          decryptedAmount: bigint;
+          decrypted: boolean;
+          to: Address;
+          claimed: boolean;
+        };
+
+        const claims = (result as WrappedClaimResult[]).filter(c => !c.claimed);
+
+        let claimableAmount = 0n;
+        let pendingAmount = 0n;
+
+        for (const claim of claims) {
+          if (claim.decrypted) {
+            claimableAmount += claim.decryptedAmount;
+          } else {
+            pendingAmount += claim.requestedAmount;
+          }
+        }
+
+        return {
+          claimableAmount,
+          pendingAmount,
+          hasClaimable: claimableAmount > 0n,
+          hasPending: pendingAmount > 0n,
+        };
       }
 
+      // Token type doesn't support claims
       return {
-        claims,
-        claimableAmount,
-        pendingAmount,
-        hasClaimable: claimableAmount > 0n,
-        hasPending: pendingAmount > 0n,
+        claimableAmount: 0n,
+        pendingAmount: 0n,
+        hasClaimable: false,
+        hasPending: false,
       };
     },
-    enabled: !!publicClient && !!account && !!input.tokenAddress,
+    enabled: !!publicClient && !!account && !!tokenAddress && (confidentialityType === 'dual' || confidentialityType === 'wrapped'),
     ...queryOptions,
   });
 }
