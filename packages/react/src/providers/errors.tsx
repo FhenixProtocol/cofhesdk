@@ -4,6 +4,7 @@ import {
 } from '@/components/FnxFloatingButton/FnxFloatingButtonBase';
 import { FloatingButtonPage, type PageState } from '@/components/FnxFloatingButton/FnxFloatingButtonContext';
 import { CofhesdkError, CofhesdkErrorCode } from '@cofhe/sdk';
+import { QueryErrorResetBoundary } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
 
@@ -83,14 +84,19 @@ export const CofheErrorBoundary: React.FC<{ children: React.ReactNode; errorFall
 }) => {
   const FallbackRouter = useMemo(() => constructFallbackRouter(errorFallbacks), [errorFallbacks]);
   return (
-    <ErrorBoundary
-      // FallbackRouter will route to appropriate component based on the error type and code
-      FallbackComponent={FallbackRouter}
-      onError={(error, info) => {
-        console.error('[cofhesdk][ErrorBoundary] error:', error, info);
-      }}
-    >
-      {children}
-    </ErrorBoundary>
+    <QueryErrorResetBoundary>
+      {({ reset: queryReset }) => (
+        <ErrorBoundary
+          onReset={queryReset}
+          // FallbackRouter will route to appropriate component based on the error type and code
+          FallbackComponent={FallbackRouter}
+          onError={(error, info) => {
+            console.error('[cofhesdk][ErrorBoundary] error:', error, info);
+          }}
+        >
+          {children}
+        </ErrorBoundary>
+      )}
+    </QueryErrorResetBoundary>
   );
 };
