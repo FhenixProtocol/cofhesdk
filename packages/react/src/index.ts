@@ -16,6 +16,19 @@ export {
   useCofhePublicClient,
   useCofheWalletClient,
   useCofheClient,
+  useTokens,
+  useTokenLists,
+  useTokenShield,
+  useTokenUnshield,
+  useClaimUnshield,
+  useUnshieldClaimStatus,
+  useWrappedClaims,
+  ETH_ADDRESS,
+  type Token,
+  type Erc20Pair,
+  type UnshieldClaim,
+  type WrappedClaim,
+  type WrappedClaimsSummary,
 } from './hooks/index';
 
 // Components
@@ -33,6 +46,8 @@ export {
   getBlockExplorerTokenUrl,
   formatRelativeTime,
   truncateHash,
+  isEthPair,
+  isWrappedEthToken,
   type FheTypeValue,
 } from './utils/index';
 
