@@ -116,7 +116,7 @@ export const ShieldMeter: React.FC<ShieldMeterProps> = ({
 
   // Approximate path length (calculated from the SVG path)
   const approximatePathLength = 280;
-  
+
   // Outer path length for processing animation
   const outerPathLength = 320;
 
@@ -156,12 +156,7 @@ export const ShieldMeter: React.FC<ShieldMeterProps> = ({
         </defs>
 
         {/* Outer shield */}
-        <path
-          d={shieldOuterPath}
-          fill="#050816"
-          stroke="#1f2937"
-          strokeWidth={2}
-        />
+        <path d={shieldOuterPath} fill="#050816" stroke="#1f2937" strokeWidth={2} />
 
         {/* Processing animation - running segment around the shield */}
         {isProcessing && (
@@ -195,20 +190,10 @@ export const ShieldMeter: React.FC<ShieldMeterProps> = ({
         )}
 
         {/* Inner fill for depth */}
-        <path
-          d={innerFillPath}
-          fill="url(#shieldInnerGradient)"
-          opacity={0.9}
-          style={{ pointerEvents: 'none' }}
-        />
+        <path d={innerFillPath} fill="url(#shieldInnerGradient)" opacity={0.9} style={{ pointerEvents: 'none' }} />
 
         {/* Inner static border (always visible, dark) */}
-        <path
-          d={shieldMeterPath}
-          fill="none"
-          stroke="#020617"
-          strokeWidth={3}
-        />
+        <path d={shieldMeterPath} fill="none" stroke="#020617" strokeWidth={3} />
 
         {/* Meter path: the growing line */}
         <path
@@ -254,4 +239,3 @@ export const ShieldMeter: React.FC<ShieldMeterProps> = ({
     </div>
   );
 };
-

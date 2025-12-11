@@ -9,4 +9,3 @@ export { ShieldMeter } from './ShieldMeter.js';
 export { TokenBalance, type BalanceType, type TokenBalanceProps } from './TokenBalance.js';
 export { TokenIcon } from './TokenIcon.js';
 export { TransactionItem } from './TransactionItem.js';
-

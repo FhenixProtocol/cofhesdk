@@ -22,7 +22,7 @@ export const SHIELD_PAGE_VARIANT_LABELS: Record<ShieldPageVariant, string> = {
 interface SettingsState {
   /** Selected shield page variant for A/B testing */
   shieldPageVariant: ShieldPageVariant;
-  
+
   /** Set the shield page variant */
   setShieldPageVariant: (variant: ShieldPageVariant) => void;
 }
@@ -31,7 +31,7 @@ export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
       shieldPageVariant: ShieldPageVariant.Option1,
-      
+
       setShieldPageVariant: (variant) => set({ shieldPageVariant: variant }),
     }),
     {
@@ -39,4 +39,3 @@ export const useSettingsStore = create<SettingsState>()(
     }
   )
 );
-

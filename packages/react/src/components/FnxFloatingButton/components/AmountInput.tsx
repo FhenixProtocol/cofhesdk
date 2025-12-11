@@ -28,13 +28,9 @@ export const AmountInput: React.FC<AmountInputProps> = ({
         placeholder={placeholder}
         className="flex-1 min-w-0 bg-transparent text-sm font-medium fnx-text-primary outline-none placeholder:opacity-50 text-center border-b fnx-card-border pb-1"
       />
-      <button
-        onClick={onMaxClick}
-        className="fnx-max-button text-xxxs font-medium px-1 py-0.5 rounded flex-shrink-0"
-      >
+      <button onClick={onMaxClick} className="fnx-max-button text-xxxs font-medium px-1 py-0.5 rounded flex-shrink-0">
         max
       </button>
     </div>
   );
 };
-

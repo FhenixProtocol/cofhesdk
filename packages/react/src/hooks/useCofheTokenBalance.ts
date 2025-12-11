@@ -36,7 +36,7 @@ export function useCofheTokenBalance(
   const connectedAccount = useCofheAccount();
   const publicClient = useCofhePublicClient();
   const account = accountAddress || (connectedAccount as Address | undefined);
-  
+
   const { enabled: userEnabled, ...restQueryOptions } = queryOptions ?? {};
   const baseEnabled = !!publicClient && !!account && !!tokenAddress;
   const enabled = baseEnabled && (userEnabled ?? true);
@@ -389,7 +389,7 @@ type UsePublicTokenBalanceResult = {
 /**
  * Hook to get public (non-confidential) balance for a token.
  * Handles both dual tokens (balanceOf on token address) and wrapped tokens (balanceOf on erc20Pair or native ETH).
- * 
+ *
  * @param input - Token and optional account address
  * @param options - Query options
  * @returns Balance data with formatted string, numeric value, loading state, and refetch function
@@ -411,15 +411,21 @@ export function useCofhePublicTokenBalance(
   const isNativeEthPair = erc20Pair?.address?.toLowerCase() === ETH_ADDRESS.toLowerCase();
 
   // Native ETH balance (for wrapped ETH tokens)
-  const { data: nativeBalance, isLoading: isLoadingNative, refetch: refetchNative } = useCofheNativeBalance(
-    account as Address,
-    18,
-    displayDecimals,
-    { enabled: userEnabled && !!account && isWrappedToken && isNativeEthPair, ...restOptions }
-  );
+  const {
+    data: nativeBalance,
+    isLoading: isLoadingNative,
+    refetch: refetchNative,
+  } = useCofheNativeBalance(account as Address, 18, displayDecimals, {
+    enabled: userEnabled && !!account && isWrappedToken && isNativeEthPair,
+    ...restOptions,
+  });
 
   // ERC20 balance for wrapped tokens (from erc20Pair address)
-  const { data: wrappedErc20Balance, isLoading: isLoadingWrappedErc20, refetch: refetchWrappedErc20 } = useCofheTokenBalance(
+  const {
+    data: wrappedErc20Balance,
+    isLoading: isLoadingWrappedErc20,
+    refetch: refetchWrappedErc20,
+  } = useCofheTokenBalance(
     {
       tokenAddress: (erc20Pair?.address ?? '0x') as Address,
       decimals: erc20Pair?.decimals ?? 18,
@@ -430,7 +436,11 @@ export function useCofhePublicTokenBalance(
   );
 
   // ERC20 balance for dual tokens (from token's own address)
-  const { data: dualPublicBalance, isLoading: isLoadingDualPublic, refetch: refetchDualPublic } = useCofheTokenBalance(
+  const {
+    data: dualPublicBalance,
+    isLoading: isLoadingDualPublic,
+    refetch: refetchDualPublic,
+  } = useCofheTokenBalance(
     {
       tokenAddress: (token?.address ?? '0x') as Address,
       decimals: token?.decimals ?? 18,
@@ -441,23 +451,11 @@ export function useCofhePublicTokenBalance(
   );
 
   // Combine results based on token type
-  const data = isDualToken
-    ? dualPublicBalance
-    : isNativeEthPair
-      ? nativeBalance
-      : wrappedErc20Balance;
+  const data = isDualToken ? dualPublicBalance : isNativeEthPair ? nativeBalance : wrappedErc20Balance;
 
-  const isLoading = isDualToken
-    ? isLoadingDualPublic
-    : isNativeEthPair
-      ? isLoadingNative
-      : isLoadingWrappedErc20;
+  const isLoading = isDualToken ? isLoadingDualPublic : isNativeEthPair ? isLoadingNative : isLoadingWrappedErc20;
 
-  const refetch = isDualToken
-    ? refetchDualPublic
-    : isNativeEthPair
-      ? refetchNative
-      : refetchWrappedErc20;
+  const refetch = isDualToken ? refetchDualPublic : isNativeEthPair ? refetchNative : refetchWrappedErc20;
 
   const numericValue = data ? parseFloat(data) : 0;
 
@@ -501,7 +499,7 @@ type UseConfidentialTokenBalanceResult = {
 
 /**
  * Hook to get confidential (encrypted) balance for a token with convenient formatting.
- * 
+ *
  * @param input - Token and optional account address
  * @param options - Query options
  * @returns Balance data with raw bigint, formatted string, numeric value, loading state, and refetch function
@@ -521,10 +519,8 @@ export function useCofheConfidentialTokenBalance(
   );
 
   const decimals = token?.decimals ?? 18;
-  
-  const formatted = data !== undefined
-    ? parseFloat(formatUnits(data, decimals)).toFixed(displayDecimals)
-    : undefined;
+
+  const formatted = data !== undefined ? parseFloat(formatUnits(data, decimals)).toFixed(displayDecimals) : undefined;
 
   const numericValue = formatted ? parseFloat(formatted) : 0;
 

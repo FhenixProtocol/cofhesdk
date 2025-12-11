@@ -1,4 +1,11 @@
-import { useMutation, useQuery, type UseMutationOptions, type UseMutationResult, type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
+import {
+  useMutation,
+  useQuery,
+  type UseMutationOptions,
+  type UseMutationResult,
+  type UseQueryOptions,
+  type UseQueryResult,
+} from '@tanstack/react-query';
 import { type Address } from 'viem';
 import { useCofheWalletClient, useCofheChainId, useCofheAccount, useCofhePublicClient } from './useCofheConnection.js';
 import { useCofheContext } from '../providers/index.js';
@@ -495,7 +502,7 @@ export function useCofheUnshieldClaims(
           claimed: boolean;
         };
 
-        const claims = (result as WrappedClaimResult[]).filter(c => !c.claimed);
+        const claims = (result as WrappedClaimResult[]).filter((c) => !c.claimed);
 
         let claimableAmount = 0n;
         let pendingAmount = 0n;
@@ -524,8 +531,11 @@ export function useCofheUnshieldClaims(
         hasPending: false,
       };
     },
-    enabled: !!publicClient && !!account && !!tokenAddress && (confidentialityType === 'dual' || confidentialityType === 'wrapped'),
+    enabled:
+      !!publicClient &&
+      !!account &&
+      !!tokenAddress &&
+      (confidentialityType === 'dual' || confidentialityType === 'wrapped'),
     ...queryOptions,
   });
 }
-
