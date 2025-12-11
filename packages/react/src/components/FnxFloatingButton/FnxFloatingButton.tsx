@@ -44,7 +44,7 @@ export interface FnxFloatingButtonProps extends BaseProps {
   /** Chain switch handler - called when user selects a different chain in the network dropdown */
   onSelectChain?: (chainId: number) => Promise<void> | void;
 
-  overriddingPage?: PageState<FloatingButtonPage>;
+  overriddingPage?: PageState;
 }
 
 const positionStyles: Record<FloatingButtonPosition, string> = {
