@@ -17,6 +17,23 @@ const srcAliasPlugin = {
       if (existsSync(candidate)) {
         return { path: candidate };
       }
+      // If import has no extension, try common TS/JS variants
+      if (!path.extname(candidate)) {
+        const tryExts = ['.ts', '.tsx', '.js', '.jsx'];
+        for (const ext of tryExts) {
+          const withExt = candidate + ext;
+          if (existsSync(withExt)) {
+            return { path: withExt };
+          }
+        }
+        // Also support index files within directories
+        for (const ext of tryExts) {
+          const indexFile = path.join(candidate, 'index' + ext);
+          if (existsSync(indexFile)) {
+            return { path: indexFile };
+          }
+        }
+      }
       if (candidate.endsWith('.js')) {
         const tsCandidate = candidate.replace(/\.js$/, '.ts');
         if (existsSync(tsCandidate)) {
