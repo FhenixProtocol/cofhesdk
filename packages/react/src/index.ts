@@ -2,7 +2,7 @@
 import './styles.css';
 
 // Providers
-export { CofheProvider, useCofheContext } from './providers/index.js';
+export { CofheProvider, useCofheContext } from './providers/index';
 
 // Hooks
 export {
@@ -19,8 +19,8 @@ export {
 } from './hooks/index';
 
 // Components
-export { FnxEncryptInput, FnxFloatingButton } from './components/index.js';
-export { MainPage, SettingsPage, TokenListPage } from './components/FnxFloatingButton/pages/index.js';
+export { FnxEncryptInput, FnxFloatingButton } from './components/index';
+export { MainPage, SettingsPage, TokenListPage } from './components/FnxFloatingButton/pages/index';
 
 // Utils
 export {
@@ -50,7 +50,7 @@ export {
   type TransactionStore,
   type TransactionStatusString,
   type TransactionActionString,
-} from './stores/transactionStore.js';
+} from './stores/transactionStore';
 
 export { createCofhesdkConfig } from './config';
 
@@ -61,6 +61,6 @@ export type {
   FnxFloatingButtonProps,
   FloatingButtonPosition,
   FloatingButtonSize,
-} from './components/FnxFloatingButton/FnxFloatingButton.js';
+} from './components/FnxFloatingButton/FnxFloatingButtonBase';
 
 export { createCofhesdkClient } from '@cofhe/sdk/web';

@@ -1,8 +1,8 @@
 import {
   FnxFloatingButtonBase,
   type FnxFloatingButtonProps,
-} from '@/components/FnxFloatingButton/FnxFloatingButton.js';
-import { FloatingButtonPage } from '@/components/FnxFloatingButton/FnxFloatingButtonContext.js';
+} from '@/components/FnxFloatingButton/FnxFloatingButtonBase';
+import { FloatingButtonPage } from '@/components/FnxFloatingButton/FnxFloatingButtonContext';
 import { CofhesdkError, CofhesdkErrorCode } from '@cofhe/sdk';
 import type { FallbackProps } from 'react-error-boundary';
 

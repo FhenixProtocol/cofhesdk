@@ -1,11 +1,11 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import type { FloatingButtonPosition } from './FnxFloatingButton.js';
+import type { FloatingButtonPosition } from './FnxFloatingButtonBase';
 import { useCofheContext } from '../../providers';
-import { type PermitDetailsPageProps } from './pages/permits/PermitDetailsPage/index.js';
-import { checkPendingTransactions, stopPendingTransactionPolling } from '../../stores/transactionStore.js';
-import { useCofhePublicClient } from '@/hooks/useCofheConnection.js';
-import type { GeneratePermitPageProps } from './pages/permits/GeneratePermitPage/index.js';
+import { type PermitDetailsPageProps } from './pages/permits/PermitDetailsPage/index';
+import { checkPendingTransactions, stopPendingTransactionPolling } from '../../stores/transactionStore';
+import { useCofhePublicClient } from '@/hooks/useCofheConnection';
+import type { GeneratePermitPageProps } from './pages/permits/GeneratePermitPage/index';
 
 export enum FloatingButtonPage {
   Main = 'main',
