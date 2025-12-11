@@ -68,7 +68,7 @@ export const ContentSection: React.FC<ContentSectionProps> = ({ className, conte
       // Use the specific type instead of the mapped type for better type safety
       return <PermitDetailsPage {...(props as PermitDetailsPageProps)} />;
     }
-    
+
     // All other pages don't require props (void type)
     // Use type assertion to tell TypeScript these components accept no props
     const PageComp = pages[page] as React.ComponentType<Record<string, never>>;
