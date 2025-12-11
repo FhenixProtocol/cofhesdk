@@ -49,6 +49,8 @@ type UseTokenUnshieldInput = {
 type UseClaimUnshieldInput = {
   /** Token object with confidentialityType */
   token: Token;
+  /** Amount being claimed (for activity logging) */
+  amount?: bigint;
 };
 
 type UseTokenShieldOptions = Omit<UseMutationOptions<`0x${string}`, Error, UseTokenShieldInput>, 'mutationFn'>;
@@ -319,6 +321,10 @@ export function useCofheClaimUnshield(
   options?: UseClaimUnshieldOptions
 ): UseMutationResult<`0x${string}`, Error, UseClaimUnshieldInput> {
   const walletClient = useCofheWalletClient();
+  const publicClient = useCofhePublicClient();
+  const chainId = useCofheChainId();
+  const account = useCofheAccount();
+  const { recordTransactionHistory } = useCofheContext().config.react;
 
   return useMutation({
     mutationFn: async (input: UseClaimUnshieldInput) => {
@@ -355,6 +361,24 @@ export function useCofheClaimUnshield(
         account: walletClient.account,
         chain: undefined,
       });
+
+      // Record transaction and watch for confirmation
+      if (chainId && account && input.amount !== undefined) {
+        addTransactionAndWatch(
+          {
+            hash,
+            tokenSymbol: input.token.symbol,
+            tokenAmount: input.amount,
+            tokenDecimals: input.token.decimals,
+            tokenAddress: input.token.address,
+            chainId,
+            actionType: TransactionActionType.Claim,
+            account,
+          },
+          publicClient,
+          recordTransactionHistory
+        );
+      }
 
       return hash;
     },
