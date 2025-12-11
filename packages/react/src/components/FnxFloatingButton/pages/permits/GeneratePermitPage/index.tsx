@@ -10,10 +10,17 @@ import type { ReactNode } from 'react';
 
 export type GeneratePermitPageProps = {
   onSuccessNavigateTo?: () => void;
+  onCancel?: () => void;
+  onBack?: () => void;
   headerMessage?: ReactNode;
 };
-export const GeneratePermitPage: React.FC<GeneratePermitPageProps> = ({ onSuccessNavigateTo, headerMessage }) => {
-  const { navigateBack, darkMode, navigateTo } = useFnxFloatingButtonContext();
+export const GeneratePermitPage: React.FC<GeneratePermitPageProps> = ({
+  onSuccessNavigateTo,
+  headerMessage,
+  onCancel,
+  onBack,
+}) => {
+  const { navigateBack, darkMode, navigateTo, pageHistory } = useFnxFloatingButtonContext();
   const permitIconColor = darkMode ? '#FFFFFF' : '#00314E';
 
   const {
@@ -53,9 +60,9 @@ export const GeneratePermitPage: React.FC<GeneratePermitPageProps> = ({ onSucces
         <button
           className="flex items-center gap-2 text-base font-semibold text-[#0E2F3F] transition-opacity hover:opacity-80 dark:text-white"
           type="button"
-          onClick={navigateBack}
+          onClick={onBack ?? navigateBack}
         >
-          <ArrowBackIcon fontSize="small" />
+          {(pageHistory.length > 0 || onBack) && <ArrowBackIcon fontSize="small" />}
           <span>Generate new permit</span>
         </button>
 
@@ -116,7 +123,7 @@ export const GeneratePermitPage: React.FC<GeneratePermitPageProps> = ({ onSucces
           <button
             type="button"
             className="rounded-xl border border-[#F0784F] bg-[#F0784F] py-3 text-base font-semibold text-white transition-opacity hover:opacity-90 dark:border-[#C8542D] dark:bg-[#C8542D]"
-            onClick={navigateBack}
+            onClick={onCancel ?? navigateBack}
           >
             Cancel
           </button>
