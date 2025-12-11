@@ -1,7 +1,43 @@
+import {
+  FnxFloatingButtonBase,
+  type FnxFloatingButtonProps,
+} from '@/components/FnxFloatingButton/FnxFloatingButtonBase';
+import { FloatingButtonPage } from '@/components/FnxFloatingButton/FnxFloatingButtonContext';
 import { CofhesdkError, CofhesdkErrorCode } from '@cofhe/sdk';
 import { useMemo } from 'react';
 import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
-import type { ErrorFallback } from './error-fallbacks';
+
+type ErrorFallback = {
+  checkFn: (error: unknown) => boolean;
+  component: React.FC<FallbackProps>;
+};
+
+export function constructErrorFallbacksWithFloatingButtonProps(props: FnxFloatingButtonProps): ErrorFallback[] {
+  return [
+    {
+      checkFn: (error: unknown) => error instanceof CofhesdkError && error.code === CofhesdkErrorCode.PermitNotFound,
+      component: ({ resetErrorBoundary, error }) => {
+        return (
+          <FnxFloatingButtonBase
+            {...props}
+            overriddingPage={{
+              // page, header message are essential, the rest is scaffold
+              page: FloatingButtonPage.GeneratePermits,
+              props: {
+                headerMessage: <div>{error.message}</div>,
+                // resetting error boundary will re-render previously failed components (i.e. the normal aka {children}, non-fallback flow), so essentially will navigate the user back
+                onSuccessNavigateTo: () => resetErrorBoundary(),
+              },
+            }}
+          />
+        );
+      },
+    },
+  ];
+}
+
+// only whitelisted errors will reach error boundary (refer to `shouldPassToErrorBoundary`)
+// f.x. if it's Permit error - redirect to Permit Creation screen
 
 export function shouldPassToErrorBoundary(_error: unknown): boolean {
   if (_error instanceof CofhesdkError) {
