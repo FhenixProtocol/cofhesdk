@@ -11,13 +11,7 @@ interface ActionButtonProps {
 /**
  * Reusable action button styled like the bottom navigation buttons with sharp edges.
  */
-export const ActionButton: React.FC<ActionButtonProps> = ({
-  onClick,
-  disabled = false,
-  icon,
-  label,
-  className,
-}) => {
+export const ActionButton: React.FC<ActionButtonProps> = ({ onClick, disabled = false, icon, label, className }) => {
   return (
     <button
       onClick={onClick}
@@ -35,4 +29,3 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
     </button>
   );
 };
-

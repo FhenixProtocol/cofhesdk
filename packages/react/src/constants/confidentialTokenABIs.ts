@@ -14,9 +14,7 @@ export const ERC20_ALLOWANCE_ABI = parseAbi([
 /**
  * ABI for ERC20 approve
  */
-export const ERC20_APPROVE_ABI = parseAbi([
-  'function approve(address spender, uint256 amount) returns (bool)',
-]);
+export const ERC20_APPROVE_ABI = parseAbi(['function approve(address spender, uint256 amount) returns (bool)']);
 
 // ============================================================================
 // Confidential Token Balance ABIs

@@ -76,7 +76,6 @@ export {
   type TransactionActionString,
 } from './stores/transactionStore';
 
-
 export { createCofhesdkConfig } from './config';
 
 // Types

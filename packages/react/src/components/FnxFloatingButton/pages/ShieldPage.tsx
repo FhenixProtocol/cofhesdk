@@ -12,7 +12,12 @@ import {
   useCofheConfidentialTokenBalance,
 } from '../../../hooks/useCofheTokenBalance.js';
 import { useCofheTokens } from '../../../hooks/useCofheTokenLists.js';
-import { useCofheTokenShield, useCofheTokenUnshield, useCofheClaimUnshield, useCofheUnshieldClaims } from '../../../hooks/useCofheTokenShield.js';
+import {
+  useCofheTokenShield,
+  useCofheTokenUnshield,
+  useCofheClaimUnshield,
+  useCofheUnshieldClaims,
+} from '../../../hooks/useCofheTokenShield.js';
 import { cn } from '../../../utils/cn.js';
 import { truncateHash } from '../../../utils/utils.js';
 import { ShieldMeter, ActionButton, AmountInput, TokenBalance } from '../components/index.js';
@@ -163,7 +168,12 @@ export const ShieldPage: React.FC = () => {
         }
       : null);
 
-  const isProcessing = tokenShield.isPending || tokenUnshield.isPending || claimUnshield.isPending || isRefreshingBalances || isWaitingForConfirmation;
+  const isProcessing =
+    tokenShield.isPending ||
+    tokenUnshield.isPending ||
+    claimUnshield.isPending ||
+    isRefreshingBalances ||
+    isWaitingForConfirmation;
 
   // Validate amounts
   const isValidShieldAmount = useMemo(() => {
@@ -186,7 +196,6 @@ export const ShieldPage: React.FC = () => {
     const type = tokenFromList.extensions.fhenix.confidentialityType;
     return type === 'dual' || type === 'wrapped';
   }, [tokenFromList]);
-
 
   const handleShieldMax = () => {
     if (publicBalanceNum > 0) {
@@ -215,11 +224,12 @@ export const ShieldPage: React.FC = () => {
 
     try {
       await executeTransaction(
-        () => tokenShield.mutateAsync({
-          token: tokenFromList,
-          amount: amountInSmallestUnit,
-          onStatusChange: (message) => setStatus({ message, type: 'info' }),
-        }),
+        () =>
+          tokenShield.mutateAsync({
+            token: tokenFromList,
+            amount: amountInSmallestUnit,
+            onStatusChange: (message) => setStatus({ message, type: 'info' }),
+          }),
         'Shield complete!',
         'Failed to shield tokens'
       );
@@ -244,11 +254,12 @@ export const ShieldPage: React.FC = () => {
 
     try {
       await executeTransaction(
-        () => tokenUnshield.mutateAsync({
-          token: tokenFromList,
-          amount: amountInSmallestUnit,
-          onStatusChange: (message) => setStatus({ message, type: 'info' }),
-        }),
+        () =>
+          tokenUnshield.mutateAsync({
+            token: tokenFromList,
+            amount: amountInSmallestUnit,
+            onStatusChange: (message) => setStatus({ message, type: 'info' }),
+          }),
         'Unshield complete!',
         'Failed to unshield tokens'
       );
@@ -266,10 +277,11 @@ export const ShieldPage: React.FC = () => {
 
     try {
       await executeTransaction(
-        () => claimUnshield.mutateAsync({ 
-          token: tokenFromList,
-          amount: unshieldClaims.claimableAmount,
-        }),
+        () =>
+          claimUnshield.mutateAsync({
+            token: tokenFromList,
+            amount: unshieldClaims.claimableAmount,
+          }),
         'Claim complete!',
         'Failed to claim tokens'
       );
@@ -295,10 +307,7 @@ export const ShieldPage: React.FC = () => {
   return (
     <div className="fnx-text-primary space-y-3">
       {/* Back Button */}
-      <button
-        onClick={navigateBack}
-        className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity"
-      >
+      <button onClick={navigateBack} className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity">
         <ArrowBackIcon style={{ fontSize: 16 }} />
         <p className="text-sm font-medium">Shield</p>
       </button>
@@ -318,13 +327,9 @@ export const ShieldPage: React.FC = () => {
             className="font-bold"
           />
           <p className="text-xs opacity-60">{erc20Symbol}</p>
-          
-          <AmountInput
-            value={shieldAmount}
-            onChange={setShieldAmount}
-            onMaxClick={handleShieldMax}
-          />
-          
+
+          <AmountInput value={shieldAmount} onChange={setShieldAmount} onMaxClick={handleShieldMax} />
+
           <ActionButton
             onClick={handleShield}
             disabled={!isValidShieldAmount || isProcessing || !activeTokenAddress || !isShieldableToken}
@@ -342,20 +347,19 @@ export const ShieldPage: React.FC = () => {
             <span>{tokenSymbol}</span>
             <KeyboardArrowDownIcon style={{ fontSize: 16 }} className="opacity-60" />
           </button>
-          
-          <ShieldMeter
-            percentage={meterPercentage}
-            size={100}
-            showPercentage={true}
-            isProcessing={isProcessing}
-          />
+
+          <ShieldMeter percentage={meterPercentage} size={100} showPercentage={true} isProcessing={isProcessing} />
 
           {/* Claim button (unified for dual and wrapped) */}
           {unshieldClaims?.hasClaimable && tokenMetadata && (
             <ActionButton
               onClick={handleClaim}
               disabled={claimUnshield.isPending || isRefreshingBalances}
-              label={claimUnshield.isPending ? 'Claiming...' : `Claim ${formatUnits(unshieldClaims.claimableAmount, tokenMetadata.decimals)} ${erc20Symbol}`}
+              label={
+                claimUnshield.isPending
+                  ? 'Claiming...'
+                  : `Claim ${formatUnits(unshieldClaims.claimableAmount, tokenMetadata.decimals)} ${erc20Symbol}`
+              }
               className="mt-2"
             />
           )}
@@ -381,13 +385,9 @@ export const ShieldPage: React.FC = () => {
             className="font-bold"
           />
           <p className="text-xs opacity-60">{tokenSymbol}</p>
-          
-          <AmountInput
-            value={unshieldAmount}
-            onChange={setUnshieldAmount}
-            onMaxClick={handleUnshieldMax}
-          />
-          
+
+          <AmountInput value={unshieldAmount} onChange={setUnshieldAmount} onMaxClick={handleUnshieldMax} />
+
           <ActionButton
             onClick={handleUnshield}
             disabled={!isValidUnshieldAmount || isProcessing || !activeTokenAddress || !isShieldableToken}
@@ -415,18 +415,20 @@ export const ShieldPage: React.FC = () => {
 
       {/* Unified Status Message */}
       {status && (
-        <div className={cn(
-          'rounded-lg p-2 border',
-          status.type === 'success'
-            ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-            : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
-        )}>
-          <p className={cn(
-            'text-xs',
+        <div
+          className={cn(
+            'rounded-lg p-2 border',
             status.type === 'success'
-              ? 'text-green-800 dark:text-green-200'
-              : 'text-blue-800 dark:text-blue-200'
-          )}>
+              ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+              : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+          )}
+        >
+          <p
+            className={cn(
+              'text-xs',
+              status.type === 'success' ? 'text-green-800 dark:text-green-200' : 'text-blue-800 dark:text-blue-200'
+            )}
+          >
             {status.message}
           </p>
         </div>

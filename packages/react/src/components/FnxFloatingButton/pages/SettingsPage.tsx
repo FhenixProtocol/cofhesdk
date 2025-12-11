@@ -11,10 +11,7 @@ export const SettingsPage: React.FC = () => {
   return (
     <div className="fnx-text-primary space-y-4">
       {/* Header */}
-      <button
-        onClick={navigateBack}
-        className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity"
-      >
+      <button onClick={navigateBack} className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity">
         <ArrowBackIcon style={{ fontSize: 16 }} />
         <span>Settings</span>
       </button>
@@ -28,10 +25,7 @@ export const SettingsPage: React.FC = () => {
           <p className="text-xs opacity-70">Shield Page</p>
           <div className="space-y-1">
             {variants.map((variant) => (
-              <label
-                key={variant}
-                className="flex items-center gap-2 text-xs cursor-pointer"
-              >
+              <label key={variant} className="flex items-center gap-2 text-xs cursor-pointer">
                 <input
                   type="radio"
                   name="shieldPageVariant"
