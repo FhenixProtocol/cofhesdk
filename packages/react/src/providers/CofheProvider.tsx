@@ -2,7 +2,6 @@ import { createContext, useContext, useMemo } from 'react';
 import type { CofheContextValue, CofheProviderProps } from '../types/index.js';
 import { QueryProvider } from './QueryProvider.js';
 import { createCofhesdkClient } from '@cofhe/sdk/web';
-import { CofheErrorBoundary } from './errors.js';
 
 const CofheContext = createContext<CofheContextValue | undefined>(undefined);
 
