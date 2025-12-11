@@ -1,8 +1,20 @@
 import { cn } from '../../utils/cn.js';
 import { useState, useEffect, useRef, useMemo } from 'react';
-
-import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
-import { pages } from './const';
+import { useFnxFloatingButtonContext, FloatingButtonPage } from './FnxFloatingButtonContext.js';
+import {
+  MainPage,
+  SettingsPage,
+  TokenListPage,
+  TokenInfoPage,
+  SendPage,
+  ShieldPage,
+  ShieldPageV2,
+  ActivityPage,
+  PermitsListPage,
+  GeneratePermitPage,
+  ReceivePermitPage,
+} from './pages/index.js';
+import { useSettingsStore, ShieldPageVariant } from './stores/settingsStore.js';
 
 const CONTENT_TRANSITION_DURATION = 150; // Duration in milliseconds for content fade transition
 
@@ -13,7 +25,27 @@ interface ContentSectionProps {
 
 export const ContentSection: React.FC<ContentSectionProps> = ({ className, contentPadding = 16 }) => {
   const { currentPage, showPopupPanel, isTopSide, isLeftSide } = useFnxFloatingButtonContext();
+  const { shieldPageVariant } = useSettingsStore();
 
+  // Determine which shield page to render based on A/B test setting
+  const ShieldPageComponent = shieldPageVariant === ShieldPageVariant.Option2 ? ShieldPageV2 : ShieldPage;
+
+  // Page configuration - memoized to prevent recreating on every render
+  const pages = useMemo(
+    () => ({
+      [FloatingButtonPage.Main]: MainPage,
+      [FloatingButtonPage.Settings]: SettingsPage,
+      [FloatingButtonPage.TokenList]: TokenListPage,
+      [FloatingButtonPage.TokenInfo]: TokenInfoPage,
+      [FloatingButtonPage.Send]: SendPage,
+      [FloatingButtonPage.Shield]: ShieldPageComponent,
+      [FloatingButtonPage.Activity]: ActivityPage,
+      [FloatingButtonPage.Permits]: PermitsListPage,
+      [FloatingButtonPage.GeneratePermits]: GeneratePermitPage,
+      [FloatingButtonPage.ReceivePermits]: ReceivePermitPage,
+    }),
+    [ShieldPageComponent]
+  );
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [displayedContent, setDisplayedContent] = useState(() => {
     const PageComp = pages[currentPage.page];
