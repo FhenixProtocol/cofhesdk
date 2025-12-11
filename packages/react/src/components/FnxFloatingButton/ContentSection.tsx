@@ -1,6 +1,10 @@
 import { cn } from '../../utils/cn.js';
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { useFnxFloatingButtonContext, FloatingButtonPage } from './FnxFloatingButtonContext.js';
+import {
+  useFnxFloatingButtonContext,
+  FloatingButtonPage,
+  type FloatingButtonPagePropsMap,
+} from './FnxFloatingButtonContext.js';
 import {
   MainPage,
   SettingsPage,
@@ -13,7 +17,9 @@ import {
   PermitsListPage,
   GeneratePermitPage,
   ReceivePermitPage,
+  PermitDetailsPage,
 } from './pages/index.js';
+import type { PermitDetailsPageProps } from './pages/permits/PermitDetailsPage/index.js';
 import { useSettingsStore, ShieldPageVariant } from './stores/settingsStore.js';
 
 const CONTENT_TRANSITION_DURATION = 150; // Duration in milliseconds for content fade transition
@@ -43,15 +49,36 @@ export const ContentSection: React.FC<ContentSectionProps> = ({ className, conte
       [FloatingButtonPage.Permits]: PermitsListPage,
       [FloatingButtonPage.GeneratePermits]: GeneratePermitPage,
       [FloatingButtonPage.ReceivePermits]: ReceivePermitPage,
+      [FloatingButtonPage.PermitDetails]: PermitDetailsPage,
     }),
     [ShieldPageComponent]
   );
+
+  // Type-safe helper to render a page component
+  const renderPageComponent = <K extends FloatingButtonPage>(
+    page: K,
+    props: FloatingButtonPagePropsMap[K] | undefined
+  ): React.ReactElement => {
+    // Special handling for PermitDetails page which requires props
+    if (page === FloatingButtonPage.PermitDetails) {
+      // TypeScript knows props must be PermitDetailsPageProps here
+      if (!props) {
+        throw new Error('PermitDetails page requires props');
+      }
+      // Use the specific type instead of the mapped type for better type safety
+      return <PermitDetailsPage {...(props as PermitDetailsPageProps)} />;
+    }
+    
+    // All other pages don't require props (void type)
+    // Use type assertion to tell TypeScript these components accept no props
+    const PageComp = pages[page] as React.ComponentType<Record<string, never>>;
+    return <PageComp />;
+  };
+
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [displayedContent, setDisplayedContent] = useState(() => {
-    const PageComp = pages[currentPage.page];
-    const props = currentPage.props ?? {};
-    return <PageComp {...props} />;
-  });
+  const [displayedContent, setDisplayedContent] = useState(() =>
+    renderPageComponent(currentPage.page, currentPage.props)
+  );
   const [contentHeight, setContentHeight] = useState<number>(0);
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -74,9 +101,7 @@ export const ContentSection: React.FC<ContentSectionProps> = ({ className, conte
   // Update content when page changes
   useEffect(() => {
     function renderPage() {
-      const PageComp = pages[currentPage.page];
-      const props = currentPage.props ?? {};
-      setDisplayedContent(<PageComp {...props} />);
+      setDisplayedContent(renderPageComponent(currentPage.page, currentPage.props));
       setIsTransitioning(false);
     }
     if (!showPopupPanel) {
@@ -87,7 +112,7 @@ export const ContentSection: React.FC<ContentSectionProps> = ({ className, conte
     } else {
       renderPage();
     }
-  }, [currentPage, showPopupPanel]);
+  }, [currentPage, showPopupPanel, pages]);
 
   return (
     <div
