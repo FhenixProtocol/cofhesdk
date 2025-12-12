@@ -75,11 +75,11 @@ describe('@cofhe/node - Client Integration Tests', () => {
     it('should handle real network errors', async () => {
       try {
         await cofhesdkClient.connect(
-        {
-          getChainId: vi.fn().mockRejectedValue(new Error('Network error')),
-        } as unknown as PublicClient,
-        walletClient
-      );
+          {
+            getChainId: vi.fn().mockRejectedValue(new Error('Network error')),
+          } as unknown as PublicClient,
+          walletClient
+        );
       } catch (error) {
         expect(error).toBeInstanceOf(CofhesdkError);
         expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.PublicWalletGetChainIdFailed);

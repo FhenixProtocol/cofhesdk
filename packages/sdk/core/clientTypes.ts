@@ -66,11 +66,7 @@ export type CofhesdkClientPermits = {
   getActivePermitHash: (chainId?: number, account?: string) => Promise<string | undefined>;
 
   // Get or create methods (get active or create new, chainId/account optional)
-  getOrCreateSelfPermit: (
-    chainId?: number,
-    account?: string,
-    options?: CreateSelfPermitOptions
-  ) => Promise<Permit>;
+  getOrCreateSelfPermit: (chainId?: number, account?: string, options?: CreateSelfPermitOptions) => Promise<Permit>;
   getOrCreateSharingPermit: (
     options: CreateSharingPermitOptions,
     chainId?: number,

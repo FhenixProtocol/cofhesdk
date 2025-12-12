@@ -183,7 +183,9 @@ describe('createCofhesdkClientBase', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(CofhesdkError);
         expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.PublicWalletGetChainIdFailed);
-        expect((error as CofhesdkError).message).toBe('getting chain ID from public client failed | Caused by: Network error');
+        expect((error as CofhesdkError).message).toBe(
+          'getting chain ID from public client failed | Caused by: Network error'
+        );
         expect((error as CofhesdkError).cause).toBe(error);
       }
     });
@@ -244,12 +246,14 @@ describe('createCofhesdkClientBase', () => {
 
       const connectPromise = client.connect(publicClient, walletClient);
 
-        try {
+      try {
         await connectPromise;
       } catch (error) {
         expect(error).toBeInstanceOf(CofhesdkError);
         expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.PublicWalletGetChainIdFailed);
-        expect((error as CofhesdkError).message).toBe('getting chain ID from public client failed | Caused by: Network error');
+        expect((error as CofhesdkError).message).toBe(
+          'getting chain ID from public client failed | Caused by: Network error'
+        );
         expect((error as CofhesdkError).cause).toBe(error);
       }
     });
@@ -257,10 +261,8 @@ describe('createCofhesdkClientBase', () => {
 
   describe('encryptInputs', () => {
     it('should throw if not connected', async () => {
-      try{
-        await client
-          .encryptInputs([Encryptable.uint8(1n), Encryptable.uint8(2n), Encryptable.uint8(3n)])
-          .encrypt();
+      try {
+        await client.encryptInputs([Encryptable.uint8(1n), Encryptable.uint8(2n), Encryptable.uint8(3n)]).encrypt();
       } catch (error) {
         expect(error).toBeInstanceOf(CofhesdkError);
         expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.NotConnected);

@@ -292,7 +292,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
         .encrypt();
 
       expect(result).toBeDefined();
-      
+
       expect(proveContext.useWorker).toBe(true);
       expect(proveContext.usedWorker).toBe(false);
       expect(proveContext.workerFailedError).toBe('Async worker failure');
