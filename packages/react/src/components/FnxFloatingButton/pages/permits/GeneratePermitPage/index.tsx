@@ -13,11 +13,11 @@ export type GeneratePermitPageProps = {
   onSuccessNavigateTo?: () => void;
   onCancel?: () => void;
   onBack?: () => void;
-  headerMessage?: ReactNode;
+  overridingBody?: ReactNode;
 };
 export const GeneratePermitPage: React.FC<GeneratePermitPageProps> = ({
   onSuccessNavigateTo,
-  headerMessage,
+  overridingBody,
   onCancel,
   onBack,
 }) => {
@@ -67,22 +67,23 @@ export const GeneratePermitPage: React.FC<GeneratePermitPageProps> = ({
           <span>Generate new permit</span>
         </button>
 
-        <div className="space-y-3">
-          <div className="flex items-center gap-3 text-[#0E2F3F] dark:text-white">
-            <div className="flex items-center justify-center rounded-lg border border-[#0E2F3F]/30 p-2 dark:border-white/40">
-              <PermitIcon className="h-7 w-7" color={permitIconColor} aria-label="CoFHE permit icon" />
+        {overridingBody ?? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 text-[#0E2F3F] dark:text-white">
+              <div className="flex items-center justify-center rounded-lg border border-[#0E2F3F]/30 p-2 dark:border-white/40">
+                <PermitIcon className="h-7 w-7" color={permitIconColor} aria-label="CoFHE permit icon" />
+              </div>
+              <div className="text-lg font-semibold">Generate CoFHE Permit</div>
             </div>
-            <div className="text-lg font-semibold">Generate CoFHE Permit</div>
+            <p className="text-sm leading-relaxed text-[#355366] dark:text-white/80">
+              A permit is required to authenticate your identity and grant access to your encrypted data.
+            </p>
+            <p className="text-sm leading-relaxed text-[#355366] dark:text-white/80">
+              Generating a permit will open your wallet to sign a message (EIP712) which verifies your ownership of the
+              connected wallet.
+            </p>
           </div>
-          <p className="text-sm leading-relaxed text-[#355366] dark:text-white/80">
-            A permit is required to authenticate your identity and grant access to your encrypted data.
-          </p>
-          <p className="text-sm leading-relaxed text-[#355366] dark:text-white/80">
-            Generating a permit will open your wallet to sign a message (EIP712) which verifies your ownership of the
-            connected wallet.
-          </p>
-        </div>
-        {headerMessage}
+        )}
         {error && (
           <div
             role="alert"

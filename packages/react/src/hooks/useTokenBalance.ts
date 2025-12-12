@@ -7,6 +7,7 @@ import type { Token } from './useTokenLists.js';
 import { CONFIDENTIAL_ABIS } from '../constants/confidentialTokenABIs.js';
 import { ERC20_BALANCE_OF_ABI, ERC20_DECIMALS_ABI, ERC20_SYMBOL_ABI, ERC20_NAME_ABI } from '../constants/erc20ABIs.js';
 import { useFnxFloatingButtonContext } from '@/components/FnxFloatingButton/FnxFloatingButtonContext.js';
+import { withQueryErrorCause, ErrorCause } from '@/utils/errors.js';
 
 type UseTokenBalanceInput = {
   /** Token contract address */
@@ -282,7 +283,7 @@ export function useTokenConfidentialBalance(
       // normally `enabled` shouldn't be a part of query cache key, but I seem to run into an internal react-query issue where queryFn is ran even when enabled = false after resetErrorBoundary()
       enabled,
     ],
-    queryFn: async (): Promise<bigint> => {
+    queryFn: withQueryErrorCause(ErrorCause.AttemptToFetchConfidentialBalance, async (): Promise<bigint> => {
       if (!publicClient) {
         throw new Error('PublicClient is required to fetch confidential token balance');
       }
@@ -339,7 +340,7 @@ export function useTokenConfidentialBalance(
       }
 
       return unsealedResult.data as bigint;
-    },
+    }),
     enabled,
     ...restQueryOptions,
   });

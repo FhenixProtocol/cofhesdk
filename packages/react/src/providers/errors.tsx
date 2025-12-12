@@ -8,6 +8,7 @@ import { QueryErrorResetBoundary } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
 import { useFnxFloatingButtonContext } from '@/components/FnxFloatingButton/FnxFloatingButtonContext';
+import { ErrorCause, getErrorCause } from '@/utils/index';
 
 // only whitelisted errors will reach error boundary (refer to `shouldPassToErrorBoundary`)
 const FALLBACK_BY_ERROR_TYPE: ErrorFallbackDefinition[] = [
@@ -21,7 +22,13 @@ const FALLBACK_BY_ERROR_TYPE: ErrorFallbackDefinition[] = [
           () => ({
             page: FloatingButtonPage.GeneratePermits,
             props: {
-              headerMessage: <div>{(error as Error)?.message}</div>,
+              overridingBody: (
+                <div>
+                  {getErrorCause(error) === ErrorCause.AttemptToFetchConfidentialBalance
+                    ? 'In order to fetch confidential token balance, need to generate a new permit.'
+                    : (error as Error)?.message}
+                </div>
+              ),
               // resetting error boundary will re-render previously failed components (i.e. the normal aka {children}, non-fallback flow), so essentially will navigate the user back
               onSuccessNavigateTo: () => resetErrorBoundary(),
               onCancel: () => {
