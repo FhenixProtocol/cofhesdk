@@ -12,6 +12,9 @@ export type {
   CofhesdkClientParams,
   CofhesdkClientConnectionState,
   CofhesdkClientPermits,
+} from './clientTypes.js';
+
+export type {
   IStorage,
   // Primitive types
   Primitive,
