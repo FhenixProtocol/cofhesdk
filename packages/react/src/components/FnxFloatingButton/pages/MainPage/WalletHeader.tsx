@@ -24,7 +24,7 @@ export const WalletHeader: React.FC = () => {
           onClick={() => setEnableBackgroundDecryption(!enableBackgroundDecryption)}
           className="flex items-center gap-1 px-2 py-1 rounded fnx-hover-overlay transition-colors fnx-text-primary text-sm outline-none border fnx-dropdown-border"
         >
-          {enableBackgroundDecryption ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
+          {enableBackgroundDecryption ? <FiEye className="w-4 h-4" /> : <FiEyeOff className="w-4 h-4" />}
         </button>
       </div>
     </div>
