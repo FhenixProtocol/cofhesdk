@@ -6,15 +6,9 @@ import { NameSection } from './components/NameSection';
 import { SelfToggle } from './components/SelfToggle';
 import { ReceiverSection } from './components/ReceiverSection';
 import { ExpirySection } from './components/ExpirySection';
-import type { ReactNode } from 'react';
 import { FloatingButtonPage } from '@/components/FnxFloatingButton/pagesConfig/types';
+import type { GeneratePermitPageProps } from './types';
 
-export type GeneratePermitPageProps = {
-  onSuccessNavigateTo?: () => void;
-  onCancel?: () => void;
-  onBack?: () => void;
-  overridingBody?: ReactNode;
-};
 export const GeneratePermitPage: React.FC<GeneratePermitPageProps> = ({
   onSuccessNavigateTo,
   overridingBody,

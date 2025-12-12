@@ -1,5 +1,5 @@
-import type { PermitDetailsPageProps } from '../pages/permits/PermitDetailsPage/index';
-import type { GeneratePermitPageProps } from '../pages/permits/GeneratePermitPage/index';
+import type { GeneratePermitPageProps } from '../pages/permits/GeneratePermitPage/types';
+import type { PermitDetailsPageProps } from '../pages/permits/PermitDetailsPage/types';
 
 export enum FloatingButtonPage {
   Main = 'main',

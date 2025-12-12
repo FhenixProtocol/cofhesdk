@@ -1,45 +1,15 @@
-import type { BaseProps } from '../../types/component-types';
 import { cn } from '../../utils/cn';
 import { FloatingIcon } from './FloatingIcon';
 import { StatusBarSection } from './StatusBarSection';
 import { StatusBarContent } from './StatusBarContent';
 import { ContentSection } from './ContentSection';
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
-import type { PageState } from './pagesConfig/types';
-
-export type FloatingButtonPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
-export type FloatingButtonSize = 'small' | 'medium' | 'large';
-export type FloatingButtonPositionType = 'fixed' | 'absolute';
+import type { FloatingButtonPosition, FnxFloatingButtonProps } from './types';
 
 // TODOS:
 // - Get svgs instead of pngs
 // - Define configuration that needs to move to global react config
 // - Improve expand animation so it will roll out from the floating button
-
-export interface FnxFloatingButtonProps extends BaseProps {
-  /** Position of the floating button */
-  position?: FloatingButtonPosition;
-
-  /** Allow predefined sizes */
-  size?: FloatingButtonSize;
-
-  buttonClassName?: string;
-  statusBarClassName?: string;
-  contentSectionClassName?: string;
-
-  /** Click handler */
-  onClick?: () => void;
-  /** Z-index value (default: 9999) */
-  zIndex?: number;
-  /** Position type: 'fixed' stays on screen, 'absolute' positions within parent (default: 'fixed') */
-  positionType?: FloatingButtonPositionType;
-  /** Dark mode for the button (independent of page theme) */
-  darkMode?: boolean;
-  /** Chain switch handler - called when user selects a different chain in the network dropdown */
-  onSelectChain?: (chainId: number) => Promise<void> | void;
-  // is used for error handling (i.e. override to Permit Creation page on PermitNotFound error)
-  overriddingPage?: PageState;
-}
 
 const positionStyles: Record<FloatingButtonPosition, string> = {
   'top-left': 'top-4 left-4',

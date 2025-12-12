@@ -1,7 +1,4 @@
-import {
-  FnxFloatingButtonBase,
-  type FnxFloatingButtonProps,
-} from '@/components/FnxFloatingButton/FnxFloatingButtonBase';
+import { FnxFloatingButtonBase } from '@/components/FnxFloatingButton/FnxFloatingButtonBase';
 import { FloatingButtonPage, type PageState } from '@/components/FnxFloatingButton/pagesConfig/types';
 import { CofhesdkError, CofhesdkErrorCode } from '@cofhe/sdk';
 import { QueryErrorResetBoundary } from '@tanstack/react-query';
@@ -9,6 +6,7 @@ import { useMemo } from 'react';
 import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
 import { useFnxFloatingButtonContext } from '@/components/FnxFloatingButton/FnxFloatingButtonContext';
 import { ErrorCause, getErrorCause } from '@/utils/index';
+import type { FnxFloatingButtonProps } from '@/components/FnxFloatingButton/types';
 
 // only whitelisted errors will reach error boundary (refer to `shouldPassToErrorBoundary`)
 const FALLBACK_BY_ERROR_TYPE: ErrorFallbackDefinition[] = [
