@@ -3,7 +3,6 @@ import { type Permit, PermitUtils } from '@/permits';
 
 import { FheTypes, type UnsealedItem } from '../types.js';
 import { getThresholdNetworkUrlOrThrow } from '../config.js';
-import { type Result, resultWrapper } from '../result.js';
 import { CofhesdkError, CofhesdkErrorCode } from '../error.js';
 import { permits } from '../permits.js';
 import { isValidUtype, convertViaUtype } from './decryptUtils.js';
@@ -26,7 +25,7 @@ import { tnSealOutput } from './tnSealOutput.js';
  * If permitHash not set, uses chainId and account to get active permit
  * If permit is set, uses permit to decrypt regardless of chainId, account, or permitHash
  *
- * Returns a Result<UnsealedItem<U>>
+ * Returns the unsealed item.
  */
 
 type DecryptHandlesBuilderParams<U extends FheTypes> = BaseBuilderParams & {
@@ -151,9 +150,9 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
     return this.permit;
   }
 
-  private getThresholdNetworkUrl(chainId: number): string {
-    const config = this.getConfigOrThrow();
-    return getThresholdNetworkUrlOrThrow(config, chainId);
+  private async getThresholdNetworkUrl(): Promise<string> {
+    this.assertChainId();
+    return getThresholdNetworkUrlOrThrow(this.config, this.chainId);
   }
 
   private validateUtypeOrThrow(): void {
@@ -170,20 +169,20 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
   private async getResolvedPermit(): Promise<Permit> {
     if (this.permit) return this.permit;
 
-    const chainId = this.getChainIdOrThrow();
-    const account = this.getAccountOrThrow();
+    this.assertChainId();
+    this.assertAccount();
 
     // Fetch with permit hash
     if (this.permitHash) {
-      const permit = await permits.getPermit(chainId, account, this.permitHash);
+      const permit = await permits.getPermit(this.chainId, this.account, this.permitHash);
       if (!permit) {
         throw new CofhesdkError({
           code: CofhesdkErrorCode.PermitNotFound,
-          message: `Permit with hash <${this.permitHash}> not found for account <${account}> and chainId <${chainId}>`,
+          message: `Permit with hash <${this.permitHash}> not found for account <${this.account}> and chainId <${this.chainId}>`,
           hint: 'Ensure the permit exists and is valid.',
           context: {
-            chainId,
-            account,
+            chainId: this.chainId,
+            account: this.account,
             permitHash: this.permitHash,
           },
         });
@@ -192,15 +191,15 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
     }
 
     // Fetch with active permit
-    const permit = await permits.getActivePermit(chainId, account);
+    const permit = await permits.getActivePermit(this.chainId, this.account);
     if (!permit) {
       throw new CofhesdkError({
         code: CofhesdkErrorCode.PermitNotFound,
-        message: `Active permit not found for chainId <${chainId}> and account <${account}>`,
+        message: `Active permit not found for chainId <${this.chainId}> and account <${this.account}>`,
         hint: 'Ensure a permit exists for this account on this chain.',
         context: {
-          chainId,
-          account,
+          chainId: this.chainId,
+          account: this.account,
         },
       });
     }
@@ -211,18 +210,22 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
    * On hardhat, interact with MockZkVerifier contract instead of CoFHE
    */
   private async mocksSealOutput(permit: Permit): Promise<bigint> {
-    const config = this.getConfigOrThrow();
-    const mocksSealOutputDelay = config.mocks.sealOutputDelay;
-    return cofheMocksSealOutput(this.ctHash, this.utype, permit, this.getPublicClientOrThrow(), mocksSealOutputDelay);
+    this.assertPublicClient();
+
+    const mocksSealOutputDelay = this.config.mocks.sealOutputDelay;
+    return cofheMocksSealOutput(this.ctHash, this.utype, permit, this.publicClient, mocksSealOutputDelay);
   }
 
   /**
    * In the production context, perform a true decryption with the CoFHE coprocessor.
    */
-  private async productionSealOutput(chainId: number, permit: Permit): Promise<bigint> {
-    const thresholdNetworkUrl = this.getThresholdNetworkUrl(chainId);
+  private async productionSealOutput(permit: Permit): Promise<bigint> {
+    this.assertChainId();
+    this.assertPublicClient();
+
+    const thresholdNetworkUrl = await this.getThresholdNetworkUrl();
     const permission = PermitUtils.getPermission(permit, true);
-    const sealed = await tnSealOutput(this.ctHash, chainId, permission, thresholdNetworkUrl);
+    const sealed = await tnSealOutput(this.ctHash, this.chainId, permission, thresholdNetworkUrl);
     return PermitUtils.unseal(permit, sealed);
   }
 
@@ -246,36 +249,37 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
    *
    * @returns The unsealed item.
    */
-  decrypt(): Promise<Result<UnsealedItem<U>>> {
-    return resultWrapper(async () => {
-      // Ensure cofhe client is connected
-      this.requireConnectedOrThrow();
+  async decrypt(): Promise<UnsealedItem<U>> {
+    // Ensure utype is valid
+    this.validateUtypeOrThrow();
 
-      // Ensure utype is valid
-      this.validateUtypeOrThrow();
+    // Resolve permit
+    const permit = await this.getResolvedPermit();
 
-      // Resolve permit
-      const permit = await this.getResolvedPermit();
+    // Ensure permit validity
+    // TODO: This doesn't validate permit expiration
+    // TODO: This doesn't throw, returns a validation result instead
+    PermitUtils.validate(permit);
 
-      // Ensure permit validity
-      PermitUtils.validate(permit);
+    // TODO: Add this further validation step for the permit
+    // TODO: Ensure this throws if the permit is invalid
+    PermitUtils.isValid(permit);
 
-      // Extract chainId from signed permit
-      // Use this chainId to fetch the threshold network URL since this.chainId may be undefined
-      const chainId = permit._signedDomain!.chainId;
+    // Extract chainId from signed permit
+    // Use this chainId to fetch the threshold network URL since this.chainId may be undefined
+    const chainId = permit._signedDomain!.chainId;
 
-      // Check permit validity on-chain
-      // TODO: PermitUtils.validateOnChain(permit, this.publicClient);
+    // Check permit validity on-chain
+    // TODO: PermitUtils.validateOnChain(permit, this.publicClient);
 
-      let unsealed: bigint;
+    let unsealed: bigint;
 
-      if (chainId === hardhat.id) {
-        unsealed = await this.mocksSealOutput(permit);
-      } else {
-        unsealed = await this.productionSealOutput(chainId, permit);
-      }
+    if (chainId === hardhat.id) {
+      unsealed = await this.mocksSealOutput(permit);
+    } else {
+      unsealed = await this.productionSealOutput(permit);
+    }
 
-      return convertViaUtype(this.utype, unsealed);
-    });
+    return convertViaUtype(this.utype, unsealed);
   }
 }

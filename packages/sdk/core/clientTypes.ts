@@ -6,7 +6,6 @@ import { type EncryptInputsBuilder } from './encrypt/encryptInputsBuilder.js';
 import { type ZkBuilderAndCrsGenerator, type ZkProveWorkerFunction } from './encrypt/zkPackProveVerify.js';
 import { type FheKeyDeserializer } from './fetchKeys.js';
 import { permits } from './permits.js';
-import { type Result } from './result.js';
 import type { EncryptableItem, FheTypes, TfheInitializer } from './types.js';
 import type { PermitUtils } from 'permits/permit.js';
 import type {
@@ -30,7 +29,7 @@ export type CofhesdkClient = {
   // --- config & platform-specific ---
   readonly config: CofhesdkConfig;
 
-  connect(publicClient: PublicClient, walletClient: WalletClient): Promise<Result<boolean>>;
+  connect(publicClient: PublicClient, walletClient: WalletClient): Promise<boolean>;
   /**
    * Types docstring
    */
@@ -56,32 +55,32 @@ export type CofhesdkClientPermits = {
   subscribe: typeof permits.subscribe;
 
   // Creation methods (require connection, no params)
-  createSelf: (options: CreateSelfPermitOptions) => Promise<Result<Permit>>;
-  createSharing: (options: CreateSharingPermitOptions) => Promise<Result<Permit>>;
-  importShared: (options: ImportSharedPermitOptions | any | string) => Promise<Result<Permit>>;
+  createSelf: (options: CreateSelfPermitOptions) => Promise<Permit>;
+  createSharing: (options: CreateSharingPermitOptions) => Promise<Permit>;
+  importShared: (options: ImportSharedPermitOptions | any | string) => Promise<Permit>;
 
   // Retrieval methods (chainId/account optional)
-  getPermit: (hash: string, chainId?: number, account?: string) => Promise<Result<Permit | undefined>>;
-  getPermits: (chainId?: number, account?: string) => Promise<Result<Record<string, Permit>>>;
-  getActivePermit: (chainId?: number, account?: string) => Promise<Result<Permit | undefined>>;
-  getActivePermitHash: (chainId?: number, account?: string) => Promise<Result<string | undefined>>;
+  getPermit: (hash: string, chainId?: number, account?: string) => Promise<Permit | undefined>;
+  getPermits: (chainId?: number, account?: string) => Promise<Record<string, Permit>>;
+  getActivePermit: (chainId?: number, account?: string) => Promise<Permit | undefined>;
+  getActivePermitHash: (chainId?: number, account?: string) => Promise<string | undefined>;
 
   // Get or create methods (get active or create new, chainId/account optional)
   getOrCreateSelfPermit: (
     chainId?: number,
     account?: string,
     options?: CreateSelfPermitOptions
-  ) => Promise<Result<Permit>>;
+  ) => Promise<Permit>;
   getOrCreateSharingPermit: (
     options: CreateSharingPermitOptions,
     chainId?: number,
     account?: string
-  ) => Promise<Result<Permit>>;
+  ) => Promise<Permit>;
 
   // Mutation methods (chainId/account optional)
-  selectActivePermit: (hash: string, chainId?: number, account?: string) => Promise<Result<void>>;
-  removePermit: (hash: string, chainId?: number, account?: string) => Promise<Result<void>>;
-  removeActivePermit: (chainId?: number, account?: string) => Promise<Result<void>>;
+  selectActivePermit: (hash: string, chainId?: number, account?: string) => Promise<void>;
+  removePermit: (hash: string, chainId?: number, account?: string) => Promise<void>;
+  removeActivePermit: (chainId?: number, account?: string) => Promise<void>;
 
   // Utils
   getHash: typeof PermitUtils.getHash;
