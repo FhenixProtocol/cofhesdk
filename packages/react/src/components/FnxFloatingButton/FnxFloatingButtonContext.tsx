@@ -1,10 +1,13 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import type { FloatingButtonPosition } from './FnxFloatingButton.js';
 import { useCofheContext } from '../../providers';
 import { type PermitDetailsPageProps } from './pages/permits/PermitDetailsPage/index.js';
 import { checkPendingTransactions, stopPendingTransactionPolling } from '../../stores/transactionStore.js';
 import { useCofhePublicClient } from '@/hooks/useCofheConnection.js';
+
+export type FloatingButtonPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+export type FloatingButtonSize = 'small' | 'medium' | 'large';
+export type FloatingButtonPositionType = 'fixed' | 'absolute';
 
 export enum FloatingButtonPage {
   Main = 'main',

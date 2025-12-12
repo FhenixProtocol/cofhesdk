@@ -4,11 +4,13 @@ import { FloatingIcon } from './FloatingIcon.js';
 import { StatusBarSection } from './StatusBarSection.js';
 import { StatusBarContent } from './StatusBarContent.js';
 import { ContentSection } from './ContentSection.js';
-import { FnxFloatingButtonProvider, useFnxFloatingButtonContext } from './FnxFloatingButtonContext.js';
-
-export type FloatingButtonPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
-export type FloatingButtonSize = 'small' | 'medium' | 'large';
-export type FloatingButtonPositionType = 'fixed' | 'absolute';
+import {
+  FnxFloatingButtonProvider,
+  useFnxFloatingButtonContext,
+  type FloatingButtonPosition,
+  type FloatingButtonPositionType,
+  type FloatingButtonSize,
+} from './FnxFloatingButtonContext.js';
 
 // TODOS:
 // - Get svgs instead of pngs
