@@ -124,10 +124,6 @@ export function useEncryptInput(): UseEncryptInputReturn {
         });
         const result = await encryptionBuilder.encrypt();
 
-        if (!result.success) {
-          throw result.error;
-        }
-
         // Complete
         setEncryptionStep('done');
         setEncryptionProgress(100);
@@ -141,7 +137,7 @@ export function useEncryptInput(): UseEncryptInputReturn {
         }, 1000);
 
         setIsEncrypting(false);
-        return result.data[0]; // Return first (and only) encrypted item
+        return result[0]; // Return first (and only) encrypted item
       } catch (err) {
         // Reset on error
         setEncryptionStep(null);

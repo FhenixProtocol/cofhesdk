@@ -295,9 +295,6 @@ export function useTokenConfidentialBalance(
 
       // Make sure we have an active permit
       const permit = await client.permits.getOrCreateSelfPermit();
-      if (!permit.success) {
-        throw permit.error || new Error('Failed to get or create self permit');
-      }
 
       // Throw error if dual type is used (not yet implemented)
       if (confidentialityType === 'dual') {
@@ -327,13 +324,7 @@ export function useTokenConfidentialBalance(
       const fheType = confidentialValueType === 'uint64' ? FheTypes.Uint64 : FheTypes.Uint128;
 
       // Decrypt the encrypted balance using SDK
-      const unsealedResult = await client.decryptHandle(ctHash, fheType).decrypt();
-
-      if (!unsealedResult.success) {
-        throw unsealedResult.error || new Error('Failed to decrypt confidential balance');
-      }
-
-      return unsealedResult.data as bigint;
+      return client.decryptHandle(ctHash, fheType).decrypt();
     },
     enabled,
     ...restQueryOptions,
