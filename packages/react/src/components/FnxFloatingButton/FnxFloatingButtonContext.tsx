@@ -11,6 +11,7 @@ import {
   type PagesWithoutProps,
   type PagesWithProps,
 } from './pagesConfig/types';
+import { useCofheActivePermit } from '@/hooks/index';
 
 export type TokenListMode = 'view' | 'select';
 
@@ -100,6 +101,14 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   const [selectedToken, setSelectedToken] = useState<SelectedToken>(null);
   const [viewingToken, setViewingToken] = useState<SelectedToken>(null);
   const [enableBackgroundDecryption, setEnableBackgroundDecryption] = useState<boolean>(false);
+
+  const activePermit = useCofheActivePermit();
+  useEffect(() => {
+    if (activePermit) {
+      // automatically enable background decryption when there's an active permit
+      setEnableBackgroundDecryption(true);
+    }
+  }, [activePermit]);
   const publicClient = useCofhePublicClient();
 
   // Check pending transactions on mount
