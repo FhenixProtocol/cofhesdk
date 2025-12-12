@@ -77,6 +77,9 @@ export const SelfPermitOptionsValidator = z
       .refine((val) => isAddress(val), {
         message: 'Self permit issuer :: invalid address',
       })
+      .refine((val) => is0xPrefixed(val), {
+        message: 'Self permit issuer :: must be 0x prefixed',
+      })
       .refine((val) => val !== zeroAddress, {
         message: 'Self permit issuer :: must not be zeroAddress',
       }),
@@ -88,6 +91,9 @@ export const SelfPermitOptionsValidator = z
       .default(zeroAddress)
       .refine((val) => isAddress(val), {
         message: 'Self permit recipient :: invalid address',
+      })
+      .refine((val) => is0xPrefixed(val), {
+        message: 'Self permit recipient :: must be 0x prefixed',
       })
       .refine((val) => val === zeroAddress, {
         message: 'Self permit recipient :: must be zeroAddress',
@@ -150,6 +156,9 @@ export const SharingPermitOptionsValidator = z
       .refine((val) => isAddress(val), {
         message: 'Sharing permit issuer :: invalid address',
       })
+      .refine((val) => is0xPrefixed(val), {
+        message: 'Sharing permit issuer :: must be 0x prefixed',
+      })
       .refine((val) => val !== zeroAddress, {
         message: 'Sharing permit issuer :: must not be zeroAddress',
       }),
@@ -157,6 +166,9 @@ export const SharingPermitOptionsValidator = z
       .string()
       .refine((val) => isAddress(val), {
         message: 'Sharing permit recipient :: invalid address',
+      })
+      .refine((val) => is0xPrefixed(val), {
+        message: 'Sharing permit recipient :: must be 0x prefixed',
       })
       .refine((val) => val !== zeroAddress, {
         message: 'Sharing permit recipient :: must not be zeroAddress',
@@ -221,6 +233,9 @@ export const ImportPermitOptionsValidator = z
       .refine((val) => isAddress(val), {
         message: 'Import permit issuer :: invalid address',
       })
+      .refine((val) => is0xPrefixed(val), {
+        message: 'Import permit issuer :: must be 0x prefixed',
+      })
       .refine((val) => val !== zeroAddress, {
         message: 'Import permit issuer :: must not be zeroAddress',
       }),
@@ -228,6 +243,9 @@ export const ImportPermitOptionsValidator = z
       .string()
       .refine((val) => isAddress(val), {
         message: 'Import permit recipient :: invalid address',
+      })
+      .refine((val) => is0xPrefixed(val), {
+        message: 'Import permit recipient :: must be 0x prefixed',
       })
       .refine((val) => val !== zeroAddress, {
         message: 'Import permit recipient :: must not be zeroAddress',

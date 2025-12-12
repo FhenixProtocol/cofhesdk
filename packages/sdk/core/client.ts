@@ -8,15 +8,14 @@ import { type Result, ResultOk, resultWrapper } from './result.js';
 import { createKeysStore } from './keyStore.js';
 import { permits } from './permits.js';
 import { DecryptHandlesBuilder } from './decrypt/decryptHandleBuilder.js';
-import {
-  type CofhesdkClient,
-  type CofhesdkClientParams,
-  type CofhesdkClientConnectionState,
-  type EncryptableItem,
-  type FheTypes,
-  type CofhesdkClientPermits,
-} from './types.js';
 import { getPublicClientChainID, getWalletClientAccount } from './utils.js';
+import type {
+  CofhesdkClientConnectionState,
+  CofhesdkClientParams,
+  CofhesdkClient,
+  CofhesdkClientPermits,
+} from './clientTypes.js';
+import type { EncryptableItem, FheTypes } from './types.js';
 
 export const CONNECT_STORE_DEFAULTS: CofhesdkClientConnectionState = {
   connected: false,

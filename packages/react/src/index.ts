@@ -57,10 +57,8 @@ export { createCofhesdkConfig } from './config';
 // Types
 export type { CofheContextValue, CofheProviderProps, CofheClientConfig } from './types/index';
 
-export type {
-  FnxFloatingButtonProps,
-  FloatingButtonPosition,
-  FloatingButtonSize,
-} from './components/FnxFloatingButton/FnxFloatingButtonBase';
+export type { FnxFloatingButtonProps } from './components/FnxFloatingButton/FnxFloatingButtonBase';
+
+export type { FloatingButtonPosition, FloatingButtonSize } from './components/FnxFloatingButton/FnxFloatingButtonBase';
 
 export { createCofhesdkClient } from '@cofhe/sdk/web';
