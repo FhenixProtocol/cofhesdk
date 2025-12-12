@@ -1,5 +1,5 @@
 import { arbSepolia as cofhesdkArbSepolia } from '@/chains';
-import { Encryptable, type Result } from '@/core';
+import { Encryptable } from '@/core';
 
 import { describe, it, expect, beforeAll } from 'vitest';
 import type { PublicClient, WalletClient } from 'viem';
@@ -9,11 +9,6 @@ import { arbitrumSepolia as viemArbitrumSepolia } from 'viem/chains';
 import { createCofhesdkClient, createCofhesdkConfig, createCofhesdkClientWithCustomWorker } from './index.js';
 
 const TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
-
-const expectResultSuccess = <T>(result: Result<T>): T => {
-  expect(result.success, `Result error: ${result.error?.toString()}`).toBe(true);
-  return result.data!;
-};
 
 describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
   let publicClient: PublicClient;
@@ -56,7 +51,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
         })
         .encrypt();
 
-      expectResultSuccess(result);
+      expect(result).toBeDefined();
 
       // Check that worker was attempted
       expect(proveContext).toBeDefined();
@@ -97,7 +92,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
         })
         .encrypt();
 
-      expectResultSuccess(result);
+      expect(result).toBeDefined();
 
       // Should explicitly NOT use workers
       expect(proveContext).toBeDefined();
@@ -128,7 +123,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
         })
         .encrypt();
 
-      expectResultSuccess(result);
+      expect(result).toBeDefined();
 
       // Should respect the override
       expect(proveContext.useWorker).toBe(false);
@@ -156,7 +151,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
         })
         .encrypt();
 
-      expectResultSuccess(result);
+      expect(result).toBeDefined();
 
       // Should use worker since we overrode to true
       expect(proveContext.useWorker).toBe(true);
@@ -182,7 +177,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
         })
         .encrypt();
 
-      expectResultSuccess(result);
+      expect(result).toBeDefined();
 
       // Verify all worker-related fields are present
       expect(proveContext).toBeDefined();
@@ -227,8 +222,8 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
         .encrypt();
 
       // Verify encryption succeeded via fallback to main thread
-      expectResultSuccess(result);
-      expect(result.data?.length).toBe(1);
+      expect(result).toBeDefined();
+      expect(result.length).toBe(1);
 
       // Verify worker was attempted but failed, triggering fallback
       expect(proveContext).toBeDefined();
@@ -262,8 +257,8 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
         .encrypt();
 
       // All values should encrypt successfully via fallback
-      expectResultSuccess(result);
-      expect(result.data?.length).toBe(3);
+      expect(result).toBeDefined();
+      expect(result.length).toBe(3);
 
       // Verify fallback occurred
       expect(proveContext.useWorker).toBe(true);
@@ -296,7 +291,8 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
         })
         .encrypt();
 
-      expectResultSuccess(result);
+      expect(result).toBeDefined();
+      
       expect(proveContext.useWorker).toBe(true);
       expect(proveContext.usedWorker).toBe(false);
       expect(proveContext.workerFailedError).toBe('Async worker failure');
@@ -322,7 +318,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
         })
         .encrypt();
 
-      expectResultSuccess(result);
+      expect(result).toBeDefined();
 
       // Should NOT attempt worker at all
       expect(proveContext.useWorker).toBe(false);

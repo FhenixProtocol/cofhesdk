@@ -1,5 +1,5 @@
 import { arbSepolia as cofhesdkArbSepolia } from '@/chains';
-import { Encryptable, FheTypes, type CofhesdkClient, type Result, CofhesdkErrorCode, CofhesdkError } from '@/core';
+import { Encryptable, FheTypes, type CofhesdkClient, CofhesdkErrorCode, CofhesdkError } from '@/core';
 
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import type { PublicClient, WalletClient } from 'viem';
@@ -10,22 +10,6 @@ import { createCofhesdkClient, createCofhesdkConfig } from './index.js';
 
 // Real test setup - runs in browser with real tfhe
 const TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
-
-const expectResultSuccess = <T>(result: Result<T>): T => {
-  expect(result.success, `Result error: ${result.error?.toString()}`).toBe(true);
-  return result.data!;
-};
-
-const expectResultError = <T>(result: Result<T>, errorCode?: CofhesdkErrorCode): void => {
-  expect(result.success).toBe(false);
-  expect(result.data).toBe(null);
-  expect(result.error).not.toBe(null);
-  const error = result.error as CofhesdkError;
-  expect(error).toBeInstanceOf(CofhesdkError);
-  if (errorCode) {
-    expect(error.code, `Result error: ${result.error?.toString()}`).toBe(errorCode);
-  }
-};
 
 describe('@cofhe/web - Encrypt Inputs Browser Tests', () => {
   let cofhesdkClient: CofhesdkClient;
@@ -60,22 +44,19 @@ describe('@cofhe/web - Encrypt Inputs Browser Tests', () => {
 
       // This will trigger real TFHE initialization in browser
       const result = await cofhesdkClient.encryptInputs([Encryptable.uint128(100n)]).encrypt();
-      const encrypted = expectResultSuccess(result);
 
       // If we get here, TFHE was initialized successfully
-      expect(encrypted).toBeDefined();
+      expect(result).toBeDefined();
     }, 60000); // Longer timeout for real operations
 
     it('should handle multiple encryptions without re-initializing', async () => {
       await cofhesdkClient.connect(publicClient, walletClient);
 
       // First encryption
-      const result1 = await cofhesdkClient.encryptInputs([Encryptable.uint128(100n)]).encrypt();
-      expectResultSuccess(result1);
+      expect(cofhesdkClient.encryptInputs([Encryptable.uint128(100n)]).encrypt()).resolves.not.toThrow();
 
       // Second encryption should reuse initialization
-      const result2 = await cofhesdkClient.encryptInputs([Encryptable.uint64(50n)]).encrypt();
-      expectResultSuccess(result2);
+      expect(cofhesdkClient.encryptInputs([Encryptable.uint64(50n)]).encrypt()).resolves.not.toThrow();
     }, 60000);
   });
 
@@ -84,15 +65,15 @@ describe('@cofhe/web - Encrypt Inputs Browser Tests', () => {
       await cofhesdkClient.connect(publicClient, walletClient);
 
       const result = await cofhesdkClient.encryptInputs([Encryptable.bool(true)]).encrypt();
-      const encrypted = expectResultSuccess(result);
 
-      expect(encrypted.length).toBe(1);
-      expect(encrypted[0].utype).toBe(FheTypes.Bool);
-      expect(encrypted[0].ctHash).toBeDefined();
-      expect(typeof encrypted[0].ctHash).toBe('bigint');
-      expect(encrypted[0].signature).toBeDefined();
-      expect(typeof encrypted[0].signature).toBe('string');
-      expect(encrypted[0].securityZone).toBe(0);
+      expect(result).toBeDefined();
+      expect(result.length).toBe(1);
+      expect(result[0].utype).toBe(FheTypes.Bool);
+      expect(result[0].ctHash).toBeDefined();
+      expect(typeof result[0].ctHash).toBe('bigint');
+      expect(result[0].signature).toBeDefined();
+      expect(typeof result[0].signature).toBe('string');
+      expect(result[0].securityZone).toBe(0);
     }, 60000);
 
     it('should encrypt all supported types together', async () => {
@@ -109,17 +90,17 @@ describe('@cofhe/web - Encrypt Inputs Browser Tests', () => {
       ];
 
       const result = await cofhesdkClient.encryptInputs(inputs).encrypt();
-      const encrypted = expectResultSuccess(result);
+      expect(result).toBeDefined();
 
-      expect(encrypted.length).toBe(7);
+      expect(result.length).toBe(7);
       // Verify each type
-      expect(encrypted[0].utype).toBe(FheTypes.Bool);
-      expect(encrypted[1].utype).toBe(FheTypes.Uint8);
-      expect(encrypted[2].utype).toBe(FheTypes.Uint16);
-      expect(encrypted[3].utype).toBe(FheTypes.Uint32);
-      expect(encrypted[4].utype).toBe(FheTypes.Uint64);
-      expect(encrypted[5].utype).toBe(FheTypes.Uint128);
-      expect(encrypted[6].utype).toBe(FheTypes.Uint160);
+      expect(result[0].utype).toBe(FheTypes.Bool);
+      expect(result[1].utype).toBe(FheTypes.Uint8);
+      expect(result[2].utype).toBe(FheTypes.Uint16);
+      expect(result[3].utype).toBe(FheTypes.Uint32);
+      expect(result[4].utype).toBe(FheTypes.Uint64);
+      expect(result[5].utype).toBe(FheTypes.Uint128);
+      expect(result[6].utype).toBe(FheTypes.Uint160);
     }, 90000); // Longer timeout for multiple encryptions
   });
 
@@ -128,14 +109,13 @@ describe('@cofhe/web - Encrypt Inputs Browser Tests', () => {
       await cofhesdkClient.connect(publicClient, walletClient);
 
       const snapshot = cofhesdkClient.getSnapshot();
-      const result = await cofhesdkClient
+      const encrypted = await cofhesdkClient
         .encryptInputs([Encryptable.uint128(100n)])
         .setChainId(snapshot.chainId!)
         .setAccount(snapshot.account!)
         .setSecurityZone(0)
         .encrypt();
 
-      const encrypted = expectResultSuccess(result);
       expect(encrypted.length).toBe(1);
       expect(encrypted[0].utype).toBe(FheTypes.Uint128);
     }, 60000);
@@ -144,9 +124,12 @@ describe('@cofhe/web - Encrypt Inputs Browser Tests', () => {
   describe('Browser Error Handling', () => {
     it('should fail gracefully when not connected', async () => {
       // Don't connect the client
-      const result = await cofhesdkClient.encryptInputs([Encryptable.uint128(100n)]).encrypt();
-
-      expectResultError(result, CofhesdkErrorCode.NotConnected);
+      try {
+        const promise = cofhesdkClient.encryptInputs([Encryptable.uint128(100n)]).encrypt();
+      } catch (error) {
+        expect(error).toBeInstanceOf(CofhesdkError);
+        expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.NotConnected);
+      }
     }, 30000);
 
     it('should handle invalid CoFHE URL', async () => {
@@ -163,12 +146,8 @@ describe('@cofhe/web - Encrypt Inputs Browser Tests', () => {
       const badClient = createCofhesdkClient(badConfig);
       await badClient.connect(publicClient, walletClient);
 
-      const result = await badClient.encryptInputs([Encryptable.uint128(100n)]).encrypt();
-
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toBeDefined();
-      }
+      const promise = badClient.encryptInputs([Encryptable.uint128(100n)]).encrypt();
+      expect(promise).rejects.toThrow();
     }, 60000);
   });
 
@@ -180,8 +159,7 @@ describe('@cofhe/web - Encrypt Inputs Browser Tests', () => {
 
       // Perform 5 encryptions
       for (let i = 0; i < 5; i++) {
-        const result = await cofhesdkClient.encryptInputs([Encryptable.uint128(BigInt(i))]).encrypt();
-        expectResultSuccess(result);
+        await cofhesdkClient.encryptInputs([Encryptable.uint128(BigInt(i))]).encrypt();
       }
 
       const duration = Date.now() - start;

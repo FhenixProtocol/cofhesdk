@@ -53,18 +53,6 @@ export { FheTypes, FheUintUTypes, FheAllUTypes, Encryptable, isEncryptableItem, 
 export { CofhesdkError, CofhesdkErrorCode, isCofhesdkError } from './error.js';
 export type { CofhesdkErrorParams } from './error.js';
 
-// Result types
-export {
-  ResultErr,
-  ResultOk,
-  ResultErrOrInternal,
-  ResultHttpError,
-  ResultValidationError,
-  resultWrapper,
-  resultWrapperSync,
-} from './result.js';
-export type { Result } from './result.js';
-
 // Key fetching
 export { fetchKeys } from './fetchKeys.js';
 export type { FheKeyDeserializer } from './fetchKeys.js';
