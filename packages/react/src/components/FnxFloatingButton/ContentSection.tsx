@@ -16,7 +16,6 @@ interface ContentSectionProps {
 
 export const ContentSection: React.FC<ContentSectionProps> = ({ className, contentPadding = 16, overriddingPage }) => {
   const { currentPage: pageFromContext, showPopupPanel, isTopSide, isLeftSide } = useFnxFloatingButtonContext();
-
   const currentPage = overriddingPage ?? pageFromContext;
 
   const [isTransitioning, setIsTransitioning] = useState(false);

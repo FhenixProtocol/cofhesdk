@@ -62,6 +62,4 @@ const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
   );
 };
 
-export const FnxFloatingButtonBase: React.FC<FnxFloatingButtonProps> = (props) => {
-  return <FnxFloatingButtonInner {...props} />;
-};
+export const FnxFloatingButtonBase: React.FC<FnxFloatingButtonProps> = (props) => <FnxFloatingButtonInner {...props} />;
