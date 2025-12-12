@@ -7,23 +7,39 @@ import { CofhesdkError, CofhesdkErrorCode } from '@cofhe/sdk';
 import { QueryErrorResetBoundary } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
+import { useFnxFloatingButtonContext } from '@/components/FnxFloatingButton/FnxFloatingButtonContext';
 
 // only whitelisted errors will reach error boundary (refer to `shouldPassToErrorBoundary`)
 const FALLBACK_BY_ERROR_TYPE: ErrorFallbackDefinition[] = [
   {
     // if it's Permit error - redirect to Permit Creation screen
     checkFn: (error: unknown) => error instanceof CofhesdkError && error.code === CofhesdkErrorCode.PermitNotFound,
-    componentConstructor: ({ floatingButtonProps }) =>
-      constructFloatingButtonFallback(floatingButtonProps, ({ error, resetErrorBoundary }) => ({
-        page: FloatingButtonPage.GeneratePermits,
-        props: {
-          headerMessage: <div>{error.message}</div>,
-          // resetting error boundary will re-render previously failed components (i.e. the normal aka {children}, non-fallback flow), so essentially will navigate the user back
-          onSuccessNavigateTo: () => resetErrorBoundary(),
-          onCancel: () => resetErrorBoundary(),
-          onBack: () => resetErrorBoundary(),
-        },
-      })),
+    componentConstructor: ({ floatingButtonProps }) => {
+      const Component: React.FC<FallbackProps> = ({ error, resetErrorBoundary }) => {
+        const { setConfidentialityEnabled } = useFnxFloatingButtonContext();
+        const overriddingPage = useMemo<PageState>(
+          () => ({
+            page: FloatingButtonPage.GeneratePermits,
+            props: {
+              headerMessage: <div>{(error as Error)?.message}</div>,
+              // resetting error boundary will re-render previously failed components (i.e. the normal aka {children}, non-fallback flow), so essentially will navigate the user back
+              onSuccessNavigateTo: () => resetErrorBoundary(),
+              onCancel: () => {
+                setConfidentialityEnabled(false);
+                resetErrorBoundary();
+              },
+              onBack: () => {
+                setConfidentialityEnabled(false);
+                resetErrorBoundary();
+              },
+            },
+          }),
+          [error, resetErrorBoundary, setConfidentialityEnabled]
+        );
+        return <FnxFloatingButtonBase {...floatingButtonProps} overriddingPage={overriddingPage} />;
+      };
+      return Component;
+    },
   },
 ];
 

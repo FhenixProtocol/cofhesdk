@@ -6,6 +6,7 @@ import { useCofheContext } from '../providers/CofheProvider.js';
 import type { Token } from './useTokenLists.js';
 import { CONFIDENTIAL_ABIS } from '../constants/confidentialTokenABIs.js';
 import { ERC20_BALANCE_OF_ABI, ERC20_DECIMALS_ABI, ERC20_SYMBOL_ABI, ERC20_NAME_ABI } from '../constants/erc20ABIs.js';
+import { useFnxFloatingButtonContext } from '@/components/FnxFloatingButton/FnxFloatingButtonContext.js';
 
 type UseTokenBalanceInput = {
   /** Token contract address */
@@ -253,6 +254,7 @@ export function useTokenConfidentialBalance(
   },
   queryOptions?: Omit<UseQueryOptions<bigint, Error>, 'queryKey' | 'queryFn'>
 ): UseQueryResult<bigint, Error> {
+  const { confidentialityEnabled } = useFnxFloatingButtonContext();
   const publicClient = useCofhePublicClient();
   const { client } = useCofheContext();
 
@@ -265,7 +267,7 @@ export function useTokenConfidentialBalance(
   const baseEnabled =
     !!publicClient && !!accountAddress && !!token && !!tokenAddress && !!confidentialityType && !!confidentialValueType;
   const userEnabled = queryOptions?.enabled ?? true;
-  const enabled = baseEnabled && userEnabled;
+  const enabled = baseEnabled && userEnabled && confidentialityEnabled;
 
   // Extract enabled from queryOptions to avoid override
   const { enabled: _, ...restQueryOptions } = queryOptions || {};
