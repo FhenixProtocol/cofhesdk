@@ -273,7 +273,15 @@ export function useTokenConfidentialBalance(
   const { enabled: _, ...restQueryOptions } = queryOptions || {};
 
   return useQuery({
-    queryKey: ['tokenConfidentialBalance', tokenAddress, accountAddress, confidentialityType, confidentialValueType],
+    queryKey: [
+      'tokenConfidentialBalance',
+      tokenAddress,
+      accountAddress,
+      confidentialityType,
+      confidentialValueType,
+      // normally `enabled` shouldn't be a part of query cache key, but I seem to run into an internal react-query issue where queryFn is ran even when enabled = false after resetErrorBoundary()
+      enabled,
+    ],
     queryFn: async (): Promise<bigint> => {
       if (!publicClient) {
         throw new Error('PublicClient is required to fetch confidential token balance');
