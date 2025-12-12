@@ -53,21 +53,6 @@ type ErrorFallbackDefinition = {
   componentConstructor: (deps: { floatingButtonProps: FnxFloatingButtonProps }) => React.FC<FallbackProps>;
 };
 
-type OverridingPageConstructor<T extends FloatingButtonPage> = (fallbackProps: FallbackProps) => PageState<T>;
-
-function constructFloatingButtonFallback<T extends FloatingButtonPage>(
-  props: FnxFloatingButtonProps,
-  overriddingPageConstructor: OverridingPageConstructor<T>
-): React.FC<FallbackProps> {
-  return ({ resetErrorBoundary, error }) => {
-    const overriddingPage = useMemo(
-      () => overriddingPageConstructor({ error, resetErrorBoundary }),
-      [error, resetErrorBoundary]
-    );
-    return <FnxFloatingButtonBase {...props} overriddingPage={overriddingPage} />;
-  };
-}
-
 export function constructErrorFallbacksWithFloatingButtonProps(props: FnxFloatingButtonProps): ErrorFallback[] {
   return FALLBACK_BY_ERROR_TYPE.map(({ checkFn, componentConstructor }) => ({
     checkFn,
