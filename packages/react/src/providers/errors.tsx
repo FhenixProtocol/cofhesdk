@@ -16,7 +16,7 @@ const FALLBACK_BY_ERROR_TYPE: ErrorFallbackDefinition[] = [
     checkFn: (error: unknown) => error instanceof CofhesdkError && error.code === CofhesdkErrorCode.PermitNotFound,
     componentConstructor: ({ floatingButtonProps }) => {
       const Component: React.FC<FallbackProps> = ({ error, resetErrorBoundary }) => {
-        const { setConfidentialityEnabled } = useFnxFloatingButtonContext();
+        const { setEnableBackgroundDecryption } = useFnxFloatingButtonContext();
         const overriddingPage = useMemo<PageState>(
           () => ({
             page: FloatingButtonPage.GeneratePermits,
@@ -25,16 +25,16 @@ const FALLBACK_BY_ERROR_TYPE: ErrorFallbackDefinition[] = [
               // resetting error boundary will re-render previously failed components (i.e. the normal aka {children}, non-fallback flow), so essentially will navigate the user back
               onSuccessNavigateTo: () => resetErrorBoundary(),
               onCancel: () => {
-                setConfidentialityEnabled(false);
+                setEnableBackgroundDecryption(false);
                 resetErrorBoundary();
               },
               onBack: () => {
-                setConfidentialityEnabled(false);
+                setEnableBackgroundDecryption(false);
                 resetErrorBoundary();
               },
             },
           }),
-          [error, resetErrorBoundary, setConfidentialityEnabled]
+          [error, resetErrorBoundary, setEnableBackgroundDecryption]
         );
         return <FnxFloatingButtonBase {...floatingButtonProps} overriddingPage={overriddingPage} />;
       };

@@ -254,7 +254,7 @@ export function useTokenConfidentialBalance(
   },
   queryOptions?: Omit<UseQueryOptions<bigint, Error>, 'queryKey' | 'queryFn'>
 ): UseQueryResult<bigint, Error> {
-  const { confidentialityEnabled } = useFnxFloatingButtonContext();
+  const { enableBackgroundDecryption } = useFnxFloatingButtonContext();
   const publicClient = useCofhePublicClient();
   const { client } = useCofheContext();
 
@@ -267,7 +267,7 @@ export function useTokenConfidentialBalance(
   const baseEnabled =
     !!publicClient && !!accountAddress && !!token && !!tokenAddress && !!confidentialityType && !!confidentialValueType;
   const userEnabled = queryOptions?.enabled ?? true;
-  const enabled = baseEnabled && userEnabled && confidentialityEnabled;
+  const enabled = baseEnabled && userEnabled && enableBackgroundDecryption;
 
   // Extract enabled from queryOptions to avoid override
   const { enabled: _, ...restQueryOptions } = queryOptions || {};

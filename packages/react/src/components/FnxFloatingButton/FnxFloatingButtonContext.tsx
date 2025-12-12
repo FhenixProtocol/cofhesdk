@@ -67,8 +67,10 @@ interface FnxFloatingButtonContextValue {
   navigateToTokenInfo: (token: SelectedToken) => void;
   // Config
   showNativeTokenInList: boolean;
-  confidentialityEnabled: boolean;
-  setConfidentialityEnabled: (enabled: boolean) => void;
+
+  // enable background decryption. For example - within useConfidentialBalance hook
+  enableBackgroundDecryption: boolean;
+  setEnableBackgroundDecryption: (enabled: boolean) => void;
 }
 
 const FnxFloatingButtonContext = createContext<FnxFloatingButtonContextValue | null>(null);
@@ -97,7 +99,7 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   const [tokenListMode, setTokenListMode] = useState<TokenListMode>('view');
   const [selectedToken, setSelectedToken] = useState<SelectedToken>(null);
   const [viewingToken, setViewingToken] = useState<SelectedToken>(null);
-  const [confidentialityEnabled, setConfidentialityEnabled] = useState<boolean>(false);
+  const [enableBackgroundDecryption, setEnableBackgroundDecryption] = useState<boolean>(false);
   const publicClient = useCofhePublicClient();
 
   // Check pending transactions on mount
@@ -191,8 +193,8 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
         viewingToken,
         navigateToTokenInfo,
         showNativeTokenInList,
-        confidentialityEnabled,
-        setConfidentialityEnabled,
+        enableBackgroundDecryption,
+        setEnableBackgroundDecryption,
       }}
     >
       {children}

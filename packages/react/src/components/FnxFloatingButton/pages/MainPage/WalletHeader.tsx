@@ -7,7 +7,7 @@ import { useFnxFloatingButtonContext } from '../../FnxFloatingButtonContext.js';
 
 export const WalletHeader: React.FC = () => {
   const walletAddress = useCofheAccount();
-  const { confidentialityEnabled, setConfidentialityEnabled } = useFnxFloatingButtonContext();
+  const { enableBackgroundDecryption, setEnableBackgroundDecryption } = useFnxFloatingButtonContext();
 
   return (
     <div className="flex items-center justify-between mb-4">
@@ -19,12 +19,12 @@ export const WalletHeader: React.FC = () => {
         <ChainSelect />
         <button
           type="button"
-          aria-label={confidentialityEnabled ? 'Disable confidentiality' : 'Enable confidentiality'}
+          aria-label={enableBackgroundDecryption ? 'Disable confidentiality' : 'Enable confidentiality'}
           title="Switch confidentiality"
-          onClick={() => setConfidentialityEnabled(!confidentialityEnabled)}
+          onClick={() => setEnableBackgroundDecryption(!enableBackgroundDecryption)}
           className="flex items-center gap-1 px-2 py-1 rounded fnx-hover-overlay transition-colors fnx-text-primary text-sm outline-none border fnx-dropdown-border"
         >
-          {confidentialityEnabled ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
+          {enableBackgroundDecryption ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
         </button>
       </div>
     </div>
