@@ -1,5 +1,5 @@
 import * as viemChains from 'viem/chains';
-import { ETH_ADDRESS, type Token, type Erc20Pair } from '../hooks/useCofheTokenLists.js';
+import { ETH_ADDRESS, type Token, type Erc20Pair } from '../types/token.js';
 
 // Build a lookup map of chainId -> viem chain (for block explorers, etc.)
 const viemChainById = Object.values(viemChains).reduce<Record<number, (typeof viemChains)[keyof typeof viemChains]>>(
