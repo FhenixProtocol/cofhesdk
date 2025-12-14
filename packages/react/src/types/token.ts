@@ -37,5 +37,3 @@ export type Token = {
     };
   };
 };
-
-
