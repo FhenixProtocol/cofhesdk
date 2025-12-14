@@ -3,6 +3,7 @@ export { AddressButton } from './AddressButton.js';
 export { AmountInput } from './AmountInput.js';
 export { ChainIcon } from './ChainIcon.js';
 export { ChainSelect } from './ChainSelect.js';
+export { Card } from './Card.js';
 export { HashLink } from './HashLink.js';
 export { LoadingDots } from './LoadingDots.js';
 export { ShieldMeter } from './ShieldMeter.js';
