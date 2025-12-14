@@ -16,6 +16,7 @@ export {
   useCofhePublicClient,
   useCofheWalletClient,
   useCofheClient,
+  useCofheAddToken,
   useCofheTokens,
   useCofheTokenLists,
   useCofheTokenShield,
