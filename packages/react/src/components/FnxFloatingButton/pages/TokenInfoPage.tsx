@@ -2,15 +2,20 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext.js';
 import { useCofheChainId } from '../../../hooks/useCofheConnection.js';
 import { useCofheTokens } from '../../../hooks/useCofheTokenLists.js';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { TokenIcon } from '../components/TokenIcon.js';
 import { AddressButton } from '../components/AddressButton.js';
 import { TokenBalance } from '../components/TokenBalance.js';
+import { useCofheAddToken } from '../../../hooks/useCofheAddToken.js';
+import { ActionButton, Card } from '../components/index.js';
 
 export const TokenInfoPage: React.FC = () => {
   const { navigateBack, viewingToken } = useFnxFloatingButtonContext();
   const chainId = useCofheChainId();
   const tokens = useCofheTokens(chainId ?? 0);
+  const { addToWallet } = useCofheAddToken();
+  const [isAddingToWallet, setIsAddingToWallet] = useState(false);
+  const [addToWalletMessage, setAddToWalletMessage] = useState<string | null>(null);
 
   // Find the full token object from the token list
   const tokenFromList = useMemo(() => {
@@ -34,6 +39,22 @@ export const TokenInfoPage: React.FC = () => {
     );
   }
 
+  const canAddToWallet = !viewingToken.isNative && !!tokenFromList;
+
+  const handleAddToWallet = async () => {
+    if (!tokenFromList) return;
+    setAddToWalletMessage(null);
+    setIsAddingToWallet(true);
+    try {
+      const ok = await addToWallet(tokenFromList);
+      setAddToWalletMessage(ok ? 'Added to wallet' : 'Wallet returned false (token may already be added)');
+    } catch (e) {
+      setAddToWalletMessage((e as Error)?.message ?? 'Failed to add token to wallet');
+    } finally {
+      setIsAddingToWallet(false);
+    }
+  };
+
   return (
     <div className="fnx-text-primary space-y-4">
       {/* Header */}
@@ -52,7 +73,7 @@ export const TokenInfoPage: React.FC = () => {
       </div>
 
       {/* Balance Section */}
-      <div className="fnx-card-bg rounded-lg p-4 border fnx-card-border">
+      <Card className="p-4">
         <div className="flex flex-col gap-2">
           <p className="text-xs opacity-70">Balance</p>
           <TokenBalance
@@ -66,7 +87,20 @@ export const TokenInfoPage: React.FC = () => {
             className="font-bold"
           />
         </div>
-      </div>
+      </Card>
+
+      {/* Actions */}
+      {canAddToWallet && (
+        <Card className="p-4 space-y-2">
+          <ActionButton
+            onClick={handleAddToWallet}
+            disabled={isAddingToWallet}
+            label={isAddingToWallet ? 'Adding...' : 'Add to wallet'}
+          />
+          {/* TODO: Use the notification system in the future */}
+          {addToWalletMessage && <p className="text-xxs text-red-500 opacity-70 text-center">{addToWalletMessage}</p>}
+        </Card>
+      )}
 
       {/* Token Details */}
       <div className="space-y-3">
@@ -74,40 +108,40 @@ export const TokenInfoPage: React.FC = () => {
 
         {/* Address */}
         {!viewingToken.isNative && (
-          <div className="fnx-card-bg rounded-lg p-3 border fnx-card-border">
+          <Card>
             <div className="flex flex-col gap-2">
-              <p className="text-xxxs opacity-70">Contract Address</p>
-              <AddressButton address={viewingToken.address} className="w-full justify-start" />
+              <p className="text-xxs opacity-70">Contract Address</p>
+                <AddressButton address={viewingToken.address} showFullAddress={true} className="w-full justify-start" />
             </div>
-          </div>
+          </Card>
         )}
 
         {/* Decimals */}
-        <div className="fnx-card-bg rounded-lg p-3 border fnx-card-border">
+        <Card>
           <div className="flex items-center justify-between">
-            <p className="text-xxxs opacity-70">Decimals</p>
+            <p className="text-xxs opacity-70">Decimals</p>
             <p className="text-sm font-medium">{viewingToken.decimals}</p>
           </div>
-        </div>
+        </Card>
 
         {/* Confidentiality Type */}
         {tokenFromList && (
-          <div className="fnx-card-bg rounded-lg p-3 border fnx-card-border">
+          <Card>
             <div className="flex items-center justify-between">
-              <p className="text-xxxs opacity-70">Confidentiality Type</p>
+              <p className="text-xxs opacity-70">Confidentiality Type</p>
               <p className="text-sm font-medium capitalize">{tokenFromList.extensions.fhenix.confidentialityType}</p>
             </div>
-          </div>
+          </Card>
         )}
 
         {/* Confidential Value Type */}
         {tokenFromList && (
-          <div className="fnx-card-bg rounded-lg p-3 border fnx-card-border">
+          <Card>
             <div className="flex items-center justify-between">
-              <p className="text-xxxs opacity-70">Value Type</p>
+              <p className="text-xxs opacity-70">Value Type</p>
               <p className="text-sm font-medium">{tokenFromList.extensions.fhenix.confidentialValueType}</p>
             </div>
-          </div>
+          </Card>
         )}
       </div>
     </div>

@@ -31,4 +31,5 @@ export {
 } from './useCofheTokenShield';
 export { useCofheWalletClient } from './useCofheConnection';
 export { useCofheTokens, useCofheTokenLists, ETH_ADDRESS, type Token, type Erc20Pair } from './useCofheTokenLists';
+export { useCofheAddToken } from './useCofheAddToken';
 export * from './permits';
