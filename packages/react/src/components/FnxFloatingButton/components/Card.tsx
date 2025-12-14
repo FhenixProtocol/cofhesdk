@@ -6,5 +6,3 @@ export const Card: React.FC<{
 }> = ({ children, className }) => {
   return <div className={cn('fnx-card-bg p-3 border fnx-card-border', className)}>{children}</div>;
 };
-
-
