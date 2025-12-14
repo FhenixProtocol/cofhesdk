@@ -111,7 +111,7 @@ export const TokenInfoPage: React.FC = () => {
           <Card>
             <div className="flex flex-col gap-2">
               <p className="text-xxs opacity-70">Contract Address</p>
-                <AddressButton address={viewingToken.address} showFullAddress={true} className="w-full justify-start" />
+              <AddressButton address={viewingToken.address} showFullAddress={true} className="w-full justify-start" />
             </div>
           </Card>
         )}

@@ -4,10 +4,12 @@ import type { Token } from './useCofheTokenLists.js';
 
 function assertValidToken(token: Token): void {
   if (!token || typeof token !== 'object') throw new Error('Token is required');
-  if (typeof token.chainId !== 'number' || !Number.isFinite(token.chainId)) throw new Error('token.chainId is required');
+  if (typeof token.chainId !== 'number' || !Number.isFinite(token.chainId))
+    throw new Error('token.chainId is required');
   if (!token.address || typeof token.address !== 'string') throw new Error('token.address is required');
   if (!token.symbol || typeof token.symbol !== 'string') throw new Error('token.symbol is required');
-  if (typeof token.decimals !== 'number' || !Number.isFinite(token.decimals)) throw new Error('token.decimals is required');
+  if (typeof token.decimals !== 'number' || !Number.isFinite(token.decimals))
+    throw new Error('token.decimals is required');
   if (!token.name || typeof token.name !== 'string') throw new Error('token.name is required');
 
   const fhenix = token.extensions?.fhenix;
@@ -57,35 +59,27 @@ export function useCofheAddToken(): UseCofheAddTokenResult {
     [walletClient]
   );
 
-  const addToList = useCallback(
-    async (_token: Token) => {
-      /**
-       * TODO (token persistence):
-       * - Choose storage key format for user tokens (v1)
-       * - Load predefined list for chainId and reject duplicates (ignore + throw)
-       * - Persist full `Token` objects into iframe shared storage (`config.fheKeyStorage`)
-       * - Invalidate react-query key used by `useCofheTokens`
-       * - Add `removeFromList` support
-       */
-      throw new Error('addToList is not implemented yet');
-    },
-    []
-  );
+  const addToList = useCallback(async (_token: Token) => {
+    /**
+     * TODO (token persistence):
+     * - Choose storage key format for user tokens (v1)
+     * - Load predefined list for chainId and reject duplicates (ignore + throw)
+     * - Persist full `Token` objects into iframe shared storage (`config.fheKeyStorage`)
+     * - Invalidate react-query key used by `useCofheTokens`
+     * - Add `removeFromList` support
+     */
+    throw new Error('addToList is not implemented yet');
+  }, []);
 
-  const removeFromList = useCallback(
-    async (_input: RemoveUserTokenInput) => {
-      /**
-       * TODO (token persistence):
-       * - Remove only user-added tokens (by chainId + address) from shared storage
-       * - If token not found, either no-op or throw (decide behavior)
-       * - Invalidate react-query key used by `useCofheTokens`
-       */
-      throw new Error('removeFromList is not implemented yet');
-    },
-    []
-  );
+  const removeFromList = useCallback(async (_input: RemoveUserTokenInput) => {
+    /**
+     * TODO (token persistence):
+     * - Remove only user-added tokens (by chainId + address) from shared storage
+     * - If token not found, either no-op or throw (decide behavior)
+     * - Invalidate react-query key used by `useCofheTokens`
+     */
+    throw new Error('removeFromList is not implemented yet');
+  }, []);
 
   return { addToWallet, addToList, removeFromList };
 }
-
-
