@@ -206,7 +206,7 @@ export const SendPage: React.FC = () => {
               className="flex-1 min-w-0 bg-transparent text-2xl font-bold fnx-text-primary outline-none placeholder:opacity-50"
             />
             <button
-              onClick={navigateToTokenListForSelection}
+              onClick={() => navigateToTokenListForSelection('Select token to transfer')}
               className="flex items-center gap-1 text-2xl font-bold fnx-text-primary hover:opacity-80 transition-opacity whitespace-nowrap flex-shrink-0"
             >
               <span>{displayToken?.symbol || tokenMetadata?.symbol || 'TOKEN'}</span>

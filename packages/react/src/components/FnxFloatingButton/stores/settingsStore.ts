@@ -11,8 +11,8 @@ export enum ShieldPageVariant {
 }
 
 export const SHIELD_PAGE_VARIANT_LABELS: Record<ShieldPageVariant, string> = {
-  [ShieldPageVariant.Option1]: 'Option 1 (Current)',
-  [ShieldPageVariant.Option2]: 'Option 2',
+  [ShieldPageVariant.Option1]: 'Modern UI',
+  [ShieldPageVariant.Option2]: 'Classic UI',
 };
 
 // ============================================================================

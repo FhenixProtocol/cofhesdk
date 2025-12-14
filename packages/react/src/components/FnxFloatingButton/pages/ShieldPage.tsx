@@ -341,7 +341,7 @@ export const ShieldPage: React.FC = () => {
         {/* Center Column: Token Selector + Meter */}
         <div className="flex flex-col items-center">
           <button
-            onClick={navigateToTokenListForSelection}
+            onClick={() => navigateToTokenListForSelection('Select token to shield/unshield')}
             className="flex items-center gap-1 text-sm font-bold fnx-text-primary hover:opacity-80 transition-opacity mb-1"
           >
             <span>{tokenSymbol}</span>

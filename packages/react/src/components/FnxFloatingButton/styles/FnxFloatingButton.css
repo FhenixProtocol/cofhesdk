@@ -441,6 +441,12 @@ Panel corners (top)
   background-color: var(--fnx-button-hover-bg);
 }
 
+/* Active state for nav/action buttons (used e.g. for tab selection) */
+.fnx-nav-button-active {
+  background-color: var(--fnx-button-hover-bg);
+  color: var(--fnx-button-hover-text);
+}
+
 .fnx-max-button {
   background-color: var(--fnx-button-bg);
   color: var(--fnx-button-default-text);

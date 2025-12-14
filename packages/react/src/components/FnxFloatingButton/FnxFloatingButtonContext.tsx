@@ -61,7 +61,8 @@ interface FnxFloatingButtonContextValue {
   // Token selection
   tokenListMode: TokenListMode;
   selectedToken: SelectedToken;
-  navigateToTokenListForSelection: () => void;
+  navigateToTokenListForSelection: (title?: string) => void;
+  navigateToTokenListForView: () => void;
   selectToken: (token: SelectedToken) => void;
   // Token viewing
   viewingToken: SelectedToken;
@@ -157,9 +158,14 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
     });
   };
 
-  const navigateToTokenListForSelection = () => {
+  const navigateToTokenListForSelection = (title?: string) => {
     setTokenListMode('select');
-    navigateTo(FloatingButtonPage.TokenList);
+    navigateTo(FloatingButtonPage.TokenList, { title });
+  };
+
+  const navigateToTokenListForView = () => {
+    setTokenListMode('view');
+    navigateTo(FloatingButtonPage.TokenList, {});
   };
 
   const selectToken = (token: SelectedToken) => {
@@ -192,6 +198,7 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
         tokenListMode,
         selectedToken,
         navigateToTokenListForSelection,
+        navigateToTokenListForView,
         selectToken,
         viewingToken,
         navigateToTokenInfo,

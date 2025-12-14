@@ -20,7 +20,7 @@ export enum FloatingButtonPage {
 export type FloatingButtonPagePropsMap = {
   [FloatingButtonPage.Main]: void;
   [FloatingButtonPage.Settings]: void;
-  [FloatingButtonPage.TokenList]: void;
+  [FloatingButtonPage.TokenList]: { title?: string };
   [FloatingButtonPage.TokenInfo]: void;
   [FloatingButtonPage.Send]: void;
   [FloatingButtonPage.Shield]: void;

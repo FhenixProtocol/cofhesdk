@@ -5,7 +5,7 @@ import { useCofheChainId } from '../../../hooks/useCofheConnection.js';
 import { useMemo } from 'react';
 import { TokenRow } from './TokenListPage/TokenRow.js';
 
-export const TokenListPage: React.FC = () => {
+export const TokenListPage: React.FC<{ title?: string }> = ({ title }) => {
   const { navigateBack, tokenListMode, showNativeTokenInList } = useFnxFloatingButtonContext();
   const chainId = useCofheChainId();
   const tokens = useCofheTokens(chainId ?? 0);
@@ -33,7 +33,8 @@ export const TokenListPage: React.FC = () => {
     return result;
   }, [tokens, showNativeTokenInList]);
 
-  const pageTitle = tokenListMode === 'select' ? 'Select token to transfer' : 'Token List';
+  const defaultTitle = tokenListMode === 'select' ? 'Select token to transfer' : 'Token List';
+  const pageTitle = title ?? defaultTitle;
 
   return (
     <div className="fnx-text-primary space-y-3">

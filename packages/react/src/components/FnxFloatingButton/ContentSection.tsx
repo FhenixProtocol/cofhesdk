@@ -48,8 +48,12 @@ export const ContentSection: React.FC<ContentSectionProps> = ({ className, conte
       return <PermitDetailsPage {...(props as PermitDetailsPageProps)} />;
     }
 
+    // TokenList accepts optional props (e.g. title override)
+    if (page === FloatingButtonPage.TokenList) {
+      return <TokenListPage {...((props ?? {}) as FloatingButtonPagePropsMap[FloatingButtonPage.TokenList])} />;
+    }
+
     // All other pages don't require props (void type)
-    // Use type assertion to tell TypeScript these components accept no props
     const PageComp = pages[page] as React.ComponentType<Record<string, never>>;
     return <PageComp />;
   };
