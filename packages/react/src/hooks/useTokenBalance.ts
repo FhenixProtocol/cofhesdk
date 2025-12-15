@@ -268,8 +268,7 @@ export function useTokenConfidentialBalance(
     // Merge enabled conditions: both our internal checks and user-provided enabled must be true
     enabled: !!publicClient && !!accountAddress && !!token && !!activePermit && queryOptions?.enabled !== false,
 
-    gcTime: 0,
-    queryKey: ['tokenConfidentialBalance', accountAddress, token?.address],
+    queryKey: ['tokenConfidentialBalance', accountAddress, token?.address, activePermit?.hash],
     queryFn: withQueryErrorCause(ErrorCause.AttemptToFetchConfidentialBalance, async (): Promise<bigint> => {
       assert(publicClient, 'PublicClient is required to fetch confidential token balance');
       assert(token, 'Token is required to fetch confidential token balance');
