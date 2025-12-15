@@ -305,12 +305,12 @@ export function useTokenConfidentialBalance(
       }
 
       // Call the appropriate function based on confidentialityType
-      const ctHash = (await publicClient.readContract({
+      const ctHash = await publicClient.readContract({
         address: token.address,
         abi: contractConfig.abi,
         functionName: contractConfig.functionName,
         args: [accountAddress],
-      })) as bigint;
+      });
 
       if (ctHash === 0n) {
         // no ciphertext means no confidential balance
