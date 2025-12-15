@@ -8,10 +8,16 @@ export type Token = {
   decimals: number;
   name: string;
   logoURI?: string;
-  extensions: {
+  extensions: Record<string, unknown> & {
     fhenix: {
       confidentialityType: 'wrapped' | 'pure' | 'dual';
       confidentialValueType: 'uint64' | 'uint128';
+      erc20Pair: {
+        address: `0x${string}`;
+        symbol: string;
+        decimals: number;
+        logoURI: string;
+      };
     };
   };
 };

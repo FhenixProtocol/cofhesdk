@@ -62,3 +62,6 @@ export type { FnxFloatingButtonProps } from './components/FnxFloatingButton/type
 export type { FloatingButtonPosition, FloatingButtonSize } from './components/FnxFloatingButton/types';
 
 export { createCofhesdkClient } from '@cofhe/sdk/web';
+
+export { useTokenConfidentialBalance } from './hooks/useTokenBalance';
+export type { Token } from './hooks/useTokenLists';
