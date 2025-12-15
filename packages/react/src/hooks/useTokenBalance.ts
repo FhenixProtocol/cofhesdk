@@ -8,7 +8,7 @@ import { CONFIDENTIAL_ABIS } from '../constants/confidentialTokenABIs.js';
 import { ERC20_BALANCE_OF_ABI, ERC20_DECIMALS_ABI, ERC20_SYMBOL_ABI, ERC20_NAME_ABI } from '../constants/erc20ABIs.js';
 import { withQueryErrorCause, ErrorCause } from '@/utils/errors.js';
 import { useCofheActivePermit } from './useCofhePermits.js';
-
+import { assert } from 'ts-essentials';
 type UseTokenBalanceInput = {
   /** Token contract address */
   tokenAddress: Address;
@@ -271,38 +271,21 @@ export function useTokenConfidentialBalance(
     gcTime: 0,
     queryKey: ['tokenConfidentialBalance', accountAddress, token?.address],
     queryFn: withQueryErrorCause(ErrorCause.AttemptToFetchConfidentialBalance, async (): Promise<bigint> => {
-      if (!publicClient) {
-        throw new Error('PublicClient is required to fetch confidential token balance');
-      }
+      assert(publicClient, 'PublicClient is required to fetch confidential token balance');
+      assert(token, 'Token is required to fetch confidential token balance');
 
-      if (!token) {
-        throw new Error('Token is required to fetch confidential token balance');
-      }
-
-      if (!token.address) {
-        throw new Error('Token address is required to fetch confidential token balance');
-      }
-
-      if (!token.extensions.fhenix.confidentialValueType) {
-        throw new Error('confidentialityType is required in token extensions');
-      }
-
-      if (!token.extensions.fhenix.confidentialityType) {
-        throw new Error('confidentialValueType is required in token extensions');
-      }
-
-      // NB: no need to cehck for Permit validity and existence here. If something is wrong with the Permit, ErrorBoundary will catch that and will redirect the user to Permit generation page.
+      // NB: no need to check for Permit validity and existence here. It's part of the 'enabled' and also if something is wrong with the Permit, ErrorBoundary will catch that and will redirect the user to Permit generation page.
 
       // Throw error if dual type is used (not yet implemented)
-      if (token.extensions.fhenix.confidentialityType === 'dual') {
-        throw new Error('Dual confidentiality type is not yet implemented');
-      }
+      assert(
+        token.extensions.fhenix.confidentialityType !== 'dual',
+        'Dual confidentiality type is not yet implemented'
+      );
 
       // Get the appropriate ABI and function name based on confidentialityType
       const contractConfig = CONFIDENTIAL_ABIS[token.extensions.fhenix.confidentialityType];
-      if (!contractConfig) {
-        throw new Error(`Unsupported confidentialityType: ${token.extensions.fhenix.confidentialityType}`);
-      }
+
+      assert(contractConfig, `Unsupported confidentialityType: ${token.extensions.fhenix.confidentialityType}`);
 
       // Call the appropriate function based on confidentialityType
       const ctHash = await publicClient.readContract({
