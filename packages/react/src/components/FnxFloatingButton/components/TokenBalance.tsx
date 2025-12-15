@@ -20,7 +20,7 @@ export interface TokenBalanceProps {
   /** Whether this is a native token */
   isNative?: boolean;
   /** Account address to fetch balance for */
-  accountAddress?: Address | null;
+  accountAddress?: Address;
   /** Number of decimal places to show (default: 5) */
   decimalPrecision?: number;
   /** Whether to show the token symbol */
@@ -62,8 +62,8 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
   // Find token from list if tokenAddress is provided but token is not
   const tokenFromList = useMemo(() => {
     if (token) return token;
-    if (!tokenAddress || !chainId || isNative) return null;
-    return tokens.find((t) => t.chainId === chainId && t.address.toLowerCase() === tokenAddress.toLowerCase()) || null;
+    if (!tokenAddress || !chainId || isNative) return;
+    return tokens.find((t) => t.chainId === chainId && t.address.toLowerCase() === tokenAddress.toLowerCase());
   }, [token, tokenAddress, chainId, tokens, isNative]);
 
   // Get confidential balance for non-native tokens
@@ -73,11 +73,11 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
     hasActivePermit,
   } = useTokenConfidentialBalance(
     {
-      token: tokenFromList ?? undefined,
-      accountAddress: effectiveAccountAddress as Address,
+      token: tokenFromList,
+      accountAddress: effectiveAccountAddress,
     },
     {
-      enabled: !isNative && !!tokenFromList && !!effectiveAccountAddress,
+      enabled: !isNative,
     }
   );
 
