@@ -63,7 +63,11 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
   }, [token, tokenAddress, chainId, tokens, isNative]);
 
   // Get confidential balance for non-native tokens
-  const { data: confidentialBalance, isLoading: isLoadingConfidential } = useTokenConfidentialBalance(
+  const {
+    data: confidentialBalance,
+    isLoading: isLoadingConfidential,
+    isDecrypted,
+  } = useTokenConfidentialBalance(
     {
       token: tokenFromList ?? undefined,
       accountAddress: effectiveAccountAddress as Address,
@@ -108,6 +112,9 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
   );
   // Format balance
   const displayBalance = useMemo(() => {
+    if (!isDecrypted && !isLoadingConfidential) {
+      return CONFIDENTIAL_BALANCE_UNTIL_FETCHED;
+    }
     if (isNative) {
       return nativeBalance || CONFIDENTIAL_BALANCE_UNTIL_FETCHED;
     }
