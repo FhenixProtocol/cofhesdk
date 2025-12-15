@@ -1,19 +1,16 @@
 import { cn } from '../../utils/cn';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
-import { pages } from './pagesConfig/const';
-import type { PageState } from './pagesConfig/types';
 import type { FnxFloatingButtonToast } from './types';
-
-const CONTENT_TRANSITION_DURATION = 150; // Duration in milliseconds for content fade transition
 
 interface ToastsSectionProps {
   className?: string;
 }
 
 const ToastComponent: React.FC<FnxFloatingButtonToast> = ({ id, duration, content }) => {
-  const { removeToast } = useFnxFloatingButtonContext();
+  const { removeToast, isTopSide } = useFnxFloatingButtonContext();
 
   useEffect(() => {
     if (duration) {
@@ -21,12 +18,19 @@ const ToastComponent: React.FC<FnxFloatingButtonToast> = ({ id, duration, conten
         removeToast(id);
       }, duration);
     }
-  }, [duration, id]);
+  }, [duration, id, removeToast]);
 
   return (
-    <div key={id} className={cn('min-h-8 bg-white border')}>
+    <motion.div
+      key={id}
+      initial={{ opacity: 0, y: isTopSide ? -4 : 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: isTopSide ? 4 : -4 }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
+      className={cn('min-h-8 bg-white border items-center justify-start')}
+    >
       {content}
-    </div>
+    </motion.div>
   );
 };
 
@@ -34,9 +38,11 @@ export const ToastsSection: React.FC<ToastsSectionProps> = ({ className }) => {
   const { toasts } = useFnxFloatingButtonContext();
   return (
     <div className={cn('flex flex-col gap-3', className)}>
-      {toasts.map((toast) => (
-        <ToastComponent key={toast.id} {...toast} />
-      ))}
+      <AnimatePresence mode="popLayout">
+        {toasts.map((toast) => (
+          <ToastComponent key={toast.id} {...toast} />
+        ))}
+      </AnimatePresence>
     </div>
   );
 };

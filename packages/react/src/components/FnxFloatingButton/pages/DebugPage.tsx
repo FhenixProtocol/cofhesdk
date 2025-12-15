@@ -12,7 +12,13 @@ export const DebugPage: React.FC = () => {
       </button>
       <p className="text-sm font-medium">Debug</p>
       <p className="text-xs">Toasts:</p>
-      <button onClick={() => addToast({ id: '1', duration: 3000, content: <div>Hello, world!</div> })}>
+      <button
+        onClick={() => {
+          const id = crypto.randomUUID();
+          console.log('Adding toast with id:', id);
+          addToast({ id, duration: 3000, content: <div>Hello, world! {id}</div> });
+        }}
+      >
         Add Toast
       </button>
     </div>
