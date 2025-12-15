@@ -62,15 +62,7 @@ export const ContentSection: React.FC<ContentSectionProps> = ({ className, conte
   }, [currentPage, showPopupPanel]);
 
   return (
-    <div
-      className={cn(
-        className,
-        'fnx-content-container',
-        'flex'
-      )}
-      data-left={isLeftSide}
-      data-open={showPopupPanel}
-    >
+    <div className={cn(className, 'fnx-content-container', 'flex')} data-left={isLeftSide} data-open={showPopupPanel}>
       <div
         className={cn('fnx-content-panel')}
         data-open={showPopupPanel}
