@@ -255,7 +255,7 @@ export function useTokenConfidentialBalance(
   },
   queryOptions?: Omit<UseQueryOptions<bigint, Error>, 'queryKey' | 'queryFn'>
 ): UseQueryResult<bigint, Error> & {
-  hasActivePermit: boolean;
+  disabledDueToMissingPermit: boolean;
 } {
   const publicClient = useCofhePublicClient();
   const cofheChainId = useCofheChainId();
@@ -312,7 +312,7 @@ export function useTokenConfidentialBalance(
 
   return {
     ...result,
-    hasActivePermit: !!activePermit,
+    disabledDueToMissingPermit: !activePermit,
   };
 }
 

@@ -70,7 +70,7 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
   const {
     data: confidentialBalance,
     isLoading: isLoadingConfidential,
-    hasActivePermit,
+    disabledDueToMissingPermit,
   } = useTokenConfidentialBalance(
     {
       token: tokenFromList,
@@ -122,7 +122,7 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
   );
   // Format balance
   const displayBalance = useMemo(() => {
-    if (!hasActivePermit) return CONFIDENTIAL_VALUE_PLACEHOLDER;
+    if (disabledDueToMissingPermit) return CONFIDENTIAL_VALUE_PLACEHOLDER;
 
     if (isNative) return nativeBalance;
 
@@ -142,7 +142,7 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
     decimals,
     decimalPrecision,
     CONFIDENTIAL_VALUE_PLACEHOLDER,
-    hasActivePermit,
+    disabledDueToMissingPermit,
   ]);
 
   // Show loading animation when loading
