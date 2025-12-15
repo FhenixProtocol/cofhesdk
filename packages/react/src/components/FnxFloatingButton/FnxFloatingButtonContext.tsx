@@ -149,7 +149,7 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   function navigateTo<K extends PagesWithProps>(page: K, args: NavigateArgs<K>): void;
   // eslint-disable-next-line no-redeclare
   function navigateTo<K extends FloatingButtonPage>(page: K, args?: NavigateArgs<K>): void {
-    const props = args?.pageProps as FloatingButtonPagePropsMap[FloatingButtonPage] | undefined;
+    const props = args?.pageProps;
     const skipPagesHistory = args?.navigateParams?.skipPagesHistory === true;
     if (skipPagesHistory) {
       setOverridingPage({ page, props });
