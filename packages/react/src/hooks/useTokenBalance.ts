@@ -8,6 +8,7 @@ import { CONFIDENTIAL_ABIS } from '../constants/confidentialTokenABIs.js';
 import { ERC20_BALANCE_OF_ABI, ERC20_DECIMALS_ABI, ERC20_SYMBOL_ABI, ERC20_NAME_ABI } from '../constants/erc20ABIs.js';
 import { useFnxFloatingButtonContext } from '@/components/FnxFloatingButton/FnxFloatingButtonContext.js';
 import { withQueryErrorCause, ErrorCause } from '@/utils/errors.js';
+import { useCofheActivePermit } from './useCofhePermits.js';
 
 type UseTokenBalanceInput = {
   /** Token contract address */
@@ -254,10 +255,13 @@ export function useTokenConfidentialBalance(
     accountAddress: Address;
   },
   queryOptions?: Omit<UseQueryOptions<bigint, Error>, 'queryKey' | 'queryFn'>
-): UseQueryResult<bigint, Error> {
+): UseQueryResult<bigint, Error> & {
+  hasActivePermit: boolean;
+} {
   const { enableBackgroundDecryption } = useFnxFloatingButtonContext();
   const publicClient = useCofhePublicClient();
   const { client } = useCofheContext();
+  const activePermit = useCofheActivePermit();
 
   // Extract values from token object (only if token exists)
   const tokenAddress = token?.address as Address | undefined;
@@ -273,7 +277,7 @@ export function useTokenConfidentialBalance(
   // Extract enabled from queryOptions to avoid override
   const { enabled: _, ...restQueryOptions } = queryOptions || {};
 
-  return useQuery({
+  const result = useQuery({
     gcTime: 0,
     queryKey: [
       'tokenConfidentialBalance',
@@ -340,6 +344,11 @@ export function useTokenConfidentialBalance(
     enabled,
     ...restQueryOptions,
   });
+
+  return {
+    ...result,
+    hasActivePermit: !!activePermit,
+  };
 }
 
 /**

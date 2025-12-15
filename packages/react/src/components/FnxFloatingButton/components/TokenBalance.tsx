@@ -66,7 +66,7 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
   const {
     data: confidentialBalance,
     isLoading: isLoadingConfidential,
-    isDecrypted,
+    hasActivePermit,
   } = useTokenConfidentialBalance(
     {
       token: tokenFromList ?? undefined,
@@ -100,7 +100,7 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
   // Determine if we're loading
   const isLoading = isNative ? isLoadingNative : isLoadingConfidential;
 
-  const CONFIDENTIAL_BALANCE_UNTIL_FETCHED = (
+  const CONFIDENTIAL_VALUE_PLACEHOLDER = (
     <div
       onClick={(e) => {
         e.stopPropagation();
@@ -112,23 +112,28 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
   );
   // Format balance
   const displayBalance = useMemo(() => {
-    if (!isDecrypted && !isLoadingConfidential) {
-      return CONFIDENTIAL_BALANCE_UNTIL_FETCHED;
-    }
-    if (isNative) {
-      return nativeBalance || CONFIDENTIAL_BALANCE_UNTIL_FETCHED;
-    }
+    if (!hasActivePermit) return CONFIDENTIAL_VALUE_PLACEHOLDER;
+
+    if (isNative) return nativeBalance;
 
     if (confidentialBalance !== undefined && decimals !== undefined) {
       const formatted = formatUnits(confidentialBalance, decimals);
       // Format to specified decimal precision
       const numValue = parseFloat(formatted);
-      if (isNaN(numValue)) return CONFIDENTIAL_BALANCE_UNTIL_FETCHED;
+      if (isNaN(numValue)) return null;
       return numValue.toFixed(decimalPrecision);
     }
 
-    return CONFIDENTIAL_BALANCE_UNTIL_FETCHED;
-  }, [isNative, nativeBalance, confidentialBalance, decimals, decimalPrecision, CONFIDENTIAL_BALANCE_UNTIL_FETCHED]);
+    return null;
+  }, [
+    isNative,
+    nativeBalance,
+    confidentialBalance,
+    decimals,
+    decimalPrecision,
+    CONFIDENTIAL_VALUE_PLACEHOLDER,
+    hasActivePermit,
+  ]);
 
   // Show loading animation when loading
   if (isLoading) {
