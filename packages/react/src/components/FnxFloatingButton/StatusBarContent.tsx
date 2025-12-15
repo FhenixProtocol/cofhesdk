@@ -1,9 +1,10 @@
 import { MdOutlineSettings } from 'react-icons/md';
 import { IoIosCheckmarkCircleOutline } from 'react-icons/io';
-import { cn } from '../../utils/cn.js';
+import { cn } from '../../utils/cn';
 import logoBlack from './assets/fhenix-icon-black.png';
 import logoWhite from './assets/fhenix-icon-white.png';
-import { useFnxFloatingButtonContext, FloatingButtonPage } from './FnxFloatingButtonContext.js';
+import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
+import { FloatingButtonPage } from './pagesConfig/types';
 
 export const StatusBarContent: React.FC = () => {
   const { darkMode, navigateTo } = useFnxFloatingButtonContext();

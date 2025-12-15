@@ -2,11 +2,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
 import { usePermitDetailsPage } from '@/hooks/permits/index.js';
-
-export type PermitDetailsPageProps = {
-  selectedPermitHash: string;
-};
-
+import type { PermitDetailsPageProps } from './types';
 export const PermitDetailsPage: React.FC<PermitDetailsPageProps> = ({ selectedPermitHash }) => {
   const {
     permitLabel,

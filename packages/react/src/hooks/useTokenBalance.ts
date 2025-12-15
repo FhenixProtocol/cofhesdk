@@ -6,6 +6,8 @@ import { useCofheContext } from '../providers/CofheProvider.js';
 import type { Token } from './useTokenLists.js';
 import { CONFIDENTIAL_ABIS } from '../constants/confidentialTokenABIs.js';
 import { ERC20_BALANCE_OF_ABI, ERC20_DECIMALS_ABI, ERC20_SYMBOL_ABI, ERC20_NAME_ABI } from '../constants/erc20ABIs.js';
+import { useFnxFloatingButtonContext } from '@/components/FnxFloatingButton/FnxFloatingButtonContext.js';
+import { withQueryErrorCause, ErrorCause } from '@/utils/errors.js';
 
 type UseTokenBalanceInput = {
   /** Token contract address */
@@ -253,6 +255,7 @@ export function useTokenConfidentialBalance(
   },
   queryOptions?: Omit<UseQueryOptions<bigint, Error>, 'queryKey' | 'queryFn'>
 ): UseQueryResult<bigint, Error> {
+  const { enableBackgroundDecryption } = useFnxFloatingButtonContext();
   const publicClient = useCofhePublicClient();
   const { client } = useCofheContext();
 
@@ -265,14 +268,23 @@ export function useTokenConfidentialBalance(
   const baseEnabled =
     !!publicClient && !!accountAddress && !!token && !!tokenAddress && !!confidentialityType && !!confidentialValueType;
   const userEnabled = queryOptions?.enabled ?? true;
-  const enabled = baseEnabled && userEnabled;
+  const enabled = baseEnabled && userEnabled && enableBackgroundDecryption;
 
   // Extract enabled from queryOptions to avoid override
   const { enabled: _, ...restQueryOptions } = queryOptions || {};
 
   return useQuery({
-    queryKey: ['tokenConfidentialBalance', tokenAddress, accountAddress, confidentialityType, confidentialValueType],
-    queryFn: async (): Promise<bigint> => {
+    gcTime: 0,
+    queryKey: [
+      'tokenConfidentialBalance',
+      tokenAddress,
+      accountAddress,
+      confidentialityType,
+      confidentialValueType,
+      // normally `enabled` shouldn't be a part of query cache key, but I seem to run into an internal react-query issue where queryFn is ran even when enabled = false after resetErrorBoundary()
+      enabled,
+    ],
+    queryFn: withQueryErrorCause(ErrorCause.AttemptToFetchConfidentialBalance, async (): Promise<bigint> => {
       if (!publicClient) {
         throw new Error('PublicClient is required to fetch confidential token balance');
       }
@@ -293,8 +305,7 @@ export function useTokenConfidentialBalance(
         throw new Error('confidentialValueType is required in token extensions');
       }
 
-      // Make sure we have an active permit
-      const permit = await client.permits.getOrCreateSelfPermit();
+      // NB: no need to cehck for Permit validity and existence here. If something is wrong with the Permit, ErrorBoundary will catch that and will redirect the user to Permit generation page.
 
       // Throw error if dual type is used (not yet implemented)
       if (confidentialityType === 'dual') {
@@ -325,7 +336,7 @@ export function useTokenConfidentialBalance(
 
       // Decrypt the encrypted balance using SDK
       return client.decryptHandle(ctHash, fheType).decrypt();
-    },
+    }),
     enabled,
     ...restQueryOptions,
   });

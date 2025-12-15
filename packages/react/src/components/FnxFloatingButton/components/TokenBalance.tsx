@@ -7,6 +7,7 @@ import { useTokens, type Token } from '../../../hooks/useTokenLists.js';
 import { useCofheChainId } from '../../../hooks/useCofheConnection.js';
 import { cn } from '../../../utils/cn.js';
 import { LoadingDots } from './LoadingDots.js';
+import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext';
 
 export interface TokenBalanceProps {
   /** Token object from token list (for non-native tokens) */
@@ -27,8 +28,6 @@ export interface TokenBalanceProps {
   className?: string;
   /** Size variant for the balance display */
   size?: 'sm' | 'md' | 'lg' | 'xl';
-  /** Whether to show "0.00" when balance is loading/undefined */
-  showZeroWhenLoading?: boolean;
 }
 
 const sizeClasses = {
@@ -48,7 +47,6 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
   symbol,
   className,
   size = 'md',
-  showZeroWhenLoading = true,
 }) => {
   const account = useCofheAccount();
   const chainId = useCofheChainId();
@@ -77,7 +75,7 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
 
   // Get native balance for native tokens
   const { data: nativeBalance, isLoading: isLoadingNative } = useNativeBalance();
-
+  const { setEnableBackgroundDecryption } = useFnxFloatingButtonContext();
   // Determine token decimals
   const decimals = useMemo(() => {
     if (tokenFromList) return tokenFromList.decimals;
@@ -98,25 +96,35 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
   // Determine if we're loading
   const isLoading = isNative ? isLoadingNative : isLoadingConfidential;
 
+  const CONFIDENTIAL_BALANCE_UNTIL_FETCHED = (
+    <div
+      onClick={(e) => {
+        e.stopPropagation();
+        setEnableBackgroundDecryption(true);
+      }}
+    >
+      {'* * *'}
+    </div>
+  );
   // Format balance
   const displayBalance = useMemo(() => {
     if (isNative) {
-      return nativeBalance || (showZeroWhenLoading ? '0.00' : '');
+      return nativeBalance || CONFIDENTIAL_BALANCE_UNTIL_FETCHED;
     }
 
     if (confidentialBalance !== undefined && decimals !== undefined) {
       const formatted = formatUnits(confidentialBalance, decimals);
       // Format to specified decimal precision
       const numValue = parseFloat(formatted);
-      if (isNaN(numValue)) return showZeroWhenLoading ? '0.00' : '';
+      if (isNaN(numValue)) return CONFIDENTIAL_BALANCE_UNTIL_FETCHED;
       return numValue.toFixed(decimalPrecision);
     }
 
-    return showZeroWhenLoading ? '0.00' : '';
-  }, [isNative, nativeBalance, confidentialBalance, decimals, decimalPrecision, showZeroWhenLoading]);
+    return CONFIDENTIAL_BALANCE_UNTIL_FETCHED;
+  }, [isNative, nativeBalance, confidentialBalance, decimals, decimalPrecision, CONFIDENTIAL_BALANCE_UNTIL_FETCHED]);
 
   // Show loading animation when loading
-  if (isLoading && showZeroWhenLoading) {
+  if (isLoading) {
     return (
       <span className={cn(sizeClasses[size], 'font-medium fnx-text-primary', className)}>
         <LoadingDots size={size} />
@@ -125,7 +133,8 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
     );
   }
 
-  if (!displayBalance && !showZeroWhenLoading) {
+  if (!displayBalance) {
+    // ?
     return null;
   }
 

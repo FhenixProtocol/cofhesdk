@@ -1,4 +1,3 @@
-import { FloatingButtonPage } from './FnxFloatingButtonContext';
 import {
   ActivityPage,
   GeneratePermitPage,
@@ -11,9 +10,10 @@ import {
   ShieldPage,
   TokenInfoPage,
   TokenListPage,
-} from './pages';
+} from '../pages';
 
 import type { FC } from 'react';
+import { FloatingButtonPage } from './types';
 
 export const pages: Record<FloatingButtonPage, FC<any>> = {
   [FloatingButtonPage.Main]: MainPage,
