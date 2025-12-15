@@ -27,7 +27,7 @@ const ToastComponent: React.FC<FnxFloatingButtonToast> = ({ id, duration, conten
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: isTopSide ? 4 : -4 }}
       transition={{ duration: 0.2, ease: 'easeOut' }}
-      className={cn('min-h-8 bg-white border items-center justify-start p-2 w-full max-w-full')}
+      className={cn('min-h-8 bg-white border items-center justify-start w-full max-w-full')}
     >
       {content}
     </motion.div>
