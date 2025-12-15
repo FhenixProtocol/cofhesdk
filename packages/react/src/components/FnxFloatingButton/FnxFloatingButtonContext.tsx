@@ -103,12 +103,6 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   const [enableBackgroundDecryption, setEnableBackgroundDecryption] = useState<boolean>(false);
 
   const activePermit = useCofheActivePermit();
-  useEffect(() => {
-    if (activePermit) {
-      // automatically enable background decryption when there's an active permit
-      setEnableBackgroundDecryption(true);
-    }
-  }, [activePermit]);
   const publicClient = useCofhePublicClient();
 
   // Check pending transactions on mount
@@ -202,7 +196,7 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
         viewingToken,
         navigateToTokenInfo,
         showNativeTokenInList,
-        enableBackgroundDecryption,
+        enableBackgroundDecryption: !!activePermit || enableBackgroundDecryption,
         setEnableBackgroundDecryption,
       }}
     >

@@ -274,6 +274,7 @@ export function useTokenConfidentialBalance(
   const { enabled: _, ...restQueryOptions } = queryOptions || {};
 
   return useQuery({
+    gcTime: 0,
     queryKey: [
       'tokenConfidentialBalance',
       tokenAddress,
