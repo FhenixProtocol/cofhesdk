@@ -10,6 +10,7 @@ import {
   ShieldPage,
   TokenInfoPage,
   TokenListPage,
+  DebugPage,
 } from '../pages';
 
 import type { FC } from 'react';
@@ -27,4 +28,5 @@ export const pages: Record<FloatingButtonPage, FC<any>> = {
   [FloatingButtonPage.GeneratePermits]: GeneratePermitPage,
   [FloatingButtonPage.ReceivePermits]: ReceivePermitPage,
   [FloatingButtonPage.PermitDetails]: PermitDetailsPage,
+  [FloatingButtonPage.Debug]: DebugPage,
 };

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { BaseProps } from '../../types/component-types';
 import type { PageState } from './pagesConfig/types';
 export type FloatingButtonPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
@@ -14,6 +15,7 @@ export interface FnxFloatingButtonProps extends BaseProps {
   buttonClassName?: string;
   statusBarClassName?: string;
   contentSectionClassName?: string;
+  toastsSectionClassName?: string;
 
   /** Click handler */
   onClick?: () => void;
@@ -28,3 +30,9 @@ export interface FnxFloatingButtonProps extends BaseProps {
   // is used for error handling (i.e. override to Permit Creation page on PermitNotFound error)
   overriddingPage?: PageState;
 }
+
+export type FnxFloatingButtonToast = {
+  id: string;
+  duration: number | undefined; // Undefined means the toast will stay until the user dismisses it
+  content: ReactNode;
+};

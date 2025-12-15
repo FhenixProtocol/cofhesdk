@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import type { FloatingButtonPosition } from './types';
+import type { FloatingButtonPosition, FnxFloatingButtonToast } from './types';
 import { useCofheContext } from '../../providers';
 import { checkPendingTransactions, stopPendingTransactionPolling } from '../../stores/transactionStore';
 import { useCofhePublicClient } from '@/hooks/useCofheConnection';
@@ -72,6 +72,11 @@ interface FnxFloatingButtonContextValue {
   // enable background decryption. For example - within useConfidentialBalance hook
   enableBackgroundDecryption: boolean;
   setEnableBackgroundDecryption: (enabled: boolean) => void;
+
+  // Toasts
+  toasts: FnxFloatingButtonToast[];
+  addToast: (toast: FnxFloatingButtonToast) => void;
+  removeToast: (id: string) => void;
 }
 
 const FnxFloatingButtonContext = createContext<FnxFloatingButtonContextValue | null>(null);
@@ -101,6 +106,7 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   const [selectedToken, setSelectedToken] = useState<SelectedToken>(null);
   const [viewingToken, setViewingToken] = useState<SelectedToken>(null);
   const [enableBackgroundDecryption, setEnableBackgroundDecryption] = useState<boolean>(false);
+  const [toasts, setToasts] = useState<FnxFloatingButtonToast[]>([]);
 
   const activePermit = useCofheActivePermit();
   const publicClient = useCofhePublicClient();
@@ -172,6 +178,14 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
     navigateTo(FloatingButtonPage.TokenInfo);
   };
 
+  const addToast = (toast: FnxFloatingButtonToast) => {
+    setToasts((prev) => [...prev, toast]);
+  };
+
+  const removeToast = (id: string) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
+  };
+
   return (
     <FnxFloatingButtonContext.Provider
       value={{
@@ -198,6 +212,9 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
         showNativeTokenInList,
         enableBackgroundDecryption: !!activePermit || enableBackgroundDecryption,
         setEnableBackgroundDecryption,
+        toasts,
+        addToast,
+        removeToast,
       }}
     >
       {children}
