@@ -36,11 +36,21 @@ export type SelectedToken = {
 const OPEN_DELAY = 500; // Delay before showing popup in ms
 const CLOSE_DELAY = 300; // Delay before closing bar after popup closes
 
+type NavigateParams = {
+  // When true, do not append to history; override current page instead
+  skipPagesHistory?: boolean;
+};
+
+type NavigateArgs<K extends FloatingButtonPage> = {
+  pageProps?: FloatingButtonPagePropsMap[K];
+  navigateParams?: NavigateParams;
+};
+
 type NavigateToFn = {
-  // Pages that don't require props: call with just the page
-  <K extends PagesWithoutProps>(page: K): void;
-  // Pages that require props: enforce passing props
-  <K extends PagesWithProps>(page: K, props: FloatingButtonPagePropsMap[K]): void;
+  // For pages without props, second arg is optional and may include navigateParams only
+  <K extends PagesWithoutProps>(page: K, args?: NavigateArgs<K>): void;
+  // For pages with props, require pageProps inside second arg
+  <K extends PagesWithProps>(page: K, args: NavigateArgs<K>): void;
 };
 
 interface FnxFloatingButtonContextValue {
@@ -91,6 +101,7 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   const showNativeTokenInList = widgetConfig.showNativeTokenInList;
 
   const [pageHistory, setPageHistory] = useState<PageState[]>([{ page: FloatingButtonPage.Main }]);
+  const [overridingPage, setOverridingPage] = useState<PageState | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showPopupPanel, setShowPopupPanel] = useState(false);
   const [tokenListMode, setTokenListMode] = useState<TokenListMode>('view');
@@ -107,7 +118,7 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
     };
   }, [cofhesdkClient]);
 
-  const currentPage = pageHistory[pageHistory.length - 1];
+  const currentPage = overridingPage ?? pageHistory[pageHistory.length - 1];
   const isLeftSide = effectivePosition.includes('left');
   const isTopSide = effectivePosition.includes('top');
 
@@ -134,17 +145,31 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
     externalOnClick?.();
   };
 
-  function navigateTo<K extends PagesWithoutProps>(page: K): void;
+  function navigateTo<K extends PagesWithoutProps>(page: K, args?: NavigateArgs<K>): void;
   // eslint-disable-next-line no-redeclare
-  function navigateTo<K extends PagesWithProps>(page: K, props: FloatingButtonPagePropsMap[K]): void;
+  function navigateTo<K extends PagesWithProps>(page: K, args: NavigateArgs<K>): void;
   // eslint-disable-next-line no-redeclare
-  function navigateTo(page: FloatingButtonPage, props?: FloatingButtonPagePropsMap[FloatingButtonPage]): void {
-    setPageHistory((prev) => [...prev, { page, props }]);
+  function navigateTo<K extends FloatingButtonPage>(page: K, args?: NavigateArgs<K>): void {
+    const props = args?.pageProps as FloatingButtonPagePropsMap[FloatingButtonPage] | undefined;
+    const skipPagesHistory = args?.navigateParams?.skipPagesHistory === true;
+    if (skipPagesHistory) {
+      setOverridingPage({ page, props });
+    } else {
+      setOverridingPage(null);
+      setPageHistory((prev) => [...prev, { page, props }]);
+    }
   }
 
   const navigateBack = () => {
+    // If there's an overriding page, clear it first to reveal history
+    setOverridingPage((override) => {
+      if (override) {
+        return null;
+      }
+      return override;
+    });
     setPageHistory((prev) => {
-      if (prev.length > 1) {
+      if (!overridingPage && prev.length > 1) {
         return prev.slice(0, -1);
       }
       return prev;

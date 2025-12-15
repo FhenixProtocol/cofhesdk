@@ -54,7 +54,7 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
   const account = useCofheAccount();
   const chainId = useCofheChainId();
   const tokens = useTokens(chainId);
-  const { navigateTo } = useFnxFloatingButtonContext();
+  const { navigateTo, navigateBack } = useFnxFloatingButtonContext();
 
   // Determine which account address to use
   const effectiveAccountAddress = accountAddress ?? account;
@@ -109,7 +109,8 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
         e.stopPropagation();
         const ReasonBody = CREATE_PERMITT_BODY_BY_ERROR_CAUSE[ErrorCause.AttemptToFetchConfidentialBalance];
         navigateTo(FloatingButtonPage.GeneratePermits, {
-          overridingBody: <ReasonBody />,
+          pageProps: { overridingBody: <ReasonBody />, onSuccessNavigateTo: () => navigateBack() },
+          navigateParams: { skipPagesHistory: true },
         });
       }}
     >
