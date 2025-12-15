@@ -27,7 +27,7 @@ const ToastComponent: React.FC<FnxFloatingButtonToast> = ({ id, duration, conten
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: isTopSide ? 4 : -4 }}
       transition={{ duration: 0.2, ease: 'easeOut' }}
-      className={cn('min-h-8 bg-white border items-center justify-start')}
+      className={cn('min-h-8 bg-white border items-center justify-start p-2 w-full max-w-full')}
     >
       {content}
     </motion.div>
@@ -37,7 +37,7 @@ const ToastComponent: React.FC<FnxFloatingButtonToast> = ({ id, duration, conten
 export const ToastsSection: React.FC<ToastsSectionProps> = ({ className }) => {
   const { toasts } = useFnxFloatingButtonContext();
   return (
-    <div className={cn('flex flex-col gap-3', className)}>
+    <div className={cn('fnx-toasts-section flex flex-col gap-3', className)}>
       <AnimatePresence mode="popLayout">
         {toasts.map((toast) => (
           <ToastComponent key={toast.id} {...toast} />

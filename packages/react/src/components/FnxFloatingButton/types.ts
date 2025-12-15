@@ -33,6 +33,6 @@ export interface FnxFloatingButtonProps extends BaseProps {
 
 export type FnxFloatingButtonToast = {
   id: string;
-  duration: number | undefined; // Undefined means the toast will stay until the user dismisses it
+  duration?: number; // Undefined means the toast will stay until the user dismisses it
   content: ReactNode;
 };

@@ -10,17 +10,28 @@ export const DebugPage: React.FC = () => {
         <ArrowBackIcon style={{ fontSize: 16 }} />
         <span>Back</span>
       </button>
-      <p className="text-sm font-medium">Debug</p>
-      <p className="text-xs">Toasts:</p>
-      <button
-        onClick={() => {
-          const id = crypto.randomUUID();
-          console.log('Adding toast with id:', id);
-          addToast({ id, duration: 3000, content: <div>Hello, world! {id}</div> });
-        }}
-      >
-        Add Toast
-      </button>
+      <div className="flex flex-col gap-3">
+        <p className="text-sm font-medium">Debug</p>
+        <p className="text-xs">Toasts:</p>
+        <button
+          onClick={() => {
+            const id = crypto.randomUUID();
+            console.log('Adding toast with id:', id);
+            addToast({ id, duration: 3000, content: <div>Hello, world! {id}</div> });
+          }}
+        >
+          Add Toast
+        </button>
+        <button
+          onClick={() => {
+            const id = crypto.randomUUID();
+            console.log('Adding toast with id:', id);
+            addToast({ id, content: <div>Hello, world! (inf) {id}</div> });
+          }}
+        >
+          Add Inf Toast
+        </button>
+      </div>
     </div>
   );
 };
