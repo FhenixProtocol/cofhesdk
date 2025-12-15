@@ -15,7 +15,7 @@ export const AssetCard: React.FC = () => {
   const pinnedTokenAddress = usePinnedTokenAddress();
 
   const chainId = useCofheChainId();
-  const tokens = useTokens(chainId ?? 0);
+  const tokens = useTokens(chainId);
 
   // Get token metadata (decimals and symbol) using multicall for efficiency
   const { data: tokenMetadata } = useTokenMetadata(pinnedTokenAddress);
