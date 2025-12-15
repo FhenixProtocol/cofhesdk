@@ -11,7 +11,6 @@ import {
   type PagesWithoutProps,
   type PagesWithProps,
 } from './pagesConfig/types';
-import { useCofheActivePermit } from '@/hooks/index';
 
 export type TokenListMode = 'view' | 'select';
 
