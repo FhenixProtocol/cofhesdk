@@ -110,6 +110,8 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   const publicClient = useCofhePublicClient();
 
   // Check pending transactions on mount
+
+  // TODO: shoul be wrapped into react-query too, because the way it is now is inefficient (i.e no batching etc) and prone to errors
   useEffect(() => {
     checkPendingTransactions(() => publicClient);
     return () => {
