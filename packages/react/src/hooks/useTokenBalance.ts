@@ -251,7 +251,7 @@ export function useTokenConfidentialBalance(
     accountAddress,
   }: {
     token: Token | undefined;
-    accountAddress: Address;
+    accountAddress?: Address;
   },
   queryOptions?: Omit<UseQueryOptions<bigint, Error>, 'queryKey' | 'queryFn'>
 ): UseQueryResult<bigint, Error> & {
@@ -271,6 +271,7 @@ export function useTokenConfidentialBalance(
 
     queryKey: ['tokenConfidentialBalance', accountAddress, cofheChainId, token?.address, activePermit?.hash],
     queryFn: withQueryErrorCause(ErrorCause.AttemptToFetchConfidentialBalance, async (): Promise<bigint> => {
+      assert(accountAddress, 'Account address is required to fetch confidential token balance');
       assert(publicClient, 'PublicClient is required to fetch confidential token balance');
       assert(token, 'Token is required to fetch confidential token balance');
 
