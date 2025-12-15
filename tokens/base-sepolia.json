@@ -16,7 +16,13 @@
         "coingeckoId": "eeth",
         "fhenix": {
           "confidentialityType": "wrapped",
-          "confidentialValueType": "uint128"
+          "confidentialValueType": "uint128",
+          "erc20Pair": {
+            "address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "symbol": "ETH",
+            "decimals": 18,
+            "logoURI": "https://storage.googleapis.com/cofhesdk/token-icons/eth.webp"
+          }
         }
       }
     },
@@ -31,7 +37,13 @@
         "coingeckoId": "eusdc",
         "fhenix": {
           "confidentialityType": "wrapped",
-          "confidentialValueType": "uint128"
+          "confidentialValueType": "uint128",
+          "erc20Pair": {
+            "address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+            "symbol": "USDC",
+            "decimals": 6,
+            "logoURI": "https://storage.googleapis.com/cofhesdk/token-icons/usdc.webp"
+          }
         }
       }
     },
@@ -49,6 +61,21 @@
           "confidentialValueType": "uint64"
         }
       }
-    }    
+    },
+    {
+      "chainId": 84532,
+      "address": "0x51376e3E2aEA22008B85B4d8f94A67Ee1AFcc142",
+      "name": "Dual Test Token",
+      "symbol": "eToken",
+      "decimals": 6,
+      "logoURI": "https://storage.googleapis.com/cofhesdk/token-icons/default-token.webp",
+      "extensions": {
+        "coingeckoId": "etoken",
+        "fhenix": {
+          "confidentialityType": "dual",
+          "confidentialValueType": "uint64"
+        }
+      }
+    }       
   ]
 }

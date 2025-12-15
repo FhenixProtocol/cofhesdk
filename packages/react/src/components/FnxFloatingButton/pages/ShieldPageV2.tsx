@@ -1,43 +1,49 @@
-import { useState, useMemo } from 'react';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { TbShieldPlus, TbShieldMinus } from 'react-icons/tb';
+import { useMemo, useState } from 'react';
 import { type Address, formatUnits, parseUnits } from 'viem';
 import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext.js';
 import { useCofheAccount, useCofheChainId, useCofhePublicClient } from '../../../hooks/useCofheConnection.js';
 import {
-  useCofheTokenMetadata,
+  useCofheConfidentialTokenBalance,
   useCofhePinnedTokenAddress,
   useCofhePublicTokenBalance,
-  useCofheConfidentialTokenBalance,
+  useCofheTokenMetadata,
 } from '../../../hooks/useCofheTokenBalance.js';
 import { useCofheTokens } from '../../../hooks/useCofheTokenLists.js';
 import {
+  useCofheClaimUnshield,
   useCofheTokenShield,
   useCofheTokenUnshield,
-  useCofheClaimUnshield,
   useCofheUnshieldClaims,
 } from '../../../hooks/useCofheTokenShield.js';
 import { cn } from '../../../utils/cn.js';
 import { truncateHash } from '../../../utils/utils.js';
-import { ShieldMeter, ActionButton, AmountInput, TokenBalance } from '../components/index.js';
+import { ActionButton, AmountInput, TokenBalance, TokenIcon } from '../components/index.js';
 
-// Constants
 const SUCCESS_TIMEOUT = 5000;
 const DISPLAY_DECIMALS = 2;
 
-export const ShieldPage: React.FC = () => {
+type Mode = 'shield' | 'unshield';
+
+const derivePairedSymbol = (confidentialSymbol: string) => {
+  if (confidentialSymbol.startsWith('f')) return confidentialSymbol.slice(1);
+  if (confidentialSymbol.startsWith('e')) return confidentialSymbol.slice(1);
+  return confidentialSymbol;
+};
+
+export const ShieldPageV2: React.FC = () => {
   const { navigateBack, selectedToken, navigateToTokenListForSelection } = useFnxFloatingButtonContext();
   const account = useCofheAccount();
   const chainId = useCofheChainId();
   const publicClient = useCofhePublicClient();
   const tokens = useCofheTokens(chainId ?? 0);
 
-  // Separate states for shield and unshield amounts
+  const [mode, setMode] = useState<Mode>('shield');
   const [shieldAmount, setShieldAmount] = useState('');
   const [unshieldAmount, setUnshieldAmount] = useState('');
   const [error, setError] = useState<string | null>(null);
-  // Unified status message with type
   const [status, setStatus] = useState<{ message: string; type: 'info' | 'success' } | null>(null);
   const [isRefreshingBalances, setIsRefreshingBalances] = useState(false);
   const [isWaitingForConfirmation, setIsWaitingForConfirmation] = useState(false);
@@ -48,11 +54,9 @@ export const ShieldPage: React.FC = () => {
 
   const pinnedTokenAddress = useCofhePinnedTokenAddress();
 
-  // Use selected token if available, otherwise fall back to pinned token
   const activeTokenAddress =
     selectedToken && !selectedToken.isNative ? (selectedToken.address as Address) : pinnedTokenAddress;
 
-  // Filter tokens to only show shieldable tokens (dual and wrapped)
   const shieldableTokens = useMemo(() => {
     return tokens.filter((t) => {
       const type = t.extensions.fhenix.confidentialityType;
@@ -60,7 +64,6 @@ export const ShieldPage: React.FC = () => {
     });
   }, [tokens]);
 
-  // Find token from token list
   const tokenFromList = useMemo(() => {
     if (!activeTokenAddress || !chainId) return null;
     return (
@@ -72,11 +75,8 @@ export const ShieldPage: React.FC = () => {
 
   const { data: tokenMetadata } = useCofheTokenMetadata(activeTokenAddress);
 
-  // Determine token type
   const confidentialityType = tokenFromList?.extensions.fhenix.confidentialityType;
-  const isWrappedToken = confidentialityType === 'wrapped';
 
-  // Get public balance using unified hook
   const {
     numericValue: publicBalanceNum,
     isLoading: isLoadingPublic,
@@ -86,7 +86,6 @@ export const ShieldPage: React.FC = () => {
     { enabled: !!tokenFromList && !!account }
   );
 
-  // Get confidential balance using unified hook
   const {
     numericValue: confidentialBalanceNum,
     isLoading: isLoadingConfidential,
@@ -96,19 +95,14 @@ export const ShieldPage: React.FC = () => {
     { enabled: !!tokenFromList && !!account }
   );
 
-  // Unified unshield claims hook - works for both dual and wrapped tokens
   const { data: unshieldClaims, refetch: refetchClaims } = useCofheUnshieldClaims(
-    {
-      token: tokenFromList,
-      accountAddress: account as Address,
-    },
+    { token: tokenFromList, accountAddress: account as Address },
     {
       enabled: !!tokenFromList && !!account && (confidentialityType === 'dual' || confidentialityType === 'wrapped'),
       refetchInterval: 5000,
     }
   );
 
-  // Function to refresh all balances and claims
   const refreshBalances = async () => {
     setIsRefreshingBalances(true);
     try {
@@ -118,15 +112,12 @@ export const ShieldPage: React.FC = () => {
     }
   };
 
-  // Helper to execute transaction with common status/confirmation flow
   const executeTransaction = async (
     txFn: () => Promise<`0x${string}`>,
     successMessage: string,
     errorMessage: string
   ): Promise<`0x${string}`> => {
-    if (!publicClient) {
-      throw new Error('PublicClient is required');
-    }
+    if (!publicClient) throw new Error('PublicClient is required');
 
     setError(null);
     setStatus({ message: 'Preparing transaction...', type: 'info' });
@@ -156,18 +147,6 @@ export const ShieldPage: React.FC = () => {
     }
   };
 
-  // Use selected token metadata if available, otherwise use fetched metadata
-  const displayToken =
-    selectedToken ||
-    (tokenMetadata
-      ? {
-          name: tokenMetadata.name,
-          symbol: tokenMetadata.symbol,
-          decimals: tokenMetadata.decimals,
-          logoURI: undefined,
-        }
-      : null);
-
   const isProcessing =
     tokenShield.isPending ||
     tokenUnshield.isPending ||
@@ -175,7 +154,6 @@ export const ShieldPage: React.FC = () => {
     isRefreshingBalances ||
     isWaitingForConfirmation;
 
-  // Validate amounts
   const isValidShieldAmount = useMemo(() => {
     if (!shieldAmount) return false;
     const numAmount = parseFloat(shieldAmount);
@@ -190,23 +168,22 @@ export const ShieldPage: React.FC = () => {
     return numAmount <= confidentialBalanceNum;
   }, [unshieldAmount, confidentialBalanceNum]);
 
-  // Check if token supports shielding
   const isShieldableToken = useMemo(() => {
     if (!tokenFromList) return false;
     const type = tokenFromList.extensions.fhenix.confidentialityType;
     return type === 'dual' || type === 'wrapped';
   }, [tokenFromList]);
 
-  const handleShieldMax = () => {
-    if (publicBalanceNum > 0) {
-      setShieldAmount(publicBalanceNum.toString());
-    }
-  };
+  const tokenSymbol = tokenFromList?.symbol || tokenMetadata?.symbol || 'TOKEN';
+  const pairedSymbol = tokenFromList?.extensions.fhenix.erc20Pair?.symbol || derivePairedSymbol(tokenSymbol);
 
+  const pairedLogoURI = tokenFromList?.extensions.fhenix.erc20Pair?.logoURI;
+
+  const handleShieldMax = () => {
+    if (publicBalanceNum > 0) setShieldAmount(publicBalanceNum.toString());
+  };
   const handleUnshieldMax = () => {
-    if (confidentialBalanceNum > 0) {
-      setUnshieldAmount(confidentialBalanceNum.toString());
-    }
+    if (confidentialBalanceNum > 0) setUnshieldAmount(confidentialBalanceNum.toString());
   };
 
   const handleShield = async () => {
@@ -214,14 +191,12 @@ export const ShieldPage: React.FC = () => {
       setError('Missing required data. Please ensure wallet is connected and a token is selected.');
       return;
     }
-
     if (!isValidShieldAmount) {
       setError('Invalid shield amount. Please check your balance.');
       return;
     }
 
     const amountInSmallestUnit = parseUnits(shieldAmount, tokenMetadata.decimals);
-
     try {
       await executeTransaction(
         () =>
@@ -235,7 +210,7 @@ export const ShieldPage: React.FC = () => {
       );
       setShieldAmount('');
     } catch {
-      // Error already handled by executeTransaction
+      // handled
     }
   };
 
@@ -244,14 +219,12 @@ export const ShieldPage: React.FC = () => {
       setError('Missing required data. Please ensure wallet is connected and a token is selected.');
       return;
     }
-
     if (!isValidUnshieldAmount) {
       setError('Invalid unshield amount. Please check your balance.');
       return;
     }
 
     const amountInSmallestUnit = parseUnits(unshieldAmount, tokenMetadata.decimals);
-
     try {
       await executeTransaction(
         () =>
@@ -265,7 +238,7 @@ export const ShieldPage: React.FC = () => {
       );
       setUnshieldAmount('');
     } catch {
-      // Error already handled by executeTransaction
+      // handled
     }
   };
 
@@ -274,7 +247,6 @@ export const ShieldPage: React.FC = () => {
       setError('Missing token data');
       return;
     }
-
     try {
       await executeTransaction(
         () =>
@@ -286,116 +258,171 @@ export const ShieldPage: React.FC = () => {
         'Failed to claim tokens'
       );
     } catch {
-      // Error already handled by executeTransaction
+      // handled
     }
   };
 
-  // Token symbol for display
-  const tokenSymbol = displayToken?.symbol || tokenMetadata?.symbol || 'TOKEN';
-  // ERC20 pair symbol (for shield side)
-  const erc20Symbol = tokenFromList?.extensions.fhenix.erc20Pair?.symbol || tokenSymbol.replace(/^e/, '');
+  const inputAmount = mode === 'shield' ? shieldAmount : unshieldAmount;
+  const setInputAmount = mode === 'shield' ? setShieldAmount : setUnshieldAmount;
+  const onMaxClick = mode === 'shield' ? handleShieldMax : handleUnshieldMax;
+  const isValidAmount = mode === 'shield' ? isValidShieldAmount : isValidUnshieldAmount;
 
-  // Calculate meter percentage: shielded / total
-  const meterPercentage = useMemo(() => {
-    const total = publicBalanceNum + confidentialBalanceNum;
-    if (total > 0) {
-      return (confidentialBalanceNum / total) * 100;
-    }
-    return 0;
-  }, [publicBalanceNum, confidentialBalanceNum]);
+  const sourceSymbol = mode === 'shield' ? pairedSymbol : tokenSymbol;
+  const destSymbol = mode === 'shield' ? tokenSymbol : pairedSymbol;
+
+  const sourceAvailable = mode === 'shield' ? publicBalanceNum : confidentialBalanceNum;
+  const destAvailable = mode === 'shield' ? confidentialBalanceNum : publicBalanceNum;
+
+  const isLoadingSource = mode === 'shield' ? isLoadingPublic : isLoadingConfidential;
+  const isLoadingDest = mode === 'shield' ? isLoadingConfidential : isLoadingPublic;
+
+  const sourceLogoURI = mode === 'shield' ? pairedLogoURI : tokenFromList?.logoURI;
+  const destLogoURI = mode === 'shield' ? tokenFromList?.logoURI : pairedLogoURI;
+
+  const handlePrimaryAction = mode === 'shield' ? handleShield : handleUnshield;
+  const primaryLabel = mode === 'shield' ? 'Shield' : 'Unshield';
+  const primaryIcon = mode === 'shield' ? <TbShieldPlus className="w-3 h-3" /> : <TbShieldMinus className="w-3 h-3" />;
 
   return (
     <div className="fnx-text-primary space-y-3">
-      {/* Back Button */}
-      <button onClick={navigateBack} className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity">
-        <ArrowBackIcon style={{ fontSize: 16 }} />
-        <p className="text-sm font-medium">Shield</p>
-      </button>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <button onClick={navigateBack} className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity">
+          <ArrowBackIcon style={{ fontSize: 16 }} />
+          <p className="text-sm font-medium">Shield / Unshield</p>
+        </button>
 
-      {/* Three Column Layout */}
-      <div className="grid grid-cols-3 gap-2">
-        {/* Left Column: Shield */}
-        <div className="flex flex-col items-center space-y-2">
-          <p className="text-xs font-medium opacity-70">Unshielded</p>
-          <TokenBalance
-            value={publicBalanceNum}
-            isLoading={isLoadingPublic}
-            symbol={erc20Symbol}
-            showSymbol={false}
-            decimalPrecision={DISPLAY_DECIMALS}
-            size="sm"
-            className="font-bold"
-          />
-          <p className="text-xs opacity-60">{erc20Symbol}</p>
+        <button
+          onClick={() =>
+            navigateToTokenListForSelection(mode === 'shield' ? 'Select token to shield' : 'Select token to unshield')
+          }
+          className="flex items-center gap-1 text-sm font-bold fnx-text-primary hover:opacity-80 transition-opacity"
+        >
+          <span>{tokenSymbol}</span>
+          <KeyboardArrowDownIcon style={{ fontSize: 16 }} className="opacity-60" />
+        </button>
+      </div>
 
-          <AmountInput value={shieldAmount} onChange={setShieldAmount} onMaxClick={handleShieldMax} />
+      {/* Tabs */}
+      <div className="flex gap-2">
+        <ActionButton
+          onClick={() => setMode('shield')}
+          variant="tab"
+          className="flex-1"
+          pressed={mode === 'shield'}
+          label="Shield"
+        />
+        <ActionButton
+          onClick={() => setMode('unshield')}
+          variant="tab"
+          className="flex-1"
+          pressed={mode === 'unshield'}
+          label="Unshield"
+        />
+      </div>
 
-          <ActionButton
-            onClick={handleShield}
-            disabled={!isValidShieldAmount || isProcessing || !activeTokenAddress || !isShieldableToken}
-            icon={<TbShieldPlus className="w-3 h-3" />}
-            label="Shield"
-          />
+      {/* Missing selection */}
+      {!activeTokenAddress && (
+        <div className="fnx-card-bg border fnx-card-border p-2">
+          <p className="text-xs opacity-70">Select a token to continue</p>
+        </div>
+      )}
+
+      {/* Two-panel layout */}
+      <div className="space-y-2">
+        {/* Source */}
+        <div className="fnx-card-bg border fnx-card-border p-3">
+          <p className="text-xs opacity-70 mb-2">
+            {mode === 'shield' ? 'Asset to be shielded' : 'Asset to be unshielded'}
+          </p>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <TokenIcon logoURI={sourceLogoURI} alt={sourceSymbol} size="sm" />
+              <div className="min-w-0">
+                <AmountInput value={inputAmount} onChange={setInputAmount} onMaxClick={onMaxClick} className="w-28" />
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-sm font-medium">{sourceSymbol}</p>
+              <p className="text-xxs opacity-70">
+                Available{' '}
+                <TokenBalance
+                  value={sourceAvailable}
+                  isLoading={isLoadingSource}
+                  symbol={sourceSymbol}
+                  showSymbol={false}
+                  decimalPrecision={DISPLAY_DECIMALS}
+                  size="sm"
+                  className="inline font-bold"
+                />{' '}
+                {sourceSymbol}
+              </p>
+            </div>
+          </div>
         </div>
 
-        {/* Center Column: Token Selector + Meter */}
-        <div className="flex flex-col items-center">
-          <button
-            onClick={() => navigateToTokenListForSelection('Select token to shield/unshield')}
-            className="flex items-center gap-1 text-sm font-bold fnx-text-primary hover:opacity-80 transition-opacity mb-1"
-          >
-            <span>{tokenSymbol}</span>
-            <KeyboardArrowDownIcon style={{ fontSize: 16 }} className="opacity-60" />
-          </button>
+        <div className="flex justify-center text-xl opacity-80">↓</div>
 
-          <ShieldMeter percentage={meterPercentage} size={100} showPercentage={true} isProcessing={isProcessing} />
-
-          {/* Claim button (unified for dual and wrapped) */}
-          {unshieldClaims?.hasClaimable && tokenMetadata && (
-            <ActionButton
-              onClick={handleClaim}
-              disabled={claimUnshield.isPending || isRefreshingBalances}
-              label={
-                claimUnshield.isPending
-                  ? 'Claiming...'
-                  : `Claim ${formatUnits(unshieldClaims.claimableAmount, tokenMetadata.decimals)} ${erc20Symbol}`
-              }
-              className="mt-2"
-            />
-          )}
-
-          {/* Pending decryption notice */}
-          {unshieldClaims?.hasPending && tokenMetadata && !unshieldClaims.hasClaimable && (
-            <p className="text-xxs text-yellow-600 dark:text-yellow-400 mt-2 text-center">
-              Pending: {formatUnits(unshieldClaims.pendingAmount, tokenMetadata.decimals)} {erc20Symbol}
-            </p>
-          )}
-        </div>
-
-        {/* Right Column: Unshield */}
-        <div className="flex flex-col items-center space-y-2">
-          <p className="text-xs font-medium opacity-70">Shielded</p>
-          <TokenBalance
-            value={confidentialBalanceNum}
-            isLoading={isLoadingConfidential}
-            symbol={tokenSymbol}
-            showSymbol={false}
-            decimalPrecision={DISPLAY_DECIMALS}
-            size="sm"
-            className="font-bold"
-          />
-          <p className="text-xs opacity-60">{tokenSymbol}</p>
-
-          <AmountInput value={unshieldAmount} onChange={setUnshieldAmount} onMaxClick={handleUnshieldMax} />
-
-          <ActionButton
-            onClick={handleUnshield}
-            disabled={!isValidUnshieldAmount || isProcessing || !activeTokenAddress || !isShieldableToken}
-            icon={<TbShieldMinus className="w-3 h-3" />}
-            label="Unshield"
-          />
+        {/* Received (read-only) */}
+        <div className="fnx-card-bg border fnx-card-border p-3">
+          <p className="text-xs opacity-70 mb-2">
+            {mode === 'shield' ? 'Shielded asset received' : 'Unshielded asset received'}
+          </p>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <TokenIcon logoURI={destLogoURI} alt={destSymbol} size="sm" />
+              <div className="min-w-0">
+                <p className="text-lg font-bold leading-none">{inputAmount || '0'}</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-sm font-medium">{destSymbol}</p>
+              <p className="text-xxs opacity-70">
+                Balance{' '}
+                <TokenBalance
+                  value={destAvailable}
+                  isLoading={isLoadingDest}
+                  symbol={destSymbol}
+                  showSymbol={false}
+                  decimalPrecision={DISPLAY_DECIMALS}
+                  size="sm"
+                  className="inline font-bold"
+                />{' '}
+                {destSymbol}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Primary action */}
+      <ActionButton
+        onClick={handlePrimaryAction}
+        disabled={!isValidAmount || isProcessing || !activeTokenAddress || !isShieldableToken}
+        icon={primaryIcon}
+        label={primaryLabel}
+        className="py-2"
+      />
+
+      {/* Claim + pending (same logic as ShieldPage) */}
+      {unshieldClaims?.hasClaimable && tokenMetadata && (
+        <ActionButton
+          onClick={handleClaim}
+          disabled={claimUnshield.isPending || isRefreshingBalances}
+          label={
+            claimUnshield.isPending
+              ? 'Claiming...'
+              : `Claim ${formatUnits(unshieldClaims.claimableAmount, tokenMetadata.decimals)} ${pairedSymbol}`
+          }
+          className="mt-1"
+        />
+      )}
+
+      {unshieldClaims?.hasPending && tokenMetadata && !unshieldClaims.hasClaimable && (
+        <p className="text-xxs text-yellow-600 dark:text-yellow-400 text-center">
+          Pending: {formatUnits(unshieldClaims.pendingAmount, tokenMetadata.decimals)} {pairedSymbol}
+        </p>
+      )}
 
       {/* Not Shieldable Token Warning */}
       {tokenFromList && !isShieldableToken && (
@@ -406,14 +433,14 @@ export const ShieldPage: React.FC = () => {
         </div>
       )}
 
-      {/* Error Message */}
+      {/* Error */}
       {error && (
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-2">
           <p className="text-xs text-red-800 dark:text-red-200">{error}</p>
         </div>
       )}
 
-      {/* Unified Status Message */}
+      {/* Status */}
       {status && (
         <div
           className={cn(

@@ -1,7 +1,7 @@
 import { formatUnits } from 'viem';
 import { cn } from '../../../utils/cn.js';
 import { GoArrowUpRight } from 'react-icons/go';
-import { TbShieldPlus, TbShieldMinus } from 'react-icons/tb';
+import { TbShieldPlus, TbShieldMinus, TbShieldCheck } from 'react-icons/tb';
 import {
   type Transaction,
   TransactionStatus,
@@ -26,6 +26,8 @@ const ActionIcon: React.FC<{ actionType: TransactionActionType }> = ({ actionTyp
       return <TbShieldPlus className={iconClassName} />;
     case TransactionActionType.Unshield:
       return <TbShieldMinus className={iconClassName} />;
+    case TransactionActionType.Claim:
+      return <TbShieldCheck className={iconClassName} />;
     default:
       return <GoArrowUpRight className={iconClassName} />;
   }

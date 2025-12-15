@@ -2,7 +2,7 @@ import { useMutation, type UseMutationOptions, type UseMutationResult } from '@t
 import { type Address } from 'viem';
 import { useCofheWalletClient, useCofheChainId, useCofheAccount, useCofhePublicClient } from './useCofheConnection.js';
 import { useCofheContext } from '../providers/index.js';
-import type { Token } from './useTokenLists.js';
+import type { Token } from './useCofheTokenLists.js';
 import { TRANSFER_ABIS } from '../constants/confidentialTokenABIs.js';
 import { addTransactionAndWatch, TransactionActionType } from '../stores/transactionStore.js';
 
@@ -33,7 +33,7 @@ type UseTokenTransferOptions = Omit<UseMutationOptions<`0x${string}`, Error, Use
  * @param options - Optional React Query mutation options
  * @returns Mutation result with transaction hash
  */
-export function useTokenTransfer(
+export function useCofheTokenTransfer(
   options?: UseTokenTransferOptions
 ): UseMutationResult<`0x${string}`, Error, UseTokenTransferInput> {
   const walletClient = useCofheWalletClient();

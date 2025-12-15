@@ -4,21 +4,25 @@ import { IoMdKey } from 'react-icons/io';
 import { AiOutlinePieChart } from 'react-icons/ai';
 import { TbShieldPlus } from 'react-icons/tb';
 import { useFnxFloatingButtonContext } from '../../FnxFloatingButtonContext';
-import { FloatingButtonPage, type PagesWithoutProps } from '../../pagesConfig/types';
+import { FloatingButtonPage } from '../../pagesConfig/types';
 
 type NavItem = {
-  id: PagesWithoutProps;
+  id: FloatingButtonPage;
   label: string;
   icon: React.ReactNode;
 };
 
 export const BottomNavigation: React.FC = () => {
-  const { navigateTo, expandPanel } = useFnxFloatingButtonContext();
+  const { navigateTo, navigateToTokenListForView, expandPanel } = useFnxFloatingButtonContext();
   const iconClassName = 'w-4 h-4';
 
-  const handleNavClick = (page: PagesWithoutProps) => {
+  const handleNavClick = (page: FloatingButtonPage) => {
     expandPanel(); // Ensure panel is expanded
-    navigateTo(page);
+    if (page === FloatingButtonPage.TokenList) {
+      navigateToTokenListForView();
+      return;
+    }
+    navigateTo(page as any);
   };
 
   const navItems: NavItem[] = [

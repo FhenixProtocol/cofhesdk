@@ -2,8 +2,13 @@ import { cn } from '../../utils/cn';
 import { useState, useEffect, useRef, useMemo } from 'react';
 
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
-import { pages } from './pagesConfig/const';
-import type { PageState } from './pagesConfig/types';
+import { pages as pagesConfig } from './pagesConfig/const';
+import { FloatingButtonPage, type PageState, type FloatingButtonPagePropsMap } from './pagesConfig/types';
+import { ShieldPageV2 } from './pages/ShieldPageV2';
+import { TokenListPage } from './pages/TokenListPage';
+import { PermitDetailsPage } from './pages/permits/PermitDetailsPage';
+import type { PermitDetailsPageProps } from './pages/permits/PermitDetailsPage/types';
+import { useSettingsStore, ShieldPageVariant } from './stores/settingsStore';
 
 const CONTENT_TRANSITION_DURATION = 150; // Duration in milliseconds for content fade transition
 
@@ -17,13 +22,47 @@ interface ContentSectionProps {
 export const ContentSection: React.FC<ContentSectionProps> = ({ className, contentPadding = 16, overriddingPage }) => {
   const { currentPage: pageFromContext, showPopupPanel, isTopSide, isLeftSide } = useFnxFloatingButtonContext();
   const currentPage = overriddingPage ?? pageFromContext;
+  const { shieldPageVariant } = useSettingsStore();
+
+  // Determine which shield page to render based on A/B test setting
+  const pages = useMemo(() => {
+    const ShieldPageComponent =
+      shieldPageVariant === ShieldPageVariant.Option2 ? ShieldPageV2 : pagesConfig[FloatingButtonPage.Shield];
+    return {
+      ...pagesConfig,
+      [FloatingButtonPage.Shield]: ShieldPageComponent,
+    };
+  }, [shieldPageVariant]);
+
+  // Type-safe helper to render a page component
+  const renderPageComponent = <K extends FloatingButtonPage>(
+    page: K,
+    props: FloatingButtonPagePropsMap[K] | undefined
+  ): React.ReactElement => {
+    // Special handling for PermitDetails page which requires props
+    if (page === FloatingButtonPage.PermitDetails) {
+      // TypeScript knows props must be PermitDetailsPageProps here
+      if (!props) {
+        throw new Error('PermitDetails page requires props');
+      }
+      // Use the specific type instead of the mapped type for better type safety
+      return <PermitDetailsPage {...(props as PermitDetailsPageProps)} />;
+    }
+
+    // TokenList accepts optional props (e.g. title override)
+    if (page === FloatingButtonPage.TokenList) {
+      return <TokenListPage {...((props ?? {}) as FloatingButtonPagePropsMap[FloatingButtonPage.TokenList])} />;
+    }
+
+    // All other pages don't require props (void type)
+    const PageComp = pages[page] as React.ComponentType<Record<string, never>>;
+    return <PageComp />;
+  };
 
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [displayedContent, setDisplayedContent] = useState(() => {
-    const PageComp = pages[currentPage.page];
-    const props = currentPage.props ?? {};
-    return <PageComp {...props} />;
-  });
+  const [displayedContent, setDisplayedContent] = useState(() =>
+    renderPageComponent(currentPage.page, currentPage.props)
+  );
   const [contentHeight, setContentHeight] = useState<number>(0);
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -46,9 +85,7 @@ export const ContentSection: React.FC<ContentSectionProps> = ({ className, conte
   // Update content when page changes
   useEffect(() => {
     function renderPage() {
-      const PageComp = pages[currentPage.page];
-      const props = currentPage.props ?? {};
-      setDisplayedContent(<PageComp {...props} />);
+      setDisplayedContent(renderPageComponent(currentPage.page, currentPage.props));
       setIsTransitioning(false);
     }
     if (!showPopupPanel) {
@@ -59,7 +96,7 @@ export const ContentSection: React.FC<ContentSectionProps> = ({ className, conte
     } else {
       renderPage();
     }
-  }, [currentPage, showPopupPanel]);
+  }, [currentPage, showPopupPanel, pages]);
 
   return (
     <div

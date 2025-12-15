@@ -1,4 +1,5 @@
 import * as viemChains from 'viem/chains';
+import { ETH_ADDRESS, type Token, type Erc20Pair } from '../types/token.js';
 
 // Build a lookup map of chainId -> viem chain (for block explorers, etc.)
 const viemChainById = Object.values(viemChains).reduce<Record<number, (typeof viemChains)[keyof typeof viemChains]>>(
@@ -52,6 +53,30 @@ export const getBlockExplorerAddressUrl = (chainId: number, address: string): st
 export const getBlockExplorerTokenUrl = (chainId: number, tokenAddress: string): string | undefined => {
   const baseUrl = getBlockExplorerUrl(chainId);
   return baseUrl ? `${baseUrl}/token/${tokenAddress}` : undefined;
+};
+
+// ============================================================================
+// Token Helper Functions
+// ============================================================================
+
+/**
+ * Check if an erc20Pair address is the native ETH address
+ * @param erc20Pair - The ERC20 pair object from token extensions
+ * @returns True if the pair address matches ETH_ADDRESS
+ */
+export const isEthPair = (erc20Pair: Erc20Pair | undefined): boolean => {
+  if (!erc20Pair) return false;
+  return erc20Pair.address.toLowerCase() === ETH_ADDRESS.toLowerCase();
+};
+
+/**
+ * Check if a token is a wrapped ETH token (ConfidentialETH)
+ * @param token - The token object
+ * @returns True if the token is a wrapped token with ETH as the underlying pair
+ */
+export const isWrappedEthToken = (token: Token): boolean => {
+  if (token.extensions.fhenix.confidentialityType !== 'wrapped') return false;
+  return isEthPair(token.extensions.fhenix.erc20Pair);
 };
 
 // FHE Types for the current CoFHE SDK
