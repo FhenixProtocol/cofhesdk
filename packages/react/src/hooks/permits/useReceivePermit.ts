@@ -44,8 +44,7 @@ export function useReceivePermit(onSuccess?: () => void): UseReceivePermitReturn
         }
       }
 
-      const result = await client.permits.importShared(importArg);
-      if (!result.success) throw result.error;
+      await client.permits.importShared(importArg);
 
       setSuccessMsg('Permit received and set active.');
       if (onSuccess) onSuccess();

@@ -1,6 +1,7 @@
 import hre from 'hardhat';
 import { TASK_COFHE_MOCKS_DEPLOY } from './consts';
 import { Encryptable, FheTypes } from '@cofhe/sdk';
+import { expect } from 'chai';
 
 describe('Encrypt Inputs Test', () => {
   it('Should encrypt inputs', async () => {
@@ -10,9 +11,7 @@ describe('Encrypt Inputs Test', () => {
 
     const client = await hre.cofhesdk.createBatteriesIncludedCofhesdkClient(signer);
 
-    const encryptedResult = await client.encryptInputs([Encryptable.uint32(7n)]).encrypt();
-
-    const encrypted = await hre.cofhesdk.expectResultSuccess(encryptedResult);
+    const encrypted = await client.encryptInputs([Encryptable.uint32(7n)]).encrypt();
 
     // Add number to TestBed
     const testBed = await hre.cofhesdk.mocks.getTestBed();
@@ -20,9 +19,8 @@ describe('Encrypt Inputs Test', () => {
     const ctHash = await testBed.numberHash();
 
     // Decrypt number from TestBed
-    const unsealedResult = await client.decryptHandle(ctHash, FheTypes.Uint32).decrypt();
+    const unsealed = await client.decryptHandle(ctHash, FheTypes.Uint32).decrypt();
 
-    await hre.cofhesdk.expectResultSuccess(unsealedResult);
-    await hre.cofhesdk.expectResultValue(unsealedResult, 7n);
+    expect(unsealed).to.be.equal(7n);
   });
 });

@@ -100,14 +100,10 @@ async function encryptValue<T extends EncryptableItem | EncryptableArray>(
 
   const result = await encryptionBuilder.encrypt();
 
-  if (!result.success) {
-    throw result.error;
-  }
-
   if (Array.isArray(input)) {
-    return result.data as EncryptedInputs<T>;
+    return result as EncryptedInputs<T>;
   }
-  return result.data[0] as EncryptedInputs<T>;
+  return result[0] as EncryptedInputs<T>;
 }
 
 type UseMutationResultEncryptAsync<T extends EncryptableItem | EncryptableArray> = UseMutationResult<

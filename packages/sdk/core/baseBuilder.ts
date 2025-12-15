@@ -21,34 +21,44 @@ export type BaseBuilderParams = {
  * for working with clients, config, and chain IDs
  */
 export abstract class BaseBuilder {
-  protected config: CofhesdkConfig | undefined;
+  protected config: CofhesdkConfig;
+
   protected publicClient: PublicClient | undefined;
   protected walletClient: WalletClient | undefined;
 
   protected chainId: number | undefined;
   protected account: string | undefined;
 
-  protected requireConnected: (() => void) | undefined;
-
   constructor(params: BaseBuilderParams) {
+    // Check that config is provided
+    if (!params.config) {
+      throw new CofhesdkError({
+        code: CofhesdkErrorCode.MissingConfig,
+        message: 'Builder config is undefined',
+        hint: 'Ensure client has been created with a config.',
+        context: {
+          config: params.config,
+        },
+      });
+    }
     this.config = params.config;
+
     this.publicClient = params.publicClient;
     this.walletClient = params.walletClient;
 
     this.chainId = params.chainId;
     this.account = params.account;
 
-    this.requireConnected = params.requireConnected;
+    // Require the client to be connected if passed as param
+    params.requireConnected?.();
   }
 
   /**
-   * Gets the chain ID from the instance or fetches it from the public client
-   * @returns The chain ID
-   * @throws {CofhesdkError} If chainId is not set and publicClient is not available
+   * Asserts that this.chainId is populated
+   * @throws {CofhesdkError} If chainId is not set
    */
-  protected getChainIdOrThrow(): number {
-    if (this.chainId) return this.chainId;
-
+  protected assertChainId(): asserts this is this & { chainId: number } {
+    if (this.chainId) return;
     throw new CofhesdkError({
       code: CofhesdkErrorCode.ChainIdUninitialized,
       message: 'Chain ID is not set',
@@ -60,13 +70,11 @@ export abstract class BaseBuilder {
   }
 
   /**
-   * Gets the account address from the instance or fetches it from the wallet client
-   * @returns The account address
-   * @throws {CofhesdkError} If account is not set and walletClient is not available
+   * Asserts that this.account is populated
+   * @throws {CofhesdkError} If account is not set
    */
-  protected getAccountOrThrow(): string {
-    if (this.account) return this.account;
-
+  protected assertAccount(): asserts this is this & { account: string } {
+    if (this.account) return;
     throw new CofhesdkError({
       code: CofhesdkErrorCode.AccountUninitialized,
       message: 'Account is not set',
@@ -78,29 +86,11 @@ export abstract class BaseBuilder {
   }
 
   /**
-   * Gets the config or throws an error if not available
-   * @returns The config
-   * @throws {CofhesdkError} If config is not set
-   */
-  protected getConfigOrThrow(): CofhesdkConfig {
-    if (this.config) return this.config;
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.MissingConfig,
-      message: 'Builder config is undefined',
-      hint: 'Ensure client has been created with a config.',
-      context: {
-        config: this.config,
-      },
-    });
-  }
-
-  /**
-   * Gets the public client or throws an error if not available
-   * @returns The public client
+   * Asserts that this.publicClient is populated
    * @throws {CofhesdkError} If publicClient is not set
    */
-  protected getPublicClientOrThrow(): PublicClient {
-    if (this.publicClient) return this.publicClient;
+  protected assertPublicClient(): asserts this is this & { publicClient: PublicClient } {
+    if (this.publicClient) return;
     throw new CofhesdkError({
       code: CofhesdkErrorCode.MissingPublicClient,
       message: 'Public client not found',
@@ -112,12 +102,11 @@ export abstract class BaseBuilder {
   }
 
   /**
-   * Gets the wallet client or throws an error if not available
-   * @returns The wallet client
+   * Asserts that this.walletClient is populated
    * @throws {CofhesdkError} If walletClient is not set
    */
-  protected getWalletClientOrThrow(): WalletClient {
-    if (this.walletClient) return this.walletClient;
+  protected assertWalletClient(): asserts this is this & { walletClient: WalletClient } {
+    if (this.walletClient) return;
     throw new CofhesdkError({
       code: CofhesdkErrorCode.MissingWalletClient,
       message: 'Wallet client not found',
@@ -126,13 +115,5 @@ export abstract class BaseBuilder {
         walletClient: this.walletClient,
       },
     });
-  }
-
-  /**
-   * Requires the client to be connected
-   * @throws {CofhesdkError} If client is not connected
-   */
-  protected requireConnectedOrThrow(): void {
-    if (this.requireConnected) this.requireConnected();
   }
 }

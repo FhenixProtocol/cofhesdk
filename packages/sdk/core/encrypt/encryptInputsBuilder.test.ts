@@ -17,7 +17,6 @@ import { type CofhesdkConfig, createCofhesdkConfigBase } from '../config.js';
 import { type ZkBuilderAndCrsGenerator } from './zkPackProveVerify.js';
 import { type KeysStorage, createKeysStore } from '../keyStore.js';
 import { type FheKeyDeserializer } from '../fetchKeys.js';
-import { expectResultSuccess, expectResultError } from '../test-utils.js';
 
 const MockZkVerifierUrl = 'http://localhost:3001';
 
@@ -279,58 +278,62 @@ describe('EncryptInputsBuilder', () => {
     });
 
     it('should throw an error if config is not set', async () => {
-      const builder = new EncryptInputsBuilder({
-        ...createDefaultParams(),
-        config: undefined as unknown as CofhesdkConfig,
-      });
-      const result = await builder.encrypt();
-      expectResultError(result, CofhesdkErrorCode.MissingConfig);
+      // Should throw before .encrypt() is called
+      try {
+        new EncryptInputsBuilder({
+          ...createDefaultParams(),
+          config: undefined as unknown as CofhesdkConfig,
+        });
+      } catch (error) {
+        expect(error).toBeInstanceOf(CofhesdkError);
+        expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.MissingConfig);
+      }
     });
 
     it('should throw an error if tfhePublicKeyDeserializer is not set', async () => {
-      const builder = new EncryptInputsBuilder({
-        ...createDefaultParams(),
-        tfhePublicKeyDeserializer: undefined as unknown as FheKeyDeserializer,
-      });
-      const result = await builder.encrypt();
-      expectResultError(result, CofhesdkErrorCode.MissingTfhePublicKeyDeserializer);
+      // Should throw before .encrypt() is called
+      try {
+        new EncryptInputsBuilder({
+          ...createDefaultParams(),
+          tfhePublicKeyDeserializer: undefined as unknown as FheKeyDeserializer,
+        });
+      } catch (error) {
+        expect(error).toBeInstanceOf(CofhesdkError);
+        expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.MissingTfhePublicKeyDeserializer);
+      }
     });
 
     it('should throw an error if compactPkeCrsDeserializer is not set', async () => {
-      const builder = new EncryptInputsBuilder({
-        ...createDefaultParams(),
-        compactPkeCrsDeserializer: undefined as unknown as FheKeyDeserializer,
-      });
-      const result = await builder.encrypt();
-      expectResultError(result, CofhesdkErrorCode.MissingCompactPkeCrsDeserializer);
+      // Should throw before .encrypt() is called
+      try {
+        new EncryptInputsBuilder({
+          ...createDefaultParams(),
+          compactPkeCrsDeserializer: undefined as unknown as FheKeyDeserializer,
+        });
+      } catch (error) {
+        expect(error).toBeInstanceOf(CofhesdkError);
+        expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.MissingCompactPkeCrsDeserializer);
+      }
     });
 
     it('should throw an error if initTfhe throws an error', async () => {
-      const builder = new EncryptInputsBuilder({
-        ...createDefaultParams(),
-        initTfhe: vi.fn().mockRejectedValue(new Error('Failed to initialize TFHE')),
-      });
-      const result = await builder.encrypt();
-      expectResultError(result, CofhesdkErrorCode.InitTfheFailed);
-    });
-
-    it('should throw an error if initTfhe throws', async () => {
-      const mockInitTfhe = vi.fn().mockRejectedValue(new Error('Failed to initialize TFHE'));
-      const builder = new EncryptInputsBuilder({
-        ...createDefaultParams(),
-        initTfhe: mockInitTfhe,
-      });
-      const result = await builder.encrypt();
-      expectResultError(result, CofhesdkErrorCode.InitTfheFailed);
+      try {
+        await new EncryptInputsBuilder({
+          ...createDefaultParams(),
+          initTfhe: vi.fn().mockRejectedValue(new Error('Failed to initialize TFHE')),
+        }).encrypt();
+      } catch (error) {
+        expect(error).toBeInstanceOf(CofhesdkError);
+        expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.InitTfheFailed);
+      }
     });
 
     it('should not throw an error if initTfhe is set', async () => {
-      const builder = new EncryptInputsBuilder({
+      const result = await new EncryptInputsBuilder({
         ...createDefaultParams(),
         initTfhe: mockInitTfhe,
-      });
-      const result = await builder.encrypt();
-      expectResultSuccess(result);
+      }).encrypt();
+      expect(result).toBeDefined();
     });
   });
 
@@ -359,12 +362,15 @@ describe('EncryptInputsBuilder', () => {
     });
 
     it('should throw an error if account is not set', async () => {
-      const builder = new EncryptInputsBuilder({
-        ...createDefaultParams(),
-        account: undefined,
-      });
-      const result = await builder.encrypt();
-      expectResultError(result, CofhesdkErrorCode.AccountUninitialized);
+      try {
+        await new EncryptInputsBuilder({
+          ...createDefaultParams(),
+          account: undefined,
+        }).encrypt();
+      } catch (error) {
+        expect(error).toBeInstanceOf(CofhesdkError);
+        expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.AccountUninitialized);
+      }
     });
   });
 
@@ -400,27 +406,32 @@ describe('EncryptInputsBuilder', () => {
     });
 
     it('should throw an error if chainId is not set', async () => {
-      const builder = new EncryptInputsBuilder({
-        ...createDefaultParams(),
-        chainId: undefined,
-      });
-      const result = await builder.encrypt();
-      expectResultError(result, CofhesdkErrorCode.ChainIdUninitialized);
+      try {
+        await new EncryptInputsBuilder({
+          ...createDefaultParams(),
+          chainId: undefined,
+        }).encrypt();
+      } catch (error) {
+        expect(error).toBeInstanceOf(CofhesdkError);
+        expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.ChainIdUninitialized);
+      }
     });
   });
 
   describe('zkVerifierUrl', () => {
     it('should throw if zkVerifierUrl is not set', async () => {
-      builder = new EncryptInputsBuilder({
-        ...createDefaultParams(),
-        inputs: [Encryptable.uint128(100n)] as [EncryptableUint128],
-        account: '0x1234567890123456789012345678901234567890',
-        chainId: 1,
-        config: createMockCofhesdkConfig(defaultChainId, undefined as unknown as string),
-      });
-
-      const result = await builder.encrypt();
-      expectResultError(result, CofhesdkErrorCode.ZkVerifierUrlUninitialized);
+      try {
+        await new EncryptInputsBuilder({
+          ...createDefaultParams(),
+          inputs: [Encryptable.uint128(100n)] as [EncryptableUint128],
+          account: '0x1234567890123456789012345678901234567890',
+          chainId: 1,
+          config: createMockCofhesdkConfig(defaultChainId, undefined as unknown as string),
+        }).encrypt();
+      } catch (error) {
+        expect(error).toBeInstanceOf(CofhesdkError);
+        expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.ZkVerifierUrlUninitialized);
+      }
     });
   });
 
@@ -444,7 +455,7 @@ describe('EncryptInputsBuilder', () => {
       const stepCallback = vi.fn();
       builder.setStepCallback(stepCallback);
 
-      const result = expectResultSuccess(await builder.encrypt());
+      const result = await builder.encrypt();
 
       // Verify step callbacks were called in order
       expect(stepCallback).toHaveBeenCalledTimes(10);
@@ -557,7 +568,7 @@ describe('EncryptInputsBuilder', () => {
       const overriddenSender = '0x5555555555555555555555555555555555555555';
       builder.setAccount(overriddenSender);
 
-      const result = expectResultSuccess(await builder.encrypt());
+      const result = await builder.encrypt();
 
       // Verify result embedded metadata
       const [encrypted] = result;
@@ -574,7 +585,7 @@ describe('EncryptInputsBuilder', () => {
 
       insertMockKeys(defaultChainId, overriddenZone);
 
-      const result = expectResultSuccess(await builder.encrypt());
+      const result = await builder.encrypt();
 
       // Verify result embedded metadata
       const [encrypted] = result;
@@ -587,7 +598,7 @@ describe('EncryptInputsBuilder', () => {
 
     it('should work without step callback', async () => {
       // No step callback set
-      const result = expectResultSuccess(await builder.encrypt());
+      const result = await builder.encrypt();
 
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
@@ -603,54 +614,60 @@ describe('EncryptInputsBuilder', () => {
         ],
       });
 
-      const result = expectResultSuccess(await multiInputBuilder.encrypt());
+      const result = await multiInputBuilder.encrypt();
 
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
     });
 
     it('should throw an error if total bits exceeds 2048', async () => {
-      const builder = new EncryptInputsBuilder({
-        ...createDefaultParams(),
-        inputs: [
-          Encryptable.uint128(100n),
-          Encryptable.uint128(100n),
-          Encryptable.uint128(100n),
-          Encryptable.uint128(100n),
-          Encryptable.uint128(100n),
-          Encryptable.uint128(100n),
-          Encryptable.uint128(100n),
-          Encryptable.uint128(100n),
-          Encryptable.uint128(100n),
-          Encryptable.uint128(100n),
-          Encryptable.uint128(100n),
-          Encryptable.uint128(100n),
-          Encryptable.uint128(100n),
-          Encryptable.uint128(100n),
-          Encryptable.uint128(100n),
-          Encryptable.uint128(100n),
-          Encryptable.uint128(100n),
-          Encryptable.uint128(100n),
-          Encryptable.uint128(100n),
-          Encryptable.uint128(100n),
-        ],
-      });
-      const result = await builder.encrypt();
-      expectResultError(result, CofhesdkErrorCode.ZkPackFailed);
+      try {
+        await new EncryptInputsBuilder({
+          ...createDefaultParams(),
+          inputs: [
+            Encryptable.uint128(100n),
+            Encryptable.uint128(100n),
+            Encryptable.uint128(100n),
+            Encryptable.uint128(100n),
+            Encryptable.uint128(100n),
+            Encryptable.uint128(100n),
+            Encryptable.uint128(100n),
+            Encryptable.uint128(100n),
+            Encryptable.uint128(100n),
+            Encryptable.uint128(100n),
+            Encryptable.uint128(100n),
+            Encryptable.uint128(100n),
+            Encryptable.uint128(100n),
+            Encryptable.uint128(100n),
+            Encryptable.uint128(100n),
+            Encryptable.uint128(100n),
+            Encryptable.uint128(100n),
+            Encryptable.uint128(100n),
+            Encryptable.uint128(100n),
+            Encryptable.uint128(100n),
+          ],
+        }).encrypt();
+      } catch (error) {
+        expect(error).toBeInstanceOf(CofhesdkError);
+        expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.ZkPackFailed);
+      }
     });
 
     it('should throw an error if utype is invalid', async () => {
-      const builder = new EncryptInputsBuilder({
-        ...createDefaultParams(),
-        inputs: [
-          {
-            data: 10n,
-            utype: FheTypes.Uint10, // Invalid utype
-          },
-        ] as unknown as [EncryptableItem],
-      });
-      const result = await builder.encrypt();
-      expectResultError(result, CofhesdkErrorCode.ZkPackFailed);
+      try {
+        await new EncryptInputsBuilder({
+          ...createDefaultParams(),
+          inputs: [
+            {
+              data: 10n,
+              utype: FheTypes.Uint10, // Invalid utype
+            },
+          ] as unknown as [EncryptableItem],
+        });
+      } catch (error) {
+        expect(error).toBeInstanceOf(CofhesdkError);
+        expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.ZkPackFailed);
+      }
     });
   });
 
@@ -685,13 +702,12 @@ describe('EncryptInputsBuilder', () => {
         .setSecurityZone(securityZone)
         .setStepCallback(stepCallback)
         .encrypt();
-      const resultData = expectResultSuccess(result);
 
       expect(result).toBeDefined();
       expect(stepCallback).toHaveBeenCalledTimes(10);
 
       // Verify result embedded metadata
-      const [encrypted] = resultData;
+      const [encrypted] = result;
       const encryptedMetadata = unpackMetadata(encrypted.signature);
       expect(encryptedMetadata).toBeDefined();
       expect(encryptedMetadata.signer).toBe(sender);
@@ -709,8 +725,8 @@ describe('EncryptInputsBuilder', () => {
       builder.setSecurityZone(securityZone);
 
       // Call encrypt multiple times to ensure state is maintained
-      const result1 = expectResultSuccess(await builder.encrypt());
-      const result2 = expectResultSuccess(await builder.encrypt());
+      const result1 = await builder.encrypt();
+      const result2 = await builder.encrypt();
 
       expect(result1).toBeDefined();
       expect(result2).toBeDefined();

@@ -362,6 +362,7 @@ export const PermitUtils = {
       functionName: 'eip712Domain',
     });
 
+    // eslint-disable-next-line no-unused-vars
     const [_fields, name, version, chainId, verifyingContract, _salt, _extensions] = domain;
 
     return {

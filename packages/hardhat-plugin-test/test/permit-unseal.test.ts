@@ -1,6 +1,7 @@
 import hre from 'hardhat';
 import { TASK_COFHE_MOCKS_DEPLOY } from './consts';
 import { FheTypes } from '@cofhe/sdk';
+import { expect } from 'chai';
 
 describe('Permit Unseal Test', () => {
   it('Permit should be used to unseal data', async () => {
@@ -18,7 +19,6 @@ describe('Permit Unseal Test', () => {
     // Decrypt number from TestBed
     const unsealed = await client.decryptHandle(ctHash, FheTypes.Uint32).decrypt();
 
-    await hre.cofhesdk.expectResultSuccess(unsealed);
-    await hre.cofhesdk.expectResultValue(unsealed, 7n);
+    expect(unsealed).to.be.equal(7n);
   });
 });

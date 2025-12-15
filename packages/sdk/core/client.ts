@@ -4,7 +4,6 @@ import { createStore } from 'zustand/vanilla';
 import { type PublicClient, type WalletClient } from 'viem';
 import { CofhesdkError, CofhesdkErrorCode } from './error.js';
 import { EncryptInputsBuilder } from './encrypt/encryptInputsBuilder.js';
-import { type Result, ResultOk, resultWrapper } from './result.js';
 import { createKeysStore } from './keyStore.js';
 import { permits } from './permits.js';
 import { DecryptHandlesBuilder } from './decrypt/decryptHandleBuilder.js';
@@ -45,7 +44,7 @@ export function createCofhesdkClientBase(opts: CofhesdkClientParams): CofhesdkCl
   };
 
   // single-flight + abortable warmup
-  let _connectPromise: Promise<Result<boolean>> | undefined = undefined;
+  let _connectPromise: Promise<boolean> | undefined = undefined;
   let _connectPromiseClients: { publicClient: PublicClient; walletClient: WalletClient } | undefined = undefined;
 
   // Called before any operation, throws of connection not yet established
@@ -76,7 +75,7 @@ export function createCofhesdkClientBase(opts: CofhesdkClientParams): CofhesdkCl
 
     // Exit if already connected and clients are the same
     if (state.connected && state.publicClient === publicClient && state.walletClient === walletClient) {
-      return Promise.resolve(ResultOk(true));
+      return Promise.resolve(true);
     }
 
     // Exit if already connecting
@@ -100,19 +99,15 @@ export function createCofhesdkClientBase(opts: CofhesdkClientParams): CofhesdkCl
       walletClient: undefined,
     });
 
-    _connectPromiseClients = { publicClient, walletClient };
-    _connectPromise = resultWrapper(
-      // try
-      async () => {
+    // Uses clients to fetch chainId and account
+    // This function is what gets awaited if awaiting connection
+    const checkClientConnections = async () => {
+      try {
         const chainId = await getPublicClientChainID(publicClient);
         const account = await getWalletClientAccount(walletClient);
-
         updateConnectState({ connecting: false, connected: true, chainId, account, publicClient, walletClient });
-
         return true;
-      },
-      // catch
-      (e) => {
+      } catch (e) {
         updateConnectState({
           connecting: false,
           connected: false,
@@ -121,13 +116,14 @@ export function createCofhesdkClientBase(opts: CofhesdkClientParams): CofhesdkCl
           walletClient: undefined,
         });
         return false;
-      },
-      // finally
-      () => {
+      } finally {
         _connectPromise = undefined;
         _connectPromiseClients = undefined;
       }
-    );
+    };
+
+    _connectPromiseClients = { publicClient, walletClient };
+    _connectPromise = checkClientConnections();
 
     return _connectPromise;
   }
@@ -204,87 +200,75 @@ export function createCofhesdkClientBase(opts: CofhesdkClientParams): CofhesdkCl
     subscribe: permits.subscribe,
 
     // Creation methods (require connection)
-    createSelf: async (options: CreateSelfPermitOptions) =>
-      resultWrapper(async () => {
-        _requireConnected();
-        const { publicClient, walletClient } = connectStore.getState();
-        return permits.createSelf(options, publicClient!, walletClient!);
-      }),
+    createSelf: async (options: CreateSelfPermitOptions) => {
+      _requireConnected();
+      const { publicClient, walletClient } = connectStore.getState();
+      return permits.createSelf(options, publicClient!, walletClient!);
+    },
 
-    createSharing: async (options: CreateSharingPermitOptions) =>
-      resultWrapper(async () => {
-        _requireConnected();
-        const { publicClient, walletClient } = connectStore.getState();
-        return permits.createSharing(options, publicClient!, walletClient!);
-      }),
+    createSharing: async (options: CreateSharingPermitOptions) => {
+      _requireConnected();
+      const { publicClient, walletClient } = connectStore.getState();
+      return permits.createSharing(options, publicClient!, walletClient!);
+    },
 
-    importShared: async (options: ImportSharedPermitOptions | any | string) =>
-      resultWrapper(async () => {
-        _requireConnected();
-        const { publicClient, walletClient } = connectStore.getState();
-        return permits.importShared(options, publicClient!, walletClient!);
-      }),
+    importShared: async (options: ImportSharedPermitOptions | any | string) => {
+      _requireConnected();
+      const { publicClient, walletClient } = connectStore.getState();
+      return permits.importShared(options, publicClient!, walletClient!);
+    },
 
     // Get or create methods (require connection)
-    getOrCreateSelfPermit: async (chainId?: number, account?: string, options?: CreateSelfPermitOptions) =>
-      resultWrapper(async () => {
-        _requireConnected();
-        const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
-        const { publicClient, walletClient } = connectStore.getState();
-        return permits.getOrCreateSelfPermit(publicClient!, walletClient!, _chainId, _account, options);
-      }),
+    getOrCreateSelfPermit: async (chainId?: number, account?: string, options?: CreateSelfPermitOptions) => {
+      _requireConnected();
+      const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
+      const { publicClient, walletClient } = connectStore.getState();
+      return permits.getOrCreateSelfPermit(publicClient!, walletClient!, _chainId, _account, options);
+    },
 
-    getOrCreateSharingPermit: async (options: CreateSharingPermitOptions, chainId?: number, account?: string) =>
-      resultWrapper(async () => {
-        _requireConnected();
-        const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
-        const { publicClient, walletClient } = connectStore.getState();
-        return permits.getOrCreateSharingPermit(publicClient!, walletClient!, options, _chainId, _account);
-      }),
+    getOrCreateSharingPermit: async (options: CreateSharingPermitOptions, chainId?: number, account?: string) => {
+      _requireConnected();
+      const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
+      const { publicClient, walletClient } = connectStore.getState();
+      return permits.getOrCreateSharingPermit(publicClient!, walletClient!, options, _chainId, _account);
+    },
 
     // Retrieval methods (auto-fill chainId/account)
-    getPermit: async (hash: string, chainId?: number, account?: string) =>
-      resultWrapper(async () => {
-        const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
-        return permits.getPermit(_chainId, _account, hash);
-      }),
+    getPermit: async (hash: string, chainId?: number, account?: string) => {
+      const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
+      return permits.getPermit(_chainId, _account, hash);
+    },
 
-    getPermits: async (chainId?: number, account?: string) =>
-      resultWrapper(async () => {
-        const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
-        return permits.getPermits(_chainId, _account);
-      }),
+    getPermits: async (chainId?: number, account?: string) => {
+      const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
+      return permits.getPermits(_chainId, _account);
+    },
 
-    getActivePermit: async (chainId?: number, account?: string) =>
-      resultWrapper(async () => {
-        const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
-        return permits.getActivePermit(_chainId, _account);
-      }),
+    getActivePermit: async (chainId?: number, account?: string) => {
+      const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
+      return permits.getActivePermit(_chainId, _account);
+    },
 
-    getActivePermitHash: async (chainId?: number, account?: string) =>
-      resultWrapper(async () => {
-        const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
-        return permits.getActivePermitHash(_chainId, _account);
-      }),
+    getActivePermitHash: async (chainId?: number, account?: string) => {
+      const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
+      return permits.getActivePermitHash(_chainId, _account);
+    },
 
     // Mutation methods (auto-fill chainId/account)
-    selectActivePermit: async (hash: string, chainId?: number, account?: string) =>
-      resultWrapper(async () => {
-        const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
-        return permits.selectActivePermit(_chainId, _account, hash);
-      }),
+    selectActivePermit: async (hash: string, chainId?: number, account?: string) => {
+      const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
+      return permits.selectActivePermit(_chainId, _account, hash);
+    },
 
-    removePermit: async (hash: string, chainId?: number, account?: string, force?: boolean) =>
-      resultWrapper(async () => {
-        const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
-        return permits.removePermit(_chainId, _account, hash, force);
-      }),
+    removePermit: async (hash: string, chainId?: number, account?: string) => {
+      const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
+      return permits.removePermit(_chainId, _account, hash);
+    },
 
-    removeActivePermit: async (chainId?: number, account?: string) =>
-      resultWrapper(async () => {
-        const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
-        return permits.removeActivePermit(_chainId, _account);
-      }),
+    removeActivePermit: async (chainId?: number, account?: string) => {
+      const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
+      return permits.removeActivePermit(_chainId, _account);
+    },
 
     // Utils (no context needed)
     getHash: permits.getHash,

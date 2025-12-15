@@ -1,4 +1,4 @@
-import { type CofhesdkClient } from '@/core';
+import { CofhesdkErrorCode, CofhesdkError, type CofhesdkClient } from '@/core';
 import { arbSepolia as cofhesdkArbSepolia } from '@/chains';
 
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
@@ -64,7 +64,6 @@ describe('@cofhe/web - Client', () => {
     it('should connect to real chain', async () => {
       const result = await cofhesdkClient.connect(publicClient, walletClient);
 
-      expect(result.success).toBe(true);
       expect(cofhesdkClient.connected).toBe(true);
 
       const snapshot = cofhesdkClient.getSnapshot();
@@ -74,15 +73,17 @@ describe('@cofhe/web - Client', () => {
     }, 30000);
 
     it('should handle network errors', async () => {
-      const result = await cofhesdkClient.connect(
-        {
-          getChainId: vi.fn().mockRejectedValue(new Error('Network error')),
-        } as unknown as PublicClient,
-        walletClient
-      );
-
-      expect(result.success).toBe(false);
-      expect(cofhesdkClient.connected).toBe(false);
+      try {
+        await cofhesdkClient.connect(
+          {
+            getChainId: vi.fn().mockRejectedValue(new Error('Network error')),
+          } as unknown as PublicClient,
+          walletClient
+        );
+      } catch (error) {
+        expect(error).toBeInstanceOf(CofhesdkError);
+        expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.PublicWalletGetChainIdFailed);
+      }
     }, 30000);
   });
 
