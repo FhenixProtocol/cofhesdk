@@ -117,7 +117,7 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
     return () => {
       stopPendingTransactionPolling();
     };
-  }, [cofhesdkClient]);
+  }, [publicClient]);
 
   const currentPage = overridingPage ?? pageHistory[pageHistory.length - 1];
   const isLeftSide = effectivePosition.includes('left');

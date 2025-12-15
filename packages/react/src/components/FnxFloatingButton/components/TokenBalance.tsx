@@ -103,19 +103,22 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
   // Determine if we're loading
   const isLoading = isNative ? isLoadingNative : isLoadingConfidential;
 
-  const CONFIDENTIAL_VALUE_PLACEHOLDER = (
-    <div
-      onClick={(e) => {
-        e.stopPropagation();
-        const ReasonBody = CREATE_PERMITT_BODY_BY_ERROR_CAUSE[ErrorCause.AttemptToFetchConfidentialBalance];
-        navigateTo(FloatingButtonPage.GeneratePermits, {
-          pageProps: { overridingBody: <ReasonBody />, onSuccessNavigateTo: () => navigateBack() },
-          navigateParams: { skipPagesHistory: true },
-        });
-      }}
-    >
-      {'* * *'}
-    </div>
+  const CONFIDENTIAL_VALUE_PLACEHOLDER = useMemo(
+    () => (
+      <div
+        onClick={(e) => {
+          e.stopPropagation();
+          const ReasonBody = CREATE_PERMITT_BODY_BY_ERROR_CAUSE[ErrorCause.AttemptToFetchConfidentialBalance];
+          navigateTo(FloatingButtonPage.GeneratePermits, {
+            pageProps: { overridingBody: <ReasonBody />, onSuccessNavigateTo: () => navigateBack() },
+            navigateParams: { skipPagesHistory: true },
+          });
+        }}
+      >
+        {'* * *'}
+      </div>
+    ),
+    [navigateBack, navigateTo]
   );
   // Format balance
   const displayBalance = useMemo(() => {
