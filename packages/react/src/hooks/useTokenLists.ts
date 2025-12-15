@@ -3,7 +3,7 @@ import { useCofheContext } from '../providers/CofheProvider';
 import { useMemo } from 'react';
 export type Token = {
   chainId: number;
-  address: string;
+  address: `0x${string}`;
   symbol: string;
   decimals: number;
   name: string;
