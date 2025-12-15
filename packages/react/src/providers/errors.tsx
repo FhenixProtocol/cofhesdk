@@ -4,9 +4,13 @@ import { CofhesdkError, CofhesdkErrorCode } from '@cofhe/sdk';
 import { QueryErrorResetBoundary } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
-import { useFnxFloatingButtonContext } from '@/components/FnxFloatingButton/FnxFloatingButtonContext';
 import { ErrorCause, getErrorCause } from '@/utils/index';
 import type { FnxFloatingButtonProps } from '@/components/FnxFloatingButton/types';
+
+export const CREATE_PERMITT_BODY_BY_ERROR_CAUSE: Record<ErrorCause, React.FC> = {
+  [ErrorCause.AttemptToFetchConfidentialBalance]: () =>
+    'In order to fetch confidential token balance, need to generate a new permit.',
+};
 
 // only whitelisted errors will reach error boundary (refer to `shouldPassToErrorBoundary`)
 const FALLBACK_BY_ERROR_TYPE: ErrorFallbackDefinition[] = [
@@ -15,31 +19,26 @@ const FALLBACK_BY_ERROR_TYPE: ErrorFallbackDefinition[] = [
     checkFn: (error: unknown) => error instanceof CofhesdkError && error.code === CofhesdkErrorCode.PermitNotFound,
     componentConstructor: ({ floatingButtonProps }) => {
       const Component: React.FC<FallbackProps> = ({ error, resetErrorBoundary }) => {
-        const { setEnableBackgroundDecryption } = useFnxFloatingButtonContext();
+        const errorCause = getErrorCause(error);
+        const OverridingBodyComponent = errorCause ? CREATE_PERMITT_BODY_BY_ERROR_CAUSE[errorCause] : undefined;
         const overriddingPage = useMemo<PageState>(
           () => ({
             page: FloatingButtonPage.GeneratePermits,
             props: {
               overridingBody: (
-                <div>
-                  {getErrorCause(error) === ErrorCause.AttemptToFetchConfidentialBalance
-                    ? 'In order to fetch confidential token balance, need to generate a new permit.'
-                    : (error as Error)?.message}
-                </div>
+                <div>{OverridingBodyComponent ? <OverridingBodyComponent /> : (error as Error)?.message}</div>
               ),
               // resetting error boundary will re-render previously failed components (i.e. the normal aka {children}, non-fallback flow), so essentially will navigate the user back
               onSuccessNavigateTo: () => resetErrorBoundary(),
               onCancel: () => {
-                setEnableBackgroundDecryption(false);
                 resetErrorBoundary();
               },
               onBack: () => {
-                setEnableBackgroundDecryption(false);
                 resetErrorBoundary();
               },
             },
           }),
-          [error, resetErrorBoundary, setEnableBackgroundDecryption]
+          [error, resetErrorBoundary]
         );
         return <FnxFloatingButtonBase {...floatingButtonProps} overriddingPage={overriddingPage} />;
       };

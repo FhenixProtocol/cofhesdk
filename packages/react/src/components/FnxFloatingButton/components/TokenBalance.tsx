@@ -8,6 +8,9 @@ import { useCofheChainId } from '../../../hooks/useCofheConnection.js';
 import { cn } from '../../../utils/cn.js';
 import { LoadingDots } from './LoadingDots.js';
 import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext';
+import { FloatingButtonPage } from '../pagesConfig/types.js';
+import { CREATE_PERMITT_BODY_BY_ERROR_CAUSE } from '@/providers/errors.js';
+import { ErrorCause } from '@/utils/errors.js';
 
 export interface TokenBalanceProps {
   /** Token object from token list (for non-native tokens) */
@@ -51,6 +54,7 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
   const account = useCofheAccount();
   const chainId = useCofheChainId();
   const tokens = useTokens(chainId);
+  const { navigateTo } = useFnxFloatingButtonContext();
 
   // Determine which account address to use
   const effectiveAccountAddress = accountAddress ?? account;
@@ -79,7 +83,6 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
 
   // Get native balance for native tokens
   const { data: nativeBalance, isLoading: isLoadingNative } = useNativeBalance();
-  const { setEnableBackgroundDecryption } = useFnxFloatingButtonContext();
   // Determine token decimals
   const decimals = useMemo(() => {
     if (tokenFromList) return tokenFromList.decimals;
@@ -104,7 +107,10 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
     <div
       onClick={(e) => {
         e.stopPropagation();
-        setEnableBackgroundDecryption(true);
+        const ReasonBody = CREATE_PERMITT_BODY_BY_ERROR_CAUSE[ErrorCause.AttemptToFetchConfidentialBalance];
+        navigateTo(FloatingButtonPage.GeneratePermits, {
+          overridingBody: <ReasonBody />,
+        });
       }}
     >
       {'* * *'}
