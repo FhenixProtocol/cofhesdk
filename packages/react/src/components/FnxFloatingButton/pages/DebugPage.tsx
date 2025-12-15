@@ -60,6 +60,7 @@ export const DebugPage: React.FC = () => {
             const id = crypto.randomUUID();
             addToast({
               id,
+              duration: 3000,
               content: (
                 <SuccessToastPrimitive
                   id={id}
