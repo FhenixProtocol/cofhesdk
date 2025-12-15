@@ -258,6 +258,7 @@ export function useTokenConfidentialBalance(
   hasActivePermit: boolean;
 } {
   const publicClient = useCofhePublicClient();
+  const cofheChainId = useCofheChainId();
   const { client } = useCofheContext();
   const activePermit = useCofheActivePermit();
 
@@ -268,7 +269,7 @@ export function useTokenConfidentialBalance(
     // Merge enabled conditions: both our internal checks and user-provided enabled must be true
     enabled: !!publicClient && !!accountAddress && !!token && !!activePermit && queryOptions?.enabled !== false,
 
-    queryKey: ['tokenConfidentialBalance', accountAddress, token?.address, activePermit?.hash],
+    queryKey: ['tokenConfidentialBalance', accountAddress, cofheChainId, token?.address, activePermit?.hash],
     queryFn: withQueryErrorCause(ErrorCause.AttemptToFetchConfidentialBalance, async (): Promise<bigint> => {
       assert(publicClient, 'PublicClient is required to fetch confidential token balance');
       assert(token, 'Token is required to fetch confidential token balance');
