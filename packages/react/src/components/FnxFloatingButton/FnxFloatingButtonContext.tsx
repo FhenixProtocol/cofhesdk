@@ -162,12 +162,7 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
 
   const navigateBack = () => {
     // If there's an overriding page, clear it first to reveal history
-    setOverridingPage((override) => {
-      if (override) {
-        return null;
-      }
-      return override;
-    });
+    setOverridingPage(null);
     setPageHistory((prev) => {
       if (!overridingPage && prev.length > 1) {
         return prev.slice(0, -1);
