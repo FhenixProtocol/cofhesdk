@@ -50,7 +50,7 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
 }) => {
   const account = useCofheAccount();
   const chainId = useCofheChainId();
-  const tokens = useTokens(chainId ?? 0);
+  const tokens = useTokens(chainId);
 
   // Determine which account address to use
   const effectiveAccountAddress = accountAddress ?? account;

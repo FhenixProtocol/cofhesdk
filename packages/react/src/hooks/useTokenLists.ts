@@ -29,7 +29,7 @@ type TokenList = {
 
 type UseTokenListsResult = UseQueryResult<TokenList, Error>[];
 type UseTokenListsInput = {
-  chainId: number;
+  chainId?: number;
 };
 type UseTokenListsOptions = Omit<UseQueryOptions<TokenList, Error>, 'queryKey' | 'queryFn' | 'select'>;
 // Returns array of query results for token lists for the current network
@@ -38,7 +38,7 @@ export function useTokenLists(
   queryOptions?: UseTokenListsOptions
 ): UseTokenListsResult {
   const widgetConfig = useCofheContext().config.react;
-  const tokensListsUrls = widgetConfig.tokenLists[chainId];
+  const tokensListsUrls = chainId ? widgetConfig.tokenLists[chainId] : [];
 
   const queriesOptions: UseQueryOptions<TokenList, Error>[] =
     tokensListsUrls?.map((url) => ({
@@ -77,7 +77,7 @@ export function selectTokensFromTokensList(tokenList: TokenList): Token[] {
   return tokenList.tokens;
 }
 
-export function useTokens(chainId: number): Token[] {
+export function useTokens(chainId?: number): Token[] {
   const tokenLists = useTokenLists({ chainId });
   const tokens = useMemo(() => {
     const map = new Map<string, Token>();
