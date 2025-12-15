@@ -12,12 +12,12 @@ export const usePermitDetailsPage = (selectedPermitHash: string) => {
   const allPermits = useCofheAllPermits();
   const activePermit = useCofheActivePermit();
   const selectActivePermit = useCofheSelectPermit();
-  const { navigateBack, currentPage } = useFnxFloatingButtonContext();
+  const { navigateBack } = useFnxFloatingButtonContext();
   const { isCopied, copyWithFeedback } = useCopyFeedback();
 
   const selectedPermit = useMemo(() => {
     return allPermits.find((entry) => entry.hash === selectedPermitHash);
-  }, [allPermits, currentPage]);
+  }, [allPermits, selectedPermitHash]);
 
   const permitLabel = useMemo(() => {
     const permit = selectedPermit?.permit;
