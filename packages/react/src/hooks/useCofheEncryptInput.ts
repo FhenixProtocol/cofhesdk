@@ -122,7 +122,7 @@ export function useCofheEncryptInput(): UseEncryptInputReturn {
             });
           }
         });
-        const result = await encryptionBuilder.encrypt();
+        const [encryptedItem] = await encryptionBuilder.encrypt();
 
         // Complete
         setEncryptionStep('done');
@@ -137,7 +137,7 @@ export function useCofheEncryptInput(): UseEncryptInputReturn {
         }, 1000);
 
         setIsEncrypting(false);
-        return result[0]; // Return first (and only) encrypted item
+        return encryptedItem;
       } catch (err) {
         // Reset on error
         setEncryptionStep(null);

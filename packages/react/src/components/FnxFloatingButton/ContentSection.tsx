@@ -5,6 +5,7 @@ import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
 import { pages as pagesConfig } from './pagesConfig/const';
 import { FloatingButtonPage, type PageState, type FloatingButtonPagePropsMap } from './pagesConfig/types';
 import { ShieldPageV2 } from './pages/ShieldPageV2';
+import { TokenListPage } from './pages/TokenListPage';
 import { PermitDetailsPage } from './pages/permits/PermitDetailsPage';
 import type { PermitDetailsPageProps } from './pages/permits/PermitDetailsPage/types';
 import { useSettingsStore, ShieldPageVariant } from './stores/settingsStore';

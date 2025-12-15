@@ -354,7 +354,6 @@ export const ShieldPageV2: React.FC = () => {
                   decimalPrecision={DISPLAY_DECIMALS}
                   size="sm"
                   className="inline font-bold"
-                  showZeroWhenLoading={true}
                 />{' '}
                 {sourceSymbol}
               </p>
@@ -388,7 +387,6 @@ export const ShieldPageV2: React.FC = () => {
                   decimalPrecision={DISPLAY_DECIMALS}
                   size="sm"
                   className="inline font-bold"
-                  showZeroWhenLoading={true}
                 />{' '}
                 {destSymbol}
               </p>
