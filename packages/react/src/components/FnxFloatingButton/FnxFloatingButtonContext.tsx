@@ -1,27 +1,17 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
+import type { FloatingButtonPosition } from './types';
 import { useCofheContext } from '../../providers';
-import { type PermitDetailsPageProps } from './pages/permits/PermitDetailsPage/index.js';
-import { checkPendingTransactions, stopPendingTransactionPolling } from '../../stores/transactionStore.js';
-import { useCofhePublicClient } from '@/hooks/useCofheConnection.js';
-
-export type FloatingButtonPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
-export type FloatingButtonSize = 'small' | 'medium' | 'large';
-export type FloatingButtonPositionType = 'fixed' | 'absolute';
-
-export enum FloatingButtonPage {
-  Main = 'main',
-  Settings = 'settings',
-  TokenList = 'tokenlist',
-  TokenInfo = 'tokeninfo',
-  Send = 'send',
-  Shield = 'shield',
-  Activity = 'activity',
-  Permits = 'permits',
-  GeneratePermits = 'generatePermit',
-  ReceivePermits = 'receivePermit',
-  PermitDetails = 'permitDetails',
-}
+import { checkPendingTransactions, stopPendingTransactionPolling } from '../../stores/transactionStore';
+import { useCofhePublicClient } from '@/hooks/useCofheConnection';
+import {
+  FloatingButtonPage,
+  type FloatingButtonPagePropsMap,
+  type PageState,
+  type PagesWithoutProps,
+  type PagesWithProps,
+} from './pagesConfig/types';
+import { useCofheActivePermit } from '@/hooks/index';
 
 export type TokenListMode = 'view' | 'select';
 
@@ -45,35 +35,6 @@ export type SelectedToken = {
 
 const OPEN_DELAY = 500; // Delay before showing popup in ms
 const CLOSE_DELAY = 300; // Delay before closing bar after popup closes
-
-// Consumers can augment this map via declaration merging or module-local typing.
-// By default, props are typed as unknown per page.
-export type FloatingButtonPagePropsMap = {
-  [FloatingButtonPage.Main]: void;
-  [FloatingButtonPage.Settings]: void;
-  [FloatingButtonPage.TokenList]: void;
-  [FloatingButtonPage.TokenInfo]: void;
-  [FloatingButtonPage.Send]: void;
-  [FloatingButtonPage.Shield]: void;
-  [FloatingButtonPage.Activity]: void;
-  [FloatingButtonPage.Permits]: void;
-  [FloatingButtonPage.GeneratePermits]: void;
-  [FloatingButtonPage.ReceivePermits]: void;
-  [FloatingButtonPage.PermitDetails]: PermitDetailsPageProps;
-};
-
-type PageState<K extends FloatingButtonPage = FloatingButtonPage> = {
-  page: K;
-  props?: FloatingButtonPagePropsMap[K];
-};
-
-export type PagesWithProps = {
-  [K in FloatingButtonPage]: FloatingButtonPagePropsMap[K] extends void ? never : K;
-}[FloatingButtonPage];
-
-export type PagesWithoutProps = {
-  [K in FloatingButtonPage]: FloatingButtonPagePropsMap[K] extends void ? K : never;
-}[FloatingButtonPage];
 
 type NavigateToFn = {
   // Pages that don't require props: call with just the page
@@ -107,6 +68,10 @@ interface FnxFloatingButtonContextValue {
   navigateToTokenInfo: (token: SelectedToken) => void;
   // Config
   showNativeTokenInList: boolean;
+
+  // enable background decryption. For example - within useConfidentialBalance hook
+  enableBackgroundDecryption: boolean;
+  setEnableBackgroundDecryption: (enabled: boolean) => void;
 }
 
 const FnxFloatingButtonContext = createContext<FnxFloatingButtonContextValue | null>(null);
@@ -135,6 +100,9 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   const [tokenListMode, setTokenListMode] = useState<TokenListMode>('view');
   const [selectedToken, setSelectedToken] = useState<SelectedToken>(null);
   const [viewingToken, setViewingToken] = useState<SelectedToken>(null);
+  const [enableBackgroundDecryption, setEnableBackgroundDecryption] = useState<boolean>(false);
+
+  const activePermit = useCofheActivePermit();
   const publicClient = useCofhePublicClient();
 
   // Check pending transactions on mount
@@ -228,6 +196,8 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
         viewingToken,
         navigateToTokenInfo,
         showNativeTokenInList,
+        enableBackgroundDecryption: !!activePermit || enableBackgroundDecryption,
+        setEnableBackgroundDecryption,
       }}
     >
       {children}

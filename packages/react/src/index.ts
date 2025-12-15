@@ -2,7 +2,7 @@
 import './styles.css';
 
 // Providers
-export { CofheProvider, useCofheContext } from './providers/index.js';
+export { CofheProvider, useCofheContext } from './providers/index';
 
 // Hooks
 export {
@@ -19,8 +19,8 @@ export {
 } from './hooks/index';
 
 // Components
-export { FnxEncryptInput, FnxFloatingButton } from './components/index.js';
-export { MainPage, SettingsPage, TokenListPage } from './components/FnxFloatingButton/pages/index.js';
+export { FnxEncryptInput, FnxFloatingButton } from './components/index';
+export { MainPage, SettingsPage, TokenListPage } from './components/FnxFloatingButton/pages/index';
 
 // Utils
 export {
@@ -50,19 +50,15 @@ export {
   type TransactionStore,
   type TransactionStatusString,
   type TransactionActionString,
-} from './stores/transactionStore.js';
+} from './stores/transactionStore';
 
 export { createCofhesdkConfig } from './config';
 
 // Types
 export type { CofheContextValue, CofheProviderProps, CofheClientConfig } from './types/index';
 
-export type { FnxFloatingButtonProps } from './components/FnxFloatingButton/FnxFloatingButton.js';
+export type { FnxFloatingButtonProps } from './components/FnxFloatingButton/types';
 
-export type {
-  FloatingButtonPosition,
-  FloatingButtonSize,
-  FloatingButtonPositionType,
-} from './components/FnxFloatingButton/FnxFloatingButtonContext.js';
+export type { FloatingButtonPosition, FloatingButtonSize } from './components/FnxFloatingButton/types';
 
 export { createCofhesdkClient } from '@cofhe/sdk/web';

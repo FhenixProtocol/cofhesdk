@@ -1,14 +1,21 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { usePermitDuration, usePermitForm } from '@/hooks/permits/index.js';
-import { FloatingButtonPage, useFnxFloatingButtonContext } from '../../../FnxFloatingButtonContext.js';
+import { usePermitDuration, usePermitForm } from '@/hooks/permits/index';
+import { useFnxFloatingButtonContext } from '../../../FnxFloatingButtonContext';
 import PermitIcon from '../assets/fhenix-permit-icon.svg';
-import { NameSection } from './components/NameSection.js';
-import { SelfToggle } from './components/SelfToggle.js';
-import { ReceiverSection } from './components/ReceiverSection.js';
-import { ExpirySection } from './components/ExpirySection.js';
+import { NameSection } from './components/NameSection';
+import { SelfToggle } from './components/SelfToggle';
+import { ReceiverSection } from './components/ReceiverSection';
+import { ExpirySection } from './components/ExpirySection';
+import { FloatingButtonPage } from '@/components/FnxFloatingButton/pagesConfig/types';
+import type { GeneratePermitPageProps } from './types';
 
-export const GeneratePermitPage: React.FC = () => {
-  const { navigateBack, darkMode, navigateTo } = useFnxFloatingButtonContext();
+export const GeneratePermitPage: React.FC<GeneratePermitPageProps> = ({
+  onSuccessNavigateTo,
+  overridingBody,
+  onCancel,
+  onBack,
+}) => {
+  const { navigateBack, darkMode, navigateTo, pageHistory } = useFnxFloatingButtonContext();
   const permitIconColor = darkMode ? '#FFFFFF' : '#00314E';
 
   const {
@@ -27,7 +34,11 @@ export const GeneratePermitPage: React.FC = () => {
     setDurationSeconds,
     handleSubmit,
   } = usePermitForm({
-    onSuccess: () => navigateTo(FloatingButtonPage.Permits), // TODO: also add toast here?
+    onSuccess: () => {
+      // TODO: also add toast here in any case
+      // by default navigate to permits list, but if arrived here from elsewhere, go back where we came from
+      onSuccessNavigateTo ? onSuccessNavigateTo() : navigateTo(FloatingButtonPage.Permits);
+    },
   });
   const { presets, units, customCount, customUnit, selectPreset, setCustomCount, setCustomUnit, applyCustom } =
     usePermitDuration({ onDurationChange: setDurationSeconds, initialSeconds: durationSeconds });
@@ -44,28 +55,29 @@ export const GeneratePermitPage: React.FC = () => {
         <button
           className="flex items-center gap-2 text-base font-semibold text-[#0E2F3F] transition-opacity hover:opacity-80 dark:text-white"
           type="button"
-          onClick={navigateBack}
+          onClick={onBack ?? navigateBack}
         >
-          <ArrowBackIcon fontSize="small" />
+          {(pageHistory.length > 0 || onBack) && <ArrowBackIcon fontSize="small" />}
           <span>Generate new permit</span>
         </button>
 
-        <div className="space-y-3">
-          <div className="flex items-center gap-3 text-[#0E2F3F] dark:text-white">
-            <div className="flex items-center justify-center rounded-lg border border-[#0E2F3F]/30 p-2 dark:border-white/40">
-              <PermitIcon className="h-7 w-7" color={permitIconColor} aria-label="CoFHE permit icon" />
+        {overridingBody ?? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 text-[#0E2F3F] dark:text-white">
+              <div className="flex items-center justify-center rounded-lg border border-[#0E2F3F]/30 p-2 dark:border-white/40">
+                <PermitIcon className="h-7 w-7" color={permitIconColor} aria-label="CoFHE permit icon" />
+              </div>
+              <div className="text-lg font-semibold">Generate CoFHE Permit</div>
             </div>
-            <div className="text-lg font-semibold">Generate CoFHE Permit</div>
+            <p className="text-sm leading-relaxed text-[#355366] dark:text-white/80">
+              A permit is required to authenticate your identity and grant access to your encrypted data.
+            </p>
+            <p className="text-sm leading-relaxed text-[#355366] dark:text-white/80">
+              Generating a permit will open your wallet to sign a message (EIP712) which verifies your ownership of the
+              connected wallet.
+            </p>
           </div>
-          <p className="text-sm leading-relaxed text-[#355366] dark:text-white/80">
-            A permit is required to authenticate your identity and grant access to your encrypted data.
-          </p>
-          <p className="text-sm leading-relaxed text-[#355366] dark:text-white/80">
-            Generating a permit will open your wallet to sign a message (EIP712) which verifies your ownership of the
-            connected wallet.
-          </p>
-        </div>
-
+        )}
         {error && (
           <div
             role="alert"
@@ -107,7 +119,7 @@ export const GeneratePermitPage: React.FC = () => {
           <button
             type="button"
             className="rounded-xl border border-[#F0784F] bg-[#F0784F] py-3 text-base font-semibold text-white transition-opacity hover:opacity-90 dark:border-[#C8542D] dark:bg-[#C8542D]"
-            onClick={navigateBack}
+            onClick={onCancel ?? navigateBack}
           >
             Cancel
           </button>
