@@ -8,6 +8,13 @@ import { ErrorCause, getErrorCause } from '@/utils/index';
 import type { FnxFloatingButtonProps } from '@/components/FnxFloatingButton/types';
 import { useFnxFloatingButtonContext } from '@/components/FnxFloatingButton/FnxFloatingButtonContext';
 
+class CofheFallbackError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'CofheFallbackError';
+  }
+}
+
 export const CREATE_PERMITT_BODY_BY_ERROR_CAUSE: Record<ErrorCause, React.FC> = {
   [ErrorCause.AttemptToFetchConfidentialBalance]: () =>
     'In order to fetch confidential token balance, need to generate a new permit.',
@@ -91,14 +98,16 @@ function constructFallbackRouter(errorFallbacks: ErrorFallback[]): React.FC<Fall
         return <Component error={error} resetErrorBoundary={resetErrorBoundary} />;
       }
     }
-    // if none matched - it' means there's logic error
-    throw new Error("Error couldn't be handled:" + error?.message);
+    // if none matched - it' means there's logic error.
+    // we'll re-throw the error, which will result into the original logs as if there was no error boundary + error log about the fallback error
+    throw new CofheFallbackError("Error couldn't be handled:" + error?.message);
   };
 
   return fallback;
 }
 
-// a replacement for the original one https://github.com/bvaughn/react-error-boundary/blob/master/src/useErrorBoundary.ts#L39 , which re-throws in the render causing duplicates sometimes
+// a replacement for the original one https://github.com/bvaughn/react-error-boundary/blob/master/src/useErrorBoundary.ts#L39 ,
+// because the way the original one is built, it re-throws in the render causing duplicated errors in console
 function useEffectThrowBoundary() {
   const [err, setErr] = useState<unknown>(null);
   useEffect(() => {
