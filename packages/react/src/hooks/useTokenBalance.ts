@@ -9,8 +9,7 @@ import { ERC20_BALANCE_OF_ABI, ERC20_DECIMALS_ABI, ERC20_SYMBOL_ABI, ERC20_NAME_
 import { withQueryErrorCause, ErrorCause } from '@/utils/errors.js';
 import { useCofheActivePermit } from './useCofhePermits.js';
 import { assert } from 'ts-essentials';
-import { ErrorBoundaryContext, useErrorBoundary } from 'react-error-boundary';
-import { useContext } from 'react';
+import { useIsCofheErrorActive } from './useIsCofheErrorActive.js';
 type UseTokenBalanceInput = {
   /** Token contract address */
   tokenAddress: Address;
@@ -237,11 +236,6 @@ export function useTokenSymbol(
   });
 }
 
-function useIsCofheErrorThrown(): boolean {
-  const errorBoundaryContext = useContext(ErrorBoundaryContext);
-  return errorBoundaryContext?.error instanceof CofhesdkError;
-}
-
 /**
  * Hook to get confidential token balance (encrypted balance) and decrypt it
  * Uses confidentialityType from token structure to determine which ABI/function to use:
@@ -264,7 +258,7 @@ export function useTokenConfidentialBalance(
 ): UseQueryResult<bigint, Error> & {
   disabledDueToMissingPermit: boolean;
 } {
-  const isCofheErrorThrown = useIsCofheErrorThrown();
+  const isCofheErrorActive = useIsCofheErrorActive();
   const publicClient = useCofhePublicClient();
   const cofheChainId = useCofheChainId();
   const { client } = useCofheContext();
@@ -275,7 +269,7 @@ export function useTokenConfidentialBalance(
   // Merge enabled conditions: both our internal checks and user-provided enabled must be true
   const enabled =
     // if cofhe error is currently handled by Error boundary - disable the query until error reset
-    !isCofheErrorThrown &&
+    !isCofheErrorActive &&
     !!publicClient &&
     !!accountAddress &&
     !!token &&
