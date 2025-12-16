@@ -1,11 +1,15 @@
 import { TbAlertCircle, TbAlertTriangle, TbInfoCircle, TbCircleCheck, TbCircleX } from 'react-icons/tb';
+import { motion, useMotionValue, useTransform } from 'motion/react';
 import { HashLink } from './HashLink';
 import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext';
 import { cn } from '@/utils';
-import type { FhxFloatingButtonToastVariant, FnxFloatingButtonToastContentProps } from '../types';
+import type { FhxFloatingButtonToastVariant, FnxFloatingButtonToastByFunctionParams } from '../types';
 
-export type ToastPrimitiveProps = FnxFloatingButtonToastContentProps & {
-  id: string;
+export type ToastPrimitiveProps = FnxFloatingButtonToastByFunctionParams & {
+  id?: string;
+  paused?: boolean;
+  startMs?: number;
+  remainingMs?: number;
   className?: string;
 };
 
@@ -25,8 +29,16 @@ const variantClassNameMap: Record<FhxFloatingButtonToastVariant, string> = {
   warning: 'bg-yellow-50 border-yellow-200 text-yellow-800',
 };
 
-const ToastCloseButton: React.FC<{ id: string }> = ({ id }) => {
+const variantProgressBarColorMap: Record<FhxFloatingButtonToastVariant, string> = {
+  info: 'bg-blue-500',
+  success: 'bg-green-500',
+  error: 'bg-red-500',
+  warning: 'bg-yellow-500',
+};
+
+const ToastCloseButton: React.FC<{ id?: string }> = ({ id }) => {
   const { removeToast } = useFnxFloatingButtonContext();
+  if (!id) return null;
   return (
     <button onClick={() => removeToast(id)}>
       <TbCircleX className="text-gray-500 size-5" />
@@ -36,8 +48,89 @@ const ToastCloseButton: React.FC<{ id: string }> = ({ id }) => {
 
 const ToastActionButton: React.FC<Pick<ToastPrimitiveProps, 'id' | 'action'>> = ({ id, action }) => {
   const { removeToast } = useFnxFloatingButtonContext();
-  if (action == null) return null;
-  return <button onClick={() => action.onClick(() => removeToast(id))}>{action.label}</button>;
+  if (action == null || !id) return null;
+  return (
+    <button
+      onClick={() => {
+        removeToast(id);
+        action.onClick();
+      }}
+    >
+      {action.label}
+    </button>
+  );
+};
+
+const ToastDurationIndicator: React.FC<{
+  duration: number;
+  remainingMs?: number;
+  paused?: boolean;
+  variant?: FhxFloatingButtonToastVariant;
+}> = ({ duration, remainingMs, paused = false, variant }) => {
+  if (variant == null || remainingMs == null || remainingMs <= 0) return null;
+
+  const progress = remainingMs / duration;
+  const progressColor = variantProgressBarColorMap[variant];
+
+  return (
+    <div className="absolute bottom-0 left-0 w-full h-1 overflow-hidden">
+      {paused ? (
+        <div className={cn(progressColor, 'h-full origin-right')} style={{ transform: `scaleX(${progress})` }} />
+      ) : (
+        <motion.div
+          className={`h-full ${progressColor} origin-right`}
+          initial={{ scaleX: progress }}
+          animate={{ scaleX: 0 }}
+          transition={{
+            duration: remainingMs / 1000,
+            ease: 'linear',
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+export const ToastPrimitiveBase: React.FC<{
+  id?: string;
+  paused?: boolean;
+  duration?: number | 'infinite';
+  remainingMs?: number;
+  className?: string;
+  variant?: FhxFloatingButtonToastVariant;
+  children?: React.ReactNode;
+}> = ({ id, duration, remainingMs, className, variant, paused, children }) => {
+  const { pauseToast } = useFnxFloatingButtonContext();
+
+  return (
+    <div
+      className={cn(
+        'flex flex-row gap-3 p-2 relative items-center justify-start pb-3',
+        variant != null && variantClassNameMap[variant],
+        className
+      )}
+      onMouseEnter={() => {
+        if (id == null) return;
+        pauseToast(id, true);
+      }}
+      onMouseLeave={() => {
+        if (id == null) return;
+        pauseToast(id, false);
+      }}
+    >
+      {variant != null && variantIconMap[variant]}
+      {children}
+      <ToastCloseButton id={id} />
+      {duration !== 'infinite' && (
+        <ToastDurationIndicator
+          duration={duration ?? FNX_DEFAULT_TOAST_DURATION}
+          remainingMs={remainingMs}
+          paused={paused}
+          variant={variant}
+        />
+      )}
+    </div>
+  );
 };
 
 const ToastContent: React.FC<Pick<ToastPrimitiveProps, 'id' | 'title' | 'description' | 'transaction' | 'action'>> = ({
@@ -60,28 +153,7 @@ const ToastContent: React.FC<Pick<ToastPrimitiveProps, 'id' | 'title' | 'descrip
   );
 };
 
-export const ToastPrimitiveBase: React.FC<{
-  id: string;
-  className?: string;
-  variant?: FhxFloatingButtonToastVariant;
-  children?: React.ReactNode;
-}> = ({ id, className, variant, children }) => {
-  return (
-    <div
-      className={cn(
-        'flex flex-row gap-3 p-2 relative items-center justify-start',
-        variant != null && variantClassNameMap[variant],
-        className
-      )}
-    >
-      {variant != null && variantIconMap[variant]}
-      {children}
-      <ToastCloseButton id={id} />
-    </div>
-  );
-};
-
-export const ToastPrimitive: React.FC<ToastPrimitiveProps & { variant?: FhxFloatingButtonToastVariant }> = (props) => {
+export const ToastPrimitive: React.FC<ToastPrimitiveProps> = (props) => {
   return (
     <ToastPrimitiveBase {...props}>
       <ToastContent {...props} />
