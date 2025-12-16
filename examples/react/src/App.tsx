@@ -70,11 +70,8 @@ function DemoErrorOutsideFloatingButton() {
           onClick={async (e) => {
             e.stopPropagation();
             // navigateToGeneratePermit();
-            try {
-              await client.decryptHandle(123123123n, FheTypes.Uint32).decrypt();
-            } catch (e) {
-              passErrorToErrorBoundary(e);
-            }
+
+            await client.decryptHandle(123123123n, FheTypes.Uint32).decrypt();
           }}
         >
           * * *

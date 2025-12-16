@@ -2,7 +2,7 @@ import { FnxFloatingButtonBase } from '@/components/FnxFloatingButton/FnxFloatin
 import { FloatingButtonPage, type PageState } from '@/components/FnxFloatingButton/pagesConfig/types';
 import { CofhesdkError, CofhesdkErrorCode } from '@cofhe/sdk';
 import { QueryErrorResetBoundary } from '@tanstack/react-query';
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
 import { ErrorCause, getErrorCause } from '@/utils/index';
 import type { FnxFloatingButtonProps } from '@/components/FnxFloatingButton/types';
@@ -98,6 +98,42 @@ function constructFallbackRouter(errorFallbacks: ErrorFallback[]): React.FC<Fall
   return fallback;
 }
 
+const useAsyncError = () => {
+  const [_, setError] = useState();
+  return useCallback((e: unknown) => {
+    setError(() => {
+      throw e;
+    });
+  }, []);
+};
+
+const UncaughtPromisesHandler: React.FC = () => {
+  const passErrorToErrorBoundary = useAsyncError();
+  // Listen for unhandled promise rejections ("Uncaught (in promise)") not caught by ErrorBoundary
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onUnhandled = (event: PromiseRejectionEvent) => {
+      // if we can't handle it - ignore
+      if (!shouldPassToErrorBoundary(event.reason)) return;
+
+      // if we do handle it - no need to log it further
+      event.preventDefault();
+      event.stopPropagation();
+
+      try {
+        // eslint-disable-next-line no-console
+        console.warn('[observed UnhandledRejection that is handled by CofheSDK]', event.reason);
+        passErrorToErrorBoundary(event.reason);
+      } catch {}
+    };
+    window.addEventListener('unhandledrejection', onUnhandled);
+    return () => {
+      window.removeEventListener('unhandledrejection', onUnhandled);
+    };
+  }, [passErrorToErrorBoundary]);
+  return null;
+};
+
 export const CofheErrorBoundary: React.FC<{ children: React.ReactNode; errorFallbacks: ErrorFallback[] }> = ({
   children,
   errorFallbacks,
@@ -114,6 +150,7 @@ export const CofheErrorBoundary: React.FC<{ children: React.ReactNode; errorFall
             console.error('[cofhesdk][ErrorBoundary] error:', error, info);
           }}
         >
+          <UncaughtPromisesHandler />
           {children}
         </ErrorBoundary>
       )}
