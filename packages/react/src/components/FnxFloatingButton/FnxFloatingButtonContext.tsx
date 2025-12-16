@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import type { FloatingButtonPosition, FnxFloatingButtonToast } from './types';
+import type { FloatingButtonPosition, FnxFloatingButtonToast, FnxFloatingButtonToastContentProps } from './types';
 import { useCofheContext } from '../../providers';
 import { checkPendingTransactions, stopPendingTransactionPolling } from '../../stores/transactionStore';
 import { useCofhePublicClient } from '@/hooks/useCofheConnection';
@@ -12,6 +12,7 @@ import {
   type PagesWithProps,
 } from './pagesConfig/types';
 import { useCofheActivePermit } from '@/hooks/index';
+import { ToastPrimitive } from './components/ToastPrimitives';
 
 export type TokenListMode = 'view' | 'select';
 
@@ -75,7 +76,7 @@ interface FnxFloatingButtonContextValue {
 
   // Toasts
   toasts: FnxFloatingButtonToast[];
-  addToast: (toast: FnxFloatingButtonToast) => void;
+  addToast: (toast: FnxFloatingButtonToastContentProps | FnxFloatingButtonToast) => void;
   removeToast: (id: string) => void;
 }
 
@@ -178,8 +179,13 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
     navigateTo(FloatingButtonPage.TokenInfo);
   };
 
-  const addToast = (toast: FnxFloatingButtonToast) => {
-    setToasts((prev) => [...prev, toast]);
+  const addToast = (toast: FnxFloatingButtonToastContentProps | FnxFloatingButtonToast) => {
+    if ('content' in toast) {
+      setToasts((prev) => [...prev, toast]);
+    } else {
+      const id = crypto.randomUUID();
+      setToasts((prev) => [...prev, { id, content: <ToastPrimitive id={id} duration={5000} {...toast} /> }]);
+    }
   };
 
   const removeToast = (id: string) => {

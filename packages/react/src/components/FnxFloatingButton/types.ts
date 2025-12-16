@@ -36,3 +36,21 @@ export type FnxFloatingButtonToast = {
   duration?: number; // Undefined means the toast will stay until the user dismisses it
   content: ReactNode;
 };
+
+export type FnxFloatingButtonToastContentProps = {
+  variant: FhxFloatingButtonToastVariant;
+  duration?: number | 'infinite';
+  title: string;
+  // Optional content and actions
+  description?: string;
+  transaction?: {
+    hash: string;
+    chainId: number;
+  };
+  action?: {
+    label: string;
+    onClick: (onClose: () => void) => void;
+  };
+};
+
+export type FhxFloatingButtonToastVariant = 'info' | 'success' | 'error' | 'warning';
