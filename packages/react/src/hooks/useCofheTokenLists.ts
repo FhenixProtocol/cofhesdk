@@ -2,6 +2,10 @@ import { useQueries, type UseQueryOptions, type UseQueryResult } from '@tanstack
 import { useCofheContext } from '../providers/CofheProvider';
 import { useMemo } from 'react';
 import { ETH_ADDRESS, type Erc20Pair, type Token } from '../types/token.js';
+import { useCofheAccount } from './useCofheConnection.js';
+import { useUserTokenStore } from '../stores/userTokenStore';
+import { shallow } from 'zustand/shallow';
+import { useStoreWithEqualityFn } from 'zustand/traditional';
 
 export { ETH_ADDRESS, type Token, type Erc20Pair };
 
@@ -67,6 +71,13 @@ export function selectTokensFromTokensList(tokenList: TokenList): Token[] {
 }
 
 export function useCofheTokens(chainId: number): Token[] {
+  const account = useCofheAccount();
+  // getTokens() returns a new array each call; use shallow equality to avoid infinite re-render loops
+  const userTokens = useStoreWithEqualityFn(
+    useUserTokenStore,
+    (s) => (account ? s.getTokens(account, chainId) : []),
+    shallow
+  );
   const tokenLists = useCofheTokenLists({ chainId });
   const tokens = useMemo(() => {
     const map = new Map<string, Token>();
@@ -79,7 +90,13 @@ export function useCofheTokens(chainId: number): Token[] {
         map.set(key, token);
       });
     });
+
+    userTokens.forEach((token) => {
+      const key = `${token.chainId}-${token.address.toLowerCase()}`;
+      if (map.has(key)) return;
+      map.set(key, token);
+    });
     return Array.from(map.values());
-  }, [tokenLists]);
+  }, [tokenLists, userTokens]);
   return tokens;
 }
