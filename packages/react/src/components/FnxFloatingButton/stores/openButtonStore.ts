@@ -28,4 +28,3 @@ export const useOpenButtonStore = create<OpenButtonState>()((set) => ({
 
   clearPendingOpen: () => set({ pendingOpen: null }),
 }));
-

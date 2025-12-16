@@ -3,7 +3,12 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
 import { pages as pagesConfig } from './pagesConfig/const';
-import { FloatingButtonPage, type PageState, type FloatingButtonPagePropsMap, type SendPageProps } from './pagesConfig/types';
+import {
+  FloatingButtonPage,
+  type PageState,
+  type FloatingButtonPagePropsMap,
+  type SendPageProps,
+} from './pagesConfig/types';
 import { ShieldPageV2 } from './pages/ShieldPageV2';
 import { TokenListPage } from './pages/TokenListPage';
 import { SendPage } from './pages/SendPage';

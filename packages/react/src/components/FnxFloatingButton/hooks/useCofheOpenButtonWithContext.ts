@@ -12,18 +12,18 @@ import { useCofheChainId } from '../../../hooks/useCofheConnection';
 /**
  * Hook to programmatically open the floating button and navigate to a specific page.
  * This hook can be used outside of the FnxFloatingButton component.
- * 
+ *
  * @example
  * ```tsx
  * const { openButton } = useCofheOpenButtonWithContext();
- * 
+ *
  * // Open button and navigate to token list
  * openButton(FloatingButtonPage.TokenList, {});
- * 
+ *
  * // Open button and navigate to send page with pre-selected token
- * openButton(FloatingButtonPage.Send, { 
- *   tokenAddress: '0x...', 
- *   onTokenNotFound: (addr) => console.error('Token not found:', addr) 
+ * openButton(FloatingButtonPage.Send, {
+ *   tokenAddress: '0x...',
+ *   onTokenNotFound: (addr) => console.error('Token not found:', addr)
  * });
  * ```
  */
@@ -39,9 +39,7 @@ export const useCofheOpenButtonWithContext = () => {
     if (page === FloatingButtonPage.Send && props) {
       const sendProps = props as SendPageProps;
       if (sendProps.tokenAddress) {
-        const token = tokens.find(
-          (t) => t.address.toLowerCase() === sendProps.tokenAddress!.toLowerCase()
-        );
+        const token = tokens.find((t) => t.address.toLowerCase() === sendProps.tokenAddress!.toLowerCase());
         if (!token) {
           // Token not found - call callback and don't open
           sendProps.onTokenNotFound?.(sendProps.tokenAddress);
@@ -55,4 +53,3 @@ export const useCofheOpenButtonWithContext = () => {
 
   return { openButton };
 };
-

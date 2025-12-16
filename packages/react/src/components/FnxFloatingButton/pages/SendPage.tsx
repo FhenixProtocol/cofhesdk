@@ -31,9 +31,7 @@ export const SendPage: React.FC<SendPageProps> = ({ tokenAddress: propsTokenAddr
   const resolvedToken = useMemo((): SelectedToken => {
     // If tokenAddress prop is provided, try to find it in the token list
     if (propsTokenAddress && tokens.length > 0) {
-      const token = tokens.find(
-        (t) => t.address.toLowerCase() === propsTokenAddress.toLowerCase()
-      );
+      const token = tokens.find((t) => t.address.toLowerCase() === propsTokenAddress.toLowerCase());
 
       if (token) {
         return {

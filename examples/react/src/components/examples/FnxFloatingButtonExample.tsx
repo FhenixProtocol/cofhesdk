@@ -1,5 +1,10 @@
 import React, { useState } from 'react';
-import { FnxFloatingButton, type FloatingButtonSize, useCofheOpenButtonWithContext, FloatingButtonPage } from '@cofhe/react';
+import {
+  FnxFloatingButton,
+  type FloatingButtonSize,
+  useCofheOpenButtonWithContext,
+  FloatingButtonPage,
+} from '@cofhe/react';
 import { useLocalSwitchChain } from '../../utils/useLocalSwitchChain';
 
 // Valid token address from the token list (sepolia)
@@ -117,7 +122,10 @@ export const FnxFloatingButtonExample: React.FC = () => {
                 <button
                   onClick={() => {
                     setErrorMessage(null);
-                    openButton(FloatingButtonPage.Send, { tokenAddress: VALID_TOKEN_ADDRESS, onTokenNotFound: handleTokenNotFound });
+                    openButton(FloatingButtonPage.Send, {
+                      tokenAddress: VALID_TOKEN_ADDRESS,
+                      onTokenNotFound: handleTokenNotFound,
+                    });
                   }}
                   className="px-4 py-2 rounded-lg text-sm transition-colors bg-blue-600 text-white hover:bg-blue-700"
                 >
@@ -126,7 +134,10 @@ export const FnxFloatingButtonExample: React.FC = () => {
                 <button
                   onClick={() => {
                     setErrorMessage(null);
-                    openButton(FloatingButtonPage.Send, { tokenAddress: INVALID_TOKEN_ADDRESS, onTokenNotFound: handleTokenNotFound });
+                    openButton(FloatingButtonPage.Send, {
+                      tokenAddress: INVALID_TOKEN_ADDRESS,
+                      onTokenNotFound: handleTokenNotFound,
+                    });
                   }}
                   className="px-4 py-2 rounded-lg text-sm transition-colors bg-orange-600 text-white hover:bg-orange-700"
                 >
@@ -139,7 +150,8 @@ export const FnxFloatingButtonExample: React.FC = () => {
                 </div>
               )}
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-                💡 Use these buttons to programmatically open the floating button. The "Invalid Token" button demonstrates error handling via callback.
+                💡 Use these buttons to programmatically open the floating button. The "Invalid Token" button
+                demonstrates error handling via callback.
               </p>
             </div>
           </div>
