@@ -1,14 +1,9 @@
-import React, { useState } from 'react';
-import { FnxFloatingButton, type FloatingButtonSize } from '@cofhe/react';
-import { useLocalSwitchChain } from '../../utils/useLocalSwitchChain';
+import React from 'react';
+import { useDynamicCofheConfigContext } from '../../utils/dynamicCofheConfig';
 
 // Example with Material UI icons
 export const FnxFloatingButtonExample: React.FC = () => {
-  const localSwitchChain = useLocalSwitchChain();
-  const [position, setPosition] = useState<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'>('bottom-right');
-  const [clickCount, setClickCount] = useState(0);
-  const [buttonSize, setButtonSize] = useState<FloatingButtonSize>('large');
-  const [darkMode, setDarkMode] = useState(false);
+  const { position, setPosition, buttonSize, setButtonSize, darkMode, setDarkMode } = useDynamicCofheConfigContext();
 
   return (
     <div className="space-y-8">
@@ -83,7 +78,6 @@ export const FnxFloatingButtonExample: React.FC = () => {
 
             {/* Preview */}
             <div className="mb-4">
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Click count: {clickCount}</p>
               <p className="text-xs text-gray-400 dark:text-gray-500">Look at the {position} corner of this page!</p>
               <p className="text-xs text-blue-500 dark:text-blue-400 mt-2">
                 💡 Click the button to toggle the expandable panel
@@ -258,15 +252,6 @@ function MyApp() {
           </div>
         </div>
       </div>
-
-      {/* Single FnxFloatingButton instance */}
-      <FnxFloatingButton
-        position={position}
-        size={buttonSize}
-        darkMode={darkMode}
-        onClick={() => setClickCount((prev) => prev + 1)}
-        onSelectChain={localSwitchChain}
-      />
     </div>
   );
 };
