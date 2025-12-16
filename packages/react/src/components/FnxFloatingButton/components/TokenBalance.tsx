@@ -7,10 +7,9 @@ import { useTokens, type Token } from '../../../hooks/useTokenLists.js';
 import { useCofheChainId } from '../../../hooks/useCofheConnection.js';
 import { cn } from '../../../utils/cn.js';
 import { LoadingDots } from './LoadingDots.js';
-import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext';
-import { FloatingButtonPage } from '../pagesConfig/types.js';
 import { CREATE_PERMITT_BODY_BY_ERROR_CAUSE } from '@/providers/errors.js';
 import { ErrorCause } from '@/utils/errors.js';
+import { useCofheCreatePermit } from '@/hooks/permits/useCofheCreatePermit.js';
 
 export interface TokenBalanceProps {
   /** Token object from token list (for non-native tokens) */
@@ -54,7 +53,10 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
   const account = useCofheAccount();
   const chainId = useCofheChainId();
   const tokens = useTokens(chainId);
-  const { navigateTo, navigateBack } = useFnxFloatingButtonContext();
+
+  const navigateToGeneratePermit = useCofheCreatePermit({
+    ReasonBody: CREATE_PERMITT_BODY_BY_ERROR_CAUSE[ErrorCause.AttemptToFetchConfidentialBalance],
+  });
 
   // Determine which account address to use
   const effectiveAccountAddress = accountAddress ?? account;
@@ -108,17 +110,13 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
       <div
         onClick={(e) => {
           e.stopPropagation();
-          const ReasonBody = CREATE_PERMITT_BODY_BY_ERROR_CAUSE[ErrorCause.AttemptToFetchConfidentialBalance];
-          navigateTo(FloatingButtonPage.GeneratePermits, {
-            pageProps: { overridingBody: <ReasonBody />, onSuccessNavigateTo: () => navigateBack() },
-            navigateParams: { skipPagesHistory: true },
-          });
+          navigateToGeneratePermit();
         }}
       >
         {'* * *'}
       </div>
     ),
-    [navigateBack, navigateTo]
+    [navigateToGeneratePermit]
   );
   // Format balance
   const displayBalance = useMemo(() => {
