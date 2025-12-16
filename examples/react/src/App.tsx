@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Navigation } from './components/Navigation';
 import { ComponentRenderer } from './components/ComponentRenderer';
 import { Providers as WagmiProviders } from './utils/wagmi';
@@ -38,20 +38,8 @@ const WETH_SEPOLIA_TOKEN: Token = {
 };
 
 // A custom hook to help with this
-const useAsyncError = () => {
-  const [_, setError] = useState();
-  return useCallback(
-    (e: unknown) => {
-      setError(() => {
-        throw e;
-      });
-    },
-    [setError],
-  );
-};
 
 function DemoErrorOutsideFloatingButton() {
-  const passErrorToErrorBoundary = useAsyncError();
   const account = useCofheConnection().account;
   const { disabledDueToMissingPermit, data, error, isLoading } = useTokenConfidentialBalance({
     token: WETH_SEPOLIA_TOKEN,
