@@ -64,11 +64,6 @@ export function useCofheTokenTransfer(
         throw new Error(`Unsupported confidentialityType: ${confidentialityType}`);
       }
 
-      // Throw error if dual type is used (not yet implemented)
-      if (confidentialityType === 'dual') {
-        throw new Error('Dual confidentiality type is not yet implemented');
-      }
-
       // Construct the inValue struct from encryptedValue (object format for viem)
       const inValue = {
         ctHash: input.encryptedValue.ctHash,

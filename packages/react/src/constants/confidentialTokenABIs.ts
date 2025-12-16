@@ -119,12 +119,12 @@ export const PURE_TRANSFER_ABI = [
 ] as const satisfies Abi;
 
 /**
- * ABI for dual confidentiality type token transfers (TBD - to be implemented)
- * Uses `TBD_DUAL_FUNCTION_NAME(address to, InEuintXXX inValue)` function
+ * ABI for dual confidentiality type token transfers
+ * Uses `confidentialTransfer(address to, InEuint64 inValue)` function
  */
 export const DUAL_TRANSFER_ABI = [
   {
-    name: 'TBD_DUAL_FUNCTION_NAME',
+    name: 'confidentialTransfer',
     type: 'function',
     stateMutability: 'nonpayable',
     inputs: [
@@ -157,9 +157,8 @@ export const TRANSFER_ABIS = {
     functionName: 'confidentialTransfer' as const,
   },
   dual: {
-    // Placeholder for dual type
     abi: DUAL_TRANSFER_ABI,
-    functionName: 'TBD_DUAL_FUNCTION_NAME' as const,
+    functionName: 'confidentialTransfer' as const,
   },
 } as const;
 
