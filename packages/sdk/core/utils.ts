@@ -66,7 +66,7 @@ export async function getPublicClientChainID(publicClient: PublicClient) {
 }
 
 export async function getWalletClientAccount(walletClient: WalletClient) {
-  let address: string | undefined;
+  let address: `0x${string}` | undefined;
   try {
     address = walletClient.account?.address;
     if (!address) {

@@ -66,7 +66,8 @@ interface FnxFloatingButtonContextValue {
   expandPanel: () => void;
   collapsePanel: () => void;
   handleClick: (externalOnClick?: () => void) => void;
-  onSelectChain?: (chainId: number) => Promise<void> | void;
+  // TODO: I believe we should disable chain switching from within the floating button. We better deal with whatever is provided in Singer
+  // onSelectChain?: (chainId: number) => Promise<void> | void;
   // Token selection
   tokenListMode: TokenListMode;
   selectedToken: SelectedToken;
@@ -203,7 +204,6 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
         expandPanel,
         collapsePanel,
         handleClick,
-        onSelectChain,
         tokenListMode,
         selectedToken,
         navigateToTokenListForSelection,

@@ -3,15 +3,17 @@ import { FnxFloatingButtonBase } from './FnxFloatingButtonBase';
 import { FnxFloatingButtonProvider } from './FnxFloatingButtonContext';
 import type { FnxFloatingButtonProps } from './types';
 
-export const FnxFloatingButton: React.FC<FnxFloatingButtonProps> = (props) => {
+export const FnxFloatingButtonWithProvider: React.FC<FnxFloatingButtonProps> = (props) => {
   return (
     <FnxFloatingButtonProvider
       darkMode={props.darkMode ?? false}
       position={props.position}
-      onSelectChain={props.onSelectChain}
+      // TODO: remove?
+      // onSelectChain={props.onSelectChain}
     >
       <CofheErrorBoundary errorFallbacks={constructErrorFallbacksWithFloatingButtonProps(props)}>
         <FnxFloatingButtonBase {...props} />
+        {props.children}
       </CofheErrorBoundary>
     </FnxFloatingButtonProvider>
   );

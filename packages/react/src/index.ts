@@ -19,7 +19,7 @@ export {
 } from './hooks/index';
 
 // Components
-export { FnxEncryptInput, FnxFloatingButton } from './components/index';
+export { FnxEncryptInput, FnxFloatingButtonWithProvider } from './components/index';
 export { MainPage, SettingsPage, TokenListPage } from './components/FnxFloatingButton/pages/index';
 
 // Utils
@@ -65,3 +65,9 @@ export { createCofhesdkClient } from '@cofhe/sdk/web';
 
 export { useTokenConfidentialBalance } from './hooks/useTokenBalance';
 export type { Token } from './hooks/useTokenLists';
+
+export { useCofheCreatePermit } from './hooks/permits/useCofheCreatePermit';
+export { CREATE_PERMITT_BODY_BY_ERROR_CAUSE } from './providers/errors';
+export { ErrorCause } from './utils/errors';
+
+export type { CofhesdkConfigWithReact } from './config';
