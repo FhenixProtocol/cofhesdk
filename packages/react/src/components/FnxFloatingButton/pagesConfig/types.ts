@@ -17,12 +17,19 @@ export enum FloatingButtonPage {
 
 // Consumers can augment this map via declaration merging or module-local typing.
 // By default, props are typed as unknown per page.
+export interface SendPageProps {
+  /** Token contract address to pre-select for transfer */
+  tokenAddress?: string;
+  /** Callback when token address is not found in the token list */
+  onTokenNotFound?: (tokenAddress: string) => void;
+}
+
 export type FloatingButtonPagePropsMap = {
   [FloatingButtonPage.Main]: void;
   [FloatingButtonPage.Settings]: void;
   [FloatingButtonPage.TokenList]: { title?: string };
   [FloatingButtonPage.TokenInfo]: void;
-  [FloatingButtonPage.Send]: void;
+  [FloatingButtonPage.Send]: SendPageProps | void;
   [FloatingButtonPage.Shield]: void;
   [FloatingButtonPage.Activity]: void;
   [FloatingButtonPage.Permits]: void;

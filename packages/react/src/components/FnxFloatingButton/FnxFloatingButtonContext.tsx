@@ -12,6 +12,7 @@ import {
   type PagesWithProps,
 } from './pagesConfig/types';
 import { useCofheActivePermit } from '@/hooks/index';
+import { useOpenButtonStore } from './stores/openButtonStore';
 
 export type TokenListMode = 'view' | 'select';
 
@@ -105,6 +106,7 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
 
   const activePermit = useCofheActivePermit();
   const publicClient = useCofhePublicClient();
+  const { pendingOpen, clearPendingOpen } = useOpenButtonStore();
 
   // Check pending transactions on mount
   useEffect(() => {
@@ -113,6 +115,19 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
       stopPendingTransactionPolling();
     };
   }, [cofhesdkClient]);
+
+  // Handle external open requests from the store
+  useEffect(() => {
+    if (pendingOpen) {
+      setIsExpanded(true);
+      setTimeout(() => {
+        setShowPopupPanel(true);
+        // Navigate to the requested page
+        setPageHistory((prev) => [...prev, { page: pendingOpen.page, props: pendingOpen.props }]);
+      }, OPEN_DELAY);
+      clearPendingOpen();
+    }
+  }, [pendingOpen, clearPendingOpen]);
 
   const currentPage = pageHistory[pageHistory.length - 1];
   const isLeftSide = effectivePosition.includes('left');

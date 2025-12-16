@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import { type Address, isAddress, formatUnits } from 'viem';
-import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext.js';
+import { useFnxFloatingButtonContext, type SelectedToken } from '../FnxFloatingButtonContext.js';
 import { useCofheContext } from '../../../providers/CofheProvider.js';
 import { useCofheAccount, useCofheChainId } from '../../../hooks/useCofheConnection.js';
 import {
@@ -17,8 +17,9 @@ import { cn } from '../../../utils/cn.js';
 import { truncateAddress, sanitizeNumericInput } from '../../../utils/utils.js';
 import { TokenIcon } from '../components/TokenIcon.js';
 import { TokenBalance } from '../components/TokenBalance.js';
+import type { SendPageProps } from '../pagesConfig/types.js';
 
-export const SendPage: React.FC = () => {
+export const SendPage: React.FC<SendPageProps> = ({ tokenAddress: propsTokenAddress }) => {
   const { navigateBack, selectedToken, navigateToTokenListForSelection } = useFnxFloatingButtonContext();
   const { client } = useCofheContext();
   const account = useCofheAccount();
@@ -26,10 +27,33 @@ export const SendPage: React.FC = () => {
   const tokenTransfer = useCofheTokenTransfer();
   const tokens = useCofheTokens(chainId ?? 0);
 
+  // Resolve token from props or context
+  const resolvedToken = useMemo((): SelectedToken => {
+    // If tokenAddress prop is provided, try to find it in the token list
+    if (propsTokenAddress && tokens.length > 0) {
+      const token = tokens.find(
+        (t) => t.address.toLowerCase() === propsTokenAddress.toLowerCase()
+      );
+
+      if (token) {
+        return {
+          address: token.address,
+          name: token.name,
+          symbol: token.symbol,
+          decimals: token.decimals,
+          logoURI: token.logoURI,
+          isNative: false,
+        };
+      }
+    }
+    // Fall back to context's selectedToken
+    return selectedToken;
+  }, [propsTokenAddress, tokens, selectedToken]);
+
   const pinnedTokenAddress = useCofhePinnedTokenAddress();
-  // Use selected token if available, otherwise fall back to pinned token
+  // Use resolved token if available, otherwise fall back to pinned token
   const activeTokenAddress =
-    selectedToken && !selectedToken.isNative ? (selectedToken.address as Address) : pinnedTokenAddress;
+    resolvedToken && !resolvedToken.isNative ? (resolvedToken.address as Address) : pinnedTokenAddress;
 
   // Find token from token list to get confidentialityType
   const tokenFromList = useMemo(() => {
@@ -51,9 +75,9 @@ export const SendPage: React.FC = () => {
     }
   );
 
-  // Use selected token metadata if available, otherwise use fetched metadata
+  // Use resolved token metadata if available, otherwise use fetched metadata
   const displayToken =
-    selectedToken ||
+    resolvedToken ||
     (tokenMetadata
       ? {
           name: tokenMetadata.name,

@@ -3,9 +3,10 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
 import { pages as pagesConfig } from './pagesConfig/const';
-import { FloatingButtonPage, type PageState, type FloatingButtonPagePropsMap } from './pagesConfig/types';
+import { FloatingButtonPage, type PageState, type FloatingButtonPagePropsMap, type SendPageProps } from './pagesConfig/types';
 import { ShieldPageV2 } from './pages/ShieldPageV2';
 import { TokenListPage } from './pages/TokenListPage';
+import { SendPage } from './pages/SendPage';
 import { PermitDetailsPage } from './pages/permits/PermitDetailsPage';
 import type { PermitDetailsPageProps } from './pages/permits/PermitDetailsPage/types';
 import { useSettingsStore, ShieldPageVariant } from './stores/settingsStore';
@@ -52,6 +53,11 @@ export const ContentSection: React.FC<ContentSectionProps> = ({ className, conte
     // TokenList accepts optional props (e.g. title override)
     if (page === FloatingButtonPage.TokenList) {
       return <TokenListPage {...((props ?? {}) as FloatingButtonPagePropsMap[FloatingButtonPage.TokenList])} />;
+    }
+
+    // Send page accepts optional props (e.g. tokenAddress)
+    if (page === FloatingButtonPage.Send) {
+      return <SendPage {...((props ?? {}) as SendPageProps)} />;
     }
 
     // All other pages don't require props (void type)

@@ -43,6 +43,7 @@ export {
 // Components
 export { FnxEncryptInput, FnxFloatingButton } from './components/index';
 export { MainPage, SettingsPage, TokenListPage } from './components/FnxFloatingButton/pages/index';
+export { useCofheOpenButtonWithContext } from './components/FnxFloatingButton/hooks/index';
 
 // Utils
 export {
@@ -84,5 +85,7 @@ export type { CofheContextValue, CofheProviderProps, CofheClientConfig } from '.
 export type { FnxFloatingButtonProps } from './components/FnxFloatingButton/types';
 
 export type { FloatingButtonPosition, FloatingButtonSize } from './components/FnxFloatingButton/types';
+
+export { FloatingButtonPage } from './components/FnxFloatingButton/pagesConfig/types';
 
 export { createCofhesdkClient } from '@cofhe/sdk/web';

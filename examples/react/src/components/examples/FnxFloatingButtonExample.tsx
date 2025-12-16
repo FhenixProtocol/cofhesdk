@@ -1,14 +1,25 @@
 import React, { useState } from 'react';
-import { FnxFloatingButton, type FloatingButtonSize } from '@cofhe/react';
+import { FnxFloatingButton, type FloatingButtonSize, useCofheOpenButtonWithContext, FloatingButtonPage } from '@cofhe/react';
 import { useLocalSwitchChain } from '../../utils/useLocalSwitchChain';
+
+// Valid token address from the token list (sepolia)
+const VALID_TOKEN_ADDRESS = '0xd38AB9f1563316DeD5d3B3d5e727d55f410d492E';
+// Fake token address that doesn't exist
+const INVALID_TOKEN_ADDRESS = '0x0000000000000000000000000000000000000001';
 
 // Example with Material UI icons
 export const FnxFloatingButtonExample: React.FC = () => {
   const localSwitchChain = useLocalSwitchChain();
+  const { openButton } = useCofheOpenButtonWithContext();
   const [position, setPosition] = useState<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'>('bottom-right');
   const [clickCount, setClickCount] = useState(0);
   const [buttonSize, setButtonSize] = useState<FloatingButtonSize>('large');
   const [darkMode, setDarkMode] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const handleTokenNotFound = (tokenAddress: string) => {
+    setErrorMessage(`Token not found: ${tokenAddress}`);
+  };
 
   return (
     <div className="space-y-8">
@@ -87,6 +98,48 @@ export const FnxFloatingButtonExample: React.FC = () => {
               <p className="text-xs text-gray-400 dark:text-gray-500">Look at the {position} corner of this page!</p>
               <p className="text-xs text-blue-500 dark:text-blue-400 mt-2">
                 💡 Click the button to toggle the expandable panel
+              </p>
+            </div>
+
+            {/* External Trigger Example */}
+            <div className="mb-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <label className="block text-sm font-medium mb-2">External Trigger:</label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                <button
+                  onClick={() => {
+                    setErrorMessage(null);
+                    openButton(FloatingButtonPage.TokenList, {});
+                  }}
+                  className="px-4 py-2 rounded-lg text-sm transition-colors bg-green-600 text-white hover:bg-green-700"
+                >
+                  Open Portfolio (Token List)
+                </button>
+                <button
+                  onClick={() => {
+                    setErrorMessage(null);
+                    openButton(FloatingButtonPage.Send, { tokenAddress: VALID_TOKEN_ADDRESS, onTokenNotFound: handleTokenNotFound });
+                  }}
+                  className="px-4 py-2 rounded-lg text-sm transition-colors bg-blue-600 text-white hover:bg-blue-700"
+                >
+                  Open Send (Valid Token)
+                </button>
+                <button
+                  onClick={() => {
+                    setErrorMessage(null);
+                    openButton(FloatingButtonPage.Send, { tokenAddress: INVALID_TOKEN_ADDRESS, onTokenNotFound: handleTokenNotFound });
+                  }}
+                  className="px-4 py-2 rounded-lg text-sm transition-colors bg-orange-600 text-white hover:bg-orange-700"
+                >
+                  Open Send (Invalid Token)
+                </button>
+              </div>
+              {errorMessage && (
+                <div className="bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg p-3 mb-2">
+                  <p className="text-sm text-red-800 dark:text-red-200">{errorMessage}</p>
+                </div>
+              )}
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+                💡 Use these buttons to programmatically open the floating button. The "Invalid Token" button demonstrates error handling via callback.
               </p>
             </div>
           </div>
