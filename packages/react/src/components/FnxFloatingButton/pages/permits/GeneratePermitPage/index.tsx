@@ -80,10 +80,7 @@ export const GeneratePermitPage: React.FC<GeneratePermitPageProps> = ({
           </div>
         )}
         {error && (
-          <div
-            role="alert"
-            className="rounded-lg border border-red-500 bg-red-500/10 px-3 py-2 text-sm"
-          >
+          <div role="alert" className="rounded-lg border border-red-500 bg-red-500/10 px-3 py-2 text-sm">
             {error}
           </div>
         )}
@@ -117,11 +114,7 @@ export const GeneratePermitPage: React.FC<GeneratePermitPageProps> = ({
         </section>
 
         <div className="grid grid-cols-2 gap-3 pt-2">
-          <ActionButton
-            onClick={onCancel ?? navigateBack}
-            label="Cancel"
-            className="py-2.5"
-          />
+          <ActionButton onClick={onCancel ?? navigateBack} label="Cancel" className="py-2.5" />
           <ActionButton
             onClick={handleSubmit}
             disabled={!isValid || isSubmitting}

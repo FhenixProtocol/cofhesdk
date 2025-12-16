@@ -56,10 +56,7 @@ export const PermitsListPage: React.FC = () => {
               </>
             )}
           >
-            <span
-              className="absolute left-1 top-0 bottom-0 border-l fnx-card-border"
-              aria-hidden
-            />
+            <span className="absolute left-1 top-0 bottom-0 border-l fnx-card-border" aria-hidden />
             {generatedPermits.length === 0 ? (
               <div className="pl-4 text-sm opacity-70">No permits yet.</div>
             ) : (

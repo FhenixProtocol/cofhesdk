@@ -70,11 +70,7 @@ export const ReceivePermitPage: React.FC = () => {
       </section>
 
       <div className="grid grid-cols-2 gap-3 pt-2">
-        <ActionButton
-          onClick={navigateBack}
-          label="Cancel"
-          className="py-2.5"
-        />
+        <ActionButton onClick={navigateBack} label="Cancel" className="py-2.5" />
         <ActionButton
           onClick={submit}
           disabled={isSubmitting}
