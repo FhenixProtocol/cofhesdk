@@ -17,6 +17,11 @@ NB: both CofhesdkErrors and other errors are passed to CofheErrorBoundary. If th
 
 the 3rd group are directed to CofheErrorBoundary by listenning to `unhandledrejection` events.
 
+# What exactly types of errors are consolidated in the CofheErrorBoundary?
+- CofhesdkErrors thrown by internal queryFn and mutateFn
+- _all_ synchronous errors during render of any of the children (it passes through errors it doesn't know how to handle, including those that come from the consuming dApp)
+- uncaught CofhesdkErrors (the rest - non-CofhesdkErrors - are passed through in the event listener)
+
 # Notes
 - CofheSDK consumers shouldn't throw instances of CofhesdkError. That's for internal usage.
 - Calls that can produce a CofhesdkError should be conditioned by a check "is currently handling cofhesdk error via UI" (`useIsCofheErrorActive`). If such an error is active in the ErrorBoundary, such actions should be blocked until that error is gone (i.e. reset)  
