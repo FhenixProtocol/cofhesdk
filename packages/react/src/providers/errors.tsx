@@ -3,7 +3,7 @@ import { FloatingButtonPage, type PageState } from '@/components/FnxFloatingButt
 import { CofhesdkError, CofhesdkErrorCode } from '@cofhe/sdk';
 import { QueryErrorResetBoundary } from '@tanstack/react-query';
 import { memo, useEffect, useMemo, useState } from 'react';
-import { ErrorBoundary, useErrorBoundary, type FallbackProps } from 'react-error-boundary';
+import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
 import { ErrorCause, getErrorCause } from '@/utils/index';
 import type { FnxFloatingButtonProps } from '@/components/FnxFloatingButton/types';
 import { useFnxFloatingButtonContext } from '@/components/FnxFloatingButton/FnxFloatingButtonContext';
@@ -98,17 +98,21 @@ function constructFallbackRouter(errorFallbacks: ErrorFallback[]): React.FC<Fall
   return fallback;
 }
 
-const useAsyncError = () => {
-  const [_, setError] = useState();
-  return useCallback((e: unknown) => {
-    setError(() => {
-      throw e;
-    });
-  }, []);
-};
+// a replacement for the original one https://github.com/bvaughn/react-error-boundary/blob/master/src/useErrorBoundary.ts#L39 , which re-throws in the render causing duplicates sometimes
+function useEffectThrowBoundary() {
+  const [err, setErr] = useState<unknown>(null);
+  useEffect(() => {
+    // Synchronously throw from an effect on state change so it propagates to the nearest error boundary
+    if (err) throw err;
+  }, [err]);
+  return {
+    showBoundary: (e: unknown) => setErr(e),
+    resetBoundary: () => setErr(null),
+  } as const;
+}
 
 const UncaughtPromisesHandler = memo(function UncaughtPromisesHandler() {
-  const { showBoundary } = useErrorBoundary();
+  const { showBoundary } = useEffectThrowBoundary();
   // Listen for unhandled promise rejections ("Uncaught (in promise)") not caught by ErrorBoundary
   useEffect(() => {
     if (typeof window === 'undefined') return;
