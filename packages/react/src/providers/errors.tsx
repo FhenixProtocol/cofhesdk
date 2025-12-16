@@ -2,10 +2,11 @@ import { FnxFloatingButtonBase } from '@/components/FnxFloatingButton/FnxFloatin
 import { FloatingButtonPage, type PageState } from '@/components/FnxFloatingButton/pagesConfig/types';
 import { CofhesdkError, CofhesdkErrorCode } from '@cofhe/sdk';
 import { QueryErrorResetBoundary } from '@tanstack/react-query';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
 import { ErrorCause, getErrorCause } from '@/utils/index';
 import type { FnxFloatingButtonProps } from '@/components/FnxFloatingButton/types';
+import { useFnxFloatingButtonContext } from '@/components/FnxFloatingButton/FnxFloatingButtonContext';
 
 export const CREATE_PERMITT_BODY_BY_ERROR_CAUSE: Record<ErrorCause, React.FC> = {
   [ErrorCause.AttemptToFetchConfidentialBalance]: () =>
@@ -17,8 +18,9 @@ const FALLBACK_BY_ERROR_TYPE: ErrorFallbackDefinition[] = [
   {
     // if it's Permit error - redirect to Permit Creation screen
     checkFn: (error: unknown) => error instanceof CofhesdkError && error.code === CofhesdkErrorCode.PermitNotFound,
-    componentConstructor: ({ floatingButtonProps }) => {
+    componentConstructor: ({ floatingButtonProps, restOfTheChildren }) => {
       const Component: React.FC<FallbackProps> = ({ error, resetErrorBoundary }) => {
+        const { isExpanded, expandPanel } = useFnxFloatingButtonContext();
         const overriddingPage = useMemo<PageState>(() => {
           const errorCause = getErrorCause(error);
           const OverridingBodyComponent = errorCause ? CREATE_PERMITT_BODY_BY_ERROR_CAUSE[errorCause] : undefined;
@@ -39,7 +41,15 @@ const FALLBACK_BY_ERROR_TYPE: ErrorFallbackDefinition[] = [
             },
           };
         }, [error, resetErrorBoundary]);
-        return <FnxFloatingButtonBase {...floatingButtonProps} overriddingPage={overriddingPage} />;
+        useEffect(() => {
+          if (!isExpanded) expandPanel();
+        }, [expandPanel, isExpanded]);
+        return (
+          <>
+            <FnxFloatingButtonBase {...floatingButtonProps} overriddingPage={overriddingPage} />
+            {restOfTheChildren}
+          </>
+        );
       };
       return Component;
     },
@@ -53,13 +63,19 @@ type ErrorFallback = {
 
 type ErrorFallbackDefinition = {
   checkFn: (error: unknown) => boolean;
-  componentConstructor: (deps: { floatingButtonProps: FnxFloatingButtonProps }) => React.FC<FallbackProps>;
+  componentConstructor: (deps: {
+    floatingButtonProps: FnxFloatingButtonProps;
+    restOfTheChildren: React.ReactNode;
+  }) => React.FC<FallbackProps>;
 };
 
-export function constructErrorFallbacksWithFloatingButtonProps(props: FnxFloatingButtonProps): ErrorFallback[] {
+export function constructErrorFallbacksWithFloatingButtonProps(
+  props: FnxFloatingButtonProps,
+  restOfTheChildren: React.ReactNode
+): ErrorFallback[] {
   return FALLBACK_BY_ERROR_TYPE.map(({ checkFn, componentConstructor }) => ({
     checkFn,
-    component: componentConstructor({ floatingButtonProps: props }),
+    component: componentConstructor({ floatingButtonProps: props, restOfTheChildren }),
   }));
 }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Navigation } from './components/Navigation';
 import { ComponentRenderer } from './components/ComponentRenderer';
 import { Providers as WagmiProviders } from './utils/wagmi';
@@ -8,11 +8,13 @@ import {
   CREATE_PERMITT_BODY_BY_ERROR_CAUSE,
   ErrorCause,
   Token,
+  useCofheClient,
   useCofheConnection,
   useCofheCreatePermit,
   useTokenConfidentialBalance,
 } from '@cofhe/react';
 import { DynamicCofheConfigProvider } from './utils/dynamicCofheConfig';
+import { FheTypes } from '@cofhe/sdk';
 
 const WETH_SEPOLIA_TOKEN: Token = {
   chainId: 11155111,
@@ -35,7 +37,21 @@ const WETH_SEPOLIA_TOKEN: Token = {
   },
 };
 
+// A custom hook to help with this
+const useAsyncError = () => {
+  const [_, setError] = useState();
+  return useCallback(
+    (e: unknown) => {
+      setError(() => {
+        throw e;
+      });
+    },
+    [setError],
+  );
+};
+
 function DemoErrorOutsideFloatingButton() {
+  const passErrorToErrorBoundary = useAsyncError();
   const account = useCofheConnection().account;
   const { disabledDueToMissingPermit, data, error, isLoading } = useTokenConfidentialBalance({
     token: WETH_SEPOLIA_TOKEN,
@@ -45,13 +61,20 @@ function DemoErrorOutsideFloatingButton() {
   const navigateToGeneratePermit = useCofheCreatePermit({
     ReasonBody: CREATE_PERMITT_BODY_BY_ERROR_CAUSE[ErrorCause.AttemptToFetchConfidentialBalance],
   });
+
+  const client = useCofheClient();
   return (
     <pre>
       {disabledDueToMissingPermit ? (
         <div
-          onClick={(e) => {
+          onClick={async (e) => {
             e.stopPropagation();
-            navigateToGeneratePermit();
+            // navigateToGeneratePermit();
+            try {
+              await client.decryptHandle(123123123n, FheTypes.Uint32).decrypt();
+            } catch (e) {
+              passErrorToErrorBoundary(e);
+            }
           }}
         >
           * * *

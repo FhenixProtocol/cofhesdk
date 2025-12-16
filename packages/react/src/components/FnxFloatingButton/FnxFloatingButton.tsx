@@ -11,7 +11,7 @@ export const FnxFloatingButtonWithProvider: React.FC<FnxFloatingButtonProps> = (
       // TODO: remove?
       // onSelectChain={props.onSelectChain}
     >
-      <CofheErrorBoundary errorFallbacks={constructErrorFallbacksWithFloatingButtonProps(props)}>
+      <CofheErrorBoundary errorFallbacks={constructErrorFallbacksWithFloatingButtonProps(props, props.children)}>
         <FnxFloatingButtonBase {...props} />
         {props.children}
       </CofheErrorBoundary>
