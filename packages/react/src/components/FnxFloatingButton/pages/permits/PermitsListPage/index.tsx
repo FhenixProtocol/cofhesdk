@@ -11,6 +11,7 @@ import { Accordion, AccordionSection } from '../../../Accordion.js';
 import { PermitItem } from './components/PermitItem';
 import { usePermitsList } from '@/hooks/permits/index.js';
 import type { QuickActionId } from '@/hooks/permits/index.js';
+import { ActionButton } from '@/components/FnxFloatingButton/components/ActionButton.js';
 
 type QuickAction = { id: QuickActionId; label: string; icon: ElementType };
 
@@ -104,15 +105,13 @@ export const PermitsListPage: React.FC = () => {
 
         <div className="grid grid-cols-2 gap-3">
           {quickActions.map(({ id, label, icon: Icon }) => (
-            <button
+            <ActionButton
               key={id}
-              type="button"
-              className="fnx-button flex w-full items-center justify-center gap-2 rounded-lg border fnx-card-border px-3 py-2.5 text-sm font-medium transition-opacity hover:opacity-80"
               onClick={() => handleQuickAction(id)}
-            >
-              <Icon fontSize="small" />
-              <span>{label}</span>
-            </button>
+              icon={<Icon fontSize="small" />}
+              label={label}
+              className="py-2.5"
+            />
           ))}
         </div>
       </div>

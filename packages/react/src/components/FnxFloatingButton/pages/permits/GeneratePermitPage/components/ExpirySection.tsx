@@ -1,5 +1,4 @@
-import React from 'react';
-import { cn } from '../../../../../../utils/cn.js';
+import { ActionButton } from '@/components/FnxFloatingButton/components/ActionButton.js';
 
 export const ExpirySection = <U extends string>({
   presets,
@@ -26,25 +25,20 @@ export const ExpirySection = <U extends string>({
       {presets.map((option) => {
         const isActive = durationSeconds === option.seconds;
         return (
-          <button
+          <ActionButton
             key={option.label}
-            type="button"
-            className={cn(
-              'fnx-button rounded-lg border fnx-card-border px-3 py-2 text-sm font-medium transition-opacity',
-              isActive ? 'fnx-button-hover-bg' : 'hover:opacity-80'
-            )}
             onClick={() => selectPreset(option.seconds)}
-            aria-pressed={isActive}
-          >
-            {option.label}
-          </button>
+            label={option.label}
+            pressed={isActive}
+            className="px-3 py-2"
+          />
         );
       })}
     </div>
     <div className="space-y-2">
       <p className="text-xs font-medium opacity-70">Or:</p>
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex-1 rounded-lg border fnx-card-border fnx-card-bg px-3 py-2 text-sm font-medium">
+        <div className="flex-1 fnx-card-border fnx-card-bg px-3 py-2 text-sm font-medium">
           <input
             id="custom-duration-count"
             type="number"
@@ -60,7 +54,7 @@ export const ExpirySection = <U extends string>({
             aria-label="Custom duration count"
           />
         </div>
-        <div className="flex items-center gap-2 rounded-lg border fnx-card-border px-2 py-2 text-sm font-medium">
+        <div className="flex items-center gap-2 fnx-card-border px-2 py-2 text-sm font-medium">
           <label htmlFor="custom-duration-unit" className="sr-only">
             Custom duration unit
           </label>

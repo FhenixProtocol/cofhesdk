@@ -2,6 +2,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PermitReceiveIcon from '../assets/fhenix-permit-receive.svg';
 import { useFnxFloatingButtonContext } from '../../../FnxFloatingButtonContext.js';
 import { useReceivePermit } from '@/hooks/permits/index.js';
+import { ActionButton } from '@/components/FnxFloatingButton/components/ActionButton.js';
 
 export const ReceivePermitPage: React.FC = () => {
   const { navigateBack, darkMode } = useFnxFloatingButtonContext();
@@ -22,7 +23,7 @@ export const ReceivePermitPage: React.FC = () => {
 
       <div className="space-y-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg fnx-icon-bg border fnx-card-border flex items-center justify-center">
+          <div className="w-10 h-10 fnx-icon-bg flex items-center justify-center">
             <PermitReceiveIcon color={permitIconColor} />
           </div>
           <div className="text-base font-semibold">Receive CoFHE Permit</div>
@@ -46,7 +47,7 @@ export const ReceivePermitPage: React.FC = () => {
             id="fnx-permit-data"
             rows={3}
             placeholder="Paste permit data"
-            className="w-full rounded-lg border fnx-card-border fnx-card-bg px-3 py-2 text-sm fnx-text-primary outline-none transition focus:opacity-100"
+            className="w-full fnx-card-border fnx-card-bg px-3 py-2 text-sm fnx-text-primary outline-none transition focus:opacity-100"
             value={permitData}
             onChange={(e) => setPermitData(e.target.value)}
           />
@@ -59,7 +60,7 @@ export const ReceivePermitPage: React.FC = () => {
             id="fnx-permit-name"
             type="text"
             placeholder="Add a permit name (optional)"
-            className="w-full rounded-lg border fnx-card-border fnx-card-bg px-3 py-2 text-sm fnx-text-primary outline-none transition focus:opacity-100"
+            className="w-full fnx-card-border fnx-card-bg px-3 py-2 text-sm fnx-text-primary outline-none transition focus:opacity-100"
             value={permitName}
             onChange={(e) => setPermitName(e.target.value)}
           />
@@ -69,21 +70,17 @@ export const ReceivePermitPage: React.FC = () => {
       </section>
 
       <div className="grid grid-cols-2 gap-3 pt-2">
-        <button
-          type="button"
-          className="fnx-button rounded-lg py-2.5 text-sm font-medium border fnx-card-border hover:opacity-80 transition-opacity"
+        <ActionButton
           onClick={navigateBack}
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          className="fnx-send-button fnx-send-button-enabled rounded-lg py-2.5 text-sm font-medium transition-opacity disabled:opacity-50"
-          disabled={isSubmitting}
+          label="Cancel"
+          className="py-2.5"
+        />
+        <ActionButton
           onClick={submit}
-        >
-          {isSubmitting ? 'Signing...' : 'Sign Permit'}
-        </button>
+          disabled={isSubmitting}
+          label={isSubmitting ? 'Signing...' : 'Sign Permit'}
+          className="py-2.5"
+        />
       </div>
     </div>
   );

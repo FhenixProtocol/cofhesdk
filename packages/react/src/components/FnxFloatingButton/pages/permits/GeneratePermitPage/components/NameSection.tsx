@@ -8,12 +8,12 @@ export type NameSectionProps = {
 };
 
 export const NameSection: React.FC<NameSectionProps> = ({ permitName, error, onNameChange, headerRight }) => (
-  <div className="rounded-lg border fnx-card-border overflow-hidden">
+  <div className="fnx-card-border overflow-hidden">
     <div className="flex items-center justify-between px-3 py-2 text-xs font-medium uppercase tracking-wide opacity-70">
       <span>Name</span>
       {headerRight}
     </div>
-    <div className="border-t fnx-card-border fnx-card-bg px-3 py-2.5 text-sm font-medium">
+    <div className="fnx-card-bg px-3 py-2.5 text-sm font-medium">
       <input
         id="permit-name"
         type="text"

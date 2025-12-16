@@ -7,7 +7,7 @@ import { SelfToggle } from './components/SelfToggle.js';
 import { ReceiverSection } from './components/ReceiverSection.js';
 import { ExpirySection } from './components/ExpirySection.js';
 import { FloatingButtonPage } from '@/components/FnxFloatingButton/pagesConfig/types';
-import { cn } from '../../../../../utils/cn.js';
+import { ActionButton } from '@/components/FnxFloatingButton/components/ActionButton.js';
 import type { GeneratePermitPageProps } from './types';
 
 export const GeneratePermitPage: React.FC<GeneratePermitPageProps> = ({
@@ -65,7 +65,7 @@ export const GeneratePermitPage: React.FC<GeneratePermitPageProps> = ({
         {overridingBody ?? (
           <div className="space-y-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg fnx-icon-bg border fnx-card-border flex items-center justify-center">
+              <div className="w-10 h-10 fnx-icon-bg flex items-center justify-center">
                 <PermitIcon className="h-6 w-6" color={permitIconColor} aria-label="CoFHE permit icon" />
               </div>
               <div className="text-base font-semibold">Generate CoFHE Permit</div>
@@ -117,24 +117,17 @@ export const GeneratePermitPage: React.FC<GeneratePermitPageProps> = ({
         </section>
 
         <div className="grid grid-cols-2 gap-3 pt-2">
-          <button
-            type="button"
-            className="fnx-button rounded-lg py-2.5 text-sm font-medium border fnx-card-border hover:opacity-80 transition-opacity"
+          <ActionButton
             onClick={onCancel ?? navigateBack}
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
+            label="Cancel"
+            className="py-2.5"
+          />
+          <ActionButton
+            onClick={handleSubmit}
             disabled={!isValid || isSubmitting}
-            aria-busy={isSubmitting}
-            className={cn(
-              'fnx-send-button rounded-lg py-2.5 text-sm font-medium transition-opacity',
-              isValid && !isSubmitting ? 'fnx-send-button-enabled hover:opacity-90' : 'fnx-send-button-disabled cursor-not-allowed'
-            )}
-          >
-            {isSubmitting ? 'Generating...' : 'Generate / Delegate'}
-          </button>
+            label={isSubmitting ? 'Generating...' : 'Generate / Delegate'}
+            className="py-2.5"
+          />
         </div>
       </form>
     </div>
