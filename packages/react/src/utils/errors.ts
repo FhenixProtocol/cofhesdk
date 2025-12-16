@@ -19,8 +19,9 @@ export function attachCauseToError(error: unknown, cause: ErrorCause) {
       console.warn('Error already has a cause, chaining causes, not attching new cause', error, ' new cause:', cause);
     }
     (error as any)._cause = cause;
+  } else {
+    console.warn('Unfamiliar error type, not attaching cause:', error, ' cause:', cause);
   }
-  console.warn('Unfamiliar error type, not attaching cause:', error, ' cause:', cause);
 }
 
 /**
