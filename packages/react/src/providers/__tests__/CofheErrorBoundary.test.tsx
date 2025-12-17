@@ -128,6 +128,22 @@ describe('CofheErrorBoundary', () => {
     expect(warnWithErr).toBe(true);
   });
 
+  it('errors thrown inside inner ErrorBoundary subtree are caught by inner boundary (CofheErrorBoundary uninvolved)', () => {
+    render(
+      <CofheErrorBoundary errorFallbacks={errorFallbacks}>
+        <ErrorBoundary FallbackComponent={() => <div data-testid="inner-fallback-subtree">inner-subtree</div>}>
+          {/* Throw inside the inner boundary's subtree */}
+          <ThrowSync error={new Error('inner unknown')} />
+        </ErrorBoundary>
+      </CofheErrorBoundary>
+    );
+    // Inner boundary should catch and render its fallback; outer should not render its handled fallback
+    expect(screen.getByTestId('inner-fallback-subtree')).toBeInTheDocument();
+    expect(screen.queryByTestId('handled-fallback')).toBeNull();
+    // No SDK warn expected; CofheErrorBoundary did not see this error
+    expect(consoleWarnSpy).not.toHaveBeenCalled();
+  });
+
   it('does not intercept unhandled promise rejections it cannot handle (pass-through)', async () => {
     render(
       <CofheErrorBoundary errorFallbacks={errorFallbacks}>
