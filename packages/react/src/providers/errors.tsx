@@ -2,8 +2,8 @@ import { FnxFloatingButtonBase } from '@/components/FnxFloatingButton/FnxFloatin
 import { FloatingButtonPage, type PageState } from '@/components/FnxFloatingButton/pagesConfig/types';
 import { CofhesdkError, CofhesdkErrorCode } from '@cofhe/sdk';
 import { QueryErrorResetBoundary } from '@tanstack/react-query';
-import { memo, useEffect, useMemo, useState } from 'react';
-import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
+import { useEffect, useMemo } from 'react';
+import { ErrorBoundary, useErrorBoundary, type FallbackProps } from 'react-error-boundary';
 import { ErrorCause, getErrorCause } from '@/utils/index';
 import type { FnxFloatingButtonProps } from '@/components/FnxFloatingButton/types';
 import { useFnxFloatingButtonContext } from '@/components/FnxFloatingButton/FnxFloatingButtonContext';
@@ -106,22 +106,8 @@ function constructFallbackRouter(errorFallbacks: ErrorFallback[]): React.FC<Fall
   return fallback;
 }
 
-// a replacement for the original one https://github.com/bvaughn/react-error-boundary/blob/master/src/useErrorBoundary.ts#L39 ,
-// because the way the original one is built, it re-throws in the render causing duplicated errors in console
-function useEffectThrowBoundary() {
-  const [err, setErr] = useState<unknown>(null);
-  useEffect(() => {
-    // Synchronously throw from an effect on state change so it propagates to the nearest error boundary
-    if (err) throw err;
-  }, [err]);
-  return {
-    showBoundary: (e: unknown) => setErr(e),
-    resetBoundary: () => setErr(null),
-  } as const;
-}
-
-const UncaughtPromisesHandler = memo(function UncaughtPromisesHandler() {
-  const { showBoundary } = useEffectThrowBoundary();
+const UncaughtPromisesHandler = function UncaughtPromisesHandler() {
+  const { showBoundary } = useErrorBoundary();
   // Listen for unhandled promise rejections ("Uncaught (in promise)") not caught by ErrorBoundary
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -136,7 +122,7 @@ const UncaughtPromisesHandler = memo(function UncaughtPromisesHandler() {
       try {
         // eslint-disable-next-line no-console
         console.warn('[observed UnhandledRejection that is handled by CofheSDK]', event.reason);
-        // Show fallback without throwing, avoiding 2x "Uncaught" console errors
+        // Show fallback without rethrowing during render
         showBoundary(event.reason);
         // eslint-disable-next-line no-empty
       } catch {}
@@ -147,7 +133,7 @@ const UncaughtPromisesHandler = memo(function UncaughtPromisesHandler() {
     };
   }, [showBoundary]);
   return null;
-});
+};
 
 export const CofheErrorBoundary: React.FC<{ children: React.ReactNode; errorFallbacks: ErrorFallback[] }> = ({
   children,

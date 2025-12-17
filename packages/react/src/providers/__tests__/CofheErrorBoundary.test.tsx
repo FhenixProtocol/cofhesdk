@@ -127,7 +127,7 @@ describe('CofheErrorBoundary', () => {
     await waitFor(() => expect(screen.getByTestId('handled-fallback')).toBeInTheDocument());
   });
 
-  it.skip('does not intercept unhandled promise rejections it cannot handle (pass-through)', async () => {
+  it('does not intercept unhandled promise rejections it cannot handle (pass-through)', async () => {
     const addSpy = vi.spyOn(window, 'addEventListener');
     render(
       <CofheErrorBoundary errorFallbacks={errorFallbacks}>
