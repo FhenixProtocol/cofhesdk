@@ -36,13 +36,6 @@ function ThrowSync({ error }: { error: unknown }) {
   return <div>ok</div>;
 }
 
-function ThrowInEffect({ error }: { error: unknown }) {
-  useEffect(() => {
-    throw error as any;
-  }, [error]);
-  return <div>mounted</div>;
-}
-
 function QueryError({ errorToThrow }: { errorToThrow: unknown }) {
   const { status } = useQuery({
     queryKey: ['t'],
@@ -125,10 +118,17 @@ describe('CofheErrorBoundary', () => {
       handler?.({ reason: err, preventDefault() {}, stopPropagation() {} } as any);
     });
     await waitFor(() => expect(screen.getByTestId('handled-fallback')).toBeInTheDocument());
+    // ensure the intended error instance was reported to console.warn by our handler
+    const warnWithErr = consoleWarnSpy.mock.calls.some(
+      (args) =>
+        typeof args[0] === 'string' &&
+        args[0].includes('observed UnhandledRejection that is handled by CofheSDK') &&
+        args[1] === err
+    );
+    expect(warnWithErr).toBe(true);
   });
 
   it('does not intercept unhandled promise rejections it cannot handle (pass-through)', async () => {
-    const addSpy = vi.spyOn(window, 'addEventListener');
     render(
       <CofheErrorBoundary errorFallbacks={errorFallbacks}>
         <div>child</div>
@@ -136,15 +136,29 @@ describe('CofheErrorBoundary', () => {
     );
     // wait a tick for the effect to subscribe the listener
     await new Promise((r) => setTimeout(r, 0));
-    const handler = addSpy.mock.calls.find(([type]) => type === 'unhandledrejection')?.[1] as
-      | ((e: any) => void)
-      | undefined;
-    expect(handler).toBeTruthy();
-    await act(async () => {
-      handler?.({ reason: new Error('unknown async'), preventDefault() {}, stopPropagation() {} } as any);
-    });
-    await new Promise((r) => setTimeout(r, 10));
+    const unknown = new Error('unknown async');
+    const externalListener = (e: any) => {
+      console.error('[external-unhandled]', e?.reason);
+    };
+    window.addEventListener('unhandledrejection', externalListener as any);
+    const evt = new Event('unhandledrejection') as any;
+    evt.reason = unknown;
+    expect((evt as Event).defaultPrevented).toBe(false);
+    window.dispatchEvent(evt);
+    // the SDK should not warn for unknown errors
+    const hasSDKWarn = consoleWarnSpy.mock.calls.some(
+      (args) =>
+        typeof args[0] === 'string' && args[0].includes('observed UnhandledRejection that is handled by CofheSDK')
+    );
+    expect(hasSDKWarn).toBe(false);
+    // ensure the unknown error bubbled and was logged by our external listener
+    const hasExternalLog = consoleErrorSpy.mock.calls.some(
+      (args) => args[0] === '[external-unhandled]' && args[1] === unknown
+    );
+    expect(hasExternalLog).toBe(true);
+    expect((evt as Event).defaultPrevented).toBe(false);
     expect(screen.queryByTestId('handled-fallback')).toBeNull();
+    window.removeEventListener('unhandledrejection', externalListener as any);
   });
 
   it('does escalate _known_ react-query errors to the ErrorBoundary via throwOnError and shows fallback', async () => {
