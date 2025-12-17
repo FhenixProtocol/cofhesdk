@@ -14,7 +14,7 @@ import {
   useTokenConfidentialBalance,
 } from '@cofhe/react';
 import { DynamicCofheConfigProvider } from './utils/dynamicCofheConfig';
-import { FheTypes } from '@cofhe/sdk';
+import { CofhesdkError, CofhesdkErrorCode } from '@cofhe/sdk';
 
 const WETH_SEPOLIA_TOKEN: Token = {
   chainId: 11155111,
@@ -40,6 +40,7 @@ const WETH_SEPOLIA_TOKEN: Token = {
 // A custom hook to help with this
 
 function DemoErrorOutsideFloatingButton() {
+  // return null;
   const account = useCofheConnection().account;
   const { disabledDueToMissingPermit, data, error, isLoading } = useTokenConfidentialBalance({
     token: WETH_SEPOLIA_TOKEN,
@@ -51,6 +52,14 @@ function DemoErrorOutsideFloatingButton() {
   });
 
   const client = useCofheClient();
+  //
+  useEffect(() => {
+    throw new CofhesdkError({
+      code: CofhesdkErrorCode.InvalidPermitData,
+      message: 'Custom error thrown from outside floating button demo',
+    });
+    // throw new Error('my custom error');
+  }, []);
   return (
     <pre>
       {disabledDueToMissingPermit ? (
@@ -59,7 +68,7 @@ function DemoErrorOutsideFloatingButton() {
             e.stopPropagation();
             // navigateToGeneratePermit();
 
-            await client.decryptHandle(123123123n, FheTypes.Uint32).decrypt();
+            // await client.decryptHandle(123123123n, FheTypes.Uint32).decrypt();
           }}
         >
           * * *
