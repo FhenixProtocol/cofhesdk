@@ -24,5 +24,12 @@ the 3rd group are directed to CofheErrorBoundary by listenning to `unhandledreje
 
 # Notes
 - CofheSDK consumers shouldn't throw instances of CofhesdkError. That's for internal usage.
-- Calls that can produce a CofhesdkError should be conditioned by a check "is currently handling cofhesdk error via UI" (`useIsCofheErrorActive`). If such an error is active in the ErrorBoundary, such actions should be blocked until that error is gone (i.e. reset)  
+- Calls that can produce a `CofhesdkErrorBoundary`-familiar errors should be considered for conditioning by a check "is currently handling cofhesdk error on UI?" (`useIsCofheErrorActive`). 
+
+If such an error is active in the ErrorBoundary, the action should be blocked until that error is gone (i.e. reset), otherwise it can produce another error while dealing the current error.
+
+F.x. throwing a CofhesdkErrorBoundary-familiar error from a useEffect would cause "errors log overload" (lots of never-ending error logs) and will crash the UI, _because the fallback will keep trying re-rendering the whole dApp along with error-handling UI_, including the effect that thrown the error.
+
+In other words: while in `CofhesdkErrorBoundary` mode, avoid possibility of throwing `CofhesdkErrorBoundary`-familiar errors by checking `useIsCofheErrorActive`.
+
 - CofheSDK consumer dApp's errors belonging to the 2nd group will be passed to CofheErrorBoundary, but since it doesn't know how to handle them, they'll be re-thrown, which resembles the default behavior (TODO: make sure, check one more scenario -- wrapping dApp's ErrorBoundary) 
