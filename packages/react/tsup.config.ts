@@ -1,5 +1,5 @@
 import { defineConfig } from 'tsup';
-import { existsSync } from 'node:fs';
+import { existsSync, lstatSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -14,19 +14,30 @@ const srcAliasPlugin = {
     build.onResolve({ filter: /^@\// }, (args: any) => {
       const relativePath = args.path.slice(2); // drop '@/'
       const candidate = path.resolve(srcDir, relativePath);
+
+      // Check if it's a file (not a directory)
       if (existsSync(candidate)) {
-        return { path: candidate };
+        try {
+          const stats = lstatSync(candidate);
+          if (stats.isFile()) {
+            return { path: candidate };
+          }
+        } catch {
+          // If we can't stat it, continue with other checks
+        }
       }
+
       // If import has no extension, try common TS/JS variants
       if (!path.extname(candidate)) {
         const tryExts = ['.ts', '.tsx', '.js', '.jsx'];
+        // First try as a file with extensions
         for (const ext of tryExts) {
           const withExt = candidate + ext;
           if (existsSync(withExt)) {
             return { path: withExt };
           }
         }
-        // Also support index files within directories
+        // Then try index files within directories
         for (const ext of tryExts) {
           const indexFile = path.join(candidate, 'index' + ext);
           if (existsSync(indexFile)) {
@@ -34,6 +45,7 @@ const srcAliasPlugin = {
           }
         }
       }
+
       if (candidate.endsWith('.js')) {
         const tsCandidate = candidate.replace(/\.js$/, '.ts');
         if (existsSync(tsCandidate)) {

@@ -3,6 +3,7 @@ import { GoArrowUpRight } from 'react-icons/go';
 import { IoMdKey } from 'react-icons/io';
 import { AiOutlinePieChart } from 'react-icons/ai';
 import { TbShieldPlus } from 'react-icons/tb';
+import { FaBug } from 'react-icons/fa';
 import { useFnxFloatingButtonContext } from '../../FnxFloatingButtonContext';
 import { FloatingButtonPage } from '../../pagesConfig/types';
 
@@ -45,6 +46,12 @@ export const BottomNavigation: React.FC = () => {
       id: FloatingButtonPage.Permits,
       label: 'Permits',
       icon: <IoMdKey className={iconClassName} />,
+    },
+    // TODO: Only enable this locally for debugging
+    {
+      id: FloatingButtonPage.Debug,
+      label: 'Debug',
+      icon: <FaBug className={iconClassName} />,
     },
   ];
 

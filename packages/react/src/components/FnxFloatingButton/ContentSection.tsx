@@ -20,7 +20,7 @@ interface ContentSectionProps {
 }
 
 export const ContentSection: React.FC<ContentSectionProps> = ({ className, contentPadding = 16, overriddingPage }) => {
-  const { currentPage: pageFromContext, showPopupPanel, isTopSide, isLeftSide } = useFnxFloatingButtonContext();
+  const { currentPage: pageFromContext, showPopupPanel, isLeftSide } = useFnxFloatingButtonContext();
   const currentPage = overriddingPage ?? pageFromContext;
   const { shieldPageVariant } = useSettingsStore();
 
@@ -99,17 +99,7 @@ export const ContentSection: React.FC<ContentSectionProps> = ({ className, conte
   }, [currentPage, showPopupPanel, pages]);
 
   return (
-    <div
-      className={cn(
-        className,
-        'fnx-content-container',
-        // bottom-* has popup above (mb-3), top-* has popup below (mt-3)
-        isTopSide ? 'mt-3' : 'mb-3',
-        'flex'
-      )}
-      data-left={isLeftSide}
-      data-open={showPopupPanel}
-    >
+    <div className={cn(className, 'fnx-content-container', 'flex')} data-left={isLeftSide} data-open={showPopupPanel}>
       <div
         className={cn('fnx-content-panel')}
         data-open={showPopupPanel}

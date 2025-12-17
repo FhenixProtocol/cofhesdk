@@ -290,9 +290,16 @@
   font-size: var(--fnx-settings-icon-size);
 }
 
+/* ToastsSection styles */
+.fnx-toasts-section {
+  width: calc(var(--fnx-bar-width) + var(--fnx-gap-size) + var(--fnx-content-offset));
+  max-width: calc(var(--fnx-bar-width) + var(--fnx-gap-size) + var(--fnx-content-offset));
+}
+
 /* ContentSection styles */
 .fnx-content-container {
   width: calc(var(--fnx-bar-width) + var(--fnx-gap-size) + var(--fnx-content-offset));
+  max-width: calc(var(--fnx-bar-width) + var(--fnx-gap-size) + var(--fnx-content-offset));
   overflow: hidden;
   position: relative;
   transition: box-shadow var(--fnx-transition-duration) ease-in-out;

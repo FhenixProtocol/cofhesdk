@@ -1,6 +1,5 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import type { ReactNode } from 'react';
-import type { FloatingButtonPosition } from './types';
+import { type ReactNode, createContext, useContext, useState, useEffect, isValidElement } from 'react';
+import type { FloatingButtonPosition, FnxFloatingButtonToast, FnxToastImperativeParams } from './types';
 import { useCofheContext } from '../../providers';
 import { checkPendingTransactions, stopPendingTransactionPolling } from '../../stores/transactionStore';
 import { useCofhePublicClient } from '@/hooks/useCofheConnection';
@@ -12,6 +11,7 @@ import {
   type PagesWithProps,
 } from './pagesConfig/types';
 import { useCofheActivePermit } from '@/hooks/index';
+import { ToastPrimitive } from './components/ToastPrimitives';
 
 export type TokenListMode = 'view' | 'select';
 
@@ -35,6 +35,8 @@ export type SelectedToken = {
 
 const OPEN_DELAY = 500; // Delay before showing popup in ms
 const CLOSE_DELAY = 300; // Delay before closing bar after popup closes
+
+export const FNX_DEFAULT_TOAST_DURATION = 5000;
 
 type NavigateToFn = {
   // Pages that don't require props: call with just the page
@@ -73,6 +75,12 @@ interface FnxFloatingButtonContextValue {
   // enable background decryption. For example - within useConfidentialBalance hook
   enableBackgroundDecryption: boolean;
   setEnableBackgroundDecryption: (enabled: boolean) => void;
+
+  // Toasts
+  toasts: FnxFloatingButtonToast[];
+  addToast: (toast: React.ReactNode | FnxToastImperativeParams, duration?: number | 'infinite') => void;
+  pauseToast: (id: string, paused: boolean) => void;
+  removeToast: (id: string) => void;
 }
 
 const FnxFloatingButtonContext = createContext<FnxFloatingButtonContextValue | null>(null);
@@ -102,6 +110,7 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   const [selectedToken, setSelectedToken] = useState<SelectedToken>(null);
   const [viewingToken, setViewingToken] = useState<SelectedToken>(null);
   const [enableBackgroundDecryption, setEnableBackgroundDecryption] = useState<boolean>(false);
+  const [toasts, setToasts] = useState<FnxFloatingButtonToast[]>([]);
 
   const activePermit = useCofheActivePermit();
   const publicClient = useCofhePublicClient();
@@ -178,6 +187,46 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
     navigateTo(FloatingButtonPage.TokenInfo);
   };
 
+  const addToast = (
+    toast: ReactNode | FnxToastImperativeParams,
+    duration: number | 'infinite' = FNX_DEFAULT_TOAST_DURATION
+  ) => {
+    const content = isValidElement(toast) ? toast : <ToastPrimitive {...(toast as FnxToastImperativeParams)} />;
+    setToasts((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        duration,
+        startMs: Date.now(),
+        remainingMs: duration === 'infinite' ? Infinity : duration,
+        paused: false,
+        content,
+      },
+    ]);
+  };
+
+  const pauseToast = (id: string, paused: boolean) => {
+    setToasts((prev) =>
+      prev.map((toast) => {
+        if (toast.id !== id) return toast;
+        if (toast.paused === paused) return toast;
+
+        let remainingMs = toast.remainingMs;
+        let startMs = Date.now();
+        if (paused) {
+          const elapsedMs = Date.now() - toast.startMs;
+          remainingMs = Math.max(0, toast.remainingMs - elapsedMs);
+        }
+
+        return { ...toast, paused, startMs, remainingMs };
+      })
+    );
+  };
+
+  const removeToast = (id: string) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
+  };
+
   return (
     <FnxFloatingButtonContext.Provider
       value={{
@@ -205,6 +254,10 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
         showNativeTokenInList,
         enableBackgroundDecryption: !!activePermit || enableBackgroundDecryption,
         setEnableBackgroundDecryption,
+        toasts,
+        addToast,
+        pauseToast,
+        removeToast,
       }}
     >
       {children}
