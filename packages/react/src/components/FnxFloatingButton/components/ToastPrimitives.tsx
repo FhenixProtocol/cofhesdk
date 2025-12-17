@@ -1,35 +1,27 @@
 import { TbAlertCircle, TbAlertTriangle, TbInfoCircle, TbCircleCheck, TbCircleX } from 'react-icons/tb';
-import { motion, useMotionValue, useTransform } from 'motion/react';
+import { motion } from 'motion/react';
 import { HashLink } from './HashLink';
-import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext';
+import { FNX_DEFAULT_TOAST_DURATION, useFnxFloatingButtonContext } from '../FnxFloatingButtonContext';
 import { cn } from '@/utils';
-import type { FhxFloatingButtonToastVariant, FnxFloatingButtonToastByFunctionParams } from '../types';
+import type { FnxToastVariant, FnxToastImperativeParams, FnxToastInjectedProps } from '../types';
 
-export type ToastPrimitiveProps = FnxFloatingButtonToastByFunctionParams & {
-  id?: string;
-  paused?: boolean;
-  startMs?: number;
-  remainingMs?: number;
-  className?: string;
-};
+export type ToastPrimitiveProps = FnxToastImperativeParams & FnxToastInjectedProps;
 
-export const FNX_DEFAULT_TOAST_DURATION = 5000;
-
-const variantIconMap: Record<FhxFloatingButtonToastVariant, React.ReactNode> = {
+const variantIconMap: Record<FnxToastVariant, React.ReactNode> = {
   info: <TbInfoCircle className="text-blue-500 size-5" />,
   success: <TbCircleCheck className="text-green-500 size-5" />,
   error: <TbAlertCircle className="text-red-500 size-5" />,
   warning: <TbAlertTriangle className="text-yellow-500 size-5" />,
 };
 
-const variantClassNameMap: Record<FhxFloatingButtonToastVariant, string> = {
+const variantClassNameMap: Record<FnxToastVariant, string> = {
   info: 'bg-blue-50 border-blue-200 text-blue-800',
   success: 'bg-green-50 border-green-200 text-green-800',
   error: 'bg-red-50 border-red-200 text-red-800',
   warning: 'bg-yellow-50 border-yellow-200 text-yellow-800',
 };
 
-const variantProgressBarColorMap: Record<FhxFloatingButtonToastVariant, string> = {
+const variantProgressBarColorMap: Record<FnxToastVariant, string> = {
   info: 'bg-blue-500',
   success: 'bg-green-500',
   error: 'bg-red-500',
@@ -65,7 +57,7 @@ const ToastDurationIndicator: React.FC<{
   duration: number;
   remainingMs?: number;
   paused?: boolean;
-  variant?: FhxFloatingButtonToastVariant;
+  variant?: FnxToastVariant;
 }> = ({ duration, remainingMs, paused = false, variant }) => {
   if (variant == null || remainingMs == null || remainingMs <= 0) return null;
 
@@ -78,7 +70,7 @@ const ToastDurationIndicator: React.FC<{
         <div className={cn(progressColor, 'h-full origin-right')} style={{ transform: `scaleX(${progress})` }} />
       ) : (
         <motion.div
-          className={`h-full ${progressColor} origin-right`}
+          className={cn('h-full origin-right', progressColor)}
           initial={{ scaleX: progress }}
           animate={{ scaleX: 0 }}
           transition={{
@@ -97,7 +89,7 @@ export const ToastPrimitiveBase: React.FC<{
   duration?: number | 'infinite';
   remainingMs?: number;
   className?: string;
-  variant?: FhxFloatingButtonToastVariant;
+  variant?: FnxToastVariant;
   children?: React.ReactNode;
 }> = ({ id, duration, remainingMs, className, variant, paused, children }) => {
   const { pauseToast } = useFnxFloatingButtonContext();

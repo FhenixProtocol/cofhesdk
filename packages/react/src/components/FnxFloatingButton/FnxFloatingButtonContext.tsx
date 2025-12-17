@@ -1,11 +1,5 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import type { ReactNode } from 'react';
-import type {
-  FloatingButtonPosition,
-  FnxFloatingButtonToast,
-  FnxFloatingButtonToastByComponentParams,
-  FnxFloatingButtonToastByFunctionParams,
-} from './types';
+import { type ReactNode, createContext, useContext, useState, useEffect, isValidElement } from 'react';
+import type { FloatingButtonPosition, FnxFloatingButtonToast, FnxToastImperativeParams } from './types';
 import { useCofheContext } from '../../providers';
 import { checkPendingTransactions, stopPendingTransactionPolling } from '../../stores/transactionStore';
 import { useCofhePublicClient } from '@/hooks/useCofheConnection';
@@ -17,7 +11,7 @@ import {
   type PagesWithProps,
 } from './pagesConfig/types';
 import { useCofheActivePermit } from '@/hooks/index';
-import { FNX_DEFAULT_TOAST_DURATION, ToastPrimitive } from './components/ToastPrimitives';
+import { ToastPrimitive } from './components/ToastPrimitives';
 
 export type TokenListMode = 'view' | 'select';
 
@@ -41,6 +35,8 @@ export type SelectedToken = {
 
 const OPEN_DELAY = 500; // Delay before showing popup in ms
 const CLOSE_DELAY = 300; // Delay before closing bar after popup closes
+
+export const FNX_DEFAULT_TOAST_DURATION = 5000;
 
 type NavigateToFn = {
   // Pages that don't require props: call with just the page
@@ -81,7 +77,7 @@ interface FnxFloatingButtonContextValue {
 
   // Toasts
   toasts: FnxFloatingButtonToast[];
-  addToast: (toast: FnxFloatingButtonToastByComponentParams | FnxFloatingButtonToastByFunctionParams) => void;
+  addToast: (toast: React.ReactNode | FnxToastImperativeParams, duration?: number | 'infinite') => void;
   pauseToast: (id: string, paused: boolean) => void;
   removeToast: (id: string) => void;
 }
@@ -185,9 +181,11 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
     navigateTo(FloatingButtonPage.TokenInfo);
   };
 
-  const addToast = (toast: FnxFloatingButtonToastByComponentParams | FnxFloatingButtonToastByFunctionParams) => {
-    const duration = toast.duration ?? FNX_DEFAULT_TOAST_DURATION;
-
+  const addToast = (
+    toast: ReactNode | FnxToastImperativeParams,
+    duration: number | 'infinite' = FNX_DEFAULT_TOAST_DURATION
+  ) => {
+    const content = isValidElement(toast) ? toast : <ToastPrimitive {...(toast as FnxToastImperativeParams)} />;
     setToasts((prev) => [
       ...prev,
       {
@@ -196,7 +194,7 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
         startMs: Date.now(),
         remainingMs: duration === 'infinite' ? Infinity : duration,
         paused: false,
-        content: 'content' in toast ? toast.content : <ToastPrimitive {...toast} />,
+        content,
       },
     ]);
   };

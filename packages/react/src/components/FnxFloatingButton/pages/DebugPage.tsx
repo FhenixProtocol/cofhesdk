@@ -1,6 +1,6 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext.js';
-import { FNX_DEFAULT_TOAST_DURATION, ToastPrimitive } from '../components/ToastPrimitives.js';
+import { useFnxFloatingButtonContext, FNX_DEFAULT_TOAST_DURATION } from '../FnxFloatingButtonContext.js';
+import { ToastPrimitive, ToastPrimitiveBase } from '../components/ToastPrimitives.js';
 
 export const DebugPage: React.FC = () => {
   const { navigateBack, addToast } = useFnxFloatingButtonContext();
@@ -16,98 +16,101 @@ export const DebugPage: React.FC = () => {
         <p className="text-xs">Toasts:</p>
         <button
           onClick={() => {
-            addToast({
-              duration: 'infinite',
-              variant: 'info',
-              title: "This toast won't go away on its own",
-              description: 'Click the X to dismiss it',
-            });
+            addToast(
+              <ToastPrimitiveBase>
+                <div>Custom content</div>
+              </ToastPrimitiveBase>
+            );
+          }}
+        >
+          Custom content toast
+        </button>
+        <button
+          onClick={() => {
+            addToast(
+              {
+                variant: 'info',
+                title: "This toast won't go away on its own",
+                description: 'Click the X to dismiss it',
+              },
+              'infinite'
+            );
           }}
         >
           Non-expiring Toast
         </button>
         <button
           onClick={() => {
-            addToast({
-              variant: 'warning',
-              duration: 'infinite',
-              title: 'Warning toast',
-              description: 'Take the action',
-              action: {
-                label: 'ACTION',
-                onClick: () => {
-                  alert('Action taken');
+            addToast(
+              {
+                variant: 'warning',
+                title: 'Warning toast',
+                description: 'Take the action',
+                action: {
+                  label: 'ACTION',
+                  onClick: () => {
+                    alert('Action taken');
+                  },
                 },
               },
-            });
+              'infinite'
+            );
           }}
         >
           Toast with Action
         </button>
         <button
           onClick={() => {
-            addToast({
-              content: (
-                <ToastPrimitive
-                  duration={FNX_DEFAULT_TOAST_DURATION}
-                  variant="info"
-                  title="Info toast"
-                  description="Triggered with component"
-                  transaction={{ hash: '0x123', chainId: 1 }}
-                />
-              ),
-            });
+            addToast(
+              <ToastPrimitive
+                variant="info"
+                title="Info toast"
+                description="Triggered with component"
+                transaction={{ hash: '0x123', chainId: 1 }}
+              />
+            );
           }}
         >
           Info Toast (via component)
         </button>
         <button
           onClick={() => {
-            addToast({
-              content: (
-                <ToastPrimitive
-                  duration={FNX_DEFAULT_TOAST_DURATION}
-                  variant="success"
-                  title="Success toast"
-                  description="Triggered with component"
-                  transaction={{ hash: '0x123', chainId: 1 }}
-                />
-              ),
-            });
+            addToast(
+              <ToastPrimitive
+                variant="success"
+                title="Success toast"
+                description="Triggered with component"
+                transaction={{ hash: '0x123', chainId: 1 }}
+              />
+            );
           }}
         >
           Success Toast (via component)
         </button>
         <button
           onClick={() => {
-            addToast({
-              content: (
-                <ToastPrimitive
-                  duration={FNX_DEFAULT_TOAST_DURATION}
-                  variant="error"
-                  title="Error toast"
-                  description="Triggered with component"
-                  transaction={{ hash: '0x123', chainId: 1 }}
-                />
-              ),
-            });
+            addToast(
+              <ToastPrimitive
+                variant="error"
+                title="Error toast"
+                description="Triggered with component"
+                transaction={{ hash: '0x123', chainId: 1 }}
+              />
+            );
           }}
         >
           Error Toast (via component)
         </button>
         <button
           onClick={() => {
-            addToast({
-              content: (
-                <ToastPrimitive
-                  duration={FNX_DEFAULT_TOAST_DURATION}
-                  variant="warning"
-                  title="Warning toast"
-                  description="Triggered with component"
-                  transaction={{ hash: '0x123', chainId: 1 }}
-                />
-              ),
-            });
+            addToast(
+              <ToastPrimitive
+                variant="warning"
+                title="Warning toast"
+                description="Triggered with component"
+                transaction={{ hash: '0x123', chainId: 1 }}
+              />
+            );
           }}
         >
           Warning Toast (via component)
@@ -116,7 +119,6 @@ export const DebugPage: React.FC = () => {
           onClick={() => {
             addToast({
               variant: 'info',
-              duration: FNX_DEFAULT_TOAST_DURATION,
               title: 'Info toast',
               description: 'Triggered by function',
               transaction: { hash: '0x123', chainId: 1 },
@@ -129,7 +131,6 @@ export const DebugPage: React.FC = () => {
           onClick={() => {
             addToast({
               variant: 'success',
-              duration: FNX_DEFAULT_TOAST_DURATION,
               title: 'Success toast',
               description: 'Triggered by function',
               transaction: { hash: '0x123', chainId: 1 },
@@ -142,7 +143,6 @@ export const DebugPage: React.FC = () => {
           onClick={() => {
             addToast({
               variant: 'error',
-              duration: FNX_DEFAULT_TOAST_DURATION,
               title: 'Error toast',
               description: 'Triggered by function',
               transaction: { hash: '0x123', chainId: 1 },
@@ -155,7 +155,6 @@ export const DebugPage: React.FC = () => {
           onClick={() => {
             addToast({
               variant: 'warning',
-              duration: FNX_DEFAULT_TOAST_DURATION,
               title: 'Warning toast',
               description: 'Triggered by function',
               transaction: { hash: '0x123', chainId: 1 },
@@ -164,7 +163,52 @@ export const DebugPage: React.FC = () => {
         >
           Warning Toast (via function)
         </button>
+        <button
+          onClick={() => {
+            addToast({
+              variant: 'error',
+              title: 'Permit invalid',
+              description: 'Unable to decrypt data with this permit',
+              action: {
+                label: 'OPEN PERMITS',
+                onClick: () => {
+                  alert('open permits');
+                },
+              },
+            });
+          }}
+        >
+          Invalid Permit
+        </button>
+        <button
+          onClick={() => {
+            addToast({
+              variant: 'success',
+              title: 'Permit created successfully',
+            });
+          }}
+        >
+          Permit created
+        </button>
       </div>
     </div>
   );
 };
+
+/**
+ * <ToastBase
+ *  variant='success'
+ *  content={</....>}
+ *  actions={</....>}
+ * />
+ *
+ *
+ * ToastSuccess
+ * ToastError
+ * ToastWarning
+ * ToastInfo
+ *
+ * props: content, actions
+ *
+ *
+ */

@@ -42,15 +42,17 @@ export type FnxFloatingButtonToast = {
   content: ReactNode;
 };
 
-export type FnxFloatingButtonToastByComponentParams = Pick<FnxFloatingButtonToast, 'content'> & {
+export type FnxToastInjectedProps = {
+  id?: string;
   duration?: number | 'infinite';
+  paused?: boolean;
+  startMs?: number;
+  remainingMs?: number;
 };
 
-export type FnxFloatingButtonToastByFunctionParams = {
-  variant: FhxFloatingButtonToastVariant;
-  duration?: number | 'infinite';
+export type FnxToastImperativeParams = {
+  variant: FnxToastVariant;
   title: string;
-  // Optional content and actions
   description?: string;
   transaction?: {
     hash: string;
@@ -62,4 +64,4 @@ export type FnxFloatingButtonToastByFunctionParams = {
   };
 };
 
-export type FhxFloatingButtonToastVariant = 'info' | 'success' | 'error' | 'warning';
+export type FnxToastVariant = 'info' | 'success' | 'error' | 'warning';
