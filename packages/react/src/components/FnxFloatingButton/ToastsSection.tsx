@@ -41,11 +41,28 @@ const ToastClearer = ({ id, paused, remainingMs }: { id: string; paused: boolean
 };
 
 const ToastComponent: React.FC<FnxFloatingButtonToast> = ({ id, duration, paused, startMs, remainingMs, content }) => {
-  const { isTopSide } = useFnxFloatingButtonContext();
+  const { isTopSide, pauseToast, removeToast } = useFnxFloatingButtonContext();
+
+  const handlePause = (paused: boolean) => {
+    pauseToast(id, paused);
+  };
+
+  const handleDismiss = () => {
+    removeToast(id);
+  };
 
   // Inject id and paused into content if it's a React element
   const injectedContent = isValidElement(content)
-    ? cloneElement(content, { id, paused, startMs, remainingMs, duration, ...content.props })
+    ? cloneElement(content, {
+        id,
+        paused,
+        startMs,
+        remainingMs,
+        duration,
+        onPause: handlePause,
+        onDismiss: handleDismiss,
+        ...content.props,
+      })
     : content;
 
   return (

@@ -194,21 +194,3 @@ export const DebugPage: React.FC = () => {
     </div>
   );
 };
-
-/**
- * <ToastBase
- *  variant='success'
- *  content={</....>}
- *  actions={</....>}
- * />
- *
- *
- * ToastSuccess
- * ToastError
- * ToastWarning
- * ToastInfo
- *
- * props: content, actions
- *
- *
- */

@@ -1,7 +1,6 @@
 import { TbAlertCircle, TbAlertTriangle, TbInfoCircle, TbCircleCheck, TbCircleX } from 'react-icons/tb';
 import { motion } from 'motion/react';
 import { HashLink } from './HashLink';
-import { FNX_DEFAULT_TOAST_DURATION, useFnxFloatingButtonContext } from '../FnxFloatingButtonContext';
 import { cn } from '@/utils';
 import type { FnxToastVariant, FnxToastImperativeParams, FnxToastInjectedProps } from '../types';
 
@@ -28,23 +27,21 @@ const variantProgressBarColorMap: Record<FnxToastVariant, string> = {
   warning: 'bg-yellow-500',
 };
 
-const ToastCloseButton: React.FC<{ id?: string }> = ({ id }) => {
-  const { removeToast } = useFnxFloatingButtonContext();
-  if (!id) return null;
+const ToastCloseButton: React.FC<Pick<ToastPrimitiveProps, 'onDismiss'>> = ({ onDismiss }) => {
   return (
-    <button onClick={() => removeToast(id)}>
+    <button onClick={() => onDismiss?.()}>
       <TbCircleX className="text-gray-500 size-5" />
     </button>
   );
 };
 
-const ToastActionButton: React.FC<Pick<ToastPrimitiveProps, 'id' | 'action'>> = ({ id, action }) => {
-  const { removeToast } = useFnxFloatingButtonContext();
-  if (action == null || !id) return null;
+const ToastActionButton: React.FC<Pick<ToastPrimitiveProps, 'action' | 'onDismiss'>> = ({ action, onDismiss }) => {
+  if (action == null) return null;
+
   return (
     <button
       onClick={() => {
-        removeToast(id);
+        onDismiss?.();
         action.onClick();
       }}
     >
@@ -53,13 +50,11 @@ const ToastActionButton: React.FC<Pick<ToastPrimitiveProps, 'id' | 'action'>> = 
   );
 };
 
-const ToastDurationIndicator: React.FC<{
-  duration: number;
-  remainingMs?: number;
-  paused?: boolean;
-  variant?: FnxToastVariant;
-}> = ({ duration, remainingMs, paused = false, variant }) => {
-  if (variant == null || remainingMs == null || remainingMs <= 0) return null;
+const ToastDurationIndicator: React.FC<
+  Pick<ToastPrimitiveProps, 'duration' | 'remainingMs' | 'paused' | 'variant'>
+> = ({ duration, remainingMs, paused, variant }) => {
+  if (variant == null || remainingMs == null || remainingMs <= 0 || duration == null || duration === 'infinite')
+    return null;
 
   const progress = remainingMs / duration;
   const progressColor = variantProgressBarColorMap[variant];
@@ -83,55 +78,37 @@ const ToastDurationIndicator: React.FC<{
   );
 };
 
-export const ToastPrimitiveBase: React.FC<{
-  id?: string;
-  paused?: boolean;
-  duration?: number | 'infinite';
-  remainingMs?: number;
-  className?: string;
-  variant?: FnxToastVariant;
-  children?: React.ReactNode;
-}> = ({ id, duration, remainingMs, className, variant, paused, children }) => {
-  const { pauseToast } = useFnxFloatingButtonContext();
-
+export const ToastPrimitiveBase: React.FC<
+  FnxToastInjectedProps & { variant?: FnxToastVariant; children: React.ReactNode }
+> = ({ id, duration, remainingMs, variant, paused, children, onPause, onDismiss }) => {
   return (
     <div
       className={cn(
         'flex flex-row gap-3 p-2 relative items-center justify-start pb-3',
-        variant != null && variantClassNameMap[variant],
-        className
+        variant != null && variantClassNameMap[variant]
       )}
       onMouseEnter={() => {
         if (id == null) return;
-        pauseToast(id, true);
+        onPause?.(true);
       }}
       onMouseLeave={() => {
         if (id == null) return;
-        pauseToast(id, false);
+        onPause?.(false);
       }}
     >
       {variant != null && variantIconMap[variant]}
       {children}
-      <ToastCloseButton id={id} />
+      <ToastCloseButton onDismiss={onDismiss} />
       {duration !== 'infinite' && (
-        <ToastDurationIndicator
-          duration={duration ?? FNX_DEFAULT_TOAST_DURATION}
-          remainingMs={remainingMs}
-          paused={paused}
-          variant={variant}
-        />
+        <ToastDurationIndicator duration={duration} remainingMs={remainingMs} paused={paused} variant={variant} />
       )}
     </div>
   );
 };
 
-const ToastContent: React.FC<Pick<ToastPrimitiveProps, 'id' | 'title' | 'description' | 'transaction' | 'action'>> = ({
-  id,
-  title,
-  description,
-  transaction,
-  action,
-}) => {
+const ToastContent: React.FC<
+  Pick<ToastPrimitiveProps, 'title' | 'description' | 'transaction' | 'action' | 'onDismiss'>
+> = ({ title, description, transaction, action, onDismiss }) => {
   return (
     <>
       <div className="flex flex-col gap-1">
@@ -140,7 +117,7 @@ const ToastContent: React.FC<Pick<ToastPrimitiveProps, 'id' | 'title' | 'descrip
         {transaction != null && <HashLink type="tx" hash={transaction.hash} chainId={transaction.chainId} />}
       </div>
       <div className="flex-1" />
-      <ToastActionButton id={id} action={action} />
+      <ToastActionButton action={action} onDismiss={onDismiss} />
     </>
   );
 };

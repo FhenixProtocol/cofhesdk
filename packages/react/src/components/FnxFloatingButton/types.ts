@@ -48,10 +48,12 @@ export type FnxToastInjectedProps = {
   paused?: boolean;
   startMs?: number;
   remainingMs?: number;
+  onPause?: (paused: boolean) => void;
+  onDismiss?: () => void;
 };
 
 export type FnxToastImperativeParams = {
-  variant: FnxToastVariant;
+  variant?: FnxToastVariant;
   title: string;
   description?: string;
   transaction?: {
