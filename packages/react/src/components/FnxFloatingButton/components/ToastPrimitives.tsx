@@ -1,4 +1,4 @@
-import { TbAlertCircle, TbAlertTriangle, TbInfoCircle, TbCircleCheck, TbCircleX } from 'react-icons/tb';
+import { TbAlertTriangle, TbInfoCircle, TbCircleCheck, TbX } from 'react-icons/tb';
 import { motion } from 'motion/react';
 import { HashLink } from './HashLink';
 import { cn } from '@/utils';
@@ -9,7 +9,7 @@ export type ToastPrimitiveProps = FnxToastImperativeParams & FnxToastInjectedPro
 const variantIconMap: Record<FnxToastVariant, React.ReactNode> = {
   info: <TbInfoCircle className="text-blue-500 size-5" />,
   success: <TbCircleCheck className="text-green-500 size-5" />,
-  error: <TbAlertCircle className="text-red-500 size-5" />,
+  error: <TbAlertTriangle className="text-red-500 size-5" />,
   warning: <TbAlertTriangle className="text-yellow-500 size-5" />,
 };
 
@@ -20,7 +20,8 @@ const variantClassNameMap: Record<FnxToastVariant, string> = {
   warning: 'bg-yellow-50 border-yellow-200 text-yellow-800',
 };
 
-const variantProgressBarColorMap: Record<FnxToastVariant, string> = {
+const variantProgressBarColorMap: Record<FnxToastVariant | 'base', string> = {
+  base: 'bg-gray-500',
   info: 'bg-blue-500',
   success: 'bg-green-500',
   error: 'bg-red-500',
@@ -29,8 +30,8 @@ const variantProgressBarColorMap: Record<FnxToastVariant, string> = {
 
 const ToastCloseButton: React.FC<Pick<ToastPrimitiveProps, 'onDismiss'>> = ({ onDismiss }) => {
   return (
-    <button onClick={() => onDismiss?.()}>
-      <TbCircleX className="text-gray-500 size-5" />
+    <button className="self-start" onClick={() => onDismiss?.()}>
+      <TbX className="text-gray-500 size-5" />
     </button>
   );
 };
@@ -53,11 +54,10 @@ const ToastActionButton: React.FC<Pick<ToastPrimitiveProps, 'action' | 'onDismis
 const ToastDurationIndicator: React.FC<
   Pick<ToastPrimitiveProps, 'duration' | 'remainingMs' | 'paused' | 'variant'>
 > = ({ duration, remainingMs, paused, variant }) => {
-  if (variant == null || remainingMs == null || remainingMs <= 0 || duration == null || duration === 'infinite')
-    return null;
+  if (remainingMs == null || remainingMs <= 0 || duration == null || duration === 'infinite') return null;
 
   const progress = remainingMs / duration;
-  const progressColor = variantProgressBarColorMap[variant];
+  const progressColor = variantProgressBarColorMap[variant ?? 'base'];
 
   return (
     <div className="absolute bottom-0 left-0 w-full h-1 overflow-hidden">
@@ -97,7 +97,7 @@ export const ToastPrimitiveBase: React.FC<
       }}
     >
       {variant != null && variantIconMap[variant]}
-      {children}
+      <div className="flex-1">{children}</div>
       <ToastCloseButton onDismiss={onDismiss} />
       {duration !== 'infinite' && (
         <ToastDurationIndicator duration={duration} remainingMs={remainingMs} paused={paused} variant={variant} />
