@@ -1,12 +1,14 @@
-import { getChainById } from '@cofhe/sdk/chains';
+import { getChainById, sepolia } from '@cofhe/sdk/chains';
 import { cn } from '../../../utils/cn.js';
 import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext.js';
-import { useCofheChainId } from '../../../hooks/useCofheConnection.js';
+import { useCofheChainId, useCofheWalletClient } from '../../../hooks/useCofheConnection.js';
 import { ChainIcon } from './ChainIcon.js';
 
 export const ChainSelect: React.FC = () => {
   const { darkMode } = useFnxFloatingButtonContext();
   const chainId = useCofheChainId();
+  // TODO: bring back chain switching
+  const walletClient = useCofheWalletClient();
 
   // Get network name from SDK chains
   const chain = chainId ? getChainById(chainId) : undefined;
@@ -19,6 +21,11 @@ export const ChainSelect: React.FC = () => {
         'fnx-text-primary text-sm outline-none border fnx-dropdown-border',
         'disabled:opacity-50 disabled:cursor-not-allowed'
       )}
+      onClick={() => {
+        walletClient?.switchChain({
+          id: sepolia.id,
+        });
+      }}
     >
       <ChainIcon chainId={chainId} />
       <span className="font-medium">{currentNetwork}</span>
