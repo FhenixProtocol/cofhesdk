@@ -33,7 +33,6 @@ export {
   useCofheConfidentialTokenBalance,
   useCofheTokenTransfer,
   ETH_ADDRESS,
-  type Token,
   type Erc20Pair,
   type UnshieldClaim,
   type UnshieldClaimsSummary,
@@ -87,11 +86,10 @@ export type { FloatingButtonPosition, FloatingButtonSize } from './components/Fn
 
 export { createCofhesdkClient } from '@cofhe/sdk/web';
 
-export { useTokenConfidentialBalance } from './hooks/useTokenBalance';
-export type { Token } from './hooks/useTokenLists';
-
 export { useCofheCreatePermit } from './hooks/permits/useCofheCreatePermit';
 export { CREATE_PERMITT_BODY_BY_ERROR_CAUSE } from './providers/errors';
 export { ErrorCause } from './utils/errors';
 
 export type { CofhesdkConfigWithReact } from './config';
+
+export type { Token } from './types/token';

@@ -22,6 +22,7 @@ export type Erc20Pair = {
 };
 
 export type Token = {
+  chainId: number;
   address: `0x${string}`;
   symbol: string;
   decimals: number;

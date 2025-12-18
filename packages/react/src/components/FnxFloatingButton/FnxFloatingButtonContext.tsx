@@ -185,7 +185,7 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
 
   const navigateToTokenListForSelection = (title?: string) => {
     setTokenListMode('select');
-    navigateTo(FloatingButtonPage.TokenList, { title });
+    navigateTo(FloatingButtonPage.TokenList, { pageProps: { title } });
   };
 
   const navigateToTokenListForView = () => {

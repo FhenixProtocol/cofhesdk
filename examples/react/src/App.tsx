@@ -11,7 +11,7 @@ import {
   useCofheClient,
   useCofheConnection,
   useCofheCreatePermit,
-  useTokenConfidentialBalance,
+  useCofheTokenConfidentialBalance,
 } from '@cofhe/react';
 import { DynamicCofheConfigProvider } from './utils/dynamicCofheConfig';
 import { CofhesdkError, CofhesdkErrorCode } from '@cofhe/sdk';
@@ -42,7 +42,7 @@ const WETH_SEPOLIA_TOKEN: Token = {
 function DemoErrorOutsideFloatingButton() {
   // return null;
   const account = useCofheConnection().account;
-  const { disabledDueToMissingPermit, data, error, isLoading } = useTokenConfidentialBalance({
+  const { disabledDueToMissingPermit, data, error, isLoading } = useCofheTokenConfidentialBalance({
     token: WETH_SEPOLIA_TOKEN,
     accountAddress: account,
   });
@@ -54,10 +54,10 @@ function DemoErrorOutsideFloatingButton() {
   const client = useCofheClient();
   //
   useEffect(() => {
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.InvalidPermitData,
-      message: 'Custom error thrown from outside floating button demo',
-    });
+    // throw new CofhesdkError({
+    //   code: CofhesdkErrorCode.InvalidPermitData,
+    //   message: 'Custom error thrown from outside floating button demo',
+    // });
     // throw new Error('my custom error');
   }, []);
   return (
