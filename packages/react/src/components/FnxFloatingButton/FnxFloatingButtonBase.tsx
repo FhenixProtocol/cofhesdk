@@ -5,6 +5,7 @@ import { StatusBarContent } from './StatusBarContent';
 import { ContentSection } from './ContentSection';
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
 import type { FloatingButtonPosition, FnxFloatingButtonProps } from './types';
+import { ToastsSection } from './ToastsSection';
 
 // TODOS:
 // - Get svgs instead of pngs
@@ -28,6 +29,7 @@ const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
   buttonClassName,
   statusBarClassName,
   contentSectionClassName,
+  toastsSectionClassName,
   overriddingPage,
 }) => {
   const { effectivePosition, isTopSide, isLeftSide, handleClick, darkMode } = useFnxFloatingButtonContext();
@@ -40,7 +42,7 @@ const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
         darkMode && 'dark',
         size,
         positionType,
-        'flex',
+        'flex gap-3',
         positionStyles[effectivePosition],
         // bottom-* opens UP (popup above), top-* opens DOWN (popup below)
         isTopSide ? 'flex-col-reverse items-start' : 'flex-col items-start',
@@ -48,6 +50,8 @@ const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
         className
       )}
     >
+      <ToastsSection className={toastsSectionClassName} />
+
       <ContentSection className={contentSectionClassName} overriddingPage={overriddingPage} />
 
       {/* Button and Bar Row */}

@@ -1,7 +1,7 @@
 import { cn } from '@/utils/cn.js';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
-import { useTokenMetadata, usePinnedTokenAddress } from '../../../../hooks/useTokenBalance.js';
-import { useTokens } from '../../../../hooks/useTokenLists.js';
+import { useCofheTokenMetadata, useCofhePinnedTokenAddress } from '../../../../hooks/useCofheTokenBalance.js';
+import { useCofheTokens } from '../../../../hooks/useCofheTokenLists.js';
 import { useCofheChainId } from '../../../../hooks/useCofheConnection.js';
 import { useMemo } from 'react';
 import { TokenIcon } from '../../components/TokenIcon.js';
@@ -12,13 +12,13 @@ export const AssetCard: React.FC = () => {
   const { navigateToTokenInfo } = useFnxFloatingButtonContext();
   // const pinnedTokenAddress = "0x8ee52408ED5b0e396aA779Fd52F7fbc20A4b33Fb"; // Base sepolia
   // const pinnedTokenAddress = "0xbED96aa98a49FeA71fcC55d755b915cF022a9159"; // Redact (Sepolia)
-  const pinnedTokenAddress = usePinnedTokenAddress();
+  const pinnedTokenAddress = useCofhePinnedTokenAddress();
 
   const chainId = useCofheChainId();
-  const tokens = useTokens(chainId);
+  const tokens = useCofheTokens(chainId);
 
   // Get token metadata (decimals and symbol) using multicall for efficiency
-  const { data: tokenMetadata } = useTokenMetadata(pinnedTokenAddress);
+  const { data: tokenMetadata } = useCofheTokenMetadata(pinnedTokenAddress);
   const tokenSymbol = tokenMetadata?.symbol;
 
   // Find token from token lists to get icon and confidentialityType

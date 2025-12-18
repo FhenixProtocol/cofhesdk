@@ -1,26 +1,9 @@
 import { useQueries, type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
 import { useCofheContext } from '../providers/CofheProvider';
 import { useMemo } from 'react';
-export type Token = {
-  chainId: number;
-  address: `0x${string}`;
-  symbol: string;
-  decimals: number;
-  name: string;
-  logoURI?: string;
-  extensions: Record<string, unknown> & {
-    fhenix: {
-      confidentialityType: 'wrapped' | 'pure' | 'dual';
-      confidentialValueType: 'uint64' | 'uint128';
-      erc20Pair: {
-        address: `0x${string}`;
-        symbol: string;
-        decimals: number;
-        logoURI: string;
-      };
-    };
-  };
-};
+import { ETH_ADDRESS, type Erc20Pair, type Token } from '../types/token.js';
+
+export { ETH_ADDRESS, type Token, type Erc20Pair };
 
 type TokenList = {
   name: string;
@@ -39,7 +22,7 @@ type UseTokenListsInput = {
 };
 type UseTokenListsOptions = Omit<UseQueryOptions<TokenList, Error>, 'queryKey' | 'queryFn' | 'select'>;
 // Returns array of query results for token lists for the current network
-export function useTokenLists(
+export function useCofheTokenLists(
   { chainId }: UseTokenListsInput,
   queryOptions?: UseTokenListsOptions
 ): UseTokenListsResult {
@@ -83,8 +66,8 @@ export function selectTokensFromTokensList(tokenList: TokenList): Token[] {
   return tokenList.tokens;
 }
 
-export function useTokens(chainId?: number): Token[] {
-  const tokenLists = useTokenLists({ chainId });
+export function useCofheTokens(chainId?: number): Token[] {
+  const tokenLists = useCofheTokenLists({ chainId });
   const tokens = useMemo(() => {
     const map = new Map<string, Token>();
     tokenLists.forEach((result) => {

@@ -15,8 +15,9 @@ export enum TransactionActionType {
   ShieldSend = 0,
   Shield = 1,
   Unshield = 2,
+  Claim = 3,
 }
-export type TransactionActionString = 'Shielded Transfer' | 'Shield' | 'Unshield';
+export type TransactionActionString = 'Shielded Transfer' | 'Shield' | 'Unshield' | 'Claim';
 
 export interface Transaction {
   hash: string;
@@ -45,6 +46,7 @@ const actionToStringMap: Record<TransactionActionType, TransactionActionString> 
   [TransactionActionType.ShieldSend]: 'Shielded Transfer',
   [TransactionActionType.Shield]: 'Shield',
   [TransactionActionType.Unshield]: 'Unshield',
+  [TransactionActionType.Claim]: 'Claim',
 };
 
 export const actionToString = (a: TransactionActionType): TransactionActionString => actionToStringMap[a];

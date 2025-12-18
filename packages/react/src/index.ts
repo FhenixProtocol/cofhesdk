@@ -6,8 +6,8 @@ export { CofheProvider, useCofheContext } from './providers/index';
 
 // Hooks
 export {
-  useEncrypt,
-  useEncryptInput,
+  useCofheEncrypt,
+  useCofheEncryptInput,
   useCofheConnection,
   useCofheActivePermit,
   useCofheAllPermits,
@@ -16,6 +16,28 @@ export {
   useCofhePublicClient,
   useCofheWalletClient,
   useCofheClient,
+  useCofheTokens,
+  useCofheTokenLists,
+  useCofheTokenShield,
+  useCofheTokenUnshield,
+  useCofheClaimUnshield,
+  useCofheUnshieldClaims,
+  useCofheTokenBalance,
+  useCofheNativeBalance,
+  useCofheTokenConfidentialBalance,
+  useCofheTokenMetadata,
+  useCofheTokenDecimals,
+  useCofheTokenSymbol,
+  useCofhePinnedTokenAddress,
+  useCofhePublicTokenBalance,
+  useCofheConfidentialTokenBalance,
+  useCofheTokenTransfer,
+  ETH_ADDRESS,
+  type Token,
+  type Erc20Pair,
+  type UnshieldClaim,
+  type UnshieldClaimsSummary,
+  type TokenMetadata,
 } from './hooks/index';
 
 // Components
@@ -33,6 +55,8 @@ export {
   getBlockExplorerTokenUrl,
   formatRelativeTime,
   truncateHash,
+  isEthPair,
+  isWrappedEthToken,
   type FheTypeValue,
 } from './utils/index';
 

@@ -290,9 +290,16 @@
   font-size: var(--fnx-settings-icon-size);
 }
 
+/* ToastsSection styles */
+.fnx-toasts-section {
+  width: calc(var(--fnx-bar-width) + var(--fnx-gap-size) + var(--fnx-content-offset));
+  max-width: calc(var(--fnx-bar-width) + var(--fnx-gap-size) + var(--fnx-content-offset));
+}
+
 /* ContentSection styles */
 .fnx-content-container {
   width: calc(var(--fnx-bar-width) + var(--fnx-gap-size) + var(--fnx-content-offset));
+  max-width: calc(var(--fnx-bar-width) + var(--fnx-gap-size) + var(--fnx-content-offset));
   overflow: hidden;
   position: relative;
   transition: box-shadow var(--fnx-transition-duration) ease-in-out;
@@ -439,6 +446,12 @@ Panel corners (top)
 
 .fnx-nav-button:hover {
   background-color: var(--fnx-button-hover-bg);
+}
+
+/* Active state for nav/action buttons (used e.g. for tab selection) */
+.fnx-nav-button-active {
+  background-color: var(--fnx-button-hover-bg);
+  color: var(--fnx-button-hover-text);
 }
 
 .fnx-max-button {

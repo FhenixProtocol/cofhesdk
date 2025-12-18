@@ -8,4 +8,6 @@ export { PermitDetailsPage } from './permits/PermitDetailsPage';
 export { TokenInfoPage } from './TokenInfoPage.js';
 export { SendPage } from './SendPage.js';
 export { ShieldPage } from './ShieldPage.js';
+export { ShieldPageV2 } from './ShieldPageV2.js';
 export { ActivityPage } from './ActivityPage.js';
+export { DebugPage } from './DebugPage.js';

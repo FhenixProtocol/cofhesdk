@@ -13,6 +13,7 @@ export enum FloatingButtonPage {
   GeneratePermits = 'generatePermit',
   ReceivePermits = 'receivePermit',
   PermitDetails = 'permitDetails',
+  Debug = 'debug',
 }
 
 // Consumers can augment this map via declaration merging or module-local typing.
@@ -20,7 +21,7 @@ export enum FloatingButtonPage {
 export type FloatingButtonPagePropsMap = {
   [FloatingButtonPage.Main]: void;
   [FloatingButtonPage.Settings]: void;
-  [FloatingButtonPage.TokenList]: void;
+  [FloatingButtonPage.TokenList]: { title?: string };
   [FloatingButtonPage.TokenInfo]: void;
   [FloatingButtonPage.Send]: void;
   [FloatingButtonPage.Shield]: void;
@@ -29,6 +30,7 @@ export type FloatingButtonPagePropsMap = {
   [FloatingButtonPage.GeneratePermits]: GeneratePermitPageProps;
   [FloatingButtonPage.ReceivePermits]: void;
   [FloatingButtonPage.PermitDetails]: PermitDetailsPageProps;
+  [FloatingButtonPage.Debug]: void;
 };
 
 export type PageState<K extends FloatingButtonPage = FloatingButtonPage> = {

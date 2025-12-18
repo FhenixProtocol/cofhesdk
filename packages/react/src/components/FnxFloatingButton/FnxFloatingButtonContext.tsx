@@ -1,6 +1,5 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import type { ReactNode } from 'react';
-import type { FloatingButtonPosition } from './types';
+import { type ReactNode, createContext, useContext, useState, useEffect, isValidElement } from 'react';
+import type { FloatingButtonPosition, FnxFloatingButtonToast, FnxToastImperativeParams } from './types';
 import { useCofheContext } from '../../providers';
 import { checkPendingTransactions, stopPendingTransactionPolling } from '../../stores/transactionStore';
 import { useCofhePublicClient } from '@/hooks/useCofheConnection';
@@ -11,6 +10,8 @@ import {
   type PagesWithoutProps,
   type PagesWithProps,
 } from './pagesConfig/types';
+import { useCofheActivePermit } from '@/hooks/index';
+import { ToastPrimitive } from './components/ToastPrimitives';
 
 export type TokenListMode = 'view' | 'select';
 
@@ -44,6 +45,7 @@ type NavigateArgs<K extends FloatingButtonPage> = {
   pageProps?: FloatingButtonPagePropsMap[K];
   navigateParams?: NavigateParams;
 };
+export const FNX_DEFAULT_TOAST_DURATION = 5000;
 
 type NavigateToFn = {
   // For pages without props, second arg is optional and may include navigateParams only
@@ -71,13 +73,20 @@ interface FnxFloatingButtonContextValue {
   // Token selection
   tokenListMode: TokenListMode;
   selectedToken: SelectedToken;
-  navigateToTokenListForSelection: () => void;
+  navigateToTokenListForSelection: (title?: string) => void;
+  navigateToTokenListForView: () => void;
   selectToken: (token: SelectedToken) => void;
   // Token viewing
   viewingToken: SelectedToken;
   navigateToTokenInfo: (token: SelectedToken) => void;
   // Config
   showNativeTokenInList: boolean;
+
+  // Toasts
+  toasts: FnxFloatingButtonToast[];
+  addToast: (toast: React.ReactNode | FnxToastImperativeParams, duration?: number | 'infinite') => void;
+  pauseToast: (id: string, paused: boolean) => void;
+  removeToast: (id: string) => void;
 }
 
 const FnxFloatingButtonContext = createContext<FnxFloatingButtonContextValue | null>(null);
@@ -107,6 +116,7 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   const [tokenListMode, setTokenListMode] = useState<TokenListMode>('view');
   const [selectedToken, setSelectedToken] = useState<SelectedToken>(null);
   const [viewingToken, setViewingToken] = useState<SelectedToken>(null);
+  const [toasts, setToasts] = useState<FnxFloatingButtonToast[]>([]);
 
   const publicClient = useCofhePublicClient();
 
@@ -173,9 +183,14 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
     });
   };
 
-  const navigateToTokenListForSelection = () => {
+  const navigateToTokenListForSelection = (title?: string) => {
     setTokenListMode('select');
-    navigateTo(FloatingButtonPage.TokenList);
+    navigateTo(FloatingButtonPage.TokenList, { title });
+  };
+
+  const navigateToTokenListForView = () => {
+    setTokenListMode('view');
+    navigateTo(FloatingButtonPage.TokenList, {});
   };
 
   const selectToken = (token: SelectedToken) => {
@@ -186,6 +201,46 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   const navigateToTokenInfo = (token: SelectedToken) => {
     setViewingToken(token);
     navigateTo(FloatingButtonPage.TokenInfo);
+  };
+
+  const addToast = (
+    toast: ReactNode | FnxToastImperativeParams,
+    duration: number | 'infinite' = FNX_DEFAULT_TOAST_DURATION
+  ) => {
+    const content = isValidElement(toast) ? toast : <ToastPrimitive {...(toast as FnxToastImperativeParams)} />;
+    setToasts((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        duration,
+        startMs: Date.now(),
+        remainingMs: duration === 'infinite' ? Infinity : duration,
+        paused: false,
+        content,
+      },
+    ]);
+  };
+
+  const pauseToast = (id: string, paused: boolean) => {
+    setToasts((prev) =>
+      prev.map((toast) => {
+        if (toast.id !== id) return toast;
+        if (toast.paused === paused) return toast;
+
+        let remainingMs = toast.remainingMs;
+        let startMs = Date.now();
+        if (paused) {
+          const elapsedMs = Date.now() - toast.startMs;
+          remainingMs = Math.max(0, toast.remainingMs - elapsedMs);
+        }
+
+        return { ...toast, paused, startMs, remainingMs };
+      })
+    );
+  };
+
+  const removeToast = (id: string) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
   };
 
   return (
@@ -207,10 +262,15 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
         tokenListMode,
         selectedToken,
         navigateToTokenListForSelection,
+        navigateToTokenListForView,
         selectToken,
         viewingToken,
         navigateToTokenInfo,
         showNativeTokenInList,
+        toasts,
+        addToast,
+        pauseToast,
+        removeToast,
       }}
     >
       {children}
