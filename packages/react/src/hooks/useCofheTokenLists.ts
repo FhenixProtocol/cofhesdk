@@ -2,6 +2,7 @@ import { useQueries, type UseQueryOptions, type UseQueryResult } from '@tanstack
 import { useCofheContext } from '../providers/CofheProvider';
 import { useMemo } from 'react';
 import { ETH_ADDRESS, type Erc20Pair, type Token } from '../types/token.js';
+import { useInternalQueryClient } from '../providers/index.js';
 
 export { ETH_ADDRESS, type Token, type Erc20Pair };
 
@@ -26,6 +27,7 @@ export function useCofheTokenLists(
   { chainId }: UseTokenListsInput,
   queryOptions?: UseTokenListsOptions
 ): UseTokenListsResult {
+  const qc = useInternalQueryClient();
   const widgetConfig = useCofheContext().config.react;
   const tokensListsUrls = chainId ? widgetConfig.tokenLists[chainId] : [];
 
@@ -57,6 +59,7 @@ export function useCofheTokenLists(
 
   const result = useQueries({
     queries: queriesOptions,
+    queryClient: qc,
   });
 
   return result;

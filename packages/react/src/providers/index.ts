@@ -1,1 +1,2 @@
-export { CofheProvider, useCofheContext } from './CofheProvider.js';
+export { CofheProvider, useCofheContext } from './CofheProvider';
+export { useInternalQueryClient } from './QueryProvider';
