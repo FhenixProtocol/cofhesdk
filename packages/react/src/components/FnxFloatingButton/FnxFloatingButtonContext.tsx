@@ -93,20 +93,14 @@ const FnxFloatingButtonContext = createContext<FnxFloatingButtonContextValue | n
 
 interface FnxFloatingButtonProviderProps {
   children: ReactNode;
-  darkMode: boolean;
-  position?: FloatingButtonPosition;
-  onSelectChain?: (chainId: number) => Promise<void> | void;
 }
 
-export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps> = ({
-  children,
-  darkMode,
-  position,
-  onSelectChain,
-}) => {
-  const { client: cofhesdkClient, config } = useCofheContext();
+export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps> = ({ children }) => {
+  const { config } = useCofheContext();
+
   const widgetConfig = config.react;
-  const effectivePosition = position || widgetConfig.position;
+  const darkMode = widgetConfig.darkMode;
+  const effectivePosition = widgetConfig.position;
   const showNativeTokenInList = widgetConfig.showNativeTokenInList;
 
   const [pageHistory, setPageHistory] = useState<PageState[]>([{ page: FloatingButtonPage.Main }]);

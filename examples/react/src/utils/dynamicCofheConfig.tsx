@@ -57,9 +57,10 @@ export const DynamicCofheConfigProvider: React.FC<{ children: React.ReactNode }>
       react: {
         ...initialSdkConfig.react,
         position: position ?? initialSdkConfig.react.position,
+        darkMode: darkMode ?? initialSdkConfig.react.darkMode,
       },
     }),
-    [position],
+    [position, darkMode],
   );
   return (
     <DymamicCofheConfigContext.Provider
