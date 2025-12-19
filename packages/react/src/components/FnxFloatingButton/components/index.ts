@@ -2,7 +2,7 @@ export { ActionButton } from './ActionButton.js';
 export { AddressButton } from './AddressButton.js';
 export { AmountInput } from './AmountInput.js';
 export { ChainIcon } from './ChainIcon.js';
-export { ChainSelect } from './ChainSelect.js';
+export { ChainSelected } from './ChainSelected.js';
 export { HashLink } from './HashLink.js';
 export { LoadingDots } from './LoadingDots.js';
 export { ShieldMeter } from './ShieldMeter.js';

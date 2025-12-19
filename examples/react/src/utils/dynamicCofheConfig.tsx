@@ -1,9 +1,4 @@
-import {
-  CofhesdkConfigWithReact,
-  createCofhesdkConfig,
-  FloatingButtonPosition,
-  FloatingButtonSize,
-} from '@cofhe/react';
+import { CofhesdkConfigWithReact, createCofhesdkConfig, FloatingButtonPosition } from '@cofhe/react';
 
 import { baseSepolia, sepolia } from '@cofhe/sdk/chains';
 import React, { useMemo, useState } from 'react';
@@ -24,8 +19,6 @@ const initialSdkConfig = createCofhesdkConfig({
 type DynamicCofheConfigContext = {
   position?: FloatingButtonPosition;
   setPosition: (position: FloatingButtonPosition) => void;
-  buttonSize?: FloatingButtonSize;
-  setButtonSize: (buttonSize: FloatingButtonSize) => void;
   darkMode?: boolean;
   setDarkMode: (isDarkMode: boolean) => void;
   //
@@ -34,8 +27,7 @@ type DynamicCofheConfigContext = {
 const DymamicCofheConfigContext = React.createContext<DynamicCofheConfigContext>({
   position: undefined,
   setPosition: () => {},
-  buttonSize: undefined,
-  setButtonSize: () => {},
+
   darkMode: undefined,
   setDarkMode: () => {},
 
@@ -48,7 +40,7 @@ export const useDynamicCofheConfigContext = () => {
 
 export const DynamicCofheConfigProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [position, setPosition] = useState<FloatingButtonPosition>();
-  const [buttonSize, setButtonSize] = useState<FloatingButtonSize>();
+
   const [darkMode, setDarkMode] = useState<boolean>();
 
   const resultingConfig = useMemo<CofhesdkConfigWithReact>(
@@ -67,8 +59,6 @@ export const DynamicCofheConfigProvider: React.FC<{ children: React.ReactNode }>
       value={{
         position,
         setPosition,
-        buttonSize,
-        setButtonSize,
         darkMode,
         setDarkMode,
 
