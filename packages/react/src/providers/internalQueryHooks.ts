@@ -35,10 +35,10 @@ export function useInternalMutation<TData = unknown, TError = Error, TVariables 
  * Internal wrapper for TanStack's useQueries that always uses the module's QueryClient.
  * Keep the same options object structure but without specifying `queryClient`.
  */
-export function useInternalQueries<TData = unknown, TError = Error>(options: {
+export function useInternalQueries<TData = unknown, TError = unknown>(options: {
   queries: Array<UseQueryOptions<TData, TError>>;
-}): UseQueryResult<TData, TError>[] {
+}) {
   const qc = useInternalQueryClient();
-  const res = rqUseQueries({ ...(options as any), queryClient: qc });
-  return res as UseQueryResult<TData, TError>[];
+  const res = rqUseQueries(options, qc);
+  return res;
 }
