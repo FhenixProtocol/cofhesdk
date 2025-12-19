@@ -1,4 +1,4 @@
-import { useQuery, type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
+import { type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
 import { formatUnits, type Address } from 'viem';
 import { CofhesdkError, FheTypes } from '@cofhe/sdk';
 import { useCofheAccount, useCofheChainId, useCofhePublicClient } from './useCofheConnection.js';
@@ -10,7 +10,7 @@ import { withQueryErrorCause, ErrorCause } from '@/utils/errors.js';
 import { useCofheActivePermit } from './useCofhePermits.js';
 import { assert } from 'ts-essentials';
 import { useIsCofheErrorActive } from './useIsCofheErrorActive.js';
-import { useInternalQueryClient } from '../providers/index.js';
+import { useInternalQuery } from '../providers/index.js';
 type UseTokenBalanceInput = {
   /** Token contract address */
   tokenAddress: Address;
@@ -37,7 +37,6 @@ export function useCofheTokenBalance(
   { tokenAddress, decimals, accountAddress, displayDecimals = 5 }: UseTokenBalanceInput,
   queryOptions?: UseTokenBalanceOptions
 ): UseQueryResult<string, Error> {
-  const qc = useInternalQueryClient();
   const connectedAccount = useCofheAccount();
   const publicClient = useCofhePublicClient();
   const account = accountAddress || (connectedAccount as Address | undefined);
@@ -46,32 +45,29 @@ export function useCofheTokenBalance(
   const baseEnabled = !!publicClient && !!account && !!tokenAddress;
   const enabled = baseEnabled && (userEnabled ?? true);
 
-  return useQuery(
-    {
-      queryKey: ['tokenBalance', tokenAddress, account, decimals, displayDecimals],
-      queryFn: async (): Promise<string> => {
-        if (!publicClient) {
-          throw new Error('PublicClient is required to fetch token balance');
-        }
-        if (!account) {
-          throw new Error('Account address is required to fetch token balance');
-        }
+  return useInternalQuery({
+    queryKey: ['tokenBalance', tokenAddress, account, decimals, displayDecimals],
+    queryFn: async (): Promise<string> => {
+      if (!publicClient) {
+        throw new Error('PublicClient is required to fetch token balance');
+      }
+      if (!account) {
+        throw new Error('Account address is required to fetch token balance');
+      }
 
-        // Read balance from contract
-        const balance = (await publicClient.readContract({
-          address: tokenAddress,
-          abi: ERC20_BALANCE_OF_ABI,
-          functionName: 'balanceOf',
-          args: [account],
-        })) as bigint;
+      // Read balance from contract
+      const balance = (await publicClient.readContract({
+        address: tokenAddress,
+        abi: ERC20_BALANCE_OF_ABI,
+        functionName: 'balanceOf',
+        args: [account],
+      })) as bigint;
 
-        return parseFloat(formatUnits(balance, decimals)).toFixed(displayDecimals);
-      },
-      enabled,
-      ...restQueryOptions,
+      return parseFloat(formatUnits(balance, decimals)).toFixed(displayDecimals);
     },
-    qc
-  );
+    enabled,
+    ...restQueryOptions,
+  });
 }
 
 /**
@@ -88,34 +84,30 @@ export function useCofheNativeBalance(
   displayDecimals: number = 5,
   queryOptions?: UseTokenBalanceOptions
 ): UseQueryResult<string, Error> {
-  const qc = useInternalQueryClient();
   const connectedAccount = useCofheAccount();
   const publicClient = useCofhePublicClient();
   const account = accountAddress || (connectedAccount as Address | undefined);
 
-  return useQuery(
-    {
-      queryKey: ['nativeBalance', account, decimals, displayDecimals],
-      queryFn: async (): Promise<string> => {
-        if (!publicClient) {
-          throw new Error('PublicClient is required to fetch native balance');
-        }
-        if (!account) {
-          throw new Error('Account address is required to fetch native balance');
-        }
+  return useInternalQuery({
+    queryKey: ['nativeBalance', account, decimals, displayDecimals],
+    queryFn: async (): Promise<string> => {
+      if (!publicClient) {
+        throw new Error('PublicClient is required to fetch native balance');
+      }
+      if (!account) {
+        throw new Error('Account address is required to fetch native balance');
+      }
 
-        // Get native balance
-        const balance = await publicClient.getBalance({
-          address: account,
-        });
+      // Get native balance
+      const balance = await publicClient.getBalance({
+        address: account,
+      });
 
-        return parseFloat(formatUnits(balance, decimals)).toFixed(displayDecimals);
-      },
-      enabled: !!publicClient && !!account,
-      ...queryOptions,
+      return parseFloat(formatUnits(balance, decimals)).toFixed(displayDecimals);
     },
-    qc
-  );
+    enabled: !!publicClient && !!account,
+    ...queryOptions,
+  });
 }
 
 export type TokenMetadata = {
@@ -134,56 +126,52 @@ export function useCofheTokenMetadata(
   tokenAddress: Address | undefined,
   queryOptions?: Omit<UseQueryOptions<TokenMetadata, Error>, 'queryKey' | 'queryFn' | 'enabled'>
 ): UseQueryResult<TokenMetadata, Error> {
-  const qc = useInternalQueryClient();
   const publicClient = useCofhePublicClient();
 
-  return useQuery(
-    {
-      queryKey: ['tokenMetadata', tokenAddress],
-      queryFn: async (): Promise<TokenMetadata> => {
-        if (!publicClient) {
-          throw new Error('PublicClient is required to fetch token metadata');
-        }
-        if (!tokenAddress) {
-          throw new Error('Token address is required');
-        }
+  return useInternalQuery({
+    queryKey: ['tokenMetadata', tokenAddress],
+    queryFn: async (): Promise<TokenMetadata> => {
+      if (!publicClient) {
+        throw new Error('PublicClient is required to fetch token metadata');
+      }
+      if (!tokenAddress) {
+        throw new Error('Token address is required');
+      }
 
-        // Use multicall to fetch decimals, symbol, and name in a single RPC call
-        const results = await publicClient.multicall({
-          contracts: [
-            {
-              address: tokenAddress,
-              abi: ERC20_DECIMALS_ABI,
-              functionName: 'decimals',
-            },
-            {
-              address: tokenAddress,
-              abi: ERC20_SYMBOL_ABI,
-              functionName: 'symbol',
-            },
-            {
-              address: tokenAddress,
-              abi: ERC20_NAME_ABI,
-              functionName: 'name',
-            },
-          ],
-        });
+      // Use multicall to fetch decimals, symbol, and name in a single RPC call
+      const results = await publicClient.multicall({
+        contracts: [
+          {
+            address: tokenAddress,
+            abi: ERC20_DECIMALS_ABI,
+            functionName: 'decimals',
+          },
+          {
+            address: tokenAddress,
+            abi: ERC20_SYMBOL_ABI,
+            functionName: 'symbol',
+          },
+          {
+            address: tokenAddress,
+            abi: ERC20_NAME_ABI,
+            functionName: 'name',
+          },
+        ],
+      });
 
-        const decimals = results[0].result as number;
-        const symbol = results[1].result as string;
-        const name = results[2].result as string;
+      const decimals = results[0].result as number;
+      const symbol = results[1].result as string;
+      const name = results[2].result as string;
 
-        if (decimals === undefined || symbol === undefined || name === undefined) {
-          throw new Error('Failed to fetch token metadata');
-        }
+      if (decimals === undefined || symbol === undefined || name === undefined) {
+        throw new Error('Failed to fetch token metadata');
+      }
 
-        return { decimals, symbol, name };
-      },
-      enabled: !!publicClient && !!tokenAddress,
-      ...queryOptions,
+      return { decimals, symbol, name };
     },
-    qc
-  );
+    enabled: !!publicClient && !!tokenAddress,
+    ...queryOptions,
+  });
 }
 
 /**
@@ -196,33 +184,29 @@ export function useCofheTokenDecimals(
   tokenAddress: Address | undefined,
   queryOptions?: Omit<UseQueryOptions<number, Error>, 'queryKey' | 'queryFn' | 'enabled'>
 ): UseQueryResult<number, Error> {
-  const qc = useInternalQueryClient();
   const publicClient = useCofhePublicClient();
 
-  return useQuery(
-    {
-      queryKey: ['tokenDecimals', tokenAddress],
-      queryFn: async (): Promise<number> => {
-        if (!publicClient) {
-          throw new Error('PublicClient is required to fetch token decimals');
-        }
-        if (!tokenAddress) {
-          throw new Error('Token address is required');
-        }
+  return useInternalQuery({
+    queryKey: ['tokenDecimals', tokenAddress],
+    queryFn: async (): Promise<number> => {
+      if (!publicClient) {
+        throw new Error('PublicClient is required to fetch token decimals');
+      }
+      if (!tokenAddress) {
+        throw new Error('Token address is required');
+      }
 
-        const decimals = (await publicClient.readContract({
-          address: tokenAddress,
-          abi: ERC20_DECIMALS_ABI,
-          functionName: 'decimals',
-        })) as number;
+      const decimals = (await publicClient.readContract({
+        address: tokenAddress,
+        abi: ERC20_DECIMALS_ABI,
+        functionName: 'decimals',
+      })) as number;
 
-        return decimals;
-      },
-      enabled: !!publicClient && !!tokenAddress,
-      ...queryOptions,
+      return decimals;
     },
-    qc
-  );
+    enabled: !!publicClient && !!tokenAddress,
+    ...queryOptions,
+  });
 }
 
 /**
@@ -235,33 +219,29 @@ export function useCofheTokenSymbol(
   tokenAddress: Address | undefined,
   queryOptions?: Omit<UseQueryOptions<string, Error>, 'queryKey' | 'queryFn' | 'enabled'>
 ): UseQueryResult<string, Error> {
-  const qc = useInternalQueryClient();
   const publicClient = useCofhePublicClient();
 
-  return useQuery(
-    {
-      queryKey: ['tokenSymbol', tokenAddress],
-      queryFn: async (): Promise<string> => {
-        if (!publicClient) {
-          throw new Error('PublicClient is required to fetch token symbol');
-        }
-        if (!tokenAddress) {
-          throw new Error('Token address is required');
-        }
+  return useInternalQuery({
+    queryKey: ['tokenSymbol', tokenAddress],
+    queryFn: async (): Promise<string> => {
+      if (!publicClient) {
+        throw new Error('PublicClient is required to fetch token symbol');
+      }
+      if (!tokenAddress) {
+        throw new Error('Token address is required');
+      }
 
-        const symbol = (await publicClient.readContract({
-          address: tokenAddress,
-          abi: ERC20_SYMBOL_ABI,
-          functionName: 'symbol',
-        })) as string;
+      const symbol = (await publicClient.readContract({
+        address: tokenAddress,
+        abi: ERC20_SYMBOL_ABI,
+        functionName: 'symbol',
+      })) as string;
 
-        return symbol;
-      },
-      enabled: !!publicClient && !!tokenAddress,
-      ...queryOptions,
+      return symbol;
     },
-    qc
-  );
+    enabled: !!publicClient && !!tokenAddress,
+    ...queryOptions,
+  });
 }
 
 /**
@@ -286,7 +266,6 @@ export function useCofheTokenConfidentialBalance(
 ): UseQueryResult<bigint, Error> & {
   disabledDueToMissingPermit: boolean;
 } {
-  const qc = useInternalQueryClient();
   const isCofheErrorActive = useIsCofheErrorActive();
   const publicClient = useCofhePublicClient();
   const cofheChainId = useCofheChainId();
@@ -305,59 +284,56 @@ export function useCofheTokenConfidentialBalance(
     !!activePermit &&
     queryOptions?.enabled !== false;
 
-  const result = useQuery(
-    {
+  const result = useInternalQuery({
+    enabled,
+    queryKey: [
+      'tokenConfidentialBalance',
+      accountAddress,
+      cofheChainId,
+      token?.address,
+      activePermit?.hash,
+      // normally, "enabled" shouldn't be part of queryKey, but without adding it, there is a weird bug: when there's a CofheError, query still running queryFn resulting in the blank screen
       enabled,
-      queryKey: [
-        'tokenConfidentialBalance',
-        accountAddress,
-        cofheChainId,
-        token?.address,
-        activePermit?.hash,
-        // normally, "enabled" shouldn't be part of queryKey, but without adding it, there is a weird bug: when there's a CofheError, query still running queryFn resulting in the blank screen
-        enabled,
-      ],
-      queryFn: withQueryErrorCause(ErrorCause.AttemptToFetchConfidentialBalance, async (): Promise<bigint> => {
-        assert(accountAddress, 'Account address is required to fetch confidential token balance');
-        assert(publicClient, 'PublicClient is required to fetch confidential token balance');
-        assert(token, 'Token is required to fetch confidential token balance');
+    ],
+    queryFn: withQueryErrorCause(ErrorCause.AttemptToFetchConfidentialBalance, async (): Promise<bigint> => {
+      assert(accountAddress, 'Account address is required to fetch confidential token balance');
+      assert(publicClient, 'PublicClient is required to fetch confidential token balance');
+      assert(token, 'Token is required to fetch confidential token balance');
 
-        // NB: no need to check for Permit validity and existence here. It's part of the 'enabled' and also if something is wrong with the Permit, ErrorBoundary will catch that and will redirect the user to Permit generation page.
+      // NB: no need to check for Permit validity and existence here. It's part of the 'enabled' and also if something is wrong with the Permit, ErrorBoundary will catch that and will redirect the user to Permit generation page.
 
-        // Throw error if dual type is used (not yet implemented)
-        assert(
-          token.extensions.fhenix.confidentialityType !== 'dual',
-          'Dual confidentiality type is not yet implemented'
-        );
+      // Throw error if dual type is used (not yet implemented)
+      assert(
+        token.extensions.fhenix.confidentialityType !== 'dual',
+        'Dual confidentiality type is not yet implemented'
+      );
 
-        // Get the appropriate ABI and function name based on confidentialityType
-        const contractConfig = CONFIDENTIAL_ABIS[token.extensions.fhenix.confidentialityType];
+      // Get the appropriate ABI and function name based on confidentialityType
+      const contractConfig = CONFIDENTIAL_ABIS[token.extensions.fhenix.confidentialityType];
 
-        assert(contractConfig, `Unsupported confidentialityType: ${token.extensions.fhenix.confidentialityType}`);
+      assert(contractConfig, `Unsupported confidentialityType: ${token.extensions.fhenix.confidentialityType}`);
 
-        // Call the appropriate function based on confidentialityType
-        const ctHash = await publicClient.readContract({
-          address: token.address,
-          abi: contractConfig.abi,
-          functionName: contractConfig.functionName,
-          args: [accountAddress],
-        });
+      // Call the appropriate function based on confidentialityType
+      const ctHash = await publicClient.readContract({
+        address: token.address,
+        abi: contractConfig.abi,
+        functionName: contractConfig.functionName,
+        args: [accountAddress],
+      });
 
-        if (ctHash === 0n) {
-          // no ciphertext means no confidential balance
-          return 0n;
-        }
+      if (ctHash === 0n) {
+        // no ciphertext means no confidential balance
+        return 0n;
+      }
 
-        // Map confidentialValueType to FheTypes
-        const fheType = token.extensions.fhenix.confidentialValueType === 'uint64' ? FheTypes.Uint64 : FheTypes.Uint128;
+      // Map confidentialValueType to FheTypes
+      const fheType = token.extensions.fhenix.confidentialValueType === 'uint64' ? FheTypes.Uint64 : FheTypes.Uint128;
 
-        // Decrypt the encrypted balance using SDK
-        return client.decryptHandle(ctHash, fheType).decrypt();
-      }),
-      ...restQueryOptions,
-    },
-    qc
-  );
+      // Decrypt the encrypted balance using SDK
+      return client.decryptHandle(ctHash, fheType).decrypt();
+    }),
+    ...restQueryOptions,
+  });
 
   return {
     ...result,

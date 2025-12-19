@@ -11,11 +11,11 @@ import {
   type EncryptedItemInputs,
   type EncryptStepCallbackContext,
 } from '@cofhe/sdk';
-import { useMutation, type UseMutationOptions, type UseMutationResult } from '@tanstack/react-query';
+import { type UseMutationOptions, type UseMutationResult } from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
 import { useCofheConnection } from './useCofheConnection';
 import { useCofheContext } from '../providers';
-import { useInternalQueryClient } from '../providers/index.js';
+import { useInternalMutation } from '../providers/index.js';
 
 type EncryptableArray = readonly EncryptableItem[];
 type EncryptedInputs<T extends EncryptableItem | EncryptableArray> = T extends EncryptableArray
@@ -141,45 +141,41 @@ export function useCofheEncrypt<T extends EncryptableItem | EncryptableArray>(
   encryptionOptions: EncryptionOptions<T> = {},
   mutationOptions: UseMutationOptionsAsync<T> = {}
 ): UseEncryptResult<T> {
-  const qc = useInternalQueryClient();
   const client = useCofheContext().client;
   const stepsState = useStepsState();
   const { onStep: handleStepStateChange, onSetKey: handleStepSetKey } = stepsState;
 
   const { onMutate, mutationKey: mutationKeyPostfix, ...restOptions } = mutationOptions;
 
-  const mutationResult = useMutation<EncryptedInputs<T>, Error, EncryptionOptions<T>, void>(
-    {
-      mutationKey: ['encryption', mutationKeyPostfix],
-      onMutate: (arg1, arg2) => {
-        return onMutate?.(arg1, arg2);
-      },
-      mutationFn: async (mutationEncryptionOptions) => {
-        const key = crypto.randomUUID();
-        handleStepSetKey(key);
-        const mergedOptions = { ...encryptionOptions, ...mutationEncryptionOptions };
-
-        if (!mergedOptions.input) {
-          throw new Error('Encryption options must include an input');
-        }
-
-        // Forward steps to both internal and external handlers
-        const combinedOnStepChange = (step: EncryptStep, context?: EncryptStepCallbackContext) => {
-          handleStepStateChange(key, step, context);
-          mergedOptions.onStepChange?.(step, context);
-        };
-
-        const encrypted = await encryptValue(client, {
-          ...mergedOptions,
-          onStepChange: combinedOnStepChange,
-        });
-
-        return encrypted;
-      },
-      ...restOptions,
+  const mutationResult = useInternalMutation<EncryptedInputs<T>, Error, EncryptionOptions<T>, void>({
+    mutationKey: ['encryption', mutationKeyPostfix],
+    onMutate: (arg1, arg2) => {
+      return onMutate?.(arg1, arg2);
     },
-    qc
-  );
+    mutationFn: async (mutationEncryptionOptions) => {
+      const key = crypto.randomUUID();
+      handleStepSetKey(key);
+      const mergedOptions = { ...encryptionOptions, ...mutationEncryptionOptions };
+
+      if (!mergedOptions.input) {
+        throw new Error('Encryption options must include an input');
+      }
+
+      // Forward steps to both internal and external handlers
+      const combinedOnStepChange = (step: EncryptStep, context?: EncryptStepCallbackContext) => {
+        handleStepStateChange(key, step, context);
+        mergedOptions.onStepChange?.(step, context);
+      };
+
+      const encrypted = await encryptValue(client, {
+        ...mergedOptions,
+        onStepChange: combinedOnStepChange,
+      });
+
+      return encrypted;
+    },
+    ...restOptions,
+  });
 
   const mutateAsync = mutationResult.mutateAsync;
 
