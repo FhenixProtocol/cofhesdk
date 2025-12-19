@@ -22,7 +22,6 @@ const positionStyles: Record<FloatingButtonPosition, string> = {
 const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
   className,
   testId,
-  size = 'large',
   onClick,
   zIndex = 9999,
   positionType = 'fixed',
@@ -40,7 +39,7 @@ const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
       className={cn(
         'fnx-floating-button',
         darkMode && 'dark',
-        size,
+        'large',
         positionType,
         'flex gap-3',
         positionStyles[effectivePosition],
