@@ -122,7 +122,6 @@ export const useAutoConnectCofhe = () => {
           </div>
         </div>
 
-        {/* Props Table */}
         <div>
           <h3 className="text-lg font-semibold mb-3">
             3. use Cofhe React API to get the user ready for decrypting (i.e. make the user generate a permit when it's
@@ -169,6 +168,22 @@ function MyComponent() {
     </pre>
   );
 }`}
+              </code>
+            </pre>
+          </div>
+        </div>
+
+        {/* TODO -- add info about error handling and query options prop-drilling */}
+        <div>
+          <h3 className="text-lg font-semibold mb-3">
+            TODO: add info about error handling and query options prop drilling
+          </h3>
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border mb-4">
+            <pre className="text-sm overflow-x-auto">
+              <code className="text-gray-800 dark:text-gray-200">
+                {`
+                // TODO
+                `}
               </code>
             </pre>
           </div>
