@@ -2,16 +2,12 @@ import type { ReactNode } from 'react';
 import type { BaseProps } from '../../types/component-types';
 import type { PageState } from './pagesConfig/types';
 export type FloatingButtonPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
-export type FloatingButtonSize = 'small' | 'medium' | 'large';
 export type FloatingButtonPositionType = 'fixed' | 'absolute';
 
 export interface FnxFloatingButtonProps extends BaseProps {
   children?: React.ReactNode;
   /** Position of the floating button */
   position?: FloatingButtonPosition;
-
-  /** Allow predefined sizes */
-  size?: FloatingButtonSize;
 
   buttonClassName?: string;
   statusBarClassName?: string;

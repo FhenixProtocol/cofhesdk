@@ -3,7 +3,7 @@ import { useDynamicCofheConfigContext } from '../../utils/dynamicCofheConfig';
 
 // Example with Material UI icons
 export const FnxFloatingButtonExample: React.FC = () => {
-  const { position, setPosition, buttonSize, setButtonSize, darkMode, setDarkMode } = useDynamicCofheConfigContext();
+  const { position, setPosition, darkMode, setDarkMode } = useDynamicCofheConfigContext();
 
   return (
     <div className="space-y-8">
@@ -35,26 +35,6 @@ export const FnxFloatingButtonExample: React.FC = () => {
                     }`}
                   >
                     {pos}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Size */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium mb-2">Size:</label>
-              <div className="flex flex-wrap gap-2">
-                {(['small', 'medium', 'large'] as const).map((size) => (
-                  <button
-                    key={size}
-                    onClick={() => setButtonSize(size)}
-                    className={`px-4 py-2 rounded-lg text-sm transition-colors capitalize ${
-                      buttonSize === size
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                    }`}
-                  >
-                    {size}
                   </button>
                 ))}
               </div>
