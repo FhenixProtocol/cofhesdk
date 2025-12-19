@@ -10,7 +10,6 @@ import {
   type PagesWithoutProps,
   type PagesWithProps,
 } from './pagesConfig/types';
-import { useCofheActivePermit } from '@/hooks/index';
 import { ToastPrimitive } from './components/ToastPrimitives';
 
 export type TokenListMode = 'view' | 'select';
@@ -68,9 +67,7 @@ interface FnxFloatingButtonContextValue {
   expandPanel: () => void;
   collapsePanel: () => void;
   handleClick: (externalOnClick?: () => void) => void;
-  // TODO: I believe we should disable chain switching from within the floating button. We better deal with whatever is provided in Singer
-  // onSelectChain?: (chainId: number) => Promise<void> | void;
-  // Token selection
+
   tokenListMode: TokenListMode;
   selectedToken: SelectedToken;
   navigateToTokenListForSelection: (title?: string) => void;

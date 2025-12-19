@@ -23,9 +23,6 @@ export interface FnxFloatingButtonProps extends BaseProps {
   /** Dark mode for the button (independent of page theme) */
   darkMode?: boolean;
 
-  // TODO: disable?
-  // /** Chain switch handler - called when user selects a different chain in the network dropdown */
-  // onSelectChain?: (chainId: number) => Promise<void> | void;
   // is used for error handling (i.e. override to Permit Creation page on PermitNotFound error)
   overriddingPage?: PageState;
 }
