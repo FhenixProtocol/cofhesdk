@@ -68,50 +68,55 @@ export const FnxFloatingButtonExample: React.FC = () => {
 
         {/* Usage Code */}
         <div>
-          <h3 className="text-lg font-semibold mb-3">Basic Usage</h3>
+          <h3 className="text-lg font-semibold mb-3">1. wrap your App with CofheProvider</h3>
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border mb-4">
             <pre className="text-sm overflow-x-auto">
               <code className="text-gray-800 dark:text-gray-200">
-                {`import { FnxFloatingButton } from '@cofhe/react';
-import AddIcon from '@mui/icons-material/Add';
+                {`import { CofheProvider } from '@cofhe/react';
 
-function MyApp() {
+function App() {
   return (
-    <div>
-      {/* Your app content */}
-      
-      <FnxFloatingButton
-        position="bottom-right"
-        size="large"
-        onClick={() => console.log('Clicked!')}
-      />
-    </div>
+    <CofheProvider>
+      {/* Your app content */}}
+    </CofheProvider>
   );
 }`}
               </code>
             </pre>
           </div>
 
-          <h3 className="text-lg font-semibold mb-3">With Expandable Panel</h3>
+          <h3 className="text-lg font-semibold mb-3">2. Auto-connect WalletClient and PublicClient to CoFHE</h3>
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border">
             <pre className="text-sm overflow-x-auto">
               <code className="text-gray-800 dark:text-gray-200">
-                {`import { FnxFloatingButton } from '@cofhe/react';
-import AddIcon from '@mui/icons-material/Add';
+                {`
 
-function MyApp() {
-  return (
-    <div>
-      {/* Your app content */}
-      
-      <FnxFloatingButton
-        position="bottom-right"
-        size="large"
-        onClick={() => console.log('Clicked!')}
-      />
-    </div>
-  );
-}`}
+import { useEffect } from 'react';
+import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
+import { useCofheClient } from '@cofhe/react';
+
+
+// TODO: expose useCofheAutoConnect hook? that'd accept {publicClient, walletClient}
+//  and do the effect internally?
+// or just accept them in the CofheProvider?
+// I think autoConnect hook is better, as it can be wrapped into a mutation and yield it's benefits
+
+export const useAutoConnectCofhe = () => {  
+  const cofheClient = useCofheClient();  
+  const publicClient = usePublicClient();
+  const { data: walletClient } = useWalletClient();
+
+  useEffect(() => {
+    const autoConnect = async () => {
+      if (!publicClient || !walletClient) return;      
+      await cofheClient.connect(publicClient, walletClient);    
+    };
+    autoConnect();
+  }, [publicClient, walletClient, cofheClient]);
+};
+
+... @TODO: finish this piece.
+`}
               </code>
             </pre>
           </div>
@@ -119,116 +124,53 @@ function MyApp() {
 
         {/* Props Table */}
         <div>
-          <h3 className="text-lg font-semibold mb-3">Props</h3>
-          <div className="bg-white dark:bg-gray-800 rounded-lg border overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-900">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Prop
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Type
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Default
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Description
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-300">
-                    position
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                    'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    'bottom-right'
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">Position of the button</td>
-                </tr>
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-300">
-                    icon
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">React.ReactNode</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">-</td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">Icon to display</td>
-                </tr>
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-300">
-                    size
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">number</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">56</td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">Button size in pixels</td>
-                </tr>
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-300">
-                    iconColor
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">string</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">'#ffffff'</td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">Icon color</td>
-                </tr>
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-300">
-                    onClick
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">() =&gt; void</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">-</td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">Click handler</td>
-                </tr>
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-300">
-                    title
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">string</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">-</td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">Tooltip text</td>
-                </tr>
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-300">
-                    zIndex
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">number</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">9999</td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">Z-index value</td>
-                </tr>
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-300">
-                    positionType
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">'fixed' | 'absolute'</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">'fixed'</td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                    Position type (fixed stays on screen)
-                  </td>
-                </tr>
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-300">
-                    expandable
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">boolean</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">false</td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">Enable expandable panel</td>
-                </tr>
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-300">
-                    expandedWidth
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">number</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">250</td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                    Width of expanded panel in pixels
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <h3 className="text-lg font-semibold mb-3">
+            3. use Cofhe React API to get the user ready for decrypting (i.e. make the user generate a permit when it's
+            needed) and decrypt
+          </h3>
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border">
+            <pre className="text-sm overflow-x-auto">
+              <code className="text-gray-800 dark:text-gray-200">
+                {`
+import { useCofheTokenConfidentialBalance } from '@cofhe/react';
+import { WETH_SEPOLIA_TOKEN } from '../constants/tokens';
+
+function MyComponent() {
+  const account = useCofheConnection().account;
+  
+  const navigateToGeneratePermit = useCofheCreatePermit({
+    ReasonBody: CREATE_PERMITT_BODY_BY_ERROR_CAUSE[ErrorCause.AttemptToFetchConfidentialBalance],
+  });
+  
+  const { disabledDueToMissingPermit, data, error, isLoading } = useCofheTokenConfidentialBalance({
+    token: WETH_SEPOLIA_TOKEN,
+    accountAddress: account,
+  });
+
+  return (
+    <pre>
+      {disabledDueToMissingPermit ? (
+        <div
+          onClick={async (e) => {
+            e.stopPropagation();
+            navigateToGeneratePermit();
+            
+          }}
+        >
+          * * *
+        </div>
+      ) : isLoading ? (
+        'Loading...'
+      ) : error ? (
+        \`Error: \${error.message}\`
+      ) : (
+        data?.toString() ?? 'No Data'
+      )}
+    </pre>
+  );
+}`}
+              </code>
+            </pre>
           </div>
         </div>
       </div>
