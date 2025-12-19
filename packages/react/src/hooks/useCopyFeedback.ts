@@ -52,6 +52,7 @@ export function useCopyFeedback(defaultDurationMs: number = 2000) {
   // Cleanup timers on unmount
   useEffect(() => {
     return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       for (const id of timersRef.current.values()) {
         window.clearTimeout(id);
       }

@@ -6,6 +6,7 @@ export type FloatingButtonSize = 'small' | 'medium' | 'large';
 export type FloatingButtonPositionType = 'fixed' | 'absolute';
 
 export interface FnxFloatingButtonProps extends BaseProps {
+  children?: React.ReactNode;
   /** Position of the floating button */
   position?: FloatingButtonPosition;
 
@@ -25,8 +26,10 @@ export interface FnxFloatingButtonProps extends BaseProps {
   positionType?: FloatingButtonPositionType;
   /** Dark mode for the button (independent of page theme) */
   darkMode?: boolean;
-  /** Chain switch handler - called when user selects a different chain in the network dropdown */
-  onSelectChain?: (chainId: number) => Promise<void> | void;
+
+  // TODO: disable?
+  // /** Chain switch handler - called when user selects a different chain in the network dropdown */
+  // onSelectChain?: (chainId: number) => Promise<void> | void;
   // is used for error handling (i.e. override to Permit Creation page on PermitNotFound error)
   overriddingPage?: PageState;
 }

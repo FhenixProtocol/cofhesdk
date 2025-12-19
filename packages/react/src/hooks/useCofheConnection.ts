@@ -35,7 +35,7 @@ export const useCofheIsConnected = (): boolean => {
   return connected;
 };
 
-export const useCofheAccount = (): string | undefined => {
+export const useCofheAccount = (): `0x${string}` | undefined => {
   const { account } = useCofheConnection();
   return account;
 };

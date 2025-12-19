@@ -4,7 +4,85 @@ import { ComponentRenderer } from './components/ComponentRenderer';
 import { Providers as WagmiProviders } from './utils/wagmi';
 import { CofheProviderLocal } from './utils/cofhe.config';
 import { useAutoConnectCofhe } from './utils/useAutoConnectCofhe';
+import {
+  CREATE_PERMITT_BODY_BY_ERROR_CAUSE,
+  ErrorCause,
+  Token,
+  useCofheClient,
+  useCofheConnection,
+  useCofheCreatePermit,
+  useCofheTokenConfidentialBalance,
+} from '@cofhe/react';
+import { DynamicCofheConfigProvider } from './utils/dynamicCofheConfig';
+import { CofhesdkError, CofhesdkErrorCode } from '@cofhe/sdk';
 
+const WETH_SEPOLIA_TOKEN: Token = {
+  chainId: 11155111,
+  address: '0x87A3effB84CBE1E4caB6Ab430139eC41d156D55A',
+  name: 'Redact eETH',
+  symbol: 'eETH',
+  decimals: 18,
+  logoURI: 'https://storage.googleapis.com/cofhesdk/token-icons/eth.webp',
+  extensions: {
+    fhenix: {
+      confidentialityType: 'wrapped',
+      confidentialValueType: 'uint128',
+      erc20Pair: {
+        address: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+        symbol: 'ETH',
+        decimals: 18,
+        logoURI: 'https://storage.googleapis.com/cofhesdk/token-icons/eth.webp',
+      },
+    },
+  },
+};
+
+// A custom hook to help with this
+
+function DemoErrorOutsideFloatingButton() {
+  // return null;
+  const account = useCofheConnection().account;
+  const { disabledDueToMissingPermit, data, error, isLoading } = useCofheTokenConfidentialBalance({
+    token: WETH_SEPOLIA_TOKEN,
+    accountAddress: account,
+  });
+
+  const navigateToGeneratePermit = useCofheCreatePermit({
+    ReasonBody: CREATE_PERMITT_BODY_BY_ERROR_CAUSE[ErrorCause.AttemptToFetchConfidentialBalance],
+  });
+
+  const client = useCofheClient();
+  //
+  useEffect(() => {
+    // throw new CofhesdkError({
+    //   code: CofhesdkErrorCode.InvalidPermitData,
+    //   message: 'Custom error thrown from outside floating button demo',
+    // });
+    // throw new Error('my custom error');
+  }, []);
+  return (
+    <pre>
+      {disabledDueToMissingPermit ? (
+        <div
+          onClick={async (e) => {
+            e.stopPropagation();
+            // navigateToGeneratePermit();
+
+            // await client.decryptHandle(123123123n, FheTypes.Uint32).decrypt();
+          }}
+        >
+          * * *
+        </div>
+      ) : isLoading ? (
+        'Loading...'
+      ) : error ? (
+        `Error: ${error.message}`
+      ) : (
+        data?.toString() ?? 'No Data'
+      )}
+    </pre>
+  );
+}
 function Updaters() {
   useAutoConnectCofhe();
   // This component can be used to add global updaters or hooks if needed in the future
@@ -30,18 +108,21 @@ function App() {
 
   return (
     <WagmiProviders>
-      <CofheProviderLocal>
-        <Updaters />
-        <div className={`min-h-screen flex ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
-          <Navigation
-            activeComponent={activeComponent}
-            onComponentSelect={setActiveComponent}
-            isDarkMode={isDarkMode}
-            onToggleDarkMode={toggleDarkMode}
-          />
-          <ComponentRenderer activeComponent={activeComponent} isDarkMode={isDarkMode} />
-        </div>
-      </CofheProviderLocal>
+      <DynamicCofheConfigProvider>
+        <CofheProviderLocal>
+          <DemoErrorOutsideFloatingButton />
+          <Updaters />
+          <div className={`min-h-screen flex ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+            <Navigation
+              activeComponent={activeComponent}
+              onComponentSelect={setActiveComponent}
+              isDarkMode={isDarkMode}
+              onToggleDarkMode={toggleDarkMode}
+            />
+            <ComponentRenderer activeComponent={activeComponent} isDarkMode={isDarkMode} />
+          </div>
+        </CofheProviderLocal>
+      </DynamicCofheConfigProvider>
     </WagmiProviders>
   );
 }

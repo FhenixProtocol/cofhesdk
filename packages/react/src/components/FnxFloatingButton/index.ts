@@ -1,2 +1,2 @@
-export { FnxFloatingButton } from './FnxFloatingButton';
+export { FnxFloatingButtonWithProvider } from './FnxFloatingButton';
 export * from './pages/index.js';

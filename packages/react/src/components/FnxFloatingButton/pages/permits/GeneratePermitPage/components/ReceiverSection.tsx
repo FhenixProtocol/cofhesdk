@@ -1,5 +1,3 @@
-import React from 'react';
-
 export type ReceiverSectionProps = {
   receiver: string;
   receiverError?: string | null;

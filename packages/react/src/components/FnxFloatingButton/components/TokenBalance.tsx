@@ -10,7 +10,9 @@ import { useCofheTokens, type Token } from '../../../hooks/useCofheTokenLists.js
 import { useCofheChainId } from '../../../hooks/useCofheConnection.js';
 import { cn } from '../../../utils/cn.js';
 import { LoadingDots } from './LoadingDots.js';
-import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext';
+import { CREATE_PERMITT_BODY_BY_ERROR_CAUSE } from '@/providers/errors.js';
+import { ErrorCause } from '@/utils/errors.js';
+import { useCofheCreatePermit } from '@/hooks/permits/useCofheCreatePermit.js';
 
 export enum BalanceType {
   Public = 'public',
@@ -25,7 +27,7 @@ export interface TokenBalanceProps {
   /** Whether this is a native token */
   isNative?: boolean;
   /** Account address to fetch balance for */
-  accountAddress?: Address | null;
+  accountAddress?: Address;
   /** Type of balance to display: 'public' (ERC20 balanceOf) or 'confidential' (encrypted) */
   balanceType?: BalanceType;
   /** Pre-fetched balance value (skips fetching if provided) */
@@ -67,43 +69,41 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
 }) => {
   const account = useCofheAccount();
   const chainId = useCofheChainId();
-  const tokens = useCofheTokens(chainId ?? 0);
+  const tokens = useCofheTokens(chainId);
+
+  const navigateToGeneratePermit = useCofheCreatePermit({
+    ReasonBody: CREATE_PERMITT_BODY_BY_ERROR_CAUSE[ErrorCause.AttemptToFetchConfidentialBalance],
+  });
 
   // If value is provided, use it directly (skip fetching)
   const useProvidedValue = value !== undefined;
 
   // Determine which account address to use
-  const effectiveAccountAddress = (accountAddress ?? account) as Address | undefined;
+  const effectiveAccountAddress = accountAddress ?? account;
 
   // Find token from list if tokenAddress is provided but token is not
   const tokenFromList = useMemo(() => {
     if (token) return token;
-    if (!tokenAddress || !chainId || isNative) return null;
-    return tokens.find((t) => t.chainId === chainId && t.address.toLowerCase() === tokenAddress.toLowerCase()) || null;
+    if (!tokenAddress || !chainId || isNative) return;
+    return tokens.find((t) => t.chainId === chainId && t.address.toLowerCase() === tokenAddress.toLowerCase());
   }, [token, tokenAddress, chainId, tokens, isNative]);
 
   // Use unified hooks for balance fetching
   const { numericValue: publicBalanceNum, isLoading: isLoadingPublic } = useCofhePublicTokenBalance(
     { token: tokenFromList, accountAddress: effectiveAccountAddress, displayDecimals: decimalPrecision },
     {
-      enabled:
-        !useProvidedValue &&
-        !isNative &&
-        balanceType === BalanceType.Public &&
-        !!tokenFromList &&
-        !!effectiveAccountAddress,
+      enabled: !useProvidedValue && !isNative && balanceType === BalanceType.Public,
     }
   );
 
-  const { numericValue: confidentialBalanceNum, isLoading: isLoadingConfidential } = useCofheConfidentialTokenBalance(
+  const {
+    numericValue: confidentialBalanceNum,
+    isLoading: isLoadingConfidential,
+    disabledDueToMissingPermit,
+  } = useCofheConfidentialTokenBalance(
     { token: tokenFromList, accountAddress: effectiveAccountAddress, displayDecimals: decimalPrecision },
     {
-      enabled:
-        !useProvidedValue &&
-        !isNative &&
-        balanceType === BalanceType.Confidential &&
-        !!tokenFromList &&
-        !!effectiveAccountAddress,
+      enabled: !useProvidedValue && !isNative && balanceType === BalanceType.Confidential,
     }
   );
 
@@ -114,7 +114,6 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
     decimalPrecision,
     { enabled: !useProvidedValue && isNative && !!effectiveAccountAddress }
   );
-  const { setEnableBackgroundDecryption } = useFnxFloatingButtonContext();
 
   // Determine token symbol
   const displaySymbol = useMemo(() => {
@@ -138,50 +137,50 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
     return balanceType === BalanceType.Public ? isLoadingPublic : isLoadingConfidential;
   }, [useProvidedValue, isLoadingProp, isNative, balanceType, isLoadingNative, isLoadingPublic, isLoadingConfidential]);
 
-  const CONFIDENTIAL_BALANCE_UNTIL_FETCHED = (
-    <div
-      onClick={(e) => {
-        e.stopPropagation();
-        setEnableBackgroundDecryption(true);
-      }}
-    >
-      {'* * *'}
-    </div>
+  const CONFIDENTIAL_VALUE_PLACEHOLDER = useMemo(
+    () => (
+      <div
+        onClick={(e) => {
+          e.stopPropagation();
+          navigateToGeneratePermit();
+        }}
+      >
+        {'* * *'}
+      </div>
+    ),
+    [navigateToGeneratePermit]
   );
 
   // Format balance
   const displayBalance = useMemo(() => {
+    if (disabledDueToMissingPermit) return CONFIDENTIAL_VALUE_PLACEHOLDER;
+    if (isNative) return nativeBalance;
     // If value is provided, format it
     if (useProvidedValue) {
       if (value === null || value === undefined) {
-        return '';
+        return null;
       }
       const numValue = typeof value === 'string' ? parseFloat(value) : value;
-      if (isNaN(numValue)) return '';
+      if (isNaN(numValue)) return null;
       return numValue.toFixed(decimalPrecision);
-    }
-
-    // Native token balance
-    if (isNative) {
-      return nativeBalance || CONFIDENTIAL_BALANCE_UNTIL_FETCHED;
     }
 
     // Public or confidential balance from hooks
     const numValue = balanceType === BalanceType.Public ? publicBalanceNum : confidentialBalanceNum;
-    if (numValue === 0 && balanceType === BalanceType.Confidential) {
-      return CONFIDENTIAL_BALANCE_UNTIL_FETCHED;
-    }
+    if (numValue === 0 && balanceType === BalanceType.Confidential) return null;
+
     return numValue.toFixed(decimalPrecision);
   }, [
-    useProvidedValue,
-    value,
+    disabledDueToMissingPermit,
+    CONFIDENTIAL_VALUE_PLACEHOLDER,
     isNative,
-    balanceType,
     nativeBalance,
+    useProvidedValue,
+    balanceType,
     publicBalanceNum,
     confidentialBalanceNum,
     decimalPrecision,
-    CONFIDENTIAL_BALANCE_UNTIL_FETCHED,
+    value,
   ]);
 
   // Show loading animation when loading

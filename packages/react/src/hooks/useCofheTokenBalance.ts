@@ -1,14 +1,15 @@
 import { useQuery, type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
 import { formatUnits, type Address } from 'viem';
-import { FheTypes } from '@cofhe/sdk';
+import { CofhesdkError, FheTypes } from '@cofhe/sdk';
 import { useCofheAccount, useCofheChainId, useCofhePublicClient } from './useCofheConnection.js';
 import { useCofheContext } from '../providers/CofheProvider.js';
 import { type Token, ETH_ADDRESS } from './useCofheTokenLists.js';
 import { CONFIDENTIAL_ABIS } from '../constants/confidentialTokenABIs.js';
 import { ERC20_BALANCE_OF_ABI, ERC20_DECIMALS_ABI, ERC20_SYMBOL_ABI, ERC20_NAME_ABI } from '../constants/erc20ABIs.js';
-import { useFnxFloatingButtonContext } from '@/components/FnxFloatingButton/FnxFloatingButtonContext.js';
 import { withQueryErrorCause, ErrorCause } from '@/utils/errors.js';
-
+import { useCofheActivePermit } from './useCofhePermits.js';
+import { assert } from 'ts-essentials';
+import { useIsCofheErrorActive } from './useIsCofheErrorActive.js';
 type UseTokenBalanceInput = {
   /** Token contract address */
   tokenAddress: Address;
@@ -258,75 +259,66 @@ export function useCofheTokenConfidentialBalance(
     accountAddress,
   }: {
     token: Token | undefined;
-    accountAddress: Address;
+    accountAddress?: Address;
   },
   queryOptions?: Omit<UseQueryOptions<bigint, Error>, 'queryKey' | 'queryFn'>
-): UseQueryResult<bigint, Error> {
-  const { enableBackgroundDecryption } = useFnxFloatingButtonContext();
+): UseQueryResult<bigint, Error> & {
+  disabledDueToMissingPermit: boolean;
+} {
+  const isCofheErrorActive = useIsCofheErrorActive();
   const publicClient = useCofhePublicClient();
+  const cofheChainId = useCofheChainId();
   const { client } = useCofheContext();
-
-  // Extract values from token object (only if token exists)
-  const tokenAddress = token?.address as Address | undefined;
-  const confidentialityType = token?.extensions.fhenix.confidentialityType;
-  const confidentialValueType = token?.extensions.fhenix.confidentialValueType;
-
-  // Merge enabled conditions: both our internal checks and user-provided enabled must be true
-  const baseEnabled =
-    !!publicClient && !!accountAddress && !!token && !!tokenAddress && !!confidentialityType && !!confidentialValueType;
-  const userEnabled = queryOptions?.enabled ?? true;
-  const enabled = baseEnabled && userEnabled && enableBackgroundDecryption;
+  const activePermit = useCofheActivePermit();
 
   // Extract enabled from queryOptions to avoid override
-  const { enabled: _, ...restQueryOptions } = queryOptions || {};
+  const { enabled: queryEnabled, ...restQueryOptions } = queryOptions || {};
+  // Merge enabled conditions: both our internal checks and user-provided enabled must be true
+  const enabled =
+    // if cofhe error is currently handled by Error boundary - disable the query until error reset
+    !isCofheErrorActive &&
+    !!publicClient &&
+    !!accountAddress &&
+    !!token &&
+    !!activePermit &&
+    queryOptions?.enabled !== false;
 
-  return useQuery({
-    gcTime: 0,
+  const result = useQuery({
+    enabled,
     queryKey: [
       'tokenConfidentialBalance',
-      tokenAddress,
       accountAddress,
-      confidentialityType,
-      confidentialValueType,
-      // normally `enabled` shouldn't be a part of query cache key, but I seem to run into an internal react-query issue where queryFn is ran even when enabled = false after resetErrorBoundary()
+      cofheChainId,
+      token?.address,
+      activePermit?.hash,
+      // normally, "enabled" shouldn't be part of queryKey, but without adding it, there is a weird bug: when there's a CofheError, query still running queryFn resulting in the blank screen
       enabled,
     ],
     queryFn: withQueryErrorCause(ErrorCause.AttemptToFetchConfidentialBalance, async (): Promise<bigint> => {
-      if (!publicClient) {
-        throw new Error('PublicClient is required to fetch confidential token balance');
-      }
+      assert(accountAddress, 'Account address is required to fetch confidential token balance');
+      assert(publicClient, 'PublicClient is required to fetch confidential token balance');
+      assert(token, 'Token is required to fetch confidential token balance');
 
-      if (!token) {
-        throw new Error('Token is required to fetch confidential token balance');
-      }
+      // NB: no need to check for Permit validity and existence here. It's part of the 'enabled' and also if something is wrong with the Permit, ErrorBoundary will catch that and will redirect the user to Permit generation page.
 
-      if (!tokenAddress) {
-        throw new Error('Token address is required to fetch confidential token balance');
-      }
-
-      if (!confidentialityType) {
-        throw new Error('confidentialityType is required in token extensions');
-      }
-
-      if (!confidentialValueType) {
-        throw new Error('confidentialValueType is required in token extensions');
-      }
-
-      // NB: no need to cehck for Permit validity and existence here. If something is wrong with the Permit, ErrorBoundary will catch that and will redirect the user to Permit generation page.
+      // Throw error if dual type is used (not yet implemented)
+      assert(
+        token.extensions.fhenix.confidentialityType !== 'dual',
+        'Dual confidentiality type is not yet implemented'
+      );
 
       // Get the appropriate ABI and function name based on confidentialityType
-      const contractConfig = CONFIDENTIAL_ABIS[confidentialityType];
-      if (!contractConfig) {
-        throw new Error(`Unsupported confidentialityType: ${confidentialityType}`);
-      }
+      const contractConfig = CONFIDENTIAL_ABIS[token.extensions.fhenix.confidentialityType];
+
+      assert(contractConfig, `Unsupported confidentialityType: ${token.extensions.fhenix.confidentialityType}`);
 
       // Call the appropriate function based on confidentialityType
-      const ctHash = (await publicClient.readContract({
-        address: tokenAddress,
+      const ctHash = await publicClient.readContract({
+        address: token.address,
         abi: contractConfig.abi,
         functionName: contractConfig.functionName,
         args: [accountAddress],
-      })) as bigint;
+      });
 
       if (ctHash === 0n) {
         // no ciphertext means no confidential balance
@@ -334,14 +326,18 @@ export function useCofheTokenConfidentialBalance(
       }
 
       // Map confidentialValueType to FheTypes
-      const fheType = confidentialValueType === 'uint64' ? FheTypes.Uint64 : FheTypes.Uint128;
+      const fheType = token.extensions.fhenix.confidentialValueType === 'uint64' ? FheTypes.Uint64 : FheTypes.Uint128;
 
       // Decrypt the encrypted balance using SDK
       return client.decryptHandle(ctHash, fheType).decrypt();
     }),
-    enabled,
     ...restQueryOptions,
   });
+
+  return {
+    ...result,
+    disabledDueToMissingPermit: !activePermit,
+  };
 }
 
 /**
@@ -497,6 +493,7 @@ type UseConfidentialTokenBalanceResult = {
   isLoading: boolean;
   /** Refetch function */
   refetch: () => Promise<unknown>;
+  disabledDueToMissingPermit: boolean;
 };
 
 /**
@@ -512,7 +509,7 @@ export function useCofheConfidentialTokenBalance(
 ): UseConfidentialTokenBalanceResult {
   const { enabled: userEnabled = true, ...restOptions } = options ?? {};
 
-  const { data, isLoading, refetch } = useCofheTokenConfidentialBalance(
+  const { data, isLoading, refetch, disabledDueToMissingPermit } = useCofheTokenConfidentialBalance(
     {
       token: token ?? undefined,
       accountAddress: accountAddress as Address,
@@ -527,6 +524,7 @@ export function useCofheConfidentialTokenBalance(
   const numericValue = formatted ? parseFloat(formatted) : 0;
 
   return {
+    disabledDueToMissingPermit,
     data,
     formatted,
     numericValue,

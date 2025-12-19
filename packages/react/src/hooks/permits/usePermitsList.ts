@@ -38,7 +38,7 @@ export const usePermitsList = () => {
 
   const handlePermitSelect = useCallback(
     (permitId: string) => {
-      navigateTo(FloatingButtonPage.PermitDetails, { selectedPermitHash: permitId });
+      navigateTo(FloatingButtonPage.PermitDetails, { pageProps: { selectedPermitHash: permitId } });
     },
     [navigateTo]
   );

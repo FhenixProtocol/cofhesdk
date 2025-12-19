@@ -103,7 +103,7 @@ export const useCofheRemovePermit = () => {
       if (!client || !chainId || !account)
         throw new Error('Client, chainId, and account must be defined to remove a permit');
 
-      await client.permits.removePermit(hashToRemove, chainId, account);
+      await client.permits.removePermit(hashToRemove, chainId, account, true);
     },
     [client, chainId, account]
   );

@@ -33,7 +33,6 @@ export {
   useCofheConfidentialTokenBalance,
   useCofheTokenTransfer,
   ETH_ADDRESS,
-  type Token,
   type Erc20Pair,
   type UnshieldClaim,
   type UnshieldClaimsSummary,
@@ -41,7 +40,7 @@ export {
 } from './hooks/index';
 
 // Components
-export { FnxEncryptInput, FnxFloatingButton } from './components/index';
+export { FnxEncryptInput, FnxFloatingButtonWithProvider } from './components/index';
 export { MainPage, SettingsPage, TokenListPage } from './components/FnxFloatingButton/pages/index';
 
 // Utils
@@ -86,3 +85,11 @@ export type { FnxFloatingButtonProps } from './components/FnxFloatingButton/type
 export type { FloatingButtonPosition, FloatingButtonSize } from './components/FnxFloatingButton/types';
 
 export { createCofhesdkClient } from '@cofhe/sdk/web';
+
+export { useCofheCreatePermit } from './hooks/permits/useCofheCreatePermit';
+export { CREATE_PERMITT_BODY_BY_ERROR_CAUSE } from './providers/errors';
+export { ErrorCause } from './utils/errors';
+
+export type { CofhesdkConfigWithReact } from './config';
+
+export type { Token } from './types/token';

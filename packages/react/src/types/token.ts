@@ -23,12 +23,12 @@ export type Erc20Pair = {
 
 export type Token = {
   chainId: number;
-  address: string;
+  address: `0x${string}`;
   symbol: string;
   decimals: number;
   name: string;
   logoURI?: string;
-  extensions: {
+  extensions: Record<string, unknown> & {
     fhenix: {
       confidentialityType: 'wrapped' | 'pure' | 'dual';
       confidentialValueType: 'uint64' | 'uint128';

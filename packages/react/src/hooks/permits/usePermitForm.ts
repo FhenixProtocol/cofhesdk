@@ -32,7 +32,7 @@ export function usePermitForm(options: UsePermitFormOptions = {}): UsePermitForm
   const [nameError, setNameError] = useState<string | null>(null);
   const [receiverError, setReceiverError] = useState<string | null>(null);
   const [durationSeconds, setDurationSeconds] = useState(7 * 24 * 60 * 60);
-  const createPermit = useCofheCreatePermitMutation();
+  const { mutateAsync: createPermitMutateAsync, isPending: isPermitCreationPending } = useCofheCreatePermitMutation();
 
   const isValid = !!permitName.trim() && (isSelf || isValidAddress(receiver));
 
@@ -59,7 +59,7 @@ export function usePermitForm(options: UsePermitFormOptions = {}): UsePermitForm
   }, []);
 
   const handleSubmit = useCallback(async () => {
-    if (createPermit.isPending) return;
+    if (isPermitCreationPending) return;
     const nameToUse = permitName.trim();
     if (!nameToUse) {
       setNameError('Permit name is required.');
@@ -76,7 +76,7 @@ export function usePermitForm(options: UsePermitFormOptions = {}): UsePermitForm
       const args: CreatePermitArgs = isSelf
         ? { name: nameToUse, isSelf: true, expirationSeconds }
         : { name: nameToUse, isSelf: false, receiver: receiver.trim() as `0x${string}`, expirationSeconds };
-      await createPermit.mutateAsync(args);
+      await createPermitMutateAsync(args);
       setPermitName('');
       setReceiver('');
       setError(null);
@@ -86,7 +86,7 @@ export function usePermitForm(options: UsePermitFormOptions = {}): UsePermitForm
     } catch (e: any) {
       setError(e?.message ?? 'Failed to create permit');
     }
-  }, [createPermit.isPending, permitName, isSelf, receiver, durationSeconds, onSuccess]);
+  }, [isPermitCreationPending, permitName, isSelf, receiver, durationSeconds, createPermitMutateAsync, onSuccess]);
 
   const reset = useCallback(() => {
     setPermitName('');
@@ -105,7 +105,7 @@ export function usePermitForm(options: UsePermitFormOptions = {}): UsePermitForm
     nameError,
     receiverError,
     isValid,
-    isSubmitting: createPermit.isPending,
+    isSubmitting: isPermitCreationPending,
     durationSeconds,
     handleNameChange,
     handleReceiverChange,
