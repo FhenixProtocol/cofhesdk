@@ -37,3 +37,25 @@ export type Token = {
     };
   };
 };
+
+// just a sample token for examples and quick tests
+export const WETH_SEPOLIA_TOKEN: Token = {
+  chainId: 11155111,
+  address: '0x87A3effB84CBE1E4caB6Ab430139eC41d156D55A',
+  name: 'Redact eETH',
+  symbol: 'eETH',
+  decimals: 18,
+  logoURI: 'https://storage.googleapis.com/cofhesdk/token-icons/eth.webp',
+  extensions: {
+    fhenix: {
+      confidentialityType: 'wrapped',
+      confidentialValueType: 'uint128',
+      erc20Pair: {
+        address: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+        symbol: 'ETH',
+        decimals: 18,
+        logoURI: 'https://storage.googleapis.com/cofhesdk/token-icons/eth.webp',
+      },
+    },
+  },
+};
