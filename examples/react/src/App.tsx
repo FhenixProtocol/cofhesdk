@@ -4,8 +4,6 @@ import { ComponentRenderer } from './components/ComponentRenderer';
 import { Providers as WagmiProviders } from './utils/wagmi';
 import { CofheProviderLocal } from './utils/cofhe.config';
 
-import { DynamicCofheConfigProvider } from './utils/dynamicCofheConfig';
-
 function App() {
   const [activeComponent, setActiveComponent] = useState<string>('fnx-floating-button');
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
@@ -25,19 +23,17 @@ function App() {
 
   return (
     <WagmiProviders>
-      <DynamicCofheConfigProvider>
-        <CofheProviderLocal>
-          <div className={`min-h-screen flex ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
-            <Navigation
-              activeComponent={activeComponent}
-              onComponentSelect={setActiveComponent}
-              isDarkMode={isDarkMode}
-              onToggleDarkMode={toggleDarkMode}
-            />
-            <ComponentRenderer activeComponent={activeComponent} isDarkMode={isDarkMode} />
-          </div>
-        </CofheProviderLocal>
-      </DynamicCofheConfigProvider>
+      <CofheProviderLocal>
+        <div className={`min-h-screen flex ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+          <Navigation
+            activeComponent={activeComponent}
+            onComponentSelect={setActiveComponent}
+            isDarkMode={isDarkMode}
+            onToggleDarkMode={toggleDarkMode}
+          />
+          <ComponentRenderer activeComponent={activeComponent} isDarkMode={isDarkMode} />
+        </div>
+      </CofheProviderLocal>
     </WagmiProviders>
   );
 }

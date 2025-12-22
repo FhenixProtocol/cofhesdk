@@ -1,9 +1,11 @@
 import React from 'react';
-import { useDynamicCofheConfigContext } from '../../utils/dynamicCofheConfig';
+import { useCofheContext } from '@cofhe/react';
 
 // Example with Material UI icons
 export const FnxFloatingButtonExample: React.FC = () => {
-  const { position, setPosition, darkMode, setDarkMode } = useDynamicCofheConfigContext();
+  const {
+    state: { position, setPosition, darkMode, setDarkMode },
+  } = useCofheContext();
 
   return (
     <div className="space-y-8">

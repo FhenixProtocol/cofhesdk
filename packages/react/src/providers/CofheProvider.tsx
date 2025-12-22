@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo } from 'react';
+import { createContext, useContext, useMemo, useState } from 'react';
 import type { CofheContextValue, CofheProviderProps } from '../types/index';
 import { QueryProvider } from './QueryProvider';
 import { createCofhesdkClient } from '@cofhe/sdk/web';
@@ -8,6 +8,7 @@ import { createCofhesdkConfig, type CofhesdkConfigWithReact } from '@/config';
 import { getChainById } from '@cofhe/sdk/chains';
 import type { CofhesdkConfig } from '@cofhe/sdk';
 import { assert } from 'ts-essentials';
+import type { FloatingButtonPosition } from '@/components/FnxFloatingButton/types';
 
 const CofheContext = createContext<CofheContextValue | undefined>(undefined);
 
@@ -37,8 +38,22 @@ export function CofheProvider(props: CofheProviderProps) {
     [props.cofhesdkClient, config]
   );
 
+  // dynamic values
+  const [position, setPosition] = useState<FloatingButtonPosition>(config.react.position);
+  const [darkMode, setDarkMode] = useState<boolean>(config.react.darkMode);
+
   return (
-    <CofheContext.Provider value={{ client: cofhesdkClient }}>
+    <CofheContext.Provider
+      value={{
+        client: cofhesdkClient,
+        state: {
+          position,
+          setPosition,
+          darkMode,
+          setDarkMode,
+        },
+      }}
+    >
       <QueryProvider queryClient={queryClient}>
         <FnxFloatingButtonWithProvider>
           {autoConnect && (

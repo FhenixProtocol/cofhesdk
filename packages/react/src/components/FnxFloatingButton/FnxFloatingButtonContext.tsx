@@ -93,11 +93,11 @@ interface FnxFloatingButtonProviderProps {
 }
 
 export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps> = ({ children }) => {
-  const { client } = useCofheContext();
+  const { client, state } = useCofheContext();
 
   const widgetConfig = client.config.react;
-  const darkMode = widgetConfig.darkMode;
-  const effectivePosition = widgetConfig.position;
+  const darkMode = state.darkMode;
+  const effectivePosition = state.position;
   const showNativeTokenInList = widgetConfig.showNativeTokenInList;
 
   const [pageHistory, setPageHistory] = useState<PageState[]>([{ page: FloatingButtonPage.Main }]);

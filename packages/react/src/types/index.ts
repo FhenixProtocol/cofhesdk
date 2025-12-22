@@ -2,9 +2,19 @@ import type { CofhesdkClient } from '@cofhe/sdk';
 import type { CofhesdkConfigWithReact } from '../config';
 import type { QueryClient } from '@tanstack/react-query';
 import type { PublicClient, WalletClient } from 'viem';
+import type { FloatingButtonPosition } from '@/components/FnxFloatingButton/types';
 
 export interface CofheContextValue {
   client: CofhesdkClient<CofhesdkConfigWithReact>;
+
+  // dynamic values, which aren't worth re-creating the whole client on each change via config
+  state: {
+    position: FloatingButtonPosition;
+    setPosition: (position: FloatingButtonPosition) => void;
+
+    darkMode: boolean;
+    setDarkMode: (isDarkMode: boolean) => void;
+  };
 }
 
 export type CofheProviderProps = {
