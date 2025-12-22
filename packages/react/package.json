@@ -25,8 +25,7 @@
   ],
   "scripts": {
     "build": "tsup && postcss ./src/styles.css -o ./dist/styles.css --minify",
-    "dev": "tsup --watch & while sleep 1; do postcss ./src/styles.css -o ./dist/styles.css; done",
-    "dev-wsl": "nodemon",
+    "dev": "nodemon",
     "lint": "eslint \"src/**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
