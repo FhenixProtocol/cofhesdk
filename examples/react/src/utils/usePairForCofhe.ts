@@ -15,6 +15,11 @@ export const usePairForCofhe = () => {
   const wagmiPublicClient = usePublicClient();
   const { data: wagmiWalletClient } = useWalletClient();
 
+  const mockWallet = useMemo(() => {
+    // in case of no connected wallet, will reset to this mock wallet on a default chain
+    return createMockWalletAndPublicClient(DEFAULT_CHAIN_ID);
+  }, []);
+
   const { publicClient, walletClient } = useMemo(() => {
     if (isWagmiConnected && wagmiPublicClient && wagmiWalletClient) {
       return {
@@ -22,8 +27,7 @@ export const usePairForCofhe = () => {
         walletClient: wagmiWalletClient,
       };
     }
-    // in case of no connected wallet, reset to mock wallet on a default chain
-    return createMockWalletAndPublicClient(DEFAULT_CHAIN_ID);
+    return mockWallet;
   }, [isWagmiConnected, wagmiPublicClient, wagmiWalletClient]);
 
   return { publicClient, walletClient };
