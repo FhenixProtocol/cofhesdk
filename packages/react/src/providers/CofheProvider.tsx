@@ -12,7 +12,7 @@ import { assert } from 'ts-essentials';
 const CofheContext = createContext<CofheContextValue | undefined>(undefined);
 
 function isReactConfig(config: CofhesdkConfig): config is CofhesdkConfigWithReact {
-  return (config as CofhesdkConfigWithReact).react !== undefined;
+  return Object.prototype.hasOwnProperty.call(config, 'react');
 }
 
 export function CofheProvider(props: CofheProviderProps) {
