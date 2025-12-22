@@ -48,7 +48,7 @@ export const CofhesdkReactConfigSchema = z.object({
  * Input config type inferred from the schema
  */
 export type CofhesdkReactInputConfig = CofhesdkInputConfig & {
-  react: z.input<typeof CofhesdkReactConfigSchema>;
+  react?: z.input<typeof CofhesdkReactConfigSchema>;
 };
 
 export type CofhesdkConfigWithReact = CofhesdkConfig & {

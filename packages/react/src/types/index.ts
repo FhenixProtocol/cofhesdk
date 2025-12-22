@@ -14,7 +14,7 @@ export type CofheProviderProps = {
   // can provide either pre-created client together with the config it was created with
   cofhesdkClient?: CofhesdkClient;
   // ... or just provide config to create the client internally
-  config: CofhesdkConfigWithReact;
+  config?: CofhesdkConfigWithReact;
 
   autoConnect?: {
     // @TODO: define our own pair of classes, with only the methods we need
