@@ -72,50 +72,21 @@ export const FnxFloatingButtonExample: React.FC = () => {
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border mb-4">
             <pre className="text-sm overflow-x-auto">
               <code className="text-gray-800 dark:text-gray-200">
-                {`import { CofheProvider } from '@cofhe/react';
-
-function App() {
-  return (
-    <CofheProvider>
-      {/* Your app content */}}
-    </CofheProvider>
-  );
-}`}
-              </code>
-            </pre>
-          </div>
-
-          <h3 className="text-lg font-semibold mb-3">2. Auto-connect WalletClient and PublicClient to CoFHE</h3>
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border">
-            <pre className="text-sm overflow-x-auto">
-              <code className="text-gray-800 dark:text-gray-200">
                 {`
+import { CofheProvider } from '@cofhe/react';
+import { usePublicClient, useWalletClient } from 'wagmi';
 
-import { useEffect } from 'react';
-import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
-import { useCofheClient } from '@cofhe/react';
-
-
-// TODO: expose useCofheAutoConnect hook? that'd accept {publicClient, walletClient}
-//  and do the effect internally?
-// or just accept them in the CofheProvider?
-// I think autoConnect hook is better, as it can be wrapped into a mutation and yield it's benefits
-
-export const useAutoConnectCofhe = () => {  
-  const cofheClient = useCofheClient();  
+export function App() {
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
 
-  useEffect(() => {
-    const autoConnect = async () => {
-      if (!publicClient || !walletClient) return;      
-      await cofheClient.connect(publicClient, walletClient);    
-    };
-    autoConnect();
-  }, [publicClient, walletClient, cofheClient]);
-};
-
-... @TODO: finish this piece.
+  const autoConnect = publicClient && walletClient ? { publicClient, walletClient } : undefined;
+  return (
+    <CofheProvider autoConnect={autoConnect}>
+      <>Your app content goes here</>
+    </CofheProvider>
+  );
+}
 `}
               </code>
             </pre>
@@ -124,8 +95,7 @@ export const useAutoConnectCofhe = () => {
 
         <div>
           <h3 className="text-lg font-semibold mb-3">
-            3. use Cofhe React API to get the user ready for decrypting (i.e. make the user generate a permit when it's
-            needed) and decrypt
+            2. use Cofhe React API to make the user generate a permit when it's needed (needed for decrypting)
           </h3>
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border">
             <pre className="text-sm overflow-x-auto">
