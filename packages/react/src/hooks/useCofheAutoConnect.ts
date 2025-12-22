@@ -12,7 +12,7 @@ export const useCofheAutoConnect = ({ walletClient, publicClient }: Input) => {
 
   useEffect(() => {
     const autoConnect = async () => {
-      if (!publicClient || !walletClient) return;
+      if (!publicClient || !walletClient || client.connecting) return;
       await client.connect(publicClient, walletClient);
     };
     autoConnect();
