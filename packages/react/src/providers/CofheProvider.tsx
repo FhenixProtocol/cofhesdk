@@ -37,13 +37,8 @@ export function CofheProvider(props: CofheProviderProps) {
     [props.cofhesdkClient, config]
   );
 
-  const contextValue: CofheContextValue = {
-    client: cofhesdkClient,
-    config,
-  };
-
   return (
-    <CofheContext.Provider value={contextValue}>
+    <CofheContext.Provider value={{ client: cofhesdkClient }}>
       <QueryProvider queryClient={queryClient}>
         <FnxFloatingButtonWithProvider>
           {autoConnect && (

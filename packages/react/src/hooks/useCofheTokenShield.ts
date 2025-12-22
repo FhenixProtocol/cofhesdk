@@ -81,7 +81,7 @@ export function useCofheTokenShield(
   const publicClient = useCofhePublicClient();
   const chainId = useCofheChainId();
   const account = useCofheAccount();
-  const { recordTransactionHistory } = useCofheContext().config.react;
+  const { recordTransactionHistory } = useCofheContext().client.config.react;
 
   return useInternalMutation({
     mutationFn: async (input: UseTokenShieldInput) => {
@@ -231,7 +231,7 @@ export function useCofheTokenUnshield(
   const publicClient = useCofhePublicClient();
   const chainId = useCofheChainId();
   const account = useCofheAccount();
-  const { recordTransactionHistory } = useCofheContext().config.react;
+  const { recordTransactionHistory } = useCofheContext().client.config.react;
 
   return useInternalMutation({
     mutationFn: async (input: UseTokenUnshieldInput) => {
@@ -330,7 +330,7 @@ export function useCofheClaimUnshield(
   const publicClient = useCofhePublicClient();
   const chainId = useCofheChainId();
   const account = useCofheAccount();
-  const { recordTransactionHistory } = useCofheContext().config.react;
+  const { recordTransactionHistory } = useCofheContext().client.config.react;
 
   return useInternalMutation({
     mutationFn: async (input: UseClaimUnshieldInput) => {

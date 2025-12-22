@@ -41,7 +41,7 @@ export function useCofheTokenTransfer(
   const publicClient = useCofhePublicClient();
   const chainId = useCofheChainId();
   const account = useCofheAccount();
-  const { recordTransactionHistory } = useCofheContext().config.react;
+  const { recordTransactionHistory } = useCofheContext().client.config.react;
 
   return useInternalMutation({
     mutationFn: async (input: UseTokenTransferInput) => {

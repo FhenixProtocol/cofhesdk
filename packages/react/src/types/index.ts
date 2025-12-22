@@ -4,15 +4,16 @@ import type { QueryClient } from '@tanstack/react-query';
 import type { PublicClient, WalletClient } from 'viem';
 
 export interface CofheContextValue {
-  client: CofhesdkClient;
-  config: CofhesdkConfigWithReact;
+  client: CofhesdkClient<CofhesdkConfigWithReact>;
 }
 
 export type CofheProviderProps = {
   children: React.ReactNode;
   queryClient?: QueryClient;
+
+  // TODO: i still think the below must be mutually exclusive on a type level. If both are passed - that's an indication of potential error (two sources of truth for config)
   // can provide either pre-created client together with the config it was created with
-  cofhesdkClient?: CofhesdkClient;
+  cofhesdkClient?: CofhesdkClient<CofhesdkConfigWithReact>;
   // ... or just provide config to create the client internally
   config?: CofhesdkConfigWithReact;
 

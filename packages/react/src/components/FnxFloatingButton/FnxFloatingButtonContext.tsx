@@ -93,9 +93,9 @@ interface FnxFloatingButtonProviderProps {
 }
 
 export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps> = ({ children }) => {
-  const { config } = useCofheContext();
+  const { client } = useCofheContext();
 
-  const widgetConfig = config.react;
+  const widgetConfig = client.config.react;
   const darkMode = widgetConfig.darkMode;
   const effectivePosition = widgetConfig.position;
   const showNativeTokenInList = widgetConfig.showNativeTokenInList;
