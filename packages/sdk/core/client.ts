@@ -74,8 +74,6 @@ export function createCofhesdkClientBase<TConfig extends CofhesdkConfig>(
   // LIFECYCLE
 
   async function connect(publicClient: PublicClient, walletClient: WalletClient) {
-    // TODO: cleanup
-    console.warn('CofhesdkClient.connect() called');
     const state = connectStore.getState();
 
     // Exit if already connected and clients are the same
