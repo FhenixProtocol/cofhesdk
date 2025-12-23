@@ -8,6 +8,21 @@ export const useCofheConnect = () => {
   const client = useCofheClient();
   return useInternalMutation<boolean, Error, ConnectVars>({
     mutationKey: ['cofhe', 'connect'],
-    mutationFn: async ({ publicClient, walletClient }) => client.connect(publicClient, walletClient),
+    throwOnError: true,
+    mutationFn: async ({ publicClient, walletClient }) => {
+      const result = await client.connect(publicClient, walletClient);
+
+      // TODO: maybe rather change it internally? so it doesn't suppress error on connection?
+      // it's a conventional flow when it comes to connections: try {connect()} catch (e) {show error}
+      if (!result) {
+        const cause = client.getSnapshot().connectError;
+        if (cause) {
+          throw cause;
+        } else {
+          throw new Error('Unknown error during Cofhe client connection');
+        }
+      }
+      return result;
+    },
   });
 };
