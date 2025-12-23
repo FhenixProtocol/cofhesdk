@@ -11,6 +11,7 @@ import { useCofheActivePermit } from './useCofhePermits.js';
 import { assert } from 'ts-essentials';
 import { useIsCofheErrorActive } from './useIsCofheErrorActive.js';
 import { useInternalQuery } from '../providers/index.js';
+import { useCofheDecrypt } from './useCofheDecrypt.js';
 type UseTokenBalanceInput = {
   /** Token contract address */
   tokenAddress: Address;
@@ -245,16 +246,13 @@ export function useCofheTokenSymbol(
 }
 
 /**
- * Hook to get confidential token balance (encrypted balance) and decrypt it
- * Uses confidentialityType from token structure to determine which ABI/function to use:
- * - wrapped: uses `encBalanceOf(address)` function
- * - pure: uses `confidentialBalanceOf(address)` function
- * - dual: uses `TBD_DUAL_FUNCTION_NAME` function
+ * Hook to fetch a confidential (encrypted) token balance from chain.
+ * Uses confidentialityType from token to determine contract and function.
  * @param input - Token object and optional accountAddress
  * @param queryOptions - Optional React Query options
- * @returns Query result with decrypted balance as bigint
+ * @returns Query result with ciphertext bigint
  */
-export function useCofheTokenConfidentialBalance(
+export function useCofheTokenEncryptedBalance(
   {
     token,
     accountAddress,
@@ -269,25 +267,16 @@ export function useCofheTokenConfidentialBalance(
   const isCofheErrorActive = useIsCofheErrorActive();
   const publicClient = useCofhePublicClient();
   const cofheChainId = useCofheChainId();
-  const { client } = useCofheContext();
   const activePermit = useCofheActivePermit();
 
-  // Extract enabled from queryOptions to avoid override
-  const { enabled: queryEnabled, ...restQueryOptions } = queryOptions || {};
-  // Merge enabled conditions: both our internal checks and user-provided enabled must be true
+  const { enabled: userEnabled, ...restQueryOptions } = queryOptions || {};
   const enabled =
-    // if cofhe error is currently handled by Error boundary - disable the query until error reset
-    !isCofheErrorActive &&
-    !!publicClient &&
-    !!accountAddress &&
-    !!token &&
-    !!activePermit &&
-    queryOptions?.enabled !== false;
+    !isCofheErrorActive && !!publicClient && !!accountAddress && !!token && !!activePermit && (userEnabled ?? true);
 
   const result = useInternalQuery({
     enabled,
     queryKey: [
-      'tokenConfidentialBalance',
+      'tokenEncryptedBalance',
       accountAddress,
       cofheChainId,
       token?.address,
@@ -326,11 +315,7 @@ export function useCofheTokenConfidentialBalance(
         return 0n;
       }
 
-      // Map confidentialValueType to FheTypes
-      const fheType = token.extensions.fhenix.confidentialValueType === 'uint64' ? FheTypes.Uint64 : FheTypes.Uint128;
-
-      // Decrypt the encrypted balance using SDK
-      return client.decryptHandle(ctHash, fheType).decrypt();
+      return ctHash;
     }),
     ...restQueryOptions,
   });
@@ -338,6 +323,41 @@ export function useCofheTokenConfidentialBalance(
   return {
     ...result,
     disabledDueToMissingPermit: !activePermit,
+  };
+}
+
+/**
+ * Hook to get confidential token balance by composing encrypted fetch + decryption.
+ * @param input - Token object and optional accountAddress
+ * @param queryOptions - Optional React Query options
+ * @returns Query result with decrypted balance as bigint
+ */
+export function useCofheTokenConfidentialBalance(
+  {
+    token,
+    accountAddress,
+  }: {
+    token: Token | undefined;
+    accountAddress?: Address;
+  },
+  queryOptions?: Omit<UseQueryOptions<bigint, Error>, 'queryKey' | 'queryFn'>
+): UseQueryResult<bigint | undefined, Error> & {
+  disabledDueToMissingPermit: boolean;
+} {
+  const encrypted = useCofheTokenEncryptedBalance({ token, accountAddress }, queryOptions);
+
+  const fheType = token?.extensions.fhenix.confidentialValueType === 'uint64' ? FheTypes.Uint64 : FheTypes.Uint128;
+
+  const decrypted = useCofheDecrypt({
+    ciphertext: encrypted.data,
+    fheType,
+    cause: ErrorCause.AttemptToFetchConfidentialBalance,
+  });
+
+  return {
+    ...decrypted,
+    refetch: encrypted.refetch,
+    disabledDueToMissingPermit: encrypted.disabledDueToMissingPermit,
   };
 }
 
