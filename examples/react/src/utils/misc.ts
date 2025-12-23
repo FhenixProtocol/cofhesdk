@@ -37,6 +37,14 @@ export function createMockWalletAndPublicClient(chainId: number): {
     transport,
   });
 
+  // TODO: connection error is suppressed now by default.
+  // i.e. if on auto-connection there's an error, it's just suppressed.
+  // don't we need to provide a way to handle error?
+  // options
+  //  -> by passing throwOnError (via config?) and wrapping with user's ErrorBoundary
+  //  -> by passing onError function
+  // (walletClient.account.address as any) = undefined;
+
   return {
     walletClient,
     publicClient: publicClient as PublicClient,
