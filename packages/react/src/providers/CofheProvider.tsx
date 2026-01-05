@@ -17,9 +17,9 @@ function isReactConfig(config: CofhesdkConfig): config is CofhesdkConfigWithReac
 }
 
 export function CofheProvider(props: CofheProviderProps) {
-  const { children, queryClient, autoConnect } = props;
+  const { children, queryClient, publicClient, walletClient } = props;
 
-  const networkFromAutoConnectId = autoConnect?.publicClient?.chain?.id;
+  const networkFromAutoConnectId = publicClient?.chain?.id;
   const networkFromAutoConnect = networkFromAutoConnectId ? getChainById(networkFromAutoConnectId) : undefined;
 
   const config = useMemo(() => {
@@ -55,18 +55,14 @@ export function CofheProvider(props: CofheProviderProps) {
       }}
     >
       <QueryProvider queryClient={queryClient}>
-        <FnxFloatingButtonWithProvider>
-          {autoConnect && (
-            <OptionalAutoConnect walletClient={autoConnect.walletClient} publicClient={autoConnect.publicClient} />
-          )}
-          {children}
-        </FnxFloatingButtonWithProvider>
+        <AutoConnect walletClient={walletClient} publicClient={publicClient} />
+        <FnxFloatingButtonWithProvider>{children}</FnxFloatingButtonWithProvider>
       </QueryProvider>
     </CofheContext.Provider>
   );
 }
 
-function OptionalAutoConnect({ walletClient, publicClient }: Required<CofheProviderProps>['autoConnect']) {
+function AutoConnect({ walletClient, publicClient }: Pick<CofheProviderProps, 'walletClient' | 'publicClient'>) {
   useCofheAutoConnect({ walletClient, publicClient });
   return null;
 }

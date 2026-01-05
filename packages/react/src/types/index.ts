@@ -27,11 +27,9 @@ export type CofheProviderProps = {
   // ... or just provide config to create the client internally
   config?: CofhesdkConfigWithReact;
 
-  autoConnect?: {
-    // @TODO: define our own pair of classes, with only the methods we need
-    walletClient: WalletClient;
-    publicClient: PublicClient;
-  };
+  // @TODO: define our own pair of classes, with only the methods we need
+  walletClient?: WalletClient;
+  publicClient?: PublicClient;
 };
 
 export interface CofheClientConfig {

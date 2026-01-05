@@ -82,9 +82,8 @@ export function App() {
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
 
-  const autoConnect = publicClient && walletClient ? { publicClient, walletClient } : undefined;
   return (
-    <CofheProvider autoConnect={autoConnect}>
+    <CofheProvider publicClient={publicClient} walletClient={walletClient}>
       <>Your app content goes here</>
     </CofheProvider>
   );

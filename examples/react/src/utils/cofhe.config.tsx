@@ -15,13 +15,7 @@ const cofhesdkConfig = createCofhesdkConfig({
 export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) => {
   const { walletClient, publicClient } = useClientsForCofheConnection();
   return (
-    <CofheProvider
-      config={cofhesdkConfig}
-      autoConnect={{
-        walletClient,
-        publicClient,
-      }}
-    >
+    <CofheProvider config={cofhesdkConfig} walletClient={walletClient} publicClient={publicClient}>
       {children}
     </CofheProvider>
   );

@@ -90,7 +90,7 @@ interface FnxFloatingButtonContextValue {
 const FnxFloatingButtonContext = createContext<FnxFloatingButtonContextValue | null>(null);
 
 interface FnxFloatingButtonProviderProps {
-  children: ReactNode;
+  children?: ReactNode;
 }
 
 export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps> = ({ children }) => {
