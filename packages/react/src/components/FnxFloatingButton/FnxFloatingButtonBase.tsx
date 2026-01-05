@@ -38,7 +38,6 @@ const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
       className={cn(
         'fnx-floating-button',
         darkMode && 'dark',
-        'large',
         positionType,
         'flex gap-3',
         positionStyles[effectivePosition],
