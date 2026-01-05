@@ -37,7 +37,7 @@ export function useCofheDecrypt<U extends FheTypes>(
 
   return useInternalQuery({
     enabled,
-    queryKey: ['decryptCiphertext', ciphertext?.toString(), fheType, enabled],
+    queryKey: ['decryptCiphertext', ciphertext?.toString(), fheType],
     queryFn: withQueryErrorCause(cause, async () => {
       assert(ciphertext, 'ciphertext is guaranteed to be defined by enabled condition');
       return client.decryptHandle(ciphertext, fheType).decrypt();

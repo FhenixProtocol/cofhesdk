@@ -284,7 +284,7 @@ export function useCofheTokenEncryptedBalance(
       // normally, "enabled" shouldn't be part of queryKey, but without adding it, there is a weird bug: when there's a CofheError, query still running queryFn resulting in the blank screen
       enabled,
     ],
-    queryFn: withQueryErrorCause(ErrorCause.AttemptToFetchConfidentialBalance, async (): Promise<bigint> => {
+    queryFn: async () => {
       assert(accountAddress, 'Account address is required to fetch confidential token balance');
       assert(publicClient, 'PublicClient is required to fetch confidential token balance');
       assert(token, 'Token is required to fetch confidential token balance');
@@ -316,7 +316,7 @@ export function useCofheTokenEncryptedBalance(
       }
 
       return ctHash;
-    }),
+    },
     ...restQueryOptions,
   });
 
