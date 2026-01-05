@@ -14,8 +14,6 @@ export interface FnxFloatingButtonProps extends BaseProps {
   contentSectionClassName?: string;
   toastsSectionClassName?: string;
 
-  /** Click handler */
-  onClick?: () => void;
   /** Z-index value (default: 9999) */
   zIndex?: number;
   /** Position type: 'fixed' stays on screen, 'absolute' positions within parent (default: 'fixed') */

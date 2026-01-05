@@ -139,13 +139,12 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
     }, CLOSE_DELAY);
   };
 
-  const handleClick = (externalOnClick?: () => void) => {
+  const handleClick = () => {
     if (isExpanded) {
       collapsePanel();
     } else {
       expandPanel();
     }
-    externalOnClick?.();
   };
 
   function navigateTo<K extends PagesWithoutProps>(page: K, args?: NavigateArgs<K>): void;

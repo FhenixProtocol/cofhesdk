@@ -22,7 +22,6 @@ const positionStyles: Record<FloatingButtonPosition, string> = {
 const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
   className,
   testId,
-  onClick,
   zIndex = 9999,
   positionType = 'fixed',
   buttonClassName,
@@ -55,7 +54,7 @@ const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
 
       {/* Button and Bar Row */}
       <div className={cn('flex items-center', isLeftSide ? 'flex-row' : 'flex-row-reverse')}>
-        <FloatingIcon onClick={() => handleClick(onClick)} className={buttonClassName} />
+        <FloatingIcon onClick={() => handleClick()} className={buttonClassName} />
 
         <StatusBarSection className={statusBarClassName}>
           <StatusBarContent />
