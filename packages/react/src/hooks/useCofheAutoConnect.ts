@@ -11,10 +11,10 @@ export const useCofheAutoConnect = ({ walletClient, publicClient }: Input) => {
   // TODO: if the user switches in the wallet to a chain that's not supported by the dapp, should show error message or disconnect?
   const client = useCofheClient();
 
-  const connectMutation = useCofheConnect();
+  const connectMutationFn = useCofheConnect().mutate;
 
   useEffect(() => {
     if (!publicClient || !walletClient || client.connecting) return;
-    connectMutation.mutate({ publicClient, walletClient });
-  }, [publicClient, walletClient, client.connecting, connectMutation]);
+    connectMutationFn({ publicClient, walletClient });
+  }, [publicClient, walletClient, client.connecting, connectMutationFn]);
 };
