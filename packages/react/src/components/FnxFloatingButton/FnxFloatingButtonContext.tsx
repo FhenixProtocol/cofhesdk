@@ -87,6 +87,11 @@ interface FnxFloatingButtonContextValue {
   addToast: (toast: React.ReactNode | FnxToastImperativeParams, duration?: number | 'infinite') => void;
   pauseToast: (id: string, paused: boolean) => void;
   removeToast: (id: string) => void;
+
+  // Modals
+  modalStack: PageState[];
+  openModal: NavigateToFn;
+  popModal: () => void;
 }
 
 const FnxFloatingButtonContext = createContext<FnxFloatingButtonContextValue | null>(null);
@@ -117,6 +122,7 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   const [selectedToken, setSelectedToken] = useState<SelectedToken>(null);
   const [viewingToken, setViewingToken] = useState<SelectedToken>(null);
   const [toasts, setToasts] = useState<FnxFloatingButtonToast[]>([]);
+  const [modalStack, setModalStack] = useState<PageState[]>([]);
 
   const publicClient = useCofhePublicClient();
 
@@ -243,6 +249,14 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   };
 
+  const openModal = (page: FloatingButtonPage, args?: NavigateArgs<FloatingButtonPage>) => {
+    setModalStack((prev) => [...prev, { page, props: args?.pageProps }]);
+  };
+
+  const popModal = () => {
+    setModalStack((prev) => prev.slice(0, -1));
+  };
+
   return (
     <FnxFloatingButtonContext.Provider
       value={{
@@ -271,6 +285,9 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
         addToast,
         pauseToast,
         removeToast,
+        modalStack,
+        openModal,
+        popModal,
       }}
     >
       {children}

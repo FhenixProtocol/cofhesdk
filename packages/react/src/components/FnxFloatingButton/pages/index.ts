@@ -11,3 +11,4 @@ export { ShieldPage } from './ShieldPage.js';
 export { ShieldPageV2 } from './ShieldPageV2.js';
 export { ActivityPage } from './ActivityPage.js';
 export { DebugPage } from './DebugPage.js';
+export { ModalTestPage } from './ModalTestPage.js';

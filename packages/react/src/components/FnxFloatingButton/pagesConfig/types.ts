@@ -14,6 +14,9 @@ export enum FloatingButtonPage {
   ReceivePermits = 'receivePermit',
   PermitDetails = 'permitDetails',
   Debug = 'debug',
+
+  // Modals
+  Modal_Test = 'modal_test',
 }
 
 // Consumers can augment this map via declaration merging or module-local typing.
@@ -31,6 +34,9 @@ export type FloatingButtonPagePropsMap = {
   [FloatingButtonPage.ReceivePermits]: void;
   [FloatingButtonPage.PermitDetails]: PermitDetailsPageProps;
   [FloatingButtonPage.Debug]: void;
+
+  // Modals
+  [FloatingButtonPage.Modal_Test]: void;
 };
 
 export type PageState<K extends FloatingButtonPage = FloatingButtonPage> = {

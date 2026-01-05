@@ -1,9 +1,10 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useFnxFloatingButtonContext, FNX_DEFAULT_TOAST_DURATION } from '../FnxFloatingButtonContext.js';
 import { ToastPrimitive, ToastPrimitiveBase } from '../components/ToastPrimitives.js';
+import { FloatingButtonPage } from '../pagesConfig/types.js';
 
 export const DebugPage: React.FC = () => {
-  const { navigateBack, addToast } = useFnxFloatingButtonContext();
+  const { navigateBack, addToast, openModal } = useFnxFloatingButtonContext();
 
   return (
     <div className="fnx-text-primary space-y-3">
@@ -13,6 +14,14 @@ export const DebugPage: React.FC = () => {
       </button>
       <div className="flex flex-col gap-3">
         <p className="text-sm font-medium">Debug</p>
+        <p className="text-xs">Modals:</p>
+        <button
+          onClick={() => {
+            openModal(FloatingButtonPage.Modal_Test);
+          }}
+        >
+          Open Modal
+        </button>
         <p className="text-xs">Toasts:</p>
         <button
           onClick={() => {

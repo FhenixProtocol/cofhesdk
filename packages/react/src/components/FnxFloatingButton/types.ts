@@ -69,4 +69,8 @@ export type FnxToastImperativeParams = {
   };
 };
 
+export type FnxModalInjectedProps = {
+  onClose?: () => void;
+};
+
 export type FnxToastVariant = 'info' | 'success' | 'error' | 'warning';

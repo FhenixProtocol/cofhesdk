@@ -6,6 +6,7 @@ import { ContentSection } from './ContentSection';
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
 import type { FloatingButtonPosition, FnxFloatingButtonProps } from './types';
 import { ToastsSection } from './ToastsSection';
+import { ModalSection } from './ModalSection';
 
 // TODOS:
 // - Get svgs instead of pngs
@@ -53,6 +54,8 @@ const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
       <ToastsSection className={toastsSectionClassName} />
 
       <ContentSection className={contentSectionClassName} overriddingPage={overriddingPage} />
+
+      <ModalSection />
 
       {/* Button and Bar Row */}
       <div className={cn('flex items-center', isLeftSide ? 'flex-row' : 'flex-row-reverse')}>

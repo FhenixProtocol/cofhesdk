@@ -11,6 +11,7 @@ import {
   TokenInfoPage,
   TokenListPage,
   DebugPage,
+  ModalTestPage,
 } from '../pages';
 
 import type { FC } from 'react';
@@ -29,4 +30,5 @@ export const pages: Record<FloatingButtonPage, FC<any>> = {
   [FloatingButtonPage.ReceivePermits]: ReceivePermitPage,
   [FloatingButtonPage.PermitDetails]: PermitDetailsPage,
   [FloatingButtonPage.Debug]: DebugPage,
+  [FloatingButtonPage.Modal_Test]: ModalTestPage,
 };
