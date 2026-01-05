@@ -17,7 +17,7 @@ import type {
 
 // CLIENT
 
-export type CofhesdkClient<TCofhesdkConfig extends CofhesdkConfig = CofhesdkConfig> = {
+export type CofhesdkClient<TConfig extends CofhesdkConfig = CofhesdkConfig> = {
   // --- state access ---
   getSnapshot(): CofhesdkClientConnectionState;
   subscribe(listener: Listener): () => void;
@@ -27,7 +27,7 @@ export type CofhesdkClient<TCofhesdkConfig extends CofhesdkConfig = CofhesdkConf
   readonly connecting: boolean;
 
   // --- config & platform-specific ---
-  readonly config: TCofhesdkConfig;
+  readonly config: TConfig;
 
   connect(publicClient: PublicClient, walletClient: WalletClient): Promise<boolean>;
   /**
