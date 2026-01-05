@@ -9,7 +9,7 @@ const DEFAULT_CHAIN_ID = sepolia.id;
  *
  * @returns wagmi wallet if connected, otherwise hardcoded "test wallet" { publicClient: PublicClient; walletClient: WalletClient }
  */
-export const usePairForCofhe = () => {
+export const useClientsForCofheConnection = () => {
   // TODO: if the user switches in the wallet to a chain that's not supported by the dapp, should show error message or disconnect?
   const { isConnected: isWagmiConnected } = useAccount();
   const wagmiPublicClient = usePublicClient();

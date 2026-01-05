@@ -1,5 +1,5 @@
 import { CofheProvider, createCofhesdkConfig } from '@cofhe/react';
-import { usePairForCofhe } from './usePairForCofhe';
+import { useClientsForCofheConnection } from './useClientsForCofheConnection';
 import { baseSepolia, sepolia } from '@cofhe/sdk/chains';
 
 const cofhesdkConfig = createCofhesdkConfig({
@@ -13,13 +13,13 @@ const cofhesdkConfig = createCofhesdkConfig({
   },
 });
 export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) => {
-  const pairForCofhe = usePairForCofhe();
+  const { walletClient, publicClient } = useClientsForCofheConnection();
   return (
     <CofheProvider
       config={cofhesdkConfig}
       autoConnect={{
-        walletClient: pairForCofhe.walletClient,
-        publicClient: pairForCofhe.publicClient,
+        walletClient,
+        publicClient,
       }}
     >
       {children}
