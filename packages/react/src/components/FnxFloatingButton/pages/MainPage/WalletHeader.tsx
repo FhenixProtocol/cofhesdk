@@ -1,7 +1,7 @@
 import { MdOutlineAccountBalanceWallet } from 'react-icons/md';
-import { useCofheAccount } from '../../../../hooks/useCofheConnection.js';
-import { AddressButton } from '../../components/AddressButton.js';
-import { ChainSelected } from '../../components/ChainSelected.js';
+import { useCofheAccount } from '../../../../hooks/useCofheConnection';
+import { AddressButton } from '../../components/AddressButton';
+import { ConnectedChainIndicator } from '../../components/ConnectedChainIndicator';
 
 export const WalletHeader: React.FC = () => {
   const walletAddress = useCofheAccount();
@@ -13,7 +13,7 @@ export const WalletHeader: React.FC = () => {
 
       {/* Right: Network Selector + Settings */}
       <div className="flex items-center gap-2">
-        <ChainSelected />
+        <ConnectedChainIndicator />
       </div>
     </div>
   );

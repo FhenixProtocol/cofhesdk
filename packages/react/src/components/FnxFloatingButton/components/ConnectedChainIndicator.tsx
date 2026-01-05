@@ -3,7 +3,7 @@ import { ChainIcon } from './ChainIcon';
 import { cn } from '@/utils/cn';
 import { useCofheChainId } from '@/hooks/useCofheConnection';
 
-export const ChainSelected: React.FC = () => {
+export const ConnectedChainIndicator: React.FC = () => {
   const chainId = useCofheChainId();
 
   // Get network name from SDK chains
