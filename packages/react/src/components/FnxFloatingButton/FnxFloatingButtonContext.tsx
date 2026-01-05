@@ -11,6 +11,7 @@ import {
   type PagesWithProps,
 } from './pagesConfig/types';
 import { ToastPrimitive } from './components/ToastPrimitives';
+import type { Address } from 'viem';
 
 export type TokenListMode = 'view' | 'select';
 
@@ -24,7 +25,7 @@ export type NativeToken = {
 };
 
 export type SelectedToken = {
-  address: string;
+  address: Address;
   name: string;
   symbol: string;
   decimals: number;
