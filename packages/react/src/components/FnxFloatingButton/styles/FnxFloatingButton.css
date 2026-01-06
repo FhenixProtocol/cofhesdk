@@ -106,8 +106,6 @@
 
 /* FloatingIcon styles */
 .fnx-floating-icon {
-  width: var(--fnx-button-size);
-  height: var(--fnx-button-size);
   background-color: var(--fnx-bg-primary);
   border: 1px solid var(--fnx-border-color) !important;
   outline: none !important;
@@ -198,60 +196,15 @@
 }
 
 .fnx-status-bar {
-  width: var(--fnx-bar-width);
-  height: var(--fnx-button-size);
+  /* TW: width: var(--fnx-bar-width); */
+  /* TW: height: var(--fnx-button-size); */
   background-color: var(--fnx-bg-primary);
   border-radius: var(--fnx-border-radius);
   border: 1px solid var(--fnx-border-color);
   color: var(--fnx-text-primary);
   position: relative;
-  transition: transform var(--fnx-transition-duration) ease-in-out, opacity var(--fnx-transition-duration) ease-in-out, box-shadow var(--fnx-transition-duration) ease-in-out;
-}
-
-.fnx-status-bar[data-expanded="false"][data-left="true"] {
-  transform: translateX(calc(var(--fnx-button-size) / -2));
-  opacity: 0;
-  box-shadow: none;
-}
-
-.fnx-status-bar[data-expanded="false"][data-left="false"] {
-  transform: translateX(calc(var(--fnx-button-size) / 2));
-  opacity: 0;
-  box-shadow: none;
-}
-
-.fnx-status-bar[data-expanded="true"] {
-  transform: translateX(0);
-  opacity: 1;
   box-shadow: var(--fnx-content-shadow);
 }
-
-/* StatusBar corner accents (2 opposite corners) - Optional */
-/* .fnx-status-bar[data-expanded="true"]::before,
-.fnx-status-bar[data-expanded="true"]::after {
-  content: '';
-  position: absolute;
-  width: var(--fnx-corner-size);
-  height: var(--fnx-corner-size);
-  border: 2px solid var(--fnx-corner-accent-color);
-  z-index: 2;
-}
-
-.fnx-status-bar[data-expanded="true"]::before {
-  top: 0;
-  left: 0;
-  border-right: none;
-  border-bottom: none;
-  border-top-left-radius: var(--fnx-border-radius);
-}
-
-.fnx-status-bar[data-expanded="true"]::after {
-  bottom: 0;
-  right: 0;
-  border-left: none;
-  border-top: none;
-  border-bottom-right-radius: var(--fnx-border-radius); 
-} */
 
 .fnx-status-badge-inline {
   background-color: var(--fnx-bg-status);

@@ -1,5 +1,5 @@
-import { cn } from '../../utils/cn';
-import { FloatingIcon } from './FloatingIcon';
+import { cn } from '@/utils';
+import { FloatingButtonComponent } from './FloatingButtonComponent';
 import { StatusBarSection } from './StatusBarSection';
 import { StatusBarContent } from './StatusBarContent';
 import { ContentSection } from './ContentSection';
@@ -49,8 +49,8 @@ export const FnxFloatingButtonBase: React.FC<FnxFloatingButtonProps> = ({
       <ContentSection overriddingPage={overriddingPage} />
 
       {/* Button and Bar Row */}
-      <div className={cn('flex items-center', isLeftSide ? 'flex-row' : 'flex-row-reverse')}>
-        <FloatingIcon onClick={() => handleClick()} />
+      <div className={cn('flex w-full gap-2 items-center', isLeftSide ? 'flex-row' : 'flex-row-reverse')}>
+        <FloatingButtonComponent onClick={() => handleClick()} />
 
         <StatusBarSection>
           <StatusBarContent />

@@ -3,13 +3,14 @@ import CloseIcon from '@mui/icons-material/Close';
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
 import { FhenixLogoIcon } from '../FhenixLogoIcon';
 
-export const FloatingIcon: React.FC<{ onClick: () => void }> = ({ onClick }) => {
+export const FloatingButtonComponent: React.FC<{ onClick: () => void }> = ({ onClick }) => {
   const { isExpanded, theme } = useFnxFloatingButtonContext();
 
   return (
     <button
       onClick={onClick}
       className={cn(
+        'w-12 h-12',
         'fnx-floating-icon',
         'transition-all duration-200 ease-in-out',
         'flex items-center justify-center cursor-pointer flex-shrink-0',
