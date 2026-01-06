@@ -3,25 +3,25 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { TbShieldPlus, TbShieldMinus } from 'react-icons/tb';
 import { useMemo, useState } from 'react';
 import { type Address, formatUnits, parseUnits } from 'viem';
-import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext.js';
-import { useCofheAccount, useCofheChainId, useCofhePublicClient } from '../../../hooks/useCofheConnection.js';
+import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext';
+import { useCofheAccount, useCofheChainId, useCofhePublicClient } from '../../../hooks/useCofheConnection';
 import {
   useCofheConfidentialTokenBalance,
   useCofhePinnedTokenAddress,
   useCofhePublicTokenBalance,
   useCofheTokenMetadata,
-} from '../../../hooks/useCofheTokenBalance.js';
-import { useCofheToken, useCofheTokens } from '../../../hooks/useCofheTokenLists.js';
+} from '../../../hooks/useCofheTokenBalance';
+import { useCofheToken, useCofheTokens } from '../../../hooks/useCofheTokenLists';
 import {
   useCofheClaimUnshield,
   useCofheTokenShield,
   useCofheTokenUnshield,
   useCofheUnshieldClaims,
-} from '../../../hooks/useCofheTokenShield.js';
-import { cn } from '../../../utils/cn.js';
-import { truncateHash } from '../../../utils/utils.js';
-import { ActionButton, AmountInput, TokenBalance, TokenIcon } from '../components/index.js';
-import { TokenBalanceView } from '../components/TokenBalance.js';
+} from '../../../hooks/useCofheTokenShield';
+import { cn } from '../../../utils/cn';
+import { truncateHash } from '../../../utils/utils';
+import { ActionButton, AmountInput, TokenBalance, TokenIcon } from '../components/index';
+import { TokenBalanceView } from '../components/TokenBalance';
 
 const SUCCESS_TIMEOUT = 5000;
 const DISPLAY_DECIMALS = 5;

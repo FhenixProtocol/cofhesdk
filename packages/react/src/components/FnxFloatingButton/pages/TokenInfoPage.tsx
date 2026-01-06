@@ -1,9 +1,9 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext.js';
-import { useCofheToken } from '../../../hooks/useCofheTokenLists.js';
-import { TokenIcon } from '../components/TokenIcon.js';
-import { AddressButton } from '../components/AddressButton.js';
-import { TokenBalance } from '../components/TokenBalance.js';
+import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext';
+import { useCofheToken } from '../../../hooks/useCofheTokenLists';
+import { TokenIcon } from '../components/TokenIcon';
+import { AddressButton } from '../components/AddressButton';
+import { TokenBalance } from '../components/TokenBalance';
 
 export const TokenInfoPage: React.FC = () => {
   const { navigateBack, viewingToken } = useFnxFloatingButtonContext();

@@ -1,9 +1,9 @@
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
-import { cn } from '../../../../utils/cn.js';
-import { useFnxFloatingButtonContext, type TokenListMode } from '../../FnxFloatingButtonContext.js';
-import type { Token } from '../../../../hooks/useCofheTokenLists.js';
-import { TokenIcon } from '../../components/TokenIcon.js';
-import { TokenBalance } from '../../components/TokenBalance.js';
+import { cn } from '../../../../utils/cn';
+import { useFnxFloatingButtonContext, type TokenListMode } from '../../FnxFloatingButtonContext';
+import type { Token } from '../../../../hooks/useCofheTokenLists';
+import { TokenIcon } from '../../components/TokenIcon';
+import { TokenBalance } from '../../components/TokenBalance';
 
 export const TokenRow: React.FC<{
   token: Token;

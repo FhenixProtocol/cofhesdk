@@ -1,11 +1,11 @@
-import { cn } from '@/utils/cn.js';
+import { cn } from '@/utils/cn';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
-import { useCofheTokenMetadata, useCofhePinnedTokenAddress } from '../../../../hooks/useCofheTokenBalance.js';
-import { useCofheToken } from '../../../../hooks/useCofheTokenLists.js';
+import { useCofheTokenMetadata, useCofhePinnedTokenAddress } from '../../../../hooks/useCofheTokenBalance';
+import { useCofheToken } from '../../../../hooks/useCofheTokenLists';
 import { useMemo } from 'react';
-import { TokenIcon } from '../../components/TokenIcon.js';
-import { TokenBalance } from '../../components/TokenBalance.js';
-import { useFnxFloatingButtonContext } from '../../FnxFloatingButtonContext.js';
+import { TokenIcon } from '../../components/TokenIcon';
+import { TokenBalance } from '../../components/TokenBalance';
+import { useFnxFloatingButtonContext } from '../../FnxFloatingButtonContext';
 
 export const AssetCard: React.FC = () => {
   // TODO: show Native token if no pinned token address

@@ -1,17 +1,17 @@
 import { type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
 import { formatUnits, type Address } from 'viem';
 import { FheTypes } from '@cofhe/sdk';
-import { useCofheAccount, useCofheChainId, useCofhePublicClient } from './useCofheConnection.js';
-import { useCofheContext } from '../providers/CofheProvider.js';
-import { type Token, ETH_ADDRESS } from './useCofheTokenLists.js';
-import { CONFIDENTIAL_ABIS } from '../constants/confidentialTokenABIs.js';
-import { ERC20_BALANCE_OF_ABI, ERC20_DECIMALS_ABI, ERC20_SYMBOL_ABI, ERC20_NAME_ABI } from '../constants/erc20ABIs.js';
-import { ErrorCause } from '@/utils/errors.js';
-import { useCofheActivePermit } from './useCofhePermits.js';
+import { useCofheAccount, useCofheChainId, useCofhePublicClient } from './useCofheConnection';
+import { useCofheContext } from '../providers/CofheProvider';
+import { type Token, ETH_ADDRESS } from './useCofheTokenLists';
+import { CONFIDENTIAL_ABIS } from '../constants/confidentialTokenABIs';
+import { ERC20_BALANCE_OF_ABI, ERC20_DECIMALS_ABI, ERC20_SYMBOL_ABI, ERC20_NAME_ABI } from '../constants/erc20ABIs';
+import { ErrorCause } from '@/utils/errors';
+import { useCofheActivePermit } from './useCofhePermits';
 import { assert } from 'ts-essentials';
-import { useIsCofheErrorActive } from './useIsCofheErrorActive.js';
-import { useInternalQuery } from '../providers/index.js';
-import { useCofheDecrypt } from './useCofheDecrypt.js';
+import { useIsCofheErrorActive } from './useIsCofheErrorActive';
+import { useInternalQuery } from '../providers/index';
+import { useCofheDecrypt } from './useCofheDecrypt';
 type UseTokenBalanceInput = {
   /** Token contract address */
   tokenAddress: Address;

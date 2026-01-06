@@ -4,14 +4,14 @@ import {
   useCofhePublicTokenBalance,
   useCofheConfidentialTokenBalance,
   useCofheNativeBalance,
-} from '../../../hooks/useCofheTokenBalance.js';
-import { useCofheAccount } from '../../../hooks/useCofheConnection.js';
-import { type Token } from '../../../hooks/useCofheTokenLists.js';
-import { cn } from '../../../utils/cn.js';
-import { LoadingDots } from './LoadingDots.js';
-import { CREATE_PERMITT_BODY_BY_ERROR_CAUSE } from '@/providers/errors.js';
-import { ErrorCause } from '@/utils/errors.js';
-import { useCofheCreatePermit } from '@/hooks/permits/useCofheCreatePermit.js';
+} from '../../../hooks/useCofheTokenBalance';
+import { useCofheAccount } from '../../../hooks/useCofheConnection';
+import { type Token } from '../../../hooks/useCofheTokenLists';
+import { cn } from '../../../utils/cn';
+import { LoadingDots } from './LoadingDots';
+import { CREATE_PERMITT_BODY_BY_ERROR_CAUSE } from '@/providers/errors';
+import { ErrorCause } from '@/utils/errors';
+import { useCofheCreatePermit } from '@/hooks/permits/useCofheCreatePermit';
 
 export enum BalanceType {
   Public = 'public',
