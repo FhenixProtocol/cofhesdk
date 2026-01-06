@@ -6,8 +6,7 @@ import {
   useCofheNativeBalance,
 } from '../../../hooks/useCofheTokenBalance.js';
 import { useCofheAccount } from '../../../hooks/useCofheConnection.js';
-import { useCofheTokens, type Token } from '../../../hooks/useCofheTokenLists.js';
-import { useCofheChainId } from '../../../hooks/useCofheConnection.js';
+import { type Token } from '../../../hooks/useCofheTokenLists.js';
 import { cn } from '../../../utils/cn.js';
 import { LoadingDots } from './LoadingDots.js';
 import { CREATE_PERMITT_BODY_BY_ERROR_CAUSE } from '@/providers/errors.js';
