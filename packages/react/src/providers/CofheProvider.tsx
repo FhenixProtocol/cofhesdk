@@ -5,7 +5,7 @@ import { createCofhesdkClient } from '@cofhe/sdk/web';
 import { FnxFloatingButtonWithProvider } from '@/components/FnxFloatingButton/FnxFloatingButton';
 import { useCofheAutoConnect } from '@/hooks/useCofheAutoConnect';
 import { createCofhesdkConfig, type CofhesdkConfigWithReact } from '@/config';
-import { getChainById } from '@cofhe/sdk/chains';
+import { chains } from '@cofhe/sdk/chains';
 import type { CofhesdkConfig } from '@cofhe/sdk';
 import { assert } from 'ts-essentials';
 import type { FloatingButtonPosition } from '@/components/FnxFloatingButton/types';
@@ -19,9 +19,6 @@ function isReactConfig(config: CofhesdkConfig): config is CofhesdkConfigWithReac
 export function CofheProvider(props: CofheProviderProps) {
   const { children, queryClient, publicClient, walletClient } = props;
 
-  const networkFromAutoConnectId = publicClient?.chain?.id;
-  const networkFromAutoConnect = networkFromAutoConnectId ? getChainById(networkFromAutoConnectId) : undefined;
-
   const config = useMemo(() => {
     // priority: explicit config prop > config from provided client > create default config
     if (props.config) return props.config;
@@ -29,8 +26,8 @@ export function CofheProvider(props: CofheProviderProps) {
       assert(isReactConfig(props.cofhesdkClient.config), 'Provided cofhesdkClient must have react config');
       return props.cofhesdkClient.config;
     }
-    return createCofhesdkConfig({ supportedChains: networkFromAutoConnect ? [networkFromAutoConnect] : [] });
-  }, [props.config, props.cofhesdkClient, networkFromAutoConnect]);
+    return createCofhesdkConfig({ supportedChains: Object.values(chains) });
+  }, [props.config, props.cofhesdkClient]);
 
   // use provided client or create a new one out of the config
   const cofhesdkClient = useMemo(
