@@ -59,8 +59,6 @@ interface FnxFloatingButtonContextValue {
   // Token viewing
   viewingToken?: Token;
   navigateToTokenInfo: (token: Token) => void;
-  // Config
-  showNativeTokenInList: boolean;
 
   // Toasts
   toasts: FnxFloatingButtonToast[];
@@ -76,12 +74,10 @@ interface FnxFloatingButtonProviderProps {
 }
 
 export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps> = ({ children }) => {
-  const { client, state } = useCofheContext();
+  const { state } = useCofheContext();
 
-  const widgetConfig = client.config.react;
   const darkMode = state.darkMode;
   const effectivePosition = state.position;
-  const showNativeTokenInList = widgetConfig.showNativeTokenInList;
 
   const [pageHistory, setPageHistory] = useState<PageState[]>([{ page: FloatingButtonPage.Main }]);
   const [overridingPage, setOverridingPage] = useState<PageState | null>(null);
@@ -239,7 +235,6 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
         selectToken,
         viewingToken,
         navigateToTokenInfo,
-        showNativeTokenInList,
         toasts,
         addToast,
         pauseToast,
