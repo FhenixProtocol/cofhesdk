@@ -15,7 +15,8 @@ export const GeneratePermitPage: React.FC<GeneratePermitPageProps> = ({
   onCancel,
   onBack,
 }) => {
-  const { navigateBack, darkMode, navigateTo, pageHistory } = useFnxFloatingButtonContext();
+  const { navigateBack, theme, navigateTo, pageHistory } = useFnxFloatingButtonContext();
+  const darkMode = theme === 'dark';
   const permitIconColor = darkMode ? '#FFFFFF' : '#00314E';
 
   const {

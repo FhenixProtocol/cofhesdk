@@ -30,7 +30,8 @@ const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
   toastsSectionClassName,
   overriddingPage,
 }) => {
-  const { effectivePosition, isTopSide, isLeftSide, handleClick, darkMode } = useFnxFloatingButtonContext();
+  const { effectivePosition, isTopSide, isLeftSide, handleClick, theme } = useFnxFloatingButtonContext();
+  const darkMode = theme === 'dark';
 
   return (
     <div

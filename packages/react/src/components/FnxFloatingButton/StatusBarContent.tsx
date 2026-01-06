@@ -7,7 +7,8 @@ import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
 import { FloatingButtonPage } from './pagesConfig/types';
 
 export const StatusBarContent: React.FC = () => {
-  const { darkMode, navigateTo } = useFnxFloatingButtonContext();
+  const { theme, navigateTo } = useFnxFloatingButtonContext();
+  const darkMode = theme === 'dark';
 
   return (
     <>

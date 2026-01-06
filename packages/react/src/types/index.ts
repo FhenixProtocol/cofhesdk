@@ -12,8 +12,8 @@ export interface CofheContextValue {
     position: FloatingButtonPosition;
     setPosition: (position: FloatingButtonPosition) => void;
 
-    darkMode: boolean;
-    setDarkMode: (isDarkMode: boolean) => void;
+    theme: 'dark' | 'light';
+    setTheme: (theme: 'dark' | 'light') => void;
   };
 }
 

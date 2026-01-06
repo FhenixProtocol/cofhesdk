@@ -4,7 +4,8 @@ import { useFnxFloatingButtonContext } from '../../../FnxFloatingButtonContext.j
 import { useReceivePermit } from '@/hooks/permits/index.js';
 
 export const ReceivePermitPage: React.FC = () => {
-  const { navigateBack, darkMode } = useFnxFloatingButtonContext();
+  const { navigateBack, theme } = useFnxFloatingButtonContext();
+  const darkMode = theme === 'dark';
   const { permitData, setPermitData, permitName, setPermitName, isSubmitting, errorMsg, successMsg, submit } =
     useReceivePermit(() => navigateBack());
   const permitIconColor = darkMode ? '#FFFFFF' : '#00314E';

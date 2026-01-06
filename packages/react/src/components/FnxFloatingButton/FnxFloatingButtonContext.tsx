@@ -41,7 +41,7 @@ interface FnxFloatingButtonContextValue {
   currentPage: PageState;
   navigateTo: NavigateToFn;
   navigateBack: () => void;
-  darkMode: boolean;
+  theme: 'dark' | 'light';
   effectivePosition: FloatingButtonPosition;
   isExpanded: boolean;
   showPopupPanel: boolean;
@@ -76,7 +76,7 @@ interface FnxFloatingButtonProviderProps {
 export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps> = ({ children }) => {
   const { state } = useCofheContext();
 
-  const darkMode = state.darkMode;
+  const theme = state.theme;
   const effectivePosition = state.position;
 
   const [pageHistory, setPageHistory] = useState<PageState[]>([{ page: FloatingButtonPage.Main }]);
@@ -219,7 +219,7 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
         currentPage,
         navigateTo,
         navigateBack,
-        darkMode,
+        theme,
         effectivePosition,
         isExpanded,
         showPopupPanel,

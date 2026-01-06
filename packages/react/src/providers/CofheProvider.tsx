@@ -40,7 +40,7 @@ export function CofheProvider(props: CofheProviderProps) {
 
   // dynamic values
   const [position, setPosition] = useState<FloatingButtonPosition>(config.react.position);
-  const [darkMode, setDarkMode] = useState<boolean>(config.react.darkMode);
+  const [theme, setTheme] = useState(config.react.initialTheme);
 
   return (
     <CofheContext.Provider
@@ -49,8 +49,8 @@ export function CofheProvider(props: CofheProviderProps) {
         state: {
           position,
           setPosition,
-          darkMode,
-          setDarkMode,
+          theme,
+          setTheme,
         },
       }}
     >

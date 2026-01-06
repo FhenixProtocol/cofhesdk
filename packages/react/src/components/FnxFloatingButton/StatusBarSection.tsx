@@ -8,7 +8,8 @@ interface StatusBarSectionProps {
 }
 
 export const StatusBarSection: React.FC<StatusBarSectionProps> = ({ className, children }) => {
-  const { darkMode, isExpanded, isLeftSide } = useFnxFloatingButtonContext();
+  const { theme, isExpanded, isLeftSide } = useFnxFloatingButtonContext();
+  const darkMode = theme === 'dark';
 
   return (
     <div className={cn(className, 'fnx-status-bar-container flex')} data-left={isLeftSide} data-expanded={isExpanded}>
