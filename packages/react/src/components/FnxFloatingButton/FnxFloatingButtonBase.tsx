@@ -36,7 +36,7 @@ export const FnxFloatingButtonBase: React.FC<FnxFloatingButtonProps> = ({
         'fnx-floating-button',
         darkMode && 'dark',
         positionType,
-        'flex gap-2',
+        'flex gap-3',
         positionStyles[effectivePosition],
         // bottom-* opens UP (popup above), top-* opens DOWN (popup below)
         isTopSide ? 'flex-col-reverse items-start' : 'flex-col items-start',
@@ -49,7 +49,7 @@ export const FnxFloatingButtonBase: React.FC<FnxFloatingButtonProps> = ({
       <ContentSection overriddingPage={overriddingPage} />
 
       {/* Button and Bar Row */}
-      <div className={cn('flex w-full gap-2 items-center', isLeftSide ? 'flex-row' : 'flex-row-reverse')}>
+      <div className={cn('flex w-full gap-3 items-center', isLeftSide ? 'flex-row' : 'flex-row-reverse')}>
         <FloatingButtonComponent onClick={() => onToggleOpen()} />
 
         <StatusBarSection>

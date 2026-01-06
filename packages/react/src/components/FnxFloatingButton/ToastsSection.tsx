@@ -31,6 +31,7 @@ const ToastClearer = ({ id, paused, remainingMs }: { id: string; paused: boolean
       clearTimeout(timerRef.current);
       timerRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [remainingMs, paused]);
 
   return null;
@@ -79,7 +80,7 @@ const ToastComponent: React.FC<FnxFloatingButtonToast> = ({ id, duration, paused
 export const ToastsSection: React.FC = () => {
   const { toasts } = useFnxFloatingButtonContext();
   return (
-    <div className="fnx-toasts-section flex flex-col gap-3">
+    <div className="flex flex-col gap-3 w-full max-w-full">
       <AnimatePresence>
         {toasts.map((toast) => (
           <ToastComponent key={toast.id} {...toast} />

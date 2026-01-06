@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
-import { cn } from '../../utils/cn.js';
+import { cn } from '@/utils';
 import { AnimatePresence, motion } from 'motion/react';
-import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext.js';
+import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
 
 export const StatusBarSection: React.FC<{ children?: ReactNode }> = ({ children }) => {
   const { statusBarExpanded, isLeftSide } = useFnxFloatingButtonContext();

@@ -36,13 +36,7 @@
     
     /* Sizing - defaults, will be overridden by inline CSS variables */
     --fnx-button-size: 48px;
-    --fnx-bar-width: 340px;
-    --fnx-gap-size: 48px;
     --fnx-border-radius: 0x;
-    
-    --fnx-status-radius: 10px;
-    --fnx-statua-bar-offset: calc(var(--fnx-button-size) / -2);
-    --fnx-content-offset: calc(var(--fnx-button-size) / 2);
     
     /* Typography */
     --fnx-settings-icon-size: 20px;
@@ -175,29 +169,7 @@
   border-bottom-right-radius: var(--fnx-border-radius);
 } */
 
-/* StatusBarSection styles */
-.fnx-status-bar-container {
-  width: calc(var(--fnx-bar-width) + var(--fnx-gap-size));
-  height: var(--fnx-button-size);
-}
-
-.fnx-status-bar-container[data-left="true"] {
-  margin-left: var(--fnx-statua-bar-offset);
-  justify-content: flex-end;
-}
-
-.fnx-status-bar-container[data-left="false"] {
-  margin-right: var(--fnx-statua-bar-offset);
-  justify-content: flex-start;
-}
-
-.fnx-status-bar-container[data-expanded="false"] {
-  pointer-events: none;
-}
-
 .fnx-status-bar {
-  /* TW: width: var(--fnx-bar-width); */
-  /* TW: height: var(--fnx-button-size); */
   background-color: var(--fnx-bg-primary);
   border-radius: var(--fnx-border-radius);
   border: 1px solid var(--fnx-border-color);
@@ -206,20 +178,8 @@
   box-shadow: var(--fnx-content-shadow);
 }
 
-.fnx-status-badge-inline {
-  background-color: var(--fnx-bg-status);
-  border-radius: var(--fnx-status-radius);
-  border: 1px solid var(--fnx-border-color);
-}
-
 .fnx-settings-icon {
   font-size: var(--fnx-settings-icon-size);
-}
-
-/* ToastsSection styles */
-.fnx-toasts-section {
-  width: calc(var(--fnx-bar-width) + var(--fnx-gap-size) + var(--fnx-content-offset));
-  max-width: calc(var(--fnx-bar-width) + var(--fnx-gap-size) + var(--fnx-content-offset));
 }
 
 /* ContentSection styles */
