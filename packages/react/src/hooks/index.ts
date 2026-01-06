@@ -11,7 +11,7 @@ export { useCofheClient } from './useCofheClient';
 export {
   useCofheTokenBalance,
   useCofheNativeBalance,
-  useCofheTokenConfidentialBalance,
+  useCofheTokenDecryptedBalance,
   useCofheTokenMetadata,
   useCofheTokenDecimals,
   useCofheTokenSymbol,

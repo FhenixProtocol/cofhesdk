@@ -24,7 +24,7 @@ export {
   useCofheUnshieldClaims,
   useCofheTokenBalance,
   useCofheNativeBalance,
-  useCofheTokenConfidentialBalance,
+  useCofheTokenDecryptedBalance,
   useCofheTokenMetadata,
   useCofheTokenDecimals,
   useCofheTokenSymbol,
