@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
 
 const CARD_COLORS = ['#266678', '#cb7c7a', ' #36a18b', '#cda35f', '#747474'];
-const CARD_OFFSET = 10;
+const CARD_OFFSET = 20;
 const SCALE_FACTOR = 0.06;
 
 export const ModalSection: React.FC = () => {
@@ -13,6 +13,7 @@ export const ModalSection: React.FC = () => {
       <ul className="relative w-[350] h-[220]">
         <AnimatePresence>
           {modalStack.map((modal, index) => {
+            const isTopModal = index === 0;
             return (
               <motion.li
                 key={index}
@@ -21,7 +22,7 @@ export const ModalSection: React.FC = () => {
                 initial={{ opacity: 0 }}
                 exit={{ opacity: 0 }}
                 animate={{
-                  opacity: 1,
+                  opacity: isTopModal ? 1 : 0.5,
                   top: index * -CARD_OFFSET,
                   scale: 1 - index * SCALE_FACTOR,
                   zIndex: CARD_COLORS.length - index,
