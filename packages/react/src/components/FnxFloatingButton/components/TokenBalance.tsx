@@ -178,13 +178,14 @@ const ConfidentialValuePlaceholder: React.FC = () => {
   });
 
   return (
-    <div
+    <span
+      className="cursor-pointer hover:underline"
       onClick={(e) => {
         e.stopPropagation();
         navigateToGeneratePermit();
       }}
     >
       {'* * *'}
-    </div>
+    </span>
   );
 };
