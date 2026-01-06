@@ -1,26 +1,17 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext.js';
-import { useCofheChainId } from '../../../hooks/useCofheConnection.js';
-import { useCofheTokens } from '../../../hooks/useCofheTokenLists.js';
-import { useMemo } from 'react';
+import { useCofheToken } from '../../../hooks/useCofheTokenLists.js';
 import { TokenIcon } from '../components/TokenIcon.js';
 import { AddressButton } from '../components/AddressButton.js';
 import { TokenBalance } from '../components/TokenBalance.js';
 
 export const TokenInfoPage: React.FC = () => {
   const { navigateBack, viewingToken } = useFnxFloatingButtonContext();
-  const chainId = useCofheChainId();
-  const tokens = useCofheTokens(chainId ?? 0);
 
   // Find the full token object from the token list
-  const tokenFromList = useMemo(() => {
-    if (!viewingToken || !chainId) return null;
-    if (viewingToken.isNative) return null;
-    return (
-      tokens.find((t) => t.chainId === chainId && t.address.toLowerCase() === viewingToken.address.toLowerCase()) ||
-      null
-    );
-  }, [viewingToken, chainId, tokens]);
+  const tokenFromList = useCofheToken({
+    address: viewingToken?.address,
+  });
 
   if (!viewingToken) {
     return (
@@ -55,16 +46,7 @@ export const TokenInfoPage: React.FC = () => {
       <div className="fnx-card-bg rounded-lg p-4 border fnx-card-border">
         <div className="flex flex-col gap-2">
           <p className="text-xs opacity-70">Balance</p>
-          <TokenBalance
-            token={tokenFromList ?? undefined}
-            tokenAddress={viewingToken.isNative ? undefined : viewingToken.address}
-            isNative={viewingToken.isNative}
-            symbol={viewingToken.symbol}
-            showSymbol={true}
-            size="xl"
-            decimalPrecision={5}
-            className="font-bold"
-          />
+          <TokenBalance token={tokenFromList} size="xl" decimalPrecision={5} className="font-bold" />
         </div>
       </div>
 
@@ -73,14 +55,12 @@ export const TokenInfoPage: React.FC = () => {
         <h3 className="text-sm font-medium">Token Details</h3>
 
         {/* Address */}
-        {!viewingToken.isNative && (
-          <div className="fnx-card-bg rounded-lg p-3 border fnx-card-border">
-            <div className="flex flex-col gap-2">
-              <p className="text-xxxs opacity-70">Contract Address</p>
-              <AddressButton address={viewingToken.address} className="w-full justify-start" />
-            </div>
+        <div className="fnx-card-bg rounded-lg p-3 border fnx-card-border">
+          <div className="flex flex-col gap-2">
+            <p className="text-xxxs opacity-70">Contract Address</p>
+            <AddressButton address={viewingToken.address} className="w-full justify-start" />
           </div>
-        )}
+        </div>
 
         {/* Decimals */}
         <div className="fnx-card-bg rounded-lg p-3 border fnx-card-border">

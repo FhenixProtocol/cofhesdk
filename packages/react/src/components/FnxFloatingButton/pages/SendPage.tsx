@@ -25,7 +25,7 @@ export const SendPage: React.FC = () => {
   const tokenTransfer = useCofheTokenTransfer();
   const pinnedTokenAddress = useCofhePinnedTokenAddress();
   // Use selected token if available, otherwise fall back to pinned token
-  const activeTokenAddress = selectedToken && !selectedToken.isNative ? selectedToken.address : pinnedTokenAddress;
+  const activeTokenAddress = selectedToken ? selectedToken.address : pinnedTokenAddress;
 
   const { data: tokenMetadata } = useCofheTokenMetadata(activeTokenAddress);
 
@@ -209,9 +209,7 @@ export const SendPage: React.FC = () => {
             <span className="text-xs opacity-70">Available </span>
             <TokenBalance
               token={tokenFromList ?? undefined}
-              tokenAddress={activeTokenAddress ?? undefined}
               isNative={false}
-              symbol={displayToken?.symbol || tokenMetadata?.symbol}
               showSymbol={true}
               size="sm"
               decimalPrecision={5}

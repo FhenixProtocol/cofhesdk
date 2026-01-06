@@ -1,36 +1,25 @@
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import { cn } from '../../../../utils/cn.js';
-import { useFnxFloatingButtonContext, type TokenListMode, type NativeToken } from '../../FnxFloatingButtonContext.js';
+import { useFnxFloatingButtonContext, type TokenListMode } from '../../FnxFloatingButtonContext.js';
 import type { Token } from '../../../../hooks/useCofheTokenLists.js';
 import { TokenIcon } from '../../components/TokenIcon.js';
 import { TokenBalance } from '../../components/TokenBalance.js';
 
 export const TokenRow: React.FC<{
-  token: Token | NativeToken;
+  token: Token;
   mode: TokenListMode;
 }> = ({ token, mode }) => {
   const { selectToken, navigateToTokenInfo } = useFnxFloatingButtonContext();
 
   const handleClick = () => {
-    const tokenData = {
-      address: token.address,
-      name: token.name,
-      symbol: token.symbol,
-      decimals: token.decimals,
-      logoURI: token.logoURI,
-      isNative: 'isNative' in token ? token.isNative : false,
-    };
-
     if (mode === 'select') {
-      selectToken(tokenData);
+      // TODO: native token support
+      selectToken(token);
     } else {
       // In view mode, navigate to token info page
-      navigateToTokenInfo(tokenData);
+      navigateToTokenInfo(token);
     }
   };
-
-  const isNative = 'isNative' in token && token.isNative;
-  const tokenObj = isNative ? undefined : (token as Token);
 
   return (
     <div
@@ -54,16 +43,7 @@ export const TokenRow: React.FC<{
 
       {/* Balance and Arrow */}
       <div className="flex items-center gap-2">
-        <TokenBalance
-          token={tokenObj}
-          tokenAddress={isNative ? undefined : token.address}
-          isNative={isNative}
-          symbol={token.symbol}
-          showSymbol={false}
-          size="sm"
-          decimalPrecision={5}
-          className="font-medium"
-        />
+        <TokenBalance token={token} showSymbol={false} size="sm" decimalPrecision={5} className="font-medium" />
         <KeyboardArrowRightIcon className="w-5 h-5 fnx-text-primary opacity-60 flex-shrink-0" />
       </div>
     </div>

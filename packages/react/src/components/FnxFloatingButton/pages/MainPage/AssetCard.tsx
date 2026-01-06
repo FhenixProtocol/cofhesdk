@@ -1,52 +1,39 @@
 import { cn } from '@/utils/cn.js';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import { useCofheTokenMetadata, useCofhePinnedTokenAddress } from '../../../../hooks/useCofheTokenBalance.js';
-import { useCofheTokens } from '../../../../hooks/useCofheTokenLists.js';
-import { useCofheChainId } from '../../../../hooks/useCofheConnection.js';
+import { useCofheToken } from '../../../../hooks/useCofheTokenLists.js';
 import { useMemo } from 'react';
 import { TokenIcon } from '../../components/TokenIcon.js';
 import { TokenBalance } from '../../components/TokenBalance.js';
 import { useFnxFloatingButtonContext } from '../../FnxFloatingButtonContext.js';
 
 export const AssetCard: React.FC = () => {
+  // TODO: show Native token if no pinned token address
+
   const { navigateToTokenInfo } = useFnxFloatingButtonContext();
   // const pinnedTokenAddress = "0x8ee52408ED5b0e396aA779Fd52F7fbc20A4b33Fb"; // Base sepolia
   // const pinnedTokenAddress = "0xbED96aa98a49FeA71fcC55d755b915cF022a9159"; // Redact (Sepolia)
   const pinnedTokenAddress = useCofhePinnedTokenAddress();
-
-  const chainId = useCofheChainId();
-  const tokens = useCofheTokens(chainId);
 
   // Get token metadata (decimals and symbol) using multicall for efficiency
   const { data: tokenMetadata } = useCofheTokenMetadata(pinnedTokenAddress);
   const tokenSymbol = tokenMetadata?.symbol;
 
   // Find token from token lists to get icon and confidentialityType
-  const tokenFromList = useMemo(() => {
-    if (!pinnedTokenAddress || !chainId) return null;
-    return (
-      tokens.find((t) => t.chainId === chainId && t.address.toLowerCase() === pinnedTokenAddress.toLowerCase()) || null
-    );
-  }, [pinnedTokenAddress, chainId, tokens]);
-
-  // Determine ticker symbol
-  const ticker = useMemo(() => {
-    if (pinnedTokenAddress && tokenSymbol) {
-      return tokenSymbol;
-    }
-    // For native token, default to ETH (most chains use ETH or ETH-like tokens)
-    return 'ETH';
-  }, [pinnedTokenAddress, tokenSymbol]);
+  const tokenFromList = useCofheToken({
+    address: pinnedTokenAddress,
+  });
 
   const handleClick = () => {
-    navigateToTokenInfo({
-      address: pinnedTokenAddress ?? 'native',
-      name: tokenFromList?.name ?? ticker,
-      symbol: ticker,
-      decimals: tokenMetadata?.decimals ?? 18,
-      logoURI: tokenFromList?.logoURI,
-      isNative: !pinnedTokenAddress,
-    });
+    // TODO: figure out best handling for this error
+    if (!tokenFromList) throw new Error('Token not found in token list');
+
+    if (pinnedTokenAddress) {
+      navigateToTokenInfo(tokenFromList);
+    } else {
+      // TODO: native token support
+      alert('Native token info navigation is not implemented yet.');
+    }
   };
 
   return (
@@ -66,7 +53,7 @@ export const AssetCard: React.FC = () => {
 
           {/* Ticker and Privacy */}
           <div className="flex flex-col gap-1">
-            <h3 className="text-lg font-bold fnx-text-primary">{ticker}</h3>
+            <h3 className="text-lg font-bold fnx-text-primary">{tokenFromList?.symbol}</h3>
 
             {/* Privacy Metrics Placeholder for future implementation */}
             {/* <div className="flex items-center gap-2 text-xs fnx-text-primary opacity-80">
@@ -87,10 +74,8 @@ export const AssetCard: React.FC = () => {
         <div className="flex items-center gap-2">
           <div className="flex flex-col items-end">
             <TokenBalance
-              token={tokenFromList ?? undefined}
-              tokenAddress={pinnedTokenAddress ?? undefined}
+              token={tokenFromList}
               isNative={!pinnedTokenAddress}
-              symbol={ticker}
               showSymbol={false}
               size="xl"
               decimalPrecision={5}
