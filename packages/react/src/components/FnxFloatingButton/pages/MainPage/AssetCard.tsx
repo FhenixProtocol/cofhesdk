@@ -15,14 +15,14 @@ export const AssetCard: React.FC = () => {
   // const pinnedTokenAddress = "0xbED96aa98a49FeA71fcC55d755b915cF022a9159"; // Redact (Sepolia)
   const pinnedTokenAddress = useCofhePinnedTokenAddress();
 
-  // Get token metadata (decimals and symbol) using multicall for efficiency
-  const { data: tokenMetadata } = useCofheTokenMetadata(pinnedTokenAddress);
-  const tokenSymbol = tokenMetadata?.symbol;
-
   // Find token from token lists to get icon and confidentialityType
   const tokenFromList = useCofheToken({
     address: pinnedTokenAddress,
   });
+
+  // Get token metadata (decimals and symbol) using multicall for efficiency
+  const { data: tokenMetadata } = useCofheTokenMetadata(pinnedTokenAddress);
+  const tokenSymbol = tokenMetadata?.symbol;
 
   const handleClick = () => {
     // TODO: figure out best handling for this error
@@ -75,7 +75,6 @@ export const AssetCard: React.FC = () => {
           <div className="flex flex-col items-end">
             <TokenBalance
               token={tokenFromList}
-              isNative={!pinnedTokenAddress}
               showSymbol={false}
               size="xl"
               decimalPrecision={5}

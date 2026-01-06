@@ -1,10 +1,6 @@
 import { useMemo } from 'react';
 import type { Address } from 'viem';
-import {
-  useCofhePublicTokenBalance,
-  useCofheConfidentialTokenBalance,
-  useCofheNativeBalance,
-} from '../../../hooks/useCofheTokenBalance';
+import { useCofhePublicTokenBalance, useDeprecateMe } from '../../../hooks/useCofheTokenBalance';
 import { useCofheAccount } from '../../../hooks/useCofheConnection';
 import { type Token } from '../../../hooks/useCofheTokenLists';
 import { cn } from '../../../utils/cn';
@@ -21,8 +17,6 @@ export enum BalanceType {
 export interface TokenBalanceProps {
   /** Token object from token list (for non-native tokens) */
   token?: Token | null;
-  /** Whether this is a native token */
-  isNative?: boolean;
   /** Account address to fetch balance for */
   accountAddress?: Address;
   /** Type of balance to display: 'public' (ERC20 balanceOf) or 'confidential' (encrypted) */
@@ -51,10 +45,8 @@ const sizeClasses = {
 
 export const TokenBalance: React.FC<TokenBalanceProps> = ({
   token,
-  isNative = false,
   accountAddress,
   balanceType = BalanceType.Confidential,
-  value,
   isLoading: isLoadingProp,
   decimalPrecision = 5,
   showSymbol = false,
@@ -63,9 +55,6 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
 }) => {
   const account = useCofheAccount();
 
-  // If value is provided, use it directly (skip fetching)
-  const useProvidedValue = value !== undefined;
-
   // Determine which account address to use
   const effectiveAccountAddress = accountAddress ?? account;
 
@@ -73,7 +62,7 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
   const { numericValue: publicBalanceNum, isLoading: isLoadingPublic } = useCofhePublicTokenBalance(
     { token, accountAddress: effectiveAccountAddress, displayDecimals: decimalPrecision },
     {
-      enabled: !useProvidedValue && !isNative && balanceType === BalanceType.Public,
+      enabled: balanceType === BalanceType.Public,
     }
   );
 
@@ -81,19 +70,11 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
     numericValue: confidentialBalanceNum,
     isLoading: isLoadingConfidential,
     disabledDueToMissingPermit,
-  } = useCofheConfidentialTokenBalance(
+  } = useDeprecateMe(
     { token, accountAddress: effectiveAccountAddress, displayDecimals: decimalPrecision },
     {
-      enabled: !useProvidedValue && !isNative && balanceType === BalanceType.Confidential,
+      enabled: balanceType === BalanceType.Confidential,
     }
-  );
-
-  // Get native balance for native tokens
-  const { data: nativeBalance, isLoading: isLoadingNative } = useCofheNativeBalance(
-    effectiveAccountAddress,
-    18,
-    decimalPrecision,
-    { enabled: !useProvidedValue && isNative && !!effectiveAccountAddress }
   );
 
   // Determine token symbol
@@ -102,46 +83,22 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
     const erc20Pair = token?.extensions.fhenix.erc20Pair;
     const isWrappedToken = token?.extensions.fhenix.confidentialityType === 'wrapped';
     if (balanceType === BalanceType.Public && isWrappedToken && erc20Pair?.symbol) return erc20Pair.symbol;
-
     if (token) return token.symbol;
-    if (isNative) return 'ETH';
-    return '';
-  }, [balanceType, token, isNative]);
+  }, [balanceType, token]);
 
   // Determine if we're loading
   const isLoading = useMemo(() => {
-    if (useProvidedValue) return isLoadingProp ?? false;
-    if (isNative) return isLoadingNative;
     return balanceType === BalanceType.Public ? isLoadingPublic : isLoadingConfidential;
-  }, [useProvidedValue, isLoadingProp, isNative, balanceType, isLoadingNative, isLoadingPublic, isLoadingConfidential]);
+  }, [balanceType, isLoadingPublic, isLoadingConfidential]);
 
   // Format balance
   const displayBalance = useMemo(() => {
-    if (isNative) return nativeBalance;
-    // If value is provided, format it
-    if (useProvidedValue) {
-      if (value === null || value === undefined) return;
-
-      const numValue = typeof value === 'string' ? parseFloat(value) : value;
-      if (isNaN(numValue)) return;
-      return numValue.toFixed(decimalPrecision);
-    }
-
     // Public or confidential balance from hooks
     const numValue = balanceType === BalanceType.Public ? publicBalanceNum : confidentialBalanceNum;
     if (numValue === 0 && balanceType === BalanceType.Confidential) return;
 
     return numValue.toFixed(decimalPrecision);
-  }, [
-    isNative,
-    nativeBalance,
-    useProvidedValue,
-    balanceType,
-    publicBalanceNum,
-    confidentialBalanceNum,
-    decimalPrecision,
-    value,
-  ]);
+  }, [balanceType, publicBalanceNum, confidentialBalanceNum, decimalPrecision]);
 
   return (
     <TokenBalanceView

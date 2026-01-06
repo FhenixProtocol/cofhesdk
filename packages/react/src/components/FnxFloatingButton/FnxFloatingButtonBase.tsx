@@ -7,11 +7,6 @@ import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
 import type { FloatingButtonPosition, FnxFloatingButtonProps } from './types';
 import { ToastsSection } from './ToastsSection';
 
-// TODOS:
-// - Get svgs instead of pngs
-// - Define configuration that needs to move to global react config
-// - Improve expand animation so it will roll out from the floating button
-
 const positionStyles: Record<FloatingButtonPosition, string> = {
   'top-left': 'top-4 left-4',
   'top-right': 'top-4 right-4',

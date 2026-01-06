@@ -160,9 +160,9 @@ export function useCofheTokenMetadata(
         ],
       });
 
-      const decimals = results[0].result as number;
-      const symbol = results[1].result as string;
-      const name = results[2].result as string;
+      const decimals = results[0].result;
+      const symbol = results[1].result;
+      const name = results[2].result;
 
       if (decimals === undefined || symbol === undefined || name === undefined) {
         throw new Error('Failed to fetch token metadata');
@@ -524,13 +524,13 @@ type UseConfidentialTokenBalanceResult = {
  * @param options - Query options
  * @returns Balance data with raw bigint, formatted string, numeric value, loading state, and refetch function
  */
-export function useCofheConfidentialTokenBalance(
+export function useDeprecateMe(
   { token, accountAddress, displayDecimals = 5 }: UseConfidentialTokenBalanceInput,
   options?: UseConfidentialTokenBalanceOptions
 ): UseConfidentialTokenBalanceResult {
   const { enabled: userEnabled = true, ...restOptions } = options ?? {};
 
-  const { data, isLoading, refetch, disabledDueToMissingPermit } = useCofheTokenConfidentialBalance(
+  const { data, isLoading, refetch, disabledDueToMissingPermit } = useCofheTokenDecryptedBalance(
     {
       token: token ?? undefined,
       accountAddress: accountAddress as Address,

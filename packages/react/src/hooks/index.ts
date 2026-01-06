@@ -17,7 +17,7 @@ export {
   useCofheTokenSymbol,
   useCofhePinnedTokenAddress,
   useCofhePublicTokenBalance,
-  useCofheConfidentialTokenBalance,
+  useDeprecateMe,
   type TokenMetadata,
 } from './useCofheTokenBalance';
 export { useCofheTokenTransfer } from './useCofheTokenTransfer';

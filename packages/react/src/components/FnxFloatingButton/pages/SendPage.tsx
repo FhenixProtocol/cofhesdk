@@ -209,7 +209,6 @@ export const SendPage: React.FC = () => {
             <span className="text-xs opacity-70">Available </span>
             <TokenBalance
               token={tokenFromList ?? undefined}
-              isNative={false}
               showSymbol={true}
               size="sm"
               decimalPrecision={5}
