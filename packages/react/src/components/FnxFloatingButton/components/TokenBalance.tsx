@@ -137,17 +137,16 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
     if (isNative) return nativeBalance;
     // If value is provided, format it
     if (useProvidedValue) {
-      if (value === null || value === undefined) {
-        return null;
-      }
+      if (value === null || value === undefined) return;
+
       const numValue = typeof value === 'string' ? parseFloat(value) : value;
-      if (isNaN(numValue)) return null;
+      if (isNaN(numValue)) return;
       return numValue.toFixed(decimalPrecision);
     }
 
     // Public or confidential balance from hooks
     const numValue = balanceType === BalanceType.Public ? publicBalanceNum : confidentialBalanceNum;
-    if (numValue === 0 && balanceType === BalanceType.Confidential) return null;
+    if (numValue === 0 && balanceType === BalanceType.Confidential) return;
 
     return numValue.toFixed(decimalPrecision);
   }, [
@@ -167,7 +166,7 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
       size={size}
       hidden={disabledDueToMissingPermit}
       isLoading={isLoading}
-      displayedBalance={displayBalance}
+      formattedBalance={displayBalance}
       symbol={showSymbol ? displaySymbol : undefined}
     />
   );
@@ -175,15 +174,15 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
 
 export const TokenBalanceView: React.FC<
   Pick<TokenBalanceProps, 'className' | 'size'> & {
-    displayedBalance: React.ReactNode;
+    formattedBalance?: string;
     symbol?: string;
     isLoading?: boolean;
     hidden?: boolean;
   }
-> = ({ className, size = 'md', displayedBalance, symbol, isLoading, hidden }) => {
+> = ({ className, size = 'md', formattedBalance, symbol, isLoading, hidden }) => {
   return (
     <span className={cn(sizeClasses[size], 'font-medium fnx-text-primary', className)}>
-      {hidden ? <ConfidentialValuePlaceholder /> : isLoading ? <LoadingDots size={size} /> : displayedBalance}
+      {hidden ? <ConfidentialValuePlaceholder /> : isLoading ? <LoadingDots size={size} /> : formattedBalance}
       {symbol && ` ${symbol}`}
     </span>
   );

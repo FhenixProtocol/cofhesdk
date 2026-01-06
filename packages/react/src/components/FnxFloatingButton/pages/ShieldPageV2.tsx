@@ -21,6 +21,7 @@ import {
 import { cn } from '../../../utils/cn.js';
 import { truncateHash } from '../../../utils/utils.js';
 import { ActionButton, AmountInput, TokenBalance, TokenIcon } from '../components/index.js';
+import { TokenBalanceView } from '../components/TokenBalance.js';
 
 const SUCCESS_TIMEOUT = 5000;
 const DISPLAY_DECIMALS = 5;
@@ -346,16 +347,13 @@ export const ShieldPageV2: React.FC = () => {
               <p className="text-sm font-medium">{sourceSymbol}</p>
               <p className="text-xxs opacity-70">
                 Available{' '}
-                <TokenBalance
-                  value={sourceAvailable}
+                <TokenBalanceView
+                  formattedBalance={sourceAvailable ? sourceAvailable.toFixed(DISPLAY_DECIMALS) : '0'}
                   isLoading={isLoadingSource}
                   symbol={sourceSymbol}
-                  showSymbol={false}
-                  decimalPrecision={DISPLAY_DECIMALS}
                   size="sm"
                   className="inline font-bold"
-                />{' '}
-                {sourceSymbol}
+                />
               </p>
             </div>
           </div>
@@ -379,16 +377,13 @@ export const ShieldPageV2: React.FC = () => {
               <p className="text-sm font-medium">{destSymbol}</p>
               <p className="text-xxs opacity-70">
                 Balance{' '}
-                <TokenBalance
-                  value={destAvailable}
+                <TokenBalanceView
+                  formattedBalance={destAvailable ? destAvailable.toFixed(DISPLAY_DECIMALS) : '0'}
                   isLoading={isLoadingDest}
                   symbol={destSymbol}
-                  showSymbol={false}
-                  decimalPrecision={DISPLAY_DECIMALS}
                   size="sm"
                   className="inline font-bold"
-                />{' '}
-                {destSymbol}
+                />
               </p>
             </div>
           </div>
