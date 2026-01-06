@@ -12,10 +12,9 @@ import {
 } from './pagesConfig/types';
 import { ToastPrimitive } from './components/ToastPrimitives';
 import type { Token } from '@/hooks';
+import { usePortalPanels } from './usePortalPanels';
 
 export type TokenListMode = 'view' | 'select';
-
-const ANIM_DURATION = 300;
 
 type NavigateParams = {
   // When true, do not append to history; override current page instead
@@ -89,18 +88,11 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   const [pageHistory, setPageHistory] = useState<PageState[]>([{ page: FloatingButtonPage.Main }]);
   const [overridingPage, setOverridingPage] = useState<PageState | null>(null);
 
-  const [portalOpen, setPortalOpen] = useState(false);
-  const [statusPanelOpen, setStatusPanelOpen] = useState(false);
-  const [contentPanelOpen, setContentPanelOpen] = useState(false);
-
   const [tokenListMode, setTokenListMode] = useState<TokenListMode>('view');
   const [selectedToken, setSelectedToken] = useState<Token>();
   const [viewingToken, setViewingToken] = useState<Token>();
   const [toasts, setToasts] = useState<FnxFloatingButtonToast[]>([]);
   const [status, setStatus] = useState<FnxStatus | undefined>(undefined);
-
-  const openTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const publicClient = useCofhePublicClient();
 
@@ -116,51 +108,6 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   const currentPage = overridingPage ?? pageHistory[pageHistory.length - 1];
   const isLeftSide = effectivePosition.includes('left');
   const isTopSide = effectivePosition.includes('top');
-
-  const openPortal = () => {
-    setPortalOpen(true);
-
-    // Cancel closing timeout
-    if (closeTimeoutRef.current) {
-      clearTimeout(closeTimeoutRef.current);
-      closeTimeoutRef.current = null;
-    }
-
-    // Open status panel immediately
-    setStatusPanelOpen(true);
-
-    if (statusPanelOpen || status != null) {
-      // Expand content immediately if status panel is visible
-      setContentPanelOpen(true);
-    } else {
-      // Else expand content after a delay
-      openTimeoutRef.current = setTimeout(() => {
-        setContentPanelOpen(true);
-      }, ANIM_DURATION);
-    }
-  };
-
-  const closePortal = () => {
-    setPortalOpen(false);
-
-    // Cancel opening timeout
-    if (openTimeoutRef.current) {
-      clearTimeout(openTimeoutRef.current);
-      openTimeoutRef.current = null;
-    }
-
-    // Close content panel immediately
-    setContentPanelOpen(false);
-
-    // Close status bar after a delay
-    closeTimeoutRef.current = setTimeout(() => {
-      setStatusPanelOpen(false);
-    }, ANIM_DURATION);
-  };
-
-  const togglePortal = () => {
-    portalOpen ? closePortal() : openPortal();
-  };
 
   function navigateTo<K extends PagesWithoutProps>(page: K, args?: NavigateArgs<K>): void;
   // eslint-disable-next-line no-redeclare
@@ -254,6 +201,8 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   const handleClearStatus = () => {
     setStatus(undefined);
   };
+
+  const { portalOpen, statusPanelOpen, contentPanelOpen, openPortal, closePortal, togglePortal } = usePortalPanels();
 
   return (
     <FnxFloatingButtonContext.Provider
