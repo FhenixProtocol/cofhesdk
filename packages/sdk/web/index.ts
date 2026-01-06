@@ -113,7 +113,7 @@ export function createCofhesdkConfig(config: CofhesdkInputConfig): CofhesdkConfi
  * @param config - The CoFHE SDK configuration (use createCofhesdkConfig to create with web defaults)
  * @returns The CoFHE SDK client instance
  */
-export function createCofhesdkClient(config: CofhesdkConfig): CofhesdkClient {
+export function createCofhesdkClient<TConfig extends CofhesdkConfig>(config: TConfig): CofhesdkClient<TConfig> {
   return createCofhesdkClientBase({
     config,
     zkBuilderAndCrsGenerator,

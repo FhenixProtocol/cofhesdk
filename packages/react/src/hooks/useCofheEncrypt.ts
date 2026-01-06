@@ -11,10 +11,11 @@ import {
   type EncryptedItemInputs,
   type EncryptStepCallbackContext,
 } from '@cofhe/sdk';
-import { useMutation, type UseMutationOptions, type UseMutationResult } from '@tanstack/react-query';
+import { type UseMutationOptions, type UseMutationResult } from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
 import { useCofheConnection } from './useCofheConnection';
 import { useCofheContext } from '../providers';
+import { useInternalMutation } from '../providers/index.js';
 
 type EncryptableArray = readonly EncryptableItem[];
 type EncryptedInputs<T extends EncryptableItem | EncryptableArray> = T extends EncryptableArray
@@ -146,7 +147,7 @@ export function useCofheEncrypt<T extends EncryptableItem | EncryptableArray>(
 
   const { onMutate, mutationKey: mutationKeyPostfix, ...restOptions } = mutationOptions;
 
-  const mutationResult = useMutation<EncryptedInputs<T>, Error, EncryptionOptions<T>, void>({
+  const mutationResult = useInternalMutation<EncryptedInputs<T>, Error, EncryptionOptions<T>, void>({
     mutationKey: ['encryption', mutationKeyPostfix],
     onMutate: (arg1, arg2) => {
       return onMutate?.(arg1, arg2);

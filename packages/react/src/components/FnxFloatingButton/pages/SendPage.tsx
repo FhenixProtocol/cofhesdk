@@ -2,54 +2,40 @@ import { useState, useMemo } from 'react';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import { type Address, isAddress, formatUnits } from 'viem';
-import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext.js';
-import { useCofheContext } from '../../../providers/CofheProvider.js';
-import { useCofheAccount, useCofheChainId } from '../../../hooks/useCofheConnection.js';
+import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext';
+import { useCofheContext } from '../../../providers/CofheProvider';
+import { useCofheAccount } from '../../../hooks/useCofheConnection';
 import {
-  useCofheTokenConfidentialBalance,
+  useCofheTokenDecryptedBalance,
   useCofheTokenMetadata,
   useCofhePinnedTokenAddress,
-} from '../../../hooks/useCofheTokenBalance.js';
-import { useCofheTokens } from '../../../hooks/useCofheTokenLists.js';
-import { useCofheEncryptInput } from '../../../hooks/useCofheEncryptInput.js';
-import { useCofheTokenTransfer, type EncryptedValue } from '../../../hooks/useCofheTokenTransfer.js';
-import { cn } from '../../../utils/cn.js';
-import { truncateAddress, sanitizeNumericInput } from '../../../utils/utils.js';
-import { TokenIcon } from '../components/TokenIcon.js';
-import { TokenBalance } from '../components/TokenBalance.js';
+} from '../../../hooks/useCofheTokenBalance';
+import { useCofheToken } from '../../../hooks/useCofheTokenLists';
+import { useCofheEncryptInput } from '../../../hooks/useCofheEncryptInput';
+import { useCofheTokenTransfer, type EncryptedValue } from '../../../hooks/useCofheTokenTransfer';
+import { cn } from '../../../utils/cn';
+import { truncateAddress, sanitizeNumericInput } from '../../../utils/utils';
+import { TokenIcon } from '../components/TokenIcon';
+import { TokenBalance } from '../components/TokenBalance';
 
 export const SendPage: React.FC = () => {
   const { navigateBack, selectedToken, navigateToTokenListForSelection } = useFnxFloatingButtonContext();
   const { client } = useCofheContext();
   const account = useCofheAccount();
-  const chainId = useCofheChainId();
   const tokenTransfer = useCofheTokenTransfer();
-  const tokens = useCofheTokens(chainId ?? 0);
-
   const pinnedTokenAddress = useCofhePinnedTokenAddress();
   // Use selected token if available, otherwise fall back to pinned token
-  const activeTokenAddress =
-    selectedToken && !selectedToken.isNative ? (selectedToken.address as Address) : pinnedTokenAddress;
-
-  // Find token from token list to get confidentialityType
-  const tokenFromList = useMemo(() => {
-    if (!activeTokenAddress || !chainId) return null;
-    return (
-      tokens.find((t) => t.chainId === chainId && t.address.toLowerCase() === activeTokenAddress.toLowerCase()) || null
-    );
-  }, [activeTokenAddress, chainId, tokens]);
+  const activeTokenAddress = selectedToken ? selectedToken.address : pinnedTokenAddress;
 
   const { data: tokenMetadata } = useCofheTokenMetadata(activeTokenAddress);
 
-  const { data: confidentialBalance } = useCofheTokenConfidentialBalance(
-    {
-      token: tokenFromList ?? undefined,
-      accountAddress: account as Address,
-    },
-    {
-      enabled: !!tokenFromList && !!activeTokenAddress && !!account,
-    }
-  );
+  const tokenFromList = useCofheToken({
+    address: activeTokenAddress,
+  });
+  const { data: confidentialBalance } = useCofheTokenDecryptedBalance({
+    token: tokenFromList,
+    accountAddress: account,
+  });
 
   // Use selected token metadata if available, otherwise use fetched metadata
   const displayToken =
@@ -223,9 +209,7 @@ export const SendPage: React.FC = () => {
             <span className="text-xs opacity-70">Available </span>
             <TokenBalance
               token={tokenFromList ?? undefined}
-              tokenAddress={activeTokenAddress ?? undefined}
               isNative={false}
-              symbol={displayToken?.symbol || tokenMetadata?.symbol}
               showSymbol={true}
               size="sm"
               decimalPrecision={5}

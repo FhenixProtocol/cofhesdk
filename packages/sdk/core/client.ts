@@ -15,6 +15,7 @@ import type {
   CofhesdkClientPermits,
 } from './clientTypes.js';
 import type { EncryptableItem, FheTypes } from './types.js';
+import type { CofhesdkConfig } from './config.js';
 
 export const CONNECT_STORE_DEFAULTS: CofhesdkClientConnectionState = {
   connected: false,
@@ -30,7 +31,9 @@ export const CONNECT_STORE_DEFAULTS: CofhesdkClientConnectionState = {
  * @param {CofhesdkClientParams} opts - Initialization options including config and platform-specific serializers
  * @returns {CofhesdkClient} - The CoFHE SDK client instance
  */
-export function createCofhesdkClientBase(opts: CofhesdkClientParams): CofhesdkClient {
+export function createCofhesdkClientBase<TConfig extends CofhesdkConfig>(
+  opts: CofhesdkClientParams<TConfig>
+): CofhesdkClient<TConfig> {
   // Create keysStorage instance using configured storage
   const keysStorage = createKeysStore(opts.config.fheKeyStorage);
 

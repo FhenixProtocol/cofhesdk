@@ -1,6 +1,4 @@
 import {
-  useMutation,
-  useQuery,
   type UseMutationOptions,
   type UseMutationResult,
   type UseQueryOptions,
@@ -22,6 +20,7 @@ import {
   ERC20_APPROVE_ABI,
 } from '../constants/confidentialTokenABIs.js';
 import { addTransactionAndWatch, TransactionActionType } from '../stores/transactionStore.js';
+import { useInternalMutation, useInternalQuery } from '../providers/index.js';
 
 // ============================================================================
 // Types
@@ -82,9 +81,9 @@ export function useCofheTokenShield(
   const publicClient = useCofhePublicClient();
   const chainId = useCofheChainId();
   const account = useCofheAccount();
-  const { recordTransactionHistory } = useCofheContext().config.react;
+  const { recordTransactionHistory } = useCofheContext().client.config.react;
 
-  return useMutation({
+  return useInternalMutation({
     mutationFn: async (input: UseTokenShieldInput) => {
       if (!walletClient) {
         throw new Error('WalletClient is required for token shield');
@@ -232,9 +231,9 @@ export function useCofheTokenUnshield(
   const publicClient = useCofhePublicClient();
   const chainId = useCofheChainId();
   const account = useCofheAccount();
-  const { recordTransactionHistory } = useCofheContext().config.react;
+  const { recordTransactionHistory } = useCofheContext().client.config.react;
 
-  return useMutation({
+  return useInternalMutation({
     mutationFn: async (input: UseTokenUnshieldInput) => {
       if (!walletClient) {
         throw new Error('WalletClient is required for token unshield');
@@ -331,9 +330,9 @@ export function useCofheClaimUnshield(
   const publicClient = useCofhePublicClient();
   const chainId = useCofheChainId();
   const account = useCofheAccount();
-  const { recordTransactionHistory } = useCofheContext().config.react;
+  const { recordTransactionHistory } = useCofheContext().client.config.react;
 
-  return useMutation({
+  return useInternalMutation({
     mutationFn: async (input: UseClaimUnshieldInput) => {
       if (!walletClient) {
         throw new Error('WalletClient is required for claim');
@@ -413,7 +412,7 @@ export type UnshieldClaimsSummary = {
 
 type UseUnshieldClaimsInput = {
   /** Token object with confidentialityType */
-  token: Token | null;
+  token?: Token;
   /** Account address (optional, defaults to connected account) */
   accountAddress?: Address;
 };
@@ -438,7 +437,7 @@ export function useCofheUnshieldClaims(
   const tokenAddress = token?.address as Address | undefined;
   const confidentialityType = token?.extensions.fhenix.confidentialityType;
 
-  return useQuery({
+  return useInternalQuery({
     queryKey: ['unshieldClaims', tokenAddress, confidentialityType, account],
     queryFn: async (): Promise<UnshieldClaimsSummary> => {
       if (!publicClient) {

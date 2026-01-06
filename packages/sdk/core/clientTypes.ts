@@ -17,7 +17,7 @@ import type {
 
 // CLIENT
 
-export type CofhesdkClient = {
+export type CofhesdkClient<TConfig extends CofhesdkConfig = CofhesdkConfig> = {
   // --- state access ---
   getSnapshot(): CofhesdkClientConnectionState;
   subscribe(listener: Listener): () => void;
@@ -27,7 +27,7 @@ export type CofhesdkClient = {
   readonly connecting: boolean;
 
   // --- config & platform-specific ---
-  readonly config: CofhesdkConfig;
+  readonly config: TConfig;
 
   connect(publicClient: PublicClient, walletClient: WalletClient): Promise<boolean>;
   /**
@@ -84,8 +84,8 @@ export type CofhesdkClientPermits = {
   deserialize: typeof PermitUtils.deserialize;
 };
 
-export type CofhesdkClientParams = {
-  config: CofhesdkConfig;
+export type CofhesdkClientParams<TConfig extends CofhesdkConfig> = {
+  config: TConfig;
   zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator;
   tfhePublicKeyDeserializer: FheKeyDeserializer;
   compactPkeCrsDeserializer: FheKeyDeserializer;

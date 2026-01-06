@@ -24,7 +24,7 @@ export {
   useCofheUnshieldClaims,
   useCofheTokenBalance,
   useCofheNativeBalance,
-  useCofheTokenConfidentialBalance,
+  useCofheTokenDecryptedBalance,
   useCofheTokenMetadata,
   useCofheTokenDecimals,
   useCofheTokenSymbol,
@@ -82,11 +82,12 @@ export type { CofheContextValue, CofheProviderProps, CofheClientConfig } from '.
 
 export type { FnxFloatingButtonProps } from './components/FnxFloatingButton/types';
 
-export type { FloatingButtonPosition, FloatingButtonSize } from './components/FnxFloatingButton/types';
+export type { FloatingButtonPosition } from './components/FnxFloatingButton/types';
 
 export { createCofhesdkClient } from '@cofhe/sdk/web';
 
 export { useCofheCreatePermit } from './hooks/permits/useCofheCreatePermit';
+export { useCofheAutoConnect } from './hooks/useCofheAutoConnect';
 export { CREATE_PERMITT_BODY_BY_ERROR_CAUSE } from './providers/errors';
 export { ErrorCause } from './utils/errors';
 

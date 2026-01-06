@@ -10,28 +10,10 @@ import {
   type PagesWithoutProps,
   type PagesWithProps,
 } from './pagesConfig/types';
-import { useCofheActivePermit } from '@/hooks/index';
 import { ToastPrimitive } from './components/ToastPrimitives';
+import type { Token } from '@/hooks';
 
 export type TokenListMode = 'view' | 'select';
-
-export type NativeToken = {
-  address: 'native';
-  name: 'Ether';
-  symbol: 'ETH';
-  decimals: 18;
-  logoURI?: string;
-  isNative: true;
-};
-
-export type SelectedToken = {
-  address: string;
-  name: string;
-  symbol: string;
-  decimals: number;
-  logoURI?: string;
-  isNative: boolean;
-} | null;
 
 const OPEN_DELAY = 500; // Delay before showing popup in ms
 const CLOSE_DELAY = 300; // Delay before closing bar after popup closes
@@ -59,7 +41,7 @@ interface FnxFloatingButtonContextValue {
   currentPage: PageState;
   navigateTo: NavigateToFn;
   navigateBack: () => void;
-  darkMode: boolean;
+  theme: 'dark' | 'light';
   effectivePosition: FloatingButtonPosition;
   isExpanded: boolean;
   showPopupPanel: boolean;
@@ -68,19 +50,15 @@ interface FnxFloatingButtonContextValue {
   expandPanel: () => void;
   collapsePanel: () => void;
   handleClick: (externalOnClick?: () => void) => void;
-  // TODO: I believe we should disable chain switching from within the floating button. We better deal with whatever is provided in Singer
-  // onSelectChain?: (chainId: number) => Promise<void> | void;
-  // Token selection
+
   tokenListMode: TokenListMode;
-  selectedToken: SelectedToken;
+  selectedToken?: Token;
   navigateToTokenListForSelection: (title?: string) => void;
   navigateToTokenListForView: () => void;
-  selectToken: (token: SelectedToken) => void;
+  selectToken: (token: Token) => void;
   // Token viewing
-  viewingToken: SelectedToken;
-  navigateToTokenInfo: (token: SelectedToken) => void;
-  // Config
-  showNativeTokenInList: boolean;
+  viewingToken?: Token;
+  navigateToTokenInfo: (token: Token) => void;
 
   // Toasts
   toasts: FnxFloatingButtonToast[];
@@ -92,30 +70,22 @@ interface FnxFloatingButtonContextValue {
 const FnxFloatingButtonContext = createContext<FnxFloatingButtonContextValue | null>(null);
 
 interface FnxFloatingButtonProviderProps {
-  children: ReactNode;
-  darkMode: boolean;
-  position?: FloatingButtonPosition;
-  onSelectChain?: (chainId: number) => Promise<void> | void;
+  children?: ReactNode;
 }
 
-export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps> = ({
-  children,
-  darkMode,
-  position,
-  onSelectChain,
-}) => {
-  const { client: cofhesdkClient, config } = useCofheContext();
-  const widgetConfig = config.react;
-  const effectivePosition = position || widgetConfig.position;
-  const showNativeTokenInList = widgetConfig.showNativeTokenInList;
+export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps> = ({ children }) => {
+  const { state } = useCofheContext();
+
+  const theme = state.theme;
+  const effectivePosition = state.position;
 
   const [pageHistory, setPageHistory] = useState<PageState[]>([{ page: FloatingButtonPage.Main }]);
   const [overridingPage, setOverridingPage] = useState<PageState | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showPopupPanel, setShowPopupPanel] = useState(false);
   const [tokenListMode, setTokenListMode] = useState<TokenListMode>('view');
-  const [selectedToken, setSelectedToken] = useState<SelectedToken>(null);
-  const [viewingToken, setViewingToken] = useState<SelectedToken>(null);
+  const [selectedToken, setSelectedToken] = useState<Token>();
+  const [viewingToken, setViewingToken] = useState<Token>();
   const [toasts, setToasts] = useState<FnxFloatingButtonToast[]>([]);
 
   const publicClient = useCofhePublicClient();
@@ -148,13 +118,12 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
     }, CLOSE_DELAY);
   };
 
-  const handleClick = (externalOnClick?: () => void) => {
+  const handleClick = () => {
     if (isExpanded) {
       collapsePanel();
     } else {
       expandPanel();
     }
-    externalOnClick?.();
   };
 
   function navigateTo<K extends PagesWithoutProps>(page: K, args?: NavigateArgs<K>): void;
@@ -193,12 +162,12 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
     navigateTo(FloatingButtonPage.TokenList, {});
   };
 
-  const selectToken = (token: SelectedToken) => {
+  const selectToken = (token: Token) => {
     setSelectedToken(token);
     navigateBack(); // Return to previous page after selection
   };
 
-  const navigateToTokenInfo = (token: SelectedToken) => {
+  const navigateToTokenInfo = (token: Token) => {
     setViewingToken(token);
     navigateTo(FloatingButtonPage.TokenInfo);
   };
@@ -250,7 +219,7 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
         currentPage,
         navigateTo,
         navigateBack,
-        darkMode,
+        theme,
         effectivePosition,
         isExpanded,
         showPopupPanel,
@@ -266,7 +235,6 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
         selectToken,
         viewingToken,
         navigateToTokenInfo,
-        showNativeTokenInList,
         toasts,
         addToast,
         pauseToast,

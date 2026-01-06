@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query';
+import { useInternalMutation } from '../../providers/index.js';
 import { useCofheClient } from '../useCofheClient.js';
 
 export type CreatePermitArgs =
@@ -17,7 +17,7 @@ export type CreatePermitArgs =
 export const useCofheCreatePermitMutation = () => {
   const cofheClient = useCofheClient();
 
-  return useMutation<void, Error, CreatePermitArgs>({
+  return useInternalMutation<void, Error, CreatePermitArgs>({
     mutationFn: async (args) => {
       const { name, isSelf, expirationSeconds } = args;
       const { account } = cofheClient.getSnapshot();

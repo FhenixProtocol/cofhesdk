@@ -22,8 +22,6 @@ const positionStyles: Record<FloatingButtonPosition, string> = {
 const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
   className,
   testId,
-  size = 'large',
-  onClick,
   zIndex = 9999,
   positionType = 'fixed',
   buttonClassName,
@@ -32,7 +30,8 @@ const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
   toastsSectionClassName,
   overriddingPage,
 }) => {
-  const { effectivePosition, isTopSide, isLeftSide, handleClick, darkMode } = useFnxFloatingButtonContext();
+  const { effectivePosition, isTopSide, isLeftSide, handleClick, theme } = useFnxFloatingButtonContext();
+  const darkMode = theme === 'dark';
 
   return (
     <div
@@ -40,7 +39,6 @@ const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
       className={cn(
         'fnx-floating-button',
         darkMode && 'dark',
-        size,
         positionType,
         'flex gap-3',
         positionStyles[effectivePosition],
@@ -56,7 +54,7 @@ const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
 
       {/* Button and Bar Row */}
       <div className={cn('flex items-center', isLeftSide ? 'flex-row' : 'flex-row-reverse')}>
-        <FloatingIcon onClick={() => handleClick(onClick)} className={buttonClassName} />
+        <FloatingIcon onClick={() => handleClick()} className={buttonClassName} />
 
         <StatusBarSection className={statusBarClassName}>
           <StatusBarContent />

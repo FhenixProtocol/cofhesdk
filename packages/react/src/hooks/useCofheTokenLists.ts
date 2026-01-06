@@ -1,7 +1,10 @@
-import { useQueries, type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
+import { type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
 import { useCofheContext } from '../providers/CofheProvider';
 import { useMemo } from 'react';
 import { ETH_ADDRESS, type Erc20Pair, type Token } from '../types/token.js';
+import { useInternalQueries } from '../providers/index.js';
+import type { Address } from 'viem';
+import { useCofheChainId } from './useCofheConnection';
 
 export { ETH_ADDRESS, type Token, type Erc20Pair };
 
@@ -26,7 +29,7 @@ export function useCofheTokenLists(
   { chainId }: UseTokenListsInput,
   queryOptions?: UseTokenListsOptions
 ): UseTokenListsResult {
-  const widgetConfig = useCofheContext().config.react;
+  const widgetConfig = useCofheContext().client.config.react;
   const tokensListsUrls = chainId ? widgetConfig.tokenLists[chainId] : [];
 
   const queriesOptions: UseQueryOptions<TokenList, Error>[] =
@@ -55,7 +58,7 @@ export function useCofheTokenLists(
       ...queryOptions,
     })) || [];
 
-  const result = useQueries({
+  const result = useInternalQueries({
     queries: queriesOptions,
   });
 
@@ -82,4 +85,17 @@ export function useCofheTokens(chainId?: number): Token[] {
     return Array.from(map.values());
   }, [tokenLists]);
   return tokens;
+}
+
+export function useCofheToken({ chainId: _chainId, address }: { chainId?: number; address?: Address }) {
+  const cofheChainId = useCofheChainId();
+  const chainId = _chainId ?? cofheChainId;
+
+  const tokens = useCofheTokens(chainId);
+  const tokenFromList = useMemo(() => {
+    if (!address || !chainId) return;
+    return tokens.find((t) => t.chainId === chainId && t.address.toLowerCase() === address.toLowerCase());
+  }, [address, chainId, tokens]);
+
+  return tokenFromList;
 }

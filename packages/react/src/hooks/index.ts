@@ -11,7 +11,7 @@ export { useCofheClient } from './useCofheClient';
 export {
   useCofheTokenBalance,
   useCofheNativeBalance,
-  useCofheTokenConfidentialBalance,
+  useCofheTokenDecryptedBalance,
   useCofheTokenMetadata,
   useCofheTokenDecimals,
   useCofheTokenSymbol,
@@ -32,3 +32,5 @@ export {
 export { useCofheWalletClient } from './useCofheConnection';
 export { useCofheTokens, useCofheTokenLists, ETH_ADDRESS, type Token, type Erc20Pair } from './useCofheTokenLists';
 export * from './permits';
+export { useCofheAutoConnect } from './useCofheAutoConnect';
+export { useCofheConnect } from './useCofheConnect';

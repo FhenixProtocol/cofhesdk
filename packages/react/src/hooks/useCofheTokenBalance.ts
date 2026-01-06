@@ -1,15 +1,17 @@
-import { useQuery, type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
+import { type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
 import { formatUnits, type Address } from 'viem';
-import { CofhesdkError, FheTypes } from '@cofhe/sdk';
-import { useCofheAccount, useCofheChainId, useCofhePublicClient } from './useCofheConnection.js';
-import { useCofheContext } from '../providers/CofheProvider.js';
-import { type Token, ETH_ADDRESS } from './useCofheTokenLists.js';
-import { CONFIDENTIAL_ABIS } from '../constants/confidentialTokenABIs.js';
-import { ERC20_BALANCE_OF_ABI, ERC20_DECIMALS_ABI, ERC20_SYMBOL_ABI, ERC20_NAME_ABI } from '../constants/erc20ABIs.js';
-import { withQueryErrorCause, ErrorCause } from '@/utils/errors.js';
-import { useCofheActivePermit } from './useCofhePermits.js';
+import { FheTypes } from '@cofhe/sdk';
+import { useCofheAccount, useCofheChainId, useCofhePublicClient } from './useCofheConnection';
+import { useCofheContext } from '../providers/CofheProvider';
+import { type Token, ETH_ADDRESS } from './useCofheTokenLists';
+import { CONFIDENTIAL_ABIS } from '../constants/confidentialTokenABIs';
+import { ERC20_BALANCE_OF_ABI, ERC20_DECIMALS_ABI, ERC20_SYMBOL_ABI, ERC20_NAME_ABI } from '../constants/erc20ABIs';
+import { ErrorCause } from '@/utils/errors';
+import { useCofheActivePermit } from './useCofhePermits';
 import { assert } from 'ts-essentials';
-import { useIsCofheErrorActive } from './useIsCofheErrorActive.js';
+import { useIsCofheErrorActive } from './useIsCofheErrorActive';
+import { useInternalQuery } from '../providers/index';
+import { useCofheDecrypt } from './useCofheDecrypt';
 type UseTokenBalanceInput = {
   /** Token contract address */
   tokenAddress: Address;
@@ -44,7 +46,7 @@ export function useCofheTokenBalance(
   const baseEnabled = !!publicClient && !!account && !!tokenAddress;
   const enabled = baseEnabled && (userEnabled ?? true);
 
-  return useQuery({
+  return useInternalQuery({
     queryKey: ['tokenBalance', tokenAddress, account, decimals, displayDecimals],
     queryFn: async (): Promise<string> => {
       if (!publicClient) {
@@ -87,7 +89,7 @@ export function useCofheNativeBalance(
   const publicClient = useCofhePublicClient();
   const account = accountAddress || (connectedAccount as Address | undefined);
 
-  return useQuery({
+  return useInternalQuery({
     queryKey: ['nativeBalance', account, decimals, displayDecimals],
     queryFn: async (): Promise<string> => {
       if (!publicClient) {
@@ -127,7 +129,7 @@ export function useCofheTokenMetadata(
 ): UseQueryResult<TokenMetadata, Error> {
   const publicClient = useCofhePublicClient();
 
-  return useQuery({
+  return useInternalQuery({
     queryKey: ['tokenMetadata', tokenAddress],
     queryFn: async (): Promise<TokenMetadata> => {
       if (!publicClient) {
@@ -185,7 +187,7 @@ export function useCofheTokenDecimals(
 ): UseQueryResult<number, Error> {
   const publicClient = useCofhePublicClient();
 
-  return useQuery({
+  return useInternalQuery({
     queryKey: ['tokenDecimals', tokenAddress],
     queryFn: async (): Promise<number> => {
       if (!publicClient) {
@@ -220,7 +222,7 @@ export function useCofheTokenSymbol(
 ): UseQueryResult<string, Error> {
   const publicClient = useCofhePublicClient();
 
-  return useQuery({
+  return useInternalQuery({
     queryKey: ['tokenSymbol', tokenAddress],
     queryFn: async (): Promise<string> => {
       if (!publicClient) {
@@ -244,16 +246,13 @@ export function useCofheTokenSymbol(
 }
 
 /**
- * Hook to get confidential token balance (encrypted balance) and decrypt it
- * Uses confidentialityType from token structure to determine which ABI/function to use:
- * - wrapped: uses `encBalanceOf(address)` function
- * - pure: uses `confidentialBalanceOf(address)` function
- * - dual: uses `TBD_DUAL_FUNCTION_NAME` function
+ * Hook to fetch a confidential (encrypted) token balance from chain.
+ * Uses confidentialityType from token to determine contract and function.
  * @param input - Token object and optional accountAddress
  * @param queryOptions - Optional React Query options
- * @returns Query result with decrypted balance as bigint
+ * @returns Query result with ciphertext bigint
  */
-export function useCofheTokenConfidentialBalance(
+function useCofheTokenConfidentialBalance(
   {
     token,
     accountAddress,
@@ -268,25 +267,16 @@ export function useCofheTokenConfidentialBalance(
   const isCofheErrorActive = useIsCofheErrorActive();
   const publicClient = useCofhePublicClient();
   const cofheChainId = useCofheChainId();
-  const { client } = useCofheContext();
   const activePermit = useCofheActivePermit();
 
-  // Extract enabled from queryOptions to avoid override
-  const { enabled: queryEnabled, ...restQueryOptions } = queryOptions || {};
-  // Merge enabled conditions: both our internal checks and user-provided enabled must be true
+  const { enabled: userEnabled, ...restQueryOptions } = queryOptions || {};
   const enabled =
-    // if cofhe error is currently handled by Error boundary - disable the query until error reset
-    !isCofheErrorActive &&
-    !!publicClient &&
-    !!accountAddress &&
-    !!token &&
-    !!activePermit &&
-    queryOptions?.enabled !== false;
+    !isCofheErrorActive && !!publicClient && !!accountAddress && !!token && !!activePermit && (userEnabled ?? true);
 
-  const result = useQuery({
+  const result = useInternalQuery({
     enabled,
     queryKey: [
-      'tokenConfidentialBalance',
+      'tokenEncryptedBalance',
       accountAddress,
       cofheChainId,
       token?.address,
@@ -294,7 +284,7 @@ export function useCofheTokenConfidentialBalance(
       // normally, "enabled" shouldn't be part of queryKey, but without adding it, there is a weird bug: when there's a CofheError, query still running queryFn resulting in the blank screen
       enabled,
     ],
-    queryFn: withQueryErrorCause(ErrorCause.AttemptToFetchConfidentialBalance, async (): Promise<bigint> => {
+    queryFn: async () => {
       assert(accountAddress, 'Account address is required to fetch confidential token balance');
       assert(publicClient, 'PublicClient is required to fetch confidential token balance');
       assert(token, 'Token is required to fetch confidential token balance');
@@ -325,12 +315,8 @@ export function useCofheTokenConfidentialBalance(
         return 0n;
       }
 
-      // Map confidentialValueType to FheTypes
-      const fheType = token.extensions.fhenix.confidentialValueType === 'uint64' ? FheTypes.Uint64 : FheTypes.Uint128;
-
-      // Decrypt the encrypted balance using SDK
-      return client.decryptHandle(ctHash, fheType).decrypt();
-    }),
+      return ctHash;
+    },
     ...restQueryOptions,
   });
 
@@ -341,11 +327,46 @@ export function useCofheTokenConfidentialBalance(
 }
 
 /**
+ * Hook to get confidential token balance by composing encrypted fetch + decryption.
+ * @param input - Token object and optional accountAddress
+ * @param queryOptions - Optional React Query options
+ * @returns Query result with decrypted balance as bigint
+ */
+export function useCofheTokenDecryptedBalance(
+  {
+    token,
+    accountAddress,
+  }: {
+    token: Token | undefined;
+    accountAddress?: Address;
+  },
+  queryOptions?: Omit<UseQueryOptions<bigint, Error>, 'queryKey' | 'queryFn'>
+): UseQueryResult<bigint | undefined, Error> & {
+  disabledDueToMissingPermit: boolean;
+} {
+  const encrypted = useCofheTokenConfidentialBalance({ token, accountAddress }, queryOptions);
+
+  const fheType = token?.extensions.fhenix.confidentialValueType === 'uint64' ? FheTypes.Uint64 : FheTypes.Uint128;
+
+  const decrypted = useCofheDecrypt({
+    ciphertext: encrypted.data,
+    fheType,
+    cause: ErrorCause.AttemptToFetchConfidentialBalance,
+  });
+
+  return {
+    ...decrypted,
+    refetch: encrypted.refetch,
+    disabledDueToMissingPermit: encrypted.disabledDueToMissingPermit,
+  };
+}
+
+/**
  * Hook to get pinned token address for the current chain
  * @returns Pinned token address for current chain, or undefined if none
  */
 export function useCofhePinnedTokenAddress(): Address | undefined {
-  const widgetConfig = useCofheContext().config.react;
+  const widgetConfig = useCofheContext().client.config.react;
   const chainId = useCofheChainId();
 
   if (!chainId) {

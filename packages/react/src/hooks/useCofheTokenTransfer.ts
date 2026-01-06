@@ -1,10 +1,11 @@
-import { useMutation, type UseMutationOptions, type UseMutationResult } from '@tanstack/react-query';
+import { type UseMutationOptions, type UseMutationResult } from '@tanstack/react-query';
 import { type Address } from 'viem';
 import { useCofheWalletClient, useCofheChainId, useCofheAccount, useCofhePublicClient } from './useCofheConnection.js';
 import { useCofheContext } from '../providers/index.js';
 import type { Token } from './useCofheTokenLists.js';
 import { TRANSFER_ABIS } from '../constants/confidentialTokenABIs.js';
 import { addTransactionAndWatch, TransactionActionType } from '../stores/transactionStore.js';
+import { useInternalMutation } from '../providers/index.js';
 
 // Encrypted value struct type
 export type EncryptedValue = {
@@ -40,9 +41,9 @@ export function useCofheTokenTransfer(
   const publicClient = useCofhePublicClient();
   const chainId = useCofheChainId();
   const account = useCofheAccount();
-  const { recordTransactionHistory } = useCofheContext().config.react;
+  const { recordTransactionHistory } = useCofheContext().client.config.react;
 
-  return useMutation({
+  return useInternalMutation({
     mutationFn: async (input: UseTokenTransferInput) => {
       if (!walletClient) {
         throw new Error('WalletClient is required for token transfer');

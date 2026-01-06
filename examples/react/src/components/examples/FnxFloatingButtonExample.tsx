@@ -1,9 +1,11 @@
 import React from 'react';
-import { useDynamicCofheConfigContext } from '../../utils/dynamicCofheConfig';
+import { useCofheContext } from '@cofhe/react';
 
 // Example with Material UI icons
 export const FnxFloatingButtonExample: React.FC = () => {
-  const { position, setPosition, buttonSize, setButtonSize, darkMode, setDarkMode } = useDynamicCofheConfigContext();
+  const {
+    state: { position, setPosition, theme, setTheme },
+  } = useCofheContext();
 
   return (
     <div className="space-y-8">
@@ -40,39 +42,19 @@ export const FnxFloatingButtonExample: React.FC = () => {
               </div>
             </div>
 
-            {/* Size */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium mb-2">Size:</label>
-              <div className="flex flex-wrap gap-2">
-                {(['small', 'medium', 'large'] as const).map((size) => (
-                  <button
-                    key={size}
-                    onClick={() => setButtonSize(size)}
-                    className={`px-4 py-2 rounded-lg text-sm transition-colors capitalize ${
-                      buttonSize === size
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                    }`}
-                  >
-                    {size}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* Dark Mode Toggle */}
             <div className="mb-6">
               <label className="block text-sm font-medium mb-2">Dark Mode:</label>
               <button
-                onClick={() => setDarkMode(!darkMode)}
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                 className={`px-4 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 ${
-                  darkMode
+                  theme === 'dark'
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                 }`}
               >
-                <span>{darkMode ? '🌙' : '☀️'}</span>
-                <span>{darkMode ? 'Dark Mode' : 'Light Mode'}</span>
+                <span>{theme === 'dark' ? '🌙' : '☀️'}</span>
+                <span>{theme === 'dark' ? 'Dark Mode' : 'Light Mode'}</span>
               </button>
             </div>
 
@@ -88,48 +70,73 @@ export const FnxFloatingButtonExample: React.FC = () => {
 
         {/* Usage Code */}
         <div>
-          <h3 className="text-lg font-semibold mb-3">Basic Usage</h3>
+          <h3 className="text-lg font-semibold mb-3">1. wrap your App with CofheProvider</h3>
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border mb-4">
             <pre className="text-sm overflow-x-auto">
               <code className="text-gray-800 dark:text-gray-200">
-                {`import { FnxFloatingButton } from '@cofhe/react';
-import AddIcon from '@mui/icons-material/Add';
+                {`
+import { CofheProvider } from '@cofhe/react';
+import { usePublicClient, useWalletClient } from 'wagmi';
 
-function MyApp() {
+export function App() {
+  const publicClient = usePublicClient();
+  const { data: walletClient } = useWalletClient();
+
   return (
-    <div>
-      {/* Your app content */}
-      
-      <FnxFloatingButton
-        position="bottom-right"
-        size="large"
-        onClick={() => console.log('Clicked!')}
-      />
-    </div>
+    <CofheProvider publicClient={publicClient} walletClient={walletClient}>
+      <>Your app content goes here</>
+    </CofheProvider>
   );
-}`}
+}
+`}
               </code>
             </pre>
           </div>
+        </div>
 
-          <h3 className="text-lg font-semibold mb-3">With Expandable Panel</h3>
+        <div>
+          <h3 className="text-lg font-semibold mb-3">
+            2. use Cofhe React API to make the user generate a permit when it's needed (needed for decrypting)
+          </h3>
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border">
             <pre className="text-sm overflow-x-auto">
               <code className="text-gray-800 dark:text-gray-200">
-                {`import { FnxFloatingButton } from '@cofhe/react';
-import AddIcon from '@mui/icons-material/Add';
+                {`
+import { useCofheTokenConfidentialBalance } from '@cofhe/react';
+import { WETH_SEPOLIA_TOKEN } from '../constants/tokens';
 
-function MyApp() {
+function MyComponent() {
+  const account = useCofheConnection().account;
+  
+  const navigateToGeneratePermit = useCofheCreatePermit({
+    ReasonBody: CREATE_PERMITT_BODY_BY_ERROR_CAUSE[ErrorCause.AttemptToFetchConfidentialBalance],
+  });
+  
+  const { disabledDueToMissingPermit, data, error, isLoading } = useCofheTokenConfidentialBalance({
+    token: WETH_SEPOLIA_TOKEN,
+    accountAddress: account,
+  });
+
   return (
-    <div>
-      {/* Your app content */}
-      
-      <FnxFloatingButton
-        position="bottom-right"
-        size="large"
-        onClick={() => console.log('Clicked!')}
-      />
-    </div>
+    <pre>
+      {disabledDueToMissingPermit ? (
+        <div
+          onClick={async (e) => {
+            e.stopPropagation();
+            navigateToGeneratePermit();
+            
+          }}
+        >
+          * * *
+        </div>
+      ) : isLoading ? (
+        'Loading...'
+      ) : error ? (
+        \`Error: \${error.message}\`
+      ) : (
+        data?.toString() ?? 'No Data'
+      )}
+    </pre>
   );
 }`}
               </code>
@@ -137,118 +144,19 @@ function MyApp() {
           </div>
         </div>
 
-        {/* Props Table */}
+        {/* TODO -- add info about error handling and query options prop-drilling */}
         <div>
-          <h3 className="text-lg font-semibold mb-3">Props</h3>
-          <div className="bg-white dark:bg-gray-800 rounded-lg border overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-900">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Prop
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Type
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Default
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Description
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-300">
-                    position
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                    'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    'bottom-right'
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">Position of the button</td>
-                </tr>
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-300">
-                    icon
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">React.ReactNode</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">-</td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">Icon to display</td>
-                </tr>
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-300">
-                    size
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">number</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">56</td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">Button size in pixels</td>
-                </tr>
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-300">
-                    iconColor
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">string</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">'#ffffff'</td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">Icon color</td>
-                </tr>
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-300">
-                    onClick
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">() =&gt; void</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">-</td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">Click handler</td>
-                </tr>
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-300">
-                    title
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">string</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">-</td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">Tooltip text</td>
-                </tr>
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-300">
-                    zIndex
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">number</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">9999</td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">Z-index value</td>
-                </tr>
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-300">
-                    positionType
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">'fixed' | 'absolute'</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">'fixed'</td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                    Position type (fixed stays on screen)
-                  </td>
-                </tr>
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-300">
-                    expandable
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">boolean</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">false</td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">Enable expandable panel</td>
-                </tr>
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-300">
-                    expandedWidth
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">number</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">250</td>
-                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                    Width of expanded panel in pixels
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <h3 className="text-lg font-semibold mb-3">
+            TODO: add info about error handling and query options prop drilling
+          </h3>
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border mb-4">
+            <pre className="text-sm overflow-x-auto">
+              <code className="text-gray-800 dark:text-gray-200">
+                {`
+                // TODO
+                `}
+              </code>
+            </pre>
           </div>
         </div>
       </div>

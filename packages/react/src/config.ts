@@ -38,7 +38,7 @@ export const CofhesdkReactConfigSchema = z.object({
     })
     .transform((lists) => lists as Partial<Record<number, string[]>>),
   position: z.enum(['bottom-right', 'bottom-left', 'top-right', 'top-left']).optional().default('bottom-right'),
-  showNativeTokenInList: z.boolean().optional().default(false),
+  initialTheme: z.enum(['dark', 'light']).optional().default('light'),
   /** Whether to record transaction history (for activity page). Default: false */
   recordTransactionHistory: z.boolean().optional().default(false),
 });
@@ -47,7 +47,7 @@ export const CofhesdkReactConfigSchema = z.object({
  * Input config type inferred from the schema
  */
 export type CofhesdkReactInputConfig = CofhesdkInputConfig & {
-  react: z.input<typeof CofhesdkReactConfigSchema>;
+  react?: z.input<typeof CofhesdkReactConfigSchema>;
 };
 
 export type CofhesdkConfigWithReact = CofhesdkConfig & {

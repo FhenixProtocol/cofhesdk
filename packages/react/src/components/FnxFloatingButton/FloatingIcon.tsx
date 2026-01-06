@@ -11,7 +11,8 @@ interface FloatingIconProps {
 }
 
 export const FloatingIcon: React.FC<FloatingIconProps> = ({ onClick, className }) => {
-  const { isExpanded, darkMode } = useFnxFloatingButtonContext();
+  const { isExpanded, theme } = useFnxFloatingButtonContext();
+  const darkMode = theme === 'dark';
   const [isHovered, setIsHovered] = useState(false);
 
   // Show X when expanded, otherwise show custom icon or fhenix logo

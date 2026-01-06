@@ -7,10 +7,11 @@ import {
   ReceivePermitPage,
   SendPage,
   SettingsPage,
-  ShieldPage,
+  // ShieldPage,
   TokenInfoPage,
   TokenListPage,
   DebugPage,
+  ShieldPageV2,
 } from '../pages';
 
 import type { FC } from 'react';
@@ -22,7 +23,8 @@ export const pages: Record<FloatingButtonPage, FC<any>> = {
   [FloatingButtonPage.TokenList]: TokenListPage,
   [FloatingButtonPage.TokenInfo]: TokenInfoPage,
   [FloatingButtonPage.Send]: SendPage,
-  [FloatingButtonPage.Shield]: ShieldPage,
+  // [FloatingButtonPage.Shield]: ShieldPage,
+  [FloatingButtonPage.Shield]: ShieldPageV2,
   [FloatingButtonPage.Activity]: ActivityPage,
   [FloatingButtonPage.Permits]: PermitsListPage,
   [FloatingButtonPage.GeneratePermits]: GeneratePermitPage,

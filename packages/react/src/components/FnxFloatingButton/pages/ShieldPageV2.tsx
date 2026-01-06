@@ -3,27 +3,28 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { TbShieldPlus, TbShieldMinus } from 'react-icons/tb';
 import { useMemo, useState } from 'react';
 import { type Address, formatUnits, parseUnits } from 'viem';
-import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext.js';
-import { useCofheAccount, useCofheChainId, useCofhePublicClient } from '../../../hooks/useCofheConnection.js';
+import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext';
+import { useCofheAccount, useCofheChainId, useCofhePublicClient } from '../../../hooks/useCofheConnection';
 import {
   useCofheConfidentialTokenBalance,
   useCofhePinnedTokenAddress,
   useCofhePublicTokenBalance,
   useCofheTokenMetadata,
-} from '../../../hooks/useCofheTokenBalance.js';
-import { useCofheTokens } from '../../../hooks/useCofheTokenLists.js';
+} from '../../../hooks/useCofheTokenBalance';
+import { useCofheToken, useCofheTokens } from '../../../hooks/useCofheTokenLists';
 import {
   useCofheClaimUnshield,
   useCofheTokenShield,
   useCofheTokenUnshield,
   useCofheUnshieldClaims,
-} from '../../../hooks/useCofheTokenShield.js';
-import { cn } from '../../../utils/cn.js';
-import { truncateHash } from '../../../utils/utils.js';
-import { ActionButton, AmountInput, TokenBalance, TokenIcon } from '../components/index.js';
+} from '../../../hooks/useCofheTokenShield';
+import { cn } from '../../../utils/cn';
+import { truncateHash } from '../../../utils/utils';
+import { ActionButton, AmountInput, TokenBalance, TokenIcon } from '../components/index';
+import { TokenBalanceView } from '../components/TokenBalance';
 
 const SUCCESS_TIMEOUT = 5000;
-const DISPLAY_DECIMALS = 2;
+const DISPLAY_DECIMALS = 5;
 
 type Mode = 'shield' | 'unshield';
 
@@ -54,8 +55,7 @@ export const ShieldPageV2: React.FC = () => {
 
   const pinnedTokenAddress = useCofhePinnedTokenAddress();
 
-  const activeTokenAddress =
-    selectedToken && !selectedToken.isNative ? (selectedToken.address as Address) : pinnedTokenAddress;
+  const activeTokenAddress = selectedToken ? selectedToken.address : pinnedTokenAddress;
 
   const shieldableTokens = useMemo(() => {
     return tokens.filter((t) => {
@@ -64,14 +64,9 @@ export const ShieldPageV2: React.FC = () => {
     });
   }, [tokens]);
 
-  const tokenFromList = useMemo(() => {
-    if (!activeTokenAddress || !chainId) return null;
-    return (
-      shieldableTokens.find(
-        (t) => t.chainId === chainId && t.address.toLowerCase() === activeTokenAddress.toLowerCase()
-      ) || null
-    );
-  }, [activeTokenAddress, chainId, shieldableTokens]);
+  const tokenFromList = useCofheToken({
+    address: activeTokenAddress,
+  });
 
   const { data: tokenMetadata } = useCofheTokenMetadata(activeTokenAddress);
 
@@ -346,16 +341,13 @@ export const ShieldPageV2: React.FC = () => {
               <p className="text-sm font-medium">{sourceSymbol}</p>
               <p className="text-xxs opacity-70">
                 Available{' '}
-                <TokenBalance
-                  value={sourceAvailable}
+                <TokenBalanceView
+                  formattedBalance={sourceAvailable ? sourceAvailable.toFixed(DISPLAY_DECIMALS) : '0'}
                   isLoading={isLoadingSource}
                   symbol={sourceSymbol}
-                  showSymbol={false}
-                  decimalPrecision={DISPLAY_DECIMALS}
                   size="sm"
                   className="inline font-bold"
-                />{' '}
-                {sourceSymbol}
+                />
               </p>
             </div>
           </div>
@@ -379,16 +371,13 @@ export const ShieldPageV2: React.FC = () => {
               <p className="text-sm font-medium">{destSymbol}</p>
               <p className="text-xxs opacity-70">
                 Balance{' '}
-                <TokenBalance
-                  value={destAvailable}
+                <TokenBalanceView
+                  formattedBalance={destAvailable ? destAvailable.toFixed(DISPLAY_DECIMALS) : '0'}
                   isLoading={isLoadingDest}
                   symbol={destSymbol}
-                  showSymbol={false}
-                  decimalPrecision={DISPLAY_DECIMALS}
                   size="sm"
                   className="inline font-bold"
-                />{' '}
-                {destSymbol}
+                />
               </p>
             </div>
           </div>
