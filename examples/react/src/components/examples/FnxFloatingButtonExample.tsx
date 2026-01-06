@@ -4,7 +4,7 @@ import { useCofheContext } from '@cofhe/react';
 // Example with Material UI icons
 export const FnxFloatingButtonExample: React.FC = () => {
   const {
-    state: { position, setPosition, darkMode, setDarkMode },
+    state: { position, setPosition, theme, setTheme },
   } = useCofheContext();
 
   return (
@@ -46,15 +46,15 @@ export const FnxFloatingButtonExample: React.FC = () => {
             <div className="mb-6">
               <label className="block text-sm font-medium mb-2">Dark Mode:</label>
               <button
-                onClick={() => setDarkMode(!darkMode)}
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                 className={`px-4 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 ${
-                  darkMode
+                  theme === 'dark'
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                 }`}
               >
-                <span>{darkMode ? '🌙' : '☀️'}</span>
-                <span>{darkMode ? 'Dark Mode' : 'Light Mode'}</span>
+                <span>{theme === 'dark' ? '🌙' : '☀️'}</span>
+                <span>{theme === 'dark' ? 'Dark Mode' : 'Light Mode'}</span>
               </button>
             </div>
 
