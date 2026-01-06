@@ -14,7 +14,7 @@ interface ContentSectionProps {
 }
 
 export const ContentSection: React.FC<ContentSectionProps> = ({ contentPadding = 16, overriddingPage }) => {
-  const { currentPage: pageFromContext, showPopupPanel, isLeftSide } = useFnxFloatingButtonContext();
+  const { currentPage: pageFromContext, contentExpanded, isLeftSide } = useFnxFloatingButtonContext();
   const currentPage = overriddingPage ?? pageFromContext;
 
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -28,7 +28,7 @@ export const ContentSection: React.FC<ContentSectionProps> = ({ contentPadding =
 
   // React to dynamic size changes inside the active page (e.g., toggling fields)
   useEffect(() => {
-    if (!showPopupPanel) return;
+    if (!contentExpanded) return;
     const el = contentRef.current;
     if (!el || typeof ResizeObserver === 'undefined') return;
 
@@ -40,7 +40,7 @@ export const ContentSection: React.FC<ContentSectionProps> = ({ contentPadding =
     });
     observer.observe(el);
     return () => observer.disconnect();
-  }, [showPopupPanel, contentPadding]);
+  }, [contentExpanded, contentPadding]);
 
   // Update content when page changes
   useEffect(() => {
@@ -50,7 +50,7 @@ export const ContentSection: React.FC<ContentSectionProps> = ({ contentPadding =
       setDisplayedContent(<PageComp {...props} />);
       setIsTransitioning(false);
     }
-    if (!showPopupPanel) {
+    if (!contentExpanded) {
       setIsTransitioning(true);
       setTimeout(() => {
         renderPage();
@@ -58,16 +58,16 @@ export const ContentSection: React.FC<ContentSectionProps> = ({ contentPadding =
     } else {
       renderPage();
     }
-  }, [currentPage, showPopupPanel]);
+  }, [currentPage, contentExpanded]);
 
   return (
-    <div className="fnx-content-container flex" data-left={isLeftSide} data-open={showPopupPanel}>
+    <div className="fnx-content-container flex" data-left={isLeftSide} data-open={contentExpanded}>
       <div
         className="fnx-content-panel"
-        data-open={showPopupPanel}
+        data-open={contentExpanded}
         style={
           {
-            '--fnx-content-height': showPopupPanel ? `${contentHeight}px` : undefined,
+            '--fnx-content-height': contentExpanded ? `${contentHeight}px` : undefined,
             '--fnx-content-padding': `${contentPadding}px`,
           } as React.CSSProperties
         }

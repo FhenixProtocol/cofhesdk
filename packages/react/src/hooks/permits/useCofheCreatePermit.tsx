@@ -6,13 +6,13 @@ type Input = {
   ReasonBody?: React.FC;
 };
 export const useCofheCreatePermit = ({ ReasonBody }: Input) => {
-  const { navigateTo, navigateBack, expandPanel, isExpanded } = useFnxFloatingButtonContext();
+  const { navigateTo, navigateBack, onOpen, isOpen } = useFnxFloatingButtonContext();
 
   return useCallback(() => {
-    if (!isExpanded) expandPanel();
+    if (!isOpen) onOpen();
     navigateTo(FloatingButtonPage.GeneratePermits, {
       pageProps: { overridingBody: ReasonBody ? <ReasonBody /> : undefined, onSuccessNavigateTo: () => navigateBack() },
       navigateParams: { skipPagesHistory: true },
     });
-  }, [ReasonBody, expandPanel, isExpanded, navigateBack, navigateTo]);
+  }, [ReasonBody, onOpen, isOpen, navigateBack, navigateTo]);
 };

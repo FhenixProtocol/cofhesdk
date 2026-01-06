@@ -4,10 +4,10 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext.js';
 
 export const StatusBarSection: React.FC<{ children?: ReactNode }> = ({ children }) => {
-  const { isExpanded, isLeftSide } = useFnxFloatingButtonContext();
+  const { statusBarExpanded, isLeftSide } = useFnxFloatingButtonContext();
   return (
     <AnimatePresence>
-      {isExpanded && (
+      {statusBarExpanded && (
         <motion.div
           className={cn('fnx-status-bar flex flex-1 h-12 items-center justify-between px-4')}
           initial={{ opacity: 0, x: isLeftSide ? -10 : 10 }}

@@ -27,7 +27,7 @@ const FALLBACK_BY_ERROR_TYPE: ErrorFallbackDefinition[] = [
     checkFn: (error: unknown) => error instanceof CofhesdkError && error.code === CofhesdkErrorCode.PermitNotFound,
     componentConstructor: ({ floatingButtonProps, restOfTheChildren }) => {
       const Component: React.FC<FallbackProps> = ({ error, resetErrorBoundary }) => {
-        const { isExpanded, expandPanel } = useFnxFloatingButtonContext();
+        const { isOpen, onOpen } = useFnxFloatingButtonContext();
         const overriddingPage = useMemo<PageState>(() => {
           const errorCause = getErrorCause(error);
           const OverridingBodyComponent = errorCause ? CREATE_PERMITT_BODY_BY_ERROR_CAUSE[errorCause] : undefined;
@@ -49,8 +49,8 @@ const FALLBACK_BY_ERROR_TYPE: ErrorFallbackDefinition[] = [
           };
         }, [error, resetErrorBoundary]);
         useEffect(() => {
-          if (!isExpanded) expandPanel();
-        }, [expandPanel, isExpanded]);
+          if (!isOpen) onOpen();
+        }, [onOpen, isOpen]);
         return (
           <>
             <FnxFloatingButtonBase {...floatingButtonProps} overriddingPage={overriddingPage} />

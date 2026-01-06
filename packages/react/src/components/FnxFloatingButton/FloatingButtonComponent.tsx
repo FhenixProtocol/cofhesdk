@@ -4,7 +4,7 @@ import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
 import { FhenixLogoIcon } from '../FhenixLogoIcon';
 
 export const FloatingButtonComponent: React.FC<{ onClick: () => void }> = ({ onClick }) => {
-  const { isExpanded, theme } = useFnxFloatingButtonContext();
+  const { isOpen, theme } = useFnxFloatingButtonContext();
 
   return (
     <button
@@ -18,8 +18,8 @@ export const FloatingButtonComponent: React.FC<{ onClick: () => void }> = ({ onC
       )}
     >
       <div className="fnx-icon-inner flex items-center justify-center">
-        {isExpanded && <CloseIcon className="fnx-icon-close" />}
-        {!isExpanded && <FhenixLogoIcon theme={theme} className="w-10 h-10" />}
+        {isOpen && <CloseIcon className="fnx-icon-close" />}
+        {!isOpen && <FhenixLogoIcon theme={theme} className="w-10 h-10" />}
       </div>
     </button>
   );
