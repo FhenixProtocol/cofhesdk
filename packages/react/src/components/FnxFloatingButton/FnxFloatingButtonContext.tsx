@@ -42,14 +42,15 @@ interface FnxFloatingButtonContextValue {
   navigateBack: () => void;
   theme: 'dark' | 'light';
   effectivePosition: FloatingButtonPosition;
-  isOpen: boolean;
-  statusBarExpanded: boolean; // Status bar is expanded when panel is opened or status is populated with warning/error
-  contentExpanded: boolean; // Panel is expanded when main content is visible (generating permit etc)
   isLeftSide: boolean;
   isTopSide: boolean;
-  onOpen: () => void;
-  onClose: () => void;
-  onToggleOpen: (externalOnClick?: () => void) => void;
+
+  openPortal: () => void;
+  closePortal: () => void;
+  togglePortal: (externalOnClick?: () => void) => void;
+  portalOpen: boolean;
+  statusPanelOpen: boolean; // Status bar is expanded when panel is opened or status is populated with warning/error
+  contentPanelOpen: boolean; // Panel is expanded when main content is visible (generating permit etc)
 
   tokenListMode: TokenListMode;
   selectedToken?: Token;
@@ -81,9 +82,11 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
 
   const [pageHistory, setPageHistory] = useState<PageState[]>([{ page: FloatingButtonPage.Main }]);
   const [overridingPage, setOverridingPage] = useState<PageState | null>(null);
-  const [isOpen, setIsOpen] = useState(false);
-  const [statusBarExpanded, setStatusBarExpanded] = useState(false);
-  const [contentExpanded, setContentExpanded] = useState(false);
+
+  const [portalOpen, setPortalOpen] = useState(false);
+  const [statusPanelOpen, setStatusPanelOpen] = useState(false);
+  const [contentPanelOpen, setContentPanelOpen] = useState(false);
+
   const [tokenListMode, setTokenListMode] = useState<TokenListMode>('view');
   const [selectedToken, setSelectedToken] = useState<Token>();
   const [viewingToken, setViewingToken] = useState<Token>();
@@ -108,8 +111,8 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   const isLeftSide = effectivePosition.includes('left');
   const isTopSide = effectivePosition.includes('top');
 
-  const onOpen = () => {
-    setIsOpen(true);
+  const openPortal = () => {
+    setPortalOpen(true);
 
     // Cancel closing timeout
     if (closeTimeoutRef.current) {
@@ -117,20 +120,20 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
       closeTimeoutRef.current = null;
     }
 
-    if (statusBarExpanded) {
+    if (statusPanelOpen) {
       // If status bar is already expanded, expand content immediately
-      setContentExpanded(true);
+      setContentPanelOpen(true);
     } else {
       // Else expand it immediately and expand content after a delay
-      setStatusBarExpanded(true);
+      setStatusPanelOpen(true);
       openTimeoutRef.current = setTimeout(() => {
-        setContentExpanded(true);
+        setContentPanelOpen(true);
       }, ANIM_DURATION);
     }
   };
 
-  const onClose = () => {
-    setIsOpen(false);
+  const closePortal = () => {
+    setPortalOpen(false);
 
     // Cancel opening timeout
     if (openTimeoutRef.current) {
@@ -139,20 +142,20 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
     }
 
     // Close content panel immediately
-    setContentExpanded(false);
+    setContentPanelOpen(false);
 
     // Close status bar after a delay (if no status is being shown)
     // TODO: Don't collapse status bar if a status is being shown
     const hasStatus = false;
     if (!hasStatus) {
       closeTimeoutRef.current = setTimeout(() => {
-        setStatusBarExpanded(false);
+        setStatusPanelOpen(false);
       }, ANIM_DURATION);
     }
   };
 
-  const onToggleOpen = () => {
-    isOpen ? onClose() : onOpen();
+  const togglePortal = () => {
+    portalOpen ? closePortal() : openPortal();
   };
 
   function navigateTo<K extends PagesWithoutProps>(page: K, args?: NavigateArgs<K>): void;
@@ -250,14 +253,14 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
         navigateBack,
         theme,
         effectivePosition,
-        isOpen,
-        statusBarExpanded,
-        contentExpanded,
+        portalOpen,
+        statusPanelOpen,
+        contentPanelOpen,
         isLeftSide,
         isTopSide,
-        onOpen,
-        onClose,
-        onToggleOpen,
+        openPortal,
+        closePortal,
+        togglePortal,
         tokenListMode,
         selectedToken,
         navigateToTokenListForSelection,

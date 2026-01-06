@@ -26,7 +26,7 @@ export const FnxFloatingButtonBase: React.FC<FnxFloatingButtonProps> = ({
   positionType = 'fixed',
   overriddingPage,
 }) => {
-  const { effectivePosition, isTopSide, isLeftSide, onToggleOpen, theme } = useFnxFloatingButtonContext();
+  const { effectivePosition, isTopSide, isLeftSide, togglePortal, theme } = useFnxFloatingButtonContext();
   const darkMode = theme === 'dark';
 
   return (
@@ -50,7 +50,7 @@ export const FnxFloatingButtonBase: React.FC<FnxFloatingButtonProps> = ({
 
       {/* Button and Bar Row */}
       <div className={cn('flex w-full gap-3 items-center', isLeftSide ? 'flex-row' : 'flex-row-reverse')}>
-        <FloatingButtonComponent onClick={() => onToggleOpen()} />
+        <FloatingButtonComponent onClick={() => togglePortal()} />
 
         <StatusBarSection>
           <StatusBarContent />

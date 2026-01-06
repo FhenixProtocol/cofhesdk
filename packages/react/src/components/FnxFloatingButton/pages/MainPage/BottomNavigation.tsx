@@ -14,11 +14,11 @@ type NavItem = {
 };
 
 export const BottomNavigation: React.FC = () => {
-  const { navigateTo, navigateToTokenListForView, onOpen } = useFnxFloatingButtonContext();
+  const { navigateTo, navigateToTokenListForView, openPortal } = useFnxFloatingButtonContext();
   const iconClassName = 'w-4 h-4';
 
   const handleNavClick = (page: FloatingButtonPage) => {
-    onOpen();
+    openPortal();
 
     if (page === FloatingButtonPage.TokenList) {
       navigateToTokenListForView();
