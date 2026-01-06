@@ -70,11 +70,6 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
   const account = useCofheAccount();
   const chainId = useCofheChainId();
   const tokens = useCofheTokens(chainId);
-
-  const navigateToGeneratePermit = useCofheCreatePermit({
-    ReasonBody: CREATE_PERMITT_BODY_BY_ERROR_CAUSE[ErrorCause.AttemptToFetchConfidentialBalance],
-  });
-
   // If value is provided, use it directly (skip fetching)
   const useProvidedValue = value !== undefined;
 
@@ -137,23 +132,8 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
     return balanceType === BalanceType.Public ? isLoadingPublic : isLoadingConfidential;
   }, [useProvidedValue, isLoadingProp, isNative, balanceType, isLoadingNative, isLoadingPublic, isLoadingConfidential]);
 
-  const CONFIDENTIAL_VALUE_PLACEHOLDER = useMemo(
-    () => (
-      <div
-        onClick={(e) => {
-          e.stopPropagation();
-          navigateToGeneratePermit();
-        }}
-      >
-        {'* * *'}
-      </div>
-    ),
-    [navigateToGeneratePermit]
-  );
-
   // Format balance
   const displayBalance = useMemo(() => {
-    if (disabledDueToMissingPermit) return CONFIDENTIAL_VALUE_PLACEHOLDER;
     if (isNative) return nativeBalance;
     // If value is provided, format it
     if (useProvidedValue) {
@@ -171,8 +151,6 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
 
     return numValue.toFixed(decimalPrecision);
   }, [
-    disabledDueToMissingPermit,
-    CONFIDENTIAL_VALUE_PLACEHOLDER,
     isNative,
     nativeBalance,
     useProvidedValue,
@@ -183,25 +161,47 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
     value,
   ]);
 
-  // Show loading animation when loading
-  if (isLoading) {
-    return (
-      <span className={cn(sizeClasses[size], 'font-medium fnx-text-primary', className)}>
-        <LoadingDots size={size} />
-        {showSymbol && displaySymbol && ` ${displaySymbol}`}
-      </span>
-    );
-  }
+  return (
+    <TokenBalanceView
+      className={className}
+      size={size}
+      hidden={disabledDueToMissingPermit}
+      isLoading={isLoading}
+      displayedBalance={displayBalance}
+      symbol={showSymbol ? displaySymbol : undefined}
+    />
+  );
+};
 
-  if (!displayBalance) {
-    // ?
-    return null;
+export const TokenBalanceView: React.FC<
+  Pick<TokenBalanceProps, 'className' | 'size'> & {
+    displayedBalance: React.ReactNode;
+    symbol?: string;
+    isLoading?: boolean;
+    hidden?: boolean;
   }
-
+> = ({ className, size = 'md', displayedBalance, symbol, isLoading, hidden }) => {
   return (
     <span className={cn(sizeClasses[size], 'font-medium fnx-text-primary', className)}>
-      {displayBalance}
-      {showSymbol && displaySymbol && ` ${displaySymbol}`}
+      {hidden ? <ConfidentialValuePlaceholder /> : isLoading ? <LoadingDots size={size} /> : displayedBalance}
+      {symbol && ` ${symbol}`}
     </span>
+  );
+};
+
+const ConfidentialValuePlaceholder: React.FC = () => {
+  const navigateToGeneratePermit = useCofheCreatePermit({
+    ReasonBody: CREATE_PERMITT_BODY_BY_ERROR_CAUSE[ErrorCause.AttemptToFetchConfidentialBalance],
+  });
+
+  return (
+    <div
+      onClick={(e) => {
+        e.stopPropagation();
+        navigateToGeneratePermit();
+      }}
+    >
+      {'* * *'}
+    </div>
   );
 };
