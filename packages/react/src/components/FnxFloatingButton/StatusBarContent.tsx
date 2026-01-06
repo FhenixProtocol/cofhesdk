@@ -4,15 +4,50 @@ import { cn } from '@/utils';
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
 import { FloatingButtonPage } from './pagesConfig/types';
 import { FhenixLogoIcon } from '../FhenixLogoIcon';
-import type { FnxStatusVariant } from './types';
+import type { FnxStatus, FnxStatusVariant } from './types';
+import { type ReactNode, useMemo } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 
-const DefaultStatusContent: React.FC = () => {
-  const { navigateTo, status, theme } = useFnxFloatingButtonContext();
+const CARD_OFFSET = 8;
+const SCALE_FACTOR = 0.05;
 
-  if (status != null) return null;
+const StackWrapper: React.FC<{ children?: ReactNode; index: number; length: number; className?: string }> = ({
+  children,
+  index,
+  length,
+  className,
+}) => {
+  const invIndex = length - index - 1;
+  return (
+    <motion.div
+      className={cn(
+        'fnx-panel w-full h-full flex px-4 items-center justify-between absolute origin-top',
+        invIndex === 0 && 'events-none',
+        className
+      )}
+      initial={{
+        opacity: 0,
+      }}
+      animate={{
+        opacity: 1,
+        top: invIndex * -CARD_OFFSET,
+        scale: 1 - invIndex * SCALE_FACTOR,
+        zIndex: index,
+      }}
+      exit={{
+        opacity: 0,
+      }}
+    >
+      {children}
+    </motion.div>
+  );
+};
+
+const DefaultStatusContent: React.FC<{ length: number }> = ({ length }) => {
+  const { navigateTo, theme } = useFnxFloatingButtonContext();
 
   return (
-    <div className="fnx-panel w-full h-full flex px-4 items-center justify-between">
+    <StackWrapper index={0} length={length}>
       {/* Logo Icon */}
       <FhenixLogoIcon theme={theme} className="w-10 h-10" />
 
@@ -29,7 +64,7 @@ const DefaultStatusContent: React.FC = () => {
       >
         <MdOutlineSettings className="w-4 h-4" />
       </button>
-    </div>
+    </StackWrapper>
   );
 };
 
@@ -38,15 +73,18 @@ const statusTextColorMap: Record<FnxStatusVariant, string> = {
   warning: 'text-yellow-500',
 };
 
-const ActiveStatusContent: React.FC = () => {
-  const { status, theme } = useFnxFloatingButtonContext();
-
-  if (status == null) return null;
+const ActiveStatusContent: React.FC<{ status: FnxStatus; index: number; length: number }> = ({
+  status,
+  index,
+  length,
+}) => {
+  const { theme } = useFnxFloatingButtonContext();
 
   return (
-    <div
+    <StackWrapper
+      index={index}
+      length={length}
       className={cn(
-        'fnx-panel w-full h-full flex px-4 items-center justify-between',
         status.variant === 'error' && 'border-red-500',
         status.variant === 'warning' && 'border-yellow-500'
       )}
@@ -71,15 +109,21 @@ const ActiveStatusContent: React.FC = () => {
           {status.action.label}
         </button>
       )}
-    </div>
+    </StackWrapper>
   );
 };
 
 export const StatusBarContent: React.FC = () => {
-  return (
-    <>
-      <DefaultStatusContent />
-      <ActiveStatusContent />
-    </>
-  );
+  const { status } = useFnxFloatingButtonContext();
+
+  const stack = useMemo(() => {
+    const length = status != null ? 2 : 1;
+    if (status == null) return [<DefaultStatusContent key="default" length={length} />];
+    return [
+      <DefaultStatusContent key="default" length={length} />,
+      <ActiveStatusContent key="active" status={status} index={1} length={length} />,
+    ];
+  }, [status]);
+
+  return <AnimatePresence>{stack}</AnimatePresence>;
 };
