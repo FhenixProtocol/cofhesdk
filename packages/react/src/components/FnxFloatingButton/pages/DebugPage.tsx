@@ -1,9 +1,9 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { useFnxFloatingButtonContext, FNX_DEFAULT_TOAST_DURATION } from '../FnxFloatingButtonContext.js';
+import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext.js';
 import { ToastPrimitive, ToastPrimitiveBase } from '../components/ToastPrimitives.js';
 
 export const DebugPage: React.FC = () => {
-  const { navigateBack, addToast } = useFnxFloatingButtonContext();
+  const { navigateBack, addToast, setStatus, clearStatus } = useFnxFloatingButtonContext();
 
   return (
     <div className="fnx-text-primary space-y-3">
@@ -11,6 +11,55 @@ export const DebugPage: React.FC = () => {
         <ArrowBackIcon style={{ fontSize: 16 }} />
         <span>Back</span>
       </button>
+      <div className="flex flex-col gap-3">
+        <p className="text-sm font-medium">Debug</p>
+        <p className="text-xs">Status:</p>
+        <button
+          onClick={() => {
+            clearStatus();
+          }}
+        >
+          Clear Status
+        </button>
+        <button
+          onClick={() => {
+            setStatus({
+              variant: 'warning',
+              title: 'Warning status',
+              description: 'This is a warning status',
+            });
+          }}
+        >
+          Warning Status
+        </button>
+        <button
+          onClick={() => {
+            setStatus({
+              variant: 'error',
+              title: 'Error status',
+              description: 'This is an error status',
+            });
+          }}
+        >
+          Error Status
+        </button>
+        <button
+          onClick={() => {
+            setStatus({
+              variant: 'warning',
+              title: 'Warning status',
+              action: {
+                label: 'RESOLVE',
+                onClick: () => {
+                  clearStatus();
+                },
+              },
+            });
+          }}
+        >
+          Status with Resolution action
+        </button>
+      </div>
       <div className="flex flex-col gap-3">
         <p className="text-sm font-medium">Debug</p>
         <p className="text-xs">Toasts:</p>

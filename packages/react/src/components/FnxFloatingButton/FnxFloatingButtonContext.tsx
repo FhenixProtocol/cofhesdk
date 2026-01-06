@@ -1,5 +1,5 @@
 import { type ReactNode, createContext, useContext, useState, useEffect, isValidElement, useRef } from 'react';
-import type { FloatingButtonPosition, FnxFloatingButtonToast, FnxToastImperativeParams } from './types';
+import type { FloatingButtonPosition, FnxFloatingButtonToast, FnxStatus, FnxToastImperativeParams } from './types';
 import { useCofheContext } from '../../providers';
 import { checkPendingTransactions, stopPendingTransactionPolling } from '../../stores/transactionStore';
 import { useCofhePublicClient } from '@/hooks/useCofheConnection';
@@ -66,6 +66,12 @@ interface FnxFloatingButtonContextValue {
   addToast: (toast: React.ReactNode | FnxToastImperativeParams, duration?: number | 'infinite') => void;
   pauseToast: (id: string, paused: boolean) => void;
   removeToast: (id: string) => void;
+
+  // Status
+  // TODO: should status be a list?
+  status: FnxStatus | undefined;
+  setStatus: (status: FnxStatus) => void;
+  clearStatus: () => void;
 }
 
 const FnxFloatingButtonContext = createContext<FnxFloatingButtonContextValue | null>(null);
@@ -91,6 +97,7 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   const [selectedToken, setSelectedToken] = useState<Token>();
   const [viewingToken, setViewingToken] = useState<Token>();
   const [toasts, setToasts] = useState<FnxFloatingButtonToast[]>([]);
+  const [status, setStatus] = useState<FnxStatus | undefined>(undefined);
 
   const openTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -98,8 +105,7 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   const publicClient = useCofhePublicClient();
 
   // Check pending transactions on mount
-
-  // TODO: shoul be wrapped into react-query too, because the way it is now is inefficient (i.e no batching etc) and prone to errors
+  // TODO: should be wrapped into react-query too, because the way it is now is inefficient (i.e no batching etc) and prone to errors
   useEffect(() => {
     checkPendingTransactions(() => publicClient);
     return () => {
@@ -120,12 +126,14 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
       closeTimeoutRef.current = null;
     }
 
-    if (statusPanelOpen) {
-      // If status bar is already expanded, expand content immediately
+    // Open status panel immediately
+    setStatusPanelOpen(true);
+
+    if (statusPanelOpen || status != null) {
+      // Expand content immediately if status panel is visible
       setContentPanelOpen(true);
     } else {
-      // Else expand it immediately and expand content after a delay
-      setStatusPanelOpen(true);
+      // Else expand content after a delay
       openTimeoutRef.current = setTimeout(() => {
         setContentPanelOpen(true);
       }, ANIM_DURATION);
@@ -144,14 +152,10 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
     // Close content panel immediately
     setContentPanelOpen(false);
 
-    // Close status bar after a delay (if no status is being shown)
-    // TODO: Don't collapse status bar if a status is being shown
-    const hasStatus = false;
-    if (!hasStatus) {
-      closeTimeoutRef.current = setTimeout(() => {
-        setStatusPanelOpen(false);
-      }, ANIM_DURATION);
-    }
+    // Close status bar after a delay
+    closeTimeoutRef.current = setTimeout(() => {
+      setStatusPanelOpen(false);
+    }, ANIM_DURATION);
   };
 
   const togglePortal = () => {
@@ -244,6 +248,13 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   };
 
+  const handleSetStatus = (status: FnxStatus) => {
+    setStatus(status);
+  };
+  const handleClearStatus = () => {
+    setStatus(undefined);
+  };
+
   return (
     <FnxFloatingButtonContext.Provider
       value={{
@@ -272,6 +283,9 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
         addToast,
         pauseToast,
         removeToast,
+        status,
+        setStatus: handleSetStatus,
+        clearStatus: handleClearStatus,
       }}
     >
       {children}

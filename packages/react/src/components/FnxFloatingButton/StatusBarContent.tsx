@@ -4,13 +4,16 @@ import { cn } from '@/utils';
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
 import { FloatingButtonPage } from './pagesConfig/types';
 import { FhenixLogoIcon } from '../FhenixLogoIcon';
+import type { FnxStatusVariant } from './types';
 
-export const StatusBarContent: React.FC = () => {
-  const { theme, navigateTo } = useFnxFloatingButtonContext();
+const DefaultStatusContent: React.FC = () => {
+  const { navigateTo, status, theme } = useFnxFloatingButtonContext();
+
+  if (status != null) return null;
 
   return (
-    <>
-      {/* Logo */}
+    <div className="fnx-panel w-full h-full flex px-4 items-center justify-between">
+      {/* Logo Icon */}
       <FhenixLogoIcon theme={theme} className="w-10 h-10" />
 
       {/* Status */}
@@ -26,6 +29,57 @@ export const StatusBarContent: React.FC = () => {
       >
         <MdOutlineSettings className="w-4 h-4" />
       </button>
+    </div>
+  );
+};
+
+const statusTextColorMap: Record<FnxStatusVariant, string> = {
+  error: 'text-red-500',
+  warning: 'text-yellow-500',
+};
+
+const ActiveStatusContent: React.FC = () => {
+  const { status, theme } = useFnxFloatingButtonContext();
+
+  if (status == null) return null;
+
+  return (
+    <div
+      className={cn(
+        'fnx-panel w-full h-full flex px-4 items-center justify-between',
+        status.variant === 'error' && 'border-red-500',
+        status.variant === 'warning' && 'border-yellow-500'
+      )}
+    >
+      {/* Logo Icon */}
+      <FhenixLogoIcon theme={theme} className="w-10 h-10" />
+
+      {/* Status Info */}
+      <div className="flex flex-col ml-2 mr-auto">
+        <h3 className={cn('text-sm font-medium', statusTextColorMap[status.variant])}>{status.title}</h3>
+        {status.description != null && (
+          <p className={cn('text-xs', statusTextColorMap[status.variant])}>{status.description}</p>
+        )}
+      </div>
+
+      {/* Action Button */}
+      {status.action != null && (
+        <button
+          onClick={status.action?.onClick}
+          className={cn('p-1 rounded fnx-hover-overlay transition-colors', 'fnx-text-primary')}
+        >
+          {status.action.label}
+        </button>
+      )}
+    </div>
+  );
+};
+
+export const StatusBarContent: React.FC = () => {
+  return (
+    <>
+      <DefaultStatusContent />
+      <ActiveStatusContent />
     </>
   );
 };
