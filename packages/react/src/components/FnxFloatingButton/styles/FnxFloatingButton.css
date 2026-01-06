@@ -4,8 +4,6 @@
     --fnx-bg-primary: #ffffff;
     --fnx-bg-status: #FFF8E1;
     --fnx-text-primary: #000000;
-    --fnx-text-status: #1f2937;
-    --fnx-glow-color: rgba(10, 217, 220, 0.50);
     --fnx-border-color: #e2e8f0;
     
     /* MainPage colors */
@@ -35,11 +33,7 @@
     --fnx-content-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     
     /* Sizing - defaults, will be overridden by inline CSS variables */
-    --fnx-button-size: 48px;
     --fnx-border-radius: 0x;
-    
-    /* Typography */
-    --fnx-settings-icon-size: 20px;
     
     /* Token list */
     --fnx-token-list-max-height: 250px;
@@ -58,7 +52,6 @@
     --fnx-bg-status: #2d2d2d;
     --fnx-text-primary: #ffffff;
     --fnx-text-status: #e0e0e0;
-    --fnx-glow-color: rgba(10, 217, 220, 0.50);
     --fnx-border-color: rgba(255, 255, 255, 0.3);
     
     /* MainPage dark mode colors */
@@ -88,23 +81,14 @@
   }
 }
 
-/* Component-specific utilities */
-.fnx-glow {
-  box-shadow: 0 0 6px 0 var(--fnx-glow-color);
-}
-
 .fnx-text-primary {
   color: var(--fnx-text-primary);
-}
-
-.fnx-text-status {
-  color: var(--fnx-text-status);
 }
 
 /* FloatingIcon styles */
 .fnx-floating-icon {
   background-color: var(--fnx-bg-primary);
-  border: 1px solid var(--fnx-border-color) !important;
+  border: 1px solid var(--fnx-border-color);
   outline: none !important;
   border-radius: var(--fnx-border-radius);
   position: relative;
@@ -113,64 +97,6 @@
   box-shadow: var(--fnx-content-shadow);
   transition: box-shadow var(--fnx-transition-duration) ease-in-out;
 }
-
-.fnx-floating-icon:focus {
-  outline: none !important;
-  /* border: none !important;
-  box-shadow: 0 0 6px 0 var(--fnx-glow-color) !important; */
-}
-
-.fnx-floating-icon:focus-visible {
-  outline: none !important;
-  /* border: none !important;
-  box-shadow: 0 0 6px 0 var(--fnx-glow-color) !important; */
-}
-
-.fnx-floating-icon:active {
-  outline: none !important;
-  /* border: none !important; */
-}
-
-.fnx-icon-inner {
-  transition: transform var(--fnx-transition-duration-fast) ease-in-out;
-}
-
-.fnx-icon-close {
-  font-size: var(--fnx-button-size);
-}
-
-.fnx-icon-image {
-  width: var(--fnx-icon-size);
-  height: var(--fnx-icon-size);
-  object-fit: contain;
-}
-
-/* FloatingIcon corner accents (2 opposite corners) - Optional */
-/* .fnx-floating-icon::before,
-.fnx-floating-icon::after {
-  content: '';
-  position: absolute;
-  width: var(--fnx-corner-size);
-  height: var(--fnx-corner-size);
-  border: 2px solid var(--fnx-corner-accent-color);
-  z-index: 2;
-}
-
-.fnx-floating-icon::before {
-  top: 0;
-  left: 0;
-  border-right: none;
-  border-bottom: none;
-  border-top-left-radius: var(--fnx-border-radius);
-}
-
-.fnx-floating-icon::after {
-  bottom: 0;
-  right: 0;
-  border-left: none;
-  border-top: none;
-  border-bottom-right-radius: var(--fnx-border-radius);
-} */
 
 .fnx-status-bar {
   background-color: var(--fnx-bg-primary);
@@ -181,91 +107,10 @@
   box-shadow: var(--fnx-content-shadow);
 }
 
-.fnx-settings-icon {
-  font-size: var(--fnx-settings-icon-size);
-}
-
-/* ContentSection styles */
-.fnx-content-container {
-  position: relative;
-  transition: box-shadow var(--fnx-transition-duration) ease-in-out;
-}
-
-.fnx-content-container[data-open="true"] {
-  border: 1px solid var(--fnx-border-color);
-  box-shadow: var(--fnx-content-shadow);
-}
-
-/* Corner accent styles - common base - COMMENTED OUT */
-/*
-.fnx-content-container[data-open="true"]::before,
-.fnx-content-container[data-open="true"]::after,
-.fnx-content-panel[data-open="true"]::before,
-.fnx-content-panel[data-open="true"]::after {
-  content: '';
-  position: absolute;
-  width: var(--fnx-corner-size);
-  height: var(--fnx-corner-size);
-  border: 2px solid var(--fnx-corner-accent-color);
-}
-
-Container corners (bottom)
-.fnx-content-container[data-open="true"]::before,
-.fnx-content-container[data-open="true"]::after {
-  z-index: 2;
-  bottom: 0;
-  border-top: none;
-}
-
-.fnx-content-container[data-open="true"]::before {
-  left: 0;
-  border-right: none;
-  border-bottom-left-radius: var(--fnx-border-radius);
-}
-
-.fnx-content-container[data-open="true"]::after {
-  right: 0;
-  border-left: none;
-  border-bottom-right-radius: var(--fnx-border-radius);
-}
-
-Panel corners (top)
-.fnx-content-panel[data-open="true"]::before,
-.fnx-content-panel[data-open="true"]::after {
-  z-index: 1;
-  top: 0;
-  border-bottom: none;
-}
-
-.fnx-content-panel[data-open="true"]::before {
-  left: 0;
-  border-right: none;
-  border-top-left-radius: var(--fnx-border-radius);
-}
-
-.fnx-content-panel[data-open="true"]::after {
-  right: 0;
-  border-left: none;
-  border-top-right-radius: var(--fnx-border-radius);
-}
-*/
-
 .fnx-content-panel {
+  border: 1px solid var(--fnx-border-color);
   background-color: var(--fnx-bg-primary);
   box-shadow: var(--fnx-content-shadow);
-}
-
-/* MainPage styles */
-.fnx-main-page {
-  /* background-image: 
-    repeating-linear-gradient(
-      45deg,
-      transparent,
-      transparent 10px,
-      var(--fnx-pattern-overlay) 10px,
-      var(--fnx-pattern-overlay) 20px
-    );
-  background-size: 20px 20px; */
 }
 
 /* MainPage component utility classes */

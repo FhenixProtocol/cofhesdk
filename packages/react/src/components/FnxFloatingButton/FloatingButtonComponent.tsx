@@ -17,8 +17,8 @@ export const FloatingButtonComponent: React.FC<{ onClick: () => void }> = ({ onC
         'focus:outline-none'
       )}
     >
-      <div className="fnx-icon-inner flex items-center justify-center">
-        {isOpen && <CloseIcon className="fnx-icon-close" />}
+      <div className="flex items-center justify-center">
+        {isOpen && <CloseIcon className="w-6 h-6" />}
         {!isOpen && <FhenixLogoIcon theme={theme} className="w-10 h-10" />}
       </div>
     </button>
