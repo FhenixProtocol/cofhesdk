@@ -6,7 +6,7 @@ import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext';
 import { useCofheContext } from '../../../providers/CofheProvider';
 import { useCofheAccount } from '../../../hooks/useCofheConnection';
 import {
-  useCofheTokenConfidentialBalance,
+  useCofheTokenDecryptedBalance,
   useCofheTokenMetadata,
   useCofhePinnedTokenAddress,
 } from '../../../hooks/useCofheTokenBalance';
@@ -32,7 +32,7 @@ export const SendPage: React.FC = () => {
   const tokenFromList = useCofheToken({
     address: activeTokenAddress,
   });
-  const { data: confidentialBalance } = useCofheTokenConfidentialBalance({
+  const { data: confidentialBalance } = useCofheTokenDecryptedBalance({
     token: tokenFromList,
     accountAddress: account,
   });

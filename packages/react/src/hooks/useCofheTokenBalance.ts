@@ -1,12 +1,12 @@
 import { type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
 import { formatUnits, type Address } from 'viem';
-import { CofhesdkError, FheTypes } from '@cofhe/sdk';
+import { FheTypes } from '@cofhe/sdk';
 import { useCofheAccount, useCofheChainId, useCofhePublicClient } from './useCofheConnection.js';
 import { useCofheContext } from '../providers/CofheProvider.js';
 import { type Token, ETH_ADDRESS } from './useCofheTokenLists.js';
 import { CONFIDENTIAL_ABIS } from '../constants/confidentialTokenABIs.js';
 import { ERC20_BALANCE_OF_ABI, ERC20_DECIMALS_ABI, ERC20_SYMBOL_ABI, ERC20_NAME_ABI } from '../constants/erc20ABIs.js';
-import { withQueryErrorCause, ErrorCause } from '@/utils/errors.js';
+import { ErrorCause } from '@/utils/errors.js';
 import { useCofheActivePermit } from './useCofhePermits.js';
 import { assert } from 'ts-essentials';
 import { useIsCofheErrorActive } from './useIsCofheErrorActive.js';
@@ -252,7 +252,7 @@ export function useCofheTokenSymbol(
  * @param queryOptions - Optional React Query options
  * @returns Query result with ciphertext bigint
  */
-export function useCofheTokenEncryptedBalance(
+function useCofheTokenConfidentialBalance(
   {
     token,
     accountAddress,
@@ -332,7 +332,7 @@ export function useCofheTokenEncryptedBalance(
  * @param queryOptions - Optional React Query options
  * @returns Query result with decrypted balance as bigint
  */
-export function useCofheTokenConfidentialBalance(
+export function useCofheTokenDecryptedBalance(
   {
     token,
     accountAddress,
@@ -344,7 +344,7 @@ export function useCofheTokenConfidentialBalance(
 ): UseQueryResult<bigint | undefined, Error> & {
   disabledDueToMissingPermit: boolean;
 } {
-  const encrypted = useCofheTokenEncryptedBalance({ token, accountAddress }, queryOptions);
+  const encrypted = useCofheTokenConfidentialBalance({ token, accountAddress }, queryOptions);
 
   const fheType = token?.extensions.fhenix.confidentialValueType === 'uint64' ? FheTypes.Uint64 : FheTypes.Uint128;
 
