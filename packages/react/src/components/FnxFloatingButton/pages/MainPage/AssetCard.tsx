@@ -39,14 +39,19 @@ export const AssetCard: React.FC = () => {
   }, [pinnedTokenAddress, tokenSymbol]);
 
   const handleClick = () => {
-    navigateToTokenInfo({
-      address: pinnedTokenAddress ?? 'native',
-      name: tokenFromList?.name ?? ticker,
-      symbol: ticker,
-      decimals: tokenMetadata?.decimals ?? 18,
-      logoURI: tokenFromList?.logoURI,
-      isNative: !pinnedTokenAddress,
-    });
+    if (pinnedTokenAddress) {
+      navigateToTokenInfo({
+        address: pinnedTokenAddress ?? 'native',
+        name: tokenFromList?.name ?? ticker,
+        symbol: ticker,
+        decimals: tokenMetadata?.decimals ?? 18,
+        logoURI: tokenFromList?.logoURI,
+        isNative: !pinnedTokenAddress,
+      });
+    } else {
+      // TODO: native token support
+      alert('Native token info navigation is not implemented yet.');
+    }
   };
 
   return (

@@ -23,7 +23,7 @@ import { truncateHash } from '../../../utils/utils.js';
 import { ActionButton, AmountInput, TokenBalance, TokenIcon } from '../components/index.js';
 
 const SUCCESS_TIMEOUT = 5000;
-const DISPLAY_DECIMALS = 2;
+const DISPLAY_DECIMALS = 5;
 
 type Mode = 'shield' | 'unshield';
 

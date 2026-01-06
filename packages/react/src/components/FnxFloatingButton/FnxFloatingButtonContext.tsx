@@ -24,6 +24,7 @@ export type NativeToken = {
   isNative: true;
 };
 
+// TODO: no need in this class since there's Token?
 export type SelectedToken = {
   address: Address;
   name: string;
@@ -31,7 +32,7 @@ export type SelectedToken = {
   decimals: number;
   logoURI?: string;
   isNative: boolean;
-} | null;
+};
 
 const OPEN_DELAY = 500; // Delay before showing popup in ms
 const CLOSE_DELAY = 300; // Delay before closing bar after popup closes
@@ -70,12 +71,12 @@ interface FnxFloatingButtonContextValue {
   handleClick: (externalOnClick?: () => void) => void;
 
   tokenListMode: TokenListMode;
-  selectedToken: SelectedToken;
+  selectedToken?: SelectedToken;
   navigateToTokenListForSelection: (title?: string) => void;
   navigateToTokenListForView: () => void;
   selectToken: (token: SelectedToken) => void;
   // Token viewing
-  viewingToken: SelectedToken;
+  viewingToken?: SelectedToken;
   navigateToTokenInfo: (token: SelectedToken) => void;
   // Config
   showNativeTokenInList: boolean;
@@ -106,8 +107,8 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   const [isExpanded, setIsExpanded] = useState(false);
   const [showPopupPanel, setShowPopupPanel] = useState(false);
   const [tokenListMode, setTokenListMode] = useState<TokenListMode>('view');
-  const [selectedToken, setSelectedToken] = useState<SelectedToken>(null);
-  const [viewingToken, setViewingToken] = useState<SelectedToken>(null);
+  const [selectedToken, setSelectedToken] = useState<SelectedToken>();
+  const [viewingToken, setViewingToken] = useState<SelectedToken>();
   const [toasts, setToasts] = useState<FnxFloatingButtonToast[]>([]);
 
   const publicClient = useCofhePublicClient();
