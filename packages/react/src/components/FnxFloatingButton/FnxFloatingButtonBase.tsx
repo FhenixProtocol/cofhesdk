@@ -1,5 +1,5 @@
-import { cn } from '../../utils/cn';
-import { FloatingIcon } from './FloatingIcon';
+import { cn } from '@/utils';
+import { FloatingButtonComponent } from './FloatingButtonComponent';
 import { StatusBarSection } from './StatusBarSection';
 import { StatusBarContent } from './StatusBarContent';
 import { ContentSection } from './ContentSection';
@@ -19,18 +19,14 @@ const positionStyles: Record<FloatingButtonPosition, string> = {
   'bottom-right': 'bottom-4 right-4',
 };
 
-const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
+export const FnxFloatingButtonBase: React.FC<FnxFloatingButtonProps> = ({
   className,
   testId,
   zIndex = 9999,
   positionType = 'fixed',
-  buttonClassName,
-  statusBarClassName,
-  contentSectionClassName,
-  toastsSectionClassName,
   overriddingPage,
 }) => {
-  const { effectivePosition, isTopSide, isLeftSide, handleClick, theme } = useFnxFloatingButtonContext();
+  const { effectivePosition, isTopSide, isLeftSide, togglePortal, theme } = useFnxFloatingButtonContext();
   const darkMode = theme === 'dark';
 
   return (
@@ -48,20 +44,18 @@ const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
         className
       )}
     >
-      <ToastsSection className={toastsSectionClassName} />
+      <ToastsSection />
 
-      <ContentSection className={contentSectionClassName} overriddingPage={overriddingPage} />
+      <ContentSection overriddingPage={overriddingPage} />
 
       {/* Button and Bar Row */}
-      <div className={cn('flex items-center', isLeftSide ? 'flex-row' : 'flex-row-reverse')}>
-        <FloatingIcon onClick={() => handleClick()} className={buttonClassName} />
+      <div className={cn('flex w-full gap-3 items-center', isLeftSide ? 'flex-row' : 'flex-row-reverse')}>
+        <FloatingButtonComponent onClick={() => togglePortal()} />
 
-        <StatusBarSection className={statusBarClassName}>
+        <StatusBarSection>
           <StatusBarContent />
         </StatusBarSection>
       </div>
     </div>
   );
 };
-
-export const FnxFloatingButtonBase: React.FC<FnxFloatingButtonProps> = (props) => <FnxFloatingButtonInner {...props} />;

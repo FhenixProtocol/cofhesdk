@@ -1,9 +1,9 @@
-import { cn } from '../../../utils/cn.js';
+import { cn } from '@/utils';
 
 // The icons probably needs to be part of the SDK chains package
 // Import chain icons
-import sepolia from '../assets/chains/11155111.svg';
-import baseSepolia from '../assets/chains/84532.svg';
+import sepolia from '@/assets/chains/11155111.svg';
+import baseSepolia from '@/assets/chains/84532.svg';
 
 const chainIcons: Record<number, React.FC<React.SVGProps<SVGSVGElement>>> = {
   11155111: sepolia,

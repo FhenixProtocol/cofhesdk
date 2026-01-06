@@ -1,4 +1,4 @@
-import { type ReactNode, createContext, useContext, useState, useEffect, isValidElement } from 'react';
+import { type ReactNode, createContext, useContext, useState, useEffect, isValidElement, useRef } from 'react';
 import type { FloatingButtonPosition, FnxFloatingButtonToast, FnxToastImperativeParams } from './types';
 import { useCofheContext } from '../../providers';
 import { checkPendingTransactions, stopPendingTransactionPolling } from '../../stores/transactionStore';
@@ -15,8 +15,7 @@ import type { Token } from '@/hooks';
 
 export type TokenListMode = 'view' | 'select';
 
-const OPEN_DELAY = 500; // Delay before showing popup in ms
-const CLOSE_DELAY = 300; // Delay before closing bar after popup closes
+const ANIM_DURATION = 300;
 
 type NavigateParams = {
   // When true, do not append to history; override current page instead
@@ -43,13 +42,15 @@ interface FnxFloatingButtonContextValue {
   navigateBack: () => void;
   theme: 'dark' | 'light';
   effectivePosition: FloatingButtonPosition;
-  isExpanded: boolean;
-  showPopupPanel: boolean;
   isLeftSide: boolean;
   isTopSide: boolean;
-  expandPanel: () => void;
-  collapsePanel: () => void;
-  handleClick: (externalOnClick?: () => void) => void;
+
+  openPortal: () => void;
+  closePortal: () => void;
+  togglePortal: (externalOnClick?: () => void) => void;
+  portalOpen: boolean;
+  statusPanelOpen: boolean; // Status bar is expanded when panel is opened or status is populated with warning/error
+  contentPanelOpen: boolean; // Panel is expanded when main content is visible (generating permit etc)
 
   tokenListMode: TokenListMode;
   selectedToken?: Token;
@@ -81,12 +82,18 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
 
   const [pageHistory, setPageHistory] = useState<PageState[]>([{ page: FloatingButtonPage.Main }]);
   const [overridingPage, setOverridingPage] = useState<PageState | null>(null);
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [showPopupPanel, setShowPopupPanel] = useState(false);
+
+  const [portalOpen, setPortalOpen] = useState(false);
+  const [statusPanelOpen, setStatusPanelOpen] = useState(false);
+  const [contentPanelOpen, setContentPanelOpen] = useState(false);
+
   const [tokenListMode, setTokenListMode] = useState<TokenListMode>('view');
   const [selectedToken, setSelectedToken] = useState<Token>();
   const [viewingToken, setViewingToken] = useState<Token>();
   const [toasts, setToasts] = useState<FnxFloatingButtonToast[]>([]);
+
+  const openTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const publicClient = useCofhePublicClient();
 
@@ -104,26 +111,51 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   const isLeftSide = effectivePosition.includes('left');
   const isTopSide = effectivePosition.includes('top');
 
-  const expandPanel = () => {
-    setIsExpanded(true);
-    setTimeout(() => {
-      setShowPopupPanel(true);
-    }, OPEN_DELAY);
-  };
+  const openPortal = () => {
+    setPortalOpen(true);
 
-  const collapsePanel = () => {
-    setShowPopupPanel(false);
-    setTimeout(() => {
-      setIsExpanded(false);
-    }, CLOSE_DELAY);
-  };
-
-  const handleClick = () => {
-    if (isExpanded) {
-      collapsePanel();
-    } else {
-      expandPanel();
+    // Cancel closing timeout
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
     }
+
+    if (statusPanelOpen) {
+      // If status bar is already expanded, expand content immediately
+      setContentPanelOpen(true);
+    } else {
+      // Else expand it immediately and expand content after a delay
+      setStatusPanelOpen(true);
+      openTimeoutRef.current = setTimeout(() => {
+        setContentPanelOpen(true);
+      }, ANIM_DURATION);
+    }
+  };
+
+  const closePortal = () => {
+    setPortalOpen(false);
+
+    // Cancel opening timeout
+    if (openTimeoutRef.current) {
+      clearTimeout(openTimeoutRef.current);
+      openTimeoutRef.current = null;
+    }
+
+    // Close content panel immediately
+    setContentPanelOpen(false);
+
+    // Close status bar after a delay (if no status is being shown)
+    // TODO: Don't collapse status bar if a status is being shown
+    const hasStatus = false;
+    if (!hasStatus) {
+      closeTimeoutRef.current = setTimeout(() => {
+        setStatusPanelOpen(false);
+      }, ANIM_DURATION);
+    }
+  };
+
+  const togglePortal = () => {
+    portalOpen ? closePortal() : openPortal();
   };
 
   function navigateTo<K extends PagesWithoutProps>(page: K, args?: NavigateArgs<K>): void;
@@ -221,13 +253,14 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
         navigateBack,
         theme,
         effectivePosition,
-        isExpanded,
-        showPopupPanel,
+        portalOpen,
+        statusPanelOpen,
+        contentPanelOpen,
         isLeftSide,
         isTopSide,
-        expandPanel,
-        collapsePanel,
-        handleClick,
+        openPortal,
+        closePortal,
+        togglePortal,
         tokenListMode,
         selectedToken,
         navigateToTokenListForSelection,

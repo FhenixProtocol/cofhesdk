@@ -1,24 +1,21 @@
 import { MdOutlineSettings } from 'react-icons/md';
 import { IoIosCheckmarkCircleOutline } from 'react-icons/io';
-import { cn } from '../../utils/cn';
-import logoBlack from './assets/fhenix-icon-black.png';
-import logoWhite from './assets/fhenix-icon-white.png';
+import { cn } from '@/utils';
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
 import { FloatingButtonPage } from './pagesConfig/types';
+import { FhenixLogoIcon } from '../FhenixLogoIcon';
 
 export const StatusBarContent: React.FC = () => {
   const { theme, navigateTo } = useFnxFloatingButtonContext();
-  const darkMode = theme === 'dark';
 
   return (
     <>
       {/* Logo */}
-      <img src={darkMode ? logoWhite : logoBlack} alt="Fhenix" className="fnx-status-logo" />
+      <FhenixLogoIcon theme={theme} className="w-10 h-10" />
+
       {/* Status */}
       <div className="flex items-center gap-1 ml-auto mr-2">
-        <span className="text-green-500">
-          <IoIosCheckmarkCircleOutline />
-        </span>
+        <IoIosCheckmarkCircleOutline className="text-green-500" />
         <span className="font-medium">Connected*</span>
       </div>
 

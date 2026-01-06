@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { cn } from '../../../utils/cn.js';
-import defaultTokenIcon from '../assets/default-token.webp';
+import { cn } from '@/utils';
+import defaultTokenIcon from '@/assets/default-token.webp';
 
 type TokenIconSize = 'sm' | 'md' | 'lg' | 'xl';
 
