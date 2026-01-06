@@ -19,15 +19,11 @@ const positionStyles: Record<FloatingButtonPosition, string> = {
   'bottom-right': 'bottom-4 right-4',
 };
 
-const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
+export const FnxFloatingButtonBase: React.FC<FnxFloatingButtonProps> = ({
   className,
   testId,
   zIndex = 9999,
   positionType = 'fixed',
-  buttonClassName,
-  statusBarClassName,
-  contentSectionClassName,
-  toastsSectionClassName,
   overriddingPage,
 }) => {
   const { effectivePosition, isTopSide, isLeftSide, handleClick, theme } = useFnxFloatingButtonContext();
@@ -48,20 +44,18 @@ const FnxFloatingButtonInner: React.FC<FnxFloatingButtonProps> = ({
         className
       )}
     >
-      <ToastsSection className={toastsSectionClassName} />
+      <ToastsSection />
 
-      <ContentSection className={contentSectionClassName} overriddingPage={overriddingPage} />
+      <ContentSection overriddingPage={overriddingPage} />
 
       {/* Button and Bar Row */}
       <div className={cn('flex items-center', isLeftSide ? 'flex-row' : 'flex-row-reverse')}>
-        <FloatingIcon onClick={() => handleClick()} className={buttonClassName} />
+        <FloatingIcon onClick={() => handleClick()} />
 
-        <StatusBarSection className={statusBarClassName}>
+        <StatusBarSection>
           <StatusBarContent />
         </StatusBarSection>
       </div>
     </div>
   );
 };
-
-export const FnxFloatingButtonBase: React.FC<FnxFloatingButtonProps> = (props) => <FnxFloatingButtonInner {...props} />;

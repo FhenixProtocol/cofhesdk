@@ -36,7 +36,6 @@
     
     /* Sizing - defaults, will be overridden by inline CSS variables */
     --fnx-button-size: 48px;
-    --fnx-icon-size: 38px;
     --fnx-bar-width: 340px;
     --fnx-gap-size: 48px;
     --fnx-border-radius: 0x;
@@ -44,9 +43,6 @@
     --fnx-status-radius: 10px;
     --fnx-statua-bar-offset: calc(var(--fnx-button-size) / -2);
     --fnx-content-offset: calc(var(--fnx-button-size) / 2);
-    
-    /* Scale factors */
-    --fnx-hover-scale: 1.1;
     
     /* Typography */
     --fnx-settings-icon-size: 20px;
@@ -92,19 +88,6 @@
     --fnx-send-button-disabled-text: #9ca3af;
     --fnx-corner-accent-color: #0AD9DC;
     --fnx-content-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-  }
-
-  /* Placeholder for different sizes */
-  .medium {
-    --fnx-button-size: 40px;
-    --fnx-border-radius: 12px;
-    --fnx-gap-size: 40px;
-  }
-
-  .small {
-    --fnx-button-size: 36px;
-    --fnx-border-radius: 8px;
-    --fnx-gap-size: 36px;
   }
 }
 
@@ -155,10 +138,6 @@
 
 .fnx-icon-inner {
   transition: transform var(--fnx-transition-duration-fast) ease-in-out;
-}
-
-.fnx-icon-inner[data-hovered="true"] {
-  transform: scale(var(--fnx-hover-scale));
 }
 
 .fnx-icon-close {
@@ -273,12 +252,6 @@
   border-top: none;
   border-bottom-right-radius: var(--fnx-border-radius); 
 } */
-
-.fnx-status-logo {
-  /*height: 48px;*/
-  width: 40px;
-  flex-shrink: 0;
-}
 
 .fnx-status-badge-inline {
   background-color: var(--fnx-bg-status);

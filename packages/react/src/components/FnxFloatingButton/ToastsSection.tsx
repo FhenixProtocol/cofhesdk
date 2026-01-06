@@ -5,10 +5,6 @@ import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
 import type { FnxFloatingButtonToast } from './types';
 import { cn } from '@/utils';
 
-interface ToastsSectionProps {
-  className?: string;
-}
-
 const ToastClearer = ({ id, paused, remainingMs }: { id: string; paused: boolean; remainingMs: number }) => {
   const { removeToast } = useFnxFloatingButtonContext();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -80,10 +76,10 @@ const ToastComponent: React.FC<FnxFloatingButtonToast> = ({ id, duration, paused
   );
 };
 
-export const ToastsSection: React.FC<ToastsSectionProps> = ({ className }) => {
+export const ToastsSection: React.FC = () => {
   const { toasts } = useFnxFloatingButtonContext();
   return (
-    <div className={cn('fnx-toasts-section flex flex-col gap-3', className)}>
+    <div className="fnx-toasts-section flex flex-col gap-3">
       <AnimatePresence>
         {toasts.map((toast) => (
           <ToastComponent key={toast.id} {...toast} />

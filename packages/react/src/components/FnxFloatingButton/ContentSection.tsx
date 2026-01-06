@@ -8,13 +8,12 @@ import { type PageState } from './pagesConfig/types';
 const CONTENT_TRANSITION_DURATION = 150; // Duration in milliseconds for content fade transition
 
 interface ContentSectionProps {
-  className?: string;
   contentPadding?: number;
   // intended for a case like: bring user to Generate Permit page, without affecting the history stack
   overriddingPage?: PageState;
 }
 
-export const ContentSection: React.FC<ContentSectionProps> = ({ className, contentPadding = 16, overriddingPage }) => {
+export const ContentSection: React.FC<ContentSectionProps> = ({ contentPadding = 16, overriddingPage }) => {
   const { currentPage: pageFromContext, showPopupPanel, isLeftSide } = useFnxFloatingButtonContext();
   const currentPage = overriddingPage ?? pageFromContext;
 
@@ -62,9 +61,9 @@ export const ContentSection: React.FC<ContentSectionProps> = ({ className, conte
   }, [currentPage, showPopupPanel]);
 
   return (
-    <div className={cn(className, 'fnx-content-container', 'flex')} data-left={isLeftSide} data-open={showPopupPanel}>
+    <div className="fnx-content-container flex" data-left={isLeftSide} data-open={showPopupPanel}>
       <div
-        className={cn('fnx-content-panel')}
+        className="fnx-content-panel"
         data-open={showPopupPanel}
         style={
           {

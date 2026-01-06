@@ -2,17 +2,12 @@ import type { ReactNode } from 'react';
 import { cn } from '../../utils/cn.js';
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext.js';
 
-interface StatusBarSectionProps {
-  className?: string;
-  children?: ReactNode;
-}
-
-export const StatusBarSection: React.FC<StatusBarSectionProps> = ({ className, children }) => {
+export const StatusBarSection: React.FC<{ children?: ReactNode }> = ({ children }) => {
   const { theme, isExpanded, isLeftSide } = useFnxFloatingButtonContext();
   const darkMode = theme === 'dark';
 
   return (
-    <div className={cn(className, 'fnx-status-bar-container flex')} data-left={isLeftSide} data-expanded={isExpanded}>
+    <div className="fnx-status-bar-container flex" data-left={isLeftSide} data-expanded={isExpanded}>
       <div
         className={cn('fnx-status-bar flex items-center', darkMode && 'dark')}
         data-expanded={isExpanded}

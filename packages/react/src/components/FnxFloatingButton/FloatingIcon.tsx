@@ -1,44 +1,24 @@
-import { useState } from 'react';
-import { cn } from '../../utils/cn.js';
-import fhenixIconBlack from './assets/fhenix-icon-black.png';
-import fhenixIconWhite from './assets/fhenix-icon-white.png';
+import { cn } from '@/utils';
 import CloseIcon from '@mui/icons-material/Close';
-import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext.js';
+import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
+import { FhenixLogoIcon } from '../FhenixLogoIcon';
 
-interface FloatingIconProps {
-  onClick: () => void;
-  className?: string;
-}
-
-export const FloatingIcon: React.FC<FloatingIconProps> = ({ onClick, className }) => {
+export const FloatingIcon: React.FC<{ onClick: () => void }> = ({ onClick }) => {
   const { isExpanded, theme } = useFnxFloatingButtonContext();
-  const darkMode = theme === 'dark';
-  const [isHovered, setIsHovered] = useState(false);
-
-  // Show X when expanded, otherwise show custom icon or fhenix logo
-  const displayIcon = isExpanded ? (
-    <CloseIcon className="fnx-icon-close" />
-  ) : (
-    <img src={darkMode ? fhenixIconWhite : fhenixIconBlack} alt="Fhenix" className="fnx-icon-image" />
-  );
 
   return (
     <button
       onClick={onClick}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
       className={cn(
         'fnx-floating-icon',
-        darkMode && 'dark',
         'transition-all duration-200 ease-in-out',
         'flex items-center justify-center cursor-pointer flex-shrink-0',
-        'hover:scale-105 active:scale-95',
-        'focus:outline-none',
-        className
+        'focus:outline-none'
       )}
     >
-      <div className="fnx-icon-inner flex items-center justify-center" data-hovered={isHovered}>
-        {displayIcon}
+      <div className="fnx-icon-inner flex items-center justify-center">
+        {isExpanded && <CloseIcon className="fnx-icon-close" />}
+        {!isExpanded && <FhenixLogoIcon theme={theme} className="w-10 h-10" />}
       </div>
     </button>
   );

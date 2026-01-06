@@ -9,11 +9,6 @@ export interface FnxFloatingButtonProps extends BaseProps {
   /** Position of the floating button */
   position?: FloatingButtonPosition;
 
-  buttonClassName?: string;
-  statusBarClassName?: string;
-  contentSectionClassName?: string;
-  toastsSectionClassName?: string;
-
   /** Z-index value (default: 9999) */
   zIndex?: number;
   /** Position type: 'fixed' stays on screen, 'absolute' positions within parent (default: 'fixed') */
