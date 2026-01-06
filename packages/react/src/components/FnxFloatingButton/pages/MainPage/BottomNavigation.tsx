@@ -24,7 +24,7 @@ export const BottomNavigation: React.FC = () => {
       navigateToTokenListForView();
       return;
     }
-    
+
     navigateTo(page as any);
   };
 

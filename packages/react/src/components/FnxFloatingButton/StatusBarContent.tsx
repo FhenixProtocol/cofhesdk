@@ -12,7 +12,7 @@ export const StatusBarContent: React.FC = () => {
     <>
       {/* Logo */}
       <FhenixLogoIcon theme={theme} className="w-10 h-10" />
-      
+
       {/* Status */}
       <div className="flex items-center gap-1 ml-auto mr-2">
         <IoIosCheckmarkCircleOutline className="text-green-500" />
