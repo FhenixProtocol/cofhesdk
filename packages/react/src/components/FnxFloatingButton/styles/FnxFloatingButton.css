@@ -48,6 +48,9 @@
     --fnx-transition-duration: 300ms;
     --fnx-transition-duration-fast: 200ms;
     --fnx-transition-duration-content: 150ms;
+
+    width: 380px;
+    max-width: calc(100vw - 24px);
   }
 
   .dark {
