@@ -11,7 +11,7 @@ import {
   useCofhePublicTokenBalance,
   useCofheTokenMetadata,
 } from '../../../hooks/useCofheTokenBalance.js';
-import { useCofheTokens } from '../../../hooks/useCofheTokenLists.js';
+import { useCofheToken, useCofheTokens } from '../../../hooks/useCofheTokenLists.js';
 import {
   useCofheClaimUnshield,
   useCofheTokenShield,
@@ -55,8 +55,7 @@ export const ShieldPageV2: React.FC = () => {
 
   const pinnedTokenAddress = useCofhePinnedTokenAddress();
 
-  const activeTokenAddress =
-    selectedToken && !selectedToken.isNative ? (selectedToken.address as Address) : pinnedTokenAddress;
+  const activeTokenAddress = selectedToken ? selectedToken.address : pinnedTokenAddress;
 
   const shieldableTokens = useMemo(() => {
     return tokens.filter((t) => {
@@ -65,14 +64,9 @@ export const ShieldPageV2: React.FC = () => {
     });
   }, [tokens]);
 
-  const tokenFromList = useMemo(() => {
-    if (!activeTokenAddress || !chainId) return null;
-    return (
-      shieldableTokens.find(
-        (t) => t.chainId === chainId && t.address.toLowerCase() === activeTokenAddress.toLowerCase()
-      ) || null
-    );
-  }, [activeTokenAddress, chainId, shieldableTokens]);
+  const tokenFromList = useCofheToken({
+    address: activeTokenAddress,
+  });
 
   const { data: tokenMetadata } = useCofheTokenMetadata(activeTokenAddress);
 

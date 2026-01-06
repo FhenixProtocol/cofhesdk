@@ -25,7 +25,7 @@ export const SendPage: React.FC = () => {
   const tokenTransfer = useCofheTokenTransfer();
   const pinnedTokenAddress = useCofhePinnedTokenAddress();
   // Use selected token if available, otherwise fall back to pinned token
-  const activeTokenAddress = selectedToken && !selectedToken.isNative ? selectedToken.address : pinnedTokenAddress;
+  const activeTokenAddress = selectedToken ? selectedToken.address : pinnedTokenAddress;
 
   const { data: tokenMetadata } = useCofheTokenMetadata(activeTokenAddress);
 

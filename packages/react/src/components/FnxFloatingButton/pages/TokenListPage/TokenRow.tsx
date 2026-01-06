@@ -1,6 +1,6 @@
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import { cn } from '../../../../utils/cn.js';
-import { useFnxFloatingButtonContext, type TokenListMode, type NativeToken } from '../../FnxFloatingButtonContext.js';
+import { useFnxFloatingButtonContext, type TokenListMode } from '../../FnxFloatingButtonContext.js';
 import type { Token } from '../../../../hooks/useCofheTokenLists.js';
 import { TokenIcon } from '../../components/TokenIcon.js';
 import { TokenBalance } from '../../components/TokenBalance.js';
@@ -14,16 +14,10 @@ export const TokenRow: React.FC<{
   const handleClick = () => {
     if (mode === 'select') {
       // TODO: native token support
-      selectToken({
-        ...token,
-        isNative: false,
-      });
+      selectToken(token);
     } else {
       // In view mode, navigate to token info page
-      navigateToTokenInfo({
-        ...token,
-        isNative: false,
-      });
+      navigateToTokenInfo(token);
     }
   };
 

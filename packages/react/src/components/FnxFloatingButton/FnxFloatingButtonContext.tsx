@@ -11,28 +11,9 @@ import {
   type PagesWithProps,
 } from './pagesConfig/types';
 import { ToastPrimitive } from './components/ToastPrimitives';
-import type { Address } from 'viem';
+import type { Token } from '@/hooks';
 
 export type TokenListMode = 'view' | 'select';
-
-export type NativeToken = {
-  address: 'native';
-  name: 'Ether';
-  symbol: 'ETH';
-  decimals: 18;
-  logoURI?: string;
-  isNative: true;
-};
-
-// TODO: no need in this class since there's Token?
-export type SelectedToken = {
-  address: Address;
-  name: string;
-  symbol: string;
-  decimals: number;
-  logoURI?: string;
-  isNative: boolean;
-};
 
 const OPEN_DELAY = 500; // Delay before showing popup in ms
 const CLOSE_DELAY = 300; // Delay before closing bar after popup closes
@@ -71,13 +52,13 @@ interface FnxFloatingButtonContextValue {
   handleClick: (externalOnClick?: () => void) => void;
 
   tokenListMode: TokenListMode;
-  selectedToken?: SelectedToken;
+  selectedToken?: Token;
   navigateToTokenListForSelection: (title?: string) => void;
   navigateToTokenListForView: () => void;
-  selectToken: (token: SelectedToken) => void;
+  selectToken: (token: Token) => void;
   // Token viewing
-  viewingToken?: SelectedToken;
-  navigateToTokenInfo: (token: SelectedToken) => void;
+  viewingToken?: Token;
+  navigateToTokenInfo: (token: Token) => void;
   // Config
   showNativeTokenInList: boolean;
 
@@ -107,8 +88,8 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   const [isExpanded, setIsExpanded] = useState(false);
   const [showPopupPanel, setShowPopupPanel] = useState(false);
   const [tokenListMode, setTokenListMode] = useState<TokenListMode>('view');
-  const [selectedToken, setSelectedToken] = useState<SelectedToken>();
-  const [viewingToken, setViewingToken] = useState<SelectedToken>();
+  const [selectedToken, setSelectedToken] = useState<Token>();
+  const [viewingToken, setViewingToken] = useState<Token>();
   const [toasts, setToasts] = useState<FnxFloatingButtonToast[]>([]);
 
   const publicClient = useCofhePublicClient();
@@ -185,12 +166,12 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
     navigateTo(FloatingButtonPage.TokenList, {});
   };
 
-  const selectToken = (token: SelectedToken) => {
+  const selectToken = (token: Token) => {
     setSelectedToken(token);
     navigateBack(); // Return to previous page after selection
   };
 
-  const navigateToTokenInfo = (token: SelectedToken) => {
+  const navigateToTokenInfo = (token: Token) => {
     setViewingToken(token);
     navigateTo(FloatingButtonPage.TokenInfo);
   };

@@ -29,10 +29,7 @@ export const AssetCard: React.FC = () => {
     if (!tokenFromList) throw new Error('Token not found in token list');
 
     if (pinnedTokenAddress) {
-      navigateToTokenInfo({
-        ...tokenFromList,
-        isNative: false,
-      });
+      navigateToTokenInfo(tokenFromList);
     } else {
       // TODO: native token support
       alert('Native token info navigation is not implemented yet.');

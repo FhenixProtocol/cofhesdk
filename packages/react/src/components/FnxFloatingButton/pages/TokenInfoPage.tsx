@@ -10,7 +10,7 @@ export const TokenInfoPage: React.FC = () => {
 
   // Find the full token object from the token list
   const tokenFromList = useCofheToken({
-    address: viewingToken?.isNative ? undefined : viewingToken?.address,
+    address: viewingToken?.address,
   });
 
   if (!viewingToken) {
@@ -55,14 +55,12 @@ export const TokenInfoPage: React.FC = () => {
         <h3 className="text-sm font-medium">Token Details</h3>
 
         {/* Address */}
-        {!viewingToken.isNative && (
-          <div className="fnx-card-bg rounded-lg p-3 border fnx-card-border">
-            <div className="flex flex-col gap-2">
-              <p className="text-xxxs opacity-70">Contract Address</p>
-              <AddressButton address={viewingToken.address} className="w-full justify-start" />
-            </div>
+        <div className="fnx-card-bg rounded-lg p-3 border fnx-card-border">
+          <div className="flex flex-col gap-2">
+            <p className="text-xxxs opacity-70">Contract Address</p>
+            <AddressButton address={viewingToken.address} className="w-full justify-start" />
           </div>
-        )}
+        </div>
 
         {/* Decimals */}
         <div className="fnx-card-bg rounded-lg p-3 border fnx-card-border">

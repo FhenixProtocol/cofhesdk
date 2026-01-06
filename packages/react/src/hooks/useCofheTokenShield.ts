@@ -412,7 +412,7 @@ export type UnshieldClaimsSummary = {
 
 type UseUnshieldClaimsInput = {
   /** Token object with confidentialityType */
-  token: Token | null;
+  token?: Token;
   /** Account address (optional, defaults to connected account) */
   accountAddress?: Address;
 };
