@@ -22,8 +22,6 @@ export enum BalanceType {
 export interface TokenBalanceProps {
   /** Token object from token list (for non-native tokens) */
   token?: Token | null;
-  /** Token address (for non-native tokens) */
-  tokenAddress?: string | null;
   /** Whether this is a native token */
   isNative?: boolean;
   /** Account address to fetch balance for */
@@ -38,8 +36,7 @@ export interface TokenBalanceProps {
   decimalPrecision?: number;
   /** Whether to show the token symbol */
   showSymbol?: boolean;
-  /** Token symbol to display (if not provided, will try to get from token) */
-  symbol?: string;
+
   /** Custom className for the balance text */
   className?: string;
   /** Size variant for the balance display */
@@ -55,7 +52,6 @@ const sizeClasses = {
 
 export const TokenBalance: React.FC<TokenBalanceProps> = ({
   token,
-  tokenAddress,
   isNative = false,
   accountAddress,
   balanceType = BalanceType.Confidential,
@@ -63,29 +59,20 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
   isLoading: isLoadingProp,
   decimalPrecision = 5,
   showSymbol = false,
-  symbol,
   className,
   size = 'md',
 }) => {
   const account = useCofheAccount();
-  const chainId = useCofheChainId();
-  const tokens = useCofheTokens(chainId);
+
   // If value is provided, use it directly (skip fetching)
   const useProvidedValue = value !== undefined;
 
   // Determine which account address to use
   const effectiveAccountAddress = accountAddress ?? account;
 
-  // Find token from list if tokenAddress is provided but token is not
-  const tokenFromList = useMemo(() => {
-    if (token) return token;
-    if (!tokenAddress || !chainId || isNative) return;
-    return tokens.find((t) => t.chainId === chainId && t.address.toLowerCase() === tokenAddress.toLowerCase());
-  }, [token, tokenAddress, chainId, tokens, isNative]);
-
   // Use unified hooks for balance fetching
   const { numericValue: publicBalanceNum, isLoading: isLoadingPublic } = useCofhePublicTokenBalance(
-    { token: tokenFromList, accountAddress: effectiveAccountAddress, displayDecimals: decimalPrecision },
+    { token, accountAddress: effectiveAccountAddress, displayDecimals: decimalPrecision },
     {
       enabled: !useProvidedValue && !isNative && balanceType === BalanceType.Public,
     }
@@ -96,7 +83,7 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
     isLoading: isLoadingConfidential,
     disabledDueToMissingPermit,
   } = useCofheConfidentialTokenBalance(
-    { token: tokenFromList, accountAddress: effectiveAccountAddress, displayDecimals: decimalPrecision },
+    { token, accountAddress: effectiveAccountAddress, displayDecimals: decimalPrecision },
     {
       enabled: !useProvidedValue && !isNative && balanceType === BalanceType.Confidential,
     }
@@ -112,18 +99,15 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
 
   // Determine token symbol
   const displaySymbol = useMemo(() => {
-    if (symbol) return symbol;
     // For public balance of wrapped tokens, show the erc20Pair symbol
-    const erc20Pair = tokenFromList?.extensions.fhenix.erc20Pair;
-    const isWrappedToken = tokenFromList?.extensions.fhenix.confidentialityType === 'wrapped';
-    if (balanceType === BalanceType.Public && isWrappedToken && erc20Pair?.symbol) {
-      return erc20Pair.symbol;
-    }
-    if (tokenFromList) return tokenFromList.symbol;
+    const erc20Pair = token?.extensions.fhenix.erc20Pair;
+    const isWrappedToken = token?.extensions.fhenix.confidentialityType === 'wrapped';
+    if (balanceType === BalanceType.Public && isWrappedToken && erc20Pair?.symbol) return erc20Pair.symbol;
+
     if (token) return token.symbol;
     if (isNative) return 'ETH';
     return '';
-  }, [symbol, balanceType, tokenFromList, token, isNative]);
+  }, [balanceType, token, isNative]);
 
   // Determine if we're loading
   const isLoading = useMemo(() => {

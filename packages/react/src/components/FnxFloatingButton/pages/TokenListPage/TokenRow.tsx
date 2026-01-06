@@ -27,9 +27,6 @@ export const TokenRow: React.FC<{
     }
   };
 
-  const isNative = 'isNative' in token && token.isNative;
-  const tokenObj = isNative ? undefined : (token as Token);
-
   return (
     <div
       onClick={handleClick}
@@ -52,15 +49,7 @@ export const TokenRow: React.FC<{
 
       {/* Balance and Arrow */}
       <div className="flex items-center gap-2">
-        <TokenBalance
-          token={tokenObj}
-          tokenAddress={isNative ? undefined : token.address}
-          symbol={token.symbol}
-          showSymbol={false}
-          size="sm"
-          decimalPrecision={5}
-          className="font-medium"
-        />
+        <TokenBalance token={token} showSymbol={false} size="sm" decimalPrecision={5} className="font-medium" />
         <KeyboardArrowRightIcon className="w-5 h-5 fnx-text-primary opacity-60 flex-shrink-0" />
       </div>
     </div>
