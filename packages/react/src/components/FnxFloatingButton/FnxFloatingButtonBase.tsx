@@ -36,7 +36,7 @@ export const FnxFloatingButtonBase: React.FC<FnxFloatingButtonProps> = ({
         'fnx-floating-button',
         darkMode && 'dark',
         positionType,
-        'flex gap-3',
+        'flex gap-2',
         positionStyles[effectivePosition],
         // bottom-* opens UP (popup above), top-* opens DOWN (popup below)
         isTopSide ? 'flex-col-reverse items-start' : 'flex-col items-start',
