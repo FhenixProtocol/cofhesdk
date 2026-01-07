@@ -19,7 +19,7 @@ import { ActionButton, AmountInput, TokenBalance, TokenIcon } from '../component
 import { TokenBalanceView } from '../components/TokenBalance';
 import { useCofhePinnedTokenAddress } from '@/hooks/useCofhePinnedTokenAddress';
 import { useCofheTokenMetadata } from '@/hooks/useCofheTokenMetadata';
-import { useCofhePublicTokenBalance } from '@/hooks/useCofhePublicTokenBalance';
+import { useCofheTokenPublicBalance } from '@/hooks/useCofheTokenPublicBalance';
 
 const SUCCESS_TIMEOUT = 5000;
 const DISPLAY_DECIMALS = 5;
@@ -74,7 +74,7 @@ export const ShieldPageV2: React.FC = () => {
     data: { unit: publicBalanceNum } = {},
     isLoading: isLoadingPublic,
     refetch: refetchPublic,
-  } = useCofhePublicTokenBalance(
+  } = useCofheTokenPublicBalance(
     { token: tokenFromList, accountAddress: account as Address, displayDecimals: DISPLAY_DECIMALS },
     { enabled: !!tokenFromList && !!account }
   );

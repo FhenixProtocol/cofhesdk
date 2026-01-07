@@ -8,7 +8,7 @@ import { LoadingDots } from './LoadingDots';
 import { CREATE_PERMITT_BODY_BY_ERROR_CAUSE } from '@/providers/errors';
 import { ErrorCause } from '@/utils/errors';
 import { useCofheCreatePermit } from '@/hooks/permits/useCofheCreatePermit';
-import { useCofhePublicTokenBalance } from '@/hooks/useCofhePublicTokenBalance';
+import { useCofheTokenPublicBalance } from '@/hooks/useCofheTokenPublicBalance';
 
 export enum BalanceType {
   Public = 'public',
@@ -56,7 +56,7 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
   const effectiveAccountAddress = accountAddress ?? account;
 
   // Use unified hooks for balance fetching
-  const { data: { unit: publicBalanceNum } = {}, isLoading: isLoadingPublic } = useCofhePublicTokenBalance(
+  const { data: { unit: publicBalanceNum } = {}, isLoading: isLoadingPublic } = useCofheTokenPublicBalance(
     { token, accountAddress: effectiveAccountAddress, displayDecimals: decimalPrecision },
     {
       enabled: balanceType === BalanceType.Public,

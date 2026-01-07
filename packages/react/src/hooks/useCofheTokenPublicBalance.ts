@@ -91,7 +91,7 @@ type UsePublicTokenBalanceResult = {
  * @param options - Query options
  * @returns Balance data with formatted string, numeric value, loading state, and refetch function
  */
-export function useCofhePublicTokenBalance(
+export function useCofheTokenPublicBalance(
   { token, accountAddress, displayDecimals = 5 }: UsePublicTokenBalanceInput,
   options?: Omit<UseTokenBalanceOptions, 'select'> // disallow passing 'select' because it's harder to type
 ): UsePublicTokenBalanceResult {
