@@ -247,24 +247,20 @@ export function useCofheTokenSymbol(
 }
 
 /**
- * Hook to fetch a confidential (encrypted) token balance from chain.
- * Uses confidentialityType from token to determine contract and function.
- * @param input - Token object and optional accountAddress
- * @param queryOptions - Optional React Query options
- * @returns Query result with ciphertext bigint
+ * Generic hook: read a contract and return the result (with permit/error gating support).
  */
-function useCofheTokenConfidentialBalance(
-  {
-    token,
-    accountAddress,
-  }: {
-    token: Token | undefined;
-    accountAddress?: Address;
+export function useCofheReadContract<TResult = unknown>(
+  params: {
+    address?: Address;
+    abi: unknown;
+    functionName: string;
+    args?: readonly unknown[];
+    requiresPermit?: boolean;
   },
-  queryOptions?: Omit<UseQueryOptions<bigint, Error>, 'queryKey' | 'queryFn'>
-): UseQueryResult<bigint, Error> & {
-  disabledDueToMissingPermit: boolean;
-} {
+  queryOptions?: Omit<UseQueryOptions<TResult, Error>, 'queryKey' | 'queryFn'>
+): UseQueryResult<TResult, Error> & { disabledDueToMissingPermit: boolean } {
+  const { address, abi, functionName, args, requiresPermit = true } = params;
+
   const isCofheErrorActive = useIsCofheErrorActive();
   const publicClient = useCofhePublicClient();
   const cofheChainId = useCofheChainId();
@@ -272,90 +268,74 @@ function useCofheTokenConfidentialBalance(
 
   const { enabled: userEnabled, ...restQueryOptions } = queryOptions || {};
   const enabled =
-    !isCofheErrorActive && !!publicClient && !!accountAddress && !!token && !!activePermit && (userEnabled ?? true);
+    !isCofheErrorActive && !!publicClient && !!address && (!requiresPermit || !!activePermit) && (userEnabled ?? true);
 
-  const result = useInternalQuery({
+  const result = useInternalQuery<TResult, Error>({
     enabled,
     queryKey: [
-      'tokenEncryptedBalance',
-      accountAddress,
+      'cofheReadContract',
       cofheChainId,
-      token?.address,
-      activePermit?.hash,
+      address,
+      functionName,
+      args ?? [],
+      requiresPermit ? activePermit?.hash : undefined,
       // normally, "enabled" shouldn't be part of queryKey, but without adding it, there is a weird bug: when there's a CofheError, query still running queryFn resulting in the blank screen
       enabled,
     ],
     queryFn: async () => {
-      assert(accountAddress, 'Account address is required to fetch confidential token balance');
-      assert(publicClient, 'PublicClient is required to fetch confidential token balance');
-      assert(token, 'Token is required to fetch confidential token balance');
+      assert(address, 'Contract address is required');
+      assert(publicClient, 'PublicClient is required');
 
-      // NB: no need to check for Permit validity and existence here. It's part of the 'enabled' and also if something is wrong with the Permit, ErrorBoundary will catch that and will redirect the user to Permit generation page.
-
-      // Throw error if dual type is used (not yet implemented)
-      assert(
-        token.extensions.fhenix.confidentialityType !== 'dual',
-        'Dual confidentiality type is not yet implemented'
-      );
-
-      // Get the appropriate ABI and function name based on confidentialityType
-      const contractConfig = CONFIDENTIAL_ABIS[token.extensions.fhenix.confidentialityType];
-
-      assert(contractConfig, `Unsupported confidentialityType: ${token.extensions.fhenix.confidentialityType}`);
-
-      // Call the appropriate function based on confidentialityType
-      const ctHash = await publicClient.readContract({
-        address: token.address,
-        abi: contractConfig.abi,
-        functionName: contractConfig.functionName,
-        args: [accountAddress],
-      });
-
-      if (ctHash === 0n) {
-        // no ciphertext means no confidential balance
-        return 0n;
-      }
-
-      return ctHash;
+      const out = (await publicClient.readContract({
+        address,
+        abi: abi as any,
+        functionName: functionName as any,
+        args: (args ?? []) as any,
+      })) as TResult;
+      return out;
     },
     ...restQueryOptions,
   });
 
   return {
     ...result,
-    disabledDueToMissingPermit: !activePermit,
+    disabledDueToMissingPermit: requiresPermit && !activePermit,
   };
 }
 
 /**
- * Hook to get confidential token balance by composing encrypted fetch + decryption.
- * @param input - Token object and optional accountAddress
- * @param queryOptions - Optional React Query options
- * @returns Query result with decrypted balance as bigint
+ * Generic hook: read a confidential contract value and decrypt it.
  */
-function useCofheTokenDecryptedBalanceInternal<TDecryptedSelectedData = bigint>(
-  {
-    token,
-    accountAddress,
-  }: {
-    token: Token | undefined;
-    accountAddress?: Address;
+export function useCofheReadContractAndDecrypt<TDecryptedSelectedData = bigint>(
+  params: {
+    address?: Address;
+    abi: unknown;
+    functionName: string;
+    args?: readonly unknown[];
+    fheType: FheTypes;
+    requiresPermit?: boolean;
   },
   {
-    confidentialQueryOptions,
+    readQueryOptions,
     decryptingQueryOptions,
   }: {
-    confidentialQueryOptions?: Omit<UseQueryOptions<bigint, Error>, 'queryKey' | 'queryFn'>;
-    decryptingQueryOptions?: Omit<UseQueryOptions<bigint, Error, TDecryptedSelectedData>, 'queryKey' | 'queryFn'>;
+    readQueryOptions?: Omit<UseQueryOptions<bigint, Error>, 'queryKey' | 'queryFn'>;
+    decryptingQueryOptions?: Omit<
+      UseQueryOptions<string | bigint | boolean, Error, TDecryptedSelectedData>,
+      'queryKey' | 'queryFn'
+    >;
   } = {}
 ): {
   encrypted: UseQueryResult<bigint, Error>;
   decrypted: UseQueryResult<TDecryptedSelectedData, Error>;
   disabledDueToMissingPermit: boolean;
 } {
-  const encrypted = useCofheTokenConfidentialBalance({ token, accountAddress }, confidentialQueryOptions);
+  const { address, abi, functionName, args, fheType, requiresPermit = true } = params;
 
-  const fheType = token?.extensions.fhenix.confidentialValueType === 'uint64' ? FheTypes.Uint64 : FheTypes.Uint128;
+  const encrypted = useCofheReadContract<bigint>(
+    { address, abi, functionName, args, requiresPermit },
+    readQueryOptions
+  );
 
   const decrypted = useCofheDecrypt(
     {
@@ -551,23 +531,31 @@ export function useCofheTokenDecryptedBalance(
 ): UseConfidentialTokenBalanceResult {
   const { enabled: userEnabled = true, ...restOptions } = options ?? {};
 
+  const fheType = token?.extensions.fhenix.confidentialValueType === 'uint64' ? FheTypes.Uint64 : FheTypes.Uint128;
+
+  const contractConfig = token ? CONFIDENTIAL_ABIS[token.extensions.fhenix.confidentialityType] : undefined;
+
   const {
     decrypted: { data: decryptedData, isLoading: isDecryptionLoading },
     encrypted: { isLoading: isEncryptedLoading, refetch: refetchCiphertext },
     disabledDueToMissingPermit,
-  } = useCofheTokenDecryptedBalanceInternal(
+  } = useCofheReadContractAndDecrypt(
     {
-      token,
-      accountAddress,
+      address: token?.address,
+      abi: contractConfig?.abi,
+      functionName: contractConfig?.functionName || '',
+      args: [accountAddress],
+      fheType,
+      requiresPermit: true,
     },
     {
-      confidentialQueryOptions: {
+      readQueryOptions: {
         enabled: userEnabled && !!token,
       },
       decryptingQueryOptions: {
         select: (amountWei) => {
           assert(token, 'Token must be defined to format confidential balance');
-          return formatTokenAmount(amountWei, token.decimals, displayDecimals);
+          return formatTokenAmount(amountWei as bigint, token.decimals, displayDecimals);
         },
       },
       ...restOptions,

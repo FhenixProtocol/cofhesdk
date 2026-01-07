@@ -12,6 +12,8 @@ export {
   useCofheTokenBalance,
   useCofheNativeBalance,
   useCofheTokenDecryptedBalance,
+  useCofheReadContract,
+  useCofheReadContractAndDecrypt,
   useCofheTokenMetadata,
   useCofheTokenDecimals,
   useCofheTokenSymbol,
