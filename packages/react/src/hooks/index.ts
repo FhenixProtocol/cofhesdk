@@ -8,15 +8,7 @@ export {
   useCofheSelectPermit,
 } from './useCofhePermits';
 export { useCofheClient } from './useCofheClient';
-export {
-  useCofheTokenDecryptedBalance,
-  useCofheReadContract,
-  useCofheReadContractAndDecrypt,
-  useCofheTokenMetadata,
-  useCofhePinnedTokenAddress,
-  useCofhePublicTokenBalance,
-  type TokenMetadata,
-} from './useCofheTokenBalance';
+export { useCofheTokenDecryptedBalance } from './useCofheTokenDecryptedBalance';
 export { useCofheTokenTransfer } from './useCofheTokenTransfer';
 export {
   useCofheTokenShield,

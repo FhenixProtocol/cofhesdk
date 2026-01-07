@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { Address } from 'viem';
-import { useCofhePublicTokenBalance, useCofheTokenDecryptedBalance } from '../../../hooks/useCofheTokenBalance';
+import { useCofheTokenDecryptedBalance } from '../../../hooks/useCofheTokenDecryptedBalance';
 import { useCofheAccount } from '../../../hooks/useCofheConnection';
 import { type Token } from '../../../hooks/useCofheTokenLists';
 import { cn } from '../../../utils/cn';
@@ -8,6 +8,7 @@ import { LoadingDots } from './LoadingDots';
 import { CREATE_PERMITT_BODY_BY_ERROR_CAUSE } from '@/providers/errors';
 import { ErrorCause } from '@/utils/errors';
 import { useCofheCreatePermit } from '@/hooks/permits/useCofheCreatePermit';
+import { useCofhePublicTokenBalance } from '@/hooks/useCofhePublicTokenBalance';
 
 export enum BalanceType {
   Public = 'public',

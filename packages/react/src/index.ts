@@ -23,17 +23,11 @@ export {
   useCofheClaimUnshield,
   useCofheUnshieldClaims,
   useCofheTokenDecryptedBalance,
-  useCofheReadContract,
-  useCofheReadContractAndDecrypt,
-  useCofheTokenMetadata,
-  useCofhePinnedTokenAddress,
-  useCofhePublicTokenBalance,
   useCofheTokenTransfer,
   ETH_ADDRESS,
   type Erc20Pair,
   type UnshieldClaim,
   type UnshieldClaimsSummary,
-  type TokenMetadata,
 } from './hooks/index';
 
 // Components

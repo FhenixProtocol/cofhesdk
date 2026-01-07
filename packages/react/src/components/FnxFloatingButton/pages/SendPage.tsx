@@ -5,11 +5,7 @@ import { type Address, isAddress, formatUnits } from 'viem';
 import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext';
 import { useCofheContext } from '../../../providers/CofheProvider';
 import { useCofheAccount } from '../../../hooks/useCofheConnection';
-import {
-  useCofheTokenDecryptedBalance,
-  useCofheTokenMetadata,
-  useCofhePinnedTokenAddress,
-} from '../../../hooks/useCofheTokenBalance';
+import { useCofheTokenDecryptedBalance } from '../../../hooks/useCofheTokenDecryptedBalance';
 import { useCofheToken } from '../../../hooks/useCofheTokenLists';
 import { useCofheEncryptInput } from '../../../hooks/useCofheEncryptInput';
 import { useCofheTokenTransfer, type EncryptedValue } from '../../../hooks/useCofheTokenTransfer';
@@ -17,6 +13,8 @@ import { cn } from '../../../utils/cn';
 import { truncateAddress, sanitizeNumericInput } from '../../../utils/utils';
 import { TokenIcon } from '../components/TokenIcon';
 import { TokenBalance } from '../components/TokenBalance';
+import { useCofhePinnedTokenAddress } from '@/hooks/useCofhePinnedTokenAddress';
+import { useCofheTokenMetadata } from '@/hooks/useCofheTokenMetadata';
 
 export const SendPage: React.FC = () => {
   const { navigateBack, selectedToken, navigateToTokenListForSelection } = useFnxFloatingButtonContext();
