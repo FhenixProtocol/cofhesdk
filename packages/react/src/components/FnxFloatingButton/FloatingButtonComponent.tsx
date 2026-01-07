@@ -2,9 +2,14 @@ import { cn } from '@/utils';
 import CloseIcon from '@mui/icons-material/Close';
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
 import { FhenixLogoIcon } from '../FhenixLogoIcon';
+import { useMemo } from 'react';
 
 export const FloatingButtonComponent: React.FC<{ onClick: () => void }> = ({ onClick }) => {
-  const { portalOpen, theme, status } = useFnxFloatingButtonContext();
+  const { portalOpen, theme, statuses } = useFnxFloatingButtonContext();
+
+  const topStatusVariant = useMemo(() => {
+    return statuses.length > 0 ? statuses[statuses.length - 1]?.variant : undefined;
+  }, [statuses]);
 
   return (
     <button
@@ -14,8 +19,8 @@ export const FloatingButtonComponent: React.FC<{ onClick: () => void }> = ({ onC
         'w-12 h-12',
         'flex items-center justify-center cursor-pointer flex-shrink-0',
         'focus:outline-none',
-        status != null && status.variant === 'error' && 'border-red-500',
-        status != null && status.variant === 'warning' && 'border-yellow-500'
+        topStatusVariant === 'error' && 'border-red-500',
+        topStatusVariant === 'warning' && 'border-yellow-500'
       )}
     >
       <div className="flex items-center justify-center">
