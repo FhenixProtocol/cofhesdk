@@ -67,7 +67,7 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
   );
 
   const {
-    numericValue: confidentialBalanceNum,
+    formatted: confidentialBalanceFormatted,
     isLoading: isLoadingConfidential,
     disabledDueToMissingPermit,
   } = useCofheTokenDecryptedBalance(
@@ -94,11 +94,10 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
   // Format balance
   const displayBalance = useMemo(() => {
     // Public or confidential balance from hooks
-    const numValue = balanceType === BalanceType.Public ? publicBalanceNum : confidentialBalanceNum;
-    if (numValue === 0 && balanceType === BalanceType.Confidential) return;
+    if (balanceType === BalanceType.Confidential) return confidentialBalanceFormatted;
 
-    return numValue?.toFixed(decimalPrecision);
-  }, [balanceType, publicBalanceNum, confidentialBalanceNum, decimalPrecision]);
+    return publicBalanceNum.toFixed(decimalPrecision);
+  }, [balanceType, confidentialBalanceFormatted, publicBalanceNum, decimalPrecision]);
 
   return (
     <TokenBalanceView

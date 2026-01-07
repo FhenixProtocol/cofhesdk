@@ -160,6 +160,7 @@ export const ShieldPageV2: React.FC = () => {
     if (!unshieldAmount || !confidentialBalanceNum) return false;
     const numAmount = parseFloat(unshieldAmount);
     if (isNaN(numAmount) || numAmount <= 0) return false;
+    // if we compare it like this, it'll cause dust issues due to precision loss
     return numAmount <= confidentialBalanceNum;
   }, [unshieldAmount, confidentialBalanceNum]);
 
