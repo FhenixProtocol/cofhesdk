@@ -12,6 +12,7 @@ import { assert } from 'ts-essentials';
 import { useIsCofheErrorActive } from './useIsCofheErrorActive';
 import { useInternalQuery } from '../providers/index';
 import { useCofheDecrypt } from './useCofheDecrypt';
+import BigNumber from 'bignumber.js';
 type UseTokenBalanceInput = {
   /** Token contract address */
   tokenAddress: Address;
@@ -520,7 +521,7 @@ type UseConfidentialTokenBalanceResult = {
   /** Formatted balance string */
   formatted?: string;
   /** Numeric balance value */
-  numericValue?: number;
+  numericValue?: BigNumber;
   /** Whether balance is loading */
   isLoading: boolean;
   /** Refetch function */
@@ -528,13 +529,12 @@ type UseConfidentialTokenBalanceResult = {
   disabledDueToMissingPermit: boolean;
 };
 
-export function formatTokenAmount(amount: bigint, decimals: number, displayDecimals: number) {
-  const rawUnit = formatUnits(amount, decimals);
-  const formatted = parseFloat(rawUnit).toFixed(displayDecimals);
+export function formatTokenAmount(amount: bigint, decimals: number, displayDecimals?: number) {
+  const amountBN = new BigNumber(amount).dividedBy(10 ** decimals);
   return {
     wei: amount,
-    numeric: parseFloat(formatted),
-    formatted,
+    numeric: amountBN,
+    formatted: displayDecimals ? amountBN.toFixed(displayDecimals) : amountBN.toFixed(), // the only precise way, without parseFloat
   };
 }
 

@@ -161,7 +161,8 @@ export const ShieldPageV2: React.FC = () => {
     const numAmount = parseFloat(unshieldAmount);
     if (isNaN(numAmount) || numAmount <= 0) return false;
     // if we compare it like this, it'll cause dust issues due to precision loss
-    return numAmount <= confidentialBalanceNum;
+    // TODO: make sure numAmount is precise too
+    return confidentialBalanceNum.gte(numAmount);
   }, [unshieldAmount, confidentialBalanceNum]);
 
   const isShieldableToken = useMemo(() => {
@@ -180,7 +181,7 @@ export const ShieldPageV2: React.FC = () => {
   };
   const handleUnshieldMax = () => {
     if (!confidentialBalanceNum) return;
-    if (confidentialBalanceNum > 0) setUnshieldAmount(confidentialBalanceNum.toString());
+    if (confidentialBalanceNum.gte(0)) setUnshieldAmount(confidentialBalanceNum.toString());
   };
 
   const handleShield = async () => {
