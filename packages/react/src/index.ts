@@ -23,7 +23,6 @@ export {
   useCofheClaimUnshield,
   useCofheUnshieldClaims,
   useCofheTokenBalance,
-  useCofheNativeBalance,
   useCofheTokenDecryptedBalance,
   useCofheReadContract,
   useCofheReadContractAndDecrypt,

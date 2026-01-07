@@ -10,7 +10,6 @@ export {
 export { useCofheClient } from './useCofheClient';
 export {
   useCofheTokenBalance,
-  useCofheNativeBalance,
   useCofheTokenDecryptedBalance,
   useCofheReadContract,
   useCofheReadContractAndDecrypt,

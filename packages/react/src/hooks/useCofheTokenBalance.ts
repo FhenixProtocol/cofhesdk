@@ -59,58 +59,24 @@ export function useCofheTokenBalance(
         throw new Error('Account address is required to fetch token balance');
       }
 
+      const isNativeToken = tokenAddress.toLowerCase() === ETH_ADDRESS.toLowerCase();
+
       // Read balance from contract
-      const balance = await publicClient.readContract({
-        address: tokenAddress,
-        abi: ERC20_BALANCE_OF_ABI,
-        functionName: 'balanceOf',
-        args: [account],
-      });
+      const balance = isNativeToken
+        ? await publicClient.getBalance({
+            address: account,
+          })
+        : await publicClient.readContract({
+            address: tokenAddress,
+            abi: ERC20_BALANCE_OF_ABI,
+            functionName: 'balanceOf',
+            args: [account],
+          });
 
       return parseFloat(formatUnits(balance, decimals)).toFixed(displayDecimals);
     },
     enabled,
     ...restQueryOptions,
-  });
-}
-
-/**
- * Hook to get native coin balance (ETH, etc.) and return normalized display value
- * @param accountAddress - Account address (optional, defaults to connected account)
- * @param decimals - Decimals for native coin (default: 18)
- * @param displayDecimals - Maximum number of decimal places to display (default: 5)
- * @param queryOptions - Optional React Query options
- * @returns Query result with normalized balance as string
- */
-export function useCofheNativeBalance(
-  accountAddress?: Address,
-  decimals: number = 18,
-  displayDecimals: number = 5,
-  queryOptions?: UseTokenBalanceOptions
-): UseQueryResult<string, Error> {
-  const connectedAccount = useCofheAccount();
-  const publicClient = useCofhePublicClient();
-  const account = accountAddress || connectedAccount;
-
-  return useInternalQuery({
-    queryKey: ['nativeBalance', account, decimals, displayDecimals],
-    queryFn: async (): Promise<string> => {
-      if (!publicClient) {
-        throw new Error('PublicClient is required to fetch native balance');
-      }
-      if (!account) {
-        throw new Error('Account address is required to fetch native balance');
-      }
-
-      // Get native balance
-      const balance = await publicClient.getBalance({
-        address: account,
-      });
-
-      return parseFloat(formatUnits(balance, decimals)).toFixed(displayDecimals);
-    },
-    enabled: !!publicClient && !!account,
-    ...queryOptions,
   });
 }
 
@@ -361,16 +327,6 @@ export function useCofhePublicTokenBalance(
   const erc20Pair = token?.extensions.fhenix.erc20Pair;
   const isNativeEthPair = erc20Pair?.address?.toLowerCase() === ETH_ADDRESS.toLowerCase();
 
-  // Native ETH balance (for wrapped ETH tokens)
-  const {
-    data: nativeBalance,
-    isLoading: isLoadingNative,
-    refetch: refetchNative,
-  } = useCofheNativeBalance(account, 18, displayDecimals, {
-    enabled: userEnabled && !!account && isWrappedToken && isNativeEthPair,
-    ...restOptions,
-  });
-
   // ERC20 balance for wrapped tokens (from erc20Pair address)
   const {
     data: wrappedErc20Balance,
@@ -379,11 +335,11 @@ export function useCofhePublicTokenBalance(
   } = useCofheTokenBalance(
     {
       tokenAddress: erc20Pair?.address,
-      decimals: erc20Pair?.decimals ?? 18,
+      decimals: erc20Pair?.decimals,
       accountAddress: account,
       displayDecimals,
     },
-    { enabled: userEnabled && !!erc20Pair?.address && !!account && isWrappedToken && !isNativeEthPair, ...restOptions }
+    { enabled: userEnabled && !!erc20Pair?.address && !!account && isWrappedToken, ...restOptions }
   );
 
   // ERC20 balance for dual tokens (from token's own address)
@@ -402,11 +358,11 @@ export function useCofhePublicTokenBalance(
   );
 
   // Combine results based on token type
-  const data = isDualToken ? dualPublicBalance : isNativeEthPair ? nativeBalance : wrappedErc20Balance;
+  const data = isDualToken ? dualPublicBalance : wrappedErc20Balance;
 
-  const isLoading = isDualToken ? isLoadingDualPublic : isNativeEthPair ? isLoadingNative : isLoadingWrappedErc20;
+  const isLoading = isDualToken ? isLoadingDualPublic : isLoadingWrappedErc20;
 
-  const refetch = isDualToken ? refetchDualPublic : isNativeEthPair ? refetchNative : refetchWrappedErc20;
+  const refetch = isDualToken ? refetchDualPublic : refetchWrappedErc20;
 
   const numericValue = data ? parseFloat(data) : 0;
 
