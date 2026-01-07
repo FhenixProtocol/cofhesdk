@@ -517,11 +517,11 @@ type UseConfidentialTokenBalanceOptions = Omit<UseQueryOptions<bigint, Error>, '
 
 type UseConfidentialTokenBalanceResult = {
   /** Raw balance in smallest unit (bigint) */
-  data?: bigint;
+  wei?: bigint;
   /** Formatted balance string */
   formatted?: string;
   /** Numeric balance value */
-  numericValue?: BigNumber;
+  unit?: BigNumber;
   /** Whether balance is loading */
   isLoading: boolean;
   /** Refetch function */
@@ -533,7 +533,7 @@ export function formatTokenAmount(amount: bigint, decimals: number, displayDecim
   const amountBN = new BigNumber(amount).dividedBy(10 ** decimals);
   return {
     wei: amount,
-    numeric: amountBN,
+    unit: amountBN,
     formatted: displayDecimals ? amountBN.toFixed(displayDecimals) : amountBN.toFixed(), // the only precise way, without parseFloat
   };
 }
@@ -577,9 +577,9 @@ export function useCofheTokenDecryptedBalance(
   return {
     disabledDueToMissingPermit,
 
-    data: decryptedData?.wei,
+    wei: decryptedData?.wei,
     formatted: decryptedData?.formatted,
-    numericValue: decryptedData?.numeric,
+    unit: decryptedData?.unit,
 
     isLoading: isDecryptionLoading || isEncryptedLoading,
     refetch: refetchCiphertext,

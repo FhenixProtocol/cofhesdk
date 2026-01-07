@@ -32,7 +32,7 @@ export const SendPage: React.FC = () => {
   const tokenFromList = useCofheToken({
     address: activeTokenAddress,
   });
-  const { data: confidentialBalance } = useCofheTokenDecryptedBalance({
+  const { unit: confidentialUnitBalance } = useCofheTokenDecryptedBalance({
     token: tokenFromList,
     accountAddress: account,
   });
@@ -66,16 +66,13 @@ export const SendPage: React.FC = () => {
 
   // Validate amount
   const isValidAmount = useMemo(() => {
-    if (!amount) return false;
+    if (!amount || !confidentialUnitBalance) return false;
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) return false;
-    if (tokenMetadata?.decimals && confidentialBalance) {
-      const divisor = BigInt(10 ** tokenMetadata.decimals);
-      const maxAmount = Number(confidentialBalance) / Number(divisor);
-      return numAmount <= maxAmount;
-    }
-    return true;
-  }, [amount, tokenMetadata?.decimals, confidentialBalance]);
+
+    const maxAmount = confidentialUnitBalance.toNumber();
+    return numAmount <= maxAmount;
+  }, [amount, confidentialUnitBalance]);
 
   const handleSend = async () => {
     if (!activeTokenAddress || !tokenMetadata || !account || !client) {
@@ -150,8 +147,8 @@ export const SendPage: React.FC = () => {
 
   const handleMaxAmount = () => {
     // Calculate available balance for MAX button
-    if (confidentialBalance && tokenMetadata?.decimals) {
-      setAmount(formatUnits(confidentialBalance, tokenMetadata.decimals));
+    if (confidentialUnitBalance) {
+      setAmount(confidentialUnitBalance.toFixed());
     }
   };
 

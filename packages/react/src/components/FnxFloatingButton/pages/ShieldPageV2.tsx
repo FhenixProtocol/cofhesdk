@@ -82,7 +82,7 @@ export const ShieldPageV2: React.FC = () => {
   );
 
   const {
-    numericValue: confidentialBalanceNum,
+    unit: confidentialBalanceUnit,
     isLoading: isLoadingConfidential,
     refetch: refetchConfidential,
   } = useCofheTokenDecryptedBalance(
@@ -157,13 +157,13 @@ export const ShieldPageV2: React.FC = () => {
   }, [shieldAmount, publicBalanceNum]);
 
   const isValidUnshieldAmount = useMemo(() => {
-    if (!unshieldAmount || !confidentialBalanceNum) return false;
+    if (!unshieldAmount || !confidentialBalanceUnit) return false;
     const numAmount = parseFloat(unshieldAmount);
     if (isNaN(numAmount) || numAmount <= 0) return false;
     // if we compare it like this, it'll cause dust issues due to precision loss
     // TODO: make sure numAmount is precise too
-    return confidentialBalanceNum.gte(numAmount);
-  }, [unshieldAmount, confidentialBalanceNum]);
+    return confidentialBalanceUnit.gte(numAmount);
+  }, [unshieldAmount, confidentialBalanceUnit]);
 
   const isShieldableToken = useMemo(() => {
     if (!tokenFromList) return false;
@@ -180,8 +180,8 @@ export const ShieldPageV2: React.FC = () => {
     if (publicBalanceNum > 0) setShieldAmount(publicBalanceNum.toString());
   };
   const handleUnshieldMax = () => {
-    if (!confidentialBalanceNum) return;
-    if (confidentialBalanceNum.gte(0)) setUnshieldAmount(confidentialBalanceNum.toString());
+    if (!confidentialBalanceUnit) return;
+    if (confidentialBalanceUnit.gte(0)) setUnshieldAmount(confidentialBalanceUnit.toFixed());
   };
 
   const handleShield = async () => {
@@ -268,8 +268,8 @@ export const ShieldPageV2: React.FC = () => {
   const sourceSymbol = mode === 'shield' ? pairedSymbol : tokenSymbol;
   const destSymbol = mode === 'shield' ? tokenSymbol : pairedSymbol;
 
-  const sourceAvailable = mode === 'shield' ? publicBalanceNum : confidentialBalanceNum;
-  const destAvailable = mode === 'shield' ? confidentialBalanceNum : publicBalanceNum;
+  const sourceAvailable = mode === 'shield' ? publicBalanceNum : confidentialBalanceUnit;
+  const destAvailable = mode === 'shield' ? confidentialBalanceUnit : publicBalanceNum;
 
   const isLoadingSource = mode === 'shield' ? isLoadingPublic : isLoadingConfidential;
   const isLoadingDest = mode === 'shield' ? isLoadingConfidential : isLoadingPublic;
