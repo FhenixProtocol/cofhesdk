@@ -1,43 +1,55 @@
-import { useState } from 'react';
-import { useTimeout } from '../../hooks/useTimeout';
-import type { FnxStatus } from './types';
+import { useRef, useState } from 'react';
 
 const ANIM_DURATION = 300;
 
-export function usePortalPanels(status?: FnxStatus) {
+export function usePortalPanels() {
   const [portalOpen, setPortalOpen] = useState(false);
   const [statusPanelOpen, setStatusPanelOpen] = useState(false);
   const [contentPanelOpen, setContentPanelOpen] = useState(false);
 
-  // opening flow: 1. display status panel 2. after delay display content panel
-  const { run: openPortal, clear: cancelOpeningTimeout } = useTwoStepAction({
-    stepOne: () => {
-      setPortalOpen(true);
-      // cancel closing timeout to avoid race condition for statusPanelOpen state
-      cancelClosingTimeout();
-      // Open status panel immediately safe from race condition
-      setStatusPanelOpen(true);
-    },
-    delayMs: statusPanelOpen || status != null ? 0 : ANIM_DURATION,
-    stepTwo: () => {
-      setContentPanelOpen(true);
-    },
-  });
+  const openTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // closing flow is backwards: 1. hide content panel 2. after delay hide status panel
-  const { run: closePortal, clear: cancelClosingTimeout } = useTwoStepAction({
-    stepOne: () => {
-      setPortalOpen(false);
-      // cancel opening timeout to avoid race condition for contentPanelOpen state
-      cancelOpeningTimeout();
-      // Close content panel immediately
-      setContentPanelOpen(false);
-    },
-    delayMs: ANIM_DURATION,
-    stepTwo: () => {
+  const openPortal = () => {
+    setPortalOpen(true);
+
+    // Cancel closing timeout
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+
+    // Open status panel immediately
+    setStatusPanelOpen(true);
+
+    if (statusPanelOpen || status != null) {
+      // Expand content immediately if status panel is visible
+      setContentPanelOpen(true);
+    } else {
+      // Else expand content after a delay
+      openTimeoutRef.current = setTimeout(() => {
+        setContentPanelOpen(true);
+      }, ANIM_DURATION);
+    }
+  };
+
+  const closePortal = () => {
+    setPortalOpen(false);
+
+    // Cancel opening timeout
+    if (openTimeoutRef.current) {
+      clearTimeout(openTimeoutRef.current);
+      openTimeoutRef.current = null;
+    }
+
+    // Close content panel immediately
+    setContentPanelOpen(false);
+
+    // Close status bar after a delay
+    closeTimeoutRef.current = setTimeout(() => {
       setStatusPanelOpen(false);
-    },
-  });
+    }, ANIM_DURATION);
+  };
 
   const togglePortal = () => {
     portalOpen ? closePortal() : openPortal();
@@ -51,27 +63,4 @@ export function usePortalPanels(status?: FnxStatus) {
     closePortal,
     togglePortal,
   };
-}
-
-type TwoStepsActionInput = {
-  stepOne: () => void;
-  delayMs: number;
-  stepTwo: () => void;
-};
-
-function useTwoStepAction({ stepOne, stepTwo, delayMs }: TwoStepsActionInput) {
-  const { set, clear } = useTimeout();
-  const run = () => {
-    stepOne();
-    if (delayMs === 0) {
-      // if no delay, run step two immediately
-      stepTwo();
-    } else {
-      // else run step two after delay
-      set(() => {
-        stepTwo();
-      }, delayMs);
-    }
-  };
-  return { run, clear };
 }

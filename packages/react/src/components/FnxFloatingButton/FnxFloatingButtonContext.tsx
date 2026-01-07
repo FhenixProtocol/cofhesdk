@@ -202,8 +202,7 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
     setStatus(undefined);
   };
 
-  const { portalOpen, statusPanelOpen, contentPanelOpen, openPortal, closePortal, togglePortal } =
-    usePortalPanels(status);
+  const { portalOpen, statusPanelOpen, contentPanelOpen, openPortal, closePortal, togglePortal } = usePortalPanels();
 
   return (
     <FnxFloatingButtonContext.Provider
