@@ -85,32 +85,19 @@
   color: var(--fnx-text-primary);
 }
 
-/* FloatingIcon styles */
-.fnx-floating-icon {
+.fnx-panel {
   background-color: var(--fnx-bg-primary);
   border: 1px solid var(--fnx-border-color);
-  outline: none !important;
   border-radius: var(--fnx-border-radius);
+  box-shadow: var(--fnx-content-shadow);
+}
+
+/* FloatingIcon styles */
+.fnx-floating-icon {
+  outline: none !important;
   position: relative;
   z-index: 1;
   color: var(--fnx-text-primary);
-  box-shadow: var(--fnx-content-shadow);
-  transition: box-shadow var(--fnx-transition-duration) ease-in-out;
-}
-
-.fnx-status-bar {
-  background-color: var(--fnx-bg-primary);
-  border-radius: var(--fnx-border-radius);
-  border: 1px solid var(--fnx-border-color);
-  color: var(--fnx-text-primary);
-  position: relative;
-  box-shadow: var(--fnx-content-shadow);
-}
-
-.fnx-content-panel {
-  border: 1px solid var(--fnx-border-color);
-  background-color: var(--fnx-bg-primary);
-  box-shadow: var(--fnx-content-shadow);
 }
 
 /* MainPage component utility classes */

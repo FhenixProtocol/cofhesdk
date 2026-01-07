@@ -4,17 +4,20 @@ import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
 import { FhenixLogoIcon } from '../FhenixLogoIcon';
 
 export const FloatingButtonComponent: React.FC<{ onClick: () => void }> = ({ onClick }) => {
-  const { portalOpen, theme } = useFnxFloatingButtonContext();
+  const { portalOpen, theme, statuses } = useFnxFloatingButtonContext();
+
+  const topStatusVariant = statuses[statuses.length - 1]?.variant;
 
   return (
     <button
       onClick={onClick}
       className={cn(
+        'fnx-panel fnx-floating-icon',
         'w-12 h-12',
-        'fnx-floating-icon',
-        'transition-all duration-200 ease-in-out',
         'flex items-center justify-center cursor-pointer flex-shrink-0',
-        'focus:outline-none'
+        'focus:outline-none',
+        topStatusVariant === 'error' && 'border-red-500',
+        topStatusVariant === 'warning' && 'border-yellow-500'
       )}
     >
       <div className="flex items-center justify-center">

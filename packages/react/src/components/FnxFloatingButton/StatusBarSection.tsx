@@ -1,15 +1,15 @@
-import type { ReactNode } from 'react';
-import { cn } from '@/utils';
+import { type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
 
 export const StatusBarSection: React.FC<{ children?: ReactNode }> = ({ children }) => {
-  const { statusPanelOpen, isLeftSide } = useFnxFloatingButtonContext();
+  const { statusPanelOpen, statuses, isLeftSide } = useFnxFloatingButtonContext();
+
   return (
     <AnimatePresence>
-      {statusPanelOpen && (
+      {(statusPanelOpen || statuses.length > 0) && (
         <motion.div
-          className={cn('fnx-status-bar flex flex-1 h-12 items-center justify-between px-4')}
+          className="relative flex flex-1 h-12 items-center justify-between"
           initial={{ opacity: 0, x: isLeftSide ? -10 : 10 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: isLeftSide ? -10 : 10 }}

@@ -4,13 +4,15 @@ import { cn } from '@/utils';
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
 import { FloatingButtonPage } from './pagesConfig/types';
 import { FhenixLogoIcon } from '../FhenixLogoIcon';
+import type { FnxStatus, FnxStatusVariant } from './types';
+import { AnimatedZStack } from '../primitives/AnimatedZStack';
 
-export const StatusBarContent: React.FC = () => {
-  const { theme, navigateTo } = useFnxFloatingButtonContext();
+const ConnectionStatus: React.FC = () => {
+  const { navigateTo, theme } = useFnxFloatingButtonContext();
 
   return (
-    <>
-      {/* Logo */}
+    <div className="fnx-panel w-full h-full flex px-4 items-center justify-between">
+      {/* Logo Icon */}
       <FhenixLogoIcon theme={theme} className="w-10 h-10" />
 
       {/* Status */}
@@ -26,6 +28,65 @@ export const StatusBarContent: React.FC = () => {
       >
         <MdOutlineSettings className="w-4 h-4" />
       </button>
-    </>
+    </div>
+  );
+};
+
+const statusTextColorMap: Record<FnxStatusVariant, string> = {
+  error: 'text-red-500',
+  warning: 'text-yellow-500',
+};
+
+const ActiveStatusContent: React.FC<{ status: FnxStatus }> = ({ status }) => {
+  const { theme } = useFnxFloatingButtonContext();
+
+  return (
+    <div
+      className={cn(
+        'fnx-panel w-full h-full flex px-4 items-center justify-between',
+        status.variant === 'error' && 'border-red-500',
+        status.variant === 'warning' && 'border-yellow-500'
+      )}
+    >
+      {/* Logo Icon */}
+      <FhenixLogoIcon theme={theme} className="w-10 h-10" />
+
+      {/* Status Info */}
+      <div className="flex flex-col ml-2 mr-auto">
+        <h3 className={cn('text-sm font-medium', statusTextColorMap[status.variant])}>{status.title}</h3>
+        {status.description != null && (
+          <p className={cn('text-xs', statusTextColorMap[status.variant])}>{status.description}</p>
+        )}
+      </div>
+
+      {/* Action Button */}
+      {status.action != null && (
+        <button
+          onClick={status.action?.onClick}
+          className={cn('p-1 rounded fnx-hover-overlay transition-colors', 'fnx-text-primary')}
+        >
+          {status.action.label}
+        </button>
+      )}
+    </div>
+  );
+};
+
+export const StatusBarContent: React.FC = () => {
+  const { statuses } = useFnxFloatingButtonContext();
+
+  return (
+    <AnimatedZStack>
+      {/* Connection status showing connection state and chain */}
+      <ConnectionStatus />
+
+      {/* TODO: Add status for "Viewing data with shared permit" always in 2nd slot */}
+      {/* <ViewingSharedDataStatus /> */}
+
+      {/* Active errors or warnings to be resolved */}
+      {statuses.map((status) => (
+        <ActiveStatusContent key={status.id} status={status} />
+      ))}
+    </AnimatedZStack>
   );
 };

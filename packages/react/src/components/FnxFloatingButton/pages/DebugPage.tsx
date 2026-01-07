@@ -1,9 +1,9 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { useFnxFloatingButtonContext, FNX_DEFAULT_TOAST_DURATION } from '../FnxFloatingButtonContext.js';
+import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext.js';
 import { ToastPrimitive, ToastPrimitiveBase } from '../components/ToastPrimitives.js';
 
 export const DebugPage: React.FC = () => {
-  const { navigateBack, addToast } = useFnxFloatingButtonContext();
+  const { navigateBack, addToast, statuses, addStatus, removeStatus } = useFnxFloatingButtonContext();
 
   return (
     <div className="fnx-text-primary space-y-3">
@@ -11,6 +11,61 @@ export const DebugPage: React.FC = () => {
         <ArrowBackIcon style={{ fontSize: 16 }} />
         <span>Back</span>
       </button>
+      <div className="flex flex-col gap-3">
+        <p className="text-sm font-medium">Debug</p>
+        <p className="text-xs">Status:</p>
+        <button
+          onClick={() => {
+            const isPresent = statuses.some((status) => status.id === 'test-warning-status');
+            if (isPresent) {
+              removeStatus('test-warning-status');
+            } else {
+              addStatus({
+                id: 'test-warning-status',
+                variant: 'warning',
+                title: 'Warning status',
+                description: 'This is a warning status',
+              });
+            }
+          }}
+        >
+          "test-warning-status" (toggle)
+        </button>
+        <button
+          onClick={() => {
+            const isPresent = statuses.some((status) => status.id === 'test-error-status');
+            if (isPresent) {
+              removeStatus('test-error-status');
+            } else {
+              addStatus({
+                id: 'test-error-status',
+                variant: 'error',
+                title: 'Error status',
+                description: 'This is an error status',
+              });
+            }
+          }}
+        >
+          "test-error-status" (toggle)
+        </button>
+        <button
+          onClick={() => {
+            addStatus({
+              id: 'test-status-with-action',
+              variant: 'warning',
+              title: 'Warning status',
+              action: {
+                label: 'RESOLVE',
+                onClick: () => {
+                  removeStatus('test-status-with-action');
+                },
+              },
+            });
+          }}
+        >
+          "test-status-with-action" (open)
+        </button>
+      </div>
       <div className="flex flex-col gap-3">
         <p className="text-sm font-medium">Debug</p>
         <p className="text-xs">Toasts:</p>

@@ -24,7 +24,7 @@ export const ContentSection: React.FC<ContentSectionProps> = ({ overriddingPage 
     <AnimatePresence>
       {contentPanelOpen && (
         <motion.div
-          className="fnx-content-panel relative flex w-full p-4"
+          className="fnx-panel relative flex w-full p-4"
           initial={{ opacity: 0, y: isTopSide ? -10 : 10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: isTopSide ? -10 : 10 }}
