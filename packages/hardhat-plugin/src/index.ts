@@ -350,6 +350,7 @@ extendEnvironment((hre) => {
 
       // Inject zkv wallet client into config
       const configWithZkvWalletClient = {
+        environment: 'hardhat' as const,
         ...config,
         _internal: {
           ...config._internal,
@@ -377,6 +378,7 @@ extendEnvironment((hre) => {
 
       // Create config
       const config = await hre.cofhesdk.createCofhesdkConfig({
+        environment: 'hardhat',
         supportedChains: [hardhat],
       });
 

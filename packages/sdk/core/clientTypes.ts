@@ -1,6 +1,6 @@
 // TODO: Extract client types to its own file, keep this one as primitives
 import { type PublicClient, type WalletClient } from 'viem';
-import { type CofhesdkConfig } from './config.js';
+import { type CofhesdkConfig, type CofhesdkEnvironment } from './config.js';
 import { type DecryptHandlesBuilder } from './decrypt/decryptHandleBuilder.js';
 import { type EncryptInputsBuilder } from './encrypt/encryptInputsBuilder.js';
 import { type ZkBuilderAndCrsGenerator, type ZkProveWorkerFunction } from './encrypt/zkPackProveVerify.js';
@@ -28,6 +28,7 @@ export type CofhesdkClient<TConfig extends CofhesdkConfig = CofhesdkConfig> = {
 
   // --- config & platform-specific ---
   readonly config: TConfig;
+  readonly environment: CofhesdkEnvironment;
 
   connect(publicClient: PublicClient, walletClient: WalletClient): Promise<boolean>;
   /**

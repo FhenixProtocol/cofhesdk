@@ -51,6 +51,17 @@ describe('createCofhesdkConfigBase', () => {
     expect(getNestedValue(result, path)).toEqual(expectedValue);
   };
 
+  it('environment', () => {
+    expectInvalidConfigItem('environment', 'not-a-valid-environment');
+    expectInvalidConfigItem('environment', 123);
+    expectInvalidConfigItem('environment', {});
+
+    expectValidConfigItem('environment', 'node', 'node');
+    expectValidConfigItem('environment', 'hardhat', 'hardhat');
+    expectValidConfigItem('environment', 'web', 'web');
+    expectValidConfigItem('environment', 'react', 'react');
+  });
+
   it('supportedChains', () => {
     expectInvalidConfigItem('supportedChains', {});
     expectInvalidConfigItem('supportedChains', 'not-an-array');

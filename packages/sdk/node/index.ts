@@ -74,6 +74,7 @@ const zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator = (fhe: string, crs: st
  */
 export function createCofhesdkConfig(config: CofhesdkInputConfig): CofhesdkConfig {
   return createCofhesdkConfigBase({
+    environment: 'node',
     ...config,
     fheKeyStorage: config.fheKeyStorage === null ? null : config.fheKeyStorage ?? createNodeStorage(),
   });

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createCofhesdkClientBase } from './client.js';
 import { type CofhesdkClient, type CofhesdkClientConnectionState } from './clientTypes.js';
-import { createCofhesdkConfigBase } from './config.js';
+import { createCofhesdkConfigBase, type CofhesdkEnvironment } from './config.js';
 import { CofhesdkError, CofhesdkErrorCode } from './error.js';
 import { type PublicClient, type WalletClient } from 'viem';
 import { EncryptInputsBuilder } from './encrypt/encryptInputsBuilder.js';
@@ -69,6 +69,24 @@ describe('createCofhesdkClientBase', () => {
     it('should expose config', () => {
       expect(client.config).toBeDefined();
       expect(client.config.supportedChains).toEqual([]);
+    });
+  });
+
+  describe('environment', () => {
+    it('should create a client with the correct environment', async () => {
+      const environments: CofhesdkEnvironment[] = ['node', 'hardhat', 'web', 'react'];
+      for (const environment of environments) {
+        const config = createCofhesdkConfigBase({ environment, supportedChains: [] });
+        const client = createCofhesdkClientBase({
+          config,
+          zkBuilderAndCrsGenerator: {} as any,
+          tfhePublicKeyDeserializer: {} as any,
+          compactPkeCrsDeserializer: {} as any,
+          initTfhe: () => Promise.resolve(false),
+        });
+
+        expect(client.environment).toBe(environment);
+      }
     });
   });
 

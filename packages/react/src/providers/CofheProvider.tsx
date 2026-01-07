@@ -4,17 +4,12 @@ import { QueryProvider } from './QueryProvider';
 import { createCofhesdkClient } from '@cofhe/sdk/web';
 import { FnxFloatingButtonWithProvider } from '@/components/FnxFloatingButton/FnxFloatingButton';
 import { useCofheAutoConnect } from '@/hooks/useCofheAutoConnect';
-import { createCofhesdkConfig, type CofhesdkConfigWithReact } from '@/config';
+import { createCofhesdkConfig } from '@/config';
 import { chains } from '@cofhe/sdk/chains';
-import type { CofhesdkConfig } from '@cofhe/sdk';
 import { assert } from 'ts-essentials';
 import type { FloatingButtonPosition } from '@/components/FnxFloatingButton/types';
 
 const CofheContext = createContext<CofheContextValue | undefined>(undefined);
-
-function isReactConfig(config: CofhesdkConfig): config is CofhesdkConfigWithReact {
-  return Object.prototype.hasOwnProperty.call(config, 'react');
-}
 
 export function CofheProvider(props: CofheProviderProps) {
   const { children, queryClient, publicClient, walletClient } = props;
@@ -23,7 +18,7 @@ export function CofheProvider(props: CofheProviderProps) {
     // priority: explicit config prop > config from provided client > create default config
     if (props.config) return props.config;
     if (props.cofhesdkClient) {
-      assert(isReactConfig(props.cofhesdkClient.config), 'Provided cofhesdkClient must have react config');
+      assert(config.environment === 'react', 'Provided cofhesdkClient must have react config');
       return props.cofhesdkClient.config;
     }
     return createCofhesdkConfig({ supportedChains: Object.values(chains) });

@@ -60,6 +60,12 @@ describe('@cofhe/node - Client Integration Tests', () => {
     });
   });
 
+  describe('Environment', () => {
+    it('should have the correct environment', () => {
+      expect(cofhesdkClient.environment).toBe('node');
+    });
+  });
+
   describe('Real Connection', () => {
     it('should connect to real chain', async () => {
       const result = await cofhesdkClient.connect(publicClient, walletClient);
