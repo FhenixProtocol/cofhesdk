@@ -9,7 +9,6 @@ export {
 } from './useCofhePermits';
 export { useCofheClient } from './useCofheClient';
 export {
-  useCofheTokenBalance,
   useCofheTokenDecryptedBalance,
   useCofheReadContract,
   useCofheReadContractAndDecrypt,

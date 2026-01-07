@@ -35,20 +35,20 @@ type UseTokenBalanceOptions = Omit<UseQueryOptions<string, Error>, 'queryKey' | 
  * @param queryOptions - Optional React Query options
  * @returns Query result with normalized balance as string
  */
-export function useCofheTokenBalance(
+function useTokenBalance(
   { tokenAddress, decimals, accountAddress, displayDecimals = 5 }: UseTokenBalanceInput,
   queryOptions?: UseTokenBalanceOptions
 ): UseQueryResult<string, Error> {
   const connectedAccount = useCofheAccount();
   const publicClient = useCofhePublicClient();
-  const account = accountAddress || connectedAccount;
+  const account = accountAddress ?? connectedAccount;
 
   const { enabled: userEnabled, ...restQueryOptions } = queryOptions ?? {};
   const baseEnabled = !!publicClient && !!account && !!tokenAddress;
   const enabled = baseEnabled && (userEnabled ?? true);
 
   return useInternalQuery({
-    queryKey: ['tokenBalance', tokenAddress, account, decimals, displayDecimals],
+    queryKey: ['tokenBalance', publicClient?.chain?.id, tokenAddress, account, decimals, displayDecimals],
     queryFn: async (): Promise<string> => {
       assert(decimals !== undefined, 'Token decimals are required to fetch token balance');
       assert(tokenAddress, 'Token address is required to fetch token balance');
@@ -322,53 +322,32 @@ export function useCofhePublicTokenBalance(
 
   // Determine token type
   const confidentialityType = token?.extensions.fhenix.confidentialityType;
-  const isWrappedToken = confidentialityType === 'wrapped';
-  const isDualToken = confidentialityType === 'dual';
   const erc20Pair = token?.extensions.fhenix.erc20Pair;
-  const isNativeEthPair = erc20Pair?.address?.toLowerCase() === ETH_ADDRESS.toLowerCase();
 
-  // ERC20 balance for wrapped tokens (from erc20Pair address)
-  const {
-    data: wrappedErc20Balance,
-    isLoading: isLoadingWrappedErc20,
-    refetch: refetchWrappedErc20,
-  } = useCofheTokenBalance(
-    {
-      tokenAddress: erc20Pair?.address,
-      decimals: erc20Pair?.decimals,
-      accountAddress: account,
-      displayDecimals,
-    },
-    { enabled: userEnabled && !!erc20Pair?.address && !!account && isWrappedToken, ...restOptions }
-  );
+  const tokenBalanceFetchArs =
+    confidentialityType === 'wrapped'
+      ? {
+          // ERC20 balance for wrapped tokens (from erc20Pair address)
+          tokenAddress: erc20Pair?.address,
+          decimals: erc20Pair?.decimals,
+          accountAddress: account,
+          displayDecimals,
+        }
+      : confidentialityType === 'dual'
+        ? {
+            // ERC20 balance for dual tokens (from token's own address)
+            tokenAddress: token?.address,
+            decimals: token?.decimals,
+            accountAddress: account,
+            displayDecimals,
+          }
+        : {};
 
-  // ERC20 balance for dual tokens (from token's own address)
-  const {
-    data: dualPublicBalance,
-    isLoading: isLoadingDualPublic,
-    refetch: refetchDualPublic,
-  } = useCofheTokenBalance(
-    {
-      tokenAddress: token?.address,
-      decimals: token?.decimals,
-      accountAddress: account,
-      displayDecimals,
-    },
-    { enabled: userEnabled && !!token?.address && !!account && isDualToken, ...restOptions }
-  );
-
-  // Combine results based on token type
-  const data = isDualToken ? dualPublicBalance : wrappedErc20Balance;
-
-  const isLoading = isDualToken ? isLoadingDualPublic : isLoadingWrappedErc20;
-
-  const refetch = isDualToken ? refetchDualPublic : refetchWrappedErc20;
-
-  const numericValue = data ? parseFloat(data) : 0;
+  const { data, isLoading, refetch } = useTokenBalance(tokenBalanceFetchArs, { enabled: userEnabled, ...restOptions });
 
   return {
     data,
-    numericValue,
+    numericValue: data ? parseFloat(data) : 0,
     isLoading,
     refetch,
   };
