@@ -21,10 +21,7 @@ export interface TokenBalanceProps {
   accountAddress?: Address;
   /** Type of balance to display: 'public' (ERC20 balanceOf) or 'confidential' (encrypted) */
   balanceType?: BalanceType;
-  /** Pre-fetched balance value (skips fetching if provided) */
-  value?: string | number | null;
-  /** Whether the value is loading (only used with value prop) */
-  isLoading?: boolean;
+
   /** Number of decimal places to show (default: 5) */
   decimalPrecision?: number;
   /** Whether to show the token symbol */
@@ -47,7 +44,6 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
   token,
   accountAddress,
   balanceType = BalanceType.Confidential,
-  isLoading: isLoadingProp,
   decimalPrecision = 5,
   showSymbol = false,
   className,

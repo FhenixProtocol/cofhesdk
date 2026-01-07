@@ -552,7 +552,8 @@ export function useCofheTokenDecryptedBalance(
   const { enabled: userEnabled = true, ...restOptions } = options ?? {};
 
   const {
-    decrypted: { data, isLoading, refetch },
+    decrypted: { data: decryptedData, isLoading: isDecryptionLoading },
+    encrypted: { isLoading: isEncryptedLoading, refetch: refetchCiphertext },
     disabledDueToMissingPermit,
   } = useCofheTokenDecryptedBalanceInternal(
     {
@@ -576,11 +577,11 @@ export function useCofheTokenDecryptedBalance(
   return {
     disabledDueToMissingPermit,
 
-    data: data?.wei,
-    formatted: data?.formatted,
-    numericValue: data?.numeric,
+    data: decryptedData?.wei,
+    formatted: decryptedData?.formatted,
+    numericValue: decryptedData?.numeric,
 
-    isLoading,
-    refetch,
+    isLoading: isDecryptionLoading || isEncryptedLoading,
+    refetch: refetchCiphertext,
   };
 }
