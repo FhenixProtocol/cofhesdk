@@ -332,7 +332,7 @@ function useCofheTokenConfidentialBalance(
  * @param queryOptions - Optional React Query options
  * @returns Query result with decrypted balance as bigint
  */
-export function useCofheTokenDecryptedBalance<TDecryptedSelectedData = bigint>(
+function useCofheTokenDecryptedBalanceInternal<TDecryptedSelectedData = bigint>(
   {
     token,
     accountAddress,
@@ -545,7 +545,7 @@ export function formatTokenAmount(amount: bigint, decimals: number, displayDecim
  * @param options - Query options
  * @returns Balance data with raw bigint, formatted string, numeric value, loading state, and refetch function
  */
-export function useDeprecateMe(
+export function useCofheTokenDecryptedBalance(
   { token, accountAddress, displayDecimals = 5 }: UseConfidentialTokenBalanceInput,
   options?: UseConfidentialTokenBalanceOptions
 ): UseConfidentialTokenBalanceResult {
@@ -554,7 +554,7 @@ export function useDeprecateMe(
   const {
     decrypted: { data, isLoading, refetch },
     disabledDueToMissingPermit,
-  } = useCofheTokenDecryptedBalance(
+  } = useCofheTokenDecryptedBalanceInternal(
     {
       token,
       accountAddress,

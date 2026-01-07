@@ -32,9 +32,7 @@ export const SendPage: React.FC = () => {
   const tokenFromList = useCofheToken({
     address: activeTokenAddress,
   });
-  const {
-    decrypted: { data: confidentialBalance },
-  } = useCofheTokenDecryptedBalance({
+  const { data: confidentialBalance } = useCofheTokenDecryptedBalance({
     token: tokenFromList,
     accountAddress: account,
   });

@@ -30,7 +30,6 @@ export {
   useCofheTokenSymbol,
   useCofhePinnedTokenAddress,
   useCofhePublicTokenBalance,
-  useDeprecateMe,
   useCofheTokenTransfer,
   ETH_ADDRESS,
   type Erc20Pair,

@@ -6,7 +6,7 @@ import { type Address, formatUnits, parseUnits } from 'viem';
 import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext';
 import { useCofheAccount, useCofheChainId, useCofhePublicClient } from '../../../hooks/useCofheConnection';
 import {
-  useDeprecateMe,
+  useCofheTokenDecryptedBalance,
   useCofhePinnedTokenAddress,
   useCofhePublicTokenBalance,
   useCofheTokenMetadata,
@@ -85,7 +85,7 @@ export const ShieldPageV2: React.FC = () => {
     numericValue: confidentialBalanceNum,
     isLoading: isLoadingConfidential,
     refetch: refetchConfidential,
-  } = useDeprecateMe(
+  } = useCofheTokenDecryptedBalance(
     { token: tokenFromList, accountAddress: account as Address, displayDecimals: DISPLAY_DECIMALS },
     { enabled: !!tokenFromList && !!account }
   );

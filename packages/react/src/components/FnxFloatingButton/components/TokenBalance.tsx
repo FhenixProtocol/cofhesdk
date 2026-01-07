@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { Address } from 'viem';
-import { useCofhePublicTokenBalance, useDeprecateMe } from '../../../hooks/useCofheTokenBalance';
+import { useCofhePublicTokenBalance, useCofheTokenDecryptedBalance } from '../../../hooks/useCofheTokenBalance';
 import { useCofheAccount } from '../../../hooks/useCofheConnection';
 import { type Token } from '../../../hooks/useCofheTokenLists';
 import { cn } from '../../../utils/cn';
@@ -70,7 +70,7 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
     numericValue: confidentialBalanceNum,
     isLoading: isLoadingConfidential,
     disabledDueToMissingPermit,
-  } = useDeprecateMe(
+  } = useCofheTokenDecryptedBalance(
     { token, accountAddress: effectiveAccountAddress, displayDecimals: decimalPrecision },
     {
       enabled: balanceType === BalanceType.Confidential,
