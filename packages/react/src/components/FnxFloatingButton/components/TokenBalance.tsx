@@ -55,7 +55,7 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
   const effectiveAccountAddress = accountAddress ?? account;
 
   // Use unified hooks for balance fetching
-  const { numericValue: publicBalanceNum, isLoading: isLoadingPublic } = useCofhePublicTokenBalance(
+  const { data: { unit: publicBalanceNum } = {}, isLoading: isLoadingPublic } = useCofhePublicTokenBalance(
     { token, accountAddress: effectiveAccountAddress, displayDecimals: decimalPrecision },
     {
       enabled: balanceType === BalanceType.Public,
@@ -63,7 +63,7 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
   );
 
   const {
-    formatted: confidentialBalanceFormatted,
+    data: { formatted: confidentialBalanceFormatted } = {},
     isLoading: isLoadingConfidential,
     disabledDueToMissingPermit,
   } = useCofheTokenDecryptedBalance(
@@ -92,7 +92,7 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
     // Public or confidential balance from hooks
     if (balanceType === BalanceType.Confidential) return confidentialBalanceFormatted;
 
-    return publicBalanceNum.toFixed(decimalPrecision);
+    return publicBalanceNum?.toFixed(decimalPrecision);
   }, [balanceType, confidentialBalanceFormatted, publicBalanceNum, decimalPrecision]);
 
   return (

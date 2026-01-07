@@ -73,7 +73,7 @@ export const ShieldPageV2: React.FC = () => {
   const confidentialityType = tokenFromList?.extensions.fhenix.confidentialityType;
 
   const {
-    numericValue: publicBalanceNum,
+    data: { unit: publicBalanceNum } = {},
     isLoading: isLoadingPublic,
     refetch: refetchPublic,
   } = useCofhePublicTokenBalance(
@@ -82,7 +82,7 @@ export const ShieldPageV2: React.FC = () => {
   );
 
   const {
-    unit: confidentialBalanceUnit,
+    data: { unit: confidentialBalanceUnit } = {},
     isLoading: isLoadingConfidential,
     refetch: refetchConfidential,
   } = useCofheTokenDecryptedBalance(
@@ -153,7 +153,7 @@ export const ShieldPageV2: React.FC = () => {
     if (!shieldAmount) return false;
     const numAmount = parseFloat(shieldAmount);
     if (isNaN(numAmount) || numAmount <= 0) return false;
-    return numAmount <= publicBalanceNum;
+    return publicBalanceNum?.gt(numAmount);
   }, [shieldAmount, publicBalanceNum]);
 
   const isValidUnshieldAmount = useMemo(() => {
@@ -177,7 +177,7 @@ export const ShieldPageV2: React.FC = () => {
   const pairedLogoURI = tokenFromList?.extensions.fhenix.erc20Pair?.logoURI;
 
   const handleShieldMax = () => {
-    if (publicBalanceNum > 0) setShieldAmount(publicBalanceNum.toString());
+    if (publicBalanceNum?.gt(0)) setShieldAmount(publicBalanceNum.toString());
   };
   const handleUnshieldMax = () => {
     if (!confidentialBalanceUnit) return;

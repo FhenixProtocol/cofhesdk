@@ -16,29 +16,24 @@ import BigNumber from 'bignumber.js';
 type UseTokenBalanceInput = {
   /** Token contract address */
   tokenAddress?: Address;
-  /** Token decimals (e.g., 18 for ETH, 6 for USDC) */
-  decimals?: number;
   /** Account address to check balance for (optional, defaults to connected account) */
   accountAddress?: Address;
-  /** Maximum number of decimal places to display (default: 5) */
-  displayDecimals?: number;
 };
 
-type UseTokenBalanceOptions = Omit<UseQueryOptions<string, Error>, 'queryKey' | 'queryFn'> & {
-  /** Whether to enable the query (combined with internal enabled check) */
-  enabled?: boolean;
-};
-
+type UseTokenBalanceOptions<TSelectedData = bigint> = Omit<
+  UseQueryOptions<bigint, Error, TSelectedData>,
+  'queryKey' | 'queryFn'
+>;
 /**
  * Hook to get ERC20 token balance and return normalized display value
  * @param input - Token address, decimals, and optional publicClient/accountAddress
  * @param queryOptions - Optional React Query options
  * @returns Query result with normalized balance as string
  */
-function useTokenBalance(
-  { tokenAddress, decimals, accountAddress, displayDecimals = 5 }: UseTokenBalanceInput,
-  queryOptions?: UseTokenBalanceOptions
-): UseQueryResult<string, Error> {
+function useTokenBalance<TSelectedData = bigint>(
+  { tokenAddress, accountAddress }: UseTokenBalanceInput,
+  queryOptions?: UseTokenBalanceOptions<TSelectedData>
+) {
   const connectedAccount = useCofheAccount();
   const publicClient = useCofhePublicClient();
   const account = accountAddress ?? connectedAccount;
@@ -48,32 +43,27 @@ function useTokenBalance(
   const enabled = baseEnabled && (userEnabled ?? true);
 
   return useInternalQuery({
-    queryKey: ['tokenBalance', publicClient?.chain?.id, tokenAddress, account, decimals, displayDecimals],
-    queryFn: async (): Promise<string> => {
-      assert(decimals !== undefined, 'Token decimals are required to fetch token balance');
+    queryKey: ['tokenBalance', publicClient?.chain?.id, account, tokenAddress],
+    queryFn: async () => {
       assert(tokenAddress, 'Token address is required to fetch token balance');
-      if (!publicClient) {
-        throw new Error('PublicClient is required to fetch token balance');
-      }
-      if (!account) {
-        throw new Error('Account address is required to fetch token balance');
-      }
+      assert(publicClient, 'PublicClient is required to fetch token balance');
+      assert(account, 'Account address is required to fetch token balance');
 
       const isNativeToken = tokenAddress.toLowerCase() === ETH_ADDRESS.toLowerCase();
 
       // Read balance from contract
       const balance = isNativeToken
-        ? await publicClient.getBalance({
+        ? publicClient.getBalance({
             address: account,
           })
-        : await publicClient.readContract({
+        : publicClient.readContract({
             address: tokenAddress,
             abi: ERC20_BALANCE_OF_ABI,
             functionName: 'balanceOf',
             args: [account],
           });
 
-      return parseFloat(formatUnits(balance, decimals)).toFixed(displayDecimals);
+      return balance;
     },
     enabled,
     ...restQueryOptions,
@@ -288,15 +278,8 @@ type UsePublicTokenBalanceInput = {
   displayDecimals?: number;
 };
 
-type UsePublicTokenBalanceOptions = Omit<UseQueryOptions<string, Error>, 'queryKey' | 'queryFn'> & {
-  enabled?: boolean;
-};
-
 type UsePublicTokenBalanceResult = {
-  /** Formatted balance string */
-  data: string | undefined;
-  /** Raw numeric balance */
-  numericValue: number;
+  data?: TokenFormatOutput;
   /** Whether balance is loading */
   isLoading: boolean;
   /** Refetch function */
@@ -313,7 +296,7 @@ type UsePublicTokenBalanceResult = {
  */
 export function useCofhePublicTokenBalance(
   { token, accountAddress, displayDecimals = 5 }: UsePublicTokenBalanceInput,
-  options?: UsePublicTokenBalanceOptions
+  options?: Omit<UseTokenBalanceOptions, 'select'> // disallow passing 'select' because it's harder to type
 ): UsePublicTokenBalanceResult {
   const connectedAccount = useCofheAccount();
   const account = accountAddress || connectedAccount;
@@ -343,11 +326,20 @@ export function useCofhePublicTokenBalance(
           }
         : {};
 
-  const { data, isLoading, refetch } = useTokenBalance(tokenBalanceFetchArs, { enabled: userEnabled, ...restOptions });
+  const { data, isLoading, refetch } = useTokenBalance(tokenBalanceFetchArs, {
+    enabled: userEnabled,
+    select: (value) => {
+      assert(
+        typeof tokenBalanceFetchArs.decimals === 'number',
+        'Token decimals must be defined to format public token balance'
+      );
+      return formatTokenAmount(value, tokenBalanceFetchArs.decimals, displayDecimals);
+    },
+    ...restOptions,
+  });
 
   return {
     data,
-    numericValue: data ? parseFloat(data) : 0,
     isLoading,
     refetch,
   };
@@ -372,11 +364,7 @@ type UseConfidentialTokenBalanceOptions = Omit<UseQueryOptions<bigint, Error>, '
 
 type UseConfidentialTokenBalanceResult = {
   /** Raw balance in smallest unit (bigint) */
-  wei?: bigint;
-  /** Formatted balance string */
-  formatted?: string;
-  /** Numeric balance value */
-  unit?: BigNumber;
+  data?: TokenFormatOutput;
   /** Whether balance is loading */
   isLoading: boolean;
   /** Refetch function */
@@ -384,7 +372,16 @@ type UseConfidentialTokenBalanceResult = {
   disabledDueToMissingPermit: boolean;
 };
 
-function formatTokenAmount(amount: bigint, decimals: number, displayDecimals?: number) {
+type TokenFormatOutput = {
+  /** Raw balance in smallest unit (bigint) */
+  wei: bigint;
+  /** Numeric balance value */
+  unit: BigNumber;
+  /** Formatted balance string */
+  formatted: string;
+};
+
+function formatTokenAmount(amount: bigint, decimals: number, displayDecimals?: number): TokenFormatOutput {
   const amountBN = new BigNumber(amount).dividedBy(10 ** decimals);
   return {
     wei: amount,
@@ -443,9 +440,7 @@ export function useCofheTokenDecryptedBalance(
   return {
     disabledDueToMissingPermit,
 
-    wei: decryptedData?.wei,
-    formatted: decryptedData?.formatted,
-    unit: decryptedData?.unit,
+    data: decryptedData,
 
     isLoading: isDecryptionLoading || isEncryptedLoading,
     refetch: refetchCiphertext,
