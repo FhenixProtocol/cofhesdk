@@ -301,7 +301,7 @@ export function useCofheReadContract(
         address,
         abi,
         functionName,
-        ...(args ? { args } : {}),
+        args,
       });
 
       assert(typeof out === 'bigint', 'Expected confidential contract read result to be bigint');
