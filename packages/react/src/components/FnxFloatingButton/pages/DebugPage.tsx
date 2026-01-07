@@ -3,7 +3,7 @@ import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext.js';
 import { ToastPrimitive, ToastPrimitiveBase } from '../components/ToastPrimitives.js';
 
 export const DebugPage: React.FC = () => {
-  const { navigateBack, addToast, setStatus, clearStatus } = useFnxFloatingButtonContext();
+  const { navigateBack, addToast, statuses, addStatus, removeStatus } = useFnxFloatingButtonContext();
 
   return (
     <div className="fnx-text-primary space-y-3">
@@ -16,48 +16,54 @@ export const DebugPage: React.FC = () => {
         <p className="text-xs">Status:</p>
         <button
           onClick={() => {
-            clearStatus();
+            const isPresent = statuses.some((status) => status.id === 'test-warning-status');
+            if (isPresent) {
+              removeStatus('test-warning-status');
+            } else {
+              addStatus({
+                id: 'test-warning-status',
+                variant: 'warning',
+                title: 'Warning status',
+                description: 'This is a warning status',
+              });
+            }
           }}
         >
-          Clear Status
+          "test-warning-status" (toggle)
         </button>
         <button
           onClick={() => {
-            setStatus({
-              variant: 'warning',
-              title: 'Warning status',
-              description: 'This is a warning status',
-            });
+            const isPresent = statuses.some((status) => status.id === 'test-error-status');
+            if (isPresent) {
+              removeStatus('test-error-status');
+            } else {
+              addStatus({
+                id: 'test-error-status',
+                variant: 'error',
+                title: 'Error status',
+                description: 'This is an error status',
+              });
+            }
           }}
         >
-          Warning Status
+          "test-error-status" (toggle)
         </button>
         <button
           onClick={() => {
-            setStatus({
-              variant: 'error',
-              title: 'Error status',
-              description: 'This is an error status',
-            });
-          }}
-        >
-          Error Status
-        </button>
-        <button
-          onClick={() => {
-            setStatus({
+            addStatus({
+              id: 'test-status-with-action',
               variant: 'warning',
               title: 'Warning status',
               action: {
                 label: 'RESOLVE',
                 onClick: () => {
-                  clearStatus();
+                  removeStatus('test-status-with-action');
                 },
               },
             });
           }}
         >
-          Status with Resolution action
+          "test-status-with-action" (open)
         </button>
       </div>
       <div className="flex flex-col gap-3">

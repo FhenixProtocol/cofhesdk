@@ -68,10 +68,9 @@ interface FnxFloatingButtonContextValue {
   removeToast: (id: string) => void;
 
   // Status
-  // TODO: should status be a list?
-  status: FnxStatus | undefined;
-  setStatus: (status: FnxStatus) => void;
-  clearStatus: () => void;
+  statuses: FnxStatus[];
+  addStatus: (status: FnxStatus) => void;
+  removeStatus: (id: string) => void;
 }
 
 const FnxFloatingButtonContext = createContext<FnxFloatingButtonContextValue | null>(null);
@@ -97,7 +96,7 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   const [selectedToken, setSelectedToken] = useState<Token>();
   const [viewingToken, setViewingToken] = useState<Token>();
   const [toasts, setToasts] = useState<FnxFloatingButtonToast[]>([]);
-  const [status, setStatus] = useState<FnxStatus | undefined>(undefined);
+  const [statuses, setStatuses] = useState<FnxStatus[]>([]);
 
   const openTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -129,7 +128,7 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
     // Open status panel immediately
     setStatusPanelOpen(true);
 
-    if (statusPanelOpen || status != null) {
+    if (statusPanelOpen || statuses.length > 0) {
       // Expand content immediately if status panel is visible
       setContentPanelOpen(true);
     } else {
@@ -248,11 +247,12 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   };
 
-  const handleSetStatus = (status: FnxStatus) => {
-    setStatus(status);
+  const addStatus = (status: FnxStatus) => {
+    setStatuses((prev) => [...prev, status]);
   };
-  const handleClearStatus = () => {
-    setStatus(undefined);
+
+  const removeStatus = (id: string) => {
+    setStatuses((prev) => prev.filter((status) => status.id !== id));
   };
 
   return (
@@ -283,9 +283,9 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
         addToast,
         pauseToast,
         removeToast,
-        status,
-        setStatus: handleSetStatus,
-        clearStatus: handleClearStatus,
+        statuses,
+        addStatus,
+        removeStatus,
       }}
     >
       {children}

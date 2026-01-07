@@ -58,6 +58,7 @@ export type FnxToastImperativeParams = {
 export type FnxToastVariant = 'info' | 'success' | 'error' | 'warning';
 
 export type FnxStatus = {
+  id: string;
   variant: FnxStatusVariant;
   title: string;
   description?: string;

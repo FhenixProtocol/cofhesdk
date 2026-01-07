@@ -73,7 +73,7 @@ const ActiveStatusContent: React.FC<{ status: FnxStatus }> = ({ status }) => {
 };
 
 export const StatusBarContent: React.FC = () => {
-  const { status } = useFnxFloatingButtonContext();
+  const { statuses } = useFnxFloatingButtonContext();
 
   return (
     <AnimatedZStack>
@@ -84,7 +84,9 @@ export const StatusBarContent: React.FC = () => {
       {/* <ViewingSharedDataStatus /> */}
 
       {/* Active errors or warnings to be resolved */}
-      {status != null && <ActiveStatusContent status={status} />}
+      {statuses.map((status) => (
+        <ActiveStatusContent key={status.id} status={status} />
+      ))}
     </AnimatedZStack>
   );
 };
