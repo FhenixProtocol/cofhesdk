@@ -332,7 +332,7 @@ function useCofheTokenConfidentialBalance(
  * @param queryOptions - Optional React Query options
  * @returns Query result with decrypted balance as bigint
  */
-export function useCofheTokenDecryptedBalance(
+export function useCofheTokenDecryptedBalance<TDecryptedSelectedData = bigint>(
   {
     token,
     accountAddress,
@@ -340,23 +340,34 @@ export function useCofheTokenDecryptedBalance(
     token: Token | undefined;
     accountAddress?: Address;
   },
-  queryOptions?: Omit<UseQueryOptions<bigint, Error>, 'queryKey' | 'queryFn'>
-): UseQueryResult<bigint | undefined, Error> & {
+  {
+    confidentialQueryOptions,
+    decryptingQueryOptions,
+  }: {
+    confidentialQueryOptions?: Omit<UseQueryOptions<bigint, Error>, 'queryKey' | 'queryFn'>;
+    decryptingQueryOptions?: Omit<UseQueryOptions<bigint, Error, TDecryptedSelectedData>, 'queryKey' | 'queryFn'>;
+  } = {}
+): {
+  encrypted: UseQueryResult<bigint, Error>;
+  decrypted: UseQueryResult<TDecryptedSelectedData, Error>;
   disabledDueToMissingPermit: boolean;
 } {
-  const encrypted = useCofheTokenConfidentialBalance({ token, accountAddress }, queryOptions);
+  const encrypted = useCofheTokenConfidentialBalance({ token, accountAddress }, confidentialQueryOptions);
 
   const fheType = token?.extensions.fhenix.confidentialValueType === 'uint64' ? FheTypes.Uint64 : FheTypes.Uint128;
 
-  const decrypted = useCofheDecrypt({
-    ciphertext: encrypted.data,
-    fheType,
-    cause: ErrorCause.AttemptToFetchConfidentialBalance,
-  });
+  const decrypted = useCofheDecrypt(
+    {
+      ciphertext: encrypted.data,
+      fheType,
+      cause: ErrorCause.AttemptToFetchConfidentialBalance,
+    },
+    decryptingQueryOptions
+  );
 
   return {
-    ...decrypted,
-    refetch: encrypted.refetch,
+    encrypted,
+    decrypted,
     disabledDueToMissingPermit: encrypted.disabledDueToMissingPermit,
   };
 }
@@ -492,30 +503,40 @@ export function useCofhePublicTokenBalance(
 
 type UseConfidentialTokenBalanceInput = {
   /** Token from token list */
-  token: Token | null | undefined;
+  token?: Token;
   /** Account address (optional, defaults to connected account) */
   accountAddress?: Address;
   /** Display decimals for formatting (default: 5) */
   displayDecimals?: number;
 };
 
-type UseConfidentialTokenBalanceOptions = Omit<UseQueryOptions<bigint, Error>, 'queryKey' | 'queryFn'> & {
+type UseConfidentialTokenBalanceOptions = Omit<UseQueryOptions<bigint, Error>, 'queryKey' | 'queryFn' | 'select'> & {
   enabled?: boolean;
 };
 
 type UseConfidentialTokenBalanceResult = {
   /** Raw balance in smallest unit (bigint) */
-  data: bigint | undefined;
+  data?: bigint;
   /** Formatted balance string */
-  formatted: string | undefined;
+  formatted?: string;
   /** Numeric balance value */
-  numericValue: number;
+  numericValue?: number;
   /** Whether balance is loading */
   isLoading: boolean;
   /** Refetch function */
   refetch: () => Promise<unknown>;
   disabledDueToMissingPermit: boolean;
 };
+
+export function formatTokenAmount(amount: bigint, decimals: number, displayDecimals: number) {
+  const rawUnit = formatUnits(amount, decimals);
+  const formatted = parseFloat(rawUnit).toFixed(displayDecimals);
+  return {
+    wei: amount,
+    numeric: parseFloat(formatted),
+    formatted,
+  };
+}
 
 /**
  * Hook to get confidential (encrypted) balance for a token with convenient formatting.
@@ -530,25 +551,35 @@ export function useDeprecateMe(
 ): UseConfidentialTokenBalanceResult {
   const { enabled: userEnabled = true, ...restOptions } = options ?? {};
 
-  const { data, isLoading, refetch, disabledDueToMissingPermit } = useCofheTokenDecryptedBalance(
+  const {
+    decrypted: { data, isLoading, refetch },
+    disabledDueToMissingPermit,
+  } = useCofheTokenDecryptedBalance(
     {
-      token: token ?? undefined,
-      accountAddress: accountAddress as Address,
+      token,
+      accountAddress,
     },
-    { enabled: userEnabled && !!token, ...restOptions }
+    {
+      confidentialQueryOptions: {
+        enabled: userEnabled && !!token,
+      },
+      decryptingQueryOptions: {
+        select: (amountWei) => {
+          assert(token, 'Token must be defined to format confidential balance');
+          return formatTokenAmount(amountWei, token.decimals, displayDecimals);
+        },
+      },
+      ...restOptions,
+    }
   );
-
-  const decimals = token?.decimals ?? 18;
-
-  const formatted = data !== undefined ? parseFloat(formatUnits(data, decimals)).toFixed(displayDecimals) : undefined;
-
-  const numericValue = formatted ? parseFloat(formatted) : 0;
 
   return {
     disabledDueToMissingPermit,
-    data,
-    formatted,
-    numericValue,
+
+    data: data?.wei,
+    formatted: data?.formatted,
+    numericValue: data?.numeric,
+
     isLoading,
     refetch,
   };

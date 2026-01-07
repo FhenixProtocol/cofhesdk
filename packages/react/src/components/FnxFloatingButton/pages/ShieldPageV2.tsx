@@ -157,7 +157,7 @@ export const ShieldPageV2: React.FC = () => {
   }, [shieldAmount, publicBalanceNum]);
 
   const isValidUnshieldAmount = useMemo(() => {
-    if (!unshieldAmount) return false;
+    if (!unshieldAmount || !confidentialBalanceNum) return false;
     const numAmount = parseFloat(unshieldAmount);
     if (isNaN(numAmount) || numAmount <= 0) return false;
     return numAmount <= confidentialBalanceNum;
@@ -178,6 +178,7 @@ export const ShieldPageV2: React.FC = () => {
     if (publicBalanceNum > 0) setShieldAmount(publicBalanceNum.toString());
   };
   const handleUnshieldMax = () => {
+    if (!confidentialBalanceNum) return;
     if (confidentialBalanceNum > 0) setUnshieldAmount(confidentialBalanceNum.toString());
   };
 

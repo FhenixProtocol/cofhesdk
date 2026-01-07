@@ -16,7 +16,7 @@ export enum BalanceType {
 
 export interface TokenBalanceProps {
   /** Token object from token list (for non-native tokens) */
-  token?: Token | null;
+  token?: Token;
   /** Account address to fetch balance for */
   accountAddress?: Address;
   /** Type of balance to display: 'public' (ERC20 balanceOf) or 'confidential' (encrypted) */
@@ -97,7 +97,7 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
     const numValue = balanceType === BalanceType.Public ? publicBalanceNum : confidentialBalanceNum;
     if (numValue === 0 && balanceType === BalanceType.Confidential) return;
 
-    return numValue.toFixed(decimalPrecision);
+    return numValue?.toFixed(decimalPrecision);
   }, [balanceType, publicBalanceNum, confidentialBalanceNum, decimalPrecision]);
 
   return (
