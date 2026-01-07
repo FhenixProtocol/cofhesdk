@@ -66,12 +66,11 @@ export const SendPage: React.FC = () => {
 
   // Validate amount
   const isValidAmount = useMemo(() => {
+    // any of the balances zero or undefined - invalid, can't send
     if (!amount || !confidentialUnitBalance) return false;
-    const numAmount = parseFloat(amount);
-    if (isNaN(numAmount) || numAmount <= 0) return false;
 
-    const maxAmount = confidentialUnitBalance.toNumber();
-    return numAmount <= maxAmount;
+    // only valid if balance is enough
+    return confidentialUnitBalance.gte(amount);
   }, [amount, confidentialUnitBalance]);
 
   const handleSend = async () => {
