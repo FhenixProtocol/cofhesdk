@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react';
+import type { FnxStatus } from './types';
 
 const ANIM_DURATION = 300;
 
-export function usePortalPanels() {
+export function usePortalPanels(status?: FnxStatus) {
   const [portalOpen, setPortalOpen] = useState(false);
   const [statusPanelOpen, setStatusPanelOpen] = useState(false);
   const [contentPanelOpen, setContentPanelOpen] = useState(false);
