@@ -178,76 +178,6 @@ export function useCofheTokenMetadata(
   });
 }
 
-/**
- * Hook to get token decimals from ERC20 contract
- * @param tokenAddress - Token contract address
- * @param queryOptions - Optional React Query options
- * @returns Query result with decimals as number
- */
-export function useCofheTokenDecimals(
-  tokenAddress: Address | undefined,
-  queryOptions?: Omit<UseQueryOptions<number, Error>, 'queryKey' | 'queryFn' | 'enabled'>
-): UseQueryResult<number, Error> {
-  const publicClient = useCofhePublicClient();
-
-  return useInternalQuery({
-    queryKey: ['tokenDecimals', tokenAddress],
-    queryFn: async (): Promise<number> => {
-      if (!publicClient) {
-        throw new Error('PublicClient is required to fetch token decimals');
-      }
-      if (!tokenAddress) {
-        throw new Error('Token address is required');
-      }
-
-      const decimals = await publicClient.readContract({
-        address: tokenAddress,
-        abi: ERC20_DECIMALS_ABI,
-        functionName: 'decimals',
-      });
-
-      return decimals;
-    },
-    enabled: !!publicClient && !!tokenAddress,
-    ...queryOptions,
-  });
-}
-
-/**
- * Hook to get token symbol from ERC20 contract
- * @param tokenAddress - Token contract address
- * @param queryOptions - Optional React Query options
- * @returns Query result with symbol as string
- */
-export function useCofheTokenSymbol(
-  tokenAddress: Address | undefined,
-  queryOptions?: Omit<UseQueryOptions<string, Error>, 'queryKey' | 'queryFn' | 'enabled'>
-): UseQueryResult<string, Error> {
-  const publicClient = useCofhePublicClient();
-
-  return useInternalQuery({
-    queryKey: ['tokenSymbol', tokenAddress],
-    queryFn: async (): Promise<string> => {
-      if (!publicClient) {
-        throw new Error('PublicClient is required to fetch token symbol');
-      }
-      if (!tokenAddress) {
-        throw new Error('Token address is required');
-      }
-
-      const symbol = await publicClient.readContract({
-        address: tokenAddress,
-        abi: ERC20_SYMBOL_ABI,
-        functionName: 'symbol',
-      });
-
-      return symbol;
-    },
-    enabled: !!publicClient && !!tokenAddress,
-    ...queryOptions,
-  });
-}
-
 type UseCofheReadContractQueryOptions = Omit<UseQueryOptions<bigint, Error>, 'queryKey' | 'queryFn'>;
 /**
  * Generic hook: read a contract and return the result (with permit/error gating support).
@@ -519,7 +449,7 @@ type UseConfidentialTokenBalanceResult = {
   disabledDueToMissingPermit: boolean;
 };
 
-export function formatTokenAmount(amount: bigint, decimals: number, displayDecimals?: number) {
+function formatTokenAmount(amount: bigint, decimals: number, displayDecimals?: number) {
   const amountBN = new BigNumber(amount).dividedBy(10 ** decimals);
   return {
     wei: amount,

@@ -28,8 +28,6 @@ export {
   useCofheReadContract,
   useCofheReadContractAndDecrypt,
   useCofheTokenMetadata,
-  useCofheTokenDecimals,
-  useCofheTokenSymbol,
   useCofhePinnedTokenAddress,
   useCofhePublicTokenBalance,
   useCofheTokenTransfer,
