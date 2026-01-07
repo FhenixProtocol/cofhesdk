@@ -13,11 +13,11 @@ import { useInternalQueryClient } from './QueryProvider';
  * Internal wrapper for TanStack's useQuery that always uses the module's QueryClient.
  * Drop-in replacement: use `useInternalQuery(options)`.
  */
-export function useInternalQuery<TData = unknown, TError = Error>(
-  options: UseQueryOptions<TData, TError>
-): UseQueryResult<TData, TError> {
+export function useInternalQuery<TData = unknown, TError = Error, TSelectedData = TData>(
+  options: UseQueryOptions<TData, TError, TSelectedData>
+): UseQueryResult<TSelectedData, TError> {
   const qc = useInternalQueryClient();
-  return rqUseQuery<TData, TError>(options, qc);
+  return rqUseQuery<TData, TError, TSelectedData>(options, qc);
 }
 
 /**
