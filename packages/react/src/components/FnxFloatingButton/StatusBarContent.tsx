@@ -17,7 +17,23 @@ const StackWrapper: React.FC<{ children?: ReactNode; index: number; length: numb
   length,
   className,
 }) => {
+  // Default status is always index 0, its animation in and out doesn't involve translation
+  // Active statuses animate in from the bottom and out to the bottom
+  const isDefaultStatus = index === 0;
+  const initial = isDefaultStatus
+    ? {
+        opacity: 0,
+      }
+    : {
+        opacity: 0,
+        top: CARD_OFFSET,
+        scale: 1 + SCALE_FACTOR,
+      };
+
+  // invIndex is the depth of the card in the stack, as the length of the stack increases, the depth of the card decreases
+  // Deeper items scale down and move up
   const invIndex = length - index - 1;
+
   return (
     <motion.div
       className={cn(
@@ -25,17 +41,13 @@ const StackWrapper: React.FC<{ children?: ReactNode; index: number; length: numb
         invIndex === 0 && 'events-none',
         className
       )}
-      initial={{
-        opacity: 0,
-      }}
+      initial={initial}
+      exit={initial}
       animate={{
         opacity: 1,
         top: invIndex * -CARD_OFFSET,
         scale: 1 - invIndex * SCALE_FACTOR,
         zIndex: index,
-      }}
-      exit={{
-        opacity: 0,
       }}
     >
       {children}
@@ -115,15 +127,12 @@ const ActiveStatusContent: React.FC<{ status: FnxStatus; index: number; length: 
 
 export const StatusBarContent: React.FC = () => {
   const { status } = useFnxFloatingButtonContext();
+  const length = status != null ? 2 : 1;
 
-  const stack = useMemo(() => {
-    const length = status != null ? 2 : 1;
-    if (status == null) return [<DefaultStatusContent key="default" length={length} />];
-    return [
-      <DefaultStatusContent key="default" length={length} />,
-      <ActiveStatusContent key="active" status={status} index={1} length={length} />,
-    ];
-  }, [status]);
-
-  return <AnimatePresence>{stack}</AnimatePresence>;
+  return (
+    <AnimatePresence>
+      <DefaultStatusContent key="default" length={length} />
+      {status != null && <ActiveStatusContent key="active" status={status} index={1} length={length} />}
+    </AnimatePresence>
+  );
 };
