@@ -15,9 +15,9 @@ import { useCofheDecrypt } from './useCofheDecrypt';
 import BigNumber from 'bignumber.js';
 type UseTokenBalanceInput = {
   /** Token contract address */
-  tokenAddress: Address;
+  tokenAddress?: Address;
   /** Token decimals (e.g., 18 for ETH, 6 for USDC) */
-  decimals: number;
+  decimals?: number;
   /** Account address to check balance for (optional, defaults to connected account) */
   accountAddress?: Address;
   /** Maximum number of decimal places to display (default: 5) */
@@ -41,7 +41,7 @@ export function useCofheTokenBalance(
 ): UseQueryResult<string, Error> {
   const connectedAccount = useCofheAccount();
   const publicClient = useCofhePublicClient();
-  const account = accountAddress || (connectedAccount as Address | undefined);
+  const account = accountAddress || connectedAccount;
 
   const { enabled: userEnabled, ...restQueryOptions } = queryOptions ?? {};
   const baseEnabled = !!publicClient && !!account && !!tokenAddress;
@@ -50,6 +50,8 @@ export function useCofheTokenBalance(
   return useInternalQuery({
     queryKey: ['tokenBalance', tokenAddress, account, decimals, displayDecimals],
     queryFn: async (): Promise<string> => {
+      assert(decimals !== undefined, 'Token decimals are required to fetch token balance');
+      assert(tokenAddress, 'Token address is required to fetch token balance');
       if (!publicClient) {
         throw new Error('PublicClient is required to fetch token balance');
       }
@@ -58,12 +60,12 @@ export function useCofheTokenBalance(
       }
 
       // Read balance from contract
-      const balance = (await publicClient.readContract({
+      const balance = await publicClient.readContract({
         address: tokenAddress,
         abi: ERC20_BALANCE_OF_ABI,
         functionName: 'balanceOf',
         args: [account],
-      })) as bigint;
+      });
 
       return parseFloat(formatUnits(balance, decimals)).toFixed(displayDecimals);
     },
@@ -88,7 +90,7 @@ export function useCofheNativeBalance(
 ): UseQueryResult<string, Error> {
   const connectedAccount = useCofheAccount();
   const publicClient = useCofhePublicClient();
-  const account = accountAddress || (connectedAccount as Address | undefined);
+  const account = accountAddress || connectedAccount;
 
   return useInternalQuery({
     queryKey: ['nativeBalance', account, decimals, displayDecimals],
@@ -198,11 +200,11 @@ export function useCofheTokenDecimals(
         throw new Error('Token address is required');
       }
 
-      const decimals = (await publicClient.readContract({
+      const decimals = await publicClient.readContract({
         address: tokenAddress,
         abi: ERC20_DECIMALS_ABI,
         functionName: 'decimals',
-      })) as number;
+      });
 
       return decimals;
     },
@@ -233,11 +235,11 @@ export function useCofheTokenSymbol(
         throw new Error('Token address is required');
       }
 
-      const symbol = (await publicClient.readContract({
+      const symbol = await publicClient.readContract({
         address: tokenAddress,
         abi: ERC20_SYMBOL_ABI,
         functionName: 'symbol',
-      })) as string;
+      });
 
       return symbol;
     },
@@ -366,7 +368,7 @@ export function useCofhePinnedTokenAddress(): Address | undefined {
   }
 
   const pinnedTokenAddress = widgetConfig.pinnedTokens[chainId.toString()];
-  return pinnedTokenAddress as Address | undefined;
+  return pinnedTokenAddress;
 }
 
 // ============================================================================
@@ -410,7 +412,7 @@ export function useCofhePublicTokenBalance(
   options?: UsePublicTokenBalanceOptions
 ): UsePublicTokenBalanceResult {
   const connectedAccount = useCofheAccount();
-  const account = accountAddress || (connectedAccount as Address | undefined);
+  const account = accountAddress || connectedAccount;
 
   const { enabled: userEnabled = true, ...restOptions } = options ?? {};
 
@@ -426,7 +428,7 @@ export function useCofhePublicTokenBalance(
     data: nativeBalance,
     isLoading: isLoadingNative,
     refetch: refetchNative,
-  } = useCofheNativeBalance(account as Address, 18, displayDecimals, {
+  } = useCofheNativeBalance(account, 18, displayDecimals, {
     enabled: userEnabled && !!account && isWrappedToken && isNativeEthPair,
     ...restOptions,
   });
@@ -438,9 +440,9 @@ export function useCofhePublicTokenBalance(
     refetch: refetchWrappedErc20,
   } = useCofheTokenBalance(
     {
-      tokenAddress: (erc20Pair?.address ?? '0x') as Address,
+      tokenAddress: erc20Pair?.address,
       decimals: erc20Pair?.decimals ?? 18,
-      accountAddress: account as Address,
+      accountAddress: account,
       displayDecimals,
     },
     { enabled: userEnabled && !!erc20Pair?.address && !!account && isWrappedToken && !isNativeEthPair, ...restOptions }
@@ -453,9 +455,9 @@ export function useCofhePublicTokenBalance(
     refetch: refetchDualPublic,
   } = useCofheTokenBalance(
     {
-      tokenAddress: (token?.address ?? '0x') as Address,
-      decimals: token?.decimals ?? 18,
-      accountAddress: account as Address,
+      tokenAddress: token?.address,
+      decimals: token?.decimals,
+      accountAddress: account,
       displayDecimals,
     },
     { enabled: userEnabled && !!token?.address && !!account && isDualToken, ...restOptions }
