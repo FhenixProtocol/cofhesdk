@@ -1,5 +1,5 @@
 import { type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
-import { formatUnits, type Address } from 'viem';
+import { formatUnits, type Address, type Abi } from 'viem';
 import { FheTypes } from '@cofhe/sdk';
 import { useCofheAccount, useCofheChainId, useCofhePublicClient } from './useCofheConnection';
 import { useCofheContext } from '../providers/CofheProvider';
@@ -248,19 +248,20 @@ export function useCofheTokenSymbol(
   });
 }
 
+type UseCofheReadContractQueryOptions = Omit<UseQueryOptions<bigint, Error>, 'queryKey' | 'queryFn'>;
 /**
  * Generic hook: read a contract and return the result (with permit/error gating support).
  */
-export function useCofheReadContract<TResult = unknown>(
+export function useCofheReadContract(
   params: {
     address?: Address;
-    abi: unknown;
-    functionName: string;
+    abi?: Abi;
+    functionName?: string;
     args?: readonly unknown[];
     requiresPermit?: boolean;
   },
-  queryOptions?: Omit<UseQueryOptions<TResult, Error>, 'queryKey' | 'queryFn'>
-): UseQueryResult<TResult, Error> & { disabledDueToMissingPermit: boolean } {
+  queryOptions?: UseCofheReadContractQueryOptions
+): UseQueryResult<bigint, Error> & { disabledDueToMissingPermit: boolean } {
   const { address, abi, functionName, args, requiresPermit = true } = params;
 
   const isCofheErrorActive = useIsCofheErrorActive();
@@ -270,9 +271,15 @@ export function useCofheReadContract<TResult = unknown>(
 
   const { enabled: userEnabled, ...restQueryOptions } = queryOptions || {};
   const enabled =
-    !isCofheErrorActive && !!publicClient && !!address && (!requiresPermit || !!activePermit) && (userEnabled ?? true);
+    !isCofheErrorActive &&
+    !!publicClient &&
+    !!address &&
+    !!abi &&
+    !!functionName &&
+    (!requiresPermit || !!activePermit) &&
+    (userEnabled ?? true);
 
-  const result = useInternalQuery<TResult, Error>({
+  const result = useInternalQuery({
     enabled,
     queryKey: [
       'cofheReadContract',
@@ -285,15 +292,19 @@ export function useCofheReadContract<TResult = unknown>(
       enabled,
     ],
     queryFn: async () => {
-      assert(address, 'Contract address is required');
-      assert(publicClient, 'PublicClient is required');
+      assert(address, 'Contract address should be guaranteed by enabled check');
+      assert(publicClient, 'PublicClient should be guaranteed by enabled check');
+      assert(abi, 'ABI should be guaranteed by enabled check');
+      assert(functionName, 'Function name should be guaranteed by enabled check');
 
-      const out = (await publicClient.readContract({
+      const out = await publicClient.readContract({
         address,
-        abi: abi as any,
-        functionName: functionName as any,
-        args: (args ?? []) as any,
-      })) as TResult;
+        abi,
+        functionName,
+        ...(args ? { args } : {}),
+      });
+
+      assert(typeof out === 'bigint', 'Expected confidential contract read result to be bigint');
       return out;
     },
     ...restQueryOptions,
@@ -311,8 +322,8 @@ export function useCofheReadContract<TResult = unknown>(
 export function useCofheReadContractAndDecrypt<TDecryptedSelectedData = bigint>(
   params: {
     address?: Address;
-    abi: unknown;
-    functionName: string;
+    abi?: Abi;
+    functionName?: string;
     args?: readonly unknown[];
     fheType: FheTypes;
     requiresPermit?: boolean;
@@ -321,7 +332,7 @@ export function useCofheReadContractAndDecrypt<TDecryptedSelectedData = bigint>(
     readQueryOptions,
     decryptingQueryOptions,
   }: {
-    readQueryOptions?: Omit<UseQueryOptions<bigint, Error>, 'queryKey' | 'queryFn'>;
+    readQueryOptions?: UseCofheReadContractQueryOptions;
     decryptingQueryOptions?: Omit<
       UseQueryOptions<string | bigint | boolean, Error, TDecryptedSelectedData>,
       'queryKey' | 'queryFn'
@@ -334,10 +345,7 @@ export function useCofheReadContractAndDecrypt<TDecryptedSelectedData = bigint>(
 } {
   const { address, abi, functionName, args, fheType, requiresPermit = true } = params;
 
-  const encrypted = useCofheReadContract<bigint>(
-    { address, abi, functionName, args, requiresPermit },
-    readQueryOptions
-  );
+  const encrypted = useCofheReadContract({ address, abi, functionName, args, requiresPermit }, readQueryOptions);
 
   const decrypted = useCofheDecrypt(
     {
@@ -557,7 +565,10 @@ export function useCofheTokenDecryptedBalance(
       decryptingQueryOptions: {
         select: (amountWei) => {
           assert(token, 'Token must be defined to format confidential balance');
-          return formatTokenAmount(amountWei as bigint, token.decimals, displayDecimals);
+          if (typeof amountWei !== 'bigint') {
+            throw new Error('Expected bigint from confidential decryption');
+          }
+          return formatTokenAmount(amountWei, token.decimals, displayDecimals);
         },
       },
       ...restOptions,
