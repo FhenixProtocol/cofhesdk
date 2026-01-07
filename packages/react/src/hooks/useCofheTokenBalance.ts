@@ -34,33 +34,31 @@ function useTokenBalance<TSelectedData = bigint>(
   { tokenAddress, accountAddress }: UseTokenBalanceInput,
   queryOptions?: UseTokenBalanceOptions<TSelectedData>
 ) {
-  const connectedAccount = useCofheAccount();
   const publicClient = useCofhePublicClient();
-  const account = accountAddress ?? connectedAccount;
 
   const { enabled: userEnabled, ...restQueryOptions } = queryOptions ?? {};
-  const baseEnabled = !!publicClient && !!account && !!tokenAddress;
+  const baseEnabled = !!publicClient && !!accountAddress && !!tokenAddress;
   const enabled = baseEnabled && (userEnabled ?? true);
 
   return useInternalQuery({
-    queryKey: ['tokenBalance', publicClient?.chain?.id, account, tokenAddress],
+    queryKey: ['tokenBalance', publicClient?.chain?.id, accountAddress, tokenAddress],
     queryFn: async () => {
       assert(tokenAddress, 'Token address is required to fetch token balance');
       assert(publicClient, 'PublicClient is required to fetch token balance');
-      assert(account, 'Account address is required to fetch token balance');
+      assert(accountAddress, 'Account address is required to fetch token balance');
 
       const isNativeToken = tokenAddress.toLowerCase() === ETH_ADDRESS.toLowerCase();
 
       // Read balance from contract
       const balance = isNativeToken
         ? publicClient.getBalance({
-            address: account,
+            address: accountAddress,
           })
         : publicClient.readContract({
             address: tokenAddress,
             abi: ERC20_BALANCE_OF_ABI,
             functionName: 'balanceOf',
-            args: [account],
+            args: [accountAddress],
           });
 
       return balance;
