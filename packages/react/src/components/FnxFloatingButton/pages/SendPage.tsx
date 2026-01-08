@@ -18,16 +18,17 @@ import type { Token } from '@/hooks';
 export type SendPageProps = {
   token: Token;
 };
+export const SendPage: React.FC<SendPageProps> = ({ token }) => {
+  const { navigateBack, navigateToTokenListForSelection } = useFnxFloatingButtonContext();
   // TODO: should not depend on selectedToken, should instead be a page with prop
 
   // only fetch pinned token metadata if no token from context
-  const pinnedToken = useCofhePinnedToken({ enabled: !tokenFromContext });
-  const selectedToken = tokenFromContext ?? pinnedToken;
+
   const account = useCofheAccount();
   const tokenTransfer = useCofheTokenTransfer();
 
   const { data: { unit: confidentialUnitBalance } = {} } = useCofheTokenDecryptedBalance({
-    token: selectedToken,
+    token,
     accountAddress: account,
   });
 
@@ -58,7 +59,7 @@ export type SendPageProps = {
 
   // TODO: wrap sending into a hook / mutation
   const handleSend = async () => {
-    assert(selectedToken, 'No token selected for sending');
+    assert(token, 'No token selected for sending');
     if (!isValidAddress) {
       setError('Invalid recipient address');
       return;
@@ -74,7 +75,7 @@ export type SendPageProps = {
 
     try {
       // Convert amount to token's smallest unit (considering decimals)
-      const amountWei = unitToWei(amount, selectedToken.decimals);
+      const amountWei = unitToWei(amount, token.decimals);
 
       // Check if amount exceeds uint128 max value (2^128 - 1)
 
@@ -82,7 +83,7 @@ export type SendPageProps = {
       assert(amountWei <= maxUint128, 'Amount exceeds maximum supported value (uint128 max)');
 
       // Encrypt the amount using the token's confidentialValueType
-      const confidentialValueType = selectedToken.extensions.fhenix.confidentialValueType;
+      const confidentialValueType = token.extensions.fhenix.confidentialValueType;
       const encryptedAmount = await onEncryptInput(confidentialValueType, amountWei.toString());
 
       if (!encryptedAmount || !encryptedAmount.ctHash) {
@@ -101,7 +102,7 @@ export type SendPageProps = {
 
       // Use the token transfer hook to send encrypted tokens
       const hash = await tokenTransfer.mutateAsync({
-        token: selectedToken,
+        token,
         to: recipientAddress,
         encryptedValue,
         amount: amountWei,
@@ -143,7 +144,7 @@ export type SendPageProps = {
         </div>
         <div className="flex items-center gap-3">
           {/* Token Icon */}
-          <TokenIcon logoURI={selectedToken?.logoURI} alt={selectedToken?.name || 'Token'} size="md" />
+          <TokenIcon logoURI={token.logoURI} alt={token.name} size="md" />
 
           {/* Amount Input and Symbol on same line, centered with logo */}
           <div className="flex-1 flex items-center gap-1 min-w-0">
@@ -161,7 +162,7 @@ export type SendPageProps = {
               onClick={() => navigateToTokenListForSelection('Select token to transfer')}
               className="flex items-center gap-1 text-2xl font-bold fnx-text-primary hover:opacity-80 transition-opacity whitespace-nowrap flex-shrink-0"
             >
-              <span>{selectedToken?.symbol}</span>
+              <span>{token.symbol}</span>
               <KeyboardArrowRightIcon className="w-5 h-5 fnx-text-primary opacity-60 flex-shrink-0" />
             </button>
           </div>
@@ -174,7 +175,7 @@ export type SendPageProps = {
           <div className="flex-1 flex items-center justify-start min-w-0 gap-2">
             <span className="text-xs opacity-70">Available </span>
             <CofheTokenConfidentialBalance
-              token={selectedToken}
+              token={token}
               showSymbol={true}
               size="sm"
               decimalPrecision={5}
