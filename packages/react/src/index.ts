@@ -28,7 +28,7 @@ export {
   type Erc20Pair,
   type UnshieldClaim,
   type UnshieldClaimsSummary,
-} from './hooks/index';
+} from '@/hooks/index';
 
 // Components
 export { FnxEncryptInput, FnxFloatingButtonWithProvider } from './components/index';
@@ -77,8 +77,8 @@ export type { FloatingButtonPosition } from './components/FnxFloatingButton/type
 
 export { createCofhesdkClient } from '@cofhe/sdk/web';
 
-export { useCofheCreatePermit } from './hooks/permits/useCofheCreatePermit';
-export { useCofheAutoConnect } from './hooks/useCofheAutoConnect';
+export { useCofheCreatePermit } from '@/hooks/permits/useCofheCreatePermit';
+export { useCofheAutoConnect } from '@/hooks/useCofheAutoConnect';
 export { CREATE_PERMITT_BODY_BY_ERROR_CAUSE } from './providers/errors';
 export { ErrorCause } from './utils/errors';
 

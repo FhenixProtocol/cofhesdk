@@ -4,15 +4,15 @@ import { TbShieldPlus, TbShieldMinus } from 'react-icons/tb';
 import { useMemo, useState } from 'react';
 import { type Address, formatUnits, parseUnits } from 'viem';
 import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext';
-import { useCofheAccount, useCofheChainId, useCofhePublicClient } from '../../../hooks/useCofheConnection';
-import { useCofheTokenDecryptedBalance } from '../../../hooks/useCofheTokenDecryptedBalance';
-import { useCofheToken, useCofheTokens } from '../../../hooks/useCofheTokenLists';
+import { useCofheAccount, useCofheChainId, useCofhePublicClient } from '@/hooks/useCofheConnection';
+import { useCofheTokenDecryptedBalance } from '@/hooks/useCofheTokenDecryptedBalance';
+import { useCofheToken, useCofheTokens } from '@/hooks/useCofheTokenLists';
 import {
   useCofheClaimUnshield,
   useCofheTokenShield,
   useCofheTokenUnshield,
   useCofheUnshieldClaims,
-} from '../../../hooks/useCofheTokenShield';
+} from '@/hooks/useCofheTokenShield';
 import { cn } from '../../../utils/cn';
 import { truncateHash } from '../../../utils/utils';
 import { ActionButton, AmountInput, TokenIcon } from '../components/index';

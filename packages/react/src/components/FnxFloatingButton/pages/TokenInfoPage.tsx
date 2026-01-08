@@ -1,6 +1,6 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext';
-import { useCofheToken } from '../../../hooks/useCofheTokenLists';
+import { useCofheToken } from '@/hooks/useCofheTokenLists';
 import { TokenIcon } from '../components/TokenIcon';
 import { AddressButton } from '../components/AddressButton';
 import { CofheTokenConfidentialBalance } from '../components/CofheTokenConfidentialBalance';

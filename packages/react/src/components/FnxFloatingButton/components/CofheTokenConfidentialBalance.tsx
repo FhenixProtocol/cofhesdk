@@ -1,7 +1,7 @@
 import type { Address } from 'viem';
-import { useCofheTokenDecryptedBalance } from '../../../hooks/useCofheTokenDecryptedBalance';
-import { useCofheAccount } from '../../../hooks/useCofheConnection';
-import { type Token } from '../../../hooks/useCofheTokenLists';
+import { useCofheTokenDecryptedBalance } from '@/hooks/useCofheTokenDecryptedBalance';
+import { useCofheAccount } from '@/hooks/useCofheConnection';
+import { type Token } from '@/hooks/useCofheTokenLists';
 import { TokenBalanceView } from './TokenBalanceView';
 
 export enum BalanceType {

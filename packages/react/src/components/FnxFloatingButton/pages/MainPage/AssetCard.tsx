@@ -1,6 +1,6 @@
 import { cn } from '@/utils/cn';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
-import { useCofheToken } from '../../../../hooks/useCofheTokenLists';
+import { useCofheToken } from '@/hooks/useCofheTokenLists';
 import { TokenIcon } from '../../components/TokenIcon';
 import { CofheTokenConfidentialBalance } from '../../components/CofheTokenConfidentialBalance';
 import { useFnxFloatingButtonContext } from '../../FnxFloatingButtonContext';

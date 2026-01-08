@@ -1,5 +1,5 @@
 import { MdOutlineAccountBalanceWallet } from 'react-icons/md';
-import { useCofheAccount } from '../../../../hooks/useCofheConnection';
+import { useCofheAccount } from '@/hooks/useCofheConnection';
 import { AddressButton } from '../../components/AddressButton';
 import { ConnectedChainIndicator } from '../../components/ConnectedChainIndicator';
 

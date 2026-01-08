@@ -1,7 +1,7 @@
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import { cn } from '../../../../utils/cn';
 import { useFnxFloatingButtonContext, type TokenListMode } from '../../FnxFloatingButtonContext';
-import type { Token } from '../../../../hooks/useCofheTokenLists';
+import type { Token } from '@/hooks/useCofheTokenLists';
 import { TokenIcon } from '../../components/TokenIcon';
 import { CofheTokenConfidentialBalance } from '../../components';
 
