@@ -55,13 +55,6 @@ export const ShieldPageV2: React.FC = () => {
 
   const activeTokenAddress = selectedToken ? selectedToken.address : pinnedTokenAddress;
 
-  const shieldableTokens = useMemo(() => {
-    return tokens.filter((t) => {
-      const type = t.extensions.fhenix.confidentialityType;
-      return type === 'dual' || type === 'wrapped';
-    });
-  }, [tokens]);
-
   const tokenFromList = useCofheToken({
     address: activeTokenAddress,
   });
