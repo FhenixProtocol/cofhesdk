@@ -10,7 +10,6 @@ import { useCofheTokenTransfer, type EncryptedValue } from '../../../hooks/useCo
 import { cn } from '../../../utils/cn';
 import { truncateAddress, sanitizeNumericInput } from '../../../utils/utils';
 import { TokenIcon } from '../components/TokenIcon';
-import { useCofhePinnedTokenAddress } from '@/hooks/useCofhePinnedTokenAddress';
 import { unitToWei } from '@/utils/format';
 import { assert } from 'ts-essentials';
 import { CofheTokenConfidentialBalance } from '../components';
@@ -29,13 +28,13 @@ export const SendPage: React.FC = () => {
   const selectedToken = tokenFromContext ?? pinnedToken;
   const account = useCofheAccount();
   const tokenTransfer = useCofheTokenTransfer();
-  const pinnedTokenAddress = useCofhePinnedTokenAddress();
 
   const { data: { unit: confidentialUnitBalance } = {} } = useCofheTokenDecryptedBalance({
     token: selectedToken,
     accountAddress: account,
   });
 
+  // TODO: use useCofheEncrypt instead of useCofheEncryptInput. Delete the latter
   const { onEncryptInput, isEncryptingInput, encryptionProgressLabel } = useCofheEncryptInput();
 
   const [amount, setAmount] = useState('');
@@ -60,6 +59,7 @@ export const SendPage: React.FC = () => {
     return confidentialUnitBalance.gte(amount);
   }, [amount, confidentialUnitBalance]);
 
+  // TODO: wrap sending into a hook / mutation
   const handleSend = async () => {
     assert(selectedToken, 'No token selected for sending');
     if (!isValidAddress) {
@@ -124,9 +124,7 @@ export const SendPage: React.FC = () => {
 
   const handleMaxAmount = () => {
     // Calculate available balance for MAX button
-    if (confidentialUnitBalance) {
-      setAmount(confidentialUnitBalance.toFixed());
-    }
+    if (confidentialUnitBalance) setAmount(confidentialUnitBalance.toFixed());
   };
 
   return (

@@ -91,6 +91,7 @@ export const ShieldPageV2: React.FC = () => {
     }
   };
 
+  // TODO: wrap into a hook / mutation
   const executeTransaction = async (
     txFn: () => Promise<`0x${string}`>,
     successMessage: string,
@@ -142,11 +143,7 @@ export const ShieldPageV2: React.FC = () => {
 
   const isValidUnshieldAmount = useMemo(() => {
     if (!unshieldAmount || !confidentialBalanceUnit) return false;
-    const numAmount = parseFloat(unshieldAmount);
-    if (isNaN(numAmount) || numAmount <= 0) return false;
-    // if we compare it like this, it'll cause dust issues due to precision loss
-    // TODO: make sure numAmount is precise too
-    return confidentialBalanceUnit.gte(numAmount);
+    return confidentialBalanceUnit.gte(unshieldAmount);
   }, [unshieldAmount, confidentialBalanceUnit]);
 
   const isShieldableToken = useMemo(() => {
@@ -237,6 +234,7 @@ export const ShieldPageV2: React.FC = () => {
     }
   };
 
+  // TODO: redo: const object = mode === 'shield' ? obj1 : obj2;
   const inputAmount = mode === 'shield' ? shieldAmount : unshieldAmount;
   const setInputAmount = mode === 'shield' ? setShieldAmount : setUnshieldAmount;
   const onMaxClick = mode === 'shield' ? handleShieldMax : handleUnshieldMax;
