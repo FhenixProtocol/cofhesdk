@@ -3,15 +3,10 @@ import type { FloatingButtonPosition, FnxFloatingButtonToast, FnxStatus, FnxToas
 import { useCofheContext } from '../../providers';
 import { checkPendingTransactions, stopPendingTransactionPolling } from '../../stores/transactionStore';
 import { useCofhePublicClient } from '@/hooks/useCofheConnection';
-import {
-  FloatingButtonPage,
-  type FloatingButtonPagePropsMap,
-  type PageState,
-  type PagesWithoutProps,
-  type PagesWithProps,
-} from './pagesConfig/types';
+import { FloatingButtonPage, type PageState, type PagesWithoutProps, type PagesWithProps } from './pagesConfig/types';
 import { ToastPrimitive } from './components/ToastPrimitives';
 import type { Token } from '@/hooks';
+import type { FloatingButtonPagePropsMap } from './pagesConfig/const';
 
 export type TokenListMode = 'view' | 'select';
 

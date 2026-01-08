@@ -13,14 +13,11 @@ import { TokenIcon } from '../components/TokenIcon';
 import { unitToWei } from '@/utils/format';
 import { assert } from 'ts-essentials';
 import { CofheTokenConfidentialBalance } from '../components';
-import { useCofhePinnedToken } from '@/hooks/useCofhePinnedToken';
+import type { Token } from '@/hooks';
 
-export const SendPage: React.FC = () => {
-  const {
-    navigateBack,
-    selectedToken: tokenFromContext,
-    navigateToTokenListForSelection,
-  } = useFnxFloatingButtonContext();
+export type SendPageProps = {
+  token: Token;
+};
   // TODO: should not depend on selectedToken, should instead be a page with prop
 
   // only fetch pinned token metadata if no token from context
