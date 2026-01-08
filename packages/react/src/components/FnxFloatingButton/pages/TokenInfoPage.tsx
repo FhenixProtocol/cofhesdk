@@ -3,7 +3,7 @@ import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext';
 import { useCofheToken } from '../../../hooks/useCofheTokenLists';
 import { TokenIcon } from '../components/TokenIcon';
 import { AddressButton } from '../components/AddressButton';
-import { CofheTokenConfidentialBalance } from '../components/TokenBalance';
+import { CofheTokenConfidentialBalance } from '../components/CofheTokenConfidentialBalance';
 
 export const TokenInfoPage: React.FC = () => {
   const { navigateBack, viewingToken } = useFnxFloatingButtonContext();
