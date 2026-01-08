@@ -17,3 +17,7 @@ export function formatTokenAmount(amount: bigint, decimals: number, displayDecim
     formatted: displayDecimals ? amountBN.toFixed(displayDecimals) : amountBN.toFixed(), // the only precise way, without parseFloat
   };
 }
+
+export function unitToWei(amount: string, decimals: number): bigint {
+  return BigInt(new BigNumber(amount).multipliedBy(10 ** decimals).toFixed(0));
+}
