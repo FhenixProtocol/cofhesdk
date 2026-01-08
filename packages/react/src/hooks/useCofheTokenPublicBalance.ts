@@ -68,7 +68,7 @@ function useTokenBalance<TSelectedData = bigint>(
 
 type UsePublicTokenBalanceInput = {
   /** Token from token list */
-  token: Token | null | undefined;
+  token: Token | undefined;
   /** Account address (optional, defaults to connected account) */
   accountAddress?: Address;
   /** Display decimals for formatting (default: 5) */
@@ -102,38 +102,34 @@ export function useCofheTokenPublicBalance(
 
   // Determine token type
   const confidentialityType = token?.extensions.fhenix.confidentialityType;
-  const erc20Pair = token?.extensions.fhenix.erc20Pair;
+  const underlyingErc20 = token?.extensions.fhenix.erc20Pair;
 
-  const tokenBalanceFetchArs =
+  const tokenToFetchBalanceFrom =
     confidentialityType === 'wrapped'
-      ? {
-          // ERC20 balance for wrapped tokens (from erc20Pair address)
-          tokenAddress: erc20Pair?.address,
-          decimals: erc20Pair?.decimals,
-          accountAddress: account,
-          displayDecimals,
-        }
+      ? // if it's a wrapped token, fetch balance from underlying ERC20 (or ETH)
+        underlyingErc20
       : confidentialityType === 'dual'
-        ? {
-            // ERC20 balance for dual tokens (from token's own address)
-            tokenAddress: token?.address,
-            decimals: token?.decimals,
-            accountAddress: account,
-            displayDecimals,
-          }
-        : {};
+        ? // if it's a dual token, fetch balance from the token address itself
+          token
+        : undefined;
 
-  const { data, isLoading, refetch } = useTokenBalance(tokenBalanceFetchArs, {
-    enabled: userEnabled,
-    select: (value) => {
-      assert(
-        typeof tokenBalanceFetchArs.decimals === 'number',
-        'Token decimals must be defined to format public token balance'
-      );
-      return formatTokenAmount(value, tokenBalanceFetchArs.decimals, displayDecimals);
+  const { data, isLoading, refetch } = useTokenBalance(
+    {
+      tokenAddress: tokenToFetchBalanceFrom?.address,
+      accountAddress: account,
     },
-    ...restOptions,
-  });
+    {
+      enabled: userEnabled,
+      select: (value) => {
+        assert(
+          typeof tokenToFetchBalanceFrom?.decimals === 'number',
+          'Token decimals must be defined to format public token balance'
+        );
+        return formatTokenAmount(value, tokenToFetchBalanceFrom.decimals, displayDecimals);
+      },
+      ...restOptions,
+    }
+  );
 
   return {
     data,
