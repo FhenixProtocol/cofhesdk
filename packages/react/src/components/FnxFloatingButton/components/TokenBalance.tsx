@@ -7,7 +7,6 @@ import { LoadingDots } from './LoadingDots';
 import { CREATE_PERMITT_BODY_BY_ERROR_CAUSE } from '@/providers/errors';
 import { ErrorCause } from '@/utils/errors';
 import { useCofheCreatePermit } from '@/hooks/permits/useCofheCreatePermit';
-import { useCofheTokenPublicBalance } from '@/hooks/useCofheTokenPublicBalance';
 
 export enum BalanceType {
   Public = 'public',
@@ -48,38 +47,6 @@ function getPublicTokenSymbol(token: Token | undefined): string | undefined {
   if (token) return token.symbol;
   return undefined;
 }
-
-export const CofheTokenPublicBalance: React.FC<TokenBalanceProps> = ({
-  token,
-  accountAddress,
-  decimalPrecision = 5,
-  showSymbol = false,
-  className,
-  size = 'md',
-}) => {
-  const account = useCofheAccount();
-
-  // Determine which account address to use
-  const effectiveAccountAddress = accountAddress ?? account;
-
-  // Use unified hook for public balance fetching
-  const { data: { formatted: publicBalanceFormatted } = {}, isLoading: isLoadingPublic } = useCofheTokenPublicBalance(
-    { token, accountAddress: effectiveAccountAddress, displayDecimals: decimalPrecision },
-    {
-      enabled: true,
-    }
-  );
-
-  return (
-    <TokenBalanceView
-      className={className}
-      size={size}
-      isLoading={isLoadingPublic}
-      formattedBalance={publicBalanceFormatted}
-      symbol={showSymbol ? getPublicTokenSymbol(token) : undefined}
-    />
-  );
-};
 
 export const CofheTokenConfidentialBalance: React.FC<TokenBalanceProps> = ({
   token,
