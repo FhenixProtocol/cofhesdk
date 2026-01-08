@@ -35,4 +35,4 @@ F.x. throwing a CofhesdkErrorBoundary-familiar error from a useEffect would caus
 
 In other words: while in `CofhesdkErrorBoundary` mode, avoid possibility of throwing `CofhesdkErrorBoundary`-familiar errors by checking `useIsCofheErrorActive`.
 
-- CofheSDK consumer dApp's errors belonging to the 2nd group will be passed to CofheErrorBoundary, but since it doesn't know how to handle them, they'll be re-thrown, which resembles the default behavior (TODO: make sure, check one more scenario -- wrapping dApp's ErrorBoundary)
+- CofheSDK consumer dApp's errors belonging to the 2nd group will be passed to CofheErrorBoundary, but since it doesn't know how to handle them, they'll be re-thrown, which resembles the default behavior
