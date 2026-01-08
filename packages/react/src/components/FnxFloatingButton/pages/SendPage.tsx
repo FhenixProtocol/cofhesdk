@@ -81,6 +81,7 @@ export const SendPage: React.FC = () => {
 
       // Check if amount exceeds uint128 max value (2^128 - 1)
 
+      // TODO: Does this need to be different if the confidential token uses euint64 for the balance precision?
       assert(amountWei <= maxUint128, 'Amount exceeds maximum supported value (uint128 max)');
 
       // Encrypt the amount using the token's confidentialValueType
