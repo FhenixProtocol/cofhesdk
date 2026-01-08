@@ -29,7 +29,7 @@ export type CofhesdkClient<TConfig extends CofhesdkConfig = CofhesdkConfig> = {
   // --- config & platform-specific ---
   readonly config: TConfig;
 
-  connect(publicClient: PublicClient, walletClient: WalletClient): Promise<boolean>;
+  connect(publicClient: PublicClient, walletClient: WalletClient): Promise<void>;
   /**
    * Types docstring
    */
