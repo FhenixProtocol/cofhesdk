@@ -12,7 +12,7 @@ import { useCofheTokenTransfer, type EncryptedValue } from '../../../hooks/useCo
 import { cn } from '../../../utils/cn';
 import { truncateAddress, sanitizeNumericInput } from '../../../utils/utils';
 import { TokenIcon } from '../components/TokenIcon';
-import { BalanceType, TokenBalance } from '../components/TokenBalance';
+import { BalanceType, CofheTokenConfidentialBalance } from '../components/TokenBalance';
 import { useCofhePinnedTokenAddress } from '@/hooks/useCofhePinnedTokenAddress';
 import { useCofheTokenMetadata } from '@/hooks/useCofheTokenMetadata';
 
@@ -201,8 +201,7 @@ export const SendPage: React.FC = () => {
           {/* Available text and MAX button */}
           <div className="flex-1 flex items-center justify-start min-w-0 gap-2">
             <span className="text-xs opacity-70">Available </span>
-            <TokenBalance
-              balanceType={BalanceType.Confidential}
+            <CofheTokenConfidentialBalance
               token={tokenFromList ?? undefined}
               showSymbol={true}
               size="sm"

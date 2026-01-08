@@ -15,7 +15,7 @@ import {
 } from '../../../hooks/useCofheTokenShield';
 import { cn } from '../../../utils/cn';
 import { truncateHash } from '../../../utils/utils';
-import { ActionButton, AmountInput, TokenBalance, TokenIcon } from '../components/index';
+import { ActionButton, AmountInput, TokenIcon } from '../components/index';
 import { TokenBalanceView } from '../components/TokenBalance';
 import { useCofhePinnedTokenAddress } from '@/hooks/useCofhePinnedTokenAddress';
 import { useCofheTokenMetadata } from '@/hooks/useCofheTokenMetadata';

@@ -6,6 +6,6 @@ export { ConnectedChainIndicator } from './ConnectedChainIndicator';
 export { HashLink } from './HashLink';
 export { LoadingDots } from './LoadingDots';
 export { ShieldMeter } from './ShieldMeter';
-export { TokenBalance, type BalanceType, type TokenBalanceProps } from './TokenBalance';
+export { CofheTokenConfidentialBalance, CofheTokenPublicBalance, type BalanceType } from './TokenBalance';
 export { TokenIcon } from './TokenIcon';
 export { TransactionItem } from './TransactionItem';

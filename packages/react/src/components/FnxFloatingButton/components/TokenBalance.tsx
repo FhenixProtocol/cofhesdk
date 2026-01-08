@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import type { Address } from 'viem';
 import { useCofheTokenDecryptedBalance } from '../../../hooks/useCofheTokenDecryptedBalance';
 import { useCofheAccount } from '../../../hooks/useCofheConnection';
@@ -15,13 +14,11 @@ export enum BalanceType {
   Confidential = 'confidential',
 }
 
-export interface TokenBalanceProps {
+interface TokenBalanceProps {
   /** Token object from token list (for non-native tokens) */
   token?: Token;
   /** Account address to fetch balance for */
   accountAddress?: Address;
-  /** Type of balance to display: 'public' (ERC20 balanceOf) or 'confidential' (encrypted) */
-  balanceType: BalanceType;
 
   /** Number of decimal places to show (default: 5) */
   decimalPrecision?: number;
@@ -51,10 +48,10 @@ function getPublicTokenSymbol(token: Token | undefined): string | undefined {
   if (token) return token.symbol;
   return undefined;
 }
-export const TokenBalance: React.FC<TokenBalanceProps> = ({
+
+export const CofheTokenPublicBalance: React.FC<TokenBalanceProps> = ({
   token,
   accountAddress,
-  balanceType,
   decimalPrecision = 5,
   showSymbol = false,
   className,
@@ -65,14 +62,39 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
   // Determine which account address to use
   const effectiveAccountAddress = accountAddress ?? account;
 
-  // Use unified hooks for balance fetching
+  // Use unified hook for public balance fetching
   const { data: { formatted: publicBalanceFormatted } = {}, isLoading: isLoadingPublic } = useCofheTokenPublicBalance(
     { token, accountAddress: effectiveAccountAddress, displayDecimals: decimalPrecision },
     {
-      enabled: balanceType === BalanceType.Public,
+      enabled: true,
     }
   );
 
+  return (
+    <TokenBalanceView
+      className={className}
+      size={size}
+      isLoading={isLoadingPublic}
+      formattedBalance={publicBalanceFormatted}
+      symbol={showSymbol ? getPublicTokenSymbol(token) : undefined}
+    />
+  );
+};
+
+export const CofheTokenConfidentialBalance: React.FC<TokenBalanceProps> = ({
+  token,
+  accountAddress,
+  decimalPrecision = 5,
+  showSymbol = false,
+  className,
+  size = 'md',
+}) => {
+  const account = useCofheAccount();
+
+  // Determine which account address to use
+  const effectiveAccountAddress = accountAddress ?? account;
+
+  // Use unified hook for confidential balance fetching
   const {
     data: { formatted: confidentialBalanceFormatted } = {},
     isLoading: isLoadingConfidential,
@@ -80,42 +102,18 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
   } = useCofheTokenDecryptedBalance(
     { token, accountAddress: effectiveAccountAddress, displayDecimals: decimalPrecision },
     {
-      enabled: balanceType === BalanceType.Confidential,
+      enabled: true,
     }
   );
 
-  const balanceViewProps: Pick<TokenBalanceViewProps, 'formattedBalance' | 'isLoading' | 'symbol'> = useMemo(() => {
-    // prepare props based on balance type - confidential or public
-    if (balanceType === BalanceType.Public) {
-      return {
-        formattedBalance: publicBalanceFormatted,
-        isLoading: isLoadingPublic,
-        symbol: showSymbol ? getPublicTokenSymbol(token) : undefined,
-      };
-    } else {
-      return {
-        formattedBalance: confidentialBalanceFormatted,
-        isLoading: isLoadingConfidential,
-        symbol: showSymbol ? token?.symbol : undefined,
-      };
-    }
-  }, [
-    balanceType,
-    publicBalanceFormatted,
-    isLoadingPublic,
-    confidentialBalanceFormatted,
-    isLoadingConfidential,
-    showSymbol,
-    token,
-  ]);
   return (
     <TokenBalanceView
       className={className}
       size={size}
       hidden={disabledDueToMissingPermit}
-      isLoading={balanceViewProps.isLoading}
-      formattedBalance={balanceViewProps.formattedBalance}
-      symbol={balanceViewProps.symbol}
+      isLoading={isLoadingConfidential}
+      formattedBalance={confidentialBalanceFormatted}
+      symbol={showSymbol ? token?.symbol : undefined}
     />
   );
 };

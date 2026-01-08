@@ -3,7 +3,7 @@ import { cn } from '../../../../utils/cn';
 import { useFnxFloatingButtonContext, type TokenListMode } from '../../FnxFloatingButtonContext';
 import type { Token } from '../../../../hooks/useCofheTokenLists';
 import { TokenIcon } from '../../components/TokenIcon';
-import { TokenBalance } from '../../components/TokenBalance';
+import { CofheTokenConfidentialBalance } from '../../components';
 
 export const TokenRow: React.FC<{
   token: Token;
@@ -43,7 +43,13 @@ export const TokenRow: React.FC<{
 
       {/* Balance and Arrow */}
       <div className="flex items-center gap-2">
-        <TokenBalance token={token} showSymbol={false} size="sm" decimalPrecision={5} className="font-medium" />
+        <CofheTokenConfidentialBalance
+          token={token}
+          showSymbol={false}
+          size="sm"
+          decimalPrecision={5}
+          className="font-medium"
+        />
         <KeyboardArrowRightIcon className="w-5 h-5 fnx-text-primary opacity-60 flex-shrink-0" />
       </div>
     </div>
