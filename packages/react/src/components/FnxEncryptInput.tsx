@@ -14,7 +14,7 @@ import SecurityIcon from '@mui/icons-material/Security';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
-import { useCofheEncryptInput } from '../hooks/useCofheEncryptInput.js';
+import { useCofheEncryptInput } from '@/hooks/useCofheEncryptInput.js';
 
 export interface FnxEncryptInputProps extends BaseProps {
   /** Placeholder text for the text field */

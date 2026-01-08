@@ -1,11 +1,10 @@
 import { cn } from '@/utils/cn';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
-import { useCofheTokenMetadata, useCofhePinnedTokenAddress } from '../../../../hooks/useCofheTokenBalance';
-import { useCofheToken } from '../../../../hooks/useCofheTokenLists';
-import { useMemo } from 'react';
+import { useCofheToken } from '@/hooks/useCofheTokenLists';
 import { TokenIcon } from '../../components/TokenIcon';
-import { TokenBalance } from '../../components/TokenBalance';
+import { CofheTokenConfidentialBalance } from '../../components/CofheTokenConfidentialBalance';
 import { useFnxFloatingButtonContext } from '../../FnxFloatingButtonContext';
+import { useCofhePinnedTokenAddress } from '@/hooks/useCofhePinnedTokenAddress';
 
 export const AssetCard: React.FC = () => {
   // TODO: show Native token if no pinned token address
@@ -14,10 +13,6 @@ export const AssetCard: React.FC = () => {
   // const pinnedTokenAddress = "0x8ee52408ED5b0e396aA779Fd52F7fbc20A4b33Fb"; // Base sepolia
   // const pinnedTokenAddress = "0xbED96aa98a49FeA71fcC55d755b915cF022a9159"; // Redact (Sepolia)
   const pinnedTokenAddress = useCofhePinnedTokenAddress();
-
-  // Get token metadata (decimals and symbol) using multicall for efficiency
-  const { data: tokenMetadata } = useCofheTokenMetadata(pinnedTokenAddress);
-  const tokenSymbol = tokenMetadata?.symbol;
 
   // Find token from token lists to get icon and confidentialityType
   const tokenFromList = useCofheToken({
@@ -49,7 +44,7 @@ export const AssetCard: React.FC = () => {
         {/* Left Side: Icon, Ticker, Privacy Metrics */}
         <div className="flex items-center gap-3 flex-1">
           {/* Asset Icon */}
-          <TokenIcon logoURI={tokenFromList?.logoURI} alt={tokenSymbol || 'Token'} size="md" />
+          <TokenIcon logoURI={tokenFromList?.logoURI} alt={tokenFromList?.symbol} size="md" />
 
           {/* Ticker and Privacy */}
           <div className="flex flex-col gap-1">
@@ -73,9 +68,9 @@ export const AssetCard: React.FC = () => {
         {/* Right Side: Balance, Change, Arrow */}
         <div className="flex items-center gap-2">
           <div className="flex flex-col items-end">
-            <TokenBalance
+            {/* // TODO: add suport for displaying native token balance if no pinned address */}
+            <CofheTokenConfidentialBalance
               token={tokenFromList}
-              isNative={!pinnedTokenAddress}
               showSymbol={false}
               size="xl"
               decimalPrecision={5}

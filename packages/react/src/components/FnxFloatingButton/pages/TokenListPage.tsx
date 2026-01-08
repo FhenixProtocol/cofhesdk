@@ -1,7 +1,7 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext.js';
-import { useCofheTokens } from '../../../hooks/useCofheTokenLists.js';
-import { useCofheChainId } from '../../../hooks/useCofheConnection.js';
+import { useCofheTokens } from '@/hooks/useCofheTokenLists.js';
+import { useCofheChainId } from '@/hooks/useCofheConnection.js';
 import { TokenRow } from './TokenListPage/TokenRow.js';
 
 export const TokenListPage: React.FC<{ title?: string }> = ({ title }) => {

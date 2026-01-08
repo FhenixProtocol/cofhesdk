@@ -1,9 +1,9 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext';
-import { useCofheToken } from '../../../hooks/useCofheTokenLists';
+import { useCofheToken } from '@/hooks/useCofheTokenLists';
 import { TokenIcon } from '../components/TokenIcon';
 import { AddressButton } from '../components/AddressButton';
-import { TokenBalance } from '../components/TokenBalance';
+import { CofheTokenConfidentialBalance } from '../components/CofheTokenConfidentialBalance';
 
 export const TokenInfoPage: React.FC = () => {
   const { navigateBack, viewingToken } = useFnxFloatingButtonContext();
@@ -46,7 +46,7 @@ export const TokenInfoPage: React.FC = () => {
       <div className="fnx-card-bg rounded-lg p-4 border fnx-card-border">
         <div className="flex flex-col gap-2">
           <p className="text-xs opacity-70">Balance</p>
-          <TokenBalance token={tokenFromList} size="xl" decimalPrecision={5} className="font-bold" />
+          <CofheTokenConfidentialBalance token={tokenFromList} size="xl" decimalPrecision={5} className="font-bold" />
         </div>
       </div>
 

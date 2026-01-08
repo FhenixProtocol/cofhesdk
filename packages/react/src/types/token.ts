@@ -5,6 +5,8 @@
  * to avoid circular dependencies.
  */
 
+import type { Address } from 'viem';
+
 /**
  * Special address representing native ETH (used in erc20Pair for ConfidentialETH tokens)
  */
@@ -15,7 +17,7 @@ export const ETH_ADDRESS = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' as const
  */
 export type Erc20Pair = {
   /** Address of the underlying ERC20 token (or ETH_ADDRESS for native ETH) */
-  address: string;
+  address: Address;
   symbol: string;
   decimals: number;
   logoURI?: string;

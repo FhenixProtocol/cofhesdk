@@ -4,35 +4,28 @@ import { TbShieldPlus, TbShieldMinus } from 'react-icons/tb';
 import { useMemo, useState } from 'react';
 import { type Address, formatUnits, parseUnits } from 'viem';
 import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext';
-import { useCofheAccount, useCofheChainId, useCofhePublicClient } from '../../../hooks/useCofheConnection';
-import {
-  useCofheConfidentialTokenBalance,
-  useCofhePinnedTokenAddress,
-  useCofhePublicTokenBalance,
-  useCofheTokenMetadata,
-} from '../../../hooks/useCofheTokenBalance';
-import { useCofheToken, useCofheTokens } from '../../../hooks/useCofheTokenLists';
+import { useCofheAccount, useCofheChainId, useCofhePublicClient } from '@/hooks/useCofheConnection';
+import { useCofheTokenDecryptedBalance } from '@/hooks/useCofheTokenDecryptedBalance';
+import { useCofheToken, useCofheTokens } from '@/hooks/useCofheTokenLists';
 import {
   useCofheClaimUnshield,
   useCofheTokenShield,
   useCofheTokenUnshield,
   useCofheUnshieldClaims,
-} from '../../../hooks/useCofheTokenShield';
+} from '@/hooks/useCofheTokenShield';
 import { cn } from '../../../utils/cn';
 import { truncateHash } from '../../../utils/utils';
-import { ActionButton, AmountInput, TokenBalance, TokenIcon } from '../components/index';
-import { TokenBalanceView } from '../components/TokenBalance';
+import { ActionButton, AmountInput, TokenIcon } from '../components/index';
+import { TokenBalanceView } from '../components/TokenBalanceView';
+import { useCofhePinnedTokenAddress } from '@/hooks/useCofhePinnedTokenAddress';
+import { useCofheTokenPublicBalance } from '@/hooks/useCofheTokenPublicBalance';
+import { formatTokenAmount, unitToWei } from '@/utils/format';
+import { assert } from 'ts-essentials';
 
 const SUCCESS_TIMEOUT = 5000;
 const DISPLAY_DECIMALS = 5;
 
 type Mode = 'shield' | 'unshield';
-
-const derivePairedSymbol = (confidentialSymbol: string) => {
-  if (confidentialSymbol.startsWith('f')) return confidentialSymbol.slice(1);
-  if (confidentialSymbol.startsWith('e')) return confidentialSymbol.slice(1);
-  return confidentialSymbol;
-};
 
 export const ShieldPageV2: React.FC = () => {
   const { navigateBack, selectedToken, navigateToTokenListForSelection } = useFnxFloatingButtonContext();
@@ -57,35 +50,26 @@ export const ShieldPageV2: React.FC = () => {
 
   const activeTokenAddress = selectedToken ? selectedToken.address : pinnedTokenAddress;
 
-  const shieldableTokens = useMemo(() => {
-    return tokens.filter((t) => {
-      const type = t.extensions.fhenix.confidentialityType;
-      return type === 'dual' || type === 'wrapped';
-    });
-  }, [tokens]);
-
   const tokenFromList = useCofheToken({
     address: activeTokenAddress,
   });
 
-  const { data: tokenMetadata } = useCofheTokenMetadata(activeTokenAddress);
-
   const confidentialityType = tokenFromList?.extensions.fhenix.confidentialityType;
 
   const {
-    numericValue: publicBalanceNum,
+    data: { unit: publicBalanceNum } = {},
     isLoading: isLoadingPublic,
     refetch: refetchPublic,
-  } = useCofhePublicTokenBalance(
+  } = useCofheTokenPublicBalance(
     { token: tokenFromList, accountAddress: account as Address, displayDecimals: DISPLAY_DECIMALS },
     { enabled: !!tokenFromList && !!account }
   );
 
   const {
-    numericValue: confidentialBalanceNum,
+    data: { unit: confidentialBalanceUnit } = {},
     isLoading: isLoadingConfidential,
     refetch: refetchConfidential,
-  } = useCofheConfidentialTokenBalance(
+  } = useCofheTokenDecryptedBalance(
     { token: tokenFromList, accountAddress: account as Address, displayDecimals: DISPLAY_DECIMALS },
     { enabled: !!tokenFromList && !!account }
   );
@@ -107,6 +91,7 @@ export const ShieldPageV2: React.FC = () => {
     }
   };
 
+  // TODO: wrap into a hook / mutation
   const executeTransaction = async (
     txFn: () => Promise<`0x${string}`>,
     successMessage: string,
@@ -153,15 +138,13 @@ export const ShieldPageV2: React.FC = () => {
     if (!shieldAmount) return false;
     const numAmount = parseFloat(shieldAmount);
     if (isNaN(numAmount) || numAmount <= 0) return false;
-    return numAmount <= publicBalanceNum;
+    return publicBalanceNum?.gt(numAmount);
   }, [shieldAmount, publicBalanceNum]);
 
   const isValidUnshieldAmount = useMemo(() => {
-    if (!unshieldAmount) return false;
-    const numAmount = parseFloat(unshieldAmount);
-    if (isNaN(numAmount) || numAmount <= 0) return false;
-    return numAmount <= confidentialBalanceNum;
-  }, [unshieldAmount, confidentialBalanceNum]);
+    if (!unshieldAmount || !confidentialBalanceUnit) return false;
+    return confidentialBalanceUnit.gte(unshieldAmount);
+  }, [unshieldAmount, confidentialBalanceUnit]);
 
   const isShieldableToken = useMemo(() => {
     if (!tokenFromList) return false;
@@ -169,35 +152,29 @@ export const ShieldPageV2: React.FC = () => {
     return type === 'dual' || type === 'wrapped';
   }, [tokenFromList]);
 
-  const tokenSymbol = tokenFromList?.symbol || tokenMetadata?.symbol || 'TOKEN';
-  const pairedSymbol = tokenFromList?.extensions.fhenix.erc20Pair?.symbol || derivePairedSymbol(tokenSymbol);
+  const tokenSymbol = tokenFromList?.symbol;
+  const pairedSymbol = tokenFromList?.extensions.fhenix.erc20Pair?.symbol;
 
   const pairedLogoURI = tokenFromList?.extensions.fhenix.erc20Pair?.logoURI;
 
   const handleShieldMax = () => {
-    if (publicBalanceNum > 0) setShieldAmount(publicBalanceNum.toString());
+    if (publicBalanceNum?.gt(0)) setShieldAmount(publicBalanceNum.toString());
   };
   const handleUnshieldMax = () => {
-    if (confidentialBalanceNum > 0) setUnshieldAmount(confidentialBalanceNum.toString());
+    if (!confidentialBalanceUnit) return;
+    if (confidentialBalanceUnit.gte(0)) setUnshieldAmount(confidentialBalanceUnit.toFixed());
   };
 
   const handleShield = async () => {
-    if (!tokenFromList || !tokenMetadata || !account || !publicClient) {
-      setError('Missing required data. Please ensure wallet is connected and a token is selected.');
-      return;
-    }
-    if (!isValidShieldAmount) {
-      setError('Invalid shield amount. Please check your balance.');
-      return;
-    }
+    assert(tokenFromList, 'Token must be selected');
 
-    const amountInSmallestUnit = parseUnits(shieldAmount, tokenMetadata.decimals);
+    const amountWei = unitToWei(shieldAmount, tokenFromList!.decimals);
     try {
       await executeTransaction(
         () =>
           tokenShield.mutateAsync({
             token: tokenFromList,
-            amount: amountInSmallestUnit,
+            amount: amountWei,
             onStatusChange: (message) => setStatus({ message, type: 'info' }),
           }),
         'Shield complete!',
@@ -210,7 +187,7 @@ export const ShieldPageV2: React.FC = () => {
   };
 
   const handleUnshield = async () => {
-    if (!tokenFromList || !tokenMetadata || !account || !publicClient) {
+    if (!tokenFromList || !account || !publicClient) {
       setError('Missing required data. Please ensure wallet is connected and a token is selected.');
       return;
     }
@@ -219,7 +196,7 @@ export const ShieldPageV2: React.FC = () => {
       return;
     }
 
-    const amountInSmallestUnit = parseUnits(unshieldAmount, tokenMetadata.decimals);
+    const amountInSmallestUnit = parseUnits(unshieldAmount, tokenFromList.decimals);
     try {
       await executeTransaction(
         () =>
@@ -257,6 +234,7 @@ export const ShieldPageV2: React.FC = () => {
     }
   };
 
+  // TODO: redo: const object = mode === 'shield' ? obj1 : obj2;
   const inputAmount = mode === 'shield' ? shieldAmount : unshieldAmount;
   const setInputAmount = mode === 'shield' ? setShieldAmount : setUnshieldAmount;
   const onMaxClick = mode === 'shield' ? handleShieldMax : handleUnshieldMax;
@@ -265,8 +243,8 @@ export const ShieldPageV2: React.FC = () => {
   const sourceSymbol = mode === 'shield' ? pairedSymbol : tokenSymbol;
   const destSymbol = mode === 'shield' ? tokenSymbol : pairedSymbol;
 
-  const sourceAvailable = mode === 'shield' ? publicBalanceNum : confidentialBalanceNum;
-  const destAvailable = mode === 'shield' ? confidentialBalanceNum : publicBalanceNum;
+  const sourceAvailable = mode === 'shield' ? publicBalanceNum : confidentialBalanceUnit;
+  const destAvailable = mode === 'shield' ? confidentialBalanceUnit : publicBalanceNum;
 
   const isLoadingSource = mode === 'shield' ? isLoadingPublic : isLoadingConfidential;
   const isLoadingDest = mode === 'shield' ? isLoadingConfidential : isLoadingPublic;
@@ -394,22 +372,22 @@ export const ShieldPageV2: React.FC = () => {
       />
 
       {/* Claim + pending (same logic as ShieldPage) */}
-      {unshieldClaims?.hasClaimable && tokenMetadata && (
+      {unshieldClaims?.hasClaimable && tokenFromList && (
         <ActionButton
           onClick={handleClaim}
           disabled={claimUnshield.isPending || isRefreshingBalances}
           label={
             claimUnshield.isPending
               ? 'Claiming...'
-              : `Claim ${formatUnits(unshieldClaims.claimableAmount, tokenMetadata.decimals)} ${pairedSymbol}`
+              : `Claim ${formatTokenAmount(unshieldClaims.claimableAmount, tokenFromList.decimals, 5).formatted} ${pairedSymbol}`
           }
           className="mt-1"
         />
       )}
 
-      {unshieldClaims?.hasPending && tokenMetadata && !unshieldClaims.hasClaimable && (
+      {unshieldClaims?.hasPending && tokenFromList && !unshieldClaims.hasClaimable && (
         <p className="text-xxs text-yellow-600 dark:text-yellow-400 text-center">
-          Pending: {formatUnits(unshieldClaims.pendingAmount, tokenMetadata.decimals)} {pairedSymbol}
+          Pending: {formatTokenAmount(unshieldClaims.pendingAmount, tokenFromList.decimals).formatted} {pairedSymbol}
         </p>
       )}
 

@@ -1,7 +1,7 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext.js';
 import { useTransactionStore } from '../../../stores/transactionStore.js';
-import { useCofheChainId, useCofheAccount } from '../../../hooks/useCofheConnection.js';
+import { useCofheChainId, useCofheAccount } from '@/hooks/useCofheConnection.js';
 import { TransactionItem } from '../components/TransactionItem.js';
 
 export const ActivityPage: React.FC = () => {

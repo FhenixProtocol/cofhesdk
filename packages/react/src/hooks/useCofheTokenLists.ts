@@ -87,7 +87,11 @@ export function useCofheTokens(chainId?: number): Token[] {
   return tokens;
 }
 
-export function useCofheToken({ chainId: _chainId, address }: { chainId?: number; address?: Address }) {
+export function useCofheToken(
+  { chainId: _chainId, address }: { chainId?: number; address?: Address },
+  // TODO: after adding this functionality, don't fetch if not enabled
+  metdataQueryOptions?: Omit<UseQueryOptions<Token | undefined, Error>, 'queryKey' | 'queryFn' | 'select'>
+) {
   const cofheChainId = useCofheChainId();
   const chainId = _chainId ?? cofheChainId;
 
@@ -96,6 +100,8 @@ export function useCofheToken({ chainId: _chainId, address }: { chainId?: number
     if (!address || !chainId) return;
     return tokens.find((t) => t.chainId === chainId && t.address.toLowerCase() === address.toLowerCase());
   }, [address, chainId, tokens]);
+
+  // TODO: fetch from chain (metadata) if all the token lists have been loaded but token is not found
 
   return tokenFromList;
 }

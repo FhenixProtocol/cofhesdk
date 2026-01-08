@@ -11,7 +11,7 @@ import { assert } from 'ts-essentials';
  * @param queryOptions - Optional React Query options
  * @returns Decrypted balance as bigint
  */
-export function useCofheDecrypt<U extends FheTypes>(
+export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<U>>(
   {
     ciphertext,
     fheType,
@@ -21,8 +21,8 @@ export function useCofheDecrypt<U extends FheTypes>(
     fheType: U;
     cause: ErrorCause;
   },
-  queryOptions?: Omit<UseQueryOptions<UnsealedItem<U> | undefined, Error>, 'queryKey' | 'queryFn'>
-): UseQueryResult<UnsealedItem<U> | undefined, Error> {
+  queryOptions?: Omit<UseQueryOptions<UnsealedItem<U>, Error, TSeletedData>, 'queryKey' | 'queryFn'>
+): UseQueryResult<TSeletedData, Error> {
   const { client } = useCofheContext();
   const isCofheErrorActive = useIsCofheErrorActive();
 
