@@ -21,7 +21,7 @@ export interface TokenBalanceProps {
   /** Account address to fetch balance for */
   accountAddress?: Address;
   /** Type of balance to display: 'public' (ERC20 balanceOf) or 'confidential' (encrypted) */
-  balanceType?: BalanceType;
+  balanceType: BalanceType;
 
   /** Number of decimal places to show (default: 5) */
   decimalPrecision?: number;
@@ -41,10 +41,20 @@ const sizeClasses = {
   xl: 'text-2xl',
 };
 
+function getPublicTokenSymbol(token: Token | undefined): string | undefined {
+  // For public balance of wrapped tokens, show the erc20Pair symbol
+  const erc20Pair = token?.extensions.fhenix.erc20Pair;
+  const isWrappedToken = token?.extensions.fhenix.confidentialityType === 'wrapped';
+  if (isWrappedToken && erc20Pair?.symbol) return erc20Pair.symbol;
+
+  // dual
+  if (token) return token.symbol;
+  return undefined;
+}
 export const TokenBalance: React.FC<TokenBalanceProps> = ({
   token,
   accountAddress,
-  balanceType = BalanceType.Confidential,
+  balanceType,
   decimalPrecision = 5,
   showSymbol = false,
   className,
@@ -56,7 +66,7 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
   const effectiveAccountAddress = accountAddress ?? account;
 
   // Use unified hooks for balance fetching
-  const { data: { unit: publicBalanceNum } = {}, isLoading: isLoadingPublic } = useCofheTokenPublicBalance(
+  const { data: { formatted: publicBalanceFormatted } = {}, isLoading: isLoadingPublic } = useCofheTokenPublicBalance(
     { token, accountAddress: effectiveAccountAddress, displayDecimals: decimalPrecision },
     {
       enabled: balanceType === BalanceType.Public,
@@ -74,48 +84,56 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
     }
   );
 
-  // Determine token symbol
-  const displaySymbol = useMemo(() => {
-    // For public balance of wrapped tokens, show the erc20Pair symbol
-    const erc20Pair = token?.extensions.fhenix.erc20Pair;
-    const isWrappedToken = token?.extensions.fhenix.confidentialityType === 'wrapped';
-    if (balanceType === BalanceType.Public && isWrappedToken && erc20Pair?.symbol) return erc20Pair.symbol;
-    if (token) return token.symbol;
-  }, [balanceType, token]);
-
-  // Determine if we're loading
-  const isLoading = useMemo(() => {
-    return balanceType === BalanceType.Public ? isLoadingPublic : isLoadingConfidential;
-  }, [balanceType, isLoadingPublic, isLoadingConfidential]);
-
-  // Format balance
-  const displayBalance = useMemo(() => {
-    // Public or confidential balance from hooks
-    if (balanceType === BalanceType.Confidential) return confidentialBalanceFormatted;
-
-    return publicBalanceNum?.toFixed(decimalPrecision);
-  }, [balanceType, confidentialBalanceFormatted, publicBalanceNum, decimalPrecision]);
-
+  const balanceViewProps: Pick<TokenBalanceViewProps, 'formattedBalance' | 'isLoading' | 'symbol'> = useMemo(() => {
+    // prepare props based on balance type - confidential or public
+    if (balanceType === BalanceType.Public) {
+      return {
+        formattedBalance: publicBalanceFormatted,
+        isLoading: isLoadingPublic,
+        symbol: showSymbol ? getPublicTokenSymbol(token) : undefined,
+      };
+    } else {
+      return {
+        formattedBalance: confidentialBalanceFormatted,
+        isLoading: isLoadingConfidential,
+        symbol: showSymbol ? token?.symbol : undefined,
+      };
+    }
+  }, [
+    balanceType,
+    publicBalanceFormatted,
+    isLoadingPublic,
+    confidentialBalanceFormatted,
+    isLoadingConfidential,
+    showSymbol,
+    token,
+  ]);
   return (
     <TokenBalanceView
       className={className}
       size={size}
       hidden={disabledDueToMissingPermit}
-      isLoading={isLoading}
-      formattedBalance={displayBalance}
-      symbol={showSymbol ? displaySymbol : undefined}
+      isLoading={balanceViewProps.isLoading}
+      formattedBalance={balanceViewProps.formattedBalance}
+      symbol={balanceViewProps.symbol}
     />
   );
 };
 
-export const TokenBalanceView: React.FC<
-  Pick<TokenBalanceProps, 'className' | 'size'> & {
-    formattedBalance?: string;
-    symbol?: string;
-    isLoading?: boolean;
-    hidden?: boolean;
-  }
-> = ({ className, size = 'md', formattedBalance, symbol, isLoading, hidden }) => {
+type TokenBalanceViewProps = Pick<TokenBalanceProps, 'className' | 'size'> & {
+  formattedBalance?: string;
+  symbol?: string;
+  isLoading?: boolean;
+  hidden?: boolean;
+};
+export const TokenBalanceView: React.FC<TokenBalanceViewProps> = ({
+  className,
+  size = 'md',
+  formattedBalance,
+  symbol,
+  isLoading,
+  hidden,
+}) => {
   return (
     <span className={cn(sizeClasses[size], 'font-medium fnx-text-primary', className)}>
       {hidden ? <ConfidentialValuePlaceholder /> : isLoading ? <LoadingDots size={size} /> : formattedBalance}

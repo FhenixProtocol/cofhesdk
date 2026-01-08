@@ -4,7 +4,7 @@ import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import { useCofheToken } from '../../../../hooks/useCofheTokenLists';
 import { useMemo } from 'react';
 import { TokenIcon } from '../../components/TokenIcon';
-import { TokenBalance } from '../../components/TokenBalance';
+import { BalanceType, TokenBalance } from '../../components/TokenBalance';
 import { useFnxFloatingButtonContext } from '../../FnxFloatingButtonContext';
 import { useCofhePinnedTokenAddress } from '@/hooks/useCofhePinnedTokenAddress';
 import { useCofheTokenMetadata } from '@/hooks/useCofheTokenMetadata';
@@ -76,6 +76,8 @@ export const AssetCard: React.FC = () => {
         <div className="flex items-center gap-2">
           <div className="flex flex-col items-end">
             <TokenBalance
+              // TODO: add suport for displaying native token balance
+              balanceType={BalanceType.Confidential}
               token={tokenFromList}
               showSymbol={false}
               size="xl"
