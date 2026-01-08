@@ -18,19 +18,14 @@ import { truncateHash } from '../../../utils/utils';
 import { ActionButton, AmountInput, TokenIcon } from '../components/index';
 import { TokenBalanceView } from '../components/TokenBalance';
 import { useCofhePinnedTokenAddress } from '@/hooks/useCofhePinnedTokenAddress';
-import { useCofheTokenMetadata } from '@/hooks/useCofheTokenMetadata';
 import { useCofheTokenPublicBalance } from '@/hooks/useCofheTokenPublicBalance';
+import { formatTokenAmount, unitToWei } from '@/utils/format';
+import { assert } from 'ts-essentials';
 
 const SUCCESS_TIMEOUT = 5000;
 const DISPLAY_DECIMALS = 5;
 
 type Mode = 'shield' | 'unshield';
-
-const derivePairedSymbol = (confidentialSymbol: string) => {
-  if (confidentialSymbol.startsWith('f')) return confidentialSymbol.slice(1);
-  if (confidentialSymbol.startsWith('e')) return confidentialSymbol.slice(1);
-  return confidentialSymbol;
-};
 
 export const ShieldPageV2: React.FC = () => {
   const { navigateBack, selectedToken, navigateToTokenListForSelection } = useFnxFloatingButtonContext();
@@ -58,8 +53,6 @@ export const ShieldPageV2: React.FC = () => {
   const tokenFromList = useCofheToken({
     address: activeTokenAddress,
   });
-
-  const { data: tokenMetadata } = useCofheTokenMetadata(activeTokenAddress);
 
   const confidentialityType = tokenFromList?.extensions.fhenix.confidentialityType;
 
@@ -162,8 +155,8 @@ export const ShieldPageV2: React.FC = () => {
     return type === 'dual' || type === 'wrapped';
   }, [tokenFromList]);
 
-  const tokenSymbol = tokenFromList?.symbol || tokenMetadata?.symbol || 'TOKEN';
-  const pairedSymbol = tokenFromList?.extensions.fhenix.erc20Pair?.symbol || derivePairedSymbol(tokenSymbol);
+  const tokenSymbol = tokenFromList?.symbol;
+  const pairedSymbol = tokenFromList?.extensions.fhenix.erc20Pair?.symbol;
 
   const pairedLogoURI = tokenFromList?.extensions.fhenix.erc20Pair?.logoURI;
 
@@ -176,22 +169,15 @@ export const ShieldPageV2: React.FC = () => {
   };
 
   const handleShield = async () => {
-    if (!tokenFromList || !tokenMetadata || !account || !publicClient) {
-      setError('Missing required data. Please ensure wallet is connected and a token is selected.');
-      return;
-    }
-    if (!isValidShieldAmount) {
-      setError('Invalid shield amount. Please check your balance.');
-      return;
-    }
+    assert(tokenFromList, 'Token must be selected');
 
-    const amountInSmallestUnit = parseUnits(shieldAmount, tokenMetadata.decimals);
+    const amountWei = unitToWei(shieldAmount, tokenFromList!.decimals);
     try {
       await executeTransaction(
         () =>
           tokenShield.mutateAsync({
             token: tokenFromList,
-            amount: amountInSmallestUnit,
+            amount: amountWei,
             onStatusChange: (message) => setStatus({ message, type: 'info' }),
           }),
         'Shield complete!',
@@ -204,7 +190,7 @@ export const ShieldPageV2: React.FC = () => {
   };
 
   const handleUnshield = async () => {
-    if (!tokenFromList || !tokenMetadata || !account || !publicClient) {
+    if (!tokenFromList || !account || !publicClient) {
       setError('Missing required data. Please ensure wallet is connected and a token is selected.');
       return;
     }
@@ -213,7 +199,7 @@ export const ShieldPageV2: React.FC = () => {
       return;
     }
 
-    const amountInSmallestUnit = parseUnits(unshieldAmount, tokenMetadata.decimals);
+    const amountInSmallestUnit = parseUnits(unshieldAmount, tokenFromList.decimals);
     try {
       await executeTransaction(
         () =>
@@ -388,22 +374,22 @@ export const ShieldPageV2: React.FC = () => {
       />
 
       {/* Claim + pending (same logic as ShieldPage) */}
-      {unshieldClaims?.hasClaimable && tokenMetadata && (
+      {unshieldClaims?.hasClaimable && tokenFromList && (
         <ActionButton
           onClick={handleClaim}
           disabled={claimUnshield.isPending || isRefreshingBalances}
           label={
             claimUnshield.isPending
               ? 'Claiming...'
-              : `Claim ${formatUnits(unshieldClaims.claimableAmount, tokenMetadata.decimals)} ${pairedSymbol}`
+              : `Claim ${formatTokenAmount(unshieldClaims.claimableAmount, tokenFromList.decimals, 5).formatted} ${pairedSymbol}`
           }
           className="mt-1"
         />
       )}
 
-      {unshieldClaims?.hasPending && tokenMetadata && !unshieldClaims.hasClaimable && (
+      {unshieldClaims?.hasPending && tokenFromList && !unshieldClaims.hasClaimable && (
         <p className="text-xxs text-yellow-600 dark:text-yellow-400 text-center">
-          Pending: {formatUnits(unshieldClaims.pendingAmount, tokenMetadata.decimals)} {pairedSymbol}
+          Pending: {formatTokenAmount(unshieldClaims.pendingAmount, tokenFromList.decimals).formatted} {pairedSymbol}
         </p>
       )}
 

@@ -5,7 +5,6 @@ import { TokenIcon } from '../../components/TokenIcon';
 import { CofheTokenConfidentialBalance } from '../../components/TokenBalance';
 import { useFnxFloatingButtonContext } from '../../FnxFloatingButtonContext';
 import { useCofhePinnedTokenAddress } from '@/hooks/useCofhePinnedTokenAddress';
-import { useCofheTokenMetadata } from '@/hooks/useCofheTokenMetadata';
 
 export const AssetCard: React.FC = () => {
   // TODO: show Native token if no pinned token address
@@ -19,10 +18,6 @@ export const AssetCard: React.FC = () => {
   const tokenFromList = useCofheToken({
     address: pinnedTokenAddress,
   });
-
-  // Get token metadata (decimals and symbol) using multicall for efficiency
-  const { data: tokenMetadata } = useCofheTokenMetadata(pinnedTokenAddress);
-  const tokenSymbol = tokenMetadata?.symbol;
 
   const handleClick = () => {
     // TODO: figure out best handling for this error
@@ -49,7 +44,7 @@ export const AssetCard: React.FC = () => {
         {/* Left Side: Icon, Ticker, Privacy Metrics */}
         <div className="flex items-center gap-3 flex-1">
           {/* Asset Icon */}
-          <TokenIcon logoURI={tokenFromList?.logoURI} alt={tokenSymbol || 'Token'} size="md" />
+          <TokenIcon logoURI={tokenFromList?.logoURI} alt={tokenFromList?.symbol} size="md" />
 
           {/* Ticker and Privacy */}
           <div className="flex flex-col gap-1">
