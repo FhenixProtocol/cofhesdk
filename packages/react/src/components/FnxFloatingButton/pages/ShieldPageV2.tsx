@@ -16,7 +16,7 @@ import {
 import { cn } from '../../../utils/cn';
 import { truncateHash } from '../../../utils/utils';
 import { ActionButton, AmountInput, TokenIcon } from '../components/index';
-import { TokenBalanceView } from '../components/TokenBalance';
+import { TokenBalanceView } from '../components/TokenBalanceView';
 import { useCofhePinnedTokenAddress } from '@/hooks/useCofhePinnedTokenAddress';
 import { useCofheTokenPublicBalance } from '@/hooks/useCofheTokenPublicBalance';
 import { formatTokenAmount, unitToWei } from '@/utils/format';
