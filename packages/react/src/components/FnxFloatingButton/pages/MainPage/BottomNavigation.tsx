@@ -6,18 +6,45 @@ import { TbShieldPlus } from 'react-icons/tb';
 import { FaBug } from 'react-icons/fa';
 import { useFnxFloatingButtonContext } from '../../FnxFloatingButtonContext';
 import { FloatingButtonPage } from '../../pagesConfig/types';
+import { useCofhePinnedToken } from '@/hooks/useCofhePinnedToken';
+import { assert, type ElementOf } from 'ts-essentials';
 
-type NavItem = {
-  id: FloatingButtonPage;
-  label: string;
-  icon: React.ReactNode;
-};
+const iconClassName = 'w-4 h-4';
+
+const navItems = [
+  {
+    id: FloatingButtonPage.Send,
+    label: 'Send',
+    icon: <GoArrowUpRight className={iconClassName} />,
+  },
+  {
+    id: FloatingButtonPage.Shield,
+    label: 'Shield',
+    icon: <TbShieldPlus className={iconClassName} />,
+  },
+  {
+    id: FloatingButtonPage.TokenList,
+    label: 'Portfolio',
+    icon: <AiOutlinePieChart className={iconClassName} />,
+  },
+  {
+    id: FloatingButtonPage.Permits,
+    label: 'Permits',
+    icon: <IoMdKey className={iconClassName} />,
+  },
+  // TODO: Only enable this locally for debugging
+  {
+    id: FloatingButtonPage.Debug,
+    label: 'Debug',
+    icon: <FaBug className={iconClassName} />,
+  },
+] as const;
 
 export const BottomNavigation: React.FC = () => {
   const { navigateTo, navigateToTokenListForView, openPortal } = useFnxFloatingButtonContext();
-  const iconClassName = 'w-4 h-4';
+  const defaultTokenForSendPage = useCofhePinnedToken();
 
-  const handleNavClick = (page: FloatingButtonPage) => {
+  const handleNavClick = (page: ElementOf<typeof navItems>['id']) => {
     openPortal();
 
     if (page === FloatingButtonPage.TokenList) {
@@ -25,37 +52,14 @@ export const BottomNavigation: React.FC = () => {
       return;
     }
 
-    navigateTo(page as any);
-  };
+    if (page === FloatingButtonPage.Send) {
+      assert(defaultTokenForSendPage, 'No pinned token available for Send page');
+      navigateTo(FloatingButtonPage.Send, { pageProps: { token: defaultTokenForSendPage } });
+      return;
+    }
 
-  const navItems: NavItem[] = [
-    {
-      id: FloatingButtonPage.Send,
-      label: 'Send',
-      icon: <GoArrowUpRight className={iconClassName} />,
-    },
-    {
-      id: FloatingButtonPage.Shield,
-      label: 'Shield',
-      icon: <TbShieldPlus className={iconClassName} />,
-    },
-    {
-      id: FloatingButtonPage.TokenList,
-      label: 'Portfolio',
-      icon: <AiOutlinePieChart className={iconClassName} />,
-    },
-    {
-      id: FloatingButtonPage.Permits,
-      label: 'Permits',
-      icon: <IoMdKey className={iconClassName} />,
-    },
-    // TODO: Only enable this locally for debugging
-    {
-      id: FloatingButtonPage.Debug,
-      label: 'Debug',
-      icon: <FaBug className={iconClassName} />,
-    },
-  ];
+    navigateTo(page);
+  };
 
   return (
     <div className="flex gap-2 mt-4">
