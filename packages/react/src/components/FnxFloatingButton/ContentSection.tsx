@@ -4,6 +4,7 @@ import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
 import { type PageState } from './pagesConfig/types';
 import { AnimatePresence, motion } from 'motion/react';
 import { pages } from './pagesConfig/const';
+import { AnimatedZStack } from '../primitives/AnimatedZStack';
 
 interface ContentSectionProps {
   overriddingPage?: PageState;
@@ -40,20 +41,56 @@ const ContentRenderer: React.FC<{ page: PageState; id: string }> = ({ page, id }
   );
 };
 
+const FakeModal: React.FC = () => {
+  const { setContentHeight } = useFnxFloatingButtonContext();
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!contentRef.current) return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const height = entry.borderBoxSize?.[0]?.blockSize ?? entry.target.getBoundingClientRect().height;
+        setContentHeight('modal', height);
+      }
+    });
+
+    observer.observe(contentRef.current);
+    return () => observer.disconnect();
+  }, [setContentHeight]);
+
+  return (
+    <div className="fnx-panel absolute flex top-0 left-0 w-full p-4 h-[900px]" ref={contentRef}>
+      HELLO THERE I"M A MODAL
+    </div>
+  );
+};
+
 export const ContentSection: React.FC<ContentSectionProps> = ({ overriddingPage }) => {
-  const { currentPage: pageFromContext, contentPanelOpen, isTopSide, maxContentHeight } = useFnxFloatingButtonContext();
+  const {
+    currentPage: pageFromContext,
+    contentPanelOpen,
+    isTopSide,
+    maxContentHeight,
+    statuses,
+  } = useFnxFloatingButtonContext();
   const currentPage = overriddingPage ?? pageFromContext;
 
   return (
     <AnimatePresence>
       {contentPanelOpen && (
         <motion.div
-          className="fnx-panel relative flex w-full overflow-y-auto"
+          className="relative flex w-full"
           initial={{ opacity: 0, y: isTopSide ? -10 : 10 }}
           animate={{ opacity: 1, y: 0, height: `${maxContentHeight}px`, maxHeight: `${maxContentHeight}px` }}
           exit={{ opacity: 0, y: isTopSide ? -10 : 10 }}
         >
-          <ContentRenderer page={currentPage} id="content" />
+          <AnimatedZStack>
+            <motion.div className="fnx-panel relative flex w-full h-full overflow-y-auto">
+              <ContentRenderer page={currentPage} id="content" />
+            </motion.div>
+            {statuses.length > 0 && <FakeModal />}
+          </AnimatedZStack>
         </motion.div>
       )}
     </AnimatePresence>
