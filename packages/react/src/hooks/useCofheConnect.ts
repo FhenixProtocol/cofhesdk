@@ -5,10 +5,7 @@ import { useInternalMutation } from '@/providers/internalQueryHooks';
 
 type ConnectVars = { publicClient: PublicClient; walletClient: WalletClient };
 
-type ConnectMutationOptions = Omit<
-  UseMutationOptions<void, Error, ConnectVars, unknown>,
-  'mutationKey' | 'mutationFn'
->;
+type ConnectMutationOptions = Omit<UseMutationOptions<void, Error, ConnectVars, unknown>, 'mutationKey' | 'mutationFn'>;
 
 export const useCofheConnect = (options?: ConnectMutationOptions) => {
   const client = useCofheClient();
