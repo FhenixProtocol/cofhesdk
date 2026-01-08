@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo, useRef } from 'react';
 
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
@@ -10,16 +9,15 @@ interface ContentSectionProps {
   overriddingPage?: PageState;
 }
 
-export const ContentSection: React.FC<ContentSectionProps> = ({ overriddingPage }) => {
-  const { currentPage: pageFromContext, contentPanelOpen, isTopSide, setContentHeight } = useFnxFloatingButtonContext();
-  const currentPage = overriddingPage ?? pageFromContext;
+const ContentRenderer: React.FC<{ page: PageState; id: string }> = ({ page, id }) => {
+  const { setContentHeight } = useFnxFloatingButtonContext();
   const contentRef = useRef<HTMLDivElement>(null);
 
   const content = useMemo(() => {
-    const PageComp = pages[currentPage.page];
-    const props = currentPage.props ?? {};
+    const PageComp = pages[page.page];
+    const props = page.props ?? {};
     return <PageComp {...props} />;
-  }, [currentPage]);
+  }, [page]);
 
   useEffect(() => {
     if (!contentRef.current) return;
@@ -33,19 +31,29 @@ export const ContentSection: React.FC<ContentSectionProps> = ({ overriddingPage 
 
     observer.observe(contentRef.current);
     return () => observer.disconnect();
-  }, [currentPage.page, setContentHeight]);
+  }, [page.page, setContentHeight]);
+
+  return (
+    <div className="absolute flex top-0 left-0 w-full p-4" ref={contentRef}>
+      {content}
+    </div>
+  );
+};
+
+export const ContentSection: React.FC<ContentSectionProps> = ({ overriddingPage }) => {
+  const { currentPage: pageFromContext, contentPanelOpen, isTopSide, maxContentHeight } = useFnxFloatingButtonContext();
+  const currentPage = overriddingPage ?? pageFromContext;
 
   return (
     <AnimatePresence>
       {contentPanelOpen && (
         <motion.div
-          ref={contentRef}
-          className="fnx-panel relative flex w-full p-4"
+          className="fnx-panel relative flex w-full overflow-y-auto"
           initial={{ opacity: 0, y: isTopSide ? -10 : 10 }}
-          animate={{ opacity: 1, y: 0 }}
+          animate={{ opacity: 1, y: 0, height: `${maxContentHeight}px`, maxHeight: `${maxContentHeight}px` }}
           exit={{ opacity: 0, y: isTopSide ? -10 : 10 }}
         >
-          {content}
+          <ContentRenderer page={currentPage} id="content" />
         </motion.div>
       )}
     </AnimatePresence>
