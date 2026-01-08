@@ -28,7 +28,6 @@ export type CofhesdkClient<TConfig extends CofhesdkConfig = CofhesdkConfig> = {
 
   // --- config & platform-specific ---
   readonly config: TConfig;
-  readonly environment: CofhesdkEnvironment;
 
   connect(publicClient: PublicClient, walletClient: WalletClient): Promise<boolean>;
   /**
