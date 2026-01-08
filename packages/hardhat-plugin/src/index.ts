@@ -222,9 +222,9 @@ declare module 'hardhat/types/runtime' {
        * Connect a CoFHE SDK client with a Hardhat ethers signer
        * @param {CofhesdkClient} client - The CoFHE SDK client to connect
        * @param {HardhatEthersSigner} signer - The Hardhat ethers signer to use
-       * @returns {Promise<boolean>} True if the connection was successful
+       * @returns {Promise<void>}
        */
-      connectWithHardhatSigner: (client: CofhesdkClient, signer: HardhatEthersSigner) => Promise<boolean>;
+      connectWithHardhatSigner: (client: CofhesdkClient, signer: HardhatEthersSigner) => Promise<void>;
       /**
        * Create and connect to a batteries included client.
        * Also generates a self-usage a permit for the signer.

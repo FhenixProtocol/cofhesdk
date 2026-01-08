@@ -1,5 +1,5 @@
 // Client (base implementations)
-export { createCofhesdkClientBase, CONNECT_STORE_DEFAULTS } from './client.js';
+export { createCofhesdkClientBase, InitialConnectStore as CONNECT_STORE_DEFAULTS } from './client.js';
 
 // Configuration (base implementations)
 export { createCofhesdkConfigBase, getCofhesdkConfigItem } from './config.js';

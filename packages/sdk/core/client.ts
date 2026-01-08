@@ -17,7 +17,7 @@ import type {
 import type { EncryptableItem, FheTypes } from './types.js';
 import type { CofhesdkConfig } from './config.js';
 
-export const CONNECT_STORE_DEFAULTS: CofhesdkClientConnectionState = {
+export const InitialConnectStore: CofhesdkClientConnectionState = {
   connected: false,
   connecting: false,
   connectError: undefined,
@@ -26,6 +26,7 @@ export const CONNECT_STORE_DEFAULTS: CofhesdkClientConnectionState = {
   publicClient: undefined,
   walletClient: undefined,
 };
+
 /**
  * Creates a CoFHE SDK client instance (base implementation)
  * @param {CofhesdkClientParams} opts - Initialization options including config and platform-specific serializers
@@ -39,16 +40,12 @@ export function createCofhesdkClientBase<TConfig extends CofhesdkConfig>(
 
   // Zustand store for reactive state management
 
-  const connectStore = createStore<CofhesdkClientConnectionState>(() => CONNECT_STORE_DEFAULTS);
+  const connectStore = createStore<CofhesdkClientConnectionState>(() => InitialConnectStore);
 
   // Helper to update state
   const updateConnectState = (partial: Partial<CofhesdkClientConnectionState>) => {
     connectStore.setState((state) => ({ ...state, ...partial }));
   };
-
-  // single-flight + abortable warmup
-  let _connectPromise: Promise<boolean> | undefined = undefined;
-  let _connectPromiseClients: { publicClient: PublicClient; walletClient: WalletClient } | undefined = undefined;
 
   // Called before any operation, throws of connection not yet established
   const _requireConnected = () => {
@@ -77,58 +74,34 @@ export function createCofhesdkClientBase<TConfig extends CofhesdkConfig>(
     const state = connectStore.getState();
 
     // Exit if already connected and clients are the same
-    if (state.connected && state.publicClient === publicClient && state.walletClient === walletClient) {
-      return Promise.resolve(true);
-    }
-
-    // Exit if already connecting
-    if (
-      _connectPromise &&
-      _connectPromiseClients &&
-      _connectPromiseClients.publicClient === publicClient &&
-      _connectPromiseClients.walletClient === walletClient
-    ) {
-      return _connectPromise;
-    }
+    if (state.connected && state.publicClient === publicClient && state.walletClient === walletClient) return;
 
     // Set connecting state
     updateConnectState({
+      ...InitialConnectStore,
       connecting: true,
-      connectError: null,
-      connected: false,
-      chainId: undefined,
-      account: undefined,
-      publicClient: undefined,
-      walletClient: undefined,
     });
 
-    // Uses clients to fetch chainId and account
-    // This function is what gets awaited if awaiting connection
-    const checkClientConnections = async () => {
-      try {
-        const chainId = await getPublicClientChainID(publicClient);
-        const account = await getWalletClientAccount(walletClient);
-        updateConnectState({ connecting: false, connected: true, chainId, account, publicClient, walletClient });
-        return true;
-      } catch (e) {
-        updateConnectState({
-          connecting: false,
-          connected: false,
-          connectError: e,
-          publicClient: undefined,
-          walletClient: undefined,
-        });
-        return false;
-      } finally {
-        _connectPromise = undefined;
-        _connectPromiseClients = undefined;
-      }
-    };
-
-    _connectPromiseClients = { publicClient, walletClient };
-    _connectPromise = checkClientConnections();
-
-    return _connectPromise;
+    // Fetch chainId and account
+    try {
+      const chainId = await getPublicClientChainID(publicClient);
+      const account = await getWalletClientAccount(walletClient);
+      updateConnectState({
+        connected: true,
+        connecting: false,
+        connectError: undefined,
+        chainId,
+        account,
+        publicClient,
+        walletClient,
+      });
+    } catch (e) {
+      updateConnectState({
+        ...InitialConnectStore,
+        connectError: e,
+      });
+      throw e;
+    }
   }
 
   // CLIENT OPERATIONS

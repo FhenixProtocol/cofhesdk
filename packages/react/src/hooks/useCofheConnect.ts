@@ -5,31 +5,16 @@ import { useInternalMutation } from '@/providers/internalQueryHooks';
 
 type ConnectVars = { publicClient: PublicClient; walletClient: WalletClient };
 
-type ConnectMutationOptions = Omit<
-  UseMutationOptions<boolean, Error, ConnectVars, unknown>,
-  'mutationKey' | 'mutationFn'
->;
+type ConnectMutationOptions = Omit<UseMutationOptions<void, Error, ConnectVars, unknown>, 'mutationKey' | 'mutationFn'>;
 
 export const useCofheConnect = (options?: ConnectMutationOptions) => {
   const client = useCofheClient();
-  return useInternalMutation<boolean, Error, ConnectVars>({
+  return useInternalMutation<void, Error, ConnectVars>({
     // spread user-provided options first; enforce critical keys afterwards
     ...options,
     mutationKey: ['cofhe', 'connect'],
     mutationFn: async ({ publicClient, walletClient }) => {
-      const result = await client.connect(publicClient, walletClient);
-
-      // TODO: maybe rather change it internally? so it doesn't suppress error on connection?
-      // it's a conventional flow when it comes to connections: try {connect()} catch (e) {show error}
-      if (!result) {
-        const cause = client.getSnapshot().connectError;
-        if (cause) {
-          throw cause;
-        } else {
-          throw new Error('Unknown error during Cofhe client connection');
-        }
-      }
-      return result;
+      await client.connect(publicClient, walletClient);
     },
   });
 };
