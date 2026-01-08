@@ -85,7 +85,7 @@ describe('createCofhesdkClientBase', () => {
           initTfhe: () => Promise.resolve(false),
         });
 
-        expect(client.environment).toBe(environment);
+        expect(client.config.environment).toBe(environment);
       }
     });
   });

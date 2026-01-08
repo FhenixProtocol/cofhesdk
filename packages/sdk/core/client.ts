@@ -294,7 +294,6 @@ export function createCofhesdkClientBase<TConfig extends CofhesdkConfig>(
 
     // config & platform-specific (read-only)
     config: opts.config,
-    environment: opts.config.environment,
 
     connect,
     encryptInputs,
