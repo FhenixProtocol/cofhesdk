@@ -1,4 +1,4 @@
-import { type ReactNode, createContext, useContext, useState, useEffect, isValidElement, useRef } from 'react';
+import { type ReactNode, createContext, useContext, useState, useEffect, isValidElement, useRef, useMemo } from 'react';
 import type { FloatingButtonPosition, FnxFloatingButtonToast, FnxStatus, FnxToastImperativeParams } from './types';
 import { useCofheContext } from '../../providers';
 import { checkPendingTransactions, stopPendingTransactionPolling } from '../../stores/transactionStore';
@@ -58,6 +58,12 @@ interface FnxFloatingButtonContextValue {
   statuses: FnxStatus[];
   addStatus: (status: FnxStatus) => void;
   removeStatus: (id: string) => void;
+
+  // Content sizing
+  contentHeights: Array<{ id: string; height: number }>;
+  maxContentHeight: number;
+  setContentHeight: (id: string, height: number) => void;
+  removeContentHeight: (id: string) => void;
 }
 
 const FnxFloatingButtonContext = createContext<FnxFloatingButtonContextValue | null>(null);
@@ -222,6 +228,26 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
     setStatuses((prev) => prev.filter((status) => status.id !== id));
   };
 
+  // Content sizing
+  const [contentHeights, setContentHeights] = useState<Array<{ id: string; height: number }>>([]);
+  const maxContentHeight = useMemo(() => {
+    return contentHeights.reduce((max, height) => Math.max(max, height.height), 0);
+  }, [contentHeights]);
+
+  const setContentHeight = (id: string, height: number) => {
+    setContentHeights((prev) => {
+      const existing = prev.find((h) => h.id === id);
+      if (existing) {
+        if (existing.height === height) return prev;
+        return prev.map((h) => (h.id === id ? { ...h, height } : h));
+      }
+      return [...prev, { id, height }];
+    });
+  };
+  const removeContentHeight = (id: string) => {
+    setContentHeights((prev) => prev.filter((height) => height.id !== id));
+  };
+
   return (
     <FnxFloatingButtonContext.Provider
       value={{
@@ -246,6 +272,10 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
         statuses,
         addStatus,
         removeStatus,
+        contentHeights,
+        maxContentHeight,
+        setContentHeight,
+        removeContentHeight,
       }}
     >
       {children}
