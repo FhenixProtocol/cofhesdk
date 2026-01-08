@@ -123,6 +123,7 @@ import { createCofhesdkClient, createCofhesdkConfig } from '@cofhe/sdk/web';
 import { sepolia } from '@cofhe/sdk/chains';
 
 const config = createCofhesdkConfig({
+  environment: 'node',
   supportedChains: [sepolia],
   useWorkers: true, // Enable Web Workers
 });

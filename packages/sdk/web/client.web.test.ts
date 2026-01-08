@@ -60,9 +60,15 @@ describe('@cofhe/web - Client', () => {
     });
   });
 
+  describe('Environment', () => {
+    it('should have the correct environment', () => {
+      expect(cofhesdkClient.config.environment).toBe('web');
+    });
+  });
+
   describe('Connection', () => {
     it('should connect to real chain', async () => {
-      const result = await cofhesdkClient.connect(publicClient, walletClient);
+      await cofhesdkClient.connect(publicClient, walletClient);
 
       expect(cofhesdkClient.connected).toBe(true);
 

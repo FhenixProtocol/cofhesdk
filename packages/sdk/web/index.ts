@@ -101,6 +101,7 @@ async function zkProveWithWorker(
  */
 export function createCofhesdkConfig(config: CofhesdkInputConfig): CofhesdkConfig {
   return createCofhesdkConfigBase({
+    environment: 'web',
     ...config,
     fheKeyStorage: config.fheKeyStorage === null ? null : config.fheKeyStorage ?? createWebStorage(),
   });

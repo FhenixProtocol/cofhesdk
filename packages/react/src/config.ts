@@ -61,7 +61,10 @@ export type CofhesdkConfigWithReact = CofhesdkConfig & {
 export function createCofhesdkConfig(config: CofhesdkReactInputConfig): CofhesdkConfigWithReact {
   const { react: reactConfigInput, ...webConfig } = config;
 
-  const webClientConfig = createCofhesdkConfigWeb(webConfig);
+  const webClientConfig = createCofhesdkConfigWeb({
+    environment: 'react',
+    ...webConfig,
+  });
   const reactConfigResult = CofhesdkReactConfigSchema.safeParse(reactConfigInput);
 
   if (!reactConfigResult.success) {

@@ -5,10 +5,15 @@ import { type WalletClient } from 'viem';
 import { CofhesdkError, CofhesdkErrorCode } from './error.js';
 import { type IStorage } from './types.js';
 
+export type CofhesdkEnvironment = 'node' | 'hardhat' | 'web' | 'react';
+
 /**
  * Usable config type inferred from the schema
  */
 export type CofhesdkConfig = {
+  /** Environment that the SDK is running in */
+  environment: 'node' | 'hardhat' | 'web' | 'react';
+  /** List of supported chains */
   supportedChains: CofheChain[];
   /**
    * How permits are generated
@@ -51,6 +56,8 @@ export type CofhesdkInternalConfig = {
  * Zod schema for configuration validation
  */
 export const CofhesdkConfigSchema = z.object({
+  /** Environment that the SDK is running in */
+  environment: z.enum(['node', 'hardhat', 'web', 'react']).optional().default('node'),
   /** List of supported chain configurations */
   supportedChains: z.array(z.custom<CofheChain>()),
   /** How permits are generated */
@@ -90,6 +97,7 @@ export const CofhesdkConfigSchema = z.object({
  * Input config type inferred from the schema
  */
 export type CofhesdkInputConfig = z.input<typeof CofhesdkConfigSchema>;
+
 /**
  * Creates and validates a cofhesdk configuration (base implementation)
  * @param config - The configuration object to validate
