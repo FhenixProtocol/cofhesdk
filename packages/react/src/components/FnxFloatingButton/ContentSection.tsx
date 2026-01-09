@@ -2,7 +2,7 @@ import { cn } from '@/utils';
 import { useMemo } from 'react';
 
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
-import { pages } from './pagesConfig/const';
+import { pages } from './pagesConfig/types';
 import { type PageState } from './pagesConfig/types';
 import { AnimatePresence, motion } from 'motion/react';
 
