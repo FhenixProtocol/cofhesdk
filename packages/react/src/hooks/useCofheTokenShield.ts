@@ -6,7 +6,6 @@ import {
 } from '@tanstack/react-query';
 import { type Address } from 'viem';
 import { useCofheWalletClient, useCofheChainId, useCofheAccount, useCofhePublicClient } from './useCofheConnection.js';
-import { useCofheContext } from '../providers/index.js';
 import { type Token, ETH_ADDRESS } from './useCofheTokenLists.js';
 import {
   SHIELD_ABIS,
@@ -19,8 +18,9 @@ import {
   ERC20_ALLOWANCE_ABI,
   ERC20_APPROVE_ABI,
 } from '../constants/confidentialTokenABIs.js';
-import { addTransactionAndWatch, TransactionActionType } from '../stores/transactionStore.js';
+import { TransactionActionType, useTransactionStore } from '../stores/transactionStore.js';
 import { useInternalMutation, useInternalQuery } from '../providers/index.js';
+import { assert } from 'ts-essentials';
 
 // ============================================================================
 // Types
@@ -56,7 +56,7 @@ type UseClaimUnshieldInput = {
   /** Token object with confidentialityType */
   token: Token;
   /** Amount being claimed (for activity logging) */
-  amount?: bigint;
+  amount: bigint;
 };
 
 type UseTokenShieldOptions = Omit<UseMutationOptions<`0x${string}`, Error, UseTokenShieldInput>, 'mutationFn'>;
@@ -81,7 +81,6 @@ export function useCofheTokenShield(
   const publicClient = useCofhePublicClient();
   const chainId = useCofheChainId();
   const account = useCofheAccount();
-  const { recordTransactionHistory } = useCofheContext().client.config.react;
 
   return useInternalMutation({
     mutationFn: async (input: UseTokenShieldInput) => {
@@ -189,25 +188,24 @@ export function useCofheTokenShield(
         });
       }
 
+      return hash;
+    },
+    onSuccess: (hash, input) => {
+      assert(chainId, 'Chain ID is required for token shield');
+      assert(account, 'Wallet account is required for token shield');
       // Record transaction and watch for confirmation
       if (chainId && account) {
-        addTransactionAndWatch(
-          {
-            hash,
-            tokenSymbol: input.token.symbol,
-            tokenAmount: input.amount,
-            tokenDecimals: input.token.decimals,
-            tokenAddress: input.token.address,
-            chainId,
-            actionType: TransactionActionType.Shield,
-            account,
-          },
-          publicClient,
-          recordTransactionHistory
-        );
+        useTransactionStore.getState().addTransaction({
+          hash,
+          tokenSymbol: input.token.symbol,
+          tokenAmount: input.amount,
+          tokenDecimals: input.token.decimals,
+          tokenAddress: input.token.address,
+          chainId,
+          actionType: TransactionActionType.Shield,
+          account,
+        });
       }
-
-      return hash;
     },
     ...options,
   });
@@ -228,10 +226,8 @@ export function useCofheTokenUnshield(
   options?: UseTokenUnshieldOptions
 ): UseMutationResult<`0x${string}`, Error, UseTokenUnshieldInput> {
   const walletClient = useCofheWalletClient();
-  const publicClient = useCofhePublicClient();
   const chainId = useCofheChainId();
   const account = useCofheAccount();
-  const { recordTransactionHistory } = useCofheContext().client.config.react;
 
   return useInternalMutation({
     mutationFn: async (input: UseTokenUnshieldInput) => {
@@ -288,27 +284,24 @@ export function useCofheTokenUnshield(
         });
       }
 
-      // Record transaction and watch for confirmation
-      if (chainId && account) {
-        addTransactionAndWatch(
-          {
-            hash,
-            tokenSymbol: input.token.symbol,
-            tokenAmount: input.amount,
-            tokenDecimals: input.token.decimals,
-            tokenAddress: input.token.address,
-            chainId,
-            actionType: TransactionActionType.Unshield,
-            account,
-          },
-          publicClient,
-          recordTransactionHistory
-        );
-      }
-
       return hash;
     },
-    ...options,
+    onSuccess: (hash, input) => {
+      assert(chainId, 'Chain ID is required for token unshield');
+      assert(account, 'Wallet account is required for token unshield');
+      if (chainId && account) {
+        useTransactionStore.getState().addTransaction({
+          hash,
+          tokenSymbol: input.token.symbol,
+          tokenAmount: input.amount,
+          tokenDecimals: input.token.decimals,
+          tokenAddress: input.token.address,
+          chainId,
+          actionType: TransactionActionType.Unshield,
+          account,
+        });
+      }
+    },
   });
 }
 
@@ -327,10 +320,8 @@ export function useCofheClaimUnshield(
   options?: UseClaimUnshieldOptions
 ): UseMutationResult<`0x${string}`, Error, UseClaimUnshieldInput> {
   const walletClient = useCofheWalletClient();
-  const publicClient = useCofhePublicClient();
   const chainId = useCofheChainId();
   const account = useCofheAccount();
-  const { recordTransactionHistory } = useCofheContext().client.config.react;
 
   return useInternalMutation({
     mutationFn: async (input: UseClaimUnshieldInput) => {
@@ -367,26 +358,21 @@ export function useCofheClaimUnshield(
         account: walletClient.account,
         chain: undefined,
       });
-
-      // Record transaction and watch for confirmation
-      if (chainId && account && input.amount !== undefined) {
-        addTransactionAndWatch(
-          {
-            hash,
-            tokenSymbol: input.token.symbol,
-            tokenAmount: input.amount,
-            tokenDecimals: input.token.decimals,
-            tokenAddress: input.token.address,
-            chainId,
-            actionType: TransactionActionType.Claim,
-            account,
-          },
-          publicClient,
-          recordTransactionHistory
-        );
-      }
-
       return hash;
+    },
+    onSuccess: (hash, input) => {
+      assert(chainId, 'Chain ID is required for claim');
+      assert(account, 'Wallet account is required for claim');
+      useTransactionStore.getState().addTransaction({
+        hash,
+        tokenSymbol: input.token.symbol,
+        tokenAmount: input.amount,
+        tokenDecimals: input.token.decimals,
+        tokenAddress: input.token.address,
+        chainId,
+        actionType: TransactionActionType.Claim,
+        account,
+      });
     },
     ...options,
   });

@@ -1,4 +1,4 @@
-import { create, type StoreApi, type UseBoundStore } from 'zustand';
+import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
 type ChainRecord<T> = Record<number, T>;
@@ -109,7 +109,7 @@ const bigintStorage = createJSONStorage<TransactionStore>(() => safeLocalStorage
   },
 });
 
-export const useTransactionStore: UseBoundStore<StoreApi<TransactionStore>> = create<TransactionStore>()(
+export const useTransactionStore = create<TransactionStore>()(
   persist(
     (set, get) => ({
       transactions: {},
@@ -199,123 +199,3 @@ export const useTransactionStore: UseBoundStore<StoreApi<TransactionStore>> = cr
     }
   )
 );
-
-// Pending transaction polling
-let pendingTransactionInterval: ReturnType<typeof setInterval> | null = null;
-
-// Type for public client (minimal interface needed)
-type MinimalPublicClient = {
-  getTransactionReceipt: (args: { hash: `0x${string}` }) => Promise<{ status: 'success' | 'reverted' } | null>;
-  waitForTransactionReceipt?: (args: { hash: `0x${string}` }) => Promise<{ status: 'success' | 'reverted' }>;
-};
-
-type PublicClientGetter = (chainId: number) => MinimalPublicClient | null | undefined;
-
-/**
- * Add a transaction and watch for its confirmation in background
- * @param transaction - Transaction data (without status and timestamp)
- * @param publicClient - Public client to watch for confirmation (optional)
- * @param enabled - Whether recording is enabled (default: false)
- */
-export const addTransactionAndWatch = (
-  transaction: Omit<Transaction, 'status' | 'timestamp'>,
-  publicClient?: MinimalPublicClient | null,
-  enabled = false
-): void => {
-  if (!enabled) return;
-
-  const { addTransaction, updateTransactionStatus } = useTransactionStore.getState();
-
-  // Add transaction to store
-  addTransaction(transaction);
-
-  // Watch for confirmation in background
-  if (publicClient?.waitForTransactionReceipt) {
-    publicClient
-      .waitForTransactionReceipt({ hash: transaction.hash as `0x${string}` })
-      .then((receipt) => {
-        const status = receipt.status === 'success' ? TransactionStatus.Confirmed : TransactionStatus.Failed;
-        updateTransactionStatus(transaction.chainId, transaction.hash, status);
-      })
-      .catch(() => {
-        updateTransactionStatus(transaction.chainId, transaction.hash, TransactionStatus.Failed);
-      });
-  }
-};
-
-// Function to check specific pending transactions
-const checkSpecificPendingTransactions = async (
-  transactions: Transaction[],
-  getPublicClient: PublicClientGetter
-): Promise<Transaction[]> => {
-  const stillPending: Transaction[] = [];
-
-  for (const tx of transactions) {
-    try {
-      const publicClient = getPublicClient(tx.chainId);
-      if (!publicClient) {
-        stillPending.push(tx);
-        continue;
-      }
-
-      const receipt = await publicClient.getTransactionReceipt({ hash: tx.hash as `0x${string}` });
-
-      if (receipt) {
-        const status = receipt.status === 'success' ? TransactionStatus.Confirmed : TransactionStatus.Failed;
-        useTransactionStore.getState().updateTransactionStatus(tx.chainId, tx.hash, status);
-      } else {
-        stillPending.push(tx);
-      }
-    } catch {
-      // Transaction not found or error - keep as pending
-      stillPending.push(tx);
-    }
-  }
-
-  return stillPending;
-};
-
-// Function to stop pending transaction polling (useful for cleanup)
-export const stopPendingTransactionPolling = (): void => {
-  if (pendingTransactionInterval) {
-    clearInterval(pendingTransactionInterval);
-    pendingTransactionInterval = null;
-  }
-};
-
-// Function to check all pending transactions - call this on app load
-export const checkPendingTransactions = async (getPublicClient: PublicClientGetter): Promise<void> => {
-  // Clear any existing interval
-  stopPendingTransactionPolling();
-
-  // Get all pending transactions from store
-  const state = useTransactionStore.getState();
-  const pendingTransactions: Transaction[] = [];
-
-  Object.values(state.transactions).forEach((chainTxs) => {
-    Object.values(chainTxs).forEach((tx) => {
-      if (tx.status === TransactionStatus.Pending) {
-        pendingTransactions.push(tx);
-      }
-    });
-  });
-
-  if (pendingTransactions.length === 0) {
-    return;
-  }
-
-  // Check transactions initially
-  let stillPending = await checkSpecificPendingTransactions(pendingTransactions, getPublicClient);
-
-  // Set up 10-second polling for remaining pending transactions
-  if (stillPending.length > 0) {
-    pendingTransactionInterval = setInterval(async () => {
-      stillPending = await checkSpecificPendingTransactions(stillPending, getPublicClient);
-
-      // If no more pending transactions, stop polling
-      if (stillPending.length === 0) {
-        stopPendingTransactionPolling();
-      }
-    }, 10000); // 10 seconds
-  }
-};
