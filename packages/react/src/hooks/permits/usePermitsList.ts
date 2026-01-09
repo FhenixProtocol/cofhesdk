@@ -3,7 +3,7 @@ import { type Permit } from '@cofhe/sdk/permits';
 import { useCofheAllPermits, useCofheRemovePermit } from '../useCofhePermits';
 import { useFnxFloatingButtonContext } from '../../components/FnxFloatingButton/FnxFloatingButtonContext';
 import { useCopyFeedback } from '../useCopyFeedback';
-import { FloatingButtonPage } from '@/components/FnxFloatingButton/pagesConfig/simpleTypes';
+import { FloatingButtonPage } from '@/components/FnxFloatingButton/pagesConfig/types';
 
 export type PermitStatus = 'active' | 'expired';
 

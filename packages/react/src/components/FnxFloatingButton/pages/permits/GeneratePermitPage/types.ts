@@ -1,4 +1,4 @@
-import type { FloatingButtonPage } from '@/components/FnxFloatingButton/pagesConfig/simpleTypes';
+import type { FloatingButtonPage } from '@/components/FnxFloatingButton/pagesConfig/types';
 import type { ReactNode } from 'react';
 
 export type GeneratePermitPageProps = {

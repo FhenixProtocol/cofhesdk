@@ -5,7 +5,7 @@ import { AiOutlinePieChart } from 'react-icons/ai';
 import { TbShieldPlus } from 'react-icons/tb';
 import { FaBug } from 'react-icons/fa';
 import { useFnxFloatingButtonContext } from '../../FnxFloatingButtonContext';
-import { FloatingButtonPage } from '../../pagesConfig/simpleTypes';
+import { FloatingButtonPage } from '../../pagesConfig/types';
 import { useCofhePinnedToken } from '@/hooks/useCofhePinnedToken';
 import { assert, type ElementOf } from 'ts-essentials';
 

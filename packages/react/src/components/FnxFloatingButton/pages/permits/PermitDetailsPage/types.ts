@@ -1,4 +1,4 @@
-import type { FloatingButtonPage } from '@/components/FnxFloatingButton/pagesConfig/simpleTypes';
+import type { FloatingButtonPage } from '@/components/FnxFloatingButton/pagesConfig/types';
 
 export type PermitDetailsPageProps = {
   selectedPermitHash: string;

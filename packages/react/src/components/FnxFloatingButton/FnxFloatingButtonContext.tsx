@@ -7,7 +7,7 @@ import { type PageState, type PagesWithoutProps, type PagesWithProps } from './p
 import { ToastPrimitive } from './components/ToastPrimitives';
 import type { Token } from '@/hooks';
 import type { FloatingButtonPagePropsMap } from './pagesConfig/types';
-import { FloatingButtonPage } from './pagesConfig/simpleTypes';
+import { FloatingButtonPage } from './pagesConfig/types';
 
 export type TokenListMode = 'view' | 'select';
 

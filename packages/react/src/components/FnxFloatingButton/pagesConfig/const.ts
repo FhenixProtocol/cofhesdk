@@ -14,7 +14,7 @@ import {
   DebugPage,
   ShieldPageV2,
 } from '../pages';
-import { FloatingButtonPage } from './simpleTypes';
+import { FloatingButtonPage } from './types';
 
 export const pages: Record<FloatingButtonPage, FC<any>> = {
   [FloatingButtonPage.Main]: MainPage,

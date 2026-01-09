@@ -3,7 +3,7 @@ import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext.js';
 import { useCofheTokens } from '@/hooks/useCofheTokenLists.js';
 import { useCofheChainId } from '@/hooks/useCofheConnection.js';
 import { TokenRow } from './TokenListPage/TokenRow.js';
-import type { FloatingButtonPage } from '../pagesConfig/simpleTypes.js';
+import type { FloatingButtonPage } from '../pagesConfig/types.js';
 
 type TokenListPageProps = { title?: string };
 

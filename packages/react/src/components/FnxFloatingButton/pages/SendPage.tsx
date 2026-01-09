@@ -15,7 +15,7 @@ import { CofheTokenConfidentialBalance } from '../components';
 import { useCofheEncrypt, type Token } from '@/hooks';
 import { getStepConfig } from '@/hooks/useCofheEncrypt';
 import { createEncryptable } from '@cofhe/sdk';
-import type { FloatingButtonPage } from '../pagesConfig/simpleTypes';
+import type { FloatingButtonPage } from '../pagesConfig/types';
 
 export type SendPageProps = {
   token: Token;

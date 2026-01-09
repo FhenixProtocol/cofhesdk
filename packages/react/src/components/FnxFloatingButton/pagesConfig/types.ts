@@ -1,4 +1,17 @@
-import { FloatingButtonPage } from './simpleTypes';
+export enum FloatingButtonPage {
+  Main = 'main',
+  Settings = 'settings',
+  TokenList = 'tokenlist',
+  TokenInfo = 'tokeninfo',
+  Send = 'send',
+  Shield = 'shield',
+  Activity = 'activity',
+  Permits = 'permits',
+  GeneratePermits = 'generatePermit',
+  ReceivePermits = 'receivePermit',
+  PermitDetails = 'permitDetails',
+  Debug = 'debug',
+}
 
 // Registry interface to be augmented by each page's types nearby the page.
 // This lets page prop types live next to their components without creating cycles.
