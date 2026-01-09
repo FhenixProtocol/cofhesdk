@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import type {
   BaseProps,
   DropdownOption,
@@ -14,7 +14,8 @@ import SecurityIcon from '@mui/icons-material/Security';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
-import { useCofheEncryptInput } from '@/hooks/useCofheEncryptInput.js';
+import { getStepConfig, useCofheEncrypt } from '@/hooks/useCofheEncrypt.js';
+import { createEncryptable } from '@cofhe/sdk';
 
 export interface FnxEncryptInputProps extends BaseProps {
   /** Placeholder text for the text field */
@@ -75,8 +76,20 @@ export const FnxEncryptInput: React.FC<FnxEncryptInputProps> = ({
   const [encryptedResult, setEncryptedResult] = useState<any>(null);
   const [copySuccess, setCopySuccess] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const { onEncryptInput, isEncryptingInput, encryptionStep, encryptionProgress, encryptionProgressLabel } =
-    useCofheEncryptInput();
+  const {
+    encrypt,
+    isEncrypting,
+    stepsState: { lastStep: lastEncryptionStep },
+  } = useCofheEncrypt();
+
+  const { progress: encryptionProgress, label: encryptionProgressLabel } = useMemo(() => {
+    return lastEncryptionStep
+      ? getStepConfig(lastEncryptionStep)
+      : {
+          progress: undefined,
+          label: undefined,
+        };
+  }, [lastEncryptionStep]);
 
   // Debounced validation function
   const debouncedValidation = useRef(
@@ -88,26 +101,26 @@ export const FnxEncryptInput: React.FC<FnxEncryptInputProps> = ({
 
   // Handle progress bar visibility with animation
   useEffect(() => {
-    if (showProgressBar && isEncryptingInput) {
+    if (showProgressBar && isEncrypting) {
       // Show immediately when encryption starts
       setShowProgress(true);
-    } else if (!isEncryptingInput) {
+    } else if (!isEncrypting) {
       // Delay hiding to allow fade-out animation
       const timer = setTimeout(() => setShowProgress(false), 500);
       return () => clearTimeout(timer);
     }
-  }, [showProgressBar, isEncryptingInput]);
+  }, [showProgressBar, isEncrypting]);
 
   // Handle progress updates and call onEncryptProgress callback
   useEffect(() => {
-    if (isEncryptingInput && encryptionStep && encryptionProgress !== null && encryptionProgressLabel) {
+    if (isEncrypting && lastEncryptionStep && encryptionProgress && encryptionProgressLabel) {
       onEncryptProgress?.({
-        step: encryptionStep.toString(),
+        step: lastEncryptionStep.step,
         progress: encryptionProgress,
         label: encryptionProgressLabel,
       });
     }
-  }, [encryptionStep, encryptionProgress, encryptionProgressLabel, isEncryptingInput, onEncryptProgress]);
+  }, [encryptionProgress, encryptionProgressLabel, onEncryptProgress, isEncrypting, lastEncryptionStep]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -135,7 +148,7 @@ export const FnxEncryptInput: React.FC<FnxEncryptInputProps> = ({
     hasError
       ? 'border-red-500 focus-within:ring-red-500 focus-within:border-red-500'
       : 'border-gray-300 dark:border-gray-600',
-    (disabled || isEncryptingInput) && 'bg-gray-100 dark:bg-gray-700 opacity-50',
+    (disabled || isEncrypting) && 'bg-gray-100 dark:bg-gray-700 opacity-50',
     className
   );
 
@@ -144,7 +157,7 @@ export const FnxEncryptInput: React.FC<FnxEncryptInputProps> = ({
     'text-gray-900 dark:text-white',
     sizeClasses[size].input,
     'pr-20', // Make space for the dropdown button
-    (disabled || isEncryptingInput) && 'cursor-not-allowed'
+    (disabled || isEncrypting) && 'cursor-not-allowed'
   );
 
   // Dropdown button inside the input
@@ -154,7 +167,7 @@ export const FnxEncryptInput: React.FC<FnxEncryptInputProps> = ({
     'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600',
     'transition-colors duration-200 cursor-pointer',
     'text-xs font-medium text-gray-700 dark:text-gray-300',
-    (disabled || isEncryptingInput) && 'cursor-not-allowed opacity-50',
+    (disabled || isEncrypting) && 'cursor-not-allowed opacity-50',
     isDropdownOpen && 'bg-gray-200 dark:bg-gray-600'
   );
 
@@ -288,7 +301,9 @@ export const FnxEncryptInput: React.FC<FnxEncryptInputProps> = ({
         // Not really work, need to improve cofhejs side to make it non-blocking
         (async () => {
           try {
-            const encryptionResult = await onEncryptInput(type, textValue);
+            const encryptionResult = await encrypt({
+              input: createEncryptable(type, textValue),
+            });
 
             // Store the result for the copy button
             setEncryptedResult(encryptionResult);
@@ -312,7 +327,7 @@ export const FnxEncryptInput: React.FC<FnxEncryptInputProps> = ({
   };
 
   const toggleDropdown = () => {
-    if (!disabled && !isEncryptingInput) {
+    if (!disabled && !isEncrypting) {
       setIsDropdownOpen(!isDropdownOpen);
     }
   };
@@ -334,14 +349,14 @@ export const FnxEncryptInput: React.FC<FnxEncryptInputProps> = ({
               placeholder={placeholder}
               value={textValue}
               onChange={handleTextChange}
-              disabled={disabled || isEncryptingInput}
+              disabled={disabled || isEncrypting}
               data-testid={testId ? `${testId}-input` : 'fnx-encrypt-input'}
             />
 
             {/* Encryption status indicator */}
-            {(isEncryptingInput || encryptedResult) && (
+            {(isEncrypting || encryptedResult) && (
               <div className="absolute right-16 top-1/2 transform -translate-y-1/2">
-                {isEncryptingInput ? (
+                {isEncrypting ? (
                   <div className="bg-blue-500 px-2 py-1 text-xs text-white rounded animate-pulse">Encrypting...</div>
                 ) : encryptedResult ? (
                   <button
@@ -367,7 +382,7 @@ export const FnxEncryptInput: React.FC<FnxEncryptInputProps> = ({
                 type="button"
                 className={dropdownButtonClasses}
                 onClick={toggleDropdown}
-                disabled={disabled || isEncryptingInput}
+                disabled={disabled || isEncrypting}
                 data-testid={testId ? `${testId}-type-selector` : 'fnx-type-selector'}
               >
                 <ShieldIcon />
@@ -405,7 +420,7 @@ export const FnxEncryptInput: React.FC<FnxEncryptInputProps> = ({
             <div
               className="mt-3 overflow-hidden"
               style={{
-                animation: isEncryptingInput
+                animation: isEncrypting
                   ? 'slideDownFadeIn 0.5s ease-out forwards'
                   : 'slideUpFadeOut 0.5s ease-out forwards',
               }}
