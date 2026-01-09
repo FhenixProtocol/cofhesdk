@@ -81,6 +81,7 @@ export function useCofheTokenShield(
   const publicClient = useCofhePublicClient();
   const chainId = useCofheChainId();
   const account = useCofheAccount();
+  const { onSuccess, ...restOfOptions } = options || {};
 
   return useInternalMutation({
     mutationFn: async (input: UseTokenShieldInput) => {
@@ -190,24 +191,24 @@ export function useCofheTokenShield(
 
       return hash;
     },
-    onSuccess: (hash, input) => {
+    onSuccess: async (hash, input, onMutateResult, context) => {
       assert(chainId, 'Chain ID is required for token shield');
       assert(account, 'Wallet account is required for token shield');
+      if (onSuccess) await onSuccess(hash, input, onMutateResult, context);
+
       // Record transaction and watch for confirmation
-      if (chainId && account) {
-        useTransactionStore.getState().addTransaction({
-          hash,
-          tokenSymbol: input.token.symbol,
-          tokenAmount: input.amount,
-          tokenDecimals: input.token.decimals,
-          tokenAddress: input.token.address,
-          chainId,
-          actionType: TransactionActionType.Shield,
-          account,
-        });
-      }
+      useTransactionStore.getState().addTransaction({
+        hash,
+        tokenSymbol: input.token.symbol,
+        tokenAmount: input.amount,
+        tokenDecimals: input.token.decimals,
+        tokenAddress: input.token.address,
+        chainId,
+        actionType: TransactionActionType.Shield,
+        account,
+      });
     },
-    ...options,
+    ...restOfOptions,
   });
 }
 
@@ -228,6 +229,8 @@ export function useCofheTokenUnshield(
   const walletClient = useCofheWalletClient();
   const chainId = useCofheChainId();
   const account = useCofheAccount();
+
+  const { onSuccess, ...restOfOptions } = options || {};
 
   return useInternalMutation({
     mutationFn: async (input: UseTokenUnshieldInput) => {
@@ -286,22 +289,23 @@ export function useCofheTokenUnshield(
 
       return hash;
     },
-    onSuccess: (hash, input) => {
+    onSuccess: async (hash, input, onMutateResult, context) => {
       assert(chainId, 'Chain ID is required for token unshield');
       assert(account, 'Wallet account is required for token unshield');
-      if (chainId && account) {
-        useTransactionStore.getState().addTransaction({
-          hash,
-          tokenSymbol: input.token.symbol,
-          tokenAmount: input.amount,
-          tokenDecimals: input.token.decimals,
-          tokenAddress: input.token.address,
-          chainId,
-          actionType: TransactionActionType.Unshield,
-          account,
-        });
-      }
+      if (onSuccess) await onSuccess(hash, input, onMutateResult, context);
+
+      useTransactionStore.getState().addTransaction({
+        hash,
+        tokenSymbol: input.token.symbol,
+        tokenAmount: input.amount,
+        tokenDecimals: input.token.decimals,
+        tokenAddress: input.token.address,
+        chainId,
+        actionType: TransactionActionType.Unshield,
+        account,
+      });
     },
+    ...restOfOptions,
   });
 }
 
@@ -322,6 +326,7 @@ export function useCofheClaimUnshield(
   const walletClient = useCofheWalletClient();
   const chainId = useCofheChainId();
   const account = useCofheAccount();
+  const { onSuccess, ...restOfOptions } = options || {};
 
   return useInternalMutation({
     mutationFn: async (input: UseClaimUnshieldInput) => {
@@ -360,9 +365,11 @@ export function useCofheClaimUnshield(
       });
       return hash;
     },
-    onSuccess: (hash, input) => {
+    onSuccess: async (hash, input, onMutateResult, context) => {
       assert(chainId, 'Chain ID is required for claim');
       assert(account, 'Wallet account is required for claim');
+      if (onSuccess) await onSuccess(hash, input, onMutateResult, context);
+
       useTransactionStore.getState().addTransaction({
         hash,
         tokenSymbol: input.token.symbol,
@@ -374,7 +381,7 @@ export function useCofheClaimUnshield(
         account,
       });
     },
-    ...options,
+    ...restOfOptions,
   });
 }
 

@@ -40,6 +40,7 @@ export function useCofheTokenTransfer(
   const walletClient = useCofheWalletClient();
   const chainId = useCofheChainId();
   const account = useCofheAccount();
+  const { onSuccess, ...restOfOptions } = options || {};
 
   return useInternalMutation({
     mutationFn: async (input: UseTokenTransferInput) => {
@@ -87,9 +88,11 @@ export function useCofheTokenTransfer(
 
       return hash;
     },
-    onSuccess: (hash, input) => {
+    onSuccess: async (hash, input, onMutateResult, context) => {
       assert(account, 'Wallet account is required for token transfer');
       assert(chainId, 'Chain ID is required for token transfer');
+      if (onSuccess) await onSuccess(hash, input, onMutateResult, context);
+
       // Record transaction and watch for confirmation
       useTransactionStore.getState().addTransaction({
         hash,
@@ -102,6 +105,6 @@ export function useCofheTokenTransfer(
         account,
       });
     },
-    ...options,
+    ...restOfOptions,
   });
 }
