@@ -5,7 +5,6 @@ import { isAddress, maxUint128 } from 'viem';
 import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext';
 import { useCofheAccount } from '@/hooks/useCofheConnection';
 import { useCofheTokenDecryptedBalance } from '@/hooks/useCofheTokenDecryptedBalance';
-import { useCofheEncryptInput } from '@/hooks/useCofheEncryptInput';
 import { useCofheTokenTransfer, type EncryptedValue } from '@/hooks/useCofheTokenTransfer';
 import { cn } from '../../../utils/cn';
 import { truncateAddress, sanitizeNumericInput } from '../../../utils/utils';
@@ -13,7 +12,9 @@ import { TokenIcon } from '../components/TokenIcon';
 import { unitToWei } from '@/utils/format';
 import { assert } from 'ts-essentials';
 import { CofheTokenConfidentialBalance } from '../components';
-import type { Token } from '@/hooks';
+import { useCofheEncrypt, type Token } from '@/hooks';
+import { getStepConfig } from '@/hooks/useCofheEncrypt';
+import { createEncryptable } from '@cofhe/sdk';
 
 export type SendPageProps = {
   token: Token;
@@ -29,8 +30,13 @@ export const SendPage: React.FC<SendPageProps> = ({ token }) => {
     accountAddress: account,
   });
 
-  // TODO: use useCofheEncrypt instead of useCofheEncryptInput. Delete the latter
-  const { onEncryptInput, isEncryptingInput, encryptionProgressLabel } = useCofheEncryptInput();
+  const {
+    isEncrypting: isEncryptingInput,
+    encrypt,
+    stepsState: { lastStep },
+  } = useCofheEncrypt();
+
+  const encryptionProgressLabel = useMemo(() => lastStep?.step && getStepConfig(lastStep).label, [lastStep]);
 
   const [amount, setAmount] = useState('');
   const [recipientAddress, setRecipientAddress] = useState('');
@@ -81,7 +87,10 @@ export const SendPage: React.FC<SendPageProps> = ({ token }) => {
 
       // Encrypt the amount using the token's confidentialValueType
       const confidentialValueType = token.extensions.fhenix.confidentialValueType;
-      const encryptedAmount = await onEncryptInput(confidentialValueType, amountWei.toString());
+
+      const encryptedAmount = await encrypt({
+        input: createEncryptable(confidentialValueType, amountWei),
+      });
 
       if (!encryptedAmount || !encryptedAmount.ctHash) {
         throw new Error('Failed to encrypt amount');
