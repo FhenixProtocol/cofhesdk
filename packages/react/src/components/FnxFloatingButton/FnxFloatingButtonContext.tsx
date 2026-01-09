@@ -3,7 +3,17 @@ import type { FloatingButtonPosition, FnxFloatingButtonToast, FnxStatus, FnxToas
 import { useCofheContext } from '../../providers';
 import { checkPendingTransactions, stopPendingTransactionPolling } from '../../stores/transactionStore';
 import { useCofhePublicClient } from '@/hooks/useCofheConnection';
-import { type PageState, type PagesWithoutProps, type PagesWithProps } from './pagesConfig/types';
+import {
+  FloatingButtonPage,
+  PortalModal,
+  type FloatingButtonPagePropsMap,
+  type OpenPortalModalFn,
+  type PageState,
+  type PagesWithoutProps,
+  type PagesWithProps,
+  type PortalModalPropsMap,
+  type PortalModalState,
+} from './pagesConfig/types';
 import { ToastPrimitive } from './components/ToastPrimitives';
 import type { Token } from '@/hooks';
 import type { FloatingButtonPagePropsMap } from './pagesConfig/types';
@@ -66,9 +76,9 @@ interface FnxFloatingButtonContextValue {
   removeContentHeight: (id: string) => void;
 
   // Modal
-  modalStack: PageState[];
-  openModal: NavigateToFn;
-  closeModal: (page: FloatingButtonPage) => void;
+  modalStack: PortalModalState[];
+  openModal: OpenPortalModalFn;
+  closeModal: (modal: PortalModal) => void;
 }
 
 const FnxFloatingButtonContext = createContext<FnxFloatingButtonContextValue | null>(null);
@@ -254,16 +264,17 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   };
 
   // Modal
-  const [modalStack, setModalStack] = useState<PageState[]>([]);
-  function openModal<K extends PagesWithoutProps>(page: K, args?: NavigateArgs<K>): void;
-  // eslint-disable-next-line no-redeclare
-  function openModal<K extends PagesWithProps>(page: K, args: NavigateArgs<K>): void;
-  // eslint-disable-next-line no-redeclare
-  function openModal<K extends FloatingButtonPage>(page: K, args?: NavigateArgs<K>): void {
-    setModalStack((prev) => [...prev, { page, props: args?.pageProps }]);
-  }
-  const closeModal = (page: FloatingButtonPage) => {
-    setModalStack((prev) => prev.filter((modal) => modal.page !== page));
+  const [modalStack, setModalStack] = useState<PortalModalState[]>([]);
+  const openModal = <M extends PortalModal>(
+    ...args: PortalModalPropsMap[M] extends void ? [modal: M] : [modal: M, props: PortalModalPropsMap[M]]
+  ) => {
+    const [modal, props] = args;
+    const onClose = () => closeModal(modal);
+    const modalState = { modal, onClose, ...(props ?? {}) } as PortalModalState;
+    setModalStack((prev) => [...prev, modalState]);
+  };
+  const closeModal = (modal: PortalModal) => {
+    setModalStack((prev) => prev.filter((m) => m.modal !== modal));
   };
 
   console.log('modalStack', modalStack);

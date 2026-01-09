@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
-import { type PageState } from './pagesConfig/types';
+import { pages } from './pagesConfig/const';
+import { type PageState, type PortalModalState } from './pagesConfig/types';
 import { AnimatePresence, motion } from 'motion/react';
 import { pages } from './pagesConfig/const';
 import { AnimatedZStack } from '../primitives/AnimatedZStack';
+import { modals } from './modals';
 
 interface ContentSectionProps {
   overriddingPage?: PageState;
@@ -47,14 +49,13 @@ const ContentRenderer: React.FC<{ page: PageState }> = ({ page }) => {
   return <MeasuredContentRenderer id="content">{content}</MeasuredContentRenderer>;
 };
 
-const ModalRenderer: React.FC<{ page: PageState }> = ({ page }) => {
+const ModalRenderer: React.FC<{ modal: PortalModalState }> = ({ modal }) => {
   const content = useMemo(() => {
-    const PageComp = pages[page.page];
-    const props = page.props ?? {};
-    return <PageComp {...props} />;
-  }, [page]);
+    const ModalComp = modals[modal.modal] as React.FC<typeof modal>;
+    return <ModalComp {...modal} />;
+  }, [modal]);
 
-  return <MeasuredContentRenderer id={`${page.page}-modal`}>{content}</MeasuredContentRenderer>;
+  return <MeasuredContentRenderer id={`${modal.modal}-modal`}>{content}</MeasuredContentRenderer>;
 };
 
 export const ContentSection: React.FC<ContentSectionProps> = ({ overriddingPage }) => {
@@ -71,7 +72,7 @@ export const ContentSection: React.FC<ContentSectionProps> = ({ overriddingPage 
     <AnimatePresence>
       {contentPanelOpen && (
         <motion.div
-          className="relative flex w-full"
+          className="relative flex w-full z-50"
           initial={{ opacity: 0, y: isTopSide ? -10 : 10 }}
           animate={{ opacity: 1, y: 0, height: `${maxContentHeight}px`, maxHeight: `${maxContentHeight}px` }}
           exit={{ opacity: 0, y: isTopSide ? -10 : 10 }}
@@ -79,7 +80,7 @@ export const ContentSection: React.FC<ContentSectionProps> = ({ overriddingPage 
           <AnimatedZStack>
             <ContentRenderer page={currentPage} />
             {modalStack.map((modal) => {
-              return <ModalRenderer page={modal} key={modal.page} />;
+              return <ModalRenderer key={modal.modal} modal={modal} />;
             })}
           </AnimatedZStack>
         </motion.div>
