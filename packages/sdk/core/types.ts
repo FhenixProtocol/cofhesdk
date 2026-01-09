@@ -1,3 +1,5 @@
+import { isAddress } from 'viem';
+
 export type TfheInitializer = () => Promise<boolean>;
 
 export interface IStorage {
@@ -95,12 +97,30 @@ export type EncryptedNumber = {
   securityZone: number;
 };
 
-export type EncryptedItemInput = {
+export type EncryptedItemInput<TSignature = string> = {
   ctHash: bigint;
   securityZone: number;
   utype: FheTypes;
-  signature: string;
+  signature: TSignature;
 };
+
+export function constructEncryptedItemInput(
+  ctHash: bigint,
+  securityZone: number,
+  utype: FheTypes,
+  signature: string
+): EncryptedItemInput<`0x${string}`> {
+  if (typeof signature === 'string' && !isAddress(signature)) {
+    throw new Error('Signature must be a hex string starting with 0x');
+  }
+  return {
+    ctHash,
+    securityZone,
+    utype,
+    signature,
+  };
+}
+
 export type EncryptedBoolInput = EncryptedItemInput & {
   utype: FheTypes.Bool;
 };
