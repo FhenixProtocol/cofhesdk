@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
 import { type PageState } from './pagesConfig/types';
@@ -10,15 +10,9 @@ interface ContentSectionProps {
   overriddingPage?: PageState;
 }
 
-const ContentRenderer: React.FC<{ page: PageState }> = ({ page }) => {
+const MeasuredContentRenderer: React.FC<{ children?: ReactNode; id: string }> = ({ children, id }) => {
   const { setContentHeight } = useFnxFloatingButtonContext();
   const contentRef = useRef<HTMLDivElement>(null);
-
-  const content = useMemo(() => {
-    const PageComp = pages[page.page];
-    const props = page.props ?? {};
-    return <PageComp {...props} />;
-  }, [page]);
 
   useEffect(() => {
     if (!contentRef.current) return;
@@ -26,50 +20,41 @@ const ContentRenderer: React.FC<{ page: PageState }> = ({ page }) => {
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const height = entry.borderBoxSize?.[0]?.blockSize ?? entry.target.getBoundingClientRect().height;
-        setContentHeight('content', height);
+        setContentHeight(id, height);
       }
     });
 
     observer.observe(contentRef.current);
     return () => observer.disconnect();
-  }, [page.page, setContentHeight]);
+  }, [id, setContentHeight]);
 
   return (
-    <div className="absolute flex top-0 left-0 w-full p-4" ref={contentRef}>
-      {content}
+    <div className="fnx-panel relative flex w-full h-full overflow-y-auto">
+      <div className="absolute flex top-0 left-0 w-full p-4" ref={contentRef}>
+        {children}
+      </div>
     </div>
   );
 };
 
-const ModalRenderer: React.FC<{ page: PageState }> = ({ page }) => {
-  const { setContentHeight } = useFnxFloatingButtonContext();
-  const contentRef = useRef<HTMLDivElement>(null);
-
+const ContentRenderer: React.FC<{ page: PageState }> = ({ page }) => {
   const content = useMemo(() => {
     const PageComp = pages[page.page];
     const props = page.props ?? {};
     return <PageComp {...props} />;
   }, [page]);
 
-  useEffect(() => {
-    if (!contentRef.current) return;
+  return <MeasuredContentRenderer id="content">{content}</MeasuredContentRenderer>;
+};
 
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const height = entry.borderBoxSize?.[0]?.blockSize ?? entry.target.getBoundingClientRect().height;
-        setContentHeight(`${page.page}-modal`, height);
-      }
-    });
+const ModalRenderer: React.FC<{ page: PageState }> = ({ page }) => {
+  const content = useMemo(() => {
+    const PageComp = pages[page.page];
+    const props = page.props ?? {};
+    return <PageComp {...props} />;
+  }, [page]);
 
-    observer.observe(contentRef.current);
-    return () => observer.disconnect();
-  }, [page.page, setContentHeight]);
-
-  return (
-    <div className="absolute flex top-0 left-0 w-full p-4" ref={contentRef}>
-      {content}
-    </div>
-  );
+  return <MeasuredContentRenderer id={`${page.page}-modal`}>{content}</MeasuredContentRenderer>;
 };
 
 export const ContentSection: React.FC<ContentSectionProps> = ({ overriddingPage }) => {
@@ -78,7 +63,6 @@ export const ContentSection: React.FC<ContentSectionProps> = ({ overriddingPage 
     contentPanelOpen,
     isTopSide,
     maxContentHeight,
-    statuses,
     modalStack,
   } = useFnxFloatingButtonContext();
   const currentPage = overriddingPage ?? pageFromContext;
@@ -93,15 +77,9 @@ export const ContentSection: React.FC<ContentSectionProps> = ({ overriddingPage 
           exit={{ opacity: 0, y: isTopSide ? -10 : 10 }}
         >
           <AnimatedZStack>
-            <div className="fnx-panel relative flex w-full h-full overflow-y-auto">
-              <ContentRenderer page={currentPage} />
-            </div>
+            <ContentRenderer page={currentPage} />
             {modalStack.map((modal) => {
-              return (
-                <div className="fnx-panel relative flex w-full h-full overflow-y-auto" key={modal.page}>
-                  <ModalRenderer page={modal} />
-                </div>
-              );
+              return <ModalRenderer page={modal} key={modal.page} />;
             })}
           </AnimatedZStack>
         </motion.div>
