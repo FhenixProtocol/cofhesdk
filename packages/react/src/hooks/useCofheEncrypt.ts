@@ -1,13 +1,9 @@
 /* eslint-disable no-unused-vars */
 import {
-  Encryptable,
   EncryptStep,
-  FheTypes,
+  isLastEncryptionStep,
   type CofhesdkClient,
-  type EncryptableBool,
   type EncryptableItem,
-  type EncryptableUint128,
-  type EncryptableUint8,
   type EncryptedItemInputs,
   type EncryptStepCallbackContext,
 } from '@cofhe/sdk';
@@ -16,6 +12,41 @@ import { useCallback, useMemo, useState } from 'react';
 import { useCofheConnection } from './useCofheConnection';
 import { useCofheContext } from '../providers';
 import { useInternalMutation } from '../providers/index.js';
+
+type StepConfig = { label: string; progress: number };
+const STEP_CONFIG: Record<EncryptStep, StepConfig> = {
+  initTfhe: {
+    label: 'Initializing TFHE...',
+    progress: 5,
+  },
+  fetchKeys: {
+    label: 'Fetching FHE keys...',
+    progress: 20,
+  },
+  pack: {
+    label: 'Packing data...',
+    progress: 40,
+  },
+  prove: {
+    label: 'Generating proof...',
+    progress: 70,
+  },
+  verify: {
+    label: 'Verifying...',
+    progress: 90,
+  },
+};
+
+const DONE_STEP_CONFIG: StepConfig = {
+  label: 'Encryption complete!',
+  progress: 100,
+};
+
+export function getStepConfig(step: EncryptionStep) {
+  if (isLastEncryptionStep(step.step) && step.context?.isEnd) return DONE_STEP_CONFIG;
+
+  return STEP_CONFIG[step.step];
+}
 
 type EncryptableArray = readonly EncryptableItem[];
 type EncryptedInputs<T extends EncryptableItem | EncryptableArray> = T extends EncryptableArray
@@ -133,7 +164,7 @@ type EncryptionOptions<T extends EncryptableItem | EncryptableArray> = {
   input?: T;
   account?: string;
   chainId?: number;
-  securityZone?: number;
+  securityZone?: number; // TODO: potential conflifct/ambiguity with createEncryptable arg - figure it out
   onStepChange?: (step: EncryptStep, context?: EncryptStepCallbackContext) => void;
 };
 
