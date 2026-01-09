@@ -5,22 +5,13 @@ import { FloatingButtonPage } from './simpleTypes';
 export interface FloatingButtonPagePropsRegistry {}
 
 // Consumers can augment this map via declaration merging or module-local typing.
-// By default, props are typed as unknown per page.
-// TODO: Dry Up with the help of the struct above
+// By default, every page has `void` props unless explicitly provided
+// via `FloatingButtonPagePropsRegistry` through declaration merging.
 export type FloatingButtonPagePropsMap = {
-  [FloatingButtonPage.Main]: void;
-  [FloatingButtonPage.Settings]: void;
-  // [FloatingButtonPage.TokenList]: void;
-  [FloatingButtonPage.TokenInfo]: void;
-  // [FloatingButtonPage.Send]: void;
-  [FloatingButtonPage.Shield]: void;
-  [FloatingButtonPage.Activity]: void;
-  [FloatingButtonPage.Permits]: void;
-  // [FloatingButtonPage.GeneratePermits]: void;
-  [FloatingButtonPage.ReceivePermits]: void;
-  // [FloatingButtonPage.PermitDetails]: void;
-  [FloatingButtonPage.Debug]: void;
-} & FloatingButtonPagePropsRegistry;
+  [K in FloatingButtonPage]: K extends keyof FloatingButtonPagePropsRegistry
+    ? FloatingButtonPagePropsRegistry[K]
+    : void;
+};
 
 export type PageState<K extends keyof FloatingButtonPagePropsMap = FloatingButtonPage> = {
   page: K;
