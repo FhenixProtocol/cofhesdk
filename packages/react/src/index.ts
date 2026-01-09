@@ -7,7 +7,6 @@ export { CofheProvider, useCofheContext } from './providers/index';
 // Hooks
 export {
   useCofheEncrypt,
-  useCofheEncryptInput,
   useCofheConnection,
   useCofheActivePermit,
   useCofheAllPermits,

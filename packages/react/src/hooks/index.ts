@@ -1,4 +1,3 @@
-export { useCofheEncryptInput } from './useCofheEncryptInput';
 export { useCofheConnection, useCofhePublicClient } from './useCofheConnection';
 export { useCofheEncrypt } from './useCofheEncrypt';
 export {
