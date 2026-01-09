@@ -7,7 +7,7 @@ import { ErrorBoundary, useErrorBoundary, type FallbackProps } from 'react-error
 import { ErrorCause, getErrorCause } from '@/utils/index';
 import type { FnxFloatingButtonProps } from '@/components/FnxFloatingButton/types';
 import { useFnxFloatingButtonContext } from '@/components/FnxFloatingButton/FnxFloatingButtonContext';
-import { FloatingButtonPage } from '@/components/FnxFloatingButton/pagesConfig/simpleTypes';
+import { FloatingButtonPage } from '@/components/FnxFloatingButton/pagesConfig/types';
 
 class CofheFallbackError extends Error {
   constructor(message: string) {
