@@ -48,15 +48,6 @@ interface FnxFloatingButtonContextValue {
   statusPanelOpen: boolean; // Status bar is expanded when panel is opened or status is populated with warning/error
   contentPanelOpen: boolean; // Panel is expanded when main content is visible (generating permit etc)
 
-  tokenListMode: TokenListMode;
-  selectedToken?: Token;
-  navigateToTokenListForSelection: (title?: string) => void;
-  navigateToTokenListForView: () => void;
-  selectToken: (token: Token) => void;
-  // Token viewing
-  viewingToken?: Token;
-  navigateToTokenInfo: (token: Token) => void;
-
   // Toasts
   toasts: FnxFloatingButtonToast[];
   addToast: (toast: React.ReactNode | FnxToastImperativeParams, duration?: number | 'infinite') => void;
@@ -183,26 +174,6 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
     });
   };
 
-  const navigateToTokenListForSelection = (title?: string) => {
-    setTokenListMode('select');
-    navigateTo(FloatingButtonPage.TokenList, { pageProps: { title } });
-  };
-
-  const navigateToTokenListForView = () => {
-    setTokenListMode('view');
-    navigateTo(FloatingButtonPage.TokenList, {});
-  };
-
-  const selectToken = (token: Token) => {
-    setSelectedToken(token);
-    navigateBack(); // Return to previous page after selection
-  };
-
-  const navigateToTokenInfo = (token: Token) => {
-    setViewingToken(token);
-    navigateTo(FloatingButtonPage.TokenInfo);
-  };
-
   const addToast = (
     toast: ReactNode | FnxToastImperativeParams,
     duration: number | 'infinite' = FNX_DEFAULT_TOAST_DURATION
@@ -268,13 +239,6 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
         openPortal,
         closePortal,
         togglePortal,
-        tokenListMode,
-        selectedToken,
-        navigateToTokenListForSelection,
-        navigateToTokenListForView,
-        selectToken,
-        viewingToken,
-        navigateToTokenInfo,
         toasts,
         addToast,
         pauseToast,

@@ -1,11 +1,14 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext.js';
+import { useFnxFloatingButtonContext, type TokenListMode } from '../FnxFloatingButtonContext.js';
 import { useCofheTokens } from '@/hooks/useCofheTokenLists.js';
 import { useCofheChainId } from '@/hooks/useCofheConnection.js';
 import { TokenRow } from './TokenListPage/TokenRow.js';
-import type { FloatingButtonPage } from '../pagesConfig/types.js';
+import { isPageWithProps, type FloatingButtonPage, type PageState } from '../pagesConfig/types.js';
+import { assert } from 'ts-essentials';
 
-type TokenListPageProps = { title?: string };
+type PageStateWithoutTokenProp = Omit<PageState, 'props'> & { props?: Omit<PageState['props'], 'token'> };
+
+type TokenListPageProps = { title?: string; backToPageState: PageStateWithoutTokenProp; mode: TokenListMode };
 
 declare module '../pagesConfig/types' {
   interface FloatingButtonPagePropsRegistry {
@@ -13,8 +16,8 @@ declare module '../pagesConfig/types' {
   }
 }
 
-export const TokenListPage: React.FC<TokenListPageProps> = ({ title }) => {
-  const { navigateBack, tokenListMode } = useFnxFloatingButtonContext();
+export const TokenListPage: React.FC<TokenListPageProps> = ({ title, backToPageState, mode: tokenListMode }) => {
+  const { navigateBack, navigateTo } = useFnxFloatingButtonContext();
   const chainId = useCofheChainId();
   const allTokens = useCofheTokens(chainId);
 
@@ -32,7 +35,16 @@ export const TokenListPage: React.FC<TokenListPageProps> = ({ title }) => {
         {allTokens.length === 0 ? (
           <p className="text-xs opacity-70 py-4 text-center">No tokens found</p>
         ) : (
-          allTokens.map((token) => <TokenRow key={token.address} token={token} mode={tokenListMode} />)
+          allTokens.map((token) => (
+            <TokenRow
+              onClick={() => {
+                assert(isPageWithProps(backToPageState.page), 'backToPageState must be a page with props');
+                navigateTo(backToPageState.page, { pageProps: { ...backToPageState.props, token } });
+              }}
+              key={token.address}
+              token={token}
+            />
+          ))
         )}
       </div>
     </div>

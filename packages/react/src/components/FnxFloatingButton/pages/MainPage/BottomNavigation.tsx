@@ -41,20 +41,34 @@ const navItems = [
 ] as const;
 
 export const BottomNavigation: React.FC = () => {
-  const { navigateTo, navigateToTokenListForView, openPortal } = useFnxFloatingButtonContext();
-  const defaultTokenForSendPage = useCofhePinnedToken();
+  const { navigateTo, openPortal } = useFnxFloatingButtonContext();
+  const defaultToken = useCofhePinnedToken();
 
   const handleNavClick = (page: ElementOf<typeof navItems>['id']) => {
     openPortal();
 
     if (page === FloatingButtonPage.TokenList) {
-      navigateToTokenListForView();
+      navigateTo(FloatingButtonPage.TokenList, {
+        pageProps: {
+          title: 'Portfolio',
+          mode: 'view',
+          backToPageState: {
+            page: FloatingButtonPage.TokenInfo,
+          },
+        },
+      });
       return;
     }
 
     if (page === FloatingButtonPage.Send) {
-      assert(defaultTokenForSendPage, 'No pinned token available for Send page');
-      navigateTo(FloatingButtonPage.Send, { pageProps: { token: defaultTokenForSendPage } });
+      assert(defaultToken, 'No pinned token available for Send page');
+      navigateTo(FloatingButtonPage.Send, { pageProps: { token: defaultToken } });
+      return;
+    }
+
+    if (page === FloatingButtonPage.Shield) {
+      assert(defaultToken, 'No pinned token available for Shield page');
+      navigateTo(FloatingButtonPage.Shield, { pageProps: { token: defaultToken } });
       return;
     }
 

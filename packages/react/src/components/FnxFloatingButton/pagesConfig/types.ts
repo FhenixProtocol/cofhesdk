@@ -38,3 +38,11 @@ export type PagesWithProps = {
 export type PagesWithoutProps = {
   [K in keyof FloatingButtonPagePropsMap]: FloatingButtonPagePropsMap[K] extends void ? K : never;
 }[FloatingButtonPage];
+
+export function isPageWithProps<K extends FloatingButtonPage>(page: K): page is K & PagesWithProps {
+  return !(page in ({} as Record<PagesWithoutProps, true>));
+}
+
+export function isPageWithoutProps<K extends FloatingButtonPage>(page: K): page is K & PagesWithoutProps {
+  return page in ({} as Record<PagesWithoutProps, true>);
+}

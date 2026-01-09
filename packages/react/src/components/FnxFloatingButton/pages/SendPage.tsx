@@ -15,7 +15,7 @@ import { CofheTokenConfidentialBalance } from '../components';
 import { useCofheEncrypt, type Token } from '@/hooks';
 import { getStepConfig } from '@/hooks/useCofheEncrypt';
 import { createEncryptable } from '@cofhe/sdk';
-import type { FloatingButtonPage } from '../pagesConfig/types';
+import { FloatingButtonPage } from '../pagesConfig/types';
 
 export type SendPageProps = {
   token: Token;
@@ -28,7 +28,7 @@ declare module '../pagesConfig/types' {
 }
 
 export const SendPage: React.FC<SendPageProps> = ({ token }) => {
-  const { navigateBack, navigateToTokenListForSelection } = useFnxFloatingButtonContext();
+  const { navigateBack, navigateTo } = useFnxFloatingButtonContext();
 
   const account = useCofheAccount();
   const tokenTransfer = useCofheTokenTransfer();
@@ -96,6 +96,7 @@ export const SendPage: React.FC<SendPageProps> = ({ token }) => {
       // Encrypt the amount using the token's confidentialValueType
       const confidentialValueType = token.extensions.fhenix.confidentialValueType;
 
+      // TODO: test error on encryption?
       const encryptedAmount = await encrypt({
         input: createEncryptable(confidentialValueType, amountWei),
       });
@@ -173,7 +174,16 @@ export const SendPage: React.FC<SendPageProps> = ({ token }) => {
               className="flex-1 min-w-0 bg-transparent text-2xl font-bold fnx-text-primary outline-none placeholder:opacity-50"
             />
             <button
-              onClick={() => navigateToTokenListForSelection('Select token to transfer')}
+              onClick={() => {
+                // navigateToTokenListForSelection()
+                navigateTo(FloatingButtonPage.TokenList, {
+                  pageProps: {
+                    mode: 'select',
+                    title: 'Select token to transfer',
+                    backToPageState: { page: FloatingButtonPage.Send },
+                  },
+                });
+              }}
               className="flex items-center gap-1 text-2xl font-bold fnx-text-primary hover:opacity-80 transition-opacity whitespace-nowrap flex-shrink-0"
             >
               <span>{token.symbol}</span>
