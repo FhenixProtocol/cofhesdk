@@ -1,5 +1,5 @@
 import { FnxFloatingButtonBase } from '@/components/FnxFloatingButton/FnxFloatingButtonBase';
-import { FloatingButtonPage, type PageState } from '@/components/FnxFloatingButton/pagesConfig/types';
+import { type PageState } from '@/components/FnxFloatingButton/pagesConfig/types';
 import { CofhesdkError, CofhesdkErrorCode } from '@cofhe/sdk';
 import { QueryErrorResetBoundary } from '@tanstack/react-query';
 import { useEffect, useMemo } from 'react';
@@ -7,6 +7,7 @@ import { ErrorBoundary, useErrorBoundary, type FallbackProps } from 'react-error
 import { ErrorCause, getErrorCause } from '@/utils/index';
 import type { FnxFloatingButtonProps } from '@/components/FnxFloatingButton/types';
 import { useFnxFloatingButtonContext } from '@/components/FnxFloatingButton/FnxFloatingButtonContext';
+import { FloatingButtonPage } from '@/components/FnxFloatingButton/pagesConfig/simpleTypes';
 
 class CofheFallbackError extends Error {
   constructor(message: string) {

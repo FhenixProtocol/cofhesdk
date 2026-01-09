@@ -15,7 +15,7 @@ import {
 } from '../pages';
 
 import type { FC } from 'react';
-import { FloatingButtonPage } from './types.simple';
+import { FloatingButtonPage } from './simpleTypes';
 
 export const pages: Record<FloatingButtonPage, FC<any>> = {
   [FloatingButtonPage.Main]: MainPage,

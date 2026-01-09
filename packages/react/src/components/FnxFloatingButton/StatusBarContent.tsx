@@ -2,7 +2,7 @@ import { MdOutlineSettings } from 'react-icons/md';
 import { IoIosCheckmarkCircleOutline } from 'react-icons/io';
 import { cn } from '@/utils';
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
-import { FloatingButtonPage } from './pagesConfig/types';
+import { FloatingButtonPage } from './pagesConfig/simpleTypes';
 import { FhenixLogoIcon } from '../FhenixLogoIcon';
 import type { FnxStatus, FnxStatusVariant } from './types';
 import { AnimatedZStack } from '../primitives/AnimatedZStack';

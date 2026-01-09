@@ -6,7 +6,7 @@ import { NameSection } from './components/NameSection';
 import { SelfToggle } from './components/SelfToggle';
 import { ReceiverSection } from './components/ReceiverSection';
 import { ExpirySection } from './components/ExpirySection';
-import { FloatingButtonPage } from '@/components/FnxFloatingButton/pagesConfig/types';
+import { FloatingButtonPage } from '@/components/FnxFloatingButton/pagesConfig/simpleTypes';
 import type { GeneratePermitPageProps } from './types';
 
 export const GeneratePermitPage: React.FC<GeneratePermitPageProps> = ({
