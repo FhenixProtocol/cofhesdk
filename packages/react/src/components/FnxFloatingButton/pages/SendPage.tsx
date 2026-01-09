@@ -15,10 +15,18 @@ import { CofheTokenConfidentialBalance } from '../components';
 import { useCofheEncrypt, type Token } from '@/hooks';
 import { getStepConfig } from '@/hooks/useCofheEncrypt';
 import { createEncryptable } from '@cofhe/sdk';
+import type { FloatingButtonPage } from '../pagesConfig/simpleTypes';
 
 export type SendPageProps = {
   token: Token;
 };
+
+declare module '../pagesConfig/types' {
+  interface FloatingButtonPagePropsRegistry {
+    [FloatingButtonPage.Send]: SendPageProps;
+  }
+}
+
 export const SendPage: React.FC<SendPageProps> = ({ token }) => {
   const { navigateBack, navigateToTokenListForSelection } = useFnxFloatingButtonContext();
 

@@ -3,8 +3,17 @@ import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext.js';
 import { useCofheTokens } from '@/hooks/useCofheTokenLists.js';
 import { useCofheChainId } from '@/hooks/useCofheConnection.js';
 import { TokenRow } from './TokenListPage/TokenRow.js';
+import type { FloatingButtonPage } from '../pagesConfig/simpleTypes.js';
 
-export const TokenListPage: React.FC<{ title?: string }> = ({ title }) => {
+type TokenListPageProps = { title?: string };
+
+declare module '../pagesConfig/types' {
+  interface FloatingButtonPagePropsRegistry {
+    [FloatingButtonPage.TokenList]: TokenListPageProps;
+  }
+}
+
+export const TokenListPage: React.FC<TokenListPageProps> = ({ title }) => {
   const { navigateBack, tokenListMode } = useFnxFloatingButtonContext();
   const chainId = useCofheChainId();
   const allTokens = useCofheTokens(chainId);

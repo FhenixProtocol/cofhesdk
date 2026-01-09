@@ -1,3 +1,4 @@
+import type { FloatingButtonPage } from '@/components/FnxFloatingButton/pagesConfig/simpleTypes';
 import type { ReactNode } from 'react';
 
 export type GeneratePermitPageProps = {
@@ -6,3 +7,9 @@ export type GeneratePermitPageProps = {
   onBack?: () => void;
   overridingBody?: ReactNode;
 };
+
+declare module '../../../pagesConfig/types' {
+  interface FloatingButtonPagePropsRegistry {
+    [FloatingButtonPage.GeneratePermits]: GeneratePermitPageProps;
+  }
+}
