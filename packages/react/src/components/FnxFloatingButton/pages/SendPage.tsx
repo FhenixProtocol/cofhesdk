@@ -20,9 +20,6 @@ export type SendPageProps = {
 };
 export const SendPage: React.FC<SendPageProps> = ({ token }) => {
   const { navigateBack, navigateToTokenListForSelection } = useFnxFloatingButtonContext();
-  // TODO: should not depend on selectedToken, should instead be a page with prop
-
-  // only fetch pinned token metadata if no token from context
 
   const account = useCofheAccount();
   const tokenTransfer = useCofheTokenTransfer();
