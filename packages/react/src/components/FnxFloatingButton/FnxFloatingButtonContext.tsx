@@ -79,9 +79,6 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   const [statusPanelOpen, setStatusPanelOpen] = useState(false);
   const [contentPanelOpen, setContentPanelOpen] = useState(false);
 
-  const [tokenListMode, setTokenListMode] = useState<TokenListMode>('view');
-  const [selectedToken, setSelectedToken] = useState<Token>();
-  const [viewingToken, setViewingToken] = useState<Token>();
   const [toasts, setToasts] = useState<FnxFloatingButtonToast[]>([]);
   const [statuses, setStatuses] = useState<FnxStatus[]>([]);
 
