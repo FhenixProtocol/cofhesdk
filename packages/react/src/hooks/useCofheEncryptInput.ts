@@ -1,12 +1,12 @@
 import { useState, useCallback } from 'react';
 import { useCofheContext } from '../providers/CofheProvider.js';
 import { Encryptable } from '@cofhe/sdk';
-import type { EncryptableItem } from '@cofhe/sdk';
+import type { EncryptableItem, EncryptStep } from '@cofhe/sdk';
 import type { FheTypeValue } from '../utils/utils.js';
-import type { EncryptionStep } from '../types/component-types.js';
-
+// TODO: replace consumers by useCofheEncrypt and remove this one
+type EncryptStepWithDone = EncryptStep | 'done';
 // Map SDK encrypt steps to UI display info
-const STEP_CONFIG: Record<EncryptionStep, { label: string; progress: number }> = {
+const STEP_CONFIG: Record<EncryptStepWithDone, { label: string; progress: number }> = {
   initTfhe: {
     label: 'Initializing TFHE...',
     progress: 5,
@@ -36,7 +36,7 @@ const STEP_CONFIG: Record<EncryptionStep, { label: string; progress: number }> =
 export interface UseEncryptInputReturn {
   onEncryptInput: (_type: FheTypeValue, _value: string) => Promise<any>;
   isEncryptingInput: boolean;
-  encryptionStep: EncryptionStep | null;
+  encryptionStep: EncryptStepWithDone | null;
   encryptionProgress: number;
   encryptionProgressLabel: string;
   inputEncryptionDisabled: boolean;
@@ -46,7 +46,7 @@ export function useCofheEncryptInput(): UseEncryptInputReturn {
   const { client } = useCofheContext();
   const [isEncrypting, setIsEncrypting] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [encryptionStep, setEncryptionStep] = useState<EncryptionStep | null>(null);
+  const [encryptionStep, setEncryptionStep] = useState<EncryptStepWithDone | null>(null);
   const [encryptionProgress, setEncryptionProgress] = useState<number>(0);
   const [encryptionProgressLabel, setEncryptionProgressLabel] = useState<string>('');
 
@@ -103,11 +103,11 @@ export function useCofheEncryptInput(): UseEncryptInputReturn {
 
         // Perform encryption with real-time step tracking
         const encryptionBuilder = client.encryptInputs([encryptableItem]).setStepCallback((step, context) => {
-          const stepConfig = STEP_CONFIG[step as EncryptionStep];
+          const stepConfig = STEP_CONFIG[step];
 
           if (stepConfig) {
             // Update UI with real step information
-            setEncryptionStep(step as EncryptionStep);
+            setEncryptionStep(step);
             setEncryptionProgress(stepConfig.progress);
             setEncryptionProgressLabel(stepConfig.label);
           }
