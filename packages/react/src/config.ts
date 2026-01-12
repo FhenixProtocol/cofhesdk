@@ -63,7 +63,7 @@ export type CofhesdkConfigWithReact = CofhesdkConfig & {
  * @returns The combined client configuration with a validated `react` section and Web defaults applied.
  */
 export function createCofhesdkConfig(config: CofhesdkReactInputConfig): CofhesdkConfigWithReact {
-  const { react: reactConfigInput, ...webConfig } = config;
+  const { react: reactConfigInput = {}, ...webConfig } = config;
 
   const webClientConfig = createCofhesdkConfigWeb({
     environment: 'react',
