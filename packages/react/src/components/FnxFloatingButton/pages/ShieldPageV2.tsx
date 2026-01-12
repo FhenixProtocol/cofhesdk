@@ -16,7 +16,7 @@ import { useCofheTokenPublicBalance } from '@/hooks/useCofheTokenPublicBalance';
 import { formatTokenAmount, unitToWei } from '@/utils/format';
 import { assert } from 'ts-essentials';
 import { FloatingButtonPage } from '../pagesConfig/types';
-import { useCofheClaimUnshield, useCofheTokenUnshield, useCofheUnshieldClaims } from '@/hooks';
+import { useCofheClaimUnshield, useCofheTokenUnshield, useCofheTokenClaimable } from '@/hooks';
 
 const SUCCESS_TIMEOUT = 5000;
 const DISPLAY_DECIMALS = 5;
@@ -59,7 +59,7 @@ export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) 
     isLoading: isLoadingPublic,
     refetch: refetchPublic,
   } = useCofheTokenPublicBalance(
-    { token: tokenFromList, accountAddress: account as Address, displayDecimals: DISPLAY_DECIMALS },
+    { token: tokenFromList, accountAddress: account, displayDecimals: DISPLAY_DECIMALS },
     { enabled: !!tokenFromList && !!account }
   );
 
@@ -72,7 +72,7 @@ export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) 
     { enabled: !!tokenFromList && !!account }
   );
 
-  const { data: unshieldClaims, refetch: refetchClaims } = useCofheUnshieldClaims(
+  const { data: unshieldClaims, refetch: refetchClaims } = useCofheTokenClaimable(
     { token: tokenFromList, accountAddress: account },
     {
       enabled: !!tokenFromList && !!account && (confidentialityType === 'dual' || confidentialityType === 'wrapped'),

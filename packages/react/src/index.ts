@@ -20,7 +20,7 @@ export {
   useCofheTokenShield,
   useCofheTokenUnshield,
   useCofheClaimUnshield,
-  useCofheUnshieldClaims,
+  useCofheTokenClaimable,
   useCofheTokenDecryptedBalance,
   useCofheTokenTransfer,
   ETH_ADDRESS,

@@ -12,7 +12,7 @@ export { useCofheTokenTransfer } from './useCofheTokenTransfer';
 export { useCofheTokenShield, type UnshieldClaim } from './useCofheTokenShield';
 export { useCofheTokenUnshield } from './useCofheTokenUnshield';
 export { useCofheClaimUnshield } from './useCofheClaimUnshield';
-export { useCofheUnshieldClaims, type UnshieldClaimsSummary } from './useCofheUnshieldClaims';
+export { useCofheTokenClaimable, type UnshieldClaimsSummary } from './useCofheTokenClaimable';
 export { useCofheWalletClient } from './useCofheConnection';
 export { useCofheTokens, useCofheTokenLists, ETH_ADDRESS, type Token, type Erc20Pair } from './useCofheTokenLists';
 export * from './permits';

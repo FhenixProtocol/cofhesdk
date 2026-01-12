@@ -39,7 +39,7 @@ type UseUnshieldClaimsOptions = Omit<UseQueryOptions<UnshieldClaimsSummary, Erro
  * @param queryOptions - Optional React Query options
  * @returns Query result with UnshieldClaimsSummary
  */
-export function useCofheUnshieldClaims(
+export function useCofheTokenClaimable(
   input: UseUnshieldClaimsInput,
   queryOptions?: UseUnshieldClaimsOptions
 ): UseQueryResult<UnshieldClaimsSummary, Error> {
