@@ -7,12 +7,7 @@ import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext';
 import { useCofheAccount, useCofhePublicClient } from '@/hooks/useCofheConnection';
 import { useCofheTokenDecryptedBalance } from '@/hooks/useCofheTokenDecryptedBalance';
 import { type Token } from '@/hooks/useCofheTokenLists';
-import {
-  useCofheClaimUnshield,
-  useCofheTokenShield,
-  useCofheTokenUnshield,
-  useCofheUnshieldClaims,
-} from '@/hooks/useCofheTokenShield';
+import { useCofheTokenShield } from '@/hooks/useCofheTokenShield';
 import { cn } from '../../../utils/cn';
 import { truncateHash } from '../../../utils/utils';
 import { ActionButton, AmountInput, TokenIcon } from '../components/index';
@@ -21,6 +16,7 @@ import { useCofheTokenPublicBalance } from '@/hooks/useCofheTokenPublicBalance';
 import { formatTokenAmount, unitToWei } from '@/utils/format';
 import { assert } from 'ts-essentials';
 import { FloatingButtonPage } from '../pagesConfig/types';
+import { useCofheClaimUnshield, useCofheTokenUnshield, useCofheUnshieldClaims } from '@/hooks';
 
 const SUCCESS_TIMEOUT = 5000;
 const DISPLAY_DECIMALS = 5;
@@ -72,12 +68,12 @@ export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) 
     isLoading: isLoadingConfidential,
     refetch: refetchConfidential,
   } = useCofheTokenDecryptedBalance(
-    { token: tokenFromList, accountAddress: account as Address, displayDecimals: DISPLAY_DECIMALS },
+    { token: tokenFromList, accountAddress: account, displayDecimals: DISPLAY_DECIMALS },
     { enabled: !!tokenFromList && !!account }
   );
 
   const { data: unshieldClaims, refetch: refetchClaims } = useCofheUnshieldClaims(
-    { token: tokenFromList, accountAddress: account as Address },
+    { token: tokenFromList, accountAddress: account },
     {
       enabled: !!tokenFromList && !!account && (confidentialityType === 'dual' || confidentialityType === 'wrapped'),
       refetchInterval: 5000,
