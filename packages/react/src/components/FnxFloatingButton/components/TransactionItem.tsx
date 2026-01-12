@@ -54,7 +54,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({ transaction })
           <div className="flex items-center justify-between gap-2">
             <span className="text-sm font-semibold fnx-text-primary">{actionToString(transaction.actionType)}</span>
             <span className="text-sm font-semibold fnx-text-primary">
-              {formatUnits(transaction.tokenAmount, transaction.tokenDecimals)} {transaction.tokenSymbol}
+              {formatUnits(transaction.tokenAmount, transaction.token.decimals)} {transaction.token.symbol}
             </span>
           </div>
 
