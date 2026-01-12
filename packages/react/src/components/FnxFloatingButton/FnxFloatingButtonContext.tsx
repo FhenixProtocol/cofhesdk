@@ -277,8 +277,6 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
     setModalStack((prev) => prev.filter((m) => m.modal !== modal));
   };
 
-  console.log('modalStack', modalStack);
-
   return (
     <FnxFloatingButtonContext.Provider
       value={{

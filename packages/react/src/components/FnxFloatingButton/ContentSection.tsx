@@ -13,7 +13,7 @@ interface ContentSectionProps {
 }
 
 const MeasuredContentRenderer: React.FC<{ children?: ReactNode; id: string }> = ({ children, id }) => {
-  const { setContentHeight } = useFnxFloatingButtonContext();
+  const { setContentHeight, removeContentHeight } = useFnxFloatingButtonContext();
   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -27,8 +27,12 @@ const MeasuredContentRenderer: React.FC<{ children?: ReactNode; id: string }> = 
     });
 
     observer.observe(contentRef.current);
-    return () => observer.disconnect();
-  }, [id, setContentHeight]);
+    return () => {
+      observer.disconnect();
+      removeContentHeight(id);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   return (
     <div className="fnx-panel relative flex w-full h-full overflow-y-auto">
