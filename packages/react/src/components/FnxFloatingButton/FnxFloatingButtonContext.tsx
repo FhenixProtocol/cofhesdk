@@ -5,19 +5,14 @@ import { checkPendingTransactions, stopPendingTransactionPolling } from '../../s
 import { useCofhePublicClient } from '@/hooks/useCofheConnection';
 import {
   FloatingButtonPage,
-  PortalModal,
   type FloatingButtonPagePropsMap,
-  type OpenPortalModalFn,
   type PageState,
   type PagesWithoutProps,
   type PagesWithProps,
-  type PortalModalPropsMap,
-  type PortalModalState,
 } from './pagesConfig/types';
 import { ToastPrimitive } from './components/ToastPrimitives';
 import type { Token } from '@/hooks';
-import type { FloatingButtonPagePropsMap } from './pagesConfig/types';
-import { FloatingButtonPage } from './pagesConfig/types';
+import type { PortalModalState, OpenPortalModalFn, PortalModal, PortalModalPropsMap } from './modals/types';
 
 export type TokenListMode = 'view' | 'select';
 

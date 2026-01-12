@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
 import { pages } from './pagesConfig/const';
-import { type PageState, type PortalModalState } from './pagesConfig/types';
+import { type PageState } from './pagesConfig/types';
+import { type PortalModalState } from './modals/types';
 import { AnimatePresence, motion } from 'motion/react';
 import { AnimatedZStack } from '../primitives/AnimatedZStack';
 import { modals } from './modals';

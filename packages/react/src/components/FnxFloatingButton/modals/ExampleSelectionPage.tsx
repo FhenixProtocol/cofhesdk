@@ -1,4 +1,4 @@
-import { PortalModal, type PortalModalStateMap } from '../pagesConfig/types';
+import { PortalModal, type PortalModalStateMap } from './types';
 import CloseIcon from '@mui/icons-material/Close';
 
 export const ExampleSelectionPage: React.FC<PortalModalStateMap[PortalModal.ExampleSelection]> = ({
