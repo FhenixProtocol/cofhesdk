@@ -78,23 +78,18 @@ export const SendPage: React.FC<SendPageProps> = ({ token }) => {
   const isValidAmount = (amount.length > 0 && confidentialUnitBalance && confidentialUnitBalance.gte(amount)) ?? false;
 
   const handleSend = async () => {
-    // Convert amount to token's smallest unit (considering decimals)
-    const amountWei = unitToWei(amount, token.decimals);
+    assert(isAddress(recipientAddress), 'Recipient address is not valid');
 
     // Check if amount exceeds uint128 max value (2^128 - 1)
-
+    // Convert amount to token's smallest unit (considering decimals)
+    const amountWei = unitToWei(amount, token.decimals);
     // TODO: Does this need to be different if the confidential token uses euint64 for the balance precision?
     assert(amountWei <= maxUint128, 'Amount exceeds maximum supported value (uint128 max)');
 
-    // Encrypt the amount using the token's confidentialValueType
-    const confidentialValueType = token.extensions.fhenix.confidentialValueType;
-
     // TODO: test error on encryption?
     const encryptedValue = await encrypt({
-      input: createEncryptable(confidentialValueType, amountWei),
+      input: createEncryptable(token.extensions.fhenix.confidentialValueType, amountWei),
     });
-
-    assert(isAddress(recipientAddress), 'Recipient address is not valid');
 
     // Use the token transfer hook to send encrypted tokens
     await tokenTransfer.mutateAsync({
