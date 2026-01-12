@@ -26,10 +26,12 @@ export function constructCofheReadContractQueryKey({
   enabled?: boolean;
 }): readonly unknown[] {
   return [
-    QUERY_CACHE_PREFIX,
-    cofheChainId,
-    address,
-    functionName,
+    ...constructCofheReadContractQueryForInvalidation({
+      cofheChainId,
+      address,
+      functionName,
+    }),
+
     args ?? [],
     requiresPermit ? activePermitHash : undefined,
     // normally, "enabled" shouldn't be part of queryKey, but without adding it, there is a weird bug: when there's a CofheError, query still running queryFn resulting in the blank screen
@@ -42,16 +44,12 @@ export function constructCofheReadContractQueryForInvalidation({
   address,
   functionName,
 }: {
-  cofheChainId: number;
-  address: Address;
+  cofheChainId?: number;
+  address?: Address;
   functionName?: string;
   // add more specificity if needed. Just make sure it matches the order of keys
 }): readonly unknown[] {
-  return constructCofheReadContractQueryKey({
-    cofheChainId,
-    address,
-    functionName,
-  });
+  return [QUERY_CACHE_PREFIX, cofheChainId, address, functionName];
 }
 
 export type UseCofheReadContractQueryOptions = Omit<UseQueryOptions<bigint, Error>, 'queryKey' | 'queryFn'> & {

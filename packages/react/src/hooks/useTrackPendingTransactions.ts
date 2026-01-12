@@ -34,13 +34,15 @@ export function useTrackPendingTransactions() {
 
   const handleInvalidations = (tx: Transaction) => {
     if (tx.actionType === TransactionActionType.ShieldSend) {
+      const tokenBalanceQueryKey = constructCofheReadContractQueryForInvalidation({
+        cofheChainId: tx.chainId,
+        address: tx.token.address,
+        functionName: getTokenContractConfig(tx.token.extensions.fhenix.confidentialityType).functionName,
+      });
       console.log('Invalidating shield/send read contract queries for token:', tx.token);
+
       queryClient.invalidateQueries({
-        queryKey: constructCofheReadContractQueryForInvalidation({
-          cofheChainId: tx.chainId,
-          address: tx.token.address,
-          functionName: getTokenContractConfig(tx.token.extensions.fhenix.confidentialityType).functionName,
-        }),
+        queryKey: tokenBalanceQueryKey,
         // TODO: it can potentially invalidate irrelevenat queries who happen to belong to the same contract but different function. Not sure if worth fixing
         exact: false,
       });
