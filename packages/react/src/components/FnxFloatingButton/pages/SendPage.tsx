@@ -16,6 +16,7 @@ import { useCofheEncrypt, type Token } from '@/hooks';
 import { getStepConfig } from '@/hooks/useCofheEncrypt';
 import { createEncryptable } from '@cofhe/sdk';
 import { FloatingButtonPage } from '../pagesConfig/types';
+import { useOnceTransactionMined } from '@/hooks/useOnceTransactionMined';
 
 export type SendPageProps = {
   token: Token;
@@ -42,12 +43,20 @@ export const SendPage: React.FC<SendPageProps> = ({ token }) => {
       setSuccess(null);
     },
     onSuccess: (hash) => {
-      setSuccess(`Transaction sent! Hash: ${truncateAddress(hash)}`);
+      setSuccess(`Transaction sent! Hash: ${truncateAddress(hash)}. Is being mined...`);
       setAmount('');
       setRecipientAddress('');
+    },
+  });
 
-      // Clear success message after 5 seconds
-      setTimeout(() => setSuccess(null), 5000);
+  useOnceTransactionMined({
+    txHash: tokenTransfer.data,
+    onceMined: (transaction) => {
+      if (transaction.status === 'confirmed') {
+        setSuccess(`Transaction confirmed! Hash: ${truncateAddress(transaction.hash)}`);
+      } else if (transaction.status === 'failed') {
+        setError(`Transaction failed! Hash: ${truncateAddress(transaction.hash)}`);
+      }
     },
   });
 
