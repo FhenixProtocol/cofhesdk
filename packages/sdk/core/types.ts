@@ -104,21 +104,11 @@ export type EncryptedItemInput<TSignature = string> = {
   signature: TSignature;
 };
 
-export function constructEncryptedItemInput(
-  ctHash: bigint,
-  securityZone: number,
-  utype: FheTypes,
-  signature: string
-): EncryptedItemInput<`0x${string}`> {
-  if (typeof signature === 'string' && !isAddress(signature)) {
+export function assertCorrectEncryptedItemInput(
+  input: EncryptedItemInput
+): asserts input is EncryptedItemInput<`0x${string}`> {
+  if (typeof input.signature === 'string' && !isAddress(input.signature))
     throw new Error('Signature must be a hex string starting with 0x');
-  }
-  return {
-    ctHash,
-    securityZone,
-    utype,
-    signature,
-  };
 }
 
 export type EncryptedBoolInput = EncryptedItemInput & {
