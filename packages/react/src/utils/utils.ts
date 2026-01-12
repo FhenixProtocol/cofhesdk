@@ -1,5 +1,6 @@
 import * as viemChains from 'viem/chains';
 import { ETH_ADDRESS, type Token, type Erc20Pair } from '../types/token.js';
+import type { Encryptable } from '@cofhe/sdk';
 
 // Build a lookup map of chainId -> viem chain (for block explorers, etc.)
 const viemChainById = Object.values(viemChains).reduce<Record<number, (typeof viemChains)[keyof typeof viemChains]>>(
@@ -80,7 +81,7 @@ export const isWrappedEthToken = (token: Token): boolean => {
 };
 
 // FHE Types for the current CoFHE SDK
-export type FheTypeValue = 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'uint128' | 'bool' | 'address';
+export type FheTypeValue = keyof typeof Encryptable;
 
 export interface FheTypeOption {
   label: string;

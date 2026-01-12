@@ -1,6 +1,6 @@
 import { type PublicClient, type WalletClient } from 'viem';
 import { CofhesdkError, CofhesdkErrorCode } from './error.js';
-import { FheTypes } from './types.js';
+import { Encryptable, FheTypes } from './types.js';
 
 export const toHexString = (bytes: Uint8Array) =>
   bytes.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
@@ -127,4 +127,15 @@ export function fheTypeToString(utype: FheTypes): string {
     default:
       throw new Error(`Unknown FheType: ${utype}`);
   }
+}
+
+// Generic signature preserves key→arg→return correlation at call sites
+// Types the input and the output, un-types the logic in between -- a conscoius tradeoff
+export function createEncryptable<K extends keyof typeof Encryptable>(
+  type: K,
+  value: Parameters<(typeof Encryptable)[K]>[0],
+  securityZone: number = 0
+): ReturnType<(typeof Encryptable)[K]> {
+  const fn = (Encryptable as any)[type] as (v: unknown, s?: number) => unknown;
+  return fn(value, securityZone) as ReturnType<(typeof Encryptable)[K]>;
 }

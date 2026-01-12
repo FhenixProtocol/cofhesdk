@@ -1,5 +1,6 @@
 import { useFnxFloatingButtonContext } from '@/components/FnxFloatingButton/FnxFloatingButtonContext';
 import { FloatingButtonPage } from '@/components/FnxFloatingButton/pagesConfig/types';
+
 import { useCallback } from 'react';
 
 type Input = {

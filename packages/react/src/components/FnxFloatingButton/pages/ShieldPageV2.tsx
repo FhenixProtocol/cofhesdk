@@ -2,11 +2,11 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { TbShieldPlus, TbShieldMinus } from 'react-icons/tb';
 import { useMemo, useState } from 'react';
-import { type Address, formatUnits, parseUnits } from 'viem';
+import { type Address, parseUnits } from 'viem';
 import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext';
-import { useCofheAccount, useCofheChainId, useCofhePublicClient } from '@/hooks/useCofheConnection';
+import { useCofheAccount, useCofhePublicClient } from '@/hooks/useCofheConnection';
 import { useCofheTokenDecryptedBalance } from '@/hooks/useCofheTokenDecryptedBalance';
-import { useCofheToken, useCofheTokens } from '@/hooks/useCofheTokenLists';
+import { type Token } from '@/hooks/useCofheTokenLists';
 import {
   useCofheClaimUnshield,
   useCofheTokenShield,
@@ -17,24 +17,33 @@ import { cn } from '../../../utils/cn';
 import { truncateHash } from '../../../utils/utils';
 import { ActionButton, AmountInput, TokenIcon } from '../components/index';
 import { TokenBalanceView } from '../components/TokenBalanceView';
-import { useCofhePinnedTokenAddress } from '@/hooks/useCofhePinnedTokenAddress';
 import { useCofheTokenPublicBalance } from '@/hooks/useCofheTokenPublicBalance';
 import { formatTokenAmount, unitToWei } from '@/utils/format';
 import { assert } from 'ts-essentials';
+import { FloatingButtonPage } from '../pagesConfig/types';
 
 const SUCCESS_TIMEOUT = 5000;
 const DISPLAY_DECIMALS = 5;
 
 type Mode = 'shield' | 'unshield';
 
-export const ShieldPageV2: React.FC = () => {
-  const { navigateBack, selectedToken, navigateToTokenListForSelection } = useFnxFloatingButtonContext();
-  const account = useCofheAccount();
-  const chainId = useCofheChainId();
-  const publicClient = useCofhePublicClient();
-  const tokens = useCofheTokens(chainId ?? 0);
+export type ShieldPageProps = {
+  token: Token;
+  defaultMode?: Mode;
+};
 
-  const [mode, setMode] = useState<Mode>('shield');
+declare module '../pagesConfig/types' {
+  interface FloatingButtonPagePropsRegistry {
+    [FloatingButtonPage.Shield]: ShieldPageProps;
+  }
+}
+
+export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) => {
+  const { navigateBack, navigateTo } = useFnxFloatingButtonContext();
+  const account = useCofheAccount();
+  const publicClient = useCofhePublicClient();
+
+  const [mode, setMode] = useState<Mode>(defaultMode ?? 'shield');
   const [shieldAmount, setShieldAmount] = useState('');
   const [unshieldAmount, setUnshieldAmount] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -46,14 +55,7 @@ export const ShieldPageV2: React.FC = () => {
   const tokenUnshield = useCofheTokenUnshield();
   const claimUnshield = useCofheClaimUnshield();
 
-  const pinnedTokenAddress = useCofhePinnedTokenAddress();
-
-  const activeTokenAddress = selectedToken ? selectedToken.address : pinnedTokenAddress;
-
-  const tokenFromList = useCofheToken({
-    address: activeTokenAddress,
-  });
-
+  const tokenFromList = token;
   const confidentialityType = tokenFromList?.extensions.fhenix.confidentialityType;
 
   const {
@@ -267,7 +269,14 @@ export const ShieldPageV2: React.FC = () => {
 
         <button
           onClick={() =>
-            navigateToTokenListForSelection(mode === 'shield' ? 'Select token to shield' : 'Select token to unshield')
+            // navigateToTokenListForSelection(mode === 'shield' ? 'Select token to shield' : 'Select token to unshield')
+            navigateTo(FloatingButtonPage.TokenList, {
+              pageProps: {
+                mode: 'select',
+                title: mode === 'shield' ? 'Select token to shield' : 'Select token to unshield',
+                backToPageState: { page: FloatingButtonPage.Shield, props: { defaultMode: mode } },
+              },
+            })
           }
           className="flex items-center gap-1 text-sm font-bold fnx-text-primary hover:opacity-80 transition-opacity"
         >
@@ -293,13 +302,6 @@ export const ShieldPageV2: React.FC = () => {
           label="Unshield"
         />
       </div>
-
-      {/* Missing selection */}
-      {!activeTokenAddress && (
-        <div className="fnx-card-bg border fnx-card-border p-2">
-          <p className="text-xs opacity-70">Select a token to continue</p>
-        </div>
-      )}
 
       {/* Two-panel layout */}
       <div className="space-y-2">
@@ -365,7 +367,7 @@ export const ShieldPageV2: React.FC = () => {
       {/* Primary action */}
       <ActionButton
         onClick={handlePrimaryAction}
-        disabled={!isValidAmount || isProcessing || !activeTokenAddress || !isShieldableToken}
+        disabled={!isValidAmount || isProcessing || !isShieldableToken}
         icon={primaryIcon}
         label={primaryLabel}
         className="py-2"

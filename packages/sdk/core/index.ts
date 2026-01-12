@@ -47,7 +47,15 @@ export type {
   EncryptStepCallbackFunction as EncryptSetStateFn,
   EncryptStepCallbackContext,
 } from './types.js';
-export { FheTypes, FheUintUTypes, FheAllUTypes, Encryptable, isEncryptableItem, EncryptStep } from './types.js';
+export {
+  FheTypes,
+  FheUintUTypes,
+  FheAllUTypes,
+  Encryptable,
+  isEncryptableItem,
+  EncryptStep,
+  isLastEncryptionStep,
+} from './types.js';
 
 // Error handling
 export { CofhesdkError, CofhesdkErrorCode, isCofhesdkError } from './error.js';
@@ -77,4 +85,4 @@ export { zkProveWithWorker } from './encrypt/zkPackProveVerify.js';
 export { MOCKS_ZK_VERIFIER_SIGNER_ADDRESS } from './encrypt/cofheMocksZkVerifySign.js';
 
 // Utils
-export { fheTypeToString } from './utils.js';
+export { fheTypeToString, createEncryptable } from './utils.js';

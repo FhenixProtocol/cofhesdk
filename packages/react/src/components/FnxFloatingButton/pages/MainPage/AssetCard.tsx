@@ -5,11 +5,12 @@ import { TokenIcon } from '../../components/TokenIcon';
 import { CofheTokenConfidentialBalance } from '../../components/CofheTokenConfidentialBalance';
 import { useFnxFloatingButtonContext } from '../../FnxFloatingButtonContext';
 import { useCofhePinnedTokenAddress } from '@/hooks/useCofhePinnedTokenAddress';
+import { FloatingButtonPage } from '../../pagesConfig/types';
 
 export const AssetCard: React.FC = () => {
   // TODO: show Native token if no pinned token address
 
-  const { navigateToTokenInfo } = useFnxFloatingButtonContext();
+  const { navigateTo } = useFnxFloatingButtonContext();
   // const pinnedTokenAddress = "0x8ee52408ED5b0e396aA779Fd52F7fbc20A4b33Fb"; // Base sepolia
   // const pinnedTokenAddress = "0xbED96aa98a49FeA71fcC55d755b915cF022a9159"; // Redact (Sepolia)
   const pinnedTokenAddress = useCofhePinnedTokenAddress();
@@ -24,7 +25,9 @@ export const AssetCard: React.FC = () => {
     if (!tokenFromList) throw new Error('Token not found in token list');
 
     if (pinnedTokenAddress) {
-      navigateToTokenInfo(tokenFromList);
+      navigateTo(FloatingButtonPage.TokenInfo, {
+        pageProps: { token: tokenFromList },
+      });
     } else {
       // TODO: native token support
       alert('Native token info navigation is not implemented yet.');

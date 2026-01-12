@@ -18,3 +18,4 @@ coverage/
 # Hardhat cache and artifacts
 cache/
 artifacts/
+*.code-search

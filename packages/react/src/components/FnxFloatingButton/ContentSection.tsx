@@ -2,9 +2,9 @@ import { cn } from '@/utils';
 import { useMemo } from 'react';
 
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
-import { pages } from './pagesConfig/const';
 import { type PageState } from './pagesConfig/types';
 import { AnimatePresence, motion } from 'motion/react';
+import { pages } from './pagesConfig/const';
 
 interface ContentSectionProps {
   overriddingPage?: PageState;

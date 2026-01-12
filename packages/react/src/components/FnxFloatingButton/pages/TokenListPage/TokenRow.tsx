@@ -1,29 +1,16 @@
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import { cn } from '../../../../utils/cn';
-import { useFnxFloatingButtonContext, type TokenListMode } from '../../FnxFloatingButtonContext';
 import type { Token } from '@/hooks/useCofheTokenLists';
 import { TokenIcon } from '../../components/TokenIcon';
 import { CofheTokenConfidentialBalance } from '../../components';
 
 export const TokenRow: React.FC<{
   token: Token;
-  mode: TokenListMode;
-}> = ({ token, mode }) => {
-  const { selectToken, navigateToTokenInfo } = useFnxFloatingButtonContext();
-
-  const handleClick = () => {
-    if (mode === 'select') {
-      // TODO: native token support
-      selectToken(token);
-    } else {
-      // In view mode, navigate to token info page
-      navigateToTokenInfo(token);
-    }
-  };
-
+  onClick: () => void;
+}> = ({ token, onClick }) => {
   return (
     <div
-      onClick={handleClick}
+      onClick={onClick}
       className={cn(
         'flex items-center justify-between p-1',
         'hover:bg-white hover:bg-opacity-5 transition-colors',

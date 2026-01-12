@@ -1,29 +1,23 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext';
-import { useCofheToken } from '@/hooks/useCofheTokenLists';
+import { type Token } from '@/hooks/useCofheTokenLists';
 import { TokenIcon } from '../components/TokenIcon';
 import { AddressButton } from '../components/AddressButton';
 import { CofheTokenConfidentialBalance } from '../components/CofheTokenConfidentialBalance';
+import { FloatingButtonPage } from '../pagesConfig/types';
 
-export const TokenInfoPage: React.FC = () => {
-  const { navigateBack, viewingToken } = useFnxFloatingButtonContext();
+type TokenInfoPageProps = {
+  token: Token;
+};
 
-  // Find the full token object from the token list
-  const tokenFromList = useCofheToken({
-    address: viewingToken?.address,
-  });
-
-  if (!viewingToken) {
-    return (
-      <div className="fnx-text-primary space-y-3">
-        <button onClick={navigateBack} className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity">
-          <ArrowBackIcon style={{ fontSize: 16 }} />
-          <span>Back</span>
-        </button>
-        <p className="text-xs opacity-70">Token information not available</p>
-      </div>
-    );
+declare module '../pagesConfig/types' {
+  interface FloatingButtonPagePropsRegistry {
+    [FloatingButtonPage.TokenInfo]: TokenInfoPageProps;
   }
+}
+
+export const TokenInfoPage: React.FC<TokenInfoPageProps> = ({ token }) => {
+  const { navigateBack } = useFnxFloatingButtonContext();
 
   return (
     <div className="fnx-text-primary space-y-4">
@@ -35,10 +29,10 @@ export const TokenInfoPage: React.FC = () => {
 
       {/* Token Icon and Name */}
       <div className="flex flex-col items-center gap-3">
-        <TokenIcon logoURI={viewingToken.logoURI || tokenFromList?.logoURI} alt={viewingToken.name} size="xl" />
+        <TokenIcon logoURI={token.logoURI} alt={token.name} size="xl" />
         <div className="flex flex-col items-center gap-1">
-          <h2 className="text-xl font-bold">{viewingToken.name}</h2>
-          <p className="text-sm opacity-70">{viewingToken.symbol}</p>
+          <h2 className="text-xl font-bold">{token.name}</h2>
+          <p className="text-sm opacity-70">{token.symbol}</p>
         </div>
       </div>
 
@@ -46,7 +40,7 @@ export const TokenInfoPage: React.FC = () => {
       <div className="fnx-card-bg rounded-lg p-4 border fnx-card-border">
         <div className="flex flex-col gap-2">
           <p className="text-xs opacity-70">Balance</p>
-          <CofheTokenConfidentialBalance token={tokenFromList} size="xl" decimalPrecision={5} className="font-bold" />
+          <CofheTokenConfidentialBalance token={token} size="xl" decimalPrecision={5} className="font-bold" />
         </div>
       </div>
 
@@ -58,7 +52,7 @@ export const TokenInfoPage: React.FC = () => {
         <div className="fnx-card-bg rounded-lg p-3 border fnx-card-border">
           <div className="flex flex-col gap-2">
             <p className="text-xxxs opacity-70">Contract Address</p>
-            <AddressButton address={viewingToken.address} className="w-full justify-start" />
+            <AddressButton address={token.address} className="w-full justify-start" />
           </div>
         </div>
 
@@ -66,26 +60,26 @@ export const TokenInfoPage: React.FC = () => {
         <div className="fnx-card-bg rounded-lg p-3 border fnx-card-border">
           <div className="flex items-center justify-between">
             <p className="text-xxxs opacity-70">Decimals</p>
-            <p className="text-sm font-medium">{viewingToken.decimals}</p>
+            <p className="text-sm font-medium">{token.decimals}</p>
           </div>
         </div>
 
         {/* Confidentiality Type */}
-        {tokenFromList && (
+        {token && (
           <div className="fnx-card-bg rounded-lg p-3 border fnx-card-border">
             <div className="flex items-center justify-between">
               <p className="text-xxxs opacity-70">Confidentiality Type</p>
-              <p className="text-sm font-medium capitalize">{tokenFromList.extensions.fhenix.confidentialityType}</p>
+              <p className="text-sm font-medium capitalize">{token.extensions.fhenix.confidentialityType}</p>
             </div>
           </div>
         )}
 
         {/* Confidential Value Type */}
-        {tokenFromList && (
+        {token && (
           <div className="fnx-card-bg rounded-lg p-3 border fnx-card-border">
             <div className="flex items-center justify-between">
               <p className="text-xxxs opacity-70">Value Type</p>
-              <p className="text-sm font-medium">{tokenFromList.extensions.fhenix.confidentialValueType}</p>
+              <p className="text-sm font-medium">{token.extensions.fhenix.confidentialValueType}</p>
             </div>
           </div>
         )}

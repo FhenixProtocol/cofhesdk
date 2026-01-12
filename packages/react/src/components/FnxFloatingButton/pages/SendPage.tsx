@@ -5,7 +5,6 @@ import { isAddress, maxUint128 } from 'viem';
 import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext';
 import { useCofheAccount } from '@/hooks/useCofheConnection';
 import { useCofheTokenDecryptedBalance } from '@/hooks/useCofheTokenDecryptedBalance';
-import { useCofheEncryptInput } from '@/hooks/useCofheEncryptInput';
 import { useCofheTokenTransfer, type EncryptedValue } from '@/hooks/useCofheTokenTransfer';
 import { cn } from '../../../utils/cn';
 import { truncateAddress, sanitizeNumericInput } from '../../../utils/utils';
@@ -13,29 +12,39 @@ import { TokenIcon } from '../components/TokenIcon';
 import { unitToWei } from '@/utils/format';
 import { assert } from 'ts-essentials';
 import { CofheTokenConfidentialBalance } from '../components';
-import { useCofhePinnedToken } from '@/hooks/useCofhePinnedToken';
+import { useCofheEncrypt, type Token } from '@/hooks';
+import { getStepConfig } from '@/hooks/useCofheEncrypt';
+import { createEncryptable } from '@cofhe/sdk';
+import { FloatingButtonPage } from '../pagesConfig/types';
 
-export const SendPage: React.FC = () => {
-  const {
-    navigateBack,
-    selectedToken: tokenFromContext,
-    navigateToTokenListForSelection,
-  } = useFnxFloatingButtonContext();
-  // TODO: should not depend on selectedToken, should instead be a page with prop
+export type SendPageProps = {
+  token: Token;
+};
 
-  // only fetch pinned token metadata if no token from context
-  const pinnedToken = useCofhePinnedToken({ enabled: !tokenFromContext });
-  const selectedToken = tokenFromContext ?? pinnedToken;
+declare module '../pagesConfig/types' {
+  interface FloatingButtonPagePropsRegistry {
+    [FloatingButtonPage.Send]: SendPageProps;
+  }
+}
+
+export const SendPage: React.FC<SendPageProps> = ({ token }) => {
+  const { navigateBack, navigateTo } = useFnxFloatingButtonContext();
+
   const account = useCofheAccount();
   const tokenTransfer = useCofheTokenTransfer();
 
   const { data: { unit: confidentialUnitBalance } = {} } = useCofheTokenDecryptedBalance({
-    token: selectedToken,
+    token,
     accountAddress: account,
   });
 
-  // TODO: use useCofheEncrypt instead of useCofheEncryptInput. Delete the latter
-  const { onEncryptInput, isEncryptingInput, encryptionProgressLabel } = useCofheEncryptInput();
+  const {
+    isEncrypting: isEncryptingInput,
+    encrypt,
+    stepsState: { lastStep },
+  } = useCofheEncrypt();
+
+  const encryptionProgressLabel = useMemo(() => lastStep?.step && getStepConfig(lastStep).label, [lastStep]);
 
   const [amount, setAmount] = useState('');
   const [recipientAddress, setRecipientAddress] = useState('');
@@ -61,7 +70,7 @@ export const SendPage: React.FC = () => {
 
   // TODO: wrap sending into a hook / mutation
   const handleSend = async () => {
-    assert(selectedToken, 'No token selected for sending');
+    assert(token, 'No token selected for sending');
     if (!isValidAddress) {
       setError('Invalid recipient address');
       return;
@@ -77,7 +86,7 @@ export const SendPage: React.FC = () => {
 
     try {
       // Convert amount to token's smallest unit (considering decimals)
-      const amountWei = unitToWei(amount, selectedToken.decimals);
+      const amountWei = unitToWei(amount, token.decimals);
 
       // Check if amount exceeds uint128 max value (2^128 - 1)
 
@@ -85,8 +94,12 @@ export const SendPage: React.FC = () => {
       assert(amountWei <= maxUint128, 'Amount exceeds maximum supported value (uint128 max)');
 
       // Encrypt the amount using the token's confidentialValueType
-      const confidentialValueType = selectedToken.extensions.fhenix.confidentialValueType;
-      const encryptedAmount = await onEncryptInput(confidentialValueType, amountWei.toString());
+      const confidentialValueType = token.extensions.fhenix.confidentialValueType;
+
+      // TODO: test error on encryption?
+      const encryptedAmount = await encrypt({
+        input: createEncryptable(confidentialValueType, amountWei),
+      });
 
       if (!encryptedAmount || !encryptedAmount.ctHash) {
         throw new Error('Failed to encrypt amount');
@@ -104,7 +117,7 @@ export const SendPage: React.FC = () => {
 
       // Use the token transfer hook to send encrypted tokens
       const hash = await tokenTransfer.mutateAsync({
-        token: selectedToken,
+        token,
         to: recipientAddress,
         encryptedValue,
         amount: amountWei,
@@ -146,7 +159,7 @@ export const SendPage: React.FC = () => {
         </div>
         <div className="flex items-center gap-3">
           {/* Token Icon */}
-          <TokenIcon logoURI={selectedToken?.logoURI} alt={selectedToken?.name || 'Token'} size="md" />
+          <TokenIcon logoURI={token.logoURI} alt={token.name} size="md" />
 
           {/* Amount Input and Symbol on same line, centered with logo */}
           <div className="flex-1 flex items-center gap-1 min-w-0">
@@ -161,10 +174,19 @@ export const SendPage: React.FC = () => {
               className="flex-1 min-w-0 bg-transparent text-2xl font-bold fnx-text-primary outline-none placeholder:opacity-50"
             />
             <button
-              onClick={() => navigateToTokenListForSelection('Select token to transfer')}
+              onClick={() => {
+                // navigateToTokenListForSelection()
+                navigateTo(FloatingButtonPage.TokenList, {
+                  pageProps: {
+                    mode: 'select',
+                    title: 'Select token to transfer',
+                    backToPageState: { page: FloatingButtonPage.Send },
+                  },
+                });
+              }}
               className="flex items-center gap-1 text-2xl font-bold fnx-text-primary hover:opacity-80 transition-opacity whitespace-nowrap flex-shrink-0"
             >
-              <span>{selectedToken?.symbol}</span>
+              <span>{token.symbol}</span>
               <KeyboardArrowRightIcon className="w-5 h-5 fnx-text-primary opacity-60 flex-shrink-0" />
             </button>
           </div>
@@ -177,7 +199,7 @@ export const SendPage: React.FC = () => {
           <div className="flex-1 flex items-center justify-start min-w-0 gap-2">
             <span className="text-xs opacity-70">Available </span>
             <CofheTokenConfidentialBalance
-              token={selectedToken}
+              token={token}
               showSymbol={true}
               size="sm"
               decimalPrecision={5}

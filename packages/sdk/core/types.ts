@@ -244,6 +244,10 @@ export enum EncryptStep {
   Verify = 'verify',
 }
 
+export function isLastEncryptionStep(step: EncryptStep): boolean {
+  return step === EncryptStep.Verify;
+}
+
 export type EncryptStepCallbackContext = Record<string, any> & {
   isStart: boolean;
   isEnd: boolean;
