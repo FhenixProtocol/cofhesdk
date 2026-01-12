@@ -22,14 +22,16 @@ export type TransactionActionString = 'Shielded Transfer' | 'Shield' | 'Unshield
 export interface Transaction {
   hash: string;
   status: TransactionStatus;
+  chainId: number;
+  actionType: TransactionActionType;
+  account: string;
+  timestamp: number;
+
+  //
   tokenSymbol: string;
   tokenAmount: bigint;
   tokenDecimals: number;
   tokenAddress: `0x${string}`;
-  chainId: number;
-  actionType: TransactionActionType;
-  timestamp: number;
-  account: string;
 }
 
 export interface TransactionStore {
