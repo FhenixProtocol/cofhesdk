@@ -5,17 +5,17 @@ type ChainRecord<T> = Record<number, T>;
 type HashRecord<T> = Record<string, T>;
 
 export enum TransactionStatus {
-  Pending = 0,
-  Failed = 1,
-  Confirmed = 2,
+  Pending = 'pending',
+  Failed = 'failed',
+  Confirmed = 'confirmed',
 }
 export type TransactionStatusString = 'Pending' | 'Failed' | 'Confirmed';
 
 export enum TransactionActionType {
-  ShieldSend = 0,
-  Shield = 1,
-  Unshield = 2,
-  Claim = 3,
+  ShieldSend = 'shieldSend',
+  Shield = 'shield',
+  Unshield = 'unshielf',
+  Claim = 'claim',
 }
 export type TransactionActionString = 'Shielded Transfer' | 'Shield' | 'Unshield' | 'Claim';
 
@@ -25,7 +25,7 @@ export interface Transaction {
   tokenSymbol: string;
   tokenAmount: bigint;
   tokenDecimals: number;
-  tokenAddress: string;
+  tokenAddress: `0x${string}`;
   chainId: number;
   actionType: TransactionActionType;
   timestamp: number;
