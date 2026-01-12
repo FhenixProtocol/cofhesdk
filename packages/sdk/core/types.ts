@@ -1,5 +1,3 @@
-import { isAddress } from 'viem';
-
 export type TfheInitializer = () => Promise<boolean>;
 
 export interface IStorage {
@@ -107,8 +105,7 @@ export type EncryptedItemInput<TSignature = string> = {
 export function assertCorrectEncryptedItemInput(
   input: EncryptedItemInput
 ): asserts input is EncryptedItemInput<`0x${string}`> {
-  if (typeof input.signature === 'string' && !isAddress(input.signature))
-    throw new Error('Signature must be a hex string starting with 0x');
+  if (!input.signature.startsWith('0x')) throw new Error('Signature must be a hex string starting with 0x');
 }
 
 export type EncryptedBoolInput = EncryptedItemInput & {
