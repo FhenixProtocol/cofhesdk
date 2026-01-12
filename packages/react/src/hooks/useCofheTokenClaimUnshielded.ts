@@ -24,7 +24,7 @@ type UseClaimUnshieldOptions = Omit<UseMutationOptions<`0x${string}`, Error, Use
  * @param options - Optional React Query mutation options
  * @returns Mutation result with transaction hash
  */
-export function useCofheClaimUnshield(
+export function useCofheTokenClaimUnshielded(
   options?: UseClaimUnshieldOptions
 ): UseMutationResult<`0x${string}`, Error, UseClaimUnshieldInput> {
   const walletClient = useCofheWalletClient();

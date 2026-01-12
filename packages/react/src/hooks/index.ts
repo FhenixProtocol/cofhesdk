@@ -11,7 +11,7 @@ export { useCofheTokenDecryptedBalance } from './useCofheTokenDecryptedBalance';
 export { useCofheTokenTransfer } from './useCofheTokenTransfer';
 export { useCofheTokenShield, type UnshieldClaim } from './useCofheTokenShield';
 export { useCofheTokenUnshield } from './useCofheTokenUnshield';
-export { useCofheClaimUnshield } from './useCofheClaimUnshield';
+export { useCofheTokenClaimUnshielded } from './useCofheTokenClaimUnshielded';
 export { useCofheTokenClaimable, type UnshieldClaimsSummary } from './useCofheTokenClaimable';
 export { useCofheWalletClient } from './useCofheConnection';
 export { useCofheTokens, useCofheTokenLists, ETH_ADDRESS, type Token, type Erc20Pair } from './useCofheTokenLists';

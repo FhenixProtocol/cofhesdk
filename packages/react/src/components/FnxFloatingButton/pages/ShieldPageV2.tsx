@@ -16,7 +16,7 @@ import { useCofheTokenPublicBalance } from '@/hooks/useCofheTokenPublicBalance';
 import { formatTokenAmount, unitToWei } from '@/utils/format';
 import { assert } from 'ts-essentials';
 import { FloatingButtonPage } from '../pagesConfig/types';
-import { useCofheClaimUnshield, useCofheTokenUnshield, useCofheTokenClaimable } from '@/hooks';
+import { useCofheTokenClaimUnshielded, useCofheTokenUnshield, useCofheTokenClaimable } from '@/hooks';
 
 const SUCCESS_TIMEOUT = 5000;
 const DISPLAY_DECIMALS = 5;
@@ -49,7 +49,7 @@ export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) 
 
   const tokenShield = useCofheTokenShield();
   const tokenUnshield = useCofheTokenUnshield();
-  const claimUnshield = useCofheClaimUnshield();
+  const claimUnshield = useCofheTokenClaimUnshielded();
 
   const tokenFromList = token;
   const confidentialityType = tokenFromList?.extensions.fhenix.confidentialityType;

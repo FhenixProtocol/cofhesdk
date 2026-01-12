@@ -19,7 +19,7 @@ export {
   useCofheTokenLists,
   useCofheTokenShield,
   useCofheTokenUnshield,
-  useCofheClaimUnshield,
+  useCofheTokenClaimUnshielded,
   useCofheTokenClaimable,
   useCofheTokenDecryptedBalance,
   useCofheTokenTransfer,
