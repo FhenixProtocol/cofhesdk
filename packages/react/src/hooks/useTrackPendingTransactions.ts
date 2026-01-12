@@ -33,6 +33,7 @@ export function useTrackPendingTransactions() {
   console.log('pendingTxs:', accountsPendingTxs);
 
   const handleInvalidations = (tx: Transaction) => {
+    // TODO: add invalidation for the rest of txs
     if (tx.actionType === TransactionActionType.ShieldSend) {
       const tokenBalanceQueryKey = constructCofheReadContractQueryForInvalidation({
         cofheChainId: tx.chainId,
