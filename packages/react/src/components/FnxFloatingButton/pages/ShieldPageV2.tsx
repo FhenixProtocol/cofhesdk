@@ -156,7 +156,7 @@ export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) 
   const pairedLogoURI = tokenFromList?.extensions.fhenix.erc20Pair?.logoURI;
 
   const handleShieldMax = () => {
-    if (publicBalanceNum?.gt(0)) setShieldAmount(publicBalanceNum.toString());
+    if (publicBalanceNum?.gt(0)) setShieldAmount(publicBalanceNum.toFixed());
   };
   const handleUnshieldMax = () => {
     if (!confidentialBalanceUnit) return;
