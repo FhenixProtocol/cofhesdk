@@ -1,3 +1,4 @@
+import type { Token } from '@/types/token';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
@@ -27,11 +28,10 @@ export interface Transaction {
   account: string;
   timestamp: number;
 
+  token: Token;
   //
-  tokenSymbol: string;
+
   tokenAmount: bigint;
-  tokenDecimals: number;
-  tokenAddress: `0x${string}`;
 }
 
 export interface TransactionStore {
@@ -173,9 +173,7 @@ export const useTransactionStore = create<TransactionStore>()(
         return chainTxs
           ? Object.values(chainTxs)
               .filter((tx) => {
-                if (!tx.tokenAddress || !tokenAddress) return false;
-                if (account && tx.account && tx.account.toLowerCase() !== account.toLowerCase()) return false;
-                return tx.tokenAddress.toLowerCase() === tokenAddress.toLowerCase();
+                return tx.account.toLowerCase() === account?.toLowerCase();
               })
               .sort((a, b) => b.timestamp - a.timestamp) // newest first
           : [];

@@ -100,10 +100,8 @@ export function useCofheTokenUnshield(
 
       useTransactionStore.getState().addTransaction({
         hash,
-        tokenSymbol: input.token.symbol,
+        token: input.token,
         tokenAmount: input.amount,
-        tokenDecimals: input.token.decimals,
-        tokenAddress: input.token.address,
         chainId,
         actionType: TransactionActionType.Unshield,
         account,

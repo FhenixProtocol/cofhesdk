@@ -11,6 +11,7 @@ import { constructCofheReadContractQueryForInvalidation } from './useCofheReadCo
 import { useMemo } from 'react';
 import type { QueriesOptions } from '@tanstack/react-query';
 import type { TransactionReceipt } from 'viem';
+import { getTokenContractConfig } from '@/constants/confidentialTokenABIs';
 
 export function useTrackPendingTransactions() {
   // Batch check pending transactions using react-query's useQueries
@@ -33,11 +34,12 @@ export function useTrackPendingTransactions() {
 
   const handleInvalidations = (tx: Transaction) => {
     if (tx.actionType === TransactionActionType.ShieldSend) {
-      console.log('Invalidating shield/send read contract queries for token:', tx.tokenAddress);
+      console.log('Invalidating shield/send read contract queries for token:', tx.token);
       queryClient.invalidateQueries({
         queryKey: constructCofheReadContractQueryForInvalidation({
           cofheChainId: tx.chainId,
-          address: tx.tokenAddress,
+          address: tx.token.address,
+          functionName: getTokenContractConfig(tx.token.extensions.fhenix.confidentialityType).functionName,
         }),
         // TODO: it can potentially invalidate irrelevenat queries who happen to belong to the same contract but different function. Not sure if worth fixing
         exact: false,
