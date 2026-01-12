@@ -5,7 +5,7 @@ import { isAddress, maxUint128 } from 'viem';
 import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext';
 import { useCofheAccount } from '@/hooks/useCofheConnection';
 import { useCofheTokenDecryptedBalance } from '@/hooks/useCofheTokenDecryptedBalance';
-import { useCofheTokenTransfer, type EncryptedValue } from '@/hooks/useCofheTokenTransfer';
+import { useCofheTokenTransfer } from '@/hooks/useCofheTokenTransfer';
 import { cn } from '../../../utils/cn';
 import { truncateAddress, sanitizeNumericInput } from '../../../utils/utils';
 import { TokenIcon } from '../components/TokenIcon';
@@ -97,21 +97,9 @@ export const SendPage: React.FC<SendPageProps> = ({ token }) => {
       const confidentialValueType = token.extensions.fhenix.confidentialValueType;
 
       // TODO: test error on encryption?
-      const encryptedAmount = await encrypt({
+      const encryptedValue = await encrypt({
         input: createEncryptable(confidentialValueType, amountWei),
       });
-
-      if (!encryptedAmount || !encryptedAmount.ctHash) {
-        throw new Error('Failed to encrypt amount');
-      }
-
-      // Construct encrypted value struct
-      const encryptedValue: EncryptedValue = {
-        ctHash: BigInt(encryptedAmount.ctHash),
-        securityZone: encryptedAmount.securityZone ?? 0,
-        utype: encryptedAmount.utype ?? 0,
-        signature: encryptedAmount.signature as `0x${string}`,
-      };
 
       assert(isAddress(recipientAddress), 'Recipient address is not valid');
 

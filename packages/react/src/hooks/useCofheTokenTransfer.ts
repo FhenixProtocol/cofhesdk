@@ -6,14 +6,7 @@ import { TRANSFER_ABIS } from '../constants/confidentialTokenABIs.js';
 import { TransactionActionType, useTransactionStore } from '../stores/transactionStore.js';
 import { useInternalMutation } from '../providers/index.js';
 import { assert } from 'ts-essentials';
-
-// Encrypted value struct type
-export type EncryptedValue = {
-  ctHash: bigint;
-  securityZone: number;
-  utype: number;
-  signature: `0x${string}`;
-};
+import { assertCorrectEncryptedItemInput, type EncryptedItemInput } from '@cofhe/sdk';
 
 type UseTokenTransferInput = {
   /** Token object with confidentialityType */
@@ -21,7 +14,7 @@ type UseTokenTransferInput = {
   /** Recipient address */
   to: Address;
   /** Encrypted value struct (ctHash, securityZone, utype, signature) */
-  encryptedValue: EncryptedValue;
+  encryptedValue: EncryptedItemInput;
   /** Amount being transferred (for transaction history) */
   amount: bigint;
 };
@@ -43,13 +36,14 @@ export function useCofheTokenTransfer(
   const { onSuccess, ...restOfOptions } = options || {};
 
   return useInternalMutation({
-    mutationFn: async (input: UseTokenTransferInput) => {
+    mutationFn: async ({ token, to: contractAddress, encryptedValue: inputEncryptedValue }: UseTokenTransferInput) => {
+      assertCorrectEncryptedItemInput(inputEncryptedValue);
+
       if (!walletClient) {
         throw new Error('WalletClient is required for token transfer');
       }
-
-      const tokenAddress = input.token.address as Address;
-      const confidentialityType = input.token.extensions.fhenix.confidentialityType;
+      const tokenAddress = token.address;
+      const confidentialityType = token.extensions.fhenix.confidentialityType;
 
       if (!confidentialityType) {
         throw new Error('confidentialityType is required in token extensions');
@@ -69,19 +63,11 @@ export function useCofheTokenTransfer(
         throw new Error('Dual confidentiality type is not yet implemented');
       }
 
-      // Construct the inValue struct from encryptedValue (object format for viem)
-      const inValue = {
-        ctHash: input.encryptedValue.ctHash,
-        securityZone: input.encryptedValue.securityZone,
-        utype: input.encryptedValue.utype,
-        signature: input.encryptedValue.signature,
-      };
-
       const hash = await walletClient.writeContract({
         address: tokenAddress,
         abi: contractConfig.abi,
         functionName: contractConfig.functionName,
-        args: [input.to, inValue],
+        args: [contractAddress, inputEncryptedValue],
         account: walletClient.account,
         chain: undefined,
       });
