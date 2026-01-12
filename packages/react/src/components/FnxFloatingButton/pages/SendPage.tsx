@@ -77,7 +77,6 @@ export const SendPage: React.FC<SendPageProps> = ({ token }) => {
   // Validate amount
   const isValidAmount = (amount.length > 0 && confidentialUnitBalance && confidentialUnitBalance.gte(amount)) ?? false;
 
-  // TODO: wrap sending into a hook / mutation
   const handleSend = async () => {
     // Convert amount to token's smallest unit (considering decimals)
     const amountWei = unitToWei(amount, token.decimals);
