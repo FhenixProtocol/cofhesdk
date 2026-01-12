@@ -4,7 +4,6 @@ import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
 import { pages } from './pagesConfig/const';
 import { type PageState, type PortalModalState } from './pagesConfig/types';
 import { AnimatePresence, motion } from 'motion/react';
-import { pages } from './pagesConfig/const';
 import { AnimatedZStack } from '../primitives/AnimatedZStack';
 import { modals } from './modals';
 
