@@ -16,7 +16,7 @@ function constructPublicTokenBalanceQueryKey({
   accountAddress?: Address;
   tokenAddress?: Address;
 }): readonly unknown[] {
-  return ['tokenBalance', chainId, accountAddress, tokenAddress];
+  return ['tokenBalance', chainId, accountAddress?.toLowerCase(), tokenAddress?.toLowerCase()];
 }
 
 export function constructPublicTokenBalanceQueryKeyForInvalidation({
@@ -112,7 +112,7 @@ type UsePublicTokenBalanceInput = {
 type UsePublicTokenBalanceResult = {
   data?: TokenFormatOutput;
   /** Whether balance is loading */
-  isLoading: boolean;
+  isFetching: boolean;
   /** Refetch function */
   refetch: () => Promise<unknown>;
 };
@@ -147,7 +147,7 @@ export function useCofheTokenPublicBalance(
           token
         : undefined;
 
-  const { data, isLoading, refetch } = useTokenBalance(
+  const { data, isFetching, refetch } = useTokenBalance(
     {
       tokenAddress: tokenToFetchBalanceFrom?.address,
       accountAddress: account,
@@ -167,7 +167,7 @@ export function useCofheTokenPublicBalance(
 
   return {
     data,
-    isLoading,
+    isFetching,
     refetch,
   };
 }

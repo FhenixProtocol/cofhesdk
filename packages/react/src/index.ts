@@ -81,3 +81,5 @@ export { ErrorCause } from './utils/errors';
 export type { CofhesdkConfigWithReact } from './config';
 
 export type { Token } from './types/token';
+
+export { useInternalQueryClient } from './providers/index';

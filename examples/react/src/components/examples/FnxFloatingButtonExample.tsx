@@ -112,7 +112,7 @@ function MyComponent() {
     ReasonBody: CREATE_PERMITT_BODY_BY_ERROR_CAUSE[ErrorCause.AttemptToFetchConfidentialBalance],
   });
   
-  const { disabledDueToMissingPermit, data, error, isLoading } = useCofheTokenConfidentialBalance({
+  const { disabledDueToMissingPermit, data, error, isFetching } = useCofheTokenConfidentialBalance({
     token: WETH_SEPOLIA_TOKEN,
     accountAddress: account,
   });
@@ -129,7 +129,7 @@ function MyComponent() {
         >
           * * *
         </div>
-      ) : isLoading ? (
+      ) : isFetching ? (
         'Loading...'
       ) : error ? (
         \`Error: \${error.message}\`

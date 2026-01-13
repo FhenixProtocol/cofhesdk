@@ -49,15 +49,10 @@ function invalidatePublicTokenBalanceQueries(
     accountAddress,
   });
 
-  console.log('Invalidating public token balance read contract queries for token:', {
-    chainId,
-    tokenAddress,
-    accountAddress,
-  });
+  console.log('Invalidating public token balance read contract queries for token:', tokenBalanceQueryKey);
 
   queryClient.invalidateQueries({
     queryKey: tokenBalanceQueryKey,
-    exact: true,
   });
 }
 

@@ -15,7 +15,7 @@ type TokenBalanceViewProps = {
   size?: 'sm' | 'md' | 'lg' | 'xl';
   formattedBalance?: string;
   symbol?: string;
-  isLoading?: boolean;
+  isFetching?: boolean;
   hidden?: boolean;
 };
 export const TokenBalanceView: React.FC<TokenBalanceViewProps> = ({
@@ -23,12 +23,12 @@ export const TokenBalanceView: React.FC<TokenBalanceViewProps> = ({
   size = 'md',
   formattedBalance,
   symbol,
-  isLoading,
+  isFetching,
   hidden,
 }) => {
   return (
     <span className={cn(sizeClasses[size], 'font-medium fnx-text-primary', className)}>
-      {hidden ? <ConfidentialValuePlaceholder /> : isLoading ? <LoadingDots size={size} /> : formattedBalance}
+      {hidden ? <ConfidentialValuePlaceholder /> : isFetching ? <LoadingDots size={size} /> : formattedBalance}
       {symbol && ` ${symbol}`}
     </span>
   );

@@ -29,7 +29,7 @@ type UseConfidentialTokenBalanceResult = {
   /** Raw balance in smallest unit (bigint) */
   data?: TokenFormatOutput;
   /** Whether balance is loading */
-  isLoading: boolean;
+  isFetching: boolean;
   /** Refetch function */
   refetch: () => Promise<unknown>;
   disabledDueToMissingPermit: boolean;
@@ -53,8 +53,8 @@ export function useCofheTokenDecryptedBalance(
   const contractConfig = token && getTokenContractConfig(token.extensions.fhenix.confidentialityType);
 
   const {
-    decrypted: { data: decryptedData, isLoading: isDecryptionLoading },
-    encrypted: { isLoading: isEncryptedLoading, refetch: refetchCiphertext },
+    decrypted: { data: decryptedData, isFetching: isDecryptionFetching },
+    encrypted: { isFetching: isEncryptedFetching, refetch: refetchCiphertext },
     disabledDueToMissingPermit,
   } = useCofheReadContractAndDecrypt(
     {
@@ -88,7 +88,7 @@ export function useCofheTokenDecryptedBalance(
 
     data: decryptedData,
 
-    isLoading: isDecryptionLoading || isEncryptedLoading,
+    isFetching: isDecryptionFetching || isEncryptedFetching,
     refetch: refetchCiphertext,
   };
 }

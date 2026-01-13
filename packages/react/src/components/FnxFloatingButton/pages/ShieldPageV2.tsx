@@ -2,7 +2,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { TbShieldPlus, TbShieldMinus } from 'react-icons/tb';
 import { useMemo, useState } from 'react';
-import { type Address, parseUnits } from 'viem';
+import { parseUnits } from 'viem';
 import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext';
 import { useCofheAccount, useCofhePublicClient } from '@/hooks/useCofheConnection';
 import { useCofheTokenDecryptedBalance } from '@/hooks/useCofheTokenDecryptedBalance';
@@ -87,13 +87,13 @@ export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) 
 
   const {
     data: { unit: publicBalanceNum } = {},
-    isLoading: isLoadingPublic,
+    isFetching: isFetchingPublic,
     refetch: refetchPublic,
   } = useCofheTokenPublicBalance({ token, accountAddress: account });
 
   const {
     data: { unit: confidentialBalanceUnit } = {},
-    isLoading: isLoadingConfidential,
+    isFetching: isFetchingConfidential,
     refetch: refetchConfidential,
   } = useCofheTokenDecryptedBalance({ token, accountAddress: account });
 
@@ -252,8 +252,8 @@ export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) 
   const sourceAvailable = mode === 'shield' ? publicBalanceNum : confidentialBalanceUnit;
   const destAvailable = mode === 'shield' ? confidentialBalanceUnit : publicBalanceNum;
 
-  const isLoadingSource = mode === 'shield' ? isLoadingPublic : isLoadingConfidential;
-  const isLoadingDest = mode === 'shield' ? isLoadingConfidential : isLoadingPublic;
+  const isFetchingSource = mode === 'shield' ? isFetchingPublic : isFetchingConfidential;
+  const isFetchingDest = mode === 'shield' ? isFetchingConfidential : isFetchingPublic;
 
   const sourceLogoURI = mode === 'shield' ? pairedLogoURI : token.logoURI;
   const destLogoURI = mode === 'shield' ? token.logoURI : pairedLogoURI;
@@ -327,7 +327,7 @@ export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) 
                 Available{' '}
                 <TokenBalanceView
                   formattedBalance={sourceAvailable ? sourceAvailable.toFixed(DISPLAY_DECIMALS) : '0'}
-                  isLoading={isLoadingSource}
+                  isFetching={isFetchingSource}
                   symbol={sourceSymbol}
                   size="sm"
                   className="inline font-bold"
@@ -357,7 +357,7 @@ export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) 
                 Balance{' '}
                 <TokenBalanceView
                   formattedBalance={destAvailable ? destAvailable.toFixed(DISPLAY_DECIMALS) : '0'}
-                  isLoading={isLoadingDest}
+                  isFetching={isFetchingDest}
                   symbol={destSymbol}
                   size="sm"
                   className="inline font-bold"
