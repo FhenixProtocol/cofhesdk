@@ -1,5 +1,4 @@
 import { ToastPrimitive } from '@/components/FnxFloatingButton/components/ToastPrimitives';
-import { FNX_DEFAULT_TOAST_DURATION } from '@/components/FnxFloatingButton/FnxFloatingButtonContext';
 import type { FnxFloatingButtonToast, FnxToastImperativeParams } from '@/components/FnxFloatingButton/types';
 import { isValidElement } from 'react';
 import { create } from 'zustand';
@@ -17,7 +16,7 @@ type PortalToastsActions = {
 export const usePortalToasts = create<PortalToastsStore & PortalToastsActions>()((set, get) => ({
   toasts: [],
 
-  addToast: (toast, duration = FNX_DEFAULT_TOAST_DURATION) => {
+  addToast: (toast, duration = 5000) => {
     const content = isValidElement(toast) ? toast : <ToastPrimitive {...(toast as FnxToastImperativeParams)} />;
     const existing = get().toasts;
     const updated = [
