@@ -12,10 +12,10 @@ function constructUnshieldClaimsQueryKey({
   confidentialityType,
   accountAddress,
 }: {
-  chainId?: number;
-  tokenAddress?: Address;
-  confidentialityType?: string;
-  accountAddress?: Address;
+  chainId: number | undefined;
+  tokenAddress: Address | undefined;
+  confidentialityType: string | undefined;
+  accountAddress: Address | undefined;
 }) {
   return ['unshieldClaims', chainId, tokenAddress, confidentialityType, accountAddress];
 }
@@ -81,6 +81,7 @@ export function useCofheTokenClaimable(
   const confidentialityType = token?.extensions.fhenix.confidentialityType;
 
   const queryKey = constructUnshieldClaimsQueryKey({
+    chainId: token?.chainId,
     tokenAddress: token?.address,
     confidentialityType,
     accountAddress: account,

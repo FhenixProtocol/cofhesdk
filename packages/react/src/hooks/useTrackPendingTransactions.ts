@@ -121,13 +121,10 @@ export function useTrackPendingTransactions() {
     // TODO invalidate gas on all txs since any tx spends gas
     if (tx.actionType === TransactionActionType.ShieldSend) {
       invalidateConfidentialTokenBalanceQueries(tx.token, queryClient);
-    }
-
-    if (tx.actionType === TransactionActionType.Shield) {
+    } else if (tx.actionType === TransactionActionType.Shield) {
       // on shield public balance decreases and private increases
       invalidatePublicAndConfidentialTokenBalanceQueries(tx.token, tx.account, queryClient);
-    }
-    if (tx.actionType === TransactionActionType.Unshield) {
+    } else if (tx.actionType === TransactionActionType.Unshield) {
       // on unshield - private balance decreases, claimable increases, public remains the same
       invalidateConfidentialTokenBalanceQueries(tx.token, queryClient);
 
@@ -138,6 +135,26 @@ export function useTrackPendingTransactions() {
 
         queryClient,
       });
+    } else if (tx.actionType === TransactionActionType.Claim) {
+      // on claim - claimable decreases, public increases, private remains the same
+      const publicTokenAddress = tx.token.extensions.fhenix.erc20Pair?.address;
+      assert(publicTokenAddress, 'Public pair token address is required for claim transaction invalidation');
+      invalidatePublicTokenBalanceQueries(
+        {
+          tokenAddress: publicTokenAddress,
+          chainId: tx.token.chainId,
+          accountAddress: tx.account,
+        },
+        queryClient
+      );
+      invalidateClaimableQueries({
+        token: tx.token,
+        accountAddress: tx.account,
+
+        queryClient,
+      });
+    } else {
+      console.warn('No invalidation logic for transaction action type:', tx.actionType);
     }
   };
 

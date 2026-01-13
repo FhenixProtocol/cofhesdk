@@ -17,6 +17,7 @@ import { formatTokenAmount, unitToWei } from '@/utils/format';
 import { FloatingButtonPage } from '../pagesConfig/types';
 import { useCofheTokenClaimUnshielded, useCofheTokenUnshield, useCofheTokenClaimable } from '@/hooks';
 import { useOnceTransactionMined } from '@/hooks/useOnceTransactionMined';
+import { assert } from 'ts-essentials';
 
 const SUCCESS_TIMEOUT = 5000;
 const DISPLAY_DECIMALS = 5;
@@ -39,16 +40,12 @@ const shieldableTypes = new Set(['dual', 'wrapped']);
 export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) => {
   const { navigateBack, navigateTo } = useFnxFloatingButtonContext();
   const account = useCofheAccount();
-  const publicClient = useCofhePublicClient();
 
   const [mode, setMode] = useState<Mode>(defaultMode ?? 'shield');
   const [shieldAmount, setShieldAmount] = useState('');
   const [unshieldAmount, setUnshieldAmount] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<{ message: string; type: 'info' | 'success' } | null>(null);
-  const [isRefreshingBalances, setIsRefreshingBalances] = useState(false);
-  // obsolete way for isMining
-  const [isWaitingForConfirmation, setIsWaitingForConfirmation] = useState(false);
 
   const tokenShield = useCofheTokenShield({
     onMutate: () => {
@@ -115,79 +112,59 @@ export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) 
       }
     },
   });
-  const claimUnshield = useCofheTokenClaimUnshielded();
+  const claimUnshield = useCofheTokenClaimUnshielded({
+    onMutate: () => {
+      setError(null);
+      setStatus({ message: 'Preparing claim transaction...', type: 'info' });
+    },
+    onSuccess: (hash) => {
+      setStatus({
+        message: `Claim transaction sent! Hash: ${truncateHash(hash)}. Waiting for confirmation...`,
+        type: 'info',
+      });
+    },
+    onError: (error) => {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to claim unshielded tokens';
+      setError(errorMessage);
+      setStatus(null);
+      console.error('Claim tx submit error:', error);
+    },
+  });
 
-  const {
-    data: { unit: publicBalanceUnit } = {},
-    isFetching: isFetchingPublic,
-    refetch: refetchPublic,
-  } = useCofheTokenPublicBalance({ token, accountAddress: account });
+  const { isMining: isClaimingMining } = useOnceTransactionMined({
+    txHash: claimUnshield.data,
+    onceMined: (transaction) => {
+      if (transaction.status === 'confirmed') {
+        setStatus({
+          message: `Claim transaction confirmed! Hash: ${truncateHash(transaction.hash)}`,
+          type: 'success',
+        });
+      } else if (transaction.status === 'failed') {
+        setError(`Claim transaction failed! Hash: ${truncateHash(transaction.hash)}`);
+      }
+    },
+  });
 
-  const {
-    data: { unit: confidentialBalanceUnit } = {},
-    isFetching: isFetchingConfidential,
-    refetch: refetchConfidential,
-  } = useCofheTokenDecryptedBalance({ token, accountAddress: account });
-
-  const { data: unshieldClaims, refetch: refetchClaims } = useCofheTokenClaimable({
+  const { data: { unit: publicBalanceUnit } = {}, isFetching: isFetchingPublic } = useCofheTokenPublicBalance({
     token,
     accountAddress: account,
   });
 
-  const refreshBalances = async () => {
-    setIsRefreshingBalances(true);
-    try {
-      await Promise.all([refetchPublic(), refetchConfidential(), refetchClaims()]);
-    } finally {
-      setIsRefreshingBalances(false);
-    }
-  };
+  const { data: { unit: confidentialBalanceUnit } = {}, isFetching: isFetchingConfidential } =
+    useCofheTokenDecryptedBalance({ token, accountAddress: account });
 
-  // TODO: wrap into a hook / mutation
-  const executeTransaction = async (
-    txFn: () => Promise<`0x${string}`>,
-    successMessage: string,
-    errorMessage: string
-  ): Promise<`0x${string}`> => {
-    if (!publicClient) throw new Error('PublicClient is required');
-
-    setError(null);
-    setStatus({ message: 'Preparing transaction...', type: 'info' });
-
-    try {
-      const hash = await txFn();
-
-      setStatus({ message: `Waiting for confirmation... ${truncateHash(hash)}`, type: 'info' });
-      setIsWaitingForConfirmation(true);
-      await publicClient.waitForTransactionReceipt({ hash });
-      setIsWaitingForConfirmation(false);
-
-      setStatus({ message: 'Refreshing balances...', type: 'info' });
-      // here
-      await refreshBalances();
-
-      setStatus({ message: `${successMessage} ${truncateHash(hash)}`, type: 'success' });
-      setTimeout(() => setStatus(null), SUCCESS_TIMEOUT);
-
-      return hash;
-    } catch (err) {
-      setIsWaitingForConfirmation(false);
-      setStatus(null);
-      const message = err instanceof Error ? err.message : errorMessage;
-      setError(message);
-      console.error(`${errorMessage}:`, err);
-      throw err;
-    }
-  };
+  const { data: unshieldClaims } = useCofheTokenClaimable({
+    token,
+    accountAddress: account,
+  });
 
   const isProcessing =
     tokenShield.isPending ||
     tokenUnshield.isPending ||
     claimUnshield.isPending ||
-    isRefreshingBalances ||
-    isWaitingForConfirmation ||
     isTokenShieldMining ||
-    isTokenUnshieldMining;
+    isTokenUnshieldMining ||
+    isClaimingMining;
 
   const isValidShieldAmount = useMemo(() => {
     if (!shieldAmount) return false;
@@ -231,23 +208,11 @@ export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) 
   };
 
   const handleClaim = async () => {
-    if (!publicClient || !unshieldClaims) {
-      setError('Missing depenedencies to claim unshielded tokens.');
-      return;
-    }
-    try {
-      await executeTransaction(
-        () =>
-          claimUnshield.mutateAsync({
-            token,
-            amount: unshieldClaims.claimableAmount,
-          }),
-        'Claim complete!',
-        'Failed to claim tokens'
-      );
-    } catch {
-      // handled
-    }
+    assert(unshieldClaims, 'Unshield claims data is required to claim unshielded tokens');
+    claimUnshield.mutateAsync({
+      token,
+      amount: unshieldClaims.claimableAmount,
+    });
   };
 
   // TODO: redo: const object = mode === 'shield' ? obj1 : obj2;
@@ -391,7 +356,7 @@ export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) 
       {unshieldClaims?.hasClaimable && (
         <ActionButton
           onClick={handleClaim}
-          disabled={claimUnshield.isPending || isRefreshingBalances}
+          disabled={claimUnshield.isPending || !unshieldClaims.hasClaimable}
           label={
             claimUnshield.isPending
               ? 'Claiming...'
