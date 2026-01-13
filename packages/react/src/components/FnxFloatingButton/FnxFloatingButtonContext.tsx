@@ -1,18 +1,12 @@
-import { type ReactNode, createContext, useContext, useState, useEffect, isValidElement, useRef, useMemo } from 'react';
+import { type ReactNode, createContext, useContext, useState, isValidElement, useRef, useMemo } from 'react';
 import type { FloatingButtonPosition, FnxFloatingButtonToast, FnxStatus, FnxToastImperativeParams } from './types';
 import { useCofheContext } from '../../providers';
-import { checkPendingTransactions, stopPendingTransactionPolling } from '../../stores/transactionStore';
-import { useCofhePublicClient } from '@/hooks/useCofheConnection';
-import {
-  FloatingButtonPage,
-  type FloatingButtonPagePropsMap,
-  type PageState,
-  type PagesWithoutProps,
-  type PagesWithProps,
-} from './pagesConfig/types';
+import { type PageState, type PagesWithoutProps, type PagesWithProps } from './pagesConfig/types';
 import { ToastPrimitive } from './components/ToastPrimitives';
-import type { Token } from '@/hooks';
-import type { PortalModalState, OpenPortalModalFn, PortalModal, PortalModalPropsMap } from './modals/types';
+import type { FloatingButtonPagePropsMap } from './pagesConfig/types';
+import { FloatingButtonPage } from './pagesConfig/types';
+import { useTrackPendingTransactions } from '@/hooks/useTrackPendingTransactions';
+import type { OpenPortalModalFn, PortalModal, PortalModalPropsMap, PortalModalState } from './modals/types';
 
 export type TokenListMode = 'view' | 'select';
 
@@ -95,25 +89,13 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   const [statusPanelOpen, setStatusPanelOpen] = useState(false);
   const [contentPanelOpen, setContentPanelOpen] = useState(false);
 
-  const [tokenListMode, setTokenListMode] = useState<TokenListMode>('view');
-  const [selectedToken, setSelectedToken] = useState<Token>();
-  const [viewingToken, setViewingToken] = useState<Token>();
   const [toasts, setToasts] = useState<FnxFloatingButtonToast[]>([]);
   const [statuses, setStatuses] = useState<FnxStatus[]>([]);
 
   const openTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const publicClient = useCofhePublicClient();
-
-  // Check pending transactions on mount
-  // TODO: should be wrapped into react-query too, because the way it is now is inefficient (i.e no batching etc) and prone to errors
-  useEffect(() => {
-    checkPendingTransactions(() => publicClient);
-    return () => {
-      stopPendingTransactionPolling();
-    };
-  }, [publicClient]);
+  useTrackPendingTransactions();
 
   const currentPage = overridingPage ?? pageHistory[pageHistory.length - 1];
   const isLeftSide = effectivePosition.includes('left');

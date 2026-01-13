@@ -9,14 +9,10 @@ export {
 export { useCofheClient } from './useCofheClient';
 export { useCofheTokenDecryptedBalance } from './useCofheTokenDecryptedBalance';
 export { useCofheTokenTransfer } from './useCofheTokenTransfer';
-export {
-  useCofheTokenShield,
-  useCofheTokenUnshield,
-  useCofheClaimUnshield,
-  useCofheUnshieldClaims,
-  type UnshieldClaim,
-  type UnshieldClaimsSummary,
-} from './useCofheTokenShield';
+export { useCofheTokenShield, type UnshieldClaim } from './useCofheTokenShield';
+export { useCofheTokenUnshield } from './useCofheTokenUnshield';
+export { useCofheTokenClaimUnshielded } from './useCofheTokenClaimUnshielded';
+export { useCofheTokenClaimable, type UnshieldClaimsSummary } from './useCofheTokenClaimable';
 export { useCofheWalletClient } from './useCofheConnection';
 export { useCofheTokens, useCofheTokenLists, ETH_ADDRESS, type Token, type Erc20Pair } from './useCofheTokenLists';
 export * from './permits';

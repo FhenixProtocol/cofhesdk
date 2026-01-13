@@ -6,7 +6,55 @@ import { assert } from 'ts-essentials';
 import { useIsCofheErrorActive } from './useIsCofheErrorActive';
 import { useInternalQuery } from '../providers/index';
 
-export type UseCofheReadContractQueryOptions = Omit<UseQueryOptions<bigint, Error>, 'queryKey' | 'queryFn'>;
+const QUERY_CACHE_PREFIX = 'cofheReadContract';
+
+export function constructCofheReadContractQueryKey({
+  cofheChainId,
+  address,
+  functionName,
+  args,
+  requiresPermit,
+  activePermitHash,
+  enabled,
+}: {
+  cofheChainId?: number;
+  address?: Address;
+  functionName?: string;
+  args?: readonly unknown[];
+  requiresPermit?: boolean;
+  activePermitHash?: string;
+  enabled?: boolean;
+}): readonly unknown[] {
+  return [
+    ...constructCofheReadContractQueryForInvalidation({
+      cofheChainId,
+      address,
+      functionName,
+    }),
+
+    args ?? [],
+    requiresPermit ? activePermitHash : undefined,
+    // normally, "enabled" shouldn't be part of queryKey, but without adding it, there is a weird bug: when there's a CofheError, query still running queryFn resulting in the blank screen
+    enabled,
+  ];
+}
+
+export function constructCofheReadContractQueryForInvalidation({
+  cofheChainId,
+  address,
+  functionName,
+}: {
+  cofheChainId?: number;
+  address?: Address;
+  functionName?: string;
+  // add more specificity if needed. Just make sure it matches the order of keys
+}): readonly unknown[] {
+  return [QUERY_CACHE_PREFIX, cofheChainId, address, functionName];
+}
+
+export type UseCofheReadContractQueryOptions = Omit<UseQueryOptions<bigint, Error>, 'queryKey' | 'queryFn'> & {
+  enabled?: boolean; // TODO: check callback variant, maybe it'll fix the issue above about forcing enable to be query key
+};
 /**
  * Generic hook: read a contract and return the result (with permit/error gating support).
  */
@@ -37,18 +85,18 @@ export function useCofheReadContract(
     (!requiresPermit || !!activePermit) &&
     (userEnabled ?? true);
 
+  const queryKey = constructCofheReadContractQueryKey({
+    cofheChainId,
+    address,
+    functionName,
+    args,
+    requiresPermit,
+    activePermitHash: activePermit?.hash,
+    enabled,
+  });
   const result = useInternalQuery({
     enabled,
-    queryKey: [
-      'cofheReadContract',
-      cofheChainId,
-      address,
-      functionName,
-      args ?? [],
-      requiresPermit ? activePermit?.hash : undefined,
-      // normally, "enabled" shouldn't be part of queryKey, but without adding it, there is a weird bug: when there's a CofheError, query still running queryFn resulting in the blank screen
-      enabled,
-    ],
+    queryKey,
     queryFn: async () => {
       assert(address, 'Contract address should be guaranteed by enabled check');
       assert(publicClient, 'PublicClient should be guaranteed by enabled check');

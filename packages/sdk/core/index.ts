@@ -55,6 +55,7 @@ export {
   isEncryptableItem,
   EncryptStep,
   isLastEncryptionStep,
+  assertCorrectEncryptedItemInput,
 } from './types.js';
 
 // Error handling

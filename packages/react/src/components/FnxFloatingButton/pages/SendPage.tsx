@@ -5,7 +5,7 @@ import { isAddress, maxUint128 } from 'viem';
 import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext';
 import { useCofheAccount } from '@/hooks/useCofheConnection';
 import { useCofheTokenDecryptedBalance } from '@/hooks/useCofheTokenDecryptedBalance';
-import { useCofheTokenTransfer, type EncryptedValue } from '@/hooks/useCofheTokenTransfer';
+import { useCofheTokenTransfer } from '@/hooks/useCofheTokenTransfer';
 import { cn } from '../../../utils/cn';
 import { truncateAddress, sanitizeNumericInput } from '../../../utils/utils';
 import { TokenIcon } from '../components/TokenIcon';
@@ -16,6 +16,7 @@ import { useCofheEncrypt, type Token } from '@/hooks';
 import { getStepConfig } from '@/hooks/useCofheEncrypt';
 import { createEncryptable } from '@cofhe/sdk';
 import { FloatingButtonPage } from '../pagesConfig/types';
+import { useOnceTransactionMined } from '@/hooks/useOnceTransactionMined';
 
 export type SendPageProps = {
   token: Token;
@@ -31,7 +32,33 @@ export const SendPage: React.FC<SendPageProps> = ({ token }) => {
   const { navigateBack, navigateTo } = useFnxFloatingButtonContext();
 
   const account = useCofheAccount();
-  const tokenTransfer = useCofheTokenTransfer();
+  const tokenTransfer = useCofheTokenTransfer({
+    onError: (error) => {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to send tokens';
+      setError(errorMessage);
+      console.error('Send tx submit error:', error);
+    },
+    onMutate: () => {
+      setError(null);
+      setSuccess(null);
+    },
+    onSuccess: (hash) => {
+      setSuccess(`Transaction sent! Hash: ${truncateAddress(hash)}. Is being mined...`);
+      setAmount('');
+      setRecipientAddress('');
+    },
+  });
+
+  useOnceTransactionMined({
+    txHash: tokenTransfer.data,
+    onceMined: (transaction) => {
+      if (transaction.status === 'confirmed') {
+        setSuccess(`Transaction confirmed! Hash: ${truncateAddress(transaction.hash)}`);
+      } else if (transaction.status === 'failed') {
+        setError(`Transaction failed! Hash: ${truncateAddress(transaction.hash)}`);
+      }
+    },
+  });
 
   const { data: { unit: confidentialUnitBalance } = {} } = useCofheTokenDecryptedBalance({
     token,
@@ -54,86 +81,32 @@ export const SendPage: React.FC<SendPageProps> = ({ token }) => {
   const isSending = tokenTransfer.isPending;
 
   // Validate recipient address
-  const isValidAddress = useMemo(() => {
-    if (!recipientAddress) return false;
-    return isAddress(recipientAddress);
-  }, [recipientAddress]);
+  const isValidAddress = isAddress(recipientAddress);
 
   // Validate amount
-  const isValidAmount = useMemo(() => {
-    // any of the balances zero or undefined - invalid, can't send
-    if (!amount || !confidentialUnitBalance) return false;
+  const isValidAmount = (amount.length > 0 && confidentialUnitBalance && confidentialUnitBalance.gte(amount)) ?? false;
 
-    // only valid if balance is enough
-    return confidentialUnitBalance.gte(amount);
-  }, [amount, confidentialUnitBalance]);
-
-  // TODO: wrap sending into a hook / mutation
   const handleSend = async () => {
-    assert(token, 'No token selected for sending');
-    if (!isValidAddress) {
-      setError('Invalid recipient address');
-      return;
-    }
+    assert(isAddress(recipientAddress), 'Recipient address is not valid');
 
-    if (!isValidAmount) {
-      setError('Invalid amount. Please check your balance.');
-      return;
-    }
+    // Check if amount exceeds uint128 max value (2^128 - 1)
+    // Convert amount to token's smallest unit (considering decimals)
+    const amountWei = unitToWei(amount, token.decimals);
+    // TODO: Does this need to be different if the confidential token uses euint64 for the balance precision?
+    assert(amountWei <= maxUint128, 'Amount exceeds maximum supported value (uint128 max)');
 
-    setError(null);
-    setSuccess(null);
+    // TODO: test error on encryption?
+    const encryptedValue = await encrypt({
+      input: createEncryptable(token.extensions.fhenix.confidentialValueType, amountWei),
+    });
 
-    try {
-      // Convert amount to token's smallest unit (considering decimals)
-      const amountWei = unitToWei(amount, token.decimals);
-
-      // Check if amount exceeds uint128 max value (2^128 - 1)
-
-      // TODO: Does this need to be different if the confidential token uses euint64 for the balance precision?
-      assert(amountWei <= maxUint128, 'Amount exceeds maximum supported value (uint128 max)');
-
-      // Encrypt the amount using the token's confidentialValueType
-      const confidentialValueType = token.extensions.fhenix.confidentialValueType;
-
-      // TODO: test error on encryption?
-      const encryptedAmount = await encrypt({
-        input: createEncryptable(confidentialValueType, amountWei),
-      });
-
-      if (!encryptedAmount || !encryptedAmount.ctHash) {
-        throw new Error('Failed to encrypt amount');
-      }
-
-      // Construct encrypted value struct
-      const encryptedValue: EncryptedValue = {
-        ctHash: BigInt(encryptedAmount.ctHash),
-        securityZone: encryptedAmount.securityZone ?? 0,
-        utype: encryptedAmount.utype ?? 0,
-        signature: encryptedAmount.signature as `0x${string}`,
-      };
-
-      assert(isAddress(recipientAddress), 'Recipient address is not valid');
-
-      // Use the token transfer hook to send encrypted tokens
-      const hash = await tokenTransfer.mutateAsync({
-        token,
-        to: recipientAddress,
-        encryptedValue,
-        amount: amountWei,
-      });
-
-      setSuccess(`Transaction sent! Hash: ${truncateAddress(hash)}`);
-      setAmount('');
-      setRecipientAddress('');
-
-      // Clear success message after 5 seconds
-      setTimeout(() => setSuccess(null), 5000);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to send tokens';
-      setError(errorMessage);
-      console.error('Send error:', err);
-    }
+    // Use the token transfer hook to send encrypted tokens
+    await tokenTransfer.mutateAsync({
+      token,
+      to: recipientAddress,
+      encryptedValue,
+      amount: amountWei,
+    });
   };
 
   const handleMaxAmount = () => {

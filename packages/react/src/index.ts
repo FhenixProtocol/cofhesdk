@@ -19,8 +19,8 @@ export {
   useCofheTokenLists,
   useCofheTokenShield,
   useCofheTokenUnshield,
-  useCofheClaimUnshield,
-  useCofheUnshieldClaims,
+  useCofheTokenClaimUnshielded,
+  useCofheTokenClaimable,
   useCofheTokenDecryptedBalance,
   useCofheTokenTransfer,
   ETH_ADDRESS,
@@ -56,9 +56,6 @@ export {
   TransactionActionType,
   actionToString,
   statusToString,
-  addTransactionAndWatch,
-  checkPendingTransactions,
-  stopPendingTransactionPolling,
   type Transaction,
   type TransactionStore,
   type TransactionStatusString,
@@ -84,3 +81,5 @@ export { ErrorCause } from './utils/errors';
 export type { CofhesdkConfigWithReact } from './config';
 
 export type { Token } from './types/token';
+
+export { useInternalQueryClient } from './providers/index';

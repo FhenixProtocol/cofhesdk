@@ -2,10 +2,11 @@ import { type UseQueryOptions } from '@tanstack/react-query';
 import { type Address } from 'viem';
 import { FheTypes } from '@cofhe/sdk';
 import { type Token } from './useCofheTokenLists';
-import { CONFIDENTIAL_ABIS } from '../constants/confidentialTokenABIs';
+import { CONFIDENTIAL_ABIS, getTokenContractConfig } from '../constants/confidentialTokenABIs';
 import { assert } from 'ts-essentials';
 import { formatTokenAmount, type TokenFormatOutput } from '@/utils/format';
 import { useCofheReadContractAndDecrypt } from './useCofheReadContractAndDecrypt';
+import { ErrorCause } from '@/utils';
 
 // ============================================================================
 // Unified Confidential Balance Hook
@@ -28,7 +29,7 @@ type UseConfidentialTokenBalanceResult = {
   /** Raw balance in smallest unit (bigint) */
   data?: TokenFormatOutput;
   /** Whether balance is loading */
-  isLoading: boolean;
+  isFetching: boolean;
   /** Refetch function */
   refetch: () => Promise<unknown>;
   disabledDueToMissingPermit: boolean;
@@ -49,11 +50,11 @@ export function useCofheTokenDecryptedBalance(
 
   const fheType = token?.extensions.fhenix.confidentialValueType === 'uint64' ? FheTypes.Uint64 : FheTypes.Uint128;
 
-  const contractConfig = token ? CONFIDENTIAL_ABIS[token.extensions.fhenix.confidentialityType] : undefined;
+  const contractConfig = token && getTokenContractConfig(token.extensions.fhenix.confidentialityType);
 
   const {
-    decrypted: { data: decryptedData, isLoading: isDecryptionLoading },
-    encrypted: { isLoading: isEncryptedLoading, refetch: refetchCiphertext },
+    decrypted: { data: decryptedData, isFetching: isDecryptionFetching },
+    encrypted: { isFetching: isEncryptedFetching, refetch: refetchCiphertext },
     disabledDueToMissingPermit,
   } = useCofheReadContractAndDecrypt(
     {
@@ -63,6 +64,7 @@ export function useCofheTokenDecryptedBalance(
       args: [accountAddress],
       fheType,
       requiresPermit: true,
+      potentialDecryptErrorCause: ErrorCause.AttemptToFetchConfidentialBalance,
     },
     {
       readQueryOptions: {
@@ -86,7 +88,7 @@ export function useCofheTokenDecryptedBalance(
 
     data: decryptedData,
 
-    isLoading: isDecryptionLoading || isEncryptedLoading,
+    isFetching: isDecryptionFetching || isEncryptedFetching,
     refetch: refetchCiphertext,
   };
 }

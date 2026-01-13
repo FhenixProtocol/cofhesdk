@@ -1,3 +1,4 @@
+import type { Token } from '@/types/token';
 import { parseAbi, type Abi } from 'viem';
 
 // ============================================================================
@@ -312,3 +313,7 @@ export const CLAIM_ABIS = {
     functionName: 'claimAllDecrypted' as const,
   },
 } as const;
+
+export function getTokenContractConfig(confidentialityType: Token['extensions']['fhenix']['confidentialityType']) {
+  return CONFIDENTIAL_ABIS[confidentialityType];
+}

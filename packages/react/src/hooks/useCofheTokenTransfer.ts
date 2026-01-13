@@ -1,19 +1,12 @@
 import { type UseMutationOptions, type UseMutationResult } from '@tanstack/react-query';
 import { type Address } from 'viem';
-import { useCofheWalletClient, useCofheChainId, useCofheAccount, useCofhePublicClient } from './useCofheConnection.js';
-import { useCofheContext } from '../providers/index.js';
+import { useCofheWalletClient, useCofheChainId, useCofheAccount } from './useCofheConnection.js';
 import type { Token } from './useCofheTokenLists.js';
 import { TRANSFER_ABIS } from '../constants/confidentialTokenABIs.js';
-import { addTransactionAndWatch, TransactionActionType } from '../stores/transactionStore.js';
+import { TransactionActionType, useTransactionStore } from '../stores/transactionStore.js';
 import { useInternalMutation } from '../providers/index.js';
-
-// Encrypted value struct type
-export type EncryptedValue = {
-  ctHash: bigint;
-  securityZone: number;
-  utype: number;
-  signature: `0x${string}`;
-};
+import { assert } from 'ts-essentials';
+import { assertCorrectEncryptedItemInput, type EncryptedItemInput } from '@cofhe/sdk';
 
 type UseTokenTransferInput = {
   /** Token object with confidentialityType */
@@ -21,7 +14,7 @@ type UseTokenTransferInput = {
   /** Recipient address */
   to: Address;
   /** Encrypted value struct (ctHash, securityZone, utype, signature) */
-  encryptedValue: EncryptedValue;
+  encryptedValue: EncryptedItemInput;
   /** Amount being transferred (for transaction history) */
   amount: bigint;
 };
@@ -38,19 +31,19 @@ export function useCofheTokenTransfer(
   options?: UseTokenTransferOptions
 ): UseMutationResult<`0x${string}`, Error, UseTokenTransferInput> {
   const walletClient = useCofheWalletClient();
-  const publicClient = useCofhePublicClient();
   const chainId = useCofheChainId();
   const account = useCofheAccount();
-  const { recordTransactionHistory } = useCofheContext().client.config.react;
+  const { onSuccess, ...restOfOptions } = options || {};
 
   return useInternalMutation({
-    mutationFn: async (input: UseTokenTransferInput) => {
+    mutationFn: async ({ token, to: contractAddress, encryptedValue: inputEncryptedValue }: UseTokenTransferInput) => {
+      assertCorrectEncryptedItemInput(inputEncryptedValue);
+
       if (!walletClient) {
         throw new Error('WalletClient is required for token transfer');
       }
-
-      const tokenAddress = input.token.address as Address;
-      const confidentialityType = input.token.extensions.fhenix.confidentialityType;
+      const tokenAddress = token.address;
+      const confidentialityType = token.extensions.fhenix.confidentialityType;
 
       if (!confidentialityType) {
         throw new Error('confidentialityType is required in token extensions');
@@ -70,43 +63,32 @@ export function useCofheTokenTransfer(
         throw new Error('Dual confidentiality type is not yet implemented');
       }
 
-      // Construct the inValue struct from encryptedValue (object format for viem)
-      const inValue = {
-        ctHash: input.encryptedValue.ctHash,
-        securityZone: input.encryptedValue.securityZone,
-        utype: input.encryptedValue.utype,
-        signature: input.encryptedValue.signature,
-      };
-
       const hash = await walletClient.writeContract({
         address: tokenAddress,
         abi: contractConfig.abi,
         functionName: contractConfig.functionName,
-        args: [input.to, inValue],
+        args: [contractAddress, inputEncryptedValue],
         account: walletClient.account,
         chain: undefined,
       });
 
-      // Record transaction and watch for confirmation
-      if (chainId && account) {
-        addTransactionAndWatch(
-          {
-            hash,
-            tokenSymbol: input.token.symbol,
-            tokenAmount: input.amount,
-            tokenDecimals: input.token.decimals,
-            tokenAddress: input.token.address,
-            chainId,
-            actionType: TransactionActionType.ShieldSend,
-            account,
-          },
-          publicClient,
-          recordTransactionHistory
-        );
-      }
-
       return hash;
     },
-    ...options,
+    onSuccess: async (hash, input, onMutateResult, context) => {
+      assert(account, 'Wallet account is required for token transfer');
+      assert(chainId, 'Chain ID is required for token transfer');
+      if (onSuccess) await onSuccess(hash, input, onMutateResult, context);
+
+      // Record transaction and watch for confirmation
+      useTransactionStore.getState().addTransaction({
+        hash,
+        token: input.token,
+        tokenAmount: input.amount,
+        chainId,
+        actionType: TransactionActionType.ShieldSend,
+        account,
+      });
+    },
+    ...restOfOptions,
   });
 }

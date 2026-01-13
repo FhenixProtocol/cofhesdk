@@ -16,7 +16,9 @@ export function useCofheReadContractAndDecrypt<TDecryptedSelectedData = bigint>(
     args?: readonly unknown[];
     fheType: FheTypes;
     requiresPermit?: boolean;
+    potentialDecryptErrorCause: ErrorCause;
   },
+
   {
     readQueryOptions,
     decryptingQueryOptions,
@@ -32,7 +34,7 @@ export function useCofheReadContractAndDecrypt<TDecryptedSelectedData = bigint>(
   decrypted: UseQueryResult<TDecryptedSelectedData, Error>;
   disabledDueToMissingPermit: boolean;
 } {
-  const { address, abi, functionName, args, fheType, requiresPermit = true } = params;
+  const { address, abi, functionName, args, fheType, requiresPermit = true, potentialDecryptErrorCause } = params;
 
   const encrypted = useCofheReadContract({ address, abi, functionName, args, requiresPermit }, readQueryOptions);
 
@@ -40,7 +42,8 @@ export function useCofheReadContractAndDecrypt<TDecryptedSelectedData = bigint>(
     {
       ciphertext: encrypted.data,
       fheType,
-      cause: ErrorCause.AttemptToFetchConfidentialBalance,
+
+      cause: potentialDecryptErrorCause,
     },
     decryptingQueryOptions
   );

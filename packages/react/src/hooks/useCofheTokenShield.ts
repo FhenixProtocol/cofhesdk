@@ -6,7 +6,6 @@ import {
 } from '@tanstack/react-query';
 import { type Address } from 'viem';
 import { useCofheWalletClient, useCofheChainId, useCofheAccount, useCofhePublicClient } from './useCofheConnection.js';
-import { useCofheContext } from '../providers/index.js';
 import { type Token, ETH_ADDRESS } from './useCofheTokenLists.js';
 import {
   SHIELD_ABIS,
@@ -19,8 +18,9 @@ import {
   ERC20_ALLOWANCE_ABI,
   ERC20_APPROVE_ABI,
 } from '../constants/confidentialTokenABIs.js';
-import { addTransactionAndWatch, TransactionActionType } from '../stores/transactionStore.js';
+import { TransactionActionType, useTransactionStore } from '../stores/transactionStore.js';
 import { useInternalMutation, useInternalQuery } from '../providers/index.js';
+import { assert } from 'ts-essentials';
 
 // ============================================================================
 // Types
@@ -43,25 +43,7 @@ type UseTokenShieldInput = {
   onStatusChange?: (message: string) => void;
 };
 
-type UseTokenUnshieldInput = {
-  /** Token object with confidentialityType */
-  token: Token;
-  /** Amount to unshield (in token's smallest unit, uint64 max for dual) */
-  amount: bigint;
-  /** Optional callback for status updates during the operation */
-  onStatusChange?: (message: string) => void;
-};
-
-type UseClaimUnshieldInput = {
-  /** Token object with confidentialityType */
-  token: Token;
-  /** Amount being claimed (for activity logging) */
-  amount?: bigint;
-};
-
 type UseTokenShieldOptions = Omit<UseMutationOptions<`0x${string}`, Error, UseTokenShieldInput>, 'mutationFn'>;
-type UseTokenUnshieldOptions = Omit<UseMutationOptions<`0x${string}`, Error, UseTokenUnshieldInput>, 'mutationFn'>;
-type UseClaimUnshieldOptions = Omit<UseMutationOptions<`0x${string}`, Error, UseClaimUnshieldInput>, 'mutationFn'>;
 
 // ============================================================================
 // Shield Hook
@@ -81,7 +63,7 @@ export function useCofheTokenShield(
   const publicClient = useCofhePublicClient();
   const chainId = useCofheChainId();
   const account = useCofheAccount();
-  const { recordTransactionHistory } = useCofheContext().client.config.react;
+  const { onSuccess, ...restOfOptions } = options || {};
 
   return useInternalMutation({
     mutationFn: async (input: UseTokenShieldInput) => {
@@ -189,352 +171,23 @@ export function useCofheTokenShield(
         });
       }
 
-      // Record transaction and watch for confirmation
-      if (chainId && account) {
-        addTransactionAndWatch(
-          {
-            hash,
-            tokenSymbol: input.token.symbol,
-            tokenAmount: input.amount,
-            tokenDecimals: input.token.decimals,
-            tokenAddress: input.token.address,
-            chainId,
-            actionType: TransactionActionType.Shield,
-            account,
-          },
-          publicClient,
-          recordTransactionHistory
-        );
-      }
-
       return hash;
     },
-    ...options,
-  });
-}
-
-// ============================================================================
-// Unshield Hook
-// ============================================================================
-
-/**
- * Hook to unshield tokens (initiate conversion from confidential to regular)
- * - Dual tokens: calls `unshield(uint64 amount)`, then need to claim
- * - Wrapped tokens: TBD
- * @param options - Optional React Query mutation options
- * @returns Mutation result with transaction hash
- */
-export function useCofheTokenUnshield(
-  options?: UseTokenUnshieldOptions
-): UseMutationResult<`0x${string}`, Error, UseTokenUnshieldInput> {
-  const walletClient = useCofheWalletClient();
-  const publicClient = useCofhePublicClient();
-  const chainId = useCofheChainId();
-  const account = useCofheAccount();
-  const { recordTransactionHistory } = useCofheContext().client.config.react;
-
-  return useInternalMutation({
-    mutationFn: async (input: UseTokenUnshieldInput) => {
-      if (!walletClient) {
-        throw new Error('WalletClient is required for token unshield');
-      }
-
-      const tokenAddress = input.token.address as Address;
-      const confidentialityType = input.token.extensions.fhenix.confidentialityType;
-
-      if (!confidentialityType) {
-        throw new Error('confidentialityType is required in token extensions');
-      }
-
-      if (!walletClient.account) {
-        throw new Error('Wallet account is required for token unshield');
-      }
-
-      // Only dual and wrapped support unshielding
-      if (confidentialityType !== 'dual' && confidentialityType !== 'wrapped') {
-        throw new Error(`Unshield not supported for confidentialityType: ${confidentialityType}`);
-      }
-
-      const contractConfig = UNSHIELD_ABIS[confidentialityType];
-      if (!contractConfig) {
-        throw new Error(`Unsupported confidentialityType for unshield: ${confidentialityType}`);
-      }
-
-      let hash: `0x${string}`;
-
-      input.onStatusChange?.('Please confirm in wallet...');
-
-      if (confidentialityType === 'wrapped') {
-        // Wrapped tokens: decrypt(address to, uint128 value)
-        hash = await walletClient.writeContract({
-          address: tokenAddress,
-          abi: contractConfig.abi,
-          functionName: contractConfig.functionName,
-          args: [walletClient.account.address, input.amount],
-          account: walletClient.account,
-          chain: undefined,
-        });
-      } else {
-        // For dual tokens, unshield takes uint64
-        const amount = BigInt.asUintN(64, input.amount);
-
-        hash = await walletClient.writeContract({
-          address: tokenAddress,
-          abi: contractConfig.abi,
-          functionName: contractConfig.functionName,
-          args: [amount],
-          account: walletClient.account,
-          chain: undefined,
-        });
-      }
+    onSuccess: async (hash, input, onMutateResult, context) => {
+      assert(chainId, 'Chain ID is required for token shield');
+      assert(account, 'Wallet account is required for token shield');
+      if (onSuccess) await onSuccess(hash, input, onMutateResult, context);
 
       // Record transaction and watch for confirmation
-      if (chainId && account) {
-        addTransactionAndWatch(
-          {
-            hash,
-            tokenSymbol: input.token.symbol,
-            tokenAmount: input.amount,
-            tokenDecimals: input.token.decimals,
-            tokenAddress: input.token.address,
-            chainId,
-            actionType: TransactionActionType.Unshield,
-            account,
-          },
-          publicClient,
-          recordTransactionHistory
-        );
-      }
-
-      return hash;
-    },
-    ...options,
-  });
-}
-
-// ============================================================================
-// Claim Unshield Hook
-// ============================================================================
-
-/**
- * Hook to claim unshielded tokens after decryption completes
- * - Dual tokens: calls `claimUnshielded()`
- * - Wrapped tokens: calls `claimAllDecrypted()`
- * @param options - Optional React Query mutation options
- * @returns Mutation result with transaction hash
- */
-export function useCofheClaimUnshield(
-  options?: UseClaimUnshieldOptions
-): UseMutationResult<`0x${string}`, Error, UseClaimUnshieldInput> {
-  const walletClient = useCofheWalletClient();
-  const publicClient = useCofhePublicClient();
-  const chainId = useCofheChainId();
-  const account = useCofheAccount();
-  const { recordTransactionHistory } = useCofheContext().client.config.react;
-
-  return useInternalMutation({
-    mutationFn: async (input: UseClaimUnshieldInput) => {
-      if (!walletClient) {
-        throw new Error('WalletClient is required for claim');
-      }
-
-      const tokenAddress = input.token.address as Address;
-      const confidentialityType = input.token.extensions.fhenix.confidentialityType;
-
-      if (!confidentialityType) {
-        throw new Error('confidentialityType is required in token extensions');
-      }
-
-      if (!walletClient.account) {
-        throw new Error('Wallet account is required for claim');
-      }
-
-      // Only dual and wrapped support claiming
-      if (confidentialityType !== 'dual' && confidentialityType !== 'wrapped') {
-        throw new Error(`Claim not supported for confidentialityType: ${confidentialityType}`);
-      }
-
-      const contractConfig = CLAIM_ABIS[confidentialityType];
-      if (!contractConfig) {
-        throw new Error(`Unsupported confidentialityType for claim: ${confidentialityType}`);
-      }
-
-      const hash = await walletClient.writeContract({
-        address: tokenAddress,
-        abi: contractConfig.abi,
-        functionName: contractConfig.functionName,
-        args: [],
-        account: walletClient.account,
-        chain: undefined,
+      useTransactionStore.getState().addTransaction({
+        hash,
+        token: input.token,
+        tokenAmount: input.amount,
+        chainId,
+        actionType: TransactionActionType.Shield,
+        account,
       });
-
-      // Record transaction and watch for confirmation
-      if (chainId && account && input.amount !== undefined) {
-        addTransactionAndWatch(
-          {
-            hash,
-            tokenSymbol: input.token.symbol,
-            tokenAmount: input.amount,
-            tokenDecimals: input.token.decimals,
-            tokenAddress: input.token.address,
-            chainId,
-            actionType: TransactionActionType.Claim,
-            account,
-          },
-          publicClient,
-          recordTransactionHistory
-        );
-      }
-
-      return hash;
     },
-    ...options,
-  });
-}
-
-// ============================================================================
-// Unified Unshield Claims Hook
-// ============================================================================
-
-/**
- * Unified unshield claims summary - works for both dual and wrapped tokens
- */
-export type UnshieldClaimsSummary = {
-  /** Total amount that can be claimed now (decrypted and not claimed) */
-  claimableAmount: bigint;
-  /** Total amount pending decryption */
-  pendingAmount: bigint;
-  /** Whether there are any claimable amounts */
-  hasClaimable: boolean;
-  /** Whether there are any pending (not yet decrypted) claims */
-  hasPending: boolean;
-};
-
-type UseUnshieldClaimsInput = {
-  /** Token object with confidentialityType */
-  token?: Token;
-  /** Account address (optional, defaults to connected account) */
-  accountAddress?: Address;
-};
-
-type UseUnshieldClaimsOptions = Omit<UseQueryOptions<UnshieldClaimsSummary, Error>, 'queryKey' | 'queryFn'>;
-
-/**
- * Unified hook to fetch unshield claims for any token type (dual or wrapped)
- * @param input - Token object and optional account address
- * @param queryOptions - Optional React Query options
- * @returns Query result with UnshieldClaimsSummary
- */
-export function useCofheUnshieldClaims(
-  input: UseUnshieldClaimsInput,
-  queryOptions?: UseUnshieldClaimsOptions
-): UseQueryResult<UnshieldClaimsSummary, Error> {
-  const publicClient = useCofhePublicClient();
-  const connectedAccount = useCofheAccount();
-  const account = input.accountAddress || (connectedAccount as Address | undefined);
-
-  const token = input.token;
-  const tokenAddress = token?.address as Address | undefined;
-  const confidentialityType = token?.extensions.fhenix.confidentialityType;
-
-  return useInternalQuery({
-    queryKey: ['unshieldClaims', tokenAddress, confidentialityType, account],
-    queryFn: async (): Promise<UnshieldClaimsSummary> => {
-      if (!publicClient) {
-        throw new Error('PublicClient is required to fetch unshield claims');
-      }
-      if (!account) {
-        throw new Error('Account address is required to fetch unshield claims');
-      }
-      if (!tokenAddress) {
-        throw new Error('Token address is required');
-      }
-
-      if (confidentialityType === 'dual') {
-        // Dual tokens: single claim via getUserUnshieldClaim
-        const result = await publicClient.readContract({
-          address: tokenAddress,
-          abi: DUAL_GET_UNSHIELD_CLAIM_ABI,
-          functionName: 'getUserUnshieldClaim',
-          args: [account],
-        });
-
-        const claim = result as {
-          ctHash: bigint;
-          requestedAmount: bigint;
-          decryptedAmount: bigint;
-          decrypted: boolean;
-          claimed: boolean;
-        };
-
-        // No active claim
-        if (claim.ctHash === 0n || claim.claimed) {
-          return {
-            claimableAmount: 0n,
-            pendingAmount: 0n,
-            hasClaimable: false,
-            hasPending: false,
-          };
-        }
-
-        return {
-          claimableAmount: claim.decrypted ? claim.decryptedAmount : 0n,
-          pendingAmount: claim.decrypted ? 0n : claim.requestedAmount,
-          hasClaimable: claim.decrypted,
-          hasPending: !claim.decrypted,
-        };
-      } else if (confidentialityType === 'wrapped') {
-        // Wrapped tokens: multiple claims via getUserClaims
-        const result = await publicClient.readContract({
-          address: tokenAddress,
-          abi: WRAPPED_GET_USER_CLAIMS_ABI,
-          functionName: 'getUserClaims',
-          args: [account],
-        });
-
-        type WrappedClaimResult = {
-          ctHash: bigint;
-          requestedAmount: bigint;
-          decryptedAmount: bigint;
-          decrypted: boolean;
-          to: Address;
-          claimed: boolean;
-        };
-
-        const claims = (result as WrappedClaimResult[]).filter((c) => !c.claimed);
-
-        let claimableAmount = 0n;
-        let pendingAmount = 0n;
-
-        for (const claim of claims) {
-          if (claim.decrypted) {
-            claimableAmount += claim.decryptedAmount;
-          } else {
-            pendingAmount += claim.requestedAmount;
-          }
-        }
-
-        return {
-          claimableAmount,
-          pendingAmount,
-          hasClaimable: claimableAmount > 0n,
-          hasPending: pendingAmount > 0n,
-        };
-      }
-
-      // Token type doesn't support claims
-      return {
-        claimableAmount: 0n,
-        pendingAmount: 0n,
-        hasClaimable: false,
-        hasPending: false,
-      };
-    },
-    enabled:
-      !!publicClient &&
-      !!account &&
-      !!tokenAddress &&
-      (confidentialityType === 'dual' || confidentialityType === 'wrapped'),
-    ...queryOptions,
+    ...restOfOptions,
   });
 }

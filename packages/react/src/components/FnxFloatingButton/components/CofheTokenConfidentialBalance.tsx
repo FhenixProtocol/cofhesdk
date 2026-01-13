@@ -42,7 +42,7 @@ export const CofheTokenConfidentialBalance: React.FC<TokenBalanceProps> = ({
   // Use unified hook for confidential balance fetching
   const {
     data: { formatted: confidentialBalanceFormatted } = {},
-    isLoading: isLoadingConfidential,
+    isFetching: isFetchingConfidential,
     disabledDueToMissingPermit,
   } = useCofheTokenDecryptedBalance(
     { token, accountAddress: effectiveAccountAddress, displayDecimals: decimalPrecision },
@@ -56,7 +56,7 @@ export const CofheTokenConfidentialBalance: React.FC<TokenBalanceProps> = ({
       className={className}
       size={size}
       hidden={disabledDueToMissingPermit}
-      isLoading={isLoadingConfidential}
+      isFetching={isFetchingConfidential}
       formattedBalance={confidentialBalanceFormatted}
       symbol={showSymbol ? token?.symbol : undefined}
     />
