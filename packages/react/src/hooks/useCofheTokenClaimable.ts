@@ -6,6 +6,39 @@ import { DUAL_GET_UNSHIELD_CLAIM_ABI, WRAPPED_GET_USER_CLAIMS_ABI } from '../con
 
 import { useInternalQuery } from '../providers/index.js';
 
+function constructUnshieldClaimsQueryKey({
+  chainId,
+  tokenAddress,
+  confidentialityType,
+  accountAddress,
+}: {
+  chainId?: number;
+  tokenAddress?: Address;
+  confidentialityType?: string;
+  accountAddress?: Address;
+}) {
+  return ['unshieldClaims', chainId, tokenAddress, confidentialityType, accountAddress];
+}
+
+export function constructUnshieldClaimsQueryKeyForInvalidation({
+  chainId,
+  tokenAddress,
+  confidentialityType,
+  accountAddress,
+}: {
+  chainId: number;
+  tokenAddress: Address;
+  confidentialityType: string;
+  accountAddress: Address;
+}) {
+  return constructUnshieldClaimsQueryKey({
+    chainId,
+    tokenAddress,
+    confidentialityType,
+    accountAddress,
+  });
+}
+
 // ============================================================================
 // Unified Unshield Claims Hook
 // ============================================================================
@@ -26,9 +59,9 @@ export type UnshieldClaimsSummary = {
 
 type UseUnshieldClaimsInput = {
   /** Token object with confidentialityType */
-  token?: Token;
+  token: Token | undefined;
   /** Account address (optional, defaults to connected account) */
-  accountAddress?: Address;
+  accountAddress: Address | undefined;
 };
 
 type UseUnshieldClaimsOptions = Omit<UseQueryOptions<UnshieldClaimsSummary, Error>, 'queryKey' | 'queryFn'>;
@@ -40,19 +73,21 @@ type UseUnshieldClaimsOptions = Omit<UseQueryOptions<UnshieldClaimsSummary, Erro
  * @returns Query result with UnshieldClaimsSummary
  */
 export function useCofheTokenClaimable(
-  input: UseUnshieldClaimsInput,
+  { accountAddress: account, token }: UseUnshieldClaimsInput,
   queryOptions?: UseUnshieldClaimsOptions
 ): UseQueryResult<UnshieldClaimsSummary, Error> {
   const publicClient = useCofhePublicClient();
-  const connectedAccount = useCofheAccount();
-  const account = input.accountAddress || (connectedAccount as Address | undefined);
 
-  const token = input.token;
-  const tokenAddress = token?.address as Address | undefined;
   const confidentialityType = token?.extensions.fhenix.confidentialityType;
 
+  const queryKey = constructUnshieldClaimsQueryKey({
+    tokenAddress: token?.address,
+    confidentialityType,
+    accountAddress: account,
+  });
+
   return useInternalQuery({
-    queryKey: ['unshieldClaims', tokenAddress, confidentialityType, account],
+    queryKey,
     queryFn: async (): Promise<UnshieldClaimsSummary> => {
       if (!publicClient) {
         throw new Error('PublicClient is required to fetch unshield claims');
@@ -60,14 +95,14 @@ export function useCofheTokenClaimable(
       if (!account) {
         throw new Error('Account address is required to fetch unshield claims');
       }
-      if (!tokenAddress) {
+      if (!token) {
         throw new Error('Token address is required');
       }
 
       if (confidentialityType === 'dual') {
         // Dual tokens: single claim via getUserUnshieldClaim
         const result = await publicClient.readContract({
-          address: tokenAddress,
+          address: token.address,
           abi: DUAL_GET_UNSHIELD_CLAIM_ABI,
           functionName: 'getUserUnshieldClaim',
           args: [account],
@@ -100,7 +135,7 @@ export function useCofheTokenClaimable(
       } else if (confidentialityType === 'wrapped') {
         // Wrapped tokens: multiple claims via getUserClaims
         const result = await publicClient.readContract({
-          address: tokenAddress,
+          address: token.address,
           abi: WRAPPED_GET_USER_CLAIMS_ABI,
           functionName: 'getUserClaims',
           args: [account],
@@ -145,10 +180,7 @@ export function useCofheTokenClaimable(
       };
     },
     enabled:
-      !!publicClient &&
-      !!account &&
-      !!tokenAddress &&
-      (confidentialityType === 'dual' || confidentialityType === 'wrapped'),
+      !!publicClient && !!account && !!token && (confidentialityType === 'dual' || confidentialityType === 'wrapped'),
     ...queryOptions,
   });
 }

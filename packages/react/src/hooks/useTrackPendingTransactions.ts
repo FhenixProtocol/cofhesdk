@@ -14,6 +14,7 @@ import type { Address, TransactionReceipt } from 'viem';
 import { getTokenContractConfig } from '@/constants/confidentialTokenABIs';
 import type { Token } from './useCofheTokenLists';
 import { constructPublicTokenBalanceQueryKeyForInvalidation } from './useCofheTokenPublicBalance';
+import { constructUnshieldClaimsQueryKeyForInvalidation } from './useCofheTokenClaimable';
 
 function invalidateConfidentialTokenBalanceQueries(token: Token, queryClient: QueryClient) {
   const tokenBalanceQueryKey = constructCofheReadContractQueryForInvalidation({
@@ -56,6 +57,46 @@ function invalidatePublicTokenBalanceQueries(
   });
 }
 
+function invalidatePublicAndConfidentialTokenBalanceQueries(
+  token: Token,
+  accountAddress: Address,
+  queryClient: QueryClient
+) {
+  invalidateConfidentialTokenBalanceQueries(token, queryClient);
+
+  const publicPairTokenAddress = token.extensions.fhenix.erc20Pair?.address;
+  assert(publicPairTokenAddress, 'Public pair token address is required for shield transaction invalidation');
+  invalidatePublicTokenBalanceQueries(
+    {
+      tokenAddress: publicPairTokenAddress,
+      chainId: token.chainId,
+      accountAddress,
+    },
+    queryClient
+  );
+}
+
+function invalidateClaimableQueries({
+  token,
+  accountAddress,
+  queryClient,
+}: {
+  token: Token;
+  accountAddress: Address;
+  queryClient: QueryClient;
+}) {
+  console.log('Invalidating unshield claims queries for token:', token);
+
+  queryClient.invalidateQueries({
+    queryKey: constructUnshieldClaimsQueryKeyForInvalidation({
+      chainId: token.chainId,
+      tokenAddress: token.address,
+      confidentialityType: token.extensions.fhenix.confidentialityType,
+      accountAddress,
+    }),
+  });
+}
+
 export function useTrackPendingTransactions() {
   // Batch check pending transactions using react-query's useQueries
   const chainId = useCofheChainId();
@@ -77,23 +118,26 @@ export function useTrackPendingTransactions() {
 
   const handleInvalidations = (tx: Transaction) => {
     // TODO: add invalidation for the rest of txs
+    // TODO invalidate gas on all txs since any tx spends gas
     if (tx.actionType === TransactionActionType.ShieldSend) {
       invalidateConfidentialTokenBalanceQueries(tx.token, queryClient);
     }
 
     if (tx.actionType === TransactionActionType.Shield) {
+      // on shield public balance decreases and private increases
+      invalidatePublicAndConfidentialTokenBalanceQueries(tx.token, tx.account, queryClient);
+    }
+    if (tx.actionType === TransactionActionType.Unshield) {
+      // on unshield - private balance decreases, claimable increases, public remains the same
       invalidateConfidentialTokenBalanceQueries(tx.token, queryClient);
 
-      const publicPairTokenAddress = tx.token.extensions.fhenix.erc20Pair?.address;
-      assert(publicPairTokenAddress, 'Public pair token address is required for shield transaction invalidation');
-      invalidatePublicTokenBalanceQueries(
-        {
-          tokenAddress: publicPairTokenAddress,
-          chainId: tx.chainId,
-          accountAddress: tx.account,
-        },
-        queryClient
-      );
+      // TODO: need to wait until decrypt
+      invalidateClaimableQueries({
+        token: tx.token,
+        accountAddress: tx.account,
+
+        queryClient,
+      });
     }
   };
 
