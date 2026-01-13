@@ -82,11 +82,43 @@ export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) 
       }
     },
   });
-  const tokenUnshield = useCofheTokenUnshield();
+  const tokenUnshield = useCofheTokenUnshield({
+    onMutate: () => {
+      setError(null);
+      setStatus({ message: 'Preparing unshielding transaction...', type: 'info' });
+    },
+    onSuccess: (hash) => {
+      setStatus({
+        message: `Unshield transaction sent! Hash: ${truncateHash(hash)}. Waiting for confirmation...`,
+        type: 'info',
+      });
+      setUnshieldAmount('');
+    },
+    onError: (error) => {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to unshield tokens';
+      setError(errorMessage);
+      setStatus(null);
+      console.error('Unshield tx submit error:', error);
+    },
+  });
+
+  const { isMining: isTokenUnshieldMining } = useOnceTransactionMined({
+    txHash: tokenUnshield.data,
+    onceMined: (transaction) => {
+      if (transaction.status === 'confirmed') {
+        setStatus({
+          message: `Unshield transaction confirmed! Hash: ${truncateHash(transaction.hash)}`,
+          type: 'success',
+        });
+      } else if (transaction.status === 'failed') {
+        setError(`Unshield transaction failed! Hash: ${truncateHash(transaction.hash)}`);
+      }
+    },
+  });
   const claimUnshield = useCofheTokenClaimUnshielded();
 
   const {
-    data: { unit: publicBalanceNum } = {},
+    data: { unit: publicBalanceUnit } = {},
     isFetching: isFetchingPublic,
     refetch: refetchPublic,
   } = useCofheTokenPublicBalance({ token, accountAddress: account });
@@ -154,19 +186,17 @@ export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) 
     claimUnshield.isPending ||
     isRefreshingBalances ||
     isWaitingForConfirmation ||
-    isTokenShieldMining;
+    isTokenShieldMining ||
+    isTokenUnshieldMining;
 
   const isValidShieldAmount = useMemo(() => {
     if (!shieldAmount) return false;
     const numAmount = parseFloat(shieldAmount);
     if (isNaN(numAmount) || numAmount <= 0) return false;
-    return publicBalanceNum?.gt(numAmount);
-  }, [shieldAmount, publicBalanceNum]);
+    return publicBalanceUnit?.gt(numAmount);
+  }, [shieldAmount, publicBalanceUnit]);
 
-  const isValidUnshieldAmount = useMemo(() => {
-    if (!unshieldAmount || !confidentialBalanceUnit) return false;
-    return confidentialBalanceUnit.gte(unshieldAmount);
-  }, [unshieldAmount, confidentialBalanceUnit]);
+  const isValidUnshieldAmount = (unshieldAmount.length > 0 && confidentialBalanceUnit?.gte(unshieldAmount)) ?? false;
 
   const isShieldableToken = shieldableTypes.has(token.extensions.fhenix.confidentialityType);
 
@@ -176,11 +206,10 @@ export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) 
   const pairedLogoURI = token.extensions.fhenix.erc20Pair?.logoURI;
 
   const handleShieldMax = () => {
-    if (publicBalanceNum?.gt(0)) setShieldAmount(publicBalanceNum.toFixed());
+    if (publicBalanceUnit) setShieldAmount(publicBalanceUnit.toFixed());
   };
   const handleUnshieldMax = () => {
-    if (!confidentialBalanceUnit) return;
-    if (confidentialBalanceUnit.gte(0)) setUnshieldAmount(confidentialBalanceUnit.toFixed());
+    if (confidentialBalanceUnit) setUnshieldAmount(confidentialBalanceUnit.toFixed());
   };
 
   const handleShield = async () => {
@@ -193,31 +222,12 @@ export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) 
   };
 
   const handleUnshield = async () => {
-    if (!account || !publicClient) {
-      setError('Missing required data. Please ensure wallet is connected and a token is selected.');
-      return;
-    }
-    if (!isValidUnshieldAmount) {
-      setError('Invalid unshield amount. Please check your balance.');
-      return;
-    }
-
     const amountInSmallestUnit = parseUnits(unshieldAmount, token.decimals);
-    try {
-      await executeTransaction(
-        () =>
-          tokenUnshield.mutateAsync({
-            token,
-            amount: amountInSmallestUnit,
-            onStatusChange: (message) => setStatus({ message, type: 'info' }),
-          }),
-        'Unshield complete!',
-        'Failed to unshield tokens'
-      );
-      setUnshieldAmount('');
-    } catch {
-      // handled
-    }
+    tokenUnshield.mutateAsync({
+      token,
+      amount: amountInSmallestUnit,
+      onStatusChange: (message) => setStatus({ message, type: 'info' }),
+    });
   };
 
   const handleClaim = async () => {
@@ -249,8 +259,8 @@ export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) 
   const sourceSymbol = mode === 'shield' ? pairedSymbol : tokenSymbol;
   const destSymbol = mode === 'shield' ? tokenSymbol : pairedSymbol;
 
-  const sourceAvailable = mode === 'shield' ? publicBalanceNum : confidentialBalanceUnit;
-  const destAvailable = mode === 'shield' ? confidentialBalanceUnit : publicBalanceNum;
+  const sourceAvailable = mode === 'shield' ? publicBalanceUnit : confidentialBalanceUnit;
+  const destAvailable = mode === 'shield' ? confidentialBalanceUnit : publicBalanceUnit;
 
   const isFetchingSource = mode === 'shield' ? isFetchingPublic : isFetchingConfidential;
   const isFetchingDest = mode === 'shield' ? isFetchingConfidential : isFetchingPublic;
