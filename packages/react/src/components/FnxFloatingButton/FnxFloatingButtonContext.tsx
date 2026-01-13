@@ -1,4 +1,4 @@
-import { type ReactNode, createContext, useContext, useState, useEffect, isValidElement, useRef } from 'react';
+import { type ReactNode, createContext, useContext, useState, isValidElement, useRef, useMemo } from 'react';
 import type { FloatingButtonPosition, FnxFloatingButtonToast, FnxStatus, FnxToastImperativeParams } from './types';
 import { useCofheContext } from '../../providers';
 import { type PageState, type PagesWithoutProps, type PagesWithProps } from './pagesConfig/types';
@@ -6,6 +6,7 @@ import { ToastPrimitive } from './components/ToastPrimitives';
 import type { FloatingButtonPagePropsMap } from './pagesConfig/types';
 import { FloatingButtonPage } from './pagesConfig/types';
 import { useTrackPendingTransactions } from '@/hooks/useTrackPendingTransactions';
+import type { OpenPortalModalFn, PortalModal, PortalModalPropsMap, PortalModalState } from './modals/types';
 
 export type TokenListMode = 'view' | 'select';
 
@@ -56,6 +57,17 @@ interface FnxFloatingButtonContextValue {
   statuses: FnxStatus[];
   addStatus: (status: FnxStatus) => void;
   removeStatus: (id: string) => void;
+
+  // Content sizing
+  contentHeights: Array<{ id: string; height: number }>;
+  maxContentHeight: number;
+  setContentHeight: (id: string, height: number) => void;
+  removeContentHeight: (id: string) => void;
+
+  // Modal
+  modalStack: PortalModalState[];
+  openModal: OpenPortalModalFn;
+  closeModal: (modal: PortalModal) => void;
 }
 
 const FnxFloatingButtonContext = createContext<FnxFloatingButtonContextValue | null>(null);
@@ -208,6 +220,40 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
     setStatuses((prev) => prev.filter((status) => status.id !== id));
   };
 
+  // Content sizing
+  const [contentHeights, setContentHeights] = useState<Array<{ id: string; height: number }>>([]);
+  const maxContentHeight = useMemo(() => {
+    return contentHeights.reduce((max, height) => Math.max(max, height.height), 0);
+  }, [contentHeights]);
+
+  const setContentHeight = (id: string, height: number) => {
+    setContentHeights((prev) => {
+      const existing = prev.find((h) => h.id === id);
+      if (existing) {
+        if (existing.height === height) return prev;
+        return prev.map((h) => (h.id === id ? { ...h, height } : h));
+      }
+      return [...prev, { id, height }];
+    });
+  };
+  const removeContentHeight = (id: string) => {
+    setContentHeights((prev) => prev.filter((height) => height.id !== id));
+  };
+
+  // Modal
+  const [modalStack, setModalStack] = useState<PortalModalState[]>([]);
+  const openModal = <M extends PortalModal>(
+    ...args: PortalModalPropsMap[M] extends void ? [modal: M] : [modal: M, props: PortalModalPropsMap[M]]
+  ) => {
+    const [modal, props] = args;
+    const onClose = () => closeModal(modal);
+    const modalState = { modal, onClose, ...(props ?? {}) } as PortalModalState;
+    setModalStack((prev) => [...prev, modalState]);
+  };
+  const closeModal = (modal: PortalModal) => {
+    setModalStack((prev) => prev.filter((m) => m.modal !== modal));
+  };
+
   return (
     <FnxFloatingButtonContext.Provider
       value={{
@@ -232,6 +278,13 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
         statuses,
         addStatus,
         removeStatus,
+        contentHeights,
+        maxContentHeight,
+        setContentHeight,
+        removeContentHeight,
+        modalStack,
+        openModal,
+        closeModal,
       }}
     >
       {children}

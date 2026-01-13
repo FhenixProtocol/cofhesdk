@@ -1,35 +1,92 @@
-import { cn } from '@/utils';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
-import { type PageState } from './pagesConfig/types';
-import { AnimatePresence, motion } from 'motion/react';
 import { pages } from './pagesConfig/const';
+import { type PageState } from './pagesConfig/types';
+import { type PortalModalState } from './modals/types';
+import { AnimatePresence, motion } from 'motion/react';
+import { AnimatedZStack } from '../primitives/AnimatedZStack';
+import { modals } from './modals';
 
 interface ContentSectionProps {
   overriddingPage?: PageState;
 }
 
-export const ContentSection: React.FC<ContentSectionProps> = ({ overriddingPage }) => {
-  const { currentPage: pageFromContext, contentPanelOpen, isTopSide } = useFnxFloatingButtonContext();
-  const currentPage = overriddingPage ?? pageFromContext;
+const MeasuredContentRenderer: React.FC<{ children?: ReactNode; id: string }> = ({ children, id }) => {
+  const { setContentHeight, removeContentHeight } = useFnxFloatingButtonContext();
+  const contentRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    if (!contentRef.current) return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const height = entry.borderBoxSize?.[0]?.blockSize ?? entry.target.getBoundingClientRect().height;
+        setContentHeight(id, height);
+      }
+    });
+
+    observer.observe(contentRef.current);
+    return () => {
+      observer.disconnect();
+      removeContentHeight(id);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  return (
+    <div className="fnx-panel relative flex w-full h-full overflow-y-auto">
+      <div className="absolute flex top-0 left-0 w-full p-4" ref={contentRef}>
+        {children}
+      </div>
+    </div>
+  );
+};
+
+const ContentRenderer: React.FC<{ page: PageState }> = ({ page }) => {
   const content = useMemo(() => {
-    const PageComp = pages[currentPage.page];
-    const props = currentPage.props ?? {};
+    const PageComp = pages[page.page];
+    const props = page.props ?? {};
     return <PageComp {...props} />;
-  }, [currentPage]);
+  }, [page]);
+
+  return <MeasuredContentRenderer id="content">{content}</MeasuredContentRenderer>;
+};
+
+const ModalRenderer: React.FC<{ modal: PortalModalState }> = ({ modal }) => {
+  const content = useMemo(() => {
+    const ModalComp = modals[modal.modal] as React.FC<typeof modal>;
+    return <ModalComp {...modal} />;
+  }, [modal]);
+
+  return <MeasuredContentRenderer id={`${modal.modal}-modal`}>{content}</MeasuredContentRenderer>;
+};
+
+export const ContentSection: React.FC<ContentSectionProps> = ({ overriddingPage }) => {
+  const {
+    currentPage: pageFromContext,
+    contentPanelOpen,
+    isTopSide,
+    maxContentHeight,
+    modalStack,
+  } = useFnxFloatingButtonContext();
+  const currentPage = overriddingPage ?? pageFromContext;
 
   return (
     <AnimatePresence>
       {contentPanelOpen && (
         <motion.div
-          className="fnx-panel relative flex w-full p-4"
+          className="relative flex w-full z-50"
           initial={{ opacity: 0, y: isTopSide ? -10 : 10 }}
-          animate={{ opacity: 1, y: 0 }}
+          animate={{ opacity: 1, y: 0, height: `${maxContentHeight}px`, maxHeight: `${maxContentHeight}px` }}
           exit={{ opacity: 0, y: isTopSide ? -10 : 10 }}
         >
-          {content}
+          <AnimatedZStack>
+            <ContentRenderer page={currentPage} />
+            {modalStack.map((modal) => {
+              return <ModalRenderer key={modal.modal} modal={modal} />;
+            })}
+          </AnimatedZStack>
         </motion.div>
       )}
     </AnimatePresence>
