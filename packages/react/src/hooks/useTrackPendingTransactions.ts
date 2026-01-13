@@ -9,9 +9,57 @@ import { useInternalQueries, useInternalQueryClient } from '@/providers';
 import { assert } from 'ts-essentials';
 import { constructCofheReadContractQueryForInvalidation } from './useCofheReadContract';
 import { useMemo } from 'react';
-import type { QueriesOptions } from '@tanstack/react-query';
-import type { TransactionReceipt } from 'viem';
+import type { QueriesOptions, QueryClient } from '@tanstack/react-query';
+import type { Address, TransactionReceipt } from 'viem';
 import { getTokenContractConfig } from '@/constants/confidentialTokenABIs';
+import type { Token } from './useCofheTokenLists';
+import { constructPublicTokenBalanceQueryKeyForInvalidation } from './useCofheTokenPublicBalance';
+
+function invalidateConfidentialTokenBalanceQueries(token: Token, queryClient: QueryClient) {
+  const tokenBalanceQueryKey = constructCofheReadContractQueryForInvalidation({
+    cofheChainId: token.chainId,
+    address: token.address,
+    functionName: getTokenContractConfig(token.extensions.fhenix.confidentialityType).functionName,
+  });
+
+  console.log('Invalidating shield/send read contract queries for token:', token);
+
+  queryClient.invalidateQueries({
+    queryKey: tokenBalanceQueryKey,
+    // TODO: it can potentially invalidate irrelevenat queries who happen to belong to the same contract but different function. Not sure if worth fixing
+    exact: false,
+  });
+}
+
+function invalidatePublicTokenBalanceQueries(
+  {
+    tokenAddress,
+    chainId,
+    accountAddress,
+  }: {
+    tokenAddress: Address;
+    chainId: number;
+    accountAddress: Address;
+  },
+  queryClient: QueryClient
+) {
+  const tokenBalanceQueryKey = constructPublicTokenBalanceQueryKeyForInvalidation({
+    chainId,
+    tokenAddress,
+    accountAddress,
+  });
+
+  console.log('Invalidating public token balance read contract queries for token:', {
+    chainId,
+    tokenAddress,
+    accountAddress,
+  });
+
+  queryClient.invalidateQueries({
+    queryKey: tokenBalanceQueryKey,
+    exact: true,
+  });
+}
 
 export function useTrackPendingTransactions() {
   // Batch check pending transactions using react-query's useQueries
@@ -35,18 +83,22 @@ export function useTrackPendingTransactions() {
   const handleInvalidations = (tx: Transaction) => {
     // TODO: add invalidation for the rest of txs
     if (tx.actionType === TransactionActionType.ShieldSend) {
-      const tokenBalanceQueryKey = constructCofheReadContractQueryForInvalidation({
-        cofheChainId: tx.chainId,
-        address: tx.token.address,
-        functionName: getTokenContractConfig(tx.token.extensions.fhenix.confidentialityType).functionName,
-      });
-      console.log('Invalidating shield/send read contract queries for token:', tx.token);
+      invalidateConfidentialTokenBalanceQueries(tx.token, queryClient);
+    }
 
-      queryClient.invalidateQueries({
-        queryKey: tokenBalanceQueryKey,
-        // TODO: it can potentially invalidate irrelevenat queries who happen to belong to the same contract but different function. Not sure if worth fixing
-        exact: false,
-      });
+    if (tx.actionType === TransactionActionType.Shield) {
+      invalidateConfidentialTokenBalanceQueries(tx.token, queryClient);
+
+      const publicPairTokenAddress = tx.token.extensions.fhenix.erc20Pair?.address;
+      assert(publicPairTokenAddress, 'Public pair token address is required for shield transaction invalidation');
+      invalidatePublicTokenBalanceQueries(
+        {
+          tokenAddress: publicPairTokenAddress,
+          chainId: tx.chainId,
+          accountAddress: tx.account,
+        },
+        queryClient
+      );
     }
   };
 

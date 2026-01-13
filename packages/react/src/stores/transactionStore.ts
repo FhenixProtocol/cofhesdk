@@ -1,4 +1,5 @@
 import type { Token } from '@/types/token';
+import type { Address } from 'viem';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
@@ -25,7 +26,7 @@ export interface Transaction {
   status: TransactionStatus;
   chainId: number;
   actionType: TransactionActionType;
-  account: string;
+  account: Address;
   timestamp: number;
 
   token: Token;

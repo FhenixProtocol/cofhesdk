@@ -15,7 +15,7 @@ export function useOnceTransactionMined({
   txHash: `0x${string}` | undefined;
   onceMined: (transaction: Transaction) => void;
 }) {
-  useStoredTransactionStatusEffect({
+  const { transaction } = useStoredTransactionStatusEffect({
     txHash,
     onTransactionStatusChange: (prevStatus, newStatus, transaction) => {
       if (prevStatus === 'pending' && (newStatus === 'confirmed' || newStatus === 'failed')) {
@@ -23,6 +23,11 @@ export function useOnceTransactionMined({
       }
     },
   });
+
+  return {
+    transaction,
+    isMining: transaction?.status === 'pending',
+  };
 }
 
 function useStoredTransactionStatusEffect({
@@ -48,4 +53,8 @@ function useStoredTransactionStatusEffect({
       previousTransactionRef.current = transaction;
     }
   }, [onTransactionStatusChange, transaction]);
+
+  return {
+    transaction,
+  };
 }

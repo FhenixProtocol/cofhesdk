@@ -16,6 +16,7 @@ import { useCofheTokenPublicBalance } from '@/hooks/useCofheTokenPublicBalance';
 import { formatTokenAmount, unitToWei } from '@/utils/format';
 import { FloatingButtonPage } from '../pagesConfig/types';
 import { useCofheTokenClaimUnshielded, useCofheTokenUnshield, useCofheTokenClaimable } from '@/hooks';
+import { useOnceTransactionMined } from '@/hooks/useOnceTransactionMined';
 
 const SUCCESS_TIMEOUT = 5000;
 const DISPLAY_DECIMALS = 5;
@@ -46,9 +47,41 @@ export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) 
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<{ message: string; type: 'info' | 'success' } | null>(null);
   const [isRefreshingBalances, setIsRefreshingBalances] = useState(false);
+  // obsolete way for isMining
   const [isWaitingForConfirmation, setIsWaitingForConfirmation] = useState(false);
 
-  const tokenShield = useCofheTokenShield();
+  const tokenShield = useCofheTokenShield({
+    onMutate: () => {
+      setError(null);
+      setStatus({ message: 'Preparing shielding transaction...', type: 'info' });
+    },
+    onSuccess: (hash) => {
+      setStatus({
+        message: `Shield transaction sent! Hash: ${truncateHash(hash)}. Waiting for confirmation...`,
+        type: 'info',
+      });
+      setShieldAmount('');
+    },
+    onError: (error) => {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to shield tokens';
+      setError(errorMessage);
+      setStatus(null);
+      console.error('Shield tx submit error:', error);
+    },
+  });
+  const { isMining: isTokenShieldMining } = useOnceTransactionMined({
+    txHash: tokenShield.data,
+    onceMined: (transaction) => {
+      if (transaction.status === 'confirmed') {
+        setStatus({
+          message: `Shield transaction confirmed! Hash: ${truncateHash(transaction.hash)}`,
+          type: 'success',
+        });
+      } else if (transaction.status === 'failed') {
+        setError(`Shield transaction failed! Hash: ${truncateHash(transaction.hash)}`);
+      }
+    },
+  });
   const tokenUnshield = useCofheTokenUnshield();
   const claimUnshield = useCofheTokenClaimUnshielded();
 
@@ -98,6 +131,7 @@ export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) 
       setIsWaitingForConfirmation(false);
 
       setStatus({ message: 'Refreshing balances...', type: 'info' });
+      // here
       await refreshBalances();
 
       setStatus({ message: `${successMessage} ${truncateHash(hash)}`, type: 'success' });
@@ -119,7 +153,8 @@ export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) 
     tokenUnshield.isPending ||
     claimUnshield.isPending ||
     isRefreshingBalances ||
-    isWaitingForConfirmation;
+    isWaitingForConfirmation ||
+    isTokenShieldMining;
 
   const isValidShieldAmount = useMemo(() => {
     if (!shieldAmount) return false;
@@ -150,21 +185,11 @@ export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) 
 
   const handleShield = async () => {
     const amountWei = unitToWei(shieldAmount, token.decimals);
-    try {
-      await executeTransaction(
-        () =>
-          tokenShield.mutateAsync({
-            token,
-            amount: amountWei,
-            onStatusChange: (message) => setStatus({ message, type: 'info' }),
-          }),
-        'Shield complete!',
-        'Failed to shield tokens'
-      );
-      setShieldAmount('');
-    } catch {
-      // handled
-    }
+    await tokenShield.mutateAsync({
+      token,
+      amount: amountWei,
+      onStatusChange: (message) => setStatus({ message, type: 'info' }),
+    });
   };
 
   const handleUnshield = async () => {

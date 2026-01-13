@@ -7,6 +7,34 @@ import { assert } from 'ts-essentials';
 import { useInternalQuery } from '../providers/index';
 import { formatTokenAmount, type TokenFormatOutput } from '@/utils/format';
 
+function constructPublicTokenBalanceQueryKey({
+  chainId,
+  accountAddress,
+  tokenAddress,
+}: {
+  chainId?: number;
+  accountAddress?: Address;
+  tokenAddress?: Address;
+}): readonly unknown[] {
+  return ['tokenBalance', chainId, accountAddress, tokenAddress];
+}
+
+export function constructPublicTokenBalanceQueryKeyForInvalidation({
+  chainId,
+  accountAddress,
+  tokenAddress,
+}: {
+  chainId: number;
+  accountAddress: Address;
+  tokenAddress: Address;
+}) {
+  return constructPublicTokenBalanceQueryKey({
+    chainId,
+    accountAddress,
+    tokenAddress,
+  });
+}
+
 type UseTokenBalanceInput = {
   /** Token contract address */
   tokenAddress?: Address;
@@ -34,8 +62,14 @@ function useTokenBalance<TSelectedData = bigint>(
   const baseEnabled = !!publicClient && !!accountAddress && !!tokenAddress;
   const enabled = baseEnabled && (userEnabled ?? true);
 
+  const queryKey = constructPublicTokenBalanceQueryKey({
+    chainId: publicClient?.chain?.id,
+    accountAddress,
+    tokenAddress,
+  });
+
   return useInternalQuery({
-    queryKey: ['tokenBalance', publicClient?.chain?.id, accountAddress, tokenAddress],
+    queryKey,
     queryFn: async () => {
       assert(tokenAddress, 'Token address is required to fetch token balance');
       assert(publicClient, 'PublicClient is required to fetch token balance');
