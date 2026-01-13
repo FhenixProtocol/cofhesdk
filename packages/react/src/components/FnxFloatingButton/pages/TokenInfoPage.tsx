@@ -1,10 +1,10 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext';
 import { type Token } from '@/hooks/useCofheTokenLists';
 import { TokenIcon } from '../components/TokenIcon';
 import { AddressButton } from '../components/AddressButton';
 import { CofheTokenConfidentialBalance } from '../components/CofheTokenConfidentialBalance';
 import { FloatingButtonPage } from '../pagesConfig/types';
+import { usePortalStore } from '@/stores/portalStore';
 
 type TokenInfoPageProps = {
   token: Token;
@@ -17,7 +17,7 @@ declare module '../pagesConfig/types' {
 }
 
 export const TokenInfoPage: React.FC<TokenInfoPageProps> = ({ token }) => {
-  const { navigateBack } = useFnxFloatingButtonContext();
+  const { navigateBack } = usePortalStore();
 
   return (
     <div className="fnx-text-primary space-y-4">

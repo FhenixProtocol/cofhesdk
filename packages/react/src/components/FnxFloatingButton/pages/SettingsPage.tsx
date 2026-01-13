@@ -1,9 +1,9 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext.js';
 import { useSettingsStore, ShieldPageVariant, SHIELD_PAGE_VARIANT_LABELS } from '../stores/settingsStore.js';
+import { usePortalStore } from '@/stores/portalStore';
 
 export const SettingsPage: React.FC = () => {
-  const { navigateBack } = useFnxFloatingButtonContext();
+  const { navigateBack } = usePortalStore();
   const { shieldPageVariant, setShieldPageVariant } = useSettingsStore();
 
   const variants = Object.values(ShieldPageVariant);

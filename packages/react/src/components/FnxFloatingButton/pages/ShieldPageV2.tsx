@@ -3,8 +3,7 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { TbShieldPlus, TbShieldMinus } from 'react-icons/tb';
 import { useMemo, useState } from 'react';
 import { parseUnits } from 'viem';
-import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext';
-import { useCofheAccount, useCofhePublicClient } from '@/hooks/useCofheConnection';
+import { useCofheAccount } from '@/hooks/useCofheConnection';
 import { useCofheTokenDecryptedBalance } from '@/hooks/useCofheTokenDecryptedBalance';
 import { type Token } from '@/hooks/useCofheTokenLists';
 import { useCofheTokenShield } from '@/hooks/useCofheTokenShield';
@@ -18,6 +17,7 @@ import { FloatingButtonPage } from '../pagesConfig/types';
 import { useCofheTokenClaimUnshielded, useCofheTokenUnshield, useCofheTokenClaimable } from '@/hooks';
 import { useOnceTransactionMined } from '@/hooks/useOnceTransactionMined';
 import { assert } from 'ts-essentials';
+import { usePortalStore } from '@/stores/portalStore';
 
 const SUCCESS_TIMEOUT = 5000;
 const DISPLAY_DECIMALS = 5;
@@ -38,7 +38,7 @@ declare module '../pagesConfig/types' {
 const shieldableTypes = new Set(['dual', 'wrapped']);
 
 export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) => {
-  const { navigateBack, navigateTo } = useFnxFloatingButtonContext();
+  const { navigateBack, navigateTo } = usePortalStore();
   const account = useCofheAccount();
 
   const [mode, setMode] = useState<Mode>(defaultMode ?? 'shield');

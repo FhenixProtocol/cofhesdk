@@ -8,6 +8,7 @@ import { ReceiverSection } from './components/ReceiverSection';
 import { ExpirySection } from './components/ExpirySection';
 import { FloatingButtonPage } from '@/components/FnxFloatingButton/pagesConfig/types';
 import type { GeneratePermitPageProps } from './types';
+import { usePortalStore } from '@/stores/portalStore';
 
 export const GeneratePermitPage: React.FC<GeneratePermitPageProps> = ({
   onSuccessNavigateTo,
@@ -15,7 +16,9 @@ export const GeneratePermitPage: React.FC<GeneratePermitPageProps> = ({
   onCancel,
   onBack,
 }) => {
-  const { navigateBack, theme, navigateTo, pageHistory } = useFnxFloatingButtonContext();
+  const { theme } = useFnxFloatingButtonContext();
+  const { navigateBack, navigateTo, pageHistory } = usePortalStore();
+
   const darkMode = theme === 'dark';
   const permitIconColor = darkMode ? '#FFFFFF' : '#00314E';
 

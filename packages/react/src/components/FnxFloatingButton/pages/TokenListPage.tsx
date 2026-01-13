@@ -1,10 +1,11 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { useFnxFloatingButtonContext, type TokenListMode } from '../FnxFloatingButtonContext.js';
+import { type TokenListMode } from '../FnxFloatingButtonContext.js';
 import { useCofheTokens } from '@/hooks/useCofheTokenLists.js';
 import { useCofheChainId } from '@/hooks/useCofheConnection.js';
 import { TokenRow } from './TokenListPage/TokenRow.js';
 import { isPageWithProps, type FloatingButtonPage, type PageState } from '../pagesConfig/types.js';
 import { assert } from 'ts-essentials';
+import { usePortalStore } from '@/stores/portalStore.js';
 
 type PageStateWithoutTokenProp = Omit<PageState, 'props'> & { props?: Omit<PageState['props'], 'token'> };
 
@@ -17,7 +18,7 @@ declare module '../pagesConfig/types' {
 }
 
 export const TokenListPage: React.FC<TokenListPageProps> = ({ title, backToPageState, mode: tokenListMode }) => {
-  const { navigateBack, navigateTo } = useFnxFloatingButtonContext();
+  const { navigateBack, navigateTo } = usePortalStore();
   const chainId = useCofheChainId();
   const allTokens = useCofheTokens(chainId);
 
@@ -39,7 +40,8 @@ export const TokenListPage: React.FC<TokenListPageProps> = ({ title, backToPageS
             <TokenRow
               onClick={() => {
                 assert(isPageWithProps(backToPageState.page), 'backToPageState must be a page with props');
-                navigateTo(backToPageState.page, { pageProps: { ...backToPageState.props, token } });
+                // The `any` is temporary until we use a modal for the TokensListPage
+                navigateTo(backToPageState.page, { pageProps: { ...backToPageState.props, token } as any });
               }}
               key={token.address}
               token={token}

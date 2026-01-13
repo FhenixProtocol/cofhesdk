@@ -6,8 +6,8 @@ import { useEffect, useMemo } from 'react';
 import { ErrorBoundary, useErrorBoundary, type FallbackProps } from 'react-error-boundary';
 import { ErrorCause, getErrorCause } from '@/utils/index';
 import type { FnxFloatingButtonProps } from '@/components/FnxFloatingButton/types';
-import { useFnxFloatingButtonContext } from '@/components/FnxFloatingButton/FnxFloatingButtonContext';
 import { FloatingButtonPage } from '@/components/FnxFloatingButton/pagesConfig/types';
+import { usePortalStore } from '@/stores/portalStore';
 
 class CofheFallbackError extends Error {
   constructor(message: string) {
@@ -28,7 +28,7 @@ const FALLBACK_BY_ERROR_TYPE: ErrorFallbackDefinition[] = [
     checkFn: (error: unknown) => error instanceof CofhesdkError && error.code === CofhesdkErrorCode.PermitNotFound,
     componentConstructor: ({ floatingButtonProps, restOfTheChildren }) => {
       const Component: React.FC<FallbackProps> = ({ error, resetErrorBoundary }) => {
-        const { portalOpen, openPortal } = useFnxFloatingButtonContext();
+        const { portalOpen, openPortal } = usePortalStore();
         const overriddingPage = useMemo<PageState>(() => {
           const errorCause = getErrorCause(error);
           const OverridingBodyComponent = errorCause ? CREATE_PERMITT_BODY_BY_ERROR_CAUSE[errorCause] : undefined;

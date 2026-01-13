@@ -4,9 +4,10 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
 import type { FnxFloatingButtonToast } from './types';
 import { cn } from '@/utils';
+import { usePortalStore } from '@/stores/portalStore';
 
 const ToastClearer = ({ id, paused, remainingMs }: { id: string; paused: boolean; remainingMs: number }) => {
-  const { removeToast } = useFnxFloatingButtonContext();
+  const { removeToast } = usePortalStore();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -38,7 +39,8 @@ const ToastClearer = ({ id, paused, remainingMs }: { id: string; paused: boolean
 };
 
 const ToastComponent: React.FC<FnxFloatingButtonToast> = ({ id, duration, paused, startMs, remainingMs, content }) => {
-  const { isTopSide, pauseToast, removeToast } = useFnxFloatingButtonContext();
+  const { isTopSide } = useFnxFloatingButtonContext();
+  const { pauseToast, removeToast } = usePortalStore();
 
   const handlePause = (paused: boolean) => {
     pauseToast(id, paused);
@@ -78,7 +80,7 @@ const ToastComponent: React.FC<FnxFloatingButtonToast> = ({ id, duration, paused
 };
 
 export const ToastsSection: React.FC = () => {
-  const { toasts } = useFnxFloatingButtonContext();
+  const { toasts } = usePortalStore();
   return (
     <div className="flex flex-col gap-3 w-full max-w-full">
       <AnimatePresence>

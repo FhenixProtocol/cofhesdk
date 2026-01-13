@@ -1,11 +1,11 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext.js';
 import { ToastPrimitive, ToastPrimitiveBase } from '../components/ToastPrimitives.js';
 import { useState } from 'react';
 import { PortalModal } from '../modals/types';
+import { usePortalStore } from '@/stores/portalStore.js';
 
 export const DebugPage: React.FC = () => {
-  const { navigateBack, addToast, statuses, addStatus, removeStatus, openModal } = useFnxFloatingButtonContext();
+  const { navigateBack, addToast, statuses, addStatus, removeStatus, openModal } = usePortalStore();
   const [modalSelection, setModalSelection] = useState<string | undefined>(undefined);
 
   return (

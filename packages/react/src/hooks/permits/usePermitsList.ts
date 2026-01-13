@@ -1,9 +1,9 @@
 import { useCallback, useMemo } from 'react';
 import { type Permit } from '@cofhe/sdk/permits';
 import { useCofheAllPermits, useCofheRemovePermit } from '../useCofhePermits';
-import { useFnxFloatingButtonContext } from '../../components/FnxFloatingButton/FnxFloatingButtonContext';
 import { useCopyFeedback } from '../useCopyFeedback';
 import { FloatingButtonPage } from '@/components/FnxFloatingButton/pagesConfig/types';
+import { usePortalStore } from '@/stores/portalStore';
 
 export type PermitStatus = 'active' | 'expired';
 
@@ -12,7 +12,7 @@ export type QuickActionId = 'generate' | 'receive';
 export const usePermitsList = () => {
   const allPermits = useCofheAllPermits();
   const removePermit = useCofheRemovePermit();
-  const { navigateBack, navigateTo } = useFnxFloatingButtonContext();
+  const { navigateBack, navigateTo } = usePortalStore();
   const { isCopied, copyWithFeedback } = useCopyFeedback();
 
   const generatedPermits = useMemo<{ permit: Permit; hash: string }[]>(() => {

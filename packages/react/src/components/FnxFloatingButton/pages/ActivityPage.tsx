@@ -1,11 +1,11 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext.js';
 import { useTransactionStore } from '../../../stores/transactionStore.js';
 import { useCofheChainId, useCofheAccount } from '@/hooks/useCofheConnection.js';
 import { TransactionItem } from '../components/TransactionItem.js';
+import { usePortalStore } from '@/stores/portalStore.js';
 
 export const ActivityPage: React.FC = () => {
-  const { navigateBack } = useFnxFloatingButtonContext();
+  const { navigateBack } = usePortalStore();
   const chainId = useCofheChainId();
   const account = useCofheAccount();
   const getAllTransactions = useTransactionStore((state) => state.getAllTransactions);

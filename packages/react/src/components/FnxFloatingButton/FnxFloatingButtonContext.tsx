@@ -31,43 +31,43 @@ type NavigateToFn = {
 };
 
 interface FnxFloatingButtonContextValue {
-  pageHistory: PageState[];
-  currentPage: PageState;
-  navigateTo: NavigateToFn;
-  navigateBack: () => void;
+  // pageHistory: PageState[];
+  // currentPage: PageState;
+  // navigateTo: NavigateToFn;
+  // navigateBack: () => void;
   theme: 'dark' | 'light';
   effectivePosition: FloatingButtonPosition;
   isLeftSide: boolean;
   isTopSide: boolean;
 
-  openPortal: () => void;
-  closePortal: () => void;
-  togglePortal: (externalOnClick?: () => void) => void;
-  portalOpen: boolean;
-  statusPanelOpen: boolean; // Status bar is expanded when panel is opened or status is populated with warning/error
-  contentPanelOpen: boolean; // Panel is expanded when main content is visible (generating permit etc)
+  // openPortal: () => void;
+  // closePortal: () => void;
+  // togglePortal: (externalOnClick?: () => void) => void;
+  // portalOpen: boolean;
+  // statusPanelOpen: boolean; // Status bar is expanded when panel is opened or status is populated with warning/error
+  // contentPanelOpen: boolean; // Panel is expanded when main content is visible (generating permit etc)
 
-  // Toasts
-  toasts: FnxFloatingButtonToast[];
-  addToast: (toast: React.ReactNode | FnxToastImperativeParams, duration?: number | 'infinite') => void;
-  pauseToast: (id: string, paused: boolean) => void;
-  removeToast: (id: string) => void;
+  // // Toasts
+  // toasts: FnxFloatingButtonToast[];
+  // addToast: (toast: React.ReactNode | FnxToastImperativeParams, duration?: number | 'infinite') => void;
+  // pauseToast: (id: string, paused: boolean) => void;
+  // removeToast: (id: string) => void;
 
-  // Status
-  statuses: FnxStatus[];
-  addStatus: (status: FnxStatus) => void;
-  removeStatus: (id: string) => void;
+  // // Status
+  // statuses: FnxStatus[];
+  // addStatus: (status: FnxStatus) => void;
+  // removeStatus: (id: string) => void;
 
-  // Content sizing
-  contentHeights: Array<{ id: string; height: number }>;
-  maxContentHeight: number;
-  setContentHeight: (id: string, height: number) => void;
-  removeContentHeight: (id: string) => void;
+  // // Content sizing
+  // contentHeights: Array<{ id: string; height: number }>;
+  // maxContentHeight: number;
+  // setContentHeight: (id: string, height: number) => void;
+  // removeContentHeight: (id: string) => void;
 
-  // Modal
-  modalStack: PortalModalState[];
-  openModal: OpenPortalModalFn;
-  closeModal: (modal: PortalModal) => void;
+  // // Modal
+  // modalStack: PortalModalState[];
+  // openModal: OpenPortalModalFn;
+  // closeModal: (modal: PortalModal) => void;
 }
 
 const FnxFloatingButtonContext = createContext<FnxFloatingButtonContextValue | null>(null);
@@ -257,34 +257,34 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   return (
     <FnxFloatingButtonContext.Provider
       value={{
-        pageHistory,
-        currentPage,
-        navigateTo,
-        navigateBack,
+        // pageHistory,
+        // currentPage,
+        // navigateTo,
+        // navigateBack,
         theme,
         effectivePosition,
-        portalOpen,
-        statusPanelOpen,
-        contentPanelOpen,
+        // portalOpen,
+        // statusPanelOpen,
+        // contentPanelOpen,
         isLeftSide,
         isTopSide,
-        openPortal,
-        closePortal,
-        togglePortal,
-        toasts,
-        addToast,
-        pauseToast,
-        removeToast,
-        statuses,
-        addStatus,
-        removeStatus,
-        contentHeights,
-        maxContentHeight,
-        setContentHeight,
-        removeContentHeight,
-        modalStack,
-        openModal,
-        closeModal,
+        // openPortal,
+        // closePortal,
+        // togglePortal,
+        // toasts,
+        // addToast,
+        // pauseToast,
+        // removeToast,
+        // statuses,
+        // addStatus,
+        // removeStatus,
+        // contentHeights,
+        // maxContentHeight,
+        // setContentHeight,
+        // removeContentHeight,
+        // modalStack,
+        // openModal,
+        // closeModal,
       }}
     >
       {children}
