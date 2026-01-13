@@ -5,7 +5,7 @@ import { useCofheChainId } from '@/hooks/useCofheConnection.js';
 import { TokenRow } from './TokenListPage/TokenRow.js';
 import { isPageWithProps, type FloatingButtonPage, type PageState } from '../pagesConfig/types.js';
 import { assert } from 'ts-essentials';
-import { usePortalStore } from '@/stores/portalStore.js';
+import { usePortalNavigation } from '@/stores';
 
 type PageStateWithoutTokenProp = Omit<PageState, 'props'> & { props?: Omit<PageState['props'], 'token'> };
 
@@ -18,7 +18,7 @@ declare module '../pagesConfig/types' {
 }
 
 export const TokenListPage: React.FC<TokenListPageProps> = ({ title, backToPageState, mode: tokenListMode }) => {
-  const { navigateBack, navigateTo } = usePortalStore();
+  const { navigateBack, navigateTo } = usePortalNavigation();
   const chainId = useCofheChainId();
   const allTokens = useCofheTokens(chainId);
 

@@ -4,7 +4,7 @@ import { PermitUtils } from '@cofhe/sdk/permits';
 import { useCofheActivePermit, useCofheAllPermits, useCofheSelectPermit } from '../useCofhePermits.js';
 import { useCopyFeedback } from '../useCopyFeedback.js';
 import { formatExpirationLabel, truncateAddress } from '@/utils/utils.js';
-import { usePortalStore } from '@/stores/portalStore.js';
+import { usePortalNavigation } from '@/stores';
 
 const COPY_KEY = 'permit-details-json';
 
@@ -12,7 +12,7 @@ export const usePermitDetailsPage = (selectedPermitHash: string) => {
   const allPermits = useCofheAllPermits();
   const activePermit = useCofheActivePermit();
   const selectActivePermit = useCofheSelectPermit();
-  const { navigateBack } = usePortalStore();
+  const { navigateBack } = usePortalNavigation();
   const { isCopied, copyWithFeedback } = useCopyFeedback();
 
   const selectedPermit = useMemo(() => {

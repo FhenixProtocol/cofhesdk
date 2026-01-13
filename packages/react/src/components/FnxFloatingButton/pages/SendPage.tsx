@@ -16,7 +16,7 @@ import { getStepConfig } from '@/hooks/useCofheEncrypt';
 import { createEncryptable } from '@cofhe/sdk';
 import { FloatingButtonPage } from '../pagesConfig/types';
 import { useOnceTransactionMined } from '@/hooks/useOnceTransactionMined';
-import { usePortalStore } from '@/stores/portalStore';
+import { usePortalNavigation } from '@/stores';
 
 export type SendPageProps = {
   token: Token;
@@ -29,7 +29,7 @@ declare module '../pagesConfig/types' {
 }
 
 export const SendPage: React.FC<SendPageProps> = ({ token }) => {
-  const { navigateBack, navigateTo } = usePortalStore();
+  const { navigateBack, navigateTo } = usePortalNavigation();
 
   const account = useCofheAccount();
   const tokenTransfer = useCofheTokenTransfer({

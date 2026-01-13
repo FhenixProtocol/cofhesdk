@@ -2,10 +2,13 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { ToastPrimitive, ToastPrimitiveBase } from '../components/ToastPrimitives.js';
 import { useState } from 'react';
 import { PortalModal } from '../modals/types';
-import { usePortalStore } from '@/stores/portalStore.js';
+import { usePortalNavigation, usePortalStatuses, usePortalModals, usePortalToasts } from '@/stores';
 
 export const DebugPage: React.FC = () => {
-  const { navigateBack, addToast, statuses, addStatus, removeStatus, openModal } = usePortalStore();
+  const { navigateBack } = usePortalNavigation();
+  const { statuses, addStatus, removeStatus } = usePortalStatuses();
+  const { addToast } = usePortalToasts();
+  const { openModal } = usePortalModals();
   const [modalSelection, setModalSelection] = useState<string | undefined>(undefined);
 
   return (

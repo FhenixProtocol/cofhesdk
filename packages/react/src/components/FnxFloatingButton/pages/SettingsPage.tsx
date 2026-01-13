@@ -1,9 +1,9 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useSettingsStore, ShieldPageVariant, SHIELD_PAGE_VARIANT_LABELS } from '../stores/settingsStore.js';
-import { usePortalStore } from '@/stores/portalStore';
+import { usePortalNavigation } from '@/stores';
 
 export const SettingsPage: React.FC = () => {
-  const { navigateBack } = usePortalStore();
+  const { navigateBack } = usePortalNavigation();
   const { shieldPageVariant, setShieldPageVariant } = useSettingsStore();
 
   const variants = Object.values(ShieldPageVariant);

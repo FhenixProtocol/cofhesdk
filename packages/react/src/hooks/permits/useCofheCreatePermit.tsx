@@ -1,5 +1,5 @@
 import { FloatingButtonPage } from '@/components/FnxFloatingButton/pagesConfig/types';
-import { usePortalStore } from '@/stores/portalStore';
+import { usePortalNavigation, usePortalUI } from '@/stores';
 
 import { useCallback } from 'react';
 
@@ -7,7 +7,8 @@ type Input = {
   ReasonBody?: React.FC;
 };
 export const useCofheCreatePermit = ({ ReasonBody }: Input) => {
-  const { navigateTo, navigateBack, openPortal, portalOpen } = usePortalStore();
+  const { navigateTo, navigateBack } = usePortalNavigation();
+  const { portalOpen, openPortal } = usePortalUI();
 
   return useCallback(() => {
     if (!portalOpen) openPortal();

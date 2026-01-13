@@ -17,7 +17,7 @@ import { FloatingButtonPage } from '../pagesConfig/types';
 import { useCofheTokenClaimUnshielded, useCofheTokenUnshield, useCofheTokenClaimable } from '@/hooks';
 import { useOnceTransactionMined } from '@/hooks/useOnceTransactionMined';
 import { assert } from 'ts-essentials';
-import { usePortalStore } from '@/stores/portalStore';
+import { usePortalNavigation } from '@/stores';
 
 const SUCCESS_TIMEOUT = 5000;
 const DISPLAY_DECIMALS = 5;
@@ -38,7 +38,7 @@ declare module '../pagesConfig/types' {
 const shieldableTypes = new Set(['dual', 'wrapped']);
 
 export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) => {
-  const { navigateBack, navigateTo } = usePortalStore();
+  const { navigateBack, navigateTo } = usePortalNavigation();
   const account = useCofheAccount();
 
   const [mode, setMode] = useState<Mode>(defaultMode ?? 'shield');

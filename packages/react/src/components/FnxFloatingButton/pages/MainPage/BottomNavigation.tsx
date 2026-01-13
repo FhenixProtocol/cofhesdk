@@ -7,7 +7,7 @@ import { FaBug } from 'react-icons/fa';
 import { FloatingButtonPage } from '../../pagesConfig/types';
 import { useCofhePinnedToken } from '@/hooks/useCofhePinnedToken';
 import { assert, type ElementOf } from 'ts-essentials';
-import { usePortalStore } from '@/stores/portalStore';
+import { usePortalNavigation, usePortalUI } from '@/stores';
 
 const iconClassName = 'w-4 h-4';
 
@@ -41,7 +41,8 @@ const navItems = [
 ] as const;
 
 export const BottomNavigation: React.FC = () => {
-  const { navigateTo, openPortal } = usePortalStore();
+  const { navigateTo } = usePortalNavigation();
+  const { openPortal } = usePortalUI();
   const defaultToken = useCofhePinnedToken();
 
   const handleNavClick = (page: ElementOf<typeof navItems>['id']) => {

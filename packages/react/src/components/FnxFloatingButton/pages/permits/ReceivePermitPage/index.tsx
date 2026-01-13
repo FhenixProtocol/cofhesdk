@@ -2,15 +2,17 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PermitReceiveIcon from '../assets/fhenix-permit-receive.svg';
 import { useFnxFloatingButtonContext } from '../../../FnxFloatingButtonContext.js';
 import { useReceivePermit } from '@/hooks/permits/index.js';
-import { usePortalStore } from '@/stores/portalStore';
+import { usePortalNavigation } from '@/stores';
 
 export const ReceivePermitPage: React.FC = () => {
   const { theme } = useFnxFloatingButtonContext();
-  const { navigateBack } = usePortalStore();
-  const darkMode = theme === 'dark';
+  const { navigateBack } = usePortalNavigation();
   const { permitData, setPermitData, permitName, setPermitName, isSubmitting, errorMsg, successMsg, submit } =
     useReceivePermit(() => navigateBack());
+
+  const darkMode = theme === 'dark';
   const permitIconColor = darkMode ? '#FFFFFF' : '#00314E';
+
   return (
     <div className="fnx-text-primary text-sm">
       <div className="space-y-5 rounded-2xl border border-[#154054] bg-white p-5 shadow-[0_25px_60px_rgba(13,53,71,0.15)] transition-colors dark:border-[#2C6D80] dark:bg-[#1F1F1F]">

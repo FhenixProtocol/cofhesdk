@@ -7,14 +7,14 @@ import { type PortalModalState } from './modals/types';
 import { AnimatePresence, motion } from 'motion/react';
 import { AnimatedZStack } from '../primitives/AnimatedZStack';
 import { modals } from './modals';
-import { usePortalCurrentPage, usePortalMaxContentHeight, usePortalStore } from '@/stores/portalStore';
+import { usePortalUI, usePortalCurrentPage, usePortalUIMaxContentHeight, usePortalModals } from '@/stores';
 
 interface ContentSectionProps {
   overriddingPage?: PageState;
 }
 
 const MeasuredContentRenderer: React.FC<{ children?: ReactNode; id: string }> = ({ children, id }) => {
-  const { setContentHeight, removeContentHeight } = usePortalStore();
+  const { setContentHeight, removeContentHeight } = usePortalUI();
   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -65,8 +65,9 @@ const ModalRenderer: React.FC<{ modal: PortalModalState }> = ({ modal }) => {
 
 export const ContentSection: React.FC<ContentSectionProps> = ({ overriddingPage }) => {
   const { isTopSide } = useFnxFloatingButtonContext();
-  const { contentPanelOpen, modalStack } = usePortalStore();
-  const maxContentHeight = usePortalMaxContentHeight();
+  const { contentPanelOpen } = usePortalUI();
+  const { modalStack } = usePortalModals();
+  const maxContentHeight = usePortalUIMaxContentHeight();
   const currentPage = usePortalCurrentPage();
   const pageOrOverridingPage = overriddingPage ?? currentPage;
 
