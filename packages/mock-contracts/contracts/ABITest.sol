@@ -12,7 +12,6 @@ contract ABITest {
   euint32 public eUint32;
   euint64 public eUint64;
   euint128 public eUint128;
-  euint256 public eUint256;
   ebool public eBool;
   eaddress public eAddress;
 
@@ -22,7 +21,6 @@ contract ABITest {
     eUint32 = FHE.asEuint32(1);
     eUint64 = FHE.asEuint64(1);
     eUint128 = FHE.asEuint128(1);
-    eUint256 = FHE.asEuint256(1);
     eBool = FHE.asEbool(true);
     eAddress = FHE.asEaddress(address(0));
   }
@@ -51,7 +49,6 @@ contract ABITest {
     InEuint32 memory inEuint32,
     InEuint64 memory inEuint64,
     InEuint128 memory inEuint128,
-    InEuint256 memory inEuint256,
     InEbool memory inEbool,
     InEaddress memory inEaddress
   ) public {}
@@ -59,6 +56,8 @@ contract ABITest {
   function fnStructContainsEncryptedInput(ContainsEncryptedInput memory containsEncryptedInput) public {}
 
   function fnArrayContainsEncryptedInput(InEuint32[] memory inEuint32Array) public {}
+
+  function fnTupleContainsEncryptedInput(InEuint32[2] memory inEuint32Array) public {}
 
   // OUTPUTS
 
@@ -85,12 +84,8 @@ contract ABITest {
     return encryptedResult;
   }
 
-  function fnReturnAllEncrypted()
-    public
-    view
-    returns (euint8, euint16, euint32, euint64, euint128, euint256, ebool, eaddress)
-  {
-    return (eUint8, eUint16, eUint32, eUint64, eUint128, eUint256, eBool, eAddress);
+  function fnReturnAllEncrypted() public view returns (euint8, euint16, euint32, euint64, euint128, ebool, eaddress) {
+    return (eUint8, eUint16, eUint32, eUint64, eUint128, eBool, eAddress);
   }
 
   // EVENTS
@@ -100,5 +95,5 @@ contract ABITest {
   event BlendedValue(uint256 value, euint32 encryptedValue);
   event EncryptedArray(euint32[] value);
   event EncryptedStruct(ContainsEncryptedResult value);
-  event AllEncrypted(euint8, euint16, euint32, euint64, euint128, euint256, ebool, eaddress);
+  event AllEncrypted(euint8, euint16, euint32, euint64, euint128, ebool, eaddress);
 }

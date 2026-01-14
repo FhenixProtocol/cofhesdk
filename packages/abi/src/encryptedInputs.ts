@@ -1,8 +1,6 @@
 import {
-  Encryptable,
   type EncryptableAddress,
   type EncryptableBool,
-  type EncryptableToEncryptedItemInputMap,
   type EncryptableUint128,
   type EncryptableUint16,
   type EncryptableUint32,
@@ -11,7 +9,6 @@ import {
   type EncryptedAddressInput,
   type EncryptedBoolInput,
   type EncryptedItemInput,
-  type EncryptedItemInputs,
   type EncryptedUint128Input,
   type EncryptedUint16Input,
   type EncryptedUint256Input,
@@ -26,15 +23,19 @@ import type {
   AbiFunction,
   AbiParameter,
   AbiParameterKind,
-  AbiParametersToPrimitiveTypes,
-  AbiParameterToPrimitiveType,
   AbiStateMutability,
+  AbiType,
+  AbiTypeToPrimitiveType,
   Address,
   ExtractAbiFunction,
   ExtractAbiFunctionNames,
   ResolvedRegister,
+  SolidityArray,
+  SolidityFixedArrayRange,
+  SolidityFixedArraySizeLookup,
+  SolidityTuple,
 } from 'abitype';
-import type { TestABI } from '../test/TestABI';
+import type { Tuple, Merge } from 'node_modules/abitype/dist/types/types';
 
 export type EBool = bigint & {
   __ebool: void;
@@ -72,6 +73,16 @@ type FhenixMap = {
   'struct InEuint256': EncryptedUint256Input;
   'struct InEaddress': EncryptedAddressInput;
 
+  // Input Structs
+  // 'struct InEbool[]': EncryptedBoolInput[];
+  // 'struct InEuint8[]': EncryptedUint8Input[];
+  // 'struct InEuint16[]': EncryptedUint16Input[];
+  // 'struct InEuint32[]': EncryptedUint32Input[];
+  // 'struct InEuint64[]': EncryptedUint64Input[];
+  // 'struct InEuint128[]': EncryptedUint128Input[];
+  // 'struct InEuint256[]': EncryptedUint256Input[];
+  // 'struct InEaddress[]': EncryptedAddressInput[];
+
   // Exposed encrypted primitives
   ebool: EBool;
   euint8: EUint8;
@@ -86,18 +97,53 @@ export type FhenixMapUnion = keyof FhenixMap;
 
 // BASE
 
-export type FhenixAbiParameterToPrimitiveType<
+export type Error<messages extends string | string[]> = messages extends string
+  ? [
+      // Surrounding with array to prevent `messages` from being widened to `string`
+      `Error: ${messages}`,
+    ]
+  : {
+      [key in keyof messages]: messages[key] extends infer message extends string ? `Error: ${message}` : never;
+    };
+
+export type AbiParameterToPrimitiveType<
   abiParameter extends AbiParameter | { name: string; type: unknown; internalType?: unknown },
   abiParameterKind extends AbiParameterKind = AbiParameterKind,
+  // 1. Check to see if type is basic (not tuple or array) and can be looked up immediately.
 > = abiParameter['internalType'] extends FhenixMapUnion
   ? FhenixMap[abiParameter['internalType']]
-  : AbiParameterToPrimitiveType<abiParameter, abiParameterKind>;
+  : abiParameter['type'] extends AbiBasicType
+    ? AbiTypeToPrimitiveType<abiParameter['type'], abiParameterKind>
+    : // 2. Check if type is tuple and covert each component
+      abiParameter extends {
+          type: SolidityTuple;
+          components: infer components extends readonly AbiParameter[];
+        }
+      ? AbiComponentsToPrimitiveType<components, abiParameterKind>
+      : // 3. Check if type is array.
+        MaybeExtractArrayParameterType<abiParameter['type']> extends [infer head extends string, infer size]
+        ? AbiArrayToPrimitiveType<abiParameter, abiParameterKind, head, size>
+        : // 4. If type is not basic, tuple, or array, we don't know what the type is.
+          // This can happen when a fixed-length array is out of range (`Size` doesn't exist in `SolidityFixedArraySizeLookup`),
+          // the array has depth greater than `ResolvedRegister['arrayMaxDepth']`, etc.
+          ResolvedRegister['strictAbiType'] extends true
+          ? Error<`Unknown type '${abiParameter['type'] & string}'.`>
+          : // 5. If we've gotten this far, let's check for errors in tuple components.
+            // (Happens for recursive tuple typed data types.)
+            abiParameter extends { components: Error<string> }
+            ? abiParameter['components']
+            : unknown;
+
+// export type AbiParameterToPrimitiveType<
+//   abiParameter extends AbiParameter | { name: string; type: unknown; internalType?: unknown },
+//   abiParameterKind extends AbiParameterKind = AbiParameterKind,
+// > = AbiParameterToPrimitiveType<abiParameter, abiParameterKind>;
 
 export type FhenixAbiParametersToPrimitiveTypes<
   abiParameters extends readonly AbiParameter[],
   abiParameterKind extends AbiParameterKind = AbiParameterKind,
 > = {
-  [key in keyof abiParameters]: FhenixAbiParameterToPrimitiveType<abiParameters[key], abiParameterKind>;
+  [key in keyof abiParameters]: AbiParameterToPrimitiveType<abiParameters[key], abiParameterKind>;
 };
 
 export type EncryptedInputToEncryptableMap<E extends EncryptedItemInput> = E extends EncryptedBoolInput
@@ -124,6 +170,30 @@ export type EncryptedInputsToEncryptables<T> = T extends Primitive
         [K in keyof T]: EncryptedInputsToEncryptables<T[K]>;
       };
 
+export type EncryptedInputToInputMap<E extends EncryptedItemInput> = E extends EncryptedBoolInput
+  ? EncryptableBool['data']
+  : E extends EncryptedUint8Input
+    ? EncryptableUint8['data']
+    : E extends EncryptedUint16Input
+      ? EncryptableUint16['data']
+      : E extends EncryptedUint32Input
+        ? EncryptableUint32['data']
+        : E extends EncryptedUint64Input
+          ? EncryptableUint64['data']
+          : E extends EncryptedUint128Input
+            ? EncryptableUint128['data']
+            : E extends EncryptedAddressInput
+              ? EncryptableAddress['data']
+              : never;
+
+export type EncryptedInputsToInputs<T> = T extends Primitive
+  ? LiteralToPrimitive<T>
+  : T extends EncryptedItemInput
+    ? EncryptedInputToInputMap<T>
+    : {
+        [K in keyof T]: EncryptedInputsToInputs<T[K]>;
+      };
+
 type testA = EncryptedInputToEncryptableMap<EncryptedBoolInput>;
 type testB = EncryptedInputToEncryptableMap<EncryptedUint8Input>;
 type testC = EncryptedInputToEncryptableMap<EncryptedUint16Input>;
@@ -141,7 +211,7 @@ type test = FhenixAbiParametersToPrimitiveTypes<
     {
       name: 'foo';
       type: 'bool';
-      internalType: 'struct InEBool';
+      internalType: 'struct InEbool';
     },
     {
       name: 'bar';
@@ -150,10 +220,6 @@ type test = FhenixAbiParametersToPrimitiveTypes<
     },
   ]
 >;
-
-type encryptableTest = EncryptedInputsToEncryptables<test>;
-
-type contractParametersTest = GetArgs<typeof TestABI, 'fnStructContainsEncryptedInput'>['args'];
 
 export type ContractParameters<
   abi extends Abi | readonly unknown[] = Abi, // `readonly unknown[]` allows for non-const asserted types
@@ -175,7 +241,7 @@ type GetArgs<
   args extends readonly unknown[] | undefined = readonly [],
   ///
   abiFunction extends AbiFunction = abi extends Abi ? ExtractAbiFunction<abi, functionName> : AbiFunction,
-  primitiveTypes = FhenixAbiParametersToPrimitiveTypes<abiFunction['inputs'], 'inputs'>,
+  primitiveTypes = FhenixAbiParametersToPrimitiveTypes<abiFunction['inputs']>,
   args_ =
     | primitiveTypes // show all values
     | (abi extends Abi
@@ -189,12 +255,15 @@ type GetArgs<
     | (Abi extends abi ? readonly unknown[] : never), // fallback if `abi` is declared as `Abi`
 > = MaybePartialBy<{ args: args_ }, readonly [] extends primitiveTypes ? 'args' : Abi extends abi ? 'args' : string>;
 
-type IsUnion<T, C = T> = T extends C ? ([C] extends [T] ? false : true) : never;
+export type CofheInputArgs<abi extends Abi | readonly unknown[] = Abi, functionName extends string = string> = GetArgs<
+  abi,
+  functionName
+>['args'];
 
-type UnionToTuple<U, Last = LastInUnion<U>> = [U] extends [never] ? [] : [...UnionToTuple<Exclude<U, Last>>, Last];
-type LastInUnion<U> =
-  UnionToIntersection<U extends unknown ? (x: U) => 0 : never> extends (x: infer L) => 0 ? L : never;
-type UnionToIntersection<U> = (U extends unknown ? (arg: U) => 0 : never) extends (arg: infer I) => 0 ? I : never;
+export type CofheInputArgsPreTransform<
+  abi extends Abi | readonly unknown[] = Abi,
+  functionName extends string = string,
+> = EncryptedInputsToInputs<CofheInputArgs<abi, functionName>>;
 
 type PartialBy<TType, TKeys extends keyof TType> = ExactPartial<Pick<TType, TKeys>> & Omit<TType, TKeys>;
 type ExactPartial<T> = { [K in keyof T]?: T[K] | undefined };
@@ -222,3 +291,89 @@ type ReadonlyWiden<TType> =
         ? readonly [...Val]
         : never
       : never);
+
+type AbiBasicType = Exclude<AbiType, SolidityTuple | SolidityArray>;
+
+type AbiComponentsToPrimitiveType<
+  components extends readonly AbiParameter[],
+  abiParameterKind extends AbiParameterKind,
+> = components extends readonly []
+  ? []
+  : // Compare the original set of names to a "validated"
+    // set where each name is coerced to a string and undefined|"" are excluded
+    components[number]['name'] extends Exclude<components[number]['name'] & string, undefined | ''>
+    ? // If all the original names are present, all tuple parameters are named so return as object
+      {
+        [component in components[number] as component['name'] & {}]: AbiParameterToPrimitiveType<
+          component,
+          abiParameterKind
+        >;
+      }
+    : // Otherwise, has unnamed tuple parameters so return as array
+      {
+        [key in keyof components]: AbiParameterToPrimitiveType<components[key], abiParameterKind>;
+      };
+
+type componentsTest = AbiComponentsToPrimitiveType<
+  [
+    {
+      name: 'ctHash';
+      type: 'uint256';
+      internalType: 'uint256';
+    },
+    {
+      name: 'securityZone';
+      type: 'uint8';
+      internalType: 'uint8';
+    },
+    {
+      name: 'utype';
+      type: 'uint8';
+      internalType: 'uint8';
+    },
+    {
+      name: 'signature';
+      type: 'bytes';
+      internalType: 'bytes';
+    },
+  ],
+  AbiParameterKind
+>;
+
+/**
+ * First, infer `Head` against a known size type (either fixed-length array value or `""`).
+ *
+ * | Input           | Head         |
+ * | --------------- | ------------ |
+ * | `string[]`      | `string`     |
+ * | `string[][][3]` | `string[][]` |
+ */
+type MaybeExtractArrayParameterType<type> = type extends `${infer head}[${'' | `${SolidityFixedArrayRange}`}]`
+  ? //   * Then, infer in the opposite direction, using the known `head` to infer the exact `size` value.
+    //   *
+    //   * | Input        | Size |
+    //   * | ------------ | ---- |
+    //   * | `${head}[]`  | `""` |
+    //   * | `${head}[3]` | `3`  |
+    //   */
+    type extends `${head}[${infer size}]`
+    ? [head, size]
+    : undefined
+  : undefined;
+
+type extractedArrayParameterType = MaybeExtractArrayParameterType<'struct InEuint32[2]'>;
+
+type AbiArrayToPrimitiveType<
+  abiParameter extends AbiParameter | { name: string; type: unknown },
+  abiParameterKind extends AbiParameterKind,
+  head extends string,
+  size,
+> = size extends keyof SolidityFixedArraySizeLookup
+  ? // Check if size is within range for fixed-length arrays, if so create a tuple.
+    Tuple<
+      AbiParameterToPrimitiveType<Merge<abiParameter, { type: head }>, abiParameterKind>,
+      SolidityFixedArraySizeLookup[size]
+    >
+  : // Otherwise, create an array. Tuples and arrays are created with `[${Size}]` popped off the end
+    // and passed back into the function to continue reducing down to the basic types found in Step 1.
+    readonly AbiParameterToPrimitiveType<Merge<abiParameter, { type: head }>, abiParameterKind>[];

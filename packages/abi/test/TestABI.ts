@@ -71,19 +71,6 @@ export const TestABI = [
   },
   {
     type: 'function',
-    name: 'eUint256',
-    inputs: [],
-    outputs: [
-      {
-        name: '',
-        type: 'uint256',
-        internalType: 'euint256',
-      },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
     name: 'eUint32',
     inputs: [],
     outputs: [
@@ -237,33 +224,6 @@ export const TestABI = [
         name: 'inEuint128',
         type: 'tuple',
         internalType: 'struct InEuint128',
-        components: [
-          {
-            name: 'ctHash',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'securityZone',
-            type: 'uint8',
-            internalType: 'uint8',
-          },
-          {
-            name: 'utype',
-            type: 'uint8',
-            internalType: 'uint8',
-          },
-          {
-            name: 'signature',
-            type: 'bytes',
-            internalType: 'bytes',
-          },
-        ],
-      },
-      {
-        name: 'inEuint256',
-        type: 'tuple',
-        internalType: 'struct InEuint256',
         components: [
           {
             name: 'ctHash',
@@ -501,11 +461,6 @@ export const TestABI = [
       {
         name: '',
         type: 'uint256',
-        internalType: 'euint256',
-      },
-      {
-        name: '',
-        type: 'uint256',
         internalType: 'ebool',
       },
       {
@@ -647,6 +602,41 @@ export const TestABI = [
   },
   {
     type: 'function',
+    name: 'fnTupleContainsEncryptedInput',
+    inputs: [
+      {
+        name: 'inEuint32Array',
+        type: 'tuple[2]',
+        internalType: 'struct InEuint32[2]',
+        components: [
+          {
+            name: 'ctHash',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'securityZone',
+            type: 'uint8',
+            internalType: 'uint8',
+          },
+          {
+            name: 'utype',
+            type: 'uint8',
+            internalType: 'uint8',
+          },
+          {
+            name: 'signature',
+            type: 'bytes',
+            internalType: 'bytes',
+          },
+        ],
+      },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
     name: 'numberHash',
     inputs: [],
     outputs: [
@@ -686,18 +676,11 @@ export const TestABI = [
         indexed: false,
         internalType: 'euint64',
       },
-
       {
         name: '',
         type: 'uint256',
         indexed: false,
         internalType: 'euint128',
-      },
-      {
-        name: '',
-        type: 'uint256',
-        indexed: false,
-        internalType: 'euint256',
       },
       {
         name: '',
