@@ -1,0 +1,54 @@
+{
+  "name": "@cofhe/abi",
+  "version": "0.1.1",
+  "type": "module",
+  "description": "ABI utilities for Fhenix FHE contracts",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "sideEffects": false,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/FhenixProtocol/cofhesdk.git",
+    "directory": "packages/abi"
+  },
+  "files": [
+    "dist/**",
+    "src/**",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint \"**/*.ts*\"",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+  },
+  "peerDependencies": {
+  },
+  "devDependencies": {
+    "@cofhe/eslint-config": "workspace:*",
+    "@cofhe/tsconfig": "workspace:*",
+    "@types/node": "^20.0.0",
+    "eslint": "^8.57.0",
+    "tsup": "^8.0.2",
+    "typescript": "5.5.4",
+    "vitest": "^3.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
