@@ -1,6 +1,7 @@
 import * as viemChains from 'viem/chains';
 import { ETH_ADDRESS, type Token, type Erc20Pair } from '../types/token.js';
 import type { Encryptable } from '@cofhe/sdk';
+import { isValidElement } from 'react';
 
 // Build a lookup map of chainId -> viem chain (for block explorers, etc.)
 const viemChainById = Object.values(viemChains).reduce<Record<number, (typeof viemChains)[keyof typeof viemChains]>>(
@@ -245,3 +246,24 @@ export const formatExpirationLabel = (expiration?: number) => {
   const minutes = Math.max(1, Math.ceil(diff / minute));
   return { label: `${minutes} Minute${minutes === 1 ? '' : 's'}`, expired: false };
 };
+
+export function isReactNode(data: unknown): data is React.ReactNode {
+  // Check for primitive types that are valid React nodes or if it's a valid React element
+  if (
+    data === null ||
+    data === undefined ||
+    typeof data === 'string' ||
+    typeof data === 'number' ||
+    typeof data === 'boolean' ||
+    isValidElement(data)
+  ) {
+    return true;
+  }
+
+  // Check if it's an array of React nodes (recursive check)
+  if (Array.isArray(data)) {
+    return data.every(isReactNode);
+  }
+
+  return false;
+}

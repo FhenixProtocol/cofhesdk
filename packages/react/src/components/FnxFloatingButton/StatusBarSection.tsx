@@ -1,9 +1,12 @@
 import { type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
+import { usePortalUI, usePortalStatuses } from '@/stores';
 
 export const StatusBarSection: React.FC<{ children?: ReactNode }> = ({ children }) => {
-  const { statusPanelOpen, statuses, isLeftSide } = useFnxFloatingButtonContext();
+  const { isLeftSide } = useFnxFloatingButtonContext();
+  const { statuses } = usePortalStatuses();
+  const { statusPanelOpen } = usePortalUI();
 
   return (
     <AnimatePresence>

@@ -6,6 +6,7 @@ import { ContentSection } from './ContentSection';
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
 import type { FloatingButtonPosition, FnxFloatingButtonProps } from './types';
 import { ToastsSection } from './ToastsSection';
+import { usePortalUI } from '@/stores';
 
 const positionStyles: Record<FloatingButtonPosition, string> = {
   'top-left': 'top-4 left-4',
@@ -21,7 +22,8 @@ export const FnxFloatingButtonBase: React.FC<FnxFloatingButtonProps> = ({
   positionType = 'fixed',
   overriddingPage,
 }) => {
-  const { effectivePosition, isTopSide, isLeftSide, togglePortal, theme } = useFnxFloatingButtonContext();
+  const { effectivePosition, isTopSide, isLeftSide, theme } = useFnxFloatingButtonContext();
+  const { togglePortal } = usePortalUI();
   const darkMode = theme === 'dark';
 
   return (

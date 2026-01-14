@@ -4,10 +4,10 @@ import { IoMdKey } from 'react-icons/io';
 import { AiOutlinePieChart } from 'react-icons/ai';
 import { TbShieldPlus } from 'react-icons/tb';
 import { FaBug } from 'react-icons/fa';
-import { useFnxFloatingButtonContext } from '../../FnxFloatingButtonContext';
 import { FloatingButtonPage } from '../../pagesConfig/types';
 import { useCofhePinnedToken } from '@/hooks/useCofhePinnedToken';
 import { assert, type ElementOf } from 'ts-essentials';
+import { usePortalNavigation, usePortalUI } from '@/stores';
 
 const iconClassName = 'w-4 h-4';
 
@@ -41,7 +41,8 @@ const navItems = [
 ] as const;
 
 export const BottomNavigation: React.FC = () => {
-  const { navigateTo, openPortal } = useFnxFloatingButtonContext();
+  const { navigateTo } = usePortalNavigation();
+  const { openPortal } = usePortalUI();
   const defaultToken = useCofhePinnedToken();
 
   const handleNavClick = (page: ElementOf<typeof navItems>['id']) => {
