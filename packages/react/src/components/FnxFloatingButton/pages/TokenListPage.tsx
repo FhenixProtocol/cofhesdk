@@ -40,8 +40,7 @@ export const TokenListPage: React.FC<TokenListPageProps> = ({ title, backToPageS
             <TokenRow
               onClick={() => {
                 assert(isPageWithProps(backToPageState.page), 'backToPageState must be a page with props');
-                // The `any` is temporary until we use a modal for the TokensListPage
-                navigateTo(backToPageState.page, { pageProps: { ...backToPageState.props, token } as any });
+                navigateTo(backToPageState.page, { pageProps: { ...backToPageState.props, token } });
               }}
               key={token.address}
               token={token}
