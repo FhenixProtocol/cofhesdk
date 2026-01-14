@@ -89,7 +89,9 @@ function useClaimUnshieldedWithLifecycle() {
   };
 }
 
-function useShieldWithLifecycle(token: Token) {
+type ShieldAndUnshieldViewProps = Omit<ShieldPageViewProps, 'token' | 'mode' | 'setMode'>;
+
+function useShieldWithLifecycle(token: Token): ShieldAndUnshieldViewProps {
   const account = useCofheAccount();
   const [shieldAmount, setShieldAmount] = useState('');
   const { setError, setStatus, error, status } = useLifecycleStore();
@@ -155,24 +157,28 @@ function useShieldWithLifecycle(token: Token) {
   }, [shieldAmount, publicBalanceUnit]);
 
   return {
-    handleShield,
-    tokenShield,
-    isTokenShieldMining,
-    shieldAmount,
-    setShieldAmount,
-    error,
     status,
-    handleShieldMax,
-    isValidShieldAmount,
-
+    error,
+    isProcessing: tokenShield.isPending || isTokenShieldMining,
+    inputAmount: shieldAmount,
+    setInputAmount: setShieldAmount,
+    onMaxClick: handleShieldMax,
+    isValidAmount: isValidShieldAmount ?? false,
+    sourceSymbol: token.extensions.fhenix.erc20Pair?.symbol,
+    destSymbol: token.symbol,
     sourceAvailable: publicBalanceUnit,
     destAvailable: confidentialBalanceUnit,
     isFetchingSource: isFetchingPublic,
     isFetchingDest: isFetchingConfidential,
+    sourceLogoURI: token.extensions.fhenix.erc20Pair?.logoURI,
+    destLogoURI: token.logoURI,
+    handlePrimaryAction: handleShield,
+    primaryLabel: 'Shield',
+    primaryIcon: <TbShieldPlus className="w-3 h-3" />,
   };
 }
 
-function useUnshieldWithLifecycle(token: Token) {
+function useUnshieldWithLifecycle(token: Token): ShieldAndUnshieldViewProps {
   const account = useCofheAccount();
   const { setError, setStatus, error, status } = useLifecycleStore();
   const [unshieldAmount, setUnshieldAmount] = useState('');
@@ -230,16 +236,20 @@ function useUnshieldWithLifecycle(token: Token) {
   const isValidUnshieldAmount = (unshieldAmount.length > 0 && confidentialBalanceUnit?.gte(unshieldAmount)) ?? false;
 
   return {
-    tokenUnshield,
-    isTokenUnshieldMining,
-    error,
     status,
-    unshieldAmount,
-    setUnshieldAmount,
-    handleUnshield,
-    handleUnshieldMax,
-    isValidUnshieldAmount,
-
+    error,
+    isProcessing: tokenUnshield.isPending || isTokenUnshieldMining,
+    inputAmount: unshieldAmount,
+    setInputAmount: setUnshieldAmount,
+    onMaxClick: handleUnshieldMax,
+    isValidAmount: isValidUnshieldAmount ?? false,
+    sourceSymbol: token.symbol,
+    destSymbol: token.extensions.fhenix.erc20Pair?.symbol,
+    sourceLogoURI: token.logoURI,
+    destLogoURI: token.extensions.fhenix.erc20Pair?.logoURI,
+    handlePrimaryAction: handleUnshield,
+    primaryLabel: 'Unshield',
+    primaryIcon: <TbShieldMinus className="w-3 h-3" />,
     sourceAvailable: confidentialBalanceUnit,
     destAvailable: publicBalanceUnit,
     isFetchingSource: isFetchingConfidential,
@@ -252,96 +262,18 @@ const shieldableTypes = new Set(['dual', 'wrapped']);
 export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) => {
   const [mode, setMode] = useState<Mode>(defaultMode ?? 'shield');
 
-  const {
-    shieldAmount,
-    setShieldAmount,
-    tokenShield,
-    isTokenShieldMining,
-    error: shieldingError,
-    status: shieldingStatus,
-    handleShield,
-    handleShieldMax,
-    isValidShieldAmount,
+  const shieldViewProps = useShieldWithLifecycle(token);
 
-    sourceAvailable: shieldSourceAvailable,
-    destAvailable: shieldDestAvailable,
-    isFetchingSource: isShieldFetchingPublic,
-    isFetchingDest: isShieldFetchingConfidential,
-  } = useShieldWithLifecycle(token);
+  const unshieldViewProps = useUnshieldWithLifecycle(token);
 
-  const {
-    unshieldAmount,
-    setUnshieldAmount,
-    tokenUnshield,
-    isTokenUnshieldMining,
-    error: unshieldingError,
-    status: unshildingStatus,
-    handleUnshield,
-    handleUnshieldMax,
-    isValidUnshieldAmount,
-
-    sourceAvailable: unshieldSourceAvailable,
-    destAvailable: unshieldDestAvailable,
-    isFetchingSource: isUnshieldFetchingConfidential,
-    isFetchingDest: isUnshieldFetchingPublic,
-  } = useUnshieldWithLifecycle(token);
-
-  const tokenSymbol = token.symbol;
-  const pairedSymbol = token.extensions.fhenix.erc20Pair?.symbol;
-
-  const pairedLogoURI = token.extensions.fhenix.erc20Pair?.logoURI;
-
-  // TODO: redo: const object = mode === 'shield' ? obj1 : obj2;
-  const shieldingProp: ShieldPageViewProps = {
-    token,
-    mode,
-    setMode,
-    status: shieldingStatus,
-    error: shieldingError,
-
-    isProcessing: tokenShield.isPending || isTokenShieldMining,
-    inputAmount: shieldAmount,
-    setInputAmount: setShieldAmount,
-    onMaxClick: handleShieldMax,
-    isValidAmount: isValidShieldAmount ?? false,
-    sourceSymbol: pairedSymbol,
-    destSymbol: tokenSymbol,
-    sourceAvailable: shieldSourceAvailable,
-    destAvailable: shieldDestAvailable,
-    isFetchingSource: isShieldFetchingPublic,
-    isFetchingDest: isShieldFetchingConfidential,
-    sourceLogoURI: pairedLogoURI,
-    destLogoURI: token.logoURI,
-    handlePrimaryAction: handleShield,
-    primaryLabel: 'Shield',
-    primaryIcon: <TbShieldPlus className="w-3 h-3" />,
-  };
-
-  const unshieldingProps: ShieldPageViewProps = {
-    error: unshieldingError,
-    token,
-    mode,
-    setMode,
-    status: unshildingStatus,
-
-    isProcessing: tokenUnshield.isPending || isTokenUnshieldMining,
-    inputAmount: unshieldAmount,
-    setInputAmount: setUnshieldAmount,
-    onMaxClick: handleUnshieldMax,
-    isValidAmount: isValidUnshieldAmount,
-    sourceSymbol: tokenSymbol,
-    destSymbol: pairedSymbol,
-    sourceAvailable: unshieldSourceAvailable,
-    destAvailable: unshieldDestAvailable,
-    isFetchingSource: isUnshieldFetchingConfidential,
-    isFetchingDest: isUnshieldFetchingPublic,
-    sourceLogoURI: token.logoURI,
-    destLogoURI: pairedLogoURI,
-    handlePrimaryAction: handleUnshield,
-    primaryLabel: 'Unshield',
-    primaryIcon: <TbShieldMinus className="w-3 h-3" />,
-  };
-  return <ShieldPageView {...(mode === 'shield' ? shieldingProp : unshieldingProps)} />;
+  return (
+    <ShieldPageView
+      token={token}
+      mode={mode}
+      setMode={setMode}
+      {...(mode === 'shield' ? shieldViewProps : unshieldViewProps)}
+    />
+  );
 };
 
 type ShieldPageViewProps = {
