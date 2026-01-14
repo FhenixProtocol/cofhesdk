@@ -313,11 +313,16 @@ function UnshieldTab({ token, mode, setMode }: { token: Token; mode: Mode; setMo
 
 function ClaimingSection({ token }: { token: Token }) {
   const account = useCofheAccount();
-  const { data: unshieldedClaims } = useCofheTokenClaimable({
+  const { data: unshieldedClaims, isFetching: isFetchingClaims } = useCofheTokenClaimable({
     token,
     accountAddress: account,
   });
-  const { claimUnshield, error: claimingError, status: claimingStatus } = useClaimUnshieldedWithLifecycle();
+  const {
+    claimUnshield,
+    error: claimingError,
+    status: claimingStatus,
+    isClaimingMining,
+  } = useClaimUnshieldedWithLifecycle();
 
   const pairedSymbol = token.extensions.fhenix.erc20Pair?.symbol;
   const handleClaim = async () => {
@@ -334,7 +339,7 @@ function ClaimingSection({ token }: { token: Token }) {
       {unshieldedClaims?.hasClaimable && (
         <ActionButton
           onClick={handleClaim}
-          disabled={claimUnshield.isPending || !unshieldedClaims.hasClaimable}
+          disabled={claimUnshield.isPending || isClaimingMining || isFetchingClaims}
           label={
             claimUnshield.isPending
               ? 'Claiming...'
@@ -535,11 +540,11 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
         label={primaryLabel}
         className="py-2"
       />
-      <ClaimingSection token={token} />
       <StatusAndError status={status} error={error} />
+      <ClaimingSection token={token} />
 
       {/* Not Shieldable Token Warning */}
-      {token && !isShieldableToken && (
+      {!isShieldableToken && (
         <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-2">
           <p className="text-xs text-yellow-800 dark:text-yellow-200">
             This token does not support shielding/unshielding.
