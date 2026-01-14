@@ -262,17 +262,10 @@ const shieldableTypes = new Set(['dual', 'wrapped']);
 export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) => {
   const [mode, setMode] = useState<Mode>(defaultMode ?? 'shield');
 
-  const shieldViewProps = useShieldWithLifecycle(token);
-
-  const unshieldViewProps = useUnshieldWithLifecycle(token);
-
-  return (
-    <ShieldPageView
-      token={token}
-      mode={mode}
-      setMode={setMode}
-      {...(mode === 'shield' ? shieldViewProps : unshieldViewProps)}
-    />
+  return mode === 'shield' ? (
+    <ShieldTab token={token} mode={mode} setMode={setMode} />
+  ) : (
+    <UnshieldTab token={token} mode={mode} setMode={setMode} />
   );
 };
 
@@ -300,7 +293,18 @@ type ShieldPageViewProps = {
   primaryLabel: string;
   primaryIcon: React.ReactNode;
 };
-const ShieldPageView: React.FC<ShieldPageViewProps> = ({
+
+function ShieldTab({ token, mode, setMode }: { token: Token; mode: Mode; setMode: (mode: Mode) => void }) {
+  const shieldViewProps = useShieldWithLifecycle(token);
+  return <ShieldAndUnshieldPageView token={token} mode={mode} setMode={setMode} {...shieldViewProps} />;
+}
+
+function UnshieldTab({ token, mode, setMode }: { token: Token; mode: Mode; setMode: (mode: Mode) => void }) {
+  const unshieldViewProps = useUnshieldWithLifecycle(token);
+  return <ShieldAndUnshieldPageView token={token} mode={mode} setMode={setMode} {...unshieldViewProps} />;
+}
+
+const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
   error: _error,
   token,
   mode,
