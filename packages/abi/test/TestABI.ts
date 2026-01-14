@@ -659,6 +659,145 @@ export const TestABI = [
     stateMutability: 'view',
   },
   {
+    type: 'event',
+    name: 'AllEncrypted',
+    inputs: [
+      {
+        name: '',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'euint8',
+      },
+      {
+        name: '',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'euint16',
+      },
+      {
+        name: '',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'euint32',
+      },
+      {
+        name: '',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'euint64',
+      },
+
+      {
+        name: '',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'euint128',
+      },
+      {
+        name: '',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'euint256',
+      },
+      {
+        name: '',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'ebool',
+      },
+      {
+        name: '',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'eaddress',
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'BlendedValue',
+    inputs: [
+      {
+        name: 'value',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
+      },
+      {
+        name: 'encryptedValue',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'euint32',
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'EncryptedArray',
+    inputs: [
+      {
+        name: 'value',
+        type: 'uint256[]',
+        indexed: false,
+        internalType: 'euint32[]',
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'EncryptedStruct',
+    inputs: [
+      {
+        name: 'value',
+        type: 'tuple',
+        indexed: false,
+        internalType: 'struct ABITest.ContainsEncryptedResult',
+        components: [
+          {
+            name: 'value',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'encryptedResult',
+            type: 'uint256',
+            internalType: 'euint32',
+          },
+        ],
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'EncryptedValue',
+    inputs: [
+      {
+        name: 'value',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'euint32',
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'EventNoEncryptedInputs',
+    inputs: [
+      {
+        name: 'value',
+        type: 'uint8',
+        indexed: false,
+        internalType: 'uint8',
+      },
+    ],
+    anonymous: false,
+  },
+  {
     type: 'error',
     name: 'SecurityZoneOutOfBounds',
     inputs: [

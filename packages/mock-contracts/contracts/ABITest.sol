@@ -37,6 +37,8 @@ contract ABITest {
     euint32 encryptedResult;
   }
 
+  // INPUTS
+
   function fnNoEncryptedInputs(uint8 value) public {}
 
   function fnEncryptedInput(InEuint32 memory inNumber) public {}
@@ -58,6 +60,8 @@ contract ABITest {
 
   function fnArrayContainsEncryptedInput(InEuint32[] memory inEuint32Array) public {}
 
+  // OUTPUTS
+
   function fnReturnNoEncrypted() public pure returns (uint256) {
     return 1;
   }
@@ -77,10 +81,7 @@ contract ABITest {
   }
 
   function fnReturnEncryptedStruct() public view returns (ContainsEncryptedResult memory) {
-    ContainsEncryptedResult memory encryptedResult = ContainsEncryptedResult({
-      value: 1,
-      encryptedResult: eUint32
-    });
+    ContainsEncryptedResult memory encryptedResult = ContainsEncryptedResult({ value: 1, encryptedResult: eUint32 });
     return encryptedResult;
   }
 
@@ -91,4 +92,13 @@ contract ABITest {
   {
     return (eUint8, eUint16, eUint32, eUint64, eUint128, eUint256, eBool, eAddress);
   }
+
+  // EVENTS
+
+  event EventNoEncryptedInputs(uint8 value);
+  event EncryptedValue(euint32 value);
+  event BlendedValue(uint256 value, euint32 encryptedValue);
+  event EncryptedArray(euint32[] value);
+  event EncryptedStruct(ContainsEncryptedResult value);
+  event AllEncrypted(euint8, euint16, euint32, euint64, euint128, euint256, ebool, eaddress);
 }

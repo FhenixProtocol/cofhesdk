@@ -36,8 +36,8 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-  },
-  "peerDependencies": {
+    "@cofhe/sdk": "workspace:*",
+    "abitype": "^1.2.3"
   },
   "devDependencies": {
     "@cofhe/eslint-config": "workspace:*",
