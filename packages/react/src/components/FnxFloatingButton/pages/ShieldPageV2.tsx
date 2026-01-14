@@ -149,12 +149,7 @@ function useShieldWithLifecycle(token: Token): ShieldAndUnshieldViewProps {
     if (publicBalanceUnit) setShieldAmount(publicBalanceUnit.toFixed());
   };
 
-  const isValidShieldAmount = useMemo(() => {
-    if (!shieldAmount) return false;
-    const numAmount = parseFloat(shieldAmount);
-    if (isNaN(numAmount) || numAmount <= 0) return false;
-    return publicBalanceUnit?.gt(numAmount);
-  }, [shieldAmount, publicBalanceUnit]);
+  const isValidShieldAmount = (shieldAmount.length > 0 && publicBalanceUnit?.gte(shieldAmount)) ?? false;
 
   return {
     status,
@@ -163,7 +158,7 @@ function useShieldWithLifecycle(token: Token): ShieldAndUnshieldViewProps {
     inputAmount: shieldAmount,
     setInputAmount: setShieldAmount,
     onMaxClick: handleShieldMax,
-    isValidAmount: isValidShieldAmount ?? false,
+    isValidAmount: isValidShieldAmount,
     sourceSymbol: token.extensions.fhenix.erc20Pair?.symbol,
     destSymbol: token.symbol,
     sourceAvailable: publicBalanceUnit,
