@@ -17,9 +17,11 @@ import { formatTokenAmount, unitToWei } from '@/utils/format';
 import { FloatingButtonPage } from '../pagesConfig/types';
 import { useCofheTokenClaimUnshielded, useCofheTokenUnshield, useCofheTokenClaimable } from '@/hooks';
 import { useOnceTransactionMined } from '@/hooks/useOnceTransactionMined';
+import { useReschedulableTimeout } from '@/hooks/useReschedulableTimeout';
 import { assert } from 'ts-essentials';
 import type { BigNumber } from 'bignumber.js';
 
+const AUTOCLEAR_TX_STATUS_TIMEOUT = 5000;
 const DISPLAY_DECIMALS = 5;
 
 type Mode = 'shield' | 'unshield';
@@ -46,8 +48,12 @@ function useLifecycleStore() {
   };
 }
 
+// Reusable hook to safely auto-clear a status message after a delay
+// (moved) useReschedulableTimeout is now in '@/hooks/useReschedulableTimeout'
+
 function useClaimUnshieldedWithLifecycle() {
   const { setError, setStatus, error, status } = useLifecycleStore();
+  const { schedule: scheduleStatusClear } = useReschedulableTimeout(() => setStatus(null), AUTOCLEAR_TX_STATUS_TIMEOUT);
   const claimUnshield = useCofheTokenClaimUnshielded({
     onMutate: () => {
       setError(null);
@@ -78,6 +84,7 @@ function useClaimUnshieldedWithLifecycle() {
       } else if (transaction.status === 'failed') {
         setError(`Claim transaction failed! Hash: ${truncateHash(transaction.hash)}`);
       }
+      scheduleStatusClear();
     },
   });
 
@@ -95,6 +102,7 @@ function useShieldWithLifecycle(token: Token): ShieldAndUnshieldViewProps {
   const account = useCofheAccount();
   const [shieldAmount, setShieldAmount] = useState('');
   const { setError, setStatus, error, status } = useLifecycleStore();
+  const { schedule: scheduleStatusClear } = useReschedulableTimeout(() => setStatus(null), AUTOCLEAR_TX_STATUS_TIMEOUT);
   const tokenShield = useCofheTokenShield({
     onMutate: () => {
       setError(null);
@@ -125,6 +133,7 @@ function useShieldWithLifecycle(token: Token): ShieldAndUnshieldViewProps {
       } else if (transaction.status === 'failed') {
         setError(`Shield transaction failed! Hash: ${truncateHash(transaction.hash)}`);
       }
+      scheduleStatusClear();
     },
   });
 
@@ -176,6 +185,7 @@ function useShieldWithLifecycle(token: Token): ShieldAndUnshieldViewProps {
 function useUnshieldWithLifecycle(token: Token): ShieldAndUnshieldViewProps {
   const account = useCofheAccount();
   const { setError, setStatus, error, status } = useLifecycleStore();
+  const { schedule: scheduleStatusClear } = useReschedulableTimeout(() => setStatus(null), AUTOCLEAR_TX_STATUS_TIMEOUT);
   const [unshieldAmount, setUnshieldAmount] = useState('');
   const tokenUnshield = useCofheTokenUnshield({
     onMutate: () => {
@@ -208,6 +218,7 @@ function useUnshieldWithLifecycle(token: Token): ShieldAndUnshieldViewProps {
       } else if (transaction.status === 'failed') {
         setError(`Unshield transaction failed! Hash: ${truncateHash(transaction.hash)}`);
       }
+      scheduleStatusClear();
     },
   });
   const handleUnshield = async () => {
@@ -299,14 +310,97 @@ function UnshieldTab({ token, mode, setMode }: { token: Token; mode: Mode; setMo
   return <ShieldAndUnshieldPageView token={token} mode={mode} setMode={setMode} {...unshieldViewProps} />;
 }
 
+function ClaimingSection({ token }: { token: Token }) {
+  const account = useCofheAccount();
+  const { data: unshieldedClaims } = useCofheTokenClaimable({
+    token,
+    accountAddress: account,
+  });
+  const { claimUnshield, error: claimingError, status: claimingStatus } = useClaimUnshieldedWithLifecycle();
+
+  const pairedSymbol = token.extensions.fhenix.erc20Pair?.symbol;
+  const handleClaim = async () => {
+    assert(unshieldedClaims, 'Unshield claims data is required to claim unshielded tokens');
+    claimUnshield.mutateAsync({
+      token,
+      amount: unshieldedClaims.claimableAmount,
+    });
+  };
+
+  return (
+    <>
+      {/* Claim + pending (same logic as ShieldPage) */}
+      {unshieldedClaims?.hasClaimable && (
+        <ActionButton
+          onClick={handleClaim}
+          disabled={claimUnshield.isPending || !unshieldedClaims.hasClaimable}
+          label={
+            claimUnshield.isPending
+              ? 'Claiming...'
+              : `Claim ${formatTokenAmount(unshieldedClaims.claimableAmount, token.decimals, 5).formatted} ${pairedSymbol}`
+          }
+          className="mt-1"
+        />
+      )}
+
+      {unshieldedClaims?.hasPending && token && !unshieldedClaims.hasClaimable && (
+        <p className="text-xxs text-yellow-600 dark:text-yellow-400 text-center">
+          Pending: {formatTokenAmount(unshieldedClaims.pendingAmount, token.decimals).formatted} {pairedSymbol}
+        </p>
+      )}
+      <StatusAndError status={claimingStatus} error={claimingError} />
+    </>
+  );
+}
+
+function StatusAndError({
+  status,
+  error,
+}: {
+  status: { message: string; type: 'info' | 'success' } | null;
+  error: string | null;
+}) {
+  return (
+    <>
+      {/* Error */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-2">
+          <p className="text-xs text-red-800 dark:text-red-200">{error}</p>
+        </div>
+      )}
+
+      {/* Status */}
+      {status && (
+        <div
+          className={cn(
+            'rounded-lg p-2 border',
+            status.type === 'success'
+              ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+              : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+          )}
+        >
+          <p
+            className={cn(
+              'text-xs',
+              status.type === 'success' ? 'text-green-800 dark:text-green-200' : 'text-blue-800 dark:text-blue-200'
+            )}
+          >
+            {status.message}
+          </p>
+        </div>
+      )}
+    </>
+  );
+}
+
 const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
-  error: _error,
+  error,
   token,
   mode,
   setMode,
-  status: _status,
+  status,
 
-  isProcessing: _isProcessing,
+  isProcessing,
   inputAmount,
   setInputAmount,
   onMaxClick,
@@ -323,34 +417,9 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
   primaryLabel,
   primaryIcon,
 }) => {
-  const account = useCofheAccount();
   const { navigateBack, navigateTo } = useFnxFloatingButtonContext();
-  const { data: unshieldClaims } = useCofheTokenClaimable({
-    token,
-    accountAddress: account,
-  });
-
-  const {
-    claimUnshield,
-    isClaimingMining,
-    error: claimingError,
-    status: claimingStatus,
-  } = useClaimUnshieldedWithLifecycle();
-
   const isShieldableToken = shieldableTypes.has(token.extensions.fhenix.confidentialityType);
-  const isProcessing = _isProcessing || claimUnshield.isPending || isClaimingMining;
-  const error = _error || claimingError;
-  const status = _status || claimingStatus;
 
-  const handleClaim = async () => {
-    assert(unshieldClaims, 'Unshield claims data is required to claim unshielded tokens');
-    claimUnshield.mutateAsync({
-      token,
-      amount: unshieldClaims.claimableAmount,
-    });
-  };
-
-  const pairedSymbol = token.extensions.fhenix.erc20Pair?.symbol;
   return (
     <div className="fnx-text-primary space-y-3">
       {/* Header */}
@@ -465,60 +534,14 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
         label={primaryLabel}
         className="py-2"
       />
-
-      {/* Claim + pending (same logic as ShieldPage) */}
-      {unshieldClaims?.hasClaimable && (
-        <ActionButton
-          onClick={handleClaim}
-          disabled={claimUnshield.isPending || !unshieldClaims.hasClaimable}
-          label={
-            claimUnshield.isPending
-              ? 'Claiming...'
-              : `Claim ${formatTokenAmount(unshieldClaims.claimableAmount, token.decimals, 5).formatted} ${pairedSymbol}`
-          }
-          className="mt-1"
-        />
-      )}
-
-      {unshieldClaims?.hasPending && token && !unshieldClaims.hasClaimable && (
-        <p className="text-xxs text-yellow-600 dark:text-yellow-400 text-center">
-          Pending: {formatTokenAmount(unshieldClaims.pendingAmount, token.decimals).formatted} {pairedSymbol}
-        </p>
-      )}
+      <ClaimingSection token={token} />
+      <StatusAndError status={status} error={error} />
 
       {/* Not Shieldable Token Warning */}
       {token && !isShieldableToken && (
         <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-2">
           <p className="text-xs text-yellow-800 dark:text-yellow-200">
             This token does not support shielding/unshielding.
-          </p>
-        </div>
-      )}
-
-      {/* Error */}
-      {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-2">
-          <p className="text-xs text-red-800 dark:text-red-200">{error}</p>
-        </div>
-      )}
-
-      {/* Status */}
-      {status && (
-        <div
-          className={cn(
-            'rounded-lg p-2 border',
-            status.type === 'success'
-              ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-              : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
-          )}
-        >
-          <p
-            className={cn(
-              'text-xs',
-              status.type === 'success' ? 'text-green-800 dark:text-green-200' : 'text-blue-800 dark:text-blue-200'
-            )}
-          >
-            {status.message}
           </p>
         </div>
       )}
