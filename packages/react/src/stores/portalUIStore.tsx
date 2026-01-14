@@ -18,7 +18,7 @@ type PortalUIActions = {
   clearTimeouts: () => void;
   openPortal: () => void;
   closePortal: () => void;
-  togglePortal: (externalOnClick?: () => void) => void;
+  togglePortal: () => void;
 
   setContentHeight: (id: string, height: number) => void;
   removeContentHeight: (id: string) => void;
