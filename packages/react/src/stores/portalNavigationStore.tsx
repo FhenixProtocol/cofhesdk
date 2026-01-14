@@ -2,6 +2,7 @@ import {
   FloatingButtonPage,
   type FloatingButtonPagePropsMap,
   type PageState,
+  type PagesWithoutProps,
   type PagesWithProps,
 } from '@/components/FnxFloatingButton/pagesConfig/types';
 import { create } from 'zustand';
@@ -15,10 +16,12 @@ export type NavigateArgs<K extends FloatingButtonPage> = {
   pageProps?: FloatingButtonPagePropsMap[K];
   navigateParams?: NavigateParams;
 };
-
-type NavigateToFn = <K extends FloatingButtonPage>(
-  ...args: K extends PagesWithProps ? [page: K, props: NavigateArgs<K>] : [page: K, props?: NavigateArgs<K>]
-) => void;
+type NavigateToFn = {
+  // For pages without props, second arg is optional and may include navigateParams only
+  <K extends PagesWithoutProps>(page: K, args?: NavigateArgs<K>): void;
+  // For pages with props, require pageProps inside second arg
+  <K extends PagesWithProps>(page: K, args: NavigateArgs<K>): void;
+};
 
 type PortalNavigationStore = {
   pageHistory: PageState[];
@@ -30,25 +33,29 @@ type PortalNavigationActions = {
   navigateBack: () => void;
 };
 
-export const usePortalNavigation = create<PortalNavigationStore & PortalNavigationActions>()((set, get) => ({
-  pageHistory: [{ page: FloatingButtonPage.Main }],
-  overridingPage: null,
-
-  navigateTo: <K extends FloatingButtonPage>(
-    ...args: K extends PagesWithProps ? [page: K, props: NavigateArgs<K>] : [page: K, props?: NavigateArgs<K>]
-  ) => {
-    const [page, props] = args;
-    const skipPagesHistory = props?.navigateParams?.skipPagesHistory === true;
+export const usePortalNavigation = create<PortalNavigationStore & PortalNavigationActions>()((set, get) => {
+  function navigateTo<K extends PagesWithoutProps>(page: K, args?: NavigateArgs<K>): void;
+  // eslint-disable-next-line no-redeclare
+  function navigateTo<K extends PagesWithProps>(page: K, args: NavigateArgs<K>): void;
+  // eslint-disable-next-line no-redeclare
+  function navigateTo<K extends FloatingButtonPage>(page: K, args?: NavigateArgs<K>): void {
+    const props = args?.pageProps;
+    const skipPagesHistory = args?.navigateParams?.skipPagesHistory === true;
     if (skipPagesHistory) {
-      set({ overridingPage: { page, props } as PageState });
+      set({ overridingPage: { page, props } });
     } else {
       const existing = get().pageHistory;
-      const updated = [...existing, { page, props } as PageState];
+      const updated = [...existing, { page, props }];
       set({ pageHistory: updated });
     }
-  },
-  navigateBack: () => set({ pageHistory: get().pageHistory.slice(0, -1) }),
-}));
+  }
+  return {
+    pageHistory: [{ page: FloatingButtonPage.Main }],
+    overridingPage: null,
+    navigateTo,
+    navigateBack: () => set({ pageHistory: get().pageHistory.slice(0, -1) }),
+  };
+});
 
 export const usePortalCurrentPage = () => {
   const { overridingPage, pageHistory } = usePortalNavigation();
