@@ -6,9 +6,11 @@ import { FloatingButtonPage } from './pagesConfig/types';
 import { FhenixLogoIcon } from '../FhenixLogoIcon';
 import type { FnxStatus, FnxStatusVariant } from './types';
 import { AnimatedZStack } from '../primitives/AnimatedZStack';
+import { usePortalNavigation, usePortalStatuses } from '@/stores';
 
 const ConnectionStatus: React.FC = () => {
-  const { navigateTo, theme } = useFnxFloatingButtonContext();
+  const { theme } = useFnxFloatingButtonContext();
+  const { navigateTo } = usePortalNavigation();
 
   return (
     <div className="fnx-panel w-full h-full flex px-4 items-center justify-between">
@@ -73,7 +75,7 @@ const ActiveStatusContent: React.FC<{ status: FnxStatus }> = ({ status }) => {
 };
 
 export const StatusBarContent: React.FC = () => {
-  const { statuses } = useFnxFloatingButtonContext();
+  const { statuses } = usePortalStatuses();
 
   return (
     <AnimatedZStack>

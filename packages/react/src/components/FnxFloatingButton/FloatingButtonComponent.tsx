@@ -2,9 +2,12 @@ import { cn } from '@/utils';
 import CloseIcon from '@mui/icons-material/Close';
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
 import { FhenixLogoIcon } from '../FhenixLogoIcon';
+import { usePortalUI, usePortalStatuses } from '@/stores';
 
 export const FloatingButtonComponent: React.FC<{ onClick: () => void }> = ({ onClick }) => {
-  const { portalOpen, theme, statuses } = useFnxFloatingButtonContext();
+  const { theme } = useFnxFloatingButtonContext();
+  const { statuses } = usePortalStatuses();
+  const { portalOpen } = usePortalUI();
 
   const topStatusVariant = statuses[statuses.length - 1]?.variant;
 

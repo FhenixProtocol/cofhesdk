@@ -20,6 +20,7 @@ import { useOnceTransactionMined } from '@/hooks/useOnceTransactionMined';
 import { useReschedulableTimeout } from '@/hooks/useReschedulableTimeout';
 import { assert } from 'ts-essentials';
 import type { BigNumber } from 'bignumber.js';
+import { usePortalNavigation } from '@/stores';
 
 const AUTOCLEAR_TX_STATUS_TIMEOUT = 5000;
 const DISPLAY_DECIMALS = 5;
@@ -417,7 +418,7 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
   primaryLabel,
   primaryIcon,
 }) => {
-  const { navigateBack, navigateTo } = useFnxFloatingButtonContext();
+  const { navigateBack, navigateTo } = usePortalNavigation();
   const isShieldableToken = shieldableTypes.has(token.extensions.fhenix.confidentialityType);
 
   return (
