@@ -4,7 +4,7 @@ import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import { isAddress, maxUint128 } from 'viem';
 import { useCofheAccount } from '@/hooks/useCofheConnection';
 import { useCofheTokenDecryptedBalance } from '@/hooks/useCofheTokenDecryptedBalance';
-import { useNewTokenTransfer } from '@/hooks/useCofheTokenTransfer';
+import { useCofheTokenTransfer } from '@/hooks/useCofheTokenTransfer';
 import { cn } from '../../../utils/cn';
 import { truncateAddress, sanitizeNumericInput } from '../../../utils/utils';
 import { TokenIcon } from '../components/TokenIcon';
@@ -31,7 +31,7 @@ export const SendPage: React.FC<SendPageProps> = ({ token }) => {
   const { navigateBack, navigateTo } = usePortalNavigation();
 
   const account = useCofheAccount();
-  const tokenTransfer = useNewTokenTransfer({
+  const tokenTransfer = useCofheTokenTransfer({
     onError: (error) => {
       const errorMessage = error instanceof Error ? error.message : 'Failed to send tokens';
       setError(errorMessage);
