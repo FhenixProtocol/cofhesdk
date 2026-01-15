@@ -11,7 +11,7 @@ import { TokenIcon } from '../components/TokenIcon';
 import { unitToWei } from '@/utils/format';
 import { assert } from 'ts-essentials';
 import { CofheTokenConfidentialBalance } from '../components';
-import { useCofheEncrypt, type Token } from '@/hooks';
+import { type Token } from '@/hooks';
 import { getStepConfig } from '@/hooks/useCofheEncrypt';
 import { FloatingButtonPage } from '../pagesConfig/types';
 import { useOnceTransactionMined } from '@/hooks/useOnceTransactionMined';
