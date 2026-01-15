@@ -1,7 +1,7 @@
-import { PortalModal, type PortalModalPropsMapWithOnClose } from './types';
+import { PortalModal, type PortalModalStateMap } from './types';
 import CloseIcon from '@mui/icons-material/Close';
 
-export const ExampleSelectionPage: React.FC<PortalModalPropsMapWithOnClose[PortalModal.ExampleSelection]> = ({
+export const ExampleSelectionPage: React.FC<PortalModalStateMap[PortalModal.ExampleSelection]> = ({
   onClose,
   onSelect,
 }) => {

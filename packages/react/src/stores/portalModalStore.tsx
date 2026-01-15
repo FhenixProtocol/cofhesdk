@@ -23,8 +23,8 @@ export const usePortalModals = create<PortalModalStore & PortalModalActions>()((
   ) => {
     const [modal, props] = args;
     const onClose = () => get().closeModal(modal);
-    const state: PortalModalState<M> & { onClose: () => void } = props ? { modal, props, onClose } : { modal, onClose };
-    set({ modalStack: [...get().modalStack, state] });
+    const modalState = { modal, onClose, ...(props ?? {}) } as PortalModalState;
+    set({ modalStack: [...get().modalStack, modalState] });
   },
   closeModal: (modal) => {
     set({ modalStack: get().modalStack.filter((m) => m.modal !== modal) });

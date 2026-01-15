@@ -1,7 +1,7 @@
 import CloseIcon from '@mui/icons-material/Close';
-import type { PortalModal, PortalModalPropsMapWithOnClose } from './types';
+import type { PortalModal, PortalModalStateMap } from './types';
 
-export const ExampleInfoPage: React.FC<PortalModalPropsMapWithOnClose[PortalModal.ExampleInfo]> = ({ onClose }) => {
+export const ExampleInfoPage: React.FC<PortalModalStateMap[PortalModal.ExampleInfo]> = ({ onClose }) => {
   return (
     <div className="flex flex-1 flex-col gap-3">
       {/* Header */}
