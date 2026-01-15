@@ -3,7 +3,7 @@ import {
   type EncryptableArray,
   type EncryptedInputs,
   type EncryptionOptions,
-  type UseMutationOptionsAsync,
+  type UseCofheEncryptMutationOptions,
 } from './useCofheEncrypt';
 import type { EncryptableItem } from '@cofhe/sdk';
 
@@ -19,7 +19,7 @@ export function useCofheEncryptAndWriteContract<TExtraVars, T extends Encryptabl
 }: {
   encryping?: {
     options?: EncryptionOptions<T>;
-    mutationOptions?: UseMutationOptionsAsync<T>;
+    mutationOptions?: UseCofheEncryptMutationOptions<T>;
   };
   writingMutationOptions?: UseCofheWriteContractOptions<TExtraVars>;
 }) {
@@ -33,9 +33,7 @@ export function useCofheEncryptAndWriteContract<TExtraVars, T extends Encryptabl
     ) => WriteContractInputWithExtras<TExtraVars>
   ) {
     const encrypted = await encryption.encrypt(encryptionOptions);
-
     const writeContractVariablesWithExtras = constructWriteContractInputWithArgsWithExtras(encrypted);
-
     // prop drill the extra vars (Token) so it's available in onSuccess
     return write.writeContractAsync(writeContractVariablesWithExtras);
   }

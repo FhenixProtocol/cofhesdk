@@ -102,13 +102,6 @@ export const SendPage: React.FC<SendPageProps> = ({ token }) => {
         amount: amountWei,
         userAddress: account,
       },
-      // no need to pass this callback, as the encryption status is already being tracked in encryptionProgressLabel
-      // encryptionOptions: {
-      //   onStepChange: (step, context) => {
-      //     setError(null);
-      //     setSuccess(`Encryption step: ${getStepConfig({ step, context }).label}`);
-      //   },
-      // },
     });
   };
 

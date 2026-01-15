@@ -1,18 +1,10 @@
 import type { Hash, WalletClient } from 'viem';
 import type { UseMutationOptions, UseMutationResult } from '@tanstack/react-query';
 import { assert } from 'ts-essentials';
-
 import { useCofheWalletClient } from './useCofheConnection';
 import { useInternalMutation } from '../providers/index.js';
 
 type WriteContractSingleParam = Parameters<WalletClient['writeContract']>[0];
-/**
- * Generic hook for submitting an on-chain contract write via the CoFHE-connected WalletClient.
- *
- * - Uses the current connected WalletClient from `useCofheConnection()`.
- * - Defaults `account` to `walletClient.account` when not provided.
- * - Normalizes `chain` (treats `null` as `undefined`).
- */
 
 type WriteContractInput = Omit<
   Pick<
@@ -34,6 +26,7 @@ export type UseCofheWriteContractOptions<TExtras> = Omit<
   UseMutationOptions<Hash, Error, WriteContractInputWithExtras<TExtras>, unknown>,
   'mutationFn'
 >;
+
 export function useCofheWriteContract<TExtras>(options?: UseCofheWriteContractOptions<TExtras>): UseMutationResult<
   Hash,
   Error,

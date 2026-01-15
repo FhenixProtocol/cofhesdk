@@ -49,7 +49,6 @@ export function getStepConfig(step: EncryptionStep) {
 }
 
 export type EncryptableArray = readonly EncryptableItem[];
-
 export type EncryptedInputs<T extends EncryptableItem | EncryptableArray> = T extends EncryptableArray
   ? EncryptedItemInputs<[...T]>
   : EncryptedItemInputs<T>;
@@ -146,7 +145,7 @@ type UseMutationResultEncryptAsync<T extends EncryptableItem | EncryptableArray>
   unknown
 >;
 
-export type UseMutationOptionsAsync<T extends EncryptableItem | EncryptableArray> = Omit<
+export type UseCofheEncryptMutationOptions<T extends EncryptableItem | EncryptableArray> = Omit<
   UseMutationOptions<EncryptedInputs<T>, Error, EncryptionOptions<T>, void>,
   'mutationFn'
 >;
@@ -171,7 +170,7 @@ export type EncryptionOptions<T extends EncryptableItem | EncryptableArray> = {
 
 export function useCofheEncrypt<T extends EncryptableItem | EncryptableArray>(
   encryptionOptions: EncryptionOptions<T> = {},
-  mutationOptions: UseMutationOptionsAsync<T> = {}
+  mutationOptions: UseCofheEncryptMutationOptions<T> = {}
 ): UseEncryptResult<T> {
   const client = useCofheContext().client;
   const stepsState = useStepsState();
