@@ -34,11 +34,11 @@ type EncryptAndSendInput = {
 
 export function useNewTokenTransfer(writeMutationOptions?: NewTransferWriteContractOptions) {
   const { onSuccess: passedOnSuccess, ...restOfOptions } = writeMutationOptions || {};
-  const { encryption, writing, encryptAndWrite } = useCofheEncryptAndWriteContract<
+  const { encryption, write, encryptAndWrite } = useCofheEncryptAndWriteContract<
     NewTokenTransferExtras,
     EncryptableItem
   >({
-    writeMutationOptions: {
+    writingMutationOptions: {
       onSuccess: (hash, writeParams, result, context) => {
         if (passedOnSuccess) passedOnSuccess(hash, writeParams, result, context);
 
@@ -58,9 +58,9 @@ export function useNewTokenTransfer(writeMutationOptions?: NewTransferWriteContr
 
   return {
     encryption,
-    writing,
-    isPending: encryption.isEncrypting || writing.isPending,
-    data: writing.data,
+    write,
+    isPending: encryption.isEncrypting || write.isPending,
+    data: write.data,
     encryptAndSend: ({ input, encryptionOptions }: EncryptAndSendInput) => {
       const { token, to, amount, userAddress } = input;
       return encryptAndWrite(
@@ -71,7 +71,7 @@ export function useNewTokenTransfer(writeMutationOptions?: NewTransferWriteContr
         (encrypted) => {
           const contractConfig = TRANSFER_ABIS[token.extensions.fhenix.confidentialityType];
           return {
-            variables: {
+            writeContractInput: {
               address: token.address,
               abi: contractConfig.abi,
               functionName: contractConfig.functionName,

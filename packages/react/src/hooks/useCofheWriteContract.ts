@@ -5,7 +5,7 @@ import { assert } from 'ts-essentials';
 import { useCofheWalletClient } from './useCofheConnection';
 import { useInternalMutation } from '../providers/index.js';
 
-type CofheWriteContractVariables = Parameters<WalletClient['writeContract']>[0];
+type WriteContractSingleParam = Parameters<WalletClient['writeContract']>[0];
 /**
  * Generic hook for submitting an on-chain contract write via the CoFHE-connected WalletClient.
  *
@@ -14,64 +14,49 @@ type CofheWriteContractVariables = Parameters<WalletClient['writeContract']>[0];
  * - Normalizes `chain` (treats `null` as `undefined`).
  */
 
-type WriteVariables = Omit<
+type WriteContractInput = Omit<
   Pick<
-    CofheWriteContractVariables,
+    WriteContractSingleParam,
     'args' | 'address' | 'abi' | 'functionName' | 'chain' | 'account' | 'value' // pick only params that make sense and are required, as unspreading the whole type causes tricky ts issues
   >,
   'args'
 > & {
-  args: Exclude<CofheWriteContractVariables['args'], undefined>;
+  args: Exclude<WriteContractSingleParam['args'], undefined>;
 };
 
-export type VariablesWithExtrasWithArgs<T> = {
-  variables: WriteVariables;
+// normal .writeContractAsync(input) with ['args'] + {extras: T}
+export type WriteContractInputWithExtras<T> = {
+  writeContractInput: WriteContractInput;
   extras: T;
 };
 
-export type VariablesWithExtrasWithoutArgs<T> = Omit<VariablesWithExtrasWithArgs<T>, 'variables'> & {
-  variables: Omit<WriteVariables, 'args'>;
-};
-
-// type ResultsWithExtras<T> = {
-//   result: Hash;
-//   extras: T;
-// };
-
 export type UseCofheWriteContractOptions<TExtras> = Omit<
-  UseMutationOptions<Hash, Error, VariablesWithExtrasWithArgs<TExtras>, unknown>,
+  UseMutationOptions<Hash, Error, WriteContractInputWithExtras<TExtras>, unknown>,
   'mutationFn'
 >;
 export function useCofheWriteContract<TExtras>(options?: UseCofheWriteContractOptions<TExtras>): UseMutationResult<
   Hash,
   Error,
-  VariablesWithExtrasWithArgs<TExtras>
+  WriteContractInputWithExtras<TExtras>
 > & {
-  writeContractAsync: (variables: VariablesWithExtrasWithArgs<TExtras>) => Promise<Hash>;
-  writeContract: (variables: VariablesWithExtrasWithArgs<TExtras>) => void;
+  writeContractAsync: (arg: WriteContractInputWithExtras<TExtras>) => Promise<Hash>;
+  writeContract: (arg: WriteContractInputWithExtras<TExtras>) => void;
 } {
   const walletClient = useCofheWalletClient();
 
-  const mutation = useInternalMutation<Hash, Error, VariablesWithExtrasWithArgs<TExtras>>({
+  const mutation = useInternalMutation<Hash, Error, WriteContractInputWithExtras<TExtras>>({
     ...options,
     mutationKey: options?.mutationKey ?? ['cofhe', 'writeContract'],
-    mutationFn: async ({ variables, extras }) => {
+    mutationFn: async ({ writeContractInput }) => {
       assert(walletClient, 'WalletClient is required to write to a contract');
 
-      const account = variables.account ?? walletClient.account;
-      if (!account) {
-        throw new Error('Wallet account is required to write to a contract');
-      }
-
-      const hash = await walletClient.writeContract(variables);
-
-      return hash;
+      return walletClient.writeContract(writeContractInput);
     },
   });
 
   return {
     ...mutation,
     writeContractAsync: mutation.mutateAsync,
-    writeContract: (variables) => mutation.mutate(variables),
+    writeContract: mutation.mutate,
   };
 }

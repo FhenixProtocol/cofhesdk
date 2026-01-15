@@ -10,42 +10,39 @@ import type { EncryptableItem } from '@cofhe/sdk';
 import {
   useCofheWriteContract,
   type UseCofheWriteContractOptions,
-  type VariablesWithExtrasWithArgs,
+  type WriteContractInputWithExtras,
 } from './useCofheWriteContract';
 
 export function useCofheEncryptAndWriteContract<TExtraVars, T extends EncryptableItem | EncryptableArray>({
-  encryptionOptions,
-  encryptionMutationOptions,
-  writeMutationOptions,
+  encryping = {},
+  writingMutationOptions,
 }: {
-  encryptionOptions?: EncryptionOptions<T>;
-  encryptionMutationOptions?: UseMutationOptionsAsync<T>;
-  writeMutationOptions: UseCofheWriteContractOptions<TExtraVars>;
+  encryping?: {
+    options?: EncryptionOptions<T>;
+    mutationOptions?: UseMutationOptionsAsync<T>;
+  };
+  writingMutationOptions?: UseCofheWriteContractOptions<TExtraVars>;
 }) {
-  const encryption = useCofheEncrypt(encryptionOptions, encryptionMutationOptions);
+  const encryption = useCofheEncrypt(encryping.options, encryping.mutationOptions);
+  const write = useCofheWriteContract(writingMutationOptions);
 
-  const writing = useCofheWriteContract(writeMutationOptions);
+  async function encryptAndWrite(
+    encryptionOptions: EncryptionOptions<T>,
+    constructWriteContractInputWithArgsWithExtras: (
+      encryped: EncryptedInputs<T>
+    ) => WriteContractInputWithExtras<TExtraVars>
+  ) {
+    const encrypted = await encryption.encrypt(encryptionOptions);
+
+    const writeContractVariablesWithExtras = constructWriteContractInputWithArgsWithExtras(encrypted);
+
+    // prop drill the extra vars (Token) so it's available in onSuccess
+    return write.writeContractAsync(writeContractVariablesWithExtras);
+  }
 
   return {
     encryption,
-    writing,
-    encryptAndWrite: async (
-      encryptionOptions: EncryptionOptions<T>,
-      writeContractVairiablesWithExtrasConstructor: (
-        encryped: EncryptedInputs<T>
-      ) => VariablesWithExtrasWithArgs<TExtraVars>
-    ) => {
-      const encrypted = await encryption.encrypt(encryptionOptions);
-
-      const writeContractVariablesWithExtras = writeContractVairiablesWithExtrasConstructor(encrypted);
-
-      const txHash = await writing.writeContractAsync(
-        writeContractVariablesWithExtras // prop drill the extra vars (Token) so it's available in onSuccess
-      );
-
-      return {
-        txHash,
-      };
-    },
+    write,
+    encryptAndWrite,
   };
 }
