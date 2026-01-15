@@ -22,6 +22,16 @@ type NewTransferWriteContractOptions = Pick<
   'onSuccess' | 'onError' | 'onMutate'
 >;
 
+type EncryptAndSendInput = {
+  input: {
+    token: Token;
+    to: Address;
+    amount: bigint;
+    userAddress: Address;
+  };
+  encryptionOptions?: EncryptionOptions<EncryptableItem>;
+};
+
 export function useNewTokenTransfer(writeMutationOptions?: NewTransferWriteContractOptions) {
   const { onSuccess: passedOnSuccess, ...restOfOptions } = writeMutationOptions || {};
   const { encryption, writing, encryptAndWrite } = useCofheEncryptAndWriteContract<
@@ -47,22 +57,12 @@ export function useNewTokenTransfer(writeMutationOptions?: NewTransferWriteContr
   });
 
   return {
+    encryption,
+    writing,
     isPending: encryption.isEncrypting || writing.isPending,
     data: writing.data,
-    encryptAndSend: (
-      {
-        token,
-        to,
-        userAddress,
-        amount,
-      }: {
-        token: Token;
-        to: Address;
-        amount: bigint;
-        userAddress: Address;
-      },
-      encryptionOptions: EncryptionOptions<EncryptableItem>
-    ) => {
+    encryptAndSend: ({ input, encryptionOptions }: EncryptAndSendInput) => {
+      const { token, to, amount, userAddress } = input;
       return encryptAndWrite(
         {
           input: createEncryptable(token.extensions.fhenix.confidentialValueType, amount),

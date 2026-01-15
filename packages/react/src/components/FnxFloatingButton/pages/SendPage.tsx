@@ -65,10 +65,9 @@ export const SendPage: React.FC<SendPageProps> = ({ token }) => {
   });
 
   const {
-    isEncrypting: isEncryptingInput,
-    encrypt,
     stepsState: { lastStep },
-  } = useCofheEncrypt();
+    isEncrypting: isEncryptingInput,
+  } = tokenTransfer.encryption;
 
   const encryptionProgressLabel = useMemo(() => lastStep?.step && getStepConfig(lastStep).label, [lastStep]);
 
@@ -96,20 +95,21 @@ export const SendPage: React.FC<SendPageProps> = ({ token }) => {
     assert(account, 'Sender account is required');
 
     // Use the token transfer hook to send encrypted tokens
-    await tokenTransfer.encryptAndSend(
-      {
+    await tokenTransfer.encryptAndSend({
+      input: {
         token,
         to: recipientAddress,
         amount: amountWei,
         userAddress: account,
       },
-      {
-        onStepChange: (step, context) => {
-          setError(null);
-          setSuccess(`Encryption step: ${getStepConfig({ step, context }).label}`);
-        },
-      }
-    );
+      // no need to pass this callback, as the encryption status is already being tracked in encryptionProgressLabel
+      // encryptionOptions: {
+      //   onStepChange: (step, context) => {
+      //     setError(null);
+      //     setSuccess(`Encryption step: ${getStepConfig({ step, context }).label}`);
+      //   },
+      // },
+    });
   };
 
   const handleMaxAmount = () => {
