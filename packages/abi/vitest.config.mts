@@ -16,5 +16,6 @@ export default defineConfig({
       reporter: ['text', 'json', 'html'],
       exclude: ['node_modules/**', 'dist/**', '**/*.config.*'],
     },
+    include: ['**/*.test-d.ts', '**/*.test.ts'],
   },
 });
