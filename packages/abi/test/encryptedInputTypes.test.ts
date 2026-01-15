@@ -3,8 +3,6 @@ import { TestABI } from './TestABI';
 import type {
   CofheInputArgs,
   CofheInputArgsPreTransform,
-  ContractParameters,
-  FhenixAbiParametersToPrimitiveTypes as AbiParametersToPrimitiveTypes,
 } from 'src/encryptedInputs';
 import {
   FheTypes,
@@ -92,6 +90,9 @@ test('fnBlendedInputsIncludingEncryptedInput should have parameter type uint256 
 
 test('fnAllEncryptedInputs should have parameter type InEuint8, InEuint16, InEuint32, InEuint64, InEuint128, InEuint256, InEbool, InEaddress', () => {
   type args = CofheInputArgs<typeof TestABI, 'fnAllEncryptedInputs'>;
+  type preTransform = CofheInputArgsPreTransform<typeof TestABI, 'fnAllEncryptedInputs'>;
+
+
   assertType<args>([inEuint8, inEuint16, inEuint32, inEuint64, inEuint128, inEbool, inEaddress]);
   assertType<CofheInputArgsPreTransform<typeof TestABI, 'fnAllEncryptedInputs'>>([
     1n,
@@ -105,16 +106,18 @@ test('fnAllEncryptedInputs should have parameter type InEuint8, InEuint16, InEui
 });
 
 test('fnStructContainsEncryptedInput should have parameter type ContainsEncryptedInput', () => {
-  type args = CofheInputArgs<typeof TestABI, 'fnStructContainsEncryptedInput'>
+  type args = CofheInputArgs<typeof TestABI, 'fnStructContainsEncryptedInput'>;
   assertType<args>([1]);
   assertType<CofheInputArgsPreTransform<typeof TestABI, 'fnStructContainsEncryptedInput'>>([1]);
 });
 
 test('fnArrayContainsEncryptedInput should have parameter type InEuint32[]', () => {
-  type aobs = ExtractAbiFunction<typeof TestABI, 'fnBlendedInputsIncludingEncryptedInput'>['inputs'];
-  type aobs2 = AbiParametersToPrimitiveTypes<aobs>;
+  type test = CofheInputArgs<typeof TestABI, 'fnArrayContainsEncryptedInput'>;
+  type preTest = CofheInputArgsPreTransform<typeof TestABI, 'fnArrayContainsEncryptedInput'>;
+  
+  type test2 = CofheInputArgs<typeof TestABI, 'fnTupleContainsEncryptedInput'>;
+  type preTest2 = CofheInputArgsPreTransform<typeof TestABI, 'fnTupleContainsEncryptedInput'>;
 
-  type test = ContractParameters<typeof TestABI, 'fnArrayContainsEncryptedInput'>;
   assertType<CofheInputArgs<typeof TestABI, 'fnArrayContainsEncryptedInput'>>([1]);
   assertType<CofheInputArgsPreTransform<typeof TestABI, 'fnArrayContainsEncryptedInput'>>([1]);
 });

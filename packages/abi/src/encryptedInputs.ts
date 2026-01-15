@@ -73,16 +73,6 @@ type FhenixMap = {
   'struct InEuint256': EncryptedUint256Input;
   'struct InEaddress': EncryptedAddressInput;
 
-  // Input Structs
-  // 'struct InEbool[]': EncryptedBoolInput[];
-  // 'struct InEuint8[]': EncryptedUint8Input[];
-  // 'struct InEuint16[]': EncryptedUint16Input[];
-  // 'struct InEuint32[]': EncryptedUint32Input[];
-  // 'struct InEuint64[]': EncryptedUint64Input[];
-  // 'struct InEuint128[]': EncryptedUint128Input[];
-  // 'struct InEuint256[]': EncryptedUint256Input[];
-  // 'struct InEaddress[]': EncryptedAddressInput[];
-
   // Exposed encrypted primitives
   ebool: EBool;
   euint8: EUint8;
@@ -120,24 +110,25 @@ export type AbiParameterToPrimitiveType<
           components: infer components extends readonly AbiParameter[];
         }
       ? AbiComponentsToPrimitiveType<components, abiParameterKind>
-      : // 3. Check if type is array.
-        MaybeExtractArrayParameterType<abiParameter['type']> extends [infer head extends string, infer size]
-        ? AbiArrayToPrimitiveType<abiParameter, abiParameterKind, head, size>
-        : // 4. If type is not basic, tuple, or array, we don't know what the type is.
-          // This can happen when a fixed-length array is out of range (`Size` doesn't exist in `SolidityFixedArraySizeLookup`),
-          // the array has depth greater than `ResolvedRegister['arrayMaxDepth']`, etc.
-          ResolvedRegister['strictAbiType'] extends true
-          ? Error<`Unknown type '${abiParameter['type'] & string}'.`>
-          : // 5. If we've gotten this far, let's check for errors in tuple components.
-            // (Happens for recursive tuple typed data types.)
-            abiParameter extends { components: Error<string> }
-            ? abiParameter['components']
-            : unknown;
-
-// export type AbiParameterToPrimitiveType<
-//   abiParameter extends AbiParameter | { name: string; type: unknown; internalType?: unknown },
-//   abiParameterKind extends AbiParameterKind = AbiParameterKind,
-// > = AbiParameterToPrimitiveType<abiParameter, abiParameterKind>;
+      : // 2.5 Check if type is array of fhenix types (struct InEuint32[2])
+        MaybeExtractArrayParameterType<abiParameter['internalType']> extends [
+            infer head extends FhenixMapUnion,
+            infer size,
+          ]
+        ? FhenixArrayToPrimitiveType<head, size>
+        : // 3. Check if type is array.
+          MaybeExtractArrayParameterType<abiParameter['type']> extends [infer head extends string, infer size]
+          ? AbiArrayToPrimitiveType<abiParameter, abiParameterKind, head, size>
+          : // 4. If type is not basic, tuple, or array, we don't know what the type is.
+            // This can happen when a fixed-length array is out of range (`Size` doesn't exist in `SolidityFixedArraySizeLookup`),
+            // the array has depth greater than `ResolvedRegister['arrayMaxDepth']`, etc.
+            ResolvedRegister['strictAbiType'] extends true
+            ? Error<`Unknown type '${abiParameter['type'] & string}'.`>
+            : // 5. If we've gotten this far, let's check for errors in tuple components.
+              // (Happens for recursive tuple typed data types.)
+              abiParameter extends { components: Error<string> }
+              ? abiParameter['components']
+              : unknown;
 
 export type FhenixAbiParametersToPrimitiveTypes<
   abiParameters extends readonly AbiParameter[],
@@ -220,20 +211,6 @@ type test = FhenixAbiParametersToPrimitiveTypes<
     },
   ]
 >;
-
-export type ContractParameters<
-  abi extends Abi | readonly unknown[] = Abi, // `readonly unknown[]` allows for non-const asserted types
-  functionName extends string = string,
-  abiStateMutability extends AbiStateMutability = AbiStateMutability,
-  args extends readonly unknown[] | undefined = readonly [],
-  ///
-  functionNames extends string = abi extends Abi ? ExtractAbiFunctionNames<abi, abiStateMutability> : string,
-> = {
-  functionName:
-    | functionNames // show all values
-    | (functionName extends functionNames ? functionName : never) // infer value (if valid)
-    | (Abi extends abi ? string : never); // fallback if `abi` is declared as `Abi`
-} & GetArgs<abi, functionName, args>;
 
 type GetArgs<
   abi extends Abi | readonly unknown[] = Abi, // `readonly unknown[]` allows for non-const asserted types
@@ -377,3 +354,7 @@ type AbiArrayToPrimitiveType<
   : // Otherwise, create an array. Tuples and arrays are created with `[${Size}]` popped off the end
     // and passed back into the function to continue reducing down to the basic types found in Step 1.
     readonly AbiParameterToPrimitiveType<Merge<abiParameter, { type: head }>, abiParameterKind>[];
+
+type FhenixArrayToPrimitiveType<head extends FhenixMapUnion, size> = size extends keyof SolidityFixedArraySizeLookup
+  ? Tuple<FhenixMap[head], SolidityFixedArraySizeLookup[size]>
+  : readonly FhenixMap[head][];
