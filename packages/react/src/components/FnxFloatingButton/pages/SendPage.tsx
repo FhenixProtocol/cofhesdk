@@ -31,7 +31,16 @@ export const SendPage: React.FC<SendPageProps> = ({ token }) => {
   const { navigateBack, navigateTo } = usePortalNavigation();
 
   const account = useCofheAccount();
-  const tokenTransfer = useCofheTokenTransfer({
+  const {
+    encryptAmountAndSendToken,
+    data: txHash,
+    isPending: isEncryptingOrSendingTx,
+    write: { isPending: isSending },
+    encryption: {
+      stepsState: { lastStep },
+      isEncrypting: isEncryptingInput,
+    },
+  } = useCofheTokenTransfer({
     onError: (error) => {
       const errorMessage = error instanceof Error ? error.message : 'Failed to send tokens';
       setError(errorMessage);
@@ -49,7 +58,7 @@ export const SendPage: React.FC<SendPageProps> = ({ token }) => {
   });
 
   useOnceTransactionMined({
-    txHash: tokenTransfer.data,
+    txHash,
     onceMined: (transaction) => {
       if (transaction.status === 'confirmed') {
         setSuccess(`Transaction confirmed! Hash: ${truncateAddress(transaction.hash)}`);
@@ -64,19 +73,12 @@ export const SendPage: React.FC<SendPageProps> = ({ token }) => {
     accountAddress: account,
   });
 
-  const {
-    stepsState: { lastStep },
-    isEncrypting: isEncryptingInput,
-  } = tokenTransfer.encryption;
-
   const encryptionProgressLabel = useMemo(() => lastStep?.step && getStepConfig(lastStep).label, [lastStep]);
 
   const [amount, setAmount] = useState('');
   const [recipientAddress, setRecipientAddress] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-
-  const isSending = tokenTransfer.isPending;
 
   // Validate recipient address
   const isValidAddress = isAddress(recipientAddress);
@@ -95,7 +97,7 @@ export const SendPage: React.FC<SendPageProps> = ({ token }) => {
     assert(account, 'Sender account is required');
 
     // Use the token transfer hook to send encrypted tokens
-    await tokenTransfer.encryptAndSend({
+    await encryptAmountAndSendToken({
       input: {
         token,
         to: recipientAddress,
@@ -224,7 +226,7 @@ export const SendPage: React.FC<SendPageProps> = ({ token }) => {
       )}
 
       {/* Encryption Status */}
-      {(isEncryptingInput || isSending) && (
+      {isEncryptingOrSendingTx && (
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
           <p className="text-sm text-blue-800 dark:text-blue-200">
             {isEncryptingInput ? encryptionProgressLabel || 'Encrypting amount...' : 'Sending transaction...'}

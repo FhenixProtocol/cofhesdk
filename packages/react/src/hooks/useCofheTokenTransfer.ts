@@ -49,7 +49,7 @@ export function useCofheTokenTransfer(writeMutationOptions?: UseCofheTokenTransf
     write,
     isPending: encryption.isEncrypting || write.isPending,
     data: write.data,
-    encryptAndSend: ({ input, encryptionOptions }: EncryptAndSendInput) => {
+    encryptAmountAndSendToken: ({ input, encryptionOptions }: EncryptAndSendInput) => {
       const { token, to, amount, userAddress } = input;
       return encryptAndWrite(
         {
