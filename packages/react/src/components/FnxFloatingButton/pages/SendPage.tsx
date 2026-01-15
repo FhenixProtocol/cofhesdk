@@ -4,7 +4,7 @@ import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import { isAddress, maxUint128 } from 'viem';
 import { useCofheAccount } from '@/hooks/useCofheConnection';
 import { useCofheTokenDecryptedBalance } from '@/hooks/useCofheTokenDecryptedBalance';
-import { useCofheTokenTransfer } from '@/hooks/useCofheTokenTransfer';
+import { useNewTokenTransfer } from '@/hooks/useCofheTokenTransfer';
 import { cn } from '../../../utils/cn';
 import { truncateAddress, sanitizeNumericInput } from '../../../utils/utils';
 import { TokenIcon } from '../components/TokenIcon';
@@ -13,7 +13,6 @@ import { assert } from 'ts-essentials';
 import { CofheTokenConfidentialBalance } from '../components';
 import { useCofheEncrypt, type Token } from '@/hooks';
 import { getStepConfig } from '@/hooks/useCofheEncrypt';
-import { createEncryptable } from '@cofhe/sdk';
 import { FloatingButtonPage } from '../pagesConfig/types';
 import { useOnceTransactionMined } from '@/hooks/useOnceTransactionMined';
 import { usePortalNavigation } from '@/stores';
@@ -32,7 +31,7 @@ export const SendPage: React.FC<SendPageProps> = ({ token }) => {
   const { navigateBack, navigateTo } = usePortalNavigation();
 
   const account = useCofheAccount();
-  const tokenTransfer = useCofheTokenTransfer({
+  const tokenTransfer = useNewTokenTransfer({
     onError: (error) => {
       const errorMessage = error instanceof Error ? error.message : 'Failed to send tokens';
       setError(errorMessage);
@@ -94,19 +93,23 @@ export const SendPage: React.FC<SendPageProps> = ({ token }) => {
     const amountWei = unitToWei(amount, token.decimals);
     // TODO: Does this need to be different if the confidential token uses euint64 for the balance precision?
     assert(amountWei <= maxUint128, 'Amount exceeds maximum supported value (uint128 max)');
-
-    // TODO: test error on encryption?
-    const encryptedValue = await encrypt({
-      input: createEncryptable(token.extensions.fhenix.confidentialValueType, amountWei),
-    });
+    assert(account, 'Sender account is required');
 
     // Use the token transfer hook to send encrypted tokens
-    await tokenTransfer.mutateAsync({
-      token,
-      to: recipientAddress,
-      encryptedValue,
-      amount: amountWei,
-    });
+    await tokenTransfer.encryptAndSend(
+      {
+        token,
+        to: recipientAddress,
+        amount: amountWei,
+        userAddress: account,
+      },
+      {
+        onStepChange: (step, context) => {
+          setError(null);
+          setSuccess(`Encryption step: ${getStepConfig({ step, context }).label}`);
+        },
+      }
+    );
   };
 
   const handleMaxAmount = () => {

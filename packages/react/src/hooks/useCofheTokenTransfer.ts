@@ -6,7 +6,90 @@ import { TRANSFER_ABIS } from '../constants/confidentialTokenABIs.js';
 import { TransactionActionType, useTransactionStore } from '../stores/transactionStore.js';
 import { useInternalMutation } from '../providers/index.js';
 import { assert } from 'ts-essentials';
-import { assertCorrectEncryptedItemInput, type EncryptedItemInput } from '@cofhe/sdk';
+import {
+  assertCorrectEncryptedItemInput,
+  createEncryptable,
+  type EncryptableItem,
+  type EncryptedItemInput,
+} from '@cofhe/sdk';
+import { useCofheEncryptAndWriteContract } from './useCofheEncryptAndWriteContract.js';
+import type { UseCofheWriteContractOptions } from './useCofheWriteContract.js';
+import type { EncryptionOptions } from './useCofheEncrypt.js';
+
+type NewTokenTransferExtras = { token: Token; amount: bigint; userAddress: Address };
+type NewTransferWriteContractOptions = Pick<
+  UseCofheWriteContractOptions<NewTokenTransferExtras>,
+  'onSuccess' | 'onError' | 'onMutate'
+>;
+
+export function useNewTokenTransfer(writeMutationOptions?: NewTransferWriteContractOptions) {
+  const { onSuccess: passedOnSuccess, ...restOfOptions } = writeMutationOptions || {};
+  const { encryption, writing, encryptAndWrite } = useCofheEncryptAndWriteContract<
+    NewTokenTransferExtras,
+    EncryptableItem
+  >({
+    writeMutationOptions: {
+      onSuccess: (hash, writeParams, result, context) => {
+        if (passedOnSuccess) passedOnSuccess(hash, writeParams, result, context);
+
+        // Record transaction and watch for confirmation
+        useTransactionStore.getState().addTransaction({
+          hash,
+          token: writeParams.extras.token,
+          tokenAmount: writeParams.extras.amount,
+          chainId: writeParams.extras.token.chainId,
+          actionType: TransactionActionType.ShieldSend,
+          account: writeParams.extras.userAddress,
+        });
+      },
+      ...restOfOptions,
+    },
+  });
+
+  return {
+    isPending: encryption.isEncrypting || writing.isPending,
+    data: writing.data,
+    encryptAndSend: (
+      {
+        token,
+        to,
+        userAddress,
+        amount,
+      }: {
+        token: Token;
+        to: Address;
+        amount: bigint;
+        userAddress: Address;
+      },
+      encryptionOptions: EncryptionOptions<EncryptableItem>
+    ) => {
+      return encryptAndWrite(
+        {
+          input: createEncryptable(token.extensions.fhenix.confidentialValueType, amount),
+          ...encryptionOptions,
+        },
+        (encrypted) => {
+          const contractConfig = TRANSFER_ABIS[token.extensions.fhenix.confidentialityType];
+          return {
+            variables: {
+              address: token.address,
+              abi: contractConfig.abi,
+              functionName: contractConfig.functionName,
+              args: [to, encrypted],
+              account: userAddress,
+              chain: undefined,
+            },
+            extras: {
+              token,
+              amount,
+              userAddress,
+            },
+          };
+        }
+      );
+    },
+  };
+}
 
 type UseTokenTransferInput = {
   /** Token object with confidentialityType */
@@ -36,7 +119,7 @@ export function useCofheTokenTransfer(
   const { onSuccess, ...restOfOptions } = options || {};
 
   return useInternalMutation({
-    mutationFn: async ({ token, to: contractAddress, encryptedValue: inputEncryptedValue }: UseTokenTransferInput) => {
+    mutationFn: async ({ token, to, encryptedValue: inputEncryptedValue }: UseTokenTransferInput) => {
       assertCorrectEncryptedItemInput(inputEncryptedValue);
 
       if (!walletClient) {
@@ -67,7 +150,7 @@ export function useCofheTokenTransfer(
         address: tokenAddress,
         abi: contractConfig.abi,
         functionName: contractConfig.functionName,
-        args: [contractAddress, inputEncryptedValue],
+        args: [to, inputEncryptedValue],
         account: walletClient.account,
         chain: undefined,
       });

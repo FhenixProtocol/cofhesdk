@@ -48,8 +48,9 @@ export function getStepConfig(step: EncryptionStep) {
   return STEP_CONFIG[step.step];
 }
 
-type EncryptableArray = readonly EncryptableItem[];
-type EncryptedInputs<T extends EncryptableItem | EncryptableArray> = T extends EncryptableArray
+export type EncryptableArray = readonly EncryptableItem[];
+
+export type EncryptedInputs<T extends EncryptableItem | EncryptableArray> = T extends EncryptableArray
   ? EncryptedItemInputs<[...T]>
   : EncryptedItemInputs<T>;
 type ArrayifyEncryptableInputs<T extends EncryptableItem | EncryptableArray> = T extends EncryptableArray
@@ -145,7 +146,7 @@ type UseMutationResultEncryptAsync<T extends EncryptableItem | EncryptableArray>
   unknown
 >;
 
-type UseMutationOptionsAsync<T extends EncryptableItem | EncryptableArray> = Omit<
+export type UseMutationOptionsAsync<T extends EncryptableItem | EncryptableArray> = Omit<
   UseMutationOptions<EncryptedInputs<T>, Error, EncryptionOptions<T>, void>,
   'mutationFn'
 >;
@@ -160,7 +161,7 @@ type UseEncryptResult<T extends EncryptableItem | EncryptableArray> = {
   _mutation: UseMutationResultEncryptAsync<T>;
 };
 
-type EncryptionOptions<T extends EncryptableItem | EncryptableArray> = {
+export type EncryptionOptions<T extends EncryptableItem | EncryptableArray> = {
   input?: T;
   account?: string;
   chainId?: number;
