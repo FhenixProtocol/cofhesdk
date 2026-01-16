@@ -1,9 +1,10 @@
 import { useCofheContext } from '@cofhe/react';
 import { useCallback } from 'react';
-import { injected, useConnect } from 'wagmi';
+import { useConnect } from 'wagmi';
+import { injectedProvider } from './wagmi';
 
 // Wagmi injected connector instance: dynamically connect upon clicking on a "Connect" button to avoid auto-connect
-const injectedProvider = injected({ shimDisconnect: true });
+// const injectedProvider = injected({ shimDisconnect: true });
 
 export const useConnectBrowserWallet = () => {
   const cofheConfig = useCofheContext().client.config;
