@@ -4,17 +4,17 @@ import {
   useTransactionStore,
   type Transaction,
 } from '@/stores/transactionStore';
-import { useCofheAccount, useCofheChainId, useCofhePublicClient } from './useCofheConnection';
+import { useCofhePublicClient } from './useCofheConnection';
 import { useInternalQueries, useInternalQueryClient } from '@/providers';
 import { assert } from 'ts-essentials';
 import { constructCofheReadContractQueryForInvalidation } from './useCofheReadContract';
-import { useMemo } from 'react';
 import type { QueriesOptions, QueryClient } from '@tanstack/react-query';
 import type { Address, TransactionReceipt } from 'viem';
 import { getTokenContractConfig } from '@/constants/confidentialTokenABIs';
 import type { Token } from './useCofheTokenLists';
 import { constructPublicTokenBalanceQueryKeyForInvalidation } from './useCofheTokenPublicBalance';
 import { constructUnshieldClaimsQueryKeyForInvalidation } from './useCofheTokenClaimable';
+import { usePendingTransactions } from './usePendingTransactions';
 
 function invalidateConfidentialTokenBalanceQueries(token: Token, queryClient: QueryClient) {
   const tokenBalanceQueryKey = constructCofheReadContractQueryForInvalidation({
@@ -99,22 +99,9 @@ function invalidateClaimableQueries({
 
 export function useTrackPendingTransactions() {
   // Batch check pending transactions using react-query's useQueries
-  const chainId = useCofheChainId();
-  const account = useCofheAccount();
+  const accountsPendingTxs = usePendingTransactions();
   const publicClient = useCofhePublicClient();
-  const allTxs = useTransactionStore((state) => (chainId ? state.transactions[chainId] : undefined));
-
-  const accountsPendingTxs = useMemo(() => {
-    if (!allTxs || !account) return [];
-    return Object.values(allTxs).filter(
-      (tx) =>
-        tx.status === TransactionStatus.Pending &&
-        // TODO: rather change the shape of store, map by account
-        tx.account.toLowerCase() === account.toLowerCase()
-    );
-  }, [account, allTxs]);
   const queryClient = useInternalQueryClient();
-  console.log('pendingTxs:', accountsPendingTxs);
 
   const handleInvalidations = (tx: Transaction) => {
     // TODO: add invalidation for the rest of txs
@@ -154,6 +141,7 @@ export function useTrackPendingTransactions() {
         queryClient,
       });
     } else {
+      // @ts-expect-error actionType = "never" at this point
       console.warn('No invalidation logic for transaction action type:', tx.actionType);
     }
   };

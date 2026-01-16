@@ -37,6 +37,7 @@ export function useCofheTokenTransfer(writeMutationOptions?: UseCofheTokenTransf
           tokenAmount: writeParams.extras.amount,
           chainId: writeParams.extras.token.chainId,
           actionType: TransactionActionType.ShieldSend,
+          isPendingDecryption: false, // doesn't need decryption afterwards
           account: writeParams.extras.userAddress,
         });
       },

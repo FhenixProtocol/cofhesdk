@@ -6,6 +6,8 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 type ChainRecord<T> = Record<number, T>;
 type HashRecord<T> = Record<string, T>;
 
+type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
+
 export enum TransactionStatus {
   Pending = 'pending',
   Failed = 'failed',
@@ -21,23 +23,42 @@ export enum TransactionActionType {
 }
 export type TransactionActionString = 'Shielded Transfer' | 'Shield' | 'Unshield' | 'Claim';
 
-export interface Transaction {
+type BaseTransaction = {
   hash: string;
   status: TransactionStatus;
-  chainId: number;
-  actionType: TransactionActionType;
-  account: Address;
   timestamp: number;
+  chainId: number;
+  // actionType: Exclude<TransactionActionType, TransactionActionType.Unshield>;
+  account: Address;
 
   token: Token;
   //
 
   tokenAmount: bigint;
-}
+  isPendingDecryption: boolean; // TODO: better be abstracted and be not optional
+};
+
+type ShieldingTransaction = BaseTransaction & {
+  actionType: TransactionActionType.Shield;
+};
+type SendingTransaction = BaseTransaction & {
+  actionType: TransactionActionType.ShieldSend;
+};
+type ClaimingTransaction = BaseTransaction & {
+  actionType: TransactionActionType.Claim;
+};
+
+type UnshieldingTransaction = BaseTransaction & {
+  actionType: TransactionActionType.Unshield;
+};
+
+export type Transaction = UnshieldingTransaction | ShieldingTransaction | SendingTransaction | ClaimingTransaction;
+
+type NewTransaction = DistributiveOmit<Transaction, 'status' | 'timestamp'>;
 
 export interface TransactionStore {
   transactions: ChainRecord<HashRecord<Transaction>>;
-  addTransaction: (transaction: Omit<Transaction, 'status' | 'timestamp'>) => void;
+  addTransaction: (transaction: NewTransaction) => void;
   getTransaction: (chainId: number, hash: string) => Transaction | undefined;
   getAllTransactions: (chainId: number, account?: string) => Transaction[];
   getAllTransactionsByToken: (chainId: number, tokenAddress: string, account?: string) => Transaction[];
@@ -112,24 +133,29 @@ const bigintStorage = createJSONStorage<TransactionStore>(() => safeLocalStorage
   },
 });
 
+function constructNewTx(transaction: NewTransaction): Transaction {
+  return {
+    ...transaction,
+    status: TransactionStatus.Pending,
+    timestamp: Date.now(),
+  };
+}
+
 export const useTransactionStore = create<TransactionStore>()(
   persist(
     (set, get) => ({
       transactions: {},
 
-      addTransaction: (transaction: Omit<Transaction, 'status' | 'timestamp'>) => {
+      addTransaction: (transaction: NewTransaction) => {
         set((state) => {
           const chainTxs = state.transactions[transaction.chainId] || {};
+          const pendingTx = constructNewTx(transaction);
           return {
             transactions: {
               ...state.transactions,
               [transaction.chainId]: {
                 ...chainTxs,
-                [transaction.hash]: {
-                  ...transaction,
-                  status: TransactionStatus.Pending,
-                  timestamp: Date.now(),
-                },
+                [transaction.hash]: pendingTx,
               },
             },
           };

@@ -104,6 +104,7 @@ export function useCofheTokenUnshield(
         tokenAmount: input.amount,
         chainId,
         actionType: TransactionActionType.Unshield,
+        isPendingDecryption: true, // is tx that requires decryption afterwards
         account,
       });
     },
