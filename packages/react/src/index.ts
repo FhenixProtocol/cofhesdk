@@ -24,10 +24,12 @@ export {
   useCofheTokenClaimable,
   useCofheTokenDecryptedBalance,
   useCofheTokenTransfer,
+  useTransactionReceiptsByHash,
   ETH_ADDRESS,
   type Erc20Pair,
   type UnshieldClaim,
   type UnshieldClaimsSummary,
+  type UseTransactionReceiptsByHashInput,
 } from '@/hooks/index';
 
 // Components

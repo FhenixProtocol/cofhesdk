@@ -19,3 +19,4 @@ export { useCofheWriteContract } from './useCofheWriteContract';
 export * from './permits';
 export { useCofheAutoConnect } from './useCofheAutoConnect';
 export { useCofheConnect } from './useCofheConnect';
+export { useTransactionReceiptsByHash, type UseTransactionReceiptsByHashInput } from './useTransactionReceiptsByHash';

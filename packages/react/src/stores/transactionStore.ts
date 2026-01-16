@@ -24,7 +24,7 @@ export enum TransactionActionType {
 export type TransactionActionString = 'Shielded Transfer' | 'Shield' | 'Unshield' | 'Claim';
 
 type BaseTransaction = {
-  hash: string;
+  hash: `0x${string}`;
   status: TransactionStatus;
   timestamp: number;
   chainId: number;
