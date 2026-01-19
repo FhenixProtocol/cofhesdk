@@ -47,7 +47,10 @@ export function useCofheReadContractAndDecrypt<
 
   const ciphertext = encrypted.data;
 
-  assert(typeof ciphertext === 'bigint', 'Expected ciphertext to be bigint or undefined');
+  assert(
+    typeof ciphertext === 'bigint' || typeof ciphertext === 'undefined',
+    'Expected ciphertext to be bigint or undefined'
+  );
 
   let c = ciphertext;
 
