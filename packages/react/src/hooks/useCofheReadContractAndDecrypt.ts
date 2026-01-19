@@ -54,7 +54,7 @@ export function useCofheReadContractAndDecrypt<
 
   let c = ciphertext;
 
-  const decrypted = useCofheDecrypt<TFheType, TDecryptedSelectedData>(
+  const decrypted = useCofheDecrypt(
     {
       ciphertext,
       fheType,
