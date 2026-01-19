@@ -1,6 +1,6 @@
 import { TransactionStatus, useTransactionStore, type Transaction } from '@/stores/transactionStore';
 import { useCofheAccount, useCofheChainId } from './useCofheConnection';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useTransactionReceiptsByHash } from './useTransactionReceiptsByHash';
 import { assert } from 'ts-essentials';
 import { useCofheReadDecryptionResults } from './useCofheReadDecryptionResults';
@@ -63,18 +63,27 @@ export function useTrackDecryptingTransactions() {
   }, [combinedWithDecryptionRequests]);
   const decryptionResults = useCofheReadDecryptionResults(ciphertextsToWatch);
 
-  const combinedWithDecryptionResults = useMemo(() => {
-    return combinedWithDecryptionRequests.map((item) => {
-      const decryptionResult =
-        item.ciphertextToWatch !== undefined ? decryptionResults[item.ciphertextToWatch] : undefined;
-      return {
-        ...item,
-        decryptionResult,
-      };
-    });
-  }, [combinedWithDecryptionRequests, decryptionResults]);
+  useEffect(() => {
+    const newlyDecrypted = combinedWithDecryptionRequests
+      .map((item) => {
+        const decryptionResult =
+          item.ciphertextToWatch !== undefined ? decryptionResults[item.ciphertextToWatch] : undefined;
+        return {
+          ...item,
+          decryptionResult,
+        };
+      })
+      .filter((item) => item.decryptionResult !== undefined);
 
-  // TODO: set isPendingDecryption to false when decryptionResult is available
+    for (const item of newlyDecrypted) {
+      // update store
+      useTransactionStore.getState().setTransactionDecryptionStatus(
+        item.tx.chainId,
+        item.tx.hash,
+        false // no longer pending decryption
+      );
+    }
+  }, [combinedWithDecryptionRequests, decryptionResults]);
 }
 
 function isDecryptRequestLog(

@@ -63,6 +63,7 @@ export interface TransactionStore {
   getAllTransactions: (chainId: number, account?: string) => Transaction[];
   getAllTransactionsByToken: (chainId: number, tokenAddress: string, account?: string) => Transaction[];
   updateTransactionStatus: (chainId: number, hash: string, status: TransactionStatus) => void;
+  setTransactionDecryptionStatus: (chainId: number, hash: string, isPendingDecryption: boolean) => void;
   clearTransactions: (chainId?: number) => void;
 }
 
@@ -156,6 +157,26 @@ export const useTransactionStore = create<TransactionStore>()(
               [transaction.chainId]: {
                 ...chainTxs,
                 [transaction.hash]: pendingTx,
+              },
+            },
+          };
+        });
+      },
+
+      setTransactionDecryptionStatus: (chainId: number, hash: string, isPendingDecryption: boolean) => {
+        set((state) => {
+          const chainTxs = state.transactions[chainId];
+          if (!chainTxs || !chainTxs[hash]) return state;
+
+          return {
+            transactions: {
+              ...state.transactions,
+              [chainId]: {
+                ...chainTxs,
+                [hash]: {
+                  ...chainTxs[hash],
+                  isPendingDecryption,
+                },
               },
             },
           };
