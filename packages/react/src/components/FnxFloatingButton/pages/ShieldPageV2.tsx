@@ -18,6 +18,7 @@ import { useCofheTokenClaimUnshielded, useCofheTokenUnshield, useCofheTokenClaim
 import { useOnceTransactionMined } from '@/hooks/useOnceTransactionMined';
 import { assert } from 'ts-essentials';
 import { usePortalNavigation } from '@/stores';
+import { set } from 'zod';
 
 const SUCCESS_TIMEOUT = 5000;
 const DISPLAY_DECIMALS = 5;
@@ -76,6 +77,7 @@ export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) 
         });
       } else if (transaction.status === 'failed') {
         setError(`Shield transaction failed! Hash: ${truncateHash(transaction.hash)}`);
+        setStatus(null);
       }
     },
   });
@@ -109,6 +111,7 @@ export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) 
         });
       } else if (transaction.status === 'failed') {
         setError(`Unshield transaction failed! Hash: ${truncateHash(transaction.hash)}`);
+        setStatus(null);
       }
     },
   });
@@ -141,6 +144,7 @@ export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) 
         });
       } else if (transaction.status === 'failed') {
         setError(`Claim transaction failed! Hash: ${truncateHash(transaction.hash)}`);
+        setStatus(null);
       }
     },
   });
