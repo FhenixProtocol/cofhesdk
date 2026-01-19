@@ -16,6 +16,8 @@ export { useCofheTokenClaimable, type UnshieldClaimsSummary } from './useCofheTo
 export { useCofheWalletClient } from './useCofheConnection';
 export { useCofheTokens, useCofheTokenLists, ETH_ADDRESS, type Token, type Erc20Pair } from './useCofheTokenLists';
 export { useCofheWriteContract } from './useCofheWriteContract';
+export { useCofheReadContract, type UseCofheReadContractQueryOptions } from './useCofheReadContract';
+export { useCofheReadContractMany } from './useCofheReadContractMany';
 export * from './permits';
 export { useCofheAutoConnect } from './useCofheAutoConnect';
 export { useCofheConnect } from './useCofheConnect';

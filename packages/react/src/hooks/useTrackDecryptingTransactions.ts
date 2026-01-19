@@ -3,6 +3,7 @@ import { useCofheAccount, useCofheChainId } from './useCofheConnection';
 import { useMemo } from 'react';
 import { useTransactionReceiptsByHash } from './useTransactionReceiptsByHash';
 import { assert } from 'ts-essentials';
+import { useCofheReadDecryptionResults } from './useCofheReadDecryptionResults';
 
 export function useTrackDecryptingTransactions() {
   const chainId = useCofheChainId();
@@ -31,7 +32,7 @@ export function useTrackDecryptingTransactions() {
     hashes: Object.keys(decryptingTransactionsByHash),
   });
 
-  const combined = useMemo(() => {
+  const combinedWithDecryptionRequests = useMemo(() => {
     return Object.entries(decryptingTransactionsByHash).map(([hash, tx]) => {
       const receipt = receiptsByHash[tx.hash];
       const decryptRequestLogs = receipt?.logs
@@ -55,16 +56,25 @@ export function useTrackDecryptingTransactions() {
       };
     });
   }, [decryptingTransactionsByHash, receiptsByHash]);
-  console.log('combined:', combined);
-  // TODO: proper solution:
-  // 1. notice events emitted by (TASK_MANAGER_ADDRESS).createDecryptTask(input, msg.sender);
-  // 2. identify their CT // topic: 0xe9de54a3e7ddf0c48cc6e1134185300d5a71acbf2d8c21fcdefa9d9dd9e20ac1 data: [ciphertext, 00000...000xa0, requestor, ...restOfStuff]
-  // 3. listen for completion events on task manager topic = topic = 0x023b156100bf14eedc41deb8cef114c1fce662c306697f3bfaf3dbca58130bf7 topic1 = ACL user address (from) data: [ciphertext, second argument (amount to be decrypted)]
-  // 4. once found decryption event for that CT -> mark transaction as decrypted in the store
+  console.log('combinedWithDecryptionRequests:', combinedWithDecryptionRequests);
 
-  // console.log('decryptingTxs:', decryptingTransactionsByHash);
+  const ciphertextsToWatch = useMemo(() => {
+    return combinedWithDecryptionRequests.map((item) => item.ciphertextToWatch).filter((ct) => ct !== undefined);
+  }, [combinedWithDecryptionRequests]);
+  const decryptionResults = useCofheReadDecryptionResults(ciphertextsToWatch);
 
-  // useEffect(() => {}, [decryptingTransactionsByHash]);
+  const combinedWithDecryptionResults = useMemo(() => {
+    return combinedWithDecryptionRequests.map((item) => {
+      const decryptionResult =
+        item.ciphertextToWatch !== undefined ? decryptionResults[item.ciphertextToWatch] : undefined;
+      return {
+        ...item,
+        decryptionResult,
+      };
+    });
+  }, [combinedWithDecryptionRequests, decryptionResults]);
+
+  // TODO: set isPendingDecryption to false when decryptionResult is available
 }
 
 function isDecryptRequestLog(
