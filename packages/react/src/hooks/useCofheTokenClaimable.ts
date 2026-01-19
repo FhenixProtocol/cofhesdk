@@ -5,6 +5,7 @@ import { type Token } from './useCofheTokenLists.js';
 import { DUAL_GET_UNSHIELD_CLAIM_ABI, WRAPPED_GET_USER_CLAIMS_ABI } from '../constants/confidentialTokenABIs.js';
 
 import { useInternalQuery } from '../providers/index.js';
+import { trackedBlock } from './useTrackDecryptingTransactions.js';
 
 function constructUnshieldClaimsQueryKey({
   chainId,
@@ -128,6 +129,7 @@ export function useCofheTokenClaimable(
           abi: DUAL_GET_UNSHIELD_CLAIM_ABI,
           functionName: 'getUserUnshieldClaim',
           args: [account],
+          blockNumber: trackedBlock,
         });
 
         const claim = result as {
@@ -161,6 +163,7 @@ export function useCofheTokenClaimable(
           abi: WRAPPED_GET_USER_CLAIMS_ABI,
           functionName: 'getUserClaims',
           args: [account],
+          blockNumber: trackedBlock,
         });
 
         type WrappedClaimResult = {

@@ -12,6 +12,9 @@ import { useCofheReadDecryptionResults } from './useCofheReadDecryptionResults';
 import { invalidateClaimableQueries } from './useCofheTokenClaimable';
 import { useInternalQueryClient } from '@/providers';
 
+// TODO: need a better way to track it
+export let trackedBlock: bigint | undefined;
+
 export function useTrackDecryptingTransactions() {
   //tmp
   // useResetPendingDecryption();
@@ -103,6 +106,7 @@ export function useTrackDecryptingTransactions() {
       .filter((item) => item.decryptionResult !== undefined);
 
     for (const item of newlyDecrypted) {
+      trackedBlock = item.receipt?.blockNumber;
       // update store
       useTransactionStore.getState().setTransactionDecryptionStatus(
         item.tx.chainId,
