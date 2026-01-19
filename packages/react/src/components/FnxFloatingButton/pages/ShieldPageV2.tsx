@@ -153,7 +153,7 @@ export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) 
   const { data: { unit: confidentialBalanceUnit } = {}, isFetching: isFetchingConfidential } =
     useCofheTokenDecryptedBalance({ token, accountAddress: account });
 
-  const { data: unshieldClaims } = useCofheTokenClaimable({
+  const { data: unshieldClaims, isFetching: isClaimsFetching } = useCofheTokenClaimable({
     token,
     accountAddress: account,
   });
@@ -360,7 +360,7 @@ export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) 
           label={
             claimUnshield.isPending
               ? 'Claiming...'
-              : `Claim ${formatTokenAmount(unshieldClaims.claimableAmount, token.decimals, 5).formatted} ${pairedSymbol}`
+              : `Claim ${isClaimsFetching ? '...' : formatTokenAmount(unshieldClaims.claimableAmount, token.decimals, 5).formatted} ${pairedSymbol}`
           }
           className="mt-1"
         />

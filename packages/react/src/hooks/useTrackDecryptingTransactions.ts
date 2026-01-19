@@ -1,11 +1,20 @@
-import { TransactionStatus, useTransactionStore, type Transaction } from '@/stores/transactionStore';
+import {
+  TransactionActionType,
+  TransactionStatus,
+  useTransactionStore,
+  type Transaction,
+} from '@/stores/transactionStore';
 import { useCofheAccount, useCofheChainId } from './useCofheConnection';
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useTransactionReceiptsByHash } from './useTransactionReceiptsByHash';
 import { assert } from 'ts-essentials';
 import { useCofheReadDecryptionResults } from './useCofheReadDecryptionResults';
+import { invalidateClaimableQueries } from './useCofheTokenClaimable';
+import { useInternalQueryClient } from '@/providers';
 
 export function useTrackDecryptingTransactions() {
+  //tmp
+  // useResetPendingDecryption();
   const chainId = useCofheChainId();
   const account = useCofheAccount();
   const allTxs = useTransactionStore((state) => (chainId ? state.transactions[chainId] : undefined));
@@ -63,6 +72,24 @@ export function useTrackDecryptingTransactions() {
   }, [combinedWithDecryptionRequests]);
   const decryptionResults = useCofheReadDecryptionResults(ciphertextsToWatch);
 
+  const queryClient = useInternalQueryClient();
+
+  const handleInvalidations = useCallback(
+    (tx: Transaction) => {
+      // invalidate claimable queries as decrypting a transaction means that unshield claims are now available
+      if (tx.actionType === TransactionActionType.Unshield) {
+        // TODO: still doesn't work correctly. Enfroce lastBlockHash?
+        invalidateClaimableQueries({
+          token: tx.token,
+          accountAddress: tx.account,
+
+          queryClient,
+        });
+      }
+    },
+    [queryClient]
+  );
+
   useEffect(() => {
     const newlyDecrypted = combinedWithDecryptionRequests
       .map((item) => {
@@ -82,9 +109,29 @@ export function useTrackDecryptingTransactions() {
         item.tx.hash,
         false // no longer pending decryption
       );
+      handleInvalidations(item.tx);
     }
-  }, [combinedWithDecryptionRequests, decryptionResults]);
+  }, [combinedWithDecryptionRequests, decryptionResults, handleInvalidations]);
 }
+
+// function useResetPendingDecryption() {
+//   const chainId = useCofheChainId();
+//   const account = useCofheAccount();
+//   const allTxs = useTransactionStore((state) => (chainId ? state.transactions[chainId] : undefined));
+
+//   const resetFn = () => {
+//     if (!allTxs) return;
+//     const txs = Object.values(allTxs);
+
+//     for (const tx of txs) {
+//       if (tx.isPendingDecryption === false) {
+//         useTransactionStore.getState().setTransactionDecryptionStatus(tx.chainId, tx.hash, true);
+//       }
+//     }
+//   };
+
+//   (window as any).resetFn = resetFn;
+// }
 
 function isDecryptRequestLog(
   log: { topics: string[]; data: string },

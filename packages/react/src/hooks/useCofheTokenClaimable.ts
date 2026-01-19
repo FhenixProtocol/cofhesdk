@@ -1,4 +1,4 @@
-import { type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
+import { QueryClient, type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
 import { type Address } from 'viem';
 import { useCofheAccount, useCofhePublicClient } from './useCofheConnection.js';
 import { type Token } from './useCofheTokenLists.js';
@@ -18,6 +18,27 @@ function constructUnshieldClaimsQueryKey({
   accountAddress: Address | undefined;
 }) {
   return ['unshieldClaims', chainId, tokenAddress, confidentialityType, accountAddress];
+}
+
+export function invalidateClaimableQueries({
+  token,
+  accountAddress,
+  queryClient,
+}: {
+  token: Token;
+  accountAddress: Address;
+  queryClient: QueryClient;
+}) {
+  console.log('Invalidating unshield claims queries for token:', token);
+
+  queryClient.invalidateQueries({
+    queryKey: constructUnshieldClaimsQueryKeyForInvalidation({
+      chainId: token.chainId,
+      tokenAddress: token.address,
+      confidentialityType: token.extensions.fhenix.confidentialityType,
+      accountAddress,
+    }),
+  });
 }
 
 export function constructUnshieldClaimsQueryKeyForInvalidation({

@@ -13,7 +13,7 @@ import type { Address, TransactionReceipt } from 'viem';
 import { getTokenContractConfig } from '@/constants/confidentialTokenABIs';
 import type { Token } from './useCofheTokenLists';
 import { constructPublicTokenBalanceQueryKeyForInvalidation } from './useCofheTokenPublicBalance';
-import { constructUnshieldClaimsQueryKeyForInvalidation } from './useCofheTokenClaimable';
+import { invalidateClaimableQueries } from './useCofheTokenClaimable';
 import { usePendingTransactions } from './usePendingTransactions';
 
 function invalidateConfidentialTokenBalanceQueries(token: Token, queryClient: QueryClient) {
@@ -76,27 +76,6 @@ function invalidatePublicAndConfidentialTokenBalanceQueries(
   );
 }
 
-function invalidateClaimableQueries({
-  token,
-  accountAddress,
-  queryClient,
-}: {
-  token: Token;
-  accountAddress: Address;
-  queryClient: QueryClient;
-}) {
-  console.log('Invalidating unshield claims queries for token:', token);
-
-  queryClient.invalidateQueries({
-    queryKey: constructUnshieldClaimsQueryKeyForInvalidation({
-      chainId: token.chainId,
-      tokenAddress: token.address,
-      confidentialityType: token.extensions.fhenix.confidentialityType,
-      accountAddress,
-    }),
-  });
-}
-
 export function useTrackPendingTransactions() {
   // Batch check pending transactions using react-query's useQueries
   const accountsPendingTxs = usePendingTransactions();
@@ -115,13 +94,13 @@ export function useTrackPendingTransactions() {
       // on unshield - private balance decreases, claimable increases, public remains the same
       invalidateConfidentialTokenBalanceQueries(tx.token, queryClient);
 
-      // TODO: need to wait until decrypt
-      invalidateClaimableQueries({
-        token: tx.token,
-        accountAddress: tx.account,
+      // NB: there's also "claimables" query invalidation that comes after, but it's handled in tracking decryptions
+      // invalidateClaimableQueries({
+      //   token: tx.token,
+      //   accountAddress: tx.account,
 
-        queryClient,
-      });
+      //   queryClient,
+      // });
     } else if (tx.actionType === TransactionActionType.Claim) {
       // on claim - claimable decreases, public increases, private remains the same
       const publicTokenAddress = tx.token.extensions.fhenix.erc20Pair?.address;
