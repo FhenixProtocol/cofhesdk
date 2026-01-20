@@ -118,7 +118,7 @@ export function useCofheTokenClaimable(
   // is waiting for decryption finalization -> once Unshield tx mined, but before Decryption result available
   const isWaitingForDecryption = useIsWaitingForDecryption(queryKeyObj);
 
-  const { findReadyInvalidationsForQueryKey } = useScheduledInvalidationsStore();
+  const { findReadyInvalidationsForQueryKey, removeQueryKeyFromInvalidations } = useScheduledInvalidationsStore();
 
   const result = useInternalQuery({
     queryKey,
@@ -139,6 +139,11 @@ export function useCofheTokenClaimable(
       // so that readContract can read up-to-date data
       const readyInvalidations = findReadyInvalidationsForQueryKey(queryKey);
       const tracked = readyInvalidations.length > 0 ? readyInvalidations[0].decryptionObservedAt : undefined;
+
+      const handleSuccess = () => {
+        // cleanup invalidation registry so that the old tx doesn't affect future queries
+        removeQueryKeyFromInvalidations(queryKey);
+      };
 
       console.log('Tracked decryption block for unshield claims:', readyInvalidations);
 
@@ -166,6 +171,8 @@ export function useCofheTokenClaimable(
                 functionName: 'getUserUnshieldClaim',
                 args: [account],
               });
+
+        handleSuccess();
 
         const claim = result as {
           ctHash: bigint;
@@ -215,6 +222,8 @@ export function useCofheTokenClaimable(
                 functionName: 'getUserClaims',
                 args: [account],
               });
+
+        handleSuccess();
 
         type WrappedClaimResult = {
           ctHash: bigint;

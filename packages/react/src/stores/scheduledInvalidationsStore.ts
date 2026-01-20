@@ -29,6 +29,7 @@ type ScheduledInvalidationsState = {
   setDecriptionObservedAt: (params: { key: string; blockNumber: bigint; blockHash?: `0x${string}` }) => void;
   remove: (key: string) => void;
   findReadyInvalidationsForQueryKey: (queryKey: QueryKey) => ScheduledInvalidation[];
+  removeQueryKeyFromInvalidations: (queryKey: QueryKey) => void;
   clear: () => void;
 };
 
@@ -108,6 +109,35 @@ export const useScheduledInvalidationsStore = create<ScheduledInvalidationsState
         return Object.values(get().byKey).filter((item) =>
           item.queryKeys.some((key) => JSON.stringify(key) === JSON.stringify(queryKey) && !!item.decryptionObservedAt)
         );
+      },
+      removeQueryKeyFromInvalidations: (queryKey) => {
+        set((state) => {
+          const updatedByKey = { ...state.byKey };
+          // remove the queryKey from all scheduled invalidations
+          for (const [key, item] of Object.entries(updatedByKey)) {
+            const matchingIndex = item.queryKeys.findIndex(
+              (keyInItem) => JSON.stringify(keyInItem) === JSON.stringify(queryKey)
+            );
+            if (matchingIndex !== -1) {
+              const newQueryKeys = [...item.queryKeys];
+              newQueryKeys.splice(matchingIndex, 1);
+              updatedByKey[key] = {
+                ...item,
+                queryKeys: newQueryKeys,
+              };
+            }
+          }
+
+          // if any invalidation has no more queryKeys, remove it entirely
+          for (const [key, item] of Object.entries(updatedByKey)) {
+            if (item.queryKeys.length === 0) {
+              delete updatedByKey[key];
+            }
+          }
+          return {
+            byKey: updatedByKey,
+          };
+        });
       },
 
       setDecriptionObservedAt: ({

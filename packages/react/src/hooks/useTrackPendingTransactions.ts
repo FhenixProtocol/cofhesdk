@@ -83,7 +83,8 @@ export function useTrackPendingTransactions() {
   const publicClient = useCofhePublicClient();
   const queryClient = useInternalQueryClient();
 
-  const { upsert: upsertScheduledInvalidation } = useScheduledInvalidationsStore();
+  const { upsert: upsertScheduledInvalidation, byKey } = useScheduledInvalidationsStore();
+  console.log('Scheduled invalidations store:', byKey);
 
   const handleInvalidations = (tx: Transaction) => {
     // TODO: add invalidation for the rest of txs
