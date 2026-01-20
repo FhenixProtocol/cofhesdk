@@ -79,7 +79,6 @@ export function useTrackDecryptingTransactions() {
     (tx: Transaction) => {
       // invalidate claimable queries as decrypting a transaction means that unshield claims are now available
       if (tx.actionType === TransactionActionType.Unshield) {
-        // TODO: still doesn't work correctly. Enfroce lastBlockHash?
         invalidateClaimableQueries({
           token: tx.token,
           accountAddress: tx.account,
