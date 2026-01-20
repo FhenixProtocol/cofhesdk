@@ -1,6 +1,12 @@
 import type { QueryClient } from '@tanstack/react-query';
 import type { Address } from 'viem';
 
+export type DecryptionTrackedBlock = {
+  blockNumber: bigint;
+  blockHash?: `0x${string}`;
+  decryptionReceipt?: any;
+};
+
 export function constructDecryptionTrackedBlockQueryKey(params: {
   chainId: number | undefined;
   accountAddress: Address | undefined;
@@ -14,15 +20,15 @@ export function setDecryptionTrackedBlock(
     chainId: number;
     accountAddress: Address;
   },
-  blockNumber: bigint | undefined
+  tracked: DecryptionTrackedBlock | undefined
 ) {
   const key = constructDecryptionTrackedBlockQueryKey(params);
 
-  if (blockNumber === undefined) return;
+  if (tracked === undefined) return;
 
   // Keep it monotonic so we never "go back" to an earlier block.
-  queryClient.setQueryData<bigint | undefined>(key, (prev) => {
-    if (prev === undefined) return blockNumber;
-    return blockNumber > prev ? blockNumber : prev;
+  queryClient.setQueryData<DecryptionTrackedBlock | undefined>(key, (prev) => {
+    if (prev === undefined) return tracked;
+    return tracked.blockNumber > prev.blockNumber ? tracked : prev;
   });
 }

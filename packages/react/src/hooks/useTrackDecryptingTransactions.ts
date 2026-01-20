@@ -119,7 +119,14 @@ export function useTrackDecryptingTransactions() {
           accountAddress: item.tx.account,
         },
         item.receipt?.blockNumber
+          ? {
+              blockNumber: item.receipt.blockNumber,
+              blockHash: item.receipt.blockHash,
+              decryptionReceipt: item.receipt,
+            }
+          : undefined
       );
+      console.log('Decryption completed for tx', item.tx.hash, ', invalidating relevant queries', item);
       handleInvalidations(item.tx);
     }
   }, [combinedWithDecryptionRequests, decryptionResults, handleInvalidations, queryClient]);

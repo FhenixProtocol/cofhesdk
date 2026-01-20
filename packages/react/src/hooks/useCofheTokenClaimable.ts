@@ -6,8 +6,8 @@ import { type Token } from './useCofheTokenLists.js';
 import { DUAL_GET_UNSHIELD_CLAIM_ABI, WRAPPED_GET_USER_CLAIMS_ABI } from '../constants/confidentialTokenABIs.js';
 
 import { useInternalQuery, useInternalQueryClient } from '../providers/index.js';
-import { constructDecryptionTrackedBlockQueryKey } from './decryptionTracking.js';
-import { waitUntilBlockNumber } from '../utils/waitUntilBlockNumber.js';
+import { constructDecryptionTrackedBlockQueryKey, type DecryptionTrackedBlock } from './decryptionTracking.js';
+import { waitUntilRpcAwareAndReadContract } from '../utils/waitUntilRpcAwareAndReadContract.js';
 
 function constructUnshieldClaimsQueryKey({
   chainId,
@@ -130,27 +130,43 @@ export function useCofheTokenClaimable(
       // Read at the latest tracked block (written by useTrackDecryptingTransactions).
       // Fetching this value at execution-time avoids cache fragmentation and avoids relying on a re-render
       // to update the queryFn closure.
-      const trackedBlockNumber = queryClient.getQueryData<bigint | undefined>(
+      const tracked = queryClient.getQueryData<DecryptionTrackedBlock | undefined>(
         constructDecryptionTrackedBlockQueryKey({
           chainId: token.chainId,
           accountAddress: account,
         })
       );
 
-      if (trackedBlockNumber !== undefined)
-        await waitUntilBlockNumber(publicClient, trackedBlockNumber + BLOCKS_TO_WAIT_AFTER_DECRYPTION, {
-          signal,
-          pollingInterval: BLOCKS_POLLING_INTERVAL,
-        });
+      console.log('Using tracked block for unshield claims:', tracked);
+
+      const minBlockNumber = tracked?.blockNumber ? tracked.blockNumber + BLOCKS_TO_WAIT_AFTER_DECRYPTION : undefined;
 
       if (confidentialityType === 'dual') {
         // Dual tokens: single claim via getUserUnshieldClaim
-        const result = await publicClient.readContract({
-          address: token.address,
-          abi: DUAL_GET_UNSHIELD_CLAIM_ABI,
-          functionName: 'getUserUnshieldClaim',
-          args: [account],
-        });
+        const result =
+          tracked?.blockHash !== undefined
+            ? await waitUntilRpcAwareAndReadContract(
+                publicClient,
+                {
+                  receiptBlockHash: tracked.blockHash,
+                  // minBlockNumber,
+                  address: token.address,
+                  abi: DUAL_GET_UNSHIELD_CLAIM_ABI,
+                  functionName: 'getUserUnshieldClaim',
+                  args: [account],
+                },
+                {
+                  signal,
+                  pollingInterval: BLOCKS_POLLING_INTERVAL,
+                }
+              )
+            : await publicClient.readContract({
+                address: token.address,
+                abi: DUAL_GET_UNSHIELD_CLAIM_ABI,
+                functionName: 'getUserUnshieldClaim',
+                args: [account],
+                blockNumber: minBlockNumber,
+              });
 
         const claim = result as {
           ctHash: bigint;
@@ -178,12 +194,30 @@ export function useCofheTokenClaimable(
         };
       } else if (confidentialityType === 'wrapped') {
         // Wrapped tokens: multiple claims via getUserClaims
-        const result = await publicClient.readContract({
-          address: token.address,
-          abi: WRAPPED_GET_USER_CLAIMS_ABI,
-          functionName: 'getUserClaims',
-          args: [account],
-        });
+        const result =
+          tracked?.blockHash !== undefined
+            ? await waitUntilRpcAwareAndReadContract(
+                publicClient,
+                {
+                  receiptBlockHash: tracked.blockHash,
+                  // minBlockNumber,
+                  address: token.address,
+                  abi: WRAPPED_GET_USER_CLAIMS_ABI,
+                  functionName: 'getUserClaims',
+                  args: [account],
+                },
+                {
+                  signal,
+                  pollingInterval: BLOCKS_POLLING_INTERVAL,
+                }
+              )
+            : await publicClient.readContract({
+                address: token.address,
+                abi: WRAPPED_GET_USER_CLAIMS_ABI,
+                functionName: 'getUserClaims',
+                args: [account],
+                blockNumber: minBlockNumber,
+              });
 
         type WrappedClaimResult = {
           ctHash: bigint;
