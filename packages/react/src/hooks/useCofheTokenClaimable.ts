@@ -1,11 +1,11 @@
 import { QueryClient, type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
 import { type Address } from 'viem';
-import { useCofheAccount, useCofhePublicClient } from './useCofheConnection.js';
+import { useCofhePublicClient } from './useCofheConnection.js';
 import { type Token } from './useCofheTokenLists.js';
 import { DUAL_GET_UNSHIELD_CLAIM_ABI, WRAPPED_GET_USER_CLAIMS_ABI } from '../constants/confidentialTokenABIs.js';
 
-import { useInternalQuery } from '../providers/index.js';
-import { trackedBlock } from './useTrackDecryptingTransactions.js';
+import { useInternalQuery, useInternalQueryClient } from '../providers/index.js';
+import { constructDecryptionTrackedBlockQueryKey } from './decryptionTracking.js';
 
 function constructUnshieldClaimsQueryKey({
   chainId,
@@ -99,6 +99,7 @@ export function useCofheTokenClaimable(
   queryOptions?: UseUnshieldClaimsOptions
 ): UseQueryResult<UnshieldClaimsSummary, Error> {
   const publicClient = useCofhePublicClient();
+  const queryClient = useInternalQueryClient();
 
   const confidentialityType = token?.extensions.fhenix.confidentialityType;
 
@@ -122,6 +123,16 @@ export function useCofheTokenClaimable(
         throw new Error('Token address is required');
       }
 
+      // Read at the latest tracked block (written by useTrackDecryptingTransactions).
+      // Fetching this value at execution-time avoids cache fragmentation and avoids relying on a re-render
+      // to update the queryFn closure.
+      const trackedBlockNumber = queryClient.getQueryData<bigint | undefined>(
+        constructDecryptionTrackedBlockQueryKey({
+          chainId: token.chainId,
+          accountAddress: account,
+        })
+      );
+
       if (confidentialityType === 'dual') {
         // Dual tokens: single claim via getUserUnshieldClaim
         const result = await publicClient.readContract({
@@ -129,7 +140,7 @@ export function useCofheTokenClaimable(
           abi: DUAL_GET_UNSHIELD_CLAIM_ABI,
           functionName: 'getUserUnshieldClaim',
           args: [account],
-          blockNumber: trackedBlock,
+          blockNumber: trackedBlockNumber,
         });
 
         const claim = result as {
@@ -163,7 +174,7 @@ export function useCofheTokenClaimable(
           abi: WRAPPED_GET_USER_CLAIMS_ABI,
           functionName: 'getUserClaims',
           args: [account],
-          blockNumber: trackedBlock,
+          blockNumber: trackedBlockNumber,
         });
 
         type WrappedClaimResult = {
