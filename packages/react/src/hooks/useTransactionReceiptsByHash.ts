@@ -22,9 +22,12 @@ export type UseTransactionReceiptsByHashInput = {
 
 export type UseTransactionReceiptsByHashResult = {
   results: UseQueryResult<TransactionReceipt, Error>[];
-  resultsByHash: Record<`0x${string}`, UseQueryResult<TransactionReceipt, Error>>;
   receiptsByHash: Record<`0x${string}`, TransactionReceipt | undefined>;
 };
+
+function isHashValid(hash: unknown): hash is `0x${string}` {
+  return typeof hash === 'string' && /^0x([A-Fa-f0-9]+)$/.test(hash);
+}
 
 /**
  * Fetch receipts for a list of already-mined transaction hashes.
@@ -44,10 +47,12 @@ export function useTransactionReceiptsByHash(
     const out: `0x${string}`[] = [];
     for (const h of hashes ?? []) {
       if (!h) continue;
-      const key = h.toLowerCase() as `0x${string}`;
+      const key = h.toLowerCase();
+      assert(isHashValid(key), `Invalid transaction hash provided: ${String(h)}`);
       if (seen.has(key)) continue;
       seen.add(key);
-      out.push(h as `0x${string}`);
+      assert(isHashValid(h), `Invalid transaction hash provided: ${String(h)}`);
+      out.push(h);
     }
     return out;
   }, [hashes]);
@@ -66,6 +71,7 @@ export function useTransactionReceiptsByHash(
           // The caller guarantees these txs are already mined.
           return await publicClient.getTransactionReceipt({ hash });
         },
+        notifyOnChangeProps: ['data', 'error'],
         refetchOnWindowFocus: false,
         refetchOnMount: false,
         refetchOnReconnect: false,
@@ -74,17 +80,9 @@ export function useTransactionReceiptsByHash(
     });
   }, [chainId, enabled, normalizedHashes, publicClient, queryOptions]);
 
-  const results = useInternalQueries({
+  const results: UseQueryResult<TransactionReceipt, Error>[] = useInternalQueries({
     queries,
-  }) as UseQueryResult<TransactionReceipt, Error>[];
-
-  const resultsByHash = useMemo(() => {
-    return normalizedHashes.reduce<Record<`0x${string}`, UseQueryResult<TransactionReceipt, Error>>>((acc, hash, i) => {
-      const r = results[i];
-      if (r) acc[hash] = r;
-      return acc;
-    }, {});
-  }, [normalizedHashes, results]);
+  });
 
   const receiptsByHash = useMemo(() => {
     return normalizedHashes.reduce<Record<`0x${string}`, TransactionReceipt | undefined>>((acc, hash, i) => {
@@ -93,5 +91,5 @@ export function useTransactionReceiptsByHash(
     }, {});
   }, [normalizedHashes, results]);
 
-  return { results, resultsByHash, receiptsByHash };
+  return { results, receiptsByHash };
 }
