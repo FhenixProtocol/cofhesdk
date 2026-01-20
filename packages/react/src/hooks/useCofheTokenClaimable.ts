@@ -149,7 +149,6 @@ export function useCofheTokenClaimable(
                 publicClient,
                 {
                   receiptBlockHash: tracked.blockHash,
-                  // minBlockNumber,
                   address: token.address,
                   abi: DUAL_GET_UNSHIELD_CLAIM_ABI,
                   functionName: 'getUserUnshieldClaim',
@@ -200,7 +199,6 @@ export function useCofheTokenClaimable(
                 publicClient,
                 {
                   receiptBlockHash: tracked.blockHash,
-                  // minBlockNumber,
                   address: token.address,
                   abi: WRAPPED_GET_USER_CLAIMS_ABI,
                   functionName: 'getUserClaims',

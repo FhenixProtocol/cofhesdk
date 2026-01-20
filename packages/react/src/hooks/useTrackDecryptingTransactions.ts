@@ -118,11 +118,10 @@ export function useTrackDecryptingTransactions() {
           chainId: item.tx.chainId,
           accountAddress: item.tx.account,
         },
-        item.receipt?.blockNumber
+        item.decryptionResult?.observedAt
           ? {
-              blockNumber: item.receipt.blockNumber,
-              blockHash: item.receipt.blockHash,
-              decryptionReceipt: item.receipt,
+              blockNumber: item.decryptionResult.observedAt.blockNumber,
+              blockHash: item.decryptionResult.observedAt.blockHash,
             }
           : undefined
       );

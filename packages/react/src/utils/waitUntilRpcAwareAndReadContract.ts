@@ -51,7 +51,6 @@ export async function waitUntilRpcAwareAndReadContract<TReturn = unknown>(
   publicClient: PublicClient,
   params: {
     receiptBlockHash: `0x${string}`;
-    // minBlockNumber?: bigint;
     address: Address;
     abi: Abi;
     functionName: string;
@@ -61,6 +60,7 @@ export async function waitUntilRpcAwareAndReadContract<TReturn = unknown>(
 ): Promise<TReturn> {
   const pollingInterval = options.pollingInterval ?? 1_000;
 
+  console.log(`Waiting until RPC is aware of block ${params.receiptBlockHash} to read contract...`);
   let done = false;
   while (!done) {
     if (options.signal?.aborted) throw abortError();
@@ -79,7 +79,6 @@ export async function waitUntilRpcAwareAndReadContract<TReturn = unknown>(
       publicClient.call({
         to: params.address,
         data: callData,
-        // blockNumber: params.minBlockNumber,
       }),
     ]);
 
