@@ -104,6 +104,14 @@ export function useTrackDecryptingTransactions() {
       .filter((item) => item.decryptionResult !== undefined);
 
     for (const item of newlyDecrypted) {
+      // update store
+      useTransactionStore.getState().setTransactionDecryptionStatus(
+        item.tx.chainId,
+        item.tx.hash,
+        false // no longer pending decryption
+      );
+
+      // before cache invalidation, make sure the request that follows will use up-to-date block number
       setDecryptionTrackedBlock(
         queryClient,
         {
@@ -111,12 +119,6 @@ export function useTrackDecryptingTransactions() {
           accountAddress: item.tx.account,
         },
         item.receipt?.blockNumber
-      );
-      // update store
-      useTransactionStore.getState().setTransactionDecryptionStatus(
-        item.tx.chainId,
-        item.tx.hash,
-        false // no longer pending decryption
       );
       handleInvalidations(item.tx);
     }
