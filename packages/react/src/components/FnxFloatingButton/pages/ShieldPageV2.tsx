@@ -172,10 +172,6 @@ function useShieldWithLifecycle(token: Token): ShieldAndUnshieldViewProps {
     isValidAmount: isValidShieldAmount,
     sourceSymbol: token.extensions.fhenix.erc20Pair?.symbol,
     destSymbol: token.symbol,
-    sourceAvailable: publicBalanceUnit,
-    destAvailable: confidentialBalanceUnit,
-    isFetchingSource: isFetchingPublic,
-    isFetchingDest: isFetchingConfidential,
     sourceLogoURI: token.extensions.fhenix.erc20Pair?.logoURI,
     destLogoURI: token.logoURI,
     handlePrimaryAction: handleShield,
@@ -259,10 +255,6 @@ function useUnshieldWithLifecycle(token: Token): ShieldAndUnshieldViewProps {
     handlePrimaryAction: handleUnshield,
     primaryLabel: 'Unshield',
     primaryIcon: <TbShieldMinus className="w-3 h-3" />,
-    sourceAvailable: confidentialBalanceUnit,
-    destAvailable: publicBalanceUnit,
-    isFetchingSource: isFetchingConfidential,
-    isFetchingDest: isFetchingPublic,
   };
 }
 
@@ -292,10 +284,7 @@ type ShieldPageViewProps = {
   isValidAmount: boolean;
   sourceSymbol: string | undefined;
   destSymbol: string | undefined;
-  sourceAvailable: BigNumber | undefined;
-  destAvailable: BigNumber | undefined;
-  isFetchingSource: boolean;
-  isFetchingDest: boolean;
+
   sourceLogoURI: string | undefined;
   destLogoURI: string | undefined;
   handlePrimaryAction: () => void;
