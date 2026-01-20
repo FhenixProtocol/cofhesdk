@@ -1,17 +1,15 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { TbShieldPlus, TbShieldMinus } from 'react-icons/tb';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { parseUnits } from 'viem';
-import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext';
 import { useCofheAccount } from '@/hooks/useCofheConnection';
 import { useCofheTokenDecryptedBalance } from '@/hooks/useCofheTokenDecryptedBalance';
 import { type Token } from '@/hooks/useCofheTokenLists';
 import { useCofheTokenShield } from '@/hooks/useCofheTokenShield';
 import { cn } from '../../../utils/cn';
 import { truncateHash } from '../../../utils/utils';
-import { ActionButton, AmountInput, TokenIcon } from '../components/index';
-import { TokenBalanceView } from '../components/TokenBalanceView';
+import { ActionButton, AmountInput, CofheTokenConfidentialBalance, TokenIcon } from '../components/index';
 import { useCofheTokenPublicBalance } from '@/hooks/useCofheTokenPublicBalance';
 import { formatTokenAmount, unitToWei } from '@/utils/format';
 import { FloatingButtonPage } from '../pagesConfig/types';
@@ -21,7 +19,7 @@ import { useReschedulableTimeout } from '@/hooks/useReschedulableTimeout';
 import { assert } from 'ts-essentials';
 import type { BigNumber } from 'bignumber.js';
 import { usePortalNavigation } from '@/stores';
-import { set } from 'zod';
+import { CofheTokenPublicBalance } from '../components/CofheTokenConfidentialBalance';
 
 const AUTOCLEAR_TX_STATUS_TIMEOUT = 5000;
 const DISPLAY_DECIMALS = 5;
@@ -417,10 +415,7 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
   isValidAmount,
   sourceSymbol,
   destSymbol,
-  sourceAvailable,
-  destAvailable,
-  isFetchingSource,
-  isFetchingDest,
+
   sourceLogoURI,
   destLogoURI,
   handlePrimaryAction,
@@ -493,13 +488,11 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
               <p className="text-sm font-medium">{sourceSymbol}</p>
               <p className="text-xxs opacity-70">
                 Available{' '}
-                <TokenBalanceView
-                  formattedBalance={sourceAvailable ? sourceAvailable.toFixed(DISPLAY_DECIMALS) : '0'}
-                  isFetching={isFetchingSource}
-                  symbol={sourceSymbol}
-                  size="sm"
-                  className="inline font-bold"
-                />
+                {mode === 'unshield' ? (
+                  <CofheTokenConfidentialBalance token={token} size="sm" decimalPrecision={DISPLAY_DECIMALS} />
+                ) : (
+                  <CofheTokenPublicBalance token={token} size="sm" decimalPrecision={DISPLAY_DECIMALS} />
+                )}
               </p>
             </div>
           </div>
@@ -522,14 +515,12 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
             <div className="text-right">
               <p className="text-sm font-medium">{destSymbol}</p>
               <p className="text-xxs opacity-70">
-                Balance{' '}
-                <TokenBalanceView
-                  formattedBalance={destAvailable ? destAvailable.toFixed(DISPLAY_DECIMALS) : '0'}
-                  isFetching={isFetchingDest}
-                  symbol={destSymbol}
-                  size="sm"
-                  className="inline font-bold"
-                />
+                Balance
+                {mode === 'shield' ? (
+                  <CofheTokenConfidentialBalance token={token} size="sm" decimalPrecision={DISPLAY_DECIMALS} />
+                ) : (
+                  <CofheTokenPublicBalance token={token} size="sm" decimalPrecision={DISPLAY_DECIMALS} />
+                )}
               </p>
             </div>
           </div>
