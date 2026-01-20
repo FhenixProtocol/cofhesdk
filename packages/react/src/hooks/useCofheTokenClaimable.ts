@@ -6,7 +6,7 @@ import { type Token } from './useCofheTokenLists.js';
 import { DUAL_GET_UNSHIELD_CLAIM_ABI, WRAPPED_GET_USER_CLAIMS_ABI } from '../constants/confidentialTokenABIs.js';
 
 import { useInternalQuery, useInternalQueryClient } from '../providers/index.js';
-import { constructDecryptionTrackedBlockQueryKey, type DecryptionTrackedBlock } from './decryptionTracking.js';
+import { useScheduledInvalidationsStore } from '@/stores/scheduledInvalidationsStore.js';
 import { waitUntilRpcAwareAndReadContract } from '../utils/waitUntilRpcAwareAndReadContract.js';
 
 function constructUnshieldClaimsQueryKey({
@@ -101,22 +101,29 @@ const BLOCKS_TO_WAIT_AFTER_DECRYPTION = 1n; // blocks to wait after decryption i
 export function useCofheTokenClaimable(
   { accountAddress: account, token }: UseUnshieldClaimsInput,
   queryOptions?: UseUnshieldClaimsOptions
-): UseQueryResult<UnshieldClaimsSummary, Error> {
+): UseQueryResult<UnshieldClaimsSummary, Error> & {
+  isWaitingForDecryption: boolean;
+} {
   const publicClient = useCofhePublicClient();
-  const queryClient = useInternalQueryClient();
 
   const confidentialityType = token?.extensions.fhenix.confidentialityType;
 
-  const queryKey = constructUnshieldClaimsQueryKey({
+  const queryKeyObj = {
     chainId: token?.chainId,
     tokenAddress: token?.address,
     confidentialityType,
     accountAddress: account,
-  });
+  };
+  const queryKey = constructUnshieldClaimsQueryKey(queryKeyObj);
+  // is waiting for decryption finalization -> once Unshield tx mined, but before Decryption result available
+  const isWaitingForDecryption = useIsWaitingForDecryption(queryKeyObj);
 
-  return useInternalQuery({
+  const { findReadyInvalidationsForQueryKey } = useScheduledInvalidationsStore();
+
+  const result = useInternalQuery({
     queryKey,
-    queryFn: async ({ signal }): Promise<UnshieldClaimsSummary> => {
+    queryFn: async ({ signal, queryKey }): Promise<UnshieldClaimsSummary> => {
+      // TODO: this query fn looks too verbose, can be simplified
       if (!publicClient) {
         throw new Error('PublicClient is required to fetch unshield claims');
       }
@@ -127,19 +134,13 @@ export function useCofheTokenClaimable(
         throw new Error('Token address is required');
       }
 
-      // Read at the latest tracked block (written by useTrackDecryptingTransactions).
-      // Fetching this value at execution-time avoids cache fragmentation and avoids relying on a re-render
-      // to update the queryFn closure.
-      const tracked = queryClient.getQueryData<DecryptionTrackedBlock | undefined>(
-        constructDecryptionTrackedBlockQueryKey({
-          chainId: token.chainId,
-          accountAddress: account,
-        })
-      );
+      // if there was a tx previously, which caused the need to invalidae this query upon decryption observation,
+      // and if decryption has been observed for it, use the block hash to ensure RPC is aware of it
+      // so that readContract can read up-to-date data
+      const readyInvalidations = findReadyInvalidationsForQueryKey(queryKey);
+      const tracked = readyInvalidations.length > 0 ? readyInvalidations[0].decryptionObservedAt : undefined;
 
-      console.log('Using tracked block for unshield claims:', tracked);
-
-      const minBlockNumber = tracked?.blockNumber ? tracked.blockNumber + BLOCKS_TO_WAIT_AFTER_DECRYPTION : undefined;
+      console.log('Tracked decryption block for unshield claims:', readyInvalidations);
 
       if (confidentialityType === 'dual') {
         // Dual tokens: single claim via getUserUnshieldClaim
@@ -164,7 +165,6 @@ export function useCofheTokenClaimable(
                 abi: DUAL_GET_UNSHIELD_CLAIM_ABI,
                 functionName: 'getUserUnshieldClaim',
                 args: [account],
-                blockNumber: minBlockNumber,
               });
 
         const claim = result as {
@@ -214,7 +214,6 @@ export function useCofheTokenClaimable(
                 abi: WRAPPED_GET_USER_CLAIMS_ABI,
                 functionName: 'getUserClaims',
                 args: [account],
-                blockNumber: minBlockNumber,
               });
 
         type WrappedClaimResult = {
@@ -260,4 +259,15 @@ export function useCofheTokenClaimable(
       !!publicClient && !!account && !!token && (confidentialityType === 'dual' || confidentialityType === 'wrapped'),
     ...queryOptions,
   });
+
+  return {
+    ...result,
+    isWaitingForDecryption,
+  };
+}
+
+// TODO: implement properly
+function useIsWaitingForDecryption(queryKeyObj: Parameters<typeof constructUnshieldClaimsQueryKey>[0]): boolean {
+  return true;
+  // return result;
 }

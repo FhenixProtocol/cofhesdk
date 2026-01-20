@@ -11,7 +11,7 @@ import { assert } from 'ts-essentials';
 import { useCofheReadDecryptionResults } from './useCofheReadDecryptionResults';
 import { invalidateClaimableQueries } from './useCofheTokenClaimable';
 import { useInternalQueryClient } from '@/providers';
-import { setDecryptionTrackedBlock } from './decryptionTracking';
+import { useScheduledInvalidationsStore } from '@/stores/scheduledInvalidationsStore';
 
 export function useTrackDecryptingTransactions() {
   //tmp
@@ -89,7 +89,11 @@ export function useTrackDecryptingTransactions() {
     },
     [queryClient]
   );
+  const { setDecriptionObservedAt } = useScheduledInvalidationsStore();
 
+  // TODO: in this hook: look at the invalidationRegistryOnDecrypt
+  // check all things that wait for invalidation once the provided value is decrypted
+  // invalidate each of such
   useEffect(() => {
     const newlyDecrypted = combinedWithDecryptionRequests
       .map((item) => {
@@ -111,23 +115,28 @@ export function useTrackDecryptingTransactions() {
       );
 
       // before cache invalidation, make sure the request that follows will use up-to-date block number
-      setDecryptionTrackedBlock(
-        queryClient,
-        {
-          chainId: item.tx.chainId,
-          accountAddress: item.tx.account,
-        },
-        item.decryptionResult?.observedAt
-          ? {
-              blockNumber: item.decryptionResult.observedAt.blockNumber,
-              blockHash: item.decryptionResult.observedAt.blockHash,
-            }
-          : undefined
-      );
+      setDecriptionObservedAt({
+        key: `unshield-tx-${item.tx.hash}`,
+        blockNumber: item.decryptionResult!.observedAt.blockNumber,
+        blockHash: item.decryptionResult!.observedAt.blockHash,
+      });
+      // setDecryptionTrackedBlock(
+      //   queryClient,
+      //   {
+      //     chainId: item.tx.chainId,
+      //     accountAddress: item.tx.account,
+      //   },
+      //   item.decryptionResult?.observedAt
+      //     ? {
+      //         blockNumber: item.decryptionResult.observedAt.blockNumber,
+      //         blockHash: item.decryptionResult.observedAt.blockHash,
+      //       }
+      //     : undefined
+      // );
       console.log('Decryption completed for tx', item.tx.hash, ', invalidating relevant queries', item);
       handleInvalidations(item.tx);
     }
-  }, [combinedWithDecryptionRequests, decryptionResults, handleInvalidations, queryClient]);
+  }, [combinedWithDecryptionRequests, decryptionResults, handleInvalidations, queryClient, setDecriptionObservedAt]);
 }
 
 // function useResetPendingDecryption() {

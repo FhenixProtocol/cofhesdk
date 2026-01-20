@@ -8,13 +8,14 @@ import { useCofhePublicClient } from './useCofheConnection';
 import { useInternalQueries, useInternalQueryClient } from '@/providers';
 import { assert } from 'ts-essentials';
 import { constructCofheReadContractQueryForInvalidation } from './useCofheReadContract';
-import type { QueriesOptions, QueryClient } from '@tanstack/react-query';
+import { QueryClient, type QueriesOptions } from '@tanstack/react-query';
 import type { Address, TransactionReceipt } from 'viem';
 import { getTokenContractConfig } from '@/constants/confidentialTokenABIs';
 import type { Token } from './useCofheTokenLists';
 import { constructPublicTokenBalanceQueryKeyForInvalidation } from './useCofheTokenPublicBalance';
-import { invalidateClaimableQueries } from './useCofheTokenClaimable';
+import { constructUnshieldClaimsQueryKeyForInvalidation, invalidateClaimableQueries } from './useCofheTokenClaimable';
 import { usePendingTransactions } from './usePendingTransactions';
+import { useScheduledInvalidationsStore } from '@/stores/scheduledInvalidationsStore';
 
 function invalidateConfidentialTokenBalanceQueries(token: Token, queryClient: QueryClient) {
   const tokenBalanceQueryKey = constructCofheReadContractQueryForInvalidation({
@@ -82,6 +83,8 @@ export function useTrackPendingTransactions() {
   const publicClient = useCofhePublicClient();
   const queryClient = useInternalQueryClient();
 
+  const { upsert: upsertScheduledInvalidation } = useScheduledInvalidationsStore();
+
   const handleInvalidations = (tx: Transaction) => {
     // TODO: add invalidation for the rest of txs
     // TODO invalidate gas on all txs since any tx spends gas
@@ -94,13 +97,22 @@ export function useTrackPendingTransactions() {
       // on unshield - private balance decreases, claimable increases, public remains the same
       invalidateConfidentialTokenBalanceQueries(tx.token, queryClient);
 
-      // NB: there's also "claimables" query invalidation that comes after, but it's handled in tracking decryptions
-      // invalidateClaimableQueries({
-      //   token: tx.token,
-      //   accountAddress: tx.account,
-
-      //   queryClient,
-      // });
+      // schedule invalidation for unshield claims once decryption is observed
+      upsertScheduledInvalidation({
+        key: `unshield-tx-${tx.hash}`,
+        accountAddress: tx.account,
+        createdAt: Date.now(),
+        chainId: tx.chainId,
+        triggerTxHash: tx.hash,
+        queryKeys: [
+          constructUnshieldClaimsQueryKeyForInvalidation({
+            chainId: tx.token.chainId,
+            tokenAddress: tx.token.address,
+            confidentialityType: tx.token.extensions.fhenix.confidentialityType,
+            accountAddress: tx.account,
+          }),
+        ],
+      });
     } else if (tx.actionType === TransactionActionType.Claim) {
       // on claim - claimable decreases, public increases, private remains the same
       const publicTokenAddress = tx.token.extensions.fhenix.erc20Pair?.address;
