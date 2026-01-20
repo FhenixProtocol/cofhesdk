@@ -170,7 +170,7 @@ export function useCofheTokenClaimable(
         return {
           claimableAmount: claim.decrypted ? claim.decryptedAmount : 0n,
           pendingAmount: claim.decrypted ? 0n : claim.requestedAmount,
-          hasClaimable: claim.decrypted,
+          hasClaimable: claim.decrypted && claim.decryptedAmount > 0n,
           hasPending: !claim.decrypted,
         };
       } else if (confidentialityType === 'wrapped') {
@@ -221,6 +221,7 @@ export function useCofheTokenClaimable(
         hasPending: false,
       };
     },
+    refetchOnMount: false,
     enabled:
       !!publicClient && !!account && !!token && (confidentialityType === 'dual' || confidentialityType === 'wrapped'),
     ...queryOptions,

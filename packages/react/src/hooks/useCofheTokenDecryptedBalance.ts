@@ -68,9 +68,11 @@ export function useCofheTokenDecryptedBalance(
     },
     {
       readQueryOptions: {
+        refetchOnMount: false,
         enabled: userEnabled && !!token,
       },
       decryptingQueryOptions: {
+        refetchOnMount: false,
         select: (amountWei) => {
           assert(token, 'Token must be defined to format confidential balance');
           if (typeof amountWei !== 'bigint') {
