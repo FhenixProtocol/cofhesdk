@@ -1,4 +1,5 @@
 import { QueryClient, type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
+import { useMemo } from 'react';
 import { type Address } from 'viem';
 import { useCofhePublicClient } from './useCofheConnection.js';
 import { type Token } from './useCofheTokenLists.js';
@@ -6,6 +7,7 @@ import { DUAL_GET_UNSHIELD_CLAIM_ABI, WRAPPED_GET_USER_CLAIMS_ABI } from '../con
 
 import { useInternalQuery, useInternalQueryClient } from '../providers/index.js';
 import { constructDecryptionTrackedBlockQueryKey } from './decryptionTracking.js';
+import { waitUntilBlockNumber } from '../utils/waitUntilBlockNumber.js';
 
 function constructUnshieldClaimsQueryKey({
   chainId,
@@ -88,6 +90,8 @@ type UseUnshieldClaimsInput = {
 
 type UseUnshieldClaimsOptions = Omit<UseQueryOptions<UnshieldClaimsSummary, Error>, 'queryKey' | 'queryFn'>;
 
+const BLOCKS_POLLING_INTERVAL = 3_000; // 5 seconds
+const BLOCKS_TO_WAIT_AFTER_DECRYPTION = 1n; // blocks to wait after decryption is reported in the block
 /**
  * Unified hook to fetch unshield claims for any token type (dual or wrapped)
  * @param input - Token object and optional account address
@@ -112,7 +116,7 @@ export function useCofheTokenClaimable(
 
   return useInternalQuery({
     queryKey,
-    queryFn: async (): Promise<UnshieldClaimsSummary> => {
+    queryFn: async ({ signal }): Promise<UnshieldClaimsSummary> => {
       if (!publicClient) {
         throw new Error('PublicClient is required to fetch unshield claims');
       }
@@ -122,8 +126,6 @@ export function useCofheTokenClaimable(
       if (!token) {
         throw new Error('Token address is required');
       }
-
-      const latestBlockNumber = await publicClient.getBlockNumber();
 
       // Read at the latest tracked block (written by useTrackDecryptingTransactions).
       // Fetching this value at execution-time avoids cache fragmentation and avoids relying on a re-render
@@ -135,9 +137,11 @@ export function useCofheTokenClaimable(
         })
       );
 
-      // explicitely set block number, becuase for claiming it's important to fetch AFTER decryption has happened
-      const blockNumberToUse =
-        trackedBlockNumber && trackedBlockNumber > latestBlockNumber ? trackedBlockNumber : latestBlockNumber;
+      if (trackedBlockNumber !== undefined)
+        await waitUntilBlockNumber(publicClient, trackedBlockNumber + BLOCKS_TO_WAIT_AFTER_DECRYPTION, {
+          signal,
+          pollingInterval: BLOCKS_POLLING_INTERVAL,
+        });
 
       if (confidentialityType === 'dual') {
         // Dual tokens: single claim via getUserUnshieldClaim
@@ -146,7 +150,6 @@ export function useCofheTokenClaimable(
           abi: DUAL_GET_UNSHIELD_CLAIM_ABI,
           functionName: 'getUserUnshieldClaim',
           args: [account],
-          blockNumber: blockNumberToUse,
         });
 
         const claim = result as {
@@ -180,7 +183,6 @@ export function useCofheTokenClaimable(
           abi: WRAPPED_GET_USER_CLAIMS_ABI,
           functionName: 'getUserClaims',
           args: [account],
-          blockNumber: blockNumberToUse,
         });
 
         type WrappedClaimResult = {
