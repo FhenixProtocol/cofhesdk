@@ -1,4 +1,11 @@
-import { decodeFunctionResult, encodeFunctionData, type Abi, type Address, type PublicClient } from 'viem';
+import {
+  type Abi,
+  type Address,
+  type ContractFunctionArgs,
+  type ContractFunctionName,
+  type ContractFunctionReturnType,
+  type PublicClient,
+} from 'viem';
 
 export type WaitUntilRpcAwareAndReadContractOptions = {
   pollingInterval?: number;
@@ -7,7 +14,7 @@ export type WaitUntilRpcAwareAndReadContractOptions = {
 
 function abortError(message = 'Aborted') {
   const err = new Error(message);
-  (err as any).name = 'AbortError';
+  err.name = 'AbortError';
   return err;
 }
 
@@ -47,17 +54,27 @@ async function sleep(ms: number, signal?: AbortSignal) {
  * typically sent as a single JSON-RPC batch — which is important when your RPC
  * provider load-balances across nodes.
  */
-export async function waitUntilRpcAwareAndReadContract<TReturn = unknown>(
+export async function waitUntilRpcAwareAndReadContract<
+  TAbi extends Abi,
+  TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>,
+>(
   publicClient: PublicClient,
   params: {
     receiptBlockHash: `0x${string}`;
     address: Address;
-    abi: Abi;
-    functionName: string;
-    args: readonly unknown[];
+    abi: TAbi;
+    functionName: TfunctionName;
+    args: ContractFunctionArgs<TAbi, 'pure' | 'view', TfunctionName>;
   },
   options: WaitUntilRpcAwareAndReadContractOptions = {}
-): Promise<TReturn> {
+): Promise<
+  ContractFunctionReturnType<
+    TAbi,
+    'pure' | 'view',
+    TfunctionName,
+    ContractFunctionArgs<TAbi, 'pure' | 'view', TfunctionName>
+  >
+> {
   const pollingInterval = options.pollingInterval ?? 1_000;
 
   console.log(`Waiting until RPC is aware of block ${params.receiptBlockHash} to read contract...`);
@@ -65,35 +82,24 @@ export async function waitUntilRpcAwareAndReadContract<TReturn = unknown>(
   while (!done) {
     if (options.signal?.aborted) throw abortError();
 
-    const callData = encodeFunctionData({
-      abi: params.abi as any,
-      functionName: params.functionName as any,
-      args: params.args as any,
-    });
-
-    const [blockRes, callRes] = await Promise.allSettled([
+    const [blockRes, readRes] = await Promise.allSettled([
       publicClient.request({
         method: 'eth_getBlockByHash',
         params: [params.receiptBlockHash, false],
       }),
-      publicClient.call({
-        to: params.address,
-        data: callData,
+      publicClient.readContract({
+        address: params.address,
+        abi: params.abi,
+        functionName: params.functionName,
+        args: params.args,
       }),
     ]);
 
     const blockKnown = blockRes.status === 'fulfilled' && blockRes.value != null;
 
-    const callDataResult = callRes.status === 'fulfilled' ? callRes.value?.data : undefined;
-    const callOk = callDataResult !== undefined;
-
-    if (blockKnown && callOk) {
+    if (blockKnown && readRes.status === 'fulfilled') {
       done = true;
-      return decodeFunctionResult({
-        abi: params.abi as any,
-        functionName: params.functionName as any,
-        data: callDataResult as `0x${string}`,
-      }) as TReturn;
+      return readRes.value;
     }
 
     await sleep(pollingInterval, options.signal);
