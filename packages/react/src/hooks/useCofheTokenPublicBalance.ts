@@ -92,6 +92,7 @@ function useTokenBalance<TSelectedData = bigint>(
       return balance;
     },
     enabled,
+    refetchOnMount: false,
     ...restQueryOptions,
   });
 }
