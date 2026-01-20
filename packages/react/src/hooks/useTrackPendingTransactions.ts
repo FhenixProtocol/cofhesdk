@@ -100,7 +100,7 @@ export function useTrackPendingTransactions() {
 
       // schedule invalidation for unshield claims once decryption is observed
       upsertScheduledInvalidation({
-        key: `unshield-tx-${tx.hash}`,
+        key: `${tx.actionType}-tx-${tx.hash}`,
         accountAddress: tx.account,
         createdAt: Date.now(),
         chainId: tx.chainId,

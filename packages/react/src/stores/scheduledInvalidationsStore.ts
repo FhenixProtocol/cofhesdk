@@ -2,11 +2,12 @@ import type { QueryKey } from '@tanstack/react-query';
 import type { Address } from 'viem';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import type { TransactionActionType } from './transactionStore';
 
 export type ScheduledInvalidationStatus = 'scheduled' | 'executed';
 
 export type ScheduledInvalidation = {
-  key: string;
+  key: `${TransactionActionType}-tx-0x${string}`;
   createdAt: number;
   triggerTxHash: `0x${string}`;
   decryptionObservedAt?: {
@@ -26,7 +27,7 @@ type ScheduledInvalidationsState = {
 
   upsert: (input: Omit<ScheduledInvalidation, 'status'> & { status?: ScheduledInvalidationStatus }) => void;
   markExecuted: (key: string) => void;
-  setDecriptionObservedAt: (params: { key: string; blockNumber: bigint; blockHash?: `0x${string}` }) => void;
+  setDecryptionObservedAt: (params: { key: string; blockNumber: bigint; blockHash?: `0x${string}` }) => void;
   remove: (key: string) => void;
   findReadyInvalidationsForQueryKey: (queryKey: QueryKey) => ScheduledInvalidation[];
   removeQueryKeyFromInvalidations: (queryKey: QueryKey) => void;
@@ -140,7 +141,7 @@ export const useScheduledInvalidationsStore = create<ScheduledInvalidationsState
         });
       },
 
-      setDecriptionObservedAt: ({
+      setDecryptionObservedAt: ({
         key,
         blockNumber,
         blockHash,

@@ -36,13 +36,12 @@ export function useTrackDecryptingTransactions() {
     return result;
   }, [account, allTxs]);
 
-  console.log('decryptingTransactionsByHash:', decryptingTransactionsByHash);
   // todo: first check if pending queries cache already has that, might spare a request
   const { receiptsByHash } = useTransactionReceiptsByHash({
     hashes: Object.keys(decryptingTransactionsByHash),
   });
 
-  const combinedWithDecryptionRequests = useMemo(() => {
+  const txsWithReceiptsAndCiphertextsToWatch = useMemo(() => {
     return Object.entries(decryptingTransactionsByHash).map(([hash, tx]) => {
       const receipt = receiptsByHash[tx.hash];
       const decryptRequestLogs = receipt?.logs
@@ -66,36 +65,21 @@ export function useTrackDecryptingTransactions() {
       };
     });
   }, [decryptingTransactionsByHash, receiptsByHash]);
-  console.log('combinedWithDecryptionRequests:', combinedWithDecryptionRequests);
 
   const ciphertextsToWatch = useMemo(() => {
-    return combinedWithDecryptionRequests.map((item) => item.ciphertextToWatch).filter((ct) => ct !== undefined);
-  }, [combinedWithDecryptionRequests]);
+    return txsWithReceiptsAndCiphertextsToWatch.map((item) => item.ciphertextToWatch).filter((ct) => ct !== undefined);
+  }, [txsWithReceiptsAndCiphertextsToWatch]);
   const decryptionResults = useCofheReadDecryptionResults(ciphertextsToWatch);
 
   const queryClient = useInternalQueryClient();
 
-  const handleInvalidations = useCallback(
-    (tx: Transaction) => {
-      // invalidate claimable queries as decrypting a transaction means that unshield claims are now available
-      if (tx.actionType === TransactionActionType.Unshield) {
-        invalidateClaimableQueries({
-          token: tx.token,
-          accountAddress: tx.account,
-
-          queryClient,
-        });
-      }
-    },
-    [queryClient]
-  );
-  const { setDecriptionObservedAt } = useScheduledInvalidationsStore();
+  const { setDecryptionObservedAt } = useScheduledInvalidationsStore();
 
   // TODO: in this hook: look at the invalidationRegistryOnDecrypt
   // check all things that wait for invalidation once the provided value is decrypted
   // invalidate each of such
   useEffect(() => {
-    const newlyDecrypted = combinedWithDecryptionRequests
+    const txsWithDecryptionResults = txsWithReceiptsAndCiphertextsToWatch
       .map((item) => {
         const decryptionResult =
           item.ciphertextToWatch !== undefined ? decryptionResults[item.ciphertextToWatch] : undefined;
@@ -106,37 +90,57 @@ export function useTrackDecryptingTransactions() {
       })
       .filter((item) => item.decryptionResult !== undefined);
 
-    for (const item of newlyDecrypted) {
+    for (const { tx, decryptionResult, receipt, ciphertextToWatch } of txsWithDecryptionResults) {
       // update store
       useTransactionStore.getState().setTransactionDecryptionStatus(
-        item.tx.chainId,
-        item.tx.hash,
+        tx.chainId,
+        tx.hash,
         false // no longer pending decryption
       );
 
-      // before cache invalidation, make sure the request that follows will use up-to-date block number
-      setDecriptionObservedAt({
-        key: `unshield-tx-${item.tx.hash}`,
-        blockNumber: item.decryptionResult!.observedAt.blockNumber,
-        blockHash: item.decryptionResult!.observedAt.blockHash,
+      console.log('Decryption completed for tx, invalidating relevant queries', {
+        tx,
+        decryptionResult,
+        receipt,
+        ciphertextToWatch,
       });
-      // setDecryptionTrackedBlock(
-      //   queryClient,
-      //   {
-      //     chainId: item.tx.chainId,
-      //     accountAddress: item.tx.account,
-      //   },
-      //   item.decryptionResult?.observedAt
-      //     ? {
-      //         blockNumber: item.decryptionResult.observedAt.blockNumber,
-      //         blockHash: item.decryptionResult.observedAt.blockHash,
-      //       }
-      //     : undefined
-      // );
-      console.log('Decryption completed for tx', item.tx.hash, ', invalidating relevant queries', item);
-      handleInvalidations(item.tx);
+      // before cache invalidation, make sure the request that follows will use up-to-date block number
+      setDecryptionObservedAt({
+        key: `${tx.actionType}-tx-${tx.hash}`,
+        blockNumber: decryptionResult!.observedAt.blockNumber,
+        blockHash: decryptionResult!.observedAt.blockHash,
+      });
     }
-  }, [combinedWithDecryptionRequests, decryptionResults, handleInvalidations, queryClient, setDecriptionObservedAt]);
+  }, [txsWithReceiptsAndCiphertextsToWatch, decryptionResults, queryClient, setDecryptionObservedAt]);
+
+  useInvalidateQueriesOnDecryption();
+}
+
+function useInvalidateQueriesOnDecryption() {
+  const { byKey } = useScheduledInvalidationsStore();
+  const queryClient = useInternalQueryClient();
+
+  const allObservedDecryptionQueryKeys = useMemo(() => {
+    return Object.values(byKey)
+      .filter((item) => item.decryptionObservedAt !== undefined)
+      .flatMap((item) => item.queryKeys);
+  }, [byKey]);
+
+  console.log('All observed decryption query keys for invalidation:', allObservedDecryptionQueryKeys);
+
+  const invalidate = useCallback(async () => {
+    for (const queryKey of allObservedDecryptionQueryKeys) {
+      console.log('Invalidating query due to observed decryption:', queryKey);
+      await queryClient.invalidateQueries({ queryKey });
+    }
+  }, [allObservedDecryptionQueryKeys, queryClient]);
+
+  useEffect(() => {
+    if (allObservedDecryptionQueryKeys.length > 0) {
+      console.log('All observed decryption query keys subject to invalidate:', allObservedDecryptionQueryKeys);
+      invalidate();
+    }
+  }, [allObservedDecryptionQueryKeys, invalidate]);
 }
 
 // function useResetPendingDecryption() {
