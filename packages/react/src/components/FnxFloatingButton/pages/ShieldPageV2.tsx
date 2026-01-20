@@ -3,6 +3,7 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { TbShieldPlus, TbShieldMinus } from 'react-icons/tb';
 import { useMemo, useState } from 'react';
 import { parseUnits } from 'viem';
+import { useFnxFloatingButtonContext } from '../FnxFloatingButtonContext';
 import { useCofheAccount } from '@/hooks/useCofheConnection';
 import { useCofheTokenDecryptedBalance } from '@/hooks/useCofheTokenDecryptedBalance';
 import { type Token } from '@/hooks/useCofheTokenLists';
@@ -16,10 +17,12 @@ import { formatTokenAmount, unitToWei } from '@/utils/format';
 import { FloatingButtonPage } from '../pagesConfig/types';
 import { useCofheTokenClaimUnshielded, useCofheTokenUnshield, useCofheTokenClaimable } from '@/hooks';
 import { useOnceTransactionMined } from '@/hooks/useOnceTransactionMined';
+import { useReschedulableTimeout } from '@/hooks/useReschedulableTimeout';
 import { assert } from 'ts-essentials';
+import type { BigNumber } from 'bignumber.js';
 import { usePortalNavigation } from '@/stores';
 
-const SUCCESS_TIMEOUT = 5000;
+const AUTOCLEAR_TX_STATUS_TIMEOUT = 5000;
 const DISPLAY_DECIMALS = 5;
 
 type Mode = 'shield' | 'unshield';
@@ -35,18 +38,72 @@ declare module '../pagesConfig/types' {
   }
 }
 
-const shieldableTypes = new Set(['dual', 'wrapped']);
-
-export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) => {
-  const { navigateBack, navigateTo } = usePortalNavigation();
-  const account = useCofheAccount();
-
-  const [mode, setMode] = useState<Mode>(defaultMode ?? 'shield');
-  const [shieldAmount, setShieldAmount] = useState('');
-  const [unshieldAmount, setUnshieldAmount] = useState('');
+function useLifecycleStore() {
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<{ message: string; type: 'info' | 'success' } | null>(null);
+  return {
+    error,
+    setError,
+    status,
+    setStatus,
+  };
+}
 
+// Reusable hook to safely auto-clear a status message after a delay
+// (moved) useReschedulableTimeout is now in '@/hooks/useReschedulableTimeout'
+
+function useClaimUnshieldedWithLifecycle() {
+  const { setError, setStatus, error, status } = useLifecycleStore();
+  const { schedule: scheduleStatusClear } = useReschedulableTimeout(() => setStatus(null), AUTOCLEAR_TX_STATUS_TIMEOUT);
+  const claimUnshield = useCofheTokenClaimUnshielded({
+    onMutate: () => {
+      setError(null);
+      setStatus({ message: 'Preparing claim transaction...', type: 'info' });
+    },
+    onSuccess: (hash) => {
+      setStatus({
+        message: `Claim transaction sent! Hash: ${truncateHash(hash)}. Waiting for confirmation...`,
+        type: 'info',
+      });
+    },
+    onError: (error) => {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to claim unshielded tokens';
+      setError(errorMessage);
+      setStatus(null);
+      console.error('Claim tx submit error:', error);
+    },
+  });
+
+  const { isMining: isClaimingMining } = useOnceTransactionMined({
+    txHash: claimUnshield.data,
+    onceMined: (transaction) => {
+      if (transaction.status === 'confirmed') {
+        setStatus({
+          message: `Claim transaction confirmed! Hash: ${truncateHash(transaction.hash)}`,
+          type: 'success',
+        });
+      } else if (transaction.status === 'failed') {
+        setError(`Claim transaction failed! Hash: ${truncateHash(transaction.hash)}`);
+      }
+      scheduleStatusClear();
+    },
+  });
+
+  return {
+    claimUnshield,
+    isClaimingMining,
+    error,
+    status,
+  };
+}
+
+type ShieldAndUnshieldViewProps = Omit<ShieldPageViewProps, 'token' | 'mode' | 'setMode'>;
+
+function useShieldWithLifecycle(token: Token): ShieldAndUnshieldViewProps {
+  const account = useCofheAccount();
+  const [shieldAmount, setShieldAmount] = useState('');
+  const { setError, setStatus, error, status } = useLifecycleStore();
+  const { schedule: scheduleStatusClear } = useReschedulableTimeout(() => setStatus(null), AUTOCLEAR_TX_STATUS_TIMEOUT);
   const tokenShield = useCofheTokenShield({
     onMutate: () => {
       setError(null);
@@ -77,8 +134,60 @@ export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) 
       } else if (transaction.status === 'failed') {
         setError(`Shield transaction failed! Hash: ${truncateHash(transaction.hash)}`);
       }
+      scheduleStatusClear();
     },
   });
+
+  const handleShield = async () => {
+    const amountWei = unitToWei(shieldAmount, token.decimals);
+    await tokenShield.mutateAsync({
+      token,
+      amount: amountWei,
+      onStatusChange: (message) => setStatus({ message, type: 'info' }),
+    });
+  };
+
+  const { data: { unit: publicBalanceUnit } = {}, isFetching: isFetchingPublic } = useCofheTokenPublicBalance({
+    token,
+    accountAddress: account,
+  });
+
+  const { data: { unit: confidentialBalanceUnit } = {}, isFetching: isFetchingConfidential } =
+    useCofheTokenDecryptedBalance({ token, accountAddress: account });
+
+  const handleShieldMax = () => {
+    if (publicBalanceUnit) setShieldAmount(publicBalanceUnit.toFixed());
+  };
+
+  const isValidShieldAmount = (shieldAmount.length > 0 && publicBalanceUnit?.gte(shieldAmount)) ?? false;
+
+  return {
+    status,
+    error,
+    isProcessing: tokenShield.isPending || isTokenShieldMining,
+    inputAmount: shieldAmount,
+    setInputAmount: setShieldAmount,
+    onMaxClick: handleShieldMax,
+    isValidAmount: isValidShieldAmount,
+    sourceSymbol: token.extensions.fhenix.erc20Pair?.symbol,
+    destSymbol: token.symbol,
+    sourceAvailable: publicBalanceUnit,
+    destAvailable: confidentialBalanceUnit,
+    isFetchingSource: isFetchingPublic,
+    isFetchingDest: isFetchingConfidential,
+    sourceLogoURI: token.extensions.fhenix.erc20Pair?.logoURI,
+    destLogoURI: token.logoURI,
+    handlePrimaryAction: handleShield,
+    primaryLabel: 'Shield',
+    primaryIcon: <TbShieldPlus className="w-3 h-3" />,
+  };
+}
+
+function useUnshieldWithLifecycle(token: Token): ShieldAndUnshieldViewProps {
+  const account = useCofheAccount();
+  const { setError, setStatus, error, status } = useLifecycleStore();
+  const { schedule: scheduleStatusClear } = useReschedulableTimeout(() => setStatus(null), AUTOCLEAR_TX_STATUS_TIMEOUT);
+  const [unshieldAmount, setUnshieldAmount] = useState('');
   const tokenUnshield = useCofheTokenUnshield({
     onMutate: () => {
       setError(null);
@@ -110,94 +219,9 @@ export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) 
       } else if (transaction.status === 'failed') {
         setError(`Unshield transaction failed! Hash: ${truncateHash(transaction.hash)}`);
       }
+      scheduleStatusClear();
     },
   });
-  const claimUnshield = useCofheTokenClaimUnshielded({
-    onMutate: () => {
-      setError(null);
-      setStatus({ message: 'Preparing claim transaction...', type: 'info' });
-    },
-    onSuccess: (hash) => {
-      setStatus({
-        message: `Claim transaction sent! Hash: ${truncateHash(hash)}. Waiting for confirmation...`,
-        type: 'info',
-      });
-    },
-    onError: (error) => {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to claim unshielded tokens';
-      setError(errorMessage);
-      setStatus(null);
-      console.error('Claim tx submit error:', error);
-    },
-  });
-
-  const { isMining: isClaimingMining } = useOnceTransactionMined({
-    txHash: claimUnshield.data,
-    onceMined: (transaction) => {
-      if (transaction.status === 'confirmed') {
-        setStatus({
-          message: `Claim transaction confirmed! Hash: ${truncateHash(transaction.hash)}`,
-          type: 'success',
-        });
-      } else if (transaction.status === 'failed') {
-        setError(`Claim transaction failed! Hash: ${truncateHash(transaction.hash)}`);
-      }
-    },
-  });
-
-  const { data: { unit: publicBalanceUnit } = {}, isFetching: isFetchingPublic } = useCofheTokenPublicBalance({
-    token,
-    accountAddress: account,
-  });
-
-  const { data: { unit: confidentialBalanceUnit } = {}, isFetching: isFetchingConfidential } =
-    useCofheTokenDecryptedBalance({ token, accountAddress: account });
-
-  const { data: unshieldClaims } = useCofheTokenClaimable({
-    token,
-    accountAddress: account,
-  });
-
-  const isProcessing =
-    tokenShield.isPending ||
-    tokenUnshield.isPending ||
-    claimUnshield.isPending ||
-    isTokenShieldMining ||
-    isTokenUnshieldMining ||
-    isClaimingMining;
-
-  const isValidShieldAmount = useMemo(() => {
-    if (!shieldAmount) return false;
-    const numAmount = parseFloat(shieldAmount);
-    if (isNaN(numAmount) || numAmount <= 0) return false;
-    return publicBalanceUnit?.gt(numAmount);
-  }, [shieldAmount, publicBalanceUnit]);
-
-  const isValidUnshieldAmount = (unshieldAmount.length > 0 && confidentialBalanceUnit?.gte(unshieldAmount)) ?? false;
-
-  const isShieldableToken = shieldableTypes.has(token.extensions.fhenix.confidentialityType);
-
-  const tokenSymbol = token.symbol;
-  const pairedSymbol = token.extensions.fhenix.erc20Pair?.symbol;
-
-  const pairedLogoURI = token.extensions.fhenix.erc20Pair?.logoURI;
-
-  const handleShieldMax = () => {
-    if (publicBalanceUnit) setShieldAmount(publicBalanceUnit.toFixed());
-  };
-  const handleUnshieldMax = () => {
-    if (confidentialBalanceUnit) setUnshieldAmount(confidentialBalanceUnit.toFixed());
-  };
-
-  const handleShield = async () => {
-    const amountWei = unitToWei(shieldAmount, token.decimals);
-    await tokenShield.mutateAsync({
-      token,
-      amount: amountWei,
-      onStatusChange: (message) => setStatus({ message, type: 'info' }),
-    });
-  };
-
   const handleUnshield = async () => {
     const amountInSmallestUnit = parseUnits(unshieldAmount, token.decimals);
     tokenUnshield.mutateAsync({
@@ -206,36 +230,201 @@ export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) 
       onStatusChange: (message) => setStatus({ message, type: 'info' }),
     });
   };
+  const { data: { unit: publicBalanceUnit } = {}, isFetching: isFetchingPublic } = useCofheTokenPublicBalance({
+    token,
+    accountAddress: account,
+  });
 
+  const { data: { unit: confidentialBalanceUnit } = {}, isFetching: isFetchingConfidential } =
+    useCofheTokenDecryptedBalance({ token, accountAddress: account });
+  const handleUnshieldMax = () => {
+    if (confidentialBalanceUnit) setUnshieldAmount(confidentialBalanceUnit.toFixed());
+  };
+  const isValidUnshieldAmount = (unshieldAmount.length > 0 && confidentialBalanceUnit?.gte(unshieldAmount)) ?? false;
+
+  return {
+    status,
+    error,
+    isProcessing: tokenUnshield.isPending || isTokenUnshieldMining,
+    inputAmount: unshieldAmount,
+    setInputAmount: setUnshieldAmount,
+    onMaxClick: handleUnshieldMax,
+    isValidAmount: isValidUnshieldAmount ?? false,
+    sourceSymbol: token.symbol,
+    destSymbol: token.extensions.fhenix.erc20Pair?.symbol,
+    sourceLogoURI: token.logoURI,
+    destLogoURI: token.extensions.fhenix.erc20Pair?.logoURI,
+    handlePrimaryAction: handleUnshield,
+    primaryLabel: 'Unshield',
+    primaryIcon: <TbShieldMinus className="w-3 h-3" />,
+    sourceAvailable: confidentialBalanceUnit,
+    destAvailable: publicBalanceUnit,
+    isFetchingSource: isFetchingConfidential,
+    isFetchingDest: isFetchingPublic,
+  };
+}
+
+const shieldableTypes = new Set(['dual', 'wrapped']);
+
+export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) => {
+  const [mode, setMode] = useState<Mode>(defaultMode ?? 'shield');
+
+  return mode === 'shield' ? (
+    <ShieldTab token={token} mode={mode} setMode={setMode} />
+  ) : (
+    <UnshieldTab token={token} mode={mode} setMode={setMode} />
+  );
+};
+
+type ShieldPageViewProps = {
+  error: string | null;
+  token: Token;
+  mode: Mode;
+  status: { message: string; type: 'info' | 'success' } | null;
+  setMode: (mode: Mode) => void;
+
+  isProcessing: boolean;
+  inputAmount: string;
+  setInputAmount: (value: string) => void;
+  onMaxClick: () => void;
+  isValidAmount: boolean;
+  sourceSymbol: string | undefined;
+  destSymbol: string | undefined;
+  sourceAvailable: BigNumber | undefined;
+  destAvailable: BigNumber | undefined;
+  isFetchingSource: boolean;
+  isFetchingDest: boolean;
+  sourceLogoURI: string | undefined;
+  destLogoURI: string | undefined;
+  handlePrimaryAction: () => void;
+  primaryLabel: string;
+  primaryIcon: React.ReactNode;
+};
+
+function ShieldTab({ token, mode, setMode }: { token: Token; mode: Mode; setMode: (mode: Mode) => void }) {
+  const shieldViewProps = useShieldWithLifecycle(token);
+  return <ShieldAndUnshieldPageView token={token} mode={mode} setMode={setMode} {...shieldViewProps} />;
+}
+
+function UnshieldTab({ token, mode, setMode }: { token: Token; mode: Mode; setMode: (mode: Mode) => void }) {
+  const unshieldViewProps = useUnshieldWithLifecycle(token);
+  return <ShieldAndUnshieldPageView token={token} mode={mode} setMode={setMode} {...unshieldViewProps} />;
+}
+
+function ClaimingSection({ token }: { token: Token }) {
+  const account = useCofheAccount();
+  const { data: unshieldedClaims, isFetching: isFetchingClaims } = useCofheTokenClaimable({
+    token,
+    accountAddress: account,
+  });
+  const {
+    claimUnshield,
+    error: claimingError,
+    status: claimingStatus,
+    isClaimingMining,
+  } = useClaimUnshieldedWithLifecycle();
+
+  const pairedSymbol = token.extensions.fhenix.erc20Pair?.symbol;
   const handleClaim = async () => {
-    assert(unshieldClaims, 'Unshield claims data is required to claim unshielded tokens');
+    assert(unshieldedClaims, 'Unshield claims data is required to claim unshielded tokens');
     claimUnshield.mutateAsync({
       token,
-      amount: unshieldClaims.claimableAmount,
+      amount: unshieldedClaims.claimableAmount,
     });
   };
 
-  // TODO: redo: const object = mode === 'shield' ? obj1 : obj2;
-  const inputAmount = mode === 'shield' ? shieldAmount : unshieldAmount;
-  const setInputAmount = mode === 'shield' ? setShieldAmount : setUnshieldAmount;
-  const onMaxClick = mode === 'shield' ? handleShieldMax : handleUnshieldMax;
-  const isValidAmount = mode === 'shield' ? isValidShieldAmount : isValidUnshieldAmount;
+  return (
+    <>
+      {/* Claim + pending (same logic as ShieldPage) */}
+      {unshieldedClaims?.hasClaimable && (
+        <ActionButton
+          onClick={handleClaim}
+          disabled={claimUnshield.isPending || isClaimingMining || isFetchingClaims}
+          label={
+            claimUnshield.isPending
+              ? 'Claiming...'
+              : `Claim ${formatTokenAmount(unshieldedClaims.claimableAmount, token.decimals, 5).formatted} ${pairedSymbol}`
+          }
+          className="mt-1"
+        />
+      )}
 
-  const sourceSymbol = mode === 'shield' ? pairedSymbol : tokenSymbol;
-  const destSymbol = mode === 'shield' ? tokenSymbol : pairedSymbol;
+      {unshieldedClaims?.hasPending && token && !unshieldedClaims.hasClaimable && (
+        <p className="text-xxs text-yellow-600 dark:text-yellow-400 text-center">
+          Pending: {formatTokenAmount(unshieldedClaims.pendingAmount, token.decimals).formatted} {pairedSymbol}
+        </p>
+      )}
+      <StatusAndError status={claimingStatus} error={claimingError} />
+    </>
+  );
+}
 
-  const sourceAvailable = mode === 'shield' ? publicBalanceUnit : confidentialBalanceUnit;
-  const destAvailable = mode === 'shield' ? confidentialBalanceUnit : publicBalanceUnit;
+function StatusAndError({
+  status,
+  error,
+}: {
+  status: { message: string; type: 'info' | 'success' } | null;
+  error: string | null;
+}) {
+  return (
+    <>
+      {/* Error */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-2">
+          <p className="text-xs text-red-800 dark:text-red-200">{error}</p>
+        </div>
+      )}
 
-  const isFetchingSource = mode === 'shield' ? isFetchingPublic : isFetchingConfidential;
-  const isFetchingDest = mode === 'shield' ? isFetchingConfidential : isFetchingPublic;
+      {/* Status */}
+      {status && (
+        <div
+          className={cn(
+            'rounded-lg p-2 border',
+            status.type === 'success'
+              ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+              : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+          )}
+        >
+          <p
+            className={cn(
+              'text-xs',
+              status.type === 'success' ? 'text-green-800 dark:text-green-200' : 'text-blue-800 dark:text-blue-200'
+            )}
+          >
+            {status.message}
+          </p>
+        </div>
+      )}
+    </>
+  );
+}
 
-  const sourceLogoURI = mode === 'shield' ? pairedLogoURI : token.logoURI;
-  const destLogoURI = mode === 'shield' ? token.logoURI : pairedLogoURI;
+const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
+  error,
+  token,
+  mode,
+  setMode,
+  status,
 
-  const handlePrimaryAction = mode === 'shield' ? handleShield : handleUnshield;
-  const primaryLabel = mode === 'shield' ? 'Shield' : 'Unshield';
-  const primaryIcon = mode === 'shield' ? <TbShieldPlus className="w-3 h-3" /> : <TbShieldMinus className="w-3 h-3" />;
+  isProcessing,
+  inputAmount,
+  setInputAmount,
+  onMaxClick,
+  isValidAmount,
+  sourceSymbol,
+  destSymbol,
+  sourceAvailable,
+  destAvailable,
+  isFetchingSource,
+  isFetchingDest,
+  sourceLogoURI,
+  destLogoURI,
+  handlePrimaryAction,
+  primaryLabel,
+  primaryIcon,
+}) => {
+  const { navigateBack, navigateTo } = usePortalNavigation();
+  const isShieldableToken = shieldableTypes.has(token.extensions.fhenix.confidentialityType);
 
   return (
     <div className="fnx-text-primary space-y-3">
@@ -259,7 +448,7 @@ export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) 
           }
           className="flex items-center gap-1 text-sm font-bold fnx-text-primary hover:opacity-80 transition-opacity"
         >
-          <span>{tokenSymbol}</span>
+          <span>{token.symbol}</span>
           <KeyboardArrowDownIcon style={{ fontSize: 16 }} className="opacity-60" />
         </button>
       </div>
@@ -351,60 +540,14 @@ export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) 
         label={primaryLabel}
         className="py-2"
       />
-
-      {/* Claim + pending (same logic as ShieldPage) */}
-      {unshieldClaims?.hasClaimable && (
-        <ActionButton
-          onClick={handleClaim}
-          disabled={claimUnshield.isPending || !unshieldClaims.hasClaimable}
-          label={
-            claimUnshield.isPending
-              ? 'Claiming...'
-              : `Claim ${formatTokenAmount(unshieldClaims.claimableAmount, token.decimals, 5).formatted} ${pairedSymbol}`
-          }
-          className="mt-1"
-        />
-      )}
-
-      {unshieldClaims?.hasPending && token && !unshieldClaims.hasClaimable && (
-        <p className="text-xxs text-yellow-600 dark:text-yellow-400 text-center">
-          Pending: {formatTokenAmount(unshieldClaims.pendingAmount, token.decimals).formatted} {pairedSymbol}
-        </p>
-      )}
+      <StatusAndError status={status} error={error} />
+      <ClaimingSection token={token} />
 
       {/* Not Shieldable Token Warning */}
-      {token && !isShieldableToken && (
+      {!isShieldableToken && (
         <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-2">
           <p className="text-xs text-yellow-800 dark:text-yellow-200">
             This token does not support shielding/unshielding.
-          </p>
-        </div>
-      )}
-
-      {/* Error */}
-      {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-2">
-          <p className="text-xs text-red-800 dark:text-red-200">{error}</p>
-        </div>
-      )}
-
-      {/* Status */}
-      {status && (
-        <div
-          className={cn(
-            'rounded-lg p-2 border',
-            status.type === 'success'
-              ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-              : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
-          )}
-        >
-          <p
-            className={cn(
-              'text-xs',
-              status.type === 'success' ? 'text-green-800 dark:text-green-200' : 'text-blue-800 dark:text-blue-200'
-            )}
-          >
-            {status.message}
           </p>
         </div>
       )}

@@ -1,6 +1,7 @@
 import { type ReactNode, createContext, useContext } from 'react';
 import type { FloatingButtonPosition } from './types';
 import { useCofheContext } from '../../providers';
+import { useTrackPendingTransactions } from '@/hooks/useTrackPendingTransactions';
 
 export type TokenListMode = 'view' | 'select';
 
@@ -24,6 +25,8 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   const effectivePosition = state.position;
   const isLeftSide = effectivePosition.includes('left');
   const isTopSide = effectivePosition.includes('top');
+
+  useTrackPendingTransactions();
 
   return (
     <FnxFloatingButtonContext.Provider

@@ -18,3 +18,4 @@ export { useCofheTokens, useCofheTokenLists, ETH_ADDRESS, type Token, type Erc20
 export * from './permits';
 export { useCofheAutoConnect } from './useCofheAutoConnect';
 export { useCofheConnect } from './useCofheConnect';
+export { useReschedulableTimeout } from './useReschedulableTimeout';
