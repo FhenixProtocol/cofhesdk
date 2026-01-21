@@ -11,7 +11,7 @@ function useCacheKeysAwaitingDecryption() {
   return queryKeys;
 }
 
-export function useIsWaitingForDecryption(queryKey: unknown[]): boolean {
+export function useIsWaitingForDecryptionToInvalidate(queryKey: unknown[]): boolean {
   const cacheKeysAwaitingDecryption = useCacheKeysAwaitingDecryption();
 
   const result = useMemo(() => {

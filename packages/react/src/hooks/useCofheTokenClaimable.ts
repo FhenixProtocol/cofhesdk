@@ -9,7 +9,7 @@ import {
   maybeWaitUntilRpcAwareAndReadContract,
   type WaitUntilRpcAwareAndReadContractOptions,
 } from '../utils/waitUntilRpcAwareAndReadContract.js';
-import { useIsWaitingForDecryption } from './useIsWaitingForDecryption.js';
+import { useIsWaitingForDecryptionToInvalidate } from './useIsWaitingForDecryptionToInvalidate.js';
 
 function constructUnshieldClaimsQueryKey({
   chainId,
@@ -92,7 +92,7 @@ type UseUnshieldClaimsInput = {
 
 type UseUnshieldClaimsOptions = Omit<UseQueryOptions<UnshieldClaimsSummary, Error>, 'queryKey' | 'queryFn'>;
 
-const BLOCKS_POLLING_INTERVAL = 3_000; // 5 seconds
+const BLOCK_AWARENESS_POLLING_INTERVAL = 3_000; // 5 seconds
 /**
  * Unified hook to fetch unshield claims for any token type (dual or wrapped)
  * @param input - Token object and optional account address
@@ -117,7 +117,7 @@ export function useCofheTokenClaimable(
   };
   const queryKey = constructUnshieldClaimsQueryKey(queryKeyObj);
   // is waiting for decryption finalization -> once Unshield tx mined, but before Decryption result available
-  const isWaitingForDecryption = useIsWaitingForDecryption(queryKey);
+  const isWaitingForDecryption = useIsWaitingForDecryptionToInvalidate(queryKey);
 
   const { findObservedDecryption, removeQueryKeyFromInvalidations } = useScheduledInvalidationsStore();
 
@@ -144,7 +144,7 @@ export function useCofheTokenClaimable(
 
       const rpcAwarenessOptions: WaitUntilRpcAwareAndReadContractOptions = {
         signal,
-        pollingInterval: BLOCKS_POLLING_INTERVAL,
+        pollingInterval: BLOCK_AWARENESS_POLLING_INTERVAL,
         onSuccess: () => {
           // once we have successfully read decrypted data, remove the invalidation tracking
           removeQueryKeyFromInvalidations(queryKey);

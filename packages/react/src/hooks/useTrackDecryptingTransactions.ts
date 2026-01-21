@@ -59,10 +59,14 @@ export function useTrackDecryptingTransactions() {
   useEffect(() => {
     const txsWithDecryptionResults = minedTxsWithCiphertextsToWatch
       .filter(({ ciphertextToWatch }) => decryptionResults[ciphertextToWatch] !== undefined)
-      .map((item) => ({
-        ...item,
-        decryptionResult: decryptionResults[item.ciphertextToWatch],
-      }));
+      .map((item) => {
+        const decryptionResult = decryptionResults[item.ciphertextToWatch];
+        assert(decryptionResult, 'decryptionResult must be defined here');
+        return {
+          ...item,
+          decryptionResult: decryptionResult,
+        };
+      });
 
     for (const { tx, decryptionResult, receipt, ciphertextToWatch } of txsWithDecryptionResults) {
       // update store

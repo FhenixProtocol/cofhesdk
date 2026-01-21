@@ -18,20 +18,15 @@ export type ScheduledInvalidation = {
   chainId: number;
   accountAddress: Address;
   queryKeys: QueryKey[];
-  status: ScheduledInvalidationStatus;
-  executedAt?: number;
 };
 
 type ScheduledInvalidationsState = {
   byKey: Record<string, ScheduledInvalidation>;
 
   upsert: (input: Omit<ScheduledInvalidation, 'status'> & { status?: ScheduledInvalidationStatus }) => void;
-  markExecuted: (key: string) => void;
   setDecryptionObservedAt: (params: { key: string; blockNumber: bigint; blockHash?: `0x${string}` }) => void;
-  remove: (key: string) => void;
   findObservedDecryption: (queryKey: QueryKey) => ScheduledInvalidation | undefined;
   removeQueryKeyFromInvalidations: (queryKey: QueryKey) => void;
-  clear: () => void;
 };
 
 // Safe localStorage access (avoid SSR crashes and private-mode issues)
@@ -89,19 +84,10 @@ export const useScheduledInvalidationsStore = create<ScheduledInvalidationsState
 
       upsert: (input) => {
         set((state) => {
-          const existing = state.byKey[input.key];
-          const next: ScheduledInvalidation = {
-            ...(existing ?? {
-              status: 'scheduled' as const,
-            }),
-            ...input,
-            status: input.status ?? existing?.status ?? 'scheduled',
-          };
-
           return {
             byKey: {
               ...state.byKey,
-              [input.key]: next,
+              [input.key]: input,
             },
           };
         });
@@ -168,33 +154,6 @@ export const useScheduledInvalidationsStore = create<ScheduledInvalidationsState
           };
         });
       },
-
-      markExecuted: (key) => {
-        set((state) => {
-          const existing = state.byKey[key];
-          if (!existing) return state;
-          return {
-            byKey: {
-              ...state.byKey,
-              [key]: {
-                ...existing,
-                status: 'executed',
-                executedAt: Date.now(),
-              },
-            },
-          };
-        });
-      },
-
-      remove: (key) => {
-        set((state) => {
-          if (!state.byKey[key]) return state;
-          const { [key]: _removed, ...rest } = state.byKey;
-          return { byKey: rest };
-        });
-      },
-
-      clear: () => set({ byKey: {} }),
     }),
     {
       name: 'cofhe-scheduled-invalidations',

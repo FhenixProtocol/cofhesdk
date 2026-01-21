@@ -1,6 +1,5 @@
-import { TransactionStatus, useTransactionStore, type Transaction } from '@/stores/transactionStore';
+import { TransactionStatus, type Transaction } from '@/stores/transactionStore';
 import { useCofheAccount, useCofheChainId } from './useCofheConnection';
-import { useMemo } from 'react';
 import { useStoredTransactions } from './useStoredTransactions';
 
 const filter = (tx: Transaction) => tx.status === TransactionStatus.Pending;
