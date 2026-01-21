@@ -3,9 +3,6 @@ import { useCallback } from 'react';
 import { useConnect } from 'wagmi';
 import { injectedProvider } from './wagmi';
 
-// Wagmi injected connector instance: dynamically connect upon clicking on a "Connect" button to avoid auto-connect
-// const injectedProvider = injected({ shimDisconnect: true });
-
 export const useConnectBrowserWallet = () => {
   const cofheConfig = useCofheContext().client.config;
   const { connectAsync, isPending: isConnecting } = useConnect();

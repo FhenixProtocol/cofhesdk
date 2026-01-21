@@ -9,14 +9,7 @@ const config = createConfig({
     [sepolia.id]: http(),
     [baseSepolia.id]: http(),
   },
-  // to avoid eager connection attempts by wagmi: 1. disable multiInjectedProviderDiscovery 2. don't pass injected() into connectors
-  // connectors: [],
-  // multiInjectedProviderDiscovery: false,
-  // storage = null in order to prevent the very first render with "connected" state from localStorage
-  // storage: null,
-
   connectors: [injectedProvider],
-
   ssr: false,
   syncConnectedChain: true,
 });
