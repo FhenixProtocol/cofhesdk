@@ -54,13 +54,13 @@ async function sleep(ms: number, signal?: AbortSignal) {
  * typically sent as a single JSON-RPC batch — which is important when your RPC
  * provider load-balances across nodes.
  */
-export async function waitUntilRpcAwareAndReadContract<
+export async function maybeWaitUntilRpcAwareAndReadContract<
   TAbi extends Abi,
   TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>,
 >(
   publicClient: PublicClient,
   params: {
-    receiptBlockHash: `0x${string}`;
+    blockHashToBeAwareOf?: `0x${string}`;
     address: Address;
     abi: TAbi;
     functionName: TfunctionName;
@@ -75,9 +75,18 @@ export async function waitUntilRpcAwareAndReadContract<
     ContractFunctionArgs<TAbi, 'pure' | 'view', TfunctionName>
   >
 > {
+  // if no blockHash given to be aware of, just read directly
+  if (!params.blockHashToBeAwareOf)
+    return publicClient.readContract({
+      address: params.address,
+      abi: params.abi,
+      functionName: params.functionName,
+      args: params.args,
+    });
+
   const pollingInterval = options.pollingInterval ?? 1_000;
 
-  console.log(`Waiting until RPC is aware of block ${params.receiptBlockHash} to read contract...`);
+  console.log(`Waiting until RPC is aware of block ${params.blockHashToBeAwareOf} to read contract...`);
   let done = false;
   while (!done) {
     if (options.signal?.aborted) throw abortError();
@@ -85,7 +94,7 @@ export async function waitUntilRpcAwareAndReadContract<
     const [blockRes, readRes] = await Promise.allSettled([
       publicClient.request({
         method: 'eth_getBlockByHash',
-        params: [params.receiptBlockHash, false],
+        params: [params.blockHashToBeAwareOf, false],
       }),
       publicClient.readContract({
         address: params.address,

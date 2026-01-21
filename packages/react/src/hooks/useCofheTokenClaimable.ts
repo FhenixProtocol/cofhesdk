@@ -5,7 +5,7 @@ import { type Token } from './useCofheTokenLists.js';
 import { DUAL_GET_UNSHIELD_CLAIM_ABI, WRAPPED_GET_USER_CLAIMS_ABI } from '../constants/confidentialTokenABIs.js';
 import { useInternalQuery } from '../providers/index.js';
 import { useScheduledInvalidationsStore } from '@/stores/scheduledInvalidationsStore.js';
-import { waitUntilRpcAwareAndReadContract } from '../utils/waitUntilRpcAwareAndReadContract.js';
+import { maybeWaitUntilRpcAwareAndReadContract } from '../utils/waitUntilRpcAwareAndReadContract.js';
 import { useIsWaitingForDecryption } from './useIsWaitingForDecryption.js';
 
 function constructUnshieldClaimsQueryKey({
@@ -147,28 +147,20 @@ export function useCofheTokenClaimable(
 
       if (confidentialityType === 'dual') {
         // Dual tokens: single claim via getUserUnshieldClaim
-        const result =
-          tracked?.blockHash !== undefined
-            ? await waitUntilRpcAwareAndReadContract(
-                publicClient,
-                {
-                  receiptBlockHash: tracked.blockHash,
-                  address: token.address,
-                  abi: DUAL_GET_UNSHIELD_CLAIM_ABI,
-                  functionName: 'getUserUnshieldClaim',
-                  args: [account],
-                },
-                {
-                  signal,
-                  pollingInterval: BLOCKS_POLLING_INTERVAL,
-                }
-              )
-            : await publicClient.readContract({
-                address: token.address,
-                abi: DUAL_GET_UNSHIELD_CLAIM_ABI,
-                functionName: 'getUserUnshieldClaim',
-                args: [account],
-              });
+        const result = await maybeWaitUntilRpcAwareAndReadContract(
+          publicClient,
+          {
+            blockHashToBeAwareOf: tracked?.blockHash,
+            address: token.address,
+            abi: DUAL_GET_UNSHIELD_CLAIM_ABI,
+            functionName: 'getUserUnshieldClaim',
+            args: [account],
+          },
+          {
+            signal,
+            pollingInterval: BLOCKS_POLLING_INTERVAL,
+          }
+        );
 
         handleSuccess();
 
@@ -198,28 +190,20 @@ export function useCofheTokenClaimable(
         };
       } else if (confidentialityType === 'wrapped') {
         // Wrapped tokens: multiple claims via getUserClaims
-        const result =
-          tracked?.blockHash !== undefined
-            ? await waitUntilRpcAwareAndReadContract(
-                publicClient,
-                {
-                  receiptBlockHash: tracked.blockHash,
-                  address: token.address,
-                  abi: WRAPPED_GET_USER_CLAIMS_ABI,
-                  functionName: 'getUserClaims',
-                  args: [account],
-                },
-                {
-                  signal,
-                  pollingInterval: BLOCKS_POLLING_INTERVAL,
-                }
-              )
-            : await publicClient.readContract({
-                address: token.address,
-                abi: WRAPPED_GET_USER_CLAIMS_ABI,
-                functionName: 'getUserClaims',
-                args: [account],
-              });
+        const result = await maybeWaitUntilRpcAwareAndReadContract(
+          publicClient,
+          {
+            blockHashToBeAwareOf: tracked?.blockHash,
+            address: token.address,
+            abi: WRAPPED_GET_USER_CLAIMS_ABI,
+            functionName: 'getUserClaims',
+            args: [account],
+          },
+          {
+            signal,
+            pollingInterval: BLOCKS_POLLING_INTERVAL,
+          }
+        );
 
         handleSuccess();
 
