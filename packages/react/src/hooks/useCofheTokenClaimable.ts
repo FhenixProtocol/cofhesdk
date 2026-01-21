@@ -5,10 +5,7 @@ import { type Token } from './useCofheTokenLists.js';
 import { DUAL_GET_UNSHIELD_CLAIM_ABI, WRAPPED_GET_USER_CLAIMS_ABI } from '../constants/confidentialTokenABIs.js';
 import { useInternalQuery } from '../providers/index.js';
 import { useScheduledInvalidationsStore } from '@/stores/scheduledInvalidationsStore.js';
-import {
-  maybeWaitUntilRpcAwareAndReadContract,
-  type WaitUntilRpcAwareAndReadContractOptions,
-} from '../utils/waitUntilRpcAwareAndReadContract.js';
+import { decryptionAwareReadContract } from '@/utils/decryptionAwareReadContract.js';
 import { useIsWaitingForDecryptionToInvalidate } from './useIsWaitingForDecryptionToInvalidate.js';
 
 function constructUnshieldClaimsQueryKey({
@@ -92,7 +89,6 @@ type UseUnshieldClaimsInput = {
 
 type UseUnshieldClaimsOptions = Omit<UseQueryOptions<UnshieldClaimsSummary, Error>, 'queryKey' | 'queryFn'>;
 
-const BLOCK_AWARENESS_POLLING_INTERVAL = 3_000; // 5 seconds
 /**
  * Unified hook to fetch unshield claims for any token type (dual or wrapped)
  * @param input - Token object and optional account address
@@ -134,36 +130,19 @@ export function useCofheTokenClaimable(
       if (!token) {
         throw new Error('Token address is required');
       }
-
-      // if there was a tx previously, which caused the need to invalidae this query upon decryption observation,
-      // and if decryption has been observed for it, use the block hash to ensure RPC is aware of it
-      // so that readContract can read up-to-date data
-      const blockHashToBeAwareOf = findObservedDecryption(queryKey)?.decryptionObservedAt?.blockHash;
-
-      console.log('Tracked decryption block for unshield claims:', blockHashToBeAwareOf);
-
-      const rpcAwarenessOptions: WaitUntilRpcAwareAndReadContractOptions = {
-        signal,
-        pollingInterval: BLOCK_AWARENESS_POLLING_INTERVAL,
-        onSuccess: () => {
-          // once we have successfully read decrypted data, remove the invalidation tracking
-          removeQueryKeyFromInvalidations(queryKey);
-        },
-      };
       if (confidentialityType === 'dual') {
         // Dual tokens: single claim via getUserUnshieldClaim
-        const result = await maybeWaitUntilRpcAwareAndReadContract(
+        const result = await decryptionAwareReadContract({
           publicClient,
-          {
-            blockHashToBeAwareOf,
+          queryKey,
+          signal,
+          readContractParams: {
             address: token.address,
             abi: DUAL_GET_UNSHIELD_CLAIM_ABI,
             functionName: 'getUserUnshieldClaim',
             args: [account],
           },
-
-          rpcAwarenessOptions
-        );
+        });
 
         const claim = result as {
           ctHash: bigint;
@@ -191,17 +170,17 @@ export function useCofheTokenClaimable(
         };
       } else if (confidentialityType === 'wrapped') {
         // Wrapped tokens: multiple claims via getUserClaims
-        const result = await maybeWaitUntilRpcAwareAndReadContract(
+        const result = await decryptionAwareReadContract({
           publicClient,
-          {
-            blockHashToBeAwareOf,
+          queryKey,
+          signal,
+          readContractParams: {
             address: token.address,
             abi: WRAPPED_GET_USER_CLAIMS_ABI,
             functionName: 'getUserClaims',
             args: [account],
           },
-          rpcAwarenessOptions
-        );
+        });
 
         type WrappedClaimResult = {
           ctHash: bigint;

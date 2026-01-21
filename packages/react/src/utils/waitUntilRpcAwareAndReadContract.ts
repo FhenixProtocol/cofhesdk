@@ -55,6 +55,15 @@ async function sleep(ms: number, signal?: AbortSignal) {
  * typically sent as a single JSON-RPC batch — which is important when your RPC
  * provider load-balances across nodes.
  */
+export type ReadContractResult<
+  TAbi extends Abi,
+  TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>,
+> = ContractFunctionReturnType<
+  TAbi,
+  'pure' | 'view',
+  TfunctionName,
+  ContractFunctionArgs<TAbi, 'pure' | 'view', TfunctionName>
+>;
 export async function maybeWaitUntilRpcAwareAndReadContract<
   TAbi extends Abi,
   TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>,
@@ -68,14 +77,7 @@ export async function maybeWaitUntilRpcAwareAndReadContract<
     args: ContractFunctionArgs<TAbi, 'pure' | 'view', TfunctionName>;
   },
   options: WaitUntilRpcAwareAndReadContractOptions = {}
-): Promise<
-  ContractFunctionReturnType<
-    TAbi,
-    'pure' | 'view',
-    TfunctionName,
-    ContractFunctionArgs<TAbi, 'pure' | 'view', TfunctionName>
-  >
-> {
+): Promise<ReadContractResult<TAbi, TfunctionName>> {
   // if no blockHash given to be aware of, just read directly
   if (!params.blockHashToBeAwareOf)
     return publicClient.readContract({
