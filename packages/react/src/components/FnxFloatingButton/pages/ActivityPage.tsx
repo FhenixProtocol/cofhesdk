@@ -3,13 +3,17 @@ import { useTransactionStore } from '../../../stores/transactionStore.js';
 import { useCofheChainId, useCofheAccount } from '@/hooks/useCofheConnection.js';
 import { TransactionItem } from '../components/TransactionItem.js';
 import { usePortalNavigation } from '@/stores';
+import { useStoredTransactions } from '@/hooks/useStoredTransactions.js';
 
 export const ActivityPage: React.FC = () => {
   const { navigateBack } = usePortalNavigation();
   const chainId = useCofheChainId();
   const account = useCofheAccount();
-  const getAllTransactions = useTransactionStore((state) => state.getAllTransactions);
-  const transactions = chainId ? getAllTransactions(chainId, account ?? undefined) : [];
+
+  const { filteredTxs: transactions } = useStoredTransactions({
+    chainId,
+    account,
+  });
 
   return (
     <div className="fnx-text-primary space-y-4">

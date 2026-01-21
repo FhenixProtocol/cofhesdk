@@ -1,23 +1,17 @@
-import { TransactionStatus, useTransactionStore } from '@/stores/transactionStore';
+import { TransactionStatus, useTransactionStore, type Transaction } from '@/stores/transactionStore';
 import { useCofheAccount, useCofheChainId } from './useCofheConnection';
 import { useMemo } from 'react';
+import { useStoredTransactions } from './useStoredTransactions';
 
-export function usePendingTransactions() {
+const filter = (tx: Transaction) => tx.status === TransactionStatus.Pending;
+export function usePendingTransactions(): Transaction[] {
   const chainId = useCofheChainId();
   const account = useCofheAccount();
-  const allTxs = useTransactionStore((state) => (chainId ? state.transactions[chainId] : undefined));
 
-  const accountsPendingTxs = useMemo(() => {
-    if (!allTxs || !account) return [];
-    return Object.values(allTxs).filter(
-      (tx) =>
-        tx.status === TransactionStatus.Pending &&
-        // TODO: rather change the shape of store, map by account
-        tx.account.toLowerCase() === account.toLowerCase()
-    );
-  }, [account, allTxs]);
-
-  console.log('pendingTxs:', accountsPendingTxs);
-
-  return accountsPendingTxs;
+  const { filteredTxs } = useStoredTransactions({
+    chainId,
+    account,
+    filter,
+  });
+  return filteredTxs;
 }

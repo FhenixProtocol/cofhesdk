@@ -10,8 +10,6 @@ import { useStoredTransactions } from './useStoredTransactions';
 
 const filter = (tx: Transaction) => tx.isPendingDecryption && tx.status === TransactionStatus.Confirmed;
 export function useTrackDecryptingTransactions() {
-  //tmp
-  // useResetPendingDecryption();
   const chainId = useCofheChainId();
   const account = useCofheAccount();
 
@@ -116,25 +114,6 @@ function useInvalidateQueriesOnDecryption() {
     }
   }, [allObservedDecryptionQueryKeys, invalidate]);
 }
-
-// function useResetPendingDecryption() {
-//   const chainId = useCofheChainId();
-//   const account = useCofheAccount();
-//   const allTxs = useTransactionStore((state) => (chainId ? state.transactions[chainId] : undefined));
-
-//   const resetFn = () => {
-//     if (!allTxs) return;
-//     const txs = Object.values(allTxs);
-
-//     for (const tx of txs) {
-//       if (tx.isPendingDecryption === false) {
-//         useTransactionStore.getState().setTransactionDecryptionStatus(tx.chainId, tx.hash, true);
-//       }
-//     }
-//   };
-
-//   (window as any).resetFn = resetFn;
-// }
 
 function findDecryptRequestLog(account: string, logs: { topics: string[]; data: string }[] = []) {
   for (const log of logs) {
