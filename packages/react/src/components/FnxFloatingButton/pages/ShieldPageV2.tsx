@@ -20,6 +20,7 @@ import { assert } from 'ts-essentials';
 import type { BigNumber } from 'bignumber.js';
 import { usePortalNavigation } from '@/stores';
 import { CofheTokenPublicBalance } from '../components/CofheTokenConfidentialBalance';
+import { useIsUnshieldingMining } from '@/hooks/useIsUnshieldingMining';
 
 const AUTOCLEAR_TX_STATUS_TIMEOUT = 5000;
 const DISPLAY_DECIMALS = 5;
@@ -328,13 +329,21 @@ function ClaimingSection({ token }: { token: Token }) {
     });
   };
 
+  const isUnshieldingMining = useIsUnshieldingMining(token);
+
   return (
     <>
       {/* Claim + pending (same logic as ShieldPage) */}
       {unshieldedClaims?.hasClaimable && (
         <ActionButton
           onClick={handleClaim}
-          disabled={claimUnshield.isPending || isClaimingMining || isFetchingClaims || isWaitingForNewClaimsDecryption}
+          disabled={
+            claimUnshield.isPending ||
+            isClaimingMining ||
+            isFetchingClaims ||
+            isWaitingForNewClaimsDecryption ||
+            isUnshieldingMining
+          }
           label={
             claimUnshield.isPending
               ? 'Claiming...'
