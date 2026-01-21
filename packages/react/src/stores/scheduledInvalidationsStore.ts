@@ -29,7 +29,7 @@ type ScheduledInvalidationsState = {
   markExecuted: (key: string) => void;
   setDecryptionObservedAt: (params: { key: string; blockNumber: bigint; blockHash?: `0x${string}` }) => void;
   remove: (key: string) => void;
-  findReadyInvalidationsForQueryKey: (queryKey: QueryKey) => ScheduledInvalidation[];
+  findObservedDecryption: (queryKey: QueryKey) => ScheduledInvalidation | undefined;
   removeQueryKeyFromInvalidations: (queryKey: QueryKey) => void;
   clear: () => void;
 };
@@ -106,8 +106,8 @@ export const useScheduledInvalidationsStore = create<ScheduledInvalidationsState
           };
         });
       },
-      findReadyInvalidationsForQueryKey: (queryKey) => {
-        return Object.values(get().byKey).filter((item) =>
+      findObservedDecryption: (queryKey) => {
+        return Object.values(get().byKey).find((item) =>
           item.queryKeys.some((key) => JSON.stringify(key) === JSON.stringify(queryKey) && !!item.decryptionObservedAt)
         );
       },

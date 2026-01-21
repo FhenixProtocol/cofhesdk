@@ -8,6 +8,7 @@ import {
 } from 'viem';
 
 export type WaitUntilRpcAwareAndReadContractOptions = {
+  onSuccess?: () => void;
   pollingInterval?: number;
   signal?: AbortSignal;
 };
@@ -107,6 +108,7 @@ export async function maybeWaitUntilRpcAwareAndReadContract<
     const blockKnown = blockRes.status === 'fulfilled' && blockRes.value != null;
 
     if (blockKnown && readRes.status === 'fulfilled') {
+      options?.onSuccess?.();
       done = true;
       return readRes.value;
     }
