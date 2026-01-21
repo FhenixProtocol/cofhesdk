@@ -1,13 +1,12 @@
 import { QueryClient, type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
-import { useMemo } from 'react';
 import { type Address } from 'viem';
 import { useCofhePublicClient } from './useCofheConnection.js';
 import { type Token } from './useCofheTokenLists.js';
 import { DUAL_GET_UNSHIELD_CLAIM_ABI, WRAPPED_GET_USER_CLAIMS_ABI } from '../constants/confidentialTokenABIs.js';
-
-import { useInternalQuery, useInternalQueryClient } from '../providers/index.js';
+import { useInternalQuery } from '../providers/index.js';
 import { useScheduledInvalidationsStore } from '@/stores/scheduledInvalidationsStore.js';
 import { waitUntilRpcAwareAndReadContract } from '../utils/waitUntilRpcAwareAndReadContract.js';
+import { useIsWaitingForDecryption } from './useIsWaitingForDecryption.js';
 
 function constructUnshieldClaimsQueryKey({
   chainId,
@@ -91,7 +90,6 @@ type UseUnshieldClaimsInput = {
 type UseUnshieldClaimsOptions = Omit<UseQueryOptions<UnshieldClaimsSummary, Error>, 'queryKey' | 'queryFn'>;
 
 const BLOCKS_POLLING_INTERVAL = 3_000; // 5 seconds
-const BLOCKS_TO_WAIT_AFTER_DECRYPTION = 1n; // blocks to wait after decryption is reported in the block
 /**
  * Unified hook to fetch unshield claims for any token type (dual or wrapped)
  * @param input - Token object and optional account address
@@ -116,7 +114,7 @@ export function useCofheTokenClaimable(
   };
   const queryKey = constructUnshieldClaimsQueryKey(queryKeyObj);
   // is waiting for decryption finalization -> once Unshield tx mined, but before Decryption result available
-  const isWaitingForDecryption = useIsWaitingForDecryption(queryKeyObj);
+  const isWaitingForDecryption = useIsWaitingForDecryption(queryKey);
 
   const { findReadyInvalidationsForQueryKey, removeQueryKeyFromInvalidations } = useScheduledInvalidationsStore();
 
@@ -273,10 +271,4 @@ export function useCofheTokenClaimable(
     ...result,
     isWaitingForDecryption,
   };
-}
-
-// TODO: implement properly
-function useIsWaitingForDecryption(queryKeyObj: Parameters<typeof constructUnshieldClaimsQueryKey>[0]): boolean {
-  return true;
-  // return result;
 }

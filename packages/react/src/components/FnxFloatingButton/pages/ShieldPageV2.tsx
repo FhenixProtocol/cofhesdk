@@ -304,7 +304,11 @@ function UnshieldTab({ token, mode, setMode }: { token: Token; mode: Mode; setMo
 
 function ClaimingSection({ token }: { token: Token }) {
   const account = useCofheAccount();
-  const { data: unshieldedClaims, isFetching: isFetchingClaims } = useCofheTokenClaimable({
+  const {
+    data: unshieldedClaims,
+    isFetching: isFetchingClaims,
+    isWaitingForDecryption: isWaitingForNewClaimsDecryption,
+  } = useCofheTokenClaimable({
     token,
     accountAddress: account,
   });
@@ -330,11 +334,11 @@ function ClaimingSection({ token }: { token: Token }) {
       {unshieldedClaims?.hasClaimable && (
         <ActionButton
           onClick={handleClaim}
-          disabled={claimUnshield.isPending || isClaimingMining || isFetchingClaims}
+          disabled={claimUnshield.isPending || isClaimingMining || isFetchingClaims || isWaitingForNewClaimsDecryption}
           label={
             claimUnshield.isPending
               ? 'Claiming...'
-              : `Claim ${isFetchingClaims ? '...' : formatTokenAmount(unshieldedClaims.claimableAmount, token.decimals, 5).formatted} ${pairedSymbol}`
+              : `Claim ${isFetchingClaims || isWaitingForNewClaimsDecryption ? '...' : formatTokenAmount(unshieldedClaims.claimableAmount, token.decimals, 5).formatted} ${pairedSymbol}`
           }
           className="mt-1"
         />

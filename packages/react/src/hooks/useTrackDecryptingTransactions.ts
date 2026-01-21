@@ -28,18 +28,20 @@ export function useTrackDecryptingTransactions() {
 
   // step 3: from receipts, find ciphertexts to watch
   const minedTxsWithCiphertextsToWatch = useMemo(() => {
-    return Object.entries(minedTxsPendingDecryptionByHash).map(([hash, tx]) => {
-      const ciphertextToWatch = findDecryptRequestLog(tx.account, receiptsByHash[tx.hash]?.logs)?.ciphertext;
-      assert(
-        ciphertextToWatch,
-        'Ciphertext to watch should be found in the transaction logs if a tx that isPendingDecryption'
-      );
-      return {
-        tx,
-        receipt: receiptsByHash[tx.hash],
-        ciphertextToWatch,
-      };
-    });
+    return Object.entries(minedTxsPendingDecryptionByHash)
+      .filter(([, tx]) => receiptsByHash[tx.hash] !== undefined)
+      .map(([, tx]) => {
+        const ciphertextToWatch = findDecryptRequestLog(tx.account, receiptsByHash[tx.hash].logs)?.ciphertext;
+        assert(
+          ciphertextToWatch,
+          'Ciphertext to watch should be found in the transaction logs if a tx that isPendingDecryption and has a receipt'
+        );
+        return {
+          tx,
+          receipt: receiptsByHash[tx.hash],
+          ciphertextToWatch,
+        };
+      });
   }, [minedTxsPendingDecryptionByHash, receiptsByHash]);
 
   const ciphertextsToWatch = useMemo(() => {
@@ -55,10 +57,12 @@ export function useTrackDecryptingTransactions() {
 
   // step 5: when decryption results arrive, update store and and set decryptionObservedAt info to trigger invalidations
   useEffect(() => {
-    const txsWithDecryptionResults = minedTxsWithCiphertextsToWatch.map((item) => ({
-      ...item,
-      decryptionResult: decryptionResults[item.ciphertextToWatch],
-    }));
+    const txsWithDecryptionResults = minedTxsWithCiphertextsToWatch
+      .filter(({ ciphertextToWatch }) => decryptionResults[ciphertextToWatch] !== undefined)
+      .map((item) => ({
+        ...item,
+        decryptionResult: decryptionResults[item.ciphertextToWatch],
+      }));
 
     for (const { tx, decryptionResult, receipt, ciphertextToWatch } of txsWithDecryptionResults) {
       // update store
@@ -77,8 +81,8 @@ export function useTrackDecryptingTransactions() {
       // before cache invalidation, make sure the request that follows will use up-to-date block number
       setDecryptionObservedAt({
         key: `${tx.actionType}-tx-${tx.hash}`,
-        blockNumber: decryptionResult!.observedAt.blockNumber,
-        blockHash: decryptionResult!.observedAt.blockHash,
+        blockNumber: decryptionResult.observedAt.blockNumber,
+        blockHash: decryptionResult.observedAt.blockHash,
       });
     }
   }, [decryptionResults, queryClient, setDecryptionObservedAt, minedTxsWithCiphertextsToWatch]);
