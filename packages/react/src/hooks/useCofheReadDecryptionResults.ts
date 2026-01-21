@@ -1,18 +1,10 @@
-// function getDecryptResult(uint256 ctHash) external view returns (uint256) {
-//         (uint256 result, bool hadResult) = plaintextsStorage.getResult(ctHash);
-//         if (!hadResult) {
-//             revert DecryptionResultNotReady(ctHash);
-//         }
-//         return result;
-//     }
-
 import { useMemo } from 'react';
 import { useInternalQueries } from '@/providers';
 import { useCofheChainId, useCofhePublicClient } from './useCofheConnection';
 
 function abortError(message = 'Aborted') {
   const err = new Error(message);
-  (err as any).name = 'AbortError';
+  err.name = 'AbortError';
   return err;
 }
 
@@ -112,7 +104,7 @@ export function useCofheReadDecryptionResults(ciphertexts: Set<string>) {
               block.value?.hash &&
               block.value?.number
             ) {
-              const decoded = res.value as readonly [bigint, boolean];
+              const decoded = res.value;
               const result = decoded[0];
               const decrypted = decoded[1];
 
@@ -143,7 +135,7 @@ export function useCofheReadDecryptionResults(ciphertexts: Set<string>) {
   const results = useInternalQueries({ queries });
 
   const isDecryptedByCt = useMemo(() => {
-    return results.reduce<Record<string, any>>((record, res, index) => {
+    return results.reduce<Record<string, DecryptionResultWithObservedBlock | undefined>>((record, res, index) => {
       const ct = Array.from(ciphertexts)[index];
 
       record[ct] = res.data;
@@ -152,6 +144,5 @@ export function useCofheReadDecryptionResults(ciphertexts: Set<string>) {
     }, {});
   }, [ciphertexts, results]);
 
-  console.log('useCofheReadDecryptionResults', { ciphertexts, results, isDecryptedByCt });
   return isDecryptedByCt;
 }

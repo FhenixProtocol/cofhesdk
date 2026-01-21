@@ -429,6 +429,7 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
   const { navigateBack, navigateTo } = usePortalNavigation();
   const isShieldableToken = shieldableTypes.has(token.extensions.fhenix.confidentialityType);
 
+  // TODO: probably can be refactored into a view with more stramlined logic
   return (
     <div className="fnx-text-primary space-y-3">
       {/* Header */}

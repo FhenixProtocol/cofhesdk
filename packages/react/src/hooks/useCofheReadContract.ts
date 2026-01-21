@@ -176,6 +176,12 @@ export function createCofheReadContractQueryOptions<
 /**
  * Generic hook: read a contract and return the result (with permit/error gating support).
  */
+export type UseCofheReadContractResult<
+  TAbi extends Abi,
+  TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>,
+> = UseQueryResult<InferredData<TAbi, TfunctionName>, Error> & {
+  disabledDueToMissingPermit: boolean;
+};
 export function useCofheReadContract<
   TAbi extends Abi,
   TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>,
@@ -188,7 +194,7 @@ export function useCofheReadContract<
     requiresPermit?: boolean;
   },
   queryOptions?: UseCofheReadContractQueryOptions<TAbi, TfunctionName>
-): UseQueryResult<InferredData<TAbi, TfunctionName>, Error> & { disabledDueToMissingPermit: boolean } {
+): UseCofheReadContractResult<TAbi, TfunctionName> {
   const { address, abi, functionName, args, requiresPermit = true } = params;
 
   const isCofheErrorActive = useIsCofheErrorActive();

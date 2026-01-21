@@ -1,5 +1,4 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { useTransactionStore } from '../../../stores/transactionStore.js';
 import { useCofheChainId, useCofheAccount } from '@/hooks/useCofheConnection.js';
 import { TransactionItem } from '../components/TransactionItem.js';
 import { usePortalNavigation } from '@/stores';

@@ -3,7 +3,12 @@ import { type Address, type Abi, type ContractFunctionName, type ContractFunctio
 import { FheTypes, type UnsealedItem } from '@cofhe/sdk';
 import { ErrorCause } from '@/utils/errors';
 import { useCofheDecrypt } from './useCofheDecrypt';
-import { useCofheReadContract, type InferredData, type UseCofheReadContractQueryOptions } from './useCofheReadContract';
+import {
+  useCofheReadContract,
+  type InferredData,
+  type UseCofheReadContractQueryOptions,
+  type UseCofheReadContractResult,
+} from './useCofheReadContract';
 import { assert } from 'ts-essentials';
 
 /**
@@ -35,12 +40,11 @@ export function useCofheReadContractAndDecrypt<
       'queryKey' | 'queryFn'
     >;
   } = {}
-) {
-  // : {
-  //   encrypted: UseQueryResult<bigint, Error>;
-  //   decrypted: UseQueryResult<TDecryptedSelectedData, Error>;
-  //   disabledDueToMissingPermit: boolean;
-  // }
+): {
+  encrypted: UseCofheReadContractResult<TAbi, TfunctionName>;
+  decrypted: UseQueryResult<TDecryptedSelectedData, Error>;
+  disabledDueToMissingPermit: boolean;
+} {
   const { address, abi, functionName, args, fheType, requiresPermit = true, potentialDecryptErrorCause } = params;
 
   const encrypted = useCofheReadContract({ address, abi, functionName, args, requiresPermit }, readQueryOptions);
@@ -51,8 +55,6 @@ export function useCofheReadContractAndDecrypt<
     typeof ciphertext === 'bigint' || typeof ciphertext === 'undefined',
     'Expected ciphertext to be bigint or undefined'
   );
-
-  let c = ciphertext;
 
   const decrypted = useCofheDecrypt(
     {
