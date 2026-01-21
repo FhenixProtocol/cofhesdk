@@ -1,94 +1,66 @@
-import {
-  TransactionActionType,
-  TransactionStatus,
-  useTransactionStore,
-  type Transaction,
-} from '@/stores/transactionStore';
+import { TransactionStatus, useTransactionStore, type Transaction } from '@/stores/transactionStore';
 import { useCofheAccount, useCofheChainId } from './useCofheConnection';
 import { useCallback, useEffect, useMemo } from 'react';
 import { useTransactionReceiptsByHash } from './useTransactionReceiptsByHash';
 import { assert } from 'ts-essentials';
 import { useCofheReadDecryptionResults } from './useCofheReadDecryptionResults';
-import { invalidateClaimableQueries } from './useCofheTokenClaimable';
 import { useInternalQueryClient } from '@/providers';
 import { useScheduledInvalidationsStore } from '@/stores/scheduledInvalidationsStore';
+import { useStoredTransactions } from './useStoredTransactions';
 
+const filter = (tx: Transaction) => tx.isPendingDecryption && tx.status === TransactionStatus.Confirmed;
 export function useTrackDecryptingTransactions() {
   //tmp
   // useResetPendingDecryption();
   const chainId = useCofheChainId();
   const account = useCofheAccount();
-  const allTxs = useTransactionStore((state) => (chainId ? state.transactions[chainId] : undefined));
 
-  const decryptingTransactionsByHash = useMemo(() => {
-    if (!allTxs || !account) return [];
-    const decryptionTxs = Object.values(allTxs).filter(
-      (tx) =>
-        tx.isPendingDecryption &&
-        tx.status === TransactionStatus.Confirmed &&
-        // TODO: rather change the shape of store, map by account
-        tx.account.toLowerCase() === account.toLowerCase()
-    );
-    const result = decryptionTxs.reduce<Record<`0x${string}`, Transaction>>((acc, tx) => {
-      acc[tx.hash] = tx;
-      return acc;
-    }, {});
-    return result;
-  }, [account, allTxs]);
-
-  // todo: first check if pending queries cache already has that, might spare a request
-  const { receiptsByHash } = useTransactionReceiptsByHash({
-    hashes: Object.keys(decryptingTransactionsByHash),
+  // step 1: get all mined txs that are pending decryption
+  const { hashes, filteredTxsByHash: minedTxsPendingDecryptionByHash } = useStoredTransactions({
+    filter,
+    account,
+    chainId,
   });
 
-  const txsWithReceiptsAndCiphertextsToWatch = useMemo(() => {
-    return Object.entries(decryptingTransactionsByHash).map(([hash, tx]) => {
-      const receipt = receiptsByHash[tx.hash];
-      const decryptRequestLogs = receipt?.logs
-        .filter((log) => isDecryptRequestLog(log, tx.account))
-        .map((log) => isDecryptRequestLog(log, tx.account));
+  // todo: first check if pending queries cache already has that, might spare a request
+  // step 2: get their receipts (to parse logs and find ciphertexts to watch)
+  const { receiptsByHash } = useTransactionReceiptsByHash({
+    hashes,
+  });
 
-      if (decryptRequestLogs !== undefined) {
-        assert(
-          decryptRequestLogs?.length === 1,
-          'There should be exactly one decrypt request log per decrypting transaction'
-        );
-      }
-
-      const ciphertextToWatch =
-        (decryptRequestLogs && decryptRequestLogs[0] && decryptRequestLogs[0].ciphertext) || undefined;
-
+  // step 3: from receipts, find ciphertexts to watch
+  const minedTxsWithCiphertextsToWatch = useMemo(() => {
+    return Object.entries(minedTxsPendingDecryptionByHash).map(([hash, tx]) => {
+      const ciphertextToWatch = findDecryptRequestLog(tx.account, receiptsByHash[tx.hash]?.logs)?.ciphertext;
+      assert(
+        ciphertextToWatch,
+        'Ciphertext to watch should be found in the transaction logs if a tx that isPendingDecryption'
+      );
       return {
         tx,
-        receipt,
+        receipt: receiptsByHash[tx.hash],
         ciphertextToWatch,
       };
     });
-  }, [decryptingTransactionsByHash, receiptsByHash]);
+  }, [minedTxsPendingDecryptionByHash, receiptsByHash]);
 
   const ciphertextsToWatch = useMemo(() => {
-    return txsWithReceiptsAndCiphertextsToWatch.map((item) => item.ciphertextToWatch).filter((ct) => ct !== undefined);
-  }, [txsWithReceiptsAndCiphertextsToWatch]);
+    return new Set(minedTxsWithCiphertextsToWatch.map(({ ciphertextToWatch }) => ciphertextToWatch));
+  }, [minedTxsWithCiphertextsToWatch]);
+
+  // step 4: use decryption results polling hook to watch for decryption results
   const decryptionResults = useCofheReadDecryptionResults(ciphertextsToWatch);
 
   const queryClient = useInternalQueryClient();
 
   const { setDecryptionObservedAt } = useScheduledInvalidationsStore();
 
-  // TODO: in this hook: look at the invalidationRegistryOnDecrypt
-  // check all things that wait for invalidation once the provided value is decrypted
-  // invalidate each of such
+  // step 5: when decryption results arrive, update store and and set decryptionObservedAt info to trigger invalidations
   useEffect(() => {
-    const txsWithDecryptionResults = txsWithReceiptsAndCiphertextsToWatch
-      .map((item) => {
-        const decryptionResult =
-          item.ciphertextToWatch !== undefined ? decryptionResults[item.ciphertextToWatch] : undefined;
-        return {
-          ...item,
-          decryptionResult,
-        };
-      })
-      .filter((item) => item.decryptionResult !== undefined);
+    const txsWithDecryptionResults = minedTxsWithCiphertextsToWatch.map((item) => ({
+      ...item,
+      decryptionResult: decryptionResults[item.ciphertextToWatch],
+    }));
 
     for (const { tx, decryptionResult, receipt, ciphertextToWatch } of txsWithDecryptionResults) {
       // update store
@@ -111,8 +83,9 @@ export function useTrackDecryptingTransactions() {
         blockHash: decryptionResult!.observedAt.blockHash,
       });
     }
-  }, [txsWithReceiptsAndCiphertextsToWatch, decryptionResults, queryClient, setDecryptionObservedAt]);
+  }, [decryptionResults, queryClient, setDecryptionObservedAt, minedTxsWithCiphertextsToWatch]);
 
+  // step 6: invalidate relevant queries when decryption is observed
   useInvalidateQueriesOnDecryption();
 }
 
@@ -120,6 +93,7 @@ function useInvalidateQueriesOnDecryption() {
   const { byKey } = useScheduledInvalidationsStore();
   const queryClient = useInternalQueryClient();
 
+  // step 1: get all query keys that need to be invalidated due to observed decryption
   const allObservedDecryptionQueryKeys = useMemo(() => {
     return Object.values(byKey)
       .filter((item) => item.decryptionObservedAt !== undefined)
@@ -162,7 +136,15 @@ function useInvalidateQueriesOnDecryption() {
 //   (window as any).resetFn = resetFn;
 // }
 
-function isDecryptRequestLog(
+function findDecryptRequestLog(account: string, logs: { topics: string[]; data: string }[] = []) {
+  for (const log of logs) {
+    const result = safeParseDecryptRequestLog(log, account);
+    if (result) return result;
+  }
+  return undefined;
+}
+
+function safeParseDecryptRequestLog(
   log: { topics: string[]; data: string },
   account: string
 ):

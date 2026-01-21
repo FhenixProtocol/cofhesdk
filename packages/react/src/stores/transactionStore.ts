@@ -57,6 +57,7 @@ export type Transaction = UnshieldingTransaction | ShieldingTransaction | Sendin
 type NewTransaction = DistributiveOmit<Transaction, 'status' | 'timestamp'>;
 
 export interface TransactionStore {
+  // TODO: should be chainId -> account -> txHash -> Transaction
   transactions: ChainRecord<HashRecord<Transaction>>;
   addTransaction: (transaction: NewTransaction) => void;
   getTransaction: (chainId: number, hash: string) => Transaction | undefined;

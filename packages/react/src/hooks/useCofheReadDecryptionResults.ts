@@ -81,12 +81,12 @@ export type DecryptionResultWithObservedBlock = {
   };
 };
 // TODO: can it borrow logic from useCofheReadContractsMany? Or should get rid of that hook?
-export function useCofheReadDecryptionResults(ciphertexts: string[]) {
+export function useCofheReadDecryptionResults(ciphertexts: Set<string>) {
   const publicClient = useCofhePublicClient();
   const chainId = useCofheChainId();
 
   const queries = useMemo(() => {
-    return ciphertexts.map((ct) => {
+    return Array.from(ciphertexts).map((ct) => {
       return {
         queryKey: ['decryptionResult', chainId, ct] as const,
         queryFn: async ({ signal }: { signal: AbortSignal }) => {
@@ -145,7 +145,7 @@ export function useCofheReadDecryptionResults(ciphertexts: string[]) {
 
   const isDecryptedByCt = useMemo(() => {
     return results.reduce<Record<string, any>>((record, res, index) => {
-      const ct = ciphertexts[index];
+      const ct = Array.from(ciphertexts)[index];
 
       record[ct] = res.data;
 
