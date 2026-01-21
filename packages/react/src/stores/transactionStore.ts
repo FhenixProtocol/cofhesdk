@@ -35,7 +35,7 @@ type BaseTransaction = {
   //
 
   tokenAmount: bigint;
-  isPendingDecryption: boolean; // TODO: better be abstracted and be not optional
+  isPendingDecryption: boolean;
 };
 
 type ShieldingTransaction = BaseTransaction & {

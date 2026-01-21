@@ -87,7 +87,6 @@ export function useTrackPendingTransactions() {
   console.log('Scheduled invalidations store:', byKey);
 
   const handleInvalidations = (tx: Transaction) => {
-    // TODO: add invalidation for the rest of txs
     // TODO invalidate gas on all txs since any tx spends gas
     if (tx.actionType === TransactionActionType.ShieldSend) {
       invalidateConfidentialTokenBalanceQueries(tx.token, queryClient);

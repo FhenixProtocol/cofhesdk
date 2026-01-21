@@ -80,7 +80,6 @@ export type DecryptionResultWithObservedBlock = {
     blockHash: `0x${string}`;
   };
 };
-// TODO: can it borrow logic from useCofheReadContractsMany? Or should get rid of that hook?
 export function useCofheReadDecryptionResults(ciphertexts: Set<string>) {
   const publicClient = useCofhePublicClient();
   const chainId = useCofheChainId();
