@@ -15,7 +15,7 @@ export function useOnceDecrypted({
   const { transaction } = useStoredTransactionDecryptionEffect({
     txHash,
     onDecryptionPendingChange: (prevIsPendingDecryption, newIsPendingDecryption, transaction) => {
-      if (prevIsPendingDecryption === false && newIsPendingDecryption === true) {
+      if (prevIsPendingDecryption === true && newIsPendingDecryption === false) {
         onceDecrypted(transaction);
       }
     },

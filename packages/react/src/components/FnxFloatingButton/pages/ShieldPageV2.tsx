@@ -13,7 +13,7 @@ import { ActionButton, AmountInput, CofheTokenConfidentialBalance, TokenIcon } f
 import { useCofheTokenPublicBalance } from '@/hooks/useCofheTokenPublicBalance';
 import { formatTokenAmount, unitToWei } from '@/utils/format';
 import { FloatingButtonPage } from '../pagesConfig/types';
-import { useCofheTokenClaimUnshielded, useCofheTokenUnshield, useCofheTokenClaimable } from '@/hooks';
+import { useCofheTokenClaimUnshielded, useCofheTokenUnshield, useCofheTokenClaimable, useOnceDecrypted } from '@/hooks';
 import { useOnceTransactionMined } from '@/hooks/useOnceTransactionMined';
 import { useReschedulableTimeout } from '@/hooks/useReschedulableTimeout';
 import { assert } from 'ts-essentials';
@@ -211,13 +211,19 @@ function useUnshieldWithLifecycle(token: Token): ShieldAndUnshieldViewProps {
     onceMined: (transaction) => {
       if (transaction.status === 'confirmed') {
         setStatus({
-          message: `Unshield transaction confirmed! Hash: ${truncateHash(transaction.hash)}`,
+          message: `Unshield transaction confirmed! Hash: ${truncateHash(transaction.hash)}. Now waiting for decryption...`,
           type: 'success',
         });
       } else if (transaction.status === 'failed') {
         setError(`Unshield transaction failed! Hash: ${truncateHash(transaction.hash)}`);
         setStatus(null);
       }
+    },
+  });
+  useOnceDecrypted({
+    txHash: tokenUnshield.data,
+    onceDecrypted: () => {
+      setStatus({ message: 'Unshield decryption completed!', type: 'success' });
       scheduleStatusClear();
     },
   });
@@ -229,10 +235,6 @@ function useUnshieldWithLifecycle(token: Token): ShieldAndUnshieldViewProps {
       onStatusChange: (message) => setStatus({ message, type: 'info' }),
     });
   };
-  const { data: { unit: publicBalanceUnit } = {}, isFetching: isFetchingPublic } = useCofheTokenPublicBalance({
-    token,
-    accountAddress: account,
-  });
 
   const { data: { unit: confidentialBalanceUnit } = {}, isFetching: isFetchingConfidential } =
     useCofheTokenDecryptedBalance({ token, accountAddress: account });

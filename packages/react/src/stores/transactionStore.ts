@@ -197,6 +197,8 @@ export const useTransactionStore = create<TransactionStore>()(
                 [hash]: {
                   ...chainTxs[hash],
                   status,
+                  // if tx failed, it's no longer pending decryption
+                  isPendingDecryption: status === TransactionStatus.Failed ? false : chainTxs[hash].isPendingDecryption,
                 },
               },
             },
