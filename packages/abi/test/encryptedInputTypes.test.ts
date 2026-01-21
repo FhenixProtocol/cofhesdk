@@ -6,6 +6,7 @@ import {
   FheTypes,
   type EncryptedAddressInput,
   type EncryptedBoolInput,
+  type EncryptedItemInput,
   type EncryptedUint128Input,
   type EncryptedUint16Input,
   type EncryptedUint32Input,
@@ -130,7 +131,7 @@ describe('extractEncryptableValues', () => {
 describe('insertEncryptedValues', () => {
   it('should insert nothing for function with no encrypted inputs', () => {
     const originalArgs = [42] as const;
-    const encryptedValues: unknown[] = [];
+    const encryptedValues: EncryptedItemInput[] = [];
     const result = insertEncryptedValues(TestABI, 'fnNoEncryptedInputs', originalArgs, encryptedValues);
     expect(result).toEqual([42]);
   });
@@ -252,7 +253,7 @@ describe('extractEncryptableValues and insertEncryptedValues round-trip', () => 
     const originalArgs = [[]] as const;
     const extracted = extractEncryptableValues(TestABI, 'fnArrayContainsEncryptedInput', originalArgs);
     expect(extracted).toEqual([]);
-    const encrypted: unknown[] = [];
+    const encrypted: EncryptedItemInput[] = [];
     const result = insertEncryptedValues(TestABI, 'fnArrayContainsEncryptedInput', originalArgs, encrypted);
     expect(result).toEqual([[]]);
   });
@@ -268,7 +269,7 @@ describe('error handling', () => {
 
   it('should throw error when inserting into non-existent function', () => {
     const args = [42] as const;
-    const encrypted: unknown[] = [];
+    const encrypted: EncryptedItemInput[] = [];
     expect(() => {
       insertEncryptedValues(TestABI, 'nonExistentFunction' as any, args as any, encrypted);
     }).toThrow('Function nonExistentFunction not found in ABI');
