@@ -4,7 +4,6 @@ import { useCofhePublicClient } from './useCofheConnection.js';
 import { type Token } from './useCofheTokenLists.js';
 import { DUAL_GET_UNSHIELD_CLAIM_ABI, WRAPPED_GET_USER_CLAIMS_ABI } from '../constants/confidentialTokenABIs.js';
 import { useInternalQuery } from '../providers/index.js';
-import { useScheduledInvalidationsStore } from '@/stores/scheduledInvalidationsStore.js';
 import { decryptionAwareReadContract } from '@/utils/decryptionAwareReadContract.js';
 import { useIsWaitingForDecryptionToInvalidate } from './useIsWaitingForDecryptionToInvalidate.js';
 
@@ -21,7 +20,6 @@ function constructUnshieldClaimsQueryKey({
 }) {
   return ['unshieldClaims', chainId, tokenAddress, confidentialityType, accountAddress];
 }
-
 export function invalidateClaimableQueries({
   token,
   accountAddress,
@@ -105,17 +103,14 @@ export function useCofheTokenClaimable(
 
   const confidentialityType = token?.extensions.fhenix.confidentialityType;
 
-  const queryKeyObj = {
+  const queryKey = constructUnshieldClaimsQueryKey({
     chainId: token?.chainId,
     tokenAddress: token?.address,
     confidentialityType,
     accountAddress: account,
-  };
-  const queryKey = constructUnshieldClaimsQueryKey(queryKeyObj);
+  });
   // is waiting for decryption finalization -> once Unshield tx mined, but before Decryption result available
   const isWaitingForDecryption = useIsWaitingForDecryptionToInvalidate(queryKey);
-
-  const { findObservedDecryption, removeQueryKeyFromInvalidations } = useScheduledInvalidationsStore();
 
   const result = useInternalQuery({
     queryKey,
