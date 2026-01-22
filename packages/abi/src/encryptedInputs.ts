@@ -19,19 +19,9 @@ import {
   type LiteralToPrimitive,
   type Primitive,
 } from '@cofhe/sdk';
-import type {
-  Abi,
-  AbiConstructor,
-  AbiError,
-  AbiEvent,
-  AbiFallback,
-  AbiFunction,
-  AbiParameter,
-  AbiReceive,
-  ExtractAbiFunction,
-} from 'abitype';
+import type { Abi, AbiFunction, AbiParameter, ExtractAbiFunction } from 'abitype';
 import type { CofheAbiParametersToPrimitiveTypes } from './fhenixMap';
-import type { MaybePartialBy, ReadonlyWiden } from './utils';
+import { extractArrayParameterType, getAbiFunction, type MaybePartialBy, type ReadonlyWiden } from './utils';
 
 export type CofheInputArgs<abi extends Abi | readonly unknown[] = Abi, functionName extends string = string> = GetArgs<
   abi,
@@ -143,37 +133,6 @@ function transformArrayOfEncryptedInputsToEncryptables(
   return data.map((item) => transformSingleEncryptedInputToEncryptable(internalType, item));
 }
 
-/**
- * Extracts array parameter type information from a type string.
- * Always returns a tuple, with undefined for non-array types.
- *
- * @param type - Type string like "tuple", "tuple[]", or "tuple[2]"
- * @returns [head, size] where:
- *   - head is the base type
- *   - size is undefined for non-arrays, "" for dynamic arrays, or the number as a string for fixed arrays
- *
- * @example
- * extractArrayParameterType("tuple") // ["tuple", undefined]
- * extractArrayParameterType("tuple[]") // ["tuple", ""]
- * extractArrayParameterType("tuple[2]") // ["tuple", "2"]
- */
-function extractArrayParameterType<T extends string | undefined>(type: T): [T, string | undefined] {
-  if (type == null) return [type, undefined];
-
-  const match = type.match(/^(.+)\[(\d*)\]$/);
-
-  if (!match) {
-    // Not an array type, return [type, undefined]
-    return [type, undefined];
-  }
-
-  const head = match[1];
-  const size = match[2]; // Empty string for dynamic arrays, or digits for fixed arrays
-
-  // Return empty string for dynamic arrays, or the size string for fixed arrays
-  return [head as T, size === '' ? '' : size];
-}
-
 // Pathways
 // - type is a tuple && internalType is exactly an encrypted input type (struct InEbool)
 // - - extract the base encrypted type (InEbool) and convert into an encryptable item
@@ -186,23 +145,6 @@ function extractArrayParameterType<T extends string | undefined>(type: T): [T, s
 
 function internalTypeIsEncryptedInput(internalType: string): internalType is EncryptedInputInternalType {
   return ENCRYPTED_INPUT_INTERNAL_TYPES.includes(internalType as any);
-}
-
-type AbiItem = AbiConstructor | AbiError | AbiEvent | AbiFallback | AbiFunction | AbiReceive;
-
-function isAbiFunction(item: AbiItem): item is AbiFunction {
-  return item.type === 'function' && 'name' in item && 'outputs' in item;
-}
-
-function getAbiFunction<TAbi extends Abi, TFunctionName extends string>(
-  abi: TAbi,
-  functionName: TFunctionName
-): AbiFunction | undefined {
-  return abi.find((item) => {
-    const isFunction = isAbiFunction(item);
-    if (!isFunction) return false;
-    return item.name === functionName;
-  }) as AbiFunction | undefined;
 }
 
 /**
@@ -463,7 +405,7 @@ export function insertEncryptedValues<TAbi extends Abi, TFunctionName extends st
       return encryptedArray;
     }
 
-    // Tuple that contains encrypted inputs (recursive case)
+    // Tuple recursive case (not encrypted input)
     if (typeHead === 'tuple' && (internalTypeHead == null || !internalTypeIsEncryptedInput(internalTypeHead))) {
       if ('components' in param && Array.isArray(param.components)) {
         const valueObj = value as Record<string, unknown>;

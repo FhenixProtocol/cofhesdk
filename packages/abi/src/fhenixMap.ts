@@ -3,7 +3,6 @@ import type {
   EncryptedBoolInput,
   EncryptedUint128Input,
   EncryptedUint16Input,
-  EncryptedUint256Input,
   EncryptedUint32Input,
   EncryptedUint64Input,
   EncryptedUint8Input,
@@ -43,15 +42,11 @@ export type EUint128 = {
   ctHash: bigint;
   utype: FheTypes.Uint128;
 };
-export type EUint256 = {
-  ctHash: bigint;
-  utype: FheTypes.Uint256;
-};
 export type EAddress = {
   ctHash: bigint;
   utype: FheTypes.Uint160;
 };
-export type EncryptedReturnType = EBool | EUint8 | EUint16 | EUint32 | EUint64 | EUint128 | EUint256 | EAddress;
+export type EncryptedReturnType = EBool | EUint8 | EUint16 | EUint32 | EUint64 | EUint128 | EAddress;
 
 export type FhenixInternalTypeMap = {
   // Input Structs
@@ -61,7 +56,6 @@ export type FhenixInternalTypeMap = {
   'struct InEuint32': EncryptedUint32Input;
   'struct InEuint64': EncryptedUint64Input;
   'struct InEuint128': EncryptedUint128Input;
-  'struct InEuint256': EncryptedUint256Input;
   'struct InEaddress': EncryptedAddressInput;
 
   // Exposed encrypted primitives
@@ -71,7 +65,6 @@ export type FhenixInternalTypeMap = {
   euint32: EUint32;
   euint64: EUint64;
   euint128: EUint128;
-  euint256: EUint256;
   eaddress: EAddress;
 };
 
