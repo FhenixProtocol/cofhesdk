@@ -1,6 +1,5 @@
 import {
   Encryptable,
-  FheTypes,
   type EncryptedAddressInput,
   type EncryptedBoolInput,
   type EncryptedUint128Input,
@@ -48,7 +47,7 @@ describe('mockEncrypt typing', () => {
     const encrypted = mockEncryptEncryptable(encryptable);
     assertType<EncryptedAddressInput>(encrypted);
   });
-  
+
   it('should correctly type mockEncrypt for [EncryptableBool, EncryptableUint8, EncryptableUint16, EncryptableUint32, EncryptableUint64, EncryptableUint128, EncryptableAddress]', () => {
     const encryptables = [
       Encryptable.bool(true),

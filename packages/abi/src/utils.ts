@@ -1,11 +1,56 @@
 import type {
+  Abi,
+  AbiConstructor,
+  AbiError,
+  AbiEvent,
+  AbiFallback,
+  AbiFunction,
+  AbiParameter,
+  AbiParametersToPrimitiveTypes,
+  AbiReceive,
   AbiType,
   Address,
+  ExtractAbiFunction,
   ResolvedRegister,
   SolidityArray,
   SolidityFixedArrayRange,
   SolidityTuple,
 } from 'abitype';
+
+export type ContractReturnType<
+  abi extends Abi | readonly unknown[] = Abi,
+  functionName extends string = string,
+  args extends readonly unknown[] | undefined = readonly unknown[] | undefined,
+  ///
+  abiFunction extends AbiFunction = (
+    abi extends Abi ? ExtractAbiFunction<abi, functionName> : AbiFunction
+  ) extends infer abiFunction_ extends AbiFunction
+    ? IsUnion<abiFunction_> extends true // narrow overloads by `args` by converting to tuple and filtering out overloads that don't match
+      ? UnionToTuple<abiFunction_> extends infer abiFunctions extends readonly AbiFunction[]
+        ? {
+            [K in keyof abiFunctions]: (
+              readonly unknown[] | undefined extends args // for functions that don't have inputs, `args` can be `undefined` so fallback to `readonly []`
+                ? readonly []
+                : args
+            ) extends AbiParametersToPrimitiveTypes<abiFunctions[K]['inputs'], 'inputs'>
+              ? abiFunctions[K]
+              : never;
+          }[number] // convert back to union (removes `never` tuple entries: `['foo', never, 'bar'][number]` => `'foo' | 'bar'`)
+        : never
+      : abiFunction_
+    : never,
+  outputs extends readonly AbiParameter[] = abiFunction['outputs'],
+  primitiveTypes extends readonly unknown[] = AbiParametersToPrimitiveTypes<outputs, 'outputs', true>,
+> = [abiFunction] extends [never]
+  ? unknown // `abiFunction` was not inferrable (e.g. `abi` declared as `Abi`)
+  : readonly unknown[] extends primitiveTypes
+    ? unknown // `abiFunction` was not inferrable (e.g. `abi` not const-asserted)
+    : primitiveTypes extends readonly [] // unwrap `primitiveTypes`
+      ? // biome-ignore lint/suspicious/noConfusingVoidType: <explanation>
+        void // no outputs
+      : primitiveTypes extends readonly [infer primitiveType]
+        ? primitiveType // single output
+        : primitiveTypes;
 
 export type Error<messages extends string | string[]> = messages extends string
   ? [
@@ -107,3 +152,53 @@ type _TupleOf<length, size extends number, acc extends readonly unknown[]> = acc
  * //   ^? type Result = { foo: number; bar: string }
  */
 export type Merge<object1, object2> = Omit<object1, keyof object2> & object2;
+
+// FUNCTIONS
+
+/**
+ * Extracts array parameter type information from a type string.
+ * Always returns a tuple, with undefined for non-array types.
+ *
+ * @param type - Type string like "tuple", "tuple[]", or "tuple[2]"
+ * @returns [head, size] where:
+ *   - head is the base type
+ *   - size is undefined for non-arrays, "" for dynamic arrays, or the number as a string for fixed arrays
+ *
+ * @example
+ * extractArrayParameterType("tuple") // ["tuple", undefined]
+ * extractArrayParameterType("tuple[]") // ["tuple", ""]
+ * extractArrayParameterType("tuple[2]") // ["tuple", "2"]
+ */
+export function extractArrayParameterType<T extends string | undefined>(type: T): [T, string | undefined] {
+  if (type == null) return [type, undefined];
+
+  const match = type.match(/^(.+)\[(\d*)\]$/);
+
+  if (!match) {
+    // Not an array type, return [type, undefined]
+    return [type, undefined];
+  }
+
+  const head = match[1];
+  const size = match[2]; // Empty string for dynamic arrays, or digits for fixed arrays
+
+  // Return empty string for dynamic arrays, or the size string for fixed arrays
+  return [head as T, size === '' ? '' : size];
+}
+
+type AbiItem = AbiConstructor | AbiError | AbiEvent | AbiFallback | AbiFunction | AbiReceive;
+
+export function isAbiFunction(item: AbiItem): item is AbiFunction {
+  return item.type === 'function' && 'name' in item && 'outputs' in item;
+}
+
+export function getAbiFunction<TAbi extends Abi, TFunctionName extends string>(
+  abi: TAbi,
+  functionName: TFunctionName
+): AbiFunction | undefined {
+  return abi.find((item) => {
+    const isFunction = isAbiFunction(item);
+    if (!isFunction) return false;
+    return item.name === functionName;
+  }) as AbiFunction | undefined;
+}
