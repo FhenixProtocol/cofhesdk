@@ -11,9 +11,8 @@ import { TokenIcon } from '../components/TokenIcon';
 import { unitToWei } from '@/utils/format';
 import { assert } from 'ts-essentials';
 import { CofheTokenConfidentialBalance } from '../components';
-import { useCofheEncrypt, type Token } from '@/hooks';
+import { type Token } from '@/hooks';
 import { getStepConfig } from '@/hooks/useCofheEncrypt';
-import { createEncryptable } from '@cofhe/sdk';
 import { FloatingButtonPage } from '../pagesConfig/types';
 import { useOnceTransactionMined } from '@/hooks/useOnceTransactionMined';
 import { usePortalNavigation } from '@/stores';
@@ -32,7 +31,16 @@ export const SendPage: React.FC<SendPageProps> = ({ token }) => {
   const { navigateBack, navigateTo } = usePortalNavigation();
 
   const account = useCofheAccount();
-  const tokenTransfer = useCofheTokenTransfer({
+  const {
+    encryptAmountAndSendToken,
+    data: txHash,
+    isPending: isEncryptingOrSendingTx,
+    write: { isPending: isSending },
+    encryption: {
+      stepsState: { lastStep },
+      isEncrypting: isEncryptingInput,
+    },
+  } = useCofheTokenTransfer({
     onError: (error) => {
       const errorMessage = error instanceof Error ? error.message : 'Failed to send tokens';
       setError(errorMessage);
@@ -50,7 +58,7 @@ export const SendPage: React.FC<SendPageProps> = ({ token }) => {
   });
 
   useOnceTransactionMined({
-    txHash: tokenTransfer.data,
+    txHash,
     onceMined: (transaction) => {
       if (transaction.status === 'confirmed') {
         setSuccess(`Transaction confirmed! Hash: ${truncateAddress(transaction.hash)}`);
@@ -65,20 +73,12 @@ export const SendPage: React.FC<SendPageProps> = ({ token }) => {
     accountAddress: account,
   });
 
-  const {
-    isEncrypting: isEncryptingInput,
-    encrypt,
-    stepsState: { lastStep },
-  } = useCofheEncrypt();
-
   const encryptionProgressLabel = useMemo(() => lastStep?.step && getStepConfig(lastStep).label, [lastStep]);
 
   const [amount, setAmount] = useState('');
   const [recipientAddress, setRecipientAddress] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-
-  const isSending = tokenTransfer.isPending;
 
   // Validate recipient address
   const isValidAddress = isAddress(recipientAddress);
@@ -94,18 +94,16 @@ export const SendPage: React.FC<SendPageProps> = ({ token }) => {
     const amountWei = unitToWei(amount, token.decimals);
     // TODO: Does this need to be different if the confidential token uses euint64 for the balance precision?
     assert(amountWei <= maxUint128, 'Amount exceeds maximum supported value (uint128 max)');
-
-    // TODO: test error on encryption?
-    const encryptedValue = await encrypt({
-      input: createEncryptable(token.extensions.fhenix.confidentialValueType, amountWei),
-    });
+    assert(account, 'Sender account is required');
 
     // Use the token transfer hook to send encrypted tokens
-    await tokenTransfer.mutateAsync({
-      token,
-      to: recipientAddress,
-      encryptedValue,
-      amount: amountWei,
+    await encryptAmountAndSendToken({
+      input: {
+        token,
+        to: recipientAddress,
+        amount: amountWei,
+        userAddress: account,
+      },
     });
   };
 
@@ -228,7 +226,7 @@ export const SendPage: React.FC<SendPageProps> = ({ token }) => {
       )}
 
       {/* Encryption Status */}
-      {(isEncryptingInput || isSending) && (
+      {isEncryptingOrSendingTx && (
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
           <p className="text-sm text-blue-800 dark:text-blue-200">
             {isEncryptingInput ? encryptionProgressLabel || 'Encrypting amount...' : 'Sending transaction...'}

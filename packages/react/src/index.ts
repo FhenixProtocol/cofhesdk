@@ -14,6 +14,7 @@ export {
   useCofheSelectPermit,
   useCofhePublicClient,
   useCofheWalletClient,
+  useCofheWriteContract,
   useCofheClient,
   useCofheTokens,
   useCofheTokenLists,
