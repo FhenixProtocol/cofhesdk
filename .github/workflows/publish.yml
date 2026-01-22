@@ -69,7 +69,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly
+          version: stable
 
       - name: Publish Beta Snapshot
         run: pnpm run beta:snapshot
@@ -104,7 +104,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly
+          version: stable
 
       - name: Publish and Tag with Changesets
         uses: changesets/action@v1
