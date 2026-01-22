@@ -25,10 +25,15 @@ export const ERC20_APPROVE_ABI = parseAbi(['function approve(address spender, ui
  * ABI for wrapped confidentiality type tokens (e.g., Redact)
  * Uses `encBalanceOf(address)` function
  */
-export const CONFIDENTIAL_TYPE_WRAPPED_ABI = parseAbi([
-  'function encBalanceOf(address account) view returns (uint256)',
-]);
-
+export const CONFIDENTIAL_TYPE_WRAPPED_ABI = [
+  {
+    inputs: [{ internalType: 'address', name: 'account', type: 'address' }],
+    name: 'encBalanceOf',
+    outputs: [{ internalType: 'euint128', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+] as const;
 /**
  * ABI for pure confidentiality type tokens (e.g., Base mini app)
  * Uses `confidentialBalanceOf(address)` function

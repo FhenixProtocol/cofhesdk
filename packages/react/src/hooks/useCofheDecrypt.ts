@@ -13,12 +13,10 @@ import { assert } from 'ts-essentials';
  */
 export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<U>>(
   {
-    ciphertext,
-    fheType,
+    input: { ciphertext, fheType },
     cause,
   }: {
-    ciphertext: bigint | undefined;
-    fheType: U;
+    input: { ciphertext: bigint | undefined; fheType: U };
     cause: ErrorCause;
   },
   queryOptions?: Omit<UseQueryOptions<UnsealedItem<U>, Error, TSeletedData>, 'queryKey' | 'queryFn'>

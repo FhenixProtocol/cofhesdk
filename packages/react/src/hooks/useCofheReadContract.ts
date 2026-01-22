@@ -5,12 +5,14 @@ import {
   type ContractFunctionReturnType,
   type ContractFunctionName,
   type ContractFunctionArgs,
+  type ReadContractReturnType,
 } from 'viem';
 import { useCofheChainId, useCofhePublicClient } from './useCofheConnection';
 import { useCofheActivePermit } from './useCofhePermits';
 import { assert } from 'ts-essentials';
 import { useIsCofheErrorActive } from './useIsCofheErrorActive';
 import { useInternalQueries, useInternalQuery } from '../providers/index';
+import { transformEncryptedReturnTypes, type CofheReturnType, type ContractReturnType } from '@cofhe/abi';
 
 const QUERY_CACHE_PREFIX = 'cofheReadContract';
 
@@ -102,16 +104,17 @@ export function getEnabledForCofheReadContract(params: {
     (userEnabled ?? true)
   );
 }
+function isContractReturnType<TAbi extends Abi, TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>>(
+  value: unknown
+): value is ContractReturnType<TAbi, TfunctionName> {
+  // TODO:
+  return true;
+}
 
 export type InferredData<
   TAbi extends Abi,
   TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>,
-> = ContractFunctionReturnType<
-  TAbi,
-  'pure' | 'view',
-  ContractFunctionName<TAbi, 'pure' | 'view'>,
-  ContractFunctionArgs<TAbi, 'pure' | 'view', TfunctionName>
->;
+> = CofheReturnType<TAbi, TfunctionName>;
 
 export function createCofheReadContractQueryOptions<
   TAbi extends Abi,
@@ -167,7 +170,15 @@ export function createCofheReadContractQueryOptions<
         args,
       });
 
-      return out;
+      assert(
+        isContractReturnType<TAbi, TfunctionName>(out),
+        'Contract read did not return a valid value matching the expected return type'
+      );
+
+      const transformed = transformEncryptedReturnTypes(abi, functionName, out);
+
+      console.log('transformEncryptedReturnTypes result:', transformed);
+      return transformed;
     },
     ...restQueryOptions,
   };

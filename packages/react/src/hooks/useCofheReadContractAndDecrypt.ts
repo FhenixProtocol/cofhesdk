@@ -10,7 +10,11 @@ import {
   type UseCofheReadContractResult,
 } from './useCofheReadContract';
 import { assert } from 'ts-essentials';
+import type { EncryptedReturnType } from '@cofhe/abi';
 
+function isEncryptedReturnType(value: unknown): value is EncryptedReturnType {
+  return !!value && typeof value === 'object' && 'ctHash' in value;
+}
 /**
  * Generic hook: read a confidential contract value and decrypt it.
  */
@@ -49,7 +53,15 @@ export function useCofheReadContractAndDecrypt<
 
   const encrypted = useCofheReadContract({ address, abi, functionName, args, requiresPermit }, readQueryOptions);
 
-  const ciphertext = encrypted.data;
+  const encryptedData = encrypted.data;
+
+  const asSingleEncryptedObject = isEncryptedReturnType(encryptedData) ? encryptedData : undefined;
+
+  assert(
+    !asSingleEncryptedObject || asSingleEncryptedObject?.utype === fheType,
+    'FHE type of encrypted return does not match expected FHE type'
+  );
+  const ciphertext = asSingleEncryptedObject?.ctHash;
 
   assert(
     typeof ciphertext === 'bigint' || typeof ciphertext === 'undefined',
@@ -58,8 +70,7 @@ export function useCofheReadContractAndDecrypt<
 
   const decrypted = useCofheDecrypt(
     {
-      ciphertext,
-      fheType,
+      input: { ciphertext, fheType },
 
       cause: potentialDecryptErrorCause,
     },
