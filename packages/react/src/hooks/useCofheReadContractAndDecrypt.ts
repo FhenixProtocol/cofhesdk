@@ -5,24 +5,28 @@ import { ErrorCause } from '@/utils/errors';
 import { useCofheDecrypt } from './useCofheDecrypt';
 import {
   useCofheReadContract,
-  type InferredData,
   type UseCofheReadContractQueryOptions,
   type UseCofheReadContractResult,
 } from './useCofheReadContract';
-import { assert } from 'ts-essentials';
-import type { EncryptedReturnType } from '@cofhe/abi';
+import type { CofheReturnType, EncryptedReturnTypeByUtype } from '@cofhe/abi';
 
-function isEncryptedReturnType(value: unknown): value is EncryptedReturnType {
-  return !!value && typeof value === 'object' && 'ctHash' in value;
+function convertCofheReturnTypeToEncryptedReturnType<
+  TAbi extends Abi,
+  TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>,
+  TFheType extends FheTypes,
+>(value: CofheReturnType<TAbi, TfunctionName>): EncryptedReturnTypeByUtype<TFheType> {
+  // TODO: convertCofheReturnTypeToEncryptedReturnType -- get rid of this type assertion. Too complex source type?
+  return value as EncryptedReturnTypeByUtype<TFheType>;
 }
 /**
  * Generic hook: read a confidential contract value and decrypt it.
  */
+// TODO: useCofheReadContractAndDecrypt only works for a scenario when the contract function returns a signle plain encrypted value (i.e. not struct etc)
 export function useCofheReadContractAndDecrypt<
   TFheType extends FheTypes,
   TAbi extends Abi,
   TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>,
-  TDecryptedSelectedData = InferredData<TAbi, TfunctionName>,
+  TDecryptedSelectedData = CofheReturnType<TAbi, TfunctionName>,
 >(
   params: {
     address?: Address;
@@ -55,22 +59,13 @@ export function useCofheReadContractAndDecrypt<
 
   const encryptedData = encrypted.data;
 
-  const asSingleEncryptedObject = isEncryptedReturnType(encryptedData) ? encryptedData : undefined;
-
-  assert(
-    !asSingleEncryptedObject || asSingleEncryptedObject?.utype === fheType,
-    'FHE type of encrypted return does not match expected FHE type'
-  );
-  const ciphertext = asSingleEncryptedObject?.ctHash;
-
-  assert(
-    typeof ciphertext === 'bigint' || typeof ciphertext === 'undefined',
-    'Expected ciphertext to be bigint or undefined'
-  );
+  const asEncryptedReturnType = encryptedData
+    ? convertCofheReturnTypeToEncryptedReturnType<TAbi, TfunctionName, TFheType>(encryptedData)
+    : undefined;
 
   const decrypted = useCofheDecrypt(
     {
-      input: { ciphertext, fheType },
+      input: asEncryptedReturnType,
 
       cause: potentialDecryptErrorCause,
     },

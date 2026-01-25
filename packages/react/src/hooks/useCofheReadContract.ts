@@ -1,7 +1,6 @@
 import { type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
 import {
   type Address,
-  type Abi,
   type ContractFunctionReturnType,
   type ContractFunctionName,
   type ContractFunctionArgs,
@@ -12,7 +11,7 @@ import { useCofheActivePermit } from './useCofhePermits';
 import { assert } from 'ts-essentials';
 import { useIsCofheErrorActive } from './useIsCofheErrorActive';
 import { useInternalQueries, useInternalQuery } from '../providers/index';
-import { transformEncryptedReturnTypes, type CofheReturnType, type ContractReturnType } from '@cofhe/abi';
+import { transformEncryptedReturnTypes, type Abi, type CofheReturnType, type ContractReturnType } from '@cofhe/abi';
 
 const QUERY_CACHE_PREFIX = 'cofheReadContract';
 
@@ -77,7 +76,7 @@ export function constructCofheReadContractQueryForInvalidation({
 export type UseCofheReadContractQueryOptions<
   TAbi extends Abi,
   TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>,
-> = Omit<UseQueryOptions<InferredData<TAbi, TfunctionName>, Error>, 'queryKey' | 'queryFn'> & {
+> = Omit<UseQueryOptions<CofheReturnType<TAbi, TfunctionName>, Error>, 'queryKey' | 'queryFn'> & {
   enabled?: boolean; // TODO: check callback variant, maybe it'll fix the issue above about forcing enable to be query key
 };
 
@@ -104,33 +103,43 @@ export function getEnabledForCofheReadContract(params: {
     (userEnabled ?? true)
   );
 }
-function isContractReturnType<TAbi extends Abi, TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>>(
-  value: unknown
-): value is ContractReturnType<TAbi, TfunctionName> {
-  // TODO:
-  return true;
-}
 
-export type InferredData<
+function convertReadContractResultToCofheReturnType<
   TAbi extends Abi,
   TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>,
-> = CofheReturnType<TAbi, TfunctionName>;
+  TArgs extends ContractFunctionArgs<TAbi, 'pure' | 'view', TfunctionName>,
+>(
+  value: ContractFunctionReturnType<TAbi, 'pure' | 'view', TfunctionName, TArgs>
+): ContractReturnType<
+  TAbi,
+  TfunctionName
+  //TArgs
+> {
+  // TODO: convertViemReturnTypeToCofheReturnType -- need core typing changes, currently seems to not support fn overloads
+  // viems inferred TArgs mismatch Cofhe's
+  return value as ContractReturnType<
+    TAbi,
+    TfunctionName
+    //TArgs
+  >;
+}
 
 export function createCofheReadContractQueryOptions<
   TAbi extends Abi,
   TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>,
+  TArgs extends ContractFunctionArgs<TAbi, 'pure' | 'view', TfunctionName>,
 >(params: {
   enabled: boolean;
   cofheChainId?: number;
   address?: Address;
   abi?: TAbi;
   functionName?: TfunctionName;
-  args?: ContractFunctionArgs<TAbi, 'pure' | 'view', TfunctionName>;
+  args?: TArgs;
   requiresPermit: boolean;
   activePermitHash?: string;
   publicClient: ReturnType<typeof useCofhePublicClient>;
   queryOptions?: UseCofheReadContractQueryOptions<TAbi, TfunctionName>;
-}): UseQueryOptions<InferredData<TAbi, TfunctionName>, Error> {
+}): UseQueryOptions<CofheReturnType<TAbi, TfunctionName>, Error> {
   const {
     enabled,
     cofheChainId,
@@ -170,12 +179,9 @@ export function createCofheReadContractQueryOptions<
         args,
       });
 
-      assert(
-        isContractReturnType<TAbi, TfunctionName>(out),
-        'Contract read did not return a valid value matching the expected return type'
-      );
+      const convertedOut = convertReadContractResultToCofheReturnType<TAbi, TfunctionName, TArgs>(out);
 
-      const transformed = transformEncryptedReturnTypes(abi, functionName, out);
+      const transformed = transformEncryptedReturnTypes(abi, functionName, convertedOut);
 
       console.log('transformEncryptedReturnTypes result:', transformed);
       return transformed;
@@ -186,11 +192,12 @@ export function createCofheReadContractQueryOptions<
 
 /**
  * Generic hook: read a contract and return the result (with permit/error gating support).
+ * is Cofhe-ABI aware: returns CofheReturnType (but doesn't support TArgs typing yet).
  */
 export type UseCofheReadContractResult<
   TAbi extends Abi,
   TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>,
-> = UseQueryResult<InferredData<TAbi, TfunctionName>, Error> & {
+> = UseQueryResult<CofheReturnType<TAbi, TfunctionName>, Error> & {
   disabledDueToMissingPermit: boolean;
 };
 export function useCofheReadContract<

@@ -4,6 +4,7 @@ import type { UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
 import { useIsCofheErrorActive } from './useIsCofheErrorActive';
 import { ErrorCause, withQueryErrorCause } from '@/utils';
 import { assert } from 'ts-essentials';
+import type { EncryptedReturnTypeByUtype } from '@cofhe/abi';
 
 /**
  * Hook to decrypt a ciphertext using the Cofhe SDK client.
@@ -13,10 +14,10 @@ import { assert } from 'ts-essentials';
  */
 export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<U>>(
   {
-    input: { ciphertext, fheType },
+    input,
     cause,
   }: {
-    input: { ciphertext: bigint | undefined; fheType: U };
+    input?: EncryptedReturnTypeByUtype<U>;
     cause: ErrorCause;
   },
   queryOptions?: Omit<UseQueryOptions<UnsealedItem<U>, Error, TSeletedData>, 'queryKey' | 'queryFn'>
@@ -25,20 +26,14 @@ export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<
   const isCofheErrorActive = useIsCofheErrorActive();
 
   const { enabled: userEnabled, ...restQueryOptions } = queryOptions || {};
-  const enabled =
-    !!ciphertext &&
-    ciphertext > 0n &&
-    !isCofheErrorActive &&
-    !!client &&
-    ciphertext !== undefined &&
-    (userEnabled ?? true);
+  const enabled = !!input && input.ctHash > 0n && !isCofheErrorActive && !!client && (userEnabled ?? true);
 
   return useInternalQuery({
     enabled,
-    queryKey: ['decryptCiphertext', ciphertext?.toString(), fheType],
+    queryKey: ['decryptCiphertext', input?.ctHash.toString(), input?.utype],
     queryFn: withQueryErrorCause(cause, async () => {
-      assert(ciphertext, 'ciphertext is guaranteed to be defined by enabled condition');
-      return client.decryptHandle(ciphertext, fheType).decrypt();
+      assert(input, 'input is guaranteed to be defined by enabled condition');
+      return client.decryptHandle(input.ctHash, input.utype).decrypt();
     }),
     ...restQueryOptions,
   });

@@ -179,11 +179,23 @@ function internalTypeIsEncryptedReturnType(internalType: string): internalType i
   return ENCRYPTED_RETURN_TYPE_INTERNAL_TYPES.includes(internalType as any);
 }
 
-export function transformEncryptedReturnTypes<TAbi extends Abi, TFunctionName extends string>(
+export function transformEncryptedReturnTypes<
+  TAbi extends Abi,
+  TFunctionName extends string,
+  // TArgs extends readonly unknown[] | undefined | unknown[] = readonly unknown[] | undefined,
+>(
   abi: TAbi,
   functionName: TFunctionName,
-  data: ContractReturnType<TAbi, TFunctionName>
-): CofheReturnType<TAbi, TFunctionName> {
+  data: ContractReturnType<
+    TAbi,
+    TFunctionName
+    //  TArgs
+  >
+): CofheReturnType<
+  TAbi,
+  TFunctionName
+  //  TArgs
+> {
   const abiFunction = getAbiFunction(abi, functionName);
   const outputs = abiFunction?.outputs;
   if (abiFunction == null || outputs == null) {
@@ -245,9 +257,17 @@ export function transformEncryptedReturnTypes<TAbi extends Abi, TFunctionName ex
     }
     return data.map((item, index) => {
       return processParameter(outputs[index], item);
-    }) as CofheReturnType<TAbi, TFunctionName>;
+    }) as CofheReturnType<
+      TAbi,
+      TFunctionName
+      //  TArgs
+    >;
   }
 
   // Process retuls (single item case)
-  return processParameter(outputs[0], data) as CofheReturnType<TAbi, TFunctionName>;
+  return processParameter(outputs[0], data) as CofheReturnType<
+    TAbi,
+    TFunctionName
+    //  TArgs
+  >;
 }
