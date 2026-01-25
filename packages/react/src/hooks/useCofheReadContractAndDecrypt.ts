@@ -10,13 +10,32 @@ import {
 } from './useCofheReadContract';
 import type { CofheReturnType, EncryptedReturnTypeByUtype } from '@cofhe/abi';
 
+function isEncryptedValue<TFheType extends FheTypes>(value: unknown): value is EncryptedReturnTypeByUtype<TFheType> {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'ctHash' in value &&
+    'utype' in value &&
+    Object.values<unknown>(FheTypes).includes(value.utype)
+  );
+}
+
 function convertCofheReturnTypeToEncryptedReturnType<
   TAbi extends Abi,
   TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>,
   TFheType extends FheTypes,
 >(value: CofheReturnType<TAbi, TfunctionName>): EncryptedReturnTypeByUtype<TFheType> {
-  // TODO: convertCofheReturnTypeToEncryptedReturnType -- get rid of this type assertion. Too complex source type?
-  return value as EncryptedReturnTypeByUtype<TFheType>;
+  // TODO: convertCofheReturnTypeToEncryptedReturnType -- support for array return types
+  if (Array.isArray(value)) throw new Error('Array return types are not supported yet for auto-decryption');
+
+  if (isEncryptedValue<TFheType>(value)) {
+    return value;
+  }
+
+  // TODO: convertCofheReturnTypeToEncryptedReturnType -- support for mixed return types (e.g., structs with both encrypted and plain values)
+  throw new Error(
+    'Auto-decryption now only supports a case where the contract function returns a single encrypted value'
+  );
 }
 /**
  * Generic hook: read a confidential contract value and decrypt it.

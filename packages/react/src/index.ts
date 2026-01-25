@@ -32,6 +32,8 @@ export {
   type UseTransactionReceiptsByHashInput,
 } from '@/hooks/index';
 
+export { useCofheReadContractAndDecrypt } from '@/hooks/useCofheReadContractAndDecrypt';
+
 // Components
 export { FnxEncryptInput, FnxFloatingButtonWithProvider } from './components/index';
 export { MainPage, SettingsPage, TokenListPage } from './components/FnxFloatingButton/pages/index';
