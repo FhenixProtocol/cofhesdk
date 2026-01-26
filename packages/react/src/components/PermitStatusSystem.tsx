@@ -127,7 +127,7 @@ export const PermitStatusSystem = () => {
     intervalRef.current = setInterval(() => {
       if (!activePermit) return;
       updateStatuses(activePermit.permit);
-    }, 10000);
+    }, 2000);
 
     return () => {
       if (intervalRef.current) {
