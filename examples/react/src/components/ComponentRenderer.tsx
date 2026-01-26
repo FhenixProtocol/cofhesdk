@@ -15,7 +15,7 @@ import {
 } from 'viem';
 import { Abi, CofheInputArgsPreTransform, extractEncryptableValues, insertEncryptedValues } from '@cofhe/abi';
 import type { EncryptableItem, EncryptedItemInput } from '@cofhe/sdk';
-import { useCofheClient } from '@cofhe/react';
+import { useCofheClient, useCofheEncryptInputsMutation, useCofheWalletWriteContractMutation } from '@cofhe/react';
 
 interface ComponentRendererProps {
   activeComponent: string;
@@ -217,6 +217,9 @@ function constructTransformFn<
 const TestAutoDecryptionComponent: React.FC = () => {
   const client = useCofheClient();
 
+  const { encryptInputsAsync } = useCofheEncryptInputsMutation();
+  const { writeContractAsync } = useCofheWalletWriteContractMutation();
+
   useEffect(() => {
     encryptAndWriteContract({
       params: {
@@ -228,17 +231,8 @@ const TestAutoDecryptionComponent: React.FC = () => {
         chain: undefined,
       },
       confidentialityAwareAbiArgs: ['0x9A9B640F221Fb8E7A283501367812c50C6805ED1', 124n],
-      encrypt: async (encryptableItems) => client.encryptInputs(encryptableItems).encrypt(),
-      write: async (writeParams) => {
-        const walletClient = client.getSnapshot().walletClient;
-        if (!walletClient) {
-          throw new Error(
-            'WalletClient is required to write to a contract. Did you connect a wallet / call cofheClient.connect()?',
-          );
-        }
-
-        return walletClient.writeContract(writeParams);
-      },
+      encrypt: encryptInputsAsync,
+      write: writeContractAsync,
     });
   }, [client]);
 

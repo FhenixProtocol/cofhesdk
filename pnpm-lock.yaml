@@ -32,6 +32,9 @@ importers:
 
   examples/react:
     dependencies:
+      '@cofhe/abi':
+        specifier: workspace:^
+        version: link:../../packages/abi
       '@cofhe/react':
         specifier: workspace:*
         version: link:../../packages/react
@@ -340,7 +343,7 @@ importers:
         specifier: ^2.0.0
         version: 2.6.0
       viem:
-        specifier: ^2.0.0
+        specifier: ^2.38.6
         version: 2.38.6(typescript@5.5.4)(zod@3.25.76)
       zod:
         specifier: ^3.22.0

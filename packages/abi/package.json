@@ -40,6 +40,9 @@
     "abitype": "^1.2.3",
     "viem": "^2.38.6"
   },
+  "peerDependencies": {
+    "viem": "^2.38.6"
+  },
   "devDependencies": {
     "@cofhe/eslint-config": "workspace:*",
     "@cofhe/tsconfig": "workspace:*",

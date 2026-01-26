@@ -15,6 +15,8 @@ export {
   useCofhePublicClient,
   useCofheWalletClient,
   useCofheWriteContract,
+  useCofheEncryptInputsMutation,
+  useCofheWalletWriteContractMutation,
   useCofheClient,
   useCofheTokens,
   useCofheTokenLists,
