@@ -68,4 +68,4 @@ export type FnxStatus = {
   };
 };
 
-export type FnxStatusVariant = 'error' | 'warning';
+export type FnxStatusVariant = 'error' | 'warning' | 'info';

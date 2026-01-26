@@ -5,12 +5,15 @@ import { PortalModal } from '../modals/types';
 import { usePortalNavigation, usePortalStatuses, usePortalModals, usePortalToasts } from '@/stores';
 import { PageContainer } from '../components/PageContainer.js';
 
+type Tab = 'modal' | 'status' | 'toast' | 'permit';
+
 export const DebugPage: React.FC = () => {
   const { navigateBack } = usePortalNavigation();
   const { statuses, addStatus, removeStatus } = usePortalStatuses();
   const { addToast } = usePortalToasts();
   const { openModal } = usePortalModals();
   const [modalSelection, setModalSelection] = useState<string | undefined>(undefined);
+  const [activeTab, setActiveTab] = useState<Tab>('modal');
 
   return (
     <PageContainer
@@ -284,4 +287,21 @@ export const DebugPage: React.FC = () => {
       }
     />
   );
+};
+
+const CreateSelfExpiringPermitButton = () => {
+  const cofheClient = useCofheClient();
+
+  const create = async () => {
+    const { account } = cofheClient.getSnapshot();
+    if (!account) throw new Error('No connected account found');
+    const expiration = Math.floor(Date.now() / 1000) + 2 * 60;
+    await cofheClient.permits.createSelf({
+      name: `Exp ${expiration}`,
+      issuer: account,
+      expiration: expiration,
+    });
+  };
+
+  return <button onClick={create}>Create self permit (expires in 2 minutes)</button>;
 };
