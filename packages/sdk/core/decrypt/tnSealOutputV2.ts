@@ -284,7 +284,7 @@ async function pollSealOutputStatus(thresholdNetworkUrl: string, requestId: stri
   });
 }
 
-export async function tnSealOutput(
+export async function tnSealOutputV2(
   ctHash: bigint,
   chainId: number,
   permission: Permission,

@@ -260,18 +260,30 @@ importers:
       '@cofhe/sdk':
         specifier: workspace:*
         version: link:../sdk
+      '@fhenixprotocol/cofhe-contracts':
+        specifier: 0.0.13
+        version: 0.0.13
       '@nomicfoundation/hardhat-ethers':
         specifier: ^3.0.5
         version: 3.1.0(ethers@6.15.0)(hardhat@2.26.3)
       '@nomicfoundation/hardhat-toolbox':
         specifier: ^6.0.0
         version: 6.1.0(@nomicfoundation/hardhat-chai-matchers@2.1.0)(@nomicfoundation/hardhat-ethers@3.1.0)(@nomicfoundation/hardhat-ignition-ethers@0.15.14)(@nomicfoundation/hardhat-network-helpers@1.1.0)(@nomicfoundation/hardhat-verify@2.1.1)(@typechain/ethers-v6@0.5.1)(@typechain/hardhat@9.1.0)(@types/chai@4.3.20)(@types/mocha@10.0.10)(@types/node@20.19.15)(chai@4.5.0)(ethers@6.15.0)(hardhat-gas-reporter@2.3.0)(hardhat@2.26.3)(solidity-coverage@0.8.16)(ts-node@10.9.2)(typechain@8.3.2)(typescript@5.5.4)
+      '@openzeppelin/contracts':
+        specifier: ^5.0.0
+        version: 5.4.0
+      dotenv:
+        specifier: ^16.0.0
+        version: 16.0.3
       ethers:
         specifier: ^6.0.0
         version: 6.15.0
       hardhat:
         specifier: ^2.26.3
         version: 2.26.3(ts-node@10.9.2)(typescript@5.5.4)
+      viem:
+        specifier: ^2.0.0
+        version: 2.37.5(typescript@5.5.4)(zod@3.25.76)
 
   packages/mock-contracts:
     dependencies:
@@ -2417,7 +2429,6 @@ packages:
     resolution: {integrity: sha512-+lHo5v52fR7QfQj2ottDw4F/AqZg6obPBRqvK576SJatX3o4aH6ZSt2kxNb5kT8Ckthjw6FoNmLdUVCDpP400w==}
     dependencies:
       '@openzeppelin/contracts': 5.4.0
-    dev: false
 
   /@floating-ui/core@1.7.3:
     resolution: {integrity: sha512-sGnvb5dmrJaKEZ+LDIpguvdX3bDlEllmv4/ClQ9awcmCZrlx5jQyyMWFM5kBI+EyNOCDDiKk8il0zeuX3Zlg/w==}
@@ -3396,7 +3407,6 @@ packages:
 
   /@openzeppelin/contracts@5.4.0:
     resolution: {integrity: sha512-eCYgWnLg6WO+X52I16TZt8uEjbtdkgLC0SUX/xnAksjjrQI4Xfn4iBRoI5j55dmlOhDv1Y7BoR3cU7e3WWhC6A==}
-    dev: false
 
   /@paulmillr/qr@0.2.1:
     resolution: {integrity: sha512-IHnV6A+zxU7XwmKFinmYjUcwlyK9+xkG3/s9KcQhI9BjQKycrJ1JRO+FbNYPwZiPKW3je/DR0k7w8/gLa5eaxQ==}
