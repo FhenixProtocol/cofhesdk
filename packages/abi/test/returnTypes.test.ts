@@ -1,34 +1,7 @@
 import { transformEncryptedReturnTypes } from 'src/encryptedReturnTypes';
 import { describe, it, expect } from 'vitest';
 import { TestABI } from './TestABI';
-import { Test2ABI } from './Test2ABI';
 import { FheTypes } from '@cofhe/sdk';
-
-import type { Abi, ContractFunctionArgs, ContractFunctionName, ReadContractReturnType } from 'viem';
-import type { ContractReturnType } from 'src/utils';
-// import type { Abi } from 'abitype';
-
-function fromViemTypeToCofheType<
-  TAbi extends Abi,
-  TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>,
-  TArgs extends ContractFunctionArgs<TAbi, 'pure' | 'view', TfunctionName>,
->(
-  abi: TAbi,
-  functionName: TfunctionName,
-  viemValue: ReadContractReturnType<TAbi, TfunctionName, TArgs>
-): //the returned type is expected as Data parameters for transformEncryptedReturnTypes
-ContractReturnType<TAbi, TfunctionName> {
-  // const value_to_use =
-  //   typeof viemValue === 'undefined' ? undefined : Array.isArray(viemValue) ? viemValue : [viemValue];
-
-  // const expectedDataType:
-  return viemValue as ContractReturnType<TAbi, TfunctionName>;
-}
-
-const encBalanceOfResult: ReadContractReturnType<typeof Test2ABI, 'encBalanceOf', readonly [`0x${string}`]> = 1n;
-const cofheCompliantParam: ContractReturnType<typeof Test2ABI, 'encBalanceOf', readonly [`0x${string}`]> =
-  fromViemTypeToCofheType(Test2ABI, 'encBalanceOf', 1n);
-const result = transformEncryptedReturnTypes(Test2ABI, 'encBalanceOf', encBalanceOfResult);
 
 describe('transformEncryptedReturnTypes', () => {
   it('should not transform non-encrypted return type', () => {
