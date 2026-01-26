@@ -4,6 +4,10 @@ import { useState } from 'react';
 import { PortalModal } from '../modals/types';
 import { usePortalNavigation, usePortalStatuses, usePortalModals, usePortalToasts } from '@/stores';
 import { PageContainer } from '../components/PageContainer.js';
+import { useCofheClient } from '@/hooks/useCofheClient.js';
+import { privateKeyToAccount } from 'viem/accounts';
+import { createWalletClient, http } from 'viem';
+import { arbitrumSepolia } from 'viem/chains';
 
 type Tab = 'modal' | 'status' | 'toast' | 'permit';
 
@@ -304,4 +308,41 @@ const CreateSelfExpiringPermitButton = () => {
   };
 
   return <button onClick={create}>Create self permit (expires in 2 minutes)</button>;
+};
+
+const CreateAndUseReceivingPermitButton = () => {
+  const cofheClient = useCofheClient();
+
+  const receiveAndUse = async () => {
+    const { account, publicClient } = cofheClient.getSnapshot();
+    if (!account) throw new Error('No connected account found');
+    if (!publicClient) throw new Error('No public client found');
+
+    // Create account to create the sharing permit from private key
+    const sharingAccount = privateKeyToAccount('0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80');
+    const sharingWalletClient = createWalletClient({
+      chain: publicClient!.chain,
+      transport: http(),
+      account: sharingAccount,
+    });
+
+    // Create a sharing permit with account {sharingAccount} and recipient {account}
+    const sharedPermit = await cofheClient.permits.createSharing(
+      {
+        name: 'Sharing permit',
+        issuer: sharingAccount.address,
+        expiration: Math.floor(Date.now() / 1000) + 60 * 60,
+        recipient: account,
+      },
+      {
+        publicClient,
+        walletClient: sharingWalletClient,
+      }
+    );
+
+    // Receive shared permit
+    await cofheClient.permits.importShared(sharedPermit);
+  };
+
+  return <button onClick={receiveAndUse}>Create and use receiving permit</button>;
 };

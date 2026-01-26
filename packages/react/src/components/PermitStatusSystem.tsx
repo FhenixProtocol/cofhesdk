@@ -48,7 +48,7 @@ export const showPermitSharedStatus = (permit: Permit) => {
     id: 'permit-shared',
     variant: 'info',
     title: 'Shared permit active',
-    description: `Viewing data with ${truncateHash(permit.recipient, 4, 4)}`,
+    description: `Viewing data of ${truncateHash(permit.issuer, 4, 4)}`,
   });
 };
 export const hidePermitSharedStatus = () => {
@@ -115,7 +115,7 @@ export const PermitStatusSystem = () => {
       }
 
       // Shared status
-      const isShared = permit.type === 'sharing';
+      const isShared = permit.type === 'recipient';
       if (isShared && !sharedStatusShownRef.current) {
         showPermitSharedStatus(permit);
         sharedStatusShownRef.current = true;
