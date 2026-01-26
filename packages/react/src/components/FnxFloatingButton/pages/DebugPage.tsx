@@ -348,7 +348,7 @@ const CreateAndUseReceivingPermitButton = () => {
       {
         name: 'Sharing permit',
         issuer: sharingAccount.address,
-        expiration: Math.floor(Date.now() / 1000) + 60 * 60,
+        expiration: Math.floor(Date.now() / 1000) + 120 * 60,
         recipient: account,
       },
       {
