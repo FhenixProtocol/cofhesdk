@@ -4,17 +4,18 @@ import {
   useTransactionStore,
   type Transaction,
 } from '@/stores/transactionStore';
-import { useCofheAccount, useCofheChainId, useCofhePublicClient } from './useCofheConnection';
+import { useCofhePublicClient } from './useCofheConnection';
 import { useInternalQueries, useInternalQueryClient } from '@/providers';
 import { assert } from 'ts-essentials';
 import { constructCofheReadContractQueryForInvalidation } from './useCofheReadContract';
-import { useMemo } from 'react';
-import type { QueriesOptions, QueryClient } from '@tanstack/react-query';
+import { QueryClient, type QueriesOptions } from '@tanstack/react-query';
 import type { Address, TransactionReceipt } from 'viem';
 import { getTokenContractConfig } from '@/constants/confidentialTokenABIs';
 import type { Token } from './useCofheTokenLists';
 import { constructPublicTokenBalanceQueryKeyForInvalidation } from './useCofheTokenPublicBalance';
-import { constructUnshieldClaimsQueryKeyForInvalidation } from './useCofheTokenClaimable';
+import { constructUnshieldClaimsQueryKeyForInvalidation, invalidateClaimableQueries } from './useCofheTokenClaimable';
+import { usePendingTransactions } from './usePendingTransactions';
+import { useScheduledInvalidationsStore } from '@/stores/scheduledInvalidationsStore';
 
 function invalidateConfidentialTokenBalanceQueries(token: Token, queryClient: QueryClient) {
   const tokenBalanceQueryKey = constructCofheReadContractQueryForInvalidation({
@@ -76,48 +77,16 @@ function invalidatePublicAndConfidentialTokenBalanceQueries(
   );
 }
 
-function invalidateClaimableQueries({
-  token,
-  accountAddress,
-  queryClient,
-}: {
-  token: Token;
-  accountAddress: Address;
-  queryClient: QueryClient;
-}) {
-  console.log('Invalidating unshield claims queries for token:', token);
-
-  queryClient.invalidateQueries({
-    queryKey: constructUnshieldClaimsQueryKeyForInvalidation({
-      chainId: token.chainId,
-      tokenAddress: token.address,
-      confidentialityType: token.extensions.fhenix.confidentialityType,
-      accountAddress,
-    }),
-  });
-}
-
 export function useTrackPendingTransactions() {
   // Batch check pending transactions using react-query's useQueries
-  const chainId = useCofheChainId();
-  const account = useCofheAccount();
+  const accountsPendingTxs = usePendingTransactions();
   const publicClient = useCofhePublicClient();
-  const allTxs = useTransactionStore((state) => (chainId ? state.transactions[chainId] : undefined));
-
-  const accountsPendingTxs = useMemo(() => {
-    if (!allTxs || !account) return [];
-    return Object.values(allTxs).filter(
-      (tx) =>
-        tx.status === TransactionStatus.Pending &&
-        // TODO: rather change the shape of store, map by account
-        tx.account.toLowerCase() === account.toLowerCase()
-    );
-  }, [account, allTxs]);
   const queryClient = useInternalQueryClient();
-  console.log('pendingTxs:', accountsPendingTxs);
+
+  const { upsert: upsertScheduledInvalidation, byKey } = useScheduledInvalidationsStore();
+  console.log('Scheduled invalidations store:', byKey);
 
   const handleInvalidations = (tx: Transaction) => {
-    // TODO: add invalidation for the rest of txs
     // TODO invalidate gas on all txs since any tx spends gas
     if (tx.actionType === TransactionActionType.ShieldSend) {
       invalidateConfidentialTokenBalanceQueries(tx.token, queryClient);
@@ -128,12 +97,21 @@ export function useTrackPendingTransactions() {
       // on unshield - private balance decreases, claimable increases, public remains the same
       invalidateConfidentialTokenBalanceQueries(tx.token, queryClient);
 
-      // TODO: need to wait until decrypt
-      invalidateClaimableQueries({
-        token: tx.token,
+      // schedule invalidation for unshield claims once decryption is observed
+      upsertScheduledInvalidation({
+        key: `${tx.actionType}-tx-${tx.hash}`,
         accountAddress: tx.account,
-
-        queryClient,
+        createdAt: Date.now(),
+        chainId: tx.chainId,
+        triggerTxHash: tx.hash,
+        queryKeys: [
+          constructUnshieldClaimsQueryKeyForInvalidation({
+            chainId: tx.token.chainId,
+            tokenAddress: tx.token.address,
+            confidentialityType: tx.token.extensions.fhenix.confidentialityType,
+            accountAddress: tx.account,
+          }),
+        ],
       });
     } else if (tx.actionType === TransactionActionType.Claim) {
       // on claim - claimable decreases, public increases, private remains the same
@@ -154,6 +132,7 @@ export function useTrackPendingTransactions() {
         queryClient,
       });
     } else {
+      // @ts-expect-error actionType = "never" at this point
       console.warn('No invalidation logic for transaction action type:', tx.actionType);
     }
   };

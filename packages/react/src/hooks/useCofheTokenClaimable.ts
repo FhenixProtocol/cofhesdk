@@ -1,10 +1,11 @@
-import { type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
+import { QueryClient, type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
 import { type Address } from 'viem';
-import { useCofheAccount, useCofhePublicClient } from './useCofheConnection.js';
+import { useCofhePublicClient } from './useCofheConnection.js';
 import { type Token } from './useCofheTokenLists.js';
 import { DUAL_GET_UNSHIELD_CLAIM_ABI, WRAPPED_GET_USER_CLAIMS_ABI } from '../constants/confidentialTokenABIs.js';
-
 import { useInternalQuery } from '../providers/index.js';
+import { decryptionAwareReadContract } from '@/utils/decryptionAwareReadContract.js';
+import { useIsWaitingForDecryptionToInvalidate } from './useIsWaitingForDecryptionToInvalidate.js';
 
 function constructUnshieldClaimsQueryKey({
   chainId,
@@ -18,6 +19,26 @@ function constructUnshieldClaimsQueryKey({
   accountAddress: Address | undefined;
 }) {
   return ['unshieldClaims', chainId, tokenAddress, confidentialityType, accountAddress];
+}
+export function invalidateClaimableQueries({
+  token,
+  accountAddress,
+  queryClient,
+}: {
+  token: Token;
+  accountAddress: Address;
+  queryClient: QueryClient;
+}) {
+  console.log('Invalidating unshield claims queries for token:', token);
+
+  queryClient.invalidateQueries({
+    queryKey: constructUnshieldClaimsQueryKeyForInvalidation({
+      chainId: token.chainId,
+      tokenAddress: token.address,
+      confidentialityType: token.extensions.fhenix.confidentialityType,
+      accountAddress,
+    }),
+  });
 }
 
 export function constructUnshieldClaimsQueryKeyForInvalidation({
@@ -75,7 +96,9 @@ type UseUnshieldClaimsOptions = Omit<UseQueryOptions<UnshieldClaimsSummary, Erro
 export function useCofheTokenClaimable(
   { accountAddress: account, token }: UseUnshieldClaimsInput,
   queryOptions?: UseUnshieldClaimsOptions
-): UseQueryResult<UnshieldClaimsSummary, Error> {
+): UseQueryResult<UnshieldClaimsSummary, Error> & {
+  isWaitingForDecryption: boolean;
+} {
   const publicClient = useCofhePublicClient();
 
   const confidentialityType = token?.extensions.fhenix.confidentialityType;
@@ -86,10 +109,13 @@ export function useCofheTokenClaimable(
     confidentialityType,
     accountAddress: account,
   });
+  // is waiting for decryption finalization -> once Unshield tx mined, but before Decryption result available
+  const isWaitingForDecryption = useIsWaitingForDecryptionToInvalidate(queryKey);
 
-  return useInternalQuery({
+  const result = useInternalQuery({
     queryKey,
-    queryFn: async (): Promise<UnshieldClaimsSummary> => {
+    queryFn: async ({ signal, queryKey }): Promise<UnshieldClaimsSummary> => {
+      // TODO: this query fn looks too verbose, can be simplified
       if (!publicClient) {
         throw new Error('PublicClient is required to fetch unshield claims');
       }
@@ -99,14 +125,18 @@ export function useCofheTokenClaimable(
       if (!token) {
         throw new Error('Token address is required');
       }
-
       if (confidentialityType === 'dual') {
         // Dual tokens: single claim via getUserUnshieldClaim
-        const result = await publicClient.readContract({
-          address: token.address,
-          abi: DUAL_GET_UNSHIELD_CLAIM_ABI,
-          functionName: 'getUserUnshieldClaim',
-          args: [account],
+        const result = await decryptionAwareReadContract({
+          publicClient,
+          queryKey,
+          signal,
+          readContractParams: {
+            address: token.address,
+            abi: DUAL_GET_UNSHIELD_CLAIM_ABI,
+            functionName: 'getUserUnshieldClaim',
+            args: [account],
+          },
         });
 
         const claim = result as {
@@ -135,11 +165,16 @@ export function useCofheTokenClaimable(
         };
       } else if (confidentialityType === 'wrapped') {
         // Wrapped tokens: multiple claims via getUserClaims
-        const result = await publicClient.readContract({
-          address: token.address,
-          abi: WRAPPED_GET_USER_CLAIMS_ABI,
-          functionName: 'getUserClaims',
-          args: [account],
+        const result = await decryptionAwareReadContract({
+          publicClient,
+          queryKey,
+          signal,
+          readContractParams: {
+            address: token.address,
+            abi: WRAPPED_GET_USER_CLAIMS_ABI,
+            functionName: 'getUserClaims',
+            args: [account],
+          },
         });
 
         type WrappedClaimResult = {
@@ -185,4 +220,9 @@ export function useCofheTokenClaimable(
       !!publicClient && !!account && !!token && (confidentialityType === 'dual' || confidentialityType === 'wrapped'),
     ...queryOptions,
   });
+
+  return {
+    ...result,
+    isWaitingForDecryption,
+  };
 }

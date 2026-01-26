@@ -1,18 +1,15 @@
-import { WagmiProvider, http, createConfig } from 'wagmi';
+import { WagmiProvider, http, createConfig, injected } from 'wagmi';
 import { baseSepolia, sepolia } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
+export const injectedProvider = injected({ shimDisconnect: true });
 const config = createConfig({
   chains: [baseSepolia, sepolia],
   transports: {
     [sepolia.id]: http(),
     [baseSepolia.id]: http(),
   },
-  // to avoid eager connection attempts by wagmi: 1. disable multiInjectedProviderDiscovery 2. don't pass injected() into connectors
-  multiInjectedProviderDiscovery: false,
-  connectors: [],
-  // storage = null in order to prevent the very first render with "connected" state from localStorage
-  storage: null,
+  connectors: [injectedProvider],
   ssr: false,
   syncConnectedChain: true,
 });

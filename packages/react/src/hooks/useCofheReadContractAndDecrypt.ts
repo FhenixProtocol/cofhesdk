@@ -1,20 +1,31 @@
 import { type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
-import { type Address, type Abi } from 'viem';
-import { FheTypes } from '@cofhe/sdk';
+import { type Address, type Abi, type ContractFunctionName, type ContractFunctionArgs } from 'viem';
+import { FheTypes, type UnsealedItem } from '@cofhe/sdk';
 import { ErrorCause } from '@/utils/errors';
 import { useCofheDecrypt } from './useCofheDecrypt';
-import { useCofheReadContract, type UseCofheReadContractQueryOptions } from './useCofheReadContract';
+import {
+  useCofheReadContract,
+  type InferredData,
+  type UseCofheReadContractQueryOptions,
+  type UseCofheReadContractResult,
+} from './useCofheReadContract';
+import { assert } from 'ts-essentials';
 
 /**
  * Generic hook: read a confidential contract value and decrypt it.
  */
-export function useCofheReadContractAndDecrypt<TDecryptedSelectedData = bigint>(
+export function useCofheReadContractAndDecrypt<
+  TFheType extends FheTypes,
+  TAbi extends Abi,
+  TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>,
+  TDecryptedSelectedData = InferredData<TAbi, TfunctionName>,
+>(
   params: {
     address?: Address;
-    abi?: Abi;
-    functionName?: string;
-    args?: readonly unknown[];
-    fheType: FheTypes;
+    abi?: TAbi;
+    functionName?: TfunctionName;
+    args?: ContractFunctionArgs<TAbi, 'pure' | 'view', TfunctionName>;
+    fheType: TFheType;
     requiresPermit?: boolean;
     potentialDecryptErrorCause: ErrorCause;
   },
@@ -23,14 +34,14 @@ export function useCofheReadContractAndDecrypt<TDecryptedSelectedData = bigint>(
     readQueryOptions,
     decryptingQueryOptions,
   }: {
-    readQueryOptions?: UseCofheReadContractQueryOptions;
+    readQueryOptions?: UseCofheReadContractQueryOptions<TAbi, TfunctionName>;
     decryptingQueryOptions?: Omit<
-      UseQueryOptions<string | bigint | boolean, Error, TDecryptedSelectedData>,
+      UseQueryOptions<UnsealedItem<TFheType>, Error, TDecryptedSelectedData>,
       'queryKey' | 'queryFn'
     >;
   } = {}
 ): {
-  encrypted: UseQueryResult<bigint, Error>;
+  encrypted: UseCofheReadContractResult<TAbi, TfunctionName>;
   decrypted: UseQueryResult<TDecryptedSelectedData, Error>;
   disabledDueToMissingPermit: boolean;
 } {
@@ -38,9 +49,16 @@ export function useCofheReadContractAndDecrypt<TDecryptedSelectedData = bigint>(
 
   const encrypted = useCofheReadContract({ address, abi, functionName, args, requiresPermit }, readQueryOptions);
 
+  const ciphertext = encrypted.data;
+
+  assert(
+    typeof ciphertext === 'bigint' || typeof ciphertext === 'undefined',
+    'Expected ciphertext to be bigint or undefined'
+  );
+
   const decrypted = useCofheDecrypt(
     {
-      ciphertext: encrypted.data,
+      ciphertext,
       fheType,
 
       cause: potentialDecryptErrorCause,

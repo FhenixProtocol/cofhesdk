@@ -3,6 +3,7 @@ import { useCofheTokenDecryptedBalance } from '@/hooks/useCofheTokenDecryptedBal
 import { useCofheAccount } from '@/hooks/useCofheConnection';
 import { type Token } from '@/hooks/useCofheTokenLists';
 import { TokenBalanceView } from './TokenBalanceView';
+import { useCofheTokenPublicBalance } from '@/hooks/useCofheTokenPublicBalance';
 
 export enum BalanceType {
   Public = 'public',
@@ -26,10 +27,12 @@ interface TokenBalanceProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
+const DEFAULT_DISPLAY_DECIMALS = 5;
+
 export const CofheTokenConfidentialBalance: React.FC<TokenBalanceProps> = ({
   token,
   accountAddress,
-  decimalPrecision = 5,
+  decimalPrecision = DEFAULT_DISPLAY_DECIMALS,
   showSymbol = false,
   className,
   size = 'md',
@@ -44,12 +47,11 @@ export const CofheTokenConfidentialBalance: React.FC<TokenBalanceProps> = ({
     data: { formatted: confidentialBalanceFormatted } = {},
     isFetching: isFetchingConfidential,
     disabledDueToMissingPermit,
-  } = useCofheTokenDecryptedBalance(
-    { token, accountAddress: effectiveAccountAddress, displayDecimals: decimalPrecision },
-    {
-      enabled: true,
-    }
-  );
+  } = useCofheTokenDecryptedBalance({
+    token,
+    accountAddress: effectiveAccountAddress,
+    displayDecimals: decimalPrecision,
+  });
 
   return (
     <TokenBalanceView
@@ -58,6 +60,33 @@ export const CofheTokenConfidentialBalance: React.FC<TokenBalanceProps> = ({
       hidden={disabledDueToMissingPermit}
       isFetching={isFetchingConfidential}
       formattedBalance={confidentialBalanceFormatted}
+      symbol={showSymbol ? token?.symbol : undefined}
+    />
+  );
+};
+
+export const CofheTokenPublicBalance: React.FC<TokenBalanceProps> = ({
+  token,
+  accountAddress,
+  decimalPrecision = DEFAULT_DISPLAY_DECIMALS,
+  showSymbol = false,
+  className,
+  size = 'md',
+}) => {
+  const account = useCofheAccount();
+
+  const effectiveAccountAddress = accountAddress ?? account;
+
+  const { data: { formatted: publicBalanceFormatted } = {}, isFetching: isFetchingPublic } = useCofheTokenPublicBalance(
+    { token, accountAddress: effectiveAccountAddress, displayDecimals: decimalPrecision }
+  );
+
+  return (
+    <TokenBalanceView
+      className={className}
+      size={size}
+      isFetching={isFetchingPublic}
+      formattedBalance={publicBalanceFormatted}
       symbol={showSymbol ? token?.symbol : undefined}
     />
   );

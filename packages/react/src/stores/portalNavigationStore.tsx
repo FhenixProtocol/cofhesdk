@@ -56,7 +56,10 @@ export const usePortalNavigation = create<PortalNavigationStore & PortalNavigati
     overridingPage: null,
 
     navigateTo,
-    navigateBack: () => set({ pageHistory: get().pageHistory.slice(0, -1) }),
+    navigateBack: () => {
+      set({ overridingPage: null });
+      set({ pageHistory: get().pageHistory.slice(0, -1) });
+    },
   };
 });
 

@@ -60,8 +60,8 @@ export function useCofheTokenDecryptedBalance(
     {
       address: token?.address,
       abi: contractConfig?.abi,
-      functionName: contractConfig?.functionName || '',
-      args: [accountAddress],
+      functionName: contractConfig?.functionName,
+      args: accountAddress ? [accountAddress] : undefined,
       fheType,
       requiresPermit: true,
       potentialDecryptErrorCause: ErrorCause.AttemptToFetchConfidentialBalance,
