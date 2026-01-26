@@ -21,6 +21,7 @@ import type { BigNumber } from 'bignumber.js';
 import { usePortalNavigation } from '@/stores';
 import { CofheTokenPublicBalance } from '../components/CofheTokenConfidentialBalance';
 import { useIsUnshieldingMining } from '@/hooks/useIsUnshieldingMining';
+import { PageContainer } from '../components/PageContainer';
 
 const AUTOCLEAR_TX_STATUS_TIMEOUT = 5000;
 const DISPLAY_DECIMALS = 5;
@@ -431,126 +432,132 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
 
   // TODO: probably can be refactored into a view with more stramlined logic
   return (
-    <div className="fnx-text-primary space-y-3">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <button onClick={navigateBack} className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity">
-          <ArrowBackIcon style={{ fontSize: 16 }} />
-          <p className="text-sm font-medium">Shield / Unshield</p>
-        </button>
+    <PageContainer
+      header={
+        <div className="flex items-center justify-between">
+          <button
+            onClick={navigateBack}
+            className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity"
+          >
+            <ArrowBackIcon style={{ fontSize: 16 }} />
+            <p className="text-sm font-medium">Shield / Unshield</p>
+          </button>
 
-        <button
-          onClick={() =>
-            // navigateToTokenListForSelection(mode === 'shield' ? 'Select token to shield' : 'Select token to unshield')
-            navigateTo(FloatingButtonPage.TokenList, {
-              pageProps: {
-                mode: 'select',
-                title: mode === 'shield' ? 'Select token to shield' : 'Select token to unshield',
-                backToPageState: { page: FloatingButtonPage.Shield, props: { defaultMode: mode } },
-              },
-            })
-          }
-          className="flex items-center gap-1 text-sm font-bold fnx-text-primary hover:opacity-80 transition-opacity"
-        >
-          <span>{token.symbol}</span>
-          <KeyboardArrowDownIcon style={{ fontSize: 16 }} className="opacity-60" />
-        </button>
-      </div>
+          <button
+            onClick={() =>
+              // navigateToTokenListForSelection(mode === 'shield' ? 'Select token to shield' : 'Select token to unshield')
+              navigateTo(FloatingButtonPage.TokenList, {
+                pageProps: {
+                  mode: 'select',
+                  title: mode === 'shield' ? 'Select token to shield' : 'Select token to unshield',
+                  backToPageState: { page: FloatingButtonPage.Shield, props: { defaultMode: mode } },
+                },
+              })
+            }
+            className="flex items-center gap-1 text-sm font-bold fnx-text-primary hover:opacity-80 transition-opacity"
+          >
+            <span>{token.symbol}</span>
+            <KeyboardArrowDownIcon style={{ fontSize: 16 }} className="opacity-60" />
+          </button>
+        </div>
+      }
+    >
+      <div className="flex flex-col gap-3">
+        {/* Tabs */}
+        <div className="flex gap-2">
+          <ActionButton
+            onClick={() => setMode('shield')}
+            variant="tab"
+            className="flex-1"
+            pressed={mode === 'shield'}
+            label="Shield"
+          />
+          <ActionButton
+            onClick={() => setMode('unshield')}
+            variant="tab"
+            className="flex-1"
+            pressed={mode === 'unshield'}
+            label="Unshield"
+          />
+        </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2">
-        <ActionButton
-          onClick={() => setMode('shield')}
-          variant="tab"
-          className="flex-1"
-          pressed={mode === 'shield'}
-          label="Shield"
-        />
-        <ActionButton
-          onClick={() => setMode('unshield')}
-          variant="tab"
-          className="flex-1"
-          pressed={mode === 'unshield'}
-          label="Unshield"
-        />
-      </div>
-
-      {/* Two-panel layout */}
-      <div className="space-y-2">
-        {/* Source */}
-        <div className="fnx-card-bg border fnx-card-border p-3">
-          <p className="text-xs opacity-70 mb-2">
-            {mode === 'shield' ? 'Asset to be shielded' : 'Asset to be unshielded'}
-          </p>
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 min-w-0">
-              <TokenIcon logoURI={sourceLogoURI} alt={sourceSymbol} size="sm" />
-              <div className="min-w-0">
-                <AmountInput value={inputAmount} onChange={setInputAmount} onMaxClick={onMaxClick} className="w-28" />
+        {/* Two-panel layout */}
+        <div className="space-y-2">
+          {/* Source */}
+          <div className="fnx-card-bg border fnx-card-border p-3">
+            <p className="text-xs opacity-70 mb-2">
+              {mode === 'shield' ? 'Asset to be shielded' : 'Asset to be unshielded'}
+            </p>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <TokenIcon logoURI={sourceLogoURI} alt={sourceSymbol} size="sm" />
+                <div className="min-w-0">
+                  <AmountInput value={inputAmount} onChange={setInputAmount} onMaxClick={onMaxClick} className="w-28" />
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-medium">{sourceSymbol}</p>
+                <p className="text-xxs opacity-70">
+                  Available{' '}
+                  {mode === 'unshield' ? (
+                    <CofheTokenConfidentialBalance token={token} size="sm" decimalPrecision={DISPLAY_DECIMALS} />
+                  ) : (
+                    <CofheTokenPublicBalance token={token} size="sm" decimalPrecision={DISPLAY_DECIMALS} />
+                  )}
+                </p>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-sm font-medium">{sourceSymbol}</p>
-              <p className="text-xxs opacity-70">
-                Available{' '}
-                {mode === 'unshield' ? (
-                  <CofheTokenConfidentialBalance token={token} size="sm" decimalPrecision={DISPLAY_DECIMALS} />
-                ) : (
-                  <CofheTokenPublicBalance token={token} size="sm" decimalPrecision={DISPLAY_DECIMALS} />
-                )}
-              </p>
+          </div>
+
+          <div className="flex justify-center text-xl opacity-80">↓</div>
+
+          {/* Received (read-only) */}
+          <div className="fnx-card-bg border fnx-card-border p-3">
+            <p className="text-xs opacity-70 mb-2">
+              {mode === 'shield' ? 'Shielded asset received' : 'Unshielded asset received'}
+            </p>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <TokenIcon logoURI={destLogoURI} alt={destSymbol} size="sm" />
+                <div className="min-w-0">
+                  <p className="text-lg font-bold leading-none">{inputAmount || '0'}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-medium">{destSymbol}</p>
+                <p className="text-xxs opacity-70">
+                  Balance
+                  {mode === 'shield' ? (
+                    <CofheTokenConfidentialBalance token={token} size="sm" decimalPrecision={DISPLAY_DECIMALS} />
+                  ) : (
+                    <CofheTokenPublicBalance token={token} size="sm" decimalPrecision={DISPLAY_DECIMALS} />
+                  )}
+                </p>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="flex justify-center text-xl opacity-80">↓</div>
+        {/* Primary action */}
+        <ActionButton
+          onClick={handlePrimaryAction}
+          disabled={!isValidAmount || isProcessing || !isShieldableToken}
+          icon={primaryIcon}
+          label={primaryLabel}
+          className="py-2"
+        />
+        <StatusAndError status={status} error={error} />
+        <ClaimingSection token={token} />
 
-        {/* Received (read-only) */}
-        <div className="fnx-card-bg border fnx-card-border p-3">
-          <p className="text-xs opacity-70 mb-2">
-            {mode === 'shield' ? 'Shielded asset received' : 'Unshielded asset received'}
-          </p>
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 min-w-0">
-              <TokenIcon logoURI={destLogoURI} alt={destSymbol} size="sm" />
-              <div className="min-w-0">
-                <p className="text-lg font-bold leading-none">{inputAmount || '0'}</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-sm font-medium">{destSymbol}</p>
-              <p className="text-xxs opacity-70">
-                Balance
-                {mode === 'shield' ? (
-                  <CofheTokenConfidentialBalance token={token} size="sm" decimalPrecision={DISPLAY_DECIMALS} />
-                ) : (
-                  <CofheTokenPublicBalance token={token} size="sm" decimalPrecision={DISPLAY_DECIMALS} />
-                )}
-              </p>
-            </div>
+        {/* Not Shieldable Token Warning */}
+        {!isShieldableToken && (
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-2">
+            <p className="text-xs text-yellow-800 dark:text-yellow-200">
+              This token does not support shielding/unshielding.
+            </p>
           </div>
-        </div>
+        )}
       </div>
-
-      {/* Primary action */}
-      <ActionButton
-        onClick={handlePrimaryAction}
-        disabled={!isValidAmount || isProcessing || !isShieldableToken}
-        icon={primaryIcon}
-        label={primaryLabel}
-        className="py-2"
-      />
-      <StatusAndError status={status} error={error} />
-      <ClaimingSection token={token} />
-
-      {/* Not Shieldable Token Warning */}
-      {!isShieldableToken && (
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-2">
-          <p className="text-xs text-yellow-800 dark:text-yellow-200">
-            This token does not support shielding/unshielding.
-          </p>
-        </div>
-      )}
-    </div>
+    </PageContainer>
   );
 };

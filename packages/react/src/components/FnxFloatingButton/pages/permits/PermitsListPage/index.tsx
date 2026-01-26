@@ -11,6 +11,7 @@ import { Accordion, AccordionSection } from '../../../Accordion.js';
 import { PermitItem } from './components/PermitItem';
 import { usePermitsList } from '@/hooks/permits/index.js';
 import type { QuickActionId } from '@/hooks/permits/index.js';
+import { PageContainer } from '@/components/FnxFloatingButton/components/PageContainer.js';
 
 type QuickAction = { id: QuickActionId; label: string; icon: ElementType };
 
@@ -32,19 +33,34 @@ export const PermitsListPage: React.FC = () => {
   } = usePermitsList();
 
   return (
-    <div className="fnx-text-primary text-sm">
-      <div className="rounded-2xl border border-[#154054] bg-white p-5 shadow-[0_25px_60px_rgba(13,53,71,0.15)] transition-colors dark:border-[#2C6D80] dark:bg-[#1F1F1F]">
-        <div className="flex items-center justify-between pb-4">
-          <button
-            className="flex items-center gap-2 text-base font-semibold tracking-tight text-[#0E2F3F] transition-opacity hover:opacity-80 dark:text-white"
-            onClick={navigateBack}
-            type="button"
-          >
-            <ArrowBackIcon fontSize="small" />
-            <span>Permit list</span>
-          </button>
+    <PageContainer
+      header={
+        <button
+          className="flex items-center gap-2 text-base font-semibold tracking-tight text-[#0E2F3F] transition-opacity hover:opacity-80 dark:text-white"
+          onClick={navigateBack}
+          type="button"
+        >
+          <ArrowBackIcon fontSize="small" />
+          <span>Permit list</span>
+        </button>
+      }
+      footer={
+        <div className="grid grid-cols-2 gap-4">
+          {quickActions.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              type="button"
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#0E2F3F] px-4 py-3 text-base font-semibold text-[#0E2F3F] transition-colors hover:bg-[#0E2F3F]/5 dark:border-white/60 dark:text-white dark:hover:bg-white/5"
+              onClick={() => handleQuickAction(id)}
+            >
+              <Icon fontSize="small" />
+              <span>{label}</span>
+            </button>
+          ))}
         </div>
-
+      }
+    >
+      <div className="rounded-2xl border border-[#154054] bg-white p-5 shadow-[0_25px_60px_rgba(13,53,71,0.15)] transition-colors dark:border-[#2C6D80] dark:bg-[#1F1F1F]">
         <div className="space-y-6 pt-2">
           <Accordion defaultActiveId="generated">
             <AccordionSection
@@ -104,22 +120,9 @@ export const PermitsListPage: React.FC = () => {
               )}
             </AccordionSection>
           </Accordion>
-          <div className="grid grid-cols-2 gap-4">
-            {quickActions.map(({ id, label, icon: Icon }) => (
-              <button
-                key={id}
-                type="button"
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#0E2F3F] px-4 py-3 text-base font-semibold text-[#0E2F3F] transition-colors hover:bg-[#0E2F3F]/5 dark:border-white/60 dark:text-white dark:hover:bg-white/5"
-                onClick={() => handleQuickAction(id)}
-              >
-                <Icon fontSize="small" />
-                <span>{label}</span>
-              </button>
-            ))}
-          </div>
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 };
 

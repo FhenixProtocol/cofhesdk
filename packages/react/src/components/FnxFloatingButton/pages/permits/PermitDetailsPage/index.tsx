@@ -3,6 +3,8 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
 import { usePermitDetailsPage } from '@/hooks/permits/index.js';
 import type { PermitDetailsPageProps } from './types';
+import { PageContainer } from '@/components/FnxFloatingButton/components/PageContainer';
+
 export const PermitDetailsPage: React.FC<PermitDetailsPageProps> = ({ selectedPermitHash }) => {
   const {
     permitLabel,
@@ -40,19 +42,29 @@ export const PermitDetailsPage: React.FC<PermitDetailsPageProps> = ({ selectedPe
   }
 
   return (
-    <div className="fnx-text-primary text-sm">
+    <PageContainer
+      header={
+        <button
+          className="flex items-center gap-2 text-base font-semibold tracking-tight text-[#0E2F3F] transition-opacity hover:opacity-80 dark:text-white"
+          onClick={handleBack}
+          type="button"
+        >
+          <ArrowBackIcon fontSize="small" />
+          <span>{permitLabel ?? 'Permit details'}</span>
+        </button>
+      }
+      footer={
+        <button
+          type="button"
+          className="w-full rounded-xl border border-[#68D8EB] bg-[#A8F3FB] px-4 py-3 text-base font-semibold text-[#00314E] transition-colors hover:bg-[#90edf7] disabled:cursor-not-allowed disabled:opacity-60 dark:border-[#1F6B7D] dark:bg-[#114C5A] dark:text-white dark:hover:bg-[#0f3f4b]"
+          onClick={handleViewAs}
+          disabled={isActivePermit}
+        >
+          {isActivePermit ? 'Active permit' : 'View as'}
+        </button>
+      }
+    >
       <div className="rounded-2xl border border-[#154054] bg-white p-5 shadow-[0_25px_60px_rgba(13,53,71,0.15)] transition-colors dark:border-[#2C6D80] dark:bg-[#1F1F1F]">
-        <div className="flex items-center justify-between pb-4">
-          <button
-            className="flex items-center gap-2 text-base font-semibold tracking-tight text-[#0E2F3F] transition-opacity hover:opacity-80 dark:text-white"
-            onClick={handleBack}
-            type="button"
-          >
-            <ArrowBackIcon fontSize="small" />
-            <span>{permitLabel ?? 'Permit details'}</span>
-          </button>
-        </div>
-
         <div className="space-y-5">
           <div>
             <div className="flex items-center justify-between text-sm font-semibold text-[#0E2F3F] dark:text-white">
@@ -95,17 +107,8 @@ export const PermitDetailsPage: React.FC<PermitDetailsPageProps> = ({ selectedPe
               </p>
             ) : null}
           </div>
-
-          <button
-            type="button"
-            className="w-full rounded-xl border border-[#68D8EB] bg-[#A8F3FB] px-4 py-3 text-base font-semibold text-[#00314E] transition-colors hover:bg-[#90edf7] disabled:cursor-not-allowed disabled:opacity-60 dark:border-[#1F6B7D] dark:bg-[#114C5A] dark:text-white dark:hover:bg-[#0f3f4b]"
-            onClick={handleViewAs}
-            disabled={isActivePermit}
-          >
-            {isActivePermit ? 'Active permit' : 'View as'}
-          </button>
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 };

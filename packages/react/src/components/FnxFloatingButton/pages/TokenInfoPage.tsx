@@ -5,6 +5,7 @@ import { AddressButton } from '../components/AddressButton';
 import { CofheTokenConfidentialBalance } from '../components/CofheTokenConfidentialBalance';
 import { FloatingButtonPage } from '../pagesConfig/types';
 import { usePortalNavigation } from '@/stores';
+import { PageContainer } from '../components/PageContainer';
 
 type TokenInfoPageProps = {
   token: Token;
@@ -20,13 +21,14 @@ export const TokenInfoPage: React.FC<TokenInfoPageProps> = ({ token }) => {
   const { navigateBack } = usePortalNavigation();
 
   return (
-    <div className="fnx-text-primary space-y-4">
-      {/* Header */}
-      <button onClick={navigateBack} className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity">
-        <ArrowBackIcon style={{ fontSize: 16 }} />
-        <span>Back</span>
-      </button>
-
+    <PageContainer
+      header={
+        <button onClick={navigateBack} className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity">
+          <ArrowBackIcon style={{ fontSize: 16 }} />
+          <p className="text-sm font-medium">{token.name}</p>
+        </button>
+      }
+    >
       {/* Token Icon and Name */}
       <div className="flex flex-col items-center gap-3">
         <TokenIcon logoURI={token.logoURI} alt={token.name} size="xl" />
@@ -84,6 +86,6 @@ export const TokenInfoPage: React.FC<TokenInfoPageProps> = ({ token }) => {
           </div>
         )}
       </div>
-    </div>
+    </PageContainer>
   );
 };

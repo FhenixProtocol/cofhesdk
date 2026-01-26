@@ -16,6 +16,7 @@ import { getStepConfig } from '@/hooks/useCofheEncrypt';
 import { FloatingButtonPage } from '../pagesConfig/types';
 import { useOnceTransactionMined } from '@/hooks/useOnceTransactionMined';
 import { usePortalNavigation } from '@/stores';
+import { PageContainer } from '../components/PageContainer';
 
 export type SendPageProps = {
   token: Token;
@@ -113,16 +114,33 @@ export const SendPage: React.FC<SendPageProps> = ({ token }) => {
   };
 
   return (
-    <div className="fnx-text-primary space-y-4">
-      {/* Back Button */}
-      <button
-        onClick={navigateBack}
-        className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity mb-2"
-      >
-        <ArrowBackIcon style={{ fontSize: 16 }} />
-        <p className="text-sm font-medium">Shielded Transfer</p>
-      </button>
-
+    <PageContainer
+      header={
+        <button
+          onClick={navigateBack}
+          className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity mb-2"
+        >
+          <ArrowBackIcon style={{ fontSize: 16 }} />
+          <p className="text-sm font-medium">Shielded Transfer</p>
+        </button>
+      }
+      footer={
+        <button
+          onClick={handleSend}
+          disabled={!isValidAddress || !isValidAmount || isSending || isEncryptingInput}
+          className={cn(
+            'fnx-send-button w-full py-3 px-4 font-small',
+            'flex items-center justify-center gap-2',
+            isValidAddress && isValidAmount && !isSending && !isEncryptingInput
+              ? 'fnx-send-button-enabled'
+              : 'fnx-send-button-disabled'
+          )}
+        >
+          <span>Send</span>
+          <span className="text-lg">↗</span>
+        </button>
+      }
+    >
       {/* Asset Section */}
       <div className="fnx-card-bg p-2 border fnx-card-border">
         <div className="flex items-center justify-between mb-2">
@@ -233,22 +251,6 @@ export const SendPage: React.FC<SendPageProps> = ({ token }) => {
           </p>
         </div>
       )}
-
-      {/* Preview Send Button */}
-      <button
-        onClick={handleSend}
-        disabled={!isValidAddress || !isValidAmount || isSending || isEncryptingInput}
-        className={cn(
-          'fnx-send-button w-full py-3 px-4 font-small',
-          'flex items-center justify-center gap-2',
-          isValidAddress && isValidAmount && !isSending && !isEncryptingInput
-            ? 'fnx-send-button-enabled'
-            : 'fnx-send-button-disabled'
-        )}
-      >
-        <span>Send</span>
-        <span className="text-lg">↗</span>
-      </button>
-    </div>
+    </PageContainer>
   );
 };
