@@ -50,14 +50,22 @@ export type CofhesdkClientConnectionState = {
 
 type Listener = (snapshot: CofhesdkClientConnectionState) => void;
 
+export type CofhesdkClientPermitsClients = {
+  publicClient: PublicClient;
+  walletClient: WalletClient;
+};
+
 export type CofhesdkClientPermits = {
   getSnapshot: typeof permits.getSnapshot;
   subscribe: typeof permits.subscribe;
 
   // Creation methods (require connection, no params)
-  createSelf: (options: CreateSelfPermitOptions) => Promise<Permit>;
-  createSharing: (options: CreateSharingPermitOptions) => Promise<Permit>;
-  importShared: (options: ImportSharedPermitOptions | any | string) => Promise<Permit>;
+  createSelf: (options: CreateSelfPermitOptions, clients?: CofhesdkClientPermitsClients) => Promise<Permit>;
+  createSharing: (options: CreateSharingPermitOptions, clients?: CofhesdkClientPermitsClients) => Promise<Permit>;
+  importShared: (
+    options: ImportSharedPermitOptions | any | string,
+    clients?: CofhesdkClientPermitsClients
+  ) => Promise<Permit>;
 
   // Retrieval methods (chainId/account optional)
   getPermit: (hash: string, chainId?: number, account?: string) => Promise<Permit | undefined>;
