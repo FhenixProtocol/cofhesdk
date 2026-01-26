@@ -14,6 +14,7 @@ import {
   WriteContractReturnType,
 } from 'viem';
 import { Abi, CofheInputArgsPreTransform, extractEncryptableValues, insertEncryptedValues } from '@cofhe/abi';
+import type { EncryptableItem, EncryptedItemInput } from '@cofhe/sdk';
 import { useCofheClient } from '@cofhe/react';
 
 interface ComponentRendererProps {
@@ -127,21 +128,32 @@ export async function encryptAndWriteContract<
   TChainOverride extends Chain | undefined = undefined,
 >({
   params,
-  cofheClient,
   confidentialityAwareAbiArgs,
+  encrypt,
+  write,
 }: {
   params: Omit<
     WriteContractParameters<TAbi, TFunctionName, TArgs, Chain | undefined, Account | undefined, TChainOverride>,
     'args' | 'functionName'
   > & { functionName: TFunctionName };
-  cofheClient: ReturnType<typeof useCofheClient>;
   confidentialityAwareAbiArgs: CofheInputArgsPreTransform<TAbi, TFunctionName>;
+  encrypt: (encryptableItems: EncryptableItem[]) => Promise<readonly EncryptedItemInput[]>;
+  write: (
+    writeParams: WriteContractParameters<
+      TAbi,
+      TFunctionName,
+      TArgs,
+      Chain | undefined,
+      Account | undefined,
+      TChainOverride
+    >,
+  ) => Promise<WriteContractReturnType>;
 }): Promise<WriteContractReturnType> {
   console.log('Writing contract with params:', confidentialityAwareAbiArgs);
   const transformer = constructTransformFn<TAbi, TFunctionName, TArgs, TChainOverride>(
     params.abi,
     params.functionName,
-    cofheClient,
+    encrypt,
   );
   const transformedArgs: WriteContractParameters<
     TAbi,
@@ -162,14 +174,7 @@ export async function encryptAndWriteContract<
     args: transformedArgs,
   } as WriteContractParameters<TAbi, TFunctionName, TArgs, Chain | undefined, Account | undefined, TChainOverride>;
 
-  const walletClient = cofheClient.getSnapshot().walletClient;
-  if (!walletClient) {
-    throw new Error(
-      'WalletClient is required to write to a contract. Did you connect a wallet / call cofheClient.connect()?',
-    );
-  }
-
-  return walletClient.writeContract(newParams);
+  return write(newParams);
 }
 
 // const walletClient = createMockWalletAndPublicClient(sepolia.id).walletClient;
@@ -187,7 +192,7 @@ function constructTransformFn<
 >(
   abi: TAbi,
   functionName: TFunctionName,
-  client: ReturnType<typeof useCofheClient>,
+  encrypt: (encryptableItems: EncryptableItem[]) => Promise<readonly EncryptedItemInput[]>,
 ): (
   mixedArgs: CofheInputArgsPreTransform<TAbi, TFunctionName>,
 ) => Promise<
@@ -195,7 +200,7 @@ function constructTransformFn<
 > {
   return async (mixedArgs) => {
     const extracted = extractEncryptableValues(abi, functionName, mixedArgs);
-    const encrypted = await client.encryptInputs(extracted).encrypt();
+    const encrypted = await encrypt(extracted);
     const merged = insertEncryptedValues(abi, functionName, mixedArgs, encrypted);
     // TODO: constructTransformFn make types match
     return merged as WriteContractParameters<
@@ -222,10 +227,20 @@ const TestAutoDecryptionComponent: React.FC = () => {
         address: CONTRACT_ADDRESS,
         chain: undefined,
       },
-      cofheClient: client,
       confidentialityAwareAbiArgs: ['0x9A9B640F221Fb8E7A283501367812c50C6805ED1', 124n],
+      encrypt: async (encryptableItems) => client.encryptInputs(encryptableItems).encrypt(),
+      write: async (writeParams) => {
+        const walletClient = client.getSnapshot().walletClient;
+        if (!walletClient) {
+          throw new Error(
+            'WalletClient is required to write to a contract. Did you connect a wallet / call cofheClient.connect()?',
+          );
+        }
+
+        return walletClient.writeContract(writeParams);
+      },
     });
-  }, []);
+  }, [client]);
 
   //   address: '0xfEF0C260cb5a9A1761C0c0Fd6e34248C330C9e5a',
   //   abi: TestABI,
