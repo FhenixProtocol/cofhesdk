@@ -18,7 +18,6 @@ import {
 import { createMockWalletAndPublicClient } from '../utils/misc';
 import { sepolia } from 'viem/chains';
 import { Abi, CofheInputArgsPreTransform, extractEncryptableValues, insertEncryptedValues } from '@cofhe/abi';
-import { FheTypes } from '@cofhe/sdk';
 import { useCofheClient } from '@cofhe/react';
 
 interface ComponentRendererProps {
@@ -133,14 +132,20 @@ export async function encryptAndWriteContract<
   TChain extends Chain | undefined = Chain | undefined,
   TAccount extends Account | undefined = Account | undefined,
 >(
-  params: Omit<WriteContractParameters<TAbi, TFunctionName, TArgs, TChain, TAccount, TChainOverride>, 'args'>,
+  params: Omit<
+    WriteContractParameters<TAbi, TFunctionName, TArgs, TChain, TAccount, TChainOverride>,
+    'args' | 'functionName'
+  > & { functionName: TFunctionName },
   walletClient: WalletClient<Transport, TChain, TAccount>,
+  cofheClient: ReturnType<typeof useCofheClient>,
   confidentialityAwareAbiArgs: CofheInputArgsPreTransform<TAbi, TFunctionName>,
-  transformer: (
-    args: CofheInputArgsPreTransform<TAbi, TFunctionName>,
-  ) => Promise<WriteContractParameters<TAbi, TFunctionName, TArgs, TChain, TAccount, TChainOverride>['args']>,
 ): Promise<WriteContractReturnType> {
   console.log('Writing contract with params:', confidentialityAwareAbiArgs);
+  const transformer = constructTransformFn<TAbi, TFunctionName, TArgs, TChainOverride, TChain, TAccount>(
+    params.abi,
+    params.functionName,
+    cofheClient,
+  );
   const transformedArgs: WriteContractParameters<TAbi, TFunctionName, TArgs, TChain, TAccount, TChainOverride>['args'] =
     await transformer(confidentialityAwareAbiArgs);
 
@@ -158,11 +163,6 @@ export async function encryptAndWriteContract<
 }
 
 const walletClient = createMockWalletAndPublicClient(sepolia.id).walletClient;
-
-const encTransferPreTransformArgs: CofheInputArgsPreTransform<typeof TestABI, 'encTransfer'> = [
-  '0x9A9B640F221Fb8E7A283501367812c50C6805ED1',
-  124n,
-] as const;
 
 // 1. I pass args decoded + encrypted in the same one UnencryptedUserInputArgs<TAbi, TFunctionName> (aka CofheInputArgsPreTransform<TAbi, TFunctionName>)
 // 2. encryptAndWriteFn figures out what needs to be encrypted (extractEncryptableValues) and encrypts only those values
@@ -206,8 +206,8 @@ const TestAutoDecryptionComponent: React.FC = () => {
         chain: undefined,
       },
       walletClient,
-      encTransferPreTransformArgs,
-      constructTransformFn(TestABI, 'encTransfer', client),
+      client,
+      ['0x9A9B640F221Fb8E7A283501367812c50C6805ED1', 124n],
     );
   }, []);
 
