@@ -18,7 +18,7 @@ interface PageContainerProps {
  */
 export const PageContainer: React.FC<PageContainerProps> = ({ header, children, footer }) => {
   return (
-    <div className="flex flex-col max-h-[500px] w-full gap-4">
+    <div className="flex flex-col h-full max-h-[500px] w-full gap-4">
       {/* Header - fixed at top, doesn't scroll */}
       {header && <div className="flex-shrink-0">{header}</div>}
 
