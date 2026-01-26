@@ -22,13 +22,14 @@ import {
 import type { Abi, AbiFunction, AbiParameter, ExtractAbiFunction } from 'abitype';
 import type { CofheAbiParametersToPrimitiveTypes } from './fhenixMap';
 import { extractArrayParameterType, getAbiFunction, type MaybePartialBy, type ReadonlyWiden } from './utils';
+import type { Hash, Hex } from 'viem';
 
 export type CofheInputArgs<abi extends Abi | readonly unknown[] = Abi, functionName extends string = string> = GetArgs<
   abi,
   functionName
 >['args'];
 
-type EncryptedInputToInputMap<E extends EncryptedItemInput> = E extends EncryptedBoolInput
+type EncryptedInputToInputMap<E extends EncryptedItemInput<Hex>> = E extends EncryptedBoolInput
   ? EncryptableBool['data']
   : E extends EncryptedUint8Input
     ? EncryptableUint8['data']
@@ -46,7 +47,7 @@ type EncryptedInputToInputMap<E extends EncryptedItemInput> = E extends Encrypte
 
 type EncryptedInputsToInputs<T> = T extends Primitive
   ? LiteralToPrimitive<T>
-  : T extends EncryptedItemInput
+  : T extends EncryptedItemInput<Hash>
     ? EncryptedInputToInputMap<T>
     : {
         [K in keyof T]: EncryptedInputsToInputs<T[K]>;
@@ -156,7 +157,7 @@ function internalTypeIsEncryptedInput(internalType: string): internalType is Enc
  * @param args - Function arguments in the format of CofheInputArgsPreTransform (raw data values)
  * @returns Array of EncryptableItem objects ready for encryption
  */
-export function extractEncryptableValues<TAbi extends Abi, TFunctionName extends string>(
+export function extractEncryptableValues<TAbi extends Abi | readonly unknown[], TFunctionName extends string>(
   abi: TAbi,
   functionName: TFunctionName,
   args: CofheInputArgsPreTransform<TAbi, TFunctionName>
@@ -339,7 +340,7 @@ export function extractEncryptableValues<TAbi extends Abi, TFunctionName extends
  * @param encryptedValues - Encrypted values in the same order as returned by extractEncryptableValues
  * @returns Function arguments with encrypted values inserted (format of CofheInputArgs)
  */
-export function insertEncryptedValues<TAbi extends Abi, TFunctionName extends string>(
+export function insertEncryptedValues<TAbi extends Abi | readonly unknown[], TFunctionName extends string>(
   abi: TAbi,
   functionName: TFunctionName,
   args: CofheInputArgsPreTransform<TAbi, TFunctionName>,

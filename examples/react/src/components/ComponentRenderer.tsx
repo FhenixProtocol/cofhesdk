@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Overview } from './examples/Overview';
 import { FnxEncryptInputExample } from './examples/FnxEncryptInputExample';
 import { HooksExample } from './examples/HooksExample';
 import { FnxFloatingButtonExample } from './examples/FnxFloatingButtonExample';
 import {
-  Abi,
+  // Abi,
   Account,
   Address,
   Chain,
@@ -17,7 +17,7 @@ import {
 } from 'viem';
 import { createMockWalletAndPublicClient } from '../utils/misc';
 import { sepolia } from 'viem/chains';
-import { CofheInputArgsPreTransform, extractEncryptableValues, insertEncryptedValues } from '@cofhe/abi';
+import { Abi, CofheInputArgsPreTransform, extractEncryptableValues, insertEncryptedValues } from '@cofhe/abi';
 import { FheTypes } from '@cofhe/sdk';
 import { useCofheClient } from '@cofhe/react';
 
@@ -169,54 +169,48 @@ const encTransferPreTransformArgs: CofheInputArgsPreTransform<typeof TestABI, 'e
 // 3. it merges the original args with the encrypted values (insertEncryptedValues) to produce final args
 //
 
-// function constructTransformFn<
-//   TAbi extends Abi,
-//   TFunctionName extends ContractFunctionName<TAbi, 'payable' | 'nonpayable'>,
-//   TArgs extends ContractFunctionArgs<TAbi, 'payable' | 'nonpayable', TFunctionName>,
-//   TChainOverride extends Chain | undefined = undefined,
-//   TChain extends Chain | undefined = Chain | undefined,
-//   TAccount extends Account | undefined = Account | undefined,
-// >(
-//   abi: TAbi,
-//   functionName: TFunctionName,
-//   client: ReturnType<typeof useCofheClient>,
-// ): (
-//   mixedArgs: CofheInputArgsPreTransform<TAbi, TFunctionName>,
-// ) => Promise<
-//   WriteContractParameters<TAbi, TFunctionName, TArgs, TChain, TAccount, TChainOverride>['args'] | undefined
-// > {
-//   return async (mixedArgs) => {
-//     const extracted = extractEncryptableValues(abi, functionName, mixedArgs);
-//     const encrypted = await client.encryptInputs(extracted).encrypt();
-//     const merged = insertEncryptedValues(abi, functionName, mixedArgs, encrypted);
-//     return merged;
-//   };
-// }
+function constructTransformFn<
+  TAbi extends Abi | readonly unknown[],
+  TFunctionName extends ContractFunctionName<TAbi, 'payable' | 'nonpayable'>,
+  TArgs extends ContractFunctionArgs<TAbi, 'payable' | 'nonpayable', TFunctionName>,
+  TChainOverride extends Chain | undefined = undefined,
+  TChain extends Chain | undefined = Chain | undefined,
+  TAccount extends Account | undefined = Account | undefined,
+>(
+  abi: TAbi,
+  functionName: TFunctionName,
+  client: ReturnType<typeof useCofheClient>,
+): (
+  mixedArgs: CofheInputArgsPreTransform<TAbi, TFunctionName>,
+) => Promise<WriteContractParameters<TAbi, TFunctionName, TArgs, TChain, TAccount, TChainOverride>['args']> {
+  return async (mixedArgs) => {
+    const extracted = extractEncryptableValues(abi, functionName, mixedArgs);
+    const encrypted = await client.encryptInputs(extracted).encrypt();
+    const merged = insertEncryptedValues(abi, functionName, mixedArgs, encrypted);
+    // TODO: constructTransformFn make types match
+    return merged as WriteContractParameters<TAbi, TFunctionName, TArgs, TChain, TAccount, TChainOverride>['args'];
+  };
+}
 
 const TestAutoDecryptionComponent: React.FC = () => {
   const client = useCofheClient();
 
-  void encryptAndWriteContract(
-    {
-      abi: TestABI,
-      functionName: 'encTransfer',
-      // args: ['0x9A9B640F221Fb8E7A283501367812c50C6805ED1', 124n] as const,
-      account: '0x1234567890123456789012345678901234567890',
-      address: CONTRACT_ADDRESS,
-      chain: undefined,
-    },
-    walletClient,
-    encTransferPreTransformArgs,
-    // constructTransformFn(TestABI, 'encTransfer', client),
-    async (mixedArgs /* encrypted and unencrypted */) => {
-      // encrypt, then merge
-      const extracted = extractEncryptableValues(TestABI, 'encTransfer', mixedArgs);
-      const encrypted = await client.encryptInputs(extracted).encrypt();
-      const merged = insertEncryptedValues(TestABI, 'encTransfer', mixedArgs, encrypted);
-      return merged;
-    },
-  );
-  // const { encrypted, decrypted } = useCofheReadContractAndDecrypt({
+  useEffect(() => {
+    encryptAndWriteContract(
+      {
+        abi: TestABI,
+        functionName: 'encTransfer',
+        // args: ['0x9A9B640F221Fb8E7A283501367812c50C6805ED1', 124n] as const,
+        account: '0x1234567890123456789012345678901234567890',
+        address: CONTRACT_ADDRESS,
+        chain: undefined,
+      },
+      walletClient,
+      encTransferPreTransformArgs,
+      constructTransformFn(TestABI, 'encTransfer', client),
+    );
+  }, []);
+
   //   address: '0xfEF0C260cb5a9A1761C0c0Fd6e34248C330C9e5a',
   //   abi: TestABI,
   //   functionName: 'returnsTwoEncryptedValues',
