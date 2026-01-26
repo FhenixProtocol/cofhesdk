@@ -1,8 +1,9 @@
 import { useCofheActivePermit } from '@/hooks';
-import { usePortalStatuses } from '@/stores';
+import { usePortalNavigation, usePortalStatuses, usePortalUI } from '@/stores';
 import { truncateHash } from '@/utils';
 import { type Permit } from '@cofhe/sdk/permits';
 import { useEffect, useRef } from 'react';
+import { FloatingButtonPage } from './FnxFloatingButton/pagesConfig/types';
 
 export const showPermitExpiredStatus = () => {
   usePortalStatuses.getState().addStatus({
@@ -13,7 +14,8 @@ export const showPermitExpiredStatus = () => {
     action: {
       label: 'FIX',
       onClick: () => {
-        console.log('fix permit expired issue');
+        usePortalUI.getState().openPortal();
+        usePortalNavigation.getState().navigateTo(FloatingButtonPage.Permits);
       },
     },
   });
@@ -31,7 +33,8 @@ export const showPermitExpiringSoonStatus = (permit: Permit) => {
     action: {
       label: 'FIX',
       onClick: () => {
-        console.log('fix permit expiring soon issue');
+        usePortalUI.getState().openPortal();
+        usePortalNavigation.getState().navigateTo(FloatingButtonPage.Permits);
       },
     },
   });
