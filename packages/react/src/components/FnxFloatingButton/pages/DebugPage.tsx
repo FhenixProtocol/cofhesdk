@@ -3,6 +3,7 @@ import { ToastPrimitive, ToastPrimitiveBase } from '../components/ToastPrimitive
 import { useState } from 'react';
 import { PortalModal } from '../modals/types';
 import { usePortalNavigation, usePortalStatuses, usePortalModals, usePortalToasts } from '@/stores';
+import { PageContainer } from '../components/PageContainer.js';
 
 export const DebugPage: React.FC = () => {
   const { navigateBack } = usePortalNavigation();
@@ -12,11 +13,14 @@ export const DebugPage: React.FC = () => {
   const [modalSelection, setModalSelection] = useState<string | undefined>(undefined);
 
   return (
-    <div className="fnx-text-primary space-y-3">
-      <button onClick={navigateBack} className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity">
-        <ArrowBackIcon style={{ fontSize: 16 }} />
-        <span>Back</span>
-      </button>
+    <PageContainer
+      header={
+        <button onClick={navigateBack} className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity">
+          <ArrowBackIcon style={{ fontSize: 16 }} />
+          <span>Back</span>
+        </button>
+      }
+    >
       <div className="flex flex-col gap-3">
         <p className="text-sm font-medium">Debug</p>
         <p className="text-xs">Modal:</p>
@@ -275,6 +279,6 @@ export const DebugPage: React.FC = () => {
           Permit created
         </button>
       </div>
-    </div>
+    </PageContainer>
   );
 };
