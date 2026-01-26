@@ -214,7 +214,7 @@ function constructTransformFn<
   };
 }
 
-const TestAutoDecryptionComponent: React.FC = () => {
+function useNewEncryptAndWriteContract() {
   const client = useCofheClient();
 
   const { encryptInputsAsync } = useCofheEncryptInputsMutation();
@@ -235,7 +235,10 @@ const TestAutoDecryptionComponent: React.FC = () => {
       write: writeContractAsync,
     });
   }, [client]);
+}
 
+const TestAutoDecryptionComponent: React.FC = () => {
+  useNewEncryptAndWriteContract();
   //   address: '0xfEF0C260cb5a9A1761C0c0Fd6e34248C330C9e5a',
   //   abi: TestABI,
   //   functionName: 'returnsTwoEncryptedValues',
