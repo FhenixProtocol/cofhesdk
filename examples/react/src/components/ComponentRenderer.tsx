@@ -1,10 +1,9 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Overview } from './examples/Overview';
 import { FnxEncryptInputExample } from './examples/FnxEncryptInputExample';
 import { HooksExample } from './examples/HooksExample';
 import { FnxFloatingButtonExample } from './examples/FnxFloatingButtonExample';
-import { Address } from 'viem';
-import { useCofheEncryptAndWriteContractNew } from '@cofhe/react';
+import { useCofheClient, useCofheEncryptAndWriteContractNew } from '@cofhe/react';
 // import { TestABI } from './tmp-abis';
 
 interface ComponentRendererProps {
@@ -12,78 +11,121 @@ interface ComponentRendererProps {
   isDarkMode: boolean;
 }
 
-export const CONTRACT_ADDRESS: Address = '0xfEF0C260cb5a9A1761C0c0Fd6e34248C330C9e5a';
-
-function useTesting() {
+const TestAutoDecryptionComponent: React.FC = () => {
+  const client = useCofheClient();
   const { encryptAndWriteContract } = useCofheEncryptAndWriteContractNew();
 
-  useEffect(() => {
-    if (true as any) return;
-    encryptAndWriteContract({
-      params: {
-        abi: [
-          {
-            inputs: [
+  return (
+    <button
+      onClick={() => {
+        const accountAddress = client.getSnapshot().walletClient?.account?.address;
+        if (!accountAddress) throw new Error('No connected account');
+        encryptAndWriteContract({
+          params: {
+            abi: [
               {
-                internalType: 'address',
-                name: 'to',
-                type: 'address',
-              },
-              {
-                components: [
+                inputs: [
                   {
-                    internalType: 'uint256',
-                    name: 'ctHash',
-                    type: 'uint256',
+                    components: [
+                      {
+                        internalType: 'uint256',
+                        name: 'ctHash',
+                        type: 'uint256',
+                      },
+                      {
+                        internalType: 'uint8',
+                        name: 'securityZone',
+                        type: 'uint8',
+                      },
+                      {
+                        internalType: 'uint8',
+                        name: 'utype',
+                        type: 'uint8',
+                      },
+                      {
+                        internalType: 'bytes',
+                        name: 'signature',
+                        type: 'bytes',
+                      },
+                    ],
+                    internalType: 'struct InEuint128',
+                    name: 'inValue128',
+                    type: 'tuple',
                   },
                   {
-                    internalType: 'uint8',
-                    name: 'securityZone',
-                    type: 'uint8',
+                    components: [
+                      {
+                        internalType: 'uint256',
+                        name: 'ctHash',
+                        type: 'uint256',
+                      },
+                      {
+                        internalType: 'uint8',
+                        name: 'securityZone',
+                        type: 'uint8',
+                      },
+                      {
+                        internalType: 'uint8',
+                        name: 'utype',
+                        type: 'uint8',
+                      },
+                      {
+                        internalType: 'bytes',
+                        name: 'signature',
+                        type: 'bytes',
+                      },
+                    ],
+                    internalType: 'struct InEuint64',
+                    name: 'inValue64',
+                    type: 'tuple',
                   },
                   {
-                    internalType: 'uint8',
-                    name: 'utype',
-                    type: 'uint8',
-                  },
-                  {
-                    internalType: 'bytes',
-                    name: 'signature',
-                    type: 'bytes',
+                    components: [
+                      {
+                        internalType: 'uint256',
+                        name: 'ctHash',
+                        type: 'uint256',
+                      },
+                      {
+                        internalType: 'uint8',
+                        name: 'securityZone',
+                        type: 'uint8',
+                      },
+                      {
+                        internalType: 'uint8',
+                        name: 'utype',
+                        type: 'uint8',
+                      },
+                      {
+                        internalType: 'bytes',
+                        name: 'signature',
+                        type: 'bytes',
+                      },
+                    ],
+                    internalType: 'struct InEbool',
+                    name: 'inValueBool',
+                    type: 'tuple',
                   },
                 ],
-                internalType: 'struct InEuint128',
-                name: 'inValue',
-                type: 'tuple',
+                name: 'writeThreeEncryptedValues',
+                outputs: [],
+                stateMutability: 'nonpayable',
+                type: 'function',
               },
-            ],
-            name: 'encTransfer',
-            outputs: [
-              {
-                internalType: 'euint128',
-                name: 'transferred',
-                type: 'uint256',
-              },
-            ],
-            stateMutability: 'nonpayable',
-            type: 'function',
+            ] as const,
+            functionName: 'writeThreeEncryptedValues',
+            // args: ['0x9A9B640F221Fb8E7A283501367812c50C6805ED1', 124n] as const,
+            account: accountAddress,
+            address: '0x3a456e3758f6779d0b105778c2c8c284bc95a284e596d50cdc00fded070318f3',
+            chain: undefined,
           },
-        ] as const,
-        functionName: 'encTransfer',
-        // args: ['0x9A9B640F221Fb8E7A283501367812c50C6805ED1', 124n] as const,
-        account: '0x1234567890123456789012345678901234567890',
-        address: CONTRACT_ADDRESS,
-        chain: undefined,
-      },
-      confidentialityAwareAbiArgs: ['0x9A9B640F221Fb8E7A283501367812c50C6805ED1', 123n],
-    });
-  }, [encryptAndWriteContract]);
-}
-
-const TestAutoDecryptionComponent: React.FC = () => {
-  useTesting();
-
-  return null;
+          confidentialityAwareAbiArgs: [123n, 123n, true] as const,
+        });
+      }}
+    >
+      send tx
+    </button>
+  );
 };
 export const ComponentRenderer: React.FC<ComponentRendererProps> = ({ activeComponent, isDarkMode }) => {
   const renderComponent = () => {
