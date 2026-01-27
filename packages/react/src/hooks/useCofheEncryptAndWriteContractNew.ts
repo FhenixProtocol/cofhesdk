@@ -14,6 +14,12 @@ import { useCofheEncryptInputsMutation } from './useCofheEncryptInputsMutation';
 import { useCofheWalletWriteContractMutation } from './useCofheWalletWriteContractMutation';
 import { useEffect } from 'react';
 
+type NoInferLocal<T> = [T][T extends any ? 0 : never];
+
+type ConfidentialityAwareAbiArgs<TAbi extends Abi | readonly unknown[], TFunctionName extends string> = NoInferLocal<
+  Exclude<CofheInputArgsPreTransform<TAbi, TFunctionName>, undefined>
+>;
+
 export async function _encryptAndWriteContract<
   const TAbi extends Abi | readonly unknown[],
   TFunctionName extends ContractFunctionName<TAbi, 'payable' | 'nonpayable'>,
@@ -35,7 +41,10 @@ export async function _encryptAndWriteContract<
     >,
     'args' | 'functionName'
   > & { functionName: TFunctionName };
-  confidentialityAwareAbiArgs: CofheInputArgsPreTransform<TAbi, TFunctionName>;
+  // Don't let args participate in inferring `TAbi`/`TFunctionName`.
+  // Otherwise, an incorrect args shape can cause TS to widen TAbi to `readonly unknown[]`
+  // (and then args become `unknown[]`, silently accepting anything).
+  confidentialityAwareAbiArgs: ConfidentialityAwareAbiArgs<TAbi, TFunctionName>;
   encrypt: (encryptableItems: EncryptableItem[]) => Promise<readonly EncryptedItemInput[]>;
   write: (
     writeParams: WriteContractParameters<
@@ -92,7 +101,7 @@ function constructTransformFn<
   functionName: TFunctionName,
   encrypt: (encryptableItems: EncryptableItem[]) => Promise<readonly EncryptedItemInput[]>
 ): (
-  mixedArgs: CofheInputArgsPreTransform<TAbi, TFunctionName>
+  mixedArgs: Exclude<CofheInputArgsPreTransform<TAbi, TFunctionName>, undefined>
 ) => Promise<
   WriteContractParameters<
     TAbi,
@@ -139,7 +148,7 @@ export function useCofheEncryptAndWriteContractNew() {
       >,
       'args' | 'functionName'
     > & { functionName: TFunctionName };
-    confidentialityAwareAbiArgs: CofheInputArgsPreTransform<TAbi, TFunctionName>;
+    confidentialityAwareAbiArgs: ConfidentialityAwareAbiArgs<TAbi, TFunctionName>;
   }) =>
     _encryptAndWriteContract<TAbi, TFunctionName, TChainOverride>({
       ...args,

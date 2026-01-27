@@ -1,3 +1,5 @@
+import type { Abi } from 'viem';
+
 export const TestABI = [
   {
     inputs: [
@@ -93,4 +95,4 @@ export const TestABI = [
     stateMutability: 'view',
     type: 'function',
   },
-] as const;
+] as const satisfies Abi;

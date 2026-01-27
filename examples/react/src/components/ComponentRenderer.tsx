@@ -3,19 +3,8 @@ import { Overview } from './examples/Overview';
 import { FnxEncryptInputExample } from './examples/FnxEncryptInputExample';
 import { HooksExample } from './examples/HooksExample';
 import { FnxFloatingButtonExample } from './examples/FnxFloatingButtonExample';
-import {
-  // Abi,
-  Account,
-  Address,
-  Chain,
-  ContractFunctionArgs,
-  ContractFunctionName,
-  WriteContractParameters,
-  WriteContractReturnType,
-} from 'viem';
-import { Abi, CofheInputArgsPreTransform, extractEncryptableValues, insertEncryptedValues } from '@cofhe/abi';
-import type { EncryptableItem, EncryptedItemInput } from '@cofhe/sdk';
-import { useCofheClient, useCofheEncryptInputsMutation, useCofheWalletWriteContractMutation } from '@cofhe/react';
+import { Address } from 'viem';
+import { useCofheEncryptAndWriteContractNew } from '@cofhe/react';
 import { TestABI } from './tmp-abis';
 
 interface ComponentRendererProps {
@@ -25,133 +14,75 @@ interface ComponentRendererProps {
 
 export const CONTRACT_ADDRESS: Address = '0xfEF0C260cb5a9A1761C0c0Fd6e34248C330C9e5a';
 
-export async function encryptAndWriteContract<
-  const TAbi extends Abi | readonly unknown[],
-  TFunctionName extends ContractFunctionName<TAbi, 'payable' | 'nonpayable'>,
-  TArgs extends ContractFunctionArgs<TAbi, 'payable' | 'nonpayable', TFunctionName>,
-  TChainOverride extends Chain | undefined = undefined,
->({
-  params,
-  confidentialityAwareAbiArgs,
-  encrypt,
-  write,
-}: {
-  params: Omit<
-    WriteContractParameters<TAbi, TFunctionName, TArgs, Chain | undefined, Account | undefined, TChainOverride>,
-    'args' | 'functionName'
-  > & { functionName: TFunctionName };
-  confidentialityAwareAbiArgs: CofheInputArgsPreTransform<TAbi, TFunctionName>;
-  encrypt: (encryptableItems: EncryptableItem[]) => Promise<readonly EncryptedItemInput[]>;
-  write: (
-    writeParams: WriteContractParameters<
-      TAbi,
-      TFunctionName,
-      TArgs,
-      Chain | undefined,
-      Account | undefined,
-      TChainOverride
-    >,
-  ) => Promise<WriteContractReturnType>;
-}): Promise<WriteContractReturnType> {
-  console.log('Writing contract with params:', confidentialityAwareAbiArgs);
-  const transformer = constructTransformFn<TAbi, TFunctionName, TArgs, TChainOverride>(
-    params.abi,
-    params.functionName,
-    encrypt,
-  );
-  const transformedArgs: WriteContractParameters<
-    TAbi,
-    TFunctionName,
-    TArgs,
-    Chain | undefined,
-    Account | undefined,
-    TChainOverride
-  >['args'] = await transformer(confidentialityAwareAbiArgs);
-
-  // You can’t fix that spot “purely” (no as … and no any) while keeping this wrapper fully-generic over TAbi/TFunctionName.
-  // Reason: viem’s WriteContractParameters ultimately includes a conditional type that depends on:
-  // readonly [] extends ContractFunctionArgs<TAbi, ..., TFunctionName>
-  // Inside a generic function body, TypeScript must typecheck for all possible TAbi/TFunctionName, so it cannot prove which branch you’re in. That’s why it rejects constructing/passing newParams as WriteContractParameters<...> even when your runtime object is correct.
-
-  const newParams = {
-    ...params,
-    args: transformedArgs,
-  } as WriteContractParameters<TAbi, TFunctionName, TArgs, Chain | undefined, Account | undefined, TChainOverride>;
-
-  return write(newParams);
-}
-
-// const walletClient = createMockWalletAndPublicClient(sepolia.id).walletClient;
-
-// 1. I pass args decoded + encrypted in the same one UnencryptedUserInputArgs<TAbi, TFunctionName> (aka CofheInputArgsPreTransform<TAbi, TFunctionName>)
-// 2. encryptAndWriteFn figures out what needs to be encrypted (extractEncryptableValues) and encrypts only those values
-// 3. it merges the original args with the encrypted values (insertEncryptedValues) to produce final args
-//
-
-function constructTransformFn<
-  TAbi extends Abi | readonly unknown[],
-  TFunctionName extends ContractFunctionName<TAbi, 'payable' | 'nonpayable'>,
-  TArgs extends ContractFunctionArgs<TAbi, 'payable' | 'nonpayable', TFunctionName>,
-  TChainOverride extends Chain | undefined = undefined,
->(
-  abi: TAbi,
-  functionName: TFunctionName,
-  encrypt: (encryptableItems: EncryptableItem[]) => Promise<readonly EncryptedItemInput[]>,
-): (
-  mixedArgs: CofheInputArgsPreTransform<TAbi, TFunctionName>,
-) => Promise<
-  WriteContractParameters<TAbi, TFunctionName, TArgs, Chain | undefined, Account | undefined, TChainOverride>['args']
-> {
-  return async (mixedArgs) => {
-    const extracted = extractEncryptableValues(abi, functionName, mixedArgs);
-    const encrypted = await encrypt(extracted);
-    const merged = insertEncryptedValues(abi, functionName, mixedArgs, encrypted);
-    // TODO: constructTransformFn make types match
-    return merged as WriteContractParameters<
-      TAbi,
-      TFunctionName,
-      TArgs,
-      Chain | undefined,
-      Account | undefined,
-      TChainOverride
-    >['args'];
-  };
-}
-
-function useNewEncryptAndWriteContract() {
-  const client = useCofheClient();
-
-  const { encryptInputsAsync } = useCofheEncryptInputsMutation();
-  const { writeContractAsync } = useCofheWalletWriteContractMutation();
+function useTesting() {
+  const { encryptAndWriteContract } = useCofheEncryptAndWriteContractNew();
 
   useEffect(() => {
+    // if (true as any) return;
     encryptAndWriteContract({
       params: {
-        abi: TestABI,
+        abi: [
+          {
+            inputs: [
+              {
+                internalType: 'address',
+                name: 'to',
+                type: 'address',
+              },
+              {
+                components: [
+                  {
+                    internalType: 'uint256',
+                    name: 'ctHash',
+                    type: 'uint256',
+                  },
+                  {
+                    internalType: 'uint8',
+                    name: 'securityZone',
+                    type: 'uint8',
+                  },
+                  {
+                    internalType: 'uint8',
+                    name: 'utype',
+                    type: 'uint8',
+                  },
+                  {
+                    internalType: 'bytes',
+                    name: 'signature',
+                    type: 'bytes',
+                  },
+                ],
+                internalType: 'struct InEuint128',
+                name: 'inValue',
+                type: 'tuple',
+              },
+            ],
+            name: 'encTransfer',
+            outputs: [
+              {
+                internalType: 'euint128',
+                name: 'transferred',
+                type: 'uint256',
+              },
+            ],
+            stateMutability: 'nonpayable',
+            type: 'function',
+          },
+        ] as const,
         functionName: 'encTransfer',
         // args: ['0x9A9B640F221Fb8E7A283501367812c50C6805ED1', 124n] as const,
         account: '0x1234567890123456789012345678901234567890',
         address: CONTRACT_ADDRESS,
         chain: undefined,
       },
-      confidentialityAwareAbiArgs: ['0x9A9B640F221Fb8E7A283501367812c50C6805ED1', 124n],
-      encrypt: encryptInputsAsync,
-      write: writeContractAsync,
+      confidentialityAwareAbiArgs: ['0x9A9B640F221Fb8E7A283501367812c50C6805ED1', true],
     });
-  }, [client]);
+  }, [encryptAndWriteContract]);
 }
 
 const TestAutoDecryptionComponent: React.FC = () => {
-  useNewEncryptAndWriteContract();
-  //   address: '0xfEF0C260cb5a9A1761C0c0Fd6e34248C330C9e5a',
-  //   abi: TestABI,
-  //   functionName: 'returnsTwoEncryptedValues',
-  //   args: ['0x9A9B640F221Fb8E7A283501367812c50C6805ED1'],
-  //   potentialDecryptErrorCause: ErrorCause.AttemptToFetchConfidentialBalance,
-  //   fheType: FheTypes.Int128,
-  // });
-  // console.log('Encrypted values from contract:', encrypted);
-  // console.log('Decrypted values from contract:', decrypted);
+  useTesting();
+
   return null;
 };
 export const ComponentRenderer: React.FC<ComponentRendererProps> = ({ activeComponent, isDarkMode }) => {
