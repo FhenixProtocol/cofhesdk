@@ -1,7 +1,6 @@
 import type {
   Abi,
   Account,
-  Address,
   Chain,
   ContractFunctionArgs,
   ContractFunctionName,
@@ -12,7 +11,6 @@ import { type CofheInputArgsPreTransform, extractEncryptableValues, insertEncryp
 import type { EncryptableItem, EncryptedItemInput } from '@cofhe/sdk';
 import { useCofheEncryptInputsMutation } from './useCofheEncryptInputsMutation';
 import { useCofheWalletWriteContractMutation } from './useCofheWalletWriteContractMutation';
-import { useEffect } from 'react';
 
 type NoInferLocal<T> = [T][T extends any ? 0 : never];
 
@@ -57,8 +55,7 @@ export async function _encryptAndWriteContract<
     >
   ) => Promise<WriteContractReturnType>;
 }): Promise<WriteContractReturnType> {
-  console.log('Writing contract with params:', confidentialityAwareAbiArgs);
-  const transformer = constructTransformFn<TAbi, TFunctionName, TChainOverride>(
+  const transformer = constructEncryptAndTransform<TAbi, TFunctionName, TChainOverride>(
     params.abi,
     params.functionName,
     encrypt
@@ -92,7 +89,7 @@ export async function _encryptAndWriteContract<
   return write(newParams);
 }
 
-function constructTransformFn<
+function constructEncryptAndTransform<
   TAbi extends Abi | readonly unknown[],
   TFunctionName extends ContractFunctionName<TAbi, 'payable' | 'nonpayable'>,
   TChainOverride extends Chain | undefined = undefined,
@@ -112,11 +109,12 @@ function constructTransformFn<
     TChainOverride
   >['args']
 > {
+  // encrypts inputs that need to be encrypted and transform them
   return async (mixedArgs) => {
     const extracted = extractEncryptableValues(abi, functionName, mixedArgs);
     const encrypted = await encrypt(extracted);
     const merged = insertEncryptedValues(abi, functionName, mixedArgs, encrypted);
-    // TODO: constructTransformFn make types match
+
     return merged as WriteContractParameters<
       TAbi,
       TFunctionName,
@@ -164,72 +162,4 @@ export function useCofheEncryptAndWriteContractNew() {
     encryption,
     write,
   };
-}
-
-export const CONTRACT_ADDRESS: Address = '0xfEF0C260cb5a9A1761C0c0Fd6e34248C330C9e5a';
-
-function useTesting() {
-  const { encryptAndWriteContract } = useCofheEncryptAndWriteContractNew();
-
-  useEffect(() => {
-    if (true as any) return;
-    encryptAndWriteContract({
-      params: {
-        abi: [
-          {
-            inputs: [
-              {
-                internalType: 'address',
-                name: 'to',
-                type: 'address',
-              },
-              {
-                components: [
-                  {
-                    internalType: 'uint256',
-                    name: 'ctHash',
-                    type: 'uint256',
-                  },
-                  {
-                    internalType: 'uint8',
-                    name: 'securityZone',
-                    type: 'uint8',
-                  },
-                  {
-                    internalType: 'uint8',
-                    name: 'utype',
-                    type: 'uint8',
-                  },
-                  {
-                    internalType: 'bytes',
-                    name: 'signature',
-                    type: 'bytes',
-                  },
-                ],
-                internalType: 'struct InEuint128',
-                name: 'inValue',
-                type: 'tuple',
-              },
-            ],
-            name: 'encTransfer',
-            outputs: [
-              {
-                internalType: 'euint128',
-                name: 'transferred',
-                type: 'uint256',
-              },
-            ],
-            stateMutability: 'nonpayable',
-            type: 'function',
-          },
-        ] as const,
-        functionName: 'encTransfer',
-        // args: ['0x9A9B640F221Fb8E7A283501367812c50C6805ED1', 124n] as const,
-        account: '0x1234567890123456789012345678901234567890',
-        address: CONTRACT_ADDRESS,
-        chain: undefined,
-      },
-      confidentialityAwareAbiArgs: ['0x9A9B640F221Fb8E7A283501367812c50C6805ED1', 123n],
-    });
-  }, [encryptAndWriteContract]);
 }
