@@ -5,7 +5,7 @@ import { HooksExample } from './examples/HooksExample';
 import { FnxFloatingButtonExample } from './examples/FnxFloatingButtonExample';
 import { Address } from 'viem';
 import { useCofheEncryptAndWriteContractNew } from '@cofhe/react';
-import { TestABI } from './tmp-abis';
+// import { TestABI } from './tmp-abis';
 
 interface ComponentRendererProps {
   activeComponent: string;
@@ -18,7 +18,7 @@ function useTesting() {
   const { encryptAndWriteContract } = useCofheEncryptAndWriteContractNew();
 
   useEffect(() => {
-    // if (true as any) return;
+    if (true as any) return;
     encryptAndWriteContract({
       params: {
         abi: [
@@ -75,7 +75,7 @@ function useTesting() {
         address: CONTRACT_ADDRESS,
         chain: undefined,
       },
-      confidentialityAwareAbiArgs: ['0x9A9B640F221Fb8E7A283501367812c50C6805ED1', true],
+      confidentialityAwareAbiArgs: ['0x9A9B640F221Fb8E7A283501367812c50C6805ED1', 123n],
     });
   }, [encryptAndWriteContract]);
 }
