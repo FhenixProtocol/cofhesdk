@@ -1,4 +1,5 @@
 export enum ErrorCause {
+  AttemptToFetchCustomData = 'attempt_to_fetch_custom_data',
   AttemptToFetchConfidentialBalance = 'attempt_to_fetch_confidential_balance',
 }
 

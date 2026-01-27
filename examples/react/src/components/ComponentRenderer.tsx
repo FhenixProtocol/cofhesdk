@@ -3,7 +3,15 @@ import { Overview } from './examples/Overview';
 import { FnxEncryptInputExample } from './examples/FnxEncryptInputExample';
 import { HooksExample } from './examples/HooksExample';
 import { FnxFloatingButtonExample } from './examples/FnxFloatingButtonExample';
-import { useCofheClient, useCofheEncryptAndWriteContractNew } from '@cofhe/react';
+import {
+  ErrorCause,
+  useCofheClient,
+  useCofheEncryptAndWriteContractNew,
+  useCofheReadContractAndDecrypt,
+} from '@cofhe/react';
+import { W } from '../../../../packages/sdk/dist/clientTypes-PFZXRtTO';
+import { useAccount } from 'wagmi';
+import { FheTypes } from '@cofhe/sdk';
 // import { TestABI } from './tmp-abis';
 
 interface ComponentRendererProps {
@@ -11,7 +19,7 @@ interface ComponentRendererProps {
   isDarkMode: boolean;
 }
 
-const TestAutoDecryptionComponent: React.FC = () => {
+const WritingTest: React.FC = () => {
   const client = useCofheClient();
   const { encryptAndWriteContract } = useCofheEncryptAndWriteContractNew();
 
@@ -116,15 +124,154 @@ const TestAutoDecryptionComponent: React.FC = () => {
             functionName: 'writeThreeEncryptedValues',
             // args: ['0x9A9B640F221Fb8E7A283501367812c50C6805ED1', 124n] as const,
             account: accountAddress,
-            address: '0x3a456e3758f6779d0b105778c2c8c284bc95a284e596d50cdc00fded070318f3',
+            address: '0xa4a0d565f7f8e502b48680112220520f4d4483b8',
             chain: undefined,
           },
-          confidentialityAwareAbiArgs: [123n, 123n, true] as const,
+          confidentialityAwareAbiArgs: [123n, 321n, true] as const,
         });
       }}
     >
       send tx
     </button>
+  );
+};
+
+const READING_ABI = [
+  {
+    inputs: [
+      {
+        internalType: 'address',
+        name: 'k',
+        type: 'address',
+      },
+    ],
+    name: 'read128',
+    outputs: [
+      {
+        internalType: 'euint128',
+        name: '',
+        type: 'uint256',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'address',
+        name: 'k',
+        type: 'address',
+      },
+    ],
+    name: 'read64',
+    outputs: [
+      {
+        internalType: 'euint64',
+        name: '',
+        type: 'uint256',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'address',
+        name: 'k',
+        type: 'address',
+      },
+    ],
+    name: 'readBool',
+    outputs: [
+      {
+        internalType: 'ebool',
+        name: '',
+        type: 'uint256',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+] as const;
+const ReadingTest: React.FC = () => {
+  const account = useAccount();
+  const {
+    decrypted: { data: decrypted128Data },
+  } = useCofheReadContractAndDecrypt(
+    {
+      address: '0xa4a0d565f7f8e502b48680112220520f4d4483b8',
+      abi: READING_ABI,
+      functionName: 'read128',
+      args: account.address ? [account.address] : undefined,
+      fheType: FheTypes.Uint128,
+      potentialDecryptErrorCause: ErrorCause.AttemptToFetchCustomData,
+    },
+    {
+      readQueryOptions: {
+        refetchOnMount: false,
+        enabled: !!account.address,
+      },
+      decryptingQueryOptions: {
+        refetchOnMount: false,
+      },
+    },
+  );
+
+  const {
+    decrypted: { data: decrypted64Data },
+  } = useCofheReadContractAndDecrypt(
+    {
+      address: '0xa4a0d565f7f8e502b48680112220520f4d4483b8',
+      abi: READING_ABI,
+      functionName: 'read64',
+      args: account.address ? [account.address] : undefined,
+      fheType: FheTypes.Uint128,
+      potentialDecryptErrorCause: ErrorCause.AttemptToFetchCustomData,
+    },
+    {
+      readQueryOptions: {
+        refetchOnMount: false,
+        enabled: !!account.address,
+      },
+      decryptingQueryOptions: {
+        refetchOnMount: false,
+      },
+    },
+  );
+  const {
+    decrypted: { data: decryptedBoolData },
+  } = useCofheReadContractAndDecrypt(
+    {
+      address: '0xa4a0d565f7f8e502b48680112220520f4d4483b8',
+      abi: READING_ABI,
+      functionName: 'readBool',
+      args: account.address ? [account.address] : undefined,
+      fheType: FheTypes.Uint128,
+      potentialDecryptErrorCause: ErrorCause.AttemptToFetchCustomData,
+    },
+    {
+      readQueryOptions: {
+        refetchOnMount: false,
+        enabled: !!account.address,
+      },
+      decryptingQueryOptions: {
+        refetchOnMount: false,
+      },
+    },
+  );
+
+  console.log({ decrypted128Data, decrypted64Data, decryptedBoolData });
+  return <div>Reading test</div>;
+};
+
+const TestAutoDecryptionComponent: React.FC = () => {
+  return (
+    <>
+      <ReadingTest />
+      <WritingTest />
+    </>
   );
 };
 export const ComponentRenderer: React.FC<ComponentRendererProps> = ({ activeComponent, isDarkMode }) => {

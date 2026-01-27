@@ -19,6 +19,7 @@ class CofheFallbackError extends Error {
 export const CREATE_PERMITT_BODY_BY_ERROR_CAUSE: Record<ErrorCause, React.FC> = {
   [ErrorCause.AttemptToFetchConfidentialBalance]: () =>
     'In order to fetch confidential token balance, need to generate a new permit.',
+  [ErrorCause.AttemptToFetchCustomData]: () => 'In order to fetch custom data, need to generate a new permit.',
 };
 
 // only whitelisted errors will reach error boundary (refer to `shouldPassToErrorBoundary`)
