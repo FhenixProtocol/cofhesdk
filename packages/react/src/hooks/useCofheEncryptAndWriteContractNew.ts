@@ -73,7 +73,6 @@ export async function _encryptAndWriteContract<
   // Reason: viem’s WriteContractParameters ultimately includes a conditional type that depends on:
   // readonly [] extends ContractFunctionArgs<TAbi, ..., TFunctionName>
   // Inside a generic function body, TypeScript must typecheck for all possible TAbi/TFunctionName, so it cannot prove which branch you’re in. That’s why it rejects constructing/passing newParams as WriteContractParameters<...> even when your runtime object is correct.
-
   const newParams = {
     ...params,
     args: transformedArgs,
@@ -115,6 +114,7 @@ function constructEncryptAndTransform<
     const encrypted = await encrypt(extracted);
     const merged = insertEncryptedValues(abi, functionName, mixedArgs, encrypted);
 
+    // TODO: mismatch between CofheInputArgs<TAbi, TFunctionName> and WriteContractParameters<...>['args'] types
     return merged as WriteContractParameters<
       TAbi,
       TFunctionName,
@@ -151,10 +151,14 @@ export function useCofheEncryptAndWriteContractNew() {
     _encryptAndWriteContract<TAbi, TFunctionName, TChainOverride>({
       ...args,
       encrypt: encryption.encryptInputsAsync,
-      write: (writeParams) =>
-        write.writeContractAsync(
-          writeParams as unknown as Parameters<typeof write.writeContractAsync>[0]
-        ) as Promise<WriteContractReturnType>,
+      write: (writeParams) => {
+        return write.writeContractAsync<
+          TAbi,
+          TFunctionName,
+          ContractFunctionArgs<TAbi, 'payable' | 'nonpayable', TFunctionName>,
+          TChainOverride
+        >(writeParams);
+      },
     });
 
   return {
