@@ -10,7 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@cofhe/abi": "workspace:^",
     "@cofhe/react": "workspace:*",
     "@cofhe/sdk": "workspace:*",
     "@emotion/react": "^11.0.0",

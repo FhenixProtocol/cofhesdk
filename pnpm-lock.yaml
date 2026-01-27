@@ -32,9 +32,6 @@ importers:
 
   examples/react:
     dependencies:
-      '@cofhe/abi':
-        specifier: workspace:^
-        version: link:../../packages/abi
       '@cofhe/react':
         specifier: workspace:*
         version: link:../../packages/react
