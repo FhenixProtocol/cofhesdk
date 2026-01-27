@@ -8,7 +8,7 @@ import {
   type UseCofheReadContractQueryOptions,
   type UseCofheReadContractResult,
 } from './useCofheReadContract';
-import type { CofheReturnType, EncryptedReturnTypeByUtype } from '@cofhe/abi';
+import type { CofheReturnType, CofheReturnTypePostTransform, EncryptedReturnTypeByUtype } from '@cofhe/abi';
 
 function isEncryptedValue<TFheType extends FheTypes>(value: unknown): value is EncryptedReturnTypeByUtype<TFheType> {
   return (
@@ -40,7 +40,7 @@ export function useCofheReadContractAndDecrypt<
   TFheType extends FheTypes,
   TAbi extends Abi,
   TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>,
-  TDecryptedSelectedData = CofheReturnType<TAbi, TfunctionName>,
+  TDecryptedSelectedData = CofheReturnTypePostTransform<TAbi, TfunctionName>,
 >(
   params: {
     address?: Address;

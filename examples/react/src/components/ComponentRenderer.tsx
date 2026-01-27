@@ -9,7 +9,6 @@ import {
   useCofheEncryptAndWriteContractNew,
   useCofheReadContractAndDecrypt,
 } from '@cofhe/react';
-import { W } from '../../../../packages/sdk/dist/clientTypes-PFZXRtTO';
 import { useAccount } from 'wagmi';
 import { FheTypes } from '@cofhe/sdk';
 // import { TestABI } from './tmp-abis';
