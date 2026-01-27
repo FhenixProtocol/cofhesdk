@@ -183,7 +183,6 @@ export function createCofheReadContractQueryOptions<
 
       const transformed = transformEncryptedReturnTypes(abi, functionName, convertedOut);
 
-      console.log('transformEncryptedReturnTypes result:', transformed);
       return transformed;
     },
     ...restQueryOptions,
