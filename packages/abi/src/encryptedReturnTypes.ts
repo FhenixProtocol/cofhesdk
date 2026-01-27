@@ -19,6 +19,32 @@ import {
   extractArrayParameterType,
 } from './utils';
 
+type FirstCofheReturnValue<T> = [T] extends [void]
+  ? never
+  : T extends readonly [infer Head, ...(readonly unknown[])]
+    ? Head
+    : T;
+
+type FheTypeFromCofheReturnValue<T> = T extends { utype: infer U }
+  ? U
+  : T extends readonly (infer Element)[]
+    ? FheTypeFromCofheReturnValue<Element>
+    : never;
+
+/**
+ * Extracts the `FheTypes` of the first returned value of a CoFHE call.
+ *
+ * Examples:
+ * - `returns (ebool)` -> `FheTypes.Bool`
+ * - `returns (euint8, euint64)` -> `FheTypes.Uint8`
+ * - `returns (euint16[])` -> `FheTypes.Uint16`
+ */
+export type CofheFirstReturnFheType<
+  abi extends Abi | readonly unknown[] = Abi,
+  functionName extends string = string,
+  args extends readonly unknown[] | undefined = readonly unknown[] | undefined,
+> = FheTypeFromCofheReturnValue<FirstCofheReturnValue<CofheReturnType<abi, functionName, args>>>;
+
 export type CofheReturnType<
   abi extends Abi | readonly unknown[] = Abi,
   functionName extends string = string,

@@ -8,7 +8,12 @@ import {
   type UseCofheReadContractQueryOptions,
   type UseCofheReadContractResult,
 } from './useCofheReadContract';
-import type { CofheReturnType, CofheReturnTypePostTransform, EncryptedReturnTypeByUtype } from '@cofhe/abi';
+import type { CofheFirstReturnFheType, CofheReturnType, EncryptedReturnTypeByUtype } from '@cofhe/abi';
+
+type SupportedFheTypeFromReturn<TAbi extends Abi, TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>> =
+  CofheFirstReturnFheType<TAbi, TfunctionName> extends FheTypes
+    ? CofheFirstReturnFheType<TAbi, TfunctionName>
+    : FheTypes;
 
 function isEncryptedValue<TFheType extends FheTypes>(value: unknown): value is EncryptedReturnTypeByUtype<TFheType> {
   return (
@@ -37,17 +42,16 @@ function convertCofheReturnTypeToEncryptedReturnType<
  */
 // TODO: useCofheReadContractAndDecrypt only works for a scenario when the contract function returns a signle plain encrypted value (i.e. not struct etc)
 export function useCofheReadContractAndDecrypt<
-  TFheType extends FheTypes,
   TAbi extends Abi,
   TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>,
-  TDecryptedSelectedData = CofheReturnTypePostTransform<TAbi, TfunctionName>,
+  TFheType extends FheTypes = SupportedFheTypeFromReturn<TAbi, TfunctionName>,
+  TDecryptedSelectedData = UnsealedItem<TFheType>,
 >(
   params: {
     address?: Address;
     abi?: TAbi;
     functionName?: TfunctionName;
     args?: ContractFunctionArgs<TAbi, 'pure' | 'view', TfunctionName>;
-    fheType: TFheType;
     requiresPermit?: boolean;
     potentialDecryptErrorCause: ErrorCause;
   },
@@ -67,7 +71,7 @@ export function useCofheReadContractAndDecrypt<
   decrypted: UseQueryResult<TDecryptedSelectedData, Error>;
   disabledDueToMissingPermit: boolean;
 } {
-  const { address, abi, functionName, args, fheType, requiresPermit = true, potentialDecryptErrorCause } = params;
+  const { address, abi, functionName, args, requiresPermit = true, potentialDecryptErrorCause } = params;
 
   const encrypted = useCofheReadContract({ address, abi, functionName, args, requiresPermit }, readQueryOptions);
 

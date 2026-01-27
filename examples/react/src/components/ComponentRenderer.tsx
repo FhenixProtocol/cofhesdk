@@ -204,7 +204,6 @@ const ReadingTest: React.FC = () => {
       abi: READING_ABI,
       functionName: 'read128',
       args: account.address ? [account.address] : undefined,
-      fheType: FheTypes.Uint128,
       potentialDecryptErrorCause: ErrorCause.AttemptToFetchCustomData,
     },
     {
@@ -226,7 +225,6 @@ const ReadingTest: React.FC = () => {
       abi: READING_ABI,
       functionName: 'read64',
       args: account.address ? [account.address] : undefined,
-      fheType: FheTypes.Uint128,
       potentialDecryptErrorCause: ErrorCause.AttemptToFetchCustomData,
     },
     {
@@ -247,7 +245,6 @@ const ReadingTest: React.FC = () => {
       abi: READING_ABI,
       functionName: 'readBool',
       args: account.address ? [account.address] : undefined,
-      fheType: FheTypes.Uint128,
       potentialDecryptErrorCause: ErrorCause.AttemptToFetchCustomData,
     },
     {
