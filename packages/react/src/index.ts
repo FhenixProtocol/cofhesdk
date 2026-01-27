@@ -34,6 +34,7 @@ export {
   type UseTransactionReceiptsByHashInput,
 } from '@/hooks/index';
 
+export { useCofheEncryptAndWriteContractNew } from '@/hooks/useCofheEncryptAndWriteContractNew';
 export { useCofheReadContractAndDecrypt } from '@/hooks/useCofheReadContractAndDecrypt';
 
 // Components
