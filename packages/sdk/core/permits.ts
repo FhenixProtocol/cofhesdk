@@ -6,6 +6,9 @@ import {
   type Permit,
   permitStore,
   type SerializedPermit,
+  type SelfPermit,
+  type RecipientPermit,
+  type SharingPermit,
 } from '@/permits';
 
 import { type PublicClient, type WalletClient } from 'viem';
@@ -22,12 +25,12 @@ const storeActivePermit = async (permit: Permit, publicClient: any, walletClient
 };
 
 // Generic function to handle permit creation with error handling
-const createPermitWithSign = async <T>(
+const createPermitWithSign = async <T, TPermit extends Permit>(
   options: T,
   publicClient: PublicClient,
   walletClient: WalletClient,
-  permitMethod: (options: T, publicClient: PublicClient, walletClient: WalletClient) => Promise<Permit>
-): Promise<Permit> => {
+  permitMethod: (options: T, publicClient: PublicClient, walletClient: WalletClient) => Promise<TPermit>
+): Promise<TPermit> => {
   const permit = await permitMethod(options, publicClient, walletClient);
   await storeActivePermit(permit, publicClient, walletClient);
   return permit;
@@ -45,7 +48,7 @@ const createSelf = async (
   options: CreateSelfPermitOptions,
   publicClient: PublicClient,
   walletClient: WalletClient
-): Promise<Permit> => {
+): Promise<SelfPermit> => {
   return createPermitWithSign(options, publicClient, walletClient, PermitUtils.createSelfAndSign);
 };
 
@@ -53,15 +56,15 @@ const createSharing = async (
   options: CreateSharingPermitOptions,
   publicClient: PublicClient,
   walletClient: WalletClient
-): Promise<Permit> => {
+): Promise<SharingPermit> => {
   return createPermitWithSign(options, publicClient, walletClient, PermitUtils.createSharingAndSign);
 };
 
 const importShared = async (
-  options: ImportSharedPermitOptions | any | string,
+  options: ImportSharedPermitOptions | string,
   publicClient: PublicClient,
   walletClient: WalletClient
-): Promise<Permit> => {
+): Promise<RecipientPermit> => {
   return createPermitWithSign(options, publicClient, walletClient, PermitUtils.importSharedAndSign);
 };
 

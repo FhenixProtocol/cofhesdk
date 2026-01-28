@@ -37,6 +37,13 @@ const ConnectionStatus: React.FC = () => {
 const statusTextColorMap: Record<FnxStatusVariant, string> = {
   error: 'text-red-500',
   warning: 'text-yellow-500',
+  info: 'text-blue-500',
+};
+
+const statusBorderColorMap: Record<FnxStatusVariant, string> = {
+  error: 'border-red-500',
+  warning: 'border-yellow-500',
+  info: 'border-blue-500',
 };
 
 const ActiveStatusContent: React.FC<{ status: FnxStatus }> = ({ status }) => {
@@ -46,8 +53,7 @@ const ActiveStatusContent: React.FC<{ status: FnxStatus }> = ({ status }) => {
     <div
       className={cn(
         'fnx-panel w-full h-full flex px-4 items-center justify-between',
-        status.variant === 'error' && 'border-red-500',
-        status.variant === 'warning' && 'border-yellow-500'
+        statusBorderColorMap[status.variant]
       )}
     >
       {/* Logo Icon */}
@@ -81,9 +87,6 @@ export const StatusBarContent: React.FC = () => {
     <AnimatedZStack>
       {/* Connection status showing connection state and chain */}
       <ConnectionStatus />
-
-      {/* TODO: Add status for "Viewing data with shared permit" always in 2nd slot */}
-      {/* <ViewingSharedDataStatus /> */}
 
       {/* Active errors or warnings to be resolved */}
       {statuses.map((status) => (

@@ -176,21 +176,30 @@ export function createCofhesdkClientBase<TConfig extends CofhesdkConfig>(
     subscribe: permits.subscribe,
 
     // Creation methods (require connection)
-    createSelf: async (options: CreateSelfPermitOptions) => {
+    createSelf: async (
+      options: CreateSelfPermitOptions,
+      clients?: { publicClient: PublicClient; walletClient: WalletClient }
+    ) => {
       _requireConnected();
-      const { publicClient, walletClient } = connectStore.getState();
+      const { publicClient, walletClient } = clients ?? connectStore.getState();
       return permits.createSelf(options, publicClient!, walletClient!);
     },
 
-    createSharing: async (options: CreateSharingPermitOptions) => {
+    createSharing: async (
+      options: CreateSharingPermitOptions,
+      clients?: { publicClient: PublicClient; walletClient: WalletClient }
+    ) => {
       _requireConnected();
-      const { publicClient, walletClient } = connectStore.getState();
+      const { publicClient, walletClient } = clients ?? connectStore.getState();
       return permits.createSharing(options, publicClient!, walletClient!);
     },
 
-    importShared: async (options: ImportSharedPermitOptions | any | string) => {
+    importShared: async (
+      options: ImportSharedPermitOptions | string,
+      clients?: { publicClient: PublicClient; walletClient: WalletClient }
+    ) => {
       _requireConnected();
-      const { publicClient, walletClient } = connectStore.getState();
+      const { publicClient, walletClient } = clients ?? connectStore.getState();
       return permits.importShared(options, publicClient!, walletClient!);
     },
 

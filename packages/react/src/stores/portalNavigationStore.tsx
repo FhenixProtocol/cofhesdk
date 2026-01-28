@@ -40,6 +40,7 @@ export const usePortalNavigation = create<PortalNavigationStore & PortalNavigati
   function navigateTo<K extends PagesWithProps>(page: K, args: NavigateArgs<K>): void;
   // eslint-disable-next-line no-redeclare
   function navigateTo<K extends FloatingButtonPage>(page: K, args?: NavigateArgs<K>): void {
+    // TODO: If already on the page, do nothing
     const props = args?.pageProps;
     const skipPagesHistory = args?.navigateParams?.skipPagesHistory === true;
     if (skipPagesHistory) {
@@ -57,8 +58,13 @@ export const usePortalNavigation = create<PortalNavigationStore & PortalNavigati
 
     navigateTo,
     navigateBack: () => {
-      set({ overridingPage: null });
-      set({ pageHistory: get().pageHistory.slice(0, -1) });
+      if (get().overridingPage !== null) {
+        // if currently there is an overriding page, just remove it
+        set({ overridingPage: null });
+      } else {
+        // otherwise pop last page from history
+        set({ pageHistory: get().pageHistory.slice(0, -1) });
+      }
     },
   };
 });

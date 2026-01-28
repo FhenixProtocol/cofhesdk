@@ -36,7 +36,7 @@ const MeasuredContentRenderer: React.FC<{ children?: ReactNode; id: string }> = 
   }, [id]);
 
   return (
-    <div className="fnx-panel relative flex w-full h-full overflow-y-auto">
+    <div className="fnx-panel relative flex w-full h-full overflow-y-hidden">
       <div className="absolute flex top-0 left-0 w-full p-4" ref={contentRef}>
         {children}
       </div>
