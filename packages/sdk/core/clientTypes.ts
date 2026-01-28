@@ -13,6 +13,9 @@ import type {
   Permit,
   CreateSharingPermitOptions,
   ImportSharedPermitOptions,
+  SharingPermit,
+  RecipientPermit,
+  SelfPermit,
 } from 'permits/types.js';
 
 // CLIENT
@@ -60,12 +63,15 @@ export type CofhesdkClientPermits = {
   subscribe: typeof permits.subscribe;
 
   // Creation methods (require connection, no params)
-  createSelf: (options: CreateSelfPermitOptions, clients?: CofhesdkClientPermitsClients) => Promise<Permit>;
-  createSharing: (options: CreateSharingPermitOptions, clients?: CofhesdkClientPermitsClients) => Promise<Permit>;
-  importShared: (
-    options: ImportSharedPermitOptions | any | string,
+  createSelf: (options: CreateSelfPermitOptions, clients?: CofhesdkClientPermitsClients) => Promise<SelfPermit>;
+  createSharing: (
+    options: CreateSharingPermitOptions,
     clients?: CofhesdkClientPermitsClients
-  ) => Promise<Permit>;
+  ) => Promise<SharingPermit>;
+  importShared: (
+    options: ImportSharedPermitOptions | string,
+    clients?: CofhesdkClientPermitsClients
+  ) => Promise<RecipientPermit>;
 
   // Retrieval methods (chainId/account optional)
   getPermit: (hash: string, chainId?: number, account?: string) => Promise<Permit | undefined>;
