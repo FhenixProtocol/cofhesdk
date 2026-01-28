@@ -39,7 +39,7 @@ export type WalletWriteContractParams<
   TChainOverride extends Chain | undefined = undefined,
 > = WriteContractParameters<TAbi, TFunctionName, TArgs, Chain | undefined, Account | undefined, TChainOverride>;
 
-export type UseCofheWalletWriteContractMutationOptions<TExtras = unknown> = Omit<
+export type useCofheWriteContractNewOptions<TExtras = unknown> = Omit<
   UseMutationOptions<Hash, Error, WalletWriteContractMutationVariables<TExtras>, unknown>,
   'mutationFn'
 >;
@@ -49,8 +49,8 @@ export type UseCofheWalletWriteContractMutationOptions<TExtras = unknown> = Omit
  *
  * Unlike `useCofheWriteContract`, this accepts viem's full `writeContract` parameter type.
  */
-export function useCofheWalletWriteContractMutation<TExtras = unknown>(
-  options?: UseCofheWalletWriteContractMutationOptions<TExtras>
+export function useCofheWriteContractNew<TExtras = unknown>(
+  options?: useCofheWriteContractNewOptions<TExtras>
 ): UseMutationResult<Hash, Error, WalletWriteContractMutationVariables<TExtras>, unknown> & {
   writeContractAsync: <
     TAbi extends Abi | readonly unknown[],

@@ -10,10 +10,7 @@ import type {
 import { type CofheInputArgsPreTransform, extractEncryptableValues, insertEncryptedValues } from '@cofhe/abi';
 import type { EncryptableItem, EncryptedItemInput } from '@cofhe/sdk';
 import { useCofheEncryptNew, type EncryptInputsOptions, type useCofheEncryptNewOptions } from './useCofheEncryptNew';
-import {
-  useCofheWalletWriteContractMutation,
-  type UseCofheWalletWriteContractMutationOptions,
-} from './useCofheWalletWriteContractMutation';
+import { useCofheWriteContractNew, type useCofheWriteContractNewOptions } from './useCofheWriteContractNew';
 
 type NoInferLocal<T> = [T][T extends any ? 0 : never];
 
@@ -134,10 +131,10 @@ export function useCofheEncryptAndWriteContractNew<TExtraVars = unknown>({
   writingMutationOptions,
 }: {
   encrypingMutationOptions?: useCofheEncryptNewOptions;
-  writingMutationOptions?: UseCofheWalletWriteContractMutationOptions<TExtraVars>;
+  writingMutationOptions?: useCofheWriteContractNewOptions<TExtraVars>;
 }) {
   const encryption = useCofheEncryptNew(encrypingMutationOptions);
-  const write = useCofheWalletWriteContractMutation<TExtraVars>(writingMutationOptions);
+  const write = useCofheWriteContractNew<TExtraVars>(writingMutationOptions);
 
   const encryptAndWrite = async <
     const TAbi extends Abi | readonly unknown[],

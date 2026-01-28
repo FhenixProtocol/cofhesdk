@@ -4,12 +4,12 @@ import { TRANSFER_ABIS } from '../constants/confidentialTokenABIs.js';
 import { TransactionActionType, useTransactionStore } from '../stores/transactionStore.js';
 import { createEncryptable, type EncryptableItem } from '@cofhe/sdk';
 import { useCofheEncryptAndWriteContractNew } from './useCofheEncryptAndWriteContractNew.js';
-import type { UseCofheWalletWriteContractMutationOptions } from './useCofheWalletWriteContractMutation.js';
+import type { useCofheWriteContractNewOptions } from './useCofheWriteContractNew.js';
 import type { EncryptionOptions } from './useCofheEncrypt.js';
 
 type TokenTransferExtras = { token: Token; amount: bigint; userAddress: Address };
 type UseCofheTokenTransferOptions = Pick<
-  UseCofheWalletWriteContractMutationOptions<TokenTransferExtras>,
+  useCofheWriteContractNewOptions<TokenTransferExtras>,
   'onSuccess' | 'onError' | 'onMutate'
 >;
 

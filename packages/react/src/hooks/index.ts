@@ -17,7 +17,7 @@ export { useCofheWalletClient } from './useCofheConnection';
 export { useCofheTokens, useCofheTokenLists, ETH_ADDRESS, type Token, type Erc20Pair } from './useCofheTokenLists';
 export { useCofheWriteContract } from './useCofheWriteContract';
 export { useCofheEncryptNew } from './useCofheEncryptNew';
-export { useCofheWalletWriteContractMutation } from './useCofheWalletWriteContractMutation';
+export { useCofheWriteContractNew } from './useCofheWriteContractNew';
 export { useCofheReadContract, type UseCofheReadContractQueryOptions } from './useCofheReadContract';
 export * from './permits';
 export { useCofheAutoConnect } from './useCofheAutoConnect';
