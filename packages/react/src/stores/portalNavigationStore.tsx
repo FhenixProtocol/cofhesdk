@@ -58,8 +58,13 @@ export const usePortalNavigation = create<PortalNavigationStore & PortalNavigati
 
     navigateTo,
     navigateBack: () => {
-      set({ overridingPage: null });
-      set({ pageHistory: get().pageHistory.slice(0, -1) });
+      if (get().overridingPage !== null) {
+        // if currently there is an overriding page, just remove it
+        set({ overridingPage: null });
+      } else {
+        // otherwise pop last page from history
+        set({ pageHistory: get().pageHistory.slice(0, -1) });
+      }
     },
   };
 });
