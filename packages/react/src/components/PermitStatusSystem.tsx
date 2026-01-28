@@ -63,25 +63,23 @@ export const hidePermitSharedStatus = () => {
  */
 export const PermitStatusSystem = () => {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const expiredStatusShownRef = useRef(false);
-  const expiringSoonStatusShownRef = useRef(false);
-  const sharedStatusShownRef = useRef(false);
   const activePermit = useCofheActivePermit();
 
   useEffect(() => {
     const updateStatuses = (permit: Permit | undefined) => {
+      const expiredStatusShown = usePortalStatuses.getState().hasStatus('permit-expired');
+      const expiringSoonStatusShown = usePortalStatuses.getState().hasStatus('permit-expiring-soon');
+      const sharedStatusShown = usePortalStatuses.getState().hasStatus('permit-shared');
+
       if (permit == null) {
-        if (expiredStatusShownRef.current) {
+        if (expiredStatusShown) {
           hidePermitExpiredStatus();
-          expiredStatusShownRef.current = false;
         }
-        if (expiringSoonStatusShownRef.current) {
+        if (expiringSoonStatusShown) {
           hidePermitExpiringSoonStatus();
-          expiringSoonStatusShownRef.current = false;
         }
-        if (sharedStatusShownRef.current) {
+        if (sharedStatusShown) {
           hidePermitSharedStatus();
-          sharedStatusShownRef.current = false;
         }
         return;
       }
@@ -94,42 +92,35 @@ export const PermitStatusSystem = () => {
 
       // Expired status
       const isExpired = expiration < timestamp;
-      if (isExpired && !expiredStatusShownRef.current) {
+      if (isExpired && !expiredStatusShown) {
         showPermitExpiredStatus();
-        expiredStatusShownRef.current = true;
       }
-      if (!isExpired && expiredStatusShownRef.current) {
+      if (!isExpired && expiredStatusShown) {
         hidePermitExpiredStatus();
-        expiredStatusShownRef.current = false;
       }
 
       // Expiring soon status
       const isExpiringSoon = expiration - timestamp < 1 * 60 * 60;
-      if (!isExpired && isExpiringSoon && !expiringSoonStatusShownRef.current) {
+      if (!isExpired && isExpiringSoon && !expiringSoonStatusShown) {
         showPermitExpiringSoonStatus(permit);
-        expiringSoonStatusShownRef.current = true;
       }
-      if ((!isExpiringSoon && expiringSoonStatusShownRef.current) || isExpired) {
+      if ((!isExpiringSoon && expiringSoonStatusShown) || isExpired) {
         hidePermitExpiringSoonStatus();
-        expiringSoonStatusShownRef.current = false;
       }
 
       // Shared status
       const isShared = permit.type === 'recipient';
-      if (isShared && !sharedStatusShownRef.current) {
+      if (isShared && !sharedStatusShown) {
         showPermitSharedStatus(permit);
-        sharedStatusShownRef.current = true;
       }
-      if (!isShared && sharedStatusShownRef.current) {
+      if (!isShared && sharedStatusShown) {
         hidePermitSharedStatus();
-        sharedStatusShownRef.current = false;
       }
     };
 
     updateStatuses(activePermit?.permit);
     intervalRef.current = setInterval(() => {
-      if (!activePermit) return;
-      updateStatuses(activePermit.permit);
+      updateStatuses(activePermit?.permit);
     }, 2000);
 
     return () => {
