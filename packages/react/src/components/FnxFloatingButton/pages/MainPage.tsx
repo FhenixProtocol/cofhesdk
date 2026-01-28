@@ -4,7 +4,5 @@ import { BottomNavigation } from './MainPage/BottomNavigation';
 import { PageContainer } from '../components/PageContainer';
 
 export const MainPage: React.FC = () => (
-  <PageContainer header={<WalletHeader />} footer={<BottomNavigation />}>
-    <AssetCard />
-  </PageContainer>
+  <PageContainer header={<WalletHeader />} content={<AssetCard />} footer={<BottomNavigation />} />
 );

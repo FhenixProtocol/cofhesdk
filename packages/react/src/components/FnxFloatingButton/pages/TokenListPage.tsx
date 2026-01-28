@@ -34,23 +34,24 @@ export const TokenListPage: React.FC<TokenListPageProps> = ({ title, backToPageS
           <p className="text-sm font-medium">{pageTitle}</p>
         </button>
       }
-    >
-      <div className="fnx-token-list-container">
-        {allTokens.length === 0 ? (
-          <p className="text-xs opacity-70 py-4 text-center">No tokens found</p>
-        ) : (
-          allTokens.map((token) => (
-            <TokenRow
-              onClick={() => {
-                assert(isPageWithProps(backToPageState.page), 'backToPageState must be a page with props');
-                navigateTo(backToPageState.page, { pageProps: { ...backToPageState.props, token } });
-              }}
-              key={token.address}
-              token={token}
-            />
-          ))
-        )}
-      </div>
-    </PageContainer>
+      content={
+        <div className="fnx-token-list-container">
+          {allTokens.length === 0 ? (
+            <p className="text-xs opacity-70 py-4 text-center">No tokens found</p>
+          ) : (
+            allTokens.map((token) => (
+              <TokenRow
+                onClick={() => {
+                  assert(isPageWithProps(backToPageState.page), 'backToPageState must be a page with props');
+                  navigateTo(backToPageState.page, { pageProps: { ...backToPageState.props, token } });
+                }}
+                key={token.address}
+                token={token}
+              />
+            ))
+          )}
+        </div>
+      }
+    />
   );
 };

@@ -16,6 +16,21 @@ export const ExampleSelectionPage: React.FC<PortalModalStateMap[PortalModal.Exam
           <p className="text-sm font-medium">Select an option</p>
         </button>
       }
+      content={
+        <div className="flex flex-1 flex-col gap-3 items-start justify-start">
+          {options.map((option) => (
+            <button
+              key={option}
+              onClick={() => {
+                onSelect(option);
+                onClose();
+              }}
+            >
+              Option {option}
+            </button>
+          ))}
+        </div>
+      }
       footer={
         <div className="flex flex-row flex-1 justify-end items-center mt-auto">
           <button onClick={onClose} className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity">
@@ -23,20 +38,6 @@ export const ExampleSelectionPage: React.FC<PortalModalStateMap[PortalModal.Exam
           </button>
         </div>
       }
-    >
-      <div className="flex flex-1 flex-col gap-3 items-start justify-start">
-        {options.map((option) => (
-          <button
-            key={option}
-            onClick={() => {
-              onSelect(option);
-              onClose();
-            }}
-          >
-            Option {option}
-          </button>
-        ))}
-      </div>
-    </PageContainer>
+    />
   );
 };

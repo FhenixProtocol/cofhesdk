@@ -27,20 +27,21 @@ export const ActivityPage: React.FC = () => {
           <p className="text-sm font-medium">Activity</p>
         </button>
       }
-    >
-      <div className="flex flex-col gap-3">
-        {transactions.length === 0 ? (
-          <div className="py-8 text-center">
-            <p className="text-sm fnx-text-primary opacity-60">No transactions found</p>
-          </div>
-        ) : (
-          <div className="space-y-2 max-h-64 overflow-y-auto">
-            {transactions.map((tx) => (
-              <TransactionItem key={tx.hash} transaction={tx} />
-            ))}
-          </div>
-        )}
-      </div>
-    </PageContainer>
+      content={
+        <div className="flex flex-col gap-3">
+          {transactions.length === 0 ? (
+            <div className="py-8 text-center">
+              <p className="text-sm fnx-text-primary opacity-60">No transactions found</p>
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {transactions.map((tx) => (
+                <TransactionItem key={tx.hash} transaction={tx} />
+              ))}
+            </div>
+          )}
+        </div>
+      }
+    />
   );
 };

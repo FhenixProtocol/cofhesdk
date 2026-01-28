@@ -67,6 +67,63 @@ export const GeneratePermitPage: React.FC<GeneratePermitPageProps> = ({
             <span>Generate new permit</span>
           </button>
         }
+        content={
+          <div className="gap-3 rounded-2xl border border-[#154054] bg-white p-5 shadow-[0_25px_60px_rgba(13,53,71,0.12)] transition-colors dark:border-[#2C6D80] dark:bg-[#1F1F1F]">
+            {overridingBody ?? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 text-[#0E2F3F] dark:text-white">
+                  <div className="flex items-center justify-center rounded-lg border border-[#0E2F3F]/30 p-2 dark:border-white/40">
+                    <PermitIcon className="h-7 w-7" color={permitIconColor} aria-label="CoFHE permit icon" />
+                  </div>
+                  <div className="text-lg font-semibold">Generate CoFHE Permit</div>
+                </div>
+                <p className="text-sm leading-relaxed text-[#355366] dark:text-white/80">
+                  A permit is required to authenticate your identity and grant access to your encrypted data.
+                </p>
+                <p className="text-sm leading-relaxed text-[#355366] dark:text-white/80">
+                  Generating a permit will open your wallet to sign a message (EIP712) which verifies your ownership of
+                  the connected wallet.
+                </p>
+              </div>
+            )}
+            {error && (
+              <div
+                role="alert"
+                className="rounded-xl border border-[#F0784F] bg-[#F0784F]/10 px-4 py-3 text-sm font-medium text-[#0E2F3F] dark:border-[#C8542D] dark:bg-[#C8542D]/15 dark:text-white"
+              >
+                {error}
+              </div>
+            )}
+
+            <section className="space-y-3">
+              <NameSection
+                permitName={permitName}
+                error={nameError}
+                onNameChange={handleNameChange}
+                headerRight={<SelfToggle isSelf={isSelf} onToggleSelf={toggleIsSelf} />}
+              />
+
+              {!isSelf && (
+                <ReceiverSection
+                  receiver={receiver}
+                  receiverError={receiverError}
+                  onReceiverChange={handleReceiverChange}
+                />
+              )}
+
+              <ExpirySection
+                presets={presets}
+                units={units}
+                durationSeconds={durationSeconds}
+                customCount={customCount}
+                customUnit={customUnit}
+                selectPreset={selectPreset}
+                setCustomUnit={setCustomUnit}
+                applyCustom={applyCustom}
+              />
+            </section>
+          </div>
+        }
         footer={
           <div className="grid grid-cols-2 gap-3 pt-2">
             <button
@@ -88,63 +145,7 @@ export const GeneratePermitPage: React.FC<GeneratePermitPageProps> = ({
             </button>
           </div>
         }
-      >
-        <div className="gap-3 rounded-2xl border border-[#154054] bg-white p-5 shadow-[0_25px_60px_rgba(13,53,71,0.12)] transition-colors dark:border-[#2C6D80] dark:bg-[#1F1F1F]">
-          {overridingBody ?? (
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 text-[#0E2F3F] dark:text-white">
-                <div className="flex items-center justify-center rounded-lg border border-[#0E2F3F]/30 p-2 dark:border-white/40">
-                  <PermitIcon className="h-7 w-7" color={permitIconColor} aria-label="CoFHE permit icon" />
-                </div>
-                <div className="text-lg font-semibold">Generate CoFHE Permit</div>
-              </div>
-              <p className="text-sm leading-relaxed text-[#355366] dark:text-white/80">
-                A permit is required to authenticate your identity and grant access to your encrypted data.
-              </p>
-              <p className="text-sm leading-relaxed text-[#355366] dark:text-white/80">
-                Generating a permit will open your wallet to sign a message (EIP712) which verifies your ownership of
-                the connected wallet.
-              </p>
-            </div>
-          )}
-          {error && (
-            <div
-              role="alert"
-              className="rounded-xl border border-[#F0784F] bg-[#F0784F]/10 px-4 py-3 text-sm font-medium text-[#0E2F3F] dark:border-[#C8542D] dark:bg-[#C8542D]/15 dark:text-white"
-            >
-              {error}
-            </div>
-          )}
-
-          <section className="space-y-3">
-            <NameSection
-              permitName={permitName}
-              error={nameError}
-              onNameChange={handleNameChange}
-              headerRight={<SelfToggle isSelf={isSelf} onToggleSelf={toggleIsSelf} />}
-            />
-
-            {!isSelf && (
-              <ReceiverSection
-                receiver={receiver}
-                receiverError={receiverError}
-                onReceiverChange={handleReceiverChange}
-              />
-            )}
-
-            <ExpirySection
-              presets={presets}
-              units={units}
-              durationSeconds={durationSeconds}
-              customCount={customCount}
-              customUnit={customUnit}
-              selectPreset={selectPreset}
-              setCustomUnit={setCustomUnit}
-              applyCustom={applyCustom}
-            />
-          </section>
-        </div>
-      </PageContainer>
+      />
     </form>
   );
 };

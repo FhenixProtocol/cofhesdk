@@ -17,29 +17,29 @@ export const SettingsPage: React.FC = () => {
           <span>Settings</span>
         </button>
       }
-    >
-      {/* A/B Testing Section */}
-      <div className="space-y-3">
-        <p className="text-sm font-medium">A/B Testing</p>
+      content={
+        <div className="space-y-3">
+          <p className="text-sm font-medium">A/B Testing</p>
 
-        {/* Shield Page Variant */}
-        <div className="space-y-2">
-          <p className="text-xs opacity-70">Shield Page</p>
-          <div className="space-y-1">
-            {variants.map((variant) => (
-              <label key={variant} className="flex items-center gap-2 text-xs cursor-pointer">
-                <input
-                  type="radio"
-                  name="shieldPageVariant"
-                  checked={shieldPageVariant === variant}
-                  onChange={() => setShieldPageVariant(variant)}
-                />
-                <span>{SHIELD_PAGE_VARIANT_LABELS[variant]}</span>
-              </label>
-            ))}
+          {/* Shield Page Variant */}
+          <div className="space-y-2">
+            <p className="text-xs opacity-70">Shield Page</p>
+            <div className="space-y-1">
+              {variants.map((variant) => (
+                <label key={variant} className="flex items-center gap-2 text-xs cursor-pointer">
+                  <input
+                    type="radio"
+                    name="shieldPageVariant"
+                    checked={shieldPageVariant === variant}
+                    onChange={() => setShieldPageVariant(variant)}
+                  />
+                  <span>{SHIELD_PAGE_VARIANT_LABELS[variant]}</span>
+                </label>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
-    </PageContainer>
+      }
+    />
   );
 };

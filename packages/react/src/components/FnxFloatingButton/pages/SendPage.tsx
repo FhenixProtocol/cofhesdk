@@ -124,6 +124,120 @@ export const SendPage: React.FC<SendPageProps> = ({ token }) => {
           <p className="text-sm font-medium">Shielded Transfer</p>
         </button>
       }
+      content={
+        <>
+          {/* Asset Section */}
+          <div className="fnx-card-bg p-2 border fnx-card-border">
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-medium opacity-70">Asset to be sent</label>
+            </div>
+            <div className="flex items-center gap-3">
+              {/* Token Icon */}
+              <TokenIcon logoURI={token.logoURI} alt={token.name} size="md" />
+
+              {/* Amount Input and Symbol on same line, centered with logo */}
+              <div className="flex-1 flex items-center gap-1 min-w-0">
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={amount}
+                  onChange={(e) => {
+                    setAmount(sanitizeNumericInput(e.target.value));
+                  }}
+                  placeholder="0.00"
+                  className="flex-1 min-w-0 bg-transparent text-2xl font-bold fnx-text-primary outline-none placeholder:opacity-50"
+                />
+                <button
+                  onClick={() => {
+                    // navigateToTokenListForSelection()
+                    navigateTo(FloatingButtonPage.TokenList, {
+                      pageProps: {
+                        mode: 'select',
+                        title: 'Select token to transfer',
+                        backToPageState: { page: FloatingButtonPage.Send },
+                      },
+                    });
+                  }}
+                  className="flex items-center gap-1 text-2xl font-bold fnx-text-primary hover:opacity-80 transition-opacity whitespace-nowrap flex-shrink-0"
+                >
+                  <span>{token.symbol}</span>
+                  <KeyboardArrowRightIcon className="w-5 h-5 fnx-text-primary opacity-60 flex-shrink-0" />
+                </button>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 -mt-1 text-xs opacity-70">
+              {/* Invisible placeholder to align with icon above */}
+              <div className="w-10 flex-shrink-0" />
+
+              {/* Available text and MAX button */}
+              <div className="flex-1 flex items-center justify-start min-w-0 gap-2">
+                <span className="text-xs opacity-70">Available </span>
+                <CofheTokenConfidentialBalance
+                  token={token}
+                  showSymbol={true}
+                  size="sm"
+                  decimalPrecision={5}
+                  className="text-xs opacity-70 font-medium"
+                />
+                <button
+                  onClick={handleMaxAmount}
+                  className="fnx-max-button text-xxxs ml-1 font-medium px-0.5 py-0.2 rounded"
+                >
+                  MAX
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Down Arrow */}
+          <div className="flex justify-center">
+            <div className="w-8 h-8 rounded-full fnx-icon-bg flex items-center justify-center">
+              <span className="text-lg">↓</span>
+            </div>
+          </div>
+
+          {/* Recipient Address */}
+          <div className="fnx-card-bg p-4 border fnx-card-border">
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-medium opacity-70">Recipient Address:</label>
+            </div>
+            <input
+              type="text"
+              value={recipientAddress}
+              onChange={(e) => setRecipientAddress(e.target.value)}
+              placeholder="0x..."
+              className={cn(
+                'w-full bg-transparent fnx-text-primary outline-none border-b pb-2 px-2',
+                'placeholder:opacity-50',
+                isValidAddress ? 'border-green-500' : recipientAddress ? 'border-red-500' : 'fnx-card-border'
+              )}
+            />
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+              <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+            </div>
+          )}
+
+          {/* Success Message */}
+          {success && (
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+              <p className="text-sm text-green-800 dark:text-green-200">{success}</p>
+            </div>
+          )}
+
+          {/* Encryption Status */}
+          {isEncryptingOrSendingTx && (
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                {isEncryptingInput ? encryptionProgressLabel || 'Encrypting amount...' : 'Sending transaction...'}
+              </p>
+            </div>
+          )}
+        </>
+      }
       footer={
         <button
           onClick={handleSend}
@@ -140,117 +254,6 @@ export const SendPage: React.FC<SendPageProps> = ({ token }) => {
           <span className="text-lg">↗</span>
         </button>
       }
-    >
-      {/* Asset Section */}
-      <div className="fnx-card-bg p-2 border fnx-card-border">
-        <div className="flex items-center justify-between mb-2">
-          <label className="block text-xs font-medium opacity-70">Asset to be sent</label>
-        </div>
-        <div className="flex items-center gap-3">
-          {/* Token Icon */}
-          <TokenIcon logoURI={token.logoURI} alt={token.name} size="md" />
-
-          {/* Amount Input and Symbol on same line, centered with logo */}
-          <div className="flex-1 flex items-center gap-1 min-w-0">
-            <input
-              type="text"
-              inputMode="decimal"
-              value={amount}
-              onChange={(e) => {
-                setAmount(sanitizeNumericInput(e.target.value));
-              }}
-              placeholder="0.00"
-              className="flex-1 min-w-0 bg-transparent text-2xl font-bold fnx-text-primary outline-none placeholder:opacity-50"
-            />
-            <button
-              onClick={() => {
-                // navigateToTokenListForSelection()
-                navigateTo(FloatingButtonPage.TokenList, {
-                  pageProps: {
-                    mode: 'select',
-                    title: 'Select token to transfer',
-                    backToPageState: { page: FloatingButtonPage.Send },
-                  },
-                });
-              }}
-              className="flex items-center gap-1 text-2xl font-bold fnx-text-primary hover:opacity-80 transition-opacity whitespace-nowrap flex-shrink-0"
-            >
-              <span>{token.symbol}</span>
-              <KeyboardArrowRightIcon className="w-5 h-5 fnx-text-primary opacity-60 flex-shrink-0" />
-            </button>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 -mt-1 text-xs opacity-70">
-          {/* Invisible placeholder to align with icon above */}
-          <div className="w-10 flex-shrink-0" />
-
-          {/* Available text and MAX button */}
-          <div className="flex-1 flex items-center justify-start min-w-0 gap-2">
-            <span className="text-xs opacity-70">Available </span>
-            <CofheTokenConfidentialBalance
-              token={token}
-              showSymbol={true}
-              size="sm"
-              decimalPrecision={5}
-              className="text-xs opacity-70 font-medium"
-            />
-            <button
-              onClick={handleMaxAmount}
-              className="fnx-max-button text-xxxs ml-1 font-medium px-0.5 py-0.2 rounded"
-            >
-              MAX
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Down Arrow */}
-      <div className="flex justify-center">
-        <div className="w-8 h-8 rounded-full fnx-icon-bg flex items-center justify-center">
-          <span className="text-lg">↓</span>
-        </div>
-      </div>
-
-      {/* Recipient Address */}
-      <div className="fnx-card-bg p-4 border fnx-card-border">
-        <div className="flex items-center justify-between mb-2">
-          <label className="block text-xs font-medium opacity-70">Recipient Address:</label>
-        </div>
-        <input
-          type="text"
-          value={recipientAddress}
-          onChange={(e) => setRecipientAddress(e.target.value)}
-          placeholder="0x..."
-          className={cn(
-            'w-full bg-transparent fnx-text-primary outline-none border-b pb-2 px-2',
-            'placeholder:opacity-50',
-            isValidAddress ? 'border-green-500' : recipientAddress ? 'border-red-500' : 'fnx-card-border'
-          )}
-        />
-      </div>
-
-      {/* Error Message */}
-      {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-          <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
-        </div>
-      )}
-
-      {/* Success Message */}
-      {success && (
-        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
-          <p className="text-sm text-green-800 dark:text-green-200">{success}</p>
-        </div>
-      )}
-
-      {/* Encryption Status */}
-      {isEncryptingOrSendingTx && (
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-          <p className="text-sm text-blue-800 dark:text-blue-200">
-            {isEncryptingInput ? encryptionProgressLabel || 'Encrypting amount...' : 'Sending transaction...'}
-          </p>
-        </div>
-      )}
-    </PageContainer>
+    />
   );
 };
