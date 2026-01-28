@@ -87,9 +87,6 @@ export const useWatchPermitStatus = () => {
       const timestamp = Math.floor(Date.now() / 1000);
       const expiration = permit.expiration;
 
-      console.log('timestamp', timestamp);
-      console.log('expiration', expiration);
-
       // Expired status
       const isExpired = expiration < timestamp;
       if (isExpired && !expiredStatusShown) {
