@@ -13,10 +13,6 @@ type PortalStatusesActions = {
 
 export const usePortalStatuses = create<PortalStatusesStore & PortalStatusesActions>()((set, get) => ({
   statuses: [],
-  hasStatus: (id) => {
-    const existing = get().statuses;
-    return existing.some((s) => s.id === id);
-  },
   addStatus: (status) => {
     // avoid duplicates
     if (get().hasStatus(status.id)) return;
