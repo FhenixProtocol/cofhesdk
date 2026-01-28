@@ -16,11 +16,11 @@ export function useStoredTransactions({
   const transactionsAsArray = useMemo(
     () =>
       Object.values(
-        (chainId
+        chainId
           ? // if chainId provided -- will filter on chain's txs first
             transactions[chainId] ?? {}
           : // if chainId not provided -- will filter on all txs
-            Object.values(transactions).flatMap((chainTxs) => Object.values(chainTxs))) ?? []
+            Object.values(transactions).flatMap((chainTxs) => Object.values(chainTxs))
       ),
     [transactions, chainId]
   );
