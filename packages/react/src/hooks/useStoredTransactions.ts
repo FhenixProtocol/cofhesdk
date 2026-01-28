@@ -18,7 +18,7 @@ export function useStoredTransactions({
       Object.values(
         chainId
           ? // if chainId provided -- will filter on chain's txs first
-            transactions[chainId]
+            transactions[chainId] ?? {}
           : // if chainId not provided -- will filter on all txs
             Object.values(transactions).flatMap((chainTxs) => Object.values(chainTxs))
       ),

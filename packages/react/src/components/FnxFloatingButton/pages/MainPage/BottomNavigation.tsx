@@ -77,7 +77,7 @@ export const BottomNavigation: React.FC = () => {
   };
 
   return (
-    <div className="flex gap-2 mt-4">
+    <div className="flex gap-2">
       {navItems.map((item) => (
         <button
           key={item.id}

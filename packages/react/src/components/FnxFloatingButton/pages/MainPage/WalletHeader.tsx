@@ -7,7 +7,7 @@ export const WalletHeader: React.FC = () => {
   const walletAddress = useCofheAccount();
 
   return (
-    <div className="flex items-center justify-between mb-4">
+    <div className="flex items-center justify-between">
       {/* Left: Wallet Address */}
       <AddressButton address={walletAddress} icon={<MdOutlineAccountBalanceWallet className="w-4 h-4" />} />
 
