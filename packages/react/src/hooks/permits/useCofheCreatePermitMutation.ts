@@ -1,3 +1,4 @@
+import { usePortalPersisted } from '@/stores/portalPersisted.js';
 import { useInternalMutation } from '../../providers/index.js';
 import { useCofheClient } from '../useCofheClient.js';
 
@@ -16,6 +17,7 @@ export type CreatePermitArgs =
 
 export const useCofheCreatePermitMutation = () => {
   const cofheClient = useCofheClient();
+  const { setHasCreatedFirstPermit } = usePortalPersisted();
 
   return useInternalMutation<void, Error, CreatePermitArgs>({
     mutationFn: async (args) => {
@@ -29,6 +31,7 @@ export const useCofheCreatePermitMutation = () => {
           issuer: account,
           name: name.trim(),
         });
+        setHasCreatedFirstPermit(true);
         return;
       }
 
@@ -38,6 +41,7 @@ export const useCofheCreatePermitMutation = () => {
         recipient: args.receiver,
         name: name.trim(),
       });
+      setHasCreatedFirstPermit(true);
     },
   });
 };

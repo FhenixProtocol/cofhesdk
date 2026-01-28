@@ -90,6 +90,23 @@ export interface Permit {
 }
 
 /**
+ * Permit discriminant helpers
+ */
+export type PermitType = Permit['type'];
+
+/**
+ * Utility type to narrow a permit to a specific discriminant.
+ *
+ * Note: this only narrows the `type` field. Runtime/validation constraints
+ * (e.g. recipient == zeroAddress for self permits) are enforced elsewhere.
+ */
+export type PermitOf<T extends PermitType> = Expand<Omit<Permit, 'type'> & { type: T }>;
+
+export type SelfPermit = PermitOf<'self'>;
+export type SharingPermit = PermitOf<'sharing'>;
+export type RecipientPermit = PermitOf<'recipient'>;
+
+/**
  * Optional additional metadata of a Permit
  * Can be passed into the constructor, but not necessary
  * Useful for deserialization

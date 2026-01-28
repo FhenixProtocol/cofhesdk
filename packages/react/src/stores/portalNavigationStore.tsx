@@ -40,6 +40,7 @@ export const usePortalNavigation = create<PortalNavigationStore & PortalNavigati
   function navigateTo<K extends PagesWithProps>(page: K, args: NavigateArgs<K>): void;
   // eslint-disable-next-line no-redeclare
   function navigateTo<K extends FloatingButtonPage>(page: K, args?: NavigateArgs<K>): void {
+    // TODO: If already on the page, do nothing
     const props = args?.pageProps;
     const skipPagesHistory = args?.navigateParams?.skipPagesHistory === true;
     if (skipPagesHistory) {
