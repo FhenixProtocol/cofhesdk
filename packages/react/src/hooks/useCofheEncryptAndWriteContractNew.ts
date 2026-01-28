@@ -9,8 +9,14 @@ import type {
 } from 'viem';
 import { type CofheInputArgsPreTransform, extractEncryptableValues, insertEncryptedValues } from '@cofhe/abi';
 import type { EncryptableItem, EncryptedItemInput } from '@cofhe/sdk';
-import { useCofheEncryptInputsMutation } from './useCofheEncryptInputsMutation';
-import { useCofheWalletWriteContractMutation } from './useCofheWalletWriteContractMutation';
+import {
+  useCofheEncryptInputsMutation,
+  type UseCofheEncryptInputsMutationOptions,
+} from './useCofheEncryptInputsMutation';
+import {
+  useCofheWalletWriteContractMutation,
+  type UseCofheWalletWriteContractMutationOptions,
+} from './useCofheWalletWriteContractMutation';
 
 type NoInferLocal<T> = [T][T extends any ? 0 : never];
 
@@ -126,11 +132,17 @@ function constructEncryptAndTransform<
   };
 }
 
-export function useCofheEncryptAndWriteContractNew() {
-  const encryption = useCofheEncryptInputsMutation();
-  const write = useCofheWalletWriteContractMutation();
+export function useCofheEncryptAndWriteContractNew<TExtraVars = unknown>({
+  encrypingMutationOptions,
+  writingMutationOptions,
+}: {
+  encrypingMutationOptions?: UseCofheEncryptInputsMutationOptions;
+  writingMutationOptions?: UseCofheWalletWriteContractMutationOptions<TExtraVars>;
+}) {
+  const encryption = useCofheEncryptInputsMutation(encrypingMutationOptions);
+  const write = useCofheWalletWriteContractMutation<TExtraVars>(writingMutationOptions);
 
-  const encryptAndWriteContract = async <
+  const encryptAndWrite = async <
     const TAbi extends Abi | readonly unknown[],
     TFunctionName extends ContractFunctionName<TAbi, 'payable' | 'nonpayable'>,
     TChainOverride extends Chain | undefined = undefined,
@@ -147,22 +159,26 @@ export function useCofheEncryptAndWriteContractNew() {
       'args' | 'functionName'
     > & { functionName: TFunctionName };
     confidentialityAwareAbiArgs: ConfidentialityAwareAbiArgs<TAbi, TFunctionName>;
+    extras?: TExtraVars;
   }) =>
     _encryptAndWriteContract<TAbi, TFunctionName, TChainOverride>({
       ...args,
       encrypt: encryption.encryptInputsAsync,
       write: (writeParams) => {
+        const vars =
+          'extras' in args ? { writeContractInput: writeParams, extras: args.extras as TExtraVars } : writeParams;
+
         return write.writeContractAsync<
           TAbi,
           TFunctionName,
           ContractFunctionArgs<TAbi, 'payable' | 'nonpayable', TFunctionName>,
           TChainOverride
-        >(writeParams);
+        >(vars);
       },
     });
 
   return {
-    encryptAndWriteContract,
+    encryptAndWrite,
     encryption,
     write,
   };
