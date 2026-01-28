@@ -3,7 +3,7 @@ import { usePortalNavigation, usePortalStatuses, usePortalUI } from '@/stores';
 import { truncateHash } from '@/utils';
 import { type Permit } from '@cofhe/sdk/permits';
 import { useEffect, useRef } from 'react';
-import { FloatingButtonPage } from './FnxFloatingButton/pagesConfig/types';
+import { FloatingButtonPage } from '../components/FnxFloatingButton/pagesConfig/types';
 
 export const showPermitExpiredStatus = () => {
   usePortalStatuses.getState().addStatus({
@@ -61,7 +61,7 @@ export const hidePermitSharedStatus = () => {
  * - Error - permit has expired
  * - Info - using a shared permit
  */
-export const PermitStatusSystem = () => {
+export const useWatchPermitStatus = () => {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const activePermit = useCofheActivePermit();
 
@@ -129,6 +129,4 @@ export const PermitStatusSystem = () => {
       }
     };
   }, [activePermit]);
-
-  return null;
 };

@@ -7,7 +7,6 @@ import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
 import type { FloatingButtonPosition, FnxFloatingButtonProps } from './types';
 import { ToastsSection } from './ToastsSection';
 import { usePortalUI } from '@/stores';
-import { PermitStatusSystem } from '../PermitStatusSystem';
 
 const positionStyles: Record<FloatingButtonPosition, string> = {
   'top-left': 'top-4 left-4',
@@ -42,7 +41,6 @@ export const FnxFloatingButtonBase: React.FC<FnxFloatingButtonProps> = ({
         className
       )}
     >
-      <PermitStatusSystem />
       <ToastsSection />
 
       <ContentSection overriddingPage={overriddingPage} />
