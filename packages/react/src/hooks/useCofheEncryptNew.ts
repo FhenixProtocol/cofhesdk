@@ -53,7 +53,7 @@ function assertEncryptInputsResult<T extends readonly EncryptableItem[]>(
   }
 }
 
-export type UseCofheEncryptInputsMutationOptions = Omit<
+export type useCofheEncryptNewOptions = Omit<
   UseMutationOptions<readonly EncryptedItemInput[], Error, EncryptInputsVariables, void>,
   'mutationFn'
 >;
@@ -63,7 +63,7 @@ export type UseCofheEncryptInputsMutationOptions = Omit<
  *
  * This is intentionally minimal (no step tracking UI state). For richer UX, use `useCofheEncrypt`.
  */
-export function useCofheEncryptInputsMutation(options?: UseCofheEncryptInputsMutationOptions): UseMutationResult<
+export function useCofheEncryptNew(options?: useCofheEncryptNewOptions): UseMutationResult<
   readonly EncryptedItemInput[],
   Error,
   EncryptInputsVariables,
@@ -119,7 +119,7 @@ export function useCofheEncryptInputsMutation(options?: UseCofheEncryptInputsMut
     ...mutation,
     encryptInputsAsync: async <const T extends readonly EncryptableItem[]>(variables: EncryptInputsVariables<T>) => {
       const items = hasEncryptInputsOptions(variables) ? variables.items : variables;
-      const result = await mutation.mutateAsync(variables as EncryptInputsVariables);
+      const result = await mutation.mutateAsync(variables);
       assertEncryptInputsResult(items, result);
       return result;
     },

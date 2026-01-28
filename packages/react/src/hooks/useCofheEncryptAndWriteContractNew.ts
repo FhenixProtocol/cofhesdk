@@ -9,11 +9,7 @@ import type {
 } from 'viem';
 import { type CofheInputArgsPreTransform, extractEncryptableValues, insertEncryptedValues } from '@cofhe/abi';
 import type { EncryptableItem, EncryptedItemInput } from '@cofhe/sdk';
-import {
-  useCofheEncryptInputsMutation,
-  type EncryptInputsOptions,
-  type UseCofheEncryptInputsMutationOptions,
-} from './useCofheEncryptInputsMutation';
+import { useCofheEncryptNew, type EncryptInputsOptions, type useCofheEncryptNewOptions } from './useCofheEncryptNew';
 import {
   useCofheWalletWriteContractMutation,
   type UseCofheWalletWriteContractMutationOptions,
@@ -137,10 +133,10 @@ export function useCofheEncryptAndWriteContractNew<TExtraVars = unknown>({
   encrypingMutationOptions,
   writingMutationOptions,
 }: {
-  encrypingMutationOptions?: UseCofheEncryptInputsMutationOptions;
+  encrypingMutationOptions?: useCofheEncryptNewOptions;
   writingMutationOptions?: UseCofheWalletWriteContractMutationOptions<TExtraVars>;
 }) {
-  const encryption = useCofheEncryptInputsMutation(encrypingMutationOptions);
+  const encryption = useCofheEncryptNew(encrypingMutationOptions);
   const write = useCofheWalletWriteContractMutation<TExtraVars>(writingMutationOptions);
 
   const encryptAndWrite = async <
