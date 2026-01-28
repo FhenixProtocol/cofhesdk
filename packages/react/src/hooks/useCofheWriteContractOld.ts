@@ -27,7 +27,7 @@ export type UseCofheWriteContractOptions<TExtras> = Omit<
   'mutationFn'
 >;
 
-export function useCofheWriteContract<TExtras>(options?: UseCofheWriteContractOptions<TExtras>): UseMutationResult<
+export function useCofheWriteContractOld<TExtras>(options?: UseCofheWriteContractOptions<TExtras>): UseMutationResult<
   Hash,
   Error,
   WriteContractInputWithExtras<TExtras>

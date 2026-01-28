@@ -14,7 +14,7 @@ import SecurityIcon from '@mui/icons-material/Security';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
-import { getStepConfig, useCofheEncrypt } from '@/hooks/useCofheEncryptOld.js';
+import { getStepConfig, useCofheEncryptOld } from '@/hooks/useCofheEncryptOld.js';
 import { createEncryptable } from '@cofhe/sdk';
 
 export interface FnxEncryptInputProps extends BaseProps {
@@ -80,7 +80,7 @@ export const FnxEncryptInput: React.FC<FnxEncryptInputProps> = ({
     encrypt,
     isEncrypting,
     stepsState: { lastStep: lastEncryptionStep },
-  } = useCofheEncrypt();
+  } = useCofheEncryptOld();
 
   const { progress: encryptionProgress, label: encryptionProgressLabel } = useMemo(() => {
     return lastEncryptionStep

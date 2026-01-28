@@ -61,7 +61,6 @@ export type useCofheEncryptNewOptions = Omit<
 /**
  * Low-level mutation hook: encrypt a list of EncryptableItems into encrypted input structs.
  *
- * This is intentionally minimal (no step tracking UI state). For richer UX, use `useCofheEncrypt`.
  */
 export function useCofheEncryptNew(options?: useCofheEncryptNewOptions): UseMutationResult<
   readonly EncryptedItemInput[],

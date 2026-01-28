@@ -6,7 +6,7 @@ export { CofheProvider, useCofheContext } from './providers/index';
 
 // Hooks
 export {
-  useCofheEncrypt,
+  useCofheEncryptOld,
   useCofheConnection,
   useCofheActivePermit,
   useCofheAllPermits,
@@ -14,7 +14,7 @@ export {
   useCofheSelectPermit,
   useCofhePublicClient,
   useCofheWalletClient,
-  useCofheWriteContract,
+  useCofheWriteContractOld,
   useCofheEncryptNew,
   useCofheWriteContractNew,
   useCofheClient,

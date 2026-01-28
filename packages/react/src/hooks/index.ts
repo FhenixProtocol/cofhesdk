@@ -1,5 +1,5 @@
 export { useCofheConnection, useCofhePublicClient } from './useCofheConnection';
-export { useCofheEncrypt } from './useCofheEncryptOld';
+export { useCofheEncryptOld } from './useCofheEncryptOld';
 export {
   useCofheActivePermit,
   useCofheAllPermits,
@@ -15,7 +15,7 @@ export { useCofheTokenClaimUnshielded } from './useCofheTokenClaimUnshielded';
 export { useCofheTokenClaimable, type UnshieldClaimsSummary } from './useCofheTokenClaimable';
 export { useCofheWalletClient } from './useCofheConnection';
 export { useCofheTokens, useCofheTokenLists, ETH_ADDRESS, type Token, type Erc20Pair } from './useCofheTokenLists';
-export { useCofheWriteContract } from './useCofheWriteContractOld';
+export { useCofheWriteContractOld } from './useCofheWriteContractOld';
 export { useCofheEncryptNew } from './useCofheEncryptNew';
 export { useCofheWriteContractNew } from './useCofheWriteContractNew';
 export { useCofheReadContract, type UseCofheReadContractQueryOptions } from './useCofheReadContract';

@@ -1,5 +1,5 @@
 import {
-  useCofheEncrypt,
+  useCofheEncryptOld,
   type EncryptableArray,
   type EncryptedInputs,
   type EncryptionOptions,
@@ -8,12 +8,12 @@ import {
 import type { EncryptableItem } from '@cofhe/sdk';
 
 import {
-  useCofheWriteContract,
+  useCofheWriteContractOld,
   type UseCofheWriteContractOptions,
   type WriteContractInputWithExtras,
 } from './useCofheWriteContractOld';
 
-export function useCofheEncryptAndWriteContract<TExtraVars, T extends EncryptableItem | EncryptableArray>({
+export function useCofheEncryptAndWriteContractOld<TExtraVars, T extends EncryptableItem | EncryptableArray>({
   encryping = {},
   writingMutationOptions,
 }: {
@@ -23,8 +23,8 @@ export function useCofheEncryptAndWriteContract<TExtraVars, T extends Encryptabl
   };
   writingMutationOptions?: UseCofheWriteContractOptions<TExtraVars>;
 }) {
-  const encryption = useCofheEncrypt(encryping.options, encryping.mutationOptions);
-  const write = useCofheWriteContract(writingMutationOptions);
+  const encryption = useCofheEncryptOld(encryping.options, encryping.mutationOptions);
+  const write = useCofheWriteContractOld(writingMutationOptions);
 
   async function encryptAndWrite(
     encryptionOptions: EncryptionOptions<T>,

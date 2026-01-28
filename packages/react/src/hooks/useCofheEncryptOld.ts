@@ -113,7 +113,7 @@ export type EncryptionOptions<T extends EncryptableItem | EncryptableArray> = {
   onStepChange?: (step: EncryptStep, context?: EncryptStepCallbackContext) => void;
 };
 
-export function useCofheEncrypt<T extends EncryptableItem | EncryptableArray>(
+export function useCofheEncryptOld<T extends EncryptableItem | EncryptableArray>(
   encryptionOptions: EncryptionOptions<T> = {},
   mutationOptions: UseCofheEncryptMutationOptions<T> = {}
 ): UseEncryptResult<T> {
