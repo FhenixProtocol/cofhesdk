@@ -8,6 +8,7 @@ import { useCofheClient } from '@/hooks/useCofheClient.js';
 import { privateKeyToAccount } from 'viem/accounts';
 import { createWalletClient, http } from 'viem';
 import { arbitrumSepolia } from 'viem/chains';
+import { usePortalPersisted } from '@/stores/portalPersisted.js';
 
 type Tab = 'modal' | 'status' | 'toast' | 'permit';
 
@@ -50,7 +51,6 @@ export const DebugPage: React.FC = () => {
         <>
           {activeTab === 'modal' && (
             <div className="flex flex-col gap-3">
-              <p className="text-xs">Modal:</p>
               <button
                 onClick={() => {
                   openModal(PortalModal.ExampleSelection, {
@@ -74,7 +74,6 @@ export const DebugPage: React.FC = () => {
 
           {activeTab === 'status' && (
             <div className="flex flex-col gap-3">
-              <p className="text-xs">Status:</p>
               <button
                 onClick={() => {
                   const isPresent = statuses.some((status) => status.id === 'test-warning-status');
@@ -131,7 +130,6 @@ export const DebugPage: React.FC = () => {
 
           {activeTab === 'toast' && (
             <div className="flex flex-col gap-3">
-              <p className="text-xs">Toasts:</p>
               <button
                 onClick={() => {
                   addToast(
@@ -313,7 +311,7 @@ export const DebugPage: React.FC = () => {
 
           {activeTab === 'permit' && (
             <div className="flex flex-col gap-3">
-              <p className="text-xs">Permit:</p>
+              <FirstPermitDebug />
               <CreateSelfExpiringPermitButton />
               <CreateAndUseReceivingPermitButton />
             </div>
@@ -321,6 +319,22 @@ export const DebugPage: React.FC = () => {
         </>
       }
     />
+  );
+};
+
+const FirstPermitDebug = () => {
+  const { hasCreatedFirstPermit, setHasCreatedFirstPermit } = usePortalPersisted();
+  return (
+    <div>
+      <p>Has created first permit: {hasCreatedFirstPermit ? '[Y]' : '[N]'}</p>
+      <button
+        onClick={() => {
+          setHasCreatedFirstPermit(false);
+        }}
+      >
+        Reset first permit created flag
+      </button>
+    </div>
   );
 };
 
@@ -336,6 +350,7 @@ const CreateSelfExpiringPermitButton = () => {
       issuer: account,
       expiration: expiration,
     });
+    usePortalPersisted.getState().setHasCreatedFirstPermit(true);
   };
 
   return <button onClick={create}>Create self permit (expires in 2 minutes)</button>;
@@ -373,6 +388,7 @@ const CreateAndUseReceivingPermitButton = () => {
 
     // Receive shared permit
     await cofheClient.permits.importShared(sharedPermit);
+    usePortalPersisted.getState().setHasCreatedFirstPermit(true);
   };
 
   return <button onClick={receiveAndUse}>Create and use receiving permit</button>;
