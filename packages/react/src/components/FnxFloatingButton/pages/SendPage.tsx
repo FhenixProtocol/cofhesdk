@@ -12,7 +12,7 @@ import { unitToWei } from '@/utils/format';
 import { assert } from 'ts-essentials';
 import { CofheTokenConfidentialBalance } from '../components';
 import { type Token } from '@/hooks';
-import { getStepConfig } from '@/hooks/useCofheEncrypt';
+import { getStepConfig } from '@/hooks/useCofheEncryptOld';
 import { FloatingButtonPage } from '../pagesConfig/types';
 import { useOnceTransactionMined } from '@/hooks/useOnceTransactionMined';
 import { usePortalNavigation } from '@/stores';

@@ -4,14 +4,14 @@ import {
   type EncryptedInputs,
   type EncryptionOptions,
   type UseCofheEncryptMutationOptions,
-} from './useCofheEncrypt';
+} from './useCofheEncryptOld';
 import type { EncryptableItem } from '@cofhe/sdk';
 
 import {
   useCofheWriteContract,
   type UseCofheWriteContractOptions,
   type WriteContractInputWithExtras,
-} from './useCofheWriteContract';
+} from './useCofheWriteContractOld';
 
 export function useCofheEncryptAndWriteContract<TExtraVars, T extends EncryptableItem | EncryptableArray>({
   encryping = {},

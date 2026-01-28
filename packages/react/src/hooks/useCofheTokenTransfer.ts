@@ -5,7 +5,7 @@ import { TransactionActionType, useTransactionStore } from '../stores/transactio
 import { createEncryptable, type EncryptableItem } from '@cofhe/sdk';
 import { useCofheEncryptAndWriteContractNew } from './useCofheEncryptAndWriteContractNew.js';
 import type { useCofheWriteContractNewOptions } from './useCofheWriteContractNew.js';
-import type { EncryptionOptions } from './useCofheEncrypt.js';
+import type { EncryptionOptions } from './useCofheEncryptOld.js';
 
 type TokenTransferExtras = { token: Token; amount: bigint; userAddress: Address };
 type UseCofheTokenTransferOptions = Pick<
