@@ -1,15 +1,37 @@
 import type { UseMutationOptions, UseMutationResult } from '@tanstack/react-query';
 import {
   assertCorrectEncryptedItemInput,
+  EncryptStep,
   type EncryptableItem,
   type EncryptedItemInput,
+  type EncryptStepCallbackContext,
   type EncryptedItemInputs,
 } from '@cofhe/sdk';
 import { assert } from 'ts-essentials';
+import { useStepsState, type StepsState } from './internal/useStepsState';
 import { useInternalMutation } from '../providers/index.js';
 import { useCofheContext } from '../providers/index.js';
 
 type EncryptInputsResult<T extends readonly EncryptableItem[]> = EncryptedItemInputs<[...T]>;
+
+export type EncryptInputsOptions = {
+  account?: string;
+  chainId?: number;
+  securityZone?: number;
+  onStepChange?: (step: EncryptStep, context?: EncryptStepCallbackContext) => void;
+};
+
+export type EncryptInputsVariables<T extends readonly EncryptableItem[] = readonly EncryptableItem[]> =
+  | T
+  | ({
+      items: T;
+    } & EncryptInputsOptions);
+
+function hasEncryptInputsOptions<T extends readonly EncryptableItem[]>(
+  variables: EncryptInputsVariables<T>
+): variables is { items: T } & EncryptInputsOptions {
+  return typeof variables === 'object' && variables !== null && 'items' in variables;
+}
 
 function assertEncryptInputsResult<T extends readonly EncryptableItem[]>(
   inputs: T,
@@ -32,7 +54,7 @@ function assertEncryptInputsResult<T extends readonly EncryptableItem[]>(
 }
 
 export type UseCofheEncryptInputsMutationOptions = Omit<
-  UseMutationOptions<readonly EncryptedItemInput[], Error, readonly EncryptableItem[], void>,
+  UseMutationOptions<readonly EncryptedItemInput[], Error, EncryptInputsVariables, void>,
   'mutationFn'
 >;
 
@@ -44,32 +66,65 @@ export type UseCofheEncryptInputsMutationOptions = Omit<
 export function useCofheEncryptInputsMutation(options?: UseCofheEncryptInputsMutationOptions): UseMutationResult<
   readonly EncryptedItemInput[],
   Error,
-  readonly EncryptableItem[],
+  EncryptInputsVariables,
   void
 > & {
-  encryptInputsAsync: <const T extends readonly EncryptableItem[]>(items: T) => Promise<EncryptInputsResult<T>>;
-  encryptInputs: (items: readonly EncryptableItem[]) => void;
+  encryptInputsAsync: <const T extends readonly EncryptableItem[]>(
+    variables: EncryptInputsVariables<T>
+  ) => Promise<EncryptInputsResult<T>>;
+  encryptInputs: (variables: EncryptInputsVariables) => void;
+  isEncrypting: boolean;
+  stepsState: StepsState;
 } {
   const client = useCofheContext().client;
+  const stepsState = useStepsState();
+  const { onStep: handleStepStateChange, onSetKey: handleStepSetKey } = stepsState;
 
-  const mutation = useInternalMutation<readonly EncryptedItemInput[], Error, readonly EncryptableItem[], void>({
+  const mutation = useInternalMutation<readonly EncryptedItemInput[], Error, EncryptInputsVariables, void>({
     ...options,
     mutationKey: options?.mutationKey ?? ['cofhe', 'encryptInputs'],
-    mutationFn: async (items) => {
+    mutationFn: async (variables) => {
       assert(client, 'CoFHE client not initialized');
+
+      const key = crypto.randomUUID();
+      handleStepSetKey(key);
+
+      const items = hasEncryptInputsOptions(variables) ? variables.items : variables;
       // SDK expects a mutable array type; copy preserves runtime value while satisfying typing.
       const mutableItems = Array.from(items);
-      return client.encryptInputs(mutableItems).encrypt();
+
+      const builder = client.encryptInputs(mutableItems);
+
+      const externalOnStepChange = hasEncryptInputsOptions(variables) ? variables.onStepChange : undefined;
+
+      const combinedOnStepChange = (step: EncryptStep, context?: EncryptStepCallbackContext) => {
+        handleStepStateChange(key, step, context);
+        externalOnStepChange?.(step, context);
+      };
+
+      // Always set callback so we can track steps consistently.
+      builder.setStepCallback(combinedOnStepChange);
+
+      if (hasEncryptInputsOptions(variables)) {
+        if (variables.account) builder.setAccount(variables.account);
+        if (variables.chainId) builder.setChainId(variables.chainId);
+        if (variables.securityZone) builder.setSecurityZone(variables.securityZone);
+      }
+
+      return builder.encrypt();
     },
   });
 
   return {
     ...mutation,
-    encryptInputsAsync: async <const T extends readonly EncryptableItem[]>(items: T) => {
-      const result = await mutation.mutateAsync(items);
+    encryptInputsAsync: async <const T extends readonly EncryptableItem[]>(variables: EncryptInputsVariables<T>) => {
+      const items = hasEncryptInputsOptions(variables) ? variables.items : variables;
+      const result = await mutation.mutateAsync(variables as EncryptInputsVariables);
       assertEncryptInputsResult(items, result);
       return result;
     },
-    encryptInputs: (items) => mutation.mutate(items),
+    encryptInputs: (variables) => mutation.mutate(variables),
+    isEncrypting: mutation.isPending,
+    stepsState,
   };
 }

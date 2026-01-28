@@ -11,6 +11,7 @@ import { type CofheInputArgsPreTransform, extractEncryptableValues, insertEncryp
 import type { EncryptableItem, EncryptedItemInput } from '@cofhe/sdk';
 import {
   useCofheEncryptInputsMutation,
+  type EncryptInputsOptions,
   type UseCofheEncryptInputsMutationOptions,
 } from './useCofheEncryptInputsMutation';
 import {
@@ -160,10 +161,15 @@ export function useCofheEncryptAndWriteContractNew<TExtraVars = unknown>({
     > & { functionName: TFunctionName };
     confidentialityAwareAbiArgs: ConfidentialityAwareAbiArgs<TAbi, TFunctionName>;
     extras?: TExtraVars;
+    encryptionOptions?: EncryptInputsOptions;
   }) =>
     _encryptAndWriteContract<TAbi, TFunctionName, TChainOverride>({
       ...args,
-      encrypt: encryption.encryptInputsAsync,
+      encrypt: (encryptableItems) =>
+        encryption.encryptInputsAsync({
+          items: encryptableItems as readonly EncryptableItem[],
+          ...(args.encryptionOptions ?? {}),
+        }),
       write: (writeParams) => {
         const vars =
           'extras' in args ? { writeContractInput: writeParams, extras: args.extras as TExtraVars } : writeParams;
