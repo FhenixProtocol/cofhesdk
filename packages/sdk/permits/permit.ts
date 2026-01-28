@@ -1,6 +1,9 @@
 import { keccak256, toHex, zeroAddress, parseAbi, type PublicClient, type WalletClient } from 'viem';
 import {
   type Permit,
+  type SelfPermit,
+  type SharingPermit,
+  type RecipientPermit,
   type CreateSelfPermitOptions,
   type CreateSharingPermitOptions,
   type ImportSharedPermitOptions,
@@ -28,7 +31,7 @@ export const PermitUtils = {
   /**
    * Create a self permit for personal use
    */
-  createSelf: async (options: CreateSelfPermitOptions): Promise<Permit> => {
+  createSelf: async (options: CreateSelfPermitOptions): Promise<SelfPermit> => {
     const validation = validateSelfPermitOptions(options);
 
     if (!validation.success) {
@@ -40,17 +43,19 @@ export const PermitUtils = {
     // Always generate a new sealing key - users cannot provide their own
     const sealingPair = await GenerateSealingKey();
 
-    return {
+    const permit = {
       ...validation.data,
       sealingPair,
       _signedDomain: undefined,
-    };
+    } satisfies SelfPermit;
+
+    return permit;
   },
 
   /**
    * Create a sharing permit to be shared with another user
    */
-  createSharing: async (options: CreateSharingPermitOptions): Promise<Permit> => {
+  createSharing: async (options: CreateSharingPermitOptions): Promise<SharingPermit> => {
     const validation = validateSharingPermitOptions(options);
 
     if (!validation.success) {
@@ -63,17 +68,19 @@ export const PermitUtils = {
     // Always generate a new sealing key - users cannot provide their own
     const sealingPair = await GenerateSealingKey();
 
-    return {
+    const permit = {
       ...validation.data,
       sealingPair,
       _signedDomain: undefined,
-    };
+    } satisfies SharingPermit;
+
+    return permit;
   },
 
   /**
    * Import a shared permit from various input formats
    */
-  importShared: async (options: ImportSharedPermitOptions | any | string): Promise<Permit> => {
+  importShared: async (options: ImportSharedPermitOptions | string): Promise<RecipientPermit> => {
     let parsedOptions: ImportSharedPermitOptions;
 
     // Handle different input types
@@ -109,17 +116,19 @@ export const PermitUtils = {
     // Always generate a new sealing key - users cannot provide their own
     const sealingPair = await GenerateSealingKey();
 
-    return {
+    const permit = {
       ...validation.data,
       sealingPair,
       _signedDomain: undefined,
-    };
+    } satisfies RecipientPermit;
+
+    return permit;
   },
 
   /**
    * Sign a permit with the provided wallet client
    */
-  sign: async (permit: Permit, publicClient: PublicClient, walletClient: WalletClient): Promise<Permit> => {
+  sign: async <T extends Permit>(permit: T, publicClient: PublicClient, walletClient: WalletClient): Promise<T> => {
     if (walletClient == null || walletClient.account == null) {
       throw new Error(
         'PermitUtils :: sign - walletClient undefined, you must pass in a `walletClient` for the connected user to create a permit signature'
@@ -153,7 +162,7 @@ export const PermitUtils = {
       };
     }
 
-    return updatedPermit;
+    return updatedPermit as T;
   },
 
   /**
@@ -163,7 +172,7 @@ export const PermitUtils = {
     options: CreateSelfPermitOptions,
     publicClient: PublicClient,
     walletClient: WalletClient
-  ): Promise<Permit> => {
+  ): Promise<SelfPermit> => {
     const permit = await PermitUtils.createSelf(options);
     return PermitUtils.sign(permit, publicClient, walletClient);
   },
@@ -175,7 +184,7 @@ export const PermitUtils = {
     options: CreateSharingPermitOptions,
     publicClient: PublicClient,
     walletClient: WalletClient
-  ): Promise<Permit> => {
+  ): Promise<SharingPermit> => {
     const permit = await PermitUtils.createSharing(options);
     return PermitUtils.sign(permit, publicClient, walletClient);
   },
@@ -184,10 +193,10 @@ export const PermitUtils = {
    * Import and sign a shared permit in one operation from various input formats
    */
   importSharedAndSign: async (
-    options: ImportSharedPermitOptions | any | string,
+    options: ImportSharedPermitOptions | string,
     publicClient: PublicClient,
     walletClient: WalletClient
-  ): Promise<Permit> => {
+  ): Promise<RecipientPermit> => {
     const permit = await PermitUtils.importShared(options);
     return PermitUtils.sign(permit, publicClient, walletClient);
   },

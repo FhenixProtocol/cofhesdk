@@ -195,7 +195,7 @@ export function createCofhesdkClientBase<TConfig extends CofhesdkConfig>(
     },
 
     importShared: async (
-      options: ImportSharedPermitOptions | any | string,
+      options: ImportSharedPermitOptions | string,
       clients?: { publicClient: PublicClient; walletClient: WalletClient }
     ) => {
       _requireConnected();
