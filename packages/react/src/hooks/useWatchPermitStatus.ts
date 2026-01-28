@@ -4,6 +4,27 @@ import { truncateHash } from '@/utils';
 import { type Permit } from '@cofhe/sdk/permits';
 import { useEffect, useRef } from 'react';
 import { FloatingButtonPage } from '../components/FnxFloatingButton/pagesConfig/types';
+import { usePortalPersisted } from '@/stores/portalPersisted';
+
+export const showMissingPermitStatus = () => {
+  usePortalStatuses.getState().addStatus({
+    id: 'missing-permit',
+    variant: 'error',
+    title: 'Missing permit',
+    description: 'Select or create a new permit',
+    action: {
+      label: 'FIX',
+      onClick: () => {
+        usePortalUI.getState().openPortal();
+        usePortalNavigation.getState().navigateTo(FloatingButtonPage.Permits);
+      },
+    },
+  });
+};
+
+export const hideMissingPermitStatus = () => {
+  usePortalStatuses.getState().removeStatus('missing-permit');
+};
 
 export const showPermitExpiredStatus = () => {
   usePortalStatuses.getState().addStatus({
@@ -67,11 +88,16 @@ export const useWatchPermitStatus = () => {
 
   useEffect(() => {
     const updateStatuses = (permit: Permit | undefined) => {
+      const hasCreatedFirstPermit = usePortalPersisted.getState().hasCreatedFirstPermit;
+      const missingPermitStatusShown = usePortalStatuses.getState().hasStatus('missing-permit');
       const expiredStatusShown = usePortalStatuses.getState().hasStatus('permit-expired');
       const expiringSoonStatusShown = usePortalStatuses.getState().hasStatus('permit-expiring-soon');
       const sharedStatusShown = usePortalStatuses.getState().hasStatus('permit-shared');
 
       if (permit == null) {
+        if (hasCreatedFirstPermit && !missingPermitStatusShown) {
+          showMissingPermitStatus();
+        }
         if (expiredStatusShown) {
           hidePermitExpiredStatus();
         }
@@ -82,6 +108,10 @@ export const useWatchPermitStatus = () => {
           hidePermitSharedStatus();
         }
         return;
+      }
+
+      if (permit != null && missingPermitStatusShown) {
+        hideMissingPermitStatus();
       }
 
       const timestamp = Math.floor(Date.now() / 1000);
