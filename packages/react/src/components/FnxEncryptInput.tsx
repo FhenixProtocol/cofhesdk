@@ -14,7 +14,7 @@ import SecurityIcon from '@mui/icons-material/Security';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
-import { getStepConfig, useCofheEncryptOld } from '@/hooks/useCofheEncryptOld.js';
+import { getStepConfig, useCofheEncrypt } from '@/hooks/useCofheEncrypt';
 import { createEncryptable } from '@cofhe/sdk';
 
 export interface FnxEncryptInputProps extends BaseProps {
@@ -77,10 +77,10 @@ export const FnxEncryptInput: React.FC<FnxEncryptInputProps> = ({
   const [copySuccess, setCopySuccess] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const {
-    encrypt,
+    encryptInputsAsync: encrypt,
     isEncrypting,
     stepsState: { lastStep: lastEncryptionStep },
-  } = useCofheEncryptOld();
+  } = useCofheEncrypt();
 
   const { progress: encryptionProgress, label: encryptionProgressLabel } = useMemo(() => {
     return lastEncryptionStep
@@ -301,9 +301,7 @@ export const FnxEncryptInput: React.FC<FnxEncryptInputProps> = ({
         // Not really work, need to improve cofhejs side to make it non-blocking
         (async () => {
           try {
-            const encryptionResult = await encrypt({
-              input: createEncryptable(type, textValue),
-            });
+            const encryptionResult = await encrypt([createEncryptable(type, textValue)]);
 
             // Store the result for the copy button
             setEncryptedResult(encryptionResult);

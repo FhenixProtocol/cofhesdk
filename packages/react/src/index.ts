@@ -6,7 +6,6 @@ export { CofheProvider, useCofheContext } from './providers/index';
 
 // Hooks
 export {
-  useCofheEncryptOld,
   useCofheConnection,
   useCofheActivePermit,
   useCofheAllPermits,
@@ -14,8 +13,7 @@ export {
   useCofheSelectPermit,
   useCofhePublicClient,
   useCofheWalletClient,
-  useCofheWriteContractOld,
-  useCofheEncryptNew,
+  useCofheEncrypt,
   useCofheWriteContractNew,
   useCofheClient,
   useCofheTokens,
@@ -34,7 +32,7 @@ export {
   type UseTransactionReceiptsByHashInput,
 } from '@/hooks/index';
 
-export { useCofheEncryptAndWriteContractNew } from '@/hooks/useCofheEncryptAndWriteContractNew';
+export { useCofheEncryptAndWriteContractNew } from '@/hooks/useCofheEncryptAndWriteContract';
 export { useCofheReadContractAndDecrypt } from '@/hooks/useCofheReadContractAndDecrypt';
 
 // Components
