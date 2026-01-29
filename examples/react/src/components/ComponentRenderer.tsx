@@ -6,11 +6,10 @@ import { FnxFloatingButtonExample } from './examples/FnxFloatingButtonExample';
 import {
   ErrorCause,
   useCofheClient,
-  useCofheEncryptAndWriteContractNew,
   useCofheReadContractAndDecrypt,
+  useCofheEncryptAndWriteContract,
 } from '@cofhe/react';
 import { useAccount } from 'wagmi';
-import { FheTypes } from '@cofhe/sdk';
 // import { TestABI } from './tmp-abis';
 
 interface ComponentRendererProps {
@@ -20,14 +19,14 @@ interface ComponentRendererProps {
 
 const WritingTest: React.FC = () => {
   const client = useCofheClient();
-  const { encryptAndWriteContract } = useCofheEncryptAndWriteContractNew();
+  const { encryptAndWrite } = useCofheEncryptAndWriteContract();
 
   return (
     <button
       onClick={() => {
         const accountAddress = client.getSnapshot().walletClient?.account?.address;
         if (!accountAddress) throw new Error('No connected account');
-        encryptAndWriteContract({
+        encryptAndWrite({
           params: {
             abi: [
               {

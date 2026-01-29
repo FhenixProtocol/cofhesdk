@@ -14,7 +14,7 @@ export {
   useCofhePublicClient,
   useCofheWalletClient,
   useCofheEncrypt,
-  useCofheWriteContractNew,
+  useCofheWriteContract,
   useCofheClient,
   useCofheTokens,
   useCofheTokenLists,
@@ -32,7 +32,7 @@ export {
   type UseTransactionReceiptsByHashInput,
 } from '@/hooks/index';
 
-export { useCofheEncryptAndWriteContractNew } from '@/hooks/useCofheEncryptAndWriteContract';
+export { useCofheEncryptAndWriteContract } from '@/hooks/useCofheEncryptAndWriteContract';
 export { useCofheReadContractAndDecrypt } from '@/hooks/useCofheReadContractAndDecrypt';
 
 // Components

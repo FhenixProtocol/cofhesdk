@@ -3,13 +3,13 @@ import type { Token } from './useCofheTokenLists.js';
 import { TRANSFER_ABIS } from '../constants/confidentialTokenABIs.js';
 import { TransactionActionType, useTransactionStore } from '../stores/transactionStore.js';
 import { createEncryptable, type EncryptableItem } from '@cofhe/sdk';
-import { useCofheEncryptAndWriteContractNew } from './useCofheEncryptAndWriteContract.js';
-import type { useCofheWriteContractNewOptions } from './useCofheWriteContract.js';
+import { useCofheEncryptAndWriteContract } from './useCofheEncryptAndWriteContract.js';
+import type { useCofheWriteContractOptions } from './useCofheWriteContract.js';
 import type { EncryptionOptions } from './useCofheEncrypt.js';
 
 type TokenTransferExtras = { token: Token; amount: bigint; userAddress: Address };
 type UseCofheTokenTransferOptions = Pick<
-  useCofheWriteContractNewOptions<TokenTransferExtras>,
+  useCofheWriteContractOptions<TokenTransferExtras>,
   'onSuccess' | 'onError' | 'onMutate'
 >;
 
@@ -25,7 +25,7 @@ type EncryptAndSendInput = {
 
 export function useCofheTokenTransfer(writeMutationOptions?: UseCofheTokenTransferOptions) {
   const { onSuccess: passedOnSuccess, ...restOfOptions } = writeMutationOptions || {};
-  const { encryption, write, encryptAndWrite } = useCofheEncryptAndWriteContractNew<TokenTransferExtras>({
+  const { encryption, write, encryptAndWrite } = useCofheEncryptAndWriteContract<TokenTransferExtras>({
     writingMutationOptions: {
       onSuccess: (hash, variables, onMutateResult, context) => {
         if (passedOnSuccess) passedOnSuccess(hash, variables, onMutateResult, context);

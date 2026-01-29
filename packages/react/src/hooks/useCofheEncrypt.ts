@@ -96,7 +96,7 @@ function assertEncryptInputsResult<T extends readonly EncryptableItem[]>(
   }
 }
 
-export type useCofheEncryptNewOptions = Omit<
+export type UseCofheEncryptOptions = Omit<
   UseMutationOptions<readonly EncryptedItemInput[], Error, EncryptInputsVariables, void>,
   'mutationFn'
 >;
@@ -105,7 +105,7 @@ export type useCofheEncryptNewOptions = Omit<
  * Low-level mutation hook: encrypt a list of EncryptableItems into encrypted input structs.
  *
  */
-export function useCofheEncrypt(options?: useCofheEncryptNewOptions): UseMutationResult<
+export function useCofheEncrypt(options?: UseCofheEncryptOptions): UseMutationResult<
   readonly EncryptedItemInput[],
   Error,
   EncryptInputsVariables,

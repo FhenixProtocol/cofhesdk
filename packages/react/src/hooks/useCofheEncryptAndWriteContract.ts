@@ -9,8 +9,8 @@ import type {
 } from 'viem';
 import { type CofheInputArgsPreTransform, extractEncryptableValues, insertEncryptedValues } from '@cofhe/abi';
 import type { EncryptableItem, EncryptedItemInput } from '@cofhe/sdk';
-import { useCofheEncrypt, type EncryptInputsOptions, type useCofheEncryptNewOptions } from './useCofheEncrypt';
-import { useCofheWriteContractNew, type useCofheWriteContractNewOptions } from './useCofheWriteContract';
+import { useCofheEncrypt, type EncryptInputsOptions, type UseCofheEncryptOptions } from './useCofheEncrypt';
+import { useCofheWriteContract, type useCofheWriteContractOptions } from './useCofheWriteContract';
 
 type NoInferLocal<T> = [T][T extends any ? 0 : never];
 
@@ -126,15 +126,15 @@ function constructEncryptAndTransform<
   };
 }
 
-export function useCofheEncryptAndWriteContractNew<TExtraVars = unknown>({
+export function useCofheEncryptAndWriteContract<TExtraVars = unknown>({
   encrypingMutationOptions,
   writingMutationOptions,
 }: {
-  encrypingMutationOptions?: useCofheEncryptNewOptions;
-  writingMutationOptions?: useCofheWriteContractNewOptions<TExtraVars>;
+  encrypingMutationOptions?: UseCofheEncryptOptions;
+  writingMutationOptions?: useCofheWriteContractOptions<TExtraVars>;
 } = {}) {
   const encryption = useCofheEncrypt(encrypingMutationOptions);
-  const write = useCofheWriteContractNew<TExtraVars>(writingMutationOptions);
+  const write = useCofheWriteContract<TExtraVars>(writingMutationOptions);
 
   const encryptAndWrite = async <
     const TAbi extends Abi | readonly unknown[],
