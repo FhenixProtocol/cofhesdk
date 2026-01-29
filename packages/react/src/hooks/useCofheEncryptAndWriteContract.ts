@@ -132,7 +132,7 @@ export function useCofheEncryptAndWriteContractNew<TExtraVars = unknown>({
 }: {
   encrypingMutationOptions?: useCofheEncryptNewOptions;
   writingMutationOptions?: useCofheWriteContractNewOptions<TExtraVars>;
-}) {
+} = {}) {
   const encryption = useCofheEncrypt(encrypingMutationOptions);
   const write = useCofheWriteContractNew<TExtraVars>(writingMutationOptions);
 
