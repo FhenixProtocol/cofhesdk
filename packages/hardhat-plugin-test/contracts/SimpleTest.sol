@@ -11,6 +11,13 @@ contract SimpleTest {
   euint32 public storedValue;
   uint256 public storedValueHash;
 
+  function setValueTrivial(uint256 inValue) public {
+    storedValue = FHE.asEuint32(inValue);
+    storedValueHash = euint32.unwrap(storedValue);
+    FHE.allowThis(storedValue);
+    FHE.allowSender(storedValue);
+  }
+
   /**
    * Store an encrypted value
    * @param inValue The encrypted value to store
