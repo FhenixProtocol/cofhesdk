@@ -156,7 +156,7 @@ function internalTypeIsEncryptedInput(internalType: string): internalType is Enc
  * @param args - Function arguments in the format of CofheInputArgsPreTransform (raw data values)
  * @returns Array of EncryptableItem objects ready for encryption
  */
-export function extractEncryptableValues<TAbi extends Abi | readonly unknown[], TFunctionName extends string>(
+export function extractEncryptableValues<TAbi extends Abi, TFunctionName extends string>(
   abi: TAbi,
   functionName: TFunctionName,
   args: CofheInputArgsPreTransform<TAbi, TFunctionName>
@@ -339,7 +339,7 @@ export function extractEncryptableValues<TAbi extends Abi | readonly unknown[], 
  * @param encryptedValues - Encrypted values in the same order as returned by extractEncryptableValues
  * @returns Function arguments with encrypted values inserted (format of CofheInputArgs)
  */
-export function insertEncryptedValues<TAbi extends Abi | readonly unknown[], TFunctionName extends string>(
+export function insertEncryptedValues<TAbi extends Abi, TFunctionName extends string>(
   abi: TAbi,
   functionName: TFunctionName,
   args: CofheInputArgsPreTransform<TAbi, TFunctionName>,
