@@ -19,7 +19,7 @@ type ConfidentialityAwareAbiArgs<TAbi extends Abi | readonly unknown[], TFunctio
 >;
 
 export async function _encryptAndWriteContract<
-  const TAbi extends Abi | readonly unknown[],
+  const TAbi extends Abi,
   TFunctionName extends ContractFunctionName<TAbi, 'payable' | 'nonpayable'>,
   TChainOverride extends Chain | undefined = undefined,
 >({
@@ -89,7 +89,7 @@ export async function _encryptAndWriteContract<
 }
 
 function constructEncryptAndTransform<
-  TAbi extends Abi | readonly unknown[],
+  TAbi extends Abi,
   TFunctionName extends ContractFunctionName<TAbi, 'payable' | 'nonpayable'>,
   TChainOverride extends Chain | undefined = undefined,
 >(
@@ -137,7 +137,7 @@ export function useCofheEncryptAndWriteContract<TExtraVars = unknown>({
   const write = useCofheWriteContract<TExtraVars>(writingMutationOptions);
 
   const encryptAndWrite = async <
-    const TAbi extends Abi | readonly unknown[],
+    const TAbi extends Abi,
     TFunctionName extends ContractFunctionName<TAbi, 'payable' | 'nonpayable'>,
     TChainOverride extends Chain | undefined = undefined,
   >(args: {
