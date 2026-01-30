@@ -22,17 +22,13 @@ import {
 import type { Abi, AbiFunction, AbiParameter, ExtractAbiFunction } from 'abitype';
 import type { CofheAbiParametersToPrimitiveTypes } from './fhenixMap';
 import { extractArrayParameterType, getAbiFunction, type MaybePartialBy, type ReadonlyWiden } from './utils';
-// import type { Hash } from 'viem';
 
 export type CofheInputArgs<abi extends Abi | readonly unknown[] = Abi, functionName extends string = string> = GetArgs<
   abi,
   functionName
 >['args'];
 
-type EncryptedInputToInputMap<
-  E extends EncryptedItemInput,
-  //here
-> = E extends EncryptedBoolInput
+type EncryptedInputToInputMap<E extends EncryptedItemInput> = E extends EncryptedBoolInput
   ? EncryptableBool['data']
   : E extends EncryptedUint8Input
     ? EncryptableUint8['data']
@@ -50,7 +46,7 @@ type EncryptedInputToInputMap<
 
 type EncryptedInputsToInputs<T> = T extends Primitive
   ? LiteralToPrimitive<T>
-  : T extends EncryptedItemInput // here
+  : T extends EncryptedItemInput
     ? EncryptedInputToInputMap<T>
     : {
         [K in keyof T]: EncryptedInputsToInputs<T[K]>;

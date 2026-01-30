@@ -37,11 +37,7 @@
   },
   "dependencies": {
     "@cofhe/sdk": "workspace:*",
-    "abitype": "^1.2.3",
-    "viem": "^2.38.6"
-  },
-  "peerDependencies": {
-    "viem": "^2.38.6"
+    "abitype": "^1.2.3"
   },
   "devDependencies": {
     "@cofhe/eslint-config": "workspace:*",
