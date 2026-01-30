@@ -24,7 +24,7 @@ export async function _encryptAndWriteContract<
   TChainOverride extends Chain | undefined = undefined,
 >({
   params,
-  confidentialityAwareAbiArgs,
+  args,
   encrypt,
   write,
 }: {
@@ -42,7 +42,7 @@ export async function _encryptAndWriteContract<
   // Don't let args participate in inferring `TAbi`/`TFunctionName`.
   // Otherwise, an incorrect args shape can cause TS to widen TAbi to `readonly unknown[]`
   // (and then args become `unknown[]`, silently accepting anything).
-  confidentialityAwareAbiArgs: ConfidentialityAwareAbiArgs<TAbi, TFunctionName>;
+  args: ConfidentialityAwareAbiArgs<TAbi, TFunctionName>;
   encrypt: (encryptableItems: EncryptableItem[]) => Promise<readonly EncryptedItemInput[]>;
   write: (
     writeParams: WriteContractParameters<
@@ -67,7 +67,7 @@ export async function _encryptAndWriteContract<
     Chain | undefined,
     Account | undefined,
     TChainOverride
-  >['args'] = await transformer(confidentialityAwareAbiArgs);
+  >['args'] = await transformer(args);
 
   // You can’t fix that spot “purely” (no as … and no any) while keeping this wrapper fully-generic over TAbi/TFunctionName.
   // Reason: viem’s WriteContractParameters ultimately includes a conditional type that depends on:
@@ -152,7 +152,7 @@ export function useCofheEncryptAndWriteContract<TExtraVars = unknown>({
       >,
       'args' | 'functionName'
     > & { functionName: TFunctionName };
-    confidentialityAwareAbiArgs: ConfidentialityAwareAbiArgs<TAbi, TFunctionName>;
+    args: ConfidentialityAwareAbiArgs<TAbi, TFunctionName>;
     extras?: TExtraVars;
     encryptionOptions?: EncryptInputsOptions;
   }) =>
