@@ -1,15 +1,47 @@
 import { TransactionStatus, useTransactionStore, type Transaction } from '@/stores/transactionStore';
 import { useCofheAccount, useCofheChainId } from './useCofheConnection';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTransactionReceiptsByHash } from './useTransactionReceiptsByHash';
 import { assert } from 'ts-essentials';
 import { useCofheReadDecryptionResults } from './useCofheReadDecryptionResults';
 import { useInternalQueryClient } from '@/providers';
-import { useScheduledInvalidationsStore } from '@/stores/scheduledInvalidationsStore';
+import { useDecryptionWatchersStore, type DecryptionWatcher } from '@/stores/decryptionWatchingStore';
 import { useStoredTransactions } from './useStoredTransactions';
 
-const filter = (tx: Transaction) => tx.isPendingDecryption && tx.status === TransactionStatus.Confirmed;
+function useHandleInvalidationsAfterDecryption() {
+  const queryClient = useInternalQueryClient();
+  return useCallback<UseTrackDecryptingTransactionsBaseInput['onDecryptionResolve']>(
+    async (tx, decryptionWatcher) => {
+      console.log('Invalidating queries for decryption watcher:', decryptionWatcher);
+      for (const queryKey of decryptionWatcher.queryKeys) {
+        console.log('Invalidating query due to observed decryption:', queryKey);
+        // query invalidation will cause __decryption-block-aware__ readContract calls to wait until RPC is aware of the decryption block
+        // and on successful read, the queryKey will be removed from the decryption watchers store,
+        // and then if a watcher doesn't have queryKeys anymore, it will be removed entirely from the store
+        // which ends the tracking lifecycle for that decryption event
+        await queryClient.invalidateQueries({ queryKey });
+      }
+    },
+    [queryClient]
+  );
+}
+
 export function useTrackDecryptingTransactions() {
+  const handleInvalidationsAfterDecryption = useHandleInvalidationsAfterDecryption();
+
+  useTrackDecryptingTransactionsBase({
+    onDecryptionResolve: async (decryptionCausingTx, decryptionWatcher) => {
+      console.log('Decryption resolved for tx:', decryptionCausingTx, 'with watcher:', decryptionWatcher);
+      handleInvalidationsAfterDecryption(decryptionCausingTx, decryptionWatcher);
+    },
+  });
+}
+
+const filter = (tx: Transaction) => tx.isPendingDecryption && tx.status === TransactionStatus.Confirmed;
+type UseTrackDecryptingTransactionsBaseInput = {
+  onDecryptionResolve: (decryptionCausingTx: Transaction, decryptionWatcher: DecryptionWatcher) => Promise<void>;
+};
+function useTrackDecryptingTransactionsBase({ onDecryptionResolve }: UseTrackDecryptingTransactionsBaseInput) {
   const chainId = useCofheChainId();
   const account = useCofheAccount();
 
@@ -53,7 +85,7 @@ export function useTrackDecryptingTransactions() {
 
   const queryClient = useInternalQueryClient();
 
-  const { setDecryptionObservedAt } = useScheduledInvalidationsStore();
+  const { setDecryptionObservedAt } = useDecryptionWatchersStore();
 
   // step 5: when decryption results arrive, update store and and set decryptionObservedAt info to trigger invalidations
   useEffect(() => {
@@ -92,35 +124,46 @@ export function useTrackDecryptingTransactions() {
   }, [decryptionResults, queryClient, setDecryptionObservedAt, minedTxsWithCiphertextsToWatch]);
 
   // step 6: invalidate relevant queries when decryption is observed
-  useInvalidateQueriesOnDecryption();
+  useOnDecryptionCallback({
+    onDecryptionResolve,
+  });
 }
 
-function useInvalidateQueriesOnDecryption() {
-  const { byKey } = useScheduledInvalidationsStore();
-  const queryClient = useInternalQueryClient();
+type OnDecryptionInput = {
+  onDecryptionResolve: (decryptionCausingTx: Transaction, decryptionWatcher: DecryptionWatcher) => Promise<void>;
+};
+function useOnDecryptionCallback({ onDecryptionResolve }: OnDecryptionInput) {
+  const { byKey } = useDecryptionWatchersStore();
 
   // step 1: get all query keys that need to be invalidated due to observed decryption
-  const allObservedDecryptionQueryKeys = useMemo(() => {
-    return Object.values(byKey)
-      .filter((item) => item.decryptionObservedAt !== undefined)
-      .flatMap((item) => item.queryKeys);
-  }, [byKey]);
+  const watchersWithObservedDecryption = useMemo(
+    () => Object.values(byKey).filter((item) => item.decryptionObservedAt !== undefined),
+    [byKey]
+  );
 
-  console.log('All observed decryption query keys for invalidation:', allObservedDecryptionQueryKeys);
+  console.log('All observed decryptions:', watchersWithObservedDecryption);
 
-  const invalidate = useCallback(async () => {
-    for (const queryKey of allObservedDecryptionQueryKeys) {
-      console.log('Invalidating query due to observed decryption:', queryKey);
-      await queryClient.invalidateQueries({ queryKey });
+  const handleDecryptionResolve = useCallback(async () => {
+    const transactionStore = useTransactionStore.getState().transactions;
+    for (const sch of watchersWithObservedDecryption) {
+      const tx = transactionStore[sch.chainId]?.[sch.triggerTxHash];
+      onDecryptionResolve(tx, sch);
     }
-  }, [allObservedDecryptionQueryKeys, queryClient]);
+  }, [watchersWithObservedDecryption, onDecryptionResolve]);
+
+  const stableHandleDecryptionResolve = useRef(handleDecryptionResolve);
+  stableHandleDecryptionResolve.current = handleDecryptionResolve;
 
   useEffect(() => {
-    if (allObservedDecryptionQueryKeys.length > 0) {
-      console.log('All observed decryption query keys subject to invalidate:', allObservedDecryptionQueryKeys);
-      invalidate();
+    stableHandleDecryptionResolve.current = handleDecryptionResolve;
+  }, [handleDecryptionResolve]);
+
+  useEffect(() => {
+    if (watchersWithObservedDecryption.length > 0) {
+      console.log('All observed decryption query keys subject to invalidate:', watchersWithObservedDecryption);
+      stableHandleDecryptionResolve.current();
     }
-  }, [allObservedDecryptionQueryKeys, invalidate]);
+  }, [watchersWithObservedDecryption]);
 }
 
 function findDecryptRequestLog(account: string, logs: { topics: string[]; data: string }[] = []) {

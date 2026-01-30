@@ -4,9 +4,9 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import type { TransactionActionType } from './transactionStore';
 
-export type ScheduledInvalidationStatus = 'scheduled' | 'executed';
+export type DecryptionWatcherStatus = 'scheduled' | 'executed';
 
-export type ScheduledInvalidation = {
+export type DecryptionWatcher = {
   key: `${TransactionActionType}-tx-0x${string}`;
   createdAt: number;
   triggerTxHash: `0x${string}`;
@@ -20,13 +20,13 @@ export type ScheduledInvalidation = {
   queryKeys: QueryKey[];
 };
 
-type ScheduledInvalidationsState = {
-  byKey: Record<string, ScheduledInvalidation>;
+type DecryptionWatchersState = {
+  byKey: Record<string, DecryptionWatcher>;
 
-  upsert: (input: Omit<ScheduledInvalidation, 'status'> & { status?: ScheduledInvalidationStatus }) => void;
+  upsert: (input: Omit<DecryptionWatcher, 'status'> & { status?: DecryptionWatcherStatus }) => void;
   setDecryptionObservedAt: (params: { key: string; blockNumber: bigint; blockHash?: `0x${string}` }) => void;
-  findObservedDecryption: (queryKey: QueryKey) => ScheduledInvalidation | undefined;
-  removeQueryKeyFromInvalidations: (queryKey: QueryKey) => void;
+  findObservedDecryption: (queryKey: QueryKey) => DecryptionWatcher | undefined;
+  removeQueryKeyFromWatchers: (queryKey: QueryKey) => void;
 };
 
 // Safe localStorage access (avoid SSR crashes and private-mode issues)
@@ -62,7 +62,7 @@ const safeLocalStorage = {
 };
 
 // Custom storage to handle bigint serialization
-const bigintStorage = createJSONStorage<ScheduledInvalidationsState>(() => safeLocalStorage, {
+const bigintStorage = createJSONStorage<DecryptionWatchersState>(() => safeLocalStorage, {
   reviver: (_key, value) => {
     if (typeof value === 'object' && value !== null && '__bigint__' in value) {
       return BigInt((value as { __bigint__: string }).__bigint__);
@@ -77,7 +77,7 @@ const bigintStorage = createJSONStorage<ScheduledInvalidationsState>(() => safeL
   },
 });
 
-export const useScheduledInvalidationsStore = create<ScheduledInvalidationsState>()(
+export const useDecryptionWatchersStore = create<DecryptionWatchersState>()(
   persist(
     (set, get) => ({
       byKey: {},
@@ -97,7 +97,7 @@ export const useScheduledInvalidationsStore = create<ScheduledInvalidationsState
           item.queryKeys.some((key) => JSON.stringify(key) === JSON.stringify(queryKey) && !!item.decryptionObservedAt)
         );
       },
-      removeQueryKeyFromInvalidations: (queryKey) => {
+      removeQueryKeyFromWatchers: (queryKey) => {
         set((state) => {
           const updatedByKey = { ...state.byKey };
           // remove the queryKey from all scheduled invalidations

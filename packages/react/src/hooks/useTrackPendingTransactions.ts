@@ -15,7 +15,7 @@ import type { Token } from './useCofheTokenLists';
 import { constructPublicTokenBalanceQueryKeyForInvalidation } from './useCofheTokenPublicBalance';
 import { constructUnshieldClaimsQueryKeyForInvalidation, invalidateClaimableQueries } from './useCofheTokenClaimable';
 import { usePendingTransactions } from './usePendingTransactions';
-import { useScheduledInvalidationsStore } from '@/stores/scheduledInvalidationsStore';
+import { useDecryptionWatchersStore } from '@/stores/decryptionWatchingStore';
 
 function invalidateConfidentialTokenBalanceQueries(token: Token, queryClient: QueryClient) {
   const tokenBalanceQueryKey = constructCofheReadContractQueryForInvalidation({
@@ -77,15 +77,57 @@ function invalidatePublicAndConfidentialTokenBalanceQueries(
   );
 }
 
-export function useTrackPendingTransactions() {
+type UseTrackPendingTransactionsInput = {
+  onReceiptSuccess: (tx: Transaction) => void;
+  onReceiptFail?: (tx: Transaction) => void;
+  onFetchFailure?: (error: unknown, tx: Transaction) => void;
+};
+function useTrackPendingTransactionsBase({
+  onReceiptSuccess,
+  onReceiptFail,
+  onFetchFailure,
+}: UseTrackPendingTransactionsInput) {
   // Batch check pending transactions using react-query's useQueries
   const accountsPendingTxs = usePendingTransactions();
   const publicClient = useCofhePublicClient();
+
+  const queries: QueriesOptions<TransactionReceipt[]> = accountsPendingTxs.map((tx) => ({
+    queryKey: ['tx-receipt', tx.chainId, tx.hash],
+    queryFn: async () => {
+      assert(publicClient, 'Public client is guaranteed by enabled condition');
+      try {
+        const receipt = await publicClient.waitForTransactionReceipt({ hash: tx.hash as `0x${string}` });
+
+        const status = receipt.status === 'success' ? TransactionStatus.Confirmed : TransactionStatus.Failed;
+        // invalidate if tx was successful
+        if (status === TransactionStatus.Confirmed) onReceiptSuccess(tx);
+        else onReceiptFail?.(tx);
+
+        useTransactionStore.getState().updateTransactionStatus(tx.chainId, tx.hash, status);
+
+        return receipt;
+      } catch (e) {
+        onFetchFailure?.(e, tx);
+        // no need to invalidate on failure, since nothing has changed on chain
+        useTransactionStore.getState().updateTransactionStatus(tx.chainId, tx.hash, TransactionStatus.Failed);
+        throw e;
+      }
+    },
+
+    enabled: !!publicClient && accountsPendingTxs.length > 0,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
+  }));
+  useInternalQueries({
+    queries,
+  });
+}
+
+function useHandleInvalidations() {
   const queryClient = useInternalQueryClient();
 
-  const { upsert: upsertScheduledInvalidation, byKey } = useScheduledInvalidationsStore();
+  const { upsert: upsertDecryptionWatcher, byKey } = useDecryptionWatchersStore();
   console.log('Scheduled invalidations store:', byKey);
-
   const handleInvalidations = (tx: Transaction) => {
     // TODO invalidate gas on all txs since any tx spends gas
     if (tx.actionType === TransactionActionType.ShieldSend) {
@@ -98,7 +140,7 @@ export function useTrackPendingTransactions() {
       invalidateConfidentialTokenBalanceQueries(tx.token, queryClient);
 
       // schedule invalidation for unshield claims once decryption is observed
-      upsertScheduledInvalidation({
+      upsertDecryptionWatcher({
         key: `${tx.actionType}-tx-${tx.hash}`,
         accountAddress: tx.account,
         createdAt: Date.now(),
@@ -137,31 +179,13 @@ export function useTrackPendingTransactions() {
     }
   };
 
-  const queries: QueriesOptions<TransactionReceipt[]> = accountsPendingTxs.map((tx) => ({
-    queryKey: ['tx-receipt', tx.chainId, tx.hash],
-    queryFn: async () => {
-      assert(publicClient, 'Public client is guaranteed by enabled condition');
-      try {
-        const receipt = await publicClient.waitForTransactionReceipt({ hash: tx.hash as `0x${string}` });
+  return handleInvalidations;
+}
 
-        const status = receipt.status === 'success' ? TransactionStatus.Confirmed : TransactionStatus.Failed;
-        // invalidate if tx was successful
-        if (status === TransactionStatus.Confirmed) handleInvalidations(tx);
-        useTransactionStore.getState().updateTransactionStatus(tx.chainId, tx.hash, status);
+export function useTrackPendingTransactions() {
+  const handleInvalidations = useHandleInvalidations();
 
-        return receipt;
-      } catch (e) {
-        // no need to invalidate on failure, since nothing has changed on chain
-        useTransactionStore.getState().updateTransactionStatus(tx.chainId, tx.hash, TransactionStatus.Failed);
-        throw e;
-      }
-    },
-
-    enabled: !!publicClient && accountsPendingTxs.length > 0,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: true,
-  }));
-  useInternalQueries({
-    queries,
+  useTrackPendingTransactionsBase({
+    onReceiptSuccess: handleInvalidations,
   });
 }

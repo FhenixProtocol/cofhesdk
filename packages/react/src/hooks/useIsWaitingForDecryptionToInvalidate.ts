@@ -1,8 +1,8 @@
-import { useScheduledInvalidationsStore } from '@/stores/scheduledInvalidationsStore';
+import { useDecryptionWatchersStore } from '@/stores/decryptionWatchingStore';
 import { useMemo } from 'react';
 
 function useCacheKeysAwaitingDecryption() {
-  const { byKey } = useScheduledInvalidationsStore();
+  const { byKey } = useDecryptionWatchersStore();
 
   const queryKeys = useMemo(() => {
     return Object.values(byKey).flatMap((item) => item.queryKeys);
