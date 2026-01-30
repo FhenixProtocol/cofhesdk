@@ -6,6 +6,7 @@ import { createEncryptable, type EncryptableItem } from '@cofhe/sdk';
 import { useCofheEncryptAndWriteContract } from './useCofheEncryptAndWriteContract.js';
 import type { useCofheWriteContractOptions } from './useCofheWriteContract.js';
 import type { EncryptionOptions } from './useCofheEncrypt.js';
+import { useTransactionGlobalLifecycle } from './useTransactionGlobalLifecycle.js';
 
 type TokenTransferExtras = { token: Token; amount: bigint; userAddress: Address };
 type UseCofheTokenTransferOptions = Pick<
@@ -24,9 +25,14 @@ type EncryptAndSendInput = {
 };
 
 export function useCofheTokenTransfer(writeMutationOptions?: UseCofheTokenTransferOptions) {
-  const { onSuccess: passedOnSuccess, ...restOfOptions } = writeMutationOptions || {};
+  const { onSuccess: passedOnSuccess, onError: passedOnError, ...restOfOptions } = writeMutationOptions || {};
+  const { onTransactionSubmitError } = useTransactionGlobalLifecycle();
   const { encryption, write, encryptAndWrite } = useCofheEncryptAndWriteContract<TokenTransferExtras>({
     writingMutationOptions: {
+      onError: (error, variables, onMutateResult, context) => {
+        if (passedOnError) passedOnError(error, variables, onMutateResult, context);
+        onTransactionSubmitError(error, TransactionActionType.ShieldSend);
+      },
       onSuccess: (hash, variables, onMutateResult, context) => {
         if (passedOnSuccess) passedOnSuccess(hash, variables, onMutateResult, context);
 

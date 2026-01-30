@@ -8,6 +8,7 @@ import { useInternalMutation } from '../providers/index.js';
 import { assert } from 'ts-essentials';
 import { useOnceTransactionMined } from './useOnceTransactionMined.js';
 import { useOnceDecrypted } from './useOnceDecrypted.js';
+import { useTransactionGlobalLifecycle } from './useTransactionGlobalLifecycle.js';
 
 // ============================================================================
 // Unshield Hook
@@ -38,8 +39,9 @@ function useCofheTokenUnshieldMutation(
   const walletClient = useCofheWalletClient();
   const chainId = useCofheChainId();
   const account = useCofheAccount();
+  const { onTransactionSubmitError } = useTransactionGlobalLifecycle();
 
-  const { onSuccess, ...restOfOptions } = options || {};
+  const { onSuccess, onError, ...restOfOptions } = options || {};
 
   return useInternalMutation({
     mutationFn: async (input: UseTokenUnshieldMutationInput) => {
@@ -97,6 +99,10 @@ function useCofheTokenUnshieldMutation(
       }
 
       return hash;
+    },
+    onError: (error, variables, onMutateResult, context) => {
+      if (onError) onError(error, variables, onMutateResult, context);
+      onTransactionSubmitError(error, TransactionActionType.Unshield);
     },
     onSuccess: async (hash, input, onMutateResult, context) => {
       assert(chainId, 'Chain ID is required for token unshield');

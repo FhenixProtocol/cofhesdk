@@ -23,6 +23,18 @@ function useTransactionGlobalToastsLifecycle() {
         TOAST_DELAY_MS
       );
     },
+    onTransactionSubmitError: (error: unknown, transactionType: Transaction['actionType']) => {
+      console.error('____ Transaction submission failed for type:', transactionType, 'with error:', error);
+      addToast(
+        {
+          variant: 'error',
+          title: `${transactionType} Transaction Submission Failed`,
+          description:
+            error instanceof Error ? error.message : 'An unknown error occurred during transaction submission.',
+        },
+        TOAST_DELAY_MS
+      );
+    },
 
     // 2.a. tx is mined (could be success or fail)
     onTransactionMined: (transaction: Transaction, receipt: TransactionReceipt /*  could be fail or success */) => {
@@ -98,6 +110,7 @@ export function useTransactionGlobalLifecycle() {
     onTransactionMined: handleToastsOnTransactionMined,
     onWatchReceiptFailure: handleToastsOnWatchReceiptFailure,
     onTransactionDecrypted: handleToastsOnTransactionDecrypted,
+    onTransactionSubmitError: handleToastsOnTransactionSubmitError,
   } = useTransactionGlobalToastsLifecycle();
 
   // You can add more lifecycle handlers here in the future if needed. For now only toasts. Cache invalidations are built-in in other, lower-level hooks.
@@ -106,5 +119,6 @@ export function useTransactionGlobalLifecycle() {
     onTransactionMined: handleToastsOnTransactionMined,
     onWatchReceiptFailure: handleToastsOnWatchReceiptFailure,
     onTransactionDecrypted: handleToastsOnTransactionDecrypted,
+    onTransactionSubmitError: handleToastsOnTransactionSubmitError,
   };
 }
