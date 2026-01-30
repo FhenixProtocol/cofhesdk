@@ -4,7 +4,7 @@ import type { Transaction } from '@/stores/transactionStore';
 import type { TransactionReceipt } from 'viem';
 
 const TOAST_DELAY_MS = 10_000;
-export function useTransactionGlobalLifecycle() {
+function useTransactionGlobalToastsLifecycle() {
   const { addToast } = usePortalToasts();
   return {
     // 1.tx is submitted
@@ -89,5 +89,22 @@ export function useTransactionGlobalLifecycle() {
         TOAST_DELAY_MS
       );
     },
+  };
+}
+
+export function useTransactionGlobalLifecycle() {
+  const {
+    onTransactionSubmitted: handleToastsOnTransactionSubmitted,
+    onTransactionMined: handleToastsOnTransactionMined,
+    onWatchReceiptFailure: handleToastsOnWatchReceiptFailure,
+    onTransactionDecrypted: handleToastsOnTransactionDecrypted,
+  } = useTransactionGlobalToastsLifecycle();
+
+  // You can add more lifecycle handlers here in the future if needed. For now only toasts. Cache invalidations are built-in in other, lower-level hooks.
+  return {
+    onTransactionSubmitted: handleToastsOnTransactionSubmitted,
+    onTransactionMined: handleToastsOnTransactionMined,
+    onWatchReceiptFailure: handleToastsOnWatchReceiptFailure,
+    onTransactionDecrypted: handleToastsOnTransactionDecrypted,
   };
 }
