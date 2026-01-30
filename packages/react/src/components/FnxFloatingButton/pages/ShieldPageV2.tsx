@@ -188,27 +188,25 @@ function useUnshieldWithLifecycle(token: Token): ShieldAndUnshieldViewProps {
   const { schedule: scheduleStatusClear } = useReschedulableTimeout(() => setStatus(null), AUTOCLEAR_TX_STATUS_TIMEOUT);
   const [unshieldAmount, setUnshieldAmount] = useState('');
   const tokenUnshield = useCofheTokenUnshield({
-    onMutate: () => {
-      setError(null);
-      setStatus({ message: 'Preparing unshielding transaction...', type: 'info' });
+    onUserSignatureRequest: (hash) => {
+      () => {
+        setError(null);
+        setStatus({ message: 'Preparing unshielding transaction...', type: 'info' });
+      };
     },
-    onSuccess: (hash) => {
+    onTransactionSubmitSuccess: (hash) => {
       setStatus({
         message: `Unshield transaction sent! Hash: ${truncateHash(hash)}. Waiting for confirmation...`,
         type: 'info',
       });
       setUnshieldAmount('');
     },
-    onError: (error) => {
+    onTransactionSubmitError: (error) => {
       const errorMessage = error instanceof Error ? error.message : 'Failed to unshield tokens';
       setError(errorMessage);
       setStatus(null);
       console.error('Unshield tx submit error:', error);
     },
-  });
-
-  const { isMining: isTokenUnshieldMining } = useOnceTransactionMined({
-    txHash: tokenUnshield.data,
     onceMined: (transaction) => {
       if (transaction.status === 'confirmed') {
         setStatus({
@@ -220,9 +218,6 @@ function useUnshieldWithLifecycle(token: Token): ShieldAndUnshieldViewProps {
         setStatus(null);
       }
     },
-  });
-  useOnceDecrypted({
-    txHash: tokenUnshield.data,
     onceDecrypted: () => {
       setStatus({ message: 'Unshield decryption completed!', type: 'success' });
       scheduleStatusClear();
@@ -247,7 +242,7 @@ function useUnshieldWithLifecycle(token: Token): ShieldAndUnshieldViewProps {
   return {
     status,
     error,
-    isProcessing: tokenUnshield.isPending || isTokenUnshieldMining,
+    isProcessing: tokenUnshield.isPending || tokenUnshield.isTokenUnshieldMining,
     inputAmount: unshieldAmount,
     setInputAmount: setUnshieldAmount,
     onMaxClick: handleUnshieldMax,

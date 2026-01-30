@@ -1,16 +1,18 @@
-import { type UseMutationOptions, type UseMutationResult } from '@tanstack/react-query';
+import { type MutationFunctionContext, type UseMutationOptions, type UseMutationResult } from '@tanstack/react-query';
 import { type Address } from 'viem';
 import { useCofheWalletClient, useCofheChainId, useCofheAccount, useCofhePublicClient } from './useCofheConnection.js';
 import { type Token } from './useCofheTokenLists.js';
 import { UNSHIELD_ABIS } from '../constants/confidentialTokenABIs.js';
-import { TransactionActionType, useTransactionStore } from '../stores/transactionStore.js';
+import { TransactionActionType, TransactionStatus, useTransactionStore } from '../stores/transactionStore.js';
 import { useInternalMutation } from '../providers/index.js';
 import { assert } from 'ts-essentials';
+import { useOnceTransactionMined } from './useOnceTransactionMined.js';
+import { useOnceDecrypted } from './useOnceDecrypted.js';
 
 // ============================================================================
 // Unshield Hook
 // ============================================================================
-type UseTokenUnshieldInput = {
+type UseTokenUnshieldMutationInput = {
   /** Token object with confidentialityType */
   token: Token;
   /** Amount to unshield (in token's smallest unit, uint64 max for dual) */
@@ -19,7 +21,10 @@ type UseTokenUnshieldInput = {
   onStatusChange?: (message: string) => void;
 };
 
-type UseTokenUnshieldOptions = Omit<UseMutationOptions<`0x${string}`, Error, UseTokenUnshieldInput>, 'mutationFn'>;
+type UseTokenUnshieldMutationOptions = Omit<
+  UseMutationOptions<`0x${string}`, Error, UseTokenUnshieldMutationInput>,
+  'mutationFn'
+>;
 /**
  * Hook to unshield tokens (initiate conversion from confidential to regular)
  * - Dual tokens: calls `unshield(uint64 amount)`, then need to claim
@@ -27,9 +32,9 @@ type UseTokenUnshieldOptions = Omit<UseMutationOptions<`0x${string}`, Error, Use
  * @param options - Optional React Query mutation options
  * @returns Mutation result with transaction hash
  */
-export function useCofheTokenUnshield(
-  options?: UseTokenUnshieldOptions
-): UseMutationResult<`0x${string}`, Error, UseTokenUnshieldInput> {
+function useCofheTokenUnshieldMutation(
+  options?: UseTokenUnshieldMutationOptions
+): UseMutationResult<`0x${string}`, Error, UseTokenUnshieldMutationInput> {
   const walletClient = useCofheWalletClient();
   const chainId = useCofheChainId();
   const account = useCofheAccount();
@@ -37,7 +42,7 @@ export function useCofheTokenUnshield(
   const { onSuccess, ...restOfOptions } = options || {};
 
   return useInternalMutation({
-    mutationFn: async (input: UseTokenUnshieldInput) => {
+    mutationFn: async (input: UseTokenUnshieldMutationInput) => {
       if (!walletClient) {
         throw new Error('WalletClient is required for token unshield');
       }
@@ -110,4 +115,34 @@ export function useCofheTokenUnshield(
     },
     ...restOfOptions,
   });
+}
+
+type UseCofheTokenUnshieldInput = {
+  onUserSignatureRequest?: (variables: UseTokenUnshieldMutationInput, context: MutationFunctionContext) => void;
+  onTransactionSubmitSuccess?: (hash: `0x${string}`) => void;
+  onTransactionSubmitError?: (error: Error) => void;
+  onceMined?: (transaction: { hash: `0x${string}`; status: TransactionStatus }) => void;
+  onceDecrypted?: () => void;
+};
+export function useCofheTokenUnshield(input: UseCofheTokenUnshieldInput) {
+  const unshieldMutation = useCofheTokenUnshieldMutation({
+    onMutate: input.onUserSignatureRequest,
+    onSuccess: input.onTransactionSubmitSuccess,
+    onError: input.onTransactionSubmitError,
+  });
+
+  const { isMining: isTokenUnshieldMining } = useOnceTransactionMined({
+    txHash: unshieldMutation.data,
+    onceMined: input.onceMined,
+  });
+
+  useOnceDecrypted({
+    txHash: unshieldMutation.data,
+    onceDecrypted: input.onceDecrypted,
+  });
+
+  return {
+    ...unshieldMutation,
+    isTokenUnshieldMining,
+  };
 }
