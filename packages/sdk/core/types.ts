@@ -185,6 +185,13 @@ export const Encryptable = {
   // [U256-DISABLED]
   // uint256: (data: EncryptableUint256['data'], securityZone = 0) =>
   //   ({ data, securityZone, utype: FheTypes.Uint256 }) as EncryptableUint256,
+  create: <T extends FheTypes>(
+    utype: T,
+    data: EncryptableItemByFheType<T>['data'],
+    securityZone = 0
+  ): EncryptableItemByFheType<T> => {
+    return { data, securityZone, utype } as unknown as EncryptableItemByFheType<T>;
+  },
 } as const;
 
 export type EncryptableItem =
@@ -197,6 +204,25 @@ export type EncryptableItem =
   // [U256-DISABLED]
   // | EncryptableUint256
   | EncryptableAddress;
+
+export type EncryptableItemByFheType<T extends FheTypes> = T extends FheTypes.Bool
+  ? EncryptableBool
+  : T extends FheTypes.Uint8
+    ? EncryptableUint8
+    : T extends FheTypes.Uint16
+      ? EncryptableUint16
+      : T extends FheTypes.Uint32
+        ? EncryptableUint32
+        : T extends FheTypes.Uint64
+          ? EncryptableUint64
+          : T extends FheTypes.Uint128
+            ? EncryptableUint128
+            : // [U256-DISABLED]
+              // : T extends FheTypes.Uint256
+              //   ? EncryptableUint256
+              T extends FheTypes.Uint160
+              ? EncryptableAddress
+              : never;
 
 // COFHE Encrypt
 export type EncryptableToEncryptedItemInputMap<E extends EncryptableItem> = E extends EncryptableBool
