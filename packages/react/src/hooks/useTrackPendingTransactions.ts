@@ -16,6 +16,8 @@ import { constructPublicTokenBalanceQueryKeyForInvalidation } from './useCofheTo
 import { constructUnshieldClaimsQueryKeyForInvalidation, invalidateClaimableQueries } from './useCofheTokenClaimable';
 import { usePendingTransactions } from './usePendingTransactions';
 import { useDecryptionWatchersStore } from '@/stores/decryptionWatchingStore';
+import { useTransactionGlobalLifecycle } from './useTransactionGlobalLifecycle';
+import { useEffect, useRef } from 'react';
 
 function invalidateConfidentialTokenBalanceQueries(token: Token, queryClient: QueryClient) {
   const tokenBalanceQueryKey = constructCofheReadContractQueryForInvalidation({
@@ -78,8 +80,8 @@ function invalidatePublicAndConfidentialTokenBalanceQueries(
 }
 
 type UseTrackPendingTransactionsInput = {
-  onReceiptSuccess: (tx: Transaction) => void;
-  onReceiptFail?: (tx: Transaction) => void;
+  onReceiptSuccess: (tx: Transaction, receipt: TransactionReceipt) => void;
+  onReceiptFail?: (tx: Transaction, receipt: TransactionReceipt) => void;
   onFetchFailure?: (error: unknown, tx: Transaction) => void;
 };
 function useTrackPendingTransactionsBase({
@@ -100,8 +102,8 @@ function useTrackPendingTransactionsBase({
 
         const status = receipt.status === 'success' ? TransactionStatus.Confirmed : TransactionStatus.Failed;
         // invalidate if tx was successful
-        if (status === TransactionStatus.Confirmed) onReceiptSuccess(tx);
-        else onReceiptFail?.(tx);
+        if (status === TransactionStatus.Confirmed) onReceiptSuccess(tx, receipt);
+        else onReceiptFail?.(tx, receipt);
 
         useTransactionStore.getState().updateTransactionStatus(tx.chainId, tx.hash, status);
 
@@ -182,10 +184,46 @@ function useHandleInvalidations() {
   return handleInvalidations;
 }
 
+function useOnceTransactionSubmitted(onSubmit: (tx: Transaction) => void) {
+  const pendingTransactions = usePendingTransactions();
+  const previousPendingTxsRef = useRef<Transaction[]>([]);
+
+  useEffect(() => {
+    const newlySubmittedTxs = pendingTransactions.filter(
+      (tx) => !previousPendingTxsRef.current.some((prevTx) => prevTx.hash === tx.hash)
+    );
+
+    for (const tx of newlySubmittedTxs) {
+      onSubmit(tx);
+
+      // You can add any additional logic you want to execute once per transaction submission here
+    }
+
+    previousPendingTxsRef.current = pendingTransactions;
+  }, [onSubmit, pendingTransactions]);
+}
+
 export function useTrackPendingTransactions() {
   const handleInvalidations = useHandleInvalidations();
+  const { onTransactionMined, onWatchReceiptFailure, onTransactionSubmitted } = useTransactionGlobalLifecycle();
+
+  // 1 tx submitted
+  useOnceTransactionSubmitted(onTransactionSubmitted);
 
   useTrackPendingTransactionsBase({
-    onReceiptSuccess: handleInvalidations,
+    // 2.a. tx mined successfully
+    onReceiptSuccess: (tx, receipt) => {
+      handleInvalidations(tx);
+      onTransactionMined(tx, receipt);
+    },
+    // 2.b. tx mined with failure
+    onReceiptFail: (tx, receipt) => {
+      onTransactionMined(tx, receipt);
+    },
+
+    // 2.c. fetch failure
+    onFetchFailure: (error, tx) => {
+      onWatchReceiptFailure(error, tx);
+    },
   });
 }

@@ -7,6 +7,7 @@ import { useCofheReadDecryptionResults } from './useCofheReadDecryptionResults';
 import { useInternalQueryClient } from '@/providers';
 import { useDecryptionWatchersStore, type DecryptionWatcher } from '@/stores/decryptionWatchingStore';
 import { useStoredTransactions } from './useStoredTransactions';
+import { useTransactionGlobalLifecycle } from './useTransactionGlobalLifecycle';
 
 function useHandleInvalidationsAfterDecryption() {
   const queryClient = useInternalQueryClient();
@@ -24,17 +25,6 @@ function useHandleInvalidationsAfterDecryption() {
     },
     [queryClient]
   );
-}
-
-export function useTrackDecryptingTransactions() {
-  const handleInvalidationsAfterDecryption = useHandleInvalidationsAfterDecryption();
-
-  useTrackDecryptingTransactionsBase({
-    onDecryptionResolve: async (decryptionCausingTx, decryptionWatcher) => {
-      console.log('Decryption resolved for tx:', decryptionCausingTx, 'with watcher:', decryptionWatcher);
-      handleInvalidationsAfterDecryption(decryptionCausingTx, decryptionWatcher);
-    },
-  });
 }
 
 const filter = (tx: Transaction) => tx.isPendingDecryption && tx.status === TransactionStatus.Confirmed;
@@ -197,4 +187,17 @@ function safeParseDecryptRequestLog(
         ciphertext: '0x' + dataAsWords[0],
       }
     : false;
+}
+
+export function useTrackDecryptingTransactions() {
+  const handleInvalidationsAfterDecryption = useHandleInvalidationsAfterDecryption();
+  const { onTransactionDecrypted } = useTransactionGlobalLifecycle();
+
+  useTrackDecryptingTransactionsBase({
+    onDecryptionResolve: async (decryptionCausingTx, decryptionWatcher) => {
+      console.log('Decryption resolved for tx:', decryptionCausingTx, 'with watcher:', decryptionWatcher);
+      handleInvalidationsAfterDecryption(decryptionCausingTx, decryptionWatcher);
+      onTransactionDecrypted(decryptionCausingTx, decryptionWatcher);
+    },
+  });
 }
