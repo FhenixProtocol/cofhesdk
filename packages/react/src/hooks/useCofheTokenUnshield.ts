@@ -136,7 +136,7 @@ export function useCofheTokenUnshield(input: UseCofheTokenUnshieldInput) {
     onceMined: input.onceMined,
   });
 
-  useOnceDecrypted({
+  const { isPendingDecryption } = useOnceDecrypted({
     txHash: unshieldMutation.data,
     onceDecrypted: input.onceDecrypted,
   });
@@ -144,5 +144,6 @@ export function useCofheTokenUnshield(input: UseCofheTokenUnshieldInput) {
   return {
     ...unshieldMutation,
     isTokenUnshieldMining,
+    isPendingDecryption,
   };
 }

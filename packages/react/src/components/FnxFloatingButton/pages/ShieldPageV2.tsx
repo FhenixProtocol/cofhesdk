@@ -242,7 +242,7 @@ function useUnshieldWithLifecycle(token: Token): ShieldAndUnshieldViewProps {
   return {
     status,
     error,
-    isProcessing: tokenUnshield.isPending || tokenUnshield.isTokenUnshieldMining,
+    isProcessing: tokenUnshield.isPending || tokenUnshield.isTokenUnshieldMining || tokenUnshield.isPendingDecryption,
     inputAmount: unshieldAmount,
     setInputAmount: setUnshieldAmount,
     onMaxClick: handleUnshieldMax,
