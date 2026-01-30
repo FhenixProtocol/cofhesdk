@@ -114,9 +114,6 @@ importers:
       abitype:
         specifier: ^1.2.3
         version: 1.2.3(typescript@5.5.4)(zod@4.1.12)
-      viem:
-        specifier: ^2.38.6
-        version: 2.38.6(typescript@5.5.4)
     devDependencies:
       '@cofhe/eslint-config':
         specifier: workspace:*
