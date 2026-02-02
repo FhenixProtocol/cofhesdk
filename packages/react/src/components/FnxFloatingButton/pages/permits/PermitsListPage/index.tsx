@@ -59,13 +59,13 @@ export const PermitsListPage: React.FC = () => {
                 id="self"
                 renderHeader={() => (
                   <>
-                    <span>Self:</span>{' '}
+                    <span>Self: ({selfPermits.length})</span>{' '}
                     <InfoModalButton onClick={() => openModal(PortalModal.PermitTypeExplanation, { type: 'self' })} />
                   </>
                 )}
               >
                 {selfPermits.length === 0 ? (
-                  <div className="pl-4 text-sm text-[#0E2F3F]/70 dark:text-white/80">No permits yet.</div>
+                  <div className="pl-4 text-xs p-2 px-4 italic">No self permits.</div>
                 ) : (
                   <div>
                     {selfPermits.map(({ permit, hash }) => {
@@ -87,7 +87,7 @@ export const PermitsListPage: React.FC = () => {
                 id="delegated"
                 renderHeader={() => (
                   <>
-                    <span>Delegated:</span>{' '}
+                    <span>Delegated: ({delegatedPermits.length})</span>{' '}
                     <InfoModalButton
                       onClick={() => openModal(PortalModal.PermitTypeExplanation, { type: 'sharing' })}
                     />
@@ -95,7 +95,7 @@ export const PermitsListPage: React.FC = () => {
                 )}
               >
                 {delegatedPermits.length === 0 ? (
-                  <div className="pl-1 text-sm text-[#0E2F3F]/70 dark:text-white/80">No permits yet.</div>
+                  <div className="pl-1 text-xs p-2 px-4 italic">No delegated permits.</div>
                 ) : (
                   <div>
                     {delegatedPermits.map(({ permit, hash }) => (
@@ -109,7 +109,7 @@ export const PermitsListPage: React.FC = () => {
                 id="received"
                 renderHeader={() => (
                   <>
-                    <span>Imported:</span>{' '}
+                    <span>Imported: ({importedPermits.length})</span>{' '}
                     <InfoModalButton
                       onClick={() => openModal(PortalModal.PermitTypeExplanation, { type: 'recipient' })}
                     />
@@ -117,7 +117,7 @@ export const PermitsListPage: React.FC = () => {
                 )}
               >
                 {importedPermits.length === 0 ? (
-                  <div className="pl-1 text-sm text-[#0E2F3F]/70 dark:text-white/80">No permits yet.</div>
+                  <div className="pl-1 text-xs p-2 px-4 italic">No imported permits.</div>
                 ) : (
                   <div>
                     {importedPermits.map(({ permit, hash }) => (
@@ -139,13 +139,7 @@ export const PermitsListPage: React.FC = () => {
       footer={
         <div className="grid grid-cols-3 gap-2">
           {quickActions.map(({ id, label, icon: Icon }) => (
-            <Button
-              key={id}
-              onClick={() => handleQuickAction(id)}
-              icon={<Icon />}
-              iconPosition="top"
-              label={label}
-            />
+            <Button key={id} onClick={() => handleQuickAction(id)} icon={<Icon />} iconPosition="top" label={label} />
           ))}
         </div>
       }
