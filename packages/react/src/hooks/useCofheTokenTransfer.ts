@@ -2,7 +2,7 @@ import { type Address } from 'viem';
 import type { Token } from './useCofheTokenLists.js';
 import { TRANSFER_ABIS } from '../constants/confidentialTokenABIs.js';
 import { TransactionActionType, useTransactionStore } from '../stores/transactionStore.js';
-import { createEncryptable, type EncryptableItem } from '@cofhe/sdk';
+import { Encryptable, type EncryptableItem } from '@cofhe/sdk';
 import { useCofheEncryptAndWriteContract } from './useCofheEncryptAndWriteContract.js';
 import type { UseCofheWriteContractOptions } from './useCofheWriteContract.js';
 import type { EncryptionOptions } from './useCofheEncrypt.js';
@@ -54,7 +54,7 @@ export function useCofheTokenTransfer(writeMutationOptions?: UseCofheTokenTransf
       const { token, to, amount, userAddress } = input;
       return encryptAndWrite(
         {
-          input: createEncryptable(token.extensions.fhenix.confidentialValueType, amount),
+          input: Encryptable.create(token.extensions.fhenix.confidentialValueType, amount),
           ...encryptionOptions,
         },
         (encrypted) => {

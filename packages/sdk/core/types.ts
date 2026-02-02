@@ -152,57 +152,36 @@ export type EncryptableUint128 = EncryptableBase<FheTypes.Uint128, string | bigi
 // };
 export type EncryptableAddress = EncryptableBase<FheTypes.Uint160, string | bigint>;
 
-/* eslint-disable no-redeclare */
-function createEncryptable(utype: FheTypes.Bool, data: EncryptableBool['data'], securityZone?: number): EncryptableBool;
-function createEncryptable(utype: FheTypes.Uint8, data: EncryptableUint8['data'], securityZone?: number): EncryptableUint8;
-function createEncryptable(
-  utype: FheTypes.Uint16,
-  data: EncryptableUint16['data'],
-  securityZone?: number
-): EncryptableUint16;
-function createEncryptable(
-  utype: FheTypes.Uint32,
-  data: EncryptableUint32['data'],
-  securityZone?: number
-): EncryptableUint32;
-function createEncryptable(
-  utype: FheTypes.Uint64,
-  data: EncryptableUint64['data'],
-  securityZone?: number
-): EncryptableUint64;
-function createEncryptable(
-  utype: FheTypes.Uint128,
-  data: EncryptableUint128['data'],
-  securityZone?: number
-): EncryptableUint128;
-function createEncryptable(
-  utype: FheTypes.Uint160,
-  data: EncryptableAddress['data'],
-  securityZone?: number
-): EncryptableAddress;
-function createEncryptable(utype: FheAllUTypesType, data: EncryptableItem['data'], securityZone = 0): EncryptableItem {
-  switch (utype) {
-    case FheTypes.Bool: {
-      if (typeof data !== 'boolean') throw new Error('Bool encryptable data must be boolean');
-      return { data, securityZone, utype };
-    }
-    case FheTypes.Uint8:
-    case FheTypes.Uint16:
-    case FheTypes.Uint32:
-    case FheTypes.Uint64:
-    case FheTypes.Uint128:
-    case FheTypes.Uint160: {
-      if (typeof data === 'boolean') throw new Error('Uint encryptable data must be string or bigint');
-      return { data, securityZone, utype };
-    }
-    default: {
-      throw new Error(`Unsupported utype: ${utype}`);
-    }
-  }
-}
 /* eslint-enable no-redeclare */
+type EncryptableFactories = {
+  bool: (data: EncryptableBool['data'], securityZone?: number) => EncryptableBool;
+  address: (data: EncryptableAddress['data'], securityZone?: number) => EncryptableAddress;
+  uint8: (data: EncryptableUint8['data'], securityZone?: number) => EncryptableUint8;
+  uint16: (data: EncryptableUint16['data'], securityZone?: number) => EncryptableUint16;
+  uint32: (data: EncryptableUint32['data'], securityZone?: number) => EncryptableUint32;
+  uint64: (data: EncryptableUint64['data'], securityZone?: number) => EncryptableUint64;
+  uint128: (data: EncryptableUint128['data'], securityZone?: number) => EncryptableUint128;
+  // [U256-DISABLED]
+  // uint256: (data: EncryptableUint256['data'], securityZone?: number) => EncryptableUint256;
+};
 
-export const Encryptable = {
+export type FheTypeValue = keyof EncryptableFactories;
+
+type EncryptableFactory = EncryptableFactories & {
+  create: {
+    (type: 'bool', data: EncryptableBool['data'], securityZone?: number): EncryptableBool;
+    (type: 'address', data: EncryptableAddress['data'], securityZone?: number): EncryptableAddress;
+    (type: 'uint8', data: EncryptableUint8['data'], securityZone?: number): EncryptableUint8;
+    (type: 'uint16', data: EncryptableUint16['data'], securityZone?: number): EncryptableUint16;
+    (type: 'uint32', data: EncryptableUint32['data'], securityZone?: number): EncryptableUint32;
+    (type: 'uint64', data: EncryptableUint64['data'], securityZone?: number): EncryptableUint64;
+    (type: 'uint128', data: EncryptableUint128['data'], securityZone?: number): EncryptableUint128;
+    // [U256-DISABLED]
+    // (type: 'uint256', data: EncryptableUint256['data'], securityZone?: number): EncryptableUint256;
+  };
+};
+
+const EncryptableFactoriesImpl = {
   bool: (data: EncryptableBool['data'], securityZone = 0) => ({ data, securityZone, utype: FheTypes.Bool }),
   address: (data: EncryptableAddress['data'], securityZone = 0) => ({ data, securityZone, utype: FheTypes.Uint160 }),
   uint8: (data: EncryptableUint8['data'], securityZone = 0) => ({ data, securityZone, utype: FheTypes.Uint8 }),
@@ -213,17 +192,76 @@ export const Encryptable = {
   // [U256-DISABLED]
   // uint256: (data: EncryptableUint256['data'], securityZone = 0) =>
   //   ({ data, securityZone, utype: FheTypes.Uint256 }) as EncryptableUint256,
-  create: createEncryptable,
-} satisfies {
-  bool: (data: EncryptableBool['data'], securityZone?: number) => EncryptableBool;
-  address: (data: EncryptableAddress['data'], securityZone?: number) => EncryptableAddress;
-  uint8: (data: EncryptableUint8['data'], securityZone?: number) => EncryptableUint8;
-  uint16: (data: EncryptableUint16['data'], securityZone?: number) => EncryptableUint16;
-  uint32: (data: EncryptableUint32['data'], securityZone?: number) => EncryptableUint32;
-  uint64: (data: EncryptableUint64['data'], securityZone?: number) => EncryptableUint64;
-  uint128: (data: EncryptableUint128['data'], securityZone?: number) => EncryptableUint128;
-  create: typeof createEncryptable;
-};
+} satisfies EncryptableFactories;
+
+/* eslint-disable no-redeclare */
+function createEncryptableByLiteral(
+  type: 'bool',
+  data: EncryptableBool['data'],
+  securityZone?: number
+): EncryptableBool;
+function createEncryptableByLiteral(
+  type: 'address',
+  data: EncryptableAddress['data'],
+  securityZone?: number
+): EncryptableAddress;
+function createEncryptableByLiteral(
+  type: 'uint8',
+  data: EncryptableUint8['data'],
+  securityZone?: number
+): EncryptableUint8;
+function createEncryptableByLiteral(
+  type: 'uint16',
+  data: EncryptableUint16['data'],
+  securityZone?: number
+): EncryptableUint16;
+function createEncryptableByLiteral(
+  type: 'uint32',
+  data: EncryptableUint32['data'],
+  securityZone?: number
+): EncryptableUint32;
+function createEncryptableByLiteral(
+  type: 'uint64',
+  data: EncryptableUint64['data'],
+  securityZone?: number
+): EncryptableUint64;
+function createEncryptableByLiteral(
+  type: 'uint128',
+  data: EncryptableUint128['data'],
+  securityZone?: number
+): EncryptableUint128;
+function createEncryptableByLiteral(
+  type: FheTypeValue,
+  data: EncryptableItem['data'],
+  securityZone = 0
+): EncryptableItem {
+  switch (type) {
+    case 'bool': {
+      if (typeof data !== 'boolean') throw new Error('Bool encryptable data must be boolean');
+      return EncryptableFactoriesImpl.bool(data, securityZone);
+    }
+    case 'address':
+    case 'uint8':
+    case 'uint16':
+    case 'uint32':
+    case 'uint64':
+    case 'uint128': {
+      if (typeof data === 'boolean') throw new Error('Uint encryptable data must be string or bigint');
+      return EncryptableFactoriesImpl[type](data, securityZone);
+    }
+    default: {
+      // Exhaustiveness guard
+      const _exhaustive: never = type;
+      throw new Error(`Unsupported encryptable type: ${_exhaustive}`);
+    }
+  }
+}
+/* eslint-enable no-redeclare */
+
+export const Encryptable = {
+  ...EncryptableFactoriesImpl,
+  create: createEncryptableByLiteral,
+} satisfies EncryptableFactory;
 
 export type EncryptableItem =
   | EncryptableBool

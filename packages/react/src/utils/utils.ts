@@ -1,6 +1,6 @@
 import * as viemChains from 'viem/chains';
 import { ETH_ADDRESS, type Token, type Erc20Pair } from '../types/token.js';
-import type { Encryptable } from '@cofhe/sdk';
+import type { FheTypeValue } from '@cofhe/sdk';
 import { isValidElement } from 'react';
 
 // Build a lookup map of chainId -> viem chain (for block explorers, etc.)
@@ -80,9 +80,6 @@ export const isWrappedEthToken = (token: Token): boolean => {
   if (token.extensions.fhenix.confidentialityType !== 'wrapped') return false;
   return isEthPair(token.extensions.fhenix.erc20Pair);
 };
-
-// FHE Types for the current CoFHE SDK
-export type FheTypeValue = keyof typeof Encryptable;
 
 export interface FheTypeOption {
   label: string;
