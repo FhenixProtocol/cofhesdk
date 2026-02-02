@@ -1,3 +1,4 @@
+import { cn } from '@/utils';
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 
 interface AccordionContextValue {
@@ -78,7 +79,15 @@ export const AccordionSection = ({
       <button type="button" className={triggerClassName} aria-expanded={isOpen} onClick={() => toggle(id)}>
         {renderHeader(isOpen)}
       </button>
-      {isOpen ? <div className={contentClassName}>{children}</div> : null}
+      {isOpen ? (
+        <div className={cn('relative', contentClassName)}>
+          <span
+            className="absolute left-0 top-0 bottom-0 border-l border-[#0E2F3F]/30 dark:border-white/40"
+            aria-hidden
+          />
+          {children}
+        </div>
+      ) : null}
     </section>
   );
 };

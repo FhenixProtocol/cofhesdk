@@ -1,19 +1,23 @@
 import { useCallback, useMemo } from 'react';
 import { type Permit } from '@cofhe/sdk/permits';
-import { useCofheAllPermits, useCofheRemovePermit } from '../useCofhePermits';
+import { useCofheActivePermit, useCofheAllPermits, useCofheRemovePermit } from '../useCofhePermits';
 import { useCopyFeedback } from '../useCopyFeedback';
 import { FloatingButtonPage } from '@/components/FnxFloatingButton/pagesConfig/types';
 import { usePortalNavigation } from '@/stores';
 
-export type PermitStatus = 'active' | 'expired';
-
-export type QuickActionId = 'generate' | 'receive';
+export type PermitStatus = 'active' | 'valid' | 'expired';
+export type QuickActionId = 'generate' | 'delegate' | 'import';
 
 export const usePermitsList = () => {
   const allPermits = useCofheAllPermits();
   const removePermit = useCofheRemovePermit();
+  const activePermit = useCofheActivePermit();
   const { navigateBack, navigateTo } = usePortalNavigation();
   const { isCopied, copyWithFeedback } = useCopyFeedback();
+
+  const activePermitHash = useMemo(() => {
+    return activePermit?.hash;
+  }, [activePermit?.hash]);
 
   const generatedPermits = useMemo<{ permit: Permit; hash: string }[]>(() => {
     return allPermits.filter(({ permit }) => permit.type !== 'recipient');
@@ -29,7 +33,11 @@ export const usePermitsList = () => {
         navigateTo(FloatingButtonPage.GeneratePermits, {});
         return;
       }
-      if (actionId === 'receive') {
+      if (actionId === 'delegate') {
+        navigateTo(FloatingButtonPage.GeneratePermits, {});
+        return;
+      }
+      if (actionId === 'import') {
         navigateTo(FloatingButtonPage.ReceivePermits);
       }
     },
@@ -74,6 +82,7 @@ export const usePermitsList = () => {
   );
 
   return {
+    activePermitHash,
     generatedPermits,
     receivedPermits,
     isCopied,
