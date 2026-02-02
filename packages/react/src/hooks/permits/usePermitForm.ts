@@ -1,10 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useCofheCreatePermitMutation, type CreatePermitArgs } from './useCofheCreatePermitMutation';
 
-export interface UsePermitFormOptions {
-  onSuccess?: () => void;
-}
-
 export interface UsePermitFormResult {
   permitName: string;
   receiver: string;
@@ -23,8 +19,11 @@ export interface UsePermitFormResult {
   reset: () => void;
 }
 
-export function usePermitForm(options: UsePermitFormOptions = {}): UsePermitFormResult {
-  const { onSuccess } = options;
+export interface UsePermitFormOptions {
+  onSuccess?: () => void;
+}
+
+export function usePermitForm({ onSuccess }: UsePermitFormOptions = {}): UsePermitFormResult {
   const [permitName, setPermitName] = useState('');
   const [receiver, setReceiver] = useState('');
   const [isSelf, setIsSelf] = useState(true);
@@ -32,7 +31,9 @@ export function usePermitForm(options: UsePermitFormOptions = {}): UsePermitForm
   const [nameError, setNameError] = useState<string | null>(null);
   const [receiverError, setReceiverError] = useState<string | null>(null);
   const [durationSeconds, setDurationSeconds] = useState(7 * 24 * 60 * 60);
-  const { mutateAsync: createPermitMutateAsync, isPending: isPermitCreationPending } = useCofheCreatePermitMutation();
+  const { mutateAsync: createPermitMutateAsync, isPending: isPermitCreationPending } = useCofheCreatePermitMutation({
+    onSuccess,
+  });
 
   const isValid = !!permitName.trim() && (isSelf || isValidAddress(receiver));
 
@@ -82,11 +83,10 @@ export function usePermitForm(options: UsePermitFormOptions = {}): UsePermitForm
       setError(null);
       setNameError(null);
       setReceiverError(null);
-      onSuccess?.();
     } catch (e: any) {
       setError(e?.message ?? 'Failed to create permit');
     }
-  }, [isPermitCreationPending, permitName, isSelf, receiver, durationSeconds, createPermitMutateAsync, onSuccess]);
+  }, [isPermitCreationPending, permitName, isSelf, receiver, durationSeconds, createPermitMutateAsync]);
 
   const reset = useCallback(() => {
     setPermitName('');
