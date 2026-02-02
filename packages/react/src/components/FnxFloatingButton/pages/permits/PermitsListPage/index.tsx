@@ -1,10 +1,9 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import NorthIcon from '@mui/icons-material/North';
-import SouthIcon from '@mui/icons-material/South';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
+import { FaKey, FaDownload, FaPlus } from 'react-icons/fa';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { type ElementType, type FC } from 'react';
 import { Accordion, AccordionSection } from '../../../Accordion.js';
@@ -14,12 +13,14 @@ import type { QuickActionId } from '@/hooks/permits/index.js';
 import { PageContainer } from '@/components/FnxFloatingButton/components/PageContainer.js';
 import { useCofheActivePermit } from '@/hooks/useCofhePermits.js';
 import type { Permit } from '@cofhe/sdk/permits';
+import { Button } from '@/components/FnxFloatingButton/components/Button.js';
 
 type QuickAction = { id: QuickActionId; label: string; icon: ElementType };
 
 const quickActions: QuickAction[] = [
-  { id: 'generate', label: 'Generate / Delegate', icon: NorthIcon },
-  { id: 'receive', label: 'Receive', icon: SouthIcon },
+  { id: 'generate', label: 'Generate', icon: FaPlus },
+  { id: 'delegate', label: 'Delegate', icon: FaKey },
+  { id: 'import', label: 'import', icon: FaDownload },
 ];
 
 type Args = {
@@ -43,6 +44,7 @@ function computeDefaultActiveAccordionId({
 
 export const PermitsListPage: React.FC = () => {
   const {
+    activePermitHash,
     generatedPermits,
     receivedPermits,
     isCopied,
@@ -74,13 +76,12 @@ export const PermitsListPage: React.FC = () => {
         </button>
       }
       content={
-        <div className="rounded-2xl border border-[#154054] bg-white p-5 shadow-[0_25px_60px_rgba(13,53,71,0.15)] transition-colors dark:border-[#2C6D80] dark:bg-[#1F1F1F]">
-          <div className="space-y-6 pt-2">
-            <Accordion defaultActiveId={defaultActiveAccordionId}>
+        <div className="gap-4">
+          <Accordion defaultActiveId="generated">
+            <div className="flex flex-col gap-3">
               <AccordionSection
                 id="generated"
                 triggerClassName="flex w-full items-center justify-between text-left text-base font-semibold text-[#0E2F3F] transition-opacity hover:opacity-80 dark:text-white"
-                contentClassName="relative mt-4 pl-4"
                 renderHeader={(isOpen: boolean) => (
                   <>
                     <span>Generated:</span>
@@ -88,22 +89,19 @@ export const PermitsListPage: React.FC = () => {
                   </>
                 )}
               >
-                <span
-                  className="absolute left-1 top-0 bottom-0 border-l border-[#0E2F3F]/30 dark:border-white/40"
-                  aria-hidden
-                />
                 {generatedPermits.length === 0 ? (
                   <div className="pl-4 text-sm text-[#0E2F3F]/70 dark:text-white/80">No permits yet.</div>
                 ) : (
-                  <div className="space-y-1.5">
+                  <div>
                     {generatedPermits.map(({ permit, hash }) => {
                       return (
-                        <PermitItem key={hash} hash={hash} permit={permit} onSelect={() => handlePermitSelect(hash)}>
-                          {permit.type === 'sharing' && (
-                            <CopyPermitActionButton copied={isCopied(hash)} onClick={() => handleCopy(hash)} />
-                          )}
-                          <DeletePermitActionButton onClick={() => handleDelete(hash)} />
-                        </PermitItem>
+                        <PermitItem
+                          key={hash}
+                          activePermitHash={activePermitHash}
+                          hash={hash}
+                          permit={permit}
+                          onSelect={() => handlePermitSelect(hash)}
+                        />
                       );
                     })}
                   </div>
@@ -113,7 +111,6 @@ export const PermitsListPage: React.FC = () => {
               <AccordionSection
                 id="received"
                 triggerClassName="flex w-full items-center justify-between text-left text-base font-semibold text-[#0E2F3F] transition-opacity hover:opacity-80 dark:text-white"
-                contentClassName="mt-4"
                 renderHeader={(isOpen: boolean) => (
                   <>
                     <span>Received</span>
@@ -124,31 +121,33 @@ export const PermitsListPage: React.FC = () => {
                 {receivedPermits.length === 0 ? (
                   <div className="pl-1 text-sm text-[#0E2F3F]/70 dark:text-white/80">No permits yet.</div>
                 ) : (
-                  <div className="space-y-1.5">
+                  <div>
                     {receivedPermits.map(({ permit, hash }) => (
-                      <PermitItem key={hash} hash={hash} permit={permit} onSelect={() => handlePermitSelect(hash)}>
-                        <DeletePermitActionButton onClick={() => handleDelete(hash)} />
-                      </PermitItem>
+                      <PermitItem
+                        key={hash}
+                        activePermitHash={activePermitHash}
+                        hash={hash}
+                        permit={permit}
+                        onSelect={() => handlePermitSelect(hash)}
+                      />
                     ))}
                   </div>
                 )}
               </AccordionSection>
-            </Accordion>
-          </div>
+            </div>
+          </Accordion>
         </div>
       }
       footer={
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           {quickActions.map(({ id, label, icon: Icon }) => (
-            <button
+            <Button
               key={id}
-              type="button"
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#0E2F3F] px-4 py-3 text-base font-semibold text-[#0E2F3F] transition-colors hover:bg-[#0E2F3F]/5 dark:border-white/60 dark:text-white dark:hover:bg-white/5"
               onClick={() => handleQuickAction(id)}
-            >
-              <Icon fontSize="small" />
-              <span>{label}</span>
-            </button>
+              icon={<Icon fontSize="small" />}
+              iconPosition="top"
+              label={label}
+            />
           ))}
         </div>
       }
