@@ -75,7 +75,7 @@ export function useCofheTokenTransfer(writeMutationOptions?: UseCofheTokenTransf
           account: userAddress,
           chain: undefined,
         },
-        confidentialityAwareAbiArgs: [to, amount] as const,
+        args: [to, amount] as const,
         extras: {
           token,
           amount,
