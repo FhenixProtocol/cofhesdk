@@ -1,11 +1,13 @@
 export enum PortalModal {
   ExampleSelection = 'exampleSelection',
   ExampleInfo = 'exampleInfo',
+  PermitDetails = 'permitDetails',
 }
 
 export type PortalModalPropsMap = {
   [PortalModal.ExampleSelection]: { onSelect: (selectedItem: string) => void };
   [PortalModal.ExampleInfo]: void;
+  [PortalModal.PermitDetails]: { hash: string };
 };
 
 export type PortalModalsWithProps = {

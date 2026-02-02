@@ -3,7 +3,8 @@ import { type Permit } from '@cofhe/sdk/permits';
 import { useCofheActivePermit, useCofheAllPermits, useCofheRemovePermit } from '../useCofhePermits';
 import { useCopyFeedback } from '../useCopyFeedback';
 import { FloatingButtonPage } from '@/components/FnxFloatingButton/pagesConfig/types';
-import { usePortalNavigation } from '@/stores';
+import { usePortalModals, usePortalNavigation } from '@/stores';
+import { PortalModal } from '@/components/FnxFloatingButton/modals/types';
 
 export type PermitStatus = 'active' | 'valid' | 'expired';
 export type QuickActionId = 'generate' | 'delegate' | 'import';
@@ -13,6 +14,7 @@ export const usePermitsList = () => {
   const removePermit = useCofheRemovePermit();
   const activePermit = useCofheActivePermit();
   const { navigateBack, navigateTo } = usePortalNavigation();
+  const { openModal } = usePortalModals();
   const { isCopied, copyWithFeedback } = useCopyFeedback();
 
   const activePermitHash = useMemo(() => {
@@ -46,9 +48,9 @@ export const usePermitsList = () => {
 
   const handlePermitSelect = useCallback(
     (permitId: string) => {
-      navigateTo(FloatingButtonPage.PermitDetails, { pageProps: { selectedPermitHash: permitId } });
+      openModal(PortalModal.PermitDetails, { hash: permitId });
     },
-    [navigateTo]
+    [openModal]
   );
 
   const handleDelete = useCallback(

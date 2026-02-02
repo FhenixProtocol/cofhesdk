@@ -60,5 +60,5 @@ export function useCopyFeedback(defaultDurationMs: number = 2000) {
     };
   }, []);
 
-  return { isCopied, copyWithFeedback };
+  return { copiedKeys, isCopied, copyWithFeedback };
 }

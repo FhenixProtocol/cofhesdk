@@ -61,6 +61,7 @@ export const usePermitDetailsPage = (selectedPermitHash: string) => {
   const isShareablePermit = selectedPermit?.permit?.type === 'sharing';
 
   return {
+    permit: selectedPermit?.permit,
     permitLabel,
     permitJson,
     expirationInfo,
