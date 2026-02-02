@@ -1,5 +1,7 @@
 import { cn } from '@/utils';
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
+import { Button } from './components';
+import { FaChevronDown, FaChevronUp } from 'react-icons/fa6';
 
 interface AccordionContextValue {
   activeId: string | null;
@@ -11,35 +13,24 @@ const AccordionContext = createContext<AccordionContextValue | undefined>(undefi
 interface AccordionProps {
   children: ReactNode;
   defaultActiveId?: string | null;
-  activeId?: string | null;
-  onChange?: (id: string) => void;
 }
 
-export const Accordion = ({ children, defaultActiveId = null, activeId, onChange }: AccordionProps) => {
-  const [internalActiveId, setInternalActiveId] = useState<string | null>(defaultActiveId);
-  const resolvedActiveId = activeId ?? internalActiveId;
+export const Accordion = ({ children, defaultActiveId = null }: AccordionProps) => {
+  const [activeId, setActiveId] = useState<string | null>(defaultActiveId);
 
   const handleToggle = useCallback(
     (id: string) => {
-      if (resolvedActiveId === id) {
-        return;
-      }
-
-      if (activeId === undefined) {
-        setInternalActiveId(id);
-      }
-
-      onChange?.(id);
+      setActiveId(activeId === id ? null : id);
     },
-    [activeId, onChange, resolvedActiveId]
+    [activeId]
   );
 
   const contextValue = useMemo<AccordionContextValue>(
     () => ({
-      activeId: resolvedActiveId,
+      activeId,
       toggle: handleToggle,
     }),
-    [handleToggle, resolvedActiveId]
+    [handleToggle, activeId]
   );
 
   return <AccordionContext.Provider value={contextValue}>{children}</AccordionContext.Provider>;
@@ -76,9 +67,16 @@ export const AccordionSection = ({
 
   return (
     <section className={sectionClassName}>
-      <button type="button" className={triggerClassName} aria-expanded={isOpen} onClick={() => toggle(id)}>
+      <Button
+        variant="ghost"
+        className={cn('!justify-start w-full text-md', triggerClassName)}
+        aria-expanded={isOpen}
+        onClick={() => toggle(id)}
+      >
         {renderHeader(isOpen)}
-      </button>
+        <span className="flex flex-1" />
+        {isOpen ? <FaChevronUp /> : <FaChevronDown />}
+      </Button>
       {isOpen ? (
         <div className={cn('relative', contentClassName)}>
           <span
