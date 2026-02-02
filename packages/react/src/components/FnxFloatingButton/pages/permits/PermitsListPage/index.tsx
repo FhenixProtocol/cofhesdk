@@ -137,12 +137,12 @@ export const PermitsListPage: React.FC = () => {
         </div>
       }
       footer={
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-2">
           {quickActions.map(({ id, label, icon: Icon }) => (
             <Button
               key={id}
               onClick={() => handleQuickAction(id)}
-              icon={<Icon fontSize="small" />}
+              icon={<Icon />}
               iconPosition="top"
               label={label}
             />

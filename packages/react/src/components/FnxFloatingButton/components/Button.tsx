@@ -56,7 +56,7 @@ export const Button: React.FC<ButtonProps> = ({
     isVertical && 'flex-col',
     'font-medium',
     'border transition-all',
-    'focus:outline-none focus:ring-2 focus:ring-offset-2',
+    'focus:outline-none focus:ring-none',
     'disabled:opacity-50 disabled:cursor-not-allowed',
     'transition-colors duration-200'
   );
