@@ -79,7 +79,7 @@ export type { FloatingButtonPosition } from './components/FnxFloatingButton/type
 
 export { createCofhesdkClient } from '@cofhe/sdk/web';
 
-export { useCofheCreatePermit } from '@/hooks/permits/useCofheCreatePermit';
+export { useCofheNavigateToCreatePermit } from '@/hooks/permits/useCofheNavigateToCreatePermit';
 export { useCofheAutoConnect } from '@/hooks/useCofheAutoConnect';
 export { CREATE_PERMITT_BODY_BY_ERROR_CAUSE } from './providers/errors';
 export { ErrorCause } from './utils/errors';
