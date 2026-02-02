@@ -85,40 +85,8 @@ const statusToStringMap: Record<TransactionStatus, TransactionStatusString> = {
 
 export const statusToString = (a: TransactionStatus): TransactionStatusString => statusToStringMap[a];
 
-// Safe localStorage access
-const safeLocalStorage = {
-  getItem: (name: string): string | null => {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        return localStorage.getItem(name);
-      }
-    } catch {
-      // localStorage not available
-    }
-    return null;
-  },
-  setItem: (name: string, value: string): void => {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        localStorage.setItem(name, value);
-      }
-    } catch {
-      // localStorage not available
-    }
-  },
-  removeItem: (name: string): void => {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        localStorage.removeItem(name);
-      }
-    } catch {
-      // localStorage not available
-    }
-  },
-};
-
 // Custom storage to handle bigint serialization
-const bigintStorage = createJSONStorage<TransactionStore>(() => safeLocalStorage, {
+const bigintStorage = createJSONStorage<TransactionStore>(() => localStorage, {
   reviver: (_key, value) => {
     // Convert serialized bigints back
     if (typeof value === 'object' && value !== null && '__bigint__' in value) {

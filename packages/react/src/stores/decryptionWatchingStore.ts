@@ -29,40 +29,8 @@ type DecryptionWatchersState = {
   removeQueryKeyFromWatchers: (queryKey: QueryKey) => void;
 };
 
-// Safe localStorage access (avoid SSR crashes and private-mode issues)
-const safeLocalStorage = {
-  getItem: (name: string): string | null => {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        return localStorage.getItem(name);
-      }
-    } catch {
-      // localStorage not available
-    }
-    return null;
-  },
-  setItem: (name: string, value: string): void => {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        localStorage.setItem(name, value);
-      }
-    } catch {
-      // localStorage not available
-    }
-  },
-  removeItem: (name: string): void => {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        localStorage.removeItem(name);
-      }
-    } catch {
-      // localStorage not available
-    }
-  },
-};
-
 // Custom storage to handle bigint serialization
-const bigintStorage = createJSONStorage<DecryptionWatchersState>(() => safeLocalStorage, {
+const bigintStorage = createJSONStorage<DecryptionWatchersState>(() => localStorage, {
   reviver: (_key, value) => {
     if (typeof value === 'object' && value !== null && '__bigint__' in value) {
       return BigInt((value as { __bigint__: string }).__bigint__);
