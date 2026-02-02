@@ -8,12 +8,18 @@ import { AnimatePresence, motion } from 'motion/react';
 import { AnimatedZStack } from '../primitives/AnimatedZStack';
 import { modals } from './modals';
 import { usePortalUI, usePortalCurrentPage, usePortalUIMaxContentHeight, usePortalModals } from '@/stores';
+import { cn } from '@/utils';
 
 interface ContentSectionProps {
   overriddingPage?: PageState;
 }
 
-const MeasuredContentRenderer: React.FC<{ children?: ReactNode; id: string }> = ({ children, id }) => {
+const MeasuredContentRenderer: React.FC<{
+  children?: ReactNode;
+  id: string;
+  isModal?: boolean;
+  onModalOverlayClick?: () => void;
+}> = ({ children, id, isModal, onModalOverlayClick }) => {
   const { setContentHeight, removeContentHeight } = usePortalUI();
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -36,11 +42,23 @@ const MeasuredContentRenderer: React.FC<{ children?: ReactNode; id: string }> = 
   }, [id]);
 
   return (
-    <div className="fnx-panel relative flex w-full h-full overflow-y-hidden">
-      <div className="absolute flex top-0 left-0 w-full p-4" ref={contentRef}>
-        {children}
+    <>
+      {isModal && (
+        <div
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onModalOverlayClick?.();
+          }}
+          className="absolute flex w-full h-full bg-[#0E2F3F]/30 origin-top translate-y-[-8px] scale-[0.95]"
+        />
+      )}
+      <div className="relative flex w-full h-full overflow-y-hidden pointer-events-none">
+        <div className={cn('fnx-panel absolute flex left-0 w-full p-4 top-0 pointer-events-auto')} ref={contentRef}>
+          {children}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 
@@ -60,7 +78,11 @@ const ModalRenderer: React.FC<{ modal: PortalModalState }> = ({ modal }) => {
     return <ModalComp {...modal} />;
   }, [modal]);
 
-  return <MeasuredContentRenderer id={`${modal.modal}-modal`}>{content}</MeasuredContentRenderer>;
+  return (
+    <MeasuredContentRenderer id={`${modal.modal}-modal`} isModal onModalOverlayClick={modal.onClose}>
+      {content}
+    </MeasuredContentRenderer>
+  );
 };
 
 export const ContentSection: React.FC<ContentSectionProps> = ({ overriddingPage }) => {

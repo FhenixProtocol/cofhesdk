@@ -15,6 +15,7 @@ export const PermitTypeExplanationModal: React.FC<PortalModalStateMap[PortalModa
 }) => {
   return (
     <PageContainer
+      isModal
       header={
         <button onClick={onClose} className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity">
           <CloseIcon style={{ fontSize: 16 }} />

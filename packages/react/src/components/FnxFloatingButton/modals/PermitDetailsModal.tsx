@@ -63,6 +63,7 @@ export const PermitDetailsModal: React.FC<PortalModalStateMap[PortalModal.Permit
 
   return (
     <PageContainer
+      isModal
       header={
         <div className="gap-3 -mt-4 -ml-4 -mr-4 border border-[#0E2F3F]/15 bg-[#F8FAFB] p-3 py-4 font-mono text-xs text-[#0E2F3F] dark:border-white/10 dark:bg-[#121212] dark:text-white/80">
           <button

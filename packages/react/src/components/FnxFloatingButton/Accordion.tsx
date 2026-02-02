@@ -69,7 +69,7 @@ export const AccordionSection = ({
     <section className={sectionClassName}>
       <Button
         variant="ghost"
-        className={cn('!justify-start w-full text-md', triggerClassName)}
+        className={cn('!justify-start w-full text-md py-2', triggerClassName)}
         aria-expanded={isOpen}
         onClick={() => toggle(id)}
       >

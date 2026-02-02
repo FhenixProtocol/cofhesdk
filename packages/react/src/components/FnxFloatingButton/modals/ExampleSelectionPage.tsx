@@ -10,6 +10,7 @@ export const ExampleSelectionPage: React.FC<PortalModalStateMap[PortalModal.Exam
 
   return (
     <PageContainer
+      isModal
       header={
         <button onClick={onClose} className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity">
           <CloseIcon style={{ fontSize: 16 }} />

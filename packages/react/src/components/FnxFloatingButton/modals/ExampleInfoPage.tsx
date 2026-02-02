@@ -5,6 +5,7 @@ import { PageContainer } from '../components/PageContainer';
 export const ExampleInfoPage: React.FC<PortalModalStateMap[PortalModal.ExampleInfo]> = ({ onClose }) => {
   return (
     <PageContainer
+      isModal
       header={
         <button onClick={onClose} className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity">
           <CloseIcon style={{ fontSize: 16 }} />
