@@ -178,6 +178,8 @@ type EncryptableFactory = EncryptableFactories & {
     (type: 'uint128', data: EncryptableUint128['data'], securityZone?: number): EncryptableUint128;
     // [U256-DISABLED]
     // (type: 'uint256', data: EncryptableUint256['data'], securityZone?: number): EncryptableUint256;
+
+    (type: FheTypeValue, data: EncryptableItem['data'], securityZone?: number): EncryptableItem;
   };
 };
 
@@ -230,6 +232,11 @@ function createEncryptableByLiteral(
   data: EncryptableUint128['data'],
   securityZone?: number
 ): EncryptableUint128;
+function createEncryptableByLiteral(
+  type: FheTypeValue,
+  data: EncryptableItem['data'],
+  securityZone?: number
+): EncryptableItem;
 function createEncryptableByLiteral(
   type: FheTypeValue,
   data: EncryptableItem['data'],
