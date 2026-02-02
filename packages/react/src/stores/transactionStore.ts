@@ -18,7 +18,7 @@ export type TransactionStatusString = 'Pending' | 'Failed' | 'Confirmed';
 export enum TransactionActionType {
   ShieldSend = 'shieldSend',
   Shield = 'shield',
-  Unshield = 'unshielf',
+  Unshield = 'unshield',
   Claim = 'claim',
 }
 export type TransactionActionString = 'Shielded Transfer' | 'Shield' | 'Unshield' | 'Claim';
