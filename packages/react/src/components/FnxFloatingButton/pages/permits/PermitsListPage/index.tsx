@@ -6,13 +6,14 @@ import SouthIcon from '@mui/icons-material/South';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import type { ElementType, FC } from 'react';
+import { type ElementType, type FC } from 'react';
 import { Accordion, AccordionSection } from '../../../Accordion.js';
 import { PermitItem } from './components/PermitItem';
 import { usePermitsList } from '@/hooks/permits/index.js';
 import type { QuickActionId } from '@/hooks/permits/index.js';
 import { PageContainer } from '@/components/FnxFloatingButton/components/PageContainer.js';
 import { useCofheActivePermit } from '@/hooks/useCofhePermits.js';
+import type { Permit } from '@cofhe/sdk/permits';
 
 type QuickAction = { id: QuickActionId; label: string; icon: ElementType };
 
@@ -20,6 +21,25 @@ const quickActions: QuickAction[] = [
   { id: 'generate', label: 'Generate / Delegate', icon: NorthIcon },
   { id: 'receive', label: 'Receive', icon: SouthIcon },
 ];
+
+type Args = {
+  generatedPermitsCount: number;
+  receivedPermitsCount: number;
+  activePermit?: Permit;
+};
+function computeDefaultActiveAccordionId({
+  generatedPermitsCount,
+  receivedPermitsCount,
+  activePermit,
+}: Args): 'generated' | 'received' {
+  if (activePermit?.type === 'recipient') {
+    return 'received';
+  }
+  if (generatedPermitsCount > 0 || receivedPermitsCount === 0) {
+    return 'generated';
+  }
+  return 'received';
+}
 
 export const PermitsListPage: React.FC = () => {
   const {
@@ -35,7 +55,11 @@ export const PermitsListPage: React.FC = () => {
 
   const { permit } = useCofheActivePermit() ?? {};
 
-  const isActivePermitShared = permit?.type === 'recipient';
+  const defaultActiveAccordionId = computeDefaultActiveAccordionId({
+    generatedPermitsCount: generatedPermits.length,
+    receivedPermitsCount: receivedPermits.length,
+    activePermit: permit,
+  });
 
   return (
     <PageContainer
@@ -52,7 +76,7 @@ export const PermitsListPage: React.FC = () => {
       content={
         <div className="rounded-2xl border border-[#154054] bg-white p-5 shadow-[0_25px_60px_rgba(13,53,71,0.15)] transition-colors dark:border-[#2C6D80] dark:bg-[#1F1F1F]">
           <div className="space-y-6 pt-2">
-            <Accordion defaultActiveId={isActivePermitShared ? 'received' : 'generated'}>
+            <Accordion defaultActiveId={defaultActiveAccordionId}>
               <AccordionSection
                 id="generated"
                 triggerClassName="flex w-full items-center justify-between text-left text-base font-semibold text-[#0E2F3F] transition-opacity hover:opacity-80 dark:text-white"
