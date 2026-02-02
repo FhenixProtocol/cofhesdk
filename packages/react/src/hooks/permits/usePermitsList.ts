@@ -23,11 +23,15 @@ export const usePermitsList = () => {
     return activePermit?.hash;
   }, [activePermit?.hash]);
 
-  const generatedPermits = useMemo<{ permit: Permit; hash: string }[]>(() => {
-    return allPermits.filter(({ permit }) => permit.type !== 'recipient');
+  const selfPermits = useMemo<{ permit: Permit; hash: string }[]>(() => {
+    return allPermits.filter(({ permit }) => permit.type === 'self');
   }, [allPermits]);
 
-  const receivedPermits = useMemo<{ permit: Permit; hash: string }[]>(() => {
+  const delegatedPermits = useMemo<{ permit: Permit; hash: string }[]>(() => {
+    return allPermits.filter(({ permit }) => permit.type === 'sharing');
+  }, [allPermits]);
+
+  const importedPermits = useMemo<{ permit: Permit; hash: string }[]>(() => {
     return allPermits.filter(({ permit }) => permit.type === 'recipient');
   }, [allPermits]);
 
@@ -89,8 +93,9 @@ export const usePermitsList = () => {
 
   return {
     activePermitHash,
-    generatedPermits,
-    receivedPermits,
+    selfPermits,
+    delegatedPermits,
+    importedPermits,
     isCopied,
     handleQuickAction,
     handleCopy,

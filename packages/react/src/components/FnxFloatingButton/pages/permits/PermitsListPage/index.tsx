@@ -14,6 +14,9 @@ import { PageContainer } from '@/components/FnxFloatingButton/components/PageCon
 import { useCofheActivePermit } from '@/hooks/useCofhePermits.js';
 import type { Permit } from '@cofhe/sdk/permits';
 import { Button } from '@/components/FnxFloatingButton/components/Button.js';
+import { InfoModalButton } from '@/components/FnxFloatingButton/modals/InfoModalButton.js';
+import { usePortalModals } from '@/stores';
+import { PortalModal } from '@/components/FnxFloatingButton/modals/types.js';
 
 type QuickAction = { id: QuickActionId; label: string; icon: ElementType };
 
@@ -45,8 +48,9 @@ function computeDefaultActiveAccordionId({
 export const PermitsListPage: React.FC = () => {
   const {
     activePermitHash,
-    generatedPermits,
-    receivedPermits,
+    selfPermits,
+    delegatedPermits,
+    importedPermits,
     isCopied,
     handleQuickAction,
     handleCopy,
@@ -54,6 +58,7 @@ export const PermitsListPage: React.FC = () => {
     handlePermitSelect,
     navigateBack,
   } = usePermitsList();
+  const { openModal } = usePortalModals();
 
   const { permit } = useCofheActivePermit() ?? {};
 
@@ -77,23 +82,22 @@ export const PermitsListPage: React.FC = () => {
       }
       content={
         <div className="gap-4">
-          <Accordion defaultActiveId="generated">
+          <Accordion defaultActiveId="self">
             <div className="flex flex-col gap-3">
               <AccordionSection
-                id="generated"
-                triggerClassName="flex w-full items-center justify-between text-left text-base font-semibold text-[#0E2F3F] transition-opacity hover:opacity-80 dark:text-white"
-                renderHeader={(isOpen: boolean) => (
+                id="self"
+                renderHeader={() => (
                   <>
-                    <span>Generated:</span>
-                    {isOpen ? <KeyboardArrowUpIcon fontSize="small" /> : <KeyboardArrowDownIcon fontSize="small" />}
+                    <span>Self:</span>{' '}
+                    <InfoModalButton onClick={() => openModal(PortalModal.PermitTypeExplanation, { type: 'self' })} />
                   </>
                 )}
               >
-                {generatedPermits.length === 0 ? (
+                {selfPermits.length === 0 ? (
                   <div className="pl-4 text-sm text-[#0E2F3F]/70 dark:text-white/80">No permits yet.</div>
                 ) : (
                   <div>
-                    {generatedPermits.map(({ permit, hash }) => {
+                    {selfPermits.map(({ permit, hash }) => {
                       return (
                         <PermitItem
                           key={hash}
@@ -109,20 +113,43 @@ export const PermitsListPage: React.FC = () => {
               </AccordionSection>
 
               <AccordionSection
-                id="received"
-                triggerClassName="flex w-full items-center justify-between text-left text-base font-semibold text-[#0E2F3F] transition-opacity hover:opacity-80 dark:text-white"
-                renderHeader={(isOpen: boolean) => (
+                id="delegated"
+                renderHeader={() => (
                   <>
-                    <span>Received</span>
-                    {isOpen ? <KeyboardArrowUpIcon fontSize="small" /> : <KeyboardArrowDownIcon fontSize="small" />}
+                    <span>Delegated:</span>{' '}
+                    <InfoModalButton
+                      onClick={() => openModal(PortalModal.PermitTypeExplanation, { type: 'sharing' })}
+                    />
                   </>
                 )}
               >
-                {receivedPermits.length === 0 ? (
+                {delegatedPermits.length === 0 ? (
                   <div className="pl-1 text-sm text-[#0E2F3F]/70 dark:text-white/80">No permits yet.</div>
                 ) : (
                   <div>
-                    {receivedPermits.map(({ permit, hash }) => (
+                    {delegatedPermits.map(({ permit, hash }) => (
+                      <PermitItem key={hash} hash={hash} permit={permit} onSelect={() => handlePermitSelect(hash)} />
+                    ))}
+                  </div>
+                )}
+              </AccordionSection>
+
+              <AccordionSection
+                id="received"
+                renderHeader={() => (
+                  <>
+                    <span>Imported:</span>{' '}
+                    <InfoModalButton
+                      onClick={() => openModal(PortalModal.PermitTypeExplanation, { type: 'recipient' })}
+                    />
+                  </>
+                )}
+              >
+                {importedPermits.length === 0 ? (
+                  <div className="pl-1 text-sm text-[#0E2F3F]/70 dark:text-white/80">No permits yet.</div>
+                ) : (
+                  <div>
+                    {importedPermits.map(({ permit, hash }) => (
                       <PermitItem
                         key={hash}
                         activePermitHash={activePermitHash}
