@@ -12,6 +12,7 @@ import { PermitItem } from './components/PermitItem';
 import { usePermitsList } from '@/hooks/permits/index.js';
 import type { QuickActionId } from '@/hooks/permits/index.js';
 import { PageContainer } from '@/components/FnxFloatingButton/components/PageContainer.js';
+import { useCofheActivePermit } from '@/hooks/useCofhePermits.js';
 
 type QuickAction = { id: QuickActionId; label: string; icon: ElementType };
 
@@ -32,6 +33,10 @@ export const PermitsListPage: React.FC = () => {
     navigateBack,
   } = usePermitsList();
 
+  const { permit } = useCofheActivePermit() ?? {};
+
+  const isActivePermitShared = permit?.type === 'recipient';
+
   return (
     <PageContainer
       header={
@@ -47,7 +52,7 @@ export const PermitsListPage: React.FC = () => {
       content={
         <div className="rounded-2xl border border-[#154054] bg-white p-5 shadow-[0_25px_60px_rgba(13,53,71,0.15)] transition-colors dark:border-[#2C6D80] dark:bg-[#1F1F1F]">
           <div className="space-y-6 pt-2">
-            <Accordion defaultActiveId="generated">
+            <Accordion defaultActiveId={isActivePermitShared ? 'received' : 'generated'}>
               <AccordionSection
                 id="generated"
                 triggerClassName="flex w-full items-center justify-between text-left text-base font-semibold text-[#0E2F3F] transition-opacity hover:opacity-80 dark:text-white"
