@@ -1,4 +1,5 @@
 import type { Token } from '@/types/token';
+import { bigintJSONStorageOptions } from '@/utils/bigintJson';
 import type { Address } from 'viem';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
@@ -86,22 +87,7 @@ const statusToStringMap: Record<TransactionStatus, TransactionStatusString> = {
 export const statusToString = (a: TransactionStatus): TransactionStatusString => statusToStringMap[a];
 
 // Custom storage to handle bigint serialization
-const bigintStorage = createJSONStorage<TransactionStore>(() => localStorage, {
-  reviver: (_key, value) => {
-    // Convert serialized bigints back
-    if (typeof value === 'object' && value !== null && '__bigint__' in value) {
-      return BigInt((value as { __bigint__: string }).__bigint__);
-    }
-    return value;
-  },
-  replacer: (_key, value) => {
-    // Serialize bigints
-    if (typeof value === 'bigint') {
-      return { __bigint__: value.toString() };
-    }
-    return value;
-  },
-});
+const bigintStorage = createJSONStorage<TransactionStore>(() => localStorage, bigintJSONStorageOptions);
 
 function constructNewTx(transaction: NewTransaction): Transaction {
   return {

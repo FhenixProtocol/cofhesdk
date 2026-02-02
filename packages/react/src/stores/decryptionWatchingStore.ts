@@ -2,6 +2,7 @@ import type { QueryKey } from '@tanstack/react-query';
 import type { Address } from 'viem';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import { bigintJSONStorageOptions } from '@/utils/bigintJson';
 import type { TransactionActionType } from './transactionStore';
 
 export type DecryptionWatcherStatus = 'scheduled' | 'executed';
@@ -30,20 +31,7 @@ type DecryptionWatchersState = {
 };
 
 // Custom storage to handle bigint serialization
-const bigintStorage = createJSONStorage<DecryptionWatchersState>(() => localStorage, {
-  reviver: (_key, value) => {
-    if (typeof value === 'object' && value !== null && '__bigint__' in value) {
-      return BigInt((value as { __bigint__: string }).__bigint__);
-    }
-    return value;
-  },
-  replacer: (_key, value) => {
-    if (typeof value === 'bigint') {
-      return { __bigint__: value.toString() };
-    }
-    return value;
-  },
-});
+const bigintStorage = createJSONStorage<DecryptionWatchersState>(() => localStorage, bigintJSONStorageOptions);
 
 export const useDecryptionWatchersStore = create<DecryptionWatchersState>()(
   persist(
