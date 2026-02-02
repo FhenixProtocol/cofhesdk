@@ -124,7 +124,7 @@ describe('@cofhe/node - Client Integration Tests', () => {
     it('should create encrypt builder after connection', async () => {
       await cofhesdkClient.connect(publicClient, walletClient);
 
-      const builder = cofhesdkClient.encryptInputs([{ data: 100n, utype: 2 }]);
+      const builder = cofhesdkClient.encryptInputs([{ data: 100n, utype: 2, securityZone: 0 }]);
 
       expect(builder).toBeDefined();
       expect(typeof builder.setChainId).toBe('function');

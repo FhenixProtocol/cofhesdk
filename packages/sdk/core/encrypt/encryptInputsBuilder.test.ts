@@ -91,25 +91,25 @@ class MockZkListBuilder {
     this.items = items;
   }
   push_boolean(data: boolean): void {
-    this.items.push({ utype: FheTypes.Bool, data });
+    this.items.push({ utype: FheTypes.Bool, data, securityZone: 0 });
   }
   push_u8(data: number): void {
-    this.items.push({ utype: FheTypes.Uint8, data: BigInt(data) });
+    this.items.push({ utype: FheTypes.Uint8, data: BigInt(data), securityZone: 0 });
   }
   push_u16(data: number): void {
-    this.items.push({ utype: FheTypes.Uint16, data: BigInt(data) });
+    this.items.push({ utype: FheTypes.Uint16, data: BigInt(data), securityZone: 0 });
   }
   push_u32(data: number): void {
-    this.items.push({ utype: FheTypes.Uint32, data: BigInt(data) });
+    this.items.push({ utype: FheTypes.Uint32, data: BigInt(data), securityZone: 0 });
   }
   push_u64(data: bigint): void {
-    this.items.push({ utype: FheTypes.Uint64, data });
+    this.items.push({ utype: FheTypes.Uint64, data, securityZone: 0 });
   }
   push_u128(data: bigint): void {
-    this.items.push({ utype: FheTypes.Uint128, data });
+    this.items.push({ utype: FheTypes.Uint128, data, securityZone: 0 });
   }
   push_u160(data: bigint): void {
-    this.items.push({ utype: FheTypes.Uint160, data });
+    this.items.push({ utype: FheTypes.Uint160, data, securityZone: 0 });
   }
   build_with_proof_packed(_crs: any, metadata: Uint8Array, _computeLoad: 1): MockZkProvenList {
     // Clear items to prevent persisting items between tests
