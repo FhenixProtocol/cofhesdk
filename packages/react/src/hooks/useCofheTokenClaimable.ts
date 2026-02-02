@@ -6,6 +6,7 @@ import { DUAL_GET_UNSHIELD_CLAIM_ABI, WRAPPED_GET_USER_CLAIMS_ABI } from '../con
 import { useInternalQuery } from '../providers/index.js';
 import { decryptionAwareReadContract } from '@/utils/decryptionAwareReadContract.js';
 import { useIsWaitingForDecryptionToInvalidate } from './useIsWaitingForDecryptionToInvalidate.js';
+import { assert } from 'ts-essentials';
 
 function constructUnshieldClaimsQueryKey({
   chainId,
@@ -115,19 +116,17 @@ export function useCofheTokenClaimable(
   const result = useInternalQuery({
     queryKey,
     queryFn: async ({ signal, queryKey }): Promise<UnshieldClaimsSummary> => {
-      // TODO: this query fn looks too verbose, can be simplified
-      if (!publicClient) {
-        throw new Error('PublicClient is required to fetch unshield claims');
-      }
-      if (!account) {
-        throw new Error('Account address is required to fetch unshield claims');
-      }
-      if (!token) {
-        throw new Error('Token address is required');
-      }
+      assert(token, 'token is guaranteed to be defined in query function due to `enabled` condition');
+      assert(
+        confidentialityType,
+        'token.confidentialityType is guaranteed to be defined in query function due to `enabled` condition'
+      );
+      assert(account, 'account is guaranteed to be defined in query function due to `enabled` condition');
+      assert(publicClient, 'publicClient is guaranteed to be defined in query function due to `enabled` condition');
+
       if (confidentialityType === 'dual') {
         // Dual tokens: single claim via getUserUnshieldClaim
-        const result = await decryptionAwareReadContract({
+        const claim = await decryptionAwareReadContract({
           publicClient,
           queryKey,
           signal,
@@ -138,14 +137,6 @@ export function useCofheTokenClaimable(
             args: [account],
           },
         });
-
-        const claim = result as {
-          ctHash: bigint;
-          requestedAmount: bigint;
-          decryptedAmount: bigint;
-          decrypted: boolean;
-          claimed: boolean;
-        };
 
         // No active claim
         if (claim.ctHash === 0n || claim.claimed) {
@@ -177,27 +168,19 @@ export function useCofheTokenClaimable(
           },
         });
 
-        type WrappedClaimResult = {
-          ctHash: bigint;
-          requestedAmount: bigint;
-          decryptedAmount: bigint;
-          decrypted: boolean;
-          to: Address;
-          claimed: boolean;
-        };
+        const claims = result.filter((c) => !c.claimed);
 
-        const claims = (result as WrappedClaimResult[]).filter((c) => !c.claimed);
-
-        let claimableAmount = 0n;
-        let pendingAmount = 0n;
-
-        for (const claim of claims) {
-          if (claim.decrypted) {
-            claimableAmount += claim.decryptedAmount;
-          } else {
-            pendingAmount += claim.requestedAmount;
-          }
-        }
+        const { claimableAmount, pendingAmount } = claims.reduce(
+          (acc, claim) => {
+            if (claim.decrypted) {
+              acc.claimableAmount += claim.decryptedAmount;
+            } else {
+              acc.pendingAmount += claim.requestedAmount;
+            }
+            return acc;
+          },
+          { claimableAmount: 0n, pendingAmount: 0n }
+        );
 
         return {
           claimableAmount,
