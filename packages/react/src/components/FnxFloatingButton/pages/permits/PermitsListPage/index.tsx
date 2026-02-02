@@ -55,6 +55,7 @@ export const PermitsListPage: React.FC = () => {
         <div className="gap-4">
           <Accordion defaultActiveId="self">
             <div className="flex flex-col gap-3">
+              <p className="text-xs p-2 px-3">Active Permit:</p>
               <AccordionSection
                 id="self"
                 renderHeader={() => (

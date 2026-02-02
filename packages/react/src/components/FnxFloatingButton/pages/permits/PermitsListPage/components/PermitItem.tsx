@@ -21,10 +21,9 @@ interface PermitItemProps {
   hash: string;
   activePermitHash?: string;
   onSelect?: (id: string) => void;
-  children?: ReactNode;
 }
 
-export const PermitItem: FC<PermitItemProps> = ({ permit, onSelect, children, hash, activePermitHash }) => {
+export const PermitItem: FC<PermitItemProps> = ({ permit, onSelect, hash, activePermitHash }) => {
   const status: PermitStatus = ValidationUtils.isExpired(permit)
     ? 'expired'
     : hash === activePermitHash
