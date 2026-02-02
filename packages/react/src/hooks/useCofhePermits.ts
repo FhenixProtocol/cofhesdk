@@ -4,6 +4,7 @@ import { useCallback, useMemo, useSyncExternalStore } from 'react';
 import { NOOP_CALLBACK } from '../utils';
 import { PERMIT_STORE_DEFAULTS, PermitUtils, type Permit } from '@cofhe/sdk/permits';
 import { useCofheConnection } from './useCofheConnection';
+import { usePortalToasts } from '@/stores';
 
 const subscribeToPermitsConstructor = (client: CofhesdkClient) => (onStoreChange: () => void) => {
   return client.permits.subscribe(() => {
@@ -114,12 +115,20 @@ export const useCofheSelectPermit = () => {
 
   const { client } = useCofhePermitsStore();
 
+  const { addToast } = usePortalToasts();
+
   return useCallback(
     (hashToSet: string) => {
       if (!client || !chainId || !account)
         throw new Error('Client, chainId, and account must be defined to set active permit hash');
+
       client.permits.selectActivePermit(hashToSet, chainId, account);
+      addToast({
+        variant: 'info',
+        title: 'Active Permit Updated',
+        description: 'The active permit has been updated successfully.',
+      });
     },
-    [client, chainId, account]
+    [client, chainId, account, addToast]
   );
 };
