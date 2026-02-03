@@ -6,7 +6,7 @@ import { assert } from 'ts-essentials';
 import { useCofhePublicClient } from './useCofheConnection.js';
 import { type Token } from './useCofheTokenLists.js';
 import { useInternalQueries } from '../providers/index.js';
-import { useIsWaitingForDecryptionToInvalidateMany } from './useIsWaitingForDecryptionToInvalidate.js';
+import { useAwaitingDecryptionQueryKeySet } from './useIsWaitingForDecryptionToInvalidate.js';
 import {
   constructUnshieldClaimsQueryKey,
   constructUnshieldClaimsQueryKeyForInvalidation,
@@ -18,6 +18,7 @@ import {
 
 export type UnshieldClaimsSummaryByTokenAddress = Record<Address, UnshieldClaimsSummary>;
 export type ClaimableAmountByTokenAddress = Record<Address, bigint>;
+export type IsWaitingForDecryptionByTokenAddress = Record<Address, boolean>;
 
 type UseUnshieldClaimsManyInput = {
   tokens: Token[];
@@ -53,6 +54,7 @@ export function useCofheTokensClaimable(
   isError: boolean;
   error: Error | null;
   isWaitingForDecryption: boolean;
+  isWaitingForDecryptionByTokenAddress: IsWaitingForDecryptionByTokenAddress;
 } {
   const publicClient = useCofhePublicClient();
 
@@ -93,7 +95,35 @@ export function useCofheTokensClaimable(
     );
   }, [account, normalizedTokens]);
 
-  const isWaitingForDecryption = useIsWaitingForDecryptionToInvalidateMany(queryKeys);
+  const awaitingDecryptionKeySet = useAwaitingDecryptionQueryKeySet();
+
+  const isWaitingForDecryptionByTokenAddress = useMemo((): IsWaitingForDecryptionByTokenAddress => {
+    const map: IsWaitingForDecryptionByTokenAddress = {};
+
+    if (normalizedTokens.length === 0) return map;
+
+    for (let i = 0; i < normalizedTokens.length; i++) {
+      const token = normalizedTokens[i];
+
+      // If account is missing, our query keys won't match anything in the invalidation store.
+      const queryKey =
+        queryKeys[i] ??
+        constructUnshieldClaimsQueryKey({
+          chainId: token.chainId,
+          tokenAddress: token.address,
+          confidentialityType: token.extensions.fhenix.confidentialityType,
+          accountAddress: account,
+        });
+
+      map[token.address] = awaitingDecryptionKeySet.has(JSON.stringify(queryKey));
+    }
+
+    return map;
+  }, [account, awaitingDecryptionKeySet, normalizedTokens, queryKeys]);
+
+  const isWaitingForDecryption = useMemo(() => {
+    return Object.values(isWaitingForDecryptionByTokenAddress).some(Boolean);
+  }, [isWaitingForDecryptionByTokenAddress]);
 
   const queries = useInternalQueries({
     queries: normalizedTokens.map((token) => {
@@ -164,5 +194,6 @@ export function useCofheTokensClaimable(
     isError,
     error,
     isWaitingForDecryption,
+    isWaitingForDecryptionByTokenAddress,
   };
 }

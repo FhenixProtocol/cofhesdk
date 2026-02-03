@@ -1,31 +1,21 @@
 import { useScheduledInvalidationsStore } from '@/stores/scheduledInvalidationsStore';
 import { useMemo } from 'react';
 
-function useCacheKeysAwaitingDecryption() {
+export function useAwaitingDecryptionQueryKeySet(): ReadonlySet<string> {
   const { byKey } = useScheduledInvalidationsStore();
 
-  const queryKeys = useMemo(() => {
-    return Object.values(byKey).flatMap((item) => item.queryKeys);
-  }, [byKey]);
+  const cacheKeysAwaitingDecryption = useMemo(() => Object.values(byKey).flatMap((item) => item.queryKeys), [byKey]);
 
-  return queryKeys;
-}
-
-export function useIsWaitingForDecryptionToInvalidateMany(queryKeys: unknown[][]): boolean {
-  const cacheKeysAwaitingDecryption = useCacheKeysAwaitingDecryption();
-
-  const cacheKeySet = useMemo(() => {
-    return new Set(cacheKeysAwaitingDecryption.map((key) => JSON.stringify(key)));
-  }, [cacheKeysAwaitingDecryption]);
-
-  return useMemo(() => {
-    if (queryKeys.length === 0) return false;
-    return queryKeys.some((key) => cacheKeySet.has(JSON.stringify(key)));
-  }, [cacheKeySet, queryKeys]);
+  return useMemo(
+    () => new Set(cacheKeysAwaitingDecryption.map((key) => JSON.stringify(key))),
+    [cacheKeysAwaitingDecryption]
+  );
 }
 
 export function useIsWaitingForDecryptionToInvalidate(queryKey: unknown[]): boolean {
-  const result = useIsWaitingForDecryptionToInvalidateMany([queryKey]);
+  const cacheKeySet = useAwaitingDecryptionQueryKeySet();
+
+  const result = useMemo(() => cacheKeySet.has(JSON.stringify(queryKey)), [cacheKeySet, queryKey]);
 
   console.log(`isWaitingForDecryption for queryKey ${JSON.stringify(queryKey)}:`, result);
 
