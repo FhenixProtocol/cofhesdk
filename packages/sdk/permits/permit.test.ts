@@ -66,7 +66,7 @@ describe('PermitUtils Tests', () => {
         name: 'Test Permit',
       };
 
-      expect(PermitUtils.createSelf(options)).toThrow();
+      expect(() => PermitUtils.createSelf(options)).toThrowError();
     });
   });
 
@@ -103,7 +103,7 @@ describe('PermitUtils Tests', () => {
         name: 'Test Sharing Permit',
       };
 
-      expect(PermitUtils.createSharing(options)).toThrow();
+      expect(() => PermitUtils.createSharing(options)).toThrow();
     });
   });
 
@@ -153,7 +153,7 @@ describe('PermitUtils Tests', () => {
         issuerSignature: '0x1234567890abcdef',
       } as unknown as ImportSharedPermitOptions;
 
-      expect(PermitUtils.importShared(options)).toThrow();
+      expect(() => PermitUtils.importShared(options)).toThrow();
 
       const options2 = {
         type: 'recipient',
@@ -162,7 +162,7 @@ describe('PermitUtils Tests', () => {
         issuerSignature: '0x1234567890abcdef',
       } as unknown as ImportSharedPermitOptions;
 
-      expect(PermitUtils.importShared(options2)).toThrow();
+      expect(() => PermitUtils.importShared(options2)).toThrow();
     });
 
     it('should throw error for missing issuerSignature', async () => {
@@ -173,7 +173,7 @@ describe('PermitUtils Tests', () => {
         name: 'Test Import Permit',
       };
 
-      expect(PermitUtils.importShared(options)).toThrow();
+      expect(() => PermitUtils.importShared(options)).toThrow();
     });
   });
 
