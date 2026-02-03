@@ -198,6 +198,10 @@ export type EncryptableItem =
   // | EncryptableUint256
   | EncryptableAddress;
 
+type testextract = Extract<EncryptableItem, { utype: FheTypes.Bool }>;
+type testexclude = Exclude<EncryptableItem, { utype: FheTypes.Bool }>;
+type testUppercase = Uppercase<"Test">
+
 // COFHE Encrypt
 export type EncryptableToEncryptedItemInputMap<E extends EncryptableItem> = E extends EncryptableBool
   ? EncryptedBoolInput
