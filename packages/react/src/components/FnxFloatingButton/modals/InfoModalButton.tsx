@@ -8,6 +8,7 @@ export const InfoModalButton: React.FC<{ onClick: () => void }> = ({ onClick }) 
         e.stopPropagation();
         onClick();
       }}
+      className="inline-flex self-center"
     >
       <FaCircleInfo />
     </button>

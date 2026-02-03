@@ -6,9 +6,11 @@ import { PortalModal, type PortalModalStateMap } from './types';
 import { useCopyFeedback } from '@/hooks/useCopyFeedback';
 import { Button } from '../components';
 import { InfoModalButton } from './InfoModalButton';
-import { usePortalModals } from '@/stores';
+import { usePortalModals, usePortalToasts } from '@/stores';
 import type { PermitType } from '@cofhe/sdk/permits';
 import { PermitCard } from '../components/PermitCard';
+import { truncateAddress } from '@/utils';
+import { useCallback } from 'react';
 
 const PermitTypeLabel: Record<PermitType, string> = {
   self: 'Self',
@@ -34,16 +36,32 @@ const NoPermitFoundModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 };
 
 export const PermitDetailsModal: React.FC<PortalModalStateMap[PortalModal.PermitDetails]> = ({ hash, onClose }) => {
-  const {
-    permit,
-    expirationInfo,
-    handleViewAs,
-    isActivePermit,
-    isShareablePermit,
-    handleCopy,
-    isCopyComplete,
-  } = usePermitDetailsPage(hash);
+  const { permit, expirationInfo, handleViewAs, isActivePermit, isShareablePermit, handleCopy, isCopyComplete } =
+    usePermitDetailsPage(hash);
   const { openModal } = usePortalModals();
+  const { addToast } = usePortalToasts();
+
+  const handlePermitSelect = useCallback(() => {
+    onClose();
+    handleViewAs();
+    addToast({
+      variant: 'success',
+      title: `Permit selected (${permit?.name})`,
+      description:
+        permit?.type === 'self'
+          ? 'Now viewing own encrypted data.'
+          : `Now viewing ${truncateAddress(permit?.issuer, 4, 4)}'s encrypted data.`,
+    });
+  }, [handleViewAs, onClose, addToast, permit]);
+
+  const handlePermitShare = useCallback(() => {
+    handleCopy();
+    addToast({
+      variant: 'success',
+      title: 'Permit data copied',
+      description: 'Copied data can be sent to recipient.',
+    });
+  }, [handleCopy, addToast]);
 
   if (permit == null) {
     return <NoPermitFoundModal onClose={onClose} />;
@@ -71,26 +89,61 @@ export const PermitDetailsModal: React.FC<PortalModalStateMap[PortalModal.Permit
       content={
         permit != null && (
           <div className="flex flex-col gap-3">
-            <p className="text-sm">
-              Type: <b>{PermitTypeLabel[permit.type]}</b>{' '}
+            <p className="flex flex-row gap-2 text-sm">
+              Type: <b>{PermitTypeLabel[permit.type]}</b>
               <InfoModalButton onClick={() => openModal(PortalModal.PermitTypeExplanation, { type: permit.type })} />
             </p>
 
             <p className="text-sm">
               Expires in: <b>{expirationInfo.label}</b>
             </p>
+
+            {permit.type === 'self' && (
+              <p className="text-sm">
+                To select this permit for usage, click the <b>"SELECT"</b> button below. When this permit is active, you
+                will be able to view your own encrypted data.
+              </p>
+            )}
+            {permit.type === 'sharing' && (
+              <p className="text-sm">
+                To share this permit with <b>recipient</b>, click the <b>"SHARE"</b> button below to copy the permit
+                data to your clipboard. Share the copied permit data with <b>recipient</b> to grant them access to your
+                encrypted data.
+                <br />
+                <br />
+                <i>
+                  <b>Note:</b> The copied permit data is not sensitive and can be sent to recipient via any
+                  communication channel.
+                </i>
+              </p>
+            )}
+            {permit.type === 'recipient' && (
+              <p className="text-sm">
+                To select this imported permit for usage, click the <b>"SELECT"</b> button below. When this permit is
+                active, you will be able to view <b>issuer</b>'s ({truncateAddress(permit.issuer, 4, 4)}) encrypted
+                data.
+              </p>
+            )}
           </div>
         )
       }
       footer={
         <div className="flex flex-row gap-3 w-full">
           {isShareablePermit && (
-            <Button onClick={handleCopy}>
+            <Button variant="primary" onClick={handlePermitShare}>
               {isCopyComplete ? <FaCheck /> : <FaRegCopy />}
               {isCopyComplete ? 'COPIED' : 'SHARE'}
             </Button>
           )}
-          {!isShareablePermit && <Button label="USE" onClick={handleViewAs} disabled={isActivePermit} />}
+          {!isShareablePermit && (
+            <Button
+              variant="primary"
+              label={isActivePermit ? 'ALREADY ACTIVE' : 'SELECT'}
+              onClick={handlePermitSelect}
+              disabled={isActivePermit}
+            />
+          )}
+          <Button label="CLOSE" onClick={onClose} variant="ghost" />
         </div>
       }
     />
