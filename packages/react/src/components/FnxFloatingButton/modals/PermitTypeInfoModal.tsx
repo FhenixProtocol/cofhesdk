@@ -1,7 +1,6 @@
-import CloseIcon from '@mui/icons-material/Close';
 import type { PortalModal, PortalModalStateMap } from './types';
-import { PageContainer } from '../components/PageContainer';
 import type { PermitType } from '@cofhe/sdk/permits';
+import { BaseInfoModal } from './BaseInfoModal';
 
 const PermitTypeLabel: Record<PermitType, string> = {
   self: 'Self',
@@ -9,21 +8,12 @@ const PermitTypeLabel: Record<PermitType, string> = {
   recipient: 'Imported',
 };
 
-export const PermitTypeExplanationModal: React.FC<PortalModalStateMap[PortalModal.PermitTypeExplanation]> = ({
-  type,
-  onClose,
-}) => {
+export const PermitTypeInfoModal: React.FC<PortalModalStateMap[PortalModal.PermitTypeInfo]> = ({ type, onClose }) => {
   return (
-    <PageContainer
-      isModal
-      header={
-        <button onClick={onClose} className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity">
-          <CloseIcon style={{ fontSize: 16 }} />
-          <p className="text-sm font-medium">{PermitTypeLabel[type]} Permit</p>
-        </button>
-      }
+    <BaseInfoModal
+      header={`${PermitTypeLabel[type]} Permit`}
       content={
-        <div className="flex flex-1 flex-col gap-3 items-start justify-start">
+        <>
           {/* TODO: Improve copy */}
           {type === 'self' && (
             <p>
@@ -49,15 +39,9 @@ export const PermitTypeExplanationModal: React.FC<PortalModalStateMap[PortalModa
               signature applies and verifies the re-encryption key.
             </p>
           )}
-        </div>
+        </>
       }
-      footer={
-        <div className="flex flex-row">
-          <button onClick={onClose} className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity">
-            <span>Close</span>
-          </button>
-        </div>
-      }
+      onClose={onClose}
     />
   );
 };

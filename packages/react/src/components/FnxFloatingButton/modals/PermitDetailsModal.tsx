@@ -117,7 +117,7 @@ export const PermitDetailsModal: React.FC<PortalModalStateMap[PortalModal.Permit
           <div className="flex flex-col gap-3">
             <p className="flex flex-row gap-2 text-sm">
               Type: <b>{PermitTypeLabel[permit.type]}</b>
-              <InfoModalButton onClick={() => openModal(PortalModal.PermitTypeExplanation, { type: permit.type })} />
+              <InfoModalButton onClick={() => openModal(PortalModal.PermitTypeInfo, { type: permit.type })} />
             </p>
 
             <p className="text-sm">
