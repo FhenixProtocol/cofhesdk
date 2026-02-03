@@ -61,7 +61,7 @@ export function constructUnshieldClaimsQueryKeyForInvalidation({
   });
 }
 
-const DEFAULT_UNSHIELD_CLAIM_SUMMARY: UnshieldClaimsSummary = {
+export const DEFAULT_UNSHIELD_CLAIM_SUMMARY: UnshieldClaimsSummary = {
   claimableAmount: 0n,
   pendingAmount: 0n,
   hasClaimable: false,
