@@ -14,6 +14,7 @@ import {
   ShieldPageV2,
 } from '../pages';
 import { FloatingButtonPage } from './types';
+import { ClaimableTokens } from '../pages/ClaimableTokens';
 
 export const pages: Record<FloatingButtonPage, FC<any>> = {
   [FloatingButtonPage.Main]: MainPage,
@@ -28,4 +29,5 @@ export const pages: Record<FloatingButtonPage, FC<any>> = {
   [FloatingButtonPage.ReceivePermits]: ReceivePermitPage,
   [FloatingButtonPage.PermitDetails]: PermitDetailsPage,
   [FloatingButtonPage.Debug]: DebugPage,
+  [FloatingButtonPage.ClaimableTokens]: ClaimableTokens,
 };
