@@ -5,7 +5,7 @@ import { FaKey, FaDownload, FaPlus } from 'react-icons/fa';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { type ElementType, type FC } from 'react';
 import { Accordion, AccordionSection } from '../../../Accordion.js';
-import { PermitItem } from './components/PermitItem';
+import { PermitItem } from '../components/PermitItem.js';
 import { usePermitsList } from '@/hooks/permits/index.js';
 import type { QuickActionId } from '@/hooks/permits/index.js';
 import { PageContainer } from '@/components/FnxFloatingButton/components/PageContainer.js';

@@ -2,28 +2,32 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { usePermitDuration, usePermitForm } from '@/hooks/permits/index';
 import PermitIcon from '@/assets/fhenix-permit-icon.svg';
 import { NameSection } from '../components/NameSection';
+import { ReceiverSection } from '../components/ReceiverSection';
 import { ExpirySection } from '../components/ExpirySection';
 import { FloatingButtonPage } from '@/components/FnxFloatingButton/pagesConfig/types';
-import type { GeneratePermitPageProps } from './types';
+import type { DelegatePermitPageProps } from './types';
 import { usePortalNavigation } from '@/stores';
 import { PageContainer } from '@/components/FnxFloatingButton/components/PageContainer';
 import { Button } from '@/components/FnxFloatingButton/components';
 
-export const GeneratePermitPage: React.FC<GeneratePermitPageProps> = ({ onSuccessNavigateTo, onCancel, onBack }) => {
+export const DelegatePermitPage: React.FC<DelegatePermitPageProps> = ({ onSuccessNavigateTo, onCancel, onBack }) => {
   const { navigateBack, navigateTo, pageHistory } = usePortalNavigation();
 
   const {
     permitName,
+    receiver,
     error,
     nameError,
+    receiverError,
     isValid,
     isSubmitting,
     durationSeconds,
     handleNameChange,
+    handleReceiverChange,
     setDurationSeconds,
     handleSubmit,
   } = usePermitForm({
-    isDelegate: false,
+    isDelegate: true,
     onSuccess: () => {
       // TODO: also add toast here in any case
       // by default navigate to permits list, but if arrived here from elsewhere, go back where we came from
@@ -49,7 +53,7 @@ export const GeneratePermitPage: React.FC<GeneratePermitPageProps> = ({ onSucces
             onClick={onBack ?? navigateBack}
           >
             {(pageHistory.length > 0 || onBack) && <ArrowBackIcon fontSize="small" />}
-            <span>Create Self-usage Permit</span>
+            <span>Delegate Permit</span>
           </button>
         }
         content={
@@ -63,11 +67,12 @@ export const GeneratePermitPage: React.FC<GeneratePermitPageProps> = ({ onSucces
             <p className="text-sm leading-relaxed text-[#355366] dark:text-white/80">
               Permits are used to authenticate your identity when accessing encrypted data.
               <br />
-              This form creates a "SELF" permit, which only grants access to the signer's (your) data.
+              This form generates a permit that can be copied and shared with "recipient". Recipient will be granted
+              access to the signer's (your) data.
             </p>
 
             <NameSection permitName={permitName} error={nameError} onNameChange={handleNameChange} />
-
+            <ReceiverSection receiver={receiver} receiverError={receiverError} onReceiverChange={handleReceiverChange} />
             <ExpirySection
               presets={presets}
               units={units}

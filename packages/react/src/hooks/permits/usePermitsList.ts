@@ -44,7 +44,7 @@ export const usePermitsList = () => {
         return;
       }
       if (actionId === 'delegate') {
-        navigateTo(FloatingButtonPage.GeneratePermits, {});
+        navigateTo(FloatingButtonPage.DelegatePermits, {});
         return;
       }
       if (actionId === 'import') {
