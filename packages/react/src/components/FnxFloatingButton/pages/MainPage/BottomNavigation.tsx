@@ -10,19 +10,12 @@ import { useCofhePinnedToken } from '@/hooks/useCofhePinnedToken';
 import { assert, type ElementOf } from 'ts-essentials';
 import { usePortalNavigation, usePortalUI } from '@/stores';
 import { isReactNode } from '@/utils';
-import { useCofheTokens, useCofheTokensClaimable } from '@/hooks';
-import { useCofheAccount, useCofheChainId } from '@/hooks/useCofheConnection';
+import { useCofheClaimableTokens } from '@/hooks/useCofheClaimableTokens';
 
 const iconClassName = 'w-4 h-4';
 
 const ShieldIcon = () => {
-  const account = useCofheAccount();
-  const chainId = useCofheChainId();
-  const allTokens = useCofheTokens(chainId);
-  const { totalTokensClaimable } = useCofheTokensClaimable({
-    accountAddress: account,
-    tokens: allTokens,
-  });
+  const { totalTokensClaimable } = useCofheClaimableTokens();
 
   const badgeText = totalTokensClaimable > 99 ? '99+' : totalTokensClaimable > 0 ? `+${totalTokensClaimable}` : null;
 
