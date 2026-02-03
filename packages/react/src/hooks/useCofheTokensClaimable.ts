@@ -64,6 +64,7 @@ type CombinedResult = {
   isLoading: boolean;
   isFetching: boolean;
   isError: boolean;
+  totalTokensClaimable: number;
   error: Error | null;
 };
 export function useCofheTokensClaimable(
@@ -143,6 +144,10 @@ export function useCofheTokensClaimable(
           acc.summariesByTokenAddress[token.address] = summary;
           acc.claimableByTokenAddress[token.address] = summary.claimableAmount;
 
+          if (summary.hasClaimable) {
+            acc.totalTokensClaimable += 1;
+          }
+
           acc.isLoading = acc.isLoading || result.isLoading;
           acc.isFetching = acc.isFetching || result.isFetching;
           acc.isError = acc.isError || result.isError;
@@ -153,6 +158,7 @@ export function useCofheTokensClaimable(
         {
           summariesByTokenAddress: {},
           claimableByTokenAddress: {},
+          totalTokensClaimable: 0,
           queries: results,
           isLoading: false,
           isFetching: false,
@@ -166,6 +172,7 @@ export function useCofheTokensClaimable(
   return {
     summariesByTokenAddress: combined.summariesByTokenAddress,
     claimableByTokenAddress: combined.claimableByTokenAddress,
+    totalTokensClaimable: combined.totalTokensClaimable,
     queries: combined.queries,
     isLoading: combined.isLoading,
     isFetching: combined.isFetching,

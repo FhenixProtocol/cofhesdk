@@ -4,14 +4,41 @@ import { IoMdKey } from 'react-icons/io';
 import { AiOutlinePieChart } from 'react-icons/ai';
 import { TbShieldPlus } from 'react-icons/tb';
 import { FaBug } from 'react-icons/fa';
+import type { ComponentType, ReactNode } from 'react';
 import { FloatingButtonPage } from '../../pagesConfig/types';
 import { useCofhePinnedToken } from '@/hooks/useCofhePinnedToken';
 import { assert, type ElementOf } from 'ts-essentials';
 import { usePortalNavigation, usePortalUI } from '@/stores';
+import { isReactNode } from '@/utils';
+import { useCofheTokens, useCofheTokensClaimable } from '@/hooks';
+import { useCofheAccount, useCofheChainId } from '@/hooks/useCofheConnection';
 
 const iconClassName = 'w-4 h-4';
 
-const navItems = [
+const ShieldIcon = () => {
+  const account = useCofheAccount();
+  const chainId = useCofheChainId();
+  const allTokens = useCofheTokens(chainId);
+  const { totalTokensClaimable } = useCofheTokensClaimable({
+    accountAddress: account,
+    tokens: allTokens,
+  });
+
+  return <TbShieldPlus className={iconClassName} />;
+};
+
+type PagesInBottomMenu =
+  | FloatingButtonPage.Send
+  | FloatingButtonPage.Shield
+  | FloatingButtonPage.TokenList
+  | FloatingButtonPage.Permits
+  | FloatingButtonPage.Debug;
+
+const navItems: {
+  id: PagesInBottomMenu;
+  label: string;
+  icon: ReactNode | ComponentType<{}>;
+}[] = [
   {
     id: FloatingButtonPage.Send,
     label: 'Send',
@@ -20,7 +47,7 @@ const navItems = [
   {
     id: FloatingButtonPage.Shield,
     label: 'Shield',
-    icon: <TbShieldPlus className={iconClassName} />,
+    icon: ShieldIcon,
   },
   {
     id: FloatingButtonPage.TokenList,
@@ -88,7 +115,7 @@ export const BottomNavigation: React.FC = () => {
             'fnx-nav-button fnx-text-primary'
           )}
         >
-          {item.icon}
+          {isReactNode(item.icon) ? item.icon : <item.icon />}
           <span>{item.label}</span>
         </button>
       ))}
