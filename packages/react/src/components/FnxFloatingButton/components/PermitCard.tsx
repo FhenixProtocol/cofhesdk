@@ -30,6 +30,7 @@ export const PermitCard: React.FC<{ hash: string; className?: string; header?: R
         )}
       >
         {header}
+        <div className="flex flex-col size-3"></div>
         <pre className="whitespace-pre-wrap break-words text-left italic p-10">Permit not found.</pre>
       </div>
     );
@@ -43,6 +44,7 @@ export const PermitCard: React.FC<{ hash: string; className?: string; header?: R
       )}
     >
       {header}
+      <div className="flex flex-col size-3"></div>
       <pre className="whitespace-pre-wrap break-words text-left">
         Name: <b>{permit.name}</b>
         <br />

@@ -17,6 +17,7 @@ import { Button } from '@/components/FnxFloatingButton/components/Button.js';
 import { InfoModalButton } from '@/components/FnxFloatingButton/modals/InfoModalButton.js';
 import { usePortalModals } from '@/stores';
 import { PortalModal } from '@/components/FnxFloatingButton/modals/types.js';
+import { PermitCard } from '@/components/FnxFloatingButton/components/PermitCard.js';
 
 type QuickAction = { id: QuickActionId; label: string; icon: ElementType };
 
@@ -71,20 +72,28 @@ export const PermitsListPage: React.FC = () => {
   return (
     <PageContainer
       header={
-        <button
-          className="flex items-center gap-2 text-base font-semibold tracking-tight text-[#0E2F3F] transition-opacity hover:opacity-80 dark:text-white"
-          onClick={navigateBack}
-          type="button"
-        >
-          <ArrowBackIcon fontSize="small" />
-          <span>Permit list</span>
-        </button>
+        <div className="flex flex-col gap-3">
+          <button
+            className="flex items-center gap-2 text-base font-semibold tracking-tight text-[#0E2F3F] transition-opacity hover:opacity-80 dark:text-white"
+            onClick={navigateBack}
+            type="button"
+          >
+            <ArrowBackIcon fontSize="small" />
+            <span>Permit list</span>
+          </button>
+          {activePermitHash != null && (
+            <PermitCard
+              hash={activePermitHash}
+              className="-ml-4 -mr-4"
+              header={<p className="text-sm font-semibold">Active Permit:</p>}
+            />
+          )}
+        </div>
       }
       content={
         <div className="gap-4">
           <Accordion defaultActiveId="self">
             <div className="flex flex-col gap-3">
-              <p className="text-xs p-2 px-3">Active Permit:</p>
               <AccordionSection
                 id="self"
                 renderHeader={() => (

@@ -1,10 +1,8 @@
-import { FaCheck, FaRegCopy, FaShare } from 'react-icons/fa6';
+import { FaCheck, FaRegCopy } from 'react-icons/fa6';
 import CloseIcon from '@mui/icons-material/Close';
 import { usePermitDetailsPage } from '@/hooks/permits/index.js';
 import { PageContainer } from '@/components/FnxFloatingButton/components/PageContainer';
 import { PortalModal, type PortalModalStateMap } from './types';
-import { zeroAddress } from 'viem';
-import { truncateAddress } from '@/utils';
 import { useCopyFeedback } from '@/hooks/useCopyFeedback';
 import { Button } from '../components';
 import { InfoModalButton } from './InfoModalButton';
@@ -16,16 +14,6 @@ const PermitTypeLabel: Record<PermitType, string> = {
   self: 'Self',
   sharing: 'Delegated',
   recipient: 'Imported',
-};
-
-const CopyButton: React.FC<{ hash: string }> = ({ hash }) => {
-  const { copiedKeys, copyWithFeedback } = useCopyFeedback();
-
-  return (
-    <button type="button" onClick={() => copyWithFeedback(hash, hash)}>
-      {copiedKeys.has(hash) ? <FaCheck /> : <FaRegCopy />}
-    </button>
-  );
 };
 
 const NoPermitFoundModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
@@ -49,7 +37,6 @@ export const PermitDetailsModal: React.FC<PortalModalStateMap[PortalModal.Permit
   const {
     permit,
     expirationInfo,
-    expirationDate,
     handleViewAs,
     isActivePermit,
     isShareablePermit,
@@ -71,7 +58,7 @@ export const PermitDetailsModal: React.FC<PortalModalStateMap[PortalModal.Permit
           className="-mt-4 -ml-4 -mr-4"
           header={
             <button
-              className="flex items-center gap-2 text-base font-semibold tracking-tight text-[#0E2F3F] transition-opacity hover:opacity-80 dark:text-white mb-3"
+              className="flex items-center gap-2 text-base font-semibold tracking-tight text-[#0E2F3F] transition-opacity hover:opacity-80 dark:text-white"
               onClick={onClose}
               type="button"
             >
