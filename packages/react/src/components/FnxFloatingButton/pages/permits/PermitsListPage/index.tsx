@@ -1,6 +1,4 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
 import { FaKey, FaDownload, FaPlus } from 'react-icons/fa';
@@ -52,10 +50,7 @@ export const PermitsListPage: React.FC = () => {
     selfPermits,
     delegatedPermits,
     importedPermits,
-    isCopied,
     handleQuickAction,
-    handleCopy,
-    handleDelete,
     handlePermitSelect,
     navigateBack,
   } = usePermitsList();
@@ -79,7 +74,8 @@ export const PermitsListPage: React.FC = () => {
             type="button"
           >
             <ArrowBackIcon fontSize="small" />
-            <span>Permit list</span>
+            <span>Permits</span>
+            <InfoModalButton onClick={() => openModal(PortalModal.PermitInfo)} />
           </button>
           {activePermitHash != null && (
             <PermitCard
@@ -99,7 +95,7 @@ export const PermitsListPage: React.FC = () => {
                 renderHeader={() => (
                   <>
                     <span>Self: ({selfPermits.length})</span>{' '}
-                    <InfoModalButton onClick={() => openModal(PortalModal.PermitTypeExplanation, { type: 'self' })} />
+                    <InfoModalButton onClick={() => openModal(PortalModal.PermitTypeInfo, { type: 'self' })} />
                   </>
                 )}
               >
@@ -127,9 +123,7 @@ export const PermitsListPage: React.FC = () => {
                 renderHeader={() => (
                   <>
                     <span>Delegated: ({delegatedPermits.length})</span>{' '}
-                    <InfoModalButton
-                      onClick={() => openModal(PortalModal.PermitTypeExplanation, { type: 'sharing' })}
-                    />
+                    <InfoModalButton onClick={() => openModal(PortalModal.PermitTypeInfo, { type: 'sharing' })} />
                   </>
                 )}
               >
@@ -149,9 +143,7 @@ export const PermitsListPage: React.FC = () => {
                 renderHeader={() => (
                   <>
                     <span>Imported: ({importedPermits.length})</span>{' '}
-                    <InfoModalButton
-                      onClick={() => openModal(PortalModal.PermitTypeExplanation, { type: 'recipient' })}
-                    />
+                    <InfoModalButton onClick={() => openModal(PortalModal.PermitTypeInfo, { type: 'recipient' })} />
                   </>
                 )}
               >

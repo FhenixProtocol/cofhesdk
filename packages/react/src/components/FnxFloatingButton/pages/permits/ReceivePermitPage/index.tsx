@@ -1,5 +1,5 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import PermitReceiveIcon from '../assets/fhenix-permit-receive.svg';
+import PermitReceiveIcon from '@/assets/fhenix-permit-receive.svg';
 import { useFnxFloatingButtonContext } from '../../../FnxFloatingButtonContext.js';
 import { useReceivePermit } from '@/hooks/permits/index.js';
 import { usePortalNavigation } from '@/stores';
