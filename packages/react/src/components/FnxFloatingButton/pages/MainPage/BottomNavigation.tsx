@@ -24,7 +24,31 @@ const ShieldIcon = () => {
     tokens: allTokens,
   });
 
-  return <TbShieldPlus className={iconClassName} />;
+  const badgeText = totalTokensClaimable > 99 ? '99+' : totalTokensClaimable > 0 ? `+${totalTokensClaimable}` : null;
+
+  return (
+    <span className="relative inline-flex items-center justify-center w-6 h-6 shrink-0">
+      <TbShieldPlus className={iconClassName} />
+      {badgeText && (
+        <span
+          className={cn(
+            'pointer-events-none',
+            'absolute top-0 right-0',
+            'translate-x-[35%] -translate-y-[35%]',
+            'min-w-[18px] h-[18px] px-1',
+            'rounded-full',
+            'flex items-center justify-center',
+            'text-[10px] leading-none font-semibold',
+            'bg-[#6EE7F5] text-[#003B4A]',
+            'outline outline-2 outline-[var(--fnx-button-bg)]',
+            'shadow-sm'
+          )}
+        >
+          {badgeText}
+        </span>
+      )}
+    </span>
+  );
 };
 
 type PagesInBottomMenu =
