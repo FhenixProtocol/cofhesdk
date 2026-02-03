@@ -1,11 +1,6 @@
-import {
-  type QueryFunctionContext,
-  type QueryKey,
-  type UseQueryOptions,
-  type UseQueryResult,
-} from '@tanstack/react-query';
+import { type QueryFunctionContext, type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
 import { useMemo } from 'react';
-import { isAddress, type Address } from 'viem';
+import { type Address } from 'viem';
 import { assert } from 'ts-essentials';
 
 import { useCofhePublicClient } from './useCofheConnection.js';
@@ -61,11 +56,7 @@ function claimableSort(a: ClaimableToken, b: ClaimableToken): number {
   if (a.chainId !== b.chainId) return a.chainId - b.chainId;
   return a.address.toLowerCase().localeCompare(b.address.toLowerCase());
 }
-
-export function useCofheTokensClaimable(
-  { tokens, accountAddress: account }: UseUnshieldClaimsManyInput,
-  queryOptions?: UseUnshieldClaimsManyOptions
-): {
+type CombinedResult = {
   summariesByTokenAddress: UnshieldClaimsSummaryByTokenAddress;
   claimableByTokenAddress: ClaimableAmountByTokenAddress;
   isWaitingForDecryptionByTokenAddress: IsWaitingForDecryptionByTokenAddress;
@@ -74,7 +65,11 @@ export function useCofheTokensClaimable(
   isFetching: boolean;
   isError: boolean;
   error: Error | null;
-} {
+};
+export function useCofheTokensClaimable(
+  { tokens, accountAddress: account }: UseUnshieldClaimsManyInput,
+  queryOptions?: UseUnshieldClaimsManyOptions
+): CombinedResult {
   const publicClient = useCofhePublicClient();
 
   const normalizedTokens = useNormalizedList(tokens, {
@@ -100,7 +95,7 @@ export function useCofheTokensClaimable(
 
   const isWaitingForDecryptionByTokenAddress = useIsWaitingForDecryptionByAddress(waitingEntries);
 
-  const queries = useInternalQueries({
+  const combined = useInternalQueries({
     queries: normalizedTokens.map((token) => {
       const confidentialityType = token.extensions.fhenix.confidentialityType;
       const queryKey = constructUnshieldClaimsQueryKey({
@@ -138,39 +133,44 @@ export function useCofheTokensClaimable(
         ...queryOptions,
       };
     }),
+    combine: (results) => {
+      return results.reduce<Omit<CombinedResult, 'isWaitingForDecryptionByTokenAddress'>>(
+        (acc, result, index) => {
+          const token = normalizedTokens[index];
+          if (!token) return acc;
+
+          const summary = result.data ?? DEFAULT_UNSHIELD_CLAIM_SUMMARY;
+          acc.summariesByTokenAddress[token.address] = summary;
+          acc.claimableByTokenAddress[token.address] = summary.claimableAmount;
+
+          acc.isLoading = acc.isLoading || result.isLoading;
+          acc.isFetching = acc.isFetching || result.isFetching;
+          acc.isError = acc.isError || result.isError;
+          if (!acc.error && result.error) acc.error = result.error;
+
+          return acc;
+        },
+        {
+          summariesByTokenAddress: {},
+          claimableByTokenAddress: {},
+          queries: results,
+          isLoading: false,
+          isFetching: false,
+          isError: false,
+          error: null,
+        }
+      );
+    },
   });
 
-  const summariesByTokenAddress = useMemo((): UnshieldClaimsSummaryByTokenAddress => {
-    const map: UnshieldClaimsSummaryByTokenAddress = {};
-    for (let i = 0; i < normalizedTokens.length; i++) {
-      const token = normalizedTokens[i];
-      map[token.address] = queries[i]?.data ?? DEFAULT_UNSHIELD_CLAIM_SUMMARY;
-    }
-    return map;
-  }, [normalizedTokens, queries]);
-
-  const claimableByTokenAddress = useMemo((): ClaimableAmountByTokenAddress => {
-    const map: ClaimableAmountByTokenAddress = {};
-    for (const [address, summary] of Object.entries(summariesByTokenAddress)) {
-      assert(isAddress(address), 'address is valid');
-      map[address] = summary.claimableAmount;
-    }
-    return map;
-  }, [summariesByTokenAddress]);
-
-  const isLoading = queries.some((q) => q.isLoading);
-  const isFetching = queries.some((q) => q.isFetching);
-  const isError = queries.some((q) => q.isError);
-  const error = queries.find((q) => q.error)?.error ?? null;
-
   return {
-    summariesByTokenAddress,
-    claimableByTokenAddress,
-    queries,
-    isLoading,
-    isFetching,
-    isError,
-    error,
+    summariesByTokenAddress: combined.summariesByTokenAddress,
+    claimableByTokenAddress: combined.claimableByTokenAddress,
+    queries: combined.queries,
+    isLoading: combined.isLoading,
+    isFetching: combined.isFetching,
+    isError: combined.isError,
+    error: combined.error,
     isWaitingForDecryptionByTokenAddress,
   };
 }
