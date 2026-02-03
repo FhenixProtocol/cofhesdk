@@ -31,7 +31,7 @@ export const PermitUtils = {
   /**
    * Create a self permit for personal use
    */
-  createSelf: async (options: CreateSelfPermitOptions): Promise<SelfPermit> => {
+  createSelf: (options: CreateSelfPermitOptions): SelfPermit => {
     const validation = validateSelfPermitOptions(options);
 
     if (!validation.success) {
@@ -41,7 +41,7 @@ export const PermitUtils = {
     }
 
     // Always generate a new sealing key - users cannot provide their own
-    const sealingPair = await GenerateSealingKey();
+    const sealingPair = GenerateSealingKey();
 
     const permit = {
       ...validation.data,
@@ -55,7 +55,7 @@ export const PermitUtils = {
   /**
    * Create a sharing permit to be shared with another user
    */
-  createSharing: async (options: CreateSharingPermitOptions): Promise<SharingPermit> => {
+  createSharing: (options: CreateSharingPermitOptions): SharingPermit => {
     const validation = validateSharingPermitOptions(options);
 
     if (!validation.success) {
@@ -66,7 +66,7 @@ export const PermitUtils = {
     }
 
     // Always generate a new sealing key - users cannot provide their own
-    const sealingPair = await GenerateSealingKey();
+    const sealingPair = GenerateSealingKey();
 
     const permit = {
       ...validation.data,
@@ -80,7 +80,7 @@ export const PermitUtils = {
   /**
    * Import a shared permit from various input formats
    */
-  importShared: async (options: ImportSharedPermitOptions | string): Promise<RecipientPermit> => {
+  importShared: (options: ImportSharedPermitOptions | string): RecipientPermit => {
     let parsedOptions: ImportSharedPermitOptions;
 
     // Handle different input types
@@ -114,7 +114,7 @@ export const PermitUtils = {
     }
 
     // Always generate a new sealing key - users cannot provide their own
-    const sealingPair = await GenerateSealingKey();
+    const sealingPair = GenerateSealingKey();
 
     const permit = {
       ...validation.data,
@@ -173,7 +173,7 @@ export const PermitUtils = {
     publicClient: PublicClient,
     walletClient: WalletClient
   ): Promise<SelfPermit> => {
-    const permit = await PermitUtils.createSelf(options);
+    const permit = PermitUtils.createSelf(options);
     return PermitUtils.sign(permit, publicClient, walletClient);
   },
 
@@ -185,7 +185,7 @@ export const PermitUtils = {
     publicClient: PublicClient,
     walletClient: WalletClient
   ): Promise<SharingPermit> => {
-    const permit = await PermitUtils.createSharing(options);
+    const permit = PermitUtils.createSharing(options);
     return PermitUtils.sign(permit, publicClient, walletClient);
   },
 
@@ -197,7 +197,7 @@ export const PermitUtils = {
     publicClient: PublicClient,
     walletClient: WalletClient
   ): Promise<RecipientPermit> => {
-    const permit = await PermitUtils.importShared(options);
+    const permit = PermitUtils.importShared(options);
     return PermitUtils.sign(permit, publicClient, walletClient);
   },
 

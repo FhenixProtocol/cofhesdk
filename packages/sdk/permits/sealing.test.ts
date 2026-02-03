@@ -67,7 +67,7 @@ describe('SealingKey', () => {
 
 describe('GenerateSealingKey', () => {
   it('should generate a valid SealingKey', async () => {
-    const sealingKey = await GenerateSealingKey();
+    const sealingKey = GenerateSealingKey();
 
     expect(sealingKey).toBeInstanceOf(SealingKey);
     expect(sealingKey.privateKey).toHaveLength(64);
@@ -75,8 +75,8 @@ describe('GenerateSealingKey', () => {
   });
 
   it('should generate different keys on each call', async () => {
-    const key1 = await GenerateSealingKey();
-    const key2 = await GenerateSealingKey();
+    const key1 = GenerateSealingKey();
+    const key2 = GenerateSealingKey();
 
     expect(key1.privateKey).not.toBe(key2.privateKey);
     expect(key1.publicKey).not.toBe(key2.publicKey);

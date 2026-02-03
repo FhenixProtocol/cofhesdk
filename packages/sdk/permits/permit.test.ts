@@ -44,7 +44,7 @@ describe('PermitUtils Tests', () => {
         name: 'Test Permit',
       };
 
-      const permit = await PermitUtils.createSelf(options);
+      const permit = PermitUtils.createSelf(options);
 
       expect(permit.type).toBe('self');
       expect(permit.name).toBe('Test Permit');
@@ -66,7 +66,7 @@ describe('PermitUtils Tests', () => {
         name: 'Test Permit',
       };
 
-      await expect(PermitUtils.createSelf(options)).rejects.toThrow();
+      expect(PermitUtils.createSelf(options)).toThrow();
     });
   });
 
@@ -79,7 +79,7 @@ describe('PermitUtils Tests', () => {
         name: 'Test Sharing Permit',
       };
 
-      const permit = await PermitUtils.createSharing(options);
+      const permit = PermitUtils.createSharing(options);
 
       expect(permit.type).toBe('sharing');
       expect(permit.name).toBe('Test Sharing Permit');
@@ -103,7 +103,7 @@ describe('PermitUtils Tests', () => {
         name: 'Test Sharing Permit',
       };
 
-      await expect(PermitUtils.createSharing(options)).rejects.toThrow();
+      expect(PermitUtils.createSharing(options)).toThrow();
     });
   });
 
@@ -116,7 +116,7 @@ describe('PermitUtils Tests', () => {
         name: 'Test Import Permit',
       };
 
-      const permit = await PermitUtils.importShared(options);
+      const permit = PermitUtils.importShared(options);
 
       expect(permit.type).toBe('recipient');
       expect(permit.name).toBe('Test Import Permit');
@@ -140,7 +140,7 @@ describe('PermitUtils Tests', () => {
 
       const stringOptions = JSON.stringify(options);
 
-      const permit = await PermitUtils.importShared(stringOptions);
+      const permit = PermitUtils.importShared(stringOptions);
 
       expect(permit.type).toBe('recipient');
     });
@@ -153,7 +153,7 @@ describe('PermitUtils Tests', () => {
         issuerSignature: '0x1234567890abcdef',
       } as unknown as ImportSharedPermitOptions;
 
-      await expect(PermitUtils.importShared(options)).rejects.toThrow();
+      expect(PermitUtils.importShared(options)).toThrow();
 
       const options2 = {
         type: 'recipient',
@@ -162,7 +162,7 @@ describe('PermitUtils Tests', () => {
         issuerSignature: '0x1234567890abcdef',
       } as unknown as ImportSharedPermitOptions;
 
-      await expect(PermitUtils.importShared(options2)).rejects.toThrow();
+      expect(PermitUtils.importShared(options2)).toThrow();
     });
 
     it('should throw error for missing issuerSignature', async () => {
@@ -173,7 +173,7 @@ describe('PermitUtils Tests', () => {
         name: 'Test Import Permit',
       };
 
-      await expect(PermitUtils.importShared(options)).rejects.toThrow();
+      expect(PermitUtils.importShared(options)).toThrow();
     });
   });
 
@@ -266,7 +266,7 @@ describe('PermitUtils Tests', () => {
 
   describe('sign', () => {
     it('should sign a self permit', async () => {
-      const permit = await PermitUtils.createSelf({
+      const permit = PermitUtils.createSelf({
         issuer: bobAddress,
         name: 'Test Permit',
       });
@@ -280,7 +280,7 @@ describe('PermitUtils Tests', () => {
     });
 
     it('should sign a recipient permit', async () => {
-      const permit = await PermitUtils.importShared({
+      const permit = PermitUtils.importShared({
         issuer: bobAddress,
         recipient: aliceAddress,
         issuerSignature: '0xexisting-signature',
@@ -295,7 +295,7 @@ describe('PermitUtils Tests', () => {
     });
 
     it('should throw error for undefined signer', async () => {
-      const permit = await PermitUtils.createSelf({
+      const permit = PermitUtils.createSelf({
         issuer: bobAddress,
         name: 'Test Permit',
       });
@@ -309,7 +309,7 @@ describe('PermitUtils Tests', () => {
 
   describe('serialize/deserialize', () => {
     it('should serialize and deserialize a permit', async () => {
-      const originalPermit = await PermitUtils.createSelf({
+      const originalPermit = PermitUtils.createSelf({
         issuer: bobAddress,
         name: 'Test Permit',
       });
@@ -349,13 +349,13 @@ describe('PermitUtils Tests', () => {
   describe('getHash', () => {
     it('should generate consistent hash for same permit data', async () => {
       const expiration = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
-      const permit1 = await PermitUtils.createSelf({
+      const permit1 = PermitUtils.createSelf({
         expiration,
         issuer: bobAddress,
         name: 'Test Permit',
       });
 
-      const permit2 = await PermitUtils.createSelf({
+      const permit2 = PermitUtils.createSelf({
         expiration,
         issuer: bobAddress,
         name: 'Test Permit',
@@ -370,7 +370,7 @@ describe('PermitUtils Tests', () => {
 
   describe('export', () => {
     it('should export permit data without sensitive fields', async () => {
-      const permit = await PermitUtils.createSelf({
+      const permit = PermitUtils.createSelf({
         issuer: bobAddress,
         name: 'Test Permit',
       });
@@ -387,7 +387,7 @@ describe('PermitUtils Tests', () => {
 
   describe('updateName', () => {
     it('should update permit name immutably', async () => {
-      const permit = await PermitUtils.createSelf({
+      const permit = PermitUtils.createSelf({
         issuer: bobAddress,
         name: 'Original Name',
       });
@@ -402,13 +402,13 @@ describe('PermitUtils Tests', () => {
 
   describe('validation helpers', () => {
     it('should check if permit is expired', async () => {
-      const expiredPermit = await PermitUtils.createSelf({
+      const expiredPermit = PermitUtils.createSelf({
         issuer: bobAddress,
         name: 'Test Permit',
         expiration: Math.floor(Date.now() / 1000) - 3600, // 1 hour ago
       });
 
-      const validPermit = await PermitUtils.createSelf({
+      const validPermit = PermitUtils.createSelf({
         issuer: bobAddress,
         name: 'Test Permit',
         expiration: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
@@ -419,7 +419,7 @@ describe('PermitUtils Tests', () => {
     });
 
     it('should check if permit is signed', async () => {
-      const unsignedPermit = await PermitUtils.createSelf({
+      const unsignedPermit = PermitUtils.createSelf({
         issuer: bobAddress,
         name: 'Test Permit',
       });
@@ -431,7 +431,7 @@ describe('PermitUtils Tests', () => {
     });
 
     it('should check overall validity', async () => {
-      const validPermit = await PermitUtils.createSelf({
+      const validPermit = PermitUtils.createSelf({
         issuer: bobAddress,
         name: 'Test Permit',
         expiration: Math.floor(Date.now() / 1000) + 3600,
@@ -459,7 +459,7 @@ describe('PermitUtils Tests', () => {
     }, 10000); // 10 second timeout for network call
 
     it('should check signed domain validity with real contract data', async () => {
-      const permit = await PermitUtils.createSelf({
+      const permit = PermitUtils.createSelf({
         type: 'self',
         issuer: bobAddress,
         name: 'Test Permit',
