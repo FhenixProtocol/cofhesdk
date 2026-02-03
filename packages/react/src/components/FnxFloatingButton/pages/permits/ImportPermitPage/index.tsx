@@ -5,7 +5,7 @@ import { useReceivePermit } from '@/hooks/permits/index.js';
 import { usePortalNavigation } from '@/stores';
 import { PageContainer } from '@/components/FnxFloatingButton/components/PageContainer';
 
-export const ReceivePermitPage: React.FC = () => {
+export const ImportPermitPage: React.FC = () => {
   const { theme } = useFnxFloatingButtonContext();
   const { navigateBack } = usePortalNavigation();
   const { permitData, setPermitData, permitName, setPermitName, isSubmitting, errorMsg, successMsg, submit } =
