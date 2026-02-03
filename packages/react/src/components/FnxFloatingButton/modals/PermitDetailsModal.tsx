@@ -10,7 +10,8 @@ import { usePortalModals, usePortalToasts } from '@/stores';
 import type { PermitType } from '@cofhe/sdk/permits';
 import { PermitCard } from '../components/PermitCard';
 import { truncateAddress } from '@/utils';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
+import { useCofheRemovePermit } from '@/hooks';
 
 const PermitTypeLabel: Record<PermitType, string> = {
   self: 'Self',
@@ -40,6 +41,9 @@ export const PermitDetailsModal: React.FC<PortalModalStateMap[PortalModal.Permit
     usePermitDetailsPage(hash);
   const { openModal } = usePortalModals();
   const { addToast } = usePortalToasts();
+  const removePermit = useCofheRemovePermit();
+
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const handlePermitSelect = useCallback(() => {
     onClose();
@@ -62,6 +66,28 @@ export const PermitDetailsModal: React.FC<PortalModalStateMap[PortalModal.Permit
       description: 'Copied data can be sent to recipient.',
     });
   }, [handleCopy, addToast]);
+
+  const handlePermitDelete = useCallback(async () => {
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+    try {
+      await removePermit(hash);
+    } catch (error) {
+      addToast({
+        variant: 'error',
+        title: 'Failed to delete permit',
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+    onClose();
+    addToast({
+      variant: 'success',
+      title: 'Permit deleted',
+      description: 'Permit deleted successfully.',
+    });
+  }, [confirmDelete, hash, onClose, addToast, removePermit]);
 
   if (permit == null) {
     return <NoPermitFoundModal onClose={onClose} />;
@@ -143,6 +169,7 @@ export const PermitDetailsModal: React.FC<PortalModalStateMap[PortalModal.Permit
               disabled={isActivePermit}
             />
           )}
+          <Button label={confirmDelete ? 'CONFIRM' : 'DELETE'} onClick={handlePermitDelete} variant="error" />
           <Button label="CLOSE" onClick={onClose} variant="ghost" />
         </div>
       }
