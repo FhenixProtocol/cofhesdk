@@ -72,7 +72,11 @@ export const DelegatePermitPage: React.FC<DelegatePermitPageProps> = ({ onSucces
             </p>
 
             <NameSection permitName={permitName} error={nameError} onNameChange={handleNameChange} />
-            <ReceiverSection receiver={receiver} receiverError={receiverError} onReceiverChange={handleReceiverChange} />
+            <ReceiverSection
+              receiver={receiver}
+              receiverError={receiverError}
+              onReceiverChange={handleReceiverChange}
+            />
             <ExpirySection
               presets={presets}
               units={units}
