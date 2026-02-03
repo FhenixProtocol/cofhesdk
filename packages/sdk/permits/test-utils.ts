@@ -2,7 +2,7 @@ import { type Permit, type SerializedPermit, GenerateSealingKey, PermitUtils } f
 
 // Mock permit for testing - using Bob's address as issuer
 export const createMockPermit = async (): Promise<Permit> => {
-  const sealingPair = await GenerateSealingKey();
+  const sealingPair = GenerateSealingKey();
   const serializedPermit: SerializedPermit = {
     name: 'Test Permit',
     type: 'self',
