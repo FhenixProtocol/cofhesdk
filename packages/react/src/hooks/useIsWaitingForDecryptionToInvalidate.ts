@@ -1,5 +1,6 @@
 import { useScheduledInvalidationsStore } from '@/stores/scheduledInvalidationsStore';
 import { useMemo } from 'react';
+import type { QueryKey } from '@tanstack/react-query';
 
 export function useAwaitingDecryptionQueryKeySet(): ReadonlySet<string> {
   const { byKey } = useScheduledInvalidationsStore();
@@ -12,7 +13,7 @@ export function useAwaitingDecryptionQueryKeySet(): ReadonlySet<string> {
   );
 }
 
-export function useIsWaitingForDecryptionToInvalidate(queryKey: unknown[]): boolean {
+export function useIsWaitingForDecryptionToInvalidate(queryKey: QueryKey): boolean {
   const cacheKeySet = useAwaitingDecryptionQueryKeySet();
 
   const result = useMemo(() => cacheKeySet.has(JSON.stringify(queryKey)), [cacheKeySet, queryKey]);

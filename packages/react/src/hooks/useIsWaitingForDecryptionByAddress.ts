@@ -1,13 +1,14 @@
 import { useMemo } from 'react';
 import { isAddress, type Address } from 'viem';
 import { assert } from 'ts-essentials';
+import type { QueryKey } from '@tanstack/react-query';
 import { useAwaitingDecryptionQueryKeySet } from './useIsWaitingForDecryptionToInvalidate.js';
 
 export type IsWaitingForDecryptionByAddress = Record<Address, boolean>;
 
 export type WaitingForDecryptionEntry = {
   address: Address;
-  queryKey: unknown[];
+  queryKey: QueryKey;
 };
 
 /**

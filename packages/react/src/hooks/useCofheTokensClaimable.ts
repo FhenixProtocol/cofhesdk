@@ -1,4 +1,9 @@
-import { type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
+import {
+  type QueryFunctionContext,
+  type QueryKey,
+  type UseQueryOptions,
+  type UseQueryResult,
+} from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { isAddress, type Address } from 'viem';
 import { assert } from 'ts-essentials';
@@ -26,7 +31,12 @@ type UseUnshieldClaimsManyInput = {
 };
 
 type UseUnshieldClaimsManyOptions = Omit<
-  UseQueryOptions<UnshieldClaimsSummary, Error>,
+  UseQueryOptions<
+    UnshieldClaimsSummary,
+    Error,
+    UnshieldClaimsSummary,
+    ReturnType<typeof constructUnshieldClaimsQueryKey>
+  >,
   'queryKey' | 'queryFn' | 'enabled'
 >;
 
@@ -58,13 +68,12 @@ export function useCofheTokensClaimable(
 ): {
   summariesByTokenAddress: UnshieldClaimsSummaryByTokenAddress;
   claimableByTokenAddress: ClaimableAmountByTokenAddress;
+  isWaitingForDecryptionByTokenAddress: IsWaitingForDecryptionByTokenAddress;
   queries: UseQueryResult<UnshieldClaimsSummary, Error>[];
   isLoading: boolean;
   isFetching: boolean;
   isError: boolean;
   error: Error | null;
-  isWaitingForDecryption: boolean;
-  isWaitingForDecryptionByTokenAddress: IsWaitingForDecryptionByTokenAddress;
 } {
   const publicClient = useCofhePublicClient();
 
@@ -91,10 +100,6 @@ export function useCofheTokensClaimable(
 
   const isWaitingForDecryptionByTokenAddress = useIsWaitingForDecryptionByAddress(waitingEntries);
 
-  const isWaitingForDecryption = useMemo(() => {
-    return Object.values(isWaitingForDecryptionByTokenAddress).some(Boolean);
-  }, [isWaitingForDecryptionByTokenAddress]);
-
   const queries = useInternalQueries({
     queries: normalizedTokens.map((token) => {
       const confidentialityType = token.extensions.fhenix.confidentialityType;
@@ -107,7 +112,10 @@ export function useCofheTokensClaimable(
 
       return {
         queryKey,
-        queryFn: async ({ signal, queryKey }): Promise<UnshieldClaimsSummary> => {
+        queryFn: async ({
+          signal,
+          queryKey,
+        }: QueryFunctionContext<ReturnType<typeof constructUnshieldClaimsQueryKey>>) => {
           assert(
             isTokenConfidentialityTypeClaimable(confidentialityType),
             'confidentialityType narrowed by token guard'
@@ -128,7 +136,7 @@ export function useCofheTokensClaimable(
         refetchOnMount: false,
         enabled: enabledBase,
         ...queryOptions,
-      } as const;
+      };
     }),
   });
 
@@ -163,7 +171,6 @@ export function useCofheTokensClaimable(
     isFetching,
     isError,
     error,
-    isWaitingForDecryption,
     isWaitingForDecryptionByTokenAddress,
   };
 }
