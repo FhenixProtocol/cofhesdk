@@ -6,10 +6,10 @@ import { assert } from 'ts-essentials';
 import { useCofhePublicClient } from './useCofheConnection.js';
 import { type Token } from './useCofheTokenLists.js';
 import { useInternalQueries } from '../providers/index.js';
-import { useAwaitingDecryptionQueryKeySet } from './useIsWaitingForDecryptionToInvalidate.js';
+import { useNormalizedList } from './useNormalizedList.js';
+import { useIsWaitingForDecryptionByAddress } from './useIsWaitingForDecryptionByAddress.js';
 import {
   constructUnshieldClaimsQueryKey,
-  constructUnshieldClaimsQueryKeyForInvalidation,
   DEFAULT_UNSHIELD_CLAIM_SUMMARY,
   fetchUnshieldClaimsSummary,
   isTokenConfidentialityTypeClaimable,
@@ -42,6 +42,16 @@ function isClaimableToken(token: Token): token is ClaimableToken {
   return isTokenConfidentialityTypeClaimable(token.extensions?.fhenix?.confidentialityType);
 }
 
+function claimableDedupeKey(token: ClaimableToken): string {
+  const confidentialityType = token.extensions.fhenix.confidentialityType;
+  return `${token.chainId}:${token.address.toLowerCase()}:${confidentialityType}`;
+}
+
+function claimableSort(a: ClaimableToken, b: ClaimableToken): number {
+  if (a.chainId !== b.chainId) return a.chainId - b.chainId;
+  return a.address.toLowerCase().localeCompare(b.address.toLowerCase());
+}
+
 export function useCofheTokensClaimable(
   { tokens, accountAddress: account }: UseUnshieldClaimsManyInput,
   queryOptions?: UseUnshieldClaimsManyOptions
@@ -58,68 +68,28 @@ export function useCofheTokensClaimable(
 } {
   const publicClient = useCofhePublicClient();
 
-  const normalizedTokens = useMemo(() => {
-    if (!tokens || tokens.length === 0) return [];
-
-    const supported = tokens.filter(isClaimableToken);
-
-    const seen = new Set<string>();
-    const unique: ClaimableToken[] = [];
-    for (const token of supported) {
-      const confidentialityType = token.extensions.fhenix.confidentialityType;
-      const dedupeKey = `${token.chainId}:${token.address.toLowerCase()}:${confidentialityType}`;
-      if (seen.has(dedupeKey)) continue;
-      seen.add(dedupeKey);
-      unique.push(token);
-    }
-
-    unique.sort((a, b) => {
-      if (a.chainId !== b.chainId) return a.chainId - b.chainId;
-      return a.address.toLowerCase().localeCompare(b.address.toLowerCase());
-    });
-
-    return unique;
-  }, [tokens]);
+  const normalizedTokens = useNormalizedList(tokens, {
+    filter: isClaimableToken,
+    dedupeKey: claimableDedupeKey,
+    sort: claimableSort,
+  });
 
   const enabledBase = !!publicClient && !!account && normalizedTokens.length > 0;
 
-  const queryKeys = useMemo(() => {
+  const waitingEntries = useMemo(() => {
     if (!account) return [];
-    return normalizedTokens.map((token) =>
-      constructUnshieldClaimsQueryKeyForInvalidation({
+    return normalizedTokens.map((token) => ({
+      address: token.address,
+      queryKey: constructUnshieldClaimsQueryKey({
         chainId: token.chainId,
         tokenAddress: token.address,
         confidentialityType: token.extensions.fhenix.confidentialityType,
         accountAddress: account,
-      })
-    );
+      }),
+    }));
   }, [account, normalizedTokens]);
 
-  const awaitingDecryptionKeySet = useAwaitingDecryptionQueryKeySet();
-
-  const isWaitingForDecryptionByTokenAddress = useMemo((): IsWaitingForDecryptionByTokenAddress => {
-    const map: IsWaitingForDecryptionByTokenAddress = {};
-
-    if (normalizedTokens.length === 0) return map;
-
-    for (let i = 0; i < normalizedTokens.length; i++) {
-      const token = normalizedTokens[i];
-
-      // If account is missing, our query keys won't match anything in the invalidation store.
-      const queryKey =
-        queryKeys[i] ??
-        constructUnshieldClaimsQueryKey({
-          chainId: token.chainId,
-          tokenAddress: token.address,
-          confidentialityType: token.extensions.fhenix.confidentialityType,
-          accountAddress: account,
-        });
-
-      map[token.address] = awaitingDecryptionKeySet.has(JSON.stringify(queryKey));
-    }
-
-    return map;
-  }, [account, awaitingDecryptionKeySet, normalizedTokens, queryKeys]);
+  const isWaitingForDecryptionByTokenAddress = useIsWaitingForDecryptionByAddress(waitingEntries);
 
   const isWaitingForDecryption = useMemo(() => {
     return Object.values(isWaitingForDecryptionByTokenAddress).some(Boolean);
