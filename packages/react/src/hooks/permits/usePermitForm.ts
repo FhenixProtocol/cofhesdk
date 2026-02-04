@@ -4,6 +4,7 @@ import { useCofheCreatePermitMutation, type CreatePermitArgs } from './useCofheC
 export interface UsePermitFormOptions {
   isDelegate?: boolean;
   onSuccess?: () => void;
+  onError?: (error: string) => void;
 }
 
 export interface UsePermitFormResult {
@@ -23,7 +24,7 @@ export interface UsePermitFormResult {
 }
 
 export function usePermitForm(options: UsePermitFormOptions = {}): UsePermitFormResult {
-  const { onSuccess, isDelegate = false } = options;
+  const { onSuccess, onError, isDelegate = false } = options;
   const [permitName, setPermitName] = useState('');
   const [receiver, setReceiver] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -32,8 +33,17 @@ export function usePermitForm(options: UsePermitFormOptions = {}): UsePermitForm
   const [durationSeconds, setDurationSeconds] = useState(7 * 24 * 60 * 60);
   const { mutateAsync: createPermitMutateAsync, isPending: isPermitCreationPending } = useCofheCreatePermitMutation();
 
-  const recipientAddressValid = isDelegate ? true : isValidAddress(receiver);
+  const recipientAddressValid = isDelegate ? isValidAddress(receiver) : true;
   const isValid = !!permitName.trim() && recipientAddressValid;
+
+  console.log({
+    isValid,
+    recipientAddressValid,
+    isDelegate,
+    receiverIsValid: isValidAddress(receiver),
+    permitName,
+    trimmedPermitName: permitName.trim(),
+  });
 
   const handleNameChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -79,8 +89,18 @@ export function usePermitForm(options: UsePermitFormOptions = {}): UsePermitForm
       onSuccess?.();
     } catch (e: any) {
       setError(e?.message ?? 'Failed to create permit');
+      onError?.(e?.message ?? 'Failed to create permit');
     }
-  }, [isPermitCreationPending, permitName, isDelegate, receiver, durationSeconds, createPermitMutateAsync, onSuccess]);
+  }, [
+    isPermitCreationPending,
+    permitName,
+    isDelegate,
+    receiver,
+    durationSeconds,
+    createPermitMutateAsync,
+    onSuccess,
+    onError,
+  ]);
 
   const reset = useCallback(() => {
     setPermitName('');

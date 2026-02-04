@@ -6,12 +6,13 @@ import { ReceiverSection } from '../components/ReceiverSection';
 import { ExpirySection } from '../components/ExpirySection';
 import { FloatingButtonPage } from '@/components/FnxFloatingButton/pagesConfig/types';
 import type { DelegatePermitPageProps } from './types';
-import { usePortalNavigation } from '@/stores';
+import { usePortalNavigation, usePortalToasts } from '@/stores';
 import { PageContainer } from '@/components/FnxFloatingButton/components/PageContainer';
 import { Button } from '@/components/FnxFloatingButton/components';
 
 export const DelegatePermitPage: React.FC<DelegatePermitPageProps> = ({ onSuccessNavigateTo, onCancel, onBack }) => {
   const { navigateBack, navigateTo, pageHistory } = usePortalNavigation();
+  const { addToast } = usePortalToasts();
 
   const {
     permitName,
@@ -32,19 +33,24 @@ export const DelegatePermitPage: React.FC<DelegatePermitPageProps> = ({ onSucces
       // TODO: also add toast here in any case
       // by default navigate to permits list, but if arrived here from elsewhere, go back where we came from
       onSuccessNavigateTo ? onSuccessNavigateTo() : navigateTo(FloatingButtonPage.Permits);
+      addToast({
+        variant: 'success',
+        title: 'Permit created',
+        description: 'Copy and share data with recipient',
+      });
+    },
+    onError: (error) => {
+      addToast({
+        variant: 'error',
+        title: 'Failed to create permit',
+        description: error,
+      });
     },
   });
   const { presets, units, customCount, customUnit, selectPreset, setCustomCount, setCustomUnit, applyCustom } =
     usePermitDuration({ onDurationChange: setDurationSeconds, initialSeconds: durationSeconds });
 
   return (
-    <form
-      className="w-full h-full flex flex-col"
-      onSubmit={(e) => {
-        e.preventDefault();
-        handleSubmit();
-      }}
-    >
       <PageContainer
         header={
           <button
@@ -100,15 +106,14 @@ export const DelegatePermitPage: React.FC<DelegatePermitPageProps> = ({ onSucces
               <Button onClick={onCancel ?? navigateBack}>Cancel</Button>
               <Button
                 variant="primary"
-                type="submit"
                 disabled={!isValid || isSubmitting}
                 aria-busy={isSubmitting}
                 label={isSubmitting ? 'Creating...' : 'Create Permit'}
+                onClick={handleSubmit}
               />
             </div>
           </div>
         }
       />
-    </form>
   );
 };
