@@ -18,8 +18,9 @@ export type CreatePermitArgs =
 
 type Input = {
   onSuccess?: () => void;
+  onError?: (error: Error) => void;
 };
-export const useCofheCreatePermitMutation = ({ onSuccess }: Input = {}) => {
+export const useCofheCreatePermitMutation = ({ onSuccess, onError }: Input = {}) => {
   const cofheClient = useCofheClient();
   const { setHasCreatedFirstPermit } = usePortalPersisted();
   const { addToast } = usePortalToasts();
@@ -33,6 +34,9 @@ export const useCofheCreatePermitMutation = ({ onSuccess }: Input = {}) => {
       });
 
       onSuccess?.();
+    },
+    onError: (error) => {
+      onError?.(error);
     },
     onSettled: () => {
       // Mark that the user has created at least one permit - from now on, we know the user is aware of permits and will show him warnnings and notifications accordingly

@@ -73,8 +73,8 @@ export const showPermitSharedStatus = (permit: Permit) => {
   usePortalStatuses.getState().addStatus({
     id: STATUS_ID_PERMIT_SHARED,
     variant: 'info',
-    title: 'Shared permit active',
-    description: `Viewing data of ${truncateHash(permit.issuer, 4, 4)}`,
+    title: 'Imported permit active',
+    description: `Viewing ${truncateHash(permit.issuer, 4, 4)}'s data`,
   });
 };
 export const hidePermitSharedStatus = () => {

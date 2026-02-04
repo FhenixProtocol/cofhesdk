@@ -1,7 +1,9 @@
 import { useState, useCallback } from 'react';
 import { useCofheContext } from '../../providers/CofheProvider.js';
+import { PermitUtils, type RecipientPermit } from '@cofhe/sdk/permits';
 
 export type UseReceivePermitReturn = {
+  importedPermit: RecipientPermit | null;
   permitData: string;
   setPermitData: (v: string) => void;
   permitName: string;
@@ -15,6 +17,7 @@ export type UseReceivePermitReturn = {
 export function useReceivePermit(onSuccess?: () => void): UseReceivePermitReturn {
   const { client } = useCofheContext();
 
+  const [importedPermit, setImportedPermit] = useState<RecipientPermit | null>(null);
   const [permitData, setPermitData] = useState('');
   const [permitName, setPermitName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -56,9 +59,24 @@ export function useReceivePermit(onSuccess?: () => void): UseReceivePermitReturn
     }
   }, [client, permitData, permitName, onSuccess]);
 
+  const handleSetPermitData = useCallback((v: string) => {
+    setPermitData(v);
+    try {
+      const permit = PermitUtils.importShared(v);
+      setImportedPermit(permit);
+      setErrorMsg(null);
+    } catch (e) {
+      console.error('Error parsing pasted permit data', e);
+      setImportedPermit(null);
+      // TODO: Improve error message, we have the error message in the caught error but its a zod error so its messy
+      setErrorMsg(`Invalid permit data. Expected JSON.`);
+    }
+  }, []);
+
   return {
+    importedPermit,
     permitData,
-    setPermitData,
+    setPermitData: handleSetPermitData,
     permitName,
     setPermitName,
     isSubmitting,

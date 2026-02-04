@@ -1,10 +1,15 @@
 import { useCallback, useState } from 'react';
 import { useCofheCreatePermitMutation, type CreatePermitArgs } from './useCofheCreatePermitMutation';
 
+export interface UsePermitFormOptions {
+  isDelegate?: boolean;
+  onSuccess?: () => void;
+  onError?: (error: Error) => void;
+}
+
 export interface UsePermitFormResult {
   permitName: string;
   receiver: string;
-  isSelf: boolean;
   error: string | null; // global/submit error
   nameError: string | null; // field-specific error for name
   receiverError: string | null;
@@ -13,29 +18,26 @@ export interface UsePermitFormResult {
   durationSeconds: number;
   handleNameChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleReceiverChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  toggleIsSelf: (checked: boolean) => void;
   setDurationSeconds: (seconds: number) => void;
   handleSubmit: () => Promise<void>;
   reset: () => void;
 }
 
-export interface UsePermitFormOptions {
-  onSuccess?: () => void;
-}
-
-export function usePermitForm({ onSuccess }: UsePermitFormOptions = {}): UsePermitFormResult {
+export function usePermitForm(options: UsePermitFormOptions = {}): UsePermitFormResult {
+  const { onSuccess, onError, isDelegate = false } = options;
   const [permitName, setPermitName] = useState('');
   const [receiver, setReceiver] = useState('');
-  const [isSelf, setIsSelf] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [nameError, setNameError] = useState<string | null>(null);
   const [receiverError, setReceiverError] = useState<string | null>(null);
   const [durationSeconds, setDurationSeconds] = useState(7 * 24 * 60 * 60);
   const { mutateAsync: createPermitMutateAsync, isPending: isPermitCreationPending } = useCofheCreatePermitMutation({
     onSuccess,
+    onError,
   });
 
-  const isValid = !!permitName.trim() && (isSelf || isValidAddress(receiver));
+  const recipientAddressValid = isDelegate ? isValidAddress(receiver) : true;
+  const isValid = !!permitName.trim() && recipientAddressValid;
 
   const handleNameChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,12 +55,6 @@ export function usePermitForm({ onSuccess }: UsePermitFormOptions = {}): UsePerm
     [receiverError]
   );
 
-  const toggleIsSelf = useCallback((checked: boolean) => {
-    setIsSelf(checked);
-    // clear receiver-related errors when going back to self
-    if (checked) setReceiverError(null);
-  }, []);
-
   const handleSubmit = useCallback(async () => {
     if (isPermitCreationPending) return;
     const nameToUse = permitName.trim();
@@ -66,7 +62,7 @@ export function usePermitForm({ onSuccess }: UsePermitFormOptions = {}): UsePerm
       setNameError('Permit name is required.');
       return;
     }
-    if (!isSelf) {
+    if (isDelegate) {
       if (!isValidAddress(receiver)) {
         setReceiverError('Valid receiver address is required.');
         return;
@@ -74,9 +70,10 @@ export function usePermitForm({ onSuccess }: UsePermitFormOptions = {}): UsePerm
     }
     try {
       const expirationSeconds = Math.floor(Date.now() / 1000) + durationSeconds;
-      const args: CreatePermitArgs = isSelf
-        ? { name: nameToUse, isSelf: true, expirationSeconds }
-        : { name: nameToUse, isSelf: false, receiver: receiver.trim() as `0x${string}`, expirationSeconds };
+      const args: CreatePermitArgs = isDelegate
+        ? { name: nameToUse, isSelf: false, receiver: receiver.trim() as `0x${string}`, expirationSeconds }
+        : { name: nameToUse, isSelf: true, expirationSeconds };
+
       await createPermitMutateAsync(args);
       setPermitName('');
       setReceiver('');
@@ -86,12 +83,11 @@ export function usePermitForm({ onSuccess }: UsePermitFormOptions = {}): UsePerm
     } catch (e: any) {
       setError(e?.message ?? 'Failed to create permit');
     }
-  }, [isPermitCreationPending, permitName, isSelf, receiver, durationSeconds, createPermitMutateAsync]);
+  }, [isPermitCreationPending, permitName, isDelegate, receiver, durationSeconds, createPermitMutateAsync]);
 
   const reset = useCallback(() => {
     setPermitName('');
     setReceiver('');
-    setIsSelf(true);
     setError(null);
     setNameError(null);
     setReceiverError(null);
@@ -100,7 +96,6 @@ export function usePermitForm({ onSuccess }: UsePermitFormOptions = {}): UsePerm
   return {
     permitName,
     receiver,
-    isSelf,
     error,
     nameError,
     receiverError,
@@ -109,7 +104,6 @@ export function usePermitForm({ onSuccess }: UsePermitFormOptions = {}): UsePerm
     durationSeconds,
     handleNameChange,
     handleReceiverChange,
-    toggleIsSelf,
     setDurationSeconds,
     handleSubmit,
     reset,
