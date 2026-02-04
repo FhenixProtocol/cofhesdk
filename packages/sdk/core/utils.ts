@@ -128,14 +128,3 @@ export function fheTypeToString(utype: FheTypes): string {
       throw new Error(`Unknown FheType: ${utype}`);
   }
 }
-
-// Generic signature preserves key→arg→return correlation at call sites
-// Types the input and the output, un-types the logic in between -- a conscoius tradeoff
-export function createEncryptable<K extends keyof typeof Encryptable>(
-  type: K,
-  value: Parameters<(typeof Encryptable)[K]>[0],
-  securityZone: number = 0
-): ReturnType<(typeof Encryptable)[K]> {
-  const fn = (Encryptable as any)[type] as (v: unknown, s?: number) => unknown;
-  return fn(value, securityZone) as ReturnType<(typeof Encryptable)[K]>;
-}

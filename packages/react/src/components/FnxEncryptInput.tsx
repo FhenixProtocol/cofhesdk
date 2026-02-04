@@ -9,13 +9,13 @@ import type {
 } from '../types/component-types.js';
 import { cn } from '../utils/cn.js';
 import { debounce } from '../utils/debounce.js';
-import { FheTypesList, type FheTypeValue } from '../utils/utils.js';
+import { FheTypesList } from '../utils/utils.js';
 import SecurityIcon from '@mui/icons-material/Security';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
 import { getStepConfig, useCofheEncrypt } from '@/hooks/useCofheEncrypt.js';
-import { createEncryptable } from '@cofhe/sdk';
+import { Encryptable, type FheTypeValue } from '@cofhe/sdk';
 
 export interface FnxEncryptInputProps extends BaseProps {
   /** Placeholder text for the text field */
@@ -302,7 +302,7 @@ export const FnxEncryptInput: React.FC<FnxEncryptInputProps> = ({
         (async () => {
           try {
             const encryptionResult = await encrypt({
-              input: createEncryptable(type, textValue),
+              input: Encryptable.create(type, textValue),
             });
 
             // Store the result for the copy button

@@ -1,4 +1,4 @@
-import type { FheTypeValue } from '../utils/utils.js';
+import type { FheTypeValue } from '@cofhe/sdk';
 
 // Base props for all components
 export interface BaseProps {
