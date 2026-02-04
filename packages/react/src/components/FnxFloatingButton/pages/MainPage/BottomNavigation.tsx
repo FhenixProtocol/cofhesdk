@@ -77,13 +77,40 @@ const navItems: {
     label: 'Permits',
     icon: <IoMdKey className={iconClassName} />,
   },
-  // TODO: Only enable this locally for debugging
-  {
-    id: FloatingButtonPage.Debug,
-    label: 'Debug',
-    icon: <FaBug className={iconClassName} />,
-  },
 ] as const;
+
+const debugNavItem = {
+  id: FloatingButtonPage.Debug,
+  label: 'Debug',
+  icon: <FaBug className={iconClassName} />,
+} as const;
+
+/**
+ * Checks if we're in production by checking multiple environment variable sources
+ * Supports: process.env (Node.js/webpack), import.meta.env (Vite), and other common patterns
+ */
+const isProduction = (): boolean => {
+  // Check process.env (Node.js, webpack, etc.)
+  // eslint-disable-next-line turbo/no-undeclared-env-vars, no-undef
+  if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'production') {
+    return true;
+  }
+
+  // Check import.meta.env (Vite)
+  if (typeof import.meta !== 'undefined') {
+    const metaEnv = (import.meta as any).env;
+    if (metaEnv) {
+      if (metaEnv.PROD === true || metaEnv.MODE === 'production') {
+        return true;
+      }
+    }
+  }
+
+  // Default to showing debug in library context (conservative approach)
+  return false;
+};
+
+const navItems = [...baseNavItems, ...(!isProduction() ? [debugNavItem] : [])] as const;
 
 export const BottomNavigation: React.FC = () => {
   const { navigateTo } = usePortalNavigation();
