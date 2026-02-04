@@ -14,11 +14,21 @@ type PortalUIStore = {
   closeTimeoutId: ReturnType<typeof setTimeout> | null;
 };
 
+type OpenPortalArgs = {
+  onOpenBegin?: () => void;
+  onOpenEnd?: () => void;
+};
+type ClosePortalArgs = {
+  onCloseBegin?: () => void;
+  onCloseEnd?: () => void;
+};
+type TogglePortalArgs = OpenPortalArgs & ClosePortalArgs;
+
 type PortalUIActions = {
   clearTimeouts: () => void;
-  openPortal: () => void;
-  closePortal: () => void;
-  togglePortal: () => void;
+  openPortal: (args?: OpenPortalArgs) => void;
+  closePortal: (args?: ClosePortalArgs) => void;
+  togglePortal: (args?: TogglePortalArgs) => void;
 
   setContentHeight: (id: string, height: number) => void;
   removeContentHeight: (id: string) => void;
@@ -38,10 +48,13 @@ export const usePortalUI = create<PortalUIStore & PortalUIActions>()((set, get) 
     if (closeTimeoutId) clearTimeout(closeTimeoutId);
     set({ openTimeoutId: null, closeTimeoutId: null });
   },
-  openPortal: () => {
+  openPortal: (args = {}) => {
+    const { onOpenBegin, onOpenEnd } = args;
     const { closeTimeoutId, statusPanelOpen } = get();
 
+    
     // Open portal
+    onOpenBegin?.();
     set({ portalOpen: true });
 
     // Cancel closing timeout
@@ -57,19 +70,23 @@ export const usePortalUI = create<PortalUIStore & PortalUIActions>()((set, get) 
     if (statusPanelOpen || hasOpenStatus) {
       // Open content immediately if status panel visible or statuses exist
       set({ contentPanelOpen: true });
+      onOpenEnd?.();
     } else {
       // Open content after delay
       const id = setTimeout(() => {
         set({ contentPanelOpen: true, openTimeoutId: null });
+        onOpenEnd?.();
       }, ANIM_DURATION);
 
       set({ openTimeoutId: id });
     }
   },
-  closePortal: () => {
+  closePortal: (args = {}) => {
+    const { onCloseBegin, onCloseEnd } = args;
     const { openTimeoutId } = get();
 
     // Close portal
+    onCloseBegin?.();
     set({ portalOpen: false });
 
     // Cancel opening timeout
@@ -84,12 +101,13 @@ export const usePortalUI = create<PortalUIStore & PortalUIActions>()((set, get) 
     // Close status panel after delay
     const id = setTimeout(() => {
       set({ statusPanelOpen: false, closeTimeoutId: null });
+      onCloseEnd?.();
     }, ANIM_DURATION);
 
     set({ closeTimeoutId: id });
   },
-  togglePortal: () => {
-    get().portalOpen ? get().closePortal() : get().openPortal();
+  togglePortal: (args) => {
+    get().portalOpen ? get().closePortal(args) : get().openPortal(args);
   },
 
   setContentHeight: (id, height) => {

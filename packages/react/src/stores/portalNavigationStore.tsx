@@ -32,6 +32,7 @@ type PortalNavigationStore = {
 type PortalNavigationActions = {
   navigateTo: NavigateToFn;
   navigateBack: () => void;
+  clearNavigationHistory: () => void;
 };
 
 export const usePortalNavigation = create<PortalNavigationStore & PortalNavigationActions>()((set, get) => {
@@ -65,6 +66,10 @@ export const usePortalNavigation = create<PortalNavigationStore & PortalNavigati
         // otherwise pop last page from history
         set({ pageHistory: get().pageHistory.slice(0, -1) });
       }
+    },
+
+    clearNavigationHistory: () => {
+      set({ pageHistory: [{ page: FloatingButtonPage.Main }], overridingPage: null });
     },
   };
 });
