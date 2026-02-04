@@ -37,10 +37,10 @@ export type {
   EncryptedUint32Input,
   EncryptedUint64Input,
   EncryptedUint128Input,
-  EncryptedUint256Input,
   EncryptedAddressInput,
   EncryptedItemInputs,
   EncryptableToEncryptedItemInputMap,
+  FheTypeValue,
   // Decryption types
   UnsealedItem,
   // Util types
@@ -86,4 +86,4 @@ export { zkProveWithWorker } from './encrypt/zkPackProveVerify.js';
 export { MOCKS_ZK_VERIFIER_SIGNER_ADDRESS } from './encrypt/cofheMocksZkVerifySign.js';
 
 // Utils
-export { fheTypeToString, createEncryptable } from './utils.js';
+export { fheTypeToString } from './utils.js';

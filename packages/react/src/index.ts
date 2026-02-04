@@ -52,7 +52,6 @@ export {
   truncateHash,
   isEthPair,
   isWrappedEthToken,
-  type FheTypeValue,
 } from './utils/index';
 
 // Stores
