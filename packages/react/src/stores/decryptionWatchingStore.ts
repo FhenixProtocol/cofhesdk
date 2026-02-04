@@ -2,11 +2,12 @@ import type { QueryKey } from '@tanstack/react-query';
 import type { Address } from 'viem';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import { bigintJSONStorageOptions } from '@/utils/bigintJson';
 import type { TransactionActionType } from './transactionStore';
 
-export type ScheduledInvalidationStatus = 'scheduled' | 'executed';
+export type DecryptionWatcherStatus = 'scheduled' | 'executed';
 
-export type ScheduledInvalidation = {
+export type DecryptionWatcher = {
   key: `${TransactionActionType}-tx-0x${string}`;
   createdAt: number;
   triggerTxHash: `0x${string}`;
@@ -20,64 +21,19 @@ export type ScheduledInvalidation = {
   queryKeys: QueryKey[];
 };
 
-type ScheduledInvalidationsState = {
-  byKey: Record<string, ScheduledInvalidation>;
+type DecryptionWatchersState = {
+  byKey: Record<string, DecryptionWatcher>;
 
-  upsert: (input: Omit<ScheduledInvalidation, 'status'> & { status?: ScheduledInvalidationStatus }) => void;
+  upsert: (input: Omit<DecryptionWatcher, 'status'> & { status?: DecryptionWatcherStatus }) => void;
   setDecryptionObservedAt: (params: { key: string; blockNumber: bigint; blockHash?: `0x${string}` }) => void;
-  findObservedDecryption: (queryKey: QueryKey) => ScheduledInvalidation | undefined;
-  removeQueryKeyFromInvalidations: (queryKey: QueryKey) => void;
-};
-
-// Safe localStorage access (avoid SSR crashes and private-mode issues)
-const safeLocalStorage = {
-  getItem: (name: string): string | null => {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        return localStorage.getItem(name);
-      }
-    } catch {
-      // localStorage not available
-    }
-    return null;
-  },
-  setItem: (name: string, value: string): void => {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        localStorage.setItem(name, value);
-      }
-    } catch {
-      // localStorage not available
-    }
-  },
-  removeItem: (name: string): void => {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        localStorage.removeItem(name);
-      }
-    } catch {
-      // localStorage not available
-    }
-  },
+  findObservedDecryption: (queryKey: QueryKey) => DecryptionWatcher | undefined;
+  removeQueryKeyFromWatchers: (queryKey: QueryKey) => void;
 };
 
 // Custom storage to handle bigint serialization
-const bigintStorage = createJSONStorage<ScheduledInvalidationsState>(() => safeLocalStorage, {
-  reviver: (_key, value) => {
-    if (typeof value === 'object' && value !== null && '__bigint__' in value) {
-      return BigInt((value as { __bigint__: string }).__bigint__);
-    }
-    return value;
-  },
-  replacer: (_key, value) => {
-    if (typeof value === 'bigint') {
-      return { __bigint__: value.toString() };
-    }
-    return value;
-  },
-});
+const bigintStorage = createJSONStorage<DecryptionWatchersState>(() => localStorage, bigintJSONStorageOptions);
 
-export const useScheduledInvalidationsStore = create<ScheduledInvalidationsState>()(
+export const useDecryptionWatchersStore = create<DecryptionWatchersState>()(
   persist(
     (set, get) => ({
       byKey: {},
@@ -97,7 +53,7 @@ export const useScheduledInvalidationsStore = create<ScheduledInvalidationsState
           item.queryKeys.some((key) => JSON.stringify(key) === JSON.stringify(queryKey) && !!item.decryptionObservedAt)
         );
       },
-      removeQueryKeyFromInvalidations: (queryKey) => {
+      removeQueryKeyFromWatchers: (queryKey) => {
         set((state) => {
           const updatedByKey = { ...state.byKey };
           // remove the queryKey from all scheduled invalidations

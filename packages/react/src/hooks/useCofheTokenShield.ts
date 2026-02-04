@@ -21,6 +21,7 @@ import {
 import { TransactionActionType, useTransactionStore } from '../stores/transactionStore.js';
 import { useInternalMutation, useInternalQuery } from '../providers/index.js';
 import { assert } from 'ts-essentials';
+import { useTransactionGlobalLifecycle } from './useTransactionGlobalLifecycle.js';
 
 // ============================================================================
 // Types
@@ -63,8 +64,8 @@ export function useCofheTokenShield(
   const publicClient = useCofhePublicClient();
   const chainId = useCofheChainId();
   const account = useCofheAccount();
-  const { onSuccess, ...restOfOptions } = options || {};
-
+  const { onSuccess, onError, ...restOfOptions } = options || {};
+  const { onTransactionSubmitError } = useTransactionGlobalLifecycle();
   return useInternalMutation({
     mutationFn: async (input: UseTokenShieldInput) => {
       if (!walletClient) {
@@ -172,6 +173,10 @@ export function useCofheTokenShield(
       }
 
       return hash;
+    },
+    onError: (error, variables, onMutateResult, context) => {
+      if (onError) onError(error, variables, onMutateResult, context);
+      onTransactionSubmitError(error, TransactionActionType.Shield);
     },
     onSuccess: async (hash, input, onMutateResult, context) => {
       assert(chainId, 'Chain ID is required for token shield');

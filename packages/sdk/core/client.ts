@@ -240,7 +240,7 @@ export function createCofhesdkClientBase<TConfig extends CofhesdkConfig>(
     },
 
     // Mutation methods (auto-fill chainId/account)
-    selectActivePermit: async (hash: string, chainId?: number, account?: string) => {
+    selectActivePermit: (hash: string, chainId?: number, account?: string) => {
       const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
       return permits.selectActivePermit(_chainId, _account, hash);
     },

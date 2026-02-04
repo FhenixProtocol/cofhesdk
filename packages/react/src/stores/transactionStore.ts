@@ -1,4 +1,5 @@
 import type { Token } from '@/types/token';
+import { bigintJSONStorageOptions } from '@/utils/bigintJson';
 import type { Address } from 'viem';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
@@ -18,7 +19,7 @@ export type TransactionStatusString = 'Pending' | 'Failed' | 'Confirmed';
 export enum TransactionActionType {
   ShieldSend = 'shieldSend',
   Shield = 'shield',
-  Unshield = 'unshielf',
+  Unshield = 'unshield',
   Claim = 'claim',
 }
 export type TransactionActionString = 'Shielded Transfer' | 'Shield' | 'Unshield' | 'Claim';
@@ -85,55 +86,8 @@ const statusToStringMap: Record<TransactionStatus, TransactionStatusString> = {
 
 export const statusToString = (a: TransactionStatus): TransactionStatusString => statusToStringMap[a];
 
-// Safe localStorage access
-const safeLocalStorage = {
-  getItem: (name: string): string | null => {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        return localStorage.getItem(name);
-      }
-    } catch {
-      // localStorage not available
-    }
-    return null;
-  },
-  setItem: (name: string, value: string): void => {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        localStorage.setItem(name, value);
-      }
-    } catch {
-      // localStorage not available
-    }
-  },
-  removeItem: (name: string): void => {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        localStorage.removeItem(name);
-      }
-    } catch {
-      // localStorage not available
-    }
-  },
-};
-
 // Custom storage to handle bigint serialization
-const bigintStorage = createJSONStorage<TransactionStore>(() => safeLocalStorage, {
-  reviver: (_key, value) => {
-    // Convert serialized bigints back
-    if (typeof value === 'object' && value !== null && '__bigint__' in value) {
-      return BigInt((value as { __bigint__: string }).__bigint__);
-    }
-    return value;
-  },
-  replacer: (_key, value) => {
-    // Serialize bigints
-    if (typeof value === 'bigint') {
-      return { __bigint__: value.toString() };
-    }
-    return value;
-  },
-});
+const bigintStorage = createJSONStorage<TransactionStore>(() => localStorage, bigintJSONStorageOptions);
 
 function constructNewTx(transaction: NewTransaction): Transaction {
   return {

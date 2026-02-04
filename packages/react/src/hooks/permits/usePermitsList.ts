@@ -4,6 +4,7 @@ import { useCofheAllPermits, useCofheRemovePermit } from '../useCofhePermits';
 import { useCopyFeedback } from '../useCopyFeedback';
 import { FloatingButtonPage } from '@/components/FnxFloatingButton/pagesConfig/types';
 import { usePortalNavigation } from '@/stores';
+import { useCofheNavigateToCreatePermit } from './useCofheNavigateToCreatePermit';
 
 export type PermitStatus = 'active' | 'expired';
 
@@ -23,17 +24,22 @@ export const usePermitsList = () => {
     return allPermits.filter(({ permit }) => permit.type === 'recipient');
   }, [allPermits]);
 
+  const navigateToGeneratePermit = useCofheNavigateToCreatePermit();
+
   const handleQuickAction = useCallback(
     (actionId: QuickActionId) => {
       if (actionId === 'generate') {
-        navigateTo(FloatingButtonPage.GeneratePermits, {});
+        navigateToGeneratePermit();
         return;
       }
+
       if (actionId === 'receive') {
-        navigateTo(FloatingButtonPage.ReceivePermits);
+        navigateTo(FloatingButtonPage.ReceivePermits, {
+          navigateParams: { skipPagesHistory: true },
+        });
       }
     },
-    [navigateTo]
+    [navigateTo, navigateToGeneratePermit]
   );
 
   const handlePermitSelect = useCallback(

@@ -13,15 +13,17 @@ export function useOnceTransactionMined({
   onceMined,
 }: {
   txHash: `0x${string}` | undefined;
-  onceMined: (transaction: Transaction) => void;
+  onceMined?: (transaction: Transaction) => void;
 }) {
   const { transaction } = useStoredTransactionStatusEffect({
     txHash,
-    onTransactionStatusChange: (prevStatus, newStatus, transaction) => {
-      if (prevStatus === 'pending' && (newStatus === 'confirmed' || newStatus === 'failed')) {
-        onceMined(transaction);
-      }
-    },
+    onTransactionStatusChange: onceMined
+      ? (prevStatus, newStatus, transaction) => {
+          if (prevStatus === 'pending' && (newStatus === 'confirmed' || newStatus === 'failed')) {
+            onceMined(transaction);
+          }
+        }
+      : undefined,
   });
 
   return {
@@ -35,7 +37,7 @@ function useStoredTransactionStatusEffect({
   onTransactionStatusChange,
 }: {
   txHash: `0x${string}` | undefined;
-  onTransactionStatusChange: (
+  onTransactionStatusChange?: (
     prevStatus: TransactionStatus | undefined,
     newStatus: TransactionStatus,
     transaction: Transaction
@@ -45,6 +47,8 @@ function useStoredTransactionStatusEffect({
   const previousTransactionRef = useRef<Transaction | undefined>(undefined);
 
   useEffect(() => {
+    if (!onTransactionStatusChange) return;
+
     // if status changed and there's a transaction in the store -- trigger the callback
     if (previousTransactionRef.current?.status !== transaction?.status && !!transaction) {
       onTransactionStatusChange(previousTransactionRef.current?.status, transaction.status, transaction);
