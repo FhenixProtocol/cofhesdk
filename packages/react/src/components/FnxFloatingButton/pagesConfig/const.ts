@@ -5,13 +5,14 @@ import {
   MainPage,
   PermitDetailsPage,
   PermitsListPage,
-  ReceivePermitPage,
   SendPage,
   SettingsPage,
   TokenInfoPage,
   TokenListPage,
   DebugPage,
   ShieldPageV2,
+  DelegatePermitPage,
+  ImportPermitPage,
 } from '../pages';
 import { FloatingButtonPage } from './types';
 import { ClaimableTokens } from '../pages/ClaimableTokens';
@@ -26,7 +27,8 @@ export const pages: Record<FloatingButtonPage, FC<any>> = {
   [FloatingButtonPage.Activity]: ActivityPage,
   [FloatingButtonPage.Permits]: PermitsListPage,
   [FloatingButtonPage.GeneratePermits]: GeneratePermitPage,
-  [FloatingButtonPage.ReceivePermits]: ReceivePermitPage,
+  [FloatingButtonPage.DelegatePermits]: DelegatePermitPage,
+  [FloatingButtonPage.ReceivePermits]: ImportPermitPage,
   [FloatingButtonPage.PermitDetails]: PermitDetailsPage,
   [FloatingButtonPage.Debug]: DebugPage,
   [FloatingButtonPage.ClaimableTokens]: ClaimableTokens,

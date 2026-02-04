@@ -10,15 +10,17 @@ export function useOnceDecrypted({
   onceDecrypted,
 }: {
   txHash: `0x${string}` | undefined;
-  onceDecrypted: (transaction: Transaction) => void;
+  onceDecrypted?: (transaction: Transaction) => void;
 }) {
   const { transaction } = useStoredTransactionDecryptionEffect({
     txHash,
-    onDecryptionPendingChange: (prevIsPendingDecryption, newIsPendingDecryption, transaction) => {
-      if (prevIsPendingDecryption === true && newIsPendingDecryption === false) {
-        onceDecrypted(transaction);
-      }
-    },
+    onDecryptionPendingChange: onceDecrypted
+      ? (prevIsPendingDecryption, newIsPendingDecryption, transaction) => {
+          if (prevIsPendingDecryption === true && newIsPendingDecryption === false) {
+            onceDecrypted(transaction);
+          }
+        }
+      : undefined,
   });
 
   return {
@@ -32,7 +34,7 @@ function useStoredTransactionDecryptionEffect({
   onDecryptionPendingChange,
 }: {
   txHash: `0x${string}` | undefined;
-  onDecryptionPendingChange: (
+  onDecryptionPendingChange?: (
     prevIsPendingDecryption: boolean | undefined,
     newIsPendingDecryption: boolean,
     transaction: Transaction
@@ -42,6 +44,7 @@ function useStoredTransactionDecryptionEffect({
   const previousTransactionRef = useRef<Transaction | undefined>(undefined);
 
   useEffect(() => {
+    if (!onDecryptionPendingChange) return;
     // if flag changed and there's a transaction in the store -- trigger the callback
     if (previousTransactionRef.current?.isPendingDecryption !== transaction?.isPendingDecryption && !!transaction) {
       onDecryptionPendingChange(

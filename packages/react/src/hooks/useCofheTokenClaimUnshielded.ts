@@ -6,6 +6,7 @@ import { CLAIM_ABIS } from '../constants/confidentialTokenABIs.js';
 import { TransactionActionType, useTransactionStore } from '../stores/transactionStore.js';
 import { useInternalMutation } from '../providers/index.js';
 import { assert } from 'ts-essentials';
+import { useTransactionGlobalLifecycle } from './useTransactionGlobalLifecycle.js';
 
 // ============================================================================
 // Claim Unshield Hook
@@ -30,8 +31,8 @@ export function useCofheTokenClaimUnshielded(
   const walletClient = useCofheWalletClient();
   const chainId = useCofheChainId();
   const account = useCofheAccount();
-  const { onSuccess, ...restOfOptions } = options || {};
-
+  const { onSuccess, onError, ...restOfOptions } = options || {};
+  const { onTransactionSubmitError } = useTransactionGlobalLifecycle();
   return useInternalMutation({
     mutationFn: async (input: UseClaimUnshieldInput) => {
       if (!walletClient) {
@@ -68,6 +69,10 @@ export function useCofheTokenClaimUnshielded(
         chain: undefined,
       });
       return hash;
+    },
+    onError: (error, variables, onMutateResult, context) => {
+      if (onError) onError(error, variables, onMutateResult, context);
+      onTransactionSubmitError(error, TransactionActionType.Claim);
     },
     onSuccess: async (hash, input, onMutateResult, context) => {
       assert(chainId, 'Chain ID is required for claim');

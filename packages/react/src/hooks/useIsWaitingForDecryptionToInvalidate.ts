@@ -1,9 +1,9 @@
-import { useScheduledInvalidationsStore } from '@/stores/scheduledInvalidationsStore';
+import { useDecryptionWatchersStore } from '@/stores/decryptionWatchingStore';
 import { useMemo } from 'react';
 import type { QueryKey } from '@tanstack/react-query';
 
 export function useAwaitingDecryptionQueryKeySet(): ReadonlySet<string> {
-  const { byKey } = useScheduledInvalidationsStore();
+  const { byKey } = useDecryptionWatchersStore();
 
   const cacheKeysAwaitingDecryption = useMemo(() => Object.values(byKey).flatMap((item) => item.queryKeys), [byKey]);
 

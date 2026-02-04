@@ -6,7 +6,6 @@ export { CofheProvider, useCofheContext } from './providers/index';
 
 // Hooks
 export {
-  useCofheEncrypt,
   useCofheConnection,
   useCofheActivePermit,
   useCofheAllPermits,
@@ -14,6 +13,7 @@ export {
   useCofheSelectPermit,
   useCofhePublicClient,
   useCofheWalletClient,
+  useCofheEncrypt,
   useCofheWriteContract,
   useCofheClient,
   useCofheTokens,
@@ -35,6 +35,9 @@ export {
   type UseTransactionReceiptsByHashInput,
 } from '@/hooks/index';
 
+export { useCofheEncryptAndWriteContract } from '@/hooks/useCofheEncryptAndWriteContract';
+export { useCofheReadContractAndDecrypt } from '@/hooks/useCofheReadContractAndDecrypt';
+
 // Components
 export { FnxEncryptInput, FnxFloatingButtonWithProvider } from './components/index';
 export { MainPage, SettingsPage, TokenListPage } from './components/FnxFloatingButton/pages/index';
@@ -52,7 +55,6 @@ export {
   truncateHash,
   isEthPair,
   isWrappedEthToken,
-  type FheTypeValue,
 } from './utils/index';
 
 // Stores
@@ -79,7 +81,7 @@ export type { FloatingButtonPosition } from './components/FnxFloatingButton/type
 
 export { createCofhesdkClient } from '@cofhe/sdk/web';
 
-export { useCofheCreatePermit } from '@/hooks/permits/useCofheCreatePermit';
+export { useCofheNavigateToCreatePermit } from '@/hooks/permits/useCofheNavigateToCreatePermit';
 export { useCofheAutoConnect } from '@/hooks/useCofheAutoConnect';
 export { CREATE_PERMITT_BODY_BY_ERROR_CAUSE } from './providers/errors';
 export { ErrorCause } from './utils/errors';

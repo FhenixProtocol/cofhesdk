@@ -1,5 +1,4 @@
 export { useCofheConnection, useCofhePublicClient } from './useCofheConnection';
-export { useCofheEncrypt } from './useCofheEncrypt';
 export {
   useCofheActivePermit,
   useCofheAllPermits,
@@ -20,6 +19,7 @@ export {
 } from './useCofheTokensClaimable';
 export { useCofheWalletClient } from './useCofheConnection';
 export { useCofheTokens, useCofheTokenLists, ETH_ADDRESS, type Token, type Erc20Pair } from './useCofheTokenLists';
+export { useCofheEncrypt } from './useCofheEncrypt';
 export { useCofheWriteContract } from './useCofheWriteContract';
 export { useCofheReadContract, type UseCofheReadContractQueryOptions } from './useCofheReadContract';
 export * from './permits';

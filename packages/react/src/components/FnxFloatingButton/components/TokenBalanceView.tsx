@@ -1,4 +1,4 @@
-import { useCofheCreatePermit } from '@/hooks/permits/useCofheCreatePermit';
+import { useCofheNavigateToCreatePermit } from '@/hooks/permits/useCofheNavigateToCreatePermit';
 import { CREATE_PERMITT_BODY_BY_ERROR_CAUSE } from '@/providers/errors';
 import { cn, ErrorCause } from '@/utils';
 import { LoadingDots } from './LoadingDots';
@@ -35,7 +35,7 @@ export const TokenBalanceView: React.FC<TokenBalanceViewProps> = ({
 };
 
 const ConfidentialValuePlaceholder: React.FC = () => {
-  const navigateToGeneratePermit = useCofheCreatePermit({
+  const navigateToGeneratePermit = useCofheNavigateToCreatePermit({
     ReasonBody: CREATE_PERMITT_BODY_BY_ERROR_CAUSE[ErrorCause.AttemptToFetchConfidentialBalance],
   });
 

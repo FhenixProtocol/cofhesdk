@@ -1,6 +1,6 @@
 import { type QueryKey } from '@tanstack/react-query';
 import { type Abi, type Address, type ContractFunctionArgs, type ContractFunctionName, type PublicClient } from 'viem';
-import { useScheduledInvalidationsStore } from '@/stores/scheduledInvalidationsStore.js';
+import { useDecryptionWatchersStore } from '@/stores/decryptionWatchingStore.js';
 import {
   maybeWaitUntilRpcAwareAndReadContract,
   type ReadContractResult,
@@ -29,13 +29,13 @@ export function decryptionAwareReadContract<
   signal,
   readContractParams,
 }: Input<TAbi, TfunctionName>): Promise<ReadContractResult<TAbi, TfunctionName>> {
-  const scheduledInvalidationsState = useScheduledInvalidationsStore.getState();
+  const decryptionWatchersState = useDecryptionWatchersStore.getState();
 
   // if there was a tx previously, which caused the need to invalidae this query upon decryption observation,
   // and if decryption has been observed for it, use the block hash to ensure RPC is aware of it
   // so that readContract can read up-to-date data
   const blockHashToBeAwareOf =
-    scheduledInvalidationsState.findObservedDecryption(queryKey)?.decryptionObservedAt?.blockHash;
+    decryptionWatchersState.findObservedDecryption(queryKey)?.decryptionObservedAt?.blockHash;
 
   console.log('Tracked decryption block for unshield claims:', blockHashToBeAwareOf);
 
@@ -44,7 +44,7 @@ export function decryptionAwareReadContract<
     pollingInterval: BLOCK_AWARENESS_POLLING_INTERVAL,
     onSuccess: () => {
       // once we have successfully read decrypted data, remove the invalidation tracking
-      scheduledInvalidationsState.removeQueryKeyFromInvalidations(queryKey);
+      decryptionWatchersState.removeQueryKeyFromWatchers(queryKey);
     },
   };
 

@@ -6,7 +6,7 @@ import { useCallback } from 'react';
 type Input = {
   ReasonBody?: React.FC;
 };
-export const useCofheCreatePermit = ({ ReasonBody }: Input) => {
+export const useCofheNavigateToCreatePermit = ({ ReasonBody }: Input = {}) => {
   const { navigateTo, navigateBack } = usePortalNavigation();
   const { portalOpen, openPortal } = usePortalUI();
 

@@ -9,8 +9,9 @@ import { FloatingButtonPage } from '../../pagesConfig/types';
 import { useCofhePinnedToken } from '@/hooks/useCofhePinnedToken';
 import { assert, type ElementOf } from 'ts-essentials';
 import { usePortalNavigation, usePortalUI } from '@/stores';
-import { isReactNode } from '@/utils';
+import { Button } from '../../components';
 import { useCofheClaimableTokens } from '@/hooks/useCofheClaimableTokens';
+import { isReactNode } from '@/utils';
 
 const iconClassName = 'w-4 h-4';
 
@@ -123,18 +124,14 @@ export const BottomNavigation: React.FC = () => {
   return (
     <div className="flex gap-2">
       {navItems.map((item) => (
-        <button
+        <Button
           key={item.id}
           onClick={() => handleNavClick(item.id)}
-          className={cn(
-            'flex-1 flex flex-col items-center justify-center gap-1 py-1 px-2',
-            'text-sm font-medium',
-            'fnx-nav-button fnx-text-primary'
-          )}
-        >
-          {isReactNode(item.icon) ? item.icon : <item.icon />}
-          <span>{item.label}</span>
-        </button>
+          icon={isReactNode(item.icon) ? item.icon : <item.icon />}
+          iconPosition="top"
+          label={item.label}
+          className="flex-1"
+        />
       ))}
     </div>
   );
