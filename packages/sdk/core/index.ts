@@ -37,7 +37,6 @@ export type {
   EncryptedUint32Input,
   EncryptedUint64Input,
   EncryptedUint128Input,
-  EncryptedUint256Input,
   EncryptedAddressInput,
   EncryptedItemInputs,
   EncryptableToEncryptedItemInputMap,

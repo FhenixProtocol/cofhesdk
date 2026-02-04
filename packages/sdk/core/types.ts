@@ -25,6 +25,9 @@ export type LiteralToPrimitive<T> = T extends number
 
 // FHE TYPES
 
+export const FheTypeValues = ['bool', 'uint8', 'uint16', 'uint32', 'uint64', 'uint128', 'address'] as const;
+export type FheTypeValue = (typeof FheTypeValues)[number];
+
 export enum FheTypes {
   Bool = 0,
   Uint4 = 1,
@@ -57,6 +60,19 @@ export enum FheTypes {
   Int160 = 28,
   Int256 = 29,
 }
+
+export const FheTypeValueUtype = {
+  bool: FheTypes.Bool,
+  uint8: FheTypes.Uint8,
+  uint16: FheTypes.Uint16,
+  uint32: FheTypes.Uint32,
+  uint64: FheTypes.Uint64,
+  uint128: FheTypes.Uint128,
+  address: FheTypes.Uint160,
+} as const satisfies Record<FheTypeValue, FheTypes>;
+export type FheTypeValueUtypeMap<T extends FheTypeValue> = T extends keyof typeof FheTypeValueUtype
+  ? (typeof FheTypeValueUtype)[T]
+  : never;
 
 /**
  * List of All FHE uint types (excludes bool and address)
@@ -126,9 +142,10 @@ export type EncryptedUint64Input = EncryptedItemInput & {
 export type EncryptedUint128Input = EncryptedItemInput & {
   utype: FheTypes.Uint128;
 };
-export type EncryptedUint256Input = EncryptedItemInput & {
-  utype: FheTypes.Uint256;
-};
+// [U256-DISABLED]
+// export type EncryptedUint256Input = EncryptedItemInput & {
+//   utype: FheTypes.Uint256;
+// };
 export type EncryptedAddressInput = EncryptedItemInput & {
   utype: FheTypes.Uint160;
 };
@@ -146,26 +163,32 @@ export type EncryptableUint32 = EncryptableBase<FheTypes.Uint32, string | bigint
 export type EncryptableUint64 = EncryptableBase<FheTypes.Uint64, string | bigint>;
 export type EncryptableUint128 = EncryptableBase<FheTypes.Uint128, string | bigint>;
 // [U256-DISABLED]
-// export type EncryptableUint256 = {
-//   data: string | bigint;
-//   utype: FheTypes.Uint256;
-// };
+// export type EncryptableUint256 = EncryptableBase<FheTypes.Uint256, string | bigint>;
 export type EncryptableAddress = EncryptableBase<FheTypes.Uint160, string | bigint>;
 
-/* eslint-enable no-redeclare */
-type EncryptableFactories = {
-  bool: (data: EncryptableBool['data'], securityZone?: number) => EncryptableBool;
-  address: (data: EncryptableAddress['data'], securityZone?: number) => EncryptableAddress;
-  uint8: (data: EncryptableUint8['data'], securityZone?: number) => EncryptableUint8;
-  uint16: (data: EncryptableUint16['data'], securityZone?: number) => EncryptableUint16;
-  uint32: (data: EncryptableUint32['data'], securityZone?: number) => EncryptableUint32;
-  uint64: (data: EncryptableUint64['data'], securityZone?: number) => EncryptableUint64;
-  uint128: (data: EncryptableUint128['data'], securityZone?: number) => EncryptableUint128;
+/**
+ * Maps FheTypeValue to its corresponding Encryptable type
+ * If a new FheTypeValue is added, this type must be updated to include it
+ */
+type EncryptableTypeMap = {
+  bool: EncryptableBool;
+  address: EncryptableAddress;
+  uint8: EncryptableUint8;
+  uint16: EncryptableUint16;
+  uint32: EncryptableUint32;
+  uint64: EncryptableUint64;
+  uint128: EncryptableUint128;
   // [U256-DISABLED]
-  // uint256: (data: EncryptableUint256['data'], securityZone?: number) => EncryptableUint256;
+  // uint256: EncryptableUint256;
 };
 
-export type FheTypeValue = keyof EncryptableFactories;
+/**
+ * Ensures all FheTypeValue keys are present as factory functions.
+ * TypeScript will error if EncryptableTypeMap is missing any FheTypeValue key.
+ */
+type EncryptableFactories = {
+  [K in FheTypeValue]: (data: EncryptableTypeMap[K]['data'], securityZone?: number) => EncryptableTypeMap[K];
+};
 
 type EncryptableFactory = EncryptableFactories & {
   create: {
