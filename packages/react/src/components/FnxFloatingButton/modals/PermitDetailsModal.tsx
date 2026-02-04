@@ -53,8 +53,8 @@ export const PermitDetailsModal: React.FC<PortalModalStateMap[PortalModal.Permit
       title: `Permit selected (${permit?.name})`,
       description:
         permit?.type === 'self'
-          ? 'Now viewing own encrypted data.'
-          : `Now viewing ${truncateAddress(permit?.issuer, 4, 4)}'s encrypted data.`,
+          ? 'Accessing own encrypted data.'
+          : `Accessing ${truncateAddress(permit?.issuer, 4, 4)}'s encrypted data.`,
     });
   }, [handleViewAs, onClose, addToast, permit]);
 
@@ -85,7 +85,6 @@ export const PermitDetailsModal: React.FC<PortalModalStateMap[PortalModal.Permit
     addToast({
       variant: 'success',
       title: 'Permit deleted',
-      description: 'Permit deleted successfully.',
     });
   }, [confirmDelete, hash, onClose, addToast, removePermit]);
 
