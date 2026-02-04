@@ -2,14 +2,14 @@ import { type Address } from 'viem';
 import type { Token } from './useCofheTokenLists.js';
 import { TRANSFER_ABIS } from '../constants/confidentialTokenABIs.js';
 import { TransactionActionType, useTransactionStore } from '../stores/transactionStore.js';
-import { Encryptable, type EncryptableItem } from '@cofhe/sdk';
+import { type EncryptableItem } from '@cofhe/sdk';
 import { useCofheEncryptAndWriteContract } from './useCofheEncryptAndWriteContract.js';
-import type { UseCofheWriteContractOptions } from './useCofheWriteContract.js';
+import type { useCofheWriteContractOptions } from './useCofheWriteContract.js';
 import type { EncryptionOptions } from './useCofheEncrypt.js';
 
 type TokenTransferExtras = { token: Token; amount: bigint; userAddress: Address };
 type UseCofheTokenTransferOptions = Pick<
-  UseCofheWriteContractOptions<TokenTransferExtras>,
+  useCofheWriteContractOptions<TokenTransferExtras>,
   'onSuccess' | 'onError' | 'onMutate'
 >;
 
@@ -25,20 +25,25 @@ type EncryptAndSendInput = {
 
 export function useCofheTokenTransfer(writeMutationOptions?: UseCofheTokenTransferOptions) {
   const { onSuccess: passedOnSuccess, ...restOfOptions } = writeMutationOptions || {};
-  const { encryption, write, encryptAndWrite } = useCofheEncryptAndWriteContract<TokenTransferExtras, EncryptableItem>({
+  const { encryption, write, encryptAndWrite } = useCofheEncryptAndWriteContract<TokenTransferExtras>({
     writingMutationOptions: {
-      onSuccess: (hash, writeParams, result, context) => {
-        if (passedOnSuccess) passedOnSuccess(hash, writeParams, result, context);
+      onSuccess: (hash, variables, onMutateResult, context) => {
+        if (passedOnSuccess) passedOnSuccess(hash, variables, onMutateResult, context);
+
+        const extras =
+          typeof variables === 'object' && variables !== null && 'extras' in variables ? variables.extras : null;
+
+        if (!extras) return;
 
         // Record transaction and watch for confirmation
         useTransactionStore.getState().addTransaction({
           hash,
-          token: writeParams.extras.token,
-          tokenAmount: writeParams.extras.amount,
-          chainId: writeParams.extras.token.chainId,
+          token: extras.token,
+          tokenAmount: extras.amount,
+          chainId: extras.token.chainId,
           actionType: TransactionActionType.ShieldSend,
           isPendingDecryption: false, // doesn't need decryption afterwards
-          account: writeParams.extras.userAddress,
+          account: extras.userAddress,
         });
       },
       ...restOfOptions,
@@ -48,34 +53,30 @@ export function useCofheTokenTransfer(writeMutationOptions?: UseCofheTokenTransf
   return {
     encryption,
     write,
-    isPending: encryption.isEncrypting || write.isPending,
+    isPending: encryption.isPending || write.isPending,
     data: write.data,
     encryptAmountAndSendToken: ({ input, encryptionOptions }: EncryptAndSendInput) => {
       const { token, to, amount, userAddress } = input;
-      return encryptAndWrite(
-        {
-          input: Encryptable.create(token.extensions.fhenix.confidentialValueType, amount),
-          ...encryptionOptions,
+
+      const { input: _ignoredInput, ...encryptionOpts } = encryptionOptions ?? {};
+      const contractConfig = TRANSFER_ABIS[token.extensions.fhenix.confidentialityType];
+
+      return encryptAndWrite({
+        params: {
+          address: token.address,
+          abi: contractConfig.abi,
+          functionName: contractConfig.functionName,
+          account: userAddress,
+          chain: undefined,
         },
-        (encrypted) => {
-          const contractConfig = TRANSFER_ABIS[token.extensions.fhenix.confidentialityType];
-          return {
-            writeContractInput: {
-              address: token.address,
-              abi: contractConfig.abi,
-              functionName: contractConfig.functionName,
-              args: [to, encrypted],
-              account: userAddress,
-              chain: undefined,
-            },
-            extras: {
-              token,
-              amount,
-              userAddress,
-            },
-          };
-        }
-      );
+        args: [to, amount] as const,
+        extras: {
+          token,
+          amount,
+          userAddress,
+        },
+        encryptionOptions: encryptionOpts,
+      });
     },
   };
 }
