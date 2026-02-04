@@ -22,7 +22,7 @@ type QuickAction = { id: QuickActionId; label: string; icon: ElementType };
 const quickActions: QuickAction[] = [
   { id: 'generate', label: 'Generate', icon: FaPlus },
   { id: 'delegate', label: 'Delegate', icon: FaKey },
-  { id: 'import', label: 'import', icon: FaDownload },
+  { id: 'import', label: 'Import', icon: FaDownload },
 ];
 
 type Args = {
@@ -30,18 +30,12 @@ type Args = {
   receivedPermitsCount: number;
   activePermit?: Permit;
 };
-function computeDefaultActiveAccordionId({
-  generatedPermitsCount,
-  receivedPermitsCount,
-  activePermit,
-}: Args): 'generated' | 'received' {
+
+function computeDefaultActiveAccordionId({ activePermit }: Args): 'self' | 'received' {
   if (activePermit?.type === 'recipient') {
     return 'received';
   }
-  if (generatedPermitsCount > 0 || receivedPermitsCount === 0) {
-    return 'generated';
-  }
-  return 'received';
+  return 'self';
 }
 
 export const PermitsListPage: React.FC = () => {
@@ -59,8 +53,8 @@ export const PermitsListPage: React.FC = () => {
   const { permit } = useCofheActivePermit() ?? {};
 
   const defaultActiveAccordionId = computeDefaultActiveAccordionId({
-    generatedPermitsCount: generatedPermits.length,
-    receivedPermitsCount: receivedPermits.length,
+    generatedPermitsCount: selfPermits.length,
+    receivedPermitsCount: importedPermits.length,
     activePermit: permit,
   });
 
@@ -88,7 +82,7 @@ export const PermitsListPage: React.FC = () => {
       }
       content={
         <div className="gap-4">
-          <Accordion defaultActiveId="self">
+          <Accordion defaultActiveId={defaultActiveAccordionId}>
             <div className="flex flex-col gap-3">
               <AccordionSection
                 id="self"

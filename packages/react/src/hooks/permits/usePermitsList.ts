@@ -3,7 +3,6 @@ import { type Permit } from '@cofhe/sdk/permits';
 import { useCofheActivePermit, useCofheAllPermits, useCofheRemovePermit } from '../useCofhePermits';
 import { useCopyFeedback } from '../useCopyFeedback';
 import { FloatingButtonPage } from '@/components/FnxFloatingButton/pagesConfig/types';
-import { usePortalNavigation } from '@/stores';
 import { useCofheNavigateToCreatePermit } from './useCofheNavigateToCreatePermit';
 import { usePortalModals, usePortalNavigation } from '@/stores';
 import { PortalModal } from '@/components/FnxFloatingButton/modals/types';
