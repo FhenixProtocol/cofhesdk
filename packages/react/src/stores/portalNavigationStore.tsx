@@ -1,3 +1,4 @@
+/* eslint-disable no-redeclare */
 import {
   FloatingButtonPage,
   type FloatingButtonPagePropsMap,
@@ -32,16 +33,29 @@ type PortalNavigationStore = {
 type PortalNavigationActions = {
   navigateTo: NavigateToFn;
   navigateBack: () => void;
+  replace: NavigateToFn;
   clearNavigationHistory: () => void;
 };
 
 export const usePortalNavigation = create<PortalNavigationStore & PortalNavigationActions>()((set, get) => {
+  function clearNavigationHistory(): void {
+    set({ pageHistory: [{ page: FloatingButtonPage.Main }], overridingPage: null });
+  }
+
+  function warnIfAlreadyOnPage<K extends FloatingButtonPage>(page: K): boolean {
+    const currentPage = get().overridingPage ?? get().pageHistory[get().pageHistory.length - 1];
+    const onPage = currentPage?.page === page;
+    if (onPage) {
+      console.warn(`Attempted to navigate to page ${page} but already on that page`);
+    }
+    return onPage;
+  }
+
   function navigateTo<K extends PagesWithoutProps>(page: K, args?: NavigateArgs<K>): void;
-  // eslint-disable-next-line no-redeclare
   function navigateTo<K extends PagesWithProps>(page: K, args: NavigateArgs<K>): void;
-  // eslint-disable-next-line no-redeclare
   function navigateTo<K extends FloatingButtonPage>(page: K, args?: NavigateArgs<K>): void {
-    // TODO: If already on the page, do nothing
+    if (warnIfAlreadyOnPage(page)) return;
+
     const props = args?.pageProps;
     const skipPagesHistory = args?.navigateParams?.skipPagesHistory === true;
     if (skipPagesHistory) {
@@ -53,10 +67,20 @@ export const usePortalNavigation = create<PortalNavigationStore & PortalNavigati
     }
   }
 
+  function replace<K extends PagesWithoutProps>(page: K, args?: NavigateArgs<K>): void;
+  function replace<K extends PagesWithProps>(page: K, args: NavigateArgs<K>): void;
+  function replace<K extends FloatingButtonPage>(page: K, args?: NavigateArgs<K>): void {
+    if (warnIfAlreadyOnPage(page)) return;
+
+    clearNavigationHistory();
+    navigateTo(page as any, args);
+  }
+
   return {
     pageHistory: [{ page: FloatingButtonPage.Main }],
     overridingPage: null,
 
+    clearNavigationHistory,
     navigateTo,
     navigateBack: () => {
       if (get().overridingPage !== null) {
@@ -67,10 +91,7 @@ export const usePortalNavigation = create<PortalNavigationStore & PortalNavigati
         set({ pageHistory: get().pageHistory.slice(0, -1) });
       }
     },
-
-    clearNavigationHistory: () => {
-      set({ pageHistory: [{ page: FloatingButtonPage.Main }], overridingPage: null });
-    },
+    replace,
   };
 });
 

@@ -21,7 +21,7 @@ export const showMissingPermitStatus = () => {
       label: 'FIX',
       onClick: () => {
         usePortalUI.getState().openPortal();
-        usePortalNavigation.getState().navigateTo(FloatingButtonPage.Permits);
+        usePortalNavigation.getState().replace(FloatingButtonPage.Permits);
       },
     },
   });
@@ -41,7 +41,7 @@ export const showPermitExpiredStatus = () => {
       label: 'FIX',
       onClick: () => {
         usePortalUI.getState().openPortal();
-        usePortalNavigation.getState().navigateTo(FloatingButtonPage.Permits);
+        usePortalNavigation.getState().replace(FloatingButtonPage.Permits);
       },
     },
   });
@@ -60,7 +60,7 @@ export const showPermitExpiringSoonStatus = (permit: Permit) => {
       label: 'FIX',
       onClick: () => {
         usePortalUI.getState().openPortal();
-        usePortalNavigation.getState().navigateTo(FloatingButtonPage.Permits);
+        usePortalNavigation.getState().replace(FloatingButtonPage.Permits);
       },
     },
   });
