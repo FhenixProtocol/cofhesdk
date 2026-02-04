@@ -85,23 +85,3 @@ export function useReceivePermit(onSuccess?: () => void): UseReceivePermitReturn
     submit,
   };
 }
-
-const importPermitData ={
-  "name": "Delegate to self",
-  "type": "sharing",
-  "issuer": "0x2e988A386a799F506693793c6A5AF6B54dfAaBfB",
-  "expiration": 1770802443,
-  "recipient": "0x170A592d0edf5c00036e09Ec22b710c47D1880d7",
-  "issuerSignature": "0xHello",
-}
-
-// Checks that permit is formed correctly and will give access to data
-// Usage `checkPermitValidity`:
-//  - before decryption? (decryption will already let you know if the permit is invalid - it will fail. Would be redundant check)
-//  - on permit selection
-//  - on permit creation
-const checkPermitValidity = () => true;
-
-// Only checks data from issuer before sending to recipient
-const checkImportPermitDataValidity = () => true;
-

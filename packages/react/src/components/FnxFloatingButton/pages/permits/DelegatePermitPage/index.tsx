@@ -51,69 +51,65 @@ export const DelegatePermitPage: React.FC<DelegatePermitPageProps> = ({ onSucces
     usePermitDuration({ onDurationChange: setDurationSeconds, initialSeconds: durationSeconds });
 
   return (
-      <PageContainer
-        header={
-          <button
-            className="flex items-center gap-2 text-base font-semibold text-[#0E2F3F] transition-opacity hover:opacity-80 dark:text-white"
-            type="button"
-            onClick={onBack ?? navigateBack}
-          >
-            {(pageHistory.length > 0 || onBack) && <ArrowBackIcon fontSize="small" />}
-            <span>Delegate Permit</span>
-          </button>
-        }
-        content={
-          <div className="flex flex-col w-full gap-3">
-            <div className="flex items-center gap-3 text-[#0E2F3F] dark:text-white">
-              <div className="flex items-center justify-center rounded-lg border border-[#0E2F3F]/30 p-2 dark:border-white/40">
-                <PermitIcon className="h-7 w-7 fill-inherit" aria-label="CoFHE permit icon" />
-              </div>
-              <div className="text-lg font-semibold">CoFHE Permits</div>
+    <PageContainer
+      header={
+        <button
+          className="flex items-center gap-2 text-base font-semibold text-[#0E2F3F] transition-opacity hover:opacity-80 dark:text-white"
+          type="button"
+          onClick={onBack ?? navigateBack}
+        >
+          {(pageHistory.length > 0 || onBack) && <ArrowBackIcon fontSize="small" />}
+          <span>Delegate Permit</span>
+        </button>
+      }
+      content={
+        <div className="flex flex-col w-full gap-3">
+          <div className="flex items-center gap-3 text-[#0E2F3F] dark:text-white">
+            <div className="flex items-center justify-center rounded-lg border border-[#0E2F3F]/30 p-2 dark:border-white/40">
+              <PermitIcon className="h-7 w-7 fill-inherit" aria-label="CoFHE permit icon" />
             </div>
-            <p className="text-sm leading-relaxed text-[#355366] dark:text-white/80">
-              Permits are used to authenticate your identity when accessing encrypted data.
-              <br />
-              This form generates a permit that can be copied and shared with "recipient". Recipient will be granted
-              access to the signer's (your) data.
-            </p>
+            <div className="text-lg font-semibold">CoFHE Permits</div>
+          </div>
+          <p className="text-sm leading-relaxed text-[#355366] dark:text-white/80">
+            Permits are used to authenticate your identity when accessing encrypted data.
+            <br />
+            This form generates a permit that can be copied and shared with "recipient". Recipient will be granted
+            access to the signer's (your) data.
+          </p>
 
-            <NameSection permitName={permitName} error={nameError} onNameChange={handleNameChange} />
-            <ReceiverSection
-              receiver={receiver}
-              receiverError={receiverError}
-              onReceiverChange={handleReceiverChange}
-            />
-            <ExpirySection
-              presets={presets}
-              units={units}
-              durationSeconds={durationSeconds}
-              customCount={customCount}
-              customUnit={customUnit}
-              selectPreset={selectPreset}
-              setCustomUnit={setCustomUnit}
-              applyCustom={applyCustom}
-            />
-          </div>
-        }
-        footer={
-          <div className="flex flex-col w-full gap-2">
-            {error && (
-              <div role="alert" className="text-error">
-                {error}
-              </div>
-            )}
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              <Button onClick={onCancel ?? navigateBack}>Cancel</Button>
-              <Button
-                variant="primary"
-                disabled={!isValid || isSubmitting}
-                aria-busy={isSubmitting}
-                label={isSubmitting ? 'Creating...' : 'Create Permit'}
-                onClick={handleSubmit}
-              />
+          <NameSection permitName={permitName} error={nameError} onNameChange={handleNameChange} />
+          <ReceiverSection receiver={receiver} receiverError={receiverError} onReceiverChange={handleReceiverChange} />
+          <ExpirySection
+            presets={presets}
+            units={units}
+            durationSeconds={durationSeconds}
+            customCount={customCount}
+            customUnit={customUnit}
+            selectPreset={selectPreset}
+            setCustomUnit={setCustomUnit}
+            applyCustom={applyCustom}
+          />
+        </div>
+      }
+      footer={
+        <div className="flex flex-col w-full gap-2">
+          {error && (
+            <div role="alert" className="text-error">
+              {error}
             </div>
+          )}
+          <div className="grid grid-cols-2 gap-3 pt-2">
+            <Button onClick={onCancel ?? navigateBack}>Cancel</Button>
+            <Button
+              variant="primary"
+              disabled={!isValid || isSubmitting}
+              aria-busy={isSubmitting}
+              label={isSubmitting ? 'Creating...' : 'Create Permit'}
+              onClick={handleSubmit}
+            />
           </div>
-        }
-      />
+        </div>
+      }
+    />
   );
 };
