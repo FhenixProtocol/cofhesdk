@@ -43,7 +43,7 @@ export const DelegatePermitPage: React.FC<DelegatePermitPageProps> = ({ onSucces
       addToast({
         variant: 'error',
         title: 'Failed to create permit',
-        description: error,
+        description: error.message,
       });
     },
   });

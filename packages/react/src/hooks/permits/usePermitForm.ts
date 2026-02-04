@@ -4,7 +4,7 @@ import { useCofheCreatePermitMutation, type CreatePermitArgs } from './useCofheC
 export interface UsePermitFormOptions {
   isDelegate?: boolean;
   onSuccess?: () => void;
-  onError?: (error: string) => void;
+  onError?: (error: Error) => void;
 }
 
 export interface UsePermitFormResult {
@@ -33,19 +33,11 @@ export function usePermitForm(options: UsePermitFormOptions = {}): UsePermitForm
   const [durationSeconds, setDurationSeconds] = useState(7 * 24 * 60 * 60);
   const { mutateAsync: createPermitMutateAsync, isPending: isPermitCreationPending } = useCofheCreatePermitMutation({
     onSuccess,
+    onError,
   });
 
   const recipientAddressValid = isDelegate ? isValidAddress(receiver) : true;
   const isValid = !!permitName.trim() && recipientAddressValid;
-
-  console.log({
-    isValid,
-    recipientAddressValid,
-    isDelegate,
-    receiverIsValid: isValidAddress(receiver),
-    permitName,
-    trimmedPermitName: permitName.trim(),
-  });
 
   const handleNameChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -90,9 +82,8 @@ export function usePermitForm(options: UsePermitFormOptions = {}): UsePermitForm
       setReceiverError(null);
     } catch (e: any) {
       setError(e?.message ?? 'Failed to create permit');
-      onError?.(e?.message ?? 'Failed to create permit');
     }
-  }, [isPermitCreationPending, permitName, isSelf, receiver, durationSeconds, createPermitMutateAsync]);
+  }, [isPermitCreationPending, permitName, isDelegate, receiver, durationSeconds, createPermitMutateAsync]);
 
   const reset = useCallback(() => {
     setPermitName('');

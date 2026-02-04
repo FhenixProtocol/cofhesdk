@@ -38,7 +38,7 @@ export const GeneratePermitPage: React.FC<GeneratePermitPageProps> = ({ onSucces
       addToast({
         variant: 'error',
         title: 'Failed to create permit',
-        description: error,
+        description: error.message,
       });
     },
   });
