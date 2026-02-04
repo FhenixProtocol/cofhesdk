@@ -188,11 +188,12 @@ export function extractArrayParameterType<T extends string | undefined>(type: T)
 
 type AbiItem = AbiConstructor | AbiError | AbiEvent | AbiFallback | AbiFunction | AbiReceive;
 
-export function isAbiFunction(item: AbiItem): item is AbiFunction {
-  return item.type === 'function' && 'name' in item && 'outputs' in item;
+export function isAbiFunction(item: AbiItem | unknown): item is AbiFunction {
+  if (typeof item !== 'object' || item === null) return false;
+  return 'type' in item && item.type === 'function' && 'name' in item && 'outputs' in item;
 }
 
-export function getAbiFunction<TAbi extends Abi, TFunctionName extends string>(
+export function getAbiFunction<TAbi extends Abi | readonly unknown[], TFunctionName extends string>(
   abi: TAbi,
   functionName: TFunctionName
 ): AbiFunction | undefined {

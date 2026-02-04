@@ -20,6 +20,10 @@ export const useCofheCreatePermitMutation = () => {
   const { setHasCreatedFirstPermit } = usePortalPersisted();
 
   return useInternalMutation<void, Error, CreatePermitArgs>({
+    onSettled: () => {
+      // Mark that the user has created at least one permit - from now on, we know the user is aware of permits and will show him warnnings and notifications accordingly
+      setHasCreatedFirstPermit(true);
+    },
     mutationFn: async (args) => {
       const { name, isSelf, expirationSeconds } = args;
       const { account } = cofheClient.getSnapshot();
@@ -31,7 +35,6 @@ export const useCofheCreatePermitMutation = () => {
           issuer: account,
           name: name.trim(),
         });
-        setHasCreatedFirstPermit(true);
         return;
       }
 
@@ -41,7 +44,6 @@ export const useCofheCreatePermitMutation = () => {
         recipient: args.receiver,
         name: name.trim(),
       });
-      setHasCreatedFirstPermit(true);
     },
   });
 };

@@ -25,9 +25,27 @@ export const ERC20_APPROVE_ABI = parseAbi(['function approve(address spender, ui
  * ABI for wrapped confidentiality type tokens (e.g., Redact)
  * Uses `encBalanceOf(address)` function
  */
-export const CONFIDENTIAL_TYPE_WRAPPED_ABI = parseAbi([
-  'function encBalanceOf(address account) view returns (uint256)',
-]);
+export const CONFIDENTIAL_TYPE_WRAPPED_ABI = [
+  {
+    inputs: [
+      {
+        internalType: 'address',
+        name: 'account',
+        type: 'address',
+      },
+    ],
+    name: 'encBalanceOf',
+    outputs: [
+      {
+        internalType: 'euint128',
+        name: '',
+        type: 'uint256',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+] as const;
 
 /**
  * ABI for pure confidentiality type tokens (e.g., Base mini app)
@@ -73,25 +91,52 @@ export const CONFIDENTIAL_ABIS = {
  */
 export const WRAPPED_TRANSFER_ABI = [
   {
-    name: 'encTransfer',
-    type: 'function',
-    stateMutability: 'nonpayable',
     inputs: [
-      { name: 'to', type: 'address' },
       {
+        internalType: 'address',
+        name: 'to',
+        type: 'address',
+      },
+      {
+        components: [
+          {
+            internalType: 'uint256',
+            name: 'ctHash',
+            type: 'uint256',
+          },
+          {
+            internalType: 'uint8',
+            name: 'securityZone',
+            type: 'uint8',
+          },
+          {
+            internalType: 'uint8',
+            name: 'utype',
+            type: 'uint8',
+          },
+          {
+            internalType: 'bytes',
+            name: 'signature',
+            type: 'bytes',
+          },
+        ],
+        internalType: 'struct InEuint128',
         name: 'inValue',
         type: 'tuple',
-        components: [
-          { name: 'ctHash', type: 'uint256' },
-          { name: 'securityZone', type: 'uint8' },
-          { name: 'utype', type: 'uint8' },
-          { name: 'signature', type: 'bytes' },
-        ],
       },
     ],
-    outputs: [{ name: 'transferred', type: 'uint256' }],
+    name: 'encTransfer',
+    outputs: [
+      {
+        internalType: 'euint128',
+        name: 'transferred',
+        type: 'uint256',
+      },
+    ],
+    stateMutability: 'nonpayable',
+    type: 'function',
   },
-] as const satisfies Abi;
+] as const;
 
 /**
  * ABI for pure confidentiality type token transfers
