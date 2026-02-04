@@ -94,7 +94,7 @@ export default defineConfig({
       },
     },
   ],
-  external: ['react', 'react-dom', '@mui/material', '@mui/icons-material', '@cofhe/sdk', 'viem'],
+  external: ['react', 'react-dom', '@mui/material', '@mui/icons-material', '@cofhe/sdk', '@cofhe/abi', 'viem'],
   esbuildOptions(options) {
     options.jsx = 'automatic';
     // Handle image imports as data URLs

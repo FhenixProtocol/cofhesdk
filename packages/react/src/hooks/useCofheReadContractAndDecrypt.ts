@@ -5,27 +5,53 @@ import { ErrorCause } from '@/utils/errors';
 import { useCofheDecrypt } from './useCofheDecrypt';
 import {
   useCofheReadContract,
-  type InferredData,
   type UseCofheReadContractQueryOptions,
   type UseCofheReadContractResult,
 } from './useCofheReadContract';
-import { assert } from 'ts-essentials';
+import type { CofheFirstReturnFheType, CofheReturnType, EncryptedReturnTypeByUtype } from '@cofhe/abi';
 
+type SupportedFheTypeFromReturn<TAbi extends Abi, TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>> =
+  CofheFirstReturnFheType<TAbi, TfunctionName> extends FheTypes
+    ? CofheFirstReturnFheType<TAbi, TfunctionName>
+    : FheTypes;
+
+function isEncryptedValue<TFheType extends FheTypes>(value: unknown): value is EncryptedReturnTypeByUtype<TFheType> {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'ctHash' in value &&
+    'utype' in value &&
+    Object.values<unknown>(FheTypes).includes(value.utype)
+  );
+}
+
+function convertCofheReturnTypeToEncryptedReturnType<
+  TAbi extends Abi,
+  TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>,
+  TFheType extends FheTypes,
+>(value: CofheReturnType<TAbi, TfunctionName>): EncryptedReturnTypeByUtype<TFheType> {
+  if (isEncryptedValue<TFheType>(value)) return value;
+
+  // TODO: convertCofheReturnTypeToEncryptedReturnType -- support for mixed return types (e.g., structs with both encrypted and plain values)
+  throw new Error(
+    'Auto-decryption now only supports a case where the contract function returns a single encrypted value'
+  );
+}
 /**
  * Generic hook: read a confidential contract value and decrypt it.
  */
+// TODO: useCofheReadContractAndDecrypt only works for a scenario when the contract function returns a signle plain encrypted value (i.e. not struct etc)
 export function useCofheReadContractAndDecrypt<
-  TFheType extends FheTypes,
   TAbi extends Abi,
   TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>,
-  TDecryptedSelectedData = InferredData<TAbi, TfunctionName>,
+  TFheType extends FheTypes = SupportedFheTypeFromReturn<TAbi, TfunctionName>,
+  TDecryptedSelectedData = UnsealedItem<TFheType>,
 >(
   params: {
     address?: Address;
     abi?: TAbi;
     functionName?: TfunctionName;
     args?: ContractFunctionArgs<TAbi, 'pure' | 'view', TfunctionName>;
-    fheType: TFheType;
     requiresPermit?: boolean;
     potentialDecryptErrorCause: ErrorCause;
   },
@@ -45,21 +71,19 @@ export function useCofheReadContractAndDecrypt<
   decrypted: UseQueryResult<TDecryptedSelectedData, Error>;
   disabledDueToMissingPermit: boolean;
 } {
-  const { address, abi, functionName, args, fheType, requiresPermit = true, potentialDecryptErrorCause } = params;
+  const { address, abi, functionName, args, requiresPermit = true, potentialDecryptErrorCause } = params;
 
   const encrypted = useCofheReadContract({ address, abi, functionName, args, requiresPermit }, readQueryOptions);
 
-  const ciphertext = encrypted.data;
+  const encryptedData = encrypted.data;
 
-  assert(
-    typeof ciphertext === 'bigint' || typeof ciphertext === 'undefined',
-    'Expected ciphertext to be bigint or undefined'
-  );
+  const asEncryptedReturnType = encryptedData
+    ? convertCofheReturnTypeToEncryptedReturnType<TAbi, TfunctionName, TFheType>(encryptedData)
+    : undefined;
 
   const decrypted = useCofheDecrypt(
     {
-      ciphertext,
-      fheType,
+      input: asEncryptedReturnType,
 
       cause: potentialDecryptErrorCause,
     },

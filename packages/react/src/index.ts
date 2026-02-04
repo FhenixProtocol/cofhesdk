@@ -6,7 +6,6 @@ export { CofheProvider, useCofheContext } from './providers/index';
 
 // Hooks
 export {
-  useCofheEncrypt,
   useCofheConnection,
   useCofheActivePermit,
   useCofheAllPermits,
@@ -14,6 +13,7 @@ export {
   useCofheSelectPermit,
   useCofhePublicClient,
   useCofheWalletClient,
+  useCofheEncrypt,
   useCofheWriteContract,
   useCofheClient,
   useCofheTokens,
@@ -31,6 +31,9 @@ export {
   type UnshieldClaimsSummary,
   type UseTransactionReceiptsByHashInput,
 } from '@/hooks/index';
+
+export { useCofheEncryptAndWriteContract } from '@/hooks/useCofheEncryptAndWriteContract';
+export { useCofheReadContractAndDecrypt } from '@/hooks/useCofheReadContractAndDecrypt';
 
 // Components
 export { FnxEncryptInput, FnxFloatingButtonWithProvider } from './components/index';

@@ -48,6 +48,14 @@ export type EAddress = {
 };
 export type EncryptedReturnType = EBool | EUint8 | EUint16 | EUint32 | EUint64 | EUint128 | EAddress;
 
+/**
+ * Narrows {@link EncryptedReturnType} to the specific member matching a given `utype`.
+ *
+ * @example
+ * type T = EncryptedReturnTypeByUtype<FheTypes.Uint32> // EUint32
+ */
+export type EncryptedReturnTypeByUtype<U extends FheTypes> = Extract<EncryptedReturnType, { utype: U }>;
+
 export type FhenixInternalTypeMap = {
   // Input Structs
   'struct InEbool': EncryptedBoolInput;

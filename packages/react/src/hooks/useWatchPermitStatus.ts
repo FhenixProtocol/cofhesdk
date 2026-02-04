@@ -6,9 +6,14 @@ import { useEffect, useRef } from 'react';
 import { FloatingButtonPage } from '../components/FnxFloatingButton/pagesConfig/types';
 import { usePortalPersisted } from '@/stores/portalPersisted';
 
+const STATUS_ID_MISSING_PERMIT = 'missing-permit';
+const STATUS_ID_PERMIT_EXPIRED = 'permit-expired';
+const STATUS_ID_PERMIT_EXPIRING_SOON = 'permit-expiring-soon';
+const STATUS_ID_PERMIT_SHARED = 'permit-shared';
+
 export const showMissingPermitStatus = () => {
   usePortalStatuses.getState().addStatus({
-    id: 'missing-permit',
+    id: STATUS_ID_MISSING_PERMIT,
     variant: 'error',
     title: 'Missing permit',
     description: 'Select or create a new permit',
@@ -23,12 +28,12 @@ export const showMissingPermitStatus = () => {
 };
 
 export const hideMissingPermitStatus = () => {
-  usePortalStatuses.getState().removeStatus('missing-permit');
+  usePortalStatuses.getState().removeStatus(STATUS_ID_MISSING_PERMIT);
 };
 
 export const showPermitExpiredStatus = () => {
   usePortalStatuses.getState().addStatus({
-    id: 'permit-expired',
+    id: STATUS_ID_PERMIT_EXPIRED,
     variant: 'error',
     title: 'Permit expired',
     description: 'Select or create a new permit',
@@ -42,12 +47,12 @@ export const showPermitExpiredStatus = () => {
   });
 };
 export const hidePermitExpiredStatus = () => {
-  usePortalStatuses.getState().removeStatus('permit-expired');
+  usePortalStatuses.getState().removeStatus(STATUS_ID_PERMIT_EXPIRED);
 };
 
 export const showPermitExpiringSoonStatus = (permit: Permit) => {
   usePortalStatuses.getState().addStatus({
-    id: 'permit-expiring-soon',
+    id: STATUS_ID_PERMIT_EXPIRING_SOON,
     variant: 'warning',
     title: 'Permit expiring soon',
     description: `Expires at ${new Date(permit.expiration * 1000).toLocaleTimeString()}`,
@@ -61,19 +66,19 @@ export const showPermitExpiringSoonStatus = (permit: Permit) => {
   });
 };
 export const hidePermitExpiringSoonStatus = () => {
-  usePortalStatuses.getState().removeStatus('permit-expiring-soon');
+  usePortalStatuses.getState().removeStatus(STATUS_ID_PERMIT_EXPIRING_SOON);
 };
 
 export const showPermitSharedStatus = (permit: Permit) => {
   usePortalStatuses.getState().addStatus({
-    id: 'permit-shared',
+    id: STATUS_ID_PERMIT_SHARED,
     variant: 'info',
     title: 'Imported permit active',
     description: `Viewing ${truncateHash(permit.issuer, 4, 4)}'s data`,
   });
 };
 export const hidePermitSharedStatus = () => {
-  usePortalStatuses.getState().removeStatus('permit-shared');
+  usePortalStatuses.getState().removeStatus(STATUS_ID_PERMIT_SHARED);
 };
 
 /**
@@ -89,10 +94,10 @@ export const useWatchPermitStatus = () => {
   useEffect(() => {
     const updateStatuses = (permit: Permit | undefined) => {
       const hasCreatedFirstPermit = usePortalPersisted.getState().hasCreatedFirstPermit;
-      const missingPermitStatusShown = usePortalStatuses.getState().hasStatus('missing-permit');
-      const expiredStatusShown = usePortalStatuses.getState().hasStatus('permit-expired');
-      const expiringSoonStatusShown = usePortalStatuses.getState().hasStatus('permit-expiring-soon');
-      const sharedStatusShown = usePortalStatuses.getState().hasStatus('permit-shared');
+      const missingPermitStatusShown = usePortalStatuses.getState().hasStatus(STATUS_ID_MISSING_PERMIT);
+      const expiredStatusShown = usePortalStatuses.getState().hasStatus(STATUS_ID_PERMIT_EXPIRED);
+      const expiringSoonStatusShown = usePortalStatuses.getState().hasStatus(STATUS_ID_PERMIT_EXPIRING_SOON);
+      const sharedStatusShown = usePortalStatuses.getState().hasStatus(STATUS_ID_PERMIT_SHARED);
 
       if (permit == null) {
         if (hasCreatedFirstPermit && !missingPermitStatusShown) {
