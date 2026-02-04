@@ -6,7 +6,7 @@ import { ContentSection } from './ContentSection';
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
 import type { FloatingButtonPosition, FnxFloatingButtonProps } from './types';
 import { ToastsSection } from './ToastsSection';
-import { usePortalNavigation, usePortalUI } from '@/stores';
+import { usePortalModals, usePortalNavigation, usePortalUI } from '@/stores';
 
 const positionStyles: Record<FloatingButtonPosition, string> = {
   'top-left': 'top-4 left-4',
@@ -24,6 +24,7 @@ export const FnxFloatingButtonBase: React.FC<FnxFloatingButtonProps> = ({
 }) => {
   const { effectivePosition, isTopSide, isLeftSide, theme } = useFnxFloatingButtonContext();
   const { togglePortal } = usePortalUI();
+  const { clearAllModals } = usePortalModals();
   const { clearNavigationHistory } = usePortalNavigation();
   const darkMode = theme === 'dark';
 
@@ -53,6 +54,7 @@ export const FnxFloatingButtonBase: React.FC<FnxFloatingButtonProps> = ({
             togglePortal({
               onCloseEnd: () => {
                 clearNavigationHistory();
+                clearAllModals();
               },
             })
           }
