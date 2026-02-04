@@ -8,16 +8,17 @@ export const HooksExample: React.FC = () => {
 
   const {
     stepsState,
-    encrypt,
+    encryptInputsAsync: encrypt,
     data: encryptData,
     error: encryptError,
     isEncrypting: isEncryptingInput,
-    isConnected: isInitialized,
   } = useCofheEncrypt();
+
+  const isInitialized = useCofheConnection().connected;
 
   const handleDirectEncryption = async () => {
     try {
-      const result = await encrypt({ input: Encryptable.uint128(123n) });
+      const result = await encrypt([Encryptable.uint128(123n)]);
       console.log('Direct encryption result:', result);
     } catch (err) {
       console.error('Direct encryption error:', err);
