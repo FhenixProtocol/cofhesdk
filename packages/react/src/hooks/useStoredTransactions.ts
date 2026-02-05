@@ -2,14 +2,16 @@ import { useTransactionStore, type Transaction } from '@/stores/transactionStore
 import { useMemo } from 'react';
 import { assert } from 'ts-essentials';
 
-export function useStoredTransactions({
+export function useStoredTransactions<T>({
   chainId,
   account,
   filter,
+  combine,
 }: {
   chainId?: number;
   account?: string;
   filter?: (tx: Transaction) => boolean;
+  combine?: (txs: Transaction[]) => T;
 }) {
   const transactions = useTransactionStore((state) => state.transactions);
 
@@ -37,6 +39,10 @@ export function useStoredTransactions({
     [transactionsAsArray, filter, account]
   );
 
+  const combined = useMemo(() => {
+    return combine?.(filtered);
+  }, [filtered, combine]);
+
   const uniqueHashes = new Set(filtered.map((tx) => tx.hash));
 
   assert(
@@ -58,5 +64,6 @@ export function useStoredTransactions({
     filteredTxs: filtered,
     hashes: uniqueHashes,
     filteredTxsByHash,
+    combined,
   };
 }

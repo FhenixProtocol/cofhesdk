@@ -70,6 +70,22 @@ type CombinedResult = {
   totalTokensClaimable: number;
   error: Error | null;
 };
+
+const pendingUnshieldsFilter = (tx: { actionType: TransactionActionType; status: TransactionStatus }) =>
+  tx.actionType === TransactionActionType.Unshield && tx.status === TransactionStatus.Pending;
+
+const combineIsUnshieldingInProgressByTokenAddress = (
+  txs: { token: { address: string }; actionType: TransactionActionType; status: TransactionStatus }[]
+) => {
+  return txs.reduce<Record<string, boolean>>((acc, tx) => {
+    if (pendingUnshieldsFilter(tx)) {
+      const key = tx.token.address.toLowerCase();
+      acc[key] = true;
+    }
+    return acc;
+  }, {});
+};
+
 export function useCofheTokensClaimable(
   { tokens, accountAddress: account }: UseUnshieldClaimsManyInput,
   queryOptions?: UseUnshieldClaimsManyOptions
@@ -101,19 +117,12 @@ export function useCofheTokensClaimable(
 
   const chainId = useCofheChainId();
 
-  const { filteredTxs: pendingUnshieldTxs } = useStoredTransactions({
+  const { combined: isUnshieldingInProgressByTokenAddress = {} } = useStoredTransactions({
     chainId,
     account,
-    filter: (tx) => tx.actionType === TransactionActionType.Unshield && tx.status === TransactionStatus.Pending,
+    filter: pendingUnshieldsFilter,
+    combine: combineIsUnshieldingInProgressByTokenAddress,
   });
-
-  const isUnshieldingInProgressByTokenAddress = useMemo(() => {
-    return pendingUnshieldTxs.reduce<Record<string, boolean>>((acc, tx) => {
-      const key = tx.token.address.toLowerCase();
-      acc[key] = true;
-      return acc;
-    }, {});
-  }, [pendingUnshieldTxs]);
 
   // TODO: show those that have zero claimable right now but is maybe ongoing unshielding/decryption
 
