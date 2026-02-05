@@ -11,6 +11,7 @@ import { useCofheTokenClaimUnshielded } from '@/hooks';
 import { cn } from '@/utils';
 import { Button } from '../components';
 import type { Address } from 'viem';
+import { assert } from 'ts-essentials';
 export function ClaimableTokens() {
   // TODO: or show multichain, with switching?
 
@@ -18,14 +19,12 @@ export function ClaimableTokens() {
   const claimableByTokenAddress = chainsClaimableTokens.claimableByTokenAddress;
   const unshieldingInProgressByTokenAddress = chainsClaimableTokens.isUnshieldingInProgressByTokenAddress;
   const waitingByTokenAddress = chainsClaimableTokens.isWaitingForDecryptionByTokenAddress;
+  const isClaimingByTokenAddress = chainsClaimableTokens.isClaimingByTokenAddress;
   const { navigateBack } = usePortalNavigation();
 
   const chainId = useCofheChainId();
   const allTokens = useCofheTokens(chainId);
   const claimMutation = useCofheTokenClaimUnshielded();
-
-  // TODO: this approach to track which one is claiming doesn't work, needs fixed
-  const [claimingTokenAddress, setClaimingTokenAddress] = useState<string | null>(null);
 
   const rows = useMemo(() => {
     const byLower = new Map(allTokens.map((t) => [t.address.toLowerCase(), t] as const));
@@ -40,14 +39,9 @@ export function ClaimableTokens() {
 
   const handleClaim = async (tokenAddress: string) => {
     const row = rows.find((r) => r.token.address.toLowerCase() === tokenAddress.toLowerCase());
-    if (!row) return;
+    assert(row, 'token not found for claim');
 
-    setClaimingTokenAddress(row.token.address);
-    try {
-      await claimMutation.mutateAsync({ token: row.token, amount: row.claimableAmount });
-    } finally {
-      setClaimingTokenAddress(null);
-    }
+    await claimMutation.mutateAsync({ token: row.token, amount: row.claimableAmount });
   };
 
   return (
@@ -71,7 +65,7 @@ export function ClaimableTokens() {
             const isUnshielding =
               unshieldingInProgressByTokenAddress?.[token.address.toLowerCase() as Address] ?? false;
             const formatted = formatTokenAmount(claimableAmount, token.decimals, 5).formatted;
-            const isClaimingThis = claimingTokenAddress?.toLowerCase() === token.address.toLowerCase();
+            const isClaimingThis = isClaimingByTokenAddress[token.address.toLowerCase() as Address] ?? false;
 
             return (
               <div key={token.address} className="grid grid-cols-[1fr,auto,auto] items-center gap-4">

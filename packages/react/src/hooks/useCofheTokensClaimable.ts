@@ -63,6 +63,7 @@ type CombinedResult = {
   claimableByTokenAddress: ClaimableAmountByTokenAddress;
   isWaitingForDecryptionByTokenAddress: BooleanByAddress;
   isUnshieldingInProgressByTokenAddress: BooleanByAddress;
+  isClaimingByTokenAddress: BooleanByAddress;
   queries: UseQueryResult<UnshieldClaimsSummary, Error>[];
   isLoading: boolean;
   isFetching: boolean;
@@ -71,17 +72,19 @@ type CombinedResult = {
   error: Error | null;
 };
 
+const pendingClaimsFilter = (tx: { actionType: TransactionActionType; status: TransactionStatus }) =>
+  tx.actionType === TransactionActionType.Claim && tx.status === TransactionStatus.Pending;
+
 const pendingUnshieldsFilter = (tx: { actionType: TransactionActionType; status: TransactionStatus }) =>
   tx.actionType === TransactionActionType.Unshield && tx.status === TransactionStatus.Pending;
 
-const combineIsUnshieldingInProgressByTokenAddress = (
+const combineTrueByLowerTokenAddress = (
   txs: { token: { address: string }; actionType: TransactionActionType; status: TransactionStatus }[]
 ) => {
   return txs.reduce<Record<string, boolean>>((acc, tx) => {
-    if (pendingUnshieldsFilter(tx)) {
-      const key = tx.token.address.toLowerCase();
-      acc[key] = true;
-    }
+    const key = tx.token.address.toLowerCase();
+    acc[key] = true;
+
     return acc;
   }, {});
 };
@@ -121,7 +124,14 @@ export function useCofheTokensClaimable(
     chainId,
     account,
     filter: pendingUnshieldsFilter,
-    combine: combineIsUnshieldingInProgressByTokenAddress,
+    combine: combineTrueByLowerTokenAddress,
+  });
+
+  const { combined: isClaimingByTokenAddress = {} } = useStoredTransactions({
+    chainId,
+    account,
+    filter: pendingClaimsFilter,
+    combine: combineTrueByLowerTokenAddress,
   });
 
   // TODO: show those that have zero claimable right now but is maybe ongoing unshielding/decryption
@@ -166,7 +176,10 @@ export function useCofheTokensClaimable(
     }),
     combine: (results) => {
       return results.reduce<
-        Omit<CombinedResult, 'isWaitingForDecryptionByTokenAddress' | 'isUnshieldingInProgressByTokenAddress'>
+        Omit<
+          CombinedResult,
+          'isWaitingForDecryptionByTokenAddress' | 'isUnshieldingInProgressByTokenAddress' | 'isClaimingByTokenAddress'
+        >
       >(
         (acc, result, index) => {
           const token = normalizedTokens[index];
@@ -212,5 +225,6 @@ export function useCofheTokensClaimable(
     error: combined.error,
     isWaitingForDecryptionByTokenAddress,
     isUnshieldingInProgressByTokenAddress,
+    isClaimingByTokenAddress,
   };
 }
