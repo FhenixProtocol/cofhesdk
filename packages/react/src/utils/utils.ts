@@ -216,14 +216,16 @@ export const formatRelativeTime = (timestamp: number): string => {
 
 export const formatExpirationLabel = (expiration?: number) => {
   if (!expiration) {
-    return { label: 'Unknown', expired: false };
+    return { label: 'Unknown', expired: false, expiringSoon: false  };
   }
 
   const now = Math.floor(Date.now() / 1000);
   const diff = expiration - now;
 
-  if (diff <= 0) {
-    return { label: 'Expired', expired: true };
+  const expired = diff <= 0;
+  const expiringSoon = diff <= 1 * 60 * 60;
+  if (expired) {
+    return { label: 'Expired', expired: true, expiringSoon: false };
   }
 
   const day = 60 * 60 * 24;
@@ -232,16 +234,16 @@ export const formatExpirationLabel = (expiration?: number) => {
 
   if (diff >= day) {
     const days = Math.ceil(diff / day);
-    return { label: `${days} Day${days === 1 ? '' : 's'}`, expired: false };
+    return { label: `${days} Day${days === 1 ? '' : 's'}`, expired: false, expiringSoon };
   }
 
   if (diff >= hour) {
     const hours = Math.ceil(diff / hour);
-    return { label: `${hours} Hour${hours === 1 ? '' : 's'}`, expired: false };
+    return { label: `${hours} Hour${hours === 1 ? '' : 's'}`, expired: false, expiringSoon };
   }
 
   const minutes = Math.max(1, Math.ceil(diff / minute));
-  return { label: `${minutes} Minute${minutes === 1 ? '' : 's'}`, expired: false };
+  return { label: `${minutes} Minute${minutes === 1 ? '' : 's'}`, expired: false, expiringSoon };
 };
 
 export function isReactNode(data: unknown): data is React.ReactNode {

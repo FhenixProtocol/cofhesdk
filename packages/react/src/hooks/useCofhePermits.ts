@@ -66,6 +66,11 @@ export const useCofheActivePermit = ():
   return connected ? permitData : undefined;
 };
 
+export const useCofheActivePermitHash = (): string | undefined => {
+  const activePermit = useCofheActivePermit();
+  return useMemo(() => activePermit?.hash, [activePermit?.hash]);
+};
+
 export const useCofheAllPermits = (): { hash: string; permit: Permit }[] => {
   const { account, chainId, connected } = useCofheConnection();
 
