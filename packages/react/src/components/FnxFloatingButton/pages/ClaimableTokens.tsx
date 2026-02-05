@@ -28,6 +28,7 @@ export function ClaimableTokens() {
 
   const rows = useMemo(() => {
     const byLower = new Map(allTokens.map((t) => [t.address.toLowerCase(), t] as const));
+    // TODO: show those that have zero claimable right now but is maybe ongoing unshielding/decryption?
     return Object.entries(claimableByTokenAddress)
       .filter(([_t, amount]) => amount > 0n)
       .map(([tokenAddress, claimableAmount]) => {

@@ -134,8 +134,6 @@ export function useCofheTokensClaimable(
     combine: combineTrueByLowerTokenAddress,
   });
 
-  // TODO: show those that have zero claimable right now but is maybe ongoing unshielding/decryption
-
   const combined = useInternalQueries({
     queries: normalizedTokens.map((token) => {
       const confidentialityType = token.extensions.fhenix.confidentialityType;
