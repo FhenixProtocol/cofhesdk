@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { type Address } from 'viem';
 import { assert } from 'ts-essentials';
 
-import { useCofhePublicClient } from './useCofheConnection.js';
+import { useCofheAccount, useCofheChainId, useCofhePublicClient } from './useCofheConnection.js';
 import { type Token } from './useCofheTokenLists.js';
 import { useInternalQueries } from '../providers/index.js';
 import { useNormalizedList } from './useNormalizedList.js';
@@ -15,10 +15,12 @@ import {
   isTokenConfidentialityTypeClaimable,
   type UnshieldClaimsSummary,
 } from './useCofheTokenClaimable.js';
+import { useStoredTransactions } from './useStoredTransactions.js';
+import { TransactionActionType, TransactionStatus } from '@/stores/transactionStore.js';
 
 export type UnshieldClaimsSummaryByTokenAddress = Record<Address, UnshieldClaimsSummary>;
 export type ClaimableAmountByTokenAddress = Record<Address, bigint>;
-export type IsWaitingForDecryptionByTokenAddress = Record<Address, boolean>;
+export type BooleanByAddress = Record<Address, boolean>;
 
 type UseUnshieldClaimsManyInput = {
   tokens: Token[];
@@ -59,7 +61,8 @@ function claimableSort(a: ClaimableToken, b: ClaimableToken): number {
 type CombinedResult = {
   summariesByTokenAddress: UnshieldClaimsSummaryByTokenAddress;
   claimableByTokenAddress: ClaimableAmountByTokenAddress;
-  isWaitingForDecryptionByTokenAddress: IsWaitingForDecryptionByTokenAddress;
+  isWaitingForDecryptionByTokenAddress: BooleanByAddress;
+  isUnshieldingInProgressByTokenAddress: BooleanByAddress;
   queries: UseQueryResult<UnshieldClaimsSummary, Error>[];
   isLoading: boolean;
   isFetching: boolean;
@@ -95,6 +98,23 @@ export function useCofheTokensClaimable(
   }, [account, normalizedTokens]);
 
   const isWaitingForDecryptionByTokenAddress = useIsWaitingForDecryptionByAddress(waitingEntries);
+
+  const chainId = useCofheChainId();
+
+  const { filteredTxs: pendingUnshieldTxs } = useStoredTransactions({
+    chainId,
+    account,
+    filter: (tx) => tx.actionType === TransactionActionType.Unshield && tx.status === TransactionStatus.Pending,
+  });
+
+  const isUnshieldingInProgressByTokenAddress = useMemo(() => {
+    return pendingUnshieldTxs.reduce<Record<string, boolean>>((acc, tx) => {
+      const key = tx.token.address.toLowerCase();
+      acc[key] = true;
+      return acc;
+    }, {});
+  }, [pendingUnshieldTxs]);
+
   // TODO: show those that have zero claimable right now but is maybe ongoing unshielding/decryption
 
   const combined = useInternalQueries({
@@ -136,7 +156,9 @@ export function useCofheTokensClaimable(
       };
     }),
     combine: (results) => {
-      return results.reduce<Omit<CombinedResult, 'isWaitingForDecryptionByTokenAddress'>>(
+      return results.reduce<
+        Omit<CombinedResult, 'isWaitingForDecryptionByTokenAddress' | 'isUnshieldingInProgressByTokenAddress'>
+      >(
         (acc, result, index) => {
           const token = normalizedTokens[index];
           if (!token) return acc;
@@ -180,5 +202,6 @@ export function useCofheTokensClaimable(
     isError: combined.isError,
     error: combined.error,
     isWaitingForDecryptionByTokenAddress,
+    isUnshieldingInProgressByTokenAddress,
   };
 }

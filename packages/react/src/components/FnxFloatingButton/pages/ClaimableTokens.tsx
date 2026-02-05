@@ -10,12 +10,13 @@ import { useMemo, useState } from 'react';
 import { useCofheTokenClaimUnshielded } from '@/hooks';
 import { cn } from '@/utils';
 import { Button } from '../components';
+import type { Address } from 'viem';
 export function ClaimableTokens() {
   // TODO: or show multichain, with switching?
 
   const chainsClaimableTokens = useCofheClaimableTokens();
   const claimableByTokenAddress = chainsClaimableTokens.claimableByTokenAddress;
-  // TODO: also show busy when unshielding tx in progress too ('Unshielding...' state)
+  const unshieldingInProgressByTokenAddress = chainsClaimableTokens.isUnshieldingInProgressByTokenAddress;
   const waitingByTokenAddress = chainsClaimableTokens.isWaitingForDecryptionByTokenAddress;
   const { navigateBack } = usePortalNavigation();
 
@@ -66,7 +67,9 @@ export function ClaimableTokens() {
       content={
         <div className="flex flex-col gap-4 pr-1">
           {rows.map(({ token, claimableAmount }) => {
-            const isWaiting = !!waitingByTokenAddress?.[token.address as keyof typeof waitingByTokenAddress];
+            const isDecrypting = waitingByTokenAddress?.[token.address] ?? false;
+            const isUnshielding =
+              unshieldingInProgressByTokenAddress?.[token.address.toLowerCase() as Address] ?? false;
             const formatted = formatTokenAmount(claimableAmount, token.decimals, 5).formatted;
             const isClaimingThis = claimingTokenAddress?.toLowerCase() === token.address.toLowerCase();
 
@@ -94,9 +97,9 @@ export function ClaimableTokens() {
                 <Button
                   type="button"
                   onClick={() => handleClaim(token.address)}
-                  disabled={isWaiting || isClaimingThis || claimMutation.isPending}
+                  disabled={isUnshielding || isDecrypting || isClaimingThis || claimMutation.isPending}
                 >
-                  {isWaiting ? 'Decrypting' : 'Claim'}
+                  {isDecrypting ? 'Decrypting' : isUnshielding ? 'Unshielding' : 'Claim'}
                 </Button>
               </div>
             );
