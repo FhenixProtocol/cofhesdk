@@ -92,7 +92,7 @@ const debugNavItem = {
 const isProduction = (): boolean => {
   // Check process.env (Node.js, webpack, etc.)
   // eslint-disable-next-line turbo/no-undeclared-env-vars, no-undef
-  if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'production') {
+  if (typeof process !== 'undefined' && process.env?.NODE_ENV !== 'development') {
     return true;
   }
 
@@ -100,14 +100,14 @@ const isProduction = (): boolean => {
   if (typeof import.meta !== 'undefined') {
     const metaEnv = (import.meta as any).env;
     if (metaEnv) {
-      if (metaEnv.PROD === true || metaEnv.MODE === 'production') {
+      if (metaEnv.PROD || metaEnv.MODE !== 'development') {
         return true;
       }
     }
   }
 
-  // Default to showing debug in library context (conservative approach)
-  return false;
+  // Default to hiding debug in library context
+  return true;
 };
 
 const navItems = [...baseNavItems, ...(!isProduction() ? [debugNavItem] : [])] as const;
