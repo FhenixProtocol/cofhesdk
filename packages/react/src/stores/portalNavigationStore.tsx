@@ -3,7 +3,6 @@ import {
   FloatingButtonPage,
   type FloatingButtonPagePropsMap,
   type PageState,
-  type PagesWithoutProps,
   type PagesWithProps,
 } from '@/components/FnxFloatingButton/pagesConfig/types';
 import { create } from 'zustand';
@@ -18,12 +17,10 @@ export type NavigateArgs<K extends FloatingButtonPage> = {
   navigateParams?: NavigateParams;
 };
 
-type NavigateToFn = {
-  // For pages without props, second arg is optional and may include navigateParams only
-  <K extends PagesWithoutProps>(page: K, args?: NavigateArgs<K>): void;
-  // For pages with props, require pageProps inside second arg
-  <K extends PagesWithProps>(page: K, args: NavigateArgs<K>): void;
-};
+type NavigateToFn = <K extends FloatingButtonPage>(
+  page: K,
+  ...rest: K extends PagesWithProps ? [args: NavigateArgs<K>] : [args?: NavigateArgs<K>]
+) => void;
 
 type PortalNavigationStore = {
   pageHistory: PageState[];
@@ -51,11 +48,10 @@ export const usePortalNavigation = create<PortalNavigationStore & PortalNavigati
     return onPage;
   }
 
-  function navigateTo<K extends PagesWithoutProps>(page: K, args?: NavigateArgs<K>): void;
-  function navigateTo<K extends PagesWithProps>(page: K, args: NavigateArgs<K>): void;
-  function navigateTo<K extends FloatingButtonPage>(page: K, args?: NavigateArgs<K>): void {
+  const navigateTo: NavigateToFn = (page, ...rest) => {
     if (warnIfAlreadyOnPage(page)) return;
 
+    const args = rest[0];
     const props = args?.pageProps;
     const skipPagesHistory = args?.navigateParams?.skipPagesHistory === true;
     if (skipPagesHistory) {
@@ -65,16 +61,15 @@ export const usePortalNavigation = create<PortalNavigationStore & PortalNavigati
       const updated = [...existing, { page, props }];
       set({ pageHistory: updated });
     }
-  }
+  };
 
-  function replace<K extends PagesWithoutProps>(page: K, args?: NavigateArgs<K>): void;
-  function replace<K extends PagesWithProps>(page: K, args: NavigateArgs<K>): void;
-  function replace<K extends FloatingButtonPage>(page: K, args?: NavigateArgs<K>): void {
+  const replace: NavigateToFn = (page, ...rest) => {
     if (warnIfAlreadyOnPage(page)) return;
 
     clearNavigationHistory();
-    navigateTo(page as any, args);
-  }
+
+    navigateTo(page, ...rest);
+  };
 
   return {
     pageHistory: [{ page: FloatingButtonPage.Main }],
