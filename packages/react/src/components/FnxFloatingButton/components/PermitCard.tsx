@@ -6,6 +6,7 @@ import { useCopyFeedback } from '@/hooks/useCopyFeedback';
 import { PermitUtils, type Permit, type PermitType } from '@cofhe/sdk/permits';
 import { PermitStripedBackground } from '@/components/StripedBackground';
 import { useCofheActivePermitHash } from '@/hooks/useCofhePermits';
+import { useMemo } from 'react';
 
 const PermitTypeLabel: Record<PermitType, string> = {
   self: 'Self',
@@ -30,7 +31,16 @@ export const BasePermitCard: React.FC<{ permit: Permit; className?: string; head
 }) => {
   const activePermitHash = useCofheActivePermitHash();
   const expirationInfo = formatExpirationLabel(permit.expiration);
-  const isActivePermit = PermitUtils.getHash(permit) === activePermitHash;
+
+  const metadataTags = useMemo(() => {
+    const isActivePermit = PermitUtils.getHash(permit) === activePermitHash;
+    const tags: string[] = [];
+    if (expirationInfo.expired) tags.push('expired');
+    if (expirationInfo.expiringSoon) tags.push('expiring soon');
+    if (isActivePermit) tags.push('active');
+    return tags;
+  }, [expirationInfo.expired, expirationInfo.expiringSoon, activePermitHash, permit]);
+
   return (
     <div
       className={cn(
@@ -73,11 +83,13 @@ export const BasePermitCard: React.FC<{ permit: Permit; className?: string; head
               <br />
             </>
           )}
-
-          {(expirationInfo.expired || expirationInfo.expiringSoon || isActivePermit) && <br />}
-          {isActivePermit && <b>-- ACTIVE --</b>}
-          {expirationInfo.expired && <b>-- EXPIRED --</b>}
-          {expirationInfo.expiringSoon && <b>-- EXPIRING SOON --</b>}
+          {metadataTags.length > 0 && <br />}
+          {metadataTags.map((tag) => (
+            <b key={tag}>
+              -- {tag.toUpperCase()} --
+              <br />
+            </b>
+          ))}
         </pre>
       </div>
     </div>
