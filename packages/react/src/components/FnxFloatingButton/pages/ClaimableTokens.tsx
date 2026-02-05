@@ -9,10 +9,13 @@ import { formatTokenAmount } from '@/utils/format';
 import { useMemo, useState } from 'react';
 import { useCofheTokenClaimUnshielded } from '@/hooks';
 import { cn } from '@/utils';
+import { Button } from '../components';
 export function ClaimableTokens() {
   // TODO: or show multichain, with switching?
+
   const chainsClaimableTokens = useCofheClaimableTokens();
   const claimableByTokenAddress = chainsClaimableTokens.claimableByTokenAddress;
+  // TODO: also show busy when unshielding tx in progress too ('Unshielding...' state)
   const waitingByTokenAddress = chainsClaimableTokens.isWaitingForDecryptionByTokenAddress;
   const { navigateBack } = usePortalNavigation();
 
@@ -20,8 +23,8 @@ export function ClaimableTokens() {
   const allTokens = useCofheTokens(chainId);
   const claimMutation = useCofheTokenClaimUnshielded();
 
+  // TODO: this approach to track which one is claiming doesn't work, needs fixed
   const [claimingTokenAddress, setClaimingTokenAddress] = useState<string | null>(null);
-  const [isClaimingAll, setIsClaimingAll] = useState(false);
 
   const rows = useMemo(() => {
     const byLower = new Map(allTokens.map((t) => [t.address.toLowerCase(), t] as const));
@@ -46,56 +49,26 @@ export function ClaimableTokens() {
     }
   };
 
-  const handleClaimAll = async () => {
-    if (rows.length === 0) return;
-    setIsClaimingAll(true);
-    try {
-      for (const row of rows) {
-        const isWaiting = !!waitingByTokenAddress?.[row.token.address as keyof typeof waitingByTokenAddress];
-        if (isWaiting) continue;
-        await claimMutation.mutateAsync({ token: row.token, amount: row.claimableAmount });
-      }
-    } finally {
-      setIsClaimingAll(false);
-    }
-  };
-
   return (
     <PageContainer
       header={
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
           <button
             className="flex items-center gap-2 text-xl font-semibold text-[#0E2F3F] transition-opacity hover:opacity-80 dark:text-white"
             type="button"
             onClick={navigateBack}
           >
             <ArrowBackIcon fontSize="small" />
-            <span>Claimable Tokens list</span>
           </button>
-
-          <button
-            type="button"
-            onClick={handleClaimAll}
-            disabled={rows.length === 0 || isClaimingAll || claimMutation.isPending}
-            className={cn(
-              'px-4 py-2 text-sm font-semibold',
-              'rounded-none',
-              'border border-[rgba(0,0,0,0.25)]',
-              'bg-[#6EE7F5] text-[#003B4A]',
-              'transition-opacity',
-              (rows.length === 0 || isClaimingAll || claimMutation.isPending) && 'opacity-50 cursor-not-allowed'
-            )}
-          >
-            Claim All
-          </button>
+          <span>Claimable Tokens list</span>
         </div>
       }
       content={
         <div className="flex flex-col gap-4 pr-1">
           {rows.map(({ token, claimableAmount }) => {
             const isWaiting = !!waitingByTokenAddress?.[token.address as keyof typeof waitingByTokenAddress];
-            const formatted = formatTokenAmount(claimableAmount, token.decimals).unit.toFormat(2);
-            const isClaimingThis = claimingTokenAddress?.toLowerCase() === token.address.toLowerCase() || isClaimingAll;
+            const formatted = formatTokenAmount(claimableAmount, token.decimals, 5).formatted;
+            const isClaimingThis = claimingTokenAddress?.toLowerCase() === token.address.toLowerCase();
 
             return (
               <div key={token.address} className="grid grid-cols-[1fr,auto,auto] items-center gap-4">
@@ -118,21 +91,13 @@ export function ClaimableTokens() {
 
                 <div className="text-2xl font-semibold fnx-text-primary tabular-nums">{formatted}</div>
 
-                <button
+                <Button
                   type="button"
                   onClick={() => handleClaim(token.address)}
                   disabled={isWaiting || isClaimingThis || claimMutation.isPending}
-                  className={cn(
-                    'px-5 py-2 text-base font-medium',
-                    'rounded-none',
-                    'border border-[var(--fnx-button-default-border)]',
-                    'bg-[var(--fnx-button-bg)] fnx-text-primary',
-                    'transition-opacity',
-                    (isWaiting || isClaimingThis || claimMutation.isPending) && 'opacity-50 cursor-not-allowed'
-                  )}
                 >
                   {isWaiting ? 'Decrypting' : 'Claim'}
-                </button>
+                </Button>
               </div>
             );
           })}

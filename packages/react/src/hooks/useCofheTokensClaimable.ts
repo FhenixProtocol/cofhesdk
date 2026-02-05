@@ -95,6 +95,7 @@ export function useCofheTokensClaimable(
   }, [account, normalizedTokens]);
 
   const isWaitingForDecryptionByTokenAddress = useIsWaitingForDecryptionByAddress(waitingEntries);
+  // TODO: show those that have zero claimable right now but is maybe ongoing unshielding/decryption
 
   const combined = useInternalQueries({
     queries: normalizedTokens.map((token) => {
