@@ -52,7 +52,6 @@ export const usePortalUI = create<PortalUIStore & PortalUIActions>()((set, get) 
     const { onOpenBegin, onOpenEnd } = args;
     const { closeTimeoutId, statusPanelOpen } = get();
 
-    
     // Open portal
     onOpenBegin?.();
     set({ portalOpen: true });
