@@ -216,7 +216,7 @@ export const formatRelativeTime = (timestamp: number): string => {
 
 export const formatExpirationLabel = (expiration?: number) => {
   if (!expiration) {
-    return { label: 'Unknown', expired: false, expiringSoon: false  };
+    return { label: 'Unknown', expired: false, expiringSoon: false };
   }
 
   const now = Math.floor(Date.now() / 1000);
