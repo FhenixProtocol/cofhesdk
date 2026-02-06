@@ -1,4 +1,7 @@
 import { QueryClient } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+//  * @deprecated use `createAsyncStoragePersister` from `@tanstack/query-async-storage-persister` instead.
+import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import { createContext, useContext, useMemo } from 'react';
 import { shouldPassToErrorBoundary } from './errors';
 
@@ -15,6 +18,11 @@ export const useInternalQueryClient = (): QueryClient => {
   const qc = useContext(InternalQueryClientContext);
   if (!qc) throw new Error('QueryClient not available. Wrap with CofheProvider/QueryProvider.');
   return qc;
+};
+const persistenceConfig = {
+  storage: 'sessionStorage' as 'sessionStorage' | 'localStorage',
+  key: 'cofhe:react-query',
+  maxAgeMs: 86_400_000,
 };
 
 export const QueryProvider = ({
@@ -38,5 +46,39 @@ export const QueryProvider = ({
       },
     });
   }, [overridingQueryClient]);
-  return <InternalQueryClientContext.Provider value={queryClient}>{children}</InternalQueryClientContext.Provider>;
+
+  const persister = useMemo(() => {
+    if (typeof window === 'undefined') return undefined;
+    const storage = persistenceConfig.storage === 'localStorage' ? window.localStorage : window.sessionStorage;
+
+    return createAsyncStoragePersister({
+      storage,
+      key: persistenceConfig.key ?? 'cofhe:react-query',
+    });
+  }, []);
+
+  const content = (
+    <InternalQueryClientContext.Provider value={queryClient}>{children}</InternalQueryClientContext.Provider>
+  );
+
+  if (!persister) return content;
+
+  return (
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{
+        persister,
+        maxAge: persistenceConfig.maxAgeMs ?? 86_400_000,
+        buster: 'cofhe-react-query-v1',
+        dehydrateOptions: {
+          // Persist only decrypted ciphertext results by default.
+          shouldDehydrateQuery: (query) => {
+            return query.queryKey?.[0] === 'decryptCiphertext';
+          },
+        },
+      }}
+    >
+      {content}
+    </PersistQueryClientProvider>
+  );
 };
