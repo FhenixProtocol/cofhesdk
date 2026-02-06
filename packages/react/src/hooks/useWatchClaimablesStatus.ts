@@ -7,17 +7,17 @@ import { FloatingButtonPage } from '@/components/FnxFloatingButton/pagesConfig/t
 
 const CLAIMS_AVAILABLE_STATUS_ID = 'claims-available';
 type Input = {
-  onClickClaim: () => void;
+  onClick: () => void;
 };
-export const showClaimsAvailableStatus = ({ onClickClaim }: Input) => {
+export const showClaimsAvailableStatus = ({ onClick }: Input) => {
   usePortalStatuses.getState().addStatus({
     id: CLAIMS_AVAILABLE_STATUS_ID,
     variant: 'info',
     title: '', // TODO: no title per design
     description: `You have unclaimed encrypted tokens`,
     action: {
-      label: 'Claim',
-      onClick: onClickClaim,
+      label: 'VIEW',
+      onClick,
     },
   });
 };
@@ -34,7 +34,7 @@ export const useWatchClaimablesStatus = () => {
     const claimsAvailableStatusShown = usePortalStatuses.getState().hasStatus(CLAIMS_AVAILABLE_STATUS_ID);
     if (totalTokensClaimable > 0 && !claimsAvailableStatusShown) {
       showClaimsAvailableStatus({
-        onClickClaim: () => {
+        onClick: () => {
           openPortal();
           navigateTo(FloatingButtonPage.ClaimableTokens);
         },
