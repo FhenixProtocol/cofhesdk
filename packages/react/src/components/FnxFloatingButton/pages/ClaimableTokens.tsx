@@ -66,7 +66,7 @@ export function ClaimableTokens() {
             const isUnshielding =
               unshieldingInProgressByTokenAddress?.[token.address.toLowerCase() as Address] ?? false;
             const formatted = formatTokenAmount(claimableAmount, token.decimals, 5).formatted;
-            const isClaimingThis = isClaimingByTokenAddress[token.address.toLowerCase() as Address] ?? false;
+            const isClaimingThis = isClaimingByTokenAddress?.[token.address.toLowerCase() as Address] ?? false;
 
             return (
               <div key={token.address} className="grid grid-cols-[1fr,auto,auto] items-center gap-4">
