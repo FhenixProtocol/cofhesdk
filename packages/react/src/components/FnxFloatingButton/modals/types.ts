@@ -1,4 +1,6 @@
 import type { PermitType } from '@cofhe/sdk/permits';
+import type { TokenListMode } from '../FnxFloatingButtonContext';
+import type { TokenListPageProps } from '../pages/TokenListPage';
 
 export enum PortalModal {
   ExampleSelection = 'exampleSelection',
@@ -6,6 +8,7 @@ export enum PortalModal {
   PermitDetails = 'permitDetails',
   PermitTypeInfo = 'permitTypeInfo',
   PermitInfo = 'permitInfo',
+  TokenList = 'tokenList',
 }
 
 export type PortalModalPropsMap = {
@@ -14,6 +17,7 @@ export type PortalModalPropsMap = {
   [PortalModal.PermitDetails]: { hash: string };
   [PortalModal.PermitTypeInfo]: { type: PermitType };
   [PortalModal.PermitInfo]: void;
+  [PortalModal.TokenList]: TokenListPageProps;
 };
 
 export type PortalModalsWithProps = {

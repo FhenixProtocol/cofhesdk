@@ -8,7 +8,6 @@ import {
   SendPage,
   SettingsPage,
   TokenInfoPage,
-  TokenListPage,
   DebugPage,
   ShieldPageV2,
   DelegatePermitPage,
@@ -19,7 +18,7 @@ import { FloatingButtonPage } from './types';
 export const pages: Record<FloatingButtonPage, FC<any>> = {
   [FloatingButtonPage.Main]: MainPage,
   [FloatingButtonPage.Settings]: SettingsPage,
-  [FloatingButtonPage.TokenList]: TokenListPage,
+
   [FloatingButtonPage.TokenInfo]: TokenInfoPage,
   [FloatingButtonPage.Send]: SendPage,
   [FloatingButtonPage.Shield]: ShieldPageV2,

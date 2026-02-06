@@ -15,8 +15,9 @@ import { type Token } from '@/hooks';
 import { getStepConfig } from '@/hooks/useCofheEncrypt';
 import { FloatingButtonPage } from '../pagesConfig/types';
 import { useOnceTransactionMined } from '@/hooks/useOnceTransactionMined';
-import { usePortalNavigation } from '@/stores';
+import { usePortalModals, usePortalNavigation } from '@/stores';
 import { PageContainer } from '../components/PageContainer';
+import { PortalModal } from '../modals/types';
 
 export type SendPageProps = {
   token: Token;
@@ -30,6 +31,7 @@ declare module '../pagesConfig/types' {
 
 export const SendPage: React.FC<SendPageProps> = ({ token }) => {
   const { navigateBack, navigateTo } = usePortalNavigation();
+  const { openModal } = usePortalModals();
 
   const account = useCofheAccount();
   const {
@@ -150,12 +152,10 @@ export const SendPage: React.FC<SendPageProps> = ({ token }) => {
                 <button
                   onClick={() => {
                     // navigateToTokenListForSelection()
-                    navigateTo(FloatingButtonPage.TokenList, {
-                      pageProps: {
-                        mode: 'select',
-                        title: 'Select token to transfer',
-                        backToPageState: { page: FloatingButtonPage.Send },
-                      },
+                    openModal(PortalModal.TokenList, {
+                      mode: 'select',
+                      title: 'Select token to transfer',
+                      backToPageState: { page: FloatingButtonPage.Send, props: { token } },
                     });
                   }}
                   className="flex items-center gap-1 text-2xl font-bold fnx-text-primary hover:opacity-80 transition-opacity whitespace-nowrap flex-shrink-0"

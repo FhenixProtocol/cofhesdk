@@ -18,10 +18,11 @@ import { useOnceTransactionMined } from '@/hooks/useOnceTransactionMined';
 import { useReschedulableTimeout } from '@/hooks/useReschedulableTimeout';
 import { assert } from 'ts-essentials';
 import type { BigNumber } from 'bignumber.js';
-import { usePortalNavigation } from '@/stores';
+import { usePortalModals, usePortalNavigation } from '@/stores';
 import { CofheTokenPublicBalance } from '../components/CofheTokenConfidentialBalance';
 import { useIsUnshieldingMining } from '@/hooks/useIsUnshieldingMining';
 import { PageContainer } from '../components/PageContainer';
+import { PortalModal } from '../modals/types';
 
 const AUTOCLEAR_TX_STATUS_TIMEOUT = 5000;
 const DISPLAY_DECIMALS = 5;
@@ -423,6 +424,8 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
   primaryIcon,
 }) => {
   const { navigateBack, navigateTo } = usePortalNavigation();
+  const { openModal } = usePortalModals();
+
   const isShieldableToken = shieldableTypes.has(token.extensions.fhenix.confidentialityType);
 
   // TODO: probably can be refactored into a view with more stramlined logic
@@ -441,12 +444,10 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
           <button
             onClick={() =>
               // navigateToTokenListForSelection(mode === 'shield' ? 'Select token to shield' : 'Select token to unshield')
-              navigateTo(FloatingButtonPage.TokenList, {
-                pageProps: {
-                  mode: 'select',
-                  title: mode === 'shield' ? 'Select token to shield' : 'Select token to unshield',
-                  backToPageState: { page: FloatingButtonPage.Shield, props: { defaultMode: mode } },
-                },
+              openModal(PortalModal.TokenList, {
+                mode: 'select',
+                title: mode === 'shield' ? 'Select token to shield' : 'Select token to unshield',
+                backToPageState: { page: FloatingButtonPage.Shield, props: { defaultMode: mode } },
               })
             }
             className="flex items-center gap-1 text-sm font-bold fnx-text-primary hover:opacity-80 transition-opacity"
