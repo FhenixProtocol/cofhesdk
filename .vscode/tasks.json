@@ -1,0 +1,52 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "dev:packages/react",
+      "type": "shell",
+      "command": "zsh",
+      "args": [
+        "-ic",
+        "set -m; pnpm dev & pid=$!; trap \"kill -TERM -$pid 2>/dev/null; sleep 0.2; kill -KILL -$pid 2>/dev/null\" INT TERM HUP EXIT; wait $pid"
+      ],
+      "isBackground": true,
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}/packages/react"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "dev:examples/react",
+      "type": "shell",
+      "command": "zsh",
+      "args": [
+        "-ic",
+        "set -m; pnpm dev & pid=$!; trap \"kill -TERM -$pid 2>/dev/null; sleep 0.2; kill -KILL -$pid 2>/dev/null\" INT TERM HUP EXIT; wait $pid"
+      ],
+      "isBackground": true,
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}/examples/react"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "dev:react (2 terminals)",
+      "dependsOn": [
+        "dev:packages/react",
+        "dev:examples/react"
+      ],
+      "dependsOrder": "parallel",
+      "problemMatcher": []
+    }
+  ]
+}
