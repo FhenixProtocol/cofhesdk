@@ -15,25 +15,24 @@ type PageStateWithoutTokenProp = Omit<PageState, 'props'> & { props?: Omit<PageS
 export type TokenListModalProps = { title?: string; backToPageState: PageStateWithoutTokenProp; mode: TokenListMode };
 
 export const TokenListModal: React.FC<PortalModalStateMap[PortalModal.TokenList]> = ({
+  // modal,
+  onClose,
   mode,
   title,
   backToPageState,
 }) => {
   const { navigateTo } = usePortalNavigation();
-  const { closeModal } = usePortalModals();
+
   const chainId = useCofheChainId();
   const allTokens = useCofheTokens(chainId);
 
   const defaultTitle = mode === 'select' ? 'Select token to transfer' : 'Token List';
   const pageTitle = title ?? defaultTitle;
-
+  //
   return (
     <PageContainer
       header={
-        <button
-          onClick={() => closeModal(PortalModal.TokenList)}
-          className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity"
-        >
+        <button onClick={onClose} className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity">
           <ArrowBackIcon style={{ fontSize: 16 }} />
           <p className="text-sm font-medium">{pageTitle}</p>
         </button>
@@ -48,6 +47,7 @@ export const TokenListModal: React.FC<PortalModalStateMap[PortalModal.TokenList]
                 onClick={() => {
                   assert(isPageWithProps(backToPageState.page), 'backToPageState must be a page with props');
                   navigateTo(backToPageState.page, { pageProps: { ...backToPageState.props, token } });
+                  onClose();
                 }}
                 key={token.address}
                 token={token}
