@@ -18,7 +18,6 @@ import { FloatingButtonPage } from './types';
 export const pages: Record<FloatingButtonPage, FC<any>> = {
   [FloatingButtonPage.Main]: MainPage,
   [FloatingButtonPage.Settings]: SettingsPage,
-
   [FloatingButtonPage.TokenInfo]: TokenInfoPage,
   [FloatingButtonPage.Send]: SendPage,
   [FloatingButtonPage.Shield]: ShieldPageV2,

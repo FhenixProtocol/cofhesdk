@@ -1,7 +1,6 @@
 export enum FloatingButtonPage {
   Main = 'main',
   Settings = 'settings',
-
   TokenInfo = 'tokeninfo',
   Send = 'send',
   Shield = 'shield',

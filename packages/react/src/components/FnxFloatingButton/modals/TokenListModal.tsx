@@ -10,6 +10,10 @@ import { isPageWithProps, type FloatingButtonPage, type PageState } from '../pag
 import { assert } from 'ts-essentials';
 import { TokenRow } from '../pages/TokenListPage/TokenRow';
 
+type PageStateWithoutTokenProp = Omit<PageState, 'props'> & { props?: Omit<PageState['props'], 'token'> };
+
+export type TokenListModalProps = { title?: string; backToPageState: PageStateWithoutTokenProp; mode: TokenListMode };
+
 export const TokenListModal: React.FC<PortalModalStateMap[PortalModal.TokenList]> = ({
   mode,
   title,

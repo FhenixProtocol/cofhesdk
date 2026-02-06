@@ -1,6 +1,5 @@
 export { MainPage } from './MainPage.js';
 export { SettingsPage } from './SettingsPage.js';
-
 export { PermitsListPage } from './permits/PermitsListPage';
 export { GeneratePermitPage } from './permits/GeneratePermitPage';
 export { DelegatePermitPage } from './permits/DelegatePermitPage';
