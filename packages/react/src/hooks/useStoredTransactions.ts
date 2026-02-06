@@ -6,12 +6,12 @@ export function useStoredTransactions<T>({
   chainId,
   account,
   filter,
-  combine,
+  reducer,
 }: {
   chainId?: number;
   account?: string;
   filter?: (tx: Transaction) => boolean;
-  combine?: (txs: Transaction[]) => T;
+  reducer?: (txs: Transaction[]) => T;
 }) {
   const transactions = useTransactionStore((state) => state.transactions);
 
@@ -39,9 +39,9 @@ export function useStoredTransactions<T>({
     [transactionsAsArray, filter, account]
   );
 
-  const combined = useMemo(() => {
-    return combine?.(filtered);
-  }, [filtered, combine]);
+  const reduced = useMemo(() => {
+    return reducer?.(filtered);
+  }, [filtered, reducer]);
 
   const uniqueHashes = new Set(filtered.map((tx) => tx.hash));
 
@@ -64,6 +64,6 @@ export function useStoredTransactions<T>({
     filteredTxs: filtered,
     hashes: uniqueHashes,
     filteredTxsByHash,
-    combined,
+    reduced,
   };
 }

@@ -61,9 +61,9 @@ function claimableSort(a: ClaimableToken, b: ClaimableToken): number {
 type CombinedResult = {
   summariesByTokenAddress: UnshieldClaimsSummaryByTokenAddress;
   claimableByTokenAddress: ClaimableAmountByTokenAddress;
-  isWaitingForDecryptionByTokenAddress: BooleanByAddress;
-  isUnshieldingInProgressByTokenAddress: BooleanByAddress;
-  isClaimingByTokenAddress: BooleanByAddress;
+  isWaitingForDecryptionByTokenAddress?: BooleanByAddress;
+  isUnshieldingInProgressByTokenAddress?: BooleanByAddress;
+  isClaimingByTokenAddress?: BooleanByAddress;
   queries: UseQueryResult<UnshieldClaimsSummary, Error>[];
   isLoading: boolean;
   isFetching: boolean;
@@ -78,7 +78,7 @@ const pendingClaimsFilter = (tx: { actionType: TransactionActionType; status: Tr
 const pendingUnshieldsFilter = (tx: { actionType: TransactionActionType; status: TransactionStatus }) =>
   tx.actionType === TransactionActionType.Unshield && tx.status === TransactionStatus.Pending;
 
-const combineTrueByLowerTokenAddress = (
+const asBooleanByTokenAddressLowercase = (
   txs: { token: { address: string }; actionType: TransactionActionType; status: TransactionStatus }[]
 ) => {
   return txs.reduce<Record<string, boolean>>((acc, tx) => {
@@ -120,18 +120,18 @@ export function useCofheTokensClaimable(
 
   const chainId = useCofheChainId();
 
-  const { combined: isUnshieldingInProgressByTokenAddress = {} } = useStoredTransactions({
+  const { reduced: isUnshieldingInProgressByTokenAddress } = useStoredTransactions({
     chainId,
     account,
     filter: pendingUnshieldsFilter,
-    combine: combineTrueByLowerTokenAddress,
+    reducer: asBooleanByTokenAddressLowercase,
   });
 
-  const { combined: isClaimingByTokenAddress = {} } = useStoredTransactions({
+  const { reduced: isClaimingByTokenAddress } = useStoredTransactions({
     chainId,
     account,
     filter: pendingClaimsFilter,
-    combine: combineTrueByLowerTokenAddress,
+    reducer: asBooleanByTokenAddressLowercase,
   });
 
   const combined = useInternalQueries({
