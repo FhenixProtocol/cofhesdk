@@ -1,34 +1,30 @@
-import { usePortalModals, usePortalNavigation } from '@/stores';
 import { PageContainer } from '../components/PageContainer';
 import { PortalModal, type PortalModalStateMap } from './types';
 import { useCofheChainId } from '@/hooks/useCofheConnection';
-import { useCofheTokens } from '@/hooks';
+import { type Token, useCofheTokens } from '@/hooks';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { type TokenListMode } from '../FnxFloatingButtonContext.js';
-
-import { isPageWithProps, type FloatingButtonPage, type PageState } from '../pagesConfig/types.js';
-import { assert } from 'ts-essentials';
+import { type TokenListMode } from '../FnxFloatingButtonContext';
 import { TokenRow } from '../pages/TokenListPage/TokenRow';
 
-type PageStateWithoutTokenProp = Omit<PageState, 'props'> & { props?: Omit<PageState['props'], 'token'> };
-
-export type TokenListModalProps = { title?: string; backToPageState: PageStateWithoutTokenProp; mode: TokenListMode };
+export type TokenListModalProps = {
+  title?: string;
+  mode: TokenListMode;
+  onSelectToken: (token: Token) => void;
+};
 
 export const TokenListModal: React.FC<PortalModalStateMap[PortalModal.TokenList]> = ({
   // modal,
   onClose,
   mode,
   title,
-  backToPageState,
+  onSelectToken,
 }) => {
-  const { navigateTo } = usePortalNavigation();
-
   const chainId = useCofheChainId();
   const allTokens = useCofheTokens(chainId);
 
   const defaultTitle = mode === 'select' ? 'Select token to transfer' : 'Token List';
   const pageTitle = title ?? defaultTitle;
-  //
+
   return (
     <PageContainer
       header={
@@ -45,8 +41,7 @@ export const TokenListModal: React.FC<PortalModalStateMap[PortalModal.TokenList]
             allTokens.map((token) => (
               <TokenRow
                 onClick={() => {
-                  assert(isPageWithProps(backToPageState.page), 'backToPageState must be a page with props');
-                  navigateTo(backToPageState.page, { pageProps: { ...backToPageState.props, token } });
+                  onSelectToken(token);
                   onClose();
                 }}
                 key={token.address}

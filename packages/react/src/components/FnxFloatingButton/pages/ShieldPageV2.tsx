@@ -404,7 +404,7 @@ function StatusAndError({
 
 const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
   error,
-  token,
+  token: _token,
   mode,
   setMode,
   status,
@@ -425,6 +425,9 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
 }) => {
   const { navigateBack, navigateTo } = usePortalNavigation();
   const { openModal } = usePortalModals();
+
+  const [overriddenToken, setOverriddenToken] = useState<Token | null>(null);
+  const token = overriddenToken ?? _token;
 
   const isShieldableToken = shieldableTypes.has(token.extensions.fhenix.confidentialityType);
 
@@ -447,7 +450,8 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
               openModal(PortalModal.TokenList, {
                 mode: 'select',
                 title: mode === 'shield' ? 'Select token to shield' : 'Select token to unshield',
-                backToPageState: { page: FloatingButtonPage.Shield, props: { defaultMode: mode } },
+                // backToPageState: { page: FloatingButtonPage.Shield, props: { defaultMode: mode } },
+                onSelectToken: (token) => setOverriddenToken(token),
               })
             }
             className="flex items-center gap-1 text-sm font-bold fnx-text-primary hover:opacity-80 transition-opacity"

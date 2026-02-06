@@ -29,7 +29,10 @@ declare module '../pagesConfig/types' {
   }
 }
 
-export const SendPage: React.FC<SendPageProps> = ({ token }) => {
+export const SendPage: React.FC<SendPageProps> = ({ token: _token }) => {
+  const [overriddenToken, setOverriddenToken] = useState<Token | null>(null);
+
+  const token = overriddenToken ?? _token;
   const { navigateBack, navigateTo } = usePortalNavigation();
   const { openModal } = usePortalModals();
 
@@ -155,7 +158,9 @@ export const SendPage: React.FC<SendPageProps> = ({ token }) => {
                     openModal(PortalModal.TokenList, {
                       mode: 'select',
                       title: 'Select token to transfer',
-                      backToPageState: { page: FloatingButtonPage.Send, props: { token } },
+                      onSelectToken: (token) => {
+                        setOverriddenToken(token);
+                      },
                     });
                   }}
                   className="flex items-center gap-1 text-2xl font-bold fnx-text-primary hover:opacity-80 transition-opacity whitespace-nowrap flex-shrink-0"
