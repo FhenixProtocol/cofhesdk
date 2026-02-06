@@ -20,10 +20,33 @@ export const useInternalQueryClient = (): QueryClient => {
   return qc;
 };
 const persistenceConfig = {
-  storage: 'sessionStorage' as 'sessionStorage' | 'localStorage',
+  storage: 'localStorage' as 'sessionStorage' | 'localStorage',
   key: 'cofhe:react-query',
   maxAgeMs: 86_400_000,
 };
+
+const BIGINT_SENTINEL_KEY = '__cofhe_bigint__';
+
+function serializeWithBigInt(value: any): string {
+  return JSON.stringify(value, (_key, v) => {
+    if (typeof v === 'bigint') return { [BIGINT_SENTINEL_KEY]: v.toString() };
+    return v;
+  });
+}
+
+function deserializeWithBigInt(serialized: string): any {
+  return JSON.parse(serialized, (_key, v) => {
+    if (
+      v &&
+      typeof v === 'object' &&
+      BIGINT_SENTINEL_KEY in (v as Record<string, unknown>) &&
+      typeof (v as Record<string, unknown>)[BIGINT_SENTINEL_KEY] === 'string'
+    ) {
+      return BigInt((v as Record<string, unknown>)[BIGINT_SENTINEL_KEY] as string);
+    }
+    return v;
+  });
+}
 
 export const QueryProvider = ({
   children,
@@ -49,11 +72,13 @@ export const QueryProvider = ({
 
   const persister = useMemo(() => {
     if (typeof window === 'undefined') return undefined;
-    const storage = persistenceConfig.storage === 'localStorage' ? window.localStorage : window.sessionStorage;
 
+    const storage = persistenceConfig.storage === 'localStorage' ? window.localStorage : window.sessionStorage;
     return createAsyncStoragePersister({
       storage,
       key: persistenceConfig.key ?? 'cofhe:react-query',
+      serialize: serializeWithBigInt,
+      deserialize: deserializeWithBigInt,
     });
   }, []);
 
@@ -61,6 +86,7 @@ export const QueryProvider = ({
     <InternalQueryClientContext.Provider value={queryClient}>{children}</InternalQueryClientContext.Provider>
   );
 
+  // No-op on the server / non-browser environments.
   if (!persister) return content;
 
   return (
@@ -71,8 +97,10 @@ export const QueryProvider = ({
         maxAge: persistenceConfig.maxAgeMs ?? 86_400_000,
         buster: 'cofhe-react-query-v1',
         dehydrateOptions: {
-          // Persist only decrypted ciphertext results by default.
+          // Persist only queries that opt-in via meta.persist.
+          // Backwards-compat: also persist decrypt results by queryKey prefix.
           shouldDehydrateQuery: (query) => {
+            if (query.meta?.persist === true) return true;
             return query.queryKey?.[0] === 'decryptCiphertext';
           },
         },
