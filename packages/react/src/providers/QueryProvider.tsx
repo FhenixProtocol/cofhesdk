@@ -1,8 +1,8 @@
 import { QueryClient } from '@tanstack/react-query';
-import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { persistQueryClientRestore, persistQueryClientSubscribe } from '@tanstack/react-query-persist-client';
 //  * @deprecated use `createAsyncStoragePersister` from `@tanstack/query-async-storage-persister` instead.
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
-import { createContext, useContext, useMemo } from 'react';
+import { createContext, useContext, useEffect, useMemo } from 'react';
 import { shouldPassToErrorBoundary } from './errors';
 import { isPersistedQuery } from './internalQueryHooks';
 
@@ -79,23 +79,43 @@ export const QueryProvider = ({
     });
   }, [overridingQueryClient]);
 
-  return (
-    <InternalQueryClientContext.Provider value={queryClient}>
-      {/* <PersistQueryClientProvider
-        client={queryClient}
-        persistOptions={{
-          persister,
-          maxAge: persistenceConfig.maxAgeMs ?? 86_400_000,
-          buster: 'cofhe-react-query-v1',
-          dehydrateOptions: {
-            // Persist only queries that opt-in via meta.persist.
-            // Backwards-compat: also persist decrypt results by queryKey prefix.
-            shouldDehydrateQuery: (query) => isPersistedQuery(query),
-          },
-        }}
-      > */}
-      {children}
-      {/* </PersistQueryClientProvider> */}
-    </InternalQueryClientContext.Provider>
-  );
+  // IMPORTANT:
+  // Do NOT render <PersistQueryClientProvider> here.
+  // It wraps children with TanStack's <QueryClientProvider>, which overrides any external provider
+  // the consuming dapp (e.g. Wagmi) sets up. Instead, persist/restore imperatively against *our* client.
+  useEffect(() => {
+    // If the consumer explicitly provides a QueryClient do not attach persistence to it.
+    if (overridingQueryClient) return;
+
+    let unsubscribe: (() => void) | undefined;
+    let cancelled = false;
+
+    const options = {
+      queryClient: queryClient as any,
+      persister,
+      maxAge: persistenceConfig.maxAgeMs ?? 86_400_000,
+      buster: 'cofhe-react-query-v1',
+      dehydrateOptions: {
+        // Persist only queries that opt-in via meta.persist.
+        // Backwards-compat: also persist decrypt results by queryKey prefix.
+        shouldDehydrateQuery: (query: unknown) => isPersistedQuery(query as any),
+      },
+    };
+
+    persistQueryClientRestore(options)
+      .catch(() => {
+        // Ignore restore errors (e.g. corrupt storage); we'll simply start fresh.
+      })
+      .finally(() => {
+        if (cancelled) return;
+        unsubscribe = persistQueryClientSubscribe(options);
+      });
+
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
+  }, [overridingQueryClient, queryClient]);
+
+  return <InternalQueryClientContext.Provider value={queryClient}>{children}</InternalQueryClientContext.Provider>;
 };
