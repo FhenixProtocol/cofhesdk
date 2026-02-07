@@ -10,7 +10,7 @@ import {
 } from '@tanstack/react-query';
 import { useInternalQueryClient } from './QueryProvider';
 
-function isPersistedQuery(options: { meta?: unknown; queryKey?: QueryKey }): boolean {
+export function isPersistedQuery(options: { meta?: unknown; queryKey?: QueryKey }): boolean {
   const meta = options.meta as { persist?: boolean } | undefined;
   if (meta?.persist === true) return true;
   // Backwards compat: decrypt queries are implicitly persisted in QueryProvider.

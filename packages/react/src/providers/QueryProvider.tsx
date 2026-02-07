@@ -4,6 +4,7 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import { createContext, useContext, useMemo } from 'react';
 import { shouldPassToErrorBoundary } from './errors';
+import { isPersistedQuery } from './internalQueryHooks';
 
 function isNonRetryableError(error: unknown): boolean {
   // NB: be granular here. F.x. no need to retry "bad permit error"
@@ -48,6 +49,14 @@ function deserializeWithBigInt(serialized: string): any {
   });
 }
 
+const storage = persistenceConfig.storage === 'localStorage' ? window.localStorage : window.sessionStorage;
+const persister = createAsyncStoragePersister({
+  storage,
+  key: persistenceConfig.key ?? 'cofhe:react-query',
+  serialize: serializeWithBigInt,
+  deserialize: deserializeWithBigInt,
+});
+
 export const QueryProvider = ({
   children,
   queryClient: overridingQueryClient,
@@ -70,43 +79,23 @@ export const QueryProvider = ({
     });
   }, [overridingQueryClient]);
 
-  const persister = useMemo(() => {
-    if (typeof window === 'undefined') return undefined;
-
-    const storage = persistenceConfig.storage === 'localStorage' ? window.localStorage : window.sessionStorage;
-    return createAsyncStoragePersister({
-      storage,
-      key: persistenceConfig.key ?? 'cofhe:react-query',
-      serialize: serializeWithBigInt,
-      deserialize: deserializeWithBigInt,
-    });
-  }, []);
-
-  const content = (
-    <InternalQueryClientContext.Provider value={queryClient}>{children}</InternalQueryClientContext.Provider>
-  );
-
-  // No-op on the server / non-browser environments.
-  if (!persister) return content;
-
   return (
-    <PersistQueryClientProvider
-      client={queryClient}
-      persistOptions={{
-        persister,
-        maxAge: persistenceConfig.maxAgeMs ?? 86_400_000,
-        buster: 'cofhe-react-query-v1',
-        dehydrateOptions: {
-          // Persist only queries that opt-in via meta.persist.
-          // Backwards-compat: also persist decrypt results by queryKey prefix.
-          shouldDehydrateQuery: (query) => {
-            if (query.meta?.persist === true) return true;
-            return query.queryKey?.[0] === 'decryptCiphertext';
+    <InternalQueryClientContext.Provider value={queryClient}>
+      {/* <PersistQueryClientProvider
+        client={queryClient}
+        persistOptions={{
+          persister,
+          maxAge: persistenceConfig.maxAgeMs ?? 86_400_000,
+          buster: 'cofhe-react-query-v1',
+          dehydrateOptions: {
+            // Persist only queries that opt-in via meta.persist.
+            // Backwards-compat: also persist decrypt results by queryKey prefix.
+            shouldDehydrateQuery: (query) => isPersistedQuery(query),
           },
-        },
-      }}
-    >
-      {content}
-    </PersistQueryClientProvider>
+        }}
+      > */}
+      {children}
+      {/* </PersistQueryClientProvider> */}
+    </InternalQueryClientContext.Provider>
   );
 };
