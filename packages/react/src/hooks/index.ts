@@ -23,3 +23,8 @@ export { useCofheConnect } from './useCofheConnect';
 export { useTransactionReceiptsByHash, type UseTransactionReceiptsByHashInput } from './useTransactionReceiptsByHash';
 export { useOnceDecrypted } from './useOnceDecrypted';
 export { useReschedulableTimeout } from './useReschedulableTimeout';
+export {
+  useCoingeckoUsdPrice,
+  type UseCoingeckoUsdPriceInput,
+  type UseCoingeckoUsdPriceOptions,
+} from './useCoingeckoUsdPrice';

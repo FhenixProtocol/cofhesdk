@@ -4,16 +4,30 @@ import type { Token } from '@/hooks/useCofheTokenLists';
 import { TokenIcon } from './TokenIcon';
 import { CofheTokenConfidentialBalance } from '.';
 import { useCoingeckoUsdPrice } from '@/hooks';
+import { sepolia } from '@cofhe/sdk/chains';
+
+const TMP_WBTC_ON_MAINNET = {
+  chainId: 1,
+  address: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
+} as const;
 
 export const TokenRow: React.FC<{
   token: Token;
   onClick: () => void;
 }> = ({ token, onClick }) => {
-  const price = useCoingeckoUsdPrice({
-    chainId: token.chainId,
-    tokenAddress: token.address,
-  });
-  console.log('price', price);
+  // tmp: TODO: for testnet, fetch the price of WBTC on mainnet to display in the UI
+  const { data: price } = useCoingeckoUsdPrice(
+    token.chainId === sepolia.id
+      ? {
+          chainId: TMP_WBTC_ON_MAINNET.chainId,
+          tokenAddress: TMP_WBTC_ON_MAINNET.address,
+        }
+      : {
+          chainId: token.chainId,
+          tokenAddress: token.address,
+        }
+  );
+
   return (
     <div
       onClick={onClick}
@@ -43,6 +57,7 @@ export const TokenRow: React.FC<{
           decimalPrecision={5}
           className="font-medium"
         />
+        {price && <span className="text-xs opacity-70 fnx-text-primary">≈ ${price}</span>}
         <KeyboardArrowRightIcon className="w-5 h-5 fnx-text-primary opacity-60 flex-shrink-0" />
       </div>
     </div>

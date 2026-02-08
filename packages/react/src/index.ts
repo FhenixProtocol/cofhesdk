@@ -30,6 +30,9 @@ export {
   type UnshieldClaim,
   type UnshieldClaimsSummary,
   type UseTransactionReceiptsByHashInput,
+  useCoingeckoUsdPrice,
+  type UseCoingeckoUsdPriceInput,
+  type UseCoingeckoUsdPriceOptions,
 } from '@/hooks/index';
 
 export { useCofheEncryptAndWriteContract } from '@/hooks/useCofheEncryptAndWriteContract';
