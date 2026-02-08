@@ -448,7 +448,6 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
             onClick={() =>
               // navigateToTokenListForSelection(mode === 'shield' ? 'Select token to shield' : 'Select token to unshield')
               openModal(PortalModal.TokenList, {
-                mode: 'select',
                 title: mode === 'shield' ? 'Select token to shield' : 'Select token to unshield',
                 onSelectToken: (token) => setOverriddenToken(token),
               })

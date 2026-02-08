@@ -33,7 +33,7 @@ export const SendPage: React.FC<SendPageProps> = ({ token: _token }) => {
   const [overriddenToken, setOverriddenToken] = useState<Token | null>(null);
 
   const token = overriddenToken ?? _token;
-  const { navigateBack, navigateTo } = usePortalNavigation();
+  const { navigateBack } = usePortalNavigation();
   const { openModal } = usePortalModals();
 
   const account = useCofheAccount();
@@ -154,9 +154,7 @@ export const SendPage: React.FC<SendPageProps> = ({ token: _token }) => {
                 />
                 <button
                   onClick={() => {
-                    // navigateToTokenListForSelection()
                     openModal(PortalModal.TokenList, {
-                      mode: 'select',
                       title: 'Select token to transfer',
                       onSelectToken: (token) => {
                         setOverriddenToken(token);
