@@ -21,3 +21,7 @@ export function formatTokenAmount(amount: bigint, decimals: number, displayDecim
 export function unitToWei(amount: string, decimals: number): bigint {
   return BigInt(new BigNumber(amount).multipliedBy(10 ** decimals).toFixed(0));
 }
+
+export function formatUsdAmount(amount: number | BigNumber, displayDecimals: number = 2): string {
+  return `$${amount.toFixed(displayDecimals)}`;
+}

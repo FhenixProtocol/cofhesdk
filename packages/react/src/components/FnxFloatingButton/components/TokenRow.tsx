@@ -3,8 +3,10 @@ import { cn } from '../../../utils/cn';
 import type { Token } from '@/hooks/useCofheTokenLists';
 import { TokenIcon } from './TokenIcon';
 import { CofheTokenConfidentialBalance } from '.';
-import { useCoingeckoUsdPrice } from '@/hooks';
+import { useCofheTokenDecryptedBalance, useCoingeckoUsdPrice } from '@/hooks';
 import { sepolia } from '@cofhe/sdk/chains';
+import { useCofheAccount } from '@/hooks/useCofheConnection';
+import { formatUsdAmount } from '@/utils/format';
 
 const TMP_WBTC_ON_MAINNET = {
   chainId: 1,
@@ -15,6 +17,11 @@ export const TokenRow: React.FC<{
   token: Token;
   onClick: () => void;
 }> = ({ token, onClick }) => {
+  const account = useCofheAccount();
+  const { data } = useCofheTokenDecryptedBalance({
+    token,
+    accountAddress: account,
+  });
   // tmp: TODO: for testnet, fetch the price of WBTC on mainnet to display in the UI
   const { data: price } = useCoingeckoUsdPrice(
     token.chainId === sepolia.id
@@ -27,6 +34,8 @@ export const TokenRow: React.FC<{
           tokenAddress: token.address,
         }
   );
+
+  const usdValue = data && price ? formatUsdAmount(data.unit.multipliedBy(price)) : null;
 
   return (
     <div
@@ -57,7 +66,7 @@ export const TokenRow: React.FC<{
           decimalPrecision={5}
           className="font-medium"
         />
-        {price && <span className="text-xs opacity-70 fnx-text-primary">≈ ${price}</span>}
+        {usdValue && <span className="text-xs opacity-70 fnx-text-primary">{usdValue}</span>}
         <KeyboardArrowRightIcon className="w-5 h-5 fnx-text-primary opacity-60 flex-shrink-0" />
       </div>
     </div>
