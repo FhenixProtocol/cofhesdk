@@ -14,6 +14,7 @@ import {
   ImportPermitPage,
 } from '../pages';
 import { FloatingButtonPage } from './types';
+import { PortfolioPage } from '../pages/PortfolioPage';
 
 export const pages: Record<FloatingButtonPage, FC<any>> = {
   [FloatingButtonPage.Main]: MainPage,
@@ -28,4 +29,5 @@ export const pages: Record<FloatingButtonPage, FC<any>> = {
   [FloatingButtonPage.ReceivePermits]: ImportPermitPage,
   [FloatingButtonPage.PermitDetails]: PermitDetailsPage,
   [FloatingButtonPage.Debug]: DebugPage,
+  [FloatingButtonPage.Portfolio]: PortfolioPage,
 };
