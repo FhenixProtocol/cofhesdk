@@ -1,13 +1,19 @@
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
-import { cn } from '../../../../utils/cn';
+import { cn } from '../../../utils/cn';
 import type { Token } from '@/hooks/useCofheTokenLists';
-import { TokenIcon } from '../../components/TokenIcon';
-import { CofheTokenConfidentialBalance } from '../../components';
+import { TokenIcon } from './TokenIcon';
+import { CofheTokenConfidentialBalance } from '.';
+import { useCoingeckoUsdPrice } from '@/hooks';
 
 export const TokenRow: React.FC<{
   token: Token;
   onClick: () => void;
 }> = ({ token, onClick }) => {
+  const price = useCoingeckoUsdPrice({
+    chainId: token.chainId,
+    tokenAddress: token.address,
+  });
+  console.log('price', price);
   return (
     <div
       onClick={onClick}

@@ -1,5 +1,10 @@
+import { useCofheChainId } from '@/hooks/useCofheConnection';
 import { PageContainer } from '../components/PageContainer';
-import type { FloatingButtonPage } from '../pagesConfig/types';
+import { FloatingButtonPage } from '../pagesConfig/types';
+import { useCofheTokens } from '@/hooks';
+import { TokenListContent } from '../modals/TokenListModal';
+import { usePortalNavigation } from '@/stores';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 declare module '../pagesConfig/types' {
   interface FloatingButtonPagePropsRegistry {
@@ -7,5 +12,31 @@ declare module '../pagesConfig/types' {
   }
 }
 export const PortfolioPage: React.FC = () => {
-  return <PageContainer header={'header'} content={'content'} footer={'footer'} />;
+  const { navigateBack, navigateTo } = usePortalNavigation();
+
+  const chainId = useCofheChainId();
+  const allTokens = useCofheTokens(chainId);
+
+  return (
+    <PageContainer
+      header={
+        <button onClick={navigateBack} className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity">
+          <ArrowBackIcon style={{ fontSize: 16 }} />
+          <p className="text-sm font-medium">Tokens List</p>
+        </button>
+      }
+      content={
+        <TokenListContent
+          tokens={allTokens}
+          onSelectToken={(token) => {
+            navigateTo(FloatingButtonPage.TokenInfo, {
+              pageProps: {
+                token,
+              },
+            });
+          }}
+        />
+      }
+    />
+  );
 };

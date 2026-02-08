@@ -3,7 +3,7 @@ import { PortalModal, type PortalModalStateMap } from './types';
 import { useCofheChainId } from '@/hooks/useCofheConnection';
 import { type Token, useCofheTokens } from '@/hooks';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { TokenRow } from '../pages/TokenListPage/TokenRow';
+import { TokenRow } from '../components/TokenRow';
 
 export type TokenListModalProps = {
   title: string;
@@ -27,23 +27,37 @@ export const TokenListModal: React.FC<PortalModalStateMap[PortalModal.TokenList]
         </button>
       }
       content={
-        <div className="fnx-token-list-container">
-          {allTokens.length === 0 ? (
-            <p className="text-xs opacity-70 py-4 text-center">No tokens found</p>
-          ) : (
-            allTokens.map((token) => (
-              <TokenRow
-                onClick={() => {
-                  onSelectToken(token);
-                  onClose();
-                }}
-                key={token.address}
-                token={token}
-              />
-            ))
-          )}
-        </div>
+        <TokenListContent
+          tokens={allTokens}
+          onSelectToken={(token) => {
+            onSelectToken(token);
+            onClose();
+          }}
+        />
       }
     />
+  );
+};
+
+export const TokenListContent: React.FC<{
+  tokens: Token[];
+  onSelectToken: (token: Token) => void;
+}> = ({ tokens, onSelectToken }) => {
+  return (
+    <div className="fnx-token-list-container">
+      {tokens.length === 0 ? (
+        <p className="text-xs opacity-70 py-4 text-center">No tokens found</p>
+      ) : (
+        tokens.map((token) => (
+          <TokenRow
+            onClick={() => {
+              onSelectToken(token);
+            }}
+            key={token.address}
+            token={token}
+          />
+        ))
+      )}
+    </div>
   );
 };
