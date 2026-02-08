@@ -423,7 +423,7 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
   primaryLabel,
   primaryIcon,
 }) => {
-  const { navigateBack, navigateTo } = usePortalNavigation();
+  const { navigateBack } = usePortalNavigation();
   const { openModal } = usePortalModals();
 
   const [overriddenToken, setOverriddenToken] = useState<Token | null>(null);
@@ -450,7 +450,6 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
               openModal(PortalModal.TokenList, {
                 mode: 'select',
                 title: mode === 'shield' ? 'Select token to shield' : 'Select token to unshield',
-                // backToPageState: { page: FloatingButtonPage.Shield, props: { defaultMode: mode } },
                 onSelectToken: (token) => setOverriddenToken(token),
               })
             }
