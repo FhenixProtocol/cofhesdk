@@ -8,7 +8,8 @@ import { permits } from '../permits.js';
 import { isValidUtype, convertViaUtype } from './decryptUtils.js';
 import { BaseBuilder, type BaseBuilderParams } from '../baseBuilder.js';
 import { cofheMocksSealOutput } from './cofheMocksSealOutput.js';
-import { tnSealOutput } from './tnSealOutput.js';
+// import { tnSealOutputV1 } from './tnSealOutputV1.js';
+import { tnSealOutputV2 } from './tnSealOutputV2.js';
 
 /**
  * API
@@ -225,7 +226,8 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
 
     const thresholdNetworkUrl = await this.getThresholdNetworkUrl();
     const permission = PermitUtils.getPermission(permit, true);
-    const sealed = await tnSealOutput(this.ctHash, this.chainId, permission, thresholdNetworkUrl);
+    // const sealed = await tnSealOutputV1(this.ctHash, this.chainId, permission, thresholdNetworkUrl);
+    const sealed = await tnSealOutputV2(this.ctHash, this.chainId, permission, thresholdNetworkUrl);
     return PermitUtils.unseal(permit, sealed);
   }
 

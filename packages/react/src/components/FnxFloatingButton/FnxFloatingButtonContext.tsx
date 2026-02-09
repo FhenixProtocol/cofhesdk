@@ -4,6 +4,7 @@ import { useCofheContext } from '../../providers';
 import { useTrackPendingTransactions } from '@/hooks/useTrackPendingTransactions';
 import { useTrackDecryptingTransactions } from '@/hooks/useTrackDecryptingTransactions';
 import { useWatchPermitStatus } from '@/hooks/useWatchPermitStatus';
+import { useWatchClaimablesStatus } from '@/hooks/useWatchClaimablesStatus';
 
 export type TokenListMode = 'view' | 'select';
 
@@ -31,6 +32,7 @@ export const FnxFloatingButtonProvider: React.FC<FnxFloatingButtonProviderProps>
   useTrackPendingTransactions();
   useTrackDecryptingTransactions();
   useWatchPermitStatus();
+  useWatchClaimablesStatus();
 
   return (
     <FnxFloatingButtonContext.Provider

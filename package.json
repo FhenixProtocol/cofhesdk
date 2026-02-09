@@ -4,6 +4,7 @@
     "build": "turbo run build --filter='!./examples/*'",
     "dev": "turbo run dev",
     "test": "turbo run test",
+    "test:integration": "pnpm --filter \"./packages/hardhat-plugin-test\" test:integration",
     "lint": "turbo run lint",
     "type-check": "turbo run type-check",
     "clean": "turbo run clean && rm -rf node_modules",

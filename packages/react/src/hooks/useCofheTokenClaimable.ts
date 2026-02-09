@@ -1,4 +1,4 @@
-import { QueryClient, type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
+import { QueryClient, type QueryKey, type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
 import { type Address } from 'viem';
 import { useCofhePublicClient } from './useCofheConnection.js';
 import { type Token } from './useCofheTokenLists.js';
@@ -6,8 +6,9 @@ import { DUAL_GET_UNSHIELD_CLAIM_ABI, WRAPPED_GET_USER_CLAIMS_ABI } from '../con
 import { useInternalQuery } from '../providers/index.js';
 import { decryptionAwareReadContract } from '@/utils/decryptionAwareReadContract.js';
 import { useIsWaitingForDecryptionToInvalidate } from './useIsWaitingForDecryptionToInvalidate.js';
+import { assert } from 'ts-essentials';
 
-function constructUnshieldClaimsQueryKey({
+export function constructUnshieldClaimsQueryKey({
   chainId,
   tokenAddress,
   confidentialityType,
@@ -58,6 +59,95 @@ export function constructUnshieldClaimsQueryKeyForInvalidation({
     confidentialityType,
     accountAddress,
   });
+}
+
+export const DEFAULT_UNSHIELD_CLAIM_SUMMARY: UnshieldClaimsSummary = {
+  claimableAmount: 0n,
+  pendingAmount: 0n,
+  hasClaimable: false,
+  hasPending: false,
+};
+
+export function isTokenConfidentialityTypeClaimable(type: string | undefined): type is 'dual' | 'wrapped' {
+  return type === 'dual' || type === 'wrapped';
+}
+
+export type FetchUnshieldClaimsSummaryInput = {
+  publicClient: NonNullable<ReturnType<typeof useCofhePublicClient>>;
+  token: Token;
+  accountAddress: Address;
+  confidentialityType: 'dual' | 'wrapped';
+  queryKey: QueryKey;
+  signal: AbortSignal;
+};
+
+export async function fetchUnshieldClaimsSummary({
+  publicClient,
+  token,
+  accountAddress,
+  confidentialityType,
+  queryKey,
+  signal,
+}: FetchUnshieldClaimsSummaryInput): Promise<UnshieldClaimsSummary> {
+  if (confidentialityType === 'dual') {
+    const claim = await decryptionAwareReadContract({
+      publicClient,
+      queryKey,
+      signal,
+      readContractParams: {
+        address: token.address,
+        abi: DUAL_GET_UNSHIELD_CLAIM_ABI,
+        functionName: 'getUserUnshieldClaim',
+        args: [accountAddress],
+      },
+    });
+
+    if (claim.ctHash === 0n || claim.claimed) return DEFAULT_UNSHIELD_CLAIM_SUMMARY;
+
+    return {
+      claimableAmount: claim.decrypted ? claim.decryptedAmount : 0n,
+      pendingAmount: claim.decrypted ? 0n : claim.requestedAmount,
+      hasClaimable: claim.decrypted && claim.decryptedAmount > 0n,
+      hasPending: !claim.decrypted,
+    };
+  }
+
+  if (confidentialityType === 'wrapped') {
+    const result = await decryptionAwareReadContract({
+      publicClient,
+      queryKey,
+      signal,
+      readContractParams: {
+        address: token.address,
+        abi: WRAPPED_GET_USER_CLAIMS_ABI,
+        functionName: 'getUserClaims',
+        args: [accountAddress],
+      },
+    });
+
+    const claims = result.filter((c) => !c.claimed);
+
+    const { claimableAmount, pendingAmount } = claims.reduce(
+      (acc, claim) => {
+        if (claim.decrypted) {
+          acc.claimableAmount += claim.decryptedAmount;
+        } else {
+          acc.pendingAmount += claim.requestedAmount;
+        }
+        return acc;
+      },
+      { claimableAmount: 0n, pendingAmount: 0n }
+    );
+
+    return {
+      claimableAmount,
+      pendingAmount,
+      hasClaimable: claimableAmount > 0n,
+      hasPending: pendingAmount > 0n,
+    };
+  }
+
+  return DEFAULT_UNSHIELD_CLAIM_SUMMARY;
 }
 
 // ============================================================================
@@ -115,109 +205,27 @@ export function useCofheTokenClaimable(
   const result = useInternalQuery({
     queryKey,
     queryFn: async ({ signal, queryKey }): Promise<UnshieldClaimsSummary> => {
-      // TODO: this query fn looks too verbose, can be simplified
-      if (!publicClient) {
-        throw new Error('PublicClient is required to fetch unshield claims');
-      }
-      if (!account) {
-        throw new Error('Account address is required to fetch unshield claims');
-      }
-      if (!token) {
-        throw new Error('Token address is required');
-      }
-      if (confidentialityType === 'dual') {
-        // Dual tokens: single claim via getUserUnshieldClaim
-        const result = await decryptionAwareReadContract({
-          publicClient,
-          queryKey,
-          signal,
-          readContractParams: {
-            address: token.address,
-            abi: DUAL_GET_UNSHIELD_CLAIM_ABI,
-            functionName: 'getUserUnshieldClaim',
-            args: [account],
-          },
-        });
+      assert(token, 'token is guaranteed to be defined in query function due to `enabled` condition');
+      assert(confidentialityType, 'token.confidentialityType is guaranteed to be defined in query function');
+      assert(account, 'account is guaranteed to be defined in query function due to `enabled` condition');
+      assert(publicClient, 'publicClient is guaranteed to be defined in query function due to `enabled` condition');
 
-        const claim = result as {
-          ctHash: bigint;
-          requestedAmount: bigint;
-          decryptedAmount: bigint;
-          decrypted: boolean;
-          claimed: boolean;
-        };
+      assert(
+        isTokenConfidentialityTypeClaimable(confidentialityType),
+        'confidentialityType is guaranteed to be claimable type due to `enabled` condition'
+      );
 
-        // No active claim
-        if (claim.ctHash === 0n || claim.claimed) {
-          return {
-            claimableAmount: 0n,
-            pendingAmount: 0n,
-            hasClaimable: false,
-            hasPending: false,
-          };
-        }
-
-        return {
-          claimableAmount: claim.decrypted ? claim.decryptedAmount : 0n,
-          pendingAmount: claim.decrypted ? 0n : claim.requestedAmount,
-          hasClaimable: claim.decrypted && claim.decryptedAmount > 0n,
-          hasPending: !claim.decrypted,
-        };
-      } else if (confidentialityType === 'wrapped') {
-        // Wrapped tokens: multiple claims via getUserClaims
-        const result = await decryptionAwareReadContract({
-          publicClient,
-          queryKey,
-          signal,
-          readContractParams: {
-            address: token.address,
-            abi: WRAPPED_GET_USER_CLAIMS_ABI,
-            functionName: 'getUserClaims',
-            args: [account],
-          },
-        });
-
-        type WrappedClaimResult = {
-          ctHash: bigint;
-          requestedAmount: bigint;
-          decryptedAmount: bigint;
-          decrypted: boolean;
-          to: Address;
-          claimed: boolean;
-        };
-
-        const claims = (result as WrappedClaimResult[]).filter((c) => !c.claimed);
-
-        let claimableAmount = 0n;
-        let pendingAmount = 0n;
-
-        for (const claim of claims) {
-          if (claim.decrypted) {
-            claimableAmount += claim.decryptedAmount;
-          } else {
-            pendingAmount += claim.requestedAmount;
-          }
-        }
-
-        return {
-          claimableAmount,
-          pendingAmount,
-          hasClaimable: claimableAmount > 0n,
-          hasPending: pendingAmount > 0n,
-        };
-      }
-
-      // Token type doesn't support claims
-      return {
-        claimableAmount: 0n,
-        pendingAmount: 0n,
-        hasClaimable: false,
-        hasPending: false,
-      };
+      return fetchUnshieldClaimsSummary({
+        publicClient,
+        token,
+        accountAddress: account,
+        confidentialityType,
+        queryKey,
+        signal,
+      });
     },
     refetchOnMount: false,
-    enabled:
-      !!publicClient && !!account && !!token && (confidentialityType === 'dual' || confidentialityType === 'wrapped'),
+    enabled: !!publicClient && !!account && !!token && isTokenConfidentialityTypeClaimable(confidentialityType),
     ...queryOptions,
   });
 

@@ -1,8 +1,8 @@
+/* eslint-disable no-redeclare */
 import {
   FloatingButtonPage,
   type FloatingButtonPagePropsMap,
   type PageState,
-  type PagesWithoutProps,
   type PagesWithProps,
 } from '@/components/FnxFloatingButton/pagesConfig/types';
 import { create } from 'zustand';
@@ -17,12 +17,10 @@ export type NavigateArgs<K extends FloatingButtonPage> = {
   navigateParams?: NavigateParams;
 };
 
-type NavigateToFn = {
-  // For pages without props, second arg is optional and may include navigateParams only
-  <K extends PagesWithoutProps>(page: K, args?: NavigateArgs<K>): void;
-  // For pages with props, require pageProps inside second arg
-  <K extends PagesWithProps>(page: K, args: NavigateArgs<K>): void;
-};
+type NavigateToFn = <K extends FloatingButtonPage>(
+  page: K,
+  ...rest: K extends PagesWithProps ? [args: NavigateArgs<K>] : [args?: NavigateArgs<K>]
+) => void;
 
 type PortalNavigationStore = {
   pageHistory: PageState[];
@@ -32,15 +30,28 @@ type PortalNavigationStore = {
 type PortalNavigationActions = {
   navigateTo: NavigateToFn;
   navigateBack: () => void;
+  replace: NavigateToFn;
+  clearNavigationHistory: () => void;
 };
 
 export const usePortalNavigation = create<PortalNavigationStore & PortalNavigationActions>()((set, get) => {
-  function navigateTo<K extends PagesWithoutProps>(page: K, args?: NavigateArgs<K>): void;
-  // eslint-disable-next-line no-redeclare
-  function navigateTo<K extends PagesWithProps>(page: K, args: NavigateArgs<K>): void;
-  // eslint-disable-next-line no-redeclare
-  function navigateTo<K extends FloatingButtonPage>(page: K, args?: NavigateArgs<K>): void {
-    // TODO: If already on the page, do nothing
+  function clearNavigationHistory(): void {
+    set({ pageHistory: [{ page: FloatingButtonPage.Main }], overridingPage: null });
+  }
+
+  function warnIfAlreadyOnPage<K extends FloatingButtonPage>(page: K): boolean {
+    const currentPage = get().overridingPage ?? get().pageHistory[get().pageHistory.length - 1];
+    const onPage = currentPage?.page === page;
+    if (onPage) {
+      console.warn(`Attempted to navigate to page ${page} but already on that page`);
+    }
+    return onPage;
+  }
+
+  const navigateTo: NavigateToFn = (page, ...rest) => {
+    if (warnIfAlreadyOnPage(page)) return;
+
+    const args = rest[0];
     const props = args?.pageProps;
     const skipPagesHistory = args?.navigateParams?.skipPagesHistory === true;
     if (skipPagesHistory) {
@@ -50,12 +61,21 @@ export const usePortalNavigation = create<PortalNavigationStore & PortalNavigati
       const updated = [...existing, { page, props }];
       set({ pageHistory: updated });
     }
-  }
+  };
+
+  const replace: NavigateToFn = (page, ...rest) => {
+    if (warnIfAlreadyOnPage(page)) return;
+
+    clearNavigationHistory();
+
+    navigateTo(page, ...rest);
+  };
 
   return {
     pageHistory: [{ page: FloatingButtonPage.Main }],
     overridingPage: null,
 
+    clearNavigationHistory,
     navigateTo,
     navigateBack: () => {
       if (get().overridingPage !== null) {
@@ -66,6 +86,7 @@ export const usePortalNavigation = create<PortalNavigationStore & PortalNavigati
         set({ pageHistory: get().pageHistory.slice(0, -1) });
       }
     },
+    replace,
   };
 });
 

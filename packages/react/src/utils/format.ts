@@ -14,7 +14,12 @@ export function formatTokenAmount(amount: bigint, decimals: number, displayDecim
   return {
     wei: amount,
     unit: amountBN,
-    formatted: displayDecimals ? amountBN.toFixed(displayDecimals) : amountBN.toFixed(), // the only precise way, without parseFloat
+    formatted: displayDecimals
+      ? amountBN
+          .toFixed(displayDecimals)
+          // remove trailing zeros
+          .replace(/\.?0+$/, '')
+      : amountBN.toFixed(), // the only precise way, without parseFloat
   };
 }
 

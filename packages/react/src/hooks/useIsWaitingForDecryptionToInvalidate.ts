@@ -1,22 +1,22 @@
 import { useDecryptionWatchersStore } from '@/stores/decryptionWatchingStore';
 import { useMemo } from 'react';
+import type { QueryKey } from '@tanstack/react-query';
 
-function useCacheKeysAwaitingDecryption() {
+export function useAwaitingDecryptionQueryKeySet(): ReadonlySet<string> {
   const { byKey } = useDecryptionWatchersStore();
 
-  const queryKeys = useMemo(() => {
-    return Object.values(byKey).flatMap((item) => item.queryKeys);
-  }, [byKey]);
+  const cacheKeysAwaitingDecryption = useMemo(() => Object.values(byKey).flatMap((item) => item.queryKeys), [byKey]);
 
-  return queryKeys;
+  return useMemo(
+    () => new Set(cacheKeysAwaitingDecryption.map((key) => JSON.stringify(key))),
+    [cacheKeysAwaitingDecryption]
+  );
 }
 
-export function useIsWaitingForDecryptionToInvalidate(queryKey: unknown[]): boolean {
-  const cacheKeysAwaitingDecryption = useCacheKeysAwaitingDecryption();
+export function useIsWaitingForDecryptionToInvalidate(queryKey: QueryKey): boolean {
+  const cacheKeySet = useAwaitingDecryptionQueryKeySet();
 
-  const result = useMemo(() => {
-    return cacheKeysAwaitingDecryption.some((key) => JSON.stringify(key) === JSON.stringify(queryKey));
-  }, [cacheKeysAwaitingDecryption, queryKey]);
+  const result = useMemo(() => cacheKeySet.has(JSON.stringify(queryKey)), [cacheKeySet, queryKey]);
 
   console.log(`isWaitingForDecryption for queryKey ${JSON.stringify(queryKey)}:`, result);
 
