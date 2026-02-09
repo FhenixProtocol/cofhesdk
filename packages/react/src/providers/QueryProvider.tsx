@@ -4,7 +4,7 @@ import { persistQueryClientRestore, persistQueryClientSubscribe } from '@tanstac
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import { createContext, useContext, useEffect, useMemo } from 'react';
 import { shouldPassToErrorBoundary } from './errors';
-import { isPersistedQuery } from './internalQueryHooks';
+import { isPersistedQuery } from './queryUtils';
 
 function isNonRetryableError(error: unknown): boolean {
   // NB: be granular here. F.x. no need to retry "bad permit error"

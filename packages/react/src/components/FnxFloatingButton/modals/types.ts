@@ -1,5 +1,5 @@
 import type { PermitType } from '@cofhe/sdk/permits';
-import type { TokenListModalProps } from './TokenListModal';
+import type { Token } from '@/types/token';
 
 export enum PortalModal {
   ExampleSelection = 'exampleSelection',
@@ -16,7 +16,10 @@ export type PortalModalPropsMap = {
   [PortalModal.PermitDetails]: { hash: string };
   [PortalModal.PermitTypeInfo]: { type: PermitType };
   [PortalModal.PermitInfo]: void;
-  [PortalModal.TokenList]: TokenListModalProps;
+  [PortalModal.TokenList]: {
+    title: string;
+    onSelectToken: (token: Token) => void;
+  };
 };
 
 export type PortalModalsWithProps = {

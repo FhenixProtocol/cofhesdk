@@ -6,11 +6,6 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { TokenRow } from '../components/TokenRow';
 import { useCofhePinnedTokenAddress } from '@/hooks/useCofhePinnedTokenAddress';
 
-export type TokenListModalProps = {
-  title: string;
-  onSelectToken: (token: Token) => void;
-};
-
 export const TokenListModal: React.FC<PortalModalStateMap[PortalModal.TokenList]> = ({
   onClose,
   title,
