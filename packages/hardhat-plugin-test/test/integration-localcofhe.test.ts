@@ -66,7 +66,10 @@ describe('Local Cofhe Integration Tests', () => {
 
     // Create a signer for Local Cofhe
     const localcofheProvider = new hre.ethers.JsonRpcProvider(hostChainRpcUrl);
-    localcofheSigner = new hre.ethers.Wallet(process.env.LOCALCOFHE_PRIVATE_KEY as `0x${string}`, localcofheProvider) as unknown as HardhatEthersSigner;
+    localcofheSigner = new hre.ethers.Wallet(
+      process.env.LOCALCOFHE_PRIVATE_KEY as `0x${string}`,
+      localcofheProvider
+    ) as unknown as HardhatEthersSigner;
 
     // Deploy test contract using ethers
     const SimpleTestFactory = await hre.ethers.getContractFactory('SimpleTest');
