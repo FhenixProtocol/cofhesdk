@@ -6,8 +6,9 @@ import { sepolia } from './chains/sepolia.js';
 import { arbSepolia } from './chains/arbSepolia.js';
 import { baseSepolia } from './chains/baseSepolia.js';
 import { hardhat } from './chains/hardhat.js';
+import { localcofhe } from './chains/localcofhe.js';
 
-export { sepolia, arbSepolia, baseSepolia, hardhat };
+export { sepolia, arbSepolia, baseSepolia, hardhat, localcofhe };
 
 // Export all chains as a collection
 export const chains = {
@@ -15,6 +16,7 @@ export const chains = {
   arbSepolia,
   baseSepolia,
   hardhat,
+  localcofhe,
 } as const;
 
 // Import CofheChain type for helper functions

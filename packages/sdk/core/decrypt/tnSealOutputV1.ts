@@ -2,7 +2,7 @@ import { type Permission, type EthEncryptedData } from '@/permits';
 
 import { CofhesdkError, CofhesdkErrorCode } from '../error.js';
 
-export async function tnSealOutput(
+export async function tnSealOutputV1(
   ctHash: bigint,
   chainId: number,
   permission: Permission,
