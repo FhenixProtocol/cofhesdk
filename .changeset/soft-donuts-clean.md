@@ -1,5 +1,5 @@
 ---
-"@cofhe/sdk": patch
+'@cofhe/sdk': patch
 ---
 
 Add getOrCreate permit functions

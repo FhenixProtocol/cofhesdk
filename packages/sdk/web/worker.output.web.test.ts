@@ -1,5 +1,5 @@
 import { arbSepolia as cofhesdkArbSepolia } from '@/chains';
-import { Encryptable, type CofhesdkClient } from '@/core';
+import { Encryptable } from '@/core';
 
 import { describe, it, expect, beforeAll } from 'vitest';
 import type { PublicClient, WalletClient } from 'viem';
@@ -54,12 +54,12 @@ describe('@cofhe/sdk/web - Worker vs Main Thread Output Validation', () => {
     ]);
 
     // Both should succeed
-    expect(resultWithWorker.success).toBe(true);
-    expect(resultWithoutWorker.success).toBe(true);
+    expect(resultWithWorker).toBeDefined();
+    expect(resultWithoutWorker).toBeDefined();
 
     // Both should have same structure (but different encrypted values)
-    const withWorker = resultWithWorker.data![0];
-    const withoutWorker = resultWithoutWorker.data![0];
+    const withWorker = resultWithWorker[0];
+    const withoutWorker = resultWithoutWorker[0];
 
     expect(withWorker).toHaveProperty('ctHash');
     expect(withWorker).toHaveProperty('signature');
@@ -82,4 +82,3 @@ describe('@cofhe/sdk/web - Worker vs Main Thread Output Validation', () => {
     // in the encryption process, so we don't check equality
   }, 90000);
 });
-

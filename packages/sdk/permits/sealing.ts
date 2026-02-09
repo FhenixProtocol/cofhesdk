@@ -122,9 +122,9 @@ export class SealingKey {
  * Asynchronously generates a new SealingKey.
  * This function uses the 'nacl' library to create a new public/private key pair for sealing purposes.
  * A sealing key is used to encrypt data such that it can only be unsealed (decrypted) by the owner of the corresponding private key.
- * @returns {Promise<SealingKey>} - A promise that resolves to a new SealingKey object containing the hexadecimal strings of the public and private keys.
+ * @returns {SealingKey} - A new SealingKey object containing the hexadecimal strings of the public and private keys.
  */
-export const GenerateSealingKey = async (): Promise<SealingKey> => {
+export const GenerateSealingKey = (): SealingKey => {
   const sodiumKeypair = nacl.box.keyPair();
 
   return new SealingKey(toHexString(sodiumKeypair.secretKey), toHexString(sodiumKeypair.publicKey));

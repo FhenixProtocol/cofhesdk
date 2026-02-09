@@ -10,7 +10,6 @@ import {
   type CofhesdkClient,
   type CofhesdkConfig,
   type CofhesdkInputConfig,
-  type Result,
 } from '@cofhe/sdk';
 import { createCofhesdkClient, createCofhesdkConfig } from '@cofhe/sdk/node';
 import { HardhatSignerAdapter } from '@cofhe/sdk/adapters';
@@ -21,12 +20,6 @@ import { deployMocks, type DeployMocksArgs } from './deploy.js';
 import { mock_setLoggingEnabled, mock_withLogs } from './logging.js';
 import { mock_expectPlaintext } from './utils.js';
 import { mock_getPlaintext } from './utils.js';
-import {
-  expectResultError,
-  expectResultPartialValue,
-  expectResultSuccess,
-  expectResultValue,
-} from './expectResultUtils.js';
 import type { Contract } from 'ethers';
 import {
   MockACLArtifact,
@@ -194,7 +187,6 @@ task(TASK_COFHE_MOCKS_SET_LOG_OPS, 'Set logging for the Mock CoFHE contracts')
 // MOCK UTILS
 
 export * from './utils.js';
-export * from './expectResultUtils.js';
 export * from './fund.js';
 export * from './logging.js';
 export * from './deploy.js';
@@ -230,9 +222,9 @@ declare module 'hardhat/types/runtime' {
        * Connect a CoFHE SDK client with a Hardhat ethers signer
        * @param {CofhesdkClient} client - The CoFHE SDK client to connect
        * @param {HardhatEthersSigner} signer - The Hardhat ethers signer to use
-       * @returns {Promise<boolean>} True if the connection was successful
+       * @returns {Promise<void>}
        */
-      connectWithHardhatSigner: (client: CofhesdkClient, signer: HardhatEthersSigner) => Promise<Result<boolean>>;
+      connectWithHardhatSigner: (client: CofhesdkClient, signer: HardhatEthersSigner) => Promise<void>;
       /**
        * Create and connect to a batteries included client.
        * Also generates a self-usage a permit for the signer.
@@ -241,35 +233,6 @@ declare module 'hardhat/types/runtime' {
        * @returns {Promise<CofhesdkClient>} The CoFHE SDK client instance
        */
       createBatteriesIncludedCofhesdkClient: (signer?: HardhatEthersSigner) => Promise<CofhesdkClient>;
-
-      /**
-       * Assert that a Result type returned from a function is successful and return its value (result.success === true)
-       * @param {Result<T>} result - The Result to check
-       * @returns {T} The inner data of the Result (non null)
-       */
-      expectResultSuccess: <T>(result: Result<T> | Promise<Result<T>>) => Promise<T>;
-
-      /**
-       * Assert that a Result type contains an error matching the partial string (result.success === false && result.error.includes(errorPartial))
-       * @param {Result<T>} result - The Result to check
-       * @param {string} errorPartial - The partial error string to match
-       */
-      expectResultError: <T>(result: Result<T> | Promise<Result<T>>, errorPartial: string) => Promise<void>;
-
-      /**
-       * Assert that a Result type contains a specific value (result.success === true && result.data === value)
-       * @param {Result<T>} result - The Result to check
-       * @param {T} value - The inner data of the Result (non null)
-       */
-      expectResultValue: <T>(result: Result<T> | Promise<Result<T>>, value: T) => Promise<T>;
-
-      /**
-       * Assert that a Result type contains a value matching the partial object (result.success === true && result.data.includes(partial))
-       * @param {Result<T>} result - The Result to check
-       * @param {Partial<T>} partial - The partial object to match against
-       * @returns {T} The inner data of the Result (non null)
-       */
-      expectResultPartialValue: <T>(result: Result<T> | Promise<Result<T>>, partial: Partial<T>) => Promise<T>;
 
       mocks: {
         /**
@@ -387,6 +350,7 @@ extendEnvironment((hre) => {
 
       // Inject zkv wallet client into config
       const configWithZkvWalletClient = {
+        environment: 'hardhat' as const,
         ...config,
         _internal: {
           ...config._internal,
@@ -414,6 +378,7 @@ extendEnvironment((hre) => {
 
       // Create config
       const config = await hre.cofhesdk.createCofhesdkConfig({
+        environment: 'hardhat',
         supportedChains: [hardhat],
       });
 
@@ -430,22 +395,6 @@ extendEnvironment((hre) => {
 
       // Return client
       return client;
-    },
-    expectResultSuccess: async <T>(result: Result<T> | Promise<Result<T>>) => {
-      const awaitedResult = await result;
-      return expectResultSuccess(awaitedResult);
-    },
-    expectResultError: async <T>(result: Result<T> | Promise<Result<T>>, errorPartial: string) => {
-      const awaitedResult = await result;
-      return expectResultError(awaitedResult, errorPartial);
-    },
-    expectResultValue: async <T>(result: Result<T> | Promise<Result<T>>, value: T) => {
-      const awaitedResult = await result;
-      return expectResultValue(awaitedResult, value);
-    },
-    expectResultPartialValue: async <T>(result: Result<T> | Promise<Result<T>>, partial: Partial<T>) => {
-      const awaitedResult = await result;
-      return expectResultPartialValue(awaitedResult, partial);
     },
     mocks: {
       withLogs: async (closureName: string, closure: () => Promise<void>) => {

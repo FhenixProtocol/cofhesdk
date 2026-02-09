@@ -87,6 +87,7 @@ The example automatically uses Web Workers to offload heavy ZK proof generation.
 ### 2. Real-time Progress
 
 The encryption progress bar shows actual steps from the SDK:
+
 - Initializing TFHE
 - Fetching FHE keys
 - Packing data
@@ -100,6 +101,7 @@ Full TypeScript support with proper type inference for all components and hooks.
 ## Configuration
 
 The example uses:
+
 - **Network**: Arbitrum Sepolia testnet
 - **Private Key**: Mock key for demonstration (line 12 of `ExampleProvider.tsx`)
 
@@ -121,6 +123,7 @@ import { createCofhesdkClient, createCofhesdkConfig } from '@cofhe/sdk/web';
 import { sepolia } from '@cofhe/sdk/chains';
 
 const config = createCofhesdkConfig({
+  environment: 'node',
   supportedChains: [sepolia],
   useWorkers: true, // Enable Web Workers
 });
@@ -159,6 +162,7 @@ The example includes proper Vite configuration for WASM modules. Check `vite.con
 ### Workers Not Loading
 
 If you see `usedWorker: false` in the console:
+
 - Check browser console for errors
 - Ensure CORS headers are set correctly (see `vite.config.ts`)
 - Verify WASM files are being served properly
@@ -166,6 +170,7 @@ If you see `usedWorker: false` in the console:
 ### Connection Issues
 
 If you can't connect to the wallet:
+
 - Ensure you're using a supported network
 - Check that the RPC endpoint is accessible
 - Verify the chain ID matches your network
@@ -175,4 +180,3 @@ If you can't connect to the wallet:
 - [SDK Documentation](../../packages/sdk/README.md)
 - [React Package Documentation](../../packages/react/README.md)
 - [Worker Implementation Guide](../../packages/sdk/HOW_TO_USE_WORKERS.md)
-

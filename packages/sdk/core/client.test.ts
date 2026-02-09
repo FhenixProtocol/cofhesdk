@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createCofhesdkClientBase } from './client.js';
-import { type CofhesdkClient, type CofhesdkClientConnectionState } from './types.js';
-import { createCofhesdkConfigBase } from './config.js';
-import { CofhesdkErrorCode } from './error.js';
+import { type CofhesdkClient, type CofhesdkClientConnectionState } from './clientTypes.js';
+import { createCofhesdkConfigBase, type CofhesdkEnvironment } from './config.js';
+import { CofhesdkError, CofhesdkErrorCode } from './error.js';
 import { type PublicClient, type WalletClient } from 'viem';
 import { EncryptInputsBuilder } from './encrypt/encryptInputsBuilder.js';
 import { Encryptable } from './types.js';
@@ -57,6 +57,8 @@ describe('createCofhesdkClientBase', () => {
       expect(snapshot.connectError).toBe(undefined);
       expect(snapshot.chainId).toBe(undefined);
       expect(snapshot.account).toBe(undefined);
+      expect(snapshot.publicClient).toBe(undefined);
+      expect(snapshot.walletClient).toBe(undefined);
     });
 
     it('should expose convenience flags', () => {
@@ -67,6 +69,24 @@ describe('createCofhesdkClientBase', () => {
     it('should expose config', () => {
       expect(client.config).toBeDefined();
       expect(client.config.supportedChains).toEqual([]);
+    });
+  });
+
+  describe('environment', () => {
+    it('should create a client with the correct environment', async () => {
+      const environments: CofhesdkEnvironment[] = ['node', 'hardhat', 'web', 'react'];
+      for (const environment of environments) {
+        const config = createCofhesdkConfigBase({ environment, supportedChains: [] });
+        const client = createCofhesdkClientBase({
+          config,
+          zkBuilderAndCrsGenerator: {} as any,
+          tfhePublicKeyDeserializer: {} as any,
+          compactPkeCrsDeserializer: {} as any,
+          initTfhe: () => Promise.resolve(false),
+        });
+
+        expect(client.config.environment).toBe(environment);
+      }
     });
   });
 
@@ -84,12 +104,16 @@ describe('createCofhesdkClientBase', () => {
       expect(states[0].connected).toBe(false);
       expect(states[0].chainId).toBe(undefined);
       expect(states[0].account).toBe(undefined);
+      expect(states[0].publicClient).toBe(undefined);
+      expect(states[0].walletClient).toBe(undefined);
 
       // Expect states[1] to be the connected state
       expect(states[1].connected).toBe(true);
       expect(states[1].connecting).toBe(false);
       expect(states[1].chainId).toBe(11155111);
       expect(states[1].account).toBe('0x1234567890123456789012345678901234567890');
+      expect(states[1].publicClient).toBe(publicClient);
+      expect(states[1].walletClient).toBe(walletClient);
     });
 
     it('should stop notifications after unsubscribe', async () => {
@@ -112,10 +136,7 @@ describe('createCofhesdkClientBase', () => {
       const publicClient = createMockPublicClient(11155111);
       const walletClient = createMockWalletClient(['0xabcd']);
 
-      const result = await client.connect(publicClient, walletClient);
-
-      expect(result.success).toBe(true);
-      expect(result.data).toBe(true);
+      await client.connect(publicClient, walletClient);
 
       expect(client.connected).toBe(true);
       expect(client.connecting).toBe(false);
@@ -123,6 +144,8 @@ describe('createCofhesdkClientBase', () => {
       const snapshot = client.getSnapshot();
       expect(snapshot.chainId).toBe(11155111);
       expect(snapshot.account).toBe('0xabcd');
+      expect(snapshot.publicClient).toBe(publicClient);
+      expect(snapshot.walletClient).toBe(walletClient);
     });
 
     it('should set connecting state during connection', async () => {
@@ -153,95 +176,104 @@ describe('createCofhesdkClientBase', () => {
       await promise1;
     });
 
-    it('should return immediately if already connected with same clients', async () => {
+    it('should handle publicClient.getChainId throwing an error', async () => {
       const publicClient = createMockPublicClient();
+      const getChainIdError = new Error('Network error');
+      publicClient.getChainId = vi.fn().mockRejectedValue(getChainIdError);
       const walletClient = createMockWalletClient();
 
-      await client.connect(publicClient, walletClient);
-      const result = await client.connect(publicClient, walletClient);
-
-      expect(result.success).toBe(true);
+      try {
+        await client.connect(publicClient, walletClient);
+      } catch (error) {
+        expect(error).toBeInstanceOf(CofhesdkError);
+        expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.PublicWalletGetChainIdFailed);
+        expect((error as CofhesdkError).message).toBe(
+          'getting chain ID from public client failed | Caused by: Network error'
+        );
+        expect((error as CofhesdkError).cause).toBe(getChainIdError);
+      }
     });
 
-    it('should handle getChainId throwing an error', async () => {
-      const publicClient = createMockPublicClient();
-      const error = new Error('Network error');
-      publicClient.getChainId = vi.fn().mockRejectedValue(error);
-      const walletClient = createMockWalletClient();
-
-      const result = await client.connect(publicClient, walletClient);
-
-      expect(result.success).toBe(false);
-      expect(result.error?.code).toBe(CofhesdkErrorCode.PublicWalletGetChainIdFailed);
-      expect(result.error?.message).toBe('getting chain ID from public client failed | Caused by: Network error');
-      expect(result.error?.cause).toBe(error);
-      expect(client.connected).toBe(false);
-    });
-
-    it('should handle getChainId returning null', async () => {
+    it('should handle publicClient.getChainId returning null', async () => {
       const publicClient = createMockPublicClient();
       publicClient.getChainId = vi.fn().mockResolvedValue(null);
       const walletClient = createMockWalletClient();
 
-      const result = await client.connect(publicClient, walletClient);
+      const connectPromise = client.connect(publicClient, walletClient);
 
-      expect(result.success).toBe(false);
-      expect(result.error?.code).toBe(CofhesdkErrorCode.PublicWalletGetChainIdFailed);
-      expect(result.error?.message).toBe('chain ID from public client is null');
-      expect(result.error?.cause).toBe(undefined);
-      expect(client.connected).toBe(false);
+      try {
+        await connectPromise;
+      } catch (error) {
+        expect(error).toBeInstanceOf(CofhesdkError);
+        expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.PublicWalletGetChainIdFailed);
+        expect((error as CofhesdkError).message).toBe('chain ID from public client is null');
+      }
     });
 
-    it('should handle getAddresses throwing an error', async () => {
+    it('should handle walletClient.getAddresses throwing an error', async () => {
       const publicClient = createMockPublicClient();
-      const error = new Error('Network error');
+      const getAddressesError = new Error('Network error');
       const walletClient = createMockWalletClient();
-      walletClient.getAddresses = vi.fn().mockRejectedValue(error);
+      walletClient.getAddresses = vi.fn().mockRejectedValue(getAddressesError);
 
-      const result = await client.connect(publicClient, walletClient);
+      const connectPromise = client.connect(publicClient, walletClient);
 
-      expect(result.success).toBe(false);
-      expect(result.error?.code).toBe(CofhesdkErrorCode.PublicWalletGetAddressesFailed);
-      expect(result.error?.message).toBe('getting address from wallet client failed | Caused by: Network error');
-      expect(result.error?.cause).toBe(error);
-      expect(client.connected).toBe(false);
+      try {
+        await connectPromise;
+      } catch (error) {
+        expect(error).toBeInstanceOf(CofhesdkError);
+        expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.PublicWalletGetAddressesFailed);
+        expect((error as CofhesdkError).message).toBe(
+          'getting address from wallet client failed | Caused by: Network error'
+        );
+        expect((error as CofhesdkError).cause).toBe(getAddressesError);
+      }
     });
 
-    it('should handle getAddresses returning an empty array', async () => {
+    it('should handle walletClient.getAddresses returning an empty array', async () => {
       const publicClient = createMockPublicClient();
       const walletClient = createMockWalletClient([]);
 
-      const result = await client.connect(publicClient, walletClient);
+      const connectPromise = client.connect(publicClient, walletClient);
 
-      expect(result.success).toBe(false);
-      expect(result.error?.code).toBe(CofhesdkErrorCode.PublicWalletGetAddressesFailed);
-      expect(result.error?.message).toBe('address from wallet client is null');
-      expect(result.error?.cause).toBe(undefined);
-      expect(client.connected).toBe(false);
+      try {
+        await connectPromise;
+      } catch (error) {
+        expect(error).toBeInstanceOf(CofhesdkError);
+        expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.PublicWalletGetAddressesFailed);
+        expect((error as CofhesdkError).message).toBe('address from wallet client is null');
+      }
     });
 
     it('should store error in state on failure', async () => {
       const publicClient = createMockPublicClient();
-      const error = new Error('Network error');
-      publicClient.getChainId = vi.fn().mockRejectedValue(error);
+      const getChainIdError = new Error('Network error');
+      publicClient.getChainId = vi.fn().mockRejectedValue(getChainIdError);
       const walletClient = createMockWalletClient();
 
-      const result = await client.connect(publicClient, walletClient);
+      const connectPromise = client.connect(publicClient, walletClient);
 
-      expect(result.success).toBe(false);
-      const snapshot = client.getSnapshot();
-      expect(snapshot.connectError).toBeTruthy();
-      expect(snapshot.connected).toBe(false);
+      try {
+        await connectPromise;
+      } catch (error) {
+        expect(error).toBeInstanceOf(CofhesdkError);
+        expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.PublicWalletGetChainIdFailed);
+        expect((error as CofhesdkError).message).toBe(
+          'getting chain ID from public client failed | Caused by: Network error'
+        );
+        expect((error as CofhesdkError).cause).toBe(getChainIdError);
+      }
     });
   });
 
   describe('encryptInputs', () => {
     it('should throw if not connected', async () => {
-      const result = await client
-        .encryptInputs([Encryptable.uint8(1n), Encryptable.uint8(2n), Encryptable.uint8(3n)])
-        .encrypt();
-      expect(result.success).toBe(false);
-      expect(result.error?.code).toBe(CofhesdkErrorCode.NotConnected);
+      try {
+        await client.encryptInputs([Encryptable.uint8(1n), Encryptable.uint8(2n), Encryptable.uint8(3n)]).encrypt();
+      } catch (error) {
+        expect(error).toBeInstanceOf(CofhesdkError);
+        expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.NotConnected);
+      }
     });
 
     it('should create EncryptInputsBuilder when connected', async () => {

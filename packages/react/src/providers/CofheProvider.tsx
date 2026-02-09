@@ -1,45 +1,62 @@
-import { createContext, useContext, useEffect, useState } from 'react';
-import type { CofhesdkClient } from '@cofhe/sdk';
-import type { CofheContextValue, CofheProviderProps } from '../types/index.js';
+import { createContext, useContext, useMemo, useState } from 'react';
+import type { CofheContextValue, CofheProviderProps } from '../types/index';
+import { QueryProvider } from './QueryProvider';
+import { createCofhesdkClient } from '@cofhe/sdk/web';
+import { FnxFloatingButtonWithProvider } from '@/components/FnxFloatingButton/FnxFloatingButton';
+import { useCofheAutoConnect } from '@/hooks/useCofheAutoConnect';
+import { createCofhesdkConfig } from '@/config';
+import { chains } from '@cofhe/sdk/chains';
+import { assert } from 'ts-essentials';
+import type { FloatingButtonPosition } from '@/components/FnxFloatingButton/types';
 
 const CofheContext = createContext<CofheContextValue | undefined>(undefined);
 
-export function CofheProvider({ children, client: providedClient, config }: CofheProviderProps) {
-  const [client, setClient] = useState<CofhesdkClient | null>(providedClient || null);
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+export function CofheProvider(props: CofheProviderProps) {
+  const { children, queryClient, publicClient, walletClient } = props;
 
-  useEffect(() => {
-    if (providedClient) {
-      setClient(providedClient);
-      setIsInitialized(true);
-      return;
+  const config = useMemo(() => {
+    // priority: explicit config prop > config from provided client > create default config
+    if (props.config) return props.config;
+    if (props.cofhesdkClient) {
+      assert(config.environment === 'react', 'Provided cofhesdkClient must have react config');
+      return props.cofhesdkClient.config;
     }
+    return createCofhesdkConfig({ supportedChains: Object.values(chains) });
+  }, [props.config, props.cofhesdkClient]);
 
-    if (config) {
-      try {
-        // Initialize client with config
-        // This would need to be implemented based on the actual CofheClient constructor
-        // const newClient = new CofheClient(config);
-        // setClient(newClient);
-        setIsInitialized(true);
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error('Failed to initialize CoFHE client'));
-      }
-    }
-  }, [providedClient, config]);
+  // use provided client or create a new one out of the config
+  const cofhesdkClient = useMemo(
+    () => props.cofhesdkClient ?? createCofhesdkClient(config),
+    [props.cofhesdkClient, config]
+  );
 
-  const contextValue: CofheContextValue = {
-    client,
-    isInitialized,
-    error,
-  };
+  // dynamic values
+  const [position, setPosition] = useState<FloatingButtonPosition>(config.react.position);
+  const [theme, setTheme] = useState(config.react.initialTheme);
 
   return (
-    <CofheContext.Provider value={contextValue}>
-      {children}
+    <CofheContext.Provider
+      value={{
+        client: cofhesdkClient,
+        state: {
+          position,
+          setPosition,
+          theme,
+          setTheme,
+        },
+      }}
+    >
+      <QueryProvider queryClient={queryClient}>
+        <AutoConnect walletClient={walletClient} publicClient={publicClient} />
+        <FnxFloatingButtonWithProvider>{children}</FnxFloatingButtonWithProvider>
+      </QueryProvider>
     </CofheContext.Provider>
   );
+}
+
+function AutoConnect({ walletClient, publicClient }: Pick<CofheProviderProps, 'walletClient' | 'publicClient'>) {
+  useCofheAutoConnect({ walletClient, publicClient });
+  return null;
 }
 
 export function useCofheContext(): CofheContextValue {

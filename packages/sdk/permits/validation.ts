@@ -8,6 +8,8 @@ const SerializedSealingPair = z.object({
   publicKey: z.string(),
 });
 
+const DEFAULT_EXPIRATION_FN = () => Math.round(Date.now() / 1000) + 7 * 24 * 60 * 60; // 7 days from now
+
 const zPermitWithDefaults = z.object({
   name: z.string().optional().default('Unnamed Permit'),
   type: z.enum(['self', 'sharing', 'recipient']),
@@ -19,7 +21,7 @@ const zPermitWithDefaults = z.object({
     .refine((val) => val !== zeroAddress, {
       message: 'Permit issuer :: must not be zeroAddress',
     }),
-  expiration: z.number().optional().default(1000000000000),
+  expiration: z.number().optional().default(DEFAULT_EXPIRATION_FN),
   recipient: z
     .string()
     .optional()
@@ -75,17 +77,23 @@ export const SelfPermitOptionsValidator = z
       .refine((val) => isAddress(val), {
         message: 'Self permit issuer :: invalid address',
       })
+      .refine((val) => is0xPrefixed(val), {
+        message: 'Self permit issuer :: must be 0x prefixed',
+      })
       .refine((val) => val !== zeroAddress, {
         message: 'Self permit issuer :: must not be zeroAddress',
       }),
     name: z.string().optional().default('Unnamed Permit'),
-    expiration: z.number().optional().default(1000000000000),
+    expiration: z.number().optional().default(DEFAULT_EXPIRATION_FN),
     recipient: z
       .string()
       .optional()
       .default(zeroAddress)
       .refine((val) => isAddress(val), {
         message: 'Self permit recipient :: invalid address',
+      })
+      .refine((val) => is0xPrefixed(val), {
+        message: 'Self permit recipient :: must be 0x prefixed',
       })
       .refine((val) => val === zeroAddress, {
         message: 'Self permit recipient :: must be zeroAddress',
@@ -148,6 +156,9 @@ export const SharingPermitOptionsValidator = z
       .refine((val) => isAddress(val), {
         message: 'Sharing permit issuer :: invalid address',
       })
+      .refine((val) => is0xPrefixed(val), {
+        message: 'Sharing permit issuer :: must be 0x prefixed',
+      })
       .refine((val) => val !== zeroAddress, {
         message: 'Sharing permit issuer :: must not be zeroAddress',
       }),
@@ -156,11 +167,14 @@ export const SharingPermitOptionsValidator = z
       .refine((val) => isAddress(val), {
         message: 'Sharing permit recipient :: invalid address',
       })
+      .refine((val) => is0xPrefixed(val), {
+        message: 'Sharing permit recipient :: must be 0x prefixed',
+      })
       .refine((val) => val !== zeroAddress, {
         message: 'Sharing permit recipient :: must not be zeroAddress',
       }),
     name: z.string().optional().default('Unnamed Permit'),
-    expiration: z.number().optional().default(1000000000000),
+    expiration: z.number().optional().default(DEFAULT_EXPIRATION_FN),
     validatorId: z.number().optional().default(0),
     validatorContract: z
       .string()
@@ -219,6 +233,9 @@ export const ImportPermitOptionsValidator = z
       .refine((val) => isAddress(val), {
         message: 'Import permit issuer :: invalid address',
       })
+      .refine((val) => is0xPrefixed(val), {
+        message: 'Import permit issuer :: must be 0x prefixed',
+      })
       .refine((val) => val !== zeroAddress, {
         message: 'Import permit issuer :: must not be zeroAddress',
       }),
@@ -226,6 +243,9 @@ export const ImportPermitOptionsValidator = z
       .string()
       .refine((val) => isAddress(val), {
         message: 'Import permit recipient :: invalid address',
+      })
+      .refine((val) => is0xPrefixed(val), {
+        message: 'Import permit recipient :: must be 0x prefixed',
       })
       .refine((val) => val !== zeroAddress, {
         message: 'Import permit recipient :: must not be zeroAddress',
@@ -239,7 +259,7 @@ export const ImportPermitOptionsValidator = z
         message: 'Import permit :: issuerSignature must be provided',
       }),
     name: z.string().optional().default('Unnamed Permit'),
-    expiration: z.number().optional().default(1000000000000),
+    expiration: z.number().optional().default(DEFAULT_EXPIRATION_FN),
     validatorId: z.number().optional().default(0),
     validatorContract: z
       .string()

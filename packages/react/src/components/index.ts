@@ -1,1 +1,2 @@
-export { FnxEncryptInput } from './FnxEncryptInput.js';
+export { FnxFloatingButtonWithProvider } from './FnxFloatingButton';
+export { FnxEncryptInput } from './FnxEncryptInput';

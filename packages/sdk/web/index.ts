@@ -84,11 +84,11 @@ async function zkProveWithWorker(
   metadata: Uint8Array
 ): Promise<Uint8Array> {
   // Serialize items for worker (convert enum to string name)
-  const serializedItems = items.map(item => ({
+  const serializedItems = items.map((item) => ({
     utype: fheTypeToString(item.utype),
     data: typeof item.data === 'bigint' ? item.data.toString() : item.data,
   }));
-  
+
   // Submit to worker
   const workerManager = getWorkerManager();
   return await workerManager.submitProof(fheKeyHex, crsHex, serializedItems, metadata);
@@ -101,6 +101,7 @@ async function zkProveWithWorker(
  */
 export function createCofhesdkConfig(config: CofhesdkInputConfig): CofhesdkConfig {
   return createCofhesdkConfigBase({
+    environment: 'web',
     ...config,
     fheKeyStorage: config.fheKeyStorage === null ? null : config.fheKeyStorage ?? createWebStorage(),
   });
@@ -113,7 +114,7 @@ export function createCofhesdkConfig(config: CofhesdkInputConfig): CofhesdkConfi
  * @param config - The CoFHE SDK configuration (use createCofhesdkConfig to create with web defaults)
  * @returns The CoFHE SDK client instance
  */
-export function createCofhesdkClient(config: CofhesdkConfig): CofhesdkClient {
+export function createCofhesdkClient<TConfig extends CofhesdkConfig>(config: TConfig): CofhesdkClient<TConfig> {
   return createCofhesdkClientBase({
     config,
     zkBuilderAndCrsGenerator,
@@ -142,7 +143,12 @@ export { areWorkersAvailable };
  */
 export function createCofhesdkClientWithCustomWorker(
   config: CofhesdkConfig,
-  customZkProveWorkerFn: (fheKeyHex: string, crsHex: string, items: EncryptableItem[], metadata: Uint8Array) => Promise<Uint8Array>
+  customZkProveWorkerFn: (
+    fheKeyHex: string,
+    crsHex: string,
+    items: EncryptableItem[],
+    metadata: Uint8Array
+  ) => Promise<Uint8Array>
 ): CofhesdkClient {
   return createCofhesdkClientBase({
     config,

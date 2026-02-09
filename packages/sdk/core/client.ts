@@ -4,56 +4,54 @@ import { createStore } from 'zustand/vanilla';
 import { type PublicClient, type WalletClient } from 'viem';
 import { CofhesdkError, CofhesdkErrorCode } from './error.js';
 import { EncryptInputsBuilder } from './encrypt/encryptInputsBuilder.js';
-import { type Result, ResultOk, resultWrapper } from './result.js';
 import { createKeysStore } from './keyStore.js';
 import { permits } from './permits.js';
 import { DecryptHandlesBuilder } from './decrypt/decryptHandleBuilder.js';
-import {
-  type CofhesdkClient,
-  type CofhesdkClientParams,
-  type CofhesdkClientConnectionState,
-  type EncryptableItem,
-  type FheTypes,
-  type CofhesdkClientPermits,
-} from './types.js';
 import { getPublicClientChainID, getWalletClientAccount } from './utils.js';
+import type {
+  CofhesdkClientConnectionState,
+  CofhesdkClientParams,
+  CofhesdkClient,
+  CofhesdkClientPermits,
+} from './clientTypes.js';
+import type { EncryptableItem, FheTypes } from './types.js';
+import type { CofhesdkConfig } from './config.js';
 
-export const CONNECT_STORE_DEFAULTS: CofhesdkClientConnectionState = {
+export const InitialConnectStore: CofhesdkClientConnectionState = {
   connected: false,
   connecting: false,
   connectError: undefined,
   chainId: undefined,
   account: undefined,
+  publicClient: undefined,
+  walletClient: undefined,
 };
+
 /**
  * Creates a CoFHE SDK client instance (base implementation)
  * @param {CofhesdkClientParams} opts - Initialization options including config and platform-specific serializers
  * @returns {CofhesdkClient} - The CoFHE SDK client instance
  */
-export function createCofhesdkClientBase(opts: CofhesdkClientParams): CofhesdkClient {
+export function createCofhesdkClientBase<TConfig extends CofhesdkConfig>(
+  opts: CofhesdkClientParams<TConfig>
+): CofhesdkClient<TConfig> {
   // Create keysStorage instance using configured storage
   const keysStorage = createKeysStore(opts.config.fheKeyStorage);
 
-  // refs captured in closure
-  let _publicClient: PublicClient | undefined = undefined;
-  let _walletClient: WalletClient | undefined = undefined;
-
   // Zustand store for reactive state management
 
-  const connectStore = createStore<CofhesdkClientConnectionState>(() => CONNECT_STORE_DEFAULTS);
+  const connectStore = createStore<CofhesdkClientConnectionState>(() => InitialConnectStore);
 
   // Helper to update state
   const updateConnectState = (partial: Partial<CofhesdkClientConnectionState>) => {
     connectStore.setState((state) => ({ ...state, ...partial }));
   };
 
-  // single-flight + abortable warmup
-  let _connectPromise: Promise<Result<boolean>> | undefined = undefined;
-
   // Called before any operation, throws of connection not yet established
   const _requireConnected = () => {
     const state = connectStore.getState();
-    const notConnected = !state.connected || !_publicClient || !_walletClient || !state.account || !state.chainId;
+    const notConnected =
+      !state.connected || !state.account || !state.chainId || !state.publicClient || !state.walletClient;
     if (notConnected) {
       throw new CofhesdkError({
         code: CofhesdkErrorCode.NotConnected,
@@ -63,8 +61,8 @@ export function createCofhesdkClientBase(opts: CofhesdkClientParams): CofhesdkCl
           connected: state.connected,
           account: state.account,
           chainId: state.chainId,
-          publicClient: _publicClient,
-          walletClient: _walletClient,
+          publicClient: state.publicClient,
+          walletClient: state.walletClient,
         },
       });
     }
@@ -76,43 +74,34 @@ export function createCofhesdkClientBase(opts: CofhesdkClientParams): CofhesdkCl
     const state = connectStore.getState();
 
     // Exit if already connected and clients are the same
-    if (state.connected && _publicClient === publicClient && _walletClient === walletClient) {
-      return Promise.resolve(ResultOk(true));
-    }
-
-    // Exit if already connecting
-    if (_connectPromise && _publicClient === publicClient && _walletClient === walletClient) {
-      return _connectPromise;
-    }
+    if (state.connected && state.publicClient === publicClient && state.walletClient === walletClient) return;
 
     // Set connecting state
-    updateConnectState({ connecting: true, connectError: null, connected: false });
+    updateConnectState({
+      ...InitialConnectStore,
+      connecting: true,
+    });
 
-    _connectPromise = resultWrapper(
-      // try
-      async () => {
-        _publicClient = publicClient;
-        _walletClient = walletClient;
-
-        const chainId = await getPublicClientChainID(publicClient);
-        const account = await getWalletClientAccount(walletClient);
-
-        updateConnectState({ connecting: false, connected: true, chainId, account });
-
-        return true;
-      },
-      // catch
-      (e) => {
-        updateConnectState({ connecting: false, connected: false, connectError: e });
-        return false;
-      },
-      // finally
-      () => {
-        _connectPromise = undefined;
-      }
-    );
-
-    return _connectPromise;
+    // Fetch chainId and account
+    try {
+      const chainId = await getPublicClientChainID(publicClient);
+      const account = await getWalletClientAccount(walletClient);
+      updateConnectState({
+        connected: true,
+        connecting: false,
+        connectError: undefined,
+        chainId,
+        account,
+        publicClient,
+        walletClient,
+      });
+    } catch (e) {
+      updateConnectState({
+        ...InitialConnectStore,
+        connectError: e,
+      });
+      throw e;
+    }
   }
 
   // CLIENT OPERATIONS
@@ -126,8 +115,8 @@ export function createCofhesdkClientBase(opts: CofhesdkClientParams): CofhesdkCl
       chainId: state.chainId ?? undefined,
 
       config: opts.config,
-      publicClient: _publicClient ?? undefined,
-      walletClient: _walletClient ?? undefined,
+      publicClient: state.publicClient ?? undefined,
+      walletClient: state.walletClient ?? undefined,
       zkvWalletClient: opts.config._internal?.zkvWalletClient,
 
       tfhePublicKeyDeserializer: opts.tfhePublicKeyDeserializer,
@@ -152,8 +141,8 @@ export function createCofhesdkClientBase(opts: CofhesdkClientParams): CofhesdkCl
       account: state.account ?? undefined,
 
       config: opts.config,
-      publicClient: _publicClient ?? undefined,
-      walletClient: _walletClient ?? undefined,
+      publicClient: state.publicClient ?? undefined,
+      walletClient: state.walletClient ?? undefined,
 
       requireConnected: _requireConnected,
     });
@@ -187,82 +176,84 @@ export function createCofhesdkClientBase(opts: CofhesdkClientParams): CofhesdkCl
     subscribe: permits.subscribe,
 
     // Creation methods (require connection)
-    createSelf: async (options: CreateSelfPermitOptions) =>
-      resultWrapper(async () => {
-        _requireConnected();
-        return permits.createSelf(options, _publicClient!, _walletClient!);
-      }),
+    createSelf: async (
+      options: CreateSelfPermitOptions,
+      clients?: { publicClient: PublicClient; walletClient: WalletClient }
+    ) => {
+      _requireConnected();
+      const { publicClient, walletClient } = clients ?? connectStore.getState();
+      return permits.createSelf(options, publicClient!, walletClient!);
+    },
 
-    createSharing: async (options: CreateSharingPermitOptions) =>
-      resultWrapper(async () => {
-        _requireConnected();
-        return permits.createSharing(options, _publicClient!, _walletClient!);
-      }),
+    createSharing: async (
+      options: CreateSharingPermitOptions,
+      clients?: { publicClient: PublicClient; walletClient: WalletClient }
+    ) => {
+      _requireConnected();
+      const { publicClient, walletClient } = clients ?? connectStore.getState();
+      return permits.createSharing(options, publicClient!, walletClient!);
+    },
 
-    importShared: async (options: ImportSharedPermitOptions | any | string) =>
-      resultWrapper(async () => {
-        _requireConnected();
-        return permits.importShared(options, _publicClient!, _walletClient!);
-      }),
+    importShared: async (
+      options: ImportSharedPermitOptions | string,
+      clients?: { publicClient: PublicClient; walletClient: WalletClient }
+    ) => {
+      _requireConnected();
+      const { publicClient, walletClient } = clients ?? connectStore.getState();
+      return permits.importShared(options, publicClient!, walletClient!);
+    },
 
     // Get or create methods (require connection)
-    getOrCreateSelfPermit: async (chainId?: number, account?: string, options?: CreateSelfPermitOptions) =>
-      resultWrapper(async () => {
-        _requireConnected();
-        const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
-        return permits.getOrCreateSelfPermit(_publicClient!, _walletClient!, _chainId, _account, options);
-      }),
+    getOrCreateSelfPermit: async (chainId?: number, account?: string, options?: CreateSelfPermitOptions) => {
+      _requireConnected();
+      const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
+      const { publicClient, walletClient } = connectStore.getState();
+      return permits.getOrCreateSelfPermit(publicClient!, walletClient!, _chainId, _account, options);
+    },
 
-    getOrCreateSharingPermit: async (options: CreateSharingPermitOptions, chainId?: number, account?: string) =>
-      resultWrapper(async () => {
-        _requireConnected();
-        const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
-        return permits.getOrCreateSharingPermit(_publicClient!, _walletClient!, options, _chainId, _account);
-      }),
+    getOrCreateSharingPermit: async (options: CreateSharingPermitOptions, chainId?: number, account?: string) => {
+      _requireConnected();
+      const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
+      const { publicClient, walletClient } = connectStore.getState();
+      return permits.getOrCreateSharingPermit(publicClient!, walletClient!, options, _chainId, _account);
+    },
 
     // Retrieval methods (auto-fill chainId/account)
-    getPermit: async (hash: string, chainId?: number, account?: string) =>
-      resultWrapper(async () => {
-        const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
-        return permits.getPermit(_chainId, _account, hash);
-      }),
+    getPermit: async (hash: string, chainId?: number, account?: string) => {
+      const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
+      return permits.getPermit(_chainId, _account, hash);
+    },
 
-    getPermits: async (chainId?: number, account?: string) =>
-      resultWrapper(async () => {
-        const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
-        return permits.getPermits(_chainId, _account);
-      }),
+    getPermits: async (chainId?: number, account?: string) => {
+      const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
+      return permits.getPermits(_chainId, _account);
+    },
 
-    getActivePermit: async (chainId?: number, account?: string) =>
-      resultWrapper(async () => {
-        const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
-        return permits.getActivePermit(_chainId, _account);
-      }),
+    getActivePermit: async (chainId?: number, account?: string) => {
+      const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
+      return permits.getActivePermit(_chainId, _account);
+    },
 
-    getActivePermitHash: async (chainId?: number, account?: string) =>
-      resultWrapper(async () => {
-        const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
-        return permits.getActivePermitHash(_chainId, _account);
-      }),
+    getActivePermitHash: async (chainId?: number, account?: string) => {
+      const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
+      return permits.getActivePermitHash(_chainId, _account);
+    },
 
     // Mutation methods (auto-fill chainId/account)
-    selectActivePermit: async (hash: string, chainId?: number, account?: string) =>
-      resultWrapper(async () => {
-        const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
-        return permits.selectActivePermit(_chainId, _account, hash);
-      }),
+    selectActivePermit: (hash: string, chainId?: number, account?: string) => {
+      const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
+      return permits.selectActivePermit(_chainId, _account, hash);
+    },
 
-    removePermit: async (hash: string, chainId?: number, account?: string) =>
-      resultWrapper(async () => {
-        const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
-        return permits.removePermit(_chainId, _account, hash);
-      }),
+    removePermit: async (hash: string, chainId?: number, account?: string, force?: boolean) => {
+      const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
+      return permits.removePermit(_chainId, _account, hash, force);
+    },
 
-    removeActivePermit: async (chainId?: number, account?: string) =>
-      resultWrapper(async () => {
-        const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
-        return permits.removeActivePermit(_chainId, _account);
-      }),
+    removeActivePermit: async (chainId?: number, account?: string) => {
+      const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
+      return permits.removeActivePermit(_chainId, _account);
+    },
 
     // Utils (no context needed)
     getHash: permits.getHash,
@@ -290,5 +281,12 @@ export function createCofhesdkClientBase(opts: CofhesdkClientParams): CofhesdkCl
     encryptInputs,
     decryptHandle,
     permits: clientPermits,
+
+    // Add SDK-specific methods below that require connection
+    // Example:
+    // async encryptData(data: unknown) {
+    //   requireConnected();
+    //   // Use state.publicClient and state.walletClient for implementation
+    // },
   };
 }

@@ -35,7 +35,7 @@ export const useCofheIsConnected = (): boolean => {
   return connected;
 };
 
-export const useCofheAccount = (): string | undefined => {
+export const useCofheAccount = (): `0x${string}` | undefined => {
   const { account } = useCofheConnection();
   return account;
 };
@@ -44,3 +44,12 @@ export const useCofheChainId = (): number | undefined => {
   const { chainId } = useCofheConnection();
   return chainId;
 };
+
+export const useCofheSupportedChains = () => {
+  const client = useCofheContext().client;
+  return client.config.supportedChains;
+};
+
+export const useCofhePublicClient = () => useCofheConnection().publicClient;
+
+export const useCofheWalletClient = () => useCofheConnection().walletClient;

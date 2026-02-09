@@ -1,5 +1,5 @@
 // Client (base implementations)
-export { createCofhesdkClientBase, CONNECT_STORE_DEFAULTS } from './client.js';
+export { createCofhesdkClientBase, InitialConnectStore as CONNECT_STORE_DEFAULTS } from './client.js';
 
 // Configuration (base implementations)
 export { createCofhesdkConfigBase, getCofhesdkConfigItem } from './config.js';
@@ -12,6 +12,9 @@ export type {
   CofhesdkClientParams,
   CofhesdkClientConnectionState,
   CofhesdkClientPermits,
+} from './clientTypes.js';
+
+export type {
   IStorage,
   // Primitive types
   Primitive,
@@ -34,32 +37,30 @@ export type {
   EncryptedUint32Input,
   EncryptedUint64Input,
   EncryptedUint128Input,
-  EncryptedUint256Input,
   EncryptedAddressInput,
   EncryptedItemInputs,
   EncryptableToEncryptedItemInputMap,
+  FheTypeValue,
   // Decryption types
   UnsealedItem,
   // Util types
   EncryptStepCallbackFunction as EncryptSetStateFn,
+  EncryptStepCallbackContext,
 } from './types.js';
-export { FheTypes, FheUintUTypes, FheAllUTypes, Encryptable, isEncryptableItem, EncryptStep } from './types.js';
+export {
+  FheTypes,
+  FheUintUTypes,
+  FheAllUTypes,
+  Encryptable,
+  isEncryptableItem,
+  EncryptStep,
+  isLastEncryptionStep,
+  assertCorrectEncryptedItemInput,
+} from './types.js';
 
 // Error handling
 export { CofhesdkError, CofhesdkErrorCode, isCofhesdkError } from './error.js';
 export type { CofhesdkErrorParams } from './error.js';
-
-// Result types
-export {
-  ResultErr,
-  ResultOk,
-  ResultErrOrInternal,
-  ResultHttpError,
-  ResultValidationError,
-  resultWrapper,
-  resultWrapperSync,
-} from './result.js';
-export type { Result } from './result.js';
 
 // Key fetching
 export { fetchKeys } from './fetchKeys.js';

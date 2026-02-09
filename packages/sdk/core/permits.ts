@@ -6,6 +6,9 @@ import {
   type Permit,
   permitStore,
   type SerializedPermit,
+  type SelfPermit,
+  type RecipientPermit,
+  type SharingPermit,
 } from '@/permits';
 
 import { type PublicClient, type WalletClient } from 'viem';
@@ -22,12 +25,12 @@ const storeActivePermit = async (permit: Permit, publicClient: any, walletClient
 };
 
 // Generic function to handle permit creation with error handling
-const createPermitWithSign = async <T>(
+const createPermitWithSign = async <T, TPermit extends Permit>(
   options: T,
   publicClient: PublicClient,
   walletClient: WalletClient,
-  permitMethod: (options: T, publicClient: PublicClient, walletClient: WalletClient) => Promise<Permit>
-): Promise<Permit> => {
+  permitMethod: (options: T, publicClient: PublicClient, walletClient: WalletClient) => Promise<TPermit>
+): Promise<TPermit> => {
   const permit = await permitMethod(options, publicClient, walletClient);
   await storeActivePermit(permit, publicClient, walletClient);
   return permit;
@@ -45,7 +48,7 @@ const createSelf = async (
   options: CreateSelfPermitOptions,
   publicClient: PublicClient,
   walletClient: WalletClient
-): Promise<Permit> => {
+): Promise<SelfPermit> => {
   return createPermitWithSign(options, publicClient, walletClient, PermitUtils.createSelfAndSign);
 };
 
@@ -53,15 +56,15 @@ const createSharing = async (
   options: CreateSharingPermitOptions,
   publicClient: PublicClient,
   walletClient: WalletClient
-): Promise<Permit> => {
+): Promise<SharingPermit> => {
   return createPermitWithSign(options, publicClient, walletClient, PermitUtils.createSharingAndSign);
 };
 
 const importShared = async (
-  options: ImportSharedPermitOptions | any | string,
+  options: ImportSharedPermitOptions | string,
   publicClient: PublicClient,
   walletClient: WalletClient
-): Promise<Permit> => {
+): Promise<RecipientPermit> => {
   return createPermitWithSign(options, publicClient, walletClient, PermitUtils.importSharedAndSign);
 };
 
@@ -93,14 +96,13 @@ const getActivePermit = async (chainId: number, account: string): Promise<Permit
   return permitStore.getActivePermit(chainId, account);
 };
 
-const getActivePermitHash = async (chainId: number, account: string): Promise<string | undefined> => {
+const getActivePermitHash = (chainId: number, account: string): string | undefined => {
   return permitStore.getActivePermitHash(chainId, account);
 };
 
-const selectActivePermit = async (chainId: number, account: string, hash: string): Promise<void> => {
-  await permitStore.setActivePermitHash(chainId, account, hash);
+const selectActivePermit = (chainId: number, account: string, hash: string): void => {
+  permitStore.setActivePermitHash(chainId, account, hash);
 };
-
 
 // GET OR CREATE
 
@@ -148,7 +150,7 @@ const getOrCreateSharingPermit = async (
   walletClient: WalletClient,
   options: CreateSharingPermitOptions,
   chainId?: number,
-  account?: string,
+  account?: string
 ): Promise<Permit> => {
   const _chainId = chainId ?? (await publicClient.getChainId());
   const _account = account ?? walletClient.account!.address;
@@ -165,13 +167,11 @@ const getOrCreateSharingPermit = async (
 
 // REMOVE
 
-const removePermit = async (chainId: number, account: string, hash: string): Promise<void> => {
-  await permitStore.removePermit(chainId, account, hash);
-};
+const removePermit = async (chainId: number, account: string, hash: string, force?: boolean): Promise<void> =>
+  permitStore.removePermit(chainId, account, hash, force);
 
-const removeActivePermit = async (chainId: number, account: string): Promise<void> => {
-  await permitStore.removeActivePermitHash(chainId, account);
-};
+const removeActivePermit = async (chainId: number, account: string): Promise<void> =>
+  permitStore.removeActivePermitHash(chainId, account);
 
 // EXPORT
 

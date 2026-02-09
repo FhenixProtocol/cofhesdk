@@ -45,10 +45,7 @@ class ZkProveWorkerManager {
         // Note: In production, this will try to load the worker from the same directory
         // The bundler should handle this Worker instantiation
         try {
-          this.worker = new Worker(
-            new URL('./zkProve.worker.js', import.meta.url),
-            { type: 'module' }
-          ) as any;
+          this.worker = new Worker(new URL('./zkProve.worker.js', import.meta.url), { type: 'module' }) as any;
         } catch (error) {
           // If Worker creation fails, reject immediately
           reject(new Error(`Failed to create worker: ${error}`));
@@ -92,7 +89,7 @@ class ZkProveWorkerManager {
           console.error('[Worker Manager] Error message:', error.message);
           console.error('[Worker Manager] Error filename:', error.filename);
           console.error('[Worker Manager] Error lineno:', error.lineno);
-          
+
           // Reject initialization if not ready yet
           if (!this.workerReady) {
             reject(new Error(`Worker failed to initialize: ${error.message || 'Unknown error'}`));
@@ -112,7 +109,6 @@ class ZkProveWorkerManager {
             reject(new Error('Worker initialization timeout'));
           }
         }, 5000);
-
       } catch (error) {
         reject(error);
       }
@@ -216,4 +212,3 @@ export function terminateWorker(): void {
 export function areWorkersAvailable(): boolean {
   return typeof Worker !== 'undefined';
 }
-

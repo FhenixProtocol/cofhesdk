@@ -1,0 +1,245 @@
+@layer base {
+  .fnx-floating-button {
+    /* Theme colors */
+    --fnx-bg-primary: #ffffff;
+    --fnx-bg-status: #FFF8E1;
+    --fnx-text-primary: #000000;
+    --fnx-border-color: #e2e8f0;
+    
+    /* MainPage colors */
+    --fnx-card-bg: #F5F5F5;
+    --fnx-card-border: #4E4E4E;
+    --fnx-icon-bg: #ffffff;
+    --fnx-button-bg: #ffffff;
+    --fnx-button-hover-bg: #0AD9DC99;
+    --fnx-button-hover-text: #ffffff;
+    --fnx-dropdown-bg: #ffffff;
+    --fnx-dropdown-border: #e5e7eb;
+    --fnx-dropdown-hover-bg: #f3f4f6;
+    --fnx-hover-overlay: rgba(255, 255, 255, 0.1);
+    --fnx-positive-change: #16a34a;
+    --fnx-pattern-overlay: rgba(0, 0, 0, 0.02);
+    --fnx-button-border: #08989A;
+    --fnx-button-default-text: #00314E;
+    --fnx-button-default-border: #5F6368;
+    --fnx-button-default-font-weight: 500;
+    --fnx-send-button-enabled-bg: #8DE8EF;
+    --fnx-send-button-enabled-hover-bg: #80d4da;
+    --fnx-send-button-enabled-text: #ffffff;
+    --fnx-send-button-disabled-bg: #d1d5db;
+    --fnx-send-button-disabled-text: #6b7280;
+    --fnx-corner-accent-color: #0AD9DC;
+    --fnx-corner-size: 10px;
+    --fnx-content-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    
+    /* Sizing - defaults, will be overridden by inline CSS variables */
+    --fnx-border-radius: 0x;
+    
+    /* Token list */
+    --fnx-token-list-max-height: 250px;
+    
+    /* Animation timing */
+    --fnx-transition-duration: 300ms;
+    --fnx-transition-duration-fast: 200ms;
+    --fnx-transition-duration-content: 150ms;
+
+    width: 380px;
+    max-width: calc(100vw - 24px);
+  }
+
+  .dark {
+    --fnx-bg-primary: #1a1a1a;
+    --fnx-bg-status: #2d2d2d;
+    --fnx-text-primary: #ffffff;
+    --fnx-text-status: #e0e0e0;
+    --fnx-border-color: rgba(255, 255, 255, 0.3);
+    
+    /* MainPage dark mode colors */
+    --fnx-card-bg: #333333;
+    --fnx-card-border: #9E9E9E;
+    --fnx-icon-bg: #374151;
+    --fnx-button-bg: #595959;
+    --fnx-button-hover-bg: #00ACC1;
+    --fnx-button-hover-text: #ffffff;
+    --fnx-dropdown-bg: #1f2937;
+    --fnx-dropdown-border: #374151;
+    --fnx-dropdown-hover-bg: #374151;
+    --fnx-hover-overlay: rgba(255, 255, 255, 0.1);
+    --fnx-positive-change: #4ade80;
+    --fnx-pattern-overlay: rgba(255, 255, 255, 0.02);
+    --fnx-button-border: #08989A;
+    --fnx-button-default-text: #FFFFFF;
+    --fnx-button-default-border: #5F6368;
+    --fnx-button-default-font-weight: 500;
+    --fnx-send-button-enabled-bg: #08989A;
+    --fnx-send-button-enabled-hover-bg: #068285;
+    --fnx-send-button-enabled-text: #ffffff;
+    --fnx-send-button-disabled-bg: #374151;
+    --fnx-send-button-disabled-text: #9ca3af;
+    --fnx-corner-accent-color: #0AD9DC;
+    --fnx-content-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  }
+}
+
+.fnx-text-primary {
+  color: var(--fnx-text-primary);
+}
+
+.fnx-panel {
+  background-color: var(--fnx-bg-primary);
+  border: 1px solid var(--fnx-border-color);
+  border-radius: var(--fnx-border-radius);
+  box-shadow: var(--fnx-content-shadow);
+}
+
+/* FloatingIcon styles */
+.fnx-floating-icon {
+  outline: none !important;
+  position: relative;
+  z-index: 1;
+  color: var(--fnx-text-primary);
+}
+
+/* MainPage component utility classes */
+.fnx-card-bg {
+  background-color: var(--fnx-card-bg);
+}
+
+.fnx-card-border {
+  border-left: 1px solid var(--fnx-card-border);
+  border-bottom: 1px solid var(--fnx-card-border);
+  border-top: none;
+  border-right: none;
+}
+
+.fnx-icon-bg {
+  background-color: var(--fnx-icon-bg);
+}
+
+.fnx-nav-button {
+  background-color: var(--fnx-button-bg);
+  color: var(--fnx-button-default-text);
+  font-weight: var(--fnx-button-default-font-weight);
+  border: 1px solid var(--fnx-button-default-border);
+  transition: background-color var(--fnx-transition-duration-fast) ease-in-out, color var(--fnx-transition-duration-fast) ease-in-out, border-color var(--fnx-transition-duration-fast) ease-in-out;
+}
+
+.fnx-nav-button:hover {
+  background-color: var(--fnx-button-hover-bg);
+}
+
+/* Active state for nav/action buttons (used e.g. for tab selection) */
+.fnx-nav-button-active {
+  background-color: var(--fnx-button-hover-bg);
+  color: var(--fnx-button-hover-text);
+}
+
+.fnx-max-button {
+  background-color: var(--fnx-button-bg);
+  color: var(--fnx-button-default-text);
+  font-weight: var(--fnx-button-default-font-weight);
+  border: 1px solid var(--fnx-button-default-border);
+  transition: background-color var(--fnx-transition-duration-fast) ease-in-out, color var(--fnx-transition-duration-fast) ease-in-out, border-color var(--fnx-transition-duration-fast) ease-in-out;
+}
+
+.fnx-max-button:hover {
+  background-color: var(--fnx-button-hover-bg);
+  color: var(--fnx-button-hover-text);
+}
+
+/* Default button styles */
+.fnx-button {
+  color: var(--fnx-button-default-text);
+  font-weight: var(--fnx-button-default-font-weight);
+  border: 1px solid var(--fnx-button-default-border);
+  transition: background-color var(--fnx-transition-duration-fast) ease-in-out, color var(--fnx-transition-duration-fast) ease-in-out, border-color var(--fnx-transition-duration-fast) ease-in-out;
+}
+
+.fnx-send-button {
+  color: var(--fnx-button-default-text);
+  font-weight: var(--fnx-button-default-font-weight);
+  border: 1px solid var(--fnx-button-default-border);
+  transition: background-color var(--fnx-transition-duration-fast) ease-in-out, color var(--fnx-transition-duration-fast) ease-in-out, border-color var(--fnx-transition-duration-fast) ease-in-out;
+}
+
+.fnx-send-button-enabled {
+  background-color: var(--fnx-send-button-enabled-bg);
+  color: var(--fnx-button-default-text);
+}
+
+.fnx-send-button-enabled:hover {
+  background-color: var(--fnx-send-button-enabled-hover-bg);
+  color: var(--fnx-button-default-text);
+}
+
+.fnx-send-button-disabled {
+  background-color: var(--fnx-send-button-disabled-bg);
+  color: var(--fnx-send-button-disabled-text);
+  cursor: not-allowed;
+}
+
+.fnx-dropdown-bg {
+  background-color: var(--fnx-dropdown-bg);
+}
+
+.fnx-dropdown-border {
+  border-color: var(--fnx-dropdown-border);
+}
+
+.fnx-dropdown-hover:hover,
+.fnx-dropdown-hover:focus {
+  background-color: var(--fnx-dropdown-hover-bg);
+}
+
+.fnx-hover-overlay:hover {
+  background-color: var(--fnx-hover-overlay);
+}
+
+.fnx-positive-change {
+  color: var(--fnx-positive-change);
+}
+
+/* TokenListPage styles */
+.fnx-token-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-height: var(--fnx-token-list-max-height);
+  overflow-y: auto;
+}
+
+/* Loading dots animation */
+.fnx-loading-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+}
+
+.fnx-loading-dots span {
+  display: inline-block;
+  animation: fnx-dot-bounce 1.4s ease-in-out infinite;
+}
+
+.fnx-loading-dots span:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.fnx-loading-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.fnx-loading-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes fnx-dot-bounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-0.25em);
+    opacity: 1;
+  }
+}
+

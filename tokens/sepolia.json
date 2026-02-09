@@ -1,0 +1,87 @@
+{
+  "name": "CoFHE Sepolia Tokenlist",
+  "timestamp": "2025-11-13T12:00:00Z",
+  "version": { "major": 1, "minor": 0, "patch": 0 },
+  "logoURI": "https://cdn.prod.website-files.com/6864e9aed9e0a3fac7810db8/68a473dd63e0265d2d6cf9a3_(fhenix_)%20(16).svg",
+  "keywords": ["sepolia", "weth", "wrapped-ether"],
+  "tokens": [
+    {
+      "chainId": 11155111,
+      "address": "0x87A3effB84CBE1E4caB6Ab430139eC41d156D55A",
+      "name": "Redact eETH",
+      "symbol": "eETH",
+      "decimals": 18,
+      "logoURI": "https://storage.googleapis.com/cofhesdk/token-icons/eth.webp",
+      "extensions": {
+        "coingeckoId": "eeth",
+        "fhenix": {
+          "confidentialityType": "wrapped",
+          "confidentialValueType": "uint128",
+          "erc20Pair": {
+            "address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "symbol": "ETH",
+            "decimals": 18,
+            "logoURI": "https://storage.googleapis.com/cofhesdk/token-icons/eth.webp"
+          }
+        }
+      }
+    },
+    {
+      "chainId": 11155111,
+      "address": "0xd38AB9f1563316DeD5d3B3d5e727d55f410d492E",
+      "name": "Redact eUSDC",
+      "symbol": "eUSDC",
+      "decimals": 6,
+      "logoURI": "https://storage.googleapis.com/cofhesdk/token-icons/usdc.webp",
+      "extensions": {
+        "coingeckoId": "eusdc",
+        "fhenix": {
+          "confidentialityType": "wrapped",
+          "confidentialValueType": "uint128",
+          "erc20Pair": {
+            "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+            "symbol": "USDC",
+            "decimals": 6,
+            "logoURI": "https://storage.googleapis.com/cofhesdk/token-icons/usdc.webp"
+          }
+        }
+      }
+    },
+    {
+      "chainId": 11155111,
+      "address": "0xb5cE4628874eBD8ED027DfE6Fb4E91346E9C5b48",
+      "name": "Redact eEURC",
+      "symbol": "eEURC",
+      "decimals": 6,
+      "logoURI": "https://storage.googleapis.com/cofhesdk/token-icons/eurc.webp",
+      "extensions": {
+        "coingeckoId": "eeurc",
+        "fhenix": {
+          "confidentialityType": "wrapped",
+          "confidentialValueType": "uint128",
+          "erc20Pair": {
+            "address": "0x08210F9170F89Ab7658F0B5E3fF39b0E03C594D4",
+            "symbol": "EURC",
+            "decimals": 6,
+            "logoURI": "https://storage.googleapis.com/cofhesdk/token-icons/eurc.webp"
+          }
+        }
+      }
+    },
+    {
+      "chainId": 11155111,
+      "address": "0x116360014E21772E46d7A7Dbaf96E30b65263E5b",
+      "name": "Dual Test Token",
+      "symbol": "eToken",
+      "decimals": 6,
+      "logoURI": "https://storage.googleapis.com/cofhesdk/token-icons/default-token.webp",
+      "extensions": {
+        "coingeckoId": "etoken",
+        "fhenix": {
+          "confidentialityType": "dual",
+          "confidentialValueType": "uint64"
+        }
+      }
+    }
+  ]
+}

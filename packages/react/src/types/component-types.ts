@@ -1,4 +1,4 @@
-import type { FheTypeValue } from '../utils/utils.js';
+import type { FheTypeValue } from '@cofhe/sdk';
 
 // Base props for all components
 export interface BaseProps {
@@ -18,9 +18,6 @@ export interface DropdownOption {
   maxValue?: bigint | null;
   description?: string;
 }
-
-// Encryption step types
-export type EncryptionStep = 'initTfhe' | 'fetchKeys' | 'pack' | 'prove' | 'verify' | 'done';
 
 // Encryption progress data
 export interface EncryptionProgressData {

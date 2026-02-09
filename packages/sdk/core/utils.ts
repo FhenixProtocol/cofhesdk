@@ -1,6 +1,6 @@
 import { type PublicClient, type WalletClient } from 'viem';
 import { CofhesdkError, CofhesdkErrorCode } from './error.js';
-import { FheTypes } from './types.js';
+import { Encryptable, FheTypes } from './types.js';
 
 export const toHexString = (bytes: Uint8Array) =>
   bytes.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
@@ -66,7 +66,7 @@ export async function getPublicClientChainID(publicClient: PublicClient) {
 }
 
 export async function getWalletClientAccount(walletClient: WalletClient) {
-  let address: string | undefined;
+  let address: `0x${string}` | undefined;
   try {
     address = walletClient.account?.address;
     if (!address) {

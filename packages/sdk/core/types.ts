@@ -1,21 +1,10 @@
-import {
-  type CreateSelfPermitOptions,
-  type Permit,
-  type CreateSharingPermitOptions,
-  type ImportSharedPermitOptions,
-  type PermitUtils,
-} from '@/permits';
+export type TfheInitializer = () => Promise<boolean>;
 
-import { type PublicClient, type WalletClient } from 'viem';
-import { type CofhesdkConfig } from './config.js';
-import { DecryptHandlesBuilder } from './decrypt/decryptHandleBuilder.js';
-import { EncryptInputsBuilder } from './encrypt/encryptInputsBuilder.js';
-import { type ZkBuilderAndCrsGenerator, type ZkProveWorkerFunction } from './encrypt/zkPackProveVerify.js';
-import { type FheKeyDeserializer } from './fetchKeys.js';
-import { permits } from './permits.js';
-import { type Result } from './result.js';
-
-// UTILS
+export interface IStorage {
+  getItem: (name: string) => Promise<any>;
+  setItem: (name: string, value: any) => Promise<void>;
+  removeItem: (name: string) => Promise<void>;
+}
 
 export type Primitive = null | undefined | string | number | boolean | symbol | bigint;
 export type LiteralToPrimitive<T> = T extends number
@@ -34,87 +23,10 @@ export type LiteralToPrimitive<T> = T extends number
               ? undefined
               : never;
 
-// CLIENT
-
-export type CofhesdkClient = {
-  // --- state access ---
-  getSnapshot(): CofhesdkClientConnectionState;
-  subscribe(listener: Listener): () => void;
-
-  // --- convenience flags (read-only) ---
-  readonly connected: boolean;
-  readonly connecting: boolean;
-
-  // --- config & platform-specific ---
-  readonly config: CofhesdkConfig;
-
-  connect(publicClient: PublicClient, walletClient: WalletClient): Promise<Result<boolean>>;
-  /**
-   * Types docstring
-   */
-  encryptInputs<T extends EncryptableItem[]>(inputs: [...T]): EncryptInputsBuilder<[...T]>;
-  decryptHandle<U extends FheTypes>(ctHash: bigint, utype: U): DecryptHandlesBuilder<U>;
-  permits: CofhesdkClientPermits;
-};
-
-export type CofhesdkClientConnectionState = {
-  connected: boolean;
-  connecting: boolean;
-  connectError: unknown | undefined;
-  chainId: number | undefined;
-  account: string | undefined;
-};
-
-type Listener = (snapshot: CofhesdkClientConnectionState) => void;
-
-export type CofhesdkClientPermits = {
-  getSnapshot: typeof permits.getSnapshot;
-  subscribe: typeof permits.subscribe;
-
-  // Creation methods (require connection, no params)
-  createSelf: (options: CreateSelfPermitOptions) => Promise<Result<Permit>>;
-  createSharing: (options: CreateSharingPermitOptions) => Promise<Result<Permit>>;
-  importShared: (options: ImportSharedPermitOptions | any | string) => Promise<Result<Permit>>;
-
-  // Retrieval methods (chainId/account optional)
-  getPermit: (hash: string, chainId?: number, account?: string) => Promise<Result<Permit | undefined>>;
-  getPermits: (chainId?: number, account?: string) => Promise<Result<Record<string, Permit>>>;
-  getActivePermit: (chainId?: number, account?: string) => Promise<Result<Permit | undefined>>;
-  getActivePermitHash: (chainId?: number, account?: string) => Promise<Result<string | undefined>>;
-
-  // Get or create methods (get active or create new, chainId/account optional)
-  getOrCreateSelfPermit: (chainId?: number, account?: string, options?: CreateSelfPermitOptions) => Promise<Result<Permit>>;
-  getOrCreateSharingPermit: (options: CreateSharingPermitOptions, chainId?: number, account?: string) => Promise<Result<Permit>>;
-
-  // Mutation methods (chainId/account optional)
-  selectActivePermit: (hash: string, chainId?: number, account?: string) => Promise<Result<void>>;
-  removePermit: (hash: string, chainId?: number, account?: string) => Promise<Result<void>>;
-  removeActivePermit: (chainId?: number, account?: string) => Promise<Result<void>>;
-
-  // Utils
-  getHash: typeof PermitUtils.getHash;
-  serialize: typeof PermitUtils.serialize;
-  deserialize: typeof PermitUtils.deserialize;
-};
-
-export type TfheInitializer = () => Promise<boolean>;
-
-export type CofhesdkClientParams = {
-  config: CofhesdkConfig;
-  zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator;
-  tfhePublicKeyDeserializer: FheKeyDeserializer;
-  compactPkeCrsDeserializer: FheKeyDeserializer;
-  initTfhe: TfheInitializer;
-  zkProveWorkerFn?: ZkProveWorkerFunction;
-};
-
-export interface IStorage {
-  getItem: (name: string) => Promise<any>;
-  setItem: (name: string, value: any) => Promise<void>;
-  removeItem: (name: string) => Promise<void>;
-}
-
 // FHE TYPES
+
+export const FheTypeValues = ['bool', 'uint8', 'uint16', 'uint32', 'uint64', 'uint128', 'address'] as const;
+export type FheTypeValue = (typeof FheTypeValues)[number];
 
 export enum FheTypes {
   Bool = 0,
@@ -148,6 +60,19 @@ export enum FheTypes {
   Int160 = 28,
   Int256 = 29,
 }
+
+export const FheTypeValueUtype = {
+  bool: FheTypes.Bool,
+  uint8: FheTypes.Uint8,
+  uint16: FheTypes.Uint16,
+  uint32: FheTypes.Uint32,
+  uint64: FheTypes.Uint64,
+  uint128: FheTypes.Uint128,
+  address: FheTypes.Uint160,
+} as const satisfies Record<FheTypeValue, FheTypes>;
+export type FheTypeValueUtypeMap<T extends FheTypeValue> = T extends keyof typeof FheTypeValueUtype
+  ? (typeof FheTypeValueUtype)[T]
+  : never;
 
 /**
  * List of All FHE uint types (excludes bool and address)
@@ -186,12 +111,19 @@ export type EncryptedNumber = {
   securityZone: number;
 };
 
-export type EncryptedItemInput = {
+export type EncryptedItemInput<TSignature = string> = {
   ctHash: bigint;
   securityZone: number;
   utype: FheTypes;
-  signature: string;
+  signature: TSignature;
 };
+
+export function assertCorrectEncryptedItemInput(
+  input: EncryptedItemInput
+): asserts input is EncryptedItemInput<`0x${string}`> {
+  if (!input.signature.startsWith('0x')) throw new Error('Signature must be a hex string starting with 0x');
+}
+
 export type EncryptedBoolInput = EncryptedItemInput & {
   utype: FheTypes.Bool;
 };
@@ -210,66 +142,156 @@ export type EncryptedUint64Input = EncryptedItemInput & {
 export type EncryptedUint128Input = EncryptedItemInput & {
   utype: FheTypes.Uint128;
 };
-export type EncryptedUint256Input = EncryptedItemInput & {
-  utype: FheTypes.Uint256;
-};
+// [U256-DISABLED]
+// export type EncryptedUint256Input = EncryptedItemInput & {
+//   utype: FheTypes.Uint256;
+// };
 export type EncryptedAddressInput = EncryptedItemInput & {
   utype: FheTypes.Uint160;
 };
 
-export type EncryptableBool = {
-  data: boolean;
-  utype: FheTypes.Bool;
-};
-export type EncryptableUint8 = {
-  data: string | bigint;
-  utype: FheTypes.Uint8;
-};
-export type EncryptableUint16 = {
-  data: string | bigint;
-  utype: FheTypes.Uint16;
-};
-export type EncryptableUint32 = {
-  data: string | bigint;
-  utype: FheTypes.Uint32;
-};
-export type EncryptableUint64 = {
-  data: string | bigint;
-  utype: FheTypes.Uint64;
-};
-export type EncryptableUint128 = {
-  data: string | bigint;
-  utype: FheTypes.Uint128;
-};
-// [U256-DISABLED]
-// export type EncryptableUint256 = {
-//   data: string | bigint;
-//   utype: FheTypes.Uint256;
-// };
-export type EncryptableAddress = {
-  data: string | bigint;
-  utype: FheTypes.Uint160;
+export type EncryptableBase<U extends FheTypes, D> = {
+  data: D;
+  securityZone: number;
+  utype: U;
 };
 
-export const Encryptable = {
-  bool: (data: EncryptableBool['data'], securityZone = 0) =>
-    ({ data, securityZone, utype: FheTypes.Bool }) as EncryptableBool,
-  address: (data: EncryptableAddress['data'], securityZone = 0) =>
-    ({ data, securityZone, utype: FheTypes.Uint160 }) as EncryptableAddress,
-  uint8: (data: EncryptableUint8['data'], securityZone = 0) =>
-    ({ data, securityZone, utype: FheTypes.Uint8 }) as EncryptableUint8,
-  uint16: (data: EncryptableUint16['data'], securityZone = 0) =>
-    ({ data, securityZone, utype: FheTypes.Uint16 }) as EncryptableUint16,
-  uint32: (data: EncryptableUint32['data'], securityZone = 0) =>
-    ({ data, securityZone, utype: FheTypes.Uint32 }) as EncryptableUint32,
-  uint64: (data: EncryptableUint64['data'], securityZone = 0) =>
-    ({ data, securityZone, utype: FheTypes.Uint64 }) as EncryptableUint64,
-  uint128: (data: EncryptableUint128['data'], securityZone = 0) =>
-    ({ data, securityZone, utype: FheTypes.Uint128 }) as EncryptableUint128,
+export type EncryptableBool = EncryptableBase<FheTypes.Bool, boolean>;
+export type EncryptableUint8 = EncryptableBase<FheTypes.Uint8, string | bigint>;
+export type EncryptableUint16 = EncryptableBase<FheTypes.Uint16, string | bigint>;
+export type EncryptableUint32 = EncryptableBase<FheTypes.Uint32, string | bigint>;
+export type EncryptableUint64 = EncryptableBase<FheTypes.Uint64, string | bigint>;
+export type EncryptableUint128 = EncryptableBase<FheTypes.Uint128, string | bigint>;
+// [U256-DISABLED]
+// export type EncryptableUint256 = EncryptableBase<FheTypes.Uint256, string | bigint>;
+export type EncryptableAddress = EncryptableBase<FheTypes.Uint160, string | bigint>;
+
+/**
+ * Maps FheTypeValue to its corresponding Encryptable type
+ * If a new FheTypeValue is added, this type must be updated to include it
+ */
+type EncryptableTypeMap = {
+  bool: EncryptableBool;
+  address: EncryptableAddress;
+  uint8: EncryptableUint8;
+  uint16: EncryptableUint16;
+  uint32: EncryptableUint32;
+  uint64: EncryptableUint64;
+  uint128: EncryptableUint128;
+  // [U256-DISABLED]
+  // uint256: EncryptableUint256;
+};
+
+/**
+ * Ensures all FheTypeValue keys are present as factory functions.
+ * TypeScript will error if EncryptableTypeMap is missing any FheTypeValue key.
+ */
+type EncryptableFactories = {
+  [K in FheTypeValue]: (data: EncryptableTypeMap[K]['data'], securityZone?: number) => EncryptableTypeMap[K];
+};
+
+type EncryptableFactory = EncryptableFactories & {
+  create: {
+    (type: 'bool', data: EncryptableBool['data'], securityZone?: number): EncryptableBool;
+    (type: 'address', data: EncryptableAddress['data'], securityZone?: number): EncryptableAddress;
+    (type: 'uint8', data: EncryptableUint8['data'], securityZone?: number): EncryptableUint8;
+    (type: 'uint16', data: EncryptableUint16['data'], securityZone?: number): EncryptableUint16;
+    (type: 'uint32', data: EncryptableUint32['data'], securityZone?: number): EncryptableUint32;
+    (type: 'uint64', data: EncryptableUint64['data'], securityZone?: number): EncryptableUint64;
+    (type: 'uint128', data: EncryptableUint128['data'], securityZone?: number): EncryptableUint128;
+    // [U256-DISABLED]
+    // (type: 'uint256', data: EncryptableUint256['data'], securityZone?: number): EncryptableUint256;
+
+    (type: FheTypeValue, data: EncryptableItem['data'], securityZone?: number): EncryptableItem;
+  };
+};
+
+const EncryptableFactoriesImpl = {
+  bool: (data: EncryptableBool['data'], securityZone = 0) => ({ data, securityZone, utype: FheTypes.Bool }),
+  address: (data: EncryptableAddress['data'], securityZone = 0) => ({ data, securityZone, utype: FheTypes.Uint160 }),
+  uint8: (data: EncryptableUint8['data'], securityZone = 0) => ({ data, securityZone, utype: FheTypes.Uint8 }),
+  uint16: (data: EncryptableUint16['data'], securityZone = 0) => ({ data, securityZone, utype: FheTypes.Uint16 }),
+  uint32: (data: EncryptableUint32['data'], securityZone = 0) => ({ data, securityZone, utype: FheTypes.Uint32 }),
+  uint64: (data: EncryptableUint64['data'], securityZone = 0) => ({ data, securityZone, utype: FheTypes.Uint64 }),
+  uint128: (data: EncryptableUint128['data'], securityZone = 0) => ({ data, securityZone, utype: FheTypes.Uint128 }),
   // [U256-DISABLED]
   // uint256: (data: EncryptableUint256['data'], securityZone = 0) =>
   //   ({ data, securityZone, utype: FheTypes.Uint256 }) as EncryptableUint256,
-} as const;
+} satisfies EncryptableFactories;
+
+/* eslint-disable no-redeclare */
+function createEncryptableByLiteral(
+  type: 'bool',
+  data: EncryptableBool['data'],
+  securityZone?: number
+): EncryptableBool;
+function createEncryptableByLiteral(
+  type: 'address',
+  data: EncryptableAddress['data'],
+  securityZone?: number
+): EncryptableAddress;
+function createEncryptableByLiteral(
+  type: 'uint8',
+  data: EncryptableUint8['data'],
+  securityZone?: number
+): EncryptableUint8;
+function createEncryptableByLiteral(
+  type: 'uint16',
+  data: EncryptableUint16['data'],
+  securityZone?: number
+): EncryptableUint16;
+function createEncryptableByLiteral(
+  type: 'uint32',
+  data: EncryptableUint32['data'],
+  securityZone?: number
+): EncryptableUint32;
+function createEncryptableByLiteral(
+  type: 'uint64',
+  data: EncryptableUint64['data'],
+  securityZone?: number
+): EncryptableUint64;
+function createEncryptableByLiteral(
+  type: 'uint128',
+  data: EncryptableUint128['data'],
+  securityZone?: number
+): EncryptableUint128;
+function createEncryptableByLiteral(
+  type: FheTypeValue,
+  data: EncryptableItem['data'],
+  securityZone?: number
+): EncryptableItem;
+function createEncryptableByLiteral(
+  type: FheTypeValue,
+  data: EncryptableItem['data'],
+  securityZone = 0
+): EncryptableItem {
+  switch (type) {
+    case 'bool': {
+      if (typeof data !== 'boolean') throw new Error('Bool encryptable data must be boolean');
+      return EncryptableFactoriesImpl.bool(data, securityZone);
+    }
+    case 'address':
+    case 'uint8':
+    case 'uint16':
+    case 'uint32':
+    case 'uint64':
+    case 'uint128': {
+      if (typeof data === 'boolean') throw new Error('Uint encryptable data must be string or bigint');
+      return EncryptableFactoriesImpl[type](data, securityZone);
+    }
+    default: {
+      // Exhaustiveness guard
+      const _exhaustive: never = type;
+      throw new Error(`Unsupported encryptable type: ${_exhaustive}`);
+    }
+  }
+}
+/* eslint-enable no-redeclare */
+
+export const Encryptable = {
+  ...EncryptableFactoriesImpl,
+  create: createEncryptableByLiteral,
+} satisfies EncryptableFactory;
 
 export type EncryptableItem =
   | EncryptableBool
@@ -281,6 +303,25 @@ export type EncryptableItem =
   // [U256-DISABLED]
   // | EncryptableUint256
   | EncryptableAddress;
+
+export type EncryptableItemByFheType<T extends FheTypes> = T extends FheTypes.Bool
+  ? EncryptableBool
+  : T extends FheTypes.Uint8
+    ? EncryptableUint8
+    : T extends FheTypes.Uint16
+      ? EncryptableUint16
+      : T extends FheTypes.Uint32
+        ? EncryptableUint32
+        : T extends FheTypes.Uint64
+          ? EncryptableUint64
+          : T extends FheTypes.Uint128
+            ? EncryptableUint128
+            : // [U256-DISABLED]
+              // : T extends FheTypes.Uint256
+              //   ? EncryptableUint256
+              T extends FheTypes.Uint160
+              ? EncryptableAddress
+              : never;
 
 // COFHE Encrypt
 export type EncryptableToEncryptedItemInputMap<E extends EncryptableItem> = E extends EncryptableBool
@@ -333,6 +374,10 @@ export enum EncryptStep {
   Pack = 'pack',
   Prove = 'prove',
   Verify = 'verify',
+}
+
+export function isLastEncryptionStep(step: EncryptStep): boolean {
+  return step === EncryptStep.Verify;
 }
 
 export type EncryptStepCallbackContext = Record<string, any> & {

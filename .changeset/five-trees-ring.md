@@ -1,5 +1,5 @@
 ---
-"@cofhe/react": patch
+'@cofhe/react': patch
 ---
 
 Add react package

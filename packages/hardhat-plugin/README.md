@@ -18,9 +18,9 @@ Add the plugin to your Hardhat config:
 
 ```javascript
 // hardhat.config.js or hardhat.config.ts
-require("cofhe-hardhat-plugin");
+require('cofhe-hardhat-plugin');
 // or if using TypeScript
-import "cofhe-hardhat-plugin";
+import 'cofhe-hardhat-plugin';
 
 module.exports = {
   // ... other config
@@ -83,15 +83,15 @@ The plugin exports several utility functions for working with mock contracts:
 
 ```typescript
 // Get plaintext value from a ciphertext hash
-import { mock_getPlaintext } from "cofhe-hardhat-plugin";
+import { mock_getPlaintext } from 'cofhe-hardhat-plugin';
 const plaintext = await mock_getPlaintext(provider, ctHash);
 
 // Check if a plaintext exists for a ciphertext hash
-import { mock_getPlaintextExists } from "cofhe-hardhat-plugin";
+import { mock_getPlaintextExists } from 'cofhe-hardhat-plugin';
 const exists = await mock_getPlaintextExists(provider, ctHash);
 
 // Test assertion for plaintext values
-import { mock_expectPlaintext } from "cofhe-hardhat-plugin";
+import { mock_expectPlaintext } from 'cofhe-hardhat-plugin';
 await mock_expectPlaintext(provider, ctHash, expectedValue);
 ```
 
@@ -99,15 +99,15 @@ await mock_expectPlaintext(provider, ctHash, expectedValue);
 
 ```typescript
 // Get the CoFHE environment based on network name
-import { getCofheEnvironmentFromNetwork } from "cofhe-hardhat-plugin";
+import { getCofheEnvironmentFromNetwork } from 'cofhe-hardhat-plugin';
 const environment = getCofheEnvironmentFromNetwork(networkName);
 
 // Check if a CoFHE environment is permitted for a given network
-import { isPermittedCofheEnvironment } from "cofhe-hardhat-plugin";
+import { isPermittedCofheEnvironment } from 'cofhe-hardhat-plugin';
 const isPermitted = isPermittedCofheEnvironment(hre, environmentName);
 
 // Initialize CoFHEjs with a Hardhat signer
-import { cofhejs_initializeWithHardhatSigner } from "cofhe-hardhat-plugin";
+import { cofhejs_initializeWithHardhatSigner } from 'cofhe-hardhat-plugin';
 await cofhejs_initializeWithHardhatSigner(signer, options);
 ```
 
