@@ -11,7 +11,6 @@ import { assert, type ElementOf } from 'ts-essentials';
 import { usePortalNavigation, usePortalUI } from '@/stores';
 import { Button } from '../../components';
 import { useCofheClaimableTokens } from '@/hooks/useCofheClaimableTokens';
-import { isReactNode } from '@/utils';
 
 const iconClassName = 'w-4 h-4';
 
@@ -52,7 +51,7 @@ type PagesInBottomMenu =
   | FloatingButtonPage.Permits
   | FloatingButtonPage.Debug;
 
-const navItems: {
+const baseNavItems: {
   id: PagesInBottomMenu;
   label: string;
   icon: ReactNode | ComponentType<{}>;
@@ -77,20 +76,54 @@ const navItems: {
     label: 'Permits',
     icon: <IoMdKey className={iconClassName} />,
   },
-  // TODO: Only enable this locally for debugging
-  {
-    id: FloatingButtonPage.Debug,
-    label: 'Debug',
-    icon: <FaBug className={iconClassName} />,
-  },
 ] as const;
+
+const debugNavItem = {
+  id: FloatingButtonPage.Debug,
+  label: 'Debug',
+  icon: <FaBug className={iconClassName} />,
+} as const;
+
+/**
+ * Checks if we're in production by checking multiple environment variable sources
+ * Supports: process.env (Node.js/webpack), import.meta.env (Vite), and other common patterns
+ */
+const isProduction = (): boolean => {
+  // Check process.env (Node.js, webpack, etc.)
+  // eslint-disable-next-line turbo/no-undeclared-env-vars, no-undef
+  if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development') {
+    return false;
+  }
+
+  // Check import.meta.env (Vite)
+  if (typeof import.meta !== 'undefined') {
+    //     {
+    //     "BASE_URL": "/",
+    //     "DEV": true,
+    //     "MODE": "development",
+    //     "PROD": false,
+    //     "SSR": false
+    // }
+    const metaEnv = (import.meta as any).env;
+
+    // ONLY if ALL flags indicate development AND prod flag doesn't indicate prod, treat as development
+    if (metaEnv && metaEnv.MODE === 'development' && metaEnv.DEV === true && metaEnv.PROD === false) {
+      return false;
+    }
+  }
+
+  // Default to hiding debug in library context
+  return true;
+};
+
+const navItems = [...baseNavItems, ...(!isProduction() ? [debugNavItem] : [])] as const;
 
 export const BottomNavigation: React.FC = () => {
   const { navigateTo } = usePortalNavigation();
   const { openPortal } = usePortalUI();
   const defaultToken = useCofhePinnedToken();
 
-  const handleNavClick = (page: ElementOf<typeof navItems>['id']) => {
+  const handleNavClick = (page: ElementOf<typeof baseNavItems>['id']) => {
     openPortal();
 
     if (page === FloatingButtonPage.TokenList) {
@@ -127,7 +160,7 @@ export const BottomNavigation: React.FC = () => {
         <Button
           key={item.id}
           onClick={() => handleNavClick(item.id)}
-          icon={isReactNode(item.icon) ? item.icon : <item.icon />}
+          icon={typeof item.icon === 'function' ? <item.icon /> : item.icon}
           iconPosition="top"
           label={item.label}
           className="flex-1"
