@@ -12,6 +12,7 @@ export enum FloatingButtonPage {
   ReceivePermits = 'receivePermit',
   PermitDetails = 'permitDetails',
   Debug = 'debug',
+  ClaimableTokens = 'claimableTokens',
 }
 
 // Registry interface to be augmented by each page's types nearby the page.

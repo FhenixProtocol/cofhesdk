@@ -12,6 +12,11 @@ export { useCofheTokenShield, type UnshieldClaim } from './useCofheTokenShield';
 export { useCofheTokenUnshield } from './useCofheTokenUnshield';
 export { useCofheTokenClaimUnshielded } from './useCofheTokenClaimUnshielded';
 export { useCofheTokenClaimable, type UnshieldClaimsSummary } from './useCofheTokenClaimable';
+export {
+  useCofheTokensClaimable,
+  type UnshieldClaimsSummaryByTokenAddress,
+  type ClaimableAmountByTokenAddress,
+} from './useCofheTokensClaimable';
 export { useCofheWalletClient } from './useCofheConnection';
 export { useCofheTokens, useCofheTokenLists, ETH_ADDRESS, type Token, type Erc20Pair } from './useCofheTokenLists';
 export { useCofheEncrypt } from './useCofheEncrypt';

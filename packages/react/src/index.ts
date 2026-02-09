@@ -22,6 +22,7 @@ export {
   useCofheTokenUnshield,
   useCofheTokenClaimUnshielded,
   useCofheTokenClaimable,
+  useCofheTokensClaimable,
   useCofheTokenDecryptedBalance,
   useCofheTokenTransfer,
   useTransactionReceiptsByHash,
@@ -29,6 +30,8 @@ export {
   type Erc20Pair,
   type UnshieldClaim,
   type UnshieldClaimsSummary,
+  type UnshieldClaimsSummaryByTokenAddress,
+  type ClaimableAmountByTokenAddress,
   type UseTransactionReceiptsByHashInput,
 } from '@/hooks/index';
 
