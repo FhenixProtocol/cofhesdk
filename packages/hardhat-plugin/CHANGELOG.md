@@ -1,5 +1,31 @@
 # @cofhe/hardhat-plugin Changelog
 
+## 0.2.0
+
+### Minor Changes
+
+- 8fda09a: Removes `Promise<boolean>` return type from `client.connect(...)`, instead throws an error if the connection fails.
+- e0caeca: Adds `environment: 'node' | 'web' | 'hardhat' | 'react'` option to config. Exposed via `client.config.enviroment`. Automatically populated appropriately within the various `createCofhesdkConfig` functions.
+
+### Patch Changes
+
+- e121108: Fix ACL permission invalid issue. MockACL needs real deployment since etching doesn't call the constructor, so the EIP712 is uninitialized. Also adds additional utility functions to hardhat-plugin:
+
+  - `hre.cofhesdk.connectWithHardhatSigner(client, signer)` - Connect to client with hardhat ethers signer.
+  - `hre.cofhesdk.createBatteriesIncludedCofhesdkClient()` - Creates a batteries included client with signer connected.
+  - `hre.cofhesdk.mocks.getMockTaskManager()` - Gets deployed Mock Taskmanager
+  - `hre.cofhesdk.mocks.getMockACL()` - Gets deployed Mock ACL
+
+- Updated dependencies [8fda09a]
+- Updated dependencies [e121108]
+- Updated dependencies [4057a76]
+- Updated dependencies [dba2759]
+- Updated dependencies [e0caeca]
+- Updated dependencies [7c861af]
+- Updated dependencies [2a9d6c5]
+  - @cofhe/mock-contracts@0.2.0
+  - @cofhe/sdk@0.2.0
+
 ## 0.1.1
 
 ### Patch Changes
