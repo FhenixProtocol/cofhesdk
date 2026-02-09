@@ -11,7 +11,6 @@ import { assert, type ElementOf } from 'ts-essentials';
 import { usePortalNavigation, usePortalUI } from '@/stores';
 import { Button } from '../../components';
 import { useCofheClaimableTokens } from '@/hooks/useCofheClaimableTokens';
-import { isReactNode } from '@/utils';
 
 const iconClassName = 'w-4 h-4';
 
@@ -52,7 +51,7 @@ type PagesInBottomMenu =
   | FloatingButtonPage.Permits
   | FloatingButtonPage.Debug;
 
-const navItems: {
+const baseNavItems: {
   id: PagesInBottomMenu;
   label: string;
   icon: ReactNode | ComponentType<{}>;
@@ -124,7 +123,7 @@ export const BottomNavigation: React.FC = () => {
   const { openPortal } = usePortalUI();
   const defaultToken = useCofhePinnedToken();
 
-  const handleNavClick = (page: ElementOf<typeof navItems>['id']) => {
+  const handleNavClick = (page: ElementOf<typeof baseNavItems>['id']) => {
     openPortal();
 
     if (page === FloatingButtonPage.TokenList) {
@@ -161,7 +160,7 @@ export const BottomNavigation: React.FC = () => {
         <Button
           key={item.id}
           onClick={() => handleNavClick(item.id)}
-          icon={isReactNode(item.icon) ? item.icon : <item.icon />}
+          icon={typeof item.icon === 'function' ? <item.icon /> : item.icon}
           iconPosition="top"
           label={item.label}
           className="flex-1"
