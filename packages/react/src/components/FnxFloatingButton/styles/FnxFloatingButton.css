@@ -203,9 +203,8 @@
 .fnx-token-list-container {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  max-height: var(--fnx-token-list-max-height);
-  overflow-y: auto;
+  gap: 0.5rem;
+  padding: 0.25rem;
 }
 
 /* Loading dots animation */

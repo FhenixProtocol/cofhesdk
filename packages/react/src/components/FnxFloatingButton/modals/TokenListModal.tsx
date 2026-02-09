@@ -4,6 +4,7 @@ import { useCofheChainId } from '@/hooks/useCofheConnection';
 import { type Token, useCofheTokens } from '@/hooks';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { TokenRow } from '../components/TokenRow';
+import { useCofhePinnedTokenAddress } from '@/hooks/useCofhePinnedTokenAddress';
 
 export type TokenListModalProps = {
   title: string;
@@ -43,20 +44,43 @@ export const TokenListContent: React.FC<{
   tokens: Token[];
   onSelectToken: (token: Token) => void;
 }> = ({ tokens, onSelectToken }) => {
+  const pinnedTokenAddress = useCofhePinnedTokenAddress();
+  const normalizedPinnedAddress = pinnedTokenAddress?.toLowerCase();
+
+  const pinnedToken = normalizedPinnedAddress
+    ? tokens.find((t) => t.address.toLowerCase() === normalizedPinnedAddress)
+    : undefined;
+
+  const nonPinnedTokens = pinnedToken
+    ? tokens.filter((t) => t.address.toLowerCase() !== normalizedPinnedAddress)
+    : tokens;
+
   return (
     <div className="fnx-token-list-container">
       {tokens.length === 0 ? (
         <p className="text-xs opacity-70 py-4 text-center">No tokens found</p>
       ) : (
-        tokens.map((token) => (
-          <TokenRow
-            onClick={() => {
-              onSelectToken(token);
-            }}
-            key={token.address}
-            token={token}
-          />
-        ))
+        <>
+          {pinnedToken && (
+            <TokenRow
+              onClick={() => {
+                onSelectToken(pinnedToken);
+              }}
+              key={`pinned-${pinnedToken.address}`}
+              token={pinnedToken}
+              topLabel="Pinned"
+            />
+          )}
+          {nonPinnedTokens.map((token) => (
+            <TokenRow
+              onClick={() => {
+                onSelectToken(token);
+              }}
+              key={token.address}
+              token={token}
+            />
+          ))}
+        </>
       )}
     </div>
   );

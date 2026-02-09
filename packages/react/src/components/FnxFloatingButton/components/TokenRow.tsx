@@ -16,7 +16,8 @@ const TMP_WBTC_ON_MAINNET = {
 export const TokenRow: React.FC<{
   token: Token;
   onClick: () => void;
-}> = ({ token, onClick }) => {
+  topLabel?: string;
+}> = ({ token, onClick, topLabel }) => {
   const account = useCofheAccount();
   const { data } = useCofheTokenDecryptedBalance({
     token,
@@ -41,8 +42,8 @@ export const TokenRow: React.FC<{
     <div
       onClick={onClick}
       className={cn(
-        'flex items-center justify-between p-1',
-        'hover:bg-white hover:bg-opacity-5 transition-colors',
+        'flex items-center justify-between px-3 py-2 rounded-lg',
+        'fnx-hover-overlay transition-colors',
         'cursor-pointer'
       )}
     >
@@ -50,23 +51,33 @@ export const TokenRow: React.FC<{
         {/* Token Icon */}
         <TokenIcon logoURI={token.logoURI} alt={token.name} size="sm" />
 
-        {/* Token Name and Symbol */}
-        <div className="flex items-center gap-1 min-w-0 flex-1">
-          <span className="text-sm font-medium fnx-text-primary truncate">{token.name}</span>
-          <span className="text-xxxs opacity-70 fnx-text-primary">({token.symbol})</span>
+        {/* Token label */}
+        <div className="min-w-0 flex-1">
+          {topLabel && <div className="text-xxxs opacity-70 fnx-text-primary leading-none">{topLabel}</div>}
+          <div className="text-sm font-medium fnx-text-primary truncate leading-tight">{token.symbol}</div>
         </div>
       </div>
 
       {/* Balance and Arrow */}
-      <div className="flex items-center gap-2">
-        <CofheTokenConfidentialBalance
-          token={token}
-          showSymbol={false}
-          size="sm"
-          decimalPrecision={5}
-          className="font-medium"
-        />
-        {usdValue && <span className="text-xs opacity-70 fnx-text-primary">{usdValue}</span>}
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="w-24 text-right whitespace-nowrap tabular-nums">
+          <CofheTokenConfidentialBalance
+            token={token}
+            showSymbol={false}
+            size="sm"
+            decimalPrecision={5}
+            className="font-medium inline-block w-full text-right"
+          />
+        </div>
+
+        <div className="w-24 text-right whitespace-nowrap tabular-nums">
+          {usdValue ? (
+            <span className="text-sm opacity-70 fnx-text-primary inline-block w-full text-right">{usdValue}</span>
+          ) : (
+            <span className="text-sm opacity-0 select-none inline-block w-full text-right">$0.00</span>
+          )}
+        </div>
+
         <KeyboardArrowRightIcon className="w-5 h-5 fnx-text-primary opacity-60 flex-shrink-0" />
       </div>
     </div>
