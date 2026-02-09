@@ -330,9 +330,6 @@ importers:
       '@tanstack/query-async-storage-persister':
         specifier: ^5.90.22
         version: 5.90.22
-      '@tanstack/query-sync-storage-persister':
-        specifier: ^5.90.7
-        version: 5.90.22
       '@tanstack/react-query':
         specifier: ^5.90.7
         version: 5.90.7(react@18.3.1)
@@ -5632,13 +5629,6 @@ packages:
     resolution: {integrity: sha512-whrASqbVq8261Ue+/ZzpHsrLDYVfRaENs4HTdLuYKxawkGWzdMfV7BmOdWl8ZF0mEBEbrQR8V6oE3R635JF2Fw==}
     dependencies:
       '@tanstack/query-core': 5.90.20
-    dev: false
-
-  /@tanstack/query-sync-storage-persister@5.90.22:
-    resolution: {integrity: sha512-QoOHewbI9a/7hezbVXlZOOCkF4oTnOpAGNMYiObUZm+jpEoLF5YqGMg0iDv3laSEymz81Zw8HJ8UFxP7mwEmqw==}
-    dependencies:
-      '@tanstack/query-core': 5.90.20
-      '@tanstack/query-persist-client-core': 5.91.19
     dev: false
 
   /@tanstack/react-query-devtools@5.91.2(@tanstack/react-query@5.90.7)(react@18.3.1):
