@@ -28,5 +28,6 @@ export function unitToWei(amount: string, decimals: number): bigint {
 }
 
 export function formatUsdAmount(amount: number | BigNumber, displayDecimals: number = 2): string {
-  return `$${amount.toFixed(displayDecimals)}`;
+  const amountBN = BigNumber.isBigNumber(amount) ? amount : new BigNumber(amount);
+  return `$${amountBN.toFormat(displayDecimals)}`;
 }
