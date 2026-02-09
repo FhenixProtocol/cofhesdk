@@ -56,14 +56,6 @@ export function useCoingeckoUsdPrice(
   const baseEnabled = !!tokenAddress && (isNativeTokenAddress(tokenAddress) ? !!nativeCoinId : !!platformId);
   const enabled = baseEnabled && enabledInput;
 
-  console.debug('useCoingeckoUsdPrice', {
-    chainId,
-    tokenAddress,
-    platformId,
-    nativeCoinId,
-    enabled,
-  });
-
   const queryKey = [
     'coingecko-usd-price',
     { chainId, tokenAddress, apiBaseUrl: effectiveApiBaseUrl, platformId, nativeCoinId },
