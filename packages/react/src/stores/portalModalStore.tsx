@@ -13,6 +13,7 @@ type PortalModalStore = {
 type PortalModalActions = {
   openModal: OpenPortalModalFn;
   closeModal: (modal: PortalModal) => void;
+  clearAllModals: () => void;
 };
 
 export const usePortalModals = create<PortalModalStore & PortalModalActions>()((set, get) => ({
@@ -28,5 +29,8 @@ export const usePortalModals = create<PortalModalStore & PortalModalActions>()((
   },
   closeModal: (modal) => {
     set({ modalStack: get().modalStack.filter((m) => m.modal !== modal) });
+  },
+  clearAllModals: () => {
+    set({ modalStack: [] });
   },
 }));
