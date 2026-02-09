@@ -7,10 +7,6 @@ import { createCofhesdkClient, createCofhesdkConfig } from '@cofhe/sdk/node';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 import { expect } from 'chai';
 
-// Test private key - should be funded on localcofhe host chain
-// Using a well-known test key, but you'll need to fund it with testnet ETH
-const TEST_PRIVATE_KEY =
-  process.env.LOCALCOFHE_PRIVATE_KEY || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 const hostChainRpcUrl = process.env.LOCALCOFHE_HOST_CHAIN_RPC || 'http://127.0.0.1:42069';
 
 const viemLocalcofheChain: Chain = {
@@ -37,12 +33,12 @@ describe('Local Cofhe Integration Tests', () => {
 
   before(async function () {
     // Skip if no private key is provided (for CI/CD)
-    if (!process.env.LOCALCOFHE_PRIVATE_KEY && process.env.CI) {
+    if (!process.env.LOCALCOFHE_PRIVATE_KEY) {
       this.skip();
     }
 
     // Create viem clients for Local Cofhe
-    const account = privateKeyToAccount(TEST_PRIVATE_KEY as `0x${string}`);
+    const account = privateKeyToAccount(process.env.LOCALCOFHE_PRIVATE_KEY as `0x${string}`);
 
     publicClient = createPublicClient({
       chain: viemLocalcofheChain,
@@ -70,13 +66,12 @@ describe('Local Cofhe Integration Tests', () => {
 
     // Create a signer for Local Cofhe
     const localcofheProvider = new hre.ethers.JsonRpcProvider(hostChainRpcUrl);
-    localcofheSigner = new hre.ethers.Wallet(TEST_PRIVATE_KEY, localcofheProvider) as unknown as HardhatEthersSigner;
+    localcofheSigner = new hre.ethers.Wallet(process.env.LOCALCOFHE_PRIVATE_KEY as `0x${string}`, localcofheProvider) as unknown as HardhatEthersSigner;
 
     // Deploy test contract using ethers
     const SimpleTestFactory = await hre.ethers.getContractFactory('SimpleTest');
     testContract = await SimpleTestFactory.connect(localcofheSigner).deploy();
     await testContract.waitForDeployment();
-    const testContractAddress = await testContract.getAddress();
   });
 
   it('Should encrypt -> store -> decrypt a value', async function () {
@@ -91,7 +86,7 @@ describe('Local Cofhe Integration Tests', () => {
     const encrypted = await cofhesdkClient.encryptInputs([Encryptable.uint32(testValue)]).encrypt();
 
     const tx = await testContract.connect(localcofheSigner).setValue(encrypted[0]);
-    const receipt = await tx.wait();
+    await tx.wait();
 
     // Get the hash from the contract (using the new getValueHash function)
     // IMPORTANT: The ctHash is transformed on-chain, so we MUST get it from the contract
