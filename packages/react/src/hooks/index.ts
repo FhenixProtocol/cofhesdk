@@ -22,12 +22,7 @@ export { useCofheTokens, useCofheTokenLists, ETH_ADDRESS, type Token, type Erc20
 export { useCofheEncrypt } from './useCofheEncrypt';
 export { useCofheWriteContract } from './useCofheWriteContract';
 export { useCofheReadContract, type UseCofheReadContractQueryOptions } from './useCofheReadContract';
-export {
-  useCofheReadContracts,
-  type CofheReadContractsContract,
-  type CofheReadContractsItem,
-} from './useCofheReadContracts';
-export { useCofheFetchConfidentialTokenBalances } from './useCofheFetchConfidentialTokenBalances';
+export { useCofheReadContracts, type CofheReadContractsContract, type CofheReadContractsItem } from './useCofheReadContracts';
 export * from './permits';
 export { useCofheAutoConnect } from './useCofheAutoConnect';
 export { useCofheConnect } from './useCofheConnect';

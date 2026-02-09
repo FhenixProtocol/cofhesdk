@@ -15,8 +15,6 @@ export {
   useCofheWalletClient,
   useCofheEncrypt,
   useCofheWriteContract,
-  useCofheReadContract,
-  useCofheReadContracts,
   useCofheClient,
   useCofheTokens,
   useCofheTokenLists,
@@ -42,8 +40,6 @@ export {
 
 export { useCofheEncryptAndWriteContract } from '@/hooks/useCofheEncryptAndWriteContract';
 export { useCofheReadContractAndDecrypt } from '@/hooks/useCofheReadContractAndDecrypt';
-export { useCofheFetchConfidentialTokenBalances } from '@/hooks/useCofheFetchConfidentialTokenBalances';
-export type { CofheReadContractsContract, CofheReadContractsItem } from '@/hooks/useCofheReadContracts';
 
 // Components
 export { FnxEncryptInput, FnxFloatingButtonWithProvider } from './components/index';

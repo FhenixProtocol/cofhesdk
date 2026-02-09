@@ -44,8 +44,8 @@ export type CofheReadContractsItem = {
   error?: Error;
 };
 
-export type UseCofheReadContractsQueryOptions<TSelectedData = CofheReadContractsItem[]> = Omit<
-  UseQueryOptions<CofheReadContractsItem[], Error, TSelectedData>,
+export type UseCofheReadContractsQueryOptions = Omit<
+  UseQueryOptions<CofheReadContractsItem[], Error>,
   'queryKey' | 'queryFn'
 > & {
   enabled?: boolean;
@@ -56,9 +56,8 @@ export function constructCofheReadContractsQueryKey(params: {
   contracts?: readonly CofheReadContractsContract[];
   allowFailure?: boolean;
   enabled?: boolean;
-  cacheKeySuffix?: readonly unknown[];
 }): readonly unknown[] {
-  const { cofheChainId, contracts, allowFailure, enabled, cacheKeySuffix } = params;
+  const { cofheChainId, contracts, allowFailure, enabled } = params;
 
   const serializedContracts = (contracts ?? []).map((contract) => {
     // Avoid putting non-serializable values in queryKey.
@@ -71,7 +70,7 @@ export function constructCofheReadContractsQueryKey(params: {
     };
   });
 
-  return [QUERY_CACHE_PREFIX, cofheChainId, serializedContracts, allowFailure, enabled, ...(cacheKeySuffix ?? [])];
+  return [QUERY_CACHE_PREFIX, cofheChainId, serializedContracts, allowFailure, enabled];
 }
 
 export function getEnabledForCofheReadContracts(params: {
@@ -105,16 +104,14 @@ function transformResultForContract(contract: CofheReadContractsContract, value:
   return transformEncryptedReturnTypes(contract.abi as Abi, contract.functionName as any, value as any);
 }
 
-export function useCofheReadContracts<TSelectedData = CofheReadContractsItem[]>(
+export function useCofheReadContracts(
   params: {
     contracts?: readonly CofheReadContractsContract[];
     multicallOptions?: CofheReadContractsMulticallOptions;
-    /** Optional extra values appended to the react-query key (e.g. permit hash). */
-    cacheKeySuffix?: readonly unknown[];
   },
-  queryOptions?: UseCofheReadContractsQueryOptions<TSelectedData>
-): UseQueryResult<TSelectedData, Error> {
-  const { contracts, multicallOptions, cacheKeySuffix } = params;
+  queryOptions?: UseCofheReadContractsQueryOptions
+): UseQueryResult<CofheReadContractsItem[], Error> {
+  const { contracts, multicallOptions } = params;
 
   const isCofheErrorActive = useIsCofheErrorActive();
   const publicClient = useCofhePublicClient();
@@ -138,7 +135,6 @@ export function useCofheReadContracts<TSelectedData = CofheReadContractsItem[]>(
       allowFailure: (multicallOptions as any)?.allowFailure,
       // Same rationale as in `useCofheReadContract`: guard against a blank screen when CofheError is active.
       enabled,
-      cacheKeySuffix,
     }),
     queryFn: async () => {
       assert(publicClient, 'PublicClient should be guaranteed by enabled check');
