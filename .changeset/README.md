@@ -12,6 +12,9 @@ This directory contains configuration and changeset files for managing versionin
   - `@cofhe/sdk`
   - `@cofhe/mock-contracts`
   - `@cofhe/hardhat-plugin`
+  - `@cofhe/react`
+  - `@cofhe/example-react`
+  - `@cofhe/abi`
 
 ## Contributor workflow
 
@@ -31,7 +34,7 @@ pnpm changeset
 
 1. Review and merge the auto‑opened Changesets “Version Packages” PR when you’re ready to cut a stable.
 2. On merge, CI runs the stable job in `.github/workflows/publish.yml` and publishes to the `latest` dist‑tag.
-3. All three packages publish together with the same version due to the fixed group in `.changeset/config.json`.
+3. All packages in the fixed group publish together with the same version due to the fixed group in `.changeset/config.json`.
 
 ## Commands
 
@@ -65,7 +68,7 @@ pnpm changeset status
 - Base branch: `master` (see `.changeset/config.json`)
 - Access: `public`
 - updateInternalDependencies: `patch`
-- fixed: `[["@cofhe/sdk", "@cofhe/mock-contracts", "@cofhe/hardhat-plugin"]]`
+- fixed: `[["@cofhe/sdk", "@cofhe/mock-contracts", "@cofhe/hardhat-plugin", "@cofhe/react", "@cofhe/example-react", "@cofhe/abi"]]`
 
 ## Best practices
 
