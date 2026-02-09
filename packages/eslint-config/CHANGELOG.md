@@ -1,5 +1,12 @@
 # @cofhe/eslint-config
 
+## 0.2.0
+
+### Minor Changes
+
+- 8fda09a: Removes `Promise<boolean>` return type from `client.connect(...)`, instead throws an error if the connection fails.
+- e0caeca: Adds `environment: 'node' | 'web' | 'hardhat' | 'react'` option to config. Exposed via `client.config.enviroment`. Automatically populated appropriately within the various `createCofhesdkConfig` functions.
+
 ## 0.1.2
 
 ### Patch Changes
