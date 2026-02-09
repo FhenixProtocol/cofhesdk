@@ -1,10 +1,11 @@
 import hre from 'hardhat';
 import { localcofhe } from '@cofhe/sdk/chains';
-import { CofhesdkClient, Encryptable, FheTypes, type EncryptedItemInput } from '@cofhe/sdk';
+import { CofhesdkClient, Encryptable, FheTypes } from '@cofhe/sdk';
 import { Chain, createPublicClient, createWalletClient, http, type PublicClient, type WalletClient } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { createCofhesdkClient, createCofhesdkConfig } from '@cofhe/sdk/node';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
+import { expect } from 'chai';
 
 // Test private key - should be funded on localcofhe host chain
 // Using a well-known test key, but you'll need to fund it with testnet ETH
@@ -43,8 +44,6 @@ describe('Local Cofhe Integration Tests', () => {
     // Create viem clients for Local Cofhe
     const account = privateKeyToAccount(TEST_PRIVATE_KEY as `0x${string}`);
 
-    console.log(`Using account address: ${account.address}`);
-
     publicClient = createPublicClient({
       chain: viemLocalcofheChain,
       transport: http(hostChainRpcUrl),
@@ -78,8 +77,6 @@ describe('Local Cofhe Integration Tests', () => {
     testContract = await SimpleTestFactory.connect(localcofheSigner).deploy();
     await testContract.waitForDeployment();
     const testContractAddress = await testContract.getAddress();
-
-    console.log(`Test contract deployed at: ${testContractAddress}`);
   });
 
   it('Should encrypt -> store -> decrypt a value', async function () {
@@ -91,25 +88,19 @@ describe('Local Cofhe Integration Tests', () => {
     const testValue = 101n;
 
     // Encrypt and store a value
-    const encryptedResult = await cofhesdkClient.encryptInputs([Encryptable.uint32(testValue)]).encrypt();
-    const encrypted = (await hre.cofhesdk.expectResultSuccess(encryptedResult)) as [EncryptedItemInput];
-
-    console.log(`Encrypted value`, encrypted[0]);
+    const encrypted = await cofhesdkClient.encryptInputs([Encryptable.uint32(testValue)]).encrypt();
 
     const tx = await testContract.connect(localcofheSigner).setValue(encrypted[0]);
     const receipt = await tx.wait();
-    console.log(`setValue transaction hash: ${receipt?.hash}`);
 
     // Get the hash from the contract (using the new getValueHash function)
     // IMPORTANT: The ctHash is transformed on-chain, so we MUST get it from the contract
     const ctHash = await testContract.getValueHash();
-    console.log(`CT hash from contract getValueHash(): ${ctHash}`);
 
     // Decrypt the value using the ctHash from the encrypted input
     const unsealedResult = await cofhesdkClient.decryptHandle(ctHash, FheTypes.Uint32).decrypt();
-    console.log(`Unsealed result: ${unsealedResult}`, unsealedResult);
 
     // Verify the decrypted value matches
-    await hre.cofhesdk.expectResultValue(unsealedResult, testValue);
+    expect(unsealedResult).to.be.equal(testValue);
   });
 });

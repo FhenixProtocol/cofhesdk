@@ -2,6 +2,7 @@ import hre from 'hardhat';
 import { CofhesdkClient, Encryptable, FheTypes, type EncryptedItemInput } from '@cofhe/sdk';
 import { TASK_COFHE_MOCKS_DEPLOY } from './consts';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
+import { expect } from 'chai';
 
 describe('Hardhat Integration Tests', () => {
   let cofhesdkClient: CofhesdkClient;
@@ -32,8 +33,7 @@ describe('Hardhat Integration Tests', () => {
     const testValue = 100n;
 
     // Encrypt and store a value
-    const encryptedResult = await cofhesdkClient.encryptInputs([Encryptable.uint32(testValue)]).encrypt();
-    const encrypted = (await hre.cofhesdk.expectResultSuccess(encryptedResult)) as [EncryptedItemInput];
+    const encrypted = await cofhesdkClient.encryptInputs([Encryptable.uint32(testValue)]).encrypt();
 
     const tx = await testContract.connect(signer).setValue(encrypted[0]);
     await tx.wait();
@@ -42,6 +42,6 @@ describe('Hardhat Integration Tests', () => {
     const unsealedResult = await cofhesdkClient.decryptHandle(encrypted[0].ctHash, FheTypes.Uint32).decrypt();
 
     // Verify the decrypted value matches
-    await hre.cofhesdk.expectResultValue(unsealedResult, testValue);
+    expect(unsealedResult).to.be.equal(testValue);
   });
 });

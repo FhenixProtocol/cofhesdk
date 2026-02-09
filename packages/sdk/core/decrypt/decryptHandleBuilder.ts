@@ -226,8 +226,8 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
 
     const thresholdNetworkUrl = await this.getThresholdNetworkUrl();
     const permission = PermitUtils.getPermission(permit, true);
-    // const sealed = await tnSealOutputV1(this.ctHash, chainId, permission, thresholdNetworkUrl);
-    const sealed = await tnSealOutputV2(this.ctHash, chainId, permission, thresholdNetworkUrl);
+    // const sealed = await tnSealOutputV1(this.ctHash, this.chainId, permission, thresholdNetworkUrl);
+    const sealed = await tnSealOutputV2(this.ctHash, this.chainId, permission, thresholdNetworkUrl);
     return PermitUtils.unseal(permit, sealed);
   }
 

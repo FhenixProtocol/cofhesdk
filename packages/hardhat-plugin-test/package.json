@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "test": "npx hardhat test",
+    "test:integration": "npx hardhat test test/integration-*.test.ts",
     "compile": "npx hardhat compile",
     "clean": "npx hardhat clean"
   },
