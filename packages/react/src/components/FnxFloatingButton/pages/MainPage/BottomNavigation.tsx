@@ -47,7 +47,7 @@ const ShieldIcon = () => {
 type PagesInBottomMenu =
   | FloatingButtonPage.Send
   | FloatingButtonPage.Shield
-  | FloatingButtonPage.TokenList
+  | FloatingButtonPage.Portfolio
   | FloatingButtonPage.Permits
   | FloatingButtonPage.Debug;
 
