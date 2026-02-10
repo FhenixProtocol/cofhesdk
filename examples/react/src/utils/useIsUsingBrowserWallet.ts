@@ -6,5 +6,5 @@ export function useIsUsingBrowserWallet() {
   const cofheWalletClient = useCofheWalletClient();
 
   // the true criteria is that both wallet clients are the same instance
-  return wagmiWalletClient === cofheWalletClient;
+  return wagmiWalletClient === cofheWalletClient && wagmiWalletClient !== undefined;
 }
