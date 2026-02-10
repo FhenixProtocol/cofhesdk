@@ -14,7 +14,12 @@ export type UseReceivePermitReturn = {
   submit: () => Promise<void>;
 };
 
-export function useReceivePermit(onSuccess?: () => void): UseReceivePermitReturn {
+type Input = {
+  onSuccess?: () => void;
+  onError?: (error: Error) => void;
+};
+
+export function useReceivePermit({ onSuccess, onError }: Input = {}): UseReceivePermitReturn {
   const { client } = useCofheContext();
 
   const [importedPermit, setImportedPermit] = useState<RecipientPermit | null>(null);
@@ -50,14 +55,15 @@ export function useReceivePermit(onSuccess?: () => void): UseReceivePermitReturn
       await client.permits.importShared(importArg);
 
       setSuccessMsg('Permit received and set active.');
-      if (onSuccess) onSuccess();
+      onSuccess?.();
     } catch (err: any) {
       const message = err?.message ?? 'Failed to import permit';
       setErrorMsg(message);
+      onError?.(new Error(message));
     } finally {
       setIsSubmitting(false);
     }
-  }, [client, permitData, permitName, onSuccess]);
+  }, [client, permitData, permitName, onSuccess, onError]);
 
   const handleSetPermitData = useCallback((v: string) => {
     setPermitData(v);

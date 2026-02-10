@@ -101,9 +101,10 @@ export const useCofheAllPermits = (): { hash: string; permit: Permit }[] => {
 
 export const useCofheRemovePermit = () => {
   const { account, chainId } = useCofheConnection();
-
   const { client } = useCofhePermitsStore();
   const { addToast } = usePortalToasts();
+
+  // TODO: Add onSuccess and onError callbacks to the removePermit mutation
 
   return useCallback(
     async (hashToRemove: string) => {
@@ -123,10 +124,10 @@ export const useCofheRemovePermit = () => {
 
 export const useCofheSelectPermit = () => {
   const { account, chainId } = useCofheConnection();
-
   const { client } = useCofhePermitsStore();
-
   const { addToast } = usePortalToasts();
+
+  // TODO: Add onSuccess and onError callbacks to the removePermit mutation
 
   return useCallback(
     (hashToSet: string) => {

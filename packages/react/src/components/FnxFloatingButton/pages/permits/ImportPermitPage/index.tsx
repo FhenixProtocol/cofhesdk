@@ -18,7 +18,16 @@ export const ImportPermitPage: React.FC = () => {
     errorMsg,
     successMsg,
     submit,
-  } = useReceivePermit(() => navigateBack());
+  } = useReceivePermit({
+    onSuccess: () => {
+      // TODO: Add toast here
+      navigateBack();
+    },
+    onError: (error) => {
+      // TODO: Add toast here
+      console.error('Error importing permit', error);
+    },
+  });
 
   return (
     <PageContainer
