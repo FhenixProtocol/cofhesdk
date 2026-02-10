@@ -62,6 +62,17 @@ const ValidatorContractRefinement = [
   },
 ] as const;
 
+/**
+ * Prevents sharable permit from having the same issuer and recipient
+ */
+const RecipientRefinement = [
+  (data: zPermitType) => data.issuer !== data.recipient,
+  {
+    message: 'Sharing permit :: issuer and recipient must not be the same',
+    path: ['issuer', 'recipient'] as string[],
+  },
+] as const;
+
 // ============================================================================
 // SELF PERMIT VALIDATORS
 // ============================================================================
@@ -121,6 +132,7 @@ export const SelfPermitOptionsValidator = z
         message: 'Self permit recipientSignature :: must be 0x prefixed',
       }),
   })
+  .refine(...RecipientRefinement)
   .refine(...ValidatorContractRefinement);
 
 /**
