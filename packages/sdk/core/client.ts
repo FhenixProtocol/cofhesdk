@@ -42,6 +42,10 @@ export function createCofhesdkClientBase<TConfig extends CofhesdkConfig>(
 
   const connectStore = createStore<CofhesdkClientConnectionState>(() => InitialConnectStore);
 
+  // Minimal cancellation mechanism: incremented on each connect/disconnect.
+  // If a connect finishes after a disconnect, it must not overwrite the disconnected state.
+  let connectEpoch = 0;
+
   // Helper to update state
   const updateConnectState = (partial: Partial<CofhesdkClientConnectionState>) => {
     connectStore.setState((state) => ({ ...state, ...partial }));
@@ -73,8 +77,25 @@ export function createCofhesdkClientBase<TConfig extends CofhesdkConfig>(
   async function connect(publicClient: PublicClient, walletClient: WalletClient) {
     const state = connectStore.getState();
 
+    if (state.connecting) {
+      throw new CofhesdkError({
+        code: CofhesdkErrorCode.AlreadyConnecting,
+        message: 'connect() called while already connecting',
+        hint: 'Await the in-progress connect() call before calling connect() again.',
+        context: {
+          connected: state.connected,
+          connecting: state.connecting,
+          chainId: state.chainId,
+          account: state.account,
+        },
+      });
+    }
+
     // Exit if already connected and clients are the same
     if (state.connected && state.publicClient === publicClient && state.walletClient === walletClient) return;
+
+    connectEpoch += 1;
+    const epoch = connectEpoch;
 
     // Set connecting state
     updateConnectState({
@@ -86,6 +107,10 @@ export function createCofhesdkClientBase<TConfig extends CofhesdkConfig>(
     try {
       const chainId = await getPublicClientChainID(publicClient);
       const account = await getWalletClientAccount(walletClient);
+
+      // If a disconnect (or a newer connect) happened while awaiting, ignore this completion.
+      if (epoch !== connectEpoch) return;
+
       updateConnectState({
         connected: true,
         connecting: false,
@@ -96,12 +121,20 @@ export function createCofhesdkClientBase<TConfig extends CofhesdkConfig>(
         walletClient,
       });
     } catch (e) {
+      // Ignore stale errors too.
+      if (epoch !== connectEpoch) return;
+
       updateConnectState({
         ...InitialConnectStore,
         connectError: e,
       });
       throw e;
     }
+  }
+
+  function disconnect() {
+    connectEpoch += 1;
+    updateConnectState({ ...InitialConnectStore });
   }
 
   // CLIENT OPERATIONS
@@ -278,6 +311,7 @@ export function createCofhesdkClientBase<TConfig extends CofhesdkConfig>(
     config: opts.config,
 
     connect,
+    disconnect,
     encryptInputs,
     decryptHandle,
     permits: clientPermits,

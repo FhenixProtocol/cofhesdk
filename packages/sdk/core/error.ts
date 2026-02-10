@@ -5,6 +5,7 @@ export enum CofhesdkErrorCode {
   InitViemFailed = 'INIT_VIEM_FAILED',
   InitEthersFailed = 'INIT_ETHERS_FAILED',
   NotConnected = 'NOT_CONNECTED',
+  AlreadyConnecting = 'ALREADY_CONNECTING',
   MissingPublicClient = 'MISSING_PUBLIC_CLIENT',
   MissingWalletClient = 'MISSING_WALLET_CLIENT',
   MissingProviderParam = 'MISSING_PROVIDER_PARAM',

@@ -164,16 +164,51 @@ describe('createCofhesdkClientBase', () => {
       expect(client.connected).toBe(true);
     });
 
-    it('should return existing promise if already connecting', async () => {
+    it('should throw if connect is called while already connecting', async () => {
       const publicClient = createMockPublicClient();
       const walletClient = createMockWalletClient();
 
       const promise1 = client.connect(publicClient, walletClient);
-      const promise2 = client.connect(publicClient, walletClient);
-
-      expect(promise1).toStrictEqual(promise2);
-
+      try {
+        await client.connect(publicClient, walletClient);
+      } catch (e) {
+        expect(e).toBeInstanceOf(CofhesdkError);
+        expect((e as CofhesdkError).code).toBe(CofhesdkErrorCode.AlreadyConnecting);
+      }
       await promise1;
+    });
+
+    it('should allow disconnect while connecting and never end up connected afterwards', async () => {
+      let resolveChainId: (value: number) => void;
+      let resolveAddresses: (value: string[]) => void;
+
+      const chainIdPromise = new Promise<number>((resolve) => {
+        resolveChainId = resolve;
+      });
+      const addressesPromise = new Promise<string[]>((resolve) => {
+        resolveAddresses = resolve;
+      });
+
+      const publicClient = createMockPublicClient() as any;
+      publicClient.getChainId = vi.fn().mockReturnValue(chainIdPromise);
+
+      const walletClient = createMockWalletClient() as any;
+      walletClient.getAddresses = vi.fn().mockReturnValue(addressesPromise);
+
+      const connectPromise = client.connect(publicClient, walletClient);
+      expect(client.connecting).toBe(true);
+
+      client.disconnect();
+      expect(client.connected).toBe(false);
+      expect(client.connecting).toBe(false);
+
+      resolveChainId!(11155111);
+      resolveAddresses!(['0x1234567890123456789012345678901234567890']);
+
+      await connectPromise;
+
+      expect(client.connected).toBe(false);
+      expect(client.connecting).toBe(false);
     });
 
     it('should handle publicClient.getChainId throwing an error', async () => {
@@ -263,6 +298,26 @@ describe('createCofhesdkClientBase', () => {
         );
         expect((error as CofhesdkError).cause).toBe(getChainIdError);
       }
+    });
+
+    it('should disconnect and clear connection state', async () => {
+      const publicClient = createMockPublicClient(11155111);
+      const walletClient = createMockWalletClient(['0xabcd']);
+
+      await client.connect(publicClient, walletClient);
+      expect(client.connected).toBe(true);
+
+      client.disconnect();
+
+      expect(client.connected).toBe(false);
+      expect(client.connecting).toBe(false);
+
+      const snapshot = client.getSnapshot();
+      expect(snapshot.chainId).toBe(undefined);
+      expect(snapshot.account).toBe(undefined);
+      expect(snapshot.publicClient).toBe(undefined);
+      expect(snapshot.walletClient).toBe(undefined);
+      expect(snapshot.connectError).toBe(undefined);
     });
   });
 
