@@ -82,14 +82,6 @@ export function useCofheTokensWithExistingEncryptedBalances(
     }
   );
 
-  console.log('useCofheTokensWithExistingBalances', {
-    account,
-    tokens,
-    contracts,
-    readData: read.data,
-    readError: read.error,
-  });
-
   const { tokensWithExistingEncryptedBalance, ctHashByTokenAddress, error } = useMemo(() => {
     const map: Record<string, bigint> = {};
     const filtered: Token[] = [];
