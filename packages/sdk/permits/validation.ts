@@ -132,7 +132,6 @@ export const SelfPermitOptionsValidator = z
         message: 'Self permit recipientSignature :: must be 0x prefixed',
       }),
   })
-  .refine(...RecipientRefinement)
   .refine(...ValidatorContractRefinement);
 
 /**
@@ -210,6 +209,7 @@ export const SharingPermitOptionsValidator = z
         message: 'Sharing permit recipientSignature :: must be 0x prefixed',
       }),
   })
+  .refine(...RecipientRefinement)
   .refine(...ValidatorContractRefinement);
 
 /**
