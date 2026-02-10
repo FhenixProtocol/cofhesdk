@@ -7,13 +7,11 @@ import { TokenRow } from '../components/TokenRow';
 import { useCofhePinnedTokenAddress } from '@/hooks/useCofhePinnedTokenAddress';
 
 export const TokenListModal: React.FC<PortalModalStateMap[PortalModal.TokenList]> = ({
+  tokens,
   onClose,
   title,
   onSelectToken,
 }) => {
-  const chainId = useCofheChainId();
-  const allTokens = useCofheTokens(chainId);
-
   return (
     <PageContainer
       header={
@@ -24,7 +22,7 @@ export const TokenListModal: React.FC<PortalModalStateMap[PortalModal.TokenList]
       }
       content={
         <TokenListContent
-          tokens={allTokens}
+          tokens={tokens}
           onSelectToken={(token) => {
             onSelectToken(token);
             onClose();

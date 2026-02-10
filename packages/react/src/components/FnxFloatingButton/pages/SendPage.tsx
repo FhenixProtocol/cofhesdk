@@ -11,7 +11,7 @@ import { TokenIcon } from '../components/TokenIcon';
 import { unitToWei } from '@/utils/format';
 import { assert } from 'ts-essentials';
 import { CofheTokenConfidentialBalance } from '../components';
-import { type Token } from '@/hooks';
+import { useCofheTokensWithExistingEncryptedBalances, type Token } from '@/hooks';
 import { getStepConfig } from '@/hooks/useCofheEncrypt';
 import { FloatingButtonPage } from '../pagesConfig/types';
 import { useOnceTransactionMined } from '@/hooks/useOnceTransactionMined';
@@ -118,6 +118,8 @@ export const SendPage: React.FC<SendPageProps> = ({ token: _token }) => {
     if (confidentialUnitBalance) setAmount(confidentialUnitBalance.toFixed());
   };
 
+  const { tokensWithExistingEncryptedBalance } = useCofheTokensWithExistingEncryptedBalances();
+
   return (
     <PageContainer
       header={
@@ -155,6 +157,7 @@ export const SendPage: React.FC<SendPageProps> = ({ token: _token }) => {
                 <button
                   onClick={() => {
                     openModal(PortalModal.TokenList, {
+                      tokens: tokensWithExistingEncryptedBalance,
                       title: 'Select token to transfer',
                       onSelectToken: (token) => {
                         setOverriddenToken(token);

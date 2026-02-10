@@ -18,6 +18,7 @@ export type PortalModalPropsMap = {
   [PortalModal.PermitInfo]: void;
   [PortalModal.TokenList]: {
     title: string;
+    tokens: Token[];
     onSelectToken: (token: Token) => void;
   };
 };

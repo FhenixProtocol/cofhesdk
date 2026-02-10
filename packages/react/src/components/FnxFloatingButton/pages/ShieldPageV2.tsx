@@ -13,7 +13,12 @@ import { ActionButton, AmountInput, CofheTokenConfidentialBalance, TokenIcon } f
 import { useCofheTokenPublicBalance } from '@/hooks/useCofheTokenPublicBalance';
 import { formatTokenAmount, unitToWei } from '@/utils/format';
 import { FloatingButtonPage } from '../pagesConfig/types';
-import { useCofheTokenClaimUnshielded, useCofheTokenUnshield, useCofheTokenClaimable, useOnceDecrypted } from '@/hooks';
+import {
+  useCofheTokenClaimUnshielded,
+  useCofheTokenUnshield,
+  useCofheTokenClaimable,
+  useCofheTokensWithExistingEncryptedBalances,
+} from '@/hooks';
 import { useOnceTransactionMined } from '@/hooks/useOnceTransactionMined';
 import { useReschedulableTimeout } from '@/hooks/useReschedulableTimeout';
 import { assert } from 'ts-essentials';
@@ -431,6 +436,8 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
 
   const isShieldableToken = shieldableTypes.has(token.extensions.fhenix.confidentialityType);
 
+  const { tokensWithExistingEncryptedBalance } = useCofheTokensWithExistingEncryptedBalances();
+
   // TODO: probably can be refactored into a view with more stramlined logic
   return (
     <PageContainer
@@ -446,8 +453,10 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
 
           <button
             onClick={() =>
-              // navigateToTokenListForSelection(mode === 'shield' ? 'Select token to shield' : 'Select token to unshield')
               openModal(PortalModal.TokenList, {
+                // TODO: if it's unshield mode, we should only show tokens with existing encrypted balances
+                // if it's shield mode, we need to show all tokens where public balance > 0
+                tokens: tokensWithExistingEncryptedBalance,
                 title: mode === 'shield' ? 'Select token to shield' : 'Select token to unshield',
                 onSelectToken: (token) => setOverriddenToken(token),
               })

@@ -17,6 +17,7 @@ export {
   useCofheWriteContract,
   useCofheClient,
   useCofheTokens,
+  useCofheTokensWithExistingEncryptedBalances,
   useCofheTokenLists,
   useCofheTokenShield,
   useCofheTokenUnshield,
