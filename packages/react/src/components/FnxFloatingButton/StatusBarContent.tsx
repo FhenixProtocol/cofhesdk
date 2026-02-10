@@ -1,5 +1,5 @@
 import { MdOutlineSettings } from 'react-icons/md';
-import { IoIosCheckmarkCircleOutline } from 'react-icons/io';
+import { IoIosCheckmarkCircleOutline, IoIosCloseCircleOutline, IoIosTime } from 'react-icons/io';
 import { cn } from '@/utils';
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
 import { FloatingButtonPage } from './pagesConfig/types';
@@ -7,10 +7,12 @@ import { FhenixLogoIcon } from '../FhenixLogoIcon';
 import type { FnxStatus, FnxStatusVariant } from './types';
 import { AnimatedZStack } from '../primitives/AnimatedZStack';
 import { usePortalNavigation, usePortalStatuses } from '@/stores';
+import { useCofheConnection } from '@/hooks';
 
 const ConnectionStatus: React.FC = () => {
   const { theme } = useFnxFloatingButtonContext();
   const { navigateTo } = usePortalNavigation();
+  const { connected } = useCofheConnection();
 
   return (
     <div className="fnx-panel w-full h-full flex px-4 items-center justify-between">
@@ -19,8 +21,21 @@ const ConnectionStatus: React.FC = () => {
 
       {/* Status */}
       <div className="flex items-center gap-1 ml-auto mr-2">
-        <IoIosCheckmarkCircleOutline className="text-green-500" />
-        <span className="font-medium">Connected*</span>
+        {connected ? (
+          <>
+            <IoIosCheckmarkCircleOutline className="text-green-500" />
+            <span className="font-medium" aria-live="polite">
+              Connected
+            </span>
+          </>
+        ) : (
+          <>
+            <IoIosCloseCircleOutline className="text-red-500" />
+            <span className="font-medium" aria-live="polite">
+              Disconnected
+            </span>
+          </>
+        )}
       </div>
 
       {/* Settings Icon */}
