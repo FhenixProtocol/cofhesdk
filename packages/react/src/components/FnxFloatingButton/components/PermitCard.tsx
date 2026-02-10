@@ -107,12 +107,11 @@ export const PermitCard: React.FC<{ hash: string; className?: string; header?: R
     return (
       <div
         className={cn(
-          'gap-3 border border-[#0E2F3F]/15 bg-[#F8FAFB] p-3 py-4 font-mono text-xs text-[#0E2F3F] dark:border-white/10 dark:bg-[#121212] dark:text-white/80',
+          'flex flex-col gap-3 border border-[#0E2F3F]/15 bg-[#F8FAFB] p-3 py-4 font-mono text-xs text-[#0E2F3F] dark:border-white/10 dark:bg-[#121212] dark:text-white/80',
           className
         )}
       >
         {header}
-        <div className="flex flex-col size-3"></div>
         <pre className="whitespace-pre-wrap break-words text-left italic p-10">Permit not found.</pre>
       </div>
     );
