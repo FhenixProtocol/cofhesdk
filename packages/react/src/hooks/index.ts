@@ -24,6 +24,11 @@ export {
   type UseCofheTokensWithExistingBalancesInput,
   type UseCofheTokensWithExistingBalancesResult,
 } from './useCofheTokensWithExistingEncryptedBalances';
+export {
+  useTokensWithPublicBalances,
+  type UseTokensWithPublicBalancesInput,
+  type UseTokensWithPublicBalancesResult,
+} from './useTokensWithPublicBalances';
 export { useCofheEncrypt } from './useCofheEncrypt';
 export { useCofheWriteContract } from './useCofheWriteContract';
 export { useCofheReadContract, type UseCofheReadContractQueryOptions } from './useCofheReadContract';

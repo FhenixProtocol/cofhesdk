@@ -18,6 +18,7 @@ export {
   useCofheClient,
   useCofheTokens,
   useCofheTokensWithExistingEncryptedBalances,
+  useTokensWithPublicBalances,
   useCofheTokenLists,
   useCofheTokenShield,
   useCofheTokenUnshield,
