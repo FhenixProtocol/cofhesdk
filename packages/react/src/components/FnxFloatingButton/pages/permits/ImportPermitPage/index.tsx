@@ -9,7 +9,7 @@ import { BasePermitCard } from '@/components/FnxFloatingButton/components/Permit
 export const ImportPermitPage: React.FC = () => {
   const { navigateBack } = usePortalNavigation();
   const { addToast } = usePortalToasts();
-  
+
   const {
     importedPermit,
     permitData,
