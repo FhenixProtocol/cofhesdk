@@ -1,0 +1,53 @@
+name: Checks
+
+on:
+  pull_request:
+  push:
+    branches: [master, staging]
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  check:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: Linting
+            command: lint
+            needs-foundry: true
+          - name: Type Check
+            command: check:types
+            needs-foundry: true
+          - name: Check Formatting
+            command: check:formatting
+            needs-foundry: false
+          - name: Circular Dependencies
+            command: run check:circles
+            needs-foundry: false
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm 8
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+
+      - name: Install Dependencies
+        run: pnpm i
+
+      - name: Install Foundry
+        if: matrix.needs-foundry == true
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Run ${{ matrix.name }}
+        run: pnpm ${{ matrix.command }}
