@@ -3,7 +3,6 @@ import {
   ActivityPage,
   GeneratePermitPage,
   MainPage,
-  PermitDetailsPage,
   PermitsListPage,
   SendPage,
   SettingsPage,
@@ -29,7 +28,6 @@ export const pages: Record<FloatingButtonPage, FC<any>> = {
   [FloatingButtonPage.GeneratePermits]: GeneratePermitPage,
   [FloatingButtonPage.DelegatePermits]: DelegatePermitPage,
   [FloatingButtonPage.ReceivePermits]: ImportPermitPage,
-  [FloatingButtonPage.PermitDetails]: PermitDetailsPage,
   [FloatingButtonPage.Debug]: DebugPage,
   [FloatingButtonPage.ClaimableTokens]: ClaimableTokens,
 };

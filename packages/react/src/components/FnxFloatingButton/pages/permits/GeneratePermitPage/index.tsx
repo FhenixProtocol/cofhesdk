@@ -26,7 +26,6 @@ export const GeneratePermitPage: React.FC<GeneratePermitPageProps> = ({ onSucces
   } = usePermitForm({
     isDelegate: false,
     onSuccess: () => {
-      // TODO: also add toast here in any case
       // by default navigate to permits list, but if arrived here from elsewhere, go back where we came from
       onSuccessNavigateTo ? onSuccessNavigateTo() : navigateTo(FloatingButtonPage.Permits);
       addToast({
