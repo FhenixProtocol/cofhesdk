@@ -25,7 +25,7 @@ import { useReschedulableTimeout } from '@/hooks/useReschedulableTimeout';
 import { assert } from 'ts-essentials';
 import type { BigNumber } from 'bignumber.js';
 import { usePortalModals, usePortalNavigation } from '@/stores';
-import { CofheTokenPublicBalance } from '../components/CofheTokenConfidentialBalance';
+import { BalanceType, CofheTokenPublicBalance } from '../components/CofheTokenConfidentialBalance';
 import { useIsUnshieldingMining } from '@/hooks/useIsUnshieldingMining';
 import { PageContainer } from '../components/PageContainer';
 import { PortalModal } from '../modals/types';
@@ -481,6 +481,7 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
           <button
             onClick={() =>
               openModal(PortalModal.TokenList, {
+                balanceType: mode === 'shield' ? BalanceType.Public : BalanceType.Confidential,
                 // TODO: if it's unshield mode, we should only show tokens with existing encrypted balances
                 // if it's shield mode, we need to show all tokens where public balance > 0
                 tokens: mode === 'unshield' ? tokensWithExistingEncryptedBalance : tokensWithPublicBalances,

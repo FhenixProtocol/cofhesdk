@@ -2,11 +2,12 @@ import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import { cn } from '../../../utils/cn';
 import type { Token } from '@/hooks/useCofheTokenLists';
 import { TokenIcon } from './TokenIcon';
-import { CofheTokenConfidentialBalance } from '.';
+import { CofheTokenConfidentialBalance, BalanceType, CofheTokenPublicBalance } from './CofheTokenConfidentialBalance';
 import { useCofheTokenDecryptedBalance, useCoingeckoUsdPrice } from '@/hooks';
 import { sepolia } from '@cofhe/sdk/chains';
 import { useCofheAccount } from '@/hooks/useCofheConnection';
 import { formatUsdAmount } from '@/utils/format';
+import { useCofheTokenPublicBalance } from '@/hooks/useCofheTokenPublicBalance';
 
 const TMP_WBTC_ON_MAINNET = {
   chainId: 1,
@@ -16,13 +17,21 @@ const TMP_WBTC_ON_MAINNET = {
 export const TokenRow: React.FC<{
   token: Token;
   onClick: () => void;
+  balanceType: BalanceType;
   topLabel?: string;
-}> = ({ token, onClick, topLabel }) => {
+}> = ({ token, onClick, topLabel, balanceType }) => {
   const account = useCofheAccount();
-  const { data } = useCofheTokenDecryptedBalance({
-    token,
-    accountAddress: account,
-  });
+  const { data: confidentialBalance } = useCofheTokenDecryptedBalance(
+    {
+      token,
+      accountAddress: account,
+    },
+    {
+      enabled: balanceType === BalanceType.Confidential,
+    }
+  );
+
+  const { data: publicBalance } = useCofheTokenPublicBalance({ token, accountAddress: account });
   // tmp: TODO: for testnet, fetch the price of WBTC on mainnet to display in the UI
   const { data: price } = useCoingeckoUsdPrice(
     token.chainId === sepolia.id
@@ -32,11 +41,14 @@ export const TokenRow: React.FC<{
         }
       : {
           chainId: token.chainId,
-          tokenAddress: token.address,
+          tokenAddress: token.extensions.fhenix.erc20Pair?.address,
         }
   );
 
-  const usdValue = data && price ? formatUsdAmount(data.unit.multipliedBy(price)) : null;
+  const usdValue =
+    balanceType === BalanceType.Confidential
+      ? confidentialBalance && price && formatUsdAmount(confidentialBalance.unit.multipliedBy(price))
+      : publicBalance && price && formatUsdAmount(publicBalance.unit.multipliedBy(price));
 
   return (
     <div
@@ -54,20 +66,32 @@ export const TokenRow: React.FC<{
         {/* Token label */}
         <div className="min-w-0 flex-1">
           {topLabel && <div className="text-xxxs opacity-70 fnx-text-primary leading-none">{topLabel}</div>}
-          <div className="text-sm font-medium fnx-text-primary truncate leading-tight">{token.symbol}</div>
+          <div className="text-sm font-medium fnx-text-primary truncate leading-tight">
+            {balanceType === BalanceType.Confidential ? token.symbol : token.extensions.fhenix.erc20Pair?.symbol}
+          </div>
         </div>
       </div>
 
       {/* Balance and Arrow */}
       <div className="flex items-center gap-2 flex-shrink-0">
         <div className="w-24 text-right whitespace-nowrap tabular-nums">
-          <CofheTokenConfidentialBalance
-            token={token}
-            showSymbol={false}
-            size="sm"
-            decimalPrecision={5}
-            className="font-medium inline-block w-full text-right"
-          />
+          {balanceType === BalanceType.Confidential ? (
+            <CofheTokenConfidentialBalance
+              token={token}
+              showSymbol={false}
+              size="sm"
+              decimalPrecision={5}
+              className="font-medium inline-block w-full text-right"
+            />
+          ) : (
+            <CofheTokenPublicBalance
+              token={token}
+              showSymbol={false}
+              size="sm"
+              decimalPrecision={5}
+              className="font-medium inline-block w-full text-right"
+            />
+          )}
         </div>
 
         <div className="w-24 text-right whitespace-nowrap tabular-nums">

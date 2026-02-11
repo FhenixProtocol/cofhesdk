@@ -5,12 +5,14 @@ import { type Token, useCofheTokens } from '@/hooks';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { TokenRow } from '../components/TokenRow';
 import { useCofhePinnedTokenAddress } from '@/hooks/useCofhePinnedTokenAddress';
+import type { BalanceType } from '../components/CofheTokenConfidentialBalance';
 
 export const TokenListModal: React.FC<PortalModalStateMap[PortalModal.TokenList]> = ({
   tokens,
   onClose,
   title,
   onSelectToken,
+  balanceType,
 }) => {
   return (
     <PageContainer
@@ -22,6 +24,7 @@ export const TokenListModal: React.FC<PortalModalStateMap[PortalModal.TokenList]
       }
       content={
         <TokenListContent
+          balanceType={balanceType}
           tokens={tokens}
           onSelectToken={(token) => {
             onSelectToken(token);
@@ -35,8 +38,9 @@ export const TokenListModal: React.FC<PortalModalStateMap[PortalModal.TokenList]
 
 export const TokenListContent: React.FC<{
   tokens: Token[];
+  balanceType: BalanceType;
   onSelectToken: (token: Token) => void;
-}> = ({ tokens, onSelectToken }) => {
+}> = ({ tokens, onSelectToken, balanceType }) => {
   const pinnedTokenAddress = useCofhePinnedTokenAddress();
   const normalizedPinnedAddress = pinnedTokenAddress?.toLowerCase();
 
@@ -56,6 +60,7 @@ export const TokenListContent: React.FC<{
         <>
           {pinnedToken && (
             <TokenRow
+              balanceType={balanceType}
               onClick={() => {
                 onSelectToken(pinnedToken);
               }}
@@ -66,6 +71,7 @@ export const TokenListContent: React.FC<{
           )}
           {nonPinnedTokens.map((token) => (
             <TokenRow
+              balanceType={balanceType}
               onClick={() => {
                 onSelectToken(token);
               }}

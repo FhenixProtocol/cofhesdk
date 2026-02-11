@@ -1,5 +1,6 @@
 import type { PermitType } from '@cofhe/sdk/permits';
 import type { Token } from '@/types/token';
+import type { BalanceType } from '../components/CofheTokenConfidentialBalance';
 
 export enum PortalModal {
   ExampleSelection = 'exampleSelection',
@@ -17,6 +18,7 @@ export type PortalModalPropsMap = {
   [PortalModal.PermitTypeInfo]: { type: PermitType };
   [PortalModal.PermitInfo]: void;
   [PortalModal.TokenList]: {
+    balanceType: BalanceType;
     title: string;
     tokens: Token[];
     onSelectToken: (token: Token) => void;

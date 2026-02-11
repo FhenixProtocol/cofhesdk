@@ -18,6 +18,7 @@ import { useOnceTransactionMined } from '@/hooks/useOnceTransactionMined';
 import { usePortalModals, usePortalNavigation } from '@/stores';
 import { PageContainer } from '../components/PageContainer';
 import { PortalModal } from '../modals/types';
+import { BalanceType } from '../components/CofheTokenConfidentialBalance';
 
 export type SendPageProps = {
   token: Token;
@@ -157,6 +158,7 @@ export const SendPage: React.FC<SendPageProps> = ({ token: _token }) => {
                 <button
                   onClick={() => {
                     openModal(PortalModal.TokenList, {
+                      balanceType: BalanceType.Confidential,
                       tokens: tokensWithExistingEncryptedBalance,
                       title: 'Select token to transfer',
                       onSelectToken: (token) => {
