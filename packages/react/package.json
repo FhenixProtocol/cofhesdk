@@ -27,7 +27,7 @@
     "build": "tsup && postcss ./src/styles.css -o ./dist/styles.css --minify",
     "dev": "nodemon",
     "lint": "eslint \"src/**/*.ts*\"",
-    "type-check": "tsc --noEmit",
+    "check:types": "tsc --noEmit",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
     "test": "vitest run",
     "test:watch": "vitest",
