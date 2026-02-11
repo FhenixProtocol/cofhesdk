@@ -1,7 +1,7 @@
 export { usePermitDuration } from './usePermitDuration';
 export { usePermitForm } from './usePermitForm';
 export { usePermitsList } from './usePermitsList';
-export type { PermitStatus, QuickActionId } from './usePermitsList';
+export type { PermitStatus, PermitActionId } from './usePermitsList';
 export { useReceivePermit } from './useReceivePermit';
-export { usePermitDetailsPage } from './usePermitDetailsPage';
+export { usePermitDetailsAndActions as usePermitDetailsPage } from './usePermitDetailsAndActions';
 export { useCofheCreatePermitMutation } from './useCofheCreatePermitMutation';

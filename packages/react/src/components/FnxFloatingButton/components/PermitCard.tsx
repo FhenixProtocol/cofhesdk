@@ -1,11 +1,10 @@
 import { FaCheck, FaRegCopy } from 'react-icons/fa6';
-import { usePermitDetailsPage } from '@/hooks/permits/index.js';
 import { zeroAddress } from 'viem';
 import { cn, formatExpirationLabel, truncateAddress } from '@/utils';
 import { useCopyFeedback } from '@/hooks/useCopyFeedback';
 import { PermitUtils, type Permit, type PermitType } from '@cofhe/sdk/permits';
 import { PermitStripedBackground } from '@/components/StripedBackground';
-import { useCofheActivePermitHash } from '@/hooks/useCofhePermits';
+import { useCofheActivePermitHash, useCofhePermit } from '@/hooks/useCofhePermits';
 import { useMemo } from 'react';
 
 const PermitTypeLabel: Record<PermitType, string> = {
@@ -101,7 +100,7 @@ export const PermitCard: React.FC<{ hash: string; className?: string; header?: R
   className,
   header,
 }) => {
-  const { permit } = usePermitDetailsPage(hash);
+  const permit = useCofhePermit(hash);
 
   if (permit == null) {
     return (

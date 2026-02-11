@@ -1,13 +1,15 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PermitReceiveIcon from '@/assets/fhenix-permit-receive.svg';
 import { useReceivePermit } from '@/hooks/permits/index.js';
-import { usePortalNavigation } from '@/stores';
+import { usePortalNavigation, usePortalToasts } from '@/stores';
 import { PageContainer } from '@/components/FnxFloatingButton/components/PageContainer';
 import { Button } from '@/components/FnxFloatingButton/components/Button.js';
 import { BasePermitCard } from '@/components/FnxFloatingButton/components/PermitCard.js';
 
 export const ImportPermitPage: React.FC = () => {
   const { navigateBack } = usePortalNavigation();
+  const { addToast } = usePortalToasts();
+  
   const {
     importedPermit,
     permitData,
@@ -20,11 +22,18 @@ export const ImportPermitPage: React.FC = () => {
     submit,
   } = useReceivePermit({
     onSuccess: () => {
-      // TODO: Add toast here
       navigateBack();
+      addToast({
+        variant: 'success',
+        title: 'Permit imported',
+      });
     },
     onError: (error) => {
-      // TODO: Add toast here
+      addToast({
+        variant: 'error',
+        title: 'Failed to import permit',
+        description: error.message,
+      });
       console.error('Error importing permit', error);
     },
   });
