@@ -20,7 +20,7 @@ jobs:
           - name: Type Check
             command: check:types
             needs-foundry: true
-          - name: Check Formatting
+          - name: Formatting
             command: check:formatting
             needs-foundry: false
           - name: Circular Dependencies
