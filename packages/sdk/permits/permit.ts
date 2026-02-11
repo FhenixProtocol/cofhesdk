@@ -11,6 +11,7 @@ import {
   type EIP712Domain,
   type Permission,
   type EthEncryptedData,
+  type PermitHashFields,
 } from './types.js';
 import {
   validateSelfPermitOptions,
@@ -44,6 +45,7 @@ export const PermitUtils = {
     const sealingPair = GenerateSealingKey();
 
     const permit = {
+      hash: PermitUtils.getHash(validation.data),
       ...validation.data,
       sealingPair,
       _signedDomain: undefined,
@@ -69,6 +71,7 @@ export const PermitUtils = {
     const sealingPair = GenerateSealingKey();
 
     const permit = {
+      hash: PermitUtils.getHash(validation.data),
       ...validation.data,
       sealingPair,
       _signedDomain: undefined,
@@ -117,6 +120,7 @@ export const PermitUtils = {
     const sealingPair = GenerateSealingKey();
 
     const permit = {
+      hash: PermitUtils.getHash(validation.data),
       ...validation.data,
       sealingPair,
       _signedDomain: undefined,
@@ -216,6 +220,7 @@ export const PermitUtils = {
    */
   serialize: (permit: Permit): SerializedPermit => {
     return {
+      hash: permit.hash,
       name: permit.name,
       type: permit.type,
       issuer: permit.issuer,
@@ -274,7 +279,7 @@ export const PermitUtils = {
   /**
    * Get a stable hash for the permit (used as key in storage)
    */
-  getHash: (permit: Permit): string => {
+  getHash: (permit: PermitHashFields): string => {
     const data = JSON.stringify({
       type: permit.type,
       issuer: permit.issuer,

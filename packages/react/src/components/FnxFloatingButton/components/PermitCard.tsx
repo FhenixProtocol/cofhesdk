@@ -2,7 +2,7 @@ import { FaCheck, FaRegCopy } from 'react-icons/fa6';
 import { zeroAddress } from 'viem';
 import { cn, formatExpirationLabel, truncateAddress } from '@/utils';
 import { useCopyFeedback } from '@/hooks/useCopyFeedback';
-import { PermitUtils, type Permit, type PermitType } from '@cofhe/sdk/permits';
+import { type Permit, type PermitType } from '@cofhe/sdk/permits';
 import { PermitStripedBackground } from '@/components/StripedBackground';
 import { useCofheActivePermitHash, useCofhePermit } from '@/hooks/useCofhePermits';
 import { useMemo } from 'react';
@@ -32,7 +32,7 @@ export const BasePermitCard: React.FC<{ permit: Permit; className?: string; head
   const expirationInfo = formatExpirationLabel(permit.expiration);
 
   const metadataTags = useMemo(() => {
-    const isActivePermit = PermitUtils.getHash(permit) === activePermitHash;
+    const isActivePermit = permit.hash === activePermitHash;
     const tags: string[] = [];
     if (expirationInfo.expired) tags.push('expired');
     if (expirationInfo.expiringSoon) tags.push('expiring soon');

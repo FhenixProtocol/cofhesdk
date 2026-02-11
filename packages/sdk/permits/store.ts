@@ -82,7 +82,7 @@ export const setPermit = (chainId: number, account: string, permit: Permit) => {
     produce<PermitsStore>((state) => {
       if (state.permits[chainId] == null) state.permits[chainId] = {};
       if (state.permits[chainId][account] == null) state.permits[chainId][account] = {};
-      state.permits[chainId][account][PermitUtils.getHash(permit)] = PermitUtils.serialize(permit);
+      state.permits[chainId][account][permit.hash] = PermitUtils.serialize(permit);
     })
   );
 };
