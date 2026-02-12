@@ -1,6 +1,6 @@
 import type { PermitStatus } from '@/hooks/permits/index.js';
 import { ValidationUtils, type Permit } from '@cofhe/sdk/permits';
-import type { FC, ReactNode } from 'react';
+import type { FC } from 'react';
 import { cn } from '@/utils/cn';
 import { Button } from '@/components/FnxFloatingButton/components';
 
@@ -20,10 +20,10 @@ interface PermitItemProps {
   permit: Permit;
   hash: string;
   activePermitHash?: string;
-  onSelect?: (id: string) => void;
+  onClick?: (id: string) => void;
 }
 
-export const PermitItem: FC<PermitItemProps> = ({ permit, onSelect, hash, activePermitHash }) => {
+export const PermitItem: FC<PermitItemProps> = ({ permit, onClick, hash, activePermitHash }) => {
   const status: PermitStatus = ValidationUtils.isExpired(permit)
     ? 'expired'
     : hash === activePermitHash
@@ -34,7 +34,7 @@ export const PermitItem: FC<PermitItemProps> = ({ permit, onSelect, hash, active
     <Button
       variant="ghost"
       className="flex flex-row w-full items-centera !justify-start gap-3 p-0.5"
-      onClick={() => onSelect?.(hash)}
+      onClick={() => onClick?.(hash)}
     >
       <span
         className={cn(

@@ -1,5 +1,19 @@
 # @cofhe/sdk Changelog
 
+## 0.2.0
+
+### Minor Changes
+
+- 8fda09a: Removes `Promise<boolean>` return type from `client.connect(...)`, instead throws an error if the connection fails.
+- e0caeca: Adds `environment: 'node' | 'web' | 'hardhat' | 'react'` option to config. Exposed via `client.config.enviroment`. Automatically populated appropriately within the various `createCofhesdkConfig` functions.
+- 2a9d6c5: Updated to new CoFHE /sealoutputV2 endpoint - uses polling to fetch decryption results instead of long running open HTTP connections.
+
+### Patch Changes
+
+- 4057a76: Add WebWorker for zkProve
+- dba2759: Add getOrCreate permit functions
+- 7c861af: Remove `initializationResults` from cofhesdk client.
+
 ## 0.1.1
 
 ### Patch Changes

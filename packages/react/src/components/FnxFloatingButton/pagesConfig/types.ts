@@ -9,7 +9,6 @@ export enum FloatingButtonPage {
   GeneratePermits = 'generatePermit',
   DelegatePermits = 'delegatePermit',
   ReceivePermits = 'receivePermit',
-  PermitDetails = 'permitDetails',
   Debug = 'debug',
   Portfolio = 'portfolio',
   ClaimableTokens = 'claimableTokens',
