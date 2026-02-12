@@ -5,6 +5,7 @@ import { useCofheTokens } from '@/hooks';
 import { TokenListContent } from '../modals/TokenListModal';
 import { usePortalNavigation } from '@/stores';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { BalanceType } from '../components/CofheTokenConfidentialBalance';
 
 declare module '../pagesConfig/types' {
   interface FloatingButtonPagePropsRegistry {
@@ -27,6 +28,7 @@ export const PortfolioPage: React.FC = () => {
       }
       content={
         <TokenListContent
+          balanceType={BalanceType.Confidential}
           tokens={allTokens}
           onSelectToken={(token) => {
             navigateTo(FloatingButtonPage.TokenInfo, {
