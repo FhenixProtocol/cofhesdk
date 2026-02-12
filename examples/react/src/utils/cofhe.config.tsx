@@ -1,6 +1,6 @@
 import { CofheProvider, useInternalQueryClient } from '@cofhe/react';
-import { useClientsForCofheConnection } from './useClientsForCofheConnection';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { usePublicClient, useWalletClient } from 'wagmi';
 
 function QueryDebug() {
   const cofheQueryClient = useInternalQueryClient();
@@ -8,9 +8,10 @@ function QueryDebug() {
 }
 
 export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) => {
-  const { walletClient, publicClient } = useClientsForCofheConnection();
+  const wagmiPublicClient = usePublicClient();
+  const { data: wagmiWalletClient } = useWalletClient();
   return (
-    <CofheProvider walletClient={walletClient} publicClient={publicClient}>
+    <CofheProvider walletClient={wagmiWalletClient} publicClient={wagmiPublicClient}>
       {children}
       <QueryDebug />
     </CofheProvider>
