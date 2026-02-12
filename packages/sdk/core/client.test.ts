@@ -164,17 +164,15 @@ describe('createCofhesdkClientBase', () => {
       expect(client.connected).toBe(true);
     });
 
-    it('should throw if connect is called while already connecting', async () => {
+    it('should return existing promise if already connecting', async () => {
       const publicClient = createMockPublicClient();
       const walletClient = createMockWalletClient();
 
       const promise1 = client.connect(publicClient, walletClient);
-      try {
-        await client.connect(publicClient, walletClient);
-      } catch (e) {
-        expect(e).toBeInstanceOf(CofhesdkError);
-        expect((e as CofhesdkError).code).toBe(CofhesdkErrorCode.AlreadyConnecting);
-      }
+      const promise2 = client.connect(publicClient, walletClient);
+
+      expect(promise1).toStrictEqual(promise2);
+
       await promise1;
     });
 
