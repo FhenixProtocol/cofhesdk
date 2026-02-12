@@ -81,7 +81,7 @@ export function createCofhesdkClientBase<TConfig extends CofhesdkConfig>(
     if (state.connected && state.publicClient === publicClient && state.walletClient === walletClient) return;
 
     connectAttemptId += 1;
-    const epoch = connectAttemptId;
+    const localAttemptId = connectAttemptId;
 
     // Set connecting state
     updateConnectState({
@@ -95,7 +95,7 @@ export function createCofhesdkClientBase<TConfig extends CofhesdkConfig>(
       const account = await getWalletClientAccount(walletClient);
 
       // If a disconnect (or a newer connect) happened while awaiting, ignore this completion.
-      if (epoch !== connectAttemptId) return;
+      if (localAttemptId !== connectAttemptId) return;
 
       updateConnectState({
         connected: true,
@@ -108,7 +108,7 @@ export function createCofhesdkClientBase<TConfig extends CofhesdkConfig>(
       });
     } catch (e) {
       // Ignore stale errors too.
-      if (epoch !== connectAttemptId) return;
+      if (localAttemptId !== connectAttemptId) return;
 
       updateConnectState({
         ...InitialConnectStore,
