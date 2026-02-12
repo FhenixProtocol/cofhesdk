@@ -16,19 +16,19 @@ export const usePermitsList = () => {
   const { openModal } = usePortalModals();
 
   const activePermitHash = useMemo(() => {
-    return activePermit?.hash;
-  }, [activePermit?.hash]);
+    return activePermit?.permit.hash;
+  }, [activePermit?.permit.hash]);
 
-  const selfPermits = useMemo<{ permit: Permit; hash: string }[]>(() => {
-    return allPermits.filter(({ permit }) => permit.type === 'self');
+  const selfPermits = useMemo<Permit[]>(() => {
+    return allPermits.filter((permit) => permit.type === 'self');
   }, [allPermits]);
 
-  const delegatedPermits = useMemo<{ permit: Permit; hash: string }[]>(() => {
-    return allPermits.filter(({ permit }) => permit.type === 'sharing');
+  const delegatedPermits = useMemo<Permit[]>(() => {
+    return allPermits.filter((permit) => permit.type === 'sharing');
   }, [allPermits]);
 
-  const importedPermits = useMemo<{ permit: Permit; hash: string }[]>(() => {
-    return allPermits.filter(({ permit }) => permit.type === 'recipient');
+  const importedPermits = useMemo<Permit[]>(() => {
+    return allPermits.filter((permit) => permit.type === 'recipient');
   }, [allPermits]);
 
   const navigateToGeneratePermit = useCofheNavigateToCreatePermit();

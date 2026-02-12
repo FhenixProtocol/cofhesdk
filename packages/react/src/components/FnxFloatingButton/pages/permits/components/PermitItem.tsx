@@ -18,15 +18,14 @@ const statusToLabel: Record<PermitStatus, string> = {
 
 interface PermitItemProps {
   permit: Permit;
-  hash: string;
   activePermitHash?: string;
   onClick?: (id: string) => void;
 }
 
-export const PermitItem: FC<PermitItemProps> = ({ permit, onClick, hash, activePermitHash }) => {
+export const PermitItem: FC<PermitItemProps> = ({ permit, onClick, activePermitHash }) => {
   const status: PermitStatus = ValidationUtils.isExpired(permit)
     ? 'expired'
-    : hash === activePermitHash
+    : permit.hash === activePermitHash
       ? 'active'
       : 'valid';
 
@@ -34,7 +33,7 @@ export const PermitItem: FC<PermitItemProps> = ({ permit, onClick, hash, activeP
     <Button
       variant="ghost"
       className="flex flex-row w-full items-centera !justify-start gap-3 p-0.5"
-      onClick={() => onClick?.(hash)}
+      onClick={() => onClick?.(permit.hash)}
     >
       <span
         className={cn(
