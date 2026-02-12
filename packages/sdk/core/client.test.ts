@@ -176,6 +176,64 @@ describe('createCofhesdkClientBase', () => {
       await promise1;
     });
 
+    it('should ensure the latest connection attempt wins when connecting twice', async () => {
+      let resolveChainId1: (value: number) => void;
+      let resolveAddresses1: (value: string[]) => void;
+      let resolveChainId2: (value: number) => void;
+      let resolveAddresses2: (value: string[]) => void;
+
+      const chainIdPromise1 = new Promise<number>((resolve) => {
+        resolveChainId1 = resolve;
+      });
+      const addressesPromise1 = new Promise<string[]>((resolve) => {
+        resolveAddresses1 = resolve;
+      });
+
+      const chainIdPromise2 = new Promise<number>((resolve) => {
+        resolveChainId2 = resolve;
+      });
+      const addressesPromise2 = new Promise<string[]>((resolve) => {
+        resolveAddresses2 = resolve;
+      });
+
+      const publicClient1 = createMockPublicClient() as any;
+      publicClient1.getChainId = vi.fn().mockReturnValue(chainIdPromise1);
+      const walletClient1 = createMockWalletClient() as any;
+      walletClient1.getAddresses = vi.fn().mockReturnValue(addressesPromise1);
+
+      const publicClient2 = createMockPublicClient() as any;
+      publicClient2.getChainId = vi.fn().mockReturnValue(chainIdPromise2);
+      const walletClient2 = createMockWalletClient() as any;
+      walletClient2.getAddresses = vi.fn().mockReturnValue(addressesPromise2);
+
+      const promise1 = client.connect(publicClient1, walletClient1);
+      expect(client.connecting).toBe(true);
+
+      const promise2 = client.connect(publicClient2, walletClient2);
+
+      // Resolve the second connect first
+      resolveChainId2!(222);
+      resolveAddresses2!(['0x2222222222222222222222222222222222222222']);
+      await promise2;
+
+      expect(client.connected).toBe(true);
+      expect(client.connecting).toBe(false);
+      expect(client.getSnapshot().chainId).toBe(222);
+      expect(client.getSnapshot().account).toBe('0x2222222222222222222222222222222222222222');
+      expect(client.getSnapshot().publicClient).toBe(publicClient2);
+      expect(client.getSnapshot().walletClient).toBe(walletClient2);
+
+      // Now resolve the first connect; it must not overwrite the latest state.
+      resolveChainId1!(111);
+      resolveAddresses1!(['0x1111111111111111111111111111111111111111']);
+      await promise1;
+
+      expect(client.getSnapshot().chainId).toBe(222);
+      expect(client.getSnapshot().account).toBe('0x2222222222222222222222222222222222222222');
+      expect(client.getSnapshot().publicClient).toBe(publicClient2);
+      expect(client.getSnapshot().walletClient).toBe(walletClient2);
+    });
+
     it('should allow disconnect while connecting and never end up connected afterwards', async () => {
       let resolveChainId: (value: number) => void;
       let resolveAddresses: (value: string[]) => void;
