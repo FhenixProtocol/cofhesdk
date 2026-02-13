@@ -20,17 +20,7 @@ export const QueryProvider = ({
   // Create a client if not provided
   const queryClient = useMemo(() => {
     if (overridingQueryClient) return overridingQueryClient;
-    return new QueryClient({
-      defaultOptions: {
-        queries: {
-          // TODO: allow passing props here
-          // throwOnError: (error) => shouldPassToErrorBoundary(error),
-          // retry: (failureCount, error) =>
-          //   // default query behavior - 3 retries
-          //   isNonRetryableError(error) ? false : failureCount < 3,
-        },
-      },
-    });
+    return new QueryClient();
   }, [overridingQueryClient]);
   return <InternalQueryClientContext.Provider value={queryClient}>{children}</InternalQueryClientContext.Provider>;
 };

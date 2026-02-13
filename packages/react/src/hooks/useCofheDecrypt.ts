@@ -1,5 +1,5 @@
 import { useCofheContext, useInternalQuery } from '@/providers';
-import { FheTypes, type UnsealedItem } from '@cofhe/sdk';
+import { CofhesdkError, FheTypes, type UnsealedItem } from '@cofhe/sdk';
 import type { UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
 import { useIsCofheErrorActive } from './useIsCofheErrorActive';
 import { assert } from 'ts-essentials';
@@ -33,5 +33,11 @@ export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<
       return client.decryptHandle(input.ctHash, input.utype).decrypt();
     },
     ...restQueryOptions,
+    retry: (failureCount, error) => {
+      if (error instanceof CofhesdkError) return false; // don't retry decryption errors
+
+      // default retry behavior - 3 retries
+      return failureCount < 3;
+    },
   });
 }
