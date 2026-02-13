@@ -1,7 +1,6 @@
 export enum FloatingButtonPage {
   Main = 'main',
   Settings = 'settings',
-  TokenList = 'tokenlist',
   TokenInfo = 'tokeninfo',
   Send = 'send',
   Shield = 'shield',
@@ -11,6 +10,7 @@ export enum FloatingButtonPage {
   DelegatePermits = 'delegatePermit',
   ReceivePermits = 'receivePermit',
   Debug = 'debug',
+  Portfolio = 'portfolio',
   ClaimableTokens = 'claimableTokens',
 }
 

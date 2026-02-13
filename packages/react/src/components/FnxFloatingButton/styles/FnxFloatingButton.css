@@ -199,6 +199,14 @@
   color: var(--fnx-positive-change);
 }
 
+/* TokenListPage styles */
+.fnx-token-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.25rem;
+}
+
 /* Loading dots animation */
 .fnx-loading-dots {
   display: inline-flex;

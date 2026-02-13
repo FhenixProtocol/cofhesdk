@@ -4,5 +4,9 @@
 			"mode": "auto"
 		}
 	],
+	"terminal.integrated.automationProfile.osx": {
+		"path": "/bin/zsh",
+		"args": ["-i"]
+	},
 	"cSpell.words": ["@cofhe/sdk"]
 }

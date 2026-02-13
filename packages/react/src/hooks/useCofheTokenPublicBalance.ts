@@ -7,7 +7,7 @@ import { assert } from 'ts-essentials';
 import { useInternalQuery } from '../providers/index';
 import { formatTokenAmount, type TokenFormatOutput } from '@/utils/format';
 
-function constructPublicTokenBalanceQueryKey({
+export function constructPublicTokenBalanceQueryKey({
   chainId,
   accountAddress,
   tokenAddress,
@@ -42,21 +42,38 @@ type UseTokenBalanceInput = {
   accountAddress?: Address;
 };
 
-type UseTokenBalanceOptions<TSelectedData = bigint> = Omit<
+export type UseTokenBalanceOptions<TSelectedData = bigint> = Omit<
   UseQueryOptions<bigint, Error, TSelectedData>,
   'queryKey' | 'queryFn'
 >;
-/**
- * Hook to get ERC20 token balance and return normalized display value
- * @param input - Token address, decimals, and optional publicClient/accountAddress
- * @param queryOptions - Optional React Query options
- * @returns Query result with normalized balance as string
- */
-function useTokenBalance<TSelectedData = bigint>(
-  { tokenAddress, accountAddress }: UseTokenBalanceInput,
-  queryOptions?: UseTokenBalanceOptions<TSelectedData>
-) {
-  const publicClient = useCofhePublicClient();
+
+export type PublicTokenBalanceSource = {
+  address: Address;
+  decimals: number;
+};
+
+export function getPublicTokenBalanceSource(token: Token | undefined): PublicTokenBalanceSource | undefined {
+  const confidentialityType = token?.extensions.fhenix.confidentialityType;
+  const underlyingErc20 = token?.extensions.fhenix.erc20Pair;
+
+  const tokenToFetchBalanceFrom =
+    confidentialityType === 'wrapped' ? underlyingErc20 : confidentialityType === 'dual' ? token : undefined;
+
+  if (!tokenToFetchBalanceFrom) return undefined;
+
+  return {
+    address: tokenToFetchBalanceFrom.address,
+    decimals: tokenToFetchBalanceFrom.decimals,
+  };
+}
+
+export function createPublicTokenBalanceQueryOptions<TSelectedData = bigint>(params: {
+  publicClient: ReturnType<typeof useCofhePublicClient>;
+  accountAddress?: Address;
+  tokenAddress?: Address;
+  queryOptions?: UseTokenBalanceOptions<TSelectedData>;
+}): UseQueryOptions<bigint, Error, TSelectedData> {
+  const { publicClient, accountAddress, tokenAddress, queryOptions } = params;
 
   const { enabled: userEnabled, ...restQueryOptions } = queryOptions ?? {};
   const baseEnabled = !!publicClient && !!accountAddress && !!tokenAddress;
@@ -68,7 +85,7 @@ function useTokenBalance<TSelectedData = bigint>(
     tokenAddress,
   });
 
-  return useInternalQuery({
+  return {
     queryKey,
     queryFn: async () => {
       assert(tokenAddress, 'Token address is required to fetch token balance');
@@ -77,7 +94,6 @@ function useTokenBalance<TSelectedData = bigint>(
 
       const isNativeToken = tokenAddress.toLowerCase() === ETH_ADDRESS.toLowerCase();
 
-      // Read balance from contract
       const balance = isNativeToken
         ? publicClient.getBalance({
             address: accountAddress,
@@ -94,7 +110,29 @@ function useTokenBalance<TSelectedData = bigint>(
     enabled,
     refetchOnMount: false,
     ...restQueryOptions,
-  });
+  };
+}
+
+/**
+ * Hook to get ERC20 token balance and return normalized display value
+ * @param input - Token address, decimals, and optional publicClient/accountAddress
+ * @param queryOptions - Optional React Query options
+ * @returns Query result with normalized balance as string
+ */
+function useTokenBalance<TSelectedData = bigint>(
+  { tokenAddress, accountAddress }: UseTokenBalanceInput,
+  queryOptions?: UseTokenBalanceOptions<TSelectedData>
+) {
+  const publicClient = useCofhePublicClient();
+
+  return useInternalQuery(
+    createPublicTokenBalanceQueryOptions({
+      publicClient,
+      accountAddress,
+      tokenAddress,
+      queryOptions,
+    })
+  );
 }
 
 // ============================================================================
@@ -135,18 +173,7 @@ export function useCofheTokenPublicBalance(
 
   const { enabled: userEnabled = true, ...restOptions } = options ?? {};
 
-  // Determine token type
-  const confidentialityType = token?.extensions.fhenix.confidentialityType;
-  const underlyingErc20 = token?.extensions.fhenix.erc20Pair;
-
-  const tokenToFetchBalanceFrom =
-    confidentialityType === 'wrapped'
-      ? // if it's a wrapped token, fetch balance from underlying ERC20 (or ETH)
-        underlyingErc20
-      : confidentialityType === 'dual'
-        ? // if it's a dual token, fetch balance from the token address itself
-          token
-        : undefined;
+  const tokenToFetchBalanceFrom = getPublicTokenBalanceSource(token);
 
   const { data, isFetching, refetch } = useTokenBalance(
     {

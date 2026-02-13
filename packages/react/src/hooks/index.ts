@@ -19,12 +19,32 @@ export {
 } from './useCofheTokensClaimable';
 export { useCofheWalletClient } from './useCofheConnection';
 export { useCofheTokens, useCofheTokenLists, ETH_ADDRESS, type Token, type Erc20Pair } from './useCofheTokenLists';
+export {
+  useCofheTokensWithExistingEncryptedBalances,
+  type UseCofheTokensWithExistingBalancesInput,
+  type UseCofheTokensWithExistingBalancesResult,
+} from './useCofheTokensWithExistingEncryptedBalances';
+export {
+  useTokensWithPublicBalances,
+  type UseTokensWithPublicBalancesInput,
+  type UseTokensWithPublicBalancesResult,
+} from './useTokensWithPublicBalances';
 export { useCofheEncrypt } from './useCofheEncrypt';
 export { useCofheWriteContract } from './useCofheWriteContract';
 export { useCofheReadContract, type UseCofheReadContractQueryOptions } from './useCofheReadContract';
+export {
+  useCofheReadContracts,
+  type CofheReadContractsContract,
+  type CofheReadContractsItem,
+} from './useCofheReadContracts';
 export * from './permits';
 export { useCofheAutoConnect } from './useCofheAutoConnect';
 export { useCofheConnect } from './useCofheConnect';
 export { useTransactionReceiptsByHash, type UseTransactionReceiptsByHashInput } from './useTransactionReceiptsByHash';
 export { useOnceDecrypted } from './useOnceDecrypted';
 export { useReschedulableTimeout } from './useReschedulableTimeout';
+export {
+  useCoingeckoUsdPrice,
+  type UseCoingeckoUsdPriceInput,
+  type UseCoingeckoUsdPriceOptions,
+} from './useCoingeckoUsdPrice';

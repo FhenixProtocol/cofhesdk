@@ -13,15 +13,22 @@ import { ActionButton, AmountInput, CofheTokenConfidentialBalance, TokenIcon } f
 import { useCofheTokenPublicBalance } from '@/hooks/useCofheTokenPublicBalance';
 import { formatTokenAmount, unitToWei } from '@/utils/format';
 import { FloatingButtonPage } from '../pagesConfig/types';
-import { useCofheTokenClaimUnshielded, useCofheTokenUnshield, useCofheTokenClaimable, useOnceDecrypted } from '@/hooks';
+import {
+  useCofheTokenClaimUnshielded,
+  useCofheTokenUnshield,
+  useCofheTokenClaimable,
+  useCofheTokensWithExistingEncryptedBalances,
+  useTokensWithPublicBalances,
+} from '@/hooks';
 import { useOnceTransactionMined } from '@/hooks/useOnceTransactionMined';
 import { useReschedulableTimeout } from '@/hooks/useReschedulableTimeout';
 import { assert } from 'ts-essentials';
 import type { BigNumber } from 'bignumber.js';
-import { usePortalNavigation } from '@/stores';
-import { CofheTokenPublicBalance } from '../components/CofheTokenConfidentialBalance';
+import { usePortalModals, usePortalNavigation } from '@/stores';
+import { BalanceType, CofheTokenPublicBalance } from '../components/CofheTokenConfidentialBalance';
 import { useIsUnshieldingMining } from '@/hooks/useIsUnshieldingMining';
 import { PageContainer } from '../components/PageContainer';
+import { PortalModal } from '../modals/types';
 
 const AUTOCLEAR_TX_STATUS_TIMEOUT = 5000;
 const DISPLAY_DECIMALS = 5;
@@ -101,7 +108,7 @@ function useClaimUnshieldedWithLifecycle() {
 
 type ShieldAndUnshieldViewProps = Omit<ShieldPageViewProps, 'token' | 'mode' | 'setMode'>;
 
-function useShieldWithLifecycle(token: Token): ShieldAndUnshieldViewProps {
+function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 'setToken'> {
   const account = useCofheAccount();
   const [shieldAmount, setShieldAmount] = useState('');
   const { setError, setStatus, error, status } = useLifecycleStore();
@@ -182,7 +189,7 @@ function useShieldWithLifecycle(token: Token): ShieldAndUnshieldViewProps {
   };
 }
 
-function useUnshieldWithLifecycle(token: Token): ShieldAndUnshieldViewProps {
+function useUnshieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 'setToken'> {
   const account = useCofheAccount();
   const { setError, setStatus, error, status } = useLifecycleStore();
   const { schedule: scheduleStatusClear } = useReschedulableTimeout(() => setStatus(null), AUTOCLEAR_TX_STATUS_TIMEOUT);
@@ -259,13 +266,15 @@ function useUnshieldWithLifecycle(token: Token): ShieldAndUnshieldViewProps {
 
 const shieldableTypes = new Set(['dual', 'wrapped']);
 
-export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token, defaultMode }) => {
+export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token: _token, defaultMode }) => {
   const [mode, setMode] = useState<Mode>(defaultMode ?? 'shield');
+  const [overriddenToken, setOverriddenToken] = useState<Token | null>(null);
+  const token = overriddenToken ?? _token;
 
   return mode === 'shield' ? (
-    <ShieldTab token={token} mode={mode} setMode={setMode} />
+    <ShieldTab token={token} mode={mode} setMode={setMode} setToken={setOverriddenToken} />
   ) : (
-    <UnshieldTab token={token} mode={mode} setMode={setMode} />
+    <UnshieldTab token={token} mode={mode} setMode={setMode} setToken={setOverriddenToken} />
   );
 };
 
@@ -274,6 +283,7 @@ type ShieldPageViewProps = {
   token: Token;
   mode: Mode;
   status: { message: string; type: 'info' | 'success' } | null;
+  setToken: (token: Token) => void;
   setMode: (mode: Mode) => void;
 
   isProcessing: boolean;
@@ -291,14 +301,38 @@ type ShieldPageViewProps = {
   primaryIcon: React.ReactNode;
 };
 
-function ShieldTab({ token, mode, setMode }: { token: Token; mode: Mode; setMode: (mode: Mode) => void }) {
+function ShieldTab({
+  token,
+  mode,
+  setMode,
+  setToken,
+}: {
+  token: Token;
+  mode: Mode;
+  setMode: (mode: Mode) => void;
+  setToken: (token: Token) => void;
+}) {
   const shieldViewProps = useShieldWithLifecycle(token);
-  return <ShieldAndUnshieldPageView token={token} mode={mode} setMode={setMode} {...shieldViewProps} />;
+  return (
+    <ShieldAndUnshieldPageView token={token} mode={mode} setMode={setMode} setToken={setToken} {...shieldViewProps} />
+  );
 }
 
-function UnshieldTab({ token, mode, setMode }: { token: Token; mode: Mode; setMode: (mode: Mode) => void }) {
+function UnshieldTab({
+  token,
+  mode,
+  setMode,
+  setToken,
+}: {
+  token: Token;
+  mode: Mode;
+  setMode: (mode: Mode) => void;
+  setToken: (token: Token) => void;
+}) {
   const unshieldViewProps = useUnshieldWithLifecycle(token);
-  return <ShieldAndUnshieldPageView token={token} mode={mode} setMode={setMode} {...unshieldViewProps} />;
+  return (
+    <ShieldAndUnshieldPageView token={token} mode={mode} setMode={setMode} setToken={setToken} {...unshieldViewProps} />
+  );
 }
 
 function ClaimingSection({ token }: { token: Token }) {
@@ -407,6 +441,7 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
   mode,
   setMode,
   status,
+  setToken,
 
   isProcessing,
   inputAmount,
@@ -422,8 +457,13 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
   primaryLabel,
   primaryIcon,
 }) => {
-  const { navigateBack, navigateTo } = usePortalNavigation();
+  const { navigateBack } = usePortalNavigation();
+  const { openModal } = usePortalModals();
+
   const isShieldableToken = shieldableTypes.has(token.extensions.fhenix.confidentialityType);
+
+  const { tokensWithExistingEncryptedBalance } = useCofheTokensWithExistingEncryptedBalances();
+  const { tokensWithPublicBalances } = useTokensWithPublicBalances();
 
   // TODO: probably can be refactored into a view with more stramlined logic
   return (
@@ -440,13 +480,13 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
 
           <button
             onClick={() =>
-              // navigateToTokenListForSelection(mode === 'shield' ? 'Select token to shield' : 'Select token to unshield')
-              navigateTo(FloatingButtonPage.TokenList, {
-                pageProps: {
-                  mode: 'select',
-                  title: mode === 'shield' ? 'Select token to shield' : 'Select token to unshield',
-                  backToPageState: { page: FloatingButtonPage.Shield, props: { defaultMode: mode } },
-                },
+              openModal(PortalModal.TokenList, {
+                balanceType: mode === 'shield' ? BalanceType.Public : BalanceType.Confidential,
+                // TODO: if it's unshield mode, we should only show tokens with existing encrypted balances
+                // if it's shield mode, we need to show all tokens where public balance > 0
+                tokens: mode === 'unshield' ? tokensWithExistingEncryptedBalance : tokensWithPublicBalances,
+                title: mode === 'shield' ? 'Select token to shield' : 'Select token to unshield',
+                onSelectToken: (token) => setToken(token),
               })
             }
             className="flex items-center gap-1 text-sm font-bold fnx-text-primary hover:opacity-80 transition-opacity"

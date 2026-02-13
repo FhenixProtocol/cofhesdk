@@ -17,6 +17,8 @@ export {
   useCofheWriteContract,
   useCofheClient,
   useCofheTokens,
+  useCofheTokensWithExistingEncryptedBalances,
+  useTokensWithPublicBalances,
   useCofheTokenLists,
   useCofheTokenShield,
   useCofheTokenUnshield,
@@ -33,6 +35,9 @@ export {
   type UnshieldClaimsSummaryByTokenAddress,
   type ClaimableAmountByTokenAddress,
   type UseTransactionReceiptsByHashInput,
+  useCoingeckoUsdPrice,
+  type UseCoingeckoUsdPriceInput,
+  type UseCoingeckoUsdPriceOptions,
 } from '@/hooks/index';
 
 export { useCofheEncryptAndWriteContract } from '@/hooks/useCofheEncryptAndWriteContract';
@@ -40,7 +45,7 @@ export { useCofheReadContractAndDecrypt } from '@/hooks/useCofheReadContractAndD
 
 // Components
 export { FnxEncryptInput, FnxFloatingButtonWithProvider } from './components/index';
-export { MainPage, SettingsPage, TokenListPage } from './components/FnxFloatingButton/pages/index';
+export { MainPage, SettingsPage } from './components/FnxFloatingButton/pages/index';
 
 // Utils
 export {
