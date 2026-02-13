@@ -239,7 +239,7 @@ export function useCofheReadContract<
       functionName,
       args: Array.isArray(args) ? args : undefined,
       requiresPermit,
-      activePermitHash: activePermit?.hash,
+      activePermitHash: activePermit?.permit.hash,
       publicClient,
       queryOptions,
     })

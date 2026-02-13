@@ -37,7 +37,6 @@ const useCofhePermitsStore = () => {
 
 export const useCofheActivePermit = ():
   | {
-      hash: string;
       permit: Permit;
       isValid: boolean;
     }
@@ -67,10 +66,10 @@ export const useCofheActivePermit = ():
 
 export const useCofheActivePermitHash = (): string | undefined => {
   const activePermit = useCofheActivePermit();
-  return useMemo(() => activePermit?.hash, [activePermit?.hash]);
+  return useMemo(() => activePermit?.permit.hash, [activePermit?.permit.hash]);
 };
 
-export const useCofheAllPermits = (): { hash: string; permit: Permit }[] => {
+export const useCofheAllPermits = (): Permit[] => {
   const { account, chainId, connected } = useCofheConnection();
 
   const { state } = useCofhePermitsStore();
@@ -86,10 +85,7 @@ export const useCofheAllPermits = (): { hash: string; permit: Permit }[] => {
               const serializedPermit = allPermits[hash];
               if (!serializedPermit) throw new Error('Permit data missing');
 
-              return {
-                hash,
-                permit: PermitUtils.deserialize(serializedPermit),
-              };
+              return PermitUtils.deserialize(serializedPermit);
             })
         : [],
     [allPermits]

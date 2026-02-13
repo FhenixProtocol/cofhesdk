@@ -50,7 +50,7 @@ export const usePermitDetailsAndActions = (permitHash: string) => {
     },
   });
 
-  const isActivePermit = permit != null && activePermit?.hash === permitHash;
+  const isActivePermit = permit != null && activePermit?.permit.hash === permitHash;
   const expirationDate = permit != null ? new Date(permit.expiration * 1000).toLocaleString() : undefined;
   const isShareablePermit = permit?.type === 'sharing';
 

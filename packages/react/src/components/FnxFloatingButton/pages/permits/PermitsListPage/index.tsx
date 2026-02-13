@@ -88,14 +88,13 @@ export const PermitsListPage: React.FC = () => {
                   <div className="pl-4 text-xs p-2 px-4 italic">No self permits.</div>
                 ) : (
                   <div>
-                    {selfPermits.map(({ permit, hash }) => {
+                    {selfPermits.map((permit) => {
                       return (
                         <PermitItem
-                          key={hash}
+                          key={permit.hash}
                           activePermitHash={activePermitHash}
-                          hash={hash}
                           permit={permit}
-                          onClick={() => handleOpenPermit(hash)}
+                          onClick={() => handleOpenPermit(permit.hash)}
                         />
                       );
                     })}
@@ -116,8 +115,8 @@ export const PermitsListPage: React.FC = () => {
                   <div className="pl-1 text-xs p-2 px-4 italic">No delegated permits.</div>
                 ) : (
                   <div>
-                    {delegatedPermits.map(({ permit, hash }) => (
-                      <PermitItem key={hash} hash={hash} permit={permit} onClick={() => handleOpenPermit(hash)} />
+                    {delegatedPermits.map((permit) => (
+                      <PermitItem key={permit.hash} permit={permit} onClick={() => handleOpenPermit(permit.hash)} />
                     ))}
                   </div>
                 )}
@@ -136,13 +135,12 @@ export const PermitsListPage: React.FC = () => {
                   <div className="pl-1 text-xs p-2 px-4 italic">No imported permits.</div>
                 ) : (
                   <div>
-                    {importedPermits.map(({ permit, hash }) => (
+                    {importedPermits.map((permit) => (
                       <PermitItem
-                        key={hash}
+                        key={permit.hash}
                         activePermitHash={activePermitHash}
-                        hash={hash}
                         permit={permit}
-                        onClick={() => handleOpenPermit(hash)}
+                        onClick={() => handleOpenPermit(permit.hash)}
                       />
                     ))}
                   </div>
