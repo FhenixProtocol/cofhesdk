@@ -6,16 +6,16 @@
     "test": "turbo run test",
     "test:integration": "pnpm --filter \"./packages/hardhat-plugin-test\" test:integration",
     "lint": "turbo run lint",
-    "type-check": "turbo run type-check",
+    "check:types": "turbo run check:types",
+    "check:circles": "node scripts/check-circular.js",
+    "check:formatting": "prettier --check \"**/*.{ts,tsx,md}\"",
     "clean": "turbo run clean && rm -rf node_modules",
     "coverage": "turbo run coverage",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "format:check": "prettier --check \"**/*.{ts,tsx,md}\"",
     "changeset": "changeset && pnpm format",
     "version-packages": "changeset version",
     "release": "pnpm run build && changeset publish",
-    "beta:snapshot": "changeset version --snapshot beta && pnpm -r build && changeset publish --tag beta",
-    "check:circles": "node scripts/check-circular.js"
+    "beta:snapshot": "changeset version --snapshot beta && pnpm -r build && changeset publish --tag beta"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.1",
