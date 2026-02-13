@@ -38,6 +38,10 @@ export {
   useCoingeckoUsdPrice,
   type UseCoingeckoUsdPriceInput,
   type UseCoingeckoUsdPriceOptions,
+  useCoingeckoContractMarketChartRange,
+  type CoingeckoMarketChartPoint,
+  type UseCoingeckoContractMarketChartRangeInput,
+  type UseCoingeckoContractMarketChartRangeOptions,
 } from '@/hooks/index';
 
 export { useCofheEncryptAndWriteContract } from '@/hooks/useCofheEncryptAndWriteContract';

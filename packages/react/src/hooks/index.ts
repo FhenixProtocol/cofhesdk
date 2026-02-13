@@ -48,3 +48,10 @@ export {
   type UseCoingeckoUsdPriceInput,
   type UseCoingeckoUsdPriceOptions,
 } from './useCoingeckoUsdPrice';
+
+export {
+  useCoingeckoContractMarketChartRange,
+  type CoingeckoMarketChartPoint,
+  type UseCoingeckoContractMarketChartRangeInput,
+  type UseCoingeckoContractMarketChartRangeOptions,
+} from './useCoingeckoContractMarketChartRange';
