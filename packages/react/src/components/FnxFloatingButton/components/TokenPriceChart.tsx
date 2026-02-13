@@ -5,7 +5,7 @@ import {
   CartesianGrid,
   ResponsiveContainer,
   Tooltip,
-  type TooltipProps,
+  type TooltipContentProps,
   XAxis,
   YAxis,
 } from 'recharts';
@@ -41,7 +41,7 @@ const formatUsd = (n: number): string =>
     maximumFractionDigits: 0,
   });
 
-const CustomTooltip: React.FC<TooltipProps<number, string>> = ({ active, payload, label }) => {
+const CustomTooltip = ({ active, payload, label }: TooltipContentProps<number, string>) => {
   if (!active || !payload?.length) return null;
   const v = payload[0]?.value;
   if (typeof v !== 'number') return null;
@@ -89,7 +89,7 @@ export const TokenPriceChart: React.FC<TokenPriceChartProps> = ({
 
             <XAxis dataKey="ts" type="number" domain={['dataMin', 'dataMax']} hide />
             <YAxis dataKey="value" domain={['dataMin', 'dataMax']} hide />
-            <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(20,184,166,0.35)' }} />
+            <Tooltip content={CustomTooltip} cursor={{ stroke: 'rgba(20,184,166,0.35)' }} />
 
             <Area
               type="monotone"
