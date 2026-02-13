@@ -1,7 +1,6 @@
 import { type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
 import { type Address, type Abi, type ContractFunctionName, type ContractFunctionArgs } from 'viem';
 import { FheTypes, type UnsealedItem } from '@cofhe/sdk';
-import { ErrorCause } from '@/utils/errors';
 import { useCofheDecrypt } from './useCofheDecrypt';
 import {
   useCofheReadContract,
@@ -53,7 +52,6 @@ export function useCofheReadContractAndDecrypt<
     functionName?: TfunctionName;
     args?: ContractFunctionArgs<TAbi, 'pure' | 'view', TfunctionName>;
     requiresPermit?: boolean;
-    potentialDecryptErrorCause: ErrorCause;
   },
 
   {
@@ -71,7 +69,7 @@ export function useCofheReadContractAndDecrypt<
   decrypted: UseQueryResult<TDecryptedSelectedData, Error>;
   disabledDueToMissingPermit: boolean;
 } {
-  const { address, abi, functionName, args, requiresPermit = true, potentialDecryptErrorCause } = params;
+  const { address, abi, functionName, args, requiresPermit = true } = params;
 
   const encrypted = useCofheReadContract({ address, abi, functionName, args, requiresPermit }, readQueryOptions);
 
@@ -84,8 +82,6 @@ export function useCofheReadContractAndDecrypt<
   const decrypted = useCofheDecrypt(
     {
       input: asEncryptedReturnType,
-
-      cause: potentialDecryptErrorCause,
     },
     decryptingQueryOptions
   );

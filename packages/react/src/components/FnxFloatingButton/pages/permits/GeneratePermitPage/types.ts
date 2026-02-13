@@ -5,7 +5,7 @@ export type GeneratePermitPageProps = {
   onSuccessNavigateTo?: () => void;
   onCancel?: () => void;
   onBack?: () => void;
-  overridingBody?: ReactNode;
+  cause?: 'clicked_on_confidential_balance';
 };
 
 declare module '../../../pagesConfig/types' {
