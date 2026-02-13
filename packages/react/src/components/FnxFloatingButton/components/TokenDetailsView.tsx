@@ -168,7 +168,7 @@ export const TokenDetailsView: React.FC<TokenDetailsViewProps> = ({
                   <span>({price.changePct.toFixed(2)}%)</span>
                 </p>
               </div>
-              <div className="text-xxxs opacity-60">dummy chart</div>
+              <div className="text-xxxs opacity-60">Last 24h</div>
             </div>
 
             <Card className="p-3" padded={false}>
