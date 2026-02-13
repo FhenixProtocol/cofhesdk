@@ -30,6 +30,10 @@ export type { EthEncryptedData };
  */
 export interface Permit {
   /**
+   * Stable hash of relevant permit data, used as key in storage
+   */
+  hash: string;
+  /**
    * Name for this permit, for organization and UI usage, not included in signature.
    */
   name: string;
@@ -166,9 +170,17 @@ export type SerializedPermit = Omit<Permit, 'sealingPair'> & {
  * A type representing the Permission struct that is passed to Permissioned.sol to grant encrypted data access.
  */
 export type Permission = Expand<
-  Omit<Permit, 'name' | 'type' | 'sealingPair'> & {
+  Omit<Permit, 'name' | 'type' | 'sealingPair' | 'hash'> & {
     sealingKey: `0x${string}`;
   }
+>;
+
+/**
+ * A type representing the permit fields that are used to generate the hash
+ */
+export type PermitHashFields = Pick<
+  Permit,
+  'type' | 'issuer' | 'expiration' | 'recipient' | 'validatorId' | 'validatorContract'
 >;
 
 /**

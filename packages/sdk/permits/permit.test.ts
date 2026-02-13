@@ -46,6 +46,7 @@ describe('PermitUtils Tests', () => {
 
       const permit = PermitUtils.createSelf(options);
 
+      expect(permit.hash).toBe(PermitUtils.getHash(permit));
       expect(permit.type).toBe('self');
       expect(permit.name).toBe('Test Permit');
       expect(permit.type).toBe('self');
@@ -81,6 +82,7 @@ describe('PermitUtils Tests', () => {
 
       const permit = PermitUtils.createSharing(options);
 
+      expect(permit.hash).toBe(PermitUtils.getHash(permit));
       expect(permit.type).toBe('sharing');
       expect(permit.name).toBe('Test Sharing Permit');
       expect(permit.type).toBe('sharing');
@@ -118,6 +120,7 @@ describe('PermitUtils Tests', () => {
 
       const permit = PermitUtils.importShared(options);
 
+      expect(permit.hash).toBe(PermitUtils.getHash(permit));
       expect(permit.type).toBe('recipient');
       expect(permit.name).toBe('Test Import Permit');
       expect(permit.issuer).toBe(bobAddress);
@@ -361,10 +364,7 @@ describe('PermitUtils Tests', () => {
         name: 'Test Permit',
       });
 
-      const hash1 = PermitUtils.getHash(permit1);
-      const hash2 = PermitUtils.getHash(permit2);
-
-      expect(hash1).toBe(hash2);
+      expect(permit1.hash).toBe(permit2.hash);
     });
   });
 
