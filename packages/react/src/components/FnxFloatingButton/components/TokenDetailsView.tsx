@@ -11,9 +11,9 @@ import { Button } from './Button';
 import { Card } from './Card';
 import { CofheTokenConfidentialBalance } from './CofheTokenConfidentialBalance';
 import { HashLink } from './HashLink';
-import { MiniAreaChart, type MiniAreaChartPoint } from './MiniAreaChart';
 import { TokenIcon } from './TokenIcon';
 import { PageContainer } from './PageContainer';
+import { TokenPriceChart, type TokenPriceChartPoint } from './TokenPriceChart';
 
 export interface TokenDetailsPrice {
   valueUsd: number;
@@ -44,8 +44,7 @@ export interface TokenDetailsViewProps {
   onSend?: () => void;
 
   price?: TokenDetailsPrice;
-  chartPoints?: MiniAreaChartPoint[];
-  chartMarkerLabel?: string;
+  chartPoints?: TokenPriceChartPoint[];
   activity?: TokenDetailsActivityItem[];
   resources?: TokenDetailsResources;
   disclaimer?: string;
@@ -57,16 +56,24 @@ const defaultPrice: TokenDetailsPrice = {
   changePct: 7.32,
 };
 
-const defaultChart: MiniAreaChartPoint[] = [
-  { x: 0, y: 3100 },
-  { x: 1, y: 3150 },
-  { x: 2, y: 3125 },
-  { x: 3, y: 3200 },
-  { x: 4, y: 3250 },
-  { x: 5, y: 3180 },
-  { x: 6, y: 3300 },
-  { x: 7, y: 3330 },
-];
+const defaultChart: TokenPriceChartPoint[] = (() => {
+  const now = Date.now();
+  const start = now - 24 * 3600_000;
+  const points: TokenPriceChartPoint[] = [];
+
+  // 24h sampled every 30 minutes (49 points including both ends)
+  const samples = 48;
+  for (let i = 0; i <= samples; i++) {
+    const ts = start + (i * 24 * 3600_000) / samples;
+    // dummy-ish smooth variation
+    const base = 3200;
+    const wave1 = Math.sin((i / samples) * Math.PI * 2) * 120;
+    const wave2 = Math.sin((i / samples) * Math.PI * 4) * 40;
+    const drift = (i / samples) * 60;
+    points.push({ ts, value: Math.round(base + wave1 + wave2 + drift) });
+  }
+  return points;
+})();
 
 const defaultActivity: TokenDetailsActivityItem[] = [
   { kind: 'Received', from: '0xGBDZb25042...', amountUsd: 1000, amountToken: 0.23 },
@@ -94,7 +101,6 @@ export const TokenDetailsView: React.FC<TokenDetailsViewProps> = ({
   onSend,
   price = defaultPrice,
   chartPoints = defaultChart,
-  chartMarkerLabel = '$3650',
   activity = defaultActivity,
   resources = {
     ferc20Address: token.address,
@@ -166,12 +172,7 @@ export const TokenDetailsView: React.FC<TokenDetailsViewProps> = ({
             </div>
 
             <Card className="p-3" padded={false}>
-              <MiniAreaChart points={chartPoints} markerLabel={chartMarkerLabel} />
-              <div className="flex items-center justify-between text-xxxs opacity-60 mt-1">
-                <span>15:00</span>
-                <span>16:00</span>
-                <span>17:00</span>
-              </div>
+              <TokenPriceChart points={chartPoints} />
             </Card>
           </div>
 

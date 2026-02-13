@@ -7,7 +7,7 @@ export { ChainIcon } from './ChainIcon';
 export { ConnectedChainIndicator } from './ConnectedChainIndicator';
 export { HashLink } from './HashLink';
 export { LoadingDots } from './LoadingDots';
-export { MiniAreaChart, type MiniAreaChartPoint, type MiniAreaChartProps } from './MiniAreaChart';
+export { TokenPriceChart, type TokenPriceChartPoint, type TokenPriceChartProps } from './TokenPriceChart';
 export {
   TokenDetailsView,
   type TokenDetailsViewProps,
