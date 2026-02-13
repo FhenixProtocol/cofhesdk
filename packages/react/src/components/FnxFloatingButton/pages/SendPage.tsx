@@ -11,12 +11,14 @@ import { TokenIcon } from '../components/TokenIcon';
 import { unitToWei } from '@/utils/format';
 import { assert } from 'ts-essentials';
 import { CofheTokenConfidentialBalance } from '../components';
-import { type Token } from '@/hooks';
+import { useCofheTokensWithExistingEncryptedBalances, type Token } from '@/hooks';
 import { getStepConfig } from '@/hooks/useCofheEncrypt';
 import { FloatingButtonPage } from '../pagesConfig/types';
 import { useOnceTransactionMined } from '@/hooks/useOnceTransactionMined';
-import { usePortalNavigation } from '@/stores';
+import { usePortalModals, usePortalNavigation } from '@/stores';
 import { PageContainer } from '../components/PageContainer';
+import { PortalModal } from '../modals/types';
+import { BalanceType } from '../components/CofheTokenConfidentialBalance';
 
 export type SendPageProps = {
   token: Token;
@@ -28,8 +30,12 @@ declare module '../pagesConfig/types' {
   }
 }
 
-export const SendPage: React.FC<SendPageProps> = ({ token }) => {
-  const { navigateBack, navigateTo } = usePortalNavigation();
+export const SendPage: React.FC<SendPageProps> = ({ token: _token }) => {
+  const [overriddenToken, setOverriddenToken] = useState<Token | null>(null);
+
+  const token = overriddenToken ?? _token;
+  const { navigateBack } = usePortalNavigation();
+  const { openModal } = usePortalModals();
 
   const account = useCofheAccount();
   const {
@@ -113,6 +119,8 @@ export const SendPage: React.FC<SendPageProps> = ({ token }) => {
     if (confidentialUnitBalance) setAmount(confidentialUnitBalance.toFixed());
   };
 
+  const { tokensWithExistingEncryptedBalance } = useCofheTokensWithExistingEncryptedBalances();
+
   return (
     <PageContainer
       header={
@@ -149,12 +157,12 @@ export const SendPage: React.FC<SendPageProps> = ({ token }) => {
                 />
                 <button
                   onClick={() => {
-                    // navigateToTokenListForSelection()
-                    navigateTo(FloatingButtonPage.TokenList, {
-                      pageProps: {
-                        mode: 'select',
-                        title: 'Select token to transfer',
-                        backToPageState: { page: FloatingButtonPage.Send },
+                    openModal(PortalModal.TokenList, {
+                      balanceType: BalanceType.Confidential,
+                      tokens: tokensWithExistingEncryptedBalance,
+                      title: 'Select token to transfer',
+                      onSelectToken: (token) => {
+                        setOverriddenToken(token);
                       },
                     });
                   }}

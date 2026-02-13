@@ -7,19 +7,18 @@ import {
   SendPage,
   SettingsPage,
   TokenInfoPage,
-  TokenListPage,
   DebugPage,
   ShieldPageV2,
   DelegatePermitPage,
   ImportPermitPage,
 } from '../pages';
 import { FloatingButtonPage } from './types';
+import { PortfolioPage } from '../pages/PortfolioPage';
 import { ClaimableTokens } from '../pages/ClaimableTokens';
 
 export const pages: Record<FloatingButtonPage, FC<any>> = {
   [FloatingButtonPage.Main]: MainPage,
   [FloatingButtonPage.Settings]: SettingsPage,
-  [FloatingButtonPage.TokenList]: TokenListPage,
   [FloatingButtonPage.TokenInfo]: TokenInfoPage,
   [FloatingButtonPage.Send]: SendPage,
   [FloatingButtonPage.Shield]: ShieldPageV2,
@@ -29,5 +28,6 @@ export const pages: Record<FloatingButtonPage, FC<any>> = {
   [FloatingButtonPage.DelegatePermits]: DelegatePermitPage,
   [FloatingButtonPage.ReceivePermits]: ImportPermitPage,
   [FloatingButtonPage.Debug]: DebugPage,
+  [FloatingButtonPage.Portfolio]: PortfolioPage,
   [FloatingButtonPage.ClaimableTokens]: ClaimableTokens,
 };

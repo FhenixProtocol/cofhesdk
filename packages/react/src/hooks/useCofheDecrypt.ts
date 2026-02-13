@@ -35,6 +35,9 @@ export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<
       assert(input, 'input is guaranteed to be defined by enabled condition');
       return client.decryptHandle(input.ctHash, input.utype).decrypt();
     }),
+    meta: {
+      persist: true,
+    },
     ...restQueryOptions,
   });
 }

@@ -48,8 +48,6 @@ export function useCofheTokenDecryptedBalance(
 ): UseConfidentialTokenBalanceResult {
   const { enabled: userEnabled = true, ...restOptions } = options ?? {};
 
-  const fheType = token?.extensions.fhenix.confidentialValueType === 'uint64' ? FheTypes.Uint64 : FheTypes.Uint128;
-
   const contractConfig = token && getTokenContractConfig(token.extensions.fhenix.confidentialityType);
 
   const {
