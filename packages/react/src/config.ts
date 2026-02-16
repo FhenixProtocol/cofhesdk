@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { type CofhesdkConfig, type CofhesdkInputConfig } from '@cofhe/sdk';
 import { createCofhesdkConfig as createCofhesdkConfigWeb } from '@cofhe/sdk/web';
+import { getAddress, isAddress, zeroAddress, type Hex } from 'viem';
 
 /**
  * Zod schema for react configuration validation
@@ -10,6 +11,16 @@ const HexAddressSchema = z.custom<HexAddress>(
   (v) => typeof v === 'string' && /^0x[a-fA-F0-9]{40}$/.test(v),
   'Invalid address'
 );
+
+export const addressSchema = z
+  .string()
+  .refine((val) => isAddress(val), {
+    error: 'Invalid address',
+  })
+  .refine((val) => val !== zeroAddress, {
+    error: 'Must not be zeroAddress',
+  })
+  .transform((val): Hex => getAddress(val));
 
 export const CofhesdkReactConfigSchema = z.object({
   shareablePermits: z.boolean().optional().default(false),
@@ -29,13 +40,13 @@ export const CofhesdkReactConfigSchema = z.object({
       { label: '1 Month', intervalSeconds: 2592000 },
     ]),
   defaultPermitExpirationSeconds: z.number().optional().default(604800), // 1 week
-  pinnedTokens: z.record(HexAddressSchema).optional().default({
+  pinnedTokens: z.record(z.number(), addressSchema).optional().default({
     11155111: '0x87A3effB84CBE1E4caB6Ab430139eC41d156D55A', // sepolia weth
     84532: '0xbED96aa98a49FeA71fcC55d755b915cF022a9159', // base sepolia weth
     // 421613: '0x980b62da83eff3d4576c647993b0c1d7faf17c73', // arbitrum sepolia weth
   }),
   tokenLists: z
-    .record(z.array(z.string()))
+    .record(z.number(), z.array(z.string()))
     .optional()
     .default({
       11155111: ['https://storage.googleapis.com/cofhesdk/sepolia.json'],

@@ -70,9 +70,9 @@ export const CofhesdkConfigSchema = z.object({
   /** Storage method for fhe keys (defaults to indexedDB on web, filesystem on node) */
   fheKeyStorage: z
     .object({
-      getItem: z.function().args(z.string()).returns(z.promise(z.any())),
-      setItem: z.function().args(z.string(), z.any()).returns(z.promise(z.void())),
-      removeItem: z.function().args(z.string()).returns(z.promise(z.void())),
+      getItem: z.custom<IStorage['getItem']>(),
+      setItem: z.custom<IStorage['setItem']>(),
+      removeItem: z.custom<IStorage['removeItem']>(),
     })
     .or(z.null())
     .default(null),

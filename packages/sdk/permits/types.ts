@@ -1,4 +1,5 @@
 import { SealingKey as SealingKeyClass, type EthEncryptedData } from './sealing.js';
+import { type Hex } from 'viem';
 
 /**
  * EIP712 related types
@@ -9,7 +10,7 @@ export type EIP712Message = Record<string, string>;
 export type EIP712Domain = {
   chainId: number;
   name: string;
-  verifyingContract: `0x${string}`;
+  verifyingContract: Hex;
   version: string;
 };
 
@@ -47,7 +48,7 @@ export interface Permit {
   /**
    * (base) User that initially created the permission, target of data fetching
    */
-  issuer: `0x${string}`;
+  issuer: Hex;
   /**
    * (base) Expiration timestamp
    */
@@ -56,7 +57,7 @@ export interface Permit {
    * (sharing) The user that this permission will be shared with
    * ** optional, use `address(0)` to disable **
    */
-  recipient: `0x${string}`;
+  recipient: Hex;
   /**
    * (issuer defined validation) An id used to query a contract to check this permissions validity
    * ** optional, use `0` to disable **
@@ -66,7 +67,7 @@ export interface Permit {
    * (issuer defined validation) The contract to query to determine permission validity
    * ** optional, user `address(0)` to disable **
    */
-  validatorContract: `0x${string}`;
+  validatorContract: Hex;
   /**
    * (base) The publicKey of a sealingPair used to re-encrypt `issuer`s confidential data
    *   (non-sharing) Populated by `issuer`
@@ -79,13 +80,13 @@ export interface Permit {
    *   (non-sharing) < issuer, expiration, recipient, validatorId, validatorContract, sealingKey >
    *   (sharing)     < issuer, expiration, recipient, validatorId, validatorContract >
    */
-  issuerSignature: `0x${string}`;
+  issuerSignature: Hex;
   /**
    * (sharing) `signTypedData` signature created by `recipient` with format:
    * (sharing) < sealingKey, issuerSignature>
    * ** required for shared permits **
    */
-  recipientSignature: `0x${string}`;
+  recipientSignature: Hex;
   /**
    * EIP712 domain used to sign this permit.
    * Should not be set manually, included in metadata as part of serialization flows.
@@ -171,7 +172,7 @@ export type SerializedPermit = Omit<Permit, 'sealingPair'> & {
  */
 export type Permission = Expand<
   Omit<Permit, 'name' | 'type' | 'sealingPair' | 'hash'> & {
-    sealingKey: `0x${string}`;
+    sealingKey: Hex;
   }
 >;
 

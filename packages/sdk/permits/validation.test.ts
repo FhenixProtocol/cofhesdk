@@ -23,9 +23,9 @@ describe('Validation Tests', () => {
         name: 'Test Permit',
       };
 
+      expect(() => validateSelfPermitOptions(options)).not.toThrow();
       const result = validateSelfPermitOptions(options);
-      expect(result.success).toBe(true);
-      expect(result.data).toBeDefined();
+      expect(result).toBeDefined();
     });
 
     it('should reject invalid address', () => {
@@ -35,9 +35,7 @@ describe('Validation Tests', () => {
         name: 'Test Permit',
       };
 
-      const result = validateSelfPermitOptions(options);
-      expect(result.success).toBe(false);
-      expect(result.error).toBeDefined();
+      expect(() => validateSelfPermitOptions(options)).toThrow();
     });
 
     it('should reject zero address', () => {
@@ -47,9 +45,7 @@ describe('Validation Tests', () => {
         name: 'Test Permit',
       };
 
-      const result = validateSelfPermitOptions(options);
-      expect(result.success).toBe(false);
-      expect(result.error).toBeDefined();
+      expect(() => validateSelfPermitOptions(options)).toThrow();
     });
   });
 
@@ -62,8 +58,7 @@ describe('Validation Tests', () => {
         name: 'Sharing Permit',
       };
 
-      const result = validateSharingPermitOptions(options);
-      expect(result.success).toBe(true);
+      expect(() => validateSharingPermitOptions(options)).not.toThrow();
     });
 
     it('should reject sharing permit with zero recipient', () => {
@@ -74,8 +69,7 @@ describe('Validation Tests', () => {
         name: 'Sharing Permit',
       };
 
-      const result = validateSharingPermitOptions(options);
-      expect(result.success).toBe(false);
+      expect(() => validateSharingPermitOptions(options)).toThrow();
     });
 
     it('should reject sharing permit with invalid recipient', () => {
@@ -86,8 +80,7 @@ describe('Validation Tests', () => {
         name: 'Sharing Permit',
       };
 
-      const result = validateSharingPermitOptions(options);
-      expect(result.success).toBe(false);
+      expect(() => validateSharingPermitOptions(options)).toThrow();
     });
   });
 
@@ -100,8 +93,7 @@ describe('Validation Tests', () => {
         name: 'Import Permit',
       };
 
-      const result = validateImportPermitOptions(options);
-      expect(result.success).toBe(true);
+      expect(() => validateImportPermitOptions(options)).not.toThrow();
     });
 
     it('should reject import permit with empty signature', () => {
@@ -112,8 +104,7 @@ describe('Validation Tests', () => {
         name: 'Import Permit',
       };
 
-      const result = validateImportPermitOptions(options);
-      expect(result.success).toBe(false);
+      expect(() => validateImportPermitOptions(options)).toThrow();
     });
 
     it('should reject import permit with invalid signature', () => {
@@ -124,8 +115,7 @@ describe('Validation Tests', () => {
         name: 'Import Permit',
       };
 
-      const result = validateImportPermitOptions(options);
-      expect(result.success).toBe(false);
+      expect(() => validateImportPermitOptions(options)).toThrow();
     });
   });
 
@@ -135,15 +125,13 @@ describe('Validation Tests', () => {
       permit.type = 'self';
       permit.issuerSignature = '0x1234567890abcdef';
 
-      const result = validateSelfPermit(permit);
-      expect(result.success).toBe(true);
+      expect(() => validateSelfPermit(permit)).not.toThrow();
     });
 
     it('should reject self permit with missing sealing pair', async () => {
       const permit = { ...(await createMockPermit()), sealingPair: undefined };
       permit.type = 'self';
-      const result = validateSelfPermit(permit as unknown as Permit);
-      expect(result.success).toBe(false);
+      expect(() => validateSelfPermit(permit as unknown as Permit)).toThrow();
     });
   });
 
@@ -154,8 +142,7 @@ describe('Validation Tests', () => {
       permit.issuerSignature = '0x1234567890abcdef';
       permit.recipient = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'; // Alice's address
 
-      const result = validateSharingPermit(permit);
-      expect(result.success).toBe(true);
+      expect(() => validateSharingPermit(permit)).not.toThrow();
     });
 
     it('should reject sharing permit with zero recipient', async () => {
@@ -164,8 +151,7 @@ describe('Validation Tests', () => {
       permit.issuerSignature = '0x1234567890abcdef';
       permit.recipient = '0x0000000000000000000000000000000000000000';
 
-      const result = validateSharingPermit(permit);
-      expect(result.success).toBe(false);
+      expect(() => validateSharingPermit(permit)).toThrow();
     });
   });
 
@@ -177,8 +163,7 @@ describe('Validation Tests', () => {
       permit.recipient = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'; // Alice's address
       permit.recipientSignature = '0xabcdef1234567890';
 
-      const result = validateImportPermit(permit);
-      expect(result.success).toBe(true);
+      expect(() => validateImportPermit(permit)).not.toThrow();
     });
 
     it('should reject import permit with empty recipient signature', async () => {
@@ -188,8 +173,7 @@ describe('Validation Tests', () => {
       permit.recipient = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'; // Alice's address
       permit.recipientSignature = '0x';
 
-      const result = validateImportPermit(permit);
-      expect(result.success).toBe(false);
+      expect(() => validateImportPermit(permit)).toThrow();
     });
   });
 

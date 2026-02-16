@@ -286,7 +286,7 @@ describe('PermitUtils Tests', () => {
       const permit = PermitUtils.importShared({
         issuer: bobAddress,
         recipient: aliceAddress,
-        issuerSignature: '0xexisting-signature',
+        issuerSignature: '0x1111111111111111111111111111111111111111111111111111111111111111',
         name: 'Test Permit',
       });
 
