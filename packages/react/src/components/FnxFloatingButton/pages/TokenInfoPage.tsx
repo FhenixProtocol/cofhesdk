@@ -34,5 +34,5 @@ export const TokenInfoPage: React.FC<TokenInfoPageProps> = ({ token }) => {
 
   console.log('chartPoints', chartPoints);
 
-  return <TokenDetailsView token={token} onBack={navigateBack} chartPoints={chartPoints ?? undefined} />;
+  return <TokenDetailsView token={token} onBack={navigateBack} chartPoints={chartPoints ?? []} />;
 };

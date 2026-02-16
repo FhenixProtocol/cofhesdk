@@ -1,12 +1,10 @@
-import type { ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { LuExternalLink } from 'react-icons/lu';
 
 import { cn } from '@/utils/cn';
 import type { Token } from '@/types/token';
 
-import { AddressButton } from './AddressButton';
 import { Button } from './Button';
 import { Card } from './Card';
 import { CofheTokenConfidentialBalance } from './CofheTokenConfidentialBalance';
@@ -43,45 +41,17 @@ export interface TokenDetailsViewProps {
   onSend?: () => void;
 
   price?: TokenDetailsPrice;
-  chartPoints?: TokenPriceChartPoint[];
+  chartPoints: TokenPriceChartPoint[];
   activity?: TokenDetailsActivityItem[];
   resources?: TokenDetailsResources;
   disclaimer?: string;
 }
-
-const defaultPrice: TokenDetailsPrice = {
-  valueUsd: 3330.45,
-  changeUsd: 1034.45,
-  changePct: 7.32,
-};
-
-const defaultChart: TokenPriceChartPoint[] = (() => {
-  const now = Date.now();
-  const start = now - 24 * 3600_000;
-  const points: TokenPriceChartPoint[] = [];
-
-  // 24h sampled every 30 minutes (49 points including both ends)
-  const samples = 48;
-  for (let i = 0; i <= samples; i++) {
-    const ts = start + (i * 24 * 3600_000) / samples;
-    // dummy-ish smooth variation
-    const base = 3200;
-    const wave1 = Math.sin((i / samples) * Math.PI * 2) * 120;
-    const wave2 = Math.sin((i / samples) * Math.PI * 4) * 40;
-    const drift = (i / samples) * 60;
-    points.push({ ts, value: Math.round(base + wave1 + wave2 + drift) });
-  }
-  return points;
-})();
 
 const defaultActivity: TokenDetailsActivityItem[] = [
   { kind: 'Received', from: '0xGBDZb25042...', amountUsd: 1000, amountToken: 0.23 },
   { kind: 'Sent', from: '0xGBDZb25042...', amountUsd: 1000, amountToken: 0.23 },
   { kind: 'Claimed', from: '0xGBDZb25042...', amountUsd: 1000, amountToken: 0.23 },
 ];
-
-const defaultDisclaimer =
-  'This is a Dual fERC20/eERC20 token. It natively works with shielding and encrypted transfer.';
 
 const money = (n: number) =>
   n.toLocaleString(undefined, {
@@ -97,10 +67,22 @@ export const TokenDetailsView: React.FC<TokenDetailsViewProps> = ({
   onAddCustomToken,
   onUnshield,
   onSend,
-  price = defaultPrice,
-  chartPoints = defaultChart,
+  // price = defaultPrice,
+  chartPoints,
   activity = defaultActivity,
 }) => {
+  const price = useMemo(() => {
+    const lastPoint = chartPoints?.[chartPoints.length - 1];
+    const firstPoint = chartPoints?.[0];
+
+    if (!lastPoint || !firstPoint) return;
+
+    return {
+      valueUsd: lastPoint.value,
+      changeUsd: lastPoint.value - firstPoint.value,
+      changePct: ((lastPoint.value - firstPoint.value) / firstPoint.value) * 100,
+    };
+  }, [chartPoints]);
   return (
     <PageContainer
       header={
@@ -141,23 +123,30 @@ export const TokenDetailsView: React.FC<TokenDetailsViewProps> = ({
 
               <div className="flex flex-col items-end">
                 <CofheTokenConfidentialBalance token={token} size="lg" decimalPrecision={5} className="font-bold" />
-                <p className="text-xxxs opacity-60">{money(price.valueUsd)}</p>
+                {price && <p className="text-xxxs opacity-60">{money(price.valueUsd)}</p>}
               </div>
             </div>
           </Card>
 
           {/* Price + chart */}
           <div className="space-y-2">
-            <div className="flex items-end justify-between">
-              <div>
-                <p className="text-2xl font-bold fnx-text-primary">{money(price.valueUsd)}</p>
-                <p className="text-sm fnx-text-primary opacity-70">
-                  <span className="mr-2">+ {money(price.changeUsd)}</span>
-                  <span>({price.changePct.toFixed(2)}%)</span>
-                </p>
+            {price && (
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className="text-2xl font-bold fnx-text-primary">{money(price.valueUsd)}</p>
+                  <p className="text-sm fnx-text-primary opacity-70">
+                    <span className="mr-2">
+                      {
+                        price.changeUsd > 0 ? '+' : '' // show sign for positive changes
+                      }
+                      {money(price.changeUsd)}
+                    </span>
+                    <span>({price.changePct.toFixed(2)}%)</span>
+                  </p>
+                </div>
+                <div className="text-xxxs opacity-60">Last 24h</div>
               </div>
-              <div className="text-xxxs opacity-60">Last 24h</div>
-            </div>
+            )}
 
             <Card className="p-3" padded={false}>
               <TokenPriceChart points={chartPoints} />
