@@ -40,5 +40,9 @@ export const useWatchClaimablesStatus = () => {
         },
       });
     }
+
+    if (totalTokensClaimable === 0 && claimsAvailableStatusShown) {
+      hideClaimsAvailableStatus();
+    }
   }, [navigateTo, openPortal, totalTokensClaimable]);
 };

@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { useCofheActivePermit, useCofheAllPermits, useCofheConnection } from '@cofhe/react';
+import React from 'react';
 import { useConnectBrowserWallet } from '../utils/useConnectBrowserWallet';
 import { useIsUsingBrowserWallet } from '../utils/useIsUsingBrowserWallet';
 interface NavigationProps {
@@ -15,70 +14,6 @@ const components = [
   { id: 'fnx-floating-button', label: 'FnxFloatingButton', description: 'Floating action button component' },
   { id: 'hooks-example', label: 'Hooks Usage', description: 'Using useEncryptInput hook directly' },
 ];
-
-const StatusDetailsInline: React.FC<{ isDarkMode: boolean }> = ({ isDarkMode }) => {
-  const [open, setOpen] = useState(false);
-  const connectionState = useCofheConnection();
-  const isUsingBrowserWallet = useIsUsingBrowserWallet();
-  const details = connectionState ? JSON.stringify(connectionState, null, 2) : 'Not connected';
-
-  const statusText = connectionState?.connected
-    ? isUsingBrowserWallet
-      ? 'Connected injected ✅'
-      : 'Connected (internal) ✅'
-    : 'Disconnected ❌';
-
-  return (
-    <>
-      <span className="ml-2 inline-flex items-center space-x-2">
-        <span
-          className={`inline-block w-3 h-3 rounded-full ${connectionState?.connected ? 'bg-green-500' : 'bg-red-500'}`}
-          aria-hidden
-        />
-        <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>{statusText}</span>
-        <button
-          onClick={() => setOpen((s) => !s)}
-          className={`ml-2 text-xs underline focus:outline-none ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}
-        >
-          Show details
-        </button>
-      </span>
-
-      {open && (
-        <div
-          className={`fixed left-20 top-24 z-50 w-100 max-h-[60vh] overflow-auto p-3 rounded shadow-lg text-xs ${
-            isDarkMode ? 'bg-gray-800 text-gray-100' : 'bg-white text-gray-800'
-          }`}
-        >
-          <div className="flex justify-between items-start mb-2">
-            <strong className="text-sm">Connection details</strong>
-            <button onClick={() => setOpen(false)} className="ml-2 text-xs opacity-70">
-              ✕
-            </button>
-          </div>
-          <pre className="whitespace-pre-wrap m-0">{details}</pre>
-        </div>
-      )}
-    </>
-  );
-};
-
-const Permits: React.FC = () => {
-  const allPermits = useCofheAllPermits();
-  const activePermit = useCofheActivePermit();
-  const permits = {
-    allPermits,
-    activePermit,
-  };
-  return (
-    <div className="mb-4">
-      <div className="text-sm font-medium text-gray-700 dark:text-gray-300">Permits</div>
-      <pre className="mt-2 text-xs bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100 p-2 rounded max-h-36 overflow-auto whitespace-pre-wrap">
-        {JSON.stringify(permits, null, 2)}
-      </pre>
-    </div>
-  );
-};
 
 export const Navigation: React.FC<NavigationProps> = ({
   activeComponent,
@@ -109,20 +44,6 @@ export const Navigation: React.FC<NavigationProps> = ({
           <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Component Examples</p>
         </div>
 
-        {/* Status */}
-        <div className="mb-6">
-          <h3 className={`text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-            Connection Status:
-            {/* simple inline indicator + details button — avoids hover tooltip and clipping */}
-            <StatusDetailsInline isDarkMode={isDarkMode} />
-          </h3>
-          <div
-            className={`text-sm p-2 rounded ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'}`}
-          >
-            CoFHE SDK Ready
-          </div>
-        </div>
-
         {/* Wallet Connection Section */}
         <div className="mb-6">
           {isUsingBrowserWallet ? (
@@ -137,34 +58,19 @@ export const Navigation: React.FC<NavigationProps> = ({
               </div>
             </div>
           ) : (
-            <>
-              <div
-                className={`p-3 rounded-lg border ${isDarkMode ? 'bg-gray-700/50 border-gray-600' : 'bg-gray-50 border-gray-300'}`}
-              >
-                <div className={`text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  🔒 Internal Wallet Active
-                </div>
-                <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Using mock wallet for testing
-                </div>
-              </div>
-              <button
-                onClick={handleConnectBrowserWallet}
-                disabled={isConnecting}
-                className={`w-full mt-2 px-3 py-2 text-sm rounded-lg transition-colors ${
-                  isDarkMode
-                    ? 'bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-700 disabled:text-gray-400'
-                    : 'bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500'
-                }`}
-              >
-                {isConnecting ? 'Connecting...' : 'Connect Browser Wallet'}
-              </button>
-            </>
+            <button
+              onClick={handleConnectBrowserWallet}
+              disabled={isConnecting}
+              className={`w-full mt-2 px-3 py-2 text-sm rounded-lg transition-colors ${
+                isDarkMode
+                  ? 'bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-700 disabled:text-gray-400'
+                  : 'bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500'
+              }`}
+            >
+              {isConnecting ? 'Connecting...' : 'Connect Browser Wallet'}
+            </button>
           )}
         </div>
-
-        {/*  Permits */}
-        <Permits />
 
         {/* Dark Mode Toggle */}
         <div className="mb-6">

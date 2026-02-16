@@ -151,7 +151,7 @@ describe('Core Permits Tests', () => {
         publicClient,
         bobWalletClient
       );
-      permitHash = permits.getHash(createdPermit);
+      permitHash = createdPermit.hash;
     });
 
     it('should get permit by hash', async () => {
@@ -195,9 +195,8 @@ describe('Core Permits Tests', () => {
       const permitKeys = Object.keys(parsedData.state.permits[chainId][bobAddress]);
       expect(permitKeys.length).toBeGreaterThan(0);
 
-      const permitHash = permits.getHash(createdPermit);
       const serializedPermit = permits.serialize(createdPermit);
-      expect(parsedData.state.permits[chainId][bobAddress][permitHash]).toEqual(serializedPermit);
+      expect(parsedData.state.permits[chainId][bobAddress][createdPermit.hash]).toEqual(serializedPermit);
     });
   });
 
@@ -272,7 +271,7 @@ describe('Core Permits Tests', () => {
       });
 
       expect(permit.name).toBe('First Self Permit');
-      expect(permits.getHash(permit)).toBe(permits.getHash(firstPermit));
+      expect(permit.hash).toBe(firstPermit.hash);
 
       // Verify no new permit was created
       const allPermits = await permits.getPermits(chainId, bobAddress);
@@ -381,7 +380,7 @@ describe('Core Permits Tests', () => {
       );
 
       expect(permit.name).toBe('First Sharing Permit');
-      expect(permits.getHash(permit)).toBe(permits.getHash(firstPermit));
+      expect(permit.hash).toBe(firstPermit.hash);
 
       // Verify no new permit was created
       const allPermits = await permits.getPermits(chainId, bobAddress);
@@ -483,7 +482,7 @@ describe('Core Permits Tests', () => {
       });
 
       // Should be the same permit
-      expect(permits.getHash(permit1)).toBe(permits.getHash(permit2));
+      expect(permit1.hash).toBe(permit2.hash);
       expect(permit2.name).toBe('Permit 1'); // Original name
 
       // Only one permit should exist

@@ -14,7 +14,17 @@ export const useCofheAutoConnect = ({ walletClient, publicClient }: Input) => {
   const connectMutationFn = useCofheConnect().mutate;
 
   useEffect(() => {
-    if (!publicClient || !walletClient || client.connecting) return;
+    // Keep COFHE connection in sync with the upstream (wagmi) connection.
+    // - if wagmi disconnects, it stops providing clients -> disconnect COFHE
+    // - if wagmi provides clients -> ensure COFHE is connected
+    if (!publicClient || !walletClient) {
+      if (client.connected || client.connecting) {
+        client.disconnect();
+      }
+      return;
+    }
+
+    if (client.connecting) return;
     connectMutationFn({ publicClient, walletClient });
-  }, [publicClient, walletClient, client.connecting, connectMutationFn]);
+  }, [publicClient, walletClient, client, client.connected, client.connecting, connectMutationFn]);
 };

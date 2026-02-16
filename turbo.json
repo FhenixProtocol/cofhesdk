@@ -14,7 +14,7 @@
     "lint": {
       "env": ["HOME", "USERPROFILE"]
     },
-    "type-check": {
+    "check:types": {
       "dependsOn": ["^build"]
     },
     "dev": {

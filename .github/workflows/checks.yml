@@ -1,4 +1,4 @@
-name: Type Check
+name: Checks
 
 on:
   pull_request:
@@ -8,9 +8,24 @@ on:
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
-  type-check:
-    name: Type Check
+  check:
+    name: ${{ matrix.name }}
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: Linting
+            command: lint
+            needs-foundry: true
+          - name: Type Check
+            command: check:types
+            needs-foundry: true
+          - name: Formatting
+            command: check:formatting
+            needs-foundry: false
+          - name: Circular Dependencies
+            command: run check:circles
+            needs-foundry: false
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
@@ -29,12 +44,10 @@ jobs:
         run: pnpm i
 
       - name: Install Foundry
+        if: matrix.needs-foundry == true
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: stable
 
-      - name: Run Linting
-        run: pnpm lint
-
-      - name: Run Type Check
-        run: pnpm type-check
+      - name: Run ${{ matrix.name }}
+        run: pnpm ${{ matrix.command }}
