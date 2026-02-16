@@ -335,4 +335,8 @@ contract MockACL is MockPermissioned {
   ) public view withPermission(permission) returns (bool) {
     return isAllowed(handle, permission.issuer);
   }
+
+  function checkPermitValidity(Permission memory permission) public view withPermission(permission) returns (bool) {
+    return true;
+  }
 }

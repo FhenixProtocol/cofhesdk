@@ -473,5 +473,20 @@ describe('PermitUtils Tests', () => {
 
       expect(typeof isValid).toBe('boolean');
     }, 10000); // 10 second timeout for network call
+
+    it('should check permit validity on chain with real contract data', async () => {
+      const permit = PermitUtils.createSelf({
+        type: 'self',
+        issuer: bobAddress,
+        name: 'Test Permit',
+      });
+
+      const signedPermit = await PermitUtils.sign(permit, publicClient, bobWalletClient);
+
+      const isValid = await PermitUtils.checkValidityOnChain(signedPermit, publicClient);
+
+      expect(typeof isValid).toBe('boolean');
+      expect(isValid).toBe(true);
+    });
   });
 });

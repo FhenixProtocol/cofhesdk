@@ -24,6 +24,7 @@ import {
 } from './validation.js';
 import { SignatureUtils } from './signature.js';
 import { GenerateSealingKey, SealingKey } from './sealing.js';
+import { checkPermitValidityOnChain, getAclEIP712Domain } from './onchain-utils.js';
 
 /**
  * Main Permit utilities - functional approach for React compatibility
@@ -140,7 +141,7 @@ export const PermitUtils = {
     }
 
     const primaryType = SignatureUtils.getPrimaryType(permit.type);
-    const domain = await PermitUtils.fetchEIP712Domain(publicClient);
+    const domain = await getAclEIP712Domain(publicClient);
     const { types, message } = SignatureUtils.getSignatureParams(PermitUtils.getPermission(permit, true), primaryType);
 
     const signature = await walletClient.signTypedData({
@@ -350,41 +351,7 @@ export const PermitUtils = {
    * Fetch EIP712 domain from the blockchain
    */
   fetchEIP712Domain: async (publicClient: PublicClient): Promise<EIP712Domain> => {
-    // Hardcoded constants from the original implementation
-    const TASK_MANAGER_ADDRESS = '0xeA30c4B8b44078Bbf8a6ef5b9f1eC1626C7848D9';
-    const ACL_IFACE = 'function acl() view returns (address)';
-    const EIP712_DOMAIN_IFACE =
-      'function eip712Domain() public view returns (bytes1 fields, string name, string version, uint256 chainId, address verifyingContract, bytes32 salt, uint256[] extensions)';
-
-    // Parse the ABI for the ACL function
-    const aclAbi = parseAbi([ACL_IFACE]);
-
-    // Get the ACL address
-    const aclAddress = (await publicClient.readContract({
-      address: TASK_MANAGER_ADDRESS as `0x${string}`,
-      abi: aclAbi,
-      functionName: 'acl',
-    })) as `0x${string}`;
-
-    // Parse the ABI for the EIP712 domain function
-    const domainAbi = parseAbi([EIP712_DOMAIN_IFACE]);
-
-    // Get the EIP712 domain
-    const domain = await publicClient.readContract({
-      address: aclAddress,
-      abi: domainAbi,
-      functionName: 'eip712Domain',
-    });
-
-    // eslint-disable-next-line no-unused-vars
-    const [_fields, name, version, chainId, verifyingContract, _salt, _extensions] = domain;
-
-    return {
-      name,
-      version,
-      chainId: Number(chainId),
-      verifyingContract,
-    };
+    return getAclEIP712Domain(publicClient);
   },
 
   /**
@@ -404,7 +371,15 @@ export const PermitUtils = {
    */
   checkSignedDomainValid: async (permit: Permit, publicClient: PublicClient): Promise<boolean> => {
     if (permit._signedDomain == null) return false;
-    const domain = await PermitUtils.fetchEIP712Domain(publicClient);
+    const domain = await getAclEIP712Domain(publicClient);
     return PermitUtils.matchesDomain(permit, domain);
+  },
+
+  /**
+   * Check if permit passes the on-chain validation
+   */
+  checkValidityOnChain: async (permit: Permit, publicClient: PublicClient): Promise<boolean> => {
+    const permission = PermitUtils.getPermission(permit);
+    return checkPermitValidityOnChain(permission, publicClient);
   },
 };
