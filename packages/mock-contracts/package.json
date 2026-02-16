@@ -40,7 +40,7 @@
     "test:coverage": "forge coverage",
     "anvil": "anvil --code-size-limit 100000",
     "lint": "echo 'No linting configured for Solidity'",
-    "type-check": "echo 'No type checking for Solidity'",
+    "check:types": "echo 'No type checking for Solidity'",
     "clean": "rm -rf out && rm -rf cache",
     "dev": "anvil --code-size-limit 100000"
   },

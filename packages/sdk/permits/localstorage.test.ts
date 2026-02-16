@@ -39,7 +39,6 @@ describe('Permits localStorage Tests', () => {
 
   it('should persist permits to localStorage', async () => {
     const permit = await createMockPermit();
-    const hash = PermitUtils.getHash(permit);
 
     setPermit(chainId, account, permit);
 
@@ -48,40 +47,38 @@ describe('Permits localStorage Tests', () => {
     expect(storedData).toBeDefined();
 
     const parsedData = JSON.parse(storedData!);
-    expect(parsedData.state.permits[chainId][account][hash]).toBeDefined();
+    expect(parsedData.state.permits[chainId][account][permit.hash]).toBeDefined();
   });
 
   it('should persist active permit hash to localStorage', async () => {
     const permit = await createMockPermit();
-    const hash = PermitUtils.getHash(permit);
 
     setPermit(chainId, account, permit);
-    setActivePermitHash(chainId, account, hash);
+    setActivePermitHash(chainId, account, permit.hash);
 
     // Verify active permit hash is stored
     const storedData = localStorage.getItem('cofhesdk-permits');
     expect(storedData).toBeDefined();
 
     const parsedData = JSON.parse(storedData!);
-    expect(parsedData.state.activePermitHash[chainId][account]).toBe(hash);
+    expect(parsedData.state.activePermitHash[chainId][account]).toBe(permit.hash);
   });
 
   it('should restore permits from localStorage', async () => {
     const permit = await createMockPermit();
-    const hash = PermitUtils.getHash(permit);
 
     // Add permit to localStorage
     setPermit(chainId, account, permit);
-    setActivePermitHash(chainId, account, hash);
+    setActivePermitHash(chainId, account, permit.hash);
     const serializedPermit = PermitUtils.serialize(permit);
 
     // Verify data is restored
-    const retrievedPermit = getPermit(chainId, account, hash);
+    const retrievedPermit = getPermit(chainId, account, permit.hash);
     expect(retrievedPermit).toBeDefined();
     expect(PermitUtils.serialize(retrievedPermit!)).toEqual(serializedPermit);
 
     const activeHash = getActivePermitHash(chainId, account);
-    expect(activeHash).toBe(hash);
+    expect(activeHash).toBe(permit.hash);
   });
 
   it('should handle corrupted localStorage data gracefully', () => {
@@ -96,22 +93,21 @@ describe('Permits localStorage Tests', () => {
 
   it('should clean up localStorage when permits are removed', async () => {
     const permit = await createMockPermit();
-    const hash = PermitUtils.getHash(permit);
 
     setPermit(chainId, account, permit);
-    setActivePermitHash(chainId, account, hash);
+    setActivePermitHash(chainId, account, permit.hash);
 
     // Verify data exists
     let storedData = localStorage.getItem('cofhesdk-permits');
     expect(storedData).toBeDefined();
 
     // Remove permit
-    removePermit(chainId, account, hash, true);
+    removePermit(chainId, account, permit.hash, true);
 
     // Verify data is cleaned up
     storedData = localStorage.getItem('cofhesdk-permits');
     const parsedData = JSON.parse(storedData!);
-    expect(parsedData.state.permits[chainId][account][hash]).toBeUndefined();
+    expect(parsedData.state.permits[chainId][account][permit.hash]).toBeUndefined();
     expect(parsedData.state.activePermitHash[chainId][account]).toBeUndefined();
   });
 });

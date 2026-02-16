@@ -29,7 +29,7 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "lint": "eslint \"**/*.ts*\"",
-    "type-check": "tsc --noEmit",
+    "check:types": "tsc --noEmit",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
     "test": "vitest run",
     "test:watch": "vitest",
