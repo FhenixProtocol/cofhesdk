@@ -6,7 +6,9 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { TokenRow } from '../components/TokenRow';
 import { useCofhePinnedTokenAddress } from '@/hooks/useCofhePinnedTokenAddress';
 import type { BalanceType } from '../components/CofheTokenConfidentialBalance';
+import { Button } from '../components';
 
+export const AddCustomTokenButton = () => <Button variant="outline" size="sm" label="Add custom Token +" />;
 export const TokenListModal: React.FC<PortalModalStateMap[PortalModal.TokenList]> = ({
   tokens,
   onClose,
@@ -17,10 +19,13 @@ export const TokenListModal: React.FC<PortalModalStateMap[PortalModal.TokenList]
   return (
     <PageContainer
       header={
-        <button onClick={onClose} className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity">
-          <ArrowBackIcon style={{ fontSize: 16 }} />
-          <p className="text-sm font-medium">{title}</p>
-        </button>
+        <div className="flex justify-between flex-row">
+          <button onClick={onClose} className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity">
+            <ArrowBackIcon style={{ fontSize: 16 }} />
+            <p className="text-sm font-medium">{title}</p>
+          </button>
+          <AddCustomTokenButton />
+        </div>
       }
       content={
         <TokenListContent

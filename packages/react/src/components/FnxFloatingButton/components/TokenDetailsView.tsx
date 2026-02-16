@@ -99,14 +99,6 @@ export const TokenDetailsView: React.FC<TokenDetailsViewProps> = ({
                 <p className="text-xxxs opacity-70">{token.name}</p>
               </div>
             </button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              label="Add custom Token +"
-              onClick={onAddCustomToken}
-              disabled={!onAddCustomToken}
-            />
           </div>
           {/* Token summary */}
           <Card className="p-3" padded={false}>

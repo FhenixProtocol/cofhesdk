@@ -32,7 +32,5 @@ export const TokenInfoPage: React.FC<TokenInfoPageProps> = ({ token }) => {
     rangeMs: 24 * 3600_000,
   });
 
-  console.log('chartPoints', chartPoints);
-
   return <TokenDetailsView token={token} onBack={navigateBack} chartPoints={chartPoints ?? []} />;
 };
