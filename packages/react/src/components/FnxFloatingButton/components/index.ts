@@ -2,7 +2,6 @@ export { ActionButton } from './ActionButton';
 export { AddressButton } from './AddressButton';
 export { AmountInput } from './AmountInput';
 export { Button, type ButtonProps, type ButtonVariant, type ButtonSize } from './Button';
-export { Card, type CardProps } from './Card';
 export { ChainIcon } from './ChainIcon';
 export { ConnectedChainIndicator } from './ConnectedChainIndicator';
 export { HashLink } from './HashLink';

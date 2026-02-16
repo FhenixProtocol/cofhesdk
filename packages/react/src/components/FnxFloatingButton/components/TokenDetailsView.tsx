@@ -8,7 +8,6 @@ import { cn } from '@/utils/cn';
 import type { Token } from '@/types/token';
 
 import { Button } from './Button';
-import { Card } from './Card';
 import { HashLink } from './HashLink';
 import { TokenIcon } from './TokenIcon';
 import { PageContainer } from './PageContainer';
@@ -105,7 +104,7 @@ export const TokenDetailsView: React.FC<TokenDetailsViewProps> = ({
             </button>
           </div>
           {/* Token summary */}
-          <Card className="p-3" padded={false}>
+          <div className="p-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <TokenIcon logoURI={token.logoURI} alt={token.extensions.fhenix.erc20Pair?.symbol} size="md" />
@@ -170,7 +169,7 @@ export const TokenDetailsView: React.FC<TokenDetailsViewProps> = ({
                 )}
               </div>
             </div>
-          </Card>
+          </div>
           {/* Price + chart */}
           <div className="space-y-2">
             {price && (
@@ -180,9 +179,9 @@ export const TokenDetailsView: React.FC<TokenDetailsViewProps> = ({
               </div>
             )}
 
-            <Card className="p-3" padded={false}>
+            <div className="p-3">
               <TokenPriceChart points={chartPoints} />
-            </Card>
+            </div>
           </div>
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold fnx-text-primary">Activity</h3>
@@ -202,7 +201,7 @@ export const TokenDetailsView: React.FC<TokenDetailsViewProps> = ({
         <>
           {/* Activity */}
           <div className="space-y-2">
-            <Card className="p-3" padded={false}>
+            <div className="p-3">
               {!activity || activity.length === 0 ? (
                 <div className="py-6 text-center">
                   <p className="text-sm fnx-text-primary opacity-60">No activity found</p>
@@ -240,7 +239,7 @@ export const TokenDetailsView: React.FC<TokenDetailsViewProps> = ({
                   })}
                 </div>
               )}
-            </Card>
+            </div>
           </div>
         </>
       }
