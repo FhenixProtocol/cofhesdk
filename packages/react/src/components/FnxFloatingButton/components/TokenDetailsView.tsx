@@ -24,8 +24,8 @@ export interface TokenDetailsPrice {
 
 export interface TokenDetailsActivityItem {
   kind: string;
-  from: string;
-  amountUsd: number;
+  from?: string;
+  amountUsd?: number;
   amountToken: number;
   leftIcon?: ReactNode;
 }
@@ -57,12 +57,6 @@ export interface TokenDetailsViewProps {
   disclaimer?: string;
 }
 
-const defaultActivity: TokenDetailsActivityItem[] = [
-  { kind: 'Received', from: '0xGBDZb25042...', amountUsd: 1000, amountToken: 0.23 },
-  { kind: 'Sent', from: '0xGBDZb25042...', amountUsd: 1000, amountToken: 0.23 },
-  { kind: 'Claimed', from: '0xGBDZb25042...', amountUsd: 1000, amountToken: 0.23 },
-];
-
 const money = (n: number) =>
   n.toLocaleString(undefined, {
     style: 'currency',
@@ -80,7 +74,7 @@ export const TokenDetailsView: React.FC<TokenDetailsViewProps> = ({
   isFetchingBalances = false,
   // price = defaultPrice,
   chartPoints,
-  activity = defaultActivity,
+  activity,
 }) => {
   const price = useMemo(() => {
     const lastPoint = chartPoints?.[chartPoints.length - 1];
@@ -209,34 +203,43 @@ export const TokenDetailsView: React.FC<TokenDetailsViewProps> = ({
           {/* Activity */}
           <div className="space-y-2">
             <Card className="p-3" padded={false}>
-              <div className="flex flex-col gap-3">
-                {activity.map((item, idx) => (
-                  <div key={idx} className="flex items-start justify-between">
-                    <div className="flex items-start gap-2">
-                      {item.leftIcon ?? (
-                        <div
-                          className={cn(
-                            'w-8 h-8 rounded-full',
-                            'bg-cyan-200/70 dark:bg-cyan-900/40',
-                            'flex items-center justify-center'
+              {!activity || activity.length === 0 ? (
+                <div className="py-6 text-center">
+                  <p className="text-sm fnx-text-primary opacity-60">No activity found</p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {activity.map((item, idx) => {
+                    return (
+                      <div key={idx} className="flex items-start justify-between">
+                        <div className="flex items-start gap-2">
+                          {item.leftIcon ?? (
+                            <div
+                              className={cn(
+                                'w-8 h-8 rounded-full',
+                                'bg-cyan-200/70 dark:bg-cyan-900/40',
+                                'flex items-center justify-center'
+                              )}
+                            />
                           )}
-                        />
-                      )}
-                      <div className="flex flex-col">
-                        <p className="text-sm font-bold fnx-text-primary">{item.kind}</p>
-                        <p className="text-xxxs opacity-70">from: {item.from}</p>
-                      </div>
-                    </div>
+                          <div className="flex flex-col">
+                            <p className="text-sm font-bold fnx-text-primary">{item.kind}</p>
+                          </div>
+                        </div>
 
-                    <div className="flex flex-col items-end">
-                      <p className="text-sm font-bold fnx-text-primary">{money(item.amountUsd)}</p>
-                      <p className="text-xxxs opacity-70">
-                        {item.amountToken} {token.symbol}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                        <div className="flex flex-col items-end">
+                          <p className="text-sm font-bold fnx-text-primary">
+                            {typeof item.amountUsd === 'number' ? money(item.amountUsd) : '--'}
+                          </p>
+                          <p className="text-xxxs opacity-70">
+                            {item.amountToken} {token.symbol}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </Card>
           </div>
         </>

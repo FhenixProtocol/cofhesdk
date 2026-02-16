@@ -9,6 +9,9 @@ import { useCofheTokenPublicBalance } from '@/hooks/useCofheTokenPublicBalance';
 import { useCofheTokenDecryptedBalance } from '@/hooks';
 import { useCofheAccount } from '@/hooks/useCofheConnection';
 import { useMemo } from 'react';
+import { useStoredTransactions } from '@/hooks/useStoredTransactions.js';
+import { actionToString } from '@/stores/transactionStore';
+import { formatUnits } from 'viem';
 
 type TokenInfoPageProps = {
   token: Token;
@@ -67,6 +70,33 @@ export const TokenInfoPage: React.FC<TokenInfoPageProps> = ({ token }) => {
     rangeMs: 24 * 3600_000,
   });
 
+  const { filteredTxs: tokenTxs } = useStoredTransactions({
+    chainId: token.chainId,
+    account,
+    filter: (tx) => tx.token.address.toLowerCase() === token.address.toLowerCase(),
+  });
+
+  const activity = useMemo(() => {
+    const lastPoint = chartPoints?.[chartPoints.length - 1];
+    const priceUsd = lastPoint?.value;
+
+    return tokenTxs
+      .slice()
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .map((tx) => {
+        const amountToken = parseFloat(formatUnits(tx.tokenAmount, tx.token.decimals));
+        const amountUsd =
+          typeof priceUsd === 'number' && Number.isFinite(amountToken) ? amountToken * priceUsd : undefined;
+
+        return {
+          kind: actionToString(tx.actionType),
+
+          amountUsd,
+          amountToken: Number.isFinite(amountToken) ? amountToken : 0,
+        };
+      });
+  }, [tokenTxs, chartPoints]);
+
   return (
     <TokenDetailsView
       token={token}
@@ -83,6 +113,7 @@ export const TokenInfoPage: React.FC<TokenInfoPageProps> = ({ token }) => {
       balancePercents={balancePercents}
       isFetchingBalances={isFetchingConfidentialBalance || isFetchingPublicBalance}
       chartPoints={chartPoints ?? []}
+      activity={activity}
     />
   );
 };
