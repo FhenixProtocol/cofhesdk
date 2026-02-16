@@ -13,11 +13,8 @@ import { HashLink } from './HashLink';
 import { TokenIcon } from './TokenIcon';
 import { PageContainer } from './PageContainer';
 import { TokenPriceChart, type TokenPriceChartPoint } from './TokenPriceChart';
-import { useCofheTokenPublicBalance } from '@/hooks/useCofheTokenPublicBalance';
-import { useCofheTokenDecryptedBalance } from '@/hooks';
 import { LoadingDots } from './LoadingDots';
 import { CofheTokenConfidentialBalance } from './CofheTokenConfidentialBalance';
-import { useCofheAccount } from '@/hooks/useCofheConnection';
 
 export interface TokenDetailsPrice {
   valueUsd: number;
@@ -45,6 +42,14 @@ export interface TokenDetailsViewProps {
   onUnshield?: () => void;
   onSend?: () => void;
 
+  /** Balance breakdown values should be computed by a page/container and passed down. */
+  balancePercents?: {
+    confidentialPct: number;
+    publicPct: number;
+  };
+  /** Whether balances are currently being fetched/decrypted. */
+  isFetchingBalances?: boolean;
+
   price?: TokenDetailsPrice;
   chartPoints: TokenPriceChartPoint[];
   activity?: TokenDetailsActivityItem[];
@@ -71,35 +76,12 @@ export const TokenDetailsView: React.FC<TokenDetailsViewProps> = ({
   onBack,
   onUnshield,
   onSend,
+  balancePercents,
+  isFetchingBalances = false,
   // price = defaultPrice,
   chartPoints,
   activity = defaultActivity,
 }) => {
-  const { data: publicBalance, isFetching: isFetchingPublicBalance } = useCofheTokenPublicBalance({
-    token,
-  });
-
-  const account = useCofheAccount();
-
-  const { data: confidentialBalance, isFetching: isFetchingConfidentialBalance } = useCofheTokenDecryptedBalance({
-    accountAddress: account,
-    token,
-  });
-
-  const balancePercents = useMemo(() => {
-    const totalUnit = confidentialBalance?.unit.plus(publicBalance?.unit ?? 0).toNumber();
-
-    const confidentialPct =
-      totalUnit && totalUnit > 0 ? parseInt(confidentialBalance!.unit.div(totalUnit).times(100).toFixed(2)) : 0;
-
-    const publicPct = 100 - confidentialPct;
-
-    return {
-      confidentialPct,
-      publicPct,
-    };
-  }, [confidentialBalance, publicBalance]);
-
   const price = useMemo(() => {
     const lastPoint = chartPoints?.[chartPoints.length - 1];
     const firstPoint = chartPoints?.[0];
@@ -142,9 +124,9 @@ export const TokenDetailsView: React.FC<TokenDetailsViewProps> = ({
                       aria-label="Confidential balance percent"
                     >
                       <LockIcon style={{ fontSize: 14 }} />
-                      {isFetchingConfidentialBalance || isFetchingPublicBalance ? (
+                      {isFetchingBalances ? (
                         <LoadingDots size="sm" variant="secondary" />
-                      ) : balancePercents.confidentialPct === null ? (
+                      ) : !balancePercents ? (
                         <span>--%</span>
                       ) : (
                         <span>{balancePercents.confidentialPct}%</span>
@@ -157,9 +139,9 @@ export const TokenDetailsView: React.FC<TokenDetailsViewProps> = ({
                       aria-label="Public balance percent"
                     >
                       <PublicIcon style={{ fontSize: 14 }} />
-                      {isFetchingConfidentialBalance || isFetchingPublicBalance ? (
+                      {isFetchingBalances ? (
                         <LoadingDots size="sm" variant="secondary" />
-                      ) : balancePercents.publicPct === null ? (
+                      ) : !balancePercents ? (
                         <span>--%</span>
                       ) : (
                         <span>{balancePercents.publicPct}%</span>
