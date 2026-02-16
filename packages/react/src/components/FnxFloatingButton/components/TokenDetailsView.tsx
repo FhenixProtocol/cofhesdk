@@ -86,30 +86,28 @@ export const TokenDetailsView: React.FC<TokenDetailsViewProps> = ({
   return (
     <PageContainer
       header={
-        <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={onBack}
-            className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity"
-          >
-            <ArrowBackIcon style={{ fontSize: 16 }} />
-            <div className="flex flex-col leading-tight">
-              <p className="text-sm font-medium">Tokens list</p>
-              <p className="text-xxxs opacity-70">{token.name}</p>
-            </div>
-          </button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            label="Add custom Token +"
-            onClick={onAddCustomToken}
-            disabled={!onAddCustomToken}
-          />
-        </div>
-      }
-      content={
         <>
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={onBack}
+              className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity"
+            >
+              <ArrowBackIcon style={{ fontSize: 16 }} />
+              <div className="flex flex-col leading-tight">
+                <p className="text-sm font-medium">Tokens list</p>
+                <p className="text-xxxs opacity-70">{token.name}</p>
+              </div>
+            </button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              label="Add custom Token +"
+              onClick={onAddCustomToken}
+              disabled={!onAddCustomToken}
+            />
+          </div>
           {/* Token summary */}
           <Card className="p-3" padded={false}>
             <div className="flex items-center justify-between">
@@ -123,27 +121,28 @@ export const TokenDetailsView: React.FC<TokenDetailsViewProps> = ({
 
               <div className="flex flex-col items-end">
                 <CofheTokenConfidentialBalance token={token} size="lg" decimalPrecision={5} className="font-bold" />
-                {price && <p className="text-xxxs opacity-60">{money(price.valueUsd)}</p>}
+                {price && (
+                  <div className="flex flex-row">
+                    <p className="text-xxxs opacity-60">{money(price.valueUsd)}</p>
+                    <p className="text-xxxs fnx-text-primary opacity-70">
+                      <span className="mr-2">
+                        {
+                          price.changeUsd > 0 ? '+' : '' // show sign for positive changes
+                        }
+                        {money(price.changeUsd)}
+                      </span>
+                      <span>({price.changePct.toFixed(2)}%)</span>
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </Card>
-
           {/* Price + chart */}
           <div className="space-y-2">
             {price && (
               <div className="flex items-end justify-between">
-                <div>
-                  <p className="text-2xl font-bold fnx-text-primary">{money(price.valueUsd)}</p>
-                  <p className="text-sm fnx-text-primary opacity-70">
-                    <span className="mr-2">
-                      {
-                        price.changeUsd > 0 ? '+' : '' // show sign for positive changes
-                      }
-                      {money(price.changeUsd)}
-                    </span>
-                    <span>({price.changePct.toFixed(2)}%)</span>
-                  </p>
-                </div>
+                <div></div>
                 <div className="text-xxxs opacity-60">Last 24h</div>
               </div>
             )}
@@ -152,22 +151,24 @@ export const TokenDetailsView: React.FC<TokenDetailsViewProps> = ({
               <TokenPriceChart points={chartPoints} />
             </Card>
           </div>
-
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold fnx-text-primary">Activity</h3>
+            <HashLink type="token" hash={token.address} chainId={token.chainId} extraShort />
+            {token.extensions.fhenix.erc20Pair?.address && (
+              <HashLink
+                type="token"
+                hash={token.extensions.fhenix.erc20Pair.address}
+                chainId={token.chainId}
+                extraShort
+              />
+            )}
+          </div>
+        </>
+      }
+      content={
+        <>
           {/* Activity */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold fnx-text-primary">Activity</h3>
-              <HashLink type="token" hash={token.address} chainId={token.chainId} extraShort />
-              {token.extensions.fhenix.erc20Pair?.address && (
-                <HashLink
-                  type="token"
-                  hash={token.extensions.fhenix.erc20Pair.address}
-                  chainId={token.chainId}
-                  extraShort
-                />
-              )}
-            </div>
-
             <Card className="p-3" padded={false}>
               <div className="flex flex-col gap-3">
                 {activity.map((item, idx) => (
