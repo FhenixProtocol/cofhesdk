@@ -39,7 +39,6 @@ export interface TokenDetailsViewProps {
   token: Token;
   onBack?: () => void;
   onAddCustomToken?: () => void;
-  onViewOnExplorer?: () => void;
   onUnshield?: () => void;
   onSend?: () => void;
 
@@ -96,23 +95,12 @@ export const TokenDetailsView: React.FC<TokenDetailsViewProps> = ({
   token,
   onBack,
   onAddCustomToken,
-  onViewOnExplorer,
   onUnshield,
   onSend,
   price = defaultPrice,
   chartPoints = defaultChart,
   activity = defaultActivity,
-  resources = {
-    ferc20Address: token.address,
-    website: 'https://example.com',
-    whitepaper: 'https://example.com/whitepaper.pdf',
-  },
-  disclaimer = defaultDisclaimer,
 }) => {
-  const openExternal = (url: string) => {
-    window.open(url, '_blank', 'noopener,noreferrer');
-  };
-
   return (
     <PageContainer
       header={
@@ -180,13 +168,15 @@ export const TokenDetailsView: React.FC<TokenDetailsViewProps> = ({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold fnx-text-primary">Activity</h3>
-              <Button
-                variant="outline"
-                size="sm"
-                label="view on explorer"
-                onClick={onViewOnExplorer}
-                disabled={!onViewOnExplorer}
-              />
+              <HashLink type="token" hash={token.address} chainId={token.chainId} extraShort />
+              {token.extensions.fhenix.erc20Pair?.address && (
+                <HashLink
+                  type="token"
+                  hash={token.extensions.fhenix.erc20Pair.address}
+                  chainId={token.chainId}
+                  extraShort
+                />
+              )}
             </div>
 
             <Card className="p-3" padded={false}>
@@ -217,74 +207,6 @@ export const TokenDetailsView: React.FC<TokenDetailsViewProps> = ({
                     </div>
                   </div>
                 ))}
-              </div>
-            </Card>
-          </div>
-
-          {/* Resources */}
-          <div className="space-y-2">
-            <h3 className="text-sm font-bold fnx-text-primary">Resources</h3>
-            <Card className="p-3" padded={false}>
-              <div className="flex flex-col gap-3">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-xxxs opacity-70">fERC20 Address</p>
-                  <HashLink type="token" hash={resources.ferc20Address} chainId={token.chainId} extraShort />
-                </div>
-
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-xxxs opacity-70">Website</p>
-                  <button
-                    type="button"
-                    onClick={() => openExternal(resources.website)}
-                    className="flex items-center gap-1.5 text-xs fnx-text-primary opacity-70 hover:opacity-100 transition-opacity"
-                  >
-                    <span className="truncate max-w-[180px]">{resources.website}</span>
-                    <LuExternalLink className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-xxxs opacity-70">Whitepaper</p>
-                  <button
-                    type="button"
-                    onClick={() => openExternal(resources.whitepaper)}
-                    className="flex items-center gap-1.5 text-xs fnx-text-primary opacity-70 hover:opacity-100 transition-opacity"
-                  >
-                    <span className="truncate max-w-[180px]">{resources.whitepaper}</span>
-                    <LuExternalLink className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            </Card>
-
-            <p className="text-xxxs opacity-70">{disclaimer}</p>
-          </div>
-
-          {/* Token Details */}
-          <div className="space-y-2">
-            <h3 className="text-sm font-bold fnx-text-primary">Token Details</h3>
-
-            <Card className="p-3" padded={false}>
-              <div className="flex flex-col gap-3">
-                <div className="flex flex-col gap-2">
-                  <p className="text-xxxs opacity-70">Contract Address</p>
-                  <AddressButton address={token.address} className="w-full justify-start" />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <p className="text-xxxs opacity-70">Decimals</p>
-                  <p className="text-sm font-medium">{token.decimals}</p>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <p className="text-xxxs opacity-70">Confidentiality Type</p>
-                  <p className="text-sm font-medium capitalize">{token.extensions.fhenix.confidentialityType}</p>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <p className="text-xxxs opacity-70">Value Type</p>
-                  <p className="text-sm font-medium">{token.extensions.fhenix.confidentialValueType}</p>
-                </div>
               </div>
             </Card>
           </div>
