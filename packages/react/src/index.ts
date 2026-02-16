@@ -92,8 +92,6 @@ export { createCofhesdkClient } from '@cofhe/sdk/web';
 
 export { useCofheNavigateToCreatePermit } from '@/hooks/permits/useCofheNavigateToCreatePermit';
 export { useCofheAutoConnect } from '@/hooks/useCofheAutoConnect';
-export { CREATE_PERMITT_BODY_BY_ERROR_CAUSE } from './providers/errors';
-export { ErrorCause } from './utils/errors';
 
 export type { CofhesdkConfigWithReact } from './config';
 

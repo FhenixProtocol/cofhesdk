@@ -6,7 +6,6 @@ import { CONFIDENTIAL_ABIS, getTokenContractConfig } from '../constants/confiden
 import { assert } from 'ts-essentials';
 import { formatTokenAmount, type TokenFormatOutput } from '@/utils/format';
 import { useCofheReadContractAndDecrypt } from './useCofheReadContractAndDecrypt';
-import { ErrorCause } from '@/utils';
 
 // ============================================================================
 // Unified Confidential Balance Hook
@@ -61,7 +60,6 @@ export function useCofheTokenDecryptedBalance(
       functionName: contractConfig?.functionName,
       args: accountAddress ? [accountAddress] : undefined,
       requiresPermit: true,
-      potentialDecryptErrorCause: ErrorCause.AttemptToFetchConfidentialBalance,
     },
     {
       readQueryOptions: {
