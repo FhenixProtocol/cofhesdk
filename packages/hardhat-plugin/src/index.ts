@@ -15,27 +15,21 @@ import { createCofhesdkClient, createCofhesdkConfig } from '@cofhe/sdk/node';
 import { HardhatSignerAdapter } from '@cofhe/sdk/adapters';
 
 import { localcofheFundAccount } from './fund.js';
-import { TASK_COFHE_MOCKS_DEPLOY, TASK_COFHE_MOCKS_SET_LOG_OPS, TASK_COFHE_USE_FAUCET } from './consts.js';
+import {
+  TASK_COFHE_MOCKS_DEPLOY,
+  TASK_COFHE_MOCKS_SET_LOG_OPS,
+  TASK_COFHE_USE_FAUCET,
+  TASK_MANAGER_ADDRESS,
+  MOCKS_QUERY_DECRYPTER_ADDRESS,
+  MOCKS_ZK_VERIFIER_ADDRESS,
+  TEST_BED_ADDRESS,
+} from './consts.js';
 import { deployMocks, type DeployMocksArgs } from './deploy.js';
 import { mock_setLoggingEnabled, mock_withLogs } from './logging.js';
 import { mock_expectPlaintext } from './utils.js';
 import { mock_getPlaintext } from './utils.js';
 import type { Contract } from 'ethers';
-import {
-  MockACLArtifact,
-  MockQueryDecrypterArtifact,
-  MockTaskManagerArtifact,
-  MockZkVerifierArtifact,
-  TestBedArtifact,
-} from '@cofhe/mock-contracts';
 import { hardhat } from '@cofhe/sdk/chains';
-export {
-  MockACLArtifact,
-  MockQueryDecrypterArtifact,
-  MockTaskManagerArtifact,
-  MockZkVerifierArtifact,
-  TestBedArtifact,
-} from '@cofhe/mock-contracts';
 
 /**
  * Configuration interface for the CoFHE Hardhat plugin.
@@ -186,6 +180,7 @@ task(TASK_COFHE_MOCKS_SET_LOG_OPS, 'Set logging for the Mock CoFHE contracts')
 
 // MOCK UTILS
 
+export * from './consts.js';
 export * from './utils.js';
 export * from './fund.js';
 export * from './logging.js';
@@ -418,21 +413,27 @@ extendEnvironment((hre) => {
         return mock_expectPlaintext(signer.provider, ctHash, expectedValue);
       },
       getMockTaskManager: async () => {
-        return await hre.ethers.getContractAt(MockTaskManagerArtifact.abi, MockTaskManagerArtifact.fixedAddress);
+        const artifact = await hre.artifacts.readArtifact('MockTaskManager');
+        return await hre.ethers.getContractAt(artifact.abi, TASK_MANAGER_ADDRESS);
       },
       getMockACL: async () => {
-        const tm = await hre.ethers.getContractAt(MockTaskManagerArtifact.abi, MockTaskManagerArtifact.fixedAddress);
+        const tmArtifact = await hre.artifacts.readArtifact('MockTaskManager');
+        const tm = await hre.ethers.getContractAt(tmArtifact.abi, TASK_MANAGER_ADDRESS);
         const aclAddress = await tm.acl();
-        return await hre.ethers.getContractAt(MockACLArtifact.abi, aclAddress);
+        const aclArtifact = await hre.artifacts.readArtifact('MockACL');
+        return await hre.ethers.getContractAt(aclArtifact.abi, aclAddress);
       },
       getMockQueryDecrypter: async () => {
-        return await hre.ethers.getContractAt(MockQueryDecrypterArtifact.abi, MockQueryDecrypterArtifact.fixedAddress);
+        const artifact = await hre.artifacts.readArtifact('MockQueryDecrypter');
+        return await hre.ethers.getContractAt(artifact.abi, MOCKS_QUERY_DECRYPTER_ADDRESS);
       },
       getMockZkVerifier: async () => {
-        return await hre.ethers.getContractAt(MockZkVerifierArtifact.abi, MockZkVerifierArtifact.fixedAddress);
+        const artifact = await hre.artifacts.readArtifact('MockZkVerifier');
+        return await hre.ethers.getContractAt(artifact.abi, MOCKS_ZK_VERIFIER_ADDRESS);
       },
       getTestBed: async () => {
-        return await hre.ethers.getContractAt(TestBedArtifact.abi, TestBedArtifact.fixedAddress);
+        const artifact = await hre.artifacts.readArtifact('TestBed');
+        return await hre.ethers.getContractAt(artifact.abi, TEST_BED_ADDRESS);
       },
     },
   };

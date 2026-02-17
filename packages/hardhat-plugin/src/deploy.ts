@@ -1,6 +1,8 @@
 import { type HardhatRuntimeEnvironment } from 'hardhat/types';
 import chalk from 'chalk';
 import { Contract } from 'ethers';
+import path from 'path';
+import fs from 'fs';
 
 import {
   TASK_MANAGER_ADDRESS,
@@ -9,13 +11,6 @@ import {
   TEST_BED_ADDRESS,
 } from './consts.js';
 
-import {
-  MockTaskManagerArtifact,
-  MockACLArtifact,
-  MockZkVerifierArtifact,
-  MockQueryDecrypterArtifact,
-  TestBedArtifact,
-} from '@cofhe/mock-contracts';
 import { MOCKS_ZK_VERIFIER_SIGNER_ADDRESS } from '@cofhe/sdk';
 
 // Deploy
@@ -24,8 +19,9 @@ const deployMockTaskManager = async (hre: HardhatRuntimeEnvironment) => {
   const [signer] = await hre.ethers.getSigners();
 
   // Deploy MockTaskManager
-  await hardhatSetCode(hre, TASK_MANAGER_ADDRESS, MockTaskManagerArtifact.deployedBytecode);
-  const taskManager = await hre.ethers.getContractAt(MockTaskManagerArtifact.abi, TASK_MANAGER_ADDRESS);
+  const artifact = await hre.artifacts.readArtifact('MockTaskManager');
+  await hardhatSetCode(hre, TASK_MANAGER_ADDRESS, artifact.deployedBytecode);
+  const taskManager = await hre.ethers.getContractAt(artifact.abi, TASK_MANAGER_ADDRESS);
 
   // Initialize MockTaskManager
   const initTx = await taskManager.initialize(signer.address);
@@ -42,7 +38,8 @@ const deployMockTaskManager = async (hre: HardhatRuntimeEnvironment) => {
 
 const deployMockACL = async (hre: HardhatRuntimeEnvironment): Promise<Contract> => {
   // Deploy MockACL (uses ethers to deploy to ensure constructor called and EIP712 domain set)
-  const acl = await ethersDeployContract(hre, MockACLArtifact.abi, MockACLArtifact.bytecode);
+  const artifact = await hre.artifacts.readArtifact('MockACL');
+  const acl = await ethersDeployContract(hre, artifact.abi, artifact.bytecode);
 
   // Check if ACL exists
   const exists = await acl.exists();
@@ -55,8 +52,9 @@ const deployMockACL = async (hre: HardhatRuntimeEnvironment): Promise<Contract> 
 };
 
 const deployMockZkVerifier = async (hre: HardhatRuntimeEnvironment) => {
-  await hardhatSetCode(hre, MOCKS_ZK_VERIFIER_ADDRESS, MockZkVerifierArtifact.deployedBytecode);
-  const zkVerifier = await hre.ethers.getContractAt(MockZkVerifierArtifact.abi, MOCKS_ZK_VERIFIER_ADDRESS);
+  const artifact = await hre.artifacts.readArtifact('MockZkVerifier');
+  await hardhatSetCode(hre, MOCKS_ZK_VERIFIER_ADDRESS, artifact.deployedBytecode);
+  const zkVerifier = await hre.ethers.getContractAt(artifact.abi, MOCKS_ZK_VERIFIER_ADDRESS);
 
   const zkVerifierExists = await zkVerifier.exists();
   if (!zkVerifierExists) {
@@ -68,8 +66,9 @@ const deployMockZkVerifier = async (hre: HardhatRuntimeEnvironment) => {
 };
 
 const deployMockQueryDecrypter = async (hre: HardhatRuntimeEnvironment, acl: Contract) => {
-  await hardhatSetCode(hre, MOCKS_QUERY_DECRYPTER_ADDRESS, MockQueryDecrypterArtifact.deployedBytecode);
-  const queryDecrypter = await hre.ethers.getContractAt(MockQueryDecrypterArtifact.abi, MOCKS_QUERY_DECRYPTER_ADDRESS);
+  const artifact = await hre.artifacts.readArtifact('MockQueryDecrypter');
+  await hardhatSetCode(hre, MOCKS_QUERY_DECRYPTER_ADDRESS, artifact.deployedBytecode);
+  const queryDecrypter = await hre.ethers.getContractAt(artifact.abi, MOCKS_QUERY_DECRYPTER_ADDRESS);
 
   // Initialize MockQueryDecrypter
   const initTx = await queryDecrypter.initialize(TASK_MANAGER_ADDRESS, await acl.getAddress());
@@ -86,8 +85,9 @@ const deployMockQueryDecrypter = async (hre: HardhatRuntimeEnvironment, acl: Con
 };
 
 const deployTestBedContract = async (hre: HardhatRuntimeEnvironment) => {
-  await hardhatSetCode(hre, TEST_BED_ADDRESS, TestBedArtifact.deployedBytecode);
-  const testBed = await hre.ethers.getContractAt(TestBedArtifact.abi, TEST_BED_ADDRESS);
+  const artifact = await hre.artifacts.readArtifact('TestBed');
+  await hardhatSetCode(hre, TEST_BED_ADDRESS, artifact.deployedBytecode);
+  const testBed = await hre.ethers.getContractAt(artifact.abi, TEST_BED_ADDRESS);
   await testBed.waitForDeployment();
   return testBed;
 };
@@ -115,6 +115,86 @@ export type DeployMocksArgs = {
   silent?: boolean;
 };
 
+/**
+ * Resolve a module path that works in both ESM and CJS
+ */
+function resolveModulePath(moduleName: string): string {
+  // Try using standard Node.js require.resolve
+  // In CJS context, require is available globally
+  // In ESM context that's transpiled to CJS, require is also available
+  try {
+    // This works in both CJS and transpiled ESM
+    // @ts-ignore - require might not be in types but it exists at runtime in CJS
+    if (typeof require !== 'undefined' && typeof require.resolve === 'function') {
+      // @ts-ignore
+      return require.resolve(moduleName);
+    }
+  } catch (e) {
+    // Fallback: try to construct path manually
+  }
+
+  // Fallback: search in node_modules
+  const nodeModulesPath = path.join(process.cwd(), 'node_modules', moduleName);
+  if (fs.existsSync(nodeModulesPath)) {
+    return nodeModulesPath;
+  }
+
+  throw new Error(`Could not resolve module: ${moduleName}`);
+}
+
+/**
+ * Ensure mock contracts are compiled and available in artifacts
+ */
+const compileMockContracts = async (hre: HardhatRuntimeEnvironment) => {
+  try {
+    // Find the mock-contracts package
+    const mockContractsPackageJson = resolveModulePath('@cofhe/mock-contracts/package.json');
+    const mockContractsRoot = path.dirname(mockContractsPackageJson);
+    const mockContractsPath = path.join(mockContractsRoot, 'contracts');
+
+    // Create a directory in the user's contracts directory for the mock contracts
+    const userContractsDir = hre.config.paths.sources;
+    const targetPath = path.join(userContractsDir, '.cofhe-mocks');
+
+    // Remove existing directory if it exists
+    if (fs.existsSync(targetPath)) {
+      fs.rmSync(targetPath, { recursive: true, force: true });
+    }
+
+    // Create the target directory
+    fs.mkdirSync(targetPath, { recursive: true });
+
+    // Copy only .sol files from the root of contracts directory, excluding foundry/ subdirectory
+    const files = fs.readdirSync(mockContractsPath);
+    for (const file of files) {
+      const sourcePath = path.join(mockContractsPath, file);
+      const stat = fs.statSync(sourcePath);
+
+      // Skip the foundry directory and any other directories
+      if (stat.isDirectory()) {
+        continue;
+      }
+
+      // Copy .sol files
+      if (file.endsWith('.sol')) {
+        const targetFilePath = path.join(targetPath, file);
+        fs.copyFileSync(sourcePath, targetFilePath);
+      }
+    }
+
+    // Compile with the copied contracts
+    await hre.run('compile', { quiet: true });
+
+    // Clean up after compilation
+    if (fs.existsSync(targetPath)) {
+      fs.rmSync(targetPath, { recursive: true, force: true });
+    }
+  } catch (error) {
+    console.error('Failed to compile mock contracts:', error);
+    throw error;
+  }
+};
+
 export const deployMocks = async (
   hre: HardhatRuntimeEnvironment,
   options: DeployMocksArgs = {
@@ -126,6 +206,9 @@ export const deployMocks = async (
   // Check if network is Hardhat, if not log skip message and return
   const isHardhat = await checkNetworkAndSkip(hre);
   if (!isHardhat) return;
+
+  // Compile mock contracts to create artifacts
+  await compileMockContracts(hre);
 
   const logEmptyIfNoisy = () => {
     if (!options.silent) {

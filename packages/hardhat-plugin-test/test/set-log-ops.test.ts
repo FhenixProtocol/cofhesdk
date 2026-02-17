@@ -2,7 +2,6 @@ import hre from 'hardhat';
 import { expect } from 'chai';
 import { TASK_COFHE_MOCKS_DEPLOY, TASK_COFHE_MOCKS_SET_LOG_OPS } from './consts';
 import { Contract } from 'ethers';
-import { MockTaskManagerArtifact } from '@cofhe/hardhat-plugin';
 
 describe('Set Log Ops Task', () => {
   let taskManager: Contract;
@@ -10,7 +9,7 @@ describe('Set Log Ops Task', () => {
   beforeEach(async () => {
     await hre.run(TASK_COFHE_MOCKS_DEPLOY, { silent: true });
 
-    taskManager = await hre.ethers.getContractAt(MockTaskManagerArtifact.abi, MockTaskManagerArtifact.fixedAddress);
+    taskManager = await hre.cofhesdk.mocks.getMockTaskManager();
 
     await taskManager.setLogOps(false);
   });
