@@ -114,7 +114,7 @@ describe('Base Sepolia Integration Tests', () => {
   });
 
   // TODO: UNCOMMENT WHEN UPDATED ACL DEPLOYED
-  
+
   // it('Permit should be valid on chain', async function () {
   //   const permit = await cofhesdkClient.permits.createSelf({
   //     issuer: baseSepoliaSigner.address,
