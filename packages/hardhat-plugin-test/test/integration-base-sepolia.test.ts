@@ -7,6 +7,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { createCofhesdkClient, createCofhesdkConfig } from '@cofhe/sdk/node';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 import { expect } from 'chai';
+import { PermitUtils } from '@cofhe/sdk/permits';
 
 // Test private key - should be funded on Base Sepolia
 // Using a well-known test key, but you'll need to fund it with testnet ETH
@@ -111,4 +112,48 @@ describe('Base Sepolia Integration Tests', () => {
     // Verify the decrypted value matches
     expect(unsealedResult).to.be.equal(testValue);
   });
+
+  // TODO: UNCOMMENT WHEN UPDATED ACL DEPLOYED
+  
+  // it('Permit should be valid on chain', async function () {
+  //   const permit = await cofhesdkClient.permits.createSelf({
+  //     issuer: baseSepoliaSigner.address,
+  //     name: 'Test Permit',
+  //   });
+
+  //   const isValid = await PermitUtils.checkValidityOnChain(permit, cofhesdkClient.getSnapshot().publicClient!);
+
+  //   expect(isValid).to.be.true;
+  // });
+
+  // it('Expired permit should revert with PermissionInvalid_Expired', async function () {
+  //   const permit = await cofhesdkClient.permits.createSelf({
+  //     issuer: baseSepoliaSigner.address,
+  //     name: 'Test Permit',
+  //     expiration: Math.floor(Date.now() / 1000) - 3600, // 1 hour ago
+  //   });
+
+  //   try {
+  //     await PermitUtils.checkValidityOnChain(permit, cofhesdkClient.getSnapshot().publicClient!);
+  //   } catch (error) {
+  //     expect(error).to.be.instanceOf(Error);
+  //     expect((error as Error).message).to.be.equal('PermissionInvalid_Expired');
+  //   }
+  // });
+
+  // it('Invalid issuer signature should revert with PermissionInvalid_IssuerSignature', async function () {
+  //   const permit = await cofhesdkClient.permits.createSelf({
+  //     issuer: baseSepoliaSigner.address,
+  //     name: 'Test Permit',
+  //   });
+
+  //   permit.issuerSignature = '0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+
+  //   try {
+  //     await PermitUtils.checkValidityOnChain(permit, cofhesdkClient.getSnapshot().publicClient!);
+  //   } catch (error) {
+  //     expect(error).to.be.instanceOf(Error);
+  //     expect((error as Error).message).to.be.equal('PermissionInvalid_IssuerSignature');
+  //   }
+  // });
 });

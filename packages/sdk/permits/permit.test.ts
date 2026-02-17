@@ -487,6 +487,19 @@ describe('PermitUtils Tests', () => {
 
       expect(typeof isValid).toBe('boolean');
       expect(isValid).toBe(true);
+
+      const permitInvalid = PermitUtils.createSelf({
+        type: 'self',
+        issuer: bobAddress,
+        name: 'Test Permit',
+        expiration: Math.floor(Date.now() / 1000) - 3600, // 1 hour ago
+      });
+
+      const signedPermitInvalid = await PermitUtils.sign(permitInvalid, publicClient, bobWalletClient);
+      const isValidInvalid = await PermitUtils.checkValidityOnChain(signedPermitInvalid, publicClient);
+
+      expect(typeof isValidInvalid).toBe('boolean');
+      expect(isValidInvalid).toBe(false);
     });
   });
 });

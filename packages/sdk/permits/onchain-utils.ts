@@ -1,4 +1,11 @@
-import { type Hex, type PublicClient, parseAbi } from 'viem';
+import {
+  BaseError,
+  ContractFunctionRevertedError,
+  type Hex,
+  type PublicClient,
+  decodeErrorResult,
+  parseAbi,
+} from 'viem';
 import type { EIP712Domain, Permission } from './types';
 
 export const getAclAddress = async (publicClient: PublicClient): Promise<Hex> => {
@@ -43,19 +50,146 @@ export const getAclEIP712Domain = async (publicClient: PublicClient): Promise<EI
   };
 };
 
-export const checkPermitValidityOnChain = async (permission: Permission, publicClient: PublicClient): Promise<boolean> => {
+export const checkPermitValidityOnChain = async (
+  permission: Permission,
+  publicClient: PublicClient
+): Promise<boolean> => {
   const aclAddress = await getAclAddress(publicClient);
-  const CHECK_PERMIT_VALIDITY_IFACE =
-    'function checkPermitValidity(Permission memory permission) public view returns (bool)';
-
-  // Parse the ABI for the EIP712 domain function
-  const checkPermitValidityAbi = parseAbi([CHECK_PERMIT_VALIDITY_IFACE]);
 
   // Check if the permit is valid
-  return publicClient.readContract({
-    address: aclAddress,
-    abi: checkPermitValidityAbi,
-    functionName: 'checkPermitValidity',
-    args: [permission],
-  });
+  try {
+    await publicClient.simulateContract({
+      address: aclAddress,
+      abi: checkPermitValidityAbi,
+      functionName: 'checkPermitValidity',
+      args: [
+        {
+          issuer: permission.issuer,
+          expiration: BigInt(permission.expiration),
+          recipient: permission.recipient,
+          validatorId: BigInt(permission.validatorId),
+          validatorContract: permission.validatorContract,
+          sealingKey: permission.sealingKey,
+          issuerSignature: permission.issuerSignature,
+          recipientSignature: permission.recipientSignature,
+        },
+      ],
+    });
+    return true;
+  } catch (err: any) {
+    // Hardhat wrapped error will need to be unwrapped to get the return data
+    const hhDetailsData = extractReturnData(err);
+    if (hhDetailsData != null) {
+      const decoded = decodeErrorResult({
+        abi: checkPermitValidityAbi,
+        data: hhDetailsData,
+      });
+
+      throw new Error(decoded.errorName);
+    }
+
+    // Viem default handling
+    if (err instanceof BaseError) {
+      const revertError = err.walk((err) => err instanceof ContractFunctionRevertedError);
+      if (revertError instanceof ContractFunctionRevertedError) {
+        const errorName = revertError.data?.errorName ?? '';
+        throw new Error(errorName);
+      }
+    }
+
+    // Fallback throw the original error
+    throw new Error(err);
+  }
 };
+
+function extractReturnData(err: unknown): `0x${string}` | undefined {
+  // viem BaseError has `details`, but fall back to any message-like string we can find
+  const anyErr = err as any;
+  const s = anyErr?.details ?? anyErr?.cause?.details ?? anyErr?.shortMessage ?? anyErr?.message ?? String(err);
+
+  return s.match(/return data:\s*(0x[a-fA-F0-9]+)/)?.[1] as `0x${string}` | undefined;
+}
+
+const checkPermitValidityAbi = [
+  {
+    type: 'function',
+    name: 'checkPermitValidity',
+    inputs: [
+      {
+        name: 'permission',
+        type: 'tuple',
+        internalType: 'struct Permission',
+        components: [
+          {
+            name: 'issuer',
+            type: 'address',
+            internalType: 'address',
+          },
+          {
+            name: 'expiration',
+            type: 'uint64',
+            internalType: 'uint64',
+          },
+          {
+            name: 'recipient',
+            type: 'address',
+            internalType: 'address',
+          },
+          {
+            name: 'validatorId',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'validatorContract',
+            type: 'address',
+            internalType: 'address',
+          },
+          {
+            name: 'sealingKey',
+            type: 'bytes32',
+            internalType: 'bytes32',
+          },
+          {
+            name: 'issuerSignature',
+            type: 'bytes',
+            internalType: 'bytes',
+          },
+          {
+            name: 'recipientSignature',
+            type: 'bytes',
+            internalType: 'bytes',
+          },
+        ],
+      },
+    ],
+    outputs: [
+      {
+        name: '',
+        type: 'bool',
+        internalType: 'bool',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'error',
+    name: 'PermissionInvalid_Disabled',
+    inputs: [],
+  },
+  {
+    type: 'error',
+    name: 'PermissionInvalid_Expired',
+    inputs: [],
+  },
+  {
+    type: 'error',
+    name: 'PermissionInvalid_IssuerSignature',
+    inputs: [],
+  },
+  {
+    type: 'error',
+    name: 'PermissionInvalid_RecipientSignature',
+    inputs: [],
+  },
+] as const;
