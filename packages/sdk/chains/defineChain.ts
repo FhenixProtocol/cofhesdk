@@ -11,7 +11,7 @@ export function defineChain(chainConfig: CofheChain): CofheChain {
   const result = CofheChainSchema.safeParse(chainConfig);
 
   if (!result.success) {
-    throw new Error(`Invalid chain configuration: ${z.prettifyError(result.error)}`);
+    throw new Error(`Invalid chain configuration: ${z.prettifyError(result.error)}`, { cause: result.error });
   }
 
   return result.data;

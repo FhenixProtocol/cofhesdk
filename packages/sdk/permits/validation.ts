@@ -199,10 +199,10 @@ export const ImportPermitValidator = zPermitWithSealingPair
 // VALIDATION FUNCTIONS
 // ============================================================================
 
-const safeParseAndThrowFormatted = <T extends z.ZodTypeAny>(schema: T, data: unknown): z.output<T> => {
+const safeParseAndThrowFormatted = <T extends z.ZodTypeAny>(schema: T, data: unknown, message: string): z.output<T> => {
   const result = schema.safeParse(data);
   if (!result.success) {
-    throw new Error(z.prettifyError(result.error));
+    throw new Error(`${message}: ${z.prettifyError(result.error)}`, { cause: result.error });
   }
   return result.data;
 };
@@ -211,41 +211,41 @@ const safeParseAndThrowFormatted = <T extends z.ZodTypeAny>(schema: T, data: unk
  * Validates self permit creation options
  */
 export const validateSelfPermitOptions = (options: any) => {
-  return safeParseAndThrowFormatted(SelfPermitOptionsValidator, options);
+  return safeParseAndThrowFormatted(SelfPermitOptionsValidator, options, 'Invalid self permit options');
 };
 /**
  * Validates sharing permit creation options
  */
 export const validateSharingPermitOptions = (options: any) => {
-  return safeParseAndThrowFormatted(SharingPermitOptionsValidator, options);
+  return safeParseAndThrowFormatted(SharingPermitOptionsValidator, options, 'Invalid sharing permit options');
 };
 
 /**
  * Validates import permit creation options
  */
 export const validateImportPermitOptions = (options: any) => {
-  return safeParseAndThrowFormatted(ImportPermitOptionsValidator, options);
+  return safeParseAndThrowFormatted(ImportPermitOptionsValidator, options, 'Invalid import permit options');
 };
 
 /**
  * Validates a fully formed self permit
  */
 export const validateSelfPermit = (permit: any) => {
-  return safeParseAndThrowFormatted(SelfPermitValidator, permit);
+  return safeParseAndThrowFormatted(SelfPermitValidator, permit, 'Invalid self permit');
 };
 
 /**
  * Validates a fully formed sharing permit
  */
 export const validateSharingPermit = (permit: any) => {
-  return safeParseAndThrowFormatted(SharingPermitValidator, permit);
+  return safeParseAndThrowFormatted(SharingPermitValidator, permit, 'Invalid sharing permit');
 };
 
 /**
  * Validates a fully formed import/recipient permit
  */
 export const validateImportPermit = (permit: any) => {
-  return safeParseAndThrowFormatted(ImportPermitValidator, permit);
+  return safeParseAndThrowFormatted(ImportPermitValidator, permit, 'Invalid import permit');
 };
 
 /**
