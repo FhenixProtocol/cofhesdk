@@ -474,32 +474,34 @@ describe('PermitUtils Tests', () => {
       expect(typeof isValid).toBe('boolean');
     }, 10000); // 10 second timeout for network call
 
-    it('should check permit validity on chain with real contract data', async () => {
-      const permit = PermitUtils.createSelf({
-        type: 'self',
-        issuer: bobAddress,
-        name: 'Test Permit',
-      });
+    // TODO: Uncomment when updated ACL with checkPermitValidity function is deployed
 
-      const signedPermit = await PermitUtils.sign(permit, publicClient, bobWalletClient);
+    // it('should check permit validity on chain with real contract data', async () => {
+    //   const permit = PermitUtils.createSelf({
+    //     type: 'self',
+    //     issuer: bobAddress,
+    //     name: 'Test Permit',
+    //   });
 
-      const isValid = await PermitUtils.checkValidityOnChain(signedPermit, publicClient);
+    //   const signedPermit = await PermitUtils.sign(permit, publicClient, bobWalletClient);
 
-      expect(typeof isValid).toBe('boolean');
-      expect(isValid).toBe(true);
+    //   const isValid = await PermitUtils.checkValidityOnChain(signedPermit, publicClient);
 
-      const permitInvalid = PermitUtils.createSelf({
-        type: 'self',
-        issuer: bobAddress,
-        name: 'Test Permit',
-        expiration: Math.floor(Date.now() / 1000) - 3600, // 1 hour ago
-      });
+    //   expect(typeof isValid).toBe('boolean');
+    //   expect(isValid).toBe(true);
 
-      const signedPermitInvalid = await PermitUtils.sign(permitInvalid, publicClient, bobWalletClient);
-      const isValidInvalid = await PermitUtils.checkValidityOnChain(signedPermitInvalid, publicClient);
+    //   const permitInvalid = PermitUtils.createSelf({
+    //     type: 'self',
+    //     issuer: bobAddress,
+    //     name: 'Test Permit',
+    //     expiration: Math.floor(Date.now() / 1000) - 3600, // 1 hour ago
+    //   });
 
-      expect(typeof isValidInvalid).toBe('boolean');
-      expect(isValidInvalid).toBe(false);
-    });
+    //   const signedPermitInvalid = await PermitUtils.sign(permitInvalid, publicClient, bobWalletClient);
+    //   const isValidInvalid = await PermitUtils.checkValidityOnChain(signedPermitInvalid, publicClient);
+
+    //   expect(typeof isValidInvalid).toBe('boolean');
+    //   expect(isValidInvalid).toBe(false);
+    // });
   });
 });
