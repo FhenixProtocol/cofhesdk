@@ -169,10 +169,10 @@ export const ImportPermitOptionsValidator = z
     issuer: addressNotZeroSchema,
     recipient: addressNotZeroSchema,
     name: z.string().optional().default('Unnamed Permit'),
-    expiration: z.int().optional().default(DEFAULT_EXPIRATION_FN),
+    expiration: z.int(),
     validatorId: z.int().optional().default(0),
     validatorContract: addressSchema.optional().default(zeroAddress),
-    issuerSignature: bytesNotEmptySchema.optional().default('0x'),
+    issuerSignature: bytesNotEmptySchema,
     recipientSignature: bytesSchema.optional().default('0x'),
   })
   .refine(...ExternalValidatorRefinement);
