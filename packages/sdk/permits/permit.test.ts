@@ -113,6 +113,7 @@ describe('PermitUtils Tests', () => {
     it('should import a shared permit with valid options', async () => {
       const options: ImportSharedPermitOptions = {
         issuer: bobAddress,
+        expiration: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
         recipient: aliceAddress,
         issuerSignature: '0x1234567890abcdef',
         name: 'Test Import Permit',
@@ -137,6 +138,7 @@ describe('PermitUtils Tests', () => {
     it('should import a shared permit with valid options as string', async () => {
       const options: ImportSharedPermitOptions = {
         issuer: bobAddress,
+        expiration: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
         recipient: aliceAddress,
         issuerSignature: '0x1234567890abcdef',
       };
@@ -171,11 +173,21 @@ describe('PermitUtils Tests', () => {
     it('should throw error for missing issuerSignature', async () => {
       const options: ImportSharedPermitOptions = {
         issuer: bobAddress,
+        expiration: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
         recipient: aliceAddress,
         issuerSignature: '0x', // Invalid empty signature
         name: 'Test Import Permit',
       };
 
+      expect(() => PermitUtils.importShared(options)).toThrow();
+    });
+
+    it('should throw error for missing expiration', async () => {
+      const options = {
+        issuer: bobAddress,
+        recipient: aliceAddress,
+        issuerSignature: '0x1234567890abcdef',
+      } as unknown as ImportSharedPermitOptions;
       expect(() => PermitUtils.importShared(options)).toThrow();
     });
   });
@@ -220,6 +232,7 @@ describe('PermitUtils Tests', () => {
       const options: ImportSharedPermitOptions = {
         issuer: bobAddress,
         recipient: aliceAddress,
+        expiration: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
         issuerSignature: '0x1234567890abcdef',
         name: 'Test Import Permit',
       };
@@ -236,6 +249,7 @@ describe('PermitUtils Tests', () => {
       const options: ImportSharedPermitOptions = {
         issuer: bobAddress,
         recipient: aliceAddress,
+        expiration: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
         issuerSignature: '0x1234567890abcdef',
       };
 
@@ -253,6 +267,7 @@ describe('PermitUtils Tests', () => {
       const options: ImportSharedPermitOptions = {
         issuer: bobAddress,
         recipient: aliceAddress,
+        expiration: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
         issuerSignature: '0x1234567890abcdef',
       };
 
@@ -286,6 +301,7 @@ describe('PermitUtils Tests', () => {
       const permit = PermitUtils.importShared({
         issuer: bobAddress,
         recipient: aliceAddress,
+        expiration: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
         issuerSignature: '0x1111111111111111111111111111111111111111111111111111111111111111',
         name: 'Test Permit',
       });

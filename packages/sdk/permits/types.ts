@@ -154,7 +154,7 @@ export type ImportSharedPermitOptions = {
   recipient: string;
   issuerSignature: string;
   name?: string;
-  expiration?: number;
+  expiration: number;
   validatorId?: number;
   validatorContract?: string;
 };

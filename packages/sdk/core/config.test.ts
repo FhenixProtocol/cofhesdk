@@ -133,7 +133,7 @@ describe('createCofhesdkConfigBase', () => {
       removeItem: 'not-a-function',
     };
 
-    expectInvalidConfigItem('fheKeyStorage', invalidStorageNotAFunction, true);
+    expectInvalidConfigItem('fheKeyStorage', invalidStorageNotAFunction);
   });
 
   it('mocks', () => {
