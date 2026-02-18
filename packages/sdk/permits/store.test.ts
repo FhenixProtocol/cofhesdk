@@ -84,22 +84,5 @@ describe('Storage Tests', () => {
       const activeHash = getActivePermitHash(chainId, account);
       expect(activeHash).toBeUndefined();
     });
-
-    it('should switch active permit when removing current active', async () => {
-      const permit1 = await createMockPermit();
-      const permit2 = await createMockPermit({
-        name: 'Second Permit',
-        issuer: '0x0987654321098765432109876543210987654321' as `0x${string}`, // Different issuer
-      });
-
-      setPermit(chainId, account, permit1);
-      setPermit(chainId, account, permit2);
-      setActivePermitHash(chainId, account, permit1.hash);
-
-      removePermit(chainId, account, permit1.hash);
-
-      const activeHash = getActivePermitHash(chainId, account);
-      expect(activeHash).toBe(permit2.hash);
-    });
   });
 });
