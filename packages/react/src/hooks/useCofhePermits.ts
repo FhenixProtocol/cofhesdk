@@ -121,7 +121,7 @@ export const useCofheRemovePermit = ({ onSuccess, onError }: Callbacks = {}) => 
           throw new Error('Client, chainId, and account must be defined to remove a permit');
         }
 
-        await client.permits.removePermit(hashToRemove, chainId, account, true);
+        client.permits.removePermit(hashToRemove, chainId, account, true);
         onSuccess?.();
       } catch (error) {
         onError?.(new Error(error instanceof Error ? error.message : 'Unknown error'));
