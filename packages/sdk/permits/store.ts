@@ -87,7 +87,7 @@ export const setPermit = (chainId: number, account: string, permit: Permit) => {
   );
 };
 
-export const removePermit = (chainId: number, account: string, hash: string, force?: boolean) => {
+export const removePermit = (chainId: number, account: string, hash: string) => {
   clearStaleStore();
   _permitStore.setState(
     produce<PermitsStore>((state) => {
