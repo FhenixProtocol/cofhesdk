@@ -101,7 +101,7 @@ function isViemAllowFailureResult(
 function transformResultForContract(contract: CofheReadContractsContract, value: unknown): unknown {
   // `transformEncryptedReturnTypes` expects Cofhe ABI & function typing, but multicall contracts can be heterogeneous.
   // Runtime transformation still works; we keep types intentionally loose here.
-  return transformEncryptedReturnTypes(contract.abi as Abi, contract.functionName as any, value as any);
+  return transformEncryptedReturnTypes(contract.abi, contract.functionName, value);
 }
 
 export function useCofheReadContracts(
@@ -132,7 +132,7 @@ export function useCofheReadContracts(
     queryKey: constructCofheReadContractsQueryKey({
       cofheChainId,
       contracts,
-      allowFailure: (multicallOptions as any)?.allowFailure,
+      allowFailure: multicallOptions?.allowFailure,
       // Same rationale as in `useCofheReadContract`: guard against a blank screen when CofheError is active.
       enabled,
     }),
@@ -143,11 +143,11 @@ export function useCofheReadContracts(
       const raw = await publicClient.multicall({
         contracts,
         ...(multicallOptions || {}),
-      } as any);
+      });
 
       // When `allowFailure: true`, viem returns per-item { status, result?, error? }.
       // When `allowFailure: false`, viem returns an array of results (and throws on failure).
-      return (raw as unknown[]).map((item, index): CofheReadContractsItem => {
+      return raw.map((item, index): CofheReadContractsItem => {
         const contract = contracts[index];
         if (!contract) return { error: new Error('Multicall result length mismatch') };
 
