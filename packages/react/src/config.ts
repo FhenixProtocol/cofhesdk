@@ -1,16 +1,11 @@
 import { z } from 'zod';
 import { type CofhesdkConfig, type CofhesdkInputConfig } from '@cofhe/sdk';
 import { createCofhesdkConfig as createCofhesdkConfigWeb } from '@cofhe/sdk/web';
-import { getAddress, isAddress, zeroAddress, type Hex } from 'viem';
+import { getAddress, isAddress, zeroAddress } from 'viem';
 
 /**
  * Zod schema for react configuration validation
  */
-export type HexAddress = `0x${string}`;
-const HexAddressSchema = z.custom<HexAddress>(
-  (v) => typeof v === 'string' && /^0x[a-fA-F0-9]{40}$/.test(v),
-  'Invalid address'
-);
 
 export const addressSchema = z
   .string()
@@ -20,7 +15,7 @@ export const addressSchema = z
   .refine((val) => val !== zeroAddress, {
     error: 'Must not be zeroAddress',
   })
-  .transform((val): Hex => getAddress(val));
+  .transform((val) => getAddress(val));
 
 export const CofhesdkReactConfigSchema = z.object({
   shareablePermits: z.boolean().optional().default(false),
@@ -83,7 +78,9 @@ export function createCofhesdkConfig(config: CofhesdkReactInputConfig): Cofhesdk
   const reactConfigResult = CofhesdkReactConfigSchema.safeParse(reactConfigInput);
 
   if (!reactConfigResult.success) {
-    throw new Error(`Invalid cofhesdk react configuration: ${reactConfigResult.error.message}`);
+    throw new Error(`Invalid cofhesdk react configuration: ${z.prettifyError(reactConfigResult.error)}`, {
+      cause: reactConfigResult.error,
+    });
   }
 
   return {
