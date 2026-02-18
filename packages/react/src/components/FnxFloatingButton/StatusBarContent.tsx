@@ -8,6 +8,13 @@ import type { FnxStatus, FnxStatusVariant } from './types';
 import { AnimatedZStack } from '../primitives/AnimatedZStack';
 import { usePortalNavigation, usePortalStatuses } from '@/stores';
 import { useCofheConnection } from '@/hooks';
+import { CLAIMS_AVAILABLE_STATUS_ID } from '@/hooks/useWatchClaimablesStatus';
+import {
+  STATUS_ID_MISSING_PERMIT,
+  STATUS_ID_PERMIT_EXPIRED,
+  STATUS_ID_PERMIT_EXPIRING_SOON,
+  STATUS_ID_PERMIT_SHARED,
+} from '@/hooks/useWatchPermitStatus';
 
 const ConnectionStatus: React.FC = () => {
   const { theme } = useFnxFloatingButtonContext();
@@ -95,6 +102,39 @@ const ActiveStatusContent: React.FC<{ status: FnxStatus }> = ({ status }) => {
   );
 };
 
+const STATUSES_ORDER = [
+  // first always goes "claims available" as claiming doesn't require a permit
+  CLAIMS_AVAILABLE_STATUS_ID,
+
+  // next goes all permit related statuses
+  STATUS_ID_MISSING_PERMIT,
+  STATUS_ID_PERMIT_EXPIRED,
+  STATUS_ID_PERMIT_EXPIRING_SOON,
+  STATUS_ID_PERMIT_SHARED,
+
+  // next everything else can be sorted by time or just left in the order they were added
+].reverse();
+
+function sortStatuses(a: FnxStatus, b: FnxStatus): number {
+  const aIndex = STATUSES_ORDER.indexOf(a.id);
+  const bIndex = STATUSES_ORDER.indexOf(b.id);
+
+  if (aIndex === -1 && bIndex === -1) {
+    // If both statuses are not in the predefined order, keep their original order
+    return 0;
+  }
+  if (aIndex === -1) {
+    // If only a is not in the predefined order, b should come first
+    return 1;
+  }
+  if (bIndex === -1) {
+    // If only b is not in the predefined order, a should come first
+    return -1;
+  }
+  // If both statuses are in the predefined order, sort by their index
+  return aIndex - bIndex;
+}
+
 export const StatusBarContent: React.FC = () => {
   const { statuses } = usePortalStatuses();
 
@@ -104,7 +144,7 @@ export const StatusBarContent: React.FC = () => {
       <ConnectionStatus />
 
       {/* Active errors or warnings to be resolved */}
-      {statuses.map((status) => (
+      {statuses.sort(sortStatuses).map((status) => (
         <ActiveStatusContent key={status.id} status={status} />
       ))}
     </AnimatedZStack>
