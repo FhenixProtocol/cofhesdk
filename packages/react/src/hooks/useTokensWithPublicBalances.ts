@@ -96,7 +96,7 @@ export function useTokensWithPublicBalances(
         isLoading = isLoading || result.isLoading;
         isFetching = isFetching || result.isFetching;
         isError = isError || result.isError;
-        if (!error && result.error) error = result.error as Error;
+        if (!error && result.error) error = result.error;
 
         const wei = result.data;
         if (typeof wei !== 'bigint') continue;
