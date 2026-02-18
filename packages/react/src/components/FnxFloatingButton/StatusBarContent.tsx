@@ -1,5 +1,6 @@
 import { MdOutlineSettings } from 'react-icons/md';
 import { IoIosCheckmarkCircleOutline, IoIosCloseCircleOutline, IoIosTime } from 'react-icons/io';
+import { useMemo } from 'react';
 import { cn } from '@/utils';
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
 import { FloatingButtonPage } from './pagesConfig/types';
@@ -102,22 +103,26 @@ const ActiveStatusContent: React.FC<{ status: FnxStatus }> = ({ status }) => {
   );
 };
 
-const STATUSES_ORDER = [
-  // first always goes "claims available" as claiming doesn't require a permit
-  CLAIMS_AVAILABLE_STATUS_ID,
+const STATUSES_ORDER = new Map<string, number>(
+  [
+    // first always goes "claims available" as claiming doesn't require a permit
+    CLAIMS_AVAILABLE_STATUS_ID,
 
-  // next goes all permit related statuses
-  STATUS_ID_MISSING_PERMIT,
-  STATUS_ID_PERMIT_EXPIRED,
-  STATUS_ID_PERMIT_EXPIRING_SOON,
-  STATUS_ID_PERMIT_SHARED,
+    // next goes all permit related statuses
+    STATUS_ID_MISSING_PERMIT,
+    STATUS_ID_PERMIT_EXPIRED,
+    STATUS_ID_PERMIT_EXPIRING_SOON,
+    STATUS_ID_PERMIT_SHARED,
 
-  // next everything else can be sorted by time or just left in the order they were added
-].reverse();
+    // next everything else can be sorted by time or just left in the order they were added
+  ]
+    .reverse()
+    .map((id, index) => [id, index])
+);
 
 function sortStatuses(a: FnxStatus, b: FnxStatus): number {
-  const aIndex = STATUSES_ORDER.indexOf(a.id);
-  const bIndex = STATUSES_ORDER.indexOf(b.id);
+  const aIndex = STATUSES_ORDER.get(a.id) ?? -1;
+  const bIndex = STATUSES_ORDER.get(b.id) ?? -1;
 
   if (aIndex === -1 && bIndex === -1) {
     // If both statuses are not in the predefined order, keep their original order
@@ -138,13 +143,15 @@ function sortStatuses(a: FnxStatus, b: FnxStatus): number {
 export const StatusBarContent: React.FC = () => {
   const { statuses } = usePortalStatuses();
 
+  const sortedStatuses = useMemo(() => statuses.sort(sortStatuses), [statuses]);
+
   return (
     <AnimatedZStack>
       {/* Connection status showing connection state and chain */}
       <ConnectionStatus />
 
       {/* Active errors or warnings to be resolved */}
-      {statuses.sort(sortStatuses).map((status) => (
+      {sortedStatuses.map((status) => (
         <ActiveStatusContent key={status.id} status={status} />
       ))}
     </AnimatedZStack>
