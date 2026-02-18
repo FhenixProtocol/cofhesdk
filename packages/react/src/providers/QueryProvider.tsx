@@ -22,5 +22,6 @@ export const QueryProvider = ({
     if (overridingQueryClient) return overridingQueryClient;
     return new QueryClient();
   }, [overridingQueryClient]);
+
   return <InternalQueryClientContext.Provider value={queryClient}>{children}</InternalQueryClientContext.Provider>;
 };
