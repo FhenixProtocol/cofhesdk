@@ -14,7 +14,7 @@ import { MockZkVerifierAbi } from './MockZkVerifierAbi.js';
 import { hardhat } from 'viem/chains';
 import { CofhesdkError, CofhesdkErrorCode } from '../error.js';
 import { privateKeyToAccount } from 'viem/accounts';
-import { MOCKS_ZK_VERIFIER_ADDRESS, MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY } from '../consts.js';
+import { MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY, MOCKS_ZK_VERIFIER_ADDRESS } from '../consts.js';
 
 type EncryptableItemWithCtHash = EncryptableItem & {
   ctHash: bigint;
