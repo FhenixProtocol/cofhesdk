@@ -54,6 +54,17 @@ const CustomTooltip = ({ active, payload, label }: TooltipContentProps<number, s
   );
 };
 
+const themeClasses = {
+  /** Used by the chart line + area fill via `currentColor` */
+  accent: 'text-teal-500 dark:text-teal-400',
+  /** Recharts renders grid lines as SVG paths with this class */
+  gridLines:
+    '[&_.recharts-cartesian-grid_line]:stroke-slate-400/25 dark:[&_.recharts-cartesian-grid_line]:stroke-white/10',
+  /** Recharts tooltip cursor is an SVG path with this class */
+  tooltipCursor:
+    '[&_.recharts-tooltip-cursor]:stroke-current [&_.recharts-tooltip-cursor]:stroke-opacity-35 dark:[&_.recharts-tooltip-cursor]:stroke-opacity-45',
+} as const;
+
 export const TokenPriceChart: React.FC<TokenPriceChartProps> = ({
   points,
   className,
@@ -74,32 +85,41 @@ export const TokenPriceChart: React.FC<TokenPriceChartProps> = ({
   }, [points]);
 
   return (
-    <div className={cn('w-full', className)}>
+    <div
+      className={cn(
+        'w-full',
+        // Tailwind-driven theming for Recharts (SVG) using `currentColor` + nested selectors
+        themeClasses.accent,
+        themeClasses.gridLines,
+        themeClasses.tooltipCursor,
+        className
+      )}
+    >
       <div style={{ height }} className="w-full">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={points} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#14B8A6" stopOpacity={0.5} />
-                <stop offset="100%" stopColor="#14B8A6" stopOpacity={0} />
+                <stop offset="0%" stopColor="currentColor" stopOpacity={0.5} />
+                <stop offset="100%" stopColor="currentColor" stopOpacity={0} />
               </linearGradient>
             </defs>
 
-            <CartesianGrid vertical={false} stroke="rgba(148, 163, 184, 0.25)" strokeDasharray="3 3" />
+            <CartesianGrid vertical={false} strokeDasharray="3 3" />
 
             <XAxis dataKey="ts" type="number" domain={['dataMin', 'dataMax']} hide />
             <YAxis dataKey="value" domain={['dataMin', 'dataMax']} hide />
-            <Tooltip content={CustomTooltip} cursor={{ stroke: 'rgba(20,184,166,0.35)' }} />
+            <Tooltip content={CustomTooltip} />
 
             <Area
               type="monotone"
               dataKey="value"
-              stroke="#14B8A6"
+              stroke="currentColor"
               strokeWidth={2}
               fillOpacity={1}
               fill={`url(#${gradientId})`}
               dot={false}
-              activeDot={{ r: 4, stroke: '#14B8A6', strokeWidth: 2, fill: '#ffffff' }}
+              activeDot={{ r: 4, stroke: 'currentColor', strokeWidth: 2, fill: '#ffffff' }}
             />
           </AreaChart>
         </ResponsiveContainer>
