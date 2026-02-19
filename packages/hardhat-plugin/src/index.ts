@@ -6,10 +6,14 @@ import { extendConfig, extendEnvironment, task, types } from 'hardhat/config';
 import { TASK_TEST, TASK_NODE } from 'hardhat/builtin-tasks/task-names';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 import {
-  MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
   type CofhesdkClient,
   type CofhesdkConfig,
   type CofhesdkInputConfig,
+  TASK_MANAGER_ADDRESS,
+  MOCKS_QUERY_DECRYPTER_ADDRESS,
+  MOCKS_ZK_VERIFIER_ADDRESS,
+  MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
+  TEST_BED_ADDRESS,
 } from '@cofhe/sdk';
 import { createCofhesdkClient, createCofhesdkConfig } from '@cofhe/sdk/node';
 import { HardhatSignerAdapter } from '@cofhe/sdk/adapters';
@@ -19,10 +23,6 @@ import {
   TASK_COFHE_MOCKS_DEPLOY,
   TASK_COFHE_MOCKS_SET_LOG_OPS,
   TASK_COFHE_USE_FAUCET,
-  TASK_MANAGER_ADDRESS,
-  MOCKS_QUERY_DECRYPTER_ADDRESS,
-  MOCKS_ZK_VERIFIER_ADDRESS,
-  TEST_BED_ADDRESS,
 } from './consts.js';
 import { deployMocks, type DeployMocksArgs } from './deploy.js';
 import { mock_setLoggingEnabled, mock_withLogs } from './logging.js';

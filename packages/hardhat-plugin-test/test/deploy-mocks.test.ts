@@ -6,7 +6,7 @@ import {
   MOCKS_ZK_VERIFIER_ADDRESS,
   MOCKS_QUERY_DECRYPTER_ADDRESS,
   TEST_BED_ADDRESS,
-} from '@cofhe/hardhat-plugin';
+} from '@cofhe/sdk';
 
 describe('Deploy Mocks Task', () => {
   it('should deploy mock contracts', async () => {

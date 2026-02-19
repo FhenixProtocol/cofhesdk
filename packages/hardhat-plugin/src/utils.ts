@@ -1,4 +1,4 @@
-import { TASK_MANAGER_ADDRESS, MOCKS_ZK_VERIFIER_ADDRESS } from './consts.js';
+import { TASK_MANAGER_ADDRESS, MOCKS_ZK_VERIFIER_ADDRESS } from '@cofhe/sdk';
 import { expect } from 'chai';
 import { ethers } from 'ethers';
 import { type HardhatEthersProvider } from '@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider';

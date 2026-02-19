@@ -14,14 +14,10 @@ import { MockZkVerifierAbi } from './MockZkVerifierAbi.js';
 import { hardhat } from 'viem/chains';
 import { CofhesdkError, CofhesdkErrorCode } from '../error.js';
 import { privateKeyToAccount } from 'viem/accounts';
-
-// Address the Mock ZkVerifier contract is deployed to on the Hardhat chain
-export const MocksZkVerifierAddress = '0x0000000000000000000000000000000000005001';
-
-// PK & address pair for zk verifier
-export const MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY =
-  '0x6C8D7F768A6BB4AAFE85E8A2F5A9680355239C7E14646ED62B044E39DE154512';
-export const MOCKS_ZK_VERIFIER_SIGNER_ADDRESS = '0x6E12D8C87503D4287c294f2Fdef96ACd9DFf6bd2';
+import {
+  MOCKS_ZK_VERIFIER_ADDRESS,
+  MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY,
+} from '../consts.js';
 
 type EncryptableItemWithCtHash = EncryptableItem & {
   ctHash: bigint;
@@ -111,7 +107,7 @@ async function calcCtHashes(
 
   try {
     ctHashes = (await publicClient.readContract({
-      address: MocksZkVerifierAddress,
+      address: MOCKS_ZK_VERIFIER_ADDRESS,
       abi: MockZkVerifierAbi,
       functionName: 'zkVerifyCalcCtHashesPacked',
       args: calcCtHashesArgs,
@@ -122,7 +118,7 @@ async function calcCtHashes(
       message: `mockZkVerifySign calcCtHashes failed while calling zkVerifyCalcCtHashesPacked`,
       cause: err instanceof Error ? err : undefined,
       context: {
-        address: MocksZkVerifierAddress,
+        address: MOCKS_ZK_VERIFIER_ADDRESS,
         items,
         account,
         securityZone,
@@ -163,7 +159,7 @@ async function insertCtHashes(items: EncryptableItemWithCtHash[], walletClient: 
     const account = walletClient.account!;
 
     await walletClient.writeContract({
-      address: MocksZkVerifierAddress,
+      address: MOCKS_ZK_VERIFIER_ADDRESS,
       abi: MockZkVerifierAbi,
       functionName: 'insertPackedCtHashes',
       args: insertPackedCtHashesArgs,

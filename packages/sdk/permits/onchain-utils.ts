@@ -7,10 +7,9 @@ import {
   parseAbi,
 } from 'viem';
 import type { EIP712Domain, Permission } from './types';
+import { TASK_MANAGER_ADDRESS } from '../core/consts.js';
 
 export const getAclAddress = async (publicClient: PublicClient): Promise<Hex> => {
-  // Hardcoded constants from the original implementation
-  const TASK_MANAGER_ADDRESS = '0xeA30c4B8b44078Bbf8a6ef5b9f1eC1626C7848D9';
   const ACL_IFACE = 'function acl() view returns (address)';
 
   // Parse the ABI for the ACL function

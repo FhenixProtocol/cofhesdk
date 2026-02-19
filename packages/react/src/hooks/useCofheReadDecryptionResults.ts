@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useInternalQueries } from '@/providers';
 import { useCofheChainId, useCofhePublicClient } from './useCofheConnection';
+import { TASK_MANAGER_ADDRESS } from '@cofhe/sdk';
 
 function abortError(message = 'Aborted') {
   const err = new Error(message);
@@ -31,9 +32,6 @@ async function sleep(ms: number, signal?: AbortSignal) {
     if (signal) signal.addEventListener('abort', onAbort, { once: true });
   });
 }
-
-// TODO: find proper place to put this constant, it's also duped now (exists in hardhat package)
-export const TASK_MANAGER_ADDRESS = '0xeA30c4B8b44078Bbf8a6ef5b9f1eC1626C7848D9';
 
 // function getDecryptResultSafe(uint256 ctHash) external view returns (uint256, bool)
 const TASK_MANAGER_ABI = [
