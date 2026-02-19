@@ -7,10 +7,10 @@ import { FloatingButtonPage } from '../components/FnxFloatingButton/pagesConfig/
 import { usePortalPersisted } from '@/stores/portalPersisted';
 import { useCofheIsConnected } from './useCofheConnection';
 
-const STATUS_ID_MISSING_PERMIT = 'missing-permit';
-const STATUS_ID_PERMIT_EXPIRED = 'permit-expired';
-const STATUS_ID_PERMIT_EXPIRING_SOON = 'permit-expiring-soon';
-const STATUS_ID_PERMIT_SHARED = 'permit-shared';
+export const STATUS_ID_MISSING_PERMIT = 'missing-permit';
+export const STATUS_ID_PERMIT_EXPIRED = 'permit-expired';
+export const STATUS_ID_PERMIT_EXPIRING_SOON = 'permit-expiring-soon';
+export const STATUS_ID_PERMIT_SHARED = 'permit-shared';
 
 export const showMissingPermitStatus = () => {
   usePortalStatuses.getState().addStatus({

@@ -87,7 +87,7 @@ export const setPermit = (chainId: number, account: string, permit: Permit) => {
   );
 };
 
-export const removePermit = (chainId: number, account: string, hash: string, force?: boolean) => {
+export const removePermit = (chainId: number, account: string, hash: string) => {
   clearStaleStore();
   _permitStore.setState(
     produce<PermitsStore>((state) => {
@@ -100,18 +100,8 @@ export const removePermit = (chainId: number, account: string, hash: string, for
       if (accountPermits[hash] == null) return;
 
       if (state.activePermitHash[chainId][account] === hash) {
-        // Find other permits before removing
-        const otherPermitHash = Object.keys(accountPermits).find((key) => key !== hash && accountPermits[key] != null);
-
-        if (otherPermitHash) {
-          state.activePermitHash[chainId][account] = otherPermitHash;
-        } else {
-          if (!force) {
-            throw new Error('Cannot remove the last permit without force flag');
-          }
-          // Clear the active hash when removing the last permit with force
-          state.activePermitHash[chainId][account] = undefined;
-        }
+        // if the active permit is the one to be removed - unset it
+        state.activePermitHash[chainId][account] = undefined;
       }
       // Remove the permit
       accountPermits[hash] = undefined;

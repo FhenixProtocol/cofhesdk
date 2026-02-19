@@ -168,8 +168,8 @@ const getOrCreateSharingPermit = async (
 
 // REMOVE
 
-const removePermit = async (chainId: number, account: string, hash: string, force?: boolean): Promise<void> =>
-  permitStore.removePermit(chainId, account, hash, force);
+const removePermit = async (chainId: number, account: string, hash: string): Promise<void> =>
+  permitStore.removePermit(chainId, account, hash);
 
 const removeActivePermit = async (chainId: number, account: string): Promise<void> =>
   permitStore.removeActivePermitHash(chainId, account);

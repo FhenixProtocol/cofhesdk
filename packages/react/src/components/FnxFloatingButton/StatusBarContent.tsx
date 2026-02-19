@@ -1,5 +1,6 @@
 import { MdOutlineSettings } from 'react-icons/md';
 import { IoIosCheckmarkCircleOutline, IoIosCloseCircleOutline, IoIosTime } from 'react-icons/io';
+import { useMemo } from 'react';
 import { cn } from '@/utils';
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
 import { FloatingButtonPage } from './pagesConfig/types';
@@ -8,6 +9,13 @@ import type { FnxStatus, FnxStatusVariant } from './types';
 import { AnimatedZStack } from '../primitives/AnimatedZStack';
 import { usePortalNavigation, usePortalStatuses } from '@/stores';
 import { useCofheConnection } from '@/hooks';
+import { CLAIMS_AVAILABLE_STATUS_ID } from '@/hooks/useWatchClaimablesStatus';
+import {
+  STATUS_ID_MISSING_PERMIT,
+  STATUS_ID_PERMIT_EXPIRED,
+  STATUS_ID_PERMIT_EXPIRING_SOON,
+  STATUS_ID_PERMIT_SHARED,
+} from '@/hooks/useWatchPermitStatus';
 
 const ConnectionStatus: React.FC = () => {
   const { theme } = useFnxFloatingButtonContext();
@@ -95,8 +103,47 @@ const ActiveStatusContent: React.FC<{ status: FnxStatus }> = ({ status }) => {
   );
 };
 
+const STATUSES_ORDER = new Map<string, number>(
+  [
+    // first always goes "claims available" as claiming doesn't require a permit
+    CLAIMS_AVAILABLE_STATUS_ID,
+
+    // next goes all permit related statuses
+    STATUS_ID_MISSING_PERMIT,
+    STATUS_ID_PERMIT_EXPIRED,
+    STATUS_ID_PERMIT_EXPIRING_SOON,
+    STATUS_ID_PERMIT_SHARED,
+
+    // next everything else can be sorted by time or just left in the order they were added
+  ]
+    .reverse()
+    .map((id, index) => [id, index])
+);
+
+function sortStatuses(a: FnxStatus, b: FnxStatus): number {
+  const aIndex = STATUSES_ORDER.get(a.id) ?? -1;
+  const bIndex = STATUSES_ORDER.get(b.id) ?? -1;
+
+  if (aIndex === -1 && bIndex === -1) {
+    // If both statuses are not in the predefined order, keep their original order
+    return 0;
+  }
+  if (aIndex === -1) {
+    // If only a is not in the predefined order, b should come first
+    return 1;
+  }
+  if (bIndex === -1) {
+    // If only b is not in the predefined order, a should come first
+    return -1;
+  }
+  // If both statuses are in the predefined order, sort by their index
+  return aIndex - bIndex;
+}
+
 export const StatusBarContent: React.FC = () => {
   const { statuses } = usePortalStatuses();
+
+  const sortedStatuses = useMemo(() => statuses.sort(sortStatuses), [statuses]);
 
   return (
     <AnimatedZStack>
@@ -104,7 +151,7 @@ export const StatusBarContent: React.FC = () => {
       <ConnectionStatus />
 
       {/* Active errors or warnings to be resolved */}
-      {statuses.map((status) => (
+      {sortedStatuses.map((status) => (
         <ActiveStatusContent key={status.id} status={status} />
       ))}
     </AnimatedZStack>

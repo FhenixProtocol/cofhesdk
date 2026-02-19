@@ -102,7 +102,7 @@ describe('Permits localStorage Tests', () => {
     expect(storedData).toBeDefined();
 
     // Remove permit
-    removePermit(chainId, account, permit.hash, true);
+    removePermit(chainId, account, permit.hash);
 
     // Verify data is cleaned up
     storedData = localStorage.getItem('cofhesdk-permits');
