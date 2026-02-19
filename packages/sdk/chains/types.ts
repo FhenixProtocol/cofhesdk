@@ -16,11 +16,11 @@ export const CofheChainSchema = z.object({
   /** Network identifier */
   network: z.string().min(1),
   /** coFhe service URL */
-  coFheUrl: z.string().url(),
+  coFheUrl: z.url(),
   /** Verifier service URL */
-  verifierUrl: z.string().url(),
+  verifierUrl: z.url(),
   /** Threshold network service URL */
-  thresholdNetworkUrl: z.string().url(),
+  thresholdNetworkUrl: z.url(),
   /** Environment type */
   environment: EnvironmentSchema,
 });

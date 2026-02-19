@@ -1,11 +1,34 @@
 import { z } from 'zod';
-import { isAddress, zeroAddress } from 'viem';
-import { type Permit, type ValidationResult } from './types.js';
-import { is0xPrefixed } from './utils.js';
+import { getAddress, isAddress, isHex, zeroAddress, type Hex } from 'viem';
+import type { Permit, ValidationResult } from './types.js';
 
 const SerializedSealingPair = z.object({
   privateKey: z.string(),
   publicKey: z.string(),
+});
+
+export const addressSchema = z
+  .string()
+  .refine((val) => isAddress(val), {
+    error: 'Invalid address',
+  })
+  .transform((val): Hex => getAddress(val));
+
+export const addressNotZeroSchema = addressSchema.refine((val) => val !== zeroAddress, {
+  error: 'Must not be zeroAddress',
+});
+
+export const bytesSchema = z.custom<Hex>(
+  (val) => {
+    return typeof val === 'string' && isHex(val);
+  },
+  {
+    message: 'Invalid hex value',
+  }
+);
+
+export const bytesNotEmptySchema = bytesSchema.refine((val) => val !== '0x', {
+  error: 'Must not be empty',
 });
 
 const DEFAULT_EXPIRATION_FN = () => Math.round(Date.now() / 1000) + 7 * 24 * 60 * 60; // 7 days from now
@@ -13,32 +36,13 @@ const DEFAULT_EXPIRATION_FN = () => Math.round(Date.now() / 1000) + 7 * 24 * 60 
 const zPermitWithDefaults = z.object({
   name: z.string().optional().default('Unnamed Permit'),
   type: z.enum(['self', 'sharing', 'recipient']),
-  issuer: z
-    .string()
-    .refine((val) => isAddress(val), {
-      message: 'Permit issuer :: invalid address',
-    })
-    .refine((val) => val !== zeroAddress, {
-      message: 'Permit issuer :: must not be zeroAddress',
-    }),
-  expiration: z.number().optional().default(DEFAULT_EXPIRATION_FN),
-  recipient: z
-    .string()
-    .optional()
-    .default(zeroAddress)
-    .refine((val) => isAddress(val), {
-      message: 'Permit recipient :: invalid address',
-    }),
-  validatorId: z.number().optional().default(0),
-  validatorContract: z
-    .string()
-    .optional()
-    .default(zeroAddress)
-    .refine((val) => isAddress(val), {
-      message: 'Permit validatorContract :: invalid address',
-    }),
-  issuerSignature: z.string().optional().default('0x'),
-  recipientSignature: z.string().optional().default('0x'),
+  issuer: addressNotZeroSchema,
+  expiration: z.int().optional().default(DEFAULT_EXPIRATION_FN),
+  recipient: addressSchema.optional().default(zeroAddress),
+  validatorId: z.int().optional().default(0),
+  validatorContract: addressSchema.optional().default(zeroAddress),
+  issuerSignature: bytesSchema.optional().default('0x'),
+  recipientSignature: bytesSchema.optional().default('0x'),
 });
 
 const zPermitWithSealingPair = zPermitWithDefaults.extend({
@@ -52,12 +56,12 @@ type zPermitType = z.infer<typeof zPermitWithDefaults>;
  * this check ensures that IF an external validator is applied, that both `validatorId` and `validatorContract` are populated,
  * ELSE ensures that both `validatorId` and `validatorContract` are empty
  */
-const ValidatorContractRefinement = [
+const ExternalValidatorRefinement = [
   (data: zPermitType) =>
     (data.validatorId !== 0 && data.validatorContract !== zeroAddress) ||
     (data.validatorId === 0 && data.validatorContract === zeroAddress),
   {
-    message: 'Permit external validator :: validatorId and validatorContract must either both be set or both be unset.',
+    error: 'Permit external validator :: validatorId and validatorContract must either both be set or both be unset.',
     path: ['validatorId', 'validatorContract'] as string[],
   },
 ] as const;
@@ -68,7 +72,7 @@ const ValidatorContractRefinement = [
 const RecipientRefinement = [
   (data: zPermitType) => data.issuer !== data.recipient,
   {
-    message: 'Sharing permit :: issuer and recipient must not be the same',
+    error: 'Sharing permit :: issuer and recipient must not be the same',
     path: ['issuer', 'recipient'] as string[],
   },
 ] as const;
@@ -83,74 +87,34 @@ const RecipientRefinement = [
 export const SelfPermitOptionsValidator = z
   .object({
     type: z.literal('self').optional().default('self'),
-    issuer: z
-      .string()
-      .refine((val) => isAddress(val), {
-        message: 'Self permit issuer :: invalid address',
-      })
-      .refine((val) => is0xPrefixed(val), {
-        message: 'Self permit issuer :: must be 0x prefixed',
-      })
-      .refine((val) => val !== zeroAddress, {
-        message: 'Self permit issuer :: must not be zeroAddress',
-      }),
+    issuer: addressNotZeroSchema,
     name: z.string().optional().default('Unnamed Permit'),
-    expiration: z.number().optional().default(DEFAULT_EXPIRATION_FN),
-    recipient: z
-      .string()
-      .optional()
-      .default(zeroAddress)
-      .refine((val) => isAddress(val), {
-        message: 'Self permit recipient :: invalid address',
-      })
-      .refine((val) => is0xPrefixed(val), {
-        message: 'Self permit recipient :: must be 0x prefixed',
-      })
-      .refine((val) => val === zeroAddress, {
-        message: 'Self permit recipient :: must be zeroAddress',
-      }),
-    validatorId: z.number().optional().default(0),
-    validatorContract: z
-      .string()
-      .optional()
-      .default(zeroAddress)
-      .refine((val) => isAddress(val), {
-        message: 'Self permit validatorContract :: invalid address',
-      }),
-    issuerSignature: z
-      .string()
-      .optional()
-      .default('0x')
-      .refine((val) => is0xPrefixed(val), {
-        message: 'Self permit issuerSignature :: must be 0x prefixed',
-      }),
-    recipientSignature: z
-      .string()
-      .optional()
-      .default('0x')
-      .refine((val) => is0xPrefixed(val), {
-        message: 'Self permit recipientSignature :: must be 0x prefixed',
-      }),
+    expiration: z.int().optional().default(DEFAULT_EXPIRATION_FN),
+    recipient: addressSchema.optional().default(zeroAddress),
+    validatorId: z.int().optional().default(0),
+    validatorContract: addressSchema.optional().default(zeroAddress),
+    issuerSignature: bytesSchema.optional().default('0x'),
+    recipientSignature: bytesSchema.optional().default('0x'),
   })
-  .refine(...ValidatorContractRefinement);
+  .refine(...ExternalValidatorRefinement);
 
 /**
  * Validator for fully formed self permits
  */
 export const SelfPermitValidator = zPermitWithSealingPair
   .refine((data) => data.type === 'self', {
-    message: "Self permit :: type must be 'self'",
+    error: "Type must be 'self'",
   })
   .refine((data) => data.recipient === zeroAddress, {
-    message: 'Self permit :: recipient must be zeroAddress',
+    error: 'Recipient must be zeroAddress',
   })
   .refine((data) => data.issuerSignature !== '0x', {
-    message: 'Self permit :: issuerSignature must be populated',
+    error: 'IssuerSignature must be populated',
   })
   .refine((data) => data.recipientSignature === '0x', {
-    message: 'Self permit :: recipientSignature must be empty',
+    error: 'RecipientSignature must be empty',
   })
-  .refine(...ValidatorContractRefinement);
+  .refine(...ExternalValidatorRefinement);
 
 // ============================================================================
 // SHARING PERMIT VALIDATORS
@@ -162,73 +126,35 @@ export const SelfPermitValidator = zPermitWithSealingPair
 export const SharingPermitOptionsValidator = z
   .object({
     type: z.literal('sharing').optional().default('sharing'),
-    issuer: z
-      .string()
-      .refine((val) => isAddress(val), {
-        message: 'Sharing permit issuer :: invalid address',
-      })
-      .refine((val) => is0xPrefixed(val), {
-        message: 'Sharing permit issuer :: must be 0x prefixed',
-      })
-      .refine((val) => val !== zeroAddress, {
-        message: 'Sharing permit issuer :: must not be zeroAddress',
-      }),
-    recipient: z
-      .string()
-      .refine((val) => isAddress(val), {
-        message: 'Sharing permit recipient :: invalid address',
-      })
-      .refine((val) => is0xPrefixed(val), {
-        message: 'Sharing permit recipient :: must be 0x prefixed',
-      })
-      .refine((val) => val !== zeroAddress, {
-        message: 'Sharing permit recipient :: must not be zeroAddress',
-      }),
+    issuer: addressNotZeroSchema,
+    recipient: addressNotZeroSchema,
     name: z.string().optional().default('Unnamed Permit'),
-    expiration: z.number().optional().default(DEFAULT_EXPIRATION_FN),
-    validatorId: z.number().optional().default(0),
-    validatorContract: z
-      .string()
-      .optional()
-      .default(zeroAddress)
-      .refine((val) => isAddress(val), {
-        message: 'Sharing permit validatorContract :: invalid address',
-      }),
-    issuerSignature: z
-      .string()
-      .optional()
-      .default('0x')
-      .refine((val) => is0xPrefixed(val), {
-        message: 'Sharing permit issuerSignature :: must be 0x prefixed',
-      }),
-    recipientSignature: z
-      .string()
-      .optional()
-      .default('0x')
-      .refine((val) => is0xPrefixed(val), {
-        message: 'Sharing permit recipientSignature :: must be 0x prefixed',
-      }),
+    expiration: z.int().optional().default(DEFAULT_EXPIRATION_FN),
+    validatorId: z.int().optional().default(0),
+    validatorContract: addressSchema.optional().default(zeroAddress),
+    issuerSignature: bytesSchema.optional().default('0x'),
+    recipientSignature: bytesSchema.optional().default('0x'),
   })
   .refine(...RecipientRefinement)
-  .refine(...ValidatorContractRefinement);
+  .refine(...ExternalValidatorRefinement);
 
 /**
  * Validator for fully formed sharing permits
  */
 export const SharingPermitValidator = zPermitWithSealingPair
   .refine((data) => data.type === 'sharing', {
-    message: "Sharing permit :: type must be 'sharing'",
+    error: "Type must be 'sharing'",
   })
   .refine((data) => data.recipient !== zeroAddress, {
-    message: 'Sharing permit :: recipient must not be zeroAddress',
+    error: 'Recipient must not be zeroAddress',
   })
   .refine((data) => data.issuerSignature !== '0x', {
-    message: 'Sharing permit :: issuerSignature must be populated',
+    error: 'IssuerSignature must be populated',
   })
   .refine((data) => data.recipientSignature === '0x', {
-    message: 'Sharing permit :: recipientSignature must be empty',
+    error: 'RecipientSignature must be empty',
   })
-  .refine(...ValidatorContractRefinement);
+  .refine(...ExternalValidatorRefinement);
 
 // ============================================================================
 // IMPORT/RECIPIENT PERMIT VALIDATORS
@@ -240,107 +166,87 @@ export const SharingPermitValidator = zPermitWithSealingPair
 export const ImportPermitOptionsValidator = z
   .object({
     type: z.literal('recipient').optional().default('recipient'),
-    issuer: z
-      .string()
-      .refine((val) => isAddress(val), {
-        message: 'Import permit issuer :: invalid address',
-      })
-      .refine((val) => is0xPrefixed(val), {
-        message: 'Import permit issuer :: must be 0x prefixed',
-      })
-      .refine((val) => val !== zeroAddress, {
-        message: 'Import permit issuer :: must not be zeroAddress',
-      }),
-    recipient: z
-      .string()
-      .refine((val) => isAddress(val), {
-        message: 'Import permit recipient :: invalid address',
-      })
-      .refine((val) => is0xPrefixed(val), {
-        message: 'Import permit recipient :: must be 0x prefixed',
-      })
-      .refine((val) => val !== zeroAddress, {
-        message: 'Import permit recipient :: must not be zeroAddress',
-      }),
-    issuerSignature: z
-      .string()
-      .refine((val) => is0xPrefixed(val), {
-        message: 'Import permit issuerSignature :: must be 0x prefixed',
-      })
-      .refine((val) => val !== '0x', {
-        message: 'Import permit :: issuerSignature must be provided',
-      }),
+    issuer: addressNotZeroSchema,
+    recipient: addressNotZeroSchema,
     name: z.string().optional().default('Unnamed Permit'),
-    expiration: z.number().optional().default(DEFAULT_EXPIRATION_FN),
-    validatorId: z.number().optional().default(0),
-    validatorContract: z
-      .string()
-      .optional()
-      .default(zeroAddress)
-      .refine((val) => isAddress(val), {
-        message: 'Import permit validatorContract :: invalid address',
-      }),
-    recipientSignature: z
-      .string()
-      .optional()
-      .default('0x')
-      .refine((val) => is0xPrefixed(val), {
-        message: 'Import permit recipientSignature :: must be 0x prefixed',
-      }),
+    expiration: z.int(),
+    validatorId: z.int().optional().default(0),
+    validatorContract: addressSchema.optional().default(zeroAddress),
+    issuerSignature: bytesNotEmptySchema,
+    recipientSignature: bytesSchema.optional().default('0x'),
   })
-  .refine(...ValidatorContractRefinement);
+  .refine(...ExternalValidatorRefinement);
 
 /**
  * Validator for fully formed import/recipient permits
  */
 export const ImportPermitValidator = zPermitWithSealingPair
   .refine((data) => data.type === 'recipient', {
-    message: "Import permit :: type must be 'recipient'",
+    error: "Type must be 'recipient'",
   })
   .refine((data) => data.recipient !== zeroAddress, {
-    message: 'Import permit :: recipient must not be zeroAddress',
+    error: 'Recipient must not be zeroAddress',
   })
   .refine((data) => data.issuerSignature !== '0x', {
-    message: 'Import permit :: issuerSignature must be populated',
+    error: 'IssuerSignature must be populated',
   })
   .refine((data) => data.recipientSignature !== '0x', {
-    message: 'Import permit :: recipientSignature must be populated',
+    error: 'RecipientSignature must be populated',
   })
-  .refine(...ValidatorContractRefinement);
+  .refine(...ExternalValidatorRefinement);
 
 // ============================================================================
 // VALIDATION FUNCTIONS
 // ============================================================================
 
+const safeParseAndThrowFormatted = <T extends z.ZodTypeAny>(schema: T, data: unknown, message: string): z.output<T> => {
+  const result = schema.safeParse(data);
+  if (!result.success) {
+    throw new Error(`${message}: ${z.prettifyError(result.error)}`, { cause: result.error });
+  }
+  return result.data;
+};
+
 /**
  * Validates self permit creation options
  */
-export const validateSelfPermitOptions = (options: any) => SelfPermitOptionsValidator.safeParse(options);
-
+export const validateSelfPermitOptions = (options: any) => {
+  return safeParseAndThrowFormatted(SelfPermitOptionsValidator, options, 'Invalid self permit options');
+};
 /**
  * Validates sharing permit creation options
  */
-export const validateSharingPermitOptions = (options: any) => SharingPermitOptionsValidator.safeParse(options);
+export const validateSharingPermitOptions = (options: any) => {
+  return safeParseAndThrowFormatted(SharingPermitOptionsValidator, options, 'Invalid sharing permit options');
+};
 
 /**
  * Validates import permit creation options
  */
-export const validateImportPermitOptions = (options: any) => ImportPermitOptionsValidator.safeParse(options);
+export const validateImportPermitOptions = (options: any) => {
+  return safeParseAndThrowFormatted(ImportPermitOptionsValidator, options, 'Invalid import permit options');
+};
 
 /**
  * Validates a fully formed self permit
  */
-export const validateSelfPermit = (permit: any) => SelfPermitValidator.safeParse(permit);
+export const validateSelfPermit = (permit: any) => {
+  return safeParseAndThrowFormatted(SelfPermitValidator, permit, 'Invalid self permit');
+};
 
 /**
  * Validates a fully formed sharing permit
  */
-export const validateSharingPermit = (permit: any) => SharingPermitValidator.safeParse(permit);
+export const validateSharingPermit = (permit: any) => {
+  return safeParseAndThrowFormatted(SharingPermitValidator, permit, 'Invalid sharing permit');
+};
 
 /**
  * Validates a fully formed import/recipient permit
  */
-export const validateImportPermit = (permit: any) => ImportPermitValidator.safeParse(permit);
+export const validateImportPermit = (permit: any) => {
+  return safeParseAndThrowFormatted(ImportPermitValidator, permit, 'Invalid import permit');
+};
 
 /**
  * Simple validation functions for common checks

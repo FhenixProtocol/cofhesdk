@@ -70,9 +70,15 @@ export const CofhesdkConfigSchema = z.object({
   /** Storage method for fhe keys (defaults to indexedDB on web, filesystem on node) */
   fheKeyStorage: z
     .object({
-      getItem: z.function().args(z.string()).returns(z.promise(z.any())),
-      setItem: z.function().args(z.string(), z.any()).returns(z.promise(z.void())),
-      removeItem: z.function().args(z.string()).returns(z.promise(z.void())),
+      getItem: z.custom<IStorage['getItem']>((val) => typeof val === 'function', {
+        message: 'getItem must be a function',
+      }),
+      setItem: z.custom<IStorage['setItem']>((val) => typeof val === 'function', {
+        message: 'setItem must be a function',
+      }),
+      removeItem: z.custom<IStorage['removeItem']>((val) => typeof val === 'function', {
+        message: 'removeItem must be a function',
+      }),
     })
     .or(z.null())
     .default(null),
@@ -108,7 +114,7 @@ export function createCofhesdkConfigBase(config: CofhesdkInputConfig): CofhesdkC
   const result = CofhesdkConfigSchema.safeParse(config);
 
   if (!result.success) {
-    throw new Error(`Invalid cofhesdk configuration: ${result.error.message}`);
+    throw new Error(`Invalid cofhesdk configuration: ${z.prettifyError(result.error)}`, { cause: result.error });
   }
 
   return result.data;

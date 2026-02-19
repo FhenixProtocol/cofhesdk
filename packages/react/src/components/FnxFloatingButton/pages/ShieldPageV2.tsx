@@ -482,8 +482,6 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
             onClick={() =>
               openModal(PortalModal.TokenList, {
                 balanceType: mode === 'shield' ? BalanceType.Public : BalanceType.Confidential,
-                // TODO: if it's unshield mode, we should only show tokens with existing encrypted balances
-                // if it's shield mode, we need to show all tokens where public balance > 0
                 tokens: mode === 'unshield' ? tokensWithExistingEncryptedBalance : tokensWithPublicBalances,
                 title: mode === 'shield' ? 'Select token to shield' : 'Select token to unshield',
                 onSelectToken: (token) => setToken(token),

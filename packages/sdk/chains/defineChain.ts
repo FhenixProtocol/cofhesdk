@@ -1,4 +1,5 @@
 import { CofheChainSchema, type CofheChain } from './types.js';
+import { z } from 'zod';
 
 /**
  * Defines and validates a CofheChain configuration
@@ -10,8 +11,7 @@ export function defineChain(chainConfig: CofheChain): CofheChain {
   const result = CofheChainSchema.safeParse(chainConfig);
 
   if (!result.success) {
-    const errorMessages = result.error.errors.map((err) => `${err.path.join('.')}: ${err.message}`);
-    throw new Error(`Invalid chain configuration: ${errorMessages.join(', ')}`);
+    throw new Error(`Invalid chain configuration: ${z.prettifyError(result.error)}`, { cause: result.error });
   }
 
   return result.data;

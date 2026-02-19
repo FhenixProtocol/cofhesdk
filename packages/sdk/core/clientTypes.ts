@@ -95,7 +95,7 @@ export type CofhesdkClientPermits = {
 
   // Mutation methods (chainId/account optional)
   selectActivePermit: (hash: string, chainId?: number, account?: string) => void;
-  removePermit: (hash: string, chainId?: number, account?: string, force?: boolean) => void;
+  removePermit: (hash: string, chainId?: number, account?: string) => void;
   removeActivePermit: (chainId?: number, account?: string) => void;
 
   // Utils
