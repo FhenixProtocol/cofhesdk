@@ -264,9 +264,9 @@ export function createCofhesdkClientBase<TConfig extends CofhesdkConfig>(
       return permits.selectActivePermit(_chainId, _account, hash);
     },
 
-    removePermit: async (hash: string, chainId?: number, account?: string, force?: boolean) => {
+    removePermit: async (hash: string, chainId?: number, account?: string) => {
       const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
-      return permits.removePermit(_chainId, _account, hash, force);
+      return permits.removePermit(_chainId, _account, hash);
     },
 
     removeActivePermit: async (chainId?: number, account?: string) => {

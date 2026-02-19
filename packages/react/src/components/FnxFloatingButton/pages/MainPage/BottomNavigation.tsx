@@ -47,7 +47,7 @@ const ShieldIcon = () => {
 type PagesInBottomMenu =
   | FloatingButtonPage.Send
   | FloatingButtonPage.Shield
-  | FloatingButtonPage.TokenList
+  | FloatingButtonPage.Portfolio
   | FloatingButtonPage.Permits
   | FloatingButtonPage.Debug;
 
@@ -67,7 +67,7 @@ const baseNavItems: {
     icon: ShieldIcon,
   },
   {
-    id: FloatingButtonPage.TokenList,
+    id: FloatingButtonPage.Portfolio,
     label: 'Portfolio',
     icon: <AiOutlinePieChart className={iconClassName} />,
   },
@@ -126,16 +126,8 @@ export const BottomNavigation: React.FC = () => {
   const handleNavClick = (page: ElementOf<typeof baseNavItems>['id']) => {
     openPortal();
 
-    if (page === FloatingButtonPage.TokenList) {
-      navigateTo(FloatingButtonPage.TokenList, {
-        pageProps: {
-          title: 'Portfolio',
-          mode: 'view',
-          backToPageState: {
-            page: FloatingButtonPage.TokenInfo,
-          },
-        },
-      });
+    if (page === FloatingButtonPage.Portfolio) {
+      navigateTo(FloatingButtonPage.Portfolio);
       return;
     }
 

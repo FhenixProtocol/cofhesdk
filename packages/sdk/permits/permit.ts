@@ -22,6 +22,7 @@ import {
   validateImportPermit,
   ValidationUtils,
 } from './validation.js';
+import * as z from 'zod';
 import { SignatureUtils } from './signature.js';
 import { GenerateSealingKey, SealingKey } from './sealing.js';
 import { checkPermitValidityOnChain, getAclEIP712Domain } from './onchain-utils.js';
@@ -36,18 +37,12 @@ export const PermitUtils = {
   createSelf: (options: CreateSelfPermitOptions): SelfPermit => {
     const validation = validateSelfPermitOptions(options);
 
-    if (!validation.success) {
-      throw new Error(
-        'PermitUtils :: createSelf :: Parsing SelfPermitOptions failed ' + JSON.stringify(validation.error, null, 2)
-      );
-    }
-
     // Always generate a new sealing key - users cannot provide their own
     const sealingPair = GenerateSealingKey();
 
     const permit = {
-      hash: PermitUtils.getHash(validation.data),
-      ...validation.data,
+      hash: PermitUtils.getHash(validation),
+      ...validation,
       sealingPair,
       _signedDomain: undefined,
     } satisfies SelfPermit;
@@ -61,19 +56,12 @@ export const PermitUtils = {
   createSharing: (options: CreateSharingPermitOptions): SharingPermit => {
     const validation = validateSharingPermitOptions(options);
 
-    if (!validation.success) {
-      throw new Error(
-        'PermitUtils :: createSharing :: Parsing SharingPermitOptions failed ' +
-          JSON.stringify(validation.error, null, 2)
-      );
-    }
-
     // Always generate a new sealing key - users cannot provide their own
     const sealingPair = GenerateSealingKey();
 
     const permit = {
-      hash: PermitUtils.getHash(validation.data),
-      ...validation.data,
+      hash: PermitUtils.getHash(validation),
+      ...validation,
       sealingPair,
       _signedDomain: undefined,
     } satisfies SharingPermit;
@@ -93,36 +81,28 @@ export const PermitUtils = {
       try {
         parsedOptions = JSON.parse(options);
       } catch (error) {
-        throw new Error(`PermitUtils :: importShared :: Failed to parse JSON string: ${error}`);
+        throw new Error(`Failed to parse JSON string: ${error}`);
       }
     } else if (typeof options === 'object' && options !== null) {
       // Handle both ImportSharedPermitOptions and any object
       parsedOptions = options;
     } else {
-      throw new Error(
-        'PermitUtils :: importShared :: Invalid input type, expected ImportSharedPermitOptions, object, or string'
-      );
+      throw new Error('Invalid input type, expected ImportSharedPermitOptions, object, or string');
     }
 
     // Validate type if provided
     if (parsedOptions.type != null && parsedOptions.type !== 'sharing') {
-      throw new Error(`PermitUtils :: importShared :: Invalid permit type <${parsedOptions.type}>, must be "sharing"`);
+      throw new Error(`Invalid permit type <${parsedOptions.type}>, must be "sharing"`);
     }
 
     const validation = validateImportPermitOptions({ ...parsedOptions, type: 'recipient' });
-
-    if (!validation.success) {
-      throw new Error(
-        'PermitUtils :: importShared :: Parsing ImportPermitOptions failed ' + JSON.stringify(validation.error, null, 2)
-      );
-    }
 
     // Always generate a new sealing key - users cannot provide their own
     const sealingPair = GenerateSealingKey();
 
     const permit = {
-      hash: PermitUtils.getHash(validation.data),
-      ...validation.data,
+      hash: PermitUtils.getHash(validation),
+      ...validation,
       sealingPair,
       _signedDomain: undefined,
     } satisfies RecipientPermit;
@@ -136,7 +116,7 @@ export const PermitUtils = {
   sign: async <T extends Permit>(permit: T, publicClient: PublicClient, walletClient: WalletClient): Promise<T> => {
     if (walletClient == null || walletClient.account == null) {
       throw new Error(
-        'PermitUtils :: sign - walletClient undefined, you must pass in a `walletClient` for the connected user to create a permit signature'
+        'Missing walletClient, you must pass in a `walletClient` for the connected user to create a permit signature'
       );
     }
 
@@ -247,7 +227,7 @@ export const PermitUtils = {
     } else if (permit.type === 'recipient') {
       return validateImportPermit(permit);
     } else {
-      throw new Error('PermitUtils :: validate :: Invalid permit type');
+      throw new Error('Invalid permit type');
     }
   },
 
@@ -256,13 +236,7 @@ export const PermitUtils = {
    */
   getPermission: (permit: Permit, skipValidation = false): Permission => {
     if (!skipValidation) {
-      const validationResult = PermitUtils.validate(permit);
-
-      if (!validationResult.success) {
-        throw new Error(
-          `PermitUtils :: getPermission :: permit validation failed - ${JSON.stringify(validationResult.error, null, 2)} ${JSON.stringify(permit, null, 2)}`
-        );
-      }
+      PermitUtils.validate(permit);
     }
 
     return {

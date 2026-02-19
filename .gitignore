@@ -19,3 +19,6 @@ coverage/
 cache/
 artifacts/
 *.code-search
+
+# Web test screenshots
+__screenshots__/

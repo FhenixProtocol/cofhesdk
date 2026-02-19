@@ -64,7 +64,7 @@ export const PermitDetailsModal: React.FC<PortalModalStateMap[PortalModal.Permit
       setConfirmDelete(true);
       return;
     }
-    await handleRemovePermit();
+    handleRemovePermit();
     onClose();
   }, [confirmDelete, onClose, handleRemovePermit]);
 
