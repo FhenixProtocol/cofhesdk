@@ -77,6 +77,21 @@ export const checkPermitValidityOnChain = async (
     });
     return true;
   } catch (err: any) {
+    // Viem default handling
+    if (err instanceof BaseError) {
+      const revertError = err.walk((err: any) => err instanceof ContractFunctionRevertedError);
+      if (revertError instanceof ContractFunctionRevertedError) {
+        const errorName = revertError.data?.errorName ?? '';
+        throw new Error(errorName);
+      }
+    }
+
+    // Check details field for custom error names (e.g., from Hardhat test nodes)
+    const customErrorName = extractCustomErrorFromDetails(err, checkPermitValidityAbi);
+    if (customErrorName) {
+      throw new Error(customErrorName);
+    }
+
     // Hardhat wrapped error will need to be unwrapped to get the return data
     const hhDetailsData = extractReturnData(err);
     if (hhDetailsData != null) {
@@ -88,19 +103,31 @@ export const checkPermitValidityOnChain = async (
       throw new Error(decoded.errorName);
     }
 
-    // Viem default handling
-    if (err instanceof BaseError) {
-      const revertError = err.walk((err) => err instanceof ContractFunctionRevertedError);
-      if (revertError instanceof ContractFunctionRevertedError) {
-        const errorName = revertError.data?.errorName ?? '';
-        throw new Error(errorName);
-      }
-    }
-
     // Fallback throw the original error
     throw err;
   }
 };
+
+function extractCustomErrorFromDetails(err: unknown, abi: readonly any[]): string | undefined {
+  // Check details field for custom error names (e.g., from Hardhat test nodes)
+  const anyErr = err as any;
+  const details = anyErr?.details ?? anyErr?.cause?.details;
+
+  if (typeof details === 'string') {
+    // Match pattern: "reverted with custom error 'ErrorName()'"
+    const customErrorMatch = details.match(/reverted with custom error '(\w+)\(\)'/);
+    if (customErrorMatch) {
+      const errorName = customErrorMatch[1];
+      // Check if this error exists in our ABI
+      const errorExists = abi.some((item) => item.type === 'error' && item.name === errorName);
+      if (errorExists) {
+        return errorName;
+      }
+    }
+  }
+
+  return undefined;
+}
 
 function extractReturnData(err: unknown): `0x${string}` | undefined {
   // viem BaseError has `details`, but fall back to any message-like string we can find
