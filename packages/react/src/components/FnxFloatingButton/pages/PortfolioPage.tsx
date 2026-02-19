@@ -2,7 +2,7 @@ import { useCofheChainId } from '@/hooks/useCofheConnection';
 import { PageContainer } from '../components/PageContainer';
 import { FloatingButtonPage } from '../pagesConfig/types';
 import { useCofheTokens } from '@/hooks';
-import { TokenListContent } from '../modals/TokenListModal';
+import { AddCustomTokenButton, TokenListContent } from '../modals/TokenListModal';
 import { usePortalNavigation } from '@/stores';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { BalanceType } from '../components/CofheTokenConfidentialBalance';
@@ -21,10 +21,16 @@ export const PortfolioPage: React.FC = () => {
   return (
     <PageContainer
       header={
-        <button onClick={navigateBack} className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity">
-          <ArrowBackIcon style={{ fontSize: 16 }} />
-          <p className="text-sm font-medium">Tokens list</p>
-        </button>
+        <div className="flex justify-between flex-row">
+          <button
+            onClick={navigateBack}
+            className="flex items-center gap-1 text-sm hover:opacity-80 transition-opacity"
+          >
+            <ArrowBackIcon style={{ fontSize: 16 }} />
+            <p className="text-sm font-medium">Tokens list</p>
+          </button>
+          <AddCustomTokenButton />
+        </div>
       }
       content={
         <TokenListContent
