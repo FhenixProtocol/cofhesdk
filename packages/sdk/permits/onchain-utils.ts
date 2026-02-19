@@ -98,7 +98,7 @@ export const checkPermitValidityOnChain = async (
     }
 
     // Fallback throw the original error
-    throw new Error(err);
+    throw err;
   }
 };
 
