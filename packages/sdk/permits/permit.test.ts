@@ -489,5 +489,35 @@ describe('PermitUtils Tests', () => {
 
       expect(typeof isValid).toBe('boolean');
     }, 10000); // 10 second timeout for network call
+
+    // TODO: Uncomment when updated ACL with checkPermitValidity function is deployed
+
+    // it('should check permit validity on chain with real contract data', async () => {
+    //   const permit = PermitUtils.createSelf({
+    //     type: 'self',
+    //     issuer: bobAddress,
+    //     name: 'Test Permit',
+    //   });
+
+    //   const signedPermit = await PermitUtils.sign(permit, publicClient, bobWalletClient);
+
+    //   const isValid = await PermitUtils.checkValidityOnChain(signedPermit, publicClient);
+
+    //   expect(typeof isValid).toBe('boolean');
+    //   expect(isValid).toBe(true);
+
+    //   const permitInvalid = PermitUtils.createSelf({
+    //     type: 'self',
+    //     issuer: bobAddress,
+    //     name: 'Test Permit',
+    //     expiration: Math.floor(Date.now() / 1000) - 3600, // 1 hour ago
+    //   });
+
+    //   const signedPermitInvalid = await PermitUtils.sign(permitInvalid, publicClient, bobWalletClient);
+    //   const isValidInvalid = await PermitUtils.checkValidityOnChain(signedPermitInvalid, publicClient);
+
+    //   expect(typeof isValidInvalid).toBe('boolean');
+    //   expect(isValidInvalid).toBe(false);
+    // });
   });
 });
