@@ -7,7 +7,7 @@ import { FheTypes } from '../types.js';
 import { CofhesdkError, CofhesdkErrorCode } from '../error.js';
 
 // Address the Mock Query Decrypter contract is deployed to on the Hardhat chain
-export const MockQueryDecrypterAddress = '0x0000000000000000000000000000000000000200';
+export const MockQueryDecrypterAddress = '0x0000000000000000000000000000000000005002';
 
 export async function cofheMocksSealOutput(
   ctHash: bigint,

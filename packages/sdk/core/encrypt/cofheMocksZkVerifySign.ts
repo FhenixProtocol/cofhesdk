@@ -16,7 +16,7 @@ import { CofhesdkError, CofhesdkErrorCode } from '../error.js';
 import { privateKeyToAccount } from 'viem/accounts';
 
 // Address the Mock ZkVerifier contract is deployed to on the Hardhat chain
-export const MocksZkVerifierAddress = '0x0000000000000000000000000000000000000100';
+export const MocksZkVerifierAddress = '0x0000000000000000000000000000000000005001';
 
 // PK & address pair for zk verifier
 export const MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY =
