@@ -23,8 +23,6 @@ export interface TokenPriceChartProps {
   points: TokenPriceChartPoint[];
   className?: string;
   height?: number;
-  /** Show last 24h range label row under the chart */
-  show24hAxisLabels?: boolean;
 }
 
 const formatTime = (ts: number): string =>
@@ -65,12 +63,7 @@ const themeClasses = {
     '[&_.recharts-tooltip-cursor]:stroke-current [&_.recharts-tooltip-cursor]:stroke-opacity-35 dark:[&_.recharts-tooltip-cursor]:stroke-opacity-45',
 } as const;
 
-export const TokenPriceChart: React.FC<TokenPriceChartProps> = ({
-  points,
-  className,
-  height = 150,
-  show24hAxisLabels = true,
-}) => {
+export const TokenPriceChart: React.FC<TokenPriceChartProps> = ({ points, className, height = 150 }) => {
   const gradientId = useId();
 
   const { start, mid, end } = useMemo(() => {
@@ -125,13 +118,11 @@ export const TokenPriceChart: React.FC<TokenPriceChartProps> = ({
         </ResponsiveContainer>
       </div>
 
-      {show24hAxisLabels && (
-        <div className="flex items-center justify-between text-xxxs opacity-60 mt-1">
-          <span>{formatTime(start)}</span>
-          <span>{formatTime(mid)}</span>
-          <span>{formatTime(end)}</span>
-        </div>
-      )}
+      <div className="flex items-center justify-between text-xxxs opacity-60 mt-1">
+        <span>{formatTime(start)}</span>
+        <span>{formatTime(mid)}</span>
+        <span>{formatTime(end)}</span>
+      </div>
     </div>
   );
 };
