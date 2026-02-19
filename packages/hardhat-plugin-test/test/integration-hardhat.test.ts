@@ -68,6 +68,7 @@ describe('Hardhat Integration Tests', () => {
 
     try {
       await PermitUtils.checkValidityOnChain(permit, cofhesdkClient.getSnapshot().publicClient!);
+      expect.fail('Expected PermitUtils.checkValidityOnChain to throw for expired permit');
     } catch (error) {
       expect(error).to.be.instanceOf(Error);
       expect((error as Error).message).to.be.equal('PermissionInvalid_Expired');
@@ -84,6 +85,7 @@ describe('Hardhat Integration Tests', () => {
 
     try {
       await PermitUtils.checkValidityOnChain(permit, cofhesdkClient.getSnapshot().publicClient!);
+      expect.fail('Expected PermitUtils.checkValidityOnChain to throw for invalid issuer signature');
     } catch (error) {
       expect(error).to.be.instanceOf(Error);
       expect((error as Error).message).to.be.equal('PermissionInvalid_IssuerSignature');
