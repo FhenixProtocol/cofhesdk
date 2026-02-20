@@ -1,7 +1,43 @@
 import { TASK_MANAGER_ADDRESS, MOCKS_ZK_VERIFIER_ADDRESS } from '@cofhe/sdk';
 import { expect } from 'chai';
-import { ethers } from 'ethers';
+import { Contract, ethers } from 'ethers';
 import { type HardhatEthersProvider } from '@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider';
+import type { MocksArtifact } from '@cofhe/mock-contracts';
+import type { HardhatRuntimeEnvironment } from 'hardhat/types';
+
+/**
+ * Deploy a contract from an artifact using hardhat
+ * Deploys to a fixed address (artifact.fixedAddress)
+ */
+export const hardhatDeployFromArtifact = async (
+  hre: HardhatRuntimeEnvironment,
+  artifact: MocksArtifact
+): Promise<Contract> => {
+  await hardhatSetCode(hre, artifact.fixedAddress, artifact.deployedBytecode);
+  return ethersGetFromArtifact(hre, artifact);
+};
+
+export const hardhatSetCode = async (hre: HardhatRuntimeEnvironment, address: string, bytecode: string) => {
+  await hre.network.provider.send('hardhat_setCode', [address, bytecode]);
+};
+
+export const ethersGetFromArtifact = async (hre: HardhatRuntimeEnvironment, artifact: MocksArtifact) => {
+  return await hre.ethers.getContractAt(artifact.abi, artifact.fixedAddress);
+};
+
+/**
+ * Deploy a contract from an artifact using ethers.js
+ * Does not deploy to a fixed address
+ */
+export const ethersDeployFromArtifact = async (hre: HardhatRuntimeEnvironment, artifact: MocksArtifact) => {
+  const [signer] = await hre.ethers.getSigners();
+
+  const factory = new hre.ethers.ContractFactory(artifact.abi, artifact.bytecode, signer);
+  const contract = await factory.deploy(/* constructor args */);
+  await contract.waitForDeployment();
+
+  return contract as Contract;
+};
 
 const mock_checkIsTestnet = async (fnName: string, provider: HardhatEthersProvider | ethers.JsonRpcProvider) => {
   // Testnet is checked by testing if MockZkVerifier is deployed
