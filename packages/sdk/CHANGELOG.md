@@ -1,5 +1,13 @@
 # @cofhe/sdk Changelog
 
+## 0.2.1
+
+### Patch Changes
+
+- 409bfdf: Add `hash` field to permits, calculated at permit creation time. Replaces `PermitUtils.getHash(permit)` with `permit.hash`.
+- ac47e2f: Add `PermitUtils.checkValidityOnChain` to validate permits against the on-chain deployed ACL (source of truth).
+- 8af1b70: Updated to Zod 4 for improved performance and type safety. Includes internal changes to validation schemas and error handling that should not affect external API usage.
+
 ## 0.2.0
 
 ### Minor Changes

@@ -1,5 +1,17 @@
 # @cofhe/hardhat-plugin Changelog
 
+## 0.2.1
+
+### Patch Changes
+
+- 0000d5e: Mock contracts deployed to alternate fixed addresses to avoid collision with hardhat pre-compiles.
+- Updated dependencies [409bfdf]
+- Updated dependencies [ac47e2f]
+- Updated dependencies [0000d5e]
+- Updated dependencies [8af1b70]
+  - @cofhe/sdk@0.2.1
+  - @cofhe/mock-contracts@0.2.1
+
 ## 0.2.0
 
 ### Minor Changes

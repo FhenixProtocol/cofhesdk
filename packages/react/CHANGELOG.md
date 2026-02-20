@@ -1,5 +1,15 @@
 # @cofhe/react
 
+## 0.2.1
+
+### Patch Changes
+
+- 409bfdf: Add `hash` field to permits, calculated at permit creation time. Replaces `PermitUtils.getHash(permit)` with `permit.hash`.
+- Updated dependencies [409bfdf]
+- Updated dependencies [ac47e2f]
+- Updated dependencies [8af1b70]
+  - @cofhe/sdk@0.2.1
+
 ## 0.2.0
 
 ### Minor Changes
