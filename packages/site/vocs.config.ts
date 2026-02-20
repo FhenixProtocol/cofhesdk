@@ -64,7 +64,7 @@ export default defineConfig({
     },
   ],
   topNav: [
-    { text: 'Docs', link: './docs', match: '/docs' },
+    { text: 'SDK', link: './docs', match: '/docs' },
     { text: 'Hardhat', link: './hardhat', match: '/hardhat' },
     { text: 'Foundry', link: './foundry/getting-started', match: '/foundry' },
     { text: 'React', link: './react/getting-started', match: '/react' },
