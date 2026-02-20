@@ -3,4 +3,4 @@
 '@cofhe/hardhat-plugin': major
 ---
 
-Refactored mock contract compilation to use runtime Hardhat compilation instead of pre-built Forge artifacts.
+Mock contracts deployed to alternate fixed addresses to avoid collision with hardhat pre-compiles.
