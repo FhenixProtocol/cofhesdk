@@ -1,6 +1,7 @@
 import { type Permission, type EthEncryptedData } from '@/permits';
 
 import { CofhesdkError, CofhesdkErrorCode } from '../error.js';
+import { getSdkUserAgentHeaders } from '../userAgent.js';
 
 export async function tnSealOutputV1(
   ctHash: bigint,
@@ -23,6 +24,7 @@ export async function tnSealOutputV1(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...getSdkUserAgentHeaders(),
       },
       body: JSON.stringify(body),
     });

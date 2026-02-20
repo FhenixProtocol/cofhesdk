@@ -1,4 +1,5 @@
 import { CofhesdkError, CofhesdkErrorCode } from '../error.js';
+import { getSdkUserAgentHeaders } from '../userAgent.js';
 import { type EncryptableItem, FheTypes } from '../types.js';
 import { toBigIntOrThrow, validateBigIntInRange, toHexString, hexToBytes } from '../utils.js';
 
@@ -293,6 +294,7 @@ export const zkVerify = async (
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...getSdkUserAgentHeaders(),
       },
       body,
     });

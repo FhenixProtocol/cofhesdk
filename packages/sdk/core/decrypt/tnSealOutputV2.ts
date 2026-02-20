@@ -1,6 +1,7 @@
 import { type Permission, type EthEncryptedData } from '@/permits';
 
 import { CofhesdkError, CofhesdkErrorCode } from '../error.js';
+import { getSdkUserAgentHeaders } from '../userAgent.js';
 
 // Polling configuration
 const POLL_INTERVAL_MS = 1000; // 1 second
@@ -73,6 +74,7 @@ async function submitSealOutputRequest(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...getSdkUserAgentHeaders(),
       },
       body: JSON.stringify(body),
     });
@@ -171,6 +173,7 @@ async function pollSealOutputStatus(thresholdNetworkUrl: string, requestId: stri
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          ...getSdkUserAgentHeaders(),
         },
       });
     } catch (e) {

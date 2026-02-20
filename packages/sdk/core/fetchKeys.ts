@@ -2,6 +2,7 @@ import { hardhat } from '@/chains';
 
 import { type CofhesdkConfig, getCoFheUrlOrThrow } from './config.js';
 import { type KeysStorage } from './keyStore.js';
+import { getSdkUserAgentHeaders } from './userAgent.js';
 
 const PUBLIC_KEY_LENGTH_MIN = 15_000;
 export type FheKeyDeserializer = (buff: string) => void;
@@ -35,6 +36,7 @@ const fetchFhePublicKey = async (
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...getSdkUserAgentHeaders(),
       },
       body: JSON.stringify({ securityZone }),
     });
@@ -90,6 +92,7 @@ const fetchCrs = async (
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...getSdkUserAgentHeaders(),
       },
       body: JSON.stringify({ securityZone }),
     });
