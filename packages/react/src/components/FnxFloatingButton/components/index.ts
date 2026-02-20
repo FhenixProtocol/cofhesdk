@@ -6,6 +6,14 @@ export { ChainIcon } from './ChainIcon';
 export { ConnectedChainIndicator } from './ConnectedChainIndicator';
 export { HashLink } from './HashLink';
 export { LoadingDots } from './LoadingDots';
+export { TokenPriceChart, type TokenPriceChartPoint, type TokenPriceChartProps } from './TokenPriceChart';
+export {
+  TokenDetailsView,
+  type TokenDetailsViewProps,
+  type TokenDetailsPrice,
+  type TokenDetailsActivityItem,
+  type TokenDetailsResources,
+} from './TokenDetailsView';
 export { ShieldMeter } from './ShieldMeter';
 export { CofheTokenConfidentialBalance, type BalanceType } from './CofheTokenConfidentialBalance';
 export { TokenIcon } from './TokenIcon';

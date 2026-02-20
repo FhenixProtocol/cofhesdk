@@ -1,8 +1,7 @@
 import { useCofheContext, useInternalQuery } from '@/providers';
-import { FheTypes, type UnsealedItem } from '@cofhe/sdk';
+import { CofhesdkError, FheTypes, type UnsealedItem } from '@cofhe/sdk';
 import type { UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
 import { useIsCofheErrorActive } from './useIsCofheErrorActive';
-import { ErrorCause, withQueryErrorCause } from '@/utils';
 import { assert } from 'ts-essentials';
 import type { EncryptedReturnTypeByUtype } from '@cofhe/abi';
 
@@ -15,10 +14,8 @@ import type { EncryptedReturnTypeByUtype } from '@cofhe/abi';
 export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<U>>(
   {
     input,
-    cause,
   }: {
     input?: EncryptedReturnTypeByUtype<U>;
-    cause: ErrorCause;
   },
   queryOptions?: Omit<UseQueryOptions<UnsealedItem<U>, Error, TSeletedData>, 'queryKey' | 'queryFn'>
 ): UseQueryResult<TSeletedData, Error> {
@@ -31,10 +28,19 @@ export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<
   return useInternalQuery({
     enabled,
     queryKey: ['decryptCiphertext', input?.ctHash.toString(), input?.utype],
-    queryFn: withQueryErrorCause(cause, async () => {
+    queryFn: async () => {
       assert(input, 'input is guaranteed to be defined by enabled condition');
       return client.decryptHandle(input.ctHash, input.utype).decrypt();
-    }),
+    },
+    meta: {
+      persist: true,
+    },
     ...restQueryOptions,
+    retry: (failureCount, error) => {
+      if (error instanceof CofhesdkError) return false; // don't retry decryption errors
+
+      // default retry behavior - 3 retries
+      return failureCount < 3;
+    },
   });
 }

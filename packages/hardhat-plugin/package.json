@@ -20,15 +20,12 @@
     "build": "tsup src/index.ts --format esm,cjs --dts",
     "dev": "tsup src/index.ts --format esm,cjs --watch --dts",
     "lint": "eslint \"src/**/*.ts*\"",
-    "type-check": "tsc --noEmit",
+    "check:types": "tsc --noEmit",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
   },
   "dependencies": {
     "@cofhe/sdk": "workspace:*",
     "@cofhe/mock-contracts": "workspace:*",
-    "@fhenixprotocol/cofhe-contracts": "0.0.13",
-    "@openzeppelin/contracts": "^5.0.0",
-    "@openzeppelin/contracts-upgradeable": "^5.0.0",
     "chalk": "^4.1.2",
     "fast-glob": "^3.3.2",
     "viem": "^2.38.6",
@@ -55,7 +52,17 @@
   "peerDependencies": {
     "hardhat": "^2.0.0",
     "@nomicfoundation/hardhat-ethers": "^3.0.0",
-    "ethers": "^5.0.0 || ^6.0.0"
+    "ethers": "^5.0.0 || ^6.0.0",
+    "@fhenixprotocol/cofhe-contracts": ">=0.0.13",
+    "@openzeppelin/contracts": "^5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@fhenixprotocol/cofhe-contracts": {
+      "optional": false
+    },
+    "@openzeppelin/contracts": {
+      "optional": false
+    }
   },
   "publishConfig": {
     "access": "public"

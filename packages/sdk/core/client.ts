@@ -42,6 +42,10 @@ export function createCofhesdkClientBase<TConfig extends CofhesdkConfig>(
 
   const connectStore = createStore<CofhesdkClientConnectionState>(() => InitialConnectStore);
 
+  // Minimal cancellation mechanism: incremented on each connect/disconnect.
+  // If a connect finishes after a disconnect, it must not overwrite the disconnected state.
+  let connectAttemptId = 0;
+
   // Helper to update state
   const updateConnectState = (partial: Partial<CofhesdkClientConnectionState>) => {
     connectStore.setState((state) => ({ ...state, ...partial }));
@@ -76,6 +80,9 @@ export function createCofhesdkClientBase<TConfig extends CofhesdkConfig>(
     // Exit if already connected and clients are the same
     if (state.connected && state.publicClient === publicClient && state.walletClient === walletClient) return;
 
+    connectAttemptId += 1;
+    const localAttemptId = connectAttemptId;
+
     // Set connecting state
     updateConnectState({
       ...InitialConnectStore,
@@ -86,6 +93,10 @@ export function createCofhesdkClientBase<TConfig extends CofhesdkConfig>(
     try {
       const chainId = await getPublicClientChainID(publicClient);
       const account = await getWalletClientAccount(walletClient);
+
+      // If a disconnect (or a newer connect) happened while awaiting, ignore this completion.
+      if (localAttemptId !== connectAttemptId) return;
+
       updateConnectState({
         connected: true,
         connecting: false,
@@ -96,12 +107,20 @@ export function createCofhesdkClientBase<TConfig extends CofhesdkConfig>(
         walletClient,
       });
     } catch (e) {
+      // Ignore stale errors too.
+      if (localAttemptId !== connectAttemptId) return;
+
       updateConnectState({
         ...InitialConnectStore,
         connectError: e,
       });
       throw e;
     }
+  }
+
+  function disconnect() {
+    connectAttemptId += 1;
+    updateConnectState({ ...InitialConnectStore });
   }
 
   // CLIENT OPERATIONS
@@ -245,9 +264,9 @@ export function createCofhesdkClientBase<TConfig extends CofhesdkConfig>(
       return permits.selectActivePermit(_chainId, _account, hash);
     },
 
-    removePermit: async (hash: string, chainId?: number, account?: string, force?: boolean) => {
+    removePermit: async (hash: string, chainId?: number, account?: string) => {
       const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
-      return permits.removePermit(_chainId, _account, hash, force);
+      return permits.removePermit(_chainId, _account, hash);
     },
 
     removeActivePermit: async (chainId?: number, account?: string) => {
@@ -278,6 +297,7 @@ export function createCofhesdkClientBase<TConfig extends CofhesdkConfig>(
     config: opts.config,
 
     connect,
+    disconnect,
     encryptInputs,
     decryptHandle,
     permits: clientPermits,

@@ -60,7 +60,7 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "lint": "eslint \"**/*.ts*\"",
-    "type-check": "tsc --noEmit",
+    "check:types": "tsc --noEmit",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -73,7 +73,7 @@
     "tfhe": "0.11.1",
     "tweetnacl": "^1.0.3",
     "viem": "^2.38.6",
-    "zod": "^3.22.0",
+    "zod": "^4.0.0",
     "zustand": "^5.0.1"
   },
   "peerDependencies": {

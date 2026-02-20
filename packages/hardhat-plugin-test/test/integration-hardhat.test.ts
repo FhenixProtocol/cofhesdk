@@ -3,19 +3,22 @@ import { CofhesdkClient, Encryptable, FheTypes, type EncryptedItemInput } from '
 import { TASK_COFHE_MOCKS_DEPLOY } from './consts';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 import { expect } from 'chai';
+import { PermitUtils } from '@cofhe/sdk/permits';
 
 describe('Hardhat Integration Tests', () => {
   let cofhesdkClient: CofhesdkClient;
   let testContract: any; // ethers contract instance
   let signer: HardhatEthersSigner;
+  let recipient: HardhatEthersSigner;
 
   before(async function () {
     // Deploy mocks first (required for Hardhat)
     await hre.run(TASK_COFHE_MOCKS_DEPLOY);
 
     // Get a signer
-    const [tmpSigner] = await hre.ethers.getSigners();
+    const [tmpSigner, tmpRecipient] = await hre.ethers.getSigners();
     signer = tmpSigner;
+    recipient = tmpRecipient;
 
     // Create batteries-included client (handles Hardhat setup automatically)
     cofhesdkClient = await hre.cofhesdk.createBatteriesIncludedCofhesdkClient(signer);
@@ -43,5 +46,49 @@ describe('Hardhat Integration Tests', () => {
 
     // Verify the decrypted value matches
     expect(unsealedResult).to.be.equal(testValue);
+  });
+
+  it('Permit should be valid on chain', async function () {
+    const permit = await cofhesdkClient.permits.createSelf({
+      issuer: signer.address,
+      name: 'Test Permit',
+    });
+
+    const isValid = await PermitUtils.checkValidityOnChain(permit, cofhesdkClient.getSnapshot().publicClient!);
+
+    expect(isValid).to.be.true;
+  });
+
+  it('Expired permit should revert with PermissionInvalid_Expired', async function () {
+    const permit = await cofhesdkClient.permits.createSelf({
+      issuer: signer.address,
+      name: 'Test Permit',
+      expiration: Math.floor(Date.now() / 1000) - 3600, // 1 hour ago
+    });
+
+    try {
+      await PermitUtils.checkValidityOnChain(permit, cofhesdkClient.getSnapshot().publicClient!);
+      expect.fail('Expected PermitUtils.checkValidityOnChain to throw for expired permit');
+    } catch (error) {
+      expect(error).to.be.instanceOf(Error);
+      expect((error as Error).message).to.be.equal('PermissionInvalid_Expired');
+    }
+  });
+
+  it('Invalid issuer signature should revert with PermissionInvalid_IssuerSignature', async function () {
+    const permit = await cofhesdkClient.permits.createSelf({
+      issuer: signer.address,
+      name: 'Test Permit',
+    });
+
+    permit.issuerSignature = '0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+
+    try {
+      await PermitUtils.checkValidityOnChain(permit, cofhesdkClient.getSnapshot().publicClient!);
+      expect.fail('Expected PermitUtils.checkValidityOnChain to throw for invalid issuer signature');
+    } catch (error) {
+      expect(error).to.be.instanceOf(Error);
+      expect((error as Error).message).to.be.equal('PermissionInvalid_IssuerSignature');
+    }
   });
 });

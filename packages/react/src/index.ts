@@ -17,6 +17,8 @@ export {
   useCofheWriteContract,
   useCofheClient,
   useCofheTokens,
+  useCofheTokensWithExistingEncryptedBalances,
+  useTokensWithPublicBalances,
   useCofheTokenLists,
   useCofheTokenShield,
   useCofheTokenUnshield,
@@ -33,6 +35,13 @@ export {
   type UnshieldClaimsSummaryByTokenAddress,
   type ClaimableAmountByTokenAddress,
   type UseTransactionReceiptsByHashInput,
+  useCoingeckoUsdPrice,
+  type UseCoingeckoUsdPriceInput,
+  type UseCoingeckoUsdPriceOptions,
+  useCoingeckoContractMarketChartRange,
+  type CoingeckoMarketChartPoint,
+  type UseCoingeckoContractMarketChartRangeInput,
+  type UseCoingeckoContractMarketChartRangeOptions,
 } from '@/hooks/index';
 
 export { useCofheEncryptAndWriteContract } from '@/hooks/useCofheEncryptAndWriteContract';
@@ -40,7 +49,7 @@ export { useCofheReadContractAndDecrypt } from '@/hooks/useCofheReadContractAndD
 
 // Components
 export { FnxEncryptInput, FnxFloatingButtonWithProvider } from './components/index';
-export { MainPage, SettingsPage, TokenListPage } from './components/FnxFloatingButton/pages/index';
+export { MainPage, SettingsPage } from './components/FnxFloatingButton/pages/index';
 
 // Utils
 export {
@@ -83,8 +92,6 @@ export { createCofhesdkClient } from '@cofhe/sdk/web';
 
 export { useCofheNavigateToCreatePermit } from '@/hooks/permits/useCofheNavigateToCreatePermit';
 export { useCofheAutoConnect } from '@/hooks/useCofheAutoConnect';
-export { CREATE_PERMITT_BODY_BY_ERROR_CAUSE } from './providers/errors';
-export { ErrorCause } from './utils/errors';
 
 export type { CofhesdkConfigWithReact } from './config';
 

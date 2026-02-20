@@ -46,6 +46,7 @@ describe('PermitUtils Tests', () => {
 
       const permit = PermitUtils.createSelf(options);
 
+      expect(permit.hash).toBe(PermitUtils.getHash(permit));
       expect(permit.type).toBe('self');
       expect(permit.name).toBe('Test Permit');
       expect(permit.type).toBe('self');
@@ -81,6 +82,7 @@ describe('PermitUtils Tests', () => {
 
       const permit = PermitUtils.createSharing(options);
 
+      expect(permit.hash).toBe(PermitUtils.getHash(permit));
       expect(permit.type).toBe('sharing');
       expect(permit.name).toBe('Test Sharing Permit');
       expect(permit.type).toBe('sharing');
@@ -111,6 +113,7 @@ describe('PermitUtils Tests', () => {
     it('should import a shared permit with valid options', async () => {
       const options: ImportSharedPermitOptions = {
         issuer: bobAddress,
+        expiration: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
         recipient: aliceAddress,
         issuerSignature: '0x1234567890abcdef',
         name: 'Test Import Permit',
@@ -118,6 +121,7 @@ describe('PermitUtils Tests', () => {
 
       const permit = PermitUtils.importShared(options);
 
+      expect(permit.hash).toBe(PermitUtils.getHash(permit));
       expect(permit.type).toBe('recipient');
       expect(permit.name).toBe('Test Import Permit');
       expect(permit.issuer).toBe(bobAddress);
@@ -134,6 +138,7 @@ describe('PermitUtils Tests', () => {
     it('should import a shared permit with valid options as string', async () => {
       const options: ImportSharedPermitOptions = {
         issuer: bobAddress,
+        expiration: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
         recipient: aliceAddress,
         issuerSignature: '0x1234567890abcdef',
       };
@@ -168,11 +173,21 @@ describe('PermitUtils Tests', () => {
     it('should throw error for missing issuerSignature', async () => {
       const options: ImportSharedPermitOptions = {
         issuer: bobAddress,
+        expiration: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
         recipient: aliceAddress,
         issuerSignature: '0x', // Invalid empty signature
         name: 'Test Import Permit',
       };
 
+      expect(() => PermitUtils.importShared(options)).toThrow();
+    });
+
+    it('should throw error for missing expiration', async () => {
+      const options = {
+        issuer: bobAddress,
+        recipient: aliceAddress,
+        issuerSignature: '0x1234567890abcdef',
+      } as unknown as ImportSharedPermitOptions;
       expect(() => PermitUtils.importShared(options)).toThrow();
     });
   });
@@ -217,6 +232,7 @@ describe('PermitUtils Tests', () => {
       const options: ImportSharedPermitOptions = {
         issuer: bobAddress,
         recipient: aliceAddress,
+        expiration: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
         issuerSignature: '0x1234567890abcdef',
         name: 'Test Import Permit',
       };
@@ -233,6 +249,7 @@ describe('PermitUtils Tests', () => {
       const options: ImportSharedPermitOptions = {
         issuer: bobAddress,
         recipient: aliceAddress,
+        expiration: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
         issuerSignature: '0x1234567890abcdef',
       };
 
@@ -250,6 +267,7 @@ describe('PermitUtils Tests', () => {
       const options: ImportSharedPermitOptions = {
         issuer: bobAddress,
         recipient: aliceAddress,
+        expiration: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
         issuerSignature: '0x1234567890abcdef',
       };
 
@@ -283,7 +301,8 @@ describe('PermitUtils Tests', () => {
       const permit = PermitUtils.importShared({
         issuer: bobAddress,
         recipient: aliceAddress,
-        issuerSignature: '0xexisting-signature',
+        expiration: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
+        issuerSignature: '0x1111111111111111111111111111111111111111111111111111111111111111',
         name: 'Test Permit',
       });
 
@@ -361,10 +380,7 @@ describe('PermitUtils Tests', () => {
         name: 'Test Permit',
       });
 
-      const hash1 = PermitUtils.getHash(permit1);
-      const hash2 = PermitUtils.getHash(permit2);
-
-      expect(hash1).toBe(hash2);
+      expect(permit1.hash).toBe(permit2.hash);
     });
   });
 
@@ -473,5 +489,35 @@ describe('PermitUtils Tests', () => {
 
       expect(typeof isValid).toBe('boolean');
     }, 10000); // 10 second timeout for network call
+
+    // TODO: Uncomment when updated ACL with checkPermitValidity function is deployed
+
+    // it('should check permit validity on chain with real contract data', async () => {
+    //   const permit = PermitUtils.createSelf({
+    //     type: 'self',
+    //     issuer: bobAddress,
+    //     name: 'Test Permit',
+    //   });
+
+    //   const signedPermit = await PermitUtils.sign(permit, publicClient, bobWalletClient);
+
+    //   const isValid = await PermitUtils.checkValidityOnChain(signedPermit, publicClient);
+
+    //   expect(typeof isValid).toBe('boolean');
+    //   expect(isValid).toBe(true);
+
+    //   const permitInvalid = PermitUtils.createSelf({
+    //     type: 'self',
+    //     issuer: bobAddress,
+    //     name: 'Test Permit',
+    //     expiration: Math.floor(Date.now() / 1000) - 3600, // 1 hour ago
+    //   });
+
+    //   const signedPermitInvalid = await PermitUtils.sign(permitInvalid, publicClient, bobWalletClient);
+    //   const isValidInvalid = await PermitUtils.checkValidityOnChain(signedPermitInvalid, publicClient);
+
+    //   expect(typeof isValidInvalid).toBe('boolean');
+    //   expect(isValidInvalid).toBe(false);
+    // });
   });
 });

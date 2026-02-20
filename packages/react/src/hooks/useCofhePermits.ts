@@ -4,7 +4,6 @@ import { useCallback, useMemo, useSyncExternalStore } from 'react';
 import { NOOP_CALLBACK } from '../utils';
 import { PERMIT_STORE_DEFAULTS, PermitUtils, type Permit } from '@cofhe/sdk/permits';
 import { useCofheConnection } from './useCofheConnection';
-import { usePortalToasts } from '@/stores';
 
 const subscribeToPermitsConstructor = (client: CofhesdkClient) => (onStoreChange: () => void) => {
   return client.permits.subscribe(() => {
@@ -38,7 +37,6 @@ const useCofhePermitsStore = () => {
 
 export const useCofheActivePermit = ():
   | {
-      hash: string;
       permit: Permit;
       isValid: boolean;
     }
@@ -68,10 +66,10 @@ export const useCofheActivePermit = ():
 
 export const useCofheActivePermitHash = (): string | undefined => {
   const activePermit = useCofheActivePermit();
-  return useMemo(() => activePermit?.hash, [activePermit?.hash]);
+  return useMemo(() => activePermit?.permit.hash, [activePermit?.permit.hash]);
 };
 
-export const useCofheAllPermits = (): { hash: string; permit: Permit }[] => {
+export const useCofheAllPermits = (): Permit[] => {
   const { account, chainId, connected } = useCofheConnection();
 
   const { state } = useCofhePermitsStore();
@@ -87,10 +85,7 @@ export const useCofheAllPermits = (): { hash: string; permit: Permit }[] => {
               const serializedPermit = allPermits[hash];
               if (!serializedPermit) throw new Error('Permit data missing');
 
-              return {
-                hash,
-                permit: PermitUtils.deserialize(serializedPermit),
-              };
+              return PermitUtils.deserialize(serializedPermit);
             })
         : [],
     [allPermits]
@@ -99,46 +94,59 @@ export const useCofheAllPermits = (): { hash: string; permit: Permit }[] => {
   return connected ? allPermitsWithHashes : [];
 };
 
-export const useCofheRemovePermit = () => {
-  const { account, chainId } = useCofheConnection();
+export const useCofhePermit = (hash: string): Permit | undefined => {
+  const { account, chainId, connected } = useCofheConnection();
+  const { state } = useCofhePermitsStore();
+  return useMemo(() => {
+    if (!connected || !chainId || !account) return undefined;
+    const serializedPermit = state.permits[chainId]?.[account]?.[hash];
+    if (!serializedPermit) return undefined;
+    return PermitUtils.deserialize(serializedPermit);
+  }, [connected, chainId, account, hash, state.permits]);
+};
 
+type Callbacks = {
+  onSuccess?: () => void;
+  onError?: (error: Error) => void;
+};
+
+export const useCofheRemovePermit = ({ onSuccess, onError }: Callbacks = {}) => {
+  const { account, chainId } = useCofheConnection();
   const { client } = useCofhePermitsStore();
-  const { addToast } = usePortalToasts();
 
   return useCallback(
     async (hashToRemove: string) => {
-      if (!client || !chainId || !account)
-        throw new Error('Client, chainId, and account must be defined to remove a permit');
+      try {
+        if (!client || !chainId || !account) {
+          throw new Error('Client, chainId, and account must be defined to remove a permit');
+        }
 
-      addToast({
-        variant: 'info',
-        title: 'Permit has been removed',
-        description: 'The selected permit has been successfully removed.',
-      });
-      await client.permits.removePermit(hashToRemove, chainId, account, true);
+        client.permits.removePermit(hashToRemove, chainId, account);
+        onSuccess?.();
+      } catch (error) {
+        onError?.(new Error(error instanceof Error ? error.message : 'Unknown error'));
+      }
     },
-    [client, chainId, account, addToast]
+    [client, chainId, account, onSuccess, onError]
   );
 };
 
-export const useCofheSelectPermit = () => {
+export const useCofheSelectPermit = ({ onSuccess, onError }: Callbacks = {}) => {
   const { account, chainId } = useCofheConnection();
-
   const { client } = useCofhePermitsStore();
-
-  const { addToast } = usePortalToasts();
 
   return useCallback(
     (hashToSet: string) => {
-      if (!client || !chainId || !account)
-        throw new Error('Client, chainId, and account must be defined to set active permit hash');
-      client.permits.selectActivePermit(hashToSet, chainId, account);
-      addToast({
-        variant: 'info',
-        title: 'Active Permit Updated',
-        description: 'The active permit has been updated successfully.',
-      });
+      try {
+        if (!client || !chainId || !account) {
+          throw new Error('Client, chainId, and account must be defined to set active permit hash');
+        }
+        client.permits.selectActivePermit(hashToSet, chainId, account);
+        onSuccess?.();
+      } catch (error) {
+        onError?.(new Error(error instanceof Error ? error.message : 'Unknown error'));
+      }
     },
-    [client, chainId, account, addToast]
+    [client, chainId, account, onSuccess, onError]
   );
 };

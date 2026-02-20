@@ -6,10 +6,10 @@ import { extendConfig, extendEnvironment, task, types } from 'hardhat/config';
 import { TASK_TEST, TASK_NODE } from 'hardhat/builtin-tasks/task-names';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 import {
-  MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
   type CofhesdkClient,
   type CofhesdkConfig,
   type CofhesdkInputConfig,
+  MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
 } from '@cofhe/sdk';
 import { createCofhesdkClient, createCofhesdkConfig } from '@cofhe/sdk/node';
 import { HardhatSignerAdapter } from '@cofhe/sdk/adapters';
@@ -18,18 +18,11 @@ import { localcofheFundAccount } from './fund.js';
 import { TASK_COFHE_MOCKS_DEPLOY, TASK_COFHE_MOCKS_SET_LOG_OPS, TASK_COFHE_USE_FAUCET } from './consts.js';
 import { deployMocks, type DeployMocksArgs } from './deploy.js';
 import { mock_setLoggingEnabled, mock_withLogs } from './logging.js';
-import { mock_expectPlaintext } from './utils.js';
+import { getFixedMockContract, mock_expectPlaintext } from './utils.js';
 import { mock_getPlaintext } from './utils.js';
 import type { Contract } from 'ethers';
-import {
-  MockACLArtifact,
-  MockQueryDecrypterArtifact,
-  MockTaskManagerArtifact,
-  MockZkVerifierArtifact,
-  TestBedArtifact,
-} from '@cofhe/mock-contracts';
 import { hardhat } from '@cofhe/sdk/chains';
-export {
+import {
   MockACLArtifact,
   MockQueryDecrypterArtifact,
   MockTaskManagerArtifact,
@@ -186,6 +179,7 @@ task(TASK_COFHE_MOCKS_SET_LOG_OPS, 'Set logging for the Mock CoFHE contracts')
 
 // MOCK UTILS
 
+export * from './consts.js';
 export * from './utils.js';
 export * from './fund.js';
 export * from './logging.js';
@@ -417,23 +411,15 @@ extendEnvironment((hre) => {
         const [signer] = await hre.ethers.getSigners();
         return mock_expectPlaintext(signer.provider, ctHash, expectedValue);
       },
-      getMockTaskManager: async () => {
-        return await hre.ethers.getContractAt(MockTaskManagerArtifact.abi, MockTaskManagerArtifact.fixedAddress);
-      },
+      getMockTaskManager: async () => getFixedMockContract(hre, MockTaskManagerArtifact),
       getMockACL: async () => {
-        const tm = await hre.ethers.getContractAt(MockTaskManagerArtifact.abi, MockTaskManagerArtifact.fixedAddress);
-        const aclAddress = await tm.acl();
-        return await hre.ethers.getContractAt(MockACLArtifact.abi, aclAddress);
+        const taskManager = await getFixedMockContract(hre, MockTaskManagerArtifact);
+        const aclAddress = await taskManager.acl();
+        return hre.ethers.getContractAt(MockACLArtifact.abi, aclAddress);
       },
-      getMockQueryDecrypter: async () => {
-        return await hre.ethers.getContractAt(MockQueryDecrypterArtifact.abi, MockQueryDecrypterArtifact.fixedAddress);
-      },
-      getMockZkVerifier: async () => {
-        return await hre.ethers.getContractAt(MockZkVerifierArtifact.abi, MockZkVerifierArtifact.fixedAddress);
-      },
-      getTestBed: async () => {
-        return await hre.ethers.getContractAt(TestBedArtifact.abi, TestBedArtifact.fixedAddress);
-      },
+      getMockQueryDecrypter: async () => getFixedMockContract(hre, MockQueryDecrypterArtifact),
+      getMockZkVerifier: async () => getFixedMockContract(hre, MockZkVerifierArtifact),
+      getTestBed: async () => getFixedMockContract(hre, TestBedArtifact),
     },
   };
 });

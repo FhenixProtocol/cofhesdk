@@ -11,6 +11,7 @@ import {
   type EIP712Domain,
   type Permission,
   type EthEncryptedData,
+  type PermitHashFields,
 } from './types.js';
 import {
   validateSelfPermitOptions,
@@ -21,8 +22,10 @@ import {
   validateImportPermit,
   ValidationUtils,
 } from './validation.js';
+import * as z from 'zod';
 import { SignatureUtils } from './signature.js';
 import { GenerateSealingKey, SealingKey } from './sealing.js';
+import { checkPermitValidityOnChain, getAclEIP712Domain } from './onchain-utils.js';
 
 /**
  * Main Permit utilities - functional approach for React compatibility
@@ -34,17 +37,12 @@ export const PermitUtils = {
   createSelf: (options: CreateSelfPermitOptions): SelfPermit => {
     const validation = validateSelfPermitOptions(options);
 
-    if (!validation.success) {
-      throw new Error(
-        'PermitUtils :: createSelf :: Parsing SelfPermitOptions failed ' + JSON.stringify(validation.error, null, 2)
-      );
-    }
-
     // Always generate a new sealing key - users cannot provide their own
     const sealingPair = GenerateSealingKey();
 
     const permit = {
-      ...validation.data,
+      hash: PermitUtils.getHash(validation),
+      ...validation,
       sealingPair,
       _signedDomain: undefined,
     } satisfies SelfPermit;
@@ -58,18 +56,12 @@ export const PermitUtils = {
   createSharing: (options: CreateSharingPermitOptions): SharingPermit => {
     const validation = validateSharingPermitOptions(options);
 
-    if (!validation.success) {
-      throw new Error(
-        'PermitUtils :: createSharing :: Parsing SharingPermitOptions failed ' +
-          JSON.stringify(validation.error, null, 2)
-      );
-    }
-
     // Always generate a new sealing key - users cannot provide their own
     const sealingPair = GenerateSealingKey();
 
     const permit = {
-      ...validation.data,
+      hash: PermitUtils.getHash(validation),
+      ...validation,
       sealingPair,
       _signedDomain: undefined,
     } satisfies SharingPermit;
@@ -89,35 +81,28 @@ export const PermitUtils = {
       try {
         parsedOptions = JSON.parse(options);
       } catch (error) {
-        throw new Error(`PermitUtils :: importShared :: Failed to parse JSON string: ${error}`);
+        throw new Error(`Failed to parse JSON string: ${error}`);
       }
     } else if (typeof options === 'object' && options !== null) {
       // Handle both ImportSharedPermitOptions and any object
       parsedOptions = options;
     } else {
-      throw new Error(
-        'PermitUtils :: importShared :: Invalid input type, expected ImportSharedPermitOptions, object, or string'
-      );
+      throw new Error('Invalid input type, expected ImportSharedPermitOptions, object, or string');
     }
 
     // Validate type if provided
     if (parsedOptions.type != null && parsedOptions.type !== 'sharing') {
-      throw new Error(`PermitUtils :: importShared :: Invalid permit type <${parsedOptions.type}>, must be "sharing"`);
+      throw new Error(`Invalid permit type <${parsedOptions.type}>, must be "sharing"`);
     }
 
     const validation = validateImportPermitOptions({ ...parsedOptions, type: 'recipient' });
-
-    if (!validation.success) {
-      throw new Error(
-        'PermitUtils :: importShared :: Parsing ImportPermitOptions failed ' + JSON.stringify(validation.error, null, 2)
-      );
-    }
 
     // Always generate a new sealing key - users cannot provide their own
     const sealingPair = GenerateSealingKey();
 
     const permit = {
-      ...validation.data,
+      hash: PermitUtils.getHash(validation),
+      ...validation,
       sealingPair,
       _signedDomain: undefined,
     } satisfies RecipientPermit;
@@ -131,12 +116,12 @@ export const PermitUtils = {
   sign: async <T extends Permit>(permit: T, publicClient: PublicClient, walletClient: WalletClient): Promise<T> => {
     if (walletClient == null || walletClient.account == null) {
       throw new Error(
-        'PermitUtils :: sign - walletClient undefined, you must pass in a `walletClient` for the connected user to create a permit signature'
+        'Missing walletClient, you must pass in a `walletClient` for the connected user to create a permit signature'
       );
     }
 
     const primaryType = SignatureUtils.getPrimaryType(permit.type);
-    const domain = await PermitUtils.fetchEIP712Domain(publicClient);
+    const domain = await getAclEIP712Domain(publicClient);
     const { types, message } = SignatureUtils.getSignatureParams(PermitUtils.getPermission(permit, true), primaryType);
 
     const signature = await walletClient.signTypedData({
@@ -216,6 +201,7 @@ export const PermitUtils = {
    */
   serialize: (permit: Permit): SerializedPermit => {
     return {
+      hash: permit.hash,
       name: permit.name,
       type: permit.type,
       issuer: permit.issuer,
@@ -241,7 +227,7 @@ export const PermitUtils = {
     } else if (permit.type === 'recipient') {
       return validateImportPermit(permit);
     } else {
-      throw new Error('PermitUtils :: validate :: Invalid permit type');
+      throw new Error('Invalid permit type');
     }
   },
 
@@ -250,13 +236,7 @@ export const PermitUtils = {
    */
   getPermission: (permit: Permit, skipValidation = false): Permission => {
     if (!skipValidation) {
-      const validationResult = PermitUtils.validate(permit);
-
-      if (!validationResult.success) {
-        throw new Error(
-          `PermitUtils :: getPermission :: permit validation failed - ${JSON.stringify(validationResult.error, null, 2)} ${JSON.stringify(permit, null, 2)}`
-        );
-      }
+      PermitUtils.validate(permit);
     }
 
     return {
@@ -274,7 +254,7 @@ export const PermitUtils = {
   /**
    * Get a stable hash for the permit (used as key in storage)
    */
-  getHash: (permit: Permit): string => {
+  getHash: (permit: PermitHashFields): string => {
     const data = JSON.stringify({
       type: permit.type,
       issuer: permit.issuer,
@@ -345,41 +325,7 @@ export const PermitUtils = {
    * Fetch EIP712 domain from the blockchain
    */
   fetchEIP712Domain: async (publicClient: PublicClient): Promise<EIP712Domain> => {
-    // Hardcoded constants from the original implementation
-    const TASK_MANAGER_ADDRESS = '0xeA30c4B8b44078Bbf8a6ef5b9f1eC1626C7848D9';
-    const ACL_IFACE = 'function acl() view returns (address)';
-    const EIP712_DOMAIN_IFACE =
-      'function eip712Domain() public view returns (bytes1 fields, string name, string version, uint256 chainId, address verifyingContract, bytes32 salt, uint256[] extensions)';
-
-    // Parse the ABI for the ACL function
-    const aclAbi = parseAbi([ACL_IFACE]);
-
-    // Get the ACL address
-    const aclAddress = (await publicClient.readContract({
-      address: TASK_MANAGER_ADDRESS as `0x${string}`,
-      abi: aclAbi,
-      functionName: 'acl',
-    })) as `0x${string}`;
-
-    // Parse the ABI for the EIP712 domain function
-    const domainAbi = parseAbi([EIP712_DOMAIN_IFACE]);
-
-    // Get the EIP712 domain
-    const domain = await publicClient.readContract({
-      address: aclAddress,
-      abi: domainAbi,
-      functionName: 'eip712Domain',
-    });
-
-    // eslint-disable-next-line no-unused-vars
-    const [_fields, name, version, chainId, verifyingContract, _salt, _extensions] = domain;
-
-    return {
-      name,
-      version,
-      chainId: Number(chainId),
-      verifyingContract,
-    };
+    return getAclEIP712Domain(publicClient);
   },
 
   /**
@@ -399,7 +345,15 @@ export const PermitUtils = {
    */
   checkSignedDomainValid: async (permit: Permit, publicClient: PublicClient): Promise<boolean> => {
     if (permit._signedDomain == null) return false;
-    const domain = await PermitUtils.fetchEIP712Domain(publicClient);
+    const domain = await getAclEIP712Domain(publicClient);
     return PermitUtils.matchesDomain(permit, domain);
+  },
+
+  /**
+   * Check if permit passes the on-chain validation
+   */
+  checkValidityOnChain: async (permit: Permit, publicClient: PublicClient): Promise<boolean> => {
+    const permission = PermitUtils.getPermission(permit);
+    return checkPermitValidityOnChain(permission, publicClient);
   },
 };

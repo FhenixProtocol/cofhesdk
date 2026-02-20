@@ -34,6 +34,12 @@ export type CofhesdkClient<TConfig extends CofhesdkConfig = CofhesdkConfig> = {
 
   connect(publicClient: PublicClient, walletClient: WalletClient): Promise<void>;
   /**
+   * Clears the current connection state (account/chainId/clients) and marks the client as disconnected.
+   *
+   * This does not delete persisted permits or stored FHE keys; it only resets the in-memory connection.
+   */
+  disconnect(): void;
+  /**
    * Types docstring
    */
   encryptInputs<T extends EncryptableItem[]>(inputs: [...T]): EncryptInputsBuilder<[...T]>;
@@ -89,7 +95,7 @@ export type CofhesdkClientPermits = {
 
   // Mutation methods (chainId/account optional)
   selectActivePermit: (hash: string, chainId?: number, account?: string) => void;
-  removePermit: (hash: string, chainId?: number, account?: string, force?: boolean) => void;
+  removePermit: (hash: string, chainId?: number, account?: string) => void;
   removeActivePermit: (chainId?: number, account?: string) => void;
 
   // Utils

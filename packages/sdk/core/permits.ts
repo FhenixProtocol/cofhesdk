@@ -9,6 +9,7 @@ import {
   type SelfPermit,
   type RecipientPermit,
   type SharingPermit,
+  type PermitHashFields,
 } from '@/permits';
 
 import { type PublicClient, type WalletClient } from 'viem';
@@ -21,7 +22,7 @@ const storeActivePermit = async (permit: Permit, publicClient: any, walletClient
   const account = walletClient.account!.address;
 
   permitStore.setPermit(chainId, account, permit);
-  permitStore.setActivePermitHash(chainId, account, PermitUtils.getHash(permit));
+  permitStore.setActivePermitHash(chainId, account, permit.hash);
 };
 
 // Generic function to handle permit creation with error handling
@@ -70,7 +71,7 @@ const importShared = async (
 
 // PERMIT UTILS
 
-const getHash = (permit: Permit) => {
+const getHash = (permit: PermitHashFields) => {
   return PermitUtils.getHash(permit);
 };
 
@@ -167,8 +168,8 @@ const getOrCreateSharingPermit = async (
 
 // REMOVE
 
-const removePermit = async (chainId: number, account: string, hash: string, force?: boolean): Promise<void> =>
-  permitStore.removePermit(chainId, account, hash, force);
+const removePermit = async (chainId: number, account: string, hash: string): Promise<void> =>
+  permitStore.removePermit(chainId, account, hash);
 
 const removeActivePermit = async (chainId: number, account: string): Promise<void> =>
   permitStore.removeActivePermitHash(chainId, account);

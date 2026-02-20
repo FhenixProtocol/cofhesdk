@@ -7,7 +7,6 @@ import { PageContainer } from '../components/PageContainer.js';
 import { useCofheClient } from '@/hooks/useCofheClient.js';
 import { privateKeyToAccount } from 'viem/accounts';
 import { createWalletClient, http } from 'viem';
-import { arbitrumSepolia } from 'viem/chains';
 import { usePortalPersisted } from '@/stores/portalPersisted.js';
 
 type Tab = 'modal' | 'status' | 'toast' | 'permit';

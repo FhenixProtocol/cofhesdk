@@ -5,11 +5,12 @@ import { type Permit } from '@cofhe/sdk/permits';
 import { useEffect, useRef } from 'react';
 import { FloatingButtonPage } from '../components/FnxFloatingButton/pagesConfig/types';
 import { usePortalPersisted } from '@/stores/portalPersisted';
+import { useCofheIsConnected } from './useCofheConnection';
 
-const STATUS_ID_MISSING_PERMIT = 'missing-permit';
-const STATUS_ID_PERMIT_EXPIRED = 'permit-expired';
-const STATUS_ID_PERMIT_EXPIRING_SOON = 'permit-expiring-soon';
-const STATUS_ID_PERMIT_SHARED = 'permit-shared';
+export const STATUS_ID_MISSING_PERMIT = 'missing-permit';
+export const STATUS_ID_PERMIT_EXPIRED = 'permit-expired';
+export const STATUS_ID_PERMIT_EXPIRING_SOON = 'permit-expiring-soon';
+export const STATUS_ID_PERMIT_SHARED = 'permit-shared';
 
 export const showMissingPermitStatus = () => {
   usePortalStatuses.getState().addStatus({
@@ -90,6 +91,7 @@ export const hidePermitSharedStatus = () => {
 export const useWatchPermitStatus = () => {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const activePermit = useCofheActivePermit();
+  const connected = useCofheIsConnected();
 
   useEffect(() => {
     const updateStatuses = (permit: Permit | undefined) => {
@@ -100,7 +102,7 @@ export const useWatchPermitStatus = () => {
       const sharedStatusShown = usePortalStatuses.getState().hasStatus(STATUS_ID_PERMIT_SHARED);
 
       if (permit == null) {
-        if (hasCreatedFirstPermit && !missingPermitStatusShown) {
+        if (hasCreatedFirstPermit && !missingPermitStatusShown && connected) {
           showMissingPermitStatus();
         }
         if (expiredStatusShown) {
@@ -160,5 +162,5 @@ export const useWatchPermitStatus = () => {
         clearInterval(intervalRef.current);
       }
     };
-  }, [activePermit]);
+  }, [activePermit, connected]);
 };

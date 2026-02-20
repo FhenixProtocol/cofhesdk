@@ -3,15 +3,13 @@ import CloseIcon from '@mui/icons-material/Close';
 import { usePermitDetailsPage } from '@/hooks/permits/index.js';
 import { PageContainer } from '@/components/FnxFloatingButton/components/PageContainer';
 import { PortalModal, type PortalModalStateMap } from './types';
-import { useCopyFeedback } from '@/hooks/useCopyFeedback';
 import { Button } from '../components';
 import { InfoModalButton } from './InfoModalButton';
-import { usePortalModals, usePortalToasts } from '@/stores';
+import { usePortalModals } from '@/stores';
 import type { PermitType } from '@cofhe/sdk/permits';
 import { PermitCard } from '../components/PermitCard';
 import { truncateAddress } from '@/utils';
 import { useCallback, useState } from 'react';
-import { useCofheRemovePermit } from '@/hooks';
 
 const PermitTypeLabel: Record<PermitType, string> = {
   self: 'Self',
@@ -32,61 +30,43 @@ const NoPermitFoundModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           <p>No permit found</p>
         </div>
       }
+      footer={<Button label="CLOSE" onClick={onClose} variant="ghost" />}
     />
   );
 };
 
 export const PermitDetailsModal: React.FC<PortalModalStateMap[PortalModal.PermitDetails]> = ({ hash, onClose }) => {
-  const { permit, expirationInfo, handleViewAs, isActivePermit, isShareablePermit, handleCopy, isCopyComplete } =
-    usePermitDetailsPage(hash);
+  const {
+    permit,
+    expirationInfo,
+    isActivePermit,
+    isShareablePermit,
+    handleSelectActivePermit,
+    handleCopySharablePermitData,
+    handleRemovePermit,
+    isCopyComplete,
+  } = usePermitDetailsPage(hash);
   const { openModal } = usePortalModals();
-  const { addToast } = usePortalToasts();
-  const removePermit = useCofheRemovePermit();
 
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const handlePermitSelect = useCallback(() => {
+    handleSelectActivePermit();
     onClose();
-    handleViewAs();
-    addToast({
-      variant: 'success',
-      title: `Permit selected (${permit?.name})`,
-      description:
-        permit?.type === 'self'
-          ? 'Accessing own encrypted data.'
-          : `Accessing ${truncateAddress(permit?.issuer, 4, 4)}'s encrypted data.`,
-    });
-  }, [handleViewAs, onClose, addToast, permit]);
+  }, [handleSelectActivePermit, onClose]);
 
   const handlePermitShare = useCallback(() => {
-    handleCopy();
-    addToast({
-      variant: 'success',
-      title: 'Permit data copied',
-      description: 'Copied data can be sent to recipient.',
-    });
-  }, [handleCopy, addToast]);
+    handleCopySharablePermitData();
+  }, [handleCopySharablePermitData]);
 
   const handlePermitDelete = useCallback(async () => {
     if (!confirmDelete) {
       setConfirmDelete(true);
       return;
     }
-    try {
-      await removePermit(hash);
-    } catch (error) {
-      addToast({
-        variant: 'error',
-        title: 'Failed to delete permit',
-        description: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
+    handleRemovePermit();
     onClose();
-    addToast({
-      variant: 'success',
-      title: 'Permit deleted',
-    });
-  }, [confirmDelete, hash, onClose, addToast, removePermit]);
+  }, [confirmDelete, onClose, handleRemovePermit]);
 
   if (permit == null) {
     return <NoPermitFoundModal onClose={onClose} />;

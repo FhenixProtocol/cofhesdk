@@ -1,20 +1,24 @@
+import type { GeneratePermitPageProps } from '@/components/FnxFloatingButton/pages/permits/GeneratePermitPage/types';
 import { FloatingButtonPage } from '@/components/FnxFloatingButton/pagesConfig/types';
 import { usePortalNavigation, usePortalUI } from '@/stores';
 
 import { useCallback } from 'react';
 
 type Input = {
-  ReasonBody?: React.FC;
+  cause?: GeneratePermitPageProps['cause'];
 };
-export const useCofheNavigateToCreatePermit = ({ ReasonBody }: Input = {}) => {
+export const useCofheNavigateToCreatePermit = () => {
   const { navigateTo, navigateBack } = usePortalNavigation();
   const { portalOpen, openPortal } = usePortalUI();
 
-  return useCallback(() => {
-    if (!portalOpen) openPortal();
-    navigateTo(FloatingButtonPage.GeneratePermits, {
-      pageProps: { overridingBody: ReasonBody ? <ReasonBody /> : undefined, onSuccessNavigateTo: () => navigateBack() },
-      navigateParams: { skipPagesHistory: true },
-    });
-  }, [ReasonBody, openPortal, portalOpen, navigateBack, navigateTo]);
+  return useCallback(
+    ({ cause }: Input = {}) => {
+      if (!portalOpen) openPortal();
+      navigateTo(FloatingButtonPage.GeneratePermits, {
+        pageProps: { cause, onSuccessNavigateTo: () => navigateBack() },
+        navigateParams: { skipPagesHistory: true },
+      });
+    },
+    [openPortal, portalOpen, navigateBack, navigateTo]
+  );
 };

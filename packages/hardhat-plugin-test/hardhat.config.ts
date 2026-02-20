@@ -9,7 +9,12 @@ import { resolve } from 'path';
 dotenvConfig({ path: resolve(__dirname, '../../.env') });
 
 const config: HardhatUserConfig = {
-  solidity: '0.8.28',
+  solidity: {
+    version: '0.8.28',
+    settings: {
+      evmVersion: 'cancun',
+    },
+  },
 };
 
 export default config;

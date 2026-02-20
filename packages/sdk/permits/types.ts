@@ -1,4 +1,5 @@
 import { SealingKey as SealingKeyClass, type EthEncryptedData } from './sealing.js';
+import { type Hex } from 'viem';
 
 /**
  * EIP712 related types
@@ -9,7 +10,7 @@ export type EIP712Message = Record<string, string>;
 export type EIP712Domain = {
   chainId: number;
   name: string;
-  verifyingContract: `0x${string}`;
+  verifyingContract: Hex;
   version: string;
 };
 
@@ -30,6 +31,10 @@ export type { EthEncryptedData };
  */
 export interface Permit {
   /**
+   * Stable hash of relevant permit data, used as key in storage
+   */
+  hash: string;
+  /**
    * Name for this permit, for organization and UI usage, not included in signature.
    */
   name: string;
@@ -43,7 +48,7 @@ export interface Permit {
   /**
    * (base) User that initially created the permission, target of data fetching
    */
-  issuer: `0x${string}`;
+  issuer: Hex;
   /**
    * (base) Expiration timestamp
    */
@@ -52,7 +57,7 @@ export interface Permit {
    * (sharing) The user that this permission will be shared with
    * ** optional, use `address(0)` to disable **
    */
-  recipient: `0x${string}`;
+  recipient: Hex;
   /**
    * (issuer defined validation) An id used to query a contract to check this permissions validity
    * ** optional, use `0` to disable **
@@ -62,7 +67,7 @@ export interface Permit {
    * (issuer defined validation) The contract to query to determine permission validity
    * ** optional, user `address(0)` to disable **
    */
-  validatorContract: `0x${string}`;
+  validatorContract: Hex;
   /**
    * (base) The publicKey of a sealingPair used to re-encrypt `issuer`s confidential data
    *   (non-sharing) Populated by `issuer`
@@ -75,13 +80,13 @@ export interface Permit {
    *   (non-sharing) < issuer, expiration, recipient, validatorId, validatorContract, sealingKey >
    *   (sharing)     < issuer, expiration, recipient, validatorId, validatorContract >
    */
-  issuerSignature: `0x${string}`;
+  issuerSignature: Hex;
   /**
    * (sharing) `signTypedData` signature created by `recipient` with format:
    * (sharing) < sealingKey, issuerSignature>
    * ** required for shared permits **
    */
-  recipientSignature: `0x${string}`;
+  recipientSignature: Hex;
   /**
    * EIP712 domain used to sign this permit.
    * Should not be set manually, included in metadata as part of serialization flows.
@@ -149,7 +154,7 @@ export type ImportSharedPermitOptions = {
   recipient: string;
   issuerSignature: string;
   name?: string;
-  expiration?: number;
+  expiration: number;
   validatorId?: number;
   validatorContract?: string;
 };
@@ -166,9 +171,17 @@ export type SerializedPermit = Omit<Permit, 'sealingPair'> & {
  * A type representing the Permission struct that is passed to Permissioned.sol to grant encrypted data access.
  */
 export type Permission = Expand<
-  Omit<Permit, 'name' | 'type' | 'sealingPair'> & {
-    sealingKey: `0x${string}`;
+  Omit<Permit, 'name' | 'type' | 'sealingPair' | 'hash'> & {
+    sealingKey: Hex;
   }
+>;
+
+/**
+ * A type representing the permit fields that are used to generate the hash
+ */
+export type PermitHashFields = Pick<
+  Permit,
+  'type' | 'issuer' | 'expiration' | 'recipient' | 'validatorId' | 'validatorContract'
 >;
 
 /**

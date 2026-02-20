@@ -9,7 +9,12 @@ import { usePortalNavigation, usePortalToasts } from '@/stores';
 import { PageContainer } from '@/components/FnxFloatingButton/components/PageContainer';
 import { Button } from '@/components/FnxFloatingButton/components';
 
-export const GeneratePermitPage: React.FC<GeneratePermitPageProps> = ({ onSuccessNavigateTo, onCancel, onBack }) => {
+export const GeneratePermitPage: React.FC<GeneratePermitPageProps> = ({
+  onSuccessNavigateTo,
+  onCancel,
+  onBack,
+  cause,
+}) => {
   const { navigateBack, navigateTo, pageHistory } = usePortalNavigation();
   const { addToast } = usePortalToasts();
 
@@ -26,7 +31,6 @@ export const GeneratePermitPage: React.FC<GeneratePermitPageProps> = ({ onSucces
   } = usePermitForm({
     isDelegate: false,
     onSuccess: () => {
-      // TODO: also add toast here in any case
       // by default navigate to permits list, but if arrived here from elsewhere, go back where we came from
       onSuccessNavigateTo ? onSuccessNavigateTo() : navigateTo(FloatingButtonPage.Permits);
       addToast({
@@ -66,6 +70,9 @@ export const GeneratePermitPage: React.FC<GeneratePermitPageProps> = ({ onSucces
             <div className="text-lg font-semibold">CoFHE Permits</div>
           </div>
           <p className="text-sm leading-relaxed text-[#355366] dark:text-white/80">
+            {cause === 'clicked_on_confidential_balance' && (
+              <>You are trying to view a confidential balance, which requires a permit to access the encrypted data.</>
+            )}
             Permits are used to authenticate your identity when accessing encrypted data.
             <br />
             This form creates a "SELF" permit, which only grants access to the signer's (your) data.

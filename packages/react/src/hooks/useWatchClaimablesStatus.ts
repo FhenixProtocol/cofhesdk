@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 import { useCofheClaimableTokens } from './useCofheClaimableTokens';
 import { FloatingButtonPage } from '@/components/FnxFloatingButton/pagesConfig/types';
 
-const CLAIMS_AVAILABLE_STATUS_ID = 'claims-available';
+export const CLAIMS_AVAILABLE_STATUS_ID = 'claims-available';
 type Input = {
   onClick: () => void;
 };
@@ -39,6 +39,10 @@ export const useWatchClaimablesStatus = () => {
           navigateTo(FloatingButtonPage.ClaimableTokens);
         },
       });
+    }
+
+    if (totalTokensClaimable === 0 && claimsAvailableStatusShown) {
+      hideClaimsAvailableStatus();
     }
   }, [navigateTo, openPortal, totalTokensClaimable]);
 };
