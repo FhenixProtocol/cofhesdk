@@ -1,5 +1,12 @@
 # @cofhe/mock-contracts Changelog
 
+## 0.2.1
+
+### Patch Changes
+
+- ac47e2f: Add `PermitUtils.checkValidityOnChain` to validate permits against the on-chain deployed ACL (source of truth).
+- 0000d5e: Mock contracts deployed to alternate fixed addresses to avoid collision with hardhat pre-compiles.
+
 ## 0.2.0
 
 ### Minor Changes
