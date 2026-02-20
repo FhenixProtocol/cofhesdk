@@ -3,6 +3,8 @@ type UserAgentGlobals = {
   __COFHE_SDK_VERSION__?: string;
 };
 
+const COFHE_CLIEND_HEADER_KEY = 'X-COFHE-SDK';
+
 function getGlobals(): UserAgentGlobals {
   return (typeof globalThis !== 'undefined' ? (globalThis as unknown as UserAgentGlobals) : {}) as UserAgentGlobals;
 }
@@ -42,7 +44,7 @@ export function getSdkUserAgentHeaders(): Record<string, string> {
   if (isNodeRuntime()) {
     return {
       'User-Agent': userAgent,
-      'X-COFHE-SDK': userAgent,
+      [COFHE_CLIEND_HEADER_KEY]: userAgent,
     };
   }
 
@@ -50,6 +52,6 @@ export function getSdkUserAgentHeaders(): Record<string, string> {
   // Since our SDK talks to third-party endpoints, we keep browser requests
   // header-free by default to avoid breaking in real browsers and tests.
   return {
-    'X-COFHE-SDK': userAgent,
+    [COFHE_CLIEND_HEADER_KEY]: userAgent,
   };
 }
