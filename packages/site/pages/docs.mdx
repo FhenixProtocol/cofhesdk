@@ -30,10 +30,14 @@ The SDK ships multiple entrypoints so you can pick the right defaults for your r
 
 ### Import examples
 
-```ts
+```ts twoslash
+// @noErrors
 import { createCofhesdkClient, createCofhesdkConfig } from '@cofhe/sdk/web';
 // or
-import { createCofhesdkClient, createCofhesdkConfig } from '@cofhe/sdk/node';
+import {
+  createCofhesdkClient as createCofhesdkClientNode,
+  createCofhesdkConfig as createCofhesdkConfigNode,
+} from '@cofhe/sdk/node';
 
 import { PermitUtils } from '@cofhe/sdk/permits';
 import { chains, getChainById } from '@cofhe/sdk/chains';
