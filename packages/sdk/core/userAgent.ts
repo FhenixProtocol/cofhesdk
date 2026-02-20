@@ -48,9 +48,6 @@ export function getSdkUserAgentHeaders(): Record<string, string> {
     };
   }
 
-  // In browsers, sending a custom header can trigger a CORS preflight.
-  // Since our SDK talks to third-party endpoints, we keep browser requests
-  // header-free by default to avoid breaking in real browsers and tests.
   return {
     [COFHE_CLIEND_HEADER_KEY]: userAgent,
   };
