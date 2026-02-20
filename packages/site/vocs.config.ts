@@ -13,6 +13,10 @@ export default defineConfig({
         link: '/docs',
       },
       {
+        text: 'Client',
+        link: '/docs/client',
+      },
+      {
         text: 'Migrating from `cofhejs`',
         link: '/docs/migrating-from-cofhejs',
       },
