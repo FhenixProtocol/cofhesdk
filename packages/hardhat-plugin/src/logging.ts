@@ -1,23 +1,17 @@
 import chalk from 'chalk';
 import { type HardhatRuntimeEnvironment } from 'hardhat/types';
-import { TASK_MANAGER_ADDRESS } from './consts';
+import { getFixedMockContract } from './utils';
 import { MockTaskManagerArtifact } from '@cofhe/mock-contracts';
 
-const getDeployedMockTaskManager = async (hre: HardhatRuntimeEnvironment) => {
-  // Fetch the deployed MockTaskManager
-  const taskManager = await hre.ethers.getContractAt(MockTaskManagerArtifact.abi, TASK_MANAGER_ADDRESS);
-
-  return taskManager;
-};
-
-const getLoggingEnabled = async (hre: HardhatRuntimeEnvironment) => {
-  const taskManager = await getDeployedMockTaskManager(hre);
-  return await taskManager.logOps();
+const getLoggingEnabled = async (hre: HardhatRuntimeEnvironment): Promise<boolean> => {
+  const taskManager = await getFixedMockContract(hre, MockTaskManagerArtifact);
+  return taskManager.logOps();
 };
 
 const setLoggingEnabled = async (hre: HardhatRuntimeEnvironment, enabled: boolean) => {
-  const taskManager = await getDeployedMockTaskManager(hre);
-  await taskManager.setLogOps(enabled);
+  const taskManager = await getFixedMockContract(hre, MockTaskManagerArtifact);
+  const tx = await taskManager.setLogOps(enabled);
+  await tx.wait();
 };
 
 // prettier-ignore

@@ -7,10 +7,9 @@ import {
   parseAbi,
 } from 'viem';
 import type { EIP712Domain, Permission } from './types';
+import { TASK_MANAGER_ADDRESS } from '../core/consts.js';
 
 export const getAclAddress = async (publicClient: PublicClient): Promise<Hex> => {
-  // Hardcoded constants from the original implementation
-  const TASK_MANAGER_ADDRESS = '0xeA30c4B8b44078Bbf8a6ef5b9f1eC1626C7848D9';
   const ACL_IFACE = 'function acl() view returns (address)';
 
   // Parse the ABI for the ACL function
@@ -77,6 +76,21 @@ export const checkPermitValidityOnChain = async (
     });
     return true;
   } catch (err: any) {
+    // Viem default handling
+    if (err instanceof BaseError) {
+      const revertError = err.walk((err: any) => err instanceof ContractFunctionRevertedError);
+      if (revertError instanceof ContractFunctionRevertedError) {
+        const errorName = revertError.data?.errorName ?? '';
+        throw new Error(errorName);
+      }
+    }
+
+    // Check details field for custom error names (e.g., from Hardhat test nodes)
+    const customErrorName = extractCustomErrorFromDetails(err, checkPermitValidityAbi);
+    if (customErrorName) {
+      throw new Error(customErrorName);
+    }
+
     // Hardhat wrapped error will need to be unwrapped to get the return data
     const hhDetailsData = extractReturnData(err);
     if (hhDetailsData != null) {
@@ -88,19 +102,31 @@ export const checkPermitValidityOnChain = async (
       throw new Error(decoded.errorName);
     }
 
-    // Viem default handling
-    if (err instanceof BaseError) {
-      const revertError = err.walk((err) => err instanceof ContractFunctionRevertedError);
-      if (revertError instanceof ContractFunctionRevertedError) {
-        const errorName = revertError.data?.errorName ?? '';
-        throw new Error(errorName);
-      }
-    }
-
     // Fallback throw the original error
     throw err;
   }
 };
+
+function extractCustomErrorFromDetails(err: unknown, abi: readonly any[]): string | undefined {
+  // Check details field for custom error names (e.g., from Hardhat test nodes)
+  const anyErr = err as any;
+  const details = anyErr?.details ?? anyErr?.cause?.details;
+
+  if (typeof details === 'string') {
+    // Match pattern: "reverted with custom error 'ErrorName()'"
+    const customErrorMatch = details.match(/reverted with custom error '(\w+)\(\)'/);
+    if (customErrorMatch) {
+      const errorName = customErrorMatch[1];
+      // Check if this error exists in our ABI
+      const errorExists = abi.some((item) => item.type === 'error' && item.name === errorName);
+      if (errorExists) {
+        return errorName;
+      }
+    }
+  }
+
+  return undefined;
+}
 
 function extractReturnData(err: unknown): `0x${string}` | undefined {
   // viem BaseError has `details`, but fall back to any message-like string we can find

@@ -83,7 +83,15 @@ export type {
 } from './encrypt/zkPackProveVerify.js';
 export { zkProveWithWorker } from './encrypt/zkPackProveVerify.js';
 
-export { MOCKS_ZK_VERIFIER_SIGNER_ADDRESS } from './encrypt/cofheMocksZkVerifySign.js';
+// Contract addresses
+export {
+  TASK_MANAGER_ADDRESS,
+  MOCKS_ZK_VERIFIER_ADDRESS,
+  MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
+  MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY,
+  MOCKS_QUERY_DECRYPTER_ADDRESS,
+  TEST_BED_ADDRESS,
+} from './consts.js';
 
 // Utils
 export { fheTypeToString } from './utils.js';

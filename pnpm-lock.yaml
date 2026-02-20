@@ -176,14 +176,11 @@ importers:
         specifier: workspace:*
         version: link:../sdk
       '@fhenixprotocol/cofhe-contracts':
-        specifier: 0.0.13
+        specifier: '>=0.0.13'
         version: 0.0.13
       '@openzeppelin/contracts':
         specifier: ^5.0.0
         version: 5.4.0
-      '@openzeppelin/contracts-upgradeable':
-        specifier: ^5.0.0
-        version: 5.4.0(@openzeppelin/contracts@5.4.0)
       chai:
         specifier: ^4.2.0
         version: 4.5.0
@@ -297,6 +294,9 @@ importers:
         specifier: ^5.0.0
         version: 5.4.0(@openzeppelin/contracts@5.4.0)
     devDependencies:
+      '@cofhe/sdk':
+        specifier: workspace:*
+        version: link:../sdk
       '@cofhe/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig
@@ -311,7 +311,7 @@ importers:
         version: 2.26.3(typescript@5.9.3)
       tsup:
         specifier: ^8.0.2
-        version: 8.0.2(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.0(postcss@8.5.6)(typescript@5.9.3)
 
   packages/react:
     dependencies:
@@ -15292,46 +15292,6 @@ packages:
       - ts-node
     dev: true
 
-  /tsup@8.0.2(postcss@8.5.6)(typescript@5.9.3):
-    resolution: {integrity: sha512-NY8xtQXdH7hDUAZwcQdY/Vzlw9johQsaqf7iwZ6g1DOUlFYQ5/AtVAjTvihhEyeRlGo4dLRVHtrRaL35M1daqQ==}
-    engines: {node: '>=18'}
-    hasBin: true
-    peerDependencies:
-      '@microsoft/api-extractor': ^7.36.0
-      '@swc/core': ^1
-      postcss: ^8.4.12
-      typescript: '>=4.5.0'
-    peerDependenciesMeta:
-      '@microsoft/api-extractor':
-        optional: true
-      '@swc/core':
-        optional: true
-      postcss:
-        optional: true
-      typescript:
-        optional: true
-    dependencies:
-      bundle-require: 4.0.2(esbuild@0.19.7)
-      cac: 6.7.14
-      chokidar: 3.5.3
-      debug: 4.4.0(supports-color@8.1.1)
-      esbuild: 0.19.7
-      execa: 5.1.1
-      globby: 11.1.0
-      joycon: 3.1.1
-      postcss: 8.5.6
-      postcss-load-config: 4.0.2(postcss@8.5.6)
-      resolve-from: 5.0.0
-      rollup: 4.5.1
-      source-map: 0.8.0-beta.0
-      sucrase: 3.34.0
-      tree-kill: 1.2.2
-      typescript: 5.9.3
-    transitivePeerDependencies:
-      - supports-color
-      - ts-node
-    dev: true
-
   /tsup@8.5.0(postcss@8.5.6)(typescript@5.5.4):
     resolution: {integrity: sha512-VmBp77lWNQq6PfuMqCHD3xWl22vEoWsKajkF8t+yMBawlUS8JzEI+vOVMeuNZIuMML8qXRizFKi9oD5glKQVcQ==}
     engines: {node: '>=18'}
@@ -15370,6 +15330,51 @@ packages:
       tinyglobby: 0.2.15
       tree-kill: 1.2.2
       typescript: 5.5.4
+    transitivePeerDependencies:
+      - jiti
+      - supports-color
+      - tsx
+      - yaml
+    dev: true
+
+  /tsup@8.5.0(postcss@8.5.6)(typescript@5.9.3):
+    resolution: {integrity: sha512-VmBp77lWNQq6PfuMqCHD3xWl22vEoWsKajkF8t+yMBawlUS8JzEI+vOVMeuNZIuMML8qXRizFKi9oD5glKQVcQ==}
+    engines: {node: '>=18'}
+    hasBin: true
+    peerDependencies:
+      '@microsoft/api-extractor': ^7.36.0
+      '@swc/core': ^1
+      postcss: ^8.4.12
+      typescript: '>=4.5.0'
+    peerDependenciesMeta:
+      '@microsoft/api-extractor':
+        optional: true
+      '@swc/core':
+        optional: true
+      postcss:
+        optional: true
+      typescript:
+        optional: true
+    dependencies:
+      bundle-require: 5.1.0(esbuild@0.25.12)
+      cac: 6.7.14
+      chokidar: 4.0.3
+      consola: 3.4.2
+      debug: 4.4.3(supports-color@5.5.0)
+      esbuild: 0.25.12
+      fix-dts-default-cjs-exports: 1.0.1
+      joycon: 3.1.1
+      picocolors: 1.1.1
+      postcss: 8.5.6
+      postcss-load-config: 6.0.1(jiti@1.21.7)(postcss@8.5.6)
+      resolve-from: 5.0.0
+      rollup: 4.50.1
+      source-map: 0.8.0-beta.0
+      sucrase: 3.35.0
+      tinyexec: 0.3.2
+      tinyglobby: 0.2.15
+      tree-kill: 1.2.2
+      typescript: 5.9.3
     transitivePeerDependencies:
       - jiti
       - supports-color

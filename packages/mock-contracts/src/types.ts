@@ -1,7 +1,14 @@
-export type MocksArtifact = {
+export type MockArtifact = {
   contractName: string;
-  fixedAddress: string;
   abi: any;
-  deployedBytecode: string;
-  bytecode: string;
-};
+} & (
+  | {
+      isFixed: true;
+      fixedAddress: string;
+      deployedBytecode: string;
+    }
+  | {
+      isFixed: false;
+      bytecode: string;
+    }
+);

@@ -2,11 +2,11 @@ import hre from 'hardhat';
 import { expect } from 'chai';
 import { TASK_COFHE_MOCKS_DEPLOY } from './consts';
 import {
-  MockQueryDecrypterArtifact,
-  MockTaskManagerArtifact,
-  MockZkVerifierArtifact,
-  TestBedArtifact,
-} from '@cofhe/hardhat-plugin';
+  TASK_MANAGER_ADDRESS,
+  MOCKS_ZK_VERIFIER_ADDRESS,
+  MOCKS_QUERY_DECRYPTER_ADDRESS,
+  TEST_BED_ADDRESS,
+} from '@cofhe/sdk';
 
 describe('Deploy Mocks Task', () => {
   it('should deploy mock contracts', async () => {
@@ -14,15 +14,9 @@ describe('Deploy Mocks Task', () => {
 
     // TASK MANAGER
 
-    const taskManager = await hre.ethers.getContractAt(
-      MockTaskManagerArtifact.abi,
-      MockTaskManagerArtifact.fixedAddress
-    );
-    expect(await taskManager.exists()).to.be.true;
-
     const taskManagerFromCofhesdk = await hre.cofhesdk.mocks.getMockTaskManager();
     expect(await taskManagerFromCofhesdk.exists()).to.be.true;
-    expect(await taskManagerFromCofhesdk.getAddress()).to.be.equal(MockTaskManagerArtifact.fixedAddress);
+    expect(await taskManagerFromCofhesdk.getAddress()).to.be.equal(TASK_MANAGER_ADDRESS);
 
     // ACL
 
@@ -33,32 +27,23 @@ describe('Deploy Mocks Task', () => {
     expect(version).to.equal('1');
 
     expect(await aclFromCofhesdk.exists()).to.be.true;
-    expect(await aclFromCofhesdk.getAddress()).to.be.equal(await taskManager.acl());
+    expect(await aclFromCofhesdk.getAddress()).to.be.equal(await taskManagerFromCofhesdk.acl());
 
     // ZK VERIFIER
 
-    const zkVerifier = await hre.ethers.getContractAt(MockZkVerifierArtifact.abi, MockZkVerifierArtifact.fixedAddress);
-    expect(await zkVerifier.exists()).to.be.true;
-
     const zkVerifierFromCofhesdk = await hre.cofhesdk.mocks.getMockZkVerifier();
     expect(await zkVerifierFromCofhesdk.exists()).to.be.true;
-    expect(await zkVerifierFromCofhesdk.getAddress()).to.be.equal(MockZkVerifierArtifact.fixedAddress);
+    expect(await zkVerifierFromCofhesdk.getAddress()).to.be.equal(MOCKS_ZK_VERIFIER_ADDRESS);
 
     // QUERY DECRYPTER
 
-    const queryDecrypter = await hre.ethers.getContractAt(
-      MockQueryDecrypterArtifact.abi,
-      MockQueryDecrypterArtifact.fixedAddress
-    );
-    expect(await queryDecrypter.exists()).to.be.true;
-
     const queryDecrypterFromCofhesdk = await hre.cofhesdk.mocks.getMockQueryDecrypter();
     expect(await queryDecrypterFromCofhesdk.exists()).to.be.true;
-    expect(await queryDecrypterFromCofhesdk.getAddress()).to.be.equal(MockQueryDecrypterArtifact.fixedAddress);
+    expect(await queryDecrypterFromCofhesdk.getAddress()).to.be.equal(MOCKS_QUERY_DECRYPTER_ADDRESS);
 
     // TEST BED
 
     const testBedFromCofhesdk = await hre.cofhesdk.mocks.getTestBed();
-    expect(await testBedFromCofhesdk.getAddress()).to.be.equal(TestBedArtifact.fixedAddress);
+    expect(await testBedFromCofhesdk.getAddress()).to.be.equal(TEST_BED_ADDRESS);
   });
 });
