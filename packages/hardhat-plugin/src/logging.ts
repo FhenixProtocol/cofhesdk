@@ -1,15 +1,15 @@
 import chalk from 'chalk';
 import { type HardhatRuntimeEnvironment } from 'hardhat/types';
-import { ethersGetFromArtifact } from './utils';
+import { getFixedMockContract } from './utils';
 import { MockTaskManagerArtifact } from '@cofhe/mock-contracts';
 
 const getLoggingEnabled = async (hre: HardhatRuntimeEnvironment): Promise<boolean> => {
-  const taskManager = await ethersGetFromArtifact(hre, MockTaskManagerArtifact);
+  const taskManager = await getFixedMockContract(hre, MockTaskManagerArtifact);
   return taskManager.logOps();
 };
 
 const setLoggingEnabled = async (hre: HardhatRuntimeEnvironment, enabled: boolean) => {
-  const taskManager = await ethersGetFromArtifact(hre, MockTaskManagerArtifact);
+  const taskManager = await getFixedMockContract(hre, MockTaskManagerArtifact);
   const tx = await taskManager.setLogOps(enabled);
   await tx.wait();
 };

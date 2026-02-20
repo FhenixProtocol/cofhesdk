@@ -11,7 +11,7 @@ import {
 } from '@cofhe/mock-contracts';
 
 import { TASK_MANAGER_ADDRESS, MOCKS_ZK_VERIFIER_SIGNER_ADDRESS } from '@cofhe/sdk';
-import { hardhatDeployFromArtifact, ethersDeployFromArtifact } from './utils';
+import { deployMockContractFromArtifact } from './utils';
 
 // Deployment
 
@@ -97,7 +97,7 @@ const deployMockTaskManager = async (hre: HardhatRuntimeEnvironment) => {
   const [signer] = await hre.ethers.getSigners();
 
   // Deploy MockTaskManager
-  const taskManager = await hardhatDeployFromArtifact(hre, MockTaskManagerArtifact);
+  const taskManager = await deployMockContractFromArtifact(hre, MockTaskManagerArtifact);
 
   // Initialize MockTaskManager
   const initTx = await taskManager.initialize(signer.address);
@@ -114,7 +114,7 @@ const deployMockTaskManager = async (hre: HardhatRuntimeEnvironment) => {
 
 const deployMockACL = async (hre: HardhatRuntimeEnvironment): Promise<Contract> => {
   // Deploy MockACL (uses ethers to deploy to ensure constructor called and EIP712 domain set)
-  const acl = await ethersDeployFromArtifact(hre, MockACLArtifact);
+  const acl = await deployMockContractFromArtifact(hre, MockACLArtifact);
 
   // Check if ACL exists
   const exists = await acl.exists();
@@ -144,7 +144,7 @@ const linkTaskManagerAndACL = async (taskManager: Contract, acl: Contract) => {
 };
 
 const deployMockZkVerifier = async (hre: HardhatRuntimeEnvironment) => {
-  const zkVerifier = await hardhatDeployFromArtifact(hre, MockZkVerifierArtifact);
+  const zkVerifier = await deployMockContractFromArtifact(hre, MockZkVerifierArtifact);
 
   const zkVerifierExists = await zkVerifier.exists();
   if (!zkVerifierExists) {
@@ -155,7 +155,7 @@ const deployMockZkVerifier = async (hre: HardhatRuntimeEnvironment) => {
 };
 
 const deployMockQueryDecrypter = async (hre: HardhatRuntimeEnvironment, acl: Contract) => {
-  const queryDecrypter = await hardhatDeployFromArtifact(hre, MockQueryDecrypterArtifact);
+  const queryDecrypter = await deployMockContractFromArtifact(hre, MockQueryDecrypterArtifact);
 
   // Initialize MockQueryDecrypter
   const initTx = await queryDecrypter.initialize(TASK_MANAGER_ADDRESS, await acl.getAddress());
@@ -171,7 +171,7 @@ const deployMockQueryDecrypter = async (hre: HardhatRuntimeEnvironment, acl: Con
 };
 
 const deployTestBedContract = async (hre: HardhatRuntimeEnvironment) => {
-  return hardhatDeployFromArtifact(hre, TestBedArtifact);
+  return deployMockContractFromArtifact(hre, TestBedArtifact);
 };
 
 // Logging

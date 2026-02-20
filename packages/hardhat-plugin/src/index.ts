@@ -18,7 +18,7 @@ import { localcofheFundAccount } from './fund.js';
 import { TASK_COFHE_MOCKS_DEPLOY, TASK_COFHE_MOCKS_SET_LOG_OPS, TASK_COFHE_USE_FAUCET } from './consts.js';
 import { deployMocks, type DeployMocksArgs } from './deploy.js';
 import { mock_setLoggingEnabled, mock_withLogs } from './logging.js';
-import { ethersGetFromArtifact, mock_expectPlaintext } from './utils.js';
+import { getFixedMockContract, mock_expectPlaintext } from './utils.js';
 import { mock_getPlaintext } from './utils.js';
 import type { Contract } from 'ethers';
 import { hardhat } from '@cofhe/sdk/chains';
@@ -411,15 +411,15 @@ extendEnvironment((hre) => {
         const [signer] = await hre.ethers.getSigners();
         return mock_expectPlaintext(signer.provider, ctHash, expectedValue);
       },
-      getMockTaskManager: async () => ethersGetFromArtifact(hre, MockTaskManagerArtifact),
+      getMockTaskManager: async () => getFixedMockContract(hre, MockTaskManagerArtifact),
       getMockACL: async () => {
-        const taskManager = await ethersGetFromArtifact(hre, MockTaskManagerArtifact);
+        const taskManager = await getFixedMockContract(hre, MockTaskManagerArtifact);
         const aclAddress = await taskManager.acl();
         return hre.ethers.getContractAt(MockACLArtifact.abi, aclAddress);
       },
-      getMockQueryDecrypter: async () => ethersGetFromArtifact(hre, MockQueryDecrypterArtifact),
-      getMockZkVerifier: async () => ethersGetFromArtifact(hre, MockZkVerifierArtifact),
-      getTestBed: async () => ethersGetFromArtifact(hre, TestBedArtifact),
+      getMockQueryDecrypter: async () => getFixedMockContract(hre, MockQueryDecrypterArtifact),
+      getMockZkVerifier: async () => getFixedMockContract(hre, MockZkVerifierArtifact),
+      getTestBed: async () => getFixedMockContract(hre, TestBedArtifact),
     },
   };
 });

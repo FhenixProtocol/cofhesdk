@@ -2,42 +2,37 @@ import { TASK_MANAGER_ADDRESS, MOCKS_ZK_VERIFIER_ADDRESS } from '@cofhe/sdk';
 import { expect } from 'chai';
 import { Contract, ethers } from 'ethers';
 import { type HardhatEthersProvider } from '@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider';
-import type { MocksArtifact } from '@cofhe/mock-contracts';
+import type { MockArtifact } from '@cofhe/mock-contracts';
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 
-/**
- * Deploy a contract from an artifact using hardhat
- * Deploys to a fixed address (artifact.fixedAddress)
- */
-export const hardhatDeployFromArtifact = async (
-  hre: HardhatRuntimeEnvironment,
-  artifact: MocksArtifact
-): Promise<Contract> => {
-  await hardhatSetCode(hre, artifact.fixedAddress, artifact.deployedBytecode);
-  return ethersGetFromArtifact(hre, artifact);
-};
+// Deployment utils
 
-export const hardhatSetCode = async (hre: HardhatRuntimeEnvironment, address: string, bytecode: string) => {
-  await hre.network.provider.send('hardhat_setCode', [address, bytecode]);
-};
+/// Deploys a mock contract from a pre-built artifact from the mock-contracts package
+/// If the mock contract should be deployed to a fixed address, `hardhat_setCode` op is used to set the code at the fixed address
+/// Otherwise, we deploy the contract using ethers.js to a non-fixed address
+export const deployMockContractFromArtifact = async (hre: HardhatRuntimeEnvironment, artifact: MockArtifact) => {
+  // Use hardhat_setCode to deploy to fixed address
+  if (artifact.isFixed) {
+    await hre.network.provider.send('hardhat_setCode', [artifact.fixedAddress, artifact.deployedBytecode]);
+    return getFixedMockContract(hre, artifact);
+  }
 
-export const ethersGetFromArtifact = async (hre: HardhatRuntimeEnvironment, artifact: MocksArtifact) => {
-  return await hre.ethers.getContractAt(artifact.abi, artifact.fixedAddress);
-};
-
-/**
- * Deploy a contract from an artifact using ethers.js
- * Does not deploy to a fixed address
- */
-export const ethersDeployFromArtifact = async (hre: HardhatRuntimeEnvironment, artifact: MocksArtifact) => {
+  // Use ethers.js to deploy to variable address
   const [signer] = await hre.ethers.getSigners();
-
   const factory = new hre.ethers.ContractFactory(artifact.abi, artifact.bytecode, signer);
   const contract = await factory.deploy(/* constructor args */);
   await contract.waitForDeployment();
-
   return contract as Contract;
 };
+
+export const getFixedMockContract = async (hre: HardhatRuntimeEnvironment, artifact: MockArtifact) => {
+  if (!artifact.isFixed) {
+    throw new Error('Artifact is not fixed');
+  }
+  return await hre.ethers.getContractAt(artifact.abi, artifact.fixedAddress);
+};
+
+// Testing utils
 
 const mock_checkIsTestnet = async (fnName: string, provider: HardhatEthersProvider | ethers.JsonRpcProvider) => {
   // Testnet is checked by testing if MockZkVerifier is deployed
