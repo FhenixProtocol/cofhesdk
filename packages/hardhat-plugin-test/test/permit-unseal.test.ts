@@ -17,7 +17,7 @@ describe('Permit Unseal Test', () => {
     const ctHash = await testBed.numberHash();
 
     // Decrypt number from TestBed
-    const unsealed = await client.decryptHandle(ctHash, FheTypes.Uint32).decrypt();
+    const unsealed = await client.decryptHandle(ctHash, FheTypes.Uint32).execute();
 
     expect(unsealed).to.be.equal(7n);
   });

@@ -141,7 +141,7 @@ describe('@cofhe/web - Client', () => {
       expect(builder).toBeDefined();
       expect(typeof builder.setChainId).toBe('function');
       expect(typeof builder.setAccount).toBe('function');
-      expect(typeof builder.decrypt).toBe('function');
+      expect(typeof builder.execute).toBe('function');
     }, 30000);
   });
 });
