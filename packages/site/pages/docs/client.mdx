@@ -1,13 +1,13 @@
-# Client
+# Cofhe Client
 
 This page covers the core SDK lifecycle:
 
-1. Create a config (`createCofhesdkConfig`)
-2. Create a client (`createCofhesdkClient`)
+1. Create config (`createCofhesdkConfig`)
+2. Create client (`createCofhesdkClient`)
 3. Connect to client (`client.connect`)
 4. Managing connection (change account / disconnect)
 
-## 1) Create cofhesdk config
+## 1) Create config
 
 Import `createCofhesdkConfig` from the entrypoint that matches your runtime:
 
@@ -30,7 +30,7 @@ const config = createCofhesdkConfig({
 });
 ```
 
-## 2) Create cofhesdk client
+## 2) Create cofhe client
 
 Import `createCofhesdkClient` from the entrypoint that matches your runtime:
 
@@ -90,10 +90,6 @@ await cofheClient.connect(publicClient, walletClient);
 // Check connection
 cofheClient.connected; // true
 ```
-
-### Reconnect behavior
-
-Calling `connect` again with the same clients is a no-op. Calling it with new clients replaces the connection state.
 
 ### Using adapters (optional)
 
@@ -157,6 +153,12 @@ await cofheClient.connect(publicClient, walletClient);
 
 ## 4) Managing connections
 
+### Reconnect behavior
+
+Calling `connect` again with the same clients is a no-op. Calling it with new clients replaces the connection state.
+
+### Changing connected account
+
 To switch the client's connected account call `cofheClient.connect()` with updated viem clients.
 
 ```ts twoslash
@@ -184,6 +186,8 @@ await cofheClient.connect(publicClient, aliceWalletClient);
 
 cofheClient.connection().account; // 0xALICE
 ```
+
+### Disconnecting
 
 To manually disconnect call `cofheClient.disconnect()`.
 Disconnecting clears the in-memory connection state (clients/account/chainId) and marks the client as disconnected.
