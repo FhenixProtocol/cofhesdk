@@ -286,6 +286,9 @@ export function createCofhesdkClientBase<TConfig extends CofhesdkConfig>(
     subscribe: connectStore.subscribe,
 
     // flags (read-only: reflect snapshot)
+    get connection() {
+      return connectStore.getState();
+    },
     get connected() {
       return connectStore.getState().connected;
     },
