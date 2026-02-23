@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
-import { createCofhesdkClient, createCofhesdkConfig } from './index.js';
-import { Encryptable, type CofhesdkClient } from '@/core';
-import { arbSepolia as cofhesdkArbSepolia } from '@/chains';
+import { createCofheClient, createCofheConfig } from './index.js';
+import { Encryptable, type CofheClient } from '@/core';
+import { arbSepolia as cofheArbSepolia } from '@/chains';
 import { arbitrumSepolia as viemArbitrumSepolia } from 'viem/chains';
 import { createPublicClient, createWalletClient, http, type PublicClient, type WalletClient } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
@@ -9,7 +9,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 const TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 
 describe('@cofhe/sdk/web - EncryptInputsBuilder Worker Methods', () => {
-  let cofhesdkClient: CofhesdkClient;
+  let cofheClient: CofheClient;
   let publicClient: PublicClient;
   let walletClient: WalletClient;
 
@@ -28,23 +28,23 @@ describe('@cofhe/sdk/web - EncryptInputsBuilder Worker Methods', () => {
   });
 
   beforeEach(async () => {
-    const config = createCofhesdkConfig({
-      supportedChains: [cofhesdkArbSepolia],
+    const config = createCofheConfig({
+      supportedChains: [cofheArbSepolia],
     });
-    cofhesdkClient = createCofhesdkClient(config);
-    await cofhesdkClient.connect(publicClient, walletClient);
+    cofheClient = createCofheClient(config);
+    await cofheClient.connect(publicClient, walletClient);
   });
 
   describe('setUseWorker method', () => {
     it('should have setUseWorker method on EncryptInputsBuilder', () => {
-      const builder = cofhesdkClient.encryptInputs([Encryptable.uint128(100n)]);
+      const builder = cofheClient.encryptInputs([Encryptable.uint128(100n)]);
 
       expect(builder).toHaveProperty('setUseWorker');
       expect(typeof builder.setUseWorker).toBe('function');
     });
 
     it('should return builder for method chaining', () => {
-      const builder = cofhesdkClient.encryptInputs([Encryptable.uint128(100n)]);
+      const builder = cofheClient.encryptInputs([Encryptable.uint128(100n)]);
       const returnedBuilder = builder.setUseWorker(false);
 
       // Should return the same builder instance (or at least same type)
@@ -53,7 +53,7 @@ describe('@cofhe/sdk/web - EncryptInputsBuilder Worker Methods', () => {
 
     it('should allow chaining with other builder methods', () => {
       // Should be able to chain setUseWorker with setStepCallback
-      const builder = cofhesdkClient
+      const builder = cofheClient
         .encryptInputs([Encryptable.uint128(100n)])
         .setUseWorker(false)
         .setStepCallback(() => {});
@@ -64,26 +64,26 @@ describe('@cofhe/sdk/web - EncryptInputsBuilder Worker Methods', () => {
 
     it('should accept true parameter', () => {
       expect(() => {
-        cofhesdkClient.encryptInputs([Encryptable.uint128(100n)]).setUseWorker(true);
+        cofheClient.encryptInputs([Encryptable.uint128(100n)]).setUseWorker(true);
       }).not.toThrow();
     });
 
     it('should accept false parameter', () => {
       expect(() => {
-        cofhesdkClient.encryptInputs([Encryptable.uint128(100n)]).setUseWorker(false);
+        cofheClient.encryptInputs([Encryptable.uint128(100n)]).setUseWorker(false);
       }).not.toThrow();
     });
 
     it('should have getUseWorker method', () => {
-      const builder = cofhesdkClient.encryptInputs([Encryptable.uint128(100n)]);
+      const builder = cofheClient.encryptInputs([Encryptable.uint128(100n)]);
 
       expect(builder).toHaveProperty('getUseWorker');
       expect(typeof builder.getUseWorker).toBe('function');
     });
 
     it('should return current useWorker value', () => {
-      const builderWithWorkers = cofhesdkClient.encryptInputs([Encryptable.uint128(100n)]).setUseWorker(true);
-      const builderWithoutWorkers = cofhesdkClient.encryptInputs([Encryptable.uint128(100n)]).setUseWorker(false);
+      const builderWithWorkers = cofheClient.encryptInputs([Encryptable.uint128(100n)]).setUseWorker(true);
+      const builderWithoutWorkers = cofheClient.encryptInputs([Encryptable.uint128(100n)]).setUseWorker(false);
 
       // Should reflect config values
       expect(builderWithWorkers.getUseWorker()).toBe(true);
@@ -91,7 +91,7 @@ describe('@cofhe/sdk/web - EncryptInputsBuilder Worker Methods', () => {
     });
 
     it('should reflect changes from setUseWorker', () => {
-      const builder = cofhesdkClient.encryptInputs([Encryptable.uint128(100n)]).setUseWorker(true);
+      const builder = cofheClient.encryptInputs([Encryptable.uint128(100n)]).setUseWorker(true);
       expect(builder.getUseWorker()).toBe(true);
 
       builder.setUseWorker(false);
@@ -104,23 +104,23 @@ describe('@cofhe/sdk/web - EncryptInputsBuilder Worker Methods', () => {
 
   describe('Worker function availability', () => {
     it('should initialize client without errors', () => {
-      const config = createCofhesdkConfig({
-        supportedChains: [cofhesdkArbSepolia],
+      const config = createCofheConfig({
+        supportedChains: [cofheArbSepolia],
         useWorkers: true,
       });
 
       expect(() => {
-        createCofhesdkClient(config);
+        createCofheClient(config);
       }).not.toThrow();
     });
 
     it('should handle worker function when workers enabled', async () => {
-      const config = createCofhesdkConfig({
-        supportedChains: [cofhesdkArbSepolia],
+      const config = createCofheConfig({
+        supportedChains: [cofheArbSepolia],
         useWorkers: true,
       });
 
-      const client = createCofhesdkClient(config);
+      const client = createCofheClient(config);
       await client.connect(publicClient, walletClient);
       const builder = client.encryptInputs([Encryptable.uint128(100n)]);
 
@@ -131,12 +131,12 @@ describe('@cofhe/sdk/web - EncryptInputsBuilder Worker Methods', () => {
     });
 
     it('should handle when workers disabled', async () => {
-      const config = createCofhesdkConfig({
-        supportedChains: [cofhesdkArbSepolia],
+      const config = createCofheConfig({
+        supportedChains: [cofheArbSepolia],
         useWorkers: false,
       });
 
-      const client = createCofhesdkClient(config);
+      const client = createCofheClient(config);
       await client.connect(publicClient, walletClient);
       const builder = client.encryptInputs([Encryptable.uint128(100n)]);
 

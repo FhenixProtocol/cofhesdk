@@ -1,19 +1,19 @@
-import { type CofhesdkClient, CofhesdkError, CofhesdkErrorCode } from '@/core';
-import { arbSepolia as cofhesdkArbSepolia } from '@/chains';
+import { type CofheClient, CofheError, CofheErrorCode } from '@/core';
+import { arbSepolia as cofheArbSepolia } from '@/chains';
 
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import type { PublicClient, WalletClient } from 'viem';
 import { createPublicClient, createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { arbitrumSepolia as viemArbitrumSepolia } from 'viem/chains';
-import { createCofhesdkClient, createCofhesdkConfig } from './index.js';
+import { createCofheClient, createCofheConfig } from './index.js';
 
 // Real test setup - no mocks
 const TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 const TEST_ACCOUNT = privateKeyToAccount(TEST_PRIVATE_KEY).address;
 
 describe('@cofhe/node - Client Integration Tests', () => {
-  let cofhesdkClient: CofhesdkClient;
+  let cofheClient: CofheClient;
   let publicClient: PublicClient;
   let walletClient: WalletClient;
 
@@ -33,62 +33,62 @@ describe('@cofhe/node - Client Integration Tests', () => {
   });
 
   beforeEach(() => {
-    const config = createCofhesdkConfig({
-      supportedChains: [cofhesdkArbSepolia],
+    const config = createCofheConfig({
+      supportedChains: [cofheArbSepolia],
     });
-    cofhesdkClient = createCofhesdkClient(config);
+    cofheClient = createCofheClient(config);
   });
 
   describe('Real Client Initialization', () => {
     it('should create a client with real node-tfhe', () => {
-      expect(cofhesdkClient).toBeDefined();
-      expect(cofhesdkClient.config).toBeDefined();
-      expect(cofhesdkClient.connected).toBe(false);
+      expect(cofheClient).toBeDefined();
+      expect(cofheClient.config).toBeDefined();
+      expect(cofheClient.connected).toBe(false);
     });
 
     it('should automatically use filesystem storage as default', () => {
-      expect(cofhesdkClient.config.fheKeyStorage).toBeDefined();
-      expect(cofhesdkClient.config.fheKeyStorage).not.toBeNull();
+      expect(cofheClient.config.fheKeyStorage).toBeDefined();
+      expect(cofheClient.config.fheKeyStorage).not.toBeNull();
     });
 
     it('should have all expected methods', () => {
-      expect(typeof cofhesdkClient.connect).toBe('function');
-      expect(typeof cofhesdkClient.encryptInputs).toBe('function');
-      expect(typeof cofhesdkClient.decryptHandle).toBe('function');
-      expect(typeof cofhesdkClient.getSnapshot).toBe('function');
-      expect(typeof cofhesdkClient.subscribe).toBe('function');
+      expect(typeof cofheClient.connect).toBe('function');
+      expect(typeof cofheClient.encryptInputs).toBe('function');
+      expect(typeof cofheClient.decryptHandle).toBe('function');
+      expect(typeof cofheClient.getSnapshot).toBe('function');
+      expect(typeof cofheClient.subscribe).toBe('function');
     });
   });
 
   describe('Environment', () => {
     it('should have the correct environment', () => {
-      expect(cofhesdkClient.config.environment).toBe('node');
+      expect(cofheClient.config.environment).toBe('node');
     });
   });
 
   describe('Real Connection', () => {
     it('should connect to real chain', async () => {
-      await cofhesdkClient.connect(publicClient, walletClient);
+      await cofheClient.connect(publicClient, walletClient);
 
-      expect(cofhesdkClient.connected).toBe(true);
+      expect(cofheClient.connected).toBe(true);
 
-      const snapshot = cofhesdkClient.getSnapshot();
+      const snapshot = cofheClient.getSnapshot();
       expect(snapshot.connected).toBe(true);
-      expect(snapshot.chainId).toBe(cofhesdkArbSepolia.id);
+      expect(snapshot.chainId).toBe(cofheArbSepolia.id);
       expect(snapshot.account).toBe(TEST_ACCOUNT);
     }, 30000);
 
     it('should handle real network errors', async () => {
       try {
-        await cofhesdkClient.connect(
+        await cofheClient.connect(
           {
             getChainId: vi.fn().mockRejectedValue(new Error('Network error')),
           } as unknown as PublicClient,
           walletClient
         );
       } catch (error) {
-        expect(error).toBeInstanceOf(CofhesdkError);
-        expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.PublicWalletGetChainIdFailed);
+        expect(error).toBeInstanceOf(CofheError);
+        expect((error as CofheError).code).toBe(CofheErrorCode.PublicWalletGetChainIdFailed);
       }
     }, 30000);
   });
@@ -96,11 +96,11 @@ describe('@cofhe/node - Client Integration Tests', () => {
   describe('State Management', () => {
     it('should track connection state changes', async () => {
       const states: any[] = [];
-      const unsubscribe = cofhesdkClient.subscribe((snapshot) => {
+      const unsubscribe = cofheClient.subscribe((snapshot) => {
         states.push({ ...snapshot });
       });
 
-      await cofhesdkClient.connect(publicClient, walletClient);
+      await cofheClient.connect(publicClient, walletClient);
 
       unsubscribe();
 
@@ -116,15 +116,15 @@ describe('@cofhe/node - Client Integration Tests', () => {
       const lastState = states[states.length - 1];
       expect(lastState.connected).toBe(true);
       expect(lastState.connecting).toBe(false);
-      expect(lastState.chainId).toBe(cofhesdkArbSepolia.id);
+      expect(lastState.chainId).toBe(cofheArbSepolia.id);
     }, 30000);
   });
 
   describe('Builder Creation', () => {
     it('should create encrypt builder after connection', async () => {
-      await cofhesdkClient.connect(publicClient, walletClient);
+      await cofheClient.connect(publicClient, walletClient);
 
-      const builder = cofhesdkClient.encryptInputs([{ data: 100n, utype: 2, securityZone: 0 }]);
+      const builder = cofheClient.encryptInputs([{ data: 100n, utype: 2, securityZone: 0 }]);
 
       expect(builder).toBeDefined();
       expect(typeof builder.setChainId).toBe('function');
@@ -134,9 +134,9 @@ describe('@cofhe/node - Client Integration Tests', () => {
     }, 30000);
 
     it('should create decrypt builder after connection', async () => {
-      await cofhesdkClient.connect(publicClient, walletClient);
+      await cofheClient.connect(publicClient, walletClient);
 
-      const builder = cofhesdkClient.decryptHandle(123n, 2);
+      const builder = cofheClient.decryptHandle(123n, 2);
 
       expect(builder).toBeDefined();
       expect(typeof builder.setChainId).toBe('function');

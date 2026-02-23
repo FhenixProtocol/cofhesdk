@@ -4,7 +4,7 @@ import { type PublicClient } from 'viem';
 import { sleep } from '../utils.js';
 import { MockQueryDecrypterAbi } from './MockQueryDecrypterAbi.js';
 import { FheTypes } from '../types.js';
-import { CofhesdkError, CofhesdkErrorCode } from '../error.js';
+import { CofheError, CofheErrorCode } from '../error.js';
 import { MOCKS_QUERY_DECRYPTER_ADDRESS } from '../consts.js';
 
 export async function cofheMocksSealOutput(
@@ -34,15 +34,15 @@ export async function cofheMocksSealOutput(
   });
 
   if (error != '') {
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.SealOutputFailed,
+    throw new CofheError({
+      code: CofheErrorCode.SealOutputFailed,
       message: `mocks querySealOutput call failed: ${error}`,
     });
   }
 
   if (allowed == false) {
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.SealOutputFailed,
+    throw new CofheError({
+      code: CofheErrorCode.SealOutputFailed,
       message: `mocks querySealOutput call failed: ACL Access Denied (NotAllowed)`,
     });
   }

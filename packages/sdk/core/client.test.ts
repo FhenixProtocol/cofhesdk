@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createCofhesdkClientBase } from './client.js';
-import { type CofhesdkClient, type CofhesdkClientConnectionState } from './clientTypes.js';
-import { createCofhesdkConfigBase, type CofhesdkEnvironment } from './config.js';
-import { CofhesdkError, CofhesdkErrorCode } from './error.js';
+import { createCofheClientBase } from './client.js';
+import { type CofheClient, type CofheClientConnectionState } from './clientTypes.js';
+import { createCofheConfigBase, type CofheEnvironment } from './config.js';
+import { CofheError, CofheErrorCode } from './error.js';
 import { type PublicClient, type WalletClient } from 'viem';
 import { EncryptInputsBuilder } from './encrypt/encryptInputsBuilder.js';
 import { Encryptable } from './types.js';
@@ -31,9 +31,9 @@ const createMockWalletClient = (addresses = ['0x12345678901234567890123456789012
     getAddresses: vi.fn().mockResolvedValue(addresses),
   }) as any;
 
-const createTestClient = (): CofhesdkClient => {
-  const config = createCofhesdkConfigBase({ supportedChains: [] });
-  return createCofhesdkClientBase({
+const createTestClient = (): CofheClient => {
+  const config = createCofheConfigBase({ supportedChains: [] });
+  return createCofheClientBase({
     config,
     zkBuilderAndCrsGenerator: {} as any,
     tfhePublicKeyDeserializer: {} as any,
@@ -42,8 +42,8 @@ const createTestClient = (): CofhesdkClient => {
   });
 };
 
-describe('createCofhesdkClientBase', () => {
-  let client: CofhesdkClient;
+describe('createCofheClientBase', () => {
+  let client: CofheClient;
 
   beforeEach(() => {
     client = createTestClient();
@@ -74,10 +74,10 @@ describe('createCofhesdkClientBase', () => {
 
   describe('environment', () => {
     it('should create a client with the correct environment', async () => {
-      const environments: CofhesdkEnvironment[] = ['node', 'hardhat', 'web', 'react'];
+      const environments: CofheEnvironment[] = ['node', 'hardhat', 'web', 'react'];
       for (const environment of environments) {
-        const config = createCofhesdkConfigBase({ environment, supportedChains: [] });
-        const client = createCofhesdkClientBase({
+        const config = createCofheConfigBase({ environment, supportedChains: [] });
+        const client = createCofheClientBase({
           config,
           zkBuilderAndCrsGenerator: {} as any,
           tfhePublicKeyDeserializer: {} as any,
@@ -92,7 +92,7 @@ describe('createCofhesdkClientBase', () => {
 
   describe('reactive state', () => {
     it('should notify subscribers of state changes', async () => {
-      const states: CofhesdkClientConnectionState[] = [];
+      const states: CofheClientConnectionState[] = [];
       client.subscribe((snapshot) => states.push(snapshot));
 
       const publicClient = createMockPublicClient();
@@ -117,7 +117,7 @@ describe('createCofhesdkClientBase', () => {
     });
 
     it('should stop notifications after unsubscribe', async () => {
-      const states: CofhesdkClientConnectionState[] = [];
+      const states: CofheClientConnectionState[] = [];
       const unsubscribe = client.subscribe((snapshot) => states.push(snapshot));
 
       unsubscribe();
@@ -276,12 +276,12 @@ describe('createCofhesdkClientBase', () => {
       try {
         await client.connect(publicClient, walletClient);
       } catch (error) {
-        expect(error).toBeInstanceOf(CofhesdkError);
-        expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.PublicWalletGetChainIdFailed);
-        expect((error as CofhesdkError).message).toBe(
+        expect(error).toBeInstanceOf(CofheError);
+        expect((error as CofheError).code).toBe(CofheErrorCode.PublicWalletGetChainIdFailed);
+        expect((error as CofheError).message).toBe(
           'getting chain ID from public client failed | Caused by: Network error'
         );
-        expect((error as CofhesdkError).cause).toBe(getChainIdError);
+        expect((error as CofheError).cause).toBe(getChainIdError);
       }
     });
 
@@ -295,9 +295,9 @@ describe('createCofhesdkClientBase', () => {
       try {
         await connectPromise;
       } catch (error) {
-        expect(error).toBeInstanceOf(CofhesdkError);
-        expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.PublicWalletGetChainIdFailed);
-        expect((error as CofhesdkError).message).toBe('chain ID from public client is null');
+        expect(error).toBeInstanceOf(CofheError);
+        expect((error as CofheError).code).toBe(CofheErrorCode.PublicWalletGetChainIdFailed);
+        expect((error as CofheError).message).toBe('chain ID from public client is null');
       }
     });
 
@@ -312,12 +312,12 @@ describe('createCofhesdkClientBase', () => {
       try {
         await connectPromise;
       } catch (error) {
-        expect(error).toBeInstanceOf(CofhesdkError);
-        expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.PublicWalletGetAddressesFailed);
-        expect((error as CofhesdkError).message).toBe(
+        expect(error).toBeInstanceOf(CofheError);
+        expect((error as CofheError).code).toBe(CofheErrorCode.PublicWalletGetAddressesFailed);
+        expect((error as CofheError).message).toBe(
           'getting address from wallet client failed | Caused by: Network error'
         );
-        expect((error as CofhesdkError).cause).toBe(getAddressesError);
+        expect((error as CofheError).cause).toBe(getAddressesError);
       }
     });
 
@@ -330,9 +330,9 @@ describe('createCofhesdkClientBase', () => {
       try {
         await connectPromise;
       } catch (error) {
-        expect(error).toBeInstanceOf(CofhesdkError);
-        expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.PublicWalletGetAddressesFailed);
-        expect((error as CofhesdkError).message).toBe('address from wallet client is null');
+        expect(error).toBeInstanceOf(CofheError);
+        expect((error as CofheError).code).toBe(CofheErrorCode.PublicWalletGetAddressesFailed);
+        expect((error as CofheError).message).toBe('address from wallet client is null');
       }
     });
 
@@ -347,12 +347,12 @@ describe('createCofhesdkClientBase', () => {
       try {
         await connectPromise;
       } catch (error) {
-        expect(error).toBeInstanceOf(CofhesdkError);
-        expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.PublicWalletGetChainIdFailed);
-        expect((error as CofhesdkError).message).toBe(
+        expect(error).toBeInstanceOf(CofheError);
+        expect((error as CofheError).code).toBe(CofheErrorCode.PublicWalletGetChainIdFailed);
+        expect((error as CofheError).message).toBe(
           'getting chain ID from public client failed | Caused by: Network error'
         );
-        expect((error as CofhesdkError).cause).toBe(getChainIdError);
+        expect((error as CofheError).cause).toBe(getChainIdError);
       }
     });
 
@@ -382,8 +382,8 @@ describe('createCofhesdkClientBase', () => {
       try {
         await client.encryptInputs([Encryptable.uint8(1n), Encryptable.uint8(2n), Encryptable.uint8(3n)]).encrypt();
       } catch (error) {
-        expect(error).toBeInstanceOf(CofhesdkError);
-        expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.NotConnected);
+        expect(error).toBeInstanceOf(CofheError);
+        expect((error as CofheError).code).toBe(CofheErrorCode.NotConnected);
       }
     });
 

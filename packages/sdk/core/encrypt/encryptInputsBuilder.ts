@@ -7,7 +7,7 @@ import {
   zkVerify,
   constructZkPoKMetadata,
 } from './zkPackProveVerify.js';
-import { CofhesdkError, CofhesdkErrorCode } from '../error.js';
+import { CofheError, CofheErrorCode } from '../error.js';
 import {
   type EncryptStepCallbackFunction,
   EncryptStep,
@@ -90,8 +90,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
 
     // Check that tfhePublicKeyDeserializer is provided
     if (!params.tfhePublicKeyDeserializer) {
-      throw new CofhesdkError({
-        code: CofhesdkErrorCode.MissingTfhePublicKeyDeserializer,
+      throw new CofheError({
+        code: CofheErrorCode.MissingTfhePublicKeyDeserializer,
         message: 'EncryptInputsBuilder tfhePublicKeyDeserializer is undefined',
         hint: 'Ensure client has been created with a tfhePublicKeyDeserializer.',
         context: {
@@ -103,8 +103,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
 
     // Check that compactPkeCrsDeserializer is provided
     if (!params.compactPkeCrsDeserializer) {
-      throw new CofhesdkError({
-        code: CofhesdkErrorCode.MissingCompactPkeCrsDeserializer,
+      throw new CofheError({
+        code: CofheErrorCode.MissingCompactPkeCrsDeserializer,
         message: 'EncryptInputsBuilder compactPkeCrsDeserializer is undefined',
         hint: 'Ensure client has been created with a compactPkeCrsDeserializer.',
         context: {
@@ -116,8 +116,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
 
     // Check that zkBuilderAndCrsGenerator is provided
     if (!params.zkBuilderAndCrsGenerator) {
-      throw new CofhesdkError({
-        code: CofhesdkErrorCode.MissingZkBuilderAndCrsGenerator,
+      throw new CofheError({
+        code: CofheErrorCode.MissingZkBuilderAndCrsGenerator,
         message: 'EncryptInputsBuilder zkBuilderAndCrsGenerator is undefined',
         hint: 'Ensure client has been created with a zkBuilderAndCrsGenerator.',
         context: {
@@ -290,7 +290,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   }
 
   /**
-   * zkVerifierUrl is included in the chains exported from cofhesdk/chains for use in CofhesdkConfig.supportedChains
+   * zkVerifierUrl is included in the chains exported from @cofhe/sdk/chains for use in CofheConfig.supportedChains
    * Users should generally not set this manually.
    */
   private async getZkVerifierUrl(): Promise<string> {
@@ -299,7 +299,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   }
 
   /**
-   * initTfhe is a platform-specific dependency injected into core/createCofhesdkClientBase by web/createCofhesdkClient and node/createCofhesdkClient
+   * initTfhe is a platform-specific dependency injected into core/createCofheClientBase by web/createCofheClient and node/createCofheClient
    * web/ uses zama "tfhe"
    * node/ uses zama "node-tfhe"
    * Users should not set this manually.
@@ -310,8 +310,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     try {
       return await this.initTfhe();
     } catch (error) {
-      throw CofhesdkError.fromError(error, {
-        code: CofhesdkErrorCode.InitTfheFailed,
+      throw CofheError.fromError(error, {
+        code: CofheErrorCode.InitTfheFailed,
         message: `Failed to initialize TFHE`,
         context: {
           initTfhe: this.initTfhe,
@@ -336,8 +336,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     try {
       await this.keysStorage?.rehydrateKeysStore();
     } catch (error) {
-      throw CofhesdkError.fromError(error, {
-        code: CofhesdkErrorCode.RehydrateKeysStoreFailed,
+      throw CofheError.fromError(error, {
+        code: CofheErrorCode.RehydrateKeysStoreFailed,
         message: `Failed to rehydrate keys store`,
         context: {
           keysStorage: this.keysStorage,
@@ -360,8 +360,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
         this.keysStorage
       );
     } catch (error) {
-      throw CofhesdkError.fromError(error, {
-        code: CofhesdkErrorCode.FetchKeysFailed,
+      throw CofheError.fromError(error, {
+        code: CofheErrorCode.FetchKeysFailed,
         message: `Failed to fetch FHE key and CRS`,
         context: {
           config: this.config,
@@ -374,8 +374,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     }
 
     if (!fheKey) {
-      throw new CofhesdkError({
-        code: CofhesdkErrorCode.MissingFheKey,
+      throw new CofheError({
+        code: CofheErrorCode.MissingFheKey,
         message: `FHE key not found`,
         context: {
           chainId: this.chainId,
@@ -385,8 +385,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     }
 
     if (!crs) {
-      throw new CofhesdkError({
-        code: CofhesdkErrorCode.MissingCrs,
+      throw new CofheError({
+        code: CofheErrorCode.MissingCrs,
         message: `CRS not found for chainId <${this.chainId}>`,
         context: {
           chainId: this.chainId,

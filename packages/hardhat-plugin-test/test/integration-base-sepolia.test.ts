@@ -1,10 +1,10 @@
 import hre from 'hardhat';
 import { baseSepolia } from '@cofhe/sdk/chains';
-import { CofhesdkClient, Encryptable, FheTypes } from '@cofhe/sdk';
+import { CofheClient, Encryptable, FheTypes } from '@cofhe/sdk';
 import { createPublicClient, createWalletClient, http, type PublicClient, type WalletClient } from 'viem';
 import { baseSepolia as viemBaseSepolia } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
-import { createCofhesdkClient, createCofhesdkConfig } from '@cofhe/sdk/node';
+import { createCofheClient, createCofheConfig } from '@cofhe/sdk/node';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { PermitUtils } from '@cofhe/sdk/permits';
@@ -21,7 +21,7 @@ const deployments = {
 };
 
 describe('Base Sepolia Integration Tests', () => {
-  let cofhesdkClient: CofhesdkClient;
+  let cofheClient: CofheClient;
   let publicClient: PublicClient;
   let walletClient: WalletClient;
   let testContract: any; // ethers contract instance
@@ -50,12 +50,12 @@ describe('Base Sepolia Integration Tests', () => {
     }) as WalletClient;
 
     // Create CoFHE SDK config and client
-    const config = createCofhesdkConfig({
+    const config = createCofheConfig({
       supportedChains: [baseSepolia],
     });
-    cofhesdkClient = createCofhesdkClient(config);
-    await cofhesdkClient.connect(publicClient, walletClient);
-    await cofhesdkClient.permits.createSelf({
+    cofheClient = createCofheClient(config);
+    await cofheClient.connect(publicClient, walletClient);
+    await cofheClient.permits.createSelf({
       name: 'Test Permit',
       type: 'self',
       issuer: account.address,
@@ -97,7 +97,7 @@ describe('Base Sepolia Integration Tests', () => {
     const testValue = 100n;
 
     // Encrypt and store a value
-    const encrypted = await cofhesdkClient.encryptInputs([Encryptable.uint32(testValue)]).encrypt();
+    const encrypted = await cofheClient.encryptInputs([Encryptable.uint32(testValue)]).encrypt();
 
     const tx = await testContract.connect(baseSepoliaSigner).setValue(encrypted[0]);
     const receipt = await tx.wait();
@@ -107,7 +107,7 @@ describe('Base Sepolia Integration Tests', () => {
     const ctHash = await testContract.getValueHash();
 
     // Decrypt the value using the ctHash from the encrypted input
-    const unsealedResult = await cofhesdkClient.decryptHandle(ctHash, FheTypes.Uint32).decrypt();
+    const unsealedResult = await cofheClient.decryptHandle(ctHash, FheTypes.Uint32).decrypt();
 
     // Verify the decrypted value matches
     expect(unsealedResult).to.be.equal(testValue);
@@ -116,25 +116,25 @@ describe('Base Sepolia Integration Tests', () => {
   // TODO: UNCOMMENT WHEN UPDATED ACL DEPLOYED
 
   // it('Permit should be valid on chain', async function () {
-  //   const permit = await cofhesdkClient.permits.createSelf({
+  //   const permit = await cofheClient.permits.createSelf({
   //     issuer: baseSepoliaSigner.address,
   //     name: 'Test Permit',
   //   });
 
-  //   const isValid = await PermitUtils.checkValidityOnChain(permit, cofhesdkClient.getSnapshot().publicClient!);
+  //   const isValid = await PermitUtils.checkValidityOnChain(permit, cofheClient.getSnapshot().publicClient!);
 
   //   expect(isValid).to.be.true;
   // });
 
   // it('Expired permit should revert with PermissionInvalid_Expired', async function () {
-  //   const permit = await cofhesdkClient.permits.createSelf({
+  //   const permit = await cofheClient.permits.createSelf({
   //     issuer: baseSepoliaSigner.address,
   //     name: 'Test Permit',
   //     expiration: Math.floor(Date.now() / 1000) - 3600, // 1 hour ago
   //   });
 
   //   try {
-  //     await PermitUtils.checkValidityOnChain(permit, cofhesdkClient.getSnapshot().publicClient!);
+  //     await PermitUtils.checkValidityOnChain(permit, cofheClient.getSnapshot().publicClient!);
   //   } catch (error) {
   //     expect(error).to.be.instanceOf(Error);
   //     expect((error as Error).message).to.be.equal('PermissionInvalid_Expired');
@@ -142,7 +142,7 @@ describe('Base Sepolia Integration Tests', () => {
   // });
 
   // it('Invalid issuer signature should revert with PermissionInvalid_IssuerSignature', async function () {
-  //   const permit = await cofhesdkClient.permits.createSelf({
+  //   const permit = await cofheClient.permits.createSelf({
   //     issuer: baseSepoliaSigner.address,
   //     name: 'Test Permit',
   //   });
@@ -150,7 +150,7 @@ describe('Base Sepolia Integration Tests', () => {
   //   permit.issuerSignature = '0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
 
   //   try {
-  //     await PermitUtils.checkValidityOnChain(permit, cofhesdkClient.getSnapshot().publicClient!);
+  //     await PermitUtils.checkValidityOnChain(permit, cofheClient.getSnapshot().publicClient!);
   //   } catch (error) {
   //     expect(error).to.be.instanceOf(Error);
   //     expect((error as Error).message).to.be.equal('PermissionInvalid_IssuerSignature');

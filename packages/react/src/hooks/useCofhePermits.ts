@@ -1,19 +1,19 @@
-import type { CofhesdkClient } from '@cofhe/sdk';
+import type { CofheClient } from '@cofhe/sdk';
 import { useCofheContext } from '../providers';
 import { useCallback, useMemo, useSyncExternalStore } from 'react';
 import { NOOP_CALLBACK } from '../utils';
 import { PERMIT_STORE_DEFAULTS, PermitUtils, type Permit } from '@cofhe/sdk/permits';
 import { useCofheConnection } from './useCofheConnection';
 
-const subscribeToPermitsConstructor = (client: CofhesdkClient) => (onStoreChange: () => void) => {
+const subscribeToPermitsConstructor = (client: CofheClient) => (onStoreChange: () => void) => {
   return client.permits.subscribe(() => {
     onStoreChange();
   });
 };
 
-const getPermitsSnapshotConstructor = (client: CofhesdkClient) => () => client.permits.getSnapshot();
+const getPermitsSnapshotConstructor = (client: CofheClient) => () => client.permits.getSnapshot();
 
-// type PermitsState = ReturnType<CofhesdkClientPermits['getSnapshot']>;
+// type PermitsState = ReturnType<CofheClientPermits['getSnapshot']>;
 
 const DEFAULT_SNAPSHOT_GETTER = () => PERMIT_STORE_DEFAULTS;
 

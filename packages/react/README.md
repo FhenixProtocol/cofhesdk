@@ -17,9 +17,9 @@ pnpm add @cofhe/react @cofhe/sdk @mui/icons-material @mui/material
 ```tsx
 import { CofheProvider } from '@cofhe/react';
 import '@cofhe/react/styles.css'; // Import component styles
-import { createCofhesdkClient } from '@cofhe/sdk/web';
+import { createCofheClient } from '@cofhe/sdk/web';
 
-const client = createCofhesdkClient(config);
+const client = createCofheClient(config);
 
 function App() {
   return (

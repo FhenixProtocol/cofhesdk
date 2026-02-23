@@ -1,10 +1,10 @@
 import { createContext, useContext, useMemo, useState } from 'react';
 import type { CofheContextValue, CofheProviderProps } from '../types/index';
 import { QueryProvider } from './QueryProvider';
-import { createCofhesdkClient } from '@cofhe/sdk/web';
+import { createCofheClient } from '@cofhe/sdk/web';
 import { FnxFloatingButtonWithProvider } from '@/components/FnxFloatingButton/FnxFloatingButton';
 import { useCofheAutoConnect } from '@/hooks/useCofheAutoConnect';
-import { createCofhesdkConfig } from '@/config';
+import { createCofheConfig } from '@/config';
 import { chains } from '@cofhe/sdk/chains';
 import { assert } from 'ts-essentials';
 import type { FloatingButtonPosition } from '@/components/FnxFloatingButton/types';
@@ -17,18 +17,15 @@ export function CofheProvider(props: CofheProviderProps) {
   const config = useMemo(() => {
     // priority: explicit config prop > config from provided client > create default config
     if (props.config) return props.config;
-    if (props.cofhesdkClient) {
-      assert(config.environment === 'react', 'Provided cofhesdkClient must have react config');
-      return props.cofhesdkClient.config;
+    if (props.cofheClient) {
+      assert(config.environment === 'react', 'Provided cofheClient must have react config');
+      return props.cofheClient.config;
     }
-    return createCofhesdkConfig({ supportedChains: Object.values(chains) });
-  }, [props.config, props.cofhesdkClient]);
+    return createCofheConfig({ supportedChains: Object.values(chains) });
+  }, [props.config, props.cofheClient]);
 
   // use provided client or create a new one out of the config
-  const cofhesdkClient = useMemo(
-    () => props.cofhesdkClient ?? createCofhesdkClient(config),
-    [props.cofhesdkClient, config]
-  );
+  const cofheClient = useMemo(() => props.cofheClient ?? createCofheClient(config), [props.cofheClient, config]);
 
   // dynamic values
   const [position, setPosition] = useState<FloatingButtonPosition>(config.react.position);
@@ -37,7 +34,7 @@ export function CofheProvider(props: CofheProviderProps) {
   return (
     <CofheContext.Provider
       value={{
-        client: cofhesdkClient,
+        client: cofheClient,
         state: {
           position,
           setPosition,

@@ -2,22 +2,17 @@ import type { CreateSelfPermitOptions, CreateSharingPermitOptions, ImportSharedP
 
 import { createStore } from 'zustand/vanilla';
 import { type PublicClient, type WalletClient } from 'viem';
-import { CofhesdkError, CofhesdkErrorCode } from './error.js';
+import { CofheError, CofheErrorCode } from './error.js';
 import { EncryptInputsBuilder } from './encrypt/encryptInputsBuilder.js';
 import { createKeysStore } from './keyStore.js';
 import { permits } from './permits.js';
 import { DecryptHandlesBuilder } from './decrypt/decryptHandleBuilder.js';
 import { getPublicClientChainID, getWalletClientAccount } from './utils.js';
-import type {
-  CofhesdkClientConnectionState,
-  CofhesdkClientParams,
-  CofhesdkClient,
-  CofhesdkClientPermits,
-} from './clientTypes.js';
+import type { CofheClientConnectionState, CofheClientParams, CofheClient, CofheClientPermits } from './clientTypes.js';
 import type { EncryptableItem, FheTypes } from './types.js';
-import type { CofhesdkConfig } from './config.js';
+import type { CofheConfig } from './config.js';
 
-export const InitialConnectStore: CofhesdkClientConnectionState = {
+export const InitialConnectStore: CofheClientConnectionState = {
   connected: false,
   connecting: false,
   connectError: undefined,
@@ -28,26 +23,26 @@ export const InitialConnectStore: CofhesdkClientConnectionState = {
 };
 
 /**
- * Creates a CoFHE SDK client instance (base implementation)
- * @param {CofhesdkClientParams} opts - Initialization options including config and platform-specific serializers
- * @returns {CofhesdkClient} - The CoFHE SDK client instance
+ * Creates a CoFHE client instance (base implementation)
+ * @param {CofheClientParams} opts - Initialization options including config and platform-specific serializers
+ * @returns {CofheClient} - The CoFHE client instance
  */
-export function createCofhesdkClientBase<TConfig extends CofhesdkConfig>(
-  opts: CofhesdkClientParams<TConfig>
-): CofhesdkClient<TConfig> {
+export function createCofheClientBase<TConfig extends CofheConfig>(
+  opts: CofheClientParams<TConfig>
+): CofheClient<TConfig> {
   // Create keysStorage instance using configured storage
   const keysStorage = createKeysStore(opts.config.fheKeyStorage);
 
   // Zustand store for reactive state management
 
-  const connectStore = createStore<CofhesdkClientConnectionState>(() => InitialConnectStore);
+  const connectStore = createStore<CofheClientConnectionState>(() => InitialConnectStore);
 
   // Minimal cancellation mechanism: incremented on each connect/disconnect.
   // If a connect finishes after a disconnect, it must not overwrite the disconnected state.
   let connectAttemptId = 0;
 
   // Helper to update state
-  const updateConnectState = (partial: Partial<CofhesdkClientConnectionState>) => {
+  const updateConnectState = (partial: Partial<CofheClientConnectionState>) => {
     connectStore.setState((state) => ({ ...state, ...partial }));
   };
 
@@ -57,8 +52,8 @@ export function createCofhesdkClientBase<TConfig extends CofhesdkConfig>(
     const notConnected =
       !state.connected || !state.account || !state.chainId || !state.publicClient || !state.walletClient;
     if (notConnected) {
-      throw new CofhesdkError({
-        code: CofhesdkErrorCode.NotConnected,
+      throw new CofheError({
+        code: CofheErrorCode.NotConnected,
         message: 'Client must be connected, account and chainId must be initialized',
         hint: 'Ensure client.connect() has been called and awaited.',
         context: {
@@ -175,8 +170,8 @@ export function createCofhesdkClientBase<TConfig extends CofhesdkConfig>(
     const _account = account ?? state.account;
 
     if (_chainId == null || _account == null) {
-      throw new CofhesdkError({
-        code: CofhesdkErrorCode.NotConnected,
+      throw new CofheError({
+        code: CofheErrorCode.NotConnected,
         message: 'ChainId or account not available.',
         hint: 'Ensure client.connect() has been called, or provide chainId and account explicitly.',
         context: {
@@ -189,7 +184,7 @@ export function createCofhesdkClientBase<TConfig extends CofhesdkConfig>(
     return { chainId: _chainId, account: _account };
   };
 
-  const clientPermits: CofhesdkClientPermits = {
+  const clientPermits: CofheClientPermits = {
     // Pass through store access
     getSnapshot: permits.getSnapshot,
     subscribe: permits.subscribe,
