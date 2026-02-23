@@ -1,19 +1,12 @@
 import { defineConfig } from 'vitest/config';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
-import { readFileSync } from 'fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const alias = { '@': resolve(__dirname, './') }; // or './src'
-const pkg = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf8')) as { name?: string; version?: string };
 
 export default defineConfig({
   resolve: { alias },
-
-  define: {
-    'globalThis.__COFHE_SDK_NAME__': JSON.stringify(pkg.name ?? '@cofhe/sdk'),
-    'globalThis.__COFHE_SDK_VERSION__': JSON.stringify(pkg.version ?? '0.0.0'),
-  },
 
   test: {
     globals: true,

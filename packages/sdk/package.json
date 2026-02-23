@@ -57,14 +57,16 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
+    "generate:version": "node ./scripts/generate-version.mjs",
+    "build": "pnpm generate:version && tsup",
+    "dev": "pnpm generate:version && tsup --watch",
     "lint": "eslint \"**/*.ts*\"",
+    "precheck:types": "pnpm generate:version",
     "check:types": "tsc --noEmit",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test": "pnpm generate:version && vitest run",
+    "test:watch": "pnpm generate:version && vitest",
+    "test:coverage": "pnpm generate:version && vitest run --coverage"
   },
   "dependencies": {
     "iframe-shared-storage": "^1.0.34",
