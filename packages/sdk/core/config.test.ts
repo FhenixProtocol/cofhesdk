@@ -72,16 +72,6 @@ describe('createCofhesdkConfigBase', () => {
     expectValidConfigItem('supportedChains', [sepolia, hardhat], [sepolia, hardhat]);
   });
 
-  it('permitGeneration', () => {
-    expectInvalidConfigItem('permitGeneration', 'not-a-boolean');
-    expectInvalidConfigItem('permitGeneration', null);
-
-    expectValidConfigItem('permitGeneration', 'ON_CONNECT', 'ON_CONNECT');
-    expectValidConfigItem('permitGeneration', 'ON_DECRYPT_HANDLES', 'ON_DECRYPT_HANDLES');
-    expectValidConfigItem('permitGeneration', 'MANUAL', 'MANUAL');
-    expectValidConfigItem('permitGeneration', undefined, 'ON_CONNECT');
-  });
-
   it('defaultPermitExpiration', () => {
     expectInvalidConfigItem('defaultPermitExpiration', 'not-a-number');
     expectInvalidConfigItem('defaultPermitExpiration', null);

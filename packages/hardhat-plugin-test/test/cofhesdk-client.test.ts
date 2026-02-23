@@ -51,7 +51,6 @@ describe('CoFHE SDK Client Integration', () => {
     // Create input config with custom options
     const inputConfig = {
       supportedChains: [hardhat],
-      permitGeneration: 'MANUAL' as const,
       defaultPermitExpiration: 3600, // 1 hour
       mocks: {
         sealOutputDelay: 100,
@@ -64,7 +63,6 @@ describe('CoFHE SDK Client Integration', () => {
     expect(config).to.not.be.undefined;
     expect(config.supportedChains).to.deep.equal([hardhat]);
     expect(config.environment).to.equal('hardhat');
-    expect(config.permitGeneration).to.equal('MANUAL');
     expect(config.defaultPermitExpiration).to.equal(3600);
     expect(config.mocks.sealOutputDelay).to.equal(100);
     expect(config._internal?.zkvWalletClient).to.not.be.undefined;
