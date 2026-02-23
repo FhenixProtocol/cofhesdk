@@ -1,4 +1,4 @@
-import { arbSepolia as cofhesdkArbSepolia } from '@/chains';
+import { arbSepolia as cofheArbSepolia } from '@/chains';
 import { Encryptable } from '@/core';
 
 import { describe, it, expect, beforeAll } from 'vitest';
@@ -6,7 +6,7 @@ import type { PublicClient, WalletClient } from 'viem';
 import { createPublicClient, createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { arbitrumSepolia as viemArbitrumSepolia } from 'viem/chains';
-import { createCofhesdkClient, createCofhesdkConfig, createCofhesdkClientWithCustomWorker } from './index.js';
+import { createCofheClient, createCofheConfig, createCofheClientWithCustomWorker } from './index.js';
 
 const TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 
@@ -30,14 +30,14 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
 
   describe('useWorkers config flag', () => {
     it('should use workers by default (useWorkers: true)', async () => {
-      const config = createCofhesdkConfig({
-        supportedChains: [cofhesdkArbSepolia],
+      const config = createCofheConfig({
+        supportedChains: [cofheArbSepolia],
         // useWorkers defaults to true
       });
 
       expect(config.useWorkers).toBe(true);
 
-      const client = createCofhesdkClient(config);
+      const client = createCofheClient(config);
       await client.connect(publicClient, walletClient);
 
       // Track step callbacks to see worker usage
@@ -71,14 +71,14 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
     }, 60000);
 
     it('should disable workers when useWorkers: false', async () => {
-      const config = createCofhesdkConfig({
-        supportedChains: [cofhesdkArbSepolia],
+      const config = createCofheConfig({
+        supportedChains: [cofheArbSepolia],
         useWorkers: false,
       });
 
       expect(config.useWorkers).toBe(false);
 
-      const client = createCofhesdkClient(config);
+      const client = createCofheClient(config);
       await client.connect(publicClient, walletClient);
 
       // Track step callbacks
@@ -103,12 +103,12 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
 
   describe('setUseWorker() method', () => {
     it('should override config with setUseWorker(false)', async () => {
-      const config = createCofhesdkConfig({
-        supportedChains: [cofhesdkArbSepolia],
+      const config = createCofheConfig({
+        supportedChains: [cofheArbSepolia],
         useWorkers: true, // Config says true
       });
 
-      const client = createCofhesdkClient(config);
+      const client = createCofheClient(config);
       await client.connect(publicClient, walletClient);
 
       // Track step callbacks
@@ -131,12 +131,12 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
     }, 60000);
 
     it('should override config with setUseWorker(true)', async () => {
-      const config = createCofhesdkConfig({
-        supportedChains: [cofhesdkArbSepolia],
+      const config = createCofheConfig({
+        supportedChains: [cofheArbSepolia],
         useWorkers: false, // Config says false
       });
 
-      const client = createCofhesdkClient(config);
+      const client = createCofheClient(config);
       await client.connect(publicClient, walletClient);
 
       // Track step callbacks
@@ -160,11 +160,11 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
 
   describe('Step callback worker context', () => {
     it('should include worker debug info in prove step', async () => {
-      const config = createCofhesdkConfig({
-        supportedChains: [cofhesdkArbSepolia],
+      const config = createCofheConfig({
+        supportedChains: [cofheArbSepolia],
       });
 
-      const client = createCofhesdkClient(config);
+      const client = createCofheClient(config);
       await client.connect(publicClient, walletClient);
 
       let proveContext: any;
@@ -196,8 +196,8 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
 
   describe('Worker fallback behavior', () => {
     it('should fallback to main thread when worker fails', async () => {
-      const config = createCofhesdkConfig({
-        supportedChains: [cofhesdkArbSepolia],
+      const config = createCofheConfig({
+        supportedChains: [cofheArbSepolia],
         useWorkers: true,
       });
 
@@ -207,7 +207,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
       };
 
       // Inject the failing worker into the client
-      const client = createCofhesdkClientWithCustomWorker(config, failingWorkerFn);
+      const client = createCofheClientWithCustomWorker(config, failingWorkerFn);
       await client.connect(publicClient, walletClient);
 
       // Track step callbacks to verify fallback
@@ -233,8 +233,8 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
     }, 60000);
 
     it('should fallback when encrypting multiple values', async () => {
-      const config = createCofhesdkConfig({
-        supportedChains: [cofhesdkArbSepolia],
+      const config = createCofheConfig({
+        supportedChains: [cofheArbSepolia],
         useWorkers: true,
       });
 
@@ -243,7 +243,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
         throw new Error('Worker unavailable');
       };
 
-      const client = createCofhesdkClientWithCustomWorker(config, failingWorkerFn);
+      const client = createCofheClientWithCustomWorker(config, failingWorkerFn);
       await client.connect(publicClient, walletClient);
 
       let proveContext: any;
@@ -267,8 +267,8 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
     }, 60000);
 
     it('should handle async worker errors gracefully', async () => {
-      const config = createCofhesdkConfig({
-        supportedChains: [cofhesdkArbSepolia],
+      const config = createCofheConfig({
+        supportedChains: [cofheArbSepolia],
         useWorkers: true,
       });
 
@@ -278,7 +278,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
         throw new Error('Async worker failure');
       };
 
-      const client = createCofhesdkClientWithCustomWorker(config, asyncFailingWorkerFn);
+      const client = createCofheClientWithCustomWorker(config, asyncFailingWorkerFn);
       await client.connect(publicClient, walletClient);
 
       let proveContext: any;
@@ -299,12 +299,12 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
     }, 60000);
 
     it('should work without worker when explicitly disabled', async () => {
-      const config = createCofhesdkConfig({
-        supportedChains: [cofhesdkArbSepolia],
+      const config = createCofheConfig({
+        supportedChains: [cofheArbSepolia],
         useWorkers: true, // Config says use workers
       });
 
-      const client = createCofhesdkClient(config);
+      const client = createCofheClient(config);
       await client.connect(publicClient, walletClient);
 
       let proveContext: any;

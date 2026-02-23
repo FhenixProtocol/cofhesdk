@@ -1,6 +1,6 @@
 // TODO: Extract client types to its own file, keep this one as primitives
 import { type PublicClient, type WalletClient } from 'viem';
-import { type CofhesdkConfig, type CofhesdkEnvironment } from './config.js';
+import { type CofheConfig } from './config.js';
 import { type DecryptHandlesBuilder } from './decrypt/decryptHandleBuilder.js';
 import { type EncryptInputsBuilder } from './encrypt/encryptInputsBuilder.js';
 import { type ZkBuilderAndCrsGenerator, type ZkProveWorkerFunction } from './encrypt/zkPackProveVerify.js';
@@ -20,9 +20,9 @@ import type {
 
 // CLIENT
 
-export type CofhesdkClient<TConfig extends CofhesdkConfig = CofhesdkConfig> = {
+export type CofheClient<TConfig extends CofheConfig = CofheConfig> = {
   // --- state access ---
-  getSnapshot(): CofhesdkClientConnectionState;
+  getSnapshot(): CofheClientConnectionState;
   subscribe(listener: Listener): () => void;
 
   // --- convenience flags (read-only) ---
@@ -44,10 +44,10 @@ export type CofhesdkClient<TConfig extends CofhesdkConfig = CofhesdkConfig> = {
    */
   encryptInputs<T extends EncryptableItem[]>(inputs: [...T]): EncryptInputsBuilder<[...T]>;
   decryptHandle<U extends FheTypes>(ctHash: bigint, utype: U): DecryptHandlesBuilder<U>;
-  permits: CofhesdkClientPermits;
+  permits: CofheClientPermits;
 };
 
-export type CofhesdkClientConnectionState = {
+export type CofheClientConnectionState = {
   connected: boolean;
   connecting: boolean;
   connectError: unknown | undefined;
@@ -57,26 +57,23 @@ export type CofhesdkClientConnectionState = {
   walletClient: WalletClient | undefined;
 };
 
-type Listener = (snapshot: CofhesdkClientConnectionState) => void;
+type Listener = (snapshot: CofheClientConnectionState) => void;
 
-export type CofhesdkClientPermitsClients = {
+export type CofheClientPermitsClients = {
   publicClient: PublicClient;
   walletClient: WalletClient;
 };
 
-export type CofhesdkClientPermits = {
+export type CofheClientPermits = {
   getSnapshot: typeof permits.getSnapshot;
   subscribe: typeof permits.subscribe;
 
   // Creation methods (require connection, no params)
-  createSelf: (options: CreateSelfPermitOptions, clients?: CofhesdkClientPermitsClients) => Promise<SelfPermit>;
-  createSharing: (
-    options: CreateSharingPermitOptions,
-    clients?: CofhesdkClientPermitsClients
-  ) => Promise<SharingPermit>;
+  createSelf: (options: CreateSelfPermitOptions, clients?: CofheClientPermitsClients) => Promise<SelfPermit>;
+  createSharing: (options: CreateSharingPermitOptions, clients?: CofheClientPermitsClients) => Promise<SharingPermit>;
   importShared: (
     options: ImportSharedPermitOptions | string,
-    clients?: CofhesdkClientPermitsClients
+    clients?: CofheClientPermitsClients
   ) => Promise<RecipientPermit>;
 
   // Retrieval methods (chainId/account optional)
@@ -104,7 +101,7 @@ export type CofhesdkClientPermits = {
   deserialize: typeof PermitUtils.deserialize;
 };
 
-export type CofhesdkClientParams<TConfig extends CofhesdkConfig> = {
+export type CofheClientParams<TConfig extends CofheConfig> = {
   config: TConfig;
   zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator;
   tfhePublicKeyDeserializer: FheKeyDeserializer;

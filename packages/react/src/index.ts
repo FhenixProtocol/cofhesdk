@@ -79,7 +79,7 @@ export {
   type TransactionActionString,
 } from './stores/transactionStore';
 
-export { createCofhesdkConfig } from './config';
+export { createCofheConfig } from './config';
 
 // Types
 export type { CofheContextValue, CofheProviderProps, CofheClientConfig } from './types/index';
@@ -88,12 +88,12 @@ export type { FnxFloatingButtonProps } from './components/FnxFloatingButton/type
 
 export type { FloatingButtonPosition } from './components/FnxFloatingButton/types';
 
-export { createCofhesdkClient } from '@cofhe/sdk/web';
+export { createCofheClient } from '@cofhe/sdk/web';
 
 export { useCofheNavigateToCreatePermit } from '@/hooks/permits/useCofheNavigateToCreatePermit';
 export { useCofheAutoConnect } from '@/hooks/useCofheAutoConnect';
 
-export type { CofhesdkConfigWithReact } from './config';
+export type { CofheConfigWithReact as CofhesdkConfigWithReact } from './config';
 
 export type { Token } from './types/token';
 

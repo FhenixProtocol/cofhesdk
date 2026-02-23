@@ -1,12 +1,12 @@
 import { arbSepolia } from '@/chains';
 
 import { describe, it, expect } from 'vitest';
-import { createCofhesdkConfig, createCofhesdkClient } from './index.js';
+import { createCofheConfig, createCofheClient } from './index.js';
 
 describe('@cofhe/web - Config', () => {
-  describe('createCofhesdkConfig', () => {
+  describe('createCofheConfig', () => {
     it('should automatically inject IndexedDB storage as default', () => {
-      const config = createCofhesdkConfig({
+      const config = createCofheConfig({
         supportedChains: [arbSepolia],
       });
 
@@ -22,7 +22,7 @@ describe('@cofhe/web - Config', () => {
         removeItem: () => Promise.resolve(),
       };
 
-      const config = createCofhesdkConfig({
+      const config = createCofheConfig({
         supportedChains: [arbSepolia],
         fheKeyStorage: customStorage,
       });
@@ -31,7 +31,7 @@ describe('@cofhe/web - Config', () => {
     });
 
     it('should allow null storage', () => {
-      const config = createCofhesdkConfig({
+      const config = createCofheConfig({
         supportedChains: [arbSepolia],
         fheKeyStorage: null,
       });
@@ -40,7 +40,7 @@ describe('@cofhe/web - Config', () => {
     });
 
     it('should preserve all other config options', () => {
-      const config = createCofhesdkConfig({
+      const config = createCofheConfig({
         supportedChains: [arbSepolia],
         mocks: {
           sealOutputDelay: 500,
@@ -53,13 +53,13 @@ describe('@cofhe/web - Config', () => {
     });
   });
 
-  describe('createCofhesdkClient with config', () => {
+  describe('createCofheClient with config', () => {
     it('should create client with validated config', () => {
-      const config = createCofhesdkConfig({
+      const config = createCofheConfig({
         supportedChains: [arbSepolia],
       });
 
-      const client = createCofhesdkClient(config);
+      const client = createCofheClient(config);
 
       expect(client).toBeDefined();
       expect(client.config).toBe(config);

@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { type CofhesdkConfig, type CofhesdkInputConfig } from '@cofhe/sdk';
-import { createCofhesdkConfig as createCofhesdkConfigWeb } from '@cofhe/sdk/web';
+import { type CofheConfig, type CofheInputConfig } from '@cofhe/sdk';
+import { createCofheConfig as createCofheConfigWeb } from '@cofhe/sdk/web';
 import { getAddress, isAddress, zeroAddress } from 'viem';
 
 /**
@@ -17,7 +17,7 @@ export const addressSchema = z
   })
   .transform((val) => getAddress(val));
 
-export const CofhesdkReactConfigSchema = z.object({
+export const CofheReactConfigSchema = z.object({
   shareablePermits: z.boolean().optional().default(false),
   enableShieldUnshield: z.boolean().optional().default(true),
   autogeneratePermits: z.boolean().optional().default(true),
@@ -56,29 +56,29 @@ export const CofhesdkReactConfigSchema = z.object({
 /**
  * Input config type inferred from the schema
  */
-export type CofhesdkReactInputConfig = CofhesdkInputConfig & {
-  react?: z.input<typeof CofhesdkReactConfigSchema>;
+export type CofheReactInputConfig = CofheInputConfig & {
+  react?: z.input<typeof CofheReactConfigSchema>;
 };
 
-export type CofhesdkConfigWithReact = CofhesdkConfig & {
-  react: z.output<typeof CofhesdkReactConfigSchema>;
+export type CofheConfigWithReact = CofheConfig & {
+  react: z.output<typeof CofheReactConfigSchema>;
 };
 /**
- * Creates a CoFHE SDK client plus React react configuration with reasonable defaults.
- * @param config - Cofhesdk client input merged with a `react` object (fheKeyStorage defaults to IndexedDB when omitted).
+ * Creates a CoFHE client plus React configuration with reasonable defaults.
+ * @param config - Cofhe client input merged with a `react` object (fheKeyStorage defaults to IndexedDB when omitted).
  * @returns The combined client configuration with a validated `react` section and Web defaults applied.
  */
-export function createCofhesdkConfig(config: CofhesdkReactInputConfig): CofhesdkConfigWithReact {
+export function createCofheConfig(config: CofheReactInputConfig): CofheConfigWithReact {
   const { react: reactConfigInput = {}, ...webConfig } = config;
 
-  const webClientConfig = createCofhesdkConfigWeb({
+  const webClientConfig = createCofheConfigWeb({
     environment: 'react',
     ...webConfig,
   });
-  const reactConfigResult = CofhesdkReactConfigSchema.safeParse(reactConfigInput);
+  const reactConfigResult = CofheReactConfigSchema.safeParse(reactConfigInput);
 
   if (!reactConfigResult.success) {
-    throw new Error(`Invalid cofhesdk react configuration: ${z.prettifyError(reactConfigResult.error)}`, {
+    throw new Error(`Invalid cofhe react configuration: ${z.prettifyError(reactConfigResult.error)}`, {
       cause: reactConfigResult.error,
     });
   }

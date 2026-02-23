@@ -1,7 +1,7 @@
-import type { CofhesdkClient } from '@cofhe/sdk';
+import type { CofheClient } from '@cofhe/sdk';
 import { useCofheContext } from '../providers';
-import type { CofhesdkConfigWithReact } from '@/config';
+import type { CofheConfigWithReact } from '@/config';
 
-export const useCofheClient = (): CofhesdkClient<CofhesdkConfigWithReact> => {
+export const useCofheClient = (): CofheClient<CofheConfigWithReact> => {
   return useCofheContext().client;
 };

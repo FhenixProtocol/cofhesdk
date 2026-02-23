@@ -1,6 +1,6 @@
 import { type Permission, type EthEncryptedData } from '@/permits';
 
-import { CofhesdkError, CofhesdkErrorCode } from '../error.js';
+import { CofheError, CofheErrorCode } from '../error.js';
 
 export async function tnSealOutputV1(
   ctHash: bigint,
@@ -31,8 +31,8 @@ export async function tnSealOutputV1(
     sealed = sealOutputResult.sealed;
     errorMessage = sealOutputResult.error_message;
   } catch (e) {
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.SealOutputFailed,
+    throw new CofheError({
+      code: CofheErrorCode.SealOutputFailed,
       message: `sealOutput request failed`,
       hint: 'Ensure the threshold network URL is valid.',
       cause: e instanceof Error ? e : undefined,
@@ -44,8 +44,8 @@ export async function tnSealOutputV1(
   }
 
   if (sealed == null) {
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.SealOutputReturnedNull,
+    throw new CofheError({
+      code: CofheErrorCode.SealOutputReturnedNull,
       message: `sealOutput request returned no data | Caused by: ${errorMessage}`,
       context: {
         thresholdNetworkUrl,
