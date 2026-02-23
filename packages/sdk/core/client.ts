@@ -23,9 +23,9 @@ export const InitialConnectStore: CofheClientConnectionState = {
 };
 
 /**
- * Creates a CoFHE SDK client instance (base implementation)
+ * Creates a CoFHE client instance (base implementation)
  * @param {CofheClientParams} opts - Initialization options including config and platform-specific serializers
- * @returns {CofheClient} - The CoFHE SDK client instance
+ * @returns {CofheClient} - The CoFHE client instance
  */
 export function createCofheClientBase<TConfig extends CofheConfig>(
   opts: CofheClientParams<TConfig>

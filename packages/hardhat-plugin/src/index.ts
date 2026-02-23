@@ -193,17 +193,17 @@ declare module 'hardhat/types/runtime' {
   export interface HardhatRuntimeEnvironment {
     cofhe: {
       /**
-       * Create a CoFHE SDK configuration for use with hre.cofhe.createCofheClient(...)
-       * @param {CofheInputConfig} config - The CoFHE SDK input configuration
-       * @returns {CofheConfig} The CoFHE SDK configuration
+       * Create a CoFHE configuration for use with hre.cofhe.createClient(...)
+       * @param {CofheInputConfig} config - The CoFHE input configuration
+       * @returns {CofheConfig} The CoFHE configuration
        */
-      createCofheConfig: (config: CofheInputConfig) => Promise<CofheConfig>;
+      createConfig: (config: CofheInputConfig) => Promise<CofheConfig>;
       /**
-       * Create a CoFHE SDK client instance
-       * @param {CofheConfig} config - The CoFHE SDK configuration (use createCofheConfig to create with Node.js defaults)
-       * @returns {Promise<CofheClient>} The CoFHE SDK client instance
+       * Create a CoFHE client instance
+       * @param {CofheConfig} config - The CoFHE configuration (use createCofheConfig to create with Node.js defaults)
+       * @returns {Promise<CofheClient>} The CoFHE client instance
        */
-      createCofheClient: (config: CofheConfig) => CofheClient;
+      createClient: (config: CofheConfig) => CofheClient;
       /**
        * Create viem clients from a Hardhat ethers signer, to be used with `cofheClient.connect(...)`
        * @param {HardhatEthersSigner} signer - The Hardhat ethers signer to use
@@ -213,8 +213,8 @@ declare module 'hardhat/types/runtime' {
         signer: HardhatEthersSigner
       ) => Promise<{ publicClient: PublicClient; walletClient: WalletClient }>;
       /**
-       * Connect a CoFHE SDK client with a Hardhat ethers signer
-       * @param {CofheClient} client - The CoFHE SDK client to connect
+       * Connect a CoFHE client with a Hardhat ethers signer
+       * @param {CofheClient} client - The CoFHE client to connect
        * @param {HardhatEthersSigner} signer - The Hardhat ethers signer to use
        * @returns {Promise<void>}
        */
@@ -224,9 +224,9 @@ declare module 'hardhat/types/runtime' {
        * Also generates a self-usage a permit for the signer.
        * If customization is needed, use createCofheClient and connectWithHardhatSigner.
        * @param {HardhatEthersSigner} signer - The Hardhat ethers signer to use (optional - defaults to first signer)
-       * @returns {Promise<CofheClient>} The CoFHE SDK client instance
+       * @returns {Promise<CofheClient>} The CoFHE client instance
        */
-      createBatteriesIncludedCofheClient: (signer?: HardhatEthersSigner) => Promise<CofheClient>;
+      createClientWithBatteries: (signer?: HardhatEthersSigner) => Promise<CofheClient>;
 
       mocks: {
         /**
@@ -336,7 +336,7 @@ declare module 'hardhat/types/runtime' {
 
 extendEnvironment((hre) => {
   hre.cofhe = {
-    createCofheConfig: async (config: CofheInputConfig) => {
+    createConfig: async (config: CofheInputConfig) => {
       // Create zkv wallet client
       // This wallet interacts with the MockZkVerifier contract so that the user's connected wallet doesn't have to
       const zkvHhSigner = await hre.ethers.getImpersonatedSigner(MOCKS_ZK_VERIFIER_SIGNER_ADDRESS);
@@ -354,7 +354,7 @@ extendEnvironment((hre) => {
 
       return createCofheConfig(configWithZkvWalletClient);
     },
-    createCofheClient: (config: CofheConfig) => {
+    createClient: (config: CofheConfig) => {
       return createCofheClient(config);
     },
     hardhatSignerAdapter: async (signer: HardhatEthersSigner) => {
@@ -364,20 +364,20 @@ extendEnvironment((hre) => {
       const { publicClient, walletClient } = await HardhatSignerAdapter(signer);
       return client.connect(publicClient, walletClient);
     },
-    createBatteriesIncludedCofheClient: async (signer?: HardhatEthersSigner) => {
+    createClientWithBatteries: async (signer?: HardhatEthersSigner) => {
       // Get signer if not provided
       if (!signer) {
         [signer] = await hre.ethers.getSigners();
       }
 
       // Create config
-      const config = await hre.cofhe.createCofheConfig({
+      const config = await hre.cofhe.createConfig({
         environment: 'hardhat',
         supportedChains: [hardhat],
       });
 
       // Create client
-      const client = hre.cofhe.createCofheClient(config);
+      const client = hre.cofhe.createClient(config);
 
       // Connect client
       await hre.cofhe.connectWithHardhatSigner(client, signer);

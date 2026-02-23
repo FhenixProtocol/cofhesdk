@@ -95,9 +95,9 @@ async function zkProveWithWorker(
 }
 
 /**
- * Creates a CoFHE SDK configuration for web with IndexedDB storage as default
- * @param config - The CoFHE SDK input configuration (fheKeyStorage will default to IndexedDB if not provided)
- * @returns The CoFHE SDK configuration with web defaults applied
+ * Creates a CoFHE configuration for web with IndexedDB storage as default
+ * @param config - The CoFHE input configuration (fheKeyStorage will default to IndexedDB if not provided)
+ * @returns The CoFHE configuration with web defaults applied
  */
 export function createCofheConfig(config: CofheInputConfig): CofheConfig {
   return createCofheConfigBase({
@@ -108,11 +108,11 @@ export function createCofheConfig(config: CofheInputConfig): CofheConfig {
 }
 
 /**
- * Creates a CoFHE SDK client instance for web with TFHE automatically configured
+ * Creates a CoFHE client instance for web with TFHE automatically configured
  * TFHE will be initialized automatically on first encryption - no manual setup required
  * Workers are automatically enabled if available (can be disabled via config.useWorkers)
- * @param config - The CoFHE SDK configuration (use createCofheConfig to create with web defaults)
- * @returns The CoFHE SDK client instance
+ * @param config - The CoFHE configuration (use createCofheConfig to create with web defaults)
+ * @returns The CoFHE client instance
  */
 export function createCofheClient<TConfig extends CofheConfig>(config: TConfig): CofheClient<TConfig> {
   return createCofheClientBase({

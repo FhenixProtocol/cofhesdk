@@ -9,7 +9,7 @@ describe('Permit Unseal Test', () => {
 
     await hre.run(TASK_COFHE_MOCKS_DEPLOY);
 
-    const client = await hre.cofhe.createBatteriesIncludedCofheClient(signer);
+    const client = await hre.cofhe.createClientWithBatteries(signer);
 
     // Add number to TestBed
     const testBed = await hre.cofhe.mocks.getTestBed();

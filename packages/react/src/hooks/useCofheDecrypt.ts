@@ -6,7 +6,7 @@ import { assert } from 'ts-essentials';
 import type { EncryptedReturnTypeByUtype } from '@cofhe/abi';
 
 /**
- * Hook to decrypt a ciphertext using the Cofhe SDK client.
+ * Hook to decrypt a ciphertext using the Cofhe client.
  * @param input - Ciphertext and FHE type
  * @param queryOptions - Optional React Query options
  * @returns Decrypted balance as bigint

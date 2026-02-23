@@ -9,7 +9,7 @@ describe('Encrypt Inputs Test', () => {
 
     await hre.run(TASK_COFHE_MOCKS_DEPLOY);
 
-    const client = await hre.cofhe.createBatteriesIncludedCofheClient(signer);
+    const client = await hre.cofhe.createClientWithBatteries(signer);
 
     const encrypted = await client.encryptInputs([Encryptable.uint32(7n)]).encrypt();
 

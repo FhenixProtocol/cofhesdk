@@ -30,7 +30,7 @@ describe('CoFHE SDK Client Integration', () => {
     };
 
     // Create the cofhe config (this will inject the zkv wallet client)
-    const config = await hre.cofhe.createCofheConfig(inputConfig);
+    const config = await hre.cofhe.createConfig(inputConfig);
 
     expect(config).to.not.be.undefined;
     expect(config.supportedChains).to.deep.equal([hardhat]);
@@ -38,7 +38,7 @@ describe('CoFHE SDK Client Integration', () => {
     expect(config._internal?.zkvWalletClient).to.not.be.undefined;
 
     // Create the cofhe client from the config
-    const client = hre.cofhe.createCofheClient(config);
+    const client = hre.cofhe.createClient(config);
 
     expect(client).to.not.be.undefined;
     expect(client.config).to.equal(config);
@@ -58,7 +58,7 @@ describe('CoFHE SDK Client Integration', () => {
     };
 
     // Create the cofhe config
-    const config = await hre.cofhe.createCofheConfig(inputConfig);
+    const config = await hre.cofhe.createConfig(inputConfig);
 
     expect(config).to.not.be.undefined;
     expect(config.supportedChains).to.deep.equal([hardhat]);
@@ -68,7 +68,7 @@ describe('CoFHE SDK Client Integration', () => {
     expect(config._internal?.zkvWalletClient).to.not.be.undefined;
 
     // Create the cofhe client from the config
-    const client = hre.cofhe.createCofheClient(config);
+    const client = hre.cofhe.createClient(config);
     expect(client).to.not.be.undefined;
     expect(client.config).to.equal(config);
   });
@@ -89,10 +89,10 @@ describe('CoFHE SDK Client Integration', () => {
     };
 
     // Create the cofhe config
-    const config = await hre.cofhe.createCofheConfig(inputConfig);
+    const config = await hre.cofhe.createConfig(inputConfig);
 
     // Create client from config
-    const client = hre.cofhe.createCofheClient(config);
+    const client = hre.cofhe.createClient(config);
 
     // Connect the client with viem clients
     await client.connect(publicClient, walletClient);

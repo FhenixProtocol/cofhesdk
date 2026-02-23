@@ -21,7 +21,7 @@ describe('Hardhat Integration Tests', () => {
     recipient = tmpRecipient;
 
     // Create batteries-included client (handles Hardhat setup automatically)
-    cofheClient = await hre.cofhe.createBatteriesIncludedCofheClient(signer);
+    cofheClient = await hre.cofhe.createClientWithBatteries(signer);
 
     // Deploy test contract using ethers
     const SimpleTest = await hre.ethers.getContractFactory('SimpleTest');

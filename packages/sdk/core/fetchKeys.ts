@@ -118,7 +118,7 @@ const fetchCrs = async (
 /**
  * Retrieves the FHE public key and the CRS from the provider.
  * If the key/crs already exists in the store it is returned, else it is fetched, stored, and returned
- * @param {CofheConfig} config - The configuration object for the CoFHE SDK
+ * @param {CofheConfig} config - The configuration object for the CoFHE client
  * @param {number} chainId - The chain to fetch the FHE key for, if no chainId provided, undefined is returned
  * @param securityZone - The security zone for which to retrieve the key (default 0).
  * @param tfhePublicKeyDeserializer - The serializer for the FHE public key (used for validation).

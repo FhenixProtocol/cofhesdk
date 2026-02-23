@@ -68,9 +68,9 @@ const zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator = (fhe: string, crs: st
 };
 
 /**
- * Creates a CoFHE SDK configuration for Node.js with filesystem storage as default
- * @param config - The CoFHE SDK input configuration (fheKeyStorage will default to filesystem if not provided)
- * @returns The CoFHE SDK configuration with Node.js defaults applied
+ * Creates a CoFHE configuration for Node.js with filesystem storage as default
+ * @param config - The CoFHE input configuration (fheKeyStorage will default to filesystem if not provided)
+ * @returns The CoFHE configuration with Node.js defaults applied
  */
 export function createCofheConfig(config: CofheInputConfig): CofheConfig {
   return createCofheConfigBase({
@@ -81,10 +81,10 @@ export function createCofheConfig(config: CofheInputConfig): CofheConfig {
 }
 
 /**
- * Creates a CoFHE SDK client instance for Node.js with node-tfhe automatically configured
+ * Creates a CoFHE client instance for Node.js with node-tfhe automatically configured
  * TFHE will be initialized automatically on first encryption - no manual setup required
- * @param config - The CoFHE SDK configuration (use createCofheConfig to create with Node.js defaults)
- * @returns The CoFHE SDK client instance
+ * @param config - The CoFHE configuration (use createCofheConfig to create with Node.js defaults)
+ * @returns The CoFHE client instance
  */
 export function createCofheClient(config: CofheConfig): CofheClient {
   return createCofheClientBase({
