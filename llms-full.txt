@@ -2,7 +2,51 @@
 
 > Documentation for the Cofhe SDK
 
-Getting started with cofhesdk
+## Intro
+
+### Purpose
+
+`@cofhe/sdk` is the core library for integrating with Fhenix’s CoFHE coprocessor.
+
+It provides:
+
+* A typed client for encrypting inputs and decrypting handles.
+* Key fetching + key storage abstractions (with sensible defaults per runtime).
+* Permit utilities (create/validate/store/serialize) for decryption authorization.
+* Optional helpers for chain definitions and popular wallet/provider stacks.
+
+### `@cofhe/sdk` entrypoints
+
+The SDK ships multiple entrypoints so you can pick the right defaults for your runtime.
+
+* `@cofhe/sdk` (core)
+  * Environment-agnostic exports: core client/config factories, types, and shared utilities.
+* `@cofhe/sdk/web`
+  * Browser defaults: IndexedDB-based key storage, TFHE-WASM initialization, and optional Web Worker proof generation.
+* `@cofhe/sdk/node`
+  * Node.js defaults: filesystem-based key storage and `node-tfhe` initialization.
+* `@cofhe/sdk/permits`
+  * Permit utilities: create/validate/serialize permits, permit storage helpers, and sealing utilities.
+* `@cofhe/sdk/adapters`
+  * Adapter layer: helpers for integrating with `ethers` (v5/v6), Wagmi, and Hardhat signers.
+* `@cofhe/sdk/chains`
+  * Chain definitions + helpers: built-in supported chains and `getChainById` / `getChainByName`.
+
+#### Import examples
+
+```ts twoslash
+// @noErrors
+import { createCofhesdkClient, createCofhesdkConfig } from '@cofhe/sdk/web';
+// or
+import {
+  createCofhesdkClient as createCofhesdkClientNode,
+  createCofhesdkConfig as createCofhesdkConfigNode,
+} from '@cofhe/sdk/node';
+
+import { PermitUtils } from '@cofhe/sdk/permits';
+import { chains, getChainById } from '@cofhe/sdk/chains';
+import { Ethers6Adapter } from '@cofhe/sdk/adapters';
+```
 
 
 ## Example
@@ -27,6 +71,148 @@ Getting started with cofhesdk hardhat plugin
 Getting started with foundry.
 
 Soon.
+
+
+## Client
+
+This page covers the core SDK lifecycle:
+
+1. Create a config (`createCofhesdkConfig`)
+2. Create a client (`createCofhesdkClient`)
+3. Create viem clients (either directly, or via `@cofhe/sdk/adapters`)
+4. Connect + disconnect
+
+### 1) Create a config
+
+Pick the entrypoint that matches your runtime:
+
+* Browser apps: `@cofhe/sdk/web`
+* Node.js scripts/backends: `@cofhe/sdk/node`
+
+The only required field is `supportedChains`.
+
+```ts twoslash
+// @noErrors
+import { createCofhesdkConfig } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+
+const config = createCofhesdkConfig({
+  supportedChains: [chains.sepolia],
+
+  // Optional tweaks
+  // permitGeneration: 'ON_CONNECT',
+  // defaultPermitExpiration: 60 * 60 * 24 * 30,
+  // useWorkers: true,
+});
+```
+
+### 2) Create a client
+
+```ts twoslash
+// @noErrors
+import { createCofhesdkClient } from '@cofhe/sdk/web';
+import type { CofhesdkConfig } from '@cofhe/sdk';
+
+// config from the previous step
+declare const config: CofhesdkConfig;
+
+const cofhesdk = createCofhesdkClient(config);
+
+cofhesdk.connected; // false
+cofhesdk.connecting; // false
+```
+
+### 3) Create viem clients (adapters)
+
+The SDK connects to CoFHE using viem clients:
+
+* `PublicClient`: read-only chain access
+* `WalletClient`: signing + sending transactions
+
+If you already have viem clients, you can pass them directly to `cofhesdk.connect(publicClient, walletClient)`.
+
+If you’re using another wallet/provider stack, `@cofhe/sdk/adapters` can convert it into viem-shaped clients.
+
+#### Ethers v6 adapter
+
+```ts twoslash
+// @noErrors
+import { Ethers6Adapter } from '@cofhe/sdk/adapters';
+
+// Your ethers instances
+declare const provider: Parameters<typeof Ethers6Adapter>[0];
+declare const signer: Parameters<typeof Ethers6Adapter>[1];
+
+const { publicClient, walletClient } = await Ethers6Adapter(provider, signer);
+```
+
+#### Ethers v5 adapter
+
+```ts twoslash
+// @noErrors
+import { Ethers5Adapter } from '@cofhe/sdk/adapters';
+
+// Your ethers instances
+declare const provider: Parameters<typeof Ethers5Adapter>[0];
+declare const signer: Parameters<typeof Ethers5Adapter>[1];
+
+const { publicClient, walletClient } = await Ethers5Adapter(provider, signer);
+```
+
+#### Wagmi adapter
+
+If you’re using Wagmi, you already have viem clients; the adapter just validates and passes them through.
+
+```ts twoslash
+// @noErrors
+import { WagmiAdapter } from '@cofhe/sdk/adapters';
+import type { PublicClient, WalletClient } from 'viem';
+
+declare const publicClient: PublicClient;
+declare const walletClient: WalletClient;
+
+const clients = await WagmiAdapter(walletClient, publicClient);
+```
+
+### 4) Connect
+
+Connecting initializes the SDK’s in-memory connection state (`account`, `chainId`, and the viem clients).
+
+```ts twoslash
+// @noErrors
+import { createCofhesdkClient } from '@cofhe/sdk/web';
+import type { CofhesdkConfig } from '@cofhe/sdk';
+import type { PublicClient, WalletClient } from 'viem';
+
+declare const config: CofhesdkConfig;
+declare const publicClient: PublicClient;
+declare const walletClient: WalletClient;
+
+const cofhesdk = createCofhesdkClient(config);
+
+await cofhesdk.connect(publicClient, walletClient);
+
+cofhesdk.connected; // true
+```
+
+#### Reconnect behavior
+
+Calling `connect` again with the same clients is a no-op. Calling it with new clients replaces the connection state.
+
+### 5) Disconnect
+
+Disconnect clears only the in-memory connection state (clients/account/chainId) and marks the client as disconnected.
+
+It does **not** delete persisted permits or stored FHE keys.
+
+```ts twoslash
+// @noErrors
+declare const cofhesdk: { disconnect(): void; connected: boolean };
+
+cofhesdk.disconnect();
+
+cofhesdk.connected; // false
+```
 
 
 example.mdx
