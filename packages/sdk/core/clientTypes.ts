@@ -26,7 +26,7 @@ export type CofheClient<TConfig extends CofheConfig = CofheConfig> = {
   subscribe(listener: Listener): () => void;
 
   // --- convenience flags (read-only) ---
-  readonly connection: CofhesdkClientConnectionState;
+  readonly connection: CofheClientConnectionState;
   readonly connected: boolean;
   readonly connecting: boolean;
 
