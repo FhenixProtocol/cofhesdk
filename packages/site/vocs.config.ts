@@ -7,39 +7,77 @@ export default defineConfig({
   description: 'Documentation for the Cofhe SDK',
   rootDir: '.',
   sidebar: {
-    '/docs': [
+    '/': [
       {
         text: 'Intro',
-        link: '/docs',
+        link: '/',
       },
       {
-        text: 'Client',
-        link: '/docs/client',
+        text: 'Quick Start',
+        link: '/quick-start',
       },
+
       {
         text: 'Migrating from `cofhejs`',
-        link: '/docs/migrating-from-cofhejs',
+        link: '/migrating-from-cofhejs',
       },
       {
-        text: 'Example',
-        link: '/docs/example',
+        text: 'SDK',
+        items: [
+          {
+            text: 'Client',
+            link: '/sdk/client',
+          },
+          {
+            text: 'Permits',
+            link: '/sdk/permits',
+          },
+          {
+            text: 'Encrypting Inputs',
+            link: '/sdk/encrypting-inputs',
+          },
+          {
+            text: 'Decrypting to View',
+            link: '/sdk/decrypt-to-view',
+          },
+          {
+            text: 'Decrypting to Transact',
+            link: '/sdk/decrypt-to-tx',
+          },
+        ],
+      },
+      {
+        text: 'Hardhat',
+        items: [
+          {
+            text: 'Getting Started',
+            link: '/hardhat',
+          },
+          {
+            text: 'Mock Contracts',
+            link: '/hardhat/mock-contracts',
+          },
+          {
+            text: 'Client',
+            link: '/hardhat/client',
+          },
+          {
+            text: 'Logging',
+            link: '/hardhat/logging',
+          },
+          {
+            text: 'Testing',
+            link: '/hardhat/testing',
+          },
+        ],
       },
     ],
-    '/hardhat': {
-      backLink: true,
-      items: [
-        {
-          text: 'Getting Started',
-          link: '/hardhat',
-        },
-      ],
-    },
     '/foundry': {
       backLink: true,
       items: [
         {
-          text: 'Getting Started',
-          link: '/foundry/getting-started',
+          text: 'Coming Soon',
+          link: '/foundry',
         },
       ],
     },
@@ -47,8 +85,8 @@ export default defineConfig({
       backLink: true,
       items: [
         {
-          text: 'Getting Started',
-          link: '/react/getting-started',
+          text: 'Coming Soon',
+          link: '/react',
         },
       ],
     },
@@ -68,10 +106,8 @@ export default defineConfig({
     },
   ],
   topNav: [
-    { text: 'SDK', link: './docs', match: '/docs' },
-    { text: 'Hardhat', link: './hardhat', match: '/hardhat' },
-    { text: 'Foundry', link: './foundry/getting-started', match: '/foundry' },
-    { text: 'React', link: './react/getting-started', match: '/react' },
+    { text: 'Docs', link: '/', match: '/' },
+    { text: 'React', link: '/react', match: '/react' },
     {
       text: `v${pkg.version}`,
       items: [

@@ -2,14 +2,14 @@
 
 This page covers the core SDK lifecycle:
 
-1. Create config (`createCofheConfig`)
-2. Create client (`createCofheClient`)
+1. Create config (`createCofhesdkConfig`)
+2. Create client (`createCofhesdkClient`)
 3. Connect to client (`client.connect`)
 4. Managing connection (change account / disconnect)
 
 ## 1) Create config
 
-Import `createCofheConfig` from the entrypoint that matches your runtime:
+Import `createCofhesdkConfig` from the entrypoint that matches your runtime:
 
 - Browser apps: `@cofhe/sdk/web`
 - Node.js scripts/backends: `@cofhe/sdk/node`
@@ -18,10 +18,10 @@ The only required field is `supportedChains`.
 
 ```ts twoslash
 // @noErrors
-import { createCofheConfig } from '@cofhe/sdk/web';
+import { createCofhesdkConfig } from '@cofhe/sdk/web';
 import { chains } from '@cofhe/sdk/chains';
 
-const config = createCofheConfig({
+const config = createCofhesdkConfig({
   supportedChains: [chains.sepolia],
 
   // Optional knobs
@@ -32,20 +32,20 @@ const config = createCofheConfig({
 
 ## 2) Create cofhe client
 
-Import `createCofheClient` from the entrypoint that matches your runtime:
+Import `createCofhesdkClient` from the entrypoint that matches your runtime:
 
 - Browser apps: `@cofhe/sdk/web`
 - Node.js scripts/backends: `@cofhe/sdk/node`
 
 ```ts twoslash
 // @noErrors
-import { createCofheClient } from '@cofhe/sdk/web';
+import { createCofhesdkClient } from '@cofhe/sdk/web';
 import type { CofhesdkConfig } from '@cofhe/sdk';
 
 // config from the previous step
 declare const config: CofhesdkConfig;
 
-const cofheClient = createCofheClient(config);
+const cofheClient = createCofhesdkClient(config);
 
 cofheClient.connected; // false
 cofheClient.connecting; // false
@@ -66,14 +66,14 @@ Connecting initializes the SDK's in-memory connection state (`account`, `chainId
 
 ```ts twoslash
 // @noErrors
-import { createCofheClient } from '@cofhe/sdk/web';
+import { createCofhesdkClient } from '@cofhe/sdk/web';
 import type { CofhesdkConfig } from '@cofhe/sdk';
 import type { PublicClient, WalletClient } from 'viem';
 import { createPublicClient, createWalletClient, http } from 'viem';
 import { sepolia } from 'viem/chains';
 
 declare const config: CofhesdkConfig;
-const cofheClient = createCofheClient(config);
+const cofheClient = createCofhesdkClient(config);
 
 const publicClient = createPublicClient({
   chain: sepolia,

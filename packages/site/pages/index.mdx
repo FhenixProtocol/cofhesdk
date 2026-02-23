@@ -1,3 +1,45 @@
-# Hello, World! [This is my first page]
- 
-Welcome to my docs. 
+# Intro
+
+## Purpose
+
+`@cofhe/sdk` is the core library for integrating with Fhenix’s CoFHE coprocessor.
+
+It provides:
+
+- A typed client for encrypting inputs and decrypting handles.
+- Key fetching + key storage abstractions (with sensible defaults per runtime).
+- Permit utilities (create/validate/store/serialize) for decryption authorization.
+- Optional helpers for chain definitions and popular wallet/provider stacks.
+
+## `@cofhe/sdk` entrypoints
+
+The SDK ships multiple entrypoints so you can pick the right defaults for your runtime.
+
+- `@cofhe/sdk` (core)
+  - Environment-agnostic exports: core client/config factories, types, and shared utilities.
+- `@cofhe/sdk/web`
+  - Browser defaults: IndexedDB-based key storage, TFHE-WASM initialization, and optional Web Worker proof generation.
+- `@cofhe/sdk/node`
+  - Node.js defaults: filesystem-based key storage and `node-tfhe` initialization.
+- `@cofhe/sdk/permits`
+  - Permit utilities: create/validate/serialize permits, permit storage helpers, and sealing utilities.
+- `@cofhe/sdk/adapters`
+  - Adapter layer: helpers for integrating with `ethers` (v5/v6), Wagmi, and Hardhat signers.
+- `@cofhe/sdk/chains`
+  - Chain definitions + helpers: built-in supported chains and `getChainById` / `getChainByName`.
+
+### Import examples
+
+```ts twoslash
+// @noErrors
+import { createCofhesdkClient, createCofhesdkConfig } from '@cofhe/sdk/web';
+// or
+import {
+  createCofhesdkClient as createCofhesdkClientNode,
+  createCofhesdkConfig as createCofhesdkConfigNode,
+} from '@cofhe/sdk/node';
+
+import { PermitUtils } from '@cofhe/sdk/permits';
+import { chains, getChainById } from '@cofhe/sdk/chains';
+import { Ethers6Adapter } from '@cofhe/sdk/adapters';
+```
