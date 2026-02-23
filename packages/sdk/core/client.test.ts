@@ -59,11 +59,15 @@ describe('createCofheClientBase', () => {
       expect(snapshot.account).toBe(undefined);
       expect(snapshot.publicClient).toBe(undefined);
       expect(snapshot.walletClient).toBe(undefined);
+
+      const connection = client.connection;
+      expect(connection).toEqual(snapshot);
     });
 
     it('should expose convenience flags', () => {
       expect(client.connected).toBe(false);
       expect(client.connecting).toBe(false);
+      expect(client.connection.connected).toBe(false);
     });
 
     it('should expose config', () => {
@@ -141,11 +145,11 @@ describe('createCofheClientBase', () => {
       expect(client.connected).toBe(true);
       expect(client.connecting).toBe(false);
 
-      const snapshot = client.getSnapshot();
-      expect(snapshot.chainId).toBe(11155111);
-      expect(snapshot.account).toBe('0xabcd');
-      expect(snapshot.publicClient).toBe(publicClient);
-      expect(snapshot.walletClient).toBe(walletClient);
+      const connection = client.connection;
+      expect(connection.chainId).toBe(11155111);
+      expect(connection.account).toBe('0xabcd');
+      expect(connection.publicClient).toBe(publicClient);
+      expect(connection.walletClient).toBe(walletClient);
     });
 
     it('should set connecting state during connection', async () => {
@@ -218,20 +222,20 @@ describe('createCofheClientBase', () => {
 
       expect(client.connected).toBe(true);
       expect(client.connecting).toBe(false);
-      expect(client.getSnapshot().chainId).toBe(222);
-      expect(client.getSnapshot().account).toBe('0x2222222222222222222222222222222222222222');
-      expect(client.getSnapshot().publicClient).toBe(publicClient2);
-      expect(client.getSnapshot().walletClient).toBe(walletClient2);
+      expect(client.connection.chainId).toBe(222);
+      expect(client.connection.account).toBe('0x2222222222222222222222222222222222222222');
+      expect(client.connection.publicClient).toBe(publicClient2);
+      expect(client.connection.walletClient).toBe(walletClient2);
 
       // Now resolve the first connect; it must not overwrite the latest state.
       resolveChainId1!(111);
       resolveAddresses1!(['0x1111111111111111111111111111111111111111']);
       await promise1;
 
-      expect(client.getSnapshot().chainId).toBe(222);
-      expect(client.getSnapshot().account).toBe('0x2222222222222222222222222222222222222222');
-      expect(client.getSnapshot().publicClient).toBe(publicClient2);
-      expect(client.getSnapshot().walletClient).toBe(walletClient2);
+      expect(client.connection.chainId).toBe(222);
+      expect(client.connection.account).toBe('0x2222222222222222222222222222222222222222');
+      expect(client.connection.publicClient).toBe(publicClient2);
+      expect(client.connection.walletClient).toBe(walletClient2);
     });
 
     it('should allow disconnect while connecting and never end up connected afterwards', async () => {
@@ -368,12 +372,11 @@ describe('createCofheClientBase', () => {
       expect(client.connected).toBe(false);
       expect(client.connecting).toBe(false);
 
-      const snapshot = client.getSnapshot();
-      expect(snapshot.chainId).toBe(undefined);
-      expect(snapshot.account).toBe(undefined);
-      expect(snapshot.publicClient).toBe(undefined);
-      expect(snapshot.walletClient).toBe(undefined);
-      expect(snapshot.connectError).toBe(undefined);
+      expect(client.connection.chainId).toBe(undefined);
+      expect(client.connection.account).toBe(undefined);
+      expect(client.connection.publicClient).toBe(undefined);
+      expect(client.connection.walletClient).toBe(undefined);
+      expect(client.connection.connectError).toBe(undefined);
     });
   });
 
