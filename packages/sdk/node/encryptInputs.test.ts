@@ -43,7 +43,7 @@ describe('@cofhe/node - Encrypt Inputs', () => {
       await cofheClient.connect(publicClient, walletClient);
 
       // This will trigger real TFHE initialization
-      const encrypted = await cofheClient.encryptInputs([Encryptable.uint128(100n)]).encrypt();
+      const encrypted = await cofheClient.encryptInputs([Encryptable.uint128(100n)]).execute();
 
       // If we get here, TFHE was initialized successfully
       expect(encrypted).toBeDefined();
@@ -53,10 +53,10 @@ describe('@cofhe/node - Encrypt Inputs', () => {
       await cofheClient.connect(publicClient, walletClient);
 
       // First encryption
-      await cofheClient.encryptInputs([Encryptable.uint128(100n)]).encrypt();
+      await cofheClient.encryptInputs([Encryptable.uint128(100n)]).execute();
 
       // Second encryption should reuse initialization
-      await cofheClient.encryptInputs([Encryptable.uint64(50n)]).encrypt();
+      await cofheClient.encryptInputs([Encryptable.uint64(50n)]).execute();
     }, 120000);
   });
 
@@ -64,7 +64,7 @@ describe('@cofhe/node - Encrypt Inputs', () => {
     it('should encrypt a bool with real TFHE', async () => {
       await cofheClient.connect(publicClient, walletClient);
 
-      const encrypted = await cofheClient.encryptInputs([Encryptable.bool(true)]).encrypt();
+      const encrypted = await cofheClient.encryptInputs([Encryptable.bool(true)]).execute();
 
       expect(encrypted.length).toBe(1);
       expect(encrypted[0].utype).toBe(FheTypes.Bool);
@@ -88,7 +88,7 @@ describe('@cofhe/node - Encrypt Inputs', () => {
         Encryptable.address('0x742d35Cc6634C0532925a3b844D16faC4c175E99'),
       ];
 
-      const encrypted = await cofheClient.encryptInputs(inputs).encrypt();
+      const encrypted = await cofheClient.encryptInputs(inputs).execute();
 
       expect(encrypted.length).toBe(7);
       // Verify each type
@@ -123,7 +123,7 @@ describe('@cofhe/node - Encrypt Inputs', () => {
     it('should fail gracefully when not connected', async () => {
       // Don't connect the client
       try {
-        await cofheClient.encryptInputs([Encryptable.uint128(100n)]).encrypt();
+        await cofheClient.encryptInputs([Encryptable.uint128(100n)]).execute();
       } catch (error) {
         expect(error).toBeInstanceOf(CofheError);
         expect((error as CofheError).code).toBe(CofheErrorCode.NotConnected);

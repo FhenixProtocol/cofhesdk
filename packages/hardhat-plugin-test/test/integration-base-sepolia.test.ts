@@ -97,7 +97,7 @@ describe('Base Sepolia Integration Tests', () => {
     const testValue = 100n;
 
     // Encrypt and store a value
-    const encrypted = await cofheClient.encryptInputs([Encryptable.uint32(testValue)]).encrypt();
+    const encrypted = await cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
 
     const tx = await testContract.connect(baseSepoliaSigner).setValue(encrypted[0]);
     const receipt = await tx.wait();
@@ -107,7 +107,7 @@ describe('Base Sepolia Integration Tests', () => {
     const ctHash = await testContract.getValueHash();
 
     // Decrypt the value using the ctHash from the encrypted input
-    const unsealedResult = await cofheClient.decryptHandle(ctHash, FheTypes.Uint32).decrypt();
+    const unsealedResult = await cofheClient.decryptHandle(ctHash, FheTypes.Uint32).execute();
 
     // Verify the decrypted value matches
     expect(unsealedResult).to.be.equal(testValue);

@@ -427,7 +427,7 @@ describe('EncryptInputsBuilder', () => {
           account: '0x1234567890123456789012345678901234567890',
           chainId: 1,
           config: createMockCofheConfig(defaultChainId, undefined as unknown as string),
-        }).encrypt();
+        }).execute();
       } catch (error) {
         expect(error).toBeInstanceOf(CofheError);
         expect((error as CofheError).code).toBe(CofheErrorCode.ZkVerifierUrlUninitialized);
@@ -674,17 +674,17 @@ describe('EncryptInputsBuilder', () => {
   // TODO: Implement error handling tests
   // describe('error handling', () => {
   //   it('should handle ZK pack errors gracefully', async () => {
-  //     const result = await builder.encrypt();
+  //     const result = await builder.execute();
   //     expectResultError(result, CofheErrorCode.InternalError, 'ZK pack failed');
   //   });
 
   //   it('should handle ZK prove errors gracefully', async () => {
-  //     const result = await builder.encrypt();
+  //     const result = await builder.execute();
   //     expectResultError(result, CofheErrorCode.InternalError, 'ZK prove failed');
   //   });
 
   //   it('should handle ZK verify errors gracefully', async () => {
-  //     const result = await builder.encrypt();
+  //     const result = await builder.execute();
   //     expectResultError(result, CofheErrorCode.InternalError, 'ZK verify failed');
   //   });
   // });
