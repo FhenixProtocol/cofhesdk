@@ -3,10 +3,25 @@ type UserAgentGlobals = {
   __COFHE_SDK_VERSION__?: string;
 };
 
+declare const globalThis: unknown;
+declare const self: unknown;
+declare const window: unknown;
+declare const global: unknown;
+
 const COFHE_CLIEND_HEADER_KEY = 'X-COFHE-SDK';
 
+type AnyGlobalObject = Record<string, unknown>;
+
+function getGlobalObject(): AnyGlobalObject {
+  if (typeof globalThis !== 'undefined') return globalThis as AnyGlobalObject;
+  if (typeof self !== 'undefined') return self as AnyGlobalObject;
+  if (typeof window !== 'undefined') return window as AnyGlobalObject;
+  if (typeof global !== 'undefined') return global as AnyGlobalObject;
+  return {};
+}
+
 function getGlobals(): UserAgentGlobals {
-  return (typeof globalThis !== 'undefined' ? (globalThis as unknown as UserAgentGlobals) : {}) as UserAgentGlobals;
+  return getGlobalObject() as UserAgentGlobals;
 }
 
 export function getSdkUserAgent(): string {
@@ -20,14 +35,14 @@ function isNodeRuntime(): boolean {
   const isNode = typeof process !== 'undefined' && typeof process.versions?.node === 'string';
   if (!isNode) return false;
 
+  const g = getGlobalObject() as Record<string, unknown>;
+
   // Guard against bundler/polyfill environments (e.g. browser tests) that provide a fake `process`.
-  if (typeof window !== 'undefined') return false;
-  if (typeof document !== 'undefined') return false;
+  if (typeof g.window !== 'undefined') return false;
+  if (typeof g.document !== 'undefined') return false;
 
   // Guard against browser workers.
-  if (typeof WorkerGlobalScope !== 'undefined' && typeof self !== 'undefined' && self instanceof WorkerGlobalScope) {
-    return false;
-  }
+  if (typeof (g as Record<string, unknown>).importScripts === 'function') return false;
 
   return true;
 }
