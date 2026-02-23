@@ -1,0 +1,25 @@
+{
+  "name": "@cofhe/site",
+  "private": true,
+  "version": "0.2.1",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "vocs dev",
+    "build": "vocs build",
+    "preview": "vocs preview"
+  },
+  "dependencies": {
+    "glob": "^11.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "vocs": "^1.4.1"
+  },
+  "devDependencies": {
+    "@cofhe/sdk": "workspace:*",
+    "@types/react": "latest",
+    "typescript": "latest"
+  }
+}

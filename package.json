@@ -1,7 +1,8 @@
 {
   "private": true,
   "scripts": {
-    "build": "turbo run build --filter='!./examples/*'",
+    "build": "turbo run build --filter='!./examples/*' --filter='!./packages/site'",
+    "build:docs": "pnpm --filter @cofhe/site build",
     "dev": "turbo run dev",
     "test": "turbo run test",
     "test:integration": "pnpm --filter \"./packages/hardhat-plugin-test\" test:integration",
