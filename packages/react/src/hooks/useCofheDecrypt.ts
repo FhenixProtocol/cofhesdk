@@ -30,7 +30,7 @@ export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<
     queryKey: ['decryptCiphertext', input?.ctHash.toString(), input?.utype],
     queryFn: async () => {
       assert(input, 'input is guaranteed to be defined by enabled condition');
-      return client.decryptHandle(input.ctHash, input.utype).decrypt();
+      return client.decryptHandle(input.ctHash, input.utype).execute();
     },
     meta: {
       persist: true,

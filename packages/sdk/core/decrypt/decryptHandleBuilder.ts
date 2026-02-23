@@ -19,7 +19,7 @@ import { tnSealOutputV2 } from './tnSealOutputV2.js';
  *   .setAccount(account)
  *   .setPermitHash(permitHash)
  *   .setPermit(permit)
- *   .decrypt()
+ *   .execute()
  *
  * If chainId not set, uses client's chainId
  * If account not set, uses client's account
@@ -67,7 +67,7 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
    * ```typescript
    * const unsealed = await decryptHandle(ctHash, utype)
    *   .setChainId(11155111)
-   *   .decrypt();
+   *   .execute();
    * ```
    *
    * @returns The chainable DecryptHandlesBuilder instance.
@@ -90,7 +90,7 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
    * ```typescript
    * const unsealed = await decryptHandle(ctHash, utype)
    *   .setAccount('0x1234567890123456789012345678901234567890')
-   *   .decrypt();
+   *   .execute();
    * ```
    *
    * @returns The chainable DecryptHandlesBuilder instance.
@@ -114,7 +114,7 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
    * ```typescript
    * const unsealed = await decryptHandle(ctHash, utype)
    *   .setPermitHash('0x1234567890123456789012345678901234567890')
-   *   .decrypt();
+   *   .execute();
    * ```
    *
    * @returns The chainable DecryptHandlesBuilder instance.
@@ -137,7 +137,7 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
    * ```typescript
    * const unsealed = await decryptHandle(ctHash, utype)
    *   .setPermit(permit)
-   *   .decrypt();
+   *   .execute();
    * ```
    *
    * @returns The chainable DecryptHandlesBuilder instance.
@@ -246,12 +246,12 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
    * const unsealed = await decryptHandle(ctHash, utype)
    *   .setChainId(11155111)      // optional
    *   .setAccount('0x123...890') // optional
-   *   .decrypt();                // execute
+   *   .execute();                // execute
    * ```
    *
    * @returns The unsealed item.
    */
-  async decrypt(): Promise<UnsealedItem<U>> {
+  async execute(): Promise<UnsealedItem<U>> {
     // Ensure utype is valid
     this.validateUtypeOrThrow();
 

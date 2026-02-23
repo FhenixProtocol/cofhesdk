@@ -130,7 +130,7 @@ describe('@cofhe/node - Client Integration Tests', () => {
       expect(typeof builder.setChainId).toBe('function');
       expect(typeof builder.setAccount).toBe('function');
       expect(typeof builder.setSecurityZone).toBe('function');
-      expect(typeof builder.encrypt).toBe('function');
+      expect(typeof builder.execute).toBe('function');
     }, 30000);
 
     it('should create decrypt builder after connection', async () => {
@@ -141,7 +141,7 @@ describe('@cofhe/node - Client Integration Tests', () => {
       expect(builder).toBeDefined();
       expect(typeof builder.setChainId).toBe('function');
       expect(typeof builder.setAccount).toBe('function');
-      expect(typeof builder.decrypt).toBe('function');
+      expect(typeof builder.execute).toBe('function');
     }, 30000);
   });
 });

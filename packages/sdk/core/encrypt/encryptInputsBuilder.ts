@@ -149,7 +149,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    * ```typescript
    * const encrypted = await encryptInputs([Encryptable.uint128(10n)])
    *   .setAccount("0x123")
-   *   .encrypt();
+   *   .execute();
    * ```
    *
    * @returns The chainable EncryptInputsBuilder instance.
@@ -172,7 +172,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    * ```typescript
    * const encrypted = await encryptInputs([Encryptable.uint128(10n)])
    *   .setChainId(11155111)
-   *   .encrypt();
+   *   .execute();
    * ```
    *
    * @returns The chainable EncryptInputsBuilder instance.
@@ -195,7 +195,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    * ```typescript
    * const encrypted = await encryptInputs([Encryptable.uint128(10n)])
    *   .setSecurityZone(1)
-   *   .encrypt();
+   *   .execute();
    * ```
    *
    * @returns The chainable EncryptInputsBuilder instance.
@@ -218,7 +218,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    * ```typescript
    * const encrypted = await encryptInputs([Encryptable.uint128(10n)])
    *   .setUseWorker(false)
-   *   .encrypt();
+   *   .execute();
    * ```
    *
    * @returns The chainable EncryptInputsBuilder instance.
@@ -254,13 +254,13 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    * Example:
    * ```typescript
    * const encrypted = await encryptInputs([Encryptable.uint128(10n)])
-   *   .setStepCallback((step: EncryptStep) => console.log(step))
-   *   .encrypt();
+   *   .onStep((step: EncryptStep) => console.log(step))
+   *   .execute();
    * ```
    *
    * @returns The EncryptInputsBuilder instance.
    */
-  setStepCallback(callback: EncryptStepCallbackFunction): EncryptInputsBuilder<T> {
+  onStep(callback: EncryptStepCallbackFunction): EncryptInputsBuilder<T> {
     this.stepCallback = callback;
     return this;
   }
@@ -404,7 +404,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    * cofheMocksInsertPackedHashes - stores the ctHashes and their plaintext values for on-chain mocking of FHE operations.
    * cofheMocksZkCreateProofSignatures - creates signatures to be included in the encrypted inputs. The signers address is known and verified in the mock contracts.
    */
-  private async mocksEncrypt(): Promise<[...EncryptedItemInputs<T>]> {
+  private async mocksExecute(): Promise<[...EncryptedItemInputs<T>]> {
     this.assertAccount();
     this.assertPublicClient();
     this.assertWalletClient();
@@ -450,7 +450,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   /**
    * In the production context, perform a true encryption with the CoFHE coprocessor.
    */
-  private async productionEncrypt(): Promise<[...EncryptedItemInputs<T>]> {
+  private async productionExecute(): Promise<[...EncryptedItemInputs<T>]> {
     this.assertAccount();
     this.assertChainId();
 
@@ -545,16 +545,16 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    * const encrypted = await encryptInputs([Encryptable.uint128(10n)])
    *   .setAccount('0x123...890') // optional
    *   .setChainId(11155111)      // optional
-   *   .encrypt();                // execute
+   *   .execute();                // execute
    * ```
    *
    * @returns The encrypted inputs.
    */
-  async encrypt(): Promise<[...EncryptedItemInputs<T>]> {
+  async execute(): Promise<[...EncryptedItemInputs<T>]> {
     // On hardhat chain, interact with MockZkVerifier contract instead of CoFHE
-    if (this.chainId === hardhat.id) return this.mocksEncrypt();
+    if (this.chainId === hardhat.id) return this.mocksExecute();
 
     // On other chains, interact with CoFHE coprocessor
-    return this.productionEncrypt();
+    return this.productionExecute();
   }
 }

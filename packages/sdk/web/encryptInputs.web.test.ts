@@ -43,7 +43,7 @@ describe('@cofhe/web - Encrypt Inputs Browser Tests', () => {
       await cofheClient.connect(publicClient, walletClient);
 
       // This will trigger real TFHE initialization in browser
-      const result = await cofheClient.encryptInputs([Encryptable.uint128(100n)]).encrypt();
+      const result = await cofheClient.encryptInputs([Encryptable.uint128(100n)]).execute();
 
       // If we get here, TFHE was initialized successfully
       expect(result).toBeDefined();
@@ -53,10 +53,10 @@ describe('@cofhe/web - Encrypt Inputs Browser Tests', () => {
       await cofheClient.connect(publicClient, walletClient);
 
       // First encryption
-      expect(cofheClient.encryptInputs([Encryptable.uint128(100n)]).encrypt()).resolves.not.toThrow();
+      expect(cofheClient.encryptInputs([Encryptable.uint128(100n)]).execute()).resolves.not.toThrow();
 
       // Second encryption should reuse initialization
-      expect(cofheClient.encryptInputs([Encryptable.uint64(50n)]).encrypt()).resolves.not.toThrow();
+      expect(cofheClient.encryptInputs([Encryptable.uint64(50n)]).execute()).resolves.not.toThrow();
     }, 60000);
   });
 
@@ -64,7 +64,7 @@ describe('@cofhe/web - Encrypt Inputs Browser Tests', () => {
     it('should encrypt a bool with real TFHE in browser', async () => {
       await cofheClient.connect(publicClient, walletClient);
 
-      const result = await cofheClient.encryptInputs([Encryptable.bool(true)]).encrypt();
+      const result = await cofheClient.encryptInputs([Encryptable.bool(true)]).execute();
 
       expect(result).toBeDefined();
       expect(result.length).toBe(1);
@@ -89,7 +89,7 @@ describe('@cofhe/web - Encrypt Inputs Browser Tests', () => {
         Encryptable.address('0x742d35Cc6634C0532925a3b844D16faC4c175E99'),
       ];
 
-      const result = await cofheClient.encryptInputs(inputs).encrypt();
+      const result = await cofheClient.encryptInputs(inputs).execute();
       expect(result).toBeDefined();
 
       expect(result.length).toBe(7);
@@ -114,7 +114,7 @@ describe('@cofhe/web - Encrypt Inputs Browser Tests', () => {
         .setChainId(snapshot.chainId!)
         .setAccount(snapshot.account!)
         .setSecurityZone(0)
-        .encrypt();
+        .execute();
 
       expect(encrypted.length).toBe(1);
       expect(encrypted[0].utype).toBe(FheTypes.Uint128);
@@ -125,7 +125,7 @@ describe('@cofhe/web - Encrypt Inputs Browser Tests', () => {
     it('should fail gracefully when not connected', async () => {
       // Don't connect the client
       try {
-        const promise = cofheClient.encryptInputs([Encryptable.uint128(100n)]).encrypt();
+        const promise = cofheClient.encryptInputs([Encryptable.uint128(100n)]).execute();
       } catch (error) {
         expect(error).toBeInstanceOf(CofheError);
         expect((error as CofheError).code).toBe(CofheErrorCode.NotConnected);
@@ -146,7 +146,7 @@ describe('@cofhe/web - Encrypt Inputs Browser Tests', () => {
       const badClient = createCofheClient(badConfig);
       await badClient.connect(publicClient, walletClient);
 
-      const promise = badClient.encryptInputs([Encryptable.uint128(100n)]).encrypt();
+      const promise = badClient.encryptInputs([Encryptable.uint128(100n)]).execute();
       expect(promise).rejects.toThrow();
     }, 60000);
   });
@@ -159,7 +159,7 @@ describe('@cofhe/web - Encrypt Inputs Browser Tests', () => {
 
       // Perform 5 encryptions
       for (let i = 0; i < 5; i++) {
-        await cofheClient.encryptInputs([Encryptable.uint128(BigInt(i))]).encrypt();
+        await cofheClient.encryptInputs([Encryptable.uint128(BigInt(i))]).execute();
       }
 
       const duration = Date.now() - start;
