@@ -104,5 +104,5 @@ Type `CofheInUint8` -> `EncryptedUint8Input`
 
 # Changes
 
-- Fhe keys aren't fetched until `client.encryptInputs(...).encrypt()`, they aren't used anywhere else other than encrypting inputs, so their fetching is deferred until then.
-- Initializing the tfhe wasm is also deferred until `client.encryptInputs(...).encrypt()` is called
+- Fhe keys aren't fetched until `client.encryptInputs(...).execute()`, they aren't used anywhere else other than encrypting inputs, so their fetching is deferred until then.
+- Initializing the tfhe wasm is also deferred until `client.encryptInputs(...).execute()` is called

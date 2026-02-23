@@ -278,7 +278,7 @@ describe('EncryptInputsBuilder', () => {
     });
 
     it('should throw an error if config is not set', async () => {
-      // Should throw before .encrypt() is called
+      // Should throw before .execute() is called
       try {
         new EncryptInputsBuilder({
           ...createDefaultParams(),
@@ -291,7 +291,7 @@ describe('EncryptInputsBuilder', () => {
     });
 
     it('should throw an error if tfhePublicKeyDeserializer is not set', async () => {
-      // Should throw before .encrypt() is called
+      // Should throw before .execute() is called
       try {
         new EncryptInputsBuilder({
           ...createDefaultParams(),
@@ -304,7 +304,7 @@ describe('EncryptInputsBuilder', () => {
     });
 
     it('should throw an error if compactPkeCrsDeserializer is not set', async () => {
-      // Should throw before .encrypt() is called
+      // Should throw before .execute() is called
       try {
         new EncryptInputsBuilder({
           ...createDefaultParams(),
@@ -321,7 +321,7 @@ describe('EncryptInputsBuilder', () => {
         await new EncryptInputsBuilder({
           ...createDefaultParams(),
           initTfhe: vi.fn().mockRejectedValue(new Error('Failed to initialize TFHE')),
-        }).encrypt();
+        }).execute();
       } catch (error) {
         expect(error).toBeInstanceOf(CofheError);
         expect((error as CofheError).code).toBe(CofheErrorCode.InitTfheFailed);
@@ -332,7 +332,7 @@ describe('EncryptInputsBuilder', () => {
       const result = await new EncryptInputsBuilder({
         ...createDefaultParams(),
         initTfhe: mockInitTfhe,
-      }).encrypt();
+      }).execute();
       expect(result).toBeDefined();
     });
   });
@@ -366,7 +366,7 @@ describe('EncryptInputsBuilder', () => {
         await new EncryptInputsBuilder({
           ...createDefaultParams(),
           account: undefined,
-        }).encrypt();
+        }).execute();
       } catch (error) {
         expect(error).toBeInstanceOf(CofheError);
         expect((error as CofheError).code).toBe(CofheErrorCode.AccountUninitialized);
@@ -410,7 +410,7 @@ describe('EncryptInputsBuilder', () => {
         await new EncryptInputsBuilder({
           ...createDefaultParams(),
           chainId: undefined,
-        }).encrypt();
+        }).execute();
       } catch (error) {
         expect(error).toBeInstanceOf(CofheError);
         expect((error as CofheError).code).toBe(CofheErrorCode.ChainIdUninitialized);
@@ -455,7 +455,7 @@ describe('EncryptInputsBuilder', () => {
       const stepCallback = vi.fn();
       builder.onStep(stepCallback);
 
-      const result = await builder.encrypt();
+      const result = await builder.execute();
 
       // Verify step callbacks were called in order
       expect(stepCallback).toHaveBeenCalledTimes(10);
@@ -568,7 +568,7 @@ describe('EncryptInputsBuilder', () => {
       const overriddenSender = '0x5555555555555555555555555555555555555555';
       builder.setAccount(overriddenSender);
 
-      const result = await builder.encrypt();
+      const result = await builder.execute();
 
       // Verify result embedded metadata
       const [encrypted] = result;
@@ -585,7 +585,7 @@ describe('EncryptInputsBuilder', () => {
 
       insertMockKeys(defaultChainId, overriddenZone);
 
-      const result = await builder.encrypt();
+      const result = await builder.execute();
 
       // Verify result embedded metadata
       const [encrypted] = result;
@@ -598,7 +598,7 @@ describe('EncryptInputsBuilder', () => {
 
     it('should work without step callback', async () => {
       // No step callback set
-      const result = await builder.encrypt();
+      const result = await builder.execute();
 
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
@@ -614,7 +614,7 @@ describe('EncryptInputsBuilder', () => {
         ],
       });
 
-      const result = await multiInputBuilder.encrypt();
+      const result = await multiInputBuilder.execute();
 
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
@@ -646,7 +646,7 @@ describe('EncryptInputsBuilder', () => {
             Encryptable.uint128(100n),
             Encryptable.uint128(100n),
           ],
-        }).encrypt();
+        }).execute();
       } catch (error) {
         expect(error).toBeInstanceOf(CofheError);
         expect((error as CofheError).code).toBe(CofheErrorCode.ZkPackFailed);
@@ -697,7 +697,7 @@ describe('EncryptInputsBuilder', () => {
       insertMockKeys(defaultChainId, securityZone);
 
       const stepCallback = vi.fn();
-      const result = await builder.setAccount(sender).setSecurityZone(securityZone).onStep(stepCallback).encrypt();
+      const result = await builder.setAccount(sender).setSecurityZone(securityZone).onStep(stepCallback).execute();
 
       expect(result).toBeDefined();
       expect(stepCallback).toHaveBeenCalledTimes(10);
@@ -721,8 +721,8 @@ describe('EncryptInputsBuilder', () => {
       builder.setSecurityZone(securityZone);
 
       // Call encrypt multiple times to ensure state is maintained
-      const result1 = await builder.encrypt();
-      const result2 = await builder.encrypt();
+      const result1 = await builder.execute();
+      const result2 = await builder.execute();
 
       expect(result1).toBeDefined();
       expect(result2).toBeDefined();

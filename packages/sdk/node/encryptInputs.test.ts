@@ -112,7 +112,7 @@ describe('@cofhe/node - Encrypt Inputs', () => {
         .setChainId(snapshot.chainId!)
         .setAccount(snapshot.account!)
         .setSecurityZone(0)
-        .encrypt();
+        .execute();
 
       expect(encrypted.length).toBe(1);
       expect(encrypted[0].utype).toBe(FheTypes.Uint128);
@@ -145,7 +145,7 @@ describe('@cofhe/node - Encrypt Inputs', () => {
       await badClient.connect(publicClient, walletClient);
 
       try {
-        await badClient.encryptInputs([Encryptable.uint128(100n)]).encrypt();
+        await badClient.encryptInputs([Encryptable.uint128(100n)]).execute();
       } catch (error) {
         expect(error).toBeInstanceOf(CofheError);
         expect((error as CofheError).code).toBe(CofheErrorCode.ZkVerifyFailed);

@@ -130,7 +130,7 @@ describe('@cofhe/web - Client', () => {
       expect(typeof builder.setChainId).toBe('function');
       expect(typeof builder.setAccount).toBe('function');
       expect(typeof builder.setSecurityZone).toBe('function');
-      expect(typeof builder.encrypt).toBe('function');
+      expect(typeof builder.execute).toBe('function');
     }, 30000);
 
     it('should create decrypt builder after connection', async () => {

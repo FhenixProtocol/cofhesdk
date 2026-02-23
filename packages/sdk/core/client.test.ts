@@ -383,7 +383,7 @@ describe('createCofheClientBase', () => {
   describe('encryptInputs', () => {
     it('should throw if not connected', async () => {
       try {
-        await client.encryptInputs([Encryptable.uint8(1n), Encryptable.uint8(2n), Encryptable.uint8(3n)]).encrypt();
+        await client.encryptInputs([Encryptable.uint8(1n), Encryptable.uint8(2n), Encryptable.uint8(3n)]).execute();
       } catch (error) {
         expect(error).toBeInstanceOf(CofheError);
         expect((error as CofheError).code).toBe(CofheErrorCode.NotConnected);
@@ -400,7 +400,7 @@ describe('createCofheClientBase', () => {
 
       expect(builder).toBeDefined();
       expect(builder).toBeInstanceOf(EncryptInputsBuilder);
-      expect(builder).toHaveProperty('encrypt');
+      expect(builder).toHaveProperty('execute');
       expect(builder.getChainId()).toBe(123);
       expect(builder.getAccount()).toBe('0xtest');
     });

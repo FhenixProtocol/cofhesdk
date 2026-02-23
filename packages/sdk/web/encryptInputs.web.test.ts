@@ -114,7 +114,7 @@ describe('@cofhe/web - Encrypt Inputs Browser Tests', () => {
         .setChainId(snapshot.chainId!)
         .setAccount(snapshot.account!)
         .setSecurityZone(0)
-        .encrypt();
+        .execute();
 
       expect(encrypted.length).toBe(1);
       expect(encrypted[0].utype).toBe(FheTypes.Uint128);
@@ -146,7 +146,7 @@ describe('@cofhe/web - Encrypt Inputs Browser Tests', () => {
       const badClient = createCofheClient(badConfig);
       await badClient.connect(publicClient, walletClient);
 
-      const promise = badClient.encryptInputs([Encryptable.uint128(100n)]).encrypt();
+      const promise = badClient.encryptInputs([Encryptable.uint128(100n)]).execute();
       expect(promise).rejects.toThrow();
     }, 60000);
   });

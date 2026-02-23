@@ -59,7 +59,7 @@ describe('@cofhe/sdk/web - EncryptInputsBuilder Worker Methods', () => {
         .onStep(() => {});
 
       expect(builder).toBeDefined();
-      expect(builder).toHaveProperty('encrypt');
+      expect(builder).toHaveProperty('execute');
     });
 
     it('should accept true parameter', () => {

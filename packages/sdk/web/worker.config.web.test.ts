@@ -49,7 +49,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
             proveContext = context;
           }
         })
-        .encrypt();
+        .execute();
 
       expect(result).toBeDefined();
 
@@ -90,7 +90,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
             proveContext = context;
           }
         })
-        .encrypt();
+        .execute();
 
       expect(result).toBeDefined();
 
@@ -121,7 +121,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
             proveContext = context;
           }
         })
-        .encrypt();
+        .execute();
 
       expect(result).toBeDefined();
 
@@ -149,7 +149,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
             proveContext = context;
           }
         })
-        .encrypt();
+        .execute();
 
       expect(result).toBeDefined();
 
@@ -175,7 +175,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
             proveContext = context;
           }
         })
-        .encrypt();
+        .execute();
 
       expect(result).toBeDefined();
 
@@ -219,7 +219,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
             proveContext = context;
           }
         })
-        .encrypt();
+        .execute();
 
       // Verify encryption succeeded via fallback to main thread
       expect(result).toBeDefined();
@@ -254,7 +254,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
             proveContext = context;
           }
         })
-        .encrypt();
+        .execute();
 
       // All values should encrypt successfully via fallback
       expect(result).toBeDefined();
@@ -289,7 +289,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
             proveContext = context;
           }
         })
-        .encrypt();
+        .execute();
 
       expect(result).toBeDefined();
 
@@ -316,7 +316,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
             proveContext = context;
           }
         })
-        .encrypt();
+        .execute();
 
       expect(result).toBeDefined();
 

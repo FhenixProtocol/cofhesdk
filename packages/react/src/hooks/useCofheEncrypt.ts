@@ -153,7 +153,7 @@ export function useCofheEncrypt(options?: UseCofheEncryptOptions): UseMutationRe
         if (variables.securityZone) builder.setSecurityZone(variables.securityZone);
       }
 
-      return builder.encrypt();
+      return builder.execute();
     },
   });
 

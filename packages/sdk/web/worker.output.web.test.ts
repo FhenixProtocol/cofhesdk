@@ -49,8 +49,8 @@ describe('@cofhe/sdk/web - Worker vs Main Thread Output Validation', () => {
     const value = Encryptable.uint128(12345n);
 
     const [resultWithWorker, resultWithoutWorker] = await Promise.all([
-      clientWithWorker.encryptInputs([value]).encrypt(),
-      clientWithoutWorker.encryptInputs([value]).encrypt(),
+      clientWithWorker.encryptInputs([value]).execute(),
+      clientWithoutWorker.encryptInputs([value]).execute(),
     ]);
 
     // Both should succeed
