@@ -7,16 +7,41 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { fetchKeys } from './fetchKeys.js';
 import { type CofhesdkConfig, createCofhesdkConfigBase } from './config.js';
 import { createKeysStore, type KeysStorage } from './keyStore.js';
+import { getSdkUserAgent } from './userAgent.js';
 
 describe('fetchKeys', () => {
   let config: CofhesdkConfig;
   let mockTfhePublicKeyDeserializer: any;
   let mockCompactPkeCrsDeserializer: any;
   let keysStorage: KeysStorage;
+  let originalFetch: any;
 
   beforeEach(async () => {
     // Reset all mocks
     vi.clearAllMocks();
+
+    originalFetch = global.fetch;
+
+    const publicKey = `0x${'a'.repeat(15_000)}`;
+    const crs = `0x${'b'.repeat(512)}`;
+
+    global.fetch = vi.fn(async (url: any) => {
+      const urlString = String(url);
+
+      if (urlString.includes('/GetNetworkPublicKey')) {
+        return {
+          json: async () => ({ publicKey }),
+        } as any;
+      }
+
+      if (urlString.includes('/GetCrs')) {
+        return {
+          json: async () => ({ crs }),
+        } as any;
+      }
+
+      throw new Error(`Unexpected fetch url: ${urlString}`);
+    }) as any;
 
     // Setup config with real chains
     config = createCofhesdkConfigBase({
@@ -33,6 +58,31 @@ describe('fetchKeys', () => {
 
   afterEach(async () => {
     vi.restoreAllMocks();
+    global.fetch = originalFetch;
+  });
+
+  it('should add SDK version headers to fetch requests', async () => {
+    await fetchKeys(config, sepolia.id, 0, mockTfhePublicKeyDeserializer, mockCompactPkeCrsDeserializer, keysStorage);
+
+    expect(global.fetch).toHaveBeenCalled();
+
+    const expectedUserAgent = getSdkUserAgent();
+
+    const calls = (global.fetch as any).mock.calls as Array<[any, any]>;
+    const requestInits = calls.map(([, init]) => init).filter(Boolean);
+
+    // We expect both POSTs to include the SDK header.
+    for (const init of requestInits) {
+      expect(init.method).toBe('POST');
+      expect(init.headers).toBeDefined();
+
+      const headers = init.headers as Record<string, string>;
+      expect(headers['Content-Type']).toBe('application/json');
+      expect(headers['X-COFHE-SDK']).toBe(expectedUserAgent);
+
+      // In node runtimes we also include the standard User-Agent header.
+      expect(headers['User-Agent']).toBe(expectedUserAgent);
+    }
   });
 
   it('should fetch and store FHE public key and CRS for Sepolia when not cached', async () => {
