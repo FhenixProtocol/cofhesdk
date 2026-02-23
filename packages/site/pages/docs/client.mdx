@@ -4,12 +4,13 @@ This page covers the core SDK lifecycle:
 
 1. Create a config (`createCofhesdkConfig`)
 2. Create a client (`createCofhesdkClient`)
-3. Create viem clients (either directly, or via `@cofhe/sdk/adapters`)
-4. Connect + disconnect
+3. Connect to client (`client.connect`)
+   3b. Using adapters (`@cofhe/sdk/adapters`)
+4. Managing connection (change account / disconnect)
 
-## 1) Create a config
+## 1) Create cofhesdk config
 
-Pick the entrypoint that matches your runtime:
+Import `createCofhesdkConfig` from the entrypoint that matches your runtime:
 
 - Browser apps: `@cofhe/sdk/web`
 - Node.js scripts/backends: `@cofhe/sdk/node`
@@ -24,14 +25,18 @@ import { chains } from '@cofhe/sdk/chains';
 const config = createCofhesdkConfig({
   supportedChains: [chains.sepolia],
 
-  // Optional tweaks
-  // permitGeneration: 'ON_CONNECT',
+  // Optional knobs
   // defaultPermitExpiration: 60 * 60 * 24 * 30,
   // useWorkers: true,
 });
 ```
 
-## 2) Create a client
+## 2) Create cofhesdk client
+
+Import `createCofhesdkClient` from the entrypoint that matches your runtime:
+
+- Browser apps: `@cofhe/sdk/web`
+- Node.js scripts/backends: `@cofhe/sdk/node`
 
 ```ts twoslash
 // @noErrors
@@ -41,13 +46,13 @@ import type { CofhesdkConfig } from '@cofhe/sdk';
 // config from the previous step
 declare const config: CofhesdkConfig;
 
-const cofhesdk = createCofhesdkClient(config);
+const cofheClient = createCofhesdkClient(config);
 
-cofhesdk.connected; // false
-cofhesdk.connecting; // false
+cofheClient.connected; // false
+cofheClient.connecting; // false
 ```
 
-## 3) Create viem clients (adapters)
+## 3) Connect
 
 The SDK connects to CoFHE using viem clients:
 
@@ -56,32 +61,77 @@ The SDK connects to CoFHE using viem clients:
 
 If you already have viem clients, you can pass them directly to `cofhesdk.connect(publicClient, walletClient)`.
 
-If you’re using another wallet/provider stack, `@cofhe/sdk/adapters` can convert it into viem-shaped clients.
+If you’re using another wallet/provider stack, see section 3b for `@cofhe/sdk/adapters`.
+
+Connecting initializes the SDK's in-memory connection state (`account`, `chainId`, and the viem clients).
+
+```ts twoslash
+// @noErrors
+import { createCofhesdkClient } from '@cofhe/sdk/web';
+import type { CofhesdkConfig } from '@cofhe/sdk';
+import type { PublicClient, WalletClient } from 'viem';
+import { createPublicClient, createWalletClient, http } from 'viem';
+import { sepolia } from 'viem/chains';
+
+declare const config: CofhesdkConfig;
+const cofheClient = createCofhesdkClient(config);
+
+const publicClient = createPublicClient({
+  chain: sepolia,
+  transport: http(),
+});
+
+const walletClient = createWalletClient({
+  chain: sepolia,
+  transport: http(),
+});
+
+await cofheClient.connect(publicClient, walletClient);
+
+// Check connection
+cofheClient.connected; // true
+```
+
+### Reconnect behavior
+
+Calling `connect` again with the same clients is a no-op. Calling it with new clients replaces the connection state.
+
+## 3b) Create viem clients with "@cofhe/sdk/adapters"
+
+If you’re using another wallet/provider stack, `@cofhe/sdk/adapters` exposes adapters that convert into viem-shaped clients.
+
+We currently support adapters for Ethers v5 and v6 clients and providers, wagmi clients, and smart wallet clients.
 
 ### Ethers v6 adapter
 
 ```ts twoslash
 // @noErrors
+import { ethers } from 'ethers';
 import { Ethers6Adapter } from '@cofhe/sdk/adapters';
 
-// Your ethers instances
-declare const provider: Parameters<typeof Ethers6Adapter>[0];
-declare const signer: Parameters<typeof Ethers6Adapter>[1];
+// Ethers v6 instances
+const provider = new ethers.JsonRpcProvider('https://rpc.sepolia.org');
+const signer = new ethers.Wallet('0xYOUR_PRIVATE_KEY', provider);
 
 const { publicClient, walletClient } = await Ethers6Adapter(provider, signer);
+
+await cofheClient.connect(publicClient, walletClient);
 ```
 
 ### Ethers v5 adapter
 
 ```ts twoslash
 // @noErrors
+import { ethers } from 'ethers';
 import { Ethers5Adapter } from '@cofhe/sdk/adapters';
 
-// Your ethers instances
-declare const provider: Parameters<typeof Ethers5Adapter>[0];
-declare const signer: Parameters<typeof Ethers5Adapter>[1];
+// Ethers v5 instances
+const provider = new ethers.providers.JsonRpcProvider('https://rpc.sepolia.org');
+const signer = new ethers.Wallet('0xYOUR_PRIVATE_KEY').connect(provider);
 
 const { publicClient, walletClient } = await Ethers5Adapter(provider, signer);
+
+await cofheClient.connect(publicClient, walletClient);
 ```
 
 ### Wagmi adapter
@@ -91,50 +141,63 @@ If you’re using Wagmi, you already have viem clients; the adapter just validat
 ```ts twoslash
 // @noErrors
 import { WagmiAdapter } from '@cofhe/sdk/adapters';
+import { createPublicClient, createWalletClient, http } from 'viem';
 import type { PublicClient, WalletClient } from 'viem';
+import { sepolia } from 'viem/chains';
 
-declare const publicClient: PublicClient;
-declare const walletClient: WalletClient;
+// Wagmi client instances
+const wagmiPublicClient = createPublicClient({
+  chain: sepolia,
+  transport: http(),
+});
+const wagmiWalletClient = createWalletClient({
+  chain: sepolia,
+  transport: http(),
+});
 
-const clients = await WagmiAdapter(walletClient, publicClient);
+const { publicClient, walletClient } = await WagmiAdapter(wagmiPublicClient, wagmiWalletClient);
+
+await cofheClient.connect(publicClient, walletClient);
 ```
 
-## 4) Connect
+## 4) Managing connections
 
-Connecting initializes the SDK’s in-memory connection state (`account`, `chainId`, and the viem clients).
+To switch the account connected to the cofhe client, use `cofheClient.connect()` with updated viem clients.
 
 ```ts twoslash
 // @noErrors
-import { createCofhesdkClient } from '@cofhe/sdk/web';
-import type { CofhesdkConfig } from '@cofhe/sdk';
-import type { PublicClient, WalletClient } from 'viem';
+const publicClient = createPublicClient({
+  chain: sepolia,
+  transport: http(),
+});
+const bobWalletClient = createWalletClient({
+  chain: sepolia,
+  transport: http(),
+  account: '0xBOB_PRIVATE_KEY',
+});
+const aliceWalletClient = createWalletClient({
+  chain: sepolia,
+  transport: http(),
+  account: '0xALICE_PRIVATE_KEY',
+});
 
-declare const config: CofhesdkConfig;
-declare const publicClient: PublicClient;
-declare const walletClient: WalletClient;
+await cofheClient.connect(publicClient, bobWalletClient);
 
-const cofhesdk = createCofhesdkClient(config);
+cofheClient.connection().account; // 0xBOB
 
-await cofhesdk.connect(publicClient, walletClient);
+await cofheClient.connect(publicClient, aliceWalletClient);
 
-cofhesdk.connected; // true
+cofheClient.connection().account; // 0xALICE
 ```
 
-### Reconnect behavior
-
-Calling `connect` again with the same clients is a no-op. Calling it with new clients replaces the connection state.
-
-## 5) Disconnect
-
-Disconnect clears only the in-memory connection state (clients/account/chainId) and marks the client as disconnected.
+To manually disconnect use `cofheClient.disconnect()`.
+Disconnecting clears the in-memory connection state (clients/account/chainId) and marks the client as disconnected.
 
 It does **not** delete persisted permits or stored FHE keys.
 
 ```ts twoslash
 // @noErrors
-declare const cofhesdk: { disconnect(): void; connected: boolean };
+cofheClient.disconnect();
 
-cofhesdk.disconnect();
-
-cofhesdk.connected; // false
+cofheClient.connected; // false
 ```
