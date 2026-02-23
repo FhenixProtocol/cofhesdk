@@ -5,7 +5,6 @@ This page covers the core SDK lifecycle:
 1. Create a config (`createCofhesdkConfig`)
 2. Create a client (`createCofhesdkClient`)
 3. Connect to client (`client.connect`)
-   3b. Using adapters (`@cofhe/sdk/adapters`)
 4. Managing connection (change account / disconnect)
 
 ## 1) Create cofhesdk config
@@ -61,7 +60,7 @@ The SDK connects to CoFHE using viem clients:
 
 If you already have viem clients, you can pass them directly to `cofhesdk.connect(publicClient, walletClient)`.
 
-If you’re using another wallet/provider stack, see section 3b for `@cofhe/sdk/adapters`.
+If you're using another wallet/provider stack, see below for `@cofhe/sdk/adapters`.
 
 Connecting initializes the SDK's in-memory connection state (`account`, `chainId`, and the viem clients).
 
@@ -96,15 +95,15 @@ cofheClient.connected; // true
 
 Calling `connect` again with the same clients is a no-op. Calling it with new clients replaces the connection state.
 
-## 3b) Create viem clients with "@cofhe/sdk/adapters"
+### Using adapters (optional)
 
-If you’re using another wallet/provider stack, `@cofhe/sdk/adapters` exposes adapters that convert into viem-shaped clients.
+If you're using another wallet/provider stack, `@cofhe/sdk/adapters` exposes adapters that convert into viem-shaped clients.
 
-We currently support adapters for Ethers v5 and v6 clients and providers, wagmi clients, and smart wallet clients.
+We currently support adapters for Ethers v5 and v6 clients and providers, wagmi clients, and smart wallet clients:
 
-### Ethers v6 adapter
+:::code-group
 
-```ts twoslash
+```ts twoslash [Ethers v6]
 // @noErrors
 import { ethers } from 'ethers';
 import { Ethers6Adapter } from '@cofhe/sdk/adapters';
@@ -118,9 +117,7 @@ const { publicClient, walletClient } = await Ethers6Adapter(provider, signer);
 await cofheClient.connect(publicClient, walletClient);
 ```
 
-### Ethers v5 adapter
-
-```ts twoslash
+```ts twoslash [Ethers v5]
 // @noErrors
 import { ethers } from 'ethers';
 import { Ethers5Adapter } from '@cofhe/sdk/adapters';
@@ -134,11 +131,7 @@ const { publicClient, walletClient } = await Ethers5Adapter(provider, signer);
 await cofheClient.connect(publicClient, walletClient);
 ```
 
-### Wagmi adapter
-
-If you’re using Wagmi, you already have viem clients; the adapter just validates and passes them through.
-
-```ts twoslash
+```ts twoslash [Wagmi]
 // @noErrors
 import { WagmiAdapter } from '@cofhe/sdk/adapters';
 import { createPublicClient, createWalletClient, http } from 'viem';
@@ -160,9 +153,11 @@ const { publicClient, walletClient } = await WagmiAdapter(wagmiPublicClient, wag
 await cofheClient.connect(publicClient, walletClient);
 ```
 
+:::
+
 ## 4) Managing connections
 
-To switch the account connected to the cofhe client, use `cofheClient.connect()` with updated viem clients.
+To switch the client's connected account call `cofheClient.connect()` with updated viem clients.
 
 ```ts twoslash
 // @noErrors
@@ -190,7 +185,7 @@ await cofheClient.connect(publicClient, aliceWalletClient);
 cofheClient.connection().account; // 0xALICE
 ```
 
-To manually disconnect use `cofheClient.disconnect()`.
+To manually disconnect call `cofheClient.disconnect()`.
 Disconnecting clears the in-memory connection state (clients/account/chainId) and marks the client as disconnected.
 
 It does **not** delete persisted permits or stored FHE keys.
