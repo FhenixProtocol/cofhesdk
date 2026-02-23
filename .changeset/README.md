@@ -15,6 +15,7 @@ This directory contains configuration and changeset files for managing versionin
   - `@cofhe/react`
   - `@cofhe/example-react`
   - `@cofhe/abi`
+  - `@cofhe/site`
 
 ## Contributor workflow
 
