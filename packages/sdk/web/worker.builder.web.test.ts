@@ -56,7 +56,7 @@ describe('@cofhe/sdk/web - EncryptInputsBuilder Worker Methods', () => {
       const builder = cofheClient
         .encryptInputs([Encryptable.uint128(100n)])
         .setUseWorker(false)
-        .setStepCallback(() => {});
+        .onStep(() => {});
 
       expect(builder).toBeDefined();
       expect(builder).toHaveProperty('encrypt');

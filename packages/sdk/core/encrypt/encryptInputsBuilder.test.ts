@@ -354,7 +354,7 @@ describe('EncryptInputsBuilder', () => {
       const result = builder
         .setAccount(sender)
         .setSecurityZone(securityZone)
-        .setStepCallback(() => {});
+        .onStep(() => {});
 
       expect(result).toBe(builder);
       expect(result.getAccount()).toBe(sender);
@@ -389,7 +389,7 @@ describe('EncryptInputsBuilder', () => {
       const result = builder
         .setSecurityZone(securityZone)
         .setAccount(sender)
-        .setStepCallback(() => {});
+        .onStep(() => {});
 
       expect(result).toBe(builder);
       expect(result.getAccount()).toBe(sender);
@@ -435,16 +435,16 @@ describe('EncryptInputsBuilder', () => {
     });
   });
 
-  describe('setStepCallback', () => {
+  describe('onStep', () => {
     it('should set step callback and return builder for chaining', () => {
       const callback = vi.fn();
-      const result = builder.setStepCallback(callback);
+      const result = builder.onStep(callback);
       expect(result).toBe(builder);
     });
 
     it('should allow chaining with other methods', () => {
       const callback = vi.fn();
-      const result = builder.setStepCallback(callback).setSecurityZone(15);
+      const result = builder.onStep(callback).setSecurityZone(15);
 
       expect(result).toBe(builder);
     });
@@ -453,7 +453,7 @@ describe('EncryptInputsBuilder', () => {
   describe('encrypt', () => {
     it('should execute the full encryption flow with step callbacks', async () => {
       const stepCallback = vi.fn();
-      builder.setStepCallback(stepCallback);
+      builder.onStep(stepCallback);
 
       const result = await builder.encrypt();
 
@@ -697,11 +697,7 @@ describe('EncryptInputsBuilder', () => {
       insertMockKeys(defaultChainId, securityZone);
 
       const stepCallback = vi.fn();
-      const result = await builder
-        .setAccount(sender)
-        .setSecurityZone(securityZone)
-        .setStepCallback(stepCallback)
-        .encrypt();
+      const result = await builder.setAccount(sender).setSecurityZone(securityZone).onStep(stepCallback).encrypt();
 
       expect(result).toBeDefined();
       expect(stepCallback).toHaveBeenCalledTimes(10);

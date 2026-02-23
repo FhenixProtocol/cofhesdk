@@ -254,13 +254,13 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    * Example:
    * ```typescript
    * const encrypted = await encryptInputs([Encryptable.uint128(10n)])
-   *   .setStepCallback((step: EncryptStep) => console.log(step))
+   *   .onStep((step: EncryptStep) => console.log(step))
    *   .encrypt();
    * ```
    *
    * @returns The EncryptInputsBuilder instance.
    */
-  setStepCallback(callback: EncryptStepCallbackFunction): EncryptInputsBuilder<T> {
+  onStep(callback: EncryptStepCallbackFunction): EncryptInputsBuilder<T> {
     this.stepCallback = callback;
     return this;
   }

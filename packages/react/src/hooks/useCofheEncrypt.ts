@@ -145,7 +145,7 @@ export function useCofheEncrypt(options?: UseCofheEncryptOptions): UseMutationRe
       };
 
       // Always set callback so we can track steps consistently.
-      builder.setStepCallback(combinedOnStepChange);
+      builder.onStep(combinedOnStepChange);
 
       if (hasEncryptInputsOptions(variables)) {
         if (variables.account) builder.setAccount(variables.account);

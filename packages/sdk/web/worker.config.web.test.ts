@@ -44,7 +44,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
       let proveContext: any;
       const result = await client
         .encryptInputs([Encryptable.uint128(100n)])
-        .setStepCallback((step, context) => {
+        .onStep((step, context) => {
           if (step === 'prove' && context?.isEnd) {
             proveContext = context;
           }
@@ -85,7 +85,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
       let proveContext: any;
       const result = await client
         .encryptInputs([Encryptable.uint128(100n)])
-        .setStepCallback((step, context) => {
+        .onStep((step, context) => {
           if (step === 'prove' && context?.isEnd) {
             proveContext = context;
           }
@@ -116,7 +116,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
       const result = await client
         .encryptInputs([Encryptable.uint128(100n)])
         .setUseWorker(false) // Override to false
-        .setStepCallback((step, context) => {
+        .onStep((step, context) => {
           if (step === 'prove' && context?.isEnd) {
             proveContext = context;
           }
@@ -144,7 +144,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
       const result = await client
         .encryptInputs([Encryptable.uint128(100n)])
         .setUseWorker(true) // Override to true
-        .setStepCallback((step, context) => {
+        .onStep((step, context) => {
           if (step === 'prove' && context?.isEnd) {
             proveContext = context;
           }
@@ -170,7 +170,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
       let proveContext: any;
       const result = await client
         .encryptInputs([Encryptable.uint128(100n)])
-        .setStepCallback((step, context) => {
+        .onStep((step, context) => {
           if (step === 'prove' && context?.isEnd) {
             proveContext = context;
           }
@@ -214,7 +214,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
       let proveContext: any;
       const result = await client
         .encryptInputs([Encryptable.uint128(100n)])
-        .setStepCallback((step, context) => {
+        .onStep((step, context) => {
           if (step === 'prove' && context?.isEnd) {
             proveContext = context;
           }
@@ -249,7 +249,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
       let proveContext: any;
       const result = await client
         .encryptInputs([Encryptable.uint128(100n), Encryptable.uint64(50n), Encryptable.bool(true)])
-        .setStepCallback((step, context) => {
+        .onStep((step, context) => {
           if (step === 'prove' && context?.isEnd) {
             proveContext = context;
           }
@@ -284,7 +284,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
       let proveContext: any;
       const result = await client
         .encryptInputs([Encryptable.uint8(42n)])
-        .setStepCallback((step, context) => {
+        .onStep((step, context) => {
           if (step === 'prove' && context?.isEnd) {
             proveContext = context;
           }
@@ -311,7 +311,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
       const result = await client
         .encryptInputs([Encryptable.uint8(42n)])
         .setUseWorker(false) // But override to disable worker
-        .setStepCallback((step, context) => {
+        .onStep((step, context) => {
           if (step === 'prove' && context?.isEnd) {
             proveContext = context;
           }
