@@ -15,13 +15,6 @@ export type CofhesdkConfig = {
   environment: 'node' | 'hardhat' | 'web' | 'react';
   /** List of supported chains */
   supportedChains: CofheChain[];
-  /**
-   * How permits are generated
-   * - ON_CONNECT: Generate a permit when client.connect() is called
-   * - ON_DECRYPT_HANDLES: Generate a permit when client.decryptHandles() is called
-   * - MANUAL: Generate a permit manually using client.generatePermit()
-   */
-  permitGeneration: 'ON_CONNECT' | 'ON_DECRYPT_HANDLES' | 'MANUAL';
   /** Default permit expiration in seconds, default is 30 days */
   defaultPermitExpiration: number;
   /**
@@ -60,8 +53,6 @@ export const CofhesdkConfigSchema = z.object({
   environment: z.enum(['node', 'hardhat', 'web', 'react']).optional().default('node'),
   /** List of supported chain configurations */
   supportedChains: z.array(z.custom<CofheChain>()),
-  /** How permits are generated */
-  permitGeneration: z.enum(['ON_CONNECT', 'ON_DECRYPT_HANDLES', 'MANUAL']).optional().default('ON_CONNECT'),
   /** Default permit expiration in seconds, default is 30 days */
   defaultPermitExpiration: z
     .number()
