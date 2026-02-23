@@ -82,7 +82,7 @@ pnpm changeset status
 
 - CI didn't publish beta: ensure the merge commit message doesn't include `Version Packages` and the workflow ran.
 - CI didn't publish stable: ensure you merged the auto "Version Packages" PR and the workflow ran the stable job.
-- Docs didn't deploy: 
+- Docs didn't deploy:
   - Ensure GitHub Pages is configured to use "GitHub Actions" as the source in repository settings
   - Check that the workflow has completed successfully
   - Verify `pages: write` permission is set in the workflow
