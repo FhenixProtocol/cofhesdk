@@ -1,6 +1,6 @@
 import { CofheProvider, createCofheConfig, useInternalQueryClient } from '@cofhe/react';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { usePublicClient, useWalletClient } from 'wagmi';
+import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
 import { baseSepolia, sepolia } from '@cofhe/sdk/chains';
 
 function QueryDebug() {
@@ -25,8 +25,17 @@ const cofheConfig = createCofheConfig({
 export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) => {
   const wagmiPublicClient = usePublicClient();
   const { data: wagmiWalletClient } = useWalletClient();
+
+  const { chain } = useAccount();
+
+  const isConnectedToWagmiSupportedChain = chain !== undefined;
+
   return (
-    <CofheProvider walletClient={wagmiWalletClient} publicClient={wagmiPublicClient} config={cofheConfig}>
+    <CofheProvider
+      walletClient={isConnectedToWagmiSupportedChain ? wagmiWalletClient : undefined}
+      publicClient={isConnectedToWagmiSupportedChain ? wagmiPublicClient : undefined}
+      config={cofheConfig}
+    >
       {children}
       <QueryDebug />
     </CofheProvider>
