@@ -38,7 +38,8 @@ export const CofheReactConfigSchema = z.object({
   pinnedTokens: z.record(z.string(), addressSchema).optional(),
   tokenLists: z
     .record(z.string(), z.array(z.string()))
-    .transform((lists) => lists as Partial<Record<number, string[]>>),
+    .transform((lists) => lists as Partial<Record<number, string[]>>)
+    .optional(),
   position: z.enum(['bottom-right', 'bottom-left', 'top-right', 'top-left']).optional().default('bottom-right'),
   initialTheme: z.enum(['dark', 'light']).optional().default('light'),
 });

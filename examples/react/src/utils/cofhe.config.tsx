@@ -14,11 +14,11 @@ const cofheConfig = createCofheConfig({
     //   11155111: '0x87A3effB84CBE1E4caB6Ab430139eC41d156D55A', // sepolia weth
     //   84532: '0xbED96aa98a49FeA71fcC55d755b915cF022a9159', // base sepolia weth
     // },
-    tokenLists: {
-      11155111: ['https://storage.googleapis.com/cofhesdk/sepolia.json'],
-      84532: ['https://storage.googleapis.com/cofhesdk/base-sepolia.json'],
-      // 421613: ['https://tokens.cofhe.io/arbitrum-sepolia.json'],
-    },
+    // tokenLists: {
+    // 11155111: ['https://storage.googleapis.com/cofhesdk/sepolia.json'],
+    // 84532: ['https://storage.googleapis.com/cofhesdk/base-sepolia.json'],
+    // 421613: ['https://tokens.cofhe.io/arbitrum-sepolia.json'],
+    // },
   },
 });
 

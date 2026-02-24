@@ -30,7 +30,7 @@ export function useCofheTokenLists(
   queryOptions?: UseTokenListsOptions
 ): UseTokenListsResult {
   const widgetConfig = useCofheContext().client.config.react;
-  const tokensListsUrls = chainId ? widgetConfig.tokenLists[chainId] : [];
+  const tokensListsUrls = chainId ? widgetConfig.tokenLists?.[chainId] : [];
 
   const queriesOptions: UseQueryOptions<TokenList, Error>[] =
     tokensListsUrls?.map((url) => ({
