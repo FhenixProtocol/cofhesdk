@@ -150,6 +150,7 @@ library TMCommon {
   function getSecAndTypeFromHash(uint256 hash) internal pure returns (uint256) {
     return uint256((SHIFTED_TYPE_MASK | SECURITY_ZONE_MASK) & hash);
   }
+
   function isTriviallyEncryptedFromHash(uint256 hash) internal pure returns (bool) {
     return (hash & TRIVIALLY_ENCRYPTED_MASK) == TRIVIALLY_ENCRYPTED_MASK;
   }
@@ -217,6 +218,9 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   MockACL public acl;
 
   address private verifierSigner;
+
+  // Signer address for decrypt result verification (threshold network's signing key)
+  address public decryptResultSigner;
 
   // Storage contract for plaintext results of decrypt operations
   // PlaintextsStorage public plaintextsStorage;
@@ -288,7 +292,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     // NOTE: MOCK
     if (block.timestamp < _decryptResultReadyTimestamp[ctHash]) return (0, false);
 
-    return (_get(ctHash), true);
+    return (_decryptResult[ctHash], true);
   }
 
   function checkAllowed(uint256 ctHash) internal view {
@@ -460,6 +464,36 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     emit ProtocolNotification(ctHash, operation, errorMessage);
   }
 
+  /// @notice Publish a signed decrypt result to the chain
+  /// @dev Anyone with a valid signature from the decrypt network can call this
+  function publishDecryptResult(uint256 ctHash, uint256 result, bytes calldata signature) external {
+    _verifyDecryptResult(ctHash, result, signature);
+    _decryptResultReady[ctHash] = true;
+    _decryptResult[ctHash] = result;
+    _decryptResultReadyTimestamp[ctHash] = uint64(block.timestamp);
+    emit DecryptionResult(ctHash, result, msg.sender);
+  }
+
+  function _verifyDecryptResult(uint256 ctHash, uint256 result, bytes calldata signature) private view {
+    if (decryptResultSigner == address(0)) revert InvalidAddress();
+    bytes32 messageHash = _computeDecryptResultHash(ctHash, result);
+    (address recovered, ECDSA.RecoverError err, ) = ECDSA.tryRecover(messageHash, signature);
+
+    if (err != ECDSA.RecoverError.NoError || recovered == address(0)) {
+      revert InvalidSignature();
+    }
+
+    if (recovered != decryptResultSigner) {
+      revert InvalidSigner(recovered, decryptResultSigner);
+    }
+  }
+
+  /// @notice Format: result (32) || enc_type (4) || chain_id (8) || ct_hash (32) = 76 bytes
+  function _computeDecryptResultHash(uint256 ctHash, uint256 result) private view returns (bytes32) {
+    uint8 encryptionType = TMCommon.getUintTypeFromHash(ctHash);
+    return keccak256(abi.encodePacked(result, uint32(encryptionType), uint64(block.chainid), bytes32(ctHash)));
+  }
+
   function verifyType(uint8 ctType, uint8 desiredType) internal pure {
     if (ctType != desiredType) {
       revert InvalidInputType(ctType, desiredType);
@@ -548,6 +582,12 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
 
   function setVerifierSigner(address signer) external onlyOwner {
     verifierSigner = signer;
+  }
+
+  /// @notice Set the authorized signer for decrypt results
+  /// @param signer The new signer address (must be non-zero for publishDecryptResult to work)
+  function setDecryptResultSigner(address signer) external onlyOwner {
+    decryptResultSigner = signer;
   }
 
   function setSecurityZoneMax(int32 securityZone) external onlyOwner {
