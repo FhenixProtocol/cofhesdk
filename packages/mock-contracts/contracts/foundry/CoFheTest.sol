@@ -19,9 +19,11 @@ abstract contract CoFheTest is Test {
   MockACL public mockAcl;
   MockQueryDecrypter public mockQueryDecrypter;
 
-  address constant QUERY_DECRYPTER_ADDRESS = address(512);
-  address constant ZK_VERIFIER_ADDRESS = address(256);
-  address constant ZK_VERIFIER_SIGNER_ADDRESS = address(257);
+  // Keep these in sync with `packages/sdk/core/consts.ts`
+  address constant ZK_VERIFIER_ADDRESS = 0x0000000000000000000000000000000000005001;
+  address constant QUERY_DECRYPTER_ADDRESS = 0x0000000000000000000000000000000000005002;
+  // SDK exposes this as `MOCKS_ZK_VERIFIER_SIGNER_ADDRESS`
+  address constant ZK_VERIFIER_SIGNER_ADDRESS = SIGNER_ADDRESS;
   address public constant ACL_ADDRESS = 0xa6Ea4b5291d044D93b73b3CFf3109A1128663E8B;
 
   bool private _log = false;
