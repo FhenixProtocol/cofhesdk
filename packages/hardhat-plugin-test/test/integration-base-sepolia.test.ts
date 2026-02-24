@@ -29,7 +29,7 @@ describe('Base Sepolia Integration Tests', () => {
 
   before(async function () {
     // Skip if no private key is provided (for CI/CD)
-    if (!process.env.BASE_SEPOLIA_PRIVATE_KEY && process.env.CI) {
+    if (!process.env.TEST_PRIVATE_KEY && process.env.CI) {
       this.skip();
     }
 
@@ -90,7 +90,7 @@ describe('Base Sepolia Integration Tests', () => {
 
   it('Should encrypt -> store -> decrypt a value', async function () {
     // Skip if no private key is provided
-    if (!process.env.BASE_SEPOLIA_PRIVATE_KEY && process.env.CI) {
+    if (!process.env.TEST_PRIVATE_KEY && process.env.CI) {
       this.skip();
     }
 
