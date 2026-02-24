@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 export const injectedProvider = injected({ shimDisconnect: true });
 const config = createConfig({
-  chains: [baseSepolia, sepolia],
+  chains: [sepolia, baseSepolia],
   transports: {
     [sepolia.id]: http(),
     [baseSepolia.id]: http(),

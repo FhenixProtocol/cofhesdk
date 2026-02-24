@@ -8,7 +8,10 @@ function QueryDebug() {
   return <ReactQueryDevtools client={cofheQueryClient} position="left" buttonPosition="bottom-left" />;
 }
 const cofheConfig = createCofheConfig({
-  supportedChains: [sepolia, baseSepolia],
+  supportedChains: [
+    sepolia,
+    //  baseSepolia
+  ],
   react: {
     // pinnedTokens: {
     //   11155111: '0x87A3effB84CBE1E4caB6Ab430139eC41d156D55A', // sepolia weth
