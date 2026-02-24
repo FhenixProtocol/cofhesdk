@@ -38,12 +38,6 @@ export const CofheReactConfigSchema = z.object({
   pinnedTokens: z.record(z.string(), addressSchema).optional(),
   tokenLists: z
     .record(z.string(), z.array(z.string()))
-    .optional()
-    .default({
-      11155111: ['https://storage.googleapis.com/cofhesdk/sepolia.json'],
-      84532: ['https://storage.googleapis.com/cofhesdk/base-sepolia.json'],
-      // 421613: ['https://tokens.cofhe.io/arbitrum-sepolia.json'],
-    })
     .transform((lists) => lists as Partial<Record<number, string[]>>),
   position: z.enum(['bottom-right', 'bottom-left', 'top-right', 'top-left']).optional().default('bottom-right'),
   initialTheme: z.enum(['dark', 'light']).optional().default('light'),
