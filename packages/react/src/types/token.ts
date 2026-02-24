@@ -5,6 +5,7 @@
  * to avoid circular dependencies.
  */
 
+import { baseSepolia, sepolia } from '@cofhe/sdk/chains';
 import type { Address } from 'viem';
 
 /**
@@ -52,7 +53,7 @@ export type Token = {
   };
 };
 
-// just a sample token for examples and quick tests
+// source: https://storage.googleapis.com/cofhesdk/sepolia.json
 export const WETH_SEPOLIA_TOKEN: Token = {
   chainId: 11155111,
   address: '0x87A3effB84CBE1E4caB6Ab430139eC41d156D55A',
@@ -72,4 +73,31 @@ export const WETH_SEPOLIA_TOKEN: Token = {
       },
     },
   },
+};
+
+// source: https://storage.googleapis.com/cofhesdk/base-sepolia.json
+const WETH_BASE_SEPOLIA_TOKEN: Token = {
+  chainId: 84532,
+  address: '0xbED96aa98a49FeA71fcC55d755b915cF022a9159',
+  name: 'Redact eETH',
+  symbol: 'eETH',
+  decimals: 18,
+  logoURI: 'https://storage.googleapis.com/cofhesdk/token-icons/eth.webp',
+  extensions: {
+    coingeckoId: 'eeth',
+    fhenix: {
+      confidentialityType: 'wrapped',
+      confidentialValueType: 'uint128',
+      erc20Pair: {
+        address: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+        symbol: 'ETH',
+        decimals: 18,
+        logoURI: 'https://storage.googleapis.com/cofhesdk/token-icons/eth.webp',
+      },
+    },
+  },
+};
+export const DEFAULT_TOKEN_BY_CHAIN_ID: Record<number, Token> = {
+  [sepolia.id]: WETH_SEPOLIA_TOKEN,
+  [baseSepolia.id]: WETH_BASE_SEPOLIA_TOKEN,
 };
