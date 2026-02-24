@@ -10,7 +10,19 @@ import type { Address } from 'viem';
 /**
  * Special address representing native ETH (used in erc20Pair for ConfidentialETH tokens)
  */
-export const ETH_ADDRESS = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' as const;
+export const ETH_ADDRESS_LOWERCASE = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' as const;
+
+type TokenWithoutExtensions = Omit<Token, 'extensions'>;
+export function constructNativeToken(chainId: number): TokenWithoutExtensions {
+  return {
+    chainId,
+    address: ETH_ADDRESS_LOWERCASE,
+    name: 'Ether',
+    symbol: 'ETH',
+    decimals: 18,
+    logoURI: 'https://storage.googleapis.com/cofhesdk/token-icons/eth.webp',
+  };
+}
 
 /**
  * ERC20 pair information for wrapped confidential tokens

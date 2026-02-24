@@ -1,12 +1,12 @@
 import { type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
 import { useCofheContext } from '../providers/CofheProvider';
 import { useMemo } from 'react';
-import { ETH_ADDRESS, type Erc20Pair, type Token } from '../types/token.js';
+import { ETH_ADDRESS_LOWERCASE, type Erc20Pair, type Token } from '../types/token.js';
 import { useInternalQueries } from '../providers/index.js';
 import type { Address } from 'viem';
 import { useCofheChainId } from './useCofheConnection';
 
-export { ETH_ADDRESS, type Token, type Erc20Pair };
+export { ETH_ADDRESS_LOWERCASE, type Token, type Erc20Pair };
 
 type TokenList = {
   name: string;

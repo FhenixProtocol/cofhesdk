@@ -6,7 +6,7 @@ import {
 } from '@tanstack/react-query';
 import { type Address } from 'viem';
 import { useCofheWalletClient, useCofheChainId, useCofheAccount, useCofhePublicClient } from './useCofheConnection.js';
-import { type Token, ETH_ADDRESS } from './useCofheTokenLists.js';
+import { type Token, ETH_ADDRESS_LOWERCASE } from './useCofheTokenLists.js';
 import {
   SHIELD_ABIS,
   UNSHIELD_ABIS,
@@ -93,7 +93,7 @@ export function useCofheTokenShield(
       if (confidentialityType === 'wrapped') {
         // Check if this is a wrapped ETH token (erc20Pair is ETH_ADDRESS)
         const erc20PairAddress = input.token.extensions.fhenix.erc20Pair?.address as Address | undefined;
-        const isEth = erc20PairAddress?.toLowerCase() === ETH_ADDRESS.toLowerCase();
+        const isEth = erc20PairAddress?.toLowerCase() === ETH_ADDRESS_LOWERCASE;
 
         if (isEth) {
           // For ETH: use encryptETH(address to) with value

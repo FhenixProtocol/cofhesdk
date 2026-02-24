@@ -28,7 +28,7 @@ export {
   useCofheTokenDecryptedBalance,
   useCofheTokenTransfer,
   useTransactionReceiptsByHash,
-  ETH_ADDRESS,
+  ETH_ADDRESS_LOWERCASE,
   type Erc20Pair,
   type UnshieldClaim,
   type UnshieldClaimsSummary,
