@@ -7,13 +7,19 @@ import { FheTypes } from '../types.js';
 import { CofheError, CofheErrorCode } from '../error.js';
 import { MOCKS_QUERY_DECRYPTER_ADDRESS } from '../consts.js';
 
+export type DecryptForTxMocksResult = {
+  ctHash: bigint;
+  decryptedValue: bigint;
+  signature: string;
+};
+
 export async function cofheMocksDecryptForTx(
   ctHash: bigint,
   utype: FheTypes,
   permit: Permit | null,
   publicClient: PublicClient,
   mocksDecryptForTxDelay: number
-): Promise<bigint> {
+): Promise<DecryptForTxMocksResult> {
   // Configurable delay before decrypting to simulate the CoFHE decrypt processing time
   // Recommended 1000ms on web
   // Recommended 0ms on hardhat (will be called during tests no need for fake delay)
@@ -30,12 +36,16 @@ export async function cofheMocksDecryptForTx(
     };
   } else {
     // Empty permission with zero issuer for global allowance check
+    // Must include all fields that the Permission struct requires
     permission = {
-      issuer: '0x0000000000000000000000000000000000000000' as const,
-      sealingKey: 0n,
+      issuer: '0x0000000000000000000000000000000000000000',
       expiration: 0n,
+      recipient: '0x0000000000000000000000000000000000000000',
       validatorId: 0n,
-      signature: '0x' as const,
+      validatorContract: '0x0000000000000000000000000000000000000000',
+      sealingKey: '0x0000000000000000000000000000000000000000000000000000000000000000',
+      issuerSignature: '0x',
+      recipientSignature: '0x',
     };
   }
 
@@ -61,5 +71,12 @@ export async function cofheMocksDecryptForTx(
   }
 
   // decryptForTx returns plaintext directly (no sealing/unsealing needed)
-  return BigInt(result);
+  // Generate a mock threshold network signature (in production, this would be the actual signature)
+  const signature = `0x${ctHash.toString(16).padStart(64, '0')}`;
+
+  return {
+    ctHash,
+    decryptedValue: BigInt(result),
+    signature,
+  };
 }

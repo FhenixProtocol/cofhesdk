@@ -7,6 +7,7 @@ import { CofheError, CofheErrorCode } from '../error.js';
 import { permits } from '../permits.js';
 import { BaseBuilder, type BaseBuilderParams } from '../baseBuilder.js';
 import { cofheMocksDecryptForTx } from './cofheMocksDecryptForTx.js';
+import { getPublicClientChainID } from '../utils.js';
 // TODO: import { tnDecryptForTxV1 } from './tnDecryptForTxV1.js';
 
 /**
@@ -33,8 +34,9 @@ type DecryptForTxBuilderParams = BaseBuilderParams & {
 };
 
 export type DecryptForTxResult = {
+  ctHash: bigint;
   decryptedValue: bigint;
-  proof: string; // TODO: actual proof structure when available
+  signature: string; // Threshold network signature for publishDecryptResult
 };
 
 export class DecryptForTxBuilder extends BaseBuilder {
@@ -216,17 +218,18 @@ export class DecryptForTxBuilder extends BaseBuilder {
   /**
    * On hardhat, interact with MockThresholdNetwork contract
    */
-  private async mocksDecryptForTx(permit: Permit | null): Promise<bigint> {
+  private async mocksDecryptForTx(permit: Permit | null): Promise<DecryptForTxResult> {
     this.assertPublicClient();
 
     const delay = this.config.mocks.sealOutputDelay;
-    return cofheMocksDecryptForTx(this.ctHash, 0 as FheTypes, permit, this.publicClient, delay);
+    const result = await cofheMocksDecryptForTx(this.ctHash, 0 as FheTypes, permit, this.publicClient, delay);
+    return result;
   }
 
   /**
    * In the production context, perform a true decryption with the CoFHE coprocessor.
    */
-  private async productionDecryptForTx(permit: Permit | null): Promise<bigint> {
+  private async productionDecryptForTx(permit: Permit | null): Promise<DecryptForTxResult> {
     this.assertChainId();
     this.assertPublicClient();
 
@@ -281,34 +284,26 @@ export class DecryptForTxBuilder extends BaseBuilder {
       // Extract chainId from signed permit
       const chainId = permit._signedDomain!.chainId;
 
-      let decryptedValue: bigint;
-
       if (chainId === hardhat.id) {
-        decryptedValue = await this.mocksDecryptForTx(permit);
+        return await this.mocksDecryptForTx(permit);
       } else {
-        decryptedValue = await this.productionDecryptForTx(permit);
+        return await this.productionDecryptForTx(permit);
       }
-
-      return {
-        decryptedValue,
-        proof: '', // TODO: actual proof structure when available
-      };
     } else {
       // Global allowance - no permit
-      this.assertChainId();
-
-      let decryptedValue: bigint;
-
-      if (this.chainId === hardhat.id) {
-        decryptedValue = await this.mocksDecryptForTx(null);
-      } else {
-        decryptedValue = await this.productionDecryptForTx(null);
+      // If chainId not set, try to get it from publicClient
+      if (!this.chainId) {
+        this.assertPublicClient();
+        this.chainId = await getPublicClientChainID(this.publicClient);
       }
 
-      return {
-        decryptedValue,
-        proof: '', // TODO: actual proof structure when available
-      };
+      this.assertChainId();
+
+      if (this.chainId === hardhat.id) {
+        return await this.mocksDecryptForTx(null);
+      } else {
+        return await this.productionDecryptForTx(null);
+      }
     }
   }
 }

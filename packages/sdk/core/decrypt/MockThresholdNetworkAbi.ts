@@ -137,4 +137,32 @@ export const MockThresholdNetworkAbi = [
     ],
     stateMutability: 'view',
   },
+  {
+    type: 'function',
+    name: 'decryptForTx',
+    inputs: [
+      { name: 'ctHash', type: 'uint256', internalType: 'uint256' },
+      {
+        name: 'permission',
+        type: 'tuple',
+        internalType: 'struct Permission',
+        components: [
+          { name: 'issuer', type: 'address', internalType: 'address' },
+          { name: 'expiration', type: 'uint64', internalType: 'uint64' },
+          { name: 'recipient', type: 'address', internalType: 'address' },
+          { name: 'validatorId', type: 'uint256', internalType: 'uint256' },
+          { name: 'validatorContract', type: 'address', internalType: 'address' },
+          { name: 'sealingKey', type: 'bytes32', internalType: 'bytes32' },
+          { name: 'issuerSignature', type: 'bytes', internalType: 'bytes' },
+          { name: 'recipientSignature', type: 'bytes', internalType: 'bytes' },
+        ],
+      },
+    ],
+    outputs: [
+      { name: 'allowed', type: 'bool', internalType: 'bool' },
+      { name: 'error', type: 'string', internalType: 'string' },
+      { name: 'decryptedValue', type: 'uint256', internalType: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
 ] as const;
