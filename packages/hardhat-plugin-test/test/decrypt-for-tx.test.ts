@@ -23,28 +23,33 @@ describe('DecryptForTx Integration Tests', () => {
   });
 
   describe('decryptForTx with global allowance', () => {
-    it('Should decrypt a value without a permit', async function () {
+    it('Should fail to decrypt without a permit when not globally allowed', async function () {
       const testValue = 42n;
       const encrypted = await cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
       const tx = await testContract.connect(signer).setValue(encrypted[0]);
       await tx.wait();
 
-      const result = await cofheClient.decryptForTx(encrypted[0].ctHash).execute();
-
-      expect(result.ctHash).to.be.equal(encrypted[0].ctHash);
-      expect(result.decryptedValue).to.be.equal(testValue);
-      expect(result.signature).to.be.a('string');
+      try {
+        await cofheClient.decryptForTx(encrypted[0].ctHash).withPermit(undefined).execute();
+        expect.fail('Expected decryptForTx to fail without global allowance');
+      } catch (error) {
+        expect((error as Error).message).to.include('NotAllowed');
+      }
     });
 
-    it('Should decrypt different values consistently', async function () {
+    it('Should decrypt different values consistently with a permit', async function () {
       const testValues = [1n, 100n, 1000n, 65535n];
+      const permit = await cofheClient.permits.createSelf({
+        issuer: signer.address,
+        name: 'Consistency Permit',
+      });
 
       for (const testValue of testValues) {
         const encrypted = await cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
         const tx = await testContract.connect(signer).setValue(encrypted[0]);
         await tx.wait();
 
-        const result = await cofheClient.decryptForTx(encrypted[0].ctHash).execute();
+        const result = await cofheClient.decryptForTx(encrypted[0].ctHash).withPermit(permit).execute();
         expect(result.ctHash).to.be.equal(encrypted[0].ctHash);
         expect(result.decryptedValue).to.be.equal(testValue);
         expect(result.signature).to.be.a('string');
