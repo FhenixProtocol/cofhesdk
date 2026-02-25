@@ -10,12 +10,24 @@ import '@fhenixprotocol/cofhe-contracts/FHE.sol';
 contract SimpleTest {
   euint32 public storedValue;
   uint256 public storedValueHash;
+  euint32 public publicValue;
+  uint256 public publicValueHash;
 
   function setValueTrivial(uint256 inValue) public {
     storedValue = FHE.asEuint32(inValue);
     storedValueHash = uint256(euint32.unwrap(storedValue));
     FHE.allowThis(storedValue);
     FHE.allowSender(storedValue);
+  }
+
+  /**
+   * Set a globally accessible encrypted value (everyone can decrypt)
+   * @param inValue The encrypted value to set globally
+   */
+  function setPublicValue(InEuint32 memory inValue) public {
+    publicValue = FHE.asEuint32(inValue);
+    publicValueHash = uint256(euint32.unwrap(publicValue));
+    FHE.allowPublic(publicValue);
   }
 
   /**

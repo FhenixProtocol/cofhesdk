@@ -37,6 +37,19 @@ describe('DecryptForTx Integration Tests', () => {
       }
     });
 
+    it('Should successfully decrypt without a permit when globally allowed', async function () {
+      const testValue = 55n;
+      const encrypted = await cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
+      const tx = await testContract.connect(signer).setPublicValue(encrypted[0]);
+      await tx.wait();
+
+      const result = await cofheClient.decryptForTx(encrypted[0].ctHash).withPermit(undefined).execute();
+
+      expect(result.ctHash).to.be.equal(encrypted[0].ctHash);
+      expect(result.decryptedValue).to.be.equal(testValue);
+      expect(result.signature).to.be.a('string');
+    });
+
     it('Should decrypt different values consistently with a permit', async function () {
       const testValues = [1n, 100n, 1000n, 65535n];
       const permit = await cofheClient.permits.createSelf({
