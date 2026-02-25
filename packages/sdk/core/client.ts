@@ -7,6 +7,7 @@ import { EncryptInputsBuilder } from './encrypt/encryptInputsBuilder.js';
 import { createKeysStore } from './keyStore.js';
 import { permits } from './permits.js';
 import { DecryptHandlesBuilder } from './decrypt/decryptHandleBuilder.js';
+import { DecryptForTxBuilder } from './decrypt/decryptForTxBuilder.js';
 import { getPublicClientChainID, getWalletClientAccount } from './utils.js';
 import type { CofheClientConnectionState, CofheClientParams, CofheClient, CofheClientPermits } from './clientTypes.js';
 import type { EncryptableItem, FheTypes } from './types.js';
@@ -162,6 +163,22 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
     });
   }
 
+  function decryptForTx(ctHash: bigint): DecryptForTxBuilder {
+    const state = connectStore.getState();
+
+    return new DecryptForTxBuilder({
+      ctHash,
+      chainId: state.chainId ?? undefined,
+      account: state.account ?? undefined,
+
+      config: opts.config,
+      publicClient: state.publicClient ?? undefined,
+      walletClient: state.walletClient ?? undefined,
+
+      requireConnected: _requireConnected,
+    });
+  }
+
   // PERMITS - Context-aware wrapper
 
   const _getChainIdAndAccount = (chainId?: number, account?: string) => {
@@ -298,6 +315,7 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
     disconnect,
     encryptInputs,
     decryptHandle,
+    decryptForTx,
     permits: clientPermits,
 
     // Add SDK-specific methods below that require connection

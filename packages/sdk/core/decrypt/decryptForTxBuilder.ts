@@ -1,0 +1,314 @@
+import { hardhat } from '@/chains';
+import { type Permit, PermitUtils } from '@/permits';
+
+import { FheTypes } from '../types.js';
+import { getThresholdNetworkUrlOrThrow } from '../config.js';
+import { CofheError, CofheErrorCode } from '../error.js';
+import { permits } from '../permits.js';
+import { BaseBuilder, type BaseBuilderParams } from '../baseBuilder.js';
+import { cofheMocksDecryptForTx } from './cofheMocksDecryptForTx.js';
+// TODO: import { tnDecryptForTxV1 } from './tnDecryptForTxV1.js';
+
+/**
+ * API
+ *
+ * await client.decryptForTx(ctHash)
+ *   .setChainId(chainId)
+ *   .setAccount(account)
+ *   .withPermit(permit | permitHash | undefined)
+ *   .execute()
+ *
+ * If chainId not set, uses client's chainId
+ * If account not set, uses client's account
+ * If withPermit not called, uses active permit from chainId + account
+ * If withPermit(undefined/null), uses global allowance (no permit required)
+ *
+ * Returns the decrypted value + proof ready for tx.
+ */
+
+type DecryptForTxBuilderParams = BaseBuilderParams & {
+  ctHash: bigint;
+  permitHash?: string;
+  permit?: Permit | null;
+};
+
+export type DecryptForTxResult = {
+  decryptedValue: bigint;
+  proof: string; // TODO: actual proof structure when available
+};
+
+export class DecryptForTxBuilder extends BaseBuilder {
+  private ctHash: bigint;
+  private permitHash?: string;
+  private permit?: Permit | null;
+  private permitSet = false; // Track if withPermit was explicitly called
+
+  constructor(params: DecryptForTxBuilderParams) {
+    super({
+      config: params.config,
+      publicClient: params.publicClient,
+      walletClient: params.walletClient,
+      chainId: params.chainId,
+      account: params.account,
+      requireConnected: params.requireConnected,
+    });
+
+    this.ctHash = params.ctHash;
+    this.permitHash = params.permitHash;
+    this.permit = params.permit;
+  }
+
+  /**
+   * @param chainId - Chain to decrypt values from. Used to fetch the threshold network URL and use the correct permit.
+   *
+   * If not provided, the chainId will be fetched from the connected publicClient.
+   *
+   * Example:
+   * ```typescript
+   * const result = await decryptForTx(ctHash)
+   *   .setChainId(11155111)
+   *   .execute();
+   * ```
+   *
+   * @returns The chainable DecryptForTxBuilder instance.
+   */
+  setChainId(chainId: number): DecryptForTxBuilder {
+    this.chainId = chainId;
+    return this;
+  }
+
+  getChainId(): number | undefined {
+    return this.chainId;
+  }
+
+  /**
+   * @param account - Account to decrypt values from. Used to fetch the correct permit.
+   *
+   * If not provided, the account will be fetched from the connected walletClient.
+   *
+   * Example:
+   * ```typescript
+   * const result = await decryptForTx(ctHash)
+   *   .setAccount('0x1234567890123456789012345678901234567890')
+   *   .execute();
+   * ```
+   *
+   * @returns The chainable DecryptForTxBuilder instance.
+   */
+  setAccount(account: string): DecryptForTxBuilder {
+    this.account = account;
+    return this;
+  }
+
+  getAccount(): string | undefined {
+    return this.account;
+  }
+
+  /**
+   * @param permitHashOrPermitOrUndefined - Permit hash to fetch, Permit object to use directly, or undefined for global allowance.
+   *
+   * If a string is provided, it's treated as a permit hash and will be fetched.
+   * If a Permit object is provided, it will be used directly.
+   * If undefined/null is provided, uses global allowance (no permit required).
+   * If not called, fetches the active permit for the chainId + account.
+   *
+   * Example with permit hash:
+   * ```typescript
+   * const result = await decryptForTx(ctHash)
+   *   .withPermit('0x1234567890123456789012345678901234567890')
+   *   .execute();
+   * ```
+   *
+   * Example with permit object:
+   * ```typescript
+   * const result = await decryptForTx(ctHash)
+   *   .withPermit(permit)
+   *   .execute();
+   * ```
+   *
+   * Example with global allowance (no permit):
+   * ```typescript
+   * const result = await decryptForTx(ctHash)
+   *   .withPermit(undefined)
+   *   .execute();
+   * ```
+   *
+   * @returns The chainable DecryptForTxBuilder instance.
+   */
+  withPermit(permitHashOrPermitOrUndefined: string | Permit | undefined | null): DecryptForTxBuilder {
+    this.permitSet = true;
+
+    if (typeof permitHashOrPermitOrUndefined === 'string') {
+      this.permitHash = permitHashOrPermitOrUndefined;
+      this.permit = undefined;
+    } else if (permitHashOrPermitOrUndefined === undefined || permitHashOrPermitOrUndefined === null) {
+      // Global allowance - no permit required
+      this.permit = null;
+      this.permitHash = undefined;
+    } else {
+      // Permit object
+      this.permit = permitHashOrPermitOrUndefined;
+      this.permitHash = undefined;
+    }
+
+    return this;
+  }
+
+  getPermit(): Permit | null | undefined {
+    return this.permit;
+  }
+
+  getPermitHash(): string | undefined {
+    return this.permitHash;
+  }
+
+  private async getThresholdNetworkUrl(): Promise<string> {
+    this.assertChainId();
+    return getThresholdNetworkUrlOrThrow(this.config, this.chainId);
+  }
+
+  private async getResolvedPermit(): Promise<Permit | null> {
+    // If permit was explicitly set via withPermit()
+    if (this.permitSet) {
+      return this.permit ?? null;
+    }
+
+    // If permit object directly provided
+    if (this.permit) return this.permit;
+
+    this.assertChainId();
+    this.assertAccount();
+
+    // Fetch with permit hash
+    if (this.permitHash) {
+      const permit = await permits.getPermit(this.chainId, this.account, this.permitHash);
+      if (!permit) {
+        throw new CofheError({
+          code: CofheErrorCode.PermitNotFound,
+          message: `Permit with hash <${this.permitHash}> not found for account <${this.account}> and chainId <${this.chainId}>`,
+          hint: 'Ensure the permit exists and is valid.',
+          context: {
+            chainId: this.chainId,
+            account: this.account,
+            permitHash: this.permitHash,
+          },
+        });
+      }
+      return permit;
+    }
+
+    // Fetch with active permit
+    const permit = await permits.getActivePermit(this.chainId, this.account);
+    if (!permit) {
+      throw new CofheError({
+        code: CofheErrorCode.PermitNotFound,
+        message: `Active permit not found for chainId <${this.chainId}> and account <${this.account}>`,
+        hint: 'Ensure a permit exists for this account on this chain.',
+        context: {
+          chainId: this.chainId,
+          account: this.account,
+        },
+      });
+    }
+    return permit;
+  }
+
+  /**
+   * On hardhat, interact with MockThresholdNetwork contract
+   */
+  private async mocksDecryptForTx(permit: Permit | null): Promise<bigint> {
+    this.assertPublicClient();
+
+    const delay = this.config.mocks.sealOutputDelay;
+    return cofheMocksDecryptForTx(this.ctHash, 0 as FheTypes, permit, this.publicClient, delay);
+  }
+
+  /**
+   * In the production context, perform a true decryption with the CoFHE coprocessor.
+   */
+  private async productionDecryptForTx(permit: Permit | null): Promise<bigint> {
+    this.assertChainId();
+    this.assertPublicClient();
+
+    const thresholdNetworkUrl = await this.getThresholdNetworkUrl();
+    // TODO: implement tnDecryptForTxV1
+    // const result = await tnDecryptForTxV1(this.ctHash, this.chainId, permit, thresholdNetworkUrl);
+    throw new CofheError({
+      code: CofheErrorCode.InternalError,
+      message: 'Production decryptForTx not yet implemented',
+      hint: 'Use mocks or wait for production implementation.',
+    });
+  }
+
+  /**
+   * Final step of the decryptForTx process. MUST BE CALLED LAST IN THE CHAIN.
+   *
+   * This will:
+   * - Use a permit based on:
+   *   - withPermit(permit) if provided
+   *   - withPermit(permitHash) to fetch permit
+   *   - withPermit(undefined) for global allowance (no permit)
+   *   - or active permit for chainId + account
+   * - Call CoFHE `/decryptForTx` with the permit or empty permit for global allowance
+   * - Return the decrypted value + proof ready for transaction
+   *
+   * Example:
+   * ```typescript
+   * // With permit
+   * const result = await client.decryptForTx(ctHash)
+   *   .setChainId(11155111)
+   *   .setAccount('0x123...890')
+   *   .execute();
+   *
+   * // With global allowance
+   * const result = await client.decryptForTx(ctHash)
+   *   .withPermit(undefined)
+   *   .execute();
+   * ```
+   *
+   * @returns Object containing decrypted value and proof ready for tx.
+   */
+  async execute(): Promise<DecryptForTxResult> {
+    // Resolve permit (can be Permit object or null for global allowance)
+    const permit = await this.getResolvedPermit();
+
+    // If permit is provided, validate it
+    if (permit !== null) {
+      // Ensure permit validity
+      PermitUtils.validate(permit);
+      PermitUtils.isValid(permit);
+
+      // Extract chainId from signed permit
+      const chainId = permit._signedDomain!.chainId;
+
+      let decryptedValue: bigint;
+
+      if (chainId === hardhat.id) {
+        decryptedValue = await this.mocksDecryptForTx(permit);
+      } else {
+        decryptedValue = await this.productionDecryptForTx(permit);
+      }
+
+      return {
+        decryptedValue,
+        proof: '', // TODO: actual proof structure when available
+      };
+    } else {
+      // Global allowance - no permit
+      this.assertChainId();
+
+      let decryptedValue: bigint;
+
+      if (this.chainId === hardhat.id) {
+        decryptedValue = await this.mocksDecryptForTx(null);
+      } else {
+        decryptedValue = await this.productionDecryptForTx(null);
+      }
+
+      return {
+        decryptedValue,
+        proof: '', // TODO: actual proof structure when available
+      };
+    }
+  }
+}

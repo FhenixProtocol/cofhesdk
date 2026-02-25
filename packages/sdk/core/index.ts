@@ -73,6 +73,8 @@ export type { KeysStorage, KeysStore } from './keyStore.js';
 // Builders (exported via client, but can be imported directly for typing)
 export { EncryptInputsBuilder } from './encrypt/encryptInputsBuilder.js';
 export { DecryptHandlesBuilder } from './decrypt/decryptHandleBuilder.js';
+export { DecryptForTxBuilder } from './decrypt/decryptForTxBuilder.js';
+export type { DecryptForTxResult } from './decrypt/decryptForTxBuilder.js';
 
 // ZK utilities
 export type {
