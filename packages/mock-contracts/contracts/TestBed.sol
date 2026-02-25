@@ -90,4 +90,9 @@ contract TestBed {
   function getDecryptResultSafe(euint32 input1) public view returns (uint32 value, bool decrypted) {
     return FHE.getDecryptResultSafe(input1);
   }
+
+  /// @notice Publishes a decrypt result for an encrypted handle.
+  function publishDecryptResult(euint32 input, uint32 result, bytes memory signature) external {
+    FHE.publishDecryptResult(input, result, signature);
+  }
 }
