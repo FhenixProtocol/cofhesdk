@@ -478,6 +478,19 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     emit DecryptionResult(ctHash, result, msg.sender);
   }
 
+  function publishDecryptResultBatch(
+    uint256[] calldata ctHashes,
+    uint256[] calldata results,
+    bytes[] calldata signatures
+  ) external {
+    // Mock implementation: process each result individually
+    // Note: publishDecryptResult is defined later in the contract
+    for (uint256 i = 0; i < ctHashes.length; i++) {
+      // Call via external interface to avoid forward reference issue
+      this.publishDecryptResult(ctHashes[i], results[i], signatures[i]);
+    }
+  }
+
   function _verifyDecryptResult(uint256 ctHash, uint256 result, bytes calldata signature) private view {
     if (decryptResultSigner == address(0)) revert InvalidAddress();
     bytes32 messageHash = _computeDecryptResultHash(ctHash, result);
@@ -633,5 +646,36 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
 
   function isAllowedWithPermission(Permission memory permission, uint256 handle) public view returns (bool) {
     return acl.isAllowedWithPermission(permission, handle);
+  }
+
+  // Stub implementations for new ITaskManager interface methods (inc PR #48)
+
+  function createRandomTask(uint8 returnType, uint256 seed, int32 securityZone) external returns (uint256) {
+    // Mock implementation: just return a pseudo-random hash based on seed
+    return uint256(keccak256(abi.encode(returnType, seed, securityZone, block.timestamp)));
+  }
+
+  function isPubliclyAllowed(uint256 ctHash) external view returns (bool) {
+    // Mock implementation: allow all for now
+    return true;
+  }
+
+  function verifyDecryptResult(uint256 ctHash, uint256 result, bytes calldata signature) external view returns (bool) {
+    // Mock implementation: verify signature using the verifier signer
+    bytes32 digest = keccak256(abi.encodePacked(result));
+    return ECDSA.recover(digest, signature) == verifierSigner;
+  }
+
+  function verifyDecryptResultSafe(
+    uint256 ctHash,
+    uint256 result,
+    bytes calldata signature
+  ) external view returns (bool) {
+    // Same as verifyDecryptResult for mock
+    try this.verifyDecryptResult(ctHash, result, signature) returns (bool valid) {
+      return valid;
+    } catch {
+      return false;
+    }
   }
 }
