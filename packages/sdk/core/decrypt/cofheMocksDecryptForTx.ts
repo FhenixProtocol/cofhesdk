@@ -5,6 +5,7 @@ import { sleep } from '../utils.js';
 import { MockThresholdNetworkAbi } from './MockThresholdNetworkAbi.js';
 import { FheTypes } from '../types.js';
 import { CofheError, CofheErrorCode } from '../error.js';
+import { SigningKey, keccak256, solidityPacked, toBeHex, zeroPadValue } from 'ethers';
 import { MOCKS_QUERY_DECRYPTER_ADDRESS } from '../consts.js';
 
 export type DecryptForTxMocksResult = {
@@ -72,7 +73,18 @@ export async function cofheMocksDecryptForTx(
 
   // decryptForTx returns plaintext directly (no sealing/unsealing needed)
   // Generate a mock threshold network signature (in production, this would be the actual signature)
-  const signature = `0x${ctHash.toString(16).padStart(64, '0')}`;
+  // The signature must be valid for MockTaskManager verification.
+  const chainId = await publicClient.getChainId();
+  const ctHashBigInt = BigInt(ctHash);
+  const resultBigInt = BigInt(result);
+  const encryptionType = Number((ctHashBigInt & (0x7fn << 8n)) >> 8n);
+  const packed = solidityPacked(
+    ['uint256', 'uint32', 'uint64', 'bytes32'],
+    [resultBigInt, encryptionType, BigInt(chainId), zeroPadValue(toBeHex(ctHashBigInt), 32)]
+  );
+  const messageHash = keccak256(packed);
+  const mockPrivateKey = '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d';
+  const signature = new SigningKey(mockPrivateKey).sign(messageHash).serialized.slice(2); // no 0x prefix
 
   return {
     ctHash,

@@ -30,6 +30,18 @@ contract SimpleTest {
   }
 
   /**
+   * Add an encrypted value to the stored value
+   * @param inValue The encrypted value to add
+   */
+  function addValue(InEuint32 memory inValue) public {
+    euint32 valueToAdd = FHE.asEuint32(inValue);
+    storedValue = FHE.add(storedValue, valueToAdd);
+    storedValueHash = uint256(euint32.unwrap(storedValue));
+    FHE.allowThis(storedValue);
+    FHE.allowSender(storedValue);
+  }
+
+  /**
    * Get the stored encrypted value
    * @return The encrypted value
    */

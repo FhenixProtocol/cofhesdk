@@ -1,53 +1,80 @@
 import hre from 'hardhat';
 import { expect } from 'chai';
 import { TASK_COFHE_MOCKS_DEPLOY } from './consts';
-import { Wallet, keccak256, solidityPacked, toBeHex } from 'ethers';
+import { CofheClient, Encryptable } from '@cofhe/sdk';
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
+import { Wallet } from 'ethers';
 
-// Minimal happy-path test for TestBed.publishDecryptResult
-// This verifies we can publish a decrypt result with a valid signature and read it back.
+// Test the full workflow:
+// 1. Encrypt values and submit on-chain
+// 2. Perform FHE operation (add)
+// 3. Use decryptForTx to get ctHash, decryptedValue, and signature
+// 4. Call publishDecryptResult with those values
+// 5. Verify with getDecryptResultSafe
 
 describe('Decrypt With Proof Test', () => {
-  it('Should publish decrypt result (happy path)', async () => {
+  let cofheClient: CofheClient;
+  let testContract: any;
+  let signer: HardhatEthersSigner;
+  let testBed: any;
+
+  before(async function () {
     await hre.run(TASK_COFHE_MOCKS_DEPLOY);
+    const [tmpSigner] = await hre.ethers.getSigners();
+    signer = tmpSigner;
+    cofheClient = await hre.cofhe.createClientWithBatteries(signer);
 
+    // Deploy test contract for FHE operations
+    const SimpleTest = await hre.ethers.getContractFactory('SimpleTest');
+    testContract = await SimpleTest.deploy();
+    await testContract.waitForDeployment();
+
+    testBed = await hre.cofhe.mocks.getTestBed();
+  });
+
+  it('Should encrypt, compute FHE operation, decrypt, and publish result', async function () {
+    // Step 1: Encrypt two values
+    const valueX = 100n;
+    const valueY = 50n;
+    const expectedSum = valueX + valueY; // 150
+
+    const [encX, encY] = await cofheClient
+      .encryptInputs([Encryptable.uint32(valueX), Encryptable.uint32(valueY)])
+      .execute();
+
+    // Step 2: Submit encrypted values on-chain and perform FHE.add
+    const tx1 = await testContract.connect(signer).setValue(encX);
+    await tx1.wait();
+
+    const tx2 = await testContract.connect(signer).addValue(encY);
+    await tx2.wait();
+
+    const resultCtHash = await testContract.getValue();
+
+    // Step 3: Use decryptForTx to get the values needed for publishDecryptResult
+    const decryptResult = await cofheClient.decryptForTx(resultCtHash).execute();
+
+    expect(decryptResult.ctHash).to.equal(resultCtHash);
+    expect(decryptResult.decryptedValue).to.equal(expectedSum);
+    expect(decryptResult.signature).to.be.a('string');
+
+    // Step 4: Publish the decrypt result on-chain
+    // Configure the mock task manager to accept the mock signature
     const taskManager = await hre.cofhe.mocks.getMockTaskManager();
-    const testBed = await hre.cofhe.mocks.getTestBed();
+    const mockPrivateKey = '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d';
+    const messageSigner = new Wallet(mockPrivateKey);
+    const signature = `0x${decryptResult.signature}`;
+    const setSignerTx = await taskManager.connect(signer).setDecryptResultSigner(messageSigner.address);
+    await setSignerTx.wait();
 
-    // Signer used by publishDecryptResult signature verification
-    const signerPrivateKey = '0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
-    const signerWallet = new Wallet(signerPrivateKey);
+    // Publish the decrypt result on-chain
+    // publishDecryptResult expects (euint32, uint32, bytes signature)
+    const publishTx = await testBed.publishDecryptResult(decryptResult.ctHash, decryptResult.decryptedValue, signature);
+    await publishTx.wait();
 
-    await taskManager.setDecryptResultSigner(signerWallet.address);
-
-    // ctHash layout: last 2 bytes are metadata
-    // - byte 0: securityZone
-    // - byte 1: utype
-    // For uint32 TFHE, utype is 4 (Utils.EUINT32_TFHE)
-    const securityZone = 0;
-    const utype = 4;
-
-    const base = BigInt(keccak256(solidityPacked(['string'], ['mock-ct-hash']))) & ~0xffffn;
-    const ctHash = base | (BigInt(utype) << 8n) | BigInt(securityZone);
-
-    const result = 424242n;
-
-    const ctHashBytes32 = toBeHex(ctHash, 32);
-
-    const digest = keccak256(
-      solidityPacked(
-        ['uint256', 'uint32', 'uint64', 'bytes32'],
-        [result, utype, BigInt((await hre.ethers.provider.getNetwork()).chainId), ctHashBytes32]
-      )
-    );
-
-    const sig = signerWallet.signingKey.sign(digest);
-    const signature = hre.ethers.concat([sig.r, sig.s, hre.ethers.toBeHex(sig.v, 1)]);
-
-    const tx = await testBed.publishDecryptResult(ctHashBytes32, result, signature);
-    await tx.wait();
-
-    const [value, decrypted] = await testBed.getDecryptResultSafe(ctHashBytes32);
-    expect(decrypted).to.equal(true);
-    expect(value).to.equal(result);
+    // Step 5: Verify the published result
+    const [publishedValue, isDecrypted] = await testBed.getDecryptResultSafe(decryptResult.ctHash);
+    expect(isDecrypted).to.equal(true);
+    expect(publishedValue).to.equal(expectedSum);
   });
 });
