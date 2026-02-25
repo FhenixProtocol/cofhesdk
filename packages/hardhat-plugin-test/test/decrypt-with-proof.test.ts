@@ -1,7 +1,7 @@
 import hre from 'hardhat';
 import { expect } from 'chai';
 import { TASK_COFHE_MOCKS_DEPLOY } from './consts';
-import { CofheClient, Encryptable } from '@cofhe/sdk';
+import { CofheClient, Encryptable, MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY } from '@cofhe/sdk';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 import { Wallet } from 'ethers';
 
@@ -61,8 +61,7 @@ describe('Decrypt With Proof Test', () => {
     // Step 4: Publish the decrypt result on-chain
     // Configure the mock task manager to accept the mock signature
     const taskManager = await hre.cofhe.mocks.getMockTaskManager();
-    const mockPrivateKey = '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d';
-    const messageSigner = new Wallet(mockPrivateKey);
+    const messageSigner = new Wallet(MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY);
     const signature = `0x${decryptResult.signature}`;
     const setSignerTx = await taskManager.connect(signer).setDecryptResultSigner(messageSigner.address);
     await setSignerTx.wait();

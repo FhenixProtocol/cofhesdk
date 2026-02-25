@@ -5,6 +5,7 @@ import { sleep } from '../utils.js';
 import { MockThresholdNetworkAbi } from './MockThresholdNetworkAbi.js';
 import { FheTypes } from '../types.js';
 import { CofheError, CofheErrorCode } from '../error.js';
+import { MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY } from '../consts.js';
 import { SigningKey, keccak256, solidityPacked, toBeHex, zeroPadValue } from 'ethers';
 import { MOCKS_QUERY_DECRYPTER_ADDRESS } from '../consts.js';
 
@@ -83,8 +84,9 @@ export async function cofheMocksDecryptForTx(
     [resultBigInt, encryptionType, BigInt(chainId), zeroPadValue(toBeHex(ctHashBigInt), 32)]
   );
   const messageHash = keccak256(packed);
-  const mockPrivateKey = '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d';
-  const signature = new SigningKey(mockPrivateKey).sign(messageHash).serialized.slice(2); // no 0x prefix
+  const signature = new SigningKey(MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY)
+    .sign(messageHash)
+    .serialized.slice(2); // no 0x prefix
 
   return {
     ctHash,
