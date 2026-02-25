@@ -8,8 +8,9 @@ import '@fhenixprotocol/cofhe-contracts/FHE.sol';
 /// @dev This contract is intentionally simple and is primarily a convenience for Hardhat-based local
 ///      development: the Hardhat plugin can deploy it automatically when `deployTestBed` is enabled.
 ///
-///      In Foundry flows, nothing deploys or depends on this contract automatically — you may still
-///      deploy/use it in `forge test` if you want a known-good reference target.
+///      In Foundry flows, nothing deploys or depends on this contract automatically — tests must
+///      instantiate it explicitly (this repository includes such Foundry tests). You may deploy/use it
+///      in `forge test` if you want a known-good reference target.
 ///
 ///      Important concepts:
 ///      - `eNumber` is an on-chain encrypted handle type (`euint32`). In real CoFHE, this represents a ciphertext.
