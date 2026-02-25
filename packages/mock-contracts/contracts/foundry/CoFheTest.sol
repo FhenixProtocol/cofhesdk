@@ -122,6 +122,7 @@ abstract contract CoFheTest is Test {
     assertEq(mockTaskManager.inMockStorage(ctHash), true);
     assertEq(mockTaskManager.mockStorage(ctHash), value);
   }
+
   function assertHashValue(uint256 ctHash, uint256 value, string memory message) public view {
     assertEq(mockTaskManager.inMockStorage(ctHash), true, message);
     assertEq(mockTaskManager.mockStorage(ctHash), value, message);
@@ -130,49 +131,61 @@ abstract contract CoFheTest is Test {
   // Encrypted types (no message)
 
   function assertHashValue(ebool eValue, bool value) public view {
-    assertHashValue(ebool.unwrap(eValue), value ? 1 : 0);
+    assertHashValue(uint256(ebool.unwrap(eValue)), value ? 1 : 0);
   }
+
   function assertHashValue(euint8 eValue, uint8 value) public view {
-    assertHashValue(euint8.unwrap(eValue), value);
+    assertHashValue(uint256(euint8.unwrap(eValue)), value);
   }
+
   function assertHashValue(euint16 eValue, uint16 value) public view {
-    assertHashValue(euint16.unwrap(eValue), value);
+    assertHashValue(uint256(euint16.unwrap(eValue)), value);
   }
+
   function assertHashValue(euint32 eValue, uint32 value) public view {
-    assertHashValue(euint32.unwrap(eValue), value);
+    assertHashValue(uint256(euint32.unwrap(eValue)), value);
   }
+
   function assertHashValue(euint64 eValue, uint64 value) public view {
-    assertHashValue(euint64.unwrap(eValue), value);
+    assertHashValue(uint256(euint64.unwrap(eValue)), value);
   }
+
   function assertHashValue(euint128 eValue, uint128 value) public view {
-    assertHashValue(euint128.unwrap(eValue), value);
+    assertHashValue(uint256(euint128.unwrap(eValue)), value);
   }
+
   function assertHashValue(eaddress eValue, address value) public view {
-    assertHashValue(eaddress.unwrap(eValue), uint256(uint160(value)));
+    assertHashValue(uint256(eaddress.unwrap(eValue)), uint256(uint160(value)));
   }
 
   // Encrypted types (with message)
 
   function assertHashValue(ebool eValue, bool value, string memory message) public view {
-    assertHashValue(ebool.unwrap(eValue), value ? 1 : 0, message);
+    assertHashValue(uint256(ebool.unwrap(eValue)), value ? 1 : 0, message);
   }
+
   function assertHashValue(euint8 eValue, uint8 value, string memory message) public view {
-    assertHashValue(euint8.unwrap(eValue), value, message);
+    assertHashValue(uint256(euint8.unwrap(eValue)), value, message);
   }
+
   function assertHashValue(euint16 eValue, uint16 value, string memory message) public view {
-    assertHashValue(euint16.unwrap(eValue), value, message);
+    assertHashValue(uint256(euint16.unwrap(eValue)), value, message);
   }
+
   function assertHashValue(euint32 eValue, uint32 value, string memory message) public view {
-    assertHashValue(euint32.unwrap(eValue), value, message);
+    assertHashValue(uint256(euint32.unwrap(eValue)), value, message);
   }
+
   function assertHashValue(euint64 eValue, uint64 value, string memory message) public view {
-    assertHashValue(euint64.unwrap(eValue), value, message);
+    assertHashValue(uint256(euint64.unwrap(eValue)), value, message);
   }
+
   function assertHashValue(euint128 eValue, uint128 value, string memory message) public view {
-    assertHashValue(euint128.unwrap(eValue), value, message);
+    assertHashValue(uint256(euint128.unwrap(eValue)), value, message);
   }
+
   function assertHashValue(eaddress eValue, address value, string memory message) public view {
-    assertHashValue(eaddress.unwrap(eValue), uint256(uint160(value)), message);
+    assertHashValue(uint256(eaddress.unwrap(eValue)), uint256(uint160(value)), message);
   }
 
   // UTILS
@@ -261,16 +274,6 @@ abstract contract CoFheTest is Test {
   }
 
   /**
-   * @notice              Creates an InEuint256 to be used as FHE input. Value is stored in MockCoFHE contract, hash is a pointer to that value.
-   * @param value         Value to encrypt.
-   * @param securityZone  Security zone of the encrypted value.
-   * @return              InEuint256.
-   */
-  function createInEuint256(uint256 value, uint8 securityZone, address sender) public returns (InEuint256 memory) {
-    return abi.decode(abi.encode(createEncryptedInput(Utils.EUINT256_TFHE, value, securityZone, sender)), (InEuint256));
-  }
-
-  /**
    * @notice              Creates an InEaddress to be used as FHE input. Value is stored in MockCoFHE contract, hash is a pointer to that value.
    * @param value         Value to encrypt.
    * @param securityZone  Security zone of the encrypted value.
@@ -308,10 +311,6 @@ abstract contract CoFheTest is Test {
 
   function createInEuint128(uint128 value, address sender) public returns (InEuint128 memory) {
     return createInEuint128(value, 0, sender);
-  }
-
-  function createInEuint256(uint256 value, address sender) public returns (InEuint256 memory) {
-    return createInEuint256(value, 0, sender);
   }
 
   function createInEaddress(address value, address sender) public returns (InEaddress memory) {
