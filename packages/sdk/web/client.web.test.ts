@@ -54,7 +54,7 @@ describe('@cofhe/web - Client', () => {
     it('should have all expected methods', () => {
       expect(typeof cofheClient.connect).toBe('function');
       expect(typeof cofheClient.encryptInputs).toBe('function');
-      expect(typeof cofheClient.decryptHandle).toBe('function');
+      expect(typeof cofheClient.decryptForView).toBe('function');
       expect(typeof cofheClient.getSnapshot).toBe('function');
       expect(typeof cofheClient.subscribe).toBe('function');
     });
@@ -136,7 +136,7 @@ describe('@cofhe/web - Client', () => {
     it('should create decrypt builder after connection', async () => {
       await cofheClient.connect(publicClient, walletClient);
 
-      const builder = cofheClient.decryptHandle(123n, 2);
+      const builder = cofheClient.decryptForView(123n, 2);
 
       expect(builder).toBeDefined();
       expect(typeof builder.setChainId).toBe('function');

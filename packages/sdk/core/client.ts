@@ -6,7 +6,7 @@ import { CofheError, CofheErrorCode } from './error.js';
 import { EncryptInputsBuilder } from './encrypt/encryptInputsBuilder.js';
 import { createKeysStore } from './keyStore.js';
 import { permits } from './permits.js';
-import { DecryptHandlesBuilder } from './decrypt/decryptHandleBuilder.js';
+import { DecryptForViewBuilder } from './decrypt/decryptForViewBuilder.js';
 import { DecryptForTxBuilder } from './decrypt/decryptForTxBuilder.js';
 import { getPublicClientChainID, getWalletClientAccount } from './utils.js';
 import type { CofheClientConnectionState, CofheClientParams, CofheClient, CofheClientPermits } from './clientTypes.js';
@@ -146,10 +146,10 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
     });
   }
 
-  function decryptHandle<U extends FheTypes>(ctHash: bigint, utype: U): DecryptHandlesBuilder<U> {
+  function decryptForView<U extends FheTypes>(ctHash: bigint, utype: U): DecryptForViewBuilder<U> {
     const state = connectStore.getState();
 
-    return new DecryptHandlesBuilder({
+    return new DecryptForViewBuilder({
       ctHash,
       utype,
       chainId: state.chainId ?? undefined,
@@ -314,7 +314,7 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
     connect,
     disconnect,
     encryptInputs,
-    decryptHandle,
+    decryptForView,
     decryptForTx,
     permits: clientPermits,
 

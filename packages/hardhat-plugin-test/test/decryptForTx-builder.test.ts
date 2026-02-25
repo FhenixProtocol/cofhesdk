@@ -146,7 +146,7 @@ describe('DecryptForTx Integration Tests', () => {
     // Error handling tests - can be extended as needed
   });
 
-  describe('decryptForTx vs decryptHandle', () => {
+  describe('decryptForTx vs decryptForView', () => {
     it('Should return plaintext value', async function () {
       const testValue = 123n;
       const encrypted = await cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
@@ -160,17 +160,17 @@ describe('DecryptForTx Integration Tests', () => {
       expect(typeof decryptForTxResult.signature).to.equal('string');
     });
 
-    it('Should support both decryptHandle and decryptForTx', async function () {
+    it('Should support both decryptForView and decryptForTx', async function () {
       const testValue = 234n;
       const encrypted = await cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
       const tx = await testContract.connect(signer).setValue(encrypted[0]);
       await tx.wait();
 
       const ctHash = encrypted[0].ctHash;
-      const handleResult = await cofheClient.decryptHandle(ctHash, FheTypes.Uint32).execute();
+      const viewResult = await cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
       const forTxResult = await cofheClient.decryptForTx(ctHash).execute();
 
-      expect(handleResult).to.be.equal(testValue);
+      expect(viewResult).to.be.equal(testValue);
       expect(forTxResult.ctHash).to.be.equal(ctHash);
       expect(forTxResult.decryptedValue).to.be.equal(testValue);
     });

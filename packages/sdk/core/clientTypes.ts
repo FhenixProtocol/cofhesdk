@@ -1,7 +1,7 @@
 // TODO: Extract client types to its own file, keep this one as primitives
 import { type PublicClient, type WalletClient } from 'viem';
 import { type CofheConfig } from './config.js';
-import { type DecryptHandlesBuilder } from './decrypt/decryptHandleBuilder.js';
+import { type DecryptForViewBuilder } from './decrypt/decryptForViewBuilder.js';
 import { type DecryptForTxBuilder } from './decrypt/decryptForTxBuilder.js';
 import { type EncryptInputsBuilder } from './encrypt/encryptInputsBuilder.js';
 import { type ZkBuilderAndCrsGenerator, type ZkProveWorkerFunction } from './encrypt/zkPackProveVerify.js';
@@ -45,7 +45,7 @@ export type CofheClient<TConfig extends CofheConfig = CofheConfig> = {
    * Types docstring
    */
   encryptInputs<T extends EncryptableItem[]>(inputs: [...T]): EncryptInputsBuilder<[...T]>;
-  decryptHandle<U extends FheTypes>(ctHash: bigint, utype: U): DecryptHandlesBuilder<U>;
+  decryptForView<U extends FheTypes>(ctHash: bigint, utype: U): DecryptForViewBuilder<U>;
   decryptForTx(ctHash: bigint): DecryptForTxBuilder;
   permits: CofheClientPermits;
 };

@@ -15,7 +15,7 @@ import { cofheMocksDecryptForTx } from './cofheMocksDecryptForTx.js';
 /**
  * API
  *
- * await client.decryptHandle(ctHash, utype)
+ * await client.decryptForView(ctHash, utype)
  *   .setChainId(chainId)
  *   .setAccount(account)
  *   .setPermitHash(permitHash)
@@ -30,20 +30,20 @@ import { cofheMocksDecryptForTx } from './cofheMocksDecryptForTx.js';
  * Returns the unsealed item.
  */
 
-type DecryptHandlesBuilderParams<U extends FheTypes> = BaseBuilderParams & {
+type DecryptForViewBuilderParams<U extends FheTypes> = BaseBuilderParams & {
   ctHash: bigint;
   utype: U;
   permitHash?: string;
   permit?: Permit;
 };
 
-export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
+export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
   private ctHash: bigint;
   private utype: U;
   private permitHash?: string;
   private permit?: Permit;
 
-  constructor(params: DecryptHandlesBuilderParams<U>) {
+  constructor(params: DecryptForViewBuilderParams<U>) {
     super({
       config: params.config,
       publicClient: params.publicClient,
@@ -71,9 +71,9 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
    *   .execute();
    * ```
    *
-   * @returns The chainable DecryptHandlesBuilder instance.
+   * @returns The chainable DecryptForViewBuilder instance.
    */
-  setChainId(chainId: number): DecryptHandlesBuilder<U> {
+  setChainId(chainId: number): DecryptForViewBuilder<U> {
     this.chainId = chainId;
     return this;
   }
@@ -94,9 +94,9 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
    *   .execute();
    * ```
    *
-   * @returns The chainable DecryptHandlesBuilder instance.
+   * @returns The chainable DecryptForViewBuilder instance.
    */
-  setAccount(account: string): DecryptHandlesBuilder<U> {
+  setAccount(account: string): DecryptForViewBuilder<U> {
     this.account = account;
     return this;
   }
@@ -118,9 +118,9 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
    *   .execute();
    * ```
    *
-   * @returns The chainable DecryptHandlesBuilder instance.
+   * @returns The chainable DecryptForViewBuilder instance.
    */
-  setPermitHash(permitHash: string): DecryptHandlesBuilder<U> {
+  setPermitHash(permitHash: string): DecryptForViewBuilder<U> {
     this.permitHash = permitHash;
     return this;
   }
@@ -141,9 +141,9 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
    *   .execute();
    * ```
    *
-   * @returns The chainable DecryptHandlesBuilder instance.
+   * @returns The chainable DecryptForViewBuilder instance.
    */
-  setPermit(permit: Permit): DecryptHandlesBuilder<U> {
+  setPermit(permit: Permit): DecryptForViewBuilder<U> {
     this.permit = permit;
     return this;
   }

@@ -42,7 +42,7 @@ describe('Hardhat Integration Tests', () => {
     await tx.wait();
 
     // Decrypt the value using the ctHash from the encrypted input
-    const unsealedResult = await cofheClient.decryptHandle(encrypted[0].ctHash, FheTypes.Uint32).execute();
+    const unsealedResult = await cofheClient.decryptForView(encrypted[0].ctHash, FheTypes.Uint32).execute();
 
     // Verify the decrypted value matches
     expect(unsealedResult).to.be.equal(testValue);
