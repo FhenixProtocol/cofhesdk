@@ -427,6 +427,13 @@ abstract contract CoFheTest is Test {
     return mockThresholdNetwork.querySealOutput(ctHash, hostChainId, permission);
   }
 
+  function decryptForTx(
+    uint256 ctHash,
+    Permission memory permission
+  ) public view returns (bool, string memory error, uint256) {
+    return mockThresholdNetwork.decryptForTx(ctHash, permission);
+  }
+
   function unseal(bytes32 hashed, bytes32 key) public view returns (uint256) {
     return mockThresholdNetwork.unseal(hashed, key);
   }

@@ -114,6 +114,51 @@ contract MockThresholdNetwork {
     return (true, '', seal(value, permission.sealingKey));
   }
 
+  // DECRYPT FOR TX
+
+  /// @notice Decrypt a ciphertext for a transaction with optional permission permit
+  /// @param ctHash The ciphertext hash to decrypt
+  /// @param permission Optional permission object; if empty (issuer == address(0)), check global allowance
+  /// @return allowed Whether the decryption is allowed
+  /// @return error Error message if decryption is not allowed
+  /// @return decryptedValue The decrypted plaintext value if allowed
+  function decryptForTx(
+    uint256 ctHash,
+    Permission memory permission
+  ) public view returns (bool allowed, string memory error, uint256 decryptedValue) {
+    bool isAllowed;
+
+    // If permission has an issuer, use permission-based check; otherwise use global allowance check
+    if (permission.issuer != address(0)) {
+      // With permit: query TM.isAllowedWithPermission()
+      try mockTaskManager.isAllowedWithPermission(permission, ctHash) returns (bool _isAllowed) {
+        isAllowed = _isAllowed;
+      } catch Error(string memory reason) {
+        return (false, reason, 0);
+      } catch Panic(uint /*errorCode*/) {
+        return (false, 'Panic', 0);
+      } catch (bytes memory lowLevelData) {
+        return (false, decodeLowLevelReversion(lowLevelData), 0);
+      }
+    } else {
+      // Without permit: query TM.globallyAllowed() via ACL
+      try mockAcl.globalAllowed(ctHash) returns (bool _isAllowed) {
+        isAllowed = _isAllowed;
+      } catch Error(string memory reason) {
+        return (false, reason, 0);
+      } catch Panic(uint /*errorCode*/) {
+        return (false, 'Panic', 0);
+      } catch (bytes memory lowLevelData) {
+        return (false, decodeLowLevelReversion(lowLevelData), 0);
+      }
+    }
+
+    if (!isAllowed) return (false, 'NotAllowed', 0);
+
+    uint256 value = mockTaskManager.mockStorage(ctHash);
+    return (true, '', value);
+  }
+
   // UTIL
 
   function decodeLowLevelReversion(bytes memory data) public pure returns (string memory error) {

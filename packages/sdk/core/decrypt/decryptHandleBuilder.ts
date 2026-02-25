@@ -10,6 +10,7 @@ import { BaseBuilder, type BaseBuilderParams } from '../baseBuilder.js';
 import { cofheMocksSealOutput } from './cofheMocksSealOutput.js';
 // import { tnSealOutputV1 } from './tnSealOutputV1.js';
 import { tnSealOutputV2 } from './tnSealOutputV2.js';
+import { cofheMocksDecryptForTx } from './cofheMocksDecryptForTx.js';
 
 /**
  * API
@@ -216,6 +217,14 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
     const mocksSealOutputDelay = this.config.mocks.sealOutputDelay;
     return cofheMocksSealOutput(this.ctHash, this.utype, permit, this.publicClient, mocksSealOutputDelay);
   }
+
+  // private async mocksDecryptForTx(permit: Permit): Promise<bigint> {
+  //   this.assertPublicClient();
+
+  //   // TODO: delay - should be separate config setting?
+  //   const delay = this.config.mocks.sealOutputDelay;
+  //   return cofheMocksDecryptForTx(this.ctHash, this.utype, permit, this.publicClient, delay);
+  // }
 
   /**
    * In the production context, perform a true decryption with the CoFHE coprocessor.
