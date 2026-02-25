@@ -2,7 +2,7 @@ import { type Permit, PermitUtils } from '@/permits';
 
 import { type PublicClient } from 'viem';
 import { sleep } from '../utils.js';
-import { MockQueryDecrypterAbi } from './MockQueryDecrypterAbi.js';
+import { MockThresholdNetworkAbi } from './MockThresholdNetworkAbi.js';
 import { FheTypes } from '../types.js';
 import { CofheError, CofheErrorCode } from '../error.js';
 import { MOCKS_QUERY_DECRYPTER_ADDRESS } from '../consts.js';
@@ -28,7 +28,7 @@ export async function cofheMocksSealOutput(
 
   const [allowed, error, result] = await publicClient.readContract({
     address: MOCKS_QUERY_DECRYPTER_ADDRESS,
-    abi: MockQueryDecrypterAbi,
+    abi: MockThresholdNetworkAbi,
     functionName: 'querySealOutput',
     args: [ctHash, BigInt(utype), permissionWithBigInts],
   });

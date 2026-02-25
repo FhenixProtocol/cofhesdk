@@ -11,7 +11,7 @@ A mock smart contract library for testing CoFHE (Confidential Computing Framewor
 
 - Mock implementations of core CoFHE contracts:
   - MockTaskManager
-  - MockQueryDecrypter
+  - MockThresholdNetwork
   - MockZkVerifier
   - ACL (Access Control List)
 - Synchronous operation simulation with mock delays
@@ -136,7 +136,7 @@ Off-chain decryption is performed by calling the `cofheClient.decryptHandle` fun
 
 When interacting with CoFHE this request is routed to the Threshold Network, which will perform the decryption operation, ultimately returning a decrypted result.
 
-When working with the mocks, the `cofheClient` will instead query the `MockQueryDecrypter` contract, which will verify the request `permit`, and return the decrypted result.
+When working with the mocks, the `cofheClient` will instead query the `MockThresholdNetwork` contract, which will verify the request `permit`, and return the decrypted result.
 
 ### Using Foundry
 

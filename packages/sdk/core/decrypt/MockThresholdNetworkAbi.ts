@@ -1,4 +1,4 @@
-export const MockQueryDecrypterAbi = [
+export const MockThresholdNetworkAbi = [
   {
     type: 'function',
     name: 'acl',
@@ -45,11 +45,7 @@ export const MockQueryDecrypterAbi = [
           { name: 'expiration', type: 'uint64', internalType: 'uint64' },
           { name: 'recipient', type: 'address', internalType: 'address' },
           { name: 'validatorId', type: 'uint256', internalType: 'uint256' },
-          {
-            name: 'validatorContract',
-            type: 'address',
-            internalType: 'address',
-          },
+          { name: 'validatorContract', type: 'address', internalType: 'address' },
           { name: 'sealingKey', type: 'bytes32', internalType: 'bytes32' },
           { name: 'issuerSignature', type: 'bytes', internalType: 'bytes' },
           { name: 'recipientSignature', type: 'bytes', internalType: 'bytes' },
@@ -78,11 +74,7 @@ export const MockQueryDecrypterAbi = [
           { name: 'expiration', type: 'uint64', internalType: 'uint64' },
           { name: 'recipient', type: 'address', internalType: 'address' },
           { name: 'validatorId', type: 'uint256', internalType: 'uint256' },
-          {
-            name: 'validatorContract',
-            type: 'address',
-            internalType: 'address',
-          },
+          { name: 'validatorContract', type: 'address', internalType: 'address' },
           { name: 'sealingKey', type: 'bytes32', internalType: 'bytes32' },
           { name: 'issuerSignature', type: 'bytes', internalType: 'bytes' },
           { name: 'recipientSignature', type: 'bytes', internalType: 'bytes' },
@@ -108,13 +100,6 @@ export const MockQueryDecrypterAbi = [
   },
   {
     type: 'function',
-    name: 'taskManager',
-    inputs: [],
-    outputs: [{ name: '', type: 'address', internalType: 'contract TaskManager' }],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
     name: 'unseal',
     inputs: [
       { name: 'hashed', type: 'bytes32', internalType: 'bytes32' },
@@ -123,7 +108,33 @@ export const MockQueryDecrypterAbi = [
     outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
     stateMutability: 'pure',
   },
-  { type: 'error', name: 'NotAllowed', inputs: [] },
-  { type: 'error', name: 'SealingKeyInvalid', inputs: [] },
-  { type: 'error', name: 'SealingKeyMissing', inputs: [] },
+  {
+    type: 'function',
+    name: 'mockAcl',
+    inputs: [],
+    outputs: [{ name: '', type: 'address', internalType: 'contract MockACL' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'mockTaskManager',
+    inputs: [],
+    outputs: [{ name: '', type: 'address', internalType: 'contract MockTaskManager' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'mockQueryDecrypt',
+    inputs: [
+      { name: 'ctHash', type: 'uint256', internalType: 'uint256' },
+      { name: '', type: 'uint256', internalType: 'uint256' },
+      { name: 'issuer', type: 'address', internalType: 'address' },
+    ],
+    outputs: [
+      { name: 'allowed', type: 'bool', internalType: 'bool' },
+      { name: 'error', type: 'string', internalType: 'string' },
+      { name: '', type: 'uint256', internalType: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
 ] as const;

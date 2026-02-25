@@ -37,9 +37,9 @@ describe('Deploy Mocks Task', () => {
 
     // QUERY DECRYPTER
 
-    const queryDecrypterFromCofhesdk = await hre.cofhe.mocks.getMockQueryDecrypter();
-    expect(await queryDecrypterFromCofhesdk.exists()).to.be.true;
-    expect(await queryDecrypterFromCofhesdk.getAddress()).to.be.equal(MOCKS_QUERY_DECRYPTER_ADDRESS);
+    const thresholdNetworkFromCofhesdk = await hre.cofhe.mocks.getMockThresholdNetwork();
+    expect(await thresholdNetworkFromCofhesdk.exists()).to.be.true;
+    expect(await thresholdNetworkFromCofhesdk.getAddress()).to.be.equal(MOCKS_QUERY_DECRYPTER_ADDRESS);
 
     // TEST BED
 

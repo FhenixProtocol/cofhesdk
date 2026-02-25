@@ -9,7 +9,7 @@ import { MockZkVerifier } from '../MockZkVerifier.sol';
 import { MockZkVerifierSigner } from './MockZkVerifierSigner.sol';
 import { MessageHashUtils } from '@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol';
 import { Permission, PermissionUtils } from '../Permissioned.sol';
-import { MockQueryDecrypter } from '../MockQueryDecrypter.sol';
+import { MockThresholdNetwork } from '../MockThresholdNetwork.sol';
 import { SIGNER_ADDRESS } from '../MockCoFHE.sol';
 
 abstract contract CoFheTest is Test {
@@ -17,7 +17,7 @@ abstract contract CoFheTest is Test {
   MockZkVerifier public mockZkVerifier;
   MockZkVerifierSigner public mockZkVerifierSigner;
   MockACL public mockAcl;
-  MockQueryDecrypter public mockQueryDecrypter;
+  MockThresholdNetwork public mockThresholdNetwork;
 
   // Keep these in sync with `packages/sdk/core/consts.ts`
   address constant ZK_VERIFIER_ADDRESS = 0x0000000000000000000000000000000000005001;
@@ -79,10 +79,10 @@ abstract contract CoFheTest is Test {
 
     // QUERY DECRYPTER
 
-    deployCodeTo('MockQueryDecrypter.sol:MockQueryDecrypter', QUERY_DECRYPTER_ADDRESS);
-    mockQueryDecrypter = MockQueryDecrypter(QUERY_DECRYPTER_ADDRESS);
-    vm.label(address(mockQueryDecrypter), 'MockQueryDecrypter');
-    mockQueryDecrypter.initialize(TASK_MANAGER_ADDRESS, address(mockAcl));
+    deployCodeTo('MockThresholdNetwork.sol:MockThresholdNetwork', QUERY_DECRYPTER_ADDRESS);
+    mockThresholdNetwork = MockThresholdNetwork(QUERY_DECRYPTER_ADDRESS);
+    vm.label(address(mockThresholdNetwork), 'MockThresholdNetwork');
+    mockThresholdNetwork.initialize(TASK_MANAGER_ADDRESS, address(mockAcl));
 
     // SET LOG OPS
 
@@ -416,7 +416,7 @@ abstract contract CoFheTest is Test {
     uint256 hostChainId,
     Permission memory permission
   ) public view returns (bool, string memory error, uint256) {
-    return mockQueryDecrypter.queryDecrypt(ctHash, hostChainId, permission);
+    return mockThresholdNetwork.queryDecrypt(ctHash, hostChainId, permission);
   }
 
   function querySealOutput(
@@ -424,10 +424,10 @@ abstract contract CoFheTest is Test {
     uint256 hostChainId,
     Permission memory permission
   ) public view returns (bool, string memory error, bytes32) {
-    return mockQueryDecrypter.querySealOutput(ctHash, hostChainId, permission);
+    return mockThresholdNetwork.querySealOutput(ctHash, hostChainId, permission);
   }
 
   function unseal(bytes32 hashed, bytes32 key) public view returns (uint256) {
-    return mockQueryDecrypter.unseal(hashed, key);
+    return mockThresholdNetwork.unseal(hashed, key);
   }
 }

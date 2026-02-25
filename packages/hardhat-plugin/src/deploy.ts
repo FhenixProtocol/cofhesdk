@@ -6,7 +6,7 @@ import {
   MockTaskManagerArtifact,
   MockACLArtifact,
   MockZkVerifierArtifact,
-  MockQueryDecrypterArtifact,
+  MockThresholdNetworkArtifact,
   TestBedArtifact,
 } from '@cofhe/mock-contracts';
 
@@ -62,8 +62,8 @@ export const deployMocks = async (
   const zkVerifier = await deployMockZkVerifier(hre);
   logDeployment('MockZkVerifier', await zkVerifier.getAddress());
 
-  const queryDecrypter = await deployMockQueryDecrypter(hre, acl);
-  logDeployment('MockQueryDecrypter', await queryDecrypter.getAddress());
+  const thresholdNetwork = await deployMockThresholdNetwork(hre, acl);
+  logDeployment('MockThresholdNetwork', await thresholdNetwork.getAddress());
 
   if (options.deployTestBed) {
     logSuccess('TestBed deployment enabled', 2);
@@ -154,20 +154,20 @@ const deployMockZkVerifier = async (hre: HardhatRuntimeEnvironment) => {
   return zkVerifier;
 };
 
-const deployMockQueryDecrypter = async (hre: HardhatRuntimeEnvironment, acl: Contract) => {
-  const queryDecrypter = await deployMockContractFromArtifact(hre, MockQueryDecrypterArtifact);
+const deployMockThresholdNetwork = async (hre: HardhatRuntimeEnvironment, acl: Contract) => {
+  const thresholdNetwork = await deployMockContractFromArtifact(hre, MockThresholdNetworkArtifact);
 
-  // Initialize MockQueryDecrypter
-  const initTx = await queryDecrypter.initialize(TASK_MANAGER_ADDRESS, await acl.getAddress());
+  // Initialize MockThresholdNetwork
+  const initTx = await thresholdNetwork.initialize(TASK_MANAGER_ADDRESS, await acl.getAddress());
   await initTx.wait();
 
-  // Check if MockQueryDecrypter exists
-  const queryDecrypterExists = await queryDecrypter.exists();
-  if (!queryDecrypterExists) {
-    throw new Error('MockQueryDecrypter does not exist');
+  // Check if MockThresholdNetwork exists
+  const exists = await thresholdNetwork.exists();
+  if (!exists) {
+    throw new Error('MockThresholdNetwork does not exist');
   }
 
-  return queryDecrypter;
+  return thresholdNetwork;
 };
 
 const deployTestBedContract = async (hre: HardhatRuntimeEnvironment) => {

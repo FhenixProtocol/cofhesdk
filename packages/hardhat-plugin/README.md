@@ -46,7 +46,7 @@ This plugin uses [cofhe-mock-contracts](https://github.com/FhenixProtocol/cofhe-
 The mock contracts include:
 
 - MockTaskManager: Manages FHE operations and stores plaintext values
-- MockQueryDecrypter: Handles decryption requests
+- MockThresholdNetwork: Handles decryption requests
 - MockZkVerifier: Simulates verification of encrypted inputs
 - ACL: Handles access control
 

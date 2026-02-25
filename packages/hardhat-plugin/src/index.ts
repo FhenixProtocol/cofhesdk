@@ -24,7 +24,7 @@ import type { Contract } from 'ethers';
 import { hardhat } from '@cofhe/sdk/chains';
 import {
   MockACLArtifact,
-  MockQueryDecrypterArtifact,
+  MockThresholdNetworkArtifact,
   MockTaskManagerArtifact,
   MockZkVerifierArtifact,
   TestBedArtifact,
@@ -313,10 +313,10 @@ declare module 'hardhat/types/runtime' {
         getMockACL: () => Promise<Contract>;
 
         /**
-         * Get the MockQueryDecrypter contract
-         * @returns {Promise<Contract>} The MockQueryDecrypter contract
+         * Get the MockThresholdNetwork contract
+         * @returns {Promise<Contract>} The MockThresholdNetwork contract
          */
-        getMockQueryDecrypter: () => Promise<Contract>;
+        getMockThresholdNetwork: () => Promise<Contract>;
 
         /**
          * Get the MockZkVerifier contract
@@ -417,7 +417,7 @@ extendEnvironment((hre) => {
         const aclAddress = await taskManager.acl();
         return hre.ethers.getContractAt(MockACLArtifact.abi, aclAddress);
       },
-      getMockQueryDecrypter: async () => getFixedMockContract(hre, MockQueryDecrypterArtifact),
+      getMockThresholdNetwork: async () => getFixedMockContract(hre, MockThresholdNetworkArtifact),
       getMockZkVerifier: async () => getFixedMockContract(hre, MockZkVerifierArtifact),
       getTestBed: async () => getFixedMockContract(hre, TestBedArtifact),
     },

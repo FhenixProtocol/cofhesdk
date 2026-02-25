@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 // solhint-disable one-contract-per-file
 
+// NOTE: This file was renamed from `MockQueryDecrypter.sol` to better reflect that it mocks
+// threshold-network-style decryption/sealing behavior in local/testing environments.
+
 pragma solidity >=0.8.19 <0.9.0;
 
 import { MockACL } from './MockACL.sol';
 import { MockTaskManager } from './MockTaskManager.sol';
 import { Permission, MockPermissioned } from './Permissioned.sol';
 
-contract MockQueryDecrypter {
+contract MockThresholdNetwork {
   MockTaskManager public mockTaskManager;
   MockACL public mockAcl;
 

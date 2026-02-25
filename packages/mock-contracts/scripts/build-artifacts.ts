@@ -10,7 +10,7 @@ import {
 const fixedContracts = {
   MockTaskManager: TASK_MANAGER_ADDRESS,
   MockZkVerifier: MOCKS_ZK_VERIFIER_ADDRESS,
-  MockQueryDecrypter: MOCKS_QUERY_DECRYPTER_ADDRESS,
+  MockThresholdNetwork: MOCKS_QUERY_DECRYPTER_ADDRESS,
   TestBed: TEST_BED_ADDRESS,
 };
 
