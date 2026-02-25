@@ -13,7 +13,7 @@ contract SimpleTest {
 
   function setValueTrivial(uint256 inValue) public {
     storedValue = FHE.asEuint32(inValue);
-    storedValueHash = euint32.unwrap(storedValue);
+    storedValueHash = uint256(euint32.unwrap(storedValue));
     FHE.allowThis(storedValue);
     FHE.allowSender(storedValue);
   }
@@ -24,7 +24,7 @@ contract SimpleTest {
    */
   function setValue(InEuint32 memory inValue) public {
     storedValue = FHE.asEuint32(inValue);
-    storedValueHash = euint32.unwrap(storedValue);
+    storedValueHash = uint256(euint32.unwrap(storedValue));
     FHE.allowThis(storedValue);
     FHE.allowSender(storedValue);
   }
