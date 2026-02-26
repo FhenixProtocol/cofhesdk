@@ -9,17 +9,17 @@ describe('Encrypt Inputs Test', () => {
 
     await hre.run(TASK_COFHE_MOCKS_DEPLOY);
 
-    const client = await hre.cofhesdk.createBatteriesIncludedCofhesdkClient(signer);
+    const client = await hre.cofhe.createClientWithBatteries(signer);
 
-    const encrypted = await client.encryptInputs([Encryptable.uint32(7n)]).encrypt();
+    const encrypted = await client.encryptInputs([Encryptable.uint32(7n)]).execute();
 
     // Add number to TestBed
-    const testBed = await hre.cofhesdk.mocks.getTestBed();
+    const testBed = await hre.cofhe.mocks.getTestBed();
     await testBed.setNumber(encrypted[0]);
     const ctHash = await testBed.numberHash();
 
     // Decrypt number from TestBed
-    const unsealed = await client.decryptHandle(ctHash, FheTypes.Uint32).decrypt();
+    const unsealed = await client.decryptHandle(ctHash, FheTypes.Uint32).execute();
 
     expect(unsealed).to.be.equal(7n);
   });

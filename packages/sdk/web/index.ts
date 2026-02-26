@@ -1,11 +1,11 @@
 // Web specific functionality only
 
 import {
-  createCofhesdkClientBase,
-  createCofhesdkConfigBase,
-  type CofhesdkClient,
-  type CofhesdkConfig,
-  type CofhesdkInputConfig,
+  createCofheClientBase,
+  createCofheConfigBase,
+  type CofheClient,
+  type CofheConfig,
+  type CofheInputConfig,
   type ZkBuilderAndCrsGenerator,
   type FheKeyDeserializer,
   type EncryptableItem,
@@ -95,12 +95,12 @@ async function zkProveWithWorker(
 }
 
 /**
- * Creates a CoFHE SDK configuration for web with IndexedDB storage as default
- * @param config - The CoFHE SDK input configuration (fheKeyStorage will default to IndexedDB if not provided)
- * @returns The CoFHE SDK configuration with web defaults applied
+ * Creates a CoFHE configuration for web with IndexedDB storage as default
+ * @param config - The CoFHE input configuration (fheKeyStorage will default to IndexedDB if not provided)
+ * @returns The CoFHE configuration with web defaults applied
  */
-export function createCofhesdkConfig(config: CofhesdkInputConfig): CofhesdkConfig {
-  return createCofhesdkConfigBase({
+export function createCofheConfig(config: CofheInputConfig): CofheConfig {
+  return createCofheConfigBase({
     environment: 'web',
     ...config,
     fheKeyStorage: config.fheKeyStorage === null ? null : config.fheKeyStorage ?? createWebStorage(),
@@ -108,14 +108,14 @@ export function createCofhesdkConfig(config: CofhesdkInputConfig): CofhesdkConfi
 }
 
 /**
- * Creates a CoFHE SDK client instance for web with TFHE automatically configured
+ * Creates a CoFHE client instance for web with TFHE automatically configured
  * TFHE will be initialized automatically on first encryption - no manual setup required
  * Workers are automatically enabled if available (can be disabled via config.useWorkers)
- * @param config - The CoFHE SDK configuration (use createCofhesdkConfig to create with web defaults)
- * @returns The CoFHE SDK client instance
+ * @param config - The CoFHE configuration (use createCofheConfig to create with web defaults)
+ * @returns The CoFHE client instance
  */
-export function createCofhesdkClient<TConfig extends CofhesdkConfig>(config: TConfig): CofhesdkClient<TConfig> {
-  return createCofhesdkClientBase({
+export function createCofheClient<TConfig extends CofheConfig>(config: TConfig): CofheClient<TConfig> {
+  return createCofheClientBase({
     config,
     zkBuilderAndCrsGenerator,
     tfhePublicKeyDeserializer,
@@ -141,16 +141,16 @@ export { areWorkersAvailable };
  * Test helper: Create a client with custom worker function (for testing fallback behavior)
  * @internal - Only for testing purposes
  */
-export function createCofhesdkClientWithCustomWorker(
-  config: CofhesdkConfig,
+export function createCofheClientWithCustomWorker(
+  config: CofheConfig,
   customZkProveWorkerFn: (
     fheKeyHex: string,
     crsHex: string,
     items: EncryptableItem[],
     metadata: Uint8Array
   ) => Promise<Uint8Array>
-): CofhesdkClient {
-  return createCofhesdkClientBase({
+): CofheClient {
+  return createCofheClientBase({
     config,
     zkBuilderAndCrsGenerator,
     tfhePublicKeyDeserializer,

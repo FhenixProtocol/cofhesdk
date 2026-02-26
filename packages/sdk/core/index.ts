@@ -1,17 +1,17 @@
 // Client (base implementations)
-export { createCofhesdkClientBase, InitialConnectStore as CONNECT_STORE_DEFAULTS } from './client.js';
+export { createCofheClientBase, InitialConnectStore as CONNECT_STORE_DEFAULTS } from './client.js';
 
 // Configuration (base implementations)
-export { createCofhesdkConfigBase, getCofhesdkConfigItem } from './config.js';
-export type { CofhesdkConfig, CofhesdkInputConfig, CofhesdkInternalConfig } from './config.js';
+export { createCofheConfigBase, getCofheConfigItem } from './config.js';
+export type { CofheConfig, CofheInputConfig, CofheInternalConfig } from './config.js';
 
 // Types
 export type {
   // Client types
-  CofhesdkClient,
-  CofhesdkClientParams,
-  CofhesdkClientConnectionState,
-  CofhesdkClientPermits,
+  CofheClient as CofheClient,
+  CofheClientParams as CofheClientParams,
+  CofheClientConnectionState as CofheClientConnectionState,
+  CofheClientPermits as CofheClientPermits,
 } from './clientTypes.js';
 
 export type {
@@ -59,8 +59,8 @@ export {
 } from './types.js';
 
 // Error handling
-export { CofhesdkError, CofhesdkErrorCode, isCofhesdkError } from './error.js';
-export type { CofhesdkErrorParams } from './error.js';
+export { CofheError, CofheErrorCode, isCofheError } from './error.js';
+export type { CofheErrorParams } from './error.js';
 
 // Key fetching
 export { fetchKeys } from './fetchKeys.js';

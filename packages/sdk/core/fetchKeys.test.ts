@@ -5,12 +5,12 @@ import { sepolia, arbSepolia } from '@/chains';
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { fetchKeys } from './fetchKeys.js';
-import { type CofhesdkConfig, createCofhesdkConfigBase } from './config.js';
+import { type CofheConfig, createCofheConfigBase } from './config.js';
 import { createKeysStore, type KeysStorage } from './keyStore.js';
 import { getSdkUserAgent } from './userAgent.js';
 
 describe('fetchKeys', () => {
-  let config: CofhesdkConfig;
+  let config: CofheConfig;
   let mockTfhePublicKeyDeserializer: any;
   let mockCompactPkeCrsDeserializer: any;
   let keysStorage: KeysStorage;
@@ -44,7 +44,7 @@ describe('fetchKeys', () => {
     }) as any;
 
     // Setup config with real chains
-    config = createCofhesdkConfigBase({
+    config = createCofheConfigBase({
       supportedChains: [sepolia, arbSepolia],
     });
 

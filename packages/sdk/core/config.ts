@@ -2,26 +2,19 @@ import { type CofheChain } from '@/chains';
 
 import { z } from 'zod';
 import { type WalletClient } from 'viem';
-import { CofhesdkError, CofhesdkErrorCode } from './error.js';
+import { CofheError, CofheErrorCode } from './error.js';
 import { type IStorage } from './types.js';
 
-export type CofhesdkEnvironment = 'node' | 'hardhat' | 'web' | 'react';
+export type CofheEnvironment = 'node' | 'hardhat' | 'web' | 'react';
 
 /**
  * Usable config type inferred from the schema
  */
-export type CofhesdkConfig = {
+export type CofheConfig = {
   /** Environment that the SDK is running in */
   environment: 'node' | 'hardhat' | 'web' | 'react';
   /** List of supported chains */
   supportedChains: CofheChain[];
-  /**
-   * How permits are generated
-   * - ON_CONNECT: Generate a permit when client.connect() is called
-   * - ON_DECRYPT_HANDLES: Generate a permit when client.decryptHandles() is called
-   * - MANUAL: Generate a permit manually using client.generatePermit()
-   */
-  permitGeneration: 'ON_CONNECT' | 'ON_DECRYPT_HANDLES' | 'MANUAL';
   /** Default permit expiration in seconds, default is 30 days */
   defaultPermitExpiration: number;
   /**
@@ -45,23 +38,21 @@ export type CofhesdkConfig = {
      */
     sealOutputDelay: number;
   };
-  _internal?: CofhesdkInternalConfig;
+  _internal?: CofheInternalConfig;
 };
 
-export type CofhesdkInternalConfig = {
+export type CofheInternalConfig = {
   zkvWalletClient?: WalletClient;
 };
 
 /**
  * Zod schema for configuration validation
  */
-export const CofhesdkConfigSchema = z.object({
+export const CofheConfigSchema = z.object({
   /** Environment that the SDK is running in */
   environment: z.enum(['node', 'hardhat', 'web', 'react']).optional().default('node'),
   /** List of supported chain configurations */
   supportedChains: z.array(z.custom<CofheChain>()),
-  /** How permits are generated */
-  permitGeneration: z.enum(['ON_CONNECT', 'ON_DECRYPT_HANDLES', 'MANUAL']).optional().default('ON_CONNECT'),
   /** Default permit expiration in seconds, default is 30 days */
   defaultPermitExpiration: z
     .number()
@@ -102,48 +93,45 @@ export const CofhesdkConfigSchema = z.object({
 /**
  * Input config type inferred from the schema
  */
-export type CofhesdkInputConfig = z.input<typeof CofhesdkConfigSchema>;
+export type CofheInputConfig = z.input<typeof CofheConfigSchema>;
 
 /**
- * Creates and validates a cofhesdk configuration (base implementation)
+ * Creates and validates a cofhe configuration (base implementation)
  * @param config - The configuration object to validate
  * @returns The validated configuration
  * @throws {Error} If the configuration is invalid
  */
-export function createCofhesdkConfigBase(config: CofhesdkInputConfig): CofhesdkConfig {
-  const result = CofhesdkConfigSchema.safeParse(config);
+export function createCofheConfigBase(config: CofheInputConfig): CofheConfig {
+  const result = CofheConfigSchema.safeParse(config);
 
   if (!result.success) {
-    throw new Error(`Invalid cofhesdk configuration: ${z.prettifyError(result.error)}`, { cause: result.error });
+    throw new Error(`Invalid cofhe configuration: ${z.prettifyError(result.error)}`, { cause: result.error });
   }
 
   return result.data;
 }
 
 /**
- * Access the CofhesdkConfig object directly by providing the key.
+ * Access the CofheConfig object directly by providing the key.
  * This is powerful when you use OnchainKit utilities outside of the React context.
  */
-export const getCofhesdkConfigItem = <K extends keyof CofhesdkConfig>(
-  config: CofhesdkConfig,
-  key: K
-): CofhesdkConfig[K] => {
+export const getCofheConfigItem = <K extends keyof CofheConfig>(config: CofheConfig, key: K): CofheConfig[K] => {
   return config[key];
 };
 
 /**
  * Gets a supported chain from config by chainId, throws if not found
- * @param config - The cofhesdk configuration
+ * @param config - The cofhe configuration
  * @param chainId - The chain ID to look up
  * @returns The supported chain configuration
- * @throws {CofhesdkError} If the chain is not found in the config
+ * @throws {CofheError} If the chain is not found in the config
  */
-export function getSupportedChainOrThrow(config: CofhesdkConfig, chainId: number): CofheChain {
+export function getSupportedChainOrThrow(config: CofheConfig, chainId: number): CofheChain {
   const supportedChain = config.supportedChains.find((chain) => chain.id === chainId);
 
   if (!supportedChain) {
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.UnsupportedChain,
+    throw new CofheError({
+      code: CofheErrorCode.UnsupportedChain,
       message: `Config does not support chain <${chainId}>`,
       hint: 'Ensure config passed to client has been created with this chain in the config.supportedChains array.',
       context: {
@@ -158,18 +146,18 @@ export function getSupportedChainOrThrow(config: CofhesdkConfig, chainId: number
 
 /**
  * Gets the CoFHE URL for a chain, throws if not found
- * @param config - The cofhesdk configuration
+ * @param config - The cofhe configuration
  * @param chainId - The chain ID to look up
  * @returns The CoFHE URL for the chain
- * @throws {CofhesdkError} If the chain or URL is not found
+ * @throws {CofheError} If the chain or URL is not found
  */
-export function getCoFheUrlOrThrow(config: CofhesdkConfig, chainId: number): string {
+export function getCoFheUrlOrThrow(config: CofheConfig, chainId: number): string {
   const supportedChain = getSupportedChainOrThrow(config, chainId);
   const url = supportedChain.coFheUrl;
 
   if (!url) {
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.MissingConfig,
+    throw new CofheError({
+      code: CofheErrorCode.MissingConfig,
       message: `CoFHE URL is not configured for chain <${chainId}>`,
       hint: 'Ensure this chain config includes a coFheUrl property.',
       context: { chainId },
@@ -181,18 +169,18 @@ export function getCoFheUrlOrThrow(config: CofhesdkConfig, chainId: number): str
 
 /**
  * Gets the ZK verifier URL for a chain, throws if not found
- * @param config - The cofhesdk configuration
+ * @param config - The cofhe configuration
  * @param chainId - The chain ID to look up
  * @returns The ZK verifier URL for the chain
- * @throws {CofhesdkError} If the chain or URL is not found
+ * @throws {CofheError} If the chain or URL is not found
  */
-export function getZkVerifierUrlOrThrow(config: CofhesdkConfig, chainId: number): string {
+export function getZkVerifierUrlOrThrow(config: CofheConfig, chainId: number): string {
   const supportedChain = getSupportedChainOrThrow(config, chainId);
   const url = supportedChain.verifierUrl;
 
   if (!url) {
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.ZkVerifierUrlUninitialized,
+    throw new CofheError({
+      code: CofheErrorCode.ZkVerifierUrlUninitialized,
       message: `ZK verifier URL is not configured for chain <${chainId}>`,
       hint: 'Ensure this chain config includes a verifierUrl property.',
       context: { chainId },
@@ -204,18 +192,18 @@ export function getZkVerifierUrlOrThrow(config: CofhesdkConfig, chainId: number)
 
 /**
  * Gets the threshold network URL for a chain, throws if not found
- * @param config - The cofhesdk configuration
+ * @param config - The cofhe configuration
  * @param chainId - The chain ID to look up
  * @returns The threshold network URL for the chain
- * @throws {CofhesdkError} If the chain or URL is not found
+ * @throws {CofheError} If the chain or URL is not found
  */
-export function getThresholdNetworkUrlOrThrow(config: CofhesdkConfig, chainId: number): string {
+export function getThresholdNetworkUrlOrThrow(config: CofheConfig, chainId: number): string {
   const supportedChain = getSupportedChainOrThrow(config, chainId);
   const url = supportedChain.thresholdNetworkUrl;
 
   if (!url) {
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.ThresholdNetworkUrlUninitialized,
+    throw new CofheError({
+      code: CofheErrorCode.ThresholdNetworkUrlUninitialized,
       message: `Threshold network URL is not configured for chain <${chainId}>`,
       hint: 'Ensure this chain config includes a thresholdNetworkUrl property.',
       context: { chainId },

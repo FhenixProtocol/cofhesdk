@@ -3,7 +3,7 @@ import { type Permit, PermitUtils } from '@/permits';
 
 import { FheTypes, type UnsealedItem } from '../types.js';
 import { getThresholdNetworkUrlOrThrow } from '../config.js';
-import { CofhesdkError, CofhesdkErrorCode } from '../error.js';
+import { CofheError, CofheErrorCode } from '../error.js';
 import { permits } from '../permits.js';
 import { isValidUtype, convertViaUtype } from './decryptUtils.js';
 import { BaseBuilder, type BaseBuilderParams } from '../baseBuilder.js';
@@ -19,7 +19,7 @@ import { tnSealOutputV2 } from './tnSealOutputV2.js';
  *   .setAccount(account)
  *   .setPermitHash(permitHash)
  *   .setPermit(permit)
- *   .decrypt()
+ *   .execute()
  *
  * If chainId not set, uses client's chainId
  * If account not set, uses client's account
@@ -67,7 +67,7 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
    * ```typescript
    * const unsealed = await decryptHandle(ctHash, utype)
    *   .setChainId(11155111)
-   *   .decrypt();
+   *   .execute();
    * ```
    *
    * @returns The chainable DecryptHandlesBuilder instance.
@@ -90,7 +90,7 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
    * ```typescript
    * const unsealed = await decryptHandle(ctHash, utype)
    *   .setAccount('0x1234567890123456789012345678901234567890')
-   *   .decrypt();
+   *   .execute();
    * ```
    *
    * @returns The chainable DecryptHandlesBuilder instance.
@@ -114,7 +114,7 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
    * ```typescript
    * const unsealed = await decryptHandle(ctHash, utype)
    *   .setPermitHash('0x1234567890123456789012345678901234567890')
-   *   .decrypt();
+   *   .execute();
    * ```
    *
    * @returns The chainable DecryptHandlesBuilder instance.
@@ -137,7 +137,7 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
    * ```typescript
    * const unsealed = await decryptHandle(ctHash, utype)
    *   .setPermit(permit)
-   *   .decrypt();
+   *   .execute();
    * ```
    *
    * @returns The chainable DecryptHandlesBuilder instance.
@@ -158,8 +158,8 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
 
   private validateUtypeOrThrow(): void {
     if (!isValidUtype(this.utype))
-      throw new CofhesdkError({
-        code: CofhesdkErrorCode.InvalidUtype,
+      throw new CofheError({
+        code: CofheErrorCode.InvalidUtype,
         message: `Invalid utype to decrypt to`,
         context: {
           utype: this.utype,
@@ -177,8 +177,8 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
     if (this.permitHash) {
       const permit = await permits.getPermit(this.chainId, this.account, this.permitHash);
       if (!permit) {
-        throw new CofhesdkError({
-          code: CofhesdkErrorCode.PermitNotFound,
+        throw new CofheError({
+          code: CofheErrorCode.PermitNotFound,
           message: `Permit with hash <${this.permitHash}> not found for account <${this.account}> and chainId <${this.chainId}>`,
           hint: 'Ensure the permit exists and is valid.',
           context: {
@@ -194,8 +194,8 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
     // Fetch with active permit
     const permit = await permits.getActivePermit(this.chainId, this.account);
     if (!permit) {
-      throw new CofhesdkError({
-        code: CofhesdkErrorCode.PermitNotFound,
+      throw new CofheError({
+        code: CofheErrorCode.PermitNotFound,
         message: `Active permit not found for chainId <${this.chainId}> and account <${this.account}>`,
         hint: 'Ensure a permit exists for this account on this chain.',
         context: {
@@ -246,12 +246,12 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
    * const unsealed = await decryptHandle(ctHash, utype)
    *   .setChainId(11155111)      // optional
    *   .setAccount('0x123...890') // optional
-   *   .decrypt();                // execute
+   *   .execute();                // execute
    * ```
    *
    * @returns The unsealed item.
    */
-  async decrypt(): Promise<UnsealedItem<U>> {
+  async execute(): Promise<UnsealedItem<U>> {
     // Ensure utype is valid
     this.validateUtypeOrThrow();
 

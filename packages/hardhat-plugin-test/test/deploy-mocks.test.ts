@@ -14,13 +14,13 @@ describe('Deploy Mocks Task', () => {
 
     // TASK MANAGER
 
-    const taskManagerFromCofhesdk = await hre.cofhesdk.mocks.getMockTaskManager();
+    const taskManagerFromCofhesdk = await hre.cofhe.mocks.getMockTaskManager();
     expect(await taskManagerFromCofhesdk.exists()).to.be.true;
     expect(await taskManagerFromCofhesdk.getAddress()).to.be.equal(TASK_MANAGER_ADDRESS);
 
     // ACL
 
-    const aclFromCofhesdk = await hre.cofhesdk.mocks.getMockACL();
+    const aclFromCofhesdk = await hre.cofhe.mocks.getMockACL();
     const eip712domain = await aclFromCofhesdk.eip712Domain();
     const [fields, name, version, chainId, verifyingContract] = eip712domain;
     expect(name).to.equal('ACL');
@@ -31,19 +31,19 @@ describe('Deploy Mocks Task', () => {
 
     // ZK VERIFIER
 
-    const zkVerifierFromCofhesdk = await hre.cofhesdk.mocks.getMockZkVerifier();
+    const zkVerifierFromCofhesdk = await hre.cofhe.mocks.getMockZkVerifier();
     expect(await zkVerifierFromCofhesdk.exists()).to.be.true;
     expect(await zkVerifierFromCofhesdk.getAddress()).to.be.equal(MOCKS_ZK_VERIFIER_ADDRESS);
 
     // QUERY DECRYPTER
 
-    const queryDecrypterFromCofhesdk = await hre.cofhesdk.mocks.getMockQueryDecrypter();
+    const queryDecrypterFromCofhesdk = await hre.cofhe.mocks.getMockQueryDecrypter();
     expect(await queryDecrypterFromCofhesdk.exists()).to.be.true;
     expect(await queryDecrypterFromCofhesdk.getAddress()).to.be.equal(MOCKS_QUERY_DECRYPTER_ADDRESS);
 
     // TEST BED
 
-    const testBedFromCofhesdk = await hre.cofhesdk.mocks.getTestBed();
+    const testBedFromCofhesdk = await hre.cofhe.mocks.getTestBed();
     expect(await testBedFromCofhesdk.getAddress()).to.be.equal(TEST_BED_ADDRESS);
   });
 });

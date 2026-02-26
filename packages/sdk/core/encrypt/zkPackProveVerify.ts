@@ -1,5 +1,5 @@
-import { CofhesdkError, CofhesdkErrorCode } from '../error.js';
 import { getSdkUserAgentHeaders } from '../userAgent.js';
+import { CofheError, CofheErrorCode } from '../error.js';
 import { type EncryptableItem, FheTypes } from '../types.js';
 import { toBigIntOrThrow, validateBigIntInRange, toHexString, hexToBytes } from '../utils.js';
 
@@ -163,8 +163,8 @@ export const zkPack = (items: EncryptableItem[], builder: ZkCiphertextListBuilde
         break;
       }
       default: {
-        throw new CofhesdkError({
-          code: CofhesdkErrorCode.ZkPackFailed,
+        throw new CofheError({
+          code: CofheErrorCode.ZkPackFailed,
           message: `Invalid utype: ${(item as any).utype}`,
           hint: `Ensure that the utype is valid, using the Encryptable type, for example: Encryptable.uint128(100n)`,
           context: {
@@ -176,8 +176,8 @@ export const zkPack = (items: EncryptableItem[], builder: ZkCiphertextListBuilde
   }
 
   if (totalBits > MAX_ENCRYPTABLE_BITS) {
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.ZkPackFailed,
+    throw new CofheError({
+      code: CofheErrorCode.ZkPackFailed,
       message: `Total bits ${totalBits} exceeds ${MAX_ENCRYPTABLE_BITS}`,
       hint: `Ensure that the total bits of the items to encrypt does not exceed ${MAX_ENCRYPTABLE_BITS}`,
       context: {
@@ -302,8 +302,8 @@ export const zkVerify = async (
     if (!response.ok) {
       // Get the response body as text for better error details
       const errorBody = await response.text();
-      throw new CofhesdkError({
-        code: CofhesdkErrorCode.ZkVerifyFailed,
+      throw new CofheError({
+        code: CofheErrorCode.ZkVerifyFailed,
         message: `HTTP error! ZK proof verification failed - ${errorBody}`,
       });
     }
@@ -311,8 +311,8 @@ export const zkVerify = async (
     const json = (await response.json()) as { status: string; data: VerifyResultRaw[]; error: string };
 
     if (json.status !== 'success') {
-      throw new CofhesdkError({
-        code: CofhesdkErrorCode.ZkVerifyFailed,
+      throw new CofheError({
+        code: CofheErrorCode.ZkVerifyFailed,
         message: `ZK proof verification response malformed - ${json.error}`,
       });
     }
@@ -324,8 +324,8 @@ export const zkVerify = async (
       };
     });
   } catch (e) {
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.ZkVerifyFailed,
+    throw new CofheError({
+      code: CofheErrorCode.ZkVerifyFailed,
       message: `ZK proof verification failed`,
       cause: e instanceof Error ? e : undefined,
     });

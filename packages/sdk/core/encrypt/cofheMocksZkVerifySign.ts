@@ -12,7 +12,7 @@ import {
 } from 'viem';
 import { MockZkVerifierAbi } from './MockZkVerifierAbi.js';
 import { hardhat } from 'viem/chains';
-import { CofhesdkError, CofhesdkErrorCode } from '../error.js';
+import { CofheError, CofheErrorCode } from '../error.js';
 import { privateKeyToAccount } from 'viem/accounts';
 import { MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY, MOCKS_ZK_VERIFIER_ADDRESS } from '../consts.js';
 
@@ -70,8 +70,8 @@ export async function cofheMocksCheckEncryptableBits(items: EncryptableItem[]): 
     }
   }
   if (totalBits > MAX_ENCRYPTABLE_BITS) {
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.ZkPackFailed,
+    throw new CofheError({
+      code: CofheErrorCode.ZkPackFailed,
       message: `Total bits ${totalBits} exceeds ${MAX_ENCRYPTABLE_BITS}`,
       hint: `Ensure that the total bits of the items to encrypt does not exceed ${MAX_ENCRYPTABLE_BITS}`,
       context: {
@@ -110,8 +110,8 @@ async function calcCtHashes(
       args: calcCtHashesArgs,
     })) as bigint[];
   } catch (err) {
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.ZkMocksCalcCtHashesFailed,
+    throw new CofheError({
+      code: CofheErrorCode.ZkMocksCalcCtHashesFailed,
       message: `mockZkVerifySign calcCtHashes failed while calling zkVerifyCalcCtHashesPacked`,
       cause: err instanceof Error ? err : undefined,
       context: {
@@ -126,8 +126,8 @@ async function calcCtHashes(
   }
 
   if (ctHashes.length !== items.length) {
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.ZkMocksCalcCtHashesFailed,
+    throw new CofheError({
+      code: CofheErrorCode.ZkMocksCalcCtHashesFailed,
       message: `mockZkVerifySign calcCtHashes returned incorrect number of ctHashes`,
       context: {
         items,
@@ -164,8 +164,8 @@ async function insertCtHashes(items: EncryptableItemWithCtHash[], walletClient: 
       account: account,
     });
   } catch (err) {
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.ZkMocksInsertCtHashesFailed,
+    throw new CofheError({
+      code: CofheErrorCode.ZkMocksInsertCtHashesFailed,
       message: `mockZkVerifySign insertPackedCtHashes failed while calling insertPackedCtHashes`,
       cause: err instanceof Error ? err : undefined,
       context: {
@@ -192,8 +192,8 @@ async function createProofSignatures(items: EncryptableItemWithCtHash[], securit
   try {
     encInputSignerClient = createMockZkVerifierSigner();
   } catch (err) {
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.ZkMocksCreateProofSignatureFailed,
+    throw new CofheError({
+      code: CofheErrorCode.ZkMocksCreateProofSignatureFailed,
       message: `mockZkVerifySign createProofSignatures failed while creating wallet client`,
       cause: err instanceof Error ? err : undefined,
       context: {
@@ -220,8 +220,8 @@ async function createProofSignatures(items: EncryptableItemWithCtHash[], securit
       signatures.push(signature);
     }
   } catch (err) {
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.ZkMocksCreateProofSignatureFailed,
+    throw new CofheError({
+      code: CofheErrorCode.ZkMocksCreateProofSignatureFailed,
       message: `mockZkVerifySign createProofSignatures failed while calling signMessage`,
       cause: err instanceof Error ? err : undefined,
       context: {
@@ -232,8 +232,8 @@ async function createProofSignatures(items: EncryptableItemWithCtHash[], securit
   }
 
   if (signatures.length !== items.length) {
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.ZkMocksCreateProofSignatureFailed,
+    throw new CofheError({
+      code: CofheErrorCode.ZkMocksCreateProofSignatureFailed,
       message: `mockZkVerifySign createProofSignatures returned incorrect number of signatures`,
       context: {
         items,

@@ -7,7 +7,7 @@ import {
   zkVerify,
   constructZkPoKMetadata,
 } from './zkPackProveVerify.js';
-import { CofhesdkError, CofhesdkErrorCode } from '../error.js';
+import { CofheError, CofheErrorCode } from '../error.js';
 import {
   type EncryptStepCallbackFunction,
   EncryptStep,
@@ -90,8 +90,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
 
     // Check that tfhePublicKeyDeserializer is provided
     if (!params.tfhePublicKeyDeserializer) {
-      throw new CofhesdkError({
-        code: CofhesdkErrorCode.MissingTfhePublicKeyDeserializer,
+      throw new CofheError({
+        code: CofheErrorCode.MissingTfhePublicKeyDeserializer,
         message: 'EncryptInputsBuilder tfhePublicKeyDeserializer is undefined',
         hint: 'Ensure client has been created with a tfhePublicKeyDeserializer.',
         context: {
@@ -103,8 +103,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
 
     // Check that compactPkeCrsDeserializer is provided
     if (!params.compactPkeCrsDeserializer) {
-      throw new CofhesdkError({
-        code: CofhesdkErrorCode.MissingCompactPkeCrsDeserializer,
+      throw new CofheError({
+        code: CofheErrorCode.MissingCompactPkeCrsDeserializer,
         message: 'EncryptInputsBuilder compactPkeCrsDeserializer is undefined',
         hint: 'Ensure client has been created with a compactPkeCrsDeserializer.',
         context: {
@@ -116,8 +116,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
 
     // Check that zkBuilderAndCrsGenerator is provided
     if (!params.zkBuilderAndCrsGenerator) {
-      throw new CofhesdkError({
-        code: CofhesdkErrorCode.MissingZkBuilderAndCrsGenerator,
+      throw new CofheError({
+        code: CofheErrorCode.MissingZkBuilderAndCrsGenerator,
         message: 'EncryptInputsBuilder zkBuilderAndCrsGenerator is undefined',
         hint: 'Ensure client has been created with a zkBuilderAndCrsGenerator.',
         context: {
@@ -149,7 +149,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    * ```typescript
    * const encrypted = await encryptInputs([Encryptable.uint128(10n)])
    *   .setAccount("0x123")
-   *   .encrypt();
+   *   .execute();
    * ```
    *
    * @returns The chainable EncryptInputsBuilder instance.
@@ -172,7 +172,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    * ```typescript
    * const encrypted = await encryptInputs([Encryptable.uint128(10n)])
    *   .setChainId(11155111)
-   *   .encrypt();
+   *   .execute();
    * ```
    *
    * @returns The chainable EncryptInputsBuilder instance.
@@ -195,7 +195,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    * ```typescript
    * const encrypted = await encryptInputs([Encryptable.uint128(10n)])
    *   .setSecurityZone(1)
-   *   .encrypt();
+   *   .execute();
    * ```
    *
    * @returns The chainable EncryptInputsBuilder instance.
@@ -218,7 +218,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    * ```typescript
    * const encrypted = await encryptInputs([Encryptable.uint128(10n)])
    *   .setUseWorker(false)
-   *   .encrypt();
+   *   .execute();
    * ```
    *
    * @returns The chainable EncryptInputsBuilder instance.
@@ -254,13 +254,13 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    * Example:
    * ```typescript
    * const encrypted = await encryptInputs([Encryptable.uint128(10n)])
-   *   .setStepCallback((step: EncryptStep) => console.log(step))
-   *   .encrypt();
+   *   .onStep((step: EncryptStep) => console.log(step))
+   *   .execute();
    * ```
    *
    * @returns The EncryptInputsBuilder instance.
    */
-  setStepCallback(callback: EncryptStepCallbackFunction): EncryptInputsBuilder<T> {
+  onStep(callback: EncryptStepCallbackFunction): EncryptInputsBuilder<T> {
     this.stepCallback = callback;
     return this;
   }
@@ -290,7 +290,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   }
 
   /**
-   * zkVerifierUrl is included in the chains exported from cofhesdk/chains for use in CofhesdkConfig.supportedChains
+   * zkVerifierUrl is included in the chains exported from @cofhe/sdk/chains for use in CofheConfig.supportedChains
    * Users should generally not set this manually.
    */
   private async getZkVerifierUrl(): Promise<string> {
@@ -299,7 +299,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   }
 
   /**
-   * initTfhe is a platform-specific dependency injected into core/createCofhesdkClientBase by web/createCofhesdkClient and node/createCofhesdkClient
+   * initTfhe is a platform-specific dependency injected into core/createCofheClientBase by web/createCofheClient and node/createCofheClient
    * web/ uses zama "tfhe"
    * node/ uses zama "node-tfhe"
    * Users should not set this manually.
@@ -310,8 +310,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     try {
       return await this.initTfhe();
     } catch (error) {
-      throw CofhesdkError.fromError(error, {
-        code: CofhesdkErrorCode.InitTfheFailed,
+      throw CofheError.fromError(error, {
+        code: CofheErrorCode.InitTfheFailed,
         message: `Failed to initialize TFHE`,
         context: {
           initTfhe: this.initTfhe,
@@ -336,8 +336,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     try {
       await this.keysStorage?.rehydrateKeysStore();
     } catch (error) {
-      throw CofhesdkError.fromError(error, {
-        code: CofhesdkErrorCode.RehydrateKeysStoreFailed,
+      throw CofheError.fromError(error, {
+        code: CofheErrorCode.RehydrateKeysStoreFailed,
         message: `Failed to rehydrate keys store`,
         context: {
           keysStorage: this.keysStorage,
@@ -360,8 +360,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
         this.keysStorage
       );
     } catch (error) {
-      throw CofhesdkError.fromError(error, {
-        code: CofhesdkErrorCode.FetchKeysFailed,
+      throw CofheError.fromError(error, {
+        code: CofheErrorCode.FetchKeysFailed,
         message: `Failed to fetch FHE key and CRS`,
         context: {
           config: this.config,
@@ -374,8 +374,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     }
 
     if (!fheKey) {
-      throw new CofhesdkError({
-        code: CofhesdkErrorCode.MissingFheKey,
+      throw new CofheError({
+        code: CofheErrorCode.MissingFheKey,
         message: `FHE key not found`,
         context: {
           chainId: this.chainId,
@@ -385,8 +385,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     }
 
     if (!crs) {
-      throw new CofhesdkError({
-        code: CofhesdkErrorCode.MissingCrs,
+      throw new CofheError({
+        code: CofheErrorCode.MissingCrs,
         message: `CRS not found for chainId <${this.chainId}>`,
         context: {
           chainId: this.chainId,
@@ -404,7 +404,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    * cofheMocksInsertPackedHashes - stores the ctHashes and their plaintext values for on-chain mocking of FHE operations.
    * cofheMocksZkCreateProofSignatures - creates signatures to be included in the encrypted inputs. The signers address is known and verified in the mock contracts.
    */
-  private async mocksEncrypt(): Promise<[...EncryptedItemInputs<T>]> {
+  private async mocksExecute(): Promise<[...EncryptedItemInputs<T>]> {
     this.assertAccount();
     this.assertPublicClient();
     this.assertWalletClient();
@@ -450,7 +450,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   /**
    * In the production context, perform a true encryption with the CoFHE coprocessor.
    */
-  private async productionEncrypt(): Promise<[...EncryptedItemInputs<T>]> {
+  private async productionExecute(): Promise<[...EncryptedItemInputs<T>]> {
     this.assertAccount();
     this.assertChainId();
 
@@ -545,16 +545,16 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    * const encrypted = await encryptInputs([Encryptable.uint128(10n)])
    *   .setAccount('0x123...890') // optional
    *   .setChainId(11155111)      // optional
-   *   .encrypt();                // execute
+   *   .execute();                // execute
    * ```
    *
    * @returns The encrypted inputs.
    */
-  async encrypt(): Promise<[...EncryptedItemInputs<T>]> {
+  async execute(): Promise<[...EncryptedItemInputs<T>]> {
     // On hardhat chain, interact with MockZkVerifier contract instead of CoFHE
-    if (this.chainId === hardhat.id) return this.mocksEncrypt();
+    if (this.chainId === hardhat.id) return this.mocksExecute();
 
     // On other chains, interact with CoFHE coprocessor
-    return this.productionEncrypt();
+    return this.productionExecute();
   }
 }

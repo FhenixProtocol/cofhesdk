@@ -1,12 +1,12 @@
 import { type PublicClient, type WalletClient } from 'viem';
-import { type CofhesdkConfig } from './config.js';
-import { CofhesdkError, CofhesdkErrorCode } from './error.js';
+import { type CofheConfig } from './config.js';
+import { CofheError, CofheErrorCode } from './error.js';
 
 /**
  * Base parameters that all builders need
  */
 export type BaseBuilderParams = {
-  config: CofhesdkConfig | undefined;
+  config: CofheConfig | undefined;
   publicClient: PublicClient | undefined;
   walletClient: WalletClient | undefined;
 
@@ -21,7 +21,7 @@ export type BaseBuilderParams = {
  * for working with clients, config, and chain IDs
  */
 export abstract class BaseBuilder {
-  protected config: CofhesdkConfig;
+  protected config: CofheConfig;
 
   protected publicClient: PublicClient | undefined;
   protected walletClient: WalletClient | undefined;
@@ -32,8 +32,8 @@ export abstract class BaseBuilder {
   constructor(params: BaseBuilderParams) {
     // Check that config is provided
     if (!params.config) {
-      throw new CofhesdkError({
-        code: CofhesdkErrorCode.MissingConfig,
+      throw new CofheError({
+        code: CofheErrorCode.MissingConfig,
         message: 'Builder config is undefined',
         hint: 'Ensure client has been created with a config.',
         context: {
@@ -55,12 +55,12 @@ export abstract class BaseBuilder {
 
   /**
    * Asserts that this.chainId is populated
-   * @throws {CofhesdkError} If chainId is not set
+   * @throws {CofheError} If chainId is not set
    */
   protected assertChainId(): asserts this is this & { chainId: number } {
     if (this.chainId) return;
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.ChainIdUninitialized,
+    throw new CofheError({
+      code: CofheErrorCode.ChainIdUninitialized,
       message: 'Chain ID is not set',
       hint: 'Ensure client.connect() has been called and awaited, or use setChainId(...) to set the chainId explicitly.',
       context: {
@@ -71,12 +71,12 @@ export abstract class BaseBuilder {
 
   /**
    * Asserts that this.account is populated
-   * @throws {CofhesdkError} If account is not set
+   * @throws {CofheError} If account is not set
    */
   protected assertAccount(): asserts this is this & { account: string } {
     if (this.account) return;
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.AccountUninitialized,
+    throw new CofheError({
+      code: CofheErrorCode.AccountUninitialized,
       message: 'Account is not set',
       hint: 'Ensure client.connect() has been called and awaited, or use setAccount(...) to set the account explicitly.',
       context: {
@@ -87,12 +87,12 @@ export abstract class BaseBuilder {
 
   /**
    * Asserts that this.publicClient is populated
-   * @throws {CofhesdkError} If publicClient is not set
+   * @throws {CofheError} If publicClient is not set
    */
   protected assertPublicClient(): asserts this is this & { publicClient: PublicClient } {
     if (this.publicClient) return;
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.MissingPublicClient,
+    throw new CofheError({
+      code: CofheErrorCode.MissingPublicClient,
       message: 'Public client not found',
       hint: 'Ensure client.connect() has been called with a publicClient.',
       context: {
@@ -103,12 +103,12 @@ export abstract class BaseBuilder {
 
   /**
    * Asserts that this.walletClient is populated
-   * @throws {CofhesdkError} If walletClient is not set
+   * @throws {CofheError} If walletClient is not set
    */
   protected assertWalletClient(): asserts this is this & { walletClient: WalletClient } {
     if (this.walletClient) return;
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.MissingWalletClient,
+    throw new CofheError({
+      code: CofheErrorCode.MissingWalletClient,
       message: 'Wallet client not found',
       hint: 'Ensure client.connect() has been called with a walletClient.',
       context: {
