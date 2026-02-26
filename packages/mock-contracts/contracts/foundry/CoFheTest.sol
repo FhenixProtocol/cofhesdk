@@ -21,7 +21,7 @@ abstract contract CoFheTest is Test {
 
   // Keep these in sync with `packages/sdk/core/consts.ts`
   address constant ZK_VERIFIER_ADDRESS = 0x0000000000000000000000000000000000005001;
-  address constant QUERY_DECRYPTER_ADDRESS = 0x0000000000000000000000000000000000005002;
+  address constant THRESHOLD_NETWORK_ADDRESS = 0x0000000000000000000000000000000000005002;
   // SDK exposes this as `MOCKS_ZK_VERIFIER_SIGNER_ADDRESS`
   address constant ZK_VERIFIER_SIGNER_ADDRESS = SIGNER_ADDRESS;
   address public constant ACL_ADDRESS = 0xa6Ea4b5291d044D93b73b3CFf3109A1128663E8B;
@@ -77,10 +77,10 @@ abstract contract CoFheTest is Test {
     mockZkVerifierSigner = MockZkVerifierSigner(ZK_VERIFIER_SIGNER_ADDRESS);
     vm.label(address(mockZkVerifierSigner), 'MockZkVerifierSigner');
 
-    // QUERY DECRYPTER
+    // THRESHOLD NETWORK
 
-    deployCodeTo('MockThresholdNetwork.sol:MockThresholdNetwork', QUERY_DECRYPTER_ADDRESS);
-    mockThresholdNetwork = MockThresholdNetwork(QUERY_DECRYPTER_ADDRESS);
+    deployCodeTo('MockThresholdNetwork.sol:MockThresholdNetwork', THRESHOLD_NETWORK_ADDRESS);
+    mockThresholdNetwork = MockThresholdNetwork(THRESHOLD_NETWORK_ADDRESS);
     vm.label(address(mockThresholdNetwork), 'MockThresholdNetwork');
     mockThresholdNetwork.initialize(TASK_MANAGER_ADDRESS, address(mockAcl));
 
