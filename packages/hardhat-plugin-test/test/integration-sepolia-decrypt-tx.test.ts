@@ -26,7 +26,7 @@ const TEST_PRIVATE_KEY = process.env.TEST_PRIVATE_KEY || DEFAULT_TEST_PRIVATE_KE
 //   6. Verify via getDecryptResultSafe
 //
 // Run with a funded Sepolia key:
-//   TEST_PRIVATE_KEY=0x... npx hardhat test test/integration-base-sepolia-decrypt-tx.test.ts \
+//   TEST_PRIVATE_KEY=0x... npx hardhat test test/integration-sepolia-decrypt-tx.test.ts \
 //     --network hardhat
 // ---------------------------------------------------------------------------
 
@@ -35,7 +35,7 @@ describe('Sepolia – DecryptForTx + PublishDecryptResult', () => {
   let publicClient: PublicClient;
   let walletClient: WalletClient;
   let testContract: any;
-  let baseSepoliaSigner: HardhatEthersSigner;
+  let sepoliaSigner: HardhatEthersSigner;
 
   before(async function () {
     this.timeout(180_000);
@@ -48,7 +48,7 @@ describe('Sepolia – DecryptForTx + PublishDecryptResult', () => {
     const account = privateKeyToAccount(TEST_PRIVATE_KEY as `0x${string}`);
     console.log(`Using account: ${account.address}`);
 
-    const rpcUrl = process.env.SEPOLIA_RPC_URL || process.env.BASE_SEPOLIA_RPC_URL || 'https://rpc.sepolia.org';
+    const rpcUrl = process.env.SEPOLIA_RPC_URL || 'https://rpc.sepolia.org';
 
     publicClient = createPublicClient({
       chain: viemSepolia,
@@ -74,15 +74,15 @@ describe('Sepolia – DecryptForTx + PublishDecryptResult', () => {
       expiration: 1_000_000_000_000,
     });
 
-    const baseSepoliaProvider = new hre.ethers.JsonRpcProvider(rpcUrl);
-    baseSepoliaSigner = new hre.ethers.Wallet(TEST_PRIVATE_KEY, baseSepoliaProvider) as unknown as HardhatEthersSigner;
+    const sepoliaProvider = new hre.ethers.JsonRpcProvider(rpcUrl);
+    sepoliaSigner = new hre.ethers.Wallet(TEST_PRIVATE_KEY, sepoliaProvider) as unknown as HardhatEthersSigner;
 
     // Reuse an existing deployment to avoid redeploying on every test run.
     // Override via env if needed.
     const simpleTestAddress = (process.env.SIMPLE_TEST_ADDRESS ||
       '0x8CB51925D68f70EC430A36a07F6c09f35add32D2') as `0x${string}`;
 
-    const deployedCode = await baseSepoliaProvider.getCode(simpleTestAddress);
+    const deployedCode = await sepoliaProvider.getCode(simpleTestAddress);
     if (!deployedCode || deployedCode === '0x') {
       throw new Error(
         `No contract bytecode found at SIMPLE_TEST_ADDRESS=${simpleTestAddress}. ` +
@@ -90,7 +90,7 @@ describe('Sepolia – DecryptForTx + PublishDecryptResult', () => {
       );
     }
 
-    testContract = await hre.ethers.getContractAt('SimpleTest', simpleTestAddress, baseSepoliaSigner);
+    testContract = await hre.ethers.getContractAt('SimpleTest', simpleTestAddress, sepoliaSigner);
     console.log(`Using SimpleTest at: ${await testContract.getAddress()}`);
   });
 
@@ -107,7 +107,7 @@ describe('Sepolia – DecryptForTx + PublishDecryptResult', () => {
     // const [encrypted] = await cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
 
     // ── Step 2: Store the ciphertext on-chain ─────────────────────────────
-    // const storeTx = await testContract.connect(baseSepoliaSigner).setValue(encrypted);
+    // const storeTx = await testContract.connect(sepoliaSigner).setValue(encrypted);
     // await storeTx.wait();
     // console.log('setValue tx mined.');
 
@@ -139,7 +139,7 @@ describe('Sepolia – DecryptForTx + PublishDecryptResult', () => {
     // handles the bytes32 ↔ bigint conversion automatically.
     const storedValue: bigint = await testContract.getValue();
     const publishTx = await testContract
-      .connect(baseSepoliaSigner)
+      .connect(sepoliaSigner)
       .publishDecryptResult(storedValue, decryptResult.decryptedValue, signatureBytes);
     await publishTx.wait();
     console.log('publishDecryptResult tx mined.');
