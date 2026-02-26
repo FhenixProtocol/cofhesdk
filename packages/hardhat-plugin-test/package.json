@@ -15,7 +15,7 @@
     "@cofhe/sdk": "workspace:*",
     "@cofhe/hardhat-plugin": "workspace:*",
     "@cofhe/mock-contracts": "workspace:*",
-    "@fhenixprotocol/cofhe-contracts": "link:../../../cofhe-contracts/contracts",
+    "@fhenixprotocol/cofhe-contracts": "0.1.0",
     "@openzeppelin/contracts": "^5.0.0",
     "viem": "^2.38.6",
     "dotenv": "^16.0.0"
