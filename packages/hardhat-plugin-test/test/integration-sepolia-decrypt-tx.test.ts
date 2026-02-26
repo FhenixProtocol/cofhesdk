@@ -77,20 +77,35 @@ describe('Sepolia – DecryptForTx + PublishDecryptResult', () => {
     const sepoliaProvider = new hre.ethers.JsonRpcProvider(rpcUrl);
     sepoliaSigner = new hre.ethers.Wallet(TEST_PRIVATE_KEY, sepoliaProvider) as unknown as HardhatEthersSigner;
 
-    // Reuse an existing deployment to avoid redeploying on every test run.
-    // Override via env if needed.
-    const simpleTestAddress = (process.env.SIMPLE_TEST_ADDRESS ||
-      '0x8CB51925D68f70EC430A36a07F6c09f35add32D2') as `0x${string}`;
+    // Prefer an existing deployment when available.
+    // If there's no bytecode at the configured address, deploy automatically.
+    const configuredSimpleTestAddress = process.env.SIMPLE_TEST_ADDRESS as `0x${string}` | undefined;
+    const defaultSimpleTestAddress = '0x8CB51925D68f70EC430A36a07F6c09f35add32D2' as const;
 
+    let simpleTestAddress = (configuredSimpleTestAddress || defaultSimpleTestAddress) as `0x${string}`;
     const deployedCode = await sepoliaProvider.getCode(simpleTestAddress);
+
     if (!deployedCode || deployedCode === '0x') {
-      throw new Error(
-        `No contract bytecode found at SIMPLE_TEST_ADDRESS=${simpleTestAddress}. ` +
-          `Set SIMPLE_TEST_ADDRESS to a valid SimpleTest deployment or remove the override to use the default.`
-      );
+      if (configuredSimpleTestAddress) {
+        console.warn(
+          `No contract bytecode found at SIMPLE_TEST_ADDRESS=${configuredSimpleTestAddress}. Deploying a new SimpleTest...`
+        );
+      } else {
+        console.log(
+          `No contract bytecode found at default SimpleTest address ${defaultSimpleTestAddress}. Deploying...`
+        );
+      }
+
+      const SimpleTestFactory = await hre.ethers.getContractFactory('SimpleTest');
+      testContract = await SimpleTestFactory.connect(sepoliaSigner).deploy();
+      await testContract.waitForDeployment();
+      simpleTestAddress = (await testContract.getAddress()) as `0x${string}`;
+      console.log(`SimpleTest deployed at: ${simpleTestAddress}`);
+      console.log(`Tip: set SIMPLE_TEST_ADDRESS=${simpleTestAddress} to reuse it next time.`);
+    } else {
+      testContract = await hre.ethers.getContractAt('SimpleTest', simpleTestAddress, sepoliaSigner);
     }
 
-    testContract = await hre.ethers.getContractAt('SimpleTest', simpleTestAddress, sepoliaSigner);
     console.log(`Using SimpleTest at: ${await testContract.getAddress()}`);
   });
 
