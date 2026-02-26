@@ -7,7 +7,7 @@ import { CofheError, CofheErrorCode } from '../error.js';
 import { permits } from '../permits.js';
 import { isValidUtype, convertViaUtype } from './decryptUtils.js';
 import { BaseBuilder, type BaseBuilderParams } from '../baseBuilder.js';
-import { cofheMocksSealOutput } from './cofheMocksSealOutput.js';
+import { cofheMocksDecryptForView } from './cofheMocksDecryptForView.js';
 // import { tnSealOutputV1 } from './tnSealOutputV1.js';
 import { tnSealOutputV2 } from './tnSealOutputV2.js';
 import { cofheMocksDecryptForTx } from './cofheMocksDecryptForTx.js';
@@ -215,7 +215,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
     this.assertPublicClient();
 
     const mocksSealOutputDelay = this.config.mocks.sealOutputDelay;
-    return cofheMocksSealOutput(this.ctHash, this.utype, permit, this.publicClient, mocksSealOutputDelay);
+    return cofheMocksDecryptForView(this.ctHash, this.utype, permit, this.publicClient, mocksSealOutputDelay);
   }
 
   // private async mocksDecryptForTx(permit: Permit): Promise<bigint> {

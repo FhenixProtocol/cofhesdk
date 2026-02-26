@@ -7,7 +7,7 @@ import { FheTypes } from '../types.js';
 import { CofheError, CofheErrorCode } from '../error.js';
 import { MOCKS_QUERY_DECRYPTER_ADDRESS } from '../consts.js';
 
-export async function cofheMocksSealOutput(
+export async function cofheMocksDecryptForView(
   ctHash: bigint,
   utype: FheTypes,
   permit: Permit,

@@ -360,7 +360,7 @@ This allows developers to:
 **Mock Implementations:**
 - `packages/sdk/core/encrypt/cofheMocksZkVerifySign.ts` - Encryption in mock mode
 - `packages/sdk/core/decrypt/cofheMocksDecryptForTx.ts` - decryptForTx in mock mode
-- `packages/sdk/core/decrypt/cofheMocksSealOutput.ts` - Unsealing in mock mode
+- `packages/sdk/core/decrypt/cofheMocksDecryptForView.ts` - Decrypting in view calls (mock mode)
 - `packages/mock-contracts/contracts/MockTaskManager.sol` - Main mock contract
 - `packages/mock-contracts/contracts/MockACL.sol` - Permission management
 
