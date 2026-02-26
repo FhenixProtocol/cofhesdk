@@ -394,7 +394,9 @@ graph LR
 
 ---
 
-## Data Flow: From Encryption to Decryption
+## Data Flow: From Encryption to Decryption (Mock Mode)
+
+**This sequence diagram shows the complete flow in mock/testing mode. In production, the steps are similar but use Threshold Network API instead of mock contracts.**
 
 ```mermaid
 sequenceDiagram
@@ -445,8 +447,8 @@ sequenceDiagram
 | Component | Mock Mode | Production Mode | Purpose |
 |-----------|-----------|-----------------|---------|
 | **EncryptInputs** | Uses MockZkVerifier to calculate ctHashes | Uses TFHE + ZK proofs | Generate encrypted inputs |
-| **decryptForView** | Reads from MockZkVerifier storage + checks MockACL | Queries Threshold Network API | View calls (no proof needed) |
-| **decryptForTx** | Calls MockThresholdNetwork with signature | Calls Threshold Network coprocessor | Transaction submission (with proof) |
+| **decryptForView** | Reads from MockZkVerifier storage + checks MockACL, returns sealed plaintext, unseals with permit key | Queries Threshold Network for sealed plaintext, unseals with permit sealing key | View calls (read & unseal plaintext, no proof) |
+| **decryptForTx** | Calls MockThresholdNetwork with permission check, gets plaintext + signature | Queries Threshold Network for plaintext + signature | Transaction submission (needs signature for on-chain verification) |
 | **Permits** | Stored in-memory + validated against MockACL | Stored on-chain + validated by TN | Access control mechanism |
 | **Signatures** | Mock signer key (hardcoded for testing) | Real TN signer (from network) | Proof of decryption |
 | **State Storage** | In-memory maps in mock contracts | On-chain encrypted state | Where encrypted values live |
