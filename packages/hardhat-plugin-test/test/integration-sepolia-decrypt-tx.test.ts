@@ -7,6 +7,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { createCofheClient, createCofheConfig } from '@cofhe/sdk/node';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 import { expect } from 'chai';
+import { Signature } from 'ethers';
 
 // Test private key - must be funded on Sepolia.
 // Provide a real key via TEST_PRIVATE_KEY env var; the default Hardhat/Anvil key is used
@@ -119,24 +120,21 @@ describe('Sepolia – DecryptForTx + PublishDecryptResult', () => {
     const testValue = 42n;
 
     // ── Step 1: Encrypt the value client-side ──────────────────────────────
-    // const [encrypted] = await cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
+    const [encrypted] = await cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
 
     // ── Step 2: Store the ciphertext on-chain ─────────────────────────────
-    // const storeTx = await testContract.connect(sepoliaSigner).setValue(encrypted);
-    // await storeTx.wait();
-    // console.log('setValue tx mined.');
+    const storeTx = await testContract.connect(sepoliaSigner).setValue(encrypted);
+    await storeTx.wait();
+    console.log('setValue tx mined.');
 
     // ── Step 3: Read back the on-chain ctHash ─────────────────────────────
     // IMPORTANT: the on-chain transformation gives us the "real" ctHash;
     // do NOT use the client-side hash from encrypt.
 
     // IMPORTANT: the on-chain transformation gives us the "real" ctHash.
-    // const ctHash: bigint = await testContract.getValueHash();
-    // const ctHash = 108099334930651939355134646557579673343563784246601011388608805142476158402560n;
-    // encrypted.ctHash; // In this test contract, the stored value is already the ctHash, so we can skip the redundant hash call.
-    // const ctHash = encrypted.ctHash;
-    // console.log(`ctHash: ${ctHash}`);
-    const ctHash = BigInt('0xb83a28ed143a9582474b9aa614c4107403848c3b13f20f5831f3f70cfa5a0400');
+    const ctHash: bigint = await testContract.getValueHash();
+    console.log(`ctHash: ${ctHash}`);
+
     // ── Step 4: Call TN /decrypt to get plaintext + signature ─────────────
     const decryptResult = await cofheClient.decryptForTx(ctHash).execute();
 
@@ -146,8 +144,12 @@ describe('Sepolia – DecryptForTx + PublishDecryptResult', () => {
     console.log(`TN decryptedValue: ${decryptResult.decryptedValue}`);
 
     // ── Step 5: Publish the result on-chain ───────────────────────────────
-    // signature from tnDecryptV1 has no 0x prefix; add it for the ABI call.
-    const signatureBytes = `0x${decryptResult.signature}`;
+    // The task manager verifies ECDSA signatures using OpenZeppelin ECDSA, which rejects
+    // non-canonical signatures (eg high-s). Normalize to a canonical (low-s) signature.
+    const signatureHex = decryptResult.signature.startsWith('0x')
+      ? (decryptResult.signature as `0x${string}`)
+      : (`0x${decryptResult.signature}` as `0x${string}`);
+    const signatureBytes = Signature.from(signatureHex).serialized;
 
     // publishDecryptResult(euint32 input, uint32 result, bytes signature)
     // The storedValue euint32 handle is retrieved from the contract; ethers
