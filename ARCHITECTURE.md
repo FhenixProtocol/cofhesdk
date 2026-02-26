@@ -44,6 +44,8 @@ graph TB
     IsMock -->|yes| MockMode
     IsMock -->|no| ProdMode
     
+    linkStyle default stroke:#000,stroke-width:3px
+    
     style Client fill:#e1f5ff,stroke:#0277bd,stroke-width:3px,color:#000
     style MockMode fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px,color:#000
     style ProdMode fill:#e8f5e9,stroke:#388e3c,stroke-width:3px,color:#000
@@ -85,6 +87,8 @@ graph LR
     
     M4 --> End["EncryptedInputs ready for tx"]
     P4 --> End
+    
+    linkStyle default stroke:#000,stroke-width:3px
     
     style Mock fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px,color:#000
     style Prod fill:#e8f5e9,stroke:#388e3c,stroke-width:3px,color:#000
@@ -134,6 +138,8 @@ graph TD
     
     M4 --> End["plaintext value"]
     P4 --> End
+    
+    linkStyle default stroke:#000,stroke-width:3px
     
     style Mock fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px,color:#000
     style Prod fill:#e8f5e9,stroke:#388e3c,stroke-width:3px,color:#000
@@ -190,6 +196,8 @@ graph TD
     M5 --> End["DecryptForTxResult<br/>ready to publish"]
     P5 --> End
     
+    linkStyle default stroke:#000,stroke-width:3px
+    
     style Mock fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px,color:#000
     style Prod fill:#e8f5e9,stroke:#388e3c,stroke-width:3px,color:#000
     style Error fill:#ffebee,stroke:#c62828,stroke-width:3px,color:#000
@@ -235,6 +243,8 @@ graph TB
     DenyPerm --> Error
     DenyAccess --> Error
     
+    linkStyle default stroke:#000,stroke-width:3px
+    
     style GlobalCheck fill:#fff3e0,stroke:#f57c00,stroke-width:3px,color:#000
     style PermCheck fill:#e0f2f1,stroke:#00897b,stroke-width:3px,color:#000
     style Decrypt fill:#e8f5e9,stroke:#388e3c,stroke-width:3px,color:#000
@@ -266,11 +276,12 @@ graph LR
     
     ZkVerifierSigner --> ZkSign
     DecryptSigner --> DecryptSign
-    DecryptAddress --> HardhatAccts
     
     ZkSign --> MockZk
     DecryptSign --> MockTM
     HardhatAccts --> Contracts
+    
+    linkStyle default stroke:#000,stroke-width:3px
     
     style Constants fill:#ffe0b2,stroke:#ef6c00,stroke-width:3px,color:#000
     style Usage fill:#b3e5fc,stroke:#0277bd,stroke-width:3px,color:#000
