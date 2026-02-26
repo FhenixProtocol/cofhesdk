@@ -44,9 +44,10 @@ graph TB
     IsMock -->|yes| MockMode
     IsMock -->|no| ProdMode
     
-    style Client fill:#e1f5ff
-    style MockMode fill:#f3e5f5
-    style ProdMode fill:#e8f5e9
+    style Client fill:#e1f5ff,stroke:#0277bd,stroke-width:3px,color:#000
+    style MockMode fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px,color:#000
+    style ProdMode fill:#e8f5e9,stroke:#388e3c,stroke-width:3px,color:#000
+    style Mode fill:#455a64,stroke:#263238,stroke-width:2px,color:#fff
 ```
 
 ---
@@ -85,8 +86,9 @@ graph LR
     M4 --> End["EncryptedInputs ready for tx"]
     P4 --> End
     
-    style Mock fill:#f3e5f5
-    style Prod fill:#e8f5e9
+    style Mock fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px,color:#000
+    style Prod fill:#e8f5e9,stroke:#388e3c,stroke-width:3px,color:#000
+    style End fill:#fff9c4,stroke:#f57f17,stroke-width:3px,color:#000
 ```
 
 ---
@@ -133,9 +135,11 @@ graph TD
     M4 --> End["plaintext value"]
     P4 --> End
     
-    style Mock fill:#f3e5f5
-    style Prod fill:#e8f5e9
-    style Error fill:#ffebee
+    style Mock fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px,color:#000
+    style Prod fill:#e8f5e9,stroke:#388e3c,stroke-width:3px,color:#000
+    style Error fill:#ffebee,stroke:#c62828,stroke-width:3px,color:#000
+    style Check fill:#455a64,stroke:#263238,stroke-width:2px,color:#fff
+    style End fill:#fff9c4,stroke:#f57f17,stroke-width:3px,color:#000
 ```
 
 ---
@@ -186,9 +190,11 @@ graph TD
     M5 --> End["DecryptForTxResult<br/>ready to publish"]
     P5 --> End
     
-    style Mock fill:#f3e5f5
-    style Prod fill:#e8f5e9
-    style Error fill:#ffebee
+    style Mock fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px,color:#000
+    style Prod fill:#e8f5e9,stroke:#388e3c,stroke-width:3px,color:#000
+    style Error fill:#ffebee,stroke:#c62828,stroke-width:3px,color:#000
+    style Check fill:#455a64,stroke:#263238,stroke-width:2px,color:#fff
+    style End fill:#fff9c4,stroke:#f57f17,stroke-width:3px,color:#000
 ```
 
 ---
@@ -229,10 +235,11 @@ graph TB
     DenyPerm --> Error
     DenyAccess --> Error
     
-    style GlobalCheck fill:#fff3e0
-    style PermCheck fill:#e0f2f1
-    style Decrypt fill:#e8f5e9
-    style Error fill:#ffebee
+    style GlobalCheck fill:#fff3e0,stroke:#f57c00,stroke-width:3px,color:#000
+    style PermCheck fill:#e0f2f1,stroke:#00897b,stroke-width:3px,color:#000
+    style Decrypt fill:#e8f5e9,stroke:#388e3c,stroke-width:3px,color:#000
+    style Error fill:#ffebee,stroke:#c62828,stroke-width:3px,color:#000
+    style Scenarios fill:#455a64,stroke:#263238,stroke-width:2px,color:#fff
 ```
 
 ---
@@ -267,9 +274,9 @@ graph LR
     DecryptSign --> MockTM
     HardhatAccts --> Contracts
     
-    style Constants fill:#ffe0b2
-    style Usage fill:#b3e5fc
-    style Contracts fill:#f3e5f5
+    style Constants fill:#ffe0b2,stroke:#ef6c00,stroke-width:3px,color:#000
+    style Usage fill:#b3e5fc,stroke:#0277bd,stroke-width:3px,color:#000
+    style Contracts fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px,color:#000
 ```
 
 ---
