@@ -248,20 +248,18 @@ graph TB
 
 ```mermaid
 graph LR
-    subgraph Constants["🔑 Mock Constants<br/>(packages/sdk/core/consts.ts)"]
+    subgraph Constants["🔑 Mock Constants"]
         DecryptSigner["MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY<br/>0x59c6995e..."]
-        DecryptAddress["MOCKS_DECRYPT_RESULT_SIGNER_ADDRESS<br/>0x70997970..."]
-        ZkVerifierSigner["MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY<br/>0xc0de..."]
-        ZkVerifierAddr["MOCKS_ZK_VERIFIER_ADDRESS"]
+        ZkVerifierSigner["MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY<br/>0x6C8D7F76..."]        
     end
     
-    subgraph Usage["Where Used"]
+    subgraph Usage["📍 Where Used"]
         ZkSign["cofheMocksZkVerifySign()<br/>Signs encrypted inputs"]
         DecryptSign["cofheMocksDecryptForTx()<br/>Signs decrypt results"]
         HardhatAccts["Hardhat Plugin Default Accounts"]
     end
     
-    subgraph Contracts["Mock Contracts"]
+    subgraph Contracts["📄 Mock Contracts"]
         MockZk["MockZkVerifier<br/>Calculates ctHashes"]
         MockTM["MockTaskManager<br/>Manages decryption"]
     end
