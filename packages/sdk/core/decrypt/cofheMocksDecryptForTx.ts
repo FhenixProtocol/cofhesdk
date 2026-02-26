@@ -7,7 +7,7 @@ import { FheTypes } from '../types.js';
 import { CofheError, CofheErrorCode } from '../error.js';
 import { MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY } from '../consts.js';
 import { SigningKey, keccak256, solidityPacked, toBeHex, zeroPadValue } from 'ethers';
-import { MOCKS_QUERY_DECRYPTER_ADDRESS } from '../consts.js';
+import { MOCKS_THRESHOLD_NETWORK_ADDRESS } from '../consts.js';
 
 export type DecryptForTxMocksResult = {
   ctHash: bigint;
@@ -52,7 +52,7 @@ export async function cofheMocksDecryptForTx(
   }
 
   const [allowed, error, result] = await publicClient.readContract({
-    address: MOCKS_QUERY_DECRYPTER_ADDRESS,
+    address: MOCKS_THRESHOLD_NETWORK_ADDRESS,
     abi: MockThresholdNetworkAbi,
     functionName: 'decryptForTx',
     args: [ctHash, permission],

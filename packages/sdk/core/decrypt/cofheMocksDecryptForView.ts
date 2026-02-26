@@ -5,7 +5,7 @@ import { sleep } from '../utils.js';
 import { MockThresholdNetworkAbi } from './MockThresholdNetworkAbi.js';
 import { FheTypes } from '../types.js';
 import { CofheError, CofheErrorCode } from '../error.js';
-import { MOCKS_QUERY_DECRYPTER_ADDRESS } from '../consts.js';
+import { MOCKS_THRESHOLD_NETWORK_ADDRESS } from '../consts.js';
 
 export async function cofheMocksDecryptForView(
   ctHash: bigint,
@@ -27,7 +27,7 @@ export async function cofheMocksDecryptForView(
   };
 
   const [allowed, error, result] = await publicClient.readContract({
-    address: MOCKS_QUERY_DECRYPTER_ADDRESS,
+    address: MOCKS_THRESHOLD_NETWORK_ADDRESS,
     abi: MockThresholdNetworkAbi,
     functionName: 'querySealOutput',
     args: [ctHash, BigInt(utype), permissionWithBigInts],
