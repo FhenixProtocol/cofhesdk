@@ -84,9 +84,7 @@ export async function cofheMocksDecryptForTx(
     [resultBigInt, encryptionType, BigInt(chainId), zeroPadValue(toBeHex(ctHashBigInt), 32)]
   );
   const messageHash = keccak256(packed);
-  const signature = new SigningKey(MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY)
-    .sign(messageHash)
-    .serialized.slice(2); // no 0x prefix
+  const signature = new SigningKey(MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY).sign(messageHash).serialized.slice(2); // no 0x prefix
 
   return {
     ctHash,
