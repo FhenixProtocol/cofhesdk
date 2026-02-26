@@ -254,6 +254,110 @@ graph TB
 
 ---
 
+## The Role of ZK Verifier
+
+The **ZK Verifier** is responsible for the **encryption phase** - converting plaintext values into encrypted ciphertext handles (ctHashes) that can be used in smart contracts.
+
+### What It Does
+
+**In Mock Mode (Local Testing):**
+1. **Calculates ctHashes**: Takes plaintext values and generates deterministic ciphertext handles
+2. **Stores Mappings**: Maintains an in-memory map of `ctHash → plaintext` for later decryption
+3. **Signs Inputs**: Creates a signature using `MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY` to prove the encrypted inputs are valid
+
+**In Production:**
+1. **TFHE Encryption**: Performs actual Fully Homomorphic Encryption using the network's public key
+2. **Zero-Knowledge Proofs**: Generates cryptographic proofs that the encryption was done correctly
+3. **CoFHE Verification**: Submits proofs to CoFHE API for verification before accepting the encrypted data
+
+### Why It's Called "ZK Verifier"
+
+The name comes from **Zero-Knowledge Proof Verification** - in production, this component verifies that:
+- The encrypted data was created correctly
+- The encryption matches the claimed plaintext structure
+- No one can learn anything about the plaintext from the proof
+
+In mock mode, we skip the heavy cryptographic operations but maintain the same API structure.
+
+### Why It's Required: The Trust Problem
+
+**Without ZK Verifier, there's no way to trust encrypted inputs:**
+
+❌ **Attack Without ZK Verifier:**
+```solidity
+// Malicious user could submit fake encrypted data:
+bytes32 fakeCtHash = 0xabcd1234...; // Just random bytes, not actual encryption
+contract.storeValue(fakeCtHash);    // Contract accepts it blindly
+// Later: Decryption fails or returns garbage
+```
+
+✅ **Protection With ZK Verifier:**
+```solidity
+// ZK Verifier ensures the ctHash is legitimate:
+EncryptedInputs memory inputs = client.encryptInputs([42, 100]).execute();
+// inputs.ctHashes[0] comes with a valid signature/proof
+// The contract can verify the signature on-chain
+contract.storeValue(inputs.ctHashes[0], inputs.signatures[0]);
+// If signature is invalid → transaction reverts
+```
+
+**The Core Security Guarantee:**
+
+The ZK Verifier solves the **"Who encrypted this?"** problem:
+1. 🔴 **Without it**: Anyone can create arbitrary ctHash values and claim they're encrypted
+2. 🟢 **With it**: Only properly encrypted data (with valid signatures/proofs) is accepted
+
+**In Production:** The ZK proof mathematically guarantees that:
+- The ctHash was generated from actual encrypted data
+- The encryption used the correct public key
+- The data structure matches what the smart contract expects
+
+**In Mock Mode:** The signature from `MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY` serves the same purpose:
+- Only SDK-generated ctHashes have valid signatures
+- Smart contracts verify the signature before accepting encrypted inputs
+- Tests can't accidentally use invalid/corrupted encrypted data
+
+### Key Insight
+
+Think of ZK Verifier as the **"encryption gateway"**:
+- **Before**: You have plaintext numbers (42, 100, 256)
+- **After**: You have encrypted handles (ctHashes) that can be safely used in smart contracts
+- **Guarantee**: The ZK proof ensures the encryption is valid without revealing the plaintext
+
+```mermaid
+graph LR
+    Plaintext["Plaintext Values<br/>42, 100, 256"]
+    
+    subgraph ZKVerifier["🔐 ZK Verifier"]
+        Encrypt["Encrypt Each Value"]
+        Proof["Generate Proof"]
+        Sign["Sign with ZK Signer"]
+    end
+    
+    Ciphertext["Encrypted Handles<br/>0xabc..., 0xdef..., 0x123..."]
+    SmartContract["Smart Contract<br/>Can use these safely"]
+    
+    Plaintext --> Encrypt
+    Encrypt --> Proof
+    Proof --> Sign
+    Sign --> Ciphertext
+    Ciphertext --> SmartContract
+    
+    linkStyle default stroke:#000,stroke-width:3px
+    
+    style ZKVerifier fill:#e1f5ff,stroke:#0277bd,stroke-width:3px,color:#000
+    style Plaintext fill:#fff9c4,stroke:#f57f17,stroke-width:3px,color:#000
+    style Ciphertext fill:#e8f5e9,stroke:#388e3c,stroke-width:3px,color:#000
+    style SmartContract fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px,color:#000
+```
+
+**Related Components:**
+- **MockZkVerifier** (contract): Stores the ctHash→plaintext mappings in mock mode
+- **MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY** (constant): Used to sign encrypted inputs
+- **cofheMocksZkVerifySign()** (function): SDK function that performs mock encryption
+
+---
+
 ## Mock Constants & Key Management
 
 ```mermaid
