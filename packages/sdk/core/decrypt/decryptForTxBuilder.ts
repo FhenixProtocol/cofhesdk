@@ -1,5 +1,5 @@
 import { hardhat } from '@/chains';
-import { type Permit, PermitUtils } from '@/permits';
+import { type Permit, type Permission, PermitUtils } from '@/permits';
 
 import { FheTypes } from '../types.js';
 import { getThresholdNetworkUrlOrThrow } from '../config.js';
@@ -8,7 +8,7 @@ import { permits } from '../permits.js';
 import { BaseBuilder, type BaseBuilderParams } from '../baseBuilder.js';
 import { cofheMocksDecryptForTx } from './cofheMocksDecryptForTx.js';
 import { getPublicClientChainID } from '../utils.js';
-// TODO: import { tnDecryptForTxV1 } from './tnDecryptForTxV1.js';
+import { tnDecrypt } from './tnDecrypt.js';
 
 /**
  * API
@@ -169,6 +169,19 @@ export class DecryptForTxBuilder extends BaseBuilder {
     return getThresholdNetworkUrlOrThrow(this.config, this.chainId);
   }
 
+  private buildEmptyPermission(): Permission {
+    return {
+      issuer: '0x0000000000000000000000000000000000000000',
+      expiration: 0,
+      recipient: '0x0000000000000000000000000000000000000000',
+      validatorId: 0,
+      validatorContract: '0x0000000000000000000000000000000000000000',
+      sealingKey: '0x0000000000000000000000000000000000000000000000000000000000000000',
+      issuerSignature: '0x',
+      recipientSignature: '0x',
+    };
+  }
+
   private async getResolvedPermit(): Promise<Permit | null> {
     // If permit was explicitly set via withPermit()
     if (this.permitSet) {
@@ -234,13 +247,15 @@ export class DecryptForTxBuilder extends BaseBuilder {
     this.assertPublicClient();
 
     const thresholdNetworkUrl = await this.getThresholdNetworkUrl();
-    // TODO: implement tnDecryptForTxV1
-    // const result = await tnDecryptForTxV1(this.ctHash, this.chainId, permit, thresholdNetworkUrl);
-    throw new CofheError({
-      code: CofheErrorCode.InternalError,
-      message: 'Production decryptForTx not yet implemented',
-      hint: 'Use mocks or wait for production implementation.',
-    });
+
+    const permission = permit ? PermitUtils.getPermission(permit, true) : this.buildEmptyPermission();
+    const { decryptedValue, signature } = await tnDecrypt(this.ctHash, this.chainId, permission, thresholdNetworkUrl);
+
+    return {
+      ctHash: this.ctHash,
+      decryptedValue,
+      signature,
+    };
   }
 
   /**
@@ -252,7 +267,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
    *   - withPermit(permitHash) to fetch permit
    *   - withPermit(undefined) for global allowance (no permit)
    *   - or active permit for chainId + account
-   * - Call CoFHE `/decryptForTx` with the permit or empty permit for global allowance
+   * - Call CoFHE `/decrypt` with the permit or empty permit for global allowance
    * - Return the decrypted value + proof ready for transaction
    *
    * Example:

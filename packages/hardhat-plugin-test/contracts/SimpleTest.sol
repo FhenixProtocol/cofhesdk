@@ -68,4 +68,24 @@ contract SimpleTest {
   function getValueHash() public view returns (uint256) {
     return storedValueHash;
   }
+
+  /**
+   * Publish a decryption result produced by the Threshold Network.
+   * @param input  The encrypted handle that was decrypted.
+   * @param result The plaintext result returned by the TN.
+   * @param signature The TN signature over (ctHash, result).
+   */
+  function publishDecryptResult(euint32 input, uint32 result, bytes memory signature) external {
+    FHE.publishDecryptResult(input, result, signature);
+  }
+
+  /**
+   * Read a decryption result without reverting if it is not yet available.
+   * @param input The encrypted handle to query.
+   * @return value     The decrypted value (0 if not yet decrypted).
+   * @return decrypted Whether the result has been published.
+   */
+  function getDecryptResultSafe(euint32 input) public view returns (uint32 value, bool decrypted) {
+    return FHE.getDecryptResultSafe(input);
+  }
 }
