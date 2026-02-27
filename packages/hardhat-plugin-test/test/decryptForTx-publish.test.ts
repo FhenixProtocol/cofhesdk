@@ -12,7 +12,7 @@ import { Wallet } from 'ethers';
 // 4. Call publishDecryptResult with those values
 // 5. Verify with getDecryptResultSafe
 
-describe('Decrypt With Proof Test', () => {
+describe('Hardhat Mocks – Decrypt With Proof', () => {
   let cofheClient: CofheClient;
   let testContract: any;
   let signer: HardhatEthersSigner;

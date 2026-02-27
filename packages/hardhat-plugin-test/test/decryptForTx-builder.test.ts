@@ -1,11 +1,12 @@
 import hre from 'hardhat';
-import { CofheClient, Encryptable, FheTypes } from '@cofhe/sdk';
+import { CofheClient, CofheErrorCode, Encryptable, FheTypes } from '@cofhe/sdk';
 import { TASK_COFHE_MOCKS_DEPLOY } from './consts';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { PermitUtils } from '@cofhe/sdk/permits';
+import { hardhat } from '@cofhe/sdk/chains';
 
-describe('DecryptForTx Integration Tests', () => {
+describe('Hardhat Mocks – decryptForTx', () => {
   let cofheClient: CofheClient;
   let testContract: any;
   let signer: HardhatEthersSigner;
@@ -22,7 +23,7 @@ describe('DecryptForTx Integration Tests', () => {
     console.log(`Test contract deployed at: ${await testContract.getAddress()}`);
   });
 
-  describe('decryptForTx with global allowance', () => {
+  describe('global allowance (withoutPermit)', () => {
     it('Should fail to decrypt without a permit when not globally allowed', async function () {
       const testValue = 42n;
       const encrypted = await cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
@@ -70,7 +71,7 @@ describe('DecryptForTx Integration Tests', () => {
     });
   });
 
-  describe('decryptForTx with permit', () => {
+  describe('permit (withPermit)', () => {
     it('Should decrypt with a self permit', async function () {
       const testValue = 99n;
       const permit = await cofheClient.permits.createSelf({
@@ -108,9 +109,55 @@ describe('DecryptForTx Integration Tests', () => {
       expect(result.decryptedValue).to.be.equal(testValue);
       expect(result.signature).to.be.a('string');
     });
+
+    it('Should throw when withPermit() has no active permit', async function () {
+      const [, otherSigner] = await hre.ethers.getSigners();
+
+      const config = await hre.cofhe.createConfig({
+        environment: 'hardhat',
+        supportedChains: [hardhat],
+      });
+
+      const clientWithoutPermit = hre.cofhe.createClient(config);
+      await hre.cofhe.connectWithHardhatSigner(clientWithoutPermit, otherSigner);
+
+      try {
+        await clientWithoutPermit.decryptForTx(0n).withPermit().execute();
+        expect.fail('Expected decryptForTx to throw when no active permit exists');
+      } catch (error) {
+        const e = error as any;
+        expect(e).to.have.property('code');
+        expect(e.code).to.equal(CofheErrorCode.PermitNotFound);
+        expect((e as Error).message).to.include('Active permit not found');
+      }
+    });
+
+    it('Should throw when withPermit(hash) cannot find permit', async function () {
+      const [, otherSigner] = await hre.ethers.getSigners();
+
+      const config = await hre.cofhe.createConfig({
+        environment: 'hardhat',
+        supportedChains: [hardhat],
+      });
+
+      const clientWithoutPermit = hre.cofhe.createClient(config);
+      await hre.cofhe.connectWithHardhatSigner(clientWithoutPermit, otherSigner);
+
+      const missingHash = '0xdeadbeef';
+
+      try {
+        await clientWithoutPermit.decryptForTx(0n).withPermit(missingHash).execute();
+        expect.fail('Expected decryptForTx to throw when permit hash does not exist');
+      } catch (error) {
+        const e = error as any;
+        expect(e).to.have.property('code');
+        expect(e.code).to.equal(CofheErrorCode.PermitNotFound);
+        expect((e as Error).message).to.include('Permit with hash');
+      }
+    });
   });
 
-  describe('decryptForTx builder chain', () => {
+  describe('builder chain', () => {
     it('Should support builder chaining', async function () {
       const testValue = 33n;
       const encrypted = await cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
@@ -146,11 +193,11 @@ describe('DecryptForTx Integration Tests', () => {
     });
   });
 
-  describe('decryptForTx error cases', () => {
+  describe('error cases', () => {
     // Error handling tests - can be extended as needed
   });
 
-  describe('decryptForTx vs decryptForView', () => {
+  describe('vs decryptForView', () => {
     it('Should return plaintext value', async function () {
       const testValue = 123n;
       const encrypted = await cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
