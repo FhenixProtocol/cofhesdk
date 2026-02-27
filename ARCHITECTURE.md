@@ -258,19 +258,50 @@ graph TB
 
 The **ZK Verifier** is responsible for the **encryption phase** - converting plaintext values into encrypted ciphertext handles (ctHashes) that can be used in smart contracts.
 
+### Where It Lives (and What "Verifier" Means Here)
+
+The SDK uses the term **"ZK Verifier"** for the component that ultimately produces **on-chain verifiable attestations** that an encrypted handle (ctHash) is *well-formed*.
+
+- **Production (testnet/mainnet):** the verifier is an **off-chain verifier service** (configured via `supportedChains[].verifierUrl`).
+    - The SDK calls `POST {verifierUrl}/verify` (see `zkPackProveVerify.ts`).
+    - That service verifies the ZK proof and returns `(ct_hash, signature)` for each input.
+- **Mock mode (Hardhat/local testing):** there is no real ZK proof verification.
+    - `MockZkVerifier` (contract) exists only to deterministically derive ctHashes and store ctHash→plaintext mappings for mock FHE operations.
+    - The SDK produces a **mock signature** using `MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY` so you can still exercise the "signed input" plumbing.
+
+In other words: **in production, the verifier lives off-chain; on-chain contracts never call it directly.** Contracts only validate a signature that *originates* from the verifier.
+
+### Why Smart Contracts Trust It
+
+The protocol’s trust boundary here is not “an HTTP endpoint”, it’s **an authorization check enforced on-chain**: encrypted inputs are accepted only if they carry a signature that verifies against an **authorized verifier identity** configured in the CoFHE system contracts.
+
+- The on-chain trust anchor is the **Task Manager** contract (the CoFHE system contract your app uses via `FHE.sol`).
+- When a contract receives an `EncryptedInput` (ctHash + metadata + signature), the Task Manager verifies the signature and accepts the input only if it was signed by the configured **verifier signer**.
+    - You can see the exact mechanism in the mocks: `MockTaskManager.verifyInput()` recovers the signer and compares it against `verifierSigner`.
+
+Operationally, in production the verifier service/API returns signatures that are produced by the verifier’s authorized signing authority *after* the ZK proof checks pass. How that signing authority is implemented is intentionally an off-chain concern (it could be a single signer, an HSM-backed key, or a distributed/threshold signer), but the on-chain rule is stable: **only signatures from the authorized verifier identity are accepted**.
+
+The contract “trusts the verifier” in the same way it “trusts an oracle”: through governance/deployment configuration plus cryptographic authentication.
+
+1. The contract already trusts the Task Manager system contract.
+2. The Task Manager is configured (by the protocol / deployment owner) with the expected `verifierSigner` address.
+3. A valid signature from that address is treated as an attestation: “this ctHash corresponds to a correctly generated ciphertext under the expected metadata (chain/security zone/account)”.
+
+This turns “trust the verifier” into a standard on-chain pattern: **trust a key that can be rotated and governed**, rather than trusting an off-chain process directly.
+
 ### What It Does
 
 **In Mock Mode (Local Testing):**
 
 1. **Calculates ctHashes**: Takes plaintext values and generates deterministic ciphertext handles
-2. **Stores Mappings**: Maintains an in-memory map of `ctHash → plaintext` for later decryption
+2. **Stores Mappings**: Writes `ctHash → plaintext` into the mock on-chain storage (via `MockZkVerifier` → `MockTaskManager`) so mock FHE ops can “decrypt” later
 3. **Signs Inputs**: Creates a signature using `MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY` to prove the encrypted inputs are valid
 
 **In Production:**
 
 1. **TFHE Encryption**: Performs actual Fully Homomorphic Encryption using the network's public key
 2. **Zero-Knowledge Proofs**: Generates cryptographic proofs that the encryption was done correctly
-3. **CoFHE Verification**: Submits proofs to CoFHE API for verification before accepting the encrypted data
+3. **CoFHE Verification**: Submits proofs to the CoFHE verifier service/API (`supportedChains[].verifierUrl`) which verifies and returns signatures for on-chain validation
 
 ### Why It's Called "ZK Verifier"
 
@@ -301,9 +332,9 @@ contract.storeValue(fakeCtHash);    // Contract accepts it blindly
 // ZK Verifier ensures the ctHash is legitimate:
 EncryptedInputs memory inputs = client.encryptInputs([42, 100]).execute();
 // inputs.ctHashes[0] comes with a valid signature/proof
-// The contract can verify the signature on-chain
+// CoFHE system contracts (Task Manager via FHE.sol) verify the signature on-chain
 contract.storeValue(inputs.ctHashes[0], inputs.signatures[0]);
-// If signature is invalid → transaction reverts
+// If signature is invalid → the CoFHE verification step reverts
 ```
 
 **The Core Security Guarantee:**
@@ -322,8 +353,10 @@ The ZK Verifier solves the **"Who encrypted this?"** problem:
 **In Mock Mode:** The signature from `MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY` serves the same purpose:
 
 - Only SDK-generated ctHashes have valid signatures
-- Smart contracts verify the signature before accepting encrypted inputs
+- Smart contracts (via the CoFHE Task Manager) can verify the signature before accepting encrypted inputs
 - Tests can't accidentally use invalid/corrupted encrypted data
+
+Note: in some mock/debug deployments the verifier signer may be intentionally unset (`verifierSigner == address(0)`), which disables signature checks.
 
 ### Key Insight
 
