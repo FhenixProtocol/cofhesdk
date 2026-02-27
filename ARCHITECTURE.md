@@ -106,9 +106,8 @@ graph TD
             PPack["2.4 Pack inputs<br/>zkPack(items, builder)"]
             PMeta["2.5 Construct metadata<br/>constructZkPoKMetadata()"]
             PProve["2.6 Prove (worker or main)<br/>zkProveWithWorker()/zkProve()"]
-            PUrl["2.7 Get verifier URL<br/>getZkVerifierUrl()"]
-            PVerify["2.8 Verify proof (POST /verify)<br/>zkVerify(verifierUrl, proof, ...)"]
-            PRet["2.9 Return VerifyResult[]<br/>(ct_hash + signature)"]
+            PVerify["2.7 Verify proof (resolve URL + POST /verify)<br/>getZkVerifierUrl() + zkVerify(...)"]
+            PRet["2.8 Return VerifyResult[]<br/>(ct_hash + signature)"]
         end
 
         PPackage["3. Map VerifyResult[] -> EncryptedInputs"]
@@ -121,8 +120,7 @@ graph TD
         PBuild --> PPack
         PPack --> PMeta
         PMeta --> PProve
-        PProve --> PUrl
-        PUrl --> PVerify
+        PProve --> PVerify
         PVerify --> PRet
         PRet --> PPackage
         PPackage --> EndProd
@@ -139,15 +137,14 @@ graph TD
     click M2 "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/cofheMocksZkVerifySign.ts#L267" "Mock: insertCtHashes call site"
     click M3 "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/cofheMocksZkVerifySign.ts#L270" "Mock: createProofSignatures call site"
     click PExec "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/encryptInputsBuilder.ts#L453" "Production path: EncryptInputsBuilder.productionExecute()"
-    click P0 "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/encryptInputsBuilder.ts#L453" "Prod: pack+prove+verify flow (inside productionExecute)"
+    click P0 "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/encryptInputsBuilder.ts#L461" "Prod: starts the init/pack/prove/verify sequence"
     click PInit "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/encryptInputsBuilder.ts#L461" "Prod: init TFHE wasm"
     click PKeys "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/encryptInputsBuilder.ts#L469" "Prod: fetch FHE key + CRS"
     click PBuild "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/encryptInputsBuilder.ts#L471" "Prod: build ZK builder + CRS"
     click PPack "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/encryptInputsBuilder.ts#L477" "Prod: zkPack call site"
     click PMeta "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/encryptInputsBuilder.ts#L484" "Prod: metadata construction"
     click PProve "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/encryptInputsBuilder.ts#L491" "Prod: worker decision + prove"
-    click PUrl "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/encryptInputsBuilder.ts#L516" "Prod: resolve verifier URL"
-    click PVerify "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/encryptInputsBuilder.ts#L518" "Prod: zkVerify call site"
+    click PVerify "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/encryptInputsBuilder.ts#L516" "Prod: resolve verifier URL + call zkVerify"
     click PRet "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/zkPackProveVerify.ts#L268" "Prod: zkVerify returns ct_hash + signature"
     click PPackage "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/encryptInputsBuilder.ts#L520" "Prod: package EncryptedInputs"
     click MRet "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/cofheMocksZkVerifySign.ts#L273" "Mock: returns ct_hash + signature"
