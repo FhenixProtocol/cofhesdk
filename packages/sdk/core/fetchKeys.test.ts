@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { fetchKeys } from './fetchKeys.js';
 import { type CofheConfig, createCofheConfigBase } from './config.js';
 import { createKeysStore, type KeysStorage } from './keyStore.js';
-import { getSdkUserAgent } from './userAgent.js';
+import { COFHE_CLIENT_HEADER_KEY, getSdkUserAgent } from './userAgent.js';
 
 describe('fetchKeys', () => {
   let config: CofheConfig;
@@ -78,7 +78,7 @@ describe('fetchKeys', () => {
 
       const headers = init.headers as Record<string, string>;
       expect(headers['Content-Type']).toBe('application/json');
-      expect(headers['X-COFHE-SDK']).toBe(expectedUserAgent);
+      expect(headers[COFHE_CLIENT_HEADER_KEY]).toBe(expectedUserAgent);
 
       // In node runtimes we also include the standard User-Agent header.
       expect(headers['User-Agent']).toBe(expectedUserAgent);

@@ -2,7 +2,7 @@ import { SDK_NAME, SDK_VERSION } from './version.js';
 
 declare const globalThis: unknown;
 
-const COFHE_CLIENT_HEADER_KEY = 'X-COFHE-SDK';
+export const COFHE_CLIENT_HEADER_KEY = 'X-COFHE-PACKAGE';
 
 export function getSdkUserAgent(): string {
   return `${SDK_NAME}/${SDK_VERSION}`;
