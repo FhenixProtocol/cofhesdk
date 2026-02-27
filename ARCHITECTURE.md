@@ -61,6 +61,7 @@ graph LR
     Start["plaintext values"]
 
     subgraph Mock["📋 MOCK MODE"]
+        M0["0. cofheMocksZkVerifySign()<br/>Mock entrypoint"]
         M1["1. calculateCtHashes<br/>MockZkVerifier.zkVerifyCalcCtHashesPacked()"]
         M2["2. insertCtHashes<br/>Store plaintext in MockZkVerifier"]
         M3["3. createProofSignatures<br/>Sign with MOCKS_ZK_VERIFIER_SIGNER"]
@@ -74,9 +75,10 @@ graph LR
         P4["Return EncryptedInputs<br/>with proof"]
     end
 
-    Start -->|branch| M1
+    Start -->|branch| M0
     Start -->|branch| P1
 
+    M0 --> M1
     M1 --> M2
     M2 --> M3
     M3 --> M4
@@ -85,13 +87,14 @@ graph LR
     P2 --> P3
     P3 --> P4
 
-    M4 --> End["EncryptedInputs ready for tx"]
-    P4 --> End
+    M4 --> EndMock["EncryptedInputs ready for tx"]
+    P4 --> EndProd["EncryptedInputs ready for tx"]
 
     linkStyle default stroke:#000,stroke-width:3px
 
     %% Clickable nodes (GitHub-friendly links + line anchors)
     click Start "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/client.ts#L124-L150" "SDK entrypoint (encryptInputs)"
+    click M0 "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/cofheMocksZkVerifySign.ts#L252-L283" "Mock entrypoint: cofheMocksZkVerifySign"
     click M1 "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/mock-contracts/contracts/MockZkVerifier.sol#L72" "MockZkVerifier hashing (zkVerifyCalcCtHashesPacked)"
     click M2 "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/cofheMocksZkVerifySign.ts#L153" "Mock flow: insert ctHashes"
     click M3 "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/cofheMocksZkVerifySign.ts#L184" "Mock flow: createProofSignatures"
@@ -100,11 +103,13 @@ graph LR
     click P2 "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/zkPackProveVerify.ts#L105-L252" "zkPack + zkProve"
     click P3 "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/zkPackProveVerify.ts#L268-L336" "zkVerify (calls verifierUrl /verify)"
     click P4 "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/encryptInputsBuilder.ts#L518-L540" "Production execute(): package EncryptedInputs"
-    click End "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/client.ts#L124-L150" "EncryptedInputs returned to app"
+    click EndMock "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/encryptInputsBuilder.ts#L439" "Mock: EncryptedInputs ready for tx"
+    click EndProd "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/encryptInputsBuilder.ts#L531" "Prod: EncryptedInputs ready for tx"
 
     style Mock fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px,color:#000
     style Prod fill:#e8f5e9,stroke:#388e3c,stroke-width:3px,color:#000
-    style End fill:#fff9c4,stroke:#f57f17,stroke-width:3px,color:#000
+    style EndMock fill:#fff9c4,stroke:#f57f17,stroke-width:3px,color:#000
+    style EndProd fill:#fff9c4,stroke:#f57f17,stroke-width:3px,color:#000
 ```
 
 ---
@@ -272,16 +277,16 @@ The **ZK Verifier** is responsible for the **encryption phase** - converting pla
 
 ### Where It Lives (and What "Verifier" Means Here)
 
-The SDK uses the term **"ZK Verifier"** for the component that ultimately produces **on-chain verifiable attestations** that an encrypted handle (ctHash) is *well-formed*.
+The SDK uses the term **"ZK Verifier"** for the component that ultimately produces **on-chain verifiable attestations** that an encrypted handle (ctHash) is _well-formed_.
 
 - **Production (testnet/mainnet):** the verifier is an **off-chain verifier service** (configured via `supportedChains[].verifierUrl`).
-    - The SDK calls `POST {verifierUrl}/verify` (see `zkPackProveVerify.ts`).
-    - That service verifies the ZK proof and returns `(ct_hash, signature)` for each input.
+  - The SDK calls `POST {verifierUrl}/verify` (see `zkPackProveVerify.ts`).
+  - That service verifies the ZK proof and returns `(ct_hash, signature)` for each input.
 - **Mock mode (Hardhat/local testing):** there is no real ZK proof verification.
-    - `MockZkVerifier` (contract) exists only to deterministically derive ctHashes and store ctHash→plaintext mappings for mock FHE operations.
-    - The SDK produces a **mock signature** using `MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY` so you can still exercise the "signed input" plumbing.
+  - `MockZkVerifier` (contract) exists only to deterministically derive ctHashes and store ctHash→plaintext mappings for mock FHE operations.
+  - The SDK produces a **mock signature** using `MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY` so you can still exercise the "signed input" plumbing.
 
-In other words: **in production, the verifier lives off-chain; on-chain contracts never call it directly.** Contracts only validate a signature that *originates* from the verifier.
+In other words: **in production, the verifier lives off-chain; on-chain contracts never call it directly.** Contracts only validate a signature that _originates_ from the verifier.
 
 ### Proof Generation & Verification
 
@@ -330,9 +335,9 @@ The protocol’s trust boundary here is not “an HTTP endpoint”, it’s **an 
 
 - The on-chain trust anchor is the **Task Manager** contract (the CoFHE system contract your app uses via `FHE.sol`).
 - When a contract receives an `EncryptedInput` (ctHash + metadata + signature), the Task Manager verifies the signature and accepts the input only if it was signed by the configured **verifier signer**.
-    - You can see the exact mechanism in the mocks: `MockTaskManager.verifyInput()` recovers the signer and compares it against `verifierSigner`.
+  - You can see the exact mechanism in the mocks: `MockTaskManager.verifyInput()` recovers the signer and compares it against `verifierSigner`.
 
-Operationally, in production the verifier service/API returns signatures that are produced by the verifier’s authorized signing authority *after* the ZK proof checks pass. How that signing authority is implemented is intentionally an off-chain concern (it could be a single signer, an HSM-backed key, or a distributed/threshold signer), but the on-chain rule is stable: **only signatures from the authorized verifier identity are accepted**.
+Operationally, in production the verifier service/API returns signatures that are produced by the verifier’s authorized signing authority _after_ the ZK proof checks pass. How that signing authority is implemented is intentionally an off-chain concern (it could be a single signer, an HSM-backed key, or a distributed/threshold signer), but the on-chain rule is stable: **only signatures from the authorized verifier identity are accepted**.
 
 The contract “trusts the verifier” in the same way it “trusts an oracle”: through governance/deployment configuration plus cryptographic authentication.
 
