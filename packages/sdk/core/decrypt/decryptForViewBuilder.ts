@@ -214,15 +214,15 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
   private async mocksSealOutput(permit: Permit): Promise<bigint> {
     this.assertPublicClient();
 
-    const mocksSealOutputDelay = this.config.mocks.sealOutputDelay;
-    return cofheMocksDecryptForView(this.ctHash, this.utype, permit, this.publicClient, mocksSealOutputDelay);
+    const mocksDecryptDelay = this.config.mocks.decryptDelay;
+    return cofheMocksDecryptForView(this.ctHash, this.utype, permit, this.publicClient, mocksDecryptDelay);
   }
 
   // private async mocksDecryptForTx(permit: Permit): Promise<bigint> {
   //   this.assertPublicClient();
 
   //   // TODO: delay - should be separate config setting?
-  //   const delay = this.config.mocks.sealOutputDelay;
+  //   const delay = this.config.mocks.decryptDelay;
   //   return cofheMocksDecryptForTx(this.ctHash, this.utype, permit, this.publicClient, delay);
   // }
 

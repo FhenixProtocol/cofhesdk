@@ -36,7 +36,7 @@ export type CofheConfig = {
      * Default 1000ms on web
      * Default 0ms on hardhat (will be called during tests no need for fake delay)
      */
-    sealOutputDelay: number;
+    decryptDelay: number;
   };
   _internal?: CofheInternalConfig;
 };
@@ -78,10 +78,10 @@ export const CofheConfigSchema = z.object({
   /** Mocks configs */
   mocks: z
     .object({
-      sealOutputDelay: z.number().optional().default(0),
+      decryptDelay: z.number().optional().default(0),
     })
     .optional()
-    .default({ sealOutputDelay: 0 }),
+    .default({ decryptDelay: 0 }),
   /** Internal configuration */
   _internal: z
     .object({

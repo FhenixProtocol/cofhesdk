@@ -42,12 +42,12 @@ describe('@cofhe/node - Config', () => {
       const config = createCofheConfig({
         supportedChains: [arbSepolia],
         mocks: {
-          sealOutputDelay: 0,
+          decryptDelay: 0,
         },
       });
 
       expect(config.supportedChains).toEqual([arbSepolia]);
-      expect(config.mocks.sealOutputDelay).toBe(0);
+      expect(config.mocks.decryptDelay).toBe(0);
       expect(config.fheKeyStorage).toBeDefined();
     });
   });

@@ -130,16 +130,16 @@ describe('createCofheConfigBase', () => {
     expectInvalidConfigItem('mocks', 'not-an-object');
     expectInvalidConfigItem('mocks', null);
 
-    expectValidConfigItem('mocks', { sealOutputDelay: 1000 }, { sealOutputDelay: 1000 });
-    expectValidConfigItem('mocks', undefined, { sealOutputDelay: 0 });
+    expectValidConfigItem('mocks', { decryptDelay: 1000 }, { decryptDelay: 1000 });
+    expectValidConfigItem('mocks', undefined, { decryptDelay: 0 });
   });
 
-  it('mocks.sealOutputDelay', () => {
-    expectInvalidConfigItem('mocks.sealOutputDelay', 'not-a-number');
-    expectInvalidConfigItem('mocks.sealOutputDelay', null);
+  it('mocks.decryptDelay', () => {
+    expectInvalidConfigItem('mocks.decryptDelay', 'not-a-number');
+    expectInvalidConfigItem('mocks.decryptDelay', null);
 
-    expectValidConfigItem('mocks.sealOutputDelay', undefined, 0);
-    expectValidConfigItem('mocks.sealOutputDelay', 1000, 1000);
+    expectValidConfigItem('mocks.decryptDelay', undefined, 0);
+    expectValidConfigItem('mocks.decryptDelay', 1000, 1000);
   });
 
   it('useWorkers', () => {

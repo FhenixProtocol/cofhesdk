@@ -249,7 +249,7 @@ export class DecryptForTxBuilder<TSelection extends DecryptForTxPermitSelection 
   private async mocksDecryptForTx(permit: Permit | null): Promise<DecryptForTxResult> {
     this.assertPublicClient();
 
-    const delay = this.config.mocks.sealOutputDelay;
+    const delay = this.config.mocks.decryptDelay;
     const result = await cofheMocksDecryptForTx(this.ctHash, 0 as FheTypes, permit, this.publicClient, delay);
     return result;
   }
