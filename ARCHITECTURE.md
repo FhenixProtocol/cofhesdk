@@ -281,6 +281,28 @@ The protocol’s trust boundary here is not “an HTTP endpoint”, it’s **an 
 
 Operationally, in production the verifier service/API returns signatures that are produced by the verifier’s authorized signing authority *after* the ZK proof checks pass. How that signing authority is implemented is intentionally an off-chain concern (it could be a single signer, an HSM-backed key, or a distributed/threshold signer), but the on-chain rule is stable: **only signatures from the authorized verifier identity are accepted**.
 
+#### What The ZK Proof Checks (Conceptually)
+
+At encryption time the SDK builds a **packed ciphertext list + proof** and sends it to the verifier along with explicit metadata:
+
+- `packed_list`: the serialized ciphertext/proof blob
+- `account_addr`, `security_zone`, `chain_id`: metadata that the SDK also bakes into the proof statement (see `constructZkPoKMetadata(...)`)
+
+The verifier’s job is to validate that the submitted blob is a *valid proof* for the expected statement. While the exact circuit/statement is defined by the verifier implementation, the checks are conceptually in this class:
+
+1. **Proof validity under the expected parameters**
+    - The proof verifies against the expected CRS and the network’s public FHE key (fetched by the SDK).
+2. **Well-formed encryption of the claimed inputs**
+    - The prover demonstrates knowledge of plaintext(s) and encryption randomness such that the ciphertext list is a correct encryption of those plaintexts.
+    - The packed representation is consistent (no malformed ciphertext encoding).
+3. **Metadata binding (anti-replay / context binding)**
+    - The proof is bound to `(account_addr, security_zone, chain_id)` so the resulting ciphertext handles cannot be reused out of context.
+4. **Type/size constraints enforced by the SDK**
+    - The SDK refuses to build proofs exceeding 2048 total bits (`MAX_ENCRYPTABLE_BITS`) and encodes values according to the selected `FheTypes.*`.
+    - (Whether the verifier redundantly enforces these constraints is verifier-defined; the important part is: the proof corresponds to the packed encoding the SDK produced.)
+
+If these checks pass, the verifier returns a **ctHash** (handle derived from the proven ciphertext) and a **signature** that attests: “this ctHash corresponds to a ciphertext proven valid under the expected metadata”. The signature is what the on-chain Task Manager ultimately authenticates.
+
 The contract “trusts the verifier” in the same way it “trusts an oracle”: through governance/deployment configuration plus cryptographic authentication.
 
 1. The contract already trusts the Task Manager system contract.
