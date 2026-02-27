@@ -2,7 +2,7 @@
 import { type PublicClient, type WalletClient } from 'viem';
 import { type CofheConfig } from './config.js';
 import { type DecryptForViewBuilder } from './decrypt/decryptForViewBuilder.js';
-import { type DecryptForTxBuilder } from './decrypt/decryptForTxBuilder.js';
+import { type DecryptForTxBuilderUnset } from './decrypt/decryptForTxBuilder.js';
 import { type EncryptInputsBuilder } from './encrypt/encryptInputsBuilder.js';
 import { type ZkBuilderAndCrsGenerator, type ZkProveWorkerFunction } from './encrypt/zkPackProveVerify.js';
 import { type FheKeyDeserializer } from './fetchKeys.js';
@@ -46,7 +46,7 @@ export type CofheClient<TConfig extends CofheConfig = CofheConfig> = {
    */
   encryptInputs<T extends EncryptableItem[]>(inputs: [...T]): EncryptInputsBuilder<[...T]>;
   decryptForView<U extends FheTypes>(ctHash: bigint, utype: U): DecryptForViewBuilder<U>;
-  decryptForTx(ctHash: bigint): DecryptForTxBuilder;
+  decryptForTx(ctHash: bigint): DecryptForTxBuilderUnset;
   permits: CofheClientPermits;
 };
 

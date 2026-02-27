@@ -17,20 +17,25 @@ import { tnDecrypt } from './tnDecrypt.js';
  *   .setChainId(chainId)
  *   .setAccount(account)
  *   .withPermit(permit | permitHash | undefined)
+ *   // or .withoutPermit()
  *   .execute()
  *
  * If chainId not set, uses client's chainId
  * If account not set, uses client's account
- * If withPermit not called, uses active permit from chainId + account
- * If withPermit(undefined/null), uses global allowance (no permit required)
+ * You MUST choose one permit mode before calling execute():
+ *   - withPermit(...) to decrypt using a permit
+ *   - withoutPermit() to decrypt via global allowance (no permit)
+ *
+ * withPermit() (no args / undefined) uses the active permit for chainId + account.
+ * withoutPermit() uses global allowance (no permit required).
  *
  * Returns the decrypted value + proof ready for tx.
  */
 
+type DecryptForTxPermitSelection = 'unset' | 'with-permit' | 'without-permit';
+
 type DecryptForTxBuilderParams = BaseBuilderParams & {
   ctHash: bigint;
-  permitHash?: string;
-  permit?: Permit | null;
 };
 
 export type DecryptForTxResult = {
@@ -39,11 +44,23 @@ export type DecryptForTxResult = {
   signature: string; // Threshold network signature for publishDecryptResult
 };
 
-export class DecryptForTxBuilder extends BaseBuilder {
+/**
+ * Type-level gating: the initial builder returned from `client.decryptForTx(...)` intentionally does not expose `execute()`.
+ *
+ * This is implemented as an `Omit<..., 'execute'>` because our d.ts bundling step strips private member types
+ * (which makes "phantom private brand" tricks unreliable for consumers).
+ */
+export type DecryptForTxBuilderUnset = Omit<DecryptForTxBuilder<'unset'>, 'execute'>;
+
+export class DecryptForTxBuilder<TSelection extends DecryptForTxPermitSelection = 'unset'> extends BaseBuilder {
+  // Phantom brand to make builder state (TSelection) non-structurally assignable across instantiations.
+  // `declare` ensures this does not emit any runtime field.
+  private declare readonly __permitSelectionBrand: TSelection;
+
   private ctHash: bigint;
   private permitHash?: string;
-  private permit?: Permit | null;
-  private permitSet = false; // Track if withPermit was explicitly called
+  private permit?: Permit;
+  private permitSelection: DecryptForTxPermitSelection = 'unset';
 
   constructor(params: DecryptForTxBuilderParams) {
     super({
@@ -56,8 +73,6 @@ export class DecryptForTxBuilder extends BaseBuilder {
     });
 
     this.ctHash = params.ctHash;
-    this.permitHash = params.permitHash;
-    this.permit = params.permit;
   }
 
   /**
@@ -74,7 +89,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
    *
    * @returns The chainable DecryptForTxBuilder instance.
    */
-  setChainId(chainId: number): DecryptForTxBuilder {
+  setChainId(chainId: number): DecryptForTxBuilder<TSelection> {
     this.chainId = chainId;
     return this;
   }
@@ -97,7 +112,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
    *
    * @returns The chainable DecryptForTxBuilder instance.
    */
-  setAccount(account: string): DecryptForTxBuilder {
+  setAccount(account: string): DecryptForTxBuilder<TSelection> {
     this.account = account;
     return this;
   }
@@ -107,56 +122,46 @@ export class DecryptForTxBuilder extends BaseBuilder {
   }
 
   /**
-   * @param permitHashOrPermitOrUndefined - Permit hash to fetch, Permit object to use directly, or undefined for global allowance.
+   * Select "use permit" mode.
    *
-   * If a string is provided, it's treated as a permit hash and will be fetched.
-   * If a Permit object is provided, it will be used directly.
-   * If undefined/null is provided, uses global allowance (no permit required).
-   * If not called, fetches the active permit for the chainId + account.
+   * - `withPermit(permit)` uses the provided permit.
+   * - `withPermit(permitHash)` fetches that permit.
+   * - `withPermit()` / `withPermit(undefined)` uses the active permit for the resolved `chainId + account`.
    *
-   * Example with permit hash:
-   * ```typescript
-   * const result = await decryptForTx(ctHash)
-   *   .withPermit('0x1234567890123456789012345678901234567890')
-   *   .execute();
-   * ```
-   *
-   * Example with permit object:
-   * ```typescript
-   * const result = await decryptForTx(ctHash)
-   *   .withPermit(permit)
-   *   .execute();
-   * ```
-   *
-   * Example with global allowance (no permit):
-   * ```typescript
-   * const result = await decryptForTx(ctHash)
-   *   .withPermit(undefined)
-   *   .execute();
-   * ```
-   *
-   * @returns The chainable DecryptForTxBuilder instance.
+   * Note: "global allowance" (no permit) is ONLY available via `withoutPermit()`.
    */
-  withPermit(permitHashOrPermitOrUndefined: string | Permit | undefined | null): DecryptForTxBuilder {
-    this.permitSet = true;
+  withPermit(permitOrPermitHash?: Permit | string | undefined): DecryptForTxBuilder<'with-permit'> {
+    this.permitSelection = 'with-permit';
 
-    if (typeof permitHashOrPermitOrUndefined === 'string') {
-      this.permitHash = permitHashOrPermitOrUndefined;
+    if (typeof permitOrPermitHash === 'string') {
+      this.permitHash = permitOrPermitHash;
       this.permit = undefined;
-    } else if (permitHashOrPermitOrUndefined === undefined || permitHashOrPermitOrUndefined === null) {
-      // Global allowance - no permit required
-      this.permit = null;
+    } else if (permitOrPermitHash === undefined) {
+      // Explicitly choose "active permit" resolution at execute()
       this.permitHash = undefined;
+      this.permit = undefined;
     } else {
       // Permit object
-      this.permit = permitHashOrPermitOrUndefined;
+      this.permit = permitOrPermitHash;
       this.permitHash = undefined;
     }
 
-    return this;
+    return this as unknown as DecryptForTxBuilder<'with-permit'>;
   }
 
-  getPermit(): Permit | null | undefined {
+  /**
+   * Select "no permit" mode.
+   *
+   * This uses global allowance (no permit required) and sends an empty permission payload to `/decrypt`.
+   */
+  withoutPermit(): DecryptForTxBuilder<'without-permit'> {
+    this.permitSelection = 'without-permit';
+    this.permitHash = undefined;
+    this.permit = undefined;
+    return this as unknown as DecryptForTxBuilder<'without-permit'>;
+  }
+
+  getPermit(): Permit | undefined {
     return this.permit;
   }
 
@@ -183,12 +188,19 @@ export class DecryptForTxBuilder extends BaseBuilder {
   }
 
   private async getResolvedPermit(): Promise<Permit | null> {
-    // If permit was explicitly set via withPermit()
-    if (this.permitSet) {
-      return this.permit ?? null;
+    if (this.permitSelection === 'unset') {
+      throw new CofheError({
+        code: CofheErrorCode.InternalError,
+        message: 'decryptForTx: missing permit selection; call withPermit(...) or withoutPermit() before execute().',
+        hint: 'Call .withPermit() to use the active permit, or .withoutPermit() for global allowance.',
+      });
     }
 
-    // If permit object directly provided
+    if (this.permitSelection === 'without-permit') {
+      return null;
+    }
+
+    // with-permit mode
     if (this.permit) return this.permit;
 
     this.assertChainId();
@@ -212,7 +224,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
       return permit;
     }
 
-    // Fetch with active permit
+    // Fetch active permit (default for withPermit() with no args)
     const permit = await permits.getActivePermit(this.chainId, this.account);
     if (!permit) {
       throw new CofheError({
@@ -261,32 +273,11 @@ export class DecryptForTxBuilder extends BaseBuilder {
   /**
    * Final step of the decryptForTx process. MUST BE CALLED LAST IN THE CHAIN.
    *
-   * This will:
-   * - Use a permit based on:
-   *   - withPermit(permit) if provided
-   *   - withPermit(permitHash) to fetch permit
-   *   - withPermit(undefined) for global allowance (no permit)
-   *   - or active permit for chainId + account
-   * - Call CoFHE `/decrypt` with the permit or empty permit for global allowance
-   * - Return the decrypted value + proof ready for transaction
-   *
-   * Example:
-   * ```typescript
-   * // With permit
-   * const result = await client.decryptForTx(ctHash)
-   *   .setChainId(11155111)
-   *   .setAccount('0x123...890')
-   *   .execute();
-   *
-   * // With global allowance
-   * const result = await client.decryptForTx(ctHash)
-   *   .withPermit(undefined)
-   *   .execute();
-   * ```
-   *
-   * @returns Object containing decrypted value and proof ready for tx.
+   * You must explicitly choose one permit mode before calling `execute()`:
+   * - `withPermit(permit)` / `withPermit(permitHash)` / `withPermit()` (active permit)
+   * - `withoutPermit()` (global allowance)
    */
-  async execute(): Promise<DecryptForTxResult> {
+  async execute(this: DecryptForTxBuilder<'with-permit' | 'without-permit'>): Promise<DecryptForTxResult> {
     // Resolve permit (can be Permit object or null for global allowance)
     const permit = await this.getResolvedPermit();
 

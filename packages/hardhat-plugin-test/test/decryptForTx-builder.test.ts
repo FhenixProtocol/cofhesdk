@@ -30,7 +30,7 @@ describe('DecryptForTx Integration Tests', () => {
       await tx.wait();
 
       try {
-        await cofheClient.decryptForTx(encrypted[0].ctHash).withPermit(undefined).execute();
+        await cofheClient.decryptForTx(encrypted[0].ctHash).withoutPermit().execute();
         expect.fail('Expected decryptForTx to fail without global allowance');
       } catch (error) {
         expect((error as Error).message).to.include('NotAllowed');
@@ -43,7 +43,7 @@ describe('DecryptForTx Integration Tests', () => {
       const tx = await testContract.connect(signer).setPublicValue(encrypted[0]);
       await tx.wait();
 
-      const result = await cofheClient.decryptForTx(encrypted[0].ctHash).withPermit(undefined).execute();
+      const result = await cofheClient.decryptForTx(encrypted[0].ctHash).withoutPermit().execute();
 
       expect(result.ctHash).to.be.equal(encrypted[0].ctHash);
       expect(result.decryptedValue).to.be.equal(testValue);
@@ -102,7 +102,7 @@ describe('DecryptForTx Integration Tests', () => {
       const tx = await testContract.connect(signer).setValue(encrypted[0]);
       await tx.wait();
 
-      const result = await cofheClient.decryptForTx(encrypted[0].ctHash).execute();
+      const result = await cofheClient.decryptForTx(encrypted[0].ctHash).withPermit().execute();
 
       expect(result.ctHash).to.be.equal(encrypted[0].ctHash);
       expect(result.decryptedValue).to.be.equal(testValue);
@@ -117,7 +117,11 @@ describe('DecryptForTx Integration Tests', () => {
       const tx = await testContract.connect(signer).setValue(encrypted[0]);
       await tx.wait();
 
-      const result = await cofheClient.decryptForTx(encrypted[0].ctHash).setAccount(signer.address).execute();
+      const result = await cofheClient
+        .decryptForTx(encrypted[0].ctHash)
+        .setAccount(signer.address)
+        .withPermit()
+        .execute();
 
       expect(result.ctHash).to.be.equal(encrypted[0].ctHash);
       expect(result.decryptedValue).to.be.equal(testValue);
@@ -130,7 +134,7 @@ describe('DecryptForTx Integration Tests', () => {
       const tx = await testContract.connect(signer).setValue(encrypted[0]);
       await tx.wait();
 
-      const builder = cofheClient.decryptForTx(encrypted[0].ctHash).setAccount(signer.address);
+      const builder = cofheClient.decryptForTx(encrypted[0].ctHash).setAccount(signer.address).withPermit();
 
       const result1 = await builder.execute();
       expect(result1.ctHash).to.be.equal(encrypted[0].ctHash);
@@ -153,7 +157,7 @@ describe('DecryptForTx Integration Tests', () => {
       const tx = await testContract.connect(signer).setValue(encrypted[0]);
       await tx.wait();
 
-      const decryptForTxResult = await cofheClient.decryptForTx(encrypted[0].ctHash).execute();
+      const decryptForTxResult = await cofheClient.decryptForTx(encrypted[0].ctHash).withPermit().execute();
 
       expect(decryptForTxResult.ctHash).to.be.equal(encrypted[0].ctHash);
       expect(decryptForTxResult.decryptedValue).to.be.equal(testValue);
@@ -168,7 +172,7 @@ describe('DecryptForTx Integration Tests', () => {
 
       const ctHash = encrypted[0].ctHash;
       const viewResult = await cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
-      const forTxResult = await cofheClient.decryptForTx(ctHash).execute();
+      const forTxResult = await cofheClient.decryptForTx(ctHash).withPermit().execute();
 
       expect(viewResult).to.be.equal(testValue);
       expect(forTxResult.ctHash).to.be.equal(ctHash);

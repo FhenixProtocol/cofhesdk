@@ -136,7 +136,7 @@ describe('Sepolia – DecryptForTx + PublishDecryptResult', () => {
     console.log(`ctHash: ${ctHash}`);
 
     // ── Step 4: Call TN /decrypt to get plaintext + signature ─────────────
-    const decryptResult = await cofheClient.decryptForTx(ctHash).execute();
+    const decryptResult = await cofheClient.decryptForTx(ctHash).withPermit().execute();
 
     expect(decryptResult.ctHash).to.equal(ctHash);
     expect(decryptResult.decryptedValue).to.equal(testValue);

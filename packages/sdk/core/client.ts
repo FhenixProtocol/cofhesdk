@@ -7,7 +7,7 @@ import { EncryptInputsBuilder } from './encrypt/encryptInputsBuilder.js';
 import { createKeysStore } from './keyStore.js';
 import { permits } from './permits.js';
 import { DecryptForViewBuilder } from './decrypt/decryptForViewBuilder.js';
-import { DecryptForTxBuilder } from './decrypt/decryptForTxBuilder.js';
+import { DecryptForTxBuilder, type DecryptForTxBuilderUnset } from './decrypt/decryptForTxBuilder.js';
 import { getPublicClientChainID, getWalletClientAccount } from './utils.js';
 import type { CofheClientConnectionState, CofheClientParams, CofheClient, CofheClientPermits } from './clientTypes.js';
 import type { EncryptableItem, FheTypes } from './types.js';
@@ -163,7 +163,7 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
     });
   }
 
-  function decryptForTx(ctHash: bigint): DecryptForTxBuilder {
+  function decryptForTx(ctHash: bigint): DecryptForTxBuilderUnset {
     const state = connectStore.getState();
 
     return new DecryptForTxBuilder({

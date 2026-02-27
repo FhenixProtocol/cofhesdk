@@ -52,7 +52,7 @@ describe('Decrypt With Proof Test', () => {
     const resultCtHash = await testContract.getValue();
 
     // Step 3: Use decryptForTx to get the values needed for publishDecryptResult
-    const decryptResult = await cofheClient.decryptForTx(resultCtHash).execute();
+    const decryptResult = await cofheClient.decryptForTx(resultCtHash).withPermit().execute();
 
     expect(decryptResult.ctHash).to.equal(resultCtHash);
     expect(decryptResult.decryptedValue).to.equal(expectedSum);
