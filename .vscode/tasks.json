@@ -2,6 +2,25 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "build sdk",
+      "type": "shell",
+      "command": "zsh",
+      "args": [
+        "-ic",
+        "pnpm --filter @cofhe/sdk build"
+      ],
+      "problemMatcher": [],
+      "group": "build",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
       "label": "dev:packages/react",
       "type": "shell",
       "command": "zsh",
