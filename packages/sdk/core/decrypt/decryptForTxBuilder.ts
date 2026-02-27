@@ -233,7 +233,7 @@ export class DecryptForTxBuilder<TSelection extends DecryptForTxPermitSelection 
       throw new CofheError({
         code: CofheErrorCode.PermitNotFound,
         message: `Active permit not found for chainId <${this.chainId}> and account <${this.account}>`,
-        hint: 'Ensure a permit exists for this account on this chain.',
+        hint: 'Create a permit (e.g. client.permits.createSelf(...)) and/or set it active (client.permits.selectActivePermit(hash)).',
         context: {
           chainId: this.chainId,
           account: this.account,
