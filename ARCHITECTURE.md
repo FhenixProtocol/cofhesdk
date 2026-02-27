@@ -57,54 +57,82 @@ graph TB
 ## Encryption Flow: Mock vs Production
 
 ```mermaid
-graph LR
-    Start["plaintext values"]
+%%{init: {"flowchart": {"nodeSpacing": 90, "rankSpacing": 90}}}%%
+graph TD
+    Start["EncryptInputsBuilder.execute()\n(entrypoint)"]
+
+    Start -->|hardhat chain| MExec
+    Start -->|other chains| PExec
 
     subgraph Mock["📋 MOCK MODE"]
-        M0["0. cofheMocksZkVerifySign()<br/>Mock entrypoint"]
-        M1["1. calculateCtHashes<br/>MockZkVerifier.zkVerifyCalcCtHashesPacked()"]
-        M2["2. insertCtHashes<br/>Store plaintext in MockZkVerifier"]
-        M3["3. createProofSignatures<br/>Sign with MOCKS_ZK_VERIFIER_SIGNER"]
-        M4["Return EncryptedInputs<br/>with ctHash + signature"]
+        direction TB
+
+        MExec["1. mocksExecute()<br/>EncryptInputsBuilder.mocksExecute()"]
+        M0["2. cofheMocksZkVerifySign()<br/>Mock zk+sign entrypoint"]
+
+        subgraph MInner[" "]
+            direction LR
+            MInnerNote["Inside cofheMocksZkVerifySign()"]
+
+            subgraph MInnerSteps[" "]
+                direction TB
+                M1["3. calcCtHashes()<br/>calls MockZkVerifier.zkVerifyCalcCtHashesPacked()"]
+                M2["4. insertCtHashes()<br/>Store plaintext in MockZkVerifier"]
+                M3["5. createProofSignatures()<br/>Sign with MOCKS_ZK_VERIFIER_SIGNER"]
+                MRet["Return VerifyResult[]<br/>(ct_hash + signature)"]
+            end
+        end
+
+        MPackage["Package EncryptedInputs<br/>(ctHash + signature + utype + securityZone)"]
+        EndMock["EncryptedInputs ready for tx"]
+
+        MExec --> M0
+        M0 --> M1
+        MInnerNote -.-> M1
+        M1 --> M2
+        M2 --> M3
+        M3 --> MRet
+        MRet --> MPackage
+        MPackage --> EndMock
     end
 
     subgraph Prod["🌐 PRODUCTION MODE"]
-        P1["1. TFHE Encryption<br/>using FHE public key"]
-        P2["2. Pack & Prove<br/>Create Zero-Knowledge Proof"]
-        P3["3. Verify with CoFHE<br/>Submit to CoFHE API"]
+        direction TB
+
+        PExec["1. productionExecute()<br/>EncryptInputsBuilder.productionExecute()"]
+        P1["2. TFHE Encryption<br/>using FHE public key"]
+        P2["3. Pack & Prove<br/>Create Zero-Knowledge Proof"]
+        P3["4. Verify with CoFHE<br/>Submit to CoFHE API"]
         P4["Return EncryptedInputs<br/>with proof"]
+        EndProd["EncryptedInputs ready for tx"]
+
+        PExec --> P1
+        P1 --> P2
+        P2 --> P3
+        P3 --> P4
+        P4 --> EndProd
     end
-
-    Start -->|branch| M0
-    Start -->|branch| P1
-
-    M0 --> M1
-    M1 --> M2
-    M2 --> M3
-    M3 --> M4
-
-    P1 --> P2
-    P2 --> P3
-    P3 --> P4
-
-    M4 --> EndMock["EncryptedInputs ready for tx"]
-    P4 --> EndProd["EncryptedInputs ready for tx"]
 
     linkStyle default stroke:#000,stroke-width:3px
 
     %% Clickable nodes (GitHub-friendly links + line anchors)
-    click Start "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/client.ts#L124-L150" "SDK entrypoint (encryptInputs)"
-    click M0 "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/cofheMocksZkVerifySign.ts#L252-L283" "Mock entrypoint: cofheMocksZkVerifySign"
-    click M1 "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/mock-contracts/contracts/MockZkVerifier.sol#L72" "MockZkVerifier hashing (zkVerifyCalcCtHashesPacked)"
+    click Start "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/encryptInputsBuilder.ts#L553" "Entry point: EncryptInputsBuilder.execute()"
+    click MExec "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/encryptInputsBuilder.ts#L407" "Mock path: EncryptInputsBuilder.mocksExecute()"
+    click M0 "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/cofheMocksZkVerifySign.ts#L252" "Mock entrypoint: cofheMocksZkVerifySign"
+    click M1 "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/cofheMocksZkVerifySign.ts#L89" "Mock flow: calcCtHashes (calls MockZkVerifier.zkVerifyCalcCtHashesPacked)"
     click M2 "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/cofheMocksZkVerifySign.ts#L153" "Mock flow: insert ctHashes"
     click M3 "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/cofheMocksZkVerifySign.ts#L184" "Mock flow: createProofSignatures"
-    click M4 "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/encryptInputsBuilder.ts#L407-L451" "Mock execute(): returns EncryptedInputs"
-    click P1 "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/encryptInputsBuilder.ts#L453" "Production execute(): init + fetch keys"
-    click P2 "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/zkPackProveVerify.ts#L105-L252" "zkPack + zkProve"
-    click P3 "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/zkPackProveVerify.ts#L268-L336" "zkVerify (calls verifierUrl /verify)"
-    click P4 "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/encryptInputsBuilder.ts#L518-L540" "Production execute(): package EncryptedInputs"
-    click EndMock "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/encryptInputsBuilder.ts#L439" "Mock: EncryptedInputs ready for tx"
+    click PExec "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/encryptInputsBuilder.ts#L453" "Production path: EncryptInputsBuilder.productionExecute()"
+    click P1 "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/encryptInputsBuilder.ts#L453" "Production path: TFHE encrypt (within productionExecute)"
+    click P2 "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/zkPackProveVerify.ts#L105" "zkPack + zkProve"
+    click P3 "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/zkPackProveVerify.ts#L268" "zkVerify (calls verifierUrl /verify)"
+    click P4 "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/encryptInputsBuilder.ts#L518" "Production path: package + return EncryptedInputs"
+    click MRet "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/cofheMocksZkVerifySign.ts#L273" "Mock: returns ct_hash + signature"
+    click MPackage "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/encryptInputsBuilder.ts#L439" "Mock: package EncryptedInputs"
+    click EndMock "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/encryptInputsBuilder.ts#L447" "Mock: EncryptedInputs ready for tx"
     click EndProd "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/encryptInputsBuilder.ts#L531" "Prod: EncryptedInputs ready for tx"
+
+    style MInnerNote fill:transparent,stroke:transparent,color:#000
 
     style Mock fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px,color:#000
     style Prod fill:#e8f5e9,stroke:#388e3c,stroke-width:3px,color:#000
