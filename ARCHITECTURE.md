@@ -90,17 +90,17 @@ graph LR
 
     linkStyle default stroke:#000,stroke-width:3px
 
-    %% Clickable nodes (open the relevant implementation)
-    click Start "packages/sdk/core/client.ts" "SDK entrypoint (encryptInputs)"
-    click M1 "packages/mock-contracts/contracts/MockZkVerifier.sol" "MockZkVerifier hashing (zkVerifyCalcCtHashesPacked)"
-    click M2 "packages/sdk/core/encrypt/cofheMocksZkVerifySign.ts" "Mock flow: insert ctHashes"
-    click M3 "packages/sdk/core/encrypt/cofheMocksZkVerifySign.ts" "Mock flow: createProofSignatures"
-    click M4 "packages/sdk/core/encrypt/encryptInputsBuilder.ts" "Mock execute(): returns EncryptedInputs"
-    click P1 "packages/sdk/core/encrypt/encryptInputsBuilder.ts" "Production execute(): fetch keys + init"
-    click P2 "packages/sdk/core/encrypt/zkPackProveVerify.ts" "zkPack + zkProve"
-    click P3 "packages/sdk/core/encrypt/zkPackProveVerify.ts" "zkVerify (calls verifierUrl /verify)"
-    click P4 "packages/sdk/core/encrypt/encryptInputsBuilder.ts" "Production execute(): package EncryptedInputs"
-    click End "packages/sdk/core/client.ts" "EncryptedInputs returned to app"
+    %% Clickable nodes (GitHub-friendly links + line anchors)
+    click Start "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/client.ts#L124-L150" "SDK entrypoint (encryptInputs)"
+    click M1 "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/mock-contracts/contracts/MockZkVerifier.sol#L72" "MockZkVerifier hashing (zkVerifyCalcCtHashesPacked)"
+    click M2 "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/cofheMocksZkVerifySign.ts#L153" "Mock flow: insert ctHashes"
+    click M3 "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/cofheMocksZkVerifySign.ts#L184" "Mock flow: createProofSignatures"
+    click M4 "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/encryptInputsBuilder.ts#L407-L451" "Mock execute(): returns EncryptedInputs"
+    click P1 "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/encryptInputsBuilder.ts#L453" "Production execute(): init + fetch keys"
+    click P2 "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/zkPackProveVerify.ts#L105-L252" "zkPack + zkProve"
+    click P3 "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/zkPackProveVerify.ts#L268-L336" "zkVerify (calls verifierUrl /verify)"
+    click P4 "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/encrypt/encryptInputsBuilder.ts#L518-L540" "Production execute(): package EncryptedInputs"
+    click End "https://github.com/FhenixProtocol/cofhesdk/blob/decrypt-with-proof-refinements/packages/sdk/core/client.ts#L124-L150" "EncryptedInputs returned to app"
 
     style Mock fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px,color:#000
     style Prod fill:#e8f5e9,stroke:#388e3c,stroke-width:3px,color:#000
