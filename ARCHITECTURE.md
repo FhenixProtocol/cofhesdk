@@ -90,6 +90,18 @@ graph LR
 
     linkStyle default stroke:#000,stroke-width:3px
 
+    %% Clickable nodes (open the relevant implementation)
+    click Start "packages/sdk/core/client.ts" "SDK entrypoint (encryptInputs)"
+    click M1 "packages/mock-contracts/contracts/MockZkVerifier.sol" "MockZkVerifier hashing (zkVerifyCalcCtHashesPacked)"
+    click M2 "packages/sdk/core/encrypt/cofheMocksZkVerifySign.ts" "Mock flow: insert ctHashes"
+    click M3 "packages/sdk/core/encrypt/cofheMocksZkVerifySign.ts" "Mock flow: createProofSignatures"
+    click M4 "packages/sdk/core/encrypt/encryptInputsBuilder.ts" "Mock execute(): returns EncryptedInputs"
+    click P1 "packages/sdk/core/encrypt/encryptInputsBuilder.ts" "Production execute(): fetch keys + init"
+    click P2 "packages/sdk/core/encrypt/zkPackProveVerify.ts" "zkPack + zkProve"
+    click P3 "packages/sdk/core/encrypt/zkPackProveVerify.ts" "zkVerify (calls verifierUrl /verify)"
+    click P4 "packages/sdk/core/encrypt/encryptInputsBuilder.ts" "Production execute(): package EncryptedInputs"
+    click End "packages/sdk/core/client.ts" "EncryptedInputs returned to app"
+
     style Mock fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px,color:#000
     style Prod fill:#e8f5e9,stroke:#388e3c,stroke-width:3px,color:#000
     style End fill:#fff9c4,stroke:#f57f17,stroke-width:3px,color:#000
