@@ -271,6 +271,47 @@ The SDK uses the term **"ZK Verifier"** for the component that ultimately produc
 
 In other words: **in production, the verifier lives off-chain; on-chain contracts never call it directly.** Contracts only validate a signature that *originates* from the verifier.
 
+### Proof Generation & Verification
+
+#### Proof Generation (Where/When)
+
+In production mode, ZK proofs are generated **locally** in the client environment:
+
+- **Web:** proof generation runs in the browser and can be offloaded to a Web Worker.
+- **Node:** proof generation runs in-process.
+
+At a high level, the SDK:
+
+1. Fetches network parameters required for proving (FHE public key and CRS).
+2. Packs the inputs into a ciphertext list.
+3. Runs the proving algorithm (WASM-backed) and produces a serialized `packed_list` blob that contains ciphertexts + proof.
+
+This design keeps plaintext values on the client and makes proof generation the main “heavy” step.
+
+#### What The Proof Verifies (Conceptually)
+
+The SDK sends the verifier:
+
+- `packed_list`: serialized ciphertext/proof blob
+- `account_addr`, `security_zone`, `chain_id`: metadata that is also bound into the proof statement (see `constructZkPoKMetadata(...)`)
+
+The verifier checks that the blob is a valid ZK proof for the expected statement. The exact statement/circuit is verifier-defined, but conceptually it covers:
+
+1. **Proof validity under expected parameters** (CRS and the network’s public FHE key).
+2. **Well-formed encryption** (the ciphertext encoding is valid; the prover demonstrates knowledge of plaintext(s) and randomness consistent with the ciphertext list).
+3. **Metadata binding** (the statement is bound to `(account_addr, security_zone, chain_id)` to prevent out-of-context reuse).
+
+If verification succeeds, the verifier returns a **ctHash** (handle derived from the proven ciphertext) and a **signature** that attests that this ctHash passed verification under the expected metadata.
+
+#### Verification Is Not Re-Proving
+
+Verification does not re-run proof generation. Proving and verifying are different algorithms:
+
+- **Proving:** expensive; run by the client to produce a proof.
+- **Verifying:** cheaper; run by the verifier to check the proof against public parameters and the expected statement.
+
+The returned signature is the artifact that the on-chain Task Manager ultimately authenticates.
+
 ### Why Smart Contracts Trust It
 
 The protocol’s trust boundary here is not “an HTTP endpoint”, it’s **an authorization check enforced on-chain**: encrypted inputs are accepted only if they carry a signature that verifies against an **authorized verifier identity** configured in the CoFHE system contracts.
@@ -280,28 +321,6 @@ The protocol’s trust boundary here is not “an HTTP endpoint”, it’s **an 
     - You can see the exact mechanism in the mocks: `MockTaskManager.verifyInput()` recovers the signer and compares it against `verifierSigner`.
 
 Operationally, in production the verifier service/API returns signatures that are produced by the verifier’s authorized signing authority *after* the ZK proof checks pass. How that signing authority is implemented is intentionally an off-chain concern (it could be a single signer, an HSM-backed key, or a distributed/threshold signer), but the on-chain rule is stable: **only signatures from the authorized verifier identity are accepted**.
-
-#### What The ZK Proof Checks (Conceptually)
-
-At encryption time the SDK builds a **packed ciphertext list + proof** and sends it to the verifier along with explicit metadata:
-
-- `packed_list`: the serialized ciphertext/proof blob
-- `account_addr`, `security_zone`, `chain_id`: metadata that the SDK also bakes into the proof statement (see `constructZkPoKMetadata(...)`)
-
-The verifier’s job is to validate that the submitted blob is a *valid proof* for the expected statement. While the exact circuit/statement is defined by the verifier implementation, the checks are conceptually in this class:
-
-1. **Proof validity under the expected parameters**
-    - The proof verifies against the expected CRS and the network’s public FHE key (fetched by the SDK).
-2. **Well-formed encryption of the claimed inputs**
-    - The prover demonstrates knowledge of plaintext(s) and encryption randomness such that the ciphertext list is a correct encryption of those plaintexts.
-    - The packed representation is consistent (no malformed ciphertext encoding).
-3. **Metadata binding (anti-replay / context binding)**
-    - The proof is bound to `(account_addr, security_zone, chain_id)` so the resulting ciphertext handles cannot be reused out of context.
-4. **Type/size constraints enforced by the SDK**
-    - The SDK refuses to build proofs exceeding 2048 total bits (`MAX_ENCRYPTABLE_BITS`) and encodes values according to the selected `FheTypes.*`.
-    - (Whether the verifier redundantly enforces these constraints is verifier-defined; the important part is: the proof corresponds to the packed encoding the SDK produced.)
-
-If these checks pass, the verifier returns a **ctHash** (handle derived from the proven ciphertext) and a **signature** that attests: “this ctHash corresponds to a ciphertext proven valid under the expected metadata”. The signature is what the on-chain Task Manager ultimately authenticates.
 
 The contract “trusts the verifier” in the same way it “trusts an oracle”: through governance/deployment configuration plus cryptographic authentication.
 
