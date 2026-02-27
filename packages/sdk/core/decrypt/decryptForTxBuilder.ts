@@ -126,11 +126,14 @@ export class DecryptForTxBuilder<TSelection extends DecryptForTxPermitSelection 
    *
    * - `withPermit(permit)` uses the provided permit.
    * - `withPermit(permitHash)` fetches that permit.
-   * - `withPermit()` / `withPermit(undefined)` uses the active permit for the resolved `chainId + account`.
+   * - `withPermit()` uses the active permit for the resolved `chainId + account`.
    *
    * Note: "global allowance" (no permit) is ONLY available via `withoutPermit()`.
    */
-  withPermit(permitOrPermitHash?: Permit | string | undefined): DecryptForTxBuilder<'with-permit'> {
+  withPermit(): DecryptForTxBuilder<'with-permit'>;
+  withPermit(permitHash: string): DecryptForTxBuilder<'with-permit'>;
+  withPermit(permit: Permit): DecryptForTxBuilder<'with-permit'>;
+  withPermit(permitOrPermitHash?: Permit | string): DecryptForTxBuilder<'with-permit'> {
     this.permitSelection = 'with-permit';
 
     if (typeof permitOrPermitHash === 'string') {

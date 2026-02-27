@@ -16,6 +16,9 @@ client.decryptForTx(ctHash).setChainId(1).setAccount('0x000000000000000000000000
 // OK: withPermit() uses active permit
 client.decryptForTx(ctHash).withPermit().execute();
 
+// @ts-expect-error Explicit undefined is not allowed; use withPermit() for active permit
+client.decryptForTx(ctHash).withPermit(undefined);
+
 // OK: withPermit(hash)
 client.decryptForTx(ctHash).withPermit('0xdeadbeef').execute();
 
