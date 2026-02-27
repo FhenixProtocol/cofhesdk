@@ -12,6 +12,10 @@ const name = typeof pkg?.name === 'string' ? pkg.name : '@cofhe/sdk';
 const version = typeof pkg?.version === 'string' ? pkg.version : '0.0.0';
 
 console.log(`Generating version.ts with name=${name} and version=${version}`);
-const contents = `export const SDK_NAME = ${JSON.stringify(name)};\nexport const SDK_VERSION = ${JSON.stringify(version)};\n`;
+const contents =
+  `export const SDK_NAME = ${JSON.stringify(name)};\nexport const SDK_VERSION = ${JSON.stringify(version)};\n`.replaceAll(
+    '"',
+    "'"
+  );
 
 writeFileSync(outPath, contents);
