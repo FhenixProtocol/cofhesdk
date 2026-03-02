@@ -1,3 +1,4 @@
+/* eslint-disable no-dupe-class-members */
 import { hardhat } from '@/chains';
 import { type Permit, type Permission, PermitUtils } from '@/permits';
 

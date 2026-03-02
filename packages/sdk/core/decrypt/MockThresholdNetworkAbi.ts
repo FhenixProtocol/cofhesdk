@@ -139,7 +139,7 @@ export const MockThresholdNetworkAbi = [
   },
   {
     type: 'function',
-    name: 'decryptForTx',
+    name: 'decryptForTxWithPermit',
     inputs: [
       { name: 'ctHash', type: 'uint256', internalType: 'uint256' },
       {
@@ -158,6 +158,17 @@ export const MockThresholdNetworkAbi = [
         ],
       },
     ],
+    outputs: [
+      { name: 'allowed', type: 'bool', internalType: 'bool' },
+      { name: 'error', type: 'string', internalType: 'string' },
+      { name: 'decryptedValue', type: 'uint256', internalType: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'decryptForTxWithoutPermit',
+    inputs: [{ name: 'ctHash', type: 'uint256', internalType: 'uint256' }],
     outputs: [
       { name: 'allowed', type: 'bool', internalType: 'bool' },
       { name: 'error', type: 'string', internalType: 'string' },
