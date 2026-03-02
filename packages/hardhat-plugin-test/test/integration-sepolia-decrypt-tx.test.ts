@@ -1,6 +1,6 @@
 import hre from 'hardhat';
 import { sepolia } from '@cofhe/sdk/chains';
-import { CofheClient, Encryptable, FheTypes } from '@cofhe/sdk';
+import { CofheClient, Encryptable } from '@cofhe/sdk';
 import { createPublicClient, createWalletClient, http, type PublicClient, type WalletClient } from 'viem';
 import { sepolia as viemSepolia } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
@@ -166,5 +166,55 @@ describe('Sepolia – DecryptForTx + PublishDecryptResult', () => {
     expect(isDecrypted).to.equal(true);
     expect(publishedValue).to.equal(testValue);
     console.log(`On-chain published value: ${publishedValue}, decrypted: ${isDecrypted}`);
+  });
+
+  it('Should encrypt → store PUBLIC → decryptForTx (no permit) → publishDecryptResult → verify', async function () {
+    this.timeout(180_000);
+
+    if (TEST_PRIVATE_KEY === DEFAULT_TEST_PRIVATE_KEY) {
+      this.skip();
+    }
+
+    const testValue = 7n;
+
+    // ── Step 1: Encrypt the value client-side ──────────────────────────────
+    const [encrypted] = await cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
+
+    // ── Step 2: Store the ciphertext on-chain as PUBLIC (global allowance) ─
+    const storeTx = await testContract.connect(sepoliaSigner).setPublicValue(encrypted);
+    await storeTx.wait();
+    console.log('setPublicValue tx mined.');
+
+    // ── Step 3: Read back the on-chain ctHash ─────────────────────────────
+    // IMPORTANT: use the on-chain hash.
+    const ctHash: bigint = await testContract.publicValueHash();
+    console.log(`public ctHash: ${ctHash}`);
+
+    // ── Step 4: Decrypt via TN /decrypt without a permit ──────────────────
+    const decryptResult = await cofheClient.decryptForTx(ctHash).withoutPermit().execute();
+
+    expect(decryptResult.ctHash).to.equal(ctHash);
+    expect(decryptResult.decryptedValue).to.equal(testValue);
+    expect(decryptResult.signature).to.be.a('string').and.have.lengthOf.above(0);
+    console.log(`TN decryptedValue (public): ${decryptResult.decryptedValue}`);
+
+    // ── Step 5: Publish the result on-chain ───────────────────────────────
+    const signatureHex = decryptResult.signature.startsWith('0x')
+      ? (decryptResult.signature as `0x${string}`)
+      : (`0x${decryptResult.signature}` as `0x${string}`);
+    const signatureBytes = Signature.from(signatureHex).serialized;
+
+    const publicValueHandle: bigint = await testContract.publicValue();
+    const publishTx = await testContract
+      .connect(sepoliaSigner)
+      .publishDecryptResult(publicValueHandle, decryptResult.decryptedValue, signatureBytes);
+    await publishTx.wait();
+    console.log('publishDecryptResult (public) tx mined.');
+
+    // ── Step 6: Verify the published result ───────────────────────────────
+    const [publishedValue, isDecrypted]: [bigint, boolean] = await testContract.getDecryptResultSafe(publicValueHandle);
+    expect(isDecrypted).to.equal(true);
+    expect(publishedValue).to.equal(testValue);
+    console.log(`On-chain published value (public): ${publishedValue}, decrypted: ${isDecrypted}`);
   });
 });
