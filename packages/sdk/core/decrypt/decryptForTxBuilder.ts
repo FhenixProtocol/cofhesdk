@@ -130,23 +130,50 @@ export class DecryptForTxBuilder<TSelection extends DecryptForTxPermitSelection 
    *
    * Note: "global allowance" (no permit) is ONLY available via `withoutPermit()`.
    */
-  withPermit(): DecryptForTxBuilder<'with-permit'>;
-  withPermit(permitHash: string): DecryptForTxBuilder<'with-permit'>;
-  withPermit(permit: Permit): DecryptForTxBuilder<'with-permit'>;
-  withPermit(permitOrPermitHash?: Permit | string): DecryptForTxBuilder<'with-permit'> {
-    this.permitSelection = 'with-permit';
+  withPermit(this: DecryptForTxBuilder<'unset'> | DecryptForTxBuilderUnset): DecryptForTxBuilder<'with-permit'>;
+  withPermit(
+    this: DecryptForTxBuilder<'unset'> | DecryptForTxBuilderUnset,
+    permitHash: string
+  ): DecryptForTxBuilder<'with-permit'>;
+  withPermit(
+    this: DecryptForTxBuilder<'unset'> | DecryptForTxBuilderUnset,
+    permit: Permit
+  ): DecryptForTxBuilder<'with-permit'>;
+  withPermit(
+    this: DecryptForTxBuilder<'unset'> | DecryptForTxBuilderUnset,
+    permitOrPermitHash?: Permit | string
+  ): DecryptForTxBuilder<'with-permit'> {
+    const self = this as unknown as DecryptForTxBuilder<DecryptForTxPermitSelection>;
+
+    if (self.permitSelection === 'with-permit') {
+      throw new CofheError({
+        code: CofheErrorCode.InternalError,
+        message: 'decryptForTx: withPermit() can only be selected once.',
+        hint: 'Choose the permit mode once. If you need a different permit, start a new decryptForTx() builder chain.',
+      });
+    }
+
+    if (self.permitSelection === 'without-permit') {
+      throw new CofheError({
+        code: CofheErrorCode.InternalError,
+        message: 'decryptForTx: cannot call withPermit() after withoutPermit() has been selected.',
+        hint: 'Choose exactly one permit mode: either call .withPermit(...) or .withoutPermit(), but not both.',
+      });
+    }
+
+    self.permitSelection = 'with-permit';
 
     if (typeof permitOrPermitHash === 'string') {
-      this.permitHash = permitOrPermitHash;
-      this.permit = undefined;
+      self.permitHash = permitOrPermitHash;
+      self.permit = undefined;
     } else if (permitOrPermitHash === undefined) {
       // Explicitly choose "active permit" resolution at execute()
-      this.permitHash = undefined;
-      this.permit = undefined;
+      self.permitHash = undefined;
+      self.permit = undefined;
     } else {
       // Permit object
-      this.permit = permitOrPermitHash;
-      this.permitHash = undefined;
+      self.permit = permitOrPermitHash;
+      self.permitHash = undefined;
     }
 
     return this as unknown as DecryptForTxBuilder<'with-permit'>;
@@ -157,10 +184,28 @@ export class DecryptForTxBuilder<TSelection extends DecryptForTxPermitSelection 
    *
    * This uses global allowance (no permit required) and sends an empty permission payload to `/decrypt`.
    */
-  withoutPermit(): DecryptForTxBuilder<'without-permit'> {
-    this.permitSelection = 'without-permit';
-    this.permitHash = undefined;
-    this.permit = undefined;
+  withoutPermit(this: DecryptForTxBuilder<'unset'> | DecryptForTxBuilderUnset): DecryptForTxBuilder<'without-permit'> {
+    const self = this as unknown as DecryptForTxBuilder<DecryptForTxPermitSelection>;
+
+    if (self.permitSelection === 'without-permit') {
+      throw new CofheError({
+        code: CofheErrorCode.InternalError,
+        message: 'decryptForTx: withoutPermit() can only be selected once.',
+        hint: 'Choose the permit mode once. If you need a different mode, start a new decryptForTx() builder chain.',
+      });
+    }
+
+    if (self.permitSelection === 'with-permit') {
+      throw new CofheError({
+        code: CofheErrorCode.InternalError,
+        message: 'decryptForTx: cannot call withoutPermit() after withPermit() has been selected.',
+        hint: 'Choose exactly one permit mode: either call .withPermit(...) or .withoutPermit(), but not both.',
+      });
+    }
+
+    self.permitSelection = 'without-permit';
+    self.permitHash = undefined;
+    self.permit = undefined;
     return this as unknown as DecryptForTxBuilder<'without-permit'>;
   }
 
