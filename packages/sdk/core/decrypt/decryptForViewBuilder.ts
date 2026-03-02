@@ -18,14 +18,16 @@ import { cofheMocksDecryptForTx } from './cofheMocksDecryptForTx.js';
  * await client.decryptForView(ctHash, utype)
  *   .setChainId(chainId)
  *   .setAccount(account)
- *   .setPermitHash(permitHash)
- *   .setPermit(permit)
+ *   .setPermitHash(permitHash) // optional (defaults to active permit)
+ *   .setPermit(permit)         // optional (overrides permitHash/active permit)
  *   .execute()
  *
  * If chainId not set, uses client's chainId
  * If account not set, uses client's account
  * If permitHash not set, uses chainId and account to get active permit
  * If permit is set, uses permit to decrypt regardless of chainId, account, or permitHash
+ *
+ * Note: decryptForView always requires a permit (no global-allowance mode).
  *
  * Returns the unsealed item.
  */
@@ -66,7 +68,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
    *
    * Example:
    * ```typescript
-   * const unsealed = await decryptHandle(ctHash, utype)
+  * const unsealed = await client.decryptForView(ctHash, utype)
    *   .setChainId(11155111)
    *   .execute();
    * ```
@@ -89,7 +91,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
    *
    * Example:
    * ```typescript
-   * const unsealed = await decryptHandle(ctHash, utype)
+  * const unsealed = await client.decryptForView(ctHash, utype)
    *   .setAccount('0x1234567890123456789012345678901234567890')
    *   .execute();
    * ```
@@ -113,7 +115,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
    *
    * Example:
    * ```typescript
-   * const unsealed = await decryptHandle(ctHash, utype)
+  * const unsealed = await client.decryptForView(ctHash, utype)
    *   .setPermitHash('0x1234567890123456789012345678901234567890')
    *   .execute();
    * ```
@@ -136,7 +138,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
    *
    * Example:
    * ```typescript
-   * const unsealed = await decryptHandle(ctHash, utype)
+  * const unsealed = await client.decryptForView(ctHash, utype)
    *   .setPermit(permit)
    *   .execute();
    * ```
@@ -252,7 +254,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
    *
    * Example:
    * ```typescript
-   * const unsealed = await decryptHandle(ctHash, utype)
+  * const unsealed = await client.decryptForView(ctHash, utype)
    *   .setChainId(11155111)      // optional
    *   .setAccount('0x123...890') // optional
    *   .execute();                // execute
