@@ -1,17 +1,44 @@
-import { CofheProvider, useInternalQueryClient } from '@cofhe/react';
+import { CofheProvider, createCofheConfig, useInternalQueryClient } from '@cofhe/react';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { usePublicClient, useWalletClient } from 'wagmi';
+import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
+import { baseSepolia, sepolia } from '@cofhe/sdk/chains';
 
 function QueryDebug() {
   const cofheQueryClient = useInternalQueryClient();
   return <ReactQueryDevtools client={cofheQueryClient} position="left" buttonPosition="bottom-left" />;
 }
+const cofheConfig = createCofheConfig({
+  supportedChains: [
+    sepolia,
+    //  baseSepolia
+  ],
+  react: {
+    // pinnedTokens: {
+    //   11155111: '0x87A3effB84CBE1E4caB6Ab430139eC41d156D55A', // sepolia weth
+    //   84532: '0xbED96aa98a49FeA71fcC55d755b915cF022a9159', // base sepolia weth
+    // },
+    // tokenLists: {
+    // 11155111: ['https://storage.googleapis.com/cofhesdk/sepolia.json'],
+    // 84532: ['https://storage.googleapis.com/cofhesdk/base-sepolia.json'],
+    // 421613: ['https://tokens.cofhe.io/arbitrum-sepolia.json'],
+    // },
+  },
+});
 
 export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) => {
   const wagmiPublicClient = usePublicClient();
   const { data: wagmiWalletClient } = useWalletClient();
+
+  const { chain } = useAccount();
+
+  const isConnectedToWagmiSupportedChain = chain !== undefined;
+
   return (
-    <CofheProvider walletClient={wagmiWalletClient} publicClient={wagmiPublicClient}>
+    <CofheProvider
+      walletClient={isConnectedToWagmiSupportedChain ? wagmiWalletClient : undefined}
+      publicClient={isConnectedToWagmiSupportedChain ? wagmiPublicClient : undefined}
+      config={cofheConfig}
+    >
       {children}
       <QueryDebug />
     </CofheProvider>

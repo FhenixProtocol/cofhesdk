@@ -1,5 +1,5 @@
 import type { Address } from 'viem';
-import { ETH_ADDRESS } from '@/types/token';
+import { ETH_ADDRESS_LOWERCASE } from '@/types/token';
 
 export const DEFAULT_COINGECKO_API_BASE_URL = 'https://api.coingecko.com/api/v3' as const;
 
@@ -102,7 +102,7 @@ export function parseCoingeckoSimplePriceUsd({
 
 export function isNativeTokenAddress(address: Address | undefined): boolean {
   if (!address) return false;
-  return address.toLowerCase() === ETH_ADDRESS.toLowerCase();
+  return address.toLowerCase() === ETH_ADDRESS_LOWERCASE;
 }
 
 export const TMP_WBTC_ON_MAINNET = {

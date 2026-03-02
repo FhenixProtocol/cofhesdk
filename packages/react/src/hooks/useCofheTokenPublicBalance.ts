@@ -1,7 +1,7 @@
 import { type UseQueryOptions } from '@tanstack/react-query';
 import { type Address } from 'viem';
 import { useCofheAccount, useCofhePublicClient } from './useCofheConnection';
-import { type Token, ETH_ADDRESS } from './useCofheTokenLists';
+import { type Token, ETH_ADDRESS_LOWERCASE } from './useCofheTokenLists';
 import { ERC20_BALANCE_OF_ABI } from '../constants/erc20ABIs';
 import { assert } from 'ts-essentials';
 import { useInternalQuery } from '../providers/index';
@@ -92,7 +92,7 @@ export function createPublicTokenBalanceQueryOptions<TSelectedData = bigint>(par
       assert(publicClient, 'PublicClient is required to fetch token balance');
       assert(accountAddress, 'Account address is required to fetch token balance');
 
-      const isNativeToken = tokenAddress.toLowerCase() === ETH_ADDRESS.toLowerCase();
+      const isNativeToken = tokenAddress.toLowerCase() === ETH_ADDRESS_LOWERCASE;
 
       const balance = isNativeToken
         ? publicClient.getBalance({

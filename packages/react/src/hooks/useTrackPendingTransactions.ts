@@ -11,7 +11,7 @@ import { constructCofheReadContractQueryForInvalidation } from './useCofheReadCo
 import { QueryClient, type QueriesOptions } from '@tanstack/react-query';
 import type { Address, TransactionReceipt } from 'viem';
 import { getTokenContractConfig } from '@/constants/confidentialTokenABIs';
-import type { Token } from './useCofheTokenLists';
+import { ETH_ADDRESS_LOWERCASE, type Token } from './useCofheTokenLists';
 import { constructPublicTokenBalanceQueryKeyForInvalidation } from './useCofheTokenPublicBalance';
 import { constructUnshieldClaimsQueryKeyForInvalidation, invalidateClaimableQueries } from './useCofheTokenClaimable';
 import { usePendingTransactions } from './usePendingTransactions';
@@ -131,7 +131,15 @@ function useHandleInvalidations() {
   const { upsert: upsertDecryptionWatcher, byKey } = useDecryptionWatchersStore();
   console.log('Scheduled invalidations store:', byKey);
   const handleInvalidations = (tx: Transaction) => {
-    // TODO invalidate gas on all txs since any tx spends gas
+    // each transaction requires gas, so native token balance changes on every transaction
+    invalidatePublicTokenBalanceQueries(
+      {
+        tokenAddress: ETH_ADDRESS_LOWERCASE,
+        chainId: tx.chainId,
+        accountAddress: tx.account,
+      },
+      queryClient
+    );
     if (tx.actionType === TransactionActionType.ShieldSend) {
       invalidateConfidentialTokenBalanceQueries(tx.token, queryClient);
     } else if (tx.actionType === TransactionActionType.Shield) {

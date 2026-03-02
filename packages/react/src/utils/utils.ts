@@ -1,5 +1,5 @@
 import * as viemChains from 'viem/chains';
-import { ETH_ADDRESS, type Token, type Erc20Pair } from '../types/token.js';
+import { ETH_ADDRESS_LOWERCASE, type Token, type Erc20Pair } from '../types/token.js';
 import type { FheTypeValue } from '@cofhe/sdk';
 import { isValidElement } from 'react';
 
@@ -68,7 +68,7 @@ export const getBlockExplorerTokenUrl = (chainId: number, tokenAddress: string):
  */
 export const isEthPair = (erc20Pair: Erc20Pair | undefined): boolean => {
   if (!erc20Pair) return false;
-  return erc20Pair.address.toLowerCase() === ETH_ADDRESS.toLowerCase();
+  return erc20Pair.address.toLowerCase() === ETH_ADDRESS_LOWERCASE;
 };
 
 /**
