@@ -129,14 +129,21 @@ function assertTnDecryptResponse(value: unknown): TnDecryptResponse {
 export async function tnDecrypt(
   ctHash: bigint,
   chainId: number,
-  permission: Permission,
+  permission: Permission | null,
   thresholdNetworkUrl: string
 ): Promise<{ decryptedValue: bigint; signature: string }> {
-  const body = {
+  const body: {
+    ct_tempkey: string;
+    host_chain_id: number;
+    permit?: Permission;
+  } = {
     ct_tempkey: ctHash.toString(16).padStart(64, '0'),
     host_chain_id: chainId,
-    permit: permission,
   };
+
+  if (permission) {
+    body.permit = permission;
+  }
 
   let response: Response;
   try {

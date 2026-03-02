@@ -223,19 +223,6 @@ export class DecryptForTxBuilder<TSelection extends DecryptForTxPermitSelection 
     return getThresholdNetworkUrlOrThrow(this.config, this.chainId);
   }
 
-  private buildEmptyPermission(): Permission {
-    return {
-      issuer: '0x0000000000000000000000000000000000000000',
-      expiration: 0,
-      recipient: '0x0000000000000000000000000000000000000000',
-      validatorId: 0,
-      validatorContract: '0x0000000000000000000000000000000000000000',
-      sealingKey: '0x0000000000000000000000000000000000000000000000000000000000000000',
-      issuerSignature: '0x',
-      recipientSignature: '0x',
-    };
-  }
-
   private async getResolvedPermit(): Promise<Permit | null> {
     if (this.permitSelection === 'unset') {
       throw new CofheError({
@@ -309,7 +296,7 @@ export class DecryptForTxBuilder<TSelection extends DecryptForTxPermitSelection 
 
     const thresholdNetworkUrl = await this.getThresholdNetworkUrl();
 
-    const permission = permit ? PermitUtils.getPermission(permit, true) : this.buildEmptyPermission();
+    const permission = permit ? PermitUtils.getPermission(permit, true) : null;
     const { decryptedValue, signature } = await tnDecrypt(this.ctHash, this.chainId, permission, thresholdNetworkUrl);
 
     return {
