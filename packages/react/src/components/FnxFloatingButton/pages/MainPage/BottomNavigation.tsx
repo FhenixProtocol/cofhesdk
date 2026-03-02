@@ -11,6 +11,8 @@ import { assert, type ElementOf } from 'ts-essentials';
 import { usePortalNavigation, usePortalUI } from '@/stores';
 import { Button } from '../../components';
 import { useCofheClaimableTokens } from '@/hooks/useCofheClaimableTokens';
+import { useCofheChainId } from '@/hooks/useCofheConnection';
+import { DEFAULT_TOKEN_BY_CHAIN_ID } from '@/types/token';
 
 const iconClassName = 'w-4 h-4';
 
@@ -121,7 +123,10 @@ const navItems = [...baseNavItems, ...(!isProduction() ? [debugNavItem] : [])] a
 export const BottomNavigation: React.FC = () => {
   const { navigateTo } = usePortalNavigation();
   const { openPortal } = usePortalUI();
-  const defaultToken = useCofhePinnedToken();
+  const pinnedToken = useCofhePinnedToken();
+  const chainId = useCofheChainId();
+  const fallbackToken = chainId ? DEFAULT_TOKEN_BY_CHAIN_ID[chainId] : undefined;
+  const defaultToken = pinnedToken ?? fallbackToken;
 
   const handleNavClick = (page: ElementOf<typeof baseNavItems>['id']) => {
     openPortal();

@@ -18,7 +18,13 @@ export {
   type ClaimableAmountByTokenAddress,
 } from './useCofheTokensClaimable';
 export { useCofheWalletClient } from './useCofheConnection';
-export { useCofheTokens, useCofheTokenLists, ETH_ADDRESS, type Token, type Erc20Pair } from './useCofheTokenLists';
+export {
+  useCofheTokens,
+  useCofheTokenLists,
+  ETH_ADDRESS_LOWERCASE,
+  type Token,
+  type Erc20Pair,
+} from './useCofheTokenLists';
 export {
   useCofheTokensWithExistingEncryptedBalances,
   type UseCofheTokensWithExistingBalancesInput,

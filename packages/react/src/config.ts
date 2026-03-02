@@ -35,20 +35,11 @@ export const CofheReactConfigSchema = z.object({
       { label: '1 Month', intervalSeconds: 2592000 },
     ]),
   defaultPermitExpirationSeconds: z.number().optional().default(604800), // 1 week
-  pinnedTokens: z.record(z.string(), addressSchema).optional().default({
-    11155111: '0x87A3effB84CBE1E4caB6Ab430139eC41d156D55A', // sepolia weth
-    84532: '0xbED96aa98a49FeA71fcC55d755b915cF022a9159', // base sepolia weth
-    // 421613: '0x980b62da83eff3d4576c647993b0c1d7faf17c73', // arbitrum sepolia weth
-  }),
+  pinnedTokens: z.record(z.string(), addressSchema).optional(),
   tokenLists: z
     .record(z.string(), z.array(z.string()))
-    .optional()
-    .default({
-      11155111: ['https://storage.googleapis.com/cofhesdk/sepolia.json'],
-      84532: ['https://storage.googleapis.com/cofhesdk/base-sepolia.json'],
-      // 421613: ['https://tokens.cofhe.io/arbitrum-sepolia.json'],
-    })
-    .transform((lists) => lists as Partial<Record<number, string[]>>),
+    .transform((lists) => lists as Partial<Record<number, string[]>>)
+    .optional(),
   position: z.enum(['bottom-right', 'bottom-left', 'top-right', 'top-left']).optional().default('bottom-right'),
   initialTheme: z.enum(['dark', 'light']).optional().default('light'),
 });
