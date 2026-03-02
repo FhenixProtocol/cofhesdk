@@ -45,6 +45,7 @@ export type CofheClient<TConfig extends CofheConfig = CofheConfig> = {
    * Types docstring
    */
   encryptInputs<T extends EncryptableItem[]>(inputs: [...T]): EncryptInputsBuilder<[...T]>;
+  decryptHandle<U extends FheTypes>(ctHash: bigint, utype: U): DecryptForViewBuilder<U>;
   decryptForView<U extends FheTypes>(ctHash: bigint, utype: U): DecryptForViewBuilder<U>;
   decryptForTx(ctHash: bigint): DecryptForTxBuilderUnset;
   permits: CofheClientPermits;
