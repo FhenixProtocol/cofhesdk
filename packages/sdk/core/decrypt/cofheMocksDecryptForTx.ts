@@ -1,12 +1,12 @@
 import { type Permit, PermitUtils } from '@/permits';
 
-import { type PublicClient } from 'viem';
+import { encodePacked, keccak256, pad, toHex, type Hex, type PublicClient } from 'viem';
+import { sign } from 'viem/accounts';
 import { sleep } from '../utils.js';
 import { MockThresholdNetworkAbi } from './MockThresholdNetworkAbi.js';
 import { FheTypes } from '../types.js';
 import { CofheError, CofheErrorCode } from '../error.js';
 import { MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY } from '../consts.js';
-import { SigningKey, keccak256, solidityPacked, toBeHex, zeroPadValue } from 'ethers';
 import { MOCKS_THRESHOLD_NETWORK_ADDRESS } from '../consts.js';
 
 export type DecryptForTxMocksResult = {
@@ -79,12 +79,22 @@ export async function cofheMocksDecryptForTx(
   const ctHashBigInt = BigInt(ctHash);
   const resultBigInt = BigInt(result);
   const encryptionType = Number((ctHashBigInt & (0x7fn << 8n)) >> 8n);
-  const packed = solidityPacked(
+
+  // Matches Solidity: keccak256(abi.encodePacked(result, uint32(enc_type), uint64(chainId), bytes32(ctHash)))
+  const ctHashBytes32 = pad(toHex(ctHashBigInt), { size: 32 }) as Hex;
+  const packed = encodePacked(
     ['uint256', 'uint32', 'uint64', 'bytes32'],
-    [resultBigInt, encryptionType, BigInt(chainId), zeroPadValue(toBeHex(ctHashBigInt), 32)]
+    [resultBigInt, encryptionType, BigInt(chainId), ctHashBytes32]
   );
   const messageHash = keccak256(packed);
-  const signature = new SigningKey(MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY).sign(messageHash).serialized.slice(2); // no 0x prefix
+
+  // Raw digest signature (no EIP-191 prefix). Must verify against OpenZeppelin ECDSA.recover(messageHash, signature).
+  const signatureHex = await sign({
+    hash: messageHash,
+    privateKey: MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY,
+    to: 'hex',
+  });
+  const signature = signatureHex.slice(2); // no 0x prefix
 
   return {
     ctHash,
