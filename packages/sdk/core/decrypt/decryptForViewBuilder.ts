@@ -68,7 +68,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
    *
    * Example:
    * ```typescript
-  * const unsealed = await client.decryptForView(ctHash, utype)
+   * const unsealed = await client.decryptForView(ctHash, utype)
    *   .setChainId(11155111)
    *   .execute();
    * ```
@@ -91,7 +91,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
    *
    * Example:
    * ```typescript
-  * const unsealed = await client.decryptForView(ctHash, utype)
+   * const unsealed = await client.decryptForView(ctHash, utype)
    *   .setAccount('0x1234567890123456789012345678901234567890')
    *   .execute();
    * ```
@@ -115,7 +115,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
    *
    * Example:
    * ```typescript
-  * const unsealed = await client.decryptForView(ctHash, utype)
+   * const unsealed = await client.decryptForView(ctHash, utype)
    *   .setPermitHash('0x1234567890123456789012345678901234567890')
    *   .execute();
    * ```
@@ -138,7 +138,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
    *
    * Example:
    * ```typescript
-  * const unsealed = await client.decryptForView(ctHash, utype)
+   * const unsealed = await client.decryptForView(ctHash, utype)
    *   .setPermit(permit)
    *   .execute();
    * ```
@@ -254,7 +254,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
    *
    * Example:
    * ```typescript
-  * const unsealed = await client.decryptForView(ctHash, utype)
+   * const unsealed = await client.decryptForView(ctHash, utype)
    *   .setChainId(11155111)      // optional
    *   .setAccount('0x123...890') // optional
    *   .execute();                // execute
