@@ -153,6 +153,7 @@ task(TASK_COFHE_MOCKS_DEPLOY, 'Deploys the mock contracts on the Hardhat network
     });
   });
 
+// Hardhat plugin auto-deploys mocks for every hardhat test run by overriding TASK_TEST and calling deployMocks(...) before runSuper()
 task(TASK_TEST, 'Deploy mock contracts on hardhat').setAction(async ({}, hre, runSuper) => {
   await deployMocks(hre, {
     deployTestBed: true,
