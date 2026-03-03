@@ -64,6 +64,12 @@ Mock contracts are automatically deployed when using the Hardhat network:
 - Running tests: `npx hardhat test`
 - Starting a local node: `npx hardhat node`
 
+To disable this automatic deployment (for example, when your tests only use external RPCs and don't need the in-process Hardhat network), set:
+
+```bash
+COFHE_SKIP_MOCKS_DEPLOY=1
+```
+
 You can also manually deploy mock contracts:
 
 ```bash

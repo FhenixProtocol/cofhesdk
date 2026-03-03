@@ -155,18 +155,34 @@ task(TASK_COFHE_MOCKS_DEPLOY, 'Deploys the mock contracts on the Hardhat network
 
 // Hardhat plugin auto-deploys mocks for every hardhat test run by overriding TASK_TEST and calling deployMocks(...) before runSuper()
 task(TASK_TEST, 'Deploy mock contracts on hardhat').setAction(async ({}, hre, runSuper) => {
-  await deployMocks(hre, {
-    deployTestBed: true,
-    gasWarning: hre.config.cofhe.gasWarning ?? true,
-  });
+  const skipAutoDeploy = (() => {
+    const raw = process.env.COFHE_SKIP_MOCKS_DEPLOY ?? '';
+    const normalized = raw.trim().toLowerCase();
+    return normalized === '1' || normalized === 'true' || normalized === 'yes';
+  })();
+
+  if (!skipAutoDeploy) {
+    await deployMocks(hre, {
+      deployTestBed: true,
+      gasWarning: hre.config.cofhe.gasWarning ?? true,
+    });
+  }
   return runSuper();
 });
 
 task(TASK_NODE, 'Deploy mock contracts on hardhat').setAction(async ({}, hre, runSuper) => {
-  await deployMocks(hre, {
-    deployTestBed: true,
-    gasWarning: hre.config.cofhe.gasWarning ?? true,
-  });
+  const skipAutoDeploy = (() => {
+    const raw = process.env.COFHE_SKIP_MOCKS_DEPLOY ?? '';
+    const normalized = raw.trim().toLowerCase();
+    return normalized === '1' || normalized === 'true' || normalized === 'yes';
+  })();
+
+  if (!skipAutoDeploy) {
+    await deployMocks(hre, {
+      deployTestBed: true,
+      gasWarning: hre.config.cofhe.gasWarning ?? true,
+    });
+  }
   return runSuper();
 });
 
