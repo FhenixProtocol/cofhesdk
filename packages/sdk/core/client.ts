@@ -152,12 +152,12 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
     return new DecryptForViewBuilder({
       ctHash,
       utype,
-      chainId: state.chainId ?? undefined,
-      account: state.account ?? undefined,
+      chainId: state.chainId,
+      account: state.account,
 
       config: opts.config,
-      publicClient: state.publicClient ?? undefined,
-      walletClient: state.walletClient ?? undefined,
+      publicClient: state.publicClient,
+      walletClient: state.walletClient,
 
       requireConnected: _requireConnected,
     });
@@ -168,12 +168,12 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
 
     return new DecryptForTxBuilder({
       ctHash,
-      chainId: state.chainId ?? undefined,
-      account: state.account ?? undefined,
+      chainId: state.chainId,
+      account: state.account,
 
       config: opts.config,
-      publicClient: state.publicClient ?? undefined,
-      walletClient: state.walletClient ?? undefined,
+      publicClient: state.publicClient,
+      walletClient: state.walletClient,
 
       requireConnected: _requireConnected,
     });
