@@ -43,7 +43,7 @@ contract TestBedTest is Test, CoFheTest {
     euint8 b = FHE.asEuint8(240);
     euint8 c = FHE.add(a, b);
 
-    assertHashValue(uint256(euint8.unwrap(c)), (240 + 240) % 256);
+    assertHashValue(euint8.unwrap(c), (240 + 240) % 256);
   }
 
   /// @notice Validates division by zero behavior in the mock implementation.
@@ -52,7 +52,7 @@ contract TestBedTest is Test, CoFheTest {
     euint8 b = FHE.asEuint8(0);
     euint8 c = FHE.div(a, b);
 
-    assertHashValue(uint256(euint8.unwrap(c)), type(uint8).max);
+    assertHashValue(euint8.unwrap(c), type(uint8).max);
   }
 
   /// @notice Validates 128-bit addition semantics used by the mock implementation.
@@ -66,6 +66,6 @@ contract TestBedTest is Test, CoFheTest {
       expected = type(uint128).max + type(uint128).max;
     }
 
-    assertHashValue(uint256(euint128.unwrap(c)), expected);
+    assertHashValue(euint128.unwrap(c), expected);
   }
 }

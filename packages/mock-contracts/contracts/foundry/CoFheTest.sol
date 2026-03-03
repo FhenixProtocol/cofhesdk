@@ -123,69 +123,77 @@ abstract contract CoFheTest is Test {
     assertEq(mockTaskManager.mockStorage(ctHash), value);
   }
 
+  function assertHashValue(bytes32 ctHash, uint256 value) public view {
+    assertHashValue(uint256(ctHash), value);
+  }
+
   function assertHashValue(uint256 ctHash, uint256 value, string memory message) public view {
     assertEq(mockTaskManager.inMockStorage(ctHash), true, message);
     assertEq(mockTaskManager.mockStorage(ctHash), value, message);
   }
 
+  function assertHashValue(bytes32 ctHash, uint256 value, string memory message) public view {
+    assertHashValue(uint256(ctHash), value, message);
+  }
+
   // Encrypted types (no message)
 
   function assertHashValue(ebool eValue, bool value) public view {
-    assertHashValue(uint256(ebool.unwrap(eValue)), value ? 1 : 0);
+    assertHashValue(ebool.unwrap(eValue), value ? 1 : 0);
   }
 
   function assertHashValue(euint8 eValue, uint8 value) public view {
-    assertHashValue(uint256(euint8.unwrap(eValue)), value);
+    assertHashValue(euint8.unwrap(eValue), value);
   }
 
   function assertHashValue(euint16 eValue, uint16 value) public view {
-    assertHashValue(uint256(euint16.unwrap(eValue)), value);
+    assertHashValue(euint16.unwrap(eValue), value);
   }
 
   function assertHashValue(euint32 eValue, uint32 value) public view {
-    assertHashValue(uint256(euint32.unwrap(eValue)), value);
+    assertHashValue(euint32.unwrap(eValue), value);
   }
 
   function assertHashValue(euint64 eValue, uint64 value) public view {
-    assertHashValue(uint256(euint64.unwrap(eValue)), value);
+    assertHashValue(euint64.unwrap(eValue), value);
   }
 
   function assertHashValue(euint128 eValue, uint128 value) public view {
-    assertHashValue(uint256(euint128.unwrap(eValue)), value);
+    assertHashValue(euint128.unwrap(eValue), value);
   }
 
   function assertHashValue(eaddress eValue, address value) public view {
-    assertHashValue(uint256(eaddress.unwrap(eValue)), uint256(uint160(value)));
+    assertHashValue(eaddress.unwrap(eValue), uint256(uint160(value)));
   }
 
   // Encrypted types (with message)
 
   function assertHashValue(ebool eValue, bool value, string memory message) public view {
-    assertHashValue(uint256(ebool.unwrap(eValue)), value ? 1 : 0, message);
+    assertHashValue(ebool.unwrap(eValue), value ? 1 : 0, message);
   }
 
   function assertHashValue(euint8 eValue, uint8 value, string memory message) public view {
-    assertHashValue(uint256(euint8.unwrap(eValue)), value, message);
+    assertHashValue(euint8.unwrap(eValue), value, message);
   }
 
   function assertHashValue(euint16 eValue, uint16 value, string memory message) public view {
-    assertHashValue(uint256(euint16.unwrap(eValue)), value, message);
+    assertHashValue(euint16.unwrap(eValue), value, message);
   }
 
   function assertHashValue(euint32 eValue, uint32 value, string memory message) public view {
-    assertHashValue(uint256(euint32.unwrap(eValue)), value, message);
+    assertHashValue(euint32.unwrap(eValue), value, message);
   }
 
   function assertHashValue(euint64 eValue, uint64 value, string memory message) public view {
-    assertHashValue(uint256(euint64.unwrap(eValue)), value, message);
+    assertHashValue(euint64.unwrap(eValue), value, message);
   }
 
   function assertHashValue(euint128 eValue, uint128 value, string memory message) public view {
-    assertHashValue(uint256(euint128.unwrap(eValue)), value, message);
+    assertHashValue(euint128.unwrap(eValue), value, message);
   }
 
   function assertHashValue(eaddress eValue, address value, string memory message) public view {
-    assertHashValue(uint256(eaddress.unwrap(eValue)), uint256(uint160(value)), message);
+    assertHashValue(eaddress.unwrap(eValue), uint256(uint160(value)), message);
   }
 
   // UTILS
