@@ -1,12 +1,11 @@
-import hre from 'hardhat';
 import { arbSepolia, baseSepolia, sepolia } from '@cofhe/sdk/chains';
 import { CofheClient, Encryptable } from '@cofhe/sdk';
-import { type Chain, type PublicClient, type WalletClient, createPublicClient, createWalletClient, http } from 'viem';
-import { arbitrumSepolia as viemArbSepolia, baseSepolia as viemBaseSepolia, sepolia as viemSepolia } from 'viem/chains';
-import { privateKeyToAccount } from 'viem/accounts';
 import { createCofheClient, createCofheConfig } from '@cofhe/sdk/node';
+import { Ethers6Adapter } from '@cofhe/sdk/adapters';
 import { expect } from 'chai';
-import { Signature, type Contract, type Signer } from 'ethers';
+import { JsonRpcProvider, Signature, Wallet } from 'ethers';
+import * as ethers6 from 'ethers6';
+import { SimpleTest, SimpleTest__factory } from '../typechain-types';
 
 // Test private key - must be funded on Base Sepolia.
 // Provide a real key via TEST_PRIVATE_KEY env var; the default Hardhat/Anvil key is used
@@ -16,8 +15,8 @@ const TEST_PRIVATE_KEY = process.env.TEST_PRIVATE_KEY || DEFAULT_TEST_PRIVATE_KE
 
 type SupportedTestChain = {
   label: string;
+  chainId: number;
   sdkChain: typeof sepolia | typeof baseSepolia | typeof arbSepolia;
-  viemChain: Chain;
   chainSpecificRpcEnvVar: 'SEPOLIA_RPC_URL' | 'BASE_SEPOLIA_RPC_URL' | 'ARBITRUM_SEPOLIA_RPC_URL';
   defaultRpcUrl: string;
 };
@@ -25,22 +24,22 @@ type SupportedTestChain = {
 const SUPPORTED_TEST_CHAINS: SupportedTestChain[] = [
   {
     label: 'Ethereum Sepolia',
+    chainId: 11155111,
     sdkChain: sepolia,
-    viemChain: viemSepolia,
     chainSpecificRpcEnvVar: 'SEPOLIA_RPC_URL',
     defaultRpcUrl: 'https://ethereum-sepolia.publicnode.com',
   },
   {
     label: 'Base Sepolia',
+    chainId: 84532,
     sdkChain: baseSepolia,
-    viemChain: viemBaseSepolia,
     chainSpecificRpcEnvVar: 'BASE_SEPOLIA_RPC_URL',
     defaultRpcUrl: 'https://sepolia.base.org',
   },
   {
     label: 'Arbitrum Sepolia',
+    chainId: 421614,
     sdkChain: arbSepolia,
-    viemChain: viemArbSepolia,
     chainSpecificRpcEnvVar: 'ARBITRUM_SEPOLIA_RPC_URL',
     defaultRpcUrl: 'https://sepolia-rollup.arbitrum.io/rpc',
   },
@@ -60,19 +59,18 @@ const parseChainIdEnv = (value: string | undefined): number | undefined => {
 const ENV_CHAIN_ID = parseChainIdEnv(process.env.COFHE_CHAIN_ID ?? process.env.TEST_CHAIN_ID);
 
 const findSupportedChainById = (chainId: number): SupportedTestChain | undefined =>
-  SUPPORTED_TEST_CHAINS.find((c) => c.viemChain.id === chainId);
+  SUPPORTED_TEST_CHAINS.find((c) => c.chainId === chainId);
 
-const getConfiguredSimpleTestAddress = (chainId: number): `0x${string}` | undefined => {
-  // Global override: applies regardless of chain.
-  const global = process.env.SIMPLE_TEST_ADDRESS as `0x${string}` | undefined;
-  if (global) return global;
-
-  // Chain-specific override by chainId.
-  // Examples: SIMPLE_TEST_ADDRESS_84532, SIMPLE_TEST_ADDRESS_CHAIN_84532
-  const direct = process.env[`SIMPLE_TEST_ADDRESS_${chainId}`] as `0x${string}` | undefined;
-  if (direct) return direct;
-  return process.env[`SIMPLE_TEST_ADDRESS_CHAIN_${chainId}`] as `0x${string}` | undefined;
+// Default deployments for convenience (chainId → SimpleTest address).
+// This is the ONLY source of truth for selecting an existing deployment in this test.
+// If you want to point to a different contract, edit this map (keep it keyed by chainId).
+const DEFAULT_SIMPLE_TEST_ADDRESSES_BY_CHAIN_ID: Record<number, `0x${string}`> = {
+  84532: '0x9df789aB607fc746E6dF318B94724eBB028F9F60', // Base Sepolia
+  11155111: '0x8CB51925D68f70EC430A36a07F6c09f35add32D2', // Ethereum Sepolia
 };
+
+const getDefaultSimpleTestAddress = (chainId: number): `0x${string}` | undefined =>
+  DEFAULT_SIMPLE_TEST_ADDRESSES_BY_CHAIN_ID[chainId];
 
 // ---------------------------------------------------------------------------
 // Chain-agnostic Integration Tests – decryptForTx + publishDecryptResult
@@ -92,13 +90,11 @@ const getConfiguredSimpleTestAddress = (chainId: number): `0x${string}` | undefi
 //   - BASE_SEPOLIA_RPC_URL
 //   - ARBITRUM_SEPOLIA_RPC_URL
 //
-// Contract address override (optional):
-//   - SIMPLE_TEST_ADDRESS (global)
-//   - SIMPLE_TEST_ADDRESS_<chainId> (e.g. SIMPLE_TEST_ADDRESS_84532)
-//   - SIMPLE_TEST_ADDRESS_CHAIN_<chainId> (e.g. SIMPLE_TEST_ADDRESS_CHAIN_84532)
+// Contract address selection:
+//   - Uses DEFAULT_SIMPLE_TEST_ADDRESSES_BY_CHAIN_ID in this file (keyed by chainId)
 //
 // Example:
-//   COFHE_CHAIN_ID=84532 TEST_PRIVATE_KEY=0x... COFHE_RPC_URL=https://sepolia.base.org SIMPLE_TEST_ADDRESS_84532=0x... \
+//   COFHE_CHAIN_ID=84532 TEST_PRIVATE_KEY=0x... COFHE_RPC_URL=https://sepolia.base.org \
 //     pnpm -C packages/hardhat-plugin-test exec hardhat test test/integration-sepolia-decrypt-tx.test.ts
 // ---------------------------------------------------------------------------
 
@@ -106,10 +102,8 @@ const DESCRIBE_CHAIN_SUFFIX = ENV_CHAIN_ID ? ` (chainId=${ENV_CHAIN_ID})` : '';
 
 describe(`DecryptForTx + PublishDecryptResult (chain-agnostic)${DESCRIBE_CHAIN_SUFFIX}`, () => {
   let cofheClient: CofheClient;
-  let publicClient: PublicClient;
-  let walletClient: WalletClient;
-  let testContract: Contract;
-  let chainSigner: Signer;
+  let testContract: SimpleTest;
+  let chainSigner: Wallet;
   let selectedChain: SupportedTestChain;
   let selectedChainId: number;
 
@@ -121,40 +115,27 @@ describe(`DecryptForTx + PublishDecryptResult (chain-agnostic)${DESCRIBE_CHAIN_S
       this.skip();
     }
 
-    const account = privateKeyToAccount(TEST_PRIVATE_KEY as `0x${string}`);
-    console.log(`Using account: ${account.address}`);
-
     const explicitRpcUrl = process.env.COFHE_RPC_URL || process.env.RPC_URL;
 
     // Resolve chainId:
     // - Prefer explicit env chain id.
     // - Otherwise require an explicit RPC and ask it for eth_chainId.
-    if (ENV_CHAIN_ID) {
-      selectedChainId = ENV_CHAIN_ID;
-    } else {
+    if (ENV_CHAIN_ID) selectedChainId = ENV_CHAIN_ID;
+    else {
       if (!explicitRpcUrl) {
         throw new Error(
           `COFHE_CHAIN_ID is not set and COFHE_RPC_URL/RPC_URL is not set. Provide either COFHE_CHAIN_ID (recommended) or an explicit RPC URL so the test can auto-detect chainId.`
         );
       }
-
-      const preflightPublicClient = createPublicClient({
-        transport: http(explicitRpcUrl),
-      });
-
-      try {
-        selectedChainId = await preflightPublicClient.getChainId();
-      } catch (e) {
-        throw new Error(
-          `Failed to detect chainId from RPC (${explicitRpcUrl}). Set COFHE_CHAIN_ID explicitly. Underlying error: ${e}`
-        );
-      }
+      const preflightProvider = new ethers6.JsonRpcProvider(explicitRpcUrl);
+      const network = await preflightProvider.getNetwork();
+      selectedChainId = Number(network.chainId);
     }
 
     selectedChain =
       findSupportedChainById(selectedChainId) ??
       (() => {
-        const supportedIds = SUPPORTED_TEST_CHAINS.map((c) => `${c.label}=${c.viemChain.id}`).join(', ');
+        const supportedIds = SUPPORTED_TEST_CHAINS.map((c) => `${c.label}=${c.chainId}`).join(', ');
         throw new Error(`Unsupported chainId=${selectedChainId}. Supported: ${supportedIds}`);
       })();
 
@@ -167,37 +148,34 @@ describe(`DecryptForTx + PublishDecryptResult (chain-agnostic)${DESCRIBE_CHAIN_S
     console.log(`Using RPC: ${rpcUrl}`);
 
     // Safety: ensure the RPC matches the selected chainId.
-    try {
-      const rpcChainId = await createPublicClient({ transport: http(rpcUrl) }).getChainId();
-      if (rpcChainId !== selectedChainId) {
-        throw new Error(
-          `RPC chainId (${rpcChainId}) does not match selected chainId (${selectedChainId}). Fix COFHE_CHAIN_ID or RPC URL.`
-        );
-      }
-    } catch (e) {
-      // If the RPC can't answer eth_chainId reliably, we still proceed.
-      // But when it *does* answer and mismatches, we hard-fail above.
-      if (String(e).includes('does not match selected chainId')) throw e;
+    const rpcNetwork = await new ethers6.JsonRpcProvider(rpcUrl).getNetwork();
+    const rpcChainId = Number(rpcNetwork.chainId);
+    if (rpcChainId !== selectedChainId) {
+      throw new Error(
+        `RPC chainId (${rpcChainId}) does not match selected chainId (${selectedChainId}). Fix COFHE_CHAIN_ID or RPC URL.`
+      );
     }
 
-    publicClient = createPublicClient({
-      chain: selectedChain.viemChain,
-      transport: http(rpcUrl),
-    });
+    // Build signers/providers.
+    // - `ethers6` is used only to feed the SDK adapter (typed against ethers6).
+    // - `ethers` is used for contract deployment/calls (typechain is generated against ethers).
+    const adapterProvider = new ethers6.JsonRpcProvider(rpcUrl);
+    const adapterWallet = new ethers6.Wallet(TEST_PRIVATE_KEY as `0x${string}`, adapterProvider);
 
-    const balance = await publicClient.getBalance({ address: account.address });
+    const contractProvider = new JsonRpcProvider(rpcUrl);
+    chainSigner = new Wallet(TEST_PRIVATE_KEY as `0x${string}`, contractProvider);
+    console.log(`Using account: ${await chainSigner.getAddress()}`);
+
+    const balance = await adapterProvider.getBalance(await adapterWallet.getAddress());
     if (balance === 0n) {
       console.warn(
-        `Account ${account.address} has 0 ETH on ${selectedChain.label}. Fund it or set TEST_PRIVATE_KEY to a funded key for ${selectedChain.label}.`
+        `Account ${await adapterWallet.getAddress()} has 0 ETH on ${selectedChain.label}. Fund it or set TEST_PRIVATE_KEY to a funded key for ${selectedChain.label}.`
       );
       this.skip();
     }
 
-    walletClient = createWalletClient({
-      chain: selectedChain.viemChain,
-      transport: http(rpcUrl),
-      account,
-    });
+    // Create viem clients from the SDK's adapter so types match CofheClient.connect.
+    const { publicClient, walletClient } = await Ethers6Adapter(adapterProvider, adapterWallet);
 
     // Build CoFHE SDK client and connect to the selected chain.
     const config = createCofheConfig({ supportedChains: [selectedChain.sdkChain] });
@@ -208,21 +186,18 @@ describe(`DecryptForTx + PublishDecryptResult (chain-agnostic)${DESCRIBE_CHAIN_S
     await cofheClient.permits.createSelf({
       name: 'DecryptForTx Test Permit',
       type: 'self',
-      issuer: account.address,
+      issuer: (await adapterWallet.getAddress()) as `0x${string}`,
       expiration: 1_000_000_000_000,
     });
 
-    const provider = new hre.ethers.JsonRpcProvider(rpcUrl);
-    chainSigner = new hre.ethers.Wallet(TEST_PRIVATE_KEY, provider);
-
-    // Prefer an explicitly configured deployment when available.
-    // Otherwise deploy a fresh contract (older deployments may point at stale TaskManager / signer configs).
-    const configuredSimpleTestAddress = getConfiguredSimpleTestAddress(selectedChainId);
+    // Prefer the default deployment for the selected chain when available.
+    // Otherwise deploy a fresh contract.
+    const configuredSimpleTestAddress = getDefaultSimpleTestAddress(selectedChainId);
 
     if (configuredSimpleTestAddress) {
-      const deployedCode = await provider.getCode(configuredSimpleTestAddress);
+      const deployedCode = await contractProvider.getCode(configuredSimpleTestAddress);
       if (deployedCode && deployedCode !== '0x') {
-        testContract = await hre.ethers.getContractAt('SimpleTest', configuredSimpleTestAddress, chainSigner);
+        testContract = SimpleTest__factory.connect(configuredSimpleTestAddress, chainSigner);
       } else {
         console.warn(
           `No contract bytecode found at configured SimpleTest address ${configuredSimpleTestAddress}. Deploying a new SimpleTest...`
@@ -231,12 +206,14 @@ describe(`DecryptForTx + PublishDecryptResult (chain-agnostic)${DESCRIBE_CHAIN_S
     }
 
     if (!testContract) {
-      const SimpleTestFactory = await hre.ethers.getContractFactory('SimpleTest');
-      testContract = await SimpleTestFactory.connect(chainSigner).deploy();
+      const simpleTestFactory = new SimpleTest__factory(chainSigner);
+      testContract = await simpleTestFactory.deploy();
       await testContract.waitForDeployment();
       const simpleTestAddress = (await testContract.getAddress()) as `0x${string}`;
       console.log(`SimpleTest deployed at: ${simpleTestAddress}`);
-      console.log(`Tip: set SIMPLE_TEST_ADDRESS=${simpleTestAddress} to reuse it next time.`);
+      console.log(
+        `Tip: add { ${selectedChainId}: '${simpleTestAddress}' } to DEFAULT_SIMPLE_TEST_ADDRESSES_BY_CHAIN_ID to reuse it next time.`
+      );
     }
 
     console.log(`Using SimpleTest at: ${await testContract.getAddress()}`);
@@ -264,7 +241,8 @@ describe(`DecryptForTx + PublishDecryptResult (chain-agnostic)${DESCRIBE_CHAIN_S
     // do NOT use the client-side hash from encrypt.
 
     // IMPORTANT: the on-chain transformation gives us the "real" ctHash.
-    const ctHash: bigint = await testContract.getValueHash();
+    const ctHashHex = await testContract.getValueHash();
+    const ctHash = BigInt(ctHashHex);
     console.log(`ctHash: ${ctHash}`);
 
     // ── Step 4: Call TN /decrypt to get plaintext + signature ─────────────
@@ -286,7 +264,7 @@ describe(`DecryptForTx + PublishDecryptResult (chain-agnostic)${DESCRIBE_CHAIN_S
     // publishDecryptResult(euint32 input, uint32 result, bytes signature)
     // The storedValue euint32 handle is retrieved from the contract; ethers
     // handles the bytes32 ↔ bigint conversion automatically.
-    const storedValue: bigint = await testContract.getValue();
+    const storedValue = await testContract.getValue();
     const publishTx = await testContract
       .connect(chainSigner)
       .publishDecryptResult(storedValue, decryptResult.decryptedValue, signatureBytes);
@@ -319,7 +297,8 @@ describe(`DecryptForTx + PublishDecryptResult (chain-agnostic)${DESCRIBE_CHAIN_S
 
     // ── Step 3: Read back the on-chain ctHash ─────────────────────────────
     // IMPORTANT: use the on-chain hash.
-    const ctHash: bigint = await testContract.publicValueHash();
+    const ctHashHex = await testContract.publicValueHash();
+    const ctHash = BigInt(ctHashHex);
     console.log(`public ctHash: ${ctHash}`);
 
     // ── Step 4: Decrypt via TN /decrypt without a permit ──────────────────
@@ -336,7 +315,7 @@ describe(`DecryptForTx + PublishDecryptResult (chain-agnostic)${DESCRIBE_CHAIN_S
       : (`0x${decryptResult.signature}` as `0x${string}`);
     const signatureBytes = Signature.from(signatureHex).serialized;
 
-    const publicValueHandle: bigint = await testContract.publicValue();
+    const publicValueHandle = await testContract.publicValue();
     const publishTx = await testContract
       .connect(chainSigner)
       .publishDecryptResult(publicValueHandle, decryptResult.decryptedValue, signatureBytes);
