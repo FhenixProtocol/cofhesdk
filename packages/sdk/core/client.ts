@@ -315,7 +315,10 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
     disconnect,
     encryptInputs,
     decryptForView,
-    decryptHandle: decryptForView, // Alias for backward compatibility
+    /**
+     * @deprecated Use `decryptForView` instead. Kept for backward compatibility.
+     */
+    decryptHandle: decryptForView,
     decryptForTx,
     permits: clientPermits,
 
