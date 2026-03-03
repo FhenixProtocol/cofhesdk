@@ -30,6 +30,7 @@ error OnlyAggregatorAllowed(address caller);
 
 // Operation-specific errors
 error RandomFunctionNotSupported();
+error NotImplemented();
 
 library TMCommon {
   uint256 private constant HASH_MASK_FOR_METADATA = type(uint256).max - type(uint16).max; // 2 bytes reserved for metadata
@@ -656,8 +657,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   }
 
   function isPubliclyAllowed(uint256 ctHash) external view returns (bool) {
-    // Mock implementation: allow all for now
-    return true;
+    revert NotImplemented();
   }
 
   function verifyDecryptResult(uint256 ctHash, uint256 result, bytes calldata signature) external view returns (bool) {
