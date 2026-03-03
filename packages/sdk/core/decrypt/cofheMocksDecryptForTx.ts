@@ -29,8 +29,8 @@ export async function cofheMocksDecryptForTx(
 
   if (permit !== null) {
     // With permit
-    let permission: any = PermitUtils.getPermission(permit, true);
-    permission = {
+    let permission = PermitUtils.getPermission(permit, true);
+    const permissionWithBigInts = {
       ...permission,
       expiration: BigInt(permission.expiration),
       validatorId: BigInt(permission.validatorId),
@@ -40,7 +40,7 @@ export async function cofheMocksDecryptForTx(
       address: MOCKS_THRESHOLD_NETWORK_ADDRESS,
       abi: MockThresholdNetworkAbi,
       functionName: 'decryptForTxWithPermit',
-      args: [ctHash, permission],
+      args: [ctHash, permissionWithBigInts],
     });
 
     if (error != '') {
