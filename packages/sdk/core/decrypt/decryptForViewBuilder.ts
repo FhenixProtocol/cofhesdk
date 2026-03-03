@@ -220,14 +220,6 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
     return cofheMocksDecryptForView(this.ctHash, this.utype, permit, this.publicClient, mocksDecryptDelay);
   }
 
-  // private async mocksDecryptForTx(permit: Permit): Promise<bigint> {
-  //   this.assertPublicClient();
-
-  //   // TODO: delay - should be separate config setting?
-  //   const delay = this.config.mocks.decryptDelay;
-  //   return cofheMocksDecryptForTx(this.ctHash, this.utype, permit, this.publicClient, delay);
-  // }
-
   /**
    * In the production context, perform a true decryption with the CoFHE coprocessor.
    */
