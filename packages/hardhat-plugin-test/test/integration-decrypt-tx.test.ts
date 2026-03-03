@@ -95,7 +95,7 @@ const getDefaultSimpleTestAddress = (chainId: number): `0x${string}` | undefined
 //
 // Example:
 //   COFHE_CHAIN_ID=84532 TEST_PRIVATE_KEY=0x... COFHE_RPC_URL=https://sepolia.base.org \
-//     pnpm -C packages/hardhat-plugin-test exec hardhat test test/integration-sepolia-decrypt-tx.test.ts
+//     pnpm -C packages/hardhat-plugin-test exec hardhat test test/integration-decrypt-tx.test.ts
 // ---------------------------------------------------------------------------
 
 const DESCRIBE_CHAIN_SUFFIX = ENV_CHAIN_ID ? ` (chainId=${ENV_CHAIN_ID})` : '';
