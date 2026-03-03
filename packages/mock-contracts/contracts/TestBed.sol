@@ -19,7 +19,7 @@ import '@fhenixprotocol/cofhe-contracts/FHE.sol';
 ///        and the transaction sender can continue operating on / decrypting the updated handle.
 contract TestBed {
   euint32 public eNumber;
-  uint256 public numberHash;
+  bytes32 public numberHash;
 
   /// @notice Marker used by deploy scripts/tests to confirm the contract is deployed.
   function exists() public pure returns (bool) {
@@ -30,16 +30,16 @@ contract TestBed {
   /// @dev Typically used when testing client-side encryption flows.
   function setNumber(InEuint32 memory inNumber) public {
     eNumber = FHE.asEuint32(inNumber);
-    numberHash = uint256(euint32.unwrap(eNumber));
+    numberHash = euint32.unwrap(eNumber);
     FHE.allowThis(eNumber);
     FHE.allowSender(eNumber);
   }
 
   /// @notice Convenience setter that casts a plaintext value into an encrypted handle.
   /// @dev Useful for quick smoke tests that don't need pre-encryption.
-  function setNumberTrivial(uint256 inNumber) public {
+  function setNumberTrivial(uint32 inNumber) public {
     eNumber = FHE.asEuint32(inNumber);
-    numberHash = uint256(euint32.unwrap(eNumber));
+    numberHash = euint32.unwrap(eNumber);
     FHE.allowThis(eNumber);
     FHE.allowSender(eNumber);
   }
