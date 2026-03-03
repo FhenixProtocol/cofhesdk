@@ -12,7 +12,6 @@ describe('Hardhat Mocks – decryptForTx', () => {
   let signer: HardhatEthersSigner;
 
   before(async function () {
-    await hre.run(TASK_COFHE_MOCKS_DEPLOY);
     const [tmpSigner] = await hre.ethers.getSigners();
     signer = tmpSigner;
     cofheClient = await hre.cofhe.createClientWithBatteries(signer);

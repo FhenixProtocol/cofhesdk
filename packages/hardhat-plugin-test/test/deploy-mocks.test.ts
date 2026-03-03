@@ -10,8 +10,6 @@ import {
 
 describe('Deploy Mocks Task', () => {
   it('should deploy mock contracts', async () => {
-    await hre.run(TASK_COFHE_MOCKS_DEPLOY);
-
     // TASK MANAGER
 
     const taskManagerFromCofhesdk = await hre.cofhe.mocks.getMockTaskManager();

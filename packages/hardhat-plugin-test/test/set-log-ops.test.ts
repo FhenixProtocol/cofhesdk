@@ -7,8 +7,6 @@ describe('Set Log Ops Task', () => {
   let taskManager: Contract;
 
   beforeEach(async () => {
-    await hre.run(TASK_COFHE_MOCKS_DEPLOY, { silent: true });
-
     taskManager = await hre.cofhe.mocks.getMockTaskManager();
 
     await taskManager.setLogOps(false);

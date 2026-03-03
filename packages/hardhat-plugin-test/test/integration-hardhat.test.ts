@@ -12,9 +12,6 @@ describe('Hardhat Integration Tests', () => {
   let recipient: HardhatEthersSigner;
 
   before(async function () {
-    // Deploy mocks first (required for Hardhat)
-    await hre.run(TASK_COFHE_MOCKS_DEPLOY);
-
     // Get a signer
     const [tmpSigner, tmpRecipient] = await hre.ethers.getSigners();
     signer = tmpSigner;

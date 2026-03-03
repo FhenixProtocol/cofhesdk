@@ -20,8 +20,6 @@ describe('Hardhat Mocks – Decrypt With Proof', () => {
   let taskManager: any;
 
   before(async function () {
-    // Hardhat plugin auto-deploys mocks on TASK_TEST, but we need them deployed before creating the client, so we call the deploy task manually here.
-    await hre.run(TASK_COFHE_MOCKS_DEPLOY, { silent: true });
     const [tmpSigner] = await hre.ethers.getSigners();
     signer = tmpSigner;
     cofheClient = await hre.cofhe.createClientWithBatteries(signer);
