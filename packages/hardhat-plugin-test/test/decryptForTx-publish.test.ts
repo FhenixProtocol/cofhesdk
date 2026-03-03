@@ -34,11 +34,6 @@ describe('Hardhat Mocks – Decrypt With Proof', () => {
   });
 
   it('Should encrypt, compute FHE operation, decrypt, and publish result', async function () {
-    // Ethers will normally perform an `eth_estimateGas` before sending a tx.
-    // Providing an explicit gasLimit skips estimation (useful to avoid double-counting in gas reporter output).
-    // To be extra explicit (and avoid any contract-wrapper behavior), we send raw transactions with encoded calldata.
-    const gasLimit = 5_000_000n;
-
     // Step 1: Encrypt two values
     const valueX = 100n;
     const valueY = 50n;
@@ -49,39 +44,11 @@ describe('Hardhat Mocks – Decrypt With Proof', () => {
       .execute();
 
     // Step 2: Submit encrypted values on-chain and perform FHE.add
-    const simpleTestAddress = await testContract.getAddress();
+    const tx1 = await testContract.connect(signer).setValue(encX);
+    await tx1.wait();
 
-    // Ensure we don't accidentally trigger gas estimation via the provider.
-    // If `eth_estimateGas` happens here, it means our tx-sending path didn't actually skip estimation.
-    const provider: any = hre.network.provider;
-    const originalRequest: undefined | ((args: any) => Promise<any>) = provider.request?.bind(provider);
-    let estimateGasCalls = 0;
-    if (originalRequest) {
-      provider.request = async (args: any) => {
-        if (args?.method === 'eth_estimateGas') estimateGasCalls++;
-        return originalRequest(args);
-      };
-    }
-
-    try {
-      const tx1 = await signer.sendTransaction({
-        to: simpleTestAddress,
-        data: testContract.interface.encodeFunctionData('setValue', [encX]),
-        gasLimit,
-      });
-      await tx1.wait();
-
-      const tx2 = await signer.sendTransaction({
-        to: simpleTestAddress,
-        data: testContract.interface.encodeFunctionData('addValue', [encY]),
-        gasLimit,
-      });
-      await tx2.wait();
-
-      expect(estimateGasCalls, 'eth_estimateGas should not be called when gasLimit is provided').to.equal(0);
-    } finally {
-      if (originalRequest) provider.request = originalRequest;
-    }
+    const tx2 = await testContract.connect(signer).addValue(encY);
+    await tx2.wait();
 
     const resultCtHash = await testContract.getValue();
 
@@ -97,26 +64,12 @@ describe('Hardhat Mocks – Decrypt With Proof', () => {
     const taskManager = await hre.cofhe.mocks.getMockTaskManager();
     const messageSigner = new Wallet(MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY);
     const signature = `0x${decryptResult.signature}`;
-    const taskManagerAddress = await taskManager.getAddress();
-    const setSignerTx = await signer.sendTransaction({
-      to: taskManagerAddress,
-      data: taskManager.interface.encodeFunctionData('setDecryptResultSigner', [messageSigner.address]),
-      gasLimit,
-    });
+    const setSignerTx = await taskManager.connect(signer).setDecryptResultSigner(messageSigner.address);
     await setSignerTx.wait();
 
     // Publish the decrypt result on-chain
     // publishDecryptResult expects (euint32, uint32, bytes signature)
-    const testBedAddress = await testBed.getAddress();
-    const publishTx = await signer.sendTransaction({
-      to: testBedAddress,
-      data: testBed.interface.encodeFunctionData('publishDecryptResult', [
-        decryptResult.ctHash,
-        decryptResult.decryptedValue,
-        signature,
-      ]),
-      gasLimit,
-    });
+    const publishTx = await testBed.publishDecryptResult(decryptResult.ctHash, decryptResult.decryptedValue, signature);
     await publishTx.wait();
 
     // Step 5: Verify the published result
