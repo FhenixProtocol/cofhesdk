@@ -9,13 +9,13 @@ import '@fhenixprotocol/cofhe-contracts/FHE.sol';
  */
 contract SimpleTest {
   euint32 public storedValue;
-  uint256 public storedValueHash;
+  bytes32 public storedValueHash;
   euint32 public publicValue;
-  uint256 public publicValueHash;
+  bytes32 public publicValueHash;
 
   function setValueTrivial(uint256 inValue) public {
     storedValue = FHE.asEuint32(inValue);
-    storedValueHash = uint256(euint32.unwrap(storedValue));
+    storedValueHash = euint32.unwrap(storedValue);
     FHE.allowThis(storedValue);
     FHE.allowSender(storedValue);
   }
@@ -26,7 +26,7 @@ contract SimpleTest {
    */
   function setPublicValue(InEuint32 memory inValue) public {
     publicValue = FHE.asEuint32(inValue);
-    publicValueHash = uint256(euint32.unwrap(publicValue));
+    publicValueHash = euint32.unwrap(publicValue);
     FHE.allowPublic(publicValue);
   }
 
@@ -36,7 +36,7 @@ contract SimpleTest {
    */
   function setValue(InEuint32 memory inValue) public {
     storedValue = FHE.asEuint32(inValue);
-    storedValueHash = uint256(euint32.unwrap(storedValue));
+    storedValueHash = euint32.unwrap(storedValue);
     FHE.allowThis(storedValue);
     FHE.allowSender(storedValue);
   }
@@ -48,7 +48,7 @@ contract SimpleTest {
   function addValue(InEuint32 memory inValue) public {
     euint32 valueToAdd = FHE.asEuint32(inValue);
     storedValue = FHE.add(storedValue, valueToAdd);
-    storedValueHash = uint256(euint32.unwrap(storedValue));
+    storedValueHash = euint32.unwrap(storedValue);
     FHE.allowThis(storedValue);
     FHE.allowSender(storedValue);
   }
@@ -65,7 +65,7 @@ contract SimpleTest {
    * Get the hash of the stored encrypted value
    * @return The hash of the stored encrypted value
    */
-  function getValueHash() public view returns (uint256) {
+  function getValueHash() public view returns (bytes32) {
     return storedValueHash;
   }
 
