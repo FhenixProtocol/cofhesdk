@@ -17,6 +17,7 @@ describe('Hardhat Mocks – Decrypt With Proof', () => {
   let testContract: any;
   let signer: HardhatEthersSigner;
   let testBed: any;
+  let taskManager: any;
 
   before(async function () {
     // Hardhat plugin auto-deploys mocks on TASK_TEST, but we need them deployed before creating the client, so we call the deploy task manually here.
@@ -31,9 +32,40 @@ describe('Hardhat Mocks – Decrypt With Proof', () => {
     await testContract.waitForDeployment();
 
     testBed = await hre.cofhe.mocks.getTestBed();
+
+    // Configure the mock task manager to accept the mock signature for all tests.
+    taskManager = await hre.cofhe.mocks.getMockTaskManager();
+    const messageSigner = new Wallet(MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY);
+    const setSignerTx = await taskManager.connect(signer).setDecryptResultSigner(messageSigner.address);
+    await setSignerTx.wait();
   });
 
-  it('Should encrypt, compute FHE operation, decrypt, and publish result', async function () {
+  it('Should decrypt and publish result (publicAllowed, without permit)', async function () {
+    const testValue = 123n;
+
+    const [enc] = await cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
+
+    // Make this ciphertext globally decryptable
+    const tx = await testContract.connect(signer).setPublicValue(enc);
+    await tx.wait();
+
+    const decryptResult = await cofheClient.decryptForTx(enc.ctHash).withoutPermit().execute();
+
+    expect(decryptResult.ctHash).to.equal(enc.ctHash);
+    expect(decryptResult.decryptedValue).to.equal(testValue);
+    expect(decryptResult.signature).to.be.a('string');
+
+    const ctHashBytes32 = hre.ethers.toBeHex(decryptResult.ctHash, 32);
+    const signature = `0x${decryptResult.signature}`;
+    const publishTx = await testBed.publishDecryptResult(ctHashBytes32, decryptResult.decryptedValue, signature);
+    await publishTx.wait();
+
+    const [publishedValue, isDecrypted] = await testBed.getDecryptResultSafe(ctHashBytes32);
+    expect(isDecrypted).to.equal(true);
+    expect(publishedValue).to.equal(testValue);
+  });
+
+  it('Should encrypt, compute FHE operation, decrypt, and publish result (sender-only, with permit)', async function () {
     // Step 1: Encrypt two values
     const valueX = 100n;
     const valueY = 50n;
@@ -60,13 +92,7 @@ describe('Hardhat Mocks – Decrypt With Proof', () => {
     expect(decryptResult.signature).to.be.a('string');
 
     // Step 4: Publish the decrypt result on-chain
-    // Configure the mock task manager to accept the mock signature
-    const taskManager = await hre.cofhe.mocks.getMockTaskManager();
-    const messageSigner = new Wallet(MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY);
     const signature = `0x${decryptResult.signature}`;
-    const setSignerTx = await taskManager.connect(signer).setDecryptResultSigner(messageSigner.address);
-    await setSignerTx.wait();
-
     // Publish the decrypt result on-chain
     // publishDecryptResult expects (euint32, uint32, bytes signature)
     const publishTx = await testBed.publishDecryptResult(decryptResult.ctHash, decryptResult.decryptedValue, signature);
