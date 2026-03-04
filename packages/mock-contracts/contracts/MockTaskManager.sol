@@ -293,8 +293,6 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     // NOTE: MOCK
     if (block.timestamp < _decryptResultReadyTimestamp[ctHash]) return (0, false);
 
-    //  TODO: should it go through mock storage?
-    // return (_get(ctHash), true);
     return (_decryptResult[ctHash], true);
   }
 
@@ -473,8 +471,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     _verifyDecryptResult(ctHash, result, signature);
     _decryptResultReady[ctHash] = true;
     _decryptResult[ctHash] = result;
-    // TODO: should it go through mock storage?
-    // _set(ctHash, result);
+
     _decryptResultReadyTimestamp[ctHash] = uint64(block.timestamp);
     emit DecryptionResult(ctHash, result, msg.sender);
   }
