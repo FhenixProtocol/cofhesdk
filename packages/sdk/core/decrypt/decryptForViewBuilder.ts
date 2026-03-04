@@ -1,3 +1,4 @@
+/* eslint-disable no-dupe-class-members */
 import { hardhat } from '@/chains';
 import { type Permit, PermitUtils } from '@/permits';
 
@@ -18,14 +19,15 @@ import { cofheMocksDecryptForTx } from './cofheMocksDecryptForTx.js';
  * await client.decryptForView(ctHash, utype)
  *   .setChainId(chainId)
  *   .setAccount(account)
- *   .setPermitHash(permitHash) // optional (defaults to active permit)
- *   .setPermit(permit)         // optional (overrides permitHash/active permit)
+ *   .withPermit()              // optional (active permit)
+ *   // or .withPermit(permitHash) / .withPermit(permit)
  *   .execute()
  *
  * If chainId not set, uses client's chainId
  * If account not set, uses client's account
- * If permitHash not set, uses chainId and account to get active permit
- * If permit is set, uses permit to decrypt regardless of chainId, account, or permitHash
+ * withPermit() uses chainId + account to get the active permit.
+ * withPermit(permitHash) fetches that permit using chainId + account.
+ * withPermit(permit) uses the provided permit regardless of chainId/account.
  *
  * Note: decryptForView always requires a permit (no global-allowance mode).
  *
@@ -108,6 +110,33 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
   }
 
   /**
+   * Select "use permit" mode (optional).
+   *
+   * - `withPermit(permit)` uses the provided permit.
+   * - `withPermit(permitHash)` fetches that permit.
+   * - `withPermit()` uses the active permit for the resolved `chainId + account`.
+   */
+  withPermit(): DecryptForViewBuilder<U>;
+  withPermit(permitHash: string): DecryptForViewBuilder<U>;
+  withPermit(permit: Permit): DecryptForViewBuilder<U>;
+  withPermit(permitOrPermitHash?: Permit | string): DecryptForViewBuilder<U> {
+    if (typeof permitOrPermitHash === 'string') {
+      this.permitHash = permitOrPermitHash;
+      this.permit = undefined;
+    } else if (permitOrPermitHash === undefined) {
+      // Explicitly choose "active permit" resolution at execute()
+      this.permitHash = undefined;
+      this.permit = undefined;
+    } else {
+      // Permit object
+      this.permit = permitOrPermitHash;
+      this.permitHash = undefined;
+    }
+
+    return this;
+  }
+
+  /**
    * @param permitHash - Permit hash to decrypt values from. Used to fetch the correct permit.
    *
    * If not provided, the active permit for the chainId and account will be used.
@@ -122,9 +151,9 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
    *
    * @returns The chainable DecryptForViewBuilder instance.
    */
+  /** @deprecated Use `withPermit(permitHash)` instead. */
   setPermitHash(permitHash: string): DecryptForViewBuilder<U> {
-    this.permitHash = permitHash;
-    return this;
+    return this.withPermit(permitHash);
   }
 
   getPermitHash(): string | undefined {
@@ -145,9 +174,9 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
    *
    * @returns The chainable DecryptForViewBuilder instance.
    */
+  /** @deprecated Use `withPermit(permit)` instead. */
   setPermit(permit: Permit): DecryptForViewBuilder<U> {
-    this.permit = permit;
-    return this;
+    return this.withPermit(permit);
   }
 
   getPermit(): Permit | undefined {
@@ -249,6 +278,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
    * const unsealed = await client.decryptForView(ctHash, utype)
    *   .setChainId(11155111)      // optional
    *   .setAccount('0x123...890') // optional
+   *   .withPermit()              // optional
    *   .execute();                // execute
    * ```
    *
