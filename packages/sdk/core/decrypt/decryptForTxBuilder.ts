@@ -46,18 +46,16 @@ export type DecryptForTxResult = {
 };
 
 /**
- * Type-level gating: the initial builder returned from `client.decryptForTx(...)` intentionally does not expose `execute()`.
- *
- * This is implemented as an `Omit<..., 'execute'>` because our d.ts bundling step strips private member types
- * (which makes "phantom private brand" tricks unreliable for consumers).
+ * Type-level gating:
+ * - The initial builder returned from `client.decryptForTx(...)` intentionally does not expose `execute()`.
+ * - Calling `withPermit(...)` or `withoutPermit()` returns a builder that *does* expose `execute()`, but no longer
+ *   exposes `withPermit/withoutPermit` (so you can't select twice, or switch modes).
  */
-export type DecryptForTxBuilderUnset = Omit<DecryptForTxBuilder<'unset'>, 'execute'>;
+export type DecryptForTxBuilderUnset = Omit<DecryptForTxBuilder, 'execute'>;
 
-export class DecryptForTxBuilder<TSelection extends DecryptForTxPermitSelection = 'unset'> extends BaseBuilder {
-  // Phantom brand to make builder state (TSelection) non-structurally assignable across instantiations.
-  // `declare` ensures this does not emit any runtime field.
-  private declare readonly __permitSelectionBrand: TSelection;
+export type DecryptForTxBuilderSelected = Omit<DecryptForTxBuilder, 'withPermit' | 'withoutPermit'>;
 
+export class DecryptForTxBuilder extends BaseBuilder {
   private ctHash: bigint;
   private permitHash?: string;
   private permit?: Permit;
@@ -90,7 +88,9 @@ export class DecryptForTxBuilder<TSelection extends DecryptForTxPermitSelection 
    *
    * @returns The chainable DecryptForTxBuilder instance.
    */
-  setChainId(chainId: number): DecryptForTxBuilder<TSelection> {
+  setChainId(this: DecryptForTxBuilderUnset, chainId: number): DecryptForTxBuilderUnset;
+  setChainId(this: DecryptForTxBuilderSelected, chainId: number): DecryptForTxBuilderSelected;
+  setChainId(chainId: number): DecryptForTxBuilder {
     this.chainId = chainId;
     return this;
   }
@@ -113,7 +113,9 @@ export class DecryptForTxBuilder<TSelection extends DecryptForTxPermitSelection 
    *
    * @returns The chainable DecryptForTxBuilder instance.
    */
-  setAccount(account: string): DecryptForTxBuilder<TSelection> {
+  setAccount(this: DecryptForTxBuilderUnset, account: string): DecryptForTxBuilderUnset;
+  setAccount(this: DecryptForTxBuilderSelected, account: string): DecryptForTxBuilderSelected;
+  setAccount(account: string): DecryptForTxBuilder {
     this.account = account;
     return this;
   }
@@ -131,22 +133,11 @@ export class DecryptForTxBuilder<TSelection extends DecryptForTxPermitSelection 
    *
    * Note: "global allowance" (no permit) is ONLY available via `withoutPermit()`.
    */
-  withPermit(this: DecryptForTxBuilder<'unset'> | DecryptForTxBuilderUnset): DecryptForTxBuilder<'with-permit'>;
-  withPermit(
-    this: DecryptForTxBuilder<'unset'> | DecryptForTxBuilderUnset,
-    permitHash: string
-  ): DecryptForTxBuilder<'with-permit'>;
-  withPermit(
-    this: DecryptForTxBuilder<'unset'> | DecryptForTxBuilderUnset,
-    permit: Permit
-  ): DecryptForTxBuilder<'with-permit'>;
-  withPermit(
-    this: DecryptForTxBuilder<'unset'> | DecryptForTxBuilderUnset,
-    permitOrPermitHash?: Permit | string
-  ): DecryptForTxBuilder<'with-permit'> {
-    const self = this as unknown as DecryptForTxBuilder<DecryptForTxPermitSelection>;
-
-    if (self.permitSelection === 'with-permit') {
+  withPermit(): DecryptForTxBuilderSelected;
+  withPermit(permitHash: string): DecryptForTxBuilderSelected;
+  withPermit(permit: Permit): DecryptForTxBuilderSelected;
+  withPermit(permitOrPermitHash?: Permit | string): DecryptForTxBuilderSelected {
+    if (this.permitSelection === 'with-permit') {
       throw new CofheError({
         code: CofheErrorCode.InternalError,
         message: 'decryptForTx: withPermit() can only be selected once.',
@@ -154,7 +145,7 @@ export class DecryptForTxBuilder<TSelection extends DecryptForTxPermitSelection 
       });
     }
 
-    if (self.permitSelection === 'without-permit') {
+    if (this.permitSelection === 'without-permit') {
       throw new CofheError({
         code: CofheErrorCode.InternalError,
         message: 'decryptForTx: cannot call withPermit() after withoutPermit() has been selected.',
@@ -162,22 +153,22 @@ export class DecryptForTxBuilder<TSelection extends DecryptForTxPermitSelection 
       });
     }
 
-    self.permitSelection = 'with-permit';
+    this.permitSelection = 'with-permit';
 
     if (typeof permitOrPermitHash === 'string') {
-      self.permitHash = permitOrPermitHash;
-      self.permit = undefined;
+      this.permitHash = permitOrPermitHash;
+      this.permit = undefined;
     } else if (permitOrPermitHash === undefined) {
       // Explicitly choose "active permit" resolution at execute()
-      self.permitHash = undefined;
-      self.permit = undefined;
+      this.permitHash = undefined;
+      this.permit = undefined;
     } else {
       // Permit object
-      self.permit = permitOrPermitHash;
-      self.permitHash = undefined;
+      this.permit = permitOrPermitHash;
+      this.permitHash = undefined;
     }
 
-    return this as unknown as DecryptForTxBuilder<'with-permit'>;
+    return this as unknown as DecryptForTxBuilderSelected;
   }
 
   /**
@@ -185,10 +176,8 @@ export class DecryptForTxBuilder<TSelection extends DecryptForTxPermitSelection 
    *
    * This uses global allowance (no permit required) and sends an empty permission payload to `/decrypt`.
    */
-  withoutPermit(this: DecryptForTxBuilder<'unset'> | DecryptForTxBuilderUnset): DecryptForTxBuilder<'without-permit'> {
-    const self = this as unknown as DecryptForTxBuilder<DecryptForTxPermitSelection>;
-
-    if (self.permitSelection === 'without-permit') {
+  withoutPermit(): DecryptForTxBuilderSelected {
+    if (this.permitSelection === 'without-permit') {
       throw new CofheError({
         code: CofheErrorCode.InternalError,
         message: 'decryptForTx: withoutPermit() can only be selected once.',
@@ -196,7 +185,7 @@ export class DecryptForTxBuilder<TSelection extends DecryptForTxPermitSelection 
       });
     }
 
-    if (self.permitSelection === 'with-permit') {
+    if (this.permitSelection === 'with-permit') {
       throw new CofheError({
         code: CofheErrorCode.InternalError,
         message: 'decryptForTx: cannot call withoutPermit() after withPermit() has been selected.',
@@ -204,10 +193,10 @@ export class DecryptForTxBuilder<TSelection extends DecryptForTxPermitSelection 
       });
     }
 
-    self.permitSelection = 'without-permit';
-    self.permitHash = undefined;
-    self.permit = undefined;
-    return this as unknown as DecryptForTxBuilder<'without-permit'>;
+    this.permitSelection = 'without-permit';
+    this.permitHash = undefined;
+    this.permit = undefined;
+    return this as unknown as DecryptForTxBuilderSelected;
   }
 
   getPermit(): Permit | undefined {
@@ -313,7 +302,7 @@ export class DecryptForTxBuilder<TSelection extends DecryptForTxPermitSelection 
    * - `withPermit(permit)` / `withPermit(permitHash)` / `withPermit()` (active permit)
    * - `withoutPermit()` (global allowance)
    */
-  async execute(this: DecryptForTxBuilder<'with-permit' | 'without-permit'>): Promise<DecryptForTxResult> {
+  async execute(): Promise<DecryptForTxResult> {
     // Resolve permit (can be Permit object or null for global allowance)
     const permit = await this.getResolvedPermit();
 
