@@ -28,6 +28,7 @@ import type { BigNumber } from 'bignumber.js';
 import { usePortalModals, usePortalNavigation } from '@/stores';
 import { BalanceType, CofheTokenPublicBalance } from '../components/CofheTokenConfidentialBalance';
 import { useIsUnshieldingMining } from '@/hooks/useIsUnshieldingMining';
+import { cofheHumanizeViemError } from '@/utils/cofheErrors';
 import { PageContainer } from '../components/PageContainer';
 import { PortalModal } from '../modals/types';
 import { CopyButton } from '../components/HashLink';
@@ -116,7 +117,8 @@ function useClaimUnshieldedWithLifecycle() {
       });
     },
     onError: (error) => {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to claim unshielded tokens';
+      const errorMessage =
+        cofheHumanizeViemError(error) ?? (error instanceof Error ? error.message : 'Failed to claim unshielded tokens');
       setError(errorMessage);
       setStatus(null);
       console.error('Claim tx submit error:', error);
@@ -181,7 +183,8 @@ function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 
       setShieldAmount('');
     },
     onError: (error) => {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to shield tokens';
+      const errorMessage =
+        cofheHumanizeViemError(error) ?? (error instanceof Error ? error.message : 'Failed to shield tokens');
       setError(errorMessage);
       setStatus(null);
       console.error('Shield tx submit error:', error);
@@ -278,7 +281,8 @@ function useUnshieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps
       setUnshieldAmount('');
     },
     onTransactionSubmitError: (error) => {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to unshield tokens';
+      const errorMessage =
+        cofheHumanizeViemError(error) ?? (error instanceof Error ? error.message : 'Failed to unshield tokens');
       setError(errorMessage);
       setStatus(null);
       console.error('Unshield tx submit error:', error);
