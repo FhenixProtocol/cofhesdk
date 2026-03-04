@@ -2,6 +2,7 @@
   "extends": "@cofhe/tsconfig/react-library.json",
   "compilerOptions": {
     "baseUrl": "./src",
+    "resolveJsonModule": true,
     "paths": {
       "@/*": ["*"]
     }
