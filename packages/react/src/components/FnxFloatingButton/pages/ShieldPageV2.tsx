@@ -51,7 +51,7 @@ declare module '../pagesConfig/types' {
 }
 
 function useLifecycleStore() {
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<React.ReactNode | null>(null);
   const [status, setStatus] = useState<LifecycleStatus | null>(null);
   return {
     error,
@@ -136,7 +136,11 @@ function useClaimUnshieldedWithLifecycle() {
           type: 'success',
         });
       } else if (transaction.status === 'failed') {
-        setError(`Claim transaction failed! Hash: ${truncateHash(transaction.hash)}`);
+        setError(
+          <>
+            Claim transaction failed! Hash: <TxHashWithActions hash={transaction.hash} chainId={chainId} />
+          </>
+        );
         setStatus(null);
       }
       scheduleStatusClear();
@@ -196,7 +200,11 @@ function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 
           type: 'success',
         });
       } else if (transaction.status === 'failed') {
-        setError(`Shield transaction failed! Hash: ${truncateHash(transaction.hash)}`);
+        setError(
+          <>
+            Shield transaction failed! Hash: <TxHashWithActions hash={transaction.hash} chainId={chainId} />
+          </>
+        );
         setStatus(null);
       }
       scheduleStatusClear();
@@ -287,7 +295,11 @@ function useUnshieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps
           type: 'success',
         });
       } else if (transaction.status === 'failed') {
-        setError(`Unshield transaction failed! Hash: ${truncateHash(transaction.hash)}`);
+        setError(
+          <>
+            Unshield transaction failed! Hash: <TxHashWithActions hash={transaction.hash} chainId={chainId} />
+          </>
+        );
         setStatus(null);
       }
     },
@@ -345,7 +357,7 @@ export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token: _token, default
 };
 
 type ShieldPageViewProps = {
-  error: string | null;
+  error: React.ReactNode | null;
   token: Token;
   mode: Mode;
   status: LifecycleStatus | null;
@@ -461,7 +473,7 @@ function ClaimingSection({ token }: { token: Token }) {
   );
 }
 
-function StatusAndError({ status, error }: { status: LifecycleStatus | null; error: string | null }) {
+function StatusAndError({ status, error }: { status: LifecycleStatus | null; error: React.ReactNode | null }) {
   return (
     <>
       {/* Error */}
