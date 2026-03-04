@@ -1,14 +1,15 @@
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { TbShieldPlus, TbShieldMinus } from 'react-icons/tb';
+import { LuExternalLink } from 'react-icons/lu';
 import { useState } from 'react';
 import { parseUnits } from 'viem';
-import { useCofheAccount } from '@/hooks/useCofheConnection';
+import { useCofheAccount, useCofheChainId } from '@/hooks/useCofheConnection';
 import { useCofheTokenDecryptedBalance } from '@/hooks/useCofheTokenDecryptedBalance';
 import { type Token } from '@/hooks/useCofheTokenLists';
 import { useCofheTokenShield } from '@/hooks/useCofheTokenShield';
 import { cn } from '../../../utils/cn';
-import { truncateHash } from '../../../utils/utils';
+import { getBlockExplorerTxUrl, truncateHash } from '../../../utils/utils';
 import { ActionButton, AmountInput, CofheTokenConfidentialBalance, TokenIcon } from '../components/index';
 import { useCofheTokenPublicBalance } from '@/hooks/useCofheTokenPublicBalance';
 import { formatTokenAmount, unitToWei } from '@/utils/format';
@@ -29,11 +30,14 @@ import { BalanceType, CofheTokenPublicBalance } from '../components/CofheTokenCo
 import { useIsUnshieldingMining } from '@/hooks/useIsUnshieldingMining';
 import { PageContainer } from '../components/PageContainer';
 import { PortalModal } from '../modals/types';
+import { CopyButton } from '../components/HashLink';
 
 const AUTOCLEAR_TX_STATUS_TIMEOUT = 5000;
 const DISPLAY_DECIMALS = 5;
 
 type Mode = 'shield' | 'unshield';
+
+type LifecycleStatus = { message: React.ReactNode; type: 'info' | 'success' };
 
 export type ShieldPageProps = {
   token: Token;
@@ -48,7 +52,7 @@ declare module '../pagesConfig/types' {
 
 function useLifecycleStore() {
   const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState<{ message: string; type: 'info' | 'success' } | null>(null);
+  const [status, setStatus] = useState<LifecycleStatus | null>(null);
   return {
     error,
     setError,
@@ -57,11 +61,43 @@ function useLifecycleStore() {
   };
 }
 
+function TxHashWithActions({ hash, chainId }: { hash: string; chainId?: number }) {
+  const href = chainId ? getBlockExplorerTxUrl(chainId, hash) : undefined;
+  const ellipsed = truncateHash(hash);
+
+  const handleOpenExplorer = () => {
+    if (href) {
+      window.open(href, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  return (
+    <span className="inline-flex items-center gap-1.5 align-baseline">
+      <span className="font-mono">{ellipsed}</span>
+      <CopyButton text={hash} size={14} />
+      <button
+        type="button"
+        onClick={handleOpenExplorer}
+        disabled={!href}
+        aria-label="Open transaction in explorer"
+        title={href ? 'Open in explorer' : 'Explorer not available for this chain'}
+        className={cn(
+          'fnx-text-primary opacity-50 hover:opacity-100 transition-opacity cursor-pointer',
+          !href && 'cursor-default opacity-30'
+        )}
+      >
+        <LuExternalLink style={{ width: 14, height: 14 }} />
+      </button>
+    </span>
+  );
+}
+
 // Reusable hook to safely auto-clear a status message after a delay
 // (moved) useReschedulableTimeout is now in '@/hooks/useReschedulableTimeout'
 
 function useClaimUnshieldedWithLifecycle() {
   const { setError, setStatus, error, status } = useLifecycleStore();
+  const chainId = useCofheChainId();
   const { schedule: scheduleStatusClear } = useReschedulableTimeout(() => setStatus(null), AUTOCLEAR_TX_STATUS_TIMEOUT);
   const claimUnshield = useCofheTokenClaimUnshielded({
     onMutate: () => {
@@ -70,7 +106,12 @@ function useClaimUnshieldedWithLifecycle() {
     },
     onSuccess: (hash) => {
       setStatus({
-        message: `Claim transaction sent! Hash: ${truncateHash(hash)}. Waiting for confirmation...`,
+        message: (
+          <>
+            Claim transaction sent! Hash: <TxHashWithActions hash={hash} chainId={chainId} /> Waiting for
+            confirmation...
+          </>
+        ),
         type: 'info',
       });
     },
@@ -87,7 +128,11 @@ function useClaimUnshieldedWithLifecycle() {
     onceMined: (transaction) => {
       if (transaction.status === 'confirmed') {
         setStatus({
-          message: `Claim transaction confirmed! Hash: ${truncateHash(transaction.hash)}`,
+          message: (
+            <>
+              Claim transaction confirmed! Hash: <TxHashWithActions hash={transaction.hash} chainId={chainId} />
+            </>
+          ),
           type: 'success',
         });
       } else if (transaction.status === 'failed') {
@@ -110,6 +155,7 @@ type ShieldAndUnshieldViewProps = Omit<ShieldPageViewProps, 'token' | 'mode' | '
 
 function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 'setToken'> {
   const account = useCofheAccount();
+  const chainId = useCofheChainId();
   const [shieldAmount, setShieldAmount] = useState('');
   const { setError, setStatus, error, status } = useLifecycleStore();
   const { schedule: scheduleStatusClear } = useReschedulableTimeout(() => setStatus(null), AUTOCLEAR_TX_STATUS_TIMEOUT);
@@ -120,7 +166,12 @@ function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 
     },
     onSuccess: (hash) => {
       setStatus({
-        message: `Shield transaction sent! Hash: ${truncateHash(hash)}. Waiting for confirmation...`,
+        message: (
+          <>
+            Shield transaction sent! Hash: <TxHashWithActions hash={hash} chainId={chainId} /> Waiting for
+            confirmation...
+          </>
+        ),
         type: 'info',
       });
       setShieldAmount('');
@@ -137,7 +188,11 @@ function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 
     onceMined: (transaction) => {
       if (transaction.status === 'confirmed') {
         setStatus({
-          message: `Shield transaction confirmed! Hash: ${truncateHash(transaction.hash)}`,
+          message: (
+            <>
+              Shield transaction confirmed! Hash: <TxHashWithActions hash={transaction.hash} chainId={chainId} />
+            </>
+          ),
           type: 'success',
         });
       } else if (transaction.status === 'failed') {
@@ -191,6 +246,7 @@ function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 
 
 function useUnshieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 'setToken'> {
   const account = useCofheAccount();
+  const chainId = useCofheChainId();
   const { setError, setStatus, error, status } = useLifecycleStore();
   const { schedule: scheduleStatusClear } = useReschedulableTimeout(() => setStatus(null), AUTOCLEAR_TX_STATUS_TIMEOUT);
   const [unshieldAmount, setUnshieldAmount] = useState('');
@@ -203,7 +259,12 @@ function useUnshieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps
     },
     onTransactionSubmitSuccess: (hash) => {
       setStatus({
-        message: `Unshield transaction sent! Hash: ${truncateHash(hash)}. Waiting for confirmation...`,
+        message: (
+          <>
+            Unshield transaction sent! Hash: <TxHashWithActions hash={hash} chainId={chainId} /> Waiting for
+            confirmation...
+          </>
+        ),
         type: 'info',
       });
       setUnshieldAmount('');
@@ -217,7 +278,12 @@ function useUnshieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps
     onceMined: (transaction) => {
       if (transaction.status === 'confirmed') {
         setStatus({
-          message: `Unshield transaction confirmed! Hash: ${truncateHash(transaction.hash)}. Now waiting for decryption...`,
+          message: (
+            <>
+              Unshield transaction confirmed! Hash: <TxHashWithActions hash={transaction.hash} chainId={chainId} /> Now
+              waiting for decryption...
+            </>
+          ),
           type: 'success',
         });
       } else if (transaction.status === 'failed') {
@@ -282,7 +348,7 @@ type ShieldPageViewProps = {
   error: string | null;
   token: Token;
   mode: Mode;
-  status: { message: string; type: 'info' | 'success' } | null;
+  status: LifecycleStatus | null;
   setToken: (token: Token) => void;
   setMode: (mode: Mode) => void;
 
@@ -395,13 +461,7 @@ function ClaimingSection({ token }: { token: Token }) {
   );
 }
 
-function StatusAndError({
-  status,
-  error,
-}: {
-  status: { message: string; type: 'info' | 'success' } | null;
-  error: string | null;
-}) {
+function StatusAndError({ status, error }: { status: LifecycleStatus | null; error: string | null }) {
   return (
     <>
       {/* Error */}
