@@ -3,14 +3,14 @@ import * as fs from 'fs';
 import {
   TASK_MANAGER_ADDRESS,
   MOCKS_ZK_VERIFIER_ADDRESS,
-  MOCKS_QUERY_DECRYPTER_ADDRESS,
+  MOCKS_THRESHOLD_NETWORK_ADDRESS,
   TEST_BED_ADDRESS,
 } from '@cofhe/sdk';
 
 const fixedContracts = {
   MockTaskManager: TASK_MANAGER_ADDRESS,
   MockZkVerifier: MOCKS_ZK_VERIFIER_ADDRESS,
-  MockQueryDecrypter: MOCKS_QUERY_DECRYPTER_ADDRESS,
+  MockThresholdNetwork: MOCKS_THRESHOLD_NETWORK_ADDRESS,
   TestBed: TEST_BED_ADDRESS,
 };
 

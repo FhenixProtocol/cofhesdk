@@ -96,7 +96,7 @@ describe('Local Cofhe Integration Tests', () => {
     const ctHash = await testContract.getValueHash();
 
     // Decrypt the value using the ctHash from the encrypted input
-    const unsealedResult = await cofheClient.decryptHandle(ctHash, FheTypes.Uint32).execute();
+    const unsealedResult = await cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
 
     // Verify the decrypted value matches
     expect(unsealedResult).to.be.equal(testValue);

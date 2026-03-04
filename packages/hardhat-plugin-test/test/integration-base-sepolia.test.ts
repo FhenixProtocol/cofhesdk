@@ -11,8 +11,10 @@ import { PermitUtils } from '@cofhe/sdk/permits';
 
 // Test private key - should be funded on Base Sepolia
 // Using a well-known test key, but you'll need to fund it with testnet ETH
+const DEFAULT_TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 const TEST_PRIVATE_KEY =
-  process.env.TEST_PRIVATE_KEY || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
+  process.env.TEST_PRIVATE_KEY ||
+  DEFAULT_TEST_PRIVATE_KEY; /* This key is publicly known and should only be used for testing with testnet ETH. Do not use this key on mainnet or with real funds. */
 
 const deployments = {
   [baseSepolia.id]: {
@@ -29,7 +31,7 @@ describe('Base Sepolia Integration Tests', () => {
 
   before(async function () {
     // Skip if no private key is provided (for CI/CD)
-    if (!process.env.TEST_PRIVATE_KEY && process.env.CI) {
+    if (TEST_PRIVATE_KEY === DEFAULT_TEST_PRIVATE_KEY) {
       this.skip();
     }
 
@@ -90,7 +92,7 @@ describe('Base Sepolia Integration Tests', () => {
 
   it('Should encrypt -> store -> decrypt a value', async function () {
     // Skip if no private key is provided
-    if (!process.env.TEST_PRIVATE_KEY && process.env.CI) {
+    if (TEST_PRIVATE_KEY === DEFAULT_TEST_PRIVATE_KEY) {
       this.skip();
     }
 
@@ -107,7 +109,7 @@ describe('Base Sepolia Integration Tests', () => {
     const ctHash = await testContract.getValueHash();
 
     // Decrypt the value using the ctHash from the encrypted input
-    const unsealedResult = await cofheClient.decryptHandle(ctHash, FheTypes.Uint32).execute();
+    const unsealedResult = await cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
 
     // Verify the decrypted value matches
     expect(unsealedResult).to.be.equal(testValue);

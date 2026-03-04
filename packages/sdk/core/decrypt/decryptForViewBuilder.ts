@@ -1,3 +1,4 @@
+/* eslint-disable no-dupe-class-members */
 import { hardhat } from '@/chains';
 import { type Permit, PermitUtils } from '@/permits';
 
@@ -7,42 +8,46 @@ import { CofheError, CofheErrorCode } from '../error.js';
 import { permits } from '../permits.js';
 import { isValidUtype, convertViaUtype } from './decryptUtils.js';
 import { BaseBuilder, type BaseBuilderParams } from '../baseBuilder.js';
-import { cofheMocksSealOutput } from './cofheMocksSealOutput.js';
+import { cofheMocksDecryptForView } from './cofheMocksDecryptForView.js';
 // import { tnSealOutputV1 } from './tnSealOutputV1.js';
 import { tnSealOutputV2 } from './tnSealOutputV2.js';
+import { cofheMocksDecryptForTx } from './cofheMocksDecryptForTx.js';
 
 /**
  * API
  *
- * await client.decryptHandle(ctHash, utype)
+ * await client.decryptForView(ctHash, utype)
  *   .setChainId(chainId)
  *   .setAccount(account)
- *   .setPermitHash(permitHash)
- *   .setPermit(permit)
+ *   .withPermit()              // optional (active permit)
+ *   // or .withPermit(permitHash) / .withPermit(permit)
  *   .execute()
  *
  * If chainId not set, uses client's chainId
  * If account not set, uses client's account
- * If permitHash not set, uses chainId and account to get active permit
- * If permit is set, uses permit to decrypt regardless of chainId, account, or permitHash
+ * withPermit() uses chainId + account to get the active permit.
+ * withPermit(permitHash) fetches that permit using chainId + account.
+ * withPermit(permit) uses the provided permit regardless of chainId/account.
+ *
+ * Note: decryptForView always requires a permit (no global-allowance mode).
  *
  * Returns the unsealed item.
  */
 
-type DecryptHandlesBuilderParams<U extends FheTypes> = BaseBuilderParams & {
+type DecryptForViewBuilderParams<U extends FheTypes> = BaseBuilderParams & {
   ctHash: bigint;
   utype: U;
   permitHash?: string;
   permit?: Permit;
 };
 
-export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
+export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
   private ctHash: bigint;
   private utype: U;
   private permitHash?: string;
   private permit?: Permit;
 
-  constructor(params: DecryptHandlesBuilderParams<U>) {
+  constructor(params: DecryptForViewBuilderParams<U>) {
     super({
       config: params.config,
       publicClient: params.publicClient,
@@ -65,14 +70,14 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
    *
    * Example:
    * ```typescript
-   * const unsealed = await decryptHandle(ctHash, utype)
+   * const unsealed = await client.decryptForView(ctHash, utype)
    *   .setChainId(11155111)
    *   .execute();
    * ```
    *
-   * @returns The chainable DecryptHandlesBuilder instance.
+   * @returns The chainable DecryptForViewBuilder instance.
    */
-  setChainId(chainId: number): DecryptHandlesBuilder<U> {
+  setChainId(chainId: number): DecryptForViewBuilder<U> {
     this.chainId = chainId;
     return this;
   }
@@ -88,20 +93,47 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
    *
    * Example:
    * ```typescript
-   * const unsealed = await decryptHandle(ctHash, utype)
+   * const unsealed = await client.decryptForView(ctHash, utype)
    *   .setAccount('0x1234567890123456789012345678901234567890')
    *   .execute();
    * ```
    *
-   * @returns The chainable DecryptHandlesBuilder instance.
+   * @returns The chainable DecryptForViewBuilder instance.
    */
-  setAccount(account: string): DecryptHandlesBuilder<U> {
+  setAccount(account: string): DecryptForViewBuilder<U> {
     this.account = account;
     return this;
   }
 
   getAccount(): string | undefined {
     return this.account;
+  }
+
+  /**
+   * Select "use permit" mode (optional).
+   *
+   * - `withPermit(permit)` uses the provided permit.
+   * - `withPermit(permitHash)` fetches that permit.
+   * - `withPermit()` uses the active permit for the resolved `chainId + account`.
+   */
+  withPermit(): DecryptForViewBuilder<U>;
+  withPermit(permitHash: string): DecryptForViewBuilder<U>;
+  withPermit(permit: Permit): DecryptForViewBuilder<U>;
+  withPermit(permitOrPermitHash?: Permit | string): DecryptForViewBuilder<U> {
+    if (typeof permitOrPermitHash === 'string') {
+      this.permitHash = permitOrPermitHash;
+      this.permit = undefined;
+    } else if (permitOrPermitHash === undefined) {
+      // Explicitly choose "active permit" resolution at execute()
+      this.permitHash = undefined;
+      this.permit = undefined;
+    } else {
+      // Permit object
+      this.permit = permitOrPermitHash;
+      this.permitHash = undefined;
+    }
+
+    return this;
   }
 
   /**
@@ -112,16 +144,16 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
    *
    * Example:
    * ```typescript
-   * const unsealed = await decryptHandle(ctHash, utype)
+   * const unsealed = await client.decryptForView(ctHash, utype)
    *   .setPermitHash('0x1234567890123456789012345678901234567890')
    *   .execute();
    * ```
    *
-   * @returns The chainable DecryptHandlesBuilder instance.
+   * @returns The chainable DecryptForViewBuilder instance.
    */
-  setPermitHash(permitHash: string): DecryptHandlesBuilder<U> {
-    this.permitHash = permitHash;
-    return this;
+  /** @deprecated Use `withPermit(permitHash)` instead. */
+  setPermitHash(permitHash: string): DecryptForViewBuilder<U> {
+    return this.withPermit(permitHash);
   }
 
   getPermitHash(): string | undefined {
@@ -135,16 +167,16 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
    *
    * Example:
    * ```typescript
-   * const unsealed = await decryptHandle(ctHash, utype)
+   * const unsealed = await client.decryptForView(ctHash, utype)
    *   .setPermit(permit)
    *   .execute();
    * ```
    *
-   * @returns The chainable DecryptHandlesBuilder instance.
+   * @returns The chainable DecryptForViewBuilder instance.
    */
-  setPermit(permit: Permit): DecryptHandlesBuilder<U> {
-    this.permit = permit;
-    return this;
+  /** @deprecated Use `withPermit(permit)` instead. */
+  setPermit(permit: Permit): DecryptForViewBuilder<U> {
+    return this.withPermit(permit);
   }
 
   getPermit(): Permit | undefined {
@@ -213,8 +245,8 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
   private async mocksSealOutput(permit: Permit): Promise<bigint> {
     this.assertPublicClient();
 
-    const mocksSealOutputDelay = this.config.mocks.sealOutputDelay;
-    return cofheMocksSealOutput(this.ctHash, this.utype, permit, this.publicClient, mocksSealOutputDelay);
+    const mocksDecryptDelay = this.config.mocks.decryptDelay;
+    return cofheMocksDecryptForView(this.ctHash, this.utype, permit, this.publicClient, mocksDecryptDelay);
   }
 
   /**
@@ -243,9 +275,10 @@ export class DecryptHandlesBuilder<U extends FheTypes> extends BaseBuilder {
    *
    * Example:
    * ```typescript
-   * const unsealed = await decryptHandle(ctHash, utype)
+   * const unsealed = await client.decryptForView(ctHash, utype)
    *   .setChainId(11155111)      // optional
    *   .setAccount('0x123...890') // optional
+   *   .withPermit()              // optional
    *   .execute();                // execute
    * ```
    *

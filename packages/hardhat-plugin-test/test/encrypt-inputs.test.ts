@@ -7,8 +7,6 @@ describe('Encrypt Inputs Test', () => {
   it('Should encrypt inputs', async () => {
     const [signer] = await hre.ethers.getSigners();
 
-    await hre.run(TASK_COFHE_MOCKS_DEPLOY);
-
     const client = await hre.cofhe.createClientWithBatteries(signer);
 
     const encrypted = await client.encryptInputs([Encryptable.uint32(7n)]).execute();
@@ -19,7 +17,7 @@ describe('Encrypt Inputs Test', () => {
     const ctHash = await testBed.numberHash();
 
     // Decrypt number from TestBed
-    const unsealed = await client.decryptHandle(ctHash, FheTypes.Uint32).execute();
+    const unsealed = await client.decryptForView(ctHash, FheTypes.Uint32).execute();
 
     expect(unsealed).to.be.equal(7n);
   });

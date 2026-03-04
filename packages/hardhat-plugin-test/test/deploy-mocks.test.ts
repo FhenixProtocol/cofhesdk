@@ -4,14 +4,12 @@ import { TASK_COFHE_MOCKS_DEPLOY } from './consts';
 import {
   TASK_MANAGER_ADDRESS,
   MOCKS_ZK_VERIFIER_ADDRESS,
-  MOCKS_QUERY_DECRYPTER_ADDRESS,
+  MOCKS_THRESHOLD_NETWORK_ADDRESS,
   TEST_BED_ADDRESS,
 } from '@cofhe/sdk';
 
 describe('Deploy Mocks Task', () => {
   it('should deploy mock contracts', async () => {
-    await hre.run(TASK_COFHE_MOCKS_DEPLOY);
-
     // TASK MANAGER
 
     const taskManagerFromCofhesdk = await hre.cofhe.mocks.getMockTaskManager();
@@ -35,11 +33,11 @@ describe('Deploy Mocks Task', () => {
     expect(await zkVerifierFromCofhesdk.exists()).to.be.true;
     expect(await zkVerifierFromCofhesdk.getAddress()).to.be.equal(MOCKS_ZK_VERIFIER_ADDRESS);
 
-    // QUERY DECRYPTER
+    // THRESHOLD NETWORK
 
-    const queryDecrypterFromCofhesdk = await hre.cofhe.mocks.getMockQueryDecrypter();
-    expect(await queryDecrypterFromCofhesdk.exists()).to.be.true;
-    expect(await queryDecrypterFromCofhesdk.getAddress()).to.be.equal(MOCKS_QUERY_DECRYPTER_ADDRESS);
+    const thresholdNetworkFromCofhesdk = await hre.cofhe.mocks.getMockThresholdNetwork();
+    expect(await thresholdNetworkFromCofhesdk.exists()).to.be.true;
+    expect(await thresholdNetworkFromCofhesdk.getAddress()).to.be.equal(MOCKS_THRESHOLD_NETWORK_ADDRESS);
 
     // TEST BED
 

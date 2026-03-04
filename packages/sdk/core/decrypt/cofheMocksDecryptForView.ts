@@ -2,22 +2,22 @@ import { type Permit, PermitUtils } from '@/permits';
 
 import { type PublicClient } from 'viem';
 import { sleep } from '../utils.js';
-import { MockQueryDecrypterAbi } from './MockQueryDecrypterAbi.js';
+import { MockThresholdNetworkAbi } from './MockThresholdNetworkAbi.js';
 import { FheTypes } from '../types.js';
 import { CofheError, CofheErrorCode } from '../error.js';
-import { MOCKS_QUERY_DECRYPTER_ADDRESS } from '../consts.js';
+import { MOCKS_THRESHOLD_NETWORK_ADDRESS } from '../consts.js';
 
-export async function cofheMocksSealOutput(
+export async function cofheMocksDecryptForView(
   ctHash: bigint,
   utype: FheTypes,
   permit: Permit,
   publicClient: PublicClient,
-  mocksSealOutputDelay: number
+  mocksDecryptDelay: number
 ): Promise<bigint> {
   // Configurable delay before decrypting the output to simulate the CoFHE decrypt processing time
   // Recommended 1000ms on web
   // Recommended 0ms on hardhat (will be called during tests no need for fake delay)
-  if (mocksSealOutputDelay > 0) await sleep(mocksSealOutputDelay);
+  if (mocksDecryptDelay > 0) await sleep(mocksDecryptDelay);
 
   const permission = PermitUtils.getPermission(permit, true);
   const permissionWithBigInts = {
@@ -27,8 +27,8 @@ export async function cofheMocksSealOutput(
   };
 
   const [allowed, error, result] = await publicClient.readContract({
-    address: MOCKS_QUERY_DECRYPTER_ADDRESS,
-    abi: MockQueryDecrypterAbi,
+    address: MOCKS_THRESHOLD_NETWORK_ADDRESS,
+    abi: MockThresholdNetworkAbi,
     functionName: 'querySealOutput',
     args: [ctHash, BigInt(utype), permissionWithBigInts],
   });

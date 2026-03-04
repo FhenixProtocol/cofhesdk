@@ -72,7 +72,9 @@ export type { KeysStorage, KeysStore } from './keyStore.js';
 
 // Builders (exported via client, but can be imported directly for typing)
 export { EncryptInputsBuilder } from './encrypt/encryptInputsBuilder.js';
-export { DecryptHandlesBuilder } from './decrypt/decryptHandleBuilder.js';
+export { DecryptForViewBuilder } from './decrypt/decryptForViewBuilder.js';
+export { DecryptForTxBuilder } from './decrypt/decryptForTxBuilder.js';
+export type { DecryptForTxResult } from './decrypt/decryptForTxBuilder.js';
 
 // ZK utilities
 export type {
@@ -89,7 +91,8 @@ export {
   MOCKS_ZK_VERIFIER_ADDRESS,
   MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
   MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY,
-  MOCKS_QUERY_DECRYPTER_ADDRESS,
+  MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY,
+  MOCKS_THRESHOLD_NETWORK_ADDRESS,
   TEST_BED_ADDRESS,
 } from './consts.js';
 

@@ -24,7 +24,7 @@ import type { Contract } from 'ethers';
 import { hardhat } from '@cofhe/sdk/chains';
 import {
   MockACLArtifact,
-  MockQueryDecrypterArtifact,
+  MockThresholdNetworkArtifact,
   MockTaskManagerArtifact,
   MockZkVerifierArtifact,
   TestBedArtifact,
@@ -153,19 +153,36 @@ task(TASK_COFHE_MOCKS_DEPLOY, 'Deploys the mock contracts on the Hardhat network
     });
   });
 
+// Hardhat plugin auto-deploys mocks for every hardhat test run by overriding TASK_TEST and calling deployMocks(...) before runSuper()
 task(TASK_TEST, 'Deploy mock contracts on hardhat').setAction(async ({}, hre, runSuper) => {
-  await deployMocks(hre, {
-    deployTestBed: true,
-    gasWarning: hre.config.cofhe.gasWarning ?? true,
-  });
+  const skipAutoDeploy = (() => {
+    const raw = process.env.COFHE_SKIP_MOCKS_DEPLOY ?? '';
+    const normalized = raw.trim().toLowerCase();
+    return normalized === '1' || normalized === 'true' || normalized === 'yes';
+  })();
+
+  if (!skipAutoDeploy) {
+    await deployMocks(hre, {
+      deployTestBed: true,
+      gasWarning: hre.config.cofhe.gasWarning ?? true,
+    });
+  }
   return runSuper();
 });
 
 task(TASK_NODE, 'Deploy mock contracts on hardhat').setAction(async ({}, hre, runSuper) => {
-  await deployMocks(hre, {
-    deployTestBed: true,
-    gasWarning: hre.config.cofhe.gasWarning ?? true,
-  });
+  const skipAutoDeploy = (() => {
+    const raw = process.env.COFHE_SKIP_MOCKS_DEPLOY ?? '';
+    const normalized = raw.trim().toLowerCase();
+    return normalized === '1' || normalized === 'true' || normalized === 'yes';
+  })();
+
+  if (!skipAutoDeploy) {
+    await deployMocks(hre, {
+      deployTestBed: true,
+      gasWarning: hre.config.cofhe.gasWarning ?? true,
+    });
+  }
   return runSuper();
 });
 
@@ -313,10 +330,10 @@ declare module 'hardhat/types/runtime' {
         getMockACL: () => Promise<Contract>;
 
         /**
-         * Get the MockQueryDecrypter contract
-         * @returns {Promise<Contract>} The MockQueryDecrypter contract
+         * Get the MockThresholdNetwork contract
+         * @returns {Promise<Contract>} The MockThresholdNetwork contract
          */
-        getMockQueryDecrypter: () => Promise<Contract>;
+        getMockThresholdNetwork: () => Promise<Contract>;
 
         /**
          * Get the MockZkVerifier contract
@@ -417,7 +434,7 @@ extendEnvironment((hre) => {
         const aclAddress = await taskManager.acl();
         return hre.ethers.getContractAt(MockACLArtifact.abi, aclAddress);
       },
-      getMockQueryDecrypter: async () => getFixedMockContract(hre, MockQueryDecrypterArtifact),
+      getMockThresholdNetwork: async () => getFixedMockContract(hre, MockThresholdNetworkArtifact),
       getMockZkVerifier: async () => getFixedMockContract(hre, MockZkVerifierArtifact),
       getTestBed: async () => getFixedMockContract(hre, TestBedArtifact),
     },

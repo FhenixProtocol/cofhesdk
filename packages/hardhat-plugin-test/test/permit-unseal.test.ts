@@ -7,8 +7,6 @@ describe('Permit Unseal Test', () => {
   it('Permit should be used to unseal data', async () => {
     const [signer] = await hre.ethers.getSigners();
 
-    await hre.run(TASK_COFHE_MOCKS_DEPLOY);
-
     const client = await hre.cofhe.createClientWithBatteries(signer);
 
     // Add number to TestBed
@@ -17,7 +15,7 @@ describe('Permit Unseal Test', () => {
     const ctHash = await testBed.numberHash();
 
     // Decrypt number from TestBed
-    const unsealed = await client.decryptHandle(ctHash, FheTypes.Uint32).execute();
+    const unsealed = await client.decryptForView(ctHash, FheTypes.Uint32).execute();
 
     expect(unsealed).to.be.equal(7n);
   });

@@ -6,7 +6,8 @@ import { CofheError, CofheErrorCode } from './error.js';
 import { EncryptInputsBuilder } from './encrypt/encryptInputsBuilder.js';
 import { createKeysStore } from './keyStore.js';
 import { permits } from './permits.js';
-import { DecryptHandlesBuilder } from './decrypt/decryptHandleBuilder.js';
+import { DecryptForViewBuilder } from './decrypt/decryptForViewBuilder.js';
+import { DecryptForTxBuilder, type DecryptForTxBuilderUnset } from './decrypt/decryptForTxBuilder.js';
 import { getPublicClientChainID, getWalletClientAccount } from './utils.js';
 import type { CofheClientConnectionState, CofheClientParams, CofheClient, CofheClientPermits } from './clientTypes.js';
 import type { EncryptableItem, FheTypes } from './types.js';
@@ -145,18 +146,34 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
     });
   }
 
-  function decryptHandle<U extends FheTypes>(ctHash: bigint, utype: U): DecryptHandlesBuilder<U> {
+  function decryptForView<U extends FheTypes>(ctHash: bigint, utype: U): DecryptForViewBuilder<U> {
     const state = connectStore.getState();
 
-    return new DecryptHandlesBuilder({
+    return new DecryptForViewBuilder({
       ctHash,
       utype,
-      chainId: state.chainId ?? undefined,
-      account: state.account ?? undefined,
+      chainId: state.chainId,
+      account: state.account,
 
       config: opts.config,
-      publicClient: state.publicClient ?? undefined,
-      walletClient: state.walletClient ?? undefined,
+      publicClient: state.publicClient,
+      walletClient: state.walletClient,
+
+      requireConnected: _requireConnected,
+    });
+  }
+
+  function decryptForTx(ctHash: bigint): DecryptForTxBuilderUnset {
+    const state = connectStore.getState();
+
+    return new DecryptForTxBuilder({
+      ctHash,
+      chainId: state.chainId,
+      account: state.account,
+
+      config: opts.config,
+      publicClient: state.publicClient,
+      walletClient: state.walletClient,
 
       requireConnected: _requireConnected,
     });
@@ -297,7 +314,12 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
     connect,
     disconnect,
     encryptInputs,
-    decryptHandle,
+    decryptForView,
+    /**
+     * @deprecated Use `decryptForView` instead. Kept for backward compatibility.
+     */
+    decryptHandle: decryptForView,
+    decryptForTx,
     permits: clientPermits,
 
     // Add SDK-specific methods below that require connection
