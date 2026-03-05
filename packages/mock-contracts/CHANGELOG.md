@@ -1,5 +1,24 @@
 # @cofhe/mock-contracts Changelog
 
+## 0.3.0
+
+### Minor Changes
+
+- 35024b6: Remove `sdk` from function names and exported types. Rename:
+
+  - `createCofhesdkConfig` -> `createCofheConfig`
+  - `createCofhesdkClient` -> `createCofheClient`
+  - `hre.cofhesdk.*` -> `hre.cofhe.*`
+  - `hre.cofhesdk.createCofheConfig()` → `hre.cofhe.createConfig()`
+  - `hre.cofhesdk.createCofheClient()` → `hre.cofhe.createClient()`
+  - `hre.cofhesdk.createBatteriesIncludedCofheClient()` → `hre.cofhe.createClientWithBatteries()`
+
+- 29c2401: implement decrypt-with-proof flows and related tests:
+
+  - Implement production `decryptForTx` backed by Threshold Network `POST /decrypt`, with explicit permit vs global-allowance selection.
+  - Rename mocks “Query Decrypter” -> “Threshold Network” and update SDK constants/contracts/artifacts accordingly.
+  - Extend mock contracts + hardhat plugin to publish & verify decryption results on-chain, and add end-to-end integration tests.
+
 ## 0.2.1
 
 ### Patch Changes
