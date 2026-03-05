@@ -13,7 +13,9 @@ Common examples:
 - **Unshield a confidential token**: reveal the encrypted amount you’re unshielding so the contract can finalize the public transfer.
 - **Finalize a private auction / game move**: bids or moves are submitted encrypted, and the winner is revealed later in a verifiable way.
 
-If you only need to show plaintext in your UI (and you do **not** need an on-chain-verifiable signature), use `decryptForView` instead.
+:::note
+If you only need to show plaintext in your UI (and you do **not** need an on-chain-verifiable signature), use [`decryptForView`](./decrypt-to-view.mdx) instead.
+:::
 
 ## Prerequisites
 
