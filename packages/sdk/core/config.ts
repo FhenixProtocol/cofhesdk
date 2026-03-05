@@ -87,10 +87,7 @@ export const CofheConfigSchema = z.object({
     .object({
       decryptDelay: z.number().optional().default(0),
       encryptDelay: z
-        .union([
-          z.number(),
-          z.tuple([z.number(), z.number(), z.number(), z.number(), z.number()]),
-        ])
+        .union([z.number(), z.tuple([z.number(), z.number(), z.number(), z.number(), z.number()])])
         .optional()
         .default([100, 100, 100, 500, 500]),
     })
