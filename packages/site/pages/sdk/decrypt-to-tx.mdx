@@ -34,7 +34,7 @@ Often, `decryptForTx` is used to reveal a value at a point where your protocol a
 
 For example:
 
-- **Unshielding**: once a user chooses to unshield, the amount being unshielded is no longer meant to stay secret.
+- **Unshielding**: once a user chooses to unshield (i.e. convert a portion of their confidential balance into a public amount), the amount being unshielded is no longer meant to stay secret.
 - **Auction / game reveal**: when it’s time to reveal the outcome, it typically doesn’t matter who submits the reveal transaction — only that the result is revealed verifiably.
 
 In these cases, you can skip permits and use `.withoutPermit()`.
