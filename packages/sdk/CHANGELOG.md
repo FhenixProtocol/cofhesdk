@@ -1,5 +1,33 @@
 # @cofhe/sdk Changelog
 
+## 0.3.0
+
+### Minor Changes
+
+- 35024b6: Remove `sdk` from function names and exported types. Rename:
+
+  - `createCofhesdkConfig` -> `createCofheConfig`
+  - `createCofhesdkClient` -> `createCofheClient`
+  - `hre.cofhesdk.*` -> `hre.cofhe.*`
+  - `hre.cofhesdk.createCofheConfig()` → `hre.cofhe.createConfig()`
+  - `hre.cofhesdk.createCofheClient()` → `hre.cofhe.createClient()`
+  - `hre.cofhesdk.createBatteriesIncludedCofheClient()` → `hre.cofhe.createClientWithBatteries()`
+
+- 29c2401: implement decrypt-with-proof flows and related tests:
+
+  - Implement production `decryptForTx` backed by Threshold Network `POST /decrypt`, with explicit permit vs global-allowance selection.
+  - Rename mocks “Query Decrypter” -> “Threshold Network” and update SDK constants/contracts/artifacts accordingly.
+  - Extend mock contracts + hardhat plugin to publish & verify decryption results on-chain, and add end-to-end integration tests.
+
+- 650ea48: Align builder patterns in cofhe client api (`client.encryptInputs(..).encrypt()` and `client.decryptHandles(..).decrypt()`) to use the same terminator function `.execute()` instead of `.encrypt()`/`.decrypt()`.
+
+  Rename `setStepCallback` of encryptInputs builder to `onStep` to improve ergonomics.
+
+### Patch Changes
+
+- 5467d77: Adds `config.mocks.encryptDelay: number | [number, number, number, number, number]` to allow configurable mock encryption delay. Defaults to 0 delay on hardhat to keep tests quick.
+- 73b1502: Add `cofheClient.connection` getter which exposes inner connection state without using `getSnapshot()` reactive utility.
+
 ## 0.2.1
 
 ### Patch Changes

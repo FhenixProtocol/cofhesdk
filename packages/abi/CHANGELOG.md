@@ -1,5 +1,16 @@
 # @cofhe/abi Changelog
 
+## 0.3.0
+
+### Patch Changes
+
+- Updated dependencies [35024b6]
+- Updated dependencies [5467d77]
+- Updated dependencies [73b1502]
+- Updated dependencies [29c2401]
+- Updated dependencies [650ea48]
+  - @cofhe/sdk@0.3.0
+
 ## 0.2.1
 
 ### Patch Changes
