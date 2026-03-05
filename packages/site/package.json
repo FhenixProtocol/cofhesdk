@@ -8,6 +8,8 @@
   },
   "scripts": {
     "dev": "vocs dev",
+    "check:docs-imports": "node scripts/check-docs-imports.mjs",
+    "check": "npm run check:docs-imports && npm run build",
     "build": "vocs build",
     "preview": "vocs preview"
   },
@@ -20,8 +22,9 @@
   "devDependencies": {
     "@cofhe/sdk": "workspace:*",
     "@types/react": "latest",
+    "ethers": "^6.15.0",
+    "typescript": "5.5.4",
     "viem": "^2.38.6",
-    "zod": "^4.0.0",
-    "typescript": "5.5.4"
+    "zod": "^4.0.0"
   }
 }
