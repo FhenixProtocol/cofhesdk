@@ -40,6 +40,10 @@ export function useCofheTokenClaimUnshielded(
         throw new Error('WalletClient is required for claim');
       }
 
+      if (!publicClient) {
+        throw new Error('PublicClient is required to simulate claim before writing');
+      }
+
       const tokenAddress: Address = input.token.address;
       const confidentialityType = input.token.extensions.fhenix.confidentialityType;
 
@@ -61,25 +65,14 @@ export function useCofheTokenClaimUnshielded(
         throw new Error(`Unsupported confidentialityType for claim: ${confidentialityType}`);
       }
 
-      if (publicClient) {
-        const { request } = await publicClient.simulateContract({
-          address: tokenAddress,
-          abi: contractConfig.abi,
-          functionName: contractConfig.functionName,
-          args: [],
-          account: walletClient.account,
-        });
-        return await walletClient.writeContract({ ...request, chain: undefined });
-      }
-
-      return await walletClient.writeContract({
+      const { request } = await publicClient.simulateContract({
         address: tokenAddress,
         abi: contractConfig.abi,
         functionName: contractConfig.functionName,
         args: [],
         account: walletClient.account,
-        chain: undefined,
       });
+      return await walletClient.writeContract({ ...request, chain: undefined });
     },
     onError: (error, variables, onMutateResult, context) => {
       if (onError) onError(error, variables, onMutateResult, context);

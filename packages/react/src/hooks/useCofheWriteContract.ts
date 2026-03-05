@@ -87,20 +87,19 @@ export function useCofheWriteContract<TExtras = unknown>(
     mutationKey: options?.mutationKey ?? ['cofhe', 'walletWriteContract'],
     mutationFn: async (variables) => {
       assert(walletClient, 'WalletClient is required to write to a contract');
+      assert(publicClient, 'PublicClient is required to simulate contract before writing');
 
       const writeContractInput = hasExtras(variables) ? variables.writeContractInput : variables;
 
       const accountForSimulation = writeContractInput.account ?? walletClient.account;
-      if (publicClient && accountForSimulation) {
-        const { chain, ...rest } = writeContractInput;
-        const { request } = await publicClient.simulateContract({
-          ...(chain ? { ...rest, chain } : rest),
-          account: accountForSimulation,
-        });
-        return walletClient.writeContract({ ...request, chain: undefined });
-      }
+      assert(accountForSimulation, 'Wallet account is required to simulate contract before writing');
 
-      return walletClient.writeContract(writeContractInput);
+      const { chain, ...rest } = writeContractInput;
+      const { request } = await publicClient.simulateContract({
+        ...(chain ? { ...rest, chain } : rest),
+        account: accountForSimulation,
+      });
+      return walletClient.writeContract({ ...request, chain: undefined });
     },
   });
 

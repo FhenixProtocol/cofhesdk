@@ -50,6 +50,10 @@ function useCofheTokenUnshieldMutation(
         throw new Error('WalletClient is required for token unshield');
       }
 
+      if (!publicClient) {
+        throw new Error('PublicClient is required to simulate unshield before writing');
+      }
+
       const tokenAddress: Address = input.token.address;
       const confidentialityType = input.token.extensions.fhenix.confidentialityType;
 
@@ -77,50 +81,28 @@ function useCofheTokenUnshieldMutation(
 
       if (confidentialityType === 'wrapped') {
         // Wrapped tokens: decrypt(address to, uint128 value)
-        if (publicClient) {
-          input.onStatusChange?.('Simulating transaction...');
-          const { request } = await publicClient.simulateContract({
-            address: tokenAddress,
-            abi: contractConfig.abi,
-            functionName: contractConfig.functionName,
-            args: [walletClient.account.address, input.amount],
-            account: walletClient.account,
-          });
-          hash = await walletClient.writeContract({ ...request, chain: undefined });
-        } else {
-          hash = await walletClient.writeContract({
-            address: tokenAddress,
-            abi: contractConfig.abi,
-            functionName: contractConfig.functionName,
-            args: [walletClient.account.address, input.amount],
-            account: walletClient.account,
-            chain: undefined,
-          });
-        }
+        input.onStatusChange?.('Simulating transaction...');
+        const { request } = await publicClient.simulateContract({
+          address: tokenAddress,
+          abi: contractConfig.abi,
+          functionName: contractConfig.functionName,
+          args: [walletClient.account.address, input.amount],
+          account: walletClient.account,
+        });
+        hash = await walletClient.writeContract({ ...request, chain: undefined });
       } else {
         // For dual tokens, unshield takes uint64
         const amount = BigInt.asUintN(64, input.amount);
 
-        if (publicClient) {
-          input.onStatusChange?.('Simulating transaction...');
-          const { request } = await publicClient.simulateContract({
-            address: tokenAddress,
-            abi: contractConfig.abi,
-            functionName: contractConfig.functionName,
-            args: [amount],
-            account: walletClient.account,
-          });
-          hash = await walletClient.writeContract({ ...request, chain: undefined });
-        } else {
-          hash = await walletClient.writeContract({
-            address: tokenAddress,
-            abi: contractConfig.abi,
-            functionName: contractConfig.functionName,
-            args: [amount],
-            account: walletClient.account,
-            chain: undefined,
-          });
-        }
+        input.onStatusChange?.('Simulating transaction...');
+        const { request } = await publicClient.simulateContract({
+          address: tokenAddress,
+          abi: contractConfig.abi,
+          functionName: contractConfig.functionName,
+          args: [amount],
+          account: walletClient.account,
+        });
+        hash = await walletClient.writeContract({ ...request, chain: undefined });
       }
 
       return hash;

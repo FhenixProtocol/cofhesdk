@@ -72,6 +72,10 @@ export function useCofheTokenShield(
         throw new Error('WalletClient is required for token shield');
       }
 
+      if (!publicClient) {
+        throw new Error('PublicClient is required to simulate shield before writing');
+      }
+
       const tokenAddress: Address = input.token.address;
       const confidentialityType = input.token.extensions.fhenix.confidentialityType;
 
@@ -98,36 +102,20 @@ export function useCofheTokenShield(
         if (isEth) {
           // For ETH: use encryptETH(address to) with value
           input.onStatusChange?.('Please confirm shield in wallet...');
-          if (publicClient) {
-            input.onStatusChange?.('Simulating transaction...');
-            const { request } = await publicClient.simulateContract({
-              address: tokenAddress,
-              abi: WRAPPED_ETH_ENCRYPT_ETH_ABI,
-              functionName: 'encryptETH',
-              args: [walletClient.account.address],
-              value: input.amount,
-              account: walletClient.account,
-            });
-            hash = await walletClient.writeContract({ ...request, chain: undefined });
-          } else {
-            hash = await walletClient.writeContract({
-              address: tokenAddress,
-              abi: WRAPPED_ETH_ENCRYPT_ETH_ABI,
-              functionName: 'encryptETH',
-              args: [walletClient.account.address],
-              value: input.amount,
-              account: walletClient.account,
-              chain: undefined,
-            });
-          }
+          input.onStatusChange?.('Simulating transaction...');
+          const { request } = await publicClient.simulateContract({
+            address: tokenAddress,
+            abi: WRAPPED_ETH_ENCRYPT_ETH_ABI,
+            functionName: 'encryptETH',
+            args: [walletClient.account.address],
+            value: input.amount,
+            account: walletClient.account,
+          });
+          hash = await walletClient.writeContract({ ...request, chain: undefined });
         } else {
           // For ERC20 wrapped tokens: need to check allowance and approve if needed
           if (!erc20PairAddress) {
             throw new Error('erc20Pair address is required for wrapped ERC20 tokens');
-          }
-
-          if (!publicClient) {
-            throw new Error('PublicClient is required for allowance check');
           }
 
           // Check current allowance
@@ -176,26 +164,15 @@ export function useCofheTokenShield(
         const contractConfig = SHIELD_ABIS.dual;
 
         input.onStatusChange?.('Please confirm shield in wallet...');
-        if (publicClient) {
-          input.onStatusChange?.('Simulating transaction...');
-          const { request } = await publicClient.simulateContract({
-            address: tokenAddress,
-            abi: contractConfig.abi,
-            functionName: contractConfig.functionName,
-            args: [input.amount],
-            account: walletClient.account,
-          });
-          hash = await walletClient.writeContract({ ...request, chain: undefined });
-        } else {
-          hash = await walletClient.writeContract({
-            address: tokenAddress,
-            abi: contractConfig.abi,
-            functionName: contractConfig.functionName,
-            args: [input.amount],
-            account: walletClient.account,
-            chain: undefined,
-          });
-        }
+        input.onStatusChange?.('Simulating transaction...');
+        const { request } = await publicClient.simulateContract({
+          address: tokenAddress,
+          abi: contractConfig.abi,
+          functionName: contractConfig.functionName,
+          args: [input.amount],
+          account: walletClient.account,
+        });
+        hash = await walletClient.writeContract({ ...request, chain: undefined });
       }
 
       return hash;
