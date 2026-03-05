@@ -1,19 +1,19 @@
 import { useMemo, useSyncExternalStore } from 'react';
-import { CONNECT_STORE_DEFAULTS, type CofhesdkClient, type CofhesdkClientConnectionState } from '@cofhe/sdk';
+import { CONNECT_STORE_DEFAULTS, type CofheClient, type CofheClientConnectionState } from '@cofhe/sdk';
 import { useCofheContext } from '../providers';
 import { NOOP_CALLBACK } from '../utils';
 
-const subscribeToConnectionConstructor = (client: CofhesdkClient) => (onStoreChange: () => void) => {
+const subscribeToConnectionConstructor = (client: CofheClient) => (onStoreChange: () => void) => {
   return client.subscribe(() => {
     onStoreChange();
   });
 };
-const getConnectionSnapshotConstructor = (client: CofhesdkClient) => () => client.getSnapshot();
+const getConnectionSnapshotConstructor = (client: CofheClient) => () => client.getSnapshot();
 
 const DEFAULT_SNAPSHOT_GETTER = () => CONNECT_STORE_DEFAULTS;
 
 // sync core store
-export const useCofheConnection = (): CofhesdkClientConnectionState => {
+export const useCofheConnection = (): CofheClientConnectionState => {
   const client = useCofheContext().client;
   const { subscribeToConnection, getConnectionSnapshot } = useMemo(() => {
     return {

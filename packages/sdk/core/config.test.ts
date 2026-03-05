@@ -2,17 +2,17 @@ import { sepolia, hardhat } from '@/chains';
 
 import { describe, it, expect, vi } from 'vitest';
 import {
-  createCofhesdkConfigBase,
-  getCofhesdkConfigItem,
-  type CofhesdkInputConfig,
+  createCofheConfigBase,
+  getCofheConfigItem,
+  type CofheInputConfig,
   getSupportedChainOrThrow,
   getCoFheUrlOrThrow,
   getZkVerifierUrlOrThrow,
   getThresholdNetworkUrlOrThrow,
 } from './config.js';
 
-describe('createCofhesdkConfigBase', () => {
-  const validBaseConfig: CofhesdkInputConfig = {
+describe('createCofheConfigBase', () => {
+  const validBaseConfig: CofheInputConfig = {
     supportedChains: [],
   };
 
@@ -36,18 +36,18 @@ describe('createCofhesdkConfigBase', () => {
     if (log) {
       console.log('expect config invalid', path, value, config);
       try {
-        createCofhesdkConfigBase(config as CofhesdkInputConfig);
+        createCofheConfigBase(config as CofheInputConfig);
       } catch (e) {
         console.log('expect config invalid', path, value, config, e);
       }
     }
-    expect(() => createCofhesdkConfigBase(config as CofhesdkInputConfig)).toThrow('Invalid cofhesdk configuration:');
+    expect(() => createCofheConfigBase(config as CofheInputConfig)).toThrow('Invalid cofhe configuration:');
   };
 
   const expectValidConfigItem = (path: string, value: any, expectedValue: any): void => {
     const config = { ...validBaseConfig };
     setNestedValue(config, path, value);
-    const result = createCofhesdkConfigBase(config);
+    const result = createCofheConfigBase(config);
     expect(getNestedValue(result, path)).toEqual(expectedValue);
   };
 
@@ -70,16 +70,6 @@ describe('createCofhesdkConfigBase', () => {
 
     expectValidConfigItem('supportedChains', [sepolia], [sepolia]);
     expectValidConfigItem('supportedChains', [sepolia, hardhat], [sepolia, hardhat]);
-  });
-
-  it('permitGeneration', () => {
-    expectInvalidConfigItem('permitGeneration', 'not-a-boolean');
-    expectInvalidConfigItem('permitGeneration', null);
-
-    expectValidConfigItem('permitGeneration', 'ON_CONNECT', 'ON_CONNECT');
-    expectValidConfigItem('permitGeneration', 'ON_DECRYPT_HANDLES', 'ON_DECRYPT_HANDLES');
-    expectValidConfigItem('permitGeneration', 'MANUAL', 'MANUAL');
-    expectValidConfigItem('permitGeneration', undefined, 'ON_CONNECT');
   });
 
   it('defaultPermitExpiration', () => {
@@ -116,7 +106,7 @@ describe('createCofhesdkConfigBase', () => {
     };
 
     const config = { ...validBaseConfig, fheKeyStorage: fakeStorage };
-    const result = createCofhesdkConfigBase(config);
+    const result = createCofheConfigBase(config);
 
     expect(result.fheKeyStorage).not.toBeNull();
     await result.fheKeyStorage!.getItem('test');
@@ -139,17 +129,26 @@ describe('createCofhesdkConfigBase', () => {
   it('mocks', () => {
     expectInvalidConfigItem('mocks', 'not-an-object');
     expectInvalidConfigItem('mocks', null);
-
-    expectValidConfigItem('mocks', { sealOutputDelay: 1000 }, { sealOutputDelay: 1000 });
-    expectValidConfigItem('mocks', undefined, { sealOutputDelay: 0 });
   });
 
-  it('mocks.sealOutputDelay', () => {
-    expectInvalidConfigItem('mocks.sealOutputDelay', 'not-a-number');
-    expectInvalidConfigItem('mocks.sealOutputDelay', null);
+  it('mocks.decryptDelay', () => {
+    expectInvalidConfigItem('mocks.decryptDelay', 'not-a-number');
+    expectInvalidConfigItem('mocks.decryptDelay', null);
 
-    expectValidConfigItem('mocks.sealOutputDelay', undefined, 0);
-    expectValidConfigItem('mocks.sealOutputDelay', 1000, 1000);
+    expectValidConfigItem('mocks.decryptDelay', undefined, 0);
+    expectValidConfigItem('mocks.decryptDelay', 1000, 1000);
+  });
+
+  it('mocks.encryptDelay', () => {
+    expectInvalidConfigItem('mocks.encryptDelay', 'not-a-number');
+    expectInvalidConfigItem('mocks.encryptDelay', null);
+    expectInvalidConfigItem('mocks.encryptDelay', [100, 100, 100]); // wrong tuple length
+    expectInvalidConfigItem('mocks.encryptDelay', ['a', 'b', 'c', 'd', 'e']); // non-number elements
+
+    expectValidConfigItem('mocks.encryptDelay', undefined, [100, 100, 100, 500, 500]);
+    expectValidConfigItem('mocks.encryptDelay', 200, 200);
+    expectValidConfigItem('mocks.encryptDelay', 0, 0);
+    expectValidConfigItem('mocks.encryptDelay', [10, 20, 30, 40, 50], [10, 20, 30, 40, 50]);
   });
 
   it('useWorkers', () => {
@@ -164,19 +163,19 @@ describe('createCofhesdkConfigBase', () => {
   });
 
   it('should get config item', () => {
-    const config: CofhesdkInputConfig = {
+    const config: CofheInputConfig = {
       supportedChains: [sepolia],
     };
 
-    const result = createCofhesdkConfigBase(config);
+    const result = createCofheConfigBase(config);
 
-    const supportedChains = getCofhesdkConfigItem(result, 'supportedChains');
+    const supportedChains = getCofheConfigItem(result, 'supportedChains');
     expect(supportedChains).toEqual(config.supportedChains);
   });
 });
 
 describe('Config helper functions', () => {
-  const config = createCofhesdkConfigBase({
+  const config = createCofheConfigBase({
     supportedChains: [sepolia, hardhat],
   });
 
@@ -200,7 +199,7 @@ describe('Config helper functions', () => {
     });
 
     it('should throw MissingConfig when url not set', () => {
-      const configWithoutUrl = createCofhesdkConfigBase({
+      const configWithoutUrl = createCofheConfigBase({
         supportedChains: [{ ...sepolia, coFheUrl: undefined } as any],
       });
       expect(() => getCoFheUrlOrThrow(configWithoutUrl, sepolia.id)).toThrow();
@@ -217,7 +216,7 @@ describe('Config helper functions', () => {
     });
 
     it('should throw ZkVerifierUrlUninitialized when url not set', () => {
-      const configWithoutUrl = createCofhesdkConfigBase({
+      const configWithoutUrl = createCofheConfigBase({
         supportedChains: [{ ...sepolia, verifierUrl: undefined } as any],
       });
       expect(() => getZkVerifierUrlOrThrow(configWithoutUrl, sepolia.id)).toThrow();
@@ -234,7 +233,7 @@ describe('Config helper functions', () => {
     });
 
     it('should throw ThresholdNetworkUrlUninitialized when url not set', () => {
-      const configWithoutUrl = createCofhesdkConfigBase({
+      const configWithoutUrl = createCofheConfigBase({
         supportedChains: [{ ...sepolia, thresholdNetworkUrl: undefined } as any],
       });
       expect(() => getThresholdNetworkUrlOrThrow(configWithoutUrl, sepolia.id)).toThrow();

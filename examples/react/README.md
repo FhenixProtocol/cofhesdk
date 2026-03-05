@@ -119,16 +119,16 @@ npm install @cofhe/react cofhesdk
 
 ```tsx
 import { CofheProvider, FnxEncryptInput } from '@cofhe/react';
-import { createCofhesdkClient, createCofhesdkConfig } from '@cofhe/sdk/web';
+import { createCofheClient, createCofheConfig } from '@cofhe/sdk/web';
 import { sepolia } from '@cofhe/sdk/chains';
 
-const config = createCofhesdkConfig({
+const config = createCofheConfig({
   environment: 'node',
   supportedChains: [sepolia],
   useWorkers: true, // Enable Web Workers
 });
 
-const client = createCofhesdkClient(config);
+const client = createCofheClient(config);
 
 function App() {
   return (

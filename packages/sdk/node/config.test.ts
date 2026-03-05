@@ -1,12 +1,12 @@
 import { arbSepolia } from '@/chains';
 
 import { describe, it, expect } from 'vitest';
-import { createCofhesdkConfig, createCofhesdkClient } from './index.js';
+import { createCofheConfig, createCofheClient } from './index.js';
 
 describe('@cofhe/node - Config', () => {
-  describe('createCofhesdkConfig', () => {
+  describe('createCofheConfig', () => {
     it('should automatically inject filesystem storage as default', () => {
-      const config = createCofhesdkConfig({
+      const config = createCofheConfig({
         supportedChains: [arbSepolia],
       });
 
@@ -21,7 +21,7 @@ describe('@cofhe/node - Config', () => {
         setItem: () => Promise.resolve(),
         removeItem: () => Promise.resolve(),
       };
-      const config = createCofhesdkConfig({
+      const config = createCofheConfig({
         supportedChains: [arbSepolia],
         fheKeyStorage: customStorage,
       });
@@ -30,7 +30,7 @@ describe('@cofhe/node - Config', () => {
     });
 
     it('should allow null storage', () => {
-      const config = createCofhesdkConfig({
+      const config = createCofheConfig({
         supportedChains: [arbSepolia],
         fheKeyStorage: null,
       });
@@ -39,26 +39,26 @@ describe('@cofhe/node - Config', () => {
     });
 
     it('should preserve all other config options', () => {
-      const config = createCofhesdkConfig({
+      const config = createCofheConfig({
         supportedChains: [arbSepolia],
         mocks: {
-          sealOutputDelay: 0,
+          decryptDelay: 0,
         },
       });
 
       expect(config.supportedChains).toEqual([arbSepolia]);
-      expect(config.mocks.sealOutputDelay).toBe(0);
+      expect(config.mocks.decryptDelay).toBe(0);
       expect(config.fheKeyStorage).toBeDefined();
     });
   });
 
-  describe('createCofhesdkClient with config', () => {
+  describe('createCofheClient with config', () => {
     it('should create client with validated config', () => {
-      const config = createCofhesdkConfig({
+      const config = createCofheConfig({
         supportedChains: [arbSepolia],
       });
 
-      const client = createCofhesdkClient(config);
+      const client = createCofheClient(config);
 
       expect(client).toBeDefined();
       expect(client.config).toBe(config);

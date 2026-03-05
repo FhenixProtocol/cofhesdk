@@ -1,9 +1,9 @@
 import hre from 'hardhat';
 import { localcofhe } from '@cofhe/sdk/chains';
-import { CofhesdkClient, Encryptable, FheTypes } from '@cofhe/sdk';
+import { CofheClient, Encryptable, FheTypes } from '@cofhe/sdk';
 import { Chain, createPublicClient, createWalletClient, http, type PublicClient, type WalletClient } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { createCofhesdkClient, createCofhesdkConfig } from '@cofhe/sdk/node';
+import { createCofheClient, createCofheConfig } from '@cofhe/sdk/node';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 import { expect } from 'chai';
 
@@ -25,7 +25,7 @@ const viemLocalcofheChain: Chain = {
 };
 
 describe('Local Cofhe Integration Tests', () => {
-  let cofhesdkClient: CofhesdkClient;
+  let cofheClient: CofheClient;
   let publicClient: PublicClient;
   let walletClient: WalletClient;
   let testContract: any; // ethers contract instance
@@ -52,12 +52,12 @@ describe('Local Cofhe Integration Tests', () => {
     }) as WalletClient;
 
     // Create CoFHE SDK config and client
-    const config = createCofhesdkConfig({
+    const config = createCofheConfig({
       supportedChains: [localcofhe],
     });
-    cofhesdkClient = createCofhesdkClient(config);
-    await cofhesdkClient.connect(publicClient, walletClient);
-    await cofhesdkClient.permits.createSelf({
+    cofheClient = createCofheClient(config);
+    await cofheClient.connect(publicClient, walletClient);
+    await cofheClient.permits.createSelf({
       name: 'Test Permit',
       type: 'self',
       issuer: account.address,
@@ -86,7 +86,7 @@ describe('Local Cofhe Integration Tests', () => {
     const testValue = 101n;
 
     // Encrypt and store a value
-    const encrypted = await cofhesdkClient.encryptInputs([Encryptable.uint32(testValue)]).encrypt();
+    const encrypted = await cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
 
     const tx = await testContract.connect(localcofheSigner).setValue(encrypted[0]);
     await tx.wait();
@@ -96,7 +96,7 @@ describe('Local Cofhe Integration Tests', () => {
     const ctHash = await testContract.getValueHash();
 
     // Decrypt the value using the ctHash from the encrypted input
-    const unsealedResult = await cofhesdkClient.decryptHandle(ctHash, FheTypes.Uint32).decrypt();
+    const unsealedResult = await cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
 
     // Verify the decrypted value matches
     expect(unsealedResult).to.be.equal(testValue);

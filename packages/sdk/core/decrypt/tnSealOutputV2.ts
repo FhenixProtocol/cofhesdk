@@ -1,6 +1,6 @@
 import { type Permission, type EthEncryptedData } from '@/permits';
 
-import { CofhesdkError, CofhesdkErrorCode } from '../error.js';
+import { CofheError, CofheErrorCode } from '../error.js';
 
 // Polling configuration
 const POLL_INTERVAL_MS = 1000; // 1 second
@@ -39,8 +39,8 @@ function numberArrayToUint8Array(arr: number[]): Uint8Array {
  */
 function convertSealedData(sealed: SealOutputStatusResponse['sealed']): EthEncryptedData {
   if (!sealed) {
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.SealOutputReturnedNull,
+    throw new CofheError({
+      code: CofheErrorCode.SealOutputReturnedNull,
       message: 'Sealed data is missing from completed response',
     });
   }
@@ -77,8 +77,8 @@ async function submitSealOutputRequest(
       body: JSON.stringify(body),
     });
   } catch (e) {
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.SealOutputFailed,
+    throw new CofheError({
+      code: CofheErrorCode.SealOutputFailed,
       message: `sealOutput request failed`,
       hint: 'Ensure the threshold network URL is valid and reachable.',
       cause: e instanceof Error ? e : undefined,
@@ -100,8 +100,8 @@ async function submitSealOutputRequest(
       errorMessage = response.statusText || errorMessage;
     }
 
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.SealOutputFailed,
+    throw new CofheError({
+      code: CofheErrorCode.SealOutputFailed,
       message: `sealOutput request failed: ${errorMessage}`,
       hint: 'Check the threshold network URL and request parameters.',
       context: {
@@ -117,8 +117,8 @@ async function submitSealOutputRequest(
   try {
     submitResponse = (await response.json()) as SealOutputSubmitResponse;
   } catch (e) {
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.SealOutputFailed,
+    throw new CofheError({
+      code: CofheErrorCode.SealOutputFailed,
       message: `Failed to parse sealOutput submit response`,
       cause: e instanceof Error ? e : undefined,
       context: {
@@ -129,8 +129,8 @@ async function submitSealOutputRequest(
   }
 
   if (!submitResponse.request_id) {
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.SealOutputFailed,
+    throw new CofheError({
+      code: CofheErrorCode.SealOutputFailed,
       message: `sealOutput submit response missing request_id`,
       context: {
         thresholdNetworkUrl,
@@ -153,8 +153,8 @@ async function pollSealOutputStatus(thresholdNetworkUrl: string, requestId: stri
   while (!completed) {
     // Check timeout
     if (Date.now() - startTime > POLL_TIMEOUT_MS) {
-      throw new CofhesdkError({
-        code: CofhesdkErrorCode.SealOutputFailed,
+      throw new CofheError({
+        code: CofheErrorCode.SealOutputFailed,
         message: `sealOutput polling timed out after ${POLL_TIMEOUT_MS}ms`,
         hint: 'The request may still be processing. Try again later.',
         context: {
@@ -174,8 +174,8 @@ async function pollSealOutputStatus(thresholdNetworkUrl: string, requestId: stri
         },
       });
     } catch (e) {
-      throw new CofhesdkError({
-        code: CofhesdkErrorCode.SealOutputFailed,
+      throw new CofheError({
+        code: CofheErrorCode.SealOutputFailed,
         message: `sealOutput status poll failed`,
         hint: 'Ensure the threshold network URL is valid and reachable.',
         cause: e instanceof Error ? e : undefined,
@@ -188,8 +188,8 @@ async function pollSealOutputStatus(thresholdNetworkUrl: string, requestId: stri
 
     // Handle 404 - request not found
     if (response.status === 404) {
-      throw new CofhesdkError({
-        code: CofhesdkErrorCode.SealOutputFailed,
+      throw new CofheError({
+        code: CofheErrorCode.SealOutputFailed,
         message: `sealOutput request not found: ${requestId}`,
         hint: 'The request may have expired or been invalid.',
         context: {
@@ -209,8 +209,8 @@ async function pollSealOutputStatus(thresholdNetworkUrl: string, requestId: stri
         errorMessage = response.statusText || errorMessage;
       }
 
-      throw new CofhesdkError({
-        code: CofhesdkErrorCode.SealOutputFailed,
+      throw new CofheError({
+        code: CofheErrorCode.SealOutputFailed,
         message: `sealOutput status poll failed: ${errorMessage}`,
         context: {
           thresholdNetworkUrl,
@@ -225,8 +225,8 @@ async function pollSealOutputStatus(thresholdNetworkUrl: string, requestId: stri
     try {
       statusResponse = (await response.json()) as SealOutputStatusResponse;
     } catch (e) {
-      throw new CofhesdkError({
-        code: CofhesdkErrorCode.SealOutputFailed,
+      throw new CofheError({
+        code: CofheErrorCode.SealOutputFailed,
         message: `Failed to parse sealOutput status response`,
         cause: e instanceof Error ? e : undefined,
         context: {
@@ -241,8 +241,8 @@ async function pollSealOutputStatus(thresholdNetworkUrl: string, requestId: stri
       // Check if succeeded
       if (statusResponse.is_succeed === false) {
         const errorMessage = statusResponse.error_message || 'Unknown error';
-        throw new CofhesdkError({
-          code: CofhesdkErrorCode.SealOutputFailed,
+        throw new CofheError({
+          code: CofheErrorCode.SealOutputFailed,
           message: `sealOutput request failed: ${errorMessage}`,
           context: {
             thresholdNetworkUrl,
@@ -254,8 +254,8 @@ async function pollSealOutputStatus(thresholdNetworkUrl: string, requestId: stri
 
       // Check if sealed data exists
       if (!statusResponse.sealed) {
-        throw new CofhesdkError({
-          code: CofhesdkErrorCode.SealOutputReturnedNull,
+        throw new CofheError({
+          code: CofheErrorCode.SealOutputReturnedNull,
           message: `sealOutput request completed but returned no sealed data`,
           context: {
             thresholdNetworkUrl,
@@ -274,8 +274,8 @@ async function pollSealOutputStatus(thresholdNetworkUrl: string, requestId: stri
   }
 
   // This should never be reached, but TypeScript requires it
-  throw new CofhesdkError({
-    code: CofhesdkErrorCode.SealOutputFailed,
+  throw new CofheError({
+    code: CofheErrorCode.SealOutputFailed,
     message: 'Polling loop exited unexpectedly',
     context: {
       thresholdNetworkUrl,

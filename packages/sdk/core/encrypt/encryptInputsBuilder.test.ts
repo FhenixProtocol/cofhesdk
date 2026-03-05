@@ -8,12 +8,12 @@ import {
   EncryptStep,
   type TfheInitializer,
 } from '../types.js';
-import { CofhesdkError, CofhesdkErrorCode } from '../error.js';
+import { CofheError, CofheErrorCode } from '../error.js';
 import { fromHexString, toHexString } from '../utils.js';
 import { type PublicClient, createPublicClient, http, type WalletClient, createWalletClient } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { arbitrumSepolia } from 'viem/chains';
-import { type CofhesdkConfig, createCofhesdkConfigBase } from '../config.js';
+import { arbitrumSepolia, hardhat } from 'viem/chains';
+import { type CofheConfig, createCofheConfigBase } from '../config.js';
 import { type ZkBuilderAndCrsGenerator } from './zkPackProveVerify.js';
 import { type KeysStorage, createKeysStore } from '../keyStore.js';
 import { type FheKeyDeserializer } from '../fetchKeys.js';
@@ -56,8 +56,8 @@ export const deconstructZkPoKMetadata = (
 ): { accountAddr: string; securityZone: number; chainId: number } => {
   if (metadata.length < 53) {
     // 1 + 20 + 32 = 53 bytes minimum
-    throw new CofhesdkError({
-      code: CofhesdkErrorCode.InternalError,
+    throw new CofheError({
+      code: CofheErrorCode.InternalError,
       message: 'Invalid metadata: insufficient length',
     });
   }
@@ -198,8 +198,8 @@ const mockZkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator = (fhe: string, crs
   };
 };
 
-const createMockCofhesdkConfig = (chainId: number, zkVerifierUrl: string) => {
-  return createCofhesdkConfigBase({
+const createMockCofheConfig = (chainId: number, zkVerifierUrl: string) => {
+  return createCofheConfigBase({
     supportedChains: [
       {
         id: chainId,
@@ -239,7 +239,7 @@ describe('EncryptInputsBuilder', () => {
       account: defaultSender,
       chainId: defaultChainId,
 
-      config: createMockCofhesdkConfig(defaultChainId, MockZkVerifierUrl),
+      config: createMockCofheConfig(defaultChainId, MockZkVerifierUrl),
       publicClient: publicClient,
       walletClient: bobWalletClient,
 
@@ -278,41 +278,41 @@ describe('EncryptInputsBuilder', () => {
     });
 
     it('should throw an error if config is not set', async () => {
-      // Should throw before .encrypt() is called
+      // Should throw before .execute() is called
       try {
         new EncryptInputsBuilder({
           ...createDefaultParams(),
-          config: undefined as unknown as CofhesdkConfig,
+          config: undefined as unknown as CofheConfig,
         });
       } catch (error) {
-        expect(error).toBeInstanceOf(CofhesdkError);
-        expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.MissingConfig);
+        expect(error).toBeInstanceOf(CofheError);
+        expect((error as CofheError).code).toBe(CofheErrorCode.MissingConfig);
       }
     });
 
     it('should throw an error if tfhePublicKeyDeserializer is not set', async () => {
-      // Should throw before .encrypt() is called
+      // Should throw before .execute() is called
       try {
         new EncryptInputsBuilder({
           ...createDefaultParams(),
           tfhePublicKeyDeserializer: undefined as unknown as FheKeyDeserializer,
         });
       } catch (error) {
-        expect(error).toBeInstanceOf(CofhesdkError);
-        expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.MissingTfhePublicKeyDeserializer);
+        expect(error).toBeInstanceOf(CofheError);
+        expect((error as CofheError).code).toBe(CofheErrorCode.MissingTfhePublicKeyDeserializer);
       }
     });
 
     it('should throw an error if compactPkeCrsDeserializer is not set', async () => {
-      // Should throw before .encrypt() is called
+      // Should throw before .execute() is called
       try {
         new EncryptInputsBuilder({
           ...createDefaultParams(),
           compactPkeCrsDeserializer: undefined as unknown as FheKeyDeserializer,
         });
       } catch (error) {
-        expect(error).toBeInstanceOf(CofhesdkError);
-        expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.MissingCompactPkeCrsDeserializer);
+        expect(error).toBeInstanceOf(CofheError);
+        expect((error as CofheError).code).toBe(CofheErrorCode.MissingCompactPkeCrsDeserializer);
       }
     });
 
@@ -321,10 +321,10 @@ describe('EncryptInputsBuilder', () => {
         await new EncryptInputsBuilder({
           ...createDefaultParams(),
           initTfhe: vi.fn().mockRejectedValue(new Error('Failed to initialize TFHE')),
-        }).encrypt();
+        }).execute();
       } catch (error) {
-        expect(error).toBeInstanceOf(CofhesdkError);
-        expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.InitTfheFailed);
+        expect(error).toBeInstanceOf(CofheError);
+        expect((error as CofheError).code).toBe(CofheErrorCode.InitTfheFailed);
       }
     });
 
@@ -332,7 +332,7 @@ describe('EncryptInputsBuilder', () => {
       const result = await new EncryptInputsBuilder({
         ...createDefaultParams(),
         initTfhe: mockInitTfhe,
-      }).encrypt();
+      }).execute();
       expect(result).toBeDefined();
     });
   });
@@ -354,7 +354,7 @@ describe('EncryptInputsBuilder', () => {
       const result = builder
         .setAccount(sender)
         .setSecurityZone(securityZone)
-        .setStepCallback(() => {});
+        .onStep(() => {});
 
       expect(result).toBe(builder);
       expect(result.getAccount()).toBe(sender);
@@ -366,10 +366,10 @@ describe('EncryptInputsBuilder', () => {
         await new EncryptInputsBuilder({
           ...createDefaultParams(),
           account: undefined,
-        }).encrypt();
+        }).execute();
       } catch (error) {
-        expect(error).toBeInstanceOf(CofhesdkError);
-        expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.AccountUninitialized);
+        expect(error).toBeInstanceOf(CofheError);
+        expect((error as CofheError).code).toBe(CofheErrorCode.AccountUninitialized);
       }
     });
   });
@@ -389,7 +389,7 @@ describe('EncryptInputsBuilder', () => {
       const result = builder
         .setSecurityZone(securityZone)
         .setAccount(sender)
-        .setStepCallback(() => {});
+        .onStep(() => {});
 
       expect(result).toBe(builder);
       expect(result.getAccount()).toBe(sender);
@@ -410,10 +410,10 @@ describe('EncryptInputsBuilder', () => {
         await new EncryptInputsBuilder({
           ...createDefaultParams(),
           chainId: undefined,
-        }).encrypt();
+        }).execute();
       } catch (error) {
-        expect(error).toBeInstanceOf(CofhesdkError);
-        expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.ChainIdUninitialized);
+        expect(error).toBeInstanceOf(CofheError);
+        expect((error as CofheError).code).toBe(CofheErrorCode.ChainIdUninitialized);
       }
     });
   });
@@ -426,25 +426,25 @@ describe('EncryptInputsBuilder', () => {
           inputs: [Encryptable.uint128(100n)] as [EncryptableUint128],
           account: '0x1234567890123456789012345678901234567890',
           chainId: 1,
-          config: createMockCofhesdkConfig(defaultChainId, undefined as unknown as string),
-        }).encrypt();
+          config: createMockCofheConfig(defaultChainId, undefined as unknown as string),
+        }).execute();
       } catch (error) {
-        expect(error).toBeInstanceOf(CofhesdkError);
-        expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.ZkVerifierUrlUninitialized);
+        expect(error).toBeInstanceOf(CofheError);
+        expect((error as CofheError).code).toBe(CofheErrorCode.ZkVerifierUrlUninitialized);
       }
     });
   });
 
-  describe('setStepCallback', () => {
+  describe('onStep', () => {
     it('should set step callback and return builder for chaining', () => {
       const callback = vi.fn();
-      const result = builder.setStepCallback(callback);
+      const result = builder.onStep(callback);
       expect(result).toBe(builder);
     });
 
     it('should allow chaining with other methods', () => {
       const callback = vi.fn();
-      const result = builder.setStepCallback(callback).setSecurityZone(15);
+      const result = builder.onStep(callback).setSecurityZone(15);
 
       expect(result).toBe(builder);
     });
@@ -453,9 +453,9 @@ describe('EncryptInputsBuilder', () => {
   describe('encrypt', () => {
     it('should execute the full encryption flow with step callbacks', async () => {
       const stepCallback = vi.fn();
-      builder.setStepCallback(stepCallback);
+      builder.onStep(stepCallback);
 
-      const result = await builder.encrypt();
+      const result = await builder.execute();
 
       // Verify step callbacks were called in order
       expect(stepCallback).toHaveBeenCalledTimes(10);
@@ -568,7 +568,7 @@ describe('EncryptInputsBuilder', () => {
       const overriddenSender = '0x5555555555555555555555555555555555555555';
       builder.setAccount(overriddenSender);
 
-      const result = await builder.encrypt();
+      const result = await builder.execute();
 
       // Verify result embedded metadata
       const [encrypted] = result;
@@ -585,7 +585,7 @@ describe('EncryptInputsBuilder', () => {
 
       insertMockKeys(defaultChainId, overriddenZone);
 
-      const result = await builder.encrypt();
+      const result = await builder.execute();
 
       // Verify result embedded metadata
       const [encrypted] = result;
@@ -598,7 +598,7 @@ describe('EncryptInputsBuilder', () => {
 
     it('should work without step callback', async () => {
       // No step callback set
-      const result = await builder.encrypt();
+      const result = await builder.execute();
 
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
@@ -614,7 +614,7 @@ describe('EncryptInputsBuilder', () => {
         ],
       });
 
-      const result = await multiInputBuilder.encrypt();
+      const result = await multiInputBuilder.execute();
 
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
@@ -646,10 +646,10 @@ describe('EncryptInputsBuilder', () => {
             Encryptable.uint128(100n),
             Encryptable.uint128(100n),
           ],
-        }).encrypt();
+        }).execute();
       } catch (error) {
-        expect(error).toBeInstanceOf(CofhesdkError);
-        expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.ZkPackFailed);
+        expect(error).toBeInstanceOf(CofheError);
+        expect((error as CofheError).code).toBe(CofheErrorCode.ZkPackFailed);
       }
     });
 
@@ -665,8 +665,8 @@ describe('EncryptInputsBuilder', () => {
           ] as unknown as [EncryptableItem],
         });
       } catch (error) {
-        expect(error).toBeInstanceOf(CofhesdkError);
-        expect((error as CofhesdkError).code).toBe(CofhesdkErrorCode.ZkPackFailed);
+        expect(error).toBeInstanceOf(CofheError);
+        expect((error as CofheError).code).toBe(CofheErrorCode.ZkPackFailed);
       }
     });
   });
@@ -674,18 +674,18 @@ describe('EncryptInputsBuilder', () => {
   // TODO: Implement error handling tests
   // describe('error handling', () => {
   //   it('should handle ZK pack errors gracefully', async () => {
-  //     const result = await builder.encrypt();
-  //     expectResultError(result, CofhesdkErrorCode.InternalError, 'ZK pack failed');
+  //     const result = await builder.execute();
+  //     expectResultError(result, CofheErrorCode.InternalError, 'ZK pack failed');
   //   });
 
   //   it('should handle ZK prove errors gracefully', async () => {
-  //     const result = await builder.encrypt();
-  //     expectResultError(result, CofhesdkErrorCode.InternalError, 'ZK prove failed');
+  //     const result = await builder.execute();
+  //     expectResultError(result, CofheErrorCode.InternalError, 'ZK prove failed');
   //   });
 
   //   it('should handle ZK verify errors gracefully', async () => {
-  //     const result = await builder.encrypt();
-  //     expectResultError(result, CofhesdkErrorCode.InternalError, 'ZK verify failed');
+  //     const result = await builder.execute();
+  //     expectResultError(result, CofheErrorCode.InternalError, 'ZK verify failed');
   //   });
   // });
 
@@ -697,11 +697,7 @@ describe('EncryptInputsBuilder', () => {
       insertMockKeys(defaultChainId, securityZone);
 
       const stepCallback = vi.fn();
-      const result = await builder
-        .setAccount(sender)
-        .setSecurityZone(securityZone)
-        .setStepCallback(stepCallback)
-        .encrypt();
+      const result = await builder.setAccount(sender).setSecurityZone(securityZone).onStep(stepCallback).execute();
 
       expect(result).toBeDefined();
       expect(stepCallback).toHaveBeenCalledTimes(10);
@@ -725,8 +721,8 @@ describe('EncryptInputsBuilder', () => {
       builder.setSecurityZone(securityZone);
 
       // Call encrypt multiple times to ensure state is maintained
-      const result1 = await builder.encrypt();
-      const result2 = await builder.encrypt();
+      const result1 = await builder.execute();
+      const result2 = await builder.execute();
 
       expect(result1).toBeDefined();
       expect(result2).toBeDefined();

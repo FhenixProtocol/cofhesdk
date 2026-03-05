@@ -9,7 +9,7 @@ import { MockZkVerifier } from '../MockZkVerifier.sol';
 import { MockZkVerifierSigner } from './MockZkVerifierSigner.sol';
 import { MessageHashUtils } from '@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol';
 import { Permission, PermissionUtils } from '../Permissioned.sol';
-import { MockQueryDecrypter } from '../MockQueryDecrypter.sol';
+import { MockThresholdNetwork } from '../MockThresholdNetwork.sol';
 import { SIGNER_ADDRESS } from '../MockCoFHE.sol';
 
 abstract contract CoFheTest is Test {
@@ -17,11 +17,13 @@ abstract contract CoFheTest is Test {
   MockZkVerifier public mockZkVerifier;
   MockZkVerifierSigner public mockZkVerifierSigner;
   MockACL public mockAcl;
-  MockQueryDecrypter public mockQueryDecrypter;
+  MockThresholdNetwork public mockThresholdNetwork;
 
-  address constant QUERY_DECRYPTER_ADDRESS = address(512);
-  address constant ZK_VERIFIER_ADDRESS = address(256);
-  address constant ZK_VERIFIER_SIGNER_ADDRESS = address(257);
+  // Keep these in sync with `packages/sdk/core/consts.ts`
+  address constant ZK_VERIFIER_ADDRESS = 0x0000000000000000000000000000000000005001;
+  address constant THRESHOLD_NETWORK_ADDRESS = 0x0000000000000000000000000000000000005002;
+  // SDK exposes this as `MOCKS_ZK_VERIFIER_SIGNER_ADDRESS`
+  address constant ZK_VERIFIER_SIGNER_ADDRESS = SIGNER_ADDRESS;
   address public constant ACL_ADDRESS = 0xa6Ea4b5291d044D93b73b3CFf3109A1128663E8B;
 
   bool private _log = false;
@@ -75,12 +77,12 @@ abstract contract CoFheTest is Test {
     mockZkVerifierSigner = MockZkVerifierSigner(ZK_VERIFIER_SIGNER_ADDRESS);
     vm.label(address(mockZkVerifierSigner), 'MockZkVerifierSigner');
 
-    // QUERY DECRYPTER
+    // THRESHOLD NETWORK
 
-    deployCodeTo('MockQueryDecrypter.sol:MockQueryDecrypter', QUERY_DECRYPTER_ADDRESS);
-    mockQueryDecrypter = MockQueryDecrypter(QUERY_DECRYPTER_ADDRESS);
-    vm.label(address(mockQueryDecrypter), 'MockQueryDecrypter');
-    mockQueryDecrypter.initialize(TASK_MANAGER_ADDRESS, address(mockAcl));
+    deployCodeTo('MockThresholdNetwork.sol:MockThresholdNetwork', THRESHOLD_NETWORK_ADDRESS);
+    mockThresholdNetwork = MockThresholdNetwork(THRESHOLD_NETWORK_ADDRESS);
+    vm.label(address(mockThresholdNetwork), 'MockThresholdNetwork');
+    mockThresholdNetwork.initialize(TASK_MANAGER_ADDRESS, address(mockAcl));
 
     // SET LOG OPS
 
@@ -120,9 +122,18 @@ abstract contract CoFheTest is Test {
     assertEq(mockTaskManager.inMockStorage(ctHash), true);
     assertEq(mockTaskManager.mockStorage(ctHash), value);
   }
+
+  function assertHashValue(bytes32 ctHash, uint256 value) public view {
+    assertHashValue(uint256(ctHash), value);
+  }
+
   function assertHashValue(uint256 ctHash, uint256 value, string memory message) public view {
     assertEq(mockTaskManager.inMockStorage(ctHash), true, message);
     assertEq(mockTaskManager.mockStorage(ctHash), value, message);
+  }
+
+  function assertHashValue(bytes32 ctHash, uint256 value, string memory message) public view {
+    assertHashValue(uint256(ctHash), value, message);
   }
 
   // Encrypted types (no message)
@@ -130,21 +141,27 @@ abstract contract CoFheTest is Test {
   function assertHashValue(ebool eValue, bool value) public view {
     assertHashValue(ebool.unwrap(eValue), value ? 1 : 0);
   }
+
   function assertHashValue(euint8 eValue, uint8 value) public view {
     assertHashValue(euint8.unwrap(eValue), value);
   }
+
   function assertHashValue(euint16 eValue, uint16 value) public view {
     assertHashValue(euint16.unwrap(eValue), value);
   }
+
   function assertHashValue(euint32 eValue, uint32 value) public view {
     assertHashValue(euint32.unwrap(eValue), value);
   }
+
   function assertHashValue(euint64 eValue, uint64 value) public view {
     assertHashValue(euint64.unwrap(eValue), value);
   }
+
   function assertHashValue(euint128 eValue, uint128 value) public view {
     assertHashValue(euint128.unwrap(eValue), value);
   }
+
   function assertHashValue(eaddress eValue, address value) public view {
     assertHashValue(eaddress.unwrap(eValue), uint256(uint160(value)));
   }
@@ -154,21 +171,27 @@ abstract contract CoFheTest is Test {
   function assertHashValue(ebool eValue, bool value, string memory message) public view {
     assertHashValue(ebool.unwrap(eValue), value ? 1 : 0, message);
   }
+
   function assertHashValue(euint8 eValue, uint8 value, string memory message) public view {
     assertHashValue(euint8.unwrap(eValue), value, message);
   }
+
   function assertHashValue(euint16 eValue, uint16 value, string memory message) public view {
     assertHashValue(euint16.unwrap(eValue), value, message);
   }
+
   function assertHashValue(euint32 eValue, uint32 value, string memory message) public view {
     assertHashValue(euint32.unwrap(eValue), value, message);
   }
+
   function assertHashValue(euint64 eValue, uint64 value, string memory message) public view {
     assertHashValue(euint64.unwrap(eValue), value, message);
   }
+
   function assertHashValue(euint128 eValue, uint128 value, string memory message) public view {
     assertHashValue(euint128.unwrap(eValue), value, message);
   }
+
   function assertHashValue(eaddress eValue, address value, string memory message) public view {
     assertHashValue(eaddress.unwrap(eValue), uint256(uint160(value)), message);
   }
@@ -259,16 +282,6 @@ abstract contract CoFheTest is Test {
   }
 
   /**
-   * @notice              Creates an InEuint256 to be used as FHE input. Value is stored in MockCoFHE contract, hash is a pointer to that value.
-   * @param value         Value to encrypt.
-   * @param securityZone  Security zone of the encrypted value.
-   * @return              InEuint256.
-   */
-  function createInEuint256(uint256 value, uint8 securityZone, address sender) public returns (InEuint256 memory) {
-    return abi.decode(abi.encode(createEncryptedInput(Utils.EUINT256_TFHE, value, securityZone, sender)), (InEuint256));
-  }
-
-  /**
    * @notice              Creates an InEaddress to be used as FHE input. Value is stored in MockCoFHE contract, hash is a pointer to that value.
    * @param value         Value to encrypt.
    * @param securityZone  Security zone of the encrypted value.
@@ -306,10 +319,6 @@ abstract contract CoFheTest is Test {
 
   function createInEuint128(uint128 value, address sender) public returns (InEuint128 memory) {
     return createInEuint128(value, 0, sender);
-  }
-
-  function createInEuint256(uint256 value, address sender) public returns (InEuint256 memory) {
-    return createInEuint256(value, 0, sender);
   }
 
   function createInEaddress(address value, address sender) public returns (InEaddress memory) {
@@ -415,7 +424,7 @@ abstract contract CoFheTest is Test {
     uint256 hostChainId,
     Permission memory permission
   ) public view returns (bool, string memory error, uint256) {
-    return mockQueryDecrypter.queryDecrypt(ctHash, hostChainId, permission);
+    return mockThresholdNetwork.queryDecrypt(ctHash, hostChainId, permission);
   }
 
   function querySealOutput(
@@ -423,10 +432,21 @@ abstract contract CoFheTest is Test {
     uint256 hostChainId,
     Permission memory permission
   ) public view returns (bool, string memory error, bytes32) {
-    return mockQueryDecrypter.querySealOutput(ctHash, hostChainId, permission);
+    return mockThresholdNetwork.querySealOutput(ctHash, hostChainId, permission);
+  }
+
+  function decryptForTxWithoutPermit(uint256 ctHash) public view returns (bool, string memory error, uint256) {
+    return mockThresholdNetwork.decryptForTxWithoutPermit(ctHash);
+  }
+
+  function decryptForTxWithPermit(
+    uint256 ctHash,
+    Permission memory permission
+  ) public view returns (bool, string memory error, uint256) {
+    return mockThresholdNetwork.decryptForTxWithPermit(ctHash, permission);
   }
 
   function unseal(bytes32 hashed, bytes32 key) public view returns (uint256) {
-    return mockQueryDecrypter.unseal(hashed, key);
+    return mockThresholdNetwork.unseal(hashed, key);
   }
 }

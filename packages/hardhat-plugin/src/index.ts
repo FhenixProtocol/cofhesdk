@@ -6,12 +6,12 @@ import { extendConfig, extendEnvironment, task, types } from 'hardhat/config';
 import { TASK_TEST, TASK_NODE } from 'hardhat/builtin-tasks/task-names';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 import {
-  type CofhesdkClient,
-  type CofhesdkConfig,
-  type CofhesdkInputConfig,
+  type CofheClient,
+  type CofheConfig,
+  type CofheInputConfig,
   MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
 } from '@cofhe/sdk';
-import { createCofhesdkClient, createCofhesdkConfig } from '@cofhe/sdk/node';
+import { createCofheClient, createCofheConfig } from '@cofhe/sdk/node';
 import { HardhatSignerAdapter } from '@cofhe/sdk/adapters';
 
 import { localcofheFundAccount } from './fund.js';
@@ -24,7 +24,7 @@ import type { Contract } from 'ethers';
 import { hardhat } from '@cofhe/sdk/chains';
 import {
   MockACLArtifact,
-  MockQueryDecrypterArtifact,
+  MockThresholdNetworkArtifact,
   MockTaskManagerArtifact,
   MockZkVerifierArtifact,
   TestBedArtifact,
@@ -36,7 +36,7 @@ import {
  */
 declare module 'hardhat/types/config' {
   interface HardhatUserConfig {
-    cofhesdk?: {
+    cofhe?: {
       /** Whether to log mock operations (default: true) */
       logMocks?: boolean;
       /** Whether to show gas usage warnings for mock operations (default: true) */
@@ -45,7 +45,7 @@ declare module 'hardhat/types/config' {
   }
 
   interface HardhatConfig {
-    cofhesdk: {
+    cofhe: {
       /** Whether to log mock operations (default: true) */
       logMocks: boolean;
       /** Whether to show gas usage warnings for mock operations (default: true) */
@@ -105,9 +105,9 @@ extendConfig((config, userConfig) => {
   }
 
   // Add cofhe config
-  config.cofhesdk = {
-    logMocks: userConfig.cofhesdk?.logMocks ?? true,
-    gasWarning: userConfig.cofhesdk?.gasWarning ?? true,
+  config.cofhe = {
+    logMocks: userConfig.cofhe?.logMocks ?? true,
+    gasWarning: userConfig.cofhe?.gasWarning ?? true,
   };
 });
 
@@ -148,24 +148,41 @@ task(TASK_COFHE_MOCKS_DEPLOY, 'Deploys the mock contracts on the Hardhat network
   .setAction(async ({ deployTestBed, silent }: DeployMocksArgs, hre) => {
     await deployMocks(hre, {
       deployTestBed: deployTestBed ?? true,
-      gasWarning: hre.config.cofhesdk.gasWarning ?? true,
+      gasWarning: hre.config.cofhe.gasWarning ?? true,
       silent: silent ?? false,
     });
   });
 
+// Hardhat plugin auto-deploys mocks for every hardhat test run by overriding TASK_TEST and calling deployMocks(...) before runSuper()
 task(TASK_TEST, 'Deploy mock contracts on hardhat').setAction(async ({}, hre, runSuper) => {
-  await deployMocks(hre, {
-    deployTestBed: true,
-    gasWarning: hre.config.cofhesdk.gasWarning ?? true,
-  });
+  const skipAutoDeploy = (() => {
+    const raw = process.env.COFHE_SKIP_MOCKS_DEPLOY ?? '';
+    const normalized = raw.trim().toLowerCase();
+    return normalized === '1' || normalized === 'true' || normalized === 'yes';
+  })();
+
+  if (!skipAutoDeploy) {
+    await deployMocks(hre, {
+      deployTestBed: true,
+      gasWarning: hre.config.cofhe.gasWarning ?? true,
+    });
+  }
   return runSuper();
 });
 
 task(TASK_NODE, 'Deploy mock contracts on hardhat').setAction(async ({}, hre, runSuper) => {
-  await deployMocks(hre, {
-    deployTestBed: true,
-    gasWarning: hre.config.cofhesdk.gasWarning ?? true,
-  });
+  const skipAutoDeploy = (() => {
+    const raw = process.env.COFHE_SKIP_MOCKS_DEPLOY ?? '';
+    const normalized = raw.trim().toLowerCase();
+    return normalized === '1' || normalized === 'true' || normalized === 'yes';
+  })();
+
+  if (!skipAutoDeploy) {
+    await deployMocks(hre, {
+      deployTestBed: true,
+      gasWarning: hre.config.cofhe.gasWarning ?? true,
+    });
+  }
   return runSuper();
 });
 
@@ -191,21 +208,21 @@ export * from './deploy.js';
  */
 declare module 'hardhat/types/runtime' {
   export interface HardhatRuntimeEnvironment {
-    cofhesdk: {
+    cofhe: {
       /**
-       * Create a CoFHE SDK configuration for use with cofhesdk.createCofhesdkClient(...)
-       * @param {CofhesdkInputConfig} config - The CoFHE SDK input configuration
-       * @returns {CofhesdkConfig} The CoFHE SDK configuration
+       * Create a CoFHE configuration for use with hre.cofhe.createClient(...)
+       * @param {CofheInputConfig} config - The CoFHE input configuration
+       * @returns {CofheConfig} The CoFHE configuration
        */
-      createCofhesdkConfig: (config: CofhesdkInputConfig) => Promise<CofhesdkConfig>;
+      createConfig: (config: CofheInputConfig) => Promise<CofheConfig>;
       /**
-       * Create a CoFHE SDK client instance
-       * @param {CofhesdkConfig} config - The CoFHE SDK configuration (use createCofhesdkConfig to create with Node.js defaults)
-       * @returns {Promise<CofhesdkClient>} The CoFHE SDK client instance
+       * Create a CoFHE client instance
+       * @param {CofheConfig} config - The CoFHE configuration (use createCofheConfig to create with Node.js defaults)
+       * @returns {Promise<CofheClient>} The CoFHE client instance
        */
-      createCofhesdkClient: (config: CofhesdkConfig) => CofhesdkClient;
+      createClient: (config: CofheConfig) => CofheClient;
       /**
-       * Create viem clients from a Hardhat ethers signer, to be used with `cofhesdkClient.connect(...)`
+       * Create viem clients from a Hardhat ethers signer, to be used with `cofheClient.connect(...)`
        * @param {HardhatEthersSigner} signer - The Hardhat ethers signer to use
        * @returns {Promise<{ publicClient: PublicClient; walletClient: WalletClient }>} The viem clients
        */
@@ -213,20 +230,20 @@ declare module 'hardhat/types/runtime' {
         signer: HardhatEthersSigner
       ) => Promise<{ publicClient: PublicClient; walletClient: WalletClient }>;
       /**
-       * Connect a CoFHE SDK client with a Hardhat ethers signer
-       * @param {CofhesdkClient} client - The CoFHE SDK client to connect
+       * Connect a CoFHE client with a Hardhat ethers signer
+       * @param {CofheClient} client - The CoFHE client to connect
        * @param {HardhatEthersSigner} signer - The Hardhat ethers signer to use
        * @returns {Promise<void>}
        */
-      connectWithHardhatSigner: (client: CofhesdkClient, signer: HardhatEthersSigner) => Promise<void>;
+      connectWithHardhatSigner: (client: CofheClient, signer: HardhatEthersSigner) => Promise<void>;
       /**
        * Create and connect to a batteries included client.
        * Also generates a self-usage a permit for the signer.
-       * If customization is needed, use createCofhesdkClient and connectWithHardhatSigner.
+       * If customization is needed, use createCofheClient and connectWithHardhatSigner.
        * @param {HardhatEthersSigner} signer - The Hardhat ethers signer to use (optional - defaults to first signer)
-       * @returns {Promise<CofhesdkClient>} The CoFHE SDK client instance
+       * @returns {Promise<CofheClient>} The CoFHE client instance
        */
-      createBatteriesIncludedCofhesdkClient: (signer?: HardhatEthersSigner) => Promise<CofhesdkClient>;
+      createClientWithBatteries: (signer?: HardhatEthersSigner) => Promise<CofheClient>;
 
       mocks: {
         /**
@@ -239,7 +256,7 @@ declare module 'hardhat/types/runtime' {
          * Example usage:
          *
          * ```ts
-         * await hre.cofhesdk.mocks.withLogs("counter.increment()", async () => {
+         * await hre.cofhe.mocks.withLogs("counter.increment()", async () => {
          *   await counter.increment();
          * });
          * ```
@@ -313,10 +330,10 @@ declare module 'hardhat/types/runtime' {
         getMockACL: () => Promise<Contract>;
 
         /**
-         * Get the MockQueryDecrypter contract
-         * @returns {Promise<Contract>} The MockQueryDecrypter contract
+         * Get the MockThresholdNetwork contract
+         * @returns {Promise<Contract>} The MockThresholdNetwork contract
          */
-        getMockQueryDecrypter: () => Promise<Contract>;
+        getMockThresholdNetwork: () => Promise<Contract>;
 
         /**
          * Get the MockZkVerifier contract
@@ -334,53 +351,69 @@ declare module 'hardhat/types/runtime' {
   }
 }
 
+/**
+ * Builds the mocks config for the hardhat plugin.
+ * Defaults `encryptDelay` to `0` so tests run without artificial wait times,
+ * unless the user has explicitly provided a value.
+ */
+export function buildHardhatPluginMocksConfig(
+  mocksConfig: CofheInputConfig['mocks']
+): NonNullable<CofheInputConfig['mocks']> {
+  return {
+    ...mocksConfig,
+    encryptDelay: mocksConfig?.encryptDelay ?? 0,
+  };
+}
+
 extendEnvironment((hre) => {
-  hre.cofhesdk = {
-    createCofhesdkConfig: async (config: CofhesdkInputConfig) => {
+  hre.cofhe = {
+    createConfig: async (config: CofheInputConfig) => {
       // Create zkv wallet client
       // This wallet interacts with the MockZkVerifier contract so that the user's connected wallet doesn't have to
       const zkvHhSigner = await hre.ethers.getImpersonatedSigner(MOCKS_ZK_VERIFIER_SIGNER_ADDRESS);
       const { walletClient: zkvWalletClient } = await HardhatSignerAdapter(zkvHhSigner);
 
       // Inject zkv wallet client into config
+      // Set encryptDelay to 0 on hardhat to avoid waiting for delays during tests
       const configWithZkvWalletClient = {
         environment: 'hardhat' as const,
         ...config,
+        mocks: buildHardhatPluginMocksConfig(config.mocks),
         _internal: {
           ...config._internal,
           zkvWalletClient,
         },
       };
 
-      return createCofhesdkConfig(configWithZkvWalletClient);
+      return createCofheConfig(configWithZkvWalletClient);
     },
-    createCofhesdkClient: (config: CofhesdkConfig) => {
-      return createCofhesdkClient(config);
+    createClient: (config: CofheConfig) => {
+      return createCofheClient(config);
     },
     hardhatSignerAdapter: async (signer: HardhatEthersSigner) => {
       return HardhatSignerAdapter(signer);
     },
-    connectWithHardhatSigner: async (client: CofhesdkClient, signer: HardhatEthersSigner) => {
+    connectWithHardhatSigner: async (client: CofheClient, signer: HardhatEthersSigner) => {
       const { publicClient, walletClient } = await HardhatSignerAdapter(signer);
       return client.connect(publicClient, walletClient);
     },
-    createBatteriesIncludedCofhesdkClient: async (signer?: HardhatEthersSigner) => {
+    createClientWithBatteries: async (signer?: HardhatEthersSigner) => {
       // Get signer if not provided
       if (!signer) {
         [signer] = await hre.ethers.getSigners();
       }
 
       // Create config
-      const config = await hre.cofhesdk.createCofhesdkConfig({
+      const config = await hre.cofhe.createConfig({
         environment: 'hardhat',
         supportedChains: [hardhat],
       });
 
       // Create client
-      const client = hre.cofhesdk.createCofhesdkClient(config);
+      const client = hre.cofhe.createClient(config);
 
       // Connect client
-      await hre.cofhesdk.connectWithHardhatSigner(client, signer);
+      await hre.cofhe.connectWithHardhatSigner(client, signer);
 
       // Create self-usage permit
       await client.permits.createSelf({
@@ -417,7 +450,7 @@ extendEnvironment((hre) => {
         const aclAddress = await taskManager.acl();
         return hre.ethers.getContractAt(MockACLArtifact.abi, aclAddress);
       },
-      getMockQueryDecrypter: async () => getFixedMockContract(hre, MockQueryDecrypterArtifact),
+      getMockThresholdNetwork: async () => getFixedMockContract(hre, MockThresholdNetworkArtifact),
       getMockZkVerifier: async () => getFixedMockContract(hre, MockZkVerifierArtifact),
       getTestBed: async () => getFixedMockContract(hre, TestBedArtifact),
     },

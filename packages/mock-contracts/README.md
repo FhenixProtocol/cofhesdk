@@ -1,4 +1,4 @@
-# @fhenixprotocol/cofhe-mock-contracts [![NPM Package][npm-badge]][npm] [![License: MIT][license-badge]][license]
+# cofhe/mock-contracts [![NPM Package][npm-badge]][npm] [![License: MIT][license-badge]][license]
 
 [npm]: https://www.npmjs.com/package/@fhenixprotocol/cofhe-mock-contracts
 [npm-badge]: https://img.shields.io/npm/v/@fhenixprotocol/cofhe-mock-contracts.svg
@@ -11,7 +11,7 @@ A mock smart contract library for testing CoFHE (Confidential Computing Framewor
 
 - Mock implementations of core CoFHE contracts:
   - MockTaskManager
-  - MockQueryDecrypter
+  - MockThresholdNetwork
   - MockZkVerifier
   - ACL (Access Control List)
 - Synchronous operation simulation with mock delays
@@ -34,11 +34,67 @@ forge install fhenixprotocol/cofhe-mock-contracts
 
 ## Usages and Integrations
 
-`@cofhe/sdk` is designed to work with mock contracts in a testing / hardhat environment. `cofhesdk/hardhat-plugin` deploys the mock contracts in this repo, and the `cofhesdkClient` detects a testnet chain and interacts correctly using the mocks rather than the true CoFHE coprocessor.
+### Who is this for?
+
+This package is intended for **developers building and testing CoFHE-enabled applications and smart contracts**.
+
+Use these mocks when you want to:
+
+- Run **local tests** without depending on the real CoFHE coprocessor infrastructure.
+- Debug flows end-to-end (encrypt → submit → operate → decrypt) with fast iteration.
+- Assert on results deterministically in CI.
+
+Do **not** use these mocks for production deployments: they intentionally make testing convenient (e.g. storing plaintext on-chain for inspection) and therefore **do not provide real confidentiality guarantees**.
+
+### Hardhat integration vs Foundry integration
+
+Both integrations use the same underlying mock contracts, but they differ in **how mocks get deployed** and **how you interact with them**.
+
+#### Hardhat (recommended for TS/SDK + Solidity tests)
+
+Use this when you are already using **Hardhat** and/or want to run the **TypeScript SDK (`@cofhe/sdk`)** against a local chain.
+
+- The `cofhesdk/hardhat-plugin` watches Hardhat `node` and `test` tasks.
+- It automatically deploys the mocks to the Hardhat network at fixed addresses.
+- The `cofheClient` (created with `createCofheClient(...)`) detects the mocks and routes CoFHE actions to them.
+
+Minimal setup:
+
+```ts
+// hardhat.config.ts
+import 'cofhe-hardhat-plugin';
+
+export default {
+  cofhe: {
+    logMocks: true, // optional
+  },
+};
+```
+
+Run:
+
+```bash
+npx hardhat test
+# or
+npx hardhat node
+```
+
+If you want to assert on plaintext values in Hardhat tests, the plugin exposes helpers like `mock_expectPlaintext(...)` (see the hardhat-plugin README).
+
+#### Foundry (recommended for Solidity-only tests)
+
+Use this when you are writing tests in **Solidity** and running them with `forge test`.
+
+- You typically inherit from the abstract `CoFheTest` helper to deploy/setup the necessary FHE mock environment.
+- You use helper methods to create encrypted inputs and assert their underlying values.
+
+> **Important**: You must set `isolate = true` in your `foundry.toml`. Without this setting, some variables may be used without proper permission checks, which will cause failures on production chains.
+
+`@cofhe/sdk` is designed to work with mock contracts in a testing / hardhat environment. `cofhesdk/hardhat-plugin` deploys the mock contracts in this repo, and the `cofheClient` detects a testnet chain and interacts correctly using the mocks rather than the true CoFHE coprocessor.
 
 When installed and imported in the `hardhat.config.ts`, `cofhesdk/hardhat-plugin` will watch for Hardhat `node` and `test` tasks, and will deploy the mocks to the hardhat testnet chain at fixed addresses.
 
-Once deployed, interaction with the mock contracts is handled by the `cofhesdkClient` (created with `createCofhesdkClient(...)`). The client checks for the existence of mock contracts at known addresses, and if they exist, marks the current connection as a testnet.
+Once deployed, interaction with the mock contracts is handled by the `cofheClient` (created with `createCofheClient(...)`). The client checks for the existence of mock contracts at known addresses, and if they exist, marks the current connection as a testnet.
 
 ## Logging
 
@@ -71,19 +127,17 @@ The mocks are then responsible for mocking two actions:
 1. Creating the signature.
 2. Storing the plaintext value on-chain.
 
-The `MockZkVerifier` contract handles the on-chain storage of encrypted inputs. The signature creation is handled automatically within `cofhesdkClient.encryptInputs` when executing against a testnet.
+The `MockZkVerifier` contract handles the on-chain storage of encrypted inputs. The signature creation is handled automatically within `cofheClient.encryptInputs` when executing against a testnet.
 
 ### Off-chain Decryption / Sealing
 
-Off-chain decryption is performed by calling the `cofhesdkClient.decryptHandle` function with a valid `ctHash` and a valid `permit` [todo link].
+Off-chain decryption is performed by calling the `cofheClient.decryptHandle` function with a valid `ctHash` and a valid `permit` [todo link].
 
 When interacting with CoFHE this request is routed to the Threshold Network, which will perform the decryption operation, ultimately returning a decrypted result.
 
-When working with the mocks, the `cofhesdkClient` will instead query the `MockQueryDecrypter` contract, which will verify the request `permit`, and return the decrypted result.
+When working with the mocks, the `cofheClient` will instead query the `MockThresholdNetwork` contract, which will verify the request `permit`, and return the decrypted result.
 
 ### Using Foundry
-
-> **Important**: You must set `isolate = true` in your `foundry.toml`. Without this setting, some variables may be used without proper permission checks, which will cause failures on production chains.
 
 Use abstract CoFheTest contract to automatically deploy all necessary FHE contracts for testing.
 

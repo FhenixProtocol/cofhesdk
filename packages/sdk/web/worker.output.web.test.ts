@@ -1,4 +1,4 @@
-import { arbSepolia as cofhesdkArbSepolia } from '@/chains';
+import { arbSepolia as cofheArbSepolia } from '@/chains';
 import { Encryptable } from '@/core';
 
 import { describe, it, expect, beforeAll } from 'vitest';
@@ -6,7 +6,7 @@ import type { PublicClient, WalletClient } from 'viem';
 import { createPublicClient, createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { arbitrumSepolia as viemArbitrumSepolia } from 'viem/chains';
-import { createCofhesdkClient, createCofhesdkConfig } from './index.js';
+import { createCofheClient, createCofheConfig } from './index.js';
 
 const TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 
@@ -30,18 +30,18 @@ describe('@cofhe/sdk/web - Worker vs Main Thread Output Validation', () => {
 
   it('should produce consistent output format regardless of worker usage', async () => {
     // Create two clients - one with workers, one without
-    const configWithWorker = createCofhesdkConfig({
-      supportedChains: [cofhesdkArbSepolia],
+    const configWithWorker = createCofheConfig({
+      supportedChains: [cofheArbSepolia],
       useWorkers: true,
     });
 
-    const configWithoutWorker = createCofhesdkConfig({
-      supportedChains: [cofhesdkArbSepolia],
+    const configWithoutWorker = createCofheConfig({
+      supportedChains: [cofheArbSepolia],
       useWorkers: false,
     });
 
-    const clientWithWorker = createCofhesdkClient(configWithWorker);
-    const clientWithoutWorker = createCofhesdkClient(configWithoutWorker);
+    const clientWithWorker = createCofheClient(configWithWorker);
+    const clientWithoutWorker = createCofheClient(configWithoutWorker);
 
     await clientWithWorker.connect(publicClient, walletClient);
     await clientWithoutWorker.connect(publicClient, walletClient);
@@ -49,8 +49,8 @@ describe('@cofhe/sdk/web - Worker vs Main Thread Output Validation', () => {
     const value = Encryptable.uint128(12345n);
 
     const [resultWithWorker, resultWithoutWorker] = await Promise.all([
-      clientWithWorker.encryptInputs([value]).encrypt(),
-      clientWithoutWorker.encryptInputs([value]).encrypt(),
+      clientWithWorker.encryptInputs([value]).execute(),
+      clientWithoutWorker.encryptInputs([value]).execute(),
     ]);
 
     // Both should succeed

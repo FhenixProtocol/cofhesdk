@@ -8,6 +8,6 @@ import { useCofheChainId } from './useCofheConnection';
 export function useCofhePinnedTokenAddress() {
   const widgetConfig = useCofheContext().client.config.react;
   const chainId = useCofheChainId();
-  const pinnedTokenAddress = chainId ? widgetConfig.pinnedTokens[chainId?.toString()] : undefined;
+  const pinnedTokenAddress = chainId ? widgetConfig.pinnedTokens?.[chainId?.toString()] : undefined;
   return pinnedTokenAddress;
 }

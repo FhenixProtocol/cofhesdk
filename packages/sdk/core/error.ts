@@ -1,4 +1,4 @@
-export enum CofhesdkErrorCode {
+export enum CofheErrorCode {
   InternalError = 'INTERNAL_ERROR',
   UnknownEnvironment = 'UNKNOWN_ENVIRONMENT',
   InitTfheFailed = 'INIT_TFHE_FAILED',
@@ -44,8 +44,8 @@ export enum CofhesdkErrorCode {
   RehydrateKeysStoreFailed = 'REHYDRATE_KEYS_STORE_FAILED',
 }
 
-export type CofhesdkErrorParams = {
-  code: CofhesdkErrorCode;
+export type CofheErrorParams = {
+  code: CofheErrorCode;
   message: string;
   cause?: Error;
   hint?: string;
@@ -53,28 +53,28 @@ export type CofhesdkErrorParams = {
 };
 
 /**
- * CofhesdkError class
+ * CofheError class
  * This class is used to create errors that are specific to the CoFHE SDK
  * It extends the Error class and adds a code, cause, hint, and context
  * The code is used to identify the type of error
- * The cause is used to indicate the inner error that caused the CofhesdkError
+ * The cause is used to indicate the inner error that caused the CofheError
  * The hint is used to provide a hint about how to fix the error
  * The context is used to provide additional context about the state that caused the error
  * The serialize method is used to serialize the error to a JSON string
  * The toString method is used to provide a human-readable string representation of the error
  */
-export class CofhesdkError extends Error {
-  public readonly code: CofhesdkErrorCode;
+export class CofheError extends Error {
+  public readonly code: CofheErrorCode;
   public readonly cause?: Error;
   public readonly hint?: string;
   public readonly context?: Record<string, unknown>;
 
-  constructor({ code, message, cause, hint, context }: CofhesdkErrorParams) {
+  constructor({ code, message, cause, hint, context }: CofheErrorParams) {
     // If there's a cause, append its message to provide full context
     const fullMessage = cause ? `${message} | Caused by: ${cause.message}` : message;
 
     super(fullMessage);
-    this.name = 'CofhesdkError';
+    this.name = 'CofheError';
     this.code = code;
     this.cause = cause;
     this.hint = hint;
@@ -82,22 +82,22 @@ export class CofhesdkError extends Error {
 
     // Maintains proper stack trace for where our error was thrown (only available on V8)
     if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, CofhesdkError);
+      Error.captureStackTrace(this, CofheError);
     }
   }
 
   /**
-   * Creates a CofhesdkError from an unknown error
-   * If the error is a CofhesdkError, it is returned unchanged, else a new CofhesdkError is created
-   * If a wrapperError is provided, it is used to create the new CofhesdkError, else a default is used
+   * Creates a CofheError from an unknown error
+   * If the error is a CofheError, it is returned unchanged, else a new CofheError is created
+   * If a wrapperError is provided, it is used to create the new CofheError, else a default is used
    */
-  static fromError(error: unknown, wrapperError?: CofhesdkErrorParams): CofhesdkError {
-    if (isCofhesdkError(error)) return error;
+  static fromError(error: unknown, wrapperError?: CofheErrorParams): CofheError {
+    if (isCofheError(error)) return error;
 
     const cause = error instanceof Error ? error : new Error(`${error}`);
 
-    return new CofhesdkError({
-      code: wrapperError?.code ?? CofhesdkErrorCode.InternalError,
+    return new CofheError({
+      code: wrapperError?.code ?? CofheErrorCode.InternalError,
       message: wrapperError?.message ?? 'An internal error occurred',
       hint: wrapperError?.hint,
       context: wrapperError?.context,
@@ -165,4 +165,4 @@ const bigintSafeJsonStringify = (value: unknown): string => {
   });
 };
 
-export const isCofhesdkError = (error: unknown): error is CofhesdkError => error instanceof CofhesdkError;
+export const isCofheError = (error: unknown): error is CofheError => error instanceof CofheError;

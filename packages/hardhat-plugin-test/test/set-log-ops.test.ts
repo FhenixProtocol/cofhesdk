@@ -7,9 +7,7 @@ describe('Set Log Ops Task', () => {
   let taskManager: Contract;
 
   beforeEach(async () => {
-    await hre.run(TASK_COFHE_MOCKS_DEPLOY, { silent: true });
-
-    taskManager = await hre.cofhesdk.mocks.getMockTaskManager();
+    taskManager = await hre.cofhe.mocks.getMockTaskManager();
 
     await taskManager.setLogOps(false);
   });
@@ -37,17 +35,17 @@ describe('Set Log Ops Task', () => {
     await expectLogOps(false);
 
     // Enable logging
-    await hre.cofhesdk.mocks.enableLogs();
+    await hre.cofhe.mocks.enableLogs();
 
     await expectLogOps(true);
 
-    await hre.cofhesdk.mocks.disableLogs();
+    await hre.cofhe.mocks.disableLogs();
 
     await expectLogOps(false);
   });
 
   it('(task) should disable logging', async () => {
-    await hre.cofhesdk.mocks.enableLogs();
+    await hre.cofhe.mocks.enableLogs();
     await expectLogOps(true);
 
     // Disable logging
@@ -59,16 +57,16 @@ describe('Set Log Ops Task', () => {
   });
 
   it('(function) should disable logging', async () => {
-    await hre.cofhesdk.mocks.enableLogs();
+    await hre.cofhe.mocks.enableLogs();
 
     await expectLogOps(true);
 
     // Disable logging
-    await hre.cofhesdk.mocks.disableLogs();
+    await hre.cofhe.mocks.disableLogs();
 
     await expectLogOps(false);
 
-    await hre.cofhesdk.mocks.enableLogs();
+    await hre.cofhe.mocks.enableLogs();
 
     await expectLogOps(true);
   });
@@ -76,7 +74,7 @@ describe('Set Log Ops Task', () => {
   it('(function) mock_withLogs should enable logging', async () => {
     await expectLogOps(false);
 
-    await hre.cofhesdk.mocks.withLogs("'hre.cofhesdk.mocks.withLogs' logging enabled?", async () => {
+    await hre.cofhe.mocks.withLogs("'hre.cofhe.mocks.withLogs' logging enabled?", async () => {
       // Verify logging is enabled inside the closure
       await expectLogOps(true);
     });

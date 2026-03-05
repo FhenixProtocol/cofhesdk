@@ -46,7 +46,7 @@ This plugin uses [cofhe-mock-contracts](https://github.com/FhenixProtocol/cofhe-
 The mock contracts include:
 
 - MockTaskManager: Manages FHE operations and stores plaintext values
-- MockQueryDecrypter: Handles decryption requests
+- MockThresholdNetwork: Handles decryption requests
 - MockZkVerifier: Simulates verification of encrypted inputs
 - ACL: Handles access control
 
@@ -63,6 +63,12 @@ Mock contracts are automatically deployed when using the Hardhat network:
 
 - Running tests: `npx hardhat test`
 - Starting a local node: `npx hardhat node`
+
+To disable this automatic deployment (for example, when your tests only use external RPCs and don't need the in-process Hardhat network), set:
+
+```bash
+COFHE_SKIP_MOCKS_DEPLOY=1
+```
 
 You can also manually deploy mock contracts:
 

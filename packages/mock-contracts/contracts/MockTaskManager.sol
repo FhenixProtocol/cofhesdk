@@ -30,6 +30,7 @@ error OnlyAggregatorAllowed(address caller);
 
 // Operation-specific errors
 error RandomFunctionNotSupported();
+error NotImplemented();
 
 library TMCommon {
   uint256 private constant HASH_MASK_FOR_METADATA = type(uint256).max - type(uint16).max; // 2 bytes reserved for metadata
@@ -150,6 +151,7 @@ library TMCommon {
   function getSecAndTypeFromHash(uint256 hash) internal pure returns (uint256) {
     return uint256((SHIFTED_TYPE_MASK | SECURITY_ZONE_MASK) & hash);
   }
+
   function isTriviallyEncryptedFromHash(uint256 hash) internal pure returns (bool) {
     return (hash & TRIVIALLY_ENCRYPTED_MASK) == TRIVIALLY_ENCRYPTED_MASK;
   }
@@ -217,6 +219,9 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   MockACL public acl;
 
   address private verifierSigner;
+
+  // Signer address for decrypt result verification (threshold network's signing key)
+  address public decryptResultSigner;
 
   // Storage contract for plaintext results of decrypt operations
   // PlaintextsStorage public plaintextsStorage;
@@ -288,7 +293,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     // NOTE: MOCK
     if (block.timestamp < _decryptResultReadyTimestamp[ctHash]) return (0, false);
 
-    return (_get(ctHash), true);
+    return (_decryptResult[ctHash], true);
   }
 
   function checkAllowed(uint256 ctHash) internal view {
@@ -460,6 +465,50 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     emit ProtocolNotification(ctHash, operation, errorMessage);
   }
 
+  /// @notice Publish a signed decrypt result to the chain
+  /// @dev Anyone with a valid signature from the decrypt network can call this
+  function publishDecryptResult(uint256 ctHash, uint256 result, bytes calldata signature) external {
+    _verifyDecryptResult(ctHash, result, signature);
+    _decryptResultReady[ctHash] = true;
+    _decryptResult[ctHash] = result;
+
+    _decryptResultReadyTimestamp[ctHash] = uint64(block.timestamp);
+    emit DecryptionResult(ctHash, result, msg.sender);
+  }
+
+  function publishDecryptResultBatch(
+    uint256[] calldata ctHashes,
+    uint256[] calldata results,
+    bytes[] calldata signatures
+  ) external {
+    // Mock implementation: process each result individually
+    // Note: publishDecryptResult is defined later in the contract
+    for (uint256 i = 0; i < ctHashes.length; i++) {
+      // Call via external interface to avoid forward reference issue
+      this.publishDecryptResult(ctHashes[i], results[i], signatures[i]);
+    }
+  }
+
+  function _verifyDecryptResult(uint256 ctHash, uint256 result, bytes calldata signature) private view {
+    if (decryptResultSigner == address(0)) revert InvalidAddress();
+    bytes32 messageHash = _computeDecryptResultHash(ctHash, result);
+    (address recovered, ECDSA.RecoverError err, ) = ECDSA.tryRecover(messageHash, signature);
+
+    if (err != ECDSA.RecoverError.NoError || recovered == address(0)) {
+      revert InvalidSignature();
+    }
+
+    if (recovered != decryptResultSigner) {
+      revert InvalidSigner(recovered, decryptResultSigner);
+    }
+  }
+
+  /// @notice Format: result (32) || enc_type (4) || chain_id (8) || ct_hash (32) = 76 bytes
+  function _computeDecryptResultHash(uint256 ctHash, uint256 result) private view returns (bytes32) {
+    uint8 encryptionType = TMCommon.getUintTypeFromHash(ctHash);
+    return keccak256(abi.encodePacked(result, uint32(encryptionType), uint64(block.chainid), bytes32(ctHash)));
+  }
+
   function verifyType(uint8 ctType, uint8 desiredType) internal pure {
     if (ctType != desiredType) {
       revert InvalidInputType(ctType, desiredType);
@@ -550,6 +599,12 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     verifierSigner = signer;
   }
 
+  /// @notice Set the authorized signer for decrypt results
+  /// @param signer The new signer address (must be non-zero for publishDecryptResult to work)
+  function setDecryptResultSigner(address signer) external onlyOwner {
+    decryptResultSigner = signer;
+  }
+
   function setSecurityZoneMax(int32 securityZone) external onlyOwner {
     if (securityZone < securityZoneMin) {
       revert InvalidSecurityZone(securityZone, securityZoneMin, securityZoneMax);
@@ -589,5 +644,35 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
 
   function isAllowedWithPermission(Permission memory permission, uint256 handle) public view returns (bool) {
     return acl.isAllowedWithPermission(permission, handle);
+  }
+
+  // Stub implementations for new ITaskManager interface methods (inc PR #48)
+
+  function createRandomTask(uint8 returnType, uint256 seed, int32 securityZone) external returns (uint256) {
+    // Mock implementation: just return a pseudo-random hash based on seed
+    return uint256(keccak256(abi.encode(returnType, seed, securityZone, block.timestamp)));
+  }
+
+  function isPubliclyAllowed(uint256 ctHash) external view returns (bool) {
+    revert NotImplemented();
+  }
+
+  function verifyDecryptResult(uint256 ctHash, uint256 result, bytes calldata signature) external view returns (bool) {
+    // Mock implementation: verify signature using the verifier signer
+    bytes32 digest = keccak256(abi.encodePacked(result));
+    return ECDSA.recover(digest, signature) == verifierSigner;
+  }
+
+  function verifyDecryptResultSafe(
+    uint256 ctHash,
+    uint256 result,
+    bytes calldata signature
+  ) external view returns (bool) {
+    // Same as verifyDecryptResult for mock
+    try this.verifyDecryptResult(ctHash, result, signature) returns (bool valid) {
+      return valid;
+    } catch {
+      return false;
+    }
   }
 }
