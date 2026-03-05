@@ -1,6 +1,5 @@
 import hre from 'hardhat';
 import { expect } from 'chai';
-import { TASK_COFHE_MOCKS_DEPLOY } from './consts';
 import { CofheClient, Encryptable, MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY } from '@cofhe/sdk';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 import { Wallet } from 'ethers';

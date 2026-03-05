@@ -351,6 +351,20 @@ declare module 'hardhat/types/runtime' {
   }
 }
 
+/**
+ * Builds the mocks config for the hardhat plugin.
+ * Defaults `encryptDelay` to `0` so tests run without artificial wait times,
+ * unless the user has explicitly provided a value.
+ */
+export function buildHardhatPluginMocksConfig(
+  mocksConfig: CofheInputConfig['mocks']
+): NonNullable<CofheInputConfig['mocks']> {
+  return {
+    ...mocksConfig,
+    encryptDelay: mocksConfig?.encryptDelay ?? 0,
+  };
+}
+
 extendEnvironment((hre) => {
   hre.cofhe = {
     createConfig: async (config: CofheInputConfig) => {
@@ -360,9 +374,11 @@ extendEnvironment((hre) => {
       const { walletClient: zkvWalletClient } = await HardhatSignerAdapter(zkvHhSigner);
 
       // Inject zkv wallet client into config
+      // Set encryptDelay to 0 on hardhat to avoid waiting for delays during tests
       const configWithZkvWalletClient = {
         environment: 'hardhat' as const,
         ...config,
+        mocks: buildHardhatPluginMocksConfig(config.mocks),
         _internal: {
           ...config._internal,
           zkvWalletClient,

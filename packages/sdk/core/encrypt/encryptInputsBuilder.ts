@@ -425,20 +425,20 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
 
     this.fireStepStart(EncryptStep.InitTfhe);
     await sleep(initTfheDelay);
-    this.fireStepEnd(EncryptStep.InitTfhe, { tfheInitializationExecuted: false });
+    this.fireStepEnd(EncryptStep.InitTfhe, { tfheInitializationExecuted: false, isMocks: true, mockSleep: initTfheDelay });
 
     this.fireStepStart(EncryptStep.FetchKeys);
     await sleep(fetchKeysDelay);
-    this.fireStepEnd(EncryptStep.FetchKeys, { fheKeyFetchedFromCoFHE: false, crsFetchedFromCoFHE: false });
+    this.fireStepEnd(EncryptStep.FetchKeys, { fheKeyFetchedFromCoFHE: false, crsFetchedFromCoFHE: false, isMocks: true, mockSleep: fetchKeysDelay });
 
     this.fireStepStart(EncryptStep.Pack);
     await cofheMocksCheckEncryptableBits(this.inputItems);
     await sleep(packDelay);
-    this.fireStepEnd(EncryptStep.Pack);
+    this.fireStepEnd(EncryptStep.Pack, { isMocks: true, mockSleep: packDelay });
 
     this.fireStepStart(EncryptStep.Prove);
     await sleep(proveDelay);
-    this.fireStepEnd(EncryptStep.Prove);
+    this.fireStepEnd(EncryptStep.Prove, { isMocks: true, mockSleep: proveDelay });
 
     this.fireStepStart(EncryptStep.Verify);
     await sleep(verifyDelay);
@@ -456,7 +456,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
       utype: this.inputItems[index].utype,
       signature,
     }));
-    this.fireStepEnd(EncryptStep.Verify);
+    this.fireStepEnd(EncryptStep.Verify, { isMocks: true, mockSleep: verifyDelay });
 
     return encryptedInputs as [...EncryptedItemInputs<T>];
   }
