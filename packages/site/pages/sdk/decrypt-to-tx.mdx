@@ -2,7 +2,8 @@
 
 Use `decryptForTx` when you want to reveal a **confidential (encrypted)** value _inside a transaction_, and you need the chain to be able to verify that reveal.
 
-`decryptForTx` returns a plaintext value **plus** a Threshold Network signature that can be verified on-chain (for example by `FHE.publishDecryptResult(...)`).
+`decryptForTx` returns a plaintext value **plus** a Threshold Network signature.
+You can pass that signature to `FHE.publishDecryptResult(...)` to verify that the plaintext matches the encrypted handle/hash (i.e. reveal the encrypted value on-chain).
 
 Common examples:
 
