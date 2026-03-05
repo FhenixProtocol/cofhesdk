@@ -12,7 +12,7 @@ import { CofheError, CofheErrorCode } from '../error.js';
 import { fromHexString, toHexString } from '../utils.js';
 import { type PublicClient, createPublicClient, http, type WalletClient, createWalletClient } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { arbitrumSepolia } from 'viem/chains';
+import { arbitrumSepolia, hardhat } from 'viem/chains';
 import { type CofheConfig, createCofheConfigBase } from '../config.js';
 import { type ZkBuilderAndCrsGenerator } from './zkPackProveVerify.js';
 import { type KeysStorage, createKeysStore } from '../keyStore.js';
@@ -668,6 +668,93 @@ describe('EncryptInputsBuilder', () => {
         expect(error).toBeInstanceOf(CofheError);
         expect((error as CofheError).code).toBe(CofheErrorCode.ZkPackFailed);
       }
+    });
+  });
+
+  describe('mocksExecute encryptDelay', () => {
+    // mocksExecute runs when chainId === hardhat.id (31337)
+    const createHardhatParams = (encryptDelay?: number | [number, number, number, number, number]) => {
+      const mocksConfig = encryptDelay !== undefined ? { encryptDelay } : {};
+      return {
+        inputs: [Encryptable.uint128(100n)] as [EncryptableUint128],
+        account: defaultSender,
+        chainId: hardhat.id,
+        config: createCofheConfigBase({
+          supportedChains: [],
+          mocks: mocksConfig,
+        }),
+        publicClient: publicClient,
+        walletClient: bobWalletClient,
+        tfhePublicKeyDeserializer: mockTfhePublicKeyDeserializer,
+        compactPkeCrsDeserializer: mockCompactPkeCrsDeserializer,
+        zkBuilderAndCrsGenerator: mockZkBuilderAndCrsGenerator,
+        initTfhe: mockInitTfhe,
+        zkProveWorkerFn: undefined,
+        keysStorage: keysStorage,
+        requireConnected: vi.fn(),
+      };
+    };
+
+    beforeEach(() => {
+      vi.mock('../utils.js', async (importOriginal) => {
+        const original = await importOriginal<typeof import('../utils.js')>();
+        return { ...original, sleep: vi.fn().mockResolvedValue(undefined) };
+      });
+      vi.mock('./cofheMocksZkVerifySign.js', () => ({
+        cofheMocksCheckEncryptableBits: vi.fn().mockResolvedValue(undefined),
+        cofheMocksZkVerifySign: vi.fn().mockResolvedValue([
+          { ct_hash: '12345', signature: `${defaultSender}-0-${hardhat.id}-` },
+        ]),
+      }));
+    });
+
+    it('should use default delays [100, 100, 100, 500, 500] when encryptDelay is not configured', async () => {
+      const { sleep } = await import('../utils.js');
+      const builder = new EncryptInputsBuilder(createHardhatParams());
+      await builder.execute();
+
+      expect(sleep).toHaveBeenNthCalledWith(1, 100);
+      expect(sleep).toHaveBeenNthCalledWith(2, 100);
+      expect(sleep).toHaveBeenNthCalledWith(3, 100);
+      expect(sleep).toHaveBeenNthCalledWith(4, 500);
+      expect(sleep).toHaveBeenNthCalledWith(5, 500);
+    });
+
+    it('should apply a single number delay to all steps', async () => {
+      const { sleep } = await import('../utils.js');
+      const builder = new EncryptInputsBuilder(createHardhatParams(200));
+      await builder.execute();
+
+      expect(sleep).toHaveBeenNthCalledWith(1, 200);
+      expect(sleep).toHaveBeenNthCalledWith(2, 200);
+      expect(sleep).toHaveBeenNthCalledWith(3, 200);
+      expect(sleep).toHaveBeenNthCalledWith(4, 200);
+      expect(sleep).toHaveBeenNthCalledWith(5, 200);
+    });
+
+    it('should apply per-step delays when a tuple is provided', async () => {
+      const { sleep } = await import('../utils.js');
+      const delays: [number, number, number, number, number] = [10, 20, 30, 40, 50];
+      const builder = new EncryptInputsBuilder(createHardhatParams(delays));
+      await builder.execute();
+
+      expect(sleep).toHaveBeenNthCalledWith(1, 10);
+      expect(sleep).toHaveBeenNthCalledWith(2, 20);
+      expect(sleep).toHaveBeenNthCalledWith(3, 30);
+      expect(sleep).toHaveBeenNthCalledWith(4, 40);
+      expect(sleep).toHaveBeenNthCalledWith(5, 50);
+    });
+
+    it('should apply zero delays when 0 is provided', async () => {
+      const { sleep } = await import('../utils.js');
+      const builder = new EncryptInputsBuilder(createHardhatParams(0));
+      await builder.execute();
+
+      expect(sleep).toHaveBeenNthCalledWith(1, 0);
+      expect(sleep).toHaveBeenNthCalledWith(2, 0);
+      expect(sleep).toHaveBeenNthCalledWith(3, 0);
+      expect(sleep).toHaveBeenNthCalledWith(4, 0);
+      expect(sleep).toHaveBeenNthCalledWith(5, 0);
     });
   });
 

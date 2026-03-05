@@ -398,6 +398,18 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   }
 
   /**
+   * Resolves the encryptDelay config into an array of 5 per-step delays.
+   * A single number is broadcast to all steps; a tuple is used as-is.
+   */
+  private resolveEncryptDelays(): [number, number, number, number, number] {
+    const encryptDelay = this.config?.mocks?.encryptDelay ?? [100, 100, 100, 500, 500];
+    if (typeof encryptDelay === 'number') {
+      return [encryptDelay, encryptDelay, encryptDelay, encryptDelay, encryptDelay];
+    }
+    return encryptDelay;
+  }
+
+  /**
    * @dev Encrypt against the cofheMocks instead of CoFHE
    *
    * In the cofheMocks, the MockZkVerifier contract is deployed on hardhat to a fixed address, this contract handles mocking the zk verifying.
@@ -409,25 +421,27 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     this.assertPublicClient();
     this.assertWalletClient();
 
+    const [initTfheDelay, fetchKeysDelay, packDelay, proveDelay, verifyDelay] = this.resolveEncryptDelays();
+
     this.fireStepStart(EncryptStep.InitTfhe);
-    await sleep(100);
+    await sleep(initTfheDelay);
     this.fireStepEnd(EncryptStep.InitTfhe, { tfheInitializationExecuted: false });
 
     this.fireStepStart(EncryptStep.FetchKeys);
-    await sleep(100);
+    await sleep(fetchKeysDelay);
     this.fireStepEnd(EncryptStep.FetchKeys, { fheKeyFetchedFromCoFHE: false, crsFetchedFromCoFHE: false });
 
     this.fireStepStart(EncryptStep.Pack);
     await cofheMocksCheckEncryptableBits(this.inputItems);
-    await sleep(100);
+    await sleep(packDelay);
     this.fireStepEnd(EncryptStep.Pack);
 
     this.fireStepStart(EncryptStep.Prove);
-    await sleep(500);
+    await sleep(proveDelay);
     this.fireStepEnd(EncryptStep.Prove);
 
     this.fireStepStart(EncryptStep.Verify);
-    await sleep(500);
+    await sleep(verifyDelay);
     const signedResults = await cofheMocksZkVerifySign(
       this.inputItems,
       this.account,

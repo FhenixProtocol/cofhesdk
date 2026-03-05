@@ -129,9 +129,6 @@ describe('createCofheConfigBase', () => {
   it('mocks', () => {
     expectInvalidConfigItem('mocks', 'not-an-object');
     expectInvalidConfigItem('mocks', null);
-
-    expectValidConfigItem('mocks', { decryptDelay: 1000 }, { decryptDelay: 1000 });
-    expectValidConfigItem('mocks', undefined, { decryptDelay: 0 });
   });
 
   it('mocks.decryptDelay', () => {
@@ -140,6 +137,18 @@ describe('createCofheConfigBase', () => {
 
     expectValidConfigItem('mocks.decryptDelay', undefined, 0);
     expectValidConfigItem('mocks.decryptDelay', 1000, 1000);
+  });
+
+  it('mocks.encryptDelay', () => {
+    expectInvalidConfigItem('mocks.encryptDelay', 'not-a-number');
+    expectInvalidConfigItem('mocks.encryptDelay', null);
+    expectInvalidConfigItem('mocks.encryptDelay', [100, 100, 100]); // wrong tuple length
+    expectInvalidConfigItem('mocks.encryptDelay', ['a', 'b', 'c', 'd', 'e']); // non-number elements
+
+    expectValidConfigItem('mocks.encryptDelay', undefined, [100, 100, 100, 500, 500]);
+    expectValidConfigItem('mocks.encryptDelay', 200, 200);
+    expectValidConfigItem('mocks.encryptDelay', 0, 0);
+    expectValidConfigItem('mocks.encryptDelay', [10, 20, 30, 40, 50], [10, 20, 30, 40, 50]);
   });
 
   it('useWorkers', () => {

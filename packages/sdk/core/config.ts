@@ -37,6 +37,13 @@ export type CofheConfig = {
      * Default 0ms on hardhat (will be called during tests no need for fake delay)
      */
     decryptDelay: number;
+    /**
+     * Simulated delay(s) in milliseconds for each step of encryptInputs in mock mode.
+     * A single number applies the same delay to all five steps (InitTfhe, FetchKeys, Pack, Prove, Verify).
+     * A tuple of five numbers applies a per-step delay: [InitTfhe, FetchKeys, Pack, Prove, Verify].
+     * Default: [100, 100, 100, 500, 500]
+     */
+    encryptDelay: number | [number, number, number, number, number];
   };
   _internal?: CofheInternalConfig;
 };
@@ -79,9 +86,16 @@ export const CofheConfigSchema = z.object({
   mocks: z
     .object({
       decryptDelay: z.number().optional().default(0),
+      encryptDelay: z
+        .union([
+          z.number(),
+          z.tuple([z.number(), z.number(), z.number(), z.number(), z.number()]),
+        ])
+        .optional()
+        .default([100, 100, 100, 500, 500]),
     })
     .optional()
-    .default({ decryptDelay: 0 }),
+    .default({ decryptDelay: 0, encryptDelay: [100, 100, 100, 500, 500] }),
   /** Internal configuration */
   _internal: z
     .object({
