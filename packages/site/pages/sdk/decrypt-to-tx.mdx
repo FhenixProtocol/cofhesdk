@@ -1,39 +1,42 @@
 # Decrypting to Transact
 
-`decryptForTx` is the "decrypt with proof" flow: it returns a plaintext value **plus** a Threshold Network signature that can be verified on-chain.
+Use `decryptForTx` when you want to reveal a **confidential (encrypted)** value *inside a transaction*, and you need the chain to be able to verify that reveal.
 
-Use this when you need to:
+`decryptForTx` returns a plaintext value **plus** a Threshold Network signature that can be verified on-chain (for example by `FHE.publishDecryptResult(...)`).
 
-- Reveal a ciphertext on-chain (e.g. via `FHE.publishDecryptResult(...)`).
-- Submit a transaction that depends on a plaintext value and you need the chain to accept it.
+Common examples:
 
-If you only need to show plaintext in your UI (and you do **not** need an on-chain proof), use `decryptForView` instead.
+- **Unwrap a hidden value**: you stored an encrypted amount earlier, and now you want to withdraw/settle based on the real amount.
+- **Finalize a private auction / game move**: bids or moves are submitted encrypted, and the winner is revealed later in a verifiable way.
+- **Make a value public**: publish the plaintext + proof on-chain so everyone can read it going forward.
+
+If you only need to show plaintext in your UI (and you do **not** need an on-chain-verifiable signature), use `decryptForView` instead.
 
 ## Prerequisites
 
 1. Create and connect a client (see the [client page](./client.mdx)).
 
-2. Know the **on-chain** ciphertext handle/hash (`ctHash`) you want to decrypt.
+2. Know the **on-chain** encrypted handle/hash (`ctHash`) you want to decrypt.
 
 :::note
-`decryptForTx` takes the ciphertext handle/hash that exists on-chain.
+`decryptForTx` takes the encrypted handle/hash that exists on-chain.
 
-For freshly encrypted *inputs*, the `ctHash` inside the encrypted input returned by `client.encryptInputs(...)` is typically the same handle/hash the contract stores.
+For freshly encrypted _inputs_, the `ctHash` inside the encrypted input returned by `client.encryptInputs(...)` is typically the same handle/hash the contract stores.
 
 The important rule is: **decrypt the same handle/hash you will later publish/verify on-chain**.
-If your ciphertext is produced or transformed on-chain (e.g. `FHE.add`, `FHE.mul`, or any contract function that returns a new encrypted handle), you must use the resulting on-chain handle/hash (read it from the contract) — it will not match your original input `ctHash`.
+If your encrypted value is produced or transformed on-chain (e.g. `FHE.add`, `FHE.mul`, or any contract function that returns a new encrypted handle), you must use the resulting on-chain handle/hash (read it from the contract) — it will not match your original input `ctHash`.
 
 When in doubt, use the safe pattern: store/compute → read back the handle/hash from the contract → decrypt that.
 :::
 
 ## 1) Get (or create) a permit
 
-For non-public ciphertexts, decryption authorization is done via permits.
+For non-public encrypted values, decryption authorization is done via permits.
 
 `decryptForTx` forces you to choose one of two modes before you can execute:
 
 - `.withPermit(...)` to decrypt via a permit (typical)
-- `.withoutPermit()` to decrypt via **global allowance** (only works if the ciphertext was made public on-chain)
+- `.withoutPermit()` to decrypt via **global allowance** (only works if the value was made public on-chain)
 
 The simplest setup is to ensure you have an active self-permit; `getOrCreateSelfPermit` will create one if needed and store it as the active permit.
 
@@ -91,9 +94,9 @@ const permit = await client.permits.getOrCreateSelfPermit();
 const decryptResult = await client.decryptForTx(ctHash).withPermit(permit).execute();
 ```
 
-### Without a permit (only for publicly allowed ciphertexts)
+### Without a permit (only for publicly allowed encrypted values)
 
-If your contract made a ciphertext globally decryptable (e.g. `FHE.allowPublic(handle)`), you can decrypt without a permit.
+If your contract made an encrypted value globally decryptable (e.g. `FHE.allowPublic(handle)`), you can decrypt without a permit.
 
 ```ts twoslash
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
@@ -159,7 +162,7 @@ await walletClient.writeContract({
 
 ## Common gotchas
 
-- **Using the wrong `ctHash`**: prefer reading the handle/hash back from the contract after storing. Don’t assume the client-side encryption hash is the on-chain hash.
+- **Using the wrong `ctHash`**: prefer reading the handle/hash back from the contract after storing/computing, then decrypt that exact value.
 - **Forgot to choose permit mode**: you must call exactly one of `.withPermit(...)` or `.withoutPermit()` before `.execute()`.
 - **Missing active permit**: `.withPermit()` (no args) uses the active permit for `(chainId, account)`. Create one via `client.permits.getOrCreateSelfPermit()`.
 - **Wrong chain/account**: the builder defaults to the connected client’s `(chainId, account)`. If you’re decrypting for a different chain/account, set them explicitly via `.setChainId(...)` / `.setAccount(...)`.
