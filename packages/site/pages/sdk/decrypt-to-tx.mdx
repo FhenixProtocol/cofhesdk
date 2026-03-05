@@ -2,15 +2,16 @@
 
 Use `decryptForTx` when you want to reveal a **confidential (encrypted)** value by submitting an on-chain transaction, and you need the chain to be able to verify that reveal.
 
-Call `decryptForTx(ctHash)` with the encrypted handle/hash you want to reveal.
-It returns the decrypted plaintext value and a Threshold Network signature that binds that plaintext to `ctHash`.
-Then call `FHE.publishDecryptResult(ctHash, plaintext, signature)` to reveal the value on-chain.
+The flow is as follows:
+
+1. Call `decryptForTx(ctHash)` with the encrypted handle/hash you want to reveal.
+2. Receive the plaintext value and a Threshold Network signature that binds that plaintext to `ctHash`.
+3. Submit an on-chain transaction calling `FHE.publishDecryptResult(ctHash, plaintext, signature)`.
 
 Common examples:
 
-- **Unwrap a hidden value**: you stored an encrypted amount earlier, and now you want to withdraw/settle based on the real amount.
+- **Unshield a confidential token**: reveal the encrypted amount you’re unshielding so the contract can finalize the public transfer.
 - **Finalize a private auction / game move**: bids or moves are submitted encrypted, and the winner is revealed later in a verifiable way.
-- **Make a value public**: publish the plaintext + proof on-chain so everyone can read it going forward.
 
 If you only need to show plaintext in your UI (and you do **not** need an on-chain-verifiable signature), use `decryptForView` instead.
 
