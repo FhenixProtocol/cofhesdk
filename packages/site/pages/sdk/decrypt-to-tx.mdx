@@ -1,3 +1,166 @@
 # Decrypting to Transact
 
-WIP
+`decryptForTx` is the "decrypt with proof" flow: it returns a plaintext value **plus** a Threshold Network signature that can be verified on-chain.
+
+Use this when you need to:
+
+- Reveal a ciphertext on-chain (e.g. via `FHE.publishDecryptResult(...)`).
+- Submit a transaction that depends on a plaintext value and you need the chain to accept it.
+
+If you only need to show plaintext in your UI (and you do **not** need an on-chain proof), use `decryptForView` instead.
+
+## Prerequisites
+
+1. Create and connect a client (see the [client page](./client.mdx)).
+
+2. Know the **on-chain** ciphertext handle/hash (`ctHash`) you want to decrypt.
+
+:::note
+`decryptForTx` takes the ciphertext handle/hash that exists on-chain.
+
+For freshly encrypted *inputs*, the `ctHash` inside the encrypted input returned by `client.encryptInputs(...)` is typically the same handle/hash the contract stores.
+
+The important rule is: **decrypt the same handle/hash you will later publish/verify on-chain**.
+If your ciphertext is produced or transformed on-chain (e.g. `FHE.add`, `FHE.mul`, or any contract function that returns a new encrypted handle), you must use the resulting on-chain handle/hash (read it from the contract) — it will not match your original input `ctHash`.
+
+When in doubt, use the safe pattern: store/compute → read back the handle/hash from the contract → decrypt that.
+:::
+
+## 1) Get (or create) a permit
+
+For non-public ciphertexts, decryption authorization is done via permits.
+
+`decryptForTx` forces you to choose one of two modes before you can execute:
+
+- `.withPermit(...)` to decrypt via a permit (typical)
+- `.withoutPermit()` to decrypt via **global allowance** (only works if the ciphertext was made public on-chain)
+
+The simplest setup is to ensure you have an active self-permit; `getOrCreateSelfPermit` will create one if needed and store it as the active permit.
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+import { createPublicClient, createWalletClient, http } from 'viem';
+import { sepolia } from 'viem/chains';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+// ---cut---
+const publicClient = createPublicClient({ chain: sepolia, transport: http() });
+const walletClient = createWalletClient({ chain: sepolia, transport: http() });
+
+await client.connect(publicClient, walletClient);
+
+// Ensures there is an active self-permit for (chainId, account)
+await client.permits.getOrCreateSelfPermit();
+```
+
+## 2) Decrypt for a transaction
+
+### With a permit (most common)
+
+Calling `.withPermit()` with no arguments uses the **active** permit for the resolved `(chainId, account)`.
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: bigint;
+// ---cut---
+const decryptResult = await client.decryptForTx(ctHash).withPermit().execute();
+
+decryptResult.ctHash;
+decryptResult.decryptedValue;
+decryptResult.signature;
+```
+
+You can also provide a specific permit (or a stored permit hash) explicitly:
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: bigint;
+// ---cut---
+const permit = await client.permits.getOrCreateSelfPermit();
+
+const decryptResult = await client.decryptForTx(ctHash).withPermit(permit).execute();
+```
+
+### Without a permit (only for publicly allowed ciphertexts)
+
+If your contract made a ciphertext globally decryptable (e.g. `FHE.allowPublic(handle)`), you can decrypt without a permit.
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const publicCtHash: bigint;
+// ---cut---
+const decryptResult = await client.decryptForTx(publicCtHash).withoutPermit().execute();
+```
+
+## 3) Publish the decrypt result on-chain
+
+The intended consumer of `decryptForTx` is an on-chain verifier such as `FHE.publishDecryptResult(...)` (or a wrapper function in your contract).
+
+At a high level:
+
+1. Your app calls `decryptForTx(ctHash)` to get `{ decryptedValue, signature }`.
+2. Your app sends a transaction calling `publishDecryptResult(handle, decryptedValue, signature)`.
+3. The CoFHE on-chain contracts verify the TN signature and store the published plaintext.
+
+### Signature formatting (important)
+
+The SDK returns `signature` as a hex string. Depending on environment, it may or may not already include the `0x` prefix.
+Normalize it before submitting the transaction.
+
+Also note: on-chain verifiers commonly reject non-canonical ECDSA signatures ("high-s"). If you hit signature-related reverts, normalize the signature with your signing library before sending the tx.
+
+:::code-group
+
+```ts [Ethers v6]
+// @noErrors
+import { Signature } from 'ethers';
+
+const signatureHex = decryptResult.signature.startsWith('0x')
+  ? decryptResult.signature
+  : `0x${decryptResult.signature}`;
+
+// Normalizes to a canonical signature (and gives you bytes)
+const signatureBytes = Signature.from(signatureHex).serialized;
+
+// `handle` is the encrypted handle (e.g. `euint32`) you want to publish for.
+// In many contracts you fetch it from the contract (e.g. `await contract.getValue()`).
+await contract.publishDecryptResult(handle, decryptResult.decryptedValue, signatureBytes);
+```
+
+```ts [Viem]
+// @noErrors
+const signatureHex = decryptResult.signature.startsWith('0x')
+  ? (decryptResult.signature as `0x${string}`)
+  : (`0x${decryptResult.signature}` as `0x${string}`);
+
+await walletClient.writeContract({
+  address: contractAddress,
+  abi: contractAbi,
+  functionName: 'publishDecryptResult',
+  args: [handle, decryptResult.decryptedValue, signatureHex],
+});
+```
+
+:::
+
+## Common gotchas
+
+- **Using the wrong `ctHash`**: prefer reading the handle/hash back from the contract after storing. Don’t assume the client-side encryption hash is the on-chain hash.
+- **Forgot to choose permit mode**: you must call exactly one of `.withPermit(...)` or `.withoutPermit()` before `.execute()`.
+- **Missing active permit**: `.withPermit()` (no args) uses the active permit for `(chainId, account)`. Create one via `client.permits.getOrCreateSelfPermit()`.
+- **Wrong chain/account**: the builder defaults to the connected client’s `(chainId, account)`. If you’re decrypting for a different chain/account, set them explicitly via `.setChainId(...)` / `.setAccount(...)`.
+- **Signature rejected on-chain**: normalize with a `0x` prefix and (if needed) canonicalize via your crypto library (e.g. `ethers.Signature.from(...).serialized`).
