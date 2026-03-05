@@ -12,7 +12,7 @@ import { CofheError, CofheErrorCode } from '../error.js';
 import { fromHexString, toHexString } from '../utils.js';
 import { type PublicClient, createPublicClient, http, type WalletClient, createWalletClient } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { arbitrumSepolia } from 'viem/chains';
+import { arbitrumSepolia, hardhat } from 'viem/chains';
 import { type CofheConfig, createCofheConfigBase } from '../config.js';
 import { type ZkBuilderAndCrsGenerator } from './zkPackProveVerify.js';
 import { type KeysStorage, createKeysStore } from '../keyStore.js';

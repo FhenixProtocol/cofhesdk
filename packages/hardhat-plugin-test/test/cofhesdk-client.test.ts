@@ -1,6 +1,5 @@
 import { expect } from 'chai';
 import { hardhat } from '@cofhe/sdk/chains';
-import { TASK_COFHE_MOCKS_DEPLOY } from './consts';
 import hre from 'hardhat';
 
 describe('CoFHE SDK Client Integration', () => {

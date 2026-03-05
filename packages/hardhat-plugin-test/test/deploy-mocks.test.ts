@@ -1,6 +1,5 @@
 import hre from 'hardhat';
 import { expect } from 'chai';
-import { TASK_COFHE_MOCKS_DEPLOY } from './consts';
 import {
   TASK_MANAGER_ADDRESS,
   MOCKS_ZK_VERIFIER_ADDRESS,
