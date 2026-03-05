@@ -131,6 +131,7 @@ await cofheClient.connect(publicClient, walletClient);
 ```
 
 ```ts twoslash [Wagmi]
+// @noErrors
 import { WagmiAdapter } from '@cofhe/sdk/adapters';
 import { createPublicClient, createWalletClient, http } from 'viem';
 import { sepolia } from 'viem/chains';
