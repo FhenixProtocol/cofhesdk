@@ -81,7 +81,6 @@ function useCofheTokenUnshieldMutation(
 
       if (confidentialityType === 'wrapped') {
         // Wrapped tokens: decrypt(address to, uint128 value)
-        input.onStatusChange?.('Simulating transaction...');
         const { request } = await publicClient.simulateContract({
           address: tokenAddress,
           abi: contractConfig.abi,
@@ -94,7 +93,6 @@ function useCofheTokenUnshieldMutation(
         // For dual tokens, unshield takes uint64
         const amount = BigInt.asUintN(64, input.amount);
 
-        input.onStatusChange?.('Simulating transaction...');
         const { request } = await publicClient.simulateContract({
           address: tokenAddress,
           abi: contractConfig.abi,

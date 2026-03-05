@@ -101,8 +101,6 @@ export function useCofheTokenShield(
 
         if (isEth) {
           // For ETH: use encryptETH(address to) with value
-          input.onStatusChange?.('Please confirm shield in wallet...');
-          input.onStatusChange?.('Simulating transaction...');
           const { request } = await publicClient.simulateContract({
             address: tokenAddress,
             abi: WRAPPED_ETH_ENCRYPT_ETH_ABI,
@@ -131,7 +129,6 @@ export function useCofheTokenShield(
           if (currentAllowance < input.amount) {
             input.onStatusChange?.('Approval required - please confirm in wallet...');
             // Request approval for the exact amount (or max uint256 for unlimited)
-            input.onStatusChange?.('Simulating transaction...');
             const { request: approvalRequest } = await publicClient.simulateContract({
               address: erc20PairAddress,
               abi: ERC20_APPROVE_ABI,
@@ -149,7 +146,6 @@ export function useCofheTokenShield(
 
           // Now call encrypt
           input.onStatusChange?.('Please confirm shield in wallet...');
-          input.onStatusChange?.('Simulating transaction...');
           const { request: encryptRequest } = await publicClient.simulateContract({
             address: tokenAddress,
             abi: WRAPPED_ENCRYPT_ABI,
@@ -163,8 +159,6 @@ export function useCofheTokenShield(
         // Dual tokens: use shield(uint256 amount)
         const contractConfig = SHIELD_ABIS.dual;
 
-        input.onStatusChange?.('Please confirm shield in wallet...');
-        input.onStatusChange?.('Simulating transaction...');
         const { request } = await publicClient.simulateContract({
           address: tokenAddress,
           abi: contractConfig.abi,
