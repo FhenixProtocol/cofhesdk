@@ -23,25 +23,21 @@ If you only need to show plaintext in your UI (and you do **not** need an on-cha
 
 2. Know the **on-chain** encrypted handle/hash (`ctHash`) you want to decrypt.
 
-:::note
-`decryptForTx` takes the encrypted handle/hash that exists on-chain.
+3. Determine whether the contract-level ACL policy for this specific `ctHash` requires a permit (see [permits](./permits.mdx)).
 
-For freshly encrypted _inputs_, the `ctHash` inside the encrypted input returned by `client.encryptInputs(...)` is typically the same handle/hash the contract stores.
-
-The important rule is: **decrypt the same handle/hash you will later publish/verify on-chain**.
-If your encrypted value is produced or transformed on-chain (e.g. `FHE.add`, `FHE.mul`, or any contract function that returns a new encrypted handle), you must use the resulting on-chain handle/hash (read it from the contract) — it will not match your original input `ctHash`.
-
-When in doubt, use the safe pattern: store/compute → read back the handle/hash from the contract → decrypt that.
-:::
+  - If the policy allows **anyone** to decrypt it (a common setup), a permit is not required and `.withoutPermit()` will work.
+  - If the policy restricts decryption, you must use `.withPermit(...)` or the decryption will fail.
 
 ## 1) Get (or create) a permit
 
-For non-public encrypted values, decryption authorization is done via permits.
+Whether you need a permit depends on the contract-level ACL policy for the specific `ctHash` you’re decrypting.
+
+If the value is globally decryptable (ACL allows anyone), you can decrypt without a permit. Otherwise, you must provide a permit.
 
 `decryptForTx` forces you to choose one of two modes before you can execute:
 
 - `.withPermit(...)` to decrypt via a permit (typical)
-- `.withoutPermit()` to decrypt via **global allowance** (only works if the value was made public on-chain)
+- `.withoutPermit()` to decrypt via **global allowance** (only works if the ACL policy allows anyone to decrypt this `ctHash`, e.g. because the value was made public on-chain)
 
 The simplest setup is to ensure you have an active self-permit; `getOrCreateSelfPermit` will create one if needed and store it as the active permit.
 
@@ -99,9 +95,9 @@ const permit = await client.permits.getOrCreateSelfPermit();
 const decryptResult = await client.decryptForTx(ctHash).withPermit(permit).execute();
 ```
 
-### Without a permit (only for publicly allowed encrypted values)
+### Without a permit (only for globally decryptable values)
 
-If your contract made an encrypted value globally decryptable (e.g. `FHE.allowPublic(handle)`), you can decrypt without a permit.
+If the contract-level ACL policy for a given `ctHash` allows anyone to decrypt it (e.g. the contract made it globally decryptable via `FHE.allowPublic(handle)`), you can decrypt without a permit.
 
 ```ts twoslash
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
