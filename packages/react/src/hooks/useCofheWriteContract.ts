@@ -11,7 +11,7 @@ import type {
 } from 'viem';
 import { assert } from 'ts-essentials';
 import { useInternalMutation } from '../providers/index.js';
-import { useCofheWalletClient } from './useCofheConnection.js';
+import { useCofhePublicClient, useCofheWalletClient } from './useCofheConnection.js';
 
 type WalletWriteContractParamsAny = Parameters<WalletClient['writeContract']>[0];
 
@@ -80,6 +80,7 @@ export function useCofheWriteContract<TExtras = unknown>(
   ) => void;
 } {
   const walletClient = useCofheWalletClient();
+  const publicClient = useCofhePublicClient();
 
   const mutation = useInternalMutation<Hash, Error, WalletWriteContractMutationVariables<TExtras>, unknown>({
     ...options,
@@ -88,6 +89,17 @@ export function useCofheWriteContract<TExtras = unknown>(
       assert(walletClient, 'WalletClient is required to write to a contract');
 
       const writeContractInput = hasExtras(variables) ? variables.writeContractInput : variables;
+
+      const accountForSimulation = writeContractInput.account ?? walletClient.account;
+      if (publicClient && accountForSimulation) {
+        const { chain, ...rest } = writeContractInput;
+        const { request } = await publicClient.simulateContract({
+          ...(chain ? { ...rest, chain } : rest),
+          account: accountForSimulation,
+        });
+        return walletClient.writeContract({ ...request, chain: undefined });
+      }
+
       return walletClient.writeContract(writeContractInput);
     },
   });

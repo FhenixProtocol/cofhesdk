@@ -72,7 +72,7 @@ export function useCofheTokenShield(
         throw new Error('WalletClient is required for token shield');
       }
 
-      const tokenAddress = input.token.address as Address;
+      const tokenAddress: Address = input.token.address;
       const confidentialityType = input.token.extensions.fhenix.confidentialityType;
 
       if (!confidentialityType) {
@@ -92,7 +92,7 @@ export function useCofheTokenShield(
 
       if (confidentialityType === 'wrapped') {
         // Check if this is a wrapped ETH token (erc20Pair is ETH_ADDRESS)
-        const erc20PairAddress = input.token.extensions.fhenix.erc20Pair?.address as Address | undefined;
+        const erc20PairAddress = input.token.extensions.fhenix.erc20Pair?.address;
         const isEth = erc20PairAddress?.toLowerCase() === ETH_ADDRESS_LOWERCASE;
 
         if (isEth) {

@@ -37,6 +37,7 @@ function useCofheTokenUnshieldMutation(
   options?: UseTokenUnshieldMutationOptions
 ): UseMutationResult<`0x${string}`, Error, UseTokenUnshieldMutationInput> {
   const walletClient = useCofheWalletClient();
+  const publicClient = useCofhePublicClient();
   const chainId = useCofheChainId();
   const account = useCofheAccount();
   const { onTransactionSubmitError } = useTransactionGlobalLifecycle();
@@ -49,7 +50,7 @@ function useCofheTokenUnshieldMutation(
         throw new Error('WalletClient is required for token unshield');
       }
 
-      const tokenAddress = input.token.address as Address;
+      const tokenAddress: Address = input.token.address;
       const confidentialityType = input.token.extensions.fhenix.confidentialityType;
 
       if (!confidentialityType) {
@@ -76,26 +77,50 @@ function useCofheTokenUnshieldMutation(
 
       if (confidentialityType === 'wrapped') {
         // Wrapped tokens: decrypt(address to, uint128 value)
-        hash = await walletClient.writeContract({
-          address: tokenAddress,
-          abi: contractConfig.abi,
-          functionName: contractConfig.functionName,
-          args: [walletClient.account.address, input.amount],
-          account: walletClient.account,
-          chain: undefined,
-        });
+        if (publicClient) {
+          input.onStatusChange?.('Simulating transaction...');
+          const { request } = await publicClient.simulateContract({
+            address: tokenAddress,
+            abi: contractConfig.abi,
+            functionName: contractConfig.functionName,
+            args: [walletClient.account.address, input.amount],
+            account: walletClient.account,
+          });
+          hash = await walletClient.writeContract({ ...request, chain: undefined });
+        } else {
+          hash = await walletClient.writeContract({
+            address: tokenAddress,
+            abi: contractConfig.abi,
+            functionName: contractConfig.functionName,
+            args: [walletClient.account.address, input.amount],
+            account: walletClient.account,
+            chain: undefined,
+          });
+        }
       } else {
         // For dual tokens, unshield takes uint64
         const amount = BigInt.asUintN(64, input.amount);
 
-        hash = await walletClient.writeContract({
-          address: tokenAddress,
-          abi: contractConfig.abi,
-          functionName: contractConfig.functionName,
-          args: [amount],
-          account: walletClient.account,
-          chain: undefined,
-        });
+        if (publicClient) {
+          input.onStatusChange?.('Simulating transaction...');
+          const { request } = await publicClient.simulateContract({
+            address: tokenAddress,
+            abi: contractConfig.abi,
+            functionName: contractConfig.functionName,
+            args: [amount],
+            account: walletClient.account,
+          });
+          hash = await walletClient.writeContract({ ...request, chain: undefined });
+        } else {
+          hash = await walletClient.writeContract({
+            address: tokenAddress,
+            abi: contractConfig.abi,
+            functionName: contractConfig.functionName,
+            args: [amount],
+            account: walletClient.account,
+            chain: undefined,
+          });
+        }
       }
 
       return hash;

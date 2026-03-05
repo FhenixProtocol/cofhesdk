@@ -10,7 +10,33 @@ export type CofheSolidityError = {
   inputTypes: string[];
 };
 
-const errors = errorsJson as unknown as readonly CofheSolidityError[];
+function is0xString(value: string): value is `0x${string}` {
+  return value.startsWith('0x');
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((v) => typeof v === 'string');
+}
+
+function isCofheSolidityError(value: unknown): value is CofheSolidityError {
+  if (typeof value !== 'object' || value === null) return false;
+  if (!('name' in value) || typeof value.name !== 'string') return false;
+  if (!('selector' in value) || typeof value.selector !== 'string') return false;
+  if (!is0xString(value.selector)) return false;
+  if (!('signature' in value) || typeof value.signature !== 'string') return false;
+  if (!('source' in value) || typeof value.source !== 'string') return false;
+  if (!('inputs' in value) || !isStringArray(value.inputs)) return false;
+  if (!('inputTypes' in value) || !isStringArray(value.inputTypes)) return false;
+  return true;
+}
+
+function parseCofheSolidityErrors(value: unknown): readonly CofheSolidityError[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(isCofheSolidityError);
+}
+
+const errorsJsonUnknown: unknown = errorsJson;
+const errors = parseCofheSolidityErrors(errorsJsonUnknown);
 
 function normalizeSelector(selector: string): `0x${string}` | undefined {
   if (typeof selector !== 'string') return undefined;
@@ -18,7 +44,9 @@ function normalizeSelector(selector: string): `0x${string}` | undefined {
   if (!s.startsWith('0x')) return undefined;
   // Solidity custom error selector is 4 bytes => 10 chars including 0x prefix.
   if (s.length < 10) return undefined;
-  return s.slice(0, 10) as `0x${string}`;
+  const candidate = s.slice(0, 10);
+  if (!is0xString(candidate)) return undefined;
+  return candidate;
 }
 
 export function decodeCofheErrorSelector(selectorOrRevertData: string): CofheSolidityError | undefined {
