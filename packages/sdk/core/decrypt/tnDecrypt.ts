@@ -10,6 +10,22 @@ type TnDecryptResponse = {
   error_message: string | null;
 };
 
+function isTnDecryptDebugEnabled(): boolean {
+  return (
+    typeof process !== 'undefined' &&
+    // eslint-disable-next-line turbo/no-undeclared-env-vars
+    !!process.env.COFHE_DEBUG_TN_DECRYPT &&
+    // eslint-disable-next-line turbo/no-undeclared-env-vars
+    process.env.COFHE_DEBUG_TN_DECRYPT.toLowerCase() !== 'false'
+  );
+}
+
+function debugLog(label: string, payload: unknown) {
+  if (!isTnDecryptDebugEnabled()) return;
+  // eslint-disable-next-line no-console
+  console.log(label, payload);
+}
+
 function normalizeSignature(signature: unknown): string {
   if (typeof signature !== 'string') {
     throw new CofheError({
@@ -132,6 +148,7 @@ export async function tnDecrypt(
   permission: Permission | null,
   thresholdNetworkUrl: string
 ): Promise<{ decryptedValue: bigint; signature: string }> {
+  const url = `${thresholdNetworkUrl}/decrypt`;
   const body: {
     ct_tempkey: string;
     host_chain_id: number;
@@ -145,9 +162,14 @@ export async function tnDecrypt(
     body.permit = permission;
   }
 
+  debugLog('[cofhe][tnDecrypt] request', {
+    url,
+    body,
+  });
+
   let response: Response;
   try {
-    response = await fetch(`${thresholdNetworkUrl}/decrypt`, {
+    response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -168,6 +190,14 @@ export async function tnDecrypt(
   }
 
   const responseText = await response.text();
+
+  debugLog('[cofhe][tnDecrypt] response', {
+    url,
+    status: response.status,
+    statusText: response.statusText,
+    ok: response.ok,
+    responseText,
+  });
 
   // Even on non-200 responses, TN may return JSON with { error_message }.
   if (!response.ok) {
