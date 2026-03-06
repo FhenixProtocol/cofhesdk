@@ -23,6 +23,8 @@ If you only need to show plaintext in your UI (and you do **not** need an on-cha
 
 2. Know the **on-chain** encrypted handle/hash (`ctHash`) you want to decrypt.
 
+   In most apps, you get `ctHash` by reading it from your contract (e.g. a stored encrypted value, an event arg, or a return value from a view call). In JavaScript/TypeScript this handle is represented as a `bigint`.
+
 3. Determine whether the contract-level ACL policy for this specific `ctHash` requires a permit (see [permits](./permits.mdx)).
 
    - If the policy allows **anyone** to decrypt it (a common setup), a permit is not required and `.withoutPermit()` will work.
@@ -145,6 +147,16 @@ flowchart TD
 
 ## Decrypt for a transaction
 
+### What `decryptForTx` returns
+
+`decryptForTx(...).execute()` resolves to an object with:
+
+- `ctHash: bigint` — the ciphertext handle you decrypted
+- `decryptedValue: bigint` — the plaintext value (always a `bigint`, even if the underlying type is e.g. `uint32`)
+- `signature: string` — the Threshold Network signature as **hex string with `0x`**
+
+You’ll typically pass `decryptedValue` and `signature` directly into your transaction.
+
 ### Common case: no permit
 
 If the contract’s ACL policy for this `ctHash` allows anyone to decrypt it, you can decrypt and immediately get the `(plaintext, signature)` pair like this:
@@ -233,3 +245,12 @@ function publishDecryptResult(euint32 ctHash, uint32 plaintext, bytes calldata s
 const tx = await myContract.publishDecryptResult(decryptResult.ctHash, decryptResult.decryptedValue, signatureBytes);
 await tx.wait();
 ```
+
+:::note
+`decryptedValue` is a `bigint`. If your Solidity function expects a smaller integer type (e.g. `uint32`), make sure the value is within range.
+:::
+
+## Common pitfalls
+
+- **Permit mode must be selected**: you must call exactly one of `.withPermit(...)` or `.withoutPermit()` before `.execute()`.
+- **Wrong chain/account**: permits are scoped to `chainId + account`. If you use `.withPermit()` and get an ACL/permit error, double-check you’re connected to the expected chain and account (or explicitly set them via `.setChainId(...)` / `.setAccount(...)`).
