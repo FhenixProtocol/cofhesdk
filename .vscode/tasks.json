@@ -1,5 +1,13 @@
 {
   "version": "2.0.0",
+  "inputs": [
+    {
+      "id": "integrationTestSubstring",
+      "type": "promptString",
+      "description": "Substring to search in integration test titles (runs first match)",
+      "default": "decrypt"
+    }
+  ],
   "tasks": [
     {
       "label": "dev:packages/react",
@@ -66,6 +74,51 @@
       ],
       "dependsOrder": "parallel",
       "problemMatcher": []
+    },
+    {
+      "label": "test:integration:list",
+      "type": "shell",
+      "command": "zsh",
+      "args": [
+        "-ic",
+        "node scripts/integration-tests.mjs --list"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "test:integration:pick-and-run",
+      "type": "shell",
+      "command": "zsh",
+      "args": [
+        "-ic",
+        "node scripts/integration-tests.mjs --pick"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "test:integration:run-first-match",
+      "type": "shell",
+      "command": "zsh",
+      "args": [
+        "-ic",
+        "node scripts/integration-tests.mjs --substring \"${input:integrationTestSubstring}\""
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
     }
   ]
 }
