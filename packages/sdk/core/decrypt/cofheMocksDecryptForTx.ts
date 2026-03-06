@@ -10,13 +10,13 @@ import { MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY } from '../consts.js';
 import { MOCKS_THRESHOLD_NETWORK_ADDRESS } from '../consts.js';
 
 export type DecryptForTxMocksResult = {
-  ctHash: bigint;
+  ctHash: bigint | string;
   decryptedValue: bigint;
   signature: string;
 };
 
 export async function cofheMocksDecryptForTx(
-  ctHash: bigint,
+  ctHash: bigint | string,
   utype: FheTypes,
   permit: Permit | null,
   publicClient: PublicClient,
@@ -40,7 +40,7 @@ export async function cofheMocksDecryptForTx(
       address: MOCKS_THRESHOLD_NETWORK_ADDRESS,
       abi: MockThresholdNetworkAbi,
       functionName: 'decryptForTxWithPermit',
-      args: [ctHash, permissionWithBigInts],
+      args: [BigInt(ctHash), permissionWithBigInts],
     });
 
     if (error != '') {
@@ -93,7 +93,7 @@ export async function cofheMocksDecryptForTx(
     address: MOCKS_THRESHOLD_NETWORK_ADDRESS,
     abi: MockThresholdNetworkAbi,
     functionName: 'decryptForTxWithoutPermit',
-    args: [ctHash],
+    args: [BigInt(ctHash)],
   });
 
   if (error != '') {

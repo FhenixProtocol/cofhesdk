@@ -9,31 +9,31 @@ describe('transformEncryptedReturnTypes', () => {
     expect(result).toEqual(1n);
   });
   it('should transform single encrypted return type', () => {
-    const result = transformEncryptedReturnTypes(TestABI, 'fnReturnEncrypted', 1n);
+    const result = transformEncryptedReturnTypes(TestABI, 'fnReturnEncrypted', '0x1');
     expect(result).toEqual({
-      ctHash: 1n,
+      ctHash: '0x1',
       utype: FheTypes.Uint32,
     });
   });
   it('should transform blended return type', () => {
-    const result = transformEncryptedReturnTypes(TestABI, 'fnReturnBlendedIncludingEncrypted', [1n, 2n]);
+    const result = transformEncryptedReturnTypes(TestABI, 'fnReturnBlendedIncludingEncrypted', [1n, '0x2']);
     expect(result).toEqual([
       1n,
       {
-        ctHash: 2n,
+        ctHash: '0x2',
         utype: FheTypes.Uint32,
       },
     ]);
   });
   it('should transform encrypted array return type', () => {
-    const result = transformEncryptedReturnTypes(TestABI, 'fnReturnEncryptedArray', [1n, 2n]);
+    const result = transformEncryptedReturnTypes(TestABI, 'fnReturnEncryptedArray', ['0x1', '0x2']);
     expect(result).toEqual([
       {
-        ctHash: 1n,
+        ctHash: '0x1',
         utype: FheTypes.Uint32,
       },
       {
-        ctHash: 2n,
+        ctHash: '0x2',
         utype: FheTypes.Uint32,
       },
     ]);
@@ -41,45 +41,53 @@ describe('transformEncryptedReturnTypes', () => {
   it('should transform encrypted struct return type', () => {
     const result = transformEncryptedReturnTypes(TestABI, 'fnReturnEncryptedStruct', {
       value: 1n,
-      encryptedResult: 2n,
+      encryptedResult: '0x2',
     });
     expect(result).toEqual({
       value: 1n,
       encryptedResult: {
-        ctHash: 2n,
+        ctHash: '0x2',
         utype: FheTypes.Uint32,
       },
     });
   });
   it('should transform all encrypted return types', () => {
-    const result = transformEncryptedReturnTypes(TestABI, 'fnReturnAllEncrypted', [1n, 2n, 3n, 4n, 5n, 6n, 7n]);
+    const result = transformEncryptedReturnTypes(TestABI, 'fnReturnAllEncrypted', [
+      '0x1',
+      '0x2',
+      '0x3',
+      '0x4',
+      '0x5',
+      '0x6',
+      '0x7',
+    ]);
     expect(result).toEqual([
       {
-        ctHash: 1n,
+        ctHash: '0x1',
         utype: FheTypes.Uint8,
       },
       {
-        ctHash: 2n,
+        ctHash: '0x2',
         utype: FheTypes.Uint16,
       },
       {
-        ctHash: 3n,
+        ctHash: '0x3',
         utype: FheTypes.Uint32,
       },
       {
-        ctHash: 4n,
+        ctHash: '0x4',
         utype: FheTypes.Uint64,
       },
       {
-        ctHash: 5n,
+        ctHash: '0x5',
         utype: FheTypes.Uint128,
       },
       {
-        ctHash: 6n,
+        ctHash: '0x6',
         utype: FheTypes.Bool,
       },
       {
-        ctHash: 7n,
+        ctHash: '0x7',
         utype: FheTypes.Uint160,
       },
     ]);
