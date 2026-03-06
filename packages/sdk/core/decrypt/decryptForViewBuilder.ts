@@ -11,7 +11,6 @@ import { BaseBuilder, type BaseBuilderParams } from '../baseBuilder.js';
 import { cofheMocksDecryptForView } from './cofheMocksDecryptForView.js';
 // import { tnSealOutputV1 } from './tnSealOutputV1.js';
 import { tnSealOutputV2 } from './tnSealOutputV2.js';
-import { cofheMocksDecryptForTx } from './cofheMocksDecryptForTx.js';
 
 /**
  * API
@@ -35,14 +34,14 @@ import { cofheMocksDecryptForTx } from './cofheMocksDecryptForTx.js';
  */
 
 type DecryptForViewBuilderParams<U extends FheTypes> = BaseBuilderParams & {
-  ctHash: bigint;
+  ctHash: string;
   utype: U;
   permitHash?: string;
   permit?: Permit;
 };
 
 export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
-  private ctHash: bigint;
+  private ctHash: string;
   private utype: U;
   private permitHash?: string;
   private permit?: Permit;

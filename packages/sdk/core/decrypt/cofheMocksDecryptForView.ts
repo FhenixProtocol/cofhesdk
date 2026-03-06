@@ -8,7 +8,7 @@ import { CofheError, CofheErrorCode } from '../error.js';
 import { MOCKS_THRESHOLD_NETWORK_ADDRESS } from '../consts.js';
 
 export async function cofheMocksDecryptForView(
-  ctHash: bigint,
+  ctHash: string,
   utype: FheTypes,
   permit: Permit,
   publicClient: PublicClient,
@@ -30,7 +30,7 @@ export async function cofheMocksDecryptForView(
     address: MOCKS_THRESHOLD_NETWORK_ADDRESS,
     abi: MockThresholdNetworkAbi,
     functionName: 'querySealOutput',
-    args: [ctHash, BigInt(utype), permissionWithBigInts],
+    args: [BigInt(ctHash), BigInt(utype), permissionWithBigInts],
   });
 
   if (error != '') {

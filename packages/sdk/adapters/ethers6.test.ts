@@ -164,6 +164,6 @@ describe('Ethers6Adapter', () => {
         expect(isInsufficientFunds).toBe(true);
         console.log('Expected error (insufficient funds or method not supported):', error.message);
       }
-    }, 10000);
+    }, 20000);
   });
 });

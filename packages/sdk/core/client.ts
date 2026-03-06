@@ -146,7 +146,7 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
     });
   }
 
-  function decryptForView<U extends FheTypes>(ctHash: bigint, utype: U): DecryptForViewBuilder<U> {
+  function decryptForView<U extends FheTypes>(ctHash: string, utype: U): DecryptForViewBuilder<U> {
     const state = connectStore.getState();
 
     return new DecryptForViewBuilder({
@@ -163,7 +163,7 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
     });
   }
 
-  function decryptForTx(ctHash: bigint): DecryptForTxBuilderUnset {
+  function decryptForTx(ctHash: string): DecryptForTxBuilderUnset {
     const state = connectStore.getState();
 
     return new DecryptForTxBuilder({

@@ -48,9 +48,9 @@ export type CofheClient<TConfig extends CofheConfig = CofheConfig> = {
   /**
    * @deprecated Use `decryptForView` instead. Kept for backward compatibility.
    */
-  decryptHandle<U extends FheTypes>(ctHash: bigint, utype: U): DecryptForViewBuilder<U>;
-  decryptForView<U extends FheTypes>(ctHash: bigint, utype: U): DecryptForViewBuilder<U>;
-  decryptForTx(ctHash: bigint): DecryptForTxBuilderUnset;
+  decryptHandle<U extends FheTypes>(ctHash: string, utype: U): DecryptForViewBuilder<U>;
+  decryptForView<U extends FheTypes>(ctHash: string, utype: U): DecryptForViewBuilder<U>;
+  decryptForTx(ctHash: string): DecryptForTxBuilderUnset;
   permits: CofheClientPermits;
 };
 
