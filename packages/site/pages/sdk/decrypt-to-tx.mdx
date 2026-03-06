@@ -1,6 +1,6 @@
 # Decrypting to Transact
 
-Use `decryptForTx` when you want to reveal a **confidential (encrypted)** value by submitting an on-chain transaction, and you need the chain to be able to verify that reveal.
+Use `decryptForTx` to reveal a **confidential (encrypted)** value on-chain: it returns the plaintext together with a Threshold Network signature, so a contract can verify the reveal when you publish it in a transaction.
 
 The flow is as follows:
 
