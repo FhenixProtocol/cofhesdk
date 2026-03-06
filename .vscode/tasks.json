@@ -40,6 +40,25 @@
       }
     },
     {
+      "label": "dev:packages/site",
+      "type": "shell",
+      "command": "zsh",
+      "args": [
+        "-ic",
+        "set -e; set -m; nodeMajor=$(node -p \"parseInt(process.versions.node.split(\\\".\\\")[0], 10)\"); if [ \"$nodeMajor\" -lt 22 ]; then echo \"ERROR: packages/site requires Node >= 22 (current: $(node -v)).\"; exit 1; fi; pnpm -w install --filter @cofhe/site...; pnpm dev & pid=$!; trap \"kill -TERM -$pid 2>/dev/null; sleep 0.2; kill -KILL -$pid 2>/dev/null\" INT TERM HUP EXIT; wait $pid"
+      ],
+      "isBackground": true,
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}/packages/site"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
       "label": "dev:react (2 terminals)",
       "dependsOn": [
         "dev:packages/react",
