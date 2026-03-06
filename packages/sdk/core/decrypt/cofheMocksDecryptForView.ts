@@ -12,7 +12,6 @@ export async function cofheMocksDecryptForView(
   permit: Permit,
   publicClient: PublicClient
 ): Promise<bigint> {
-
   const permission = PermitUtils.getPermission(permit, true);
   const permissionWithBigInts = {
     ...permission,
