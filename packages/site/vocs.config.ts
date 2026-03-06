@@ -2,6 +2,16 @@ import { defineConfig } from 'vocs';
 import pkg from './package.json';
 
 export default defineConfig({
+  twoslash: {
+    compilerOptions: {
+      // ModuleResolutionKind.Bundler = 100
+      // Required so twoslash can resolve package.json `exports` subpaths
+      // (e.g. @cofhe/sdk/web, @cofhe/sdk/chains, viem/chains).
+      // Without this, twoslash defaults to `node` resolution which ignores
+      // the `exports` field, causing every subpath import to resolve as `any`.
+      moduleResolution: 100,
+    },
+  },
   title: 'Cofhe SDK Docs',
   titleTemplate: '%s - Cofhe SDK',
   description: 'Documentation for the Cofhe SDK',
