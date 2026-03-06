@@ -211,13 +211,27 @@ decryptResult; // ^?
 
 The intended consumer of `decryptForTx` is an on-chain verifier such as `FHE.publishDecryptResult(...)` (or a wrapper function in your contract).
 
+In practice, you publish the result by calling a function on **your contract** that invokes `FHE.publishDecryptResult` internally.
+
 You submit an on-chain transaction that provides:
 
 - `ctHash` (the encrypted handle/hash you decrypted),
 - the plaintext value, and
 - the Threshold Network signature returned by `decryptForTx`.
 
+```solidity
+import '@fhenixprotocol/cofhe-contracts/FHE.sol';
+
+// Example wrapper (adjust plaintext/result type to match your encrypted type).
+function publishDecryptResult(euint32 ctHash, uint32 plaintext, bytes calldata signature) external {
+   FHE.publishDecryptResult(ctHash, plaintext, signature);
+}
+```
+
 ```ts
-// Pseudocode: call the on-chain verifier your app/contract uses.
-await contract.publishDecryptResult(ctHash, decryptedValue, signature);
+// Note: `decryptForTx` returns `signature` as hex *without* the 0x prefix.
+const signatureBytes = `0x${decryptResult.signature}`;
+
+const tx = await myContract.publishDecryptResult(decryptResult.ctHash, decryptResult.decryptedValue, signatureBytes);
+await tx.wait();
 ```
