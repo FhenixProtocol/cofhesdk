@@ -1,5 +1,11 @@
 # @cofhe/tsconfig
 
+## 0.1.2
+
+### Patch Changes
+
+- 370f0c7: no-op
+
 ## 0.1.1
 
 ### Patch Changes

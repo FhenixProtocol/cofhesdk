@@ -1,5 +1,11 @@
 # @cofhe/eslint-config
 
+## 0.2.1
+
+### Patch Changes
+
+- 370f0c7: no-op
+
 ## 0.2.0
 
 ### Minor Changes
