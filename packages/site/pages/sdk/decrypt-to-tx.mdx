@@ -149,32 +149,62 @@ flowchart TD
 
 If the contract’s ACL policy for this `ctHash` allows anyone to decrypt it, you can decrypt and immediately get the `(plaintext, signature)` pair like this:
 
-```ts
-const { decryptedValue, signature } = await client
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: bigint;
+// ---cut---
+const decryptResult = await client
    .decryptForTx(ctHash)
    .withoutPermit()
    .execute();
+
+decryptResult; // ^?
+decryptResult.decryptedValue;
+decryptResult.signature;
 ```
 
 ### If a permit is required by ACL
 
 If the contract’s ACL policy restricts decryption for this `ctHash`, use `.withPermit(...)` instead:
 
-```ts
-const { decryptedValue, signature } = await client
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: bigint;
+// ---cut---
+const decryptResult = await client
    .decryptForTx(ctHash)
    .withPermit()
    .execute();
+
+decryptResult; // ^?
 ```
 
 You can also provide a specific permit explicitly:
 
-```ts
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: bigint;
+// ---cut---
 const permit = await client.permits.getOrCreateSelfPermit();
-const { decryptedValue, signature } = await client
+
+const decryptResult = await client
    .decryptForTx(ctHash)
    .withPermit(permit)
    .execute();
+
+decryptResult; // ^?
 ```
 
 ## Publish the decrypt result on-chain
