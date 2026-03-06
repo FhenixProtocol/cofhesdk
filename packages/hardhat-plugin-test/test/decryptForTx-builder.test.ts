@@ -51,6 +51,7 @@ describe('Hardhat Mocks – decryptForTx', () => {
       expect(result.ctHash).to.be.equal(publicValue);
       expect(result.decryptedValue).to.be.equal(testValue);
       expect(result.signature).to.be.a('string');
+      expect(result.signature).to.match(/^0x[0-9a-fA-F]+$/);
     });
 
     it('Should decrypt different values consistently with a permit', async function () {
@@ -222,7 +223,7 @@ describe('Hardhat Mocks – decryptForTx', () => {
 
       expect(decryptForTxResult.ctHash).to.be.equal(storedValue);
       expect(decryptForTxResult.decryptedValue).to.be.equal(testValue);
-      expect(typeof decryptForTxResult.signature).to.equal('string');
+      expect(decryptForTxResult.signature).to.be.a('string');
     });
 
     it('Should support both decryptForView and decryptForTx', async function () {

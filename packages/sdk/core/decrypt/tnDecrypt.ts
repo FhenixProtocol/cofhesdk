@@ -1,6 +1,7 @@
 import { type Permission } from '@/permits';
 
 import { CofheError, CofheErrorCode } from '../error.js';
+import { parseSignature, serializeSignature } from 'viem';
 
 type TnDecryptResponse = {
   // TN returns bytes in big-endian order, e.g. [0,0,0,42]
@@ -10,7 +11,7 @@ type TnDecryptResponse = {
   error_message: string | null;
 };
 
-function normalizeSignature(signature: unknown): string {
+function normalizeSignature(signature: unknown): `0x${string}` {
   if (typeof signature !== 'string') {
     throw new CofheError({
       code: CofheErrorCode.DecryptReturnedNull,
@@ -29,8 +30,9 @@ function normalizeSignature(signature: unknown): string {
     });
   }
 
-  // SDK uses "no-0x" signatures in mocks/tests; normalize to that format.
-  return trimmed.startsWith('0x') ? trimmed.slice(2) : trimmed;
+  const prefixed = trimmed.startsWith('0x') ? (trimmed as `0x${string}`) : (`0x${trimmed}` as `0x${string}`);
+  const parsed = parseSignature(prefixed);
+  return serializeSignature(parsed);
 }
 
 function parseDecryptedBytesToBigInt(decrypted: unknown): bigint {
@@ -131,7 +133,7 @@ export async function tnDecrypt(
   chainId: number,
   permission: Permission | null,
   thresholdNetworkUrl: string
-): Promise<{ decryptedValue: bigint; signature: string }> {
+): Promise<{ decryptedValue: bigint; signature: `0x${string}` }> {
   const body: {
     ct_tempkey: string;
     host_chain_id: number;
