@@ -307,19 +307,19 @@ declare module 'hardhat/types/runtime' {
          * **[MOCKS ONLY]**
          *
          * Get the plaintext value for a ciphertext hash
-         * @param {bigint} ctHash - The ciphertext hash to look up
+         * @param {bigint | string} ctHash - The ciphertext hash to look up
          * @returns {Promise<bigint>} The plaintext value
          */
-        getPlaintext: (ctHash: bigint) => Promise<bigint>;
+        getPlaintext: (ctHash: bigint | string) => Promise<bigint>;
 
         /**
          * **[MOCKS ONLY]**
          *
          * Assert that a ciphertext hash represents an expected plaintext value
-         * @param {bigint} ctHash - The ciphertext hash to check
+         * @param {bigint | string} ctHash - The ciphertext hash to check
          * @param {bigint} expectedValue - The expected plaintext value
          */
-        expectPlaintext: (ctHash: bigint, expectedValue: bigint) => Promise<void>;
+        expectPlaintext: (ctHash: bigint | string, expectedValue: bigint) => Promise<void>;
 
         /**
          * Get the MockTaskManager contract (typed via typechain)
@@ -440,11 +440,11 @@ extendEnvironment((hre) => {
       deployMocks: async (options: DeployMocksArgs) => {
         return deployMocks(hre, options);
       },
-      getPlaintext: async (ctHash: bigint) => {
+      getPlaintext: async (ctHash: bigint | string) => {
         const [signer] = await hre.ethers.getSigners();
         return mock_getPlaintext(signer.provider, ctHash);
       },
-      expectPlaintext: async (ctHash: bigint, expectedValue: bigint) => {
+      expectPlaintext: async (ctHash: bigint | string, expectedValue: bigint) => {
         const [signer] = await hre.ethers.getSigners();
         return mock_expectPlaintext(signer.provider, ctHash, expectedValue);
       },
@@ -459,8 +459,7 @@ extendEnvironment((hre) => {
         getFixedMockContract(hre, MockThresholdNetworkArtifact) as unknown as Promise<MockThresholdNetwork>,
       getMockZkVerifier: async () =>
         getFixedMockContract(hre, MockZkVerifierArtifact) as unknown as Promise<MockZkVerifier>,
-      getTestBed: async () =>
-        getFixedMockContract(hre, TestBedArtifact) as unknown as Promise<TestBed>,
+      getTestBed: async () => getFixedMockContract(hre, TestBedArtifact) as unknown as Promise<TestBed>,
     },
   };
 });
