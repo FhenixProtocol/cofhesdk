@@ -12,7 +12,7 @@ import { MOCKS_THRESHOLD_NETWORK_ADDRESS } from '../consts.js';
 export type DecryptForTxMocksResult = {
   ctHash: bigint | string;
   decryptedValue: bigint;
-  signature: string;
+  signature: `0x${string}`;
 };
 
 export async function cofheMocksDecryptForTx(
@@ -74,12 +74,11 @@ export async function cofheMocksDecryptForTx(
     const messageHash = keccak256(packed);
 
     // Raw digest signature (no EIP-191 prefix). Must verify against OpenZeppelin ECDSA.recover(messageHash, signature).
-    const signatureHex = await sign({
+    const signature = await sign({
       hash: messageHash,
       privateKey: MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY,
       to: 'hex',
     });
-    const signature = signatureHex.slice(2); // no 0x prefix
 
     return {
       ctHash,
@@ -127,12 +126,11 @@ export async function cofheMocksDecryptForTx(
   const messageHash = keccak256(packed);
 
   // Raw digest signature (no EIP-191 prefix). Must verify against OpenZeppelin ECDSA.recover(messageHash, signature).
-  const signatureHex = await sign({
+  const signature = await sign({
     hash: messageHash,
     privateKey: MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY,
     to: 'hex',
   });
-  const signature = signatureHex.slice(2); // no 0x prefix
 
   return {
     ctHash,

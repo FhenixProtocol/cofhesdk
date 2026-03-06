@@ -53,8 +53,11 @@ describe('Hardhat Mocks – Decrypt With Proof', () => {
     expect(decryptResult.signature).to.be.a('string');
 
     const ctHashBytes32 = hre.ethers.toBeHex(decryptResult.ctHash, 32);
-    const signature = `0x${decryptResult.signature}`;
-    const publishTx = await testBed.publishDecryptResult(ctHashBytes32, decryptResult.decryptedValue, signature);
+    const publishTx = await testBed.publishDecryptResult(
+      ctHashBytes32,
+      decryptResult.decryptedValue,
+      decryptResult.signature
+    );
     await publishTx.wait();
 
     const [publishedValue, isDecrypted] = await testBed.getDecryptResultSafe(ctHashBytes32);
@@ -89,10 +92,12 @@ describe('Hardhat Mocks – Decrypt With Proof', () => {
     expect(decryptResult.signature).to.be.a('string');
 
     // Step 4: Publish the decrypt result on-chain
-    const signature = `0x${decryptResult.signature}`;
-    // Publish the decrypt result on-chain
     // publishDecryptResult expects (euint32, uint32, bytes signature)
-    const publishTx = await testBed.publishDecryptResult(decryptResult.ctHash, decryptResult.decryptedValue, signature);
+    const publishTx = await testBed.publishDecryptResult(
+      decryptResult.ctHash,
+      decryptResult.decryptedValue,
+      decryptResult.signature
+    );
     await publishTx.wait();
 
     // Step 5: Verify the published result

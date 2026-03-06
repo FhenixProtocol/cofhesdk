@@ -66,6 +66,7 @@ const findSupportedChainById = (chainId: number): SupportedTestChain | undefined
 // If you want to point to a different contract, edit this map (keep it keyed by chainId).
 const DEFAULT_SIMPLE_TEST_ADDRESSES_BY_CHAIN_ID: Record<number, `0x${string}`> = {
   84532: '0x9df789aB607fc746E6dF318B94724eBB028F9F60', // Base Sepolia
+  421614: '0x51D2781C3d90f6B92436C72CD2D21158356d750d', // Arbitrum Sepolia
   11155111: '0x8CB51925D68f70EC430A36a07F6c09f35add32D2', // Ethereum Sepolia
 };
 
@@ -254,20 +255,13 @@ describe(`DecryptForTx + PublishDecryptResult (chain-agnostic)${DESCRIBE_CHAIN_S
     console.log(`TN decryptedValue: ${decryptResult.decryptedValue}`);
 
     // ── Step 5: Publish the result on-chain ───────────────────────────────
-    // The task manager verifies ECDSA signatures using OpenZeppelin ECDSA, which rejects
-    // non-canonical signatures (eg high-s). Normalize to a canonical (low-s) signature.
-    const signatureHex = decryptResult.signature.startsWith('0x')
-      ? (decryptResult.signature as `0x${string}`)
-      : (`0x${decryptResult.signature}` as `0x${string}`);
-    const signatureBytes = Signature.from(signatureHex).serialized;
-
     // publishDecryptResult(euint32 input, uint32 result, bytes signature)
     // The storedValue euint32 handle is retrieved from the contract; ethers
     // handles the bytes32 ↔ bigint conversion automatically.
     const storedValue = await testContract.getValue();
     const publishTx = await testContract
       .connect(chainSigner)
-      .publishDecryptResult(storedValue, decryptResult.decryptedValue, signatureBytes);
+      .publishDecryptResult(storedValue, decryptResult.decryptedValue, decryptResult.signature);
     await publishTx.wait();
     console.log('publishDecryptResult tx mined.');
 
@@ -310,15 +304,10 @@ describe(`DecryptForTx + PublishDecryptResult (chain-agnostic)${DESCRIBE_CHAIN_S
     console.log(`TN decryptedValue (public): ${decryptResult.decryptedValue}`);
 
     // ── Step 5: Publish the result on-chain ───────────────────────────────
-    const signatureHex = decryptResult.signature.startsWith('0x')
-      ? (decryptResult.signature as `0x${string}`)
-      : (`0x${decryptResult.signature}` as `0x${string}`);
-    const signatureBytes = Signature.from(signatureHex).serialized;
-
     const publicValueHandle = await testContract.publicValue();
     const publishTx = await testContract
       .connect(chainSigner)
-      .publishDecryptResult(publicValueHandle, decryptResult.decryptedValue, signatureBytes);
+      .publishDecryptResult(publicValueHandle, decryptResult.decryptedValue, decryptResult.signature);
     await publishTx.wait();
     console.log('publishDecryptResult (public) tx mined.');
 

@@ -42,7 +42,7 @@ type DecryptForTxBuilderParams = BaseBuilderParams & {
 export type DecryptForTxResult = {
   ctHash: bigint | string;
   decryptedValue: bigint;
-  signature: string; // Threshold network signature for publishDecryptResult
+  signature: `0x${string}`; // Threshold network signature for publishDecryptResult
 };
 
 /**
