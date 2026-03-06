@@ -143,77 +143,41 @@ flowchart TD
    }
 `}</style>
 
-## 1) Decrypt for a transaction
+## Decrypt for a transaction
 
-When you call `decryptForTx(ctHash)`, you must choose whether you’re decrypting:
+### Common case: no permit
 
-- with a permit (`.withPermit(...)`), or
-- without a permit (`.withoutPermit()`) if the ACL policy allows anyone to decrypt this `ctHash`.
+If the contract’s ACL policy for this `ctHash` allows anyone to decrypt it, you can decrypt and immediately get the `(plaintext, signature)` pair like this:
 
-### With a permit (when required by ACL)
-
-Calling `.withPermit()` with no arguments uses the **active** permit for the resolved `(chainId, account)`.
-
-```ts twoslash
-import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
-import { chains } from '@cofhe/sdk/chains';
-
-const config = createCofheConfig({ supportedChains: [chains.sepolia] });
-const client = createCofheClient(config);
-declare const ctHash: bigint;
-// ---cut---
-const decryptResult = await client.decryptForTx(ctHash).withPermit().execute();
+```ts
+const { decryptedValue, signature } = await client
+   .decryptForTx(ctHash)
+   .withoutPermit()
+   .execute();
 ```
 
-You can also provide a specific permit (or a stored permit hash) explicitly:
+### If a permit is required by ACL
 
-```ts twoslash
-import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
-import { chains } from '@cofhe/sdk/chains';
+If the contract’s ACL policy restricts decryption for this `ctHash`, use `.withPermit(...)` instead:
 
-const config = createCofheConfig({ supportedChains: [chains.sepolia] });
-const client = createCofheClient(config);
-declare const ctHash: bigint;
-// ---cut---
+```ts
+const { decryptedValue, signature } = await client
+   .decryptForTx(ctHash)
+   .withPermit()
+   .execute();
+```
+
+You can also provide a specific permit explicitly:
+
+```ts
 const permit = await client.permits.getOrCreateSelfPermit();
-
-const decryptResult = await client.decryptForTx(ctHash).withPermit(permit).execute();
+const { decryptedValue, signature } = await client
+   .decryptForTx(ctHash)
+   .withPermit(permit)
+   .execute();
 ```
 
-### Without a permit (only for globally decryptable values)
-
-If the contract-level ACL policy for a given `ctHash` allows anyone to decrypt it (e.g. the contract made it globally decryptable via `FHE.allowPublic(handle)`), you can decrypt without a permit.
-
-```ts twoslash
-import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
-import { chains } from '@cofhe/sdk/chains';
-
-const config = createCofheConfig({ supportedChains: [chains.sepolia] });
-const client = createCofheClient(config);
-declare const publicCtHash: bigint;
-// ---cut---
-const decryptResult = await client.decryptForTx(publicCtHash).withoutPermit().execute();
-```
-
-## 2) Receive the plaintext value + signature
-
-`decryptForTx` returns the plaintext value and a Threshold Network signature that binds that plaintext to `ctHash`.
-
-```ts twoslash
-import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
-import { chains } from '@cofhe/sdk/chains';
-
-const config = createCofheConfig({ supportedChains: [chains.sepolia] });
-const client = createCofheClient(config);
-declare const ctHash: bigint;
-// ---cut---
-const decryptResult = await client.decryptForTx(ctHash).withPermit().execute();
-
-decryptResult.decryptedValue;
-decryptResult.signature;
-```
-
-## 3) Publish the decrypt result on-chain
+## Publish the decrypt result on-chain
 
 The intended consumer of `decryptForTx` is an on-chain verifier such as `FHE.publishDecryptResult(...)` (or a wrapper function in your contract).
 
@@ -225,5 +189,5 @@ You submit an on-chain transaction that provides:
 
 ```ts
 // Pseudocode: call the on-chain verifier your app/contract uses.
-await contract.publishDecryptResult(ctHash, decryptResult.decryptedValue, decryptResult.signature);
+await contract.publishDecryptResult(ctHash, decryptedValue, signature);
 ```
