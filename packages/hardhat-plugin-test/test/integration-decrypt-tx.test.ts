@@ -3,7 +3,7 @@ import { CofheClient, Encryptable } from '@cofhe/sdk';
 import { createCofheClient, createCofheConfig } from '@cofhe/sdk/node';
 import { Ethers6Adapter } from '@cofhe/sdk/adapters';
 import { expect } from 'chai';
-import { JsonRpcProvider, Signature, Wallet } from 'ethers';
+import { JsonRpcProvider, NonceManager, Signature, Wallet } from 'ethers';
 import * as ethers6 from 'ethers6';
 import { SimpleTest, SimpleTest__factory } from '../typechain-types';
 
@@ -65,7 +65,7 @@ const findSupportedChainById = (chainId: number): SupportedTestChain | undefined
 // This is the ONLY source of truth for selecting an existing deployment in this test.
 // If you want to point to a different contract, edit this map (keep it keyed by chainId).
 const DEFAULT_SIMPLE_TEST_ADDRESSES_BY_CHAIN_ID: Record<number, `0x${string}`> = {
-  84532: '0x9df789aB607fc746E6dF318B94724eBB028F9F60', // Base Sepolia
+  84532: '0x5733972abbb3506a4041ad8b2B34085C65C3b2F5', // Base Sepolia
   11155111: '0x8CB51925D68f70EC430A36a07F6c09f35add32D2', // Ethereum Sepolia
 };
 
@@ -103,7 +103,7 @@ const DESCRIBE_CHAIN_SUFFIX = ENV_CHAIN_ID ? ` (chainId=${ENV_CHAIN_ID})` : '';
 describe(`DecryptForTx + PublishDecryptResult (chain-agnostic)${DESCRIBE_CHAIN_SUFFIX}`, () => {
   let cofheClient: CofheClient;
   let testContract: SimpleTest;
-  let chainSigner: Wallet;
+  let chainSigner: NonceManager;
   let selectedChain: SupportedTestChain;
   let selectedChainId: number;
 
@@ -163,7 +163,11 @@ describe(`DecryptForTx + PublishDecryptResult (chain-agnostic)${DESCRIBE_CHAIN_S
     const adapterWallet = new ethers6.Wallet(TEST_PRIVATE_KEY as `0x${string}`, adapterProvider);
 
     const contractProvider = new JsonRpcProvider(rpcUrl);
-    chainSigner = new Wallet(TEST_PRIVATE_KEY as `0x${string}`, contractProvider);
+    // IMPORTANT: use a NonceManager so we always use the pending nonce.
+    // This prevents intermittent "nonce too low" / "nonce already used" issues on
+    // reruns when a previous run left a tx pending or when multiple txs are sent quickly.
+    const baseWallet = new Wallet(TEST_PRIVATE_KEY as `0x${string}`, contractProvider);
+    chainSigner = new NonceManager(baseWallet);
     console.log(`Using account: ${await chainSigner.getAddress()}`);
 
     const balance = await adapterProvider.getBalance(await adapterWallet.getAddress());
