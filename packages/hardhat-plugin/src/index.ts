@@ -20,7 +20,6 @@ import { deployMocks, type DeployMocksArgs } from './deploy.js';
 import { mock_setLoggingEnabled, mock_withLogs } from './logging.js';
 import { getFixedMockContract, mock_expectPlaintext } from './utils.js';
 import { mock_getPlaintext } from './utils.js';
-import type { Contract } from 'ethers';
 import { hardhat } from '@cofhe/sdk/chains';
 import {
   MockACLArtifact,
@@ -28,6 +27,11 @@ import {
   MockTaskManagerArtifact,
   MockZkVerifierArtifact,
   TestBedArtifact,
+  type MockACL,
+  type MockTaskManager,
+  type MockThresholdNetwork,
+  type MockZkVerifier,
+  type TestBed,
 } from '@cofhe/mock-contracts';
 
 /**
@@ -318,34 +322,34 @@ declare module 'hardhat/types/runtime' {
         expectPlaintext: (ctHash: bigint, expectedValue: bigint) => Promise<void>;
 
         /**
-         * Get the MockTaskManager contract
-         * @returns {Promise<Contract>} The MockTaskManager contract
+         * Get the MockTaskManager contract (typed via typechain)
+         * @returns {Promise<MockTaskManager>} The MockTaskManager contract
          */
-        getMockTaskManager: () => Promise<Contract>;
+        getMockTaskManager: () => Promise<MockTaskManager>;
 
         /**
-         * Get the MockACL contract
-         * @returns {Promise<Contract>} The MockACL contract
+         * Get the MockACL contract (typed via typechain)
+         * @returns {Promise<MockACL>} The MockACL contract
          */
-        getMockACL: () => Promise<Contract>;
+        getMockACL: () => Promise<MockACL>;
 
         /**
-         * Get the MockThresholdNetwork contract
-         * @returns {Promise<Contract>} The MockThresholdNetwork contract
+         * Get the MockThresholdNetwork contract (typed via typechain)
+         * @returns {Promise<MockThresholdNetwork>} The MockThresholdNetwork contract
          */
-        getMockThresholdNetwork: () => Promise<Contract>;
+        getMockThresholdNetwork: () => Promise<MockThresholdNetwork>;
 
         /**
-         * Get the MockZkVerifier contract
-         * @returns {Promise<Contract>} The MockZkVerifier contract
+         * Get the MockZkVerifier contract (typed via typechain)
+         * @returns {Promise<MockZkVerifier>} The MockZkVerifier contract
          */
-        getMockZkVerifier: () => Promise<Contract>;
+        getMockZkVerifier: () => Promise<MockZkVerifier>;
 
         /**
-         * Get the TestBed contract
-         * @returns {Promise<Contract>} The TestBed contract
+         * Get the TestBed contract (typed via typechain)
+         * @returns {Promise<TestBed>} The TestBed contract
          */
-        getTestBed: () => Promise<Contract>;
+        getTestBed: () => Promise<TestBed>;
       };
     };
   }
@@ -444,15 +448,19 @@ extendEnvironment((hre) => {
         const [signer] = await hre.ethers.getSigners();
         return mock_expectPlaintext(signer.provider, ctHash, expectedValue);
       },
-      getMockTaskManager: async () => getFixedMockContract(hre, MockTaskManagerArtifact),
+      getMockTaskManager: async () =>
+        getFixedMockContract(hre, MockTaskManagerArtifact) as unknown as Promise<MockTaskManager>,
       getMockACL: async () => {
         const taskManager = await getFixedMockContract(hre, MockTaskManagerArtifact);
         const aclAddress = await taskManager.acl();
-        return hre.ethers.getContractAt(MockACLArtifact.abi, aclAddress);
+        return hre.ethers.getContractAt(MockACLArtifact.abi, aclAddress) as unknown as MockACL;
       },
-      getMockThresholdNetwork: async () => getFixedMockContract(hre, MockThresholdNetworkArtifact),
-      getMockZkVerifier: async () => getFixedMockContract(hre, MockZkVerifierArtifact),
-      getTestBed: async () => getFixedMockContract(hre, TestBedArtifact),
+      getMockThresholdNetwork: async () =>
+        getFixedMockContract(hre, MockThresholdNetworkArtifact) as unknown as Promise<MockThresholdNetwork>,
+      getMockZkVerifier: async () =>
+        getFixedMockContract(hre, MockZkVerifierArtifact) as unknown as Promise<MockZkVerifier>,
+      getTestBed: async () =>
+        getFixedMockContract(hre, TestBedArtifact) as unknown as Promise<TestBed>,
     },
   };
 });
