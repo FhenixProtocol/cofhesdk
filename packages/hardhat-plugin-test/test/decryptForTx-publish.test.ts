@@ -33,9 +33,6 @@ describe('Hardhat Mocks – Decrypt With Proof', () => {
 
     // Configure the mock task manager to accept the mock signature for all tests.
     taskManager = await hre.cofhe.mocks.getMockTaskManager();
-    const messageSigner = new Wallet(MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY);
-    const setSignerTx = await taskManager.connect(signer).setDecryptResultSigner(messageSigner.address);
-    await setSignerTx.wait();
   });
 
   it('Should decrypt and publish result (publicAllowed, without permit)', async function () {
@@ -135,5 +132,15 @@ describe('Hardhat Mocks – Decrypt With Proof', () => {
         decryptResult.signature
       )
     ).to.be.reverted;
+
+    const validFalse = await taskManager.verifyDecryptResultSafe(
+      ctHashBytes32,
+      0n, // INCORRECT VALUE
+      decryptResult.signature
+    );
+    expect(validFalse).to.be.false;
+
+    const validTrue = await taskManager.verifyDecryptResultSafe(ctHashBytes32, testValue, decryptResult.signature);
+    expect(validTrue).to.be.true;
   });
 });
