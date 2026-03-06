@@ -177,6 +177,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     owner = initialOwner;
     initialized = true;
     verifierSigner = address(0);
+    decryptResultSigner = address(0);
   }
 
   modifier onlyOwner() {
@@ -600,10 +601,10 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
 
   function extractSigner(EncryptedInput memory input, address sender) private view returns (address) {
     bytes memory combined = abi.encodePacked(input.ctHash, input.utype, input.securityZone, sender, block.chainid);
-
     bytes32 expectedHash = keccak256(combined);
 
     address signer = ECDSA.recover(expectedHash, input.signature);
+
     if (signer == address(0)) {
       revert InvalidSignature();
     }
