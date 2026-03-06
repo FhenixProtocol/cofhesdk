@@ -51,7 +51,10 @@ const mock_checkIsTestnet = async (fnName: string, provider: HardhatEthersProvid
   return isTestnet;
 };
 
-export const mock_getPlaintext = async (provider: HardhatEthersProvider | ethers.JsonRpcProvider, ctHash: bigint | string) => {
+export const mock_getPlaintext = async (
+  provider: HardhatEthersProvider | ethers.JsonRpcProvider,
+  ctHash: bigint | string
+) => {
   // Skip with log if called on a non-testnet chain
   if (await mock_checkIsTestnet(mock_getPlaintext.name, provider)) return;
 
