@@ -139,7 +139,7 @@ type EncryptedReturnTypeInternalTypeToReturnTypeMap<T extends EncryptedReturnTyp
 
 function transformSingleEncryptedReturnTypeToReturnType<T extends EncryptedReturnTypeInternalType>(
   internalType: T,
-  data: bigint
+  data: string
 ): EncryptedReturnTypeInternalTypeToReturnTypeMap<T> {
   switch (internalType) {
     case 'ebool':
@@ -185,7 +185,7 @@ function transformSingleEncryptedReturnTypeToReturnType<T extends EncryptedRetur
 function transformArrayOfEncryptedReturnTypesToReturnTypes<T extends EncryptedReturnTypeInternalType>(
   internalType: T,
   size: string | undefined,
-  data: bigint[]
+  data: string[]
 ): EncryptedReturnTypeInternalTypeToReturnTypeMap<T>[] {
   // Ensure data is an array
   if (!Array.isArray(data)) {
@@ -225,13 +225,13 @@ export function transformEncryptedReturnTypes<TAbi extends Abi, TFunctionName ex
     if (internalTypeHead != null && internalTypeIsEncryptedReturnType(internalTypeHead)) {
       // Is single encrypted return type
       if (internalTypeSize == null) {
-        return transformSingleEncryptedReturnTypeToReturnType(internalTypeHead, value as bigint);
+        return transformSingleEncryptedReturnTypeToReturnType(internalTypeHead, value as string);
       }
 
       // Is array of encrypted return types
       if (internalTypeSize != null) {
         console.log('array of encrypted return types', internalTypeHead, internalTypeSize, value);
-        return transformArrayOfEncryptedReturnTypesToReturnTypes(internalTypeHead, internalTypeSize, value as bigint[]);
+        return transformArrayOfEncryptedReturnTypesToReturnTypes(internalTypeHead, internalTypeSize, value as string[]);
       }
     }
 
