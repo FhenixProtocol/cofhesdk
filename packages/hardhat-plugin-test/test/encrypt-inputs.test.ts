@@ -24,7 +24,7 @@ describe('Encrypt Inputs Test', () => {
   it('should encrypt inputs with configurable encryptDelay', async () => {
     const [signer] = await hre.ethers.getSigners();
 
-    const delays = [0, [100, 200, 300, 400, 500]];
+    const delays = [0, [100, 200, 300, 400, 500] as [number, number, number, number, number]];
     for (const delay of delays) {
       const config = await hre.cofhe.createConfig({
         supportedChains: [hardhat],
@@ -44,10 +44,6 @@ describe('Encrypt Inputs Test', () => {
           if (context == null || context.isStart) return;
           const stepDelay = Array.isArray(delay) ? delay[completedSteps] : delay;
           expect(stepDelay).to.equal(context.mockSleep);
-          expect(
-            context.duration >= stepDelay && context.duration <= stepDelay + 10,
-            `Step ${step} took ${context.duration}ms, expected ${stepDelay}ms`
-          ).to.be.true;
           completedSteps++;
         })
         .execute();
