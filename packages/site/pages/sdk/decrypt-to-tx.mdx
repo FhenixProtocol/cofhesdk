@@ -229,8 +229,6 @@ function publishDecryptResult(euint32 ctHash, uint32 plaintext, bytes calldata s
 ```
 
 ```ts
-// Note: `decryptForTx` returns `signature` as hex *without* the 0x prefix.
-const signatureBytes = `0x${decryptResult.signature}`;
 
 const tx = await myContract.publishDecryptResult(decryptResult.ctHash, decryptResult.decryptedValue, signatureBytes);
 await tx.wait();
