@@ -178,11 +178,7 @@ describe('Hardhat Mocks – decryptForTx', () => {
 
       const storedValue = await testContract.storedValue();
 
-      const result = await cofheClient
-        .decryptForTx(storedValue)
-        .setAccount(signer.address)
-        .withPermit()
-        .execute();
+      const result = await cofheClient.decryptForTx(storedValue).setAccount(signer.address).withPermit().execute();
 
       expect(result.ctHash).to.be.equal(storedValue);
       expect(result.decryptedValue).to.be.equal(testValue);
