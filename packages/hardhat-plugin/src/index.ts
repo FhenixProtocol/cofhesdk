@@ -307,19 +307,19 @@ declare module 'hardhat/types/runtime' {
          * **[MOCKS ONLY]**
          *
          * Get the plaintext value for a ciphertext hash
-         * @param {string} ctHash - The ciphertext hash to look up
+         * @param {bigint | string} ctHash - The ciphertext hash to look up
          * @returns {Promise<bigint>} The plaintext value
          */
-        getPlaintext: (ctHash: string) => Promise<bigint>;
+        getPlaintext: (ctHash: bigint | string) => Promise<bigint>;
 
         /**
          * **[MOCKS ONLY]**
          *
          * Assert that a ciphertext hash represents an expected plaintext value
-         * @param {string} ctHash - The ciphertext hash to check
+         * @param {bigint | string} ctHash - The ciphertext hash to check
          * @param {bigint} expectedValue - The expected plaintext value
          */
-        expectPlaintext: (ctHash: string, expectedValue: bigint) => Promise<void>;
+        expectPlaintext: (ctHash: bigint | string, expectedValue: bigint) => Promise<void>;
 
         /**
          * Get the MockTaskManager contract (typed via typechain)
@@ -440,11 +440,11 @@ extendEnvironment((hre) => {
       deployMocks: async (options: DeployMocksArgs) => {
         return deployMocks(hre, options);
       },
-      getPlaintext: async (ctHash: string) => {
+      getPlaintext: async (ctHash: bigint | string) => {
         const [signer] = await hre.ethers.getSigners();
         return mock_getPlaintext(signer.provider, ctHash);
       },
-      expectPlaintext: async (ctHash: string, expectedValue: bigint) => {
+      expectPlaintext: async (ctHash: bigint | string, expectedValue: bigint) => {
         const [signer] = await hre.ethers.getSigners();
         return mock_expectPlaintext(signer.provider, ctHash, expectedValue);
       },

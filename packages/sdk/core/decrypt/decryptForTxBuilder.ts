@@ -36,11 +36,11 @@ import { tnDecrypt } from './tnDecrypt.js';
 type DecryptForTxPermitSelection = 'unset' | 'with-permit' | 'without-permit';
 
 type DecryptForTxBuilderParams = BaseBuilderParams & {
-  ctHash: string;
+  ctHash: bigint | string;
 };
 
 export type DecryptForTxResult = {
-  ctHash: string;
+  ctHash: bigint | string;
   decryptedValue: bigint;
   signature: string; // Threshold network signature for publishDecryptResult
 };
@@ -56,7 +56,7 @@ export type DecryptForTxBuilderUnset = Omit<DecryptForTxBuilder, 'execute'>;
 export type DecryptForTxBuilderSelected = Omit<DecryptForTxBuilder, 'withPermit' | 'withoutPermit'>;
 
 export class DecryptForTxBuilder extends BaseBuilder {
-  private ctHash: string;
+  private ctHash: bigint | string;
   private permitHash?: string;
   private permit?: Permit;
   private permitSelection: DecryptForTxPermitSelection = 'unset';

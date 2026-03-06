@@ -10,13 +10,13 @@ import { MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY } from '../consts.js';
 import { MOCKS_THRESHOLD_NETWORK_ADDRESS } from '../consts.js';
 
 export type DecryptForTxMocksResult = {
-  ctHash: string;
+  ctHash: bigint | string;
   decryptedValue: bigint;
   signature: string;
 };
 
 export async function cofheMocksDecryptForTx(
-  ctHash: string,
+  ctHash: bigint | string,
   utype: FheTypes,
   permit: Permit | null,
   publicClient: PublicClient,

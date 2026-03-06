@@ -51,7 +51,10 @@ const mock_checkIsTestnet = async (fnName: string, provider: HardhatEthersProvid
   return isTestnet;
 };
 
-export const mock_getPlaintext = async (provider: HardhatEthersProvider | ethers.JsonRpcProvider, ctHash: string) => {
+export const mock_getPlaintext = async (
+  provider: HardhatEthersProvider | ethers.JsonRpcProvider,
+  ctHash: bigint | string
+) => {
   // Skip with log if called on a non-testnet chain
   if (await mock_checkIsTestnet(mock_getPlaintext.name, provider)) return;
 
@@ -63,14 +66,14 @@ export const mock_getPlaintext = async (provider: HardhatEthersProvider | ethers
   );
 
   // Fetch the plaintext
-  const plaintext = await taskManager.mockStorage(ctHash);
+  const plaintext = await taskManager.mockStorage(BigInt(ctHash));
 
   return plaintext;
 };
 
 export const mock_getPlaintextExists = async (
   provider: HardhatEthersProvider | ethers.JsonRpcProvider,
-  ctHash: string
+  ctHash: bigint | string
 ) => {
   // Skip with log if called on a non-testnet chain
   if (await mock_checkIsTestnet(mock_getPlaintextExists.name, provider)) return;
@@ -83,14 +86,14 @@ export const mock_getPlaintextExists = async (
   );
 
   // Fetch the plaintext exists
-  const plaintextExists = await taskManager.inMockStorage(ctHash);
+  const plaintextExists = await taskManager.inMockStorage(BigInt(ctHash));
 
   return plaintextExists;
 };
 
 export const mock_expectPlaintext = async (
   provider: HardhatEthersProvider | ethers.JsonRpcProvider,
-  ctHash: string,
+  ctHash: bigint | string,
   expectedValue: bigint
 ) => {
   // Skip with log if called on a non-testnet chain

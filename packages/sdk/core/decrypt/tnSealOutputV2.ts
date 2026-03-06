@@ -57,7 +57,7 @@ function convertSealedData(sealed: SealOutputStatusResponse['sealed']): EthEncry
  */
 async function submitSealOutputRequest(
   thresholdNetworkUrl: string,
-  ctHash: string,
+  ctHash: bigint | string,
   chainId: number,
   permission: Permission
 ): Promise<string> {
@@ -285,7 +285,7 @@ async function pollSealOutputStatus(thresholdNetworkUrl: string, requestId: stri
 }
 
 export async function tnSealOutputV2(
-  ctHash: string,
+  ctHash: bigint | string,
   chainId: number,
   permission: Permission,
   thresholdNetworkUrl: string

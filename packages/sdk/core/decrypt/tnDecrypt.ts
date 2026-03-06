@@ -127,7 +127,7 @@ function assertTnDecryptResponse(value: unknown): TnDecryptResponse {
 }
 
 export async function tnDecrypt(
-  ctHash: string,
+  ctHash: bigint | string,
   chainId: number,
   permission: Permission | null,
   thresholdNetworkUrl: string
