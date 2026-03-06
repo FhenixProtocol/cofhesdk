@@ -13,7 +13,7 @@ import {
 import { MockZkVerifierAbi } from './MockZkVerifierAbi.js';
 import { hardhat } from 'viem/chains';
 import { CofheError, CofheErrorCode } from '../error.js';
-import { privateKeyToAccount } from 'viem/accounts';
+import { privateKeyToAccount, sign } from 'viem/accounts';
 import { MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY, MOCKS_ZK_VERIFIER_ADDRESS } from '../consts.js';
 
 type EncryptableItemWithCtHash = EncryptableItem & {
@@ -181,7 +181,11 @@ async function insertCtHashes(items: EncryptableItemWithCtHash[], walletClient: 
  * The mocks verify the EncryptedInputs' signature against the known proof signer account.
  * Locally, we create the proof signatures from the known proof signer account.
  */
-async function createProofSignatures(items: EncryptableItemWithCtHash[], securityZone: number): Promise<string[]> {
+async function createProofSignatures(
+  items: EncryptableItemWithCtHash[],
+  securityZone: number,
+  account: string
+): Promise<string[]> {
   let signatures: string[] = [];
 
   // Create wallet client for the encrypted input signer
@@ -205,16 +209,16 @@ async function createProofSignatures(items: EncryptableItemWithCtHash[], securit
   try {
     for (const item of items) {
       // Pack the data into bytes and hash it
-      const packedData = encodePacked(['uint256', 'int32', 'uint8'], [BigInt(item.data), securityZone, item.utype]);
+      const packedData = encodePacked(
+        ['uint256', 'uint8', 'uint8', 'address', 'uint256'],
+        [BigInt(item.ctHash), item.utype, securityZone, account as `0x${string}`, BigInt(hardhat.id)]
+      );
       const messageHash = keccak256(packedData);
 
-      // Convert to EthSignedMessageHash (adds "\x19Ethereum Signed Message:\n32" prefix)
-      const ethSignedHash = hashMessage({ raw: toBytes(messageHash) });
-
-      // Sign the message
-      const signature = await encInputSignerClient.signMessage({
-        message: { raw: toBytes(ethSignedHash) },
-        account: encInputSignerClient.account!,
+      const signature = await sign({
+        hash: messageHash,
+        privateKey: MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY,
+        to: 'hex',
       });
 
       signatures.push(signature);
@@ -267,7 +271,7 @@ export async function cofheMocksZkVerifySign(
   await insertCtHashes(encryptableItems, _walletClient);
 
   // Locally create the proof signatures from the known proof signer account
-  const signatures = await createProofSignatures(encryptableItems, securityZone);
+  const signatures = await createProofSignatures(encryptableItems, securityZone, account);
 
   // Return the ctHashes and signatures in the same format as CoFHE
   return encryptableItems.map((item, index) => ({

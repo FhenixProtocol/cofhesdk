@@ -1,14 +1,14 @@
 import hre from 'hardhat';
 import { CofheClient, CofheErrorCode, Encryptable, FheTypes } from '@cofhe/sdk';
-import { TASK_COFHE_MOCKS_DEPLOY } from './consts';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { PermitUtils } from '@cofhe/sdk/permits';
 import { hardhat } from '@cofhe/sdk/chains';
+import { SimpleTest } from '../typechain-types';
 
 describe('Hardhat Mocks – decryptForTx', () => {
   let cofheClient: CofheClient;
-  let testContract: any;
+  let testContract: SimpleTest;
   let signer: HardhatEthersSigner;
 
   before(async function () {
@@ -29,8 +29,10 @@ describe('Hardhat Mocks – decryptForTx', () => {
       const tx = await testContract.connect(signer).setValue(encrypted[0]);
       await tx.wait();
 
+      const storedValue = await testContract.storedValue();
+
       try {
-        await cofheClient.decryptForTx(encrypted[0].ctHash).withoutPermit().execute();
+        await cofheClient.decryptForTx(storedValue).withoutPermit().execute();
         expect.fail('Expected decryptForTx to fail without global allowance');
       } catch (error) {
         expect((error as Error).message).to.include('NotAllowed');
@@ -43,11 +45,13 @@ describe('Hardhat Mocks – decryptForTx', () => {
       const tx = await testContract.connect(signer).setPublicValue(encrypted[0]);
       await tx.wait();
 
-      const result = await cofheClient.decryptForTx(encrypted[0].ctHash).withoutPermit().execute();
+      const publicValue = await testContract.publicValue();
+      const result = await cofheClient.decryptForTx(publicValue).withoutPermit().execute();
 
-      expect(result.ctHash).to.be.equal(encrypted[0].ctHash);
+      expect(result.ctHash).to.be.equal(publicValue);
       expect(result.decryptedValue).to.be.equal(testValue);
       expect(result.signature).to.be.a('string');
+      expect(result.signature).to.match(/^0x[0-9a-fA-F]+$/);
     });
 
     it('Should decrypt different values consistently with a permit', async function () {
@@ -62,8 +66,10 @@ describe('Hardhat Mocks – decryptForTx', () => {
         const tx = await testContract.connect(signer).setValue(encrypted[0]);
         await tx.wait();
 
-        const result = await cofheClient.decryptForTx(encrypted[0].ctHash).withPermit(permit).execute();
-        expect(result.ctHash).to.be.equal(encrypted[0].ctHash);
+        const storedValue = await testContract.storedValue();
+
+        const result = await cofheClient.decryptForTx(storedValue).withPermit(permit).execute();
+        expect(result.ctHash).to.be.equal(storedValue);
         expect(result.decryptedValue).to.be.equal(testValue);
         expect(result.signature).to.be.a('string');
       }
@@ -82,9 +88,11 @@ describe('Hardhat Mocks – decryptForTx', () => {
       const tx = await testContract.connect(signer).setValue(encrypted[0]);
       await tx.wait();
 
-      const result = await cofheClient.decryptForTx(encrypted[0].ctHash).withPermit(permit).execute();
+      const storedValue = await testContract.storedValue();
 
-      expect(result.ctHash).to.be.equal(encrypted[0].ctHash);
+      const result = await cofheClient.decryptForTx(storedValue).withPermit(permit).execute();
+
+      expect(result.ctHash).to.be.equal(storedValue);
       expect(result.decryptedValue).to.be.equal(testValue);
       expect(result.signature).to.be.a('string');
     });
@@ -102,9 +110,11 @@ describe('Hardhat Mocks – decryptForTx', () => {
       const tx = await testContract.connect(signer).setValue(encrypted[0]);
       await tx.wait();
 
-      const result = await cofheClient.decryptForTx(encrypted[0].ctHash).withPermit().execute();
+      const storedValue = await testContract.storedValue();
 
-      expect(result.ctHash).to.be.equal(encrypted[0].ctHash);
+      const result = await cofheClient.decryptForTx(storedValue).withPermit().execute();
+
+      expect(result.ctHash).to.be.equal(storedValue);
       expect(result.decryptedValue).to.be.equal(testValue);
       expect(result.signature).to.be.a('string');
     });
@@ -121,7 +131,8 @@ describe('Hardhat Mocks – decryptForTx', () => {
       await hre.cofhe.connectWithHardhatSigner(clientWithoutPermit, otherSigner);
 
       try {
-        await clientWithoutPermit.decryptForTx(0n).withPermit().execute();
+        const storedValue = await testContract.storedValue();
+        await clientWithoutPermit.decryptForTx(storedValue).withPermit().execute();
         expect.fail('Expected decryptForTx to throw when no active permit exists');
       } catch (error) {
         const e = error as any;
@@ -145,7 +156,10 @@ describe('Hardhat Mocks – decryptForTx', () => {
       const missingHash = '0xdeadbeef';
 
       try {
-        await clientWithoutPermit.decryptForTx(0n).withPermit(missingHash).execute();
+        await clientWithoutPermit
+          .decryptForTx('0x0000000000000000000000000000000000000000')
+          .withPermit(missingHash)
+          .execute();
         expect.fail('Expected decryptForTx to throw when permit hash does not exist');
       } catch (error) {
         const e = error as any;
@@ -163,13 +177,11 @@ describe('Hardhat Mocks – decryptForTx', () => {
       const tx = await testContract.connect(signer).setValue(encrypted[0]);
       await tx.wait();
 
-      const result = await cofheClient
-        .decryptForTx(encrypted[0].ctHash)
-        .setAccount(signer.address)
-        .withPermit()
-        .execute();
+      const storedValue = await testContract.storedValue();
 
-      expect(result.ctHash).to.be.equal(encrypted[0].ctHash);
+      const result = await cofheClient.decryptForTx(storedValue).setAccount(signer.address).withPermit().execute();
+
+      expect(result.ctHash).to.be.equal(storedValue);
       expect(result.decryptedValue).to.be.equal(testValue);
       expect(result.signature).to.be.a('string');
     });
@@ -180,14 +192,16 @@ describe('Hardhat Mocks – decryptForTx', () => {
       const tx = await testContract.connect(signer).setValue(encrypted[0]);
       await tx.wait();
 
-      const builder = cofheClient.decryptForTx(encrypted[0].ctHash).setAccount(signer.address).withPermit();
+      const storedValue = await testContract.storedValue();
+
+      const builder = cofheClient.decryptForTx(storedValue).setAccount(signer.address).withPermit();
 
       const result1 = await builder.execute();
-      expect(result1.ctHash).to.be.equal(encrypted[0].ctHash);
+      expect(result1.ctHash).to.be.equal(storedValue);
       expect(result1.decryptedValue).to.be.equal(testValue);
 
       const result2 = await builder.execute();
-      expect(result2.ctHash).to.be.equal(encrypted[0].ctHash);
+      expect(result2.ctHash).to.be.equal(storedValue);
       expect(result2.decryptedValue).to.be.equal(testValue);
     });
   });
@@ -203,11 +217,13 @@ describe('Hardhat Mocks – decryptForTx', () => {
       const tx = await testContract.connect(signer).setValue(encrypted[0]);
       await tx.wait();
 
-      const decryptForTxResult = await cofheClient.decryptForTx(encrypted[0].ctHash).withPermit().execute();
+      const storedValue = await testContract.storedValue();
 
-      expect(decryptForTxResult.ctHash).to.be.equal(encrypted[0].ctHash);
+      const decryptForTxResult = await cofheClient.decryptForTx(storedValue).withPermit().execute();
+
+      expect(decryptForTxResult.ctHash).to.be.equal(storedValue);
       expect(decryptForTxResult.decryptedValue).to.be.equal(testValue);
-      expect(typeof decryptForTxResult.signature).to.equal('string');
+      expect(decryptForTxResult.signature).to.be.a('string');
     });
 
     it('Should support both decryptForView and decryptForTx', async function () {
@@ -216,12 +232,13 @@ describe('Hardhat Mocks – decryptForTx', () => {
       const tx = await testContract.connect(signer).setValue(encrypted[0]);
       await tx.wait();
 
-      const ctHash = encrypted[0].ctHash;
-      const viewResult = await cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
-      const forTxResult = await cofheClient.decryptForTx(ctHash).withPermit().execute();
+      const storedValue = await testContract.storedValue();
+
+      const viewResult = await cofheClient.decryptForView(storedValue, FheTypes.Uint32).execute();
+      const forTxResult = await cofheClient.decryptForTx(storedValue).withPermit().execute();
 
       expect(viewResult).to.be.equal(testValue);
-      expect(forTxResult.ctHash).to.be.equal(ctHash);
+      expect(forTxResult.ctHash).to.be.equal(storedValue);
       expect(forTxResult.decryptedValue).to.be.equal(testValue);
     });
   });

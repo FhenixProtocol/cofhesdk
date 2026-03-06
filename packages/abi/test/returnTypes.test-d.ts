@@ -5,37 +5,37 @@ import { FheTypes } from '@cofhe/sdk';
 import type { EUint8, EUint16, EUint32, EUint64, EUint128, EBool, EAddress } from 'src/fhenixMap';
 
 const euint8: EUint8 = {
-  ctHash: 1n,
+  ctHash: '0x1',
   utype: FheTypes.Uint8,
 };
 
 const euint16: EUint16 = {
-  ctHash: 1n,
+  ctHash: '0x1',
   utype: FheTypes.Uint16,
 };
 
 const euint32: EUint32 = {
-  ctHash: 1n,
+  ctHash: '0x1',
   utype: FheTypes.Uint32,
 };
 
 const euint64: EUint64 = {
-  ctHash: 1n,
+  ctHash: '0x1',
   utype: FheTypes.Uint64,
 };
 
 const euint128: EUint128 = {
-  ctHash: 1n,
+  ctHash: '0x1',
   utype: FheTypes.Uint128,
 };
 
 const ebool: EBool = {
-  ctHash: 1n,
+  ctHash: '0x1',
   utype: FheTypes.Bool,
 };
 
 const eaddress: EAddress = {
-  ctHash: 1n,
+  ctHash: '0x1',
   utype: FheTypes.Uint160,
 };
 

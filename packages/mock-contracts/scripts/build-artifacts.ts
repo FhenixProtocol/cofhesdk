@@ -23,13 +23,14 @@ function inspect(contract: string, field: string): any {
   const out = execSync(cmd, { encoding: 'utf8' }).trim();
 
   if (field === 'bytecode' || field === 'deployedBytecode') {
-    // Both are emitted as quoted strings (JSON-encoded)
     return out.toLowerCase();
   }
 
-  // ABI and metadata are full JSON
   return JSON.parse(out);
 }
+
+const abiDir = 'abi';
+fs.mkdirSync(abiDir, { recursive: true });
 
 // Build fixed contracts
 
@@ -52,6 +53,8 @@ import { type MockArtifact } from './types';
 
 export const ${name}Artifact = ${JSON.stringify(artifact, null, 2)} satisfies MockArtifact;`
   );
+
+  fs.writeFileSync(`${abiDir}/${name}.json`, JSON.stringify(abi, null, 2));
 }
 
 // Build non-fixed contracts
@@ -74,4 +77,6 @@ import { type MockArtifact } from './types';
 
 export const ${name}Artifact = ${JSON.stringify(artifact, null, 2)} satisfies MockArtifact;`
   );
+
+  fs.writeFileSync(`${abiDir}/${name}.json`, JSON.stringify(abi, null, 2));
 }

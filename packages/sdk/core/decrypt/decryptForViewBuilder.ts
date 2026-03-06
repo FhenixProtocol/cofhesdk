@@ -11,7 +11,7 @@ import { BaseBuilder, type BaseBuilderParams } from '../baseBuilder.js';
 import { cofheMocksDecryptForView } from './cofheMocksDecryptForView.js';
 // import { tnSealOutputV1 } from './tnSealOutputV1.js';
 import { tnSealOutputV2 } from './tnSealOutputV2.js';
-import { cofheMocksDecryptForTx } from './cofheMocksDecryptForTx.js';
+import { sleep } from '../utils.js';
 
 /**
  * API
@@ -35,14 +35,14 @@ import { cofheMocksDecryptForTx } from './cofheMocksDecryptForTx.js';
  */
 
 type DecryptForViewBuilderParams<U extends FheTypes> = BaseBuilderParams & {
-  ctHash: bigint;
+  ctHash: bigint | string;
   utype: U;
   permitHash?: string;
   permit?: Permit;
 };
 
 export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
-  private ctHash: bigint;
+  private ctHash: bigint | string;
   private utype: U;
   private permitHash?: string;
   private permit?: Permit;
@@ -245,8 +245,13 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
   private async mocksSealOutput(permit: Permit): Promise<bigint> {
     this.assertPublicClient();
 
+    // Configurable delay before decrypting the output to simulate the CoFHE decrypt processing time
+    // Recommended 1000ms on web
+    // Recommended 0ms on hardhat (will be called during tests no need for fake delay)
     const mocksDecryptDelay = this.config.mocks.decryptDelay;
-    return cofheMocksDecryptForView(this.ctHash, this.utype, permit, this.publicClient, mocksDecryptDelay);
+    if (mocksDecryptDelay > 0) await sleep(mocksDecryptDelay);
+
+    return cofheMocksDecryptForView(this.ctHash, this.utype, permit, this.publicClient);
   }
 
   /**

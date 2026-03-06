@@ -4,7 +4,7 @@ import type { CofheClient } from '../core/clientTypes.js';
 // It ensures TypeScript prevents calling execute() before selecting a permit mode.
 
 declare const client: CofheClient;
-declare const ctHash: bigint;
+declare const ctHash: bigint | string;
 
 // NOTE: This file name matches Vitest defaults (`*.test.ts`), and some CI runs may accidentally
 // execute it as a runtime test. Keep the type assertions, but ensure nothing runs at runtime.
