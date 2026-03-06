@@ -1,5 +1,14 @@
 # @cofhe/example-react
 
+## 0.3.1
+
+### Patch Changes
+
+- 370f0c7: no-op
+- Updated dependencies [370f0c7]
+  - @cofhe/react@0.3.1
+  - @cofhe/sdk@0.3.1
+
 ## 0.3.0
 
 ### Minor Changes

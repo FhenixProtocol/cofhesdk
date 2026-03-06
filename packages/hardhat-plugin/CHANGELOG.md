@@ -1,5 +1,14 @@
 # @cofhe/hardhat-plugin Changelog
 
+## 0.3.1
+
+### Patch Changes
+
+- 370f0c7: no-op
+- Updated dependencies [370f0c7]
+  - @cofhe/mock-contracts@0.3.1
+  - @cofhe/sdk@0.3.1
+
 ## 0.3.0
 
 ### Minor Changes
