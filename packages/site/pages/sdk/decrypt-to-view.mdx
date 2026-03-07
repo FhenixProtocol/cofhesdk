@@ -64,7 +64,7 @@ const maybeCtHash = await publicClient.readContract({
 });
 
 if (typeof maybeCtHash !== 'bigint' && typeof maybeCtHash !== 'string') {
-   throw new Error('Expected ctHash to be a bigint or a hex string');
+  throw new Error('Expected ctHash to be a bigint or a hex string');
 }
 
 const ctHash = maybeCtHash;
@@ -105,9 +105,11 @@ After this, `decryptForView(...).execute()` can automatically use the active per
 
 ## Decrypt for UI
 
-### Basic usage (active permit)
+Choose the pattern that matches how your app manages permits:
 
-```ts twoslash
+:::code-group
+
+```ts twoslash [Active permit]
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
 import { chains } from '@cofhe/sdk/chains';
 import { FheTypes } from '@cofhe/sdk';
@@ -134,11 +136,7 @@ const plaintext = await client
 plaintext; // ^?
 ```
 
-### Using a specific permit explicitly
-
-You can also pass a permit object (or a permit hash) explicitly. This is useful if your app manages permits outside of the “active permit” concept.
-
-```ts twoslash
+```ts twoslash [Permit object]
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
 import { chains } from '@cofhe/sdk/chains';
 import { FheTypes } from '@cofhe/sdk';
@@ -166,9 +164,7 @@ const plaintext = await client
 plaintext; // ^?
 ```
 
-Or by permit hash:
-
-```ts twoslash
+```ts twoslash [Permit hash]
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
 import { chains } from '@cofhe/sdk/chains';
 import { FheTypes } from '@cofhe/sdk';
@@ -195,6 +191,8 @@ const plaintext = await client
 plaintext; // ^?
 ```
 
+:::
+
 ## What `decryptForView` returns
 
 `decryptForView(...).execute()` resolves to an `UnsealedItem<U>`:
@@ -210,11 +208,11 @@ This means you’ll usually want to:
 
 ## After decrypting: common UI patterns
 
-### Format decrypted `bigint` values
+Pick the pattern that matches what you’re displaying:
 
-For token-like amounts, keep the value as a `bigint` and format it for display (many stablecoins use 6 decimals).
+:::code-group
 
-```ts twoslash
+```ts twoslash [Format bigint for display]
 import { formatUnits } from 'viem';
 
 declare const amount: bigint;
@@ -225,9 +223,7 @@ const display = formatUnits(amount, decimals);
 display;
 ```
 
-If you need a `number` for a UI widget, only convert after range-checking:
-
-```ts twoslash
+```ts twoslash [Bigint → number (range-check)]
 declare const amount: bigint;
 // ---cut---
 const MAX_SAFE = BigInt(Number.MAX_SAFE_INTEGER);
@@ -236,11 +232,7 @@ const asNumber = amount <= MAX_SAFE ? Number(amount) : undefined;
 asNumber;
 ```
 
-### Booleans and addresses
-
-Once decrypted, booleans and addresses are already in UI-friendly shapes:
-
-```ts twoslash
+```ts twoslash [Booleans & addresses]
 declare const decryptedIsAllowed: boolean;
 declare const decryptedOwner: `0x${string}`;
 // ---cut---
@@ -249,6 +241,8 @@ const shortOwner = `${decryptedOwner.slice(0, 6)}…${decryptedOwner.slice(-4)}`
 
 ({ statusLabel, shortOwner });
 ```
+
+:::
 
 ## Common pitfalls
 
