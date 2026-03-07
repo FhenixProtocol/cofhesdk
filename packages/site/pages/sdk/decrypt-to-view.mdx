@@ -1,5 +1,166 @@
 # Decrypting to View
 
-Decrypting to view data
+Use `decryptForView` to reveal a **confidential (encrypted)** value **locally** (in your app) so you can display it in the UI or do client-side computations.
 
-WIP
+Unlike [`decryptForTx`](./decrypt-to-tx.mdx), this flow does **not** return an on-chain-verifiable signature, and it is **not** meant to be published on-chain.
+
+The flow is as follows:
+
+1. Read the encrypted handle/hash (`ctHash`) from your contract.
+2. Ensure you have a permit that authorizes decryption of that value.
+3. Call `decryptForView(ctHash, utype).execute()` to get the plaintext.
+
+:::note
+`decryptForView` always decrypts using a permit (there is no `.withoutPermit()` mode).
+If your protocol intends for the plaintext to become publicly visible on-chain, use [`decryptForTx`](./decrypt-to-tx.mdx) instead.
+:::
+
+## Prerequisites
+
+1. Create and connect a client (see the [client page](./client.mdx)).
+
+2. Know the encrypted handle/hash (`ctHash`) and the encrypted type (`utype`).
+
+	In most apps, `ctHash` comes from reading a stored encrypted value, an event arg, or a return value from a view call.
+
+	`utype` is the FHE type of the plaintext you expect. The SDK uses it to convert the decrypted `bigint` into a convenient JS type.
+
+	Supported `utype`s for `decryptForView`:
+
+	- `FheTypes.Bool` → returns a `boolean`
+	- `FheTypes.Uint160` (address) → returns a checksummed `0x...` string
+	- `FheTypes.Uint8 | Uint16 | Uint32 | Uint64 | Uint128` → returns a `bigint`
+
+3. Have a permit available for the connected `chainId + account` (see [permits](./permits.mdx)).
+
+	If you don’t have one yet, the quickest way is to create a self permit once per account + chain.
+
+## Permit quickstart
+
+If you want a “just make it work” setup for UI decryption, do this once after connecting:
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+import { createPublicClient, createWalletClient, http } from 'viem';
+import { sepolia } from 'viem/chains';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+// ---cut---
+declare const account: `0x${string}`;
+
+const publicClient = createPublicClient({ chain: sepolia, transport: http() });
+const walletClient = createWalletClient({ chain: sepolia, transport: http(), account });
+
+await client.connect(publicClient, walletClient);
+
+// Creates a permit if needed, stores it, and selects it as the active permit.
+await client.permits.getOrCreateSelfPermit();
+```
+
+After this, `decryptForView(...).execute()` can automatically use the active permit.
+
+## Decrypt for UI
+
+### Basic usage (active permit)
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+import { FheTypes } from '@cofhe/sdk';
+import { createPublicClient, createWalletClient, http } from 'viem';
+import { sepolia } from 'viem/chains';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: bigint;
+// ---cut---
+declare const account: `0x${string}`;
+
+const publicClient = createPublicClient({ chain: sepolia, transport: http() });
+const walletClient = createWalletClient({ chain: sepolia, transport: http(), account });
+
+await client.connect(publicClient, walletClient);
+
+await client.permits.getOrCreateSelfPermit();
+
+const plaintext = await client.decryptForView(ctHash, FheTypes.Uint32).execute();
+
+plaintext; // ^?
+```
+
+### Using a specific permit explicitly
+
+You can also pass a permit object (or a permit hash) explicitly. This is useful if your app manages permits outside of the “active permit” concept.
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+import { FheTypes } from '@cofhe/sdk';
+import { createPublicClient, createWalletClient, http } from 'viem';
+import { sepolia } from 'viem/chains';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: bigint;
+// ---cut---
+declare const account: `0x${string}`;
+
+const publicClient = createPublicClient({ chain: sepolia, transport: http() });
+const walletClient = createWalletClient({ chain: sepolia, transport: http(), account });
+
+await client.connect(publicClient, walletClient);
+
+const permit = await client.permits.getOrCreateSelfPermit();
+
+const plaintext = await client.decryptForView(ctHash, FheTypes.Uint64).withPermit(permit).execute();
+
+plaintext; // ^?
+```
+
+Or by permit hash:
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+import { FheTypes } from '@cofhe/sdk';
+import { createPublicClient, createWalletClient, http } from 'viem';
+import { sepolia } from 'viem/chains';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: bigint;
+declare const permitHash: `0x${string}`;
+// ---cut---
+declare const account: `0x${string}`;
+
+const publicClient = createPublicClient({ chain: sepolia, transport: http() });
+const walletClient = createWalletClient({ chain: sepolia, transport: http(), account });
+
+await client.connect(publicClient, walletClient);
+
+const plaintext = await client.decryptForView(ctHash, FheTypes.Uint8).withPermit(permitHash).execute();
+
+plaintext; // ^?
+```
+
+## What `decryptForView` returns
+
+`decryptForView(...).execute()` resolves to an `UnsealedItem<U>`:
+
+- For uint types: a `bigint`
+- For `FheTypes.Bool`: a `boolean`
+- For `FheTypes.Uint160` (address): a checksummed address string
+
+This means you’ll usually want to:
+
+- keep it as a `bigint` and format it for display, or
+- convert to a JS `number` only if you’re sure it’s within safe range.
+
+## Common pitfalls
+
+- **Missing permit**: `decryptForView` will fail if there is no active permit for the current `chainId + account` (or if the permit you pass doesn’t authorize decrypting that ciphertext).
+- **Wrong `utype`**: you must pass the correct FHE type for the ciphertext. `Bool` and `address` are converted into `boolean` / checksummed `0x...` strings; integer types stay as `bigint`.
+- **Wrong chain/account**: permits are scoped to `chainId + account`. If the user switches wallets or networks, create/select the correct permit (or set them explicitly via `.setChainId(...)` / `.setAccount(...)`).
+
