@@ -240,12 +240,27 @@ function publishDecryptResult(euint32 ctHash, uint32 plaintext, bytes calldata s
 }
 ```
 
-```ts [TypeScript]
+```ts twoslash [TypeScript]
+// @noErrors
+import type { DecryptForTxResult } from '@cofhe/sdk';
+
+declare const decryptResult: DecryptForTxResult;
+
+declare const myContract: {
+   publishDecryptResult: (
+      ctHash: bigint | string,
+      plaintext: bigint,
+      signature: `0x${string}`,
+   ) => Promise<{ wait: () => Promise<unknown> }>;
+};
+
 const tx = await myContract.publishDecryptResult(
    decryptResult.ctHash,
    decryptResult.decryptedValue,
-   signatureBytes,
+   decryptResult.signature,
 );
+
+decryptResult; // ^?
 await tx.wait();
 ```
 
