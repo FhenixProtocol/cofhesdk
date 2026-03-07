@@ -292,7 +292,7 @@ importers:
         version: 2.26.3(ts-node@10.9.2)(typescript@5.5.4)
       viem:
         specifier: ^2.38.6
-        version: 2.38.6(typescript@5.5.4)(zod@4.1.12)
+        version: 2.38.6(typescript@5.5.4)(zod@3.22.4)
 
   packages/mock-contracts:
     dependencies:
@@ -552,6 +552,12 @@ importers:
       typescript:
         specifier: 5.5.4
         version: 5.5.4
+      viem:
+        specifier: ^2.38.6
+        version: 2.38.6(typescript@5.5.4)(zod@4.1.12)
+      zod:
+        specifier: ^4.0.0
+        version: 4.1.12
 
   packages/tsconfig: {}
 
@@ -14056,7 +14062,7 @@ packages:
       tinyglobby: 0.2.15
       ts-node: 10.9.2(@types/node@20.19.15)(typescript@5.5.4)
       tsort: 0.0.1
-      typescript: 5.9.3
+      typescript: 5.5.4
       undici: 5.29.0
       uuid: 8.3.2
       ws: 7.5.10

@@ -35,6 +35,48 @@ If your protocol intends for the plaintext to become publicly visible on-chain, 
 
    If you don’t have one yet, the quickest way is to create a self permit once per account + chain.
 
+## Reading from a contract (getting `ctHash` + `utype`)
+
+Typically, the value you want to decrypt comes from a `view` call.
+
+You already know the `utype` from your contract ABI (e.g. if the function returns `euint32`, then you pass `FheTypes.Uint32`).
+
+Then you just read the handle/hash (`ctHash`) from the contract and decrypt it:
+
+```ts twoslash
+import { type CofheClient, FheTypes } from '@cofhe/sdk';
+import { createPublicClient, http, type Address, type Abi } from 'viem';
+import { sepolia } from 'viem/chains';
+
+declare const client: CofheClient;
+declare const contractAddress: Address;
+declare const abi: Abi;
+
+const publicClient = createPublicClient({ chain: sepolia, transport: http() });
+
+// Read the encrypted handle/hash from your contract.
+// Depending on your ABI, this might come back as a `bigint` (uint-like) or a `0x...` hex string (bytes32-like).
+const maybeCtHash = await publicClient.readContract({
+  address: contractAddress,
+  abi,
+  functionName: 'myEncryptedViewFn',
+  args: [],
+});
+
+if (typeof maybeCtHash !== 'bigint' && typeof maybeCtHash !== 'string') {
+   throw new Error('Expected ctHash to be a bigint or a hex string');
+}
+
+const ctHash = maybeCtHash;
+
+// Decrypt for UI (assumes you already have an active permit).
+const plaintext = await client
+   .decryptForView(ctHash, FheTypes.Uint32)
+   .execute();
+
+plaintext; // ^?
+```
+
 ## Permit quickstart
 
 If you want a “just make it work” setup for UI decryption, do this once after connecting:
@@ -196,14 +238,14 @@ asNumber;
 
 ### Booleans and addresses
 
-Decrypted booleans and addresses are already in UI-friendly shapes:
+Once decrypted, booleans and addresses are already in UI-friendly shapes:
 
 ```ts twoslash
-declare const isAllowed: boolean;
-declare const owner: `0x${string}`;
+declare const decryptedIsAllowed: boolean;
+declare const decryptedOwner: `0x${string}`;
 // ---cut---
-const statusLabel = isAllowed ? 'Allowed' : 'Not allowed';
-const shortOwner = `${owner.slice(0, 6)}…${owner.slice(-4)}`;
+const statusLabel = decryptedIsAllowed ? 'Allowed' : 'Not allowed';
+const shortOwner = `${decryptedOwner.slice(0, 6)}…${decryptedOwner.slice(-4)}`;
 
 ({ statusLabel, shortOwner });
 ```
