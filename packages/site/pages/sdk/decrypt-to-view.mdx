@@ -1,6 +1,6 @@
 # Decrypting to View
 
-Use `decryptForView` to reveal a **confidential (encrypted)** value **locally** (in your app) so you can display it in the UI or do client-side computations.
+Use `decryptForView` to reveal a **confidential (encrypted)** value **locally** (in your app) so you can display it in the UI.
 
 Unlike [`decryptForTx`](./decrypt-to-tx.mdx), this flow does **not** return an on-chain-verifiable signature, and it is **not** meant to be published on-chain.
 
@@ -21,19 +21,19 @@ If your protocol intends for the plaintext to become publicly visible on-chain, 
 
 2. Know the encrypted handle/hash (`ctHash`) and the encrypted type (`utype`).
 
-	In most apps, `ctHash` comes from reading a stored encrypted value, an event arg, or a return value from a view call.
+   In most apps, `ctHash` comes from reading a stored encrypted value, an event arg, or a return value from a view call.
 
-	`utype` is the FHE type of the plaintext you expect. The SDK uses it to convert the decrypted `bigint` into a convenient JS type.
+   `utype` is the FHE type of the plaintext you expect. The SDK uses it to convert the decrypted `bigint` into a convenient JS type.
 
-	Supported `utype`s for `decryptForView`:
+   Supported `utype`s for `decryptForView`:
 
-	- `FheTypes.Bool` → returns a `boolean`
-	- `FheTypes.Uint160` (address) → returns a checksummed `0x...` string
-	- `FheTypes.Uint8 | Uint16 | Uint32 | Uint64 | Uint128` → returns a `bigint`
+   - `FheTypes.Bool` → returns a `boolean`
+   - `FheTypes.Uint160` (address) → returns a checksummed `0x...` string
+   - `FheTypes.Uint8 | Uint16 | Uint32 | Uint64 | Uint128` → returns a `bigint`
 
 3. Have a permit available for the connected `chainId + account` (see [permits](./permits.mdx)).
 
-	If you don’t have one yet, the quickest way is to create a self permit once per account + chain.
+   If you don’t have one yet, the quickest way is to create a self permit once per account + chain.
 
 ## Permit quickstart
 
@@ -85,7 +85,9 @@ await client.connect(publicClient, walletClient);
 
 await client.permits.getOrCreateSelfPermit();
 
-const plaintext = await client.decryptForView(ctHash, FheTypes.Uint32).execute();
+const plaintext = await client
+   .decryptForView(ctHash, FheTypes.Uint32)
+   .execute();
 
 plaintext; // ^?
 ```
@@ -114,7 +116,10 @@ await client.connect(publicClient, walletClient);
 
 const permit = await client.permits.getOrCreateSelfPermit();
 
-const plaintext = await client.decryptForView(ctHash, FheTypes.Uint64).withPermit(permit).execute();
+const plaintext = await client
+   .decryptForView(ctHash, FheTypes.Uint64)
+   .withPermit(permit)
+   .execute();
 
 plaintext; // ^?
 ```
@@ -140,7 +145,10 @@ const walletClient = createWalletClient({ chain: sepolia, transport: http(), acc
 
 await client.connect(publicClient, walletClient);
 
-const plaintext = await client.decryptForView(ctHash, FheTypes.Uint8).withPermit(permitHash).execute();
+const plaintext = await client
+   .decryptForView(ctHash, FheTypes.Uint8)
+   .withPermit(permitHash)
+   .execute();
 
 plaintext; // ^?
 ```
@@ -158,9 +166,50 @@ This means you’ll usually want to:
 - keep it as a `bigint` and format it for display, or
 - convert to a JS `number` only if you’re sure it’s within safe range.
 
+## After decrypting: common UI patterns
+
+### Format decrypted `bigint` values
+
+For token-like amounts, keep the value as a `bigint` and format it for display (many stablecoins use 6 decimals).
+
+```ts twoslash
+import { formatUnits } from 'viem';
+
+declare const amount: bigint;
+// ---cut---
+const decimals = 6;
+const display = formatUnits(amount, decimals);
+
+display;
+```
+
+If you need a `number` for a UI widget, only convert after range-checking:
+
+```ts twoslash
+declare const amount: bigint;
+// ---cut---
+const MAX_SAFE = BigInt(Number.MAX_SAFE_INTEGER);
+const asNumber = amount <= MAX_SAFE ? Number(amount) : undefined;
+
+asNumber;
+```
+
+### Booleans and addresses
+
+Decrypted booleans and addresses are already in UI-friendly shapes:
+
+```ts twoslash
+declare const isAllowed: boolean;
+declare const owner: `0x${string}`;
+// ---cut---
+const statusLabel = isAllowed ? 'Allowed' : 'Not allowed';
+const shortOwner = `${owner.slice(0, 6)}…${owner.slice(-4)}`;
+
+({ statusLabel, shortOwner });
+```
+
 ## Common pitfalls
 
 - **Missing permit**: `decryptForView` will fail if there is no active permit for the current `chainId + account` (or if the permit you pass doesn’t authorize decrypting that ciphertext).
 - **Wrong `utype`**: you must pass the correct FHE type for the ciphertext. `Bool` and `address` are converted into `boolean` / checksummed `0x...` strings; integer types stay as `bigint`.
 - **Wrong chain/account**: permits are scoped to `chainId + account`. If the user switches wallets or networks, create/select the correct permit (or set them explicitly via `.setChainId(...)` / `.setAccount(...)`).
-
