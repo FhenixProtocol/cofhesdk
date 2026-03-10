@@ -88,8 +88,12 @@ plaintext; // ^?
 ```
 
 :::note
-In most ABIs, ciphertext handles are `bytes32`, so viem returns `ctHash` as a `0x...` hex string.
-`decryptForView` accepts both `bigint` and `0x...` strings.
+Depending on your contract ABI, `ctHash` may be surfaced as either:
+
+- `bytes32` → viem returns a `0x...` hex string, or
+- `uint256` → viem returns a `bigint`.
+
+`decryptForView` accepts both `bigint` and `0x...` strings (it coerces via `BigInt(...)`).
 :::
 
 ## Permit quickstart
