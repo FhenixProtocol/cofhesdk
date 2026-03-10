@@ -1,9 +1,10 @@
 import hre from 'hardhat';
-import { CofheClient, Encryptable, FheTypes, type EncryptedItemInput } from '@cofhe/sdk';
+import { CofheClient, Encryptable, FheTypes } from '@cofhe/sdk';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { PermitUtils } from '@cofhe/sdk/permits';
 import { SimpleTest } from '../typechain-types';
+import { TASK_COFHE_MOCKS_DEPLOY } from './consts';
 
 describe('Hardhat Integration Tests', () => {
   let cofheClient: CofheClient;
@@ -12,6 +13,9 @@ describe('Hardhat Integration Tests', () => {
   let recipient: HardhatEthersSigner;
 
   before(async function () {
+    // Deploy mocks first (required for Hardhat)
+    await hre.run(TASK_COFHE_MOCKS_DEPLOY);
+
     // Get a signer
     const [tmpSigner, tmpRecipient] = await hre.ethers.getSigners();
     signer = tmpSigner;
