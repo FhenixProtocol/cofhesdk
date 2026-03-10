@@ -546,6 +546,9 @@ importers:
       '@types/react':
         specifier: latest
         version: 19.2.14
+      ethers:
+        specifier: ^6.15.0
+        version: 6.15.0
       typescript:
         specifier: 5.5.4
         version: 5.5.4
