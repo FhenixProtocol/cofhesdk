@@ -1,6 +1,7 @@
 import { type Permission } from '@/permits';
 
 import { CofheError, CofheErrorCode } from '../error.js';
+import { parseSignature, serializeSignature } from 'viem';
 
 type TnDecryptResponse = {
   // TN returns bytes in big-endian order, e.g. [0,0,0,42]
@@ -10,23 +11,7 @@ type TnDecryptResponse = {
   error_message: string | null;
 };
 
-function isTnDecryptDebugEnabled(): boolean {
-  return (
-    typeof process !== 'undefined' &&
-    // eslint-disable-next-line turbo/no-undeclared-env-vars
-    !!process.env.COFHE_DEBUG_TN_DECRYPT &&
-    // eslint-disable-next-line turbo/no-undeclared-env-vars
-    process.env.COFHE_DEBUG_TN_DECRYPT.toLowerCase() !== 'false'
-  );
-}
-
-function debugLog(label: string, payload: unknown) {
-  if (!isTnDecryptDebugEnabled()) return;
-  // eslint-disable-next-line no-console
-  console.log(label, payload);
-}
-
-function normalizeSignature(signature: unknown): string {
+function normalizeSignature(signature: unknown): `0x${string}` {
   if (typeof signature !== 'string') {
     throw new CofheError({
       code: CofheErrorCode.DecryptReturnedNull,
@@ -45,8 +30,9 @@ function normalizeSignature(signature: unknown): string {
     });
   }
 
-  // SDK uses "no-0x" signatures in mocks/tests; normalize to that format.
-  return trimmed.startsWith('0x') ? trimmed.slice(2) : trimmed;
+  const prefixed = trimmed.startsWith('0x') ? (trimmed as `0x${string}`) : (`0x${trimmed}` as `0x${string}`);
+  const parsed = parseSignature(prefixed);
+  return serializeSignature(parsed);
 }
 
 function parseDecryptedBytesToBigInt(decrypted: unknown): bigint {
@@ -143,18 +129,17 @@ function assertTnDecryptResponse(value: unknown): TnDecryptResponse {
 }
 
 export async function tnDecrypt(
-  ctHash: bigint,
+  ctHash: bigint | string,
   chainId: number,
   permission: Permission | null,
   thresholdNetworkUrl: string
-): Promise<{ decryptedValue: bigint; signature: string }> {
-  const url = `${thresholdNetworkUrl}/decrypt`;
+): Promise<{ decryptedValue: bigint; signature: `0x${string}` }> {
   const body: {
     ct_tempkey: string;
     host_chain_id: number;
     permit?: Permission;
   } = {
-    ct_tempkey: ctHash.toString(16).padStart(64, '0'),
+    ct_tempkey: BigInt(ctHash).toString(16).padStart(64, '0'),
     host_chain_id: chainId,
   };
 
@@ -162,14 +147,9 @@ export async function tnDecrypt(
     body.permit = permission;
   }
 
-  debugLog('[cofhe][tnDecrypt] request', {
-    url,
-    body,
-  });
-
   let response: Response;
   try {
-    response = await fetch(url, {
+    response = await fetch(`${thresholdNetworkUrl}/decrypt`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -190,14 +170,6 @@ export async function tnDecrypt(
   }
 
   const responseText = await response.text();
-
-  debugLog('[cofhe][tnDecrypt] response', {
-    url,
-    status: response.status,
-    statusText: response.statusText,
-    ok: response.ok,
-    responseText,
-  });
 
   // Even on non-200 responses, TN may return JSON with { error_message }.
   if (!response.ok) {

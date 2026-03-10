@@ -23,7 +23,7 @@ export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<
   const isCofheErrorActive = useIsCofheErrorActive();
 
   const { enabled: userEnabled, ...restQueryOptions } = queryOptions || {};
-  const enabled = !!input && input.ctHash > 0n && !isCofheErrorActive && !!client && (userEnabled ?? true);
+  const enabled = !!input && BigInt(input.ctHash) > 0n && !isCofheErrorActive && !!client && (userEnabled ?? true);
 
   return useInternalQuery({
     enabled,

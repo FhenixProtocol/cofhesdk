@@ -177,6 +177,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     owner = initialOwner;
     initialized = true;
     verifierSigner = address(0);
+    decryptResultSigner = address(0);
   }
 
   modifier onlyOwner() {
@@ -468,7 +469,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   /// @notice Publish a signed decrypt result to the chain
   /// @dev Anyone with a valid signature from the decrypt network can call this
   function publishDecryptResult(uint256 ctHash, uint256 result, bytes calldata signature) external {
-    _verifyDecryptResult(ctHash, result, signature);
+    _verifyDecryptResult(ctHash, result, signature, true);
     _decryptResultReady[ctHash] = true;
     _decryptResult[ctHash] = result;
 
@@ -489,24 +490,40 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     }
   }
 
-  function _verifyDecryptResult(uint256 ctHash, uint256 result, bytes calldata signature) private view {
-    if (decryptResultSigner == address(0)) revert InvalidAddress();
-    bytes32 messageHash = _computeDecryptResultHash(ctHash, result);
+  function verifyDecryptResult(uint256 ctHash, uint256 result, bytes calldata signature) external view returns (bool) {
+    return _verifyDecryptResult(ctHash, result, signature, true);
+  }
+
+  function verifyDecryptResultSafe(
+    uint256 ctHash,
+    uint256 result,
+    bytes calldata signature
+  ) external view returns (bool) {
+    return _verifyDecryptResult(ctHash, result, signature, false);
+  }
+
+  function _verifyDecryptResult(
+    uint256 ctHash,
+    uint256 result,
+    bytes calldata signature,
+    bool shouldRevert
+  ) private view returns (bool) {
+    if (decryptResultSigner == address(0)) {
+      return true;
+    }
+
+    bytes32 messageHash = keccak256(abi.encodePacked(ctHash, result));
     (address recovered, ECDSA.RecoverError err, ) = ECDSA.tryRecover(messageHash, signature);
 
     if (err != ECDSA.RecoverError.NoError || recovered == address(0)) {
-      revert InvalidSignature();
+      if (shouldRevert) revert InvalidSignature();
+      return false;
     }
-
     if (recovered != decryptResultSigner) {
-      revert InvalidSigner(recovered, decryptResultSigner);
+      if (shouldRevert) revert InvalidSigner(recovered, decryptResultSigner);
+      return false;
     }
-  }
-
-  /// @notice Format: result (32) || enc_type (4) || chain_id (8) || ct_hash (32) = 76 bytes
-  function _computeDecryptResultHash(uint256 ctHash, uint256 result) private view returns (bytes32) {
-    uint8 encryptionType = TMCommon.getUintTypeFromHash(ctHash);
-    return keccak256(abi.encodePacked(result, uint32(encryptionType), uint64(block.chainid), bytes32(ctHash)));
+    return true;
   }
 
   function verifyType(uint8 ctType, uint8 desiredType) internal pure {
@@ -584,10 +601,10 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
 
   function extractSigner(EncryptedInput memory input, address sender) private view returns (address) {
     bytes memory combined = abi.encodePacked(input.ctHash, input.utype, input.securityZone, sender, block.chainid);
-
     bytes32 expectedHash = keccak256(combined);
 
     address signer = ECDSA.recover(expectedHash, input.signature);
+
     if (signer == address(0)) {
       revert InvalidSignature();
     }
@@ -655,24 +672,5 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
 
   function isPubliclyAllowed(uint256 ctHash) external view returns (bool) {
     revert NotImplemented();
-  }
-
-  function verifyDecryptResult(uint256 ctHash, uint256 result, bytes calldata signature) external view returns (bool) {
-    // Mock implementation: verify signature using the verifier signer
-    bytes32 digest = keccak256(abi.encodePacked(result));
-    return ECDSA.recover(digest, signature) == verifierSigner;
-  }
-
-  function verifyDecryptResultSafe(
-    uint256 ctHash,
-    uint256 result,
-    bytes calldata signature
-  ) external view returns (bool) {
-    // Same as verifyDecryptResult for mock
-    try this.verifyDecryptResult(ctHash, result, signature) returns (bool valid) {
-      return valid;
-    } catch {
-      return false;
-    }
   }
 }

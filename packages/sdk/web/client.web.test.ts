@@ -136,7 +136,7 @@ describe('@cofhe/web - Client', () => {
     it('should create decrypt builder after connection', async () => {
       await cofheClient.connect(publicClient, walletClient);
 
-      const builder = cofheClient.decryptForView(123n, 2);
+      const builder = cofheClient.decryptForView('0x123', 2);
 
       expect(builder).toBeDefined();
       expect(typeof builder.setChainId).toBe('function');

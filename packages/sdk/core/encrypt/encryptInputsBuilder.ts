@@ -398,6 +398,18 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   }
 
   /**
+   * Resolves the encryptDelay config into an array of 5 per-step delays.
+   * A single number is broadcast to all steps; a tuple is used as-is.
+   */
+  private resolveEncryptDelays(): [number, number, number, number, number] {
+    const encryptDelay = this.config?.mocks?.encryptDelay ?? [100, 100, 100, 500, 500];
+    if (typeof encryptDelay === 'number') {
+      return [encryptDelay, encryptDelay, encryptDelay, encryptDelay, encryptDelay];
+    }
+    return encryptDelay;
+  }
+
+  /**
    * @dev Encrypt against the cofheMocks instead of CoFHE
    *
    * In the cofheMocks, the MockZkVerifier contract is deployed on hardhat to a fixed address, this contract handles mocking the zk verifying.
@@ -409,25 +421,36 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     this.assertPublicClient();
     this.assertWalletClient();
 
+    const [initTfheDelay, fetchKeysDelay, packDelay, proveDelay, verifyDelay] = this.resolveEncryptDelays();
+
     this.fireStepStart(EncryptStep.InitTfhe);
-    await sleep(100);
-    this.fireStepEnd(EncryptStep.InitTfhe, { tfheInitializationExecuted: false });
+    await sleep(initTfheDelay);
+    this.fireStepEnd(EncryptStep.InitTfhe, {
+      tfheInitializationExecuted: false,
+      isMocks: true,
+      mockSleep: initTfheDelay,
+    });
 
     this.fireStepStart(EncryptStep.FetchKeys);
-    await sleep(100);
-    this.fireStepEnd(EncryptStep.FetchKeys, { fheKeyFetchedFromCoFHE: false, crsFetchedFromCoFHE: false });
+    await sleep(fetchKeysDelay);
+    this.fireStepEnd(EncryptStep.FetchKeys, {
+      fheKeyFetchedFromCoFHE: false,
+      crsFetchedFromCoFHE: false,
+      isMocks: true,
+      mockSleep: fetchKeysDelay,
+    });
 
     this.fireStepStart(EncryptStep.Pack);
     await cofheMocksCheckEncryptableBits(this.inputItems);
-    await sleep(100);
-    this.fireStepEnd(EncryptStep.Pack);
+    await sleep(packDelay);
+    this.fireStepEnd(EncryptStep.Pack, { isMocks: true, mockSleep: packDelay });
 
     this.fireStepStart(EncryptStep.Prove);
-    await sleep(500);
-    this.fireStepEnd(EncryptStep.Prove);
+    await sleep(proveDelay);
+    this.fireStepEnd(EncryptStep.Prove, { isMocks: true, mockSleep: proveDelay });
 
     this.fireStepStart(EncryptStep.Verify);
-    await sleep(500);
+    await sleep(verifyDelay);
     const signedResults = await cofheMocksZkVerifySign(
       this.inputItems,
       this.account,
@@ -442,7 +465,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
       utype: this.inputItems[index].utype,
       signature,
     }));
-    this.fireStepEnd(EncryptStep.Verify);
+    this.fireStepEnd(EncryptStep.Verify, { isMocks: true, mockSleep: verifyDelay });
 
     return encryptedInputs as [...EncryptedItemInputs<T>];
   }

@@ -1,13 +1,13 @@
 import hre from 'hardhat';
 import { CofheClient, Encryptable, FheTypes, type EncryptedItemInput } from '@cofhe/sdk';
-import { TASK_COFHE_MOCKS_DEPLOY } from './consts';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { PermitUtils } from '@cofhe/sdk/permits';
+import { SimpleTest } from '../typechain-types';
 
 describe('Hardhat Integration Tests', () => {
   let cofheClient: CofheClient;
-  let testContract: any; // ethers contract instance
+  let testContract: SimpleTest;
   let signer: HardhatEthersSigner;
   let recipient: HardhatEthersSigner;
 
@@ -42,7 +42,8 @@ describe('Hardhat Integration Tests', () => {
     await tx.wait();
 
     // Decrypt the value using the ctHash from the encrypted input
-    const unsealedResult = await cofheClient.decryptForView(encrypted[0].ctHash, FheTypes.Uint32).execute();
+    const storedValue = await testContract.storedValue();
+    const unsealedResult = await cofheClient.decryptForView(storedValue, FheTypes.Uint32).execute();
 
     // Verify the decrypted value matches
     expect(unsealedResult).to.be.equal(testValue);
