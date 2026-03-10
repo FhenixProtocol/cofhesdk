@@ -20,6 +20,7 @@
     "vocs": "^1.4.1"
   },
   "devDependencies": {
+    "@cofhe/abi": "workspace:*",
     "@cofhe/sdk": "workspace:*",
     "@types/react": "latest",
     "ethers": "^6.15.0",
