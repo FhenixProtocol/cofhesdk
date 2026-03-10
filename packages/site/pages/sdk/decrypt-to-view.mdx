@@ -46,38 +46,51 @@ You already know the `utype` from your contract ABI (e.g. if the function return
 Then you just read the handle/hash (`ctHash`) from the contract and decrypt it:
 
 ```ts twoslash
-import { type CofheClient, FheTypes } from '@cofhe/sdk';
-import { createPublicClient, http, type Address, type Abi } from 'viem';
+import { transformEncryptedReturnTypes } from '@cofhe/abi';
+import { type CofheClient } from '@cofhe/sdk';
+import { createPublicClient, http, type Address } from 'viem';
 import { sepolia } from 'viem/chains';
 
 declare const client: CofheClient;
 declare const contractAddress: Address;
-declare const abi: Abi;
+
+const abi = [
+  {
+    type: 'function',
+    name: 'myEncryptedViewFn',
+    stateMutability: 'view',
+    inputs: [],
+    // CoFHE encrypted return values are surfaced as primitives with an `internalType`.
+    // Here, `euint32` is represented as a `bytes32` ciphertext handle.
+    outputs: [{ name: '', type: 'bytes32', internalType: 'euint32' }],
+  },
+] as const;
 
 const publicClient = createPublicClient({ chain: sepolia, transport: http() });
 
 // Read the encrypted handle/hash from your contract.
-// Depending on your ABI, this might come back as a `bigint` (uint-like) or a `0x...` hex string (bytes32-like).
-const maybeCtHash = await publicClient.readContract({
+const raw = await publicClient.readContract({
   address: contractAddress,
   abi,
   functionName: 'myEncryptedViewFn',
   args: [],
 });
 
-if (typeof maybeCtHash !== 'bigint' && typeof maybeCtHash !== 'string') {
-  throw new Error('Expected ctHash to be a bigint or a hex string');
-}
-
-const ctHash = maybeCtHash;
+// Convert the raw `bytes32` into a typed encrypted return value: `{ ctHash, utype }`.
+const encrypted = transformEncryptedReturnTypes(abi, 'myEncryptedViewFn', raw);
 
 // Decrypt for UI (assumes you already have an active permit).
 const plaintext = await client
-   .decryptForView(ctHash, FheTypes.Uint32)
-   .execute();
+  .decryptForView(encrypted.ctHash, encrypted.utype)
+  .execute();
 
 plaintext; // ^?
 ```
+
+:::note
+In most ABIs, ciphertext handles are `bytes32`, so viem returns `ctHash` as a `0x...` hex string.
+`decryptForView` accepts both `bigint` and `0x...` strings.
+:::
 
 ## Permit quickstart
 
@@ -91,8 +104,8 @@ import { sepolia } from 'viem/chains';
 
 const config = createCofheConfig({ supportedChains: [chains.sepolia] });
 const client = createCofheClient(config);
-// ---cut---
 declare const account: `0x${string}`;
+// ---cut---
 
 const publicClient = createPublicClient({ chain: sepolia, transport: http() });
 const walletClient = createWalletClient({ chain: sepolia, transport: http(), account });
@@ -120,9 +133,9 @@ import { sepolia } from 'viem/chains';
 
 const config = createCofheConfig({ supportedChains: [chains.sepolia] });
 const client = createCofheClient(config);
-declare const ctHash: bigint;
-// ---cut---
+declare const ctHash: `0x${string}`;
 declare const account: `0x${string}`;
+// ---cut---
 
 const publicClient = createPublicClient({ chain: sepolia, transport: http() });
 const walletClient = createWalletClient({ chain: sepolia, transport: http(), account });
@@ -132,8 +145,8 @@ await client.connect(publicClient, walletClient);
 await client.permits.getOrCreateSelfPermit();
 
 const plaintext = await client
-   .decryptForView(ctHash, FheTypes.Uint32)
-   .execute();
+  .decryptForView(ctHash, FheTypes.Uint32)
+  .execute();
 
 plaintext; // ^?
 ```
@@ -147,9 +160,9 @@ import { sepolia } from 'viem/chains';
 
 const config = createCofheConfig({ supportedChains: [chains.sepolia] });
 const client = createCofheClient(config);
-declare const ctHash: bigint;
-// ---cut---
+declare const ctHash: `0x${string}`;
 declare const account: `0x${string}`;
+// ---cut---
 
 const publicClient = createPublicClient({ chain: sepolia, transport: http() });
 const walletClient = createWalletClient({ chain: sepolia, transport: http(), account });
@@ -159,9 +172,9 @@ await client.connect(publicClient, walletClient);
 const permit = await client.permits.getOrCreateSelfPermit();
 
 const plaintext = await client
-   .decryptForView(ctHash, FheTypes.Uint64)
-   .withPermit(permit)
-   .execute();
+  .decryptForView(ctHash, FheTypes.Uint64)
+  .withPermit(permit)
+  .execute();
 
 plaintext; // ^?
 ```
@@ -175,10 +188,10 @@ import { sepolia } from 'viem/chains';
 
 const config = createCofheConfig({ supportedChains: [chains.sepolia] });
 const client = createCofheClient(config);
-declare const ctHash: bigint;
+declare const ctHash: `0x${string}`;
 declare const permitHash: `0x${string}`;
-// ---cut---
 declare const account: `0x${string}`;
+// ---cut---
 
 const publicClient = createPublicClient({ chain: sepolia, transport: http() });
 const walletClient = createWalletClient({ chain: sepolia, transport: http(), account });
@@ -186,9 +199,9 @@ const walletClient = createWalletClient({ chain: sepolia, transport: http(), acc
 await client.connect(publicClient, walletClient);
 
 const plaintext = await client
-   .decryptForView(ctHash, FheTypes.Uint8)
-   .withPermit(permitHash)
-   .execute();
+  .decryptForView(ctHash, FheTypes.Uint8)
+  .withPermit(permitHash)
+  .execute();
 
 plaintext; // ^?
 ```
