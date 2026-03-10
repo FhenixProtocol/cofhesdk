@@ -1,5 +1,4 @@
 import hre from 'hardhat';
-import { TASK_COFHE_MOCKS_DEPLOY } from './consts';
 import { FheTypes } from '@cofhe/sdk';
 import { expect } from 'chai';
 

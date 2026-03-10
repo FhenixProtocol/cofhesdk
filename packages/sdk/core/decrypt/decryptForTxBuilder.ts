@@ -8,7 +8,7 @@ import { CofheError, CofheErrorCode } from '../error.js';
 import { permits } from '../permits.js';
 import { BaseBuilder, type BaseBuilderParams } from '../baseBuilder.js';
 import { cofheMocksDecryptForTx } from './cofheMocksDecryptForTx.js';
-import { getPublicClientChainID } from '../utils.js';
+import { getPublicClientChainID, sleep } from '../utils.js';
 import { tnDecrypt } from './tnDecrypt.js';
 
 /**
@@ -36,13 +36,13 @@ import { tnDecrypt } from './tnDecrypt.js';
 type DecryptForTxPermitSelection = 'unset' | 'with-permit' | 'without-permit';
 
 type DecryptForTxBuilderParams = BaseBuilderParams & {
-  ctHash: bigint;
+  ctHash: bigint | string;
 };
 
 export type DecryptForTxResult = {
-  ctHash: bigint;
+  ctHash: bigint | string;
   decryptedValue: bigint;
-  signature: string; // Threshold network signature for publishDecryptResult
+  signature: `0x${string}`; // Threshold network signature for publishDecryptResult
 };
 
 /**
@@ -56,7 +56,7 @@ export type DecryptForTxBuilderUnset = Omit<DecryptForTxBuilder, 'execute'>;
 export type DecryptForTxBuilderSelected = Omit<DecryptForTxBuilder, 'withPermit' | 'withoutPermit'>;
 
 export class DecryptForTxBuilder extends BaseBuilder {
-  private ctHash: bigint;
+  private ctHash: bigint | string;
   private permitHash?: string;
   private permit?: Permit;
   private permitSelection: DecryptForTxPermitSelection = 'unset';
@@ -271,8 +271,13 @@ export class DecryptForTxBuilder extends BaseBuilder {
   private async mocksDecryptForTx(permit: Permit | null): Promise<DecryptForTxResult> {
     this.assertPublicClient();
 
+    // Configurable delay before decrypting to simulate the CoFHE decrypt processing time
+    // Recommended 1000ms on web
+    // Recommended 0ms on hardhat (will be called during tests no need for fake delay)
     const delay = this.config.mocks.decryptDelay;
-    const result = await cofheMocksDecryptForTx(this.ctHash, 0 as FheTypes, permit, this.publicClient, delay);
+    if (delay > 0) await sleep(delay);
+
+    const result = await cofheMocksDecryptForTx(this.ctHash, 0 as FheTypes, permit, this.publicClient);
     return result;
   }
 
