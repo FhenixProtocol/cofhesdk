@@ -1,6 +1,6 @@
 import { type HardhatRuntimeEnvironment } from 'hardhat/types';
 import chalk from 'chalk';
-import { Contract } from 'ethers';
+import { Contract, Wallet } from 'ethers';
 
 import {
   MockTaskManagerArtifact,
@@ -10,7 +10,12 @@ import {
   TestBedArtifact,
 } from '@cofhe/mock-contracts';
 
-import { TASK_MANAGER_ADDRESS, MOCKS_ZK_VERIFIER_SIGNER_ADDRESS } from '@cofhe/sdk';
+import {
+  TASK_MANAGER_ADDRESS,
+  MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
+  MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY,
+  MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY,
+} from '@cofhe/sdk';
 import { deployMockContractFromArtifact } from './utils';
 
 // Deployment
@@ -52,6 +57,12 @@ export const deployMocks = async (
 
   await linkTaskManagerAndACL(taskManager, acl);
   logSuccess('ACL address set in TaskManager', 2);
+
+  await setVerifierSigner(taskManager);
+  logSuccess('Verifier signer set', 2);
+
+  await setDecryptResultSigner(taskManager);
+  logSuccess('Decrypt result signer set', 2);
 
   await fundZkVerifierSigner(hre);
   logSuccess(`ZkVerifier signer (${MOCKS_ZK_VERIFIER_SIGNER_ADDRESS}) funded`, 1);
@@ -141,6 +152,18 @@ const linkTaskManagerAndACL = async (taskManager: Contract, acl: Contract) => {
   const aclAddress = await acl.getAddress();
   const linkAclTx = await taskManager.setACLContract(aclAddress);
   await linkAclTx.wait();
+};
+
+const setVerifierSigner = async (taskManager: Contract) => {
+  const signer = new Wallet(MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY);
+  const setSignerTx = await taskManager.setVerifierSigner(signer.address);
+  await setSignerTx.wait();
+};
+
+const setDecryptResultSigner = async (taskManager: Contract) => {
+  const signer = new Wallet(MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY);
+  const setSignerTx = await taskManager.setDecryptResultSigner(signer.address);
+  await setSignerTx.wait();
 };
 
 const deployMockZkVerifier = async (hre: HardhatRuntimeEnvironment) => {

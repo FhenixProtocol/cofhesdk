@@ -1,6 +1,6 @@
 import { type PublicClient, type WalletClient } from 'viem';
 import { CofheError, CofheErrorCode } from './error.js';
-import { Encryptable, FheTypes } from './types.js';
+import { FheTypes } from './types.js';
 
 export const toHexString = (bytes: Uint8Array) =>
   bytes.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
