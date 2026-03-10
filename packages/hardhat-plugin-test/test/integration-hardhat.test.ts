@@ -4,6 +4,7 @@ import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { PermitUtils } from '@cofhe/sdk/permits';
 import { SimpleTest } from '../typechain-types';
+import { TASK_COFHE_MOCKS_DEPLOY } from './consts';
 
 describe('Hardhat Integration Tests', () => {
   let cofheClient: CofheClient;
