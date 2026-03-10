@@ -6,7 +6,10 @@ The flow is as follows:
 
 1. Call `decryptForTx(ctHash)` with the encrypted handle/hash you want to reveal.
 2. Receive the plaintext value and a Threshold Network signature that binds that plaintext to `ctHash`.
-3. Submit an on-chain transaction calling `FHE.publishDecryptResult(ctHash, plaintext, signature)`.
+3. Submit an on-chain transaction that either:
+
+   - publishes the result via `FHE.publishDecryptResult(ctHash, plaintext, signature)`, or
+   - verifies the result inside your contract via `FHE.verifyDecryptResult(ctHash, plaintext, signature)` (common for “unshield” style flows).
 
 Common examples:
 
@@ -23,7 +26,11 @@ If you only need to show plaintext in your UI (and you do **not** need an on-cha
 
 2. Know the **on-chain** encrypted handle/hash (`ctHash`) you want to decrypt.
 
-   In most apps, you get `ctHash` by reading it from your contract (e.g. a stored encrypted value, an event arg, or a return value from a view call). In JavaScript/TypeScript this handle is represented as a `bigint`.
+   In most apps, you get `ctHash` by reading it from your contract (e.g. a stored encrypted value, an event arg, or a return value from a view call).
+
+   - On-chain, `ctHash` is represented as a `bytes32`.
+   - In JavaScript/TypeScript, libraries like Viem will typically give you a hex string (`0x${string}`).
+   - The SDK accepts either a hex string or a `bigint`.
 
 3. Determine whether the contract-level ACL policy for this specific `ctHash` requires a permit (see [permits](./permits.mdx)).
 
@@ -151,9 +158,9 @@ flowchart TD
 
 `decryptForTx(...).execute()` resolves to an object with:
 
-- `ctHash: bigint` — the ciphertext handle you decrypted
+- `ctHash: bigint | string` — the ciphertext handle you decrypted (either a `bigint` or a `0x...` hex string)
 - `decryptedValue: bigint` — the plaintext value (always a `bigint`, even if the underlying type is e.g. `uint32`)
-- `signature: string` — the Threshold Network signature as **hex string with `0x`**
+- `signature`: `0x${string}` — the Threshold Network signature as a hex string with `0x`
 
 You’ll typically pass `decryptedValue` and `signature` directly into your transaction.
 
@@ -167,7 +174,7 @@ import { chains } from '@cofhe/sdk/chains';
 
 const config = createCofheConfig({ supportedChains: [chains.sepolia] });
 const client = createCofheClient(config);
-declare const ctHash: bigint;
+declare const ctHash: `0x${string}`;
 // ---cut---
 const decryptResult = await client
    .decryptForTx(ctHash)
@@ -189,7 +196,7 @@ import { chains } from '@cofhe/sdk/chains';
 
 const config = createCofheConfig({ supportedChains: [chains.sepolia] });
 const client = createCofheClient(config);
-declare const ctHash: bigint;
+declare const ctHash: `0x${string}`;
 // ---cut---
 const decryptResult = await client
    .decryptForTx(ctHash)
@@ -207,7 +214,7 @@ import { chains } from '@cofhe/sdk/chains';
 
 const config = createCofheConfig({ supportedChains: [chains.sepolia] });
 const client = createCofheClient(config);
-declare const ctHash: bigint;
+declare const ctHash: `0x${string}`;
 // ---cut---
 const permit = await client.permits.getOrCreateSelfPermit();
 
@@ -241,9 +248,27 @@ function publishDecryptResult(euint32 ctHash, uint32 plaintext, bytes calldata s
 ```
 
 ```ts
-
-const tx = await myContract.publishDecryptResult(decryptResult.ctHash, decryptResult.decryptedValue, signatureBytes);
+const tx = await myContract.publishDecryptResult(
+  decryptResult.ctHash,
+  decryptResult.decryptedValue,
+  decryptResult.signature
+);
 await tx.wait();
+```
+
+## Verify a decrypt result signature (without publishing)
+
+Some protocols don’t need (or don’t want) to publish the decrypt result globally — they only need to verify that the provided plaintext and signature match a specific `ctHash`.
+
+For example, an “unshield” flow can accept `(ctHash, plaintext, signature)` and only proceed if the signature is valid:
+
+```solidity
+import '@fhenixprotocol/cofhe-contracts/FHE.sol';
+
+function unshield(bytes32 ctHash, uint32 plaintext, bytes calldata signature) external {
+   require(FHE.verifyDecryptResult(ctHash, plaintext, signature), 'Invalid decrypt signature');
+   // ...continue with protocol logic...
+}
 ```
 
 :::note
