@@ -70,8 +70,8 @@ Below are two equivalent ways to read an encrypted return value from a predeploy
 :::note
 Depending on your contract ABI, `ctHash` may be surfaced as either:
 
-- `bytes32` → viem returns a `0x...` hex string, or
-- `uint256` → viem returns a `bigint`.
+- `bytes32` → returned as a `0x...` hex string (both viem and ethers)
+- `uint256` → returned as a `bigint` (viem and ethers v6; ethers v5 returns a `BigNumber`)
 
 `decryptForView` accepts both `bigint` and `0x...` strings (it coerces via `BigInt(...)`).
 :::
