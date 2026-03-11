@@ -28,11 +28,15 @@ If you only need to show plaintext in your UI (and you do **not** need an on-cha
 
    In most apps, you get `ctHash` by reading it from your contract (e.g. a stored encrypted value, an event arg, or a return value from a view call).
 
+   :::tip
    - On-chain, `ctHash` is represented as a `bytes32`.
    - In JavaScript/TypeScript, libraries like Viem will typically give you a hex string (`0x${string}`).
    - The SDK accepts either a hex string or a `bigint`.
+   :::
 
-   Note: `decryptForTx` does not take a `utype`. It always returns the plaintext as a `bigint` because the result is intended to be passed into a transaction (your contract decides whether that `bigint` is interpreted as `uint32`, `uint64`, etc). If you need UI-friendly decoding (e.g. `boolean` or address formatting), use [`decryptForView`](./decrypt-to-view.mdx).
+   :::note
+   `decryptForTx` does not take a `utype`. It always returns the plaintext as a `bigint` because the result is intended to be passed into a transaction (your contract decides whether that `bigint` is interpreted as `uint32`, `uint64`, etc). If you need UI-friendly decoding (e.g. `boolean` or address formatting), use [`decryptForView`](./decrypt-to-view.mdx).
+   :::
 
 3. Determine whether the contract-level ACL policy for this specific `ctHash` requires a permit (see [permits](./permits.mdx)).
 
