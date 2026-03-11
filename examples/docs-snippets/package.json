@@ -1,0 +1,16 @@
+{
+  "name": "@cofhe/docs-snippets",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "decrypt-to-view:ethers": "node run-snippet.mjs decrypt-to-view/ethers.ts",
+    "decrypt-to-view:viem": "node run-snippet.mjs decrypt-to-view/viem.ts"
+  },
+  "devDependencies": {
+    "@cofhe/abi": "workspace:*",
+    "ethers": "^6.15.0",
+    "tsx": "^4.20.5",
+    "viem": "^2.38.6"
+  }
+}

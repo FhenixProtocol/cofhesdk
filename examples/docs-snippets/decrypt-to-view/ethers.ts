@@ -1,15 +1,17 @@
 // [!region docs-snippet]
 import { transformEncryptedReturnTypes } from '@cofhe/abi';
-import { BrowserProvider, Contract } from 'ethers';
+import { Contract, JsonRpcProvider } from 'ethers';
 
 // Predeployed test contract on Sepolia.
 const contractAddress = '0xbD0C2095d3C10782369547fd4C1644fEC7A82d36' as const;
-
-declare const ethereum: unknown;
+const rpcUrl =
+  (globalThis as any).process?.env?.SEPOLIA_RPC_URL ??
+  (globalThis as any).process?.env?.RPC_URL ??
+  'https://rpc.sepolia.org';
 // ---cut---
 
 // Ethers: provider + contract call
-const provider = new BrowserProvider(ethereum as any);
+const provider = new JsonRpcProvider(rpcUrl);
 
 const abi = [
   {
@@ -32,3 +34,6 @@ const encrypted = transformEncryptedReturnTypes(abi, 'getValue', raw);
 encrypted.ctHash; // ^?
 encrypted.utype; // ^?
 // [!endregion docs-snippet]
+
+console.log('ctHash:', encrypted.ctHash);
+console.log('utype:', encrypted.utype);
