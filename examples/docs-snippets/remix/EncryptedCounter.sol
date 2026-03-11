@@ -3,21 +3,20 @@
 // [!region docs-snippet]
 pragma solidity ^0.8.28;
 
-import '@fhenixprotocol/cofhe-contracts/FHE.sol';
+// Remix-friendly import: pulls the CoFHE contracts from npm CDN.
+// Remix can resolve nested imports (including @openzeppelin) when fetching remote sources.
+import 'https://unpkg.com/@fhenixprotocol/cofhe-contracts@0.1.0/FHE.sol';
 
 /// @title EncryptedCounter
 /// @notice Minimal encrypted counter used for docs + runnable examples.
-/// @dev This contract calls `FHE.allowPublic` so the encrypted value can be decrypted by anyone.
+/// @dev Calls `FHE.allowPublic` so the encrypted value can be decrypted by anyone.
 ///      Use this pattern only for demo/public data.
 contract EncryptedCounter {
   euint32 private _value;
 
   constructor(uint32 initialValue) {
     _value = FHE.asEuint32(initialValue);
-    FHE.allowThis(_value);
-    FHE.allowSender(_value);
-    // Makes `_value` publicly decryptable (anyone can decrypt the handle).
-    FHE.allowPublic(_value);
+    _allow(_value);
   }
 
   /// @notice Returns an encrypted handle (ctHash) for `_value`.
@@ -27,9 +26,13 @@ contract EncryptedCounter {
 
   function increment() external {
     _value = FHE.add(_value, FHE.asEuint32(1));
-    FHE.allowThis(_value);
-    FHE.allowSender(_value);
-    FHE.allowPublic(_value);
+    _allow(_value);
+  }
+
+  function _allow(euint32 v) internal {
+    FHE.allowThis(v);
+    FHE.allowSender(v);
+    FHE.allowPublic(v);
   }
 }
 // [!endregion docs-snippet]

@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "decrypt-to-view:ethers": "node run-snippet.mjs decrypt-to-view/ethers.ts",
-    "decrypt-to-view:viem": "node run-snippet.mjs decrypt-to-view/viem.ts"
+    "decrypt-to-view:viem": "node run-snippet.mjs decrypt-to-view/viem.ts",
+    "remix:encrypted-counter": "node remix/open-encrypted-counter.mjs"
   },
   "devDependencies": {
     "@cofhe/abi": "workspace:*",

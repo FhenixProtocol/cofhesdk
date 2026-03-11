@@ -266,9 +266,6 @@ importers:
 
   packages/hardhat-plugin-test:
     devDependencies:
-      '@cofhe/abi':
-        specifier: workspace:*
-        version: link:../abi
       '@cofhe/hardhat-plugin':
         specifier: workspace:*
         version: link:../hardhat-plugin

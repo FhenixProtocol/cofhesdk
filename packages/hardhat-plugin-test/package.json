@@ -5,9 +5,6 @@
     "test": "npx hardhat test",
     "test:integration": "COFHE_SKIP_MOCKS_DEPLOY=1 npx hardhat test test/integration-*.test.ts",
     "compile": "npx hardhat compile",
-    "deploy:sepolia": "npx hardhat run scripts/deploy-encrypted-counter.ts --network sepolia",
-    "write:sepolia": "npx hardhat run scripts/write-encrypted-counter.ts --network sepolia",
-    "read:sepolia": "npx hardhat run scripts/read-encrypted-counter.ts --network sepolia",
     "clean": "npx hardhat clean"
   },
   "devDependencies": {
@@ -16,7 +13,6 @@
     "ethers": "^6.0.0",
     "ethers6": "npm:ethers@^6.13.0",
     "hardhat": "^2.26.3",
-    "@cofhe/abi": "workspace:*",
     "@cofhe/sdk": "workspace:*",
     "@cofhe/hardhat-plugin": "workspace:*",
     "@cofhe/mock-contracts": "workspace:*",
