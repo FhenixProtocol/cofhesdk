@@ -253,7 +253,7 @@ function publishDecryptResult(euint32 ctHash, uint32 plaintext, bytes calldata s
 }
 ```
 
-```ts
+```ts [TypeScript]
 const tx = await myContract.publishDecryptResult(
   decryptResult.ctHash,
   decryptResult.decryptedValue,
@@ -261,6 +261,7 @@ const tx = await myContract.publishDecryptResult(
 );
 await tx.wait();
 ```
+::: 
 
 ## Verify a decrypt result signature (without publishing)
 
