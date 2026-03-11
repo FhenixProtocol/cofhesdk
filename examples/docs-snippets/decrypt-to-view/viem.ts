@@ -9,7 +9,7 @@ const rpcUrl =
   'https://rpc.sepolia.org';
 
 // Predeployed test contract on Sepolia.
-const contractAddress = '0xbD0C2095d3C10782369547fd4C1644fEC7A82d36' as const;
+const contractAddress = '0x9e599dA5c7BA756641bA59DbecCc394CEdFC19f0' as const;
 
 // ---cut---
 
