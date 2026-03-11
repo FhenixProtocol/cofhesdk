@@ -3,7 +3,7 @@ import { CofheClient, Encryptable } from '@cofhe/sdk';
 import { createCofheClient, createCofheConfig } from '@cofhe/sdk/node';
 import { Ethers6Adapter } from '@cofhe/sdk/adapters';
 import { expect } from 'chai';
-import { JsonRpcProvider, Signature, Wallet } from 'ethers';
+import { JsonRpcProvider, NonceManager, Signature, Wallet } from 'ethers';
 import * as ethers6 from 'ethers6';
 import { SimpleTest, SimpleTest__factory } from '../typechain-types';
 
@@ -104,7 +104,7 @@ const DESCRIBE_CHAIN_SUFFIX = ENV_CHAIN_ID ? ` (chainId=${ENV_CHAIN_ID})` : '';
 describe(`DecryptForTx + PublishDecryptResult (chain-agnostic)${DESCRIBE_CHAIN_SUFFIX}`, () => {
   let cofheClient: CofheClient;
   let testContract: SimpleTest;
-  let chainSigner: Wallet;
+  let chainSigner: NonceManager;
   let selectedChain: SupportedTestChain;
   let selectedChainId: number;
 
@@ -164,7 +164,11 @@ describe(`DecryptForTx + PublishDecryptResult (chain-agnostic)${DESCRIBE_CHAIN_S
     const adapterWallet = new ethers6.Wallet(TEST_PRIVATE_KEY as `0x${string}`, adapterProvider);
 
     const contractProvider = new JsonRpcProvider(rpcUrl);
-    chainSigner = new Wallet(TEST_PRIVATE_KEY as `0x${string}`, contractProvider);
+    // IMPORTANT: use a NonceManager so we always use the pending nonce.
+    // This prevents intermittent "nonce too low" / "nonce already used" issues on
+    // reruns when a previous run left a tx pending or when multiple txs are sent quickly.
+    const baseWallet = new Wallet(TEST_PRIVATE_KEY as `0x${string}`, contractProvider);
+    chainSigner = new NonceManager(baseWallet);
     console.log(`Using account: ${await chainSigner.getAddress()}`);
 
     const balance = await adapterProvider.getBalance(await adapterWallet.getAddress());
