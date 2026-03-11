@@ -33,5 +33,3 @@ SEPOLIA_RPC_URL=https://your-sepolia-rpc pnpm -C examples/docs-snippets decrypt-
 Open the `EncryptedCounter` contract directly in Remix (and deploy from there):
 
 - `pnpm -C examples/docs-snippets remix:encrypted-counter`
-
-

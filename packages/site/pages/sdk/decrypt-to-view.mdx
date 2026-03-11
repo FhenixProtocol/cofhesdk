@@ -132,7 +132,9 @@ await client.connect(publicClient, walletClient);
 
 await client.permits.getOrCreateSelfPermit();
 
-const plaintext = await client.decryptForView(ctHash, FheTypes.Uint32).execute();
+const plaintext = await client
+  .decryptForView(ctHash, FheTypes.Uint32)
+  .execute();
 
 plaintext; // ^?
 ```
@@ -157,7 +159,10 @@ await client.connect(publicClient, walletClient);
 
 const permit = await client.permits.getOrCreateSelfPermit();
 
-const plaintext = await client.decryptForView(ctHash, FheTypes.Uint64).withPermit(permit).execute();
+const plaintext = await client
+  .decryptForView(ctHash, FheTypes.Uint64)
+  .withPermit(permit)
+  .execute();
 
 plaintext; // ^?
 ```
@@ -181,7 +186,10 @@ const walletClient = createWalletClient({ chain: sepolia, transport: http(), acc
 
 await client.connect(publicClient, walletClient);
 
-const plaintext = await client.decryptForView(ctHash, FheTypes.Uint8).withPermit(permitHash).execute();
+const plaintext = await client
+  .decryptForView(ctHash, FheTypes.Uint8)
+  .withPermit(permitHash)
+  .execute();
 
 plaintext; // ^?
 ```
