@@ -8,7 +8,7 @@ The flow is as follows:
 
 1. Read the encrypted handle/hash (`ctHash`) from your contract.
 2. Ensure you have a permit that authorizes decryption of that value.
-3. Call `decryptForView(ctHash, utype).execute()` to get the plaintext.
+3. Call `decryptForView(ctHash, utype)` and then run `.execute()` to get the plaintext.
 
 :::note
 `decryptForView` always decrypts using a permit (there is no `.withoutPermit()` mode).
@@ -104,7 +104,7 @@ await client.connect(publicClient, walletClient);
 await client.permits.getOrCreateSelfPermit();
 ```
 
-After this, `decryptForView(...).execute()` can automatically use the active permit.
+After this, `decryptForView(...)` can automatically use the active permit when you run `.execute()`.
 
 ## Decrypt for UI
 
@@ -198,7 +198,7 @@ plaintext; // ^?
 
 ## What `decryptForView` returns
 
-`decryptForView(...).execute()` resolves to an `UnsealedItem<U>`:
+Running `.execute()` on `decryptForView(...)` resolves to an `UnsealedItem<U>`:
 
 - For uint types: a `bigint`
 - For `FheTypes.Bool`: a `boolean`
