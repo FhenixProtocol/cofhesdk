@@ -55,6 +55,16 @@ You already know the `utype` from your contract ABI (e.g. if the function return
 
 Then you just read the handle/hash (`ctHash`) from the contract and decrypt it.
 
+### Try it online
+
+- [Open the contract in Remix](https://remix.ethereum.org/#url=https://raw.githubusercontent.com/FhenixProtocol/cofhesdk/master/examples/remix/EncryptedCounter.sol)
+- [Run the TypeScript demo on StackBlitz](https://stackblitz.com/github/FhenixProtocol/cofhesdk/tree/master/examples/stackblitz/decrypt-to-view?file=src/main.ts)
+
+:::note
+The StackBlitz demo expects a `VITE_TEST_PRIVATE_KEY` in a `.env` file and uses it in the browser.
+Use a throwaway key.
+:::
+
 For a **copy/paste runnable** example, we ship a minimal encrypted counter contract and scripts in the repo:
 
 - Write (increment): `pnpm -C packages/hardhat-plugin-test write:sepolia`
