@@ -28,9 +28,12 @@ In most apps, `ctHash` comes from reading a stored encrypted value, an event arg
 :::
 
 :::tip
-**Choosing `utype` (UI-friendly decoding)**
+**Providing `utype` (required; not arbitrary)**
 
-`utype` is the FHE type of the plaintext you expect. The SDK uses it to convert the decrypted `bigint` into a convenient JS type so you can display it.
+`utype` must match the ciphertext’s underlying FHE type (it’s not a “pick whatever you want” parameter).
+The SDK uses it to convert the decrypted `bigint` into a convenient JS type so you can display it.
+
+In many apps you can **derive `{ ctHash, utype }` from the contract ABI** using `@cofhe/abi` (see the snippets below). If you only have a raw `ctHash` (e.g. from storage/event logs), you must still know which encrypted type it corresponds to.
 
 Supported `utype`s for `decryptForView`:
 
@@ -74,6 +77,7 @@ Depending on your contract ABI, `ctHash` may be surfaced as either:
 - `uint256` → returned as a `bigint` (viem and ethers v6; ethers v5 returns a `BigNumber`)
 
 `decryptForView` accepts both `bigint` and `0x...` strings (it coerces via `BigInt(...)`).
+If you’re on ethers v5 and you get a `BigNumber`, convert it first (e.g. `BigInt(bn.toString())`).
 :::
 
 ## Permit quickstart
