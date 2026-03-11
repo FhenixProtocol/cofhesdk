@@ -21,17 +21,27 @@ If your protocol intends for the plaintext to become publicly visible on-chain, 
 
 2. Know the encrypted handle/hash (`ctHash`) and the encrypted type (`utype`).
 
-   In most apps, `ctHash` comes from reading a stored encrypted value, an event arg, or a return value from a view call.
+:::tip
+**Getting `ctHash`**
 
-   `utype` is the FHE type of the plaintext you expect. The SDK uses it to convert the decrypted `bigint` into a convenient JS type (e.g. `boolean` / checksummed address) so you can display it.
+In most apps, `ctHash` comes from reading a stored encrypted value, an event arg, or a return value from a `view` call.
+:::
 
-   This is why `decryptForView` requires `utype`, but `decryptForTx` does not: tx decryption is meant for on-chain publishing and returns a raw `bigint` plaintext + signature.
+:::tip
+**Choosing `utype` (UI-friendly decoding)**
 
-   Supported `utype`s for `decryptForView`:
+`utype` is the FHE type of the plaintext you expect. The SDK uses it to convert the decrypted `bigint` into a convenient JS type so you can display it.
 
-   - `FheTypes.Bool` → returns a `boolean`
-   - `FheTypes.Uint160` (address) → returns a checksummed `0x...` string
-   - `FheTypes.Uint8 | Uint16 | Uint32 | Uint64 | Uint128` → returns a `bigint`
+Supported `utype`s for `decryptForView`:
+
+- `FheTypes.Bool` → returns a `boolean`
+- `FheTypes.Uint160` (address) → returns a checksummed `0x...` string
+- `FheTypes.Uint8 | Uint16 | Uint32 | Uint64 | Uint128` → returns a `bigint`
+  :::
+
+:::note
+This is why `decryptForView` requires `utype`, but `decryptForTx` does not: tx decryption is meant for on-chain publishing and returns a raw `bigint` plaintext + signature.
+:::
 
 3. Have a permit available for the connected `chainId + account` (see [permits](./permits.mdx)).
 
