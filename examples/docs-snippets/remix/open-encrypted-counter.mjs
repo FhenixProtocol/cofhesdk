@@ -91,10 +91,25 @@ async function main() {
     const remoteUrl = execOrNull('git', ['-C', repoRoot, 'config', '--get', 'remote.origin.url']);
     const gh = parseGitHubRemote(remoteUrl);
 
-    const defaultRef = execOrNull('git', ['-C', repoRoot, 'rev-parse', 'HEAD']) ?? 'master';
+    const pathInRepo = 'examples/docs-snippets/remix/EncryptedCounter.sol';
+
+    // Prefer a commit SHA that is very likely to exist on GitHub:
+    // the last commit that touched the file (rather than current HEAD).
+    // This avoids "Remix opens but file doesn't load" when HEAD isn't pushed.
+    const lastFileCommit = execOrNull('git', ['-C', repoRoot, 'log', '-n', '1', '--format=%H', '--', pathInRepo]);
+    const headCommit = execOrNull('git', ['-C', repoRoot, 'rev-parse', 'HEAD']);
+    const defaultRef = lastFileCommit ?? headCommit ?? 'master';
     const ref = process.env.REMIX_REF ?? refArg ?? defaultRef;
 
-    const pathInRepo = 'examples/docs-snippets/remix/EncryptedCounter.sol';
+    if (!refArg && !process.env.REMIX_REF) {
+      const status = execOrNull('git', ['-C', repoRoot, 'status', '--porcelain', '--', pathInRepo]);
+      if (status) {
+        console.warn(
+          '[remix:encrypted-counter] Note: local file has uncommitted changes. Remix will load the last pushed commit, not your working tree.'
+        );
+        console.warn('[remix:encrypted-counter] Tip: commit + push, or pass --ref to a pushed branch/tag/SHA.');
+      }
+    }
 
     if (gh) {
       sourceUrl = `https://raw.githubusercontent.com/${gh.owner}/${gh.repo}/${ref}/${pathInRepo}`;
@@ -103,13 +118,19 @@ async function main() {
     }
   }
 
-  const remixUrl = `https://remix.ethereum.org/#url=${encodeURIComponent(sourceUrl)}`;
+  const remixUrl = `https://remix.ethereum.org/#url=${sourceUrl}`;
 
   console.log('Remix URL:');
   console.log(remixUrl);
   console.log('');
   console.log('Solidity URL:');
   console.log(sourceUrl);
+
+  if (!useLocal && !refArg && !process.env.REMIX_REF) {
+    console.log('');
+    console.log('If Remix opens but does not load the file, your ref may not be pushed to GitHub yet.');
+    console.log('Try: git push, or re-run with --ref <pushed-branch|tag|sha>.');
+  }
 
   if (!printOnly) {
     const result = openUrl(remixUrl);
