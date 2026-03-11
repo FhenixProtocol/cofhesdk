@@ -51,45 +51,18 @@ This is why `decryptForView` requires `utype`, but `decryptForTx` does not: tx d
 
 Typically, the value you want to decrypt comes from a `view` call.
 
-You already know the `utype` from your contract ABI (e.g. if the function returns `euint32`, then you pass `FheTypes.Uint32`).
+First, read the raw encrypted return value and convert it into `{ ctHash, utype }` using `@cofhe/abi`.
 
-Then you just read the handle/hash (`ctHash`) from the contract and decrypt it.
-
-### Try it online
-
-- [Open the contract in Remix](https://remix.ethereum.org/#url=https://raw.githubusercontent.com/FhenixProtocol/cofhesdk/master/examples/remix/EncryptedCounter.sol)
-- [Run the TypeScript demo on StackBlitz](https://stackblitz.com/github/FhenixProtocol/cofhesdk/tree/master/examples/stackblitz/decrypt-to-view?file=src/main.ts)
-
-:::note
-The StackBlitz demo expects a `VITE_TEST_PRIVATE_KEY` in a `.env` file and uses it in the browser.
-Use a throwaway key.
-:::
-
-For a **copy/paste runnable** example, we ship a minimal encrypted counter contract and scripts in the repo:
-
-- Write (increment): `pnpm -C packages/hardhat-plugin-test write:sepolia`
-- Read + decrypt: `pnpm -C packages/hardhat-plugin-test read:sepolia`
-- Optional: deploy your own copy to Sepolia: `pnpm -C packages/hardhat-plugin-test deploy:sepolia`
-
-By default, the scripts use the repo’s saved Sepolia deployment (`packages/hardhat-plugin-test/deployments/sepolia.json`).
-Set `ENCRYPTED_COUNTER_ADDRESS` to override the address.
-
-The docs snippets below are pulled directly from those files:
+Below are two equivalent ways to read an encrypted return value from a predeployed Sepolia contract and derive `ctHash + utype`.
 
 :::code-group
 
-```solidity [Solidity]
-// [!include ~/../hardhat-plugin-test/contracts/EncryptedCounter.sol:docs-snippet]
+```ts twoslash [Viem]
+// [!include ~/../../examples/docs-snippets/decrypt-to-view/viem.ts:docs-snippet]
 ```
 
-```ts twoslash [TypeScript write]
-// [!include ~/../hardhat-plugin-test/scripts/write-encrypted-counter.ts:docs-imports]
-// [!include ~/../hardhat-plugin-test/scripts/write-encrypted-counter.ts:docs-twoslash]
-```
-
-```ts twoslash [TypeScript read]
-// [!include ~/../hardhat-plugin-test/scripts/read-encrypted-counter.ts:docs-imports]
-// [!include ~/../hardhat-plugin-test/scripts/read-encrypted-counter.ts:docs-twoslash]
+```ts twoslash [Ethers]
+// [!include ~/../../examples/docs-snippets/decrypt-to-view/ethers.ts:docs-snippet]
 ```
 
 :::
