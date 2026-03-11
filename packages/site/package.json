@@ -15,14 +15,15 @@
   },
   "dependencies": {
     "glob": "^11.0.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
     "vocs": "^1.4.1"
   },
   "devDependencies": {
     "@cofhe/abi": "workspace:*",
     "@cofhe/sdk": "workspace:*",
-    "@types/react": "latest",
+    "@types/react": "18.2.61",
+    "@types/react-dom": "18.2.19",
     "ethers": "^6.15.0",
     "typescript": "5.5.4",
     "viem": "^2.38.6",
