@@ -53,49 +53,36 @@ Typically, the value you want to decrypt comes from a `view` call.
 
 You already know the `utype` from your contract ABI (e.g. if the function returns `euint32`, then you pass `FheTypes.Uint32`).
 
-Then you just read the handle/hash (`ctHash`) from the contract and decrypt it:
+Then you just read the handle/hash (`ctHash`) from the contract and decrypt it.
 
-```ts twoslash
-import { transformEncryptedReturnTypes } from '@cofhe/abi';
-import { type CofheClient } from '@cofhe/sdk';
-import { createPublicClient, http, type Address } from 'viem';
-import { sepolia } from 'viem/chains';
+For a **copy/paste runnable** example, we ship a minimal encrypted counter contract and scripts in the repo:
 
-declare const client: CofheClient;
-declare const contractAddress: Address;
+- Write (increment): `pnpm -C packages/hardhat-plugin-test write:sepolia`
+- Read + decrypt: `pnpm -C packages/hardhat-plugin-test read:sepolia`
+- Optional: deploy your own copy to Sepolia: `pnpm -C packages/hardhat-plugin-test deploy:sepolia`
 
-const abi = [
-  {
-    type: 'function',
-    name: 'myEncryptedViewFn',
-    stateMutability: 'view',
-    inputs: [],
-    // CoFHE encrypted return values are surfaced as primitives with an `internalType`.
-    // Here, `euint32` is represented as a `bytes32` ciphertext handle.
-    outputs: [{ name: '', type: 'bytes32', internalType: 'euint32' }],
-  },
-] as const;
+By default, the scripts use the repo’s saved Sepolia deployment (`packages/hardhat-plugin-test/deployments/sepolia.json`).
+Set `ENCRYPTED_COUNTER_ADDRESS` to override the address.
 
-const publicClient = createPublicClient({ chain: sepolia, transport: http() });
+The docs snippets below are pulled directly from those files:
 
-// Read the encrypted handle/hash from your contract.
-const raw = await publicClient.readContract({
-  address: contractAddress,
-  abi,
-  functionName: 'myEncryptedViewFn',
-  args: [],
-});
+:::code-group
 
-// Convert the raw `bytes32` into a typed encrypted return value: `{ ctHash, utype }`.
-const encrypted = transformEncryptedReturnTypes(abi, 'myEncryptedViewFn', raw);
-
-// Decrypt for UI (assumes you already have an active permit).
-const plaintext = await client
-  .decryptForView(encrypted.ctHash, encrypted.utype)
-  .execute();
-
-plaintext; // ^?
+```solidity [Solidity]
+// [!include ~/../hardhat-plugin-test/contracts/EncryptedCounter.sol:docs-snippet]
 ```
+
+```ts twoslash [TypeScript write]
+// [!include ~/../hardhat-plugin-test/scripts/write-encrypted-counter.ts:docs-imports]
+// [!include ~/../hardhat-plugin-test/scripts/write-encrypted-counter.ts:docs-twoslash]
+```
+
+```ts twoslash [TypeScript read]
+// [!include ~/../hardhat-plugin-test/scripts/read-encrypted-counter.ts:docs-imports]
+// [!include ~/../hardhat-plugin-test/scripts/read-encrypted-counter.ts:docs-twoslash]
+```
+
+:::
 
 :::note
 Depending on your contract ABI, `ctHash` may be surfaced as either:
@@ -158,9 +145,7 @@ await client.connect(publicClient, walletClient);
 
 await client.permits.getOrCreateSelfPermit();
 
-const plaintext = await client
-  .decryptForView(ctHash, FheTypes.Uint32)
-  .execute();
+const plaintext = await client.decryptForView(ctHash, FheTypes.Uint32).execute();
 
 plaintext; // ^?
 ```
@@ -185,10 +170,7 @@ await client.connect(publicClient, walletClient);
 
 const permit = await client.permits.getOrCreateSelfPermit();
 
-const plaintext = await client
-  .decryptForView(ctHash, FheTypes.Uint64)
-  .withPermit(permit)
-  .execute();
+const plaintext = await client.decryptForView(ctHash, FheTypes.Uint64).withPermit(permit).execute();
 
 plaintext; // ^?
 ```
@@ -212,10 +194,7 @@ const walletClient = createWalletClient({ chain: sepolia, transport: http(), acc
 
 await client.connect(publicClient, walletClient);
 
-const plaintext = await client
-  .decryptForView(ctHash, FheTypes.Uint8)
-  .withPermit(permitHash)
-  .execute();
+const plaintext = await client.decryptForView(ctHash, FheTypes.Uint8).withPermit(permitHash).execute();
 
 plaintext; // ^?
 ```
