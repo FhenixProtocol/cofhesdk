@@ -4,8 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "decrypt-to-view:ethers": "node run-snippet.mjs decrypt-to-view/ethers.ts",
-    "decrypt-to-view:viem": "node run-snippet.mjs decrypt-to-view/viem.ts",
+    "read-encrypted-return:ethers": "node run-snippet.mjs read-encrypted-return/ethers.ts",
+    "read-encrypted-return:viem": "node run-snippet.mjs read-encrypted-return/viem.ts",
+    "decrypt-to-view:ethers": "pnpm read-encrypted-return:ethers",
+    "decrypt-to-view:viem": "pnpm read-encrypted-return:viem",
     "remix:encrypted-counter": "node remix/open-encrypted-counter.mjs"
   },
   "devDependencies": {

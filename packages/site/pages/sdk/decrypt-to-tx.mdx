@@ -43,6 +43,28 @@ If you only need to show plaintext in your UI (and you do **not** need an on-cha
    - If the policy allows **anyone** to decrypt it (a common setup), a permit is not required and `.withoutPermit()` will work.
    - If the policy restricts decryption, you must use `.withPermit(...)` or the decryption will fail.
 
+## Reading from a contract (getting `ctHash`)
+
+Typically, the value you want to reveal comes from a `view` call (or from an event arg / stored encrypted value).
+
+If your contract ABI uses encrypted `internalType`s (e.g. `internalType: "euint32"` while the ABI `type` is `bytes32`), you can convert the raw return value into a `{ ctHash, utype }` pair using `@cofhe/abi`.
+
+For `decryptForTx`, you only need the `ctHash`.
+
+Below are two equivalent ways to read an encrypted return value from a predeployed Sepolia contract and derive `ctHash`.
+
+:::code-group
+
+```ts twoslash [Viem]
+// [!include ~/../../examples/docs-snippets/read-encrypted-return/viem.ts:docs-snippet]
+```
+
+```ts twoslash [Ethers]
+// [!include ~/../../examples/docs-snippets/read-encrypted-return/ethers.ts:docs-snippet]
+```
+
+:::
+
 ## Preparations: Permit (only if required)
 
 Often, `decryptForTx` is used to reveal a value at a point where your protocol already considers it OK for that value to become public on-chain. In those cases, there’s usually no need to restrict who is allowed to perform the reveal, so the contract’s ACL policy can allow anyone to decrypt.
