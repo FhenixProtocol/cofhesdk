@@ -26,7 +26,10 @@ export default defineConfig({
         text: 'Quick Start',
         link: '/quick-start',
       },
-
+      {
+        text: 'EncryptedCounter.sol',
+        link: '/encrypted-counter-sol',
+      },
       {
         text: 'Migrating from `cofhejs`',
         link: '/migrating-from-cofhejs',
