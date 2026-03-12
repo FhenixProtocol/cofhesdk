@@ -198,7 +198,7 @@ plaintext; // ^?
 
 ## What `decryptForView` returns
 
-Running `.execute()` on `decryptForView(...)` resolves to an `UnsealedItem<U>`:
+Running `.execute()` on `decryptForView(...)` resolves to a scalar JS value (typed in TypeScript as `UnsealedItem<U>`):
 
 - For integer utypes (`FheTypes.Uint8 | FheTypes.Uint16 | FheTypes.Uint32 | FheTypes.Uint64 | FheTypes.Uint128`): a `bigint`
 - For `FheTypes.Bool`: a `boolean`
