@@ -389,6 +389,14 @@ export type EncryptStepCallbackFunction = (state: EncryptStep, context?: Encrypt
 
 // DECRYPT
 
+/**
+ * Decrypted plaintext value returned by view-decryption helpers.
+ *
+ * This is a scalar JS value (not a wrapper object):
+ * - `boolean` for `FheTypes.Bool`
+ * - checksummed address `string` for `FheTypes.Uint160`
+ * - `bigint` for supported integer utypes
+ */
 export type UnsealedItem<U extends FheTypes> = U extends FheTypes.Bool
   ? boolean
   : U extends FheTypes.Uint160
