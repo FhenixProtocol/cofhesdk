@@ -2,8 +2,6 @@
 
 Runnable versions of the docs code snippets.
 
-## decrypt-to-view
-
 ## read-encrypted-return
 
 These snippets are shared by both “decrypt to view” and “decrypt to tx” docs. They show how to read an encrypted return value and derive `{ ctHash, utype }` from the ABI.
