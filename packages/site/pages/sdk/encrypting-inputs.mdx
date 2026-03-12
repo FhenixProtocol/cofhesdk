@@ -1,3 +1,296 @@
 # Encrypting Inputs
 
-WIP
+`encryptInputs` encrypts plaintext values into FHE ciphertexts that can be passed as inputs to a confidential smart contract transaction. Values must be encrypted before being passed on-chain to preserve confidentiality.
+
+It returns an `EncryptInputsBuilder` which lets you configure the encryption and then call `.execute()` to run it.
+
+The flow is as follows:
+
+1. Decide which plaintext value(s) you want to encrypt.
+2. Wrap each value with a typing helper (e.g. `Encryptable.uint32(…)`) to construct typed encryptable inputs.
+3. Call `client.encryptInputs([...]).execute()` to produce `EncryptedItemInput` objects.
+4. Submit a transaction to your contract and pass the encrypted inputs as `InE*` parameters.
+
+## Prerequisites
+
+1. Create and connect a client (see the [client page](./client.mdx)).
+
+`encryptInputs(...)` requires a connected client so the SDK can resolve `chainId`, `account`, and the underlying RPC clients.
+
+2. Know which encrypted type you want to encode each value as.
+
+The type is chosen by which `Encryptable.*` factory you use (and must match the Solidity parameter type your contract expects, e.g. `InEuint32` vs `InEuint64`).
+
+## Basic usage
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { Encryptable } from '@cofhe/sdk';
+import { chains } from '@cofhe/sdk/chains';
+import type { PublicClient, WalletClient } from 'viem';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const cofheClient = createCofheClient(config);
+declare const publicClient: PublicClient;
+declare const walletClient: WalletClient;
+// ---cut---
+await cofheClient.connect(publicClient, walletClient);
+
+const encrypted = await cofheClient
+  .encryptInputs([
+    Encryptable.uint32(42n),
+    Encryptable.bool(true),
+    Encryptable.address('0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045'),
+  ])
+  .execute();
+
+const [eUint32, eBool, eAddress] = encrypted;
+```
+
+The return type is a typed tuple that mirrors the array you pass in — each element is the corresponding `Encrypted*Input` type.
+For the exact shape of each item, see [`EncryptedItemInput` — the result type](#encryptediteminput--the-result-type).
+
+## `Encryptable` — creating inputs
+
+Use the `Encryptable` factory to create the items you want to encrypt. Each factory function accepts the plaintext value and an optional `securityZone`.
+
+| Factory                      | Data type          | Solidity input param |
+| ---------------------------- | ------------------ | -------------------- |
+| `Encryptable.bool(value)`    | `boolean`          | `InEbool`            |
+| `Encryptable.uint8(value)`   | `bigint \| string` | `InEuint8`           |
+| `Encryptable.uint16(value)`  | `bigint \| string` | `InEuint16`          |
+| `Encryptable.uint32(value)`  | `bigint \| string` | `InEuint32`          |
+| `Encryptable.uint64(value)`  | `bigint \| string` | `InEuint64`          |
+| `Encryptable.uint128(value)` | `bigint \| string` | `InEuint128`         |
+| `Encryptable.address(value)` | `bigint \| string` | `InEaddress`         |
+
+You can also use the generic `Encryptable.create(type, value)` form:
+
+```ts twoslash
+import { Encryptable } from '@cofhe/sdk';
+// ---cut---
+Encryptable.create('uint32', 42n);
+Encryptable.create('bool', false);
+Encryptable.create('address', '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045');
+```
+
+**Bit limit:** A single `encryptInputs` call may encrypt at most **2048 bits** of plaintext in total. Exceeding this limit throws a `ZkPackFailed` error.
+
+## The encryption flow
+
+Calling `.execute()` runs five sequential steps. You can observe them via the `.onStep()` callback.
+
+| Step        | Description                                                                         |
+| ----------- | ----------------------------------------------------------------------------------- |
+| `InitTfhe`  | Lazy-initializes the TFHE WASM module (browser/Node). A no-op after the first call. |
+| `FetchKeys` | Fetches (or loads from cache) the FHE public key and CRS for the target chain.      |
+| `Pack`      | Packs the plaintext values into a ZK list ready for proving.                        |
+| `Prove`     | Generates the ZK proof of knowledge (ZKPoK). Uses a Web Worker when available.      |
+| `Verify`    | Sends the proof to the CoFHE verifier. Returns signed `EncryptedItemInput` objects. |
+
+## Builder API
+
+### `.execute()` — required, call last
+
+Runs the encryption pipeline and returns the `EncryptedItemInput[]` tuple.
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { Encryptable } from '@cofhe/sdk';
+import { chains } from '@cofhe/sdk/chains';
+import type { PublicClient, WalletClient } from 'viem';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const cofheClient = createCofheClient(config);
+declare const publicClient: PublicClient;
+declare const walletClient: WalletClient;
+// ---cut---
+await cofheClient.connect(publicClient, walletClient);
+
+const [encryptedAge, encryptedFlag] = await cofheClient
+  .encryptInputs([Encryptable.uint8(25n), Encryptable.bool(true)])
+  .execute(); // [!code focus]
+```
+
+### `.setAccount(address)` — optional
+
+Override the address that "owns" the encrypted input. Only that address will be allowed to use the encrypted inputs on-chain. Defaults to the account from the connected `WalletClient`.
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { Encryptable } from '@cofhe/sdk';
+import { chains } from '@cofhe/sdk/chains';
+import type { PublicClient, WalletClient } from 'viem';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const cofheClient = createCofheClient(config);
+declare const publicClient: PublicClient;
+declare const walletClient: WalletClient;
+// ---cut---
+await cofheClient.connect(publicClient, walletClient);
+
+const encrypted = await cofheClient
+  .encryptInputs([Encryptable.uint64(10n)])
+  .setAccount('0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045') // [!code focus]
+  .execute();
+```
+
+### `.setChainId(chainId)` — optional
+
+Override the chain the encrypted input will be used on. Defaults to the chain ID of the connected `PublicClient`.
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { Encryptable } from '@cofhe/sdk';
+import { chains } from '@cofhe/sdk/chains';
+import type { PublicClient, WalletClient } from 'viem';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const cofheClient = createCofheClient(config);
+declare const publicClient: PublicClient;
+declare const walletClient: WalletClient;
+// ---cut---
+await cofheClient.connect(publicClient, walletClient);
+
+const encrypted = await cofheClient
+  .encryptInputs([Encryptable.uint64(10n)])
+  .setChainId(11155111) // [!code focus]
+  .execute();
+```
+
+### `.onStep(callback)` — optional
+
+Registers a callback that fires at the start and end of each encryption step. Useful for building progress indicators.
+
+The callback receives the current `EncryptStep` enum value and a context object with `isStart`, `isEnd`, and `duration` (milliseconds, only meaningful on `isEnd`).
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { Encryptable, EncryptStep } from '@cofhe/sdk';
+import { chains } from '@cofhe/sdk/chains';
+import type { PublicClient, WalletClient } from 'viem';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const cofheClient = createCofheClient(config);
+declare const publicClient: PublicClient;
+declare const walletClient: WalletClient;
+// ---cut---
+await cofheClient.connect(publicClient, walletClient);
+
+const encrypted = await cofheClient
+  .encryptInputs([Encryptable.uint64(10n)])
+  .onStep((step, ctx) => {
+    // [!code focus]
+    if (ctx?.isStart) console.log(`Starting: ${step}`); // [!code focus]
+    if (ctx?.isEnd) console.log(`Done: ${step} (${ctx.duration}ms)`); // [!code focus]
+  }) // [!code focus]
+  .execute();
+```
+
+The `EncryptStep` enum values fired in order:
+
+```ts twoslash
+import { EncryptStep } from '@cofhe/sdk';
+// ---cut---
+EncryptStep.InitTfhe; // 'initTfhe'
+EncryptStep.FetchKeys; // 'fetchKeys'
+EncryptStep.Pack; // 'pack'
+EncryptStep.Prove; // 'prove'
+EncryptStep.Verify; // 'verify'
+```
+
+### `.setUseWorker(boolean)` — optional
+
+Overrides the `useWorkers` flag from `CofheConfig` for this specific call. When `true` (the default), ZK proof generation runs in a Web Worker to avoid blocking the main thread.
+No-op in a node environment.
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { Encryptable } from '@cofhe/sdk';
+import { chains } from '@cofhe/sdk/chains';
+import type { PublicClient, WalletClient } from 'viem';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const cofheClient = createCofheClient(config);
+declare const publicClient: PublicClient;
+declare const walletClient: WalletClient;
+// ---cut---
+await cofheClient.connect(publicClient, walletClient);
+
+const encrypted = await cofheClient
+  .encryptInputs([Encryptable.uint32(7n)])
+  .setUseWorker(false) // [!code focus]
+  .execute();
+```
+
+## `EncryptedItemInput` — the result type
+
+Each element of the returned array is an `EncryptedItemInput`:
+
+```ts
+type EncryptedItemInput = {
+  ctHash: bigint; // The ciphertext hash registered with CoFHE
+  securityZone: number; // The security zone the input was encrypted under
+  utype: FheTypes; // The FHE type (Bool, Uint8, …, Uint160)
+  signature: string; // CoFHE verifier signature authorizing this input
+};
+```
+
+Pass these directly into a contract function that accepts `InEuint*` structs. The contract's CoFHE library validates the signature on-chain before operating on the ciphertext.
+
+## Using encrypted inputs in a transaction
+
+The intended consumer of `encryptInputs` is a contract function that accepts encrypted `InE*` structs.
+
+In practice, you pass the returned `EncryptedItemInput` objects directly into your contract call (the on-chain CoFHE library verifies the signature before using the ciphertext).
+
+:::code-group
+
+```solidity [Solidity]
+// Example signature only. Adjust param types to match your encrypted inputs.
+function confidentialTransfer(address to, InEuint64 amount) external {
+  // ...
+}
+```
+
+```ts [TypeScript]
+// `encryptedAmount` is an `EncryptedItemInput` returned by encryptInputs(...).execute()
+// await contract.confidentialTransfer(recipient, encryptedAmount);
+```
+
+:::
+
+## Common pitfalls
+
+- **Wrong `Encryptable` type**: `Encryptable.uint32(...)` must match what your Solidity function expects (e.g. `InEuint32`).
+- **Bit limit exceeded**: a single call can encrypt at most **2048 bits** of plaintext. Exceeding this throws `ZkPackFailed`.
+- **Wrong account / chain**: encrypted inputs are authorized for a specific `account + chainId`. If you override these (or connect to the wrong network/wallet), your inputs may not be usable for the intended transaction.
+
+## Full chained example
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { Encryptable, EncryptStep } from '@cofhe/sdk';
+import { chains } from '@cofhe/sdk/chains';
+import type { PublicClient, WalletClient } from 'viem';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const cofheClient = createCofheClient(config);
+declare const publicClient: PublicClient;
+declare const walletClient: WalletClient;
+const recipient = '0xABCDE' as `0x${string}`;
+// ---cut---
+await cofheClient.connect(publicClient, walletClient);
+
+const [encryptedAmount] = await cofheClient
+  .encryptInputs([Encryptable.uint64(1_000_000n)])
+  .onStep((step, ctx) => {
+    if (step === EncryptStep.Prove && ctx?.isStart) {
+      console.log('Generating ZK proof…');
+    }
+  })
+  .execute();
+
+// Use in a contract call
+// await contract.confidentialTransfer(recipient, encryptedAmount);
+```
