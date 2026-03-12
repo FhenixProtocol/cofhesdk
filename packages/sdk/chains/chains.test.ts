@@ -1,12 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { sepolia, arbSepolia, baseSepolia, hardhat, chains, getChainById, getChainByName } from './index.js';
+import { sepolia, arbSepolia, baseSepolia, hardhat, chains, getChainById, getChainByName, lineaSepolia } from './index.js';
 
 describe('Chains', () => {
   it('should export all chains', () => {
-    expect(Object.keys(chains)).toHaveLength(5);
+    expect(Object.keys(chains)).toHaveLength(6);
     expect(chains).toHaveProperty('sepolia');
     expect(chains).toHaveProperty('arbSepolia');
     expect(chains).toHaveProperty('baseSepolia');
+    expect(chains).toHaveProperty('lineaSepolia');
     expect(chains).toHaveProperty('hardhat');
     expect(chains).toHaveProperty('localcofhe');
   });
@@ -35,7 +36,7 @@ describe('Chains', () => {
   });
 
   it('should validate chain properties', () => {
-    const allChains = [sepolia, arbSepolia, baseSepolia, hardhat];
+    const allChains = [sepolia, arbSepolia, baseSepolia, lineaSepolia, hardhat];
 
     allChains.forEach((chain) => {
       expect(typeof chain.id).toBe('number');

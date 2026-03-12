@@ -5,16 +5,18 @@ export type { CofheChain, Environment } from './types.js';
 import { sepolia } from './chains/sepolia.js';
 import { arbSepolia } from './chains/arbSepolia.js';
 import { baseSepolia } from './chains/baseSepolia.js';
+import { lineaSepolia } from './chains/lineaSepolia.js';
 import { hardhat } from './chains/hardhat.js';
 import { localcofhe } from './chains/localcofhe.js';
 
-export { sepolia, arbSepolia, baseSepolia, hardhat, localcofhe };
+export { sepolia, arbSepolia, baseSepolia, lineaSepolia, hardhat, localcofhe };
 
 // Export all chains as a collection
 export const chains = {
   sepolia,
   arbSepolia,
   baseSepolia,
+  lineaSepolia,
   hardhat,
   localcofhe,
 } as const;
