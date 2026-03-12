@@ -1,0 +1,19 @@
+{
+  "name": "@cofhe/docs-snippets",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "read-encrypted-return:ethers": "node run-snippet.mjs read-encrypted-return/ethers.ts",
+    "read-encrypted-return:viem": "node run-snippet.mjs read-encrypted-return/viem.ts",
+    "decrypt-to-view:ethers": "pnpm read-encrypted-return:ethers",
+    "decrypt-to-view:viem": "pnpm read-encrypted-return:viem",
+    "remix:encrypted-counter": "node remix/open-encrypted-counter.mjs"
+  },
+  "devDependencies": {
+    "@cofhe/abi": "workspace:*",
+    "ethers": "^6.15.0",
+    "tsx": "^4.20.5",
+    "viem": "^2.38.6"
+  }
+}

@@ -1,5 +1,7 @@
 # Decrypting to Transact
 
+import DecryptForTxDecisionGuide from '../../components/DecryptForTxDecisionGuide.mdx';
+
 Use `decryptForTx` to reveal a **confidential (encrypted)** value on-chain: it returns the plaintext together with a Threshold Network signature, so a contract can verify the reveal when you publish it in a transaction.
 
 The flow is as follows:
@@ -43,6 +45,28 @@ If you only need to show plaintext in your UI (and you do **not** need an on-cha
    - If the policy allows **anyone** to decrypt it (a common setup), a permit is not required and `.withoutPermit()` will work.
    - If the policy restricts decryption, you must use `.withPermit(...)` or the decryption will fail.
 
+## Reading from a contract (getting `ctHash`)
+
+Typically, the value you want to reveal comes from a `view` call (or from an event arg / stored encrypted value).
+
+If your contract ABI uses encrypted `internalType`s (e.g. `internalType: "euint32"` while the ABI `type` is `bytes32`), you can convert the raw return value into a `{ ctHash, utype }` pair using `@cofhe/abi`.
+
+For `decryptForTx`, you only need the `ctHash`.
+
+Below are two equivalent ways to read an encrypted return value from a predeployed Sepolia contract and derive `ctHash`.
+
+:::code-group
+
+```ts twoslash [Viem]
+// [!include ~/../../examples/docs-snippets/read-encrypted-return/viem.ts:docs-snippet]
+```
+
+```ts twoslash [Ethers]
+// [!include ~/../../examples/docs-snippets/read-encrypted-return/ethers.ts:docs-snippet]
+```
+
+:::
+
 ## Preparations: Permit (only if required)
 
 Often, `decryptForTx` is used to reveal a value at a point where your protocol already considers it OK for that value to become public on-chain. In those cases, there’s usually no need to restrict who is allowed to perform the reveal, so the contract’s ACL policy can allow anyone to decrypt.
@@ -63,100 +87,7 @@ For details, see [permits](./permits.mdx).
 
 Decision guide:
 
-<a
-   href="#"
-   aria-label="Open decision guide in popup"
-   style={{ display: 'block', textDecoration: 'none', cursor: 'pointer' }}
-   onClick={(e) => {
-      e.preventDefault();
-      const dialog = document.getElementById('decision-guide-dialog');
-      if (dialog instanceof HTMLDialogElement) dialog.showModal();
-   }}
->
-   <div style={{ maxWidth: 300, margin: '0 auto', overflowX: 'auto' }}>
-
-```mermaid
-%%{init: { "flowchart": { "nodeSpacing": 20, "rankSpacing": 25 } }}%%
-flowchart TD
-   A[ACL policy for this ctHash] --> B{Allows anyone to decrypt?}
-
-   B -- Yes --> C[No permit]
-   C --> D["decryptForTx(ctHash)<br/>.withoutPermit()<br/>.execute()"]
-
-   B -- No --> E[Permit required]
-   E --> F{Who is the allowed decryptor?}
-
-   F -- Your address --> G[Generate a self-permit]
-   G --> H["decryptForTx(ctHash)<br/>.withPermit()<br/>.execute()"]
-
-   F -- Different address --> I[Import a permit from them]
-   I --> J["decryptForTx(ctHash)<br/>.withPermit(importedPermit)<br/>.execute()"]
-```
-
-   </div>
-</a>
-
-<dialog
-   id="decision-guide-dialog"
-   style={{
-      width: 'min(1100px, 96vw)',
-      maxHeight: '90vh',
-      overflow: 'auto',
-      padding: 16,
-      textAlign: 'center',
-   }}
-   onClick={(e) => {
-      const currentTarget = e.currentTarget;
-      if (e.target === currentTarget && currentTarget instanceof HTMLDialogElement) {
-         currentTarget.close();
-      }
-   }}
->
-   <div style={{ overflow: 'auto' }}>
-
-```mermaid
-%%{init: { "flowchart": { "nodeSpacing": 20, "rankSpacing": 25 } }}%%
-flowchart TD
-    A[ACL policy for this ctHash] --> B{Allows anyone to decrypt?}
-
-    B -- Yes --> C[No permit]
-    C --> D["decryptForTx(ctHash)<br/>.withoutPermit()<br/>.execute()"]
-
-    B -- No --> E[Permit required]
-    E --> F{Who is the allowed decryptor?}
-
-    F -- Your address --> G[Generate a self-permit]
-    G --> H["decryptForTx(ctHash)<br/>.withPermit()<br/>.execute()"]
-
-    F -- Different address --> I[Import a permit from them]
-    I --> J["decryptForTx(ctHash)<br/>.withPermit(importedPermit)<br/>.execute()"]
-```
-
-   </div>
-</dialog>
-
-<style>{`
-   #decision-guide-dialog pre {
-      margin: 0 auto;
-      display: table;
-   }
-   #decision-guide-dialog .mermaid {
-      margin: 0 auto;
-      display: table;
-   }
-   #decision-guide-dialog img {
-      display: block;
-      margin: 0 auto;
-      max-width: 100%;
-      height: auto;
-   }
-   #decision-guide-dialog svg {
-      margin: 0 auto;
-      max-width: 100%;
-      height: auto;
-      display: block;
-   }
-`}</style>
+<DecryptForTxDecisionGuide />
 
 ## Decrypt for a transaction
 

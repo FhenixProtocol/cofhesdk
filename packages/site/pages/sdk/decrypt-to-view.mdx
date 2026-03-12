@@ -8,7 +8,7 @@ The flow is as follows:
 
 1. Read the encrypted handle/hash (`ctHash`) from your contract.
 2. Ensure you have a permit that authorizes decryption of that value.
-3. Call `decryptForView(ctHash, utype).execute()` to get the plaintext.
+3. Call `decryptForView(ctHash, utype)` and then run `.execute()` to get the plaintext.
 
 :::note
 `decryptForView` always decrypts using a permit (there is no `.withoutPermit()` mode).
@@ -21,17 +21,30 @@ If your protocol intends for the plaintext to become publicly visible on-chain, 
 
 2. Know the encrypted handle/hash (`ctHash`) and the encrypted type (`utype`).
 
-   In most apps, `ctHash` comes from reading a stored encrypted value, an event arg, or a return value from a view call.
+:::tip
+**Getting `ctHash`**
 
-   `utype` is the FHE type of the plaintext you expect. The SDK uses it to convert the decrypted `bigint` into a convenient JS type (e.g. `boolean` / checksummed address) so you can display it.
+In most apps, `ctHash` comes from reading a stored encrypted value, an event arg, or a return value from a `view` call.
+:::
 
-   This is why `decryptForView` requires `utype`, but `decryptForTx` does not: tx decryption is meant for on-chain publishing and returns a raw `bigint` plaintext + signature.
+:::tip
+**Providing `utype` (required; not arbitrary)**
 
-   Supported `utype`s for `decryptForView`:
+`utype` must match the ciphertext’s underlying FHE type (it’s not a “pick whatever you want” parameter).
+The SDK uses it to convert the decrypted `bigint` into a convenient JS type so you can display it.
 
-   - `FheTypes.Bool` → returns a `boolean`
-   - `FheTypes.Uint160` (address) → returns a checksummed `0x...` string
-   - `FheTypes.Uint8 | Uint16 | Uint32 | Uint64 | Uint128` → returns a `bigint`
+In many apps you can **derive `{ ctHash, utype }` from the contract ABI** using `@cofhe/abi` (see the snippets below). If you only have a raw `ctHash` (e.g. from storage/event logs), you must still know which encrypted type it corresponds to.
+
+Supported `utype`s for `decryptForView`:
+
+- `FheTypes.Bool` → returns a `boolean`
+- `FheTypes.Uint160` (address) → returns a checksummed `0x...` string
+- `FheTypes.Uint8 | Uint16 | Uint32 | Uint64 | Uint128` → returns a `bigint`
+  :::
+
+:::note
+This is why `decryptForView` requires `utype`, but `decryptForTx` does not: tx decryption is meant for on-chain publishing and returns a raw `bigint` plaintext + signature.
+:::
 
 3. Have a permit available for the connected `chainId + account` (see [permits](./permits.mdx)).
 
@@ -41,59 +54,30 @@ If your protocol intends for the plaintext to become publicly visible on-chain, 
 
 Typically, the value you want to decrypt comes from a `view` call.
 
-You already know the `utype` from your contract ABI (e.g. if the function returns `euint32`, then you pass `FheTypes.Uint32`).
+First, read the raw encrypted return value and convert it into `{ ctHash, utype }` using `@cofhe/abi`.
 
-Then you just read the handle/hash (`ctHash`) from the contract and decrypt it:
+Below are two equivalent ways to read an encrypted return value from a predeployed Sepolia contract and derive `ctHash + utype`.
 
-```ts twoslash
-import { transformEncryptedReturnTypes } from '@cofhe/abi';
-import { type CofheClient } from '@cofhe/sdk';
-import { createPublicClient, http, type Address } from 'viem';
-import { sepolia } from 'viem/chains';
+:::code-group
 
-declare const client: CofheClient;
-declare const contractAddress: Address;
-
-const abi = [
-  {
-    type: 'function',
-    name: 'myEncryptedViewFn',
-    stateMutability: 'view',
-    inputs: [],
-    // CoFHE encrypted return values are surfaced as primitives with an `internalType`.
-    // Here, `euint32` is represented as a `bytes32` ciphertext handle.
-    outputs: [{ name: '', type: 'bytes32', internalType: 'euint32' }],
-  },
-] as const;
-
-const publicClient = createPublicClient({ chain: sepolia, transport: http() });
-
-// Read the encrypted handle/hash from your contract.
-const raw = await publicClient.readContract({
-  address: contractAddress,
-  abi,
-  functionName: 'myEncryptedViewFn',
-  args: [],
-});
-
-// Convert the raw `bytes32` into a typed encrypted return value: `{ ctHash, utype }`.
-const encrypted = transformEncryptedReturnTypes(abi, 'myEncryptedViewFn', raw);
-
-// Decrypt for UI (assumes you already have an active permit).
-const plaintext = await client
-  .decryptForView(encrypted.ctHash, encrypted.utype)
-  .execute();
-
-plaintext; // ^?
+```ts twoslash [Viem]
+// [!include ~/../../examples/docs-snippets/read-encrypted-return/viem.ts:docs-snippet]
 ```
+
+```ts twoslash [Ethers]
+// [!include ~/../../examples/docs-snippets/read-encrypted-return/ethers.ts:docs-snippet]
+```
+
+:::
 
 :::note
 Depending on your contract ABI, `ctHash` may be surfaced as either:
 
-- `bytes32` → viem returns a `0x...` hex string, or
-- `uint256` → viem returns a `bigint`.
+- `bytes32` → returned as a `0x...` hex string (both viem and ethers)
+- `uint256` → returned as a `bigint` (viem and ethers v6; ethers v5 returns a `BigNumber`)
 
 `decryptForView` accepts both `bigint` and `0x...` strings (it coerces via `BigInt(...)`).
+If you’re on ethers v5 and you get a `BigNumber`, convert it first (e.g. `BigInt(bn.toString())`).
 :::
 
 ## Permit quickstart
@@ -120,7 +104,7 @@ await client.connect(publicClient, walletClient);
 await client.permits.getOrCreateSelfPermit();
 ```
 
-After this, `decryptForView(...).execute()` can automatically use the active permit.
+After this, `decryptForView(...)` can automatically use the active permit when you run `.execute()`.
 
 ## Decrypt for UI
 
@@ -214,13 +198,13 @@ plaintext; // ^?
 
 ## What `decryptForView` returns
 
-`decryptForView(...).execute()` resolves to an `UnsealedItem<U>`:
+Running `.execute()` on `decryptForView(...)` resolves to a scalar JS value (typed in TypeScript as `UnsealedItem<U>`):
 
-- For uint types: a `bigint`
+- For integer utypes (`FheTypes.Uint8 | FheTypes.Uint16 | FheTypes.Uint32 | FheTypes.Uint64 | FheTypes.Uint128`): a `bigint`
 - For `FheTypes.Bool`: a `boolean`
-- For `FheTypes.Uint160` (address): a checksummed address string
+- For `FheTypes.Uint160` (address): a checksummed `0x...` address string
 
-This means you’ll usually want to:
+If you decrypt an integer type, you’ll usually want to:
 
 - keep it as a `bigint` and format it for display, or
 - convert to a JS `number` only if you’re sure it’s within safe range.
