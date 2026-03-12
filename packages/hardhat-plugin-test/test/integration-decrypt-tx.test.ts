@@ -1,4 +1,4 @@
-import { arbSepolia, baseSepolia, sepolia } from '@cofhe/sdk/chains';
+import { arbSepolia, baseSepolia, lineaSepolia, sepolia } from '@cofhe/sdk/chains';
 import { CofheClient, Encryptable } from '@cofhe/sdk';
 import { createCofheClient, createCofheConfig } from '@cofhe/sdk/node';
 import { Ethers6Adapter } from '@cofhe/sdk/adapters';
@@ -16,8 +16,12 @@ const TEST_PRIVATE_KEY = process.env.TEST_PRIVATE_KEY || DEFAULT_TEST_PRIVATE_KE
 type SupportedTestChain = {
   label: string;
   chainId: number;
-  sdkChain: typeof sepolia | typeof baseSepolia | typeof arbSepolia;
-  chainSpecificRpcEnvVar: 'SEPOLIA_RPC_URL' | 'BASE_SEPOLIA_RPC_URL' | 'ARBITRUM_SEPOLIA_RPC_URL';
+  sdkChain: typeof sepolia | typeof baseSepolia | typeof arbSepolia | typeof lineaSepolia;
+  chainSpecificRpcEnvVar:
+    | 'SEPOLIA_RPC_URL'
+    | 'BASE_SEPOLIA_RPC_URL'
+    | 'ARBITRUM_SEPOLIA_RPC_URL'
+    | 'LINEA_SEPOLIA_RPC_URL';
   defaultRpcUrl: string;
 };
 
@@ -43,6 +47,13 @@ const SUPPORTED_TEST_CHAINS: SupportedTestChain[] = [
     chainSpecificRpcEnvVar: 'ARBITRUM_SEPOLIA_RPC_URL',
     defaultRpcUrl: 'https://sepolia-rollup.arbitrum.io/rpc',
   },
+  {
+    label: 'Linea Sepolia',
+    chainId: 59141,
+    sdkChain: lineaSepolia,
+    chainSpecificRpcEnvVar: 'LINEA_SEPOLIA_RPC_URL',
+    defaultRpcUrl: 'https://rpc.sepolia.linea.build',
+  },
 ];
 
 const parseChainIdEnv = (value: string | undefined): number | undefined => {
@@ -65,6 +76,7 @@ const findSupportedChainById = (chainId: number): SupportedTestChain | undefined
 // This is the ONLY source of truth for selecting an existing deployment in this test.
 // If you want to point to a different contract, edit this map (keep it keyed by chainId).
 const DEFAULT_SIMPLE_TEST_ADDRESSES_BY_CHAIN_ID: Record<number, `0x${string}`> = {
+  59141: '0x35b8031650b8Cdd5c5fEB4bE09Ed422E942cD794', // Linea Sepolia
   84532: '0x9df789aB607fc746E6dF318B94724eBB028F9F60', // Base Sepolia
   421614: '0x51D2781C3d90f6B92436C72CD2D21158356d750d', // Arbitrum Sepolia
   11155111: '0x8CB51925D68f70EC430A36a07F6c09f35add32D2', // Ethereum Sepolia
@@ -242,8 +254,7 @@ describe(`DecryptForTx + PublishDecryptResult (chain-agnostic)${DESCRIBE_CHAIN_S
     // do NOT use the client-side hash from encrypt.
 
     // IMPORTANT: the on-chain transformation gives us the "real" ctHash.
-    const ctHashHex = await testContract.getValueHash();
-    const ctHash = BigInt(ctHashHex);
+    const ctHash = await testContract.getValueHash();
     console.log(`ctHash: ${ctHash}`);
 
     // ── Step 4: Call TN /decrypt to get plaintext + signature ─────────────
@@ -291,8 +302,7 @@ describe(`DecryptForTx + PublishDecryptResult (chain-agnostic)${DESCRIBE_CHAIN_S
 
     // ── Step 3: Read back the on-chain ctHash ─────────────────────────────
     // IMPORTANT: use the on-chain hash.
-    const ctHashHex = await testContract.publicValueHash();
-    const ctHash = BigInt(ctHashHex);
+    const ctHash = await testContract.publicValueHash();
     console.log(`public ctHash: ${ctHash}`);
 
     // ── Step 4: Decrypt via TN /decrypt without a permit ──────────────────
