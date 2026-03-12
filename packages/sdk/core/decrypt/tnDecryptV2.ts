@@ -187,8 +187,9 @@ async function pollDecryptStatusV2(
   requestId: string
 ): Promise<{ decryptedValue: bigint; signature: `0x${string}` }> {
   const startTime = Date.now();
+  let completed = false;
 
-  while (true) {
+  while (!completed) {
     if (Date.now() - startTime > POLL_TIMEOUT_MS) {
       throw new CofheError({
         code: CofheErrorCode.DecryptFailed,
@@ -319,6 +320,16 @@ async function pollDecryptStatusV2(
 
     await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
   }
+
+  // This should never be reached, but keeps TS and linters happy.
+  throw new CofheError({
+    code: CofheErrorCode.DecryptFailed,
+    message: 'Polling loop exited unexpectedly',
+    context: {
+      thresholdNetworkUrl,
+      requestId,
+    },
+  });
 }
 
 export async function tnDecryptV2(

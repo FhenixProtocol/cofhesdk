@@ -9,7 +9,7 @@ import { permits } from '../permits.js';
 import { BaseBuilder, type BaseBuilderParams } from '../baseBuilder.js';
 import { cofheMocksDecryptForTx } from './cofheMocksDecryptForTx.js';
 import { getPublicClientChainID, sleep } from '../utils.js';
-import { tnDecryptV1 } from './tnDecrypt.js';
+import { tnDecryptV1, tnDecryptV2 } from './tnDecrypt.js';
 
 /**
  * API
@@ -291,7 +291,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
     const thresholdNetworkUrl = await this.getThresholdNetworkUrl();
 
     const permission = permit ? PermitUtils.getPermission(permit, true) : null;
-    const { decryptedValue, signature } = await tnDecryptV1(this.ctHash, this.chainId, permission, thresholdNetworkUrl);
+    const { decryptedValue, signature } = await tnDecryptV2(this.ctHash, this.chainId, permission, thresholdNetworkUrl);
 
     return {
       ctHash: this.ctHash,
