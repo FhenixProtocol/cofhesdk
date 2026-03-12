@@ -2,10 +2,12 @@
 
 Runnable versions of the docs code snippets.
 
-## decrypt-to-view
+## read-encrypted-return
 
-- Ethers: `pnpm -C examples/docs-snippets decrypt-to-view:ethers`
-- Viem: `pnpm -C examples/docs-snippets decrypt-to-view:viem`
+These snippets are shared by both “decrypt to view” and “decrypt to tx” docs. They show how to read an encrypted return value and derive `{ ctHash, utype }` from the ABI.
+
+- Ethers: `pnpm -C examples/docs-snippets read-encrypted-return:ethers`
+- Viem: `pnpm -C examples/docs-snippets read-encrypted-return:viem`
 
 ### RPC configuration
 
@@ -25,7 +27,7 @@ Optional:
 Example:
 
 ```bash
-SEPOLIA_RPC_URL=https://your-sepolia-rpc pnpm -C examples/docs-snippets decrypt-to-view:viem
+SEPOLIA_RPC_URL=https://your-sepolia-rpc pnpm -C examples/docs-snippets read-encrypted-return:viem
 ```
 
 ## remix

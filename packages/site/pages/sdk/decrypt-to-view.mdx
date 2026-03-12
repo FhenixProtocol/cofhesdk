@@ -61,11 +61,11 @@ Below are two equivalent ways to read an encrypted return value from a predeploy
 :::code-group
 
 ```ts twoslash [Viem]
-// [!include ~/../../examples/docs-snippets/decrypt-to-view/viem.ts:docs-snippet]
+// [!include ~/../../examples/docs-snippets/read-encrypted-return/viem.ts:docs-snippet]
 ```
 
 ```ts twoslash [Ethers]
-// [!include ~/../../examples/docs-snippets/decrypt-to-view/ethers.ts:docs-snippet]
+// [!include ~/../../examples/docs-snippets/read-encrypted-return/ethers.ts:docs-snippet]
 ```
 
 :::
@@ -198,13 +198,13 @@ plaintext; // ^?
 
 ## What `decryptForView` returns
 
-Running `.execute()` on `decryptForView(...)` resolves to an `UnsealedItem<U>`:
+Running `.execute()` on `decryptForView(...)` resolves to a scalar JS value (typed in TypeScript as `UnsealedItem<U>`):
 
-- For uint types: a `bigint`
+- For integer utypes (`FheTypes.Uint8 | FheTypes.Uint16 | FheTypes.Uint32 | FheTypes.Uint64 | FheTypes.Uint128`): a `bigint`
 - For `FheTypes.Bool`: a `boolean`
-- For `FheTypes.Uint160` (address): a checksummed address string
+- For `FheTypes.Uint160` (address): a checksummed `0x...` address string
 
-This means you’ll usually want to:
+If you decrypt an integer type, you’ll usually want to:
 
 - keep it as a `bigint` and format it for display, or
 - convert to a JS `number` only if you’re sure it’s within safe range.
