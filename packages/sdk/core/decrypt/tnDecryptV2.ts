@@ -143,7 +143,7 @@ async function submitDecryptRequestV2(
   if (!response.ok) {
     let errorMessage = `HTTP ${response.status}`;
     try {
-      const errorBody = (await responseon()) as Record<string, unknown>;
+      const errorBody = (await response.json()) as Record<string, unknown>;
       const maybeMessage = (errorBody.error_message || errorBody.message) as unknown;
       if (typeof maybeMessage === 'string' && maybeMessage.length > 0) errorMessage = maybeMessage;
     } catch {
@@ -165,7 +165,7 @@ async function submitDecryptRequestV2(
 
   let rawJson: unknown;
   try {
-    rawJson = (await responseon()) as unknown;
+    rawJson = (await response.json()) as unknown;
   } catch (e) {
     throw new CofheError({
       code: CofheErrorCode.DecryptFailed,
@@ -239,7 +239,7 @@ async function pollDecryptStatusV2(
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}`;
       try {
-        const errorBody = (await responseon()) as Record<string, unknown>;
+        const errorBody = (await response.json()) as Record<string, unknown>;
         const maybeMessage = (errorBody.error_message || errorBody.message) as unknown;
         if (typeof maybeMessage === 'string' && maybeMessage.length > 0) errorMessage = maybeMessage;
       } catch {
@@ -260,7 +260,7 @@ async function pollDecryptStatusV2(
 
     let rawJson: unknown;
     try {
-      rawJson = (await responseon()) as unknown;
+      rawJson = (await response.json()) as unknown;
     } catch (e) {
       throw new CofheError({
         code: CofheErrorCode.DecryptFailed,
