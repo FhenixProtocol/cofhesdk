@@ -268,35 +268,6 @@ type EncryptedItemInput = {
 
 Pass these directly into a contract function that accepts `InEuint*` structs. The contract's CoFHE library validates the signature on-chain before operating on the ciphertext.
 
-## Full chained example
-
-```ts twoslash
-import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
-import { Encryptable, EncryptStep } from '@cofhe/sdk';
-import { chains } from '@cofhe/sdk/chains';
-import type { PublicClient, WalletClient } from 'viem';
-
-const config = createCofheConfig({ supportedChains: [chains.sepolia] });
-const cofheClient = createCofheClient(config);
-declare const publicClient: PublicClient;
-declare const walletClient: WalletClient;
-const recipient = '0xABCDE' as `0x${string}`;
-// ---cut---
-await cofheClient.connect(publicClient, walletClient);
-
-const [encryptedAmount] = await cofheClient
-  .encryptInputs([Encryptable.uint64(1_000_000n)])
-  .onStep((step, ctx) => {
-    if (step === EncryptStep.Prove && ctx?.isStart) {
-      console.log('Generating ZK proof…');
-    }
-  })
-  .execute();
-
-// Use in a contract call
-// await contract.confidentialTransfer(recipient, encryptedAmount);
-```
-
 ## Common pitfalls
 
 - **Wrong `Encryptable` type**: `Encryptable.uint32(...)` must match what your Solidity function expects (e.g. `InEuint32`).
