@@ -264,7 +264,9 @@ const config = createCofheConfig({ supportedChains: [chains.sepolia] });
 const client = createCofheClient(config);
 declare const ctHash: `0x${string}`;
 // ---cut---
-const plaintext = await client.decryptForView(ctHash, FheTypes.Uint32).execute();
+const plaintext = await client
+  .decryptForView(ctHash, FheTypes.Uint32)
+  .execute(); // [!code focus]
 
 plaintext;
 ```
@@ -290,7 +292,10 @@ const config = createCofheConfig({ supportedChains: [chains.sepolia] });
 const client = createCofheClient(config);
 declare const ctHash: `0x${string}`;
 // ---cut---
-const plaintext = await client.decryptForView(ctHash, FheTypes.Uint8).withPermit().execute();
+const plaintext = await client
+  .decryptForView(ctHash, FheTypes.Uint8)
+  .withPermit() // [!code focus]
+  .execute();
 
 plaintext;
 ```
@@ -306,7 +311,10 @@ declare const ctHash: `0x${string}`;
 // ---cut---
 const permit = await client.permits.getOrCreateSelfPermit();
 
-const plaintext = await client.decryptForView(ctHash, FheTypes.Uint64).withPermit(permit).execute();
+const plaintext = await client
+  .decryptForView(ctHash, FheTypes.Uint64)
+  .withPermit(permit) // [!code focus]
+  .execute();
 
 plaintext;
 ```
@@ -321,7 +329,10 @@ const client = createCofheClient(config);
 declare const ctHash: `0x${string}`;
 declare const permitHash: `0x${string}`;
 // ---cut---
-const plaintext = await client.decryptForView(ctHash, FheTypes.Bool).withPermit(permitHash).execute();
+const plaintext = await client
+  .decryptForView(ctHash, FheTypes.Bool)
+  .withPermit(permitHash) // [!code focus]
+  .execute();
 
 plaintext;
 ```
@@ -343,7 +354,7 @@ declare const ctHash: `0x${string}`;
 // ---cut---
 const plaintext = await client
   .decryptForView(ctHash, FheTypes.Uint32)
-  .setAccount('0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045')
+  .setAccount('0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045') // [!code focus]
   .withPermit()
   .execute();
 
@@ -363,7 +374,11 @@ const config = createCofheConfig({ supportedChains: [chains.sepolia] });
 const client = createCofheClient(config);
 declare const ctHash: `0x${string}`;
 // ---cut---
-const plaintext = await client.decryptForView(ctHash, FheTypes.Uint16).setChainId(11155111).withPermit().execute();
+const plaintext = await client
+  .decryptForView(ctHash, FheTypes.Uint16)
+  .setChainId(11155111) // [!code focus]
+  .withPermit()
+  .execute();
 
 plaintext;
 ```
