@@ -1,5 +1,124 @@
 # Client
 
-Creating & connecting the Hardhat client
+The plugin extends `hre` with `hre.cofhe`, providing three ways to create and connect a `CofheClient` in your Hardhat tests.
 
-WIP
+## Batteries included (recommended)
+
+`hre.cofhe.createClientWithBatteries(signer?)` is the one-liner that handles everything:
+
+1. Creates a CoFHE config with `environment: 'hardhat'` and `supportedChains: [hardhat]`
+2. Creates a `CofheClient`
+3. Connects it using the provided Hardhat signer (defaults to the first signer)
+4. Generates a self-usage permit for the signer
+
+```ts twoslash
+// @noErrors
+import '@cofhe/hardhat-plugin';
+import '@nomicfoundation/hardhat-ethers';
+// ---cut---
+import hre from 'hardhat';
+
+const [signer] = await hre.ethers.getSigners();
+
+const cofheClient = await hre.cofhe.createClientWithBatteries(signer); // [!code focus]
+
+cofheClient.connected; // true
+```
+
+:::info
+`createClientWithBatteries` generates a self-permit automatically, so most test operations (encrypting inputs, decrypting for view, decrypting for tx) work immediately without any extra setup.
+:::
+
+If `signer` is omitted, the first signer from `hre.ethers.getSigners()` is used.
+
+## Manual setup
+
+For more control — custom config options, multiple signers, or adjusting `encryptDelay` — you can set up the client step by step.
+
+::::steps
+
+### Create config
+
+```ts twoslash
+// @noErrors
+import '@cofhe/hardhat-plugin';
+import '@nomicfoundation/hardhat-ethers';
+// ---cut---
+import hre from 'hardhat';
+import { hardhat } from '@cofhe/sdk/chains';
+
+const config = await hre.cofhe.createConfig({
+  // [!code focus]
+  supportedChains: [hardhat], // [!code focus]
+}); // [!code focus]
+```
+
+`hre.cofhe.createConfig` wraps `createCofheConfig` from `@cofhe/sdk/node` with two Hardhat-specific additions:
+
+- Sets `environment: 'hardhat'` automatically
+- Defaults `mocks.encryptDelay` to `0` so tests run without artificial wait times
+
+For all available config options, see [Client](/sdk/client).
+
+### Create the client
+
+```ts twoslash
+// @noErrors
+import '@cofhe/hardhat-plugin';
+import '@nomicfoundation/hardhat-ethers';
+import hre from 'hardhat';
+import { hardhat } from '@cofhe/sdk/chains';
+
+const config = await hre.cofhe.createConfig({ supportedChains: [hardhat] });
+// ---cut---
+const cofheClient = hre.cofhe.createClient(config); // [!code focus]
+```
+
+### Connect with a Hardhat signer
+
+```ts twoslash
+// @noErrors
+import '@cofhe/hardhat-plugin';
+import '@nomicfoundation/hardhat-ethers';
+import hre from 'hardhat';
+import { hardhat } from '@cofhe/sdk/chains';
+
+const [signer] = await hre.ethers.getSigners();
+const config = await hre.cofhe.createConfig({ supportedChains: [hardhat] });
+const cofheClient = hre.cofhe.createClient(config);
+// ---cut---
+await hre.cofhe.connectWithHardhatSigner(cofheClient, signer); // [!code focus]
+```
+
+`connectWithHardhatSigner` uses `HardhatSignerAdapter` under the hood to convert a `HardhatEthersSigner` into the viem `PublicClient` + `WalletClient` pair that the SDK expects.
+
+::::
+
+## Low-level adapter
+
+If you need direct access to the underlying viem clients, call the adapter directly:
+
+```ts twoslash
+// @noErrors
+import '@cofhe/hardhat-plugin';
+import '@nomicfoundation/hardhat-ethers';
+import hre from 'hardhat';
+import { CofheClient } from '@cofhe/sdk';
+
+const [signer] = await hre.ethers.getSigners();
+declare const cofheClient: CofheClient;
+// ---cut---
+const { publicClient, walletClient } =
+  await hre.cofhe.hardhatSignerAdapter(signer); // [!code focus]
+
+await cofheClient.connect(publicClient, walletClient);
+```
+
+## Using the client
+
+Once connected, the client works identically to the standard SDK client. See:
+
+- [Encrypting Inputs](/sdk/encrypting-inputs)
+- [Decrypting to View](/sdk/decrypt-to-view)
+- [Decrypting to Transact](/sdk/decrypt-to-tx)
+- [Permits](/sdk/permits)

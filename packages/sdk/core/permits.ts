@@ -85,15 +85,15 @@ const deserialize = (serialized: SerializedPermit) => {
 
 // GET
 
-const getPermit = async (chainId: number, account: string, hash: string): Promise<Permit | undefined> => {
+const getPermit = (chainId: number, account: string, hash: string): Permit | undefined => {
   return permitStore.getPermit(chainId, account, hash);
 };
 
-const getPermits = async (chainId: number, account: string): Promise<Record<string, Permit>> => {
+const getPermits = (chainId: number, account: string): Record<string, Permit> => {
   return permitStore.getPermits(chainId, account);
 };
 
-const getActivePermit = async (chainId: number, account: string): Promise<Permit | undefined> => {
+const getActivePermit = (chainId: number, account: string): Permit | undefined => {
   return permitStore.getActivePermit(chainId, account);
 };
 

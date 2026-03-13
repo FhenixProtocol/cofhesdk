@@ -1,0 +1,61 @@
+import { Button } from 'vocs/components';
+
+# EncryptedCounter.sol
+
+This contract is included as a reference that is used throughout the SDK documentation to explain core functionality such as encrypting inputs, decrypting for view, and decrypting for transactions.
+
+```solidity [EncryptedCounter.sol]
+// [!include ~/snippets/EncryptedCounter.sol]
+```
+
+## Contract walkthrough
+
+### Submit an encrypted value
+
+`setCount` accepts an encrypted input (`InEuint32`) and stores it as the new counter value. The caller submits an already-encrypted value — the contract converts it into an FHE ciphertext, updates allowances, and resets any previously revealed plaintext.
+
+:::info
+[Encrypting Inputs](/sdk/encrypting-inputs) documentation
+:::
+
+```solidity
+// [!include ~/snippets/EncryptedCounter.sol:encrypt-input]
+```
+
+### Retrieve an encrypted value
+
+The counter is stored as an `euint32` — an encrypted handle. `getValue` returns this handle (a `bytes32` on-chain), which can then be decrypted off-chain. The `count` state variable is also `public`, so it can be read directly.
+
+:::info
+[Permits](/sdk/permits) and [Decrypting to View](/sdk/decrypt-to-view) documentation
+:::
+
+```solidity
+// [!include ~/snippets/EncryptedCounter.sol:encrypted-state-variable]
+
+// [!include ~/snippets/EncryptedCounter.sol:get-count]
+```
+
+### Manipulate an encrypted value
+
+`incrementCount` performs an FHE addition on the encrypted counter, adding 1 without ever decrypting the value. The result is a new ciphertext that replaces the old one.
+
+```solidity
+// [!include ~/snippets/EncryptedCounter.sol:increment-count]
+```
+
+### Reveal an encrypted value
+
+`revealCount` accepts a plaintext value and a cryptographic signature proving it matches the current encrypted counter. The contract verifies the proof on-chain via `FHE.verifyDecryptResult` and, if valid, stores the plaintext. `allowCountPublicly` can be called beforehand to allow anyone to generate the decryption proof (no permit required).
+
+:::info
+[Decrypting to Transact](/sdk/decrypt-to-tx) documentation
+:::
+
+```solidity
+// [!include ~/snippets/EncryptedCounter.sol:allow-count-publicly]
+```
+
+```solidity
+// [!include ~/snippets/EncryptedCounter.sol:decrypt-for-tx-usage]
+```

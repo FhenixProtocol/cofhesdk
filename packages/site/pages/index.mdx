@@ -1,45 +1,125 @@
-# Intro
+# Cofhe SDK
 
-## Purpose
+`@cofhe/sdk` is the TypeScript client for [CoFHE](https://cofhe-docs.fhenix.zone/deep-dive/cofhe-components/overview). It handles the client-side operations required to interact with FHE-enabled smart contracts: encrypting inputs with ZK proofs, decrypting ciphertext handles via the Threshold Network, and managing EIP-712 permits for access control.
 
-`@cofhe/sdk` is the core library for integrating with Fhenix’s CoFHE coprocessor.
+On-chain, contracts use [`FHE.sol`](https://cofhe-docs.fhenix.zone/fhe-library/introduction/overview) to operate on encrypted data. Off-chain, this SDK prepares the inputs and reads the outputs.
 
-It provides:
+## What the SDK does
 
-- A typed client for encrypting inputs and decrypting handles.
-- Key fetching + key storage abstractions (with sensible defaults per runtime).
-- Permit utilities (create/validate/store/serialize) for decryption authorization.
-- Optional helpers for chain definitions and popular wallet/provider stacks.
+| Operation        | Function                                                     | Description                                                                                                                                                  |
+| ---------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Encrypt inputs   | `client.encryptInputs([...]).execute()`                      | Packs plaintext values, generates a ZKPoK, and submits them to the CoFHE verifier. Returns signed `EncryptedItemInput` objects for use in contract calls.    |
+| Decrypt for view | `client.decryptForView(ctHash, utype).execute()`             | Requests decryption of a ciphertext handle via the Threshold Network using a permit. Returns the plaintext locally (not published on-chain).                 |
+| Decrypt for tx   | `client.decryptForTx(ctHash).execute()`                      | Requests decryption and returns the plaintext with a Threshold Network signature. The signature can be verified on-chain via `FHE.verifyDecryptResult(...)`. |
+| Manage permits   | `client.permits.createSelf(...)` / `getOrCreateSelfPermit()` | Creates, stores, and manages EIP-712 permits that authorize decryption of specific ciphertext handles.                                                       |
 
-## `@cofhe/sdk` entrypoints
+## Entrypoints
 
-The SDK ships multiple entrypoints so you can pick the right defaults for your runtime.
-
-- `@cofhe/sdk` (core)
-  - Environment-agnostic exports: core client/config factories, types, and shared utilities.
-- `@cofhe/sdk/web`
-  - Browser defaults: IndexedDB-based key storage, TFHE-WASM initialization, and optional Web Worker proof generation.
-- `@cofhe/sdk/node`
-  - Node.js defaults: filesystem-based key storage and `node-tfhe` initialization.
-- `@cofhe/sdk/permits`
-  - Permit utilities: create/validate/serialize permits, permit storage helpers, and sealing utilities.
-- `@cofhe/sdk/adapters`
-  - Adapter layer: helpers for integrating with `ethers` (v5/v6), Wagmi, and Hardhat signers.
-- `@cofhe/sdk/chains`
-  - Chain definitions + helpers: built-in supported chains and `getChainById` / `getChainByName`.
-
-### Import examples
+| Entrypoint            | Contents                                                                                                    |
+| --------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `@cofhe/sdk`          | Core types (`Encryptable`, `FheTypes`, `EncryptStep`, `CofheError`), shared across runtimes                 |
+| `@cofhe/sdk/web`      | `createCofheConfig` / `createCofheClient` with browser defaults (IndexedDB storage, TFHE WASM, Web Workers) |
+| `@cofhe/sdk/node`     | `createCofheConfig` / `createCofheClient` with Node.js defaults (filesystem storage, `node-tfhe`)           |
+| `@cofhe/sdk/permits`  | Permit creation, validation, serialization, and storage utilities                                           |
+| `@cofhe/sdk/adapters` | `Ethers5Adapter`, `Ethers6Adapter`, `WagmiAdapter`, `HardhatSignerAdapter`                                  |
+| `@cofhe/sdk/chains`   | Built-in chain definitions and `getChainById` / `getChainByName` helpers                                    |
 
 ```ts twoslash
 // @noErrors
-import { createCofhesdkClient, createCofhesdkConfig } from '@cofhe/sdk/web';
-// or
+// Browser
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+
+// Node.js
 import {
-  createCofhesdkClient as createCofhesdkClientNode,
-  createCofhesdkConfig as createCofhesdkConfigNode,
+  createCofheConfig as createCofheConfigNode,
+  createCofheClient as createCofheClientNode,
 } from '@cofhe/sdk/node';
 
-import { PermitUtils } from '@cofhe/sdk/permits';
-import { chains, getChainById } from '@cofhe/sdk/chains';
+// Shared
+import { Encryptable, FheTypes } from '@cofhe/sdk';
+import { chains } from '@cofhe/sdk/chains';
 import { Ethers6Adapter } from '@cofhe/sdk/adapters';
 ```
+
+## Client lifecycle
+
+```
+createCofheConfig({ supportedChains }) → createCofheClient(config) → client.connect(publicClient, walletClient)
+```
+
+```ts twoslash
+// @noErrors
+import { type PublicClient, type WalletClient } from 'viem';
+declare const publicClient: PublicClient;
+declare const walletClient: WalletClient;
+declare const contract: {
+  deposit: (encrypted: any) => Promise<any>;
+  getBalance: () => Promise<string>;
+};
+// ---cut---
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { Encryptable, FheTypes } from '@cofhe/sdk';
+import { chains } from '@cofhe/sdk/chains';
+
+const config = createCofheConfig({
+  supportedChains: [chains.sepolia],
+});
+const client = createCofheClient(config);
+await client.connect(publicClient, walletClient);
+
+// Encrypt and send
+const [encrypted] = await client
+  .encryptInputs([Encryptable.uint64(100n)])
+  .execute();
+await contract.deposit(encrypted);
+
+// Decrypt for UI
+await client.permits.getOrCreateSelfPermit();
+const ctHash = await contract.getBalance();
+const balance = await client
+  .decryptForView(ctHash, FheTypes.Uint64)
+  .execute();
+```
+
+## Hardhat plugin
+
+`@cofhe/hardhat-plugin` deploys mock versions of the CoFHE on-chain components (TaskManager, ACL, ZK verifier, Threshold Network) onto the Hardhat network, so you can compile and test FHE contracts without the off-chain infrastructure.
+
+The plugin extends `hre` with `hre.cofhe`:
+
+```ts twoslash
+// @noErrors
+import '@cofhe/hardhat-plugin';
+import '@nomicfoundation/hardhat-ethers';
+// ---cut---
+import hre from 'hardhat';
+
+const [signer] = await hre.ethers.getSigners();
+const cofheClient = await hre.cofhe.createClientWithBatteries(signer);
+```
+
+The mock `TaskManager` stores plaintext values on-chain, so you can assert encrypted state directly:
+
+```ts twoslash
+// @noErrors
+import '@cofhe/hardhat-plugin';
+import '@nomicfoundation/hardhat-ethers';
+import hre from 'hardhat';
+declare const ctHash: string;
+// ---cut---
+await hre.cofhe.mocks.expectPlaintext(ctHash, 42n);
+```
+
+Mocks are deployed automatically before `npx hardhat test`. FHE operation logging is built in.
+
+## Pages
+
+- [Quick Start](/quick-start) — install, write a contract, run a test.
+- [Client](/sdk/client) — config, connect, adapters, connection lifecycle.
+- [Encrypting Inputs](/sdk/encrypting-inputs) — prepare encrypted inputs for a contract call.
+- [Decrypting to View](/sdk/decrypt-to-view) — decrypt ciphertext handles for UI display.
+- [Decrypting to Transact](/sdk/decrypt-to-tx) — decrypt with a verifiable signature for on-chain use.
+- [Permits](/sdk/permits) — create and manage decryption authorization.
+- [Hardhat Getting Started](/hardhat) — plugin setup and first test.
+- [Mock Contracts](/hardhat/mock-contracts) — `getPlaintext`, `expectPlaintext`, mock contract access.
+- [Migrating from `cofhejs`](/migrating-from-cofhejs) — side-by-side API mapping for existing cofhejs users.

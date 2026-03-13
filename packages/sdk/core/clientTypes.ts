@@ -84,10 +84,10 @@ export type CofheClientPermits = {
   ) => Promise<RecipientPermit>;
 
   // Retrieval methods (chainId/account optional)
-  getPermit: (hash: string, chainId?: number, account?: string) => Promise<Permit | undefined>;
-  getPermits: (chainId?: number, account?: string) => Promise<Record<string, Permit>>;
-  getActivePermit: (chainId?: number, account?: string) => Promise<Permit | undefined>;
-  getActivePermitHash: (chainId?: number, account?: string) => Promise<string | undefined>;
+  getPermit: (hash: string, chainId?: number, account?: string) => Permit | undefined;
+  getPermits: (chainId?: number, account?: string) => Record<string, Permit>;
+  getActivePermit: (chainId?: number, account?: string) => Permit | undefined;
+  getActivePermitHash: (chainId?: number, account?: string) => string | undefined;
 
   // Get or create methods (get active or create new, chainId/account optional)
   getOrCreateSelfPermit: (chainId?: number, account?: string, options?: CreateSelfPermitOptions) => Promise<Permit>;

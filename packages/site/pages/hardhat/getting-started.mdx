@@ -1,1 +1,145 @@
-Getting started with cofhesdk hardhat plugin
+# Getting Started
+
+This guide walks through integrating `@cofhe/hardhat-plugin` into an existing Hardhat project — from installation to your first passing FHE test.
+
+## Prerequisites
+
+- A Hardhat project with `hardhat >= 2.0`
+- `@nomicfoundation/hardhat-toolbox` or `@nomicfoundation/hardhat-ethers` already installed
+
+## 1) Install dependencies
+
+:::code-group
+
+```bash [npm]
+npm install @cofhe/hardhat-plugin @cofhe/sdk @fhenixprotocol/cofhe-contracts
+```
+
+```bash [pnpm]
+pnpm add @cofhe/hardhat-plugin @cofhe/sdk @fhenixprotocol/cofhe-contracts
+```
+
+```bash [yarn]
+yarn add @cofhe/hardhat-plugin @cofhe/sdk @fhenixprotocol/cofhe-contracts
+```
+
+:::
+
+- **`@cofhe/hardhat-plugin`** — extends `hre` with `hre.cofhe`, deploys mock contracts, and registers Hardhat tasks
+- **`@cofhe/sdk`** — the CoFHE client used in tests for encrypting inputs and decrypting handles
+- **`@fhenixprotocol/cofhe-contracts`** — the `FHE.sol` library imported by your Solidity contracts
+
+## 2) Update `hardhat.config.ts`
+
+Import the plugin and set `evmVersion` to `cancun`. The `cancun` EVM version is required for the transient storage opcodes used by the FHE contracts.
+
+```ts [hardhat.config.ts]
+import { HardhatUserConfig } from 'hardhat/config';
+import '@nomicfoundation/hardhat-toolbox';
+import '@cofhe/hardhat-plugin'; // [!code ++]
+
+const config: HardhatUserConfig = {
+  solidity: {
+    version: '0.8.28',
+    settings: {
+      evmVersion: 'cancun', // [!code ++]
+    },
+  },
+};
+
+export default config;
+```
+
+:::warning
+Without `evmVersion: 'cancun'`, compilation will fail with errors from `@fhenixprotocol/cofhe-contracts`.
+:::
+
+## 3) Write an FHE contract
+
+Import `FHE.sol` and use the FHE types in your contract. The key types are:
+
+- **`euint32`** — an encrypted `uint32` stored on-chain
+- **`InEuint32`** — the encrypted input type passed in from the SDK
+
+```solidity [contracts/MyContract.sol]
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.28;
+
+import '@fhenixprotocol/cofhe-contracts/FHE.sol';
+
+contract MyContract {
+  euint32 public storedValue;
+
+  function setValue(InEuint32 memory inValue) external {
+    storedValue = FHE.asEuint32(inValue);    // [!code focus]
+    FHE.allowThis(storedValue);               // [!code focus]
+    FHE.allowSender(storedValue);             // [!code focus]
+  }
+}
+```
+
+`FHE.allowThis` and `FHE.allowSender` grant the contract and the caller permission to read the encrypted value. Without these, decryption will be rejected by the ACL.
+
+## 4) Write a test
+
+Use `hre.cofhe.createClientWithBatteries` to get a fully configured client, then encrypt an input, call your contract, and decrypt the result.
+
+```ts [test/MyContract.test.ts]
+import hre from 'hardhat';
+import { CofheClient, Encryptable, FheTypes } from '@cofhe/sdk';
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
+import { expect } from 'chai';
+
+describe('MyContract', () => {
+  let cofheClient: CofheClient;
+  let signer: HardhatEthersSigner;
+
+  before(async () => {
+    [signer] = await hre.ethers.getSigners();
+    cofheClient = await hre.cofhe.createClientWithBatteries(signer); // [!code focus]
+  });
+
+  it('should store and decrypt an encrypted value', async () => {
+    const MyContract = await hre.ethers.getContractFactory('MyContract');
+    const contract = await MyContract.deploy();
+
+    // Encrypt the input
+    const [encrypted] = await cofheClient
+      .encryptInputs([Encryptable.uint32(42n)])
+      .execute();
+
+    // Send to contract
+    await (await contract.setValue(encrypted)).wait();
+
+    // Read the stored handle and decrypt
+    const ctHash = await contract.storedValue();
+    const decrypted = await cofheClient
+      .decryptForView(ctHash, FheTypes.Uint32)
+      .execute();
+
+    expect(decrypted).to.equal(42n);
+  });
+});
+```
+
+## 5) Run the tests
+
+```bash
+npx hardhat test
+```
+
+The plugin automatically deploys the mock contracts before running — no extra setup needed.
+
+```
+  MyContract
+    ✓ should store and decrypt an encrypted value
+
+  1 passing (1s)
+```
+
+## Next steps
+
+- [Client](/hardhat/client) — manual client setup and config options
+- [Mock Contracts](/hardhat/mock-contracts) — reading plaintext values directly in tests
+- [Logging](/hardhat/logging) — inspecting FHE operations in test output
+- [Testing](/hardhat/testing) — permits, `decryptForTx`, and more test patterns

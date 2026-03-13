@@ -2,6 +2,16 @@ import { defineConfig } from 'vocs';
 import pkg from './package.json';
 
 export default defineConfig({
+  twoslash: {
+    compilerOptions: {
+      // ModuleResolutionKind.Bundler = 100
+      // Required so twoslash can resolve package.json `exports` subpaths
+      // (e.g. @cofhe/sdk/web, @cofhe/sdk/chains, viem/chains).
+      // Without this, twoslash defaults to `node` resolution which ignores
+      // the `exports` field, causing every subpath import to resolve as `any`.
+      moduleResolution: 100,
+    },
+  },
   title: 'Cofhe SDK Docs',
   titleTemplate: '%s - Cofhe SDK',
   description: 'Documentation for the Cofhe SDK',
@@ -16,7 +26,6 @@ export default defineConfig({
         text: 'Quick Start',
         link: '/quick-start',
       },
-
       {
         text: 'Migrating from `cofhejs`',
         link: '/migrating-from-cofhejs',
@@ -29,12 +38,12 @@ export default defineConfig({
             link: '/sdk/client',
           },
           {
-            text: 'Permits',
-            link: '/sdk/permits',
-          },
-          {
             text: 'Encrypting Inputs',
             link: '/sdk/encrypting-inputs',
+          },
+          {
+            text: 'Permits',
+            link: '/sdk/permits',
           },
           {
             text: 'Decrypting to View',
@@ -68,6 +77,15 @@ export default defineConfig({
           {
             text: 'Testing',
             link: '/hardhat/testing',
+          },
+        ],
+      },
+      {
+        text: 'Reference',
+        items: [
+          {
+            text: 'EncryptedCounter.sol',
+            link: '/reference/encrypted-counter-sol',
           },
         ],
       },
