@@ -1,33 +1,28 @@
 # Cofhe SDK
 
-`@cofhe/sdk` is a TypeScript library for building apps on [Fhenix](https://fhenix.io) — a blockchain with native Fully Homomorphic Encryption (FHE). It handles the client-side cryptography so your dApp can encrypt inputs, read encrypted state, and reveal values on-chain without ever exposing plaintext data on the wire.
+`@cofhe/sdk` is the TypeScript client for [CoFHE](https://cofhe-docs.fhenix.zone/deep-dive/cofhe-components/overview). It handles the client-side operations required to interact with FHE-enabled smart contracts: encrypting inputs with ZK proofs, decrypting ciphertext handles via the Threshold Network, and managing EIP-712 permits for access control.
 
-## What does the SDK do?
+On-chain, contracts use [`FHE.sol`](https://cofhe-docs.fhenix.zone/fhe-library/introduction/overview) to operate on encrypted data. Off-chain, this SDK prepares the inputs and reads the outputs.
 
-On Fhenix, smart contracts operate on **encrypted data**. The SDK bridges your frontend (or backend script) to that encrypted world:
+## What the SDK does
 
-1. **Encrypt inputs** — wrap plaintext values in FHE ciphertexts with a zero-knowledge proof before submitting them in a transaction.
-2. **Decrypt for view** — reveal encrypted contract state locally in your UI using a permit (the plaintext never touches the chain).
-3. **Decrypt for transaction** — obtain a plaintext value with a Threshold Network signature so a contract can verify and use it on-chain.
-4. **Manage permits** — create, store, and share EIP-712 permits that authorize who can decrypt which ciphertexts.
-
-## Key design principles
-
-- **Explicit over implicit** — every action (connecting, encrypting, decrypting, permit creation) is opt-in. No hidden network calls or wallet prompts.
-- **Builder pattern** — `encryptInputs`, `decryptForView`, and `decryptForTx` return chainable builders so you can set overrides before calling `.execute()`.
-- **Lazy initialization** — FHE keys and TFHE WASM are fetched on the first encryption, not during setup. Connecting is instant.
-- **Runtime-aware** — import from `@cofhe/sdk/web` (browser, IndexedDB, Web Workers) or `@cofhe/sdk/node` (filesystem, node-tfhe). Core types live in `@cofhe/sdk`.
+| Operation | Function | Description |
+| --- | --- | --- |
+| Encrypt inputs | `client.encryptInputs([...]).execute()` | Packs plaintext values, generates a ZKPoK, and submits them to the CoFHE verifier. Returns signed `EncryptedItemInput` objects for use in contract calls. |
+| Decrypt for view | `client.decryptForView(ctHash, utype).execute()` | Requests decryption of a ciphertext handle via the Threshold Network using a permit. Returns the plaintext locally (not published on-chain). |
+| Decrypt for tx | `client.decryptForTx(ctHash).execute()` | Requests decryption and returns the plaintext with a Threshold Network signature. The signature can be verified on-chain via `FHE.verifyDecryptResult(...)`. |
+| Manage permits | `client.permits.createSelf(...)` / `getOrCreateSelfPermit()` | Creates, stores, and manages EIP-712 permits that authorize decryption of specific ciphertext handles. |
 
 ## Entrypoints
 
-| Entrypoint | Purpose |
+| Entrypoint | Contents |
 | --- | --- |
-| `@cofhe/sdk` | Core types, `Encryptable`, `FheTypes`, error utilities |
-| `@cofhe/sdk/web` | `createCofheConfig` / `createCofheClient` with browser defaults |
-| `@cofhe/sdk/node` | `createCofheConfig` / `createCofheClient` with Node.js defaults |
-| `@cofhe/sdk/permits` | Permit creation, validation, serialization, and storage helpers |
-| `@cofhe/sdk/adapters` | Adapters for ethers v5/v6, Wagmi, and Hardhat signers |
-| `@cofhe/sdk/chains` | Built-in chain definitions (`chains.sepolia`, `chains.hardhat`, etc.) |
+| `@cofhe/sdk` | Core types (`Encryptable`, `FheTypes`, `EncryptStep`, `CofheError`), shared across runtimes |
+| `@cofhe/sdk/web` | `createCofheConfig` / `createCofheClient` with browser defaults (IndexedDB storage, TFHE WASM, Web Workers) |
+| `@cofhe/sdk/node` | `createCofheConfig` / `createCofheClient` with Node.js defaults (filesystem storage, `node-tfhe`) |
+| `@cofhe/sdk/permits` | Permit creation, validation, serialization, and storage utilities |
+| `@cofhe/sdk/adapters` | `Ethers5Adapter`, `Ethers6Adapter`, `WagmiAdapter`, `HardhatSignerAdapter` |
+| `@cofhe/sdk/chains` | Built-in chain definitions and `getChainById` / `getChainByName` helpers |
 
 ```ts twoslash
 // @noErrors
@@ -46,7 +41,11 @@ import { chains } from '@cofhe/sdk/chains';
 import { Ethers6Adapter } from '@cofhe/sdk/adapters';
 ```
 
-## At a glance
+## Client lifecycle
+
+```
+createCofheConfig({ supportedChains }) → createCofheClient(config) → client.connect(publicClient, walletClient)
+```
 
 ```ts twoslash
 // @noErrors
@@ -62,20 +61,19 @@ import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
 import { Encryptable, FheTypes } from '@cofhe/sdk';
 import { chains } from '@cofhe/sdk/chains';
 
-// 1. Setup
 const config = createCofheConfig({
   supportedChains: [chains.sepolia],
 });
 const client = createCofheClient(config);
 await client.connect(publicClient, walletClient);
 
-// 2. Encrypt an input and send a transaction
+// Encrypt and send
 const [encrypted] = await client
   .encryptInputs([Encryptable.uint64(100n)])
   .execute();
 await contract.deposit(encrypted);
 
-// 3. Decrypt for UI display
+// Decrypt for UI
 await client.permits.getOrCreateSelfPermit();
 const ctHash = await contract.getBalance();
 const balance = await client
@@ -85,9 +83,9 @@ const balance = await client
 
 ## Hardhat plugin
 
-`@cofhe/hardhat-plugin` lets you develop and test FHE contracts locally without running the off-chain CoFHE engine. It deploys a suite of mock contracts that simulate the full coprocessor stack on the Hardhat network — including the task manager, ACL, ZK verifier, and threshold network.
+`@cofhe/hardhat-plugin` deploys mock versions of the CoFHE on-chain components (TaskManager, ACL, ZK verifier, Threshold Network) onto the Hardhat network, so you can compile and test FHE contracts without the off-chain infrastructure.
 
-The plugin extends `hre` with `hre.cofhe`, giving you a one-liner to create a fully configured client in tests:
+The plugin extends `hre` with `hre.cofhe`:
 
 ```ts twoslash
 // @noErrors
@@ -100,7 +98,7 @@ const [signer] = await hre.ethers.getSigners();
 const cofheClient = await hre.cofhe.createClientWithBatteries(signer);
 ```
 
-Because the mock `TaskManager` stores plaintext values on-chain, you can also assert encrypted state directly without permits:
+The mock `TaskManager` stores plaintext values on-chain, so you can assert encrypted state directly:
 
 ```ts twoslash
 // @noErrors
@@ -112,16 +110,16 @@ declare const ctHash: string;
 await hre.cofhe.mocks.expectPlaintext(ctHash, 42n);
 ```
 
-The mocks deploy automatically before every `npx hardhat test` run — no extra configuration needed. FHE operation logging is also built in, printing a formatted trace of every encrypted operation your contracts perform.
+Mocks are deployed automatically before `npx hardhat test`. FHE operation logging is built in.
 
-## Next steps
+## Pages
 
-- [Quick Start](/quick-start) — install the SDK and run your first encrypted transaction.
-- [Migrating from `cofhejs`](/migrating-from-cofhejs) — a side-by-side guide for existing cofhejs users.
-- [Client](/sdk/client) — config, connect, adapters, and connection lifecycle.
-- [Encrypting Inputs](/sdk/encrypting-inputs) — the `encryptInputs` builder API in detail.
-- [Decrypting to View](/sdk/decrypt-to-view) — reveal encrypted state in your UI.
-- [Decrypting to Transact](/sdk/decrypt-to-tx) — reveal values on-chain with a verifiable signature.
+- [Quick Start](/quick-start) — install, write a contract, run a test.
+- [Client](/sdk/client) — config, connect, adapters, connection lifecycle.
+- [Encrypting Inputs](/sdk/encrypting-inputs) — prepare encrypted inputs for a contract call.
+- [Decrypting to View](/sdk/decrypt-to-view) — decrypt ciphertext handles for UI display.
+- [Decrypting to Transact](/sdk/decrypt-to-tx) — decrypt with a verifiable signature for on-chain use.
 - [Permits](/sdk/permits) — create and manage decryption authorization.
-- [Hardhat Getting Started](/hardhat) — integrate the Hardhat plugin and write your first FHE test.
-- [Mock Contracts](/hardhat/mock-contracts) — read plaintext values and inspect mock contract state.
+- [Hardhat Getting Started](/hardhat) — plugin setup and first test.
+- [Mock Contracts](/hardhat/mock-contracts) — `getPlaintext`, `expectPlaintext`, mock contract access.
+- [Migrating from `cofhejs`](/migrating-from-cofhejs) — side-by-side API mapping for existing cofhejs users.
