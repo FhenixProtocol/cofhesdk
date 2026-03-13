@@ -88,7 +88,7 @@ export default defineConfig({
             link: '/reference/encrypted-counter-sol',
           },
         ],
-      }
+      },
     ],
     '/foundry': {
       backLink: true,
