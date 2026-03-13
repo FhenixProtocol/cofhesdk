@@ -6,23 +6,23 @@ On-chain, contracts use [`FHE.sol`](https://cofhe-docs.fhenix.zone/fhe-library/i
 
 ## What the SDK does
 
-| Operation | Function | Description |
-| --- | --- | --- |
-| Encrypt inputs | `client.encryptInputs([...]).execute()` | Packs plaintext values, generates a ZKPoK, and submits them to the CoFHE verifier. Returns signed `EncryptedItemInput` objects for use in contract calls. |
-| Decrypt for view | `client.decryptForView(ctHash, utype).execute()` | Requests decryption of a ciphertext handle via the Threshold Network using a permit. Returns the plaintext locally (not published on-chain). |
-| Decrypt for tx | `client.decryptForTx(ctHash).execute()` | Requests decryption and returns the plaintext with a Threshold Network signature. The signature can be verified on-chain via `FHE.verifyDecryptResult(...)`. |
-| Manage permits | `client.permits.createSelf(...)` / `getOrCreateSelfPermit()` | Creates, stores, and manages EIP-712 permits that authorize decryption of specific ciphertext handles. |
+| Operation        | Function                                                     | Description                                                                                                                                                  |
+| ---------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Encrypt inputs   | `client.encryptInputs([...]).execute()`                      | Packs plaintext values, generates a ZKPoK, and submits them to the CoFHE verifier. Returns signed `EncryptedItemInput` objects for use in contract calls.    |
+| Decrypt for view | `client.decryptForView(ctHash, utype).execute()`             | Requests decryption of a ciphertext handle via the Threshold Network using a permit. Returns the plaintext locally (not published on-chain).                 |
+| Decrypt for tx   | `client.decryptForTx(ctHash).execute()`                      | Requests decryption and returns the plaintext with a Threshold Network signature. The signature can be verified on-chain via `FHE.verifyDecryptResult(...)`. |
+| Manage permits   | `client.permits.createSelf(...)` / `getOrCreateSelfPermit()` | Creates, stores, and manages EIP-712 permits that authorize decryption of specific ciphertext handles.                                                       |
 
 ## Entrypoints
 
-| Entrypoint | Contents |
-| --- | --- |
-| `@cofhe/sdk` | Core types (`Encryptable`, `FheTypes`, `EncryptStep`, `CofheError`), shared across runtimes |
-| `@cofhe/sdk/web` | `createCofheConfig` / `createCofheClient` with browser defaults (IndexedDB storage, TFHE WASM, Web Workers) |
-| `@cofhe/sdk/node` | `createCofheConfig` / `createCofheClient` with Node.js defaults (filesystem storage, `node-tfhe`) |
-| `@cofhe/sdk/permits` | Permit creation, validation, serialization, and storage utilities |
-| `@cofhe/sdk/adapters` | `Ethers5Adapter`, `Ethers6Adapter`, `WagmiAdapter`, `HardhatSignerAdapter` |
-| `@cofhe/sdk/chains` | Built-in chain definitions and `getChainById` / `getChainByName` helpers |
+| Entrypoint            | Contents                                                                                                    |
+| --------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `@cofhe/sdk`          | Core types (`Encryptable`, `FheTypes`, `EncryptStep`, `CofheError`), shared across runtimes                 |
+| `@cofhe/sdk/web`      | `createCofheConfig` / `createCofheClient` with browser defaults (IndexedDB storage, TFHE WASM, Web Workers) |
+| `@cofhe/sdk/node`     | `createCofheConfig` / `createCofheClient` with Node.js defaults (filesystem storage, `node-tfhe`)           |
+| `@cofhe/sdk/permits`  | Permit creation, validation, serialization, and storage utilities                                           |
+| `@cofhe/sdk/adapters` | `Ethers5Adapter`, `Ethers6Adapter`, `WagmiAdapter`, `HardhatSignerAdapter`                                  |
+| `@cofhe/sdk/chains`   | Built-in chain definitions and `getChainById` / `getChainByName` helpers                                    |
 
 ```ts twoslash
 // @noErrors

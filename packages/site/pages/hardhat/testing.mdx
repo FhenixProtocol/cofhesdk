@@ -43,7 +43,9 @@ declare const cofheClient: CofheClient;
 declare const testContract: Contract;
 // ---cut---
 // 1. Encrypt the input
-const encrypted = await cofheClient.encryptInputs([Encryptable.uint32(100n)]).execute();
+const encrypted = await cofheClient
+  .encryptInputs([Encryptable.uint32(100n)])
+  .execute();
 
 // 2. Send to contract
 const tx = await testContract.setValue(encrypted[0]);
@@ -53,7 +55,9 @@ await tx.wait();
 const ctHash = await testContract.storedValue();
 
 // 4. Decrypt for display
-const decrypted = await cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
+const decrypted = await cofheClient
+  .decryptForView(ctHash, FheTypes.Uint32)
+  .execute();
 
 expect(decrypted).to.equal(100n);
 ```
@@ -192,7 +196,11 @@ import { DecryptForTxResult } from '@cofhe/sdk';
 declare const myContract: Contract;
 declare const result: DecryptForTxResult;
 // ---cut---
-await myContract.revealValue(result.ctHash, result.decryptedValue, result.signature);
+await myContract.revealValue(
+  result.ctHash,
+  result.decryptedValue,
+  result.signature
+);
 ```
 
 For a full walkthrough of `decryptForTx`, see [Decrypting to Transact](/sdk/decrypt-to-tx).

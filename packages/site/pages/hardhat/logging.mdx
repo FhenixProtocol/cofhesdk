@@ -28,7 +28,8 @@ import hre from 'hardhat';
 import { Contract } from 'ethers';
 declare const counter: Contract;
 // ---cut---
-await hre.cofhe.mocks.withLogs('counter.increment()', async () => { // [!code focus]
+await hre.cofhe.mocks.withLogs('counter.increment()', async () => {
+  // [!code focus]
   await counter.increment();
 }); // [!code focus]
 ```

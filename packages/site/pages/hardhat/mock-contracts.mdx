@@ -4,13 +4,13 @@ The plugin deploys a suite of mock contracts that simulate the full CoFHE coproc
 
 ## What the mocks simulate
 
-| Contract | Role |
-| --- | --- |
-| `MockTaskManager` | Manages FHE operations; stores plaintext values on-chain for testing |
-| `MockACL` | Access control for encrypted handles |
-| `MockZkVerifier` | Simulates ZK proof verification for encrypted inputs |
-| `MockThresholdNetwork` | Handles decryption requests |
-| `TestBed` | Helper contract for testing — exposes trivial value setters and a `numberHash` getter |
+| Contract               | Role                                                                                  |
+| ---------------------- | ------------------------------------------------------------------------------------- |
+| `MockTaskManager`      | Manages FHE operations; stores plaintext values on-chain for testing                  |
+| `MockACL`              | Access control for encrypted handles                                                  |
+| `MockZkVerifier`       | Simulates ZK proof verification for encrypted inputs                                  |
+| `MockThresholdNetwork` | Handles decryption requests                                                           |
+| `TestBed`              | Helper contract for testing — exposes trivial value setters and a `numberHash` getter |
 
 The SDK automatically detects when it's running against the mock environment (by checking bytecode at the `MockZkVerifier` fixed address) and adapts its behavior accordingly — ZK proof generation is skipped and verification is handled by the mock contracts.
 

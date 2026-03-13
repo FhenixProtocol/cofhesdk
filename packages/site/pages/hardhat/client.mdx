@@ -108,7 +108,8 @@ import { CofheClient } from '@cofhe/sdk';
 const [signer] = await hre.ethers.getSigners();
 declare const cofheClient: CofheClient;
 // ---cut---
-const { publicClient, walletClient } = await hre.cofhe.hardhatSignerAdapter(signer); // [!code focus]
+const { publicClient, walletClient } =
+  await hre.cofhe.hardhatSignerAdapter(signer); // [!code focus]
 
 await cofheClient.connect(publicClient, walletClient);
 ```

@@ -26,11 +26,11 @@ yarn add @cofhe/hardhat-plugin@^0.3.2 @cofhe/sdk@^0.3.2 @fhenixprotocol/cofhe-co
 
 :::
 
-| Package | Version | Purpose |
-| --- | --- | --- |
-| `@cofhe/hardhat-plugin` | `^0.3.2` | Extends Hardhat with `hre.cofhe`, deploys mock contracts automatically |
-| `@cofhe/sdk` | `^0.3.2` | Client-side encryption, decryption, and permit management |
-| `@fhenixprotocol/cofhe-contracts` | `^0.1.0` | `FHE.sol` — the Solidity library imported by your contracts |
+| Package                           | Version  | Purpose                                                                |
+| --------------------------------- | -------- | ---------------------------------------------------------------------- |
+| `@cofhe/hardhat-plugin`           | `^0.3.2` | Extends Hardhat with `hre.cofhe`, deploys mock contracts automatically |
+| `@cofhe/sdk`                      | `^0.3.2` | Client-side encryption, decryption, and permit management              |
+| `@fhenixprotocol/cofhe-contracts` | `^0.1.0` | `FHE.sol` — the Solidity library imported by your contracts            |
 
 :::note
 `@fhenixprotocol/cofhe-contracts@0.1.0` requires `@cofhe/sdk` version `>= 0.3.2`.
@@ -102,13 +102,11 @@ describe('MyContract', () => {
 
   before(async () => {
     [signer] = await hre.ethers.getSigners();
-    cofheClient =
-      await hre.cofhe.createClientWithBatteries(signer);
+    cofheClient = await hre.cofhe.createClientWithBatteries(signer);
   });
 
   it('stores and decrypts an encrypted value', async () => {
-    const Factory =
-      await hre.ethers.getContractFactory('MyContract');
+    const Factory = await hre.ethers.getContractFactory('MyContract');
     const contract = await Factory.deploy();
 
     // 1. Encrypt the input

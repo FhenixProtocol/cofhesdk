@@ -12,7 +12,7 @@
     "check:formatting": "prettier --check \"**/*.{ts,tsx,md}\"",
     "clean": "turbo run clean && rm -rf node_modules",
     "coverage": "turbo run coverage",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "format": "prettier --write \"**/*.{ts,tsx,md,mdx}\"",
     "changeset": "changeset && pnpm format",
     "version-packages": "changeset version",
     "release": "pnpm run build && changeset publish",

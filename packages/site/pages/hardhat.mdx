@@ -55,7 +55,7 @@ import '@cofhe/hardhat-plugin';
 export default {
   solidity: '0.8.28',
   cofhe: {
-    logMocks: true,   // log FHE ops to the console (default: true)
+    logMocks: true, // log FHE ops to the console (default: true)
     gasWarning: true, // warn when mock gas usage is high (default: true)
   },
 };
@@ -65,11 +65,11 @@ export default {
 
 The following networks are injected automatically. You can override any of them by defining the same key under `networks` in your config.
 
-| Network | URL | Chain ID |
-| --- | --- | --- |
-| `localcofhe` | `http://127.0.0.1:42069` | — |
+| Network       | URL                         | Chain ID   |
+| ------------- | --------------------------- | ---------- |
+| `localcofhe`  | `http://127.0.0.1:42069`    | —          |
 | `eth-sepolia` | Ethereum Sepolia public RPC | `11155111` |
-| `arb-sepolia` | Arbitrum Sepolia public RPC | `421614` |
+| `arb-sepolia` | Arbitrum Sepolia public RPC | `421614`   |
 
 For testnets, set `PRIVATE_KEY` (and optionally `SEPOLIA_RPC_URL` / `ARBITRUM_SEPOLIA_RPC_URL`) in your environment.
 

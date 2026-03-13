@@ -95,8 +95,15 @@ const client = createCofheClient(config);
 declare const account: `0x${string}`;
 // ---cut---
 
-const publicClient = createPublicClient({ chain: sepolia, transport: http() });
-const walletClient = createWalletClient({ chain: sepolia, transport: http(), account });
+const publicClient = createPublicClient({
+  chain: sepolia,
+  transport: http(),
+});
+const walletClient = createWalletClient({
+  chain: sepolia,
+  transport: http(),
+  account,
+});
 
 await client.connect(publicClient, walletClient);
 
@@ -125,8 +132,15 @@ declare const ctHash: `0x${string}`;
 declare const account: `0x${string}`;
 // ---cut---
 
-const publicClient = createPublicClient({ chain: sepolia, transport: http() });
-const walletClient = createWalletClient({ chain: sepolia, transport: http(), account });
+const publicClient = createPublicClient({
+  chain: sepolia,
+  transport: http(),
+});
+const walletClient = createWalletClient({
+  chain: sepolia,
+  transport: http(),
+  account,
+});
 
 await client.connect(publicClient, walletClient);
 
@@ -152,8 +166,15 @@ declare const ctHash: `0x${string}`;
 declare const account: `0x${string}`;
 // ---cut---
 
-const publicClient = createPublicClient({ chain: sepolia, transport: http() });
-const walletClient = createWalletClient({ chain: sepolia, transport: http(), account });
+const publicClient = createPublicClient({
+  chain: sepolia,
+  transport: http(),
+});
+const walletClient = createWalletClient({
+  chain: sepolia,
+  transport: http(),
+  account,
+});
 
 await client.connect(publicClient, walletClient);
 
@@ -181,8 +202,15 @@ declare const permitHash: `0x${string}`;
 declare const account: `0x${string}`;
 // ---cut---
 
-const publicClient = createPublicClient({ chain: sepolia, transport: http() });
-const walletClient = createWalletClient({ chain: sepolia, transport: http(), account });
+const publicClient = createPublicClient({
+  chain: sepolia,
+  transport: http(),
+});
+const walletClient = createWalletClient({
+  chain: sepolia,
+  transport: http(),
+  account,
+});
 
 await client.connect(publicClient, walletClient);
 

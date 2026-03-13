@@ -117,9 +117,9 @@ const client = createCofheClient(config);
 declare const ctHash: `0x${string}`;
 // ---cut---
 const decryptResult = await client
-   .decryptForTx(ctHash)
-   .withoutPermit()
-   .execute();
+  .decryptForTx(ctHash)
+  .withoutPermit()
+  .execute();
 
 decryptResult; // ^?
 decryptResult.decryptedValue;
@@ -135,9 +135,9 @@ const client = createCofheClient(config);
 declare const ctHash: `0x${string}`;
 // ---cut---
 const decryptResult = await client
-   .decryptForTx(ctHash)
-   .withPermit()
-   .execute();
+  .decryptForTx(ctHash)
+  .withPermit()
+  .execute();
 
 decryptResult; // ^?
 ```
@@ -153,9 +153,9 @@ declare const ctHash: `0x${string}`;
 const permit = await client.permits.getOrCreateSelfPermit();
 
 const decryptResult = await client
-   .decryptForTx(ctHash)
-   .withPermit(permit)
-   .execute();
+  .decryptForTx(ctHash)
+  .withPermit(permit)
+  .execute();
 
 decryptResult; // ^?
 ```
@@ -231,10 +231,7 @@ const config = createCofheConfig({ supportedChains: [chains.sepolia] });
 const client = createCofheClient(config);
 declare const ctHash: `0x${string}`;
 // ---cut---
-const result = await client
-   .decryptForTx(ctHash)
-   .withPermit()
-   .execute(); // [!code focus]
+const result = await client.decryptForTx(ctHash).withPermit().execute(); // [!code focus]
 
 result.decryptedValue;
 result.signature;
