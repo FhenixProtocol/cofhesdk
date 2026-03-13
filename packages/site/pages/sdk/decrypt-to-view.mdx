@@ -6,9 +6,9 @@ Unlike [`decryptForTx`](./decrypt-to-tx.mdx), this flow does **not** return an o
 
 The flow is as follows:
 
-1. Read the encrypted handle/hash (`ctHash`) from your contract.
-2. Ensure you have a permit that authorizes decryption of that value.
-3. Call `decryptForView(ctHash, utype)` and then run `.execute()` to get the plaintext.
+1. Read the encrypted handle/hash (`ctHash`) from your contract (see [Reading from a contract](#reading-from-a-contract-getting-cthash--utype)).
+2. Ensure you have a permit that authorizes decryption of that value (see [Permit quickstart](#permit-quickstart)).
+3. Call `decryptForView(ctHash, utype)` and then run `.execute()` to get the plaintext (see [Decrypt for UI](#decrypt-for-ui)).
 
 :::note
 `decryptForView` always decrypts using a permit (there is no `.withoutPermit()` mode).
@@ -246,6 +246,37 @@ const shortOwner = `${decryptedOwner.slice(0, 6)}…${decryptedOwner.slice(-4)}`
 ```
 
 :::
+
+## Builder API
+
+`decryptForView(ctHash, utype)` returns a builder. Unlike `decryptForTx`, this flow always requires a permit (there is no `.withoutPermit()` mode).
+
+### `.execute()` — required, call last
+
+Runs the decryption and returns a UI-friendly scalar value (see [What `decryptForView` returns](#what-decryptforview-returns)).
+
+```ts
+const plaintext = await client.decryptForView(ctHash, FheTypes.Uint32).execute();
+plaintext;
+```
+
+### `.withPermit(...)` — optional
+
+Select which permit to use:
+
+- `.withPermit()` uses the active permit for the resolved `chainId + account`.
+- `.withPermit(permitHash)` fetches a stored permit by hash.
+- `.withPermit(permit)` uses the provided permit object.
+
+If you don’t call `.withPermit(...)`, `decryptForView` also uses the active permit for the resolved `chainId + account`.
+
+### `.setAccount(address)` — optional
+
+Overrides the account used to resolve the active permit / stored permit.
+
+### `.setChainId(chainId)` — optional
+
+Overrides the chain used to resolve the Threshold Network URL and permits.
 
 ## Common pitfalls
 

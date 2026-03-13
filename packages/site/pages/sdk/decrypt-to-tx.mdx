@@ -6,12 +6,12 @@ Use `decryptForTx` to reveal a **confidential (encrypted)** value on-chain: it r
 
 The flow is as follows:
 
-1. Call `decryptForTx(ctHash)` with the encrypted handle/hash you want to reveal.
-2. Receive the plaintext value and a Threshold Network signature that binds that plaintext to `ctHash`.
+1. Call `decryptForTx(ctHash)` with the encrypted handle/hash you want to reveal (see [Decrypt for a transaction](#decrypt-for-a-transaction)).
+2. Receive the plaintext value and a Threshold Network signature that binds that plaintext to `ctHash` (see [What `decryptForTx` returns](#what-decryptfortx-returns)).
 3. Submit an on-chain transaction that either:
 
-   - publishes the result via `FHE.publishDecryptResult(ctHash, plaintext, signature)`, or
-   - verifies the result inside your contract via `FHE.verifyDecryptResult(ctHash, plaintext, signature)` (common for “unshield” style flows).
+   - publishes the result via `FHE.publishDecryptResult(ctHash, plaintext, signature)` (see [Publish the decrypt result on-chain](#publish-the-decrypt-result-on-chain)), or
+   - verifies the result inside your contract via `FHE.verifyDecryptResult(ctHash, plaintext, signature)` (see [Verify a decrypt result signature](#verify-a-decrypt-result-signature-without-publishing)).
 
 Common examples:
 
@@ -31,10 +31,11 @@ If you only need to show plaintext in your UI (and you do **not** need an on-cha
    In most apps, you get `ctHash` by reading it from your contract (e.g. a stored encrypted value, an event arg, or a return value from a view call).
 
    :::tip
+
    - On-chain, `ctHash` is represented as a `bytes32`.
    - In JavaScript/TypeScript, libraries like Viem will typically give you a hex string (`0x${string}`).
    - The SDK accepts either a hex string or a `bigint`.
-   :::
+     :::
 
    :::note
    `decryptForTx` does not take a `utype`. It always returns the plaintext as a `bigint` because the result is intended to be passed into a transaction (your contract decides whether that `bigint` is interpreted as `uint32`, `uint64`, etc). If you need UI-friendly decoding (e.g. `boolean` or address formatting), use [`decryptForView`](./decrypt-to-view.mdx).
@@ -192,7 +193,8 @@ const tx = await myContract.publishDecryptResult(
 );
 await tx.wait();
 ```
-::: 
+
+:::
 
 ## Verify a decrypt result signature (without publishing)
 
@@ -212,6 +214,40 @@ function unshield(bytes32 ctHash, uint32 plaintext, bytes calldata signature) ex
 :::note
 `decryptedValue` is a `bigint`. If your Solidity function expects a smaller integer type (e.g. `uint32`), make sure the value is within range.
 :::
+
+## Builder API
+
+`decryptForTx(ctHash)` returns a builder. Before calling `.execute()`, you must select exactly one permit mode: `.withPermit(...)` or `.withoutPermit()`.
+
+### `.execute()` — required, call last
+
+Runs the decryption and returns `{ ctHash, decryptedValue, signature }`.
+
+```ts
+const result = await client.decryptForTx(ctHash).withoutPermit().execute();
+result.decryptedValue;
+result.signature;
+```
+
+### `.withPermit(...)` — required unless using `.withoutPermit()`
+
+Decrypt using a permit:
+
+- `.withPermit()` uses the active permit for the resolved `chainId + account`.
+- `.withPermit(permitHash)` fetches a stored permit by hash.
+- `.withPermit(permit)` uses the provided permit object.
+
+### `.withoutPermit()` — required unless using `.withPermit(...)`
+
+Decrypt via global allowance (no permit). This only works if your contract’s ACL policy allows anyone to decrypt that `ctHash`.
+
+### `.setAccount(address)` — optional
+
+Overrides the account used to resolve the active permit / stored permit.
+
+### `.setChainId(chainId)` — optional
+
+Overrides the chain used to resolve the Threshold Network URL and permits.
 
 ## Common pitfalls
 
