@@ -38,12 +38,12 @@ export default defineConfig({
             link: '/sdk/client',
           },
           {
-            text: 'Permits',
-            link: '/sdk/permits',
-          },
-          {
             text: 'Encrypting Inputs',
             link: '/sdk/encrypting-inputs',
+          },
+          {
+            text: 'Permits',
+            link: '/sdk/permits',
           },
           {
             text: 'Decrypting to View',
