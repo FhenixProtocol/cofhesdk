@@ -107,7 +107,10 @@ const cofheClient = createCofheClient(config);
 const provider = new ethers.JsonRpcProvider('https://rpc.sepolia.org');
 const signer = new ethers.Wallet('0xYOUR_PRIVATE_KEY', provider);
 
-const { publicClient, walletClient } = await Ethers6Adapter(provider, signer);
+const { publicClient, walletClient } = await Ethers6Adapter(
+  provider,
+  signer
+);
 
 await cofheClient.connect(publicClient, walletClient);
 ```
@@ -122,10 +125,15 @@ import { chains } from '@cofhe/sdk/chains';
 const config = createCofheConfig({ supportedChains: [chains.sepolia] });
 const cofheClient = createCofheClient(config);
 // ---cut---
-const provider = new ethers.providers.JsonRpcProvider('https://rpc.sepolia.org');
+const provider = new ethers.providers.JsonRpcProvider(
+  'https://rpc.sepolia.org'
+);
 const signer = new ethers.Wallet('0xYOUR_PRIVATE_KEY').connect(provider);
 
-const { publicClient, walletClient } = await Ethers5Adapter(provider, signer);
+const { publicClient, walletClient } = await Ethers5Adapter(
+  provider,
+  signer
+);
 
 await cofheClient.connect(publicClient, walletClient);
 ```
@@ -150,7 +158,10 @@ const wagmiWalletClient = createWalletClient({
   transport: http(),
 });
 
-const { publicClient, walletClient } = await WagmiAdapter(wagmiWalletClient, wagmiPublicClient);
+const { publicClient, walletClient } = await WagmiAdapter(
+  wagmiWalletClient,
+  wagmiPublicClient
+);
 
 await cofheClient.connect(publicClient, walletClient);
 ```
@@ -193,10 +204,12 @@ const aliceWalletClient = createWalletClient({
   account: aliceAddress,
 });
 
+// connect to Bob's wallet
 await cofheClient.connect(publicClient, bobWalletClient);
 
 cofheClient.connection.account;
 
+// connect to Alice's wallet
 await cofheClient.connect(publicClient, aliceWalletClient);
 
 cofheClient.connection.account;
