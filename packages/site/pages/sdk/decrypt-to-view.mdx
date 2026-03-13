@@ -6,9 +6,9 @@ Unlike [`decryptForTx`](./decrypt-to-tx.mdx), this flow does **not** return an o
 
 The flow is as follows:
 
-1. Read the encrypted handle/hash (`ctHash`) from your contract.
-2. Ensure you have a permit that authorizes decryption of that value.
-3. Call `decryptForView(ctHash, utype)` and then run `.execute()` to get the plaintext.
+1. Read the encrypted handle/hash (`ctHash`) from your contract (see [Reading from a contract](#reading-from-a-contract-getting-cthash--utype)).
+2. Ensure you have a permit that authorizes decryption of that value (see [Permit quickstart](#permit-quickstart)).
+3. Call `decryptForView(ctHash, utype)` and then run `.execute()` to get the plaintext (see [Decrypt for UI](#decrypt-for-ui)).
 
 :::note
 `decryptForView` always decrypts using a permit (there is no `.withoutPermit()` mode).
@@ -246,6 +246,142 @@ const shortOwner = `${decryptedOwner.slice(0, 6)}…${decryptedOwner.slice(-4)}`
 ```
 
 :::
+
+## Builder API
+
+`decryptForView(ctHash, utype)` returns a builder. Unlike `decryptForTx`, this flow always requires a permit (there is no `.withoutPermit()` mode).
+
+### `.execute()` — required, call last
+
+Runs the decryption and returns a UI-friendly scalar value (see [What `decryptForView` returns](#what-decryptforview-returns)).
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+import { FheTypes } from '@cofhe/sdk';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: `0x${string}`;
+// ---cut---
+const plaintext = await client
+  .decryptForView(ctHash, FheTypes.Uint32)
+  .execute(); // [!code focus]
+
+plaintext;
+```
+
+### `.withPermit(...)` — optional
+
+Select which permit to use:
+
+- `.withPermit()` uses the active permit for the resolved `chainId + account`.
+- `.withPermit(permitHash)` fetches a stored permit by hash.
+- `.withPermit(permit)` uses the provided permit object.
+
+If you don’t call `.withPermit(...)`, `decryptForView` also uses the active permit for the resolved `chainId + account`.
+
+:::code-group
+
+```ts twoslash [Active permit]
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+import { FheTypes } from '@cofhe/sdk';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: `0x${string}`;
+// ---cut---
+const plaintext = await client
+  .decryptForView(ctHash, FheTypes.Uint8)
+  .withPermit() // [!code focus]
+  .execute();
+
+plaintext;
+```
+
+```ts twoslash [Permit object]
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+import { FheTypes } from '@cofhe/sdk';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: `0x${string}`;
+// ---cut---
+const permit = await client.permits.getOrCreateSelfPermit();
+
+const plaintext = await client
+  .decryptForView(ctHash, FheTypes.Uint64)
+  .withPermit(permit) // [!code focus]
+  .execute();
+
+plaintext;
+```
+
+```ts twoslash [Permit hash]
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+import { FheTypes } from '@cofhe/sdk';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: `0x${string}`;
+declare const permitHash: `0x${string}`;
+// ---cut---
+const plaintext = await client
+  .decryptForView(ctHash, FheTypes.Bool)
+  .withPermit(permitHash) // [!code focus]
+  .execute();
+
+plaintext;
+```
+
+:::
+
+### `.setAccount(address)` — optional
+
+Overrides the account used to resolve the active permit / stored permit.
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+import { FheTypes } from '@cofhe/sdk';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: `0x${string}`;
+// ---cut---
+const plaintext = await client
+  .decryptForView(ctHash, FheTypes.Uint32)
+  .setAccount('0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045') // [!code focus]
+  .withPermit()
+  .execute();
+
+plaintext;
+```
+
+### `.setChainId(chainId)` — optional
+
+Overrides the chain used to resolve the Threshold Network URL and permits.
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+import { FheTypes } from '@cofhe/sdk';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: `0x${string}`;
+// ---cut---
+const plaintext = await client
+  .decryptForView(ctHash, FheTypes.Uint16)
+  .setChainId(11155111) // [!code focus]
+  .withPermit()
+  .execute();
+
+plaintext;
+```
 
 ## Common pitfalls
 
