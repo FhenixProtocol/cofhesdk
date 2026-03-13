@@ -2,14 +2,14 @@
 import { hardhat } from '@/chains';
 import { type Permit, type Permission, PermitUtils } from '@/permits';
 
-import { FheTypes } from '../types.js';
-import { getThresholdNetworkUrlOrThrow } from '../config.js';
-import { CofheError, CofheErrorCode } from '../error.js';
-import { permits } from '../permits.js';
-import { BaseBuilder, type BaseBuilderParams } from '../baseBuilder.js';
-import { cofheMocksDecryptForTx } from './cofheMocksDecryptForTx.js';
-import { getPublicClientChainID, sleep } from '../utils.js';
-import { tnDecrypt } from './tnDecrypt.js';
+import { FheTypes } from '../types';
+import { getThresholdNetworkUrlOrThrow } from '../config';
+import { CofheError, CofheErrorCode } from '../error';
+import { permits } from '../permits';
+import { BaseBuilder, type BaseBuilderParams } from '../baseBuilder';
+import { cofheMocksDecryptForTx } from './cofheMocksDecryptForTx';
+import { getPublicClientChainID, sleep } from '../utils';
+import { tnDecryptV2 } from './tnDecryptV2';
 
 /**
  * API
@@ -291,7 +291,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
     const thresholdNetworkUrl = await this.getThresholdNetworkUrl();
 
     const permission = permit ? PermitUtils.getPermission(permit, true) : null;
-    const { decryptedValue, signature } = await tnDecrypt(this.ctHash, this.chainId, permission, thresholdNetworkUrl);
+    const { decryptedValue, signature } = await tnDecryptV2(this.ctHash, this.chainId, permission, thresholdNetworkUrl);
 
     return {
       ctHash: this.ctHash,
