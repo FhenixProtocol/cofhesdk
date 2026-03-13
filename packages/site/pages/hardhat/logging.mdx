@@ -1,5 +1,81 @@
 # Logging
 
-How to read logs, how to enable / disable
+The mock contracts log every FHE operation to the console. This makes it easy to inspect what your contracts are doing under the hood during tests.
 
-WIP
+## What gets logged
+
+Each FHE operation emits a formatted log entry showing the operation name, the input and output operand hashes (truncated), and the security zone:
+
+```
+┌──────────────────┬──────────────────────────────────────────────────
+│ [COFHE-MOCKS]    │ "counter.increment()" logs:
+├──────────────────┴──────────────────────────────────────────────────
+├ FHE.add          | euint32(4473..3424)[0] + euint32(1157..3648)[1]  =>  euint32(1106..1872)[1]
+├ FHE.allowThis    | euint32(1106..1872)[1] -> 0x663f..6602
+├ FHE.allow        | euint32(1106..1872)[1] -> 0x3c44..93bc
+└─────────────────────────────────────────────────────────────────────
+```
+
+## `withLogs(name, fn)` — recommended
+
+Wraps a block of code with logging enabled and prints a labeled box around the output. The `name` appears as the header of the log box so you can identify which call produced which operations at a glance.
+
+```ts twoslash
+// @noErrors
+import '@cofhe/hardhat-plugin';
+import '@nomicfoundation/hardhat-ethers';
+import hre from 'hardhat';
+import { Contract } from 'ethers';
+declare const counter: Contract;
+// ---cut---
+await hre.cofhe.mocks.withLogs('counter.increment()', async () => { // [!code focus]
+  await counter.increment();
+}); // [!code focus]
+```
+
+`withLogs` enables logging before the closure runs and disables it after, so only operations from within that block appear in the output.
+
+## `enableLogs()` / `disableLogs()` — manual
+
+For finer-grained control, you can enable and disable logging manually:
+
+```ts twoslash
+// @noErrors
+import '@cofhe/hardhat-plugin';
+import '@nomicfoundation/hardhat-ethers';
+import hre from 'hardhat';
+import { Contract } from 'ethers';
+declare const counter: Contract;
+// ---cut---
+await hre.cofhe.mocks.enableLogs('counter.increment()');
+
+await counter.increment();
+
+await hre.cofhe.mocks.disableLogs();
+```
+
+:::info
+`enableLogs` accepts an optional label string. If provided, it prints a labeled header immediately — useful when you want to mark a section of output at a known point and disable logging asynchronously later.
+:::
+
+## Default logging behavior
+
+Logging is **enabled by default**. You can turn it off globally in your Hardhat config:
+
+```ts [hardhat.config.ts]
+import '@cofhe/hardhat-plugin';
+
+export default {
+  solidity: '0.8.28',
+  cofhe: {
+    logMocks: false, // disable FHE op logs globally // [!code focus]
+  },
+};
+```
+
+You can also toggle logging for a specific test run using the Hardhat task:
+
+```bash
+npx hardhat task:cofhe-mocks:setlogops --enable true
+npx hardhat task:cofhe-mocks:setlogops --enable false
+```
