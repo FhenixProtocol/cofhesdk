@@ -1,9 +1,9 @@
 import { type Permission } from '@/permits';
 
-import { CofheError, CofheErrorCode } from '../error.js';
-import { parseSignature, serializeSignature } from 'viem';
+import { CofheError, CofheErrorCode } from '../error';
+import { normalizeTnSignature, parseDecryptedBytesToBigInt } from './tnDecryptUtils';
 
-type TnDecryptResponse = {
+type TnDecryptResponseV1 = {
   // TN returns bytes in big-endian order, e.g. [0,0,0,42]
   decrypted: number[];
   signature: string;
@@ -11,70 +11,7 @@ type TnDecryptResponse = {
   error_message: string | null;
 };
 
-function normalizeSignature(signature: unknown): `0x${string}` {
-  if (typeof signature !== 'string') {
-    throw new CofheError({
-      code: CofheErrorCode.DecryptReturnedNull,
-      message: 'decrypt response missing signature',
-      context: {
-        signature,
-      },
-    });
-  }
-
-  const trimmed = signature.trim();
-  if (trimmed.length === 0) {
-    throw new CofheError({
-      code: CofheErrorCode.DecryptReturnedNull,
-      message: 'decrypt response returned empty signature',
-    });
-  }
-
-  const prefixed = trimmed.startsWith('0x') ? (trimmed as `0x${string}`) : (`0x${trimmed}` as `0x${string}`);
-  const parsed = parseSignature(prefixed);
-  return serializeSignature(parsed);
-}
-
-function parseDecryptedBytesToBigInt(decrypted: unknown): bigint {
-  if (!Array.isArray(decrypted)) {
-    throw new CofheError({
-      code: CofheErrorCode.DecryptReturnedNull,
-      message: 'decrypt response field <decrypted> must be a byte array',
-      context: {
-        decrypted,
-      },
-    });
-  }
-
-  if (decrypted.length === 0) {
-    throw new CofheError({
-      code: CofheErrorCode.DecryptReturnedNull,
-      message: 'decrypt response field <decrypted> was an empty byte array',
-      context: {
-        decrypted,
-      },
-    });
-  }
-
-  let hex = '';
-  for (const b of decrypted as unknown[]) {
-    if (typeof b !== 'number' || !Number.isInteger(b) || b < 0 || b > 255) {
-      throw new CofheError({
-        code: CofheErrorCode.DecryptReturnedNull,
-        message: 'decrypt response field <decrypted> contained a non-byte value',
-        context: {
-          badElement: b,
-          decrypted,
-        },
-      });
-    }
-    hex += b.toString(16).padStart(2, '0');
-  }
-
-  return BigInt(`0x${hex}`);
-}
-
-function assertTnDecryptResponse(value: unknown): TnDecryptResponse {
+function assertTnDecryptResponseV1(value: unknown): TnDecryptResponseV1 {
   if (value == null || typeof value !== 'object') {
     throw new CofheError({
       code: CofheErrorCode.DecryptFailed,
@@ -128,7 +65,7 @@ function assertTnDecryptResponse(value: unknown): TnDecryptResponse {
   };
 }
 
-export async function tnDecrypt(
+export async function tnDecryptV1(
   ctHash: bigint | string,
   chainId: number,
   permission: Permission | null,
@@ -213,7 +150,7 @@ export async function tnDecrypt(
     });
   }
 
-  const decryptResponse = assertTnDecryptResponse(rawJson);
+  const decryptResponse = assertTnDecryptResponseV1(rawJson);
 
   if (decryptResponse.error_message) {
     throw new CofheError({
@@ -228,7 +165,7 @@ export async function tnDecrypt(
   }
 
   const decryptedValue = parseDecryptedBytesToBigInt(decryptResponse.decrypted);
-  const signature = normalizeSignature(decryptResponse.signature);
+  const signature = normalizeTnSignature(decryptResponse.signature);
 
   return { decryptedValue, signature };
 }
