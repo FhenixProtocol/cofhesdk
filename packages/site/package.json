@@ -8,8 +8,9 @@
   },
   "scripts": {
     "dev": "vocs dev",
-    "check:docs-imports": "node scripts/check-docs-imports.mjs",
-    "check": "npm run check:docs-imports && npm run build",
+    "lint": "eslint .",
+    "check:snippets": "node scripts/typecheck-docs-snippets.mjs",
+    "check": "npm run lint && npm run typecheck:docs && npm run build",
     "build": "vocs build",
     "preview": "vocs preview"
   },
@@ -21,6 +22,7 @@
   },
   "devDependencies": {
     "@cofhe/abi": "workspace:*",
+    "@cofhe/eslint-config": "workspace:*",
     "@cofhe/sdk": "workspace:*",
     "@cofhe/hardhat-plugin": "workspace:*",
     "@cofhe/mock-contracts": "workspace:*",

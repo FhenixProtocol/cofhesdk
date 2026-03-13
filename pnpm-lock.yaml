@@ -561,6 +561,9 @@ importers:
       '@cofhe/abi':
         specifier: workspace:*
         version: link:../abi
+      '@cofhe/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
       '@cofhe/hardhat-plugin':
         specifier: workspace:*
         version: link:../hardhat-plugin
@@ -600,6 +603,42 @@ importers:
       zod:
         specifier: ^4.0.0
         version: 4.1.12
+
+  packages/site/scripts/hardhat-typecheck:
+    devDependencies:
+      '@cofhe/hardhat-plugin':
+        specifier: workspace:*
+        version: link:../../../hardhat-plugin
+      '@cofhe/sdk':
+        specifier: workspace:*
+        version: link:../../../sdk
+      '@nomicfoundation/hardhat-ethers':
+        specifier: ^3.0.5
+        version: 3.1.0(ethers@6.15.0)(hardhat@2.26.3)
+      '@nomicfoundation/hardhat-toolbox':
+        specifier: ^6.0.0
+        version: 6.1.0(@nomicfoundation/hardhat-chai-matchers@2.1.0)(@nomicfoundation/hardhat-ethers@3.1.0)(@nomicfoundation/hardhat-ignition-ethers@0.15.14)(@nomicfoundation/hardhat-network-helpers@1.1.0)(@nomicfoundation/hardhat-verify@2.1.1)(@typechain/ethers-v6@0.5.1)(@typechain/hardhat@9.1.0)(@types/chai@4.3.20)(@types/mocha@10.0.10)(@types/node@20.19.15)(chai@4.5.0)(ethers@6.15.0)(hardhat-gas-reporter@2.3.0)(hardhat@2.26.3)(solidity-coverage@0.8.16)(ts-node@10.9.2)(typechain@8.3.2)(typescript@5.5.4)
+      '@types/chai':
+        specifier: 4.3.20
+        version: 4.3.20
+      '@types/mocha':
+        specifier: ^10.0.0
+        version: 10.0.10
+      chai:
+        specifier: 4.5.0
+        version: 4.5.0
+      ethers:
+        specifier: ^6.15.0
+        version: 6.15.0
+      hardhat:
+        specifier: ^2.26.3
+        version: 2.26.3(ts-node@10.9.2)(typescript@5.5.4)
+      typescript:
+        specifier: 5.5.4
+        version: 5.5.4
+      viem:
+        specifier: ^2.38.6
+        version: 2.38.6(typescript@5.5.4)(zod@4.1.12)
 
   packages/tsconfig: {}
 

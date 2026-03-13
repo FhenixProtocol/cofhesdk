@@ -1,3 +1,4 @@
 packages:
   - 'packages/*'
+  - 'packages/site/scripts/hardhat-typecheck'
   - 'examples/*'
