@@ -1,5 +1,11 @@
 # @cofhe/sdk Changelog
 
+## 0.4.0
+
+### Patch Changes
+
+- e446642: Switch `decryptForTx` to Threshold Network v2 decrypt (submit + poll)
+
 ## 0.3.2
 
 ### Patch Changes

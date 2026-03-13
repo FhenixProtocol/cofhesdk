@@ -1,5 +1,13 @@
 # @cofhe/hardhat-plugin Changelog
 
+## 0.4.0
+
+### Patch Changes
+
+- Updated dependencies [e446642]
+  - @cofhe/sdk@0.4.0
+  - @cofhe/mock-contracts@0.4.0
+
 ## 0.3.2
 
 ### Patch Changes
