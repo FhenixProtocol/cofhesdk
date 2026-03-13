@@ -339,6 +339,9 @@ importers:
       '@cofhe/sdk':
         specifier: workspace:*
         version: link:../sdk
+      '@fhenixprotocol/cofhe-errors':
+        specifier: ^1.0.2
+        version: 1.0.2
       '@mui/material':
         specifier: ^5.0.0
         version: 5.18.0(@emotion/react@11.14.0)(@emotion/styled@11.14.1)(@types/react@18.2.61)(react-dom@18.3.1)(react@18.3.1)
@@ -2857,6 +2860,11 @@ packages:
     requiresBuild: true
     dependencies:
       '@openzeppelin/contracts': 5.4.0
+
+  /@fhenixprotocol/cofhe-errors@1.0.2:
+    resolution: {integrity: sha512-4dw4TU4ki+W+EV7JEEocpgZbdVOmvq4i9b14ltmiOMKhlMZtpqd2FoSGvS1eMe1LDRw+Dq/skIGzmx1/EPRCoQ==}
+    hasBin: true
+    dev: false
 
   /@floating-ui/core@1.7.3:
     resolution: {integrity: sha512-sGnvb5dmrJaKEZ+LDIpguvdX3bDlEllmv4/ClQ9awcmCZrlx5jQyyMWFM5kBI+EyNOCDDiKk8il0zeuX3Zlg/w==}

@@ -54,6 +54,7 @@
   },
   "dependencies": {
     "@cofhe/sdk": "workspace:*",
+    "@fhenixprotocol/cofhe-errors": "^1.0.2",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@radix-ui/react-select": "^2.2.6",
     "@tanstack/query-async-storage-persister": "^5.90.22",
