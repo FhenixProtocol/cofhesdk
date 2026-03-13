@@ -44,9 +44,9 @@ Under the hood, permits are signed using **EIP-712 typed data**.
 
 Permits are scoped to a **chainId + account**. The SDK uses the connected chain/account by default.
 
-## Quickstart (UI decryption)
+## Quickstart (create an active permit)
 
-If you only need permits for UI decryption, the usual “just make it work” setup is:
+The quickest “just make it work” setup is to create (or reuse) a self permit and select it as the active permit:
 
 ```ts twoslash
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
