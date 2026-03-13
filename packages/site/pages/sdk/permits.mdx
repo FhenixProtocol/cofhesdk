@@ -7,8 +7,8 @@ In practice, permits are what enables **local/UI decryption** (see [`decryptForV
 
 - **`decryptForView`**: always requires a permit (there’s no “no-permit” mode).
 - **`decryptForTx`**: depends on the contract’s ACL policy for that `ctHash`.
-	- If the policy allows anyone to decrypt, you can use `.withoutPermit()`.
-	- If the policy restricts decryption, you must use `.withPermit(...)`.
+  - If the policy allows anyone to decrypt, you can use `.withoutPermit()`.
+  - If the policy restricts decryption, you must use `.withPermit(...)`.
 
 ## Prerequisites
 
@@ -46,19 +46,19 @@ After this, builders that use permits can pick up the active permit automaticall
 
 The SDK supports three permit shapes:
 
-| Type | Who signs | Intended use |
-| --- | --- | --- |
-| `self` | issuer only | Your own permit for decrypting data as yourself (most common) |
-| `sharing` | issuer only | A shareable “offer” created by issuer and sent to a recipient |
-| `recipient` | recipient (and includes issuer signature) | The imported shared permit after the recipient signs it |
+| Type        | Who signs                                 | Intended use                                                  |
+| ----------- | ----------------------------------------- | ------------------------------------------------------------- |
+| `self`      | issuer only                               | Your own permit for decrypting data as yourself (most common) |
+| `sharing`   | issuer only                               | A shareable “offer” created by issuer and sent to a recipient |
+| `recipient` | recipient (and includes issuer signature) | The imported shared permit after the recipient signs it       |
 
 Notes:
 
 - A permit includes a **sealing keypair**.
-	- The public key is used by CoFHE to re-encrypt for you.
-	- The private key stays client-side and is used to unseal the payload.
+  - The public key is used by CoFHE to re-encrypt for you.
+  - The private key stays client-side and is used to unseal the payload.
 - Permit `expiration` is a unix timestamp in **seconds**.
-	- If you don’t provide it, the default is currently **7 days from creation**.
+  - If you don’t provide it, the default is currently **7 days from creation**.
 
 ## Creating a self permit
 
@@ -78,8 +78,8 @@ declare const walletClient: WalletClient;
 await client.connect(publicClient, walletClient);
 
 const permit = await client.permits.createSelf({
-	issuer: walletClient.account!.address,
-	name: 'My self permit',
+  issuer: walletClient.account!.address,
+  name: 'My self permit',
 });
 
 permit.type;
@@ -131,9 +131,9 @@ declare const recipient: `0x${string}`;
 await client.connect(publicClient, walletClient);
 
 const sharingPermit = await client.permits.createSharing({
-	issuer: walletClient.account!.address,
-	recipient,
-	name: 'Share with recipient',
+  issuer: walletClient.account!.address,
+  recipient,
+  name: 'Share with recipient',
 });
 
 // Export a shareable payload (does not include your sealing private key).
@@ -144,7 +144,7 @@ exported;
 
 :::note
 Do not share `client.permits.serialize(permit)` output with other users.
-Serialization is meant for *local persistence* and includes the sealing private key.
+Serialization is meant for _local persistence_ and includes the sealing private key.
 For sharing, use `PermitUtils.export(...)`.
 :::
 
@@ -196,7 +196,7 @@ declare const walletClient: WalletClient;
 
 await client.connect(publicClient, walletClient);
 
-const permits = await client.permits.getPermits();
+const permits = client.permits.getPermits();
 Object.keys(permits);
 ```
 
@@ -216,7 +216,7 @@ declare const somePermitHash: string;
 
 await client.connect(publicClient, walletClient);
 
-const active = await client.permits.getActivePermit();
+const active = client.permits.getActivePermit();
 active?.hash;
 
 client.permits.selectActivePermit(somePermitHash);
@@ -238,8 +238,8 @@ declare const permitHash: string;
 
 await client.connect(publicClient, walletClient);
 
-await client.permits.removePermit(permitHash);
-await client.permits.removeActivePermit();
+client.permits.removePermit(permitHash);
+client.permits.removeActivePermit();
 ```
 
 ## Persistence & security
@@ -247,8 +247,8 @@ await client.permits.removeActivePermit();
 - The SDK keeps permits in a persisted store keyed by `chainId + account`.
 - In web/react environments, this store is persisted in `localStorage` under the key `cofhesdk-permits`.
 - A stored permit includes your **sealing private key**. Treat it like a secret.
-	- Do not send serialized permits to other users.
-	- To share, export a sharing permit via `PermitUtils.export(...)`.
+  - Do not send serialized permits to other users.
+  - To share, export a sharing permit via `PermitUtils.export(...)`.
 
 ## Advanced: external validators (optional)
 
