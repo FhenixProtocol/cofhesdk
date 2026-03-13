@@ -26,7 +26,6 @@ export default defineConfig({
         text: 'Quick Start',
         link: '/quick-start',
       },
-
       {
         text: 'Migrating from `cofhejs`',
         link: '/migrating-from-cofhejs',
@@ -78,6 +77,15 @@ export default defineConfig({
           {
             text: 'Testing',
             link: '/hardhat/testing',
+          },
+        ],
+      },
+      {
+        text: 'Reference',
+        items: [
+          {
+            text: 'EncryptedCounter.sol',
+            link: '/reference/encrypted-counter-sol',
           },
         ],
       },
