@@ -7,9 +7,9 @@ It returns an `EncryptInputsBuilder` which lets you configure the encryption and
 The flow is as follows:
 
 1. Decide which plaintext value(s) you want to encrypt.
-2. Wrap each value with a typing helper (e.g. `Encryptable.uint32(…)`) to construct typed encryptable inputs.
-3. Call `client.encryptInputs([...]).execute()` to produce `EncryptedItemInput` objects.
-4. Submit a transaction to your contract and pass the encrypted inputs as `InE*` parameters.
+2. Wrap each value with a typing helper (e.g. `Encryptable.uint32(…)`) to construct typed encryptable inputs (see [`Encryptable` — creating inputs](#encryptable--creating-inputs)).
+3. Call `client.encryptInputs([...]).execute()` to produce [`EncryptedItemInput` objects](#encryptediteminput--the-result-type) (see [Builder API](#builder-api)).
+4. Submit a transaction to your contract and pass the encrypted inputs as `InE*` parameters (see [Using encrypted inputs in a transaction](#using-encrypted-inputs-in-a-transaction)).
 
 ## Prerequisites
 
