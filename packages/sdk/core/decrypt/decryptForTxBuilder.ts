@@ -9,7 +9,7 @@ import { permits } from '../permits';
 import { BaseBuilder, type BaseBuilderParams } from '../baseBuilder';
 import { cofheMocksDecryptForTx } from './cofheMocksDecryptForTx';
 import { getPublicClientChainID, sleep } from '../utils';
-import { tnDecryptV2 } from './tnDecrypt';
+import { tnDecryptV2 } from './tnDecryptV2';
 
 /**
  * API
