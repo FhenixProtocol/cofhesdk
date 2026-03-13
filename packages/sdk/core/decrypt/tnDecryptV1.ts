@@ -1,7 +1,7 @@
 import { type Permission } from '@/permits';
 
-import { CofheError, CofheErrorCode } from '../error.js';
-import { normalizeTnSignature, parseDecryptedBytesToBigInt } from './tnDecryptUtils.js';
+import { CofheError, CofheErrorCode } from '../error';
+import { normalizeTnSignature, parseDecryptedBytesToBigInt } from './tnDecryptUtils';
 
 type TnDecryptResponseV1 = {
   // TN returns bytes in big-endian order, e.g. [0,0,0,42]

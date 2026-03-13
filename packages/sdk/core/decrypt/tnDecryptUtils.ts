@@ -1,4 +1,4 @@
-import { CofheError, CofheErrorCode } from '../error.js';
+import { CofheError, CofheErrorCode } from '../error';
 import { parseSignature, serializeSignature } from 'viem';
 
 export function normalizeTnSignature(signature: unknown): `0x${string}` {
