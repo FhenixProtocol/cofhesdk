@@ -242,6 +242,123 @@ client.permits.removePermit(permitHash);
 client.permits.removeActivePermit();
 ```
 
+## Permits API reference
+
+`client.permits` is a context-aware wrapper around the permits store.
+
+- Most methods accept optional `chainId` and `account`.
+  - If you omit them, the SDK uses the connected `chainId + account`.
+  - If you omit them **and** the client is not connected, the SDK throws.
+- **Creation / import** methods are async because they sign EIP-712 data.
+- **Retrieval / selection** methods are synchronous (they read/write the local store).
+
+### `getOrCreateSelfPermit(chainId?, account?, options?)` — async
+
+Returns the active self permit if it exists; otherwise creates one, stores it, and selects it as active.
+
+```ts twoslash
+import type { CreateSelfPermitOptions } from '@cofhe/sdk/permits';
+// ---cut---
+
+declare const client: {
+  permits: {
+    getOrCreateSelfPermit: (
+      chainId?: number,
+      account?: string,
+      options?: CreateSelfPermitOptions
+    ) => Promise<unknown>;
+  };
+};
+
+await client.permits.getOrCreateSelfPermit();
+```
+
+### `getOrCreateSharingPermit(options, chainId?, account?)` — async
+
+Returns the active sharing permit if it exists; otherwise creates one, stores it, and selects it as active.
+
+### `createSelf(options, clients?)` — async
+
+Creates and signs a self permit, stores it, and selects it as active.
+
+### `createSharing(options, clients?)` — async
+
+Creates and signs a sharing permit, stores it, and selects it as active.
+
+### `importShared(optionsOrJson, clients?)` — async
+
+Imports an issuer-created sharing payload (JSON string or object), then signs it as the recipient to produce a `recipient` permit.
+Stores it and selects it as active.
+
+### `getPermits(chainId?, account?)` — sync
+
+Returns a map `{ [hash]: permit }` for the given `chainId + account`.
+
+```ts twoslash
+// ---cut---
+declare const client: {
+  permits: {
+    getPermits: (
+      chainId?: number,
+      account?: string
+    ) => Record<string, unknown>;
+  };
+};
+
+const permits = client.permits.getPermits();
+Object.keys(permits);
+```
+
+### `getPermit(hash, chainId?, account?)` — sync
+
+Returns a single stored permit by hash (or `undefined` if missing).
+
+### `getActivePermit(chainId?, account?)` / `getActivePermitHash(chainId?, account?)` — sync
+
+Reads the currently selected active permit (or its hash).
+
+### `selectActivePermit(hash, chainId?, account?)` — sync
+
+Sets the active permit hash for `chainId + account`.
+
+### `removePermit(hash, chainId?, account?)` / `removeActivePermit(chainId?, account?)` — sync
+
+Removes a stored permit by hash and/or clears the active permit selection.
+
+### `getSnapshot()` / `subscribe(listener)` — sync
+
+Reactive access to the underlying permits store (useful for UI state).
+
+```ts twoslash
+// ---cut---
+declare const client: {
+  permits: {
+    getSnapshot: () => unknown;
+    subscribe: (listener: (snapshot: unknown) => void) => () => void;
+  };
+};
+
+const snapshot = client.permits.getSnapshot();
+const unsubscribe = client.permits.subscribe(() => {
+  // called when the permits store changes
+});
+
+snapshot;
+unsubscribe;
+```
+
+### `getHash(fields)` — sync
+
+Computes the stable hash used as the storage key for a permit.
+
+### `serialize(permit)` / `deserialize(serialized)` — sync
+
+Serialize a permit for **local persistence** (includes the sealing private key) and deserialize it back.
+
+:::note
+Use `PermitUtils.export(...)` for **sharing** a permit with someone else.
+:::
+
 ## Persistence & security
 
 - The SDK keeps permits in a persisted store keyed by `chainId + account`.
