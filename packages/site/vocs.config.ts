@@ -27,10 +27,6 @@ export default defineConfig({
         link: '/quick-start',
       },
       {
-        text: 'EncryptedCounter.sol',
-        link: '/encrypted-counter-sol',
-      },
-      {
         text: 'Migrating from `cofhejs`',
         link: '/migrating-from-cofhejs',
       },
@@ -84,6 +80,15 @@ export default defineConfig({
           },
         ],
       },
+      {
+        text: 'Reference',
+        items: [
+          {
+            text: 'EncryptedCounter.sol',
+            link: '/reference/encrypted-counter-sol',
+          },
+        ],
+      }
     ],
     '/foundry': {
       backLink: true,
