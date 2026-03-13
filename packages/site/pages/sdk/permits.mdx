@@ -1,7 +1,35 @@
 # Permits
 
-Permits are **EIP-712 signed permissions** that allow CoFHE to re-encrypt confidential data to a keypair that your client controls.
-In practice, permits are what enables **local/UI decryption** (see [`decryptForView`](./decrypt-to-view.mdx)), and they can also be required for some **tx decryption** flows depending on your contract’s ACL policy (see [`decryptForTx`](./decrypt-to-tx.mdx)).
+A permit is a **wallet-signed approval** that lets your app decrypt confidential values.
+
+At a high level, a permit looks like this:
+
+```ts
+type Permit = {
+  hash: string; // Stable identifier used as the storage key
+  name: string; // Human-readable label (not part of the signature)
+  type: 'self' | 'sharing' | 'recipient'; // Self use, shareable, or imported-by-recipient
+
+  issuer: `0x${string}`; // Address that grants the permission
+  expiration: number; // Unix timestamp (seconds)
+  recipient: `0x${string}`; // Who can use it (zero-address for self permits)
+
+  validatorId: number; // Optional external validation id (0 disables)
+  validatorContract: `0x${string}`; // Optional validator contract (zero-address disables)
+
+  sealingPair: {
+    publicKey: string; // Used by CoFHE to re-encrypt for you
+    privateKey: string; // Used locally to unseal (keep secret)
+  };
+
+  issuerSignature: `0x${string}`; // EIP-712 signature by the issuer
+  recipientSignature: `0x${string}`; // EIP-712 signature by the recipient (shared permits)
+};
+```
+
+:::note
+Under the hood, permits are signed using **EIP-712 typed data**.
+:::
 
 ## When do you need a permit?
 
