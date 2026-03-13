@@ -591,6 +591,9 @@ importers:
       ethers:
         specifier: ^6.15.0
         version: 6.15.0
+      ethers5:
+        specifier: npm:ethers@^5.7.2
+        version: /ethers@5.8.0
       hardhat:
         specifier: ^2.26.3
         version: 2.26.3(ts-node@10.9.2)(typescript@5.5.4)
