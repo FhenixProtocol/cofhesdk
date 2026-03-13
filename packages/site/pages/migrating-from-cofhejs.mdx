@@ -111,7 +111,7 @@ await client.connect(publicClient, walletClient);
 
 ```ts twoslash [Ethers v6 (via adapter)]
 // @noErrors
-import { type Provider, type Signer } from 'ethers6';
+import { type Provider, type Signer } from 'ethers';
 declare const provider: Provider;
 declare const signer: Signer;
 // ---cut---
@@ -341,7 +341,7 @@ Permits are never auto-generated. You explicitly create, retrieve, and select th
 
 ```ts twoslash
 // @noErrors
-import { type CofheClient, type CofheConfig } from '@cofhe/sdk';
+import { type CofheClient, type CofheConfig, FheTypes } from '@cofhe/sdk';
 declare const client: CofheClient<CofheConfig>;
 declare const account: `0x${string}`;
 declare const ctHash: `0x${string}`;
@@ -353,7 +353,7 @@ const permit = await client.permits.createSelf({
 });
 
 // Or use the convenience method that creates one only if needed
-const permit = await client.permits.getOrCreateSelfPermit();
+const permit2 = await client.permits.getOrCreateSelfPermit();
 
 // Use with decryptForView (active permit is used automatically)
 const value = await client
@@ -361,7 +361,7 @@ const value = await client
   .execute();
 
 // Or pass a specific permit
-const value = await client
+const value2 = await client
   .decryptForView(ctHash, FheTypes.Uint32)
   .withPermit(permit)
   .execute();
@@ -390,7 +390,7 @@ Operations return values directly and throw typed `CofheError` objects on failur
 
 ```ts twoslash
 // @noErrors
-import { type CofheClient, type CofheConfig } from '@cofhe/sdk';
+import { type CofheClient, type CofheConfig, Encryptable } from '@cofhe/sdk';
 declare const client: CofheClient<CofheConfig>;
 // ---cut---
 import { isCofheError, CofheErrorCode } from '@cofhe/sdk';
@@ -480,6 +480,8 @@ import { Encryptable, FheTypes, EncryptStep } from '@cofhe/sdk';
 import { Ethers6Adapter } from '@cofhe/sdk/adapters';
 import { chains } from '@cofhe/sdk/chains';
 import { ethers } from 'ethers';
+declare const PRIVATE_KEY: string;
+declare const contract: any;
 
 // 1. Initialize
 const provider = new ethers.JsonRpcProvider('https://rpc.sepolia.org');

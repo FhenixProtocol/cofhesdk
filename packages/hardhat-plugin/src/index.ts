@@ -301,7 +301,7 @@ declare module 'hardhat/types/runtime' {
          * Deploy the cofhe mock contracts (normally this is done automatically)
          * @param {DeployMocksArgs} options - Deployment options
          */
-        deployMocks: (options: DeployMocksArgs) => Promise<void>;
+        deployMocks: (options?: DeployMocksArgs) => Promise<void>;
 
         /**
          * **[MOCKS ONLY]**
@@ -437,7 +437,7 @@ extendEnvironment((hre) => {
       disableLogs: async () => {
         return mock_setLoggingEnabled(hre, false);
       },
-      deployMocks: async (options: DeployMocksArgs) => {
+      deployMocks: async (options: DeployMocksArgs = {}) => {
         return deployMocks(hre, options);
       },
       getPlaintext: async (ctHash: bigint | string) => {

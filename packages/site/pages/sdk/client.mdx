@@ -96,7 +96,6 @@ We currently support adapters for Ethers v5 and v6 clients and providers, wagmi 
 
 ```ts twoslash [Ethers v6]
 // @noErrors
-import { ethers } from 'ethers';
 import { Ethers6Adapter } from '@cofhe/sdk/adapters';
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
 import { chains } from '@cofhe/sdk/chains';
@@ -104,6 +103,8 @@ import { chains } from '@cofhe/sdk/chains';
 const config = createCofheConfig({ supportedChains: [chains.sepolia] });
 const cofheClient = createCofheClient(config);
 // ---cut---
+import { ethers } from 'ethers'; // ethers v6
+
 const provider = new ethers.JsonRpcProvider('https://rpc.sepolia.org');
 const signer = new ethers.Wallet('0xYOUR_PRIVATE_KEY', provider);
 
@@ -117,7 +118,6 @@ await cofheClient.connect(publicClient, walletClient);
 
 ```ts twoslash [Ethers v5]
 // @noErrors
-import { ethers } from 'ethers';
 import { Ethers5Adapter } from '@cofhe/sdk/adapters';
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
 import { chains } from '@cofhe/sdk/chains';
@@ -125,6 +125,8 @@ import { chains } from '@cofhe/sdk/chains';
 const config = createCofheConfig({ supportedChains: [chains.sepolia] });
 const cofheClient = createCofheClient(config);
 // ---cut---
+import { ethers } from 'ethers5'; // ethers v5
+
 const provider = new ethers.providers.JsonRpcProvider(
   'https://rpc.sepolia.org'
 );
