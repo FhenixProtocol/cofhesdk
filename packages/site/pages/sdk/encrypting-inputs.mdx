@@ -56,18 +56,56 @@ The intended consumer of `encryptInputs` is a contract function that accepts enc
 
 In practice, you pass the returned `EncryptedItemInput` objects directly into your contract call (the on-chain CoFHE library verifies the signature before using the ciphertext).
 
+The reference contract used throughout these docs is [`EncryptedCounter.sol`](/reference/encrypted-counter-sol). It exposes `setCount(InEuint32)` which is the canonical “encrypt input → send in the same transaction” flow.
+
+Note: in `EncryptedCounter.sol`, `setCount` is `onlyOwner`, so the connected `account` must be the contract owner.
+
 :::code-group
 
 ```solidity [Solidity]
-// Example signature only. Adjust param types to match your encrypted inputs.
-function confidentialTransfer(address to, InEuint64 amount) external {
-  // ...
+// From EncryptedCounter.sol (see /reference/encrypted-counter-sol)
+function setCount(InEuint32 memory _inCount) external onlyOwner {
+  count = FHE.asEuint32(_inCount);
+  FHE.allowThis(count);
+  FHE.allowSender(count);
+  decrypted = false;
+  decryptedCount = 0;
 }
 ```
 
-```ts [TypeScript]
-// `encryptedAmount` is an `EncryptedItemInput` returned by encryptInputs(...).execute()
-// await contract.confidentialTransfer(recipient, encryptedAmount);
+```ts twoslash [TypeScript]
+import { Encryptable, assertCorrectEncryptedItemInput } from '@cofhe/sdk';
+import type { CofheClient } from '@cofhe/sdk';
+import { parseAbi, type PublicClient, type WalletClient } from 'viem';
+import { sepolia } from 'viem/chains';
+
+declare const cofheClient: CofheClient;
+declare const publicClient: PublicClient;
+declare const walletClient: WalletClient;
+declare const account: `0x${string}`;
+declare const encryptedCounterAddress: `0x${string}`;
+
+const encryptedCounterAbi = parseAbi([
+  'function setCount((uint256 ctHash,uint8 securityZone,uint8 utype,bytes signature) _inCount)',
+]);
+
+// 1) Encrypt right before sending the transaction
+const [inCount] = await cofheClient
+  .encryptInputs([Encryptable.uint32(42n)])
+  .execute();
+assertCorrectEncryptedItemInput(inCount);
+
+// 2) Pass the encrypted struct as the `InE*` argument
+const hash = await walletClient.writeContract({
+  chain: sepolia,
+  account,
+  address: encryptedCounterAddress,
+  abi: encryptedCounterAbi,
+  functionName: 'setCount',
+  args: [inCount],
+});
+
+await publicClient.waitForTransactionReceipt({ hash });
 ```
 
 :::
