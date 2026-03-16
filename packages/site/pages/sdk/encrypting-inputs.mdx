@@ -7,7 +7,7 @@ It returns an `EncryptInputsBuilder` which lets you configure the encryption and
 The flow is as follows:
 
 1. Decide which plaintext value(s) you want to encrypt.
-2. Wrap each value with a typing helper (e.g. `Encryptable.uint32(…)`) to construct typed encryptable inputs (see [`Encryptable` — creating inputs](#encryptable--creating-inputs)).
+2. Wrap each value with a typing helper (e.g. `Encryptable.uint32(…)`) to construct typed encryptable inputs (see [`Encryptable` — typing inputs](#encryptable--creating-inputs)).
 3. Call `client.encryptInputs([...]).execute()` to produce [`EncryptedItemInput` objects](#encryptediteminput--the-result-type) (see [Builder API](#builder-api)).
 4. Submit a transaction to your contract and pass the encrypted inputs as `InE*` parameters (see [Using encrypted inputs in a transaction](#using-encrypted-inputs-in-a-transaction)).
 
@@ -227,7 +227,7 @@ Calling `.execute()` runs five sequential steps. You can observe them via the `.
 | `Prove`     | Generates the ZK proof of knowledge (ZKPoK). Uses a Web Worker when available.      |
 | `Verify`    | Sends the proof to the CoFHE verifier. Returns signed `EncryptedItemInput` objects. |
 
-## `Encryptable` — creating inputs
+## `Encryptable` — typing inputs
 
 Use the `Encryptable` factory to create the items you want to encrypt. Each factory function accepts the plaintext value and an optional `securityZone`.
 
