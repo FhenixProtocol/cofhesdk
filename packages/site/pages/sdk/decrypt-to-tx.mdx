@@ -1,7 +1,5 @@
 # Decrypting to Transact
 
-import DecryptForTxDecisionGuide from '../../components/DecryptForTxDecisionGuide.mdx';
-
 Use `decryptForTx` to reveal a **confidential (encrypted)** value on-chain: it returns the plaintext together with a Threshold Network signature, so a contract can verify the reveal when you publish it in a transaction.
 
 The flow is as follows:
@@ -88,7 +86,29 @@ For details, see [permits](./permits.mdx).
 
 Decision guide:
 
-<DecryptForTxDecisionGuide />
+```
+ACL policy for this ctHash
+│
+├─ Anyone can decrypt (no restriction)
+│  └─ No permit needed
+│     └─ decryptForTx(ctHash)
+│           .withoutPermit()
+│           .execute()
+│
+└─ Restricted to a specific address
+   │
+   ├─ Your address is allowed
+   │  └─ Generate a self-permit
+   │     └─ decryptForTx(ctHash)
+   │           .withPermit()
+   │           .execute()
+   │
+   └─ A different address is allowed
+      └─ Import a permit from them
+         └─ decryptForTx(ctHash)
+               .withPermit(importedPermit)
+               .execute()
+```
 
 ## Decrypt for a transaction
 
