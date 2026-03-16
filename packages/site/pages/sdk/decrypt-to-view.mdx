@@ -6,7 +6,7 @@ Unlike [`decryptForTx`](./decrypt-to-tx.mdx), this flow does **not** return an o
 
 The flow is as follows:
 
-1. Read the encrypted [handle](/reference/dictionary#handle) from your contract (often named `ctHash` in code) (see [Reading from a contract](#reading-from-a-contract-getting-a-handle--utype)).
+1. Read the [handle](/reference/dictionary#handle) from your contract (often named `ctHash` in code) (see [Reading from a contract](#reading-from-a-contract-getting-a-handle--utype)).
 2. Ensure you have a [permit](/reference/dictionary#permit) that authorizes decryption of that value (see [Permit quickstart](#permit-quickstart)).
 3. Call `decryptForView(ctHash, utype)` and then run `.execute()` to get the plaintext (see [Decrypt for UI](#decrypt-for-ui)).
 
@@ -19,7 +19,7 @@ If your protocol intends for the plaintext to become publicly visible on-chain, 
 
 1. Create and connect a client (see the [client page](./client.mdx)).
 
-2. Know the encrypted [handle](/reference/dictionary#handle) (often named `ctHash` in code) and the encrypted type ([`utype`](/reference/dictionary#utype)).
+2. Know the [handle](/reference/dictionary#handle) (often named `ctHash` in code) and the encrypted type ([`utype`](/reference/dictionary#utype)).
 
 :::tip
 **Getting a handle**
