@@ -84,6 +84,10 @@ export default defineConfig({
         text: 'Reference',
         items: [
           {
+            text: 'Dictionary',
+            link: '/reference/dictionary',
+          },
+          {
             text: 'EncryptedCounter.sol',
             link: '/reference/encrypted-counter-sol',
           },
