@@ -80,20 +80,22 @@ If you're using another wallet/provider stack, see below for `@cofhe/sdk/adapter
 Connecting initializes the SDK's in-memory connection state (`account`, `chainId`, and the viem clients).
 
 ```ts twoslash
+// @noErrorValidation
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
 import { chains } from '@cofhe/sdk/chains';
 import { createPublicClient, createWalletClient, http } from 'viem';
+import type { PublicClient, WalletClient } from 'viem';
 import { sepolia } from 'viem/chains';
 
 const config = createCofheConfig({ supportedChains: [chains.sepolia] });
 const cofheClient = createCofheClient(config);
 // ---cut---
-const publicClient = createPublicClient({
+const publicClient: PublicClient = createPublicClient({
   chain: sepolia,
   transport: http(),
 });
 
-const walletClient = createWalletClient({
+const walletClient: WalletClient = createWalletClient({
   chain: sepolia,
   transport: http(),
 });
@@ -113,6 +115,7 @@ We currently support adapters for Ethers v5 and v6 clients and providers, wagmi 
 :::code-group
 
 ```ts twoslash [Ethers v6]
+// @noErrorValidation
 // @noErrors
 import { Ethers6Adapter } from '@cofhe/sdk/adapters';
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
@@ -135,6 +138,7 @@ await cofheClient.connect(publicClient, walletClient);
 ```
 
 ```ts twoslash [Ethers v5]
+// @noErrorValidation
 // @noErrors
 import { Ethers5Adapter } from '@cofhe/sdk/adapters';
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
@@ -159,6 +163,7 @@ await cofheClient.connect(publicClient, walletClient);
 ```
 
 ```ts twoslash [Wagmi]
+// @noErrorValidation
 // @noErrors
 import { WagmiAdapter } from '@cofhe/sdk/adapters';
 import { createPublicClient, createWalletClient, http } from 'viem';
