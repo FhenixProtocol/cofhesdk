@@ -1,3 +1,8 @@
+---
+title: Permits
+description: EIP-712 signed permits for accessing encrypted on-chain data
+---
+
 # Permits
 
 Permits are EIP-712 signatures that authorize decryption of confidential data. The `issuer` field identifies who is accessing the data - the issuer must have been granted access on-chain via `FHE.allow(handle, address)`. When a permit is used, CoFHE validates it against the ACL contract to confirm that the issuer has access to the requested encrypted handle.

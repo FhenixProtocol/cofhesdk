@@ -12,6 +12,8 @@ export default defineConfig({
       moduleResolution: 100,
     },
   },
+  ogImageUrl:
+    'https://vocs.dev/api/og?logo=%logo&title=%title&description=%description',
   title: 'Cofhe SDK Docs',
   titleTemplate: '%s - Cofhe SDK',
   description: 'Documentation for the Cofhe SDK',
