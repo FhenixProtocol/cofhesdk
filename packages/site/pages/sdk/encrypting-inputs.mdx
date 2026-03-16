@@ -76,7 +76,7 @@ function confidentialTransfer(address to, InEuint64 amount) external {
 
 Running `.execute()` returns a typed tuple of `EncryptedItemInput` items that mirrors the array you passed to `encryptInputs([...])`.
 
-Each item contains the ciphertext handle (`ctHash`), the encrypted type (`utype`), the security zone, and a verifier signature authorizing that input.
+Each item contains the [handle](/reference/dictionary#handle) (`ctHash` in the SDK type), the encrypted type ([`utype`](/reference/dictionary#utype)), the security zone, and a verifier signature authorizing that input.
 
 For the exact shape, see [`EncryptedItemInput` — the result type](#encryptediteminput--the-result-type).
 
@@ -259,7 +259,7 @@ Each element of the returned array is an `EncryptedItemInput`:
 
 ```ts
 type EncryptedItemInput = {
-  ctHash: bigint; // The ciphertext hash registered with CoFHE
+  ctHash: bigint; // The handle registered with CoFHE
   securityZone: number; // The security zone the input was encrypted under
   utype: FheTypes; // The FHE type (Bool, Uint8, …, Uint160)
   signature: string; // CoFHE verifier signature authorizing this input

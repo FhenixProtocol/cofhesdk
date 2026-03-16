@@ -6,8 +6,8 @@ Unlike [`decryptForTx`](./decrypt-to-tx.mdx), this flow does **not** return an o
 
 The flow is as follows:
 
-1. Read the encrypted handle/hash (`ctHash`) from your contract (see [Reading from a contract](#reading-from-a-contract-getting-cthash--utype)).
-2. Ensure you have a permit that authorizes decryption of that value (see [Permit quickstart](#permit-quickstart)).
+1. Read the encrypted [handle](/reference/dictionary#handle) from your contract (often named `ctHash` in code) (see [Reading from a contract](#reading-from-a-contract-getting-a-handle--utype)).
+2. Ensure you have a [permit](/reference/dictionary#permit) that authorizes decryption of that value (see [Permit quickstart](#permit-quickstart)).
 3. Call `decryptForView(ctHash, utype)` and then run `.execute()` to get the plaintext (see [Decrypt for UI](#decrypt-for-ui)).
 
 :::note
@@ -19,21 +19,21 @@ If your protocol intends for the plaintext to become publicly visible on-chain, 
 
 1. Create and connect a client (see the [client page](./client.mdx)).
 
-2. Know the encrypted handle/hash (`ctHash`) and the encrypted type (`utype`).
+2. Know the encrypted [handle](/reference/dictionary#handle) (often named `ctHash` in code) and the encrypted type ([`utype`](/reference/dictionary#utype)).
 
 :::tip
-**Getting `ctHash`**
+**Getting a handle**
 
-In most apps, `ctHash` comes from reading a stored encrypted value, an event arg, or a return value from a `view` call.
+In most apps, the handle comes from reading a stored encrypted value, an event arg, or a return value from a `view` call.
 :::
 
 :::tip
 **Providing `utype` (required; not arbitrary)**
 
-`utype` must match the ciphertext’s underlying FHE type (it’s not a “pick whatever you want” parameter).
+`utype` must match the handle’s underlying FHE type (it’s not a “pick whatever you want” parameter).
 The SDK uses it to convert the decrypted `bigint` into a convenient JS type so you can display it.
 
-In many apps you can **derive `{ ctHash, utype }` from the contract ABI** using `@cofhe/abi` (see the snippets below). If you only have a raw `ctHash` (e.g. from storage/event logs), you must still know which encrypted type it corresponds to.
+In many apps you can **derive `{ ctHash, utype }` from the contract ABI** using `@cofhe/abi` (see the snippets below). Here `ctHash` is the handle. If you only have a raw handle (e.g. from storage/event logs), you must still know which encrypted type it corresponds to.
 
 Supported `utype`s for `decryptForView`:
 
@@ -50,13 +50,13 @@ This is why `decryptForView` requires `utype`, but `decryptForTx` does not: tx d
 
    If you don’t have one yet, the quickest way is to create a self permit once per account + chain.
 
-## Reading from a contract (getting `ctHash` + `utype`)
+## Reading from a contract (getting a handle + `utype`)
 
 Typically, the value you want to decrypt comes from a `view` call.
 
-First, read the raw encrypted return value and convert it into `{ ctHash, utype }` using `@cofhe/abi`.
+First, read the raw encrypted return value and convert it into `{ ctHash, utype }` using `@cofhe/abi`. Here `ctHash` is the handle.
 
-Below are two equivalent ways to read an encrypted return value from a predeployed Sepolia contract and derive `ctHash + utype`.
+Below are two equivalent ways to read an encrypted return value from a predeployed Sepolia contract and derive a handle + `utype`.
 
 :::code-group
 
@@ -71,7 +71,7 @@ Below are two equivalent ways to read an encrypted return value from a predeploy
 :::
 
 :::note
-Depending on your contract ABI, `ctHash` may be surfaced as either:
+Depending on your contract ABI, the handle may be surfaced as either:
 
 - `bytes32` → returned as a `0x...` hex string (both viem and ethers)
 - `uint256` → returned as a `bigint` (viem and ethers v6; ethers v5 returns a `BigNumber`)
@@ -413,6 +413,6 @@ plaintext;
 
 ## Common pitfalls
 
-- **Missing permit**: `decryptForView` will fail if there is no active permit for the current `chainId + account` (or if the permit you pass doesn’t authorize decrypting that ciphertext).
-- **Wrong `utype`**: you must pass the correct FHE type for the ciphertext. `Bool` and `address` are converted into `boolean` / checksummed `0x...` strings; integer types stay as `bigint`.
+- **Missing permit**: `decryptForView` will fail if there is no active permit for the current `chainId + account` (or if the permit you pass doesn’t authorize decrypting that handle).
+- **Wrong `utype`**: you must pass the correct FHE type for the handle. `Bool` and `address` are converted into `boolean` / checksummed `0x...` strings; integer types stay as `bigint`.
 - **Wrong chain/account**: permits are scoped to `chainId + account`. If the user switches wallets or networks, create/select the correct permit (or set them explicitly via `.setChainId(...)` / `.setAccount(...)`).
