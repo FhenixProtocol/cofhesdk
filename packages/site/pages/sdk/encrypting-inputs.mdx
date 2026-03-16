@@ -7,9 +7,9 @@ It returns an `EncryptInputsBuilder` which lets you configure the encryption and
 The flow is as follows:
 
 1. Decide which plaintext value(s) you want to encrypt.
-2. Wrap each value with a typing helper (e.g. `Encryptable.uint32(…)`) to construct typed encryptable inputs (see [`Encryptable` — creating inputs](#encryptable--creating-inputs)).
+2. Wrap each value with a typing helper (e.g. `Encryptable.uint32(…)`) to construct typed encryptable inputs (see [`Encryptable` — typing inputs](#encryptable--typing-inputs)).
 3. Call `client.encryptInputs([...]).execute()` to produce [`EncryptedItemInput` objects](#encryptediteminput--the-result-type) (see [Builder API](#builder-api)).
-4. Submit a transaction to your contract and pass the encrypted inputs as `InE*` parameters (see [Using encrypted inputs in a transaction](#using-encrypted-inputs-in-a-transaction)).
+4. Submit a transaction to your contract and pass the encrypted inputs as `InE*` parameters (see [Writing encrypted data to a contract](./writing-encrypted-data-to-contract.mdx)).
 
 ## Prerequisites
 
@@ -50,33 +50,11 @@ const [eUint32, eBool, eAddress] = encrypted;
 The return type is a typed tuple that mirrors the array you pass in — each element is the corresponding `Encrypted*Input` type.
 For the exact shape of each item, see [`EncryptedItemInput` — the result type](#encryptediteminput--the-result-type).
 
-## Using encrypted inputs in a transaction
-
-The intended consumer of `encryptInputs` is a contract function that accepts encrypted `InE*` structs.
-
-In practice, you pass the returned `EncryptedItemInput` objects directly into your contract call (the on-chain CoFHE library verifies the signature before using the ciphertext).
-
-:::code-group
-
-```solidity [Solidity]
-// Example signature only. Adjust param types to match your encrypted inputs.
-function confidentialTransfer(address to, InEuint64 amount) external {
-  // ...
-}
-```
-
-```ts [TypeScript]
-// `encryptedAmount` is an `EncryptedItemInput` returned by encryptInputs(...).execute()
-// await contract.confidentialTransfer(recipient, encryptedAmount);
-```
-
-:::
-
 ## What `encryptInputs` returns
 
 Running `.execute()` returns a typed tuple of `EncryptedItemInput` items that mirrors the array you passed to `encryptInputs([...])`.
 
-Each item contains the ciphertext handle (`ctHash`), the encrypted type (`utype`), the security zone, and a verifier signature authorizing that input.
+Each item contains the [handle](/reference/dictionary#handle) (`ctHash` in the SDK type), the encrypted type ([`utype`](/reference/dictionary#utype)), the security zone, and a verifier signature authorizing that input.
 
 For the exact shape, see [`EncryptedItemInput` — the result type](#encryptediteminput--the-result-type).
 
@@ -227,7 +205,7 @@ Calling `.execute()` runs five sequential steps. You can observe them via the `.
 | `Prove`     | Generates the ZK proof of knowledge (ZKPoK). Uses a Web Worker when available.      |
 | `Verify`    | Sends the proof to the CoFHE verifier. Returns signed `EncryptedItemInput` objects. |
 
-## `Encryptable` — creating inputs
+## `Encryptable` — typing inputs
 
 Use the `Encryptable` factory to create the items you want to encrypt. Each factory function accepts the plaintext value and an optional `securityZone`.
 
@@ -259,7 +237,7 @@ Each element of the returned array is an `EncryptedItemInput`:
 
 ```ts
 type EncryptedItemInput = {
-  ctHash: bigint; // The ciphertext hash registered with CoFHE
+  ctHash: bigint; // The handle registered with CoFHE
   securityZone: number; // The security zone the input was encrypted under
   utype: FheTypes; // The FHE type (Bool, Uint8, …, Uint160)
   signature: string; // CoFHE verifier signature authorizing this input

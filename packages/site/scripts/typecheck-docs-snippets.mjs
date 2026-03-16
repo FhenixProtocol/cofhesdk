@@ -25,6 +25,10 @@ function containsIncludeDirective(code) {
   return code.includes('// [!include');
 }
 
+function containsNoErrorValidationDirective(code) {
+  return code.includes('// @noErrorValidation');
+}
+
 /**
  * Strip twoslash and vocs directives so the block can be typechecked by tsc.
  * Keeps legitimate TS directives like `// @ts-expect-error`.
@@ -85,14 +89,19 @@ async function main() {
     process.exit(0);
   }
 
-  const hardhatTypecheckDir = path.join(repoRoot, 'scripts', 'hardhat-typecheck');
+  const hardhatTypecheckDir = path.join(
+    repoRoot,
+    'scripts',
+    'hardhat-typecheck'
+  );
   const generatedDir = path.join(hardhatTypecheckDir, '.generated');
 
   await fs.rm(generatedDir, { recursive: true, force: true });
   await fs.mkdir(generatedDir, { recursive: true });
 
   let count = 0;
-  let skipped = 0;
+  let skippedInclude = 0;
+  let skippedNoErrorValidation = 0;
 
   for (const mdxPath of mdxPaths) {
     const content = await fs.readFile(mdxPath, 'utf8');
@@ -101,7 +110,12 @@ async function main() {
 
     for (const { code, line } of blocks) {
       if (containsIncludeDirective(code)) {
-        skipped++;
+        skippedInclude++;
+        continue;
+      }
+
+      if (containsNoErrorValidationDirective(code)) {
+        skippedNoErrorValidation++;
         continue;
       }
 
@@ -113,7 +127,18 @@ async function main() {
     }
   }
 
-  console.log(`Found ${count} snippet(s) (${skipped} skipped due to [!include]).`);
+  const skippedTotal = skippedInclude + skippedNoErrorValidation;
+  const skippedParts = [];
+  if (skippedInclude > 0)
+    skippedParts.push(`${skippedInclude} skipped due to [!include]`);
+  if (skippedNoErrorValidation > 0)
+    skippedParts.push(
+      `${skippedNoErrorValidation} skipped due to @noErrorValidation`
+    );
+  const skippedLabel = skippedParts.length
+    ? ` (${skippedTotal} skipped: ${skippedParts.join(', ')})`
+    : '';
+  console.log(`Found ${count} snippet(s)${skippedLabel}.`);
 
   if (count === 0) {
     await fs.rm(generatedDir, { recursive: true, force: true });

@@ -1,0 +1,80 @@
+# Dictionary
+
+A quick glossary of common terms used throughout the Cofhe SDK and CoFHE docs.
+
+## Handle
+
+A **handle** (sometimes called a “ciphertext handle”) is the on-chain identifier for an encrypted value.
+
+- In TypeScript examples you will often see this handle stored in a variable named `ctHash` (historical naming).
+- In Solidity ABIs it is typically represented as a `bytes32`.
+- Encrypted value types like `euint32` are stored on-chain as a handle.
+
+You pass the handle into decryption APIs like `decryptForView` / `decryptForTx`, and into access-control operations like `FHE.allow(handle, address)`.
+
+## Ciphertext
+
+A **ciphertext** is the actual encrypted data. In many app flows you do not manipulate ciphertext bytes directly; instead you pass around a **handle** that refers to ciphertext registered with CoFHE.
+
+## utype
+
+A **type tag** that describes the encrypted primitive type (e.g. `Uint32`, `Uint64`).
+
+- In the SDK it is commonly referred to as `utype`.
+- You’ll use it when decrypting for view (so the SDK can decode the returned plaintext correctly).
+
+## Encrypted input
+
+The payload you submit in a transaction when calling a contract function that accepts encrypted inputs.
+
+- Off-chain: produced by `client.encryptInputs([...]).execute()` as `EncryptedItemInput` objects.
+- On-chain: passed into functions as `InEuint32`, `InEuint64`, etc. (structs validated by the CoFHE library before use).
+
+## Permit
+
+A **permit** is an EIP-712 signature that authorizes decryption of one or more handles.
+
+- The permit’s **issuer** is the address doing the decryption.
+- Permits are checked against the on-chain ACL policy (e.g. via `FHE.allow(handle, address)`).
+
+See: [/sdk/permits](/sdk/permits).
+
+## Sealing keypair
+
+Permits include a sealing keypair used for transport security:
+
+- The **public key** is sent to CoFHE so it can **re-encrypt** decrypted data for the permit holder.
+- The **private key** stays client-side and is used to **unseal** the returned data.
+
+## Re-encryption
+
+A step where CoFHE/Threshold Network transforms decrypted data into a form that only the permit holder can unseal (using the permit’s sealing public key).
+
+## Threshold Network
+
+The off-chain network that performs decryption operations (and, for tx flows, produces signatures that smart contracts can verify).
+
+## decryptForView
+
+A decryption flow intended for UI / off-chain reads:
+
+- Returns plaintext only to the caller (not published on-chain).
+- **Always requires a permit.**
+
+## decryptForTx
+
+A decryption flow intended for transactions:
+
+- Returns plaintext **plus a signature** that binds the plaintext to the handle.
+- The signature can be checked on-chain via `FHE.verifyDecryptResult(handle, plaintext, signature)`.
+- May or may not require a permit depending on the contract’s ACL policy for that handle.
+
+## ACL
+
+**ACL** (access control list) rules determine who is allowed to decrypt a given handle.
+
+Contracts typically grant access by calling `FHE.allow(handle, address)`.
+
+## Security zone
+
+A parameter that scopes where an encrypted value is valid/usable (for example, separating different application domains or environments). In the SDK it travels with encrypted inputs alongside the handle and type tag.

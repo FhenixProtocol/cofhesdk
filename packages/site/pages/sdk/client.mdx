@@ -14,6 +14,24 @@ Import `createCofheConfig` from the entrypoint that matches your runtime:
 - Browser apps: `@cofhe/sdk/web`
 - Node.js scripts/backends: `@cofhe/sdk/node`
 
+:::warning
+**Browser bundlers (Vite)**
+
+`@cofhe/sdk/web` loads TFHE via a WASM module and may use Web Workers.
+If you use Vite, exclude `tfhe` from dependency prebundling so `new URL('tfhe_bg.wasm', import.meta.url)` resolves to an actual `.wasm` file (otherwise TFHE init can fail with a “magic word” error).
+
+```ts
+// vite.config.ts
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  optimizeDeps: { exclude: ['tfhe'] },
+  worker: { format: 'es' },
+});
+```
+
+:::
+
 The only required field is `supportedChains`.
 
 ```ts twoslash
@@ -62,20 +80,22 @@ If you're using another wallet/provider stack, see below for `@cofhe/sdk/adapter
 Connecting initializes the SDK's in-memory connection state (`account`, `chainId`, and the viem clients).
 
 ```ts twoslash
+// @noErrorValidation
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
 import { chains } from '@cofhe/sdk/chains';
 import { createPublicClient, createWalletClient, http } from 'viem';
+import type { PublicClient, WalletClient } from 'viem';
 import { sepolia } from 'viem/chains';
 
 const config = createCofheConfig({ supportedChains: [chains.sepolia] });
 const cofheClient = createCofheClient(config);
 // ---cut---
-const publicClient = createPublicClient({
+const publicClient: PublicClient = createPublicClient({
   chain: sepolia,
   transport: http(),
 });
 
-const walletClient = createWalletClient({
+const walletClient: WalletClient = createWalletClient({
   chain: sepolia,
   transport: http(),
 });
@@ -95,6 +115,7 @@ We currently support adapters for Ethers v5 and v6 clients and providers, wagmi 
 :::code-group
 
 ```ts twoslash [Ethers v6]
+// @noErrorValidation
 // @noErrors
 import { Ethers6Adapter } from '@cofhe/sdk/adapters';
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
@@ -117,6 +138,7 @@ await cofheClient.connect(publicClient, walletClient);
 ```
 
 ```ts twoslash [Ethers v5]
+// @noErrorValidation
 // @noErrors
 import { Ethers5Adapter } from '@cofhe/sdk/adapters';
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
@@ -141,6 +163,7 @@ await cofheClient.connect(publicClient, walletClient);
 ```
 
 ```ts twoslash [Wagmi]
+// @noErrorValidation
 // @noErrors
 import { WagmiAdapter } from '@cofhe/sdk/adapters';
 import { createPublicClient, createWalletClient, http } from 'viem';

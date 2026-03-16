@@ -13,7 +13,7 @@ The examples below show two approaches for working with permits. The `client.per
 ## When do you need a permit?
 
 - **`decryptForView`**: always requires a permit.
-- **`decryptForTx`**: depends on the contract's ACL policy for that `ctHash`.
+- **`decryptForTx`**: depends on the contract's ACL policy for that [handle](/reference/dictionary#handle) (`ctHash` in code).
   - If the policy allows anyone to decrypt, you can use `.withoutPermit()`.
   - If the policy restricts decryption, you must use `.withPermit(...)`.
 

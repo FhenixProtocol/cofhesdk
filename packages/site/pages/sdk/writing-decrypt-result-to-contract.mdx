@@ -1,0 +1,75 @@
+# Writing Decrypt Result to Contract
+
+This page covers the “decrypt → write tx” flow after you run [`decryptForTx`](./decrypt-to-tx.mdx): you take `{ ctHash, decryptedValue, signature }` and submit a transaction that your contract can verify.
+
+There are two common patterns:
+
+- **Publish**: call `FHE.publishDecryptResult(ctHash, plaintext, signature)` so other contracts/users can reference the published result.
+- **Verify-only**: call `FHE.verifyDecryptResult(ctHash, plaintext, signature)` inside your contract without publishing globally.
+
+## Prerequisites
+
+1. Run [`decryptForTx`](./decrypt-to-tx.mdx) and get a result object with:
+
+- `ctHash`
+- `decryptedValue`
+- `signature`
+
+2. Ensure the Solidity parameter type you pass matches your encrypted type.
+
+`decryptedValue` is a `bigint`. If your Solidity function expects a smaller integer type (e.g. `uint32`), make sure the value is within range.
+
+## Publish the decrypt result on-chain
+
+The intended consumer of `decryptForTx` is an on-chain verifier such as `FHE.publishDecryptResult(...)` (or a wrapper function in your contract).
+
+In practice, you publish the result by calling a function on **your contract** that invokes `FHE.publishDecryptResult` internally.
+
+You submit an on-chain transaction that provides:
+
+- the handle you decrypted (`decryptResult.ctHash`),
+- the plaintext value, and
+- the Threshold Network signature returned by `decryptForTx`.
+
+:::code-group
+
+```solidity [Solidity]
+import '@fhenixprotocol/cofhe-contracts/FHE.sol';
+
+// Example wrapper (adjust plaintext/result type to match your encrypted type).
+function publishDecryptResult(bytes32 ctHash, uint32 plaintext, bytes calldata signature) external {
+  FHE.publishDecryptResult(ctHash, plaintext, signature);
+}
+```
+
+```ts [TypeScript]
+// `decryptResult` is returned by `decryptForTx(...).execute()`
+const tx = await myContract.publishDecryptResult(
+  decryptResult.ctHash,
+  decryptResult.decryptedValue,
+  decryptResult.signature
+);
+
+await tx.wait();
+```
+
+:::
+
+## Verify a decrypt result signature (without publishing)
+
+Some protocols don’t need (or don’t want) to publish the decrypt result globally — they only need to verify that the provided plaintext and signature match a specific handle (`ctHash`).
+
+For example, an “unshield” flow can accept `(ctHash, plaintext, signature)` and only proceed if the signature is valid:
+
+```solidity
+import '@fhenixprotocol/cofhe-contracts/FHE.sol';
+
+function unshield(bytes32 ctHash, uint32 plaintext, bytes calldata signature) external {
+  require(FHE.verifyDecryptResult(ctHash, plaintext, signature), 'Invalid decrypt signature');
+  // ...continue with protocol logic...
+}
+```
+
+:::note
+If you prefer to publish the result (so it can be reused elsewhere), use `FHE.publishDecryptResult(...)` instead.
+:::

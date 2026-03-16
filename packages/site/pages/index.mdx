@@ -1,6 +1,6 @@
 # Cofhe SDK
 
-`@cofhe/sdk` is the TypeScript client for [CoFHE](https://cofhe-docs.fhenix.zone/deep-dive/cofhe-components/overview). It handles the client-side operations required to interact with FHE-enabled smart contracts: encrypting inputs with ZK proofs, decrypting ciphertext handles via the Threshold Network, and managing EIP-712 permits for access control.
+`@cofhe/sdk` is the TypeScript client for [CoFHE](https://cofhe-docs.fhenix.zone/deep-dive/cofhe-components/overview). It handles the client-side operations required to interact with FHE-enabled smart contracts: encrypting inputs with ZK proofs, decrypting [handles](/reference/dictionary#handle) via the [Threshold Network](/reference/dictionary#threshold-network), and managing EIP-712 [permits](/reference/dictionary#permit) for access control.
 
 On-chain, contracts use [`FHE.sol`](https://cofhe-docs.fhenix.zone/fhe-library/introduction/overview) to operate on encrypted data. Off-chain, this SDK prepares the inputs and reads the outputs.
 
@@ -9,7 +9,7 @@ On-chain, contracts use [`FHE.sol`](https://cofhe-docs.fhenix.zone/fhe-library/i
 | Operation        | Function                                                     | Description                                                                                                                                                  |
 | ---------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Encrypt inputs   | `client.encryptInputs([...]).execute()`                      | Packs plaintext values, generates a ZKPoK, and submits them to the CoFHE verifier. Returns signed `EncryptedItemInput` objects for use in contract calls.    |
-| Decrypt for view | `client.decryptForView(ctHash, utype).execute()`             | Requests decryption of a ciphertext handle via the Threshold Network using a permit. Returns the plaintext locally (not published on-chain).                 |
+| Decrypt for view | `client.decryptForView(ctHash, utype).execute()`             | Requests decryption of a [ciphertext handle](/reference/dictionary#handle) using a permit. Returns the plaintext locally (not published on-chain).           |
 | Decrypt for tx   | `client.decryptForTx(ctHash).execute()`                      | Requests decryption and returns the plaintext with a Threshold Network signature. The signature can be verified on-chain via `FHE.verifyDecryptResult(...)`. |
 | Manage permits   | `client.permits.createSelf(...)` / `getOrCreateSelfPermit()` | Creates, stores, and manages EIP-712 permits that authorize decryption of specific ciphertext handles.                                                       |
 
