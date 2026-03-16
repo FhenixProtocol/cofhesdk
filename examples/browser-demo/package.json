@@ -1,0 +1,19 @@
+{
+  "name": "@cofhe/browser-demo",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@cofhe/sdk": "workspace:*",
+    "viem": "^2.38.6"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "vite": "^5.4.14"
+  }
+}
