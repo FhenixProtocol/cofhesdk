@@ -38,20 +38,34 @@ export default defineConfig({
             link: '/sdk/client',
           },
           {
-            text: 'Encrypting Inputs',
-            link: '/sdk/encrypting-inputs',
+            text: 'Encryption',
+            items: [
+              {
+                text: 'Encrypting Inputs',
+                link: '/sdk/encrypting-inputs',
+              },
+              {
+                text: 'Writing Encrypted Data to Contract',
+                link: '/sdk/writing-encrypted-data-to-contract',
+              },
+            ],
           },
           {
-            text: 'Permits',
-            link: '/sdk/permits',
-          },
-          {
-            text: 'Decrypting to View',
-            link: '/sdk/decrypt-to-view',
-          },
-          {
-            text: 'Decrypting to Transact',
-            link: '/sdk/decrypt-to-tx',
+            text: 'Decryption',
+            items: [
+              {
+                text: 'Permits',
+                link: '/sdk/permits',
+              },
+              {
+                text: 'Decrypting to View',
+                link: '/sdk/decrypt-to-view',
+              },
+              {
+                text: 'Decrypting to Transact',
+                link: '/sdk/decrypt-to-tx',
+              },
+            ],
           },
         ],
       },
