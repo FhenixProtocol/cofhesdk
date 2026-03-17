@@ -3,9 +3,11 @@ import { type Permission } from '@/permits';
 import { CofheError, CofheErrorCode } from '../error';
 import { type DecryptPollCallbackFunction } from '../types';
 import { normalizeTnSignature, parseDecryptedBytesToBigInt } from './tnDecryptUtils';
+import { computeMinuteRampPollIntervalMs } from './polling.js';
 
 // Polling configuration
 const POLL_INTERVAL_MS = 1000; // 1 second
+const POLL_MAX_INTERVAL_MS = 10_000; // 10 seconds
 const POLL_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
 type DecryptSubmitResponseV2 = {
@@ -194,16 +196,21 @@ async function pollDecryptStatusV2(
 
   while (!completed) {
     attempt += 1;
+    const elapsedMs = Date.now() - startTime;
+    const intervalMs = computeMinuteRampPollIntervalMs(elapsedMs, {
+      minIntervalMs: POLL_INTERVAL_MS,
+      maxIntervalMs: POLL_MAX_INTERVAL_MS,
+    });
     onPoll?.({
       operation: 'decrypt',
       requestId,
       attempt,
-      elapsedMs: Date.now() - startTime,
-      intervalMs: POLL_INTERVAL_MS,
+      elapsedMs,
+      intervalMs,
       timeoutMs: POLL_TIMEOUT_MS,
     });
 
-    if (Date.now() - startTime > POLL_TIMEOUT_MS) {
+    if (elapsedMs > POLL_TIMEOUT_MS) {
       throw new CofheError({
         code: CofheErrorCode.DecryptFailed,
         message: `decrypt polling timed out after ${POLL_TIMEOUT_MS}ms`,
@@ -331,7 +338,7 @@ async function pollDecryptStatusV2(
       return { decryptedValue, signature };
     }
 
-    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
   }
 
   // This should never be reached, but keeps TS and linters happy.
