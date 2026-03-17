@@ -43,6 +43,9 @@ export type {
   FheTypeValue,
   // Decryption types
   UnsealedItem,
+  DecryptPollCallbackFunction,
+  DecryptPollCallbackContext,
+  DecryptPollOperation,
   // Util types
   EncryptStepCallbackFunction as EncryptSetStateFn,
   EncryptStepCallbackContext,
