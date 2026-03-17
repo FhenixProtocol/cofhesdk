@@ -215,6 +215,29 @@ result.decryptedValue;
 result.signature;
 ```
 
+### `.onPoll(callback)` — optional
+
+Registers a callback that runs once per poll attempt while waiting for the threshold network to complete the request.
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: `0x${string}`;
+// ---cut---
+const result = await client
+  .decryptForTx(ctHash)
+  .onPoll(({ attempt, elapsedMs }) => {
+    console.log('decrypt polling', { attempt, elapsedMs });
+  })
+  .withPermit()
+  .execute();
+
+result.signature;
+```
+
 ### `.withPermit(...)` — required unless using `.withoutPermit()`
 
 Decrypt using a permit:

@@ -304,6 +304,31 @@ const plaintext = await client
 plaintext;
 ```
 
+### `.onPoll(callback)` — optional
+
+Registers a callback that runs once per poll attempt while waiting for the threshold network to complete the request.
+
+This is useful for showing “decrypting…” UI, measuring latency, or logging.
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+import { FheTypes } from '@cofhe/sdk';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: `0x${string}`;
+// ---cut---
+const plaintext = await client
+  .decryptForView(ctHash, FheTypes.Uint32)
+  .onPoll(({ attempt, elapsedMs }) => {
+    console.log('sealOutput polling', { attempt, elapsedMs });
+  })
+  .execute();
+
+plaintext;
+```
+
 ### `.withPermit(...)` — optional
 
 Select which permit to use:
