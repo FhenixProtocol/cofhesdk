@@ -1,6 +1,7 @@
 import { type Permission, type EthEncryptedData } from '@/permits';
 
 import { CofheError, CofheErrorCode } from '../error.js';
+import { type DecryptPollCallbackFunction } from '../types.js';
 
 // Polling configuration
 const POLL_INTERVAL_MS = 1000; // 1 second
@@ -146,11 +147,26 @@ async function submitSealOutputRequest(
 /**
  * Polls for the sealoutput status until completed or timeout
  */
-async function pollSealOutputStatus(thresholdNetworkUrl: string, requestId: string): Promise<EthEncryptedData> {
+async function pollSealOutputStatus(
+  thresholdNetworkUrl: string,
+  requestId: string,
+  onPoll?: DecryptPollCallbackFunction
+): Promise<EthEncryptedData> {
   const startTime = Date.now();
+  let attempt = 0;
   let completed = false;
 
   while (!completed) {
+    attempt += 1;
+    onPoll?.({
+      operation: 'sealOutput',
+      requestId,
+      attempt,
+      elapsedMs: Date.now() - startTime,
+      intervalMs: POLL_INTERVAL_MS,
+      timeoutMs: POLL_TIMEOUT_MS,
+    });
+
     // Check timeout
     if (Date.now() - startTime > POLL_TIMEOUT_MS) {
       throw new CofheError({
@@ -288,11 +304,14 @@ export async function tnSealOutputV2(
   ctHash: bigint | string,
   chainId: number,
   permission: Permission,
-  thresholdNetworkUrl: string
+  thresholdNetworkUrl: string,
+  opts?: {
+    onPoll?: DecryptPollCallbackFunction;
+  }
 ): Promise<EthEncryptedData> {
   // Step 1: Submit the request and get request_id
   const requestId = await submitSealOutputRequest(thresholdNetworkUrl, ctHash, chainId, permission);
 
   // Step 2: Poll for status until completed
-  return await pollSealOutputStatus(thresholdNetworkUrl, requestId);
+  return await pollSealOutputStatus(thresholdNetworkUrl, requestId, opts?.onPoll);
 }

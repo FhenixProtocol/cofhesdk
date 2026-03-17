@@ -1,6 +1,7 @@
 import { type Permission } from '@/permits';
 
 import { CofheError, CofheErrorCode } from '../error';
+import { type DecryptPollCallbackFunction } from '../types';
 import { normalizeTnSignature, parseDecryptedBytesToBigInt } from './tnDecryptUtils';
 
 // Polling configuration
@@ -184,12 +185,24 @@ async function submitDecryptRequestV2(
 
 async function pollDecryptStatusV2(
   thresholdNetworkUrl: string,
-  requestId: string
+  requestId: string,
+  onPoll?: DecryptPollCallbackFunction
 ): Promise<{ decryptedValue: bigint; signature: `0x${string}` }> {
   const startTime = Date.now();
+  let attempt = 0;
   let completed = false;
 
   while (!completed) {
+    attempt += 1;
+    onPoll?.({
+      operation: 'decrypt',
+      requestId,
+      attempt,
+      elapsedMs: Date.now() - startTime,
+      intervalMs: POLL_INTERVAL_MS,
+      timeoutMs: POLL_TIMEOUT_MS,
+    });
+
     if (Date.now() - startTime > POLL_TIMEOUT_MS) {
       throw new CofheError({
         code: CofheErrorCode.DecryptFailed,
@@ -336,8 +349,11 @@ export async function tnDecryptV2(
   ctHash: bigint | string,
   chainId: number,
   permission: Permission | null,
-  thresholdNetworkUrl: string
+  thresholdNetworkUrl: string,
+  opts?: {
+    onPoll?: DecryptPollCallbackFunction;
+  }
 ): Promise<{ decryptedValue: bigint; signature: `0x${string}` }> {
   const requestId = await submitDecryptRequestV2(thresholdNetworkUrl, ctHash, chainId, permission);
-  return await pollDecryptStatusV2(thresholdNetworkUrl, requestId);
+  return await pollDecryptStatusV2(thresholdNetworkUrl, requestId, opts?.onPoll);
 }

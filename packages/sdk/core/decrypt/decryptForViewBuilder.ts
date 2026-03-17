@@ -12,6 +12,7 @@ import { cofheMocksDecryptForView } from './cofheMocksDecryptForView.js';
 // import { tnSealOutputV1 } from './tnSealOutputV1.js';
 import { tnSealOutputV2 } from './tnSealOutputV2.js';
 import { sleep } from '../utils.js';
+import { type DecryptPollCallbackFunction } from '../types.js';
 
 /**
  * API
@@ -46,6 +47,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
   private utype: U;
   private permitHash?: string;
   private permit?: Permit;
+  private pollCallback?: DecryptPollCallbackFunction;
 
   constructor(params: DecryptForViewBuilderParams<U>) {
     super({
@@ -107,6 +109,11 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
 
   getAccount(): string | undefined {
     return this.account;
+  }
+
+  onPoll(callback: DecryptPollCallbackFunction): DecryptForViewBuilder<U> {
+    this.pollCallback = callback;
+    return this;
   }
 
   /**
@@ -264,7 +271,9 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
     const thresholdNetworkUrl = await this.getThresholdNetworkUrl();
     const permission = PermitUtils.getPermission(permit, true);
     // const sealed = await tnSealOutputV1(this.ctHash, this.chainId, permission, thresholdNetworkUrl);
-    const sealed = await tnSealOutputV2(this.ctHash, this.chainId, permission, thresholdNetworkUrl);
+    const sealed = await tnSealOutputV2(this.ctHash, this.chainId, permission, thresholdNetworkUrl, {
+      onPoll: this.pollCallback,
+    });
     return PermitUtils.unseal(permit, sealed);
   }
 

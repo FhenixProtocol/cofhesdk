@@ -389,6 +389,19 @@ export type EncryptStepCallbackFunction = (state: EncryptStep, context?: Encrypt
 
 // DECRYPT
 
+export type DecryptPollOperation = 'decrypt' | 'sealOutput';
+
+export type DecryptPollCallbackContext = {
+  operation: DecryptPollOperation;
+  requestId: string;
+  attempt: number;
+  elapsedMs: number;
+  intervalMs: number;
+  timeoutMs: number;
+};
+
+export type DecryptPollCallbackFunction = (context: DecryptPollCallbackContext) => void;
+
 /**
  * Decrypted plaintext value returned by view-decryption helpers.
  *
