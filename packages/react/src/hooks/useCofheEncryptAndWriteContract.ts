@@ -160,7 +160,7 @@ export function useCofheEncryptAndWriteContract<TExtraVars = unknown>({
       ...args,
       encrypt: (encryptableItems) =>
         encryption.encryptInputsAsync({
-          items: encryptableItems as readonly EncryptableItem[],
+          items: encryptableItems,
           ...(args.encryptionOptions ?? {}),
         }),
       write: (writeParams) => {
