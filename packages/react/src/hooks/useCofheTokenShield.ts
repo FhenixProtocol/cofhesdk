@@ -22,6 +22,79 @@ import { TransactionActionType, useTransactionStore } from '../stores/transactio
 import { useInternalMutation, useInternalQuery } from '../providers/index.js';
 import { assert } from 'ts-essentials';
 import { useTransactionGlobalLifecycle } from './useTransactionGlobalLifecycle.js';
+import type { CofheSimulateWriteContractCallArgs } from './useCofheSimulateWriteContract.js';
+
+export function getCofheTokenShieldCallArgs(params: { token: Token; amount: bigint; account: Address }): {
+  main: CofheSimulateWriteContractCallArgs;
+  approval?: CofheSimulateWriteContractCallArgs;
+} {
+  const { token, amount, account } = params;
+  const tokenAddress: Address = token.address;
+  const confidentialityType = token.extensions.fhenix.confidentialityType;
+
+  if (!confidentialityType) {
+    throw new Error('confidentialityType is required in token extensions');
+  }
+
+  if (confidentialityType !== 'dual' && confidentialityType !== 'wrapped') {
+    throw new Error(`Shield not supported for confidentialityType: ${confidentialityType}`);
+  }
+
+  if (confidentialityType === 'dual') {
+    const contractConfig = SHIELD_ABIS.dual;
+    return {
+      main: {
+        address: tokenAddress,
+        abi: contractConfig.abi,
+        functionName: contractConfig.functionName,
+        args: [amount],
+        account,
+        chain: undefined,
+      },
+    };
+  }
+
+  // wrapped
+  const erc20PairAddress = token.extensions.fhenix.erc20Pair?.address;
+  const isEth = erc20PairAddress?.toLowerCase() === ETH_ADDRESS_LOWERCASE;
+
+  if (isEth) {
+    return {
+      main: {
+        address: tokenAddress,
+        abi: WRAPPED_ETH_ENCRYPT_ETH_ABI,
+        functionName: 'encryptETH',
+        args: [account],
+        value: amount,
+        account,
+        chain: undefined,
+      },
+    };
+  }
+
+  if (!erc20PairAddress) {
+    throw new Error('erc20Pair address is required for wrapped ERC20 tokens');
+  }
+
+  return {
+    approval: {
+      address: erc20PairAddress,
+      abi: ERC20_APPROVE_ABI,
+      functionName: 'approve',
+      args: [tokenAddress, amount],
+      account,
+      chain: undefined,
+    },
+    main: {
+      address: tokenAddress,
+      abi: WRAPPED_ENCRYPT_ABI,
+      functionName: 'encrypt',
+      args: [account, amount],
+      account,
+      chain: undefined,
+    },
+  };
+}
 
 // ============================================================================
 // Types

@@ -15,6 +15,10 @@ import { useCofheTokenPublicBalance } from '@/hooks/useCofheTokenPublicBalance';
 import { formatTokenAmount, unitToWei } from '@/utils/format';
 import { FloatingButtonPage } from '../pagesConfig/types';
 import {
+  getCofheTokenClaimUnshieldedCallArgs,
+  getCofheTokenShieldCallArgs,
+  getCofheTokenUnshieldCallArgs,
+  useCofheSimulateWriteContract,
   useCofheTokenClaimUnshielded,
   useCofheTokenUnshield,
   useCofheTokenClaimable,
@@ -237,6 +241,22 @@ function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 
 
   const isValidShieldAmount = (shieldAmount.length > 0 && publicBalanceUnit?.gte(shieldAmount)) ?? false;
 
+  const shieldCallArgs = (() => {
+    if (!account || !isValidShieldAmount) return undefined;
+    try {
+      const amountWei = unitToWei(shieldAmount, token.decimals);
+      return getCofheTokenShieldCallArgs({ token, amount: amountWei, account }).main;
+    } catch {
+      return undefined;
+    }
+  })();
+
+  const shieldSimulation = useCofheSimulateWriteContract(shieldCallArgs, {
+    enabled: !!shieldCallArgs,
+  });
+
+  const canShield = isValidShieldAmount && !shieldSimulation.isFetching && !shieldSimulation.error;
+
   return {
     status,
     error,
@@ -244,7 +264,7 @@ function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 
     inputAmount: shieldAmount,
     setInputAmount: setShieldAmount,
     onMaxClick: handleShieldMax,
-    isValidAmount: isValidShieldAmount,
+    canWriteContract: canShield,
     sourceSymbol: token.extensions.fhenix.erc20Pair?.symbol,
     destSymbol: token.symbol,
     sourceLogoURI: token.extensions.fhenix.erc20Pair?.logoURI,
@@ -328,6 +348,22 @@ function useUnshieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps
   };
   const isValidUnshieldAmount = (unshieldAmount.length > 0 && confidentialBalanceUnit?.gte(unshieldAmount)) ?? false;
 
+  const unshieldCallArgs = (() => {
+    if (!account || !isValidUnshieldAmount) return undefined;
+    try {
+      const amountInSmallestUnit = parseUnits(unshieldAmount, token.decimals);
+      return getCofheTokenUnshieldCallArgs({ token, amount: amountInSmallestUnit, account });
+    } catch {
+      return undefined;
+    }
+  })();
+
+  const unshieldSimulation = useCofheSimulateWriteContract(unshieldCallArgs, {
+    enabled: !!unshieldCallArgs,
+  });
+
+  const canUnshield = isValidUnshieldAmount && !unshieldSimulation.isFetching && !unshieldSimulation.error;
+
   return {
     status,
     error,
@@ -335,7 +371,7 @@ function useUnshieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps
     inputAmount: unshieldAmount,
     setInputAmount: setUnshieldAmount,
     onMaxClick: handleUnshieldMax,
-    isValidAmount: isValidUnshieldAmount ?? false,
+    canWriteContract: canUnshield,
     sourceSymbol: token.symbol,
     destSymbol: token.extensions.fhenix.erc20Pair?.symbol,
     sourceLogoURI: token.logoURI,
@@ -372,7 +408,7 @@ type ShieldPageViewProps = {
   inputAmount: string;
   setInputAmount: (value: string) => void;
   onMaxClick: () => void;
-  isValidAmount: boolean;
+  canWriteContract: boolean;
   sourceSymbol: string | undefined;
   destSymbol: string | undefined;
 
@@ -445,6 +481,19 @@ function ClaimingSection({ token }: { token: Token }) {
 
   const isUnshieldingMining = useIsUnshieldingMining(token);
 
+  const claimCallArgs = (() => {
+    if (!account || !unshieldedClaims?.hasClaimable) return undefined;
+    try {
+      return getCofheTokenClaimUnshieldedCallArgs({ token, account });
+    } catch {
+      return undefined;
+    }
+  })();
+
+  const claimSimulation = useCofheSimulateWriteContract(claimCallArgs, {
+    enabled: !!claimCallArgs,
+  });
+
   return (
     <>
       {/* Claim + pending (same logic as ShieldPage) */}
@@ -456,7 +505,9 @@ function ClaimingSection({ token }: { token: Token }) {
             isClaimingMining ||
             isFetchingClaims ||
             isWaitingForNewClaimsDecryption ||
-            isUnshieldingMining
+            isUnshieldingMining ||
+            claimSimulation.isFetching ||
+            !!claimSimulation.error
           }
           label={
             claimUnshield.isPending
@@ -523,7 +574,7 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
   inputAmount,
   setInputAmount,
   onMaxClick,
-  isValidAmount,
+  canWriteContract,
   sourceSymbol,
   destSymbol,
 
@@ -655,7 +706,7 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
           {/* Primary action */}
           <ActionButton
             onClick={handlePrimaryAction}
-            disabled={!isValidAmount || isProcessing || !isShieldableToken}
+            disabled={!canWriteContract || isProcessing || !isShieldableToken}
             icon={primaryIcon}
             label={primaryLabel}
             className="py-2"

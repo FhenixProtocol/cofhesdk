@@ -7,6 +7,39 @@ import { TransactionActionType, useTransactionStore } from '../stores/transactio
 import { useInternalMutation } from '../providers/index.js';
 import { assert } from 'ts-essentials';
 import { useTransactionGlobalLifecycle } from './useTransactionGlobalLifecycle.js';
+import type { CofheSimulateWriteContractCallArgs } from './useCofheSimulateWriteContract.js';
+
+export function getCofheTokenClaimUnshieldedCallArgs(params: {
+  token: Token;
+  account: Address;
+}): CofheSimulateWriteContractCallArgs {
+  const { token, account } = params;
+
+  const tokenAddress: Address = token.address;
+  const confidentialityType = token.extensions.fhenix.confidentialityType;
+
+  if (!confidentialityType) {
+    throw new Error('confidentialityType is required in token extensions');
+  }
+
+  if (confidentialityType !== 'dual' && confidentialityType !== 'wrapped') {
+    throw new Error(`Claim not supported for confidentialityType: ${confidentialityType}`);
+  }
+
+  const contractConfig = CLAIM_ABIS[confidentialityType];
+  if (!contractConfig) {
+    throw new Error(`Unsupported confidentialityType for claim: ${confidentialityType}`);
+  }
+
+  return {
+    address: tokenAddress,
+    abi: contractConfig.abi,
+    functionName: contractConfig.functionName,
+    args: [],
+    account,
+    chain: undefined,
+  };
+}
 
 // ============================================================================
 // Claim Unshield Hook

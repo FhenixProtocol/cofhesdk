@@ -9,8 +9,11 @@ export { useCofheClient } from './useCofheClient';
 export { useCofheTokenDecryptedBalance } from './useCofheTokenDecryptedBalance';
 export { useCofheTokenTransfer } from './useCofheTokenTransfer';
 export { useCofheTokenShield, type UnshieldClaim } from './useCofheTokenShield';
+export { getCofheTokenShieldCallArgs } from './useCofheTokenShield';
 export { useCofheTokenUnshield } from './useCofheTokenUnshield';
+export { getCofheTokenUnshieldCallArgs } from './useCofheTokenUnshield';
 export { useCofheTokenClaimUnshielded } from './useCofheTokenClaimUnshielded';
+export { getCofheTokenClaimUnshieldedCallArgs } from './useCofheTokenClaimUnshielded';
 export { useCofheTokenClaimable, type UnshieldClaimsSummary } from './useCofheTokenClaimable';
 export {
   useCofheTokensClaimable,
@@ -37,6 +40,7 @@ export {
 } from './useTokensWithPublicBalances';
 export { useCofheEncrypt } from './useCofheEncrypt';
 export { useCofheWriteContract } from './useCofheWriteContract';
+export { useCofheSimulateWriteContract } from './useCofheSimulateWriteContract';
 export { useCofheReadContract, type UseCofheReadContractQueryOptions } from './useCofheReadContract';
 export {
   useCofheReadContracts,

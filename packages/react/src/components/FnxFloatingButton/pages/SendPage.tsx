@@ -93,7 +93,8 @@ export const SendPage: React.FC<SendPageProps> = ({ token: _token }) => {
   const isValidAddress = isAddress(recipientAddress);
 
   // Validate amount
-  const isValidAmount = (amount.length > 0 && confidentialUnitBalance && confidentialUnitBalance.gte(amount)) ?? false;
+  const canWriteContract =
+    (amount.length > 0 && confidentialUnitBalance && confidentialUnitBalance.gte(amount)) ?? false;
 
   const handleSend = async () => {
     assert(isAddress(recipientAddress), 'Recipient address is not valid');
@@ -251,11 +252,11 @@ export const SendPage: React.FC<SendPageProps> = ({ token: _token }) => {
       footer={
         <button
           onClick={handleSend}
-          disabled={!isValidAddress || !isValidAmount || isSending || isEncryptingInput}
+          disabled={!isValidAddress || !canWriteContract || isSending || isEncryptingInput}
           className={cn(
             'fnx-send-button w-full py-3 px-4 font-small',
             'flex items-center justify-center gap-2',
-            isValidAddress && isValidAmount && !isSending && !isEncryptingInput
+            isValidAddress && canWriteContract && !isSending && !isEncryptingInput
               ? 'fnx-send-button-enabled'
               : 'fnx-send-button-disabled'
           )}
