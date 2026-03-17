@@ -321,9 +321,9 @@ declare const ctHash: `0x${string}`;
 // ---cut---
 const plaintext = await client
   .decryptForView(ctHash, FheTypes.Uint32)
-  .onPoll(({ attempt, elapsedMs }) => {
-    console.log('sealOutput polling', { attempt, elapsedMs });
-  })
+  .onPoll(({ attempt, elapsedMs }) => { // [!code focus]
+    console.log('sealOutput polling', { attempt, elapsedMs }); // [!code focus]
+  }) // [!code focus]
   .execute();
 
 plaintext;
