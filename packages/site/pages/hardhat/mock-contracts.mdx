@@ -1,5 +1,119 @@
+---
+title: Mock Contracts
+description: Deploy and interact with mock FHE contracts for local testing
+---
+
 # Mock Contracts
 
-Deep dive on mocks: how it replicates inputs / ops / decryption in mock environment, how sdk integrates (sdk knows if in mock environment and handles it)
+The plugin deploys a suite of mock contracts that simulate the full CoFHE coprocessor stack on the Hardhat network. This lets you develop and test FHE contracts without running the off-chain FHE engine.
 
-WIP
+## What the mocks simulate
+
+| Contract               | Role                                                                                  |
+| ---------------------- | ------------------------------------------------------------------------------------- |
+| `MockTaskManager`      | Manages FHE operations; stores plaintext values on-chain for testing                  |
+| `MockACL`              | Access control for encrypted handles                                                  |
+| `MockZkVerifier`       | Simulates ZK proof verification for encrypted inputs                                  |
+| `MockThresholdNetwork` | Handles decryption requests                                                           |
+| `TestBed`              | Helper contract for testing — exposes trivial value setters and a `numberHash` getter |
+
+The SDK automatically detects when it's running against the mock environment (by checking bytecode at the `MockZkVerifier` fixed address) and adapts its behavior accordingly — ZK proof generation is skipped and verification is handled by the mock contracts.
+
+## Auto-deployment
+
+Mock contracts are deployed automatically before every `npx hardhat test` and `npx hardhat node` run.
+
+To skip auto-deployment:
+
+```bash
+COFHE_SKIP_MOCKS_DEPLOY=1 npx hardhat test
+```
+
+:::note
+You only need `COFHE_SKIP_MOCKS_DEPLOY=1` if your tests exclusively target an external RPC and don't use the in-process Hardhat network at all.
+:::
+
+You can also deploy mock contracts manually via the Hardhat task:
+
+```bash
+npx hardhat task:cofhe-mocks:deploy
+npx hardhat task:cofhe-mocks:deploy --deployTestBed false  # skip TestBed
+npx hardhat task:cofhe-mocks:deploy --silent true          # suppress output
+```
+
+Or programmatically from a test or script:
+
+```ts twoslash
+// @noErrors
+import '@cofhe/hardhat-plugin';
+import '@nomicfoundation/hardhat-ethers';
+// ---cut---
+import hre from 'hardhat';
+
+await hre.cofhe.mocks.deployMocks();
+```
+
+## Accessing mock contracts
+
+`hre.cofhe.mocks` exposes typed accessors for each mock contract. Each method returns a fully typed Typechain contract instance:
+
+```ts twoslash
+// @noErrors
+import '@cofhe/hardhat-plugin';
+import '@nomicfoundation/hardhat-ethers';
+// ---cut---
+import hre from 'hardhat';
+
+const taskManager = await hre.cofhe.mocks.getMockTaskManager();
+const acl = await hre.cofhe.mocks.getMockACL();
+const thresholdNetwork = await hre.cofhe.mocks.getMockThresholdNetwork();
+const zkVerifier = await hre.cofhe.mocks.getMockZkVerifier();
+const testBed = await hre.cofhe.mocks.getTestBed();
+```
+
+## Reading plaintext values
+
+Because `MockTaskManager` stores plaintext values on-chain, you can read the underlying plaintext of any encrypted handle directly in tests — no permit needed.
+
+### `getPlaintext(ctHash)`
+
+Returns the plaintext `bigint` for a given [handle](/reference/dictionary#handle) (`ctHash` in code):
+
+```ts twoslash
+// @noErrors
+import '@cofhe/hardhat-plugin';
+import '@nomicfoundation/hardhat-ethers';
+// ---cut---
+import hre from 'hardhat';
+import { expect } from 'chai';
+
+const testBed = await hre.cofhe.mocks.getTestBed();
+await testBed.setNumberTrivial(7);
+const ctHash = await testBed.numberHash();
+
+const plaintext = await hre.cofhe.mocks.getPlaintext(ctHash); // [!code focus]
+
+expect(plaintext).to.equal(7n);
+```
+
+### `expectPlaintext(ctHash, expectedValue)`
+
+Assertion shorthand — wraps `getPlaintext` with a Chai `expect`:
+
+```ts twoslash
+// @noErrors
+import '@cofhe/hardhat-plugin';
+import '@nomicfoundation/hardhat-ethers';
+// ---cut---
+import hre from 'hardhat';
+
+const testBed = await hre.cofhe.mocks.getTestBed();
+await testBed.setNumberTrivial(7);
+const ctHash = await testBed.numberHash();
+
+await hre.cofhe.mocks.expectPlaintext(ctHash, 7n); // [!code focus]
+```
+
+:::warning
+`getPlaintext` and `expectPlaintext` only work on the Hardhat network (where `MockTaskManager` stores plaintexts). They will throw on `localcofhe` or any real network.
+:::

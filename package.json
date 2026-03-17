@@ -12,11 +12,12 @@
     "check:formatting": "prettier --check \"**/*.{ts,tsx,md}\"",
     "clean": "turbo run clean && rm -rf node_modules",
     "coverage": "turbo run coverage",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "format": "prettier --write \"**/*.{ts,tsx,md,mdx}\"",
     "changeset": "changeset && pnpm format",
     "version-packages": "changeset version",
     "release": "pnpm run build && changeset publish",
-    "beta:snapshot": "changeset version --snapshot beta && pnpm -r build && changeset publish --tag beta"
+    "beta:snapshot": "changeset version --snapshot beta && pnpm -r build && changeset publish --tag beta",
+    "docs": "pnpm --filter @cofhe/site dev"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.1",
@@ -26,6 +27,11 @@
     "prettier": "^3.2.5",
     "turbo": "^2.5.6",
     "vitest": "^3.0.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "typescript": "5.5.4"
+    }
   },
   "packageManager": "pnpm@8.15.6",
   "engines": {

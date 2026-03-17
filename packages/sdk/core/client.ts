@@ -146,7 +146,7 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
     });
   }
 
-  function decryptForView<U extends FheTypes>(ctHash: bigint, utype: U): DecryptForViewBuilder<U> {
+  function decryptForView<U extends FheTypes>(ctHash: bigint | string, utype: U): DecryptForViewBuilder<U> {
     const state = connectStore.getState();
 
     return new DecryptForViewBuilder({
@@ -163,7 +163,7 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
     });
   }
 
-  function decryptForTx(ctHash: bigint): DecryptForTxBuilderUnset {
+  function decryptForTx(ctHash: bigint | string): DecryptForTxBuilderUnset {
     const state = connectStore.getState();
 
     return new DecryptForTxBuilder({
@@ -250,22 +250,22 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
     },
 
     // Retrieval methods (auto-fill chainId/account)
-    getPermit: async (hash: string, chainId?: number, account?: string) => {
+    getPermit: (hash: string, chainId?: number, account?: string) => {
       const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
       return permits.getPermit(_chainId, _account, hash);
     },
 
-    getPermits: async (chainId?: number, account?: string) => {
+    getPermits: (chainId?: number, account?: string) => {
       const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
       return permits.getPermits(_chainId, _account);
     },
 
-    getActivePermit: async (chainId?: number, account?: string) => {
+    getActivePermit: (chainId?: number, account?: string) => {
       const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
       return permits.getActivePermit(_chainId, _account);
     },
 
-    getActivePermitHash: async (chainId?: number, account?: string) => {
+    getActivePermitHash: (chainId?: number, account?: string) => {
       const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
       return permits.getActivePermitHash(_chainId, _account);
     },

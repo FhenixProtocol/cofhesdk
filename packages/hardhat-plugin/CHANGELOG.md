@@ -1,5 +1,68 @@
 # @cofhe/hardhat-plugin Changelog
 
+## 0.4.0
+
+### Patch Changes
+
+- Updated dependencies [e446642]
+  - @cofhe/sdk@0.4.0
+  - @cofhe/mock-contracts@0.4.0
+
+## 0.3.2
+
+### Patch Changes
+
+- d4e86ea: Aligns with CTA encrypted variables bytes32 representation.
+
+  - **@cofhe/hardhat-plugin**: `hre.cofhe.mocks.getTestBed()`, `getMockTaskManager()`, `getMockACL()`, `getMockThresholdNetwork()`, and `getMockZkVerifier()` now return typed contracts (typechain interfaces) instead of untyped `Contract`. `getPlaintext(ctHash)` and `expectPlaintext(ctHash, value)` now accept bytes32 ctHashes as `string` support cofhe-contracts 0.1.0 CTA changes.
+  - **@cofhe/mock-contracts**: Export typechain-generated contract types (`TestBed`, `MockACL`, `MockTaskManager`, `MockZkVerifier`, `MockThresholdNetwork`) for use with the hardhat plugin. Typechain is run from artifact ABIs only; factory files are not generated.
+  - **@cofhe/abi**: CTA-related types use `bytes32` (string) instead of `uint256`. Decryption and return-type helpers aligned with cofhe-contracts 0.1.0.
+  - **@cofhe/sdk**: Decryption APIs (`decryptForTx`, `decryptForView`, and related builders) now also accept `string` for ciphertext hashes (bytes32) as well as `bigint`.
+
+- Updated dependencies [d4e86ea]
+- Updated dependencies [0feaf3f]
+  - @cofhe/sdk@0.3.2
+  - @cofhe/mock-contracts@0.3.2
+
+## 0.3.1
+
+### Patch Changes
+
+- 370f0c7: no-op
+- Updated dependencies [370f0c7]
+  - @cofhe/mock-contracts@0.3.1
+  - @cofhe/sdk@0.3.1
+
+## 0.3.0
+
+### Minor Changes
+
+- 35024b6: Remove `sdk` from function names and exported types. Rename:
+
+  - `createCofhesdkConfig` -> `createCofheConfig`
+  - `createCofhesdkClient` -> `createCofheClient`
+  - `hre.cofhesdk.*` -> `hre.cofhe.*`
+  - `hre.cofhesdk.createCofheConfig()` → `hre.cofhe.createConfig()`
+  - `hre.cofhesdk.createCofheClient()` → `hre.cofhe.createClient()`
+  - `hre.cofhesdk.createBatteriesIncludedCofheClient()` → `hre.cofhe.createClientWithBatteries()`
+
+- 29c2401: implement decrypt-with-proof flows and related tests:
+
+  - Implement production `decryptForTx` backed by Threshold Network `POST /decrypt`, with explicit permit vs global-allowance selection.
+  - Rename mocks “Query Decrypter” -> “Threshold Network” and update SDK constants/contracts/artifacts accordingly.
+  - Extend mock contracts + hardhat plugin to publish & verify decryption results on-chain, and add end-to-end integration tests.
+
+### Patch Changes
+
+- 5467d77: Adds `config.mocks.encryptDelay: number | [number, number, number, number, number]` to allow configurable mock encryption delay. Defaults to 0 delay on hardhat to keep tests quick.
+- Updated dependencies [35024b6]
+- Updated dependencies [5467d77]
+- Updated dependencies [73b1502]
+- Updated dependencies [29c2401]
+- Updated dependencies [650ea48]
+  - @cofhe/mock-contracts@0.3.0
+  - @cofhe/sdk@0.3.0
+
 ## 0.2.1
 
 ### Patch Changes

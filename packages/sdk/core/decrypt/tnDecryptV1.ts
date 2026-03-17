@@ -1,8 +1,9 @@
 import { type Permission } from '@/permits';
 
-import { CofheError, CofheErrorCode } from '../error.js';
+import { CofheError, CofheErrorCode } from '../error';
+import { normalizeTnSignature, parseDecryptedBytesToBigInt } from './tnDecryptUtils';
 
-type TnDecryptResponse = {
+type TnDecryptResponseV1 = {
   // TN returns bytes in big-endian order, e.g. [0,0,0,42]
   decrypted: number[];
   signature: string;
@@ -10,69 +11,7 @@ type TnDecryptResponse = {
   error_message: string | null;
 };
 
-function normalizeSignature(signature: unknown): string {
-  if (typeof signature !== 'string') {
-    throw new CofheError({
-      code: CofheErrorCode.DecryptReturnedNull,
-      message: 'decrypt response missing signature',
-      context: {
-        signature,
-      },
-    });
-  }
-
-  const trimmed = signature.trim();
-  if (trimmed.length === 0) {
-    throw new CofheError({
-      code: CofheErrorCode.DecryptReturnedNull,
-      message: 'decrypt response returned empty signature',
-    });
-  }
-
-  // SDK uses "no-0x" signatures in mocks/tests; normalize to that format.
-  return trimmed.startsWith('0x') ? trimmed.slice(2) : trimmed;
-}
-
-function parseDecryptedBytesToBigInt(decrypted: unknown): bigint {
-  if (!Array.isArray(decrypted)) {
-    throw new CofheError({
-      code: CofheErrorCode.DecryptReturnedNull,
-      message: 'decrypt response field <decrypted> must be a byte array',
-      context: {
-        decrypted,
-      },
-    });
-  }
-
-  if (decrypted.length === 0) {
-    throw new CofheError({
-      code: CofheErrorCode.DecryptReturnedNull,
-      message: 'decrypt response field <decrypted> was an empty byte array',
-      context: {
-        decrypted,
-      },
-    });
-  }
-
-  let hex = '';
-  for (const b of decrypted as unknown[]) {
-    if (typeof b !== 'number' || !Number.isInteger(b) || b < 0 || b > 255) {
-      throw new CofheError({
-        code: CofheErrorCode.DecryptReturnedNull,
-        message: 'decrypt response field <decrypted> contained a non-byte value',
-        context: {
-          badElement: b,
-          decrypted,
-        },
-      });
-    }
-    hex += b.toString(16).padStart(2, '0');
-  }
-
-  return BigInt(`0x${hex}`);
-}
-
-function assertTnDecryptResponse(value: unknown): TnDecryptResponse {
+function assertTnDecryptResponseV1(value: unknown): TnDecryptResponseV1 {
   if (value == null || typeof value !== 'object') {
     throw new CofheError({
       code: CofheErrorCode.DecryptFailed,
@@ -126,18 +65,18 @@ function assertTnDecryptResponse(value: unknown): TnDecryptResponse {
   };
 }
 
-export async function tnDecrypt(
-  ctHash: bigint,
+export async function tnDecryptV1(
+  ctHash: bigint | string,
   chainId: number,
   permission: Permission | null,
   thresholdNetworkUrl: string
-): Promise<{ decryptedValue: bigint; signature: string }> {
+): Promise<{ decryptedValue: bigint; signature: `0x${string}` }> {
   const body: {
     ct_tempkey: string;
     host_chain_id: number;
     permit?: Permission;
   } = {
-    ct_tempkey: ctHash.toString(16).padStart(64, '0'),
+    ct_tempkey: BigInt(ctHash).toString(16).padStart(64, '0'),
     host_chain_id: chainId,
   };
 
@@ -211,7 +150,7 @@ export async function tnDecrypt(
     });
   }
 
-  const decryptResponse = assertTnDecryptResponse(rawJson);
+  const decryptResponse = assertTnDecryptResponseV1(rawJson);
 
   if (decryptResponse.error_message) {
     throw new CofheError({
@@ -226,7 +165,7 @@ export async function tnDecrypt(
   }
 
   const decryptedValue = parseDecryptedBytesToBigInt(decryptResponse.decrypted);
-  const signature = normalizeSignature(decryptResponse.signature);
+  const signature = normalizeTnSignature(decryptResponse.signature);
 
   return { decryptedValue, signature };
 }

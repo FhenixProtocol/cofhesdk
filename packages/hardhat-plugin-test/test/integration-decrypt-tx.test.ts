@@ -3,7 +3,7 @@ import { CofheClient, Encryptable } from '@cofhe/sdk';
 import { createCofheClient, createCofheConfig } from '@cofhe/sdk/node';
 import { Ethers6Adapter } from '@cofhe/sdk/adapters';
 import { expect } from 'chai';
-import { JsonRpcProvider, Signature, Wallet } from 'ethers';
+import { JsonRpcProvider, NonceManager, Signature, Wallet } from 'ethers';
 import * as ethers6 from 'ethers6';
 import { SimpleTest, SimpleTest__factory } from '../typechain-types';
 
@@ -66,6 +66,7 @@ const findSupportedChainById = (chainId: number): SupportedTestChain | undefined
 // If you want to point to a different contract, edit this map (keep it keyed by chainId).
 const DEFAULT_SIMPLE_TEST_ADDRESSES_BY_CHAIN_ID: Record<number, `0x${string}`> = {
   84532: '0x9df789aB607fc746E6dF318B94724eBB028F9F60', // Base Sepolia
+  421614: '0x51D2781C3d90f6B92436C72CD2D21158356d750d', // Arbitrum Sepolia
   11155111: '0x8CB51925D68f70EC430A36a07F6c09f35add32D2', // Ethereum Sepolia
 };
 
@@ -103,7 +104,7 @@ const DESCRIBE_CHAIN_SUFFIX = ENV_CHAIN_ID ? ` (chainId=${ENV_CHAIN_ID})` : '';
 describe(`DecryptForTx + PublishDecryptResult (chain-agnostic)${DESCRIBE_CHAIN_SUFFIX}`, () => {
   let cofheClient: CofheClient;
   let testContract: SimpleTest;
-  let chainSigner: Wallet;
+  let chainSigner: NonceManager;
   let selectedChain: SupportedTestChain;
   let selectedChainId: number;
 
@@ -163,7 +164,11 @@ describe(`DecryptForTx + PublishDecryptResult (chain-agnostic)${DESCRIBE_CHAIN_S
     const adapterWallet = new ethers6.Wallet(TEST_PRIVATE_KEY as `0x${string}`, adapterProvider);
 
     const contractProvider = new JsonRpcProvider(rpcUrl);
-    chainSigner = new Wallet(TEST_PRIVATE_KEY as `0x${string}`, contractProvider);
+    // IMPORTANT: use a NonceManager so we always use the pending nonce.
+    // This prevents intermittent "nonce too low" / "nonce already used" issues on
+    // reruns when a previous run left a tx pending or when multiple txs are sent quickly.
+    const baseWallet = new Wallet(TEST_PRIVATE_KEY as `0x${string}`, contractProvider);
+    chainSigner = new NonceManager(baseWallet);
     console.log(`Using account: ${await chainSigner.getAddress()}`);
 
     const balance = await adapterProvider.getBalance(await adapterWallet.getAddress());
@@ -254,20 +259,13 @@ describe(`DecryptForTx + PublishDecryptResult (chain-agnostic)${DESCRIBE_CHAIN_S
     console.log(`TN decryptedValue: ${decryptResult.decryptedValue}`);
 
     // ── Step 5: Publish the result on-chain ───────────────────────────────
-    // The task manager verifies ECDSA signatures using OpenZeppelin ECDSA, which rejects
-    // non-canonical signatures (eg high-s). Normalize to a canonical (low-s) signature.
-    const signatureHex = decryptResult.signature.startsWith('0x')
-      ? (decryptResult.signature as `0x${string}`)
-      : (`0x${decryptResult.signature}` as `0x${string}`);
-    const signatureBytes = Signature.from(signatureHex).serialized;
-
     // publishDecryptResult(euint32 input, uint32 result, bytes signature)
     // The storedValue euint32 handle is retrieved from the contract; ethers
     // handles the bytes32 ↔ bigint conversion automatically.
     const storedValue = await testContract.getValue();
     const publishTx = await testContract
       .connect(chainSigner)
-      .publishDecryptResult(storedValue, decryptResult.decryptedValue, signatureBytes);
+      .publishDecryptResult(storedValue, decryptResult.decryptedValue, decryptResult.signature);
     await publishTx.wait();
     console.log('publishDecryptResult tx mined.');
 
@@ -310,15 +308,10 @@ describe(`DecryptForTx + PublishDecryptResult (chain-agnostic)${DESCRIBE_CHAIN_S
     console.log(`TN decryptedValue (public): ${decryptResult.decryptedValue}`);
 
     // ── Step 5: Publish the result on-chain ───────────────────────────────
-    const signatureHex = decryptResult.signature.startsWith('0x')
-      ? (decryptResult.signature as `0x${string}`)
-      : (`0x${decryptResult.signature}` as `0x${string}`);
-    const signatureBytes = Signature.from(signatureHex).serialized;
-
     const publicValueHandle = await testContract.publicValue();
     const publishTx = await testContract
       .connect(chainSigner)
-      .publishDecryptResult(publicValueHandle, decryptResult.decryptedValue, signatureBytes);
+      .publishDecryptResult(publicValueHandle, decryptResult.decryptedValue, decryptResult.signature);
     await publishTx.wait();
     console.log('publishDecryptResult (public) tx mined.');
 

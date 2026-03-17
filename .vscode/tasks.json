@@ -1,5 +1,13 @@
 {
   "version": "2.0.0",
+  "inputs": [
+    {
+      "id": "integrationTestSubstring",
+      "type": "promptString",
+      "description": "Substring to search in integration test titles (runs first match)",
+      "default": "decrypt"
+    }
+  ],
   "tasks": [
     {
       "label": "dev:packages/react",
@@ -40,6 +48,25 @@
       }
     },
     {
+      "label": "dev:packages/site",
+      "type": "shell",
+      "command": "zsh",
+      "args": [
+        "-ic",
+        "set -e; set -m; nodeMajor=$(node -p \"parseInt(process.versions.node.split(\\\".\\\")[0], 10)\"); if [ \"$nodeMajor\" -lt 22 ]; then echo \"ERROR: packages/site requires Node >= 22 (current: $(node -v)).\"; exit 1; fi; pnpm -w install --filter @cofhe/site...; pnpm dev & pid=$!; trap \"kill -TERM -$pid 2>/dev/null; sleep 0.2; kill -KILL -$pid 2>/dev/null\" INT TERM HUP EXIT; wait $pid"
+      ],
+      "isBackground": true,
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}/packages/site"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
       "label": "dev:react (2 terminals)",
       "dependsOn": [
         "dev:packages/react",
@@ -47,6 +74,67 @@
       ],
       "dependsOrder": "parallel",
       "problemMatcher": []
+    },
+    {
+      "label": "test:integration:list",
+      "type": "shell",
+      "command": "zsh",
+      "args": [
+        "-ic",
+        "node scripts/integration-tests.mjs --list"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "test:integration:pick-and-run",
+      "type": "shell",
+      "command": "zsh",
+      "args": [
+        "-ic",
+        "node scripts/integration-tests.mjs --pick"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "test:integration:run-first-match",
+      "type": "shell",
+      "command": "zsh",
+      "args": [
+        "-ic",
+        "node scripts/integration-tests.mjs --substring \"${input:integrationTestSubstring}\""
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "test:integration:all",
+      "type": "shell",
+      "command": "zsh",
+      "args": [
+        "-ic",
+        "pnpm test:integration"
+      ],
+      "problemMatcher": [],
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
     }
   ]
 }

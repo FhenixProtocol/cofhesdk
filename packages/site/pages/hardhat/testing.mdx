@@ -1,5 +1,211 @@
+---
+title: Testing
+description: Write and run tests for confidential smart contracts
+---
+
 # Testing
 
-How to write hardhat tests and read "encrypted" data directly
+This page shows the common patterns for writing Hardhat tests with the CoFHE plugin.
 
-WIP
+## Test setup
+
+Use `hre.cofhe.createClientWithBatteries` in a `before` hook. It creates and connects a fully configured `CofheClient` — including a self-permit — so the client is ready for every test in the suite:
+
+```ts twoslash
+// @noErrors
+import '@cofhe/hardhat-plugin';
+import '@nomicfoundation/hardhat-ethers';
+// ---cut---
+import hre from 'hardhat';
+import { CofheClient } from '@cofhe/sdk';
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
+
+let cofheClient: CofheClient;
+let signer: HardhatEthersSigner;
+
+before(async () => {
+  [signer] = await hre.ethers.getSigners();
+  cofheClient = await hre.cofhe.createClientWithBatteries(signer); // [!code focus]
+});
+```
+
+See [Client](/hardhat/client) for manual setup options.
+
+## Encrypt → store → decrypt
+
+The core test loop: encrypt a value, pass it to a contract, then decrypt the stored handle.
+
+```ts twoslash
+// @noErrors
+import '@cofhe/hardhat-plugin';
+import '@nomicfoundation/hardhat-ethers';
+import hre from 'hardhat';
+import { CofheClient, Encryptable, FheTypes } from '@cofhe/sdk';
+import { Contract } from 'ethers';
+import { expect } from 'chai';
+
+declare const cofheClient: CofheClient;
+declare const testContract: Contract;
+// ---cut---
+// 1. Encrypt the input
+const encrypted = await cofheClient
+  .encryptInputs([Encryptable.uint32(100n)])
+  .execute();
+
+// 2. Send to contract
+const tx = await testContract.setValue(encrypted[0]);
+await tx.wait();
+
+// 3. Read the stored handle
+const ctHash = await testContract.storedValue();
+
+// 4. Decrypt for display
+const decrypted = await cofheClient
+  .decryptForView(ctHash, FheTypes.Uint32)
+  .execute();
+
+expect(decrypted).to.equal(100n);
+```
+
+For more on each step, see [Encrypting Inputs](/sdk/encrypting-inputs) and [Decrypting to View](/sdk/decrypt-to-view).
+
+## Reading plaintext directly
+
+In tests you can bypass the normal decrypt flow and read the raw plaintext stored by the mock contracts. This is useful for asserting contract state without needing a permit:
+
+```ts twoslash
+// @noErrors
+import '@cofhe/hardhat-plugin';
+import '@nomicfoundation/hardhat-ethers';
+import hre from 'hardhat';
+declare const ctHash: string;
+// ---cut---
+// Get raw plaintext value
+const plaintext = await hre.cofhe.mocks.getPlaintext(ctHash);
+
+// Or use the assertion shorthand
+await hre.cofhe.mocks.expectPlaintext(ctHash, 100n);
+```
+
+See [Mock Contracts](/hardhat/mock-contracts) for details.
+
+## Permits
+
+`createClientWithBatteries` pre-generates a self-permit, so `decryptForView` and `decryptForTx().withPermit()` work immediately. For tests that need named permits or multiple signers, create them explicitly:
+
+```ts twoslash
+// @noErrors
+import { CofheClient } from '@cofhe/sdk';
+import { PermitUtils } from '@cofhe/sdk/permits';
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
+declare const cofheClient: CofheClient;
+declare const signer: HardhatEthersSigner;
+// ---cut---
+const permit = await cofheClient.permits.createSelf({
+  issuer: signer.address,
+  name: 'My Test Permit',
+});
+
+// Select it as the active permit
+const permitHash = PermitUtils.getHash(permit);
+cofheClient.permits.selectActivePermit(permitHash);
+```
+
+Alternatively, you may find it easier to create a cofheClient for each of the multiple signers you need to test.
+
+```ts twoslash
+// @noErrors
+import '@cofhe/hardhat-plugin';
+import '@nomicfoundation/hardhat-ethers';
+import hre from 'hardhat';
+import { CofheClient } from '@cofhe/sdk';
+declare const cofheClient: CofheClient;
+// ---cut---
+const [bob, alice] = await hre.ethers.getSigners();
+const bobClient = await hre.cofhe.createClientWithBatteries(bob);
+const aliceClient = await hre.cofhe.createClientWithBatteries(alice);
+```
+
+## `decryptForTx` patterns
+
+[`decryptForTx`](/sdk/decrypt-to-tx) returns a `{ ctHash, decryptedValue, signature }` tuple for on-chain submission. The permit mode must be selected explicitly.
+
+### Globally allowed values (`.withoutPermit()`)
+
+When a contract calls `FHE.allowPublic(handle)`, anyone can decrypt without a permit:
+
+```ts twoslash
+// @noErrors
+import { CofheClient } from '@cofhe/sdk';
+import { expect } from 'chai';
+declare const cofheClient: CofheClient;
+declare const publicCtHash: string;
+// ---cut---
+const result = await cofheClient
+  .decryptForTx(publicCtHash)
+  .withoutPermit() // [!code focus]
+  .execute();
+
+expect(result.decryptedValue).to.equal(55n);
+```
+
+### Access-controlled values (`.withPermit()`)
+
+For handles restricted by ACL policy, supply a permit:
+
+:::code-group
+
+```ts twoslash [Explicit permit]
+// @noErrors
+import { CofheClient } from '@cofhe/sdk';
+import { Permit } from '@cofhe/sdk/permits';
+import { expect } from 'chai';
+declare const cofheClient: CofheClient;
+declare const ctHash: string;
+declare const permit: Permit;
+// ---cut---
+const result = await cofheClient
+  .decryptForTx(ctHash)
+  .withPermit(permit) // [!code focus]
+  .execute();
+
+expect(result.decryptedValue).to.equal(99n);
+```
+
+```ts twoslash [Active permit]
+// @noErrors
+import { CofheClient } from '@cofhe/sdk';
+import { expect } from 'chai';
+declare const cofheClient: CofheClient;
+declare const ctHash: string;
+// ---cut---
+// resolves the active permit automatically
+const result = await cofheClient
+  .decryptForTx(ctHash)
+  .withPermit() // [!code focus]
+  .execute();
+
+expect(result.decryptedValue).to.equal(99n);
+```
+
+:::
+
+### Submitting the result on-chain
+
+Pass the result directly to your contract:
+
+```ts twoslash
+// @noErrors
+import { Contract } from 'ethers';
+import { DecryptForTxResult } from '@cofhe/sdk';
+declare const myContract: Contract;
+declare const result: DecryptForTxResult;
+// ---cut---
+await myContract.revealValue(
+  result.ctHash,
+  result.decryptedValue,
+  result.signature
+);
+```
+
+For a full walkthrough of `decryptForTx`, see [Decrypting to Transact](/sdk/decrypt-to-tx).

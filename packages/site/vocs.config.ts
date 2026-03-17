@@ -2,6 +2,18 @@ import { defineConfig } from 'vocs';
 import pkg from './package.json';
 
 export default defineConfig({
+  twoslash: {
+    compilerOptions: {
+      // ModuleResolutionKind.Bundler = 100
+      // Required so twoslash can resolve package.json `exports` subpaths
+      // (e.g. @cofhe/sdk/web, @cofhe/sdk/chains, viem/chains).
+      // Without this, twoslash defaults to `node` resolution which ignores
+      // the `exports` field, causing every subpath import to resolve as `any`.
+      moduleResolution: 100,
+    },
+  },
+  ogImageUrl:
+    'https://vocs.dev/api/og?logo=%logo&title=%title&description=%description',
   title: 'Cofhe SDK Docs',
   titleTemplate: '%s - Cofhe SDK',
   description: 'Documentation for the Cofhe SDK',
@@ -16,7 +28,6 @@ export default defineConfig({
         text: 'Quick Start',
         link: '/quick-start',
       },
-
       {
         text: 'Migrating from `cofhejs`',
         link: '/migrating-from-cofhejs',
@@ -29,20 +40,38 @@ export default defineConfig({
             link: '/sdk/client',
           },
           {
-            text: 'Permits',
-            link: '/sdk/permits',
+            text: 'Encryption',
+            items: [
+              {
+                text: 'Encrypting Inputs',
+                link: '/sdk/encrypting-inputs',
+              },
+              {
+                text: 'Writing Encrypted Data to Contract',
+                link: '/sdk/writing-encrypted-data-to-contract',
+              },
+            ],
           },
           {
-            text: 'Encrypting Inputs',
-            link: '/sdk/encrypting-inputs',
-          },
-          {
-            text: 'Decrypting to View',
-            link: '/sdk/decrypt-to-view',
-          },
-          {
-            text: 'Decrypting to Transact',
-            link: '/sdk/decrypt-to-tx',
+            text: 'Decryption',
+            items: [
+              {
+                text: 'Permits',
+                link: '/sdk/permits',
+              },
+              {
+                text: 'Decrypting to View',
+                link: '/sdk/decrypt-to-view',
+              },
+              {
+                text: 'Decrypting to Transact',
+                link: '/sdk/decrypt-to-tx',
+              },
+              {
+                text: 'Writing Decrypt Result to Contract',
+                link: '/sdk/writing-decrypt-result-to-contract',
+              },
+            ],
           },
         ],
       },
@@ -68,6 +97,19 @@ export default defineConfig({
           {
             text: 'Testing',
             link: '/hardhat/testing',
+          },
+        ],
+      },
+      {
+        text: 'Reference',
+        items: [
+          {
+            text: 'Dictionary',
+            link: '/reference/dictionary',
+          },
+          {
+            text: 'EncryptedCounter.sol',
+            link: '/reference/encrypted-counter-sol',
           },
         ],
       },

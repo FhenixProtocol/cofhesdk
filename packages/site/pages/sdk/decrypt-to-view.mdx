@@ -1,5 +1,423 @@
+---
+title: Decrypting to View
+description: Reveal encrypted values off-chain without a transaction
+---
+
 # Decrypting to View
 
-Decrypting to view data
+Use `decryptForView` to reveal a **confidential (encrypted)** value **locally** (in your app) so you can display it in the UI.
 
-WIP
+Unlike [`decryptForTx`](./decrypt-to-tx.mdx), this flow does **not** return an on-chain-verifiable signature, and it is **not** meant to be published on-chain.
+
+The flow is as follows:
+
+1. Read the [handle](/reference/dictionary#handle) from your contract (often named `ctHash` in code) (see [Reading from a contract](#reading-from-a-contract-getting-a-handle--utype)).
+2. Ensure you have a [permit](/reference/dictionary#permit) that authorizes decryption of that value (see [Permit quickstart](#permit-quickstart)).
+3. Call `decryptForView(ctHash, utype)` and then run `.execute()` to get the plaintext (see [Decrypt for UI](#decrypt-for-ui)).
+
+:::note
+`decryptForView` always decrypts using a permit (there is no `.withoutPermit()` mode).
+If your protocol intends for the plaintext to become publicly visible on-chain, use [`decryptForTx`](./decrypt-to-tx.mdx) instead.
+:::
+
+## Prerequisites
+
+1. Create and connect a client (see the [client page](./client.mdx)).
+
+2. Know the [handle](/reference/dictionary#handle) (often named `ctHash` in code) and the encrypted type ([`utype`](/reference/dictionary#utype)).
+
+:::tip
+**Getting a handle**
+
+In most apps, the handle comes from reading a stored encrypted value, an event arg, or a return value from a `view` call.
+:::
+
+:::tip
+**Providing `utype` (required; not arbitrary)**
+
+`utype` must match the handle’s underlying FHE type (it’s not a “pick whatever you want” parameter).
+The SDK uses it to convert the decrypted `bigint` into a convenient JS type so you can display it.
+
+In many apps you can **derive `{ ctHash, utype }` from the contract ABI** using `@cofhe/abi` (see the snippets below). Here `ctHash` is the handle. If you only have a raw handle (e.g. from storage/event logs), you must still know which encrypted type it corresponds to.
+
+Supported `utype`s for `decryptForView`:
+
+- `FheTypes.Bool` → returns a `boolean`
+- `FheTypes.Uint160` (address) → returns a checksummed `0x...` string
+- `FheTypes.Uint8 | Uint16 | Uint32 | Uint64 | Uint128` → returns a `bigint`
+  :::
+
+:::note
+This is why `decryptForView` requires `utype`, but `decryptForTx` does not: tx decryption is meant for on-chain publishing and returns a raw `bigint` plaintext + signature.
+:::
+
+3. Have a permit available for the connected `chainId + account` (see [permits](./permits.mdx)).
+
+   If you don’t have one yet, the quickest way is to create a self permit once per account + chain.
+
+## Reading from a contract (getting a handle + `utype`)
+
+Typically, the value you want to decrypt comes from a `view` call.
+
+First, read the raw encrypted return value and convert it into `{ ctHash, utype }` using `@cofhe/abi`. Here `ctHash` is the handle.
+
+Below are two equivalent ways to read an encrypted return value from a predeployed Sepolia contract and derive a handle + `utype`.
+
+:::code-group
+
+```ts twoslash [Viem]
+// [!include ~/../../examples/docs-snippets/read-encrypted-return/viem.ts:docs-snippet]
+```
+
+```ts twoslash [Ethers]
+// [!include ~/../../examples/docs-snippets/read-encrypted-return/ethers.ts:docs-snippet]
+```
+
+:::
+
+:::note
+Depending on your contract ABI, the handle may be surfaced as either:
+
+- `bytes32` → returned as a `0x...` hex string (both viem and ethers)
+- `uint256` → returned as a `bigint` (viem and ethers v6; ethers v5 returns a `BigNumber`)
+
+`decryptForView` accepts both `bigint` and `0x...` strings (it coerces via `BigInt(...)`).
+If you’re on ethers v5 and you get a `BigNumber`, convert it first (e.g. `BigInt(bn.toString())`).
+:::
+
+## Permit quickstart
+
+If you want a “just make it work” setup for UI decryption, do this once after connecting:
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+import { createPublicClient, createWalletClient, http } from 'viem';
+import { sepolia } from 'viem/chains';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const account: `0x${string}`;
+// ---cut---
+
+const publicClient = createPublicClient({
+  chain: sepolia,
+  transport: http(),
+});
+const walletClient = createWalletClient({
+  chain: sepolia,
+  transport: http(),
+  account,
+});
+
+await client.connect(publicClient, walletClient);
+
+// Creates a permit if needed, stores it, and selects it as the active permit.
+await client.permits.getOrCreateSelfPermit();
+```
+
+After this, `decryptForView(...)` can automatically use the active permit when you run `.execute()`.
+
+## Decrypt for UI
+
+Choose the pattern that matches how your app manages permits:
+
+:::code-group
+
+```ts twoslash [Active permit]
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+import { FheTypes } from '@cofhe/sdk';
+import { createPublicClient, createWalletClient, http } from 'viem';
+import { sepolia } from 'viem/chains';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: `0x${string}`;
+declare const account: `0x${string}`;
+// ---cut---
+
+const publicClient = createPublicClient({
+  chain: sepolia,
+  transport: http(),
+});
+const walletClient = createWalletClient({
+  chain: sepolia,
+  transport: http(),
+  account,
+});
+
+await client.connect(publicClient, walletClient);
+
+await client.permits.getOrCreateSelfPermit();
+
+const plaintext = await client
+  .decryptForView(ctHash, FheTypes.Uint32)
+  .execute();
+
+plaintext; // ^?
+```
+
+```ts twoslash [Permit object]
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+import { FheTypes } from '@cofhe/sdk';
+import { createPublicClient, createWalletClient, http } from 'viem';
+import { sepolia } from 'viem/chains';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: `0x${string}`;
+declare const account: `0x${string}`;
+// ---cut---
+
+const publicClient = createPublicClient({
+  chain: sepolia,
+  transport: http(),
+});
+const walletClient = createWalletClient({
+  chain: sepolia,
+  transport: http(),
+  account,
+});
+
+await client.connect(publicClient, walletClient);
+
+const permit = await client.permits.getOrCreateSelfPermit();
+
+const plaintext = await client
+  .decryptForView(ctHash, FheTypes.Uint64)
+  .withPermit(permit)
+  .execute();
+
+plaintext; // ^?
+```
+
+```ts twoslash [Permit hash]
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+import { FheTypes } from '@cofhe/sdk';
+import { createPublicClient, createWalletClient, http } from 'viem';
+import { sepolia } from 'viem/chains';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: `0x${string}`;
+declare const permitHash: `0x${string}`;
+declare const account: `0x${string}`;
+// ---cut---
+
+const publicClient = createPublicClient({
+  chain: sepolia,
+  transport: http(),
+});
+const walletClient = createWalletClient({
+  chain: sepolia,
+  transport: http(),
+  account,
+});
+
+await client.connect(publicClient, walletClient);
+
+const plaintext = await client
+  .decryptForView(ctHash, FheTypes.Uint8)
+  .withPermit(permitHash)
+  .execute();
+
+plaintext; // ^?
+```
+
+:::
+
+## What `decryptForView` returns
+
+Running `.execute()` on `decryptForView(...)` resolves to a scalar JS value (typed in TypeScript as `UnsealedItem<U>`):
+
+- For integer utypes (`FheTypes.Uint8 | FheTypes.Uint16 | FheTypes.Uint32 | FheTypes.Uint64 | FheTypes.Uint128`): a `bigint`
+- For `FheTypes.Bool`: a `boolean`
+- For `FheTypes.Uint160` (address): a checksummed `0x...` address string
+
+If you decrypt an integer type, you’ll usually want to:
+
+- keep it as a `bigint` and format it for display, or
+- convert to a JS `number` only if you’re sure it’s within safe range.
+
+## After decrypting: common UI patterns
+
+Pick the pattern that matches what you’re displaying:
+
+:::code-group
+
+```ts twoslash [Format bigint for display]
+import { formatUnits } from 'viem';
+
+declare const amount: bigint;
+// ---cut---
+const decimals = 6;
+const display = formatUnits(amount, decimals);
+
+display;
+```
+
+```ts twoslash [Bigint → number (range-check)]
+declare const amount: bigint;
+// ---cut---
+const MAX_SAFE = BigInt(Number.MAX_SAFE_INTEGER);
+const asNumber = amount <= MAX_SAFE ? Number(amount) : undefined;
+
+asNumber;
+```
+
+```ts twoslash [Booleans & addresses]
+declare const decryptedIsAllowed: boolean;
+declare const decryptedOwner: `0x${string}`;
+// ---cut---
+const statusLabel = decryptedIsAllowed ? 'Allowed' : 'Not allowed';
+const shortOwner = `${decryptedOwner.slice(0, 6)}…${decryptedOwner.slice(-4)}`;
+
+({ statusLabel, shortOwner });
+```
+
+:::
+
+## Builder API
+
+`decryptForView(ctHash, utype)` returns a builder. Unlike `decryptForTx`, this flow always requires a permit (there is no `.withoutPermit()` mode).
+
+### `.execute()` — required, call last
+
+Runs the decryption and returns a UI-friendly scalar value (see [What `decryptForView` returns](#what-decryptforview-returns)).
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+import { FheTypes } from '@cofhe/sdk';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: `0x${string}`;
+// ---cut---
+const plaintext = await client
+  .decryptForView(ctHash, FheTypes.Uint32)
+  .execute(); // [!code focus]
+
+plaintext;
+```
+
+### `.withPermit(...)` — optional
+
+Select which permit to use:
+
+- `.withPermit()` uses the active permit for the resolved `chainId + account`.
+- `.withPermit(permitHash)` fetches a stored permit by hash.
+- `.withPermit(permit)` uses the provided permit object.
+
+If you don’t call `.withPermit(...)`, `decryptForView` also uses the active permit for the resolved `chainId + account`.
+
+:::code-group
+
+```ts twoslash [Active permit]
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+import { FheTypes } from '@cofhe/sdk';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: `0x${string}`;
+// ---cut---
+const plaintext = await client
+  .decryptForView(ctHash, FheTypes.Uint8)
+  .withPermit() // [!code focus]
+  .execute();
+
+plaintext;
+```
+
+```ts twoslash [Permit object]
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+import { FheTypes } from '@cofhe/sdk';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: `0x${string}`;
+// ---cut---
+const permit = await client.permits.getOrCreateSelfPermit();
+
+const plaintext = await client
+  .decryptForView(ctHash, FheTypes.Uint64)
+  .withPermit(permit) // [!code focus]
+  .execute();
+
+plaintext;
+```
+
+```ts twoslash [Permit hash]
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+import { FheTypes } from '@cofhe/sdk';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: `0x${string}`;
+declare const permitHash: `0x${string}`;
+// ---cut---
+const plaintext = await client
+  .decryptForView(ctHash, FheTypes.Bool)
+  .withPermit(permitHash) // [!code focus]
+  .execute();
+
+plaintext;
+```
+
+:::
+
+### `.setAccount(address)` — optional
+
+Overrides the account used to resolve the active permit / stored permit.
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+import { FheTypes } from '@cofhe/sdk';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: `0x${string}`;
+// ---cut---
+const plaintext = await client
+  .decryptForView(ctHash, FheTypes.Uint32)
+  .setAccount('0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045') // [!code focus]
+  .withPermit()
+  .execute();
+
+plaintext;
+```
+
+### `.setChainId(chainId)` — optional
+
+Overrides the chain used to resolve the Threshold Network URL and permits.
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+import { FheTypes } from '@cofhe/sdk';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: `0x${string}`;
+// ---cut---
+const plaintext = await client
+  .decryptForView(ctHash, FheTypes.Uint16)
+  .setChainId(11155111) // [!code focus]
+  .withPermit()
+  .execute();
+
+plaintext;
+```
+
+## Common pitfalls
+
+- **Missing permit**: `decryptForView` will fail if there is no active permit for the current `chainId + account` (or if the permit you pass doesn’t authorize decrypting that handle).
+- **Wrong `utype`**: you must pass the correct FHE type for the handle. `Bool` and `address` are converted into `boolean` / checksummed `0x...` strings; integer types stay as `bigint`.
+- **Wrong chain/account**: permits are scoped to `chainId + account`. If the user switches wallets or networks, create/select the correct permit (or set them explicitly via `.setChainId(...)` / `.setAccount(...)`).

@@ -19,31 +19,31 @@ import type {
 import type { AbiBasicType, Error, Merge, Tuple, MaybeExtractArrayParameterType } from './utils';
 
 export type EBool = {
-  ctHash: bigint;
+  ctHash: string;
   utype: FheTypes.Bool;
 };
 export type EUint8 = {
-  ctHash: bigint;
+  ctHash: string;
   utype: FheTypes.Uint8;
 };
 export type EUint16 = {
-  ctHash: bigint;
+  ctHash: string;
   utype: FheTypes.Uint16;
 };
 export type EUint32 = {
-  ctHash: bigint;
+  ctHash: string;
   utype: FheTypes.Uint32;
 };
 export type EUint64 = {
-  ctHash: bigint;
+  ctHash: string;
   utype: FheTypes.Uint64;
 };
 export type EUint128 = {
-  ctHash: bigint;
+  ctHash: string;
   utype: FheTypes.Uint128;
 };
 export type EAddress = {
-  ctHash: bigint;
+  ctHash: string;
   utype: FheTypes.Uint160;
 };
 export type EncryptedReturnType = EBool | EUint8 | EUint16 | EUint32 | EUint64 | EUint128 | EAddress;

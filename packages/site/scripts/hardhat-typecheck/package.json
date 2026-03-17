@@ -1,0 +1,17 @@
+{
+  "name": "@cofhe/site-hardhat-typecheck",
+  "private": true,
+  "devDependencies": {
+    "@cofhe/hardhat-plugin": "workspace:*",
+    "@cofhe/sdk": "workspace:*",
+    "@nomicfoundation/hardhat-ethers": "^3.0.5",
+    "@nomicfoundation/hardhat-toolbox": "^6.0.0",
+    "@types/chai": "4.3.20",
+    "@types/mocha": "^10.0.0",
+    "chai": "4.5.0",
+    "ethers": "^6.15.0",
+    "hardhat": "^2.26.3",
+    "typescript": "5.5.4",
+    "viem": "^2.38.6"
+  }
+}

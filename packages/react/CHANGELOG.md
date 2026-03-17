@@ -1,5 +1,60 @@
 # @cofhe/react
 
+## 0.4.0
+
+### Patch Changes
+
+- Updated dependencies [e446642]
+  - @cofhe/sdk@0.4.0
+
+## 0.3.2
+
+### Patch Changes
+
+- Updated dependencies [d4e86ea]
+- Updated dependencies [0feaf3f]
+  - @cofhe/sdk@0.3.2
+
+## 0.3.1
+
+### Patch Changes
+
+- 370f0c7: no-op
+- Updated dependencies [370f0c7]
+  - @cofhe/sdk@0.3.1
+
+## 0.3.0
+
+### Minor Changes
+
+- 35024b6: Remove `sdk` from function names and exported types. Rename:
+
+  - `createCofhesdkConfig` -> `createCofheConfig`
+  - `createCofhesdkClient` -> `createCofheClient`
+  - `hre.cofhesdk.*` -> `hre.cofhe.*`
+  - `hre.cofhesdk.createCofheConfig()` → `hre.cofhe.createConfig()`
+  - `hre.cofhesdk.createCofheClient()` → `hre.cofhe.createClient()`
+  - `hre.cofhesdk.createBatteriesIncludedCofheClient()` → `hre.cofhe.createClientWithBatteries()`
+
+- 29c2401: implement decrypt-with-proof flows and related tests:
+
+  - Implement production `decryptForTx` backed by Threshold Network `POST /decrypt`, with explicit permit vs global-allowance selection.
+  - Rename mocks “Query Decrypter” -> “Threshold Network” and update SDK constants/contracts/artifacts accordingly.
+  - Extend mock contracts + hardhat plugin to publish & verify decryption results on-chain, and add end-to-end integration tests.
+
+- 650ea48: Align builder patterns in cofhe client api (`client.encryptInputs(..).encrypt()` and `client.decryptHandles(..).decrypt()`) to use the same terminator function `.execute()` instead of `.encrypt()`/`.decrypt()`.
+
+  Rename `setStepCallback` of encryptInputs builder to `onStep` to improve ergonomics.
+
+### Patch Changes
+
+- Updated dependencies [35024b6]
+- Updated dependencies [5467d77]
+- Updated dependencies [73b1502]
+- Updated dependencies [29c2401]
+- Updated dependencies [650ea48]
+  - @cofhe/sdk@0.3.0
+
 ## 0.2.1
 
 ### Patch Changes

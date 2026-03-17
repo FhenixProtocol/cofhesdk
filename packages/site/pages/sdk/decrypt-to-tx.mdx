@@ -1,3 +1,347 @@
+---
+title: Decrypting to Transact
+description: Reveal encrypted values on-chain with a Threshold Network signature
+---
+
 # Decrypting to Transact
 
-WIP
+Use `decryptForTx` to reveal a **confidential (encrypted)** value on-chain: it returns the plaintext together with a Threshold Network signature, so a contract can verify the reveal when you publish it in a transaction.
+
+The flow is as follows:
+
+1. Call `decryptForTx(ctHash)` with the encrypted [handle](/reference/dictionary#handle) you want to reveal (see [Decrypt for a transaction](#decrypt-for-a-transaction)).
+2. Receive the plaintext value and a Threshold Network signature that binds that plaintext to the handle (see [What `decryptForTx` returns](#what-decryptfortx-returns)).
+3. Submit an on-chain transaction that publishes or verifies the result (see [Writing Decrypt Result to Contract](./writing-decrypt-result-to-contract.mdx)).
+
+Common examples:
+
+- **Unshield a confidential token**: reveal the encrypted amount you’re unshielding so the contract can finalize the public transfer.
+- **Finalize a private auction / game move**: bids or moves are submitted encrypted, and the winner is revealed later in a verifiable way.
+
+:::note
+If you only need to show plaintext in your UI (and you do **not** need an on-chain-verifiable signature), use [`decryptForView`](./decrypt-to-view.mdx) instead.
+:::
+
+## Prerequisites
+
+1. Create and connect a client (see the [client page](./client.mdx)).
+
+2. Know the **on-chain** encrypted [handle](/reference/dictionary#handle) you want to decrypt (often named `ctHash` in code).
+
+In most apps, you get the handle by reading it from your contract (e.g. a stored encrypted value, an event arg, or a return value from a view call).
+
+:::tip
+
+- On-chain, a handle is represented as a `bytes32`.
+- In JavaScript/TypeScript, libraries like Viem will typically give you a hex string (`0x${string}`).
+- The SDK accepts either a hex string or a `bigint`.
+  :::
+
+:::note
+`decryptForTx` does not take a `utype`. It always returns the plaintext as a `bigint` because the result is intended to be passed into a transaction (your contract decides whether that `bigint` is interpreted as `uint32`, `uint64`, etc). If you need UI-friendly decoding (e.g. `boolean` or address formatting), use [`decryptForView`](./decrypt-to-view.mdx).
+:::
+
+3. Determine whether the contract-level ACL policy for this specific handle requires a [permit](/reference/dictionary#permit) (see [permits](./permits.mdx)).
+
+   - If the policy allows **anyone** to decrypt it (a common setup), a permit is not required and `.withoutPermit()` will work.
+   - If the policy restricts decryption, you must use `.withPermit(...)` or the decryption will fail.
+
+## Reading from a contract (getting a handle)
+
+Typically, the value you want to reveal comes from a `view` call (or from an event arg / stored encrypted value).
+
+If your contract ABI uses encrypted `internalType`s (e.g. `internalType: "euint32"` while the ABI `type` is `bytes32`), you can convert the raw return value into a `{ ctHash, utype }` pair using `@cofhe/abi`. Here `ctHash` is the handle.
+
+For `decryptForTx`, you only need the handle.
+
+Below are two equivalent ways to read an encrypted return value from a predeployed Sepolia contract and derive a handle.
+
+:::code-group
+
+```ts twoslash [Viem]
+// [!include ~/../../examples/docs-snippets/read-encrypted-return/viem.ts:docs-snippet]
+```
+
+```ts twoslash [Ethers]
+// [!include ~/../../examples/docs-snippets/read-encrypted-return/ethers.ts:docs-snippet]
+```
+
+:::
+
+## Preparations: Permit (only if required)
+
+Often, `decryptForTx` is used to reveal a value at a point where your protocol already considers it OK for that value to become public on-chain. In those cases, there’s usually no need to restrict who is allowed to perform the reveal, so the contract’s ACL policy can allow anyone to decrypt.
+
+For example:
+
+- **Unshielding**: once a user chooses to unshield (i.e. convert a portion of their confidential balance into a public amount), the amount being unshielded is no longer meant to stay secret.
+- **Auction / game reveal**: when it’s time to reveal the outcome, it typically doesn’t matter who submits the reveal transaction — only that the result is revealed verifiably.
+
+In these cases, you can skip permits and use `.withoutPermit()`.
+
+If the ACL policy restricts decryption for this handle, obtain a permit before calling `decryptForTx`:
+
+- If decryption is restricted to your address, generate a self-permit.
+- If decryption is restricted to a different address, import a permit from the address that is allowed to decrypt.
+
+For details, see [permits](./permits.mdx).
+
+Decision guide:
+
+```
+ACL policy for this ctHash
+│
+├─ Anyone can decrypt (no restriction)
+│  └─ No permit needed
+│     └─ decryptForTx(ctHash)
+│           .withoutPermit()
+│           .execute()
+│
+└─ Restricted to a specific address
+   │
+   ├─ Your address is allowed
+   │  └─ Generate a self-permit
+   │     └─ decryptForTx(ctHash)
+   │           .withPermit()
+   │           .execute()
+   │
+   └─ A different address is allowed
+      └─ Import a permit from them
+         └─ decryptForTx(ctHash)
+               .withPermit(importedPermit)
+               .execute()
+```
+
+## Decrypt for a transaction
+
+### What `decryptForTx` returns
+
+`decryptForTx(...).execute()` resolves to an object with:
+
+- `ctHash: bigint | string` — the handle you decrypted (either a `bigint` or a `0x...` hex string)
+- `decryptedValue: bigint` — the plaintext value (always a `bigint`, even if the underlying type is e.g. `uint32`)
+- `signature`: `0x${string}` — the Threshold Network signature as a hex string with `0x`
+
+You’ll typically pass `decryptedValue` and `signature` directly into your transaction.
+
+### Decrypt (choose permit mode)
+
+Choose the mode that matches the contract’s ACL policy for this handle:
+
+:::code-group
+
+```ts twoslash [No permit]
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: `0x${string}`;
+// ---cut---
+const decryptResult = await client
+  .decryptForTx(ctHash)
+  .withoutPermit()
+  .execute();
+
+decryptResult; // ^?
+decryptResult.decryptedValue;
+decryptResult.signature;
+```
+
+```ts twoslash [Permit (active)]
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: `0x${string}`;
+// ---cut---
+const decryptResult = await client
+  .decryptForTx(ctHash)
+  .withPermit()
+  .execute();
+
+decryptResult; // ^?
+```
+
+```ts twoslash [Permit (explicit)]
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: `0x${string}`;
+// ---cut---
+const permit = await client.permits.getOrCreateSelfPermit();
+
+const decryptResult = await client
+  .decryptForTx(ctHash)
+  .withPermit(permit)
+  .execute();
+
+decryptResult; // ^?
+```
+
+:::
+
+## Next step: write the transaction
+
+Once you have `{ ctHash, decryptedValue, signature }`, you’ll typically submit a transaction that either:
+
+- publishes the result via `FHE.publishDecryptResult(...)`, or
+- verifies it inside your contract via `FHE.verifyDecryptResult(...)`.
+
+See [Writing Decrypt Result to Contract](./writing-decrypt-result-to-contract.mdx) for examples.
+
+## Builder API
+
+`decryptForTx(ctHash)` returns a builder. Before calling `.execute()`, you must select exactly one permit mode: `.withPermit(...)` or `.withoutPermit()`.
+
+### `.execute()` — required, call last
+
+Runs the decryption and returns `{ ctHash, decryptedValue, signature }`.
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: `0x${string}`;
+// ---cut---
+const result = await client.decryptForTx(ctHash).withPermit().execute(); // [!code focus]
+
+result.decryptedValue;
+result.signature;
+```
+
+### `.withPermit(...)` — required unless using `.withoutPermit()`
+
+Decrypt using a permit:
+
+- `.withPermit()` uses the active permit for the resolved `chainId + account`.
+- `.withPermit(permitHash)` fetches a stored permit by hash.
+- `.withPermit(permit)` uses the provided permit object.
+
+:::code-group
+
+```ts twoslash [Active permit]
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: `0x${string}`;
+// ---cut---
+const result = await client
+  .decryptForTx(ctHash)
+  .withPermit() // [!code focus]
+  .execute();
+
+result.signature;
+```
+
+```ts twoslash [Permit object]
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: `0x${string}`;
+// ---cut---
+const permit = await client.permits.getOrCreateSelfPermit();
+
+const result = await client
+  .decryptForTx(ctHash)
+  .withPermit(permit) // [!code focus]
+  .execute();
+
+result.decryptedValue;
+```
+
+```ts twoslash [Permit hash]
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: `0x${string}`;
+declare const permitHash: `0x${string}`;
+// ---cut---
+const result = await client
+  .decryptForTx(ctHash)
+  .withPermit(permitHash) // [!code focus]
+  .execute();
+
+result;
+```
+
+:::
+
+### `.withoutPermit()` — required unless using `.withPermit(...)`
+
+Decrypt via global allowance (no permit). This only works if your contract’s ACL policy allows anyone to decrypt that handle.
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: `0x${string}`;
+// ---cut---
+const result = await client
+  .decryptForTx(ctHash)
+  .withoutPermit() // [!code focus]
+  .execute();
+
+result.decryptedValue;
+```
+
+### `.setAccount(address)` — optional
+
+Overrides the account used to resolve the active permit / stored permit.
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: `0x${string}`;
+// ---cut---
+const result = await client
+  .decryptForTx(ctHash)
+  .setAccount('0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045') // [!code focus]
+  .withPermit()
+  .execute();
+
+const handleFromResult = result.ctHash;
+handleFromResult;
+```
+
+### `.setChainId(chainId)` — optional
+
+Overrides the chain used to resolve the Threshold Network URL and permits.
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: `0x${string}`;
+// ---cut---
+const result = await client
+  .decryptForTx(ctHash)
+  .setChainId(11155111) // [!code focus]
+  .withPermit()
+  .execute();
+
+result.signature;
+```
+
+## Common pitfalls
+
+- **Permit mode must be selected**: you must call exactly one of `.withPermit(...)` or `.withoutPermit()` before `.execute()`.
+- **Wrong chain/account**: permits are scoped to `chainId + account`. If you use `.withPermit()` and get an ACL/permit error, double-check you’re connected to the expected chain and account (or explicitly set them via `.setChainId(...)` / `.setAccount(...)`).
