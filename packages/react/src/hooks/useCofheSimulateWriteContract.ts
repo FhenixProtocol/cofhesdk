@@ -1,15 +1,5 @@
 import type { UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
-import type {
-  Address,
-  Abi,
-  Account,
-  Chain,
-  ContractFunctionArgs,
-  ContractFunctionName,
-  PublicClient,
-  WalletClient,
-  WriteContractParameters,
-} from 'viem';
+import type { Address, Abi, Account, Chain, PublicClient } from 'viem';
 import { assert } from 'ts-essentials';
 import { useInternalQuery } from '../providers/index.js';
 import { useCofheChainId, useCofhePublicClient, useCofheWalletClient } from './useCofheConnection.js';
@@ -18,8 +8,6 @@ import { useIsCofheErrorActive } from './useIsCofheErrorActive.js';
 const QUERY_CACHE_PREFIX = 'cofheSimulateWriteContract';
 
 type SimulateContractReturnAny = Awaited<ReturnType<PublicClient['simulateContract']>>;
-
-type WalletWriteContractParamsAny = Parameters<WalletClient['writeContract']>[0];
 
 /**
  * A deliberately loose type for write-like call arguments.
@@ -41,6 +29,10 @@ export type CofheSimulateWriteContractCallArgs = {
   dataSuffix?: `0x${string}`;
 } & Record<string, unknown>;
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
 function serializeIfBigint(value: unknown): unknown {
   if (typeof value === 'bigint') return value.toString();
   return value;
@@ -48,19 +40,22 @@ function serializeIfBigint(value: unknown): unknown {
 
 function serializeBigintRecursively(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(serializeBigintRecursively);
-  if (value && typeof value === 'object') {
-    const obj = value as Record<string, unknown>;
+  if (isRecord(value)) {
     const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(obj)) out[k] = serializeIfBigint(v);
+    for (const [k, v] of Object.entries(value)) out[k] = serializeIfBigint(v);
     return out;
   }
   return serializeIfBigint(value);
 }
 
-function getAccountAddress(account: unknown): `0x${string}` | undefined {
+function hasAddress(value: object): value is { address: Address } {
+  return 'address' in value && typeof (value as { address?: unknown }).address === 'string';
+}
+
+function getAccountAddress(account: Account | Address | null | undefined): Address | undefined {
   if (!account) return undefined;
-  if (typeof account === 'string') return account as `0x${string}`;
-  if (typeof account === 'object' && 'address' in (account as any)) return (account as any).address as `0x${string}`;
+  if (typeof account === 'string') return account;
+  if (typeof account === 'object' && hasAddress(account)) return account.address;
   return undefined;
 }
 
@@ -75,8 +70,8 @@ export type UseCofheSimulateWriteContractQueryOptions<TSelectedData> = Omit<
 
 export function constructCofheSimulateWriteContractQueryKey(params: {
   cofheChainId?: number;
-  callArgs?: WalletWriteContractParamsAny;
-  resolvedAccountAddress?: `0x${string}`;
+  callArgs?: CofheSimulateWriteContractCallArgs;
+  resolvedAccountAddress?: Address;
   enabled?: boolean;
 }): readonly unknown[] {
   const { cofheChainId, callArgs, resolvedAccountAddress, enabled } = params;
@@ -84,11 +79,11 @@ export function constructCofheSimulateWriteContractQueryKey(params: {
   const serialized =
     callArgs && typeof callArgs === 'object'
       ? {
-          address: (callArgs as any).address,
-          functionName: (callArgs as any).functionName,
-          args: Array.isArray((callArgs as any).args) ? serializeBigintRecursively((callArgs as any).args) : undefined,
-          value: serializeIfBigint((callArgs as any).value),
-          dataSuffix: (callArgs as any).dataSuffix,
+          address: callArgs.address,
+          functionName: callArgs.functionName,
+          args: Array.isArray(callArgs.args) ? serializeBigintRecursively(callArgs.args) : undefined,
+          value: serializeIfBigint(callArgs.value),
+          dataSuffix: callArgs.dataSuffix,
           account: resolvedAccountAddress,
         }
       : undefined;
@@ -120,7 +115,7 @@ export function useCofheSimulateWriteContract<TSelectedData = SimulateContractRe
     enabled,
     queryKey: constructCofheSimulateWriteContractQueryKey({
       cofheChainId,
-      callArgs: callArgs as unknown as WalletWriteContractParamsAny | undefined,
+      callArgs,
       resolvedAccountAddress,
       enabled,
     }),
@@ -129,14 +124,19 @@ export function useCofheSimulateWriteContract<TSelectedData = SimulateContractRe
       assert(walletClient, 'WalletClient is required to simulate contract');
       assert(callArgs, 'callArgs is guaranteed to be defined by enabled condition');
 
-      const accountForSimulation = (callArgs.account ?? walletClient.account) as Account | undefined;
+      const accountForSimulation = callArgs.account ?? walletClient.account;
       assert(accountForSimulation, 'Wallet account is required to simulate contract');
 
-      const { chain, ...rest } = callArgs as any;
+      const { chain, ...rest } = callArgs;
+
+      // `simulateContract` uses ABI + function mutability to conditionally allow/disallow fields
+      // like `value`. This hook deliberately accepts a stable, "write-like" input surface, so we
+      // keep the type-escape hatch isolated to this one callsite.
       return publicClient.simulateContract({
-        ...(chain ? { ...rest, chain } : rest),
+        ...rest,
+        ...(chain ? { chain } : {}),
         account: accountForSimulation,
-      } as any);
+      } as unknown as Parameters<PublicClient['simulateContract']>[0]);
     },
     ...restQueryOptions,
   });
