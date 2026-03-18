@@ -1,5 +1,15 @@
 import type { UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
-import type { Address, Abi, Account, Chain, PublicClient } from 'viem';
+import type {
+  Address,
+  Abi,
+  Account,
+  Chain,
+  ContractFunctionArgs,
+  ContractFunctionName,
+  PublicClient,
+  SimulateContractParameters,
+  SimulateContractReturnType,
+} from 'viem';
 import { assert } from 'ts-essentials';
 import { useInternalQuery } from '../providers/index.js';
 import { useCofheChainId, useCofhePublicClient, useCofheWalletClient } from './useCofheConnection.js';
@@ -7,27 +17,41 @@ import { useIsCofheErrorActive } from './useIsCofheErrorActive.js';
 
 const QUERY_CACHE_PREFIX = 'cofheSimulateWriteContract';
 
-type SimulateContractReturnAny = Awaited<ReturnType<PublicClient['simulateContract']>>;
+export type CofheSimulateWriteContractCallArgs<
+  TAbi extends Abi | readonly unknown[] = Abi,
+  TFunctionName extends ContractFunctionName<TAbi, 'nonpayable' | 'payable'> = ContractFunctionName<
+    TAbi,
+    'nonpayable' | 'payable'
+  >,
+  TArgs extends ContractFunctionArgs<TAbi, 'nonpayable' | 'payable', TFunctionName> = ContractFunctionArgs<
+    TAbi,
+    'nonpayable' | 'payable',
+    TFunctionName
+  >,
+  TChainOverride extends Chain | undefined = Chain | undefined,
+> = SimulateContractParameters<
+  TAbi,
+  TFunctionName,
+  TArgs,
+  Chain | undefined,
+  TChainOverride,
+  Account | Address | undefined
+>;
 
-/**
- * A deliberately loose type for write-like call arguments.
- *
- * viem's `WriteContractParameters` / `simulateContract` types use conditional typing
- * to allow/forbid fields like `value` depending on ABI + function mutability.
- *
- * For this hook we care about a stable, ergonomic input shape (so you can build
- * call args from higher-level hooks and just inspect `{ error }`).
- */
-export type CofheSimulateWriteContractCallArgs = {
-  address: Address;
-  abi: Abi | readonly unknown[];
-  functionName: string;
-  args?: readonly unknown[];
-  account?: Account | Address | null;
-  chain?: Chain | null | undefined;
-  value?: bigint;
-  dataSuffix?: `0x${string}`;
-} & Record<string, unknown>;
+type CofheSimulateWriteContractData<
+  TAbi extends Abi | readonly unknown[],
+  TFunctionName extends ContractFunctionName<TAbi, 'nonpayable' | 'payable'>,
+  TArgs extends ContractFunctionArgs<TAbi, 'nonpayable' | 'payable', TFunctionName>,
+  TChainOverride extends Chain | undefined,
+> = SimulateContractReturnType<
+  TAbi,
+  TFunctionName,
+  TArgs,
+  Chain | undefined,
+  Account | undefined,
+  TChainOverride,
+  Account | Address | undefined
+>;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -61,8 +85,8 @@ function getAccountAddress(account: Account | Address | null | undefined): Addre
 
 export type CofheSimulateWriteContractParams = CofheSimulateWriteContractCallArgs;
 
-export type UseCofheSimulateWriteContractQueryOptions<TSelectedData> = Omit<
-  UseQueryOptions<SimulateContractReturnAny, Error, TSelectedData>,
+export type UseCofheSimulateWriteContractQueryOptions<TData, TSelectedData> = Omit<
+  UseQueryOptions<TData, Error, TSelectedData>,
   'queryKey' | 'queryFn'
 > & {
   enabled?: boolean;
@@ -70,30 +94,45 @@ export type UseCofheSimulateWriteContractQueryOptions<TSelectedData> = Omit<
 
 export function constructCofheSimulateWriteContractQueryKey(params: {
   cofheChainId?: number;
-  callArgs?: CofheSimulateWriteContractCallArgs;
+  callArgs?: unknown;
   resolvedAccountAddress?: Address;
   enabled?: boolean;
 }): readonly unknown[] {
   const { cofheChainId, callArgs, resolvedAccountAddress, enabled } = params;
 
-  const serialized =
-    callArgs && typeof callArgs === 'object'
-      ? {
-          address: callArgs.address,
-          functionName: callArgs.functionName,
-          args: Array.isArray(callArgs.args) ? serializeBigintRecursively(callArgs.args) : undefined,
-          value: serializeIfBigint(callArgs.value),
-          dataSuffix: callArgs.dataSuffix,
-          account: resolvedAccountAddress,
-        }
-      : undefined;
+  const serialized = isRecord(callArgs)
+    ? {
+        address: typeof callArgs.address === 'string' ? callArgs.address : undefined,
+        functionName: typeof callArgs.functionName === 'string' ? callArgs.functionName : undefined,
+        args: Array.isArray(callArgs.args) ? serializeBigintRecursively(callArgs.args) : undefined,
+        value: serializeIfBigint(callArgs.value),
+        dataSuffix: typeof callArgs.dataSuffix === 'string' ? callArgs.dataSuffix : undefined,
+        account: resolvedAccountAddress,
+      }
+    : undefined;
 
   return [QUERY_CACHE_PREFIX, cofheChainId, serialized, enabled] as const;
 }
 
-export function useCofheSimulateWriteContract<TSelectedData = SimulateContractReturnAny>(
-  callArgs?: CofheSimulateWriteContractParams,
-  queryOptions?: UseCofheSimulateWriteContractQueryOptions<TSelectedData>
+export function useCofheSimulateWriteContract<
+  TAbi extends Abi | readonly unknown[] = Abi,
+  TFunctionName extends ContractFunctionName<TAbi, 'nonpayable' | 'payable'> = ContractFunctionName<
+    TAbi,
+    'nonpayable' | 'payable'
+  >,
+  TArgs extends ContractFunctionArgs<TAbi, 'nonpayable' | 'payable', TFunctionName> = ContractFunctionArgs<
+    TAbi,
+    'nonpayable' | 'payable',
+    TFunctionName
+  >,
+  TChainOverride extends Chain | undefined = Chain | undefined,
+  TSelectedData = CofheSimulateWriteContractData<TAbi, TFunctionName, TArgs, TChainOverride>,
+>(
+  callArgs?: CofheSimulateWriteContractCallArgs<TAbi, TFunctionName, TArgs, TChainOverride>,
+  queryOptions?: UseCofheSimulateWriteContractQueryOptions<
+    CofheSimulateWriteContractData<TAbi, TFunctionName, TArgs, TChainOverride>,
+    TSelectedData
+  >
 ): UseQueryResult<TSelectedData, Error> {
   const walletClient = useCofheWalletClient();
   const publicClient = useCofhePublicClient();
@@ -111,7 +150,9 @@ export function useCofheSimulateWriteContract<TSelectedData = SimulateContractRe
     !!resolvedAccountAddress &&
     (userEnabled ?? true);
 
-  return useInternalQuery({
+  type TData = CofheSimulateWriteContractData<TAbi, TFunctionName, TArgs, TChainOverride>;
+
+  return useInternalQuery<TData, Error, TSelectedData>({
     enabled,
     queryKey: constructCofheSimulateWriteContractQueryKey({
       cofheChainId,
@@ -127,16 +168,14 @@ export function useCofheSimulateWriteContract<TSelectedData = SimulateContractRe
       const accountForSimulation = callArgs.account ?? walletClient.account;
       assert(accountForSimulation, 'Wallet account is required to simulate contract');
 
-      const { chain, ...rest } = callArgs;
-
-      // `simulateContract` uses ABI + function mutability to conditionally allow/disallow fields
-      // like `value`. This hook deliberately accepts a stable, "write-like" input surface, so we
-      // keep the type-escape hatch isolated to this one callsite.
-      return publicClient.simulateContract({
-        ...rest,
-        ...(chain ? { chain } : {}),
+      const simulateArgs: CofheSimulateWriteContractCallArgs<TAbi, TFunctionName, TArgs, TChainOverride> = {
+        ...callArgs,
         account: accountForSimulation,
-      } as unknown as Parameters<PublicClient['simulateContract']>[0]);
+      };
+
+      return publicClient.simulateContract<TAbi, TFunctionName, TArgs, TChainOverride, Account | Address | undefined>(
+        simulateArgs
+      );
     },
     ...restQueryOptions,
   });
