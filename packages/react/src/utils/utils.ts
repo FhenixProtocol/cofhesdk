@@ -195,6 +195,32 @@ export function sanitizeNumericInput(value: string): string {
 }
 
 /**
+ * Normalizes a sanitized numeric string (see {@link sanitizeNumericInput}) into a value safe
+ * to pass into unit conversion helpers like viem's `parseUnits`.
+ *
+ * Returns `undefined` when the value is not a valid decimal number (e.g. '', '.', '1.')
+ * or has more fractional digits than `maxDecimals`.
+ */
+export function normalizeSanitizedAmountForUnits(value: string, maxDecimals: number): string | undefined {
+  const trimmed = value.trim();
+  if (trimmed === '' || trimmed === '.') return undefined;
+
+  const normalized = trimmed.startsWith('.') ? `0${trimmed}` : trimmed;
+  const withoutTrailingDot = normalized.endsWith('.') ? normalized.slice(0, -1) : normalized;
+
+  if (withoutTrailingDot === '') return undefined;
+  if (withoutTrailingDot === '0') return '0';
+
+  const dotIndex = withoutTrailingDot.indexOf('.');
+  if (dotIndex === -1) return withoutTrailingDot;
+
+  const fractionLength = withoutTrailingDot.length - dotIndex - 1;
+  if (fractionLength === 0) return undefined;
+  if (fractionLength > maxDecimals) return undefined;
+  return withoutTrailingDot;
+}
+
+/**
  * Formats a timestamp as a relative time string (e.g., "2 hours ago")
  * @param timestamp - Unix timestamp in milliseconds
  * @returns Formatted relative time string

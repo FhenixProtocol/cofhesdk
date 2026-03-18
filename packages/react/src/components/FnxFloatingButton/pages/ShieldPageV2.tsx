@@ -9,7 +9,7 @@ import { useCofheTokenDecryptedBalance } from '@/hooks/useCofheTokenDecryptedBal
 import { type Token } from '@/hooks/useCofheTokenLists';
 import { useCofheTokenShield } from '@/hooks/useCofheTokenShield';
 import { cn } from '../../../utils/cn';
-import { getBlockExplorerTxUrl, truncateHash } from '../../../utils/utils';
+import { getBlockExplorerTxUrl, normalizeSanitizedAmountForUnits, truncateHash } from '../../../utils/utils';
 import { ActionButton, AmountInput, CofheTokenConfidentialBalance, TokenIcon } from '../components/index';
 import { useCofheTokenPublicBalance } from '@/hooks/useCofheTokenPublicBalance';
 import { formatTokenAmount, unitToWei } from '@/utils/format';
@@ -39,28 +39,6 @@ import { CopyButton } from '../components/HashLink';
 
 const AUTOCLEAR_TX_STATUS_TIMEOUT = 5000;
 const DISPLAY_DECIMALS = 5;
-
-function normalizeSanitizedAmountForUnits(value: string, maxDecimals: number): string | undefined {
-  // AmountInput already runs sanitizeNumericInput, so here we only normalize edge-cases
-  // that can still break unit conversion helpers (e.g. '.', '1.', '.1').
-  const trimmed = value.trim();
-  if (trimmed === '' || trimmed === '.') return undefined;
-
-  const normalized = trimmed.startsWith('.') ? `0${trimmed}` : trimmed;
-  const withoutTrailingDot = normalized.endsWith('.') ? normalized.slice(0, -1) : normalized;
-  if (withoutTrailingDot === '' || withoutTrailingDot === '0') {
-    // Keep '0' valid; reject empty.
-    if (withoutTrailingDot === '0') return '0';
-    return undefined;
-  }
-
-  const dotIndex = withoutTrailingDot.indexOf('.');
-  if (dotIndex === -1) return withoutTrailingDot;
-  const fractionLength = withoutTrailingDot.length - dotIndex - 1;
-  if (fractionLength === 0) return undefined;
-  if (fractionLength > maxDecimals) return undefined;
-  return withoutTrailingDot;
-}
 
 type Mode = 'shield' | 'unshield';
 
