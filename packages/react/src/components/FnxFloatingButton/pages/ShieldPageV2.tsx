@@ -246,7 +246,7 @@ function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 
     const amountWei = unitToWei(shieldAmount, token.decimals);
     return getCofheTokenShieldCallArgs({ token, amount: amountWei, account }).main;
   }, [account, isValidShieldAmount, shieldAmount, token]);
-  console.log(shieldCallArgs, 'shieldCallArgs');
+
   const shieldSimulation = useCofheSimulateWriteContract(shieldCallArgs, {
     enabled: !!shieldCallArgs,
   });
