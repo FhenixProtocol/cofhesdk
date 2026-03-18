@@ -2,7 +2,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { TbShieldPlus, TbShieldMinus } from 'react-icons/tb';
 import { LuExternalLink } from 'react-icons/lu';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { parseUnits } from 'viem';
 import { useCofheAccount, useCofheChainId } from '@/hooks/useCofheConnection';
 import { useCofheTokenDecryptedBalance } from '@/hooks/useCofheTokenDecryptedBalance';
@@ -241,16 +241,12 @@ function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 
 
   const isValidShieldAmount = (shieldAmount.length > 0 && publicBalanceUnit?.gte(shieldAmount)) ?? false;
 
-  const shieldCallArgs = (() => {
+  const shieldCallArgs = useMemo(() => {
     if (!account || !isValidShieldAmount) return undefined;
-    try {
-      const amountWei = unitToWei(shieldAmount, token.decimals);
-      return getCofheTokenShieldCallArgs({ token, amount: amountWei, account }).main;
-    } catch {
-      return undefined;
-    }
-  })();
-
+    const amountWei = unitToWei(shieldAmount, token.decimals);
+    return getCofheTokenShieldCallArgs({ token, amount: amountWei, account }).main;
+  }, [account, isValidShieldAmount, shieldAmount, token]);
+  console.log(shieldCallArgs, 'shieldCallArgs');
   const shieldSimulation = useCofheSimulateWriteContract(shieldCallArgs, {
     enabled: !!shieldCallArgs,
   });
