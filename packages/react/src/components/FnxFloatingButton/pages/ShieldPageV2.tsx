@@ -40,6 +40,28 @@ import { CopyButton } from '../components/HashLink';
 const AUTOCLEAR_TX_STATUS_TIMEOUT = 5000;
 const DISPLAY_DECIMALS = 5;
 
+function normalizeSanitizedAmountForUnits(value: string, maxDecimals: number): string | undefined {
+  // AmountInput already runs sanitizeNumericInput, so here we only normalize edge-cases
+  // that can still break unit conversion helpers (e.g. '.', '1.', '.1').
+  const trimmed = value.trim();
+  if (trimmed === '' || trimmed === '.') return undefined;
+
+  const normalized = trimmed.startsWith('.') ? `0${trimmed}` : trimmed;
+  const withoutTrailingDot = normalized.endsWith('.') ? normalized.slice(0, -1) : normalized;
+  if (withoutTrailingDot === '' || withoutTrailingDot === '0') {
+    // Keep '0' valid; reject empty.
+    if (withoutTrailingDot === '0') return '0';
+    return undefined;
+  }
+
+  const dotIndex = withoutTrailingDot.indexOf('.');
+  if (dotIndex === -1) return withoutTrailingDot;
+  const fractionLength = withoutTrailingDot.length - dotIndex - 1;
+  if (fractionLength === 0) return undefined;
+  if (fractionLength > maxDecimals) return undefined;
+  return withoutTrailingDot;
+}
+
 type Mode = 'shield' | 'unshield';
 
 type LifecycleStatus = { message: React.ReactNode; type: 'info' | 'success' };
@@ -251,7 +273,7 @@ function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 
     enabled: !!shieldCallArgs,
   });
 
-  const canShield = isValidShieldAmount && !shieldSimulation.isFetching && !shieldSimulation.error;
+  const canShield = isValidShieldAmount && !!shieldCallArgs && !shieldSimulation.isFetching && !shieldSimulation.error;
 
   return {
     status,
@@ -329,7 +351,9 @@ function useUnshieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps
     },
   });
   const handleUnshield = async () => {
-    const amountInSmallestUnit = parseUnits(unshieldAmount, token.decimals);
+    const normalized = normalizeSanitizedAmountForUnits(unshieldAmount, token.decimals);
+    assert(normalized, 'Invalid unshield amount');
+    const amountInSmallestUnit = parseUnits(normalized, token.decimals);
     tokenUnshield.mutateAsync({
       token,
       amount: amountInSmallestUnit,
@@ -344,21 +368,20 @@ function useUnshieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps
   };
   const isValidUnshieldAmount = (unshieldAmount.length > 0 && confidentialBalanceUnit?.gte(unshieldAmount)) ?? false;
 
-  const unshieldCallArgs = (() => {
+  const unshieldCallArgs = useMemo(() => {
     if (!account || !isValidUnshieldAmount) return undefined;
-    try {
-      const amountInSmallestUnit = parseUnits(unshieldAmount, token.decimals);
-      return getCofheTokenUnshieldCallArgs({ token, amount: amountInSmallestUnit, account });
-    } catch {
-      return undefined;
-    }
-  })();
+    const normalized = normalizeSanitizedAmountForUnits(unshieldAmount, token.decimals);
+    if (!normalized) return undefined;
+    const amountInSmallestUnit = parseUnits(normalized, token.decimals);
+    return getCofheTokenUnshieldCallArgs({ token, amount: amountInSmallestUnit, account });
+  }, [account, isValidUnshieldAmount, token, unshieldAmount]);
 
   const unshieldSimulation = useCofheSimulateWriteContract(unshieldCallArgs, {
     enabled: !!unshieldCallArgs,
   });
 
-  const canUnshield = isValidUnshieldAmount && !unshieldSimulation.isFetching && !unshieldSimulation.error;
+  const canUnshield =
+    isValidUnshieldAmount && !!unshieldCallArgs && !unshieldSimulation.isFetching && !unshieldSimulation.error;
 
   return {
     status,
@@ -477,14 +500,10 @@ function ClaimingSection({ token }: { token: Token }) {
 
   const isUnshieldingMining = useIsUnshieldingMining(token);
 
-  const claimCallArgs = (() => {
+  const claimCallArgs = useMemo(() => {
     if (!account || !unshieldedClaims?.hasClaimable) return undefined;
-    try {
-      return getCofheTokenClaimUnshieldedCallArgs({ token, account });
-    } catch {
-      return undefined;
-    }
-  })();
+    return getCofheTokenClaimUnshieldedCallArgs({ token, account });
+  }, [account, token, unshieldedClaims?.hasClaimable]);
 
   const claimSimulation = useCofheSimulateWriteContract(claimCallArgs, {
     enabled: !!claimCallArgs,
@@ -502,6 +521,7 @@ function ClaimingSection({ token }: { token: Token }) {
             isFetchingClaims ||
             isWaitingForNewClaimsDecryption ||
             isUnshieldingMining ||
+            !claimCallArgs ||
             claimSimulation.isFetching ||
             !!claimSimulation.error
           }
