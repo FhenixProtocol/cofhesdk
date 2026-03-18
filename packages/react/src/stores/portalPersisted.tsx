@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import { getSSRSafeStorage } from '@/utils/ssrSafeStorage';
 
 type PortalPersistedStore = {
   hasCreatedFirstPermit: boolean;
@@ -20,7 +21,7 @@ export const usePortalPersisted = create<PortalPersistedStore & PortalPersistedA
     }),
     {
       name: 'cofhesdk-react-persisted',
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => getSSRSafeStorage()),
     }
   )
 );

@@ -86,8 +86,9 @@ const statusToStringMap: Record<TransactionStatus, TransactionStatusString> = {
 
 export const statusToString = (a: TransactionStatus): TransactionStatusString => statusToStringMap[a];
 
-// Custom storage to handle bigint serialization
-const bigintStorage = createJSONStorage<TransactionStore>(() => localStorage, bigintJSONStorageOptions);
+// Custom storage to handle bigint serialization (SSR-safe)
+import { getSSRSafeStorage } from '@/utils/ssrSafeStorage';
+const bigintStorage = createJSONStorage<TransactionStore>(() => getSSRSafeStorage(), bigintJSONStorageOptions);
 
 function constructNewTx(transaction: NewTransaction): Transaction {
   return {

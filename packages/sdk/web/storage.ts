@@ -1,10 +1,17 @@
 import type { IStorage } from '@/core';
 import { constructClient } from 'iframe-shared-storage';
 /**
- * Creates a web storage implementation using IndexedDB
- * @returns IStorage implementation for browser environments
+ * Creates a web storage implementation using IndexedDB.
+ * Must only be called in a browser environment (requires `document` for iframe injection).
+ * Returns null during SSR to allow safe server-side config creation.
+ * @returns IStorage implementation for browser environments, or null if not in a browser
  */
-export const createWebStorage = (): IStorage => {
+export const createWebStorage = (): IStorage | null => {
+  // SSR guard: iframe-shared-storage requires document to inject an iframe.
+  // During Next.js SSR, document is undefined — return null to skip storage.
+  // Note: 'document' is not in this package's TS lib, so we access via globalThis.
+  if (typeof (globalThis as unknown as { document?: unknown }).document === 'undefined') return null;
+
   const client = constructClient({
     iframe: {
       src: 'https://iframe-shared-storage.vercel.app/hub.html',

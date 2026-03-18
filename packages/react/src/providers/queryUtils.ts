@@ -37,13 +37,23 @@ function deserializeWithBigInt(serialized: string): any {
   });
 }
 
-const storage = persistenceConfig.storage === 'localStorage' ? window.localStorage : window.sessionStorage;
-const persister = createAsyncStoragePersister({
-  storage,
-  key: persistenceConfig.key ?? 'cofhe:react-query',
-  serialize: serializeWithBigInt,
-  deserialize: deserializeWithBigInt,
-});
+const getStorage = () => {
+  if (typeof window === 'undefined') return undefined!;
+  return persistenceConfig.storage === 'localStorage' ? window.localStorage : window.sessionStorage;
+};
+
+let _persister: ReturnType<typeof createAsyncStoragePersister> | null = null;
+const getPersister = () => {
+  if (!_persister) {
+    _persister = createAsyncStoragePersister({
+      storage: getStorage(),
+      key: persistenceConfig.key ?? 'cofhe:react-query',
+      serialize: serializeWithBigInt,
+      deserialize: deserializeWithBigInt,
+    });
+  }
+  return _persister;
+};
 
 export function usePersistentQueriesSubscription({
   queryClient,
@@ -65,7 +75,7 @@ export function usePersistentQueriesSubscription({
 
     const options = {
       queryClient: queryClient as any,
-      persister,
+      persister: getPersister(),
       maxAge: persistenceConfig.maxAgeMs ?? 86_400_000,
       buster: 'cofhe-react-query-v1',
       dehydrateOptions: {
