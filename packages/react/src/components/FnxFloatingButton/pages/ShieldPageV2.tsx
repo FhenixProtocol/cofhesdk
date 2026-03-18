@@ -2,8 +2,8 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { TbShieldPlus, TbShieldMinus } from 'react-icons/tb';
 import { LuExternalLink } from 'react-icons/lu';
-import { useMemo, useState } from 'react';
-import { parseUnits } from 'viem';
+import { useEffect, useMemo, useState } from 'react';
+import { ContractFunctionExecutionError, parseUnits } from 'viem';
 import { useCofheAccount, useCofheChainId } from '@/hooks/useCofheConnection';
 import { useCofheTokenDecryptedBalance } from '@/hooks/useCofheTokenDecryptedBalance';
 import { type Token } from '@/hooks/useCofheTokenLists';
@@ -250,6 +250,20 @@ function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 
   const shieldSimulation = useCofheSimulateWriteContract(shieldCallArgs, {
     enabled: !!shieldCallArgs,
   });
+
+  // TODO: apply the same to unshield flow and claim flow, and consider abstracting this pattern into a reusable hook
+  useEffect(() => {
+    if (shieldSimulation.error) {
+      const cofheErrorMessage = cofheHumanizeViemError(shieldSimulation.error);
+      if (cofheErrorMessage) {
+        setError(cofheErrorMessage);
+      } else if (shieldSimulation.error instanceof ContractFunctionExecutionError) {
+        setError(shieldSimulation.error.shortMessage);
+      } else {
+        setError('Failed to simulate shield transaction');
+      }
+    }
+  }, [setError, shieldSimulation.error]);
 
   const canShield = isValidShieldAmount && !!shieldCallArgs && !shieldSimulation.isFetching && !shieldSimulation.error;
 
