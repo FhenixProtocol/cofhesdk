@@ -31,6 +31,7 @@ export {
   useCofheTokensClaimable,
   useCofheTokenDecryptedBalance,
   useCofheTokenTransfer,
+  useTokenAllowance,
   useTransactionReceiptsByHash,
   ETH_ADDRESS_LOWERCASE,
   type Erc20Pair,

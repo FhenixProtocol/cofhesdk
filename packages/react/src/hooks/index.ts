@@ -65,3 +65,5 @@ export {
   type UseCoingeckoContractMarketChartRangeInput,
   type UseCoingeckoContractMarketChartRangeOptions,
 } from './useCoingeckoContractMarketChartRange';
+
+export { useTokenAllowance } from './useTokenAllowance';
