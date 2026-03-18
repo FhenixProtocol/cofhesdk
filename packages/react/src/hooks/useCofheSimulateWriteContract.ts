@@ -160,6 +160,7 @@ export function useCofheSimulateWriteContract<
       resolvedAccountAddress,
       enabled,
     }),
+    retry: false, // no need to retry on error. The whole point of simulation is to check if there's an error
     queryFn: async () => {
       assert(publicClient, 'PublicClient is required to simulate contract');
       assert(walletClient, 'WalletClient is required to simulate contract');
