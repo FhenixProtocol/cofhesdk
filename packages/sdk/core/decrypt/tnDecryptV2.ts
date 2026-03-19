@@ -345,15 +345,14 @@ async function pollDecryptStatusV2(
   });
 }
 
-export async function tnDecryptV2(
-  ctHash: bigint | string,
-  chainId: number,
-  permission: Permission | null,
-  thresholdNetworkUrl: string,
-  opts?: {
-    onPoll?: DecryptPollCallbackFunction;
-  }
-): Promise<{ decryptedValue: bigint; signature: `0x${string}` }> {
+export async function tnDecryptV2(params: {
+  ctHash: bigint | string;
+  chainId: number;
+  permission: Permission | null;
+  thresholdNetworkUrl: string;
+  onPoll?: DecryptPollCallbackFunction;
+}): Promise<{ decryptedValue: bigint; signature: `0x${string}` }> {
+  const { thresholdNetworkUrl, ctHash, chainId, permission, onPoll } = params;
   const requestId = await submitDecryptRequestV2(thresholdNetworkUrl, ctHash, chainId, permission);
-  return await pollDecryptStatusV2(thresholdNetworkUrl, requestId, opts?.onPoll);
+  return await pollDecryptStatusV2(thresholdNetworkUrl, requestId, onPoll);
 }

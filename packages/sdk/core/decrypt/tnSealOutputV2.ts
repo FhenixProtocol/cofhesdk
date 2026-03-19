@@ -300,18 +300,18 @@ async function pollSealOutputStatus(
   });
 }
 
-export async function tnSealOutputV2(
-  ctHash: bigint | string,
-  chainId: number,
-  permission: Permission,
-  thresholdNetworkUrl: string,
-  opts?: {
-    onPoll?: DecryptPollCallbackFunction;
-  }
-): Promise<EthEncryptedData> {
+export async function tnSealOutputV2(params: {
+  ctHash: bigint | string;
+  chainId: number;
+  permission: Permission;
+  thresholdNetworkUrl: string;
+  onPoll?: DecryptPollCallbackFunction;
+}): Promise<EthEncryptedData> {
+  const { thresholdNetworkUrl, ctHash, chainId, permission, onPoll } = params;
+
   // Step 1: Submit the request and get request_id
   const requestId = await submitSealOutputRequest(thresholdNetworkUrl, ctHash, chainId, permission);
 
   // Step 2: Poll for status until completed
-  return await pollSealOutputStatus(thresholdNetworkUrl, requestId, opts?.onPoll);
+  return await pollSealOutputStatus(thresholdNetworkUrl, requestId, onPoll);
 }

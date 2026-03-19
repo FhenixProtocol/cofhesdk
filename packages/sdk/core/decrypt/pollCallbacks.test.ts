@@ -67,7 +67,13 @@ describe('decrypt polling callbacks', () => {
 
     global.fetch = fetchMock as any;
 
-    const promise = tnDecryptV2(1n, 1, null, thresholdNetworkUrl, { onPoll });
+    const promise = tnDecryptV2({
+      ctHash: 1n,
+      chainId: 1,
+      permission: null,
+      thresholdNetworkUrl,
+      onPoll,
+    });
 
     for (let i = 0; i < 25 && onPoll.mock.calls.length < 1; i += 1) {
       await Promise.resolve();
@@ -148,7 +154,13 @@ describe('decrypt polling callbacks', () => {
 
     global.fetch = fetchMock as any;
 
-    const promise = tnSealOutputV2(1n, 1, {} as any, thresholdNetworkUrl, { onPoll });
+    const promise = tnSealOutputV2({
+      ctHash: 1n,
+      chainId: 1,
+      permission: {} as any,
+      thresholdNetworkUrl,
+      onPoll,
+    });
 
     for (let i = 0; i < 25 && onPoll.mock.calls.length < 1; i += 1) {
       await Promise.resolve();
