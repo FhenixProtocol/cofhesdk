@@ -365,7 +365,7 @@ function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 
   });
 
   const shieldSimulation = useCofheSimulateWriteContract(shieldCallArgs, {
-    enabled: !!shieldCallArgs,
+    enabled: !!shieldCallArgs && !shouldApprove,
   });
 
   // TODO: apply the same to unshield flow and claim flow, and consider abstracting this pattern into a reusable hook
