@@ -155,20 +155,19 @@ async function pollSealOutputStatus(
   onPoll?: DecryptPollCallbackFunction
 ): Promise<EthEncryptedData> {
   const startTime = Date.now();
-  let attempt = 0;
+  let attemptIndex = 0;
   let completed = false;
 
   while (!completed) {
-    attempt += 1;
     const elapsedMs = Date.now() - startTime;
     const intervalMs = computeMinuteRampPollIntervalMs(elapsedMs, {
       minIntervalMs: POLL_INTERVAL_MS,
       maxIntervalMs: POLL_MAX_INTERVAL_MS,
     });
     onPoll?.({
-      operation: 'sealOutput',
+      operation: 'sealoutput',
       requestId,
-      attempt,
+      attemptIndex,
       elapsedMs,
       intervalMs,
       timeoutMs: POLL_TIMEOUT_MS,
@@ -294,6 +293,7 @@ async function pollSealOutputStatus(
 
     // Still processing, wait before next poll
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    attemptIndex += 1;
   }
 
   // This should never be reached, but TypeScript requires it
@@ -307,18 +307,18 @@ async function pollSealOutputStatus(
   });
 }
 
-export async function tnSealOutputV2(
-  ctHash: bigint | string,
-  chainId: number,
-  permission: Permission,
-  thresholdNetworkUrl: string,
-  opts?: {
-    onPoll?: DecryptPollCallbackFunction;
-  }
-): Promise<EthEncryptedData> {
+export async function tnSealOutputV2(params: {
+  ctHash: bigint | string;
+  chainId: number;
+  permission: Permission;
+  thresholdNetworkUrl: string;
+  onPoll?: DecryptPollCallbackFunction;
+}): Promise<EthEncryptedData> {
+  const { thresholdNetworkUrl, ctHash, chainId, permission, onPoll } = params;
+
   // Step 1: Submit the request and get request_id
   const requestId = await submitSealOutputRequest(thresholdNetworkUrl, ctHash, chainId, permission);
 
   // Step 2: Poll for status until completed
-  return await pollSealOutputStatus(thresholdNetworkUrl, requestId, opts?.onPoll);
+  return await pollSealOutputStatus(thresholdNetworkUrl, requestId, onPoll);
 }

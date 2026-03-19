@@ -191,11 +191,10 @@ async function pollDecryptStatusV2(
   onPoll?: DecryptPollCallbackFunction
 ): Promise<{ decryptedValue: bigint; signature: `0x${string}` }> {
   const startTime = Date.now();
-  let attempt = 0;
+  let attemptIndex = 0;
   let completed = false;
 
   while (!completed) {
-    attempt += 1;
     const elapsedMs = Date.now() - startTime;
     const intervalMs = computeMinuteRampPollIntervalMs(elapsedMs, {
       minIntervalMs: POLL_INTERVAL_MS,
@@ -204,7 +203,7 @@ async function pollDecryptStatusV2(
     onPoll?.({
       operation: 'decrypt',
       requestId,
-      attempt,
+      attemptIndex,
       elapsedMs,
       intervalMs,
       timeoutMs: POLL_TIMEOUT_MS,
@@ -339,6 +338,7 @@ async function pollDecryptStatusV2(
     }
 
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    attemptIndex += 1;
   }
 
   // This should never be reached, but keeps TS and linters happy.
@@ -352,15 +352,14 @@ async function pollDecryptStatusV2(
   });
 }
 
-export async function tnDecryptV2(
-  ctHash: bigint | string,
-  chainId: number,
-  permission: Permission | null,
-  thresholdNetworkUrl: string,
-  opts?: {
-    onPoll?: DecryptPollCallbackFunction;
-  }
-): Promise<{ decryptedValue: bigint; signature: `0x${string}` }> {
+export async function tnDecryptV2(params: {
+  ctHash: bigint | string;
+  chainId: number;
+  permission: Permission | null;
+  thresholdNetworkUrl: string;
+  onPoll?: DecryptPollCallbackFunction;
+}): Promise<{ decryptedValue: bigint; signature: `0x${string}` }> {
+  const { thresholdNetworkUrl, ctHash, chainId, permission, onPoll } = params;
   const requestId = await submitDecryptRequestV2(thresholdNetworkUrl, ctHash, chainId, permission);
-  return await pollDecryptStatusV2(thresholdNetworkUrl, requestId, opts?.onPoll);
+  return await pollDecryptStatusV2(thresholdNetworkUrl, requestId, onPoll);
 }

@@ -67,7 +67,13 @@ describe('decrypt polling callbacks', () => {
 
     global.fetch = fetchMock as any;
 
-    const promise = tnDecryptV2(1n, 1, null, thresholdNetworkUrl, { onPoll });
+    const promise = tnDecryptV2({
+      ctHash: 1n,
+      chainId: 1,
+      permission: null,
+      thresholdNetworkUrl,
+      onPoll,
+    });
 
     for (let i = 0; i < 25 && onPoll.mock.calls.length < 1; i += 1) {
       await Promise.resolve();
@@ -86,7 +92,7 @@ describe('decrypt polling callbacks', () => {
       expect.objectContaining({
         operation: 'decrypt',
         requestId: 'req-1',
-        attempt: 1,
+        attemptIndex: 0,
         intervalMs: 1000,
         timeoutMs: 5 * 60 * 1000,
       })
@@ -96,7 +102,7 @@ describe('decrypt polling callbacks', () => {
       expect.objectContaining({
         operation: 'decrypt',
         requestId: 'req-1',
-        attempt: 2,
+        attemptIndex: 1,
       })
     );
   });
@@ -148,7 +154,13 @@ describe('decrypt polling callbacks', () => {
 
     global.fetch = fetchMock as any;
 
-    const promise = tnSealOutputV2(1n, 1, {} as any, thresholdNetworkUrl, { onPoll });
+    const promise = tnSealOutputV2({
+      ctHash: 1n,
+      chainId: 1,
+      permission: {} as any,
+      thresholdNetworkUrl,
+      onPoll,
+    });
 
     for (let i = 0; i < 25 && onPoll.mock.calls.length < 1; i += 1) {
       await Promise.resolve();
@@ -165,17 +177,17 @@ describe('decrypt polling callbacks', () => {
     expect(onPoll).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
-        operation: 'sealOutput',
+        operation: 'sealoutput',
         requestId: 'req-2',
-        attempt: 1,
+        attemptIndex: 0,
       })
     );
     expect(onPoll).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
-        operation: 'sealOutput',
+        operation: 'sealoutput',
         requestId: 'req-2',
-        attempt: 2,
+        attemptIndex: 1,
       })
     );
   });

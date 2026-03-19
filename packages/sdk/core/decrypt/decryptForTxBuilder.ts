@@ -300,15 +300,13 @@ export class DecryptForTxBuilder extends BaseBuilder {
     const thresholdNetworkUrl = await this.getThresholdNetworkUrl();
 
     const permission = permit ? PermitUtils.getPermission(permit, true) : null;
-    const { decryptedValue, signature } = await tnDecryptV2(
-      this.ctHash,
-      this.chainId,
+    const { decryptedValue, signature } = await tnDecryptV2({
+      ctHash: this.ctHash,
+      chainId: this.chainId,
       permission,
       thresholdNetworkUrl,
-      {
-        onPoll: this.pollCallback,
-      }
-    );
+      onPoll: this.pollCallback,
+    });
 
     return {
       ctHash: this.ctHash,
