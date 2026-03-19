@@ -2,9 +2,11 @@ import { type Permission, type EthEncryptedData } from '@/permits';
 
 import { CofheError, CofheErrorCode } from '../error.js';
 import { type DecryptPollCallbackFunction } from '../types.js';
+import { computeMinuteRampPollIntervalMs } from './polling.js';
 
 // Polling configuration
 const POLL_INTERVAL_MS = 1000; // 1 second
+const POLL_MAX_INTERVAL_MS = 10_000; // 10 seconds
 const POLL_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
 // V2 API response types
@@ -157,17 +159,22 @@ async function pollSealOutputStatus(
   let completed = false;
 
   while (!completed) {
+    const elapsedMs = Date.now() - startTime;
+    const intervalMs = computeMinuteRampPollIntervalMs(elapsedMs, {
+      minIntervalMs: POLL_INTERVAL_MS,
+      maxIntervalMs: POLL_MAX_INTERVAL_MS,
+    });
     onPoll?.({
       operation: 'sealoutput',
       requestId,
       attemptIndex,
-      elapsedMs: Date.now() - startTime,
-      intervalMs: POLL_INTERVAL_MS,
+      elapsedMs,
+      intervalMs,
       timeoutMs: POLL_TIMEOUT_MS,
     });
 
     // Check timeout
-    if (Date.now() - startTime > POLL_TIMEOUT_MS) {
+    if (elapsedMs > POLL_TIMEOUT_MS) {
       throw new CofheError({
         code: CofheErrorCode.SealOutputFailed,
         message: `sealOutput polling timed out after ${POLL_TIMEOUT_MS}ms`,
@@ -285,7 +292,7 @@ async function pollSealOutputStatus(
     }
 
     // Still processing, wait before next poll
-    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
     attemptIndex += 1;
   }
 
