@@ -36,10 +36,27 @@ let isSilent = false;
 
 // ─── Public entrypoint ────────────────────────────────────────────────────────
 
+/**
+ * Returns true when the provider supports Hardhat-specific RPC methods (i.e.
+ * it is an in-process Hardhat / EDR network, or localcofhe).
+ */
+async function isLocalHardhatNetwork(
+  provider: EthereumProvider,
+  networkName: string,
+): Promise<boolean> {
+  if (networkName === 'localcofhe') return true;
+  try {
+    await provider.request({ method: 'hardhat_metadata', params: [] });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs = {}): Promise<void> {
   const { deployTestBed = true, gasWarning = true, silent = false } = options;
 
-  if (ctx.networkName !== 'hardhat' && ctx.networkName !== 'localhost') {
+  if (!(await isLocalHardhatNetwork(ctx.provider, ctx.networkName))) {
     logSuccess(`cofhe-hardhat-3-plugin - deploy mocks - skipped on non-hardhat network ${ctx.networkName}`, 0);
     return;
   }

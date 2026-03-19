@@ -1,6 +1,6 @@
 import type { HardhatRuntimeEnvironmentHooks } from 'hardhat/types/hooks';
 import type { HardhatRuntimeEnvironment } from 'hardhat/types/hre';
-import { createPublicClient, createWalletClient, createTestClient, custom, http } from 'viem';
+import { createPublicClient, createWalletClient, createTestClient, custom, type WalletClient } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 
 import {
@@ -55,6 +55,9 @@ const hreHooks: Partial<HardhatRuntimeEnvironmentHooks> = {
     // ─── hre.cofhe ────────────────────────────────────────────────────────────
 
     hre.cofhe = {
+      publicClient,
+      walletClient,
+
       async createConfig(config: CofheInputConfig) {
         // Create a wallet client for the ZkVerifier signer — injected into the
         // SDK config so it can call the MockZkVerifier contract internally.
@@ -82,11 +85,23 @@ const hreHooks: Partial<HardhatRuntimeEnvironmentHooks> = {
         return createCofheClient(config);
       },
 
-      async createClientWithBatteries(accountIndex = 0) {
-        const addresses = await walletClient.getAddresses();
-        const address = addresses[accountIndex];
-        if (!address) {
-          throw new Error(`createClientWithBatteries: no account at index ${accountIndex}`);
+      async createClientWithBatteries(signerWalletClient?: WalletClient) {
+        // Resolve the account-bound wallet client to use for signing.
+        // The HRE's default walletClient is account-less; createSelf() needs
+        // a walletClient with an explicit account attached.
+        let signerClient: WalletClient;
+        let address: `0x${string}`;
+
+        if (signerWalletClient) {
+          const [addr] = await signerWalletClient.getAddresses();
+          if (!addr) throw new Error('createClientWithBatteries: provided walletClient has no accounts');
+          signerClient = signerWalletClient;
+          address = addr;
+        } else {
+          const [addr] = await walletClient.getAddresses();
+          if (!addr) throw new Error('createClientWithBatteries: no accounts available on the default walletClient');
+          address = addr;
+          signerClient = createWalletClient({ account: address, transport });
         }
 
         const config = await hre.cofhe.createConfig({
@@ -96,12 +111,7 @@ const hreHooks: Partial<HardhatRuntimeEnvironmentHooks> = {
 
         const client = hre.cofhe.createClient(config);
 
-        const accountWalletClient = createWalletClient({
-          account: address,
-          transport,
-        });
-
-        await client.connect(publicClient, accountWalletClient);
+        await client.connect(publicClient, signerClient);
 
         await client.permits.createSelf({ issuer: address });
 
@@ -136,28 +146,23 @@ const hreHooks: Partial<HardhatRuntimeEnvironmentHooks> = {
         },
 
         async getMockTaskManager() {
-          const c = getMockTaskManagerContract(publicClient);
-          return c as unknown as import('@cofhe/mock-contracts').MockTaskManager;
+          return getMockTaskManagerContract(publicClient);
         },
 
         async getMockACL() {
-          const c = await getMockACLContract(publicClient);
-          return c as unknown as import('@cofhe/mock-contracts').MockACL;
+          return getMockACLContract(publicClient);
         },
 
         async getMockThresholdNetwork() {
-          const c = getMockThresholdNetworkContract(publicClient);
-          return c as unknown as import('@cofhe/mock-contracts').MockThresholdNetwork;
+          return getMockThresholdNetworkContract(publicClient);
         },
 
         async getMockZkVerifier() {
-          const c = getMockZkVerifierContract(publicClient);
-          return c as unknown as import('@cofhe/mock-contracts').MockZkVerifier;
+          return getMockZkVerifierContract(publicClient);
         },
 
         async getTestBed() {
-          const c = getTestBedContract(publicClient);
-          return c as unknown as import('@cofhe/mock-contracts').TestBed;
+          return getTestBedContract(publicClient);
         },
       },
     };

@@ -1,16 +1,13 @@
-import type {
-  CofheClient,
-  CofheConfig,
-  CofheInputConfig,
-} from '@cofhe/sdk';
-import type {
-  MockACL,
-  MockTaskManager,
-  MockThresholdNetwork,
-  MockZkVerifier,
-  TestBed,
-} from '@cofhe/mock-contracts';
+import type { PublicClient, WalletClient } from 'viem';
+import type { CofheClient, CofheConfig, CofheInputConfig } from '@cofhe/sdk';
 import type { DeployMocksArgs } from './deploy.js';
+import type {
+  getMockTaskManagerContract,
+  getMockACLContract,
+  getMockZkVerifierContract,
+  getMockThresholdNetworkContract,
+  getTestBedContract,
+} from './utils.js';
 
 declare module 'hardhat/types/config' {
   interface HardhatUserConfig {
@@ -33,6 +30,12 @@ declare module 'hardhat/types/config' {
 declare module 'hardhat/types/hre' {
   interface HardhatRuntimeEnvironment {
     cofhe: {
+      /** Viem PublicClient for the connected network */
+      publicClient: PublicClient;
+
+      /** Viem WalletClient for the connected network */
+      walletClient: WalletClient;
+
       /**
        * Create a CoFHE configuration for use with hre.cofhe.createClient(...)
        */
@@ -44,10 +47,11 @@ declare module 'hardhat/types/hre' {
       createClient: (config: CofheConfig) => CofheClient;
 
       /**
-       * Create and connect a batteries-included CoFHE client for the given
-       * account index (defaults to account 0).
+       * Create and connect a batteries-included CoFHE client.
+       * If a WalletClient is provided it is used as the signer; otherwise the
+       * first account from the default HRE walletClient is used automatically.
        */
-      createClientWithBatteries: (accountIndex?: number) => Promise<CofheClient>;
+      createClientWithBatteries: (walletClient?: WalletClient) => Promise<CofheClient>;
 
       mocks: {
         /**
@@ -80,20 +84,20 @@ declare module 'hardhat/types/hre' {
          */
         expectPlaintext: (ctHash: bigint | string, expectedValue: bigint) => Promise<void>;
 
-        /** Get the MockTaskManager contract instance */
-        getMockTaskManager: () => Promise<MockTaskManager>;
+        /** Get the MockTaskManager Viem contract instance */
+        getMockTaskManager: () => Promise<ReturnType<typeof getMockTaskManagerContract>>;
 
-        /** Get the MockACL contract instance (address read from TaskManager) */
-        getMockACL: () => Promise<MockACL>;
+        /** Get the MockACL Viem contract instance (address read from TaskManager) */
+        getMockACL: () => Promise<Awaited<ReturnType<typeof getMockACLContract>>>;
 
-        /** Get the MockThresholdNetwork contract instance */
-        getMockThresholdNetwork: () => Promise<MockThresholdNetwork>;
+        /** Get the MockThresholdNetwork Viem contract instance */
+        getMockThresholdNetwork: () => Promise<ReturnType<typeof getMockThresholdNetworkContract>>;
 
-        /** Get the MockZkVerifier contract instance */
-        getMockZkVerifier: () => Promise<MockZkVerifier>;
+        /** Get the MockZkVerifier Viem contract instance */
+        getMockZkVerifier: () => Promise<ReturnType<typeof getMockZkVerifierContract>>;
 
-        /** Get the TestBed contract instance */
-        getTestBed: () => Promise<TestBed>;
+        /** Get the TestBed Viem contract instance */
+        getTestBed: () => Promise<ReturnType<typeof getTestBedContract>>;
       };
     };
   }

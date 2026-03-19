@@ -1,0 +1,23 @@
+{
+  "name": "@cofhe/hardhat-3-plugin-test",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "hardhat test --no-compile",
+    "clean": "hardhat clean"
+  },
+  "devDependencies": {
+    "@cofhe/hardhat-3-plugin": "workspace:*",
+    "@cofhe/mock-contracts": "workspace:*",
+    "@cofhe/sdk": "workspace:*",
+    "@cofhe/tsconfig": "workspace:*",
+    "@nomicfoundation/hardhat-mocha": "^3.0.11",
+    "@types/mocha": "^10.0.0",
+    "@types/node": "^20.0.0",
+    "@types/chai": "^5.0.0",
+    "chai": "^5.0.0",
+    "hardhat": "^3.1.12",
+    "typescript": "5.5.4",
+    "viem": "^2.38.6"
+  }
+}
