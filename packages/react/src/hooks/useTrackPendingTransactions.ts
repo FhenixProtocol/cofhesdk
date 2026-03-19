@@ -124,7 +124,10 @@ function useTrackPendingTransactionsBase({
     queryFn: async () => {
       assert(publicClient, 'Public client is guaranteed by enabled condition');
       try {
-        const receipt = await publicClient.waitForTransactionReceipt({ hash: tx.hash as `0x${string}` });
+        const receipt = await publicClient.waitForTransactionReceipt({
+          hash: tx.hash as `0x${string}`,
+          confirmations: 3,
+        });
 
         const status = receipt.status === 'success' ? TransactionStatus.Confirmed : TransactionStatus.Failed;
         // invalidate if tx was successful
