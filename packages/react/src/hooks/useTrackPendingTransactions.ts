@@ -14,6 +14,7 @@ import { getTokenContractConfig } from '@/constants/confidentialTokenABIs';
 import { ETH_ADDRESS_LOWERCASE, type Token } from './useCofheTokenLists';
 import { constructPublicTokenBalanceQueryKeyForInvalidation } from './useCofheTokenPublicBalance';
 import { constructUnshieldClaimsQueryKeyForInvalidation, invalidateClaimableQueries } from './useCofheTokenClaimable';
+import { constructTokenAllowanceQueryKeyForInvalidation } from './useTokenAllowance';
 import { usePendingTransactions } from './usePendingTransactions';
 import { useDecryptionWatchersStore } from '@/stores/decryptionWatchingStore';
 import { useTransactionGlobalLifecycle } from './useTransactionGlobalLifecycle';
@@ -77,6 +78,31 @@ function invalidatePublicAndConfidentialTokenBalanceQueries(
     },
     queryClient
   );
+}
+
+function invalidateTokenAllowanceQueries(
+  {
+    chainId,
+    tokenAddress,
+    ownerAddress,
+    spenderAddress,
+  }: {
+    chainId: number;
+    tokenAddress: Address;
+    ownerAddress: Address;
+    spenderAddress: Address;
+  },
+  queryClient: QueryClient
+) {
+  const queryKey = constructTokenAllowanceQueryKeyForInvalidation({
+    chainId,
+    tokenAddress,
+    ownerAddress,
+    spenderAddress,
+  });
+
+  console.log('Invalidating token allowance queries:', queryKey);
+  queryClient.invalidateQueries({ queryKey });
 }
 
 type UseTrackPendingTransactionsInput = {
@@ -183,6 +209,20 @@ function useHandleInvalidations() {
 
         queryClient,
       });
+    } else if (tx.actionType === TransactionActionType.Approve) {
+      const underlying = tx.token.extensions.fhenix.erc20Pair?.address;
+      assert(underlying, 'erc20Pair is required for approve transaction invalidation');
+      if (underlying.toLowerCase() !== ETH_ADDRESS_LOWERCASE) {
+        invalidateTokenAllowanceQueries(
+          {
+            chainId: tx.token.chainId,
+            tokenAddress: underlying,
+            ownerAddress: tx.account,
+            spenderAddress: tx.token.address,
+          },
+          queryClient
+        );
+      }
     } else {
       // @ts-expect-error actionType = "never" at this point
       console.warn('No invalidation logic for transaction action type:', tx.actionType);

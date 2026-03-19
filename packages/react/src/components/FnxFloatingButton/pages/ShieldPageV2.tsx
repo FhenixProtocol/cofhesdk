@@ -38,6 +38,8 @@ import { cofheHumanizeViemError } from '@/utils/cofheErrors';
 import { PageContainer } from '../components/PageContainer';
 import { PortalModal } from '../modals/types';
 import { CopyButton } from '../components/HashLink';
+import { TransactionActionType, useTransactionStore } from '@/stores/transactionStore';
+import { hasExtras } from '@/hooks/useCofheWriteContract';
 
 const AUTOCLEAR_TX_STATUS_TIMEOUT = 5000;
 const DISPLAY_DECIMALS = 5;
@@ -197,12 +199,12 @@ function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 
     },
   });
 
-  const tokenApprove = useCofheWriteContract({
+  const tokenApprove = useCofheWriteContract<{ token: Token; tokenAmount: bigint }>({
     onMutate: () => {
       setError(null);
       setStatus({ message: 'Preparing approval transaction...', type: 'info' });
     },
-    onSuccess: (hash) => {
+    onSuccess: (hash, variables) => {
       setStatus({
         message: (
           <>
@@ -212,6 +214,22 @@ function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 
         ),
         type: 'info',
       });
+
+      if (hasExtras(variables)) {
+        const { extras } = variables;
+        assert(account, 'Wallet account is required for approval tracking');
+
+        useTransactionStore.getState().addTransaction({
+          hash,
+          token: extras.token,
+          tokenAmount: extras.tokenAmount,
+          chainId: extras.token.chainId,
+          actionType: TransactionActionType.Approve,
+          isPendingDecryption: false,
+          account,
+        });
+      }
+      // }
     },
     onError: (error) => {
       const errorMessage =
@@ -256,7 +274,11 @@ function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 
 
   const handleApprove = async () => {
     assert(approvalCallArgs, 'Approval call args are required to approve');
-    await tokenApprove.writeContractAsync({ ...approvalCallArgs, account: account ?? null, chain: undefined });
+    assert(shieldAmountWei, 'Shield amount is required to approve');
+    await tokenApprove.writeContractAsync({
+      writeContractInput: { ...approvalCallArgs, account: account ?? null, chain: undefined },
+      extras: { token, tokenAmount: shieldAmountWei },
+    });
   };
 
   const { data: { unit: publicBalanceUnit } = {}, isFetching: isFetchingPublic } = useCofheTokenPublicBalance({
@@ -291,11 +313,7 @@ function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 
   const approvalCallArgs = shieldTxCallArgs?.approval;
   const approvalSpender = (approvalCallArgs?.args?.[0] as Address | undefined) ?? undefined;
 
-  const {
-    data: allowanceWei,
-    isFetching: isFetchingAllowance,
-    refetch: refetchAllowance,
-  } = useTokenAllowance(
+  const { data: allowanceWei, isFetching: isFetchingAllowance } = useTokenAllowance(
     {
       tokenAddress: approvalCallArgs?.address,
       ownerAddress: account,
@@ -334,7 +352,6 @@ function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 
           ),
           type: 'success',
         });
-        await refetchAllowance();
       } else if (transaction.status === 'failed') {
         setError(
           <>

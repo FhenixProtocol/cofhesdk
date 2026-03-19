@@ -26,6 +26,25 @@ export function constructTokenAllowanceQueryKey({
   ];
 }
 
+export function constructTokenAllowanceQueryKeyForInvalidation({
+  chainId,
+  tokenAddress,
+  ownerAddress,
+  spenderAddress,
+}: {
+  chainId: number;
+  tokenAddress: Address;
+  ownerAddress: Address;
+  spenderAddress: Address;
+}): readonly unknown[] {
+  return constructTokenAllowanceQueryKey({
+    chainId,
+    tokenAddress,
+    ownerAddress,
+    spenderAddress,
+  });
+}
+
 type UseTokenAllowanceInput = {
   /** ERC20 token contract address */
   tokenAddress?: Address;

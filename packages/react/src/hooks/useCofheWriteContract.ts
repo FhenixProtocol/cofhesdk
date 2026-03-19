@@ -24,7 +24,7 @@ type WalletWriteContractMutationVariables<TExtras> =
   | WalletWriteContractParamsAny
   | WalletWriteContractInputWithExtras<TExtras>;
 
-function hasExtras<TExtras>(
+export function hasExtras<TExtras>(
   variables: WalletWriteContractMutationVariables<TExtras>
 ): variables is WalletWriteContractInputWithExtras<TExtras> {
   return (
