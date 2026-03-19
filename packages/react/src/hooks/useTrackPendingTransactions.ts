@@ -126,7 +126,6 @@ function useTrackPendingTransactionsBase({
       try {
         const receipt = await publicClient.waitForTransactionReceipt({
           hash: tx.hash as `0x${string}`,
-          confirmations: 3,
         });
 
         const status = receipt.status === 'success' ? TransactionStatus.Confirmed : TransactionStatus.Failed;
