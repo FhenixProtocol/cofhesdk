@@ -1,9 +1,12 @@
 import { type Permission, type EthEncryptedData } from '@/permits';
 
 import { CofheError, CofheErrorCode } from '../error.js';
+import { type DecryptPollCallbackFunction } from '../types.js';
+import { computeMinuteRampPollIntervalMs } from './polling.js';
 
 // Polling configuration
 const POLL_INTERVAL_MS = 1000; // 1 second
+const POLL_MAX_INTERVAL_MS = 10_000; // 10 seconds
 const POLL_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
 // V2 API response types
@@ -146,13 +149,32 @@ async function submitSealOutputRequest(
 /**
  * Polls for the sealoutput status until completed or timeout
  */
-async function pollSealOutputStatus(thresholdNetworkUrl: string, requestId: string): Promise<EthEncryptedData> {
+async function pollSealOutputStatus(
+  thresholdNetworkUrl: string,
+  requestId: string,
+  onPoll?: DecryptPollCallbackFunction
+): Promise<EthEncryptedData> {
   const startTime = Date.now();
+  let attemptIndex = 0;
   let completed = false;
 
   while (!completed) {
+    const elapsedMs = Date.now() - startTime;
+    const intervalMs = computeMinuteRampPollIntervalMs(elapsedMs, {
+      minIntervalMs: POLL_INTERVAL_MS,
+      maxIntervalMs: POLL_MAX_INTERVAL_MS,
+    });
+    onPoll?.({
+      operation: 'sealoutput',
+      requestId,
+      attemptIndex,
+      elapsedMs,
+      intervalMs,
+      timeoutMs: POLL_TIMEOUT_MS,
+    });
+
     // Check timeout
-    if (Date.now() - startTime > POLL_TIMEOUT_MS) {
+    if (elapsedMs > POLL_TIMEOUT_MS) {
       throw new CofheError({
         code: CofheErrorCode.SealOutputFailed,
         message: `sealOutput polling timed out after ${POLL_TIMEOUT_MS}ms`,
@@ -270,7 +292,8 @@ async function pollSealOutputStatus(thresholdNetworkUrl: string, requestId: stri
     }
 
     // Still processing, wait before next poll
-    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    attemptIndex += 1;
   }
 
   // This should never be reached, but TypeScript requires it
@@ -284,15 +307,18 @@ async function pollSealOutputStatus(thresholdNetworkUrl: string, requestId: stri
   });
 }
 
-export async function tnSealOutputV2(
-  ctHash: bigint | string,
-  chainId: number,
-  permission: Permission,
-  thresholdNetworkUrl: string
-): Promise<EthEncryptedData> {
+export async function tnSealOutputV2(params: {
+  ctHash: bigint | string;
+  chainId: number;
+  permission: Permission;
+  thresholdNetworkUrl: string;
+  onPoll?: DecryptPollCallbackFunction;
+}): Promise<EthEncryptedData> {
+  const { thresholdNetworkUrl, ctHash, chainId, permission, onPoll } = params;
+
   // Step 1: Submit the request and get request_id
   const requestId = await submitSealOutputRequest(thresholdNetworkUrl, ctHash, chainId, permission);
 
   // Step 2: Poll for status until completed
-  return await pollSealOutputStatus(thresholdNetworkUrl, requestId);
+  return await pollSealOutputStatus(thresholdNetworkUrl, requestId, onPoll);
 }
