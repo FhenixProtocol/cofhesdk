@@ -159,7 +159,7 @@ async function pollSealOutputStatus(
   while (!completed) {
     attempt += 1;
     onPoll?.({
-      operation: 'sealOutput',
+      operation: 'sealoutput',
       requestId,
       attempt,
       elapsedMs: Date.now() - startTime,

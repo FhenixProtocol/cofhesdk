@@ -177,7 +177,7 @@ describe('decrypt polling callbacks', () => {
     expect(onPoll).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
-        operation: 'sealOutput',
+        operation: 'sealoutput',
         requestId: 'req-2',
         attempt: 1,
       })
@@ -185,7 +185,7 @@ describe('decrypt polling callbacks', () => {
     expect(onPoll).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
-        operation: 'sealOutput',
+        operation: 'sealoutput',
         requestId: 'req-2',
         attempt: 2,
       })

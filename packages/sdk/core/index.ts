@@ -45,7 +45,7 @@ export type {
   UnsealedItem,
   DecryptPollCallbackFunction,
   DecryptPollCallbackContext,
-  DecryptPollOperation,
+  DecryptEndpoint,
   // Util types
   EncryptStepCallbackFunction as EncryptSetStateFn,
   EncryptStepCallbackContext,
