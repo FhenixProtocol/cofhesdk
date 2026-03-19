@@ -1,0 +1,5 @@
+{
+  "extends": "@cofhe/tsconfig/base.json",
+  "include": ["src/**/*.ts"],
+  "exclude": ["dist", "node_modules"]
+}
