@@ -92,15 +92,15 @@ export function useTokenAllowance(
 ): UseTokenAllowanceResult {
   const publicClient = useCofhePublicClient();
 
-  const { data, isFetching, refetch } = useInternalQuery(
-    createTokenAllowanceQueryOptions({
-      publicClient,
-      tokenAddress,
-      ownerAddress,
-      spenderAddress,
-      queryOptions: options,
-    })
-  );
+  const queryOptions = createTokenAllowanceQueryOptions({
+    publicClient,
+    tokenAddress,
+    ownerAddress,
+    spenderAddress,
+    queryOptions: options,
+  });
+
+  const { data, isFetching, refetch } = useInternalQuery(queryOptions);
 
   return {
     data,
