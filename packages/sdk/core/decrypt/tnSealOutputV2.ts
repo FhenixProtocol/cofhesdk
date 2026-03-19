@@ -153,15 +153,14 @@ async function pollSealOutputStatus(
   onPoll?: DecryptPollCallbackFunction
 ): Promise<EthEncryptedData> {
   const startTime = Date.now();
-  let attempt = 0;
+  let attemptIndex = 0;
   let completed = false;
 
   while (!completed) {
-    attempt += 1;
     onPoll?.({
       operation: 'sealoutput',
       requestId,
-      attempt,
+      attemptIndex,
       elapsedMs: Date.now() - startTime,
       intervalMs: POLL_INTERVAL_MS,
       timeoutMs: POLL_TIMEOUT_MS,
@@ -287,6 +286,7 @@ async function pollSealOutputStatus(
 
     // Still processing, wait before next poll
     await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+    attemptIndex += 1;
   }
 
   // This should never be reached, but TypeScript requires it

@@ -92,7 +92,7 @@ describe('decrypt polling callbacks', () => {
       expect.objectContaining({
         operation: 'decrypt',
         requestId: 'req-1',
-        attempt: 1,
+        attemptIndex: 0,
         intervalMs: 1000,
         timeoutMs: 5 * 60 * 1000,
       })
@@ -102,7 +102,7 @@ describe('decrypt polling callbacks', () => {
       expect.objectContaining({
         operation: 'decrypt',
         requestId: 'req-1',
-        attempt: 2,
+        attemptIndex: 1,
       })
     );
   });
@@ -179,7 +179,7 @@ describe('decrypt polling callbacks', () => {
       expect.objectContaining({
         operation: 'sealoutput',
         requestId: 'req-2',
-        attempt: 1,
+        attemptIndex: 0,
       })
     );
     expect(onPoll).toHaveBeenNthCalledWith(
@@ -187,7 +187,7 @@ describe('decrypt polling callbacks', () => {
       expect.objectContaining({
         operation: 'sealoutput',
         requestId: 'req-2',
-        attempt: 2,
+        attemptIndex: 1,
       })
     );
   });

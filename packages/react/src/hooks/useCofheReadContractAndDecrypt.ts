@@ -42,7 +42,7 @@ const onPoll = isProduction()
   ? undefined
   : (context: DecryptPollCallbackContext) => {
       console.debug(
-        `Decryption poll attempt ${context.attempt}. Operation: ${context.operation}. ${context.elapsedMs}ms elapsed. Request ID: ${context.requestId}.`
+        `Decryption poll attemptIndex ${context.attemptIndex}. Operation: ${context.operation}. ${context.elapsedMs}ms elapsed. Request ID: ${context.requestId}.`
       );
     };
 /**

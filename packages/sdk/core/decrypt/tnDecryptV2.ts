@@ -189,15 +189,14 @@ async function pollDecryptStatusV2(
   onPoll?: DecryptPollCallbackFunction
 ): Promise<{ decryptedValue: bigint; signature: `0x${string}` }> {
   const startTime = Date.now();
-  let attempt = 0;
+  let attemptIndex = 0;
   let completed = false;
 
   while (!completed) {
-    attempt += 1;
     onPoll?.({
       operation: 'decrypt',
       requestId,
-      attempt,
+      attemptIndex,
       elapsedMs: Date.now() - startTime,
       intervalMs: POLL_INTERVAL_MS,
       timeoutMs: POLL_TIMEOUT_MS,
@@ -332,6 +331,7 @@ async function pollDecryptStatusV2(
     }
 
     await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+    attemptIndex += 1;
   }
 
   // This should never be reached, but keeps TS and linters happy.
