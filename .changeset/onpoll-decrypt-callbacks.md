@@ -1,7 +1,7 @@
 ---
-"@cofhe/sdk": minor
-"@cofhe/react": minor
-"@cofhe/site": minor
+'@cofhe/sdk': minor
+'@cofhe/react': minor
+'@cofhe/site': minor
 ---
 
 Add `onPoll` callback support for decrypt polling (tx + view) so consumers can observe poll progress.
