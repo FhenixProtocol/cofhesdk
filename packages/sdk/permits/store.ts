@@ -1,5 +1,5 @@
 import { createStore } from 'zustand/vanilla';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { produce } from 'immer';
 import { type Permit, type SerializedPermit } from './types.js';
 import { PermitUtils } from './permit.js';
@@ -19,8 +19,25 @@ export const PERMIT_STORE_DEFAULTS: PermitsStore = {
   permits: {},
   activePermitHash: {},
 };
+
+// SSR-safe storage: the getter function is only called on the client.
+// This prevents "indexedDB is not defined" errors during Next.js SSR, where
+// Zustand's default persist storage tries indexedDB first.
+const noopStorage = {
+  getItem: () => null,
+  setItem: () => {},
+  removeItem: () => {},
+};
+
+const ssrSafeStorage = createJSONStorage<PermitsStore>(() => {
+  // Access localStorage via globalThis to avoid TS errors (no 'dom' lib in this package).
+  // During SSR, globalThis.localStorage is undefined — fall back to no-op storage.
+  const ls = (globalThis as Record<string, unknown>).localStorage;
+  return (ls as typeof noopStorage) ?? noopStorage;
+});
+
 export const _permitStore = createStore<PermitsStore>()(
-  persist(() => PERMIT_STORE_DEFAULTS, { name: 'cofhesdk-permits' })
+  persist(() => PERMIT_STORE_DEFAULTS, { name: 'cofhesdk-permits', storage: ssrSafeStorage })
 );
 
 export const clearStaleStore = () => {

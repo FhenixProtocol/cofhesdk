@@ -4,6 +4,9 @@ import './styles.css';
 // Providers
 export { CofheProvider, useCofheContext } from './providers/index';
 
+// Non-React client accessor
+export { getCofheClient, isCofheConnected } from './clientAccessor';
+
 // Hooks
 export {
   useCofheConnection,

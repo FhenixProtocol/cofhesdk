@@ -30,8 +30,9 @@ type DecryptionWatchersState = {
   removeQueryKeyFromWatchers: (queryKey: QueryKey) => void;
 };
 
-// Custom storage to handle bigint serialization
-const bigintStorage = createJSONStorage<DecryptionWatchersState>(() => localStorage, bigintJSONStorageOptions);
+// Custom storage to handle bigint serialization (SSR-safe)
+import { getSSRSafeStorage } from '@/utils/ssrSafeStorage';
+const bigintStorage = createJSONStorage<DecryptionWatchersState>(() => getSSRSafeStorage(), bigintJSONStorageOptions);
 
 export const useDecryptionWatchersStore = create<DecryptionWatchersState>()(
   persist(
