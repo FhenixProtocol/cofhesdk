@@ -1,10 +1,17 @@
+/// <reference lib="dom" />
 import type { IStorage } from '@/core';
 import { constructClient } from 'iframe-shared-storage';
+import { hasDOM } from '.';
+
 /**
  * Creates a web storage implementation using IndexedDB
  * @returns IStorage implementation for browser environments
  */
 export const createWebStorage = (): IStorage => {
+  if (!hasDOM) {
+    throw new Error('createWebStorage can only be used in a browser environment');
+  }
+
   const client = constructClient({
     iframe: {
       src: 'https://iframe-shared-storage.vercel.app/hub.html',
@@ -32,3 +39,13 @@ export const createWebStorage = (): IStorage => {
     },
   };
 };
+
+export function createSsrStorage(): IStorage {
+  // TODO: consider doing something like wagmi's cookies storage for SSR - this in-memory storage will not persist across requests, but it also won't throw errors if accessed in SSR (e.g. during getServerSideProps in Next.js)
+
+  return {
+    getItem: async () => null,
+    setItem: async () => {},
+    removeItem: async () => {},
+  };
+}

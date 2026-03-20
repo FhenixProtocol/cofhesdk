@@ -13,7 +13,7 @@ import {
 } from '@/core';
 
 // Import web-specific storage (internal use only)
-import { createWebStorage } from './storage.js';
+import { createSsrStorage, createWebStorage } from './storage.js';
 
 // Import worker manager
 import { getWorkerManager, terminateWorker, areWorkersAvailable } from './workerManager.js';
@@ -103,7 +103,8 @@ export function createCofheConfig(config: CofheInputConfig): CofheConfig {
   return createCofheConfigBase({
     environment: 'web',
     ...config,
-    fheKeyStorage: config.fheKeyStorage === null ? null : config.fheKeyStorage ?? createWebStorage(),
+    fheKeyStorage:
+      config.fheKeyStorage === null ? null : config.fheKeyStorage ?? hasDOM ? createWebStorage() : createSsrStorage(),
   });
 }
 
@@ -159,3 +160,8 @@ export function createCofheClientWithCustomWorker(
     zkProveWorkerFn: customZkProveWorkerFn,
   });
 }
+
+export const hasDOM =
+  typeof (globalThis as any)?.document !== 'undefined' && typeof (globalThis as any)?.window !== 'undefined';
+
+export { createSsrStorage };
