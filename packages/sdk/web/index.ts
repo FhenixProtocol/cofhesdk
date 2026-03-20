@@ -105,7 +105,7 @@ export function createCofheConfig(config: CofheInputConfig): CofheConfig {
     environment: 'web',
     ...config,
     fheKeyStorage:
-      config.fheKeyStorage === null ? null : config.fheKeyStorage ?? hasDOM ? createWebStorage() : createSsrStorage(),
+      config.fheKeyStorage === null ? null : config.fheKeyStorage ?? (hasDOM ? createWebStorage() : createSsrStorage()),
   });
 }
 
