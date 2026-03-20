@@ -1,5 +1,6 @@
-import hre from 'hardhat';
-import { expect } from 'chai';
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import { network } from 'hardhat';
 import {
   TASK_MANAGER_ADDRESS,
   MOCKS_ZK_VERIFIER_ADDRESS,
@@ -7,55 +8,46 @@ import {
   TEST_BED_ADDRESS,
 } from '@cofhe/sdk';
 
-async function hasCode(address: `0x${string}`): Promise<boolean> {
-  const code = await hre.cofhe.publicClient.getCode({ address });
-  return !!code && code.length > 2;
-}
+describe('Deploy Mocks', async () => {
+  const { viem, cofhe } = await network.connect();
+  const publicClient = await viem.getPublicClient();
 
-describe('Deploy Mocks', () => {
+  const hasCode = async (address: `0x${string}`) => {
+    const code = await publicClient.getCode({ address });
+    return !!code && code.length > 2;
+  };
+
   it('MockTaskManager is deployed at the expected fixed address', async () => {
-    const tm = await hre.cofhe.mocks.getMockTaskManager();
-    expect(tm.address.toLowerCase()).to.equal(TASK_MANAGER_ADDRESS.toLowerCase());
-    expect(await hasCode(tm.address)).to.be.true;
+    const { address } = cofhe.mocks.MockTaskManager;
+    assert.equal(address.toLowerCase(), TASK_MANAGER_ADDRESS.toLowerCase());
+    assert.ok(await hasCode(address));
   });
 
   it('MockACL is deployed and its address matches TaskManager.acl()', async () => {
-    const tm = await hre.cofhe.mocks.getMockTaskManager();
-    const acl = await hre.cofhe.mocks.getMockACL();
-
-    const aclAddressFromTm = await hre.cofhe.publicClient.readContract({
-      address: tm.address,
-      abi: [
-        {
-          name: 'acl',
-          type: 'function',
-          inputs: [],
-          outputs: [{ type: 'address' }],
-          stateMutability: 'view',
-        },
-      ] as const,
+    const { address } = await cofhe.mocks.MockACL();
+    const aclFromTm = await publicClient.readContract({
+      ...cofhe.mocks.MockTaskManager,
       functionName: 'acl',
     });
-
-    expect(acl.address.toLowerCase()).to.equal(aclAddressFromTm.toLowerCase());
-    expect(await hasCode(acl.address)).to.be.true;
+    assert.equal(address.toLowerCase(), (aclFromTm as string).toLowerCase());
+    assert.ok(await hasCode(address));
   });
 
   it('MockZkVerifier is deployed at the expected fixed address', async () => {
-    const zkv = await hre.cofhe.mocks.getMockZkVerifier();
-    expect(zkv.address.toLowerCase()).to.equal(MOCKS_ZK_VERIFIER_ADDRESS.toLowerCase());
-    expect(await hasCode(zkv.address)).to.be.true;
+    const { address } = cofhe.mocks.MockZkVerifier;
+    assert.equal(address.toLowerCase(), MOCKS_ZK_VERIFIER_ADDRESS.toLowerCase());
+    assert.ok(await hasCode(address));
   });
 
   it('MockThresholdNetwork is deployed at the expected fixed address', async () => {
-    const tn = await hre.cofhe.mocks.getMockThresholdNetwork();
-    expect(tn.address.toLowerCase()).to.equal(MOCKS_THRESHOLD_NETWORK_ADDRESS.toLowerCase());
-    expect(await hasCode(tn.address)).to.be.true;
+    const { address } = cofhe.mocks.MockThresholdNetwork;
+    assert.equal(address.toLowerCase(), MOCKS_THRESHOLD_NETWORK_ADDRESS.toLowerCase());
+    assert.ok(await hasCode(address));
   });
 
   it('TestBed is deployed at the expected fixed address', async () => {
-    const tb = await hre.cofhe.mocks.getTestBed();
-    expect(tb.address.toLowerCase()).to.equal(TEST_BED_ADDRESS.toLowerCase());
-    expect(await hasCode(tb.address)).to.be.true;
+    const { address } = cofhe.mocks.TestBed;
+    assert.equal(address.toLowerCase(), TEST_BED_ADDRESS.toLowerCase());
+    assert.ok(await hasCode(address));
   });
 });

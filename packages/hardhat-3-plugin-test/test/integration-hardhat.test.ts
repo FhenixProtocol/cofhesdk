@@ -1,98 +1,80 @@
-import hre from 'hardhat';
-import { expect } from 'chai';
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import { network } from 'hardhat';
 import { Encryptable, FheTypes } from '@cofhe/sdk';
-import { TestBedArtifact } from '@cofhe/mock-contracts';
-import { TEST_BED_ADDRESS } from '@cofhe/sdk';
 
-describe('Integration – Hardhat', () => {
+describe('Integration – Hardhat', async () => {
+  const { viem, cofhe } = await network.connect();
+  const publicClient = await viem.getPublicClient();
+  const [walletClient] = await viem.getWalletClients();
+
   it('full flow: encrypt → store on-chain → decryptForView', async () => {
-    const client = await hre.cofhe.createClientWithBatteries();
+    const client = await cofhe.createClientWithBatteries(walletClient);
     const [enc] = await client.encryptInputs([Encryptable.uint32(100n)]).execute();
 
-    const [account] = await hre.cofhe.walletClient.getAddresses();
-    await hre.cofhe.walletClient.writeContract({
-      address: TEST_BED_ADDRESS,
-      abi: TestBedArtifact.abi,
+    await walletClient.writeContract({
+      ...cofhe.mocks.TestBed,
       functionName: 'setNumber',
       args: [{ ctHash: enc.ctHash, securityZone: enc.securityZone, utype: enc.utype, signature: enc.signature as `0x${string}` }],
-      account,
-      chain: null,
     });
 
-    const ctHash = await hre.cofhe.publicClient.readContract({
-      address: TEST_BED_ADDRESS,
-      abi: TestBedArtifact.abi,
+    const ctHash = await publicClient.readContract({
+      ...cofhe.mocks.TestBed,
       functionName: 'numberHash',
     }) as `0x${string}`;
 
     const decrypted = await client.decryptForView(ctHash, FheTypes.Uint32).execute();
-    expect(decrypted).to.equal(100n);
+    assert.equal(decrypted, 100n);
   });
 
   it('full flow: encrypt → store on-chain → decryptForTx → publish', async () => {
     const testValue = 55n;
-    const client = await hre.cofhe.createClientWithBatteries();
+    const client = await cofhe.createClientWithBatteries(walletClient);
     const [enc] = await client.encryptInputs([Encryptable.uint32(testValue)]).execute();
 
-    const [account] = await hre.cofhe.walletClient.getAddresses();
-    await hre.cofhe.walletClient.writeContract({
-      address: TEST_BED_ADDRESS,
-      abi: TestBedArtifact.abi,
+    await walletClient.writeContract({
+      ...cofhe.mocks.TestBed,
       functionName: 'setNumber',
       args: [{ ctHash: enc.ctHash, securityZone: enc.securityZone, utype: enc.utype, signature: enc.signature as `0x${string}` }],
-      account,
-      chain: null,
     });
 
-    const ctHash = await hre.cofhe.publicClient.readContract({
-      address: TEST_BED_ADDRESS,
-      abi: TestBedArtifact.abi,
+    const ctHash = await publicClient.readContract({
+      ...cofhe.mocks.TestBed,
       functionName: 'numberHash',
     }) as `0x${string}`;
 
     const result = await client.decryptForTx(ctHash).withPermit().execute();
-    expect(result.decryptedValue).to.equal(testValue);
+    assert.equal(result.decryptedValue, testValue);
 
-    // ctHash (bytes32) is the correct format for publishDecryptResult
-    await hre.cofhe.walletClient.writeContract({
-      address: TEST_BED_ADDRESS,
-      abi: TestBedArtifact.abi,
+    await walletClient.writeContract({
+      ...cofhe.mocks.TestBed,
       functionName: 'publishDecryptResult',
       args: [ctHash, result.decryptedValue, result.signature as `0x${string}`],
-      account,
-      chain: null,
     });
 
-    const [publishedValue, isDecrypted] = await hre.cofhe.publicClient.readContract({
-      address: TEST_BED_ADDRESS,
-      abi: TestBedArtifact.abi,
+    const [publishedValue, isDecrypted] = await publicClient.readContract({
+      ...cofhe.mocks.TestBed,
       functionName: 'getDecryptResultSafe',
       args: [ctHash],
     }) as [bigint, boolean];
 
-    // Viem returns uint32 as number, not bigint
-    expect(isDecrypted).to.be.true;
-    expect(Number(publishedValue)).to.equal(Number(testValue));
+    assert.equal(isDecrypted, true);
+    assert.equal(Number(publishedValue), Number(testValue));
   });
 
   it('trivial value: setNumberTrivial → getPlaintext → verify', async () => {
-    const [account] = await hre.cofhe.walletClient.getAddresses();
-    await hre.cofhe.walletClient.writeContract({
-      address: TEST_BED_ADDRESS,
-      abi: TestBedArtifact.abi,
+    await walletClient.writeContract({
+      ...cofhe.mocks.TestBed,
       functionName: 'setNumberTrivial',
       args: [42],
-      account,
-      chain: null,
     });
 
-    const ctHash = await hre.cofhe.publicClient.readContract({
-      address: TEST_BED_ADDRESS,
-      abi: TestBedArtifact.abi,
+    const ctHash = await publicClient.readContract({
+      ...cofhe.mocks.TestBed,
       functionName: 'numberHash',
     }) as `0x${string}`;
 
-    const plaintext = await hre.cofhe.mocks.getPlaintext(ctHash);
-    expect(plaintext).to.equal(42n);
+    const plaintext = await cofhe.mocks.getPlaintext(ctHash);
+    assert.equal(plaintext, 42n);
   });
 });

@@ -1,51 +1,46 @@
-import hre from 'hardhat';
-import { expect } from 'chai';
-import { TestBedArtifact } from '@cofhe/mock-contracts';
-import { TEST_BED_ADDRESS } from '@cofhe/sdk';
+import { describe, it, beforeEach } from 'node:test';
+import assert from 'node:assert/strict';
+import { network } from 'hardhat';
 
-async function setTrivialNumber(value: number) {
-  const [account] = await hre.cofhe.walletClient.getAddresses();
-  await hre.cofhe.walletClient.writeContract({
-    address: TEST_BED_ADDRESS,
-    abi: TestBedArtifact.abi,
-    functionName: 'setNumberTrivial',
-    args: [value],
-    account,
-    chain: null,
-  });
-}
+describe('Mocks Plaintext', async () => {
+  const { viem, cofhe } = await network.connect();
+  const publicClient = await viem.getPublicClient();
+  const [walletClient] = await viem.getWalletClients();
 
-async function getCtHash() {
-  return hre.cofhe.publicClient.readContract({
-    address: TEST_BED_ADDRESS,
-    abi: TestBedArtifact.abi,
-    functionName: 'numberHash',
-  }) as Promise<`0x${string}`>;
-}
+  const setTrivialNumber = async (value: number) => {
+    await walletClient.writeContract({
+      ...cofhe.mocks.TestBed,
+      functionName: 'setNumberTrivial',
+      args: [value],
+    });
+  };
 
-describe('Mocks Plaintext', () => {
+  const getCtHash = () =>
+    publicClient.readContract({
+      ...cofhe.mocks.TestBed,
+      functionName: 'numberHash',
+    }) as Promise<`0x${string}`>;
+
   beforeEach(async () => {
     await setTrivialNumber(7);
   });
 
   it('getPlaintext returns the stored trivial value', async () => {
     const ctHash = await getCtHash();
-    const plaintext = await hre.cofhe.mocks.getPlaintext(ctHash);
-    expect(plaintext).to.equal(7n);
+    const plaintext = await cofhe.mocks.getPlaintext(ctHash);
+    assert.equal(plaintext, 7n);
   });
 
   it('expectPlaintext passes for the correct value', async () => {
     const ctHash = await getCtHash();
-    await hre.cofhe.mocks.expectPlaintext(ctHash, 7n);
+    await cofhe.mocks.expectPlaintext(ctHash, 7n);
   });
 
   it('expectPlaintext throws for a wrong value', async () => {
     const ctHash = await getCtHash();
-    try {
-      await hre.cofhe.mocks.expectPlaintext(ctHash, 99n);
-      expect.fail('expectPlaintext should have thrown');
-    } catch (err) {
-      expect((err as Error).message).to.include('expected');
-    }
+    await assert.rejects(
+      () => cofhe.mocks.expectPlaintext(ctHash, 99n),
+      /expected/,
+    );
   });
 });

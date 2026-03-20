@@ -1,66 +1,45 @@
-import hre from 'hardhat';
-import { expect } from 'chai';
-import { hardhat as hardhatChain } from '@cofhe/sdk/chains';
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import { network } from 'hardhat';
 
-describe('CoFHE Plugin Config', () => {
-  it('injects cofhe config defaults into hre.config', () => {
-    expect(hre.config.cofhe).to.be.an('object');
-    expect(hre.config.cofhe.logMocks).to.be.a('boolean');
-    expect(hre.config.cofhe.gasWarning).to.be.a('boolean');
-  });
+describe('CoFHE Plugin Config', async () => {
+  // Config is accessible without a connection
+  const { viem, cofhe } = await network.connect();
+  const publicClient = await viem.getPublicClient();
+  const [walletClient] = await viem.getWalletClients();
 
-  it('exposes publicClient and walletClient on hre.cofhe', async () => {
-    const chainId = await hre.cofhe.publicClient.getChainId();
-    expect(chainId).to.be.a('number');
-
-    const addresses = await hre.cofhe.walletClient.getAddresses();
-    expect(addresses).to.have.length.greaterThan(0);
-  });
-});
-
-describe('CoFHE SDK Client', () => {
   it('createConfig returns a valid CofheConfig', async () => {
-    const config = await hre.cofhe.createConfig({ supportedChains: [hardhatChain] });
-
-    expect(config.environment).to.equal('hardhat');
-    expect(config.supportedChains).to.deep.equal([hardhatChain]);
-    expect(config._internal?.zkvWalletClient).to.not.be.undefined;
+    const config = await cofhe.createConfig();
+    assert.equal(typeof config, 'object');
+    assert.equal(config.environment, 'hardhat');
   });
 
   it('createConfig propagates custom options', async () => {
-    const config = await hre.cofhe.createConfig({
-      supportedChains: [hardhatChain],
-      defaultPermitExpiration: 3600,
-      mocks: { decryptDelay: 200 },
-    });
-
-    expect(config.defaultPermitExpiration).to.equal(3600);
-    expect(config.mocks.decryptDelay).to.equal(200);
+    const config = await cofhe.createConfig({ mocks: { encryptDelay: 5 } });
+    assert.equal(config.mocks?.encryptDelay, 5);
   });
 
   it('createClient returns an unconnected CofheClient', async () => {
-    const config = await hre.cofhe.createConfig({ supportedChains: [hardhatChain] });
-    const client = hre.cofhe.createClient(config);
-
-    expect(client).to.not.be.undefined;
-    expect(client.config).to.equal(config);
-    expect(client.connected).to.be.false;
+    const config = await cofhe.createConfig();
+    const client = cofhe.createClient(config);
+    assert.equal(client.connected, false);
   });
 
   it('createClient can be connected with publicClient and walletClient', async () => {
-    const config = await hre.cofhe.createConfig({ supportedChains: [hardhatChain] });
-    const client = hre.cofhe.createClient(config);
-
-    await client.connect(hre.cofhe.publicClient, hre.cofhe.walletClient);
-
-    expect(client.connected).to.be.true;
+    const config = await cofhe.createConfig();
+    const client = cofhe.createClient(config);
+    await client.connect(publicClient, walletClient);
+    assert.equal(client.connected, true);
   });
 
-  it('createClientWithBatteries uses the default account when no walletClient is provided', async () => {
-    const client = await hre.cofhe.createClientWithBatteries();
-
-    expect(client.connected).to.be.true;
-    expect(client.config.environment).to.equal('hardhat');
+  it('createClientWithBatteries uses the first wallet account when none provided', async () => {
+    const client = await cofhe.createClientWithBatteries();
+    assert.equal(client.connected, true);
+    assert.equal(client.config.environment, 'hardhat');
   });
 
+  it('createClientWithBatteries accepts an explicit walletClient', async () => {
+    const client = await cofhe.createClientWithBatteries(walletClient);
+    assert.equal(client.connected, true);
+  });
 });

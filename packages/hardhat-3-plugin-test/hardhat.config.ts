@@ -1,12 +1,8 @@
 import { defineConfig } from 'hardhat/config';
 import cofhePlugin from '@cofhe/hardhat-3-plugin';
-import hardhatMocha from '@nomicfoundation/hardhat-mocha';
+import hardhatViem from '@nomicfoundation/hardhat-viem';
+import hardhatNodeTestRunner from '@nomicfoundation/hardhat-node-test-runner';
 
 export default defineConfig({
-  plugins: [cofhePlugin, hardhatMocha],
-  test: {
-    mocha: {
-      timeout: 60_000,
-    },
-  },
+  plugins: [cofhePlugin, hardhatViem, hardhatNodeTestRunner],
 });

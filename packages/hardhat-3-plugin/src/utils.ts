@@ -1,73 +1,5 @@
 import type { PublicClient } from 'viem';
-import { getContract } from 'viem';
-import type { MockArtifact } from '@cofhe/mock-contracts';
-import {
-  MockTaskManagerArtifact,
-  MockACLArtifact,
-  MockThresholdNetworkArtifact,
-  MockZkVerifierArtifact,
-  TestBedArtifact,
-} from '@cofhe/mock-contracts';
-import {
-  TASK_MANAGER_ADDRESS,
-  MOCKS_ZK_VERIFIER_ADDRESS,
-} from '@cofhe/sdk';
-
-// ─── Contract accessors ───────────────────────────────────────────────────────
-
-/**
- * Returns a viem contract instance for a fixed-address mock artifact.
- * Throws if the artifact is not fixed (i.e. has no known address).
- */
-export function getFixedMockContract(
-  publicClient: PublicClient,
-  artifact: MockArtifact & { isFixed: true },
-) {
-  return getContract({
-    address: artifact.fixedAddress as `0x${string}`,
-    abi: artifact.abi,
-    client: publicClient,
-  });
-}
-
-/** Returns a viem contract bound to the MockTaskManager fixed address. */
-export function getMockTaskManagerContract(publicClient: PublicClient) {
-  return getFixedMockContract(publicClient, MockTaskManagerArtifact);
-}
-
-/** Returns a viem contract bound to the MockZkVerifier fixed address. */
-export function getMockZkVerifierContract(publicClient: PublicClient) {
-  return getFixedMockContract(publicClient, MockZkVerifierArtifact);
-}
-
-/** Returns a viem contract bound to the MockThresholdNetwork fixed address. */
-export function getMockThresholdNetworkContract(publicClient: PublicClient) {
-  return getFixedMockContract(publicClient, MockThresholdNetworkArtifact);
-}
-
-/** Returns a viem contract bound to the TestBed fixed address. */
-export function getTestBedContract(publicClient: PublicClient) {
-  return getFixedMockContract(publicClient, TestBedArtifact);
-}
-
-/**
- * Returns a viem contract bound to MockACL.
- * The address is read from the TaskManager's `acl()` getter since ACL is
- * deployed to a non-deterministic address (constructor initialises EIP-712).
- */
-export async function getMockACLContract(publicClient: PublicClient) {
-  const aclAddress = await publicClient.readContract({
-    address: TASK_MANAGER_ADDRESS,
-    abi: [{ name: 'acl', type: 'function', inputs: [], outputs: [{ type: 'address' }], stateMutability: 'view' }],
-    functionName: 'acl',
-  });
-
-  return getContract({
-    address: aclAddress,
-    abi: MockACLArtifact.abi,
-    client: publicClient,
-  });
-}
+import { TASK_MANAGER_ADDRESS, MOCKS_ZK_VERIFIER_ADDRESS } from '@cofhe/sdk';
 
 // ─── Mock storage helpers ─────────────────────────────────────────────────────
 
@@ -87,7 +19,7 @@ async function isMockEnvironment(publicClient: PublicClient): Promise<boolean> {
  */
 export async function mock_getPlaintext(
   publicClient: PublicClient,
-  ctHash: bigint | string,
+  ctHash: bigint | string
 ): Promise<bigint | undefined> {
   if (!(await isMockEnvironment(publicClient))) {
     console.log('mock_getPlaintext — skipped on non-mock network');
@@ -116,7 +48,7 @@ export async function mock_getPlaintext(
 export async function mock_expectPlaintext(
   publicClient: PublicClient,
   ctHash: bigint | string,
-  expectedValue: bigint,
+  expectedValue: bigint
 ): Promise<void> {
   if (!(await isMockEnvironment(publicClient))) {
     console.log('mock_expectPlaintext — skipped on non-mock network');
@@ -142,8 +74,6 @@ export async function mock_expectPlaintext(
 
   const plaintext = await mock_getPlaintext(publicClient, ctHash);
   if (plaintext !== expectedValue) {
-    throw new Error(
-      `mock_expectPlaintext: expected ${expectedValue}, got ${plaintext} for ctHash ${ctHash}`,
-    );
+    throw new Error(`mock_expectPlaintext: expected ${expectedValue}, got ${plaintext} for ctHash ${ctHash}`);
   }
 }

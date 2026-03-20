@@ -1,36 +1,32 @@
-import hre from 'hardhat';
-import { expect } from 'chai';
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import { network } from 'hardhat';
 import { Encryptable } from '@cofhe/sdk';
-import { TestBedArtifact } from '@cofhe/mock-contracts';
-import { TEST_BED_ADDRESS } from '@cofhe/sdk';
 
-describe('Encrypt Inputs', () => {
-  it('encrypts a uint32 value and stores it on-chain', async () => {
-    const client = await hre.cofhe.createClientWithBatteries();
+describe('Encrypt Inputs', async () => {
+  const { viem, cofhe } = await network.connect();
+  const publicClient = await viem.getPublicClient();
+  const [walletClient] = await viem.getWalletClients();
 
+  it('encrypts a uint32, stores on-chain, reads back ctHash', async () => {
+    const client = await cofhe.createClientWithBatteries(walletClient);
     const [enc] = await client.encryptInputs([Encryptable.uint32(42n)]).execute();
 
-    expect(enc.ctHash).to.be.a('bigint');
-    expect(enc.ctHash).to.be.greaterThan(0n);
-    expect(enc.signature).to.be.a('string');
+    assert.equal(typeof enc.ctHash, 'bigint');
+    assert.ok(enc.ctHash > 0n);
+    assert.equal(typeof enc.signature, 'string');
 
-    // Verify it can be stored on-chain (TestBed.setNumber accepts an InEuint32 tuple)
-    const [account] = await hre.cofhe.walletClient.getAddresses();
-    await hre.cofhe.walletClient.writeContract({
-      address: TEST_BED_ADDRESS,
-      abi: TestBedArtifact.abi,
+    await walletClient.writeContract({
+      ...cofhe.mocks.TestBed,
       functionName: 'setNumber',
       args: [{ ctHash: enc.ctHash, securityZone: enc.securityZone, utype: enc.utype, signature: enc.signature as `0x${string}` }],
-      account,
-      chain: null,
     });
 
-    const ctHash = await hre.cofhe.publicClient.readContract({
-      address: TEST_BED_ADDRESS,
-      abi: TestBedArtifact.abi,
+    const ctHash = await publicClient.readContract({
+      ...cofhe.mocks.TestBed,
       functionName: 'numberHash',
     });
 
-    expect(ctHash).to.be.a('string');
+    assert.equal(typeof ctHash, 'string');
   });
 });

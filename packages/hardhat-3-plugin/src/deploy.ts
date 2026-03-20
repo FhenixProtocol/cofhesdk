@@ -1,4 +1,5 @@
-import type { PublicClient, WalletClient, TestClient } from 'viem';
+import type { PublicClient, WalletClient } from 'viem';
+import { createTestClient, custom } from 'viem';
 import chalk from 'chalk';
 import { privateKeyToAccount } from 'viem/accounts';
 
@@ -16,7 +17,6 @@ import {
   MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY,
   MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY,
 } from '@cofhe/sdk';
-import type { EthereumProvider } from 'hardhat/types/providers';
 
 export type DeployMocksArgs = {
   deployTestBed?: boolean;
@@ -25,11 +25,8 @@ export type DeployMocksArgs = {
 };
 
 export type DeployContext = {
-  provider: EthereumProvider;
   publicClient: PublicClient;
   walletClient: WalletClient;
-  testClient: TestClient;
-  networkName: string;
 };
 
 let isSilent = false;
@@ -40,13 +37,9 @@ let isSilent = false;
  * Returns true when the provider supports Hardhat-specific RPC methods (i.e.
  * it is an in-process Hardhat / EDR network, or localcofhe).
  */
-async function isLocalHardhatNetwork(
-  provider: EthereumProvider,
-  networkName: string,
-): Promise<boolean> {
-  if (networkName === 'localcofhe') return true;
+async function isLocalHardhatNetwork(publicClient: PublicClient): Promise<boolean> {
   try {
-    await provider.request({ method: 'hardhat_metadata', params: [] });
+    await (publicClient as any).request({ method: 'hardhat_metadata', params: [] });
     return true;
   } catch {
     return false;
@@ -56,8 +49,8 @@ async function isLocalHardhatNetwork(
 export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs = {}): Promise<void> {
   const { deployTestBed = true, gasWarning = true, silent = false } = options;
 
-  if (!(await isLocalHardhatNetwork(ctx.provider, ctx.networkName))) {
-    logSuccess(`cofhe-hardhat-3-plugin - deploy mocks - skipped on non-hardhat network ${ctx.networkName}`, 0);
+  if (!(await isLocalHardhatNetwork(ctx.publicClient))) {
+    logSuccess(`cofhe-hardhat-3-plugin - deploy mocks - skipped on non-hardhat network`, 0);
     return;
   }
 
@@ -68,7 +61,7 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
   logEmpty();
 
   // 1. Deploy TaskManager to its fixed address
-  await deployFixed(ctx.provider, MockTaskManagerArtifact);
+  await deployFixed(ctx.publicClient, MockTaskManagerArtifact);
   logDeployment('MockTaskManager', TASK_MANAGER_ADDRESS);
 
   // 2. Initialize TaskManager — owner = first connected account
@@ -131,8 +124,13 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
   });
   logSuccess('Decrypt result signer set', 2);
 
-  // 8. Fund the ZkVerifier signer account so it can send transactions
-  await ctx.testClient.setBalance({
+  // 8. Fund the ZkVerifier signer account so it can send transactions.
+  //    We create a testClient on-the-fly from the publicClient's transport.
+  const testClient = createTestClient({
+    mode: 'hardhat',
+    transport: custom(ctx.publicClient.transport as any),
+  });
+  await testClient.setBalance({
     address: MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
     value: BigInt('10000000000000000000'), // 10 ETH
   });
@@ -144,11 +142,11 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
   logSuccess(`ETH balance: ${zkVerifierBalance.toString()}`, 2);
 
   // 9. Deploy MockZkVerifier to its fixed address
-  await deployFixed(ctx.provider, MockZkVerifierArtifact);
+  await deployFixed(ctx.publicClient, MockZkVerifierArtifact);
   logDeployment('MockZkVerifier', MOCKS_ZK_VERIFIER_ADDRESS);
 
   // 10. Deploy MockThresholdNetwork to its fixed address + initialize
-  await deployFixed(ctx.provider, MockThresholdNetworkArtifact);
+  await deployFixed(ctx.publicClient, MockThresholdNetworkArtifact);
   logDeployment('MockThresholdNetwork', MockThresholdNetworkArtifact.fixedAddress);
 
   await ctx.walletClient.writeContract({
@@ -163,7 +161,7 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
   // 11. Optionally deploy TestBed
   if (deployTestBed) {
     logSuccess('TestBed deployment enabled', 2);
-    await deployFixed(ctx.provider, TestBedArtifact);
+    await deployFixed(ctx.publicClient, TestBedArtifact);
     logDeployment('TestBed', TestBedArtifact.fixedAddress);
   }
 
@@ -187,10 +185,10 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
 
 /** Sets code at a fixed address via hardhat_setCode. */
 async function deployFixed(
-  provider: EthereumProvider,
+  publicClient: PublicClient,
   artifact: { fixedAddress: string; deployedBytecode: string }
 ): Promise<void> {
-  await provider.request({
+  await (publicClient as any).request({
     method: 'hardhat_setCode',
     params: [artifact.fixedAddress, artifact.deployedBytecode],
   });
