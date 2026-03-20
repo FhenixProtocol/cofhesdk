@@ -20,6 +20,7 @@ import { getWorkerManager, terminateWorker, areWorkersAvailable } from './worker
 
 // Import tfhe for web
 import init, { init_panic_hook, TfheCompactPublicKey, ProvenCompactCiphertextList, CompactPkeCrs } from 'tfhe';
+import { hasDOM } from './const';
 
 /**
  * Internal function to initialize TFHE for web
