@@ -4,8 +4,7 @@ import { hasDOM } from '.';
 /**
  * Creates a web storage implementation using IndexedDB.
  * Must only be called in a browser environment (requires `document` for iframe injection).
- * Returns null during SSR to allow safe server-side config creation.
- * @returns IStorage implementation for browser environments, or null if not in a browser
+ * @returns IStorage implementation for browser environments
  */
 export const createWebStorage = (): IStorage => {
   if (!hasDOM) throw new Error('createWebStorage can only be used in a browser environment');

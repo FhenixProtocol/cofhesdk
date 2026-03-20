@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useMemo, useState } from 'react';
 import type { CofheContextValue, CofheProviderProps } from '../types/index';
 import { QueryProvider } from './QueryProvider';
 import { createCofheClient } from '@cofhe/sdk/web';
@@ -8,7 +8,6 @@ import { createCofheConfig } from '@/config';
 import { chains } from '@cofhe/sdk/chains';
 import { assert } from 'ts-essentials';
 import type { FloatingButtonPosition } from '@/components/FnxFloatingButton/types';
-import { _setCofheClient } from '@/clientAccessor';
 
 const CofheContext = createContext<CofheContextValue | undefined>(undefined);
 
@@ -46,7 +45,6 @@ export function CofheProvider(props: CofheProviderProps) {
     >
       <QueryProvider queryClient={queryClient}>
         <AutoConnect walletClient={walletClient} publicClient={publicClient} />
-        <ClientAccessorSync />
         <FnxFloatingButtonWithProvider>{children}</FnxFloatingButtonWithProvider>
       </QueryProvider>
     </CofheContext.Provider>
@@ -55,22 +53,6 @@ export function CofheProvider(props: CofheProviderProps) {
 
 function AutoConnect({ walletClient, publicClient }: Pick<CofheProviderProps, 'walletClient' | 'publicClient'>) {
   useCofheAutoConnect({ walletClient, publicClient });
-  return null;
-}
-
-/**
- * Syncs the CofheClient to the module-level accessor so non-React code
- * can access it via getCofheClient().
- */
-function ClientAccessorSync() {
-  const { client } = useCofheContext();
-  const connected = client?.connected ?? false;
-
-  useEffect(() => {
-    _setCofheClient(connected ? client : null);
-    return () => _setCofheClient(null);
-  }, [client, connected]);
-
   return null;
 }
 

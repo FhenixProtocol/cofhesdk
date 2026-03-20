@@ -1,6 +1,5 @@
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
-import { getSSRSafeStorage } from '@/utils/ssrSafeStorage';
+import { persist } from 'zustand/middleware';
 
 // ============================================================================
 // Shield Page Variants (A/B Testing)
@@ -37,7 +36,6 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'cofhe-settings',
-      storage: createJSONStorage(() => getSSRSafeStorage()),
     }
   )
 );
