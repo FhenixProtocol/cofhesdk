@@ -1,6 +1,6 @@
 import type { IStorage } from '@/core';
 import { constructClient } from 'iframe-shared-storage';
-import { hasDOM } from '.';
+import { hasDOM } from './const';
 /**
  * Creates a web storage implementation using IndexedDB.
  * Must only be called in a browser environment (requires `document` for iframe injection).
