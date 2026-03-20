@@ -1,6 +1,6 @@
 import { type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
 import { type Address, type Abi, type ContractFunctionName, type ContractFunctionArgs } from 'viem';
-import { FheTypes, type UnsealedItem } from '@cofhe/sdk';
+import { FheTypes, type DecryptPollCallbackContext, type UnsealedItem } from '@cofhe/sdk';
 import { useCofheDecrypt } from './useCofheDecrypt';
 import {
   useCofheReadContract,
@@ -8,6 +8,7 @@ import {
   type UseCofheReadContractResult,
 } from './useCofheReadContract';
 import type { CofheFirstReturnFheType, CofheReturnType, EncryptedReturnTypeByUtype } from '@cofhe/abi';
+import { isProduction } from '@/utils/isProduction';
 
 type SupportedFheTypeFromReturn<TAbi extends Abi, TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>> =
   CofheFirstReturnFheType<TAbi, TfunctionName> extends FheTypes
@@ -36,6 +37,14 @@ function convertCofheReturnTypeToEncryptedReturnType<
     'Auto-decryption now only supports a case where the contract function returns a single encrypted value'
   );
 }
+
+const onPoll = isProduction()
+  ? undefined
+  : (context: DecryptPollCallbackContext) => {
+      console.debug(
+        `Decryption poll attemptIndex ${context.attemptIndex}. Operation: ${context.operation}. ${context.elapsedMs}ms elapsed. Request ID: ${context.requestId}.`
+      );
+    };
 /**
  * Generic hook: read a confidential contract value and decrypt it.
  */
@@ -82,6 +91,7 @@ export function useCofheReadContractAndDecrypt<
   const decrypted = useCofheDecrypt(
     {
       input: asEncryptedReturnType,
+      onPoll,
     },
     decryptingQueryOptions
   );

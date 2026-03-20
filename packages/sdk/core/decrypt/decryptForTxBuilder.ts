@@ -9,6 +9,7 @@ import { permits } from '../permits';
 import { BaseBuilder, type BaseBuilderParams } from '../baseBuilder';
 import { cofheMocksDecryptForTx } from './cofheMocksDecryptForTx';
 import { getPublicClientChainID, sleep } from '../utils';
+import { type DecryptPollCallbackFunction } from '../types';
 import { tnDecryptV2 } from './tnDecryptV2';
 
 /**
@@ -60,6 +61,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
   private permitHash?: string;
   private permit?: Permit;
   private permitSelection: DecryptForTxPermitSelection = 'unset';
+  private pollCallback?: DecryptPollCallbackFunction;
 
   constructor(params: DecryptForTxBuilderParams) {
     super({
@@ -122,6 +124,13 @@ export class DecryptForTxBuilder extends BaseBuilder {
 
   getAccount(): string | undefined {
     return this.account;
+  }
+
+  onPoll(this: DecryptForTxBuilderUnset, callback: DecryptPollCallbackFunction): DecryptForTxBuilderUnset;
+  onPoll(this: DecryptForTxBuilderSelected, callback: DecryptPollCallbackFunction): DecryptForTxBuilderSelected;
+  onPoll(callback: DecryptPollCallbackFunction): DecryptForTxBuilder {
+    this.pollCallback = callback;
+    return this;
   }
 
   /**
@@ -291,7 +300,13 @@ export class DecryptForTxBuilder extends BaseBuilder {
     const thresholdNetworkUrl = await this.getThresholdNetworkUrl();
 
     const permission = permit ? PermitUtils.getPermission(permit, true) : null;
-    const { decryptedValue, signature } = await tnDecryptV2(this.ctHash, this.chainId, permission, thresholdNetworkUrl);
+    const { decryptedValue, signature } = await tnDecryptV2({
+      ctHash: this.ctHash,
+      chainId: this.chainId,
+      permission,
+      thresholdNetworkUrl,
+      onPoll: this.pollCallback,
+    });
 
     return {
       ctHash: this.ctHash,
