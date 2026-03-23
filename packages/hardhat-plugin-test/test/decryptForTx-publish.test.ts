@@ -1,6 +1,6 @@
 import hre from 'hardhat';
 import { expect } from 'chai';
-import { CofheClient, Encryptable, MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY } from '@cofhe/sdk';
+import { CofheClient, Encryptable, MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY, verifyDecryptResult } from '@cofhe/sdk';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 import { Wallet } from 'ethers';
 import { MockTaskManager, TestBed } from '@cofhe/mock-contracts';
@@ -142,5 +142,11 @@ describe('Hardhat Mocks – Decrypt With Proof', () => {
 
     const validTrue = await taskManager.verifyDecryptResultSafe(ctHashBytes32, testValue, decryptResult.signature);
     expect(validTrue).to.be.true;
+
+    // SDK verifyDecryptResult should match the on-chain results via the client method
+    expect(await cofheClient.verifyDecryptResult(decryptResult.ctHash, 0n, decryptResult.signature)).to.equal(false);
+    expect(await cofheClient.verifyDecryptResult(decryptResult.ctHash, testValue, decryptResult.signature)).to.equal(
+      true
+    );
   });
 });

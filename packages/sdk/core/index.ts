@@ -99,5 +99,8 @@ export {
   TEST_BED_ADDRESS,
 } from './consts.js';
 
+// Decrypt result verification
+export { verifyDecryptResult } from './decrypt/verifyDecryptResult.js';
+
 // Utils
 export { fheTypeToString } from './utils.js';

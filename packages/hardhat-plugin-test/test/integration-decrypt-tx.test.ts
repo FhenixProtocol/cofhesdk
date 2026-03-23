@@ -258,6 +258,10 @@ describe(`DecryptForTx + PublishDecryptResult (chain-agnostic)${DESCRIBE_CHAIN_S
     expect(decryptResult.signature).to.be.a('string').and.have.lengthOf.above(0);
     console.log(`TN decryptedValue: ${decryptResult.decryptedValue}`);
 
+    // Verify decrypt signature via SDK client method
+    const isValid = await cofheClient.verifyDecryptResult(ctHash, testValue, decryptResult.signature);
+    expect(isValid).to.equal(true);
+
     // ── Step 5: Publish the result on-chain ───────────────────────────────
     // publishDecryptResult(euint32 input, uint32 result, bytes signature)
     // The storedValue euint32 handle is retrieved from the contract; ethers
@@ -306,6 +310,10 @@ describe(`DecryptForTx + PublishDecryptResult (chain-agnostic)${DESCRIBE_CHAIN_S
     expect(decryptResult.decryptedValue).to.equal(testValue);
     expect(decryptResult.signature).to.be.a('string').and.have.lengthOf.above(0);
     console.log(`TN decryptedValue (public): ${decryptResult.decryptedValue}`);
+
+    // Verify decrypt signature via SDK client method
+    const isValid = await cofheClient.verifyDecryptResult(ctHash, testValue, decryptResult.signature);
+    expect(isValid).to.equal(true);
 
     // ── Step 5: Publish the result on-chain ───────────────────────────────
     const publicValueHandle = await testContract.publicValue();
