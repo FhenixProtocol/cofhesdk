@@ -8,6 +8,11 @@ export {
 export { useCofheClient } from './useCofheClient';
 export { useCofheTokenDecryptedBalance } from './useCofheTokenDecryptedBalance';
 export { useCofheTokenTransfer } from './useCofheTokenTransfer';
+export {
+  useCofheTokenApprove,
+  type TokenApproveExtras,
+  type UseCofheTokenApproveOptions,
+} from './useCofheTokenApprove';
 export { useCofheTokenShield, type UnshieldClaim } from './useCofheTokenShield';
 export { getCofheTokenShieldCallArgs } from './useCofheTokenShield';
 export { useCofheTokenUnshield } from './useCofheTokenUnshield';

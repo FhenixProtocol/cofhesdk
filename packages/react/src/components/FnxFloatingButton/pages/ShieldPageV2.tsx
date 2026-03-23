@@ -18,7 +18,7 @@ import {
   getCofheTokenShieldCallArgs,
   getCofheTokenUnshieldCallArgs,
   useCofheSimulateWriteContract,
-  useCofheWriteContract,
+  useCofheTokenApprove,
   useCofheTokenClaimUnshielded,
   useCofheTokenUnshield,
   useCofheTokenClaimable,
@@ -36,8 +36,6 @@ import { cofheHumanizeViemError } from '@/utils/cofheErrors';
 import { PageContainer } from '../components/PageContainer';
 import { PortalModal } from '../modals/types';
 import { CopyButton } from '../components/HashLink';
-import { TransactionActionType, useTransactionStore } from '@/stores/transactionStore';
-import { hasExtras } from '@/hooks/useCofheWriteContract';
 
 const AUTOCLEAR_TX_STATUS_TIMEOUT = 5000;
 const DISPLAY_DECIMALS = 5;
@@ -198,7 +196,6 @@ function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 
   });
 
   const { tokenApprove, isApprovingMining } = useApproveWithLifecycle({
-    account,
     chainId,
     setError,
     setStatus,
@@ -240,9 +237,10 @@ function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 
   const handleApprove = async () => {
     assert(approvalCallArgs, 'Approval call args are required to approve');
     assert(shieldAmountWei, 'Shield amount is required to approve');
+    assert(account, 'Wallet account is required to approve');
     await tokenApprove.writeContractAsync({
       writeContractInput: { ...approvalCallArgs, account: account ?? null, chain: undefined },
-      extras: { token, tokenAmount: shieldAmountWei },
+      extras: { token, tokenAmount: shieldAmountWei, account },
     });
   };
 
@@ -808,19 +806,17 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
 };
 
 function useApproveWithLifecycle({
-  account,
   chainId,
   setError,
   setStatus,
   scheduleStatusClear,
 }: {
-  account: Address | null | undefined;
   chainId?: number;
   setError: (error: React.ReactNode | null) => void;
   setStatus: (status: LifecycleStatus | null) => void;
   scheduleStatusClear: () => void;
 }) {
-  const tokenApprove = useCofheWriteContract<{ token: Token; tokenAmount: bigint }>({
+  const tokenApprove = useCofheTokenApprove({
     onMutate: () => {
       setError(null);
       setStatus({ message: 'Preparing approval transaction...', type: 'info' });
@@ -835,21 +831,6 @@ function useApproveWithLifecycle({
         ),
         type: 'info',
       });
-
-      if (hasExtras(variables)) {
-        const { extras } = variables;
-        assert(account, 'Wallet account is required for approval tracking');
-
-        useTransactionStore.getState().addTransaction({
-          hash,
-          token: extras.token,
-          tokenAmount: extras.tokenAmount,
-          chainId: extras.token.chainId,
-          actionType: TransactionActionType.Approve,
-          isPendingDecryption: false,
-          account,
-        });
-      }
     },
     onError: (error) => {
       const errorMessage =
