@@ -2,12 +2,13 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { TbShieldPlus, TbShieldMinus } from 'react-icons/tb';
 import { LuExternalLink } from 'react-icons/lu';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ContractFunctionExecutionError, parseUnits, type Address } from 'viem';
 import { useCofheAccount, useCofheChainId } from '@/hooks/useCofheConnection';
 import { useCofheTokenDecryptedBalance } from '@/hooks/useCofheTokenDecryptedBalance';
 import { type Token } from '@/hooks/useCofheTokenLists';
 import { useCofheTokenShield } from '@/hooks/useCofheTokenShield';
+import { FloatingButtonPage } from '../pagesConfig/types';
 import { cn } from '../../../utils/cn';
 import { getBlockExplorerTxUrl, truncateHash } from '../../../utils/utils';
 import { ActionButton, AmountInput, CofheTokenConfidentialBalance, TokenIcon } from '../components/index';
@@ -64,6 +65,14 @@ function useLifecycleStore() {
     status,
     setStatus,
   };
+}
+
+function humanizeSimulationError(error: unknown, fallbackMessage: string): React.ReactNode | null {
+  if (!error) return null;
+  const cofheErrorMessage = cofheHumanizeViemError(error);
+  if (cofheErrorMessage) return cofheErrorMessage;
+  if (error instanceof ContractFunctionExecutionError) return error.shortMessage;
+  return fallbackMessage;
 }
 
 function TxHashWithActions({ hash, chainId }: { hash: string; chainId?: number }) {
@@ -435,12 +444,17 @@ function useUnshieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps
     enabled: !!unshieldCallArgs,
   });
 
+  const simulationError = useMemo(
+    () => humanizeSimulationError(unshieldSimulation.error, 'Failed to simulate unshield transaction'),
+    [unshieldSimulation.error]
+  );
+
   const canUnshield =
     isValidUnshieldAmount && !!unshieldCallArgs && !unshieldSimulation.isFetching && !unshieldSimulation.error;
 
   return {
     status,
-    error,
+    error: error ?? simulationError,
     isProcessing: tokenUnshield.isPending || tokenUnshield.isTokenUnshieldMining || tokenUnshield.isPendingDecryption,
     inputAmount: unshieldAmount,
     setInputAmount: setUnshieldAmount,
@@ -564,6 +578,11 @@ function ClaimingSection({ token }: { token: Token }) {
     enabled: !!claimCallArgs,
   });
 
+  const claimSimulationError = useMemo(
+    () => humanizeSimulationError(claimSimulation.error, 'Failed to simulate claim transaction'),
+    [claimSimulation.error]
+  );
+
   return (
     <>
       {/* Claim + pending (same logic as ShieldPage) */}
@@ -594,7 +613,7 @@ function ClaimingSection({ token }: { token: Token }) {
           Pending: {formatTokenAmount(unshieldedClaims.pendingAmount, token.decimals).formatted} {pairedSymbol}
         </p>
       )}
-      <StatusAndError status={claimingStatus} error={claimingError} />
+      <StatusAndError status={claimingStatus} error={claimingError ?? claimSimulationError} />
     </>
   );
 }
