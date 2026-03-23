@@ -12,22 +12,9 @@ import { assert } from 'ts-essentials';
 import { useIsCofheErrorActive } from './useIsCofheErrorActive';
 import { useInternalQueries, useInternalQuery } from '../providers/index';
 import { transformEncryptedReturnTypes, type Abi, type CofheReturnType, type ContractReturnType } from '@cofhe/abi';
+import { serializeBigintRecursively } from '../utils/serializeBigint.js';
 
 const QUERY_CACHE_PREFIX = 'cofheReadContract';
-
-function serializeIfBigint(value: unknown): unknown {
-  if (typeof value === 'bigint') {
-    return value.toString();
-  }
-}
-
-function serializeBigintRecursively(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map(serializeBigintRecursively);
-  } else {
-    return serializeIfBigint(value);
-  }
-}
 
 export function constructCofheReadContractQueryKey({
   cofheChainId,

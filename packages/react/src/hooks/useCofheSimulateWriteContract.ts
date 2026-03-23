@@ -14,6 +14,7 @@ import { assert } from 'ts-essentials';
 import { useInternalQuery } from '../providers/index.js';
 import { useCofheChainId, useCofhePublicClient, useCofheWalletClient } from './useCofheConnection.js';
 import { useIsCofheErrorActive } from './useIsCofheErrorActive.js';
+import { serializeBigintRecursively, serializeIfBigint } from '../utils/serializeBigint.js';
 
 const QUERY_CACHE_PREFIX = 'cofheSimulateWriteContract';
 
@@ -55,21 +56,6 @@ type CofheSimulateWriteContractData<
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
-}
-
-function serializeIfBigint(value: unknown): unknown {
-  if (typeof value === 'bigint') return value.toString();
-  return value;
-}
-
-function serializeBigintRecursively(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(serializeBigintRecursively);
-  if (isRecord(value)) {
-    const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(value)) out[k] = serializeIfBigint(v);
-    return out;
-  }
-  return serializeIfBigint(value);
 }
 
 function hasAddress(value: object): value is { address: Address } {
