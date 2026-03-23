@@ -22,7 +22,7 @@ export async function verifyDecryptResult(
   handle: bigint | string,
   cleartext: bigint,
   signature: string,
-  publicClient: PublicClient,
+  publicClient: PublicClient
 ): Promise<boolean> {
   return publicClient.readContract({
     address: TASK_MANAGER_ADDRESS,
