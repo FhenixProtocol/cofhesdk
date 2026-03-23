@@ -197,45 +197,12 @@ function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 
     },
   });
 
-  const tokenApprove = useCofheWriteContract<{ token: Token; tokenAmount: bigint }>({
-    onMutate: () => {
-      setError(null);
-      setStatus({ message: 'Preparing approval transaction...', type: 'info' });
-    },
-    onSuccess: (hash, variables) => {
-      setStatus({
-        message: (
-          <>
-            Approval transaction sent! Hash: <TxHashWithActions hash={hash} chainId={chainId} /> Waiting for
-            confirmation...
-          </>
-        ),
-        type: 'info',
-      });
-
-      if (hasExtras(variables)) {
-        const { extras } = variables;
-        assert(account, 'Wallet account is required for approval tracking');
-
-        useTransactionStore.getState().addTransaction({
-          hash,
-          token: extras.token,
-          tokenAmount: extras.tokenAmount,
-          chainId: extras.token.chainId,
-          actionType: TransactionActionType.Approve,
-          isPendingDecryption: false,
-          account,
-        });
-      }
-      // }
-    },
-    onError: (error) => {
-      const errorMessage =
-        cofheHumanizeViemError(error) ?? (error instanceof Error ? error.message : 'Failed to approve tokens');
-      setError(errorMessage);
-      setStatus(null);
-      console.error('Approve tx submit error:', error);
-    },
+  const { tokenApprove, isApprovingMining } = useApproveWithLifecycle({
+    account,
+    chainId,
+    setError,
+    setStatus,
+    scheduleStatusClear,
   });
   const { isMining: isTokenShieldMining } = useOnceTransactionMined({
     txHash: tokenShield.data,
@@ -336,30 +303,6 @@ function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 
 
   const approvalSimulation = useCofheSimulateWriteContract(approvalCallArgs, {
     enabled: shouldApprove,
-  });
-
-  const { isMining: isApprovingMining } = useOnceTransactionMined({
-    txHash: tokenApprove.data,
-    onceMined: async (transaction) => {
-      if (transaction.status === 'confirmed') {
-        setStatus({
-          message: (
-            <>
-              Approval transaction confirmed! Hash: <TxHashWithActions hash={transaction.hash} chainId={chainId} />
-            </>
-          ),
-          type: 'success',
-        });
-      } else if (transaction.status === 'failed') {
-        setError(
-          <>
-            Approval transaction failed! Hash: <TxHashWithActions hash={transaction.hash} chainId={chainId} />
-          </>
-        );
-        setStatus(null);
-      }
-      scheduleStatusClear();
-    },
   });
 
   const shieldSimulation = useCofheSimulateWriteContract(shieldCallArgs, {
@@ -863,3 +806,86 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
     />
   );
 };
+
+function useApproveWithLifecycle({
+  account,
+  chainId,
+  setError,
+  setStatus,
+  scheduleStatusClear,
+}: {
+  account: Address | null | undefined;
+  chainId?: number;
+  setError: (error: React.ReactNode | null) => void;
+  setStatus: (status: LifecycleStatus | null) => void;
+  scheduleStatusClear: () => void;
+}) {
+  const tokenApprove = useCofheWriteContract<{ token: Token; tokenAmount: bigint }>({
+    onMutate: () => {
+      setError(null);
+      setStatus({ message: 'Preparing approval transaction...', type: 'info' });
+    },
+    onSuccess: (hash, variables) => {
+      setStatus({
+        message: (
+          <>
+            Approval transaction sent! Hash: <TxHashWithActions hash={hash} chainId={chainId} /> Waiting for
+            confirmation...
+          </>
+        ),
+        type: 'info',
+      });
+
+      if (hasExtras(variables)) {
+        const { extras } = variables;
+        assert(account, 'Wallet account is required for approval tracking');
+
+        useTransactionStore.getState().addTransaction({
+          hash,
+          token: extras.token,
+          tokenAmount: extras.tokenAmount,
+          chainId: extras.token.chainId,
+          actionType: TransactionActionType.Approve,
+          isPendingDecryption: false,
+          account,
+        });
+      }
+    },
+    onError: (error) => {
+      const errorMessage =
+        cofheHumanizeViemError(error) ?? (error instanceof Error ? error.message : 'Failed to approve tokens');
+      setError(errorMessage);
+      setStatus(null);
+      console.error('Approve tx submit error:', error);
+    },
+  });
+
+  const { isMining: isApprovingMining } = useOnceTransactionMined({
+    txHash: tokenApprove.data,
+    onceMined: async (transaction) => {
+      if (transaction.status === 'confirmed') {
+        setStatus({
+          message: (
+            <>
+              Approval transaction confirmed! Hash: <TxHashWithActions hash={transaction.hash} chainId={chainId} />
+            </>
+          ),
+          type: 'success',
+        });
+      } else if (transaction.status === 'failed') {
+        setError(
+          <>
+            Approval transaction failed! Hash: <TxHashWithActions hash={transaction.hash} chainId={chainId} />
+          </>
+        );
+        setStatus(null);
+      }
+      scheduleStatusClear();
+    },
+  });
+
+  return {
+    tokenApprove,
+    isApprovingMining,
+  };
+}
