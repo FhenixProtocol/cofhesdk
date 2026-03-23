@@ -122,6 +122,7 @@ export const SendPage: React.FC<SendPageProps> = ({ token: _token }) => {
 
   const { tokensWithExistingEncryptedBalance } = useCofheTokensWithExistingEncryptedBalances();
 
+  const disabled = !isValidAddress || !isValidAmount || isSending || isEncryptingInput;
   return (
     <PageContainer
       header={
@@ -250,13 +251,11 @@ export const SendPage: React.FC<SendPageProps> = ({ token: _token }) => {
       footer={
         <button
           onClick={handleSend}
-          disabled={!isValidAddress || !isValidAmount || isSending || isEncryptingInput}
+          disabled={disabled}
           className={cn(
             'fnx-send-button w-full py-3 px-4 font-small',
             'flex items-center justify-center gap-2',
-            isValidAddress && isValidAmount && !isSending && !isEncryptingInput
-              ? 'fnx-send-button-enabled'
-              : 'fnx-send-button-disabled'
+            disabled ? 'fnx-send-button-disabled' : 'fnx-send-button-enabled'
           )}
         >
           <span>Send</span>
