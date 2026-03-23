@@ -13,13 +13,14 @@ import {
 } from '@/core';
 
 // Import web-specific storage (internal use only)
-import { createWebStorage } from './storage.js';
+import { createSsrStorage, createWebStorage } from './storage.js';
 
 // Import worker manager
 import { getWorkerManager, terminateWorker, areWorkersAvailable } from './workerManager.js';
 
 // Import tfhe for web
 import init, { init_panic_hook, TfheCompactPublicKey, ProvenCompactCiphertextList, CompactPkeCrs } from 'tfhe';
+import { hasDOM } from './const';
 
 /**
  * Internal function to initialize TFHE for web
@@ -103,7 +104,8 @@ export function createCofheConfig(config: CofheInputConfig): CofheConfig {
   return createCofheConfigBase({
     environment: 'web',
     ...config,
-    fheKeyStorage: config.fheKeyStorage === null ? null : config.fheKeyStorage ?? createWebStorage(),
+    fheKeyStorage:
+      config.fheKeyStorage === null ? null : config.fheKeyStorage ?? (hasDOM ? createWebStorage() : createSsrStorage()),
   });
 }
 
@@ -159,3 +161,6 @@ export function createCofheClientWithCustomWorker(
     zkProveWorkerFn: customZkProveWorkerFn,
   });
 }
+
+export { createSsrStorage };
+export { hasDOM } from './const';

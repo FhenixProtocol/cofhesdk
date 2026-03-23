@@ -3,6 +3,7 @@ import { persistQueryClientRestore, persistQueryClientSubscribe } from '@tanstac
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import { useEffect } from 'react';
 import type { useInternalQueryClient } from './QueryProvider';
+import { createSsrStorage, hasDOM } from '@cofhe/sdk/web';
 
 export function isPersistedQuery(options: { meta?: unknown; queryKey?: QueryKey }): boolean {
   const meta = options.meta as { persist?: boolean } | undefined;
@@ -37,13 +38,20 @@ function deserializeWithBigInt(serialized: string): any {
   });
 }
 
-const storage = persistenceConfig.storage === 'localStorage' ? window.localStorage : window.sessionStorage;
-const persister = createAsyncStoragePersister({
-  storage,
-  key: persistenceConfig.key ?? 'cofhe:react-query',
-  serialize: serializeWithBigInt,
-  deserialize: deserializeWithBigInt,
-});
+const storage = !hasDOM
+  ? createSsrStorage()
+  : persistenceConfig.storage === 'localStorage'
+    ? window.localStorage
+    : window.sessionStorage;
+
+const persister = storage
+  ? createAsyncStoragePersister({
+      storage,
+      key: persistenceConfig.key ?? 'cofhe:react-query',
+      serialize: serializeWithBigInt,
+      deserialize: deserializeWithBigInt,
+    })
+  : undefined;
 
 export function usePersistentQueriesSubscription({
   queryClient,
@@ -59,6 +67,9 @@ export function usePersistentQueriesSubscription({
   useEffect(() => {
     // If the consumer explicitly provides a QueryClient do not attach persistence to it.
     if (overridingQueryClient) return;
+
+    // if there's no persister, we can't persist - but we also don't want to throw an error since persistence is a nice-to-have, not a requirement
+    if (!persister) return;
 
     let unsubscribe: (() => void) | undefined;
     let cancelled = false;
