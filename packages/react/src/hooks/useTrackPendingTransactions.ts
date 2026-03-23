@@ -101,7 +101,6 @@ function invalidateTokenAllowanceQueries(
     spenderAddress,
   });
 
-  console.log('Invalidating token allowance queries:', queryKey);
   queryClient.invalidateQueries({ queryKey });
 }
 
