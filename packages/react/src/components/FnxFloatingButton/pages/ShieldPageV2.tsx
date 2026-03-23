@@ -307,21 +307,15 @@ function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 
     enabled: !!shieldCallArgs && !shouldApprove,
   });
 
-  // TODO: apply the same to unshield flow and claim flow, and consider abstracting this pattern into a reusable hook
-  useEffect(() => {
+  const simulationError = useMemo<React.ReactNode | null>(() => {
     const relevantError = shouldApprove ? approvalSimulation.error : shieldSimulation.error;
+    if (!relevantError) return null;
 
-    if (relevantError) {
-      const cofheErrorMessage = cofheHumanizeViemError(relevantError);
-      if (cofheErrorMessage) {
-        setError(cofheErrorMessage);
-      } else if (relevantError instanceof ContractFunctionExecutionError) {
-        setError(relevantError.shortMessage);
-      } else {
-        setError(shouldApprove ? 'Failed to simulate approval transaction' : 'Failed to simulate shield transaction');
-      }
-    }
-  }, [approvalSimulation.error, setError, shieldSimulation.error, shouldApprove]);
+    const cofheErrorMessage = cofheHumanizeViemError(relevantError);
+    if (cofheErrorMessage) return cofheErrorMessage;
+    if (relevantError instanceof ContractFunctionExecutionError) return relevantError.shortMessage;
+    return shouldApprove ? 'Failed to simulate approval transaction' : 'Failed to simulate shield transaction';
+  }, [approvalSimulation.error, shieldSimulation.error, shouldApprove]);
 
   const canShield =
     isValidShieldAmount &&
@@ -342,7 +336,7 @@ function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 
 
   return {
     status,
-    error,
+    error: error ?? simulationError,
     isProcessing: tokenShield.isPending || isTokenShieldMining || tokenApprove.isPending || isApprovingMining,
     inputAmount: shieldAmount,
     setInputAmount: setShieldAmount,
