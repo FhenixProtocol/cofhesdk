@@ -3,6 +3,7 @@ import { persistQueryClientRestore, persistQueryClientSubscribe } from '@tanstac
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import { useEffect } from 'react';
 import type { useInternalQueryClient } from './QueryProvider';
+import { createSsrStorage, hasDOM } from '@cofhe/sdk/web';
 
 export function isPersistedQuery(options: { meta?: unknown; queryKey?: QueryKey }): boolean {
   const meta = options.meta as { persist?: boolean } | undefined;
@@ -37,23 +38,20 @@ function deserializeWithBigInt(serialized: string): any {
   });
 }
 
-const getStorage = () => {
-  if (typeof window === 'undefined') return undefined!;
-  return persistenceConfig.storage === 'localStorage' ? window.localStorage : window.sessionStorage;
-};
+const storage = !hasDOM
+  ? createSsrStorage()
+  : persistenceConfig.storage === 'localStorage'
+    ? window.localStorage
+    : window.sessionStorage;
 
-let _persister: ReturnType<typeof createAsyncStoragePersister> | null = null;
-const getPersister = () => {
-  if (!_persister) {
-    _persister = createAsyncStoragePersister({
-      storage: getStorage(),
+const persister = storage
+  ? createAsyncStoragePersister({
+      storage,
       key: persistenceConfig.key ?? 'cofhe:react-query',
       serialize: serializeWithBigInt,
       deserialize: deserializeWithBigInt,
-    });
-  }
-  return _persister;
-};
+    })
+  : undefined;
 
 export function usePersistentQueriesSubscription({
   queryClient,
@@ -70,12 +68,15 @@ export function usePersistentQueriesSubscription({
     // If the consumer explicitly provides a QueryClient do not attach persistence to it.
     if (overridingQueryClient) return;
 
+    // if there's no persister, we can't persist - but we also don't want to throw an error since persistence is a nice-to-have, not a requirement
+    if (!persister) return;
+
     let unsubscribe: (() => void) | undefined;
     let cancelled = false;
 
     const options = {
       queryClient: queryClient as any,
-      persister: getPersister(),
+      persister,
       maxAge: persistenceConfig.maxAgeMs ?? 86_400_000,
       buster: 'cofhe-react-query-v1',
       dehydrateOptions: {
