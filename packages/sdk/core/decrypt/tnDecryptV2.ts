@@ -1,10 +1,13 @@
 import { type Permission } from '@/permits';
 
 import { CofheError, CofheErrorCode } from '../error';
+import { type DecryptPollCallbackFunction } from '../types';
 import { normalizeTnSignature, parseDecryptedBytesToBigInt } from './tnDecryptUtils';
+import { computeMinuteRampPollIntervalMs } from './polling.js';
 
 // Polling configuration
 const POLL_INTERVAL_MS = 1000; // 1 second
+const POLL_MAX_INTERVAL_MS = 10_000; // 10 seconds
 const POLL_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
 type DecryptSubmitResponseV2 = {
@@ -184,13 +187,29 @@ async function submitDecryptRequestV2(
 
 async function pollDecryptStatusV2(
   thresholdNetworkUrl: string,
-  requestId: string
+  requestId: string,
+  onPoll?: DecryptPollCallbackFunction
 ): Promise<{ decryptedValue: bigint; signature: `0x${string}` }> {
   const startTime = Date.now();
+  let attemptIndex = 0;
   let completed = false;
 
   while (!completed) {
-    if (Date.now() - startTime > POLL_TIMEOUT_MS) {
+    const elapsedMs = Date.now() - startTime;
+    const intervalMs = computeMinuteRampPollIntervalMs(elapsedMs, {
+      minIntervalMs: POLL_INTERVAL_MS,
+      maxIntervalMs: POLL_MAX_INTERVAL_MS,
+    });
+    onPoll?.({
+      operation: 'decrypt',
+      requestId,
+      attemptIndex,
+      elapsedMs,
+      intervalMs,
+      timeoutMs: POLL_TIMEOUT_MS,
+    });
+
+    if (elapsedMs > POLL_TIMEOUT_MS) {
       throw new CofheError({
         code: CofheErrorCode.DecryptFailed,
         message: `decrypt polling timed out after ${POLL_TIMEOUT_MS}ms`,
@@ -318,7 +337,8 @@ async function pollDecryptStatusV2(
       return { decryptedValue, signature };
     }
 
-    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    attemptIndex += 1;
   }
 
   // This should never be reached, but keeps TS and linters happy.
@@ -332,12 +352,14 @@ async function pollDecryptStatusV2(
   });
 }
 
-export async function tnDecryptV2(
-  ctHash: bigint | string,
-  chainId: number,
-  permission: Permission | null,
-  thresholdNetworkUrl: string
-): Promise<{ decryptedValue: bigint; signature: `0x${string}` }> {
+export async function tnDecryptV2(params: {
+  ctHash: bigint | string;
+  chainId: number;
+  permission: Permission | null;
+  thresholdNetworkUrl: string;
+  onPoll?: DecryptPollCallbackFunction;
+}): Promise<{ decryptedValue: bigint; signature: `0x${string}` }> {
+  const { thresholdNetworkUrl, ctHash, chainId, permission, onPoll } = params;
   const requestId = await submitDecryptRequestV2(thresholdNetworkUrl, ctHash, chainId, permission);
-  return await pollDecryptStatusV2(thresholdNetworkUrl, requestId);
+  return await pollDecryptStatusV2(thresholdNetworkUrl, requestId, onPoll);
 }

@@ -141,7 +141,19 @@ describe('@cofhe/node - Client Integration Tests', () => {
       expect(builder).toBeDefined();
       expect(typeof builder.setChainId).toBe('function');
       expect(typeof builder.setAccount).toBe('function');
+      expect(typeof builder.onPoll).toBe('function');
       expect(typeof builder.execute).toBe('function');
+    }, 30000);
+
+    it('should create decryptForTx builder after connection', async () => {
+      await cofheClient.connect(publicClient, walletClient);
+
+      const builder = cofheClient.decryptForTx('0x123');
+
+      expect(builder).toBeDefined();
+      expect(typeof builder.setChainId).toBe('function');
+      expect(typeof builder.setAccount).toBe('function');
+      expect(typeof builder.onPoll).toBe('function');
     }, 30000);
   });
 });
