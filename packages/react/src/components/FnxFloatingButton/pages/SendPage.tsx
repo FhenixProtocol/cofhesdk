@@ -13,13 +13,12 @@ import { assert } from 'ts-essentials';
 import { CofheTokenConfidentialBalance } from '../components';
 import { useCofheTokensWithExistingEncryptedBalances, type Token } from '@/hooks';
 import { getStepConfig } from '@/hooks/useCofheEncrypt';
-import { FloatingButtonPage } from '../pagesConfig/types';
+import { cofheHumanizeViemError } from '@/utils/cofheErrors';
 import { useOnceTransactionMined } from '@/hooks/useOnceTransactionMined';
 import { usePortalModals, usePortalNavigation } from '@/stores';
 import { PageContainer } from '../components/PageContainer';
 import { PortalModal } from '../modals/types';
 import { BalanceType } from '../components/CofheTokenConfidentialBalance';
-import { cofheHumanizeViemError } from '@/utils/cofheErrors';
 
 export type SendPageProps = {
   token: Token;
@@ -93,8 +92,7 @@ export const SendPage: React.FC<SendPageProps> = ({ token: _token }) => {
   const isValidAddress = isAddress(recipientAddress);
 
   // Validate amount
-  const canWriteContract =
-    (amount.length > 0 && confidentialUnitBalance && confidentialUnitBalance.gte(amount)) ?? false;
+  const isValidAmount = (amount.length > 0 && confidentialUnitBalance && confidentialUnitBalance.gte(amount)) ?? false;
 
   const handleSend = async () => {
     assert(isAddress(recipientAddress), 'Recipient address is not valid');
@@ -124,6 +122,7 @@ export const SendPage: React.FC<SendPageProps> = ({ token: _token }) => {
 
   const { tokensWithExistingEncryptedBalance } = useCofheTokensWithExistingEncryptedBalances();
 
+  const disabled = !isValidAddress || !isValidAmount || isSending || isEncryptingInput;
   return (
     <PageContainer
       header={
@@ -252,13 +251,11 @@ export const SendPage: React.FC<SendPageProps> = ({ token: _token }) => {
       footer={
         <button
           onClick={handleSend}
-          disabled={!isValidAddress || !canWriteContract || isSending || isEncryptingInput}
+          disabled={disabled}
           className={cn(
             'fnx-send-button w-full py-3 px-4 font-small',
             'flex items-center justify-center gap-2',
-            isValidAddress && canWriteContract && !isSending && !isEncryptingInput
-              ? 'fnx-send-button-enabled'
-              : 'fnx-send-button-disabled'
+            disabled ? 'fnx-send-button-disabled' : 'fnx-send-button-enabled'
           )}
         >
           <span>Send</span>

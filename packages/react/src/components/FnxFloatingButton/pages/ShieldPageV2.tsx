@@ -9,11 +9,10 @@ import { useCofheTokenDecryptedBalance } from '@/hooks/useCofheTokenDecryptedBal
 import { type Token } from '@/hooks/useCofheTokenLists';
 import { useCofheTokenShield } from '@/hooks/useCofheTokenShield';
 import { cn } from '../../../utils/cn';
-import { getBlockExplorerTxUrl, normalizeSanitizedAmountForUnits, truncateHash } from '../../../utils/utils';
+import { getBlockExplorerTxUrl, truncateHash } from '../../../utils/utils';
 import { ActionButton, AmountInput, CofheTokenConfidentialBalance, TokenIcon } from '../components/index';
 import { useCofheTokenPublicBalance } from '@/hooks/useCofheTokenPublicBalance';
 import { formatTokenAmount, unitToWei } from '@/utils/format';
-import { FloatingButtonPage } from '../pagesConfig/types';
 import {
   getCofheTokenClaimUnshieldedCallArgs,
   getCofheTokenShieldCallArgs,
@@ -30,7 +29,6 @@ import {
 import { useOnceTransactionMined } from '@/hooks/useOnceTransactionMined';
 import { useReschedulableTimeout } from '@/hooks/useReschedulableTimeout';
 import { assert } from 'ts-essentials';
-import type { BigNumber } from 'bignumber.js';
 import { usePortalModals, usePortalNavigation } from '@/stores';
 import { BalanceType, CofheTokenPublicBalance } from '../components/CofheTokenConfidentialBalance';
 import { useIsUnshieldingMining } from '@/hooks/useIsUnshieldingMining';
@@ -477,12 +475,10 @@ function useUnshieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps
     },
   });
   const handleUnshield = async () => {
-    const normalized = normalizeSanitizedAmountForUnits(unshieldAmount, token.decimals);
-    assert(normalized, 'Invalid unshield amount');
-    const amountInSmallestUnit = parseUnits(normalized, token.decimals);
+    const amountWei = parseUnits(unshieldAmount, token.decimals);
     tokenUnshield.mutateAsync({
       token,
-      amount: amountInSmallestUnit,
+      amount: amountWei,
       onStatusChange: (message) => setStatus({ message, type: 'info' }),
     });
   };
@@ -496,10 +492,8 @@ function useUnshieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps
 
   const unshieldCallArgs = useMemo(() => {
     if (!account || !isValidUnshieldAmount) return undefined;
-    const normalized = normalizeSanitizedAmountForUnits(unshieldAmount, token.decimals);
-    if (!normalized) return undefined;
-    const amountInSmallestUnit = parseUnits(normalized, token.decimals);
-    return getCofheTokenUnshieldCallArgs({ token, amount: amountInSmallestUnit, account });
+    const amountWei = parseUnits(unshieldAmount, token.decimals);
+    return getCofheTokenUnshieldCallArgs({ token, amount: amountWei, account });
   }, [account, isValidUnshieldAmount, token, unshieldAmount]);
 
   const unshieldSimulation = useCofheSimulateWriteContract(unshieldCallArgs, {
