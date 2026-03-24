@@ -8,6 +8,7 @@ import { createKeysStore } from './keyStore.js';
 import { permits } from './permits.js';
 import { DecryptForViewBuilder } from './decrypt/decryptForViewBuilder.js';
 import { DecryptForTxBuilder, type DecryptForTxBuilderUnset } from './decrypt/decryptForTxBuilder.js';
+import { verifyDecryptResult as verifyDecryptResultStandalone } from './decrypt/verifyDecryptResult.js';
 import { getPublicClientChainID, getWalletClientAccount } from './utils.js';
 import type { CofheClientConnectionState, CofheClientParams, CofheClient, CofheClientPermits } from './clientTypes.js';
 import type { EncryptableItem, FheTypes } from './types.js';
@@ -179,6 +180,13 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
     });
   }
 
+  // VERIFY DECRYPT RESULT
+  function verifyDecryptResult(handle: bigint | string, cleartext: bigint, signature: string): Promise<boolean> {
+    _requireConnected();
+    const { publicClient } = connectStore.getState();
+    return verifyDecryptResultStandalone(handle, cleartext, signature, publicClient!);
+  }
+
   // PERMITS - Context-aware wrapper
 
   const _getChainIdAndAccount = (chainId?: number, account?: string) => {
@@ -320,6 +328,7 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
      */
     decryptHandle: decryptForView,
     decryptForTx,
+    verifyDecryptResult,
     permits: clientPermits,
 
     // Add SDK-specific methods below that require connection

@@ -12,6 +12,7 @@ server/dist
 public/dist
 .turbo
 .matterhorn
+.pnpm-store
 
 # Test coverage reports
 coverage/

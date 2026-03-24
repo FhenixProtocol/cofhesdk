@@ -51,6 +51,7 @@ export type CofheClient<TConfig extends CofheConfig = CofheConfig> = {
   decryptHandle<U extends FheTypes>(ctHash: bigint | string, utype: U): DecryptForViewBuilder<U>;
   decryptForView<U extends FheTypes>(ctHash: bigint | string, utype: U): DecryptForViewBuilder<U>;
   decryptForTx(ctHash: bigint | string): DecryptForTxBuilderUnset;
+  verifyDecryptResult(handle: bigint | string, cleartext: bigint, signature: string): Promise<boolean>;
   permits: CofheClientPermits;
 };
 

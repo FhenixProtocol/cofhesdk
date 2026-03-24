@@ -210,6 +210,21 @@ describe('Hardhat Mocks – decryptForTx', () => {
     // Error handling tests - can be extended as needed
   });
 
+  describe('verify decrypt result', () => {
+    it('Should verify decrypt result', async function () {
+      const testValue = 100n;
+      const encrypted = await cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
+      const tx = await testContract.connect(signer).setValue(encrypted[0]);
+      await tx.wait();
+
+      const storedValue = await testContract.storedValue();
+      const decryptResult = await cofheClient.decryptForTx(storedValue).withPermit().execute();
+
+      const isValid = await cofheClient.verifyDecryptResult(decryptResult.ctHash, testValue, decryptResult.signature);
+      expect(isValid).to.be.true;
+    });
+  });
+
   describe('vs decryptForView', () => {
     it('Should return plaintext value', async function () {
       const testValue = 123n;
