@@ -4,14 +4,14 @@ pragma solidity ^0.8.13;
 import { Test } from 'forge-std/Test.sol';
 import { MessageHashUtils } from '@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol';
 import '@fhenixprotocol/cofhe-contracts/FHE.sol';
-import { MockTaskManager } from '../MockTaskManager.sol';
-import { MockACL } from '../MockACL.sol';
-import { MockZkVerifier } from '../MockZkVerifier.sol';
+import { MockTaskManager } from '@cofhe/mock-contracts/contracts/MockTaskManager.sol';
+import { MockACL } from '@cofhe/mock-contracts/contracts/MockACL.sol';
+import { MockZkVerifier } from '@cofhe/mock-contracts/contracts/MockZkVerifier.sol';
 import { MockZkVerifierSigner } from './MockZkVerifierSigner.sol';
-import { MockThresholdNetwork } from '../MockThresholdNetwork.sol';
+import { MockThresholdNetwork } from '@cofhe/mock-contracts/contracts/MockThresholdNetwork.sol';
 import { MockThresholdNetworkSigner } from './MockThresholdNetworkSigner.sol';
-import { Permission, PermissionUtils } from '../Permissioned.sol';
-import { ZK_VERIFIER_SIGNER_ADDRESS, DECRYPT_RESULT_SIGNER_ADDRESS } from '../MockCoFHE.sol';
+import { Permission, PermissionUtils } from '@cofhe/mock-contracts/contracts/Permissioned.sol';
+import { ZK_VERIFIER_SIGNER_ADDRESS, DECRYPT_RESULT_SIGNER_ADDRESS } from '@cofhe/mock-contracts/contracts/MockCoFHE.sol';
 
 /// @notice Portable representation of the issuer's half of a shared permit, safe to transmit as cleartext.
 struct SharedPermitExport {

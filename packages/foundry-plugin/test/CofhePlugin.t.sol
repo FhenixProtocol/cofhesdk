@@ -2,10 +2,10 @@
 pragma solidity ^0.8.13;
 
 import { Test } from 'forge-std/Test.sol';
-import { CofheTest } from '../contracts/foundry/CofheTest.sol';
-import { CofheClient, SharedPermitExport } from '../contracts/foundry/CofheClient.sol';
-import { Permission } from '../contracts/Permissioned.sol';
-import { ZK_VERIFIER_SIGNER_ADDRESS } from '../contracts/MockCoFHE.sol';
+import { CofheTest } from '../contracts/CofheTest.sol';
+import { CofheClient, SharedPermitExport } from '../contracts/CofheClient.sol';
+import { Permission } from '@cofhe/mock-contracts/contracts/Permissioned.sol';
+import { ZK_VERIFIER_SIGNER_ADDRESS } from '@cofhe/mock-contracts/contracts/MockCoFHE.sol';
 import '@fhenixprotocol/cofhe-contracts/FHE.sol';
 
 /// @dev Helper contract that stores encrypted values and exposes ACL operations.

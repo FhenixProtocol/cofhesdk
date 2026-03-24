@@ -3,7 +3,7 @@
 pragma solidity >=0.8.19 <0.9.0;
 
 import { Test } from 'forge-std/Test.sol';
-import { DECRYPT_RESULT_SIGNER_PRIVATE_KEY } from '../MockCoFHE.sol';
+import { DECRYPT_RESULT_SIGNER_PRIVATE_KEY } from '@cofhe/mock-contracts/contracts/MockCoFHE.sol';
 
 /**
  * @dev Generates valid signatures for decrypt results.

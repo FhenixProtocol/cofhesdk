@@ -7,7 +7,7 @@ import { console } from 'forge-std/console.sol';
 import { Test } from 'forge-std/Test.sol';
 import { MessageHashUtils } from '@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol';
 import { EncryptedInput } from '@fhenixprotocol/cofhe-contracts/ICofhe.sol';
-import { ZK_VERIFIER_SIGNER_PRIVATE_KEY } from '../MockCoFHE.sol';
+import { ZK_VERIFIER_SIGNER_PRIVATE_KEY } from '@cofhe/mock-contracts/contracts/MockCoFHE.sol';
 
 /**
  * @dev Generates valid signatures for encrypted inputs.

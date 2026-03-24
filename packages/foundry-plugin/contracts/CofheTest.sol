@@ -3,14 +3,17 @@ pragma solidity ^0.8.13;
 
 import { Test } from 'forge-std/Test.sol';
 import '@fhenixprotocol/cofhe-contracts/FHE.sol';
-import { MockTaskManager } from '../MockTaskManager.sol';
-import { MockACL } from '../MockACL.sol';
-import { MockZkVerifier } from '../MockZkVerifier.sol';
+import { MockTaskManager } from '@cofhe/mock-contracts/contracts/MockTaskManager.sol';
+import { MockACL } from '@cofhe/mock-contracts/contracts/MockACL.sol';
+import { MockZkVerifier } from '@cofhe/mock-contracts/contracts/MockZkVerifier.sol';
 import { MockZkVerifierSigner } from './MockZkVerifierSigner.sol';
-import { MockThresholdNetwork } from '../MockThresholdNetwork.sol';
+import { MockThresholdNetwork } from '@cofhe/mock-contracts/contracts/MockThresholdNetwork.sol';
 import { MockThresholdNetworkSigner } from './MockThresholdNetworkSigner.sol';
 import { CofheClient } from './CofheClient.sol';
-import { ZK_VERIFIER_SIGNER_ADDRESS, DECRYPT_RESULT_SIGNER_ADDRESS } from '../MockCoFHE.sol';
+import {
+  ZK_VERIFIER_SIGNER_ADDRESS,
+  DECRYPT_RESULT_SIGNER_ADDRESS
+} from '@cofhe/mock-contracts/contracts/MockCoFHE.sol';
 
 /// @notice Base contract for Foundry tests that use the CoFHE mock environment.
 /// @dev    Inherit this contract and call `deployMocks()` in your `setUp()` function.
@@ -39,6 +42,7 @@ abstract contract CofheTest is Test {
     deployCodeTo('MockTaskManager.sol:MockTaskManager', TASK_MANAGER_ADDRESS);
     mockTaskManager = MockTaskManager(TASK_MANAGER_ADDRESS);
     mockTaskManager.initialize(TM_ADMIN);
+    mockTaskManager.setLogOps(false);
     vm.label(address(mockTaskManager), 'MockTaskManager');
 
     // 2. ACL (non-fixed deploy so constructor runs and EIP712 domain is set)
