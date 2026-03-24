@@ -2,6 +2,7 @@ import { defineConfig } from 'vocs';
 import pkg from './package.json';
 
 export default defineConfig({
+  iconUrl: '/favicon.png',
   twoslash: {
     compilerOptions: {
       // ModuleResolutionKind.Bundler = 100
