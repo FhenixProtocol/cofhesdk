@@ -4,10 +4,7 @@ import type { HardhatUserConfig, HardhatConfig } from 'hardhat/types/config';
  * Extends the resolved config with plugin defaults and network presets.
  * Mirrors the logic from the v2 plugin's extendConfig callback.
  */
-export function resolvePluginConfig(
-  userConfig: HardhatUserConfig,
-  resolvedConfig: HardhatConfig,
-): void {
+export function resolvePluginConfig(userConfig: HardhatUserConfig, resolvedConfig: HardhatConfig): void {
   // Inject localcofhe network preset if the user hasn't defined it
   if (!userConfig.networks?.['localcofhe']) {
     (resolvedConfig.networks as Record<string, unknown>)['localcofhe'] = {

@@ -15,13 +15,20 @@ describe('Integration – Hardhat', async () => {
     await walletClient.writeContract({
       ...cofhe.mocks.TestBed,
       functionName: 'setNumber',
-      args: [{ ctHash: enc.ctHash, securityZone: enc.securityZone, utype: enc.utype, signature: enc.signature as `0x${string}` }],
+      args: [
+        {
+          ctHash: enc.ctHash,
+          securityZone: enc.securityZone,
+          utype: enc.utype,
+          signature: enc.signature as `0x${string}`,
+        },
+      ],
     });
 
-    const ctHash = await publicClient.readContract({
+    const ctHash = (await publicClient.readContract({
       ...cofhe.mocks.TestBed,
       functionName: 'numberHash',
-    }) as `0x${string}`;
+    })) as `0x${string}`;
 
     const decrypted = await client.decryptForView(ctHash, FheTypes.Uint32).execute();
     assert.equal(decrypted, 100n);
@@ -35,13 +42,20 @@ describe('Integration – Hardhat', async () => {
     await walletClient.writeContract({
       ...cofhe.mocks.TestBed,
       functionName: 'setNumber',
-      args: [{ ctHash: enc.ctHash, securityZone: enc.securityZone, utype: enc.utype, signature: enc.signature as `0x${string}` }],
+      args: [
+        {
+          ctHash: enc.ctHash,
+          securityZone: enc.securityZone,
+          utype: enc.utype,
+          signature: enc.signature as `0x${string}`,
+        },
+      ],
     });
 
-    const ctHash = await publicClient.readContract({
+    const ctHash = (await publicClient.readContract({
       ...cofhe.mocks.TestBed,
       functionName: 'numberHash',
-    }) as `0x${string}`;
+    })) as `0x${string}`;
 
     const result = await client.decryptForTx(ctHash).withPermit().execute();
     assert.equal(result.decryptedValue, testValue);
@@ -52,11 +66,11 @@ describe('Integration – Hardhat', async () => {
       args: [ctHash, result.decryptedValue, result.signature as `0x${string}`],
     });
 
-    const [publishedValue, isDecrypted] = await publicClient.readContract({
+    const [publishedValue, isDecrypted] = (await publicClient.readContract({
       ...cofhe.mocks.TestBed,
       functionName: 'getDecryptResultSafe',
       args: [ctHash],
-    }) as [bigint, boolean];
+    })) as [bigint, boolean];
 
     assert.equal(isDecrypted, true);
     assert.equal(Number(publishedValue), Number(testValue));
@@ -69,10 +83,10 @@ describe('Integration – Hardhat', async () => {
       args: [42],
     });
 
-    const ctHash = await publicClient.readContract({
+    const ctHash = (await publicClient.readContract({
       ...cofhe.mocks.TestBed,
       functionName: 'numberHash',
-    }) as `0x${string}`;
+    })) as `0x${string}`;
 
     const plaintext = await cofhe.mocks.getPlaintext(ctHash);
     assert.equal(plaintext, 42n);

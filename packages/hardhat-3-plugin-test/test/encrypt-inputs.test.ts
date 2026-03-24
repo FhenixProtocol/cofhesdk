@@ -19,7 +19,14 @@ describe('Encrypt Inputs', async () => {
     await walletClient.writeContract({
       ...cofhe.mocks.TestBed,
       functionName: 'setNumber',
-      args: [{ ctHash: enc.ctHash, securityZone: enc.securityZone, utype: enc.utype, signature: enc.signature as `0x${string}` }],
+      args: [
+        {
+          ctHash: enc.ctHash,
+          securityZone: enc.securityZone,
+          utype: enc.utype,
+          signature: enc.signature as `0x${string}`,
+        },
+      ],
     });
 
     const ctHash = await publicClient.readContract({

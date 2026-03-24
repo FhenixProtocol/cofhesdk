@@ -36,18 +36,18 @@ export default defineConfig({
 
   // Optional cofhe config (all values shown are their defaults)
   cofhe: {
-    gasWarning: true,  // warn when mock ops report higher gas than real FHE
-    logMocks: true,    // enable mock contract event logging
+    gasWarning: true, // warn when mock ops report higher gas than real FHE
+    logMocks: true, // enable mock contract event logging
   },
 });
 ```
 
 ### Config options
 
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `gasWarning` | `boolean` | `true` | Print a warning after mock deployment reminding that mock gas costs differ from live FHE |
-| `logMocks` | `boolean` | `true` | Enable event-based logging inside mock contracts |
+| Option       | Type      | Default | Description                                                                              |
+| ------------ | --------- | ------- | ---------------------------------------------------------------------------------------- |
+| `gasWarning` | `boolean` | `true`  | Print a warning after mock deployment reminding that mock gas costs differ from live FHE |
+| `logMocks`   | `boolean` | `true`  | Enable event-based logging inside mock contracts                                         |
 
 ---
 
@@ -135,10 +135,10 @@ Each mock contract is exposed as an `{ address, abi }` object that can be spread
 
 ```typescript
 // Fixed-address contracts (synchronous):
-cofhe.mocks.MockTaskManager      // { address: `0x...`, abi: [...] }
-cofhe.mocks.MockZkVerifier       // { address: `0x...`, abi: [...] }
-cofhe.mocks.MockThresholdNetwork // { address: `0x...`, abi: [...] }
-cofhe.mocks.TestBed              // { address: `0x...`, abi: [...] }
+cofhe.mocks.MockTaskManager; // { address: `0x...`, abi: [...] }
+cofhe.mocks.MockZkVerifier; // { address: `0x...`, abi: [...] }
+cofhe.mocks.MockThresholdNetwork; // { address: `0x...`, abi: [...] }
+cofhe.mocks.TestBed; // { address: `0x...`, abi: [...] }
 
 // Dynamic-address contract (async — resolves from TaskManager on-chain):
 const mockACL = await cofhe.mocks.MockACL(); // { address: `0x...`, abi: [...] }
@@ -198,11 +198,11 @@ Re-deploys all mock contracts. Normally you don't need to call this directly —
 await cofhe.mocks.deployMocks({ deployTestBed: true, silent: true });
 ```
 
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `deployTestBed` | `boolean` | `true` | Whether to deploy the `TestBed` utility contract |
-| `gasWarning` | `boolean` | inherits config | Print gas warning after deployment |
-| `silent` | `boolean` | `false` | Suppress all deployment output |
+| Option          | Type      | Default         | Description                                      |
+| --------------- | --------- | --------------- | ------------------------------------------------ |
+| `deployTestBed` | `boolean` | `true`          | Whether to deploy the `TestBed` utility contract |
+| `gasWarning`    | `boolean` | inherits config | Print gas warning after deployment               |
+| `silent`        | `boolean` | `false`         | Suppress all deployment output                   |
 
 ---
 
@@ -210,13 +210,13 @@ await cofhe.mocks.deployMocks({ deployTestBed: true, silent: true });
 
 The plugin deploys these contracts automatically on every `network.connect()`:
 
-| Contract | Address | Description |
-|---|---|---|
-| `MockTaskManager` | `0xeA30c4B8b44078Bbf8a6ef5b9f1eC1626C7848D9` | Coordinates FHE operations and ACL |
-| `MockACL` | dynamic | Access Control List — address resolved from TaskManager |
-| `MockZkVerifier` | `0x0000000000000000000000000000000000005001` | Verifies ZK proofs for encrypted inputs |
-| `MockThresholdNetwork` | `0x0000000000000000000000000000000000005002` | Simulates the threshold decryption network |
-| `TestBed` | `0x0000000000000000000000000000000000005003` | Utility contract for storing and retrieving encrypted values in tests |
+| Contract               | Address                                      | Description                                                           |
+| ---------------------- | -------------------------------------------- | --------------------------------------------------------------------- |
+| `MockTaskManager`      | `0xeA30c4B8b44078Bbf8a6ef5b9f1eC1626C7848D9` | Coordinates FHE operations and ACL                                    |
+| `MockACL`              | dynamic                                      | Access Control List — address resolved from TaskManager               |
+| `MockZkVerifier`       | `0x0000000000000000000000000000000000005001` | Verifies ZK proofs for encrypted inputs                               |
+| `MockThresholdNetwork` | `0x0000000000000000000000000000000000005002` | Simulates the threshold decryption network                            |
+| `TestBed`              | `0x0000000000000000000000000000000000005003` | Utility contract for storing and retrieving encrypted values in tests |
 
 Fixed-address contracts are deployed via `hardhat_setCode`, ensuring they are always at the same address regardless of deployment order. `MockACL` is deployed as a normal contract (so its EIP-712 domain constructor runs correctly) and its address is registered in `MockTaskManager`.
 
@@ -248,10 +248,10 @@ describe('Encrypted counter', async () => {
       args: [{ ctHash: enc.ctHash, securityZone: enc.securityZone, utype: enc.utype, signature: enc.signature }],
     });
 
-    const ctHash = await publicClient.readContract({
+    const ctHash = (await publicClient.readContract({
       ...cofhe.mocks.TestBed,
       functionName: 'numberHash',
-    }) as `0x${string}`;
+    })) as `0x${string}`;
 
     // Decrypt via view (off-chain, instant)
     const decryptedView = await client.decryptForView(ctHash, FheTypes.Uint32).execute();

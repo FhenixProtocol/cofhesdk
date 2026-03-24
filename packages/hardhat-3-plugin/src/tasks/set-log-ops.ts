@@ -11,11 +11,7 @@ const action: NewTaskActionFunction<SetLogOpsTaskArgs> = async ({ enable }, hre)
   const connection = await hre.network.connect();
   const transport = custom(connection.provider);
 
-  await mock_setLoggingEnabled(
-    createPublicClient({ transport }),
-    createWalletClient({ transport }),
-    enable,
-  );
+  await mock_setLoggingEnabled(createPublicClient({ transport }), createWalletClient({ transport }), enable);
 };
 
 export default action;

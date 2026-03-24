@@ -29,7 +29,7 @@ const action: NewTaskActionFunction<UseFaucetTaskArgs> = async ({ address }, hre
     await localcofheFundAccount(
       createPublicClient({ transport }),
       createWalletClient({ transport }),
-      address as `0x${string}`,
+      address as `0x${string}`
     );
   } catch (e) {
     console.info(chalk.red(`Failed to get funds from localcofhe for ${address}: ${e}`));

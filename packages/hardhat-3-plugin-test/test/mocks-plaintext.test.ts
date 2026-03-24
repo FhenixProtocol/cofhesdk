@@ -38,9 +38,6 @@ describe('Mocks Plaintext', async () => {
 
   it('expectPlaintext throws for a wrong value', async () => {
     const ctHash = await getCtHash();
-    await assert.rejects(
-      () => cofhe.mocks.expectPlaintext(ctHash, 99n),
-      /expected/,
-    );
+    await assert.rejects(() => cofhe.mocks.expectPlaintext(ctHash, 99n), /expected/);
   });
 });

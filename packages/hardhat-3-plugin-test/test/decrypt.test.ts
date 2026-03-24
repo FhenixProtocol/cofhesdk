@@ -12,7 +12,14 @@ describe('Decrypt', async () => {
     await walletClient.writeContract({
       ...cofhe.mocks.TestBed,
       functionName: 'setNumber',
-      args: [{ ctHash: enc.ctHash, securityZone: enc.securityZone, utype: enc.utype, signature: enc.signature as `0x${string}` }],
+      args: [
+        {
+          ctHash: enc.ctHash,
+          securityZone: enc.securityZone,
+          utype: enc.utype,
+          signature: enc.signature as `0x${string}`,
+        },
+      ],
     });
     return publicClient.readContract({
       ...cofhe.mocks.TestBed,
@@ -48,11 +55,11 @@ describe('Decrypt', async () => {
         args: [ctHash, result.decryptedValue, result.signature as `0x${string}`],
       });
 
-      const [publishedValue, isDecrypted] = await publicClient.readContract({
+      const [publishedValue, isDecrypted] = (await publicClient.readContract({
         ...cofhe.mocks.TestBed,
         functionName: 'getDecryptResultSafe',
         args: [ctHash],
-      }) as [bigint, boolean];
+      })) as [bigint, boolean];
 
       assert.equal(isDecrypted, true);
       assert.equal(Number(publishedValue), Number(testValue));

@@ -16,7 +16,7 @@ async function getLoggingEnabled(publicClient: PublicClient): Promise<boolean> {
 async function setLoggingEnabled(
   publicClient: PublicClient,
   walletClient: WalletClient,
-  enabled: boolean,
+  enabled: boolean
 ): Promise<void> {
   const [account] = await walletClient.getAddresses();
   const hash = await walletClient.writeContract({
@@ -44,7 +44,7 @@ export async function mock_setLoggingEnabled(
   publicClient: PublicClient,
   walletClient: WalletClient,
   enabled: boolean,
-  closureName?: string,
+  closureName?: string
 ): Promise<void> {
   try {
     const initiallyEnabled = await getLoggingEnabled(publicClient);
@@ -66,7 +66,7 @@ export async function mock_withLogs(
   publicClient: PublicClient,
   walletClient: WalletClient,
   closureName: string,
-  closure: () => Promise<void>,
+  closure: () => Promise<void>
 ): Promise<void> {
   const initiallyEnabled = await getLoggingEnabled(publicClient);
 

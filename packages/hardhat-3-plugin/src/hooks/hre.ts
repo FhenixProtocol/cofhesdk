@@ -10,10 +10,7 @@ import {
   MockThresholdNetworkArtifact,
   TestBedArtifact,
 } from '@cofhe/mock-contracts';
-import {
-  MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY,
-  type CofheInputConfig,
-} from '@cofhe/sdk';
+import { MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY, type CofheInputConfig } from '@cofhe/sdk';
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/node';
 import { hardhat as hardhatChain } from '@cofhe/sdk/chains';
 
@@ -28,7 +25,7 @@ function createCofheConnection(
   publicClient: PublicClient,
   walletClient: WalletClient,
   /** Reusable transport factory derived from the walletClient's request method */
-  transport: ReturnType<typeof custom>,
+  transport: ReturnType<typeof custom>
 ): CofheConnection {
   return {
     async createConfig(config: Partial<CofheInputConfig> = {}) {
@@ -112,7 +109,9 @@ function createCofheConnection(
       async MockACL() {
         const address = await publicClient.readContract({
           address: MockTaskManagerArtifact.fixedAddress as `0x${string}`,
-          abi: [{ name: 'acl', type: 'function', inputs: [], outputs: [{ type: 'address' }], stateMutability: 'view' }] as const,
+          abi: [
+            { name: 'acl', type: 'function', inputs: [], outputs: [{ type: 'address' }], stateMutability: 'view' },
+          ] as const,
           functionName: 'acl',
         });
         return { address, abi: MockACLArtifact.abi };
@@ -152,10 +151,13 @@ const hreHooks: Partial<HardhatRuntimeEnvironmentHooks> = {
         // request method — lets us create account-bound clients later.
         const connTransport = custom({ request: (args: any) => (walletClient as any).request(args) });
 
-        await deployMocks({ publicClient, walletClient }, {
-          deployTestBed: true,
-          gasWarning: hre.config.cofhe.gasWarning,
-        });
+        await deployMocks(
+          { publicClient, walletClient },
+          {
+            deployTestBed: true,
+            gasWarning: hre.config.cofhe.gasWarning,
+          }
+        );
 
         (conn as any).cofhe = createCofheConnection(publicClient, walletClient, connTransport);
         return conn;

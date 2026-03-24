@@ -67,27 +67,27 @@ contract MyTest is CofheTest {
 
 ### `CofheTest` (abstract base)
 
-| Function | Description |
-|---|---|
-| `deployMocks()` | Deploys all mock contracts and wires them together |
-| `createCofheClient()` | Returns a new unconnected `CofheClient` |
-| `enableLogs()` / `disableLogs()` | Toggle plaintext operation logging |
-| `getPlaintext(ctHash)` | Returns the stored plaintext for a ciphertext handle |
+| Function                         | Description                                                  |
+| -------------------------------- | ------------------------------------------------------------ |
+| `deployMocks()`                  | Deploys all mock contracts and wires them together           |
+| `createCofheClient()`            | Returns a new unconnected `CofheClient`                      |
+| `enableLogs()` / `disableLogs()` | Toggle plaintext operation logging                           |
+| `getPlaintext(ctHash)`           | Returns the stored plaintext for a ciphertext handle         |
 | `expectPlaintext(handle, value)` | Asserts the plaintext of an encrypted handle matches `value` |
 
 `getPlaintext` and `expectPlaintext` have typed overloads for `ebool`, `euint8`, `euint16`, `euint32`, `euint64`, `euint128`, and `eaddress`.
 
 ### `CofheClient`
 
-| Function | Description |
-|---|---|
-| `connect(pkey)` | Sets the active account from a private key |
-| `account()` | Returns the connected account address |
-| `createInEbool/8/16/32/64/128/address(value)` | Creates a signed encrypted input |
-| `decryptForTx_withoutPermit(ctHash)` | Decrypts a globally-allowed ciphertext; returns `(ctHash, plaintext, signature)` |
-| `decryptForTx_withPermit(ctHash, permit)` | Decrypts with a permission; returns `(ctHash, plaintext, signature)` |
-| `decryptForView(ctHash, sealingKey, permit)` | Seals and unseals for off-chain reading |
-| `permit_createSelf()` | Creates a self-permit for the connected account |
-| `permit_createShared(recipient)` | Creates the issuer half of a shared permit |
-| `permit_exportShared(permit)` | Strips recipient fields for safe transmission |
-| `permit_importShared(export)` | Completes a shared permit as the recipient |
+| Function                                      | Description                                                                      |
+| --------------------------------------------- | -------------------------------------------------------------------------------- |
+| `connect(pkey)`                               | Sets the active account from a private key                                       |
+| `account()`                                   | Returns the connected account address                                            |
+| `createInEbool/8/16/32/64/128/address(value)` | Creates a signed encrypted input                                                 |
+| `decryptForTx_withoutPermit(ctHash)`          | Decrypts a globally-allowed ciphertext; returns `(ctHash, plaintext, signature)` |
+| `decryptForTx_withPermit(ctHash, permit)`     | Decrypts with a permission; returns `(ctHash, plaintext, signature)`             |
+| `decryptForView(ctHash, sealingKey, permit)`  | Seals and unseals for off-chain reading                                          |
+| `permit_createSelf()`                         | Creates a self-permit for the connected account                                  |
+| `permit_createShared(recipient)`              | Creates the issuer half of a shared permit                                       |
+| `permit_exportShared(permit)`                 | Strips recipient fields for safe transmission                                    |
+| `permit_importShared(export)`                 | Completes a shared permit as the recipient                                       |
