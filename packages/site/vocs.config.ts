@@ -156,11 +156,7 @@ export default defineConfig({
       items: [
         {
           text: 'Changelog',
-          link: 'https://github.com/wevm/viem/blob/main/src/CHANGELOG.md',
-        },
-        {
-          text: 'Contributing',
-          link: 'https://github.com/wevm/viem/blob/main/.github/CONTRIBUTING.md',
+          link: 'https://github.com/FhenixProtocol/cofhesdk/releases',
         },
       ],
     },
