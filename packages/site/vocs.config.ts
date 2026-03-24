@@ -8,14 +8,15 @@ const envBaseUrl = process.env.VOCS_BASE_URL;
 
 const baseUrl = (envBaseUrl || defaultBaseUrl).replace(/\/+$/, '');
 
+const ogLogoUrl = `${baseUrl}/fhenix-logo-word.svg`;
+
 const ogImageUrl = {
-  '/': 'https://vocs.dev/api/og?logo=%logo&title=%title&description=%description',
+  '/': `https://vocs.dev/api/og?logo=${ogLogoUrl}&title=%title&description=%description`,
 };
 
 export default defineConfig({
   baseUrl,
   iconUrl: '/favicon.png',
-  logoUrl: '/fhenix-logo-word.svg',
   twoslash: {
     compilerOptions: {
       // ModuleResolutionKind.Bundler = 100
