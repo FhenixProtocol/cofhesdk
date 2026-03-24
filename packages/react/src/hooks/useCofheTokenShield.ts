@@ -15,13 +15,85 @@ import {
   WRAPPED_ETH_ENCRYPT_ETH_ABI,
   WRAPPED_ENCRYPT_ABI,
   WRAPPED_GET_USER_CLAIMS_ABI,
-  ERC20_ALLOWANCE_ABI,
   ERC20_APPROVE_ABI,
 } from '../constants/confidentialTokenABIs.js';
 import { TransactionActionType, useTransactionStore } from '../stores/transactionStore.js';
 import { useInternalMutation, useInternalQuery } from '../providers/index.js';
 import { assert } from 'ts-essentials';
 import { useTransactionGlobalLifecycle } from './useTransactionGlobalLifecycle.js';
+import type { CofheSimulateWriteContractCallArgs } from './useCofheSimulateWriteContract.js';
+
+export function getCofheTokenShieldCallArgs(params: { token: Token; amount: bigint; account: Address }): {
+  main: CofheSimulateWriteContractCallArgs;
+  approval?: CofheSimulateWriteContractCallArgs;
+} {
+  const { token, amount, account } = params;
+  const tokenAddress: Address = token.address;
+  const confidentialityType = token.extensions.fhenix.confidentialityType;
+
+  if (!confidentialityType) {
+    throw new Error('confidentialityType is required in token extensions');
+  }
+
+  if (confidentialityType !== 'dual' && confidentialityType !== 'wrapped') {
+    throw new Error(`Shield not supported for confidentialityType: ${confidentialityType}`);
+  }
+
+  if (confidentialityType === 'dual') {
+    const contractConfig = SHIELD_ABIS.dual;
+    return {
+      main: {
+        address: tokenAddress,
+        abi: contractConfig.abi,
+        functionName: contractConfig.functionName,
+        args: [amount],
+        account,
+        chain: undefined,
+      },
+    };
+  }
+
+  // wrapped
+  const erc20PairAddress = token.extensions.fhenix.erc20Pair?.address;
+  const isEth = erc20PairAddress?.toLowerCase() === ETH_ADDRESS_LOWERCASE;
+
+  if (isEth) {
+    return {
+      main: {
+        address: tokenAddress,
+        abi: WRAPPED_ETH_ENCRYPT_ETH_ABI,
+        functionName: 'encryptETH',
+        args: [account],
+        value: amount,
+        account,
+        chain: undefined,
+      },
+    };
+  }
+
+  if (!erc20PairAddress) {
+    throw new Error('erc20Pair address is required for wrapped ERC20 tokens');
+  }
+
+  return {
+    approval: {
+      address: erc20PairAddress,
+      abi: ERC20_APPROVE_ABI,
+      functionName: 'approve',
+      args: [tokenAddress, amount],
+      account,
+      chain: undefined,
+    },
+    main: {
+      address: tokenAddress,
+      abi: WRAPPED_ENCRYPT_ABI,
+      functionName: 'encrypt',
+      args: [account, amount],
+      account,
+      chain: undefined,
+    },
+  };
+}
 
 // ============================================================================
 // Types
@@ -72,7 +144,11 @@ export function useCofheTokenShield(
         throw new Error('WalletClient is required for token shield');
       }
 
-      const tokenAddress = input.token.address as Address;
+      if (!publicClient) {
+        throw new Error('PublicClient is required to simulate shield before writing');
+      }
+
+      const tokenAddress: Address = input.token.address;
       const confidentialityType = input.token.extensions.fhenix.confidentialityType;
 
       if (!confidentialityType) {
@@ -92,84 +168,49 @@ export function useCofheTokenShield(
 
       if (confidentialityType === 'wrapped') {
         // Check if this is a wrapped ETH token (erc20Pair is ETH_ADDRESS)
-        const erc20PairAddress = input.token.extensions.fhenix.erc20Pair?.address as Address | undefined;
+        const erc20PairAddress = input.token.extensions.fhenix.erc20Pair?.address;
         const isEth = erc20PairAddress?.toLowerCase() === ETH_ADDRESS_LOWERCASE;
 
         if (isEth) {
           // For ETH: use encryptETH(address to) with value
-          hash = await walletClient.writeContract({
+          const { request } = await publicClient.simulateContract({
             address: tokenAddress,
             abi: WRAPPED_ETH_ENCRYPT_ETH_ABI,
             functionName: 'encryptETH',
             args: [walletClient.account.address],
             value: input.amount,
             account: walletClient.account,
-            chain: undefined,
           });
+          hash = await walletClient.writeContract({ ...request, chain: undefined });
         } else {
-          // For ERC20 wrapped tokens: need to check allowance and approve if needed
+          // For ERC20 wrapped tokens: caller is expected to handle approval.
           if (!erc20PairAddress) {
             throw new Error('erc20Pair address is required for wrapped ERC20 tokens');
           }
 
-          if (!publicClient) {
-            throw new Error('PublicClient is required for allowance check');
-          }
-
-          // Check current allowance
-          input.onStatusChange?.('Checking allowance...');
-          const currentAllowance = await publicClient.readContract({
-            address: erc20PairAddress,
-            abi: ERC20_ALLOWANCE_ABI,
-            functionName: 'allowance',
-            args: [walletClient.account.address, tokenAddress],
-          });
-
-          // If allowance is insufficient, request approval
-          if (currentAllowance < input.amount) {
-            input.onStatusChange?.('Approval required - please confirm in wallet...');
-            // Request approval for the exact amount (or max uint256 for unlimited)
-            const approvalHash = await walletClient.writeContract({
-              address: erc20PairAddress,
-              abi: ERC20_APPROVE_ABI,
-              functionName: 'approve',
-              args: [tokenAddress, input.amount],
-              account: walletClient.account,
-              chain: undefined,
-            });
-
-            // Wait for approval transaction to be confirmed
-            input.onStatusChange?.('Waiting for approval confirmation...');
-            await publicClient.waitForTransactionReceipt({ hash: approvalHash });
-            input.onStatusChange?.('Approved! Now shielding...');
-          }
-
           // Now call encrypt
           input.onStatusChange?.('Please confirm shield in wallet...');
-          hash = await walletClient.writeContract({
+          const { request: encryptRequest } = await publicClient.simulateContract({
             address: tokenAddress,
             abi: WRAPPED_ENCRYPT_ABI,
             functionName: 'encrypt',
             args: [walletClient.account.address, input.amount],
             account: walletClient.account,
-            chain: undefined,
           });
+          hash = await walletClient.writeContract({ ...encryptRequest, chain: undefined });
         }
       } else {
         // Dual tokens: use shield(uint256 amount)
-        const contractConfig = SHIELD_ABIS[confidentialityType];
-        if (!contractConfig) {
-          throw new Error(`Unsupported confidentialityType for shield: ${confidentialityType}`);
-        }
+        const contractConfig = SHIELD_ABIS.dual;
 
-        hash = await walletClient.writeContract({
+        const { request } = await publicClient.simulateContract({
           address: tokenAddress,
           abi: contractConfig.abi,
           functionName: contractConfig.functionName,
           args: [input.amount],
           account: walletClient.account,
-          chain: undefined,
         });
+        hash = await walletClient.writeContract({ ...request, chain: undefined });
       }
 
       return hash;

@@ -1,7 +1,8 @@
 import { usePortalToasts } from '@/stores';
 import type { DecryptionWatcher } from '@/stores/decryptionWatchingStore';
 import type { Transaction } from '@/stores/transactionStore';
-import type { TransactionReceipt } from 'viem';
+import { ContractFunctionExecutionError, ContractFunctionRevertedError, type TransactionReceipt } from 'viem';
+import { cofheHumanizeRevertReason } from '@/utils/cofheErrors';
 
 const TOAST_DELAY_MS = 10_000;
 function useTransactionGlobalToastsLifecycle() {
@@ -24,13 +25,23 @@ function useTransactionGlobalToastsLifecycle() {
       );
     },
     onTransactionSubmitError: (error: unknown, transactionType: Transaction['actionType']) => {
+      let humanReadableError: string | undefined;
+      if (error instanceof ContractFunctionExecutionError) {
+        if (error.cause instanceof ContractFunctionRevertedError) {
+          const reasonOfRevert = error.cause.raw;
+          if (typeof reasonOfRevert === 'string') {
+            humanReadableError = cofheHumanizeRevertReason(reasonOfRevert);
+          }
+        }
+      }
       console.error('____ Transaction submission failed for type:', transactionType, 'with error:', error);
       addToast(
         {
           variant: 'error',
           title: `${transactionType} Transaction Submission Failed`,
           description:
-            error instanceof Error ? error.message : 'An unknown error occurred during transaction submission.',
+            humanReadableError ??
+            (error instanceof Error ? error.message : 'An unknown error occurred during transaction submission.'),
         },
         TOAST_DELAY_MS
       );

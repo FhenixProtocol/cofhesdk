@@ -28,6 +28,8 @@ const ActionIcon: React.FC<{ actionType: TransactionActionType }> = ({ actionTyp
       return <TbShieldMinus className={iconClassName} />;
     case TransactionActionType.Claim:
       return <TbShieldCheck className={iconClassName} />;
+    case TransactionActionType.Approve:
+      return <GoArrowUpRight className={iconClassName} />;
     default:
       return <GoArrowUpRight className={iconClassName} />;
   }

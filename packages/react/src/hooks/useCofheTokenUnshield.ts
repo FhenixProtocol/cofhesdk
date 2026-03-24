@@ -9,6 +9,52 @@ import { assert } from 'ts-essentials';
 import { useOnceTransactionMined } from './useOnceTransactionMined.js';
 import { useOnceDecrypted } from './useOnceDecrypted.js';
 import { useTransactionGlobalLifecycle } from './useTransactionGlobalLifecycle.js';
+import type { CofheSimulateWriteContractCallArgs } from './useCofheSimulateWriteContract.js';
+
+export function getCofheTokenUnshieldCallArgs(params: {
+  token: Token;
+  amount: bigint;
+  account: Address;
+}): CofheSimulateWriteContractCallArgs {
+  const { token, amount: rawAmount, account } = params;
+  const tokenAddress: Address = token.address;
+  const confidentialityType = token.extensions.fhenix.confidentialityType;
+
+  if (!confidentialityType) {
+    throw new Error('confidentialityType is required in token extensions');
+  }
+
+  if (confidentialityType !== 'dual' && confidentialityType !== 'wrapped') {
+    throw new Error(`Unshield not supported for confidentialityType: ${confidentialityType}`);
+  }
+
+  const contractConfig = UNSHIELD_ABIS[confidentialityType];
+  if (!contractConfig) {
+    throw new Error(`Unsupported confidentialityType for unshield: ${confidentialityType}`);
+  }
+
+  if (confidentialityType === 'wrapped') {
+    return {
+      address: tokenAddress,
+      abi: contractConfig.abi,
+      functionName: contractConfig.functionName,
+      args: [account, rawAmount],
+      account,
+      chain: undefined,
+    };
+  }
+
+  // Dual tokens: unshield takes uint64
+  const amount = BigInt.asUintN(64, rawAmount);
+  return {
+    address: tokenAddress,
+    abi: contractConfig.abi,
+    functionName: contractConfig.functionName,
+    args: [amount],
+    account,
+    chain: undefined,
+  };
+}
 
 // ============================================================================
 // Unshield Hook
@@ -37,6 +83,7 @@ function useCofheTokenUnshieldMutation(
   options?: UseTokenUnshieldMutationOptions
 ): UseMutationResult<`0x${string}`, Error, UseTokenUnshieldMutationInput> {
   const walletClient = useCofheWalletClient();
+  const publicClient = useCofhePublicClient();
   const chainId = useCofheChainId();
   const account = useCofheAccount();
   const { onTransactionSubmitError } = useTransactionGlobalLifecycle();
@@ -49,7 +96,11 @@ function useCofheTokenUnshieldMutation(
         throw new Error('WalletClient is required for token unshield');
       }
 
-      const tokenAddress = input.token.address as Address;
+      if (!publicClient) {
+        throw new Error('PublicClient is required to simulate unshield before writing');
+      }
+
+      const tokenAddress: Address = input.token.address;
       const confidentialityType = input.token.extensions.fhenix.confidentialityType;
 
       if (!confidentialityType) {
@@ -76,26 +127,26 @@ function useCofheTokenUnshieldMutation(
 
       if (confidentialityType === 'wrapped') {
         // Wrapped tokens: decrypt(address to, uint128 value)
-        hash = await walletClient.writeContract({
+        const { request } = await publicClient.simulateContract({
           address: tokenAddress,
           abi: contractConfig.abi,
           functionName: contractConfig.functionName,
           args: [walletClient.account.address, input.amount],
           account: walletClient.account,
-          chain: undefined,
         });
+        hash = await walletClient.writeContract({ ...request, chain: undefined });
       } else {
         // For dual tokens, unshield takes uint64
         const amount = BigInt.asUintN(64, input.amount);
 
-        hash = await walletClient.writeContract({
+        const { request } = await publicClient.simulateContract({
           address: tokenAddress,
           abi: contractConfig.abi,
           functionName: contractConfig.functionName,
           args: [amount],
           account: walletClient.account,
-          chain: undefined,
         });
+        hash = await walletClient.writeContract({ ...request, chain: undefined });
       }
 
       return hash;

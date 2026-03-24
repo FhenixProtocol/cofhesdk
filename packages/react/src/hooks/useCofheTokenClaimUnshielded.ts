@@ -1,12 +1,45 @@
 import { type UseMutationOptions, type UseMutationResult } from '@tanstack/react-query';
 import { type Address } from 'viem';
-import { useCofheWalletClient, useCofheChainId, useCofheAccount } from './useCofheConnection.js';
+import { useCofheWalletClient, useCofheChainId, useCofheAccount, useCofhePublicClient } from './useCofheConnection.js';
 import { type Token } from './useCofheTokenLists.js';
 import { CLAIM_ABIS } from '../constants/confidentialTokenABIs.js';
 import { TransactionActionType, useTransactionStore } from '../stores/transactionStore.js';
 import { useInternalMutation } from '../providers/index.js';
 import { assert } from 'ts-essentials';
 import { useTransactionGlobalLifecycle } from './useTransactionGlobalLifecycle.js';
+import type { CofheSimulateWriteContractCallArgs } from './useCofheSimulateWriteContract.js';
+
+export function getCofheTokenClaimUnshieldedCallArgs(params: {
+  token: Token;
+  account: Address;
+}): CofheSimulateWriteContractCallArgs {
+  const { token, account } = params;
+
+  const tokenAddress: Address = token.address;
+  const confidentialityType = token.extensions.fhenix.confidentialityType;
+
+  if (!confidentialityType) {
+    throw new Error('confidentialityType is required in token extensions');
+  }
+
+  if (confidentialityType !== 'dual' && confidentialityType !== 'wrapped') {
+    throw new Error(`Claim not supported for confidentialityType: ${confidentialityType}`);
+  }
+
+  const contractConfig = CLAIM_ABIS[confidentialityType];
+  if (!contractConfig) {
+    throw new Error(`Unsupported confidentialityType for claim: ${confidentialityType}`);
+  }
+
+  return {
+    address: tokenAddress,
+    abi: contractConfig.abi,
+    functionName: contractConfig.functionName,
+    args: [],
+    account,
+    chain: undefined,
+  };
+}
 
 // ============================================================================
 // Claim Unshield Hook
@@ -29,6 +62,7 @@ export function useCofheTokenClaimUnshielded(
   options?: UseClaimUnshieldOptions
 ): UseMutationResult<`0x${string}`, Error, UseClaimUnshieldInput> {
   const walletClient = useCofheWalletClient();
+  const publicClient = useCofhePublicClient();
   const chainId = useCofheChainId();
   const account = useCofheAccount();
   const { onSuccess, onError, ...restOfOptions } = options || {};
@@ -39,7 +73,11 @@ export function useCofheTokenClaimUnshielded(
         throw new Error('WalletClient is required for claim');
       }
 
-      const tokenAddress = input.token.address as Address;
+      if (!publicClient) {
+        throw new Error('PublicClient is required to simulate claim before writing');
+      }
+
+      const tokenAddress: Address = input.token.address;
       const confidentialityType = input.token.extensions.fhenix.confidentialityType;
 
       if (!confidentialityType) {
@@ -60,15 +98,14 @@ export function useCofheTokenClaimUnshielded(
         throw new Error(`Unsupported confidentialityType for claim: ${confidentialityType}`);
       }
 
-      const hash = await walletClient.writeContract({
+      const { request } = await publicClient.simulateContract({
         address: tokenAddress,
         abi: contractConfig.abi,
         functionName: contractConfig.functionName,
         args: [],
         account: walletClient.account,
-        chain: undefined,
       });
-      return hash;
+      return await walletClient.writeContract({ ...request, chain: undefined });
     },
     onError: (error, variables, onMutateResult, context) => {
       if (onError) onError(error, variables, onMutateResult, context);
