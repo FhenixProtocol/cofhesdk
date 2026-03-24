@@ -2,29 +2,34 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { TbShieldPlus, TbShieldMinus } from 'react-icons/tb';
 import { LuExternalLink } from 'react-icons/lu';
-import { useState } from 'react';
-import { parseUnits } from 'viem';
+import { useMemo, useState } from 'react';
+import { ContractFunctionExecutionError, parseUnits, type Address } from 'viem';
 import { useCofheAccount, useCofheChainId } from '@/hooks/useCofheConnection';
 import { useCofheTokenDecryptedBalance } from '@/hooks/useCofheTokenDecryptedBalance';
 import { type Token } from '@/hooks/useCofheTokenLists';
 import { useCofheTokenShield } from '@/hooks/useCofheTokenShield';
+import { FloatingButtonPage } from '../pagesConfig/types';
 import { cn } from '../../../utils/cn';
 import { getBlockExplorerTxUrl, truncateHash } from '../../../utils/utils';
 import { ActionButton, AmountInput, CofheTokenConfidentialBalance, TokenIcon } from '../components/index';
 import { useCofheTokenPublicBalance } from '@/hooks/useCofheTokenPublicBalance';
 import { formatTokenAmount, unitToWei } from '@/utils/format';
-import { FloatingButtonPage } from '../pagesConfig/types';
 import {
+  getCofheTokenClaimUnshieldedCallArgs,
+  getCofheTokenShieldCallArgs,
+  getCofheTokenUnshieldCallArgs,
+  useCofheSimulateWriteContract,
+  useCofheTokenApprove,
   useCofheTokenClaimUnshielded,
   useCofheTokenUnshield,
   useCofheTokenClaimable,
   useCofheTokensWithExistingEncryptedBalances,
   useTokensWithPublicBalances,
+  useTokenAllowance,
 } from '@/hooks';
 import { useOnceTransactionMined } from '@/hooks/useOnceTransactionMined';
 import { useReschedulableTimeout } from '@/hooks/useReschedulableTimeout';
 import { assert } from 'ts-essentials';
-import type { BigNumber } from 'bignumber.js';
 import { usePortalModals, usePortalNavigation } from '@/stores';
 import { BalanceType, CofheTokenPublicBalance } from '../components/CofheTokenConfidentialBalance';
 import { useIsUnshieldingMining } from '@/hooks/useIsUnshieldingMining';
@@ -60,6 +65,14 @@ function useLifecycleStore() {
     status,
     setStatus,
   };
+}
+
+function humanizeSimulationError(error: unknown, fallbackMessage: string): React.ReactNode | null {
+  if (!error) return null;
+  const cofheErrorMessage = cofheHumanizeViemError(error);
+  if (cofheErrorMessage) return cofheErrorMessage;
+  if (error instanceof ContractFunctionExecutionError) return error.shortMessage;
+  return fallbackMessage;
 }
 
 function TxHashWithActions({ hash, chainId }: { hash: string; chainId?: number }) {
@@ -190,6 +203,13 @@ function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 
       console.error('Shield tx submit error:', error);
     },
   });
+
+  const { tokenApprove, isApprovingMining } = useApproveWithLifecycle({
+    chainId,
+    setError,
+    setStatus,
+    scheduleStatusClear,
+  });
   const { isMining: isTokenShieldMining } = useOnceTransactionMined({
     txHash: tokenShield.data,
     onceMined: (transaction) => {
@@ -223,6 +243,16 @@ function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 
     });
   };
 
+  const handleApprove = async () => {
+    assert(approvalCallArgs, 'Approval call args are required to approve');
+    assert(shieldAmountWei, 'Shield amount is required to approve');
+    assert(account, 'Wallet account is required to approve');
+    await tokenApprove.writeContractAsync({
+      writeContractInput: { ...approvalCallArgs, account: account ?? null, chain: undefined },
+      extras: { token, tokenAmount: shieldAmountWei, account },
+    });
+  };
+
   const { data: { unit: publicBalanceUnit } = {}, isFetching: isFetchingPublic } = useCofheTokenPublicBalance({
     token,
     accountAddress: account,
@@ -237,20 +267,96 @@ function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 
 
   const isValidShieldAmount = (shieldAmount.length > 0 && publicBalanceUnit?.gte(shieldAmount)) ?? false;
 
+  const shieldAmountWei = useMemo<bigint | undefined>(() => {
+    if (!isValidShieldAmount) return undefined;
+    try {
+      return unitToWei(shieldAmount, token.decimals);
+    } catch {
+      return undefined;
+    }
+  }, [isValidShieldAmount, shieldAmount, token.decimals]);
+
+  const shieldTxCallArgs = useMemo(() => {
+    if (!account || !shieldAmountWei) return undefined;
+    return getCofheTokenShieldCallArgs({ token, amount: shieldAmountWei, account });
+  }, [account, shieldAmountWei, token]);
+
+  const shieldCallArgs = shieldTxCallArgs?.main;
+  const approvalCallArgs = shieldTxCallArgs?.approval;
+  const approvalSpender = (approvalCallArgs?.args?.[0] as Address | undefined) ?? undefined;
+
+  const { data: allowanceWei, isFetching: isFetchingAllowance } = useTokenAllowance(
+    {
+      tokenAddress: approvalCallArgs?.address,
+      ownerAddress: account,
+      spenderAddress: approvalSpender,
+    },
+    {
+      enabled: !!approvalCallArgs && !!account && !!approvalSpender && !!shieldAmountWei,
+    }
+  );
+
+  const requiresApproval = !!approvalCallArgs;
+  const isAllowanceKnown = !requiresApproval || typeof allowanceWei === 'bigint';
+  const hasSufficientAllowance =
+    !requiresApproval ||
+    (typeof allowanceWei === 'bigint' && typeof shieldAmountWei === 'bigint' && allowanceWei >= shieldAmountWei);
+
+  const shouldApprove =
+    requiresApproval &&
+    typeof allowanceWei === 'bigint' &&
+    typeof shieldAmountWei === 'bigint' &&
+    allowanceWei < shieldAmountWei;
+
+  const approvalSimulation = useCofheSimulateWriteContract(approvalCallArgs, {
+    enabled: shouldApprove,
+  });
+
+  const shieldSimulation = useCofheSimulateWriteContract(shieldCallArgs, {
+    enabled: !!shieldCallArgs && !shouldApprove,
+  });
+
+  const simulationError = useMemo<React.ReactNode | null>(() => {
+    const relevantError = shouldApprove ? approvalSimulation.error : shieldSimulation.error;
+    if (!relevantError) return null;
+
+    const cofheErrorMessage = cofheHumanizeViemError(relevantError);
+    if (cofheErrorMessage) return cofheErrorMessage;
+    if (relevantError instanceof ContractFunctionExecutionError) return relevantError.shortMessage;
+    return shouldApprove ? 'Failed to simulate approval transaction' : 'Failed to simulate shield transaction';
+  }, [approvalSimulation.error, shieldSimulation.error, shouldApprove]);
+
+  const canShield =
+    isValidShieldAmount &&
+    !!shieldCallArgs &&
+    isAllowanceKnown &&
+    hasSufficientAllowance &&
+    !shieldSimulation.isFetching &&
+    !shieldSimulation.error;
+
+  const canApprove =
+    isValidShieldAmount &&
+    shouldApprove &&
+    !isFetchingAllowance &&
+    !approvalSimulation.isFetching &&
+    !approvalSimulation.error;
+
+  const canWrite = shouldApprove ? canApprove : canShield;
+
   return {
     status,
-    error,
-    isProcessing: tokenShield.isPending || isTokenShieldMining,
+    error: error ?? simulationError,
+    isProcessing: tokenShield.isPending || isTokenShieldMining || tokenApprove.isPending || isApprovingMining,
     inputAmount: shieldAmount,
     setInputAmount: setShieldAmount,
     onMaxClick: handleShieldMax,
-    isValidAmount: isValidShieldAmount,
+    canWriteContract: canWrite,
     sourceSymbol: token.extensions.fhenix.erc20Pair?.symbol,
     destSymbol: token.symbol,
     sourceLogoURI: token.extensions.fhenix.erc20Pair?.logoURI,
     destLogoURI: token.logoURI,
-    handlePrimaryAction: handleShield,
-    primaryLabel: 'Shield',
+    handlePrimaryAction: shouldApprove ? handleApprove : handleShield,
+    primaryLabel: shouldApprove ? 'Approve' : 'Shield',
     primaryIcon: <TbShieldPlus className="w-3 h-3" />,
   };
 }
@@ -313,10 +419,10 @@ function useUnshieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps
     },
   });
   const handleUnshield = async () => {
-    const amountInSmallestUnit = parseUnits(unshieldAmount, token.decimals);
+    const amountWei = parseUnits(unshieldAmount, token.decimals);
     tokenUnshield.mutateAsync({
       token,
-      amount: amountInSmallestUnit,
+      amount: amountWei,
       onStatusChange: (message) => setStatus({ message, type: 'info' }),
     });
   };
@@ -328,14 +434,32 @@ function useUnshieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps
   };
   const isValidUnshieldAmount = (unshieldAmount.length > 0 && confidentialBalanceUnit?.gte(unshieldAmount)) ?? false;
 
+  const unshieldCallArgs = useMemo(() => {
+    if (!account || !isValidUnshieldAmount) return undefined;
+    const amountWei = parseUnits(unshieldAmount, token.decimals);
+    return getCofheTokenUnshieldCallArgs({ token, amount: amountWei, account });
+  }, [account, isValidUnshieldAmount, token, unshieldAmount]);
+
+  const unshieldSimulation = useCofheSimulateWriteContract(unshieldCallArgs, {
+    enabled: !!unshieldCallArgs,
+  });
+
+  const simulationError = useMemo(
+    () => humanizeSimulationError(unshieldSimulation.error, 'Failed to simulate unshield transaction'),
+    [unshieldSimulation.error]
+  );
+
+  const canUnshield =
+    isValidUnshieldAmount && !!unshieldCallArgs && !unshieldSimulation.isFetching && !unshieldSimulation.error;
+
   return {
     status,
-    error,
+    error: error ?? simulationError,
     isProcessing: tokenUnshield.isPending || tokenUnshield.isTokenUnshieldMining || tokenUnshield.isPendingDecryption,
     inputAmount: unshieldAmount,
     setInputAmount: setUnshieldAmount,
     onMaxClick: handleUnshieldMax,
-    isValidAmount: isValidUnshieldAmount ?? false,
+    canWriteContract: canUnshield,
     sourceSymbol: token.symbol,
     destSymbol: token.extensions.fhenix.erc20Pair?.symbol,
     sourceLogoURI: token.logoURI,
@@ -372,7 +496,7 @@ type ShieldPageViewProps = {
   inputAmount: string;
   setInputAmount: (value: string) => void;
   onMaxClick: () => void;
-  isValidAmount: boolean;
+  canWriteContract: boolean;
   sourceSymbol: string | undefined;
   destSymbol: string | undefined;
 
@@ -445,6 +569,20 @@ function ClaimingSection({ token }: { token: Token }) {
 
   const isUnshieldingMining = useIsUnshieldingMining(token);
 
+  const claimCallArgs = useMemo(() => {
+    if (!account || !unshieldedClaims?.hasClaimable) return undefined;
+    return getCofheTokenClaimUnshieldedCallArgs({ token, account });
+  }, [account, token, unshieldedClaims?.hasClaimable]);
+
+  const claimSimulation = useCofheSimulateWriteContract(claimCallArgs, {
+    enabled: !!claimCallArgs,
+  });
+
+  const claimSimulationError = useMemo(
+    () => humanizeSimulationError(claimSimulation.error, 'Failed to simulate claim transaction'),
+    [claimSimulation.error]
+  );
+
   return (
     <>
       {/* Claim + pending (same logic as ShieldPage) */}
@@ -456,7 +594,10 @@ function ClaimingSection({ token }: { token: Token }) {
             isClaimingMining ||
             isFetchingClaims ||
             isWaitingForNewClaimsDecryption ||
-            isUnshieldingMining
+            isUnshieldingMining ||
+            !claimCallArgs ||
+            claimSimulation.isFetching ||
+            !!claimSimulation.error
           }
           label={
             claimUnshield.isPending
@@ -472,7 +613,7 @@ function ClaimingSection({ token }: { token: Token }) {
           Pending: {formatTokenAmount(unshieldedClaims.pendingAmount, token.decimals).formatted} {pairedSymbol}
         </p>
       )}
-      <StatusAndError status={claimingStatus} error={claimingError} />
+      <StatusAndError status={claimingStatus} error={claimingError ?? claimSimulationError} />
     </>
   );
 }
@@ -523,7 +664,7 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
   inputAmount,
   setInputAmount,
   onMaxClick,
-  isValidAmount,
+  canWriteContract,
   sourceSymbol,
   destSymbol,
 
@@ -655,7 +796,7 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
           {/* Primary action */}
           <ActionButton
             onClick={handlePrimaryAction}
-            disabled={!isValidAmount || isProcessing || !isShieldableToken}
+            disabled={!canWriteContract || isProcessing || !isShieldableToken}
             icon={primaryIcon}
             label={primaryLabel}
             className="py-2"
@@ -676,3 +817,69 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
     />
   );
 };
+
+function useApproveWithLifecycle({
+  chainId,
+  setError,
+  setStatus,
+  scheduleStatusClear,
+}: {
+  chainId?: number;
+  setError: (error: React.ReactNode | null) => void;
+  setStatus: (status: LifecycleStatus | null) => void;
+  scheduleStatusClear: () => void;
+}) {
+  const tokenApprove = useCofheTokenApprove({
+    onMutate: () => {
+      setError(null);
+      setStatus({ message: 'Preparing approval transaction...', type: 'info' });
+    },
+    onSuccess: (hash, variables) => {
+      setStatus({
+        message: (
+          <>
+            Approval transaction sent! Hash: <TxHashWithActions hash={hash} chainId={chainId} /> Waiting for
+            confirmation...
+          </>
+        ),
+        type: 'info',
+      });
+    },
+    onError: (error) => {
+      const errorMessage =
+        cofheHumanizeViemError(error) ?? (error instanceof Error ? error.message : 'Failed to approve tokens');
+      setError(errorMessage);
+      setStatus(null);
+      console.error('Approve tx submit error:', error);
+    },
+  });
+
+  const { isMining: isApprovingMining } = useOnceTransactionMined({
+    txHash: tokenApprove.data,
+    onceMined: async (transaction) => {
+      if (transaction.status === 'confirmed') {
+        setStatus({
+          message: (
+            <>
+              Approval transaction confirmed! Hash: <TxHashWithActions hash={transaction.hash} chainId={chainId} />
+            </>
+          ),
+          type: 'success',
+        });
+      } else if (transaction.status === 'failed') {
+        setError(
+          <>
+            Approval transaction failed! Hash: <TxHashWithActions hash={transaction.hash} chainId={chainId} />
+          </>
+        );
+        setStatus(null);
+      }
+      scheduleStatusClear();
+    },
+  });
+
+  return {
+    tokenApprove,
+    isApprovingMining,
+  };
+}

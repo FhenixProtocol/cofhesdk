@@ -21,8 +21,9 @@ export enum TransactionActionType {
   Shield = 'shield',
   Unshield = 'unshield',
   Claim = 'claim',
+  Approve = 'approve',
 }
-export type TransactionActionString = 'Shielded Transfer' | 'Shield' | 'Unshield' | 'Claim';
+export type TransactionActionString = 'Shielded Transfer' | 'Shield' | 'Unshield' | 'Claim' | 'Approve';
 
 type BaseTransaction = {
   hash: `0x${string}`;
@@ -49,11 +50,20 @@ type ClaimingTransaction = BaseTransaction & {
   actionType: TransactionActionType.Claim;
 };
 
+type ApprovingTransaction = BaseTransaction & {
+  actionType: TransactionActionType.Approve;
+};
+
 type UnshieldingTransaction = BaseTransaction & {
   actionType: TransactionActionType.Unshield;
 };
 
-export type Transaction = UnshieldingTransaction | ShieldingTransaction | SendingTransaction | ClaimingTransaction;
+export type Transaction =
+  | UnshieldingTransaction
+  | ShieldingTransaction
+  | SendingTransaction
+  | ClaimingTransaction
+  | ApprovingTransaction;
 
 type NewTransaction = DistributiveOmit<Transaction, 'status' | 'timestamp'>;
 
@@ -74,6 +84,7 @@ const actionToStringMap: Record<TransactionActionType, TransactionActionString> 
   [TransactionActionType.Shield]: 'Shield',
   [TransactionActionType.Unshield]: 'Unshield',
   [TransactionActionType.Claim]: 'Claim',
+  [TransactionActionType.Approve]: 'Approve',
 };
 
 export const actionToString = (a: TransactionActionType): TransactionActionString => actionToStringMap[a];
