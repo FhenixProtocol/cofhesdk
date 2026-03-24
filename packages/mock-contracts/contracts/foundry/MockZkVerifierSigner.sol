@@ -7,7 +7,7 @@ import { console } from 'forge-std/console.sol';
 import { Test } from 'forge-std/Test.sol';
 import { MessageHashUtils } from '@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol';
 import { EncryptedInput } from '@fhenixprotocol/cofhe-contracts/ICofhe.sol';
-import { SIGNER_PRIVATE_KEY } from '../MockCoFHE.sol';
+import { ZK_VERIFIER_SIGNER_PRIVATE_KEY } from '../MockCoFHE.sol';
 
 /**
  * @dev Generates valid signatures for encrypted inputs.
@@ -31,7 +31,7 @@ contract MockZkVerifierSigner is Test {
 
     bytes32 expectedHash = keccak256(combined);
 
-    (uint8 v, bytes32 r, bytes32 s) = vm.sign(SIGNER_PRIVATE_KEY, expectedHash);
+    (uint8 v, bytes32 r, bytes32 s) = vm.sign(ZK_VERIFIER_SIGNER_PRIVATE_KEY, expectedHash);
     bytes memory signature = abi.encodePacked(r, s, v); // note the order here is different from line above.
 
     input.signature = signature;

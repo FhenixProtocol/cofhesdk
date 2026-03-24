@@ -2,451 +2,237 @@
 pragma solidity ^0.8.13;
 
 import { Test } from 'forge-std/Test.sol';
+import '@fhenixprotocol/cofhe-contracts/FHE.sol';
 import { MockTaskManager } from '../MockTaskManager.sol';
 import { MockACL } from '../MockACL.sol';
-import '@fhenixprotocol/cofhe-contracts/FHE.sol';
 import { MockZkVerifier } from '../MockZkVerifier.sol';
 import { MockZkVerifierSigner } from './MockZkVerifierSigner.sol';
-import { MessageHashUtils } from '@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol';
-import { Permission, PermissionUtils } from '../Permissioned.sol';
 import { MockThresholdNetwork } from '../MockThresholdNetwork.sol';
-import { SIGNER_ADDRESS } from '../MockCoFHE.sol';
+import { MockThresholdNetworkSigner } from './MockThresholdNetworkSigner.sol';
+import { CofheClient } from './CofheClient.sol';
+import { ZK_VERIFIER_SIGNER_ADDRESS, DECRYPT_RESULT_SIGNER_ADDRESS } from '../MockCoFHE.sol';
 
-abstract contract CoFheTest is Test {
+/// @notice Base contract for Foundry tests that use the CoFHE mock environment.
+/// @dev    Inherit this contract and call `deployMocks()` in your `setUp()` function.
+///         Use `createCofheClient()` to obtain a connected client instance.
+abstract contract CofheTest is Test {
   MockTaskManager public mockTaskManager;
+  MockACL public mockAcl;
   MockZkVerifier public mockZkVerifier;
   MockZkVerifierSigner public mockZkVerifierSigner;
-  MockACL public mockAcl;
   MockThresholdNetwork public mockThresholdNetwork;
+  MockThresholdNetworkSigner public mockThresholdNetworkSigner;
 
-  // Keep these in sync with `packages/sdk/core/consts.ts`
+  // Keep in sync with `packages/sdk/core/consts.ts`
   address constant ZK_VERIFIER_ADDRESS = 0x0000000000000000000000000000000000005001;
   address constant THRESHOLD_NETWORK_ADDRESS = 0x0000000000000000000000000000000000005002;
-  // SDK exposes this as `MOCKS_ZK_VERIFIER_SIGNER_ADDRESS`
-  address constant ZK_VERIFIER_SIGNER_ADDRESS = SIGNER_ADDRESS;
-  address public constant ACL_ADDRESS = 0xa6Ea4b5291d044D93b73b3CFf3109A1128663E8B;
-
-  bool private _log = false;
 
   address public constant TM_ADMIN = address(128);
 
-  constructor() {
-    etchFhenixMocks();
-  }
+  // =====================
+  //     DEPLOY MOCKS
+  // =====================
 
-  function setLog(bool log) internal {
-    _log = log;
-  }
-
-  // SETUP
-
-  function etchFhenixMocks() internal {
-    // Override chain id (uncomment to enable)
-    // vm.chainId(421614); // Arb Sepolia
-    // vm.chainId(31337); // Anvil
-    vm.chainId(420105); // Localfhenix host 1
-
-    // TASK MANAGER
+  /// @notice Deploys all mock contracts and wires them together, mirroring the Hardhat plugin's deployment order.
+  function deployMocks() public {
+    // 1. Task Manager
     deployCodeTo('MockTaskManager.sol:MockTaskManager', TASK_MANAGER_ADDRESS);
     mockTaskManager = MockTaskManager(TASK_MANAGER_ADDRESS);
     mockTaskManager.initialize(TM_ADMIN);
     vm.label(address(mockTaskManager), 'MockTaskManager');
 
-    vm.startPrank(TM_ADMIN);
-    mockTaskManager.setSecurityZoneMin(0);
-    mockTaskManager.setSecurityZoneMax(1);
-    mockTaskManager.setVerifierSigner(SIGNER_ADDRESS);
-    vm.stopPrank();
-
-    // ACL
-    deployCodeTo('MockACL.sol:MockACL', abi.encode(TM_ADMIN), ACL_ADDRESS);
-
-    mockAcl = MockACL(ACL_ADDRESS);
+    // 2. ACL (non-fixed deploy so constructor runs and EIP712 domain is set)
+    mockAcl = new MockACL();
     vm.label(address(mockAcl), 'MockACL');
 
-    vm.prank(TM_ADMIN);
+    // 3. Link Task Manager <-> ACL, configure signers
+    vm.startPrank(TM_ADMIN);
     mockTaskManager.setACLContract(address(mockAcl));
+    mockTaskManager.setSecurityZoneMin(0);
+    mockTaskManager.setSecurityZoneMax(1);
+    mockTaskManager.setVerifierSigner(ZK_VERIFIER_SIGNER_ADDRESS);
+    mockTaskManager.setDecryptResultSigner(DECRYPT_RESULT_SIGNER_ADDRESS);
+    vm.stopPrank();
 
-    // ZK VERIFIER
+    // 4. Fund ZK Verifier Signer
+    vm.deal(ZK_VERIFIER_SIGNER_ADDRESS, 10 ether);
 
+    // 5. ZK Verifier
     deployCodeTo('MockZkVerifier.sol:MockZkVerifier', ZK_VERIFIER_ADDRESS);
     mockZkVerifier = MockZkVerifier(ZK_VERIFIER_ADDRESS);
     vm.label(address(mockZkVerifier), 'MockZkVerifier');
 
+    // 6. ZK Verifier Signer
     deployCodeTo('MockZkVerifierSigner.sol:MockZkVerifierSigner', ZK_VERIFIER_SIGNER_ADDRESS);
     mockZkVerifierSigner = MockZkVerifierSigner(ZK_VERIFIER_SIGNER_ADDRESS);
     vm.label(address(mockZkVerifierSigner), 'MockZkVerifierSigner');
 
-    // THRESHOLD NETWORK
-
+    // 7. Threshold Network
     deployCodeTo('MockThresholdNetwork.sol:MockThresholdNetwork', THRESHOLD_NETWORK_ADDRESS);
     mockThresholdNetwork = MockThresholdNetwork(THRESHOLD_NETWORK_ADDRESS);
-    vm.label(address(mockThresholdNetwork), 'MockThresholdNetwork');
     mockThresholdNetwork.initialize(TASK_MANAGER_ADDRESS, address(mockAcl));
+    vm.label(address(mockThresholdNetwork), 'MockThresholdNetwork');
 
-    // SET LOG OPS
-
-    mockTaskManager.setLogOps(_log);
+    // 8. Threshold Network Signer
+    deployCodeTo('MockThresholdNetworkSigner.sol:MockThresholdNetworkSigner', DECRYPT_RESULT_SIGNER_ADDRESS);
+    mockThresholdNetworkSigner = MockThresholdNetworkSigner(DECRYPT_RESULT_SIGNER_ADDRESS);
+    vm.label(address(mockThresholdNetworkSigner), 'MockThresholdNetworkSigner');
   }
 
-  // EXPOSED FUNCTIONS
+  // =====================
+  //    CREATE CLIENT
+  // =====================
 
-  /**
-   * @notice              Returns the value of a given encrypted value from the mocked task manager.
-   * @param ctHash        Hash of the encrypted value.
-   * @return              Value of the encrypted value.
-   */
-  function mockStorage(uint256 ctHash) public view returns (uint256) {
-    return mockTaskManager.mockStorage(ctHash);
+  /// @notice Deploys a new CofheClient instance. Call `connect(pkey)` on the result before use.
+  function createCofheClient() public returns (CofheClient) {
+    return new CofheClient();
   }
 
-  /**
-   * @notice              Returns whether a given encrypted value is in the mocked task manager.
-   * @param ctHash        Hash of the encrypted value.
-   * @return              Whether the encrypted value is in the mocked task manager.
-   */
-  function inMockStorage(uint256 ctHash) public view returns (bool) {
-    return mockTaskManager.inMockStorage(ctHash);
+  // =====================
+  //       LOGGING
+  // =====================
+
+  /// @notice Enables plaintext operation logging in the mock task manager.
+  function enableLogs() public {
+    mockTaskManager.setLogOps(true);
   }
 
-  // ASSERTIONS
-
-  // Hash
-
-  /**
-   * @notice              Asserts that the value of a given encrypted value is equal to the expected value.
-   * @param ctHash        Hash of the encrypted value.
-   * @param value         Expected value.
-   */
-  function assertHashValue(uint256 ctHash, uint256 value) public view {
-    assertEq(mockTaskManager.inMockStorage(ctHash), true);
-    assertEq(mockTaskManager.mockStorage(ctHash), value);
+  /// @notice Disables plaintext operation logging in the mock task manager.
+  function disableLogs() public {
+    mockTaskManager.setLogOps(false);
   }
 
-  function assertHashValue(bytes32 ctHash, uint256 value) public view {
-    assertHashValue(uint256(ctHash), value);
+  // =====================
+  //    GET PLAINTEXT
+  // =====================
+
+  /// @notice Returns the stored plaintext for a ciphertext hash. Reverts if the hash is not in mock storage.
+  function getPlaintext(bytes32 ctHash) public view returns (uint256) {
+    uint256 ct = uint256(ctHash);
+    require(mockTaskManager.inMockStorage(ct), 'CofheTest: plaintext does not exist');
+    return mockTaskManager.mockStorage(ct);
   }
 
-  function assertHashValue(uint256 ctHash, uint256 value, string memory message) public view {
-    assertEq(mockTaskManager.inMockStorage(ctHash), true, message);
-    assertEq(mockTaskManager.mockStorage(ctHash), value, message);
+  /// @notice Returns the stored plaintext of an ebool. Reverts if the hash is not in mock storage.
+  function getPlaintext(ebool eValue) internal view returns (bool) {
+    return getPlaintext(ebool.unwrap(eValue)) != 0;
   }
 
-  function assertHashValue(bytes32 ctHash, uint256 value, string memory message) public view {
-    assertHashValue(uint256(ctHash), value, message);
+  /// @notice Returns the stored plaintext of an euint8. Reverts if the hash is not in mock storage.
+  function getPlaintext(euint8 eValue) internal view returns (uint8) {
+    return uint8(getPlaintext(euint8.unwrap(eValue)));
   }
 
-  // Encrypted types (no message)
-
-  function assertHashValue(ebool eValue, bool value) public view {
-    assertHashValue(ebool.unwrap(eValue), value ? 1 : 0);
+  /// @notice Returns the stored plaintext of an euint16. Reverts if the hash is not in mock storage.
+  function getPlaintext(euint16 eValue) internal view returns (uint16) {
+    return uint16(getPlaintext(euint16.unwrap(eValue)));
   }
 
-  function assertHashValue(euint8 eValue, uint8 value) public view {
-    assertHashValue(euint8.unwrap(eValue), value);
+  /// @notice Returns the stored plaintext of an euint32. Reverts if the hash is not in mock storage.
+  function getPlaintext(euint32 eValue) internal view returns (uint32) {
+    return uint32(getPlaintext(euint32.unwrap(eValue)));
   }
 
-  function assertHashValue(euint16 eValue, uint16 value) public view {
-    assertHashValue(euint16.unwrap(eValue), value);
+  /// @notice Returns the stored plaintext of an euint64. Reverts if the hash is not in mock storage.
+  function getPlaintext(euint64 eValue) internal view returns (uint64) {
+    return uint64(getPlaintext(euint64.unwrap(eValue)));
   }
 
-  function assertHashValue(euint32 eValue, uint32 value) public view {
-    assertHashValue(euint32.unwrap(eValue), value);
+  /// @notice Returns the stored plaintext of an euint128. Reverts if the hash is not in mock storage.
+  function getPlaintext(euint128 eValue) internal view returns (uint128) {
+    return uint128(getPlaintext(euint128.unwrap(eValue)));
   }
 
-  function assertHashValue(euint64 eValue, uint64 value) public view {
-    assertHashValue(euint64.unwrap(eValue), value);
+  /// @notice Returns the stored plaintext of an eaddress. Reverts if the hash is not in mock storage.
+  function getPlaintext(eaddress eValue) internal view returns (address) {
+    return address(uint160(getPlaintext(eaddress.unwrap(eValue))));
   }
 
-  function assertHashValue(euint128 eValue, uint128 value) public view {
-    assertHashValue(euint128.unwrap(eValue), value);
+  // =====================
+  //   EXPECT PLAINTEXT
+  // =====================
+
+  /// @notice Asserts that a ctHash exists in mock storage and its plaintext matches the expected value.
+  function expectPlaintext(bytes32 ctHash, uint256 value) public view {
+    uint256 ct = uint256(ctHash);
+    assertEq(mockTaskManager.inMockStorage(ct), true);
+    assertEq(mockTaskManager.mockStorage(ct), value);
   }
 
-  function assertHashValue(eaddress eValue, address value) public view {
-    assertHashValue(eaddress.unwrap(eValue), uint256(uint160(value)));
+  /// @notice Same as `expectPlaintext(bytes32, uint256)` but includes a failure message.
+  function expectPlaintext(bytes32 ctHash, uint256 value, string memory message) public view {
+    uint256 ct = uint256(ctHash);
+    assertEq(mockTaskManager.inMockStorage(ct), true, message);
+    assertEq(mockTaskManager.mockStorage(ct), value, message);
   }
 
-  // Encrypted types (with message)
-
-  function assertHashValue(ebool eValue, bool value, string memory message) public view {
-    assertHashValue(ebool.unwrap(eValue), value ? 1 : 0, message);
+  /// @notice Asserts that a ebool exists in mock storage and its plaintext matches the expected value.
+  function expectPlaintext(ebool eValue, bool value) public view {
+    expectPlaintext(ebool.unwrap(eValue), value ? 1 : 0);
   }
 
-  function assertHashValue(euint8 eValue, uint8 value, string memory message) public view {
-    assertHashValue(euint8.unwrap(eValue), value, message);
+  /// @notice Asserts that a euint8 exists in mock storage and its plaintext matches the expected value.
+  function expectPlaintext(euint8 eValue, uint8 value) public view {
+    expectPlaintext(euint8.unwrap(eValue), uint256(value));
   }
 
-  function assertHashValue(euint16 eValue, uint16 value, string memory message) public view {
-    assertHashValue(euint16.unwrap(eValue), value, message);
+  /// @notice Asserts that a euint16 exists in mock storage and its plaintext matches the expected value.
+  function expectPlaintext(euint16 eValue, uint16 value) public view {
+    expectPlaintext(euint16.unwrap(eValue), uint256(value));
   }
 
-  function assertHashValue(euint32 eValue, uint32 value, string memory message) public view {
-    assertHashValue(euint32.unwrap(eValue), value, message);
+  /// @notice Asserts that a euint32 exists in mock storage and its plaintext matches the expected value.
+  function expectPlaintext(euint32 eValue, uint32 value) public view {
+    expectPlaintext(euint32.unwrap(eValue), uint256(value));
   }
 
-  function assertHashValue(euint64 eValue, uint64 value, string memory message) public view {
-    assertHashValue(euint64.unwrap(eValue), value, message);
+  /// @notice Asserts that a euint64 exists in mock storage and its plaintext matches the expected value.
+  function expectPlaintext(euint64 eValue, uint64 value) public view {
+    expectPlaintext(euint64.unwrap(eValue), uint256(value));
   }
 
-  function assertHashValue(euint128 eValue, uint128 value, string memory message) public view {
-    assertHashValue(euint128.unwrap(eValue), value, message);
+  /// @notice Asserts that a euint128 exists in mock storage and its plaintext matches the expected value.
+  function expectPlaintext(euint128 eValue, uint128 value) public view {
+    expectPlaintext(euint128.unwrap(eValue), uint256(value));
   }
 
-  function assertHashValue(eaddress eValue, address value, string memory message) public view {
-    assertHashValue(eaddress.unwrap(eValue), uint256(uint160(value)), message);
+  /// @notice Asserts that a eaddress exists in mock storage and its plaintext matches the expected value.
+  function expectPlaintext(eaddress eValue, address value) public view {
+    expectPlaintext(eaddress.unwrap(eValue), uint256(uint160(value)));
   }
 
-  // UTILS
-
-  // struct EncryptedInput {
-  // uint256 ctHash;
-  // uint8 securityZone;
-  // uint8 utype;
-  // bytes signature;
-  // }
-
-  function createEncryptedInput(
-    uint8 utype,
-    uint256 value,
-    uint8 securityZone,
-    address sender
-  ) internal returns (EncryptedInput memory input) {
-    // Create encrypted input (also inserts the encrypted input into the mock storage)
-    input = mockZkVerifier.zkVerify(value, utype, sender, securityZone, block.chainid);
-
-    // Sign input
-    input = mockZkVerifierSigner.zkVerifySign(input, sender);
+  /// @notice Asserts that a ebool exists in mock storage and its plaintext matches the expected value, with a failure message.
+  function expectPlaintext(ebool eValue, bool value, string memory message) public view {
+    expectPlaintext(ebool.unwrap(eValue), value ? 1 : 0, message);
   }
 
-  // Derived functions that use the generic create
-
-  /**
-   * @notice              Creates an InEbool to be used as FHE input. Value is stored in MockCoFHE contract, hash is a pointer to that value.
-   * @param value         Value to encrypt.
-   * @param securityZone  Security zone of the encrypted value.
-   * @return              InEbool.
-   */
-  function createInEbool(bool value, uint8 securityZone, address sender) public returns (InEbool memory) {
-    return
-      abi.decode(abi.encode(createEncryptedInput(Utils.EBOOL_TFHE, value ? 1 : 0, securityZone, sender)), (InEbool));
+  /// @notice Asserts that a euint8 exists in mock storage and its plaintext matches the expected value, with a failure message.
+  function expectPlaintext(euint8 eValue, uint8 value, string memory message) public view {
+    expectPlaintext(euint8.unwrap(eValue), uint256(value), message);
   }
 
-  /**
-   * @notice              Creates an InEuint8 to be used as FHE input. Value is stored in MockCoFHE contract, hash is a pointer to that value.
-   * @param value         Value to encrypt.
-   * @param securityZone  Security zone of the encrypted value.
-   * @return              InEuint8.
-   */
-  function createInEuint8(uint8 value, uint8 securityZone, address sender) public returns (InEuint8 memory) {
-    return abi.decode(abi.encode(createEncryptedInput(Utils.EUINT8_TFHE, value, securityZone, sender)), (InEuint8));
+  /// @notice Asserts that a euint16 exists in mock storage and its plaintext matches the expected value, with a failure message.
+  function expectPlaintext(euint16 eValue, uint16 value, string memory message) public view {
+    expectPlaintext(euint16.unwrap(eValue), uint256(value), message);
   }
 
-  /**
-   * @notice              Creates an InEuint16 to be used as FHE input. Value is stored in MockCoFHE contract, hash is a pointer to that value.
-   * @param value         Value to encrypt.
-   * @param securityZone  Security zone of the encrypted value.
-   * @return              InEuint16.
-   */
-  function createInEuint16(uint16 value, uint8 securityZone, address sender) public returns (InEuint16 memory) {
-    return abi.decode(abi.encode(createEncryptedInput(Utils.EUINT16_TFHE, value, securityZone, sender)), (InEuint16));
+  /// @notice Asserts that a euint32 exists in mock storage and its plaintext matches the expected value, with a failure message.
+  function expectPlaintext(euint32 eValue, uint32 value, string memory message) public view {
+    expectPlaintext(euint32.unwrap(eValue), uint256(value), message);
   }
 
-  /**
-   * @notice              Creates an InEuint32 to be used as FHE input. Value is stored in MockCoFHE contract, hash is a pointer to that value.
-   * @param value         Value to encrypt.
-   * @param securityZone  Security zone of the encrypted value.
-   * @return              InEuint32.
-   */
-  function createInEuint32(uint32 value, uint8 securityZone, address sender) public returns (InEuint32 memory) {
-    return abi.decode(abi.encode(createEncryptedInput(Utils.EUINT32_TFHE, value, securityZone, sender)), (InEuint32));
+  /// @notice Asserts that a euint64 exists in mock storage and its plaintext matches the expected value, with a failure message.
+  function expectPlaintext(euint64 eValue, uint64 value, string memory message) public view {
+    expectPlaintext(euint64.unwrap(eValue), uint256(value), message);
   }
 
-  /**
-   * @notice              Creates an InEuint64 to be used as FHE input. Value is stored in MockCoFHE contract, hash is a pointer to that value.
-   * @param value         Value to encrypt.
-   * @param securityZone  Security zone of the encrypted value.
-   * @return              InEuint64.
-   */
-  function createInEuint64(uint64 value, uint8 securityZone, address sender) public returns (InEuint64 memory) {
-    return abi.decode(abi.encode(createEncryptedInput(Utils.EUINT64_TFHE, value, securityZone, sender)), (InEuint64));
+  /// @notice Asserts that a euint128 exists in mock storage and its plaintext matches the expected value, with a failure message.
+  function expectPlaintext(euint128 eValue, uint128 value, string memory message) public view {
+    expectPlaintext(euint128.unwrap(eValue), uint256(value), message);
   }
 
-  /**
-   * @notice              Creates an InEuint128 to be used as FHE input. Value is stored in MockCoFHE contract, hash is a pointer to that value.
-   * @param value         Value to encrypt.
-   * @param securityZone  Security zone of the encrypted value.
-   * @return              InEuint128.
-   */
-  function createInEuint128(uint128 value, uint8 securityZone, address sender) public returns (InEuint128 memory) {
-    return abi.decode(abi.encode(createEncryptedInput(Utils.EUINT128_TFHE, value, securityZone, sender)), (InEuint128));
-  }
-
-  /**
-   * @notice              Creates an InEaddress to be used as FHE input. Value is stored in MockCoFHE contract, hash is a pointer to that value.
-   * @param value         Value to encrypt.
-   * @param securityZone  Security zone of the encrypted value.
-   * @return              InEaddress.
-   */
-  function createInEaddress(address value, uint8 securityZone, address sender) public returns (InEaddress memory) {
-    return
-      abi.decode(
-        abi.encode(createEncryptedInput(Utils.EADDRESS_TFHE, uint256(uint160(value)), securityZone, sender)),
-        (InEaddress)
-      );
-  }
-
-  // Overloads with default securityZone=0 for backward compatibility
-
-  function createInEbool(bool value, address sender) public returns (InEbool memory) {
-    return createInEbool(value, 0, sender);
-  }
-
-  function createInEuint8(uint8 value, address sender) public returns (InEuint8 memory) {
-    return createInEuint8(value, 0, sender);
-  }
-
-  function createInEuint16(uint16 value, address sender) public returns (InEuint16 memory) {
-    return createInEuint16(value, 0, sender);
-  }
-
-  function createInEuint32(uint32 value, address sender) public returns (InEuint32 memory) {
-    return createInEuint32(value, 0, sender);
-  }
-
-  function createInEuint64(uint64 value, address sender) public returns (InEuint64 memory) {
-    return createInEuint64(value, 0, sender);
-  }
-
-  function createInEuint128(uint128 value, address sender) public returns (InEuint128 memory) {
-    return createInEuint128(value, 0, sender);
-  }
-
-  function createInEaddress(address value, address sender) public returns (InEaddress memory) {
-    return createInEaddress(value, 0, sender);
-  }
-
-  // PERMISSIONS
-
-  bytes32 private constant PERMISSION_TYPE_HASH =
-    keccak256('EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)');
-
-  function permissionDomainSeparator() internal view returns (bytes32) {
-    string memory name;
-    string memory version;
-    uint256 chainId;
-    address verifyingContract;
-
-    (, name, version, chainId, verifyingContract, , ) = mockAcl.eip712Domain();
-
-    return
-      keccak256(
-        abi.encode(PERMISSION_TYPE_HASH, keccak256(bytes(name)), keccak256(bytes(version)), chainId, verifyingContract)
-      );
-  }
-
-  function permissionHashTypedDataV4(bytes32 structHash) public view returns (bytes32) {
-    return MessageHashUtils.toTypedDataHash(permissionDomainSeparator(), structHash);
-  }
-
-  function signPermission(bytes32 structHash, uint256 pkey) public pure returns (bytes memory signature) {
-    (uint8 v, bytes32 r, bytes32 s) = vm.sign(pkey, structHash);
-    return abi.encodePacked(r, s, v); // note the order here is different from line above.
-  }
-
-  function signPermissionSelf(
-    Permission memory permission,
-    uint256 pkey
-  ) public view returns (Permission memory signedPermission) {
-    signedPermission = permission;
-
-    bytes32 permissionHash = PermissionUtils.issuerSelfHash(permission);
-    bytes32 structHash = permissionHashTypedDataV4(permissionHash);
-
-    signedPermission.issuerSignature = signPermission(structHash, pkey);
-  }
-
-  function signPermissionShared(
-    Permission memory permission,
-    uint256 pkey
-  ) public view returns (Permission memory signedPermission) {
-    signedPermission = permission;
-    bytes32 permissionHash = PermissionUtils.issuerSharedHash(permission);
-    bytes32 structHash = permissionHashTypedDataV4(permissionHash);
-
-    signedPermission.issuerSignature = signPermission(structHash, pkey);
-  }
-
-  function signPermissionRecipient(
-    Permission memory permission,
-    uint256 pkey
-  ) public view returns (Permission memory signedPermission) {
-    signedPermission = permission;
-
-    bytes32 permissionHash = PermissionUtils.recipientHash(permission);
-    bytes32 structHash = permissionHashTypedDataV4(permissionHash);
-
-    signedPermission.recipientSignature = signPermission(structHash, pkey);
-  }
-
-  function createBasePermission() public pure returns (Permission memory permission) {
-    permission = Permission({
-      issuer: address(0),
-      expiration: 1000000000000,
-      recipient: address(0),
-      validatorId: 0,
-      validatorContract: address(0),
-      sealingKey: bytes32(0),
-      issuerSignature: new bytes(0),
-      recipientSignature: new bytes(0)
-    });
-  }
-
-  function createPermissionSelf(address issuer) public pure returns (Permission memory permission) {
-    permission = createBasePermission();
-    permission.issuer = issuer;
-  }
-
-  function createPermissionShared(
-    address issuer,
-    address recipient
-  ) public pure returns (Permission memory permission) {
-    permission = createBasePermission();
-    permission.issuer = issuer;
-    permission.recipient = recipient;
-  }
-
-  function createSealingKey(uint256 seed) public pure returns (bytes32) {
-    return keccak256(abi.encodePacked(seed));
-  }
-
-  function queryDecrypt(
-    uint256 ctHash,
-    uint256 hostChainId,
-    Permission memory permission
-  ) public view returns (bool, string memory error, uint256) {
-    return mockThresholdNetwork.queryDecrypt(ctHash, hostChainId, permission);
-  }
-
-  function querySealOutput(
-    uint256 ctHash,
-    uint256 hostChainId,
-    Permission memory permission
-  ) public view returns (bool, string memory error, bytes32) {
-    return mockThresholdNetwork.querySealOutput(ctHash, hostChainId, permission);
-  }
-
-  function decryptForTxWithoutPermit(uint256 ctHash) public view returns (bool, string memory error, uint256) {
-    return mockThresholdNetwork.decryptForTxWithoutPermit(ctHash);
-  }
-
-  function decryptForTxWithPermit(
-    uint256 ctHash,
-    Permission memory permission
-  ) public view returns (bool, string memory error, uint256) {
-    return mockThresholdNetwork.decryptForTxWithPermit(ctHash, permission);
-  }
-
-  function unseal(bytes32 hashed, bytes32 key) public view returns (uint256) {
-    return mockThresholdNetwork.unseal(hashed, key);
+  /// @notice Asserts that a eaddress exists in mock storage and its plaintext matches the expected value, with a failure message.
+  function expectPlaintext(eaddress eValue, address value, string memory message) public view {
+    expectPlaintext(eaddress.unwrap(eValue), uint256(uint160(value)), message);
   }
 }

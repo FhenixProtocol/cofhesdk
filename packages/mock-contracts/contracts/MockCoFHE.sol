@@ -6,8 +6,11 @@ import { FHE } from '@fhenixprotocol/cofhe-contracts/FHE.sol';
 import { FunctionId, Utils } from '@fhenixprotocol/cofhe-contracts/ICofhe.sol';
 import { console } from 'hardhat/console.sol';
 
-address constant SIGNER_ADDRESS = 0x6E12D8C87503D4287c294f2Fdef96ACd9DFf6bd2;
-uint256 constant SIGNER_PRIVATE_KEY = 49099792800763675079532137679706322989817545357788440619111868498148356080914;
+address constant ZK_VERIFIER_SIGNER_ADDRESS = 0x6E12D8C87503D4287c294f2Fdef96ACd9DFf6bd2;
+uint256 constant ZK_VERIFIER_SIGNER_PRIVATE_KEY = 49099792800763675079532137679706322989817545357788440619111868498148356080914;
+
+address constant DECRYPT_RESULT_SIGNER_ADDRESS = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
+uint256 constant DECRYPT_RESULT_SIGNER_PRIVATE_KEY = 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d;
 
 /**
  * @dev Mock implementation of the CoFHE coprocessor, used to test FHE ops in isolation.
