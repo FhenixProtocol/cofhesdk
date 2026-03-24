@@ -1,36 +1,18 @@
 {
   "$schema": "https://turborepo.com/schema.json",
-  "globalEnv": [
-    "HOME",
-    "USERPROFILE"
-  ],
+  "globalEnv": ["HOME", "USERPROFILE", "VOCS_BASE_URL"],
   "tasks": {
     "build": {
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        ".env*"
-      ],
-      "outputs": [
-        "dist/**"
-      ],
-      "dependsOn": [
-        "^build"
-      ],
-      "env": [
-        "HOME",
-        "USERPROFILE"
-      ]
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": ["dist/**"],
+      "dependsOn": ["^build"],
+      "env": ["HOME", "USERPROFILE", "VOCS_BASE_URL"]
     },
     "test": {
-      "dependsOn": [
-        "^build"
-      ]
+      "dependsOn": ["^build"]
     },
     "lint": {
-      "env": [
-        "HOME",
-        "USERPROFILE"
-      ]
+      "env": ["HOME", "USERPROFILE", "VOCS_BASE_URL"]
     },
     "check:types": {
       "dependsOn": ["^build"]
@@ -38,10 +20,7 @@
     "dev": {
       "cache": false,
       "persistent": true,
-      "env": [
-        "HOME",
-        "USERPROFILE"
-      ]
+      "env": ["HOME", "USERPROFILE", "VOCS_BASE_URL"]
     },
     "clean": {
       "cache": false
