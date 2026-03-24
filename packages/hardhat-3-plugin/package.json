@@ -1,6 +1,6 @@
 {
   "name": "@cofhe/hardhat-3-plugin",
-  "version": "0.1.0",
+  "version": "0.4.0",
   "description": "Hardhat 3 plugin for CoFHE — deploys mock contracts and wires up the hre.cofhe interface",
   "type": "module",
   "main": "./dist/index.js",
@@ -22,7 +22,8 @@
   "files": [
     "dist/**",
     "src/**",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "README.md"
   ],
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts",
