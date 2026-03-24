@@ -1,8 +1,21 @@
 import { defineConfig } from 'vocs';
 import pkg from './package.json';
 
+const defaultBaseUrl = 'https://cofhesdk.fhenix.io';
+
+// eslint-disable-next-line turbo/no-undeclared-env-vars
+const envBaseUrl = process.env.VOCS_BASE_URL;
+
+const baseUrl = (envBaseUrl || defaultBaseUrl).replace(/\/+$/, '');
+
+const ogImageUrl = {
+  '/': 'https://vocs.dev/api/og?logo=%logo&title=%title&description=%description',
+};
+
 export default defineConfig({
+  baseUrl,
   iconUrl: '/favicon.png',
+  logoUrl: '/favicon.png',
   twoslash: {
     compilerOptions: {
       // ModuleResolutionKind.Bundler = 100
@@ -13,8 +26,7 @@ export default defineConfig({
       moduleResolution: 100,
     },
   },
-  ogImageUrl:
-    'https://vocs.dev/api/og?logo=%logo&title=%title&description=%description',
+  ogImageUrl,
   title: 'Cofhe SDK Docs',
   titleTemplate: '%s - Cofhe SDK',
   description: 'Documentation for the Cofhe SDK',
