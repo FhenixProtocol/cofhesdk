@@ -23,7 +23,12 @@ In other words: it makes sure you’re not about to submit `(ctHash, plaintext, 
 
 The “signer is correct” part refers to the **Threshold Network’s signing key** (a distributed key controlled by the Threshold Network committee), not your wallet address. A `true` result means the chain’s verifier considers this signature a valid attestation from that Threshold Network key for the specific `(ctHash, plaintext)` pair.
 
-Under the hood, this is an `eth_call` to the chain’s TaskManager verifier (no gas), returning a boolean.
+Under the hood, the SDK:
+
+- does an `eth_call` to read the expected `decryptResultSigner` from the chain’s TaskManager (no gas), then
+- performs the signature check locally via `ecrecover`-equivalent recovery against `keccak256(abi.encodePacked(ctHash, plaintext))`.
+
+This means your `(ctHash, plaintext, signature)` is **not** sent to the RPC node for verification.
 
 :::note
 This does **not** “re-decrypt” the ciphertext. It only checks that the signature you already have is cryptographically valid for the `(ctHash, plaintext)` pair.

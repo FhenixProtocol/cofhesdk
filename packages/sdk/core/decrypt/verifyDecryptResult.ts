@@ -1,22 +1,29 @@
-import { parseAbi, type Hex, type PublicClient } from 'viem';
+import {
+  encodePacked,
+  isAddressEqual,
+  keccak256,
+  parseAbi,
+  recoverAddress,
+  zeroAddress,
+  type Address,
+  type Hex,
+  type PublicClient,
+} from 'viem';
 import { TASK_MANAGER_ADDRESS } from '../consts.js';
 
-const verifyDecryptResultSafeAbi = parseAbi([
-  'function verifyDecryptResultSafe(uint256 ctHash, uint256 result, bytes signature) view returns (bool)',
-]);
+const decryptResultSignerAbi = parseAbi(['function decryptResultSigner() view returns (address)']);
 
 /**
- * Verifies a decrypt result signature by calling the on-chain
- * `TaskManager.verifyDecryptResultSafe`. The contract recovers the ECDSA signer
- * and compares it against its configured `decryptResultSigner`.
+ * Verifies a decrypt result signature **locally** (no `ctHash`/plaintext sent over RPC).
+ *
+ * This matches the TaskManager contract logic:
+ *   - messageHash = keccak256(abi.encodePacked(ctHash, result))
+ *   - recovered = ecrecover(messageHash, signature)
+ *   - recovered must equal the on-chain configured `decryptResultSigner`
+ *
+ * The only on-chain read performed is `TaskManager.decryptResultSigner()` (via `eth_call`).
  *
  * Works with both production and mock deployments.
- *
- * @param handle      - The ciphertext handle (ctHash).
- * @param cleartext   - The decrypted plaintext value.
- * @param signature   - The ECDSA signature produced by the threshold network.
- * @param publicClient - A viem PublicClient connected to the target chain.
- * @returns `true` if the on-chain contract confirms the signature is valid, `false` otherwise.
  */
 export async function verifyDecryptResult(
   handle: bigint | string,
@@ -24,10 +31,22 @@ export async function verifyDecryptResult(
   signature: Hex,
   publicClient: PublicClient
 ): Promise<boolean> {
-  return publicClient.readContract({
+  const expectedSigner = await publicClient.readContract({
     address: TASK_MANAGER_ADDRESS,
-    abi: verifyDecryptResultSafeAbi,
-    functionName: 'verifyDecryptResultSafe',
-    args: [BigInt(handle), cleartext, signature],
+    abi: decryptResultSignerAbi,
+    functionName: 'decryptResultSigner',
+    args: [],
   });
+
+  if (isAddressEqual(expectedSigner, zeroAddress)) return true;
+
+  const ctHash = BigInt(handle);
+  const messageHash = keccak256(encodePacked(['uint256', 'uint256'], [ctHash, cleartext]));
+
+  try {
+    const recovered = await recoverAddress({ hash: messageHash, signature });
+    return isAddressEqual(recovered, expectedSigner);
+  } catch {
+    return false;
+  }
 }
