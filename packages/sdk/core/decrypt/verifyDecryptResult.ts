@@ -1,4 +1,4 @@
-import { type PublicClient, parseAbi } from 'viem';
+import { parseAbi, type Hex, type PublicClient } from 'viem';
 import { TASK_MANAGER_ADDRESS } from '../consts.js';
 
 const verifyDecryptResultSafeAbi = parseAbi([
@@ -21,13 +21,13 @@ const verifyDecryptResultSafeAbi = parseAbi([
 export async function verifyDecryptResult(
   handle: bigint | string,
   cleartext: bigint,
-  signature: string,
+  signature: Hex,
   publicClient: PublicClient
 ): Promise<boolean> {
   return publicClient.readContract({
     address: TASK_MANAGER_ADDRESS,
     abi: verifyDecryptResultSafeAbi,
     functionName: 'verifyDecryptResultSafe',
-    args: [BigInt(handle), cleartext, signature as `0x${string}`],
+    args: [BigInt(handle), cleartext, signature],
   });
 }

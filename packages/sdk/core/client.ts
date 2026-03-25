@@ -1,7 +1,7 @@
 import type { CreateSelfPermitOptions, CreateSharingPermitOptions, ImportSharedPermitOptions } from '@/permits';
 
 import { createStore } from 'zustand/vanilla';
-import { type PublicClient, type WalletClient } from 'viem';
+import { type Hex, type PublicClient, type WalletClient } from 'viem';
 import { CofheError, CofheErrorCode } from './error.js';
 import { EncryptInputsBuilder } from './encrypt/encryptInputsBuilder.js';
 import { createKeysStore } from './keyStore.js';
@@ -181,7 +181,7 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
   }
 
   // VERIFY DECRYPT RESULT
-  function verifyDecryptResult(handle: bigint | string, cleartext: bigint, signature: string): Promise<boolean> {
+  function verifyDecryptResult(handle: bigint | string, cleartext: bigint, signature: Hex): Promise<boolean> {
     _requireConnected();
     const { publicClient } = connectStore.getState();
     return verifyDecryptResultStandalone(handle, cleartext, signature, publicClient!);
