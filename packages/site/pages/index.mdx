@@ -5,62 +5,30 @@ description: Build privacy-preserving dApps with FHE on Fhenix
 
 # Cofhe SDK
 
-Build and integrate privacy-preserving dApps on Fhenix using fully homomorphic encryption (FHE).
+Build privacy-preserving dApps on Fhenix using fully homomorphic encryption (FHE). This site is organized by **what you’re building** (SDK usage, Hardhat workflows, reference material), so you can jump straight to the right place.
 
-- New here? Start with the [Quick Start](/quick-start).
-- Want the full overview first? Read the [Introduction](/intro).
+## Where to start
 
-## Get started
+- First time using the SDK: [Quick Start](/quick-start)
+- Want the full mental model first: [Introduction](/intro)
+- Coming from `cofhejs`: [Migrating from `cofhejs`](/migrating-from-cofhejs)
 
-::::steps
+## How the docs are structured
 
-### 1) Install
+| Section       | What it contains                                                                                                 | Start here                                     |
+| ------------- | ---------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| **Intro**     | A high-level overview of CoFHE, what the SDK does, and the major concepts used throughout the docs.              | [/intro](/intro)                               |
+| **SDK**       | The client API: configuring, connecting, encrypting inputs, decryption flows, and permits.                       | [/sdk/client](/sdk/client)                     |
+| **Hardhat**   | Local development & testing workflows with `@cofhe/hardhat-plugin`, including mock contracts and test utilities. | [/hardhat](/hardhat)                           |
+| **Reference** | A glossary and concrete reference artifacts you’ll link to from guides.                                          | [/reference/dictionary](/reference/dictionary) |
+| **React**     | React-specific guidance (currently a placeholder).                                                               | [/react](/react)                               |
+| **Foundry**   | Foundry-specific guidance (currently a placeholder).                                                             | [/foundry](/foundry)                           |
 
-If you’re building contracts and tests locally, install the SDK and the Hardhat plugin:
+## Common paths
 
-:::code-group
-
-```bash [npm]
-npm install @cofhe/sdk @cofhe/hardhat-plugin
-```
-
-```bash [pnpm]
-pnpm add @cofhe/sdk @cofhe/hardhat-plugin
-```
-
-```bash [yarn]
-yarn add @cofhe/sdk @cofhe/hardhat-plugin
-```
-
-:::
-
-### 2) Run the end-to-end flow
-
-Follow [Quick Start](/quick-start) to encrypt an input, store it on-chain, and decrypt it back in a test.
-
-### 3) Go deeper
-
-- Learn the core client API in [Client](/sdk/client)
-- Encrypt contract inputs in [Encrypting Inputs](/sdk/encrypting-inputs)
-- Show encrypted state in UIs in [Decrypting to View](/sdk/decrypt-to-view)
-- Use on-chain verifiable decryption in [Decrypting to Transact](/sdk/decrypt-to-tx)
-- Understand access control in [Permits](/sdk/permits)
-
-::::
-
-## What you can do with the SDK
-
-| Goal                                        | Use                                              | Where to learn                                   |
-| ------------------------------------------- | ------------------------------------------------ | ------------------------------------------------ |
-| Encrypt inputs for contract calls           | `client.encryptInputs([...]).execute()`          | [/sdk/encrypting-inputs](/sdk/encrypting-inputs) |
-| Decrypt handles for UI display              | `client.decryptForView(ctHash, utype).execute()` | [/sdk/decrypt-to-view](/sdk/decrypt-to-view)     |
-| Decrypt + get a verifiable signature for tx | `client.decryptForTx(ctHash).execute()`          | [/sdk/decrypt-to-tx](/sdk/decrypt-to-tx)         |
-| Create and manage decryption permits        | `client.permits.*`                               | [/sdk/permits](/sdk/permits)                     |
-
-## Popular pages
-
-- [Quick Start](/quick-start)
-- [Hardhat Plugin](/hardhat)
-- [Mock Contracts](/hardhat/mock-contracts)
-- [Migrating from `cofhejs`](/migrating-from-cofhejs)
-- [Dictionary](/reference/dictionary)
+- Build a “hello world” end-to-end flow: [Quick Start](/quick-start)
+- Learn how to encrypt inputs for contract calls: [Encrypting Inputs](/sdk/encrypting-inputs)
+- Display encrypted state in a UI: [Decrypting to View](/sdk/decrypt-to-view)
+- Use verifiable decryption results on-chain: [Decrypting to Transact](/sdk/decrypt-to-tx)
+- Understand access control and permits: [Permits](/sdk/permits)
+- Test locally without off-chain infra: [Mock Contracts](/hardhat/mock-contracts)
