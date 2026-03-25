@@ -115,6 +115,14 @@ export default defineConfig({
         ],
       },
       {
+        text: 'Hardhat 3',
+        link: '/hardhat-3',
+      },
+      {
+        text: 'Foundry',
+        link: '/foundry',
+      },
+      {
         text: 'Reference',
         items: [
           {
@@ -128,15 +136,6 @@ export default defineConfig({
         ],
       },
     ],
-    '/foundry': {
-      backLink: true,
-      items: [
-        {
-          text: 'Coming Soon',
-          link: '/foundry',
-        },
-      ],
-    },
     '/react': {
       backLink: true,
       items: [
