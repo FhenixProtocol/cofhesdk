@@ -82,6 +82,10 @@ export default defineConfig({
                 link: '/sdk/decrypt-to-tx',
               },
               {
+                text: 'Verifying Decrypt Results',
+                link: '/sdk/verify-decrypt-result',
+              },
+              {
                 text: 'Writing Decrypt Result to Contract',
                 link: '/sdk/writing-decrypt-result-to-contract',
               },

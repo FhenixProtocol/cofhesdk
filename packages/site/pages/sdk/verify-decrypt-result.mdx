@@ -1,0 +1,79 @@
+---
+title: Verifying Decrypt Results
+description: Validate Threshold Network decrypt signatures received from relayers/backends/caches
+---
+
+# Verifying Decrypt Results
+
+When you use [`decryptForTx`](./decrypt-to-tx.mdx), the Threshold Network returns:
+
+- the plaintext (`decryptedValue`), and
+- a signature (`signature`) that your contract can later verify on-chain.
+
+If you ever receive a decrypt result from somewhere else (relayer, backend, cache), you can validate that the `(ctHash, plaintext, signature)` triple is authentic using `client.verifyDecryptResult(...)`.
+
+## What “verify” means
+
+`verifyDecryptResult(ctHash, plaintext, signature)` checks that:
+
+- the `signature` is a **valid Threshold Network signature** for the given `ctHash` (handle) and `plaintext`, and
+- the signature matches the **expected Threshold Network signer set for that chain**.
+
+In other words: it makes sure you’re not about to submit `(ctHash, plaintext, signature)` where the signature is malformed, tampered with, or produced by the wrong signer.
+
+The “signer is correct” part refers to the **Threshold Network’s signing key** (a distributed key controlled by the Threshold Network committee), not your wallet address. A `true` result means the chain’s verifier considers this signature a valid attestation from that Threshold Network key for the specific `(ctHash, plaintext)` pair.
+
+Under the hood, this is an `eth_call` to the chain’s TaskManager verifier (no gas), returning a boolean.
+
+:::note
+This does **not** “re-decrypt” the ciphertext. It only checks that the signature you already have is cryptographically valid for the `(ctHash, plaintext)` pair.
+:::
+
+:::note
+Verification is a **cryptographic sanity check**. It does not validate permits/ACL policy, and it does not guarantee your contract will accept the plaintext (e.g. range/type constraints).
+:::
+
+:::note
+If you decrypted locally via `decryptForTx` and you’re about to submit a transaction that calls `FHE.verifyDecryptResult(...)` / `FHE.publishDecryptResult(...)`, you usually don’t need to call `verifyDecryptResult` separately — the on-chain verification (and a normal transaction simulation) will fail if the signature is wrong.
+:::
+
+## When to use it
+
+Use `verifyDecryptResult` when you want to validate decrypt results that didn’t come directly from your own `decryptForTx` call, for example:
+
+- when you received a decrypt result from an untrusted source (e.g. relayer, backend, cache),
+- when debugging mismatches between what you decrypted and what your contract expects.
+
+## Example
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+
+declare const decryptResult: {
+  ctHash: bigint | `0x${string}`;
+  decryptedValue: bigint;
+  signature: `0x${string}`;
+};
+// ---cut---
+// `client` must be connected (see the SDK client page)
+// `decryptResult` came from an untrusted source (relayer/backend/cache)
+
+const isValid = await client.verifyDecryptResult(
+  decryptResult.ctHash,
+  decryptResult.decryptedValue,
+  decryptResult.signature
+);
+if (!isValid) throw new Error('Rejecting untrusted decrypt result');
+
+// Safe to trust that (ctHash, plaintext, signature) is authentic
+```
+
+## Common gotchas
+
+- **Wrong chain**: verification must be performed against the same chain that produced the handle (`ctHash`).
+- **Wrong plaintext**: even a single-bit change in `plaintext` will make verification return `false`.
+- **Signature formatting**: the signature must be a `0x...` hex string exactly as returned by `decryptForTx`.
