@@ -1,4 +1,5 @@
 import type { HardhatUserConfig, HardhatConfig } from 'hardhat/types/config';
+import type { LogMocksDeploy } from './deploy.js';
 
 /**
  * Extends the resolved config with plugin defaults and network presets.
@@ -56,7 +57,8 @@ export function resolvePluginConfig(userConfig: HardhatUserConfig, resolvedConfi
 
   // Resolve cofhe plugin config
   resolvedConfig.cofhe = {
-    logMocks: userConfig.cofhe?.logMocks ?? true,
-    gasWarning: userConfig.cofhe?.gasWarning ?? true,
+    logMocks: userConfig.cofhe?.logMocks ?? false,
+    gasWarning: userConfig.cofhe?.gasWarning ?? false,
+    mocksDeployVerbosity: (userConfig.cofhe?.mocksDeployVerbosity ?? 'v') as LogMocksDeploy,
   };
 }

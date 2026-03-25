@@ -156,6 +156,7 @@ const hreHooks: Partial<HardhatRuntimeEnvironmentHooks> = {
           {
             deployTestBed: true,
             gasWarning: hre.config.cofhe.gasWarning,
+            mocksDeployVerbosity: hre.config.cofhe.mocksDeployVerbosity,
           }
         );
 

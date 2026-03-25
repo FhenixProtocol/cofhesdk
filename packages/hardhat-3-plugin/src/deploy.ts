@@ -18,10 +18,18 @@ import {
   MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY,
 } from '@cofhe/sdk';
 
+/**
+ * Controls deploy-mocks console output.
+ * - `''`   — silent, no output
+ * - `'v'`  — single summary line (default)
+ * - `'vv'` — full per-contract deployment logs
+ */
+export type LogMocksDeploy = '' | 'v' | 'vv';
+
 export type DeployMocksArgs = {
   deployTestBed?: boolean;
   gasWarning?: boolean;
-  silent?: boolean;
+  mocksDeployVerbosity?: LogMocksDeploy;
 };
 
 export type DeployContext = {
@@ -29,7 +37,7 @@ export type DeployContext = {
   walletClient: WalletClient;
 };
 
-let isSilent = false;
+let verbosity: LogMocksDeploy = 'v';
 
 // ─── Public entrypoint ────────────────────────────────────────────────────────
 
@@ -47,18 +55,15 @@ async function isLocalHardhatNetwork(publicClient: PublicClient): Promise<boolea
 }
 
 export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs = {}): Promise<void> {
-  const { deployTestBed = true, gasWarning = true, silent = false } = options;
+  const { deployTestBed = true, gasWarning = true } = options;
+  verbosity = options.mocksDeployVerbosity ?? 'v';
 
   if (!(await isLocalHardhatNetwork(ctx.publicClient))) {
-    logSuccess(`cofhe-hardhat-3-plugin - deploy mocks - skipped on non-hardhat network`, 0);
+    log('v', `cofhe-hardhat-3-plugin - deploy mocks - skipped on non-hardhat network`, 0);
     return;
   }
 
-  isSilent = silent;
-
-  logEmpty();
-  logSuccess(chalk.bold('cofhe-hardhat-3-plugin :: deploy mocks'), 0);
-  logEmpty();
+  log('vv', chalk.bold('cofhe-hardhat-3-plugin :: deploy mocks'), 0);
 
   // 1. Deploy TaskManager to its fixed address
   await deployFixed(ctx.publicClient, MockTaskManagerArtifact);
@@ -98,7 +103,7 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
     account,
     chain: null,
   });
-  logSuccess('ACL address set in TaskManager', 2);
+  log('vv', 'ACL address set in TaskManager', 2);
 
   // 6. Set ZkVerifier signer (the key is well-known and shared with the SDK)
   const verifierSigner = privateKeyToAccount(MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY);
@@ -110,7 +115,7 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
     account,
     chain: null,
   });
-  logSuccess('Verifier signer set', 2);
+  log('vv', 'Verifier signer set', 2);
 
   // 7. Set decrypt result signer
   const decryptSigner = privateKeyToAccount(MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY);
@@ -122,7 +127,7 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
     account,
     chain: null,
   });
-  logSuccess('Decrypt result signer set', 2);
+  log('vv', 'Decrypt result signer set', 2);
 
   // 8. Fund the ZkVerifier signer account so it can send transactions.
   //    We create a testClient on-the-fly from the publicClient's transport.
@@ -134,12 +139,10 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
     address: MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
     value: BigInt('10000000000000000000'), // 10 ETH
   });
-  logSuccess(`ZkVerifier signer (${MOCKS_ZK_VERIFIER_SIGNER_ADDRESS}) funded`, 1);
+  log('vv', `ZkVerifier signer (${MOCKS_ZK_VERIFIER_SIGNER_ADDRESS}) funded`, 1);
 
-  const zkVerifierBalance = await ctx.publicClient.getBalance({
-    address: MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
-  });
-  logSuccess(`ETH balance: ${zkVerifierBalance.toString()}`, 2);
+  const zkVerifierBalance = await ctx.publicClient.getBalance({ address: MOCKS_ZK_VERIFIER_SIGNER_ADDRESS });
+  log('vv', `ETH balance: ${zkVerifierBalance.toString()}`, 2);
 
   // 9. Deploy MockZkVerifier to its fixed address
   await deployFixed(ctx.publicClient, MockZkVerifierArtifact);
@@ -148,7 +151,6 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
   // 10. Deploy MockThresholdNetwork to its fixed address + initialize
   await deployFixed(ctx.publicClient, MockThresholdNetworkArtifact);
   logDeployment('MockThresholdNetwork', MockThresholdNetworkArtifact.fixedAddress);
-
   await ctx.walletClient.writeContract({
     address: MockThresholdNetworkArtifact.fixedAddress as `0x${string}`,
     abi: MockThresholdNetworkArtifact.abi,
@@ -160,16 +162,14 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
 
   // 11. Optionally deploy TestBed
   if (deployTestBed) {
-    logSuccess('TestBed deployment enabled', 2);
     await deployFixed(ctx.publicClient, TestBedArtifact);
     logDeployment('TestBed', TestBedArtifact.fixedAddress);
   }
 
-  logEmpty();
-  logSuccess(chalk.bold('cofhe-hardhat-3-plugin :: mocks deployed successfully'), 0);
+  log('v', chalk.bold('cofhe-hardhat-3-plugin :: mocks deployed'), 0);
 
   if (gasWarning) {
-    logEmpty();
+    logEmpty('v');
     logWarning(
       'When using mocks, FHE operations report a higher gas price due to on-chain mocking logic. ' +
         'Deploy your contracts on a testnet to check true gas costs.\n' +
@@ -178,7 +178,7 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
     );
   }
 
-  logEmpty();
+  logEmpty('v');
 }
 
 // ─── Deployment helpers ───────────────────────────────────────────────────────
@@ -221,23 +221,30 @@ async function deployVariable(
 
 // ─── Logging ──────────────────────────────────────────────────────────────────
 
-const logEmpty = () => {
-  if (isSilent) return;
-  console.log('');
-};
-
-const logSuccess = (message: string, indent = 1) => {
-  if (isSilent) return;
+/**
+ * Emit a green ✓ line at `minVerbosity` or above.
+ * - `minVerbosity = 'v'`  → prints for both 'v' and 'vv'
+ * - `minVerbosity = 'vv'` → prints only for 'vv'
+ */
+const log = (minVerbosity: 'v' | 'vv', message: string, indent = 1) => {
+  if (verbosity === '') return;
+  if (minVerbosity === 'vv' && verbosity !== 'vv') return;
   console.log(chalk.green(`${'  '.repeat(indent)}✓ ${message}`));
 };
 
+const logEmpty = (minVerbosity: 'v' | 'vv' = 'v') => {
+  if (verbosity === '') return;
+  if (minVerbosity === 'vv' && verbosity !== 'vv') return;
+  console.log('');
+};
+
 const logWarning = (message: string, indent = 1) => {
-  if (isSilent) return;
+  if (verbosity === '') return;
   console.log(chalk.bold(chalk.yellow(`${'  '.repeat(indent)}⚠ NOTE:`)), message);
 };
 
 const logDeployment = (contractName: string, address: string) => {
-  if (isSilent) return;
+  if (verbosity !== 'vv') return;
   const paddedName = `${contractName} deployed`.padEnd(36);
-  logSuccess(`${paddedName} ${chalk.bold(address)}`);
+  console.log(chalk.green(`  ✓ ${paddedName} ${chalk.bold(address)}`));
 };

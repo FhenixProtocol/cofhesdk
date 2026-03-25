@@ -1,6 +1,6 @@
-import type { PublicClient, WalletClient } from 'viem';
+import type { WalletClient } from 'viem';
 import type { CofheClient, CofheConfig, CofheInputConfig } from '@cofhe/sdk';
-import type { DeployMocksArgs } from './deploy.js';
+import type { DeployMocksArgs, LogMocksDeploy } from './deploy.js';
 import type {
   MockTaskManagerArtifact,
   MockACLArtifact,
@@ -75,6 +75,13 @@ declare module 'hardhat/types/config' {
       logMocks?: boolean;
       /** Whether to show gas usage warnings for mock operations (default: true) */
       gasWarning?: boolean;
+      /**
+       * Controls deploy-mocks console output.
+       * - `''`   — silent, no output
+       * - `'v'`  — single summary line (default)
+       * - `'vv'` — full per-contract deployment logs
+       */
+      mocksDeployVerbosity?: LogMocksDeploy;
     };
   }
 
@@ -82,6 +89,7 @@ declare module 'hardhat/types/config' {
     cofhe: {
       logMocks: boolean;
       gasWarning: boolean;
+      mocksDeployVerbosity: LogMocksDeploy;
     };
   }
 }
