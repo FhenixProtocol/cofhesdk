@@ -223,6 +223,26 @@ describe('Hardhat Mocks – decryptForTx', () => {
       const isValid = await cofheClient.verifyDecryptResult(decryptResult.ctHash, testValue, decryptResult.signature);
       expect(isValid).to.be.true;
     });
+
+    it('Should return false for invalid inputs', async function () {
+      const testValue = 101n;
+      const encrypted = await cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
+      const tx = await testContract.connect(signer).setValue(encrypted[0]);
+      await tx.wait();
+
+      const storedValue = await testContract.storedValue();
+      const decryptResult = await cofheClient.decryptForTx(storedValue).withPermit().execute();
+
+      expect(
+        await cofheClient.verifyDecryptResult(decryptResult.ctHash, testValue + 1n, decryptResult.signature)
+      ).to.equal(false);
+
+      const tamperedSignature = (decryptResult.signature + '00') as `0x${string}`;
+      expect(await cofheClient.verifyDecryptResult(decryptResult.ctHash, testValue, tamperedSignature)).to.equal(false);
+
+      const wrongHandle = BigInt(decryptResult.ctHash) + 1n;
+      expect(await cofheClient.verifyDecryptResult(wrongHandle, testValue, decryptResult.signature)).to.equal(false);
+    });
   });
 
   describe('vs decryptForView', () => {
