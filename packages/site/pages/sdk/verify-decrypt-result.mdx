@@ -1,6 +1,6 @@
 ---
 title: Verifying Decrypt Results
-description: Validate Threshold Network decrypt signatures received from relayers/backends/caches
+description: Validate Threshold Network decrypt signatures received from off-chain sources (e.g. backends/caches)
 ---
 
 # Verifying Decrypt Results
@@ -10,7 +10,7 @@ When you use [`decryptForTx`](./decrypt-to-tx.mdx), the Threshold Network return
 - the plaintext (`decryptedValue`), and
 - a signature (`signature`) that your contract can later verify on-chain.
 
-If you ever receive a decrypt result from somewhere else (relayer, backend, cache), you can validate that the `(ctHash, plaintext, signature)` triple is authentic using `client.verifyDecryptResult(...)`.
+If you ever receive a decrypt result from somewhere else (e.g. your backend, a cache, or another client), you can validate that the `(ctHash, plaintext, signature)` triple is authentic using `client.verifyDecryptResult(...)`.
 
 ## What “verify” means
 
@@ -46,7 +46,7 @@ If you decrypted locally via `decryptForTx` and you’re about to submit a trans
 
 Use `verifyDecryptResult` when you want to validate decrypt results that didn’t come directly from your own `decryptForTx` call, for example:
 
-- when you received a decrypt result from an untrusted source (e.g. relayer, backend, cache),
+- when you received a decrypt result from an untrusted off-chain source (e.g. a backend, cache, or another client),
 - when debugging mismatches between what you decrypted and what your contract expects.
 
 ## Example
@@ -65,7 +65,7 @@ declare const decryptResult: {
 };
 // ---cut---
 // `client` must be connected (see the SDK client page)
-// `decryptResult` came from an untrusted source (relayer/backend/cache)
+// `decryptResult` came from an untrusted off-chain source (e.g. backend/cache/another client)
 
 const isValid = await client.verifyDecryptResult(
   decryptResult.ctHash,
