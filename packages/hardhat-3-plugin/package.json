@@ -1,0 +1,53 @@
+{
+  "name": "@cofhe/hardhat-3-plugin",
+  "version": "0.4.0",
+  "description": "Hardhat 3 plugin for CoFHE — deploys mock contracts and wires up the hre.cofhe interface",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "sideEffects": false,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/FhenixProtocol/cofhesdk.git",
+    "directory": "packages/hardhat-3-plugin"
+  },
+  "files": [
+    "dist/**",
+    "src/**",
+    "CHANGELOG.md",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "dev": "tsup src/index.ts --format esm --dts --watch",
+    "check:types": "tsc --noEmit",
+    "clean": "rm -rf dist node_modules .tsbuildinfo"
+  },
+  "dependencies": {
+    "@cofhe/mock-contracts": "workspace:*",
+    "@cofhe/sdk": "workspace:*",
+    "chalk": "^4.1.2",
+    "viem": "^2.38.6"
+  },
+  "devDependencies": {
+    "@cofhe/tsconfig": "workspace:*",
+    "@types/node": "^20.0.0",
+    "hardhat": "^3.1.12",
+    "tsup": "^8.0.2",
+    "typescript": "5.5.4"
+  },
+  "peerDependencies": {
+    "hardhat": "^3.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

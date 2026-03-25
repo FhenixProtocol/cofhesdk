@@ -1,0 +1,8 @@
+{
+  "extends": "@cofhe/tsconfig/base.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["hardhat.config.ts", "test/**/*.ts"],
+  "exclude": ["node_modules"]
+}
