@@ -60,11 +60,22 @@ import '@cofhe/hardhat-plugin';
 export default {
   solidity: '0.8.28',
   cofhe: {
-    logMocks: true, // log FHE ops to the console (default: true)
-    gasWarning: true, // warn when mock gas usage is high (default: true)
+    logMocks: true,             // log FHE ops to the console (default: true)
+    gasWarning: true,           // warn when mock gas usage is high (default: true)
+    mocksDeployVerbosity: 'v',  // '' | 'v' | 'vv' — mock deployment output (default: 'v')
   },
 };
 ```
+
+### `mocksDeployVerbosity`
+
+Controls how much is printed when the mock contracts are deployed at the start of each test run:
+
+| Value  | Output |
+| ------ | ------ |
+| `''`   | Silent — nothing is printed |
+| `'v'`  | Single summary line: `✓ cofhe-hardhat-plugin :: mocks deployed` (default) |
+| `'vv'` | Full deployment log — each contract address, signer setup, and funded balances |
 
 ## Pre-configured networks
 
