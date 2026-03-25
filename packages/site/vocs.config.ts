@@ -35,8 +35,12 @@ export default defineConfig({
   sidebar: {
     '/': [
       {
-        text: 'Intro',
+        text: 'Home',
         link: '/',
+      },
+      {
+        text: 'Intro',
+        link: '/intro',
       },
       {
         text: 'Quick Start',
