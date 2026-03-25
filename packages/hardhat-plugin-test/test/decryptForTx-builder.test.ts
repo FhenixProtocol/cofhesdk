@@ -237,7 +237,7 @@ describe('Hardhat Mocks – decryptForTx', () => {
         await cofheClient.verifyDecryptResult(decryptResult.ctHash, testValue + 1n, decryptResult.signature)
       ).to.equal(false);
 
-      const tamperedSignature = (decryptResult.signature + '00') as `0x${string}`;
+      const tamperedSignature: `0x${string}` = `${decryptResult.signature}00`;
       expect(await cofheClient.verifyDecryptResult(decryptResult.ctHash, testValue, tamperedSignature)).to.equal(false);
 
       const wrongHandle = BigInt(decryptResult.ctHash) + 1n;
