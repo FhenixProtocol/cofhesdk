@@ -6,14 +6,14 @@ import { hasDOM } from './const';
  * Must only be called in a browser environment (requires `document` for iframe injection).
  * @returns IStorage implementation for browser environments
  */
-export const createWebStorage = (): IStorage => {
+export const createWebStorage = (opts = { enableLog: false }): IStorage => {
   if (!hasDOM) throw new Error('createWebStorage can only be used in a browser environment');
 
   const client = constructClient({
     iframe: {
       src: 'https://iframe-shared-storage.vercel.app/hub.html',
       messagingOptions: {
-        enableLog: 'both',
+        enableLog: opts.enableLog ? 'both' : undefined,
       },
 
       iframeReadyTimeoutMs: 30_000, // if the iframe is not initied during this interval AND a reuqest is made, such request will throw an error
