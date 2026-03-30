@@ -66,11 +66,89 @@ Below are two equivalent ways to read an encrypted return value from a predeploy
 :::code-group
 
 ```ts twoslash [Viem]
-// [!include ~/../../examples/docs-snippets/read-encrypted-return/viem.ts:docs-snippet]
+import { transformEncryptedReturnTypes } from '@cofhe/abi';
+import { createPublicClient, http } from 'viem';
+import { sepolia } from 'viem/chains';
+
+const rpcUrl =
+  (globalThis as any).process?.env?.SEPOLIA_RPC_URL ??
+  (globalThis as any).process?.env?.RPC_URL ??
+  'https://rpc.sepolia.org';
+
+// Predeployed test contract on Sepolia.
+const contractAddress =
+  '0x9e599dA5c7BA756641bA59DbecCc394CEdFC19f0' as const;
+
+// ---cut---
+
+// Viem: public client + contract call
+const publicClient = createPublicClient({
+  chain: sepolia,
+  transport: http(rpcUrl),
+});
+
+const abi = [
+  {
+    type: 'function',
+    name: 'getValue',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'bytes32', internalType: 'euint32' }],
+  },
+] as const;
+
+// Read the raw encrypted return value.
+const raw = await publicClient.readContract({
+  address: contractAddress,
+  abi,
+  functionName: 'getValue',
+  args: [],
+});
+
+// Convert raw ABI values into `{ ctHash, utype }`.
+const encrypted = transformEncryptedReturnTypes(abi, 'getValue', raw);
+
+encrypted.ctHash; // ^?
+encrypted.utype; // ^?
 ```
 
 ```ts twoslash [Ethers]
-// [!include ~/../../examples/docs-snippets/read-encrypted-return/ethers.ts:docs-snippet]
+import { transformEncryptedReturnTypes } from '@cofhe/abi';
+import { Contract, JsonRpcProvider } from 'ethers';
+
+// Predeployed test contract on Sepolia.
+const contractAddress =
+  '0x9e599dA5c7BA756641bA59DbecCc394CEdFC19f0' as const;
+const rpcUrl =
+  (globalThis as any).process?.env?.SEPOLIA_RPC_URL ??
+  (globalThis as any).process?.env?.RPC_URL ??
+  'https://rpc.sepolia.org';
+
+// ---cut---
+
+// Ethers: provider + contract call
+const provider = new JsonRpcProvider(rpcUrl);
+
+const abi = [
+  {
+    type: 'function',
+    name: 'getValue',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'bytes32', internalType: 'euint32' }],
+  },
+] as const;
+
+const contract = new Contract(contractAddress, abi, provider);
+
+// Read the raw encrypted return value.
+const raw = await contract.getValue();
+
+// Convert raw ABI values into `{ ctHash, utype }`.
+const encrypted = transformEncryptedReturnTypes(abi, 'getValue', raw);
+
+encrypted.ctHash; // ^?
+encrypted.utype; // ^?
 ```
 
 :::
