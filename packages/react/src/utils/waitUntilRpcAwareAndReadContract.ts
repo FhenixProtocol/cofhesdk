@@ -6,6 +6,7 @@ import {
   type ContractFunctionReturnType,
   type PublicClient,
 } from 'viem';
+import { debugLog } from './debug';
 
 export type WaitUntilRpcAwareAndReadContractOptions = {
   onSuccess?: () => void;
@@ -89,7 +90,7 @@ export async function maybeWaitUntilRpcAwareAndReadContract<
 
   const pollingInterval = options.pollingInterval ?? 1_000;
 
-  console.log(`Waiting until RPC is aware of block ${params.blockHashToBeAwareOf} to read contract...`);
+  debugLog(`Waiting until RPC is aware of block ${params.blockHashToBeAwareOf} to read contract...`);
   let done = false;
   while (!done) {
     if (options.signal?.aborted) throw abortError();

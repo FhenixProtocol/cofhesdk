@@ -3,6 +3,7 @@ import type { DecryptionWatcher } from '@/stores/decryptionWatchingStore';
 import type { Transaction } from '@/stores/transactionStore';
 import { ContractFunctionExecutionError, ContractFunctionRevertedError, type TransactionReceipt } from 'viem';
 import { cofheHumanizeRevertReason } from '@/utils/cofheErrors';
+import { debugLog } from '@/utils/debug';
 
 const TOAST_DELAY_MS = 10_000;
 function useTransactionGlobalToastsLifecycle() {
@@ -10,7 +11,7 @@ function useTransactionGlobalToastsLifecycle() {
   return {
     // 1.tx is submitted
     onTransactionSubmitted: (transaction: Transaction) => {
-      console.log('____ Transaction submitted:', transaction);
+      debugLog('____ Transaction submitted:', transaction);
       addToast(
         {
           variant: 'info',
@@ -49,7 +50,7 @@ function useTransactionGlobalToastsLifecycle() {
 
     // 2.a. tx is mined (could be success or fail)
     onTransactionMined: (transaction: Transaction, receipt: TransactionReceipt /*  could be fail or success */) => {
-      console.log('____ Transaction mined:', transaction, 'with receipt:', receipt);
+      debugLog('____ Transaction mined:', transaction, 'with receipt:', receipt);
       if (receipt.status === 'success') {
         const descriptionPostfix = transaction.isPendingDecryption ? ' It is pending decryption now.' : '';
         addToast(
@@ -98,7 +99,7 @@ function useTransactionGlobalToastsLifecycle() {
 
     // 3. tx is decrypted (if applicable)
     onTransactionDecrypted: (decryptionCausingTx: Transaction, decryptionWatcher: DecryptionWatcher) => {
-      console.log('____ Transaction decrypted:', decryptionCausingTx, 'with watcher:', decryptionWatcher);
+      debugLog('____ Transaction decrypted:', decryptionCausingTx, 'with watcher:', decryptionWatcher);
       addToast(
         {
           variant: 'success',

@@ -8,14 +8,15 @@ import { useInternalQueryClient } from '@/providers';
 import { useDecryptionWatchersStore, type DecryptionWatcher } from '@/stores/decryptionWatchingStore';
 import { useStoredTransactions } from './useStoredTransactions';
 import { useTransactionGlobalLifecycle } from './useTransactionGlobalLifecycle';
+import { debugLog } from '@/utils/debug';
 
 function useHandleInvalidationsAfterDecryption() {
   const queryClient = useInternalQueryClient();
   return useCallback<UseTrackDecryptingTransactionsBaseInput['onDecryptionResolve']>(
     async (tx, decryptionWatcher) => {
-      console.log('Invalidating queries for decryption watcher:', decryptionWatcher);
+      debugLog('Invalidating queries for decryption watcher:', decryptionWatcher);
       for (const queryKey of decryptionWatcher.queryKeys) {
-        console.log('Invalidating query due to observed decryption:', queryKey);
+        debugLog('Invalidating query due to observed decryption:', queryKey);
         // query invalidation will cause __decryption-block-aware__ readContract calls to wait until RPC is aware of the decryption block
         // and on successful read, the queryKey will be removed from the decryption watchers store,
         // and then if a watcher doesn't have queryKeys anymore, it will be removed entirely from the store
@@ -98,7 +99,7 @@ function useTrackDecryptingTransactionsBase({ onDecryptionResolve }: UseTrackDec
         false // no longer pending decryption
       );
 
-      console.log('Decryption completed for tx, invalidating relevant queries', {
+      debugLog('Decryption completed for tx, invalidating relevant queries', {
         tx,
         decryptionResult,
         receipt,
@@ -131,7 +132,7 @@ function useOnDecryptionCallback({ onDecryptionResolve }: OnDecryptionInput) {
     [byKey]
   );
 
-  console.log('All observed decryptions:', watchersWithObservedDecryption);
+  debugLog('All observed decryptions:', watchersWithObservedDecryption);
 
   const handleDecryptionResolve = useCallback(async () => {
     const transactionStore = useTransactionStore.getState().transactions;
@@ -150,7 +151,7 @@ function useOnDecryptionCallback({ onDecryptionResolve }: OnDecryptionInput) {
 
   useEffect(() => {
     if (watchersWithObservedDecryption.length > 0) {
-      console.log('All observed decryption query keys subject to invalidate:', watchersWithObservedDecryption);
+      debugLog('All observed decryption query keys subject to invalidate:', watchersWithObservedDecryption);
       stableHandleDecryptionResolve.current();
     }
   }, [watchersWithObservedDecryption]);
@@ -195,7 +196,7 @@ export function useTrackDecryptingTransactions() {
 
   useTrackDecryptingTransactionsBase({
     onDecryptionResolve: async (decryptionCausingTx, decryptionWatcher) => {
-      console.log('Decryption resolved for tx:', decryptionCausingTx, 'with watcher:', decryptionWatcher);
+      debugLog('Decryption resolved for tx:', decryptionCausingTx, 'with watcher:', decryptionWatcher);
       handleInvalidationsAfterDecryption(decryptionCausingTx, decryptionWatcher);
       onTransactionDecrypted(decryptionCausingTx, decryptionWatcher);
     },
