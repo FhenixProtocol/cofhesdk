@@ -19,6 +19,10 @@ const ogImageUrl = {
 export default defineConfig({
   baseUrl,
   iconUrl: '/favicon.png',
+  // logoUrl: {
+  //   light: '/fhenix-logo-on-light.svg',
+  //   dark: '/fhenix-logo-on-dark.svg',
+  // },
   twoslash: {
     compilerOptions: {
       // ModuleResolutionKind.Bundler = 100
