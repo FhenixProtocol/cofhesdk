@@ -2,6 +2,7 @@
   "name": "@cofhe/site-hardhat-typecheck",
   "private": true,
   "devDependencies": {
+    "@cofhe/abi": "workspace:*",
     "@cofhe/hardhat-plugin": "workspace:*",
     "@cofhe/sdk": "workspace:*",
     "@nomicfoundation/hardhat-ethers": "^3.0.5",
