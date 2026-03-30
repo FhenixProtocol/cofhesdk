@@ -59,8 +59,6 @@ export { MainPage, SettingsPage } from './components/FnxFloatingButton/pages/ind
 // Utils
 export {
   FheTypesList,
-  fheTypeToString,
-  encryptedValueToString,
   getBlockExplorerUrl,
   getBlockExplorerTxUrl,
   getBlockExplorerAddressUrl,
