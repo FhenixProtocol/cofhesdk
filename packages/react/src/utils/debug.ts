@@ -1,3 +1,5 @@
+import { isProduction } from './isProduction';
+
 type DebugEnvValue = string | number | boolean | undefined | null;
 
 function isTruthy(value: DebugEnvValue): boolean {
@@ -31,6 +33,7 @@ const DEBUG_KEYS = [
 ] as const;
 
 export function isReactDebugEnabled(): boolean {
+  if (isProduction()) return false;
   if (isTruthy(getGlobalDebugFlag() as any)) return true;
 
   for (const key of DEBUG_KEYS) {
