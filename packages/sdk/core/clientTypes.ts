@@ -1,5 +1,5 @@
 // TODO: Extract client types to its own file, keep this one as primitives
-import { type PublicClient, type WalletClient } from 'viem';
+import { type Hex, type PublicClient, type WalletClient } from 'viem';
 import { type CofheConfig } from './config.js';
 import { type DecryptForViewBuilder } from './decrypt/decryptForViewBuilder.js';
 import { type DecryptForTxBuilderUnset } from './decrypt/decryptForTxBuilder.js';
@@ -51,7 +51,7 @@ export type CofheClient<TConfig extends CofheConfig = CofheConfig> = {
   decryptHandle<U extends FheTypes>(ctHash: bigint | string, utype: U): DecryptForViewBuilder<U>;
   decryptForView<U extends FheTypes>(ctHash: bigint | string, utype: U): DecryptForViewBuilder<U>;
   decryptForTx(ctHash: bigint | string): DecryptForTxBuilderUnset;
-  verifyDecryptResult(handle: bigint | string, cleartext: bigint, signature: string): Promise<boolean>;
+  verifyDecryptResult(handle: bigint | string, cleartext: bigint, signature: Hex): Promise<boolean>;
   permits: CofheClientPermits;
 };
 
