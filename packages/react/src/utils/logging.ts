@@ -1,18 +1,18 @@
 import type { FheTypeValue } from '@cofhe/sdk';
-import { debugLog } from './debug';
+import { devConsole } from './debug';
 
 export const logBlockStart = (message: string) => {
-  debugLog('┌──────────────────┬──────────────────────────────────────────────────');
-  debugLog(`│ [COFHE]          │ ${message}`);
-  debugLog('├──────────────────┴──────────────────────────────────────────────────');
+  devConsole.log('┌──────────────────┬──────────────────────────────────────────────────');
+  devConsole.log(`│ [COFHE]          │ ${message}`);
+  devConsole.log('├──────────────────┴──────────────────────────────────────────────────');
 };
 
 export const logBlockMessage = (message: string) => {
-  debugLog(`│ ${message}`);
+  devConsole.log(`│ ${message}`);
 };
 
 export const logBlockEnd = () => {
-  debugLog('└─────────────────────────────────────────────────────────────────────');
+  devConsole.log('└─────────────────────────────────────────────────────────────────────');
 };
 
 export const logBlockMessageAndEnd = (message: string) => {

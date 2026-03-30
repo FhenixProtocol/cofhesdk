@@ -41,20 +41,21 @@ export function isReactDebugEnabled(): boolean {
   return false;
 }
 
-export function debugLog(...args: unknown[]): void {
-  if (!isReactDebugEnabled()) return;
-  // eslint-disable-next-line no-console
-  console.log(...args);
-}
-
-export function debugWarn(...args: unknown[]): void {
-  if (!isReactDebugEnabled()) return;
-  // eslint-disable-next-line no-console
-  console.warn(...args);
-}
-
-export function debugDebug(...args: unknown[]): void {
-  if (!isReactDebugEnabled()) return;
-  // eslint-disable-next-line no-console
-  console.debug(...args);
-}
+export const devConsole = {
+  enabled: isReactDebugEnabled,
+  log: (...args: unknown[]) => {
+    if (!isReactDebugEnabled()) return;
+    // eslint-disable-next-line no-console
+    console.log(...args);
+  },
+  warn: (...args: unknown[]) => {
+    if (!isReactDebugEnabled()) return;
+    // eslint-disable-next-line no-console
+    console.warn(...args);
+  },
+  debug: (...args: unknown[]) => {
+    if (!isReactDebugEnabled()) return;
+    // eslint-disable-next-line no-console
+    console.debug(...args);
+  },
+} as const;

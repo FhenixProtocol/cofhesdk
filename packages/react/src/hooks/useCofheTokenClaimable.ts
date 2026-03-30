@@ -7,7 +7,7 @@ import { useInternalQuery } from '../providers/index.js';
 import { decryptionAwareReadContract } from '@/utils/decryptionAwareReadContract.js';
 import { useIsWaitingForDecryptionToInvalidate } from './useIsWaitingForDecryptionToInvalidate.js';
 import { assert } from 'ts-essentials';
-import { debugLog } from '@/utils/debug';
+import { devConsole } from '@/utils/debug';
 
 export function constructUnshieldClaimsQueryKey({
   chainId,
@@ -31,7 +31,7 @@ export function invalidateClaimableQueries({
   accountAddress: Address;
   queryClient: QueryClient;
 }) {
-  debugLog('Invalidating unshield claims queries for token:', token);
+  devConsole.log('Invalidating unshield claims queries for token:', token);
 
   queryClient.invalidateQueries({
     queryKey: constructUnshieldClaimsQueryKeyForInvalidation({

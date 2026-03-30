@@ -5,7 +5,7 @@ import { assert } from 'ts-essentials';
 
 import { useInternalQueries } from '@/providers';
 import { useCofheChainId, useCofhePublicClient } from './useCofheConnection';
-import { debugLog } from '@/utils/debug';
+import { devConsole } from '@/utils/debug';
 
 type TxReceiptQueryKey = readonly ['tx-receipt', number | undefined, `0x${string}`];
 
@@ -68,7 +68,7 @@ export function useTransactionReceiptsByHash(
   });
 
   const receiptsByHash = useMemo<Record<`0x${string}`, TransactionReceipt>>(() => {
-    debugLog('useTransactionReceiptsByHash - receiptsByHash recalculated');
+    devConsole.log('useTransactionReceiptsByHash - receiptsByHash recalculated');
     if (!hashes) return {};
     return Array.from(hashes).reduce<Record<`0x${string}`, TransactionReceipt>>((acc, hash, i) => {
       // skip those that don't have receipt data yet
