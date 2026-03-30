@@ -1,4 +1,4 @@
-import * as nacl from 'tweetnacl';
+import nacl from 'tweetnacl';
 import { fromHexString, toBeArray, toBigInt, toHexString, isBigIntOrNumber, isString } from './utils.js';
 
 const PRIVATE_KEY_LENGTH = 64;

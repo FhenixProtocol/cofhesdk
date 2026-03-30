@@ -1,0 +1,199 @@
+---
+title: Hardhat 3 Plugin
+description: Install and configure @cofhe/hardhat-3-plugin for local FHE development with Hardhat 3
+---
+
+# Hardhat 3 Plugin
+
+`@cofhe/hardhat-3-plugin` is the CoFHE plugin for [Hardhat 3](https://hardhat.org). It deploys the full CoFHE mock stack on every `network.connect()` call and attaches a `cofhe` namespace to the connection object — no setup boilerplate required.
+
+## Installation
+
+::::steps
+
+### Install the package
+
+:::code-group
+
+```bash [npm]
+npm install --save-dev @cofhe/hardhat-3-plugin
+```
+
+```bash [pnpm]
+pnpm add --save-dev @cofhe/hardhat-3-plugin
+```
+
+:::
+
+### Register in your config
+
+```ts [hardhat.config.ts]
+import { defineConfig } from 'hardhat/config';
+import cofhePlugin from '@cofhe/hardhat-3-plugin'; // [!code focus]
+import hardhatViem from '@nomicfoundation/hardhat-viem';
+import hardhatNodeTestRunner from '@nomicfoundation/hardhat-node-test-runner';
+
+export default defineConfig({
+  plugins: [cofhePlugin, hardhatViem, hardhatNodeTestRunner], // [!code focus]
+});
+```
+
+::::
+
+## Configuration
+
+All options are optional. The `cofhe` block can be omitted entirely if the defaults are acceptable.
+
+```ts [hardhat.config.ts]
+export default defineConfig({
+  plugins: [cofhePlugin, hardhatViem, hardhatNodeTestRunner],
+  cofhe: {
+    logMocks: false, // log FHE ops to the console (default: false)
+    gasWarning: false, // warn that mock gas differs from live FHE (default: false)
+    mocksDeployVerbosity: 'v', // '' | 'v' | 'vv' — deployment output (default: 'v')
+  },
+});
+```
+
+| Option                 | Type                | Default | Description                                                   |
+| ---------------------- | ------------------- | ------- | ------------------------------------------------------------- |
+| `logMocks`             | `boolean`           | `false` | Enable structured FHE operation logs from mock contracts      |
+| `gasWarning`           | `boolean`           | `false` | Print a reminder that mock gas costs differ from live FHE     |
+| `mocksDeployVerbosity` | `'' \| 'v' \| 'vv'` | `'v'`   | `''` silent · `'v'` summary line · `'vv'` full deployment log |
+
+## Usage
+
+### The `cofhe` connection object
+
+Every call to `network.connect()` deploys all CoFHE mock contracts and attaches a `cofhe` namespace to the returned connection:
+
+```ts
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import { network } from 'hardhat';
+
+describe('My FHE contract', async () => {
+  const { viem, cofhe } = await network.connect(); // [!code focus]
+  const publicClient = await viem.getPublicClient();
+  const [walletClient] = await viem.getWalletClients();
+
+  it('stores an encrypted value', async () => {
+    const client = await cofhe.createClientWithBatteries(walletClient);
+    // ...
+  });
+});
+```
+
+:::info
+`network.connect()` is awaited at the top of the `describe` callback. Hardhat 3's Node.js test runner supports top-level `await` here, so mocks are deployed exactly once per test file without a `before()` hook.
+:::
+
+### `createClientWithBatteries(walletClient?)`
+
+Creates a fully initialized `CofheClient` in one call — configured for Hardhat, connected, and with a self-permit already issued:
+
+```ts
+// Use the first account in the connection:
+const client = await cofhe.createClientWithBatteries();
+
+// Or pass a specific wallet client:
+const [walletClient] = await viem.getWalletClients();
+const client = await cofhe.createClientWithBatteries(walletClient);
+```
+
+For manual setup, use `cofhe.createConfig()` and `cofhe.createClient()` separately. See the [SDK Client](/sdk/client) docs.
+
+## Mock utilities
+
+### Plaintext inspection
+
+In the mock environment every ciphertext has a corresponding plaintext stored on-chain. These helpers let you assert contract state without going through the full decrypt flow:
+
+```ts
+// Returns the raw plaintext as a bigint
+const value = await cofhe.mocks.getPlaintext(ctHash);
+
+// Throws if the plaintext doesn't match
+await cofhe.mocks.expectPlaintext(ctHash, 42n);
+```
+
+Both accept `ctHash` as a `bigint` or hex `string`.
+
+### Logging
+
+FHE operation logs are off by default. Turn them on for a specific block using `withLogs`:
+
+```ts
+await cofhe.mocks.withLogs('counter.increment()', async () => {
+  await counter.increment();
+});
+```
+
+Or toggle manually:
+
+```ts
+await cofhe.mocks.enableLogs();
+await counter.increment();
+await cofhe.mocks.disableLogs();
+```
+
+### Contract descriptors
+
+Each mock contract is exposed as a `{ address, abi }` object that can be spread directly into Viem's `readContract` / `writeContract`:
+
+```ts
+// Fixed-address contracts (synchronous):
+cofhe.mocks.MockTaskManager;
+cofhe.mocks.MockZkVerifier;
+cofhe.mocks.MockThresholdNetwork;
+cofhe.mocks.TestBed;
+
+// Dynamic address (resolved from TaskManager on-chain):
+const mockACL = await cofhe.mocks.MockACL();
+```
+
+## Complete example
+
+```ts
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import { network } from 'hardhat';
+import { Encryptable, FheTypes } from '@cofhe/sdk';
+
+describe('Encrypted counter', async () => {
+  const { viem, cofhe } = await network.connect();
+  const publicClient = await viem.getPublicClient();
+  const [walletClient] = await viem.getWalletClients();
+
+  it('encrypts, stores, and reads back a uint32', async () => {
+    const client = await cofhe.createClientWithBatteries(walletClient);
+
+    const [enc] = await client
+      .encryptInputs([Encryptable.uint32(42n)])
+      .execute();
+
+    await walletClient.writeContract({
+      ...cofhe.mocks.TestBed,
+      functionName: 'setNumber',
+      args: [enc],
+    });
+
+    const ctHash = await publicClient.readContract({
+      ...cofhe.mocks.TestBed,
+      functionName: 'numberHash',
+    });
+
+    await cofhe.mocks.expectPlaintext(ctHash, 42n);
+  });
+});
+```
+
+## Differences from `@cofhe/hardhat-plugin`
+
+|               | `@cofhe/hardhat-plugin` (v2) | `@cofhe/hardhat-3-plugin` |
+| ------------- | ---------------------------- | ------------------------- |
+| Access        | `hre.cofhe`                  | `conn.cofhe`              |
+| Trigger       | `npx hardhat test`           | `network.connect()`       |
+| Test runner   | Mocha                        | Node.js `node:test`       |
+| Ethers / Viem | ethers.js                    | Viem                      |
+| Config        | `import '...'` side-effect   | `plugins: [...]` array    |

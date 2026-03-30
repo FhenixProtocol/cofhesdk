@@ -1,0 +1,42 @@
+{
+  "name": "@cofhe/foundry-plugin",
+  "version": "0.4.0",
+  "description": "Foundry plugin for CoFHE — Write and test FHE enabled contracts",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/FhenixProtocol/cofhesdk.git",
+    "directory": "packages/foundry-plugin"
+  },
+  "files": [
+    "contracts/**/*.sol",
+    "foundry.toml"
+  ],
+  "keywords": [
+    "blockchain",
+    "ethereum",
+    "smart-contracts",
+    "solidity",
+    "FHE",
+    "foundry",
+    "testing",
+    "cofhe",
+    "fhenix"
+  ],
+  "scripts": {
+    "build": "forge build -q",
+    "test": "forge build -q && forge test -vvv",
+    "clean": "rm -rf out && rm -rf cache"
+  },
+  "dependencies": {
+    "@cofhe/mock-contracts": "workspace:*",
+    "@fhenixprotocol/cofhe-contracts": "0.1.0",
+    "@openzeppelin/contracts": "^5.0.0"
+  },
+  "devDependencies": {
+    "forge-std": "github:foundry-rs/forge-std"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

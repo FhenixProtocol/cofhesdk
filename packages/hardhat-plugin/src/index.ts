@@ -16,7 +16,7 @@ import { HardhatSignerAdapter } from '@cofhe/sdk/adapters';
 
 import { localcofheFundAccount } from './fund.js';
 import { TASK_COFHE_MOCKS_DEPLOY, TASK_COFHE_MOCKS_SET_LOG_OPS, TASK_COFHE_USE_FAUCET } from './consts.js';
-import { deployMocks, type DeployMocksArgs } from './deploy.js';
+import { deployMocks, type DeployMocksArgs, type LogMocksDeploy } from './deploy.js';
 import { mock_setLoggingEnabled, mock_withLogs } from './logging.js';
 import { getFixedMockContract, mock_expectPlaintext } from './utils.js';
 import { mock_getPlaintext } from './utils.js';
@@ -45,6 +45,13 @@ declare module 'hardhat/types/config' {
       logMocks?: boolean;
       /** Whether to show gas usage warnings for mock operations (default: true) */
       gasWarning?: boolean;
+      /**
+       * Controls deploy-mocks console output.
+       * - `''`   — silent, no output
+       * - `'v'`  — single summary line (default)
+       * - `'vv'` — full per-contract deployment logs
+       */
+      mocksDeployVerbosity?: LogMocksDeploy;
     };
   }
 
@@ -54,6 +61,7 @@ declare module 'hardhat/types/config' {
       logMocks: boolean;
       /** Whether to show gas usage warnings for mock operations (default: true) */
       gasWarning: boolean;
+      mocksDeployVerbosity: LogMocksDeploy;
     };
   }
 }
@@ -110,8 +118,9 @@ extendConfig((config, userConfig) => {
 
   // Add cofhe config
   config.cofhe = {
-    logMocks: userConfig.cofhe?.logMocks ?? true,
-    gasWarning: userConfig.cofhe?.gasWarning ?? true,
+    logMocks: userConfig.cofhe?.logMocks ?? false,
+    gasWarning: userConfig.cofhe?.gasWarning ?? false,
+    mocksDeployVerbosity: (userConfig.cofhe?.mocksDeployVerbosity ?? 'v') as LogMocksDeploy,
   };
 });
 
@@ -148,12 +157,11 @@ task(TASK_COFHE_USE_FAUCET, 'Fund an account from the funder')
 
 task(TASK_COFHE_MOCKS_DEPLOY, 'Deploys the mock contracts on the Hardhat network')
   .addOptionalParam('deployTestBed', 'Whether to deploy the test bed', true, types.boolean)
-  .addOptionalParam('silent', 'Whether to suppress output', false, types.boolean)
-  .setAction(async ({ deployTestBed, silent }: DeployMocksArgs, hre) => {
+  .setAction(async ({ deployTestBed }: DeployMocksArgs, hre) => {
     await deployMocks(hre, {
       deployTestBed: deployTestBed ?? true,
       gasWarning: hre.config.cofhe.gasWarning ?? true,
-      silent: silent ?? false,
+      mocksDeployVerbosity: hre.config.cofhe.mocksDeployVerbosity,
     });
   });
 
@@ -169,6 +177,7 @@ task(TASK_TEST, 'Deploy mock contracts on hardhat').setAction(async ({}, hre, ru
     await deployMocks(hre, {
       deployTestBed: true,
       gasWarning: hre.config.cofhe.gasWarning ?? true,
+      mocksDeployVerbosity: hre.config.cofhe.mocksDeployVerbosity,
     });
   }
   return runSuper();
@@ -185,6 +194,7 @@ task(TASK_NODE, 'Deploy mock contracts on hardhat').setAction(async ({}, hre, ru
     await deployMocks(hre, {
       deployTestBed: true,
       gasWarning: hre.config.cofhe.gasWarning ?? true,
+      mocksDeployVerbosity: hre.config.cofhe.mocksDeployVerbosity,
     });
   }
   return runSuper();
@@ -438,7 +448,7 @@ extendEnvironment((hre) => {
         return mock_setLoggingEnabled(hre, false);
       },
       deployMocks: async (options: DeployMocksArgs = {}) => {
-        return deployMocks(hre, options);
+        return deployMocks(hre, { mocksDeployVerbosity: hre.config.cofhe.mocksDeployVerbosity, ...options });
       },
       getPlaintext: async (ctHash: bigint | string) => {
         const [signer] = await hre.ethers.getSigners();

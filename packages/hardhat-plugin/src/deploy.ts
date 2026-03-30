@@ -20,10 +20,18 @@ import { deployMockContractFromArtifact } from './utils';
 
 // Deployment
 
+/**
+ * Controls deploy-mocks console output.
+ * - `''`   — silent, no output
+ * - `'v'`  — single summary line (default)
+ * - `'vv'` — full per-contract deployment logs
+ */
+export type LogMocksDeploy = '' | 'v' | 'vv';
+
 export type DeployMocksArgs = {
   deployTestBed?: boolean;
   gasWarning?: boolean;
-  silent?: boolean;
+  mocksDeployVerbosity?: LogMocksDeploy;
 };
 
 export const deployMocks = async (
@@ -31,22 +39,19 @@ export const deployMocks = async (
   options: DeployMocksArgs = {
     deployTestBed: true,
     gasWarning: true,
-    silent: false,
+    mocksDeployVerbosity: 'v',
   }
 ) => {
+  verbosity = options.mocksDeployVerbosity ?? 'v';
+
   // Check if network is Hardhat, if not log skip message and return
   const isHardhat = await getIsHardhat(hre);
   if (!isHardhat) {
-    logSuccess(`cofhe-hardhat-plugin - deploy mocks - skipped on non-hardhat network ${hre.network.name}`, 0);
+    log('v', `cofhe-hardhat-plugin - deploy mocks - skipped on non-hardhat network ${hre.network.name}`, 0);
     return;
   }
 
-  isSilent = options.silent ?? false;
-
-  // Log start message
-  logEmpty();
-  logSuccess(chalk.bold('cofhe-hardhat-plugin :: deploy mocks'), 0);
-  logEmpty();
+  log('vv', chalk.bold('cofhe-hardhat-plugin :: deploy mocks'), 0);
 
   // Deploy mock contracts
   const taskManager = await deployMockTaskManager(hre);
@@ -56,19 +61,19 @@ export const deployMocks = async (
   logDeployment('MockACL', await acl.getAddress());
 
   await linkTaskManagerAndACL(taskManager, acl);
-  logSuccess('ACL address set in TaskManager', 2);
+  log('vv', 'ACL address set in TaskManager', 2);
 
   await setVerifierSigner(taskManager);
-  logSuccess('Verifier signer set', 2);
+  log('vv', 'Verifier signer set', 2);
 
   await setDecryptResultSigner(taskManager);
-  logSuccess('Decrypt result signer set', 2);
+  log('vv', 'Decrypt result signer set', 2);
 
   await fundZkVerifierSigner(hre);
-  logSuccess(`ZkVerifier signer (${MOCKS_ZK_VERIFIER_SIGNER_ADDRESS}) funded`, 1);
+  log('vv', `ZkVerifier signer (${MOCKS_ZK_VERIFIER_SIGNER_ADDRESS}) funded`, 1);
 
   const zkVerifierSignerBalance = await getZkVerifierSignerBalance(hre);
-  logSuccess(`ETH balance: ${zkVerifierSignerBalance.toString()}`, 2);
+  log('vv', `ETH balance: ${zkVerifierSignerBalance.toString()}`, 2);
 
   const zkVerifier = await deployMockZkVerifier(hre);
   logDeployment('MockZkVerifier', await zkVerifier.getAddress());
@@ -77,25 +82,21 @@ export const deployMocks = async (
   logDeployment('MockThresholdNetwork', await thresholdNetwork.getAddress());
 
   if (options.deployTestBed) {
-    logSuccess('TestBed deployment enabled', 2);
     const testBed = await deployTestBedContract(hre);
     logDeployment('TestBed', await testBed.getAddress());
   }
 
-  // Log success message
-  logEmpty();
-  logSuccess(chalk.bold('cofhe-hardhat-plugin :: mocks deployed successfully'), 0);
+  log('v', chalk.bold('cofhe-hardhat-plugin :: mocks deployed'), 0);
 
-  // Log warning about mocks increased gas costs
   if (options.gasWarning) {
-    logEmpty();
+    logEmpty('v');
     logWarning(
-      "When using mocks, FHE operations (eg FHE.add / FHE.mul) report a higher gas price due to additional on-chain mocking logic. Deploy your contracts on a testnet chain to check the true gas costs.\n(Disable this warning by setting '@cofhe/sdk.gasWarning' to false in your hardhat config",
+      "When using mocks, FHE operations (eg FHE.add / FHE.mul) report a higher gas price due to additional on-chain mocking logic. Deploy your contracts on a testnet chain to check the true gas costs.\n(Disable this warning by setting 'cofhe.gasWarning: false' in your hardhat config)",
       0
     );
   }
 
-  logEmpty();
+  logEmpty('v');
 };
 
 // Network
@@ -199,30 +200,32 @@ const deployTestBedContract = async (hre: HardhatRuntimeEnvironment) => {
 
 // Logging
 
-let isSilent = false;
+let verbosity: LogMocksDeploy = 'v';
 
-const logEmpty = () => {
-  if (isSilent) return;
-  console.log('');
-};
-
-const logSuccess = (message: string, indent = 1) => {
-  if (isSilent) return;
+/**
+ * Emit a green ✓ line at `minVerbosity` or above.
+ * - `minVerbosity = 'v'`  → prints for both 'v' and 'vv'
+ * - `minVerbosity = 'vv'` → prints only for 'vv'
+ */
+const log = (minVerbosity: 'v' | 'vv', message: string, indent = 1) => {
+  if (verbosity === '') return;
+  if (minVerbosity === 'vv' && verbosity !== 'vv') return;
   console.log(chalk.green(`${'  '.repeat(indent)}✓ ${message}`));
 };
 
+const logEmpty = (minVerbosity: 'v' | 'vv' = 'v') => {
+  if (verbosity === '') return;
+  if (minVerbosity === 'vv' && verbosity !== 'vv') return;
+  console.log('');
+};
+
 const logWarning = (message: string, indent = 1) => {
-  if (isSilent) return;
+  if (verbosity === '') return;
   console.log(chalk.bold(chalk.yellow(`${'  '.repeat(indent)}⚠ NOTE:`)), message);
 };
 
-const logError = (message: string, indent = 1) => {
-  if (isSilent) return;
-  console.log(chalk.red(`${'  '.repeat(indent)}✗ ${message}`));
-};
-
 const logDeployment = (contractName: string, address: string) => {
-  if (isSilent) return;
+  if (verbosity !== 'vv') return;
   const paddedName = `${contractName} deployed`.padEnd(36);
-  logSuccess(`${paddedName} ${chalk.bold(address)}`);
+  console.log(chalk.green(`  ✓ ${paddedName} ${chalk.bold(address)}`));
 };

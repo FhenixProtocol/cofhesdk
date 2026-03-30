@@ -2,39 +2,34 @@
 pragma solidity ^0.8.13;
 
 import { Test } from 'forge-std/Test.sol';
-import { TestBed } from '../contracts/TestBed.sol';
-import { CoFheTest } from '../contracts/foundry/CoFheTest.sol';
+import { TestBed } from '@cofhe/mock-contracts/contracts/TestBed.sol';
+import { CofheTest } from '../contracts/CofheTest.sol';
+import { CofheClient } from '../contracts/CofheClient.sol';
 import { FHE, InEuint32, euint8, euint128 } from '@fhenixprotocol/cofhe-contracts/FHE.sol';
 
 /// @title TestBed Foundry Tests
 /// @notice Foundry-native smoke tests for the CoFHE mock environment and FHE Solidity surface.
-/// @dev This repo deploys `TestBed` inside Foundry tests as a known-good reference contract.
-///      Downstream Foundry users are not required to use `TestBed`; they can deploy/test their own
-///      contracts while inheriting from `CoFheTest` to get helper methods like `createInEuint32(...)`
-///      and `assertHashValue(...)`.
-contract TestBedTest is Test, CoFheTest {
+contract TestBedTest is CofheTest {
   TestBed private testbed;
+  CofheClient private cofheClient;
 
-  address private user = makeAddr('user');
+  uint256 private constant USER_PKEY = 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
 
-  /// @notice Deploys a fresh TestBed instance for each test.
   function setUp() public {
-    // optional ... enable verbose logging from fhe mocks
-    // setLog(true);
-
+    deployMocks();
+    cofheClient = createCofheClient();
+    cofheClient.connect(USER_PKEY);
     testbed = new TestBed();
   }
 
   /// @notice Fuzz test: create an encrypted input and set it as state.
   function testSetNumberFuzz(uint32 n) public {
-    InEuint32 memory number = createInEuint32(n, user);
+    InEuint32 memory number = cofheClient.createInEuint32(n);
 
-    //must be the user who sends transaction
-    //or else invalid permissions from fhe allow
-    vm.prank(user);
+    vm.prank(cofheClient.account());
     testbed.setNumber(number);
 
-    assertHashValue(testbed.eNumber(), n);
+    expectPlaintext(testbed.eNumber(), n);
   }
 
   /// @notice Validates that mock arithmetic matches EVM uint8 wraparound behavior.
@@ -43,7 +38,7 @@ contract TestBedTest is Test, CoFheTest {
     euint8 b = FHE.asEuint8(240);
     euint8 c = FHE.add(a, b);
 
-    assertHashValue(euint8.unwrap(c), (240 + 240) % 256);
+    expectPlaintext(c, uint8((240 + 240) % 256));
   }
 
   /// @notice Validates division by zero behavior in the mock implementation.
@@ -52,7 +47,7 @@ contract TestBedTest is Test, CoFheTest {
     euint8 b = FHE.asEuint8(0);
     euint8 c = FHE.div(a, b);
 
-    assertHashValue(euint8.unwrap(c), type(uint8).max);
+    expectPlaintext(c, type(uint8).max);
   }
 
   /// @notice Validates 128-bit addition semantics used by the mock implementation.
@@ -66,6 +61,6 @@ contract TestBedTest is Test, CoFheTest {
       expected = type(uint128).max + type(uint128).max;
     }
 
-    assertHashValue(euint128.unwrap(c), expected);
+    expectPlaintext(euint128.unwrap(c), expected);
   }
 }

@@ -395,7 +395,11 @@ Operations return values directly and throw typed `CofheError` objects on failur
 
 ```ts twoslash
 // @noErrors
-import { type CofheClient, type CofheConfig, Encryptable } from '@cofhe/sdk';
+import {
+  type CofheClient,
+  type CofheConfig,
+  Encryptable,
+} from '@cofhe/sdk';
 declare const client: CofheClient<CofheConfig>;
 // ---cut---
 import { isCofheError, CofheErrorCode } from '@cofhe/sdk';

@@ -81,9 +81,14 @@ export default defineConfig({
                 text: 'Decrypting to Transact',
                 link: '/sdk/decrypt-to-tx',
               },
+
               {
                 text: 'Writing Decrypt Result to Contract',
                 link: '/sdk/writing-decrypt-result-to-contract',
+              },
+              {
+                text: 'Verifying Decrypt Results',
+                link: '/sdk/verify-decrypt-result',
               },
             ],
           },
@@ -115,6 +120,14 @@ export default defineConfig({
         ],
       },
       {
+        text: 'Hardhat 3',
+        link: '/hardhat-3',
+      },
+      {
+        text: 'Foundry',
+        link: '/foundry',
+      },
+      {
         text: 'Reference',
         items: [
           {
@@ -128,15 +141,6 @@ export default defineConfig({
         ],
       },
     ],
-    '/foundry': {
-      backLink: true,
-      items: [
-        {
-          text: 'Coming Soon',
-          link: '/foundry',
-        },
-      ],
-    },
     '/react': {
       backLink: true,
       items: [

@@ -1,0 +1,17 @@
+[profile.default]
+src = "contracts"
+out = "out"
+libs = ["node_modules", "lib"]
+auto_detect_remappings = false
+remappings = [
+  "forge-std/=node_modules/forge-std/src/",
+  "hardhat/=node_modules/forge-std/src/",
+  "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
+  "@fhenixprotocol/cofhe-contracts/=node_modules/@fhenixprotocol/cofhe-contracts/",
+  "@cofhe/mock-contracts/=node_modules/@cofhe/mock-contracts/"
+]
+
+[lint]
+lint_on_build = false
+
+# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

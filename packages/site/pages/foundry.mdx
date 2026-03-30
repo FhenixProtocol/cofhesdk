@@ -1,1 +1,176 @@
-The `@cofhe/foundry` package is currently in development.
+---
+title: Foundry Plugin
+description: Install and configure @cofhe/foundry-plugin for local FHE development with Foundry
+---
+
+# Foundry Plugin
+
+`@cofhe/foundry-plugin` provides two contracts for writing CoFHE tests with Foundry:
+
+- **`CofheTest`** — abstract base contract. Inherits `forge-std/Test`. Exposes `deployMocks()`, `createCofheClient()`, `getPlaintext()`, and `expectPlaintext()`.
+- **`CofheClient`** — SDK-like client. Manages a private key / account pair and exposes encrypt, decrypt, and permit helpers.
+
+## Installation
+
+### npm / pnpm
+
+:::code-group
+
+```bash [npm]
+npm install --save-dev @cofhe/foundry-plugin
+```
+
+```bash [pnpm]
+pnpm add --save-dev @cofhe/foundry-plugin
+```
+
+:::
+
+Then add the remappings to your `foundry.toml`:
+
+```toml [foundry.toml]
+[profile.default]
+src = "contracts"
+out = "out"
+libs = ["node_modules", "lib"]
+
+remappings = [
+  "@cofhe/foundry-plugin/=node_modules/@cofhe/foundry-plugin/",
+  "@cofhe/mock-contracts/=node_modules/@cofhe/mock-contracts/",
+  "@fhenixprotocol/cofhe-contracts/=node_modules/@fhenixprotocol/cofhe-contracts/",
+  "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
+  "forge-std/=node_modules/forge-std/src/",
+]
+```
+
+### Git submodule
+
+```bash
+forge install fhenixprotocol/foundry-plugin          # @cofhe/foundry-plugin
+forge install fhenixprotocol/cofhe-mock-contracts    # @cofhe/mock-contracts
+```
+
+Forge will install these under `lib/`. Add the equivalent remappings pointing to `lib/` instead of `node_modules/`.
+
+## Quick start
+
+```solidity
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.13;
+
+import { CofheTest } from "@cofhe/foundry-plugin/contracts/CofheTest.sol";
+import { CofheClient } from "@cofhe/foundry-plugin/contracts/CofheClient.sol";
+import "@fhenixprotocol/cofhe-contracts/FHE.sol";
+
+contract CounterTest is CofheTest {
+    Counter private counter;
+    CofheClient private cofheClient;
+
+    uint256 constant USER_PKEY = 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
+
+    function setUp() public {
+        deployMocks();                      // deploy full mock stack
+        cofheClient = createCofheClient();  // create SDK-like client
+        cofheClient.connect(USER_PKEY);     // set account/signer
+        counter = new Counter();
+    }
+
+    function test_increment() public {
+        InEuint32 memory enc = cofheClient.createInEuint32(5);
+
+        vm.prank(cofheClient.account());
+        counter.setNumber(enc);
+
+        expectPlaintext(counter.numberHash(), 5);
+    }
+}
+```
+
+## `CofheTest` API
+
+`CofheTest` is `abstract` and provides mock infrastructure. Inherit it in your test contract.
+
+| Function                                    | Description                                                                                                                                                                                                       |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `deployMocks()`                             | Deploys the complete CoFHE mock stack: `MockTaskManager`, `MockACL`, `MockZkVerifier`, `MockZkVerifierSigner`, `MockThresholdNetwork`, `MockThresholdNetworkSigner`. Mirrors the Hardhat plugin deployment order. |
+| `createCofheClient()`                       | Returns a new `CofheClient` instance. Call `connect(pkey)` on the result before use.                                                                                                                              |
+| `enableLogs()`                              | Turns on plaintext operation logs from `MockTaskManager`.                                                                                                                                                         |
+| `disableLogs()`                             | Turns off plaintext operation logs.                                                                                                                                                                               |
+| `getPlaintext(bytes32 ctHash)`              | Returns the stored plaintext for a ciphertext hash as `uint256`. Reverts if the hash is not in mock storage.                                                                                                      |
+| `getPlaintext(euint32 eValue)`              | Typed overloads — returns the correct Solidity type (`bool`, `uint8`…`uint128`, `address`) for each FHE type. `internal` visibility only.                                                                         |
+| `expectPlaintext(bytes32, uint256)`         | Asserts `ctHash` exists in mock storage and equals `value`.                                                                                                                                                       |
+| `expectPlaintext(bytes32, uint256, string)` | Same with a custom failure message.                                                                                                                                                                               |
+| `expectPlaintext(euint32, uint32)`          | Typed overloads for each FHE type.                                                                                                                                                                                |
+| `expectPlaintext(euint32, uint32, string)`  | Typed overloads with failure message.                                                                                                                                                                             |
+
+## `CofheClient` API
+
+`CofheClient` is a standalone contract deployed by `createCofheClient()`. It wraps mock FHE operations behind the same conceptual interface as the JS SDK.
+
+### Setup
+
+| Function                | Description                                                                                                                    |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `connect(uint256 pkey)` | Stores the private key, derives the account address, and marks the client as ready. Must be called before all other functions. |
+| `account()`             | Returns the address derived from the connected private key.                                                                    |
+
+### Encryption
+
+All `createInE*` functions operate under security zone 0. Use the returned struct directly in contract calls.
+
+| Function                    | Returns      |
+| --------------------------- | ------------ |
+| `createInEbool(bool)`       | `InEbool`    |
+| `createInEuint8(uint8)`     | `InEuint8`   |
+| `createInEuint16(uint16)`   | `InEuint16`  |
+| `createInEuint32(uint32)`   | `InEuint32`  |
+| `createInEuint64(uint64)`   | `InEuint64`  |
+| `createInEuint128(uint128)` | `InEuint128` |
+| `createInEaddress(address)` | `InEaddress` |
+
+### Decryption
+
+| Function                                                                    | Returns                     | Description                                                                       |
+| --------------------------------------------------------------------------- | --------------------------- | --------------------------------------------------------------------------------- |
+| `decryptForTx_withoutPermit(bytes32 ctHash)`                                | `(bytes32, uint256, bytes)` | Decrypts a globally-allowed ciphertext. Returns `(ctHash, plaintext, signature)`. |
+| `decryptForTx_withPermit(bytes32 ctHash, Permission permission)`            | `(bytes32, uint256, bytes)` | Decrypts using a permit. Same return shape.                                       |
+| `decryptForView(bytes32 ctHash, bytes32 sealingKey, Permission permission)` | `uint256`                   | Seals and unseals with the permit's sealing key for off-chain reading.            |
+
+### Permits
+
+| Function                                  | Returns              | Description                                                                                   |
+| ----------------------------------------- | -------------------- | --------------------------------------------------------------------------------------------- |
+| `permit_createSelf()`                     | `Permission`         | Creates a self-permit signed by the connected account.                                        |
+| `permit_createShared(address recipient)`  | `Permission`         | Creates the issuer half of a shared permit.                                                   |
+| `permit_exportShared(Permission)`         | `SharedPermitExport` | Strips private fields for safe transmission.                                                  |
+| `permit_importShared(SharedPermitExport)` | `Permission`         | Reconstructs a `Permission` as the recipient, adding the sealing key and recipient signature. |
+
+## Hardhat 3 Solidity tests
+
+`@cofhe/foundry-plugin` ships a `remappings.txt` that Hardhat 3 automatically discovers. Add the package as a `devDependency` in your `hardhat-3-plugin-test` project and configure the Solidity test path:
+
+```ts [hardhat.config.ts]
+export default defineConfig({
+  plugins: [cofhePlugin, hardhatViem, hardhatNodeTestRunner],
+  solidity: '0.8.29',
+  paths: {
+    tests: {
+      nodejs: './test',
+      solidity: './test/solidity',
+    },
+  },
+});
+```
+
+Then import `CofheTest` and `CofheClient` exactly as in standard Foundry tests — the `@cofhe/foundry-plugin/` prefix resolves via the bundled remappings:
+
+```solidity
+import { CofheTest } from "@cofhe/foundry-plugin/contracts/CofheTest.sol";
+import { CofheClient } from "@cofhe/foundry-plugin/contracts/CofheClient.sol";
+```
+
+Run with:
+
+```bash
+hardhat test solidity
+```
