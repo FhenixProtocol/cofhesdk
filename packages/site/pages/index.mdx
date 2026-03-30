@@ -1,34 +1,28 @@
 ---
+layout: landing
 title: Cofhe SDK
 description: Build privacy-preserving dApps with FHE on Fhenix
 ---
 
-# Cofhe SDK
+import { HomePage } from 'vocs/components';
 
-Build privacy-preserving dApps on Fhenix using fully homomorphic encryption (FHE). This site is organized by **what you’re building** (SDK usage, Hardhat workflows, reference material), so you can jump straight to the right place.
-
-## Where to start
-
-- First time using the SDK: [Quick Start](/quick-start)
-- Want the full mental model first: [Introduction](/intro)
-- Coming from `cofhejs`: [Migrating from `cofhejs`](/migrating-from-cofhejs)
-
-## How the docs are structured
-
-| Section       | What it contains                                                                                                 | Start here                                     |
-| ------------- | ---------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| **Intro**     | A high-level overview of CoFHE, what the SDK does, and the major concepts used throughout the docs.              | [/intro](/intro)                               |
-| **SDK**       | The client API: configuring, connecting, encrypting inputs, decryption flows, and permits.                       | [/sdk/client](/sdk/client)                     |
-| **Hardhat**   | Local development & testing workflows with `@cofhe/hardhat-plugin`, including mock contracts and test utilities. | [/hardhat](/hardhat)                           |
-| **Reference** | A glossary and concrete reference artifacts you’ll link to from guides.                                          | [/reference/dictionary](/reference/dictionary) |
-| **React**     | React-specific guidance (currently a placeholder).                                                               | [/react](/react)                               |
-| **Foundry**   | Foundry-specific guidance (currently a placeholder).                                                             | [/foundry](/foundry)                           |
-
-## Common paths
-
-- Build a “hello world” end-to-end flow: [Quick Start](/quick-start)
-- Learn how to encrypt inputs for contract calls: [Encrypting Inputs](/sdk/encrypting-inputs)
-- Display encrypted state in a UI: [Decrypting to View](/sdk/decrypt-to-view)
-- Use verifiable decryption results on-chain: [Decrypting to Transact](/sdk/decrypt-to-tx)
-- Understand access control and permits: [Permits](/sdk/permits)
-- Test locally without off-chain infra: [Mock Contracts](/hardhat/mock-contracts)
+<HomePage.Root>
+  <HomePage.Logo />
+  <HomePage.Tagline>
+    Build privacy-preserving dApps with FHE on Fhenix.
+  </HomePage.Tagline>
+  <HomePage.InstallPackage name="@cofhe/sdk" />
+  <HomePage.Description>
+    Client SDK + Hardhat workflows for encrypted inputs, permits, and
+    decryption flows.
+  </HomePage.Description>
+  <HomePage.Buttons>
+    <HomePage.Button href="/quick-start" variant="accent">
+      Get started
+    </HomePage.Button>
+    <HomePage.Button href="/intro">Introduction</HomePage.Button>
+    <HomePage.Button href="https://github.com/FhenixProtocol/cofhesdk">
+      GitHub
+    </HomePage.Button>
+  </HomePage.Buttons>
+</HomePage.Root>
