@@ -273,9 +273,9 @@ export const ValidationUtils = {
   },
 
   /**
-   * Overall validity checker of a permit
+   * Checks that a permit is signed and not expired.
    */
-  isValid: (permit: Permit): ValidationResult => {
+  isSignedAndNotExpired: (permit: Permit): ValidationResult => {
     if (ValidationUtils.isExpired(permit)) {
       return { valid: false, error: 'expired' };
     }
@@ -283,5 +283,10 @@ export const ValidationUtils = {
       return { valid: false, error: 'not-signed' };
     }
     return { valid: true, error: null };
+  },
+
+  /** @deprecated Use `isSignedAndNotExpired(permit)` instead. */
+  isValid: (permit: Permit): ValidationResult => {
+    return ValidationUtils.isSignedAndNotExpired(permit);
   },
 };

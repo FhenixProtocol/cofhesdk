@@ -455,7 +455,7 @@ describe('PermitUtils Tests', () => {
 
       const signedPermit = await PermitUtils.sign(validPermit, publicClient, bobWalletClient);
 
-      const validation = PermitUtils.isValid(signedPermit);
+      const validation = PermitUtils.isSignedAndNotExpired(signedPermit);
       expect(validation.valid).toBe(true);
       expect(validation.error).toBeNull();
     });

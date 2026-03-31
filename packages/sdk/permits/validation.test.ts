@@ -247,14 +247,14 @@ describe('Validation Tests', () => {
       });
     });
 
-    describe('isValid', () => {
+    describe('isSignedAndNotExpired', () => {
       it('should return valid for valid permit', async () => {
         const permit = {
           ...(await createMockPermit()),
           expiration: Math.floor(Date.now() / 1000) + 3600,
           issuerSignature: '0x1234567890abcdef' as `0x${string}`,
         };
-        const result = ValidationUtils.isValid(permit);
+        const result = ValidationUtils.isSignedAndNotExpired(permit);
         expect(result.valid).toBe(true);
         expect(result.error).toBeNull();
       });
@@ -265,7 +265,7 @@ describe('Validation Tests', () => {
           expiration: Math.floor(Date.now() / 1000) - 3600,
           issuerSignature: '0x1234567890abcdef' as `0x${string}`,
         };
-        const result = ValidationUtils.isValid(permit);
+        const result = ValidationUtils.isSignedAndNotExpired(permit);
         expect(result.valid).toBe(false);
         expect(result.error).toBe('expired');
       });
@@ -276,7 +276,7 @@ describe('Validation Tests', () => {
           expiration: Math.floor(Date.now() / 1000) + 3600,
           issuerSignature: '0x' as `0x${string}`,
         };
-        const result = ValidationUtils.isValid(permit);
+        const result = ValidationUtils.isSignedAndNotExpired(permit);
         expect(result.valid).toBe(false);
         expect(result.error).toBe('not-signed');
       });

@@ -217,9 +217,9 @@ export const PermitUtils = {
   },
 
   /**
-   * Validate a permit
+   * Validate a permit (schema-level validation)
    */
-  validate: (permit: Permit) => {
+  validateSchema: (permit: Permit) => {
     if (permit.type === 'self') {
       return validateSelfPermit(permit);
     } else if (permit.type === 'sharing') {
@@ -231,12 +231,17 @@ export const PermitUtils = {
     }
   },
 
+  /** @deprecated Use `validateSchema(permit)` instead. */
+  validate: (permit: Permit) => {
+    return PermitUtils.validateSchema(permit);
+  },
+
   /**
    * Get the permission object from a permit (for use in contracts)
    */
   getPermission: (permit: Permit, skipValidation = false): Permission => {
     if (!skipValidation) {
-      PermitUtils.validate(permit);
+      PermitUtils.validateSchema(permit);
     }
 
     return {
@@ -308,10 +313,15 @@ export const PermitUtils = {
   },
 
   /**
-   * Check if permit is valid
+   * Check if permit is signed and not expired
    */
+  isSignedAndNotExpired: (permit: Permit) => {
+    return ValidationUtils.isSignedAndNotExpired(permit);
+  },
+
+  /** @deprecated Use `isSignedAndNotExpired(permit)` instead. */
   isValid: (permit: Permit) => {
-    return ValidationUtils.isValid(permit);
+    return PermitUtils.isSignedAndNotExpired(permit);
   },
 
   /**

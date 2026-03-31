@@ -312,11 +312,11 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
     // Ensure permit validity
     // TODO: This doesn't validate permit expiration
     // TODO: This doesn't throw, returns a validation result instead
-    PermitUtils.validate(permit);
+    PermitUtils.validateSchema(permit);
 
     // TODO: Add this further validation step for the permit
     // TODO: Ensure this throws if the permit is invalid
-    PermitUtils.isValid(permit);
+    PermitUtils.isSignedAndNotExpired(permit);
 
     // Extract chainId from signed permit
     // Use this chainId to fetch the threshold network URL since this.chainId may be undefined
