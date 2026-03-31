@@ -441,7 +441,7 @@ contract CofheClientTest is CofheTest {
     Permission memory permit = cofheClient.permit_createSelf();
     bytes32 ctHash = euint32.unwrap(store.storedEuint32());
 
-    uint256 unsealed = cofheClient.decryptForView(ctHash, permit.sealingKey, permit);
+    uint256 unsealed = cofheClient.decryptForView(ctHash, permit);
     assertEq(unsealed, plainValue);
   }
 
@@ -453,12 +453,12 @@ contract CofheClientTest is CofheTest {
     bytes32 ctHash = euint32.unwrap(store.storedEuint32());
 
     vm.expectRevert();
-    cofheClient.decryptForView(ctHash, permit.sealingKey, permit);
+    cofheClient.decryptForView(ctHash, permit);
   }
 
   // --------------- permit_createSelf ---------------
 
-  function testPermitCreateSelf_isValid() public {
+  function testPermitCreateSelf_isValid() public view {
     Permission memory permit = cofheClient.permit_createSelf();
 
     assertEq(permit.issuer, cofheClient.account());
@@ -472,7 +472,7 @@ contract CofheClientTest is CofheTest {
 
   // --------------- permit_createShared ---------------
 
-  function testPermitCreateShared_isValid() public {
+  function testPermitCreateShared_isValid() public view {
     address bob = vm.addr(BOB_PKEY);
     Permission memory permit = cofheClient.permit_createShared(bob);
 
@@ -548,7 +548,7 @@ contract CofheClientTest is CofheTest {
     bytes32 ctHash = euint32.unwrap(store.storedEuint32());
 
     // Bob uses the shared permit to decrypt Alice's data via decryptForView
-    uint256 unsealed = bobClient.decryptForView(ctHash, bobPermit.sealingKey, bobPermit);
+    uint256 unsealed = bobClient.decryptForView(ctHash, bobPermit);
     assertEq(unsealed, plainValue);
   }
 
@@ -570,7 +570,7 @@ contract CofheClientTest is CofheTest {
     CofheClient unconnected = createCofheClient();
     Permission memory p;
     vm.expectRevert('CofheClient: not connected');
-    unconnected.decryptForView(bytes32(uint256(1)), bytes32(uint256(2)), p);
+    unconnected.decryptForView(bytes32(uint256(1)), p);
   }
 
   function testPermitCreateSelf_revertsWhenNotConnected() public {
