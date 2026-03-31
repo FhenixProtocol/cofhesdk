@@ -56,7 +56,7 @@ export const useCofheActivePermit = ():
     if (!_permit || !hash) return undefined;
     return {
       permit: _permit,
-      isValid: _permit ? PermitUtils.isSignedAndNotExpired(_permit).valid : false,
+      isValid: _permit ? PermitUtils.isValid(_permit).valid : false,
       hash,
     };
   }, [serialized, hash]);
