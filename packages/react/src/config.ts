@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { type CofheConfig, type CofheInputConfig } from '@cofhe/sdk';
 import { createCofheConfig as createCofheConfigWeb } from '@cofhe/sdk/web';
 import { getAddress, isAddress, zeroAddress } from 'viem';
+import { setReactLogger } from '@/utils/debug';
 
 export type CofheReactLoggerMethod = ((...args: unknown[]) => void) | null;
 
@@ -131,6 +132,9 @@ export function createCofheConfig(config: CofheReactInputConfig): CofheConfigWit
       cause: reactConfigResult.error,
     });
   }
+
+  // Configure internal logger immediately (outside of React render lifecycle).
+  setReactLogger(reactConfigResult.data.logger);
 
   return {
     ...webClientConfig,
