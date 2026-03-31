@@ -54,21 +54,33 @@ export function useTokensWithPublicBalances(
 
   const tokens = useCofheTokens(chainIdForTokens);
 
-  const entries = useMemo((): Array<{ token: Token; source: PublicTokenBalanceSource }> => {
-    const out: Array<{ token: Token; source: PublicTokenBalanceSource }> = [];
+  const sources = useMemo((): Array<{ source: PublicTokenBalanceSource; tokens: Token[] }> => {
+    // Multiple CoFHE tokens can share the same public-balance source (e.g. multiple wrapped tokens
+    // pointing at the same underlying ERC20). rq warns if we pass duplicate queryKeys
+    // within a single `useQueries` call, so we group by source address and fan out results.
+    const bySourceAddress = new Map<string, { source: PublicTokenBalanceSource; tokens: Token[] }>();
+
     for (const token of tokens) {
       const source = getPublicTokenBalanceSource(token);
       if (!source) continue;
-      out.push({ token, source });
+
+      const key = source.address.toLowerCase();
+      const existing = bySourceAddress.get(key);
+      if (existing) {
+        existing.tokens.push(token);
+      } else {
+        bySourceAddress.set(key, { source, tokens: [token] });
+      }
     }
-    return out;
+
+    return Array.from(bySourceAddress.values());
   }, [tokens]);
 
   const { enabled: userEnabled = true, ...restOptions } = options ?? {};
-  const enabled = userEnabled && !!publicClient && !!account && entries.length > 0;
+  const enabled = userEnabled && !!publicClient && !!account && sources.length > 0;
 
   const combined = useInternalQueries({
-    queries: entries.map(({ source }) =>
+    queries: sources.map(({ source }) =>
       createPublicTokenBalanceQueryOptions({
         publicClient,
         accountAddress: account,
@@ -90,7 +102,7 @@ export function useTokensWithPublicBalances(
 
       for (let index = 0; index < results.length; index++) {
         const result = results[index];
-        const entry = entries[index];
+        const entry = sources[index];
         if (!result || !entry) continue;
 
         isLoading = isLoading || result.isLoading;
@@ -102,8 +114,11 @@ export function useTokensWithPublicBalances(
         if (typeof wei !== 'bigint') continue;
         if (wei <= 0n) continue;
 
-        out.push(entry.token);
-        balanceMap[entry.token.address.toLowerCase()] = formatTokenAmount(wei, entry.source.decimals, displayDecimals);
+        const formatted = formatTokenAmount(wei, entry.source.decimals, displayDecimals);
+        for (const token of entry.tokens) {
+          out.push(token);
+          balanceMap[token.address.toLowerCase()] = formatted;
+        }
       }
 
       return {
