@@ -11,7 +11,7 @@ function useTransactionGlobalToastsLifecycle() {
   return {
     // 1.tx is submitted
     onTransactionSubmitted: (transaction: Transaction) => {
-      cofheLogger?.log?.('____ Transaction submitted:', transaction);
+      cofheLogger.log('____ Transaction submitted:', transaction);
       addToast(
         {
           variant: 'info',
@@ -50,7 +50,7 @@ function useTransactionGlobalToastsLifecycle() {
 
     // 2.a. tx is mined (could be success or fail)
     onTransactionMined: (transaction: Transaction, receipt: TransactionReceipt /*  could be fail or success */) => {
-      cofheLogger?.log?.('____ Transaction mined:', transaction, 'with receipt:', receipt);
+      cofheLogger.log('____ Transaction mined:', transaction, 'with receipt:', receipt);
       if (receipt.status === 'success') {
         const descriptionPostfix = transaction.isPendingDecryption ? ' It is pending decryption now.' : '';
         addToast(
@@ -99,7 +99,7 @@ function useTransactionGlobalToastsLifecycle() {
 
     // 3. tx is decrypted (if applicable)
     onTransactionDecrypted: (decryptionCausingTx: Transaction, decryptionWatcher: DecryptionWatcher) => {
-      cofheLogger?.log?.('____ Transaction decrypted:', decryptionCausingTx, 'with watcher:', decryptionWatcher);
+      cofheLogger.log('____ Transaction decrypted:', decryptionCausingTx, 'with watcher:', decryptionWatcher);
       addToast(
         {
           variant: 'success',

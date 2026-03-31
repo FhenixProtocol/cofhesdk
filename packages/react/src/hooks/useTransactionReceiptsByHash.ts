@@ -68,7 +68,7 @@ export function useTransactionReceiptsByHash(
   });
 
   const receiptsByHash = useMemo<Record<`0x${string}`, TransactionReceipt>>(() => {
-    cofheLogger?.log?.('useTransactionReceiptsByHash - receiptsByHash recalculated');
+    cofheLogger.log('useTransactionReceiptsByHash - receiptsByHash recalculated');
     if (!hashes) return {};
     return Array.from(hashes).reduce<Record<`0x${string}`, TransactionReceipt>>((acc, hash, i) => {
       // skip those that don't have receipt data yet

@@ -31,7 +31,7 @@ export function invalidateClaimableQueries({
   accountAddress: Address;
   queryClient: QueryClient;
 }) {
-  cofheLogger?.log?.('Invalidating unshield claims queries for token:', token);
+  cofheLogger.log('Invalidating unshield claims queries for token:', token);
 
   queryClient.invalidateQueries({
     queryKey: constructUnshieldClaimsQueryKeyForInvalidation({

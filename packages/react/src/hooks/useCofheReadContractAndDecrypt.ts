@@ -39,7 +39,7 @@ function convertCofheReturnTypeToEncryptedReturnType<
 }
 
 const onPoll = (context: DecryptPollCallbackContext) => {
-  cofheLogger?.debug?.(
+  cofheLogger.debug(
     `Decryption poll attemptIndex ${context.attemptIndex}. Operation: ${context.operation}. ${context.elapsedMs}ms elapsed. Request ID: ${context.requestId}.`
   );
 };

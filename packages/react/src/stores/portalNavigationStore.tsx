@@ -44,7 +44,7 @@ export const usePortalNavigation = create<PortalNavigationStore & PortalNavigati
     const currentPage = get().overridingPage ?? get().pageHistory[get().pageHistory.length - 1];
     const onPage = currentPage?.page === page;
     if (onPage) {
-      cofheLogger?.warn?.(`Attempted to navigate to page ${page} but already on that page`);
+      cofheLogger.warn(`Attempted to navigate to page ${page} but already on that page`);
     }
     return onPage;
   }

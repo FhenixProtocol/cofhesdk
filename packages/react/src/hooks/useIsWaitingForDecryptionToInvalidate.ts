@@ -19,7 +19,7 @@ export function useIsWaitingForDecryptionToInvalidate(queryKey: QueryKey): boole
 
   const result = useMemo(() => cacheKeySet.has(JSON.stringify(queryKey)), [cacheKeySet, queryKey]);
 
-  cofheLogger?.log?.(`isWaitingForDecryption for queryKey ${JSON.stringify(queryKey)}:`, result);
+  cofheLogger.log(`isWaitingForDecryption for queryKey ${JSON.stringify(queryKey)}:`, result);
 
   return result;
 }

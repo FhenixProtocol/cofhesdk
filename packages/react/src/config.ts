@@ -19,11 +19,46 @@ export type CofheReactLogger = {
   error?: CofheReactLoggerMethod;
 };
 
+export type CofheReactLoggerResolved = {
+  log: (...args: unknown[]) => void;
+  warn: (...args: unknown[]) => void;
+  debug: (...args: unknown[]) => void;
+  error: (...args: unknown[]) => void;
+};
+
+const noopCofheReactLoggerMethod = (..._args: unknown[]) => {};
+
+export const NOOP_COFHE_REACT_LOGGER: CofheReactLoggerResolved = {
+  log: noopCofheReactLoggerMethod,
+  warn: noopCofheReactLoggerMethod,
+  debug: noopCofheReactLoggerMethod,
+  error: noopCofheReactLoggerMethod,
+};
+
+function resolveLoggerMethod(method: unknown): (...args: unknown[]) => void {
+  return typeof method === 'function' ? (method as (...args: unknown[]) => void) : noopCofheReactLoggerMethod;
+}
+
+export function resolveCofheReactLogger(logger: unknown): CofheReactLoggerResolved {
+  if (logger === null || logger === undefined) return NOOP_COFHE_REACT_LOGGER;
+  if (typeof logger !== 'object') return NOOP_COFHE_REACT_LOGGER;
+
+  const obj = logger as Record<string, unknown>;
+  return {
+    log: resolveLoggerMethod(obj.log),
+    warn: resolveLoggerMethod(obj.warn),
+    debug: resolveLoggerMethod(obj.debug),
+    error: resolveLoggerMethod(obj.error),
+  };
+}
+
 const CofheReactLoggerSchema = z
   .custom<CofheReactLogger | null>((value) => value === null || (typeof value === 'object' && value !== null), {
     error: 'Invalid logger',
   })
-  .optional();
+  .optional()
+  .default(null)
+  .transform((value) => resolveCofheReactLogger(value));
 
 /**
  * Zod schema for react configuration validation

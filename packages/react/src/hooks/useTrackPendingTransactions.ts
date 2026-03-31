@@ -28,7 +28,7 @@ function invalidateConfidentialTokenBalanceQueries(token: Token, queryClient: Qu
     functionName: getTokenContractConfig(token.extensions.fhenix.confidentialityType).functionName,
   });
 
-  cofheLogger?.log?.('Invalidating shield/send read contract queries for token:', token);
+  cofheLogger.log('Invalidating shield/send read contract queries for token:', token);
 
   queryClient.invalidateQueries({
     queryKey: tokenBalanceQueryKey,
@@ -55,7 +55,7 @@ function invalidatePublicTokenBalanceQueries(
     accountAddress,
   });
 
-  cofheLogger?.log?.('Invalidating public token balance read contract queries for token:', tokenBalanceQueryKey);
+  cofheLogger.log('Invalidating public token balance read contract queries for token:', tokenBalanceQueryKey);
 
   queryClient.invalidateQueries({
     queryKey: tokenBalanceQueryKey,
@@ -157,7 +157,7 @@ function useHandleInvalidations() {
   const queryClient = useInternalQueryClient();
 
   const { upsert: upsertDecryptionWatcher, byKey } = useDecryptionWatchersStore();
-  cofheLogger?.log?.('Scheduled invalidations store:', byKey);
+  cofheLogger.log('Scheduled invalidations store:', byKey);
   const handleInvalidations = (tx: Transaction) => {
     // each transaction requires gas, so native token balance changes on every transaction
     invalidatePublicTokenBalanceQueries(

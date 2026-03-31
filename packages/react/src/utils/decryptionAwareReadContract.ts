@@ -38,7 +38,7 @@ export function decryptionAwareReadContract<
   const blockHashToBeAwareOf =
     decryptionWatchersState.findObservedDecryption(queryKey)?.decryptionObservedAt?.blockHash;
 
-  cofheLogger?.log?.('Tracked decryption block for unshield claims:', blockHashToBeAwareOf);
+  cofheLogger.log('Tracked decryption block for unshield claims:', blockHashToBeAwareOf);
 
   const rpcAwarenessOptions: WaitUntilRpcAwareAndReadContractOptions = {
     signal,
