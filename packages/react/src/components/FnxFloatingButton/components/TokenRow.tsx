@@ -16,6 +16,11 @@ export const TokenRow: React.FC<{
   balanceType: BalanceType;
   topLabel?: string;
 }> = ({ token, onClick, topLabel, balanceType }) => {
+  const publicSymbol = token.extensions.fhenix.erc20Pair?.symbol ?? token.symbol;
+  const destinationSymbol = token.symbol;
+  const showDestination =
+    balanceType === BalanceType.Public && !!publicSymbol && !!destinationSymbol && publicSymbol !== destinationSymbol;
+
   const account = useCofheAccount();
   const { data: confidentialBalance } = useCofheTokenDecryptedBalance(
     {
@@ -63,8 +68,11 @@ export const TokenRow: React.FC<{
         <div className="min-w-0 flex-1">
           {topLabel && <div className="text-xxxs opacity-70 fnx-text-primary leading-none">{topLabel}</div>}
           <div className="text-sm font-medium fnx-text-primary truncate leading-tight">
-            {balanceType === BalanceType.Confidential ? token.symbol : token.extensions.fhenix.erc20Pair?.symbol}
+            {balanceType === BalanceType.Confidential ? token.symbol : publicSymbol}
           </div>
+          {showDestination && (
+            <div className="text-xxxs opacity-70 fnx-text-primary truncate leading-tight">→ {destinationSymbol}</div>
+          )}
         </div>
       </div>
 
