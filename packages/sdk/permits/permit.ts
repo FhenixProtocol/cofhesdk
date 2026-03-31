@@ -231,9 +231,20 @@ export const PermitUtils = {
     }
   },
 
-  /** @deprecated Use `validateSchema(permit)` instead. */
+  /**
+   * Validate a permit (holistic validation).
+   *
+   * This validates:
+   * - Permit schema (shape + invariants)
+   * - Permit is signed
+   * - Permit is not expired
+   *
+   * For schema-only validation, use `validateSchema(permit)`.
+   */
   validate: (permit: Permit) => {
-    return PermitUtils.validateSchema(permit);
+    const validated = PermitUtils.validateSchema(permit);
+    ValidationUtils.assertSignedAndNotExpired(validated as Permit);
+    return validated;
   },
 
   /**
