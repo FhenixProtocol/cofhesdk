@@ -281,5 +281,34 @@ describe('Validation Tests', () => {
         expect(result.error).toBe('not-signed');
       });
     });
+
+    describe('assertSignedAndNotExpired', () => {
+      it('should not throw for valid permit', async () => {
+        const permit = {
+          ...(await createMockPermit()),
+          expiration: Math.floor(Date.now() / 1000) + 3600,
+          issuerSignature: '0x1234567890abcdef' as `0x${string}`,
+        };
+        expect(() => ValidationUtils.assertSignedAndNotExpired(permit)).not.toThrow();
+      });
+
+      it('should throw for expired permit', async () => {
+        const permit = {
+          ...(await createMockPermit()),
+          expiration: Math.floor(Date.now() / 1000) - 3600,
+          issuerSignature: '0x1234567890abcdef' as `0x${string}`,
+        };
+        expect(() => ValidationUtils.assertSignedAndNotExpired(permit)).toThrow('Permit is expired');
+      });
+
+      it('should throw for unsigned permit', async () => {
+        const permit = {
+          ...(await createMockPermit()),
+          expiration: Math.floor(Date.now() / 1000) + 3600,
+          issuerSignature: '0x' as `0x${string}`,
+        };
+        expect(() => ValidationUtils.assertSignedAndNotExpired(permit)).toThrow('Permit is not signed');
+      });
+    });
   });
 });

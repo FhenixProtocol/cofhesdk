@@ -285,6 +285,28 @@ export const ValidationUtils = {
     return { valid: true, error: null };
   },
 
+  /**
+   * Asserts that a permit is signed and not expired.
+   *
+   * Throws `Error` with message:
+   * - `Permit is expired`
+   * - `Permit is not signed`
+   */
+  assertSignedAndNotExpired: (permit: Permit): void => {
+    const result = ValidationUtils.isSignedAndNotExpired(permit);
+    if (result.valid) return;
+
+    if (result.error === 'expired') {
+      throw new Error('Permit is expired');
+    }
+    if (result.error === 'not-signed') {
+      throw new Error('Permit is not signed');
+    }
+
+    // Should be unreachable, but keeps this future-proof.
+    throw new Error('Permit is invalid');
+  },
+
   /** @deprecated Use `isSignedAndNotExpired(permit)` instead. */
   isValid: (permit: Permit): ValidationResult => {
     return ValidationUtils.isSignedAndNotExpired(permit);

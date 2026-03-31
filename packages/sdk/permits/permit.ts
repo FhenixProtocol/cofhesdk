@@ -319,6 +319,13 @@ export const PermitUtils = {
     return ValidationUtils.isSignedAndNotExpired(permit);
   },
 
+  /**
+   * Assert that permit is signed and not expired
+   */
+  assertSignedAndNotExpired: (permit: Permit): void => {
+    return ValidationUtils.assertSignedAndNotExpired(permit);
+  },
+
   /** @deprecated Use `isSignedAndNotExpired(permit)` instead. */
   isValid: (permit: Permit) => {
     return PermitUtils.isSignedAndNotExpired(permit);
