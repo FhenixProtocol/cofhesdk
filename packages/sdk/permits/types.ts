@@ -189,7 +189,7 @@ export type PermitHashFields = Pick<
  */
 export interface ValidationResult {
   valid: boolean;
-  error: string | null;
+  error: 'expired' | 'not-signed' | null;
 }
 
 /**
