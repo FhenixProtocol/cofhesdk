@@ -329,8 +329,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
     // If permit is provided, validate it
     if (permit !== null) {
       // Ensure permit validity
-      PermitUtils.validateSchema(permit);
-      PermitUtils.assertSignedAndNotExpired(permit);
+      PermitUtils.validate(permit);
 
       // Extract chainId from signed permit
       const chainId = permit._signedDomain!.chainId;
