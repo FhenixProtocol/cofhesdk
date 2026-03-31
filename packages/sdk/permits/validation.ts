@@ -307,8 +307,21 @@ export const ValidationUtils = {
     throw new Error('Permit is invalid');
   },
 
-  /** @deprecated Use `isSignedAndNotExpired(permit)` instead. */
   isValid: (permit: Permit): ValidationResult => {
+    const schema =
+      permit.type === 'self'
+        ? SelfPermitValidator
+        : permit.type === 'sharing'
+          ? SharingPermitValidator
+          : permit.type === 'recipient'
+            ? ImportPermitValidator
+            : null;
+
+    if (schema == null) return { valid: false, error: 'invalid-schema' };
+
+    const schemaResult = schema.safeParse(permit);
+    if (!schemaResult.success) return { valid: false, error: 'invalid-schema' };
+
     return ValidationUtils.isSignedAndNotExpired(permit);
   },
 };

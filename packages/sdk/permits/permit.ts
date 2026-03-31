@@ -326,9 +326,8 @@ export const PermitUtils = {
     return ValidationUtils.assertSignedAndNotExpired(permit);
   },
 
-  /** @deprecated Use `isSignedAndNotExpired(permit)` instead. */
   isValid: (permit: Permit) => {
-    return PermitUtils.isSignedAndNotExpired(permit);
+    return ValidationUtils.isValid(permit);
   },
 
   /**
