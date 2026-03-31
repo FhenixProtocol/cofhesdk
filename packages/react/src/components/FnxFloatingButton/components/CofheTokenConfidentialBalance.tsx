@@ -46,7 +46,7 @@ export const CofheTokenConfidentialBalance: React.FC<TokenBalanceProps> = ({
   const {
     data: { formatted: confidentialBalanceFormatted } = {},
     isFetching: isFetchingConfidential,
-    disabledDueToMissingPermit,
+    disabledDueToMissingValidPermit,
   } = useCofheTokenDecryptedBalance({
     token,
     accountAddress: effectiveAccountAddress,
@@ -57,7 +57,7 @@ export const CofheTokenConfidentialBalance: React.FC<TokenBalanceProps> = ({
     <TokenBalanceView
       className={className}
       size={size}
-      hidden={disabledDueToMissingPermit}
+      hidden={disabledDueToMissingValidPermit}
       isFetching={isFetchingConfidential}
       formattedBalance={confidentialBalanceFormatted}
       symbol={showSymbol ? token?.symbol : undefined}

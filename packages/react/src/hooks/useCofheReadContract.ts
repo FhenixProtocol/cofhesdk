@@ -184,7 +184,7 @@ export type UseCofheReadContractResult<
   TAbi extends Abi,
   TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>,
 > = UseQueryResult<CofheReturnType<TAbi, TfunctionName>, Error> & {
-  disabledDueToMissingPermit: boolean;
+  disabledDueToMissingValidPermit: boolean;
 };
 export function useCofheReadContract<
   TAbi extends Abi,
@@ -234,6 +234,6 @@ export function useCofheReadContract<
 
   return {
     ...result,
-    disabledDueToMissingPermit: requiresPermit && !activePermit,
+    disabledDueToMissingValidPermit: requiresPermit && (!activePermit || !activePermit.isValid),
   };
 }
