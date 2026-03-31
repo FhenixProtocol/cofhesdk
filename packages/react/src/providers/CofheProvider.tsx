@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { CofheContextValue, CofheProviderProps } from '../types/index';
 import { QueryProvider } from './QueryProvider';
 import { createCofheClient } from '@cofhe/sdk/web';
@@ -8,6 +8,7 @@ import { createCofheConfig } from '@/config';
 import { chains } from '@cofhe/sdk/chains';
 import { assert } from 'ts-essentials';
 import type { FloatingButtonPosition } from '@/components/FnxFloatingButton/types';
+import { setReactLogger } from '@/utils/debug';
 
 const CofheContext = createContext<CofheContextValue | undefined>(undefined);
 
@@ -18,11 +19,16 @@ export function CofheProvider(props: CofheProviderProps) {
     // priority: explicit config prop > config from provided client > create default config
     if (props.config) return props.config;
     if (props.cofheClient) {
-      assert(config.environment === 'react', 'Provided cofheClient must have react config');
+      assert(props.cofheClient.config.environment === 'react', 'Provided cofheClient must have react config');
       return props.cofheClient.config;
     }
     return createCofheConfig({ supportedChains: Object.values(chains) });
   }, [props.config, props.cofheClient]);
+
+  useEffect(() => {
+    setReactLogger(config.react.logger);
+    return () => setReactLogger(undefined);
+  }, [config.react.logger]);
 
   // use provided client or create a new one out of the config
   const cofheClient = useMemo(() => props.cofheClient ?? createCofheClient(config), [props.cofheClient, config]);

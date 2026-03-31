@@ -83,6 +83,7 @@ export {
 } from './stores/transactionStore';
 
 export { createCofheConfig } from './config';
+export type { CofheReactLogger, CofheReactLoggerMethod } from './config';
 
 // Types
 export type { CofheContextValue, CofheProviderProps, CofheClientConfig } from './types/index';

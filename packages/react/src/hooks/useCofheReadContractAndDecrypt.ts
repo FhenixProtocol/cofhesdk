@@ -8,7 +8,7 @@ import {
   type UseCofheReadContractResult,
 } from './useCofheReadContract';
 import type { CofheFirstReturnFheType, CofheReturnType, EncryptedReturnTypeByUtype } from '@cofhe/abi';
-import { devConsole } from '@/utils/debug';
+import { cofheLogger } from '@/utils/debug';
 
 type SupportedFheTypeFromReturn<TAbi extends Abi, TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>> =
   CofheFirstReturnFheType<TAbi, TfunctionName> extends FheTypes
@@ -39,7 +39,7 @@ function convertCofheReturnTypeToEncryptedReturnType<
 }
 
 const onPoll = (context: DecryptPollCallbackContext) => {
-  devConsole.debug(
+  cofheLogger?.debug?.(
     `Decryption poll attemptIndex ${context.attemptIndex}. Operation: ${context.operation}. ${context.elapsedMs}ms elapsed. Request ID: ${context.requestId}.`
   );
 };

@@ -3,6 +3,28 @@ import { type CofheConfig, type CofheInputConfig } from '@cofhe/sdk';
 import { createCofheConfig as createCofheConfigWeb } from '@cofhe/sdk/web';
 import { getAddress, isAddress, zeroAddress } from 'viem';
 
+export type CofheReactLoggerMethod = ((...args: unknown[]) => void) | null;
+
+/**
+ * Logger used by @cofhe/react internal debug logs.
+ *
+ * - Omitted/undefined: disables internal logging
+ * - Object: enables logging and calls only the provided methods
+ * - Method set to null: disables that method
+ */
+export type CofheReactLogger = {
+  log?: CofheReactLoggerMethod;
+  warn?: CofheReactLoggerMethod;
+  debug?: CofheReactLoggerMethod;
+  error?: CofheReactLoggerMethod;
+};
+
+const CofheReactLoggerSchema = z
+  .custom<CofheReactLogger | null>((value) => value === null || (typeof value === 'object' && value !== null), {
+    error: 'Invalid logger',
+  })
+  .optional();
+
 /**
  * Zod schema for react configuration validation
  */
@@ -21,6 +43,7 @@ export const CofheReactConfigSchema = z.object({
   shareablePermits: z.boolean().optional().default(false),
   enableShieldUnshield: z.boolean().optional().default(true),
   autogeneratePermits: z.boolean().optional().default(true),
+  logger: CofheReactLoggerSchema,
   permitExpirationOptions: z
     .array(
       z.object({
