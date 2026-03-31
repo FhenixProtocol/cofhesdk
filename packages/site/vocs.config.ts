@@ -8,15 +8,21 @@ const envBaseUrl = process.env.VOCS_BASE_URL;
 
 const baseUrl = (envBaseUrl || defaultBaseUrl).replace(/\/+$/, '');
 
-const ogLogoUrl = `${baseUrl}/fhenix-logo-word.svg`;
+// Vocs generates the og:image via https://vocs.dev/api/og.
+// Use the version of the logo that renders correctly on the OG card background.
+const ogLogoUrl = `${baseUrl}/fhenix-logo-on-dark.svg`;
 
 const ogImageUrl = {
-  '/': `https://vocs.dev/api/og?logo=${ogLogoUrl}&title=%title&description=%description`,
+  '/': `https://vocs.dev/api/og?logo=${encodeURIComponent(ogLogoUrl)}&title=%title&description=%description`,
 };
 
 export default defineConfig({
   baseUrl,
   iconUrl: '/favicon.png',
+  // logoUrl: {
+  //   light: '/fhenix-logo-on-light.svg',
+  //   dark: '/fhenix-logo-on-dark.svg',
+  // },
   twoslash: {
     compilerOptions: {
       // ModuleResolutionKind.Bundler = 100
@@ -36,7 +42,7 @@ export default defineConfig({
     '/': [
       {
         text: 'Intro',
-        link: '/',
+        link: '/intro',
       },
       {
         text: 'Quick Start',
