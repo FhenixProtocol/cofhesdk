@@ -1,3 +1,4 @@
+import { TFHE_RS_SERIALIZED_SIZE_LIMIT } from 'core/consts.js';
 import { CofheError, CofheErrorCode } from '../error.js';
 import { type EncryptableItem, FheTypes } from '../types.js';
 import { toBigIntOrThrow, validateBigIntInRange, toHexString, hexToBytes } from '../utils.js';
@@ -52,21 +53,12 @@ export type VerifyResult = {
 };
 
 export type ZkProvenCiphertextList = {
-  serialize(): Uint8Array;
+  safe_serialize(serialized_size_limit: bigint): Uint8Array;
 };
 
 export type ZkCompactPkeCrs = {
   free(): void;
-  serialize(compress: boolean): Uint8Array;
   safe_serialize(serialized_size_limit: bigint): Uint8Array;
-};
-
-export type ZkCompactPkeCrsConstructor = {
-  deserialize(buffer: Uint8Array): ZkCompactPkeCrs;
-  safe_deserialize(buffer: Uint8Array, serialized_size_limit: bigint): ZkCompactPkeCrs;
-  from_config(config: unknown, max_num_bits: number): ZkCompactPkeCrs;
-  deserialize_from_public_params(buffer: Uint8Array): ZkCompactPkeCrs;
-  safe_deserialize_from_public_params(buffer: Uint8Array, serialized_size_limit: bigint): ZkCompactPkeCrs;
 };
 
 export type ZkCiphertextListBuilder = {
@@ -103,47 +95,47 @@ export const MAX_ENCRYPTABLE_BITS: number = 2048;
 // ===== CORE FUNCTIONS =====
 
 export const zkPack = (items: EncryptableItem[], builder: ZkCiphertextListBuilder): ZkCiphertextListBuilder => {
-  let totalBits = 0;
+  let totalBits = 0n;
   for (const item of items) {
     switch (item.utype) {
       case FheTypes.Bool: {
         builder.push_boolean(item.data);
-        totalBits += 1;
+        totalBits += 1n;
         break;
       }
       case FheTypes.Uint8: {
         const bint = toBigIntOrThrow(item.data);
         validateBigIntInRange(bint, MAX_UINT8);
         builder.push_u8(parseInt(bint.toString()));
-        totalBits += 8;
+        totalBits += 8n;
         break;
       }
       case FheTypes.Uint16: {
         const bint = toBigIntOrThrow(item.data);
         validateBigIntInRange(bint, MAX_UINT16);
         builder.push_u16(parseInt(bint.toString()));
-        totalBits += 16;
+        totalBits += 16n;
         break;
       }
       case FheTypes.Uint32: {
         const bint = toBigIntOrThrow(item.data);
         validateBigIntInRange(bint, MAX_UINT32);
         builder.push_u32(parseInt(bint.toString()));
-        totalBits += 32;
+        totalBits += 32n;
         break;
       }
       case FheTypes.Uint64: {
         const bint = toBigIntOrThrow(item.data);
         validateBigIntInRange(bint, MAX_UINT64);
         builder.push_u64(bint);
-        totalBits += 64;
+        totalBits += 64n;
         break;
       }
       case FheTypes.Uint128: {
         const bint = toBigIntOrThrow(item.data);
         validateBigIntInRange(bint, MAX_UINT128);
         builder.push_u128(bint);
-        totalBits += 128;
+        totalBits += 128n;
         break;
       }
       // [U256-DISABLED]
@@ -151,14 +143,14 @@ export const zkPack = (items: EncryptableItem[], builder: ZkCiphertextListBuilde
       //   const bint = toBigIntOrThrow(item.data);
       //   validateBigIntInRange(bint, MAX_UINT256);
       //   builder.push_u256(bint);
-      //   totalBits += 256;
+      //   totalBits += 256n;
       //   break;
       // }
       case FheTypes.Uint160: {
         const bint = toBigIntOrThrow(item.data);
         validateBigIntInRange(bint, MAX_UINT160);
         builder.push_u160(bint);
-        totalBits += 160;
+        totalBits += 160n;
         break;
       }
       default: {
@@ -174,14 +166,14 @@ export const zkPack = (items: EncryptableItem[], builder: ZkCiphertextListBuilde
     }
   }
 
-  if (totalBits > MAX_ENCRYPTABLE_BITS) {
+  if (totalBits > TFHE_RS_SERIALIZED_SIZE_LIMIT) {
     throw new CofheError({
       code: CofheErrorCode.ZkPackFailed,
-      message: `Total bits ${totalBits} exceeds ${MAX_ENCRYPTABLE_BITS}`,
-      hint: `Ensure that the total bits of the items to encrypt does not exceed ${MAX_ENCRYPTABLE_BITS}`,
+      message: `Total bits ${totalBits} exceeds ${TFHE_RS_SERIALIZED_SIZE_LIMIT}`,
+      hint: `Ensure that the total bits of the items to encrypt does not exceed ${TFHE_RS_SERIALIZED_SIZE_LIMIT}`,
       context: {
         totalBits,
-        maxBits: MAX_ENCRYPTABLE_BITS,
+        maxBits: TFHE_RS_SERIALIZED_SIZE_LIMIT,
         items,
       },
     });
@@ -231,7 +223,7 @@ export const zkProve = async (
         1 // ZkComputeLoad.Verify
       );
 
-      resolve(compactList.serialize());
+      resolve(compactList.safe_serialize(TFHE_RS_SERIALIZED_SIZE_LIMIT));
     }, 0);
   });
 };
