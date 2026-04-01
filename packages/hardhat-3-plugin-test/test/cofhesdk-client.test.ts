@@ -47,7 +47,12 @@ describe('CoFHE Plugin Config', async () => {
   });
 
   it('createClientWithBatteries accepts an explicit walletClient', async () => {
+    const expectedAddress = walletClient.account?.address ?? (await walletClient.getAddresses())[0];
+    assert.ok(expectedAddress, 'expected walletClient to have an account or at least one address');
+
     const client = await cofhe.createClientWithBatteries(walletClient);
     assert.equal(client.connected, true);
+    assert.equal(client.connection.walletClient, walletClient);
+    assert.equal(client.connection.account?.toLowerCase(), expectedAddress.toLowerCase());
   });
 });
