@@ -13,7 +13,6 @@ import type {
 import { assert } from 'ts-essentials';
 import { useInternalQuery } from '../providers/index.js';
 import { useCofheChainId, useCofhePublicClient, useCofheWalletClient } from './useCofheConnection.js';
-import { useIsCofheErrorActive } from './useIsCofheErrorActive.js';
 import { serializeBigintRecursively, serializeIfBigint } from '../utils/serializeBigint.js';
 
 const QUERY_CACHE_PREFIX = 'cofheSimulateWriteContract';
@@ -123,18 +122,11 @@ export function useCofheSimulateWriteContract<
   const walletClient = useCofheWalletClient();
   const publicClient = useCofhePublicClient();
   const cofheChainId = useCofheChainId();
-  const isCofheErrorActive = useIsCofheErrorActive();
 
   const { enabled: userEnabled, ...restQueryOptions } = queryOptions || {};
 
   const resolvedAccountAddress = getAccountAddress(callArgs?.account ?? walletClient?.account);
-  const enabled =
-    !isCofheErrorActive &&
-    !!publicClient &&
-    !!walletClient &&
-    !!callArgs &&
-    !!resolvedAccountAddress &&
-    (userEnabled ?? true);
+  const enabled = !!publicClient && !!walletClient && !!callArgs && !!resolvedAccountAddress && (userEnabled ?? true);
 
   type TData = CofheSimulateWriteContractData<TAbi, TFunctionName, TArgs, TChainOverride>;
 
