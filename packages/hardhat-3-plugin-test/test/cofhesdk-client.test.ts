@@ -33,9 +33,17 @@ describe('CoFHE Plugin Config', async () => {
   });
 
   it('createClientWithBatteries uses the first wallet account when none provided', async () => {
+    const [expectedAddress] = await walletClient.getAddresses();
+    assert.ok(expectedAddress, 'expected at least one wallet address from viem walletClient');
+
     const client = await cofhe.createClientWithBatteries();
     assert.equal(client.connected, true);
     assert.equal(client.config.environment, 'hardhat');
+    assert.equal(client.connection.account?.toLowerCase(), expectedAddress.toLowerCase());
+
+    const activePermit = client.permits.getActivePermit();
+    assert.ok(activePermit, 'expected createClientWithBatteries() to create and select an active permit');
+    assert.equal(activePermit.issuer.toLowerCase(), expectedAddress.toLowerCase());
   });
 
   it('createClientWithBatteries accepts an explicit walletClient', async () => {
