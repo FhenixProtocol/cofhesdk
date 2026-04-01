@@ -8,7 +8,7 @@ import {
   type CofheInputConfig,
   type ZkBuilderAndCrsGenerator,
   type FheKeyDeserializer,
-  TFHE_RS_SERIALIZED_SIZE_LIMIT,
+  TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT,
 } from '@/core';
 
 // Import node-specific storage (internal use only)
@@ -42,12 +42,12 @@ const fromHexString = (hexString: string): Uint8Array => {
 
 const _deserializeTfhePublicKey = (buff: string): TfheCompactPublicKey => {
   console.log('deserializing tfhe public key', buff.length, `${buff.slice(0, 10)}...${buff.slice(-10)}`);
-  return TfheCompactPublicKey.safe_deserialize(fromHexString(buff), TFHE_RS_SERIALIZED_SIZE_LIMIT);
+  return TfheCompactPublicKey.safe_deserialize(fromHexString(buff), TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT);
 };
 
 const _deserializeCompactPkeCrs = (buff: string): CompactPkeCrs => {
   console.log('deserializing compact pke crs', buff.length);
-  return CompactPkeCrs.safe_deserialize(fromHexString(buff), TFHE_RS_SERIALIZED_SIZE_LIMIT);
+  return CompactPkeCrs.safe_deserialize(fromHexString(buff), TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT);
 };
 
 /**

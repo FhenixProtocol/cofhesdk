@@ -10,7 +10,7 @@ import {
   type FheKeyDeserializer,
   type EncryptableItem,
   fheTypeToString,
-  TFHE_RS_SERIALIZED_SIZE_LIMIT,
+  TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT,
 } from '@/core';
 
 // Import web-specific storage (internal use only)
@@ -48,11 +48,11 @@ const fromHexString = (hexString: string): Uint8Array => {
 };
 
 const _deserializeTfhePublicKey = (buff: string): TfheCompactPublicKey => {
-  return TfheCompactPublicKey.safe_deserialize(fromHexString(buff), TFHE_RS_SERIALIZED_SIZE_LIMIT);
+  return TfheCompactPublicKey.safe_deserialize(fromHexString(buff), TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT);
 };
 
 const _deserializeCompactPkeCrs = (buff: string): CompactPkeCrs => {
-  return CompactPkeCrs.safe_deserialize(fromHexString(buff), TFHE_RS_SERIALIZED_SIZE_LIMIT);
+  return CompactPkeCrs.safe_deserialize(fromHexString(buff), TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT);
 };
 
 /**

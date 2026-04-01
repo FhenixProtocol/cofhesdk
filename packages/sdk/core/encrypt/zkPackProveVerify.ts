@@ -1,4 +1,4 @@
-import { TFHE_RS_SERIALIZED_SIZE_LIMIT } from 'core/consts.js';
+import { TFHE_RS_ZK_MAX_BITS, TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT } from 'core/consts.js';
 import { CofheError, CofheErrorCode } from '../error.js';
 import { type EncryptableItem, FheTypes } from '../types.js';
 import { toBigIntOrThrow, validateBigIntInRange, toHexString, hexToBytes } from '../utils.js';
@@ -166,14 +166,14 @@ export const zkPack = (items: EncryptableItem[], builder: ZkCiphertextListBuilde
     }
   }
 
-  if (totalBits > TFHE_RS_SERIALIZED_SIZE_LIMIT) {
+  if (totalBits > TFHE_RS_ZK_MAX_BITS) {
     throw new CofheError({
       code: CofheErrorCode.ZkPackFailed,
-      message: `Total bits ${totalBits} exceeds ${TFHE_RS_SERIALIZED_SIZE_LIMIT}`,
-      hint: `Ensure that the total bits of the items to encrypt does not exceed ${TFHE_RS_SERIALIZED_SIZE_LIMIT}`,
+      message: `Total bits ${totalBits} exceeds ${TFHE_RS_ZK_MAX_BITS}`,
+      hint: `Ensure that the total bits of the items to encrypt does not exceed ${TFHE_RS_ZK_MAX_BITS}`,
       context: {
         totalBits,
-        maxBits: TFHE_RS_SERIALIZED_SIZE_LIMIT,
+        maxBits: TFHE_RS_ZK_MAX_BITS,
         items,
       },
     });
@@ -223,7 +223,7 @@ export const zkProve = async (
         1 // ZkComputeLoad.Verify
       );
 
-      resolve(compactList.safe_serialize(TFHE_RS_SERIALIZED_SIZE_LIMIT));
+      resolve(compactList.safe_serialize(TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT));
     }, 0);
   });
 };
