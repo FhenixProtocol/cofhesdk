@@ -8,6 +8,7 @@ import {
   type CofheInputConfig,
   type ZkBuilderAndCrsGenerator,
   type FheKeyDeserializer,
+  TFHE_RS_SERIALIZED_SIZE_LIMIT,
 } from '@/core';
 
 // Import node-specific storage (internal use only)
@@ -39,12 +40,22 @@ const fromHexString = (hexString: string): Uint8Array => {
   return new Uint8Array(arr.map((byte) => parseInt(byte, 16)));
 };
 
+const _deserializeTfhePublicKey = (buff: string): TfheCompactPublicKey => {
+  console.log('deserializing tfhe public key', buff.length, `${buff.slice(0, 10)}...${buff.slice(-10)}`);
+  return TfheCompactPublicKey.safe_deserialize(fromHexString(buff), TFHE_RS_SERIALIZED_SIZE_LIMIT);
+};
+
+const _deserializeCompactPkeCrs = (buff: string): CompactPkeCrs => {
+  console.log('deserializing compact pke crs', buff.length);
+  return CompactPkeCrs.safe_deserialize(fromHexString(buff), TFHE_RS_SERIALIZED_SIZE_LIMIT);
+};
+
 /**
  * Serializer for TFHE public keys
  * Validates that the buffer can be deserialized into a TfheCompactPublicKey
  */
 const tfhePublicKeyDeserializer: FheKeyDeserializer = (buff: string): void => {
-  TfheCompactPublicKey.deserialize(fromHexString(buff));
+  _deserializeTfhePublicKey(buff);
 };
 
 /**
@@ -52,7 +63,7 @@ const tfhePublicKeyDeserializer: FheKeyDeserializer = (buff: string): void => {
  * Validates that the buffer can be deserialized into ZkCompactPkePublicParams
  */
 const compactPkeCrsDeserializer: FheKeyDeserializer = (buff: string): void => {
-  CompactPkeCrs.deserialize(fromHexString(buff));
+  _deserializeCompactPkeCrs(buff);
 };
 
 /**
@@ -60,9 +71,9 @@ const compactPkeCrsDeserializer: FheKeyDeserializer = (buff: string): void => {
  * This is used internally by the SDK to create encrypted inputs
  */
 const zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator = (fhe: string, crs: string) => {
-  const fhePublicKey = TfheCompactPublicKey.deserialize(fromHexString(fhe));
+  const fhePublicKey = _deserializeTfhePublicKey(fhe);
   const zkBuilder = ProvenCompactCiphertextList.builder(fhePublicKey);
-  const zkCrs = CompactPkeCrs.deserialize(fromHexString(crs));
+  const zkCrs = _deserializeCompactPkeCrs(crs);
 
   return { zkBuilder, zkCrs };
 };

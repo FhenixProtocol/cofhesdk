@@ -2,6 +2,7 @@ import { createStore, type StoreApi } from 'zustand/vanilla';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { produce } from 'immer';
 import { type IStorage } from './types.js';
+import { TFHE_RS_KEY_VERSION } from './consts.js';
 
 // Type definitions
 type ChainRecord<T> = Record<string, T>;
@@ -22,6 +23,10 @@ export type KeysStorage = {
   clearKeysStorage: () => Promise<void>;
   rehydrateKeysStore: () => Promise<void>;
 };
+
+function getKeysStoreName(): string {
+  return `cofhesdk-keys-v${TFHE_RS_KEY_VERSION}`;
+}
 
 function isValidPersistedState(state: unknown): state is KeysStore {
   if (state && typeof state === 'object') {
@@ -94,7 +99,7 @@ export function createKeysStore(storage: IStorage | null): KeysStorage {
 
   const clearKeysStorage = async () => {
     if (storage) {
-      await storage.removeItem('cofhesdk-keys');
+      await storage.removeItem(getKeysStoreName());
     }
     // If no storage, this is a no-op
   };
@@ -125,7 +130,7 @@ function createStoreWithPersit(storage: IStorage) {
       onRehydrateStorage: () => (_state?, _error?) => {
         if (_error) throw new Error(`onRehydrateStorage: Error rehydrating keys store: ${_error}`);
       },
-      name: 'cofhesdk-keys',
+      name: getKeysStoreName(),
       storage: createJSONStorage(() => storage),
       merge: (persistedState, currentState) => {
         const persisted = isValidPersistedState(persistedState) ? persistedState : DEFAULT_KEYS_STORE;
