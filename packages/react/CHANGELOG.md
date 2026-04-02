@@ -1,5 +1,26 @@
 # @cofhe/react
 
+## 0.5.0
+
+### Minor Changes
+
+- 788a6e2: Add `onPoll` callback support for decrypt polling (tx + view) so consumers can observe poll progress.
+
+  - SDK decrypt helpers accept `onPoll` and emit `{ operation, requestId, attemptIndex, elapsedMs, intervalMs, timeoutMs }` once per poll attempt.
+  - React wiring supports passing the callback end-to-end.
+  - Docs updated with usage examples.
+
+### Patch Changes
+
+- 503536a: Improve logging ergonomics across React + web SDK.
+
+  - Add a configurable internal logger to `@cofhe/react` via `createCofheConfig({ react: { logger } })`.
+  - Make `@cofhe/sdk` `createWebStorage` logging opt-in via `createWebStorage({ enableLog })`.
+
+- Updated dependencies [788a6e2]
+- Updated dependencies [503536a]
+  - @cofhe/sdk@0.5.0
+
 ## 0.4.0
 
 ### Patch Changes
