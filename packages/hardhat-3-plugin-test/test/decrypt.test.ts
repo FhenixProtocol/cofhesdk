@@ -87,5 +87,30 @@ describe('Decrypt', async () => {
         return true;
       });
     });
+
+    it('fails to decrypt withPermit() when the active permit is expired', async () => {
+      const client = await cofhe.createClientWithBatteries(walletClient);
+      const [issuer] = await walletClient.getAddresses();
+      assert.ok(issuer);
+
+      const [enc] = await client.encryptInputs([Encryptable.uint32(123n)]).execute();
+      const ctHash = await storeEncrypted(enc);
+
+      // Overwrite the active permit with an intentionally expired one.
+      await client.permits.createSelf({
+        issuer,
+        name: 'Expired Self Permit',
+        expiration: 1,
+      });
+
+      await assert.rejects(client.decryptForTx(ctHash).withPermit().execute(), (err) => {
+        assert.equal(isCofheError(err), true);
+        if (isCofheError(err)) {
+          assert.equal(err.code, CofheErrorCode.DecryptFailed);
+          assert.match(err.message, /PermissionInvalid_Expired|expired|mocks decryptForTx call failed/i);
+        }
+        return true;
+      });
+    });
   });
 });
