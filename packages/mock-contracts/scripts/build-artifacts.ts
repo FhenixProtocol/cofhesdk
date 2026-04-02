@@ -55,9 +55,9 @@ export const ${name}Artifact = {
   contractName: ${JSON.stringify(name)},
   isFixed: true,
   fixedAddress: ${JSON.stringify(fixedAddress)},
-  abi: ${JSON.stringify(abi, null, 2)} as const,
+  abi: ${JSON.stringify(abi, null, 2)},
   deployedBytecode: ${JSON.stringify(deployedBytecode)},
-} as const satisfies MockArtifact;`
+} satisfies MockArtifact;`
   );
 
   fs.writeFileSync(`${abiDir}/${name}.json`, JSON.stringify(abi, null, 2));
@@ -84,9 +84,9 @@ import { type MockArtifact } from './types';
 export const ${name}Artifact = {
   contractName: ${JSON.stringify(name)},
   isFixed: false,
-  abi: ${JSON.stringify(abi, null, 2)} as const,
+  abi: ${JSON.stringify(abi, null, 2)},
   bytecode: ${JSON.stringify(bytecode)},
-} as const satisfies MockArtifact;`
+} satisfies MockArtifact;`
   );
 
   fs.writeFileSync(`${abiDir}/${name}.json`, JSON.stringify(abi, null, 2));

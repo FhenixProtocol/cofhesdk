@@ -1,6 +1,8 @@
+import type { JsonFragment } from 'ethers';
+
 export type MockArtifact = {
   contractName: string;
-  abi: readonly unknown[];
+  abi: JsonFragment[];
 } & (
   | {
       isFixed: true;
