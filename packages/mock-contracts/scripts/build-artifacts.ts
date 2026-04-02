@@ -55,7 +55,8 @@ export const ${name}Artifact = {
   contractName: ${JSON.stringify(name)},
   isFixed: true,
   fixedAddress: ${JSON.stringify(fixedAddress)},
-  abi: ${JSON.stringify(abi, null, 2)},
+  abi: ${JSON.stringify(abi, null, 2)} as const,
+  ethersAbi: (${JSON.stringify(abi, null, 2)} as const).map((f) => ({ ...f })),
   deployedBytecode: ${JSON.stringify(deployedBytecode)},
 } satisfies MockArtifact;`
   );
@@ -84,7 +85,8 @@ import { type MockArtifact } from './types';
 export const ${name}Artifact = {
   contractName: ${JSON.stringify(name)},
   isFixed: false,
-  abi: ${JSON.stringify(abi, null, 2)},
+  abi: ${JSON.stringify(abi, null, 2)} as const,
+  ethersAbi: (${JSON.stringify(abi, null, 2)} as const).map((f) => ({ ...f })),
   bytecode: ${JSON.stringify(bytecode)},
 } satisfies MockArtifact;`
   );

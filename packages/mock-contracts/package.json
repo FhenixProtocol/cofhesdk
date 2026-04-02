@@ -42,6 +42,7 @@
     "dev": "anvil --code-size-limit 100000"
   },
   "dependencies": {
+    "abitype": "^1.2.3",
     "@fhenixprotocol/cofhe-contracts": "0.1.0",
     "@openzeppelin/contracts": "^5.0.0",
     "@openzeppelin/contracts-upgradeable": "^5.0.0"
