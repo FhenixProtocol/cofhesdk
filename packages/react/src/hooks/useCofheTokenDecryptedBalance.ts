@@ -31,7 +31,7 @@ type UseConfidentialTokenBalanceResult = {
   isFetching: boolean;
   /** Refetch function */
   refetch: () => Promise<unknown>;
-  disabledDueToMissingPermit: boolean;
+  disabledDueToMissingValidPermit: boolean;
 };
 
 /**
@@ -52,7 +52,7 @@ export function useCofheTokenDecryptedBalance(
   const {
     decrypted: { data: decryptedData, isFetching: isDecryptionFetching },
     encrypted: { isFetching: isEncryptedFetching, refetch: refetchCiphertext },
-    disabledDueToMissingPermit,
+    disabledDueToMissingValidPermit,
   } = useCofheReadContractAndDecrypt(
     {
       address: token?.address,
@@ -81,7 +81,7 @@ export function useCofheTokenDecryptedBalance(
   );
 
   return {
-    disabledDueToMissingPermit,
+    disabledDueToMissingValidPermit,
 
     data: decryptedData,
 

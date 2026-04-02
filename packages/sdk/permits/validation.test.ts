@@ -247,14 +247,14 @@ describe('Validation Tests', () => {
       });
     });
 
-    describe('isValid', () => {
+    describe('isSignedAndNotExpired', () => {
       it('should return valid for valid permit', async () => {
         const permit = {
           ...(await createMockPermit()),
           expiration: Math.floor(Date.now() / 1000) + 3600,
           issuerSignature: '0x1234567890abcdef' as `0x${string}`,
         };
-        const result = ValidationUtils.isValid(permit);
+        const result = ValidationUtils.isSignedAndNotExpired(permit);
         expect(result.valid).toBe(true);
         expect(result.error).toBeNull();
       });
@@ -265,7 +265,7 @@ describe('Validation Tests', () => {
           expiration: Math.floor(Date.now() / 1000) - 3600,
           issuerSignature: '0x1234567890abcdef' as `0x${string}`,
         };
-        const result = ValidationUtils.isValid(permit);
+        const result = ValidationUtils.isSignedAndNotExpired(permit);
         expect(result.valid).toBe(false);
         expect(result.error).toBe('expired');
       });
@@ -276,9 +276,85 @@ describe('Validation Tests', () => {
           expiration: Math.floor(Date.now() / 1000) + 3600,
           issuerSignature: '0x' as `0x${string}`,
         };
-        const result = ValidationUtils.isValid(permit);
+        const result = ValidationUtils.isSignedAndNotExpired(permit);
         expect(result.valid).toBe(false);
         expect(result.error).toBe('not-signed');
+      });
+    });
+
+    describe('assertSignedAndNotExpired', () => {
+      it('should not throw for valid permit', async () => {
+        const permit = {
+          ...(await createMockPermit()),
+          expiration: Math.floor(Date.now() / 1000) + 3600,
+          issuerSignature: '0x1234567890abcdef' as `0x${string}`,
+        };
+        expect(() => ValidationUtils.assertSignedAndNotExpired(permit)).not.toThrow();
+      });
+
+      it('should throw for expired permit', async () => {
+        const permit = {
+          ...(await createMockPermit()),
+          expiration: Math.floor(Date.now() / 1000) - 3600,
+          issuerSignature: '0x1234567890abcdef' as `0x${string}`,
+        };
+        expect(() => ValidationUtils.assertSignedAndNotExpired(permit)).toThrow('Permit is expired');
+      });
+
+      it('should throw for unsigned permit', async () => {
+        const permit = {
+          ...(await createMockPermit()),
+          expiration: Math.floor(Date.now() / 1000) + 3600,
+          issuerSignature: '0x' as `0x${string}`,
+        };
+        expect(() => ValidationUtils.assertSignedAndNotExpired(permit)).toThrow('Permit is not signed');
+      });
+    });
+
+    describe('isValid', () => {
+      it('should return invalid-schema for schema-invalid permit', async () => {
+        const permit = {
+          ...(await createMockPermit()),
+          type: 'self' as const,
+          expiration: Math.floor(Date.now() / 1000) + 3600,
+          issuerSignature: '0x1234567890abcdef' as `0x${string}`,
+          // Self permits must have recipient == zeroAddress per schema.
+          recipient: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8' as `0x${string}`,
+        };
+
+        const result = ValidationUtils.isValid(permit as unknown as Permit);
+        expect(result.valid).toBe(false);
+        expect(result.error).toBe('invalid-schema');
+      });
+
+      it('should return expired for expired but otherwise schema-valid permit', async () => {
+        const permit = {
+          ...(await createMockPermit()),
+          type: 'self' as const,
+          expiration: Math.floor(Date.now() / 1000) - 3600,
+          issuerSignature: '0x1234567890abcdef' as `0x${string}`,
+          recipient: '0x0000000000000000000000000000000000000000' as `0x${string}`,
+          recipientSignature: '0x' as `0x${string}`,
+        };
+
+        const result = ValidationUtils.isValid(permit as unknown as Permit);
+        expect(result.valid).toBe(false);
+        expect(result.error).toBe('expired');
+      });
+
+      it('should return valid for schema-valid, signed, non-expired permit', async () => {
+        const permit = {
+          ...(await createMockPermit()),
+          type: 'self' as const,
+          expiration: Math.floor(Date.now() / 1000) + 3600,
+          issuerSignature: '0x1234567890abcdef' as `0x${string}`,
+          recipient: '0x0000000000000000000000000000000000000000' as `0x${string}`,
+          recipientSignature: '0x' as `0x${string}`,
+        };
+
+        const result = ValidationUtils.isValid(permit as unknown as Permit);
+        expect(result.valid).toBe(true);
+        expect(result.error).toBeNull();
       });
     });
   });
