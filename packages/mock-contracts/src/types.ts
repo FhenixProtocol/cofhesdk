@@ -1,6 +1,6 @@
 export type MockArtifact = {
   contractName: string;
-  abi: any;
+  abi: readonly unknown[];
 } & (
   | {
       isFixed: true;
