@@ -1,7 +1,14 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { network } from 'hardhat';
-import { assertCorrectEncryptedItemInput, Encryptable, FheTypes, type EncryptedItemInput } from '@cofhe/sdk';
+import {
+  assertCorrectEncryptedItemInput,
+  CofheErrorCode,
+  Encryptable,
+  FheTypes,
+  isCofheError,
+  type EncryptedItemInput,
+} from '@cofhe/sdk';
 
 describe('Decrypt', async () => {
   const { viem, cofhe } = await network.connect();
@@ -64,6 +71,21 @@ describe('Decrypt', async () => {
 
       assert.equal(isDecrypted, true);
       assert.equal(Number(publishedValue), Number(testValue));
+    });
+
+    it('fails to decrypt withoutPermit() when ctHash is not globally allowed', async () => {
+      const client = await cofhe.createClientWithBatteries(walletClient);
+      const [enc] = await client.encryptInputs([Encryptable.uint32(123n)]).execute();
+      const ctHash = await storeEncrypted(enc);
+
+      await assert.rejects(client.decryptForTx(ctHash).withoutPermit().execute(), (err) => {
+        assert.equal(isCofheError(err), true);
+        if (isCofheError(err)) {
+          assert.equal(err.code, CofheErrorCode.DecryptFailed);
+          assert.match(err.message, /ACL Access Denied|NotAllowed|mocks decryptForTx call failed/i);
+        }
+        return true;
+      });
     });
   });
 });
