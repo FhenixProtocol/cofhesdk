@@ -134,7 +134,7 @@ All `createInE*` functions operate under security zone 0. Use the returned struc
 | --------------------------------------------------------------------------- | --------------------------- | --------------------------------------------------------------------------------- |
 | `decryptForTx_withoutPermit(bytes32 ctHash)`                                | `(bytes32, uint256, bytes)` | Decrypts a globally-allowed ciphertext. Returns `(ctHash, plaintext, signature)`. |
 | `decryptForTx_withPermit(bytes32 ctHash, Permission permission)`            | `(bytes32, uint256, bytes)` | Decrypts using a permit. Same return shape.                                       |
-| `decryptForView(bytes32 ctHash, bytes32 sealingKey, Permission permission)` | `uint256`                   | Seals and unseals with the permit's sealing key for off-chain reading.            |
+| `decryptForView(bytes32 ctHash, Permission permission)`                     | `uint256`                   | Seals and unseals with the permit's sealing key for off-chain reading.            |
 
 ### Permits
 
