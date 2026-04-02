@@ -19,7 +19,7 @@ export const deployMockContractFromArtifact = async (hre: HardhatRuntimeEnvironm
 
   // Use ethers.js to deploy to variable address
   const [signer] = await hre.ethers.getSigners();
-  const factory = new hre.ethers.ContractFactory(artifact.abi, artifact.bytecode, signer);
+  const factory = new hre.ethers.ContractFactory(artifact.ethersAbi, artifact.bytecode, signer);
   const contract = await factory.deploy(/* constructor args */);
   await contract.waitForDeployment();
   return contract as Contract;
@@ -29,7 +29,7 @@ export const getFixedMockContract = async (hre: HardhatRuntimeEnvironment, artif
   if (!artifact.isFixed) {
     throw new Error('Artifact is not fixed');
   }
-  return await hre.ethers.getContractAt(artifact.abi, artifact.fixedAddress);
+  return await hre.ethers.getContractAt(artifact.ethersAbi, artifact.fixedAddress);
 };
 
 // Testing utils

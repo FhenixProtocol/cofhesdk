@@ -40,4 +40,10 @@ describe('Mocks Plaintext', async () => {
     const ctHash = await getCtHash();
     await assert.rejects(() => cofhe.mocks.expectPlaintext(ctHash, 99n), /expected/);
   });
+
+  it('expectPlaintext throws when ctHash is missing from mock storage', async () => {
+    const ctHash = await getCtHash();
+    const missingCtHash = (BigInt(ctHash) + 123n).toString(16).padStart(64, '0');
+    await assert.rejects(() => cofhe.mocks.expectPlaintext(`0x${missingCtHash}`, 7n), /not found|missing|ctHash/i);
+  });
 });

@@ -63,14 +63,14 @@ describe('Integration – Hardhat', async () => {
     await walletClient.writeContract({
       ...cofhe.mocks.TestBed,
       functionName: 'publishDecryptResult',
-      args: [ctHash, result.decryptedValue, result.signature as `0x${string}`],
+      args: [ctHash, Number(result.decryptedValue), result.signature as `0x${string}`],
     });
 
-    const [publishedValue, isDecrypted] = (await publicClient.readContract({
+    const [publishedValue, isDecrypted] = await publicClient.readContract({
       ...cofhe.mocks.TestBed,
       functionName: 'getDecryptResultSafe',
       args: [ctHash],
-    })) as [bigint, boolean];
+    });
 
     assert.equal(isDecrypted, true);
     assert.equal(Number(publishedValue), Number(testValue));
