@@ -6,6 +6,7 @@ import {
   type ReadContractResult,
   type WaitUntilRpcAwareAndReadContractOptions,
 } from '../utils/waitUntilRpcAwareAndReadContract.js';
+import { cofheLogger } from './debug';
 
 export const BLOCK_AWARENESS_POLLING_INTERVAL = 3_000; // 5 seconds
 
@@ -37,7 +38,7 @@ export function decryptionAwareReadContract<
   const blockHashToBeAwareOf =
     decryptionWatchersState.findObservedDecryption(queryKey)?.decryptionObservedAt?.blockHash;
 
-  console.log('Tracked decryption block for unshield claims:', blockHashToBeAwareOf);
+  cofheLogger.log('Tracked decryption block for unshield claims:', blockHashToBeAwareOf);
 
   const rpcAwarenessOptions: WaitUntilRpcAwareAndReadContractOptions = {
     signal,
