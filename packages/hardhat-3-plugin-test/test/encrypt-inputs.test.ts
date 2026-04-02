@@ -82,4 +82,44 @@ describe('Encrypt Inputs', async () => {
       }
     );
   });
+
+  it('rejects storing an encrypted input if securityZone is tampered (signature mismatch)', async () => {
+    const client = await cofhe.createClientWithBatteries(walletClient);
+    const [enc] = await client.encryptInputs([Encryptable.uint32(42n)]).execute();
+
+    // Important subtlety:
+    // - `securityZone` is *validated* (must be within [0, 1] on mocks)
+    // - but it's also part of the signed payload (ctHash, utype, securityZone, sender, chainId)
+    // So even if we keep it within the valid range, changing it should break signature recovery.
+    const tamperedSecurityZone = enc.securityZone === 0 ? 1 : 0;
+
+    const invalidSignerSelector = toFunctionSelector('InvalidSigner(address,address)');
+    const invalidSignatureSelector = toFunctionSelector('InvalidSignature()');
+
+    await assert.rejects(
+      () =>
+        walletClient.writeContract({
+          ...cofhe.mocks.TestBed,
+          functionName: 'setNumber',
+          args: [
+            {
+              ctHash: enc.ctHash,
+              securityZone: tamperedSecurityZone,
+              utype: enc.utype,
+              signature: enc.signature as `0x${string}`,
+            },
+          ],
+        }),
+      (err) => {
+        const message = String(err);
+        return (
+          message.includes(invalidSignerSelector) ||
+          message.includes(invalidSignatureSelector) ||
+          // viem sometimes can't decode our custom errors in this test harness,
+          // so we also accept the human-readable name / generic "unrecognized" output.
+          /InvalidSigner|InvalidSignature|unrecognized custom error/i.test(message)
+        );
+      }
+    );
+  });
 });
