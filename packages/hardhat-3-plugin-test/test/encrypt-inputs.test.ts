@@ -3,11 +3,14 @@ import assert from 'node:assert/strict';
 import { network } from 'hardhat';
 import { Encryptable } from '@cofhe/sdk';
 import { toFunctionSelector } from 'viem';
+import { getErrorText } from './helpers.js';
 
 describe('Encrypt Inputs', async () => {
   const { viem, cofhe } = await network.connect();
   const publicClient = await viem.getPublicClient();
   const [walletClient] = await viem.getWalletClients();
+  const invalidSignerSelector = toFunctionSelector('InvalidSigner(address,address)');
+  const invalidSignatureSelector = toFunctionSelector('InvalidSignature()');
 
   const hashMaskForMetadata = (1n << 256n) - 1n - 0xffffn; // type(uint256).max - type(uint16).max
 
@@ -15,6 +18,15 @@ describe('Encrypt Inputs', async () => {
     const utypeMasked = BigInt(utype) & 0x7fn; // last 7 bits reserved for utype
     const securityZoneMasked = BigInt(securityZone) & 0xffn;
     return (ctHash & hashMaskForMetadata) | (utypeMasked << 8n) | securityZoneMasked;
+  };
+
+  const isSignatureMismatchError = (err: unknown) => {
+    const message = getErrorText(err);
+    return (
+      message.includes(invalidSignerSelector) ||
+      message.includes(invalidSignatureSelector) ||
+      /InvalidSigner|InvalidSignature|unrecognized custom error/i.test(message)
+    );
   };
 
   it('encrypts a uint32, stores on-chain, reads back ctHash', async () => {
@@ -55,9 +67,6 @@ describe('Encrypt Inputs', async () => {
     const client = await cofhe.createClientWithBatteries(walletClient);
     const [enc] = await client.encryptInputs([Encryptable.uint32(42n)]).execute();
 
-    const invalidSignerSelector = toFunctionSelector('InvalidSigner(address,address)');
-    const invalidSignatureSelector = toFunctionSelector('InvalidSignature()');
-
     await assert.rejects(
       () =>
         walletClient.writeContract({
@@ -72,14 +81,7 @@ describe('Encrypt Inputs', async () => {
             },
           ],
         }),
-      (err) => {
-        const message = String(err);
-        return (
-          message.includes(invalidSignerSelector) ||
-          message.includes(invalidSignatureSelector) ||
-          /InvalidSigner|InvalidSignature|unrecognized custom error/i.test(message)
-        );
-      }
+      isSignatureMismatchError
     );
   });
 
@@ -92,9 +94,6 @@ describe('Encrypt Inputs', async () => {
     // - but it's also part of the signed payload (ctHash, utype, securityZone, sender, chainId)
     // So even if we keep it within the valid range, changing it should break signature recovery.
     const tamperedSecurityZone = enc.securityZone === 0 ? 1 : 0;
-
-    const invalidSignerSelector = toFunctionSelector('InvalidSigner(address,address)');
-    const invalidSignatureSelector = toFunctionSelector('InvalidSignature()');
 
     await assert.rejects(
       () =>
@@ -110,16 +109,7 @@ describe('Encrypt Inputs', async () => {
             },
           ],
         }),
-      (err) => {
-        const message = String(err);
-        return (
-          message.includes(invalidSignerSelector) ||
-          message.includes(invalidSignatureSelector) ||
-          // viem sometimes can't decode our custom errors in this test harness,
-          // so we also accept the human-readable name / generic "unrecognized" output.
-          /InvalidSigner|InvalidSignature|unrecognized custom error/i.test(message)
-        );
-      }
+      isSignatureMismatchError
     );
   });
 });
