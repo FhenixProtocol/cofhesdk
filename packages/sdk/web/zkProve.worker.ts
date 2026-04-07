@@ -6,7 +6,7 @@
 /// <reference lib="webworker" />
 /* eslint-disable no-undef */
 
-import { TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT } from 'core/consts.js';
+import { TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT } from '../core/consts';
 import type { ZkProveWorkerRequest, ZkProveWorkerResponse } from '../core/encrypt/zkPackProveVerify.js';
 
 // TFHE module (will be initialized on first use)

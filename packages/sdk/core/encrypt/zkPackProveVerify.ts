@@ -1,7 +1,7 @@
-import { TFHE_RS_ZK_MAX_BITS, TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT } from 'core/consts.js';
-import { CofheError, CofheErrorCode } from '../error.js';
-import { type EncryptableItem, FheTypes } from '../types.js';
-import { toBigIntOrThrow, validateBigIntInRange, toHexString, hexToBytes } from '../utils.js';
+import { TFHE_RS_ZK_MAX_BITS, TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT } from '../consts';
+import { CofheError, CofheErrorCode } from '../error';
+import { type EncryptableItem, FheTypes } from '../types';
+import { toBigIntOrThrow, validateBigIntInRange, toHexString, hexToBytes } from '../utils';
 
 // ===== TYPES =====
 
