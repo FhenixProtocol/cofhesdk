@@ -19,6 +19,7 @@ import { usePendingTransactions } from './usePendingTransactions';
 import { useDecryptionWatchersStore } from '@/stores/decryptionWatchingStore';
 import { useTransactionGlobalLifecycle } from './useTransactionGlobalLifecycle';
 import { useEffect, useRef } from 'react';
+import { cofheLogger } from '@/utils/debug';
 
 function invalidateConfidentialTokenBalanceQueries(token: Token, queryClient: QueryClient) {
   const tokenBalanceQueryKey = constructCofheReadContractQueryForInvalidation({
@@ -27,7 +28,7 @@ function invalidateConfidentialTokenBalanceQueries(token: Token, queryClient: Qu
     functionName: getTokenContractConfig(token.extensions.fhenix.confidentialityType).functionName,
   });
 
-  console.log('Invalidating shield/send read contract queries for token:', token);
+  cofheLogger.log('Invalidating shield/send read contract queries for token:', token);
 
   queryClient.invalidateQueries({
     queryKey: tokenBalanceQueryKey,
@@ -54,7 +55,7 @@ function invalidatePublicTokenBalanceQueries(
     accountAddress,
   });
 
-  console.log('Invalidating public token balance read contract queries for token:', tokenBalanceQueryKey);
+  cofheLogger.log('Invalidating public token balance read contract queries for token:', tokenBalanceQueryKey);
 
   queryClient.invalidateQueries({
     queryKey: tokenBalanceQueryKey,
@@ -156,7 +157,7 @@ function useHandleInvalidations() {
   const queryClient = useInternalQueryClient();
 
   const { upsert: upsertDecryptionWatcher, byKey } = useDecryptionWatchersStore();
-  console.log('Scheduled invalidations store:', byKey);
+  cofheLogger.log('Scheduled invalidations store:', byKey);
   const handleInvalidations = (tx: Transaction) => {
     // each transaction requires gas, so native token balance changes on every transaction
     invalidatePublicTokenBalanceQueries(

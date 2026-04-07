@@ -459,6 +459,17 @@ describe('PermitUtils Tests', () => {
       expect(validation.valid).toBe(true);
       expect(validation.error).toBeNull();
     });
+
+    it('should throw on validate() for expired signed permit', async () => {
+      const expiredPermit = PermitUtils.createSelf({
+        issuer: bobAddress,
+        name: 'Expired Permit',
+        expiration: Math.floor(Date.now() / 1000) - 3600,
+      });
+
+      const signedExpiredPermit = await PermitUtils.sign(expiredPermit, publicClient, bobWalletClient);
+      expect(() => PermitUtils.validate(signedExpiredPermit)).toThrow('Permit is expired');
+    });
   });
 
   describe('real contract interactions', () => {

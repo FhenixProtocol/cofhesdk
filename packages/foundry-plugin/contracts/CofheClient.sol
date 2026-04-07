@@ -157,7 +157,6 @@ contract CofheClient is Test {
   /// @notice Decrypts a ciphertext for off-chain reading by sealing/unsealing with the permit's sealing key.
   function decryptForView(
     bytes32 ctHash,
-    bytes32 sealingKey,
     Permission memory permission
   ) public view onlyConnected returns (uint256) {
     uint256 ct = uint256(ctHash);
@@ -169,7 +168,7 @@ contract CofheClient is Test {
     );
     require(allowed, string.concat('CofheClient: decryptForView failed: ', error));
 
-    return mockThresholdNetwork.unseal(sealedOutput, sealingKey);
+    return mockThresholdNetwork.unseal(sealedOutput, permission.sealingKey);
   }
 
   // =====================

@@ -18,7 +18,7 @@ export function CofheProvider(props: CofheProviderProps) {
     // priority: explicit config prop > config from provided client > create default config
     if (props.config) return props.config;
     if (props.cofheClient) {
-      assert(config.environment === 'react', 'Provided cofheClient must have react config');
+      assert(props.cofheClient.config.environment === 'react', 'Provided cofheClient must have react config');
       return props.cofheClient.config;
     }
     return createCofheConfig({ supportedChains: Object.values(chains) });
