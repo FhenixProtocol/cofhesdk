@@ -1,7 +1,6 @@
 import { useCofheContext, useInternalQuery } from '@/providers';
 import { CofheError, FheTypes, type DecryptPollCallbackFunction, type UnsealedItem } from '@cofhe/sdk';
 import type { UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
-import { useIsCofheErrorActive } from './useIsCofheErrorActive';
 import { assert } from 'ts-essentials';
 import type { EncryptedReturnTypeByUtype } from '@cofhe/abi';
 
@@ -23,10 +22,9 @@ export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<
   queryOptions?: Omit<UseQueryOptions<UnsealedItem<U>, Error, TSeletedData>, 'queryKey' | 'queryFn'>
 ): UseQueryResult<TSeletedData, Error> {
   const { client } = useCofheContext();
-  const isCofheErrorActive = useIsCofheErrorActive();
 
   const { enabled: userEnabled, ...restQueryOptions } = queryOptions || {};
-  const enabled = !!input && BigInt(input.ctHash) > 0n && !isCofheErrorActive && !!client && (userEnabled ?? true);
+  const enabled = !!input && BigInt(input.ctHash) > 0n && !!client && (userEnabled ?? true);
 
   return useInternalQuery({
     enabled,
