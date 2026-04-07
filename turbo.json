@@ -1,6 +1,15 @@
 {
   "$schema": "https://turborepo.com/schema.json",
-  "globalEnv": ["HOME", "USERPROFILE", "VOCS_BASE_URL"],
+  "globalEnv": [
+    "HOME",
+    "USERPROFILE",
+    "VOCS_BASE_URL",
+    "COFHE_CHAIN_ID",
+    "VITE_COFHE_CHAIN_ID",
+    "LOCALCOFHE_HOST_CHAIN_RPC",
+    "LOCALCOFHE_PRIVATE_KEY",
+    "TEST_PRIVATE_KEY"
+  ],
   "tasks": {
     "build": {
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
@@ -9,7 +18,14 @@
       "env": ["HOME", "USERPROFILE", "VOCS_BASE_URL"]
     },
     "test": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build"],
+      "env": [
+        "COFHE_CHAIN_ID",
+        "VITE_COFHE_CHAIN_ID",
+        "LOCALCOFHE_HOST_CHAIN_RPC",
+        "LOCALCOFHE_PRIVATE_KEY",
+        "TEST_PRIVATE_KEY"
+      ]
     },
     "lint": {
       "env": ["HOME", "USERPROFILE", "VOCS_BASE_URL"]

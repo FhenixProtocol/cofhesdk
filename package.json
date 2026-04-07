@@ -5,6 +5,7 @@
     "build:docs": "turbo run build --filter=@cofhe/site",
     "dev": "turbo run dev",
     "test": "turbo run test",
+    "test:localcofhe": "export COFHE_CHAIN_ID=420105 VITE_COFHE_CHAIN_ID=420105 && pnpm turbo run test --force",
     "test:integration": "pnpm --filter \"./packages/hardhat-plugin-test\" test:integration",
     "lint": "turbo run lint",
     "check:types": "turbo run check:types",
