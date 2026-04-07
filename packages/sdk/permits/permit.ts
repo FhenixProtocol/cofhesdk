@@ -217,9 +217,9 @@ export const PermitUtils = {
   },
 
   /**
-   * Validate a permit
+   * Validate a permit (schema-level validation)
    */
-  validate: (permit: Permit) => {
+  validateSchema: (permit: Permit) => {
     if (permit.type === 'self') {
       return validateSelfPermit(permit);
     } else if (permit.type === 'sharing') {
@@ -232,11 +232,27 @@ export const PermitUtils = {
   },
 
   /**
+   * Validate a permit (holistic validation).
+   *
+   * This validates:
+   * - Permit schema (shape + invariants)
+   * - Permit is signed
+   * - Permit is not expired
+   *
+   * For schema-only validation, use `validateSchema(permit)`.
+   */
+  validate: (permit: Permit) => {
+    const validated = PermitUtils.validateSchema(permit);
+    ValidationUtils.assertSignedAndNotExpired(validated as Permit);
+    return validated;
+  },
+
+  /**
    * Get the permission object from a permit (for use in contracts)
    */
   getPermission: (permit: Permit, skipValidation = false): Permission => {
     if (!skipValidation) {
-      PermitUtils.validate(permit);
+      PermitUtils.validateSchema(permit);
     }
 
     return {
@@ -308,8 +324,19 @@ export const PermitUtils = {
   },
 
   /**
-   * Check if permit is valid
+   * Check if permit is signed and not expired
    */
+  isSignedAndNotExpired: (permit: Permit) => {
+    return ValidationUtils.isSignedAndNotExpired(permit);
+  },
+
+  /**
+   * Assert that permit is signed and not expired
+   */
+  assertSignedAndNotExpired: (permit: Permit): void => {
+    return ValidationUtils.assertSignedAndNotExpired(permit);
+  },
+
   isValid: (permit: Permit) => {
     return ValidationUtils.isValid(permit);
   },

@@ -74,7 +74,7 @@ export function useCofheReadContractAndDecrypt<
 ): {
   encrypted: UseCofheReadContractResult<TAbi, TfunctionName>;
   decrypted: UseQueryResult<TDecryptedSelectedData, Error>;
-  disabledDueToMissingPermit: boolean;
+  disabledDueToMissingValidPermit: boolean;
 } {
   const { address, abi, functionName, args, requiresPermit = true } = params;
 
@@ -97,6 +97,6 @@ export function useCofheReadContractAndDecrypt<
   return {
     encrypted,
     decrypted,
-    disabledDueToMissingPermit: encrypted.disabledDueToMissingPermit,
+    disabledDueToMissingValidPermit: encrypted.disabledDueToMissingValidPermit,
   };
 }

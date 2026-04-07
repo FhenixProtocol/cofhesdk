@@ -273,9 +273,9 @@ export const ValidationUtils = {
   },
 
   /**
-   * Overall validity checker of a permit
+   * Checks that a permit is signed and not expired.
    */
-  isValid: (permit: Permit): ValidationResult => {
+  isSignedAndNotExpired: (permit: Permit): ValidationResult => {
     if (ValidationUtils.isExpired(permit)) {
       return { valid: false, error: 'expired' };
     }
@@ -283,5 +283,45 @@ export const ValidationUtils = {
       return { valid: false, error: 'not-signed' };
     }
     return { valid: true, error: null };
+  },
+
+  /**
+   * Asserts that a permit is signed and not expired.
+   *
+   * Throws `Error` with message:
+   * - `Permit is expired`
+   * - `Permit is not signed`
+   */
+  assertSignedAndNotExpired: (permit: Permit): void => {
+    const result = ValidationUtils.isSignedAndNotExpired(permit);
+    if (result.valid) return;
+
+    if (result.error === 'expired') {
+      throw new Error('Permit is expired');
+    }
+    if (result.error === 'not-signed') {
+      throw new Error('Permit is not signed');
+    }
+
+    // Should be unreachable, but keeps this future-proof.
+    throw new Error('Permit is invalid');
+  },
+
+  isValid: (permit: Permit): ValidationResult => {
+    const schema =
+      permit.type === 'self'
+        ? SelfPermitValidator
+        : permit.type === 'sharing'
+          ? SharingPermitValidator
+          : permit.type === 'recipient'
+            ? ImportPermitValidator
+            : null;
+
+    if (schema == null) return { valid: false, error: 'invalid-schema' };
+
+    const schemaResult = schema.safeParse(permit);
+    if (!schemaResult.success) return { valid: false, error: 'invalid-schema' };
+
+    return ValidationUtils.isSignedAndNotExpired(permit);
   },
 };
