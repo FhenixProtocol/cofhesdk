@@ -8,7 +8,7 @@ import {
   type UseCofheReadContractResult,
 } from './useCofheReadContract';
 import type { CofheFirstReturnFheType, CofheReturnType, EncryptedReturnTypeByUtype } from '@cofhe/abi';
-import { isProduction } from '@/utils/isProduction';
+import { cofheLogger } from '@/utils/debug';
 
 type SupportedFheTypeFromReturn<TAbi extends Abi, TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>> =
   CofheFirstReturnFheType<TAbi, TfunctionName> extends FheTypes
@@ -38,13 +38,11 @@ function convertCofheReturnTypeToEncryptedReturnType<
   );
 }
 
-const onPoll = isProduction()
-  ? undefined
-  : (context: DecryptPollCallbackContext) => {
-      console.debug(
-        `Decryption poll attemptIndex ${context.attemptIndex}. Operation: ${context.operation}. ${context.elapsedMs}ms elapsed. Request ID: ${context.requestId}.`
-      );
-    };
+const onPoll = (context: DecryptPollCallbackContext) => {
+  cofheLogger.debug(
+    `Decryption poll attemptIndex ${context.attemptIndex}. Operation: ${context.operation}. ${context.elapsedMs}ms elapsed. Request ID: ${context.requestId}.`
+  );
+};
 /**
  * Generic hook: read a confidential contract value and decrypt it.
  */
@@ -76,7 +74,7 @@ export function useCofheReadContractAndDecrypt<
 ): {
   encrypted: UseCofheReadContractResult<TAbi, TfunctionName>;
   decrypted: UseQueryResult<TDecryptedSelectedData, Error>;
-  disabledDueToMissingPermit: boolean;
+  disabledDueToMissingValidPermit: boolean;
 } {
   const { address, abi, functionName, args, requiresPermit = true } = params;
 
@@ -99,6 +97,6 @@ export function useCofheReadContractAndDecrypt<
   return {
     encrypted,
     decrypted,
-    disabledDueToMissingPermit: encrypted.disabledDueToMissingPermit,
+    disabledDueToMissingValidPermit: encrypted.disabledDueToMissingValidPermit,
   };
 }

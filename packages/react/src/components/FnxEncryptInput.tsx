@@ -16,6 +16,7 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
 import { Encryptable, type FheTypeValue } from '@cofhe/sdk';
 import { getStepConfig, useCofheEncrypt } from '@/hooks/useCofheEncrypt';
+import { cofheLogger } from '@/utils/debug';
 
 export interface FnxEncryptInputProps extends BaseProps {
   /** Placeholder text for the text field */
@@ -95,7 +96,7 @@ export const FnxEncryptInput: React.FC<FnxEncryptInputProps> = ({
   const debouncedValidation = useRef(
     debounce((value: string) => {
       // This will be used for validation logic if needed in the future
-      console.log('Debounced validation for:', value);
+      cofheLogger.log('Debounced validation for:', value);
     }, debounceMs)
   ).current;
 
@@ -270,7 +271,7 @@ export const FnxEncryptInput: React.FC<FnxEncryptInputProps> = ({
       ); // Pretty format with 2 spaces
 
       await navigator.clipboard.writeText(textToCopy);
-      console.log('Copied to clipboard:', textToCopy);
+      cofheLogger.log('Copied to clipboard:', textToCopy);
 
       // Show success indication
       setCopySuccess(true);
@@ -292,7 +293,7 @@ export const FnxEncryptInput: React.FC<FnxEncryptInputProps> = ({
     // Auto-encrypt when type is selected (if text field has value)
     if (textValue.trim() !== '') {
       try {
-        console.log('Auto-encrypting value:', textValue, 'as type:', type);
+        cofheLogger.log('Auto-encrypting value:', textValue, 'as type:', type);
 
         // Call onEncryptStart callback
         onEncryptStart?.({ value: textValue, type: type });

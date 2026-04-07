@@ -2,7 +2,6 @@ import { type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query
 import { assert } from 'ts-essentials';
 import type { Address } from 'viem';
 import { useCofheChainId, useCofhePublicClient } from './useCofheConnection';
-import { useIsCofheErrorActive } from './useIsCofheErrorActive';
 import { useInternalQuery } from '../providers/index';
 import { transformEncryptedReturnTypes, type Abi } from '@cofhe/abi';
 import { serializeBigintRecursively } from '../utils/serializeBigint.js';
@@ -61,22 +60,14 @@ export function constructCofheReadContractsQueryKey(params: {
 }
 
 export function getEnabledForCofheReadContracts(params: {
-  isCofheErrorActive: boolean;
   publicClient: unknown;
   cofheChainId?: number;
   contracts?: readonly CofheReadContractsContract[];
   userEnabled?: boolean;
 }): boolean {
-  const { isCofheErrorActive, publicClient, cofheChainId, contracts, userEnabled } = params;
+  const { publicClient, cofheChainId, contracts, userEnabled } = params;
 
-  return (
-    !isCofheErrorActive &&
-    !!publicClient &&
-    !!cofheChainId &&
-    !!contracts &&
-    contracts.length > 0 &&
-    (userEnabled ?? true)
-  );
+  return !!publicClient && !!cofheChainId && !!contracts && contracts.length > 0 && (userEnabled ?? true);
 }
 
 function isViemAllowFailureResult(
@@ -100,12 +91,10 @@ export function useCofheReadContracts(
 ): UseQueryResult<CofheReadContractsItem[], Error> {
   const { contracts, multicallOptions } = params;
 
-  const isCofheErrorActive = useIsCofheErrorActive();
   const publicClient = useCofhePublicClient();
   const cofheChainId = useCofheChainId();
 
   const enabled = getEnabledForCofheReadContracts({
-    isCofheErrorActive,
     publicClient,
     cofheChainId,
     contracts,
@@ -120,8 +109,6 @@ export function useCofheReadContracts(
       cofheChainId,
       contracts,
       allowFailure: multicallOptions?.allowFailure,
-      // Same rationale as in `useCofheReadContract`: guard against a blank screen when CofheError is active.
-      enabled,
     }),
     queryFn: async () => {
       assert(publicClient, 'PublicClient should be guaranteed by enabled check');
