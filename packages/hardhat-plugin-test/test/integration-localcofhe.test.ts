@@ -8,6 +8,9 @@ import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 import { expect } from 'chai';
 
 const hostChainRpcUrl = process.env.LOCALCOFHE_HOST_CHAIN_RPC || 'http://127.0.0.1:42069';
+const DEFAULT_TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
+const localcofhePrivateKey =
+  process.env.LOCALCOFHE_PRIVATE_KEY || process.env.TEST_PRIVATE_KEY || DEFAULT_TEST_PRIVATE_KEY;
 
 const viemLocalcofheChain: Chain = {
   id: localcofhe.id,
@@ -32,13 +35,7 @@ describe('Local Cofhe Integration Tests', () => {
   let localcofheSigner: HardhatEthersSigner;
 
   before(async function () {
-    // Skip if no private key is provided (for CI/CD)
-    if (!process.env.LOCALCOFHE_PRIVATE_KEY) {
-      this.skip();
-    }
-
-    // Create viem clients for Local Cofhe
-    const account = privateKeyToAccount(process.env.LOCALCOFHE_PRIVATE_KEY as `0x${string}`);
+    const account = privateKeyToAccount(localcofhePrivateKey as `0x${string}`);
 
     publicClient = createPublicClient({
       chain: viemLocalcofheChain,
@@ -51,7 +48,24 @@ describe('Local Cofhe Integration Tests', () => {
       account,
     }) as WalletClient;
 
-    // Create CoFHE SDK config and client
+    try {
+      await publicClient.getBlockNumber();
+      const cofheResponse = await fetch(`${localcofhe.coFheUrl}/GetNetworkPublicKey`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ securityZone: 0 }),
+      });
+
+      if (!cofheResponse.ok) {
+        throw new Error(`CoFHE backend responded with status ${cofheResponse.status}`);
+      }
+    } catch (error) {
+      console.warn(`Skipping localcofhe integration test: local services are unavailable.`, error);
+      this.skip();
+    }
+
     const config = createCofheConfig({
       supportedChains: [localcofhe],
     });
@@ -64,41 +78,29 @@ describe('Local Cofhe Integration Tests', () => {
       expiration: 1000000000000,
     });
 
-    // Create a signer for Local Cofhe
     const localcofheProvider = new hre.ethers.JsonRpcProvider(hostChainRpcUrl);
     localcofheSigner = new hre.ethers.Wallet(
-      process.env.LOCALCOFHE_PRIVATE_KEY as `0x${string}`,
+      localcofhePrivateKey as `0x${string}`,
       localcofheProvider
     ) as unknown as HardhatEthersSigner;
 
-    // Deploy test contract using ethers
     const SimpleTestFactory = await hre.ethers.getContractFactory('SimpleTest');
     testContract = await SimpleTestFactory.connect(localcofheSigner).deploy();
     await testContract.waitForDeployment();
   });
 
   it('Should encrypt -> store -> decrypt a value', async function () {
-    // Skip if no private key is provided
-    if (!process.env.LOCALCOFHE_PRIVATE_KEY && process.env.CI) {
-      this.skip();
-    }
-
     const testValue = 101n;
 
-    // Encrypt and store a value
     const encrypted = await cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
 
     const tx = await testContract.connect(localcofheSigner).setValue(encrypted[0]);
     await tx.wait();
 
-    // Get the hash from the contract (using the new getValueHash function)
-    // IMPORTANT: The ctHash is transformed on-chain, so we MUST get it from the contract
     const ctHash = await testContract.getValueHash();
 
-    // Decrypt the value using the ctHash from the encrypted input
     const unsealedResult = await cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
 
-    // Verify the decrypted value matches
     expect(unsealedResult).to.be.equal(testValue);
   });
 });
