@@ -48,6 +48,7 @@ const useAccordionContext = () => {
 interface AccordionSectionProps {
   id: string;
   renderHeader: (isOpen: boolean) => ReactNode;
+  accessory?: ReactNode;
   children: ReactNode;
   sectionClassName?: string;
   triggerClassName?: string;
@@ -57,6 +58,7 @@ interface AccordionSectionProps {
 export const AccordionSection = ({
   id,
   renderHeader,
+  accessory,
   children,
   sectionClassName,
   triggerClassName,
@@ -67,16 +69,19 @@ export const AccordionSection = ({
 
   return (
     <section className={sectionClassName}>
-      <Button
-        variant="ghost"
-        className={cn('!justify-start w-full text-md py-2', triggerClassName)}
-        aria-expanded={isOpen}
-        onClick={() => toggle(id)}
-      >
-        {renderHeader(isOpen)}
-        <span className="flex flex-1" />
-        {isOpen ? <FaChevronUp /> : <FaChevronDown />}
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          className={cn('!justify-start flex-1 text-md py-2', triggerClassName)}
+          aria-expanded={isOpen}
+          onClick={() => toggle(id)}
+        >
+          {renderHeader(isOpen)}
+          <span className="flex flex-1" />
+          {isOpen ? <FaChevronUp /> : <FaChevronDown />}
+        </Button>
+        {accessory ? <div className="shrink-0">{accessory}</div> : null}
+      </div>
       {isOpen ? (
         <div className={cn('relative', contentClassName)}>
           <span

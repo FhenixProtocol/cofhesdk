@@ -53,15 +53,17 @@ export const PermitsListPage: React.FC = () => {
     <PageContainer
       header={
         <div className="flex flex-col gap-3">
-          <button
-            className="flex items-center gap-2 text-base font-semibold tracking-tight text-[#0E2F3F] transition-opacity hover:opacity-80 dark:text-white"
-            onClick={navigateBack}
-            type="button"
-          >
-            <ArrowBackIcon fontSize="small" />
-            <span>Permits</span>
+          <div className="flex items-center gap-2 text-base font-semibold tracking-tight text-[#0E2F3F] dark:text-white">
+            <button
+              className="inline-flex items-center gap-2 transition-opacity hover:opacity-80"
+              onClick={navigateBack}
+              type="button"
+            >
+              <ArrowBackIcon fontSize="small" />
+              <span>Permits</span>
+            </button>
             <InfoModalButton onClick={() => openModal(PortalModal.PermitInfo)} />
-          </button>
+          </div>
           {activePermitHash != null && (
             <PermitCard
               hash={activePermitHash}
@@ -77,12 +79,8 @@ export const PermitsListPage: React.FC = () => {
             <div className="flex flex-col gap-3">
               <AccordionSection
                 id="self"
-                renderHeader={() => (
-                  <>
-                    <span>Self: ({selfPermits.length})</span>{' '}
-                    <InfoModalButton onClick={() => openModal(PortalModal.PermitTypeInfo, { type: 'self' })} />
-                  </>
-                )}
+                renderHeader={() => <span>Self: ({selfPermits.length})</span>}
+                accessory={<InfoModalButton onClick={() => openModal(PortalModal.PermitTypeInfo, { type: 'self' })} />}
               >
                 {selfPermits.length === 0 ? (
                   <div className="pl-4 text-xs p-2 px-4 italic">No self permits.</div>
@@ -104,12 +102,10 @@ export const PermitsListPage: React.FC = () => {
 
               <AccordionSection
                 id="delegated"
-                renderHeader={() => (
-                  <>
-                    <span>Delegated: ({delegatedPermits.length})</span>{' '}
-                    <InfoModalButton onClick={() => openModal(PortalModal.PermitTypeInfo, { type: 'sharing' })} />
-                  </>
-                )}
+                renderHeader={() => <span>Delegated: ({delegatedPermits.length})</span>}
+                accessory={
+                  <InfoModalButton onClick={() => openModal(PortalModal.PermitTypeInfo, { type: 'sharing' })} />
+                }
               >
                 {delegatedPermits.length === 0 ? (
                   <div className="pl-1 text-xs p-2 px-4 italic">No delegated permits.</div>
@@ -124,12 +120,10 @@ export const PermitsListPage: React.FC = () => {
 
               <AccordionSection
                 id="received"
-                renderHeader={() => (
-                  <>
-                    <span>Imported: ({importedPermits.length})</span>{' '}
-                    <InfoModalButton onClick={() => openModal(PortalModal.PermitTypeInfo, { type: 'recipient' })} />
-                  </>
-                )}
+                renderHeader={() => <span>Imported: ({importedPermits.length})</span>}
+                accessory={
+                  <InfoModalButton onClick={() => openModal(PortalModal.PermitTypeInfo, { type: 'recipient' })} />
+                }
               >
                 {importedPermits.length === 0 ? (
                   <div className="pl-1 text-xs p-2 px-4 italic">No imported permits.</div>

@@ -25,6 +25,9 @@ const cofheConfig = createCofheConfig({
     // },
     tokenLists: {
       11155111: ['https://storage.googleapis.com/cofhesdk/sepolia.json'],
+      // 11155111: [
+      //   'https://api.npoint.io/439ce3fd4b44eaa6f917', // contains "failing usdc"
+      // ],
       84532: ['https://storage.googleapis.com/cofhesdk/base-sepolia.json'],
       421613: ['https://tokens.cofhe.io/arbitrum-sepolia.json'],
     },
