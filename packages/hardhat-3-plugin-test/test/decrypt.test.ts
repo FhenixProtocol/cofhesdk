@@ -1,21 +1,14 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { network } from 'hardhat';
-import {
-  assertCorrectEncryptedItemInput,
-  CofheErrorCode,
-  Encryptable,
-  FheTypes,
-  isCofheError,
-  type EncryptedItemInput,
-} from '@cofhe/sdk';
+import { CofheErrorCode, Encryptable, FheTypes, isCofheError, type EncryptedItemInput } from '@cofhe/sdk';
 
 describe('Decrypt', async () => {
   const { viem, cofhe } = await network.connect();
   const publicClient = await viem.getPublicClient();
   const [walletClient] = await viem.getWalletClients();
 
-  const storeEncrypted = async (enc: { ctHash: bigint; securityZone: number; utype: number; signature: string }) => {
+  const storeEncrypted = async (enc: EncryptedItemInput) => {
     await walletClient.writeContract({
       ...cofhe.mocks.TestBed,
       functionName: 'setNumber',
@@ -31,7 +24,7 @@ describe('Decrypt', async () => {
     return publicClient.readContract({
       ...cofhe.mocks.TestBed,
       functionName: 'numberHash',
-    }) as Promise<`0x${string}`>;
+    });
   };
 
   describe('For View', async () => {
@@ -59,14 +52,14 @@ describe('Decrypt', async () => {
       await walletClient.writeContract({
         ...cofhe.mocks.TestBed,
         functionName: 'publishDecryptResult',
-        args: [ctHash, result.decryptedValue, result.signature as `0x${string}`],
+        args: [ctHash, Number(result.decryptedValue), result.signature],
       });
 
-      const [publishedValue, isDecrypted] = (await publicClient.readContract({
+      const [publishedValue, isDecrypted] = await publicClient.readContract({
         ...cofhe.mocks.TestBed,
         functionName: 'getDecryptResultSafe',
         args: [ctHash],
-      })) as [bigint, boolean];
+      });
 
       assert.equal(isDecrypted, true);
       assert.equal(Number(publishedValue), Number(testValue));

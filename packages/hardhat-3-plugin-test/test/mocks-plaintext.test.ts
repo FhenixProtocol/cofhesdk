@@ -19,7 +19,7 @@ describe('Mocks Plaintext', async () => {
     publicClient.readContract({
       ...cofhe.mocks.TestBed,
       functionName: 'numberHash',
-    }) as Promise<`0x${string}`>;
+    });
 
   beforeEach(async () => {
     await setTrivialNumber(7);

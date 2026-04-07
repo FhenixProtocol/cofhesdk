@@ -25,10 +25,10 @@ describe('Integration – Hardhat', async () => {
       ],
     });
 
-    const ctHash = (await publicClient.readContract({
+    const ctHash = await publicClient.readContract({
       ...cofhe.mocks.TestBed,
       functionName: 'numberHash',
-    })) as `0x${string}`;
+    });
 
     const decrypted = await client.decryptForView(ctHash, FheTypes.Uint32).execute();
     assert.equal(decrypted, 100n);
@@ -52,10 +52,10 @@ describe('Integration – Hardhat', async () => {
       ],
     });
 
-    const ctHash = (await publicClient.readContract({
+    const ctHash = await publicClient.readContract({
       ...cofhe.mocks.TestBed,
       functionName: 'numberHash',
-    })) as `0x${string}`;
+    });
 
     const result = await client.decryptForTx(ctHash).withPermit().execute();
     assert.equal(result.decryptedValue, testValue);
@@ -63,7 +63,7 @@ describe('Integration – Hardhat', async () => {
     await walletClient.writeContract({
       ...cofhe.mocks.TestBed,
       functionName: 'publishDecryptResult',
-      args: [ctHash, Number(result.decryptedValue), result.signature as `0x${string}`],
+      args: [ctHash, Number(result.decryptedValue), result.signature],
     });
 
     const [publishedValue, isDecrypted] = await publicClient.readContract({

@@ -1,9 +1,8 @@
 import type { Abi } from 'abitype';
-import type { JsonFragment } from 'ethers';
 
 export type MockArtifact = {
   contractName: string;
-  abi: any;
+  abi: Abi;
 } & (
   | {
       isFixed: true;
