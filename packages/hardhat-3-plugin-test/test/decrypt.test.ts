@@ -15,8 +15,7 @@ describe('Decrypt', async () => {
   const publicClient = await viem.getPublicClient();
   const [walletClient] = await viem.getWalletClients();
 
-  const storeEncrypted = async (enc: EncryptedItemInput) => {
-    assertCorrectEncryptedItemInput(enc);
+  const storeEncrypted = async (enc: { ctHash: bigint; securityZone: number; utype: number; signature: string }) => {
     await walletClient.writeContract({
       ...cofhe.mocks.TestBed,
       functionName: 'setNumber',
@@ -25,14 +24,14 @@ describe('Decrypt', async () => {
           ctHash: enc.ctHash,
           securityZone: enc.securityZone,
           utype: enc.utype,
-          signature: enc.signature,
+          signature: enc.signature as `0x${string}`,
         },
       ],
     });
     return publicClient.readContract({
       ...cofhe.mocks.TestBed,
       functionName: 'numberHash',
-    });
+    }) as Promise<`0x${string}`>;
   };
 
   describe('For View', async () => {
@@ -60,14 +59,14 @@ describe('Decrypt', async () => {
       await walletClient.writeContract({
         ...cofhe.mocks.TestBed,
         functionName: 'publishDecryptResult',
-        args: [ctHash, Number(result.decryptedValue), result.signature],
+        args: [ctHash, result.decryptedValue, result.signature as `0x${string}`],
       });
 
-      const [publishedValue, isDecrypted] = await publicClient.readContract({
+      const [publishedValue, isDecrypted] = (await publicClient.readContract({
         ...cofhe.mocks.TestBed,
         functionName: 'getDecryptResultSafe',
         args: [ctHash],
-      });
+      })) as [bigint, boolean];
 
       assert.equal(isDecrypted, true);
       assert.equal(Number(publishedValue), Number(testValue));
