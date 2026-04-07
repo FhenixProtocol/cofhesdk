@@ -24,9 +24,7 @@ export type KeysStorage = {
   rehydrateKeysStore: () => Promise<void>;
 };
 
-function getKeysStoreName(): string {
-  return `cofhesdk-keys-v${TFHE_RS_KEY_VERSION}`;
-}
+const KEYSTORE_NAME = `cofhesdk-keys-v${TFHE_RS_KEY_VERSION}`;
 
 function isValidPersistedState(state: unknown): state is KeysStore {
   if (state && typeof state === 'object') {
@@ -99,7 +97,7 @@ export function createKeysStore(storage: IStorage | null): KeysStorage {
 
   const clearKeysStorage = async () => {
     if (storage) {
-      await storage.removeItem(getKeysStoreName());
+      await storage.removeItem(KEYSTORE_NAME);
     }
     // If no storage, this is a no-op
   };
@@ -130,7 +128,7 @@ function createStoreWithPersit(storage: IStorage) {
       onRehydrateStorage: () => (_state?, _error?) => {
         if (_error) throw new Error(`onRehydrateStorage: Error rehydrating keys store: ${_error}`);
       },
-      name: getKeysStoreName(),
+      name: KEYSTORE_NAMEpn,
       storage: createJSONStorage(() => storage),
       merge: (persistedState, currentState) => {
         const persisted = isValidPersistedState(persistedState) ? persistedState : DEFAULT_KEYS_STORE;
