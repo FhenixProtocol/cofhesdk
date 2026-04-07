@@ -1,8 +1,6 @@
-import type { Abi } from 'abitype';
-
 export type MockArtifact = {
   contractName: string;
-  abi: Abi;
+  abi: any;
 } & (
   | {
       isFixed: true;
