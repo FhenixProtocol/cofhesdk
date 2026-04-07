@@ -95,47 +95,47 @@ export const MAX_ENCRYPTABLE_BITS: number = 2048;
 // ===== CORE FUNCTIONS =====
 
 export const zkPack = (items: EncryptableItem[], builder: ZkCiphertextListBuilder): ZkCiphertextListBuilder => {
-  let totalBits = 0n;
+  let totalBits = 0;
   for (const item of items) {
     switch (item.utype) {
       case FheTypes.Bool: {
         builder.push_boolean(item.data);
-        totalBits += 1n;
+        totalBits += 1;
         break;
       }
       case FheTypes.Uint8: {
         const bint = toBigIntOrThrow(item.data);
         validateBigIntInRange(bint, MAX_UINT8);
         builder.push_u8(parseInt(bint.toString()));
-        totalBits += 8n;
+        totalBits += 8;
         break;
       }
       case FheTypes.Uint16: {
         const bint = toBigIntOrThrow(item.data);
         validateBigIntInRange(bint, MAX_UINT16);
         builder.push_u16(parseInt(bint.toString()));
-        totalBits += 16n;
+        totalBits += 16;
         break;
       }
       case FheTypes.Uint32: {
         const bint = toBigIntOrThrow(item.data);
         validateBigIntInRange(bint, MAX_UINT32);
         builder.push_u32(parseInt(bint.toString()));
-        totalBits += 32n;
+        totalBits += 32;
         break;
       }
       case FheTypes.Uint64: {
         const bint = toBigIntOrThrow(item.data);
         validateBigIntInRange(bint, MAX_UINT64);
         builder.push_u64(bint);
-        totalBits += 64n;
+        totalBits += 64;
         break;
       }
       case FheTypes.Uint128: {
         const bint = toBigIntOrThrow(item.data);
         validateBigIntInRange(bint, MAX_UINT128);
         builder.push_u128(bint);
-        totalBits += 128n;
+        totalBits += 128;
         break;
       }
       // [U256-DISABLED]
@@ -143,14 +143,14 @@ export const zkPack = (items: EncryptableItem[], builder: ZkCiphertextListBuilde
       //   const bint = toBigIntOrThrow(item.data);
       //   validateBigIntInRange(bint, MAX_UINT256);
       //   builder.push_u256(bint);
-      //   totalBits += 256n;
+      //   totalBits += 256;
       //   break;
       // }
       case FheTypes.Uint160: {
         const bint = toBigIntOrThrow(item.data);
         validateBigIntInRange(bint, MAX_UINT160);
         builder.push_u160(bint);
-        totalBits += 160n;
+        totalBits += 160;
         break;
       }
       default: {
