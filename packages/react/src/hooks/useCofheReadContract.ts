@@ -9,8 +9,7 @@ import {
 import { useCofheChainId, useCofhePublicClient } from './useCofheConnection';
 import { useCofheActivePermit } from './useCofhePermits';
 import { assert } from 'ts-essentials';
-import { useIsCofheErrorActive } from './useIsCofheErrorActive';
-import { useInternalQueries, useInternalQuery } from '../providers/index';
+import { useInternalQuery } from '../providers/index';
 import { transformEncryptedReturnTypes, type Abi, type CofheReturnType, type ContractReturnType } from '@cofhe/abi';
 import { serializeBigintRecursively } from '../utils/serializeBigint.js';
 
@@ -68,7 +67,6 @@ export type UseCofheReadContractQueryOptions<
 };
 
 export function getEnabledForCofheReadContract(params: {
-  isCofheErrorActive: boolean;
   publicClient: unknown;
   address?: Address;
   abi?: Abi;
@@ -77,11 +75,9 @@ export function getEnabledForCofheReadContract(params: {
   hasActivePermit: boolean;
   userEnabled?: boolean;
 }): boolean {
-  const { isCofheErrorActive, publicClient, address, abi, functionName, requiresPermit, hasActivePermit, userEnabled } =
-    params;
+  const { publicClient, address, abi, functionName, requiresPermit, hasActivePermit, userEnabled } = params;
 
   return (
-    !isCofheErrorActive &&
     !!publicClient &&
     !!address &&
     !!abi &&
@@ -201,13 +197,11 @@ export function useCofheReadContract<
 ): UseCofheReadContractResult<TAbi, TfunctionName> {
   const { address, abi, functionName, args, requiresPermit = true } = params;
 
-  const isCofheErrorActive = useIsCofheErrorActive();
   const publicClient = useCofhePublicClient();
   const cofheChainId = useCofheChainId();
   const activePermit = useCofheActivePermit();
 
   const enabled = getEnabledForCofheReadContract({
-    isCofheErrorActive,
     publicClient,
     address,
     abi,

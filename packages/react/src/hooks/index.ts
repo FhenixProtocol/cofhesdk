@@ -1,4 +1,5 @@
 export { useCofheConnection, useCofhePublicClient } from './useCofheConnection';
+export { useCofheEnabled, type UseCofheEnabledOptions, type UseCofheEnabledResult } from './useCofheEnabled';
 export {
   useCofheActivePermit,
   useCofheAllPermits,
