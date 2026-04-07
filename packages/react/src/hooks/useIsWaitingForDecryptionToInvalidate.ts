@@ -1,6 +1,7 @@
 import { useDecryptionWatchersStore } from '@/stores/decryptionWatchingStore';
 import { useMemo } from 'react';
 import type { QueryKey } from '@tanstack/react-query';
+import { cofheLogger } from '@/utils/debug';
 
 export function useAwaitingDecryptionQueryKeySet(): ReadonlySet<string> {
   const { byKey } = useDecryptionWatchersStore();
@@ -18,7 +19,7 @@ export function useIsWaitingForDecryptionToInvalidate(queryKey: QueryKey): boole
 
   const result = useMemo(() => cacheKeySet.has(JSON.stringify(queryKey)), [cacheKeySet, queryKey]);
 
-  console.log(`isWaitingForDecryption for queryKey ${JSON.stringify(queryKey)}:`, result);
+  cofheLogger.log(`isWaitingForDecryption for queryKey ${JSON.stringify(queryKey)}:`, result);
 
   return result;
 }

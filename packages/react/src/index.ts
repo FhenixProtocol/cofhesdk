@@ -59,8 +59,6 @@ export { MainPage, SettingsPage } from './components/FnxFloatingButton/pages/ind
 // Utils
 export {
   FheTypesList,
-  fheTypeToString,
-  encryptedValueToString,
   getBlockExplorerUrl,
   getBlockExplorerTxUrl,
   getBlockExplorerAddressUrl,
@@ -85,6 +83,7 @@ export {
 } from './stores/transactionStore';
 
 export { createCofheConfig } from './config';
+export type { CofheReactLogger, CofheReactLoggerMethod } from './config';
 
 // Types
 export type { CofheContextValue, CofheProviderProps, CofheClientConfig } from './types/index';
