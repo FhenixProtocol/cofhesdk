@@ -143,7 +143,7 @@ describe('@cofhe/node - Encrypt Inputs', () => {
         await badClient.encryptInputs([Encryptable.uint128(100n)]).execute();
       } catch (error) {
         expect(error).toBeInstanceOf(CofheError);
-        expect((error as CofheError).code).toBe(CofheErrorCode.FetchKeysFailed);
+        expect((error as CofheError).code).toBe(CofheErrorCode.ZkVerifyFailed);
       }
     }, 60000);
   });
