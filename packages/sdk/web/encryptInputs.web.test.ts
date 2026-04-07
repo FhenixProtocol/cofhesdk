@@ -1,15 +1,11 @@
-import { arbSepolia as cofheArbSepolia } from '@/chains';
 import { Encryptable, FheTypes, type CofheClient, CofheErrorCode, CofheError } from '@/core';
 
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import type { PublicClient, WalletClient } from 'viem';
 import { createPublicClient, createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { arbitrumSepolia as viemArbitrumSepolia } from 'viem/chains';
 import { createCofheClient, createCofheConfig } from './index.js';
-
-// Real test setup - runs in browser with real tfhe
-const TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
+import { selectedTestNetwork } from '../testNetwork.js';
 
 describe('@cofhe/web - Encrypt Inputs Browser Tests', () => {
   let cofheClient: CofheClient;
@@ -17,23 +13,22 @@ describe('@cofhe/web - Encrypt Inputs Browser Tests', () => {
   let walletClient: WalletClient;
 
   beforeAll(() => {
-    // Create real viem clients
     publicClient = createPublicClient({
-      chain: viemArbitrumSepolia,
-      transport: http(),
+      chain: selectedTestNetwork.viemChain,
+      transport: http(selectedTestNetwork.rpcUrl),
     });
 
-    const account = privateKeyToAccount(TEST_PRIVATE_KEY);
+    const account = privateKeyToAccount(selectedTestNetwork.privateKey);
     walletClient = createWalletClient({
-      chain: viemArbitrumSepolia,
-      transport: http(),
+      chain: selectedTestNetwork.viemChain,
+      transport: http(selectedTestNetwork.rpcUrl),
       account,
     });
   });
 
   beforeEach(() => {
     const config = createCofheConfig({
-      supportedChains: [cofheArbSepolia],
+      supportedChains: [selectedTestNetwork.sdkChain],
     });
     cofheClient = createCofheClient(config);
   });
@@ -136,7 +131,7 @@ describe('@cofhe/web - Encrypt Inputs Browser Tests', () => {
       const badConfig = createCofheConfig({
         supportedChains: [
           {
-            ...cofheArbSepolia,
+            ...selectedTestNetwork.sdkChain,
             coFheUrl: 'http://invalid-cofhe-url.local',
             verifierUrl: 'http://invalid-verifier-url.local',
           },

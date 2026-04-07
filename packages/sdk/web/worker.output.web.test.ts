@@ -1,14 +1,11 @@
-import { arbSepolia as cofheArbSepolia } from '@/chains';
 import { Encryptable } from '@/core';
 
 import { describe, it, expect, beforeAll } from 'vitest';
 import type { PublicClient, WalletClient } from 'viem';
 import { createPublicClient, createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { arbitrumSepolia as viemArbitrumSepolia } from 'viem/chains';
 import { createCofheClient, createCofheConfig } from './index.js';
-
-const TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
+import { selectedTestNetwork } from '../testNetwork.js';
 
 describe('@cofhe/sdk/web - Worker vs Main Thread Output Validation', () => {
   let publicClient: PublicClient;
@@ -16,14 +13,14 @@ describe('@cofhe/sdk/web - Worker vs Main Thread Output Validation', () => {
 
   beforeAll(() => {
     publicClient = createPublicClient({
-      chain: viemArbitrumSepolia,
-      transport: http(),
+      chain: selectedTestNetwork.viemChain,
+      transport: http(selectedTestNetwork.rpcUrl),
     });
 
-    const account = privateKeyToAccount(TEST_PRIVATE_KEY);
+    const account = privateKeyToAccount(selectedTestNetwork.privateKey);
     walletClient = createWalletClient({
-      chain: viemArbitrumSepolia,
-      transport: http(),
+      chain: selectedTestNetwork.viemChain,
+      transport: http(selectedTestNetwork.rpcUrl),
       account,
     });
   });
@@ -31,12 +28,12 @@ describe('@cofhe/sdk/web - Worker vs Main Thread Output Validation', () => {
   it('should produce consistent output format regardless of worker usage', async () => {
     // Create two clients - one with workers, one without
     const configWithWorker = createCofheConfig({
-      supportedChains: [cofheArbSepolia],
+      supportedChains: [selectedTestNetwork.sdkChain],
       useWorkers: true,
     });
 
     const configWithoutWorker = createCofheConfig({
-      supportedChains: [cofheArbSepolia],
+      supportedChains: [selectedTestNetwork.sdkChain],
       useWorkers: false,
     });
 
