@@ -1,20 +1,76 @@
 import hre from 'hardhat';
-import { baseSepolia } from '@cofhe/sdk/chains';
+import { baseSepolia, localcofhe } from '@cofhe/sdk/chains';
 import { CofheClient, Encryptable, FheTypes } from '@cofhe/sdk';
-import { createPublicClient, createWalletClient, http, type PublicClient, type WalletClient } from 'viem';
+import { Chain, createPublicClient, createWalletClient, http, type PublicClient, type WalletClient } from 'viem';
 import { baseSepolia as viemBaseSepolia } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
 import { createCofheClient, createCofheConfig } from '@cofhe/sdk/node';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 import { expect } from 'chai';
-import { PermitUtils } from '@cofhe/sdk/permits';
 
-// Test private key - should be funded on Base Sepolia
-// Using a well-known test key, but you'll need to fund it with testnet ETH
 const DEFAULT_TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
-const TEST_PRIVATE_KEY =
+const BASE_TEST_PRIVATE_KEY =
   process.env.TEST_PRIVATE_KEY ||
   DEFAULT_TEST_PRIVATE_KEY; /* This key is publicly known and should only be used for testing with testnet ETH. Do not use this key on mainnet or with real funds. */
+const LOCALCOFHE_TEST_PRIVATE_KEY =
+  process.env.LOCALCOFHE_PRIVATE_KEY || process.env.TEST_PRIVATE_KEY || DEFAULT_TEST_PRIVATE_KEY;
+const LOCALCOFHE_HOST_CHAIN_RPC = process.env.LOCALCOFHE_HOST_CHAIN_RPC || 'http://127.0.0.1:42069';
+
+type SupportedTestChain = {
+  label: string;
+  sdkChain: typeof baseSepolia | typeof localcofhe;
+  viemChain: typeof viemBaseSepolia | Chain;
+  rpcUrl: string;
+  privateKey: string;
+  allowDefaultPrivateKey: boolean;
+};
+
+const parseChainIdEnv = (value: string | undefined): number | undefined => {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const asNumber = Number(trimmed);
+  if (!Number.isInteger(asNumber) || asNumber <= 0) {
+    throw new Error(`Invalid COFHE_CHAIN_ID/TEST_CHAIN_ID: ${value}`);
+  }
+  return asNumber;
+};
+
+const ENV_CHAIN_ID = parseChainIdEnv(process.env.COFHE_CHAIN_ID ?? process.env.TEST_CHAIN_ID);
+
+const viemLocalcofheChain: Chain = {
+  id: localcofhe.id,
+  name: localcofhe.name,
+  nativeCurrency: {
+    name: 'Ether',
+    symbol: 'ETH',
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: {
+      http: [LOCALCOFHE_HOST_CHAIN_RPC],
+    },
+  },
+};
+
+const SUPPORTED_TEST_CHAINS: Record<number, SupportedTestChain> = {
+  [baseSepolia.id]: {
+    label: 'Base Sepolia',
+    sdkChain: baseSepolia,
+    viemChain: viemBaseSepolia,
+    rpcUrl: process.env.BASE_SEPOLIA_RPC_URL || 'https://sepolia.base.org',
+    privateKey: BASE_TEST_PRIVATE_KEY,
+    allowDefaultPrivateKey: false,
+  },
+  [localcofhe.id]: {
+    label: 'Local Cofhe',
+    sdkChain: localcofhe,
+    viemChain: viemLocalcofheChain,
+    rpcUrl: LOCALCOFHE_HOST_CHAIN_RPC,
+    privateKey: LOCALCOFHE_TEST_PRIVATE_KEY,
+    allowDefaultPrivateKey: true,
+  },
+};
 
 const deployments = {
   [baseSepolia.id]: {
@@ -22,38 +78,56 @@ const deployments = {
   },
 };
 
-describe('Base Sepolia Integration Tests', () => {
+const selectedChainId = ENV_CHAIN_ID ?? baseSepolia.id;
+const selectedChain = SUPPORTED_TEST_CHAINS[selectedChainId];
+
+describe(`Encrypt/Decrypt Integration (${selectedChain?.label ?? `chainId=${selectedChainId}`})`, () => {
   let cofheClient: CofheClient;
   let publicClient: PublicClient;
   let walletClient: WalletClient;
   let testContract: any; // ethers contract instance
-  let baseSepoliaSigner: HardhatEthersSigner;
+  let chainSigner: HardhatEthersSigner;
 
   before(async function () {
-    // Skip if no private key is provided (for CI/CD)
-    if (TEST_PRIVATE_KEY === DEFAULT_TEST_PRIVATE_KEY) {
+    if (!selectedChain) {
+      throw new Error(
+        `Unsupported chainId=${selectedChainId}. Supported: ${Object.keys(SUPPORTED_TEST_CHAINS).join(', ')}`
+      );
+    }
+
+    if (!selectedChain.allowDefaultPrivateKey && selectedChain.privateKey === DEFAULT_TEST_PRIVATE_KEY) {
       this.skip();
     }
 
-    // Create viem clients for Base Sepolia
-    const account = privateKeyToAccount(TEST_PRIVATE_KEY as `0x${string}`);
+    const account = privateKeyToAccount(selectedChain.privateKey as `0x${string}`);
 
+    console.log(`Using chain: ${selectedChain.label}`);
+    console.log(`Using RPC: ${selectedChain.rpcUrl}`);
     console.log(`Using account address: ${account.address}`);
 
     publicClient = createPublicClient({
-      chain: viemBaseSepolia,
-      transport: http(process.env.BASE_SEPOLIA_RPC_URL || 'https://sepolia.base.org'),
+      chain: selectedChain.viemChain,
+      transport: http(selectedChain.rpcUrl),
     }) as PublicClient;
 
     walletClient = createWalletClient({
-      chain: viemBaseSepolia,
-      transport: http(process.env.BASE_SEPOLIA_RPC_URL || 'https://sepolia.base.org'),
+      chain: selectedChain.viemChain,
+      transport: http(selectedChain.rpcUrl),
       account,
     }) as WalletClient;
 
-    // Create CoFHE SDK config and client
+    try {
+      await publicClient.getBlockNumber();
+    } catch (error) {
+      console.warn(
+        `Skipping ${selectedChain.label} integration test: RPC unavailable at ${selectedChain.rpcUrl}.`,
+        error
+      );
+      this.skip();
+    }
+
     const config = createCofheConfig({
-      supportedChains: [baseSepolia],
+      supportedChains: [selectedChain.sdkChain],
     });
     cofheClient = createCofheClient(config);
     await cofheClient.connect(publicClient, walletClient);
@@ -64,54 +138,44 @@ describe('Base Sepolia Integration Tests', () => {
       expiration: 1000000000000,
     });
 
-    // Create a signer for Base Sepolia
-    const baseSepoliaProvider = new hre.ethers.JsonRpcProvider(
-      process.env.BASE_SEPOLIA_RPC_URL || 'https://sepolia.base.org'
-    );
-    baseSepoliaSigner = new hre.ethers.Wallet(TEST_PRIVATE_KEY, baseSepoliaProvider) as unknown as HardhatEthersSigner;
+    const chainProvider = new hre.ethers.JsonRpcProvider(selectedChain.rpcUrl);
+    chainSigner = new hre.ethers.Wallet(selectedChain.privateKey, chainProvider) as unknown as HardhatEthersSigner;
 
-    if (deployments[baseSepolia.id]) {
+    if (deployments[selectedChain.sdkChain.id]) {
       testContract = await hre.ethers.getContractAt(
         'SimpleTest',
-        deployments[baseSepolia.id].address,
-        baseSepoliaSigner
+        deployments[selectedChain.sdkChain.id].address,
+        chainSigner
       );
 
-      console.log(`Test contract already deployed at: ${deployments[baseSepolia.id].address}`);
+      console.log(`Test contract already deployed at: ${deployments[selectedChain.sdkChain.id].address}`);
     } else {
-      // Deploy test contract using ethers
       const SimpleTestFactory = await hre.ethers.getContractFactory('SimpleTest');
-      testContract = await SimpleTestFactory.connect(baseSepoliaSigner).deploy();
+      testContract = await SimpleTestFactory.connect(chainSigner).deploy();
       await testContract.waitForDeployment();
       const testContractAddress = await testContract.getAddress();
-      deployments[baseSepolia.id] = { address: testContractAddress };
+      deployments[selectedChain.sdkChain.id] = { address: testContractAddress };
 
       console.log(`Test contract deployed at: ${testContractAddress}`);
     }
   });
 
   it('Should encrypt -> store -> decrypt a value', async function () {
-    // Skip if no private key is provided
-    if (TEST_PRIVATE_KEY === DEFAULT_TEST_PRIVATE_KEY) {
+    if (!selectedChain.allowDefaultPrivateKey && selectedChain.privateKey === DEFAULT_TEST_PRIVATE_KEY) {
       this.skip();
     }
 
     const testValue = 100n;
 
-    // Encrypt and store a value
     const encrypted = await cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
 
-    const tx = await testContract.connect(baseSepoliaSigner).setValue(encrypted[0]);
-    const receipt = await tx.wait();
+    const tx = await testContract.connect(chainSigner).setValue(encrypted[0]);
+    await tx.wait();
 
-    // Get the hash from the contract (using the new getValueHash function)
-    // IMPORTANT: The ctHash is transformed on-chain, so we MUST get it from the contract
     const ctHash = await testContract.getValueHash();
 
-    // Decrypt the value using the ctHash from the encrypted input
     const unsealedResult = await cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
 
-    // Verify the decrypted value matches
     expect(unsealedResult).to.be.equal(testValue);
   });
 
