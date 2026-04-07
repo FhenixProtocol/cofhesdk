@@ -463,7 +463,7 @@ extendEnvironment((hre) => {
       getMockACL: async () => {
         const taskManager = await getFixedMockContract(hre, MockTaskManagerArtifact);
         const aclAddress = await taskManager.acl();
-        return hre.ethers.getContractAt(MockACLArtifact.ethersAbi, aclAddress) as unknown as MockACL;
+        return hre.ethers.getContractAt(MockACLArtifact.abi, aclAddress) as unknown as MockACL;
       },
       getMockThresholdNetwork: async () =>
         getFixedMockContract(hre, MockThresholdNetworkArtifact) as unknown as Promise<MockThresholdNetwork>,
