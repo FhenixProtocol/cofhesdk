@@ -128,7 +128,7 @@ function createStoreWithPersit(storage: IStorage) {
       onRehydrateStorage: () => (_state?, _error?) => {
         if (_error) throw new Error(`onRehydrateStorage: Error rehydrating keys store: ${_error}`);
       },
-      name: KEYSTORE_NAMEpn,
+      name: KEYSTORE_NAME,
       storage: createJSONStorage(() => storage),
       merge: (persistedState, currentState) => {
         const persisted = isValidPersistedState(persistedState) ? persistedState : DEFAULT_KEYS_STORE;
