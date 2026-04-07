@@ -11,6 +11,7 @@ import {
   FheTypes,
 } from '@cofhe/sdk';
 import { privateKeyToAccount } from 'viem/accounts';
+import { expectRevert, hasCode } from './helpers.js';
 
 describe('Deploy Mocks', async () => {
   const { viem, cofhe } = await network.connect();
@@ -18,37 +19,13 @@ describe('Deploy Mocks', async () => {
   const walletClients = await viem.getWalletClients();
   const [walletClient, attackerClient] = walletClients;
 
-  const hasCode = async (address: `0x${string}`) => {
-    const code = await publicClient.getCode({ address });
-    return !!code && code.length > 2;
-  };
-
-  const lower = (address: string) => address.toLowerCase();
-
   const zeroAddress = '0x0000000000000000000000000000000000000000' as const;
   const zeroBytes32 = `0x${'00'.repeat(32)}` as const;
 
-  const getErrorText = (err: unknown) => {
-    if (err && typeof err === 'object') {
-      const e = err as any;
-      return [e?.shortMessage, e?.message, e?.details, e?.cause ? String(e.cause) : undefined, String(err)]
-        .filter(Boolean)
-        .join('\n');
-    }
-    return String(err);
-  };
-
-  const expectRevert = async (fn: () => Promise<unknown>, pattern: RegExp) => {
-    await assert.rejects(fn, (err) => {
-      assert.match(getErrorText(err), pattern);
-      return true;
-    });
-  };
-
   it('MockTaskManager is deployed at the expected fixed address', async () => {
     const { address } = cofhe.mocks.MockTaskManager;
-    assert.equal(lower(address), lower(TASK_MANAGER_ADDRESS));
-    assert.ok(await hasCode(address));
+    assert.equal(address.toLowerCase(), TASK_MANAGER_ADDRESS.toLowerCase());
+    assert.ok(await hasCode(publicClient, address));
   });
 
   it('MockTaskManager is initialized and has decryptResultSigner configured', async () => {
@@ -64,8 +41,8 @@ describe('Deploy Mocks', async () => {
     });
 
     const expectedDecryptSigner = privateKeyToAccount(MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY).address;
-    assert.equal(lower(decryptResultSigner), lower(expectedDecryptSigner));
-    assert.notEqual(lower(decryptResultSigner), lower(zeroAddress));
+    assert.equal(decryptResultSigner.toLowerCase(), expectedDecryptSigner.toLowerCase());
+    assert.notEqual(decryptResultSigner.toLowerCase(), zeroAddress.toLowerCase());
   });
 
   it('MockACL is deployed and its address matches TaskManager.acl()', async () => {
@@ -74,14 +51,14 @@ describe('Deploy Mocks', async () => {
       ...cofhe.mocks.MockTaskManager,
       functionName: 'acl',
     });
-    assert.equal(lower(address), lower(aclFromTm));
-    assert.ok(await hasCode(address));
+    assert.equal(address.toLowerCase(), aclFromTm.toLowerCase());
+    assert.ok(await hasCode(publicClient, address));
   });
 
   it('MockZkVerifier is deployed at the expected fixed address', async () => {
     const { address } = cofhe.mocks.MockZkVerifier;
-    assert.equal(lower(address), lower(MOCKS_ZK_VERIFIER_ADDRESS));
-    assert.ok(await hasCode(address));
+    assert.equal(address.toLowerCase(), MOCKS_ZK_VERIFIER_ADDRESS.toLowerCase());
+    assert.ok(await hasCode(publicClient, address));
   });
 
   it('MockZkVerifier can insert ctHashes into MockTaskManager mockStorage', async () => {
@@ -115,8 +92,8 @@ describe('Deploy Mocks', async () => {
 
   it('MockThresholdNetwork is deployed at the expected fixed address', async () => {
     const { address } = cofhe.mocks.MockThresholdNetwork;
-    assert.equal(lower(address), lower(MOCKS_THRESHOLD_NETWORK_ADDRESS));
-    assert.ok(await hasCode(address));
+    assert.equal(address.toLowerCase(), MOCKS_THRESHOLD_NETWORK_ADDRESS.toLowerCase());
+    assert.ok(await hasCode(publicClient, address));
   });
 
   it('MockThresholdNetwork is initialized with TaskManager + ACL', async () => {
@@ -124,7 +101,7 @@ describe('Deploy Mocks', async () => {
       ...cofhe.mocks.MockThresholdNetwork,
       functionName: 'mockTaskManager',
     });
-    assert.equal(lower(tmFromThreshold), lower(TASK_MANAGER_ADDRESS));
+    assert.equal(tmFromThreshold.toLowerCase(), TASK_MANAGER_ADDRESS.toLowerCase());
 
     const aclFromThreshold = await publicClient.readContract({
       ...cofhe.mocks.MockThresholdNetwork,
@@ -134,17 +111,20 @@ describe('Deploy Mocks', async () => {
       ...cofhe.mocks.MockTaskManager,
       functionName: 'acl',
     });
-    assert.equal(lower(aclFromThreshold), lower(aclFromTm));
+    assert.equal(aclFromThreshold.toLowerCase(), aclFromTm.toLowerCase());
   });
 
   it('TestBed is deployed at the expected fixed address', async () => {
     const { address } = cofhe.mocks.TestBed;
-    assert.equal(lower(address), lower(TEST_BED_ADDRESS));
-    assert.ok(await hasCode(address));
+    assert.equal(address.toLowerCase(), TEST_BED_ADDRESS.toLowerCase());
+    assert.ok(await hasCode(publicClient, address));
   });
 
   it('Negative: only the owner can call MockTaskManager admin setters', async () => {
-    assert.notEqual(lower(attackerClient.account?.address ?? ''), lower(walletClient.account?.address ?? ''));
+    assert.notEqual(
+      (attackerClient.account?.address ?? '').toLowerCase(),
+      (walletClient.account?.address ?? '').toLowerCase()
+    );
 
     await expectRevert(
       () =>
