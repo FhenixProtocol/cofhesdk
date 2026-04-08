@@ -5,6 +5,7 @@ import { PermitDetailsModal } from './PermitDetailsModal';
 import { PermitTypeInfoModal } from './PermitTypeInfoModal';
 import { PermitInfoModal } from './PermitInfoModal';
 import { TokenListModal } from './TokenListModal';
+import { ImportCustomTokenModal } from './ImportCustomTokenModal';
 
 export const modals: { [M in PortalModal]: React.FC<PortalModalStateMap[M]> } = {
   [PortalModal.ExampleSelection]: ExampleSelectionPage,
@@ -13,4 +14,5 @@ export const modals: { [M in PortalModal]: React.FC<PortalModalStateMap[M]> } = 
   [PortalModal.PermitTypeInfo]: PermitTypeInfoModal,
   [PortalModal.PermitInfo]: PermitInfoModal,
   [PortalModal.TokenList]: TokenListModal,
+  [PortalModal.ImportCustomToken]: ImportCustomTokenModal,
 };

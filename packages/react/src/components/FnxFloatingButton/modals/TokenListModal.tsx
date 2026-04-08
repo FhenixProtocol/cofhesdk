@@ -5,10 +5,9 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { TokenRow } from '../components/TokenRow';
 import { useCofhePinnedTokenAddress } from '@/hooks/useCofhePinnedTokenAddress';
 import type { BalanceType } from '../components/CofheTokenConfidentialBalance';
-import { useState } from 'react';
+import { usePortalModals } from '@/stores';
 
 import { AddCustomTokenButton } from './AddCustomTokenButton';
-import { ImportCustomTokenCard } from './ImportCustomTokenCard';
 
 export const TokenListModal: React.FC<PortalModalStateMap[PortalModal.TokenList]> = ({
   tokens,
@@ -17,7 +16,7 @@ export const TokenListModal: React.FC<PortalModalStateMap[PortalModal.TokenList]
   onSelectToken,
   balanceType,
 }) => {
-  const [isImportingToken, setIsImportingToken] = useState(false);
+  const { openModal } = usePortalModals();
 
   return (
     <PageContainer
@@ -28,32 +27,29 @@ export const TokenListModal: React.FC<PortalModalStateMap[PortalModal.TokenList]
             <p className="text-sm font-medium">{title}</p>
           </button>
           <AddCustomTokenButton
-            label={isImportingToken ? 'Close import' : 'Import token'}
-            onClick={() => setIsImportingToken((value) => !value)}
+            onClick={() =>
+              openModal(PortalModal.ImportCustomToken, {
+                balanceType,
+                title: 'Import token',
+                tokens,
+                onSelectToken: (token) => {
+                  onSelectToken(token);
+                  onClose();
+                },
+              })
+            }
           />
         </div>
       }
       content={
-        <div className="flex flex-col gap-3">
-          {isImportingToken && (
-            <ImportCustomTokenCard
-              balanceType={balanceType}
-              tokens={tokens}
-              onSelectToken={(token) => {
-                onSelectToken(token);
-                onClose();
-              }}
-            />
-          )}
-          <TokenListContent
-            balanceType={balanceType}
-            tokens={tokens}
-            onSelectToken={(token) => {
-              onSelectToken(token);
-              onClose();
-            }}
-          />
-        </div>
+        <TokenListContent
+          balanceType={balanceType}
+          tokens={tokens}
+          onSelectToken={(token) => {
+            onSelectToken(token);
+            onClose();
+          }}
+        />
       }
     />
   );

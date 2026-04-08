@@ -4,9 +4,10 @@ import { FloatingButtonPage } from '../pagesConfig/types';
 import { useCofheTokens } from '@/hooks';
 import { TokenListContent } from '../modals/TokenListModal';
 import { AddCustomTokenButton } from '../modals/AddCustomTokenButton';
-import { usePortalNavigation } from '@/stores';
+import { usePortalModals, usePortalNavigation } from '@/stores';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { BalanceType } from '../components/CofheTokenConfidentialBalance';
+import { PortalModal } from '../modals/types';
 
 declare module '../pagesConfig/types' {
   interface FloatingButtonPagePropsRegistry {
@@ -15,6 +16,7 @@ declare module '../pagesConfig/types' {
 }
 export const PortfolioPage: React.FC = () => {
   const { navigateBack, navigateTo } = usePortalNavigation();
+  const { openModal } = usePortalModals();
 
   const chainId = useCofheChainId();
   const allTokens = useCofheTokens(chainId);
@@ -30,7 +32,22 @@ export const PortfolioPage: React.FC = () => {
             <ArrowBackIcon style={{ fontSize: 16 }} />
             <p className="text-sm font-medium">Tokens list</p>
           </button>
-          <AddCustomTokenButton />
+          <AddCustomTokenButton
+            onClick={() =>
+              openModal(PortalModal.ImportCustomToken, {
+                balanceType: BalanceType.Confidential,
+                title: 'Import token',
+                tokens: allTokens,
+                onSelectToken: (token) => {
+                  navigateTo(FloatingButtonPage.TokenInfo, {
+                    pageProps: {
+                      token,
+                    },
+                  });
+                },
+              })
+            }
+          />
         </div>
       }
       content={
