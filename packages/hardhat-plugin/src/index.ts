@@ -5,11 +5,7 @@ import path from 'path';
 import fs from 'fs';
 import { type PublicClient, type WalletClient } from 'viem';
 import { extendConfig, extendEnvironment, task, subtask, types } from 'hardhat/config';
-import {
-  TASK_TEST,
-  TASK_NODE,
-  TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS,
-} from 'hardhat/builtin-tasks/task-names';
+import { TASK_TEST, TASK_NODE, TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS } from 'hardhat/builtin-tasks/task-names';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 import {
   type CofheClient,
@@ -124,20 +120,18 @@ function generateMockContractsStubContent(): string {
   ].join('\n');
 }
 
-subtask(TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS).setAction(
-  async (taskArgs: { sourcePath?: string }, hre, runSuper) => {
-    const existing: string[] = await runSuper(taskArgs);
+subtask(TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS).setAction(async (taskArgs: { sourcePath?: string }, hre, runSuper) => {
+  const existing: string[] = await runSuper(taskArgs);
 
-    // Write the stub inside the Hardhat cache dir so that it lives within the
-    // project root — a requirement of localPathToSourceName (HH1007).
-    const stubDir = path.join(hre.config.paths.cache, MOCK_STUBS_DIR_NAME);
-    const stubPath = path.join(stubDir, MOCK_STUBS_FILE_NAME);
-    fs.mkdirSync(stubDir, { recursive: true });
-    fs.writeFileSync(stubPath, generateMockContractsStubContent(), 'utf8');
+  // Write the stub inside the Hardhat cache dir so that it lives within the
+  // project root — a requirement of localPathToSourceName (HH1007).
+  const stubDir = path.join(hre.config.paths.cache, MOCK_STUBS_DIR_NAME);
+  const stubPath = path.join(stubDir, MOCK_STUBS_FILE_NAME);
+  fs.mkdirSync(stubDir, { recursive: true });
+  fs.writeFileSync(stubPath, generateMockContractsStubContent(), 'utf8');
 
-    return [...new Set([...existing, stubPath])];
-  }
-);
+  return [...new Set([...existing, stubPath])];
+});
 
 extendConfig((config, userConfig) => {
   // Allow users to override the localcofhe network config

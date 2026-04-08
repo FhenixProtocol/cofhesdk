@@ -4,11 +4,7 @@ import { createTestClient, custom } from 'viem';
 import chalk from 'chalk';
 import { privateKeyToAccount } from 'viem/accounts';
 
-import {
-  MockTaskManagerArtifact,
-  MockThresholdNetworkArtifact,
-  TestBedArtifact,
-} from '@cofhe/mock-contracts';
+import { MockTaskManagerArtifact, MockThresholdNetworkArtifact, TestBedArtifact } from '@cofhe/mock-contracts';
 import {
   TASK_MANAGER_ADDRESS,
   MOCKS_ZK_VERIFIER_ADDRESS,

@@ -108,7 +108,10 @@ function createCofheConnection(
       MockTaskManager: { address: deployedMockContracts.MockTaskManager, abi: MockTaskManagerArtifact.abi },
       MockACL: { address: deployedMockContracts.MockACL, abi: MockACLArtifact.abi },
       MockZkVerifier: { address: deployedMockContracts.MockZkVerifier, abi: MockZkVerifierArtifact.abi },
-      MockThresholdNetwork: { address: deployedMockContracts.MockThresholdNetwork, abi: MockThresholdNetworkArtifact.abi },
+      MockThresholdNetwork: {
+        address: deployedMockContracts.MockThresholdNetwork,
+        abi: MockThresholdNetworkArtifact.abi,
+      },
       TestBed: { address: deployedMockContracts.TestBed!, abi: TestBedArtifact.abi },
     },
   };
@@ -153,7 +156,13 @@ const hreHooks: Partial<HardhatRuntimeEnvironmentHooks> = {
           }
         );
 
-        (conn as any).cofhe = createCofheConnection(publicClient, walletClient, connTransport, hre.artifacts, deployedMockContracts);
+        (conn as any).cofhe = createCofheConnection(
+          publicClient,
+          walletClient,
+          connTransport,
+          hre.artifacts,
+          deployedMockContracts
+        );
         return conn;
       },
     };

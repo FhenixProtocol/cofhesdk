@@ -2,7 +2,7 @@
  * Ensures that the deployed mock contracts are recognized correctly by the
  * hardhat 3 EDR. This ensures error messages are decoded and stack traces are
  * populated like so:
- * 
+ *
  * ```
  * Error: VM Exception while processing transaction: reverted with custom error 'PermissionInvalid_Expired()'
  *         at MockACL.withPermission (npm/@cofhe/mock-contracts@local/contracts/Permissioned.sol:110)
