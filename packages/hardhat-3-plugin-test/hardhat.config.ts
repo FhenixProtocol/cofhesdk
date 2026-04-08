@@ -5,7 +5,4 @@ import hardhatNodeTestRunner from '@nomicfoundation/hardhat-node-test-runner';
 
 export default defineConfig({
   plugins: [cofhePlugin, hardhatViem, hardhatNodeTestRunner],
-  cofhe: {
-    mocksDeployVerbosity: 'v',
-  },
 });
