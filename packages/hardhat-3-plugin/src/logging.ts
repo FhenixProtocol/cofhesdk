@@ -72,10 +72,13 @@ export async function mock_withLogs(
 
   await setLoggingEnabled(publicClient, walletClient, true);
   printLogsEnabledMessage(`"${chalk.bold(closureName)}" logs:`);
-  await closure();
-  printLogsBlockEnd();
+  try {
+    await closure();
+  } finally {
+    printLogsBlockEnd();
 
-  if (!initiallyEnabled) {
-    await setLoggingEnabled(publicClient, walletClient, false);
+    if (!initiallyEnabled) {
+      await setLoggingEnabled(publicClient, walletClient, false);
+    }
   }
 }
