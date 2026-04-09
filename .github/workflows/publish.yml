@@ -30,8 +30,8 @@ jobs:
         with:
           node-version: 20
 
-      # - name: Ensure latest npm
-      #   run: npm i -g npm@latest
+      - name: Ensure valid pinned npm version (>11.5.1)
+        run: npm i -g npm@11.6.2
 
       - name: Install Dependencies
         run: pnpm i --frozen-lockfile
@@ -60,8 +60,8 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org
 
-      # - name: Ensure latest npm
-      #   run: npm i -g npm@latest
+      - name: Ensure valid pinned npm version (>11.5.1)
+        run: npm i -g npm@11.6.2
 
       - name: Install Dependencies
         run: pnpm i --frozen-lockfile
@@ -95,8 +95,8 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org
 
-      # - name: Ensure latest npm
-      #   run: npm i -g npm@latest
+      - name: Ensure valid pinned npm version (>11.5.1)
+        run: npm i -g npm@11.6.2
 
       - name: Install Dependencies
         run: pnpm i --frozen-lockfile
