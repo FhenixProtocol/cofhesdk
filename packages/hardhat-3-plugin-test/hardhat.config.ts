@@ -6,9 +6,6 @@ import hardhatNodeTestRunner from '@nomicfoundation/hardhat-node-test-runner';
 export default defineConfig({
   solidity: {
     version: '0.8.28',
-    settings: {
-      evmVersion: 'cancun',
-    },
   },
   plugins: [cofhePlugin, hardhatViem, hardhatNodeTestRunner],
 });
