@@ -3,24 +3,46 @@ import assert from 'node:assert/strict';
 import { network } from 'hardhat';
 import {
   TASK_MANAGER_ADDRESS,
+  MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY,
   MOCKS_ZK_VERIFIER_ADDRESS,
   MOCKS_THRESHOLD_NETWORK_ADDRESS,
+  MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
   TEST_BED_ADDRESS,
+  FheTypes,
 } from '@cofhe/sdk';
+import { privateKeyToAccount } from 'viem/accounts';
+import { expectRevert, hasCode } from './helpers.js';
 
 describe('Deploy Mocks', async () => {
   const { viem, cofhe } = await network.connect();
   const publicClient = await viem.getPublicClient();
+  const walletClients = await viem.getWalletClients();
+  const [walletClient, attackerClient] = walletClients;
 
-  const hasCode = async (address: `0x${string}`) => {
-    const code = await publicClient.getCode({ address });
-    return !!code && code.length > 2;
-  };
+  const zeroAddress = '0x0000000000000000000000000000000000000000' as const;
+  const zeroBytes32 = `0x${'00'.repeat(32)}` as const;
 
   it('MockTaskManager is deployed at the expected fixed address', async () => {
     const { address } = cofhe.mocks.MockTaskManager;
     assert.equal(address.toLowerCase(), TASK_MANAGER_ADDRESS.toLowerCase());
-    assert.ok(await hasCode(address));
+    assert.ok(await hasCode(publicClient, address));
+  });
+
+  it('MockTaskManager is initialized and has decryptResultSigner configured', async () => {
+    const isInitialized = await publicClient.readContract({
+      ...cofhe.mocks.MockTaskManager,
+      functionName: 'isInitialized',
+    });
+    assert.equal(isInitialized, true);
+
+    const decryptResultSigner = await publicClient.readContract({
+      ...cofhe.mocks.MockTaskManager,
+      functionName: 'decryptResultSigner',
+    });
+
+    const expectedDecryptSigner = privateKeyToAccount(MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY).address;
+    assert.equal(decryptResultSigner.toLowerCase(), expectedDecryptSigner.toLowerCase());
+    assert.notEqual(decryptResultSigner.toLowerCase(), zeroAddress.toLowerCase());
   });
 
   it('MockACL is deployed and its address matches TaskManager.acl()', async () => {
@@ -29,25 +51,136 @@ describe('Deploy Mocks', async () => {
       ...cofhe.mocks.MockTaskManager,
       functionName: 'acl',
     });
-    assert.equal(address.toLowerCase(), (aclFromTm as string).toLowerCase());
-    assert.ok(await hasCode(address));
+    assert.equal(address.toLowerCase(), aclFromTm.toLowerCase());
+    assert.ok(await hasCode(publicClient, address));
   });
 
   it('MockZkVerifier is deployed at the expected fixed address', async () => {
     const { address } = cofhe.mocks.MockZkVerifier;
     assert.equal(address.toLowerCase(), MOCKS_ZK_VERIFIER_ADDRESS.toLowerCase());
-    assert.ok(await hasCode(address));
+    assert.ok(await hasCode(publicClient, address));
+  });
+
+  it('MockZkVerifier can insert ctHashes into MockTaskManager mockStorage', async () => {
+    assert.ok(walletClient, 'walletClient not available');
+
+    const user = walletClient.account?.address;
+    assert.ok(user);
+
+    const chainId = await publicClient.getChainId();
+    const value = 123n;
+    const ctHash = await publicClient.readContract({
+      ...cofhe.mocks.MockZkVerifier,
+      functionName: 'zkVerifyCalcCtHash',
+      args: [value, FheTypes.Uint32, user, 0, BigInt(chainId)],
+    });
+
+    await walletClient.writeContract({
+      ...cofhe.mocks.MockZkVerifier,
+      functionName: 'insertCtHash',
+      args: [ctHash, value],
+    });
+
+    const stored = await publicClient.readContract({
+      ...cofhe.mocks.MockTaskManager,
+      functionName: 'mockStorage',
+      args: [ctHash],
+    });
+
+    assert.equal(stored, value);
   });
 
   it('MockThresholdNetwork is deployed at the expected fixed address', async () => {
     const { address } = cofhe.mocks.MockThresholdNetwork;
     assert.equal(address.toLowerCase(), MOCKS_THRESHOLD_NETWORK_ADDRESS.toLowerCase());
-    assert.ok(await hasCode(address));
+    assert.ok(await hasCode(publicClient, address));
+  });
+
+  it('MockThresholdNetwork is initialized with TaskManager + ACL', async () => {
+    const tmFromThreshold = await publicClient.readContract({
+      ...cofhe.mocks.MockThresholdNetwork,
+      functionName: 'mockTaskManager',
+    });
+    assert.equal(tmFromThreshold.toLowerCase(), TASK_MANAGER_ADDRESS.toLowerCase());
+
+    const aclFromThreshold = await publicClient.readContract({
+      ...cofhe.mocks.MockThresholdNetwork,
+      functionName: 'mockAcl',
+    });
+    const aclFromTm = await publicClient.readContract({
+      ...cofhe.mocks.MockTaskManager,
+      functionName: 'acl',
+    });
+    assert.equal(aclFromThreshold.toLowerCase(), aclFromTm.toLowerCase());
   });
 
   it('TestBed is deployed at the expected fixed address', async () => {
     const { address } = cofhe.mocks.TestBed;
     assert.equal(address.toLowerCase(), TEST_BED_ADDRESS.toLowerCase());
-    assert.ok(await hasCode(address));
+    assert.ok(await hasCode(publicClient, address));
+  });
+
+  it('Negative: only the owner can call MockTaskManager admin setters', async () => {
+    assert.notEqual(
+      (attackerClient.account?.address ?? '').toLowerCase(),
+      (walletClient.account?.address ?? '').toLowerCase()
+    );
+
+    await expectRevert(
+      () =>
+        attackerClient.writeContract({
+          ...cofhe.mocks.MockTaskManager,
+          functionName: 'setAggregator',
+          args: [MOCKS_ZK_VERIFIER_SIGNER_ADDRESS],
+        }),
+      /OnlyOwnerAllowed|0x7238ea56/i
+    );
+  });
+
+  it('Negative: MockTaskManager rejects zero addresses for setACLContract / setAggregator', async () => {
+    await expectRevert(
+      () =>
+        walletClient.writeContract({
+          ...cofhe.mocks.MockTaskManager,
+          functionName: 'setACLContract',
+          args: [zeroAddress],
+        }),
+      /InvalidAddress|0xe6c4247b/i
+    );
+
+    await expectRevert(
+      () =>
+        walletClient.writeContract({
+          ...cofhe.mocks.MockTaskManager,
+          functionName: 'setAggregator',
+          args: [zeroAddress],
+        }),
+      /InvalidAddress|0xe6c4247b/i
+    );
+  });
+
+  it('Negative: MockThresholdNetwork.querySealOutput reverts when sealingKey is missing', async () => {
+    await expectRevert(
+      () =>
+        publicClient.readContract({
+          ...cofhe.mocks.MockThresholdNetwork,
+          functionName: 'querySealOutput',
+          args: [
+            0n,
+            0n,
+            {
+              issuer: zeroAddress,
+              expiration: 0n,
+              recipient: zeroAddress,
+              validatorId: 0n,
+              validatorContract: zeroAddress,
+              sealingKey: zeroBytes32,
+              issuerSignature: '0x',
+              recipientSignature: '0x',
+            },
+          ],
+        }),
+      /SealingKeyMissing|0xb78926d8/i
+    );
   });
 });

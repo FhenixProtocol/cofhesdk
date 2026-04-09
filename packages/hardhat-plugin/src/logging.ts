@@ -59,11 +59,14 @@ export const mock_withLogs = async (
 
   await setLoggingEnabled(hre, true);
   printLogsEnabledMessage(`"${chalk.bold(closureName)}" logs:`);
-  await closure();
-  printLogsBlockEnd();
+  try {
+    await closure();
+  } finally {
+    printLogsBlockEnd();
 
-  // If logs were disabled, disable them again
-  if (!initiallyEnabled) {
-    await setLoggingEnabled(hre, false);
+    // If logs were disabled, disable them again
+    if (!initiallyEnabled) {
+      await setLoggingEnabled(hre, false);
+    }
   }
 };
