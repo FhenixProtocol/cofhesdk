@@ -79,11 +79,7 @@ jobs:
           version: stable
 
       - name: Publish Alpha Snapshot
-        run: |
-          TAG="${{ github.event.inputs.tag }}"
-          changeset version --snapshot "$TAG"
-          pnpm -r build
-          changeset publish --tag "$TAG"
+        run: pnpm run alpha:snapshot
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
