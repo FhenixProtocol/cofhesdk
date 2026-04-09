@@ -16,7 +16,7 @@ describe('Set Log Ops', async () => {
       address: TASK_MANAGER_ADDRESS,
       abi: logOpsAbi,
       functionName: 'logOps',
-    }) as Promise<boolean>;
+    });
 
   beforeEach(async () => {
     await cofhe.mocks.disableLogs();
@@ -40,6 +40,19 @@ describe('Set Log Ops', async () => {
     await cofhe.mocks.withLogs('test-closure', async () => {
       assert.equal(await getLogOps(), true);
     });
+    assert.equal(await getLogOps(), false);
+  });
+
+  it('withLogs restores logOps even if closure throws', async () => {
+    assert.equal(await getLogOps(), false);
+    await assert.rejects(
+      () =>
+        cofhe.mocks.withLogs('throwing-closure', async () => {
+          assert.equal(await getLogOps(), true);
+          throw new Error('boom');
+        }),
+      /boom/
+    );
     assert.equal(await getLogOps(), false);
   });
 });
