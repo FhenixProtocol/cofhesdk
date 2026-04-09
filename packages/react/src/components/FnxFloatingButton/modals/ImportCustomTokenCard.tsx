@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { isAddress, type Address } from 'viem';
 
+import { useCofheChainId } from '@/hooks/useCofheConnection';
 import { useResolvedCofheToken } from '@/hooks/useResolvedCofheToken';
 import { useCustomTokensStore } from '@/stores/customTokensStore';
 import type { Token } from '@/types/token';
@@ -14,10 +15,18 @@ export const ImportCustomTokenCard: React.FC<{
   onSelectToken: (token: Token) => void;
 }> = ({ tokens, onSelectToken, balanceType }) => {
   const [addressInput, setAddressInput] = useState('');
+  const chainId = useCofheChainId();
   const addCustomToken = useCustomTokensStore((state) => state.addCustomToken);
+  const removeCustomToken = useCustomTokensStore((state) => state.removeCustomToken);
+  const customTokensByChainId = useCustomTokensStore((state) => state.customTokensByChainId);
 
   const trimmedAddress = addressInput.trim();
   const normalizedAddress = isAddress(trimmedAddress) ? (trimmedAddress as Address) : undefined;
+
+  const importedCustomTokens = useMemo(() => {
+    if (!chainId) return [];
+    return customTokensByChainId[chainId.toString()] ?? [];
+  }, [chainId, customTokensByChainId]);
 
   const existingToken = useMemo(() => {
     if (!normalizedAddress) return undefined;
@@ -95,6 +104,40 @@ export const ImportCustomTokenCard: React.FC<{
           onSelectToken(previewToken);
         }}
       />
+
+      {importedCustomTokens.length > 0 && (
+        <div className="flex flex-col gap-2 border-t pt-3">
+          <p className="text-xs font-medium opacity-70">Imported tokens</p>
+          {importedCustomTokens.map((token) => (
+            <div
+              key={`${token.chainId}-${token.address}`}
+              className="flex items-center justify-between gap-3 px-3 py-2"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium fnx-text-primary truncate">
+                  {token.symbol} · {token.name}
+                </p>
+                <p className="text-xxxs opacity-70 truncate">{token.address}</p>
+              </div>
+              <Button
+                variant="error"
+                size="sm"
+                label="Remove"
+                onClick={() => {
+                  removeCustomToken({
+                    chainId: token.chainId,
+                    address: token.address,
+                  });
+
+                  if (normalizedAddress?.toLowerCase() === token.address.toLowerCase()) {
+                    setAddressInput('');
+                  }
+                }}
+              />
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
