@@ -452,4 +452,4 @@ export const MockThresholdNetworkArtifact = {
       inputs: [],
     },
   ],
-} satisfies MockArtifact;
+} as const satisfies MockArtifact;

@@ -1206,4 +1206,4 @@ export const MockTaskManagerArtifact = {
       ],
     },
   ],
-} satisfies MockArtifact;
+} as const satisfies MockArtifact;

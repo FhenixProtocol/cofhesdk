@@ -306,4 +306,4 @@ export const TestBedArtifact = {
       ],
     },
   ],
-} satisfies MockArtifact;
+} as const satisfies MockArtifact;

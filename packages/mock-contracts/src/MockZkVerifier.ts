@@ -261,4 +261,4 @@ export const MockZkVerifierArtifact = {
       inputs: [],
     },
   ],
-} satisfies MockArtifact;
+} as const satisfies MockArtifact;

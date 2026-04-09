@@ -615,4 +615,4 @@ export const MockACLArtifact = {
       ],
     },
   ],
-} satisfies MockArtifact;
+} as const satisfies MockArtifact;
