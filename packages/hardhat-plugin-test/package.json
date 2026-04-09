@@ -4,7 +4,6 @@
   "scripts": {
     "test": "npx hardhat test",
     "test:integration": "COFHE_SKIP_MOCKS_DEPLOY=1 npx hardhat test test/integration-*.test.ts",
-    "test:localcofhe": "COFHE_CHAIN_ID=420105 COFHE_SKIP_MOCKS_DEPLOY=1 npx hardhat test test/integration-localcofhe.test.ts test/integration-base-sepolia.test.ts test/integration-decrypt-tx.test.ts",
     "compile": "npx hardhat compile",
     "clean": "npx hardhat clean"
   },
