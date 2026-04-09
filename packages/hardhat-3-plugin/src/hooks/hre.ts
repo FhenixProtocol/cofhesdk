@@ -1,5 +1,6 @@
 import type { HardhatRuntimeEnvironmentHooks, NetworkHooks } from 'hardhat/types/hooks';
 import type { HardhatRuntimeEnvironment } from 'hardhat/types/hre';
+import { FileBuildResultType } from 'hardhat/types/solidity';
 import { createPublicClient, createWalletClient, custom, type PublicClient, type WalletClient } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 
@@ -119,6 +120,27 @@ function createCofheConnection(
 
 // ─── HRE hook ─────────────────────────────────────────────────────────────────
 
+function assertSuccessfulMockBuild(
+  hre: HardhatRuntimeEnvironment,
+  buildResult: Awaited<ReturnType<HardhatRuntimeEnvironment['solidity']['build']>>
+): void {
+  if (!hre.solidity.isSuccessfulBuildResult(buildResult)) {
+    throw new Error(
+      `Failed to build CoFHE mock contracts: ${buildResult.formattedReason} (${buildResult.rootFilePath})`
+    );
+  }
+
+  const failedBuilds = [...buildResult.entries()].filter(
+    ([, result]) => result.type === FileBuildResultType.BUILD_FAILURE
+  );
+  if (failedBuilds.length === 0) {
+    return;
+  }
+
+  const failedRoots = failedBuilds.map(([rootFilePath]) => rootFilePath).join(', ');
+  throw new Error(`Failed to build CoFHE mock contracts for: ${failedRoots}`);
+}
+
 const hreHooks: Partial<HardhatRuntimeEnvironmentHooks> = {
   async created(_context, hre: HardhatRuntimeEnvironment) {
     // Compile mock contracts once at startup so their build artifacts are on disk
@@ -128,7 +150,8 @@ const hreHooks: Partial<HardhatRuntimeEnvironmentHooks> = {
     const mockPaths = getMockContractsNpmPaths();
     if (mockPaths.length > 0) {
       try {
-        await hre.solidity.build(mockPaths, { quiet: true });
+        const buildResult = await hre.solidity.build(mockPaths, { quiet: true, scope: 'contracts' });
+        assertSuccessfulMockBuild(hre, buildResult);
       } catch (err: any) {
         const cause = err?.cause ?? err;
         if (cause?.code !== 'ENOENT') throw err;
