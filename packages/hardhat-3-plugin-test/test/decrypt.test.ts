@@ -96,10 +96,9 @@ describe('Decrypt', async () => {
       });
 
       await assert.rejects(client.decryptForTx(ctHash).withPermit().execute(), (err) => {
-        assert.equal(isCofheError(err), true);
-        if (isCofheError(err)) {
-          assert.equal(err.code, CofheErrorCode.DecryptFailed);
-          assert.match(err.message, /PermissionInvalid_Expired|expired|mocks decryptForTx call failed/i);
+        assert.equal(err instanceof Error, true);
+        if (err instanceof Error) {
+          assert.equal(err.message, 'Permit is expired');
         }
         return true;
       });
