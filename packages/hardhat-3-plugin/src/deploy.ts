@@ -1,21 +1,18 @@
+import type { ArtifactManager } from 'hardhat/types/artifacts';
 import type { PublicClient, WalletClient } from 'viem';
 import { createTestClient, custom } from 'viem';
 import chalk from 'chalk';
 import { privateKeyToAccount } from 'viem/accounts';
 
-import {
-  MockTaskManagerArtifact,
-  MockACLArtifact,
-  MockZkVerifierArtifact,
-  MockThresholdNetworkArtifact,
-  TestBedArtifact,
-} from '@cofhe/mock-contracts';
+import { MockTaskManagerArtifact, MockThresholdNetworkArtifact, TestBedArtifact } from '@cofhe/mock-contracts';
 import {
   TASK_MANAGER_ADDRESS,
   MOCKS_ZK_VERIFIER_ADDRESS,
   MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
   MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY,
   MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY,
+  MOCKS_THRESHOLD_NETWORK_ADDRESS,
+  TEST_BED_ADDRESS,
 } from '@cofhe/sdk';
 
 /**
@@ -26,6 +23,15 @@ import {
  */
 export type LogMocksDeploy = '' | 'v' | 'vv';
 
+/** Keyed map of deployed mock contract addresses returned by `deployMocks`. */
+export type DeployedMockContracts = {
+  MockTaskManager: `0x${string}`;
+  MockACL: `0x${string}`;
+  MockZkVerifier: `0x${string}`;
+  MockThresholdNetwork: `0x${string}`;
+  TestBed: `0x${string}` | undefined;
+};
+
 export type DeployMocksArgs = {
   deployTestBed?: boolean;
   gasWarning?: boolean;
@@ -35,6 +41,7 @@ export type DeployMocksArgs = {
 export type DeployContext = {
   publicClient: PublicClient;
   walletClient: WalletClient;
+  artifacts: ArtifactManager;
 };
 
 let verbosity: LogMocksDeploy = 'v';
@@ -54,19 +61,19 @@ async function isLocalHardhatNetwork(publicClient: PublicClient): Promise<boolea
   }
 }
 
-export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs = {}): Promise<void> {
+export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs = {}): Promise<DeployedMockContracts> {
   const { deployTestBed = true, gasWarning = true } = options;
   verbosity = options.mocksDeployVerbosity ?? 'v';
 
   if (!(await isLocalHardhatNetwork(ctx.publicClient))) {
     log('v', `cofhe-hardhat-3-plugin - deploy mocks - skipped on non-hardhat network`, 0);
-    return;
+    return {} as DeployedMockContracts;
   }
 
   log('vv', chalk.bold('cofhe-hardhat-3-plugin :: deploy mocks'), 0);
 
   // 1. Deploy TaskManager to its fixed address
-  await deployFixed(ctx.publicClient, MockTaskManagerArtifact);
+  await deployFixed(ctx.publicClient, 'MockTaskManager', TASK_MANAGER_ADDRESS, ctx.artifacts);
   logDeployment('MockTaskManager', TASK_MANAGER_ADDRESS);
 
   // 2. Initialize TaskManager — owner = first connected account
@@ -91,7 +98,7 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
   });
 
   // 4. Deploy MockACL normally so its EIP-712 constructor runs
-  const aclAddress = await deployVariable(ctx, MockACLArtifact, []);
+  const aclAddress = await deployVariable(ctx, 'MockACL', []);
   logDeployment('MockACL', aclAddress);
 
   // 5. Link ACL into TaskManager
@@ -145,11 +152,11 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
   log('vv', `ETH balance: ${zkVerifierBalance.toString()}`, 2);
 
   // 9. Deploy MockZkVerifier to its fixed address
-  await deployFixed(ctx.publicClient, MockZkVerifierArtifact);
+  await deployFixed(ctx.publicClient, 'MockZkVerifier', MOCKS_ZK_VERIFIER_ADDRESS, ctx.artifacts);
   logDeployment('MockZkVerifier', MOCKS_ZK_VERIFIER_ADDRESS);
 
   // 10. Deploy MockThresholdNetwork to its fixed address + initialize
-  await deployFixed(ctx.publicClient, MockThresholdNetworkArtifact);
+  await deployFixed(ctx.publicClient, 'MockThresholdNetwork', MockThresholdNetworkArtifact.fixedAddress, ctx.artifacts);
   logDeployment('MockThresholdNetwork', MockThresholdNetworkArtifact.fixedAddress);
   await ctx.walletClient.writeContract({
     address: MockThresholdNetworkArtifact.fixedAddress as `0x${string}`,
@@ -162,7 +169,7 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
 
   // 11. Optionally deploy TestBed
   if (deployTestBed) {
-    await deployFixed(ctx.publicClient, TestBedArtifact);
+    await deployFixed(ctx.publicClient, 'TestBed', TestBedArtifact.fixedAddress, ctx.artifacts);
     logDeployment('TestBed', TestBedArtifact.fixedAddress);
   }
 
@@ -179,33 +186,45 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
   }
 
   logEmpty('v');
+
+  return {
+    MockTaskManager: TASK_MANAGER_ADDRESS,
+    MockACL: aclAddress,
+    MockZkVerifier: MOCKS_ZK_VERIFIER_ADDRESS,
+    MockThresholdNetwork: MOCKS_THRESHOLD_NETWORK_ADDRESS,
+    TestBed: deployTestBed ? TEST_BED_ADDRESS : undefined,
+  };
 }
 
 // ─── Deployment helpers ───────────────────────────────────────────────────────
 
-/** Sets code at a fixed address via hardhat_setCode. */
+/** Sets compiled bytecode at a fixed address via hardhat_setCode. */
 async function deployFixed(
   publicClient: PublicClient,
-  artifact: { fixedAddress: string; deployedBytecode: string }
+  contractName: string,
+  fixedAddress: string,
+  artifactManager: ArtifactManager
 ): Promise<void> {
+  const { deployedBytecode } = await artifactManager.readArtifact(contractName);
   await (publicClient as any).request({
     method: 'hardhat_setCode',
-    params: [artifact.fixedAddress, artifact.deployedBytecode],
+    params: [fixedAddress, deployedBytecode],
   });
 }
 
-/** Deploys a variable-address artifact and returns the deployed address. */
+/** Deploys a contract by name and returns its deployed address. */
 async function deployVariable(
   ctx: DeployContext,
-  artifact: { abi: readonly unknown[]; bytecode: string },
+  contractName: string,
   constructorArgs: readonly unknown[]
 ): Promise<`0x${string}`> {
   const [account] = await ctx.walletClient.getAddresses();
+  const { abi, bytecode } = await ctx.artifacts.readArtifact(contractName);
 
   const hash = await ctx.walletClient.deployContract({
-    abi: artifact.abi,
-    bytecode: artifact.bytecode as `0x${string}`,
-    args: constructorArgs,
+    abi,
+    bytecode: bytecode as `0x${string}`,
+    args: constructorArgs as unknown[],
     account,
     chain: null,
   });

@@ -52,8 +52,8 @@ export interface CofheConnection {
     /** MockTaskManager contract descriptor — spread into readContract / writeContract */
     MockTaskManager: { address: `0x${string}`; abi: typeof MockTaskManagerArtifact.abi };
 
-    /** Resolves the MockACL descriptor from the TaskManager on-chain. */
-    MockACL(): Promise<{ address: `0x${string}`; abi: typeof MockACLArtifact.abi }>;
+    /** MockACL contract descriptor */
+    MockACL: { address: `0x${string}`; abi: typeof MockACLArtifact.abi };
 
     /** MockZkVerifier contract descriptor */
     MockZkVerifier: { address: `0x${string}`; abi: typeof MockZkVerifierArtifact.abi };

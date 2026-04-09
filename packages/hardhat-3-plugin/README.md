@@ -134,14 +134,12 @@ const client = await cofhe.createClientWithBatteries(walletClient);
 Each mock contract is exposed as an `{ address, abi }` object that can be spread directly into Viem's `readContract` / `writeContract`:
 
 ```typescript
-// Fixed-address contracts (synchronous):
+// All mock contracts are synchronous { address, abi } descriptors:
 cofhe.mocks.MockTaskManager; // { address: `0x...`, abi: [...] }
+cofhe.mocks.MockACL; // { address: `0x...`, abi: [...] }
 cofhe.mocks.MockZkVerifier; // { address: `0x...`, abi: [...] }
 cofhe.mocks.MockThresholdNetwork; // { address: `0x...`, abi: [...] }
 cofhe.mocks.TestBed; // { address: `0x...`, abi: [...] }
-
-// Dynamic-address contract (async — resolves from TaskManager on-chain):
-const mockACL = await cofhe.mocks.MockACL(); // { address: `0x...`, abi: [...] }
 ```
 
 Example — calling a mock directly with Viem:
