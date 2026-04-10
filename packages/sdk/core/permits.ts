@@ -75,6 +75,10 @@ const getHash = (permit: PermitHashFields) => {
   return PermitUtils.getHash(permit);
 };
 
+const exportShared = (permit: Permit) => {
+  return PermitUtils.export(permit);
+};
+
 const serialize = (permit: Permit) => {
   return PermitUtils.serialize(permit);
 };
@@ -188,6 +192,7 @@ export const permits = {
   getOrCreateSharingPermit,
 
   getHash,
+  export: exportShared,
   serialize,
   deserialize,
 
