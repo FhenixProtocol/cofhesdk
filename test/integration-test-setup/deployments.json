@@ -1,0 +1,19 @@
+{
+  "SimpleTest": {
+    "84532": {
+      "address": "0x5FE8aA20B0effC6208f33A8A13faB4356F174a1e",
+      "bytecodeHash": "0x8da353d4b7be674fcd28b2b3ff04cd73997fec852d8d7d5fb7e4b8ea26e16d9d",
+      "deployedAt": "2026-04-13T13:50:27.597Z"
+    },
+    "421614": {
+      "address": "0x3161bebc42612f67E5B40Ff751e3255FfbE9a549",
+      "bytecodeHash": "0x8da353d4b7be674fcd28b2b3ff04cd73997fec852d8d7d5fb7e4b8ea26e16d9d",
+      "deployedAt": "2026-04-13T13:50:31.050Z"
+    },
+    "11155111": {
+      "address": "0x606d18a47e836F1bCff731fC684f72b67a53691F",
+      "bytecodeHash": "0x8da353d4b7be674fcd28b2b3ff04cd73997fec852d8d7d5fb7e4b8ea26e16d9d",
+      "deployedAt": "2026-04-13T13:50:25.743Z"
+    }
+  }
+}
