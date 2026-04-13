@@ -1,5 +1,5 @@
 import { PortalModal, type PortalModalStateMap } from './types';
-import CloseIcon from '@mui/icons-material/Close';
+import CloseIcon from '@mui/icons-material/esm/Close';
 import { PageContainer } from '../components/PageContainer';
 
 export const ExampleSelectionPage: React.FC<PortalModalStateMap[PortalModal.ExampleSelection]> = ({

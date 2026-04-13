@@ -1,5 +1,5 @@
 import { cn } from '@/utils';
-import CloseIcon from '@mui/icons-material/Close';
+import CloseIcon from '@mui/icons-material/esm/Close';
 import { useFnxFloatingButtonContext } from './FnxFloatingButtonContext';
 import { FhenixLogoIcon } from '../FhenixLogoIcon';
 import { usePortalUI, usePortalStatuses } from '@/stores';

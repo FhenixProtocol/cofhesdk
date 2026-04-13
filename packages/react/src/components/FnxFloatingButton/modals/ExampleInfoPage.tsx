@@ -1,4 +1,4 @@
-import CloseIcon from '@mui/icons-material/Close';
+import CloseIcon from '@mui/icons-material/esm/Close';
 import type { PortalModal, PortalModalStateMap } from './types';
 import { PageContainer } from '../components/PageContainer';
 

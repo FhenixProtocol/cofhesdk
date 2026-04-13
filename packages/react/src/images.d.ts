@@ -28,3 +28,9 @@ declare module '*.webp' {
   const value: string;
   export default value;
 }
+
+declare module '@mui/icons-material/esm/*' {
+  import type { ComponentType, SVGProps } from 'react';
+  const icon: ComponentType<SVGProps<SVGSVGElement>>;
+  export default icon;
+}

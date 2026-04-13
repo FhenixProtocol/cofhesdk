@@ -1,4 +1,4 @@
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ArrowBackIcon from '@mui/icons-material/esm/ArrowBack';
 import PermitReceiveIcon from '@/assets/fhenix-permit-receive.svg';
 import { useReceivePermit } from '@/hooks/permits/index.js';
 import { usePortalNavigation, usePortalToasts } from '@/stores';

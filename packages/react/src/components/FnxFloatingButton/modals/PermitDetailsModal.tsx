@@ -1,5 +1,5 @@
 import { FaCheck, FaRegCopy } from 'react-icons/fa6';
-import CloseIcon from '@mui/icons-material/Close';
+import CloseIcon from '@mui/icons-material/esm/Close';
 import { usePermitDetailsPage } from '@/hooks/permits/index.js';
 import { PageContainer } from '@/components/FnxFloatingButton/components/PageContainer';
 import { PortalModal, type PortalModalStateMap } from './types';

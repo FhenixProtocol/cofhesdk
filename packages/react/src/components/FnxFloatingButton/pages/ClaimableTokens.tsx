@@ -1,6 +1,6 @@
 import { useCofheClaimableTokens } from '@/hooks/useCofheClaimableTokens';
 import { PageContainer } from '../components/PageContainer';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ArrowBackIcon from '@mui/icons-material/esm/ArrowBack';
 import { usePortalNavigation } from '@/stores';
 import { useCofheChainId } from '@/hooks/useCofheConnection';
 import { useCofheTokens } from '@/hooks/useCofheTokenLists';
