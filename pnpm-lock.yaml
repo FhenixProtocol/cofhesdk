@@ -696,6 +696,85 @@ importers:
 
   packages/tsconfig: {}
 
+  test/hardhat-3-plugin-test:
+    dependencies:
+      '@nomicfoundation/hardhat-viem':
+        specifier: ^3.0.4
+        version: 3.0.4(hardhat@3.1.12)(viem@2.38.6)
+    devDependencies:
+      '@cofhe/hardhat-3-plugin':
+        specifier: workspace:*
+        version: link:../../packages/hardhat-3-plugin
+      '@cofhe/mock-contracts':
+        specifier: workspace:*
+        version: link:../../packages/mock-contracts
+      '@cofhe/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
+      '@cofhe/tsconfig':
+        specifier: workspace:*
+        version: link:../../packages/tsconfig
+      '@nomicfoundation/hardhat-node-test-runner':
+        specifier: ^3.0.12
+        version: 3.0.12(hardhat@3.1.12)
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.15
+      hardhat:
+        specifier: ^3.1.12
+        version: 3.1.12
+      typescript:
+        specifier: 5.5.4
+        version: 5.5.4
+      viem:
+        specifier: ^2.38.6
+        version: 2.38.6(typescript@5.5.4)(zod@3.25.76)
+
+  test/hardhat-plugin-test:
+    devDependencies:
+      '@cofhe/hardhat-plugin':
+        specifier: workspace:*
+        version: link:../../packages/hardhat-plugin
+      '@cofhe/mock-contracts':
+        specifier: workspace:*
+        version: link:../../packages/mock-contracts
+      '@cofhe/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
+      '@fhenixprotocol/cofhe-contracts':
+        specifier: 0.1.0
+        version: 0.1.0
+      '@nomicfoundation/hardhat-ethers':
+        specifier: ^3.0.5
+        version: 3.1.0(ethers@6.15.0)(hardhat@2.26.3)
+      '@nomicfoundation/hardhat-toolbox':
+        specifier: ^6.0.0
+        version: 6.1.0(@nomicfoundation/hardhat-chai-matchers@2.1.0)(@nomicfoundation/hardhat-ethers@3.1.0)(@nomicfoundation/hardhat-ignition-ethers@0.15.14)(@nomicfoundation/hardhat-network-helpers@1.1.0)(@nomicfoundation/hardhat-verify@2.1.1)(@typechain/ethers-v6@0.5.1)(@typechain/hardhat@9.1.0)(@types/chai@4.3.20)(@types/mocha@10.0.10)(@types/node@20.19.15)(chai@4.5.0)(ethers@6.15.0)(hardhat-gas-reporter@2.3.0)(hardhat@2.26.3)(solidity-coverage@0.8.16)(ts-node@10.9.2)(typechain@8.3.2)(typescript@5.5.4)
+      '@openzeppelin/contracts':
+        specifier: ^5.0.0
+        version: 5.4.0
+      '@types/chai':
+        specifier: 4.3.20
+        version: 4.3.20
+      chai:
+        specifier: 4.5.0
+        version: 4.5.0
+      dotenv:
+        specifier: ^16.0.0
+        version: 16.0.3
+      ethers:
+        specifier: ^6.0.0
+        version: 6.15.0
+      ethers6:
+        specifier: npm:ethers@^6.13.0
+        version: /ethers@6.15.0
+      hardhat:
+        specifier: ^2.26.3
+        version: 2.26.3(ts-node@10.9.2)(typescript@5.5.4)
+      viem:
+        specifier: ^2.38.6
+        version: 2.38.6(typescript@5.5.4)(zod@4.1.12)
+
 packages:
 
   /@actions/core@1.11.1:
