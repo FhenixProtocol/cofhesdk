@@ -1,0 +1,13 @@
+{
+  "name": "@cofhe/integration-test-setup",
+  "private": true,
+  "scripts": {
+    "setup": "node setup.mjs",
+    "build": "forge build",
+    "clean": "forge clean"
+  },
+  "dependencies": {
+    "@fhenixprotocol/cofhe-contracts": "0.1.0",
+    "@openzeppelin/contracts": "^5.0.0"
+  }
+}
