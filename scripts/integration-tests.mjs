@@ -6,7 +6,7 @@ import path from 'node:path';
 import readline from 'node:readline/promises';
 
 const WORKSPACE_ROOT = process.cwd();
-const PKG_DIR = path.join(WORKSPACE_ROOT, 'packages', 'hardhat-plugin-test');
+const PKG_DIR = path.join(WORKSPACE_ROOT, 'test', 'hardhat-plugin-test');
 const TEST_GLOB_PREFIX = 'integration-';
 const TEST_GLOB_SUFFIX = '.test.ts';
 
@@ -18,8 +18,8 @@ function usage(exitCode = 0) {
     '  node scripts/integration-tests.mjs --substring <text>',
     '',
     'Notes:',
-    '  - Discovers tests from packages/hardhat-plugin-test/test/integration-*.test.ts',
-    '  - Runs via: pnpm -C packages/hardhat-plugin-test test:integration -- --grep <title>',
+    '  - Discovers tests from test/hardhat-plugin-test/test/integration-*.test.ts',
+    '  - Runs via: pnpm -C test/hardhat-plugin-test test:integration -- --grep <title>',
   ].join('\n');
   // eslint-disable-next-line no-console
   console.log(msg);
@@ -129,7 +129,7 @@ function findIntegrationIts(source) {
 async function listIntegrationTests() {
   const files = await discoverIntegrationTestFiles();
   if (files.length === 0) {
-    throw new Error('No integration test files found at packages/hardhat-plugin-test/test/integration-*.test.ts');
+    throw new Error('No integration test files found at test/hardhat-plugin-test/test/integration-*.test.ts');
   }
 
   const all = [];
@@ -151,7 +151,7 @@ function formatTestEntry(entry, index) {
 }
 
 async function runIntegrationTestByTitle(title) {
-  const args = ['-C', 'packages/hardhat-plugin-test', 'test:integration', '--grep', title];
+  const args = ['-C', 'test/hardhat-plugin-test', 'test:integration', '--grep', title];
 
   await new Promise((resolve, reject) => {
     const child = spawn('pnpm', args, {
