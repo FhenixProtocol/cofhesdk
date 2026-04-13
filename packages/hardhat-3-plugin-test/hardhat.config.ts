@@ -4,8 +4,8 @@ import hardhatViem from '@nomicfoundation/hardhat-viem';
 import hardhatNodeTestRunner from '@nomicfoundation/hardhat-node-test-runner';
 
 export default defineConfig({
-  plugins: [cofhePlugin, hardhatViem, hardhatNodeTestRunner],
-  cofhe: {
-    mocksDeployVerbosity: 'v',
+  solidity: {
+    version: '0.8.28',
   },
+  plugins: [cofhePlugin, hardhatViem, hardhatNodeTestRunner],
 });
