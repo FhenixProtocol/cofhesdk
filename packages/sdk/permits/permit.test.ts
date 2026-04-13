@@ -399,6 +399,29 @@ describe('PermitUtils Tests', () => {
       expect(parsed).not.toHaveProperty('sealingPair');
       expect(parsed).not.toHaveProperty('issuerSignature');
     });
+
+    it('should export sharing permit data with recipient and issuerSignature', async () => {
+      const permit = await PermitUtils.createSharingAndSign(
+        {
+          issuer: bobAddress,
+          recipient: aliceAddress,
+          name: 'Test Sharing Permit',
+        },
+        publicClient,
+        bobWalletClient
+      );
+
+      const exported = PermitUtils.export(permit);
+      const parsed = JSON.parse(exported);
+
+      expect(parsed.name).toBe('Test Sharing Permit');
+      expect(parsed.type).toBe('sharing');
+      expect(parsed.issuer).toBe(bobAddress);
+      expect(parsed.recipient).toBe(aliceAddress);
+      expect(parsed.issuerSignature).toBeDefined();
+      expect(parsed.issuerSignature).not.toBe('0x');
+      expect(parsed).not.toHaveProperty('sealingPair');
+    });
   });
 
   describe('updateName', () => {
