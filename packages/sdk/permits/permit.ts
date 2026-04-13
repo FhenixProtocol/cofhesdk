@@ -22,7 +22,6 @@ import {
   validateImportPermit,
   ValidationUtils,
 } from './validation.js';
-import * as z from 'zod';
 import { SignatureUtils } from './signature.js';
 import { GenerateSealingKey, SealingKey } from './sealing.js';
 import { checkPermitValidityOnChain, getAclEIP712Domain } from './onchain-utils.js';
