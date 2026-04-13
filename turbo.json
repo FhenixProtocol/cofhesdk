@@ -8,6 +8,11 @@
       "dependsOn": ["^build"],
       "env": ["HOME", "USERPROFILE", "VOCS_BASE_URL"]
     },
+    "@cofhe/site#build": {
+      "cache": false,
+      "dependsOn": ["^build"],
+      "env": ["HOME", "USERPROFILE", "VOCS_BASE_URL"]
+    },
     "test": {
       "dependsOn": ["^build"]
     },
