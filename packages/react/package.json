@@ -35,7 +35,10 @@
     "@cofhe/abi": "workspace:^",
     "@cofhe/eslint-config": "workspace:*",
     "@cofhe/tsconfig": "workspace:*",
-    "@mui/icons-material": "^5.0.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^5.18.0",
+    "@mui/material": "^5.18.0",
     "@svgr/core": "^8.1.0",
     "@svgr/plugin-jsx": "^8.1.0",
     "@types/react": "^18.2.61",
@@ -70,8 +73,6 @@
     "zustand": "^5.0.1"
   },
   "peerDependencies": {
-    "@mui/icons-material": "^5.0.0",
-    "@mui/material": "^5.0.0",
     "react": "^16.8.0 || ^17.0.0 || ^18.0.0",
     "react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0",
     "viem": "^2.38.6"

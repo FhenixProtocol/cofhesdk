@@ -426,9 +426,6 @@ importers:
       '@fhenixprotocol/cofhe-errors':
         specifier: ^1.0.2
         version: 1.0.2
-      '@mui/material':
-        specifier: ^5.0.0
-        version: 5.18.0(@emotion/react@11.14.0)(@emotion/styled@11.14.1)(@types/react@18.2.61)(react-dom@18.3.1)(react@18.3.1)
       '@radix-ui/react-dropdown-menu':
         specifier: ^2.1.16
         version: 2.1.16(@types/react-dom@18.2.19)(@types/react@18.2.61)(react-dom@18.3.1)(react@18.3.1)
@@ -481,9 +478,18 @@ importers:
       '@cofhe/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig
+      '@emotion/react':
+        specifier: ^11.14.0
+        version: 11.14.0(@types/react@18.2.61)(react@18.3.1)
+      '@emotion/styled':
+        specifier: ^11.14.1
+        version: 11.14.1(@emotion/react@11.14.0)(@types/react@18.2.61)(react@18.3.1)
       '@mui/icons-material':
-        specifier: ^5.0.0
+        specifier: ^5.18.0
         version: 5.18.0(@mui/material@5.18.0)(@types/react@18.2.61)(react@18.3.1)
+      '@mui/material':
+        specifier: ^5.18.0
+        version: 5.18.0(@emotion/react@11.14.0)(@emotion/styled@11.14.1)(@types/react@18.2.61)(react-dom@18.3.1)(react@18.3.1)
       '@svgr/core':
         specifier: ^8.1.0
         version: 8.1.0(typescript@5.5.4)
@@ -1334,7 +1340,7 @@ packages:
       idb-keyval: 6.2.1
       ox: 0.6.9(typescript@5.5.4)
       preact: 10.24.2
-      viem: 2.38.6(typescript@5.5.4)(zod@4.1.12)
+      viem: 2.38.6(typescript@5.5.4)
       zustand: 5.0.3(@types/react@18.2.61)(react@18.3.1)(use-sync-external-store@1.4.0)
     transitivePeerDependencies:
       - '@types/react'
@@ -1636,7 +1642,7 @@ packages:
       idb-keyval: 6.2.1
       ox: 0.6.9(typescript@5.5.4)
       preact: 10.24.2
-      viem: 2.38.6(typescript@5.5.4)(zod@4.1.12)
+      viem: 2.38.6(typescript@5.5.4)
       zustand: 5.0.3(@types/react@18.2.61)(react@18.3.1)(use-sync-external-store@1.4.0)
     transitivePeerDependencies:
       - '@types/react'
@@ -3137,7 +3143,7 @@ packages:
     dependencies:
       '@metamask/rpc-errors': 7.0.2
       eventemitter3: 5.0.1
-      viem: 2.38.6(typescript@5.5.4)(zod@4.1.12)
+      viem: 2.38.6(typescript@5.5.4)
     transitivePeerDependencies:
       - supports-color
     dev: false
@@ -6236,7 +6242,7 @@ packages:
     dependencies:
       big.js: 6.2.2
       dayjs: 1.11.13
-      viem: 2.38.6(typescript@5.5.4)(zod@4.1.12)
+      viem: 2.38.6(typescript@5.5.4)
     transitivePeerDependencies:
       - bufferutil
       - typescript
@@ -6264,7 +6270,7 @@ packages:
       '@reown/appkit-wallet': 1.7.8(typescript@5.5.4)
       '@walletconnect/universal-provider': 2.21.0(typescript@5.5.4)
       valtio: 1.13.2(@types/react@18.2.61)(react@18.3.1)
-      viem: 2.38.6(typescript@5.5.4)(zod@4.1.12)
+      viem: 2.38.6(typescript@5.5.4)
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'
@@ -6426,7 +6432,7 @@ packages:
       '@walletconnect/logger': 2.1.2
       '@walletconnect/universal-provider': 2.21.0(typescript@5.5.4)
       valtio: 1.13.2(@types/react@18.2.61)(react@18.3.1)
-      viem: 2.38.6(typescript@5.5.4)(zod@4.1.12)
+      viem: 2.38.6(typescript@5.5.4)
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'
@@ -6484,7 +6490,7 @@ packages:
       '@walletconnect/universal-provider': 2.21.0(typescript@5.5.4)
       bs58: 6.0.0
       valtio: 1.13.2(@types/react@18.2.61)(react@18.3.1)
-      viem: 2.38.6(typescript@5.5.4)(zod@4.1.12)
+      viem: 2.38.6(typescript@5.5.4)
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'
@@ -6810,7 +6816,7 @@ packages:
     resolution: {integrity: sha512-N5p/ulfnnA2Pi2M3YeWjULeWbjo7ei22JwU/IXnhoHzKq3pYCN6ynL9mJBOlvDVv892EgLPCWCOwQk/uBT2v0Q==}
     dependencies:
       '@safe-global/safe-gateway-typescript-sdk': 3.23.1
-      viem: 2.38.6(typescript@5.5.4)(zod@4.1.12)
+      viem: 2.38.6(typescript@5.5.4)
     transitivePeerDependencies:
       - bufferutil
       - typescript
@@ -9493,7 +9499,7 @@ packages:
       cbw-sdk: /@coinbase/wallet-sdk@3.9.3
       porto: 0.2.35(@tanstack/react-query@5.90.7)(@types/react@18.2.61)(@wagmi/core@2.22.1)(react@18.3.1)(typescript@5.5.4)(use-sync-external-store@1.4.0)(viem@2.38.6)(wagmi@2.19.2)
       typescript: 5.5.4
-      viem: 2.38.6(typescript@5.5.4)(zod@4.1.12)
+      viem: 2.38.6(typescript@5.5.4)
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'
@@ -9573,7 +9579,7 @@ packages:
       eventemitter3: 5.0.1
       mipd: 0.0.7(typescript@5.5.4)
       typescript: 5.5.4
-      viem: 2.38.6(typescript@5.5.4)(zod@4.1.12)
+      viem: 2.38.6(typescript@5.5.4)
       zustand: 5.0.0(@types/react@18.2.61)(react@18.3.1)(use-sync-external-store@1.4.0)
     transitivePeerDependencies:
       - '@types/react'
@@ -14367,7 +14373,7 @@ packages:
       lodash: 4.17.21
       markdown-table: 2.0.0
       sha1: 1.1.1
-      viem: 2.38.6(typescript@5.5.4)(zod@4.1.12)
+      viem: 2.38.6(typescript@5.5.4)
     transitivePeerDependencies:
       - bufferutil
       - debug
@@ -17822,7 +17828,7 @@ packages:
       ox: 0.9.14(typescript@5.5.4)(zod@4.1.12)
       react: 18.3.1
       typescript: 5.5.4
-      viem: 2.38.6(typescript@5.5.4)(zod@4.1.12)
+      viem: 2.38.6(typescript@5.5.4)
       wagmi: 2.19.2(@tanstack/react-query@5.90.7)(@types/react@18.2.61)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.5.4)(viem@2.38.6)(ws@8.18.3)
       zod: 4.1.12
       zustand: 5.0.8(@types/react@18.2.61)(react@18.3.1)(use-sync-external-store@1.4.0)
@@ -21204,6 +21210,28 @@ packages:
       - zod
     dev: false
 
+  /viem@2.38.6(typescript@5.5.4):
+    resolution: {integrity: sha512-aqO6P52LPXRjdnP6rl5Buab65sYa4cZ6Cpn+k4OLOzVJhGIK8onTVoKMFMT04YjDfyDICa/DZyV9HmvLDgcjkw==}
+    peerDependencies:
+      typescript: 5.5.4
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+    dependencies:
+      '@noble/curves': 1.9.1
+      '@noble/hashes': 1.8.0
+      '@scure/bip32': 1.7.0
+      '@scure/bip39': 1.6.0
+      abitype: 1.1.0(typescript@5.5.4)(zod@4.1.12)
+      isows: 1.0.7(ws@8.18.3)
+      ox: 0.9.6(typescript@5.5.4)(zod@4.1.12)
+      typescript: 5.5.4
+      ws: 8.18.3(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+      - zod
+
   /viem@2.38.6(typescript@5.5.4)(zod@3.22.4):
     resolution: {integrity: sha512-aqO6P52LPXRjdnP6rl5Buab65sYa4cZ6Cpn+k4OLOzVJhGIK8onTVoKMFMT04YjDfyDICa/DZyV9HmvLDgcjkw==}
     peerDependencies:
@@ -21685,7 +21713,7 @@ packages:
       react: 18.3.1
       typescript: 5.5.4
       use-sync-external-store: 1.4.0(react@18.3.1)
-      viem: 2.38.6(typescript@5.5.4)(zod@4.1.12)
+      viem: 2.38.6(typescript@5.5.4)
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'

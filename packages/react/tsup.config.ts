@@ -65,6 +65,7 @@ export default defineConfig({
   // Keep only JS/TS entry files in tsup. We'll copy CSS to `dist` in a post-build step
   // to avoid tsup generating a malformed CSS source map.
   entry: ['src/index.ts'],
+  noExternal: [/^@mui\//, /^@emotion\//],
   format: ['cjs', 'esm'],
   dts: {
     resolve: true,
@@ -94,7 +95,7 @@ export default defineConfig({
       },
     },
   ],
-  external: ['react', 'react-dom', '@mui/material', '@mui/icons-material', '@cofhe/sdk', '@cofhe/abi', 'viem'],
+  external: ['react', 'react-dom', '@cofhe/sdk', '@cofhe/abi', 'viem'],
   esbuildOptions(options) {
     options.jsx = 'automatic';
     // Handle image imports as data URLs

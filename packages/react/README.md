@@ -5,9 +5,9 @@ React component and hook for the CoFHE SDK - featuring the advanced FnxEncryptIn
 ## Installation
 
 ```bash
-npm install @cofhe/react @cofhe/sdk @mui/icons-material @mui/material
+npm install @cofhe/react @cofhe/sdk
 # or
-pnpm add @cofhe/react @cofhe/sdk @mui/icons-material @mui/material
+pnpm add @cofhe/react @cofhe/sdk
 ```
 
 ## Quick Start
@@ -143,10 +143,9 @@ If you're using Tailwind CSS in your project, the component classes will work au
 
 ### Required Peer Dependencies
 
-- `@mui/icons-material` ^5.0.0
-- `@mui/material` ^5.0.0
 - `react` ^16.8.0 || ^17.0.0 || ^18.0.0
 - `react-dom` ^16.8.0 || ^17.0.0 || ^18.0.0
+- `viem` ^2.38.6
 
 ### CoFHE SDK Dependencies
 
