@@ -32,7 +32,6 @@
     "test": "echo 'No tests configured for @cofhe/react'"
   },
   "devDependencies": {
-    "@cofhe/abi": "workspace:^",
     "@cofhe/eslint-config": "workspace:*",
     "@cofhe/tsconfig": "workspace:*",
     "@emotion/react": "^11.14.0",
@@ -56,6 +55,7 @@
     "typescript": "5.5.4"
   },
   "dependencies": {
+    "@cofhe/abi": "workspace:^",
     "@cofhe/sdk": "workspace:*",
     "@fhenixprotocol/cofhe-errors": "^1.0.2",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
