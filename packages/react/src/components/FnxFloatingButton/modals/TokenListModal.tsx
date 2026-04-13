@@ -2,7 +2,7 @@ import { PageContainer } from '../components/PageContainer';
 import { PortalModal, type PortalModalStateMap } from './types';
 import { useCofheChainId } from '@/hooks/useCofheConnection';
 import { type Token, useCofheTokens } from '@/hooks';
-import ArrowBackIcon from '@mui/icons-material/esm/ArrowBack';
+import { ArrowBackIcon } from '@/components/MaterialIcons';
 import { TokenRow } from '../components/TokenRow';
 import { useCofhePinnedTokenAddress } from '@/hooks/useCofhePinnedTokenAddress';
 import type { BalanceType } from '../components/CofheTokenConfidentialBalance';

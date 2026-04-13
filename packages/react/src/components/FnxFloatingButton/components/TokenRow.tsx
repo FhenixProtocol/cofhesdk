@@ -1,4 +1,4 @@
-import KeyboardArrowRightIcon from '@mui/icons-material/esm/KeyboardArrowRight';
+import { KeyboardArrowRightIcon } from '@/components/MaterialIcons';
 import { cn } from '../../../utils/cn';
 import type { Token } from '@/hooks/useCofheTokenLists';
 import { TokenIcon } from './TokenIcon';

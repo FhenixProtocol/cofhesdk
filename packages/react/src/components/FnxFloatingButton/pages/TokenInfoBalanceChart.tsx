@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 
-import LockIcon from '@mui/icons-material/esm/Lock';
-import PublicIcon from '@mui/icons-material/esm/Public';
+import { LockIcon, PublicIcon } from '@/components/MaterialIcons';
 
 import { useCofheTokenPublicBalance } from '@/hooks/useCofheTokenPublicBalance';
 import { useCofheTokenDecryptedBalance } from '@/hooks';

@@ -1,4 +1,4 @@
-import ArrowBackIcon from '@mui/icons-material/esm/ArrowBack';
+import { ArrowBackIcon } from '@/components/MaterialIcons';
 import { useSettingsStore, ShieldPageVariant, SHIELD_PAGE_VARIANT_LABELS } from '../stores/settingsStore.js';
 import { usePortalNavigation } from '@/stores';
 import { PageContainer } from '../components/PageContainer.js';

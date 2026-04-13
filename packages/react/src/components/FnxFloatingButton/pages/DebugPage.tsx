@@ -1,4 +1,4 @@
-import ArrowBackIcon from '@mui/icons-material/esm/ArrowBack';
+import { ArrowBackIcon } from '@/components/MaterialIcons';
 import { ToastPrimitive, ToastPrimitiveBase } from '../components/ToastPrimitives.js';
 import { useState } from 'react';
 import { PortalModal } from '../modals/types';
