@@ -409,7 +409,7 @@ importers:
   packages/react:
     dependencies:
       '@cofhe/abi':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../abi
       '@cofhe/sdk':
         specifier: workspace:*
