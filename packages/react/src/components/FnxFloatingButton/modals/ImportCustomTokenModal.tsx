@@ -1,5 +1,4 @@
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-
+import { ArrowBackIcon } from '@/components/Icons';
 import { PageContainer } from '../components/PageContainer';
 import { ImportCustomTokenCard } from './ImportCustomTokenCard';
 import { PortalModal, type PortalModalStateMap } from './types';
