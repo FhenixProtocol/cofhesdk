@@ -5,16 +5,43 @@ import { CofheTokenConfidentialBalance } from '../../components/CofheTokenConfid
 import { FloatingButtonPage } from '../../pagesConfig/types';
 import { usePortalNavigation } from '@/stores';
 import { useCofhePinnedToken } from '@/hooks/useCofhePinnedToken';
-import { useCofheChainId } from '@/hooks/useCofheConnection';
+import { useCofheChainId, useCofheConnection } from '@/hooks/useCofheConnection';
 import { DEFAULT_TOKEN_BY_CHAIN_ID } from '@/types/token';
+import { useCofheContext } from '@/providers';
 
 export const AssetCard: React.FC = () => {
   const { navigateTo } = usePortalNavigation();
+  const { connected } = useCofheConnection();
+  const {
+    client: {
+      config: {
+        react: { projectName },
+      },
+    },
+  } = useCofheContext();
 
   const pinnedToken = useCofhePinnedToken();
   const chainId = useCofheChainId();
   const fallbackToken = chainId ? DEFAULT_TOKEN_BY_CHAIN_ID[chainId] : undefined;
   const token = pinnedToken ?? fallbackToken;
+  const projectLabel = projectName ? `"${projectName}"` : 'this app';
+
+  if (!connected) {
+    return (
+      <div className="fnx-card-bg border border-[var(--fnx-border-color)] px-3 py-6 flex items-center justify-center">
+        <div className="w-full max-w-[26rem] text-center">
+          <h2 className="text-2xl font-semibold leading-none" style={{ color: 'var(--fnx-corner-accent-color)' }}>
+            CoFHE Portal
+          </h2>
+          <p className="mt-4 text-xl leading-tight fnx-text-primary">
+            Connect to {projectLabel}
+            <br />
+            to access
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const handleClick = () => {
     if (token) {

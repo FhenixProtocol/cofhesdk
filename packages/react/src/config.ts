@@ -79,6 +79,7 @@ export const CofheReactConfigSchema = z.object({
   shareablePermits: z.boolean().optional().default(false),
   enableShieldUnshield: z.boolean().optional().default(true),
   autogeneratePermits: z.boolean().optional().default(true),
+  projectName: z.string().trim().optional().default(''),
   logger: CofheReactLoggerSchema,
   permitExpirationOptions: z
     .array(
