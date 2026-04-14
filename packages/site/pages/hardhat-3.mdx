@@ -142,14 +142,12 @@ await cofhe.mocks.disableLogs();
 Each mock contract is exposed as a `{ address, abi }` object that can be spread directly into Viem's `readContract` / `writeContract`:
 
 ```ts
-// Fixed-address contracts (synchronous):
+// All mock contracts are synchronous { address, abi } descriptors:
 cofhe.mocks.MockTaskManager;
+cofhe.mocks.MockACL;
 cofhe.mocks.MockZkVerifier;
 cofhe.mocks.MockThresholdNetwork;
 cofhe.mocks.TestBed;
-
-// Dynamic address (resolved from TaskManager on-chain):
-const mockACL = await cofhe.mocks.MockACL();
 ```
 
 ## Complete example

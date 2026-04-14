@@ -435,6 +435,47 @@ describe('Core Permits Tests', () => {
     });
   });
 
+  describe('Export', () => {
+    it('should export self permit data without sensitive fields', async () => {
+      const permit = await permits.createSelf(
+        { name: 'Test Self Permit', issuer: bobAddress },
+        publicClient,
+        bobWalletClient
+      );
+
+      const exported = permits.export(permit);
+      const parsed = JSON.parse(exported);
+
+      expect(parsed.name).toBe('Test Self Permit');
+      expect(parsed.issuer).toBe(bobAddress);
+      expect(parsed).not.toHaveProperty('sealingPair');
+      expect(parsed).not.toHaveProperty('issuerSignature');
+    });
+
+    it('should export sharing permit data with recipient and issuerSignature', async () => {
+      const permit = await permits.createSharing(
+        {
+          name: 'Test Sharing Permit',
+          issuer: bobAddress,
+          recipient: aliceAddress,
+        },
+        publicClient,
+        bobWalletClient
+      );
+
+      const exported = permits.export(permit);
+      const parsed = JSON.parse(exported);
+
+      expect(parsed.name).toBe('Test Sharing Permit');
+      expect(parsed.type).toBe('sharing');
+      expect(parsed.issuer).toBe(bobAddress);
+      expect(parsed.recipient).toBe(aliceAddress);
+      expect(parsed.issuerSignature).toBeDefined();
+      expect(parsed.issuerSignature).not.toBe('0x');
+      expect(parsed).not.toHaveProperty('sealingPair');
+    });
+  });
+
   describe('getOrCreate - Multiple Types Scenarios', () => {
     it('should handle switching between self and sharing permits', async () => {
       // Create self permit

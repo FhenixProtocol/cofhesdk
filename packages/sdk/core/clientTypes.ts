@@ -105,6 +105,7 @@ export type CofheClientPermits = {
 
   // Utils
   getHash: typeof PermitUtils.getHash;
+  export: typeof PermitUtils.export;
   serialize: typeof PermitUtils.serialize;
   deserialize: typeof PermitUtils.deserialize;
 };

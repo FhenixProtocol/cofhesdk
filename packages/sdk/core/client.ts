@@ -296,6 +296,7 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
 
     // Utils (no context needed)
     getHash: permits.getHash,
+    export: permits.export,
     serialize: permits.serialize,
     deserialize: permits.deserialize,
   };

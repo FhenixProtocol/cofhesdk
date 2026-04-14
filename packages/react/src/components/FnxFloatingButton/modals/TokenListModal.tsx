@@ -1,7 +1,7 @@
 import { PageContainer } from '../components/PageContainer';
 import { PortalModal, type PortalModalStateMap } from './types';
-import type { Token } from '@/types/token';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { type Token } from '@/hooks';
+import { ArrowBackIcon } from '@/components/Icons';
 import { TokenRow } from '../components/TokenRow';
 import { useCofhePinnedTokenAddress } from '@/hooks/useCofhePinnedTokenAddress';
 import type { BalanceType } from '../components/CofheTokenConfidentialBalance';

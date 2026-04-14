@@ -37,6 +37,7 @@
     "forge-std": "github:foundry-rs/forge-std"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   }
 }

@@ -3,6 +3,12 @@ name: Publish
 on:
   push:
     branches: [master]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'npm dist-tag for the snapshot (e.g. alpha, next)'
+        required: true
+        default: 'alpha'
 
 permissions:
   id-token: write
@@ -14,6 +20,7 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 jobs:
   # Create (or update) the Version Packages pull request when PR merged containing a changeset
   version-packages:
+    if: ${{ github.event_name == 'push' }}
     name: Version Packages
     runs-on: ubuntu-latest
     steps:
@@ -30,8 +37,8 @@ jobs:
         with:
           node-version: 20
 
-      # - name: Ensure latest npm
-      #   run: npm i -g npm@latest
+      - name: Ensure valid pinned npm version (>11.5.1)
+        run: npm i -g npm@11.6.2
 
       - name: Install Dependencies
         run: pnpm i --frozen-lockfile
@@ -41,9 +48,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # Publish beta snapshots upon merge to master
-  beta-snapshot:
-    if: ${{ !contains(github.event.head_commit.message, 'Version Packages') }}
+  # Manually publish a snapshot from any branch via workflow_dispatch
+  alpha-snapshot:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
@@ -60,8 +67,43 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org
 
-      # - name: Ensure latest npm
-      #   run: npm i -g npm@latest
+      - name: Ensure valid pinned npm version (>11.5.1)
+        run: npm i -g npm@11.6.2
+
+      - name: Install Dependencies
+        run: pnpm i --frozen-lockfile
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Publish Alpha Snapshot
+        run: pnpm run alpha:snapshot
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  # Publish beta snapshots upon merge to master
+  beta-snapshot:
+    if: ${{ github.event_name == 'push' && !contains(github.event.head_commit.message, 'Version Packages') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm 8
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Setup Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Ensure valid pinned npm version (>11.5.1)
+        run: npm i -g npm@11.6.2
 
       - name: Install Dependencies
         run: pnpm i --frozen-lockfile
@@ -76,7 +118,7 @@ jobs:
 
   # Publish stable releases when the Version Packages pull request is merged
   stable-release:
-    if: ${{ contains(github.event.head_commit.message, 'Version Packages') }}
+    if: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, 'Version Packages') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
@@ -95,8 +137,8 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org
 
-      # - name: Ensure latest npm
-      #   run: npm i -g npm@latest
+      - name: Ensure valid pinned npm version (>11.5.1)
+        run: npm i -g npm@11.6.2
 
       - name: Install Dependencies
         run: pnpm i --frozen-lockfile

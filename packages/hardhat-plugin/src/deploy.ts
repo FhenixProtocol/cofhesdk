@@ -51,6 +51,14 @@ export const deployMocks = async (
     return;
   }
 
+  // Compile mock contracts before deploying so that hre.artifacts.readArtifact()
+  // resolves correctly and Hardhat can decode reverts against these contracts.
+  // The subtask override in index.ts adds the mock-contracts source files to the
+  // compilation pipeline, so they are compiled alongside the project's own contracts.
+  // Calling compile here is safe: Hardhat caches results, so a second compile
+  // triggered by TASK_TEST's runSuper() will be a fast no-op.
+  await hre.run('compile', { quiet: true });
+
   log('vv', chalk.bold('cofhe-hardhat-plugin :: deploy mocks'), 0);
 
   // Deploy mock contracts

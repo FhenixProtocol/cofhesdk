@@ -32,10 +32,8 @@
     "test": "echo 'No tests configured for @cofhe/react'"
   },
   "devDependencies": {
-    "@cofhe/abi": "workspace:^",
     "@cofhe/eslint-config": "workspace:*",
     "@cofhe/tsconfig": "workspace:*",
-    "@mui/icons-material": "^5.0.0",
     "@svgr/core": "^8.1.0",
     "@svgr/plugin-jsx": "^8.1.0",
     "@types/react": "^18.2.61",
@@ -53,6 +51,7 @@
     "typescript": "5.5.4"
   },
   "dependencies": {
+    "@cofhe/abi": "workspace:*",
     "@cofhe/sdk": "workspace:*",
     "@fhenixprotocol/cofhe-errors": "^1.0.2",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
@@ -70,13 +69,12 @@
     "zustand": "^5.0.1"
   },
   "peerDependencies": {
-    "@mui/icons-material": "^5.0.0",
-    "@mui/material": "^5.0.0",
-    "react": "^16.8.0 || ^17.0.0 || ^18.0.0",
-    "react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0",
+    "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0",
+    "react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0",
     "viem": "^2.38.6"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   }
 }

@@ -46,7 +46,7 @@ describe('Deploy Mocks', async () => {
   });
 
   it('MockACL is deployed and its address matches TaskManager.acl()', async () => {
-    const { address } = await cofhe.mocks.MockACL();
+    const { address } = cofhe.mocks.MockACL;
     const aclFromTm = await publicClient.readContract({
       ...cofhe.mocks.MockTaskManager,
       functionName: 'acl',

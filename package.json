@@ -2,7 +2,7 @@
   "private": true,
   "scripts": {
     "build": "turbo run build --filter='!./examples/*' --filter='!./packages/site'",
-    "build:docs": "turbo run build --filter=@cofhe/site",
+    "build:docs": "node scripts/build-docs.mjs",
     "dev": "turbo run dev",
     "test": "turbo run test",
     "test:integration": "pnpm --filter \"./packages/hardhat-plugin-test\" test:integration",
@@ -17,6 +17,7 @@
     "version-packages": "changeset version",
     "release": "pnpm run build && changeset publish",
     "beta:snapshot": "changeset version --snapshot beta && pnpm -r build && changeset publish --tag beta",
+    "alpha:snapshot": "changeset version --snapshot alpha && pnpm -r build && changeset publish --tag alpha",
     "docs": "pnpm --filter @cofhe/site dev"
   },
   "devDependencies": {

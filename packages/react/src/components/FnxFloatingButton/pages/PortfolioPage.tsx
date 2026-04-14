@@ -3,11 +3,11 @@ import { PageContainer } from '../components/PageContainer';
 import { FloatingButtonPage } from '../pagesConfig/types';
 import { useCofheTokens } from '@/hooks';
 import { TokenListContent } from '../modals/TokenListModal';
-import { AddCustomTokenButton } from '../modals/AddCustomTokenButton';
 import { usePortalModals, usePortalNavigation } from '@/stores';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { ArrowBackIcon } from '@/components/Icons';
 import { BalanceType } from '../components/CofheTokenConfidentialBalance';
 import { PortalModal } from '../modals/types';
+import { AddCustomTokenButton } from '../modals/AddCustomTokenButton';
 
 declare module '../pagesConfig/types' {
   interface FloatingButtonPagePropsRegistry {

@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
+import { ArrowBackIcon, KeyboardArrowRightIcon } from '@/components/Icons';
 import { isAddress, maxUint128 } from 'viem';
 import { useCofheAccount } from '@/hooks/useCofheConnection';
 import { useCofheTokenDecryptedBalance } from '@/hooks/useCofheTokenDecryptedBalance';
