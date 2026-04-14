@@ -10,7 +10,7 @@ import type {
 import { cn } from '../utils/cn.js';
 import { debounce } from '../utils/debounce.js';
 import { FheTypesList } from '../utils/utils.js';
-import { CheckIcon, ContentCopyIcon, KeyboardArrowDownIcon, SecurityIcon } from '@/components/MaterialIcons';
+import { CheckIcon, ContentCopyIcon, KeyboardArrowDownIcon, SecurityIcon } from '@/components/Icons';
 import { Encryptable, type FheTypeValue } from '@cofhe/sdk';
 import { getStepConfig, useCofheEncrypt } from '@/hooks/useCofheEncrypt';
 import { cofheLogger } from '@/utils/debug';

@@ -1,4 +1,4 @@
-import { ArrowBackIcon } from '@/components/MaterialIcons';
+import { ArrowBackIcon } from '@/components/Icons';
 import { usePermitDuration, usePermitForm } from '@/hooks/permits/index';
 import PermitIcon from '@/assets/fhenix-permit-icon.svg';
 import { NameSection } from '../components/NameSection';

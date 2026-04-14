@@ -1,4 +1,4 @@
-import { ArrowBackIcon, KeyboardArrowDownIcon } from '@/components/MaterialIcons';
+import { ArrowBackIcon, KeyboardArrowDownIcon } from '@/components/Icons';
 import { TbShieldPlus, TbShieldMinus } from 'react-icons/tb';
 import { LuExternalLink } from 'react-icons/lu';
 import { useMemo, useState } from 'react';

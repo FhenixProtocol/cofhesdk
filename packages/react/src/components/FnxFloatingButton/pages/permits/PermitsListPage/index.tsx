@@ -1,4 +1,4 @@
-import { ArrowBackIcon } from '@/components/MaterialIcons';
+import { ArrowBackIcon } from '@/components/Icons';
 import { FaKey, FaDownload, FaPlus } from 'react-icons/fa';
 import { type ElementType } from 'react';
 import { Accordion, AccordionSection } from '../../../Accordion.js';

@@ -1,6 +1,6 @@
 import { useMemo, type ReactNode } from 'react';
 
-import { ArrowBackIcon, LockIcon, PublicIcon } from '@/components/MaterialIcons';
+import { ArrowBackIcon, LockIcon, PublicIcon } from '@/components/Icons';
 
 import { cn } from '@/utils/cn';
 import type { Token } from '@/types/token';

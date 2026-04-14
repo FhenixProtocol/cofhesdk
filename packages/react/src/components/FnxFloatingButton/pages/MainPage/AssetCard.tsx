@@ -1,5 +1,5 @@
 import { cn } from '@/utils/cn';
-import { KeyboardArrowRightIcon } from '@/components/MaterialIcons';
+import { KeyboardArrowRightIcon } from '@/components/Icons';
 import { TokenIcon } from '../../components/TokenIcon';
 import { CofheTokenConfidentialBalance } from '../../components/CofheTokenConfidentialBalance';
 import { FloatingButtonPage } from '../../pagesConfig/types';

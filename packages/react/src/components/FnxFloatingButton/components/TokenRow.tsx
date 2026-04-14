@@ -1,4 +1,4 @@
-import { KeyboardArrowRightIcon } from '@/components/MaterialIcons';
+import { KeyboardArrowRightIcon } from '@/components/Icons';
 import { cn } from '../../../utils/cn';
 import type { Token } from '@/hooks/useCofheTokenLists';
 import { TokenIcon } from './TokenIcon';

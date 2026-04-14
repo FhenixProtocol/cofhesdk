@@ -1,4 +1,4 @@
-import { CloseIcon } from '@/components/MaterialIcons';
+import { CloseIcon } from '@/components/Icons';
 import { PageContainer } from '../components/PageContainer';
 import { Button } from '../components';
 

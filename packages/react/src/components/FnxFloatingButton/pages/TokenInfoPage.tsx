@@ -6,7 +6,7 @@ import { sepolia } from '@cofhe/sdk/chains';
 import { TMP_WBTC_ON_MAINNET } from '@/utils/coingecko';
 import { useMemo } from 'react';
 
-import { ArrowBackIcon } from '@/components/MaterialIcons';
+import { ArrowBackIcon } from '@/components/Icons';
 
 import { Button } from '../components/Button';
 import { PageContainer } from '../components/PageContainer';

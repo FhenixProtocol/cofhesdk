@@ -1,4 +1,4 @@
-import { CloseIcon } from '@/components/MaterialIcons';
+import { CloseIcon } from '@/components/Icons';
 import type { PortalModal, PortalModalStateMap } from './types';
 import { PageContainer } from '../components/PageContainer';
 
