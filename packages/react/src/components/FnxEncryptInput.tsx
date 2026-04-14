@@ -10,10 +10,7 @@ import type {
 import { cn } from '../utils/cn.js';
 import { debounce } from '../utils/debounce.js';
 import { FheTypesList } from '../utils/utils.js';
-import SecurityIcon from '@mui/icons-material/Security';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import CheckIcon from '@mui/icons-material/Check';
+import { CheckIcon, ContentCopyIcon, KeyboardArrowDownIcon, SecurityIcon } from '@/components/Icons';
 import { Encryptable, type FheTypeValue } from '@cofhe/sdk';
 import { getStepConfig, useCofheEncrypt } from '@/hooks/useCofheEncrypt';
 import { cofheLogger } from '@/utils/debug';
@@ -331,10 +328,9 @@ export const FnxEncryptInput: React.FC<FnxEncryptInputProps> = ({
     }
   };
 
-  // Material Icons components
-  const ShieldIcon = () => <SecurityIcon sx={{ fontSize: 14 }} />;
+  const ShieldIcon = () => <SecurityIcon style={{ fontSize: 14 }} />;
 
-  const ChevronDownIcon = () => <KeyboardArrowDownIcon sx={{ fontSize: 14 }} />;
+  const ChevronDownIcon = () => <KeyboardArrowDownIcon style={{ fontSize: 14 }} />;
 
   return (
     <div className="w-full">
@@ -367,7 +363,11 @@ export const FnxEncryptInput: React.FC<FnxEncryptInputProps> = ({
                     title={copySuccess ? 'Copied to clipboard!' : 'Copy encrypted result to clipboard'}
                   >
                     <>
-                      {copySuccess ? <CheckIcon sx={{ fontSize: 12 }} /> : <ContentCopyIcon sx={{ fontSize: 12 }} />}
+                      {copySuccess ? (
+                        <CheckIcon style={{ fontSize: 12 }} />
+                      ) : (
+                        <ContentCopyIcon style={{ fontSize: 12 }} />
+                      )}
                       Copy
                     </>
                   </button>

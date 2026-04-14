@@ -4,7 +4,7 @@ import { FloatingButtonPage } from '../pagesConfig/types';
 import { useCofheTokens } from '@/hooks';
 import { AddCustomTokenButton, TokenListContent } from '../modals/TokenListModal';
 import { usePortalNavigation } from '@/stores';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { ArrowBackIcon } from '@/components/Icons';
 import { BalanceType } from '../components/CofheTokenConfidentialBalance';
 
 declare module '../pagesConfig/types' {

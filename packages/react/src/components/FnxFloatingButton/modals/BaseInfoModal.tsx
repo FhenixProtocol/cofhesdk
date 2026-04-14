@@ -1,4 +1,4 @@
-import CloseIcon from '@mui/icons-material/Close';
+import { CloseIcon } from '@/components/Icons';
 import { PageContainer } from '../components/PageContainer';
 import { Button } from '../components';
 
