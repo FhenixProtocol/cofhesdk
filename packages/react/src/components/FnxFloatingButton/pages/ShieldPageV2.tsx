@@ -3,6 +3,7 @@ import { TbShieldPlus, TbShieldMinus } from 'react-icons/tb';
 import { LuExternalLink } from 'react-icons/lu';
 import { useMemo, useState } from 'react';
 import { ContractFunctionExecutionError, parseUnits, type Address } from 'viem';
+import { isTokenOperationSupported } from '@/types/token';
 import { useCofheAccount, useCofheChainId } from '@/hooks/useCofheConnection';
 import { useCofheTokenDecryptedBalance } from '@/hooks/useCofheTokenDecryptedBalance';
 import { type Token } from '@/hooks/useCofheTokenLists';
@@ -470,8 +471,6 @@ function useUnshieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps
   };
 }
 
-const shieldableTypes = new Set(['wrapped']);
-
 export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token: _token, defaultMode }) => {
   const [mode, setMode] = useState<Mode>(defaultMode ?? 'shield');
   const [overriddenToken, setOverriddenToken] = useState<Token | null>(null);
@@ -677,14 +676,14 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
   const { navigateBack } = usePortalNavigation();
   const { openModal } = usePortalModals();
 
-  const isShieldableToken = shieldableTypes.has(token.extensions.fhenix.confidentialityType);
+  const isShieldableToken = isTokenOperationSupported(token.extensions.fhenix.confidentialityType, 'shield');
 
   const { tokensWithExistingEncryptedBalance } = useCofheTokensWithExistingEncryptedBalances();
   const { tokensWithPublicBalances } = useTokensWithPublicBalances();
   const selectableTokens = useMemo(
     () =>
       (mode === 'unshield' ? tokensWithExistingEncryptedBalance : tokensWithPublicBalances).filter((candidate) =>
-        shieldableTypes.has(candidate.extensions.fhenix.confidentialityType)
+        isTokenOperationSupported(candidate.extensions.fhenix.confidentialityType, mode)
       ),
     [mode, tokensWithExistingEncryptedBalance, tokensWithPublicBalances]
   );

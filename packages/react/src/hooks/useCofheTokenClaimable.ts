@@ -3,6 +3,7 @@ import { type Address } from 'viem';
 import { useCofhePublicClient } from './useCofheConnection.js';
 import { type Token } from './useCofheTokenLists.js';
 import { WRAPPED_GET_USER_CLAIMS_ABI } from '../constants/confidentialTokenABIs.js';
+import { isTokenOperationSupported, type SupportedTokenConfidentialityType } from '@/types/token';
 import { useInternalQuery } from '../providers/index.js';
 import { decryptionAwareReadContract } from '@/utils/decryptionAwareReadContract.js';
 import { useIsWaitingForDecryptionToInvalidate } from './useIsWaitingForDecryptionToInvalidate.js';
@@ -69,15 +70,17 @@ export const DEFAULT_UNSHIELD_CLAIM_SUMMARY: UnshieldClaimsSummary = {
   hasPending: false,
 };
 
-export function isTokenConfidentialityTypeClaimable(type: string | undefined): type is 'wrapped' {
-  return type === 'wrapped';
+export function isTokenConfidentialityTypeClaimable(
+  type: string | undefined
+): type is SupportedTokenConfidentialityType {
+  return isTokenOperationSupported(type, 'claimable');
 }
 
 export type FetchUnshieldClaimsSummaryInput = {
   publicClient: NonNullable<ReturnType<typeof useCofhePublicClient>>;
   token: Token;
   accountAddress: Address;
-  confidentialityType: 'wrapped';
+  confidentialityType: SupportedTokenConfidentialityType;
   queryKey: QueryKey;
   signal: AbortSignal;
 };

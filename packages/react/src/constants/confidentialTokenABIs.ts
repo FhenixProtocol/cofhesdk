@@ -1,5 +1,22 @@
-import type { Token } from '@/types/token';
+import type { Token, TokenConfidentialityType } from '@/types/token';
 import { parseAbi } from 'viem';
+
+type ContractConfig = {
+  abi: readonly unknown[];
+  functionName: string;
+};
+
+function getRequiredContractConfig<TConfig>(
+  configs: Partial<Record<TokenConfidentialityType, TConfig>>,
+  confidentialityType: TokenConfidentialityType,
+  operation: string
+): TConfig {
+  const config = configs[confidentialityType];
+  if (!config) {
+    throw new Error(`${operation} config is not defined for confidentialityType: ${confidentialityType}`);
+  }
+  return config;
+}
 
 // ============================================================================
 // ERC20 Standard ABIs (for approval flow)
@@ -55,7 +72,7 @@ export const CONFIDENTIAL_ABIS = {
     abi: CONFIDENTIAL_TYPE_WRAPPED_ABI,
     functionName: 'encBalanceOf' as const,
   },
-} as const;
+} as const satisfies Partial<Record<TokenConfidentialityType, ContractConfig>>;
 
 // ============================================================================
 // Confidential Token Transfer ABIs
@@ -122,7 +139,7 @@ export const TRANSFER_ABIS = {
     abi: WRAPPED_TRANSFER_ABI,
     functionName: 'encTransfer' as const,
   },
-} as const;
+} as const satisfies Partial<Record<TokenConfidentialityType, ContractConfig>>;
 
 // ============================================================================
 // Shield/Unshield ABIs (wrapped tokens)
@@ -195,7 +212,7 @@ export const SHIELD_ABIS = {
     abi: WRAPPED_ENCRYPT_ABI,
     functionName: 'encrypt' as const,
   },
-} as const;
+} as const satisfies Partial<Record<TokenConfidentialityType, ContractConfig>>;
 
 /**
  * Map confidentialityType to unshield ABIs and function names
@@ -205,7 +222,7 @@ export const UNSHIELD_ABIS = {
     abi: WRAPPED_DECRYPT_ABI,
     functionName: 'decrypt' as const,
   },
-} as const;
+} as const satisfies Partial<Record<TokenConfidentialityType, ContractConfig>>;
 
 /**
  * Map confidentialityType to claim ABIs and function names
@@ -215,8 +232,20 @@ export const CLAIM_ABIS = {
     abi: WRAPPED_CLAIM_ALL_DECRYPTED_ABI,
     functionName: 'claimAllDecrypted' as const,
   },
-} as const;
+} as const satisfies Partial<Record<TokenConfidentialityType, ContractConfig>>;
 
 export function getTokenContractConfig(confidentialityType: Token['extensions']['fhenix']['confidentialityType']) {
-  return CONFIDENTIAL_ABIS[confidentialityType];
+  return getRequiredContractConfig(CONFIDENTIAL_ABIS, confidentialityType, 'confidential balance');
+}
+
+export function getTransferContractConfig(confidentialityType: Token['extensions']['fhenix']['confidentialityType']) {
+  return getRequiredContractConfig(TRANSFER_ABIS, confidentialityType, 'transfer');
+}
+
+export function getUnshieldContractConfig(confidentialityType: Token['extensions']['fhenix']['confidentialityType']) {
+  return getRequiredContractConfig(UNSHIELD_ABIS, confidentialityType, 'unshield');
+}
+
+export function getClaimContractConfig(confidentialityType: Token['extensions']['fhenix']['confidentialityType']) {
+  return getRequiredContractConfig(CLAIM_ABIS, confidentialityType, 'claim');
 }

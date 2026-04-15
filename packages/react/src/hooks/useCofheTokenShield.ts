@@ -7,6 +7,7 @@ import {
 import { type Address } from 'viem';
 import { useCofheWalletClient, useCofheChainId, useCofheAccount, useCofhePublicClient } from './useCofheConnection.js';
 import { type Token, ETH_ADDRESS_LOWERCASE } from './useCofheTokenLists.js';
+import { assertTokenOperationSupported } from '@/types/token';
 import {
   WRAPPED_ETH_ENCRYPT_ETH_ABI,
   WRAPPED_ENCRYPT_ABI,
@@ -30,9 +31,7 @@ export function getCofheTokenShieldCallArgs(params: { token: Token; amount: bigi
     throw new Error('confidentialityType is required in token extensions');
   }
 
-  if (confidentialityType !== 'wrapped') {
-    throw new Error(`Shield not supported for confidentialityType: ${confidentialityType}`);
-  }
+  assertTokenOperationSupported(confidentialityType, 'shield');
 
   const erc20PairAddress = token.extensions.fhenix.erc20Pair?.address;
   const isEth = erc20PairAddress?.toLowerCase() === ETH_ADDRESS_LOWERCASE;
@@ -138,9 +137,7 @@ export function useCofheTokenShield(
         throw new Error('Wallet account is required for token shield');
       }
 
-      if (confidentialityType !== 'wrapped') {
-        throw new Error(`Shield not supported for confidentialityType: ${confidentialityType}`);
-      }
+      assertTokenOperationSupported(confidentialityType, 'shield');
 
       let hash: `0x${string}`;
 

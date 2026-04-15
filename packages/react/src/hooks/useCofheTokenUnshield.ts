@@ -2,7 +2,8 @@ import { type MutationFunctionContext, type UseMutationOptions, type UseMutation
 import { type Address } from 'viem';
 import { useCofheWalletClient, useCofheChainId, useCofheAccount, useCofhePublicClient } from './useCofheConnection.js';
 import { type Token } from './useCofheTokenLists.js';
-import { UNSHIELD_ABIS } from '../constants/confidentialTokenABIs.js';
+import { assertTokenOperationSupported } from '@/types/token';
+import { getUnshieldContractConfig } from '../constants/confidentialTokenABIs.js';
 import { TransactionActionType, TransactionStatus, useTransactionStore } from '../stores/transactionStore.js';
 import { useInternalMutation } from '../providers/index.js';
 import { assert } from 'ts-essentials';
@@ -24,14 +25,9 @@ export function getCofheTokenUnshieldCallArgs(params: {
     throw new Error('confidentialityType is required in token extensions');
   }
 
-  if (confidentialityType !== 'wrapped') {
-    throw new Error(`Unshield not supported for confidentialityType: ${confidentialityType}`);
-  }
+  assertTokenOperationSupported(confidentialityType, 'unshield');
 
-  const contractConfig = UNSHIELD_ABIS[confidentialityType];
-  if (!contractConfig) {
-    throw new Error(`Unsupported confidentialityType for unshield: ${confidentialityType}`);
-  }
+  const contractConfig = getUnshieldContractConfig(confidentialityType);
 
   return {
     address: tokenAddress,
@@ -97,14 +93,9 @@ function useCofheTokenUnshieldMutation(
         throw new Error('Wallet account is required for token unshield');
       }
 
-      if (confidentialityType !== 'wrapped') {
-        throw new Error(`Unshield not supported for confidentialityType: ${confidentialityType}`);
-      }
+      assertTokenOperationSupported(confidentialityType, 'unshield');
 
-      const contractConfig = UNSHIELD_ABIS[confidentialityType];
-      if (!contractConfig) {
-        throw new Error(`Unsupported confidentialityType for unshield: ${confidentialityType}`);
-      }
+      const contractConfig = getUnshieldContractConfig(confidentialityType);
 
       let hash: `0x${string}`;
 

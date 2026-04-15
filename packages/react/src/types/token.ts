@@ -36,6 +36,95 @@ export type Erc20Pair = {
   logoURI?: string;
 };
 
+export type TokenSupportOperation =
+  | 'confidentialBalance'
+  | 'transfer'
+  | 'publicBalance'
+  | 'shield'
+  | 'unshield'
+  | 'claim'
+  | 'claimable';
+
+export const TOKEN_CONFIDENTIALITY_SUPPORT = {
+  wrapped: {
+    enabled: true,
+    publicBalanceSource: 'erc20Pair',
+    operations: {
+      confidentialBalance: true,
+      transfer: true,
+      publicBalance: true,
+      shield: true,
+      unshield: true,
+      claim: true,
+      claimable: true,
+    },
+  },
+  pure: {
+    enabled: false,
+    publicBalanceSource: null,
+    operations: {
+      confidentialBalance: false,
+      transfer: false,
+      publicBalance: false,
+      shield: false,
+      unshield: false,
+      claim: false,
+      claimable: false,
+    },
+  },
+  dual: {
+    enabled: false,
+    publicBalanceSource: 'token',
+    operations: {
+      confidentialBalance: false,
+      transfer: false,
+      publicBalance: false,
+      shield: false,
+      unshield: false,
+      claim: false,
+      claimable: false,
+    },
+  },
+} as const;
+
+export type TokenConfidentialityType = keyof typeof TOKEN_CONFIDENTIALITY_SUPPORT;
+type EnabledTokenConfidentialityType<T extends Record<string, { enabled: boolean }>> = {
+  [K in keyof T]: T[K]['enabled'] extends true ? K : never;
+}[keyof T];
+
+export type SupportedTokenConfidentialityType = EnabledTokenConfidentialityType<typeof TOKEN_CONFIDENTIALITY_SUPPORT>;
+
+export const TOKEN_CONFIDENTIALITY_TYPES = Object.keys(TOKEN_CONFIDENTIALITY_SUPPORT) as TokenConfidentialityType[];
+
+export function isTokenConfidentialityType(value: string | undefined): value is TokenConfidentialityType {
+  return typeof value === 'string' && value in TOKEN_CONFIDENTIALITY_SUPPORT;
+}
+
+export function isSupportedTokenConfidentialityType(
+  value: string | undefined
+): value is SupportedTokenConfidentialityType {
+  return isTokenConfidentialityType(value) && TOKEN_CONFIDENTIALITY_SUPPORT[value].enabled;
+}
+
+export function isTokenOperationSupported(type: string | undefined, operation: TokenSupportOperation): boolean {
+  return isTokenConfidentialityType(type) && TOKEN_CONFIDENTIALITY_SUPPORT[type].operations[operation];
+}
+
+export function getPublicBalanceSourceType(
+  type: string | undefined
+): (typeof TOKEN_CONFIDENTIALITY_SUPPORT)[TokenConfidentialityType]['publicBalanceSource'] | null {
+  if (!isTokenConfidentialityType(type)) return null;
+  return TOKEN_CONFIDENTIALITY_SUPPORT[type].publicBalanceSource;
+}
+
+export function assertTokenOperationSupported(
+  type: string | undefined,
+  operation: TokenSupportOperation
+): asserts type is SupportedTokenConfidentialityType {
+  if (isTokenOperationSupported(type, operation)) return;
+  throw new Error(`${operation} not supported for confidentialityType: ${type ?? 'undefined'}`);
+}
+
 export type Token = {
   chainId: number;
   address: `0x${string}`;
@@ -45,7 +134,7 @@ export type Token = {
   logoURI?: string;
   extensions: Record<string, unknown> & {
     fhenix: {
-      confidentialityType: 'wrapped';
+      confidentialityType: TokenConfidentialityType;
       confidentialValueType: 'uint64' | 'uint128';
       /** ERC20 pair for wrapped tokens - contains underlying token info */
       erc20Pair?: Erc20Pair;

@@ -2,6 +2,7 @@ import { type UseQueryOptions } from '@tanstack/react-query';
 import { type Address } from 'viem';
 import { useCofheAccount, useCofhePublicClient } from './useCofheConnection';
 import { type Token, ETH_ADDRESS_LOWERCASE } from './useCofheTokenLists';
+import { getPublicBalanceSourceType } from '@/types/token';
 import { ERC20_BALANCE_OF_ABI } from '../constants/erc20ABIs';
 import { assert } from 'ts-essentials';
 import { useInternalQuery } from '../providers/index';
@@ -56,7 +57,9 @@ export function getPublicTokenBalanceSource(token: Token | undefined): PublicTok
   const confidentialityType = token?.extensions.fhenix.confidentialityType;
   const underlyingErc20 = token?.extensions.fhenix.erc20Pair;
 
-  const tokenToFetchBalanceFrom = confidentialityType === 'wrapped' ? underlyingErc20 : undefined;
+  const publicBalanceSourceType = getPublicBalanceSourceType(confidentialityType);
+  const tokenToFetchBalanceFrom =
+    publicBalanceSourceType === 'erc20Pair' ? underlyingErc20 : publicBalanceSourceType === 'token' ? token : undefined;
 
   if (!tokenToFetchBalanceFrom) return undefined;
 
