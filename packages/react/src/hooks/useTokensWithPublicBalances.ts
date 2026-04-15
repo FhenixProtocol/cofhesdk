@@ -37,7 +37,6 @@ export type UseTokensWithPublicBalancesResult = {
  *
  * Public balance source:
  * - `wrapped`: underlying `erc20Pair` (or native ETH)
- * - `pure`: skipped (no public balance)
  */
 export function useTokensWithPublicBalances(
   { chainId: _chainId, accountAddress, displayDecimals = 5 }: UseTokensWithPublicBalancesInput = {},

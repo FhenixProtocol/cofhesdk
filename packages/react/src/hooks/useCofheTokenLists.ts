@@ -10,7 +10,7 @@ export { ETH_ADDRESS_LOWERCASE, type Token, type Erc20Pair };
 
 function isSupportedToken(token: Token): boolean {
   const confidentialityType = token.extensions?.fhenix?.confidentialityType;
-  return confidentialityType === 'wrapped' || confidentialityType === 'pure';
+  return confidentialityType === 'wrapped';
 }
 
 type TokenList = {

@@ -1,5 +1,5 @@
 import type { Token } from '@/types/token';
-import { parseAbi, type Abi } from 'viem';
+import { parseAbi } from 'viem';
 
 // ============================================================================
 // ERC20 Standard ABIs (for approval flow)
@@ -48,24 +48,12 @@ export const CONFIDENTIAL_TYPE_WRAPPED_ABI = [
 ] as const;
 
 /**
- * ABI for pure confidentiality type tokens (e.g., Base mini app)
- * Uses `confidentialBalanceOf(address)` function
- */
-export const CONFIDENTIAL_TYPE_PURE_ABI = parseAbi([
-  'function confidentialBalanceOf(address account) view returns (uint256)',
-]);
-
-/**
  * Map confidentialityType to balance ABIs and function names
  */
 export const CONFIDENTIAL_ABIS = {
   wrapped: {
     abi: CONFIDENTIAL_TYPE_WRAPPED_ABI,
     functionName: 'encBalanceOf' as const,
-  },
-  pure: {
-    abi: CONFIDENTIAL_TYPE_PURE_ABI,
-    functionName: 'confidentialBalanceOf' as const,
   },
 } as const;
 
@@ -127,42 +115,12 @@ export const WRAPPED_TRANSFER_ABI = [
 ] as const;
 
 /**
- * ABI for pure confidentiality type token transfers
- * Uses `confidentialTransfer(address to, InEuint64 inValue)` function
- */
-export const PURE_TRANSFER_ABI = [
-  {
-    name: 'confidentialTransfer',
-    type: 'function',
-    stateMutability: 'nonpayable',
-    inputs: [
-      { name: 'to', type: 'address' },
-      {
-        name: 'inValue',
-        type: 'tuple',
-        components: [
-          { name: 'ctHash', type: 'uint256' },
-          { name: 'securityZone', type: 'uint8' },
-          { name: 'utype', type: 'uint8' },
-          { name: 'signature', type: 'bytes' },
-        ],
-      },
-    ],
-    outputs: [{ name: 'transferred', type: 'uint256' }],
-  },
-] as const satisfies Abi;
-
-/**
  * Map confidentialityType to transfer ABIs and function names
  */
 export const TRANSFER_ABIS = {
   wrapped: {
     abi: WRAPPED_TRANSFER_ABI,
     functionName: 'encTransfer' as const,
-  },
-  pure: {
-    abi: PURE_TRANSFER_ABI,
-    functionName: 'confidentialTransfer' as const,
   },
 } as const;
 
