@@ -1,14 +1,14 @@
-import { ToastPrimitive } from '@/components/FnxFloatingButton/components/ToastPrimitives';
-import type { FnxFloatingButtonToast, FnxToastImperativeParams } from '@/components/FnxFloatingButton/types';
+import { ToastPrimitive } from '@/components/CofheFloatingButton/components/ToastPrimitives';
+import type { CofheFloatingButtonToast, CofheToastImperativeParams } from '@/components/CofheFloatingButton/types';
 import { isReactNode } from '@/utils';
 import { create } from 'zustand';
 
 type PortalToastsStore = {
-  toasts: FnxFloatingButtonToast[];
+  toasts: CofheFloatingButtonToast[];
 };
 
 type PortalToastsActions = {
-  addToast: (toast: React.ReactNode | FnxToastImperativeParams, duration?: number | 'infinite') => void;
+  addToast: (toast: React.ReactNode | CofheToastImperativeParams, duration?: number | 'infinite') => void;
   pauseToast: (id: string, paused: boolean) => void;
   removeToast: (id: string) => void;
 };

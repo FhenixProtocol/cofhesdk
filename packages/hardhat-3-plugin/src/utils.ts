@@ -1,5 +1,35 @@
 import type { PublicClient } from 'viem';
 import { TASK_MANAGER_ADDRESS, MOCKS_ZK_VERIFIER_ADDRESS } from '@cofhe/sdk';
+import path from 'node:path';
+import fs from 'node:fs';
+import { createRequire } from 'node:module';
+
+const _require = createRequire(import.meta.url);
+
+// ─── Mock contract source discovery ──────────────────────────────────────────
+
+/**
+ * Returns Hardhat 3 `npm:` paths for every `.sol` file in
+ * `@cofhe/mock-contracts/contracts/`, used to compile the contracts at startup.
+ */
+export function getMockContractsNpmPaths(): string[] {
+  let contractsDir: string;
+  try {
+    const pkgJson = _require.resolve('@cofhe/mock-contracts/package.json');
+    contractsDir = path.join(path.dirname(pkgJson), 'contracts');
+  } catch {
+    contractsDir = path.join(process.cwd(), 'node_modules', '@cofhe', 'mock-contracts', 'contracts');
+  }
+
+  if (!fs.existsSync(contractsDir)) {
+    return [];
+  }
+
+  return fs
+    .readdirSync(contractsDir)
+    .filter((f) => f.endsWith('.sol'))
+    .map((f) => `npm:@cofhe/mock-contracts/contracts/${f}`);
+}
 
 // ─── Mock storage helpers ─────────────────────────────────────────────────────
 

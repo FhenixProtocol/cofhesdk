@@ -2,12 +2,12 @@ import { createContext, useContext, useMemo, useState } from 'react';
 import type { CofheContextValue, CofheProviderProps } from '../types/index';
 import { QueryProvider } from './QueryProvider';
 import { createCofheClient } from '@cofhe/sdk/web';
-import { FnxFloatingButtonWithProvider } from '@/components/FnxFloatingButton/FnxFloatingButton';
+import { CofheFloatingButtonWithProvider } from '@/components/CofheFloatingButton/CofheFloatingButton';
 import { useCofheAutoConnect } from '@/hooks/useCofheAutoConnect';
 import { createCofheConfig } from '@/config';
 import { chains } from '@cofhe/sdk/chains';
 import { assert } from 'ts-essentials';
-import type { FloatingButtonPosition } from '@/components/FnxFloatingButton/types';
+import type { FloatingButtonPosition } from '@/components/CofheFloatingButton/types';
 
 const CofheContext = createContext<CofheContextValue | undefined>(undefined);
 
@@ -45,7 +45,7 @@ export function CofheProvider(props: CofheProviderProps) {
     >
       <QueryProvider queryClient={queryClient}>
         <AutoConnect walletClient={walletClient} publicClient={publicClient} />
-        <FnxFloatingButtonWithProvider>{children}</FnxFloatingButtonWithProvider>
+        <CofheFloatingButtonWithProvider>{children}</CofheFloatingButtonWithProvider>
       </QueryProvider>
     </CofheContext.Provider>
   );

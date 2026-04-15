@@ -21,11 +21,6 @@ const nonFixedContracts = {
 function inspect(contract: string, field: string): any {
   const cmd = `forge inspect ${contract} ${field} --json`;
   const out = execSync(cmd, { encoding: 'utf8' }).trim();
-
-  if (field === 'bytecode' || field === 'deployedBytecode') {
-    return out.toLowerCase();
-  }
-
   return JSON.parse(out);
 }
 
@@ -36,14 +31,12 @@ fs.mkdirSync(abiDir, { recursive: true });
 
 for (const [name, fixedAddress] of Object.entries(fixedContracts)) {
   const abi = inspect(name, 'abi');
-  const deployedBytecode = inspect(name, 'deployedBytecode');
 
   const artifact = {
     contractName: name,
     isFixed: true,
     fixedAddress,
     abi,
-    deployedBytecode,
   };
 
   fs.writeFileSync(
@@ -61,13 +54,11 @@ export const ${name}Artifact = ${JSON.stringify(artifact, null, 2)} as const sat
 
 for (const [name] of Object.entries(nonFixedContracts)) {
   const abi = inspect(name, 'abi');
-  const bytecode = inspect(name, 'bytecode');
 
   const artifact = {
     contractName: name,
     isFixed: false,
     abi,
-    bytecode,
   };
 
   fs.writeFileSync(

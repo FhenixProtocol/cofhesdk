@@ -7,14 +7,14 @@ This example demonstrates how to use the CoFHE SDK React components in a real ap
 - **Interactive Examples**: Live demonstrations of all React components
 - **Dark Mode Support**: Toggle between light and dark themes
 - **Real-time Status**: Connection status and operation feedback
-- **Material-UI Integration**: Beautiful icons and consistent design
+- **Bundled UI Icons**: Uses the React package without extra MUI installs
 - **TypeScript Support**: Full type safety and IntelliSense
 - **Web Workers**: Automatic offloading of heavy cryptographic operations
 - **Real-time Progress**: See actual encryption steps with worker status
 
 ## Components Showcased
 
-1. **FnxEncryptInput** - Advanced input with type selection and progress
+1. **CofheEncryptInput** - Advanced input with type selection and progress
 2. **React Hooks** - Direct hook usage (`useEncryptInput`, `useCofheContext`)
 3. **Worker Status Logging** - See worker performance in the console
 
@@ -56,7 +56,7 @@ react/
 │   │   ├── examples/          # Component demonstrations
 │   │   │   ├── Overview.tsx
 │   │   │   ├── HooksExample.tsx
-│   │   │   └── FnxEncryptInputExample.tsx
+│   │   │   └── CofheEncryptInputExample.tsx
 │   │   ├── Navigation.tsx     # Sidebar navigation
 │   │   └── ComponentRenderer.tsx
 │   ├── providers/
@@ -114,11 +114,11 @@ For production, replace the initialization in `ExampleProvider.tsx` with your ac
 After exploring the examples, you can use these components in your own project:
 
 ```bash
-npm install @cofhe/react cofhesdk
+npm install @cofhe/react @cofhe/sdk
 ```
 
 ```tsx
-import { CofheProvider, FnxEncryptInput } from '@cofhe/react';
+import { CofheProvider, CofheEncryptInput } from '@cofhe/react';
 import { createCofheClient, createCofheConfig } from '@cofhe/sdk/web';
 import { sepolia } from '@cofhe/sdk/chains';
 
@@ -133,7 +133,7 @@ const client = createCofheClient(config);
 function App() {
   return (
     <CofheProvider client={client}>
-      <FnxEncryptInput
+      <CofheEncryptInput
         placeholder="Enter value to encrypt..."
         showProgressBar={true}
         onEncryptComplete={(data) => console.log('Encrypted:', data)}

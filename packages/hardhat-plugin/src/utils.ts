@@ -7,20 +7,22 @@ import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 
 // Deployment utils
 
-/// Deploys a mock contract from a pre-built artifact from the mock-contracts package
-/// If the mock contract should be deployed to a fixed address, `hardhat_setCode` op is used to set the code at the fixed address
-/// Otherwise, we deploy the contract using ethers.js to a non-fixed address
+/// Deploys a mock contract from a pre-built artifact from the mock-contracts package.
+/// ABI and bytecode are sourced from Hardhat's artifact registry (populated during compilation)
+/// so that Hardhat can decode reverts and trace calls against these contracts.
+/// If the mock contract should be deployed to a fixed address, `hardhat_setCode` is used.
+/// Otherwise, ethers.js deploys it to a normal address.
 export const deployMockContractFromArtifact = async (hre: HardhatRuntimeEnvironment, artifact: MockArtifact) => {
-  // Use hardhat_setCode to deploy to fixed address
+  const hardhatArtifact = await hre.artifacts.readArtifact(artifact.contractName);
+
   if (artifact.isFixed) {
-    await hre.network.provider.send('hardhat_setCode', [artifact.fixedAddress, artifact.deployedBytecode]);
-    return getFixedMockContract(hre, artifact);
+    await hre.network.provider.send('hardhat_setCode', [artifact.fixedAddress, hardhatArtifact.deployedBytecode]);
+    return hre.ethers.getContractAt(hardhatArtifact.abi, artifact.fixedAddress);
   }
 
-  // Use ethers.js to deploy to variable address
   const [signer] = await hre.ethers.getSigners();
-  const factory = new hre.ethers.ContractFactory(artifact.abi, artifact.bytecode, signer);
-  const contract = await factory.deploy(/* constructor args */);
+  const factory = new hre.ethers.ContractFactory(hardhatArtifact.abi, hardhatArtifact.bytecode, signer);
+  const contract = await factory.deploy();
   await contract.waitForDeployment();
   return contract as Contract;
 };
@@ -29,7 +31,8 @@ export const getFixedMockContract = async (hre: HardhatRuntimeEnvironment, artif
   if (!artifact.isFixed) {
     throw new Error('Artifact is not fixed');
   }
-  return await hre.ethers.getContractAt(artifact.abi, artifact.fixedAddress);
+  const hardhatArtifact = await hre.artifacts.readArtifact(artifact.contractName);
+  return hre.ethers.getContractAt(hardhatArtifact.abi, artifact.fixedAddress);
 };
 
 // Testing utils

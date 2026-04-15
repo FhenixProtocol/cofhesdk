@@ -1,2 +1,2 @@
-export { FnxFloatingButtonWithProvider } from './FnxFloatingButton';
-export { FnxEncryptInput } from './FnxEncryptInput';
+export { CofheFloatingButtonWithProvider } from './CofheFloatingButton';
+export { CofheEncryptInput } from './CofheEncryptInput';

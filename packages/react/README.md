@@ -1,13 +1,13 @@
 # @cofhe/react
 
-React component and hook for the CoFHE SDK - featuring the advanced FnxEncryptInput component.
+React component and hook for the CoFHE SDK - featuring the advanced CofheEncryptInput component.
 
 ## Installation
 
 ```bash
-npm install @cofhe/react @cofhe/sdk @mui/icons-material @mui/material
+npm install @cofhe/react @cofhe/sdk
 # or
-pnpm add @cofhe/react @cofhe/sdk @mui/icons-material @mui/material
+pnpm add @cofhe/react @cofhe/sdk
 ```
 
 ## Quick Start
@@ -30,14 +30,14 @@ function App() {
 }
 ```
 
-### 2. Use the FnxEncryptInput component
+### 2. Use the CofheEncryptInput component
 
 ```tsx
-import { FnxEncryptInput, FheTypesList } from '@cofhe/react';
+import { CofheEncryptInput, FheTypesList } from '@cofhe/react';
 
 function MyComponent() {
   return (
-    <FnxEncryptInput
+    <CofheEncryptInput
       placeholder="Enter value to encrypt..."
       options={FheTypesList} // Pre-defined FHE types
       showProgressBar={true}
@@ -75,7 +75,7 @@ function CustomComponent() {
 }
 ```
 
-## FnxEncryptInput Component
+## CofheEncryptInput Component
 
 Advanced input component with integrated features:
 
@@ -85,7 +85,7 @@ Advanced input component with integrated features:
 - ✅ **Real-time Input Validation** - Validates input against selected FHE type
 - ✅ **Progress Tracking** - Shows encryption steps with progress bar
 - ✅ **Copy to Clipboard** - Copy encrypted results with one click
-- ✅ **Material-UI Icons** - Beautiful, consistent iconography
+- ✅ **Bundled Iconography** - Consistent icons with no extra consumer install
 - ✅ **Responsive Design** - Works on desktop and mobile
 - ✅ **Dark Mode Support** - Automatic dark/light theme support
 - ✅ **TypeScript Support** - Full type safety
@@ -93,7 +93,7 @@ Advanced input component with integrated features:
 ### Props
 
 ```tsx
-interface FnxEncryptInputProps {
+interface CofheEncryptInputProps {
   placeholder?: string;
   initialValue?: string;
   options?: FheTypeOption[]; // Use FheTypesList or custom options
@@ -143,10 +143,9 @@ If you're using Tailwind CSS in your project, the component classes will work au
 
 ### Required Peer Dependencies
 
-- `@mui/icons-material` ^5.0.0
-- `@mui/material` ^5.0.0
-- `react` ^16.8.0 || ^17.0.0 || ^18.0.0
-- `react-dom` ^16.8.0 || ^17.0.0 || ^18.0.0
+- `react` ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+- `react-dom` ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+- `viem` ^2.38.6
 
 ### CoFHE SDK Dependencies
 

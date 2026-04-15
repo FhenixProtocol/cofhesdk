@@ -104,3 +104,6 @@ pnpm-lock.yaml
 
 # Generated files
 *.d.ts
+
+# Internal memory documents
+.memory/
