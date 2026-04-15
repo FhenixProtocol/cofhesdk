@@ -56,7 +56,11 @@ export const AssetCard: React.FC = () => {
   return (
     <div
       onClick={handleClick}
-      className={cn('cofhe-card-bg p-4 cursor-pointer', 'hover:opacity-90 transition-opacity', 'border cofhe-card-border')}
+      className={cn(
+        'cofhe-card-bg p-4 cursor-pointer',
+        'hover:opacity-90 transition-opacity',
+        'border cofhe-card-border'
+      )}
     >
       <div className="flex items-center justify-between">
         {/* Left Side: Icon, Ticker, Privacy Metrics */}
