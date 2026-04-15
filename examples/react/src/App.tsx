@@ -5,7 +5,7 @@ import { Providers as WagmiProviders } from './utils/wagmi';
 import { CofheProviderLocal } from './utils/cofhe.config';
 
 function App() {
-  const [activeComponent, setActiveComponent] = useState<string>('fnx-floating-button');
+  const [activeComponent, setActiveComponent] = useState<string>('cofhe-floating-button');
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
 
   const toggleDarkMode = () => {

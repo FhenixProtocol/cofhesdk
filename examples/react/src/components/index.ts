@@ -3,5 +3,5 @@ export { ComponentRenderer } from './ComponentRenderer';
 
 // Example components
 export { Overview } from './examples/Overview';
-export { FnxEncryptInputExample } from './examples/FnxEncryptInputExample';
+export { CofheEncryptInputExample } from './examples/CofheEncryptInputExample';
 export { HooksExample } from './examples/HooksExample';
