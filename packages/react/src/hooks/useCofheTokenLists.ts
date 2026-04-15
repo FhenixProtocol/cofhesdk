@@ -5,6 +5,8 @@ import { ETH_ADDRESS_LOWERCASE, type Erc20Pair, type Token } from '../types/toke
 import { useInternalQueries } from '../providers/index.js';
 import type { Address } from 'viem';
 import { useCofheChainId } from './useCofheConnection';
+import { useCustomTokensStore } from '@/stores/customTokensStore';
+import { useResolvedCofheToken } from './useResolvedCofheToken';
 
 export { ETH_ADDRESS_LOWERCASE, type Token, type Erc20Pair };
 
@@ -24,6 +26,12 @@ type UseTokenListsInput = {
   chainId?: number;
 };
 type UseTokenListsOptions = Omit<UseQueryOptions<TokenList, Error>, 'queryKey' | 'queryFn' | 'select'>;
+
+function getCustomTokensForChain(customTokensByChainId: Record<string, Token[]>, chainId?: number): Token[] {
+  if (!chainId) return [];
+  return customTokensByChainId[chainId.toString()] ?? [];
+}
+
 // Returns array of query results for token lists for the current network
 export function useCofheTokenLists(
   { chainId }: UseTokenListsInput,
@@ -71,8 +79,12 @@ export function selectTokensFromTokensList(tokenList: TokenList): Token[] {
 
 export function useCofheTokens(chainId?: number): Token[] {
   const tokenLists = useCofheTokenLists({ chainId });
+  const customTokensByChainId = useCustomTokensStore((state) => state.customTokensByChainId);
+  const customTokens = getCustomTokensForChain(customTokensByChainId, chainId);
+
   const tokens = useMemo(() => {
     const map = new Map<string, Token>();
+
     tokenLists.forEach((result) => {
       if (!result.data) return;
 
@@ -82,8 +94,15 @@ export function useCofheTokens(chainId?: number): Token[] {
         map.set(key, token);
       });
     });
+
+    customTokens.forEach((token) => {
+      const key = `${token.chainId}-${token.address.toLowerCase()}`;
+      if (map.has(key)) return;
+      map.set(key, token);
+    });
+
     return Array.from(map.values());
-  }, [tokenLists]);
+  }, [customTokens, tokenLists]);
   return tokens;
 }
 
@@ -101,7 +120,16 @@ export function useCofheToken(
     return tokens.find((t) => t.chainId === chainId && t.address.toLowerCase() === address.toLowerCase());
   }, [address, chainId, tokens]);
 
-  // TODO: fetch from chain (metadata) if all the token lists have been loaded but token is not found
+  const resolvedToken = useResolvedCofheToken(
+    {
+      chainId,
+      address,
+    },
+    {
+      ...metdataQueryOptions,
+      enabled: (metdataQueryOptions?.enabled ?? true) && !!address && !!chainId && !tokenFromList,
+    }
+  );
 
-  return tokenFromList;
+  return tokenFromList ?? resolvedToken.data;
 }

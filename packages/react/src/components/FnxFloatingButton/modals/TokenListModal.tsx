@@ -1,14 +1,14 @@
 import { PageContainer } from '../components/PageContainer';
 import { PortalModal, type PortalModalStateMap } from './types';
-import { useCofheChainId } from '@/hooks/useCofheConnection';
-import { type Token, useCofheTokens } from '@/hooks';
+import { type Token } from '@/hooks';
 import { ArrowBackIcon } from '@/components/Icons';
 import { TokenRow } from '../components/TokenRow';
 import { useCofhePinnedTokenAddress } from '@/hooks/useCofhePinnedTokenAddress';
 import type { BalanceType } from '../components/CofheTokenConfidentialBalance';
-import { Button } from '../components';
+import { usePortalModals } from '@/stores';
 
-export const AddCustomTokenButton = () => <Button variant="outline" size="sm" label="Add custom Token +" />;
+import { AddCustomTokenButton } from './AddCustomTokenButton';
+
 export const TokenListModal: React.FC<PortalModalStateMap[PortalModal.TokenList]> = ({
   tokens,
   onClose,
@@ -16,6 +16,8 @@ export const TokenListModal: React.FC<PortalModalStateMap[PortalModal.TokenList]
   onSelectToken,
   balanceType,
 }) => {
+  const { openModal } = usePortalModals();
+
   return (
     <PageContainer
       header={
@@ -24,7 +26,19 @@ export const TokenListModal: React.FC<PortalModalStateMap[PortalModal.TokenList]
             <ArrowBackIcon style={{ fontSize: 16 }} />
             <p className="text-sm font-medium">{title}</p>
           </button>
-          <AddCustomTokenButton />
+          <AddCustomTokenButton
+            onClick={() =>
+              openModal(PortalModal.ImportCustomToken, {
+                balanceType,
+                title: 'Import token',
+                tokens,
+                onSelectToken: (token) => {
+                  onSelectToken(token);
+                  onClose();
+                },
+              })
+            }
+          />
         </div>
       }
       content={
