@@ -3,7 +3,7 @@ import type {
   PortalModal,
   PortalModalPropsMap,
   PortalModalState,
-} from '@/components/FnxFloatingButton/modals/types';
+} from '@/components/CofheFloatingButton/modals/types';
 import { create } from 'zustand';
 
 type PortalModalStore = {

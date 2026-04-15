@@ -46,7 +46,7 @@ code {
 /* Fix for dropdown positioning - ensure containers don't clip dropdowns */
 .cofhe-encryption-button,
 .cofhe-encryption-form,
-.fnx-encrypt-input {
+.cofhe-encrypt-input {
   position: relative;
 }
 

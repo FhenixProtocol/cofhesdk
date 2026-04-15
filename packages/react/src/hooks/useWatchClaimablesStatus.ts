@@ -3,7 +3,7 @@ import { usePortalNavigation, usePortalStatuses, usePortalUI } from '@/stores';
 import { useEffect } from 'react';
 
 import { useCofheClaimableTokens } from './useCofheClaimableTokens';
-import { FloatingButtonPage } from '@/components/FnxFloatingButton/pagesConfig/types';
+import { FloatingButtonPage } from '@/components/CofheFloatingButton/pagesConfig/types';
 
 export const CLAIMS_AVAILABLE_STATUS_ID = 'claims-available';
 type Input = {

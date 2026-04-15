@@ -4,7 +4,7 @@ import {
   type FloatingButtonPagePropsMap,
   type PageState,
   type PagesWithProps,
-} from '@/components/FnxFloatingButton/pagesConfig/types';
+} from '@/components/CofheFloatingButton/pagesConfig/types';
 import { create } from 'zustand';
 import { cofheLogger } from '@/utils/debug';
 

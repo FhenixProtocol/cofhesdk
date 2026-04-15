@@ -1,12 +1,12 @@
-import type { FnxStatus } from '@/components/FnxFloatingButton/types';
+import type { CofheStatus } from '@/components/CofheFloatingButton/types';
 import { create } from 'zustand';
 
 type PortalStatusesStore = {
-  statuses: FnxStatus[];
+  statuses: CofheStatus[];
 };
 
 type PortalStatusesActions = {
-  addStatus: (status: FnxStatus) => void;
+  addStatus: (status: CofheStatus) => void;
   removeStatus: (id: string) => void;
   hasStatus: (id: string) => boolean;
 };

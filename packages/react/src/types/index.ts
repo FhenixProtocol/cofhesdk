@@ -2,7 +2,7 @@ import type { CofheClient } from '@cofhe/sdk';
 import type { CofheConfigWithReact } from '../config';
 import type { QueryClient } from '@tanstack/react-query';
 import type { PublicClient, WalletClient } from 'viem';
-import type { FloatingButtonPosition } from '@/components/FnxFloatingButton/types';
+import type { FloatingButtonPosition } from '@/components/CofheFloatingButton/types';
 
 export interface CofheContextValue {
   client: CofheClient<CofheConfigWithReact>;

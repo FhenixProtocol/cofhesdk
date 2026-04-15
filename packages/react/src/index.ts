@@ -54,8 +54,8 @@ export { useCofheEncryptAndWriteContract } from '@/hooks/useCofheEncryptAndWrite
 export { useCofheReadContractAndDecrypt } from '@/hooks/useCofheReadContractAndDecrypt';
 
 // Components
-export { FnxEncryptInput, FnxFloatingButtonWithProvider } from './components/index';
-export { MainPage, SettingsPage } from './components/FnxFloatingButton/pages/index';
+export { CofheEncryptInput, CofheFloatingButtonWithProvider } from './components/index';
+export { MainPage, SettingsPage } from './components/CofheFloatingButton/pages/index';
 
 // Utils
 export {
@@ -89,9 +89,9 @@ export type { CofheReactLogger, CofheReactLoggerMethod } from './config';
 // Types
 export type { CofheContextValue, CofheProviderProps, CofheClientConfig } from './types/index';
 
-export type { FnxFloatingButtonProps } from './components/FnxFloatingButton/types';
+export type { CofheFloatingButtonProps } from './components/CofheFloatingButton/types';
 
-export type { FloatingButtonPosition } from './components/FnxFloatingButton/types';
+export type { FloatingButtonPosition } from './components/CofheFloatingButton/types';
 
 export { createCofheClient } from '@cofhe/sdk/web';
 
