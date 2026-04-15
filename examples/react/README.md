@@ -7,7 +7,7 @@ This example demonstrates how to use the CoFHE SDK React components in a real ap
 - **Interactive Examples**: Live demonstrations of all React components
 - **Dark Mode Support**: Toggle between light and dark themes
 - **Real-time Status**: Connection status and operation feedback
-- **Material-UI Integration**: Beautiful icons and consistent design
+- **Bundled UI Icons**: Uses the React package without extra MUI installs
 - **TypeScript Support**: Full type safety and IntelliSense
 - **Web Workers**: Automatic offloading of heavy cryptographic operations
 - **Real-time Progress**: See actual encryption steps with worker status
@@ -114,7 +114,7 @@ For production, replace the initialization in `ExampleProvider.tsx` with your ac
 After exploring the examples, you can use these components in your own project:
 
 ```bash
-npm install @cofhe/react cofhesdk
+npm install @cofhe/react @cofhe/sdk
 ```
 
 ```tsx
