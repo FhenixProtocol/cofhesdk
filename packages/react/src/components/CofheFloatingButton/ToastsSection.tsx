@@ -38,7 +38,14 @@ const ToastClearer = ({ id, paused, remainingMs }: { id: string; paused: boolean
   return null;
 };
 
-const ToastComponent: React.FC<CofheFloatingButtonToast> = ({ id, duration, paused, startMs, remainingMs, content }) => {
+const ToastComponent: React.FC<CofheFloatingButtonToast> = ({
+  id,
+  duration,
+  paused,
+  startMs,
+  remainingMs,
+  content,
+}) => {
   const { isTopSide } = useCofheFloatingButtonContext();
   const { pauseToast, removeToast } = usePortalToasts();
 
