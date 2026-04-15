@@ -121,6 +121,11 @@ async function submitDecryptRequestV2(
     body.permit = permission;
   }
 
+  console.log('[cofhe][decrypt] submit request', {
+    url: `${thresholdNetworkUrl}/v2/decrypt`,
+    body,
+  });
+
   let response: Response;
   try {
     response = await fetch(`${thresholdNetworkUrl}/v2/decrypt`, {
@@ -147,6 +152,11 @@ async function submitDecryptRequestV2(
     let errorMessage = `HTTP ${response.status}`;
     try {
       const errorBody = (await response.json()) as Record<string, unknown>;
+      console.log('[cofhe][decrypt] submit response', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorBody,
+      });
       const maybeMessage = (errorBody.error_message || errorBody.message) as unknown;
       if (typeof maybeMessage === 'string' && maybeMessage.length > 0) errorMessage = maybeMessage;
     } catch {
@@ -181,6 +191,12 @@ async function submitDecryptRequestV2(
     });
   }
 
+  console.log('[cofhe][decrypt] submit response', {
+    status: response.status,
+    statusText: response.statusText,
+    body: rawJson,
+  });
+
   const submitResponse = assertDecryptSubmitResponseV2(rawJson);
   return submitResponse.request_id;
 }
@@ -207,6 +223,12 @@ async function pollDecryptStatusV2(
       elapsedMs,
       intervalMs,
       timeoutMs: POLL_TIMEOUT_MS,
+    });
+
+    console.log('[cofhe][decrypt] poll request', {
+      requestId,
+      attemptIndex,
+      url: `${thresholdNetworkUrl}/v2/decrypt/${requestId}`,
     });
 
     if (elapsedMs > POLL_TIMEOUT_MS) {
@@ -259,6 +281,13 @@ async function pollDecryptStatusV2(
       let errorMessage = `HTTP ${response.status}`;
       try {
         const errorBody = (await response.json()) as Record<string, unknown>;
+        console.log('[cofhe][decrypt] poll response', {
+          requestId,
+          attemptIndex,
+          status: response.status,
+          statusText: response.statusText,
+          body: errorBody,
+        });
         const maybeMessage = (errorBody.error_message || errorBody.message) as unknown;
         if (typeof maybeMessage === 'string' && maybeMessage.length > 0) errorMessage = maybeMessage;
       } catch {
@@ -291,6 +320,14 @@ async function pollDecryptStatusV2(
         },
       });
     }
+
+    console.log('[cofhe][decrypt] poll response', {
+      requestId,
+      attemptIndex,
+      status: response.status,
+      statusText: response.statusText,
+      body: rawJson,
+    });
 
     const statusResponse = assertDecryptStatusResponseV2(rawJson);
 
