@@ -36,6 +36,7 @@ import { cofheHumanizeViemError } from '@/utils/cofheErrors';
 import { PageContainer } from '../components/PageContainer';
 import { PortalModal } from '../modals/types';
 import { CopyButton } from '../components/HashLink';
+import { cofheLogger } from '@/utils/debug';
 
 const AUTOCLEAR_TX_STATUS_TIMEOUT = 5000;
 const DISPLAY_DECIMALS = 5;
@@ -133,7 +134,7 @@ function useClaimUnshieldedWithLifecycle() {
         cofheHumanizeViemError(error) ?? (error instanceof Error ? error.message : 'Failed to claim unshielded tokens');
       setError(errorMessage);
       setStatus(null);
-      console.error('Claim tx submit error:', error);
+      cofheLogger.error('Claim tx submit error:', error);
     },
   });
 
@@ -199,7 +200,7 @@ function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 
         cofheHumanizeViemError(error) ?? (error instanceof Error ? error.message : 'Failed to shield tokens');
       setError(errorMessage);
       setStatus(null);
-      console.error('Shield tx submit error:', error);
+      cofheLogger.error('Shield tx submit error:', error);
     },
   });
 
@@ -390,7 +391,7 @@ function useUnshieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps
         cofheHumanizeViemError(error) ?? (error instanceof Error ? error.message : 'Failed to unshield tokens');
       setError(errorMessage);
       setStatus(null);
-      console.error('Unshield tx submit error:', error);
+      cofheLogger.error('Unshield tx submit error:', error);
     },
     onceMined: (transaction) => {
       if (transaction.status === 'confirmed') {
@@ -856,7 +857,7 @@ function useApproveWithLifecycle({
         cofheHumanizeViemError(error) ?? (error instanceof Error ? error.message : 'Failed to approve tokens');
       setError(errorMessage);
       setStatus(null);
-      console.error('Approve tx submit error:', error);
+      cofheLogger.error('Approve tx submit error:', error);
     },
   });
 

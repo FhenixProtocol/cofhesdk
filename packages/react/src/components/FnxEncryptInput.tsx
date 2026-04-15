@@ -278,7 +278,7 @@ export const FnxEncryptInput: React.FC<FnxEncryptInputProps> = ({
         setCopySuccess(false);
       }, 2000);
     } catch (error) {
-      console.error('Failed to copy to clipboard:', error);
+      cofheLogger.error('Failed to copy to clipboard:', error);
     }
   };
 
@@ -310,13 +310,13 @@ export const FnxEncryptInput: React.FC<FnxEncryptInputProps> = ({
             onEncryptComplete?.(data);
           } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Encryption failed';
-            console.error('Encryption failed:', error);
+            cofheLogger.error('Encryption failed:', error);
             onEncryptError?.(errorMessage);
           }
         })();
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Encryption setup failed';
-        console.error('Encryption setup failed:', error);
+        cofheLogger.error('Encryption setup failed:', error);
         onEncryptError?.(errorMessage);
       }
     }
