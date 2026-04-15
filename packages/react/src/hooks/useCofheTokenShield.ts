@@ -8,13 +8,8 @@ import { type Address } from 'viem';
 import { useCofheWalletClient, useCofheChainId, useCofheAccount, useCofhePublicClient } from './useCofheConnection.js';
 import { type Token, ETH_ADDRESS_LOWERCASE } from './useCofheTokenLists.js';
 import {
-  SHIELD_ABIS,
-  UNSHIELD_ABIS,
-  CLAIM_ABIS,
-  DUAL_GET_UNSHIELD_CLAIM_ABI,
   WRAPPED_ETH_ENCRYPT_ETH_ABI,
   WRAPPED_ENCRYPT_ABI,
-  WRAPPED_GET_USER_CLAIMS_ABI,
   ERC20_APPROVE_ABI,
 } from '../constants/confidentialTokenABIs.js';
 import { TransactionActionType, useTransactionStore } from '../stores/transactionStore.js';
@@ -35,25 +30,10 @@ export function getCofheTokenShieldCallArgs(params: { token: Token; amount: bigi
     throw new Error('confidentialityType is required in token extensions');
   }
 
-  if (confidentialityType !== 'dual' && confidentialityType !== 'wrapped') {
+  if (confidentialityType !== 'wrapped') {
     throw new Error(`Shield not supported for confidentialityType: ${confidentialityType}`);
   }
 
-  if (confidentialityType === 'dual') {
-    const contractConfig = SHIELD_ABIS.dual;
-    return {
-      main: {
-        address: tokenAddress,
-        abi: contractConfig.abi,
-        functionName: contractConfig.functionName,
-        args: [amount],
-        account,
-        chain: undefined,
-      },
-    };
-  }
-
-  // wrapped
   const erc20PairAddress = token.extensions.fhenix.erc20Pair?.address;
   const isEth = erc20PairAddress?.toLowerCase() === ETH_ADDRESS_LOWERCASE;
 
@@ -124,8 +104,7 @@ type UseTokenShieldOptions = Omit<UseMutationOptions<`0x${string}`, Error, UseTo
 
 /**
  * Hook to shield tokens (convert regular balance to confidential)
- * - Dual tokens: calls `shield(uint256 amount)`
- * - Wrapped tokens: TBD (needs approval flow)
+ * Wrapped tokens call `encrypt` or `encryptETH`, depending on the paired asset.
  * @param options - Optional React Query mutation options
  * @returns Mutation result with transaction hash
  */
@@ -159,58 +138,39 @@ export function useCofheTokenShield(
         throw new Error('Wallet account is required for token shield');
       }
 
-      // Only dual and wrapped support shielding
-      if (confidentialityType !== 'dual' && confidentialityType !== 'wrapped') {
+      if (confidentialityType !== 'wrapped') {
         throw new Error(`Shield not supported for confidentialityType: ${confidentialityType}`);
       }
 
       let hash: `0x${string}`;
 
-      if (confidentialityType === 'wrapped') {
-        // Check if this is a wrapped ETH token (erc20Pair is ETH_ADDRESS)
-        const erc20PairAddress = input.token.extensions.fhenix.erc20Pair?.address;
-        const isEth = erc20PairAddress?.toLowerCase() === ETH_ADDRESS_LOWERCASE;
+      const erc20PairAddress = input.token.extensions.fhenix.erc20Pair?.address;
+      const isEth = erc20PairAddress?.toLowerCase() === ETH_ADDRESS_LOWERCASE;
 
-        if (isEth) {
-          // For ETH: use encryptETH(address to) with value
-          const { request } = await publicClient.simulateContract({
-            address: tokenAddress,
-            abi: WRAPPED_ETH_ENCRYPT_ETH_ABI,
-            functionName: 'encryptETH',
-            args: [walletClient.account.address],
-            value: input.amount,
-            account: walletClient.account,
-          });
-          hash = await walletClient.writeContract({ ...request, chain: undefined });
-        } else {
-          // For ERC20 wrapped tokens: caller is expected to handle approval.
-          if (!erc20PairAddress) {
-            throw new Error('erc20Pair address is required for wrapped ERC20 tokens');
-          }
-
-          // Now call encrypt
-          input.onStatusChange?.('Please confirm shield in wallet...');
-          const { request: encryptRequest } = await publicClient.simulateContract({
-            address: tokenAddress,
-            abi: WRAPPED_ENCRYPT_ABI,
-            functionName: 'encrypt',
-            args: [walletClient.account.address, input.amount],
-            account: walletClient.account,
-          });
-          hash = await walletClient.writeContract({ ...encryptRequest, chain: undefined });
-        }
-      } else {
-        // Dual tokens: use shield(uint256 amount)
-        const contractConfig = SHIELD_ABIS.dual;
-
+      if (isEth) {
         const { request } = await publicClient.simulateContract({
           address: tokenAddress,
-          abi: contractConfig.abi,
-          functionName: contractConfig.functionName,
-          args: [input.amount],
+          abi: WRAPPED_ETH_ENCRYPT_ETH_ABI,
+          functionName: 'encryptETH',
+          args: [walletClient.account.address],
+          value: input.amount,
           account: walletClient.account,
         });
         hash = await walletClient.writeContract({ ...request, chain: undefined });
+      } else {
+        if (!erc20PairAddress) {
+          throw new Error('erc20Pair address is required for wrapped ERC20 tokens');
+        }
+
+        input.onStatusChange?.('Please confirm shield in wallet...');
+        const { request: encryptRequest } = await publicClient.simulateContract({
+          address: tokenAddress,
+          abi: WRAPPED_ENCRYPT_ABI,
+          functionName: 'encrypt',
+          args: [walletClient.account.address, input.amount],
+          account: walletClient.account,
+        });
+        hash = await walletClient.writeContract({ ...encryptRequest, chain: undefined });
       }
 
       return hash;

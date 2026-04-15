@@ -37,7 +37,6 @@ export type UseTokensWithPublicBalancesResult = {
  *
  * Public balance source:
  * - `wrapped`: underlying `erc20Pair` (or native ETH)
- * - `dual`: token contract `balanceOf` (ERC20)
  * - `pure`: skipped (no public balance)
  */
 export function useTokensWithPublicBalances(

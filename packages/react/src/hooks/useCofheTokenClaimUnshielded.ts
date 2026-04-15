@@ -22,7 +22,7 @@ export function getCofheTokenClaimUnshieldedCallArgs(params: {
     throw new Error('confidentialityType is required in token extensions');
   }
 
-  if (confidentialityType !== 'dual' && confidentialityType !== 'wrapped') {
+  if (confidentialityType !== 'wrapped') {
     throw new Error(`Claim not supported for confidentialityType: ${confidentialityType}`);
   }
 
@@ -53,8 +53,7 @@ type UseClaimUnshieldInput = {
 type UseClaimUnshieldOptions = Omit<UseMutationOptions<`0x${string}`, Error, UseClaimUnshieldInput>, 'mutationFn'>;
 /**
  * Hook to claim unshielded tokens after decryption completes
- * - Dual tokens: calls `claimUnshielded()`
- * - Wrapped tokens: calls `claimAllDecrypted()`
+ * Wrapped tokens call `claimAllDecrypted()`.
  * @param options - Optional React Query mutation options
  * @returns Mutation result with transaction hash
  */
@@ -88,8 +87,7 @@ export function useCofheTokenClaimUnshielded(
         throw new Error('Wallet account is required for claim');
       }
 
-      // Only dual and wrapped support claiming
-      if (confidentialityType !== 'dual' && confidentialityType !== 'wrapped') {
+      if (confidentialityType !== 'wrapped') {
         throw new Error(`Claim not supported for confidentialityType: ${confidentialityType}`);
       }
 

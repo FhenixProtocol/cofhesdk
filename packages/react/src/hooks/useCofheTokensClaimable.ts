@@ -40,7 +40,7 @@ type UseUnshieldClaimsManyOptions = Omit<
 type ClaimableToken = Token & {
   extensions: Token['extensions'] & {
     fhenix: Token['extensions']['fhenix'] & {
-      confidentialityType: 'dual' | 'wrapped';
+      confidentialityType: 'wrapped';
     };
   };
 };

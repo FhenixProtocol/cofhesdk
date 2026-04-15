@@ -56,8 +56,7 @@ export function getPublicTokenBalanceSource(token: Token | undefined): PublicTok
   const confidentialityType = token?.extensions.fhenix.confidentialityType;
   const underlyingErc20 = token?.extensions.fhenix.erc20Pair;
 
-  const tokenToFetchBalanceFrom =
-    confidentialityType === 'wrapped' ? underlyingErc20 : confidentialityType === 'dual' ? token : undefined;
+  const tokenToFetchBalanceFrom = confidentialityType === 'wrapped' ? underlyingErc20 : undefined;
 
   if (!tokenToFetchBalanceFrom) return undefined;
 
@@ -158,7 +157,7 @@ type UsePublicTokenBalanceResult = {
 
 /**
  * Hook to get public (non-confidential) balance for a token.
- * Handles both dual tokens (balanceOf on token address) and wrapped tokens (balanceOf on erc20Pair or native ETH).
+ * Handles wrapped tokens by reading the paired ERC20 balance or native ETH balance.
  *
  * @param input - Token and optional account address
  * @param options - Query options

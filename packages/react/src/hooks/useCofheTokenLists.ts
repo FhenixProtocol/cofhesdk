@@ -8,6 +8,11 @@ import { useCofheChainId } from './useCofheConnection';
 
 export { ETH_ADDRESS_LOWERCASE, type Token, type Erc20Pair };
 
+function isSupportedToken(token: Token): boolean {
+  const confidentialityType = token.extensions?.fhenix?.confidentialityType;
+  return confidentialityType === 'wrapped' || confidentialityType === 'pure';
+}
+
 type TokenList = {
   name: string;
   timestamp: string;
@@ -52,7 +57,7 @@ export function useCofheTokenLists(
         // filter only tokens for the current chain (some lists contain multiple chains)
         return {
           ...data,
-          tokens: data.tokens.filter((token) => token.chainId === chainId),
+          tokens: data.tokens.filter((token) => token.chainId === chainId && isSupportedToken(token)),
         };
       },
       ...queryOptions,

@@ -56,14 +56,6 @@ export const CONFIDENTIAL_TYPE_PURE_ABI = parseAbi([
 ]);
 
 /**
- * ABI for dual confidentiality type tokens
- * Uses `confidentialBalanceOf(address)` function
- */
-export const CONFIDENTIAL_TYPE_DUAL_ABI = parseAbi([
-  'function confidentialBalanceOf(address account) view returns (uint256)',
-]);
-
-/**
  * Map confidentialityType to balance ABIs and function names
  */
 export const CONFIDENTIAL_ABIS = {
@@ -73,10 +65,6 @@ export const CONFIDENTIAL_ABIS = {
   },
   pure: {
     abi: CONFIDENTIAL_TYPE_PURE_ABI,
-    functionName: 'confidentialBalanceOf' as const,
-  },
-  dual: {
-    abi: CONFIDENTIAL_TYPE_DUAL_ABI,
     functionName: 'confidentialBalanceOf' as const,
   },
 } as const;
@@ -165,32 +153,6 @@ export const PURE_TRANSFER_ABI = [
 ] as const satisfies Abi;
 
 /**
- * ABI for dual confidentiality type token transfers (TBD - to be implemented)
- * Uses `TBD_DUAL_FUNCTION_NAME(address to, InEuintXXX inValue)` function
- */
-export const DUAL_TRANSFER_ABI = [
-  {
-    name: 'TBD_DUAL_FUNCTION_NAME',
-    type: 'function',
-    stateMutability: 'nonpayable',
-    inputs: [
-      { name: 'to', type: 'address' },
-      {
-        name: 'inValue',
-        type: 'tuple',
-        components: [
-          { name: 'ctHash', type: 'uint256' },
-          { name: 'securityZone', type: 'uint8' },
-          { name: 'utype', type: 'uint8' },
-          { name: 'signature', type: 'bytes' },
-        ],
-      },
-    ],
-    outputs: [{ name: 'transferred', type: 'uint256' }],
-  },
-] as const satisfies Abi;
-
-/**
  * Map confidentialityType to transfer ABIs and function names
  */
 export const TRANSFER_ABIS = {
@@ -202,59 +164,11 @@ export const TRANSFER_ABIS = {
     abi: PURE_TRANSFER_ABI,
     functionName: 'confidentialTransfer' as const,
   },
-  dual: {
-    // Placeholder for dual type
-    abi: DUAL_TRANSFER_ABI,
-    functionName: 'TBD_DUAL_FUNCTION_NAME' as const,
-  },
 } as const;
 
 // ============================================================================
-// Shield/Unshield ABIs (for dual and wrapped tokens)
+// Shield/Unshield ABIs (wrapped tokens)
 // ============================================================================
-
-/**
- * ABI for dual token shield - converts regular balance to confidential
- * Takes plaintext uint256 amount
- */
-export const DUAL_SHIELD_ABI = parseAbi(['function shield(uint256 amount) public']);
-
-/**
- * ABI for dual token unshield - initiates conversion from confidential to regular
- * Takes plaintext uint64 amount
- */
-export const DUAL_UNSHIELD_ABI = parseAbi(['function unshield(uint64 amount) public']);
-
-/**
- * ABI to claim unshielded tokens after decryption completes
- */
-export const DUAL_CLAIM_UNSHIELD_ABI = parseAbi(['function claimUnshielded() public']);
-
-/**
- * ABI to check pending unshield claim status
- * Returns UnshieldClaim struct with: ctHash, requestedAmount, decryptedAmount, decrypted, claimed
- */
-export const DUAL_GET_UNSHIELD_CLAIM_ABI = [
-  {
-    name: 'getUserUnshieldClaim',
-    type: 'function',
-    stateMutability: 'view',
-    inputs: [{ name: 'user', type: 'address' }],
-    outputs: [
-      {
-        name: '',
-        type: 'tuple',
-        components: [
-          { name: 'ctHash', type: 'uint256' },
-          { name: 'requestedAmount', type: 'uint64' },
-          { name: 'decryptedAmount', type: 'uint64' },
-          { name: 'decrypted', type: 'bool' },
-          { name: 'claimed', type: 'bool' },
-        ],
-      },
-    ],
-  },
-] as const satisfies Abi;
 
 /**
  * ABI for wrapped token encrypt (shield) - requires prior ERC20 approval
@@ -319,12 +233,7 @@ export const WRAPPED_ETH_ENCRYPT_WETH_ABI = parseAbi(['function encryptWETH(addr
  * Map confidentialityType to shield ABIs and function names
  */
 export const SHIELD_ABIS = {
-  dual: {
-    abi: DUAL_SHIELD_ABI,
-    functionName: 'shield' as const,
-  },
   wrapped: {
-    // TBD - needs approval flow and underlying token reference
     abi: WRAPPED_ENCRYPT_ABI,
     functionName: 'encrypt' as const,
   },
@@ -334,12 +243,7 @@ export const SHIELD_ABIS = {
  * Map confidentialityType to unshield ABIs and function names
  */
 export const UNSHIELD_ABIS = {
-  dual: {
-    abi: DUAL_UNSHIELD_ABI,
-    functionName: 'unshield' as const,
-  },
   wrapped: {
-    // TBD - needs claim flow
     abi: WRAPPED_DECRYPT_ABI,
     functionName: 'decrypt' as const,
   },
@@ -349,10 +253,6 @@ export const UNSHIELD_ABIS = {
  * Map confidentialityType to claim ABIs and function names
  */
 export const CLAIM_ABIS = {
-  dual: {
-    abi: DUAL_CLAIM_UNSHIELD_ABI,
-    functionName: 'claimUnshielded' as const,
-  },
   wrapped: {
     abi: WRAPPED_CLAIM_ALL_DECRYPTED_ABI,
     functionName: 'claimAllDecrypted' as const,

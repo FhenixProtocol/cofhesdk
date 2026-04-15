@@ -469,7 +469,7 @@ function useUnshieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps
   };
 }
 
-const shieldableTypes = new Set(['dual', 'wrapped']);
+const shieldableTypes = new Set(['wrapped']);
 
 export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token: _token, defaultMode }) => {
   const [mode, setMode] = useState<Mode>(defaultMode ?? 'shield');
@@ -680,6 +680,13 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
 
   const { tokensWithExistingEncryptedBalance } = useCofheTokensWithExistingEncryptedBalances();
   const { tokensWithPublicBalances } = useTokensWithPublicBalances();
+  const selectableTokens = useMemo(
+    () =>
+      (mode === 'unshield' ? tokensWithExistingEncryptedBalance : tokensWithPublicBalances).filter((candidate) =>
+        shieldableTypes.has(candidate.extensions.fhenix.confidentialityType)
+      ),
+    [mode, tokensWithExistingEncryptedBalance, tokensWithPublicBalances]
+  );
 
   // TODO: probably can be refactored into a view with more stramlined logic
   return (
@@ -698,7 +705,7 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
             onClick={() =>
               openModal(PortalModal.TokenList, {
                 balanceType: mode === 'shield' ? BalanceType.Public : BalanceType.Confidential,
-                tokens: mode === 'unshield' ? tokensWithExistingEncryptedBalance : tokensWithPublicBalances,
+                tokens: selectableTokens,
                 title: mode === 'shield' ? 'Select token to shield' : 'Select token to unshield',
                 onSelectToken: (token) => setToken(token),
               })

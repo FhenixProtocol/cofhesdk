@@ -61,21 +61,6 @@
           "confidentialValueType": "uint64"
         }
       }
-    },
-    {
-      "chainId": 84532,
-      "address": "0x51376e3E2aEA22008B85B4d8f94A67Ee1AFcc142",
-      "name": "Dual Test Token",
-      "symbol": "eToken",
-      "decimals": 6,
-      "logoURI": "https://storage.googleapis.com/cofhesdk/token-icons/default-token.webp",
-      "extensions": {
-        "coingeckoId": "etoken",
-        "fhenix": {
-          "confidentialityType": "dual",
-          "confidentialValueType": "uint64"
-        }
-      }
-    }       
+    }
   ]
 }

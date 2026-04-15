@@ -45,7 +45,7 @@ export type Token = {
   logoURI?: string;
   extensions: Record<string, unknown> & {
     fhenix: {
-      confidentialityType: 'wrapped' | 'pure' | 'dual';
+      confidentialityType: 'wrapped' | 'pure';
       confidentialValueType: 'uint64' | 'uint128';
       /** ERC20 pair for wrapped tokens - contains underlying token info */
       erc20Pair?: Erc20Pair;
