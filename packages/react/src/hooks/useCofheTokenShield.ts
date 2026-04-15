@@ -9,8 +9,8 @@ import { useCofheWalletClient, useCofheChainId, useCofheAccount, useCofhePublicC
 import { type Token, ETH_ADDRESS_LOWERCASE } from './useCofheTokenLists.js';
 import { assertTokenOperationSupported } from '@/types/token';
 import {
-  ERC20_APPROVE_ABI,
   getShieldContractConfig,
+  getShieldApproveContractConfig,
   getShieldEthContractConfig,
 } from '../constants/confidentialTokenABIs.js';
 import { TransactionActionType, useTransactionStore } from '../stores/transactionStore.js';
@@ -58,8 +58,7 @@ export function getCofheTokenShieldCallArgs(params: { token: Token; amount: bigi
   return {
     approval: {
       address: erc20PairAddress,
-      abi: ERC20_APPROVE_ABI,
-      functionName: 'approve',
+      ...getShieldApproveContractConfig(),
       args: [tokenAddress, amount],
       account,
       chain: undefined,
