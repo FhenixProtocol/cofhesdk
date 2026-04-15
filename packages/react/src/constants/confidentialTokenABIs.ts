@@ -42,7 +42,7 @@ export const ERC20_APPROVE_ABI = parseAbi(['function approve(address spender, ui
  * ABI for wrapped confidentiality type tokens (e.g., Redact)
  * Uses `encBalanceOf(address)` function
  */
-export const CONFIDENTIAL_TYPE_WRAPPED_ABI = [
+const CONFIDENTIAL_TYPE_WRAPPED_ABI = [
   {
     inputs: [
       {
@@ -67,7 +67,7 @@ export const CONFIDENTIAL_TYPE_WRAPPED_ABI = [
 /**
  * Map confidentialityType to balance ABIs and function names
  */
-export const CONFIDENTIAL_ABIS = {
+const CONFIDENTIAL_ABIS = {
   wrapped: {
     abi: CONFIDENTIAL_TYPE_WRAPPED_ABI,
     functionName: 'encBalanceOf' as const,
@@ -82,7 +82,7 @@ export const CONFIDENTIAL_ABIS = {
  * ABI for wrapped confidentiality type token transfers
  * Uses `encTransfer(address to, InEuint128 inValue)` function
  */
-export const WRAPPED_TRANSFER_ABI = [
+const WRAPPED_TRANSFER_ABI = [
   {
     inputs: [
       {
@@ -134,7 +134,7 @@ export const WRAPPED_TRANSFER_ABI = [
 /**
  * Map confidentialityType to transfer ABIs and function names
  */
-export const TRANSFER_ABIS = {
+const TRANSFER_ABIS = {
   wrapped: {
     abi: WRAPPED_TRANSFER_ABI,
     functionName: 'encTransfer' as const,
@@ -149,29 +149,29 @@ export const TRANSFER_ABIS = {
  * ABI for wrapped token encrypt (shield) - requires prior ERC20 approval
  * Transfers ERC20 tokens to wrapper and mints confidential tokens
  */
-export const WRAPPED_ENCRYPT_ABI = parseAbi(['function encrypt(address to, uint128 value) public']);
+const WRAPPED_ENCRYPT_ABI = parseAbi(['function encrypt(address to, uint128 value) public']);
 
 /**
  * ABI for wrapped token decrypt (unshield) - initiates conversion back to ERC20
  * Burns confidential tokens and creates a claim for ERC20
  */
-export const WRAPPED_DECRYPT_ABI = parseAbi(['function decrypt(address to, uint128 value) public']);
+const WRAPPED_DECRYPT_ABI = parseAbi(['function decrypt(address to, uint128 value) public']);
 
 /**
  * ABI for wrapped token claim decrypted - claims ERC20 after decryption
  */
-export const WRAPPED_CLAIM_DECRYPTED_ABI = parseAbi(['function claimDecrypted(uint256 ctHash) public']);
+const WRAPPED_CLAIM_DECRYPTED_ABI = parseAbi(['function claimDecrypted(uint256 ctHash) public']);
 
 /**
  * ABI for wrapped token claim all decrypted - claims all pending ERC20
  */
-export const WRAPPED_CLAIM_ALL_DECRYPTED_ABI = parseAbi(['function claimAllDecrypted() public']);
+const WRAPPED_CLAIM_ALL_DECRYPTED_ABI = parseAbi(['function claimAllDecrypted() public']);
 
 /**
  * ABI for wrapped token getUserClaims - returns all pending claims for a user
  * Returns array of Claim structs: { ctHash, requestedAmount, decryptedAmount, decrypted, to, claimed }
  */
-export const WRAPPED_GET_USER_CLAIMS_ABI = [
+const WRAPPED_GET_USER_CLAIMS_ABI = [
   {
     inputs: [{ name: 'user', type: 'address' }],
     name: 'getUserClaims',
@@ -197,27 +197,34 @@ export const WRAPPED_GET_USER_CLAIMS_ABI = [
 /**
  * ABI for wrapped ETH encrypt with ETH value
  */
-export const WRAPPED_ETH_ENCRYPT_ETH_ABI = parseAbi(['function encryptETH(address to) public payable']);
+const WRAPPED_ETH_ENCRYPT_ETH_ABI = parseAbi(['function encryptETH(address to) public payable']);
 
 /**
  * ABI for wrapped ETH encrypt with WETH
  */
-export const WRAPPED_ETH_ENCRYPT_WETH_ABI = parseAbi(['function encryptWETH(address to, uint128 value) public']);
+const WRAPPED_ETH_ENCRYPT_WETH_ABI = parseAbi(['function encryptWETH(address to, uint128 value) public']);
 
 /**
  * Map confidentialityType to shield ABIs and function names
  */
-export const SHIELD_ABIS = {
+const SHIELD_ABIS = {
   wrapped: {
     abi: WRAPPED_ENCRYPT_ABI,
     functionName: 'encrypt' as const,
   },
 } as const satisfies Partial<Record<TokenConfidentialityType, ContractConfig>>;
 
+const SHIELD_ETH_ABIS = {
+  wrapped: {
+    abi: WRAPPED_ETH_ENCRYPT_ETH_ABI,
+    functionName: 'encryptETH' as const,
+  },
+} as const satisfies Partial<Record<TokenConfidentialityType, ContractConfig>>;
+
 /**
  * Map confidentialityType to unshield ABIs and function names
  */
-export const UNSHIELD_ABIS = {
+const UNSHIELD_ABIS = {
   wrapped: {
     abi: WRAPPED_DECRYPT_ABI,
     functionName: 'decrypt' as const,
@@ -227,7 +234,7 @@ export const UNSHIELD_ABIS = {
 /**
  * Map confidentialityType to claim ABIs and function names
  */
-export const CLAIM_ABIS = {
+const CLAIM_ABIS = {
   wrapped: {
     abi: WRAPPED_CLAIM_ALL_DECRYPTED_ABI,
     functionName: 'claimAllDecrypted' as const,
@@ -242,10 +249,26 @@ export function getTransferContractConfig(confidentialityType: Token['extensions
   return getRequiredContractConfig(TRANSFER_ABIS, confidentialityType, 'transfer');
 }
 
+export function getShieldContractConfig(confidentialityType: Token['extensions']['fhenix']['confidentialityType']) {
+  return getRequiredContractConfig(SHIELD_ABIS, confidentialityType, 'shield');
+}
+
+export function getShieldEthContractConfig(confidentialityType: Token['extensions']['fhenix']['confidentialityType']) {
+  return getRequiredContractConfig(SHIELD_ETH_ABIS, confidentialityType, 'shield ETH');
+}
+
 export function getUnshieldContractConfig(confidentialityType: Token['extensions']['fhenix']['confidentialityType']) {
   return getRequiredContractConfig(UNSHIELD_ABIS, confidentialityType, 'unshield');
 }
 
 export function getClaimContractConfig(confidentialityType: Token['extensions']['fhenix']['confidentialityType']) {
   return getRequiredContractConfig(CLAIM_ABIS, confidentialityType, 'claim');
+}
+
+export function getClaimableContractConfig(confidentialityType: Token['extensions']['fhenix']['confidentialityType']) {
+  return {
+    ...getRequiredContractConfig(CLAIM_ABIS, confidentialityType, 'claimable'),
+    abi: WRAPPED_GET_USER_CLAIMS_ABI,
+    functionName: 'getUserClaims' as const,
+  };
 }

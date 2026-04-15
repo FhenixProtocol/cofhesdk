@@ -9,9 +9,9 @@ import { useCofheWalletClient, useCofheChainId, useCofheAccount, useCofhePublicC
 import { type Token, ETH_ADDRESS_LOWERCASE } from './useCofheTokenLists.js';
 import { assertTokenOperationSupported } from '@/types/token';
 import {
-  WRAPPED_ETH_ENCRYPT_ETH_ABI,
-  WRAPPED_ENCRYPT_ABI,
   ERC20_APPROVE_ABI,
+  getShieldContractConfig,
+  getShieldEthContractConfig,
 } from '../constants/confidentialTokenABIs.js';
 import { TransactionActionType, useTransactionStore } from '../stores/transactionStore.js';
 import { useInternalMutation, useInternalQuery } from '../providers/index.js';
@@ -37,11 +37,12 @@ export function getCofheTokenShieldCallArgs(params: { token: Token; amount: bigi
   const isEth = erc20PairAddress?.toLowerCase() === ETH_ADDRESS_LOWERCASE;
 
   if (isEth) {
+    const contractConfig = getShieldEthContractConfig(confidentialityType);
     return {
       main: {
         address: tokenAddress,
-        abi: WRAPPED_ETH_ENCRYPT_ETH_ABI,
-        functionName: 'encryptETH',
+        abi: contractConfig.abi,
+        functionName: contractConfig.functionName,
         args: [account],
         value: amount,
         account,
@@ -64,9 +65,8 @@ export function getCofheTokenShieldCallArgs(params: { token: Token; amount: bigi
       chain: undefined,
     },
     main: {
+      ...getShieldContractConfig(confidentialityType),
       address: tokenAddress,
-      abi: WRAPPED_ENCRYPT_ABI,
-      functionName: 'encrypt',
       args: [account, amount],
       account,
       chain: undefined,
@@ -145,10 +145,11 @@ export function useCofheTokenShield(
       const isEth = erc20PairAddress?.toLowerCase() === ETH_ADDRESS_LOWERCASE;
 
       if (isEth) {
+        const contractConfig = getShieldEthContractConfig(confidentialityType);
         const { request } = await publicClient.simulateContract({
           address: tokenAddress,
-          abi: WRAPPED_ETH_ENCRYPT_ETH_ABI,
-          functionName: 'encryptETH',
+          abi: contractConfig.abi,
+          functionName: contractConfig.functionName,
           args: [walletClient.account.address],
           value: input.amount,
           account: walletClient.account,
@@ -160,10 +161,11 @@ export function useCofheTokenShield(
         }
 
         input.onStatusChange?.('Please confirm shield in wallet...');
+        const contractConfig = getShieldContractConfig(confidentialityType);
         const { request: encryptRequest } = await publicClient.simulateContract({
           address: tokenAddress,
-          abi: WRAPPED_ENCRYPT_ABI,
-          functionName: 'encrypt',
+          abi: contractConfig.abi,
+          functionName: contractConfig.functionName,
           args: [walletClient.account.address, input.amount],
           account: walletClient.account,
         });

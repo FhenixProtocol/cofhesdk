@@ -2,7 +2,7 @@ import { type UseQueryOptions } from '@tanstack/react-query';
 import { type Address } from 'viem';
 import { FheTypes } from '@cofhe/sdk';
 import { type Token } from './useCofheTokenLists';
-import { CONFIDENTIAL_ABIS, getTokenContractConfig } from '../constants/confidentialTokenABIs';
+import { getTokenContractConfig } from '../constants/confidentialTokenABIs';
 import { assert } from 'ts-essentials';
 import { formatTokenAmount, type TokenFormatOutput } from '@/utils/format';
 import { useCofheReadContractAndDecrypt } from './useCofheReadContractAndDecrypt';

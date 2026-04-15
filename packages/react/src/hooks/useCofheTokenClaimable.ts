@@ -2,7 +2,7 @@ import { QueryClient, type QueryKey, type UseQueryOptions, type UseQueryResult }
 import { type Address } from 'viem';
 import { useCofhePublicClient } from './useCofheConnection.js';
 import { type Token } from './useCofheTokenLists.js';
-import { WRAPPED_GET_USER_CLAIMS_ABI } from '../constants/confidentialTokenABIs.js';
+import { getClaimableContractConfig } from '../constants/confidentialTokenABIs.js';
 import { isTokenOperationSupported, type SupportedTokenConfidentialityType } from '@/types/token';
 import { useInternalQuery } from '../providers/index.js';
 import { decryptionAwareReadContract } from '@/utils/decryptionAwareReadContract.js';
@@ -93,14 +93,15 @@ export async function fetchUnshieldClaimsSummary({
   queryKey,
   signal,
 }: FetchUnshieldClaimsSummaryInput): Promise<UnshieldClaimsSummary> {
+  const contractConfig = getClaimableContractConfig(confidentialityType);
   const result = await decryptionAwareReadContract({
     publicClient,
     queryKey,
     signal,
     readContractParams: {
       address: token.address,
-      abi: WRAPPED_GET_USER_CLAIMS_ABI,
-      functionName: 'getUserClaims',
+      abi: contractConfig.abi,
+      functionName: contractConfig.functionName,
       args: [accountAddress],
     },
   });
