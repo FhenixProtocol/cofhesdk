@@ -1,0 +1,244 @@
+@layer base {
+  .cofhe-floating-button {
+    /* Theme colors */
+    --cofhe-bg-primary: #ffffff;
+    --cofhe-bg-status: #FFF8E1;
+    --cofhe-text-primary: #000000;
+    --cofhe-border-color: #e2e8f0;
+    
+    /* MainPage colors */
+    --cofhe-card-bg: #F5F5F5;
+    --cofhe-card-border: #4E4E4E;
+    --cofhe-icon-bg: #ffffff;
+    --cofhe-button-bg: #ffffff;
+    --cofhe-button-hover-bg: #0AD9DC99;
+    --cofhe-button-hover-text: #ffffff;
+    --cofhe-dropdown-bg: #ffffff;
+    --cofhe-dropdown-border: #e5e7eb;
+    --cofhe-dropdown-hover-bg: #f3f4f6;
+    --cofhe-hover-overlay: rgba(255, 255, 255, 0.1);
+    --cofhe-positive-change: #16a34a;
+    --cofhe-pattern-overlay: rgba(0, 0, 0, 0.02);
+    --cofhe-button-border: #08989A;
+    --cofhe-button-default-text: #00314E;
+    --cofhe-button-default-border: #5F6368;
+    --cofhe-button-default-font-weight: 500;
+    --cofhe-send-button-enabled-bg: #8DE8EF;
+    --cofhe-send-button-enabled-hover-bg: #80d4da;
+    --cofhe-send-button-enabled-text: #ffffff;
+    --cofhe-send-button-disabled-bg: #d1d5db;
+    --cofhe-send-button-disabled-text: #6b7280;
+    --cofhe-corner-accent-color: #0AD9DC;
+    --cofhe-corner-size: 10px;
+    --cofhe-content-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    
+    /* Sizing - defaults, will be overridden by inline CSS variables */
+    --cofhe-border-radius: 0x;
+    
+    /* Token list */
+    --cofhe-token-list-max-height: 250px;
+    
+    /* Animation timing */
+    --cofhe-transition-duration: 300ms;
+    --cofhe-transition-duration-fast: 200ms;
+    --cofhe-transition-duration-content: 150ms;
+
+    width: 380px;
+    max-width: calc(100vw - 24px);
+  }
+
+  .dark {
+    --cofhe-bg-primary: #1a1a1a;
+    --cofhe-bg-status: #2d2d2d;
+    --cofhe-text-primary: #ffffff;
+    --cofhe-text-status: #e0e0e0;
+    --cofhe-border-color: rgba(255, 255, 255, 0.3);
+    
+    /* MainPage dark mode colors */
+    --cofhe-card-bg: #333333;
+    --cofhe-card-border: #9E9E9E;
+    --cofhe-icon-bg: #374151;
+    --cofhe-button-bg: #595959;
+    --cofhe-button-hover-bg: #00ACC1;
+    --cofhe-button-hover-text: #ffffff;
+    --cofhe-dropdown-bg: #1f2937;
+    --cofhe-dropdown-border: #374151;
+    --cofhe-dropdown-hover-bg: #374151;
+    --cofhe-hover-overlay: rgba(255, 255, 255, 0.1);
+    --cofhe-positive-change: #4ade80;
+    --cofhe-pattern-overlay: rgba(255, 255, 255, 0.02);
+    --cofhe-button-border: #08989A;
+    --cofhe-button-default-text: #FFFFFF;
+    --cofhe-button-default-border: #5F6368;
+    --cofhe-button-default-font-weight: 500;
+    --cofhe-send-button-enabled-bg: #08989A;
+    --cofhe-send-button-enabled-hover-bg: #068285;
+    --cofhe-send-button-enabled-text: #ffffff;
+    --cofhe-send-button-disabled-bg: #374151;
+    --cofhe-send-button-disabled-text: #9ca3af;
+    --cofhe-corner-accent-color: #0AD9DC;
+    --cofhe-content-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  }
+}
+
+.cofhe-text-primary {
+  color: var(--cofhe-text-primary);
+}
+
+.cofhe-panel {
+  background-color: var(--cofhe-bg-primary);
+  border: 1px solid var(--cofhe-border-color);
+  border-radius: var(--cofhe-border-radius);
+  box-shadow: var(--cofhe-content-shadow);
+}
+
+/* FloatingIcon styles */
+.cofhe-floating-icon {
+  outline: none !important;
+  position: relative;
+  z-index: 1;
+  color: var(--cofhe-text-primary);
+}
+
+/* MainPage component utility classes */
+.cofhe-card-bg {
+  background-color: var(--cofhe-card-bg);
+}
+
+.cofhe-card-border {
+  border-left: 1px solid var(--cofhe-card-border);
+  border-bottom: 1px solid var(--cofhe-card-border);
+  border-top: none;
+  border-right: none;
+}
+
+.cofhe-icon-bg {
+  background-color: var(--cofhe-icon-bg);
+}
+
+.cofhe-nav-button {
+  background-color: var(--cofhe-button-bg);
+  color: var(--cofhe-button-default-text);
+  font-weight: var(--cofhe-button-default-font-weight);
+  border: 1px solid var(--cofhe-button-default-border);
+  transition: background-color var(--cofhe-transition-duration-fast) ease-in-out, color var(--cofhe-transition-duration-fast) ease-in-out, border-color var(--cofhe-transition-duration-fast) ease-in-out;
+}
+
+.cofhe-nav-button:hover {
+  background-color: var(--cofhe-button-hover-bg);
+}
+
+/* Active state for nav/action buttons (used e.g. for tab selection) */
+.cofhe-nav-button-active {
+  background-color: var(--cofhe-button-hover-bg);
+  color: var(--cofhe-button-hover-text);
+}
+
+.cofhe-max-button {
+  background-color: var(--cofhe-button-bg);
+  color: var(--cofhe-button-default-text);
+  font-weight: var(--cofhe-button-default-font-weight);
+  border: 1px solid var(--cofhe-button-default-border);
+  transition: background-color var(--cofhe-transition-duration-fast) ease-in-out, color var(--cofhe-transition-duration-fast) ease-in-out, border-color var(--cofhe-transition-duration-fast) ease-in-out;
+}
+
+.cofhe-max-button:hover {
+  background-color: var(--cofhe-button-hover-bg);
+  color: var(--cofhe-button-hover-text);
+}
+
+/* Default button styles */
+.cofhe-button {
+  color: var(--cofhe-button-default-text);
+  font-weight: var(--cofhe-button-default-font-weight);
+  border: 1px solid var(--cofhe-button-default-border);
+  transition: background-color var(--cofhe-transition-duration-fast) ease-in-out, color var(--cofhe-transition-duration-fast) ease-in-out, border-color var(--cofhe-transition-duration-fast) ease-in-out;
+}
+
+.cofhe-send-button {
+  color: var(--cofhe-button-default-text);
+  font-weight: var(--cofhe-button-default-font-weight);
+  border: 1px solid var(--cofhe-button-default-border);
+  transition: background-color var(--cofhe-transition-duration-fast) ease-in-out, color var(--cofhe-transition-duration-fast) ease-in-out, border-color var(--cofhe-transition-duration-fast) ease-in-out;
+}
+
+.cofhe-send-button-enabled {
+  background-color: var(--cofhe-send-button-enabled-bg);
+  color: var(--cofhe-button-default-text);
+}
+
+.cofhe-send-button-enabled:hover {
+  background-color: var(--cofhe-send-button-enabled-hover-bg);
+  color: var(--cofhe-button-default-text);
+}
+
+.cofhe-send-button-disabled {
+  background-color: var(--cofhe-send-button-disabled-bg);
+  color: var(--cofhe-send-button-disabled-text);
+  cursor: not-allowed;
+}
+
+.cofhe-dropdown-bg {
+  background-color: var(--cofhe-dropdown-bg);
+}
+
+.cofhe-dropdown-border {
+  border-color: var(--cofhe-dropdown-border);
+}
+
+.cofhe-dropdown-hover:hover,
+.cofhe-dropdown-hover:focus {
+  background-color: var(--cofhe-dropdown-hover-bg);
+}
+
+.cofhe-hover-overlay:hover {
+  background-color: var(--cofhe-hover-overlay);
+}
+
+.cofhe-positive-change {
+  color: var(--cofhe-positive-change);
+}
+
+/* TokenListPage styles */
+.cofhe-token-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.25rem;
+}
+
+/* Loading dots animation */
+.cofhe-loading-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+}
+
+.cofhe-loading-dots span {
+  display: inline-block;
+  animation: cofhe-dot-bounce 1.4s ease-in-out infinite;
+}
+
+.cofhe-loading-dots span:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.cofhe-loading-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.cofhe-loading-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes cofhe-dot-bounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-0.25em);
+    opacity: 1;
+  }
+}
+

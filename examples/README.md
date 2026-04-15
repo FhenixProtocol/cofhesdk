@@ -30,7 +30,7 @@ Visit `http://localhost:3000` to see the examples in action.
 
 - EncryptionButton - Simple button for single value encryption
 - EncryptionForm - Multi-field form for batch encryption
-- FnxEncryptInput - Advanced input with type selection and progress
+- CofheEncryptInput - Advanced input with type selection and progress
 - CofheStatus - Connection status indicator
 - React Hooks - Direct hook usage examples
 

@@ -14,7 +14,7 @@ This example demonstrates how to use the CoFHE SDK React components in a real ap
 
 ## Components Showcased
 
-1. **FnxEncryptInput** - Advanced input with type selection and progress
+1. **CofheEncryptInput** - Advanced input with type selection and progress
 2. **React Hooks** - Direct hook usage (`useEncryptInput`, `useCofheContext`)
 3. **Worker Status Logging** - See worker performance in the console
 
@@ -56,7 +56,7 @@ react/
 │   │   ├── examples/          # Component demonstrations
 │   │   │   ├── Overview.tsx
 │   │   │   ├── HooksExample.tsx
-│   │   │   └── FnxEncryptInputExample.tsx
+│   │   │   └── CofheEncryptInputExample.tsx
 │   │   ├── Navigation.tsx     # Sidebar navigation
 │   │   └── ComponentRenderer.tsx
 │   ├── providers/
@@ -118,7 +118,7 @@ npm install @cofhe/react @cofhe/sdk
 ```
 
 ```tsx
-import { CofheProvider, FnxEncryptInput } from '@cofhe/react';
+import { CofheProvider, CofheEncryptInput } from '@cofhe/react';
 import { createCofheClient, createCofheConfig } from '@cofhe/sdk/web';
 import { sepolia } from '@cofhe/sdk/chains';
 
@@ -133,7 +133,7 @@ const client = createCofheClient(config);
 function App() {
   return (
     <CofheProvider client={client}>
-      <FnxEncryptInput
+      <CofheEncryptInput
         placeholder="Enter value to encrypt..."
         showProgressBar={true}
         onEncryptComplete={(data) => console.log('Encrypted:', data)}

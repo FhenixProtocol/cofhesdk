@@ -1,6 +1,6 @@
 # @cofhe/react
 
-React component and hook for the CoFHE SDK - featuring the advanced FnxEncryptInput component.
+React component and hook for the CoFHE SDK - featuring the advanced CofheEncryptInput component.
 
 ## Installation
 
@@ -30,14 +30,14 @@ function App() {
 }
 ```
 
-### 2. Use the FnxEncryptInput component
+### 2. Use the CofheEncryptInput component
 
 ```tsx
-import { FnxEncryptInput, FheTypesList } from '@cofhe/react';
+import { CofheEncryptInput, FheTypesList } from '@cofhe/react';
 
 function MyComponent() {
   return (
-    <FnxEncryptInput
+    <CofheEncryptInput
       placeholder="Enter value to encrypt..."
       options={FheTypesList} // Pre-defined FHE types
       showProgressBar={true}
@@ -75,7 +75,7 @@ function CustomComponent() {
 }
 ```
 
-## FnxEncryptInput Component
+## CofheEncryptInput Component
 
 Advanced input component with integrated features:
 
@@ -93,7 +93,7 @@ Advanced input component with integrated features:
 ### Props
 
 ```tsx
-interface FnxEncryptInputProps {
+interface CofheEncryptInputProps {
   placeholder?: string;
   initialValue?: string;
   options?: FheTypeOption[]; // Use FheTypesList or custom options

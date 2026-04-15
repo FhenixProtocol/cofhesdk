@@ -4,14 +4,14 @@ export const Overview: React.FC = () => {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold mb-4">CoFHE SDK React - FnxEncryptInput</h1>
+        <h1 className="text-3xl font-bold mb-4">CoFHE SDK React - CofheEncryptInput</h1>
         <p className="text-lg text-gray-600 dark:text-gray-400 mb-6">
-          Interactive examples of the FnxEncryptInput component for the CoFHE SDK.
+          Interactive examples of the CofheEncryptInput component for the CoFHE SDK.
         </p>
       </div>
 
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border">
-        <h3 className="text-lg font-semibold mb-2">FnxEncryptInput</h3>
+        <h3 className="text-lg font-semibold mb-2">CofheEncryptInput</h3>
         <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
           Advanced input component with integrated type selection, progress tracking, and copy functionality. Features
           Material-UI icons, real-time validation, and seamless encryption workflow.
