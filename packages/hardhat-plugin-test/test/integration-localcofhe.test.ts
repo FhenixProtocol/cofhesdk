@@ -105,8 +105,6 @@ describe('Local Cofhe Integration Tests', () => {
     // Get the hash from the contract after an on-chain FHE op rewrote the ciphertext handle.
     const ctHash = await testContract.getValueHash();
 
-    // Decrypt the value using the ctHash from the encrypted input
-    await new Promise((resolve) => setTimeout(resolve, 16000)); // work around aritficial SLIM_LISTENER_EVENT_PROCESSING_DELAY_MS / wait a bit to ensure the on-chain FHE op has been picked up by the delayed local cofhe
     const unsealedResult = await cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
 
     // Verify the decrypted value matches
@@ -119,7 +117,6 @@ describe('Local Cofhe Integration Tests', () => {
 
     const updatedCtHash = await testContract.getValueHash();
 
-    await new Promise((resolve) => setTimeout(resolve, 16000)); // work around aritficial SLIM_LISTENER_EVENT_PROCESSING_DELAY_MS / wait a bit to ensure the on-chain FHE op has been picked up by the delayed local cofhe
     const decryptResult = await cofheClient.decryptForTx(updatedCtHash).withPermit().execute();
 
     expect(decryptResult.ctHash).to.equal(updatedCtHash);
