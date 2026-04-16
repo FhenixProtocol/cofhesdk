@@ -7,9 +7,8 @@ import { computeMinuteRampPollIntervalMs } from './polling.js';
 // Polling configuration
 const POLL_INTERVAL_MS = 1000; // 1 second
 const POLL_MAX_INTERVAL_MS = 10_000; // 10 seconds
-const POLL_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+const SEAL_OUTPUT_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes total across submit + poll
 const SUBMIT_RETRY_INTERVAL_MS = 1000; // 1 second
-const SUBMIT_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
 // V2 API response types
 type SealOutputSubmitResponse = {
@@ -67,14 +66,15 @@ async function submitSealOutputRequest(
   thresholdNetworkUrl: string,
   ctHash: bigint | string,
   chainId: number,
-  permission: Permission
+  permission: Permission,
+  overallStartTime: number,
+  onPoll?: DecryptPollCallbackFunction
 ): Promise<string> {
   const body = {
     ct_tempkey: BigInt(ctHash).toString(16).padStart(64, '0'),
     host_chain_id: chainId,
     permit: permission,
   };
-  const startTime = Date.now();
   let attemptIndex = 0;
 
   for (;;) {
@@ -165,21 +165,30 @@ async function submitSealOutputRequest(
     }
 
     if (submitResponse.status === 'CT_NOT_READY') {
-      const elapsedMs = Date.now() - startTime;
-      if (elapsedMs > SUBMIT_TIMEOUT_MS) {
+      const elapsedMs = Date.now() - overallStartTime;
+      if (elapsedMs > SEAL_OUTPUT_TIMEOUT_MS) {
         throw new CofheError({
           code: CofheErrorCode.SealOutputFailed,
-          message: `sealOutput submit retried CT_NOT_READY for ${SUBMIT_TIMEOUT_MS}ms without receiving request_id`,
+          message: `sealOutput submit retried CT_NOT_READY for ${SEAL_OUTPUT_TIMEOUT_MS}ms without receiving request_id`,
           hint: 'The ciphertext may still be propagating. Try again later.',
           context: {
             thresholdNetworkUrl,
             body,
             attemptIndex,
-            timeoutMs: SUBMIT_TIMEOUT_MS,
+            timeoutMs: SEAL_OUTPUT_TIMEOUT_MS,
             submitResponse,
           },
         });
       }
+
+      onPoll?.({
+        operation: 'sealoutput',
+        requestId: '',
+        attemptIndex,
+        elapsedMs,
+        intervalMs: SUBMIT_RETRY_INTERVAL_MS,
+        timeoutMs: SEAL_OUTPUT_TIMEOUT_MS,
+      });
 
       await new Promise((resolve) => setTimeout(resolve, SUBMIT_RETRY_INTERVAL_MS));
       attemptIndex += 1;
@@ -205,14 +214,14 @@ async function submitSealOutputRequest(
 async function pollSealOutputStatus(
   thresholdNetworkUrl: string,
   requestId: string,
+  overallStartTime: number,
   onPoll?: DecryptPollCallbackFunction
 ): Promise<EthEncryptedData> {
-  const startTime = Date.now();
   let attemptIndex = 0;
   let completed = false;
 
   while (!completed) {
-    const elapsedMs = Date.now() - startTime;
+    const elapsedMs = Date.now() - overallStartTime;
     const intervalMs = computeMinuteRampPollIntervalMs(elapsedMs, {
       minIntervalMs: POLL_INTERVAL_MS,
       maxIntervalMs: POLL_MAX_INTERVAL_MS,
@@ -223,7 +232,7 @@ async function pollSealOutputStatus(
       attemptIndex,
       elapsedMs,
       intervalMs,
-      timeoutMs: POLL_TIMEOUT_MS,
+      timeoutMs: SEAL_OUTPUT_TIMEOUT_MS,
     });
 
     console.log('[cofhe][sealoutput] poll request', {
@@ -233,15 +242,15 @@ async function pollSealOutputStatus(
     });
 
     // Check timeout
-    if (elapsedMs > POLL_TIMEOUT_MS) {
+    if (elapsedMs > SEAL_OUTPUT_TIMEOUT_MS) {
       throw new CofheError({
         code: CofheErrorCode.SealOutputFailed,
-        message: `sealOutput polling timed out after ${POLL_TIMEOUT_MS}ms`,
+        message: `sealOutput polling timed out after ${SEAL_OUTPUT_TIMEOUT_MS}ms`,
         hint: 'The request may still be processing. Try again later.',
         context: {
           thresholdNetworkUrl,
           requestId,
-          timeoutMs: POLL_TIMEOUT_MS,
+          timeoutMs: SEAL_OUTPUT_TIMEOUT_MS,
         },
       });
     }
@@ -389,10 +398,18 @@ export async function tnSealOutputV2(params: {
   onPoll?: DecryptPollCallbackFunction;
 }): Promise<EthEncryptedData> {
   const { thresholdNetworkUrl, ctHash, chainId, permission, onPoll } = params;
+  const overallStartTime = Date.now();
 
   // Step 1: Submit the request and get request_id
-  const requestId = await submitSealOutputRequest(thresholdNetworkUrl, ctHash, chainId, permission);
+  const requestId = await submitSealOutputRequest(
+    thresholdNetworkUrl,
+    ctHash,
+    chainId,
+    permission,
+    overallStartTime,
+    onPoll
+  );
 
   // Step 2: Poll for status until completed
-  return await pollSealOutputStatus(thresholdNetworkUrl, requestId, onPoll);
+  return await pollSealOutputStatus(thresholdNetworkUrl, requestId, overallStartTime, onPoll);
 }
