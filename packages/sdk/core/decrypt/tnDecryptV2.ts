@@ -9,9 +9,14 @@ import { computeMinuteRampPollIntervalMs } from './polling.js';
 const POLL_INTERVAL_MS = 1000; // 1 second
 const POLL_MAX_INTERVAL_MS = 10_000; // 10 seconds
 const POLL_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+const SUBMIT_RETRY_INTERVAL_MS = 1000; // 1 second
+const SUBMIT_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
 type DecryptSubmitResponseV2 = {
-  request_id: string;
+  request_id: string | null;
+  status?: string;
+  error_message?: string | null;
+  message?: string;
 };
 
 type DecryptStatusResponseV2 = {
@@ -38,17 +43,22 @@ function assertDecryptSubmitResponseV2(value: unknown): DecryptSubmitResponseV2 
   }
 
   const v = value as Record<string, unknown>;
-  if (typeof v.request_id !== 'string' || v.request_id.trim().length === 0) {
+  if (v.request_id !== null && typeof v.request_id !== 'string') {
     throw new CofheError({
       code: CofheErrorCode.DecryptFailed,
-      message: 'decrypt submit response missing request_id',
+      message: 'decrypt submit response has invalid request_id',
       context: {
         value,
       },
     });
   }
 
-  return { request_id: v.request_id };
+  return {
+    request_id: (v.request_id as string | null | undefined) ?? null,
+    status: typeof v.status === 'string' ? v.status : undefined,
+    error_message: typeof v.error_message === 'string' || v.error_message === null ? v.error_message : undefined,
+    message: typeof v.message === 'string' ? v.message : undefined,
+  };
 }
 
 function assertDecryptStatusResponseV2(value: unknown): DecryptStatusResponseV2 {
@@ -121,84 +131,131 @@ async function submitDecryptRequestV2(
     body.permit = permission;
   }
 
-  console.log('[cofhe][decrypt] submit request', {
-    url: `${thresholdNetworkUrl}/v2/decrypt`,
-    body,
-  });
+  const startTime = Date.now();
+  let attemptIndex = 0;
 
-  let response: Response;
-  try {
-    response = await fetch(`${thresholdNetworkUrl}/v2/decrypt`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
+  for (;;) {
+    console.log('[cofhe][decrypt] submit request', {
+      attemptIndex,
+      url: `${thresholdNetworkUrl}/v2/decrypt`,
+      body,
     });
-  } catch (e) {
-    throw new CofheError({
-      code: CofheErrorCode.DecryptFailed,
-      message: `decrypt request failed`,
-      hint: 'Ensure the threshold network URL is valid and reachable.',
-      cause: e instanceof Error ? e : undefined,
-      context: {
-        thresholdNetworkUrl,
-        body,
-      },
-    });
-  }
 
-  if (!response.ok) {
-    let errorMessage = `HTTP ${response.status}`;
+    let response: Response;
     try {
-      const errorBody = (await response.json()) as Record<string, unknown>;
-      console.log('[cofhe][decrypt] submit response', {
-        status: response.status,
-        statusText: response.statusText,
-        body: errorBody,
+      response = await fetch(`${thresholdNetworkUrl}/v2/decrypt`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
       });
-      const maybeMessage = (errorBody.error_message || errorBody.message) as unknown;
-      if (typeof maybeMessage === 'string' && maybeMessage.length > 0) errorMessage = maybeMessage;
-    } catch {
-      errorMessage = response.statusText || errorMessage;
+    } catch (e) {
+      throw new CofheError({
+        code: CofheErrorCode.DecryptFailed,
+        message: `decrypt request failed`,
+        hint: 'Ensure the threshold network URL is valid and reachable.',
+        cause: e instanceof Error ? e : undefined,
+        context: {
+          thresholdNetworkUrl,
+          body,
+          attemptIndex,
+        },
+      });
+    }
+
+    if (!response.ok) {
+      let errorMessage = `HTTP ${response.status}`;
+      try {
+        const errorBody = (await response.json()) as Record<string, unknown>;
+        console.log('[cofhe][decrypt] submit response', {
+          attemptIndex,
+          status: response.status,
+          statusText: response.statusText,
+          body: errorBody,
+        });
+        const maybeMessage = (errorBody.error_message || errorBody.message) as unknown;
+        if (typeof maybeMessage === 'string' && maybeMessage.length > 0) errorMessage = maybeMessage;
+      } catch {
+        errorMessage = response.statusText || errorMessage;
+      }
+
+      throw new CofheError({
+        code: CofheErrorCode.DecryptFailed,
+        message: `decrypt request failed: ${errorMessage}`,
+        hint: 'Check the threshold network URL and request parameters.',
+        context: {
+          thresholdNetworkUrl,
+          status: response.status,
+          statusText: response.statusText,
+          body,
+          attemptIndex,
+        },
+      });
+    }
+
+    let rawJson: unknown;
+    try {
+      rawJson = (await response.json()) as unknown;
+    } catch (e) {
+      throw new CofheError({
+        code: CofheErrorCode.DecryptFailed,
+        message: `Failed to parse decrypt submit response`,
+        cause: e instanceof Error ? e : undefined,
+        context: {
+          thresholdNetworkUrl,
+          body,
+          attemptIndex,
+        },
+      });
+    }
+
+    console.log('[cofhe][decrypt] submit response', {
+      attemptIndex,
+      status: response.status,
+      statusText: response.statusText,
+      body: rawJson,
+    });
+
+    const submitResponse = assertDecryptSubmitResponseV2(rawJson);
+
+    if (submitResponse.request_id) {
+      return submitResponse.request_id;
+    }
+
+    if (submitResponse.status === 'CT_NOT_READY') {
+      const elapsedMs = Date.now() - startTime;
+      if (elapsedMs > SUBMIT_TIMEOUT_MS) {
+        throw new CofheError({
+          code: CofheErrorCode.DecryptFailed,
+          message: `decrypt submit retried CT_NOT_READY for ${SUBMIT_TIMEOUT_MS}ms without receiving request_id`,
+          hint: 'The ciphertext may still be propagating. Try again later.',
+          context: {
+            thresholdNetworkUrl,
+            body,
+            attemptIndex,
+            timeoutMs: SUBMIT_TIMEOUT_MS,
+            submitResponse,
+          },
+        });
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, SUBMIT_RETRY_INTERVAL_MS));
+      attemptIndex += 1;
+      continue;
     }
 
     throw new CofheError({
       code: CofheErrorCode.DecryptFailed,
-      message: `decrypt request failed: ${errorMessage}`,
-      hint: 'Check the threshold network URL and request parameters.',
-      context: {
-        thresholdNetworkUrl,
-        status: response.status,
-        statusText: response.statusText,
-        body,
-      },
-    });
-  }
-
-  let rawJson: unknown;
-  try {
-    rawJson = (await response.json()) as unknown;
-  } catch (e) {
-    throw new CofheError({
-      code: CofheErrorCode.DecryptFailed,
-      message: `Failed to parse decrypt submit response`,
-      cause: e instanceof Error ? e : undefined,
+      message: `decrypt submit response missing request_id`,
       context: {
         thresholdNetworkUrl,
         body,
+        submitResponse,
+        attemptIndex,
       },
     });
   }
-
-  console.log('[cofhe][decrypt] submit response', {
-    status: response.status,
-    statusText: response.statusText,
-    body: rawJson,
-  });
-
-  const submitResponse = assertDecryptSubmitResponseV2(rawJson);
-  return submitResponse.request_id;
 }
 
 async function pollDecryptStatusV2(
