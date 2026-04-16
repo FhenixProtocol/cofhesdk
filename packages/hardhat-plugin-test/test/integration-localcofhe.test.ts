@@ -77,34 +77,40 @@ describe('Local Cofhe Integration Tests', () => {
     await testContract.waitForDeployment();
   });
 
-  it('Should encrypt -> store -> decryptForView -> decryptForTx -> publish -> verify', async function () {
+  it('Should encrypt -> store -> on-chain FHE op -> decryptForView -> decryptForTx -> publish -> verify', async function () {
     // Skip if no private key is provided
     if (!process.env.LOCALCOFHE_PRIVATE_KEY && process.env.CI) {
       this.skip();
     }
 
     const testValue = 101n;
+    const valueToAdd = 7n;
+    const expectedValue = testValue + valueToAdd;
 
     // Encrypt and store a value
     const encrypted = await cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
 
-    const tx = await testContract.connect(localcofheSigner).setValue(encrypted[0]);
-    await tx.wait();
+    const storeTx = await testContract.connect(localcofheSigner).setValue(encrypted[0]);
+    await storeTx.wait();
 
-    // Get the hash from the contract (using the new getValueHash function)
-    // IMPORTANT: The ctHash is transformed on-chain, so we MUST get it from the contract
+    const encryptedAddend = await cofheClient.encryptInputs([Encryptable.uint32(valueToAdd)]).execute();
+
+    const addTx = await testContract.connect(localcofheSigner).addValue(encryptedAddend[0]);
+    await addTx.wait();
+
+    // Get the hash from the contract after an on-chain FHE op rewrote the ciphertext handle.
     const ctHash = await testContract.getValueHash();
 
     // Decrypt the value using the ctHash from the encrypted input
     const unsealedResult = await cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
 
     // Verify the decrypted value matches
-    expect(unsealedResult).to.be.equal(testValue);
+    expect(unsealedResult).to.be.equal(expectedValue);
 
     const decryptResult = await cofheClient.decryptForTx(ctHash).withPermit().execute();
 
     expect(decryptResult.ctHash).to.equal(ctHash);
-    expect(decryptResult.decryptedValue).to.equal(testValue);
+    expect(decryptResult.decryptedValue).to.equal(expectedValue);
     expect(decryptResult.signature).to.be.a('string');
 
     const publishTx = await testContract
@@ -115,6 +121,6 @@ describe('Local Cofhe Integration Tests', () => {
     const [publishedValue, isDecrypted] = await testContract.getDecryptResultSafe(ctHash);
 
     expect(isDecrypted).to.equal(true);
-    expect(publishedValue).to.equal(testValue);
+    expect(publishedValue).to.equal(expectedValue);
   });
 });
