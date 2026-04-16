@@ -12,7 +12,7 @@ import { CofheError, CofheErrorCode } from '../error.js';
 import { fromHexString, toHexString } from '../utils.js';
 import { type PublicClient, createPublicClient, http, type WalletClient, createWalletClient } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { arbitrumSepolia, hardhat } from 'viem/chains';
+import { arbitrumSepolia } from 'viem/chains';
 import { type CofheConfig, createCofheConfigBase } from '../config.js';
 import { type ZkBuilderAndCrsGenerator } from '../encrypt/zkPackProveVerify.js';
 import { type KeysStorage, createKeysStore } from '../keyStore.js';
@@ -742,6 +742,62 @@ describe('EncryptInputsBuilder', () => {
       expect(encryptedMetadata2.signer).toBe(sender);
       expect(encryptedMetadata2.securityZone).toBe(securityZone);
       expect(encryptedMetadata2.chainId).toBe(defaultChainId);
+    });
+  });
+
+  describe('setUseWorker and getUseWorker', () => {
+    it('should have setUseWorker method', () => {
+      expect(builder).toHaveProperty('setUseWorker');
+      expect(typeof builder.setUseWorker).toBe('function');
+    });
+
+    it('should have getUseWorker method', () => {
+      expect(builder).toHaveProperty('getUseWorker');
+      expect(typeof builder.getUseWorker).toBe('function');
+    });
+
+    it('should return builder for method chaining', () => {
+      const returnedBuilder = builder.setUseWorker(false);
+      expect(returnedBuilder).toBe(builder);
+    });
+
+    it('should allow chaining with other builder methods', () => {
+      const chainedBuilder = builder.setUseWorker(false).onStep(() => {});
+      expect(chainedBuilder).toBeDefined();
+      expect(chainedBuilder).toHaveProperty('execute');
+    });
+
+    it('should accept true and false parameters without throwing', () => {
+      expect(() => builder.setUseWorker(true)).not.toThrow();
+      expect(() => builder.setUseWorker(false)).not.toThrow();
+    });
+
+    it('should return current useWorker value via getUseWorker', () => {
+      builder.setUseWorker(true);
+      expect(builder.getUseWorker()).toBe(true);
+
+      builder.setUseWorker(false);
+      expect(builder.getUseWorker()).toBe(false);
+    });
+
+    it('should reflect changes across multiple setUseWorker calls', () => {
+      builder.setUseWorker(true);
+      expect(builder.getUseWorker()).toBe(true);
+
+      builder.setUseWorker(false);
+      expect(builder.getUseWorker()).toBe(false);
+
+      builder.setUseWorker(true);
+      expect(builder.getUseWorker()).toBe(true);
+    });
+
+    it('should default useWorker based on config.useWorkers', () => {
+      const configWithWorkers = createMockCofheConfig(defaultChainId, MockZkVerifierUrl);
+      const builderWithWorkers = new EncryptInputsBuilder({
+        ...createDefaultParams(),
+        config: configWithWorkers,
+      });
+      expect(builderWithWorkers.getUseWorker()).toBe(configWithWorkers.useWorkers);
     });
   });
 });
