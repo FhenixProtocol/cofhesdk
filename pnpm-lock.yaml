@@ -487,6 +487,9 @@ importers:
       '@cofhe/eslint-config':
         specifier: workspace:*
         version: link:../eslint-config
+      '@cofhe/integration-test-setup':
+        specifier: workspace:*
+        version: link:../../test/integration-test-setup
       '@cofhe/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig
@@ -674,6 +677,9 @@ importers:
       '@cofhe/hardhat-plugin':
         specifier: workspace:*
         version: link:../../packages/hardhat-plugin
+      '@cofhe/integration-test-setup':
+        specifier: workspace:*
+        version: link:../integration-test-setup
       '@cofhe/mock-contracts':
         specifier: workspace:*
         version: link:../../packages/mock-contracts
@@ -713,6 +719,28 @@ importers:
       viem:
         specifier: ^2.38.6
         version: 2.38.6(typescript@5.5.4)(zod@4.1.12)
+
+  test/integration-test-setup:
+    dependencies:
+      '@fhenixprotocol/cofhe-contracts':
+        specifier: 0.1.0
+        version: 0.1.0
+      '@openzeppelin/contracts':
+        specifier: ^5.0.0
+        version: 5.4.0
+      viem:
+        specifier: ^2.38.6
+        version: 2.38.6(typescript@5.5.4)(zod@4.1.12)
+    devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.15
+      tsup:
+        specifier: ^8.0.2
+        version: 8.5.0(postcss@8.5.6)(tsx@4.21.0)(typescript@5.5.4)
+      typescript:
+        specifier: 5.5.4
+        version: 5.5.4
 
 packages:
 

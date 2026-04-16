@@ -1,21 +1,39 @@
 #!/usr/bin/env node
 
 /**
- * Ensure test contracts are deployed on all target chains.
+ * Integration test setup — deploy contracts, initialize on-chain state, and build the package.
  *
- * Uses `forge` to compile and deploy, `cast` to check on-chain state.
- * Reads/writes deployments.json as the registry.
+ * This script is the single entry point for preparing the test environment.
+ * It performs three phases:
+ *
+ * 1. **Deploy** — Compiles Solidity contracts with `forge build`, then deploys them to
+ *    every target chain. Uses a bytecodeHash to detect contract changes and only
+ *    redeploys when the bytecode differs or the on-chain code is missing.
+ *    Results are persisted in `deployments.json`.
+ *
+ * 2. **Initialize primary chain** — On the PRIMARY_TEST_CHAIN (default: Arb Sepolia),
+ *    stores pre-encrypted values via trivial-encrypt contract functions so that core
+ *    SDK tests can run without performing any on-chain encryption themselves. The
+ *    ctHashes, handles, and plaintext values are written to `primaryTestChainRegistry.json`.
+ *    This step is skipped when the registry already matches the current deployment.
+ *
+ * 3. **Build** — Runs `pnpm build` (tsup + forge build) so the `dist/` output includes
+ *    the latest registry data. Environment variables from `config.ts` are inlined at
+ *    build time via tsup's `define` option, making them safe for browser test environments.
  *
  * Usage:
  *   node setup.mjs                          # all enabled chains
- *   node setup.mjs --chains 84532,421614    # specific chains
- *   node setup.mjs --dry-run                # preview only
+ *   node setup.mjs --chains 84532,421614    # specific chains only
+ *   node setup.mjs --dry-run                # preview actions without executing
  *
- * Env:
- *   TEST_PRIVATE_KEY            — deployer key for testnets (required, loaded from root .env)
- *   TEST_LOCALCOFHE_ENABLED     — set to "true" to include localcofhe
- *   TEST_LOCALCOFHE_PRIVATE_KEY — deployer key for localcofhe (required when localcofhe enabled)
- *   LOCALCOFHE_HOST_CHAIN_RPC   — localcofhe RPC (default: http://127.0.0.1:42069)
+ * Environment variables (loaded from root .env if present):
+ *   TEST_PRIVATE_KEY            — deployer / test account key (required)
+ *   PRIMARY_TEST_CHAIN          — chain ID for pre-stored values (default: 421614)
+ *   TEST_LOCALCOFHE_ENABLED     — set to "true" to include the localcofhe chain
+ *   TEST_LOCALCOFHE_PRIVATE_KEY — deployer key for localcofhe (required when enabled)
+ *   LOCALCOFHE_HOST_CHAIN_RPC   — localcofhe RPC URL (default: http://127.0.0.1:42069)
+ *
+ * Requires: forge, cast (Foundry)
  */
 
 import { execSync } from 'node:child_process';
@@ -25,7 +43,8 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const REGISTRY_PATH = resolve(__dirname, 'deployments.json');
+const REGISTRY_PATH = resolve(__dirname, 'src/deployments.json');
+const PRIMARY_REGISTRY_PATH = resolve(__dirname, 'src/primaryTestChainRegistry.json');
 
 // ── .env ────────────────────────────────────────────────────────────────────
 
@@ -142,10 +161,42 @@ if (localcofheEnabled && !process.env.TEST_LOCALCOFHE_PRIVATE_KEY) {
 }
 
 const deployer = run(`cast wallet address $TEST_PRIVATE_KEY`);
-console.log(`Deployer: ${deployer}`);
+
+// ── Funding report ──────────────────────────────────────────────────────────
+
+const bold = (s) => `\x1b[1m${s}\x1b[22m`;
+const green = (s) => `\x1b[32m${s}\x1b[39m`;
+const yellow = (s) => `\x1b[33m${s}\x1b[39m`;
+const red = (s) => `\x1b[31m${s}\x1b[39m`;
+
+function colorBalance(ethStr) {
+  const eth = parseFloat(ethStr);
+  const formatted = bold(ethStr);
+  if (eth >= 1) return green(formatted);
+  if (eth >= 0.1) return yellow(formatted);
+  return red(formatted);
+}
+
+function getBalanceEther(rpc, address) {
+  try {
+    return run(`cast balance ${address} --ether --rpc-url ${rpc}`);
+  } catch {
+    return '?';
+  }
+}
+
+console.log(`\nAccount ${bold(deployer)} funding:`);
+for (const chain of ALL_CHAINS) {
+  const rpc = process.env[chain.rpcEnv] || chain.rpc;
+  const pkEnvName = getPrivateKeyEnvName(chain);
+  const addr = pkEnvName === 'TEST_PRIVATE_KEY' ? deployer : run(`cast wallet address $${pkEnvName}`);
+  const bal = getBalanceEther(rpc, addr);
+  console.log(`  ${chain.label}: ${colorBalance(bal)} ETH`);
+}
+
 if (localcofheEnabled) {
   const localDeployer = run(`cast wallet address $TEST_LOCALCOFHE_PRIVATE_KEY`);
-  console.log(`Localcofhe deployer: ${localDeployer}`);
+  console.log(`\nLocalcofhe deployer: ${localDeployer}`);
 }
 
 // Compile
@@ -222,3 +273,111 @@ if (changed) {
 } else {
   console.log('\nAll deployments up to date.');
 }
+
+// ── Primary test chain initialization ───────────────────────────────────────
+
+const PRIMARY_TEST_CHAIN = Number(process.env.PRIMARY_TEST_CHAIN || '421614');
+
+const PRIVATE_VALUE = 42;
+const PUBLIC_VALUE = 7;
+const ADD_VALUE = 50;
+
+function readPrimaryRegistry() {
+  try { return JSON.parse(readFileSync(PRIMARY_REGISTRY_PATH, 'utf8')); } catch { return {}; }
+}
+
+function writePrimaryRegistry(reg) {
+  writeFileSync(PRIMARY_REGISTRY_PATH, JSON.stringify(reg, null, 2) + '\n');
+}
+
+function castSend(rpc, pkEnvName, to, sig, ...callArgs) {
+  const argsStr = callArgs.length ? ' ' + callArgs.join(' ') : '';
+  run(`cast send ${to} "${sig}"${argsStr} --rpc-url ${rpc} --private-key $${pkEnvName}`);
+}
+
+function castCall(rpc, to, sig) {
+  return run(`cast call ${to} "${sig}" --rpc-url ${rpc}`);
+}
+
+function initializePrimaryChain() {
+  const primaryChain = ALL_CHAINS.find(c => c.id === PRIMARY_TEST_CHAIN);
+  if (!primaryChain) {
+    console.log(`\nPrimary test chain ${PRIMARY_TEST_CHAIN}: not in chain list, skipping initialization`);
+    return;
+  }
+
+  const contractAddress = registry['SimpleTest']?.[String(PRIMARY_TEST_CHAIN)]?.address;
+  if (!contractAddress) {
+    console.log(`\nPrimary test chain ${PRIMARY_TEST_CHAIN}: no SimpleTest deployment, skipping initialization`);
+    return;
+  }
+
+  const primaryReg = readPrimaryRegistry();
+  const deployedAt = registry['SimpleTest'][String(PRIMARY_TEST_CHAIN)].deployedAt;
+  const needsInit = !primaryReg.chainId
+    || primaryReg.contractAddress !== contractAddress
+    || primaryReg.deploymentTimestamp !== deployedAt;
+
+  if (!needsInit) {
+    console.log(`\nPrimary test chain ${PRIMARY_TEST_CHAIN}: values already initialized`);
+    return;
+  }
+
+  if (args.dryRun) {
+    console.log(`\nPrimary test chain ${PRIMARY_TEST_CHAIN}: [dry-run] would initialize values`);
+    return;
+  }
+
+  const rpc = process.env[primaryChain.rpcEnv] || primaryChain.rpc;
+  const pkEnvName = getPrivateKeyEnvName(primaryChain);
+
+  console.log(`\nInitializing primary test chain values on ${primaryChain.label} (${PRIMARY_TEST_CHAIN})...`);
+
+  // 1. Store private value via setValueTrivial
+  console.log(`  setValueTrivial(${PRIVATE_VALUE})...`);
+  castSend(rpc, pkEnvName, contractAddress, 'setValueTrivial(uint256)', String(PRIVATE_VALUE));
+  const privateCtHash = castCall(rpc, contractAddress, 'getValueHash()');
+  const privateHandle = castCall(rpc, contractAddress, 'getValue()');
+  console.log(`    ctHash: ${privateCtHash}`);
+
+  // 2. Store public value via setPublicValueTrivial
+  console.log(`  setPublicValueTrivial(${PUBLIC_VALUE})...`);
+  castSend(rpc, pkEnvName, contractAddress, 'setPublicValueTrivial(uint256)', String(PUBLIC_VALUE));
+  const publicCtHash = castCall(rpc, contractAddress, 'publicValueHash()');
+  const publicHandle = castCall(rpc, contractAddress, 'publicValue()');
+  console.log(`    ctHash: ${publicCtHash}`);
+
+  // 3. Add value via addValueTrivial (adds to storedValue which is currently PRIVATE_VALUE)
+  console.log(`  addValueTrivial(${ADD_VALUE})...`);
+  castSend(rpc, pkEnvName, contractAddress, 'addValueTrivial(uint256)', String(ADD_VALUE));
+  const addedCtHash = castCall(rpc, contractAddress, 'getValueHash()');
+  const addedHandle = castCall(rpc, contractAddress, 'getValue()');
+  console.log(`    ctHash: ${addedCtHash}  (expected sum: ${PRIVATE_VALUE + ADD_VALUE})`);
+
+  const newPrimaryReg = {
+    chainId: PRIMARY_TEST_CHAIN,
+    contractAddress,
+    deploymentTimestamp: deployedAt,
+    privateValue: { value: PRIVATE_VALUE, ctHash: privateCtHash, handle: privateHandle },
+    publicValue: { value: PUBLIC_VALUE, ctHash: publicCtHash, handle: publicHandle },
+    addedValue: {
+      value: PRIVATE_VALUE + ADD_VALUE,
+      addend: ADD_VALUE,
+      expectedSum: PRIVATE_VALUE + ADD_VALUE,
+      ctHash: addedCtHash,
+      handle: addedHandle,
+    },
+    initializedAt: new Date().toISOString(),
+  };
+
+  writePrimaryRegistry(newPrimaryReg);
+  console.log(`  Primary test chain registry updated: ${PRIMARY_REGISTRY_PATH}`);
+}
+
+initializePrimaryChain();
+
+// ── Build ───────────────────────────────────────────────────────────────────
+
+console.log('\nBuilding @cofhe/integration-test-setup...');
+run('pnpm build');
+console.log('Build complete.');

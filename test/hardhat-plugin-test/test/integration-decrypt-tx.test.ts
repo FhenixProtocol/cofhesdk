@@ -61,17 +61,7 @@ const ENV_CHAIN_ID = parseChainIdEnv(process.env.COFHE_CHAIN_ID ?? process.env.T
 const findSupportedChainById = (chainId: number): SupportedTestChain | undefined =>
   SUPPORTED_TEST_CHAINS.find((c) => c.chainId === chainId);
 
-// Default deployments for convenience (chainId → SimpleTest address).
-// This is the ONLY source of truth for selecting an existing deployment in this test.
-// If you want to point to a different contract, edit this map (keep it keyed by chainId).
-const DEFAULT_SIMPLE_TEST_ADDRESSES_BY_CHAIN_ID: Record<number, `0x${string}`> = {
-  84532: '0x9df789aB607fc746E6dF318B94724eBB028F9F60', // Base Sepolia
-  421614: '0x51D2781C3d90f6B92436C72CD2D21158356d750d', // Arbitrum Sepolia
-  11155111: '0x8CB51925D68f70EC430A36a07F6c09f35add32D2', // Ethereum Sepolia
-};
-
-const getDefaultSimpleTestAddress = (chainId: number): `0x${string}` | undefined =>
-  DEFAULT_SIMPLE_TEST_ADDRESSES_BY_CHAIN_ID[chainId];
+import { getSimpleTestAddress } from '@cofhe/integration-test-setup';
 
 // ---------------------------------------------------------------------------
 // Chain-agnostic Integration Tests – decryptForTx + publishDecryptResult
@@ -195,18 +185,15 @@ describe(`DecryptForTx + PublishDecryptResult (chain-agnostic)${DESCRIBE_CHAIN_S
       expiration: 1_000_000_000_000,
     });
 
-    // Prefer the default deployment for the selected chain when available.
-    // Otherwise deploy a fresh contract.
-    const configuredSimpleTestAddress = getDefaultSimpleTestAddress(selectedChainId);
+    // Read deployment address from registry (managed by scripts/integration-test-setup.mjs)
+    const registryAddress = getSimpleTestAddress(selectedChainId);
 
-    if (configuredSimpleTestAddress) {
-      const deployedCode = await contractProvider.getCode(configuredSimpleTestAddress);
+    if (registryAddress) {
+      const deployedCode = await contractProvider.getCode(registryAddress);
       if (deployedCode && deployedCode !== '0x') {
-        testContract = SimpleTest__factory.connect(configuredSimpleTestAddress, chainSigner);
+        testContract = SimpleTest__factory.connect(registryAddress, chainSigner);
       } else {
-        console.warn(
-          `No contract bytecode found at configured SimpleTest address ${configuredSimpleTestAddress}. Deploying a new SimpleTest...`
-        );
+        console.warn(`No bytecode at registry address ${registryAddress}. Deploying a new SimpleTest...`);
       }
     }
 
@@ -217,7 +204,7 @@ describe(`DecryptForTx + PublishDecryptResult (chain-agnostic)${DESCRIBE_CHAIN_S
       const simpleTestAddress = (await testContract.getAddress()) as `0x${string}`;
       console.log(`SimpleTest deployed at: ${simpleTestAddress}`);
       console.log(
-        `Tip: add { ${selectedChainId}: '${simpleTestAddress}' } to DEFAULT_SIMPLE_TEST_ADDRESSES_BY_CHAIN_ID to reuse it next time.`
+        `Tip: run 'node test/hardhat-plugin-test/scripts/integration-test-setup.mjs --chains ${selectedChainId}' to persist this address.`
       );
     }
 

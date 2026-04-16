@@ -4,6 +4,7 @@
   "scripts": {
     "test": "npx hardhat test",
     "test:integration": "COFHE_SKIP_MOCKS_DEPLOY=1 npx hardhat test test/integration-*.test.ts",
+    "integration-test-setup": "node ../integration-test-setup/setup.mjs",
     "compile": "npx hardhat compile",
     "clean": "npx hardhat clean"
   },
@@ -13,6 +14,7 @@
     "ethers": "^6.0.0",
     "ethers6": "npm:ethers@^6.13.0",
     "hardhat": "^2.26.3",
+    "@cofhe/integration-test-setup": "workspace:*",
     "@cofhe/sdk": "workspace:*",
     "@cofhe/hardhat-plugin": "workspace:*",
     "@cofhe/mock-contracts": "workspace:*",
