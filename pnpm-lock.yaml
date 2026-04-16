@@ -781,6 +781,39 @@ importers:
         specifier: ^2.38.6
         version: 2.38.6(typescript@5.5.4)(zod@4.1.12)
 
+  test/integration-matrix:
+    devDependencies:
+      '@cofhe/hardhat-3-plugin':
+        specifier: workspace:*
+        version: link:../../packages/hardhat-3-plugin
+      '@cofhe/integration-test-setup':
+        specifier: workspace:*
+        version: link:../integration-test-setup
+      '@cofhe/mock-contracts':
+        specifier: workspace:*
+        version: link:../../packages/mock-contracts
+      '@cofhe/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.15
+      '@vitest/browser':
+        specifier: ^3.0.0
+        version: 3.2.4(playwright@1.55.0)(vitest@3.2.4)
+      playwright:
+        specifier: ^1.40.0
+        version: 1.55.0
+      typescript:
+        specifier: 5.5.4
+        version: 5.5.4
+      viem:
+        specifier: ^2.38.6
+        version: 2.38.6(typescript@5.5.4)(zod@4.1.12)
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.4(@types/node@20.19.15)(@vitest/browser@3.2.4)(happy-dom@15.11.7)
+
   test/integration-test-setup:
     dependencies:
       '@fhenixprotocol/cofhe-contracts':
