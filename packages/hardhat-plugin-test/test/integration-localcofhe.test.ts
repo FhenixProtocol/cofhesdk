@@ -77,7 +77,9 @@ describe('Local Cofhe Integration Tests', () => {
     await testContract.waitForDeployment();
   });
 
-  it('Should encrypt -> store -> on-chain FHE op -> decryptForView -> decryptForTx -> publish -> verify', async function () {
+  it('Should encrypt -> store -> on-chain FHE op -> decryptForView -> on-chain FHE op -> decryptForTx -> publish -> verify', async function () {
+    this.timeout(120000);
+
     // Skip if no private key is provided
     if (!process.env.LOCALCOFHE_PRIVATE_KEY && process.env.CI) {
       this.skip();
@@ -85,7 +87,9 @@ describe('Local Cofhe Integration Tests', () => {
 
     const testValue = 101n;
     const valueToAdd = 7n;
-    const expectedValue = testValue + valueToAdd;
+    const secondValueToAdd = 11n;
+    const expectedViewValue = testValue + valueToAdd;
+    const expectedTxValue = expectedViewValue + secondValueToAdd;
 
     // Encrypt and store a value
     const encrypted = await cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
@@ -102,25 +106,34 @@ describe('Local Cofhe Integration Tests', () => {
     const ctHash = await testContract.getValueHash();
 
     // Decrypt the value using the ctHash from the encrypted input
+    await new Promise((resolve) => setTimeout(resolve, 16000)); // work around aritficial SLIM_LISTENER_EVENT_PROCESSING_DELAY_MS / wait a bit to ensure the on-chain FHE op has been picked up by the delayed local cofhe
     const unsealedResult = await cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
 
     // Verify the decrypted value matches
-    expect(unsealedResult).to.be.equal(expectedValue);
+    expect(unsealedResult).to.be.equal(expectedViewValue);
 
-    const decryptResult = await cofheClient.decryptForTx(ctHash).withPermit().execute();
+    const encryptedSecondAddend = await cofheClient.encryptInputs([Encryptable.uint32(secondValueToAdd)]).execute();
 
-    expect(decryptResult.ctHash).to.equal(ctHash);
-    expect(decryptResult.decryptedValue).to.equal(expectedValue);
+    const secondAddTx = await testContract.connect(localcofheSigner).addValue(encryptedSecondAddend[0]);
+    await secondAddTx.wait();
+
+    const updatedCtHash = await testContract.getValueHash();
+
+    await new Promise((resolve) => setTimeout(resolve, 16000)); // work around aritficial SLIM_LISTENER_EVENT_PROCESSING_DELAY_MS / wait a bit to ensure the on-chain FHE op has been picked up by the delayed local cofhe
+    const decryptResult = await cofheClient.decryptForTx(updatedCtHash).withPermit().execute();
+
+    expect(decryptResult.ctHash).to.equal(updatedCtHash);
+    expect(decryptResult.decryptedValue).to.equal(expectedTxValue);
     expect(decryptResult.signature).to.be.a('string');
 
     const publishTx = await testContract
       .connect(localcofheSigner)
-      .publishDecryptResult(ctHash, decryptResult.decryptedValue, decryptResult.signature);
+      .publishDecryptResult(updatedCtHash, decryptResult.decryptedValue, decryptResult.signature);
     await publishTx.wait();
 
-    const [publishedValue, isDecrypted] = await testContract.getDecryptResultSafe(ctHash);
+    const [publishedValue, isDecrypted] = await testContract.getDecryptResultSafe(updatedCtHash);
 
     expect(isDecrypted).to.equal(true);
-    expect(publishedValue).to.equal(expectedValue);
+    expect(publishedValue).to.equal(expectedTxValue);
   });
 });
