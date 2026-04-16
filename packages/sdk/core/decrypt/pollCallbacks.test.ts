@@ -107,6 +107,152 @@ describe('decrypt polling callbacks', () => {
     );
   });
 
+  it('tnDecryptV2 calls onPoll for CT_NOT_READY submit retries', async () => {
+    const onPoll = vi.fn();
+
+    let submitCalls = 0;
+    const fetchMock = vi.fn(async (url: string, options?: any) => {
+      if (url === `${thresholdNetworkUrl}/v2/decrypt` && options?.method === 'POST') {
+        submitCalls += 1;
+
+        if (submitCalls === 1) {
+          return makeMockResponse({
+            ok: true,
+            json: async () => ({
+              request_id: null,
+              status: 'CT_NOT_READY',
+            }),
+          });
+        }
+
+        return makeMockResponse({
+          ok: true,
+          json: async () => ({ request_id: 'req-submit-retry' }),
+        });
+      }
+
+      if (url === `${thresholdNetworkUrl}/v2/decrypt/req-submit-retry` && options?.method === 'GET') {
+        return makeMockResponse({
+          ok: true,
+          json: async () => ({
+            request_id: 'req-submit-retry',
+            status: 'COMPLETED',
+            submitted_at: 't',
+            is_succeed: true,
+            decrypted: [0x01],
+            signature: `0x${'01'.repeat(32)}${'02'.repeat(32)}1b`,
+          }),
+        });
+      }
+
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+
+    global.fetch = fetchMock as any;
+
+    const promise = tnDecryptV2({
+      ctHash: 1n,
+      chainId: 1,
+      permission: null,
+      thresholdNetworkUrl,
+      onPoll,
+    });
+
+    for (let i = 0; i < 25 && onPoll.mock.calls.length < 1; i += 1) {
+      await Promise.resolve();
+    }
+
+    expect(onPoll).toHaveBeenCalledTimes(1);
+    expect(onPoll).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        operation: 'decrypt',
+        requestId: '',
+        attemptIndex: 0,
+        intervalMs: 1000,
+        timeoutMs: 5 * 60 * 1000,
+      })
+    );
+
+    await vi.advanceTimersByTimeAsync(1000);
+    await promise;
+
+    expect(onPoll).toHaveBeenCalledTimes(2);
+    expect(onPoll).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        operation: 'decrypt',
+        requestId: 'req-submit-retry',
+        attemptIndex: 0,
+      })
+    );
+  });
+
+  it('tnDecryptV2 uses one timeout budget across submit retries and polling', async () => {
+    const onPoll = vi.fn();
+
+    const requestId = 'req-timeout-budget';
+    const testStartTime = Date.now();
+    let statusCalls = 0;
+    const fetchMock = vi.fn(async (url: string, options?: any) => {
+      if (url === `${thresholdNetworkUrl}/v2/decrypt` && options?.method === 'POST') {
+        if (Date.now() - testStartTime < 299_000) {
+          return makeMockResponse({
+            ok: true,
+            json: async () => ({
+              request_id: null,
+              status: 'CT_NOT_READY',
+            }),
+          });
+        }
+
+        return makeMockResponse({
+          ok: true,
+          json: async () => ({ request_id: requestId }),
+        });
+      }
+
+      if (url === `${thresholdNetworkUrl}/v2/decrypt/${requestId}` && options?.method === 'GET') {
+        statusCalls += 1;
+        return makeMockResponse({
+          ok: true,
+          json: async () => ({
+            request_id: requestId,
+            status: 'PROCESSING',
+            submitted_at: 't',
+          }),
+        });
+      }
+
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+
+    global.fetch = fetchMock as any;
+
+    const promise = tnDecryptV2({
+      ctHash: 1n,
+      chainId: 1,
+      permission: null,
+      thresholdNetworkUrl,
+      onPoll,
+    });
+    const rejection = expect(promise).rejects.toMatchObject({
+      message: 'decrypt polling timed out after 300000ms',
+    });
+
+    await vi.advanceTimersByTimeAsync(310_000);
+
+    await rejection;
+    expect(statusCalls).toBe(1);
+    expect(onPoll).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        operation: 'decrypt',
+        requestId,
+        timeoutMs: 5 * 60 * 1000,
+      })
+    );
+  });
+
   it('tnSealOutputV2 calls onPoll once per poll attempt', async () => {
     const onPoll = vi.fn();
 
