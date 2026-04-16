@@ -16,7 +16,7 @@ import { network } from 'hardhat';
 
 const DUMMY_SIGNER = '0x0000000000000000000000000000000000000001' as const;
 
-describe('Deployed Mocks — Error Recognition', async () => {
+describe('Error Decoding', async () => {
   const { viem, cofhe } = await network.connect();
   const publicClient = await viem.getPublicClient();
   const walletClients = await viem.getWalletClients();
