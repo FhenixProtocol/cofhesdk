@@ -53,6 +53,20 @@ contract SimpleTest {
     FHE.publishDecryptResult(input, result, signature);
   }
 
+  function setPublicValueTrivial(uint256 inValue) public {
+    publicValue = FHE.asEuint32(inValue);
+    publicValueHash = euint32.unwrap(publicValue);
+    FHE.allowPublic(publicValue);
+  }
+
+  function addValueTrivial(uint256 inValue) public {
+    euint32 valueToAdd = FHE.asEuint32(inValue);
+    storedValue = FHE.add(storedValue, valueToAdd);
+    storedValueHash = euint32.unwrap(storedValue);
+    FHE.allowThis(storedValue);
+    FHE.allowSender(storedValue);
+  }
+
   function getDecryptResultSafe(euint32 input) public view returns (uint32 value, bool decrypted) {
     return FHE.getDecryptResultSafe(input);
   }

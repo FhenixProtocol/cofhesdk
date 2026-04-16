@@ -8,20 +8,9 @@ import { createCofheClient, createCofheConfig } from '@cofhe/sdk/node';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { PermitUtils } from '@cofhe/sdk/permits';
+import { TEST_PRIVATE_KEY, getSimpleTestAddress } from '@cofhe/integration-test-setup';
 
-// Test private key - should be funded on Base Sepolia
-// Using a well-known test key, but you'll need to fund it with testnet ETH
 const DEFAULT_TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
-const TEST_PRIVATE_KEY =
-  process.env.TEST_PRIVATE_KEY ||
-  DEFAULT_TEST_PRIVATE_KEY; /* This key is publicly known and should only be used for testing with testnet ETH. Do not use this key on mainnet or with real funds. */
-const SHOULD_RUN_BASE_SEPOLIA_TEST = process.env.COFHE_CHAIN_ID === `${baseSepolia.id}`;
-
-const deployments = {
-  [baseSepolia.id]: {
-    address: '0x50232BdA22A8bE7511655D430677EcF8e852C7B6',
-  },
-};
 
 describe('Base Sepolia Integration Tests', () => {
   let cofheClient: CofheClient;
@@ -84,24 +73,16 @@ describe('Base Sepolia Integration Tests', () => {
     );
     baseSepoliaSigner = new hre.ethers.Wallet(TEST_PRIVATE_KEY, baseSepoliaProvider) as unknown as HardhatEthersSigner;
 
-    if (deployments[baseSepolia.id]) {
-      testContract = await hre.ethers.getContractAt(
-        'SimpleTest',
-        deployments[baseSepolia.id].address,
-        baseSepoliaSigner
+    const simpleTestAddress = getSimpleTestAddress(baseSepolia.id);
+    if (!simpleTestAddress) {
+      console.error(
+        `No SimpleTest deployment found for chain ${baseSepolia.id}. Run: node test/hardhat-plugin-test/scripts/integration-test-setup.mjs --chains ${baseSepolia.id}`
       );
-
-      console.log(`Test contract already deployed at: ${deployments[baseSepolia.id].address}`);
-    } else {
-      // Deploy test contract using ethers
-      const SimpleTestFactory = await hre.ethers.getContractFactory('SimpleTest');
-      testContract = await SimpleTestFactory.connect(baseSepoliaSigner).deploy();
-      await testContract.waitForDeployment();
-      const testContractAddress = await testContract.getAddress();
-      deployments[baseSepolia.id] = { address: testContractAddress };
-
-      console.log(`Test contract deployed at: ${testContractAddress}`);
+      this.skip();
     }
+
+    testContract = await hre.ethers.getContractAt('SimpleTest', simpleTestAddress, baseSepoliaSigner);
+    console.log(`Using SimpleTest at: ${simpleTestAddress}`);
   });
 
   it('Should encrypt -> store -> decrypt a value', async function () {
