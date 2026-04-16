@@ -10,9 +10,9 @@
 import hre from 'hardhat';
 import { expect } from 'chai';
 import { Interface, ZeroAddress, zeroPadBytes, getBytes } from 'ethers';
-import { MockACLArtifact, MockTaskManagerArtifact } from '@cofhe/mock-contracts';
+import { MockACLArtifact } from '@cofhe/mock-contracts';
 
-describe('Deployed Mocks — Error Recognition', () => {
+describe('Contract and Error Decoding (hardhat is aware of mock contracts)', () => {
   it('artifact exists for fixed-address mock (MockTaskManager)', async () => {
     const exists = await hre.artifacts.artifactExists('MockTaskManager');
     expect(exists).to.equal(true);
