@@ -1,0 +1,269 @@
+import { FheTypes, verifyDecryptResult, createCofheConfigBase } from '@/core';
+import { getChainById } from '@/chains';
+import { permits } from '../permits.js';
+import { DecryptForTxBuilder } from '../decrypt/decryptForTxBuilder.js';
+import { DecryptForViewBuilder } from '../decrypt/decryptForViewBuilder.js';
+
+import { describe, it, expect, beforeAll } from 'vitest';
+import type { Chain, PublicClient, WalletClient } from 'viem';
+import { createPublicClient, createWalletClient, http } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { arbitrumSepolia, baseSepolia, sepolia } from 'viem/chains';
+import {
+  TEST_PRIVATE_KEY,
+  PRIMARY_TEST_CHAIN,
+  primaryTestChainRegistry,
+  isPrimaryTestChainReady,
+  simpleTestAbi,
+} from '@cofhe/integration-test-setup';
+
+const account = privateKeyToAccount(TEST_PRIVATE_KEY);
+
+const VIEM_CHAINS: Record<number, Chain> = {
+  421614: arbitrumSepolia,
+  84532: baseSepolia,
+  11155111: sepolia,
+};
+
+describe('Core – Decrypt Tests', () => {
+  let publicClient: PublicClient;
+  let walletClient: WalletClient;
+  let contractAddress: `0x${string}`;
+  let config: ReturnType<typeof createCofheConfigBase>;
+
+  let privateCtHash: `0x${string}`;
+  let privateValue: bigint;
+
+  let publicCtHash: `0x${string}`;
+  let publicHandle: `0x${string}`;
+  let publicValue: bigint;
+
+  let addedCtHash: `0x${string}`;
+  let addedHandle: `0x${string}`;
+  let addedExpectedSum: bigint;
+
+  beforeAll(() => {
+    if (!isPrimaryTestChainReady(primaryTestChainRegistry)) {
+      throw new Error('Primary test chain registry is not initialized. Run `pnpm test:setup` first.');
+    }
+
+    const reg = primaryTestChainRegistry;
+    const chainId = reg.chainId;
+
+    const viemChain = VIEM_CHAINS[chainId];
+    if (!viemChain) throw new Error(`No viem chain mapping for chain ${chainId}`);
+
+    const cofheChain = getChainById(chainId);
+    if (!cofheChain) throw new Error(`No cofhe chain config for chain ${chainId}`);
+
+    config = createCofheConfigBase({ supportedChains: [cofheChain] });
+    contractAddress = reg.contractAddress as `0x${string}`;
+
+    privateCtHash = reg.privateValue.ctHash as `0x${string}`;
+    privateValue = BigInt(reg.privateValue.value);
+
+    publicCtHash = reg.publicValue.ctHash as `0x${string}`;
+    publicHandle = reg.publicValue.handle as `0x${string}`;
+    publicValue = BigInt(reg.publicValue.value);
+
+    addedCtHash = reg.addedValue.ctHash as `0x${string}`;
+    addedHandle = reg.addedValue.handle as `0x${string}`;
+    addedExpectedSum = BigInt(reg.addedValue.expectedSum);
+
+    publicClient = createPublicClient({ chain: viemChain, transport: http() });
+    walletClient = createWalletClient({ chain: viemChain, transport: http(), account });
+  });
+
+  function txBuilder(ctHash: `0x${string}`) {
+    return new DecryptForTxBuilder({
+      config,
+      publicClient,
+      walletClient,
+      chainId: PRIMARY_TEST_CHAIN,
+      account: account.address,
+      ctHash,
+      requireConnected: undefined,
+    });
+  }
+
+  function viewBuilder(ctHash: `0x${string}`, utype: FheTypes) {
+    return new DecryptForViewBuilder({
+      config,
+      publicClient,
+      walletClient,
+      chainId: PRIMARY_TEST_CHAIN,
+      account: account.address,
+      ctHash,
+      utype,
+      requireConnected: undefined,
+    });
+  }
+
+  async function createPermit() {
+    return permits.createSelf({ issuer: account.address, name: 'Decrypt Test Permit' }, publicClient, walletClient);
+  }
+
+  // ---------------------------------------------------------------------------
+  // decryptForTx – withoutPermit (global allowance)
+  // ---------------------------------------------------------------------------
+
+  describe('decryptForTx – withoutPermit (global allowance)', () => {
+    it('should decrypt a publicly allowed ciphertext', async () => {
+      const result = await txBuilder(publicCtHash).withoutPermit().execute();
+
+      expect(BigInt(result.ctHash)).toBe(BigInt(publicCtHash));
+      expect(result.decryptedValue).toBe(publicValue);
+      expect(result.signature).toMatch(/^0x[0-9a-fA-F]+$/);
+    }, 180000);
+  });
+
+  // ---------------------------------------------------------------------------
+  // decryptForTx – withPermit
+  // ---------------------------------------------------------------------------
+
+  describe('decryptForTx – withPermit', () => {
+    it('should decrypt with a self permit', async () => {
+      const permit = await createPermit();
+
+      const result = await txBuilder(privateCtHash).withPermit(permit).execute();
+
+      expect(BigInt(result.ctHash)).toBe(BigInt(privateCtHash));
+      expect(result.decryptedValue).toBe(privateValue);
+      expect(result.signature).toBeDefined();
+    }, 180000);
+
+    it('should auto-resolve active permit', async () => {
+      const permit = await createPermit();
+      permits.selectActivePermit(PRIMARY_TEST_CHAIN, account.address, permit.hash);
+
+      const result = await txBuilder(privateCtHash).withPermit().execute();
+
+      expect(BigInt(result.ctHash)).toBe(BigInt(privateCtHash));
+      expect(result.decryptedValue).toBe(privateValue);
+    }, 180000);
+  });
+
+  // ---------------------------------------------------------------------------
+  // verifyDecryptResult
+  // ---------------------------------------------------------------------------
+
+  describe('verifyDecryptResult', () => {
+    it('should verify a valid decrypt result', async () => {
+      const permit = await createPermit();
+
+      const decryptResult = await txBuilder(privateCtHash).withPermit(permit).execute();
+
+      const isValid = await verifyDecryptResult(
+        decryptResult.ctHash,
+        privateValue,
+        decryptResult.signature,
+        publicClient
+      );
+      expect(isValid).toBe(true);
+    }, 180000);
+
+    it('should return false for invalid inputs', async () => {
+      const permit = await createPermit();
+
+      const decryptResult = await txBuilder(privateCtHash).withPermit(permit).execute();
+
+      expect(
+        await verifyDecryptResult(decryptResult.ctHash, privateValue + 1n, decryptResult.signature, publicClient)
+      ).toBe(false);
+    }, 180000);
+  });
+
+  // ---------------------------------------------------------------------------
+  // decryptForView
+  // ---------------------------------------------------------------------------
+
+  describe('decryptForView', () => {
+    it('should return the plaintext value', async () => {
+      await createPermit();
+
+      const result = await viewBuilder(privateCtHash, FheTypes.Uint32).execute();
+      expect(result).toBe(privateValue);
+    }, 180000);
+
+    it('should agree with decryptForTx on the same handle', async () => {
+      const permit = await createPermit();
+
+      const viewResult = await viewBuilder(privateCtHash, FheTypes.Uint32).execute();
+      const txResult = await txBuilder(privateCtHash).withPermit(permit).execute();
+
+      expect(viewResult).toBe(privateValue);
+      expect(BigInt(txResult.ctHash)).toBe(BigInt(privateCtHash));
+      expect(txResult.decryptedValue).toBe(privateValue);
+    }, 180000);
+  });
+
+  // ---------------------------------------------------------------------------
+  // publishDecryptResult – full lifecycle
+  // ---------------------------------------------------------------------------
+
+  describe('publishDecryptResult lifecycle', () => {
+    it('should decryptForTx → publish → verify on-chain (public allowance)', async () => {
+      const decryptResult = await txBuilder(publicCtHash).withoutPermit().execute();
+
+      expect(BigInt(decryptResult.ctHash)).toBe(BigInt(publicCtHash));
+      expect(decryptResult.decryptedValue).toBe(publicValue);
+
+      const viemChain = VIEM_CHAINS[PRIMARY_TEST_CHAIN];
+      const publishTxHash = await walletClient.writeContract({
+        address: contractAddress,
+        abi: simpleTestAbi,
+        functionName: 'publishDecryptResult',
+        args: [publicHandle, Number(decryptResult.decryptedValue), decryptResult.signature as `0x${string}`],
+        chain: viemChain,
+        account,
+      });
+      await publicClient.waitForTransactionReceipt({ hash: publishTxHash });
+
+      const [publishedValue, isDecrypted] = await publicClient.readContract({
+        address: contractAddress,
+        abi: simpleTestAbi,
+        functionName: 'getDecryptResultSafe',
+        args: [publicHandle],
+      });
+      expect(isDecrypted).toBe(true);
+      expect(BigInt(publishedValue)).toBe(publicValue);
+    }, 180000);
+
+    it('should decrypt FHE-added value → verify → publish → verify on-chain', async () => {
+      const permit = await createPermit();
+
+      const decryptResult = await txBuilder(addedCtHash).withPermit(permit).execute();
+
+      expect(BigInt(decryptResult.ctHash)).toBe(BigInt(addedCtHash));
+      expect(decryptResult.decryptedValue).toBe(addedExpectedSum);
+
+      const isValid = await verifyDecryptResult(
+        decryptResult.ctHash,
+        addedExpectedSum,
+        decryptResult.signature,
+        publicClient
+      );
+      expect(isValid).toBe(true);
+
+      const viemChain = VIEM_CHAINS[PRIMARY_TEST_CHAIN];
+      const publishTxHash = await walletClient.writeContract({
+        address: contractAddress,
+        abi: simpleTestAbi,
+        functionName: 'publishDecryptResult',
+        args: [addedHandle, Number(decryptResult.decryptedValue), decryptResult.signature as `0x${string}`],
+        chain: viemChain,
+        account,
+      });
+      await publicClient.waitForTransactionReceipt({ hash: publishTxHash });
+
+      const [publishedValue, isDecrypted] = await publicClient.readContract({
+        address: contractAddress,
+        abi: simpleTestAbi,
+        functionName: 'getDecryptResultSafe',
+        args: [addedHandle],
+      });
+      expect(isDecrypted).toBe(true);
+      expect(BigInt(publishedValue)).toBe(addedExpectedSum);
+    }, 300000);
+  });
+});
