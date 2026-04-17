@@ -12,7 +12,7 @@ import { DECRYPT_RESULT_SIGNER_PRIVATE_KEY } from '@cofhe/mock-contracts/contrac
  *   keccak256(abi.encodePacked(decryptedValue, encType, chainId, ctHash)) signed with DECRYPT_RESULT_SIGNER_PRIVATE_KEY
  */
 contract MockThresholdNetworkSigner is Test {
-  function signDecryptResult(uint256 ctHash, uint256 decryptedValue) public pure returns (bytes memory signature) {
+  function signDecryptResult(uint256 ctHash, uint256 decryptedValue) public view returns (bytes memory signature) {
     uint8 encryptionType = uint8((ctHash >> 8) & 0x7f);
     bytes32 messageHash = keccak256(
       abi.encodePacked(decryptedValue, uint32(encryptionType), uint64(block.chainid), ctHash)
