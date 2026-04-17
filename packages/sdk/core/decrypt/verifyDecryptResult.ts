@@ -12,14 +12,10 @@ import {
 import { TASK_MANAGER_ADDRESS } from '../consts.js';
 
 const decryptResultSignerAbi = parseAbi(['function decryptResultSigner() view returns (address)']);
-const HARDHAT_CHAIN_ID = 31337;
 const UINT_TYPE_MASK = 0x7fn;
 const TYPE_BYTE_OFFSET = 8n;
 
 const getEncryptionTypeFromCtHash = (ctHash: bigint) => Number((ctHash >> TYPE_BYTE_OFFSET) & UINT_TYPE_MASK);
-
-const buildMockDecryptResultHash = (ctHash: bigint, cleartext: bigint) =>
-  keccak256(encodePacked(['uint256', 'uint256'], [ctHash, cleartext]));
 
 const buildProductionDecryptResultHash = (ctHash: bigint, cleartext: bigint, chainId: number) => {
   const encryptionType = getEncryptionTypeFromCtHash(ctHash);
@@ -32,12 +28,10 @@ const buildProductionDecryptResultHash = (ctHash: bigint, cleartext: bigint, cha
 /**
  * Verifies a decrypt result signature **locally** (no `ctHash`/plaintext sent over RPC).
  *
- * Signature recovery format depends on the target environment:
- *   - hardhat mocks sign `keccak256(abi.encodePacked(ctHash, result))`
- *   - production TaskManager signs `keccak256(abi.encodePacked(result, encType, chainId, ctHash))`
+ * The recovered signer must equal the on-chain configured `decryptResultSigner`.
  *
- * In both cases, the recovered signer must equal the on-chain configured
- * `decryptResultSigner`.
+ * This mirrors the TaskManager decrypt-result hash format:
+ * `keccak256(abi.encodePacked(result, encType, chainId, ctHash))`
  *
  * The only on-chain read performed is `TaskManager.decryptResultSigner()` (via `eth_call`).
  *
@@ -60,10 +54,7 @@ export async function verifyDecryptResult(
   if (isAddressEqual(expectedSigner, zeroAddress)) return true;
 
   const ctHash = BigInt(handle);
-  const messageHash =
-    chainId === HARDHAT_CHAIN_ID
-      ? buildMockDecryptResultHash(ctHash, cleartext)
-      : buildProductionDecryptResultHash(ctHash, cleartext, chainId);
+  const messageHash = buildProductionDecryptResultHash(ctHash, cleartext, chainId);
 
   try {
     const recovered = await recoverAddress({ hash: messageHash, signature });
