@@ -73,7 +73,7 @@ contract SimpleTest {
    * Publish a decryption result produced by the Threshold Network.
    * @param input  The encrypted handle that was decrypted.
    * @param result The plaintext result returned by the TN.
-   * @param signature The TN signature over (ctHash, result).
+   * @param signature The TN signature over the TaskManager decrypt-result payload.
    */
   function publishDecryptResult(euint32 input, uint32 result, bytes memory signature) external {
     FHE.publishDecryptResult(input, result, signature);

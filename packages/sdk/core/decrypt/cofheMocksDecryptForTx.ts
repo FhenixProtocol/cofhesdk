@@ -69,8 +69,8 @@ export async function cofheMocksDecryptForTx(
   }
 
   // decryptForTx returns plaintext directly (no sealing/unsealing needed)
-  // Generate a mock threshold network signature (in production, this would be the actual signature)
-  // The signature must be valid for MockTaskManager verification.
+  // Generate a mock threshold network signature using the same payload format
+  // that TaskManager expects in production and in mocks.
   const chainId = publicClient.chain?.id ?? (await publicClient.getChainId());
   const normalizedCtHash = BigInt(ctHash);
   const encryptionType = getEncryptionTypeFromCtHash(normalizedCtHash);
