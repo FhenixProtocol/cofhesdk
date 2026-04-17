@@ -15,6 +15,7 @@ const DEFAULT_TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed
 const TEST_PRIVATE_KEY =
   process.env.TEST_PRIVATE_KEY ||
   DEFAULT_TEST_PRIVATE_KEY; /* This key is publicly known and should only be used for testing with testnet ETH. Do not use this key on mainnet or with real funds. */
+const SHOULD_RUN_BASE_SEPOLIA_TEST = process.env.COFHE_CHAIN_ID === `${baseSepolia.id}`;
 
 const deployments = {
   [baseSepolia.id]: {
@@ -28,8 +29,13 @@ describe('Base Sepolia Integration Tests', () => {
   let walletClient: WalletClient;
   let testContract: any; // ethers contract instance
   let baseSepoliaSigner: HardhatEthersSigner;
+  let accountAddress: `0x${string}`;
 
   before(async function () {
+    if (!SHOULD_RUN_BASE_SEPOLIA_TEST) {
+      this.skip();
+    }
+
     // Skip if no private key is provided (for CI/CD)
     if (TEST_PRIVATE_KEY === DEFAULT_TEST_PRIVATE_KEY) {
       this.skip();
@@ -37,8 +43,9 @@ describe('Base Sepolia Integration Tests', () => {
 
     // Create viem clients for Base Sepolia
     const account = privateKeyToAccount(TEST_PRIVATE_KEY as `0x${string}`);
+    accountAddress = account.address;
 
-    console.log(`Using account address: ${account.address}`);
+    console.log(`Using account address: ${accountAddress}`);
 
     publicClient = createPublicClient({
       chain: viemBaseSepolia,
@@ -51,6 +58,13 @@ describe('Base Sepolia Integration Tests', () => {
       account,
     }) as WalletClient;
 
+    const balance = await publicClient.getBalance({ address: accountAddress });
+    if (balance === 0n) {
+      throw new Error(
+        `Base Sepolia integration account ${accountAddress} has 0 ETH. Top up TEST_PRIVATE_KEY on Base Sepolia before rerunning CI.`
+      );
+    }
+
     // Create CoFHE SDK config and client
     const config = createCofheConfig({
       supportedChains: [baseSepolia],
@@ -60,7 +74,7 @@ describe('Base Sepolia Integration Tests', () => {
     await cofheClient.permits.createSelf({
       name: 'Test Permit',
       type: 'self',
-      issuer: account.address,
+      issuer: accountAddress,
       expiration: 1000000000000,
     });
 
@@ -91,6 +105,8 @@ describe('Base Sepolia Integration Tests', () => {
   });
 
   it('Should encrypt -> store -> decrypt a value', async function () {
+    this.timeout(180_000);
+
     // Skip if no private key is provided
     if (TEST_PRIVATE_KEY === DEFAULT_TEST_PRIVATE_KEY) {
       this.skip();
