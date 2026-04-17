@@ -36,6 +36,19 @@ jobs:
       - name: Install Playwright Browsers
         run: cd packages/sdk && pnpm exec playwright install chromium --with-deps
 
+      - name: Validate TEST_PRIVATE_KEY availability
+        env:
+          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
+        run: |
+          if [ -z "$TEST_PRIVATE_KEY" ]; then
+            echo "TEST_PRIVATE_KEY secret is not available to this workflow run."
+            echo "Common causes:"
+            echo "- This workflow was triggered by a pull_request from a fork, where repository secrets are not exposed."
+            echo "- The secret was added under a different name, repo, org, or environment."
+            echo "- The secret is environment-scoped, but this job does not declare that environment."
+            exit 1
+          fi
+
       - name: Run Tests
         env:
           TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
