@@ -46,36 +46,6 @@
           }
         }
       }
-    },
-    {
-      "chainId": 84532,
-      "address": "0x8ee52408ED5b0e396aA779Fd52F7fbc20A4b33Fb",
-      "name": "New eUSDC",
-      "symbol": "eUSDC",
-      "decimals": 6,
-      "logoURI": "https://storage.googleapis.com/cofhesdk/token-icons/usdc.webp",
-      "extensions": {
-        "coingeckoId": "eusdc",
-        "fhenix": {
-          "confidentialityType": "pure",
-          "confidentialValueType": "uint64"
-        }
-      }
-    },
-    {
-      "chainId": 84532,
-      "address": "0x51376e3E2aEA22008B85B4d8f94A67Ee1AFcc142",
-      "name": "Dual Test Token",
-      "symbol": "eToken",
-      "decimals": 6,
-      "logoURI": "https://storage.googleapis.com/cofhesdk/token-icons/default-token.webp",
-      "extensions": {
-        "coingeckoId": "etoken",
-        "fhenix": {
-          "confidentialityType": "dual",
-          "confidentialValueType": "uint64"
-        }
-      }
-    }       
+    }
   ]
 }

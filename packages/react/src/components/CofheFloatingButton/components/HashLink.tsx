@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { LuCopy, LuCheck, LuExternalLink } from 'react-icons/lu';
-import { cn } from '../../../utils/cn.js';
+import { cn } from '../../../utils/cn';
 import {
   truncateHash,
   getBlockExplorerTxUrl,
   getBlockExplorerAddressUrl,
   getBlockExplorerTokenUrl,
-} from '../../../utils/utils.js';
+} from '../../../utils/utils';
+import { cofheLogger } from '@/utils/debug';
 
 export type HashLinkType = 'tx' | 'address' | 'token';
 
@@ -91,7 +92,7 @@ export const CopyButton: React.FC<CopyButtonProps> = ({ text, size = 14, classNa
       setCopied(true);
       setTimeout(() => setCopied(false), 800);
     } catch (err) {
-      console.error('Failed to copy address:', err);
+      cofheLogger.error('Failed to copy address:', err);
     }
   };
 

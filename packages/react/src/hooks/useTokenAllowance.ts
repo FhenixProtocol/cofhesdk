@@ -2,7 +2,7 @@ import { type UseQueryOptions } from '@tanstack/react-query';
 import { type Address } from 'viem';
 import { assert } from 'ts-essentials';
 
-import { ERC20_ALLOWANCE_ABI } from '../constants/confidentialTokenABIs';
+import { getShieldAllowanceContractConfig } from '../constants/confidentialTokenABIs';
 import { useInternalQuery } from '../providers/index';
 import { useCofhePublicClient } from './useCofheConnection';
 
@@ -85,13 +85,16 @@ export function createTokenAllowanceQueryOptions<TSelectedData = bigint>(params:
       assert(tokenAddress, 'Token address is required to fetch token allowance');
       assert(ownerAddress, 'Owner address is required to fetch token allowance');
       assert(spenderAddress, 'Spender address is required to fetch token allowance');
+      const allowanceContract = getShieldAllowanceContractConfig();
 
-      return publicClient.readContract({
+      const allowance = await publicClient.readContract({
         address: tokenAddress,
-        abi: ERC20_ALLOWANCE_ABI,
-        functionName: 'allowance',
+        abi: allowanceContract.abi,
+        functionName: allowanceContract.functionName,
         args: [ownerAddress, spenderAddress],
       });
+      assert(typeof allowance === 'bigint', 'Token allowance must resolve to bigint');
+      return allowance;
     },
     enabled,
     refetchOnMount: false,

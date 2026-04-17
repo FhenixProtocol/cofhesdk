@@ -2,6 +2,7 @@ import { type UseQueryOptions } from '@tanstack/react-query';
 import { type Address } from 'viem';
 import { useCofheAccount, useCofhePublicClient } from './useCofheConnection';
 import { type Token, ETH_ADDRESS_LOWERCASE } from './useCofheTokenLists';
+import { getPublicBalanceSourceType } from '@/types/token';
 import { ERC20_BALANCE_OF_ABI } from '../constants/erc20ABIs';
 import { assert } from 'ts-essentials';
 import { useInternalQuery } from '../providers/index';
@@ -56,8 +57,9 @@ export function getPublicTokenBalanceSource(token: Token | undefined): PublicTok
   const confidentialityType = token?.extensions.fhenix.confidentialityType;
   const underlyingErc20 = token?.extensions.fhenix.erc20Pair;
 
+  const publicBalanceSourceType = getPublicBalanceSourceType(confidentialityType);
   const tokenToFetchBalanceFrom =
-    confidentialityType === 'wrapped' ? underlyingErc20 : confidentialityType === 'dual' ? token : undefined;
+    publicBalanceSourceType === 'erc20Pair' ? underlyingErc20 : publicBalanceSourceType === 'token' ? token : undefined;
 
   if (!tokenToFetchBalanceFrom) return undefined;
 
@@ -158,7 +160,7 @@ type UsePublicTokenBalanceResult = {
 
 /**
  * Hook to get public (non-confidential) balance for a token.
- * Handles both dual tokens (balanceOf on token address) and wrapped tokens (balanceOf on erc20Pair or native ETH).
+ * Handles wrapped tokens by reading the paired ERC20 balance or native ETH balance.
  *
  * @param input - Token and optional account address
  * @param options - Query options
