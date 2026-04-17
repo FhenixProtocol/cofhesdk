@@ -4,10 +4,11 @@ import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { PermitUtils } from '@cofhe/sdk/permits';
 import { hardhat } from '@cofhe/sdk/chains';
-import { SimpleTest } from '../typechain-types';
+import { MockTaskManager, SimpleTest } from '../typechain-types';
 
 describe('Hardhat Mocks – decryptForTx', () => {
   let cofheClient: CofheClient;
+  let taskManager: MockTaskManager;
   let testContract: SimpleTest;
   let signer: HardhatEthersSigner;
 
@@ -15,6 +16,7 @@ describe('Hardhat Mocks – decryptForTx', () => {
     const [tmpSigner] = await hre.ethers.getSigners();
     signer = tmpSigner;
     cofheClient = await hre.cofhe.createClientWithBatteries(signer);
+    taskManager = await hre.cofhe.mocks.getMockTaskManager();
 
     const SimpleTest = await hre.ethers.getContractFactory('SimpleTest');
     testContract = await SimpleTest.deploy();
@@ -242,6 +244,35 @@ describe('Hardhat Mocks – decryptForTx', () => {
 
       const wrongHandle = BigInt(decryptResult.ctHash) + 1n;
       expect(await cofheClient.verifyDecryptResult(wrongHandle, testValue, decryptResult.signature)).to.equal(false);
+    });
+
+    it('Should match MockTaskManager verification for the same inputs', async function () {
+      const testValue = 202n;
+      const encrypted = await cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
+      const tx = await testContract.connect(signer).setValue(encrypted[0]);
+      await tx.wait();
+
+      const storedValue = await testContract.storedValue();
+      const decryptResult = await cofheClient.decryptForTx(storedValue).withPermit().execute();
+      const tamperedSignature: `0x${string}` = `${decryptResult.signature}00`;
+
+      const samples = [
+        { handle: decryptResult.ctHash, cleartext: testValue, signature: decryptResult.signature },
+        { handle: decryptResult.ctHash, cleartext: testValue + 1n, signature: decryptResult.signature },
+        { handle: BigInt(decryptResult.ctHash) + 1n, cleartext: testValue, signature: decryptResult.signature },
+        { handle: decryptResult.ctHash, cleartext: testValue, signature: tamperedSignature },
+      ] as const;
+
+      for (const sample of samples) {
+        const sdkResult = await cofheClient.verifyDecryptResult(sample.handle, sample.cleartext, sample.signature);
+        const contractResult = await taskManager.verifyDecryptResultSafe(
+          sample.handle,
+          sample.cleartext,
+          sample.signature
+        );
+
+        expect(sdkResult).to.equal(contractResult);
+      }
     });
   });
 
