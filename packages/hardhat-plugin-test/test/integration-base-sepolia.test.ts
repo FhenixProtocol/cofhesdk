@@ -28,6 +28,7 @@ describe('Base Sepolia Integration Tests', () => {
   let walletClient: WalletClient;
   let testContract: any; // ethers contract instance
   let baseSepoliaSigner: HardhatEthersSigner;
+  let accountAddress: `0x${string}`;
 
   before(async function () {
     // Skip if no private key is provided (for CI/CD)
@@ -37,8 +38,9 @@ describe('Base Sepolia Integration Tests', () => {
 
     // Create viem clients for Base Sepolia
     const account = privateKeyToAccount(TEST_PRIVATE_KEY as `0x${string}`);
+    accountAddress = account.address;
 
-    console.log(`Using account address: ${account.address}`);
+    console.log(`Using account address: ${accountAddress}`);
 
     publicClient = createPublicClient({
       chain: viemBaseSepolia,
@@ -51,6 +53,13 @@ describe('Base Sepolia Integration Tests', () => {
       account,
     }) as WalletClient;
 
+    const balance = await publicClient.getBalance({ address: accountAddress });
+    if (balance === 0n) {
+      throw new Error(
+        `Base Sepolia integration account ${accountAddress} has 0 ETH. Top up TEST_PRIVATE_KEY on Base Sepolia before rerunning CI.`
+      );
+    }
+
     // Create CoFHE SDK config and client
     const config = createCofheConfig({
       supportedChains: [baseSepolia],
@@ -60,7 +69,7 @@ describe('Base Sepolia Integration Tests', () => {
     await cofheClient.permits.createSelf({
       name: 'Test Permit',
       type: 'self',
-      issuer: account.address,
+      issuer: accountAddress,
       expiration: 1000000000000,
     });
 
