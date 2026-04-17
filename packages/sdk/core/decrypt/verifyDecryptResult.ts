@@ -17,7 +17,7 @@ const TYPE_BYTE_OFFSET = 8n;
 
 const getEncryptionTypeFromCtHash = (ctHash: bigint) => Number((ctHash >> TYPE_BYTE_OFFSET) & UINT_TYPE_MASK);
 
-const buildProductionDecryptResultHash = (ctHash: bigint, cleartext: bigint, chainId: number) => {
+const buildDecryptResultHash = (ctHash: bigint, cleartext: bigint, chainId: number) => {
   const encryptionType = getEncryptionTypeFromCtHash(ctHash);
 
   return keccak256(
@@ -54,7 +54,7 @@ export async function verifyDecryptResult(
   if (isAddressEqual(expectedSigner, zeroAddress)) return true;
 
   const ctHash = BigInt(handle);
-  const messageHash = buildProductionDecryptResultHash(ctHash, cleartext, chainId);
+  const messageHash = buildDecryptResultHash(ctHash, cleartext, chainId);
 
   try {
     const recovered = await recoverAddress({ hash: messageHash, signature });
