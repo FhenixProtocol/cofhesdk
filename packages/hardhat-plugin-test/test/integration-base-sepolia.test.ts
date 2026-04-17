@@ -15,6 +15,7 @@ const DEFAULT_TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed
 const TEST_PRIVATE_KEY =
   process.env.TEST_PRIVATE_KEY ||
   DEFAULT_TEST_PRIVATE_KEY; /* This key is publicly known and should only be used for testing with testnet ETH. Do not use this key on mainnet or with real funds. */
+const SHOULD_RUN_BASE_SEPOLIA_TEST = process.env.COFHE_CHAIN_ID === `${baseSepolia.id}`;
 
 const deployments = {
   [baseSepolia.id]: {
@@ -31,6 +32,10 @@ describe('Base Sepolia Integration Tests', () => {
   let accountAddress: `0x${string}`;
 
   before(async function () {
+    if (!SHOULD_RUN_BASE_SEPOLIA_TEST) {
+      this.skip();
+    }
+
     // Skip if no private key is provided (for CI/CD)
     if (TEST_PRIVATE_KEY === DEFAULT_TEST_PRIVATE_KEY) {
       this.skip();
@@ -100,6 +105,8 @@ describe('Base Sepolia Integration Tests', () => {
   });
 
   it('Should encrypt -> store -> decrypt a value', async function () {
+    this.timeout(180_000);
+
     // Skip if no private key is provided
     if (TEST_PRIVATE_KEY === DEFAULT_TEST_PRIVATE_KEY) {
       this.skip();
