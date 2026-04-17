@@ -11,8 +11,17 @@ import { SimpleTest, SimpleTest__factory } from '../typechain-types';
 // Provide a real key via TEST_PRIVATE_KEY env var; the default Hardhat/Anvil key is used
 // only as a sentinel to skip the test in environments where no real key is available.
 const DEFAULT_TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
-const TEST_PRIVATE_KEY = process.env.TEST_PRIVATE_KEY || DEFAULT_TEST_PRIVATE_KEY;
+const RAW_TEST_PRIVATE_KEY = process.env.TEST_PRIVATE_KEY?.trim();
+const TEST_PRIVATE_KEY = RAW_TEST_PRIVATE_KEY || DEFAULT_TEST_PRIVATE_KEY;
 const IS_CI = Boolean(process.env.CI);
+
+const getDerivedAddress = (privateKey: string): string => {
+  try {
+    return new Wallet(privateKey as `0x${string}`).address;
+  } catch {
+    return 'unparseable-private-key';
+  }
+};
 
 const warnAndSkipLocallyOrFailInCi = (context: Mocha.Context, message: string): never => {
   if (IS_CI) {
@@ -126,7 +135,7 @@ describe(`DecryptForTx + PublishDecryptResult (chain-agnostic)${DESCRIBE_CHAIN_S
     if (TEST_PRIVATE_KEY === DEFAULT_TEST_PRIVATE_KEY) {
       warnAndSkipLocallyOrFailInCi(
         this,
-        'integration-decrypt-tx.test.ts requires a funded TEST_PRIVATE_KEY. CI is still using the sentinel default key, so no funded CI account is configured. Set TEST_PRIVATE_KEY to the CI funded account and keep it topped up on the target testnet.'
+        `integration-decrypt-tx.test.ts requires a funded TEST_PRIVATE_KEY. TEST_PRIVATE_KEY env seen by test process: ${RAW_TEST_PRIVATE_KEY ? 'yes' : 'no'}. Derived account address: ${getDerivedAddress(TEST_PRIVATE_KEY)}. The test is still using the sentinel default key, so either the env var did not reach this package test process or it resolves to the default key. Set TEST_PRIVATE_KEY to the CI funded account and keep it topped up on the target testnet.`
       );
     }
 

@@ -1,0 +1,1 @@
+COFHE_SKIP_MOCKS_DEPLOY=1 pnpm --filter "./packages/hardhat-plugin-test" exec hardhat test test/integration-localcofhe.test.ts
