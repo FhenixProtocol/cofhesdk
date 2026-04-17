@@ -1,5 +1,44 @@
 # @cofhe/react
 
+## 0.5.0
+
+### Minor Changes
+
+- 788a6e2: Add `onPoll` callback support for decrypt polling (tx + view) so consumers can observe poll progress.
+
+  - SDK decrypt helpers accept `onPoll` and emit `{ operation, requestId, attemptIndex, elapsedMs, intervalMs, timeoutMs }` once per poll attempt.
+  - React wiring supports passing the callback end-to-end.
+  - Docs updated with usage examples.
+
+- 9a06012: Tighten permit validation and treat invalid permits as missing.
+
+  - SDK: `PermitUtils.validate` now enforces schema + signed + not-expired (use `PermitUtils.validateSchema` for schema-only validation).
+  - SDK: `ValidationResult.error` is now a typed union (`'invalid-schema' | 'expired' | 'not-signed' | null`).
+  - React: rename `disabledDueToMissingPermit` to `disabledDueToMissingValidPermit` in read/decrypt hooks and token balance helpers, and disable reads when the active permit is invalid.
+
+- f857263: When no wallet is connected, the portal now hides the wallet header and navigation and shows a message asking the user to connect.
+
+  Add `react.projectName` so apps can include their name in that message.
+
+- 09bf7c9: Add the `useCofheEnabled` hook to read `TaskManager.isEnabled()` from the connected chain.
+
+### Patch Changes
+
+- 503536a: Improve logging ergonomics across React + web SDK.
+
+  - Add a configurable internal logger to `@cofhe/react` via `createCofheConfig({ react: { logger } })`.
+  - Make `@cofhe/sdk` `createWebStorage` logging opt-in via `createWebStorage({ enableLog })`.
+
+- 90a0d02: Remove the MUI icon peer dependency requirement from `@cofhe/react` by bundling the package's internal icons.
+
+  Consumers can now install `@cofhe/react` without adding `@mui/icons-material` or `@mui/material` just to use the built-in UI components.
+
+- Updated dependencies [788a6e2]
+- Updated dependencies [9a06012]
+- Updated dependencies [503536a]
+  - @cofhe/sdk@0.5.0
+  - @cofhe/abi@0.5.0
+
 ## 0.4.0
 
 ### Patch Changes
