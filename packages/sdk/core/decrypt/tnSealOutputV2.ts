@@ -70,6 +70,11 @@ async function submitSealOutputRequest(
     permit: permission,
   };
 
+  console.log('[cofhe][sealoutput] submit request', {
+    url: `${thresholdNetworkUrl}/v2/sealoutput`,
+    body,
+  });
+
   let response: Response;
   try {
     response = await fetch(`${thresholdNetworkUrl}/v2/sealoutput`, {
@@ -97,9 +102,13 @@ async function submitSealOutputRequest(
     let errorMessage = `HTTP ${response.status}`;
     try {
       const errorBody = await response.json();
+      console.log('[cofhe][sealoutput] submit response', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorBody,
+      });
       errorMessage = errorBody.error_message || errorBody.message || errorMessage;
     } catch {
-      // Ignore JSON parse errors, use status text
       errorMessage = response.statusText || errorMessage;
     }
 
@@ -130,6 +139,12 @@ async function submitSealOutputRequest(
       },
     });
   }
+
+  console.log('[cofhe][sealoutput] submit response', {
+    status: response.status,
+    statusText: response.statusText,
+    body: submitResponse,
+  });
 
   if (!submitResponse.request_id) {
     throw new CofheError({
@@ -171,6 +186,12 @@ async function pollSealOutputStatus(
       elapsedMs,
       intervalMs,
       timeoutMs: POLL_TIMEOUT_MS,
+    });
+
+    console.log('[cofhe][sealoutput] poll request', {
+      requestId,
+      attemptIndex,
+      url: `${thresholdNetworkUrl}/v2/sealoutput/${requestId}`,
     });
 
     // Check timeout
@@ -226,6 +247,13 @@ async function pollSealOutputStatus(
       let errorMessage = `HTTP ${response.status}`;
       try {
         const errorBody = await response.json();
+        console.log('[cofhe][sealoutput] poll response', {
+          requestId,
+          attemptIndex,
+          status: response.status,
+          statusText: response.statusText,
+          body: errorBody,
+        });
         errorMessage = errorBody.error_message || errorBody.message || errorMessage;
       } catch {
         errorMessage = response.statusText || errorMessage;
@@ -257,6 +285,14 @@ async function pollSealOutputStatus(
         },
       });
     }
+
+    console.log('[cofhe][sealoutput] poll response', {
+      requestId,
+      attemptIndex,
+      status: response.status,
+      statusText: response.statusText,
+      body: statusResponse,
+    });
 
     // Check if completed
     if (statusResponse.status === 'COMPLETED') {

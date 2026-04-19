@@ -122,8 +122,7 @@ class MockZkListBuilder {
 
 const MockCrs = {
   free: () => {},
-  serialize: () => new Uint8Array(),
-  safe_serialize: () => new Uint8Array(),
+  safe_serialize: (_serializedSizeLimit: bigint) => new Uint8Array(),
 };
 
 // Setup fetch mock for http://localhost:3001/verify
@@ -223,7 +222,7 @@ class MockZkProvenList {
     this.metadata = metadata;
   }
 
-  serialize(): Uint8Array {
+  safe_serialize(_serializedSizeLimit: bigint): Uint8Array {
     // Serialize this.items into JSON, then encode as Uint8Array (utf-8)
     const json = stringifyWithBigInt({ items: this.items, metadata: this.metadata });
     return new TextEncoder().encode(json);

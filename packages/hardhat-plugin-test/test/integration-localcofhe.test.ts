@@ -77,7 +77,7 @@ describe('Local Cofhe Integration Tests', () => {
     await testContract.waitForDeployment();
   });
 
-  it('Should encrypt -> store -> decrypt a value', async function () {
+  it('Should encrypt -> store -> decryptForView -> decryptForTx -> publish -> verify', async function () {
     // Skip if no private key is provided
     if (!process.env.LOCALCOFHE_PRIVATE_KEY && process.env.CI) {
       this.skip();
@@ -100,5 +100,21 @@ describe('Local Cofhe Integration Tests', () => {
 
     // Verify the decrypted value matches
     expect(unsealedResult).to.be.equal(testValue);
+
+    const decryptResult = await cofheClient.decryptForTx(ctHash).withPermit().execute();
+
+    expect(decryptResult.ctHash).to.equal(ctHash);
+    expect(decryptResult.decryptedValue).to.equal(testValue);
+    expect(decryptResult.signature).to.be.a('string');
+
+    const publishTx = await testContract
+      .connect(localcofheSigner)
+      .publishDecryptResult(ctHash, decryptResult.decryptedValue, decryptResult.signature);
+    await publishTx.wait();
+
+    const [publishedValue, isDecrypted] = await testContract.getDecryptResultSafe(ctHash);
+
+    expect(isDecrypted).to.equal(true);
+    expect(publishedValue).to.equal(testValue);
   });
 });

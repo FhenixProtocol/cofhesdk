@@ -1,5 +1,5 @@
 import { type EncryptableItem, FheTypes } from '../types.js';
-import { MAX_ENCRYPTABLE_BITS, type VerifyResult } from './zkPackProveVerify.js';
+import { type VerifyResult } from './zkPackProveVerify.js';
 import {
   createWalletClient,
   http,
@@ -14,7 +14,7 @@ import { MockZkVerifierAbi } from './MockZkVerifierAbi.js';
 import { hardhat } from 'viem/chains';
 import { CofheError, CofheErrorCode } from '../error.js';
 import { privateKeyToAccount, sign } from 'viem/accounts';
-import { MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY, MOCKS_ZK_VERIFIER_ADDRESS } from '../consts.js';
+import { MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY, MOCKS_ZK_VERIFIER_ADDRESS, TFHE_RS_ZK_MAX_BITS } from '../consts.js';
 
 type EncryptableItemWithCtHash = EncryptableItem & {
   ctHash: bigint;
@@ -69,14 +69,14 @@ export async function cofheMocksCheckEncryptableBits(items: EncryptableItem[]): 
       }
     }
   }
-  if (totalBits > MAX_ENCRYPTABLE_BITS) {
+  if (totalBits > TFHE_RS_ZK_MAX_BITS) {
     throw new CofheError({
       code: CofheErrorCode.ZkPackFailed,
-      message: `Total bits ${totalBits} exceeds ${MAX_ENCRYPTABLE_BITS}`,
-      hint: `Ensure that the total bits of the items to encrypt does not exceed ${MAX_ENCRYPTABLE_BITS}`,
+      message: `Total bits ${totalBits} exceeds ${TFHE_RS_ZK_MAX_BITS}`,
+      hint: `Ensure that the total bits of the items to encrypt does not exceed ${TFHE_RS_ZK_MAX_BITS}`,
       context: {
         totalBits,
-        maxBits: MAX_ENCRYPTABLE_BITS,
+        maxBits: TFHE_RS_ZK_MAX_BITS,
         items,
       },
     });
