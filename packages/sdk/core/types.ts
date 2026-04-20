@@ -391,14 +391,19 @@ export type EncryptStepCallbackFunction = (state: EncryptStep, context?: Encrypt
 
 export type DecryptEndpoint = 'decrypt' | 'sealoutput';
 
-export type DecryptPollCallbackContext = {
-  operation: DecryptEndpoint;
-  requestId: string;
+export type DecryptPollMetrics = {
   attemptIndex: number;
   elapsedMs: number;
   intervalMs: number;
   timeoutMs: number;
 };
+
+export type DecryptPollContext = {
+  requestId: string | undefined;
+  operation: DecryptEndpoint;
+};
+
+export type DecryptPollCallbackContext = DecryptPollContext & DecryptPollMetrics;
 
 export type DecryptPollCallbackFunction = (context: DecryptPollCallbackContext) => void;
 
