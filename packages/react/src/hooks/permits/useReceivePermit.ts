@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useCofheContext } from '../../providers/CofheProvider.js';
 import { PermitUtils, type RecipientPermit } from '@cofhe/sdk/permits';
+import { cofheLogger } from '@/utils/debug.js';
 
 export type UseReceivePermitReturn = {
   importedPermit: RecipientPermit | null;
@@ -72,7 +73,7 @@ export function useReceivePermit({ onSuccess, onError }: Input = {}): UseReceive
       setImportedPermit(permit);
       setErrorMsg(null);
     } catch (e) {
-      console.error('Error parsing pasted permit data', e);
+      cofheLogger.error('Error parsing pasted permit data', e);
       setImportedPermit(null);
       // TODO: Improve error message, we have the error message in the caught error but its a zod error so its messy
       setErrorMsg(`Invalid permit data. Expected JSON.`);

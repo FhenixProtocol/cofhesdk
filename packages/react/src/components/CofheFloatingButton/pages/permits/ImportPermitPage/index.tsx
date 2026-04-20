@@ -5,6 +5,7 @@ import { usePortalNavigation, usePortalToasts } from '@/stores';
 import { PageContainer } from '@/components/CofheFloatingButton/components/PageContainer';
 import { Button } from '@/components/CofheFloatingButton/components/Button.js';
 import { BasePermitCard } from '@/components/CofheFloatingButton/components/PermitCard.js';
+import { cofheLogger } from '@/utils/debug';
 
 export const ImportPermitPage: React.FC = () => {
   const { navigateBack } = usePortalNavigation();
@@ -34,7 +35,7 @@ export const ImportPermitPage: React.FC = () => {
         title: 'Failed to import permit',
         description: error.message,
       });
-      console.error('Error importing permit', error);
+      cofheLogger.error('Error importing permit', error);
     },
   });
 
