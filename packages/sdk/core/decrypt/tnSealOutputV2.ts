@@ -78,12 +78,6 @@ async function submitSealOutputRequest(
   let attemptIndex = 0;
 
   for (;;) {
-    // console.log('[cofhe][sealoutput] submit request', {
-    //   attemptIndex,
-    //   url: `${thresholdNetworkUrl}/v2/sealoutput`,
-    //   body,
-    // });
-
     let response: Response;
     try {
       response = await fetch(`${thresholdNetworkUrl}/v2/sealoutput`, {
@@ -112,12 +106,7 @@ async function submitSealOutputRequest(
       let errorMessage = `HTTP ${response.status}`;
       try {
         const errorBody = await response.json();
-        // console.log('[cofhe][sealoutput] submit response', {
-        //   attemptIndex,
-        //   status: response.status,
-        //   statusText: response.statusText,
-        //   body: errorBody,
-        // });
+
         errorMessage = errorBody.error_message || errorBody.message || errorMessage;
       } catch {
         errorMessage = response.statusText || errorMessage;
@@ -154,22 +143,9 @@ async function submitSealOutputRequest(
         });
       }
 
-      // console.log('[cofhe][sealoutput] submit response', {
-      //   attemptIndex,
-      //   status: response.status,
-      //   statusText: response.statusText,
-      //   body: submitResponse,
-      // });
-
       if (submitResponse.request_id) {
         return submitResponse.request_id;
       }
-    } else {
-      // console.log('[cofhe][sealoutput] submit response', {
-      //   attemptIndex,
-      //   status: response.status,
-      //   statusText: response.statusText,
-      // });
     }
 
     // 204 means backend is aware of ct hash but didn't calculate it yet
@@ -245,12 +221,6 @@ async function pollSealOutputStatus(
       timeoutMs: SEAL_OUTPUT_TIMEOUT_MS,
     });
 
-    // console.log('[cofhe][sealoutput] poll request', {
-    //   requestId,
-    //   attemptIndex,
-    //   url: `${thresholdNetworkUrl}/v2/sealoutput/${requestId}`,
-    // });
-
     // Check timeout
     if (elapsedMs > SEAL_OUTPUT_TIMEOUT_MS) {
       throw new CofheError({
@@ -304,13 +274,6 @@ async function pollSealOutputStatus(
       let errorMessage = `HTTP ${response.status}`;
       try {
         const errorBody = await response.json();
-        // console.log('[cofhe][sealoutput] poll response', {
-        //   requestId,
-        //   attemptIndex,
-        //   status: response.status,
-        //   statusText: response.statusText,
-        //   body: errorBody,
-        // });
         errorMessage = errorBody.error_message || errorBody.message || errorMessage;
       } catch {
         errorMessage = response.statusText || errorMessage;
@@ -342,14 +305,6 @@ async function pollSealOutputStatus(
         },
       });
     }
-
-    // console.log('[cofhe][sealoutput] poll response', {
-    //   requestId,
-    //   attemptIndex,
-    //   status: response.status,
-    //   statusText: response.statusText,
-    //   body: statusResponse,
-    // });
 
     // Check if completed
     if (statusResponse.status === 'COMPLETED') {
