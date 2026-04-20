@@ -107,7 +107,7 @@ describe('decrypt polling callbacks', () => {
     );
   });
 
-  it('tnDecryptV2 calls onPoll for CT_NOT_READY submit retries', async () => {
+  it('tnDecryptV2 calls onPoll for 204 submit retries', async () => {
     const onPoll = vi.fn();
 
     let submitCalls = 0;
@@ -118,10 +118,10 @@ describe('decrypt polling callbacks', () => {
         if (submitCalls === 1) {
           return makeMockResponse({
             ok: true,
-            json: async () => ({
-              request_id: null,
-              status: 'CT_NOT_READY',
-            }),
+            status: 204,
+            json: async () => {
+              throw new Error('json() should not be called for 204 submit responses');
+            },
           });
         }
 
@@ -199,10 +199,10 @@ describe('decrypt polling callbacks', () => {
         if (Date.now() - testStartTime < 299_000) {
           return makeMockResponse({
             ok: true,
-            json: async () => ({
-              request_id: null,
-              status: 'CT_NOT_READY',
-            }),
+            status: 204,
+            json: async () => {
+              throw new Error('json() should not be called for 204 submit responses');
+            },
           });
         }
 
@@ -338,7 +338,7 @@ describe('decrypt polling callbacks', () => {
     );
   });
 
-  it('tnSealOutputV2 calls onPoll for CT_NOT_READY submit retries', async () => {
+  it('tnSealOutputV2 calls onPoll for 204 submit retries', async () => {
     const onPoll = vi.fn();
 
     let submitCalls = 0;
@@ -349,10 +349,10 @@ describe('decrypt polling callbacks', () => {
         if (submitCalls === 1) {
           return makeMockResponse({
             ok: true,
-            json: async () => ({
-              request_id: null,
-              status: 'CT_NOT_READY',
-            }),
+            status: 204,
+            json: async () => {
+              throw new Error('json() should not be called for 204 submit responses');
+            },
           });
         }
 
@@ -433,10 +433,10 @@ describe('decrypt polling callbacks', () => {
         if (Date.now() - testStartTime < 299_000) {
           return makeMockResponse({
             ok: true,
-            json: async () => ({
-              request_id: null,
-              status: 'CT_NOT_READY',
-            }),
+            status: 204,
+            json: async () => {
+              throw new Error('json() should not be called for 204 submit responses');
+            },
           });
         }
 

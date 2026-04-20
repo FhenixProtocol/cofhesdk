@@ -78,11 +78,11 @@ async function submitSealOutputRequest(
   let attemptIndex = 0;
 
   for (;;) {
-    // console.log('[cofhe][sealoutput] submit request', {
-    //   attemptIndex,
-    //   url: `${thresholdNetworkUrl}/v2/sealoutput`,
-    //   body,
-    // });
+    console.log('[cofhe][sealoutput] submit request', {
+      attemptIndex,
+      url: `${thresholdNetworkUrl}/v2/sealoutput`,
+      body,
+    });
 
     let response: Response;
     try {
@@ -112,12 +112,12 @@ async function submitSealOutputRequest(
       let errorMessage = `HTTP ${response.status}`;
       try {
         const errorBody = await response.json();
-        // console.log('[cofhe][sealoutput] submit response', {
-        //   attemptIndex,
-        //   status: response.status,
-        //   statusText: response.statusText,
-        //   body: errorBody,
-        // });
+        console.log('[cofhe][sealoutput] submit response', {
+          attemptIndex,
+          status: response.status,
+          statusText: response.statusText,
+          body: errorBody,
+        });
         errorMessage = errorBody.error_message || errorBody.message || errorMessage;
       } catch {
         errorMessage = response.statusText || errorMessage;
@@ -137,39 +137,48 @@ async function submitSealOutputRequest(
       });
     }
 
-    let submitResponse: SealOutputSubmitResponse;
-    try {
-      submitResponse = (await response.json()) as SealOutputSubmitResponse;
-    } catch (e) {
-      throw new CofheError({
-        code: CofheErrorCode.SealOutputFailed,
-        message: `Failed to parse sealOutput submit response`,
-        cause: e instanceof Error ? e : undefined,
-        context: {
-          thresholdNetworkUrl,
-          body,
-          attemptIndex,
-        },
+    let submitResponse: SealOutputSubmitResponse | undefined;
+    if (response.status !== 204) {
+      try {
+        submitResponse = (await response.json()) as SealOutputSubmitResponse;
+      } catch (e) {
+        throw new CofheError({
+          code: CofheErrorCode.SealOutputFailed,
+          message: `Failed to parse sealOutput submit response`,
+          cause: e instanceof Error ? e : undefined,
+          context: {
+            thresholdNetworkUrl,
+            body,
+            attemptIndex,
+          },
+        });
+      }
+
+      console.log('[cofhe][sealoutput] submit response', {
+        attemptIndex,
+        status: response.status,
+        statusText: response.statusText,
+        body: submitResponse,
+      });
+
+      if (submitResponse.request_id) {
+        return submitResponse.request_id;
+      }
+    } else {
+      console.log('[cofhe][sealoutput] submit response', {
+        attemptIndex,
+        status: response.status,
+        statusText: response.statusText,
       });
     }
 
-    // console.log('[cofhe][sealoutput] submit response', {
-    //   attemptIndex,
-    //   status: response.status,
-    //   statusText: response.statusText,
-    //   body: submitResponse,
-    // });
-
-    if (submitResponse.request_id) {
-      return submitResponse.request_id;
-    }
-
-    if (submitResponse.status === 'CT_NOT_READY') {
+    // 204 means backend is aware of ct hash but didn't calculate it yet
+    if (response.status === 204) {
       const elapsedMs = Date.now() - overallStartTime;
       if (elapsedMs > SEAL_OUTPUT_TIMEOUT_MS) {
         throw new CofheError({
           code: CofheErrorCode.SealOutputFailed,
-          message: `sealOutput submit retried CT_NOT_READY for ${SEAL_OUTPUT_TIMEOUT_MS}ms without receiving request_id`,
+          message: `sealOutput submit retried without receiving request_id for ${SEAL_OUTPUT_TIMEOUT_MS}ms`,
           hint: 'The ciphertext may still be propagating. Try again later.',
           context: {
             thresholdNetworkUrl,
@@ -177,6 +186,7 @@ async function submitSealOutputRequest(
             attemptIndex,
             timeoutMs: SEAL_OUTPUT_TIMEOUT_MS,
             submitResponse,
+            status: response.status,
           },
         });
       }
@@ -235,11 +245,11 @@ async function pollSealOutputStatus(
       timeoutMs: SEAL_OUTPUT_TIMEOUT_MS,
     });
 
-    // console.log('[cofhe][sealoutput] poll request', {
-    //   requestId,
-    //   attemptIndex,
-    //   url: `${thresholdNetworkUrl}/v2/sealoutput/${requestId}`,
-    // });
+    console.log('[cofhe][sealoutput] poll request', {
+      requestId,
+      attemptIndex,
+      url: `${thresholdNetworkUrl}/v2/sealoutput/${requestId}`,
+    });
 
     // Check timeout
     if (elapsedMs > SEAL_OUTPUT_TIMEOUT_MS) {
@@ -294,13 +304,13 @@ async function pollSealOutputStatus(
       let errorMessage = `HTTP ${response.status}`;
       try {
         const errorBody = await response.json();
-        // console.log('[cofhe][sealoutput] poll response', {
-        //   requestId,
-        //   attemptIndex,
-        //   status: response.status,
-        //   statusText: response.statusText,
-        //   body: errorBody,
-        // });
+        console.log('[cofhe][sealoutput] poll response', {
+          requestId,
+          attemptIndex,
+          status: response.status,
+          statusText: response.statusText,
+          body: errorBody,
+        });
         errorMessage = errorBody.error_message || errorBody.message || errorMessage;
       } catch {
         errorMessage = response.statusText || errorMessage;
@@ -333,13 +343,13 @@ async function pollSealOutputStatus(
       });
     }
 
-    // console.log('[cofhe][sealoutput] poll response', {
-    //   requestId,
-    //   attemptIndex,
-    //   status: response.status,
-    //   statusText: response.statusText,
-    //   body: statusResponse,
-    // });
+    console.log('[cofhe][sealoutput] poll response', {
+      requestId,
+      attemptIndex,
+      status: response.status,
+      statusText: response.statusText,
+      body: statusResponse,
+    });
 
     // Check if completed
     if (statusResponse.status === 'COMPLETED') {
