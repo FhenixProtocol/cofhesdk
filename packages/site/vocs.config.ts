@@ -96,10 +96,6 @@ export default defineConfig({
                 text: 'Verifying Decrypt Results',
                 link: '/sdk/verify-decrypt-result',
               },
-              {
-                text: 'Decryption Lifecycle',
-                link: '/sdk/decryption-lifecycle',
-              },
             ],
           },
         ],
@@ -147,6 +143,10 @@ export default defineConfig({
           {
             text: 'EncryptedCounter.sol',
             link: '/reference/encrypted-counter-sol',
+          },
+          {
+            text: 'Decryption Lifecycle',
+            link: '/reference/decryption-lifecycle',
           },
         ],
       },

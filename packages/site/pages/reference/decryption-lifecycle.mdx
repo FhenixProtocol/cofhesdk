@@ -5,7 +5,7 @@ description: How production decryption requests move from ctHash discovery to co
 
 # Decryption Lifecycle
 
-This page explains the shared production-side lifecycle behind both [`decryptForView`](./decrypt-to-view.mdx) and [`decryptForTx`](./decrypt-to-tx.mdx).
+This page explains the shared production-side lifecycle behind both [Decrypting to View](/sdk/decrypt-to-view) and [Decrypting to Transact](/sdk/decrypt-to-tx).
 
 It is not about permits, return types, or builder methods. It is about what happens after you already have a `ctHash` and ask CoFHE to decrypt it.
 
@@ -70,7 +70,7 @@ From this point on, the SDK polls the request status endpoint until one of these
 - the request times out,
 - the request is no longer found.
 
-This is the normal long-polling phase most users think of as “decryption polling”.
+This is the normal long-polling phase most users think of as `decryption polling`.
 
 ## Shared timeout budget
 
@@ -88,8 +88,8 @@ This matters because a request can spend most of its time budget before the `req
 
 Both decryption builders support `.onPoll(...)`:
 
-- [`decryptForView`](./decrypt-to-view.mdx)
-- [`decryptForTx`](./decrypt-to-tx.mdx)
+- [Decrypting to View](/sdk/decrypt-to-view)
+- [Decrypting to Transact](/sdk/decrypt-to-tx)
 
 The callback context is:
 
@@ -127,11 +127,11 @@ decrypt call starts
 
 - If you just submitted the encrypting transaction, expect decryption to be eventually consistent rather than immediate.
 - If you get a submit-time `404`, retry later instead of assuming the handle is permanently invalid.
-- If you want progress UI, use `.onPoll(...)` and treat an empty `requestId` as “waiting for request creation”.
-- If you are debugging slow decrypts, separate “coprocessor has not created a request yet” from “Threshold Network is processing an existing request”.
+- If you want progress UI, use `.onPoll(...)` and treat an empty `requestId` as `waiting for request creation`.
+- If you are debugging slow decrypts, separate `coprocessor has not created a request yet` from `Threshold Network is processing an existing request`.
 
 ## See also
 
-- [Decrypting to View](./decrypt-to-view.mdx)
-- [Decrypting to Transact](./decrypt-to-tx.mdx)
-- [Permits](./permits.mdx)
+- [Decrypting to View](/sdk/decrypt-to-view)
+- [Decrypting to Transact](/sdk/decrypt-to-tx)
+- [Permits](/sdk/permits)
