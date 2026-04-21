@@ -1,4 +1,4 @@
-import { parseAbi } from 'viem';
+import { parseAbi, zeroAddress } from 'viem';
 
 import type { TokenConfidentialityContracts } from './confidentialTokenABIs';
 
@@ -14,6 +14,31 @@ const wrappedErc20ApprovalContracts = {
 } as const;
 
 export const WRAPPED_TOKEN_CONTRACTS = {
+  detection: {
+    abi: [
+      {
+        inputs: [
+          {
+            internalType: 'address',
+            name: 'account',
+            type: 'address',
+          },
+        ],
+        name: 'encBalanceOf',
+        outputs: [
+          {
+            internalType: 'euint128',
+            name: '',
+            type: 'uint256',
+          },
+        ],
+        stateMutability: 'view',
+        type: 'function',
+      },
+    ] as const,
+    functionName: 'encBalanceOf' as const,
+    args: [zeroAddress],
+  },
   confidentialBalance: {
     abi: [
       {

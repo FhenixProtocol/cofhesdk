@@ -9,6 +9,7 @@ export enum PortalModal {
   PermitTypeInfo = 'permitTypeInfo',
   PermitInfo = 'permitInfo',
   TokenList = 'tokenList',
+  ImportCustomToken = 'importCustomToken',
 }
 
 export type PortalModalPropsMap = {
@@ -18,6 +19,12 @@ export type PortalModalPropsMap = {
   [PortalModal.PermitTypeInfo]: { type: PermitType };
   [PortalModal.PermitInfo]: void;
   [PortalModal.TokenList]: {
+    balanceType: BalanceType;
+    title: string;
+    tokens: Token[];
+    onSelectToken: (token: Token) => void;
+  };
+  [PortalModal.ImportCustomToken]: {
     balanceType: BalanceType;
     title: string;
     tokens: Token[];
