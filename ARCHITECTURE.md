@@ -596,7 +596,7 @@ sequenceDiagram
 | **decryptForView** | Reads from MockZkVerifier storage + checks MockACL, returns sealed plaintext, unseals with permit key | Retries submit until `request_id`, then polls Threshold Network for sealed plaintext and unseals with permit sealing key | View calls (read & unseal plaintext, no proof)                     |
 | **decryptForTx**   | Calls MockThresholdNetwork with permission check, gets plaintext + signature                          | Retries submit until `request_id`, then polls Threshold Network for plaintext + signature | Transaction submission (needs signature for on-chain verification) |
 | **Permits**        | Stored in-memory + validated against MockACL                                                          | Stored on-chain + validated by TN                                               | Access control mechanism                                           |
-| **Signatures**     | Mock signer key (hardcoded for testing)                                                               | Real TN signer (from network)                                                   | Proof of decryption                                                |
+| **Signatures**     | Mock signer key (hardcoded for testing, using the same decrypt-result payload format as production)   | Real TN signer (from network)                                                   | Proof of decryption                                                |
 | **State Storage**  | In-memory maps in mock contracts                                                                      | On-chain encrypted state                                                        | Where encrypted values live                                        |
 
 ---

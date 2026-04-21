@@ -25,7 +25,8 @@ const cofheConfig = createCofheConfig({
     //   84532: '0xbED96aa98a49FeA71fcC55d755b915cF022a9159', // base sepolia weth
     // },
     tokenLists: {
-      11155111: ['https://storage.googleapis.com/cofhesdk/sepolia.json'],
+      // 11155111: ['https://storage.googleapis.com/cofhesdk/sepolia.json'],
+      11155111: ['https://api.npoint.io/2d295a8f9f9d2c0c6678'], // contains only ETH
       // 11155111: [
       //   'https://api.npoint.io/439ce3fd4b44eaa6f917', // contains "failing usdc"
       // ],

@@ -227,7 +227,7 @@ function useHandleInvalidations() {
       }
     } else {
       // @ts-expect-error actionType = "never" at this point
-      console.warn('No invalidation logic for transaction action type:', tx.actionType);
+      cofheLogger.warn('No invalidation logic for transaction action type:', tx.actionType);
     }
   };
 

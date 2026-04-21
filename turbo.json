@@ -14,7 +14,8 @@
       "env": ["HOME", "USERPROFILE", "VOCS_BASE_URL"]
     },
     "test": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build"],
+      "passThroughEnv": ["TEST_PRIVATE_KEY", "COFHE_CHAIN_ID"]
     },
     "lint": {
       "env": ["HOME", "USERPROFILE", "VOCS_BASE_URL"]

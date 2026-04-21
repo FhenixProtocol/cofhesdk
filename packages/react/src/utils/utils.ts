@@ -1,5 +1,10 @@
 import * as viemChains from 'viem/chains';
-import { ETH_ADDRESS_LOWERCASE, type Token, type Erc20Pair } from '../types/token.js';
+import {
+  ETH_ADDRESS_LOWERCASE,
+  isSupportedTokenConfidentialityType,
+  type Token,
+  type Erc20Pair,
+} from '../types/token.js';
 import type { FheTypeValue } from '@cofhe/sdk';
 import { isValidElement } from 'react';
 
@@ -77,7 +82,7 @@ export const isEthPair = (erc20Pair: Erc20Pair | undefined): boolean => {
  * @returns True if the token is a wrapped token with ETH as the underlying pair
  */
 export const isWrappedEthToken = (token: Token): boolean => {
-  if (token.extensions.fhenix.confidentialityType !== 'wrapped') return false;
+  if (!isSupportedTokenConfidentialityType(token.extensions.fhenix.confidentialityType)) return false;
   return isEthPair(token.extensions.fhenix.erc20Pair);
 };
 

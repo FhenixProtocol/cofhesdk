@@ -2,7 +2,8 @@ import { type MutationFunctionContext, type UseMutationOptions, type UseMutation
 import { type Address } from 'viem';
 import { useCofheWalletClient, useCofheChainId, useCofheAccount, useCofhePublicClient } from './useCofheConnection.js';
 import { type Token } from './useCofheTokenLists.js';
-import { UNSHIELD_ABIS } from '../constants/confidentialTokenABIs.js';
+import { assertTokenOperationSupported } from '@/types/token';
+import { getUnshieldContractConfig } from '../constants/confidentialTokenABIs.js';
 import { TransactionActionType, TransactionStatus, useTransactionStore } from '../stores/transactionStore.js';
 import { useInternalMutation } from '../providers/index.js';
 import { assert } from 'ts-essentials';
@@ -24,33 +25,15 @@ export function getCofheTokenUnshieldCallArgs(params: {
     throw new Error('confidentialityType is required in token extensions');
   }
 
-  if (confidentialityType !== 'dual' && confidentialityType !== 'wrapped') {
-    throw new Error(`Unshield not supported for confidentialityType: ${confidentialityType}`);
-  }
+  assertTokenOperationSupported(confidentialityType, 'unshield');
 
-  const contractConfig = UNSHIELD_ABIS[confidentialityType];
-  if (!contractConfig) {
-    throw new Error(`Unsupported confidentialityType for unshield: ${confidentialityType}`);
-  }
+  const contractConfig = getUnshieldContractConfig(confidentialityType);
 
-  if (confidentialityType === 'wrapped') {
-    return {
-      address: tokenAddress,
-      abi: contractConfig.abi,
-      functionName: contractConfig.functionName,
-      args: [account, rawAmount],
-      account,
-      chain: undefined,
-    };
-  }
-
-  // Dual tokens: unshield takes uint64
-  const amount = BigInt.asUintN(64, rawAmount);
   return {
     address: tokenAddress,
     abi: contractConfig.abi,
     functionName: contractConfig.functionName,
-    args: [amount],
+    args: [account, rawAmount],
     account,
     chain: undefined,
   };
@@ -62,7 +45,7 @@ export function getCofheTokenUnshieldCallArgs(params: {
 type UseTokenUnshieldMutationInput = {
   /** Token object with confidentialityType */
   token: Token;
-  /** Amount to unshield (in token's smallest unit, uint64 max for dual) */
+  /** Amount to unshield (in token's smallest unit) */
   amount: bigint;
   /** Optional callback for status updates during the operation */
   onStatusChange?: (message: string) => void;
@@ -74,8 +57,7 @@ type UseTokenUnshieldMutationOptions = Omit<
 >;
 /**
  * Hook to unshield tokens (initiate conversion from confidential to regular)
- * - Dual tokens: calls `unshield(uint64 amount)`, then need to claim
- * - Wrapped tokens: TBD
+ * Wrapped tokens call `decrypt(address to, uint128 value)` and then need to be claimed.
  * @param options - Optional React Query mutation options
  * @returns Mutation result with transaction hash
  */
@@ -111,43 +93,22 @@ function useCofheTokenUnshieldMutation(
         throw new Error('Wallet account is required for token unshield');
       }
 
-      // Only dual and wrapped support unshielding
-      if (confidentialityType !== 'dual' && confidentialityType !== 'wrapped') {
-        throw new Error(`Unshield not supported for confidentialityType: ${confidentialityType}`);
-      }
+      assertTokenOperationSupported(confidentialityType, 'unshield');
 
-      const contractConfig = UNSHIELD_ABIS[confidentialityType];
-      if (!contractConfig) {
-        throw new Error(`Unsupported confidentialityType for unshield: ${confidentialityType}`);
-      }
+      const contractConfig = getUnshieldContractConfig(confidentialityType);
 
       let hash: `0x${string}`;
 
       input.onStatusChange?.('Please confirm in wallet...');
 
-      if (confidentialityType === 'wrapped') {
-        // Wrapped tokens: decrypt(address to, uint128 value)
-        const { request } = await publicClient.simulateContract({
-          address: tokenAddress,
-          abi: contractConfig.abi,
-          functionName: contractConfig.functionName,
-          args: [walletClient.account.address, input.amount],
-          account: walletClient.account,
-        });
-        hash = await walletClient.writeContract({ ...request, chain: undefined });
-      } else {
-        // For dual tokens, unshield takes uint64
-        const amount = BigInt.asUintN(64, input.amount);
-
-        const { request } = await publicClient.simulateContract({
-          address: tokenAddress,
-          abi: contractConfig.abi,
-          functionName: contractConfig.functionName,
-          args: [amount],
-          account: walletClient.account,
-        });
-        hash = await walletClient.writeContract({ ...request, chain: undefined });
-      }
+      const { request } = await publicClient.simulateContract({
+        address: tokenAddress,
+        abi: contractConfig.abi,
+        functionName: contractConfig.functionName,
+        args: [walletClient.account.address, input.amount],
+        account: walletClient.account,
+      });
+      hash = await walletClient.writeContract({ ...request, chain: undefined });
 
       return hash;
     },

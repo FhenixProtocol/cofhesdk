@@ -2,7 +2,8 @@ import { QueryClient, type QueryKey, type UseQueryOptions, type UseQueryResult }
 import { type Address } from 'viem';
 import { useCofhePublicClient } from './useCofheConnection.js';
 import { type Token } from './useCofheTokenLists.js';
-import { DUAL_GET_UNSHIELD_CLAIM_ABI, WRAPPED_GET_USER_CLAIMS_ABI } from '../constants/confidentialTokenABIs.js';
+import { getClaimableContractConfig } from '../constants/confidentialTokenABIs.js';
+import { isTokenOperationSupported, type SupportedTokenConfidentialityType } from '@/types/token';
 import { useInternalQuery } from '../providers/index.js';
 import { decryptionAwareReadContract } from '@/utils/decryptionAwareReadContract.js';
 import { useIsWaitingForDecryptionToInvalidate } from './useIsWaitingForDecryptionToInvalidate.js';
@@ -69,15 +70,17 @@ export const DEFAULT_UNSHIELD_CLAIM_SUMMARY: UnshieldClaimsSummary = {
   hasPending: false,
 };
 
-export function isTokenConfidentialityTypeClaimable(type: string | undefined): type is 'dual' | 'wrapped' {
-  return type === 'dual' || type === 'wrapped';
+export function isTokenConfidentialityTypeClaimable(
+  type: string | undefined
+): type is SupportedTokenConfidentialityType {
+  return isTokenOperationSupported(type, 'claimable');
 }
 
 export type FetchUnshieldClaimsSummaryInput = {
   publicClient: NonNullable<ReturnType<typeof useCofhePublicClient>>;
   token: Token;
   accountAddress: Address;
-  confidentialityType: 'dual' | 'wrapped';
+  confidentialityType: SupportedTokenConfidentialityType;
   queryKey: QueryKey;
   signal: AbortSignal;
 };
@@ -90,65 +93,39 @@ export async function fetchUnshieldClaimsSummary({
   queryKey,
   signal,
 }: FetchUnshieldClaimsSummaryInput): Promise<UnshieldClaimsSummary> {
-  if (confidentialityType === 'dual') {
-    const claim = await decryptionAwareReadContract({
-      publicClient,
-      queryKey,
-      signal,
-      readContractParams: {
-        address: token.address,
-        abi: DUAL_GET_UNSHIELD_CLAIM_ABI,
-        functionName: 'getUserUnshieldClaim',
-        args: [accountAddress],
-      },
-    });
+  const contractConfig = getClaimableContractConfig(confidentialityType);
+  const result = await decryptionAwareReadContract({
+    publicClient,
+    queryKey,
+    signal,
+    readContractParams: {
+      address: token.address,
+      abi: contractConfig.abi,
+      functionName: contractConfig.functionName,
+      args: [accountAddress],
+    },
+  });
 
-    if (claim.ctHash === 0n || claim.claimed) return DEFAULT_UNSHIELD_CLAIM_SUMMARY;
+  const claims = result.filter((c) => !c.claimed);
 
-    return {
-      claimableAmount: claim.decrypted ? claim.decryptedAmount : 0n,
-      pendingAmount: claim.decrypted ? 0n : claim.requestedAmount,
-      hasClaimable: claim.decrypted && claim.decryptedAmount > 0n,
-      hasPending: !claim.decrypted,
-    };
-  }
+  const { claimableAmount, pendingAmount } = claims.reduce(
+    (acc, claim) => {
+      if (claim.decrypted) {
+        acc.claimableAmount += claim.decryptedAmount;
+      } else {
+        acc.pendingAmount += claim.requestedAmount;
+      }
+      return acc;
+    },
+    { claimableAmount: 0n, pendingAmount: 0n }
+  );
 
-  if (confidentialityType === 'wrapped') {
-    const result = await decryptionAwareReadContract({
-      publicClient,
-      queryKey,
-      signal,
-      readContractParams: {
-        address: token.address,
-        abi: WRAPPED_GET_USER_CLAIMS_ABI,
-        functionName: 'getUserClaims',
-        args: [accountAddress],
-      },
-    });
-
-    const claims = result.filter((c) => !c.claimed);
-
-    const { claimableAmount, pendingAmount } = claims.reduce(
-      (acc, claim) => {
-        if (claim.decrypted) {
-          acc.claimableAmount += claim.decryptedAmount;
-        } else {
-          acc.pendingAmount += claim.requestedAmount;
-        }
-        return acc;
-      },
-      { claimableAmount: 0n, pendingAmount: 0n }
-    );
-
-    return {
-      claimableAmount,
-      pendingAmount,
-      hasClaimable: claimableAmount > 0n,
-      hasPending: pendingAmount > 0n,
-    };
-  }
-
-  return DEFAULT_UNSHIELD_CLAIM_SUMMARY;
+  return {
+    claimableAmount,
+    pendingAmount,
+    hasClaimable: claimableAmount > 0n,
+    hasPending: pendingAmount > 0n,
+  };
 }
 
 // ============================================================================
@@ -156,7 +133,7 @@ export async function fetchUnshieldClaimsSummary({
 // ============================================================================
 
 /**
- * Unified unshield claims summary - works for both dual and wrapped tokens
+ * Unshield claims summary for wrapped tokens.
  */
 export type UnshieldClaimsSummary = {
   /** Total amount that can be claimed now (decrypted and not claimed) */
@@ -179,7 +156,7 @@ type UseUnshieldClaimsInput = {
 type UseUnshieldClaimsOptions = Omit<UseQueryOptions<UnshieldClaimsSummary, Error>, 'queryKey' | 'queryFn'>;
 
 /**
- * Unified hook to fetch unshield claims for any token type (dual or wrapped)
+ * Hook to fetch wrapped-token unshield claims.
  * @param input - Token object and optional account address
  * @param queryOptions - Optional React Query options
  * @returns Query result with UnshieldClaimsSummary
