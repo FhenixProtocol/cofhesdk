@@ -2,4 +2,3 @@ out/
 cache/
 dist/
 node_modules
-src/key.ts

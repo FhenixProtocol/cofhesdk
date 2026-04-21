@@ -78,7 +78,6 @@ Runtime configuration pulled from environment variables with sensible defaults:
 | Export                        | Env var                       | Default           | Purpose                                                 |
 | ----------------------------- | ----------------------------- | ----------------- | ------------------------------------------------------- |
 | `PRIMARY_TEST_CHAIN`          | `PRIMARY_TEST_CHAIN`          | `421614`          | Chain ID used for core SDK decrypt/verify/publish tests |
-| `COFHE_CHAIN_ID`              | `COFHE_CHAIN_ID`              | `421614`          | General-purpose chain ID override                       |
 | `TEST_LOCALCOFHE_ENABLED`     | `TEST_LOCALCOFHE_ENABLED`     | `false`           | Include localcofhe in deployment targets                |
 | `TEST_LOCALCOFHE_PRIVATE_KEY` | `TEST_LOCALCOFHE_PRIVATE_KEY` | hardcoded default | Deployer key for localcofhe                             |
 

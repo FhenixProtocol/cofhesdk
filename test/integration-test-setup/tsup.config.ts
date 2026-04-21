@@ -10,7 +10,6 @@ export default defineConfig({
   define: {
     'process.env.TEST_LOCALCOFHE_ENABLED': JSON.stringify(process.env.TEST_LOCALCOFHE_ENABLED ?? ''),
     'process.env.TEST_LOCALCOFHE_PRIVATE_KEY': JSON.stringify(process.env.TEST_LOCALCOFHE_PRIVATE_KEY ?? ''),
-    'process.env.COFHE_CHAIN_ID': JSON.stringify(process.env.COFHE_CHAIN_ID ?? ''),
     'process.env.PRIMARY_TEST_CHAIN': JSON.stringify(process.env.PRIMARY_TEST_CHAIN ?? ''),
   },
 });
