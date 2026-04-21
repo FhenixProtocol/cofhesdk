@@ -146,7 +146,7 @@ describe('Local Cofhe Integration Tests', () => {
     expect(publishedValue).to.equal(expectedTxValue);
   });
 
-  it('Should return a cached 200 response when requesting an already decrypted decryption again', async function () {
+  it('Should return a cached completed payload when requesting an already decrypted decryption again', async function () {
     this.timeout(120000);
 
     const testValue = 73n;
@@ -185,36 +185,17 @@ describe('Local Cofhe Integration Tests', () => {
 
     const secondSubmitBody = (await secondSubmitResponse.json()) as {
       request_id?: string | null;
-      status?: string;
+      decrypted?: number[];
+      signature?: string;
+      encryption_type?: number;
       error_message?: string | null;
       message?: string;
     };
 
     expect(secondSubmitBody.error_message ?? secondSubmitBody.message).to.equal(undefined);
     expect(secondSubmitBody.request_id).to.be.a('string').and.not.empty;
-
-    const cachedStatusResponse = await fetch(
-      `${thresholdNetworkUrl}/v2/decrypt/${secondSubmitBody.request_id as string}`,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-
-    expect(cachedStatusResponse.status).to.equal(200);
-
-    const cachedStatusBody = (await cachedStatusResponse.json()) as {
-      status?: string;
-      is_succeed?: boolean;
-      decrypted?: number[];
-      error_message?: string | null;
-    };
-
-    expect(cachedStatusBody.status).to.equal('COMPLETED');
-    expect(cachedStatusBody.is_succeed).to.not.equal(false);
-    expect(cachedStatusBody.error_message ?? undefined).to.equal(undefined);
-    expect(cachedStatusBody.decrypted).to.be.an('array').and.not.empty;
+    expect(secondSubmitBody.decrypted).to.be.an('array').and.not.empty;
+    expect(secondSubmitBody.signature).to.be.a('string').and.not.empty;
+    expect(secondSubmitBody.encryption_type).to.equal(FheTypes.Uint32);
   });
 });
