@@ -25,7 +25,7 @@ export type PrimaryTestChainRegistry = {
 export const primaryTestChainRegistry = registry as unknown as PrimaryTestChainRegistry | Record<string, never>;
 
 export function isPrimaryTestChainReady(
-  reg: PrimaryTestChainRegistry | Record<string, never>,
+  reg: PrimaryTestChainRegistry | Record<string, never>
 ): reg is PrimaryTestChainRegistry {
   return 'chainId' in reg && 'privateValue' in reg && 'publicValue' in reg && 'addedValue' in reg;
 }

@@ -121,7 +121,7 @@ if (chainFilters) {
   const invalid = chainFilters.filter((s) => !CHAIN_SLUGS[s]);
   if (invalid.length) {
     throw new Error(
-      `Unknown MATRIX_CHAIN value(s): ${invalid.join(', ')}. Valid values: ${Object.keys(CHAIN_SLUGS).join(', ')}, ${Object.keys(CHAIN_GROUPS).join(', ')}`,
+      `Unknown MATRIX_CHAIN value(s): ${invalid.join(', ')}. Valid values: ${Object.keys(CHAIN_SLUGS).join(', ')}, ${Object.keys(CHAIN_GROUPS).join(', ')}`
     );
   }
 }

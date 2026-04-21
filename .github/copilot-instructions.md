@@ -9,9 +9,9 @@
   - `packages/mock-contracts`: Solidity mock contracts used for local CoFHE testing.
   - `packages/hardhat-plugin`: Hardhat integration and mock deployment utilities.
   - `packages/hardhat-3-plugin`: Hardhat 3 integration and
-  mock deployment utilities.
+    mock deployment utilities.
   - `packages/foundry-plugin`: Foundry mock deployment and
-  testing setup and utility contracts.
+    testing setup and utility contracts.
   - `packages/site`: Vocs documentation site.
 - Mock mode versus production mode is a core architectural split. Before changing encryption, decryption, mock contracts, or Hardhat integration, read `ARCHITECTURE.md` and preserve behavior in both modes.
 - Prefer existing public package entrypoints and subpath exports. Do not introduce cross-package imports into private internals when a package already exposes a supported entrypoint.

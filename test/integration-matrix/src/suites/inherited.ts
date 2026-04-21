@@ -186,10 +186,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         functionName: 'publicValueHash',
       });
 
-      const decryptResult = await ctx.cofheClient
-        .decryptForTx(ctHash)
-        .withoutPermit()
-        .execute();
+      const decryptResult = await ctx.cofheClient.decryptForTx(ctHash).withoutPermit().execute();
 
       expect(decryptResult.ctHash).toBe(ctHash);
       expect(decryptResult.decryptedValue).toBe(testValue);
@@ -209,11 +206,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         address: ctx.contractAddress,
         abi: simpleTestAbi,
         functionName: 'publishDecryptResult',
-        args: [
-          storedHandle,
-          Number(decryptResult.decryptedValue),
-          decryptResult.signature,
-        ],
+        args: [storedHandle, Number(decryptResult.decryptedValue), decryptResult.signature],
         chain: chainConfig.viemChain,
         account: ctx.bobAccount,
       });

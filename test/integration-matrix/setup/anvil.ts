@@ -45,7 +45,7 @@ function deploySimpleTest(rpcUrl: string): string {
       `--private-key ${ANVIL_PRIVATE_KEY} ` +
       `--chain ${ANVIL_CHAIN_ID} ` +
       `--broadcast`,
-    { cwd: integrationSetupDir, encoding: 'utf8' },
+    { cwd: integrationSetupDir, encoding: 'utf8' }
   );
 
   const addressMatch = result.match(/Deployed to:\s+(0x[0-9a-fA-F]+)/);
@@ -56,12 +56,11 @@ function deploySimpleTest(rpcUrl: string): string {
 export async function setup(project: TestProject): Promise<void> {
   console.log('\n[integration-matrix] Starting Anvil...');
 
-  anvilProcess = spawn('anvil', [
-    '--port', String(ANVIL_PORT),
-    '--chain-id', String(ANVIL_CHAIN_ID),
-    '--code-size-limit', '100000',
-    '--silent',
-  ], { stdio: 'ignore' });
+  anvilProcess = spawn(
+    'anvil',
+    ['--port', String(ANVIL_PORT), '--chain-id', String(ANVIL_CHAIN_ID), '--code-size-limit', '100000', '--silent'],
+    { stdio: 'ignore' }
+  );
 
   anvilProcess.on('error', (err) => {
     console.error('[integration-matrix] Anvil process error:', err);
@@ -78,7 +77,7 @@ export async function setup(project: TestProject): Promise<void> {
   console.log('[integration-matrix] Deploying mock contracts...');
   await deployMocks(
     { publicClient, walletClient, artifacts: artifacts as any },
-    { deployTestBed: false, gasWarning: false, mocksDeployVerbosity: 'v' },
+    { deployTestBed: false, gasWarning: false, mocksDeployVerbosity: 'v' }
   );
 
   console.log('[integration-matrix] Deploying SimpleTest...');

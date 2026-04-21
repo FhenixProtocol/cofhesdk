@@ -18,12 +18,6 @@ describe('Inherited SDK Tests', async () => {
     transport: http('http://127.0.0.1:8545'),
   });
 
-  const [bobAddress] = await bobWalletClient.getAddresses();
-  const [aliceAddress] = await aliceWalletClient.getAddresses();
-  console.log(`[inherited] Bob:   ${bobAddress}`);
-  console.log(`[inherited] Alice: ${aliceAddress}`);
-  console.log(`[inherited] Same?  ${bobAddress === aliceAddress}`);
-
   const storeEncrypted = async (client: Awaited<ReturnType<typeof cofhe.createClientWithBatteries>>) => {
     const [enc] = await client.encryptInputs([Encryptable.uint32(42n)]).execute();
     await bobWalletClient.writeContract({

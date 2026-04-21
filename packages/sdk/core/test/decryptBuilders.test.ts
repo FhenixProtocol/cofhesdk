@@ -55,7 +55,7 @@ function createTxBuilder(overrides?: Partial<{ chainId: number; account: string;
 
 function createViewBuilder<U extends FheTypes>(
   utype: U,
-  overrides?: Partial<{ chainId: number; account: string; ctHash: string | bigint }>,
+  overrides?: Partial<{ chainId: number; account: string; ctHash: string | bigint }>
 ) {
   return new DecryptForViewBuilder<U>({
     config: mockConfig,
@@ -253,7 +253,7 @@ describe('DecryptForTxBuilder', () => {
             account: account.address,
             ctHash: TEST_CT_HASH,
             requireConnected: undefined,
-          }),
+          })
       ).toThrow();
     });
   });
@@ -383,7 +383,7 @@ describe('DecryptForViewBuilder', () => {
             ctHash: TEST_CT_HASH,
             utype: FheTypes.Uint32,
             requireConnected: undefined,
-          }),
+          })
       ).toThrow();
     });
   });

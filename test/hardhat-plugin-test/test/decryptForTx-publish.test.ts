@@ -39,26 +39,14 @@ describe('Hardhat Mocks – publishDecryptResult revert behavior', () => {
     const decryptResult = await cofheClient.decryptForTx(enc.ctHash).withoutPermit().execute();
 
     const ctHashBytes32 = hre.ethers.toBeHex(decryptResult.ctHash, 32);
-    await expect(
-      testBed.publishDecryptResult(ctHashBytes32, 0n, decryptResult.signature),
-    ).to.be.reverted;
+    await expect(testBed.publishDecryptResult(ctHashBytes32, 0n, decryptResult.signature)).to.be.reverted;
 
-    await expect(
-      taskManager.verifyDecryptResult(ctHashBytes32, 0n, decryptResult.signature),
-    ).to.be.reverted;
+    await expect(taskManager.verifyDecryptResult(ctHashBytes32, 0n, decryptResult.signature)).to.be.reverted;
 
-    const validFalse = await taskManager.verifyDecryptResultSafe(
-      ctHashBytes32,
-      0n,
-      decryptResult.signature,
-    );
+    const validFalse = await taskManager.verifyDecryptResultSafe(ctHashBytes32, 0n, decryptResult.signature);
     expect(validFalse).to.be.false;
 
-    const validTrue = await taskManager.verifyDecryptResultSafe(
-      ctHashBytes32,
-      testValue,
-      decryptResult.signature,
-    );
+    const validTrue = await taskManager.verifyDecryptResultSafe(ctHashBytes32, testValue, decryptResult.signature);
     expect(validTrue).to.be.true;
   });
 });
