@@ -86,6 +86,7 @@ export async function setup(project: TestProject): Promise<void> {
 
   project.provide('anvilRpc', ANVIL_RPC);
   project.provide('anvilSimpleTest', simpleTestAddress);
+  project.provide('matrixChain', process.env.MATRIX_CHAIN ?? '');
 }
 
 export async function teardown(): Promise<void> {
@@ -100,5 +101,6 @@ declare module 'vitest' {
   export interface ProvidedContext {
     anvilRpc: string;
     anvilSimpleTest: string;
+    matrixChain: string;
   }
 }

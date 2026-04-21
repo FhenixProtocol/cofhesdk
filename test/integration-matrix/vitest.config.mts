@@ -1,9 +1,6 @@
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-  define: {
-    'process.env.MATRIX_CHAIN': JSON.stringify(process.env.MATRIX_CHAIN ?? ''),
-  },
   test: {
     globals: true,
     testTimeout: 180_000,

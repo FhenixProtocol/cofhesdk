@@ -1,6 +1,6 @@
-import { describe } from 'vitest';
+import { describe, inject } from 'vitest';
 import { createCofheClient, createCofheConfig } from '@cofhe/sdk/node';
-import { enabledChains } from '../src/chains/index.js';
+import { getEnabledChains } from '../src/chains/index.js';
 import { runInheritedSuite } from '../src/suites/inherited.js';
 import type { ClientFactory } from '../src/types.js';
 
@@ -9,10 +9,7 @@ const factory: ClientFactory = {
   createClient: createCofheClient,
 };
 
-console.log(
-  'Enabled matrix chains:',
-  enabledChains.map((c) => c.label)
-);
+const enabledChains = getEnabledChains(inject('matrixChain'));
 
 for (const chain of enabledChains) {
   describe(`[MATRIX] Node X ${chain.label}`, () => {

@@ -110,24 +110,26 @@ const CHAIN_GROUPS: Record<string, string[]> = {
   testnet: ['sepolia', 'arb-sepolia', 'base-sepolia'],
 };
 
-const chainFilterRaw = (process.env.MATRIX_CHAIN || undefined)?.toLowerCase();
-const chainFilters = chainFilterRaw
-  ?.split(',')
-  .map((s) => s.trim())
-  .filter(Boolean)
-  .flatMap((s) => CHAIN_GROUPS[s] ?? [s]);
+export function getEnabledChains(matrixChain?: string): TestChainConfig[] {
+  const chainFilterRaw = (matrixChain || undefined)?.toLowerCase();
+  const chainFilters = chainFilterRaw
+    ?.split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .flatMap((s) => CHAIN_GROUPS[s] ?? [s]);
 
-if (chainFilters) {
-  const invalid = chainFilters.filter((s) => !CHAIN_SLUGS[s]);
-  if (invalid.length) {
-    throw new Error(
-      `Unknown MATRIX_CHAIN value(s): ${invalid.join(', ')}. Valid values: ${Object.keys(CHAIN_SLUGS).join(', ')}, ${Object.keys(CHAIN_GROUPS).join(', ')}`
-    );
+  if (chainFilters) {
+    const invalid = chainFilters.filter((s) => !CHAIN_SLUGS[s]);
+    if (invalid.length) {
+      throw new Error(
+        `Unknown MATRIX_CHAIN value(s): ${invalid.join(', ')}. Valid values: ${Object.keys(CHAIN_SLUGS).join(', ')}, ${Object.keys(CHAIN_GROUPS).join(', ')}`,
+      );
+    }
   }
-}
 
-export const enabledChains = ALL_CHAINS.filter((c) => {
-  if (!c.enabled) return false;
-  if (!chainFilters) return true;
-  return chainFilters.some((slug) => CHAIN_SLUGS[slug] === c.label);
-});
+  return ALL_CHAINS.filter((c) => {
+    if (!c.enabled) return false;
+    if (!chainFilters) return true;
+    return chainFilters.some((slug) => CHAIN_SLUGS[slug] === c.label);
+  });
+}
