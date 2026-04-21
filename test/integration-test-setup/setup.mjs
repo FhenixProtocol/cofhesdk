@@ -185,6 +185,9 @@ function getBalanceEther(rpc, address) {
   }
 }
 
+const MIN_BALANCE_ETH = 0.1;
+const underfunded = [];
+
 console.log(`\nAccount ${bold(deployer)} funding:`);
 for (const chain of ALL_CHAINS) {
   const rpc = process.env[chain.rpcEnv] || chain.rpc;
@@ -192,11 +195,23 @@ for (const chain of ALL_CHAINS) {
   const addr = pkEnvName === 'TEST_PRIVATE_KEY' ? deployer : run(`cast wallet address $${pkEnvName}`);
   const bal = getBalanceEther(rpc, addr);
   console.log(`  ${chain.label}: ${colorBalance(bal)} ETH`);
+  const parsed = parseFloat(bal);
+  if (isNaN(parsed) || parsed < MIN_BALANCE_ETH) {
+    underfunded.push({ label: chain.label, address: addr, balance: bal });
+  }
 }
 
 if (localcofheEnabled) {
   const localDeployer = run(`cast wallet address $TEST_LOCALCOFHE_PRIVATE_KEY`);
   console.log(`\nLocalcofhe deployer: ${localDeployer}`);
+}
+
+if (underfunded.length) {
+  console.error(`\n${red(bold('ERROR:'))} The following chains have less than ${MIN_BALANCE_ETH} ETH:`);
+  for (const { label, address, balance } of underfunded) {
+    console.error(`  ${label}: ${address} has ${balance} ETH`);
+  }
+  process.exit(1);
 }
 
 // Compile
