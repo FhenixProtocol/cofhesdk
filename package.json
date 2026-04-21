@@ -21,13 +21,13 @@
     "docs": "pnpm --filter @cofhe/site dev"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.27.1",
-    "@vitest/coverage-v8": "^3.0.0",
-    "eslint": "^8.57.0",
-    "madge": "^8.0.0",
-    "prettier": "^3.2.5",
-    "turbo": "^2.5.6",
-    "vitest": "^3.0.0"
+    "@changesets/cli": "2.27.1",
+    "@vitest/coverage-v8": "3.2.4",
+    "eslint": "8.57.0",
+    "madge": "8.0.0",
+    "prettier": "3.2.5",
+    "turbo": "2.5.6",
+    "vitest": "3.2.4"
   },
   "pnpm": {
     "overrides": {

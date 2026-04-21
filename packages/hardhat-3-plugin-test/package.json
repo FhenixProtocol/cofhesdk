@@ -11,13 +11,13 @@
     "@cofhe/mock-contracts": "workspace:*",
     "@cofhe/sdk": "workspace:*",
     "@cofhe/tsconfig": "workspace:*",
-    "@nomicfoundation/hardhat-node-test-runner": "^3.0.12",
-    "@types/node": "^20.0.0",
-    "hardhat": "^3.1.12",
+    "@nomicfoundation/hardhat-node-test-runner": "3.0.12",
+    "@types/node": "20.19.15",
+    "hardhat": "3.1.12",
     "typescript": "5.5.4",
-    "viem": "^2.38.6"
+    "viem": "2.38.6"
   },
   "dependencies": {
-    "@nomicfoundation/hardhat-viem": "^3.0.4"
+    "@nomicfoundation/hardhat-viem": "3.0.4"
   }
 }

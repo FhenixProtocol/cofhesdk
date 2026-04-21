@@ -8,19 +8,19 @@
     "clean": "npx hardhat clean"
   },
   "devDependencies": {
-    "@nomicfoundation/hardhat-toolbox": "^6.0.0",
-    "@nomicfoundation/hardhat-ethers": "^3.0.5",
-    "ethers": "^6.0.0",
-    "ethers6": "npm:ethers@^6.13.0",
-    "hardhat": "^2.26.3",
+    "@nomicfoundation/hardhat-toolbox": "6.1.0",
+    "@nomicfoundation/hardhat-ethers": "3.1.0",
+    "ethers": "6.15.0",
+    "ethers6": "npm:ethers@/ethers@6.15.0",
+    "hardhat": "2.26.3",
     "@cofhe/sdk": "workspace:*",
     "@cofhe/hardhat-plugin": "workspace:*",
     "@cofhe/mock-contracts": "workspace:*",
     "@fhenixprotocol/cofhe-contracts": "0.1.0",
-    "@openzeppelin/contracts": "^5.0.0",
+    "@openzeppelin/contracts": "5.4.0",
     "@types/chai": "4.3.20",
     "chai": "4.5.0",
-    "viem": "^2.38.6",
-    "dotenv": "^16.0.0"
+    "viem": "2.38.6",
+    "dotenv": "16.0.3"
   }
 }

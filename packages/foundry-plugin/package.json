@@ -31,10 +31,10 @@
   "dependencies": {
     "@cofhe/mock-contracts": "workspace:*",
     "@fhenixprotocol/cofhe-contracts": "0.1.0",
-    "@openzeppelin/contracts": "^5.0.0"
+    "@openzeppelin/contracts": "5.4.0"
   },
   "devDependencies": {
-    "forge-std": "github:foundry-rs/forge-std"
+    "forge-std": "github:foundry-rs/forge-std#c0f966cb111f621bfb283b2a388bc7be18953bba"
   },
   "publishConfig": {
     "access": "public",
