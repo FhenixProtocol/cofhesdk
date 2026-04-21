@@ -1,4 +1,4 @@
-import { FheTypes, verifyDecryptResult, createCofheConfigBase } from '@/core';
+import { FheTypes, verifyDecryptResult, createCofheConfigBase, TASK_MANAGER_ADDRESS } from '@/core';
 import { getChainById } from '@/chains';
 import { permits } from '../permits.js';
 import { DecryptForTxBuilder } from '../decrypt/decryptForTxBuilder.js';
@@ -6,7 +6,7 @@ import { DecryptForViewBuilder } from '../decrypt/decryptForViewBuilder.js';
 
 import { describe, it, expect, beforeAll } from 'vitest';
 import type { Chain, PublicClient, WalletClient } from 'viem';
-import { createPublicClient, createWalletClient, http } from 'viem';
+import { createPublicClient, createWalletClient, http, parseAbi } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { arbitrumSepolia, baseSepolia, sepolia } from 'viem/chains';
 import {
@@ -265,5 +265,70 @@ describe('Core – Decrypt Tests', () => {
       expect(isDecrypted).toBe(true);
       expect(BigInt(publishedValue)).toBe(addedExpectedSum);
     }, 300000);
+  });
+
+  describe('verifyDecryptResult', () => {
+    it('should correctly verify a valid decrypt result', async () => {
+      const permit = await createPermit();
+
+      const decryptResult = await txBuilder(privateCtHash).withPermit(permit).execute();
+
+      const isValid = await verifyDecryptResult(
+        decryptResult.ctHash,
+        privateValue,
+        decryptResult.signature,
+        publicClient
+      );
+      expect(isValid).toBe(true);
+    }, 180000);
+
+    it('should verify identically to the on-chain TaskManager contract', async () => {
+      const permit = await createPermit();
+      const decryptResult = await txBuilder(privateCtHash).withPermit(permit).execute();
+
+      const samples = [
+        {
+          shouldBe: true,
+          handle: BigInt(decryptResult.ctHash),
+          cleartext: decryptResult.decryptedValue,
+          signature: decryptResult.signature,
+        },
+        {
+          shouldBe: false,
+          handle: BigInt(decryptResult.ctHash),
+          cleartext: decryptResult.decryptedValue + 1n,
+          signature: decryptResult.signature,
+        },
+        {
+          shouldBe: false,
+          handle: BigInt(decryptResult.ctHash) + 1n,
+          cleartext: decryptResult.decryptedValue,
+          signature: decryptResult.signature,
+        },
+        {
+          shouldBe: false,
+          handle: BigInt(decryptResult.ctHash),
+          cleartext: decryptResult.decryptedValue,
+          signature: `${decryptResult.signature}00`,
+        },
+      ] as const;
+
+      for (const sample of samples) {
+        const sdkResult = await verifyDecryptResult(sample.handle, sample.cleartext, sample.signature, publicClient);
+
+        const verifyDecryptResultSafeAbi = parseAbi([
+          'function verifyDecryptResultSafe(uint256 ctHash, uint256 cleartext, bytes signature) view returns (bool)',
+        ]);
+        const tmResult = await publicClient.readContract({
+          address: TASK_MANAGER_ADDRESS,
+          abi: verifyDecryptResultSafeAbi,
+          functionName: 'verifyDecryptResultSafe',
+          args: [sample.handle, sample.cleartext, sample.signature],
+        });
+
+        expect(sdkResult).to.equal(tmResult);
+        expect(sdkResult).to.equal(sample.shouldBe);
+      }
+    });
   });
 });
