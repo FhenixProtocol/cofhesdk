@@ -11,7 +11,7 @@ import { expect } from 'chai';
 const hostChainRpcUrl = process.env.LOCALCOFHE_HOST_CHAIN_RPC || 'http://127.0.0.1:42069';
 const thresholdNetworkUrl = localcofhe.thresholdNetworkUrl;
 
-function makeDecryptSubmitBody(ctHash: bigint | string, permission: Permission) {
+function makeThresholdRequestBody(ctHash: bigint | string, permission: Permission) {
   return {
     ct_tempkey: BigInt(ctHash).toString(16).padStart(64, '0'),
     host_chain_id: localcofhe.id,
@@ -178,7 +178,7 @@ describe('Local Cofhe Integration Tests', () => {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(makeDecryptSubmitBody(ctHash, PermitUtils.getPermission(activePermit!, true))),
+      body: JSON.stringify(makeThresholdRequestBody(ctHash, PermitUtils.getPermission(activePermit!, true))),
     });
 
     expect(secondSubmitResponse.status).to.equal(200);
@@ -196,6 +196,60 @@ describe('Local Cofhe Integration Tests', () => {
     expect(secondSubmitBody.request_id).to.be.a('string').and.not.empty;
     expect(secondSubmitBody.decrypted).to.be.an('array').and.not.empty;
     expect(secondSubmitBody.signature).to.be.a('string').and.not.empty;
+    expect(secondSubmitBody.encryption_type).to.equal(FheTypes.Uint32);
+  });
+
+  it('Should return a cached sealed payload when requesting an already decrypted view again', async function () {
+    this.timeout(120000);
+
+    const testValue = 41n;
+    const valueToAdd = 9n;
+    const expectedValue = testValue + valueToAdd;
+
+    const encrypted = await cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
+
+    const storeTx = await testContract.connect(localcofheSigner).setValue(encrypted[0]);
+    await storeTx.wait();
+
+    const encryptedAddend = await cofheClient.encryptInputs([Encryptable.uint32(valueToAdd)]).execute();
+
+    const addTx = await testContract.connect(localcofheSigner).addValue(encryptedAddend[0]);
+    await addTx.wait();
+
+    const ctHash = await testContract.getValueHash();
+
+    const firstViewResult = await cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
+
+    expect(firstViewResult).to.equal(expectedValue);
+
+    const activePermit = cofheClient.permits.getActivePermit();
+    expect(activePermit).to.not.equal(undefined);
+
+    const secondSubmitResponse = await fetch(`${thresholdNetworkUrl}/v2/sealoutput`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(makeThresholdRequestBody(ctHash, PermitUtils.getPermission(activePermit!, true))),
+    });
+
+    expect(secondSubmitResponse.status).to.equal(200);
+
+    const secondSubmitBody = (await secondSubmitResponse.json()) as {
+      request_id?: string | null;
+      sealed_data?: number[];
+      ephemeral_public_key?: number[];
+      nonce?: number[];
+      encryption_type?: number;
+      error_message?: string | null;
+      message?: string;
+    };
+
+    expect(secondSubmitBody.error_message ?? secondSubmitBody.message).to.equal(undefined);
+    expect(secondSubmitBody.request_id).to.be.a('string').and.not.empty;
+    expect(secondSubmitBody.sealed_data).to.be.an('array').and.not.empty;
+    expect(secondSubmitBody.ephemeral_public_key).to.be.an('array').and.not.empty;
+    expect(secondSubmitBody.nonce).to.be.an('array').and.not.empty;
     expect(secondSubmitBody.encryption_type).to.equal(FheTypes.Uint32);
   });
 });
