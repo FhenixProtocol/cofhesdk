@@ -62,7 +62,7 @@ export const ImportCustomTokenCard: React.FC<{
       )}
 
       {resolvedToken.isFetching && !existingToken && (
-        <p className="text-xxxs opacity-70">Checking token metadata and CoFHE support...</p>
+        <p className="text-xxxs opacity-70">Checking token metadata and wrapped CoFHE support...</p>
       )}
 
       {resolvedToken.error && !existingToken && (
@@ -74,13 +74,7 @@ export const ImportCustomTokenCard: React.FC<{
           <p className="font-medium fnx-text-primary">
             {previewToken.symbol} · {previewToken.name}
           </p>
-          <p className="opacity-70">
-            {previewToken.extensions.fhenix.confidentialityType === 'wrapped'
-              ? 'Wrapped confidential token'
-              : previewToken.extensions.fhenix.confidentialityType === 'dual'
-                ? 'Dual-balance confidential token'
-                : 'Pure confidential token'}
-          </p>
+          <p className="opacity-70">Wrapped confidential token</p>
           {balanceType === 'public' &&
             previewToken.extensions.fhenix.confidentialityType === 'wrapped' &&
             !previewToken.extensions.fhenix.erc20Pair && (
