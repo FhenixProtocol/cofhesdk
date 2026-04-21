@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { MdContentCopy, MdCheck } from 'react-icons/md';
-import { cn } from '../../../utils/cn.js';
-import { truncateAddress } from '../../../utils/utils.js';
+import { cn } from '../../../utils/cn';
+import { truncateAddress } from '../../../utils/utils';
+import { cofheLogger } from '@/utils/debug';
 
 interface AddressButtonProps {
   address: string | null | undefined;
@@ -20,7 +21,7 @@ export const AddressButton: React.FC<AddressButtonProps> = ({ address, className
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to copy address:', err);
+      cofheLogger.error('Failed to copy address:', err);
     }
   };
 

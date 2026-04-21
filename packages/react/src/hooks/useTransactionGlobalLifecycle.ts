@@ -35,7 +35,7 @@ function useTransactionGlobalToastsLifecycle() {
           }
         }
       }
-      console.error('____ Transaction submission failed for type:', transactionType, 'with error:', error);
+      cofheLogger.error('____ Transaction submission failed for type:', transactionType, 'with error:', error);
       addToast(
         {
           variant: 'error',
@@ -82,7 +82,7 @@ function useTransactionGlobalToastsLifecycle() {
     },
     // 2.b. tx receipt fetch failed
     onWatchReceiptFailure: (error: unknown, transaction: Transaction) => {
-      console.error('____ Transaction receipt fetch failed for tx:', transaction, 'with error:', error);
+      cofheLogger.error('____ Transaction receipt fetch failed for tx:', transaction, 'with error:', error);
       addToast(
         {
           variant: 'error',

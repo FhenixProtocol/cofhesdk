@@ -8,6 +8,11 @@ import { CofheError, CofheErrorCode } from '../error.js';
 import { MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY } from '../consts.js';
 import { MOCKS_THRESHOLD_NETWORK_ADDRESS } from '../consts.js';
 
+const UINT_TYPE_MASK = 0x7fn;
+const TYPE_BYTE_OFFSET = 8n;
+
+const getEncryptionTypeFromCtHash = (ctHash: bigint) => Number((ctHash >> TYPE_BYTE_OFFSET) & UINT_TYPE_MASK);
+
 export type DecryptForTxMocksResult = {
   ctHash: bigint | string;
   decryptedValue: bigint;
@@ -64,9 +69,15 @@ export async function cofheMocksDecryptForTx(
   }
 
   // decryptForTx returns plaintext directly (no sealing/unsealing needed)
-  // Generate a mock threshold network signature (in production, this would be the actual signature)
-  // The signature must be valid for MockTaskManager verification.
-  const packed = encodePacked(['uint256', 'uint256'], [BigInt(ctHash), decryptedValue]);
+  // Generate a mock threshold network signature using the same payload format
+  // that TaskManager expects in production and in mocks.
+  const chainId = publicClient.chain?.id ?? (await publicClient.getChainId());
+  const normalizedCtHash = BigInt(ctHash);
+  const encryptionType = getEncryptionTypeFromCtHash(normalizedCtHash);
+  const packed = encodePacked(
+    ['uint256', 'uint32', 'uint64', 'uint256'],
+    [decryptedValue, encryptionType, BigInt(chainId), normalizedCtHash]
+  );
   const messageHash = keccak256(packed);
 
   // Raw digest signature (no EIP-191 prefix). Must verify against OpenZeppelin ECDSA.recover(messageHash, signature).

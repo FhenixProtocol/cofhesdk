@@ -3,6 +3,7 @@ import { TbShieldPlus, TbShieldMinus } from 'react-icons/tb';
 import { LuExternalLink } from 'react-icons/lu';
 import { useMemo, useState } from 'react';
 import { ContractFunctionExecutionError, parseUnits, type Address } from 'viem';
+import { isTokenOperationSupported } from '@/types/token';
 import { useCofheAccount, useCofheChainId } from '@/hooks/useCofheConnection';
 import { useCofheTokenDecryptedBalance } from '@/hooks/useCofheTokenDecryptedBalance';
 import { type Token } from '@/hooks/useCofheTokenLists';
@@ -36,6 +37,7 @@ import { cofheHumanizeViemError } from '@/utils/cofheErrors';
 import { PageContainer } from '../components/PageContainer';
 import { PortalModal } from '../modals/types';
 import { CopyButton } from '../components/HashLink';
+import { cofheLogger } from '@/utils/debug';
 
 const AUTOCLEAR_TX_STATUS_TIMEOUT = 5000;
 const DISPLAY_DECIMALS = 5;
@@ -133,7 +135,7 @@ function useClaimUnshieldedWithLifecycle() {
         cofheHumanizeViemError(error) ?? (error instanceof Error ? error.message : 'Failed to claim unshielded tokens');
       setError(errorMessage);
       setStatus(null);
-      console.error('Claim tx submit error:', error);
+      cofheLogger.error('Claim tx submit error:', error);
     },
   });
 
@@ -199,7 +201,7 @@ function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 
         cofheHumanizeViemError(error) ?? (error instanceof Error ? error.message : 'Failed to shield tokens');
       setError(errorMessage);
       setStatus(null);
-      console.error('Shield tx submit error:', error);
+      cofheLogger.error('Shield tx submit error:', error);
     },
   });
 
@@ -390,7 +392,7 @@ function useUnshieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps
         cofheHumanizeViemError(error) ?? (error instanceof Error ? error.message : 'Failed to unshield tokens');
       setError(errorMessage);
       setStatus(null);
-      console.error('Unshield tx submit error:', error);
+      cofheLogger.error('Unshield tx submit error:', error);
     },
     onceMined: (transaction) => {
       if (transaction.status === 'confirmed') {
@@ -468,8 +470,6 @@ function useUnshieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps
     primaryIcon: <TbShieldMinus className="w-3 h-3" />,
   };
 }
-
-const shieldableTypes = new Set(['dual', 'wrapped']);
 
 export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token: _token, defaultMode }) => {
   const [mode, setMode] = useState<Mode>(defaultMode ?? 'shield');
@@ -676,10 +676,17 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
   const { navigateBack } = usePortalNavigation();
   const { openModal } = usePortalModals();
 
-  const isShieldableToken = shieldableTypes.has(token.extensions.fhenix.confidentialityType);
+  const isShieldableToken = isTokenOperationSupported(token.extensions.fhenix.confidentialityType, 'shield');
 
   const { tokensWithExistingEncryptedBalance } = useCofheTokensWithExistingEncryptedBalances();
   const { tokensWithPublicBalances } = useTokensWithPublicBalances();
+  const selectableTokens = useMemo(
+    () =>
+      (mode === 'unshield' ? tokensWithExistingEncryptedBalance : tokensWithPublicBalances).filter((candidate) =>
+        isTokenOperationSupported(candidate.extensions.fhenix.confidentialityType, mode)
+      ),
+    [mode, tokensWithExistingEncryptedBalance, tokensWithPublicBalances]
+  );
 
   // TODO: probably can be refactored into a view with more stramlined logic
   return (
@@ -698,7 +705,7 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
             onClick={() =>
               openModal(PortalModal.TokenList, {
                 balanceType: mode === 'shield' ? BalanceType.Public : BalanceType.Confidential,
-                tokens: mode === 'unshield' ? tokensWithExistingEncryptedBalance : tokensWithPublicBalances,
+                tokens: selectableTokens,
                 title: mode === 'shield' ? 'Select token to shield' : 'Select token to unshield',
                 onSelectToken: (token) => setToken(token),
               })
@@ -849,7 +856,7 @@ function useApproveWithLifecycle({
         cofheHumanizeViemError(error) ?? (error instanceof Error ? error.message : 'Failed to approve tokens');
       setError(errorMessage);
       setStatus(null);
-      console.error('Approve tx submit error:', error);
+      cofheLogger.error('Approve tx submit error:', error);
     },
   });
 
