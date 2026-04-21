@@ -1,6 +1,7 @@
 import hre from 'hardhat';
 import { localcofhe } from '@cofhe/sdk/chains';
 import { CofheClient, Encryptable, FheTypes } from '@cofhe/sdk';
+import { PermitUtils, type Permission } from '@cofhe/sdk/permits';
 import { Chain, createPublicClient, createWalletClient, http, type PublicClient, type WalletClient } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { createCofheClient, createCofheConfig } from '@cofhe/sdk/node';
@@ -8,6 +9,15 @@ import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 import { expect } from 'chai';
 
 const hostChainRpcUrl = process.env.LOCALCOFHE_HOST_CHAIN_RPC || 'http://127.0.0.1:42069';
+const thresholdNetworkUrl = localcofhe.thresholdNetworkUrl;
+
+function makeDecryptSubmitBody(ctHash: bigint | string, permission: Permission) {
+  return {
+    ct_tempkey: BigInt(ctHash).toString(16).padStart(64, '0'),
+    host_chain_id: localcofhe.id,
+    permit: permission,
+  };
+}
 
 const viemLocalcofheChain: Chain = {
   id: localcofhe.id,
@@ -134,5 +144,77 @@ describe('Local Cofhe Integration Tests', () => {
 
     expect(isDecrypted).to.equal(true);
     expect(publishedValue).to.equal(expectedTxValue);
+  });
+
+  it('Should return a cached 200 response when requesting an already decrypted decryption again', async function () {
+    this.timeout(120000);
+
+    const testValue = 73n;
+    const valueToAdd = 19n;
+    const expectedValue = testValue + valueToAdd;
+
+    const encrypted = await cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
+
+    const storeTx = await testContract.connect(localcofheSigner).setValue(encrypted[0]);
+    await storeTx.wait();
+
+    const encryptedAddend = await cofheClient.encryptInputs([Encryptable.uint32(valueToAdd)]).execute();
+
+    const addTx = await testContract.connect(localcofheSigner).addValue(encryptedAddend[0]);
+    await addTx.wait();
+
+    const ctHash = await testContract.getValueHash();
+
+    const firstDecryptResult = await cofheClient.decryptForTx(ctHash).withPermit().execute();
+
+    expect(firstDecryptResult.ctHash).to.equal(ctHash);
+    expect(firstDecryptResult.decryptedValue).to.equal(expectedValue);
+
+    const activePermit = cofheClient.permits.getActivePermit();
+    expect(activePermit).to.not.equal(undefined);
+
+    const secondSubmitResponse = await fetch(`${thresholdNetworkUrl}/v2/decrypt`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(makeDecryptSubmitBody(ctHash, PermitUtils.getPermission(activePermit!, true))),
+    });
+
+    expect(secondSubmitResponse.status).to.equal(200);
+
+    const secondSubmitBody = (await secondSubmitResponse.json()) as {
+      request_id?: string | null;
+      status?: string;
+      error_message?: string | null;
+      message?: string;
+    };
+
+    expect(secondSubmitBody.error_message ?? secondSubmitBody.message).to.equal(undefined);
+    expect(secondSubmitBody.request_id).to.be.a('string').and.not.empty;
+
+    const cachedStatusResponse = await fetch(
+      `${thresholdNetworkUrl}/v2/decrypt/${secondSubmitBody.request_id as string}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    expect(cachedStatusResponse.status).to.equal(200);
+
+    const cachedStatusBody = (await cachedStatusResponse.json()) as {
+      status?: string;
+      is_succeed?: boolean;
+      decrypted?: number[];
+      error_message?: string | null;
+    };
+
+    expect(cachedStatusBody.status).to.equal('COMPLETED');
+    expect(cachedStatusBody.is_succeed).to.not.equal(false);
+    expect(cachedStatusBody.error_message ?? undefined).to.equal(undefined);
+    expect(cachedStatusBody.decrypted).to.be.an('array').and.not.empty;
   });
 });
