@@ -14,6 +14,9 @@ jobs:
     strategy:
       matrix:
         include:
+          - name: Dependency Pins
+            command: run check:pinned-deps
+            needs-foundry: false
           - name: Linting
             command: lint
             needs-foundry: true
