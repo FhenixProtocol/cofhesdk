@@ -4,7 +4,7 @@ import { isAddress, type Address } from 'viem';
 import { useCofheChainId } from '@/hooks/useCofheConnection';
 import { useResolvedCofheToken } from '@/hooks/useResolvedCofheToken';
 import { useCustomTokensStore } from '@/stores/customTokensStore';
-import type { Token } from '@/types/token';
+import { getTokenConfidentialityLabel, type Token } from '@/types/token';
 
 import type { BalanceType } from '../components/CofheTokenConfidentialBalance';
 import { Button } from '../components';
@@ -62,7 +62,7 @@ export const ImportCustomTokenCard: React.FC<{
       )}
 
       {resolvedToken.isFetching && !existingToken && (
-        <p className="text-xxxs opacity-70">Checking token metadata and wrapped CoFHE support...</p>
+        <p className="text-xxxs opacity-70">Checking token metadata and CoFHE support...</p>
       )}
 
       {resolvedToken.error && !existingToken && (
@@ -74,7 +74,9 @@ export const ImportCustomTokenCard: React.FC<{
           <p className="font-medium fnx-text-primary">
             {previewToken.symbol} · {previewToken.name}
           </p>
-          <p className="opacity-70">Wrapped confidential token</p>
+          <p className="opacity-70">
+            {getTokenConfidentialityLabel(previewToken.extensions.fhenix.confidentialityType) ?? 'Confidential token'}
+          </p>
           {balanceType === 'public' &&
             previewToken.extensions.fhenix.confidentialityType === 'wrapped' &&
             !previewToken.extensions.fhenix.erc20Pair && (

@@ -48,6 +48,8 @@ export type TokenSupportOperation =
 export const TOKEN_CONFIDENTIALITY_SUPPORT = {
   wrapped: {
     enabled: true,
+    label: 'Wrapped confidential token',
+    confidentialValueType: 'uint128',
     publicBalanceSource: 'erc20Pair',
     operations: {
       confidentialBalance: true,
@@ -61,6 +63,8 @@ export const TOKEN_CONFIDENTIALITY_SUPPORT = {
   },
   pure: {
     enabled: false,
+    label: 'Pure confidential token',
+    confidentialValueType: 'uint64',
     publicBalanceSource: null,
     operations: {
       confidentialBalance: false,
@@ -74,6 +78,8 @@ export const TOKEN_CONFIDENTIALITY_SUPPORT = {
   },
   dual: {
     enabled: false,
+    label: 'Dual-balance confidential token',
+    confidentialValueType: 'uint64',
     publicBalanceSource: 'token',
     operations: {
       confidentialBalance: false,
@@ -115,6 +121,17 @@ export function getPublicBalanceSourceType(
 ): (typeof TOKEN_CONFIDENTIALITY_SUPPORT)[TokenConfidentialityType]['publicBalanceSource'] | null {
   if (!isTokenConfidentialityType(type)) return null;
   return TOKEN_CONFIDENTIALITY_SUPPORT[type].publicBalanceSource;
+}
+
+export function getTokenConfidentialityLabel(type: string | undefined): string | null {
+  if (!isTokenConfidentialityType(type)) return null;
+  return TOKEN_CONFIDENTIALITY_SUPPORT[type].label;
+}
+
+export function getTokenConfidentialValueType(
+  type: TokenConfidentialityType
+): (typeof TOKEN_CONFIDENTIALITY_SUPPORT)[TokenConfidentialityType]['confidentialValueType'] {
+  return TOKEN_CONFIDENTIALITY_SUPPORT[type].confidentialValueType;
 }
 
 export function assertTokenOperationSupported(

@@ -2,11 +2,13 @@ import type { UseQueryOptions } from '@tanstack/react-query';
 import { type Address, isAddress, parseAbi, zeroAddress } from 'viem';
 
 import { ERC20_DECIMALS_ABI, ERC20_NAME_ABI, ERC20_SYMBOL_ABI } from '@/constants/erc20ABIs';
-import { getTokenContractConfig } from '@/constants/confidentialTokenABIs';
+import { getSupportedTokenDetectionConfigs } from '@/constants/confidentialTokenABIs';
 import { useInternalQuery } from '@/providers';
-import { ETH_ADDRESS_LOWERCASE, type Token } from '@/types/token';
+import { ETH_ADDRESS_LOWERCASE, type SupportedTokenConfidentialityType, type Token } from '@/types/token';
 
 import { useCofheChainId, useCofhePublicClient } from './useCofheConnection';
+
+const SUPPORTED_TOKEN_DETECTION_CONFIGS = getSupportedTokenDetectionConfigs();
 
 const TOKEN_PAIR_GETTER_ABIS = {
   token: parseAbi(['function token() view returns (address)']),
@@ -57,7 +59,6 @@ export function useResolvedCofheToken(
   const publicClient = useCofhePublicClient();
   const cofheChainId = useCofheChainId();
   const chainId = _chainId ?? cofheChainId;
-  const wrappedTokenContract = getTokenContractConfig('wrapped');
 
   return useInternalQuery({
     queryKey: ['resolvedCofheToken', chainId, address?.toLowerCase()],
@@ -97,16 +98,22 @@ export function useResolvedCofheToken(
         throw new Error('Failed to fetch token metadata');
       }
 
-      const [wrappedProbe, pairGetterResults] = await Promise.all([
-        publicClient
-          .readContract({
-            address,
-            abi: wrappedTokenContract.abi,
-            functionName: wrappedTokenContract.functionName,
-            args: [zeroAddress],
+      const [supportedType, pairGetterResults] = await Promise.all([
+        Promise.all(
+          SUPPORTED_TOKEN_DETECTION_CONFIGS.map(async (entry) => {
+            const detected = await publicClient
+              .readContract({
+                address,
+                abi: entry.probe.abi,
+                functionName: entry.probe.functionName,
+                args: entry.probe.args,
+              })
+              .then(() => true)
+              .catch(() => false);
+
+            return detected ? entry : null;
           })
-          .then(() => true)
-          .catch(() => false),
+        ).then((entries) => entries.find((entry) => entry != null) ?? null),
         publicClient.multicall({
           contracts: PAIR_GETTER_ENTRIES.map(([, abi]) => ({
             address,
@@ -117,16 +124,16 @@ export function useResolvedCofheToken(
         }),
       ]);
 
-      if (!wrappedProbe) {
-        throw new Error('Address is not a supported wrapped CoFHE token');
+      if (!supportedType) {
+        throw new Error('Address is not a supported CoFHE token');
       }
 
-      const confidentialityType = 'wrapped';
+      const confidentialityType: SupportedTokenConfidentialityType = supportedType.confidentialityType;
 
       const extensions: Token['extensions'] = {
         fhenix: {
           confidentialityType,
-          confidentialValueType: 'uint128',
+          confidentialValueType: supportedType.confidentialValueType,
         },
       };
 

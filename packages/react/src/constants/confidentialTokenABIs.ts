@@ -1,4 +1,11 @@
-import type { Token, TokenConfidentialityType } from '@/types/token';
+import {
+  getTokenConfidentialValueType,
+  isSupportedTokenConfidentialityType,
+  type Token,
+  type TokenConfidentialityType,
+  TOKEN_CONFIDENTIALITY_TYPES,
+  type SupportedTokenConfidentialityType,
+} from '@/types/token';
 import type { Abi } from 'viem';
 
 import { WRAPPED_TOKEN_CONTRACTS } from './confidentialTokenWrapped';
@@ -6,6 +13,10 @@ import { WRAPPED_TOKEN_CONTRACTS } from './confidentialTokenWrapped';
 export type ContractConfig = {
   abi: Abi;
   functionName: string;
+};
+
+export type ProbeContractConfig = ContractConfig & {
+  args: readonly unknown[];
 };
 
 export type Erc20ApprovalContracts = {
@@ -27,6 +38,7 @@ export type TokenClaimContracts = {
 };
 
 export type TokenConfidentialityContracts = {
+  detection: ProbeContractConfig;
   confidentialBalance: ContractConfig;
   confidentialTransfer: ContractConfig;
   shield?: TokenShieldContracts;
@@ -64,6 +76,21 @@ function getContractsForType(confidentialityType: Token['extensions']['fhenix'][
 
 export function getTokenContractConfig(confidentialityType: Token['extensions']['fhenix']['confidentialityType']) {
   return getContractsForType(confidentialityType).confidentialBalance;
+}
+
+export function getSupportedTokenDetectionConfigs(): Array<{
+  confidentialityType: SupportedTokenConfidentialityType;
+  probe: ProbeContractConfig;
+  confidentialValueType: ReturnType<typeof getTokenConfidentialValueType>;
+}> {
+  return TOKEN_CONFIDENTIALITY_TYPES.filter(
+    (confidentialityType): confidentialityType is SupportedTokenConfidentialityType =>
+      isSupportedTokenConfidentialityType(confidentialityType)
+  ).map((confidentialityType) => ({
+    confidentialityType,
+    probe: getContractsForType(confidentialityType).detection,
+    confidentialValueType: getTokenConfidentialValueType(confidentialityType),
+  }));
 }
 
 export function getTransferContractConfig(confidentialityType: Token['extensions']['fhenix']['confidentialityType']) {
