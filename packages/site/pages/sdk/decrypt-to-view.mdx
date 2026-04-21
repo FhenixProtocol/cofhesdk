@@ -9,6 +9,10 @@ Use `decryptForView` to reveal a **confidential (encrypted)** value **locally** 
 
 Unlike [`decryptForTx`](./decrypt-to-tx.mdx), this flow does **not** return an on-chain-verifiable signature, and it is **not** meant to be published on-chain.
 
+:::note
+For the shared production request states behind decryption, including submit-time `404`, submit-time `204` without `request_id`, and request polling after `request_id` creation, see [Decryption Lifecycle](./decryption-lifecycle.mdx).
+:::
+
 The flow is as follows:
 
 1. Read the [handle](/reference/dictionary#handle) from your contract (often named `ctHash` in code) (see [Reading from a contract](#reading-from-a-contract-getting-a-handle--utype)).
@@ -385,6 +389,8 @@ plaintext;
 ### `.onPoll(callback)` — optional
 
 Registers a callback that runs once per poll attempt while waiting for the threshold network to complete the request.
+
+For the full meaning of submit retries versus request-status polling, see [Decryption Lifecycle](./decryption-lifecycle.mdx).
 
 This is useful for showing “decrypting…” UI, measuring latency, or logging.
 

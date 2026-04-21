@@ -96,6 +96,10 @@ export default defineConfig({
                 text: 'Verifying Decrypt Results',
                 link: '/sdk/verify-decrypt-result',
               },
+              {
+                text: 'Decryption Lifecycle',
+                link: '/sdk/decryption-lifecycle',
+              },
             ],
           },
         ],

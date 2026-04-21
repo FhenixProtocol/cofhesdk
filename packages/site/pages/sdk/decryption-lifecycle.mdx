@@ -1,0 +1,137 @@
+---
+title: Decryption Lifecycle
+description: How production decryption requests move from ctHash discovery to completed results
+---
+
+# Decryption Lifecycle
+
+This page explains the shared production-side lifecycle behind both [`decryptForView`](./decrypt-to-view.mdx) and [`decryptForTx`](./decrypt-to-tx.mdx).
+
+It is not about permits, return types, or builder methods. It is about what happens after you already have a `ctHash` and ask CoFHE to decrypt it.
+
+## Why decryption is not always immediate
+
+In production, decryption depends on the CoFHE coprocessor observing on-chain activity and preparing work for the Threshold Network.
+
+That means there are three distinct states your request can pass through:
+
+1. The coprocessor has not seen the `ctHash` on-chain yet.
+2. The coprocessor knows the `ctHash`, but has not produced a decryption `request_id` yet.
+3. A `request_id` exists, and the Threshold Network is processing the request.
+
+The SDK behavior differs in each state.
+
+## State 1: `ctHash` not known yet
+
+If the coprocessor has not observed the `ctHash` on-chain yet, the submit request can fail with `404`.
+
+In practice, this usually means one of the following:
+
+- the encrypting transaction was sent very recently,
+- the relevant event has not been indexed or processed yet,
+- you are trying to decrypt a handle from the wrong chain or environment,
+- the `ctHash` is invalid for that network.
+
+At this stage there is no decryption request yet, so there is no `request_id` to poll.
+
+The SDK does not automatically retry this `404` case for you. It surfaces the error, and the caller should retry later if the handle is expected to become available soon.
+
+## State 2: `ctHash` known, but no `request_id` yet
+
+Once the coprocessor is aware of the `ctHash`, it still may not be ready to start the Threshold Network request immediately.
+
+In that case the submit endpoint can return `204 No Content` without a `request_id`.
+
+This means:
+
+- the handle is known,
+- the request is not ready yet,
+- retrying the submit call makes sense.
+
+This is the case the SDK now handles automatically.
+
+For both `decryptForTx` and `decryptForView`, the SDK will:
+
+- retry the submit call,
+- wait between attempts,
+- keep using the same overall timeout budget,
+- emit `.onPoll(...)` callbacks during these retries.
+
+During this stage, the `.onPoll(...)` callback receives an empty `requestId` because no request has been created yet.
+
+## State 3: `request_id` assigned
+
+Once the submit endpoint returns a `request_id`, the decryption request has been accepted and the SDK switches to status polling.
+
+From this point on, the SDK polls the request status endpoint until one of these happens:
+
+- the request completes successfully,
+- the request completes with an error,
+- the request times out,
+- the request is no longer found.
+
+This is the normal long-polling phase most users think of as “decryption polling”.
+
+## Shared timeout budget
+
+Submit retries and status polling do not have separate timers.
+
+The SDK uses one shared timeout budget across the full production lifecycle:
+
+- initial submit attempts,
+- repeated `204` submit retries,
+- status polling after `request_id` creation.
+
+This matters because a request can spend most of its time budget before the `request_id` even exists.
+
+## How `.onPoll(...)` fits in
+
+Both decryption builders support `.onPoll(...)`:
+
+- [`decryptForView`](./decrypt-to-view.mdx)
+- [`decryptForTx`](./decrypt-to-tx.mdx)
+
+The callback context is:
+
+```ts
+{
+  operation: 'decrypt' | 'sealoutput';
+  requestId: string;
+  attemptIndex: number;
+  elapsedMs: number;
+  intervalMs: number;
+  timeoutMs: number;
+}
+```
+
+Interpretation:
+
+- `requestId === ''`: the SDK is still retrying submit because no request has been created yet.
+- `requestId !== ''`: the SDK is polling an existing request.
+- `operation === 'decrypt'`: `decryptForTx` flow.
+- `operation === 'sealoutput'`: `decryptForView` flow.
+
+## End-to-end summary
+
+```text
+decrypt call starts
+  -> submit request
+    -> 404: ctHash not known yet, caller must retry later
+    -> 204 without request_id: SDK retries submit automatically
+    -> 200 with request_id: SDK starts status polling
+      -> PROCESSING: keep polling
+      -> COMPLETED: return decrypt result
+```
+
+## Practical guidance
+
+- If you just submitted the encrypting transaction, expect decryption to be eventually consistent rather than immediate.
+- If you get a submit-time `404`, retry later instead of assuming the handle is permanently invalid.
+- If you want progress UI, use `.onPoll(...)` and treat an empty `requestId` as “waiting for request creation”.
+- If you are debugging slow decrypts, separate “coprocessor has not created a request yet” from “Threshold Network is processing an existing request”.
+
+## See also
+
+- [Decrypting to View](./decrypt-to-view.mdx)
+- [Decrypting to Transact](./decrypt-to-tx.mdx)
+- [Permits](./permits.mdx)
