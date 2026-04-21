@@ -1,10 +1,10 @@
 import { useCallback, useMemo } from 'react';
 import { type Permit } from '@cofhe/sdk/permits';
 import { useCofheActivePermit, useCofheAllPermits } from '../useCofhePermits';
-import { FloatingButtonPage } from '@/components/FnxFloatingButton/pagesConfig/types';
+import { FloatingButtonPage } from '@/components/CofheFloatingButton/pagesConfig/types';
 import { useCofheNavigateToCreatePermit } from './useCofheNavigateToCreatePermit';
 import { usePortalModals, usePortalNavigation } from '@/stores';
-import { PortalModal } from '@/components/FnxFloatingButton/modals/types';
+import { PortalModal } from '@/components/CofheFloatingButton/modals/types';
 
 export type PermitStatus = 'active' | 'valid' | 'expired';
 export type PermitActionId = 'generate' | 'delegate' | 'import';

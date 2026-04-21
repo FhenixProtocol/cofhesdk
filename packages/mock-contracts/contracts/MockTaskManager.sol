@@ -38,6 +38,12 @@ library TMCommon {
   uint256 private constant UINT_TYPE_MASK = (type(uint8).max >> 1); // 0x7f - 7 bits reserved for uint type in the one before last byte
   uint256 private constant TRIVIALLY_ENCRYPTED_MASK = type(uint8).max - UINT_TYPE_MASK; //0x80  1 bit reserved for isTriviallyEncrypted
   uint256 private constant SHIFTED_TYPE_MASK = UINT_TYPE_MASK << 8; // 0x7f007 bits reserved for uint type in the one before last byte
+  uint256 internal constant SHIFT_ENC_TYPE = 224;
+  uint256 internal constant SHIFT_CHAIN_ID = 192;
+  uint256 internal constant OFFSET_ENC_TYPE = 0x20;
+  uint256 internal constant OFFSET_CHAIN_ID = 0x24;
+  uint256 internal constant OFFSET_CT_HASH = 0x2c;
+  uint256 internal constant MESSAGE_LENGTH = 0x4c;
 
   function uint256ToBytes32(uint256 value) internal pure returns (bytes memory) {
     bytes memory result = new bytes(32);
@@ -154,6 +160,24 @@ library TMCommon {
 
   function isTriviallyEncryptedFromHash(uint256 hash) internal pure returns (bool) {
     return (hash & TRIVIALLY_ENCRYPTED_MASK) == TRIVIALLY_ENCRYPTED_MASK;
+  }
+
+  function computeDecryptResultHash(
+    uint256 ctHash,
+    uint256 result,
+    uint64 chainId
+  ) internal pure returns (bytes32 messageHash) {
+    uint8 encryptionType = getUintTypeFromHash(ctHash);
+
+    assembly {
+      let ptr := mload(0x40)
+      mstore(ptr, result)
+      mstore(add(ptr, OFFSET_ENC_TYPE), shl(SHIFT_ENC_TYPE, encryptionType))
+      mstore(add(ptr, OFFSET_CHAIN_ID), shl(SHIFT_CHAIN_ID, chainId))
+      mstore(add(ptr, OFFSET_CT_HASH), ctHash)
+      messageHash := keccak256(ptr, MESSAGE_LENGTH)
+      mstore(0x40, add(ptr, MESSAGE_LENGTH))
+    }
   }
 }
 
@@ -512,7 +536,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
       return true;
     }
 
-    bytes32 messageHash = keccak256(abi.encodePacked(ctHash, result));
+    bytes32 messageHash = TMCommon.computeDecryptResultHash(ctHash, result, uint64(block.chainid));
     (address recovered, ECDSA.RecoverError err, ) = ECDSA.tryRecover(messageHash, signature);
 
     if (err != ECDSA.RecoverError.NoError || recovered == address(0)) {

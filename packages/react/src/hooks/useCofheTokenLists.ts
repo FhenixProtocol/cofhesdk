@@ -1,7 +1,12 @@
 import { type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
 import { useCofheContext } from '../providers/CofheProvider';
 import { useMemo } from 'react';
-import { ETH_ADDRESS_LOWERCASE, type Erc20Pair, type Token } from '../types/token.js';
+import {
+  ETH_ADDRESS_LOWERCASE,
+  isSupportedTokenConfidentialityType,
+  type Erc20Pair,
+  type Token,
+} from '../types/token.js';
 import { useInternalQueries } from '../providers/index.js';
 import type { Address } from 'viem';
 import { useCofheChainId } from './useCofheConnection';
@@ -9,6 +14,11 @@ import { useCustomTokensStore } from '@/stores/customTokensStore';
 import { useResolvedCofheToken } from './useResolvedCofheToken';
 
 export { ETH_ADDRESS_LOWERCASE, type Token, type Erc20Pair };
+
+function isSupportedToken(token: Token): boolean {
+  const confidentialityType = token.extensions?.fhenix?.confidentialityType;
+  return isSupportedTokenConfidentialityType(confidentialityType);
+}
 
 type TokenList = {
   name: string;
@@ -60,7 +70,7 @@ export function useCofheTokenLists(
         // filter only tokens for the current chain (some lists contain multiple chains)
         return {
           ...data,
-          tokens: data.tokens.filter((token) => token.chainId === chainId),
+          tokens: data.tokens.filter((token) => token.chainId === chainId && isSupportedToken(token)),
         };
       },
       ...queryOptions,

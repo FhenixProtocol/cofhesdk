@@ -1,8 +1,8 @@
 import React from 'react';
 import { Overview } from './examples/Overview';
-import { FnxEncryptInputExample } from './examples/FnxEncryptInputExample';
+import { CofheEncryptInputExample } from './examples/CofheEncryptInputExample';
 import { HooksExample } from './examples/HooksExample';
-import { FnxFloatingButtonExample } from './examples/FnxFloatingButtonExample';
+import { CofheFloatingButtonExample } from './examples/CofheFloatingButtonExample';
 
 interface ComponentRendererProps {
   activeComponent: string;
@@ -14,10 +14,10 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({ activeComp
     switch (activeComponent) {
       case 'overview':
         return <Overview />;
-      case 'fnx-encrypt-input':
-        return <FnxEncryptInputExample />;
-      case 'fnx-floating-button':
-        return <FnxFloatingButtonExample />;
+      case 'cofhe-encrypt-input':
+        return <CofheEncryptInputExample />;
+      case 'cofhe-floating-button':
+        return <CofheFloatingButtonExample />;
       case 'hooks-example':
         return <HooksExample />;
       default:

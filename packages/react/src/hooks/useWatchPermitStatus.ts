@@ -3,7 +3,7 @@ import { usePortalNavigation, usePortalStatuses, usePortalUI } from '@/stores';
 import { truncateHash } from '@/utils';
 import { type Permit } from '@cofhe/sdk/permits';
 import { useEffect, useRef } from 'react';
-import { FloatingButtonPage } from '../components/FnxFloatingButton/pagesConfig/types';
+import { FloatingButtonPage } from '../components/CofheFloatingButton/pagesConfig/types';
 import { usePortalPersisted } from '@/stores/portalPersisted';
 import { useCofheIsConnected } from './useCofheConnection';
 

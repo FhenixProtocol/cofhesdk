@@ -1,5 +1,5 @@
-import type { GeneratePermitPageProps } from '@/components/FnxFloatingButton/pages/permits/GeneratePermitPage/types';
-import { FloatingButtonPage } from '@/components/FnxFloatingButton/pagesConfig/types';
+import type { GeneratePermitPageProps } from '@/components/CofheFloatingButton/pages/permits/GeneratePermitPage/types';
+import { FloatingButtonPage } from '@/components/CofheFloatingButton/pagesConfig/types';
 import { usePortalNavigation, usePortalUI } from '@/stores';
 
 import { useCallback } from 'react';

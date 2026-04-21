@@ -2,7 +2,8 @@ import { type UseMutationOptions, type UseMutationResult } from '@tanstack/react
 import { type Address } from 'viem';
 import { useCofheWalletClient, useCofheChainId, useCofheAccount, useCofhePublicClient } from './useCofheConnection.js';
 import { type Token } from './useCofheTokenLists.js';
-import { CLAIM_ABIS } from '../constants/confidentialTokenABIs.js';
+import { assertTokenOperationSupported } from '@/types/token';
+import { getClaimContractConfig } from '../constants/confidentialTokenABIs.js';
 import { TransactionActionType, useTransactionStore } from '../stores/transactionStore.js';
 import { useInternalMutation } from '../providers/index.js';
 import { assert } from 'ts-essentials';
@@ -22,14 +23,9 @@ export function getCofheTokenClaimUnshieldedCallArgs(params: {
     throw new Error('confidentialityType is required in token extensions');
   }
 
-  if (confidentialityType !== 'dual' && confidentialityType !== 'wrapped') {
-    throw new Error(`Claim not supported for confidentialityType: ${confidentialityType}`);
-  }
+  assertTokenOperationSupported(confidentialityType, 'claim');
 
-  const contractConfig = CLAIM_ABIS[confidentialityType];
-  if (!contractConfig) {
-    throw new Error(`Unsupported confidentialityType for claim: ${confidentialityType}`);
-  }
+  const contractConfig = getClaimContractConfig(confidentialityType);
 
   return {
     address: tokenAddress,
@@ -53,8 +49,7 @@ type UseClaimUnshieldInput = {
 type UseClaimUnshieldOptions = Omit<UseMutationOptions<`0x${string}`, Error, UseClaimUnshieldInput>, 'mutationFn'>;
 /**
  * Hook to claim unshielded tokens after decryption completes
- * - Dual tokens: calls `claimUnshielded()`
- * - Wrapped tokens: calls `claimAllDecrypted()`
+ * Wrapped tokens call `claimAllDecrypted()`.
  * @param options - Optional React Query mutation options
  * @returns Mutation result with transaction hash
  */
@@ -88,15 +83,9 @@ export function useCofheTokenClaimUnshielded(
         throw new Error('Wallet account is required for claim');
       }
 
-      // Only dual and wrapped support claiming
-      if (confidentialityType !== 'dual' && confidentialityType !== 'wrapped') {
-        throw new Error(`Claim not supported for confidentialityType: ${confidentialityType}`);
-      }
+      assertTokenOperationSupported(confidentialityType, 'claim');
 
-      const contractConfig = CLAIM_ABIS[confidentialityType];
-      if (!contractConfig) {
-        throw new Error(`Unsupported confidentialityType for claim: ${confidentialityType}`);
-      }
+      const contractConfig = getClaimContractConfig(confidentialityType);
 
       const { request } = await publicClient.simulateContract({
         address: tokenAddress,

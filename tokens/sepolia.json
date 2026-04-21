@@ -67,21 +67,6 @@
           }
         }
       }
-    },
-    {
-      "chainId": 11155111,
-      "address": "0x116360014E21772E46d7A7Dbaf96E30b65263E5b",
-      "name": "Dual Test Token",
-      "symbol": "eToken",
-      "decimals": 6,
-      "logoURI": "https://storage.googleapis.com/cofhesdk/token-icons/default-token.webp",
-      "extensions": {
-        "coingeckoId": "etoken",
-        "fhenix": {
-          "confidentialityType": "dual",
-          "confidentialValueType": "uint64"
-        }
-      }
     }
   ]
 }

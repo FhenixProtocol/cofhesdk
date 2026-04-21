@@ -13,6 +13,7 @@ const cofheConfig = createCofheConfig({
     //  baseSepolia
   ],
   react: {
+    projectName: 'Demo App',
     logger: {
       log: console.log.bind(console, '[COFHE]'),
       warn: console.warn.bind(console, '[COFHE]'),
