@@ -1,12 +1,28 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { network } from 'hardhat';
+import { createWalletClient, http } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
 import { Encryptable, FheTypes } from '@cofhe/sdk';
+
+const ALICE_PRIVATE_KEY = '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d' as const;
 
 describe('Inherited SDK Tests', async () => {
   const { viem, cofhe } = await network.connect();
   const publicClient = await viem.getPublicClient();
-  const [bobWalletClient, aliceWalletClient] = await viem.getWalletClients();
+  const [bobWalletClient] = await viem.getWalletClients();
+
+  const aliceAccount = privateKeyToAccount(ALICE_PRIVATE_KEY);
+  const aliceWalletClient = createWalletClient({
+    account: aliceAccount,
+    transport: http('http://127.0.0.1:8545'),
+  });
+
+  const [bobAddress] = await bobWalletClient.getAddresses();
+  const [aliceAddress] = await aliceWalletClient.getAddresses();
+  console.log(`[inherited] Bob:   ${bobAddress}`);
+  console.log(`[inherited] Alice: ${aliceAddress}`);
+  console.log(`[inherited] Same?  ${bobAddress === aliceAddress}`);
 
   const storeEncrypted = async (client: Awaited<ReturnType<typeof cofhe.createClientWithBatteries>>) => {
     const [enc] = await client.encryptInputs([Encryptable.uint32(42n)]).execute();
