@@ -11,7 +11,26 @@ import { SimpleTest, SimpleTest__factory } from '../typechain-types';
 // Provide a real key via TEST_PRIVATE_KEY env var; the default Hardhat/Anvil key is used
 // only as a sentinel to skip the test in environments where no real key is available.
 const DEFAULT_TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
-const TEST_PRIVATE_KEY = process.env.TEST_PRIVATE_KEY || DEFAULT_TEST_PRIVATE_KEY;
+const RAW_TEST_PRIVATE_KEY = process.env.TEST_PRIVATE_KEY?.trim();
+const TEST_PRIVATE_KEY = RAW_TEST_PRIVATE_KEY || DEFAULT_TEST_PRIVATE_KEY;
+const IS_CI = Boolean(process.env.CI);
+
+const getDerivedAddress = (privateKey: string): string => {
+  try {
+    return new Wallet(privateKey as `0x${string}`).address;
+  } catch {
+    return 'unparseable-private-key';
+  }
+};
+
+const warnAndSkipLocallyOrFailInCi = (context: Mocha.Context, message: string): never => {
+  if (IS_CI) {
+    throw new Error(message);
+  }
+
+  console.warn(message);
+  context.skip();
+};
 
 type SupportedTestChain = {
   label: string;
@@ -111,9 +130,13 @@ describe(`DecryptForTx + PublishDecryptResult (chain-agnostic)${DESCRIBE_CHAIN_S
   before(async function () {
     this.timeout(180_000);
 
-    // Skip when running with the default (unfunded) key – e.g. in CI.
+    // Local runs may skip when no funded test key is configured.
+    // CI should fail loudly so the missing funded account is visible.
     if (TEST_PRIVATE_KEY === DEFAULT_TEST_PRIVATE_KEY) {
-      this.skip();
+      warnAndSkipLocallyOrFailInCi(
+        this,
+        `integration-decrypt-tx.test.ts requires a funded TEST_PRIVATE_KEY. TEST_PRIVATE_KEY env seen by test process: ${RAW_TEST_PRIVATE_KEY ? 'yes' : 'no'}. Derived account address: ${getDerivedAddress(TEST_PRIVATE_KEY)}. The test is still using the sentinel default key, so either the env var did not reach this package test process or it resolves to the default key. Set TEST_PRIVATE_KEY to the CI funded account and keep it topped up on the target testnet.`
+      );
     }
 
     const explicitRpcUrl = process.env.COFHE_RPC_URL || process.env.RPC_URL;
@@ -171,12 +194,13 @@ describe(`DecryptForTx + PublishDecryptResult (chain-agnostic)${DESCRIBE_CHAIN_S
     chainSigner = new NonceManager(baseWallet);
     console.log(`Using account: ${await chainSigner.getAddress()}`);
 
-    const balance = await adapterProvider.getBalance(await adapterWallet.getAddress());
+    const accountAddress = await adapterWallet.getAddress();
+    const balance = await adapterProvider.getBalance(accountAddress);
     if (balance === 0n) {
-      console.warn(
-        `Account ${await adapterWallet.getAddress()} has 0 ETH on ${selectedChain.label}. Fund it or set TEST_PRIVATE_KEY to a funded key for ${selectedChain.label}.`
+      warnAndSkipLocallyOrFailInCi(
+        this,
+        `Account ${accountAddress} has 0 ETH on ${selectedChain.label}. CI funded account needs to be topped up before integration-decrypt-tx can run.`
       );
-      this.skip();
     }
 
     // Create viem clients from the SDK's adapter so types match CofheClient.connect.
@@ -226,10 +250,6 @@ describe(`DecryptForTx + PublishDecryptResult (chain-agnostic)${DESCRIBE_CHAIN_S
 
   it('Should encrypt → store → decryptForTx → publishDecryptResult → verify', async function () {
     this.timeout(180_000);
-
-    if (TEST_PRIVATE_KEY === DEFAULT_TEST_PRIVATE_KEY) {
-      this.skip();
-    }
 
     const testValue = 42n;
 
@@ -282,10 +302,6 @@ describe(`DecryptForTx + PublishDecryptResult (chain-agnostic)${DESCRIBE_CHAIN_S
 
   it('Should encrypt → store PUBLIC → decryptForTx (no permit) → publishDecryptResult → verify', async function () {
     this.timeout(180_000);
-
-    if (TEST_PRIVATE_KEY === DEFAULT_TEST_PRIVATE_KEY) {
-      this.skip();
-    }
 
     const testValue = 7n;
 
