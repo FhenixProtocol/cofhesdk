@@ -2,7 +2,7 @@
 
 Shared test infrastructure for the CoFHE SDK monorepo. This package exists because the SDK's core tests need to interact with real CoFHE-enabled chains (decrypt, verify, publish) but the core package itself has no dependency on a specific runtime (Node vs browser) and no Solidity toolchain. Rather than duplicating deployment scripts, contract ABIs, keys, and on-chain state management across every test package, this single workspace package provides all of it in one place.
 
-It is a **private** workspace package — never published to npm. Other packages consume it as `@cofhe/integration-test-setup` via pnpm workspace linking.
+It is an **internal** workspace package — never published to npm. Other packages consume it as `@cofhe/integration-test-setup` via pnpm workspace linking.
 
 ## Quick start
 
