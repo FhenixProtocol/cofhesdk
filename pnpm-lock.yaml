@@ -714,22 +714,22 @@ importers:
         specifier: workspace:*
         version: link:../setup
       '@types/node':
-        specifier: ^20.0.0
+        specifier: 20.19.15
         version: 20.19.15
       '@vitest/browser':
-        specifier: ^3.0.0
+        specifier: 3.2.4
         version: 3.2.4(playwright@1.55.0)(vitest@3.2.4)
       playwright:
-        specifier: ^1.40.0
+        specifier: 1.55.0
         version: 1.55.0
       typescript:
         specifier: 5.5.4
         version: 5.5.4
       viem:
-        specifier: ^2.38.6
+        specifier: 2.38.6
         version: 2.38.6(typescript@5.5.4)(zod@4.1.12)
       vitest:
-        specifier: ^3.0.0
+        specifier: 3.2.4
         version: 3.2.4(@types/node@20.19.15)(@vitest/browser@3.2.4)(happy-dom@15.11.7)
 
   test/setup:
@@ -738,18 +738,18 @@ importers:
         specifier: 0.1.0
         version: 0.1.0
       '@openzeppelin/contracts':
-        specifier: ^5.0.0
+        specifier: 5.4.0
         version: 5.4.0
       viem:
-        specifier: ^2.38.6
+        specifier: 2.38.6
         version: 2.38.6(typescript@5.5.4)(zod@4.1.12)
     devDependencies:
       '@types/node':
-        specifier: ^20.0.0
+        specifier: 20.19.15
         version: 20.19.15
       tsup:
-        specifier: ^8.0.2
-        version: 8.5.0(postcss@8.5.6)(tsx@4.21.0)(typescript@5.5.4)
+        specifier: 8.0.2
+        version: 8.0.2(postcss@8.5.6)(typescript@5.5.4)
       typescript:
         specifier: 5.5.4
         version: 5.5.4
