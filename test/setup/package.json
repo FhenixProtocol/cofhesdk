@@ -19,12 +19,12 @@
   },
   "dependencies": {
     "@fhenixprotocol/cofhe-contracts": "0.1.0",
-    "@openzeppelin/contracts": "^5.0.0",
-    "viem": "^2.38.6"
+    "@openzeppelin/contracts": "5.4.0",
+    "viem": "2.38.6"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "tsup": "^8.0.2",
+    "@types/node": "20.19.15",
+    "tsup": "8.0.2",
     "typescript": "5.5.4"
   }
 }
