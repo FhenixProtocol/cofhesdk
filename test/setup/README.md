@@ -33,12 +33,12 @@ setup/
 
 Loaded from root `.env`. See `.env-example` for a template.
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `TEST_PRIVATE_KEY` | — (required) | Deployer / test account key (≥ 0.1 ETH on each target chain) |
-| `PRIMARY_TEST_CHAIN` | `421614` | Chain ID for pre-stored values (core SDK tests) |
-| `TEST_LOCALCOFHE_ENABLED` | `false` | Include localcofhe in deploy targets |
-| `TEST_LOCALCOFHE_PRIVATE_KEY` | hardcoded default | Deployer key for localcofhe |
+| Variable                      | Default           | Purpose                                                      |
+| ----------------------------- | ----------------- | ------------------------------------------------------------ |
+| `TEST_PRIVATE_KEY`            | — (required)      | Deployer / test account key (≥ 0.1 ETH on each target chain) |
+| `PRIMARY_TEST_CHAIN`          | `421614`          | Chain ID for pre-stored values (core SDK tests)              |
+| `TEST_LOCALCOFHE_ENABLED`     | `false`           | Include localcofhe in deploy targets                         |
+| `TEST_LOCALCOFHE_PRIVATE_KEY` | hardcoded default | Deployer key for localcofhe                                  |
 
 These are inlined at build time by `tsup.config.ts`'s `define` so they work in browser test environments where `process.env` is unavailable.
 

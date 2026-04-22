@@ -4,10 +4,10 @@ Runs inherited SDK tests across **every supported chain × {Node, Web}**.
 
 ## Coverage matrix
 
-|  | Hardhat (Mock) | Local CoFHE | Ethereum Sepolia | Arbitrum Sepolia | Base Sepolia |
-|---|:---:|:---:|:---:|:---:|:---:|
-| **Node** | ✓ | ✓\* | ✓\* | ✓\* | ✓\* |
-| **Web** | ✓ | ✓\* | ✓\* | ✓\* | ✓\* |
+|          | Hardhat (Mock) | Local CoFHE | Ethereum Sepolia | Arbitrum Sepolia | Base Sepolia |
+| -------- | :------------: | :---------: | :--------------: | :--------------: | :----------: |
+| **Node** |       ✓        |     ✓\*     |       ✓\*        |       ✓\*        |     ✓\*      |
+| **Web**  |       ✓        |     ✓\*     |       ✓\*        |       ✓\*        |     ✓\*      |
 
 \* Enabled when `SimpleTest` is deployed (via `@cofhe/test-setup`) and a funded `TEST_PRIVATE_KEY` is present.
 Local CoFHE is a special case that defaults to **disabled** unless `TEST_LOCALCOFHE_ENABLED=true` is in the .env file.
@@ -64,4 +64,3 @@ test/
 - **`matrix.ts` has zero vitest imports.** This keeps it importable from `globalSetup` (which runs outside Vitest's runtime). Chain filtering and env filtering live here; test files pass `ALL_CHAINS` in as an argument.
 - **Sequential execution.** Node and web run as separate `vitest run --project` invocations (`&&`). Prevents nonce collisions on shared testnet wallets.
 - **Mock deployment reuses `@cofhe/hardhat-3-plugin`.** globalSetup calls `deployMocks` with a Foundry artifact reader shim — no duplicated mock logic.
-
