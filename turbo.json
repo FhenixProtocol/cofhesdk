@@ -8,6 +8,12 @@
       "dependsOn": ["^build"],
       "env": ["HOME", "USERPROFILE", "VOCS_BASE_URL"]
     },
+    "@cofhe/integration-test-setup#build": {
+      "cache": false,
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"],
+      "passThroughEnv": ["TEST_PRIVATE_KEY", "TEST_LOCALCOFHE_ENABLED", "TEST_LOCALCOFHE_PRIVATE_KEY", "PRIMARY_TEST_CHAIN", "COFHE_CHAIN_ID"]
+    },
     "@cofhe/site#build": {
       "cache": false,
       "dependsOn": ["^build"],
