@@ -26,6 +26,7 @@
   - `pnpm check:circles`
 - Integration tests are discovered and filtered through `scripts/integration-tests.mjs`. Use that helper when you need to inspect or run a specific integration test case.
 - `packages/site` requires Node `>=22`. The rest of the monorepo declares Node `>=18`, so avoid site commands unless the active Node version is compatible.
+- If a `packages/site` build or dev command fails because the shell is on an older Node version, retry with an installed `nvm` Node 22 runtime before treating the task as blocked.
 - `packages/mock-contracts` may rely on Foundry tools such as `forge` for full local builds and contract artifacts.
 
 ## Conventions
