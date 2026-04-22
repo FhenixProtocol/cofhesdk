@@ -1,8 +1,3 @@
-export function getMatrixEnvironmentEnabled(environment: string, matrixEnv?: string): boolean {
-  if (!matrixEnv) return true;
-  return environment.toLowerCase() === matrixEnv.toLowerCase();
-}
-
 const CHAIN_SLUGS: Record<string, string> = {
   hardhat: 'Hardhat (Mock)',
   '31337': 'Hardhat (Mock)',
@@ -48,16 +43,9 @@ export function resolveChainFilter(matrixChain?: string): string[] | null {
   return slugs.map((s) => CHAIN_SLUGS[s]);
 }
 
-export function getEnabledChains<T extends { enabled: boolean; label: string }>(
-  allChains: T[],
-  matrixChain?: string
-): { chain: T; enabled: boolean }[] {
-  const enabledLabels = resolveChainFilter(matrixChain);
-  return allChains.map((c) => {
-    if (!c.enabled) return { chain: c, enabled: false };
-    if (!enabledLabels) return { chain: c, enabled: true };
-    return { chain: c, enabled: enabledLabels.includes(c.label) };
-  });
+function getMatrixEnvironmentEnabled(environment: string, matrixEnv: string): boolean {
+  if (matrixEnv === 'all' || matrixEnv === '') return true;
+  return environment.toLowerCase() === matrixEnv.toLowerCase();
 }
 
 export function getMatrixChains<T extends { enabled: boolean; label: string }>(

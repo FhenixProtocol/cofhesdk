@@ -10,7 +10,7 @@ import { createPublicClient, createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { deployMocks } from '@cofhe/hardhat-3-plugin';
 import { createFoundryArtifactReader } from './foundryArtifactReader.js';
-import { resolveChainFilter, getMatrixEnvironmentEnabled, ALL_CHAIN_LABELS } from '../src/matrix.js';
+import { ALL_CHAIN_LABELS, getMatrixChains } from '../src/matrix.js';
 
 const ANVIL_PORT = 8546;
 const ANVIL_RPC = `http://127.0.0.1:${ANVIL_PORT}`;
@@ -94,9 +94,8 @@ export async function setup(project: TestProject): Promise<void> {
 }
 
 async function printMatrix(matrixChain?: string, matrixEnv?: string): Promise<void> {
-  const enabledLabels = resolveChainFilter(matrixChain);
-  const enabledSet = enabledLabels ? new Set(enabledLabels) : null;
-  const envs = ['Node', 'Web'];
+  const dummyChains = ALL_CHAIN_LABELS.map((label) => ({ label, enabled: true }));
+  const matrix = getMatrixChains(matrixEnv ?? '', matrixChain ?? '', dummyChains);
 
   const pad = (s: string, w: number) => s + ' '.repeat(Math.max(0, w - s.length));
   const colWidths = ALL_CHAIN_LABELS.map((h) => Math.max(h.length, 3));
@@ -113,12 +112,11 @@ async function printMatrix(matrixChain?: string, matrixEnv?: string): Promise<vo
   console.log(header);
   console.log(sep);
 
-  for (const env of envs) {
-    const envEnabled = getMatrixEnvironmentEnabled(env.toLowerCase(), matrixEnv);
+  for (const env of ['Node', 'Web'] as const) {
+    const key = env === 'Node' ? 'nodeEnabled' : 'webEnabled';
     let row = pad(env, envCol) + '| ';
-    for (let i = 0; i < ALL_CHAIN_LABELS.length; i++) {
-      const chainEnabled = !enabledSet || enabledSet.has(ALL_CHAIN_LABELS[i]);
-      const active = envEnabled && chainEnabled;
+    for (let i = 0; i < matrix.length; i++) {
+      const active = matrix[i][key];
       const mark = active ? '\x1b[1;32m✓\x1b[0m' : '\x1b[2m-\x1b[0m';
       row += mark + ' '.repeat(Math.max(0, colWidths[i] - 1)) + ' | ';
     }
