@@ -38,7 +38,7 @@ async function waitForAnvil(url: string, timeoutMs = 15_000): Promise<void> {
 }
 
 function deploySimpleTest(rpcUrl: string): string {
-  const integrationSetupDir = resolve(import.meta.dirname, '..', '..', 'integration-test-setup');
+  const integrationSetupDir = resolve(import.meta.dirname, '..', '..', 'setup');
 
   const result = execSync(
     `forge create contracts/SimpleTest.sol:SimpleTest ` +

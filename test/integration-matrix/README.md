@@ -33,7 +33,7 @@ test/
 
 **Sequential project execution.** Node and web are run as separate `vitest run --project` invocations chained with `&&`. This prevents nonce collisions when both environments send transactions to the same testnet wallets.
 
-**Testnet enablement is automatic.** A testnet chain is enabled only if a `SimpleTest` contract is deployed on it (checked via `@cofhe/integration-test-setup`'s deployment registry) and a funded private key is available. No manual flags needed.
+**Testnet enablement is automatic.** A testnet chain is enabled only if a `SimpleTest` contract is deployed on it (checked via `@cofhe/test-setup`'s deployment registry) and a funded private key is available. No manual flags needed.
 
 ## Running
 

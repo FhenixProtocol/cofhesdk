@@ -1,20 +1,16 @@
-# @cofhe/integration-test-setup
+# @cofhe/test-setup
 
 Shared test infrastructure for the CoFHE SDK monorepo. This package exists because the SDK's core tests need to interact with real CoFHE-enabled chains (decrypt, verify, publish) but the core package itself has no dependency on a specific runtime (Node vs browser) and no Solidity toolchain. Rather than duplicating deployment scripts, contract ABIs, keys, and on-chain state management across every test package, this single workspace package provides all of it in one place.
 
-It is an **internal** workspace package — never published to npm. Other packages consume it as `@cofhe/integration-test-setup` via pnpm workspace linking.
+It is an **internal** workspace package — never published to npm. Other packages consume it as `@cofhe/test-setup` via pnpm workspace linking.
 
 ## Quick start
 
 ```bash
-# 1. Create your key file
-cp test/integration-test-setup/src/key-example.ts test/integration-test-setup/src/key.ts
-# Edit key.ts with a funded testnet private key
-
-# 2. Run setup (deploys contracts, initializes values, builds)
+# 1. Run setup (deploys contracts, initializes values, builds)
 pnpm test:setup
 
-# 3. Run tests
+# 2. Run tests
 pnpm test
 ```
 
@@ -27,7 +23,7 @@ cofhesdk/
 │   ├── node/test/        ← imports key, ABIs, contract addresses
 │   └── web/test/         ← same (built output avoids process.env issues in browser)
 ├── test/
-│   ├── integration-test-setup/   ← this package
+│   ├── setup/                    ← this package
 │   └── hardhat-plugin-test/      ← Hardhat-specific mock tests (separate)
 └── package.json          ← `test:setup` script runs this before `turbo run test`
 ```
@@ -37,7 +33,7 @@ The root `package.json` runs `pnpm test:setup` before tests, which calls `node s
 ## Package structure
 
 ```
-integration-test-setup/
+setup/
 ├── src/                          ← TypeScript source + JSON registries (built by tsup)
 │   ├── index.ts                  ← package entry point, re-exports everything
 │   ├── config.ts                 ← env-based configuration (PRIMARY_TEST_CHAIN, etc.)

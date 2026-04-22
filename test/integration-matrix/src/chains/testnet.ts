@@ -5,7 +5,7 @@
 
 import { createPublicClient, createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { TEST_PRIVATE_KEY, getSimpleTestAddress } from '@cofhe/integration-test-setup';
+import { TEST_PRIVATE_KEY, getSimpleTestAddress } from '@cofhe/test-setup';
 import type { ClientFactory, TestContext, TestChainConfig } from '../types.js';
 
 const DEFAULT_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';

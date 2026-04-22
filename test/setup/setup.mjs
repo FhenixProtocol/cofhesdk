@@ -393,6 +393,6 @@ initializePrimaryChain();
 
 // ── Build ───────────────────────────────────────────────────────────────────
 
-console.log('\nBuilding @cofhe/integration-test-setup...');
+console.log('\nBuilding @cofhe/test-setup...');
 run('pnpm build');
 console.log('Build complete.');

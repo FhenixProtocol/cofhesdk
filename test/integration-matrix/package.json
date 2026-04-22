@@ -9,7 +9,7 @@
   },
   "devDependencies": {
     "@cofhe/hardhat-3-plugin": "workspace:*",
-    "@cofhe/integration-test-setup": "workspace:*",
+    "@cofhe/test-setup": "workspace:*",
     "@cofhe/mock-contracts": "workspace:*",
     "@cofhe/sdk": "workspace:*",
     "@types/node": "^20.0.0",

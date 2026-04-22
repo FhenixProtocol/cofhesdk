@@ -8,7 +8,7 @@
       "dependsOn": ["^build"],
       "env": ["HOME", "USERPROFILE", "VOCS_BASE_URL"]
     },
-    "@cofhe/integration-test-setup#build": {
+    "@cofhe/test-setup#build": {
       "cache": false,
       "dependsOn": ["^build"],
       "outputs": ["dist/**"],

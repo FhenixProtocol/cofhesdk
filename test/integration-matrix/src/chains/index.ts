@@ -10,7 +10,7 @@ import {
   sepolia as cofheSepolia,
   localcofhe as cofheLocalcofhe,
 } from '@cofhe/sdk/chains';
-import { TEST_LOCALCOFHE_ENABLED } from '@cofhe/integration-test-setup';
+import { TEST_LOCALCOFHE_ENABLED } from '@cofhe/test-setup';
 import { createTestnetSetup, isTestnetEnabled } from './testnet.js';
 import { hardhatChainConfig } from './hardhat.js';
 import type { TestChainConfig } from '../types.js';

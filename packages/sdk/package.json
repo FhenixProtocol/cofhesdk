@@ -99,7 +99,7 @@
   },
   "devDependencies": {
     "@cofhe/eslint-config": "workspace:*",
-    "@cofhe/integration-test-setup": "workspace:*",
+    "@cofhe/test-setup": "workspace:*",
     "@cofhe/tsconfig": "workspace:*",
     "@nomicfoundation/hardhat-ethers": "3.1.0",
     "@types/node": "20.19.15",

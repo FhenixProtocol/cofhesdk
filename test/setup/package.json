@@ -1,5 +1,5 @@
 {
-  "name": "@cofhe/integration-test-setup",
+  "name": "@cofhe/test-setup",
   "private": true,
   "type": "module",
   "main": "./dist/index.cjs",

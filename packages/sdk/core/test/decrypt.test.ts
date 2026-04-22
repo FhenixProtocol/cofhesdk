@@ -1,5 +1,12 @@
 import { FheTypes, verifyDecryptResult, createCofheConfigBase, TASK_MANAGER_ADDRESS } from '@/core';
 import { getChainById } from '@/chains';
+import {
+  TEST_PRIVATE_KEY,
+  PRIMARY_TEST_CHAIN,
+  primaryTestChainRegistry,
+  isPrimaryTestChainReady,
+} from '@cofhe/test-setup';
+
 import { permits } from '../permits.js';
 import { DecryptForTxBuilder } from '../decrypt/decryptForTxBuilder.js';
 import { DecryptForViewBuilder } from '../decrypt/decryptForViewBuilder.js';
@@ -9,12 +16,6 @@ import type { Chain, PublicClient, WalletClient } from 'viem';
 import { createPublicClient, createWalletClient, http, parseAbi } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { arbitrumSepolia, baseSepolia, sepolia } from 'viem/chains';
-import {
-  TEST_PRIVATE_KEY,
-  PRIMARY_TEST_CHAIN,
-  primaryTestChainRegistry,
-  isPrimaryTestChainReady,
-} from '@cofhe/integration-test-setup';
 
 const account = privateKeyToAccount(TEST_PRIVATE_KEY);
 

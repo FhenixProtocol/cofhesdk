@@ -4,7 +4,7 @@
 
 ```
 test/
-  integration-test-setup/     # shared contracts, deployment registry, setup script
+  setup/                       # shared contracts, deployment registry, setup script
   integration-matrix/          # cross-chain × cross-environment SDK test runner
   hardhat-plugin-test/         # HH2 plugin integration tests
   hardhat-3-plugin-test/       # HH3 plugin integration tests
@@ -41,7 +41,7 @@ In practice:
 
 ---
 
-## `@cofhe/integration-test-setup`
+## `@cofhe/test-setup`
 
 Workspace package that provides shared test infrastructure consumed by SDK tests and the integration matrix.
 
@@ -58,7 +58,7 @@ Workspace package that provides shared test infrastructure consumed by SDK tests
 
 ### `setup.mjs`
 
-Single entry point for preparing the test environment. Run via `pnpm --filter @cofhe/integration-test-setup run setup` or root `pnpm test:setup`.
+Single entry point for preparing the test environment. Run via `pnpm --filter @cofhe/test-setup run setup` or root `pnpm test:setup`.
 
 Three phases:
 1. **Deploy** — `forge create` `SimpleTest` to all enabled chains. Uses `bytecodeHash` to skip redeployment when contract is unchanged. Results in `src/deployments.json`.
@@ -169,7 +169,7 @@ Root `test` script: `pnpm run test:setup && turbo run test`.
 
 - **Sequential node/web execution.** Integration matrix runs `vitest run --project node && vitest run --project web`. Cannot run concurrently — shared wallet nonces cause collisions.
 - **No `extends: true` in Vitest projects.** Causes `globalSetup` to execute once per project instead of once total. Each project must duplicate `globals: true` and `testTimeout`.
-- **`process.env` in browser tests.** Vite strips `process.env` references. Use Vitest `define` to inline values at build time. The integration-test-setup package uses `tsup` `define` for the same reason.
+- **`process.env` in browser tests.** Vite strips `process.env` references. Use Vitest `define` to inline values at build time. The test-setup package uses `tsup` `define` for the same reason.
 - **Vitest `provide`/`inject` for cross-environment data.** Preferred over env vars or filesystem for passing runtime values (e.g., Anvil contract addresses) from globalSetup to tests. Works in both Node and browser workers.
 - **`forge create --chain` collision.** Do not use a `define` key containing `CHAIN` (e.g., `process.env.CHAIN`) — Vite's text replacement will break `forge create --chain` in globalSetup scripts. The current key is `process.env.MATRIX_CHAIN`.
 - **Testnet transports.** Public RPCs are unreliable. Testnet configs use `timeout: 60_000`, `retryCount: 3` on the HTTP transport and `pollingInterval: 4_000` on the public client. All `waitForTransactionReceipt` calls use `retryCount: 30, pollingInterval: 4_000`.

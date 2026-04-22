@@ -9,7 +9,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { Encryptable, FheTypes } from '@cofhe/sdk';
-import { simpleTestAbi } from '@cofhe/integration-test-setup';
+import { simpleTestAbi } from '@cofhe/test-setup';
 import type { TestChainConfig, ClientFactory, TestContext } from '../types.js';
 
 export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientFactory) {
