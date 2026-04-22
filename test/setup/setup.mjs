@@ -1,37 +1,21 @@
 #!/usr/bin/env node
 
 /**
- * Integration test setup — deploy contracts, initialize on-chain state, and build the package.
+ * @cofhe/test-setup — deploy contracts, initialize on-chain state, build.
  *
- * This script is the single entry point for preparing the test environment.
- * It performs three phases:
- *
- * 1. **Deploy** — Compiles Solidity contracts with `forge build`, then deploys them to
- *    every target chain. Uses a bytecodeHash to detect contract changes and only
- *    redeploys when the bytecode differs or the on-chain code is missing.
- *    Results are persisted in `deployments.json`.
- *
- * 2. **Initialize primary chain** — On the PRIMARY_TEST_CHAIN (default: Arb Sepolia),
- *    stores pre-encrypted values via trivial-encrypt contract functions so that core
- *    SDK tests can run without performing any on-chain encryption themselves. The
- *    ctHashes, handles, and plaintext values are written to `primaryTestChainRegistry.json`.
- *    This step is skipped when the registry already matches the current deployment.
- *
- * 3. **Build** — Runs `pnpm build` (tsup + forge build) so the `dist/` output includes
- *    the latest registry data. Environment variables from `config.ts` are inlined at
- *    build time via tsup's `define` option, making them safe for browser test environments.
+ * Phases:
+ *   1. Deploy    — forge build → forge create per chain. Skips if bytecodeHash matches.
+ *   2. Init      — Store pre-encrypted values on PRIMARY_TEST_CHAIN for core SDK tests.
+ *   3. Build     — pnpm build (tsup) to bake registries into dist/.
  *
  * Usage:
  *   node setup.mjs                          # all enabled chains
- *   node setup.mjs --chains 84532,421614    # specific chains only
- *   node setup.mjs --dry-run                # preview actions without executing
+ *   node setup.mjs --chains 84532,421614    # specific chains
+ *   node setup.mjs --dry-run                # preview only
  *
- * Environment variables (loaded from root .env if present):
- *   TEST_PRIVATE_KEY            — deployer / test account key (required)
- *   PRIMARY_TEST_CHAIN          — chain ID for pre-stored values (default: 421614)
- *   TEST_LOCALCOFHE_ENABLED     — set to "true" to include the localcofhe chain
- *   TEST_LOCALCOFHE_PRIVATE_KEY — deployer key for localcofhe (required when enabled)
- *   LOCALCOFHE_HOST_CHAIN_RPC   — localcofhe RPC URL (default: http://127.0.0.1:42069)
+ * Env (loaded from root .env):
+ *   TEST_PRIVATE_KEY, PRIMARY_TEST_CHAIN, TEST_LOCALCOFHE_ENABLED,
+ *   TEST_LOCALCOFHE_PRIVATE_KEY, LOCALCOFHE_HOST_CHAIN_RPC
  *
  * Requires: forge, cast (Foundry)
  */
