@@ -150,7 +150,12 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         chain: chainConfig.viemChain,
         account: ctx.bobAccount,
       });
-      await ctx.publicClient.waitForTransactionReceipt({ hash: txHash, retryCount: 30, pollingInterval: 4_000 });
+      await ctx.publicClient.waitForTransactionReceipt({
+        hash: txHash,
+        retryCount: 30,
+        pollingInterval: 4_000,
+        confirmations: chainConfig.txConfirmationsRequired,
+      });
 
       const ctHash = await ctx.publicClient.readContract({
         address: ctx.contractAddress,
@@ -178,7 +183,12 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         chain: chainConfig.viemChain,
         account: ctx.bobAccount,
       });
-      await ctx.publicClient.waitForTransactionReceipt({ hash: storeTxHash, retryCount: 30, pollingInterval: 4_000 });
+      await ctx.publicClient.waitForTransactionReceipt({
+        hash: storeTxHash,
+        retryCount: 30,
+        pollingInterval: 4_000,
+        confirmations: chainConfig.txConfirmationsRequired,
+      });
 
       const ctHash = await ctx.publicClient.readContract({
         address: ctx.contractAddress,
@@ -198,10 +208,6 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         functionName: 'publicValue',
       });
 
-      console.log('Stored handle:', storedHandle);
-      console.log('Decrypt result:', decryptResult);
-      console.log('Ct hash:', ctHash);
-
       const publishTxHash = await ctx.bobWalletClient.writeContract({
         address: ctx.contractAddress,
         abi: simpleTestAbi,
@@ -210,12 +216,12 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         chain: chainConfig.viemChain,
         account: ctx.bobAccount,
       });
-      const receipt = await ctx.publicClient.waitForTransactionReceipt({
+      await ctx.publicClient.waitForTransactionReceipt({
         hash: publishTxHash,
         retryCount: 30,
         pollingInterval: 4_000,
+        confirmations: chainConfig.txConfirmationsRequired,
       });
-      console.log('Publish receipt:', receipt);
 
       const [publishedValue, isDecrypted] = await ctx.publicClient.readContract({
         address: ctx.contractAddress,
@@ -224,10 +230,8 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         args: [storedHandle],
       });
 
-      console.log('Published value:', publishedValue);
-      console.log('Is decrypted:', isDecrypted);
-      expect(isDecrypted).toBe(true);
       expect(BigInt(publishedValue)).toBe(testValue);
+      expect(isDecrypted).toBe(true);
     }, 180_000);
   });
 }

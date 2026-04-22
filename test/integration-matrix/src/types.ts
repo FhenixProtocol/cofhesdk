@@ -25,6 +25,7 @@ export type TestChainConfig = {
   viemChain: Chain;
   cofheChain: CofheChain;
   rpc: string;
+  txConfirmationsRequired: number;
   enabled: boolean;
   setup: (factory: ClientFactory) => Promise<TestContext>;
   teardown?: () => Promise<void>;

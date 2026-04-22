@@ -21,6 +21,7 @@ const arbSepoliaConfig: TestChainConfig = {
   viemChain: viemArbitrumSepolia,
   cofheChain: cofheArbSepolia,
   rpc: viemArbitrumSepolia.rpcUrls.default.http[0],
+  txConfirmationsRequired: 1,
   enabled: isTestnetEnabled(viemArbitrumSepolia.id),
   setup: createTestnetSetup({
     id: viemArbitrumSepolia.id,
@@ -36,6 +37,7 @@ const baseSepoliaConfig: TestChainConfig = {
   viemChain: viemBaseSepolia,
   cofheChain: cofheBaseSepolia,
   rpc: viemBaseSepolia.rpcUrls.default.http[0],
+  txConfirmationsRequired: 2,
   enabled: isTestnetEnabled(viemBaseSepolia.id),
   setup: createTestnetSetup({
     id: viemBaseSepolia.id,
@@ -51,6 +53,7 @@ const sepoliaConfig: TestChainConfig = {
   viemChain: viemSepolia,
   cofheChain: cofheSepolia,
   rpc: viemSepolia.rpcUrls.default.http[0],
+  txConfirmationsRequired: 1,
   enabled: isTestnetEnabled(viemSepolia.id),
   setup: createTestnetSetup({
     id: viemSepolia.id,
@@ -75,6 +78,7 @@ const localcofheConfig: TestChainConfig = {
   viemChain: viemLocalcofhe,
   cofheChain: cofheLocalcofhe,
   rpc: viemLocalcofhe.rpcUrls.default.http[0],
+  txConfirmationsRequired: 1,
   enabled: TEST_LOCALCOFHE_ENABLED && isTestnetEnabled(viemLocalcofhe.id),
   setup: createTestnetSetup({
     id: viemLocalcofhe.id,

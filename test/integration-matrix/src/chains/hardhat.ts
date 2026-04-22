@@ -86,6 +86,7 @@ export const hardhatChainConfig: TestChainConfig = {
   viemChain: viemHardhat,
   cofheChain: hardhatCofheChain,
   rpc: ANVIL_RPC,
+  txConfirmationsRequired: 1,
   enabled: true,
   setup: setupHardhat,
 };

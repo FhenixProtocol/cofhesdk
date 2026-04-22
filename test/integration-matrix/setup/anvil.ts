@@ -10,7 +10,7 @@ import { createPublicClient, createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { deployMocks } from '@cofhe/hardhat-3-plugin';
 import { createFoundryArtifactReader } from './foundryArtifactReader.js';
-import { ALL_CHAIN_LABELS, getMatrixChains } from '../src/matrix.js';
+import { getMatrixChains } from '../src/matrix.js';
 
 const ANVIL_PORT = 8546;
 const ANVIL_RPC = `http://127.0.0.1:${ANVIL_PORT}`;
@@ -93,18 +93,25 @@ export async function setup(project: TestProject): Promise<void> {
   await printMatrix(process.env.MATRIX_CHAIN, process.env.MATRIX_ENV);
 }
 
+const ALL_CHAINS = [
+  { label: 'Hardhat (Mock)', enabled: true },
+  { label: 'Local CoFHE', enabled: process.env.TEST_LOCALCOFHE_ENABLED === 'true' },
+  { label: 'Ethereum Sepolia', enabled: true },
+  { label: 'Arbitrum Sepolia', enabled: true },
+  { label: 'Base Sepolia', enabled: true },
+];
+
 async function printMatrix(matrixChain?: string, matrixEnv?: string): Promise<void> {
-  const dummyChains = ALL_CHAIN_LABELS.map((label) => ({ label, enabled: true }));
-  const matrix = getMatrixChains(matrixEnv ?? '', matrixChain ?? '', dummyChains);
+  const matrix = getMatrixChains(matrixEnv ?? '', matrixChain ?? '', ALL_CHAINS);
 
   const pad = (s: string, w: number) => s + ' '.repeat(Math.max(0, w - s.length));
-  const colWidths = ALL_CHAIN_LABELS.map((h) => Math.max(h.length, 3));
+  const colWidths = ALL_CHAINS.map((c) => Math.max(c.label.length, 3));
   const envCol = 6;
 
   let header = pad('', envCol) + '| ';
   let sep = '-'.repeat(envCol) + '|';
-  for (let i = 0; i < ALL_CHAIN_LABELS.length; i++) {
-    header += pad(ALL_CHAIN_LABELS[i], colWidths[i]) + ' | ';
+  for (let i = 0; i < ALL_CHAINS.length; i++) {
+    header += pad(ALL_CHAINS[i].label, colWidths[i]) + ' | ';
     sep += '-'.repeat(colWidths[i] + 2) + '|';
   }
 
@@ -116,8 +123,9 @@ async function printMatrix(matrixChain?: string, matrixEnv?: string): Promise<vo
     const key = env === 'Node' ? 'nodeEnabled' : 'webEnabled';
     let row = pad(env, envCol) + '| ';
     for (let i = 0; i < matrix.length; i++) {
-      const active = matrix[i][key];
-      const mark = active ? '\x1b[1;32m✓\x1b[0m' : '\x1b[2m-\x1b[0m';
+      const active = matrix[i].chainEnabled && matrix[i][key];
+      const mark = active ? '\x1b[1;32m✓\x1b[0m' : '\x1b[1;31mx\x1b[0m';
+
       row += mark + ' '.repeat(Math.max(0, colWidths[i] - 1)) + ' | ';
     }
     console.log(row);

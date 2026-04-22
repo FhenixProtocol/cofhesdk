@@ -16,14 +16,6 @@ const CHAIN_GROUPS: Record<string, string[]> = {
   testnet: ['sepolia', 'arb-sepolia', 'base-sepolia'],
 };
 
-export const ALL_CHAIN_LABELS = [
-  'Hardhat (Mock)',
-  'Local CoFHE',
-  'Ethereum Sepolia',
-  'Arbitrum Sepolia',
-  'Base Sepolia',
-];
-
 export function resolveChainFilter(matrixChain?: string): string[] | null {
   const raw = (matrixChain || undefined)?.toLowerCase();
   if (!raw) return null;
