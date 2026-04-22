@@ -10,6 +10,7 @@ import { createPublicClient, createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { deployMocks } from '@cofhe/hardhat-3-plugin';
 import { createFoundryArtifactReader } from './foundryArtifactReader.js';
+import { resolveChainFilter, getMatrixEnvironmentEnabled, ALL_CHAIN_LABELS } from '../src/matrix.js';
 
 const ANVIL_PORT = 8546;
 const ANVIL_RPC = `http://127.0.0.1:${ANVIL_PORT}`;
@@ -87,6 +88,43 @@ export async function setup(project: TestProject): Promise<void> {
   project.provide('anvilRpc', ANVIL_RPC);
   project.provide('anvilSimpleTest', simpleTestAddress);
   project.provide('matrixChain', process.env.MATRIX_CHAIN ?? '');
+  project.provide('matrixEnv', process.env.MATRIX_ENV ?? '');
+
+  await printMatrix(process.env.MATRIX_CHAIN, process.env.MATRIX_ENV);
+}
+
+async function printMatrix(matrixChain?: string, matrixEnv?: string): Promise<void> {
+  const enabledLabels = resolveChainFilter(matrixChain);
+  const enabledSet = enabledLabels ? new Set(enabledLabels) : null;
+  const envs = ['Node', 'Web'];
+
+  const pad = (s: string, w: number) => s + ' '.repeat(Math.max(0, w - s.length));
+  const colWidths = ALL_CHAIN_LABELS.map((h) => Math.max(h.length, 3));
+  const envCol = 6;
+
+  let header = pad('', envCol) + '| ';
+  let sep = '-'.repeat(envCol) + '|';
+  for (let i = 0; i < ALL_CHAIN_LABELS.length; i++) {
+    header += pad(ALL_CHAIN_LABELS[i], colWidths[i]) + ' | ';
+    sep += '-'.repeat(colWidths[i] + 2) + '|';
+  }
+
+  console.log('\n[integration-matrix] Test matrix:');
+  console.log(header);
+  console.log(sep);
+
+  for (const env of envs) {
+    const envEnabled = getMatrixEnvironmentEnabled(env.toLowerCase(), matrixEnv);
+    let row = pad(env, envCol) + '| ';
+    for (let i = 0; i < ALL_CHAIN_LABELS.length; i++) {
+      const chainEnabled = !enabledSet || enabledSet.has(ALL_CHAIN_LABELS[i]);
+      const active = envEnabled && chainEnabled;
+      const mark = active ? '\x1b[1;32m✓\x1b[0m' : '\x1b[2m-\x1b[0m';
+      row += mark + ' '.repeat(Math.max(0, colWidths[i] - 1)) + ' | ';
+    }
+    console.log(row);
+  }
+  console.log('');
 }
 
 export async function teardown(): Promise<void> {
@@ -102,5 +140,6 @@ declare module 'vitest' {
     anvilRpc: string;
     anvilSimpleTest: string;
     matrixChain: string;
+    matrixEnv: string;
   }
 }
