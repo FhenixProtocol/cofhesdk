@@ -1,60 +1,67 @@
 # Integration Matrix
 
-End-to-end SDK tests that run the same suite against every supported chain in both Node.js and browser environments.
+Runs inherited SDK tests across **every supported chain × {Node, Web}**.
+
+## Coverage matrix
+
+|  | Hardhat (Mock) | Local CoFHE | Ethereum Sepolia | Arbitrum Sepolia | Base Sepolia |
+|---|:---:|:---:|:---:|:---:|:---:|
+| **Node** | ✓ | ✓\* | ✓\* | ✓\* | ✓\* |
+| **Web** | ✓ | ✓\* | ✓\* | ✓\* | ✓\* |
+
+\* Enabled when `SimpleTest` is deployed (via `@cofhe/test-setup`) and a funded `TEST_PRIVATE_KEY` is present.
+Local CoFHE is a special case that defaults to **disabled** unless `TEST_LOCALCOFHE_ENABLED=true` is in the .env file.
+
+## Usage
+
+```bash
+pnpm test              # node then web, all enabled chains
+```
+
+`anvil` and `forge` must be on `$PATH`.
+Must run `pnpm test:setup` from root before first run.
+
+### Filtering
+
+```bash
+MATRIX_CHAIN=hardhat pnpm test:node           # single chain
+MATRIX_CHAIN=hardhat,arb-sepolia pnpm test    # multiple chains
+MATRIX_CHAIN=testnet pnpm test                # all testnets
+MATRIX_ENV=node pnpm test                     # node environment only
+MATRIX_ENV=web pnpm test                      # web environment only
+```
+
+Valid chain slugs: `hardhat`, `localcofhe`, `sepolia`, `arb-sepolia` / `arbitrum-sepolia`, `base-sepolia`.
+Chain IDs are also valid: `31337`, `420105`, `11155111`, `421614`, `84532`.
+Group alias `testnet` expands to `sepolia`, `arb-sepolia`, `base-sepolia`.
 
 ## Structure
 
 ```
 setup/
-  anvil.ts                 # globalSetup — starts Anvil, deploys mocks + SimpleTest
-  foundryArtifactReader.ts # reads Foundry out/ to satisfy HH3 plugin's ArtifactManager
+  anvil.ts                   # globalSetup — Anvil + mock deploy + SimpleTest deploy + matrix printout
+  foundryArtifactReader.ts   # Foundry artifact shim for @cofhe/hardhat-3-plugin's deployMocks
 src/
-  types.ts                 # ClientFactory, TestContext, TestChainConfig
+  matrix.ts                  # chain/env filtering logic (no vitest imports — safe for globalSetup)
+  types.ts                   # TestChainConfig, ClientFactory, TestContext
   chains/
-    index.ts               # aggregates all chain configs, exports enabledChains
-    hardhat.ts             # Anvil mock chain (chain id 31337)
-    testnet.ts             # shared setup helper for real testnets
+    index.ts                 # ALL_CHAINS aggregation
+    hardhat.ts               # Anvil mock chain config (injects anvilRpc/anvilSimpleTest via inject)
+    testnet.ts               # shared setup for real testnets (account derivation, contract lookup)
   suites/
-    inherited.ts           # the actual test logic, parameterized by chain + factory
+    inherited.ts             # parameterized test suite (encrypt, decrypt, permits, publishDecryptResult)
+    MockTaskManager.ts       # TaskManager ABI for log decoding
 test/
-  matrix.test.ts           # Node runner — imports SDK from @cofhe/sdk/node
-  matrix.web.test.ts       # Web runner — imports SDK from @cofhe/sdk/web
+  matrix.test.ts             # Node runner — @cofhe/sdk/node
+  matrix.web.test.ts         # Web runner — @cofhe/sdk/web
 ```
 
-## Design choices
+## Design and Notes
 
-**Single test suite, multiple environments.** `runInheritedSuite()` contains all test logic. The two runner files (`matrix.test.ts`, `matrix.web.test.ts`) only differ in which SDK entrypoint they import. A `ClientFactory` abstraction lets the suite call `createConfig` / `createClient` without knowing the environment.
+- **One suite, two runners.** `runInheritedSuite(chain, factory)` contains all test logic. The runners only differ in SDK entrypoint (`/node` vs `/web`) via `ClientFactory`.
+- **Chain configs are data.** Each `TestChainConfig` bundles viem chain, CofheChain, RPC, `enabled` flag, and `setup()` → `TestContext`. Adding a chain = one object in `chains/index.ts`.
+- **`provide`/`inject` for cross-environment data.** globalSetup passes Anvil RPC, SimpleTest address, `MATRIX_CHAIN`, and `MATRIX_ENV` to tests via Vitest's `provide`/`inject`. Works in both Node and browser without filesystem or `process.env`.
+- **`matrix.ts` has zero vitest imports.** This keeps it importable from `globalSetup` (which runs outside Vitest's runtime). Chain filtering and env filtering live here; test files pass `ALL_CHAINS` in as an argument.
+- **Sequential execution.** Node and web run as separate `vitest run --project` invocations (`&&`). Prevents nonce collisions on shared testnet wallets.
+- **Mock deployment reuses `@cofhe/hardhat-3-plugin`.** globalSetup calls `deployMocks` with a Foundry artifact reader shim — no duplicated mock logic.
 
-**Chain configs are data.** Each `TestChainConfig` bundles a viem chain, a CofheChain, an RPC URL, an `enabled` flag, and a `setup()` function. Adding a new chain is one object in `chains/index.ts`.
-
-**Hardhat mocks via Anvil + HH3 plugin.** The globalSetup starts an Anvil node and calls `deployMocks` from `@cofhe/hardhat-3-plugin` with a thin Foundry artifact reader shim. This avoids duplicating mock deployment logic and keeps behavior identical to the HH3 plugin.
-
-**`provide` / `inject` for cross-environment data.** The globalSetup passes the deployed `SimpleTest` address to tests via vitest's `provide`/`inject` API. This works in both Node and browser without filesystem access.
-
-**Sequential project execution.** Node and web are run as separate `vitest run --project` invocations chained with `&&`. This prevents nonce collisions when both environments send transactions to the same testnet wallets.
-
-**Testnet enablement is automatic.** A testnet chain is enabled only if a `SimpleTest` contract is deployed on it (checked via `@cofhe/test-setup`'s deployment registry) and a funded private key is available. No manual flags needed.
-
-## Running
-
-```bash
-pnpm test              # node then web, all enabled chains
-pnpm test:node         # node only
-pnpm test:web          # web only
-```
-
-### Filtering by chain
-
-Use the `MATRIX_CHAIN` env var to run one or more chains (comma-separated):
-
-```bash
-MATRIX_CHAIN=hardhat pnpm test:node
-MATRIX_CHAIN=hardhat,arb-sepolia pnpm test
-MATRIX_CHAIN=sepolia pnpm test:web
-```
-
-Valid values: `hardhat`, `localcofhe`, `sepolia`, `arb-sepolia`, `base-sepolia`, `testnet` (expands to all testnets).
-
-### Requirements
-
-`anvil` and `forge` must be on `$PATH`.

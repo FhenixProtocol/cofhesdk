@@ -3,9 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "vitest run --project node && vitest run --project web",
-    "test:node": "vitest run --project node",
-    "test:web": "vitest run --project web"
+    "test": "vitest run --project node && vitest run --project web"
   },
   "devDependencies": {
     "@cofhe/hardhat-3-plugin": "workspace:*",
