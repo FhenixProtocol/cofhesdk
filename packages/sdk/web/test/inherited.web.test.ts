@@ -1,14 +1,19 @@
 import { Encryptable, FheTypes, type CofheClient } from '@/core';
-import { arbSepolia as cofheArbSepolia } from '@/chains';
-import { TEST_PRIVATE_KEY, simpleTestAbi, getSimpleTestAddress } from '@cofhe/test-setup';
+import { arbSepolia as cofheArbSepolia, getChainById } from '@/chains';
+import {
+  TEST_PRIVATE_KEY,
+  PRIMARY_TEST_CHAIN,
+  primaryTestChainRegistry,
+  isPrimaryTestChainReady,
+} from '@cofhe/test-setup';
 
 import { createCofheClient, createCofheConfig } from '../index.js';
 
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
-import type { PublicClient, WalletClient } from 'viem';
+import type { Chain, PublicClient, WalletClient } from 'viem';
 import { createPublicClient, createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { arbitrumSepolia as viemArbitrumSepolia } from 'viem/chains';
+import { arbitrumSepolia, baseSepolia, sepolia } from 'viem/chains';
 
 const DEFAULT_TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 const BOB_PRIVATE_KEY = (TEST_PRIVATE_KEY || DEFAULT_TEST_PRIVATE_KEY) as `0x${string}`;
@@ -17,7 +22,11 @@ const ALICE_PRIVATE_KEY = '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f
 const bobAccount = privateKeyToAccount(BOB_PRIVATE_KEY);
 const aliceAccount = privateKeyToAccount(ALICE_PRIVATE_KEY);
 
-const CHAIN_ID = cofheArbSepolia.id;
+const VIEM_CHAINS: Record<number, Chain> = {
+  421614: arbitrumSepolia,
+  84532: baseSepolia,
+  11155111: sepolia,
+};
 
 describe('@cofhe/web - Inherited Client Tests', () => {
   let cofheClient: CofheClient;
@@ -27,18 +36,18 @@ describe('@cofhe/web - Inherited Client Tests', () => {
 
   beforeAll(() => {
     publicClient = createPublicClient({
-      chain: viemArbitrumSepolia,
+      chain: arbitrumSepolia,
       transport: http(),
     });
 
     bobWalletClient = createWalletClient({
-      chain: viemArbitrumSepolia,
+      chain: arbitrumSepolia,
       transport: http(),
       account: bobAccount,
     });
 
     aliceWalletClient = createWalletClient({
-      chain: viemArbitrumSepolia,
+      chain: arbitrumSepolia,
       transport: http(),
       account: aliceAccount,
     });
@@ -145,7 +154,6 @@ describe('@cofhe/web - Inherited Client Tests', () => {
       expect(parsed.issuerSignature).toBeDefined();
       expect(parsed).not.toHaveProperty('sealingPair');
 
-      // Alice imports the shared permit
       const aliceConfig = createCofheConfig({
         supportedChains: [cofheArbSepolia],
       });
@@ -163,110 +171,75 @@ describe('@cofhe/web - Inherited Client Tests', () => {
     }, 30000);
   });
 
-  describe('Decrypt for View (with permit)', () => {
-    it('should encrypt → store → decryptForView a value', async () => {
-      const contractAddress = getSimpleTestAddress(CHAIN_ID);
-      if (!contractAddress) throw new Error(`No SimpleTest deployment for chain ${CHAIN_ID}`);
-      if (BOB_PRIVATE_KEY === DEFAULT_TEST_PRIVATE_KEY) return; // skip when unfunded
+  describe('Decrypt (read-only, pre-stored values)', () => {
+    let decryptClient: CofheClient;
+    let decryptPublicClient: PublicClient;
+    let decryptWalletClient: WalletClient;
 
-      await cofheClient.connect(publicClient, bobWalletClient);
+    let privateCtHash: `0x${string}`;
+    let privateValue: bigint;
+    let publicCtHash: `0x${string}`;
+    let publicValue: bigint;
 
-      await cofheClient.permits.createSelf({
+    beforeAll(() => {
+      if (!isPrimaryTestChainReady(primaryTestChainRegistry)) {
+        throw new Error('Primary test chain registry not initialized. Run `pnpm test:setup` first.');
+      }
+
+      const reg = primaryTestChainRegistry;
+      const viemChain = VIEM_CHAINS[reg.chainId];
+      if (!viemChain) throw new Error(`No viem chain mapping for chain ${reg.chainId}`);
+
+      const cofheChain = getChainById(reg.chainId);
+      if (!cofheChain) throw new Error(`No cofhe chain config for chain ${reg.chainId}`);
+
+      privateCtHash = reg.privateValue.ctHash as `0x${string}`;
+      privateValue = BigInt(reg.privateValue.value);
+      publicCtHash = reg.publicValue.ctHash as `0x${string}`;
+      publicValue = BigInt(reg.publicValue.value);
+
+      decryptPublicClient = createPublicClient({ chain: viemChain, transport: http() });
+      decryptWalletClient = createWalletClient({ chain: viemChain, transport: http(), account: bobAccount });
+
+      const config = createCofheConfig({ supportedChains: [cofheChain] });
+      decryptClient = createCofheClient(config);
+    });
+
+    it('decryptForView — private value with permit', async () => {
+      await decryptClient.connect(decryptPublicClient, decryptWalletClient);
+
+      await decryptClient.permits.createSelf({
         issuer: bobAccount.address,
         name: 'Decrypt View Permit',
       });
 
-      const testValue = 100n;
-      const encrypted = await cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
-
-      const encryptedInput = { ...encrypted[0], signature: encrypted[0].signature as `0x${string}` };
-      const txHash = await bobWalletClient.writeContract({
-        address: contractAddress,
-        abi: simpleTestAbi,
-        functionName: 'setValue',
-        args: [encryptedInput],
-        chain: viemArbitrumSepolia,
-        account: bobAccount,
-      });
-      await publicClient.waitForTransactionReceipt({ hash: txHash });
-
-      const ctHash = await publicClient.readContract({
-        address: contractAddress,
-        abi: simpleTestAbi,
-        functionName: 'getValueHash',
-      });
-
-      const result = await cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
-
-      expect(result).toBe(testValue);
+      const result = await decryptClient.decryptForView(privateCtHash, FheTypes.Uint32).execute();
+      expect(result).toBe(privateValue);
     }, 180000);
-  });
 
-  describe('Decrypt for Tx (without permit)', () => {
-    it('should encrypt → store public → decryptForTx → publishDecryptResult → verify', async () => {
-      const contractAddress = getSimpleTestAddress(CHAIN_ID);
-      if (!contractAddress) throw new Error(`No SimpleTest deployment for chain ${CHAIN_ID}`);
-      if (BOB_PRIVATE_KEY === DEFAULT_TEST_PRIVATE_KEY) return; // skip when unfunded
+    it('decryptForTx — public value without permit', async () => {
+      await decryptClient.connect(decryptPublicClient, decryptWalletClient);
 
-      await cofheClient.connect(publicClient, bobWalletClient);
+      const result = await decryptClient.decryptForTx(publicCtHash).withoutPermit().execute();
 
-      const testValue = 42n;
-      const encrypted = await cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
+      expect(BigInt(result.ctHash)).toBe(BigInt(publicCtHash));
+      expect(result.decryptedValue).toBe(publicValue);
+      expect(result.signature).toMatch(/^0x[0-9a-fA-F]+$/);
+    }, 180000);
 
-      const encryptedInput = { ...encrypted[0], signature: encrypted[0].signature as `0x${string}` };
-      const storeTxHash = await bobWalletClient.writeContract({
-        address: contractAddress,
-        abi: simpleTestAbi,
-        functionName: 'setPublicValue',
-        args: [encryptedInput],
-        chain: viemArbitrumSepolia,
-        account: bobAccount,
-      });
-      await publicClient.waitForTransactionReceipt({ hash: storeTxHash });
+    it('decryptForTx — private value with permit', async () => {
+      await decryptClient.connect(decryptPublicClient, decryptWalletClient);
 
-      const ctHash = await publicClient.readContract({
-        address: contractAddress,
-        abi: simpleTestAbi,
-        functionName: 'publicValueHash',
+      const permit = await decryptClient.permits.createSelf({
+        issuer: bobAccount.address,
+        name: 'Decrypt Tx Permit',
       });
 
-      const decryptResult = await cofheClient
-        .decryptForTx(ctHash as `0x${string}`)
-        .withoutPermit()
-        .execute();
+      const result = await decryptClient.decryptForTx(privateCtHash).withPermit(permit).execute();
 
-      expect(decryptResult.ctHash).toBe(ctHash as `0x${string}`);
-      expect(decryptResult.decryptedValue).toBe(testValue);
-      expect(decryptResult.signature).toBeDefined();
-
-      const storedHandle = await publicClient.readContract({
-        address: contractAddress,
-        abi: simpleTestAbi,
-        functionName: 'publicValue',
-      });
-
-      const publishTxHash = await bobWalletClient.writeContract({
-        address: contractAddress,
-        abi: simpleTestAbi,
-        functionName: 'publishDecryptResult',
-        args: [
-          storedHandle as `0x${string}`,
-          Number(decryptResult.decryptedValue),
-          decryptResult.signature as `0x${string}`,
-        ],
-        chain: viemArbitrumSepolia,
-        account: bobAccount,
-      });
-      await publicClient.waitForTransactionReceipt({ hash: publishTxHash });
-
-      const [publishedValue, isDecrypted] = await publicClient.readContract({
-        address: contractAddress,
-        abi: simpleTestAbi,
-        functionName: 'getDecryptResultSafe',
-        args: [storedHandle as `0x${string}`],
-      });
-      expect(isDecrypted).toBe(true);
-      expect(BigInt(publishedValue)).toBe(testValue);
+      expect(BigInt(result.ctHash)).toBe(BigInt(privateCtHash));
+      expect(result.decryptedValue).toBe(privateValue);
+      expect(result.signature).toBeDefined();
     }, 180000);
   });
 });
