@@ -3,6 +3,10 @@
  * and stores deployment info for tests. Tears down the node after all tests complete.
  */
 
+// TODO: Should MATRIX_CHAIN=localcofhe overwrite TEST_LOCALCOFHE_ENABLED=true?
+// TODO: Remove MockTaskManager and other debug remnants from testing base-sep issue
+// TODO: Add temporary / flexible test file and add comment, add way to run it
+
 import { spawn, execSync, type ChildProcess } from 'node:child_process';
 import { resolve } from 'node:path';
 import type { TestProject } from 'vitest/node';

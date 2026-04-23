@@ -12,7 +12,7 @@
       "cache": false,
       "dependsOn": ["^build"],
       "outputs": ["dist/**"],
-      "passThroughEnv": ["TEST_PRIVATE_KEY", "TEST_LOCALCOFHE_ENABLED", "TEST_LOCALCOFHE_PRIVATE_KEY", "PRIMARY_TEST_CHAIN", "COFHE_CHAIN_ID"]
+      "passThroughEnv": ["TEST_PRIVATE_KEY", "TEST_LOCALCOFHE_ENABLED", "TEST_LOCALCOFHE_PRIVATE_KEY", "PRIMARY_TEST_CHAIN"]
     },
     "@cofhe/site#build": {
       "cache": false,
@@ -21,7 +21,7 @@
     },
     "test": {
       "dependsOn": ["^build"],
-      "passThroughEnv": ["TEST_PRIVATE_KEY", "COFHE_CHAIN_ID"]
+      "passThroughEnv": ["TEST_PRIVATE_KEY", "CI"]
     },
     "lint": {
       "env": ["HOME", "USERPROFILE", "VOCS_BASE_URL"]
