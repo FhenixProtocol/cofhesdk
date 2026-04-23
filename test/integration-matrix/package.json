@@ -1,0 +1,27 @@
+{
+  "name": "@cofhe/integration-matrix",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node scripts/test.mjs",
+    "test:unit": "vitest run --project node --reporter=verbose test/matrix-filter.test.ts",
+    "test:node": "vitest run --project node --reporter=verbose test/matrix.test.ts",
+    "test:web": "vitest run --project web --reporter=verbose test/matrix.web.test.ts",
+    "test:all": "pnpm test:node && pnpm test:web",
+    "test:flexible:node": "vitest run --project node --reporter=verbose test/flexible.test.ts",
+    "test:flexible:web": "vitest run --project web --reporter=verbose test/flexible.web.test.ts",
+    "test:flexible:all": "pnpm test:flexible:node && pnpm test:flexible:web"
+  },
+  "devDependencies": {
+    "@cofhe/hardhat-3-plugin": "workspace:*",
+    "@cofhe/test-setup": "workspace:*",
+    "@cofhe/mock-contracts": "workspace:*",
+    "@cofhe/sdk": "workspace:*",
+    "@types/node": "20.19.15",
+    "@vitest/browser": "3.2.4",
+    "playwright": "1.55.0",
+    "typescript": "5.5.4",
+    "viem": "2.38.6",
+    "vitest": "3.2.4"
+  }
+}

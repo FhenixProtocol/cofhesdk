@@ -1,0 +1,30 @@
+{
+  "name": "@cofhe/test-setup",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "setup": "node setup.mjs",
+    "build": "tsup && forge build",
+    "clean": "rm -rf dist && forge clean"
+  },
+  "dependencies": {
+    "@fhenixprotocol/cofhe-contracts": "0.1.0",
+    "@openzeppelin/contracts": "5.4.0",
+    "viem": "2.38.6"
+  },
+  "devDependencies": {
+    "@types/node": "20.19.15",
+    "tsup": "8.0.2",
+    "typescript": "5.5.4"
+  }
+}

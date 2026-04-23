@@ -51,6 +51,5 @@ jobs:
 
       - name: Run Tests
         env:
-          COFHE_CHAIN_ID: 421614
           TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
         run: pnpm test
