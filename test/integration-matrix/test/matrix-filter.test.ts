@@ -3,9 +3,9 @@ import { resolveChainFilter, getMatrixChains } from '../src/matrix.js';
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
-const hardhat    = { label: 'Hardhat (Mock)' };
+const hardhat = { label: 'Hardhat (Mock)' };
 const localcofhe = { label: 'Local CoFHE', optIn: true };
-const sepolia    = { label: 'Ethereum Sepolia' };
+const sepolia = { label: 'Ethereum Sepolia' };
 const arbSepolia = { label: 'Arbitrum Sepolia' };
 const baseSepolia = { label: 'Base Sepolia' };
 const brokenChain = { label: 'Broken Chain', disabled: true as const };
@@ -46,25 +46,15 @@ describe('resolveChainFilter', () => {
   });
 
   it('resolves comma-separated slugs to multiple labels', () => {
-    expect(resolveChainFilter('hardhat,arb-sepolia')).toEqual([
-      'Hardhat (Mock)',
-      'Arbitrum Sepolia',
-    ]);
+    expect(resolveChainFilter('hardhat,arb-sepolia')).toEqual(['Hardhat (Mock)', 'Arbitrum Sepolia']);
   });
 
   it('handles whitespace around commas', () => {
-    expect(resolveChainFilter(' hardhat , sepolia ')).toEqual([
-      'Hardhat (Mock)',
-      'Ethereum Sepolia',
-    ]);
+    expect(resolveChainFilter(' hardhat , sepolia ')).toEqual(['Hardhat (Mock)', 'Ethereum Sepolia']);
   });
 
   it('expands the testnet group alias', () => {
-    expect(resolveChainFilter('testnet')).toEqual([
-      'Ethereum Sepolia',
-      'Arbitrum Sepolia',
-      'Base Sepolia',
-    ]);
+    expect(resolveChainFilter('testnet')).toEqual(['Ethereum Sepolia', 'Arbitrum Sepolia', 'Base Sepolia']);
   });
 
   it('expands the all group alias (includes localcofhe)', () => {

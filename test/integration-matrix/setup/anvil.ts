@@ -3,7 +3,6 @@
  * and stores deployment info for tests. Tears down the node after all tests complete.
  */
 
-
 import { spawn, execSync, type ChildProcess } from 'node:child_process';
 import { resolve } from 'node:path';
 import type { TestProject } from 'vitest/node';
