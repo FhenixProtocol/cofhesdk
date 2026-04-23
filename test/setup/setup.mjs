@@ -165,6 +165,10 @@ console.log(`\nAccount ${bold(deployer)} funding:`);
 for (const chain of ALL_CHAINS) {
   const rpc = process.env[chain.rpcEnv] || chain.rpc;
   const pkEnvName = getPrivateKeyEnvName(chain);
+  if (pkEnvName !== 'TEST_PRIVATE_KEY' && !process.env[pkEnvName]) {
+    console.log(`  ${chain.label}: skip — ${pkEnvName} not set`);
+    continue;
+  }
   const addr = pkEnvName === 'TEST_PRIVATE_KEY' ? deployer : run(`cast wallet address $${pkEnvName}`);
   const bal = getBalanceEther(rpc, addr);
   console.log(`  ${chain.label}: ${colorBalance(bal)} ETH`);
