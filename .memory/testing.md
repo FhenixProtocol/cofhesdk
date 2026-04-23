@@ -52,7 +52,6 @@ Workspace package that provides shared test infrastructure consumed by SDK tests
 | `simpleTestAbi` | ABI for `SimpleTest.sol` |
 | `getSimpleTestAddress(chainId)` | Looks up deployed address from `deployments.json` |
 | `TEST_PRIVATE_KEY` | Deployer/test key (inlined at build time) |
-| `TEST_LOCALCOFHE_ENABLED` | Whether localcofhe chain is configured |
 | `PRIMARY_TEST_CHAIN` | Chain ID used for pre-stored values (default: Arb Sepolia / 421614) |
 | `primaryTestChainRegistry` | Pre-stored ctHashes/handles for core decrypt tests |
 
@@ -71,8 +70,7 @@ Env vars loaded from root `.env`:
 |---|---|---|
 | `TEST_PRIVATE_KEY` | Yes | Deployer/test account key |
 | `PRIMARY_TEST_CHAIN` | No (default 421614) | Chain for pre-stored values |
-| `TEST_LOCALCOFHE_ENABLED` | No | Set `true` to include localcofhe |
-| `TEST_LOCALCOFHE_PRIVATE_KEY` | When localcofhe enabled | Deployer key for localcofhe |
+| `TEST_LOCALCOFHE_PRIVATE_KEY` | No | Deployer key for localcofhe (skipped if unset) |
 
 Requires `forge` and `cast` (Foundry) on `$PATH`.
 
@@ -128,6 +126,8 @@ This mechanism works in both Node and browser because Vitest serializes provided
 MATRIX_CHAIN=hardhat pnpm test:node          # single chain
 MATRIX_CHAIN=hardhat,arb-sepolia pnpm test   # multiple chains
 MATRIX_CHAIN=testnet pnpm test               # alias: all testnets
+MATRIX_CHAIN=localcofhe pnpm test:node       # localcofhe opt-in
+MATRIX_CHAIN=all pnpm test                   # every chain including localcofhe
 ```
 
 The value is injected at transform time via Vitest `define`:
@@ -135,7 +135,11 @@ The value is injected at transform time via Vitest `define`:
 define: { 'process.env.MATRIX_CHAIN': JSON.stringify(process.env.MATRIX_CHAIN ?? '') }
 ```
 
-Group aliases are defined in `CHAIN_GROUPS` (currently: `testnet` → `sepolia`, `arb-sepolia`, `base-sepolia`). Numeric chain IDs and alternate spellings (e.g. `arbitrum-sepolia`) are also accepted.
+Group aliases: `testnet` → `sepolia`, `arb-sepolia`, `base-sepolia`; `all` → every chain including `localcofhe`. Numeric chain IDs and alternate spellings (e.g. `arbitrum-sepolia`) are also accepted.
+
+### Chain opt-in
+
+Chains with `optIn: true` in their `TestChainConfig` are excluded when no `MATRIX_CHAIN` filter is set, and included only when `MATRIX_CHAIN` explicitly names them or uses the `all` group. Currently `localcofhe` is the only opt-in chain. There is no separate `TEST_LOCALCOFHE_ENABLED` flag.
 
 ### Testnet auto-enablement
 

@@ -14,7 +14,7 @@
  *   node setup.mjs --dry-run                # preview only
  *
  * Env (loaded from root .env):
- *   TEST_PRIVATE_KEY, PRIMARY_TEST_CHAIN, TEST_LOCALCOFHE_ENABLED,
+ *   TEST_PRIVATE_KEY, PRIMARY_TEST_CHAIN,
  *   TEST_LOCALCOFHE_PRIVATE_KEY, LOCALCOFHE_HOST_CHAIN_RPC
  *
  * Requires: forge, cast (Foundry)
@@ -128,21 +128,10 @@ function parseArgs() {
 loadEnv();
 const args = parseArgs();
 
-const localcofheEnabled = process.env.TEST_LOCALCOFHE_ENABLED === 'true';
-
-// Build the full chain list
-const ALL_CHAINS = [...TESTNET_CHAINS];
-if (localcofheEnabled) {
-  ALL_CHAINS.push(LOCALCOFHE_CHAIN);
-}
+const ALL_CHAINS = [...TESTNET_CHAINS, LOCALCOFHE_CHAIN];
 
 const privateKey = process.env.TEST_PRIVATE_KEY;
 if (!privateKey) { console.error('TEST_PRIVATE_KEY is required'); process.exit(1); }
-
-if (localcofheEnabled && !process.env.TEST_LOCALCOFHE_PRIVATE_KEY) {
-  console.error('TEST_LOCALCOFHE_PRIVATE_KEY is required when TEST_LOCALCOFHE_ENABLED=true');
-  process.exit(1);
-}
 
 const deployer = run(`cast wallet address $TEST_PRIVATE_KEY`);
 
@@ -180,14 +169,9 @@ for (const chain of ALL_CHAINS) {
   const bal = getBalanceEther(rpc, addr);
   console.log(`  ${chain.label}: ${colorBalance(bal)} ETH`);
   const parsed = parseFloat(bal);
-  if (isNaN(parsed) || parsed < MIN_BALANCE_ETH) {
+  if (!isNaN(parsed) && parsed < MIN_BALANCE_ETH) {
     underfunded.push({ label: chain.label, address: addr, balance: bal });
   }
-}
-
-if (localcofheEnabled) {
-  const localDeployer = run(`cast wallet address $TEST_LOCALCOFHE_PRIVATE_KEY`);
-  console.log(`\nLocalcofhe deployer: ${localDeployer}`);
 }
 
 if (underfunded.length) {

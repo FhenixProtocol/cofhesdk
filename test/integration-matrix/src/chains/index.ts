@@ -10,7 +10,6 @@ import {
   sepolia as cofheSepolia,
   localcofhe as cofheLocalcofhe,
 } from '@cofhe/sdk/chains';
-import { TEST_LOCALCOFHE_ENABLED } from '@cofhe/test-setup';
 import { createTestnetSetup, isTestnetEnabled } from './testnet.js';
 import { hardhatChainConfig } from './hardhat.js';
 import type { TestChainConfig } from '../types.js';
@@ -22,7 +21,7 @@ const arbSepoliaConfig: TestChainConfig = {
   cofheChain: cofheArbSepolia,
   rpc: viemArbitrumSepolia.rpcUrls.default.http[0],
   txConfirmationsRequired: 1,
-  enabled: isTestnetEnabled(viemArbitrumSepolia.id),
+  disabled: !isTestnetEnabled(viemArbitrumSepolia.id),
   setup: createTestnetSetup({
     id: viemArbitrumSepolia.id,
     viemChain: viemArbitrumSepolia,
@@ -38,7 +37,7 @@ const baseSepoliaConfig: TestChainConfig = {
   cofheChain: cofheBaseSepolia,
   rpc: viemBaseSepolia.rpcUrls.default.http[0],
   txConfirmationsRequired: 2,
-  enabled: isTestnetEnabled(viemBaseSepolia.id),
+  disabled: !isTestnetEnabled(viemBaseSepolia.id),
   setup: createTestnetSetup({
     id: viemBaseSepolia.id,
     viemChain: viemBaseSepolia,
@@ -54,7 +53,7 @@ const sepoliaConfig: TestChainConfig = {
   cofheChain: cofheSepolia,
   rpc: viemSepolia.rpcUrls.default.http[0],
   txConfirmationsRequired: 1,
-  enabled: isTestnetEnabled(viemSepolia.id),
+  disabled: !isTestnetEnabled(viemSepolia.id),
   setup: createTestnetSetup({
     id: viemSepolia.id,
     viemChain: viemSepolia,
@@ -79,7 +78,8 @@ const localcofheConfig: TestChainConfig = {
   cofheChain: cofheLocalcofhe,
   rpc: viemLocalcofhe.rpcUrls.default.http[0],
   txConfirmationsRequired: 1,
-  enabled: TEST_LOCALCOFHE_ENABLED && isTestnetEnabled(viemLocalcofhe.id),
+  disabled: !isTestnetEnabled(viemLocalcofhe.id),
+  optIn: true,
   setup: createTestnetSetup({
     id: viemLocalcofhe.id,
     viemChain: viemLocalcofhe,

@@ -26,7 +26,6 @@ export default defineConfig({
   splitting: false,
   define: {
     'process.env.TEST_PRIVATE_KEY': JSON.stringify(process.env.TEST_PRIVATE_KEY ?? ''),
-    'process.env.TEST_LOCALCOFHE_ENABLED': JSON.stringify(process.env.TEST_LOCALCOFHE_ENABLED ?? ''),
     'process.env.TEST_LOCALCOFHE_PRIVATE_KEY': JSON.stringify(process.env.TEST_LOCALCOFHE_PRIVATE_KEY ?? ''),
     'process.env.PRIMARY_TEST_CHAIN': JSON.stringify(process.env.PRIMARY_TEST_CHAIN ?? ''),
   },

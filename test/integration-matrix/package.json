@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "test": "node scripts/test.mjs",
+    "test:unit": "vitest run --project node --reporter=verbose test/matrix-filter.test.ts",
     "test:node": "vitest run --project node --reporter=verbose test/matrix.test.ts",
     "test:web": "vitest run --project web --reporter=verbose test/matrix.web.test.ts",
     "test:all": "pnpm test:node && pnpm test:web",

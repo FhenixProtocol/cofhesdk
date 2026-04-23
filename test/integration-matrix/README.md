@@ -10,7 +10,7 @@ Runs inherited SDK tests across **every supported chain × {Node, Web}**.
 | **Web**  |       ✓        |     ✓\*     |       ✓\*        |       ✓\*        |     ✓\*      |
 
 \* Enabled when `SimpleTest` is deployed (via `@cofhe/test-setup`) and a funded `TEST_PRIVATE_KEY` is present.
-Local CoFHE is a special case that defaults to **disabled** unless `TEST_LOCALCOFHE_ENABLED=true` is in the .env file.
+Local CoFHE is **opt-in** — disabled by default unless `MATRIX_CHAIN` explicitly names it (`localcofhe`) or uses the `all` group.
 
 ## Usage
 
@@ -19,6 +19,7 @@ pnpm test              # node only locally, node + web in CI (CI=true)
 pnpm test:node         # node only
 pnpm test:web          # web only
 pnpm test:all          # node then web, unconditionally
+pnpm test:unit         # unit tests for matrix filtering logic only (fast, no chain required)
 ```
 
 `anvil` and `forge` must be on `$PATH`.
@@ -46,13 +47,15 @@ Flexible tests run in CI alongside inherited tests.
 MATRIX_CHAIN=hardhat pnpm test:node           # single chain
 MATRIX_CHAIN=hardhat,arb-sepolia pnpm test    # multiple chains
 MATRIX_CHAIN=testnet pnpm test                # all testnets
+MATRIX_CHAIN=localcofhe pnpm test:node        # localcofhe opt-in
+MATRIX_CHAIN=all pnpm test                    # all chains, including localcofhe
 MATRIX_ENV=node pnpm test                     # node environment only
 MATRIX_ENV=web pnpm test                      # web environment only
 ```
 
 Valid chain slugs: `hardhat`, `localcofhe`, `sepolia`, `arb-sepolia` / `arbitrum-sepolia`, `base-sepolia`.
 Chain IDs are also valid: `31337`, `420105`, `11155111`, `421614`, `84532`.
-Group alias `testnet` expands to `sepolia`, `arb-sepolia`, `base-sepolia`.
+Group aliases: `testnet` → `sepolia`, `arb-sepolia`, `base-sepolia`; `all` → every chain including `localcofhe`.
 
 ## Structure
 

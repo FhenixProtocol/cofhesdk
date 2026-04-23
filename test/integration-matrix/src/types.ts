@@ -26,7 +26,10 @@ export type TestChainConfig = {
   cofheChain: CofheChain;
   rpc: string;
   txConfirmationsRequired: number;
-  enabled: boolean;
+  /** When true, forces the chain to be excluded from all runs regardless of any other config. Use to mark broken chains or environments. */
+  disabled?: boolean;
+  /** When true, excluded from runs unless MATRIX_CHAIN explicitly names this chain or uses 'all'. */
+  optIn?: boolean;
   setup: (factory: ClientFactory) => Promise<TestContext>;
   teardown?: () => Promise<void>;
 };

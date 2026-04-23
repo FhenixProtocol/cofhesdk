@@ -14,10 +14,11 @@ const CHAIN_SLUGS: Record<string, string> = {
 
 const CHAIN_GROUPS: Record<string, string[]> = {
   testnet: ['sepolia', 'arb-sepolia', 'base-sepolia'],
+  all: ['hardhat', 'localcofhe', 'sepolia', 'arb-sepolia', 'base-sepolia'],
 };
 
 export function resolveChainFilter(matrixChain?: string): string[] | null {
-  const raw = (matrixChain || undefined)?.toLowerCase();
+  const raw = (matrixChain || '').trim().toLowerCase();
   if (!raw) return null;
   const slugs = raw
     .split(',')
@@ -40,7 +41,7 @@ function getMatrixEnvironmentEnabled(environment: string, matrixEnv: string): bo
   return environment.toLowerCase() === matrixEnv.toLowerCase();
 }
 
-export function getMatrixChains<T extends { enabled: boolean; label: string }>(
+export function getMatrixChains<T extends { disabled?: boolean; label: string; optIn?: boolean }>(
   matrixEnv: string,
   matrixChain: string,
   allChains: T[]
@@ -50,9 +51,12 @@ export function getMatrixChains<T extends { enabled: boolean; label: string }>(
   const nodeEnabled = getMatrixEnvironmentEnabled('node', matrixEnv);
 
   return allChains.map((c) => {
-    if (!c.enabled) return { chain: c, chainEnabled: false, webEnabled: false, nodeEnabled: false };
-    if (!enabledLabels) return { chain: c, chainEnabled: true, webEnabled, nodeEnabled };
-
+    if (c.disabled) return { chain: c, chainEnabled: false, webEnabled: false, nodeEnabled: false };
+    if (!enabledLabels) {
+      // No filter: opt-in chains (e.g. localcofhe) are excluded by default
+      if (c.optIn) return { chain: c, chainEnabled: false, webEnabled: false, nodeEnabled: false };
+      return { chain: c, chainEnabled: true, webEnabled, nodeEnabled };
+    }
     const chainEnabled = enabledLabels.includes(c.label);
     return { chain: c, chainEnabled, webEnabled: chainEnabled && webEnabled, nodeEnabled: chainEnabled && nodeEnabled };
   });

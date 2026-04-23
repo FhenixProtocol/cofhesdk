@@ -12,7 +12,7 @@
       "cache": false,
       "dependsOn": ["^build"],
       "outputs": ["dist/**"],
-      "passThroughEnv": ["TEST_PRIVATE_KEY", "TEST_LOCALCOFHE_ENABLED", "TEST_LOCALCOFHE_PRIVATE_KEY", "PRIMARY_TEST_CHAIN"]
+      "passThroughEnv": ["TEST_PRIVATE_KEY", "TEST_LOCALCOFHE_PRIVATE_KEY", "PRIMARY_TEST_CHAIN"]
     },
     "@cofhe/site#build": {
       "cache": false,

@@ -37,8 +37,7 @@ Loaded from root `.env`. See `.env-example` for a template.
 | ----------------------------- | ----------------- | ------------------------------------------------------------ |
 | `TEST_PRIVATE_KEY`            | — (required)      | Deployer / test account key (≥ 0.1 ETH on each target chain) |
 | `PRIMARY_TEST_CHAIN`          | `421614`          | Chain ID for pre-stored values (core SDK tests)              |
-| `TEST_LOCALCOFHE_ENABLED`     | `false`           | Include localcofhe in deploy targets                         |
-| `TEST_LOCALCOFHE_PRIVATE_KEY` | hardcoded default | Deployer key for localcofhe                                  |
+| `TEST_LOCALCOFHE_PRIVATE_KEY` | hardcoded default | Deployer key for localcofhe (skipped if unset)               |
 
 These are inlined at build time by `tsup.config.ts`'s `define` so they work in browser test environments where `process.env` is unavailable.
 
@@ -68,7 +67,7 @@ Pre-stored encrypted values on the primary test chain. Lets core SDK tests decry
 
 ### `src/env.ts`
 
-Exports `TEST_PRIVATE_KEY`, `TEST_LOCALCOFHE_ENABLED`, `TEST_LOCALCOFHE_PRIVATE_KEY`, `PRIMARY_TEST_CHAIN`. All `process.env` references are replaced at build time.
+Exports `TEST_PRIVATE_KEY`, `TEST_LOCALCOFHE_PRIVATE_KEY`, `PRIMARY_TEST_CHAIN`. All `process.env` references are replaced at build time.
 
 ### `src/primaryTestChain.ts`
 

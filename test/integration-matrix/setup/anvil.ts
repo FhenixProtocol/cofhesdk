@@ -3,9 +3,6 @@
  * and stores deployment info for tests. Tears down the node after all tests complete.
  */
 
-// TODO: Should MATRIX_CHAIN=localcofhe overwrite TEST_LOCALCOFHE_ENABLED=true?
-// TODO: Remove MockTaskManager and other debug remnants from testing base-sep issue
-// TODO: Add temporary / flexible test file and add comment, add way to run it
 
 import { spawn, execSync, type ChildProcess } from 'node:child_process';
 import { resolve } from 'node:path';
@@ -98,11 +95,11 @@ export async function setup(project: TestProject): Promise<void> {
 }
 
 const ALL_CHAINS = [
-  { label: 'Hardhat (Mock)', enabled: true },
-  { label: 'Local CoFHE', enabled: process.env.TEST_LOCALCOFHE_ENABLED === 'true' },
-  { label: 'Ethereum Sepolia', enabled: true },
-  { label: 'Arbitrum Sepolia', enabled: true },
-  { label: 'Base Sepolia', enabled: true },
+  { label: 'Hardhat (Mock)' },
+  { label: 'Local CoFHE', optIn: true },
+  { label: 'Ethereum Sepolia' },
+  { label: 'Arbitrum Sepolia' },
+  { label: 'Base Sepolia' },
 ];
 
 async function printMatrix(matrixChain?: string, matrixEnv?: string): Promise<void> {
