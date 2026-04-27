@@ -756,6 +756,64 @@ export const MockTaskManagerArtifact = {
     },
     {
       type: 'function',
+      name: 'verifyDecryptResultBatch',
+      inputs: [
+        {
+          name: 'ctHashes',
+          type: 'uint256[]',
+          internalType: 'uint256[]',
+        },
+        {
+          name: 'results',
+          type: 'uint256[]',
+          internalType: 'uint256[]',
+        },
+        {
+          name: 'signatures',
+          type: 'bytes[]',
+          internalType: 'bytes[]',
+        },
+      ],
+      outputs: [
+        {
+          name: '',
+          type: 'bool',
+          internalType: 'bool',
+        },
+      ],
+      stateMutability: 'view',
+    },
+    {
+      type: 'function',
+      name: 'verifyDecryptResultBatchSafe',
+      inputs: [
+        {
+          name: 'ctHashes',
+          type: 'uint256[]',
+          internalType: 'uint256[]',
+        },
+        {
+          name: 'results',
+          type: 'uint256[]',
+          internalType: 'uint256[]',
+        },
+        {
+          name: 'signatures',
+          type: 'bytes[]',
+          internalType: 'bytes[]',
+        },
+      ],
+      outputs: [
+        {
+          name: '',
+          type: 'bool[]',
+          internalType: 'bool[]',
+        },
+      ],
+      stateMutability: 'view',
+    },
+    {
+      type: 'function',
       name: 'verifyDecryptResultSafe',
       inputs: [
         {

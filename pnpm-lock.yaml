@@ -61,7 +61,7 @@ importers:
         version: 2.6.0
       viem:
         specifier: 2.38.6
-        version: 2.38.6(typescript@5.5.4)(zod@4.1.12)
+        version: 2.38.6(typescript@5.5.4)(zod@4.0.0)
       wagmi:
         specifier: 2.19.2
         version: 2.19.2(@tanstack/react-query@5.90.7)(@types/react@18.2.61)(react@18.3.1)(typescript@5.5.4)(viem@2.38.6)
@@ -104,7 +104,7 @@ importers:
         version: link:../sdk
       abitype:
         specifier: 1.2.3
-        version: 1.2.3(typescript@5.5.4)(zod@4.1.12)
+        version: 1.2.3(typescript@5.5.4)(zod@4.0.0)
     devDependencies:
       '@cofhe/eslint-config':
         specifier: workspace:*
@@ -164,8 +164,8 @@ importers:
         specifier: workspace:*
         version: link:../mock-contracts
       '@fhenixprotocol/cofhe-contracts':
-        specifier: 0.1.0
-        version: 0.1.0
+        specifier: 0.1.3
+        version: 0.1.3
       '@openzeppelin/contracts':
         specifier: 5.4.0
         version: 5.4.0
@@ -214,8 +214,8 @@ importers:
         specifier: workspace:*
         version: link:../sdk
       '@fhenixprotocol/cofhe-contracts':
-        specifier: '>=0.1.0'
-        version: 0.1.0
+        specifier: '>=0.1.3'
+        version: 0.1.3
       '@openzeppelin/contracts':
         specifier: ^5.0.0
         version: 5.4.0
@@ -233,7 +233,7 @@ importers:
         version: 3.3.2
       viem:
         specifier: 2.38.6
-        version: 2.38.6(typescript@5.5.4)(zod@4.1.12)
+        version: 2.38.6(typescript@5.5.4)(zod@4.0.0)
     devDependencies:
       '@cofhe/eslint-config':
         specifier: workspace:*
@@ -287,8 +287,8 @@ importers:
   packages/mock-contracts:
     dependencies:
       '@fhenixprotocol/cofhe-contracts':
-        specifier: 0.1.0
-        version: 0.1.0
+        specifier: 0.1.3
+        version: 0.1.3
       '@openzeppelin/contracts':
         specifier: 5.4.0
         version: 5.4.0
@@ -437,7 +437,7 @@ importers:
     dependencies:
       '@wagmi/core':
         specifier: ^2.0.0
-        version: 2.20.3(immer@10.1.3)(typescript@5.5.4)(viem@2.38.6)
+        version: 2.20.3(immer@10.1.1)(typescript@5.5.4)(viem@2.38.6)
       ethers:
         specifier: ^5.0.0 || ^6.0.0
         version: 6.15.0
@@ -445,26 +445,26 @@ importers:
         specifier: 1.0.34
         version: 1.0.34
       immer:
-        specifier: 10.1.3
-        version: 10.1.3
+        specifier: 10.1.1
+        version: 10.1.1
       node-tfhe:
-        specifier: 0.11.1
-        version: 0.11.1
+        specifier: 1.5.3
+        version: 1.5.3
       tfhe:
-        specifier: 0.11.1
-        version: 0.11.1
+        specifier: 1.5.3
+        version: 1.5.3
       tweetnacl:
         specifier: 1.0.3
         version: 1.0.3
       viem:
         specifier: 2.38.6
-        version: 2.38.6(typescript@5.5.4)(zod@4.1.12)
+        version: 2.38.6(typescript@5.5.4)(zod@4.0.0)
       zod:
-        specifier: 4.1.12
-        version: 4.1.12
+        specifier: 4.0.0
+        version: 4.0.0
       zustand:
-        specifier: 5.0.8
-        version: 5.0.8(immer@10.1.3)
+        specifier: 5.0.1
+        version: 5.0.1(immer@10.1.1)
     devDependencies:
       '@cofhe/eslint-config':
         specifier: workspace:*
@@ -616,7 +616,7 @@ importers:
         version: 5.5.4
       viem:
         specifier: 2.38.6
-        version: 2.38.6(typescript@5.5.4)(zod@4.1.12)
+        version: 2.38.6(typescript@5.5.4)(zod@4.0.0)
 
   packages/tsconfig: {}
 
@@ -666,8 +666,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/sdk
       '@fhenixprotocol/cofhe-contracts':
-        specifier: 0.1.0
-        version: 0.1.0
+        specifier: 0.1.3
+        version: 0.1.3
       '@nomicfoundation/hardhat-ethers':
         specifier: 3.1.0
         version: 3.1.0(ethers@6.15.0)(hardhat@2.26.3)
@@ -697,7 +697,7 @@ importers:
         version: 2.26.3(ts-node@10.9.2)(typescript@5.5.4)
       viem:
         specifier: 2.38.6
-        version: 2.38.6(typescript@5.5.4)(zod@4.1.12)
+        version: 2.38.6(typescript@5.5.4)(zod@4.0.0)
 
   test/integration-matrix:
     devDependencies:
@@ -727,7 +727,7 @@ importers:
         version: 5.5.4
       viem:
         specifier: 2.38.6
-        version: 2.38.6(typescript@5.5.4)(zod@4.1.12)
+        version: 2.38.6(typescript@5.5.4)(zod@4.0.0)
       vitest:
         specifier: 3.2.4
         version: 3.2.4(@types/node@20.19.15)(@vitest/browser@3.2.4)(happy-dom@15.11.7)
@@ -735,14 +735,14 @@ importers:
   test/setup:
     dependencies:
       '@fhenixprotocol/cofhe-contracts':
-        specifier: 0.1.0
-        version: 0.1.0
+        specifier: 0.1.3
+        version: 0.1.3
       '@openzeppelin/contracts':
         specifier: 5.4.0
         version: 5.4.0
       viem:
         specifier: 2.38.6
-        version: 2.38.6(typescript@5.5.4)(zod@4.1.12)
+        version: 2.38.6(typescript@5.5.4)(zod@4.0.0)
     devDependencies:
       '@types/node':
         specifier: 20.19.15
@@ -2571,8 +2571,8 @@ packages:
     engines: {node: '>=14'}
     dev: true
 
-  /@fhenixprotocol/cofhe-contracts@0.1.0:
-    resolution: {integrity: sha512-Nt5+bJtRgiT9lUrBXEEhJLttVtqO/Rk7wI5KC5+la1zGcYnCym/mT+ExlyjsX+Pf9cpE2Qje8nhfTDSMERGLtA==}
+  /@fhenixprotocol/cofhe-contracts@0.1.3:
+    resolution: {integrity: sha512-VegEHsy3a6DMHGlzhw5Xbqhp7zYvlK601z5VO5qQeeBjmOXEVhyWvVrpvmJgZfpDoT+bdCL19qExBJzKH5aYvA==}
     requiresBuild: true
     dependencies:
       '@openzeppelin/contracts': 5.4.0
@@ -8833,7 +8833,7 @@ packages:
       - zod
     dev: false
 
-  /@wagmi/core@2.20.3(immer@10.1.3)(typescript@5.5.4)(viem@2.38.6):
+  /@wagmi/core@2.20.3(immer@10.1.1)(typescript@5.5.4)(viem@2.38.6):
     resolution: {integrity: sha512-gsbuHnWxf0AYZISvR8LvF/vUCIq6/ZwT5f5/FKd6wLA7Wq05NihCvmQpIgrcVbpSJPL67wb6S8fXm3eJGJA1vQ==}
     peerDependencies:
       '@tanstack/query-core': '>=5.0.0'
@@ -8848,8 +8848,8 @@ packages:
       eventemitter3: 5.0.1
       mipd: 0.0.7(typescript@5.5.4)
       typescript: 5.5.4
-      viem: 2.38.6(typescript@5.5.4)(zod@4.1.12)
-      zustand: 5.0.0(immer@10.1.3)
+      viem: 2.38.6(typescript@5.5.4)(zod@4.0.0)
+      zustand: 5.0.0(immer@10.1.1)
     transitivePeerDependencies:
       - '@types/react'
       - immer
@@ -9546,6 +9546,20 @@ packages:
       typescript: 5.5.4
       zod: 3.25.76
 
+  /abitype@1.1.0(typescript@5.5.4)(zod@4.0.0):
+    resolution: {integrity: sha512-6Vh4HcRxNMLA0puzPjM5GBgT4aAcFGKZzSgAXvuZ27shJP6NEpielTuqbBmZILR5/xd0PizkBGy5hReKz9jl5A==}
+    peerDependencies:
+      typescript: 5.5.4
+      zod: ^3.22.0 || ^4.0.0
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+      zod:
+        optional: true
+    dependencies:
+      typescript: 5.5.4
+      zod: 4.0.0
+
   /abitype@1.1.0(typescript@5.5.4)(zod@4.1.12):
     resolution: {integrity: sha512-6Vh4HcRxNMLA0puzPjM5GBgT4aAcFGKZzSgAXvuZ27shJP6NEpielTuqbBmZILR5/xd0PizkBGy5hReKz9jl5A==}
     peerDependencies:
@@ -9588,6 +9602,20 @@ packages:
     dependencies:
       typescript: 5.5.4
       zod: 3.25.76
+
+  /abitype@1.2.3(typescript@5.5.4)(zod@4.0.0):
+    resolution: {integrity: sha512-Ofer5QUnuUdTFsBRwARMoWKOH1ND5ehwYhJ3OJ/BQO+StkwQjHw0XyVh4vDttzHB7QOFhPHa/o413PJ82gU/Tg==}
+    peerDependencies:
+      typescript: 5.5.4
+      zod: ^3.22.0 || ^4.0.0
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+      zod:
+        optional: true
+    dependencies:
+      typescript: 5.5.4
+      zod: 4.0.0
 
   /abitype@1.2.3(typescript@5.5.4)(zod@4.1.12):
     resolution: {integrity: sha512-Ofer5QUnuUdTFsBRwARMoWKOH1ND5ehwYhJ3OJ/BQO+StkwQjHw0XyVh4vDttzHB7QOFhPHa/o413PJ82gU/Tg==}
@@ -13952,6 +13980,10 @@ packages:
     resolution: {integrity: sha512-Rx3CqeqQ19sxUtYV9CU911Vhy8/721wRFnJv3REVGWUmoAcIwzifTsdmJte/MV+0/XpM35LZdQMBGkRIoLPwQA==}
     dev: true
 
+  /immer@10.1.1:
+    resolution: {integrity: sha512-s2MPrmjovJcoMaHtx6K11Ra7oD05NT97w1IC5zpMkT6Atjr7H8LjaDd81iIxUYpMKSRRNMJE703M1Fhr/TctHw==}
+    dev: false
+
   /immer@10.1.3:
     resolution: {integrity: sha512-tmjF/k8QDKydUlm3mZU+tjM6zeq9/fFpPqH9SzWmBnVVKsPBg/V66qsMwb3/Bo90cgUN+ghdVBess+hPsxUyRw==}
     dev: false
@@ -16062,8 +16094,8 @@ packages:
       '@babel/parser': 7.29.0
     dev: true
 
-  /node-tfhe@0.11.1:
-    resolution: {integrity: sha512-QFkIeIZ5IbdvhpkzImwakL2+sZFCTXCwGvOacE1NczR+zgrg5ixHU9KpjuuIi1YbbKFGJEMoSUmivDktuzFaKg==}
+  /node-tfhe@1.5.3:
+    resolution: {integrity: sha512-VjCx9vaNbTkw8I0IeMvmHPUOfjiXysbQXc9C4LKx4V8GmPNKufL6fAaDyFWWeAuHa/xs/AaWlTQ3jkTlFL4K+w==}
     dev: false
 
   /nodemon@3.1.11:
@@ -16405,7 +16437,7 @@ packages:
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@5.5.4)(zod@4.1.12)
+      abitype: 1.2.3(typescript@5.5.4)(zod@4.0.0)
       eventemitter3: 5.0.1
       typescript: 5.5.4
     transitivePeerDependencies:
@@ -16425,7 +16457,7 @@ packages:
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@5.5.4)(zod@4.1.12)
+      abitype: 1.2.3(typescript@5.5.4)(zod@4.0.0)
       eventemitter3: 5.0.1
       typescript: 5.5.4
     transitivePeerDependencies:
@@ -16489,6 +16521,26 @@ packages:
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
       abitype: 1.2.3(typescript@5.5.4)(zod@3.25.76)
+      eventemitter3: 5.0.1
+      typescript: 5.5.4
+    transitivePeerDependencies:
+      - zod
+
+  /ox@0.9.6(typescript@5.5.4)(zod@4.0.0):
+    resolution: {integrity: sha512-8SuCbHPvv2eZLYXrNmC0EC12rdzXQLdhnOMlHDW2wiCPLxBrOOJwX5L5E61by+UjTPOryqQiRSnjIKCI+GykKg==}
+    peerDependencies:
+      typescript: 5.5.4
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+    dependencies:
+      '@adraffy/ens-normalize': 1.11.0
+      '@noble/ciphers': 1.3.0
+      '@noble/curves': 1.9.1
+      '@noble/hashes': 1.8.0
+      '@scure/bip32': 1.7.0
+      '@scure/bip39': 1.6.0
+      abitype: 1.2.3(typescript@5.5.4)(zod@4.0.0)
       eventemitter3: 5.0.1
       typescript: 5.5.4
     transitivePeerDependencies:
@@ -19032,8 +19084,8 @@ packages:
     resolution: {integrity: sha512-N+8UisAXDGk8PFXP4HAzVR9nbfmVJ3zYLAWiTIoqC5v5isinhr+r5uaO8+7r3BMfuNIufIsA7RdpVgacC2cSpw==}
     dev: true
 
-  /tfhe@0.11.1:
-    resolution: {integrity: sha512-D4YeL0DYz4IOV/X7YzKFexkjbJdOdGn2M7mfDNOQW1OxA+NO/Z61BJ6ULLTvdBEQ3N6P985lNO61Drgsjf0g/w==}
+  /tfhe@1.5.3:
+    resolution: {integrity: sha512-Geyw5g1TeHFqNGWYiXZmmfRl1wFml3Jkmo9mHor3nPSIr6V6LJRLILceqKdvOW2ieqxB662gwmm2Qo4SUji2tA==}
     dev: false
 
   /thenby@1.3.4:
@@ -20153,9 +20205,9 @@ packages:
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      abitype: 1.1.0(typescript@5.5.4)(zod@4.1.12)
+      abitype: 1.1.0(typescript@5.5.4)(zod@4.0.0)
       isows: 1.0.7(ws@8.18.3)
-      ox: 0.9.6(typescript@5.5.4)(zod@4.1.12)
+      ox: 0.9.6(typescript@5.5.4)(zod@4.0.0)
       typescript: 5.5.4
       ws: 8.18.3
     transitivePeerDependencies:
@@ -20201,6 +20253,28 @@ packages:
       abitype: 1.1.0(typescript@5.5.4)(zod@3.25.76)
       isows: 1.0.7(ws@8.18.3)
       ox: 0.9.6(typescript@5.5.4)(zod@3.25.76)
+      typescript: 5.5.4
+      ws: 8.18.3
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+      - zod
+
+  /viem@2.38.6(typescript@5.5.4)(zod@4.0.0):
+    resolution: {integrity: sha512-aqO6P52LPXRjdnP6rl5Buab65sYa4cZ6Cpn+k4OLOzVJhGIK8onTVoKMFMT04YjDfyDICa/DZyV9HmvLDgcjkw==}
+    peerDependencies:
+      typescript: 5.5.4
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+    dependencies:
+      '@noble/curves': 1.9.1
+      '@noble/hashes': 1.8.0
+      '@scure/bip32': 1.7.0
+      '@scure/bip39': 1.6.0
+      abitype: 1.1.0(typescript@5.5.4)(zod@4.0.0)
+      isows: 1.0.7(ws@8.18.3)
+      ox: 0.9.6(typescript@5.5.4)(zod@4.0.0)
       typescript: 5.5.4
       ws: 8.18.3
     transitivePeerDependencies:
@@ -21091,6 +21165,9 @@ packages:
   /zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
+  /zod@4.0.0:
+    resolution: {integrity: sha512-9diLdTPc/L7w/5jI4C3gHYNiGHDV9IZYxo1e5LSD8cabi65WVTWWb+g2BGPEpUUCOxR4D+6O5B0AzyMdUAXwrw==}
+
   /zod@4.1.12:
     resolution: {integrity: sha512-JInaHOamG8pt5+Ey8kGmdcAcg3OL9reK8ltczgHTAwNhMys/6ThXHityHxVV2p3fkw/c+MAvBHFVYHFZDmjMCQ==}
 
@@ -21117,7 +21194,7 @@ packages:
       use-sync-external-store: 1.4.0(react@18.3.1)
     dev: false
 
-  /zustand@5.0.0(immer@10.1.3):
+  /zustand@5.0.0(immer@10.1.1):
     resolution: {integrity: sha512-LE+VcmbartOPM+auOjCCLQOsQ05zUTp8RkgwRzefUk+2jISdMMFnxvyTjA4YNWr5ZGXYbVsEMZosttuxUBkojQ==}
     engines: {node: '>=12.20.0'}
     peerDependencies:
@@ -21135,7 +21212,28 @@ packages:
       use-sync-external-store:
         optional: true
     dependencies:
-      immer: 10.1.3
+      immer: 10.1.1
+    dev: false
+
+  /zustand@5.0.1(immer@10.1.1):
+    resolution: {integrity: sha512-pRET7Lao2z+n5R/HduXMio35TncTlSW68WsYBq2Lg1ASspsNGjpwLAsij3RpouyV6+kHMwwwzP0bZPD70/Jx/w==}
+    engines: {node: '>=12.20.0'}
+    peerDependencies:
+      '@types/react': '>=18.0.0'
+      immer: '>=9.0.6'
+      react: '>=18.0.0'
+      use-sync-external-store: '>=1.2.0'
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+      immer:
+        optional: true
+      react:
+        optional: true
+      use-sync-external-store:
+        optional: true
+    dependencies:
+      immer: 10.1.1
     dev: false
 
   /zustand@5.0.3(@types/react@18.2.61)(react@18.3.1)(use-sync-external-store@1.4.0):
@@ -21182,27 +21280,6 @@ packages:
       '@types/react': 18.2.61
       react: 18.3.1
       use-sync-external-store: 1.4.0(react@18.3.1)
-    dev: false
-
-  /zustand@5.0.8(immer@10.1.3):
-    resolution: {integrity: sha512-gyPKpIaxY9XcO2vSMrLbiER7QMAMGOQZVRdJ6Zi782jkbzZygq5GI9nG8g+sMgitRtndwaBSl7uiqC49o1SSiw==}
-    engines: {node: '>=12.20.0'}
-    peerDependencies:
-      '@types/react': '>=18.0.0'
-      immer: '>=9.0.6'
-      react: '>=18.0.0'
-      use-sync-external-store: '>=1.2.0'
-    peerDependenciesMeta:
-      '@types/react':
-        optional: true
-      immer:
-        optional: true
-      react:
-        optional: true
-      use-sync-external-store:
-        optional: true
-    dependencies:
-      immer: 10.1.3
     dev: false
 
   /zwitch@2.0.4:

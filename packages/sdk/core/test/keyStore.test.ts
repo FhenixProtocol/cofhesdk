@@ -2,7 +2,9 @@
 /* eslint-disable no-undef */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { createKeysStore, type KeysStore, type KeysStorage } from '../keyStore.js';
+
+import { createKeysStore, type KeysStore, type KeysStorage } from '../keyStore';
+import { TFHE_RS_KEY_VERSION } from 'core/consts';
 
 // Mock the storage module
 const mockStorage = {
@@ -124,7 +126,7 @@ describe('KeyStore', () => {
     it('should clear keys storage', async () => {
       await keysStorage.clearKeysStorage();
 
-      expect(mockStorage.removeItem).toHaveBeenCalledWith('cofhesdk-keys');
+      expect(mockStorage.removeItem).toHaveBeenCalledWith(`cofhesdk-keys-v${TFHE_RS_KEY_VERSION}`);
     });
 
     it('should rehydrate keys store', async () => {

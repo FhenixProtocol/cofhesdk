@@ -10,6 +10,7 @@ import {
   type FheKeyDeserializer,
   type EncryptableItem,
   fheTypeToString,
+  TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT,
 } from '@/core';
 
 // Import web-specific storage (internal use only)
@@ -18,8 +19,11 @@ import { createSsrStorage, createWebStorage } from './storage.js';
 // Import worker manager
 import { getWorkerManager, terminateWorker, areWorkersAvailable } from './workerManager.js';
 
-// Import tfhe for web
-import init, { init_panic_hook, TfheCompactPublicKey, ProvenCompactCiphertextList, CompactPkeCrs } from 'tfhe';
+// Type-only import for tfhe — the runtime is loaded lazily via `await import('tfhe')`
+// inside `initTfhe()` so that simply importing `@cofhe/sdk/web` (e.g. transitively
+// through `@cofhe/react`) does not pull tfhe — and its worker helpers that
+// reference `self` at module top — into the import graph during Next.js SSR.
+import type { TfheCompactPublicKey, ProvenCompactCiphertextList, CompactPkeCrs } from 'tfhe';
 import { hasDOM } from './const';
 
 /**
@@ -27,13 +31,22 @@ import { hasDOM } from './const';
  * Called automatically on first encryption - users don't need to call this manually
  * @returns true if TFHE was initialized, false if already initialized
  */
+let tfheModule: typeof import('tfhe') | null = null;
 let tfheInitialized = false;
 async function initTfhe(): Promise<boolean> {
   if (tfheInitialized) return false;
-  await init();
-  await init_panic_hook();
+  tfheModule = await import('tfhe');
+  await tfheModule.default();
+  await tfheModule.init_panic_hook();
   tfheInitialized = true;
   return true;
+}
+
+function requireTfhe(): typeof import('tfhe') {
+  if (!tfheModule) {
+    throw new Error('TFHE not initialized — call initTfhe() (or any client method that triggers it) first');
+  }
+  return tfheModule;
 }
 
 /**
@@ -46,12 +59,23 @@ const fromHexString = (hexString: string): Uint8Array => {
   return new Uint8Array(arr.map((byte) => parseInt(byte, 16)));
 };
 
+const _deserializeTfhePublicKey = (buff: string): TfheCompactPublicKey => {
+  return requireTfhe().TfheCompactPublicKey.safe_deserialize(
+    fromHexString(buff),
+    TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT
+  );
+};
+
+const _deserializeCompactPkeCrs = (buff: string): CompactPkeCrs => {
+  return requireTfhe().CompactPkeCrs.safe_deserialize(fromHexString(buff), TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT);
+};
+
 /**
  * Serializer for TFHE public keys
  * Validates that the buffer can be deserialized into a TfheCompactPublicKey
  */
 const tfhePublicKeyDeserializer: FheKeyDeserializer = (buff: string): void => {
-  TfheCompactPublicKey.deserialize(fromHexString(buff));
+  _deserializeTfhePublicKey(buff);
 };
 
 /**
@@ -59,7 +83,7 @@ const tfhePublicKeyDeserializer: FheKeyDeserializer = (buff: string): void => {
  * Validates that the buffer can be deserialized into ZkCompactPkePublicParams
  */
 const compactPkeCrsDeserializer: FheKeyDeserializer = (buff: string): void => {
-  CompactPkeCrs.deserialize(fromHexString(buff));
+  _deserializeCompactPkeCrs(buff);
 };
 
 /**
@@ -67,9 +91,9 @@ const compactPkeCrsDeserializer: FheKeyDeserializer = (buff: string): void => {
  * This is used internally by the SDK to create encrypted inputs
  */
 const zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator = (fhe: string, crs: string) => {
-  const fhePublicKey = TfheCompactPublicKey.deserialize(fromHexString(fhe));
-  const zkBuilder = ProvenCompactCiphertextList.builder(fhePublicKey);
-  const zkCrs = CompactPkeCrs.deserialize(fromHexString(crs));
+  const fhePublicKey = _deserializeTfhePublicKey(fhe);
+  const zkBuilder = requireTfhe().ProvenCompactCiphertextList.builder(fhePublicKey);
+  const zkCrs = _deserializeCompactPkeCrs(crs);
 
   return { zkBuilder, zkCrs };
 };

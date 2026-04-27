@@ -20,3 +20,12 @@ export const MOCKS_ZK_VERIFIER_SIGNER_ADDRESS = '0x6E12D8C87503D4287c294f2Fdef96
 /** Private key for the Mock decrypt result signer account */
 export const MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY =
   '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d' as const;
+
+/** Maximum total bits for ZK proof packing */
+export const TFHE_RS_ZK_MAX_BITS = 2048 as const;
+
+/** Size limit for safe_serialize/safe_deserialize (1 GB) */
+export const TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT = BigInt(1 << 30);
+
+/** TFHE.rs key version (invalidates cached keys) */
+export const TFHE_RS_KEY_VERSION = 2;

@@ -6,6 +6,7 @@
 /// <reference lib="webworker" />
 /* eslint-disable no-undef */
 
+import { TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT } from '../core/consts';
 import type { ZkProveWorkerRequest, ZkProveWorkerResponse } from '../core/encrypt/zkPackProveVerify.js';
 
 // TFHE module (will be initialized on first use)
@@ -41,93 +42,102 @@ function fromHexString(hexString: string): Uint8Array {
   return new Uint8Array(arr.map((byte) => parseInt(byte, 16)));
 }
 
-/**
- * Main message handler
- */
-self.onmessage = async (event: MessageEvent) => {
-  const { id, type, fheKeyHex, crsHex, items, metadata } = event.data as ZkProveWorkerRequest;
+// Guard the top-level `self` references so this file is safe to evaluate in
+// non-worker contexts (e.g. when bundlers like webpack pull the worker chunk
+// into the server bundle for SSR). The body is dead code anywhere `self` is
+// undefined, so skipping it is harmless.
+if (typeof self !== 'undefined') {
+  /**
+   * Main message handler
+   */
+  self.onmessage = async (event: MessageEvent) => {
+    const { id, type, fheKeyHex, crsHex, items, metadata } = event.data as ZkProveWorkerRequest;
 
-  if (type !== 'zkProve') {
-    self.postMessage({
-      id,
-      type: 'error',
-      error: 'Invalid message type',
-    } as ZkProveWorkerResponse);
-    return;
-  }
-
-  try {
-    // Initialize TFHE if needed
-    await initTfhe();
-
-    if (!tfheModule) {
-      throw new Error('TFHE module not initialized');
+    if (type !== 'zkProve') {
+      self.postMessage({
+        id,
+        type: 'error',
+        error: 'Invalid message type',
+      } as ZkProveWorkerResponse);
+      return;
     }
 
-    // Deserialize FHE public key and CRS from hex strings
-    const fheKeyBytes = fromHexString(fheKeyHex);
-    const crsBytes = fromHexString(crsHex);
+    try {
+      // Initialize TFHE if needed
+      await initTfhe();
 
-    const fheKey = tfheModule.TfheCompactPublicKey.deserialize(fheKeyBytes);
-    const crs = tfheModule.CompactPkeCrs.deserialize(crsBytes);
-
-    // Create builder
-    const builder = tfheModule.ProvenCompactCiphertextList.builder(fheKey);
-
-    // Pack all items (duplicate of zkPack logic)
-    for (const item of items) {
-      switch (item.utype) {
-        case 'bool':
-          builder.push_boolean(Boolean(item.data));
-          break;
-        case 'uint8':
-          builder.push_u8(Number(item.data));
-          break;
-        case 'uint16':
-          builder.push_u16(Number(item.data));
-          break;
-        case 'uint32':
-          builder.push_u32(Number(item.data));
-          break;
-        case 'uint64':
-          builder.push_u64(BigInt(item.data));
-          break;
-        case 'uint128':
-          builder.push_u128(BigInt(item.data));
-          break;
-        case 'uint160':
-          builder.push_u160(BigInt(item.data));
-          break;
-        default:
-          throw new Error(`Unsupported type: ${item.utype}`);
+      if (!tfheModule) {
+        throw new Error('TFHE module not initialized');
       }
+
+      // Deserialize FHE public key and CRS from hex strings
+      const fheKeyBytes = fromHexString(fheKeyHex);
+      const crsBytes = fromHexString(crsHex);
+
+      const fheKey = tfheModule.TfheCompactPublicKey.safe_deserialize(
+        fheKeyBytes,
+        TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT
+      );
+      const crs = tfheModule.CompactPkeCrs.safe_deserialize(crsBytes, TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT);
+
+      // Create builder
+      const builder = tfheModule.ProvenCompactCiphertextList.builder(fheKey);
+
+      // Pack all items (duplicate of zkPack logic)
+      for (const item of items) {
+        switch (item.utype) {
+          case 'bool':
+            builder.push_boolean(Boolean(item.data));
+            break;
+          case 'uint8':
+            builder.push_u8(Number(item.data));
+            break;
+          case 'uint16':
+            builder.push_u16(Number(item.data));
+            break;
+          case 'uint32':
+            builder.push_u32(Number(item.data));
+            break;
+          case 'uint64':
+            builder.push_u64(BigInt(item.data));
+            break;
+          case 'uint128':
+            builder.push_u128(BigInt(item.data));
+            break;
+          case 'uint160':
+            builder.push_u160(BigInt(item.data));
+            break;
+          default:
+            throw new Error(`Unsupported type: ${item.utype}`);
+        }
+      }
+
+      // THE HEAVY OPERATION - but in worker thread!
+      const metadataBytes = new Uint8Array(metadata);
+      const compactList = builder.build_with_proof_packed(crs, metadataBytes, 1);
+
+      // Serialize result
+      const result = compactList.safe_serialize(TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT);
+
+      // Send success response
+      self.postMessage({
+        id,
+        type: 'success',
+        result: Array.from(result),
+      } as ZkProveWorkerResponse);
+    } catch (error) {
+      // Send error response
+      self.postMessage({
+        id,
+        type: 'error',
+        error: error instanceof Error ? error.message : String(error),
+      } as ZkProveWorkerResponse);
     }
+  };
 
-    // THE HEAVY OPERATION - but in worker thread!
-    const metadataBytes = new Uint8Array(metadata);
-    const compactList = builder.build_with_proof_packed(crs, metadataBytes, 1);
-
-    // Serialize result
-    const result = compactList.serialize();
-
-    // Send success response
-    self.postMessage({
-      id,
-      type: 'success',
-      result: Array.from(result),
-    } as ZkProveWorkerResponse);
-  } catch (error) {
-    // Send error response
-    self.postMessage({
-      id,
-      type: 'error',
-      error: error instanceof Error ? error.message : String(error),
-    } as ZkProveWorkerResponse);
-  }
-};
-
-// Signal ready - send proper message format
-self.postMessage({
-  id: 'init',
-  type: 'ready',
-} as ZkProveWorkerResponse);
+  // Signal ready - send proper message format
+  self.postMessage({
+    id: 'init',
+    type: 'ready',
+  } as ZkProveWorkerResponse);
+}

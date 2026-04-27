@@ -1,6 +1,6 @@
 {
   "name": "@cofhe/mock-contracts",
-  "version": "0.4.0",
+  "version": "0.5.1",
   "description": "Mock smart contracts for testing CoFHE with FHE primitives locally",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -42,7 +42,7 @@
     "dev": "anvil --code-size-limit 100000"
   },
   "dependencies": {
-    "@fhenixprotocol/cofhe-contracts": "0.1.0",
+    "@fhenixprotocol/cofhe-contracts": "0.1.3",
     "@openzeppelin/contracts": "5.4.0",
     "@openzeppelin/contracts-upgradeable": "5.4.0"
   },

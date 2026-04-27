@@ -1,5 +1,25 @@
 # @cofhe/abi Changelog
 
+## 0.5.1
+
+### Patch Changes
+
+- Updated dependencies [342fd0f]
+  - @cofhe/sdk@0.5.1
+
+## 0.5.0
+
+### Patch Changes
+
+- a685cd4: **Breaking change: upgraded to tfhe v1.5.3.**
+  Previous cofhesdk versions will no longer function.
+- Updated dependencies [6c4084f]
+- Updated dependencies [788a6e2]
+- Updated dependencies [9a06012]
+- Updated dependencies [503536a]
+- Updated dependencies [a685cd4]
+  - @cofhe/sdk@0.5.0
+
 ## 0.4.0
 
 ### Patch Changes

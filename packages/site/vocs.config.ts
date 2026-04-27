@@ -144,6 +144,10 @@ export default defineConfig({
             text: 'EncryptedCounter.sol',
             link: '/reference/encrypted-counter-sol',
           },
+          {
+            text: 'Decryption Lifecycle',
+            link: '/reference/decryption-lifecycle',
+          },
         ],
       },
     ],
