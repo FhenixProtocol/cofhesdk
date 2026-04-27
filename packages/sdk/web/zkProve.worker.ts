@@ -74,7 +74,10 @@ if (typeof self !== 'undefined') {
       const fheKeyBytes = fromHexString(fheKeyHex);
       const crsBytes = fromHexString(crsHex);
 
-      const fheKey = tfheModule.TfheCompactPublicKey.safe_deserialize(fheKeyBytes, TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT);
+      const fheKey = tfheModule.TfheCompactPublicKey.safe_deserialize(
+        fheKeyBytes,
+        TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT
+      );
       const crs = tfheModule.CompactPkeCrs.safe_deserialize(crsBytes, TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT);
 
       // Create builder

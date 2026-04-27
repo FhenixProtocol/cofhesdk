@@ -60,7 +60,10 @@ const fromHexString = (hexString: string): Uint8Array => {
 };
 
 const _deserializeTfhePublicKey = (buff: string): TfheCompactPublicKey => {
-  return requireTfhe().TfheCompactPublicKey.safe_deserialize(fromHexString(buff), TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT);
+  return requireTfhe().TfheCompactPublicKey.safe_deserialize(
+    fromHexString(buff),
+    TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT
+  );
 };
 
 const _deserializeCompactPkeCrs = (buff: string): CompactPkeCrs => {
