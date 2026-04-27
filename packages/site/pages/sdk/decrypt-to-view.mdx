@@ -9,6 +9,10 @@ Use `decryptForView` to reveal a **confidential (encrypted)** value **locally** 
 
 Unlike [`decryptForTx`](./decrypt-to-tx.mdx), this flow does **not** return an on-chain-verifiable signature, and it is **not** meant to be published on-chain.
 
+:::note
+The reference page [Decryption Lifecycle](/reference/decryption-lifecycle) gives a deep dive into the internal decryption process and the states that may be encountered when decrypting.
+:::
+
 The flow is as follows:
 
 1. Read the [handle](/reference/dictionary#handle) from your contract (often named `ctHash` in code) (see [Reading from a contract](#reading-from-a-contract-getting-a-handle--utype)).

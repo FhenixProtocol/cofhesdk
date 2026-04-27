@@ -4,11 +4,6 @@ on:
   push:
     branches: [master]
   workflow_dispatch:
-    inputs:
-      tag:
-        description: 'npm dist-tag for the snapshot (e.g. alpha, next)'
-        required: true
-        default: 'alpha'
 
 permissions:
   id-token: write

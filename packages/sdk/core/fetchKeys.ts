@@ -1,5 +1,3 @@
-import { hardhat } from '@/chains';
-
 import { type CofheConfig, getCoFheUrlOrThrow } from './config.js';
 import { type KeysStorage } from './keyStore.js';
 

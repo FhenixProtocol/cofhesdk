@@ -6,6 +6,7 @@
 /// <reference lib="webworker" />
 /* eslint-disable no-undef */
 
+import { TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT } from '../core/consts';
 import type { ZkProveWorkerRequest, ZkProveWorkerResponse } from '../core/encrypt/zkPackProveVerify.js';
 
 // TFHE module (will be initialized on first use)
@@ -68,8 +69,8 @@ self.onmessage = async (event: MessageEvent) => {
     const fheKeyBytes = fromHexString(fheKeyHex);
     const crsBytes = fromHexString(crsHex);
 
-    const fheKey = tfheModule.TfheCompactPublicKey.deserialize(fheKeyBytes);
-    const crs = tfheModule.CompactPkeCrs.deserialize(crsBytes);
+    const fheKey = tfheModule.TfheCompactPublicKey.safe_deserialize(fheKeyBytes, TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT);
+    const crs = tfheModule.CompactPkeCrs.safe_deserialize(crsBytes, TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT);
 
     // Create builder
     const builder = tfheModule.ProvenCompactCiphertextList.builder(fheKey);
@@ -108,7 +109,7 @@ self.onmessage = async (event: MessageEvent) => {
     const compactList = builder.build_with_proof_packed(crs, metadataBytes, 1);
 
     // Serialize result
-    const result = compactList.serialize();
+    const result = compactList.safe_serialize(TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT);
 
     // Send success response
     self.postMessage({

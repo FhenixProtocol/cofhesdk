@@ -88,7 +88,7 @@ export type {
 } from './encrypt/zkPackProveVerify.js';
 export { zkProveWithWorker } from './encrypt/zkPackProveVerify.js';
 
-// Contract addresses
+// Consts (contract addresses, serialized size limits)
 export {
   TASK_MANAGER_ADDRESS,
   MOCKS_ZK_VERIFIER_ADDRESS,
@@ -97,6 +97,8 @@ export {
   MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY,
   MOCKS_THRESHOLD_NETWORK_ADDRESS,
   TEST_BED_ADDRESS,
+  TFHE_RS_ZK_MAX_BITS,
+  TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT,
 } from './consts.js';
 
 // Decrypt result verification

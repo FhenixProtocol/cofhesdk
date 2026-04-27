@@ -1,6 +1,7 @@
-import { CofheError, CofheErrorCode } from '../error.js';
-import { type EncryptableItem, FheTypes } from '../types.js';
-import { toBigIntOrThrow, validateBigIntInRange, toHexString, hexToBytes } from '../utils.js';
+import { TFHE_RS_ZK_MAX_BITS, TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT } from '../consts';
+import { CofheError, CofheErrorCode } from '../error';
+import { type EncryptableItem, FheTypes } from '../types';
+import { toBigIntOrThrow, validateBigIntInRange, toHexString, hexToBytes } from '../utils';
 
 // ===== TYPES =====
 
@@ -52,21 +53,12 @@ export type VerifyResult = {
 };
 
 export type ZkProvenCiphertextList = {
-  serialize(): Uint8Array;
+  safe_serialize(serialized_size_limit: bigint): Uint8Array;
 };
 
 export type ZkCompactPkeCrs = {
   free(): void;
-  serialize(compress: boolean): Uint8Array;
   safe_serialize(serialized_size_limit: bigint): Uint8Array;
-};
-
-export type ZkCompactPkeCrsConstructor = {
-  deserialize(buffer: Uint8Array): ZkCompactPkeCrs;
-  safe_deserialize(buffer: Uint8Array, serialized_size_limit: bigint): ZkCompactPkeCrs;
-  from_config(config: unknown, max_num_bits: number): ZkCompactPkeCrs;
-  deserialize_from_public_params(buffer: Uint8Array): ZkCompactPkeCrs;
-  safe_deserialize_from_public_params(buffer: Uint8Array, serialized_size_limit: bigint): ZkCompactPkeCrs;
 };
 
 export type ZkCiphertextListBuilder = {
@@ -98,7 +90,6 @@ export const MAX_UINT64: bigint = 18446744073709551615n; // 2^64 - 1
 export const MAX_UINT128: bigint = 340282366920938463463374607431768211455n; // 2^128 - 1
 export const MAX_UINT256: bigint = 115792089237316195423570985008687907853269984665640564039457584007913129640319n; // 2^256 - 1
 export const MAX_UINT160: bigint = 1461501637330902918203684832716283019655932542975n; // 2^160 - 1
-export const MAX_ENCRYPTABLE_BITS: number = 2048;
 
 // ===== CORE FUNCTIONS =====
 
@@ -174,14 +165,14 @@ export const zkPack = (items: EncryptableItem[], builder: ZkCiphertextListBuilde
     }
   }
 
-  if (totalBits > MAX_ENCRYPTABLE_BITS) {
+  if (totalBits > TFHE_RS_ZK_MAX_BITS) {
     throw new CofheError({
       code: CofheErrorCode.ZkPackFailed,
-      message: `Total bits ${totalBits} exceeds ${MAX_ENCRYPTABLE_BITS}`,
-      hint: `Ensure that the total bits of the items to encrypt does not exceed ${MAX_ENCRYPTABLE_BITS}`,
+      message: `Total bits ${totalBits} exceeds ${TFHE_RS_ZK_MAX_BITS}`,
+      hint: `Ensure that the total bits of the items to encrypt does not exceed ${TFHE_RS_ZK_MAX_BITS}`,
       context: {
         totalBits,
-        maxBits: MAX_ENCRYPTABLE_BITS,
+        maxBits: TFHE_RS_ZK_MAX_BITS,
         items,
       },
     });
@@ -231,7 +222,7 @@ export const zkProve = async (
         1 // ZkComputeLoad.Verify
       );
 
-      resolve(compactList.serialize());
+      resolve(compactList.safe_serialize(TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT));
     }, 0);
   });
 };
