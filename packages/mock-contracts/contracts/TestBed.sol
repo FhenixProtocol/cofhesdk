@@ -79,10 +79,10 @@ contract TestBed {
 
   /// @notice Requests decryption of `eNumber`.
   /// @dev In real CoFHE this is asynchronous; in mocks it is simulated.
-  ///      The standalone `FHE.decrypt(...)` helper was removed in
-  ///      @fhenixprotocol/cofhe-contracts 0.1.3, so we now go through the
-  ///      task manager interface directly.
   function decrypt() public {
+    // The standalone `FHE.decrypt(...)` helper was removed in
+    // fhenixprotocol/cofhe-contracts 0.1.3, so we now go through the
+    // task manager interface directly.
     ITaskManager(TASK_MANAGER_ADDRESS).createDecryptTask(uint256(numberHash), msg.sender);
   }
 
