@@ -37,16 +37,16 @@
   },
   "dependencies": {
     "@cofhe/sdk": "workspace:*",
-    "abitype": "^1.2.3"
+    "abitype": "1.2.3"
   },
   "devDependencies": {
     "@cofhe/eslint-config": "workspace:*",
     "@cofhe/tsconfig": "workspace:*",
-    "@types/node": "^20.0.0",
-    "eslint": "^8.57.0",
-    "tsup": "^8.0.2",
+    "@types/node": "20.19.15",
+    "eslint": "8.57.1",
+    "tsup": "8.5.0",
     "typescript": "5.5.4",
-    "vitest": "^3.0.0"
+    "vitest": "3.2.4"
   },
   "publishConfig": {
     "access": "public",

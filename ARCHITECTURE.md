@@ -643,5 +643,5 @@ This allows developers to:
 
 **Tests:**
 
-- `packages/hardhat-plugin-test/test/decryptForTx-builder.test.ts` - Builder tests
-- `packages/hardhat-plugin-test/test/decryptForTx-publish.test.ts` - Publish flow test
+- `test/hardhat-plugin-test/test/decryptForTx-builder.test.ts` - Builder tests
+- `test/hardhat-plugin-test/test/decryptForTx-publish.test.ts` - Publish flow test

@@ -14,6 +14,9 @@ jobs:
     strategy:
       matrix:
         include:
+          - name: Dependency Pins
+            command: run check:pinned-deps
+            needs-foundry: false
           - name: Linting
             command: lint
             needs-foundry: true
@@ -41,7 +44,7 @@ jobs:
           node-version: 20.x
 
       - name: Install Dependencies
-        run: pnpm i
+        run: pnpm i --frozen-lockfile
 
       - name: Install Foundry
         if: matrix.needs-foundry == true
