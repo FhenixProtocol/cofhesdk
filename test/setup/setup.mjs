@@ -26,6 +26,7 @@ import { createHash } from 'node:crypto';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getContractAddress } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REGISTRY_PATH = resolve(__dirname, 'src/deployments.json');
@@ -155,6 +156,15 @@ const ALL_CHAINS = [...TESTNET_CHAINS, LOCALCOFHE_CHAIN];
 const HARDHAT_MOCK_RPC = 'http://127.0.0.1:8546';
 const HARDHAT_MOCK_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 const HARDHAT_MOCK_STARTING_BALANCE_ETH = '10000';
+const MOCKS_ZK_VERIFIER_ADDRESS = '0x0000000000000000000000000000000000005001';
+const MOCKS_THRESHOLD_NETWORK_ADDRESS = '0x0000000000000000000000000000000000005002';
+const TEST_BED_ADDRESS = '0x0000000000000000000000000000000000005003';
+const TASK_MANAGER_ADDRESS = '0xeA30c4B8b44078Bbf8a6ef5b9f1eC1626C7848D9';
+const MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY =
+  '0x6C8D7F768A6BB4AAFE85E8A2F5A9680355239C7E14646ED62B044E39DE154512';
+const MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY =
+  '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d';
+const MOCKS_ZK_VERIFIER_FUNDING_ETH = '10';
 
 const privateKey = process.env.TEST_PRIVATE_KEY;
 if (!privateKey) { console.error('TEST_PRIVATE_KEY is required'); process.exit(1); }
@@ -186,6 +196,10 @@ function getBalanceEther(rpc, address) {
 
 function getHardhatMockAccount() {
   return run(`cast wallet address ${HARDHAT_MOCK_PRIVATE_KEY}`);
+}
+
+function getAccountAddress(privateKey) {
+  return privateKeyToAccount(privateKey).address;
 }
 
 const MIN_BALANCE_ETH = 0.1;
@@ -235,14 +249,43 @@ const hardhatMockBalance = getBalanceEther(HARDHAT_MOCK_RPC, hardhatMockAddress)
 const hardhatMockOutput = hardhatMockBalance === '?'
   ? `offline — starts with ${bold(HARDHAT_MOCK_STARTING_BALANCE_ETH)} ETH when Anvil is launched`
   : `${colorBalance(hardhatMockBalance)} ETH`;
+const mockDecryptSignerAddress = getAccountAddress(MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY);
+const mockDecryptSignerBalance = getBalanceEther(HARDHAT_MOCK_RPC, mockDecryptSignerAddress);
+const mockDecryptSignerOutput = mockDecryptSignerBalance === '?'
+  ? `offline — default Anvil account, starts with ${bold(HARDHAT_MOCK_STARTING_BALANCE_ETH)} ETH`
+  : `${colorBalance(mockDecryptSignerBalance)} ETH`;
+const mockZkVerifierSignerAddress = getAccountAddress(MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY);
+const mockZkVerifierSignerBalance = getBalanceEther(HARDHAT_MOCK_RPC, mockZkVerifierSignerAddress);
+const mockZkVerifierSignerOutput = mockZkVerifierSignerBalance === '?'
+  ? `offline — funded to ${bold(MOCKS_ZK_VERIFIER_FUNDING_ETH)} ETH by deployMocks`
+  : `${colorBalance(mockZkVerifierSignerBalance)} ETH`;
 
 console.log(`\nHardhat (Mock) account ${bold(hardhatMockAddress)}:`);
 console.log(`  Balance: ${hardhatMockOutput}`);
 console.log("  Used by integration-matrix Anvil setup and Hardhat mock test flows.");
 
+console.log(`\nMock accounts on Hardhat (${bold('deployMocks')}):`);
+console.log(`  Owner / deployer          ${bold(hardhatMockAddress)}  ${hardhatMockOutput}`);
+console.log(`  Decrypt result signer     ${bold(mockDecryptSignerAddress)}  ${mockDecryptSignerOutput}`);
+console.log(`  ZK verifier signer        ${bold(mockZkVerifierSignerAddress)}  ${mockZkVerifierSignerOutput}`);
+console.log(`  Fixed contracts           TaskManager ${TASK_MANAGER_ADDRESS}`);
+console.log(`                            MockZkVerifier ${MOCKS_ZK_VERIFIER_ADDRESS}`);
+console.log(`                            MockThresholdNetwork ${MOCKS_THRESHOLD_NETWORK_ADDRESS}`);
+console.log(`                            TestBed ${TEST_BED_ADDRESS}`);
+
 const parsedHardhatBalance = parseFloat(hardhatMockBalance);
 if (!isNaN(parsedHardhatBalance) && parsedHardhatBalance < MIN_BALANCE_ETH) {
   underfunded.push({ label: 'Hardhat (Mock)', address: hardhatMockAddress, balance: hardhatMockBalance });
+}
+
+const parsedMockDecryptSignerBalance = parseFloat(mockDecryptSignerBalance);
+if (!isNaN(parsedMockDecryptSignerBalance) && parsedMockDecryptSignerBalance < MIN_BALANCE_ETH) {
+  underfunded.push({ label: 'Hardhat decrypt signer', address: mockDecryptSignerAddress, balance: mockDecryptSignerBalance });
+}
+
+const parsedMockZkVerifierSignerBalance = parseFloat(mockZkVerifierSignerBalance);
+if (!isNaN(parsedMockZkVerifierSignerBalance) && parsedMockZkVerifierSignerBalance < MIN_BALANCE_ETH) {
+  underfunded.push({ label: 'Hardhat ZK verifier signer', address: mockZkVerifierSignerAddress, balance: mockZkVerifierSignerBalance });
 }
 
 if (underfunded.length) {
