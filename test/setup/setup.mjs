@@ -152,6 +152,9 @@ loadEnv();
 const args = parseArgs();
 
 const ALL_CHAINS = [...TESTNET_CHAINS, LOCALCOFHE_CHAIN];
+const HARDHAT_MOCK_RPC = 'http://127.0.0.1:8546';
+const HARDHAT_MOCK_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
+const HARDHAT_MOCK_STARTING_BALANCE_ETH = '10000';
 
 const privateKey = process.env.TEST_PRIVATE_KEY;
 if (!privateKey) { console.error('TEST_PRIVATE_KEY is required'); process.exit(1); }
@@ -175,10 +178,14 @@ function colorBalance(ethStr) {
 
 function getBalanceEther(rpc, address) {
   try {
-    return run(`cast balance ${address} --ether --rpc-url ${rpc}`);
+    return run(`cast balance ${address} --ether --rpc-url ${rpc} 2>/dev/null`);
   } catch {
     return '?';
   }
+}
+
+function getHardhatMockAccount() {
+  return run(`cast wallet address ${HARDHAT_MOCK_PRIVATE_KEY}`);
 }
 
 const MIN_BALANCE_ETH = 0.1;
@@ -221,6 +228,21 @@ for (const section of fundingSections) {
   for (const entry of section.entries) {
     console.log(`  ${entry.label.padEnd(labelWidth)}: ${entry.output}`);
   }
+}
+
+const hardhatMockAddress = getHardhatMockAccount();
+const hardhatMockBalance = getBalanceEther(HARDHAT_MOCK_RPC, hardhatMockAddress);
+const hardhatMockOutput = hardhatMockBalance === '?'
+  ? `offline — starts with ${bold(HARDHAT_MOCK_STARTING_BALANCE_ETH)} ETH when Anvil is launched`
+  : `${colorBalance(hardhatMockBalance)} ETH`;
+
+console.log(`\nHardhat (Mock) account ${bold(hardhatMockAddress)}:`);
+console.log(`  Balance: ${hardhatMockOutput}`);
+console.log("  Used by integration-matrix Anvil setup and Hardhat mock test flows.");
+
+const parsedHardhatBalance = parseFloat(hardhatMockBalance);
+if (!isNaN(parsedHardhatBalance) && parsedHardhatBalance < MIN_BALANCE_ETH) {
+  underfunded.push({ label: 'Hardhat (Mock)', address: hardhatMockAddress, balance: hardhatMockBalance });
 }
 
 if (underfunded.length) {
