@@ -25,6 +25,7 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { getContractAddress } from 'viem';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REGISTRY_PATH = resolve(__dirname, 'src/deployments.json');
@@ -35,13 +36,13 @@ const PRIMARY_REGISTRY_PATH = resolve(__dirname, 'src/primaryTestChainRegistry.j
 function loadEnv() {
   const envPath = resolve(__dirname, '../../.env');
   if (!existsSync(envPath)) return;
-  for (const line of readFileSync(envPath, 'utf8').split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eq = trimmed.indexOf('=');
-    if (eq === -1) continue;
-    const key = trimmed.slice(0, eq).trim();
-    if (!process.env[key]) process.env[key] = trimmed.slice(eq + 1).trim();
+    for (const line of readFileSync(envPath, 'utf8').split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const eq = trimmed.indexOf('=');
+      if (eq === -1) continue;
+      const key = trimmed.slice(0, eq).trim();
+      if (!process.env[key]) process.env[key] = trimmed.slice(eq + 1).trim();
   }
 }
 
@@ -90,13 +91,32 @@ function hasCodeOnChain(rpc, address) {
 }
 
 function deploy(rpc, privateKeyEnvName, contractName) {
-  const out = run(
-    `forge create contracts/${contractName}.sol:${contractName} --rpc-url ${rpc} --private-key $${privateKeyEnvName} --broadcast`
-  );
-  const addressMatch = out.match(/Deployed to:\s*(0x[0-9a-fA-F]+)/);
-  const txMatch = out.match(/Transaction hash:\s*(0x[0-9a-fA-F]+)/);
-  if (!addressMatch) throw new Error(`Could not parse deployed address from forge output:\n${out}`);
-  return { address: addressMatch[1], txHash: txMatch?.[1] };
+  // try {
+    const out = run(
+      `forge create contracts/${contractName}.sol:${contractName} --rpc-url ${rpc} --private-key $${privateKeyEnvName} --broadcast`
+    );
+    const addressMatch = out.match(/Deployed to:\s*(0x[0-9a-fA-F]+)/);
+    const txMatch = out.match(/Transaction hash:\s*(0x[0-9a-fA-F]+)/);
+    if (!addressMatch) throw new Error(`Could not parse deployed address from forge output:\n${out}`);
+    return { address: addressMatch[1], txHash: txMatch?.[1] };
+  // }
+  //  catch (error) {
+  //   const message = error instanceof Error ? error.message : String(error);
+  //   if (!message.includes('already known')) throw error;
+
+  //   const deployer = run(`cast wallet address $${privateKeyEnvName}`);
+  //   const currentNonce = BigInt(run(`cast nonce ${deployer} --rpc-url ${rpc}`));
+  //   const candidateNonces = currentNonce > 0n ? [currentNonce - 1n, currentNonce] : [currentNonce];
+
+  //   for (const nonce of candidateNonces) {
+  //     const address = getContractAddress({ from: deployer, nonce });
+  //     if (hasCodeOnChain(rpc, address)) {
+  //       return { address, txHash: undefined };
+  //     }
+  //   }
+
+  //   throw error;
+  // }
 }
 
 function getBalance(rpc, address) {
