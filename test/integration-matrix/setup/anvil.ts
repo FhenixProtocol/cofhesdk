@@ -135,6 +135,7 @@ async function printMatrix(matrixChain?: string, matrixEnv?: string): Promise<vo
 
 export async function teardown(): Promise<void> {
   if (anvilProcess) {
+    // why does it try to kill Anvil?
     console.log('[integration-matrix] Stopping Anvil...');
     anvilProcess.kill('SIGTERM');
     anvilProcess = undefined;
