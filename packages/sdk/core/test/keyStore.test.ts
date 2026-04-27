@@ -2,8 +2,9 @@
 /* eslint-disable no-undef */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { TFHE_RS_KEY_VERSION } from './consts';
+
 import { createKeysStore, type KeysStore, type KeysStorage } from '../keyStore';
+import { TFHE_RS_KEY_VERSION } from 'core/consts';
 
 // Mock the storage module
 const mockStorage = {

@@ -14,9 +14,17 @@ const SUBMIT_RETRY_INTERVAL_MS = 1000; // 1 second
 type DecryptSubmitResponseV2 = {
   request_id: string | null;
   status?: string;
+  is_succeed?: boolean;
+  decrypted?: number[];
+  signature?: string;
+  encryption_type?: number;
   error_message?: string | null;
   message?: string;
 };
+
+type DecryptSubmitResultV2 =
+  | { kind: 'request_id'; requestId: string }
+  | { kind: 'completed'; decryptedValue: bigint; signature: `0x${string}` };
 
 type DecryptStatusResponseV2 = {
   request_id: string;
@@ -55,9 +63,62 @@ function assertDecryptSubmitResponseV2(value: unknown): DecryptSubmitResponseV2 
   return {
     request_id: v.request_id ?? null,
     status: typeof v.status === 'string' ? v.status : undefined,
+    is_succeed: typeof v.is_succeed === 'boolean' ? v.is_succeed : undefined,
+    decrypted: Array.isArray(v.decrypted) ? (v.decrypted as number[]) : undefined,
+    signature: typeof v.signature === 'string' ? v.signature : undefined,
+    encryption_type: typeof v.encryption_type === 'number' ? v.encryption_type : undefined,
     error_message: typeof v.error_message === 'string' || v.error_message === null ? v.error_message : undefined,
     message: typeof v.message === 'string' ? v.message : undefined,
   };
+}
+
+function parseCompletedDecryptResponseV2(params: {
+  value: Pick<DecryptStatusResponseV2, 'decrypted' | 'signature' | 'error_message' | 'is_succeed'>;
+  thresholdNetworkUrl: string;
+  requestId?: string | null;
+}): { decryptedValue: bigint; signature: `0x${string}` } {
+  const { value, thresholdNetworkUrl, requestId } = params;
+
+  if (value.is_succeed === false) {
+    const errorMessage = value.error_message || 'Unknown error';
+    throw new CofheError({
+      code: CofheErrorCode.DecryptFailed,
+      message: `decrypt request failed: ${errorMessage}`,
+      context: {
+        thresholdNetworkUrl,
+        requestId,
+        response: value,
+      },
+    });
+  }
+
+  if (value.error_message) {
+    throw new CofheError({
+      code: CofheErrorCode.DecryptFailed,
+      message: `decrypt request failed: ${value.error_message}`,
+      context: {
+        thresholdNetworkUrl,
+        requestId,
+        response: value,
+      },
+    });
+  }
+
+  if (!Array.isArray(value.decrypted)) {
+    throw new CofheError({
+      code: CofheErrorCode.DecryptReturnedNull,
+      message: 'decrypt completed but response missing <decrypted> byte array',
+      context: {
+        thresholdNetworkUrl,
+        requestId,
+        response: value,
+      },
+    });
+  }
+
+  const decryptedValue = parseDecryptedBytesToBigInt(value.decrypted);
+  const signature = normalizeTnSignature(value.signature);
+  return { decryptedValue, signature };
 }
 
 function assertDecryptStatusResponseV2(value: unknown): DecryptStatusResponseV2 {
@@ -118,7 +179,7 @@ async function submitDecryptRequestV2(
   permission: Permission | null,
   overallStartTime: number,
   onPoll?: DecryptPollCallbackFunction
-): Promise<string> {
+): Promise<DecryptSubmitResultV2> {
   const body: {
     ct_tempkey: string;
     host_chain_id: number;
@@ -202,8 +263,19 @@ async function submitDecryptRequestV2(
 
       submitResponse = assertDecryptSubmitResponseV2(rawJson);
 
+      if (Array.isArray(submitResponse.decrypted) && typeof submitResponse.signature === 'string') {
+        return {
+          kind: 'completed',
+          ...parseCompletedDecryptResponseV2({
+            value: submitResponse,
+            thresholdNetworkUrl,
+            requestId: submitResponse.request_id,
+          }),
+        };
+      }
+
       if (submitResponse.request_id) {
-        return submitResponse.request_id;
+        return { kind: 'request_id', requestId: submitResponse.request_id };
       }
     }
 
@@ -363,46 +435,11 @@ async function pollDecryptStatusV2(
     const statusResponse = assertDecryptStatusResponseV2(rawJson);
 
     if (statusResponse.status === 'COMPLETED') {
-      if (statusResponse.is_succeed === false) {
-        const errorMessage = statusResponse.error_message || 'Unknown error';
-        throw new CofheError({
-          code: CofheErrorCode.DecryptFailed,
-          message: `decrypt request failed: ${errorMessage}`,
-          context: {
-            thresholdNetworkUrl,
-            requestId,
-            statusResponse,
-          },
-        });
-      }
-
-      if (statusResponse.error_message) {
-        throw new CofheError({
-          code: CofheErrorCode.DecryptFailed,
-          message: `decrypt request failed: ${statusResponse.error_message}`,
-          context: {
-            thresholdNetworkUrl,
-            requestId,
-            statusResponse,
-          },
-        });
-      }
-
-      if (!Array.isArray(statusResponse.decrypted)) {
-        throw new CofheError({
-          code: CofheErrorCode.DecryptReturnedNull,
-          message: 'decrypt completed but response missing <decrypted> byte array',
-          context: {
-            thresholdNetworkUrl,
-            requestId,
-            statusResponse,
-          },
-        });
-      }
-
-      const decryptedValue = parseDecryptedBytesToBigInt(statusResponse.decrypted);
-      const signature = normalizeTnSignature(statusResponse.signature);
-      return { decryptedValue, signature };
+      return parseCompletedDecryptResponseV2({
+        value: statusResponse,
+        thresholdNetworkUrl,
+        requestId,
+      });
     }
 
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
@@ -429,7 +466,7 @@ export async function tnDecryptV2(params: {
 }): Promise<{ decryptedValue: bigint; signature: `0x${string}` }> {
   const { thresholdNetworkUrl, ctHash, chainId, permission, onPoll } = params;
   const overallStartTime = Date.now();
-  const requestId = await submitDecryptRequestV2(
+  const submitResult = await submitDecryptRequestV2(
     thresholdNetworkUrl,
     ctHash,
     chainId,
@@ -437,5 +474,10 @@ export async function tnDecryptV2(params: {
     overallStartTime,
     onPoll
   );
-  return await pollDecryptStatusV2(thresholdNetworkUrl, requestId, overallStartTime, onPoll);
+
+  if (submitResult.kind === 'completed') {
+    return submitResult;
+  }
+
+  return await pollDecryptStatusV2(thresholdNetworkUrl, submitResult.requestId, overallStartTime, onPoll);
 }

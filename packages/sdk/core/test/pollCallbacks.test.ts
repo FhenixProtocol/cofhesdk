@@ -188,6 +188,42 @@ describe('decrypt polling callbacks', () => {
     );
   });
 
+  it('tnDecryptV2 returns immediately when submit responds with cached completed payload', async () => {
+    const onPoll = vi.fn();
+
+    const fetchMock = vi.fn(async (url: string, options?: any) => {
+      if (url === `${thresholdNetworkUrl}/v2/decrypt` && options?.method === 'POST') {
+        return makeMockResponse({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            request_id: 'req-cached',
+            decrypted: [0x00, 0x00, 0x00, 0x5c],
+            signature: `${'01'.repeat(32)}${'02'.repeat(32)}1b`,
+            encryption_type: 4,
+          }),
+        });
+      }
+
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+
+    global.fetch = fetchMock as any;
+
+    const result = await tnDecryptV2({
+      ctHash: 1n,
+      chainId: 1,
+      permission: null,
+      thresholdNetworkUrl,
+      onPoll,
+    });
+
+    expect(result.decryptedValue).toBe(92n);
+    expect(result.signature.startsWith('0x')).toBe(true);
+    expect(onPoll).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it('tnDecryptV2 uses one timeout budget across submit retries and polling', async () => {
     const onPoll = vi.fn();
 
@@ -420,6 +456,44 @@ describe('decrypt polling callbacks', () => {
         attemptIndex: 0,
       })
     );
+  });
+
+  it('tnSealOutputV2 returns immediately when submit responds with cached completed payload', async () => {
+    const onPoll = vi.fn();
+
+    const fetchMock = vi.fn(async (url: string, options?: any) => {
+      if (url === `${thresholdNetworkUrl}/v2/sealoutput` && options?.method === 'POST') {
+        return makeMockResponse({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            request_id: 'req-seal-cached',
+            sealed_data: [1, 2, 3],
+            ephemeral_public_key: [4, 5],
+            nonce: [6],
+            encryption_type: 4,
+          }),
+        });
+      }
+
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+
+    global.fetch = fetchMock as any;
+
+    const sealed = await tnSealOutputV2({
+      ctHash: 1n,
+      chainId: 1,
+      permission: {} as any,
+      thresholdNetworkUrl,
+      onPoll,
+    });
+
+    expect(Array.from(sealed.data)).toEqual([1, 2, 3]);
+    expect(Array.from(sealed.public_key)).toEqual([4, 5]);
+    expect(Array.from(sealed.nonce)).toEqual([6]);
+    expect(onPoll).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('tnSealOutputV2 uses one timeout budget across submit retries and polling', async () => {

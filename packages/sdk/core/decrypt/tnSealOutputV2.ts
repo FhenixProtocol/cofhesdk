@@ -14,9 +14,24 @@ const SUBMIT_RETRY_INTERVAL_MS = 1000; // 1 second
 type SealOutputSubmitResponse = {
   request_id: string | null;
   status?: string;
+  is_succeed?: boolean;
+  sealed?: {
+    data: number[];
+    public_key: number[];
+    nonce: number[];
+  };
+  sealed_data?: number[];
+  ephemeral_public_key?: number[];
+  nonce?: number[];
+  signature?: string;
+  encryption_type?: number;
   error_message?: string | null;
   message?: string;
 };
+
+type SealOutputSubmitResult =
+  | { kind: 'request_id'; requestId: string }
+  | { kind: 'completed'; sealed: EthEncryptedData };
 
 type SealOutputStatusResponse = {
   request_id: string;
@@ -59,6 +74,59 @@ function convertSealedData(sealed: SealOutputStatusResponse['sealed']): EthEncry
   };
 }
 
+function getSealedDataFromSubmitResponse(
+  value: SealOutputSubmitResponse
+): SealOutputStatusResponse['sealed'] | undefined {
+  if (value.sealed) return value.sealed;
+
+  if (Array.isArray(value.sealed_data) && Array.isArray(value.ephemeral_public_key) && Array.isArray(value.nonce)) {
+    return {
+      data: value.sealed_data,
+      public_key: value.ephemeral_public_key,
+      nonce: value.nonce,
+    };
+  }
+
+  return undefined;
+}
+
+function parseCompletedSealOutputResponse(params: {
+  value: Pick<SealOutputStatusResponse, 'sealed' | 'error_message' | 'is_succeed'>;
+  thresholdNetworkUrl: string;
+  requestId?: string | null;
+}): EthEncryptedData {
+  const { value, thresholdNetworkUrl, requestId } = params;
+
+  if (value.is_succeed === false) {
+    const errorMessage = value.error_message || 'Unknown error';
+    throw new CofheError({
+      code: CofheErrorCode.SealOutputFailed,
+      message: `sealOutput request failed: ${errorMessage}`,
+      context: {
+        thresholdNetworkUrl,
+        requestId,
+        response: value,
+      },
+    });
+  }
+
+  const sealed = 'sealed' in value ? value.sealed : getSealedDataFromSubmitResponse(value as SealOutputSubmitResponse);
+
+  if (!sealed) {
+    throw new CofheError({
+      code: CofheErrorCode.SealOutputReturnedNull,
+      message: `sealOutput request completed but returned no sealed data`,
+      context: {
+        thresholdNetworkUrl,
+        requestId,
+        response: value,
+      },
+    });
+  }
+
+  return convertSealedData(sealed);
+}
+
 /**
  * Submits a sealoutput request to the v2 API and returns the request_id
  */
@@ -69,7 +137,7 @@ async function submitSealOutputRequest(
   permission: Permission,
   overallStartTime: number,
   onPoll?: DecryptPollCallbackFunction
-): Promise<string> {
+): Promise<SealOutputSubmitResult> {
   const body = {
     ct_tempkey: BigInt(ctHash).toString(16).padStart(64, '0'),
     host_chain_id: chainId,
@@ -143,8 +211,19 @@ async function submitSealOutputRequest(
         });
       }
 
+      if (getSealedDataFromSubmitResponse(submitResponse)) {
+        return {
+          kind: 'completed',
+          sealed: parseCompletedSealOutputResponse({
+            value: submitResponse,
+            thresholdNetworkUrl,
+            requestId: submitResponse.request_id,
+          }),
+        };
+      }
+
       if (submitResponse.request_id) {
-        return submitResponse.request_id;
+        return { kind: 'request_id', requestId: submitResponse.request_id };
       }
     }
 
@@ -308,35 +387,11 @@ async function pollSealOutputStatus(
 
     // Check if completed
     if (statusResponse.status === 'COMPLETED') {
-      // Check if succeeded
-      if (statusResponse.is_succeed === false) {
-        const errorMessage = statusResponse.error_message || 'Unknown error';
-        throw new CofheError({
-          code: CofheErrorCode.SealOutputFailed,
-          message: `sealOutput request failed: ${errorMessage}`,
-          context: {
-            thresholdNetworkUrl,
-            requestId,
-            statusResponse,
-          },
-        });
-      }
-
-      // Check if sealed data exists
-      if (!statusResponse.sealed) {
-        throw new CofheError({
-          code: CofheErrorCode.SealOutputReturnedNull,
-          message: `sealOutput request completed but returned no sealed data`,
-          context: {
-            thresholdNetworkUrl,
-            requestId,
-            statusResponse,
-          },
-        });
-      }
-
-      // Convert and return the sealed data
-      return convertSealedData(statusResponse.sealed);
+      return parseCompletedSealOutputResponse({
+        value: statusResponse,
+        thresholdNetworkUrl,
+        requestId,
+      });
     }
 
     // Still processing, wait before next poll
@@ -366,7 +421,7 @@ export async function tnSealOutputV2(params: {
   const overallStartTime = Date.now();
 
   // Step 1: Submit the request and get request_id
-  const requestId = await submitSealOutputRequest(
+  const submitResult = await submitSealOutputRequest(
     thresholdNetworkUrl,
     ctHash,
     chainId,
@@ -375,6 +430,10 @@ export async function tnSealOutputV2(params: {
     onPoll
   );
 
+  if (submitResult.kind === 'completed') {
+    return submitResult.sealed;
+  }
+
   // Step 2: Poll for status until completed
-  return await pollSealOutputStatus(thresholdNetworkUrl, requestId, overallStartTime, onPoll);
+  return await pollSealOutputStatus(thresholdNetworkUrl, submitResult.requestId, overallStartTime, onPoll);
 }
