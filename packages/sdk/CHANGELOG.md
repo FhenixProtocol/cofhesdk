@@ -1,5 +1,37 @@
 # @cofhe/sdk Changelog
 
+## 0.5.0
+
+### Minor Changes
+
+- 788a6e2: Add `onPoll` callback support for decrypt polling (tx + view) so consumers can observe poll progress.
+
+  - SDK decrypt helpers accept `onPoll` and emit `{ operation, requestId, attemptIndex, elapsedMs, intervalMs, timeoutMs }` once per poll attempt.
+  - React wiring supports passing the callback end-to-end.
+  - Docs updated with usage examples.
+
+- 9a06012: Tighten permit validation and treat invalid permits as missing.
+
+  - SDK: `PermitUtils.validate` now enforces schema + signed + not-expired (use `PermitUtils.validateSchema` for schema-only validation).
+  - SDK: `ValidationResult.error` is now a typed union (`'invalid-schema' | 'expired' | 'not-signed' | null`).
+  - React: rename `disabledDueToMissingPermit` to `disabledDueToMissingValidPermit` in read/decrypt hooks and token balance helpers, and disable reads when the active permit is invalid.
+
+### Patch Changes
+
+- 6c4084f: Add submit retries to the threshold-network decrypt flows used by both `decryptForTx` and `decryptForView` when the backend responds with `204 No Content` before a `request_id` is available.
+
+  - When the submit endpoint returns `204` without a body, the SDK now retries until it receives a `request_id` or the existing poll timeout budget is exhausted.
+  - These submit retries now emit `onPoll` callbacks, so consumers can observe retry progress before a request id exists.
+  - Submit retries and status polling now share the same overall timeout budget.
+
+- 503536a: Improve logging ergonomics across React + web SDK.
+
+  - Add a configurable internal logger to `@cofhe/react` via `createCofheConfig({ react: { logger } })`.
+  - Make `@cofhe/sdk` `createWebStorage` logging opt-in via `createWebStorage({ enableLog })`.
+
+- a685cd4: **Breaking change: upgraded to tfhe v1.5.3.**
+  Previous cofhesdk versions will no longer function.
+
 ## 0.4.0
 
 ### Patch Changes
