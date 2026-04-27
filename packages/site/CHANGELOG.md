@@ -1,5 +1,15 @@
 # @cofhe/site
 
+## 0.5.0
+
+### Minor Changes
+
+- 788a6e2: Add `onPoll` callback support for decrypt polling (tx + view) so consumers can observe poll progress.
+
+  - SDK decrypt helpers accept `onPoll` and emit `{ operation, requestId, attemptIndex, elapsedMs, intervalMs, timeoutMs }` once per poll attempt.
+  - React wiring supports passing the callback end-to-end.
+  - Docs updated with usage examples.
+
 ## 0.4.0
 
 ### Minor Changes
