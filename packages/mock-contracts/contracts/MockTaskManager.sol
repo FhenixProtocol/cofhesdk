@@ -697,4 +697,29 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   function isPubliclyAllowed(uint256 ctHash) external view returns (bool) {
     revert NotImplemented();
   }
+
+  function verifyDecryptResultBatch(
+    uint256[] calldata ctHashes,
+    uint256[] calldata results,
+    bytes[] calldata signatures
+  ) external view returns (bool) {
+    for (uint256 i = 0; i < ctHashes.length; i++) {
+      if (!_verifyDecryptResult(ctHashes[i], results[i], signatures[i], true)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function verifyDecryptResultBatchSafe(
+    uint256[] calldata ctHashes,
+    uint256[] calldata results,
+    bytes[] calldata signatures
+  ) external view returns (bool[] memory) {
+    bool[] memory out = new bool[](ctHashes.length);
+    for (uint256 i = 0; i < ctHashes.length; i++) {
+      out[i] = _verifyDecryptResult(ctHashes[i], results[i], signatures[i], false);
+    }
+    return out;
+  }
 }
