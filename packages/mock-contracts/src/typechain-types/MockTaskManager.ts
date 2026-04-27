@@ -109,6 +109,8 @@ export interface MockTaskManagerInterface extends Interface {
       | 'setVerifierSigner'
       | 'sliceString'
       | 'verifyDecryptResult'
+      | 'verifyDecryptResultBatch'
+      | 'verifyDecryptResultBatchSafe'
       | 'verifyDecryptResultSafe'
       | 'verifyInput'
   ): FunctionFragment;
@@ -163,6 +165,14 @@ export interface MockTaskManagerInterface extends Interface {
   encodeFunctionData(functionFragment: 'sliceString', values: [string, BigNumberish, BigNumberish]): string;
   encodeFunctionData(functionFragment: 'verifyDecryptResult', values: [BigNumberish, BigNumberish, BytesLike]): string;
   encodeFunctionData(
+    functionFragment: 'verifyDecryptResultBatch',
+    values: [BigNumberish[], BigNumberish[], BytesLike[]]
+  ): string;
+  encodeFunctionData(
+    functionFragment: 'verifyDecryptResultBatchSafe',
+    values: [BigNumberish[], BigNumberish[], BytesLike[]]
+  ): string;
+  encodeFunctionData(
     functionFragment: 'verifyDecryptResultSafe',
     values: [BigNumberish, BigNumberish, BytesLike]
   ): string;
@@ -206,6 +216,8 @@ export interface MockTaskManagerInterface extends Interface {
   decodeFunctionResult(functionFragment: 'setVerifierSigner', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'sliceString', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'verifyDecryptResult', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'verifyDecryptResultBatch', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'verifyDecryptResultBatchSafe', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'verifyDecryptResultSafe', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'verifyInput', data: BytesLike): Result;
 }
@@ -401,6 +413,18 @@ export interface MockTaskManager extends BaseContract {
     'view'
   >;
 
+  verifyDecryptResultBatch: TypedContractMethod<
+    [ctHashes: BigNumberish[], results: BigNumberish[], signatures: BytesLike[]],
+    [boolean],
+    'view'
+  >;
+
+  verifyDecryptResultBatchSafe: TypedContractMethod<
+    [ctHashes: BigNumberish[], results: BigNumberish[], signatures: BytesLike[]],
+    [boolean[]],
+    'view'
+  >;
+
   verifyDecryptResultSafe: TypedContractMethod<
     [ctHash: BigNumberish, result: BigNumberish, signature: BytesLike],
     [boolean],
@@ -503,6 +527,20 @@ export interface MockTaskManager extends BaseContract {
   getFunction(
     nameOrSignature: 'verifyDecryptResult'
   ): TypedContractMethod<[ctHash: BigNumberish, result: BigNumberish, signature: BytesLike], [boolean], 'view'>;
+  getFunction(
+    nameOrSignature: 'verifyDecryptResultBatch'
+  ): TypedContractMethod<
+    [ctHashes: BigNumberish[], results: BigNumberish[], signatures: BytesLike[]],
+    [boolean],
+    'view'
+  >;
+  getFunction(
+    nameOrSignature: 'verifyDecryptResultBatchSafe'
+  ): TypedContractMethod<
+    [ctHashes: BigNumberish[], results: BigNumberish[], signatures: BytesLike[]],
+    [boolean[]],
+    'view'
+  >;
   getFunction(
     nameOrSignature: 'verifyDecryptResultSafe'
   ): TypedContractMethod<[ctHash: BigNumberish, result: BigNumberish, signature: BytesLike], [boolean], 'view'>;
