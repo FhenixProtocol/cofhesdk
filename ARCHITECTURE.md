@@ -232,10 +232,10 @@ graph TD
     end
 
     subgraph Prod["🌐 PRODUCTION MODE"]
-        P1["Query Threshold Network<br/>for encrypted result"]
-        P2["Validate permission<br/>with permit"]
-        P3["Get plaintext from TN"]
-        P4["Receive TN signature<br/>in response"]
+        P1["Submit decrypt request<br/>to Threshold Network"]
+        P2["If submit returns 204/no request_id:<br/>retry submit polling"]
+        P3["Once request_id exists:<br/>poll decrypt status"]
+        P4["Receive plaintext + TN signature<br/>when request completes"]
         P5["Return DecryptForTxResult<br/>ctHash + decryptedValue + signature"]
     end
 
@@ -251,10 +251,9 @@ graph TD
     M4 --> M5
 
     P1 --> P2
-    P2 -->|allowed| P3
-    P2 -->|denied| Error
-    P3 --> P4
+    P2 --> P3
     P4 --> P5
+    P3 --> P4
 
     M5 --> End["DecryptForTxResult<br/>ready to publish"]
     P5 --> End
@@ -591,14 +590,14 @@ sequenceDiagram
 
 ## Component Interaction Matrix
 
-| Component          | Mock Mode                                                                                             | Production Mode                                                                 | Purpose                                                            |
-| ------------------ | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| **EncryptInputs**  | Uses MockZkVerifier to calculate ctHashes                                                             | Uses TFHE + ZK proofs                                                           | Generate encrypted inputs                                          |
-| **decryptForView** | Reads from MockZkVerifier storage + checks MockACL, returns sealed plaintext, unseals with permit key | Queries Threshold Network for sealed plaintext, unseals with permit sealing key | View calls (read & unseal plaintext, no proof)                     |
-| **decryptForTx**   | Calls MockThresholdNetwork with permission check, gets plaintext + signature                          | Queries Threshold Network for plaintext + signature                             | Transaction submission (needs signature for on-chain verification) |
-| **Permits**        | Stored in-memory + validated against MockACL                                                          | Stored on-chain + validated by TN                                               | Access control mechanism                                           |
-| **Signatures**     | Mock signer key (hardcoded for testing, using the same decrypt-result payload format as production)   | Real TN signer (from network)                                                   | Proof of decryption                                                |
-| **State Storage**  | In-memory maps in mock contracts                                                                      | On-chain encrypted state                                                        | Where encrypted values live                                        |
+| Component          | Mock Mode                                                                                             | Production Mode                                                                                                          | Purpose                                                            |
+| ------------------ | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| **EncryptInputs**  | Uses MockZkVerifier to calculate ctHashes                                                             | Uses TFHE + ZK proofs                                                                                                    | Generate encrypted inputs                                          |
+| **decryptForView** | Reads from MockZkVerifier storage + checks MockACL, returns sealed plaintext, unseals with permit key | Retries submit until `request_id`, then polls Threshold Network for sealed plaintext and unseals with permit sealing key | View calls (read & unseal plaintext, no proof)                     |
+| **decryptForTx**   | Calls MockThresholdNetwork with permission check, gets plaintext + signature                          | Retries submit until `request_id`, then polls Threshold Network for plaintext + signature                                | Transaction submission (needs signature for on-chain verification) |
+| **Permits**        | Stored in-memory + validated against MockACL                                                          | Stored on-chain + validated by TN                                                                                        | Access control mechanism                                           |
+| **Signatures**     | Mock signer key (hardcoded for testing, using the same decrypt-result payload format as production)   | Real TN signer (from network)                                                                                            | Proof of decryption                                                |
+| **State Storage**  | In-memory maps in mock contracts                                                                      | On-chain encrypted state                                                                                                 | Where encrypted values live                                        |
 
 ---
 
@@ -644,5 +643,5 @@ This allows developers to:
 
 **Tests:**
 
-- `packages/hardhat-plugin-test/test/decryptForTx-builder.test.ts` - Builder tests
-- `packages/hardhat-plugin-test/test/decryptForTx-publish.test.ts` - Publish flow test
+- `test/hardhat-plugin-test/test/decryptForTx-builder.test.ts` - Builder tests
+- `test/hardhat-plugin-test/test/decryptForTx-publish.test.ts` - Publish flow test

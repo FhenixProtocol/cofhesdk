@@ -67,14 +67,14 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "iframe-shared-storage": "^1.0.34",
-    "immer": "^10.1.1",
+    "iframe-shared-storage": "1.0.34",
+    "immer": "10.1.1",
     "node-tfhe": "1.5.3",
     "tfhe": "1.5.3",
-    "tweetnacl": "^1.0.3",
-    "viem": "^2.38.6",
-    "zod": "^4.0.0",
-    "zustand": "^5.0.1"
+    "tweetnacl": "1.0.3",
+    "viem": "2.38.6",
+    "zod": "4.0.0",
+    "zustand": "5.0.1"
   },
   "peerDependencies": {
     "@nomicfoundation/hardhat-ethers": "^3.0.0",
@@ -99,20 +99,21 @@
   },
   "devDependencies": {
     "@cofhe/eslint-config": "workspace:*",
+    "@cofhe/test-setup": "workspace:*",
     "@cofhe/tsconfig": "workspace:*",
-    "@nomicfoundation/hardhat-ethers": "^3.0.0",
-    "@types/node": "^20.0.0",
-    "@vitest/browser": "^3.0.0",
-    "@vitest/coverage-v8": "^3.0.0",
-    "eslint": "^8.57.0",
-    "ethers5": "npm:ethers@^5.7.2",
-    "ethers6": "npm:ethers@^6.13.0",
-    "happy-dom": "^15.0.0",
-    "hardhat": "^2.19.0",
-    "playwright": "^1.55.0",
-    "tsup": "^8.0.2",
+    "@nomicfoundation/hardhat-ethers": "3.1.0",
+    "@types/node": "20.19.15",
+    "@vitest/browser": "3.2.4",
+    "@vitest/coverage-v8": "3.2.4",
+    "eslint": "8.57.1",
+    "ethers5": "npm:ethers@5.8.0",
+    "ethers6": "npm:ethers@6.15.0",
+    "happy-dom": "15.11.7",
+    "hardhat": "2.26.3",
+    "playwright": "1.55.0",
+    "tsup": "8.0.2",
     "typescript": "5.5.4",
-    "vitest": "^3.0.0"
+    "vitest": "3.2.4"
   },
   "publishConfig": {
     "access": "public",

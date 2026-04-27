@@ -1,0 +1,23 @@
+{
+  "chainId": 421614,
+  "contractAddress": "0x3f0c13D4850809F0958c18F5d58510238334BBa2",
+  "deploymentTimestamp": "2026-04-16T12:05:43.953Z",
+  "privateValue": {
+    "value": 42,
+    "ctHash": "0xdf7a898b2d1fd901ceb07eb0c933437af7d9db896d90ca975bd6b2294b988400",
+    "handle": "0xdf7a898b2d1fd901ceb07eb0c933437af7d9db896d90ca975bd6b2294b988400"
+  },
+  "publicValue": {
+    "value": 7,
+    "ctHash": "0x4aa00e7e23342466f187a96a50b1716750930e9d4b9b164126d7aab132ab8400",
+    "handle": "0x4aa00e7e23342466f187a96a50b1716750930e9d4b9b164126d7aab132ab8400"
+  },
+  "addedValue": {
+    "value": 92,
+    "addend": 50,
+    "expectedSum": 92,
+    "ctHash": "0x95e8992efb9806c20377652fb5da7d98eba97b2f3c392b1ab6bb7d8b06450400",
+    "handle": "0x95e8992efb9806c20377652fb5da7d98eba97b2f3c392b1ab6bb7d8b06450400"
+  },
+  "initializedAt": "2026-04-16T12:05:57.160Z"
+}

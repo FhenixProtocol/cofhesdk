@@ -7,6 +7,10 @@ description: Reveal encrypted values on-chain with a Threshold Network signature
 
 Use `decryptForTx` to reveal a **confidential (encrypted)** value on-chain: it returns the plaintext together with a Threshold Network signature, so a contract can verify the reveal when you publish it in a transaction.
 
+:::note
+The reference page [Decryption Lifecycle](/reference/decryption-lifecycle) gives a deep dive into the internal decryption process and the states that may be encountered when decrypting.
+:::
+
 The flow is as follows:
 
 1. Call `decryptForTx(ctHash)` with the encrypted [handle](/reference/dictionary#handle) you want to reveal (see [Decrypt for a transaction](#decrypt-for-a-transaction)).
@@ -296,6 +300,8 @@ result.signature;
 ### `.onPoll(callback)` — optional
 
 Registers a callback that runs once per poll attempt while waiting for the threshold network to complete the request.
+
+For the full meaning of submit retries versus request-status polling, see [Decryption Lifecycle](/reference/decryption-lifecycle).
 
 ```ts twoslash
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
