@@ -106,8 +106,7 @@ function getGasPrice(rpc) {
   }
 }
 
-function deploy(rpc, privateKeyEnvName, contractName) {
-  // try {
+function deploy(rpc, privateKeyEnvName, contractName) {  
     const priorityGasPrice = privateKeyEnvName === 'TEST_LOCALCOFHE_PRIVATE_KEY'
       ? getMaxPriorityFeePerGas(rpc)
       : null;
@@ -121,24 +120,6 @@ function deploy(rpc, privateKeyEnvName, contractName) {
     const txMatch = out.match(/Transaction hash:\s*(0x[0-9a-fA-F]+)/);
     if (!addressMatch) throw new Error(`Could not parse deployed address from forge output:\n${out}`);
     return { address: addressMatch[1], txHash: txMatch?.[1] };
-  // }
-  //  catch (error) {
-  //   const message = error instanceof Error ? error.message : String(error);
-  //   if (!message.includes('already known')) throw error;
-
-  //   const deployer = run(`cast wallet address $${privateKeyEnvName}`);
-  //   const currentNonce = BigInt(run(`cast nonce ${deployer} --rpc-url ${rpc}`));
-  //   const candidateNonces = currentNonce > 0n ? [currentNonce - 1n, currentNonce] : [currentNonce];
-
-  //   for (const nonce of candidateNonces) {
-  //     const address = getContractAddress({ from: deployer, nonce });
-  //     if (hasCodeOnChain(rpc, address)) {
-  //       return { address, txHash: undefined };
-  //     }
-  //   }
-
-  //   throw error;
-  // }
 }
 
 function getBalance(rpc, address) {
