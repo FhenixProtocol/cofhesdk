@@ -90,10 +90,32 @@ function hasCodeOnChain(rpc, address) {
   } catch { return false; }
 }
 
+function getMaxPriorityFeePerGas(rpc) {
+  try {
+    return BigInt(JSON.parse(run(`cast rpc --rpc-url ${rpc} eth_maxPriorityFeePerGas`))).toString();
+  } catch {
+    return null;
+  }
+}
+
+function getGasPrice(rpc) {
+  try {
+    return BigInt(JSON.parse(run(`cast rpc --rpc-url ${rpc} eth_gasPrice`))).toString();
+  } catch {
+    return null;
+  }
+}
+
 function deploy(rpc, privateKeyEnvName, contractName) {
   // try {
+    const priorityGasPrice = privateKeyEnvName === 'TEST_LOCALCOFHE_PRIVATE_KEY'
+      ? getMaxPriorityFeePerGas(rpc)
+      : null;
+    const gasPrice = priorityGasPrice ? getGasPrice(rpc) : null;
+    const priorityGasPriceArg = priorityGasPrice ? ` --priority-gas-price ${priorityGasPrice}` : '';
+    const gasPriceArg = gasPrice ? ` --gas-price ${gasPrice}` : '';
     const out = run(
-      `forge create contracts/${contractName}.sol:${contractName} --rpc-url ${rpc} --private-key $${privateKeyEnvName} --broadcast`
+      `forge create contracts/${contractName}.sol:${contractName} --rpc-url ${rpc} --private-key $${privateKeyEnvName} --broadcast${gasPriceArg}${priorityGasPriceArg}`
     );
     const addressMatch = out.match(/Deployed to:\s*(0x[0-9a-fA-F]+)/);
     const txMatch = out.match(/Transaction hash:\s*(0x[0-9a-fA-F]+)/);
