@@ -55,6 +55,17 @@ function deploySimpleTest(rpcUrl: string): string {
 }
 
 export async function setup(project: TestProject): Promise<void> {
+  project.provide('matrixChain', process.env.MATRIX_CHAIN ?? '');
+  project.provide('matrixEnv', process.env.MATRIX_ENV ?? '');
+
+  if (!shouldStartAnvil(process.env.MATRIX_CHAIN, process.env.MATRIX_ENV)) {
+    project.provide('anvilRpc', '');
+    project.provide('anvilSimpleTest', '');
+    console.log('[integration-matrix] Skipping Anvil setup; Hardhat is not selected in MATRIX_CHAIN.');
+    await printMatrix(process.env.MATRIX_CHAIN, process.env.MATRIX_ENV);
+    return;
+  }
+
   console.log('\n[integration-matrix] Starting Anvil...');
 
   anvilProcess = spawn(
@@ -87,8 +98,6 @@ export async function setup(project: TestProject): Promise<void> {
 
   project.provide('anvilRpc', ANVIL_RPC);
   project.provide('anvilSimpleTest', simpleTestAddress);
-  project.provide('matrixChain', process.env.MATRIX_CHAIN ?? '');
-  project.provide('matrixEnv', process.env.MATRIX_ENV ?? '');
 
   await printMatrix(process.env.MATRIX_CHAIN, process.env.MATRIX_ENV);
 }
@@ -100,6 +109,11 @@ const ALL_CHAINS = [
   { label: 'Arbitrum Sepolia' },
   { label: 'Base Sepolia' },
 ];
+
+function shouldStartAnvil(matrixChain?: string, matrixEnv?: string): boolean {
+  const matrix = getMatrixChains(matrixEnv ?? '', matrixChain ?? '', ALL_CHAINS);
+  return matrix.some(({ chain, chainEnabled }) => chainEnabled && chain.label === 'Hardhat (Mock)');
+}
 
 async function printMatrix(matrixChain?: string, matrixEnv?: string): Promise<void> {
   const matrix = getMatrixChains(matrixEnv ?? '', matrixChain ?? '', ALL_CHAINS);
