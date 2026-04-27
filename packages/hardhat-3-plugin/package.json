@@ -1,6 +1,6 @@
 {
   "name": "@cofhe/hardhat-3-plugin",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Hardhat 3 plugin for CoFHE — deploys mock contracts and wires up the hre.cofhe interface",
   "type": "module",
   "main": "./dist/index.js",
