@@ -16,6 +16,7 @@ const ANVIL_PORT = 8546;
 const ANVIL_RPC = `http://127.0.0.1:${ANVIL_PORT}`;
 const ANVIL_CHAIN_ID = 31337;
 const ANVIL_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80' as const;
+const HARDHAT_LOG_PREFIX = '[integration-matrix][hardhat]';
 
 let anvilProcess: ChildProcess | undefined;
 
@@ -66,7 +67,7 @@ export async function setup(project: TestProject): Promise<void> {
     return;
   }
 
-  console.log('\n[integration-matrix] Starting Anvil...');
+  console.log(`\n${HARDHAT_LOG_PREFIX} Starting Anvil...`);
 
   anvilProcess = spawn(
     'anvil',
@@ -75,26 +76,26 @@ export async function setup(project: TestProject): Promise<void> {
   );
 
   anvilProcess.on('error', (err) => {
-    console.error('[integration-matrix] Anvil process error:', err);
+    console.error(`${HARDHAT_LOG_PREFIX} Anvil process error:`, err);
   });
 
   await waitForAnvil(ANVIL_RPC);
-  console.log('[integration-matrix] Anvil running on', ANVIL_RPC);
+  console.log(`${HARDHAT_LOG_PREFIX} Anvil running on`, ANVIL_RPC);
 
   const account = privateKeyToAccount(ANVIL_PRIVATE_KEY);
   const publicClient = createPublicClient({ transport: http(ANVIL_RPC) });
   const walletClient = createWalletClient({ transport: http(ANVIL_RPC), account });
   const artifacts = createFoundryArtifactReader();
 
-  console.log('[integration-matrix] Deploying mock contracts...');
+  console.log(`${HARDHAT_LOG_PREFIX} Deploying mock contracts...`);
   await deployMocks(
     { publicClient, walletClient, artifacts: artifacts as any },
     { deployTestBed: false, gasWarning: false, mocksDeployVerbosity: 'v' }
   );
 
-  console.log('[integration-matrix] Deploying SimpleTest...');
+  console.log(`${HARDHAT_LOG_PREFIX} Deploying SimpleTest...`);
   const simpleTestAddress = deploySimpleTest(ANVIL_RPC);
-  console.log(`[integration-matrix] SimpleTest deployed at ${simpleTestAddress}`);
+  console.log(`${HARDHAT_LOG_PREFIX} SimpleTest deployed at ${simpleTestAddress}`);
 
   project.provide('anvilRpc', ANVIL_RPC);
   project.provide('anvilSimpleTest', simpleTestAddress);
@@ -149,8 +150,7 @@ async function printMatrix(matrixChain?: string, matrixEnv?: string): Promise<vo
 
 export async function teardown(): Promise<void> {
   if (anvilProcess) {
-    // why does it try to kill Anvil?
-    console.log('[integration-matrix] Stopping Anvil...');
+    console.log(`${HARDHAT_LOG_PREFIX} Stopping Anvil...`);
     anvilProcess.kill('SIGTERM');
     anvilProcess = undefined;
   }
