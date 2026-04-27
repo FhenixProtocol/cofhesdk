@@ -181,20 +181,42 @@ function getBalanceEther(rpc, address) {
 const MIN_BALANCE_ETH = 0.1;
 const underfunded = [];
 
-console.log(`\nAccount ${bold(deployer)} funding:`);
+const fundingSections = [];
+const fundingSectionsByEnv = new Map();
+
 for (const chain of ALL_CHAINS) {
-  const rpc = process.env[chain.rpcEnv] || chain.rpc;
   const pkEnvName = getPrivateKeyEnvName(chain);
-  if (pkEnvName !== 'TEST_PRIVATE_KEY' && !process.env[pkEnvName]) {
-    console.log(`  ${chain.label}: skip — ${pkEnvName} not set`);
+  let section = fundingSectionsByEnv.get(pkEnvName);
+
+  if (!section) {
+    const address = pkEnvName === 'TEST_PRIVATE_KEY'
+      ? deployer
+      : (process.env[pkEnvName] ? run(`cast wallet address $${pkEnvName}`) : undefined);
+    section = { pkEnvName, address, entries: [] };
+    fundingSectionsByEnv.set(pkEnvName, section);
+    fundingSections.push(section);
+  }
+
+  const rpc = process.env[chain.rpcEnv] || chain.rpc;
+  if (!section.address) {
+    section.entries.push({ label: chain.label, output: `skip — ${pkEnvName} not set` });
     continue;
   }
-  const addr = pkEnvName === 'TEST_PRIVATE_KEY' ? deployer : run(`cast wallet address $${pkEnvName}`);
-  const bal = getBalanceEther(rpc, addr);
-  console.log(`  ${chain.label}: ${colorBalance(bal)} ETH`);
+
+  const bal = getBalanceEther(rpc, section.address);
+  section.entries.push({ label: chain.label, output: `${colorBalance(bal)} ETH` });
   const parsed = parseFloat(bal);
   if (!isNaN(parsed) && parsed < MIN_BALANCE_ETH) {
-    underfunded.push({ label: chain.label, address: addr, balance: bal });
+    underfunded.push({ label: chain.label, address: section.address, balance: bal });
+  }
+}
+
+for (const section of fundingSections) {
+  const address = section.address || 'unknown';
+  console.log(`\nAccount ${bold(address)} funding ('${section.pkEnvName}'):`);
+  const labelWidth = section.entries.reduce((max, entry) => Math.max(max, entry.label.length), 0);
+  for (const entry of section.entries) {
+    console.log(`  ${entry.label.padEnd(labelWidth)}: ${entry.output}`);
   }
 }
 
