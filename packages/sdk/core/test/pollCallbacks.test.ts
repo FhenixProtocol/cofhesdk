@@ -188,6 +188,86 @@ describe('decrypt polling callbacks', () => {
     );
   });
 
+  it('tnDecryptV2 calls onPoll for 404 submit retries', async () => {
+    const onPoll = vi.fn();
+
+    let submitCalls = 0;
+    const fetchMock = vi.fn(async (url: string, options?: any) => {
+      if (url === `${thresholdNetworkUrl}/v2/decrypt` && options?.method === 'POST') {
+        submitCalls += 1;
+
+        if (submitCalls === 1) {
+          return makeMockResponse({
+            ok: false,
+            status: 404,
+            statusText: 'Not Found',
+            json: async () => ({ message: 'Not Found' }),
+          });
+        }
+
+        return makeMockResponse({
+          ok: true,
+          json: async () => ({ request_id: 'req-submit-retry-404' }),
+        });
+      }
+
+      if (url === `${thresholdNetworkUrl}/v2/decrypt/req-submit-retry-404` && options?.method === 'GET') {
+        return makeMockResponse({
+          ok: true,
+          json: async () => ({
+            request_id: 'req-submit-retry-404',
+            status: 'COMPLETED',
+            submitted_at: 't',
+            is_succeed: true,
+            decrypted: [0x01],
+            signature: `0x${'01'.repeat(32)}${'02'.repeat(32)}1b`,
+          }),
+        });
+      }
+
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+
+    global.fetch = fetchMock as any;
+
+    const promise = tnDecryptV2({
+      ctHash: 1n,
+      chainId: 1,
+      permission: null,
+      thresholdNetworkUrl,
+      onPoll,
+    });
+
+    for (let i = 0; i < 25 && onPoll.mock.calls.length < 1; i += 1) {
+      await Promise.resolve();
+    }
+
+    expect(onPoll).toHaveBeenCalledTimes(1);
+    expect(onPoll).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        operation: 'decrypt',
+        requestId: '',
+        attemptIndex: 0,
+        intervalMs: 1000,
+        timeoutMs: 5 * 60 * 1000,
+      })
+    );
+
+    await vi.advanceTimersByTimeAsync(1000);
+    await promise;
+
+    expect(onPoll).toHaveBeenCalledTimes(2);
+    expect(onPoll).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        operation: 'decrypt',
+        requestId: 'req-submit-retry-404',
+        attemptIndex: 0,
+      })
+    );
+  });
+
   it('tnDecryptV2 returns immediately when submit responds with cached completed payload', async () => {
     const onPoll = vi.fn();
 
@@ -453,6 +533,89 @@ describe('decrypt polling callbacks', () => {
       expect.objectContaining({
         operation: 'sealoutput',
         requestId: 'req-seal-submit-retry',
+        attemptIndex: 0,
+      })
+    );
+  });
+
+  it('tnSealOutputV2 calls onPoll for 404 submit retries', async () => {
+    const onPoll = vi.fn();
+
+    let submitCalls = 0;
+    const fetchMock = vi.fn(async (url: string, options?: any) => {
+      if (url === `${thresholdNetworkUrl}/v2/sealoutput` && options?.method === 'POST') {
+        submitCalls += 1;
+
+        if (submitCalls === 1) {
+          return makeMockResponse({
+            ok: false,
+            status: 404,
+            statusText: 'Not Found',
+            json: async () => ({ message: 'Not Found' }),
+          });
+        }
+
+        return makeMockResponse({
+          ok: true,
+          json: async () => ({ request_id: 'req-seal-submit-retry-404' }),
+        });
+      }
+
+      if (url === `${thresholdNetworkUrl}/v2/sealoutput/req-seal-submit-retry-404` && options?.method === 'GET') {
+        return makeMockResponse({
+          ok: true,
+          json: async () => ({
+            request_id: 'req-seal-submit-retry-404',
+            status: 'COMPLETED',
+            submitted_at: 't',
+            is_succeed: true,
+            sealed: {
+              data: [1, 2, 3],
+              public_key: [4, 5],
+              nonce: [6],
+            },
+          }),
+        });
+      }
+
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+
+    global.fetch = fetchMock as any;
+
+    const promise = tnSealOutputV2({
+      ctHash: 1n,
+      chainId: 1,
+      permission: {} as any,
+      thresholdNetworkUrl,
+      onPoll,
+    });
+
+    for (let i = 0; i < 25 && onPoll.mock.calls.length < 1; i += 1) {
+      await Promise.resolve();
+    }
+
+    expect(onPoll).toHaveBeenCalledTimes(1);
+    expect(onPoll).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        operation: 'sealoutput',
+        requestId: '',
+        attemptIndex: 0,
+        intervalMs: 1000,
+        timeoutMs: 5 * 60 * 1000,
+      })
+    );
+
+    await vi.advanceTimersByTimeAsync(1000);
+    await promise;
+
+    expect(onPoll).toHaveBeenCalledTimes(2);
+    expect(onPoll).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        operation: 'sealoutput',
+        requestId: 'req-seal-submit-retry-404',
         attemptIndex: 0,
       })
     );

@@ -219,7 +219,7 @@ async function submitDecryptRequestV2(
       });
     }
 
-    if (!response.ok) {
+    if (!response.ok && response.status !== 404) {
       let errorMessage = `HTTP ${response.status}`;
       try {
         const errorBody = (await response.json()) as Record<string, unknown>;
@@ -244,7 +244,7 @@ async function submitDecryptRequestV2(
     }
 
     let submitResponse: DecryptSubmitResponseV2 | undefined;
-    if (response.status !== 204) {
+    if (response.status !== 204 && response.status !== 404) {
       let rawJson: unknown;
       try {
         rawJson = (await response.json()) as unknown;
@@ -280,7 +280,8 @@ async function submitDecryptRequestV2(
     }
 
     // 204 means backend is aware of ct hash but didn't calculate it yet
-    if (response.status === 204) {
+    // 404 means backend doesn't know about ct hash yet (or the ct hash doesn't exist)
+    if (response.status === 204 || response.status === 404) {
       const elapsedMs = Date.now() - overallStartTime;
       if (elapsedMs > DECRYPT_TIMEOUT_MS) {
         throw new CofheError({

@@ -169,8 +169,8 @@ async function submitSealOutputRequest(
       });
     }
 
-    // Handle non-200 status codes
-    if (!response.ok) {
+    // Handle non-200 status codes except retryable 404 submit responses.
+    if (!response.ok && response.status !== 404) {
       let errorMessage = `HTTP ${response.status}`;
       try {
         const errorBody = await response.json();
@@ -195,7 +195,7 @@ async function submitSealOutputRequest(
     }
 
     let submitResponse: SealOutputSubmitResponse | undefined;
-    if (response.status !== 204) {
+    if (response.status !== 204 && response.status !== 404) {
       try {
         submitResponse = (await response.json()) as SealOutputSubmitResponse;
       } catch (e) {
@@ -228,7 +228,8 @@ async function submitSealOutputRequest(
     }
 
     // 204 means backend is aware of ct hash but didn't calculate it yet
-    if (response.status === 204) {
+    // 404 means backend doesn't know about ct hash yet (or the ct hash doesn't exist)
+    if (response.status === 204 || response.status === 404) {
       const elapsedMs = Date.now() - overallStartTime;
       if (elapsedMs > SEAL_OUTPUT_TIMEOUT_MS) {
         throw new CofheError({
