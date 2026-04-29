@@ -4,7 +4,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { WagmiAdapter } from '../wagmi.js';
 
 describe('WagmiAdapter', () => {
-  const testRpcUrl = 'https://ethereum-sepolia.rpc.subquery.network/public';
+  const testRpcUrl = 'https://ethereum-sepolia-rpc.publicnode.com';
   const SEPOLIA_CHAIN_ID = 11155111;
   let account: ReturnType<typeof privateKeyToAccount>;
   let publicClient: PublicClient;

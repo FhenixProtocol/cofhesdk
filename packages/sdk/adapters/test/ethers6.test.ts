@@ -5,7 +5,7 @@ import { createMockEIP1193Provider } from '../test-utils.js';
 import * as ethers6 from 'ethers6';
 
 describe('Ethers6Adapter', () => {
-  const testRpcUrl = 'https://ethereum-sepolia.rpc.subquery.network/public';
+  const testRpcUrl = 'https://ethereum-sepolia-rpc.publicnode.com';
   const SEPOLIA_CHAIN_ID = 11155111;
   let provider: ethers6.JsonRpcProvider;
   let wallet: ethers6.Wallet;
