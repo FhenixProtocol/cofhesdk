@@ -12,9 +12,11 @@
     {
       "label": "dev:packages/react",
       "type": "shell",
-      "command": "zsh",
+      "command": "sh",
       "args": [
-        "-ic",
+        "-lc",
+        "command_string=$1; if command -v zsh >/dev/null 2>&1; then exec zsh -ic \"$command_string\"; elif command -v bash >/dev/null 2>&1; then exec bash -ic \"$command_string\"; else exec sh -lc \"$command_string\"; fi",
+        "task-shell",
         "set -m; pnpm dev & pid=$!; trap \"kill -TERM -$pid 2>/dev/null; sleep 0.2; kill -KILL -$pid 2>/dev/null\" INT TERM HUP EXIT; wait $pid"
       ],
       "isBackground": true,
@@ -31,9 +33,11 @@
     {
       "label": "dev:examples/react",
       "type": "shell",
-      "command": "zsh",
+      "command": "sh",
       "args": [
-        "-ic",
+        "-lc",
+        "command_string=$1; if command -v zsh >/dev/null 2>&1; then exec zsh -ic \"$command_string\"; elif command -v bash >/dev/null 2>&1; then exec bash -ic \"$command_string\"; else exec sh -lc \"$command_string\"; fi",
+        "task-shell",
         "set -m; pnpm dev & pid=$!; trap \"kill -TERM -$pid 2>/dev/null; sleep 0.2; kill -KILL -$pid 2>/dev/null\" INT TERM HUP EXIT; wait $pid"
       ],
       "isBackground": true,
@@ -50,9 +54,11 @@
     {
       "label": "dev:packages/site",
       "type": "shell",
-      "command": "zsh",
+      "command": "sh",
       "args": [
-        "-ic",
+        "-lc",
+        "command_string=$1; if command -v zsh >/dev/null 2>&1; then exec zsh -ic \"$command_string\"; elif command -v bash >/dev/null 2>&1; then exec bash -ic \"$command_string\"; else exec sh -lc \"$command_string\"; fi",
+        "task-shell",
         "set -e; set -m; nodeMajor=$(node -p \"parseInt(process.versions.node.split(\\\".\\\")[0], 10)\"); if [ \"$nodeMajor\" -lt 22 ]; then echo \"ERROR: packages/site requires Node >= 22 (current: $(node -v)).\"; exit 1; fi; pnpm -w install --filter @cofhe/site...; pnpm dev & pid=$!; trap \"kill -TERM -$pid 2>/dev/null; sleep 0.2; kill -KILL -$pid 2>/dev/null\" INT TERM HUP EXIT; wait $pid"
       ],
       "isBackground": true,
@@ -78,9 +84,11 @@
     {
       "label": "test:integration:list",
       "type": "shell",
-      "command": "zsh",
+      "command": "sh",
       "args": [
-        "-ic",
+        "-lc",
+        "command_string=$1; if command -v zsh >/dev/null 2>&1; then exec zsh -ic \"$command_string\"; elif command -v bash >/dev/null 2>&1; then exec bash -ic \"$command_string\"; else exec sh -lc \"$command_string\"; fi",
+        "task-shell",
         "node scripts/integration-tests.mjs --list"
       ],
       "problemMatcher": [],
@@ -93,9 +101,11 @@
     {
       "label": "test:integration:pick-and-run",
       "type": "shell",
-      "command": "zsh",
+      "command": "sh",
       "args": [
-        "-ic",
+        "-lc",
+        "command_string=$1; if command -v zsh >/dev/null 2>&1; then exec zsh -ic \"$command_string\"; elif command -v bash >/dev/null 2>&1; then exec bash -ic \"$command_string\"; else exec sh -lc \"$command_string\"; fi",
+        "task-shell",
         "node scripts/integration-tests.mjs --pick"
       ],
       "problemMatcher": [],
@@ -108,9 +118,11 @@
     {
       "label": "test:integration:run-first-match",
       "type": "shell",
-      "command": "zsh",
+      "command": "sh",
       "args": [
-        "-ic",
+        "-lc",
+        "command_string=$1; if command -v zsh >/dev/null 2>&1; then exec zsh -ic \"$command_string\"; elif command -v bash >/dev/null 2>&1; then exec bash -ic \"$command_string\"; else exec sh -lc \"$command_string\"; fi",
+        "task-shell",
         "node scripts/integration-tests.mjs --substring \"${input:integrationTestSubstring}\""
       ],
       "problemMatcher": [],
@@ -123,9 +135,11 @@
     {
       "label": "test:integration:all",
       "type": "shell",
-      "command": "zsh",
+      "command": "sh",
       "args": [
-        "-ic",
+        "-lc",
+        "command_string=$1; if command -v zsh >/dev/null 2>&1; then exec zsh -ic \"$command_string\"; elif command -v bash >/dev/null 2>&1; then exec bash -ic \"$command_string\"; else exec sh -lc \"$command_string\"; fi",
+        "task-shell",
         "pnpm test:integration"
       ],
       "problemMatcher": [],

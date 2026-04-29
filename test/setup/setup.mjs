@@ -25,6 +25,8 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { getContractAddress } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REGISTRY_PATH = resolve(__dirname, 'src/deployments.json');
@@ -35,13 +37,13 @@ const PRIMARY_REGISTRY_PATH = resolve(__dirname, 'src/primaryTestChainRegistry.j
 function loadEnv() {
   const envPath = resolve(__dirname, '../../.env');
   if (!existsSync(envPath)) return;
-  for (const line of readFileSync(envPath, 'utf8').split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eq = trimmed.indexOf('=');
-    if (eq === -1) continue;
-    const key = trimmed.slice(0, eq).trim();
-    if (!process.env[key]) process.env[key] = trimmed.slice(eq + 1).trim();
+    for (const line of readFileSync(envPath, 'utf8').split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const eq = trimmed.indexOf('=');
+      if (eq === -1) continue;
+      const key = trimmed.slice(0, eq).trim();
+      if (!process.env[key]) process.env[key] = trimmed.slice(eq + 1).trim();
   }
 }
 
@@ -89,14 +91,36 @@ function hasCodeOnChain(rpc, address) {
   } catch { return false; }
 }
 
-function deploy(rpc, privateKeyEnvName, contractName) {
-  const out = run(
-    `forge create contracts/${contractName}.sol:${contractName} --rpc-url ${rpc} --private-key $${privateKeyEnvName} --broadcast`
-  );
-  const addressMatch = out.match(/Deployed to:\s*(0x[0-9a-fA-F]+)/);
-  const txMatch = out.match(/Transaction hash:\s*(0x[0-9a-fA-F]+)/);
-  if (!addressMatch) throw new Error(`Could not parse deployed address from forge output:\n${out}`);
-  return { address: addressMatch[1], txHash: txMatch?.[1] };
+function getMaxPriorityFeePerGas(rpc) {
+  try {
+    return BigInt(JSON.parse(run(`cast rpc --rpc-url ${rpc} eth_maxPriorityFeePerGas`))).toString();
+  } catch {
+    return null;
+  }
+}
+
+function getGasPrice(rpc) {
+  try {
+    return BigInt(JSON.parse(run(`cast rpc --rpc-url ${rpc} eth_gasPrice`))).toString();
+  } catch {
+    return null;
+  }
+}
+
+function deploy(rpc, privateKeyEnvName, contractName) {  
+    const priorityGasPrice = privateKeyEnvName === 'TEST_LOCALCOFHE_PRIVATE_KEY'
+      ? getMaxPriorityFeePerGas(rpc)
+      : null;
+    const gasPrice = priorityGasPrice ? getGasPrice(rpc) : null;
+    const priorityGasPriceArg = priorityGasPrice ? ` --priority-gas-price ${priorityGasPrice}` : '';
+    const gasPriceArg = gasPrice ? ` --gas-price ${gasPrice}` : '';
+    const out = run(
+      `forge create contracts/${contractName}.sol:${contractName} --rpc-url ${rpc} --private-key $${privateKeyEnvName} --broadcast${gasPriceArg}${priorityGasPriceArg}`
+    );
+    const addressMatch = out.match(/Deployed to:\s*(0x[0-9a-fA-F]+)/);
+    const txMatch = out.match(/Transaction hash:\s*(0x[0-9a-fA-F]+)/);
+    if (!addressMatch) throw new Error(`Could not parse deployed address from forge output:\n${out}`);
+    return { address: addressMatch[1], txHash: txMatch?.[1] };
 }
 
 function getBalance(rpc, address) {
@@ -129,6 +153,18 @@ loadEnv();
 const args = parseArgs();
 
 const ALL_CHAINS = [...TESTNET_CHAINS, LOCALCOFHE_CHAIN];
+const HARDHAT_MOCK_RPC = 'http://127.0.0.1:8546';
+const HARDHAT_MOCK_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
+const HARDHAT_MOCK_STARTING_BALANCE_ETH = '10000';
+const MOCKS_ZK_VERIFIER_ADDRESS = '0x0000000000000000000000000000000000005001';
+const MOCKS_THRESHOLD_NETWORK_ADDRESS = '0x0000000000000000000000000000000000005002';
+const TEST_BED_ADDRESS = '0x0000000000000000000000000000000000005003';
+const TASK_MANAGER_ADDRESS = '0xeA30c4B8b44078Bbf8a6ef5b9f1eC1626C7848D9';
+const MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY =
+  '0x6C8D7F768A6BB4AAFE85E8A2F5A9680355239C7E14646ED62B044E39DE154512';
+const MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY =
+  '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d';
+const MOCKS_ZK_VERIFIER_FUNDING_ETH = '10';
 
 const privateKey = process.env.TEST_PRIVATE_KEY;
 if (!privateKey) { console.error('TEST_PRIVATE_KEY is required'); process.exit(1); }
@@ -152,30 +188,104 @@ function colorBalance(ethStr) {
 
 function getBalanceEther(rpc, address) {
   try {
-    return run(`cast balance ${address} --ether --rpc-url ${rpc}`);
+    return run(`cast balance ${address} --ether --rpc-url ${rpc} 2>/dev/null`);
   } catch {
     return '?';
   }
 }
 
+function getHardhatMockAccount() {
+  return run(`cast wallet address ${HARDHAT_MOCK_PRIVATE_KEY}`);
+}
+
+function getAccountAddress(privateKey) {
+  return privateKeyToAccount(privateKey).address;
+}
+
 const MIN_BALANCE_ETH = 0.1;
 const underfunded = [];
 
-console.log(`\nAccount ${bold(deployer)} funding:`);
+const fundingSections = [];
+const fundingSectionsByEnv = new Map();
+
 for (const chain of ALL_CHAINS) {
-  const rpc = process.env[chain.rpcEnv] || chain.rpc;
   const pkEnvName = getPrivateKeyEnvName(chain);
-  if (pkEnvName !== 'TEST_PRIVATE_KEY' && !process.env[pkEnvName]) {
-    console.log(`  ${chain.label}: skip — ${pkEnvName} not set`);
+  let section = fundingSectionsByEnv.get(pkEnvName);
+
+  if (!section) {
+    const address = pkEnvName === 'TEST_PRIVATE_KEY'
+      ? deployer
+      : (process.env[pkEnvName] ? run(`cast wallet address $${pkEnvName}`) : undefined);
+    section = { pkEnvName, address, entries: [] };
+    fundingSectionsByEnv.set(pkEnvName, section);
+    fundingSections.push(section);
+  }
+
+  const rpc = process.env[chain.rpcEnv] || chain.rpc;
+  if (!section.address) {
+    section.entries.push({ label: chain.label, output: `skip — ${pkEnvName} not set` });
     continue;
   }
-  const addr = pkEnvName === 'TEST_PRIVATE_KEY' ? deployer : run(`cast wallet address $${pkEnvName}`);
-  const bal = getBalanceEther(rpc, addr);
-  console.log(`  ${chain.label}: ${colorBalance(bal)} ETH`);
+
+  const bal = getBalanceEther(rpc, section.address);
+  section.entries.push({ label: chain.label, output: `${colorBalance(bal)} ETH` });
   const parsed = parseFloat(bal);
   if (!isNaN(parsed) && parsed < MIN_BALANCE_ETH) {
-    underfunded.push({ label: chain.label, address: addr, balance: bal });
+    underfunded.push({ label: chain.label, address: section.address, balance: bal });
   }
+}
+
+for (const section of fundingSections) {
+  const address = section.address || 'unknown';
+  console.log(`\nAccount ${bold(address)} funding ('${section.pkEnvName}'):`);
+  const labelWidth = section.entries.reduce((max, entry) => Math.max(max, entry.label.length), 0);
+  for (const entry of section.entries) {
+    console.log(`  ${entry.label.padEnd(labelWidth)}: ${entry.output}`);
+  }
+}
+
+const hardhatMockAddress = getHardhatMockAccount();
+const hardhatMockBalance = getBalanceEther(HARDHAT_MOCK_RPC, hardhatMockAddress);
+const hardhatMockOutput = hardhatMockBalance === '?'
+  ? `offline — starts with ${bold(HARDHAT_MOCK_STARTING_BALANCE_ETH)} ETH when Anvil is launched`
+  : `${colorBalance(hardhatMockBalance)} ETH`;
+const mockDecryptSignerAddress = getAccountAddress(MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY);
+const mockDecryptSignerBalance = getBalanceEther(HARDHAT_MOCK_RPC, mockDecryptSignerAddress);
+const mockDecryptSignerOutput = mockDecryptSignerBalance === '?'
+  ? `offline — default Anvil account, starts with ${bold(HARDHAT_MOCK_STARTING_BALANCE_ETH)} ETH`
+  : `${colorBalance(mockDecryptSignerBalance)} ETH`;
+const mockZkVerifierSignerAddress = getAccountAddress(MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY);
+const mockZkVerifierSignerBalance = getBalanceEther(HARDHAT_MOCK_RPC, mockZkVerifierSignerAddress);
+const mockZkVerifierSignerOutput = mockZkVerifierSignerBalance === '?'
+  ? `offline — funded to ${bold(MOCKS_ZK_VERIFIER_FUNDING_ETH)} ETH by deployMocks`
+  : `${colorBalance(mockZkVerifierSignerBalance)} ETH`;
+
+console.log(`\nHardhat (Mock) account ${bold(hardhatMockAddress)}:`);
+console.log(`  Balance: ${hardhatMockOutput}`);
+console.log("  Used by integration-matrix Anvil setup and Hardhat mock test flows.");
+
+console.log(`\nMock accounts on Hardhat (${bold('deployMocks')}):`);
+console.log(`  Owner / deployer          ${bold(hardhatMockAddress)}  ${hardhatMockOutput}`);
+console.log(`  Decrypt result signer     ${bold(mockDecryptSignerAddress)}  ${mockDecryptSignerOutput}`);
+console.log(`  ZK verifier signer        ${bold(mockZkVerifierSignerAddress)}  ${mockZkVerifierSignerOutput}`);
+console.log(`  Fixed contracts           TaskManager ${TASK_MANAGER_ADDRESS}`);
+console.log(`                            MockZkVerifier ${MOCKS_ZK_VERIFIER_ADDRESS}`);
+console.log(`                            MockThresholdNetwork ${MOCKS_THRESHOLD_NETWORK_ADDRESS}`);
+console.log(`                            TestBed ${TEST_BED_ADDRESS}`);
+
+const parsedHardhatBalance = parseFloat(hardhatMockBalance);
+if (!isNaN(parsedHardhatBalance) && parsedHardhatBalance < MIN_BALANCE_ETH) {
+  underfunded.push({ label: 'Hardhat (Mock)', address: hardhatMockAddress, balance: hardhatMockBalance });
+}
+
+const parsedMockDecryptSignerBalance = parseFloat(mockDecryptSignerBalance);
+if (!isNaN(parsedMockDecryptSignerBalance) && parsedMockDecryptSignerBalance < MIN_BALANCE_ETH) {
+  underfunded.push({ label: 'Hardhat decrypt signer', address: mockDecryptSignerAddress, balance: mockDecryptSignerBalance });
+}
+
+const parsedMockZkVerifierSignerBalance = parseFloat(mockZkVerifierSignerBalance);
+if (!isNaN(parsedMockZkVerifierSignerBalance) && parsedMockZkVerifierSignerBalance < MIN_BALANCE_ETH) {
+  underfunded.push({ label: 'Hardhat ZK verifier signer', address: mockZkVerifierSignerAddress, balance: mockZkVerifierSignerBalance });
 }
 
 if (underfunded.length) {
