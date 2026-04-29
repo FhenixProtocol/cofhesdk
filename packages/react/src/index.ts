@@ -1,6 +1,3 @@
-// Styles
-import './styles.css';
-
 // Providers
 export { CofheProvider, useCofheContext } from './providers/index';
 
@@ -53,10 +50,6 @@ export {
 export { useCofheEncryptAndWriteContract } from '@/hooks/useCofheEncryptAndWriteContract';
 export { useCofheReadContractAndDecrypt } from '@/hooks/useCofheReadContractAndDecrypt';
 
-// Components
-export { CofheEncryptInput, CofheFloatingButtonWithProvider } from './components/index';
-export { MainPage, SettingsPage } from './components/CofheFloatingButton/pages/index';
-
 // Utils
 export {
   FheTypesList,
@@ -88,10 +81,6 @@ export type { CofheReactLogger, CofheReactLoggerMethod } from './config';
 
 // Types
 export type { CofheContextValue, CofheProviderProps, CofheClientConfig } from './types/index';
-
-export type { CofheFloatingButtonProps } from './components/CofheFloatingButton/types';
-
-export type { FloatingButtonPosition } from './components/CofheFloatingButton/types';
 
 export { createCofheClient } from '@cofhe/sdk/web';
 

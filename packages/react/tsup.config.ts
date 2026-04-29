@@ -64,12 +64,12 @@ const srcAliasPlugin = {
 export default defineConfig({
   // Keep only JS/TS entry files in tsup. We'll copy CSS to `dist` in a post-build step
   // to avoid tsup generating a malformed CSS source map.
-  entry: ['src/index.ts'],
+  entry: ['src/index.ts', 'src/ui-base.ts'],
   format: ['cjs', 'esm'],
   dts: {
     resolve: true,
   },
-  splitting: false,
+  splitting: true,
   sourcemap: true,
   clean: true,
   esbuildPlugins: [

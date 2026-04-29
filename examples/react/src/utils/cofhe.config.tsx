@@ -1,4 +1,5 @@
 import { CofheProvider, createCofheConfig, useInternalQueryClient } from '@cofhe/react';
+import { CofheFloatingButtonWithProvider } from '@cofhe/react/ui';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
 import { sepolia } from '@cofhe/sdk/chains';
@@ -52,6 +53,7 @@ export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) 
     >
       {children}
       <QueryDebug />
+      <CofheFloatingButtonWithProvider/>
     </CofheProvider>
   );
 };
