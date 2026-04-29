@@ -53,7 +53,7 @@ export const CofheProviderLocal = ({ children }: { children: React.ReactNode }) 
     >
       {children}
       <QueryDebug />
-      <CofheFloatingButtonWithProvider/>
+      <CofheFloatingButtonWithProvider />
     </CofheProvider>
   );
 };

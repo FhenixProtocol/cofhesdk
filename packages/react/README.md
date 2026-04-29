@@ -169,7 +169,6 @@ The root `@cofhe/react` entrypoint is headless and does not load package styles.
 
 If you import components from `@cofhe/react/ui`, the package styles are loaded automatically.
 
-
 ## Dependencies
 
 ### Required Peer Dependencies
