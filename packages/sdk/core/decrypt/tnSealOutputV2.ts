@@ -3,6 +3,11 @@ import { type Permission, type EthEncryptedData } from '@/permits';
 import { CofheError, CofheErrorCode } from '../error.js';
 import { type DecryptPollCallbackFunction } from '../types.js';
 import { computeMinuteRampPollIntervalMs } from './polling.js';
+import {
+  classifySubmitResponse,
+  normalize404RetryTimeoutMs,
+  throwIfSubmitRetryTimedOut,
+} from './submitRetry.js';
 
 // Polling configuration
 const POLL_INTERVAL_MS = 1000; // 1 second
@@ -136,6 +141,7 @@ async function submitSealOutputRequest(
   chainId: number,
   permission: Permission,
   overallStartTime: number,
+  retry404TimeoutMs: number,
   onPoll?: DecryptPollCallbackFunction
 ): Promise<SealOutputSubmitResult> {
   const body = {
@@ -169,20 +175,12 @@ async function submitSealOutputRequest(
       });
     }
 
-    // Handle non-200 status codes except retryable 404 submit responses.
-    if (!response.ok && response.status !== 404) {
-      let errorMessage = `HTTP ${response.status}`;
-      try {
-        const errorBody = await response.json();
+    const responseClassification = await classifySubmitResponse({ response });
 
-        errorMessage = errorBody.error_message || errorBody.message || errorMessage;
-      } catch {
-        errorMessage = response.statusText || errorMessage;
-      }
-
+    if (responseClassification.kind === 'fatal-http') {
       throw new CofheError({
         code: CofheErrorCode.SealOutputFailed,
-        message: `sealOutput request failed: ${errorMessage}`,
+        message: `sealOutput request failed: ${responseClassification.errorMessage}`,
         hint: 'Check the threshold network URL and request parameters.',
         context: {
           thresholdNetworkUrl,
@@ -194,8 +192,8 @@ async function submitSealOutputRequest(
       });
     }
 
-    let submitResponse: SealOutputSubmitResponse | undefined;
-    if (response.status !== 204 && response.status !== 404) {
+    if (responseClassification.kind === 'parse-json') {
+      let submitResponse: SealOutputSubmitResponse;
       try {
         submitResponse = (await response.json()) as SealOutputSubmitResponse;
       } catch (e) {
@@ -225,52 +223,44 @@ async function submitSealOutputRequest(
       if (submitResponse.request_id) {
         return { kind: 'request_id', requestId: submitResponse.request_id };
       }
-    }
 
-    // 204 means backend is aware of ct hash but didn't calculate it yet
-    // 404 means backend doesn't know about ct hash yet (or the ct hash doesn't exist)
-    if (response.status === 204 || response.status === 404) {
-      const elapsedMs = Date.now() - overallStartTime;
-      if (elapsedMs > SEAL_OUTPUT_TIMEOUT_MS) {
-        throw new CofheError({
-          code: CofheErrorCode.SealOutputFailed,
-          message: `sealOutput submit retried without receiving request_id for ${SEAL_OUTPUT_TIMEOUT_MS}ms`,
-          hint: 'The ciphertext may still be propagating. Try again later.',
-          context: {
-            thresholdNetworkUrl,
-            body,
-            attemptIndex,
-            timeoutMs: SEAL_OUTPUT_TIMEOUT_MS,
-            submitResponse,
-            status: response.status,
-          },
-        });
-      }
-
-      onPoll?.({
-        operation: 'sealoutput',
-        requestId: '',
-        attemptIndex,
-        elapsedMs,
-        intervalMs: SUBMIT_RETRY_INTERVAL_MS,
-        timeoutMs: SEAL_OUTPUT_TIMEOUT_MS,
+      throw new CofheError({
+        code: CofheErrorCode.SealOutputFailed,
+        message: `sealOutput submit response missing request_id`,
+        context: {
+          thresholdNetworkUrl,
+          body,
+          submitResponse,
+          attemptIndex,
+        },
       });
-
-      await new Promise((resolve) => setTimeout(resolve, SUBMIT_RETRY_INTERVAL_MS));
-      attemptIndex += 1;
-      continue;
     }
 
-    throw new CofheError({
-      code: CofheErrorCode.SealOutputFailed,
-      message: `sealOutput submit response missing request_id`,
-      context: {
-        thresholdNetworkUrl,
-        body,
-        submitResponse,
-        attemptIndex,
-      },
+    const elapsedMs = Date.now() - overallStartTime;
+
+    throwIfSubmitRetryTimedOut({
+      operationLabel: 'sealOutput',
+      errorCode: CofheErrorCode.SealOutputFailed,
+      status: responseClassification.status,
+      elapsedMs,
+      retry404TimeoutMs,
+      overallTimeoutMs: SEAL_OUTPUT_TIMEOUT_MS,
+      thresholdNetworkUrl,
+      body,
+      attemptIndex,
     });
+
+    onPoll?.({
+      operation: 'sealoutput',
+      requestId: '',
+      attemptIndex,
+      elapsedMs,
+      intervalMs: SUBMIT_RETRY_INTERVAL_MS,
+      timeoutMs: SEAL_OUTPUT_TIMEOUT_MS,
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, SUBMIT_RETRY_INTERVAL_MS));
+    attemptIndex += 1;
   }
 }
 
@@ -416,9 +406,15 @@ export async function tnSealOutputV2(params: {
   chainId: number;
   permission: Permission;
   thresholdNetworkUrl: string;
+  retry404TimeoutMs?: number;
   onPoll?: DecryptPollCallbackFunction;
 }): Promise<EthEncryptedData> {
-  const { thresholdNetworkUrl, ctHash, chainId, permission, onPoll } = params;
+  const { thresholdNetworkUrl, ctHash, chainId, permission, retry404TimeoutMs, onPoll } = params;
+  const normalized404RetryTimeoutMs = normalize404RetryTimeoutMs({
+    timeoutMs: retry404TimeoutMs,
+    operationLabel: 'sealOutput',
+    errorCode: CofheErrorCode.SealOutputFailed,
+  });
   const overallStartTime = Date.now();
 
   // Step 1: Submit the request and get request_id
@@ -428,6 +424,7 @@ export async function tnSealOutputV2(params: {
     chainId,
     permission,
     overallStartTime,
+    normalized404RetryTimeoutMs,
     onPoll
   );
 

@@ -268,6 +268,37 @@ describe('decrypt polling callbacks', () => {
     );
   });
 
+  it('tnDecryptV2 times out 404 submit retries using default timeout', async () => {
+    const fetchMock = vi.fn(async (url: string, options?: any) => {
+      if (url === `${thresholdNetworkUrl}/v2/decrypt` && options?.method === 'POST') {
+        return makeMockResponse({
+          ok: false,
+          status: 404,
+          statusText: 'Not Found',
+          json: async () => ({ message: 'Not Found' }),
+        });
+      }
+
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+
+    global.fetch = fetchMock as any;
+
+    const promise = tnDecryptV2({
+      ctHash: 1n,
+      chainId: 1,
+      permission: null,
+      thresholdNetworkUrl,
+    });
+
+    const rejection = expect(promise).rejects.toMatchObject({
+      message: 'decrypt submit retried 404 responses without receiving request_id for 10000ms',
+    });
+
+    await vi.advanceTimersByTimeAsync(11_000);
+    await rejection;
+  });
+
   it('tnDecryptV2 returns immediately when submit responds with cached completed payload', async () => {
     const onPoll = vi.fn();
 
@@ -619,6 +650,38 @@ describe('decrypt polling callbacks', () => {
         attemptIndex: 0,
       })
     );
+  });
+
+  it('tnSealOutputV2 uses custom 404 submit retry timeout', async () => {
+    const fetchMock = vi.fn(async (url: string, options?: any) => {
+      if (url === `${thresholdNetworkUrl}/v2/sealoutput` && options?.method === 'POST') {
+        return makeMockResponse({
+          ok: false,
+          status: 404,
+          statusText: 'Not Found',
+          json: async () => ({ message: 'Not Found' }),
+        });
+      }
+
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+
+    global.fetch = fetchMock as any;
+
+    const promise = tnSealOutputV2({
+      ctHash: 1n,
+      chainId: 1,
+      permission: {} as any,
+      thresholdNetworkUrl,
+      retry404TimeoutMs: 2000,
+    });
+
+    const rejection = expect(promise).rejects.toMatchObject({
+      message: 'sealOutput submit retried 404 responses without receiving request_id for 2000ms',
+    });
+
+    await vi.advanceTimersByTimeAsync(3000);
+    await rejection;
   });
 
   it('tnSealOutputV2 returns immediately when submit responds with cached completed payload', async () => {
