@@ -2,6 +2,10 @@
 
 ## 0.5.1
 
+### Patch Changes
+
+- Document `404` submit retries for `decryptForTx` / `decryptForView` and the new `.set404RetryTimeout(timeoutMs)` builder option.
+
 ## 0.5.0
 
 ### Minor Changes
