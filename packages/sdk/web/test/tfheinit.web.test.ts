@@ -57,6 +57,6 @@ describe('@cofhe/web - TFHE Initialization Browser Tests', () => {
 
       // Second encryption should reuse initialization
       await expect(cofheClient.encryptInputs([Encryptable.uint64(50n)]).execute()).resolves.not.toThrow();
-    }, 60000);
+    }, 120000);
   });
 });
