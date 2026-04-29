@@ -4,11 +4,7 @@ import { CofheError, CofheErrorCode } from '../error';
 import { type DecryptPollCallbackFunction } from '../types';
 import { normalizeTnSignature, parseDecryptedBytesToBigInt } from './tnDecryptUtils';
 import { computeMinuteRampPollIntervalMs } from './polling.js';
-import {
-  classifySubmitResponse,
-  normalize404RetryTimeoutMs,
-  throwIfSubmitRetryTimedOut,
-} from './submitRetry.js';
+import { classifySubmitResponse, normalize404RetryTimeoutMs, throwIfSubmitRetryTimedOut } from './submitRetry.js';
 
 // Polling configuration
 const POLL_INTERVAL_MS = 1000; // 1 second

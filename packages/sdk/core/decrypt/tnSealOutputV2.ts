@@ -3,11 +3,7 @@ import { type Permission, type EthEncryptedData } from '@/permits';
 import { CofheError, CofheErrorCode } from '../error.js';
 import { type DecryptPollCallbackFunction } from '../types.js';
 import { computeMinuteRampPollIntervalMs } from './polling.js';
-import {
-  classifySubmitResponse,
-  normalize404RetryTimeoutMs,
-  throwIfSubmitRetryTimedOut,
-} from './submitRetry.js';
+import { classifySubmitResponse, normalize404RetryTimeoutMs, throwIfSubmitRetryTimedOut } from './submitRetry.js';
 
 // Polling configuration
 const POLL_INTERVAL_MS = 1000; // 1 second
