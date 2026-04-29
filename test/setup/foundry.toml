@@ -2,6 +2,7 @@
 src = "contracts"
 out = "out"
 libs = ["node_modules"]
+solc_version = "0.8.30"
 auto_detect_remappings = false
 remappings = [
   "@fhenixprotocol/cofhe-contracts/=node_modules/@fhenixprotocol/cofhe-contracts/",

@@ -14,6 +14,8 @@ Local CoFHE is **opt-in** — disabled by default unless `MATRIX_CHAIN` explicit
 
 ## Usage
 
+Run these commands from `test/integration-matrix`. From the repo root, use `pnpm --filter @cofhe/integration-matrix <script>` instead.
+
 ```bash
 pnpm test              # node only locally, node + web in CI (CI=true)
 pnpm test:node         # node only
@@ -51,6 +53,13 @@ MATRIX_CHAIN=localcofhe pnpm test:node        # localcofhe opt-in
 MATRIX_CHAIN=all pnpm test                    # all chains, including localcofhe
 MATRIX_ENV=node pnpm test                     # node environment only
 MATRIX_ENV=web pnpm test                      # web environment only
+```
+
+From the repo root, the equivalent commands are:
+
+```bash
+MATRIX_CHAIN=arb-sepolia pnpm --filter @cofhe/integration-matrix test
+MATRIX_CHAIN=hardhat pnpm --filter @cofhe/integration-matrix test:node
 ```
 
 Valid chain slugs: `hardhat`, `localcofhe`, `sepolia`, `arb-sepolia` / `arbitrum-sepolia`, `base-sepolia`.
