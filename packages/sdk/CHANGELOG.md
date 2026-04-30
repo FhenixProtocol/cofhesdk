@@ -4,12 +4,6 @@
 
 ### Patch Changes
 
-- Add configurable submit-time `404` retries to the threshold-network decrypt flows used by both `decryptForTx` and `decryptForView`.
-
-  - The SDK now retries transient submit-time `404 Not Found` responses for up to 10 seconds by default before failing.
-  - Both decryption builders expose `.set404RetryTimeout(timeoutMs)` so callers can tune that window for slower backends.
-  - Shared submit retry logic was extracted internally so `decrypt` and `sealoutput` flows stay aligned.
-
 - 342fd0f: Fix SSR compatibility (`@cofhe/sdk/web` no longer crashes Next.js builds with `self is not defined`) by lazy-loading `tfhe`. Align `@cofhe/mock-contracts` with `@fhenixprotocol/cofhe-contracts@^0.1.3` (updated `TestBed.sol` to use current decrypt API, added missing `ITaskManager` batch methods to `MockTaskManager.sol`).
 
 ## 0.5.0
