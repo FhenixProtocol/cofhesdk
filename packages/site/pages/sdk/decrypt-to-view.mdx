@@ -392,6 +392,8 @@ Registers a callback that runs once per poll attempt while waiting for the thres
 
 This is useful for showing “decrypting…” UI, measuring latency, or logging.
 
+During submit retries, `requestId` is an empty string because the backend has not created a request yet. This can happen while the SDK is retrying transient `204` or short-lived `404` submit responses.
+
 ```ts twoslash
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
 import { chains } from '@cofhe/sdk/chains';
@@ -406,6 +408,29 @@ const plaintext = await client
   .onPoll(({ attemptIndex, elapsedMs }) => { // [!code focus]
     console.log('sealoutput polling', { attemptIndex, elapsedMs }); // [!code focus]
   }) // [!code focus]
+  .execute();
+
+plaintext;
+```
+
+### `.set404RetryTimeout(timeoutMs)` — optional
+
+Controls how long the SDK should keep retrying submit-time `404 Not Found` responses before failing. The default is `10000` ms.
+
+Use this when your backend is eventually consistent and may need a few seconds to index a freshly-created ciphertext handle.
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+import { FheTypes } from '@cofhe/sdk';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: `0x${string}`;
+// ---cut---
+const plaintext = await client
+  .decryptForView(ctHash, FheTypes.Uint32)
+  .set404RetryTimeout(15_000) // [!code focus]
   .execute();
 
 plaintext;
