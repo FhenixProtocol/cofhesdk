@@ -14,6 +14,8 @@ import { tnSealOutputV2 } from './tnSealOutputV2.js';
 import { sleep } from '../utils.js';
 import { type DecryptPollCallbackFunction } from '../types.js';
 
+const DEFAULT_404_RETRY_TIMEOUT_MS = 10_000;
+
 /**
  * API
  *
@@ -48,6 +50,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
   private permitHash?: string;
   private permit?: Permit;
   private pollCallback?: DecryptPollCallbackFunction;
+  private retry404TimeoutMs = DEFAULT_404_RETRY_TIMEOUT_MS;
 
   constructor(params: DecryptForViewBuilderParams<U>) {
     super({
@@ -113,6 +116,21 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
 
   onPoll(callback: DecryptPollCallbackFunction): DecryptForViewBuilder<U> {
     this.pollCallback = callback;
+    return this;
+  }
+
+  set404RetryTimeout(timeoutMs: number): DecryptForViewBuilder<U> {
+    if (!Number.isFinite(timeoutMs) || timeoutMs < 0) {
+      throw new CofheError({
+        code: CofheErrorCode.InternalError,
+        message: 'decryptForView: set404RetryTimeout(timeoutMs) expects a finite number greater than or equal to 0.',
+        context: {
+          timeoutMs,
+        },
+      });
+    }
+
+    this.retry404TimeoutMs = timeoutMs;
     return this;
   }
 
@@ -276,6 +294,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
       chainId: this.chainId,
       permission,
       thresholdNetworkUrl,
+      retry404TimeoutMs: this.retry404TimeoutMs,
       onPoll: this.pollCallback,
     });
     return PermitUtils.unseal(permit, sealed);

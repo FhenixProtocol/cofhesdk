@@ -301,6 +301,8 @@ result.signature;
 
 Registers a callback that runs once per poll attempt while waiting for the threshold network to complete the request.
 
+During submit retries, `requestId` is an empty string because the backend has not created a request yet. This can happen while the SDK is retrying transient `204` or short-lived `404` submit responses.
+
 For the full meaning of submit retries versus request-status polling, see [Decryption Lifecycle](/reference/decryption-lifecycle).
 
 ```ts twoslash
@@ -316,6 +318,29 @@ const result = await client
   .onPoll(({ attemptIndex, elapsedMs }) => { // [!code focus]
     console.log('decrypt polling', { attemptIndex, elapsedMs }); // [!code focus]
   }) // [!code focus]
+  .withPermit()
+  .execute();
+
+result.signature;
+```
+
+### `.set404RetryTimeout(timeoutMs)` — optional
+
+Controls how long the SDK should keep retrying submit-time `404 Not Found` responses before failing. The default is `10000` ms.
+
+Use this when your backend is eventually consistent and may need a few seconds to index a freshly-created ciphertext handle.
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const ctHash: `0x${string}`;
+// ---cut---
+const result = await client
+  .decryptForTx(ctHash)
+  .set404RetryTimeout(15_000) // [!code focus]
   .withPermit()
   .execute();
 

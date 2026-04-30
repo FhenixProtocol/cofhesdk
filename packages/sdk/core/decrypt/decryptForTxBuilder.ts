@@ -12,6 +12,8 @@ import { getPublicClientChainID, sleep } from '../utils';
 import { type DecryptPollCallbackFunction } from '../types';
 import { tnDecryptV2 } from './tnDecryptV2';
 
+const DEFAULT_404_RETRY_TIMEOUT_MS = 10_000;
+
 /**
  * API
  *
@@ -62,6 +64,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
   private permit?: Permit;
   private permitSelection: DecryptForTxPermitSelection = 'unset';
   private pollCallback?: DecryptPollCallbackFunction;
+  private retry404TimeoutMs = DEFAULT_404_RETRY_TIMEOUT_MS;
 
   constructor(params: DecryptForTxBuilderParams) {
     super({
@@ -130,6 +133,23 @@ export class DecryptForTxBuilder extends BaseBuilder {
   onPoll(this: DecryptForTxBuilderSelected, callback: DecryptPollCallbackFunction): DecryptForTxBuilderSelected;
   onPoll(callback: DecryptPollCallbackFunction): DecryptForTxBuilder {
     this.pollCallback = callback;
+    return this;
+  }
+
+  set404RetryTimeout(this: DecryptForTxBuilderUnset, timeoutMs: number): DecryptForTxBuilderUnset;
+  set404RetryTimeout(this: DecryptForTxBuilderSelected, timeoutMs: number): DecryptForTxBuilderSelected;
+  set404RetryTimeout(timeoutMs: number): DecryptForTxBuilder {
+    if (!Number.isFinite(timeoutMs) || timeoutMs < 0) {
+      throw new CofheError({
+        code: CofheErrorCode.InternalError,
+        message: 'decryptForTx: set404RetryTimeout(timeoutMs) expects a finite number greater than or equal to 0.',
+        context: {
+          timeoutMs,
+        },
+      });
+    }
+
+    this.retry404TimeoutMs = timeoutMs;
     return this;
   }
 
@@ -305,6 +325,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
       chainId: this.chainId,
       permission,
       thresholdNetworkUrl,
+      retry404TimeoutMs: this.retry404TimeoutMs,
       onPoll: this.pollCallback,
     });
 
