@@ -16,7 +16,6 @@ pnpm add @cofhe/react @cofhe/sdk
 
 ```tsx
 import { CofheProvider } from '@cofhe/react';
-import '@cofhe/react/styles.css'; // Import component styles
 import { createCofheClient } from '@cofhe/sdk/web';
 
 const client = createCofheClient(config);
@@ -30,10 +29,45 @@ function App() {
 }
 ```
 
+### Hooks-only usage
+
+If you only want hooks/providers and do not want package CSS or UI components, import from the root package only:
+
+```tsx
+import { CofheProvider, useCofheClient } from '@cofhe/react';
+
+function App() {
+  return (
+    <CofheProvider config={config}>
+      <YourHookDrivenApp />
+    </CofheProvider>
+  );
+}
+```
+
+If you do want the styled React UI components, import them from `@cofhe/react/ui`:
+
+```tsx
+import { CofheProvider } from '@cofhe/react';
+import { CofheFloatingButtonWithProvider } from '@cofhe/react/ui';
+
+function App() {
+  return (
+    <CofheProvider config={config}>
+      <YourApp />
+      <CofheFloatingButtonWithProvider />
+    </CofheProvider>
+  );
+}
+```
+
+The `@cofhe/react/ui` entrypoint includes the package styles automatically.
+
 ### 2. Use the CofheEncryptInput component
 
 ```tsx
-import { CofheEncryptInput, FheTypesList } from '@cofhe/react';
+import { FheTypesList } from '@cofhe/react';
+import { CofheEncryptInput } from '@cofhe/react/ui';
 
 function MyComponent() {
   return (
@@ -131,13 +165,9 @@ const {
 
 ## Styling
 
-The package includes Tailwind CSS styles. Import them in your app:
+The root `@cofhe/react` entrypoint is headless and does not load package styles.
 
-```tsx
-import '@cofhe/react/styles.css';
-```
-
-If you're using Tailwind CSS in your project, the component classes will work automatically.
+If you import components from `@cofhe/react/ui`, the package styles are loaded automatically.
 
 ## Dependencies
 

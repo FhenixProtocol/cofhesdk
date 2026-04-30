@@ -1,5 +1,6 @@
 import React from 'react';
-import { CofheEncryptInput, FheTypesList } from '@cofhe/react';
+import { FheTypesList } from '@cofhe/react';
+import { CofheEncryptInput } from '@cofhe/react/ui';
 
 export const CofheEncryptInputExample: React.FC = () => {
   return (
