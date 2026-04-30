@@ -1,5 +1,5 @@
 import { arbSepolia as cofheArbSepolia } from '@/chains';
-import { Encryptable, FheTypes, type CofheClient, CofheErrorCode, CofheError } from '@/core';
+import { Encryptable, type CofheClient } from '@/core';
 
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import type { PublicClient, WalletClient } from 'viem';
@@ -42,21 +42,50 @@ describe('@cofhe/web - TFHE Initialization Browser Tests', () => {
     it('should initialize tfhe on first encryption', async () => {
       await cofheClient.connect(publicClient, walletClient);
 
+      let initTfheContext: Record<string, unknown> | undefined;
+
       // This will trigger real TFHE initialization in browser
-      const result = await cofheClient.encryptInputs([Encryptable.uint128(100n)]).execute();
+      const result = await cofheClient
+        .encryptInputs([Encryptable.uint128(100n)])
+        .onStep((step, context) => {
+          if (step === 'initTfhe' && context?.isEnd) {
+            initTfheContext = context;
+          }
+        })
+        .execute();
 
       // If we get here, TFHE was initialized successfully
       expect(result).toBeDefined();
+      expect(initTfheContext).toBeDefined();
+      expect(initTfheContext?.tfheInitializationExecuted).toBe(true);
     }, 60000); // Longer timeout for real operations
 
     it('should handle multiple encryptions without re-initializing', async () => {
       await cofheClient.connect(publicClient, walletClient);
 
+      const initTfheContexts: Array<Record<string, unknown>> = [];
+      const collectInitTfheContext = (step: string, context?: Record<string, unknown>) => {
+        if (step === 'initTfhe' && context?.isEnd) {
+          initTfheContexts.push(context);
+        }
+      };
+
       // First encryption
-      await expect(cofheClient.encryptInputs([Encryptable.uint128(100n)]).execute()).resolves.not.toThrow();
+      const firstResult = await cofheClient
+        .encryptInputs([Encryptable.uint128(100n)])
+        .onStep(collectInitTfheContext)
+        .execute();
 
       // Second encryption should reuse initialization
-      await expect(cofheClient.encryptInputs([Encryptable.uint64(50n)]).execute()).resolves.not.toThrow();
-    }, 120000);
+      const secondResult = await cofheClient
+        .encryptInputs([Encryptable.uint64(50n)])
+        .onStep(collectInitTfheContext)
+        .execute();
+
+      expect(firstResult).toBeDefined();
+      expect(secondResult).toBeDefined();
+      expect(initTfheContexts).toHaveLength(2);
+      expect(initTfheContexts[1].tfheInitializationExecuted).toBe(false);
+    }, 60000);
   });
 });
