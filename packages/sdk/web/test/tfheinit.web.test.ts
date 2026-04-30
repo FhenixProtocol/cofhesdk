@@ -53,10 +53,10 @@ describe('@cofhe/web - TFHE Initialization Browser Tests', () => {
       await cofheClient.connect(publicClient, walletClient);
 
       // First encryption
-      expect(cofheClient.encryptInputs([Encryptable.uint128(100n)]).execute()).resolves.not.toThrow();
+      await expect(cofheClient.encryptInputs([Encryptable.uint128(100n)]).execute()).resolves.not.toThrow();
 
       // Second encryption should reuse initialization
-      expect(cofheClient.encryptInputs([Encryptable.uint64(50n)]).execute()).resolves.not.toThrow();
-    }, 60000);
+      await expect(cofheClient.encryptInputs([Encryptable.uint64(50n)]).execute()).resolves.not.toThrow();
+    }, 120000);
   });
 });

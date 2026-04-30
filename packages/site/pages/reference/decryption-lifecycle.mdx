@@ -50,6 +50,8 @@ This means:
 
 This is the case the SDK now handles automatically.
 
+The SDK also treats short-lived submit-time `404 Not Found` responses as retryable during an initial indexing window. By default, that `404` retry window is 10 seconds and can be changed via `.set404RetryTimeout(timeoutMs)` on either decrypt builder.
+
 For both `decryptForTx` and `decryptForView`, the SDK will:
 
 - retry the submit call,
@@ -80,6 +82,7 @@ The SDK uses one shared timeout budget across the full production lifecycle:
 
 - initial submit attempts,
 - repeated `204` submit retries,
+- transient `404` submit retries within the configured 404 retry window,
 - status polling after `request_id` creation.
 
 This matters because a request can spend most of its time budget before the `request_id` even exists.
@@ -116,7 +119,8 @@ Interpretation:
 ```text
 decrypt call starts
   -> submit request
-    -> 404: ctHash not known yet, caller must retry later
+    -> 404 within retry window: SDK retries submit automatically
+    -> 404 after retry window: fail and surface submit-time error
     -> 204 without request_id: SDK retries submit automatically
     -> 200 with request_id: SDK starts status polling
       -> PROCESSING: keep polling
@@ -126,7 +130,7 @@ decrypt call starts
 ## Practical guidance
 
 - If you just submitted the encrypting transaction, expect decryption to be eventually consistent rather than immediate.
-- If you get a submit-time `404`, retry later instead of assuming the handle is permanently invalid.
+- If you get a submit-time `404`, the SDK now retries automatically for a short window; increase `.set404RetryTimeout(...)` if your backend indexes handles more slowly.
 - If you want progress UI, use `.onPoll(...)` and treat an empty `requestId` as `waiting for request creation`.
 - If you are debugging slow decrypts, separate `coprocessor has not created a request yet` from `Threshold Network is processing an existing request`.
 
