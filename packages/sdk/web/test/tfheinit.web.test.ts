@@ -11,42 +11,37 @@ import { createCofheClient, createCofheConfig } from '../index.js';
 // Real test setup - runs in browser with real tfhe
 const TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 
-// Timing tracker to diagnose performance regressions
-class StepTimingTracker {
-  private stepTimings: Map<string, { start: number; end?: number; duration?: number }[]> = new Map();
+// Logs per-step durations using the built-in `context.duration` provided by the SDK.
+// Each encryption run is a separate entry so multi-encrypt tests show per-run breakdowns.
+function makeStepLogger(testName: string) {
+  const runs: Array<Record<string, number>> = [];
+  let current: Record<string, number> = {};
 
-  recordStepStart(stepName: string): void {
-    if (!this.stepTimings.has(stepName)) {
-      this.stepTimings.set(stepName, []);
-    }
-    const timings = this.stepTimings.get(stepName)!;
-    timings.push({ start: performance.now() });
+  function onStep(step: string, context?: Record<string, unknown>) {
+    if (!context?.isEnd) return;
+    current[step] = (context.duration as number) ?? 0;
   }
 
-  recordStepEnd(stepName: string): void {
-    const timings = this.stepTimings.get(stepName);
-    if (timings && timings.length > 0) {
-      const lastTiming = timings[timings.length - 1];
-      lastTiming.end = performance.now();
-      lastTiming.duration = lastTiming.end - lastTiming.start;
-    }
+  function nextRun() {
+    if (Object.keys(current).length > 0) runs.push(current);
+    current = {};
   }
 
-  logTimings(testName: string): void {
+  function log() {
+    if (Object.keys(current).length > 0) runs.push(current);
     console.log(`\n[TFHE Timing] ${testName}`);
-    let totalDuration = 0;
-    for (const [stepName, timings] of this.stepTimings) {
-      for (let i = 0; i < timings.length; i++) {
-        const timing = timings[i];
-        if (timing.duration !== undefined) {
-          const occurrence = timings.length > 1 ? ` (occurrence ${i + 1})` : '';
-          console.log(`  ${stepName}${occurrence}: ${timing.duration.toFixed(2)}ms`);
-          totalDuration += timing.duration;
-        }
+    runs.forEach((run, i) => {
+      const label = runs.length > 1 ? ` run ${i + 1}` : '';
+      const total = Object.values(run).reduce((a, b) => a + b, 0);
+      for (const [step, ms] of Object.entries(run)) {
+        console.log(`  [${label.trim() || 'run'}] ${step}: ${ms}ms`);
       }
-    }
-    console.log(`[TFHE Timing] Total: ${totalDuration.toFixed(2)}ms\n`);
+      console.log(`  [${label.trim() || 'run'}] total: ${total}ms`);
+    });
+    console.log('');
   }
+
+  return { onStep, nextRun, log };
 }
 
 describe('@cofhe/web - TFHE Initialization Browser Tests', () => {
@@ -80,25 +75,21 @@ describe('@cofhe/web - TFHE Initialization Browser Tests', () => {
     it('should initialize tfhe on first encryption', async () => {
       await cofheClient.connect(publicClient, walletClient);
 
-      const timingTracker = new StepTimingTracker();
+      const logger = makeStepLogger('should initialize tfhe on first encryption');
       let initTfheContext: Record<string, unknown> | undefined;
 
       // This will trigger real TFHE initialization in browser
       const result = await cofheClient
         .encryptInputs([Encryptable.uint128(100n)])
         .onStep((step, context) => {
-          if (step === 'initTfhe') {
-            if (!context?.isEnd) {
-              timingTracker.recordStepStart(step);
-            } else {
-              timingTracker.recordStepEnd(step);
-              initTfheContext = context;
-            }
+          logger.onStep(step, context);
+          if (step === 'initTfhe' && context?.isEnd) {
+            initTfheContext = context;
           }
         })
         .execute();
 
-      timingTracker.logTimings('should initialize tfhe on first encryption');
+      logger.log();
 
       // If we get here, TFHE was initialized successfully
       expect(result).toBeDefined();
@@ -109,37 +100,39 @@ describe('@cofhe/web - TFHE Initialization Browser Tests', () => {
     it('should handle multiple encryptions without re-initializing', async () => {
       await cofheClient.connect(publicClient, walletClient);
 
-      const timingTracker = new StepTimingTracker();
+      const logger = makeStepLogger('should handle multiple encryptions without re-initializing');
       const initTfheContexts: Array<Record<string, unknown>> = [];
-      const collectInitTfheContext = (step: string, context?: Record<string, unknown>) => {
-        if (step === 'initTfhe') {
-          if (!context?.isEnd) {
-            timingTracker.recordStepStart(step);
-          } else {
-            timingTracker.recordStepEnd(step);
-            initTfheContexts.push(context);
-          }
-        }
-      };
 
       // First encryption
       const firstResult = await cofheClient
         .encryptInputs([Encryptable.uint128(100n)])
-        .onStep(collectInitTfheContext)
+        .onStep((step, context) => {
+          logger.onStep(step, context);
+          if (step === 'initTfhe' && context?.isEnd) {
+            initTfheContexts.push(context);
+          }
+        })
         .execute();
+
+      logger.nextRun();
 
       // Second encryption should reuse initialization
       const secondResult = await cofheClient
         .encryptInputs([Encryptable.uint64(50n)])
-        .onStep(collectInitTfheContext)
+        .onStep((step, context) => {
+          logger.onStep(step, context);
+          if (step === 'initTfhe' && context?.isEnd) {
+            initTfheContexts.push(context);
+          }
+        })
         .execute();
 
-      timingTracker.logTimings('should handle multiple encryptions without re-initializing');
+      logger.log();
 
       expect(firstResult).toBeDefined();
       expect(secondResult).toBeDefined();
       expect(initTfheContexts).toHaveLength(2);
       expect(initTfheContexts[1].tfheInitializationExecuted).toBe(false);
-    }, 120000); // Extended timeout to diagnose hang vs slow
+    }, 120000); // Two full encryptions on real network; CI runners can be slow
   });
 });
