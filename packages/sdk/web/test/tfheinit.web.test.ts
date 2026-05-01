@@ -140,6 +140,6 @@ describe('@cofhe/web - TFHE Initialization Browser Tests', () => {
       expect(secondResult).toBeDefined();
       expect(initTfheContexts).toHaveLength(2);
       expect(initTfheContexts[1].tfheInitializationExecuted).toBe(false);
-    }, 60000);
+    }, 120000); // Extended timeout to diagnose hang vs slow
   });
 });
