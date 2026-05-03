@@ -120,6 +120,16 @@ export const setActivePermitHash = (chainId: number, account: string, hash: stri
   _permitStore.setState(
     produce<PermitsStore>((state) => {
       if (state.activePermitHash[chainId] == null) state.activePermitHash[chainId] = {};
+      // Validate the permit exists before marking it as active.
+      // Setting a stale or non-existent hash causes getActivePermit to silently
+      // return undefined while getActivePermitHash returns a non-null value,
+      // misleading callers into thinking an active permit is still configured.
+      const permitExists = state.permits[chainId]?.[account]?.[hash] != null;
+      if (!permitExists) {
+        throw new Error(
+          `setActivePermitHash: permit with hash "${hash}" does not exist for account ${account} on chain ${chainId}`
+        );
+      }
       state.activePermitHash[chainId][account] = hash;
     })
   );
