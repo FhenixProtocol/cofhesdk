@@ -25,12 +25,17 @@ export function generateMockCtHash(data: unknown): bigint {
     return data;
   }
   if (typeof data === 'string') {
-    // Simple hash: convert string to number and create a bigint
+    // Simple hash: convert string to number and create a bigint.
+    // NOTE: The mask must be 0xFFFFFFFFn to truncate to 32 bits on every
+    // iteration. The previous code used `hash & hash` which is a no-op
+    // (x & x == x for all x), so the hash grew without bound and could
+    // produce values that overflow the uint256 ctHash field on very long
+    // strings.
     let hash = 0n;
     for (let i = 0; i < data.length; i++) {
       const char = data.charCodeAt(i);
       hash = (hash << 5n) - hash + BigInt(char);
-      hash = hash & hash; // Convert to 32-bit integer
+      hash = hash & 0xFFFFFFFFn; // Truncate to 32-bit integer
     }
     return hash < 0n ? -hash : hash;
   }
