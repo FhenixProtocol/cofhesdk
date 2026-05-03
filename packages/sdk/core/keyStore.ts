@@ -11,15 +11,15 @@ type SecurityZoneRecord<T> = Record<number, T>;
 // Keys store for FHE keys and CRS
 export type KeysStore = {
   fhe: ChainRecord<SecurityZoneRecord<string | undefined>>;
-  crs: ChainRecord<string | undefined>;
+  crs: ChainRecord<SecurityZoneRecord<string | undefined>>;
 };
 
 export type KeysStorage = {
   store: StoreApi<KeysStore>;
   getFheKey: (chainId: number | undefined, securityZone?: number) => string | undefined;
-  getCrs: (chainId: number | undefined) => string | undefined;
+  getCrs: (chainId: number | undefined, securityZone?: number) => string | undefined;
   setFheKey: (chainId: number, securityZone: number, key: string) => void;
-  setCrs: (chainId: number, crs: string) => void;
+  setCrs: (chainId: number, securityZone: number, crs: string) => void;
   clearKeysStorage: () => Promise<void>;
   rehydrateKeysStore: () => Promise<void>;
 };
@@ -72,9 +72,9 @@ export function createKeysStore(storage: IStorage | null): KeysStorage {
     return stored;
   };
 
-  const getCrs = (chainId: number | undefined) => {
+  const getCrs = (chainId: number | undefined, securityZone = 0) => {
     if (chainId == null) return undefined;
-    const stored = keysStore.getState().crs[chainId];
+    const stored = keysStore.getState().crs[chainId]?.[securityZone];
     return stored;
   };
 
@@ -87,10 +87,11 @@ export function createKeysStore(storage: IStorage | null): KeysStorage {
     );
   };
 
-  const setCrs = (chainId: number, crs: string) => {
+  const setCrs = (chainId: number, securityZone: number, crs: string) => {
     keysStore.setState(
       produce<KeysStore>((state: KeysStore) => {
-        state.crs[chainId] = crs;
+        if (state.crs[chainId] == null) state.crs[chainId] = {};
+        state.crs[chainId][securityZone] = crs;
       })
     );
   };
@@ -143,8 +144,14 @@ function createStoreWithPersit(storage: IStorage) {
           mergedFhe[chainId] = { ...persistedZones, ...currentZones };
         }
 
-        // Deep merge for crs
-        const mergedCrs: KeysStore['crs'] = { ...persisted.crs, ...current.crs };
+        // Deep merge for crs (per security zone, same as fhe)
+        const mergedCrs: KeysStore['crs'] = { ...persisted.crs };
+        const allCrsChainIds = new Set([...Object.keys(current.crs), ...Object.keys(persisted.crs)]);
+        for (const chainId of allCrsChainIds) {
+          const persistedCrsZones = (persisted.crs[chainId] as Record<number, string | undefined>) || {};
+          const currentCrsZones = (current.crs[chainId] as Record<number, string | undefined>) || {};
+          mergedCrs[chainId] = { ...persistedCrsZones, ...currentCrsZones };
+        }
 
         return {
           fhe: mergedFhe,
