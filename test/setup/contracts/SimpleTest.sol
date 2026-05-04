@@ -13,32 +13,34 @@ contract SimpleTest {
   euint32 public publicValue;
   bytes32 public publicValueHash;
 
+  function _setStoredValue(euint32 value) internal {
+    storedValue = value;
+    storedValueHash = euint32.unwrap(value);
+    FHE.allowThis(value);
+    FHE.allowSender(value);
+  }
+
+  function _setPublicValue(euint32 value) internal {
+    publicValue = value;
+    publicValueHash = euint32.unwrap(value);
+    FHE.allowPublic(value);
+  }
+
   function setValueTrivial(uint256 inValue) public {
-    storedValue = FHE.asEuint32(inValue);
-    storedValueHash = euint32.unwrap(storedValue);
-    FHE.allowThis(storedValue);
-    FHE.allowSender(storedValue);
+    _setStoredValue(FHE.asEuint32(inValue));
   }
 
   function setPublicValue(InEuint32 memory inValue) public {
-    publicValue = FHE.asEuint32(inValue);
-    publicValueHash = euint32.unwrap(publicValue);
-    FHE.allowPublic(publicValue);
+    _setPublicValue(FHE.asEuint32(inValue));
   }
 
   function setValue(InEuint32 memory inValue) public {
-    storedValue = FHE.asEuint32(inValue);
-    storedValueHash = euint32.unwrap(storedValue);
-    FHE.allowThis(storedValue);
-    FHE.allowSender(storedValue);
+    _setStoredValue(FHE.asEuint32(inValue));
   }
 
   function addValue(InEuint32 memory inValue) public {
     euint32 valueToAdd = FHE.asEuint32(inValue);
-    storedValue = FHE.add(storedValue, valueToAdd);
-    storedValueHash = euint32.unwrap(storedValue);
-    FHE.allowThis(storedValue);
-    FHE.allowSender(storedValue);
+    _setStoredValue(FHE.add(storedValue, valueToAdd));
   }
 
   function getValue() public view returns (euint32) {
@@ -54,17 +56,12 @@ contract SimpleTest {
   }
 
   function setPublicValueTrivial(uint256 inValue) public {
-    publicValue = FHE.asEuint32(inValue);
-    publicValueHash = euint32.unwrap(publicValue);
-    FHE.allowPublic(publicValue);
+    _setPublicValue(FHE.asEuint32(inValue));
   }
 
   function addValueTrivial(uint256 inValue) public {
     euint32 valueToAdd = FHE.asEuint32(inValue);
-    storedValue = FHE.add(storedValue, valueToAdd);
-    storedValueHash = euint32.unwrap(storedValue);
-    FHE.allowThis(storedValue);
-    FHE.allowSender(storedValue);
+    _setStoredValue(FHE.add(storedValue, valueToAdd));
   }
 
   function getDecryptResultSafe(euint32 input) public view returns (uint32 value, bool decrypted) {
