@@ -185,8 +185,8 @@ async function createProofSignatures(
   items: EncryptableItemWithCtHash[],
   securityZone: number,
   account: string
-): Promise<string[]> {
-  let signatures: string[] = [];
+): Promise<`0x${string}`[]> {
+  let signatures: `0x${string}`[] = [];
 
   // Create wallet client for the encrypted input signer
   // This wallet won't send a transaction, so gas isn't needed

@@ -130,7 +130,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
     const testValue = 100n;
     const encrypted = await ctx.cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
 
-    const encryptedInput = { ...encrypted[0], signature: encrypted[0].signature as `0x${string}` };
+    const encryptedInput = encrypted[0];
     const txHash = await ctx.bobWalletClient.writeContract({
       address: ctx.contractAddress,
       abi: simpleTestAbi,
@@ -161,7 +161,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
     const testValue = 42n;
     const encrypted = await ctx.cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
 
-    const encryptedInput = { ...encrypted[0], signature: encrypted[0].signature as `0x${string}` };
+    const encryptedInput = encrypted[0];
     const storeTxHash = await ctx.bobWalletClient.writeContract({
       address: ctx.contractAddress,
       abi: simpleTestAbi,

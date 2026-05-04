@@ -111,16 +111,14 @@ export type EncryptedNumber = {
   securityZone: number;
 };
 
-export type EncryptedItemInput<TSignature = string> = {
+export type EncryptedItemInput = {
   ctHash: bigint;
   securityZone: number;
   utype: FheTypes;
-  signature: TSignature;
+  signature: `0x${string}`;
 };
 
-export function assertCorrectEncryptedItemInput(
-  input: EncryptedItemInput
-): asserts input is EncryptedItemInput<`0x${string}`> {
+export function assertCorrectEncryptedItemInput(input: EncryptedItemInput): asserts input is EncryptedItemInput {
   if (!input.signature.startsWith('0x')) throw new Error('Signature must be a hex string starting with 0x');
 }
 
