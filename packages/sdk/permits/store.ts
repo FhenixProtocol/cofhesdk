@@ -1,5 +1,5 @@
 import { createStore } from 'zustand/vanilla';
-import { persist } from 'zustand/middleware';
+import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware';
 import { produce } from 'immer';
 import { type Permit, type SerializedPermit } from './types.js';
 import { PermitUtils } from './permit.js';
@@ -19,8 +19,38 @@ export const PERMIT_STORE_DEFAULTS: PermitsStore = {
   permits: {},
   activePermitHash: {},
 };
+
+const memoryStorageState: Record<string, string> = {};
+
+const memoryStorage: StateStorage = {
+  getItem: (name) => memoryStorageState[name] ?? null,
+  setItem: (name, value) => {
+    memoryStorageState[name] = value;
+  },
+  removeItem: (name) => {
+    delete memoryStorageState[name];
+  },
+};
+
+const getPermitStorage = (): StateStorage => {
+  const storage = (globalThis as typeof globalThis & { localStorage?: unknown }).localStorage as
+    | Partial<StateStorage>
+    | undefined;
+
+  // Some Node test setups expose localStorage with only getItem; Zustand persist
+  // will still call setItem/removeItem and throw on the first permit store write.
+  return typeof storage?.getItem === 'function' &&
+    typeof storage.setItem === 'function' &&
+    typeof storage.removeItem === 'function'
+    ? (storage as StateStorage)
+    : memoryStorage;
+};
+
 export const _permitStore = createStore<PermitsStore>()(
-  persist(() => PERMIT_STORE_DEFAULTS, { name: 'cofhesdk-permits' })
+  persist(() => PERMIT_STORE_DEFAULTS, {
+    name: 'cofhesdk-permits',
+    storage: createJSONStorage(getPermitStorage),
+  })
 );
 
 export const clearStaleStore = () => {

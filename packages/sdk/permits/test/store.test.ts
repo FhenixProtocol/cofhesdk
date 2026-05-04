@@ -85,7 +85,7 @@ describe('Storage Tests', () => {
       expect(activeHash).toBeUndefined();
     });
 
-    it('throws when a partial localStorage global is present in node', async () => {
+    it('falls back to in-memory storage when node has a partial localStorage global', async () => {
       const originalLocalStorage = globalThis.localStorage;
 
       vi.resetModules();
@@ -100,9 +100,8 @@ describe('Storage Tests', () => {
       try {
         const reloadedPermits = await import('../index.js');
 
-        expect(() => reloadedPermits.setActivePermitHash(chainId, account, 'hash')).toThrow(
-          'storage.setItem is not a function'
-        );
+        expect(() => reloadedPermits.setActivePermitHash(chainId, account, 'hash')).not.toThrow();
+        expect(reloadedPermits.getActivePermitHash(chainId, account)).toBe('hash');
       } finally {
         if (originalLocalStorage === undefined) {
           delete (globalThis as typeof globalThis & { localStorage?: unknown }).localStorage;
