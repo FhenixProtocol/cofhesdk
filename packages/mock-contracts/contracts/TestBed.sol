@@ -12,7 +12,7 @@ import { SimpleTest } from '@cofhe/test-setup/contracts/SimpleTest.sol';
 ///      instantiate it explicitly (this repository includes such Foundry tests). You may deploy/use it
 ///      in `forge test` if you want a known-good reference target.
 ///
-///      TestBed inherits the shared `SimpleTest` fixture from `@cofhe/test-setup`, so its callable surface
+///      TestBed inherits the shared `SimpleTest` fixture from the test-setup package, so its callable surface
 ///      is defined there. In practice, tests use helpers such as `setValue(...)`, `setValueTrivial(...)`,
 ///      `getValue()`, and `getValueHash()` through this fixed-address wrapper.
 contract TestBed is SimpleTest {}
