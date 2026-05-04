@@ -86,10 +86,20 @@ describe('Storage Tests', () => {
     });
 
     it('falls back to in-memory storage when node has a partial localStorage global', async () => {
-      const originalLocalStorage = globalThis.localStorage;
+      type PartialLocalStorage = {
+        getItem?: (key: string) => string | null;
+        setItem?: (key: string, value: string) => void;
+        removeItem?: (key: string) => void;
+        clear?: () => void;
+      };
+
+      const globalWithLocalStorage = globalThis as typeof globalThis & {
+        localStorage?: PartialLocalStorage;
+      };
+      const originalLocalStorage = globalWithLocalStorage.localStorage;
 
       vi.resetModules();
-      Object.defineProperty(globalThis, 'localStorage', {
+      Object.defineProperty(globalWithLocalStorage, 'localStorage', {
         configurable: true,
         writable: true,
         value: {
@@ -104,9 +114,9 @@ describe('Storage Tests', () => {
         expect(reloadedPermits.getActivePermitHash(chainId, account)).toBe('hash');
       } finally {
         if (originalLocalStorage === undefined) {
-          delete (globalThis as typeof globalThis & { localStorage?: unknown }).localStorage;
+          delete globalWithLocalStorage.localStorage;
         } else {
-          Object.defineProperty(globalThis, 'localStorage', {
+          Object.defineProperty(globalWithLocalStorage, 'localStorage', {
             configurable: true,
             writable: true,
             value: originalLocalStorage,
