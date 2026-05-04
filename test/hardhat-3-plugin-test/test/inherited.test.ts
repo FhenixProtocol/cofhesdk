@@ -22,7 +22,7 @@ describe('Inherited SDK Tests', async () => {
     const [enc] = await client.encryptInputs([Encryptable.uint32(42n)]).execute();
     await bobWalletClient.writeContract({
       ...cofhe.mocks.TestBed,
-      functionName: 'setNumber',
+      functionName: 'setValue',
       args: [
         {
           ctHash: enc.ctHash,
@@ -34,7 +34,7 @@ describe('Inherited SDK Tests', async () => {
     });
     const ctHash = await publicClient.readContract({
       ...cofhe.mocks.TestBed,
-      functionName: 'numberHash',
+      functionName: 'getValueHash',
     });
     return { enc, ctHash };
   };
@@ -57,7 +57,7 @@ describe('Inherited SDK Tests', async () => {
 
     await bobWalletClient.writeContract({
       ...cofhe.mocks.TestBed,
-      functionName: 'setNumber',
+      functionName: 'setValue',
       args: [
         {
           ctHash: enc.ctHash,
@@ -70,7 +70,7 @@ describe('Inherited SDK Tests', async () => {
 
     const ctHash = await publicClient.readContract({
       ...cofhe.mocks.TestBed,
-      functionName: 'numberHash',
+      functionName: 'getValueHash',
     });
 
     const decrypted = await client.decryptForView(ctHash, FheTypes.Uint32).execute();
@@ -84,7 +84,7 @@ describe('Inherited SDK Tests', async () => {
 
     await bobWalletClient.writeContract({
       ...cofhe.mocks.TestBed,
-      functionName: 'setNumber',
+      functionName: 'setValue',
       args: [
         {
           ctHash: enc.ctHash,
@@ -97,7 +97,7 @@ describe('Inherited SDK Tests', async () => {
 
     const ctHash = await publicClient.readContract({
       ...cofhe.mocks.TestBed,
-      functionName: 'numberHash',
+      functionName: 'getValueHash',
     });
 
     const result = await client.decryptForTx(ctHash).withPermit().execute();
