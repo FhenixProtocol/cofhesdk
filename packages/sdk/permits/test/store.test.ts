@@ -2,7 +2,7 @@
  * @vitest-environment node
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   permitStore,
   getPermit,
@@ -83,6 +83,38 @@ describe('Storage Tests', () => {
 
       const activeHash = getActivePermitHash(chainId, account);
       expect(activeHash).toBeUndefined();
+    });
+
+    it('throws when a partial localStorage global is present in node', async () => {
+      const originalLocalStorage = globalThis.localStorage;
+
+      vi.resetModules();
+      Object.defineProperty(globalThis, 'localStorage', {
+        configurable: true,
+        writable: true,
+        value: {
+          getItem: () => null,
+        },
+      });
+
+      try {
+        const reloadedPermits = await import('../index.js');
+
+        expect(() => reloadedPermits.setActivePermitHash(chainId, account, 'hash')).toThrow(
+          'storage.setItem is not a function'
+        );
+      } finally {
+        if (originalLocalStorage === undefined) {
+          delete (globalThis as typeof globalThis & { localStorage?: unknown }).localStorage;
+        } else {
+          Object.defineProperty(globalThis, 'localStorage', {
+            configurable: true,
+            writable: true,
+            value: originalLocalStorage,
+          });
+        }
+        vi.resetModules();
+      }
     });
   });
 });
