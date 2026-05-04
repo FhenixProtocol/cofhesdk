@@ -24,7 +24,7 @@ describe('Hardhat Mocks – publishDecryptResult revert behavior', () => {
     const simpleTestFactory = new hre.ethers.ContractFactory(
       SimpleTestArtifact.abi,
       SimpleTestArtifact.bytecode.object,
-      signer,
+      signer
     );
     testContract = await simpleTestFactory.deploy();
     await testContract.waitForDeployment();
