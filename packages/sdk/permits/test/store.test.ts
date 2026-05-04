@@ -2,7 +2,7 @@
  * @vitest-environment node
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   permitStore,
   getPermit,
@@ -83,6 +83,47 @@ describe('Storage Tests', () => {
 
       const activeHash = getActivePermitHash(chainId, account);
       expect(activeHash).toBeUndefined();
+    });
+
+    it('falls back to in-memory storage when node has a partial localStorage global', async () => {
+      type PartialLocalStorage = {
+        getItem?: (key: string) => string | null;
+        setItem?: (key: string, value: string) => void;
+        removeItem?: (key: string) => void;
+        clear?: () => void;
+      };
+
+      const globalWithLocalStorage = globalThis as typeof globalThis & {
+        localStorage?: PartialLocalStorage;
+      };
+      const originalLocalStorage = globalWithLocalStorage.localStorage;
+
+      vi.resetModules();
+      Object.defineProperty(globalWithLocalStorage, 'localStorage', {
+        configurable: true,
+        writable: true,
+        value: {
+          getItem: () => null,
+        },
+      });
+
+      try {
+        const reloadedPermits = await import('../index.js');
+
+        expect(() => reloadedPermits.setActivePermitHash(chainId, account, 'hash')).not.toThrow();
+        expect(reloadedPermits.getActivePermitHash(chainId, account)).toBe('hash');
+      } finally {
+        if (originalLocalStorage === undefined) {
+          delete globalWithLocalStorage.localStorage;
+        } else {
+          Object.defineProperty(globalWithLocalStorage, 'localStorage', {
+            configurable: true,
+            writable: true,
+            value: originalLocalStorage,
+          });
+        }
+        vi.resetModules();
+      }
     });
   });
 });

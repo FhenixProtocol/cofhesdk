@@ -49,7 +49,7 @@ export type VerifyResultRaw = {
 
 export type VerifyResult = {
   ct_hash: string;
-  signature: string;
+  signature: `0x${string}`;
 };
 
 export type ZkProvenCiphertextList = {
@@ -321,6 +321,6 @@ export const zkVerify = async (
   }
 };
 
-const concatSigRecid = (signature: string, recid: number): string => {
-  return signature + (recid + 27).toString(16).padStart(2, '0');
+const concatSigRecid = (signature: string, recid: number): `0x${string}` => {
+  return `${signature}${(recid + 27).toString(16).padStart(2, '0')}` as `0x${string}`;
 };
