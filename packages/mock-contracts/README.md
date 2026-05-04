@@ -112,11 +112,11 @@ In `cofhe-mock-contracts` the symbolic execution is preserved. In the case of th
 
 During the execution of a mock FHE operation, say `FHE.add(euint8 ctHashA, euint8 ctHashB) -> euint8 ctHashC`, rather than being performed off-chain by the FHE computation engine, the input `ctHashes` are mapped to their plaintext value, and the operation performed as plaintext math on-chain. The result is inserted into the symbolic value position of `ctHashC`.
 
-### On-chain Decryption
+### Decryption for On-chain Use
 
-CoFHE coprocessor handles on-chain decryption requests asynchronously. Once the decryption is requested with `FHE.decrypt(...)` the decryption will be performed off-chain by CoFHE, and the result posted on-chain in the `PlaintextStorage` module of `TaskManager`. The decryption result can then checked using either `FHE.getDecryptResult(...)` or `FHE.getDecryptResultSafe(...)`.
+For tx-oriented decryption, the consumer calls the Threshold Network decrypt endpoint and receives the plaintext together with a signature binding that plaintext to the `ctHash`. Contracts can then use that signature with `FHE.publishDecryptResult(...)` or `FHE.verifyDecryptResult(...)`.
 
-When a mock decryption is requested, a random number between 1 and 10 is generated to determine how many seconds the mock decryption async duration. Though the decryption result is available immediately within the mock contracts, the async duration is added to mimic the off-chain decryption and posting time.
+When working with the mocks, the equivalent result is produced by the mock contracts. A random number between 1 and 10 is generated to simulate async delay, but the flow still resolves to the same kind of tx-ready decrypt result.
 
 ### ZkVerifying
 
@@ -131,11 +131,11 @@ The `MockZkVerifier` contract handles the on-chain storage of encrypted inputs. 
 
 ### Off-chain Decryption / Sealing
 
-Off-chain decryption is performed by calling the `cofheClient.decryptHandle` function with a valid `ctHash` and a valid `permit` [todo link].
+For view-oriented decryption, use the SDK flow `cofheClient.decryptForView(...)` (also exposed as `decryptHandle(...)`) with a valid `ctHash`, the matching FHE type, and a valid `permit` when required.
 
-When interacting with CoFHE this request is routed to the Threshold Network, which will perform the decryption operation, ultimately returning a decrypted result.
+When interacting with CoFHE this request is routed to the Threshold Network, which returns the plaintext to the consumer for local use.
 
-When working with the mocks, the `cofheClient` will instead query the `MockThresholdNetwork` contract, which will verify the request `permit`, and return the decrypted result.
+When working with the mocks, the `cofheClient` instead queries the `MockThresholdNetwork` contract, which verifies the request `permit` and returns the decrypted result.
 
 ### Using Foundry
 
@@ -146,7 +146,7 @@ CoFheTest also exposes useful test methods such as
 - `assertHashValue(euint, uint)` - asserting an encrypted value is equal to an expected plaintext value
 - `createInEuint..(number, user)` - for creating encrypted inputs (8-256bits) for a given user
 
-see `contracts/TestBed.sol` for the original contract
+Example:
 
 ```solidity
 import {Test} from "forge-std/Test.sol";
@@ -165,7 +165,7 @@ contract TestBed is Test, CoFheTest {
     testbed = new TestBed();
   }
 
-  function testSetNumber() public {
+  function testSetValue() public {
     uint32 n = 10;
     InEuint32 memory number = createInEuint32(n, user);
 
@@ -178,3 +178,5 @@ contract TestBed is Test, CoFheTest {
   }
 }
 ```
+
+See `contracts/TestBed.sol` for the fixed-address wrapper used by the mocks.
