@@ -4,8 +4,8 @@ pragma solidity ^0.8.28;
 import '@fhenixprotocol/cofhe-contracts/FHE.sol';
 
 /**
- * Simple test contract for integration tests.
- * Accepts encrypted inputs and returns encrypted values.
+ * Shared CoFHE test fixture used across integration, mock, and inherited test flows.
+ * Accepts encrypted inputs and exposes encrypted values plus decrypt-result helpers.
  */
 contract SimpleTest {
   euint32 public storedValue;
