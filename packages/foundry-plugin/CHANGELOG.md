@@ -1,5 +1,11 @@
 # @cofhe/foundry-plugin
 
+## 0.5.3
+
+### Patch Changes
+
+- @cofhe/mock-contracts@0.5.3
+
 ## 0.5.2
 
 ### Patch Changes

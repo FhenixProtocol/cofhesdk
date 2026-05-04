@@ -1,6 +1,6 @@
 {
   "name": "@cofhe/abi",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "type": "module",
   "description": "ABI utilities for Fhenix FHE contracts",
   "types": "./dist/index.d.ts",

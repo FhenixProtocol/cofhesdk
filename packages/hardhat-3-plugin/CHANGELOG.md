@@ -1,5 +1,13 @@
 # @cofhe/hardhat-3-plugin
 
+## 0.5.3
+
+### Patch Changes
+
+- Updated dependencies [bf23270]
+  - @cofhe/sdk@0.5.3
+  - @cofhe/mock-contracts@0.5.3
+
 ## 0.5.2
 
 ### Patch Changes
