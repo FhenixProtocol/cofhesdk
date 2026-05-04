@@ -1,5 +1,11 @@
 # @cofhe/sdk Changelog
 
+## 0.5.3
+
+### Patch Changes
+
+- bf23270: Fix permit store persistence in Node environments where `localStorage` is missing or only partially implemented by falling back to in-memory storage.
+
 ## 0.5.2
 
 ### Patch Changes
