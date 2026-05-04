@@ -37,48 +37,51 @@ export type InEuint32StructOutput = [ctHash: bigint, securityZone: bigint, utype
 export interface TestBedInterface extends Interface {
   getFunction(
     nameOrSignature:
-      | 'add'
-      | 'decrypt'
-      | 'eNumber'
-      | 'exists'
-      | 'getDecryptResult'
+      | 'addValue'
+      | 'addValueTrivial'
       | 'getDecryptResultSafe'
-      | 'increment'
-      | 'mul'
-      | 'numberHash'
+      | 'getValue'
+      | 'getValueHash'
+      | 'publicValue'
+      | 'publicValueHash'
       | 'publishDecryptResult'
-      | 'setNumber'
-      | 'setNumberTrivial'
-      | 'sub'
+      | 'setPublicValue'
+      | 'setPublicValueTrivial'
+      | 'setValue'
+      | 'setValueTrivial'
+      | 'storedValue'
+      | 'storedValueHash'
   ): FunctionFragment;
 
-  encodeFunctionData(functionFragment: 'add', values: [InEuint32Struct]): string;
-  encodeFunctionData(functionFragment: 'decrypt', values?: undefined): string;
-  encodeFunctionData(functionFragment: 'eNumber', values?: undefined): string;
-  encodeFunctionData(functionFragment: 'exists', values?: undefined): string;
-  encodeFunctionData(functionFragment: 'getDecryptResult', values: [BytesLike]): string;
+  encodeFunctionData(functionFragment: 'addValue', values: [InEuint32Struct]): string;
+  encodeFunctionData(functionFragment: 'addValueTrivial', values: [BigNumberish]): string;
   encodeFunctionData(functionFragment: 'getDecryptResultSafe', values: [BytesLike]): string;
-  encodeFunctionData(functionFragment: 'increment', values?: undefined): string;
-  encodeFunctionData(functionFragment: 'mul', values: [InEuint32Struct]): string;
-  encodeFunctionData(functionFragment: 'numberHash', values?: undefined): string;
+  encodeFunctionData(functionFragment: 'getValue', values?: undefined): string;
+  encodeFunctionData(functionFragment: 'getValueHash', values?: undefined): string;
+  encodeFunctionData(functionFragment: 'publicValue', values?: undefined): string;
+  encodeFunctionData(functionFragment: 'publicValueHash', values?: undefined): string;
   encodeFunctionData(functionFragment: 'publishDecryptResult', values: [BytesLike, BigNumberish, BytesLike]): string;
-  encodeFunctionData(functionFragment: 'setNumber', values: [InEuint32Struct]): string;
-  encodeFunctionData(functionFragment: 'setNumberTrivial', values: [BigNumberish]): string;
-  encodeFunctionData(functionFragment: 'sub', values: [InEuint32Struct]): string;
+  encodeFunctionData(functionFragment: 'setPublicValue', values: [InEuint32Struct]): string;
+  encodeFunctionData(functionFragment: 'setPublicValueTrivial', values: [BigNumberish]): string;
+  encodeFunctionData(functionFragment: 'setValue', values: [InEuint32Struct]): string;
+  encodeFunctionData(functionFragment: 'setValueTrivial', values: [BigNumberish]): string;
+  encodeFunctionData(functionFragment: 'storedValue', values?: undefined): string;
+  encodeFunctionData(functionFragment: 'storedValueHash', values?: undefined): string;
 
-  decodeFunctionResult(functionFragment: 'add', data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: 'decrypt', data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: 'eNumber', data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: 'exists', data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: 'getDecryptResult', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'addValue', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'addValueTrivial', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'getDecryptResultSafe', data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: 'increment', data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: 'mul', data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: 'numberHash', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'getValue', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'getValueHash', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'publicValue', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'publicValueHash', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'publishDecryptResult', data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: 'setNumber', data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: 'setNumberTrivial', data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: 'sub', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'setPublicValue', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'setPublicValueTrivial', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'setValue', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'setValueTrivial', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'storedValue', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'storedValueHash', data: BytesLike): Result;
 }
 
 export interface TestBed extends BaseContract {
@@ -114,27 +117,23 @@ export interface TestBed extends BaseContract {
   listeners(eventName?: string): Promise<Array<Listener>>;
   removeAllListeners<TCEvent extends TypedContractEvent>(event?: TCEvent): Promise<this>;
 
-  add: TypedContractMethod<[inNumber: InEuint32Struct], [void], 'nonpayable'>;
+  addValue: TypedContractMethod<[inValue: InEuint32Struct], [void], 'nonpayable'>;
 
-  decrypt: TypedContractMethod<[], [void], 'nonpayable'>;
-
-  eNumber: TypedContractMethod<[], [string], 'view'>;
-
-  exists: TypedContractMethod<[], [boolean], 'view'>;
-
-  getDecryptResult: TypedContractMethod<[input1: BytesLike], [bigint], 'view'>;
+  addValueTrivial: TypedContractMethod<[inValue: BigNumberish], [void], 'nonpayable'>;
 
   getDecryptResultSafe: TypedContractMethod<
-    [input1: BytesLike],
+    [input: BytesLike],
     [[bigint, boolean] & { value: bigint; decrypted: boolean }],
     'view'
   >;
 
-  increment: TypedContractMethod<[], [void], 'nonpayable'>;
+  getValue: TypedContractMethod<[], [string], 'view'>;
 
-  mul: TypedContractMethod<[inNumber: InEuint32Struct], [void], 'nonpayable'>;
+  getValueHash: TypedContractMethod<[], [string], 'view'>;
 
-  numberHash: TypedContractMethod<[], [string], 'view'>;
+  publicValue: TypedContractMethod<[], [string], 'view'>;
+
+  publicValueHash: TypedContractMethod<[], [string], 'view'>;
 
   publishDecryptResult: TypedContractMethod<
     [input: BytesLike, result: BigNumberish, signature: BytesLike],
@@ -142,31 +141,40 @@ export interface TestBed extends BaseContract {
     'nonpayable'
   >;
 
-  setNumber: TypedContractMethod<[inNumber: InEuint32Struct], [void], 'nonpayable'>;
+  setPublicValue: TypedContractMethod<[inValue: InEuint32Struct], [void], 'nonpayable'>;
 
-  setNumberTrivial: TypedContractMethod<[inNumber: BigNumberish], [void], 'nonpayable'>;
+  setPublicValueTrivial: TypedContractMethod<[inValue: BigNumberish], [void], 'nonpayable'>;
 
-  sub: TypedContractMethod<[inNumber: InEuint32Struct], [void], 'nonpayable'>;
+  setValue: TypedContractMethod<[inValue: InEuint32Struct], [void], 'nonpayable'>;
+
+  setValueTrivial: TypedContractMethod<[inValue: BigNumberish], [void], 'nonpayable'>;
+
+  storedValue: TypedContractMethod<[], [string], 'view'>;
+
+  storedValueHash: TypedContractMethod<[], [string], 'view'>;
 
   getFunction<T extends ContractMethod = ContractMethod>(key: string | FunctionFragment): T;
 
-  getFunction(nameOrSignature: 'add'): TypedContractMethod<[inNumber: InEuint32Struct], [void], 'nonpayable'>;
-  getFunction(nameOrSignature: 'decrypt'): TypedContractMethod<[], [void], 'nonpayable'>;
-  getFunction(nameOrSignature: 'eNumber'): TypedContractMethod<[], [string], 'view'>;
-  getFunction(nameOrSignature: 'exists'): TypedContractMethod<[], [boolean], 'view'>;
-  getFunction(nameOrSignature: 'getDecryptResult'): TypedContractMethod<[input1: BytesLike], [bigint], 'view'>;
+  getFunction(nameOrSignature: 'addValue'): TypedContractMethod<[inValue: InEuint32Struct], [void], 'nonpayable'>;
+  getFunction(nameOrSignature: 'addValueTrivial'): TypedContractMethod<[inValue: BigNumberish], [void], 'nonpayable'>;
   getFunction(
     nameOrSignature: 'getDecryptResultSafe'
-  ): TypedContractMethod<[input1: BytesLike], [[bigint, boolean] & { value: bigint; decrypted: boolean }], 'view'>;
-  getFunction(nameOrSignature: 'increment'): TypedContractMethod<[], [void], 'nonpayable'>;
-  getFunction(nameOrSignature: 'mul'): TypedContractMethod<[inNumber: InEuint32Struct], [void], 'nonpayable'>;
-  getFunction(nameOrSignature: 'numberHash'): TypedContractMethod<[], [string], 'view'>;
+  ): TypedContractMethod<[input: BytesLike], [[bigint, boolean] & { value: bigint; decrypted: boolean }], 'view'>;
+  getFunction(nameOrSignature: 'getValue'): TypedContractMethod<[], [string], 'view'>;
+  getFunction(nameOrSignature: 'getValueHash'): TypedContractMethod<[], [string], 'view'>;
+  getFunction(nameOrSignature: 'publicValue'): TypedContractMethod<[], [string], 'view'>;
+  getFunction(nameOrSignature: 'publicValueHash'): TypedContractMethod<[], [string], 'view'>;
   getFunction(
     nameOrSignature: 'publishDecryptResult'
   ): TypedContractMethod<[input: BytesLike, result: BigNumberish, signature: BytesLike], [void], 'nonpayable'>;
-  getFunction(nameOrSignature: 'setNumber'): TypedContractMethod<[inNumber: InEuint32Struct], [void], 'nonpayable'>;
-  getFunction(nameOrSignature: 'setNumberTrivial'): TypedContractMethod<[inNumber: BigNumberish], [void], 'nonpayable'>;
-  getFunction(nameOrSignature: 'sub'): TypedContractMethod<[inNumber: InEuint32Struct], [void], 'nonpayable'>;
+  getFunction(nameOrSignature: 'setPublicValue'): TypedContractMethod<[inValue: InEuint32Struct], [void], 'nonpayable'>;
+  getFunction(
+    nameOrSignature: 'setPublicValueTrivial'
+  ): TypedContractMethod<[inValue: BigNumberish], [void], 'nonpayable'>;
+  getFunction(nameOrSignature: 'setValue'): TypedContractMethod<[inValue: InEuint32Struct], [void], 'nonpayable'>;
+  getFunction(nameOrSignature: 'setValueTrivial'): TypedContractMethod<[inValue: BigNumberish], [void], 'nonpayable'>;
+  getFunction(nameOrSignature: 'storedValue'): TypedContractMethod<[], [string], 'view'>;
+  getFunction(nameOrSignature: 'storedValueHash'): TypedContractMethod<[], [string], 'view'>;
 
   filters: {};
 }

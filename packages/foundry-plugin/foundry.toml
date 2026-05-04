@@ -8,8 +8,10 @@ remappings = [
   "hardhat/=node_modules/forge-std/src/",
   "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
   "@fhenixprotocol/cofhe-contracts/=node_modules/@fhenixprotocol/cofhe-contracts/",
-  "@cofhe/mock-contracts/=node_modules/@cofhe/mock-contracts/"
+  "@cofhe/mock-contracts/=node_modules/@cofhe/mock-contracts/",
+  "@cofhe/test-setup/=../../test/setup/"
 ]
+allow_paths = ["../../test/setup"]
 
 [lint]
 lint_on_build = false

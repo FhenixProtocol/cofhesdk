@@ -10,7 +10,7 @@ describe('Mocks Plaintext', async () => {
   const setTrivialNumber = async (value: number) => {
     await walletClient.writeContract({
       ...cofhe.mocks.TestBed,
-      functionName: 'setNumberTrivial',
+      functionName: 'setValueTrivial',
       args: [value],
     });
   };
@@ -18,7 +18,7 @@ describe('Mocks Plaintext', async () => {
   const getCtHash = () =>
     publicClient.readContract({
       ...cofhe.mocks.TestBed,
-      functionName: 'numberHash',
+      functionName: 'getValueHash',
     });
 
   beforeEach(async () => {

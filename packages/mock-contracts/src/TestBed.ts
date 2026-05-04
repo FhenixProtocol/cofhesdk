@@ -8,10 +8,10 @@ export const TestBedArtifact = {
   abi: [
     {
       type: 'function',
-      name: 'add',
+      name: 'addValue',
       inputs: [
         {
-          name: 'inNumber',
+          name: 'inValue',
           type: 'tuple',
           internalType: 'struct InEuint32',
           components: [
@@ -43,62 +43,23 @@ export const TestBedArtifact = {
     },
     {
       type: 'function',
-      name: 'decrypt',
-      inputs: [],
-      outputs: [],
-      stateMutability: 'nonpayable',
-    },
-    {
-      type: 'function',
-      name: 'eNumber',
-      inputs: [],
-      outputs: [
-        {
-          name: '',
-          type: 'bytes32',
-          internalType: 'euint32',
-        },
-      ],
-      stateMutability: 'view',
-    },
-    {
-      type: 'function',
-      name: 'exists',
-      inputs: [],
-      outputs: [
-        {
-          name: '',
-          type: 'bool',
-          internalType: 'bool',
-        },
-      ],
-      stateMutability: 'pure',
-    },
-    {
-      type: 'function',
-      name: 'getDecryptResult',
+      name: 'addValueTrivial',
       inputs: [
         {
-          name: 'input1',
-          type: 'bytes32',
-          internalType: 'euint32',
+          name: 'inValue',
+          type: 'uint256',
+          internalType: 'uint256',
         },
       ],
-      outputs: [
-        {
-          name: '',
-          type: 'uint32',
-          internalType: 'uint32',
-        },
-      ],
-      stateMutability: 'view',
+      outputs: [],
+      stateMutability: 'nonpayable',
     },
     {
       type: 'function',
       name: 'getDecryptResultSafe',
       inputs: [
         {
-          name: 'input1',
+          name: 'input',
           type: 'bytes32',
           internalType: 'euint32',
         },
@@ -119,49 +80,46 @@ export const TestBedArtifact = {
     },
     {
       type: 'function',
-      name: 'increment',
+      name: 'getValue',
       inputs: [],
-      outputs: [],
-      stateMutability: 'nonpayable',
-    },
-    {
-      type: 'function',
-      name: 'mul',
-      inputs: [
+      outputs: [
         {
-          name: 'inNumber',
-          type: 'tuple',
-          internalType: 'struct InEuint32',
-          components: [
-            {
-              name: 'ctHash',
-              type: 'uint256',
-              internalType: 'uint256',
-            },
-            {
-              name: 'securityZone',
-              type: 'uint8',
-              internalType: 'uint8',
-            },
-            {
-              name: 'utype',
-              type: 'uint8',
-              internalType: 'uint8',
-            },
-            {
-              name: 'signature',
-              type: 'bytes',
-              internalType: 'bytes',
-            },
-          ],
+          name: '',
+          type: 'bytes32',
+          internalType: 'euint32',
         },
       ],
-      outputs: [],
-      stateMutability: 'nonpayable',
+      stateMutability: 'view',
     },
     {
       type: 'function',
-      name: 'numberHash',
+      name: 'getValueHash',
+      inputs: [],
+      outputs: [
+        {
+          name: '',
+          type: 'bytes32',
+          internalType: 'bytes32',
+        },
+      ],
+      stateMutability: 'view',
+    },
+    {
+      type: 'function',
+      name: 'publicValue',
+      inputs: [],
+      outputs: [
+        {
+          name: '',
+          type: 'bytes32',
+          internalType: 'euint32',
+        },
+      ],
+      stateMutability: 'view',
+    },
+    {
+      type: 'function',
+      name: 'publicValueHash',
       inputs: [],
       outputs: [
         {
@@ -197,10 +155,10 @@ export const TestBedArtifact = {
     },
     {
       type: 'function',
-      name: 'setNumber',
+      name: 'setPublicValue',
       inputs: [
         {
-          name: 'inNumber',
+          name: 'inValue',
           type: 'tuple',
           internalType: 'struct InEuint32',
           components: [
@@ -232,12 +190,12 @@ export const TestBedArtifact = {
     },
     {
       type: 'function',
-      name: 'setNumberTrivial',
+      name: 'setPublicValueTrivial',
       inputs: [
         {
-          name: 'inNumber',
-          type: 'uint32',
-          internalType: 'uint32',
+          name: 'inValue',
+          type: 'uint256',
+          internalType: 'uint256',
         },
       ],
       outputs: [],
@@ -245,10 +203,10 @@ export const TestBedArtifact = {
     },
     {
       type: 'function',
-      name: 'sub',
+      name: 'setValue',
       inputs: [
         {
-          name: 'inNumber',
+          name: 'inValue',
           type: 'tuple',
           internalType: 'struct InEuint32',
           components: [
@@ -277,6 +235,45 @@ export const TestBedArtifact = {
       ],
       outputs: [],
       stateMutability: 'nonpayable',
+    },
+    {
+      type: 'function',
+      name: 'setValueTrivial',
+      inputs: [
+        {
+          name: 'inValue',
+          type: 'uint256',
+          internalType: 'uint256',
+        },
+      ],
+      outputs: [],
+      stateMutability: 'nonpayable',
+    },
+    {
+      type: 'function',
+      name: 'storedValue',
+      inputs: [],
+      outputs: [
+        {
+          name: '',
+          type: 'bytes32',
+          internalType: 'euint32',
+        },
+      ],
+      stateMutability: 'view',
+    },
+    {
+      type: 'function',
+      name: 'storedValueHash',
+      inputs: [],
+      outputs: [
+        {
+          name: '',
+          type: 'bytes32',
+          internalType: 'bytes32',
+        },
+      ],
+      stateMutability: 'view',
     },
     {
       type: 'error',

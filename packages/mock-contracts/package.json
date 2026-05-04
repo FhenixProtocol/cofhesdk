@@ -48,6 +48,7 @@
   },
   "devDependencies": {
     "@cofhe/sdk": "workspace:*",
+    "@cofhe/test-setup": "workspace:*",
     "@cofhe/tsconfig": "workspace:*",
     "@typechain/ethers-v6": "0.5.1",
     "@types/node": "20.19.15",

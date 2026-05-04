@@ -15,7 +15,7 @@ The plugin deploys a suite of mock contracts that simulate the full CoFHE coproc
 | `MockACL`              | Access control for encrypted handles                                                  |
 | `MockZkVerifier`       | Simulates ZK proof verification for encrypted inputs                                  |
 | `MockThresholdNetwork` | Handles decryption requests                                                           |
-| `TestBed`              | Helper contract for testing — exposes trivial value setters and a `numberHash` getter |
+| `TestBed`              | Helper contract for testing — exposes trivial value setters plus `getValueHash()`     |
 
 The SDK automatically detects when it's running against the mock environment (by checking bytecode at the `MockZkVerifier` fixed address) and adapts its behavior accordingly — ZK proof generation is skipped and verification is handled by the mock contracts.
 
@@ -88,8 +88,8 @@ import hre from 'hardhat';
 import { expect } from 'chai';
 
 const testBed = await hre.cofhe.mocks.getTestBed();
-await testBed.setNumberTrivial(7);
-const ctHash = await testBed.numberHash();
+await testBed.setValueTrivial(7);
+const ctHash = await testBed.getValueHash();
 
 const plaintext = await hre.cofhe.mocks.getPlaintext(ctHash); // [!code focus]
 
@@ -108,8 +108,8 @@ import '@nomicfoundation/hardhat-ethers';
 import hre from 'hardhat';
 
 const testBed = await hre.cofhe.mocks.getTestBed();
-await testBed.setNumberTrivial(7);
-const ctHash = await testBed.numberHash();
+await testBed.setValueTrivial(7);
+const ctHash = await testBed.getValueHash();
 
 await hre.cofhe.mocks.expectPlaintext(ctHash, 7n); // [!code focus]
 ```

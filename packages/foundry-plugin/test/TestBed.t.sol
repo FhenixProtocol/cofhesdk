@@ -27,9 +27,9 @@ contract TestBedTest is CofheTest {
     InEuint32 memory number = cofheClient.createInEuint32(n);
 
     vm.prank(cofheClient.account());
-    testbed.setNumber(number);
+    testbed.setValue(number);
 
-    expectPlaintext(testbed.eNumber(), n);
+    expectPlaintext(testbed.getValue(), n);
   }
 
   /// @notice Validates that mock arithmetic matches EVM uint8 wraparound behavior.
