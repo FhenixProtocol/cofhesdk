@@ -10,8 +10,8 @@ describe('Permit Unseal Test', () => {
 
     // Add number to TestBed
     const testBed = await hre.cofhe.mocks.getTestBed();
-    await testBed.setNumberTrivial(7);
-    const ctHash = await testBed.numberHash();
+    await testBed.setValueTrivial(7);
+    const ctHash = await testBed.getValueHash();
 
     // Decrypt number from TestBed
     const unsealed = await client.decryptForView(ctHash, FheTypes.Uint32).execute();

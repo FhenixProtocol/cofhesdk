@@ -10,6 +10,7 @@
     "@cofhe/hardhat-3-plugin": "workspace:*",
     "@cofhe/mock-contracts": "workspace:*",
     "@cofhe/sdk": "workspace:*",
+    "@cofhe/test-setup": "workspace:*",
     "@cofhe/tsconfig": "workspace:*",
     "@nomicfoundation/hardhat-node-test-runner": "3.0.12",
     "@types/node": "20.19.15",

@@ -3,3 +3,4 @@ hardhat/=node_modules/hardhat/
 @openzeppelin/contracts/=node_modules/@openzeppelin/contracts/
 @fhenixprotocol/cofhe-contracts/=node_modules/@fhenixprotocol/cofhe-contracts/
 @cofhe/mock-contracts/=node_modules/@cofhe/mock-contracts/contracts/
+@cofhe/test-setup/=../../test/setup/

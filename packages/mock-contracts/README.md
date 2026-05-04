@@ -172,9 +172,9 @@ contract TestBed is Test, CoFheTest {
     //must be the user who sends transaction
     //or else invalid permissions from fhe allow
     vm.prank(user);
-    testbed.setNumber(number);
+    testbed.setValue(number);
 
-    assertHashValue(testbed.eNumber(), n);
+    assertHashValue(testbed.getValue(), n);
   }
 }
 ```

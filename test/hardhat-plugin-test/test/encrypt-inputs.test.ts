@@ -13,8 +13,8 @@ describe('Encrypt Inputs Test', () => {
 
     // Add number to TestBed
     const testBed = await hre.cofhe.mocks.getTestBed();
-    await testBed.setNumber(encrypted[0]);
-    const ctHash = await testBed.numberHash();
+    await testBed.setValue(encrypted[0]);
+    const ctHash = await testBed.getValueHash();
 
     // Decrypt number from TestBed
     const unsealed = await client.decryptForView(ctHash, FheTypes.Uint32).execute();

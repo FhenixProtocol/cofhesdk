@@ -9,6 +9,7 @@
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "6.1.0",
     "@nomicfoundation/hardhat-ethers": "3.1.0",
+    "@cofhe/test-setup": "workspace:*",
     "ethers": "6.15.0",
     "ethers6": "npm:ethers@6.15.0",
     "hardhat": "2.26.3",
