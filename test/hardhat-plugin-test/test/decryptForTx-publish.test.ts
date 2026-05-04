@@ -3,6 +3,7 @@ import { expect } from 'chai';
 import { CofheClient, Encryptable } from '@cofhe/sdk';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 import { MockTaskManager, TestBed } from '@cofhe/mock-contracts';
+import SimpleTestArtifact from '../../setup/out/SimpleTest.sol/SimpleTest.json';
 
 // Tests that exercise Hardhat mock-specific revert behavior for publishDecryptResult.
 // The full decrypt lifecycle and SDK-level verifyDecryptResult are tested in
@@ -20,8 +21,12 @@ describe('Hardhat Mocks – publishDecryptResult revert behavior', () => {
     signer = tmpSigner;
     cofheClient = await hre.cofhe.createClientWithBatteries(signer);
 
-    const SimpleTest = await hre.ethers.getContractFactory('SimpleTest');
-    testContract = await SimpleTest.deploy();
+    const simpleTestFactory = new hre.ethers.ContractFactory(
+      SimpleTestArtifact.abi,
+      SimpleTestArtifact.bytecode.object,
+      signer,
+    );
+    testContract = await simpleTestFactory.deploy();
     await testContract.waitForDeployment();
 
     testBed = await hre.cofhe.mocks.getTestBed();
