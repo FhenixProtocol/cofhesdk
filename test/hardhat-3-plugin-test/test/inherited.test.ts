@@ -23,14 +23,7 @@ describe('Inherited SDK Tests', async () => {
     await bobWalletClient.writeContract({
       ...cofhe.mocks.TestBed,
       functionName: 'setNumber',
-      args: [
-        {
-          ctHash: enc.ctHash,
-          securityZone: enc.securityZone,
-          utype: enc.utype,
-          signature: enc.signature as `0x${string}`,
-        },
-      ],
+      args: [enc],
     });
     const ctHash = await publicClient.readContract({
       ...cofhe.mocks.TestBed,
@@ -58,14 +51,7 @@ describe('Inherited SDK Tests', async () => {
     await bobWalletClient.writeContract({
       ...cofhe.mocks.TestBed,
       functionName: 'setNumber',
-      args: [
-        {
-          ctHash: enc.ctHash,
-          securityZone: enc.securityZone,
-          utype: enc.utype,
-          signature: enc.signature as `0x${string}`,
-        },
-      ],
+      args: [enc],
     });
 
     const ctHash = await publicClient.readContract({
@@ -85,14 +71,7 @@ describe('Inherited SDK Tests', async () => {
     await bobWalletClient.writeContract({
       ...cofhe.mocks.TestBed,
       functionName: 'setNumber',
-      args: [
-        {
-          ctHash: enc.ctHash,
-          securityZone: enc.securityZone,
-          utype: enc.utype,
-          signature: enc.signature as `0x${string}`,
-        },
-      ],
+      args: [enc],
     });
 
     const ctHash = await publicClient.readContract({

@@ -52,7 +52,7 @@ export function runFlexibleSuite(chainConfig: TestChainConfig, factory: ClientFa
     const expectedTxValue = expectedViewValue + secondValueToAdd;
 
     const encrypted = await ctx.cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
-    const encryptedInput = { ...encrypted[0], signature: encrypted[0].signature as `0x${string}` };
+    const encryptedInput = encrypted[0];
 
     const storeTxHash = await ctx.bobWalletClient.writeContract({
       address: ctx.contractAddress,
@@ -70,7 +70,7 @@ export function runFlexibleSuite(chainConfig: TestChainConfig, factory: ClientFa
     });
 
     const encryptedAddend = await ctx.cofheClient.encryptInputs([Encryptable.uint32(valueToAdd)]).execute();
-    const encryptedAddendInput = { ...encryptedAddend[0], signature: encryptedAddend[0].signature as `0x${string}` };
+    const encryptedAddendInput = encryptedAddend[0];
 
     const addTxHash = await ctx.bobWalletClient.writeContract({
       address: ctx.contractAddress,
@@ -97,10 +97,7 @@ export function runFlexibleSuite(chainConfig: TestChainConfig, factory: ClientFa
     expect(unsealedResult).toBe(expectedViewValue);
 
     const encryptedSecondAddend = await ctx.cofheClient.encryptInputs([Encryptable.uint32(secondValueToAdd)]).execute();
-    const encryptedSecondAddendInput = {
-      ...encryptedSecondAddend[0],
-      signature: encryptedSecondAddend[0].signature as `0x${string}`,
-    };
+    const encryptedSecondAddendInput = encryptedSecondAddend[0];
 
     const secondAddTxHash = await ctx.bobWalletClient.writeContract({
       address: ctx.contractAddress,
@@ -166,7 +163,7 @@ export function runFlexibleSuite(chainConfig: TestChainConfig, factory: ClientFa
     const expectedValue = testValue + valueToAdd;
 
     const encrypted = await ctx.cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
-    const encryptedInput = { ...encrypted[0], signature: encrypted[0].signature as `0x${string}` };
+    const encryptedInput = encrypted[0];
 
     const storeTxHash = await ctx.bobWalletClient.writeContract({
       address: ctx.contractAddress,
@@ -184,7 +181,7 @@ export function runFlexibleSuite(chainConfig: TestChainConfig, factory: ClientFa
     });
 
     const encryptedAddend = await ctx.cofheClient.encryptInputs([Encryptable.uint32(valueToAdd)]).execute();
-    const encryptedAddendInput = { ...encryptedAddend[0], signature: encryptedAddend[0].signature as `0x${string}` };
+    const encryptedAddendInput = encryptedAddend[0];
 
     const addTxHash = await ctx.bobWalletClient.writeContract({
       address: ctx.contractAddress,

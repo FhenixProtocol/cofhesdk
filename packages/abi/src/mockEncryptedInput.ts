@@ -11,6 +11,12 @@ import {
   type EncryptedUint8Input,
 } from '@cofhe/sdk';
 
+function assertHexSignature(signature: string): asserts signature is `0x${string}` {
+  if (!signature.startsWith('0x')) {
+    throw new Error('Mock signature must be a hex string starting with 0x');
+  }
+}
+
 /**
  * Generates a mock ctHash from the encryptable data.
  * This is a simple deterministic hash function for testing purposes.
@@ -56,7 +62,8 @@ function generateMockSignature(): `0x${string}` {
   for (let i = 0; i < 64; i++) {
     signature += hexChars[Math.floor(Math.random() * hexChars.length)];
   }
-  return signature as `0x${string}`;
+  assertHexSignature(signature);
+  return signature;
 }
 
 /**
