@@ -541,7 +541,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     const verifyResults = await zkVerify(zkVerifierUrl, proof, this.account, this.securityZone, this.chainId);
     // Add securityZone and utype to the verify results
     const encryptedInputs: EncryptedItemInput[] = verifyResults.map(
-      ({ ct_hash, signature }: { ct_hash: string; signature: string }, index: number) => ({
+      ({ ct_hash, signature }: { ct_hash: string; signature: `0x${string}` }, index: number) => ({
         ctHash: BigInt(ct_hash),
         securityZone: this.securityZone,
         utype: this.inputItems[index].utype,

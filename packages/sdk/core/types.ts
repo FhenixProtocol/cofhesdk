@@ -111,7 +111,7 @@ export type EncryptedNumber = {
   securityZone: number;
 };
 
-export type EncryptedItemInput<TSignature = string> = {
+export type EncryptedItemInput<TSignature = `0x${string}`> = {
   ctHash: bigint;
   securityZone: number;
   utype: FheTypes;
