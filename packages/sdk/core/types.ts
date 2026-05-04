@@ -118,9 +118,7 @@ export type EncryptedItemInput = {
   signature: `0x${string}`;
 };
 
-export function assertCorrectEncryptedItemInput(
-  input: EncryptedItemInput
-): asserts input is EncryptedItemInput {
+export function assertCorrectEncryptedItemInput(input: EncryptedItemInput): asserts input is EncryptedItemInput {
   if (!input.signature.startsWith('0x')) throw new Error('Signature must be a hex string starting with 0x');
 }
 
