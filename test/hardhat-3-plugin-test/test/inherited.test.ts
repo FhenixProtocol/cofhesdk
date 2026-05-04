@@ -23,7 +23,7 @@ describe('Inherited SDK Tests', async () => {
     await bobWalletClient.writeContract({
       ...cofhe.mocks.TestBed,
       functionName: 'setValue',
-      args: [ enc],
+      args: [enc],
     });
     const ctHash = await publicClient.readContract({
       ...cofhe.mocks.TestBed,
