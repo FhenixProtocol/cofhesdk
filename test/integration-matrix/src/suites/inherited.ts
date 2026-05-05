@@ -414,7 +414,9 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(makeThresholdRequestBody(chainConfig, ctHash, PermitUtils.getPermission(activePermit!, true))),
+      body: JSON.stringify(
+        makeThresholdRequestBody(chainConfig, ctHash, PermitUtils.getPermission(activePermit!, true))
+      ),
     });
 
     expect(secondSubmitResponse.status).toBe(200);
