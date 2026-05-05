@@ -20,7 +20,9 @@ export const PERMIT_STORE_DEFAULTS: PermitsStore = {
   activePermitHash: {},
 };
 
-export const _permitStore = createStore<PermitsStore>()(persist(() => PERMIT_STORE_DEFAULTS, { name: 'cofhesdk-permits' }));
+export const _permitStore = createStore<PermitsStore>()(
+  persist(() => PERMIT_STORE_DEFAULTS, { name: 'cofhesdk-permits' })
+);
 
 export const clearStaleStore = () => {
   // Any is used here because we do not have types of the previous store
