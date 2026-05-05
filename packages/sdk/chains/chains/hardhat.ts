@@ -8,8 +8,8 @@ export const hardhat = defineChain({
   name: 'Hardhat',
   network: 'localhost',
   // These are unused in the mock environment
-  coFheUrl: 'http://127.0.0.1:8448',
-  verifierUrl: 'http://127.0.0.1:3001',
-  thresholdNetworkUrl: 'http://127.0.0.1:3000',
+  coFheUrl: 'http://ignored-in-mock-environment',
+  verifierUrl: 'http://ignored-in-mock-environment',
+  thresholdNetworkUrl: 'http://ignored-in-mock-environment',
   environment: 'MOCK',
 });
