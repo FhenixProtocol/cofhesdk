@@ -381,8 +381,8 @@ importers:
         specifier: 4.1.12
         version: 4.1.12
       zustand:
-        specifier: 5.0.8
-        version: 5.0.8(@types/react@18.2.61)(react@18.3.1)(use-sync-external-store@1.4.0)
+        specifier: 5.0.13
+        version: 5.0.13(@types/react@18.2.61)(react@18.3.1)(use-sync-external-store@1.4.0)
     devDependencies:
       '@cofhe/eslint-config':
         specifier: workspace:*
@@ -466,8 +466,8 @@ importers:
         specifier: 4.0.0
         version: 4.0.0
       zustand:
-        specifier: 5.0.1
-        version: 5.0.1(immer@10.1.1)
+        specifier: 5.0.13
+        version: 5.0.13(immer@10.1.1)
     devDependencies:
       '@cofhe/eslint-config':
         specifier: workspace:*
@@ -16908,7 +16908,7 @@ packages:
       viem: 2.38.6(typescript@5.5.4)
       wagmi: 2.19.2(@tanstack/react-query@5.90.7)(@types/react@18.2.61)(react@18.3.1)(typescript@5.5.4)(viem@2.38.6)
       zod: 4.1.12
-      zustand: 5.0.8(@types/react@18.2.61)(react@18.3.1)(use-sync-external-store@1.4.0)
+      zustand: 5.0.13(@types/react@18.2.61)(react@18.3.1)(use-sync-external-store@1.4.0)
     transitivePeerDependencies:
       - '@types/react'
       - immer
@@ -20091,6 +20091,7 @@ packages:
 
   /uuid@9.0.1:
     resolution: {integrity: sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA==}
+    deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
     hasBin: true
     dev: false
 
@@ -21221,29 +21222,8 @@ packages:
       immer: 10.1.1
     dev: false
 
-  /zustand@5.0.1(immer@10.1.1):
-    resolution: {integrity: sha512-pRET7Lao2z+n5R/HduXMio35TncTlSW68WsYBq2Lg1ASspsNGjpwLAsij3RpouyV6+kHMwwwzP0bZPD70/Jx/w==}
-    engines: {node: '>=12.20.0'}
-    peerDependencies:
-      '@types/react': '>=18.0.0'
-      immer: '>=9.0.6'
-      react: '>=18.0.0'
-      use-sync-external-store: '>=1.2.0'
-    peerDependenciesMeta:
-      '@types/react':
-        optional: true
-      immer:
-        optional: true
-      react:
-        optional: true
-      use-sync-external-store:
-        optional: true
-    dependencies:
-      immer: 10.1.1
-    dev: false
-
-  /zustand@5.0.3(@types/react@18.2.61)(react@18.3.1)(use-sync-external-store@1.4.0):
-    resolution: {integrity: sha512-14fwWQtU3pH4dE0dOpdMiWjddcH+QzKIgk1cl8epwSE7yag43k/AD/m4L6+K7DytAOr9gGBe3/EXj9g7cdostg==}
+  /zustand@5.0.13(@types/react@18.2.61)(react@18.3.1)(use-sync-external-store@1.4.0):
+    resolution: {integrity: sha512-efI2tVaVQPqtOh114loML/Z80Y4NP3yc+Ff0fYiZJPauNeWZeIp/bRFD7I9bfmCOYBh/PHxlglQ9+wvlwnPikQ==}
     engines: {node: '>=12.20.0'}
     peerDependencies:
       '@types/react': '>=18.0.0'
@@ -21265,8 +21245,29 @@ packages:
       use-sync-external-store: 1.4.0(react@18.3.1)
     dev: false
 
-  /zustand@5.0.8(@types/react@18.2.61)(react@18.3.1)(use-sync-external-store@1.4.0):
-    resolution: {integrity: sha512-gyPKpIaxY9XcO2vSMrLbiER7QMAMGOQZVRdJ6Zi782jkbzZygq5GI9nG8g+sMgitRtndwaBSl7uiqC49o1SSiw==}
+  /zustand@5.0.13(immer@10.1.1):
+    resolution: {integrity: sha512-efI2tVaVQPqtOh114loML/Z80Y4NP3yc+Ff0fYiZJPauNeWZeIp/bRFD7I9bfmCOYBh/PHxlglQ9+wvlwnPikQ==}
+    engines: {node: '>=12.20.0'}
+    peerDependencies:
+      '@types/react': '>=18.0.0'
+      immer: '>=9.0.6'
+      react: '>=18.0.0'
+      use-sync-external-store: '>=1.2.0'
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+      immer:
+        optional: true
+      react:
+        optional: true
+      use-sync-external-store:
+        optional: true
+    dependencies:
+      immer: 10.1.1
+    dev: false
+
+  /zustand@5.0.3(@types/react@18.2.61)(react@18.3.1)(use-sync-external-store@1.4.0):
+    resolution: {integrity: sha512-14fwWQtU3pH4dE0dOpdMiWjddcH+QzKIgk1cl8epwSE7yag43k/AD/m4L6+K7DytAOr9gGBe3/EXj9g7cdostg==}
     engines: {node: '>=12.20.0'}
     peerDependencies:
       '@types/react': '>=18.0.0'
