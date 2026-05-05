@@ -25,14 +25,15 @@ export function generateMockCtHash(data: unknown): bigint {
     return data;
   }
   if (typeof data === 'string') {
-    // Simple hash: convert string to number and create a bigint
+    // Keep only the low 32 bits after each round so the accumulator stays in
+    // the uint32 range instead of growing as an unbounded bigint.
     let hash = 0n;
     for (let i = 0; i < data.length; i++) {
       const char = data.charCodeAt(i);
       hash = (hash << 5n) - hash + BigInt(char);
-      hash = hash & hash; // Convert to 32-bit integer
+      hash = BigInt.asUintN(32, hash);
     }
-    return hash < 0n ? -hash : hash;
+    return hash;
   }
   // Fallback: use a simple hash based on string representation
   return BigInt(
