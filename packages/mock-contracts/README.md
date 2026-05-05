@@ -151,11 +151,11 @@ Example:
 ```solidity
 import {Test} from "forge-std/Test.sol";
 import {CoFheTest} from "@fhenixprotocol/cofhe-contracts/FHE.sol";
-import {SimpleTest} from "./SimpleTest.sol";
+import {MyFheContract} from "./MyFheContract.sol";
 ...
-contract SimpleTestExample is Test, CoFheTest {
+contract MyFheContractExample is Test, CoFheTest {
 
-  SimpleTest private simpleTest;
+  MyFheContract private target;
 
   address private user = makeAddr("user");
 
@@ -163,7 +163,7 @@ contract SimpleTestExample is Test, CoFheTest {
     // optional ... enable verbose logging for fhe mocks
     // setLog(true);
 
-    simpleTest = new SimpleTest();
+    target = new MyFheContract();
   }
 
   function testSetValue() public {
@@ -173,11 +173,9 @@ contract SimpleTestExample is Test, CoFheTest {
     //must be the user who sends transaction
     //or else invalid permissions from fhe allow
     vm.prank(user);
-    simpleTest.setValue(number);
+    target.setValue(number);
 
-    assertHashValue(simpleTest.getValue(), n);
+    assertHashValue(target.getValue(), n);
   }
 }
 ```
-
-See `contracts/SimpleTest.sol` for the helper contract used in mock-oriented tests.

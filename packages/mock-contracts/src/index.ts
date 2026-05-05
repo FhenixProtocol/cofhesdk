@@ -3,5 +3,4 @@ export * from './MockTaskManager';
 export * from './MockACL';
 export * from './MockZkVerifier';
 export * from './MockThresholdNetwork';
-export * from './SimpleTest';
-export type { MockACL, MockTaskManager, MockThresholdNetwork, MockZkVerifier, SimpleTest } from './typechain-types';
+export type { MockACL, MockTaskManager, MockThresholdNetwork, MockZkVerifier } from './typechain-types';

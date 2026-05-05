@@ -21,9 +21,6 @@ const nonFixedContracts = {
   MockACL: {
     inspectTarget: 'MockACL',
   },
-  SimpleTest: {
-    inspectTarget: 'contracts/SimpleTest.sol:SimpleTest',
-  },
 };
 
 function inspect(contract: string, field: string): any {

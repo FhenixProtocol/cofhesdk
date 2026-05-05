@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import { Test } from 'forge-std/Test.sol';
-import { SimpleTest } from '@cofhe/mock-contracts/contracts/SimpleTest.sol';
+import { SimpleTest } from '@cofhe/test-setup/contracts/SimpleTest.sol';
 import { CofheTest } from '../contracts/CofheTest.sol';
 import { CofheClient } from '../contracts/CofheClient.sol';
 import { FHE, InEuint32, euint8, euint128 } from '@fhenixprotocol/cofhe-contracts/FHE.sol';
