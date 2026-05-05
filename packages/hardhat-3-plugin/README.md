@@ -1,10 +1,10 @@
 # @cofhe/hardhat-3-plugin
 
-A [Hardhat 3](https://hardhat.org) plugin for [CoFHE](https://docs.fhenix.io) development. It deploys the CoFHE mock contracts to an in-process Hardhat network on every `network.connect()` call and exposes a `cofhe` namespace on the connection object — ready to use immediately, no boilerplate required.
+ A [Hardhat 3](https://hardhat.org) plugin for [CoFHE](https://docs.fhenix.io) development. It deploys the core CoFHE mock contracts to an in-process Hardhat network on every `network.connect()` call and exposes a `cofhe` namespace on the connection object — ready to use immediately, no boilerplate required.
 
 ## Features
 
-- Automatically deploys all CoFHE mock contracts (`MockTaskManager`, `MockACL`, `MockZkVerifier`, `MockThresholdNetwork`, `TestBed`) on every `network.connect()`
+- Automatically deploys the core CoFHE mock contracts (`MockTaskManager`, `MockACL`, `MockZkVerifier`, `MockThresholdNetwork`) on every `network.connect()`
 - Exposes `conn.cofhe` on the Hardhat 3 connection object (compatible with `@nomicfoundation/hardhat-viem`'s `conn.viem`)
 - Provides a batteries-included `cofhe.createClientWithBatteries()` for quick SDK client setup
 - Mock-specific helpers: plaintext inspection, logging control, and Viem contract descriptors for every mock
@@ -57,7 +57,7 @@ export default defineConfig({
 
 Every call to `network.connect()` automatically:
 
-1. Deploys all CoFHE mock contracts to the fresh in-process EVM
+1. Deploys the core CoFHE mock contracts to the fresh in-process EVM
 2. Attaches a `cofhe` namespace to the returned connection object
 
 Because `network.connect()` is awaitable at the top level of an `async describe`, you can set everything up without lifecycle hooks:
@@ -131,25 +131,21 @@ const client = await cofhe.createClientWithBatteries(walletClient);
 
 #### Contract descriptors
 
-Each mock contract is exposed as an `{ address, abi }` object that can be spread directly into Viem's `readContract` / `writeContract`:
+The core mock contracts are exposed as an `{ address, abi }` object that can be spread directly into Viem's `readContract` / `writeContract`:
 
 ```typescript
-// All mock contracts are synchronous { address, abi } descriptors:
+// Core mock contracts are synchronous { address, abi } descriptors:
 cofhe.mocks.MockTaskManager; // { address: `0x...`, abi: [...] }
 cofhe.mocks.MockACL; // { address: `0x...`, abi: [...] }
 cofhe.mocks.MockZkVerifier; // { address: `0x...`, abi: [...] }
 cofhe.mocks.MockThresholdNetwork; // { address: `0x...`, abi: [...] }
-cofhe.mocks.TestBed; // { address: `0x...`, abi: [...] }
 ```
+
+`SimpleTest` is not injected onto `cofhe.mocks`. If a test needs it, deploy it explicitly and bind it locally using its fixed address and ABI.
 
 Example — calling a mock directly with Viem:
 
 ```typescript
-const value = await publicClient.readContract({
-  ...cofhe.mocks.TestBed,
-  functionName: 'numberHash',
-});
-
 await walletClient.writeContract({
   ...cofhe.mocks.MockTaskManager,
   functionName: 'setSecurityZones',
@@ -190,23 +186,22 @@ await cofhe.mocks.withLogs('my test', async () => {
 
 #### `cofhe.mocks.deployMocks(options?)`
 
-Re-deploys all mock contracts. Normally you don't need to call this directly — mocks are deployed automatically on every `network.connect()`. This is available for advanced scenarios where you need to reset mock state mid-test.
+Re-deploys the core mock contracts. They are deployed automatically on every `network.connect()`.
 
 ```typescript
-await cofhe.mocks.deployMocks({ deployTestBed: true, silent: true });
+await cofhe.mocks.deployMocks({ gasWarning: false, mocksDeployVerbosity: '' });
 ```
 
-| Option          | Type      | Default         | Description                                      |
-| --------------- | --------- | --------------- | ------------------------------------------------ |
-| `deployTestBed` | `boolean` | `true`          | Whether to deploy the `TestBed` utility contract |
-| `gasWarning`    | `boolean` | inherits config | Print gas warning after deployment               |
-| `silent`        | `boolean` | `false`         | Suppress all deployment output                   |
+| Option                 | Type                | Default         | Description                          |
+| ---------------------- | ------------------- | --------------- | ------------------------------------ |
+| `gasWarning`           | `boolean`           | inherits config | Print gas warning after deployment   |
+| `mocksDeployVerbosity` | `'' \| 'v' \| 'vv'` | inherits config | Controls deployment output verbosity |
 
 ---
 
 ## Mock contracts
 
-The plugin deploys these contracts automatically on every `network.connect()`:
+The plugin deploys these core contracts automatically on every `network.connect()`:
 
 | Contract               | Address                                      | Description                                                           |
 | ---------------------- | -------------------------------------------- | --------------------------------------------------------------------- |
@@ -214,9 +209,9 @@ The plugin deploys these contracts automatically on every `network.connect()`:
 | `MockACL`              | dynamic                                      | Access Control List — address resolved from TaskManager               |
 | `MockZkVerifier`       | `0x0000000000000000000000000000000000005001` | Verifies ZK proofs for encrypted inputs                               |
 | `MockThresholdNetwork` | `0x0000000000000000000000000000000000005002` | Simulates the threshold decryption network                            |
-| `TestBed`              | `0x0000000000000000000000000000000000005003` | Utility contract for storing and retrieving encrypted values in tests |
-
 Fixed-address contracts are deployed via `hardhat_setCode`, ensuring they are always at the same address regardless of deployment order. `MockACL` is deployed as a normal contract (so its EIP-712 domain constructor runs correctly) and its address is registered in `MockTaskManager`.
+
+If a test needs `SimpleTest`, deploy it directly from its artifact rather than through `cofhe.mocks`.
 
 ---
 
@@ -232,6 +227,15 @@ describe('Encrypted counter', async () => {
   const { viem, cofhe } = await network.connect();
   const publicClient = await viem.getPublicClient();
   const [walletClient] = await viem.getWalletClients();
+  const simpleTestArtifact = /* your compiled SimpleTest artifact */;
+  const deployHash = await walletClient.deployContract({
+    abi: simpleTestArtifact.abi,
+    bytecode: simpleTestArtifact.bytecode.object as `0x${string}`,
+  });
+  const deployReceipt = await publicClient.waitForTransactionReceipt({ hash: deployHash });
+  if (!deployReceipt.contractAddress) throw new Error('SimpleTest deployment failed');
+
+  const simpleTest = { address: deployReceipt.contractAddress, abi: simpleTestArtifact.abi } as const;
 
   it('encrypts, stores, and decrypts a uint32', async () => {
     const client = await cofhe.createClientWithBatteries(walletClient);
@@ -239,16 +243,16 @@ describe('Encrypted counter', async () => {
     // Encrypt
     const [enc] = await client.encryptInputs([Encryptable.uint32(42n)]).execute();
 
-    // Store on-chain via TestBed
+    // Store on-chain via SimpleTest
     await walletClient.writeContract({
-      ...cofhe.mocks.TestBed,
-      functionName: 'setNumber',
-      args: [{ ctHash: enc.ctHash, securityZone: enc.securityZone, utype: enc.utype, signature: enc.signature }],
+      ...simpleTest,
+      functionName: 'setValue',
+      args: [enc],
     });
 
     const ctHash = (await publicClient.readContract({
-      ...cofhe.mocks.TestBed,
-      functionName: 'numberHash',
+      ...simpleTest,
+      functionName: 'getValueHash',
     })) as `0x${string}`;
 
     // Decrypt via view (off-chain, instant)

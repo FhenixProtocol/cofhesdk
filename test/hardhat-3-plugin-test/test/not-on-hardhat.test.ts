@@ -20,7 +20,6 @@ describe('Deploy Mocks – non-hardhat', () => {
     await deployMocks(
       { publicClient, walletClient },
       {
-        deployTestBed: true,
         gasWarning: false,
         mocksDeployVerbosity: '',
       }

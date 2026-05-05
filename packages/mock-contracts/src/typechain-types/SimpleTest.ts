@@ -34,7 +34,7 @@ export type InEuint32StructOutput = [ctHash: bigint, securityZone: bigint, utype
   signature: string;
 };
 
-export interface TestBedInterface extends Interface {
+export interface SimpleTestInterface extends Interface {
   getFunction(
     nameOrSignature:
       | 'addValue'
@@ -84,11 +84,11 @@ export interface TestBedInterface extends Interface {
   decodeFunctionResult(functionFragment: 'storedValueHash', data: BytesLike): Result;
 }
 
-export interface TestBed extends BaseContract {
-  connect(runner?: ContractRunner | null): TestBed;
+export interface SimpleTest extends BaseContract {
+  connect(runner?: ContractRunner | null): SimpleTest;
   waitForDeployment(): Promise<this>;
 
-  interface: TestBedInterface;
+  interface: SimpleTestInterface;
 
   queryFilter<TCEvent extends TypedContractEvent>(
     event: TCEvent,

@@ -4,8 +4,8 @@ import {
   TASK_MANAGER_ADDRESS,
   MOCKS_ZK_VERIFIER_ADDRESS,
   MOCKS_THRESHOLD_NETWORK_ADDRESS,
-  TEST_BED_ADDRESS,
 } from '@cofhe/sdk';
+import SimpleTestArtifact from '../../setup/out/SimpleTest.sol/SimpleTest.json';
 
 describe('Deploy Mocks Task', () => {
   it('should deploy mock contracts', async () => {
@@ -38,9 +38,16 @@ describe('Deploy Mocks Task', () => {
     expect(await thresholdNetworkFromCofhesdk.exists()).to.be.true;
     expect(await thresholdNetworkFromCofhesdk.getAddress()).to.be.equal(MOCKS_THRESHOLD_NETWORK_ADDRESS);
 
-    // TEST BED
+    const [signer] = await hre.ethers.getSigners();
+    const simpleTestFactory = new hre.ethers.ContractFactory(
+      SimpleTestArtifact.abi,
+      SimpleTestArtifact.bytecode.object,
+      signer
+    );
+    const simpleTest = await simpleTestFactory.deploy();
+    await simpleTest.waitForDeployment();
 
-    const testBedFromCofhesdk = await hre.cofhe.mocks.getTestBed();
-    expect(await testBedFromCofhesdk.getAddress()).to.be.equal(TEST_BED_ADDRESS);
+    expect(await simpleTest.getAddress()).to.properAddress;
+    expect(await hre.ethers.provider.getCode(await simpleTest.getAddress())).to.not.equal('0x');
   });
 });

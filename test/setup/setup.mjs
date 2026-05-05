@@ -158,7 +158,6 @@ const HARDHAT_MOCK_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed
 const HARDHAT_MOCK_STARTING_BALANCE_ETH = '10000';
 const MOCKS_ZK_VERIFIER_ADDRESS = '0x0000000000000000000000000000000000005001';
 const MOCKS_THRESHOLD_NETWORK_ADDRESS = '0x0000000000000000000000000000000000005002';
-const TEST_BED_ADDRESS = '0x0000000000000000000000000000000000005003';
 const TASK_MANAGER_ADDRESS = '0xeA30c4B8b44078Bbf8a6ef5b9f1eC1626C7848D9';
 const MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY =
   '0x6C8D7F768A6BB4AAFE85E8A2F5A9680355239C7E14646ED62B044E39DE154512';
@@ -271,7 +270,7 @@ console.log(`  ZK verifier signer        ${bold(mockZkVerifierSignerAddress)}  $
 console.log(`  Fixed contracts           TaskManager ${TASK_MANAGER_ADDRESS}`);
 console.log(`                            MockZkVerifier ${MOCKS_ZK_VERIFIER_ADDRESS}`);
 console.log(`                            MockThresholdNetwork ${MOCKS_THRESHOLD_NETWORK_ADDRESS}`);
-console.log(`                            TestBed ${TEST_BED_ADDRESS}`);
+console.log('  SimpleTest                deployed explicitly where tests need it');
 
 const parsedHardhatBalance = parseFloat(hardhatMockBalance);
 if (!isNaN(parsedHardhatBalance) && parsedHardhatBalance < MIN_BALANCE_ETH) {

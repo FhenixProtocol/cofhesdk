@@ -7,9 +7,9 @@ import {
   MOCKS_ZK_VERIFIER_ADDRESS,
   MOCKS_THRESHOLD_NETWORK_ADDRESS,
   MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
-  TEST_BED_ADDRESS,
   FheTypes,
 } from '@cofhe/sdk';
+import SimpleTestArtifact from '../../setup/out/SimpleTest.sol/SimpleTest.json';
 import { privateKeyToAccount } from 'viem/accounts';
 import { expectRevert, hasCode } from './helpers.js';
 
@@ -114,10 +114,14 @@ describe('Deploy Mocks', async () => {
     assert.equal(aclFromThreshold.toLowerCase(), aclFromTm.toLowerCase());
   });
 
-  it('TestBed is deployed at the expected fixed address', async () => {
-    const { address } = cofhe.mocks.TestBed;
-    assert.equal(address.toLowerCase(), TEST_BED_ADDRESS.toLowerCase());
-    assert.ok(await hasCode(publicClient, address));
+  it('SimpleTest can be deployed explicitly when needed', async () => {
+    const deployHash = await walletClient.deployContract({
+      abi: SimpleTestArtifact.abi,
+      bytecode: SimpleTestArtifact.bytecode.object as `0x${string}`,
+    });
+    const deployReceipt = await publicClient.waitForTransactionReceipt({ hash: deployHash });
+    assert.ok(deployReceipt.contractAddress);
+    assert.ok(await hasCode(publicClient, deployReceipt.contractAddress!));
   });
 
   it('Negative: only the owner can call MockTaskManager admin setters', async () => {

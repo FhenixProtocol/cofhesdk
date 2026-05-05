@@ -4,6 +4,7 @@ import { network } from 'hardhat';
 import { createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { Encryptable, FheTypes } from '@cofhe/sdk';
+import SimpleTestArtifact from '../../setup/out/SimpleTest.sol/SimpleTest.json';
 
 const ALICE_PRIVATE_KEY = '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d' as const;
 
@@ -11,6 +12,19 @@ describe('Inherited SDK Tests', async () => {
   const { viem, cofhe } = await network.connect();
   const publicClient = await viem.getPublicClient();
   const [bobWalletClient] = await viem.getWalletClients();
+  const deployHash = await bobWalletClient.deployContract({
+    abi: SimpleTestArtifact.abi,
+    bytecode: SimpleTestArtifact.bytecode.object as `0x${string}`,
+  });
+  const deployReceipt = await publicClient.waitForTransactionReceipt({ hash: deployHash });
+  if (!deployReceipt.contractAddress) {
+    throw new Error('SimpleTest deployment did not return a contract address');
+  }
+
+  const simpleTest = {
+    address: deployReceipt.contractAddress,
+    abi: SimpleTestArtifact.abi,
+  } as const;
 
   const aliceAccount = privateKeyToAccount(ALICE_PRIVATE_KEY);
   const aliceWalletClient = createWalletClient({
@@ -21,12 +35,12 @@ describe('Inherited SDK Tests', async () => {
   const storeEncrypted = async (client: Awaited<ReturnType<typeof cofhe.createClientWithBatteries>>) => {
     const [enc] = await client.encryptInputs([Encryptable.uint32(42n)]).execute();
     await bobWalletClient.writeContract({
-      ...cofhe.mocks.TestBed,
+      ...simpleTest,
       functionName: 'setValue',
       args: [enc],
     });
     const ctHash = await publicClient.readContract({
-      ...cofhe.mocks.TestBed,
+      ...simpleTest,
       functionName: 'getValueHash',
     });
     return { enc, ctHash };
@@ -49,13 +63,13 @@ describe('Inherited SDK Tests', async () => {
     const [enc] = await client.encryptInputs([Encryptable.uint32(testValue)]).execute();
 
     await bobWalletClient.writeContract({
-      ...cofhe.mocks.TestBed,
+      ...simpleTest,
       functionName: 'setValue',
       args: [enc],
     });
 
     const ctHash = await publicClient.readContract({
-      ...cofhe.mocks.TestBed,
+      ...simpleTest,
       functionName: 'getValueHash',
     });
 
@@ -69,13 +83,13 @@ describe('Inherited SDK Tests', async () => {
     const [enc] = await client.encryptInputs([Encryptable.uint32(testValue)]).execute();
 
     await bobWalletClient.writeContract({
-      ...cofhe.mocks.TestBed,
+      ...simpleTest,
       functionName: 'setValue',
       args: [enc],
     });
 
     const ctHash = await publicClient.readContract({
-      ...cofhe.mocks.TestBed,
+      ...simpleTest,
       functionName: 'getValueHash',
     });
 
@@ -84,13 +98,13 @@ describe('Inherited SDK Tests', async () => {
     assert.equal(typeof result.signature, 'string');
 
     await bobWalletClient.writeContract({
-      ...cofhe.mocks.TestBed,
+      ...simpleTest,
       functionName: 'publishDecryptResult',
       args: [ctHash, Number(result.decryptedValue), result.signature],
     });
 
     const [publishedValue, isDecrypted] = await publicClient.readContract({
-      ...cofhe.mocks.TestBed,
+      ...simpleTest,
       functionName: 'getDecryptResultSafe',
       args: [ctHash],
     });

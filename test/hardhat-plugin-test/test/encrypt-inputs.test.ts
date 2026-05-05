@@ -2,6 +2,7 @@ import hre from 'hardhat';
 import { CofheClient, Encryptable, FheTypes } from '@cofhe/sdk';
 import { expect } from 'chai';
 import { hardhat } from '@cofhe/sdk/chains';
+import SimpleTestArtifact from '../../setup/out/SimpleTest.sol/SimpleTest.json';
 
 describe('Encrypt Inputs Test', () => {
   it('Should encrypt inputs', async () => {
@@ -11,12 +12,14 @@ describe('Encrypt Inputs Test', () => {
 
     const encrypted = await client.encryptInputs([Encryptable.uint32(7n)]).execute();
 
-    // Add number to TestBed
-    const testBed = await hre.cofhe.mocks.getTestBed();
-    await testBed.setValue(encrypted[0]);
-    const ctHash = await testBed.getValueHash();
+    // Add number to SimpleTest
+    const simpleTest = await new hre.ethers.ContractFactory(SimpleTestArtifact.abi, SimpleTestArtifact.bytecode.object, signer)
+      .deploy();
+    await simpleTest.waitForDeployment();
+    await simpleTest.setValue(encrypted[0]);
+    const ctHash = await simpleTest.getValueHash();
 
-    // Decrypt number from TestBed
+    // Decrypt number from SimpleTest
     const unsealed = await client.decryptForView(ctHash, FheTypes.Uint32).execute();
 
     expect(unsealed).to.be.equal(7n);

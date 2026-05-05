@@ -27,12 +27,10 @@ import {
   MockThresholdNetworkArtifact,
   MockTaskManagerArtifact,
   MockZkVerifierArtifact,
-  TestBedArtifact,
   type MockACL,
   type MockTaskManager,
   type MockThresholdNetwork,
   type MockZkVerifier,
-  type TestBed,
 } from '@cofhe/mock-contracts';
 
 /**
@@ -223,10 +221,8 @@ task(TASK_COFHE_USE_FAUCET, 'Fund an account from the funder')
 // DEPLOY TASKS
 
 task(TASK_COFHE_MOCKS_DEPLOY, 'Deploys the mock contracts on the Hardhat network')
-  .addOptionalParam('deployTestBed', 'Whether to deploy the test bed', true, types.boolean)
-  .setAction(async ({ deployTestBed }: DeployMocksArgs, hre) => {
+  .setAction(async ({}: DeployMocksArgs, hre) => {
     await deployMocks(hre, {
-      deployTestBed: deployTestBed ?? true,
       gasWarning: hre.config.cofhe.gasWarning ?? true,
       mocksDeployVerbosity: hre.config.cofhe.mocksDeployVerbosity,
     });
@@ -242,7 +238,6 @@ task(TASK_TEST, 'Deploy mock contracts on hardhat').setAction(async ({}, hre, ru
 
   if (!skipAutoDeploy) {
     await deployMocks(hre, {
-      deployTestBed: true,
       gasWarning: hre.config.cofhe.gasWarning ?? true,
       mocksDeployVerbosity: hre.config.cofhe.mocksDeployVerbosity,
     });
@@ -259,7 +254,6 @@ task(TASK_NODE, 'Deploy mock contracts on hardhat').setAction(async ({}, hre, ru
 
   if (!skipAutoDeploy) {
     await deployMocks(hre, {
-      deployTestBed: true,
       gasWarning: hre.config.cofhe.gasWarning ?? true,
       mocksDeployVerbosity: hre.config.cofhe.mocksDeployVerbosity,
     });
@@ -375,7 +369,7 @@ declare module 'hardhat/types/runtime' {
         /**
          * **[MOCKS ONLY]**
          *
-         * Deploy the cofhe mock contracts (normally this is done automatically)
+         * Deploy the cofhe mock contracts.
          * @param {DeployMocksArgs} options - Deployment options
          */
         deployMocks: (options?: DeployMocksArgs) => Promise<void>;
@@ -422,11 +416,6 @@ declare module 'hardhat/types/runtime' {
          */
         getMockZkVerifier: () => Promise<MockZkVerifier>;
 
-        /**
-         * Get the TestBed contract (typed via typechain)
-         * @returns {Promise<TestBed>} The TestBed contract
-         */
-        getTestBed: () => Promise<TestBed>;
       };
     };
   }
@@ -537,7 +526,6 @@ extendEnvironment((hre) => {
         getFixedMockContract(hre, MockThresholdNetworkArtifact) as unknown as Promise<MockThresholdNetwork>,
       getMockZkVerifier: async () =>
         getFixedMockContract(hre, MockZkVerifierArtifact) as unknown as Promise<MockZkVerifier>,
-      getTestBed: async () => getFixedMockContract(hre, TestBedArtifact) as unknown as Promise<TestBed>,
     },
   };
 });

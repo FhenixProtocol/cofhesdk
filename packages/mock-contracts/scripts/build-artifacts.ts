@@ -4,18 +4,30 @@ import {
   TASK_MANAGER_ADDRESS,
   MOCKS_ZK_VERIFIER_ADDRESS,
   MOCKS_THRESHOLD_NETWORK_ADDRESS,
-  TEST_BED_ADDRESS,
 } from '@cofhe/sdk';
 
 const fixedContracts = {
-  MockTaskManager: TASK_MANAGER_ADDRESS,
-  MockZkVerifier: MOCKS_ZK_VERIFIER_ADDRESS,
-  MockThresholdNetwork: MOCKS_THRESHOLD_NETWORK_ADDRESS,
-  TestBed: TEST_BED_ADDRESS,
+  MockTaskManager: {
+    fixedAddress: TASK_MANAGER_ADDRESS,
+    inspectTarget: 'MockTaskManager',
+  },
+  MockZkVerifier: {
+    fixedAddress: MOCKS_ZK_VERIFIER_ADDRESS,
+    inspectTarget: 'MockZkVerifier',
+  },
+  MockThresholdNetwork: {
+    fixedAddress: MOCKS_THRESHOLD_NETWORK_ADDRESS,
+    inspectTarget: 'MockThresholdNetwork',
+  },
 };
 
 const nonFixedContracts = {
-  MockACL: true,
+  MockACL: {
+    inspectTarget: 'MockACL',
+  },
+  SimpleTest: {
+    inspectTarget: 'contracts/SimpleTest.sol:SimpleTest',
+  },
 };
 
 function inspect(contract: string, field: string): any {
@@ -29,8 +41,8 @@ fs.mkdirSync(abiDir, { recursive: true });
 
 // Build fixed contracts
 
-for (const [name, fixedAddress] of Object.entries(fixedContracts)) {
-  const abi = inspect(name, 'abi');
+for (const [name, { fixedAddress, inspectTarget }] of Object.entries(fixedContracts)) {
+  const abi = inspect(inspectTarget, 'abi');
 
   const artifact = {
     contractName: name,
@@ -52,8 +64,8 @@ export const ${name}Artifact = ${JSON.stringify(artifact, null, 2)} as const sat
 
 // Build non-fixed contracts
 
-for (const [name] of Object.entries(nonFixedContracts)) {
-  const abi = inspect(name, 'abi');
+for (const [name, { inspectTarget }] of Object.entries(nonFixedContracts)) {
+  const abi = inspect(inspectTarget, 'abi');
 
   const artifact = {
     contractName: name,

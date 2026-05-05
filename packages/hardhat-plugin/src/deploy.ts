@@ -7,7 +7,6 @@ import {
   MockACLArtifact,
   MockZkVerifierArtifact,
   MockThresholdNetworkArtifact,
-  TestBedArtifact,
 } from '@cofhe/mock-contracts';
 
 import {
@@ -29,7 +28,6 @@ import { deployMockContractFromArtifact } from './utils';
 export type LogMocksDeploy = '' | 'v' | 'vv';
 
 export type DeployMocksArgs = {
-  deployTestBed?: boolean;
   gasWarning?: boolean;
   mocksDeployVerbosity?: LogMocksDeploy;
 };
@@ -37,7 +35,6 @@ export type DeployMocksArgs = {
 export const deployMocks = async (
   hre: HardhatRuntimeEnvironment,
   options: DeployMocksArgs = {
-    deployTestBed: true,
     gasWarning: true,
     mocksDeployVerbosity: 'v',
   }
@@ -88,11 +85,6 @@ export const deployMocks = async (
 
   const thresholdNetwork = await deployMockThresholdNetwork(hre, acl);
   logDeployment('MockThresholdNetwork', await thresholdNetwork.getAddress());
-
-  if (options.deployTestBed) {
-    const testBed = await deployTestBedContract(hre);
-    logDeployment('TestBed', await testBed.getAddress());
-  }
 
   log('v', chalk.bold('cofhe-hardhat-plugin :: mocks deployed'), 0);
 
@@ -200,10 +192,6 @@ const deployMockThresholdNetwork = async (hre: HardhatRuntimeEnvironment, acl: C
   }
 
   return thresholdNetwork;
-};
-
-const deployTestBedContract = async (hre: HardhatRuntimeEnvironment) => {
-  return deployMockContractFromArtifact(hre, TestBedArtifact);
 };
 
 // Logging

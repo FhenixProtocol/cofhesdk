@@ -15,13 +15,13 @@ The plugin deploys a suite of mock contracts that simulate the full CoFHE coproc
 | `MockACL`              | Access control for encrypted handles                                                  |
 | `MockZkVerifier`       | Simulates ZK proof verification for encrypted inputs                                  |
 | `MockThresholdNetwork` | Handles decryption requests                                                           |
-| `TestBed`              | Helper contract for testing — exposes trivial value setters plus `getValueHash()`     |
+| `SimpleTest`           | Optional helper contract for tests — exposes trivial value setters plus `getValueHash()` |
 
 The SDK automatically detects when it's running against the mock environment (by checking bytecode at the `MockZkVerifier` fixed address) and adapts its behavior accordingly — ZK proof generation is skipped and verification is handled by the mock contracts.
 
 ## Auto-deployment
 
-Mock contracts are deployed automatically before every `npx hardhat test` and `npx hardhat node` run.
+The core mock contracts are deployed automatically before every `npx hardhat test` and `npx hardhat node` run. `SimpleTest` is not auto-deployed.
 
 To skip auto-deployment:
 
@@ -37,7 +37,6 @@ You can also deploy mock contracts manually via the Hardhat task:
 
 ```bash
 npx hardhat task:cofhe-mocks:deploy
-npx hardhat task:cofhe-mocks:deploy --deployTestBed false  # skip TestBed
 npx hardhat task:cofhe-mocks:deploy --silent true          # suppress output
 ```
 
@@ -55,7 +54,7 @@ await hre.cofhe.mocks.deployMocks();
 
 ## Accessing mock contracts
 
-`hre.cofhe.mocks` exposes typed accessors for each mock contract. Each method returns a fully typed Typechain contract instance:
+`hre.cofhe.mocks` exposes typed accessors for the core mock contracts. Each method returns a fully typed Typechain contract instance:
 
 ```ts twoslash
 // @noErrors
@@ -68,7 +67,10 @@ const taskManager = await hre.cofhe.mocks.getMockTaskManager();
 const acl = await hre.cofhe.mocks.getMockACL();
 const thresholdNetwork = await hre.cofhe.mocks.getMockThresholdNetwork();
 const zkVerifier = await hre.cofhe.mocks.getMockZkVerifier();
-const testBed = await hre.cofhe.mocks.getTestBed();
+
+const simpleTestFactory = await hre.ethers.getContractFactory('SimpleTest');
+const simpleTest = await simpleTestFactory.deploy();
+await simpleTest.waitForDeployment();
 ```
 
 ## Reading plaintext values
@@ -87,9 +89,11 @@ import '@nomicfoundation/hardhat-ethers';
 import hre from 'hardhat';
 import { expect } from 'chai';
 
-const testBed = await hre.cofhe.mocks.getTestBed();
-await testBed.setValueTrivial(7);
-const ctHash = await testBed.getValueHash();
+const simpleTestFactory = await hre.ethers.getContractFactory('SimpleTest');
+const simpleTest = await simpleTestFactory.deploy();
+await simpleTest.waitForDeployment();
+await simpleTest.setValueTrivial(7);
+const ctHash = await simpleTest.getValueHash();
 
 const plaintext = await hre.cofhe.mocks.getPlaintext(ctHash); // [!code focus]
 
@@ -107,9 +111,11 @@ import '@nomicfoundation/hardhat-ethers';
 // ---cut---
 import hre from 'hardhat';
 
-const testBed = await hre.cofhe.mocks.getTestBed();
-await testBed.setValueTrivial(7);
-const ctHash = await testBed.getValueHash();
+const simpleTestFactory = await hre.ethers.getContractFactory('SimpleTest');
+const simpleTest = await simpleTestFactory.deploy();
+await simpleTest.waitForDeployment();
+await simpleTest.setValueTrivial(7);
+const ctHash = await simpleTest.getValueHash();
 
 await hre.cofhe.mocks.expectPlaintext(ctHash, 7n); // [!code focus]
 ```

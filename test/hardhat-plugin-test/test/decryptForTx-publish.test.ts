@@ -2,7 +2,7 @@ import hre from 'hardhat';
 import { expect } from 'chai';
 import { CofheClient, Encryptable } from '@cofhe/sdk';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
-import { MockTaskManager, TestBed } from '@cofhe/mock-contracts';
+import { MockTaskManager } from '@cofhe/mock-contracts';
 import SimpleTestArtifact from '../../setup/out/SimpleTest.sol/SimpleTest.json';
 
 // Tests that exercise Hardhat mock-specific revert behavior for publishDecryptResult.
@@ -13,7 +13,7 @@ describe('Hardhat Mocks – publishDecryptResult revert behavior', () => {
   let cofheClient: CofheClient;
   let testContract: any;
   let signer: HardhatEthersSigner;
-  let testBed: TestBed;
+  let simpleTest: any;
   let taskManager: MockTaskManager;
 
   before(async function () {
@@ -29,7 +29,7 @@ describe('Hardhat Mocks – publishDecryptResult revert behavior', () => {
     testContract = await simpleTestFactory.deploy();
     await testContract.waitForDeployment();
 
-    testBed = await hre.cofhe.mocks.getTestBed();
+    simpleTest = testContract;
     taskManager = await hre.cofhe.mocks.getMockTaskManager();
   });
 
@@ -44,7 +44,7 @@ describe('Hardhat Mocks – publishDecryptResult revert behavior', () => {
     const decryptResult = await cofheClient.decryptForTx(enc.ctHash).withoutPermit().execute();
 
     const ctHashBytes32 = hre.ethers.toBeHex(decryptResult.ctHash, 32);
-    await expect(testBed.publishDecryptResult(ctHashBytes32, 0n, decryptResult.signature)).to.be.reverted;
+    await expect(simpleTest.publishDecryptResult(ctHashBytes32, 0n, decryptResult.signature)).to.be.reverted;
 
     await expect(taskManager.verifyDecryptResult(ctHashBytes32, 0n, decryptResult.signature)).to.be.reverted;
 
