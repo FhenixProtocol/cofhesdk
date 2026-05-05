@@ -1,17 +1,4 @@
-import {
-  FheTypes,
-  type EncryptableItem,
-  type EncryptableToEncryptedItemInputMap,
-  type EncryptedAddressInput,
-  type EncryptedBoolInput,
-  type EncryptedItemInput,
-  type EncryptedItemInputs,
-  type EncryptedUint128Input,
-  type EncryptedUint16Input,
-  type EncryptedUint32Input,
-  type EncryptedUint64Input,
-  type EncryptedUint8Input,
-} from '@cofhe/sdk';
+import { type EncryptableItem, type EncryptedItemInputs } from '@cofhe/sdk';
 
 /**
  * Generates a mock ctHash from the encryptable data.
