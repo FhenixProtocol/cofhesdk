@@ -9,8 +9,17 @@
 
 import { it, expect, beforeAll, afterAll } from 'vitest';
 import { Encryptable, FheTypes } from '@cofhe/sdk';
+import { PermitUtils, type Permission } from '@cofhe/sdk/permits';
 import { simpleTestAbi } from '@cofhe/test-setup';
 import type { TestChainConfig, ClientFactory, TestContext } from '../types.js';
+
+function makeThresholdRequestBody(chainConfig: TestChainConfig, ctHash: bigint | string, permission: Permission) {
+  return {
+    ct_tempkey: BigInt(ctHash).toString(16).padStart(64, '0'),
+    host_chain_id: chainConfig.cofheChain.id,
+    permit: permission,
+  };
+}
 
 export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientFactory) {
   let ctx: TestContext;
@@ -338,5 +347,94 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
 
     expect(BigInt(publishedValue)).toBe(testValue);
     expect(isDecrypted).toBe(true);
+  }, 180_000);
+
+  it('Should return a cached completed payload when requesting an already decrypted decryption again', async () => {
+    await ctx.cofheClient.permits.createSelf({
+      issuer: ctx.bobAccount.address,
+      name: 'Cached Decrypt Permit',
+    });
+
+    const testValue = 73n;
+    const valueToAdd = 19n;
+    const expectedValue = testValue + valueToAdd;
+
+    const encrypted = await ctx.cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
+    const encryptedInput = encrypted[0];
+
+    const storeTxHash = await ctx.bobWalletClient.writeContract({
+      address: ctx.contractAddress,
+      abi: simpleTestAbi,
+      functionName: 'setValue',
+      args: [encryptedInput],
+      chain: chainConfig.viemChain,
+      account: ctx.bobAccount,
+    });
+    await ctx.publicClient.waitForTransactionReceipt({
+      hash: storeTxHash,
+      retryCount: 30,
+      pollingInterval: 4_000,
+      confirmations: chainConfig.txConfirmationsRequired,
+    });
+
+    const encryptedAddend = await ctx.cofheClient.encryptInputs([Encryptable.uint32(valueToAdd)]).execute();
+    const encryptedAddendInput = encryptedAddend[0];
+
+    const addTxHash = await ctx.bobWalletClient.writeContract({
+      address: ctx.contractAddress,
+      abi: simpleTestAbi,
+      functionName: 'addValue',
+      args: [encryptedAddendInput],
+      chain: chainConfig.viemChain,
+      account: ctx.bobAccount,
+    });
+    await ctx.publicClient.waitForTransactionReceipt({
+      hash: addTxHash,
+      retryCount: 30,
+      pollingInterval: 4_000,
+      confirmations: chainConfig.txConfirmationsRequired,
+    });
+
+    const ctHash = await ctx.publicClient.readContract({
+      address: ctx.contractAddress,
+      abi: simpleTestAbi,
+      functionName: 'getValueHash',
+    });
+
+    const firstDecryptResult = await ctx.cofheClient.decryptForTx(ctHash).withPermit().execute();
+
+    expect(firstDecryptResult.ctHash).toBe(ctHash);
+    expect(firstDecryptResult.decryptedValue).toBe(expectedValue);
+
+    const activePermit = ctx.cofheClient.permits.getActivePermit();
+    expect(activePermit).toBeDefined();
+
+    const secondSubmitResponse = await fetch(`${chainConfig.cofheChain.thresholdNetworkUrl}/v2/decrypt`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(makeThresholdRequestBody(chainConfig, ctHash, PermitUtils.getPermission(activePermit!, true))),
+    });
+
+    expect(secondSubmitResponse.status).toBe(200);
+
+    const secondSubmitBody = (await secondSubmitResponse.json()) as {
+      request_id?: string | null;
+      decrypted?: number[];
+      signature?: string;
+      encryption_type?: number;
+      error_message?: string | null;
+      message?: string;
+    };
+
+    expect(secondSubmitBody.error_message ?? secondSubmitBody.message).toBeUndefined();
+    expect(secondSubmitBody.request_id).toEqual(expect.any(String));
+    expect(secondSubmitBody.request_id).not.toBe('');
+    expect(secondSubmitBody.decrypted).toEqual(expect.any(Array));
+    expect(secondSubmitBody.decrypted?.length).toBeGreaterThan(0);
+    expect(secondSubmitBody.signature).toEqual(expect.any(String));
+    expect(secondSubmitBody.signature).not.toBe('');
+    expect(secondSubmitBody.encryption_type).toBe(FheTypes.Uint32);
   }, 180_000);
 }
