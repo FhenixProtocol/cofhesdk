@@ -112,9 +112,9 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       supportedChains: [chainConfig.cofheChain],
       ...(chainConfig.id === 31337
         ? {
-          environment: 'hardhat' as const,
-          mocks: { encryptDelay: 0 },
-        }
+            environment: 'hardhat' as const,
+            mocks: { encryptDelay: 0 },
+          }
         : {}),
     });
     const aliceClient = factory.createClient(aliceConfig);
@@ -171,8 +171,6 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
     const valueToAdd = 7n;
     const expectedViewValue = testValue + valueToAdd;
     it('successfully decrypts a new on-chain-produced ctHash with decryptForView, transparently retrying until the backend has it', async () => {
-
-
       const [encryptedAddendInput] = await ctx.cofheClient.encryptInputs([Encryptable.uint32(valueToAdd)]).execute();
 
       // This on-chain FHE op produces a fresh ctHash that decryptForView consumes next.
@@ -200,13 +198,14 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
 
       const unsealedResult = await ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
       expect(unsealedResult).toBe(expectedViewValue);
-
     }, 180_000);
 
     it('successfully decrypts a new on-chain-produced ctHash with decryptForTx, transparently retrying until the backend has it', async () => {
       const secondValueToAdd = 11n;
       const expectedTxValue = expectedViewValue + secondValueToAdd;
-      const [encryptedSecondAddendInput] = await ctx.cofheClient.encryptInputs([Encryptable.uint32(secondValueToAdd)]).execute();
+      const [encryptedSecondAddendInput] = await ctx.cofheClient
+        .encryptInputs([Encryptable.uint32(secondValueToAdd)])
+        .execute();
 
       // This second on-chain FHE op again produces a fresh ctHash for decryptForTx.
       // The SDK should keep retrying until the backend has both discovered and computed it.
@@ -261,11 +260,8 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         args: [updatedCtHash],
       });
 
-
-
       expect(isDecrypted).toBe(true);
       expect(BigInt(publishedValue)).toBe(expectedTxValue);
-
     }, 180_000);
 
     it('200 -> from cache', async () => {
@@ -300,10 +296,8 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       expect(secondSubmitBody.signature).toEqual(expect.any(String));
       expect(secondSubmitBody.signature).not.toBe('');
       expect(secondSubmitBody.encryption_type).toBe(FheTypes.Uint32);
-    }, 180_000)
-
-
-  })
+    }, 180_000);
+  });
 
   it('Decrypt for Tx (without permit) - should encrypt → store public → decryptForTx → publishDecryptResult → verify', async () => {
     const testValue = 42n;
