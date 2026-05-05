@@ -157,6 +157,8 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
     expect(result).toBe(testValue);
   }, 180_000);
 
+  // This flow intentionally decrypts immediately after new on-chain FHE operations.
+  // It verifies that the SDK hides backend lag and retries until the fresh ctHash is ready.
   it('Should encrypt -> store -> on-chain FHE op -> decryptForView -> on-chain FHE op -> decryptForTx -> publish -> verify', async () => {
     await ctx.cofheClient.permits.createSelf({
       issuer: ctx.bobAccount.address,
@@ -190,6 +192,8 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
     const encryptedAddend = await ctx.cofheClient.encryptInputs([Encryptable.uint32(valueToAdd)]).execute();
     const encryptedAddendInput = encryptedAddend[0];
 
+    // This on-chain FHE op produces a fresh ctHash that decryptForView consumes next.
+    // The SDK should retry transparently if the backend still responds with 404 or no content.
     const addTxHash = await ctx.bobWalletClient.writeContract({
       address: ctx.contractAddress,
       abi: simpleTestAbi,
@@ -217,6 +221,8 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
     const encryptedSecondAddend = await ctx.cofheClient.encryptInputs([Encryptable.uint32(secondValueToAdd)]).execute();
     const encryptedSecondAddendInput = encryptedSecondAddend[0];
 
+    // This second on-chain FHE op again produces a fresh ctHash for decryptForTx.
+    // The SDK should keep retrying until the backend has both discovered and computed it.
     const secondAddTxHash = await ctx.bobWalletClient.writeContract({
       address: ctx.contractAddress,
       abi: simpleTestAbi,
