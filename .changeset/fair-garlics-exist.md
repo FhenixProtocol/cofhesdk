@@ -1,5 +1,6 @@
 ---
 '@cofhe/sdk': patch
+'@cofhe/react': patch
 ---
 
-Fix permit store persistence in Node environments where `localStorage` is missing or only partially implemented by falling back to in-memory storage.
+Upgrade `zustand` to 5.0.13 to pick up the upstream persist storage fix used by the SDK and React package.
