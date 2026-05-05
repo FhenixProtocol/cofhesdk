@@ -220,13 +220,14 @@ task(TASK_COFHE_USE_FAUCET, 'Fund an account from the funder')
 
 // DEPLOY TASKS
 
-task(TASK_COFHE_MOCKS_DEPLOY, 'Deploys the mock contracts on the Hardhat network')
-  .setAction(async ({}: DeployMocksArgs, hre) => {
+task(TASK_COFHE_MOCKS_DEPLOY, 'Deploys the mock contracts on the Hardhat network').setAction(
+  async ({}: DeployMocksArgs, hre) => {
     await deployMocks(hre, {
       gasWarning: hre.config.cofhe.gasWarning ?? true,
       mocksDeployVerbosity: hre.config.cofhe.mocksDeployVerbosity,
     });
-  });
+  }
+);
 
 // Hardhat plugin auto-deploys mocks for every hardhat test run by overriding TASK_TEST and calling deployMocks(...) before runSuper()
 task(TASK_TEST, 'Deploy mock contracts on hardhat').setAction(async ({}, hre, runSuper) => {
@@ -415,7 +416,6 @@ declare module 'hardhat/types/runtime' {
          * @returns {Promise<MockZkVerifier>} The MockZkVerifier contract
          */
         getMockZkVerifier: () => Promise<MockZkVerifier>;
-
       };
     };
   }

@@ -1,6 +1,6 @@
 # @cofhe/hardhat-3-plugin
 
- A [Hardhat 3](https://hardhat.org) plugin for [CoFHE](https://docs.fhenix.io) development. It deploys the core CoFHE mock contracts to an in-process Hardhat network on every `network.connect()` call and exposes a `cofhe` namespace on the connection object — ready to use immediately, no boilerplate required.
+A [Hardhat 3](https://hardhat.org) plugin for [CoFHE](https://docs.fhenix.io) development. It deploys the core CoFHE mock contracts to an in-process Hardhat network on every `network.connect()` call and exposes a `cofhe` namespace on the connection object — ready to use immediately, no boilerplate required.
 
 ## Features
 
@@ -203,12 +203,13 @@ await cofhe.mocks.deployMocks({ gasWarning: false, mocksDeployVerbosity: '' });
 
 The plugin deploys these core contracts automatically on every `network.connect()`:
 
-| Contract               | Address                                      | Description                                                           |
-| ---------------------- | -------------------------------------------- | --------------------------------------------------------------------- |
-| `MockTaskManager`      | `0xeA30c4B8b44078Bbf8a6ef5b9f1eC1626C7848D9` | Coordinates FHE operations and ACL                                    |
-| `MockACL`              | dynamic                                      | Access Control List — address resolved from TaskManager               |
-| `MockZkVerifier`       | `0x0000000000000000000000000000000000005001` | Verifies ZK proofs for encrypted inputs                               |
-| `MockThresholdNetwork` | `0x0000000000000000000000000000000000005002` | Simulates the threshold decryption network                            |
+| Contract               | Address                                      | Description                                             |
+| ---------------------- | -------------------------------------------- | ------------------------------------------------------- |
+| `MockTaskManager`      | `0xeA30c4B8b44078Bbf8a6ef5b9f1eC1626C7848D9` | Coordinates FHE operations and ACL                      |
+| `MockACL`              | dynamic                                      | Access Control List — address resolved from TaskManager |
+| `MockZkVerifier`       | `0x0000000000000000000000000000000000005001` | Verifies ZK proofs for encrypted inputs                 |
+| `MockThresholdNetwork` | `0x0000000000000000000000000000000000005002` | Simulates the threshold decryption network              |
+
 Fixed-address contracts are deployed via `hardhat_setCode`, ensuring they are always at the same address regardless of deployment order. `MockACL` is deployed as a normal contract (so its EIP-712 domain constructor runs correctly) and its address is registered in `MockTaskManager`.
 
 If a test needs `SimpleTest`, deploy it directly from its artifact rather than through `cofhe.mocks`.

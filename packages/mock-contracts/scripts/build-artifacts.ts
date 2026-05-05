@@ -1,10 +1,6 @@
 import { execSync } from 'child_process';
 import * as fs from 'fs';
-import {
-  TASK_MANAGER_ADDRESS,
-  MOCKS_ZK_VERIFIER_ADDRESS,
-  MOCKS_THRESHOLD_NETWORK_ADDRESS,
-} from '@cofhe/sdk';
+import { TASK_MANAGER_ADDRESS, MOCKS_ZK_VERIFIER_ADDRESS, MOCKS_THRESHOLD_NETWORK_ADDRESS } from '@cofhe/sdk';
 
 const fixedContracts = {
   MockTaskManager: {

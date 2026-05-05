@@ -1,10 +1,6 @@
 import hre from 'hardhat';
 import { expect } from 'chai';
-import {
-  TASK_MANAGER_ADDRESS,
-  MOCKS_ZK_VERIFIER_ADDRESS,
-  MOCKS_THRESHOLD_NETWORK_ADDRESS,
-} from '@cofhe/sdk';
+import { TASK_MANAGER_ADDRESS, MOCKS_ZK_VERIFIER_ADDRESS, MOCKS_THRESHOLD_NETWORK_ADDRESS } from '@cofhe/sdk';
 import SimpleTestArtifact from '../../setup/out/SimpleTest.sol/SimpleTest.json';
 
 describe('Deploy Mocks Task', () => {

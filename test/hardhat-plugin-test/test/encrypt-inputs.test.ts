@@ -13,8 +13,11 @@ describe('Encrypt Inputs Test', () => {
     const encrypted = await client.encryptInputs([Encryptable.uint32(7n)]).execute();
 
     // Add number to SimpleTest
-    const simpleTest = await new hre.ethers.ContractFactory(SimpleTestArtifact.abi, SimpleTestArtifact.bytecode.object, signer)
-      .deploy();
+    const simpleTest = await new hre.ethers.ContractFactory(
+      SimpleTestArtifact.abi,
+      SimpleTestArtifact.bytecode.object,
+      signer
+    ).deploy();
     await simpleTest.waitForDeployment();
     await simpleTest.setValue(encrypted[0]);
     const ctHash = await simpleTest.getValueHash();

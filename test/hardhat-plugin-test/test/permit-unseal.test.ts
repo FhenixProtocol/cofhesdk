@@ -10,8 +10,11 @@ describe('Permit Unseal Test', () => {
     const client = await hre.cofhe.createClientWithBatteries(signer);
 
     // Add number to SimpleTest
-    const simpleTest = await new hre.ethers.ContractFactory(SimpleTestArtifact.abi, SimpleTestArtifact.bytecode.object, signer)
-      .deploy();
+    const simpleTest = await new hre.ethers.ContractFactory(
+      SimpleTestArtifact.abi,
+      SimpleTestArtifact.bytecode.object,
+      signer
+    ).deploy();
     await simpleTest.waitForDeployment();
     await simpleTest.setValueTrivial(7);
     const ctHash = await simpleTest.getValueHash();
