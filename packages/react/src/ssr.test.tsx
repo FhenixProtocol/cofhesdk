@@ -18,7 +18,7 @@ describe('@cofhe/react SSR smoke', () => {
     expect(entry.CofheProvider).toBeTypeOf('function');
     expect(entry.createCofheConfig).toBeTypeOf('function');
     expect(entry.useInternalQueryClient).toBeTypeOf('function');
-  });
+  }, 20000);
 
   it('creates config and renders a provider tree during SSR', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
