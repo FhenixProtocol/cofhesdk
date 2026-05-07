@@ -35,6 +35,7 @@
 ## Conventions
 
 - Keep changes scoped to the package that owns the behavior. Follow existing script names and config inheritance from `packages/eslint-config` and `packages/tsconfig` instead of introducing package-specific variations without a clear reason.
+- In TypeScript source and tests, prefer extensionless internal imports (for example `../index`) unless a package/file explicitly requires a runtime `.js` extension for resolution.
 - Hardhat mock deployment is automatic in many local flows. Account for `COFHE_SKIP_MOCKS_DEPLOY=1` when working on tests or scripts that need manual control over mock deployment.
 - Preserve the SDK's public export surface in `packages/sdk/package.json`. Changes to subpath exports or runtime targets usually require corresponding updates across consumers.
 - When working in docs or examples, prefer linking to existing package APIs and architecture docs rather than duplicating long explanations in code comments.
