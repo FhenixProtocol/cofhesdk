@@ -264,39 +264,43 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       expect(BigInt(publishedValue)).toBe(expectedTxValue);
     }, 180_000);
 
-    it.skipIf(chainConfig.id === 31337)('200 -> from cache', async () => {
-      const activePermit = ctx.cofheClient.permits.getActivePermit();
+    it.skipIf(chainConfig.id === 31337)(
+      '200 -> from cache',
+      async () => {
+        const activePermit = ctx.cofheClient.permits.getActivePermit();
 
-      const secondSubmitResponse = await fetch(`${chainConfig.cofheChain.thresholdNetworkUrl}/v2/decrypt`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(
-          makeThresholdRequestBody(chainConfig, alreadyFetchedCtHash, PermitUtils.getPermission(activePermit!, true))
-        ),
-      });
+        const secondSubmitResponse = await fetch(`${chainConfig.cofheChain.thresholdNetworkUrl}/v2/decrypt`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(
+            makeThresholdRequestBody(chainConfig, alreadyFetchedCtHash, PermitUtils.getPermission(activePermit!, true))
+          ),
+        });
 
-      expect(secondSubmitResponse.status).toBe(200);
+        expect(secondSubmitResponse.status).toBe(200);
 
-      const secondSubmitBody = (await secondSubmitResponse.json()) as {
-        request_id?: string | null;
-        decrypted?: number[];
-        signature?: string;
-        encryption_type?: number;
-        error_message?: string | null;
-        message?: string;
-      };
+        const secondSubmitBody = (await secondSubmitResponse.json()) as {
+          request_id?: string | null;
+          decrypted?: number[];
+          signature?: string;
+          encryption_type?: number;
+          error_message?: string | null;
+          message?: string;
+        };
 
-      expect(secondSubmitBody.error_message ?? secondSubmitBody.message).toBeUndefined();
-      expect(secondSubmitBody.request_id).toEqual(expect.any(String));
-      expect(secondSubmitBody.request_id).not.toBe('');
-      expect(secondSubmitBody.decrypted).toEqual(expect.any(Array));
-      expect(secondSubmitBody.decrypted?.length).toBeGreaterThan(0);
-      expect(secondSubmitBody.signature).toEqual(expect.any(String));
-      expect(secondSubmitBody.signature).not.toBe('');
-      expect(secondSubmitBody.encryption_type).toBe(FheTypes.Uint32);
-    }, 180_000);
+        expect(secondSubmitBody.error_message ?? secondSubmitBody.message).toBeUndefined();
+        expect(secondSubmitBody.request_id).toEqual(expect.any(String));
+        expect(secondSubmitBody.request_id).not.toBe('');
+        expect(secondSubmitBody.decrypted).toEqual(expect.any(Array));
+        expect(secondSubmitBody.decrypted?.length).toBeGreaterThan(0);
+        expect(secondSubmitBody.signature).toEqual(expect.any(String));
+        expect(secondSubmitBody.signature).not.toBe('');
+        expect(secondSubmitBody.encryption_type).toBe(FheTypes.Uint32);
+      },
+      180_000
+    );
   });
 
   it('Decrypt for Tx (without permit) - should encrypt → store public → decryptForTx → publishDecryptResult → verify', async () => {
