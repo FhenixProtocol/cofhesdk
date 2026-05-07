@@ -16,6 +16,26 @@ jobs:
     # pushes to master/staging skip the gate and run with the repo-level secret as before.
     environment: ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork) && 'ci-secrets' || '' }}
     steps:
+      - name: Debug environment routing
+        run: |
+          echo "event_name=${{ github.event_name }}"
+          echo "pr.head.repo.fork=${{ github.event.pull_request.head.repo.fork }}"
+          echo "pr.head.repo.full_name=${{ github.event.pull_request.head.repo.full_name }}"
+          echo "base.repo.full_name=${{ github.event.pull_request.base.repo.full_name }}"
+          echo "resolved_environment=${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork) && 'ci-secrets' || '(none)' }}"
+          echo "secret_present=${{ secrets.TEST_PRIVATE_KEY != '' }}"
+
+      - name: Validate TEST_PRIVATE_KEY availability
+        env:
+          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
+        run: |
+          if [ -z "$TEST_PRIVATE_KEY" ]; then
+            echo "::error::TEST_PRIVATE_KEY is not available."
+            echo "Fork PRs: confirm the ci-secrets environment has TEST_PRIVATE_KEY set and that a maintainer approved this run."
+            echo "Internal runs: confirm the repository-level TEST_PRIVATE_KEY secret exists."
+            exit 1
+          fi
+
       - name: Checkout Repo
         uses: actions/checkout@v4
 
@@ -39,17 +59,6 @@ jobs:
 
       - name: Install Playwright Browsers
         run: cd packages/sdk && pnpm exec playwright install chromium --with-deps
-
-      - name: Validate TEST_PRIVATE_KEY availability
-        env:
-          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
-        run: |
-          if [ -z "$TEST_PRIVATE_KEY" ]; then
-            echo "::error::TEST_PRIVATE_KEY is not available."
-            echo "Fork PRs: confirm the ci-secrets environment has TEST_PRIVATE_KEY set and that a maintainer approved this run."
-            echo "Internal runs: confirm the repository-level TEST_PRIVATE_KEY secret exists."
-            exit 1
-          fi
 
       - name: Run Tests
         env:
