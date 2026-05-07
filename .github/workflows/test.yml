@@ -11,6 +11,10 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    # Fork PRs run inside the `ci-secrets` environment, which is gated by required reviewers
+    # so secrets are only released after a maintainer approves the run. Internal PRs and
+    # pushes to master/staging skip the gate and run with the repo-level secret as before.
+    environment: ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork) && 'ci-secrets' || '' }}
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
@@ -41,11 +45,9 @@ jobs:
           TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
         run: |
           if [ -z "$TEST_PRIVATE_KEY" ]; then
-            echo "TEST_PRIVATE_KEY secret is not available to this workflow run."
-            echo "Common causes:"
-            echo "- This workflow was triggered by a pull_request from a fork, where repository secrets are not exposed."
-            echo "- The secret was added under a different name, repo, org, or environment."
-            echo "- The secret is environment-scoped, but this job does not declare that environment."
+            echo "::error::TEST_PRIVATE_KEY is not available."
+            echo "Fork PRs: confirm the ci-secrets environment has TEST_PRIVATE_KEY set and that a maintainer approved this run."
+            echo "Internal runs: confirm the repository-level TEST_PRIVATE_KEY secret exists."
             exit 1
           fi
 
