@@ -1,16 +1,17 @@
 import hre from 'hardhat';
 import { expect } from 'chai';
-import SimpleTestArtifact from '../../setup/out/SimpleTest.sol/SimpleTest.json';
+import type { SharedSimpleTest } from '../typechain-types/contracts/SharedSimpleTest';
+
+async function deploySharedSimpleTest(): Promise<SharedSimpleTest> {
+  const factory = await hre.ethers.getContractFactory('SharedSimpleTest');
+  const simpleTest = (await factory.deploy()) as SharedSimpleTest;
+  await simpleTest.waitForDeployment();
+  return simpleTest;
+}
 
 describe('Mocks Plaintext Test', () => {
   it('Should get plaintext from mocks', async () => {
-    const [signer] = await hre.ethers.getSigners();
-    const simpleTest = await new hre.ethers.ContractFactory(
-      SimpleTestArtifact.abi,
-      SimpleTestArtifact.bytecode.object,
-      signer
-    ).deploy();
-    await simpleTest.waitForDeployment();
+    const simpleTest = await deploySharedSimpleTest();
     await simpleTest.setValueTrivial(7);
     const ctHash = await simpleTest.getValueHash();
 
@@ -18,13 +19,7 @@ describe('Mocks Plaintext Test', () => {
     expect(plaintextBytes32).to.be.equal(7n);
   });
   it('Should expect plaintext from mocks', async () => {
-    const [signer] = await hre.ethers.getSigners();
-    const simpleTest = await new hre.ethers.ContractFactory(
-      SimpleTestArtifact.abi,
-      SimpleTestArtifact.bytecode.object,
-      signer
-    ).deploy();
-    await simpleTest.waitForDeployment();
+    const simpleTest = await deploySharedSimpleTest();
     await simpleTest.setValueTrivial(7);
     const ctHash = await simpleTest.getValueHash();
 

@@ -2,23 +2,24 @@ import hre from 'hardhat';
 import { CofheClient, Encryptable, FheTypes } from '@cofhe/sdk';
 import { expect } from 'chai';
 import { hardhat } from '@cofhe/sdk/chains';
-import SimpleTestArtifact from '../../setup/out/SimpleTest.sol/SimpleTest.json';
+import type { SharedSimpleTest } from '../typechain-types/contracts/SharedSimpleTest';
+
+async function deploySharedSimpleTest(): Promise<SharedSimpleTest> {
+  const factory = await hre.ethers.getContractFactory('SharedSimpleTest');
+  const simpleTest = (await factory.deploy()) as SharedSimpleTest;
+  await simpleTest.waitForDeployment();
+  return simpleTest;
+}
 
 describe('Encrypt Inputs Test', () => {
   it('Should encrypt inputs', async () => {
     const [signer] = await hre.ethers.getSigners();
-
     const client = await hre.cofhe.createClientWithBatteries(signer);
 
     const encrypted = await client.encryptInputs([Encryptable.uint32(7n)]).execute();
 
     // Add number to SimpleTest
-    const simpleTest = await new hre.ethers.ContractFactory(
-      SimpleTestArtifact.abi,
-      SimpleTestArtifact.bytecode.object,
-      signer
-    ).deploy();
-    await simpleTest.waitForDeployment();
+    const simpleTest = await deploySharedSimpleTest();
     await simpleTest.setValue(encrypted[0]);
     const ctHash = await simpleTest.getValueHash();
 

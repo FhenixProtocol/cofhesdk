@@ -1,7 +1,6 @@
 import hre from 'hardhat';
 import { expect } from 'chai';
 import { TASK_MANAGER_ADDRESS, MOCKS_ZK_VERIFIER_ADDRESS, MOCKS_THRESHOLD_NETWORK_ADDRESS } from '@cofhe/sdk';
-import SimpleTestArtifact from '../../setup/out/SimpleTest.sol/SimpleTest.json';
 
 describe('Deploy Mocks Task', () => {
   it('should deploy mock contracts', async () => {
@@ -34,12 +33,7 @@ describe('Deploy Mocks Task', () => {
     expect(await thresholdNetworkFromCofhesdk.exists()).to.be.true;
     expect(await thresholdNetworkFromCofhesdk.getAddress()).to.be.equal(MOCKS_THRESHOLD_NETWORK_ADDRESS);
 
-    const [signer] = await hre.ethers.getSigners();
-    const simpleTestFactory = new hre.ethers.ContractFactory(
-      SimpleTestArtifact.abi,
-      SimpleTestArtifact.bytecode.object,
-      signer
-    );
+    const simpleTestFactory = await hre.ethers.getContractFactory('SharedSimpleTest');
     const simpleTest = await simpleTestFactory.deploy();
     await simpleTest.waitForDeployment();
 

@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import { CofheClient, Encryptable } from '@cofhe/sdk';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 import { MockTaskManager } from '@cofhe/mock-contracts';
-import SimpleTestArtifact from '../../setup/out/SimpleTest.sol/SimpleTest.json';
+import type { SharedSimpleTest } from '../typechain-types/contracts/SharedSimpleTest';
 
 // Tests that exercise Hardhat mock-specific revert behavior for publishDecryptResult.
 // The full decrypt lifecycle and SDK-level verifyDecryptResult are tested in
@@ -11,9 +11,8 @@ import SimpleTestArtifact from '../../setup/out/SimpleTest.sol/SimpleTest.json';
 
 describe('Hardhat Mocks – publishDecryptResult revert behavior', () => {
   let cofheClient: CofheClient;
-  let testContract: any;
   let signer: HardhatEthersSigner;
-  let simpleTest: any;
+  let simpleTest: SharedSimpleTest;
   let taskManager: MockTaskManager;
 
   before(async function () {
@@ -21,15 +20,10 @@ describe('Hardhat Mocks – publishDecryptResult revert behavior', () => {
     signer = tmpSigner;
     cofheClient = await hre.cofhe.createClientWithBatteries(signer);
 
-    const simpleTestFactory = new hre.ethers.ContractFactory(
-      SimpleTestArtifact.abi,
-      SimpleTestArtifact.bytecode.object,
-      signer
-    );
-    testContract = await simpleTestFactory.deploy();
-    await testContract.waitForDeployment();
+    const simpleTestFactory = await hre.ethers.getContractFactory('SharedSimpleTest', signer);
+    simpleTest = (await simpleTestFactory.deploy()) as SharedSimpleTest;
+    await simpleTest.waitForDeployment();
 
-    simpleTest = testContract;
     taskManager = await hre.cofhe.mocks.getMockTaskManager();
   });
 
@@ -38,7 +32,7 @@ describe('Hardhat Mocks – publishDecryptResult revert behavior', () => {
 
     const [enc] = await cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
 
-    const tx = await testContract.connect(signer).setPublicValue(enc);
+    const tx = await simpleTest.connect(signer).setPublicValue(enc);
     await tx.wait();
 
     const decryptResult = await cofheClient.decryptForTx(enc.ctHash).withoutPermit().execute();

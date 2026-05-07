@@ -1,7 +1,14 @@
 import hre from 'hardhat';
 import { FheTypes } from '@cofhe/sdk';
 import { expect } from 'chai';
-import SimpleTestArtifact from '../../setup/out/SimpleTest.sol/SimpleTest.json';
+import type { SharedSimpleTest } from '../typechain-types/contracts/SharedSimpleTest';
+
+async function deploySharedSimpleTest(): Promise<SharedSimpleTest> {
+  const factory = await hre.ethers.getContractFactory('SharedSimpleTest');
+  const simpleTest = (await factory.deploy()) as SharedSimpleTest;
+  await simpleTest.waitForDeployment();
+  return simpleTest;
+}
 
 describe('Permit Unseal Test', () => {
   it('Permit should be used to unseal data', async () => {
@@ -10,12 +17,7 @@ describe('Permit Unseal Test', () => {
     const client = await hre.cofhe.createClientWithBatteries(signer);
 
     // Add number to SimpleTest
-    const simpleTest = await new hre.ethers.ContractFactory(
-      SimpleTestArtifact.abi,
-      SimpleTestArtifact.bytecode.object,
-      signer
-    ).deploy();
-    await simpleTest.waitForDeployment();
+    const simpleTest = await deploySharedSimpleTest();
     await simpleTest.setValueTrivial(7);
     const ctHash = await simpleTest.getValueHash();
 
