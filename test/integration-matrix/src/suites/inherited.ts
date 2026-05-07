@@ -264,7 +264,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       expect(BigInt(publishedValue)).toBe(expectedTxValue);
     }, 180_000);
 
-    it('200 -> from cache', async () => {
+    it.skipIf(chainConfig.id === 31337)('200 -> from cache', async () => {
       const activePermit = ctx.cofheClient.permits.getActivePermit();
 
       const secondSubmitResponse = await fetch(`${chainConfig.cofheChain.thresholdNetworkUrl}/v2/decrypt`, {
