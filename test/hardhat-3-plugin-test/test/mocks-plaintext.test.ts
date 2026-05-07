@@ -1,7 +1,7 @@
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { network } from 'hardhat';
-import SimpleTestArtifact from '../../setup/out/SimpleTest.sol/SimpleTest.json';
+import SimpleTestArtifact from '@cofhe/test-setup/out/SimpleTest.sol/SimpleTest.json';
 
 describe('Mocks Plaintext', async () => {
   const { viem, cofhe } = await network.connect();
