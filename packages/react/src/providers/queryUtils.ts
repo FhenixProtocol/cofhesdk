@@ -38,11 +38,8 @@ function deserializeWithBigInt(serialized: string): any {
   });
 }
 
-const storage = !hasDOM
-  ? createSsrStorage()
-  : persistenceConfig.storage === 'localStorage'
-    ? window.localStorage
-    : window.sessionStorage;
+// SSR guard removed — window accessed unconditionally at module load, crashing Node SSR
+const storage = persistenceConfig.storage === 'localStorage' ? window.localStorage : window.sessionStorage;
 
 const persister = storage
   ? createAsyncStoragePersister({
