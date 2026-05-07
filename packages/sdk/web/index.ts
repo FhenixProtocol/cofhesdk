@@ -12,6 +12,7 @@ import {
   fheTypeToString,
   TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT,
 } from '@/core';
+import 'tfhe'; // eager — pulls wasm-bindgen-rayon worker helpers that reference `self` at module top, crashing Node SSR
 
 // Import web-specific storage (internal use only)
 import { createSsrStorage, createWebStorage } from './storage.js';

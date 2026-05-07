@@ -46,11 +46,11 @@ const storage = !hasDOM
 
 const persister = storage
   ? createAsyncStoragePersister({
-      storage,
-      key: persistenceConfig.key ?? 'cofhe:react-query',
-      serialize: serializeWithBigInt,
-      deserialize: deserializeWithBigInt,
-    })
+    storage,
+    key: persistenceConfig.key ?? 'cofhe:react-query',
+    serialize: serializeWithBigInt,
+    deserialize: deserializeWithBigInt,
+  })
   : undefined;
 
 export function usePersistentQueriesSubscription({
