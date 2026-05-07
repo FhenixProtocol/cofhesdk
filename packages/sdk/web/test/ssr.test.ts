@@ -11,7 +11,7 @@ describe('@cofhe/sdk/web SSR smoke', () => {
     expect((globalThis as { window?: unknown }).window).toBeUndefined();
     expect((globalThis as { document?: unknown }).document).toBeUndefined();
 
-    const web = await import('../index.js');
+    const web = await import('../index');
     const config = web.createCofheConfig({ supportedChains: [] });
 
     expect(web.hasDOM).toBe(false);
