@@ -7,10 +7,19 @@
  * NOTE: Must not use process.env in this file.
  */
 
-import { it, expect, beforeAll, afterAll } from 'vitest';
+import { it, describe, expect, beforeAll, afterAll } from 'vitest';
 import { Encryptable, FheTypes } from '@cofhe/sdk';
+import { PermitUtils, type Permission } from '@cofhe/sdk/permits';
 import { simpleTestAbi } from '@cofhe/test-setup';
 import type { TestChainConfig, ClientFactory, TestContext } from '../types.js';
+
+function makeThresholdRequestBody(chainConfig: TestChainConfig, ctHash: bigint | string, permission: Permission) {
+  return {
+    ct_tempkey: BigInt(ctHash).toString(16).padStart(64, '0'),
+    host_chain_id: chainConfig.cofheChain.id,
+    permit: permission,
+  };
+}
 
 export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientFactory) {
   let ctx: TestContext;
@@ -121,41 +130,178 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
     expect(importedPermit.sealingPair).toBeDefined();
   }, 30_000);
 
-  it('Decrypt for View (with permit) - should encrypt → store → decryptForView a value', async () => {
-    await ctx.cofheClient.permits.createSelf({
-      issuer: ctx.bobAccount.address,
-      name: 'Decrypt View Permit',
-    });
-
+  let alreadyFetchedCtHash: bigint | string;
+  describe('Full encrypt->increment->decrypt flow + refetch cached response', () => {
     const testValue = 100n;
-    const encrypted = await ctx.cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
+    it('Decrypt for View (with permit) - should encrypt → store → decryptForView a value', async () => {
+      await ctx.cofheClient.permits.createSelf({
+        issuer: ctx.bobAccount.address,
+        name: 'Decrypt View Permit',
+      });
 
-    const encryptedInput = encrypted[0];
-    const txHash = await ctx.bobWalletClient.writeContract({
-      address: ctx.contractAddress,
-      abi: simpleTestAbi,
-      functionName: 'setValue',
-      args: [encryptedInput],
-      chain: chainConfig.viemChain,
-      account: ctx.bobAccount,
-    });
-    await ctx.publicClient.waitForTransactionReceipt({
-      hash: txHash,
-      retryCount: 30,
-      pollingInterval: 4_000,
-      confirmations: chainConfig.txConfirmationsRequired,
-    });
+      const encrypted = await ctx.cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
 
-    const ctHash = await ctx.publicClient.readContract({
-      address: ctx.contractAddress,
-      abi: simpleTestAbi,
-      functionName: 'getValueHash',
-    });
+      const encryptedInput = encrypted[0];
+      const txHash = await ctx.bobWalletClient.writeContract({
+        address: ctx.contractAddress,
+        abi: simpleTestAbi,
+        functionName: 'setValue',
+        args: [encryptedInput],
+        chain: chainConfig.viemChain,
+        account: ctx.bobAccount,
+      });
+      await ctx.publicClient.waitForTransactionReceipt({
+        hash: txHash,
+        retryCount: 30,
+        pollingInterval: 4_000,
+        confirmations: chainConfig.txConfirmationsRequired,
+      });
 
-    const result = await ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
+      const ctHash = await ctx.publicClient.readContract({
+        address: ctx.contractAddress,
+        abi: simpleTestAbi,
+        functionName: 'getValueHash',
+      });
 
-    expect(result).toBe(testValue);
-  }, 180_000);
+      const result = await ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
+
+      expect(result).toBe(testValue);
+    }, 180_000);
+
+    const valueToAdd = 7n;
+    const expectedViewValue = testValue + valueToAdd;
+    it('successfully decrypts a new on-chain-produced ctHash with decryptForView, transparently retrying until the backend has it', async () => {
+      const [encryptedAddendInput] = await ctx.cofheClient.encryptInputs([Encryptable.uint32(valueToAdd)]).execute();
+
+      // This on-chain FHE op produces a fresh ctHash that decryptForView consumes next.
+      // The SDK should retry transparently if the backend still responds with 404 or no content.
+      const addTxHash = await ctx.bobWalletClient.writeContract({
+        address: ctx.contractAddress,
+        abi: simpleTestAbi,
+        functionName: 'addValue',
+        args: [encryptedAddendInput],
+        chain: chainConfig.viemChain,
+        account: ctx.bobAccount,
+      });
+      await ctx.publicClient.waitForTransactionReceipt({
+        hash: addTxHash,
+        retryCount: 30,
+        pollingInterval: 4_000,
+        confirmations: chainConfig.txConfirmationsRequired,
+      });
+
+      const ctHash = await ctx.publicClient.readContract({
+        address: ctx.contractAddress,
+        abi: simpleTestAbi,
+        functionName: 'getValueHash',
+      });
+
+      const unsealedResult = await ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
+      expect(unsealedResult).toBe(expectedViewValue);
+    }, 180_000);
+
+    it('successfully decrypts a new on-chain-produced ctHash with decryptForTx, transparently retrying until the backend has it', async () => {
+      const secondValueToAdd = 11n;
+      const expectedTxValue = expectedViewValue + secondValueToAdd;
+      const [encryptedSecondAddendInput] = await ctx.cofheClient
+        .encryptInputs([Encryptable.uint32(secondValueToAdd)])
+        .execute();
+
+      // This second on-chain FHE op again produces a fresh ctHash for decryptForTx.
+      // The SDK should keep retrying until the backend has both discovered and computed it.
+      const secondAddTxHash = await ctx.bobWalletClient.writeContract({
+        address: ctx.contractAddress,
+        abi: simpleTestAbi,
+        functionName: 'addValue',
+        args: [encryptedSecondAddendInput],
+        chain: chainConfig.viemChain,
+        account: ctx.bobAccount,
+      });
+      await ctx.publicClient.waitForTransactionReceipt({
+        hash: secondAddTxHash,
+        retryCount: 30,
+        pollingInterval: 4_000,
+        confirmations: chainConfig.txConfirmationsRequired,
+      });
+
+      const updatedCtHash = await ctx.publicClient.readContract({
+        address: ctx.contractAddress,
+        abi: simpleTestAbi,
+        functionName: 'getValueHash',
+      });
+
+      const decryptResult = await ctx.cofheClient.decryptForTx(updatedCtHash).withPermit().execute();
+      // now that it was fetched - next time it should fetch from cache
+      alreadyFetchedCtHash = updatedCtHash;
+
+      expect(decryptResult.ctHash).toBe(updatedCtHash);
+      expect(decryptResult.decryptedValue).toBe(expectedTxValue);
+      expect(typeof decryptResult.signature).toBe('string');
+
+      const publishTxHash = await ctx.bobWalletClient.writeContract({
+        address: ctx.contractAddress,
+        abi: simpleTestAbi,
+        functionName: 'publishDecryptResult',
+        args: [updatedCtHash, Number(decryptResult.decryptedValue), decryptResult.signature],
+        chain: chainConfig.viemChain,
+        account: ctx.bobAccount,
+      });
+      await ctx.publicClient.waitForTransactionReceipt({
+        hash: publishTxHash,
+        retryCount: 30,
+        pollingInterval: 4_000,
+        confirmations: chainConfig.txConfirmationsRequired,
+      });
+
+      const [publishedValue, isDecrypted] = await ctx.publicClient.readContract({
+        address: ctx.contractAddress,
+        abi: simpleTestAbi,
+        functionName: 'getDecryptResultSafe',
+        args: [updatedCtHash],
+      });
+
+      expect(isDecrypted).toBe(true);
+      expect(BigInt(publishedValue)).toBe(expectedTxValue);
+    }, 180_000);
+
+    it.skipIf(chainConfig.id === 31337)(
+      '200 -> from cache',
+      async () => {
+        const activePermit = ctx.cofheClient.permits.getActivePermit();
+
+        const secondSubmitResponse = await fetch(`${chainConfig.cofheChain.thresholdNetworkUrl}/v2/decrypt`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(
+            makeThresholdRequestBody(chainConfig, alreadyFetchedCtHash, PermitUtils.getPermission(activePermit!, true))
+          ),
+        });
+
+        expect(secondSubmitResponse.status).toBe(200);
+
+        const secondSubmitBody = (await secondSubmitResponse.json()) as {
+          request_id?: string | null;
+          decrypted?: number[];
+          signature?: string;
+          encryption_type?: number;
+          error_message?: string | null;
+          message?: string;
+        };
+
+        expect(secondSubmitBody.error_message ?? secondSubmitBody.message).toBeUndefined();
+        expect(secondSubmitBody.request_id).toEqual(expect.any(String));
+        expect(secondSubmitBody.request_id).not.toBe('');
+        expect(secondSubmitBody.decrypted).toEqual(expect.any(Array));
+        expect(secondSubmitBody.decrypted?.length).toBeGreaterThan(0);
+        expect(secondSubmitBody.signature).toEqual(expect.any(String));
+        expect(secondSubmitBody.signature).not.toBe('');
+        expect(secondSubmitBody.encryption_type).toBe(FheTypes.Uint32);
+      },
+      180_000
+    );
+  });
 
   it('Decrypt for Tx (without permit) - should encrypt → store public → decryptForTx → publishDecryptResult → verify', async () => {
     const testValue = 42n;
