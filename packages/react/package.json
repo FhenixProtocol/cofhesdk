@@ -36,7 +36,8 @@
     "lint": "eslint \"src/**/*.ts*\"",
     "check:types": "tsc --noEmit",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
-    "test": "echo 'No tests configured for @cofhe/react'"
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
     "@cofhe/eslint-config": "workspace:*",
