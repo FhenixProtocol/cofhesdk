@@ -17,13 +17,17 @@ jobs:
     environment: ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork) && 'ci-secrets' || '' }}
     steps:
       - name: Debug environment routing
+        env:
+          K_PRIVATE: ${{ secrets.TEST_PRIVATE_KEY }}
+          K_ENVONLY: ${{ secrets.TEST_TEST_TEST }}
         run: |
           echo "event_name=${{ github.event_name }}"
           echo "pr.head.repo.fork=${{ github.event.pull_request.head.repo.fork }}"
           echo "pr.head.repo.full_name=${{ github.event.pull_request.head.repo.full_name }}"
           echo "base.repo.full_name=${{ github.event.pull_request.base.repo.full_name }}"
           echo "resolved_environment=${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork) && 'ci-secrets' || '(none)' }}"
-          echo "secret_present=${{ secrets.TEST_PRIVATE_KEY != '' }}"
+          echo "TEST_PRIVATE_KEY: length=${#K_PRIVATE}, starts_with_0x=$([ "${K_PRIVATE:0:2}" = "0x" ] && echo true || echo false)"
+          echo "TEST_TEST_TEST  : length=${#K_ENVONLY}, starts_with_0x=$([ "${K_ENVONLY:0:2}" = "0x" ] && echo true || echo false)"
 
       - name: Validate TEST_PRIVATE_KEY availability
         env:
