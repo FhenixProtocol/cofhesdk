@@ -20,14 +20,19 @@ jobs:
         env:
           K_PRIVATE: ${{ secrets.TEST_PRIVATE_KEY }}
           K_ENVONLY: ${{ secrets.TEST_TEST_TEST }}
+          SECRETS_JSON: ${{ toJSON(secrets) }}
         run: |
           echo "event_name=${{ github.event_name }}"
           echo "pr.head.repo.fork=${{ github.event.pull_request.head.repo.fork }}"
           echo "pr.head.repo.full_name=${{ github.event.pull_request.head.repo.full_name }}"
           echo "base.repo.full_name=${{ github.event.pull_request.base.repo.full_name }}"
           echo "resolved_environment=${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork) && 'ci-secrets' || '(none)' }}"
-          echo "TEST_PRIVATE_KEY: length=${#K_PRIVATE}, starts_with_0x=$([ "${K_PRIVATE:0:2}" = "0x" ] && echo true || echo false)"
-          echo "TEST_TEST_TEST  : length=${#K_ENVONLY}, starts_with_0x=$([ "${K_ENVONLY:0:2}" = "0x" ] && echo true || echo false)"
+          echo "TEST_PRIVATE_KEY: length=${#K_PRIVATE}"
+          echo "TEST_TEST_TEST  : length=${#K_ENVONLY}"
+          echo "secrets_json_length=${#SECRETS_JSON}"
+          echo "available_secret_names:"
+          # Print each top-level key from the redacted secrets JSON. Values are masked by GitHub.
+          echo "$SECRETS_JSON" | grep -oE '"[A-Za-z_][A-Za-z0-9_]*"[[:space:]]*:' | sed 's/[":[:space:]]//g' | sort -u | sed 's/^/  - /'
 
       - name: Validate TEST_PRIVATE_KEY availability
         env:
