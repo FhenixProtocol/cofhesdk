@@ -30,6 +30,7 @@
   },
   "dependencies": {
     "@cofhe/mock-contracts": "workspace:*",
+    "@cofhe/test-setup": "workspace:*",
     "@fhenixprotocol/cofhe-contracts": "0.1.3",
     "@openzeppelin/contracts": "5.4.0"
   },
