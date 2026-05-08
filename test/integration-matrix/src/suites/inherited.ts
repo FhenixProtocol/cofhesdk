@@ -150,7 +150,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         chain: chainConfig.viemChain,
         account: ctx.bobAccount,
       });
-      await ctx.publicClient.waitForTransactionReceipt({
+      const receipt = await ctx.publicClient.waitForTransactionReceipt({
         hash: txHash,
         retryCount: 30,
         pollingInterval: 4_000,
@@ -161,6 +161,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         address: ctx.contractAddress,
         abi: simpleTestAbi,
         functionName: 'getValueHash',
+        blockNumber: receipt.blockNumber,
       });
 
       const result = await ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
@@ -183,7 +184,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         chain: chainConfig.viemChain,
         account: ctx.bobAccount,
       });
-      await ctx.publicClient.waitForTransactionReceipt({
+      const receipt = await ctx.publicClient.waitForTransactionReceipt({
         hash: addTxHash,
         retryCount: 30,
         pollingInterval: 4_000,
@@ -194,6 +195,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         address: ctx.contractAddress,
         abi: simpleTestAbi,
         functionName: 'getValueHash',
+        blockNumber: receipt.blockNumber,
       });
 
       const unsealedResult = await ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
@@ -217,7 +219,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         chain: chainConfig.viemChain,
         account: ctx.bobAccount,
       });
-      await ctx.publicClient.waitForTransactionReceipt({
+      const receipt = await ctx.publicClient.waitForTransactionReceipt({
         hash: secondAddTxHash,
         retryCount: 30,
         pollingInterval: 4_000,
@@ -228,6 +230,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         address: ctx.contractAddress,
         abi: simpleTestAbi,
         functionName: 'getValueHash',
+        blockNumber: receipt.blockNumber,
       });
 
       const decryptResult = await ctx.cofheClient.decryptForTx(updatedCtHash).withPermit().execute();
