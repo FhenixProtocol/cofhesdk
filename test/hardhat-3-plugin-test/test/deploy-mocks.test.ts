@@ -9,7 +9,6 @@ import {
   MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
   FheTypes,
 } from '@cofhe/sdk';
-import SimpleTestArtifact from '../../setup/out/SimpleTest.sol/SimpleTest.json';
 import { privateKeyToAccount } from 'viem/accounts';
 import { expectRevert, hasCode } from './helpers.js';
 
@@ -115,13 +114,14 @@ describe('Deploy Mocks', async () => {
   });
 
   it('SimpleTest can be deployed explicitly when needed', async () => {
-    const deployHash = await walletClient.deployContract({
-      abi: SimpleTestArtifact.abi,
-      bytecode: SimpleTestArtifact.bytecode.object as `0x${string}`,
+    const simpleTest = await viem.deployContract('SharedSimpleTest', [], {
+      client: {
+        public: publicClient,
+        wallet: walletClient,
+      },
     });
-    const deployReceipt = await publicClient.waitForTransactionReceipt({ hash: deployHash });
-    assert.ok(deployReceipt.contractAddress);
-    assert.ok(await hasCode(publicClient, deployReceipt.contractAddress!));
+    assert.ok(simpleTest.address);
+    assert.ok(await hasCode(publicClient, simpleTest.address));
   });
 
   it('Negative: only the owner can call MockTaskManager admin setters', async () => {

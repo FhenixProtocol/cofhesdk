@@ -1,39 +1,23 @@
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { network } from 'hardhat';
-import SimpleTestArtifact from '@cofhe/test-setup/out/SimpleTest.sol/SimpleTest.json';
 
 describe('Mocks Plaintext', async () => {
   const { viem, cofhe } = await network.connect();
   const publicClient = await viem.getPublicClient();
   const [walletClient] = await viem.getWalletClients();
-  const deployHash = await walletClient.deployContract({
-    abi: SimpleTestArtifact.abi,
-    bytecode: SimpleTestArtifact.bytecode.object as `0x${string}`,
+  const simpleTest = await viem.deployContract('SharedSimpleTest', [], {
+    client: {
+      public: publicClient,
+      wallet: walletClient,
+    },
   });
-  const deployReceipt = await publicClient.waitForTransactionReceipt({ hash: deployHash });
-  if (!deployReceipt.contractAddress) {
-    throw new Error('SimpleTest deployment did not return a contract address');
-  }
-
-  const simpleTest = {
-    address: deployReceipt.contractAddress,
-    abi: SimpleTestArtifact.abi,
-  } as const;
 
   const setTrivialNumber = async (value: number) => {
-    await walletClient.writeContract({
-      ...simpleTest,
-      functionName: 'setValueTrivial',
-      args: [value],
-    });
+    await simpleTest.write.setValueTrivial([BigInt(value)]);
   };
 
-  const getCtHash = () =>
-    publicClient.readContract({
-      ...simpleTest,
-      functionName: 'getValueHash',
-    });
+  const getCtHash = () => simpleTest.read.getValueHash();
 
   beforeEach(async () => {
     await setTrivialNumber(7);

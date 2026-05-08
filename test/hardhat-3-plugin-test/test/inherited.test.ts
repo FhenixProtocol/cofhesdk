@@ -4,7 +4,6 @@ import { network } from 'hardhat';
 import { createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { Encryptable, FheTypes } from '@cofhe/sdk';
-import SimpleTestArtifact from '../../setup/out/SimpleTest.sol/SimpleTest.json';
 
 const ALICE_PRIVATE_KEY = '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d' as const;
 
@@ -12,19 +11,12 @@ describe('Inherited SDK Tests', async () => {
   const { viem, cofhe } = await network.connect();
   const publicClient = await viem.getPublicClient();
   const [bobWalletClient] = await viem.getWalletClients();
-  const deployHash = await bobWalletClient.deployContract({
-    abi: SimpleTestArtifact.abi,
-    bytecode: SimpleTestArtifact.bytecode.object as `0x${string}`,
+  const simpleTest = await viem.deployContract('SharedSimpleTest', [], {
+    client: {
+      public: publicClient,
+      wallet: bobWalletClient,
+    },
   });
-  const deployReceipt = await publicClient.waitForTransactionReceipt({ hash: deployHash });
-  if (!deployReceipt.contractAddress) {
-    throw new Error('SimpleTest deployment did not return a contract address');
-  }
-
-  const simpleTest = {
-    address: deployReceipt.contractAddress,
-    abi: SimpleTestArtifact.abi,
-  } as const;
 
   const aliceAccount = privateKeyToAccount(ALICE_PRIVATE_KEY);
   const aliceWalletClient = createWalletClient({
@@ -34,15 +26,8 @@ describe('Inherited SDK Tests', async () => {
 
   const storeEncrypted = async (client: Awaited<ReturnType<typeof cofhe.createClientWithBatteries>>) => {
     const [enc] = await client.encryptInputs([Encryptable.uint32(42n)]).execute();
-    await bobWalletClient.writeContract({
-      ...simpleTest,
-      functionName: 'setValue',
-      args: [enc],
-    });
-    const ctHash = await publicClient.readContract({
-      ...simpleTest,
-      functionName: 'getValueHash',
-    });
+    await simpleTest.write.setValue([enc]);
+    const ctHash = await simpleTest.read.getValueHash();
     return { enc, ctHash };
   };
 
@@ -62,16 +47,9 @@ describe('Inherited SDK Tests', async () => {
     const client = await cofhe.createClientWithBatteries(bobWalletClient);
     const [enc] = await client.encryptInputs([Encryptable.uint32(testValue)]).execute();
 
-    await bobWalletClient.writeContract({
-      ...simpleTest,
-      functionName: 'setValue',
-      args: [enc],
-    });
+    await simpleTest.write.setValue([enc]);
 
-    const ctHash = await publicClient.readContract({
-      ...simpleTest,
-      functionName: 'getValueHash',
-    });
+    const ctHash = await simpleTest.read.getValueHash();
 
     const decrypted = await client.decryptForView(ctHash, FheTypes.Uint32).execute();
     assert.equal(decrypted, testValue);
@@ -82,32 +60,17 @@ describe('Inherited SDK Tests', async () => {
     const client = await cofhe.createClientWithBatteries(bobWalletClient);
     const [enc] = await client.encryptInputs([Encryptable.uint32(testValue)]).execute();
 
-    await bobWalletClient.writeContract({
-      ...simpleTest,
-      functionName: 'setValue',
-      args: [enc],
-    });
+    await simpleTest.write.setValue([enc]);
 
-    const ctHash = await publicClient.readContract({
-      ...simpleTest,
-      functionName: 'getValueHash',
-    });
+    const ctHash = await simpleTest.read.getValueHash();
 
     const result = await client.decryptForTx(ctHash).withPermit().execute();
     assert.equal(result.decryptedValue, testValue);
     assert.equal(typeof result.signature, 'string');
 
-    await bobWalletClient.writeContract({
-      ...simpleTest,
-      functionName: 'publishDecryptResult',
-      args: [ctHash, Number(result.decryptedValue), result.signature],
-    });
+    await simpleTest.write.publishDecryptResult([ctHash, Number(result.decryptedValue), result.signature]);
 
-    const [publishedValue, isDecrypted] = await publicClient.readContract({
-      ...simpleTest,
-      functionName: 'getDecryptResultSafe',
-      args: [ctHash],
-    });
+    const [publishedValue, isDecrypted] = await simpleTest.read.getDecryptResultSafe([ctHash]);
 
     assert.equal(isDecrypted, true);
     assert.equal(Number(publishedValue), Number(testValue));
