@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { transform } from '@svgr/core';
 import jsxPlugin from '@svgr/plugin-jsx';
+import { vanillaExtractPlugin } from '@vanilla-extract/esbuild-plugin';
 
 const srcDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), 'src');
 
@@ -73,6 +74,7 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   esbuildPlugins: [
+    vanillaExtractPlugin(),
     srcAliasPlugin,
     {
       name: 'svg-to-react',
