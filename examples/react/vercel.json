@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm --filter @cofhe/abi build && pnpm --filter @cofhe/sdk build && pnpm --filter @cofhe/react build && pnpm --filter @cofhe/example-react build",
+  "buildCommand": "pnpm --filter @cofhe/sdk build && pnpm --filter @cofhe/abi build && pnpm --filter @cofhe/react build && pnpm --filter @cofhe/example-react build",
   "outputDirectory": "dist",
   "headers": [
     {
