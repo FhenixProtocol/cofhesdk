@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "hardhat test --no-compile",
+    "test": "hardhat test",
     "clean": "hardhat clean"
   },
   "devDependencies": {
