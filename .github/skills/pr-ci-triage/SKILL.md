@@ -29,6 +29,7 @@ This repo is a pnpm + Turbo monorepo. Stay at the repo root unless a package exp
 
 3. Pull the status checks for the PR.
    Focus on failed checks first. Capture:
+
    - check context or name
    - failure state
    - target URL
@@ -36,6 +37,7 @@ This repo is a pnpm + Turbo monorepo. Stay at the repo root unless a package exp
 
 4. Read the failure log for the first actionable check.
    In this repo, the most useful signals usually come from these commands:
+
    - `pnpm check:formatting`
    - `pnpm lint`
    - `pnpm check:types`
@@ -43,6 +45,7 @@ This repo is a pnpm + Turbo monorepo. Stay at the repo root unless a package exp
 
 5. Reproduce locally with the narrowest command possible.
    Examples:
+
    - Formatting failure on one file: `pnpm prettier --check path/to/file.ts`
    - Package lint failure: `pnpm --filter ./packages/react lint`
    - Package typecheck failure: `pnpm --filter ./packages/react check:types`
