@@ -1073,7 +1073,89 @@
   }
 
   async function init() {
-    // Build parallax layers
+    // Bind the start button FIRST so it works even if asset loading is slow
+    // or fails entirely. Use pointerdown for touch reliability (some webviews
+    // suppress `click` events on file:// pages with touch-action: none on body).
+    const startBtn = document.getElementById('start-btn');
+    const overlay = document.getElementById('overlay');
+    let assetsReady = false;
+    let starting = false;
+
+    function tryStart() {
+      if (starting) return;
+      if (gameOver) {
+        gameOver = false;
+        const h1 = overlay.querySelector('h1');
+        h1.classList.remove('game-over');
+        h1.innerHTML = 'MEGA <span>MAN</span>';
+        overlay.querySelector('.tagline').textContent = 'Parallax Platformer';
+        startBtn.textContent = 'PRESS START';
+        resetGame();
+      }
+      if (!assetsReady) {
+        startBtn.textContent = 'LOADING…';
+        starting = true;
+        // Wait for assets, then start
+        const waitForAssets = () => {
+          if (assetsReady) {
+            starting = false;
+            startBtn.textContent = 'PRESS START';
+            doStart();
+          } else {
+            setTimeout(waitForAssets, 80);
+          }
+        };
+        waitForAssets();
+        return;
+      }
+      doStart();
+    }
+
+    function doStart() {
+      overlay.classList.remove('visible');
+      try { canvas.focus({ preventScroll: true }); } catch (_) {}
+      running = true;
+      if (musicOn && assets.music) {
+        assets.music.play().catch(() => { /* autoplay block */ });
+      }
+    }
+
+    // Pointer events cover both mouse + touch; preventDefault stops the
+    // synthesized click so we never fire twice.
+    let pdHandled = false;
+    startBtn.addEventListener('pointerdown', (e) => {
+      pdHandled = true;
+      if (e.cancelable) e.preventDefault();
+      tryStart();
+      setTimeout(() => { pdHandled = false; }, 300);
+    });
+    // Fallback in case pointer events don't fire (very old webviews):
+    startBtn.addEventListener('click', (e) => {
+      if (pdHandled) return;
+      tryStart();
+    });
+    // Fallback fallback: touchstart for ancient iOS WebView quirks.
+    startBtn.addEventListener('touchstart', (e) => {
+      if (pdHandled) return;
+      pdHandled = true;
+      if (e.cancelable) e.preventDefault();
+      tryStart();
+      setTimeout(() => { pdHandled = false; }, 300);
+    }, { passive: false });
+
+    // Allow Enter/Space to start on desktop
+    window.addEventListener('keydown', (e) => {
+      if (overlay.classList.contains('visible') &&
+          (e.code === 'Enter' || e.code === 'Space')) {
+        tryStart();
+      }
+    });
+
+    // Touch buttons bind now too (they're harmless even before game starts)
+    bindTouchButtons();
+    fitViewport();
+
+    // Build parallax layers (synchronous, safe to do upfront)
     parallax.sky = makeStarLayer(960, VIEW_H);
     parallax.mountainsFar = makeMountainLayer(1280, VIEW_H, VIEW_H - 110, '#241650', '#160a3a', 8, 130);
     parallax.city = makeCityLayer(1500, VIEW_H, VIEW_H - 60);
@@ -1088,48 +1170,19 @@
       ]);
     } catch (e) {
       console.error(e);
-      const ov = document.getElementById('overlay');
-      ov.querySelector('h1').textContent = 'LOAD FAILED';
+      overlay.querySelector('h1').textContent = 'LOAD FAILED';
+      overlay.querySelector('.tagline').textContent = String(e && e.message || e);
       return;
     }
-    // Load audio (lazy / non-blocking)
+    // Audio is best-effort
     loadAudio('music', 'assets/music.mp3', { loop: true, volume: 0.35 });
     loadAudio('jump',  'assets/jump.wav',  { volume: 0.45 });
     loadAudio('shoot', 'assets/shoot.wav', { volume: 0.35 });
 
     spawnEnemies();
     updateHud();
-    bindTouchButtons();
-    fitViewport();
     requestAnimationFrame(loop);
-
-    const startBtn = document.getElementById('start-btn');
-    const overlay = document.getElementById('overlay');
-    startBtn.addEventListener('click', () => {
-      if (gameOver) {
-        gameOver = false;
-        const h1 = overlay.querySelector('h1');
-        h1.classList.remove('game-over');
-        h1.innerHTML = 'MEGA <span>MAN</span>';
-        overlay.querySelector('.tagline').textContent = 'Parallax Platformer';
-        startBtn.textContent = 'PRESS START';
-        resetGame();
-      }
-      overlay.classList.remove('visible');
-      canvas.focus();
-      running = true;
-      if (musicOn && assets.music) {
-        assets.music.play().catch(() => { /* autoplay block; user gesture above usually unlocks */ });
-      }
-    });
-
-    // Allow Enter/Space on the overlay to start
-    window.addEventListener('keydown', (e) => {
-      if (overlay.classList.contains('visible') &&
-          (e.code === 'Enter' || e.code === 'Space')) {
-        startBtn.click();
-      }
-    });
+    assetsReady = true;
   }
 
   init();
