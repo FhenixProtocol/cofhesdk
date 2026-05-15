@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mega Man — Parallax Platformer</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="game-shell">
+    <div id="hud">
+      <div class="hud-left">
+        <span class="label">LIFE</span>
+        <div class="hp-bar"><div id="hp-fill"></div></div>
+      </div>
+      <div class="hud-center">
+        <span class="label">SCORE</span>
+        <span id="score">000000</span>
+      </div>
+      <div class="hud-right">
+        <span class="label">LIVES</span>
+        <span id="lives">×3</span>
+      </div>
+    </div>
+
+    <canvas id="canvas" width="960" height="540" tabindex="0"></canvas>
+
+    <div id="overlay" class="visible">
+      <h1>MEGA <span>MAN</span></h1>
+      <p class="tagline">Parallax Platformer</p>
+      <div class="controls">
+        <div><kbd>←</kbd> <kbd>→</kbd> or <kbd>A</kbd> <kbd>D</kbd> &mdash; Move</div>
+        <div><kbd>Space</kbd> or <kbd>W</kbd> &mdash; Jump</div>
+        <div><kbd>J</kbd> or <kbd>X</kbd> &mdash; Shoot</div>
+        <div><kbd>M</kbd> &mdash; Toggle music</div>
+      </div>
+      <button id="start-btn">PRESS START</button>
+    </div>
+
+    <div id="hint">Click the canvas if controls aren't responding</div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
