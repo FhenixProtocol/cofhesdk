@@ -56,8 +56,13 @@
     jump:  ['Space', 'KeyW', 'ArrowUp'],
     shoot: ['KeyJ', 'KeyX', 'KeyZ'],
   };
+  // Held state for touch buttons, mirrors keyboard
+  const touchHeld = { left: false, right: false, jump: false, shoot: false };
+  // Edge-trigger flag for touch jump
+  let touchJumpEdge = false;
+
   function pressed(action) {
-    return keyMap[action].some(c => keys[c]);
+    return touchHeld[action] || keyMap[action].some(c => keys[c]);
   }
   // edge-trigger storage
   const justPressed = Object.create(null);
@@ -79,6 +84,65 @@
     for (const c of codes) if (justPressed[c]) { justPressed[c] = false; return true; }
     return false;
   }
+  function consumeTouchJump() {
+    if (touchJumpEdge) { touchJumpEdge = false; return true; }
+    return false;
+  }
+
+  // ---------- Touch buttons ----------
+  function bindTouchButtons() {
+    const btns = document.querySelectorAll('.tc-btn');
+    btns.forEach((btn) => {
+      const act = btn.dataset.act;
+      const press = (e) => {
+        e.preventDefault();
+        if (!touchHeld[act]) {
+          touchHeld[act] = true;
+          if (act === 'jump') touchJumpEdge = true;
+        }
+        btn.classList.add('active');
+        // capture so we keep getting events even if finger slides off
+        if (e.pointerId != null && btn.setPointerCapture) {
+          try { btn.setPointerCapture(e.pointerId); } catch (_) {}
+        }
+      };
+      const release = (e) => {
+        e.preventDefault();
+        touchHeld[act] = false;
+        btn.classList.remove('active');
+      };
+      btn.addEventListener('pointerdown', press);
+      btn.addEventListener('pointerup', release);
+      btn.addEventListener('pointercancel', release);
+      btn.addEventListener('pointerleave', release);
+      // Prevent context menu on long-press
+      btn.addEventListener('contextmenu', (e) => e.preventDefault());
+    });
+  }
+
+  // ---------- Viewport scaling ----------
+  function fitViewport() {
+    const isCoarse = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+    const isLandscape = window.innerWidth > window.innerHeight;
+    const W = 960, H = 600;
+    // Reserve space for touch controls in portrait on touch devices
+    let availW = window.innerWidth;
+    let availH = window.innerHeight;
+    if (isCoarse && !isLandscape) {
+      availH = window.innerHeight - 200; // leave room for buttons below
+    } else if (isCoarse && isLandscape) {
+      // Buttons overlay; small inset
+      availW = window.innerWidth - 16;
+      availH = window.innerHeight - 16;
+    } else {
+      availW -= 20;
+      availH -= 20;
+    }
+    const scale = Math.min(availW / W, availH / H);
+    document.documentElement.style.setProperty('--scale', String(scale));
+  }
+  window.addEventListener('resize', fitViewport);
+  window.addEventListener('orientationchange', () => setTimeout(fitViewport, 200));
 
   // ---------- Parallax layers (procedurally rendered to offscreen canvases) ----------
   // Each layer scrolls at a different rate vs the camera.
@@ -487,8 +551,8 @@
       else if (right && !left) { player.vx = MOVE_SPEED; player.facing = 1; }
       else player.vx = 0;
 
-      // Jump (edge-triggered)
-      if (consumeJustPressed(keyMap.jump) && player.onGround) {
+      // Jump (edge-triggered, from keyboard OR touch)
+      if ((consumeJustPressed(keyMap.jump) || consumeTouchJump()) && player.onGround) {
         player.vy = JUMP_VEL;
         player.onGround = false;
         playSfx('jump');
@@ -1050,6 +1114,8 @@
 
     spawnEnemies();
     updateHud();
+    bindTouchButtons();
+    fitViewport();
     requestAnimationFrame(loop);
 
     const startBtn = document.getElementById('start-btn');

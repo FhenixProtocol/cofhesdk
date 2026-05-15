@@ -2,42 +2,63 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
   <title>Mega Man — Parallax Platformer</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div id="game-shell">
-    <div id="hud">
-      <div class="hud-left">
-        <span class="label">LIFE</span>
-        <div class="hp-bar"><div id="hp-fill"></div></div>
-      </div>
-      <div class="hud-center">
-        <span class="label">SCORE</span>
-        <span id="score">000000</span>
-      </div>
-      <div class="hud-right">
-        <span class="label">LIVES</span>
-        <span id="lives">×3</span>
+  <div id="stage">
+    <div id="viewport-wrap">
+      <div id="game-shell">
+        <div id="hud">
+          <div class="hud-left">
+            <span class="label">LIFE</span>
+            <div class="hp-bar"><div id="hp-fill"></div></div>
+          </div>
+          <div class="hud-center">
+            <span class="label">SCORE</span>
+            <span id="score">000000</span>
+          </div>
+          <div class="hud-right">
+            <span class="label">LIVES</span>
+            <span id="lives">×3</span>
+          </div>
+        </div>
+
+        <canvas id="canvas" width="960" height="540" tabindex="0"></canvas>
+
+        <div id="overlay" class="visible">
+          <h1>MEGA <span>MAN</span></h1>
+          <p class="tagline">Parallax Platformer</p>
+          <div class="controls desktop-only">
+            <div><kbd>←</kbd> <kbd>→</kbd> or <kbd>A</kbd> <kbd>D</kbd> &mdash; Move</div>
+            <div><kbd>Space</kbd> or <kbd>W</kbd> &mdash; Jump</div>
+            <div><kbd>J</kbd> or <kbd>X</kbd> &mdash; Shoot</div>
+            <div><kbd>M</kbd> &mdash; Toggle music</div>
+          </div>
+          <div class="controls touch-only">
+            <div>Tap <b>◀ ▶</b> to move</div>
+            <div>Tap <b>JUMP</b> to leap</div>
+            <div>Tap <b>FIRE</b> to shoot</div>
+          </div>
+          <button id="start-btn">PRESS START</button>
+        </div>
       </div>
     </div>
 
-    <canvas id="canvas" width="960" height="540" tabindex="0"></canvas>
-
-    <div id="overlay" class="visible">
-      <h1>MEGA <span>MAN</span></h1>
-      <p class="tagline">Parallax Platformer</p>
-      <div class="controls">
-        <div><kbd>←</kbd> <kbd>→</kbd> or <kbd>A</kbd> <kbd>D</kbd> &mdash; Move</div>
-        <div><kbd>Space</kbd> or <kbd>W</kbd> &mdash; Jump</div>
-        <div><kbd>J</kbd> or <kbd>X</kbd> &mdash; Shoot</div>
-        <div><kbd>M</kbd> &mdash; Toggle music</div>
+    <div id="touch-controls" aria-hidden="true">
+      <div class="tc-group tc-left">
+        <button class="tc-btn dir" data-act="left" aria-label="Left">◀</button>
+        <button class="tc-btn dir" data-act="right" aria-label="Right">▶</button>
       </div>
-      <button id="start-btn">PRESS START</button>
+      <div class="tc-group tc-right">
+        <button class="tc-btn shoot" data-act="shoot" aria-label="Shoot">FIRE</button>
+        <button class="tc-btn jump" data-act="jump" aria-label="Jump">JUMP</button>
+      </div>
     </div>
-
-    <div id="hint">Click the canvas if controls aren't responding</div>
   </div>
 
   <script src="game.js"></script>

@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
   <title>Mega Man — Parallax Platformer</title>
   <style>:root {
   --mm-blue: #2a8cff;
@@ -10,6 +13,9 @@
   --mm-dark: #0a1b3a;
   --mm-yellow: #ffd23f;
   --mm-red: #ff3a3a;
+  --scale: 1;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 * { box-sizing: border-box; }
@@ -20,11 +26,34 @@ html, body {
   background: #000;
   color: #fff;
   font-family: 'Courier New', monospace;
-  min-height: 100vh;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: fixed;
+  inset: 0;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: none;
+  overscroll-behavior: none;
+}
+
+#stage {
+  position: fixed;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+}
+
+/* Wrapper that scales the fixed-size game to fit the viewport */
+#viewport-wrap {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(var(--scale));
+  transform-origin: center center;
+  transition: transform 0.15s ease-out;
 }
 
 #game-shell {
@@ -98,7 +127,6 @@ html, body {
   image-rendering: -moz-crisp-edges;
   image-rendering: crisp-edges;
   outline: none;
-  cursor: crosshair;
 }
 
 #overlay {
@@ -190,7 +218,6 @@ kbd {
   animation: blink 1.4s infinite;
 }
 
-#start-btn:hover { transform: translateY(-2px); }
 #start-btn:active {
   transform: translateY(2px);
   box-shadow: 0 2px 0 var(--mm-dark), 0 0 24px rgba(42, 140, 255, 0.6);
@@ -201,59 +228,154 @@ kbd {
   51%, 100% { opacity: 0.6; }
 }
 
-#hint {
-  position: absolute;
-  bottom: 6px;
-  right: 12px;
-  color: #555;
-  font-size: 11px;
-  z-index: 5;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.4s;
-}
-
-#game-shell:hover #hint { opacity: 0.7; }
-
 .game-over {
   font-size: 56px !important;
   color: var(--mm-red) !important;
   text-shadow: 3px 3px 0 #500, 6px 6px 0 #200 !important;
 }
+
+/* ---------- Touch controls ---------- */
+.touch-only { display: none; }
+.desktop-only { display: block; }
+
+#touch-controls {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  display: none;
+}
+
+.tc-group {
+  position: absolute;
+  bottom: calc(20px + var(--safe-bottom));
+  display: flex;
+  gap: 14px;
+  pointer-events: auto;
+}
+.tc-left { left: calc(16px + env(safe-area-inset-left, 0px)); }
+.tc-right { right: calc(16px + env(safe-area-inset-right, 0px)); }
+
+.tc-btn {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  border: 3px solid rgba(184, 224, 255, 0.85);
+  background: rgba(10, 27, 58, 0.55);
+  color: #fff;
+  font-family: 'Courier New', monospace;
+  font-size: 22px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  backdrop-filter: blur(2px);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.4), 0 0 18px rgba(42, 140, 255, 0.35);
+  transition: transform 0.05s, background 0.05s;
+}
+
+.tc-btn.active {
+  transform: translateY(3px);
+  background: rgba(42, 140, 255, 0.75);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.5), 0 0 22px rgba(42, 140, 255, 0.8);
+}
+
+.tc-btn.dir { background: rgba(10, 27, 58, 0.6); font-size: 28px; }
+.tc-btn.jump {
+  background: rgba(42, 140, 255, 0.55);
+  border-color: var(--mm-light);
+  font-size: 16px;
+  width: 84px;
+  height: 84px;
+}
+.tc-btn.shoot {
+  background: rgba(204, 60, 60, 0.55);
+  border-color: var(--mm-yellow);
+  color: var(--mm-yellow);
+  font-size: 16px;
+}
+
+/* Show touch controls on coarse-pointer devices (phones / tablets) */
+@media (hover: none) and (pointer: coarse) {
+  #touch-controls { display: block; }
+  .touch-only { display: block; }
+  .desktop-only { display: none; }
+  /* Position the game toward top so controls don't overlap */
+  #viewport-wrap {
+    top: calc(var(--safe-top) + 8px);
+    transform: translateX(-50%) scale(var(--scale));
+    transform-origin: top center;
+  }
+}
+
+/* In landscape on phones, center the game and let buttons overlay */
+@media (hover: none) and (pointer: coarse) and (orientation: landscape) {
+  #viewport-wrap {
+    top: 50%;
+    transform: translate(-50%, -50%) scale(var(--scale));
+    transform-origin: center center;
+  }
+  .tc-btn { width: 64px; height: 64px; }
+  .tc-btn.jump { width: 70px; height: 70px; }
+}
 </style>
 </head>
 <body>
-  <div id="game-shell">
-    <div id="hud">
-      <div class="hud-left">
-        <span class="label">LIFE</span>
-        <div class="hp-bar"><div id="hp-fill"></div></div>
-      </div>
-      <div class="hud-center">
-        <span class="label">SCORE</span>
-        <span id="score">000000</span>
-      </div>
-      <div class="hud-right">
-        <span class="label">LIVES</span>
-        <span id="lives">×3</span>
+  <div id="stage">
+    <div id="viewport-wrap">
+      <div id="game-shell">
+        <div id="hud">
+          <div class="hud-left">
+            <span class="label">LIFE</span>
+            <div class="hp-bar"><div id="hp-fill"></div></div>
+          </div>
+          <div class="hud-center">
+            <span class="label">SCORE</span>
+            <span id="score">000000</span>
+          </div>
+          <div class="hud-right">
+            <span class="label">LIVES</span>
+            <span id="lives">×3</span>
+          </div>
+        </div>
+
+        <canvas id="canvas" width="960" height="540" tabindex="0"></canvas>
+
+        <div id="overlay" class="visible">
+          <h1>MEGA <span>MAN</span></h1>
+          <p class="tagline">Parallax Platformer</p>
+          <div class="controls desktop-only">
+            <div><kbd>←</kbd> <kbd>→</kbd> or <kbd>A</kbd> <kbd>D</kbd> &mdash; Move</div>
+            <div><kbd>Space</kbd> or <kbd>W</kbd> &mdash; Jump</div>
+            <div><kbd>J</kbd> or <kbd>X</kbd> &mdash; Shoot</div>
+            <div><kbd>M</kbd> &mdash; Toggle music</div>
+          </div>
+          <div class="controls touch-only">
+            <div>Tap <b>◀ ▶</b> to move</div>
+            <div>Tap <b>JUMP</b> to leap</div>
+            <div>Tap <b>FIRE</b> to shoot</div>
+          </div>
+          <button id="start-btn">PRESS START</button>
+        </div>
       </div>
     </div>
 
-    <canvas id="canvas" width="960" height="540" tabindex="0"></canvas>
-
-    <div id="overlay" class="visible">
-      <h1>MEGA <span>MAN</span></h1>
-      <p class="tagline">Parallax Platformer</p>
-      <div class="controls">
-        <div><kbd>←</kbd> <kbd>→</kbd> or <kbd>A</kbd> <kbd>D</kbd> &mdash; Move</div>
-        <div><kbd>Space</kbd> or <kbd>W</kbd> &mdash; Jump</div>
-        <div><kbd>J</kbd> or <kbd>X</kbd> &mdash; Shoot</div>
-        <div><kbd>M</kbd> &mdash; Toggle music</div>
+    <div id="touch-controls" aria-hidden="true">
+      <div class="tc-group tc-left">
+        <button class="tc-btn dir" data-act="left" aria-label="Left">◀</button>
+        <button class="tc-btn dir" data-act="right" aria-label="Right">▶</button>
       </div>
-      <button id="start-btn">PRESS START</button>
+      <div class="tc-group tc-right">
+        <button class="tc-btn shoot" data-act="shoot" aria-label="Shoot">FIRE</button>
+        <button class="tc-btn jump" data-act="jump" aria-label="Jump">JUMP</button>
+      </div>
     </div>
-
-    <div id="hint">Click the canvas if controls aren't responding</div>
   </div>
 
   <script>// ============================================================
@@ -314,8 +436,13 @@ kbd {
     jump:  ['Space', 'KeyW', 'ArrowUp'],
     shoot: ['KeyJ', 'KeyX', 'KeyZ'],
   };
+  // Held state for touch buttons, mirrors keyboard
+  const touchHeld = { left: false, right: false, jump: false, shoot: false };
+  // Edge-trigger flag for touch jump
+  let touchJumpEdge = false;
+
   function pressed(action) {
-    return keyMap[action].some(c => keys[c]);
+    return touchHeld[action] || keyMap[action].some(c => keys[c]);
   }
   // edge-trigger storage
   const justPressed = Object.create(null);
@@ -337,6 +464,65 @@ kbd {
     for (const c of codes) if (justPressed[c]) { justPressed[c] = false; return true; }
     return false;
   }
+  function consumeTouchJump() {
+    if (touchJumpEdge) { touchJumpEdge = false; return true; }
+    return false;
+  }
+
+  // ---------- Touch buttons ----------
+  function bindTouchButtons() {
+    const btns = document.querySelectorAll('.tc-btn');
+    btns.forEach((btn) => {
+      const act = btn.dataset.act;
+      const press = (e) => {
+        e.preventDefault();
+        if (!touchHeld[act]) {
+          touchHeld[act] = true;
+          if (act === 'jump') touchJumpEdge = true;
+        }
+        btn.classList.add('active');
+        // capture so we keep getting events even if finger slides off
+        if (e.pointerId != null && btn.setPointerCapture) {
+          try { btn.setPointerCapture(e.pointerId); } catch (_) {}
+        }
+      };
+      const release = (e) => {
+        e.preventDefault();
+        touchHeld[act] = false;
+        btn.classList.remove('active');
+      };
+      btn.addEventListener('pointerdown', press);
+      btn.addEventListener('pointerup', release);
+      btn.addEventListener('pointercancel', release);
+      btn.addEventListener('pointerleave', release);
+      // Prevent context menu on long-press
+      btn.addEventListener('contextmenu', (e) => e.preventDefault());
+    });
+  }
+
+  // ---------- Viewport scaling ----------
+  function fitViewport() {
+    const isCoarse = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+    const isLandscape = window.innerWidth > window.innerHeight;
+    const W = 960, H = 600;
+    // Reserve space for touch controls in portrait on touch devices
+    let availW = window.innerWidth;
+    let availH = window.innerHeight;
+    if (isCoarse && !isLandscape) {
+      availH = window.innerHeight - 200; // leave room for buttons below
+    } else if (isCoarse && isLandscape) {
+      // Buttons overlay; small inset
+      availW = window.innerWidth - 16;
+      availH = window.innerHeight - 16;
+    } else {
+      availW -= 20;
+      availH -= 20;
+    }
+    const scale = Math.min(availW / W, availH / H);
+    document.documentElement.style.setProperty('--scale', String(scale));
+  }
+  window.addEventListener('resize', fitViewport);
+  window.addEventListener('orientationchange', () => setTimeout(fitViewport, 200));
 
   // ---------- Parallax layers (procedurally rendered to offscreen canvases) ----------
   // Each layer scrolls at a different rate vs the camera.
@@ -745,8 +931,8 @@ kbd {
       else if (right && !left) { player.vx = MOVE_SPEED; player.facing = 1; }
       else player.vx = 0;
 
-      // Jump (edge-triggered)
-      if (consumeJustPressed(keyMap.jump) && player.onGround) {
+      // Jump (edge-triggered, from keyboard OR touch)
+      if ((consumeJustPressed(keyMap.jump) || consumeTouchJump()) && player.onGround) {
         player.vy = JUMP_VEL;
         player.onGround = false;
         playSfx('jump');
@@ -1308,6 +1494,8 @@ kbd {
 
     spawnEnemies();
     updateHud();
+    bindTouchButtons();
+    fitViewport();
     requestAnimationFrame(loop);
 
     const startBtn = document.getElementById('start-btn');
