@@ -13,9 +13,9 @@
   --mm-dark: #0a1b3a;
   --mm-yellow: #ffd23f;
   --mm-red: #ff3a3a;
-  --scale: 1;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --controls-h: 200px;
 }
 
 * { box-sizing: border-box; }
@@ -46,25 +46,32 @@ html, body {
   justify-content: center;
 }
 
-/* Wrapper that scales the fixed-size game to fit the viewport */
+/* The game-shell auto-fits via aspect-ratio + max constraints in a flex container. */
 #viewport-wrap {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%) scale(var(--scale));
-  transform-origin: center center;
-  transition: transform 0.15s ease-out;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  padding-top: max(8px, var(--safe-top));
 }
 
 #game-shell {
   position: relative;
-  width: 960px;
-  height: 600px;
+  aspect-ratio: 8 / 5;        /* 960:600 */
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
   background: #000;
-  border: 4px solid var(--mm-blue);
+  border: 3px solid var(--mm-blue);
   border-radius: 8px;
-  box-shadow: 0 0 40px rgba(42, 140, 255, 0.5), 0 0 80px rgba(42, 140, 255, 0.2);
+  box-shadow: 0 0 28px rgba(42, 140, 255, 0.4);
   overflow: hidden;
+  /* Make internal sizes scale proportionally to this box */
+  container-type: size;
+  container-name: shell;
 }
 
 #hud {
@@ -72,22 +79,22 @@ html, body {
   top: 0;
   left: 0;
   right: 0;
-  height: 60px;
+  height: 10cqh;
   background: linear-gradient(180deg, #000 0%, #0a1b3a 100%);
-  border-bottom: 2px solid var(--mm-blue);
+  border-bottom: 1px solid var(--mm-blue);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
-  font-size: 14px;
-  letter-spacing: 2px;
+  padding: 0 1.6cqi;
+  font-size: 2.2cqh;
+  letter-spacing: 0.2cqi;
   z-index: 10;
 }
 
 .hud-left, .hud-center, .hud-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 1cqi;
 }
 
 .label {
@@ -96,14 +103,17 @@ html, body {
   text-shadow: 0 0 4px var(--mm-yellow);
 }
 
-#score { color: var(--mm-light); font-weight: bold; font-size: 18px; }
-#lives { color: var(--mm-light); font-weight: bold; font-size: 18px; }
+#score, #lives {
+  color: var(--mm-light);
+  font-weight: bold;
+  font-size: 2.8cqh;
+}
 
 .hp-bar {
-  width: 160px;
-  height: 18px;
+  width: 17cqi;
+  height: 3cqh;
   background: #111;
-  border: 2px solid var(--mm-light);
+  border: 1px solid var(--mm-light);
   position: relative;
   overflow: hidden;
 }
@@ -118,10 +128,10 @@ html, body {
 
 #canvas {
   position: absolute;
-  top: 60px;
+  top: 10cqh;
   left: 0;
-  width: 960px;
-  height: 540px;
+  width: 100%;
+  height: 90cqh;
   display: block;
   image-rendering: pixelated;
   image-rendering: -moz-crisp-edges;
@@ -131,15 +141,17 @@ html, body {
 
 #overlay {
   position: absolute;
-  top: 60px;
+  top: 10cqh;
   left: 0;
-  width: 960px;
-  height: 540px;
+  width: 100%;
+  height: 90cqh;
   background: radial-gradient(ellipse at center, rgba(10, 27, 58, 0.92) 0%, rgba(0, 0, 0, 0.98) 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 2cqh;
+  padding: 4cqh 4cqi;
   z-index: 20;
   opacity: 0;
   pointer-events: none;
@@ -152,75 +164,76 @@ html, body {
 }
 
 #overlay h1 {
-  font-size: 72px;
-  letter-spacing: 8px;
+  font-size: 11cqh;
+  letter-spacing: 1cqi;
   margin: 0;
   color: var(--mm-light);
   text-shadow:
-    3px 3px 0 var(--mm-blue),
-    6px 6px 0 var(--mm-dark),
-    0 0 20px rgba(42, 140, 255, 0.6);
+    0.4cqh 0.4cqh 0 var(--mm-blue),
+    0.8cqh 0.8cqh 0 var(--mm-dark),
+    0 0 2.5cqh rgba(42, 140, 255, 0.6);
+  line-height: 1;
 }
 
 #overlay h1 span {
   color: var(--mm-yellow);
   text-shadow:
-    3px 3px 0 #b87000,
-    6px 6px 0 #4a2c00,
-    0 0 20px rgba(255, 210, 63, 0.6);
+    0.4cqh 0.4cqh 0 #b87000,
+    0.8cqh 0.8cqh 0 #4a2c00,
+    0 0 2.5cqh rgba(255, 210, 63, 0.6);
 }
 
 .tagline {
   color: var(--mm-blue);
-  font-size: 18px;
-  letter-spacing: 4px;
-  margin: 8px 0 32px;
+  font-size: 2.6cqh;
+  letter-spacing: 0.6cqi;
+  margin: 0;
 }
 
 .controls {
   background: rgba(0, 0, 0, 0.6);
-  border: 2px solid var(--mm-blue);
-  padding: 16px 28px;
+  border: 1px solid var(--mm-blue);
+  padding: 1.5cqh 2.5cqi;
   border-radius: 4px;
   text-align: left;
-  margin-bottom: 24px;
-  line-height: 1.8;
-  font-size: 14px;
+  line-height: 1.5;
+  font-size: 2.4cqh;
 }
 
 kbd {
   display: inline-block;
-  padding: 2px 8px;
+  padding: 0.2cqh 0.8cqi;
   background: var(--mm-dark);
   border: 1px solid var(--mm-blue);
   border-radius: 3px;
   font-family: inherit;
   color: var(--mm-light);
-  font-size: 12px;
+  font-size: 2cqh;
   font-weight: bold;
-  min-width: 18px;
+  min-width: 2cqi;
   text-align: center;
 }
 
 #start-btn {
   font-family: inherit;
-  font-size: 22px;
-  letter-spacing: 4px;
-  padding: 14px 32px;
+  font-size: 4cqh;
+  letter-spacing: 0.6cqi;
+  padding: 1.6cqh 4cqi;
   background: var(--mm-blue);
   color: #fff;
-  border: 3px solid var(--mm-light);
+  border: 0.4cqh solid var(--mm-light);
   border-radius: 4px;
   cursor: pointer;
   text-shadow: 1px 1px 0 #000;
-  box-shadow: 0 4px 0 var(--mm-dark), 0 0 24px rgba(42, 140, 255, 0.6);
+  box-shadow: 0 0.6cqh 0 var(--mm-dark), 0 0 3cqh rgba(42, 140, 255, 0.6);
   transition: transform 0.1s, box-shadow 0.1s;
   animation: blink 1.4s infinite;
+  margin-top: 1cqh;
 }
 
 #start-btn:active {
-  transform: translateY(2px);
-  box-shadow: 0 2px 0 var(--mm-dark), 0 0 24px rgba(42, 140, 255, 0.6);
+  transform: translateY(0.4cqh);
+  box-shadow: 0 0.2cqh 0 var(--mm-dark), 0 0 3cqh rgba(42, 140, 255, 0.6);
 }
 
 @keyframes blink {
@@ -229,9 +242,9 @@ kbd {
 }
 
 .game-over {
-  font-size: 56px !important;
+  font-size: 9cqh !important;
   color: var(--mm-red) !important;
-  text-shadow: 3px 3px 0 #500, 6px 6px 0 #200 !important;
+  text-shadow: 0.4cqh 0.4cqh 0 #500, 0.8cqh 0.8cqh 0 #200 !important;
 }
 
 /* ---------- Touch controls ---------- */
@@ -248,20 +261,20 @@ kbd {
 
 .tc-group {
   position: absolute;
-  bottom: calc(20px + var(--safe-bottom));
+  bottom: calc(16px + var(--safe-bottom));
   display: flex;
   gap: 14px;
   pointer-events: auto;
 }
-.tc-left { left: calc(16px + env(safe-area-inset-left, 0px)); }
+.tc-left  { left:  calc(16px + env(safe-area-inset-left, 0px)); }
 .tc-right { right: calc(16px + env(safe-area-inset-right, 0px)); }
 
 .tc-btn {
-  width: 76px;
-  height: 76px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
   border: 3px solid rgba(184, 224, 255, 0.85);
-  background: rgba(10, 27, 58, 0.55);
+  background: rgba(10, 27, 58, 0.6);
   color: #fff;
   font-family: 'Courier New', monospace;
   font-size: 22px;
@@ -282,47 +295,50 @@ kbd {
 
 .tc-btn.active {
   transform: translateY(3px);
-  background: rgba(42, 140, 255, 0.75);
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.5), 0 0 22px rgba(42, 140, 255, 0.8);
+  background: rgba(42, 140, 255, 0.8);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.5), 0 0 22px rgba(42, 140, 255, 0.85);
 }
 
-.tc-btn.dir { background: rgba(10, 27, 58, 0.6); font-size: 28px; }
+.tc-btn.dir { font-size: 26px; }
 .tc-btn.jump {
   background: rgba(42, 140, 255, 0.55);
   border-color: var(--mm-light);
-  font-size: 16px;
-  width: 84px;
-  height: 84px;
+  font-size: 15px;
+  width: 80px;
+  height: 80px;
 }
 .tc-btn.shoot {
   background: rgba(204, 60, 60, 0.55);
   border-color: var(--mm-yellow);
   color: var(--mm-yellow);
-  font-size: 16px;
+  font-size: 15px;
 }
 
-/* Show touch controls on coarse-pointer devices (phones / tablets) */
+/* Show touch controls + adjust layout on coarse-pointer devices */
 @media (hover: none) and (pointer: coarse) {
   #touch-controls { display: block; }
   .touch-only { display: block; }
   .desktop-only { display: none; }
-  /* Position the game toward top so controls don't overlap */
+}
+
+/* Phone portrait: anchor the game to the top, leave the bottom for the buttons */
+@media (hover: none) and (pointer: coarse) and (orientation: portrait) {
   #viewport-wrap {
-    top: calc(var(--safe-top) + 8px);
-    transform: translateX(-50%) scale(var(--scale));
-    transform-origin: top center;
+    align-items: flex-start;
+    padding-bottom: var(--controls-h);
   }
 }
 
-/* In landscape on phones, center the game and let buttons overlay */
+/* Phone landscape: keep the game centered; buttons overlay the corners */
 @media (hover: none) and (pointer: coarse) and (orientation: landscape) {
-  #viewport-wrap {
-    top: 50%;
-    transform: translate(-50%, -50%) scale(var(--scale));
-    transform-origin: center center;
-  }
-  .tc-btn { width: 64px; height: 64px; }
-  .tc-btn.jump { width: 70px; height: 70px; }
+  .tc-btn { width: 60px; height: 60px; font-size: 20px; }
+  .tc-btn.jump { width: 66px; height: 66px; font-size: 13px; }
+  .tc-btn.shoot { font-size: 13px; }
+}
+
+/* Use small / dynamic viewport heights where supported, for mobile chrome */
+@supports (height: 100dvh) {
+  html, body, #stage { height: 100dvh; }
 }
 </style>
 </head>
@@ -501,26 +517,11 @@ kbd {
   }
 
   // ---------- Viewport scaling ----------
-  function fitViewport() {
-    const isCoarse = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
-    const isLandscape = window.innerWidth > window.innerHeight;
-    const W = 960, H = 600;
-    // Reserve space for touch controls in portrait on touch devices
-    let availW = window.innerWidth;
-    let availH = window.innerHeight;
-    if (isCoarse && !isLandscape) {
-      availH = window.innerHeight - 200; // leave room for buttons below
-    } else if (isCoarse && isLandscape) {
-      // Buttons overlay; small inset
-      availW = window.innerWidth - 16;
-      availH = window.innerHeight - 16;
-    } else {
-      availW -= 20;
-      availH -= 20;
-    }
-    const scale = Math.min(availW / W, availH / H);
-    document.documentElement.style.setProperty('--scale', String(scale));
-  }
+  // Layout is handled entirely by CSS (aspect-ratio + container queries).
+  // We just ensure the canvas's internal pixel buffer matches its CSS size
+  // for crisp rendering on hi-DPI displays — but since we draw into a
+  // fixed 960x540 logical space, we keep the buffer fixed and let CSS scale.
+  function fitViewport() { /* no-op: CSS handles it */ }
   window.addEventListener('resize', fitViewport);
   window.addEventListener('orientationchange', () => setTimeout(fitViewport, 200));
 

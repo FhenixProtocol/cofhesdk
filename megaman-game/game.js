@@ -121,26 +121,11 @@
   }
 
   // ---------- Viewport scaling ----------
-  function fitViewport() {
-    const isCoarse = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
-    const isLandscape = window.innerWidth > window.innerHeight;
-    const W = 960, H = 600;
-    // Reserve space for touch controls in portrait on touch devices
-    let availW = window.innerWidth;
-    let availH = window.innerHeight;
-    if (isCoarse && !isLandscape) {
-      availH = window.innerHeight - 200; // leave room for buttons below
-    } else if (isCoarse && isLandscape) {
-      // Buttons overlay; small inset
-      availW = window.innerWidth - 16;
-      availH = window.innerHeight - 16;
-    } else {
-      availW -= 20;
-      availH -= 20;
-    }
-    const scale = Math.min(availW / W, availH / H);
-    document.documentElement.style.setProperty('--scale', String(scale));
-  }
+  // Layout is handled entirely by CSS (aspect-ratio + container queries).
+  // We just ensure the canvas's internal pixel buffer matches its CSS size
+  // for crisp rendering on hi-DPI displays — but since we draw into a
+  // fixed 960x540 logical space, we keep the buffer fixed and let CSS scale.
+  function fitViewport() { /* no-op: CSS handles it */ }
   window.addEventListener('resize', fitViewport);
   window.addEventListener('orientationchange', () => setTimeout(fitViewport, 200));
 
