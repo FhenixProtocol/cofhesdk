@@ -19,7 +19,9 @@
     "./styles.css": "./dist/styles.css"
   },
   "sideEffects": [
-    "**/*.css"
+    "**/*.css",
+    "./dist/ui.js",
+    "./dist/ui.cjs"
   ],
   "license": "MIT",
   "repository": {
