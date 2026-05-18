@@ -47,6 +47,23 @@ pnpm build
 pnpm preview
 ```
 
+### Deploying to Vercel
+
+This example can be deployed as a static Vite app on Vercel, but the Vercel project must point at this example directory instead of the monorepo root.
+
+Use these project settings:
+
+- **Root Directory**: `examples/react`
+- **Framework Preset**: `Vite`
+- **Node.js Version**: `18.x` or newer
+
+The included `vercel.json` does two things:
+
+- builds only the workspace packages this example actually needs, instead of running the repo-wide Turbo build
+- sets the `Cross-Origin-Embedder-Policy` and `Cross-Origin-Opener-Policy` headers required for the WASM worker setup
+
+If the Vercel project is left at the repository root, Vercel will auto-detect Turbo and try to build unrelated workspace packages such as `test/setup`, which requires `forge` and will fail in a default Vercel environment.
+
 ## Project Structure
 
 ```
