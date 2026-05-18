@@ -52,11 +52,6 @@ jobs:
             exit 1
           fi
 
-      - name: Setup test fixtures
-        env:
-          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
-        run: pnpm test:setup
-
       - name: Run Tests
         env:
           TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
@@ -124,8 +119,7 @@ jobs:
       - name: Setup test fixtures
         if: matrix.network.setupChainId
         env:
-          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
-          PRIMARY_TEST_CHAIN: '0'
+          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}          
         run: pnpm --filter @cofhe/test-setup run setup -- --chains ${{ matrix.network.setupChainId }}
 
       - name: Run Integration Matrix Tests
