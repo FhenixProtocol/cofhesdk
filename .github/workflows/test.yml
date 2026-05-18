@@ -9,9 +9,6 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
   test:
-    concurrency:
-      group: testnet-integration
-      cancel-in-progress: false
     name: Test
     runs-on: ubuntu-latest
     steps:
@@ -52,7 +49,80 @@ jobs:
             exit 1
           fi
 
+      - name: Setup test fixtures
+        env:
+          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
+        run: pnpm test:setup
+
       - name: Run Tests
         env:
           TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
-        run: pnpm test
+        run: pnpm exec turbo run test --filter='!@cofhe/integration-matrix'
+
+  test-network:
+    strategy:
+      fail-fast: false
+      matrix:
+        network:
+          - name: Hardhat Mock
+            slug: hardhat
+          - name: Ethereum Sepolia
+            slug: sepolia
+          - name: Arbitrum Sepolia
+            slug: arb-sepolia
+          - name: Base Sepolia
+            slug: base-sepolia
+    concurrency:
+      group: testnet-integration-${{ matrix.network.slug }}
+      cancel-in-progress: false
+    name: Test (${{ matrix.network.name }})
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm 8
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Setup Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+
+      - name: Install Dependencies
+        run: pnpm i --frozen-lockfile
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Install Playwright Browsers
+        run: cd packages/sdk && pnpm exec playwright install chromium --with-deps
+
+      - name: Validate TEST_PRIVATE_KEY availability
+        env:
+          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
+        run: |
+          if [ -z "$TEST_PRIVATE_KEY" ]; then
+            echo "TEST_PRIVATE_KEY secret is not available to this workflow run."
+            echo "Common causes:"
+            echo "- This workflow was triggered by a pull_request from a fork, where repository secrets are not exposed."
+            echo "- The secret was added under a different name, repo, org, or environment."
+            echo "- The secret is environment-scoped, but this job does not declare that environment."
+            exit 1
+          fi
+
+      - name: Setup test fixtures
+        env:
+          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
+          PRIMARY_TEST_CHAIN: ${{ matrix.network.slug == 'hardhat' && '31337' || matrix.network.slug == 'sepolia' && '11155111' || matrix.network.slug == 'arb-sepolia' && '421614' || '84532' }}
+        run: pnpm test:setup
+
+      - name: Run Integration Matrix Tests
+        env:
+          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
+          MATRIX_CHAIN: ${{ matrix.network.slug }}
+        run: pnpm --filter @cofhe/integration-matrix test
