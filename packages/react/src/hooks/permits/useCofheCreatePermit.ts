@@ -4,23 +4,23 @@ import { useCofheClient } from '../useCofheClient.js';
 
 export type CreatePermitArgs =
   | {
-      name: string;
-      isSelf: true;
-      expirationSeconds: number; // unix timestamp (seconds)
-    }
+    name: string;
+    isSelf: true;
+    expirationSeconds: number; // unix timestamp (seconds)
+  }
   | {
-      name: string;
-      isSelf: false;
-      receiver: `0x${string}`;
-      expirationSeconds: number; // unix timestamp (seconds)
-    };
+    name: string;
+    isSelf: false;
+    receiver: `0x${string}`;
+    expirationSeconds: number; // unix timestamp (seconds)
+  };
 
 type Input = {
   onSuccess?: () => void;
   onError?: (error: Error) => void;
 };
 
-export const useCofheCreatePermitMutation = ({ onSuccess, onError }: Input = {}) => {
+export const useCofheCreatePermit = ({ onSuccess, onError }: Input = {}) => {
   const cofheClient = useCofheClient();
   const { setHasCreatedFirstPermit } = usePortalPersisted();
 

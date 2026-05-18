@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { useCofheCreatePermitMutation, type CreatePermitArgs } from './useCofheCreatePermitMutation';
+import { useCofheCreatePermit, type CreatePermitArgs } from './useCofheCreatePermit';
 
 export interface UsePermitFormOptions {
   isDelegate?: boolean;
@@ -31,7 +31,7 @@ export function usePermitForm(options: UsePermitFormOptions = {}): UsePermitForm
   const [nameError, setNameError] = useState<string | null>(null);
   const [receiverError, setReceiverError] = useState<string | null>(null);
   const [durationSeconds, setDurationSeconds] = useState(7 * 24 * 60 * 60);
-  const { mutateAsync: createPermitMutateAsync, isPending: isPermitCreationPending } = useCofheCreatePermitMutation({
+  const { mutateAsync: createPermitMutateAsync, isPending: isPermitCreationPending } = useCofheCreatePermit({
     onSuccess,
     onError,
   });
