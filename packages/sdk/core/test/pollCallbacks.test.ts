@@ -722,6 +722,64 @@ describe('decrypt polling callbacks', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it('tnSealOutputV2 includes curl and response headers on fatal submit errors', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const fetchMock = vi.fn(async (url: string, options?: any) => {
+      if (url === `${thresholdNetworkUrl}/v2/sealoutput` && options?.method === 'POST') {
+        return makeMockResponse({
+          ok: false,
+          status: 503,
+          statusText: 'Service Unavailable',
+          headers: new Headers({
+            'content-type': 'application/json',
+            'x-debug-id': 'sealoutput-503',
+          }),
+          json: async () => ({ message: 'backend unavailable' }),
+          text: async () => JSON.stringify({ message: 'backend unavailable' }),
+        });
+      }
+
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+
+    global.fetch = fetchMock as any;
+
+    try {
+      await expect(
+        tnSealOutputV2({
+          ctHash: 1n,
+          chainId: 421614,
+          permission: { issuer: '0xabc' } as any,
+          thresholdNetworkUrl,
+        })
+      ).rejects.toMatchObject({
+        code: 'SEAL_OUTPUT_FAILED',
+        context: {
+          httpDebug: {
+            method: 'POST',
+            url: `${thresholdNetworkUrl}/v2/sealoutput`,
+            response: {
+              status: 503,
+              headers: {
+                'content-type': 'application/json',
+                'x-debug-id': 'sealoutput-503',
+              },
+              body: {
+                message: 'backend unavailable',
+              },
+            },
+          },
+        },
+      });
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining(`curl -i -X POST`));
+      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('"x-debug-id":"sealoutput-503"'));
+    } finally {
+      consoleErrorSpy.mockRestore();
+    }
+  });
+
   it('tnSealOutputV2 uses one timeout budget across submit retries and polling', async () => {
     const onPoll = vi.fn();
 
