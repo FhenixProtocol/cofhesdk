@@ -9,6 +9,9 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
   test:
+    concurrency:
+      group: testnet-integration
+      cancel-in-progress: false
     name: Test
     runs-on: ubuntu-latest
     steps:
