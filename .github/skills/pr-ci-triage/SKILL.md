@@ -54,6 +54,19 @@ This repo is a pnpm + Turbo monorepo. Stay at the repo root unless a package exp
 6. Separate primary CI failures from external deployment failures.
    Vercel checks may fail independently of GitHub Actions. If the Vercel page is not readable without auth, report that the deployment logs require `npx vercel inspect <deployment-id> --logs` instead of guessing.
 
+## Access Constraints: Hard Stop Policy
+
+If any required source of truth is inaccessible, do not continue as if the diagnosis is complete.
+
+1. Hard stop immediately and state that full triage is blocked by access.
+2. Explicitly list what is missing:
+   - private deployment logs
+   - missing auth token
+   - repository/organization permission scope
+   - terminal-session mismatch for exported environment variables
+3. Share the exact command needed to unblock access.
+4. Mark the result as partial and avoid definitive root-cause claims unless logs or reproducible evidence support them.
+
 ## Repo-Specific Notes
 
 - The root formatting command is `pnpm check:formatting`, which runs `prettier --check "**/*.{ts,tsx,md}"`.
