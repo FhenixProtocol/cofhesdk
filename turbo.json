@@ -21,7 +21,7 @@
     },
     "test": {
       "dependsOn": ["^build"],
-      "passThroughEnv": ["TEST_PRIVATE_KEY", "CI"]
+      "passThroughEnv": ["TEST_PRIVATE_KEY", "MATRIX_CHAIN", "CI"]
     },
     "lint": {
       "env": ["HOME", "USERPROFILE", "VOCS_BASE_URL"]
