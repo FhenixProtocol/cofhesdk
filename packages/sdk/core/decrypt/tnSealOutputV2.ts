@@ -239,7 +239,7 @@ async function submitSealOutputRequest(
   };
   let attemptIndex = 0;
 
-  for (; ;) {
+  for (;;) {
     let response: Response;
     try {
       response = await fetch(submitUrl, {

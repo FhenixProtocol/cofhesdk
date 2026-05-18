@@ -732,7 +732,7 @@ describe('decrypt polling callbacks', () => {
   });
 
   it('tnSealOutputV2 includes curl and response headers on fatal submit errors', async () => {
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     const fetchMock = vi.fn(async (url: string, options?: any) => {
       if (url === `${thresholdNetworkUrl}/v2/sealoutput` && options?.method === 'POST') {
