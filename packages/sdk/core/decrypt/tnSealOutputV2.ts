@@ -68,8 +68,14 @@ function shellEscapeSingleQuoted(value: string): string {
   return `'${value.replace(/'/g, `'"'"'`)}'`;
 }
 
-function headersToObject(headers: Headers): Record<string, string> {
-  return Object.fromEntries(headers.entries());
+function headersToObject(headers?: Headers): Record<string, string> {
+  if (!headers) return {};
+
+  const result: Record<string, string> = {};
+  headers.forEach((value, key) => {
+    result[key] = value;
+  });
+  return result;
 }
 
 function tryParseJson(text: string): unknown {
@@ -233,7 +239,7 @@ async function submitSealOutputRequest(
   };
   let attemptIndex = 0;
 
-  for (;;) {
+  for (; ;) {
     let response: Response;
     try {
       response = await fetch(submitUrl, {
@@ -466,10 +472,16 @@ async function pollSealOutputStatus(
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}`;
       const responseDebug = await readResponseDebug(response);
-      try {
-        const errorBody = responseDebug.body as Record<string, unknown> | undefined;
-        errorMessage = errorBody.error_message || errorBody.message || errorMessage;
-      } catch {
+      const errorBody = responseDebug?.body;
+      if (errorBody && typeof errorBody === 'object') {
+        const errorRecord = errorBody as Record<string, unknown>;
+        const detailedMessage = errorRecord.error_message ?? errorRecord.message;
+        if (typeof detailedMessage === 'string' && detailedMessage.length > 0) {
+          errorMessage = detailedMessage;
+        } else {
+          errorMessage = response.statusText || errorMessage;
+        }
+      } else {
         errorMessage = response.statusText || errorMessage;
       }
 

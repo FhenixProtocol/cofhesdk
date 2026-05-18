@@ -2,12 +2,21 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { tnDecryptV2 } from '../decrypt/tnDecryptV2.js';
 import { tnSealOutputV2 } from '../decrypt/tnSealOutputV2.js';
 
-const makeMockResponse = (opts: { ok: boolean; status?: number; statusText?: string; json: () => Promise<any> }) => {
+const makeMockResponse = (opts: {
+  ok: boolean;
+  status?: number;
+  statusText?: string;
+  headers?: Headers;
+  json: () => Promise<any>;
+  text?: () => Promise<string>;
+}) => {
   return {
     ok: opts.ok,
     status: opts.status ?? (opts.ok ? 200 : 500),
     statusText: opts.statusText ?? '',
+    headers: opts.headers ?? new Headers(),
     json: opts.json,
+    text: opts.text,
   } as unknown as Response;
 };
 
@@ -723,7 +732,7 @@ describe('decrypt polling callbacks', () => {
   });
 
   it('tnSealOutputV2 includes curl and response headers on fatal submit errors', async () => {
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
 
     const fetchMock = vi.fn(async (url: string, options?: any) => {
       if (url === `${thresholdNetworkUrl}/v2/sealoutput` && options?.method === 'POST') {
