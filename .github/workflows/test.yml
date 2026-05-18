@@ -34,7 +34,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: stable
+          version: 1.7.1
 
       - name: Install Playwright Browsers
         run: cd packages/sdk && pnpm exec playwright install chromium --with-deps
@@ -71,10 +71,13 @@ jobs:
             slug: hardhat
           - name: Ethereum Sepolia
             slug: sepolia
+            setupChainId: '11155111'
           - name: Arbitrum Sepolia
             slug: arb-sepolia
+            setupChainId: '421614'
           - name: Base Sepolia
             slug: base-sepolia
+            setupChainId: '84532'
     concurrency:
       group: testnet-integration-${{ matrix.network.slug }}
       cancel-in-progress: false
@@ -100,7 +103,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: stable
+          version: 1.7.1
 
       - name: Install Playwright Browsers
         run: cd packages/sdk && pnpm exec playwright install chromium --with-deps
@@ -119,13 +122,14 @@ jobs:
           fi
 
       - name: Setup test fixtures
+        if: matrix.network.setupChainId
         env:
           TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
-          PRIMARY_TEST_CHAIN: ${{ matrix.network.slug == 'hardhat' && '31337' || matrix.network.slug == 'sepolia' && '11155111' || matrix.network.slug == 'arb-sepolia' && '421614' || '84532' }}
-        run: pnpm test:setup
+          PRIMARY_TEST_CHAIN: '0'
+        run: pnpm --filter @cofhe/test-setup run setup -- --chains ${{ matrix.network.setupChainId }}
 
       - name: Run Integration Matrix Tests
         env:
           TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
           MATRIX_CHAIN: ${{ matrix.network.slug }}
-        run: pnpm --filter @cofhe/integration-matrix test
+        run: pnpm exec turbo run test --filter=@cofhe/integration-matrix
