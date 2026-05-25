@@ -1,6 +1,6 @@
 import type { Token } from '@/types/token';
 import { bigintJSONStorageOptions } from '@/utils/bigintJson';
-import type { Address } from 'viem';
+import type { Address, TransactionReceipt } from 'viem';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
@@ -27,6 +27,8 @@ export type TransactionActionString = 'Shielded Transfer' | 'Shield' | 'Unshield
 
 type BaseTransaction = {
   hash: `0x${string}`;
+  blockHash?: `0x${string}`;
+  receipt?: TransactionReceipt;
   status: TransactionStatus;
   timestamp: number;
   chainId: number;
@@ -74,7 +76,12 @@ export interface TransactionStore {
   getTransaction: (chainId: number, hash: string) => Transaction | undefined;
   getAllTransactions: (chainId: number, account?: string) => Transaction[];
   getAllTransactionsByToken: (chainId: number, tokenAddress: string, account?: string) => Transaction[];
-  updateTransactionStatus: (chainId: number, hash: string, status: TransactionStatus) => void;
+  updateTransactionStatus: (
+    chainId: number,
+    hash: string,
+    status: TransactionStatus,
+    minedData?: { blockHash?: `0x${string}`; receipt?: TransactionReceipt }
+  ) => void;
   setTransactionDecryptionStatus: (chainId: number, hash: string, isPendingDecryption: boolean) => void;
   clearTransactions: (chainId?: number) => void;
 }
@@ -149,7 +156,12 @@ export const useTransactionStore = create<TransactionStore>()(
         });
       },
 
-      updateTransactionStatus: (chainId: number, hash: string, status: TransactionStatus) => {
+      updateTransactionStatus: (
+        chainId: number,
+        hash: string,
+        status: TransactionStatus,
+        minedData?: { blockHash?: `0x${string}`; receipt?: TransactionReceipt }
+      ) => {
         set((state) => {
           const chainTxs = state.transactions[chainId];
           if (!chainTxs || !chainTxs[hash]) return state;
@@ -162,6 +174,8 @@ export const useTransactionStore = create<TransactionStore>()(
                 [hash]: {
                   ...chainTxs[hash],
                   status,
+                  blockHash: minedData?.blockHash ?? chainTxs[hash].blockHash,
+                  receipt: minedData?.receipt ?? chainTxs[hash].receipt,
                   // if tx failed, it's no longer pending decryption
                   isPendingDecryption: status === TransactionStatus.Failed ? false : chainTxs[hash].isPendingDecryption,
                 },
@@ -179,8 +193,8 @@ export const useTransactionStore = create<TransactionStore>()(
         const chainTxs = get().transactions[chainId];
         return chainTxs
           ? Object.values(chainTxs)
-              .filter((tx) => !account || !tx.account || tx.account.toLowerCase() === account.toLowerCase())
-              .sort((a, b) => b.timestamp - a.timestamp) // newest first
+            .filter((tx) => !account || !tx.account || tx.account.toLowerCase() === account.toLowerCase())
+            .sort((a, b) => b.timestamp - a.timestamp) // newest first
           : [];
       },
 
@@ -188,10 +202,10 @@ export const useTransactionStore = create<TransactionStore>()(
         const chainTxs = get().transactions[chainId];
         return chainTxs
           ? Object.values(chainTxs)
-              .filter((tx) => {
-                return tx.account.toLowerCase() === account?.toLowerCase();
-              })
-              .sort((a, b) => b.timestamp - a.timestamp) // newest first
+            .filter((tx) => {
+              return tx.account.toLowerCase() === account?.toLowerCase();
+            })
+            .sort((a, b) => b.timestamp - a.timestamp) // newest first
           : [];
       },
 

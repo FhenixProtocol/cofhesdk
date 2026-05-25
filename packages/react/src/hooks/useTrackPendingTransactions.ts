@@ -25,6 +25,12 @@ import { useEffect, useRef } from 'react';
 import { cofheLogger } from '@/utils/debug';
 import { isTokenOperationSupported } from '@/types/token';
 
+const ZERO_BLOCK_HASH = '0x0000000000000000000000000000000000000000000000000000000000000000' as const;
+
+function hasInvalidBlockHash(blockHash: TransactionReceipt['blockHash'] | undefined) {
+  return blockHash === ZERO_BLOCK_HASH;
+}
+
 function invalidateConfidentialTokenBalanceQueries(token: Token, queryClient: QueryClient) {
   const tokenBalanceQueryKey = constructCofheReadContractQueryForInvalidation({
     cofheChainId: token.chainId,
@@ -132,14 +138,39 @@ function useTrackPendingTransactionsBase({
           hash: tx.hash as `0x${string}`,
         });
 
-        const status = receipt.status === 'success' ? TransactionStatus.Confirmed : TransactionStatus.Failed;
+        let normalizedReceipt = receipt;
+        if (hasInvalidBlockHash(receipt.blockHash) && receipt.blockNumber !== null) {
+          try {
+            const block = await publicClient.getBlock({
+              blockNumber: receipt.blockNumber,
+            });
+
+            if (block.hash) {
+              normalizedReceipt = {
+                ...receipt,
+                blockHash: block.hash,
+              };
+            }
+          } catch (error) {
+            cofheLogger.warn('Failed to normalize mined receipt blockHash from blockNumber', {
+              txHash: tx.hash,
+              blockNumber: receipt.blockNumber,
+              error,
+            });
+          }
+        }
+
+        const status = normalizedReceipt.status === 'success' ? TransactionStatus.Confirmed : TransactionStatus.Failed;
         // invalidate if tx was successful
-        if (status === TransactionStatus.Confirmed) onReceiptSuccess(tx, receipt);
-        else onReceiptFail?.(tx, receipt);
+        if (status === TransactionStatus.Confirmed) onReceiptSuccess(tx, normalizedReceipt);
+        else onReceiptFail?.(tx, normalizedReceipt);
 
-        useTransactionStore.getState().updateTransactionStatus(tx.chainId, tx.hash, status);
+        useTransactionStore.getState().updateTransactionStatus(tx.chainId, tx.hash, status, {
+          blockHash: normalizedReceipt.blockHash ?? undefined,
+          receipt: normalizedReceipt,
+        });
 
-        return receipt;
+        return normalizedReceipt;
       } catch (e) {
         onFetchFailure?.(e, tx);
         // no need to invalidate on failure, since nothing has changed on chain
