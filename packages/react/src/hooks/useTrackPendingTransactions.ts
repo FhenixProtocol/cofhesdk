@@ -20,6 +20,7 @@ import { useDecryptionWatchersStore } from '@/stores/decryptionWatchingStore';
 import { useTransactionGlobalLifecycle } from './useTransactionGlobalLifecycle';
 import { useEffect, useRef } from 'react';
 import { cofheLogger } from '@/utils/debug';
+import { isTokenOperationSupported } from '@/types/token';
 
 function invalidateConfidentialTokenBalanceQueries(token: Token, queryClient: QueryClient) {
   const tokenBalanceQueryKey = constructCofheReadContractQueryForInvalidation({
@@ -177,22 +178,24 @@ function useHandleInvalidations() {
       // on unshield - private balance decreases, claimable increases, public remains the same
       invalidateConfidentialTokenBalanceQueries(tx.token, queryClient);
 
-      // schedule invalidation for unshield claims once decryption is observed
-      upsertDecryptionWatcher({
-        key: `${tx.actionType}-tx-${tx.hash}`,
-        accountAddress: tx.account,
-        createdAt: Date.now(),
-        chainId: tx.chainId,
-        triggerTxHash: tx.hash,
-        queryKeys: [
-          constructUnshieldClaimsQueryKeyForInvalidation({
-            chainId: tx.token.chainId,
-            tokenAddress: tx.token.address,
-            confidentialityType: tx.token.extensions.fhenix.confidentialityType,
-            accountAddress: tx.account,
-          }),
-        ],
-      });
+      if (isTokenOperationSupported(tx.token.extensions.fhenix.confidentialityType, 'claimable')) {
+        // schedule invalidation for unshield claims once decryption is observed
+        upsertDecryptionWatcher({
+          key: `${tx.actionType}-tx-${tx.hash}`,
+          accountAddress: tx.account,
+          createdAt: Date.now(),
+          chainId: tx.chainId,
+          triggerTxHash: tx.hash,
+          queryKeys: [
+            constructUnshieldClaimsQueryKeyForInvalidation({
+              chainId: tx.token.chainId,
+              tokenAddress: tx.token.address,
+              confidentialityType: tx.token.extensions.fhenix.confidentialityType,
+              accountAddress: tx.account,
+            }),
+          ],
+        });
+      }
     } else if (tx.actionType === TransactionActionType.Claim) {
       // on claim - claimable decreases, public increases, private remains the same
       const publicBalanceSource = getPublicTokenBalanceSource(tx.token);
