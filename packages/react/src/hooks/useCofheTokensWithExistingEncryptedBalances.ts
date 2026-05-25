@@ -13,9 +13,23 @@ import {
 
 function asCtHash(value: unknown): bigint | undefined {
   if (typeof value === 'bigint') return value;
+  if (typeof value === 'string') {
+    try {
+      return BigInt(value);
+    } catch {
+      return undefined;
+    }
+  }
   if (value && typeof value === 'object' && 'ctHash' in value) {
     const ctHash = (value as { ctHash?: unknown }).ctHash;
     if (typeof ctHash === 'bigint') return ctHash;
+    if (typeof ctHash === 'string') {
+      try {
+        return BigInt(ctHash);
+      } catch {
+        return undefined;
+      }
+    }
   }
   return undefined;
 }
