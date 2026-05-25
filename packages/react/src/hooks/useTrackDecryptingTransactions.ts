@@ -182,8 +182,8 @@ function safeParseDecryptRequestLog(
 ):
   | false
   | {
-    ciphertext: string;
-  } {
+      ciphertext: string;
+    } {
   const topic0Correct = log.topics[0]
     ?.toLowerCase()
     .startsWith('0xe9de54a3e7ddf0c48cc6e1134185300d5a71acbf2d8c21fcdefa9d9dd9e20ac1');
@@ -196,8 +196,8 @@ function safeParseDecryptRequestLog(
   const word2IsCorrect = dataAsWords[2]?.toLowerCase() === account.toLowerCase().slice(2).padStart(64, '0');
   return topic0Correct && topic1Correct && word1IsCorrect && word2IsCorrect
     ? {
-      ciphertext: '0x' + dataAsWords[0],
-    }
+        ciphertext: '0x' + dataAsWords[0],
+      }
     : false;
 }
 

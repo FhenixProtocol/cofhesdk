@@ -542,6 +542,7 @@ function UnshieldTab({
 
 function ClaimingSection({ token }: { token: Token }) {
   const account = useCofheAccount();
+  const isDualToken = token.extensions.fhenix.confidentialityType === 'dual';
   const {
     data: unshieldedClaims,
     isFetching: isFetchingClaims,
@@ -557,7 +558,7 @@ function ClaimingSection({ token }: { token: Token }) {
     isClaimingMining,
   } = useClaimUnshieldedWithLifecycle();
 
-  const pairedSymbol = token.extensions.fhenix.erc20Pair?.symbol;
+  const pairedSymbol = token.extensions.fhenix.erc20Pair?.symbol ?? token.symbol;
   const handleClaim = async () => {
     assert(unshieldedClaims, 'Unshield claims data is required to claim unshielded tokens');
     claimUnshield.mutateAsync({
@@ -569,9 +570,9 @@ function ClaimingSection({ token }: { token: Token }) {
   const isUnshieldingMining = useIsUnshieldingMining(token);
 
   const claimCallArgs = useMemo(() => {
-    if (!account || !unshieldedClaims?.hasClaimable) return undefined;
+    if (isDualToken || !account || !unshieldedClaims?.hasClaimable) return undefined;
     return getCofheTokenClaimUnshieldedCallArgs({ token, account });
-  }, [account, token, unshieldedClaims?.hasClaimable]);
+  }, [account, isDualToken, token, unshieldedClaims?.hasClaimable]);
 
   const claimSimulation = useCofheSimulateWriteContract(claimCallArgs, {
     enabled: !!claimCallArgs,
@@ -592,22 +593,22 @@ function ClaimingSection({ token }: { token: Token }) {
             claimUnshield.isPending ||
             isClaimingMining ||
             isFetchingClaims ||
-            isWaitingForNewClaimsDecryption ||
             isUnshieldingMining ||
-            !claimCallArgs ||
-            claimSimulation.isFetching ||
-            !!claimSimulation.error
+            (!isDualToken && isWaitingForNewClaimsDecryption) ||
+            (!isDualToken && !claimCallArgs) ||
+            (!isDualToken && claimSimulation.isFetching) ||
+            (!isDualToken && !!claimSimulation.error)
           }
           label={
             claimUnshield.isPending
               ? 'Claiming...'
-              : `Claim ${isFetchingClaims || isWaitingForNewClaimsDecryption ? '...' : formatTokenAmount(unshieldedClaims.claimableAmount, token.decimals, 5).formatted} ${pairedSymbol}`
+              : `Claim ${isFetchingClaims || (!isDualToken && isWaitingForNewClaimsDecryption) ? '...' : formatTokenAmount(unshieldedClaims?.claimableAmount ?? 0n, token.decimals, 5).formatted} ${pairedSymbol}`
           }
           className="mt-1"
         />
       )}
 
-      {unshieldedClaims?.hasPending && token && !unshieldedClaims.hasClaimable && (
+      {unshieldedClaims?.hasPending && token && !unshieldedClaims.hasClaimable && !isDualToken && (
         <p className="text-xxs text-yellow-600 dark:text-yellow-400 text-center">
           Pending: {formatTokenAmount(unshieldedClaims.pendingAmount, token.decimals).formatted} {pairedSymbol}
         </p>

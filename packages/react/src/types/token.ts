@@ -87,8 +87,8 @@ export const TOKEN_CONFIDENTIALITY_SUPPORT = {
       publicBalance: true,
       shield: true,
       unshield: true,
-      claim: false,
-      claimable: false,
+      claim: true,
+      claimable: true,
     },
   },
 } as const;

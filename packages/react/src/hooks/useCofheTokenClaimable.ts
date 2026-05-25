@@ -1,5 +1,5 @@
 import { QueryClient, type QueryKey, type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
-import { type Address } from 'viem';
+import { type Address, type Hex } from 'viem';
 import { useCofhePublicClient } from './useCofheConnection.js';
 import { type Token } from './useCofheTokenLists.js';
 import { getClaimableContractConfig } from '../constants/confidentialTokenABIs.js';
@@ -70,6 +70,15 @@ export const DEFAULT_UNSHIELD_CLAIM_SUMMARY: UnshieldClaimsSummary = {
   hasPending: false,
 };
 
+export type UnshieldClaim = {
+  ctHash: Hex | bigint;
+  requestedAmount: bigint;
+  decryptedAmount: bigint;
+  claimed: boolean;
+  decrypted?: boolean;
+  to?: Address;
+};
+
 export function isTokenConfidentialityTypeClaimable(
   type: string | undefined
 ): type is SupportedTokenConfidentialityType {
@@ -85,14 +94,30 @@ export type FetchUnshieldClaimsSummaryInput = {
   signal: AbortSignal;
 };
 
-export async function fetchUnshieldClaimsSummary({
+function normalizeUnshieldClaims(result: unknown): UnshieldClaim[] {
+  return (Array.isArray(result) ? result : []).filter(
+    (claim): claim is UnshieldClaim =>
+      !!claim &&
+      typeof claim === 'object' &&
+      'ctHash' in claim &&
+      (typeof claim.ctHash === 'bigint' || typeof claim.ctHash === 'string') &&
+      'claimed' in claim &&
+      typeof claim.claimed === 'boolean' &&
+      'decryptedAmount' in claim &&
+      typeof claim.decryptedAmount === 'bigint' &&
+      'requestedAmount' in claim &&
+      typeof claim.requestedAmount === 'bigint'
+  );
+}
+
+export async function fetchUnshieldClaims({
   publicClient,
   token,
   accountAddress,
   confidentialityType,
   queryKey,
   signal,
-}: FetchUnshieldClaimsSummaryInput): Promise<UnshieldClaimsSummary> {
+}: FetchUnshieldClaimsSummaryInput): Promise<UnshieldClaim[]> {
   const contractConfig = getClaimableContractConfig(confidentialityType);
   const result = await decryptionAwareReadContract({
     publicClient,
@@ -106,28 +131,35 @@ export async function fetchUnshieldClaimsSummary({
     },
   });
 
-  const claims = (Array.isArray(result) ? result : []).filter(
-    (
-      claim
-    ): claim is {
-      claimed: boolean;
-      decrypted?: boolean;
-      decryptedAmount: bigint;
-      requestedAmount: bigint;
-    } =>
-      !!claim &&
-      typeof claim === 'object' &&
-      'claimed' in claim &&
-      typeof claim.claimed === 'boolean' &&
-      'decryptedAmount' in claim &&
-      typeof claim.decryptedAmount === 'bigint' &&
-      'requestedAmount' in claim &&
-      typeof claim.requestedAmount === 'bigint' &&
-      !claim.claimed
-  );
+  return normalizeUnshieldClaims(result);
+}
+
+export async function fetchUnshieldClaimsSummary({
+  publicClient,
+  token,
+  accountAddress,
+  confidentialityType,
+  queryKey,
+  signal,
+}: FetchUnshieldClaimsSummaryInput): Promise<UnshieldClaimsSummary> {
+  const claims = (
+    await fetchUnshieldClaims({
+      publicClient,
+      token,
+      accountAddress,
+      confidentialityType,
+      queryKey,
+      signal,
+    })
+  ).filter((claim) => !claim.claimed);
 
   const { claimableAmount, pendingAmount } = claims.reduce(
     (acc, claim) => {
+      if (confidentialityType === 'dual') {
+        acc.claimableAmount += claim.requestedAmount;
+        return acc;
+      }
+
       const isDecrypted = 'decrypted' in claim ? claim.decrypted === true : claim.decryptedAmount > 0n;
 
       if (isDecrypted) {

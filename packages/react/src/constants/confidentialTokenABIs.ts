@@ -34,7 +34,7 @@ export type TokenShieldContracts = {
 
 export type TokenClaimContracts = {
   single: ContractConfig;
-  all: ContractConfig;
+  all?: ContractConfig;
   query: ContractConfig;
 };
 
@@ -145,10 +145,20 @@ export function getUnshieldContractConfig(confidentialityType: Token['extensions
   return contracts;
 }
 
-export function getClaimContractConfig(confidentialityType: Token['extensions']['fhenix']['confidentialityType']) {
+export function getClaimSingleContractConfig(
+  confidentialityType: Token['extensions']['fhenix']['confidentialityType']
+) {
   const contracts = getContractsForType(confidentialityType).claims;
   if (!contracts) {
     throw new Error(`claim config is not defined for confidentialityType: ${confidentialityType}`);
+  }
+  return contracts.single;
+}
+
+export function getClaimAllContractConfig(confidentialityType: Token['extensions']['fhenix']['confidentialityType']) {
+  const contracts = getContractsForType(confidentialityType).claims;
+  if (!contracts?.all) {
+    throw new Error(`claim-all config is not defined for confidentialityType: ${confidentialityType}`);
   }
   return contracts.all;
 }

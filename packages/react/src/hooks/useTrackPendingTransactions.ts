@@ -12,7 +12,10 @@ import { QueryClient, type QueriesOptions } from '@tanstack/react-query';
 import type { Address, TransactionReceipt } from 'viem';
 import { getTokenContractConfig } from '@/constants/confidentialTokenABIs';
 import { ETH_ADDRESS_LOWERCASE, type Token } from './useCofheTokenLists';
-import { constructPublicTokenBalanceQueryKeyForInvalidation, getPublicTokenBalanceSource } from './useCofheTokenPublicBalance';
+import {
+  constructPublicTokenBalanceQueryKeyForInvalidation,
+  getPublicTokenBalanceSource,
+} from './useCofheTokenPublicBalance';
 import { constructUnshieldClaimsQueryKeyForInvalidation, invalidateClaimableQueries } from './useCofheTokenClaimable';
 import { constructTokenAllowanceQueryKeyForInvalidation } from './useTokenAllowance';
 import { usePendingTransactions } from './usePendingTransactions';

@@ -11,9 +11,8 @@ function QueryDebug() {
 const cofheConfig = createCofheConfig({
   supportedChains: [
     // sepolia,
-     baseSepolia,
-     arbSepolia
-     
+    baseSepolia,
+    arbSepolia,
   ],
   react: {
     projectName: 'Demo App',
@@ -34,11 +33,11 @@ const cofheConfig = createCofheConfig({
       //   'https://api.npoint.io/439ce3fd4b44eaa6f917', // contains "failing usdc"
       // ],
 
-      // dual USD and EUR 
+      // dual USD and EUR
       84532: ['https://api.npoint.io/2811dad903f0dbb6745e'],
-      // dual USD and EUR 
+      // dual USD and EUR
       421613: ['https://api.npoint.io/01ad319fb7b447ebaa92'],
-      
+
       // 84532: ['https://storage.googleapis.com/cofhesdk/base-sepolia.json'],
       // 421613: ['https://tokens.cofhe.io/arbitrum-sepolia.json'],
     },
