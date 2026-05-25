@@ -1,4 +1,4 @@
-import { type QueryFunctionContext, type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
+import { type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { type Address } from 'viem';
 import { assert } from 'ts-essentials';
@@ -17,6 +17,7 @@ import {
 } from './useCofheTokenClaimable.js';
 import { useStoredTransactions } from './useStoredTransactions.js';
 import { TransactionActionType, TransactionStatus } from '@/stores/transactionStore.js';
+import { withInvalidationContext } from '@/utils/invalidationContext';
 
 export type UnshieldClaimsSummaryByTokenAddress = Record<Address, UnshieldClaimsSummary>;
 export type ClaimableAmountByTokenAddress = Record<Address, bigint>;
@@ -148,23 +149,26 @@ export function useCofheTokensClaimable(
 
       return {
         queryKey,
-        queryFn: async ({ signal }: QueryFunctionContext<ReturnType<typeof constructUnshieldClaimsQueryKey>>) => {
-          assert(
-            isTokenConfidentialityTypeClaimable(confidentialityType),
-            'confidentialityType narrowed by token guard'
-          );
+        queryFn: withInvalidationContext<readonly unknown[], { blockHashToBeAwareOf: `0x${string}` }, UnshieldClaimsSummary>(
+          async ({ signal, invalidationContext }) => {
+            assert(
+              isTokenConfidentialityTypeClaimable(confidentialityType),
+              'confidentialityType narrowed by token guard'
+            );
 
-          assert(account, 'account is required to fetch unshield claims');
-          assert(publicClient, 'publicClient is required to fetch unshield claims');
+            assert(account, 'account is required to fetch unshield claims');
+            assert(publicClient, 'publicClient is required to fetch unshield claims');
 
-          return fetchUnshieldClaimsSummary({
-            publicClient,
-            token,
-            accountAddress: account,
-            confidentialityType,
-            signal,
-          });
-        },
+            return fetchUnshieldClaimsSummary({
+              publicClient,
+              token,
+              accountAddress: account,
+              confidentialityType,
+              signal,
+              blockHashToBeAwareOf: invalidationContext?.blockHashToBeAwareOf,
+            });
+          }
+        ),
         refetchOnMount: false,
         enabled: enabledBase,
         ...queryOptions,

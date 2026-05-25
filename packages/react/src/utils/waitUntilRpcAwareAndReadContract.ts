@@ -90,7 +90,7 @@ export async function maybeWaitUntilRpcAwareAndReadContract<
 
   const pollingInterval = options.pollingInterval ?? 1_000;
 
-  cofheLogger.log(`[maybeWaitUntilRpcAwareAndReadContract]: Waiting until RPC is aware of block ${params.blockHashToBeAwareOf} to read contract...`);
+  cofheLogger.log(`[maybeWaitUntilRpcAwareAndReadContract]: Waiting until RPC is aware of block ${params.blockHashToBeAwareOf} to read contract...`, params.address, params.functionName);
   let done = false;
   while (!done) {
     if (options.signal?.aborted) throw abortError();
@@ -113,6 +113,13 @@ export async function maybeWaitUntilRpcAwareAndReadContract<
     if (blockKnown && readRes.status === 'fulfilled') {
       options?.onSuccess?.();
       done = true;
+
+      cofheLogger.debug(
+        `[maybeWaitUntilRpcAwareAndReadContract]: RPC is now aware of block ${params.blockHashToBeAwareOf}. Block fetch result:`,
+        blockRes,
+        'Read contract result:',
+        readRes
+      );
       return readRes.value;
     }
     cofheLogger.debug(
