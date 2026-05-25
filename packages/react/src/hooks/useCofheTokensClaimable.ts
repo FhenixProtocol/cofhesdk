@@ -105,15 +105,17 @@ export function useCofheTokensClaimable(
 
   const waitingEntries = useMemo(() => {
     if (!account) return [];
-    return normalizedTokens.map((token) => ({
-      address: token.address,
-      queryKey: constructUnshieldClaimsQueryKey({
-        chainId: token.chainId,
-        tokenAddress: token.address,
-        confidentialityType: token.extensions.fhenix.confidentialityType,
-        accountAddress: account,
-      }),
-    }));
+    return normalizedTokens
+      .filter((token) => token.extensions.fhenix.confidentialityType !== 'dual')
+      .map((token) => ({
+        address: token.address,
+        queryKey: constructUnshieldClaimsQueryKey({
+          chainId: token.chainId,
+          tokenAddress: token.address,
+          confidentialityType: token.extensions.fhenix.confidentialityType,
+          accountAddress: account,
+        }),
+      }));
   }, [account, normalizedTokens]);
 
   const isWaitingForDecryptionByTokenAddress = useIsWaitingForDecryptionByAddress(waitingEntries);

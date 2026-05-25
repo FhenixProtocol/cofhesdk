@@ -181,7 +181,10 @@ function useHandleInvalidations() {
       // on unshield - private balance decreases, claimable increases, public remains the same
       invalidateConfidentialTokenBalanceQueries(tx.token, queryClient);
 
-      if (isTokenOperationSupported(tx.token.extensions.fhenix.confidentialityType, 'claimable')) {
+      if (
+        isTokenOperationSupported(tx.token.extensions.fhenix.confidentialityType, 'claimable') &&
+        tx.token.extensions.fhenix.confidentialityType !== 'dual'
+      ) {
         // schedule invalidation for unshield claims once decryption is observed
         upsertDecryptionWatcher({
           key: `${tx.actionType}-tx-${tx.hash}`,

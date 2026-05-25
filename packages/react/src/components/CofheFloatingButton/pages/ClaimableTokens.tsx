@@ -70,7 +70,10 @@ export function ClaimableTokens() {
       content={
         <div className="flex flex-col gap-4 pr-1">
           {rows.map(({ token, claimableAmount }) => {
-            const isDecrypting = waitingByTokenAddress?.[token.address] ?? false;
+            const isDecrypting =
+              token.extensions.fhenix.confidentialityType === 'dual'
+                ? false
+                : (waitingByTokenAddress?.[token.address] ?? false);
             const isUnshielding =
               unshieldingInProgressByTokenAddress?.[token.address.toLowerCase() as Address] ?? false;
             const formatted = formatTokenAmount(claimableAmount, token.decimals, 5).formatted;
