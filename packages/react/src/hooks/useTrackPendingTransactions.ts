@@ -12,7 +12,7 @@ import { QueryClient, type QueriesOptions } from '@tanstack/react-query';
 import type { Address, TransactionReceipt } from 'viem';
 import { getTokenContractConfig } from '@/constants/confidentialTokenABIs';
 import { ETH_ADDRESS_LOWERCASE, type Token } from './useCofheTokenLists';
-import { constructPublicTokenBalanceQueryKeyForInvalidation } from './useCofheTokenPublicBalance';
+import { constructPublicTokenBalanceQueryKeyForInvalidation, getPublicTokenBalanceSource } from './useCofheTokenPublicBalance';
 import { constructUnshieldClaimsQueryKeyForInvalidation, invalidateClaimableQueries } from './useCofheTokenClaimable';
 import { constructTokenAllowanceQueryKeyForInvalidation } from './useTokenAllowance';
 import { usePendingTransactions } from './usePendingTransactions';
@@ -69,11 +69,11 @@ function invalidatePublicAndConfidentialTokenBalanceQueries(
 ) {
   invalidateConfidentialTokenBalanceQueries(token, queryClient);
 
-  const publicPairTokenAddress = token.extensions.fhenix.erc20Pair?.address;
-  assert(publicPairTokenAddress, 'Public pair token address is required for shield transaction invalidation');
+  const publicBalanceSource = getPublicTokenBalanceSource(token);
+  assert(publicBalanceSource, 'Public balance source is required for shield transaction invalidation');
   invalidatePublicTokenBalanceQueries(
     {
-      tokenAddress: publicPairTokenAddress,
+      tokenAddress: publicBalanceSource.address,
       chainId: token.chainId,
       accountAddress,
     },
@@ -195,16 +195,17 @@ function useHandleInvalidations() {
       });
     } else if (tx.actionType === TransactionActionType.Claim) {
       // on claim - claimable decreases, public increases, private remains the same
-      const publicTokenAddress = tx.token.extensions.fhenix.erc20Pair?.address;
-      assert(publicTokenAddress, 'Public pair token address is required for claim transaction invalidation');
-      invalidatePublicTokenBalanceQueries(
-        {
-          tokenAddress: publicTokenAddress,
-          chainId: tx.token.chainId,
-          accountAddress: tx.account,
-        },
-        queryClient
-      );
+      const publicBalanceSource = getPublicTokenBalanceSource(tx.token);
+      if (publicBalanceSource) {
+        invalidatePublicTokenBalanceQueries(
+          {
+            tokenAddress: publicBalanceSource.address,
+            chainId: tx.token.chainId,
+            accountAddress: tx.account,
+          },
+          queryClient
+        );
+      }
       invalidateClaimableQueries({
         token: tx.token,
         accountAddress: tx.account,
@@ -212,13 +213,12 @@ function useHandleInvalidations() {
         queryClient,
       });
     } else if (tx.actionType === TransactionActionType.Approve) {
-      const underlying = tx.token.extensions.fhenix.erc20Pair?.address;
-      assert(underlying, 'erc20Pair is required for approve transaction invalidation');
-      if (underlying.toLowerCase() !== ETH_ADDRESS_LOWERCASE) {
+      const publicBalanceSource = getPublicTokenBalanceSource(tx.token);
+      if (publicBalanceSource && publicBalanceSource.address.toLowerCase() !== ETH_ADDRESS_LOWERCASE) {
         invalidateTokenAllowanceQueries(
           {
             chainId: tx.token.chainId,
-            tokenAddress: underlying,
+            tokenAddress: publicBalanceSource.address,
             ownerAddress: tx.account,
             spenderAddress: tx.token.address,
           },

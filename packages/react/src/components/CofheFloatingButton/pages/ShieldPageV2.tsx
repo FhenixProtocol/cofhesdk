@@ -352,9 +352,9 @@ function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 
     setInputAmount: setShieldAmount,
     onMaxClick: handleShieldMax,
     canWriteContract: canWrite,
-    sourceSymbol: token.extensions.fhenix.erc20Pair?.symbol,
+    sourceSymbol: token.extensions.fhenix.erc20Pair?.symbol ?? token.symbol,
     destSymbol: token.symbol,
-    sourceLogoURI: token.extensions.fhenix.erc20Pair?.logoURI,
+    sourceLogoURI: token.extensions.fhenix.erc20Pair?.logoURI ?? token.logoURI,
     destLogoURI: token.logoURI,
     handlePrimaryAction: shouldApprove ? handleApprove : handleShield,
     primaryLabel: shouldApprove ? 'Approve' : 'Shield',
@@ -462,9 +462,9 @@ function useUnshieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps
     onMaxClick: handleUnshieldMax,
     canWriteContract: canUnshield,
     sourceSymbol: token.symbol,
-    destSymbol: token.extensions.fhenix.erc20Pair?.symbol,
+    destSymbol: token.extensions.fhenix.erc20Pair?.symbol ?? token.symbol,
     sourceLogoURI: token.logoURI,
-    destLogoURI: token.extensions.fhenix.erc20Pair?.logoURI,
+    destLogoURI: token.extensions.fhenix.erc20Pair?.logoURI ?? token.logoURI,
     handlePrimaryAction: handleUnshield,
     primaryLabel: 'Unshield',
     primaryIcon: <TbShieldMinus className="w-3 h-3" />,
@@ -808,7 +808,9 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
             className="py-2"
           />
           <StatusAndError status={status} error={error} />
-          <ClaimingSection token={token} />
+          {isTokenOperationSupported(token.extensions.fhenix.confidentialityType, 'claimable') && (
+            <ClaimingSection token={token} />
+          )}
 
           {/* Not Shieldable Token Warning */}
           {!isShieldableToken && (

@@ -34,7 +34,7 @@ export const TokenInfoPage: React.FC<TokenInfoPageProps> = ({ token }) => {
         }
       : {
           chainId: token.chainId,
-          contractAddress: token.extensions.fhenix.erc20Pair?.address,
+          contractAddress: token.extensions.fhenix.erc20Pair?.address ?? token.address,
         }),
     rangeMs: 24 * 3600_000,
   });

@@ -42,7 +42,7 @@ export const TokenRow: React.FC<{
         }
       : {
           chainId: token.chainId,
-          tokenAddress: token.extensions.fhenix.erc20Pair?.address,
+          tokenAddress: token.extensions.fhenix.erc20Pair?.address ?? token.address,
         }
   );
 

@@ -2,7 +2,7 @@ import { CofheProvider, createCofheConfig, useInternalQueryClient } from '@cofhe
 import { CofheFloatingButtonWithProvider } from '@cofhe/react/ui';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
-import { sepolia } from '@cofhe/sdk/chains';
+import { arbSepolia, baseSepolia, sepolia } from '@cofhe/sdk/chains';
 
 function QueryDebug() {
   const cofheQueryClient = useInternalQueryClient();
@@ -10,8 +10,10 @@ function QueryDebug() {
 }
 const cofheConfig = createCofheConfig({
   supportedChains: [
-    sepolia,
-    //  baseSepolia
+    // sepolia,
+     baseSepolia,
+     arbSepolia
+     
   ],
   react: {
     projectName: 'Demo App',
@@ -27,12 +29,18 @@ const cofheConfig = createCofheConfig({
     // },
     tokenLists: {
       // 11155111: ['https://storage.googleapis.com/cofhesdk/sepolia.json'],
-      11155111: ['https://api.npoint.io/2d295a8f9f9d2c0c6678'], // contains only ETH
+      // 11155111: ['https://api.npoint.io/2d295a8f9f9d2c0c6678'], // contains only ETH
       // 11155111: [
       //   'https://api.npoint.io/439ce3fd4b44eaa6f917', // contains "failing usdc"
       // ],
-      84532: ['https://storage.googleapis.com/cofhesdk/base-sepolia.json'],
-      421613: ['https://tokens.cofhe.io/arbitrum-sepolia.json'],
+
+      // dual USD and EUR 
+      84532: ['https://api.npoint.io/2811dad903f0dbb6745e'],
+      // dual USD and EUR 
+      421613: ['https://api.npoint.io/01ad319fb7b447ebaa92'],
+      
+      // 84532: ['https://storage.googleapis.com/cofhesdk/base-sepolia.json'],
+      // 421613: ['https://tokens.cofhe.io/arbitrum-sepolia.json'],
     },
   },
 });

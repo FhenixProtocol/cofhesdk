@@ -28,12 +28,13 @@ export function getCofheTokenUnshieldCallArgs(params: {
   assertTokenOperationSupported(confidentialityType, 'unshield');
 
   const contractConfig = getUnshieldContractConfig(confidentialityType);
+  const args = (token.extensions.fhenix.erc20Pair ? [account, rawAmount] : [rawAmount]) as readonly unknown[];
 
   return {
     address: tokenAddress,
     abi: contractConfig.abi,
     functionName: contractConfig.functionName,
-    args: [account, rawAmount],
+    args,
     account,
     chain: undefined,
   };
@@ -98,14 +99,15 @@ function useCofheTokenUnshieldMutation(
       const contractConfig = getUnshieldContractConfig(confidentialityType);
 
       let hash: `0x${string}`;
+      const unshieldCallArgs = getCofheTokenUnshieldCallArgs({
+        token: input.token,
+        amount: input.amount,
+        account: walletClient.account.address,
+      });
 
       input.onStatusChange?.('Please confirm in wallet...');
-
       const { request } = await publicClient.simulateContract({
-        address: tokenAddress,
-        abi: contractConfig.abi,
-        functionName: contractConfig.functionName,
-        args: [walletClient.account.address, input.amount],
+        ...unshieldCallArgs,
         account: walletClient.account,
       });
       hash = await walletClient.writeContract({ ...request, chain: undefined });

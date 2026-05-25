@@ -106,11 +106,31 @@ export async function fetchUnshieldClaimsSummary({
     },
   });
 
-  const claims = result.filter((c) => !c.claimed);
+  const claims = (Array.isArray(result) ? result : []).filter(
+    (
+      claim
+    ): claim is {
+      claimed: boolean;
+      decrypted?: boolean;
+      decryptedAmount: bigint;
+      requestedAmount: bigint;
+    } =>
+      !!claim &&
+      typeof claim === 'object' &&
+      'claimed' in claim &&
+      typeof claim.claimed === 'boolean' &&
+      'decryptedAmount' in claim &&
+      typeof claim.decryptedAmount === 'bigint' &&
+      'requestedAmount' in claim &&
+      typeof claim.requestedAmount === 'bigint' &&
+      !claim.claimed
+  );
 
   const { claimableAmount, pendingAmount } = claims.reduce(
     (acc, claim) => {
-      if (claim.decrypted) {
+      const isDecrypted = 'decrypted' in claim ? claim.decrypted === true : claim.decryptedAmount > 0n;
+
+      if (isDecrypted) {
         acc.claimableAmount += claim.decryptedAmount;
       } else {
         acc.pendingAmount += claim.requestedAmount;
