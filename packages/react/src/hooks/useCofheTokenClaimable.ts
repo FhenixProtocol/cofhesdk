@@ -5,10 +5,11 @@ import { type Token } from './useCofheTokenLists.js';
 import { getClaimableContractConfig } from '../constants/confidentialTokenABIs.js';
 import { isTokenOperationSupported, type SupportedTokenConfidentialityType } from '@/types/token';
 import { useInternalQuery } from '../providers/index.js';
-import { decryptionAwareReadContract } from '@/utils/decryptionAwareReadContract.js';
 import { useIsWaitingForDecryptionToInvalidate } from './useIsWaitingForDecryptionToInvalidate.js';
 import { assert } from 'ts-essentials';
 import { cofheLogger } from '@/utils/debug';
+import { maybeWaitUntilRpcAwareAndReadContract } from '@/utils/waitUntilRpcAwareAndReadContract.js';
+import { invalidateQueriesWithContext, withInvalidationContext } from '@/utils/invalidationContext';
 
 export function constructUnshieldClaimsQueryKey({
   chainId,
@@ -27,21 +28,30 @@ export function invalidateClaimableQueries({
   token,
   accountAddress,
   queryClient,
+  blockHashToBeAwareOf,
 }: {
   token: Token;
   accountAddress: Address;
   queryClient: QueryClient;
+  blockHashToBeAwareOf?: `0x${string}`;
 }) {
   cofheLogger.log('Invalidating unshield claims queries for token:', token);
 
-  queryClient.invalidateQueries({
+  const filters = {
     queryKey: constructUnshieldClaimsQueryKeyForInvalidation({
       chainId: token.chainId,
       tokenAddress: token.address,
       confidentialityType: token.extensions.fhenix.confidentialityType,
       accountAddress,
     }),
-  });
+  } as const;
+
+  if (!blockHashToBeAwareOf) {
+    queryClient.invalidateQueries(filters);
+    return;
+  }
+
+  invalidateQueriesWithContext(queryClient, filters, { blockHashToBeAwareOf });
 }
 
 export function constructUnshieldClaimsQueryKeyForInvalidation({
@@ -90,8 +100,8 @@ export type FetchUnshieldClaimsSummaryInput = {
   token: Token;
   accountAddress: Address;
   confidentialityType: SupportedTokenConfidentialityType;
-  queryKey: QueryKey;
   signal: AbortSignal;
+  blockHashToBeAwareOf?: `0x${string}`;
 };
 
 function normalizeUnshieldClaims(result: unknown): UnshieldClaim[] {
@@ -115,21 +125,17 @@ export async function fetchUnshieldClaims({
   token,
   accountAddress,
   confidentialityType,
-  queryKey,
   signal,
+  blockHashToBeAwareOf,
 }: FetchUnshieldClaimsSummaryInput): Promise<UnshieldClaim[]> {
   const contractConfig = getClaimableContractConfig(confidentialityType);
-  const result = await decryptionAwareReadContract({
-    publicClient,
-    queryKey,
-    signal,
-    readContractParams: {
-      address: token.address,
-      abi: contractConfig.abi,
-      functionName: contractConfig.functionName,
-      args: [accountAddress],
-    },
-  });
+  const result = await maybeWaitUntilRpcAwareAndReadContract(publicClient, {
+    blockHashToBeAwareOf,
+    address: token.address,
+    abi: contractConfig.abi,
+    functionName: contractConfig.functionName,
+    args: [accountAddress],
+  }, { signal });
 
   return normalizeUnshieldClaims(result);
 }
@@ -139,8 +145,8 @@ export async function fetchUnshieldClaimsSummary({
   token,
   accountAddress,
   confidentialityType,
-  queryKey,
   signal,
+  blockHashToBeAwareOf,
 }: FetchUnshieldClaimsSummaryInput): Promise<UnshieldClaimsSummary> {
   const claims = (
     await fetchUnshieldClaims({
@@ -148,8 +154,8 @@ export async function fetchUnshieldClaimsSummary({
       token,
       accountAddress,
       confidentialityType,
-      queryKey,
       signal,
+      blockHashToBeAwareOf,
     })
   ).filter((claim) => !claim.claimed);
 
@@ -234,26 +240,28 @@ export function useCofheTokenClaimable(
 
   const result = useInternalQuery({
     queryKey,
-    queryFn: async ({ signal, queryKey }): Promise<UnshieldClaimsSummary> => {
-      assert(token, 'token is guaranteed to be defined in query function due to `enabled` condition');
-      assert(confidentialityType, 'token.confidentialityType is guaranteed to be defined in query function');
-      assert(account, 'account is guaranteed to be defined in query function due to `enabled` condition');
-      assert(publicClient, 'publicClient is guaranteed to be defined in query function due to `enabled` condition');
+    queryFn: withInvalidationContext<readonly unknown[], { blockHashToBeAwareOf: `0x${string}` }, UnshieldClaimsSummary>(
+      async ({ signal, invalidationContext }): Promise<UnshieldClaimsSummary> => {
+        assert(token, 'token is guaranteed to be defined in query function due to `enabled` condition');
+        assert(confidentialityType, 'token.confidentialityType is guaranteed to be defined in query function');
+        assert(account, 'account is guaranteed to be defined in query function due to `enabled` condition');
+        assert(publicClient, 'publicClient is guaranteed to be defined in query function due to `enabled` condition');
 
-      assert(
-        isTokenConfidentialityTypeClaimable(confidentialityType),
-        'confidentialityType is guaranteed to be claimable type due to `enabled` condition'
-      );
+        assert(
+          isTokenConfidentialityTypeClaimable(confidentialityType),
+          'confidentialityType is guaranteed to be claimable type due to `enabled` condition'
+        );
 
-      return fetchUnshieldClaimsSummary({
-        publicClient,
-        token,
-        accountAddress: account,
-        confidentialityType,
-        queryKey,
-        signal,
-      });
-    },
+        return fetchUnshieldClaimsSummary({
+          publicClient,
+          token,
+          accountAddress: account,
+          confidentialityType,
+          signal,
+          blockHashToBeAwareOf: invalidationContext?.blockHashToBeAwareOf,
+        });
+      }
+    ),
     refetchOnMount: false,
     enabled: !!publicClient && !!account && !!token && isTokenConfidentialityTypeClaimable(confidentialityType),
     ...queryOptions,

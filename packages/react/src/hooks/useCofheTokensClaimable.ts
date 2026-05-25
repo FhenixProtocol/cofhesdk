@@ -148,10 +148,7 @@ export function useCofheTokensClaimable(
 
       return {
         queryKey,
-        queryFn: async ({
-          signal,
-          queryKey,
-        }: QueryFunctionContext<ReturnType<typeof constructUnshieldClaimsQueryKey>>) => {
+        queryFn: async ({ signal }: QueryFunctionContext<ReturnType<typeof constructUnshieldClaimsQueryKey>>) => {
           assert(
             isTokenConfidentialityTypeClaimable(confidentialityType),
             'confidentialityType narrowed by token guard'
@@ -165,7 +162,6 @@ export function useCofheTokensClaimable(
             token,
             accountAddress: account,
             confidentialityType,
-            queryKey,
             signal,
           });
         },

@@ -24,6 +24,7 @@ import { useTransactionGlobalLifecycle } from './useTransactionGlobalLifecycle';
 import { useEffect, useRef } from 'react';
 import { cofheLogger } from '@/utils/debug';
 import { isTokenOperationSupported } from '@/types/token';
+import { invalidateQueriesWithContext } from '@/utils/invalidationContext';
 
 const ZERO_BLOCK_HASH = '0x0000000000000000000000000000000000000000000000000000000000000000' as const;
 
@@ -31,7 +32,11 @@ function hasInvalidBlockHash(blockHash: TransactionReceipt['blockHash'] | undefi
   return blockHash === ZERO_BLOCK_HASH;
 }
 
-function invalidateConfidentialTokenBalanceQueries(token: Token, queryClient: QueryClient) {
+function invalidateConfidentialTokenBalanceQueries(
+  token: Token,
+  queryClient: QueryClient,
+  blockHashToBeAwareOf?: `0x${string}`
+) {
   const tokenBalanceQueryKey = constructCofheReadContractQueryForInvalidation({
     cofheChainId: token.chainId,
     address: token.address,
@@ -40,11 +45,18 @@ function invalidateConfidentialTokenBalanceQueries(token: Token, queryClient: Qu
 
   cofheLogger.log('Invalidating shield/send read contract queries for token:', { token, tokenBalanceQueryKey });
 
-  queryClient.invalidateQueries({
+  const filters = {
     queryKey: tokenBalanceQueryKey,
     // TODO: it can potentially invalidate irrelevenat queries who happen to belong to the same contract but different function. Not sure if worth fixing
     exact: false,
-  });
+  } as const;
+
+  if (!blockHashToBeAwareOf) {
+    queryClient.invalidateQueries(filters);
+    return;
+  }
+
+  invalidateQueriesWithContext(queryClient, filters, { blockHashToBeAwareOf });
 }
 
 function invalidatePublicTokenBalanceQueries(
@@ -161,14 +173,15 @@ function useTrackPendingTransactionsBase({
         }
 
         const status = normalizedReceipt.status === 'success' ? TransactionStatus.Confirmed : TransactionStatus.Failed;
-        // invalidate if tx was successful
-        if (status === TransactionStatus.Confirmed) onReceiptSuccess(tx, normalizedReceipt);
-        else onReceiptFail?.(tx, normalizedReceipt);
 
         useTransactionStore.getState().updateTransactionStatus(tx.chainId, tx.hash, status, {
           blockHash: normalizedReceipt.blockHash ?? undefined,
           receipt: normalizedReceipt,
         });
+
+        // invalidate if tx was successful
+        if (status === TransactionStatus.Confirmed) onReceiptSuccess(tx, normalizedReceipt);
+        else onReceiptFail?.(tx, normalizedReceipt);
 
         return normalizedReceipt;
       } catch (e) {
@@ -193,7 +206,8 @@ function useHandleInvalidations() {
 
   const { upsert: upsertDecryptionWatcher, byKey } = useDecryptionWatchersStore();
   cofheLogger.log('Scheduled invalidations store:', byKey);
-  const handleInvalidations = (tx: Transaction) => {
+  const handleInvalidations = (tx: Transaction, receipt?: TransactionReceipt) => {
+    const blockHashToBeAwareOf = receipt?.blockHash ?? tx.receipt?.blockHash;
     // each transaction requires gas, so native token balance changes on every transaction
     invalidatePublicTokenBalanceQueries(
       {
@@ -210,13 +224,14 @@ function useHandleInvalidations() {
       invalidatePublicAndConfidentialTokenBalanceQueries(tx.token, tx.account, queryClient);
     } else if (tx.actionType === TransactionActionType.Unshield) {
       // on unshield - private balance decreases, claimable increases, public remains the same
-      invalidateConfidentialTokenBalanceQueries(tx.token, queryClient);
+      invalidateConfidentialTokenBalanceQueries(tx.token, queryClient, blockHashToBeAwareOf);
 
       if (tx.token.extensions.fhenix.confidentialityType === 'dual') {
         invalidateClaimableQueries({
           token: tx.token,
           accountAddress: tx.account,
           queryClient,
+          blockHashToBeAwareOf,
         });
       } else if (isTokenOperationSupported(tx.token.extensions.fhenix.confidentialityType, 'claimable')) {
         // schedule invalidation for unshield claims once decryption is observed
@@ -306,7 +321,7 @@ export function useTrackPendingTransactions() {
   useTrackPendingTransactionsBase({
     // 2.a. tx mined successfully
     onReceiptSuccess: (tx, receipt) => {
-      handleInvalidations(tx);
+      handleInvalidations(tx, receipt);
       onTransactionMined(tx, receipt);
     },
     // 2.b. tx mined with failure

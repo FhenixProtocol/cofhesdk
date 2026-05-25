@@ -125,12 +125,6 @@ export function useCofheTokenClaimUnshielded(
           token: input.token,
           accountAddress: account,
           confidentialityType,
-          queryKey: constructUnshieldClaimsQueryKey({
-            chainId: input.token.chainId,
-            tokenAddress: input.token.address,
-            confidentialityType,
-            accountAddress: account,
-          }),
           signal: new AbortController().signal,
         });
 
