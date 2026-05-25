@@ -128,7 +128,6 @@ export async function fetchUnshieldClaims({
   signal,
   blockHashToBeAwareOf,
 }: FetchUnshieldClaimsSummaryInput): Promise<UnshieldClaim[]> {
-  debugger;
   const contractConfig = getClaimableContractConfig(confidentialityType);
   const result = await maybeWaitUntilRpcAwareAndReadContract(publicClient, {
     blockHashToBeAwareOf,
