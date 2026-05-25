@@ -123,10 +123,9 @@ function useCofheTokenUnshieldMutation(
       assert(account, 'Wallet account is required for token unshield');
       if (onSuccess) await onSuccess(hash, input, onMutateResult, context);
 
-      const requiresExternalDecryptionTracking = isTokenOperationSupported(
-        input.token.extensions.fhenix.confidentialityType,
-        'claimable'
-      );
+      const requiresExternalDecryptionTracking =
+        input.token.extensions.fhenix.confidentialityType !== 'dual' &&
+        isTokenOperationSupported(input.token.extensions.fhenix.confidentialityType, 'claimable');
 
       useTransactionStore.getState().addTransaction({
         hash,

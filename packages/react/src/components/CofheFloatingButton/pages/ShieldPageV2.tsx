@@ -399,8 +399,10 @@ function useUnshieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps
         setStatus({
           message: (
             <>
-              Unshield transaction confirmed! Hash: <TxHashWithActions hash={transaction.hash} chainId={chainId} /> Now
-              waiting for decryption...
+              Unshield transaction confirmed! Hash: <TxHashWithActions hash={transaction.hash} chainId={chainId} />
+              {token.extensions.fhenix.confidentialityType === 'dual'
+                ? ' Claim data is now available.'
+                : ' Now waiting for decryption...'}
             </>
           ),
           type: 'success',

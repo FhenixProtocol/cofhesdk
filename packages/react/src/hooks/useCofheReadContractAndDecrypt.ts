@@ -12,8 +12,8 @@ import { cofheLogger } from '@/utils/debug';
 
 type SupportedFheTypeFromReturn<TAbi extends Abi, TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>> =
   CofheFirstReturnFheType<TAbi, TfunctionName> extends FheTypes
-    ? CofheFirstReturnFheType<TAbi, TfunctionName>
-    : FheTypes;
+  ? CofheFirstReturnFheType<TAbi, TfunctionName>
+  : FheTypes;
 
 function isEncryptedValue<TFheType extends FheTypes>(value: unknown): value is EncryptedReturnTypeByUtype<TFheType> {
   return (

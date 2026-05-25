@@ -32,7 +32,7 @@ function invalidateConfidentialTokenBalanceQueries(token: Token, queryClient: Qu
     functionName: getTokenContractConfig(token.extensions.fhenix.confidentialityType).functionName,
   });
 
-  cofheLogger.log('Invalidating shield/send read contract queries for token:', token);
+  cofheLogger.log('Invalidating shield/send read contract queries for token:', { token, tokenBalanceQueryKey });
 
   queryClient.invalidateQueries({
     queryKey: tokenBalanceQueryKey,
@@ -181,10 +181,13 @@ function useHandleInvalidations() {
       // on unshield - private balance decreases, claimable increases, public remains the same
       invalidateConfidentialTokenBalanceQueries(tx.token, queryClient);
 
-      if (
-        isTokenOperationSupported(tx.token.extensions.fhenix.confidentialityType, 'claimable') &&
-        tx.token.extensions.fhenix.confidentialityType !== 'dual'
-      ) {
+      if (tx.token.extensions.fhenix.confidentialityType === 'dual') {
+        invalidateClaimableQueries({
+          token: tx.token,
+          accountAddress: tx.account,
+          queryClient,
+        });
+      } else if (isTokenOperationSupported(tx.token.extensions.fhenix.confidentialityType, 'claimable')) {
         // schedule invalidation for unshield claims once decryption is observed
         upsertDecryptionWatcher({
           key: `${tx.actionType}-tx-${tx.hash}`,
