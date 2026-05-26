@@ -155,30 +155,29 @@ export function createCofheReadContractQueryOptions<
       readonly unknown[],
       { blockHashToBeAwareOf: `0x${string}` },
       CofheReturnType<TAbi, TfunctionName>
-    >(
-      async ({ invalidationContext }) => { // the invalidationContext matches the current query by key 
-        assert(address, 'Contract address should be guaranteed by enabled check');
-        assert(publicClient, 'PublicClient should be guaranteed by enabled check');
-        assert(abi, 'ABI should be guaranteed by enabled check');
-        assert(functionName, 'Function name should be guaranteed by enabled check');
+    >(async ({ invalidationContext }) => {
+      // the invalidationContext matches the current query by key
+      assert(address, 'Contract address should be guaranteed by enabled check');
+      assert(publicClient, 'PublicClient should be guaranteed by enabled check');
+      assert(abi, 'ABI should be guaranteed by enabled check');
+      assert(functionName, 'Function name should be guaranteed by enabled check');
 
-        const normalizedArgs = (args ?? []) as ContractFunctionArgs<TAbi, 'pure' | 'view', TfunctionName>;
+      const normalizedArgs = (args ?? []) as ContractFunctionArgs<TAbi, 'pure' | 'view', TfunctionName>;
 
-        const out = await maybeWaitUntilRpcAwareAndReadContract(publicClient, {
-          blockHashToBeAwareOf: invalidationContext?.blockHashToBeAwareOf,
-          address,
-          abi,
-          functionName,
-          args: normalizedArgs,
-        });
+      const out = await maybeWaitUntilRpcAwareAndReadContract(publicClient, {
+        blockHashToBeAwareOf: invalidationContext?.blockHashToBeAwareOf,
+        address,
+        abi,
+        functionName,
+        args: normalizedArgs,
+      });
 
-        const convertedOut = convertReadContractResultToCofheReturnType<TAbi, TfunctionName, TArgs>(out);
+      const convertedOut = convertReadContractResultToCofheReturnType<TAbi, TfunctionName, TArgs>(out);
 
-        const transformed = transformEncryptedReturnTypes(abi, functionName, convertedOut);
+      const transformed = transformEncryptedReturnTypes(abi, functionName, convertedOut);
 
-        return transformed;
-      }
-    ),
+      return transformed;
+    }),
     ...restQueryOptions,
   };
 }

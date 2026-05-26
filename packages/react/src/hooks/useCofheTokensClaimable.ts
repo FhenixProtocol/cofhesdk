@@ -149,26 +149,28 @@ export function useCofheTokensClaimable(
 
       return {
         queryKey,
-        queryFn: withInvalidationContext<readonly unknown[], { blockHashToBeAwareOf: `0x${string}` }, UnshieldClaimsSummary>(
-          async ({ signal, invalidationContext }) => {
-            assert(
-              isTokenConfidentialityTypeClaimable(confidentialityType),
-              'confidentialityType narrowed by token guard'
-            );
+        queryFn: withInvalidationContext<
+          readonly unknown[],
+          { blockHashToBeAwareOf: `0x${string}` },
+          UnshieldClaimsSummary
+        >(async ({ signal, invalidationContext }) => {
+          assert(
+            isTokenConfidentialityTypeClaimable(confidentialityType),
+            'confidentialityType narrowed by token guard'
+          );
 
-            assert(account, 'account is required to fetch unshield claims');
-            assert(publicClient, 'publicClient is required to fetch unshield claims');
+          assert(account, 'account is required to fetch unshield claims');
+          assert(publicClient, 'publicClient is required to fetch unshield claims');
 
-            return fetchUnshieldClaimsSummary({
-              publicClient,
-              token,
-              accountAddress: account,
-              confidentialityType,
-              signal,
-              blockHashToBeAwareOf: invalidationContext?.blockHashToBeAwareOf,
-            });
-          }
-        ),
+          return fetchUnshieldClaimsSummary({
+            publicClient,
+            token,
+            accountAddress: account,
+            confidentialityType,
+            signal,
+            blockHashToBeAwareOf: invalidationContext?.blockHashToBeAwareOf,
+          });
+        }),
         refetchOnMount: false,
         enabled: enabledBase,
         ...queryOptions,
