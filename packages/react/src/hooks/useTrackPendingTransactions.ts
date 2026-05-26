@@ -7,24 +7,23 @@ import {
 import { useCofhePublicClient } from './useCofheConnection';
 import { useInternalQueries, useInternalQueryClient } from '@/providers';
 import { assert } from 'ts-essentials';
-import { constructCofheReadContractQueryForInvalidation } from './useCofheReadContract';
-import { QueryClient, type QueriesOptions } from '@tanstack/react-query';
+import { type QueriesOptions } from '@tanstack/react-query';
 import type { Address, TransactionReceipt } from 'viem';
-import { getTokenContractConfig } from '@/constants/confidentialTokenABIs';
-import { ETH_ADDRESS_LOWERCASE, type Token } from './useCofheTokenLists';
-import {
-  constructPublicTokenBalanceQueryKeyForInvalidation,
-  getPublicTokenBalanceSource,
-} from './useCofheTokenPublicBalance';
+import { ETH_ADDRESS_LOWERCASE } from './useCofheTokenLists';
+import { getPublicTokenBalanceSource } from './useCofheTokenPublicBalance';
 import { constructUnshieldClaimsQueryKeyForInvalidation, invalidateClaimableQueries } from './useCofheTokenClaimable';
-import { constructTokenAllowanceQueryKeyForInvalidation } from './useTokenAllowance';
 import { usePendingTransactions } from './usePendingTransactions';
 import { useDecryptionWatchersStore } from '@/stores/decryptionWatchingStore';
 import { useTransactionGlobalLifecycle } from './useTransactionGlobalLifecycle';
 import { useEffect, useRef } from 'react';
 import { cofheLogger } from '@/utils/debug';
 import { isTokenOperationSupported } from '@/types/token';
-import { invalidateQueriesWithContext } from '@/utils/invalidationContext';
+import {
+  invalidateConfidentialTokenBalanceQueries,
+  invalidatePublicAndConfidentialTokenBalanceQueries,
+  invalidatePublicTokenBalanceQueries,
+  invalidateTokenAllowanceQueries,
+} from './internal/transactionInvalidation';
 
 const ZERO_BLOCK_HASH = '0x0000000000000000000000000000000000000000000000000000000000000000' as const;
 const RECEIPT_BLOCK_HASH_POLLING_INTERVAL_MS = 1_000;
@@ -120,101 +119,6 @@ async function resolveReceiptBlockHash(
 
     await sleep(RECEIPT_BLOCK_HASH_POLLING_INTERVAL_MS, signal);
   }
-}
-
-function invalidateConfidentialTokenBalanceQueries(
-  token: Token,
-  queryClient: QueryClient,
-  blockHashToBeAwareOf?: `0x${string}`
-) {
-  const tokenBalanceQueryKey = constructCofheReadContractQueryForInvalidation({
-    cofheChainId: token.chainId,
-    address: token.address,
-    functionName: getTokenContractConfig(token.extensions.fhenix.confidentialityType).functionName,
-  });
-
-  cofheLogger.log('Invalidating shield/send read contract queries for token:', { token, tokenBalanceQueryKey });
-
-  const filters = {
-    queryKey: tokenBalanceQueryKey,
-    // TODO: it can potentially invalidate irrelevenat queries who happen to belong to the same contract but different function. Not sure if worth fixing
-    exact: false,
-  } as const;
-
-  if (!blockHashToBeAwareOf) {
-    queryClient.invalidateQueries(filters);
-    return;
-  }
-
-  invalidateQueriesWithContext(queryClient, filters, { blockHashToBeAwareOf });
-}
-
-function invalidatePublicTokenBalanceQueries(
-  {
-    tokenAddress,
-    chainId,
-    accountAddress,
-  }: {
-    tokenAddress: Address;
-    chainId: number;
-    accountAddress: Address;
-  },
-  queryClient: QueryClient
-) {
-  const tokenBalanceQueryKey = constructPublicTokenBalanceQueryKeyForInvalidation({
-    chainId,
-    tokenAddress,
-    accountAddress,
-  });
-
-  cofheLogger.log('Invalidating public token balance read contract queries for token:', tokenBalanceQueryKey);
-
-  queryClient.invalidateQueries({
-    queryKey: tokenBalanceQueryKey,
-  });
-}
-
-function invalidatePublicAndConfidentialTokenBalanceQueries(
-  token: Token,
-  accountAddress: Address,
-  queryClient: QueryClient
-) {
-  invalidateConfidentialTokenBalanceQueries(token, queryClient);
-
-  const publicBalanceSource = getPublicTokenBalanceSource(token);
-  assert(publicBalanceSource, 'Public balance source is required for shield transaction invalidation');
-  invalidatePublicTokenBalanceQueries(
-    {
-      tokenAddress: publicBalanceSource.address,
-      chainId: token.chainId,
-      accountAddress,
-    },
-    queryClient
-  );
-}
-
-function invalidateTokenAllowanceQueries(
-  {
-    chainId,
-    tokenAddress,
-    ownerAddress,
-    spenderAddress,
-  }: {
-    chainId: number;
-    tokenAddress: Address;
-    ownerAddress: Address;
-    spenderAddress: Address;
-  },
-  queryClient: QueryClient
-) {
-  const queryKey = constructTokenAllowanceQueryKeyForInvalidation({
-    chainId,
-    tokenAddress,
-    ownerAddress,
-    spenderAddress,
-  });
-
-  queryClient.invalidateQueries({ queryKey });
 }
 
 type UseTrackPendingTransactionsInput = {
