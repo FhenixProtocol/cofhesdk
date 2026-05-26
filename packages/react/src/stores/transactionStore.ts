@@ -27,7 +27,6 @@ export type TransactionActionString = 'Shielded Transfer' | 'Shield' | 'Unshield
 
 type BaseTransaction = {
   hash: `0x${string}`;
-  blockHash?: `0x${string}`;
   receipt?: TransactionReceipt;
   status: TransactionStatus;
   timestamp: number;
@@ -80,7 +79,7 @@ export interface TransactionStore {
     chainId: number,
     hash: string,
     status: TransactionStatus,
-    minedData?: { blockHash?: `0x${string}`; receipt?: TransactionReceipt }
+    minedData?: { receipt?: TransactionReceipt }
   ) => void;
   setTransactionDecryptionStatus: (chainId: number, hash: string, isPendingDecryption: boolean) => void;
   clearTransactions: (chainId?: number) => void;
@@ -160,7 +159,7 @@ export const useTransactionStore = create<TransactionStore>()(
         chainId: number,
         hash: string,
         status: TransactionStatus,
-        minedData?: { blockHash?: `0x${string}`; receipt?: TransactionReceipt }
+        minedData?: { receipt?: TransactionReceipt }
       ) => {
         set((state) => {
           const chainTxs = state.transactions[chainId];
@@ -174,7 +173,6 @@ export const useTransactionStore = create<TransactionStore>()(
                 [hash]: {
                   ...chainTxs[hash],
                   status,
-                  blockHash: minedData?.blockHash ?? chainTxs[hash].blockHash,
                   receipt: minedData?.receipt ?? chainTxs[hash].receipt,
                   // if tx failed, it's no longer pending decryption
                   isPendingDecryption: status === TransactionStatus.Failed ? false : chainTxs[hash].isPendingDecryption,

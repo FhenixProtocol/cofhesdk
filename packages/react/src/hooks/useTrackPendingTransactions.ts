@@ -245,7 +245,6 @@ function useTrackPendingTransactionsBase({
         const status = normalizedReceipt.status === 'success' ? TransactionStatus.Confirmed : TransactionStatus.Failed;
 
         useTransactionStore.getState().updateTransactionStatus(tx.chainId, tx.hash, status, {
-          blockHash: normalizedReceipt.blockHash ?? undefined,
           receipt: normalizedReceipt,
         });
 
