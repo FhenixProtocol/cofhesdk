@@ -20,6 +20,60 @@ function abortError(message = 'Aborted') {
   return err;
 }
 
+export async function maybeWaitUntilRpcAware<T>(
+  publicClient: PublicClient,
+  params: {
+    blockHashToBeAwareOf?: `0x${string}`;
+    read: () => Promise<T>;
+    readDescription?: string;
+  },
+  options: WaitUntilRpcAwareAndReadContractOptions = {}
+): Promise<T> {
+  if (!params.blockHashToBeAwareOf) return params.read();
+
+  const pollingInterval = options.pollingInterval ?? 1_000;
+  const readDescription = params.readDescription ?? 'RPC read';
+
+  cofheLogger.log(
+    `[maybeWaitUntilRpcAware]: Waiting until RPC is aware of block ${params.blockHashToBeAwareOf} before ${readDescription}...`
+  );
+
+  while (true) {
+    if (options.signal?.aborted) throw abortError();
+
+    const [blockRes, readRes] = await Promise.allSettled([
+      publicClient.request({
+        method: 'eth_getBlockByHash',
+        params: [params.blockHashToBeAwareOf, false],
+      }),
+      params.read(),
+    ]);
+
+    const blockKnown = blockRes.status === 'fulfilled' && blockRes.value != null;
+
+    if (blockKnown && readRes.status === 'fulfilled') {
+      options.onSuccess?.();
+
+      cofheLogger.debug(
+        `[maybeWaitUntilRpcAware]: RPC is now aware of block ${params.blockHashToBeAwareOf}. Block fetch result:`,
+        blockRes,
+        'Read result:',
+        readRes
+      );
+      return readRes.value;
+    }
+
+    cofheLogger.debug(
+      `[maybeWaitUntilRpcAware]: RPC not yet aware of block ${params.blockHashToBeAwareOf}. Block fetch result:`,
+      blockRes,
+      'Read result:',
+      readRes
+    );
+
+    await sleep(pollingInterval, options.signal);
+  }
+}
+
 async function sleep(ms: number, signal?: AbortSignal) {
   if (ms <= 0) return;
   if (signal?.aborted) throw abortError();
@@ -79,62 +133,19 @@ export async function maybeWaitUntilRpcAwareAndReadContract<
   },
   options: WaitUntilRpcAwareAndReadContractOptions = {}
 ): Promise<ReadContractResult<TAbi, TfunctionName>> {
-  // if no blockHash given to be aware of, just read directly
-  if (!params.blockHashToBeAwareOf)
-    return publicClient.readContract({
-      address: params.address,
-      abi: params.abi,
-      functionName: params.functionName,
-      args: params.args,
-    });
-
-  const pollingInterval = options.pollingInterval ?? 1_000;
-
-  cofheLogger.log(
-    `[maybeWaitUntilRpcAwareAndReadContract]: Waiting until RPC is aware of block ${params.blockHashToBeAwareOf} to read contract...`,
-    params.address,
-    params.functionName
+  return maybeWaitUntilRpcAware(
+    publicClient,
+    {
+      blockHashToBeAwareOf: params.blockHashToBeAwareOf,
+      readDescription: `read contract ${params.functionName}`,
+      read: () =>
+        publicClient.readContract({
+          address: params.address,
+          abi: params.abi,
+          functionName: params.functionName,
+          args: params.args,
+        }),
+    },
+    options
   );
-  let done = false;
-  while (!done) {
-    if (options.signal?.aborted) throw abortError();
-
-    const [blockRes, readRes] = await Promise.allSettled([
-      publicClient.request({
-        method: 'eth_getBlockByHash',
-        params: [params.blockHashToBeAwareOf, false],
-      }),
-      publicClient.readContract({
-        address: params.address,
-        abi: params.abi,
-        functionName: params.functionName,
-        args: params.args,
-      }),
-    ]);
-
-    const blockKnown = blockRes.status === 'fulfilled' && blockRes.value != null;
-
-    if (blockKnown && readRes.status === 'fulfilled') {
-      options?.onSuccess?.();
-      done = true;
-
-      cofheLogger.debug(
-        `[maybeWaitUntilRpcAwareAndReadContract]: RPC is now aware of block ${params.blockHashToBeAwareOf}. Block fetch result:`,
-        blockRes,
-        'Read contract result:',
-        readRes
-      );
-      return readRes.value;
-    }
-    cofheLogger.debug(
-      `[maybeWaitUntilRpcAwareAndReadContract]: RPC not yet aware of block ${params.blockHashToBeAwareOf}. Block fetch result:`,
-      blockRes,
-      'Read contract result:',
-      readRes
-    );
-    await sleep(pollingInterval, options.signal);
-  }
-
-  // Unreachable, but keeps TS happy.
-  throw new Error('Unexpected exit from wait loop');
 }

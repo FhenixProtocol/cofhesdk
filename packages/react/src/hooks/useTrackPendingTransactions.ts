@@ -1,24 +1,18 @@
+import { useInternalQueries, useInternalQueryClient } from '@/providers';
+import { useDecryptionWatchersStore } from '@/stores/decryptionWatchingStore';
 import {
   TransactionActionType,
   TransactionStatus,
   useTransactionStore,
   type Transaction,
 } from '@/stores/transactionStore';
-import { useCofhePublicClient } from './useCofheConnection';
-import { useInternalQueries, useInternalQueryClient } from '@/providers';
-import { assert } from 'ts-essentials';
-import { type QueriesOptions } from '@tanstack/react-query';
-import type { Address, TransactionReceipt } from 'viem';
-import { ETH_ADDRESS_LOWERCASE } from './useCofheTokenLists';
-import { getPublicTokenBalanceSource } from './useCofheTokenPublicBalance';
-import { constructUnshieldClaimsQueryKeyForInvalidation } from './useCofheTokenClaimable';
-import { usePendingTransactions } from './usePendingTransactions';
-import { useDecryptionWatchersStore } from '@/stores/decryptionWatchingStore';
-import { useTransactionGlobalLifecycle } from './useTransactionGlobalLifecycle';
-import { useEffect, useRef } from 'react';
-import { cofheLogger } from '@/utils/debug';
 import { isTokenOperationSupported } from '@/types/token';
+import { cofheLogger } from '@/utils/debug';
 import { resolveReceiptBlockHash } from '@/utils/resolveReceiptBlockHash';
+import { type QueriesOptions } from '@tanstack/react-query';
+import { useEffect, useRef } from 'react';
+import { assert } from 'ts-essentials';
+import type { TransactionReceipt } from 'viem';
 import {
   invalidateClaimableQueries,
   invalidateConfidentialTokenBalanceQueries,
@@ -26,6 +20,12 @@ import {
   invalidatePublicTokenBalanceQueries,
   invalidateTokenAllowanceQueries,
 } from './internal/transactionInvalidation';
+import { useCofhePublicClient } from './useCofheConnection';
+import { constructUnshieldClaimsQueryKeyForInvalidation } from './useCofheTokenClaimable';
+import { ETH_ADDRESS_LOWERCASE } from './useCofheTokenLists';
+import { getPublicTokenBalanceSource } from './useCofheTokenPublicBalance';
+import { usePendingTransactions } from './usePendingTransactions';
+import { useTransactionGlobalLifecycle } from './useTransactionGlobalLifecycle';
 
 type UseTrackPendingTransactionsInput = {
   onReceiptSuccess: (tx: Transaction, receipt: TransactionReceipt) => void;
@@ -94,13 +94,14 @@ function useHandleInvalidations() {
         chainId: tx.chainId,
         accountAddress: tx.account,
       },
-      queryClient
+      queryClient,
+      blockHashToBeAwareOf
     );
     if (tx.actionType === TransactionActionType.ShieldSend) {
-      invalidateConfidentialTokenBalanceQueries(tx.token, queryClient);
+      invalidateConfidentialTokenBalanceQueries(tx.token, queryClient, blockHashToBeAwareOf);
     } else if (tx.actionType === TransactionActionType.Shield) {
       // on shield public balance decreases and private increases
-      invalidatePublicAndConfidentialTokenBalanceQueries(tx.token, tx.account, queryClient);
+      invalidatePublicAndConfidentialTokenBalanceQueries(tx.token, tx.account, queryClient, blockHashToBeAwareOf);
     } else if (tx.actionType === TransactionActionType.Unshield) {
       // on unshield - private balance decreases, claimable increases, public remains the same
       invalidateConfidentialTokenBalanceQueries(tx.token, queryClient, blockHashToBeAwareOf);
@@ -140,7 +141,8 @@ function useHandleInvalidations() {
             chainId: tx.token.chainId,
             accountAddress: tx.account,
           },
-          queryClient
+          queryClient,
+          blockHashToBeAwareOf
         );
       }
       invalidateClaimableQueries({
@@ -148,6 +150,7 @@ function useHandleInvalidations() {
         accountAddress: tx.account,
 
         queryClient,
+        blockHashToBeAwareOf,
       });
     } else if (tx.actionType === TransactionActionType.Approve) {
       const publicBalanceSource = getPublicTokenBalanceSource(tx.token);
@@ -159,7 +162,8 @@ function useHandleInvalidations() {
             ownerAddress: tx.account,
             spenderAddress: tx.token.address,
           },
-          queryClient
+          queryClient,
+          blockHashToBeAwareOf
         );
       }
     } else {

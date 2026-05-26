@@ -50,7 +50,8 @@ export function invalidatePublicTokenBalanceQueries(
     chainId: number;
     accountAddress: Address;
   },
-  queryClient: QueryClient
+  queryClient: QueryClient,
+  blockHashToBeAwareOf?: `0x${string}`
 ) {
   const tokenBalanceQueryKey = constructPublicTokenBalanceQueryKeyForInvalidation({
     chainId,
@@ -60,17 +61,25 @@ export function invalidatePublicTokenBalanceQueries(
 
   cofheLogger.log('Invalidating public token balance read contract queries for token:', tokenBalanceQueryKey);
 
-  queryClient.invalidateQueries({
+  const filters = {
     queryKey: tokenBalanceQueryKey,
-  });
+  } as const;
+
+  if (!blockHashToBeAwareOf) {
+    queryClient.invalidateQueries(filters);
+    return;
+  }
+
+  invalidateQueriesWithContext(queryClient, filters, { blockHashToBeAwareOf });
 }
 
 export function invalidatePublicAndConfidentialTokenBalanceQueries(
   token: Token,
   accountAddress: Address,
-  queryClient: QueryClient
+  queryClient: QueryClient,
+  blockHashToBeAwareOf?: `0x${string}`
 ) {
-  invalidateConfidentialTokenBalanceQueries(token, queryClient);
+  invalidateConfidentialTokenBalanceQueries(token, queryClient, blockHashToBeAwareOf);
 
   const publicBalanceSource = getPublicTokenBalanceSource(token);
   assert(publicBalanceSource, 'Public balance source is required for shield transaction invalidation');
@@ -80,7 +89,8 @@ export function invalidatePublicAndConfidentialTokenBalanceQueries(
       chainId: token.chainId,
       accountAddress,
     },
-    queryClient
+    queryClient,
+    blockHashToBeAwareOf
   );
 }
 
@@ -96,7 +106,8 @@ export function invalidateTokenAllowanceQueries(
     ownerAddress: Address;
     spenderAddress: Address;
   },
-  queryClient: QueryClient
+  queryClient: QueryClient,
+  blockHashToBeAwareOf?: `0x${string}`
 ) {
   const queryKey = constructTokenAllowanceQueryKeyForInvalidation({
     chainId,
@@ -105,7 +116,14 @@ export function invalidateTokenAllowanceQueries(
     spenderAddress,
   });
 
-  queryClient.invalidateQueries({ queryKey });
+  const filters = { queryKey } as const;
+
+  if (!blockHashToBeAwareOf) {
+    queryClient.invalidateQueries(filters);
+    return;
+  }
+
+  invalidateQueriesWithContext(queryClient, filters, { blockHashToBeAwareOf });
 }
 
 export function invalidateClaimableQueries({

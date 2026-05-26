@@ -107,20 +107,25 @@ The current end-to-end flow is:
 
 ## Current Rollout
 
-At the moment this is wired for the unshield flow.
+This is now wired for every mined transaction flow that already triggers query invalidation in `@cofhe/react`.
 
 The block-hash-aware invalidations currently cover:
 
 - confidential token balances
+- public token balances, including native gas-balance refetches
 - user claimable/unshield-claims queries
+- token allowances
 
 The relevant mined-transaction logic lives in `src/hooks/useTrackPendingTransactions.ts`.
 
-For `TransactionActionType.Unshield`:
+For the current transaction actions:
 
-- confidential balance invalidation is block-hash-aware immediately
-- dual-token claimable invalidation is block-hash-aware immediately
-- non-dual claimable invalidation is deferred until decryption is observed, then invalidated later
+- `ShieldSend` invalidates confidential balance queries with block-hash context
+- `Shield` invalidates both public and confidential balance queries with block-hash context
+- `Unshield` invalidates confidential balance queries immediately, dual-token claimable queries immediately, and non-dual claimable queries after decryption is observed
+- `Claim` invalidates public balances and claimable queries with block-hash context
+- `Approve` invalidates token allowance queries with block-hash context
+- every mined transaction also invalidates the native public balance query for gas accounting with block-hash context
 
 ## Query-Side Examples
 
@@ -141,6 +146,27 @@ So any invalidation that targets those query keys can pass block-hash context an
 - `fetchUnshieldClaimsSummary(..., blockHashToBeAwareOf)`
 
 That makes claimable summaries safe to refetch against the mined block once invalidated with context.
+
+### Public balances
+
+`useCofheTokenPublicBalance` now uses:
+
+- `withInvalidationContext(...)`
+- `maybeWaitUntilRpcAware(...)`
+
+That covers both:
+
+- native balance reads via `getBalance(...)`
+- ERC20 balance reads via `readContract(balanceOf)`
+
+### Token allowances
+
+`useTokenAllowance` now uses:
+
+- `withInvalidationContext(...)`
+- `maybeWaitUntilRpcAwareAndReadContract(...)`
+
+That makes `approve`-driven allowance refetches wait for the mined block before re-reading the allowance.
 
 ## Invalidation-Side Examples
 
@@ -163,6 +189,19 @@ invalidateQueriesWithContext(queryClient, filters, { blockHashToBeAwareOf });
 ```
 
 This keeps the legacy behavior unchanged when no block hash is available.
+
+## Short Cause/Effect Table
+
+| Transaction cause                       | Invalidated query family                                     | Consuming query hook                                                              |
+| --------------------------------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| Any mined tx gas spend                  | Public native balance                                        | `useCofheTokenPublicBalance`                                                      |
+| `ShieldSend`                            | Confidential token balance                                   | `useCofheReadContract`                                                            |
+| `Shield`                                | Public token balance + confidential token balance            | `useCofheTokenPublicBalance`, `useCofheReadContract`                              |
+| `Unshield`                              | Confidential token balance                                   | `useCofheReadContract`                                                            |
+| `Unshield` on dual tokens               | Claimable/unshield claims                                    | `useCofheTokenClaimable`, `useCofheTokensClaimable`                               |
+| `Unshield` on non-dual claimable tokens | Deferred claimable/unshield claims after decryption observed | `useCofheTokenClaimable`, `useCofheTokensClaimable`                               |
+| `Claim`                                 | Public token balance + claimable/unshield claims             | `useCofheTokenPublicBalance`, `useCofheTokenClaimable`, `useCofheTokensClaimable` |
+| `Approve`                               | Token allowance                                              | `useTokenAllowance`                                                               |
 
 ## How To Apply This To Another Cache
 
