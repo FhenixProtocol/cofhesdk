@@ -98,14 +98,14 @@ function convertReadContractResultToCofheReturnType<
 ): ContractReturnType<
   TAbi,
   TfunctionName
-//TArgs
+  //TArgs
 > {
   // TODO: convertViemReturnTypeToCofheReturnType -- need core typing changes, currently seems to not support fn overloads
   // viems inferred TArgs mismatch Cofhe's
   return value as ContractReturnType<
     TAbi,
     TfunctionName
-  //TArgs
+    //TArgs
   >;
 }
 

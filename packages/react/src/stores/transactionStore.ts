@@ -191,8 +191,8 @@ export const useTransactionStore = create<TransactionStore>()(
         const chainTxs = get().transactions[chainId];
         return chainTxs
           ? Object.values(chainTxs)
-            .filter((tx) => !account || !tx.account || tx.account.toLowerCase() === account.toLowerCase())
-            .sort((a, b) => b.timestamp - a.timestamp) // newest first
+              .filter((tx) => !account || !tx.account || tx.account.toLowerCase() === account.toLowerCase())
+              .sort((a, b) => b.timestamp - a.timestamp) // newest first
           : [];
       },
 
@@ -200,10 +200,10 @@ export const useTransactionStore = create<TransactionStore>()(
         const chainTxs = get().transactions[chainId];
         return chainTxs
           ? Object.values(chainTxs)
-            .filter((tx) => {
-              return tx.account.toLowerCase() === account?.toLowerCase();
-            })
-            .sort((a, b) => b.timestamp - a.timestamp) // newest first
+              .filter((tx) => {
+                return tx.account.toLowerCase() === account?.toLowerCase();
+              })
+              .sort((a, b) => b.timestamp - a.timestamp) // newest first
           : [];
       },
 
