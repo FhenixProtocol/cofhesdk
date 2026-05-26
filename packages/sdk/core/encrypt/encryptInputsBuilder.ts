@@ -16,6 +16,7 @@ import {
   type EncryptedItemInputs,
   type TfheInitializer,
   type EncryptStepCallbackContext,
+  type HashPlusProofResult,
 } from '../types.js';
 import { cofheMocksCheckEncryptableBits, cofheMocksZkVerifySign } from './cofheMocksZkVerifySign.js';
 import { hardhat } from 'viem/chains';
@@ -47,10 +48,11 @@ type EncryptInputsBuilderParams<T extends EncryptableItem[]> = BaseBuilderParams
  * config, tfhePublicKeyDeserializer, compactPkeCrsDeserializer, and zkBuilderAndCrsGenerator are required to be set in the builder.
  */
 
-export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuilder {
+export class EncryptInputsBuilder<T extends EncryptableItem[], HPP extends boolean = false> extends BaseBuilder {
   private securityZone: number;
   private stepCallback?: EncryptStepCallbackFunction;
   private inputItems: [...T];
+  private hpp: boolean = false;
 
   private zkvWalletClient: WalletClient | undefined;
 
@@ -154,7 +156,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    *
    * @returns The chainable EncryptInputsBuilder instance.
    */
-  setAccount(account: string): EncryptInputsBuilder<T> {
+  setAccount(account: string): EncryptInputsBuilder<T, HPP> {
     this.account = account;
     return this;
   }
@@ -177,7 +179,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    *
    * @returns The chainable EncryptInputsBuilder instance.
    */
-  setChainId(chainId: number): EncryptInputsBuilder<T> {
+  setChainId(chainId: number): EncryptInputsBuilder<T, HPP> {
     this.chainId = chainId;
     return this;
   }
@@ -200,13 +202,28 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    *
    * @returns The chainable EncryptInputsBuilder instance.
    */
-  setSecurityZone(securityZone: number): EncryptInputsBuilder<T> {
+  setSecurityZone(securityZone: number): EncryptInputsBuilder<T, HPP> {
     this.securityZone = securityZone;
     return this;
   }
 
   getSecurityZone(): number {
     return this.securityZone;
+  }
+
+  /**
+   * Example:
+   * ```typescript
+   * const encrypted = await encryptInputs([Encryptable.uint128(10n)])
+   *   .asHashPlusProof()
+   *   .execute();
+   * ```
+   *
+   * @returns Chainable EncryptInputsBuilder instance that will return a HashPlusProofResult instead of an array of EncryptedItemInputs.
+   */
+  asHashPlusProof(): EncryptInputsBuilder<T, true> {
+    this.hpp = true;
+    return this as unknown as EncryptInputsBuilder<T, true>;
   }
 
   /**
@@ -223,7 +240,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    *
    * @returns The chainable EncryptInputsBuilder instance.
    */
-  setUseWorker(useWorker: boolean): EncryptInputsBuilder<T> {
+  setUseWorker(useWorker: boolean): EncryptInputsBuilder<T, HPP> {
     this.useWorker = useWorker;
     return this;
   }
@@ -260,7 +277,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    *
    * @returns The EncryptInputsBuilder instance.
    */
-  onStep(callback: EncryptStepCallbackFunction): EncryptInputsBuilder<T> {
+  onStep(callback: EncryptStepCallbackFunction): EncryptInputsBuilder<T, HPP> {
     this.stepCallback = callback;
     return this;
   }
@@ -554,6 +571,18 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     return encryptedInputs as [...EncryptedItemInputs<T>];
   }
 
+  private async structsToHashPlusProof(inItems: [...EncryptedItemInputs<T>]): Promise<HashPlusProofResult<T>> {
+    let hashes: string[] = [];
+    let proof: string = '';
+
+    for (const item of inItems) {
+      hashes.push(item.ctHash.toString());
+      proof += item.signature;
+    }
+
+    return [...hashes, proof] as unknown as HashPlusProofResult<T>;
+  }
+
   /**
    * Final step of the encryption process. MUST BE CALLED LAST IN THE CHAIN.
    *
@@ -573,11 +602,18 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    *
    * @returns The encrypted inputs.
    */
-  async execute(): Promise<[...EncryptedItemInputs<T>]> {
+  async execute(): Promise<HPP extends true ? HashPlusProofResult<T> : [...EncryptedItemInputs<T>]> {
+    type Result = HPP extends true ? HashPlusProofResult<T> : [...EncryptedItemInputs<T>];
+
+    let items: [...EncryptedItemInputs<T>];
+
     // On hardhat chain, interact with MockZkVerifier contract instead of CoFHE
-    if (this.chainId === hardhat.id) return this.mocksExecute();
+    if (this.chainId === hardhat.id) items = await this.mocksExecute();
 
     // On other chains, interact with CoFHE coprocessor
-    return this.productionExecute();
+    else items = await this.productionExecute();
+
+    if (this.hpp) return this.structsToHashPlusProof(items) as unknown as Result;
+    return items as unknown as Result;
   }
 }
