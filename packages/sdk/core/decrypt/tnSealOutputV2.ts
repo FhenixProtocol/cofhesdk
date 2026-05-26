@@ -50,6 +50,94 @@ type SealOutputStatusResponse = {
   error_message?: string | null;
 };
 
+type SealOutputDebugDetails = {
+  url: string;
+  method: 'POST' | 'GET';
+  requestHeaders: Record<string, string>;
+  requestBody?: unknown;
+  curl: string;
+  response?: {
+    status?: number;
+    statusText?: string;
+    headers?: Record<string, string>;
+    body?: unknown;
+  };
+};
+
+function shellEscapeSingleQuoted(value: string): string {
+  return `'${value.replace(/'/g, `'"'"'`)}'`;
+}
+
+function headersToObject(headers?: Headers): Record<string, string> {
+  if (!headers) return {};
+
+  const result: Record<string, string> = {};
+  headers.forEach((value, key) => {
+    result[key] = value;
+  });
+  return result;
+}
+
+function tryParseJson(text: string): unknown {
+  if (text.length === 0) return undefined;
+
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return text;
+  }
+}
+
+function buildCurlCommand(params: {
+  url: string;
+  method: 'POST' | 'GET';
+  headers: Record<string, string>;
+  body?: unknown;
+}): string {
+  const { url, method, headers, body } = params;
+  const parts = ['curl', '-i', '-X', method];
+
+  for (const [key, value] of Object.entries(headers)) {
+    parts.push('-H', shellEscapeSingleQuoted(`${key}: ${value}`));
+  }
+
+  if (body !== undefined) {
+    parts.push('--data-raw', shellEscapeSingleQuoted(JSON.stringify(body)));
+  }
+
+  parts.push(shellEscapeSingleQuoted(url));
+
+  return parts.join(' ');
+}
+
+async function readResponseDebug(response: Response): Promise<SealOutputDebugDetails['response']> {
+  const responseLike = response as Response & {
+    clone?: () => Response;
+    text?: () => Promise<string>;
+    json?: () => Promise<unknown>;
+  };
+  const bodySource = typeof responseLike.clone === 'function' ? responseLike.clone() : responseLike;
+
+  let body: unknown;
+  if (typeof bodySource.text === 'function') {
+    body = tryParseJson(await bodySource.text());
+  } else if (typeof bodySource.json === 'function') {
+    body = await bodySource.json();
+  }
+
+  return {
+    status: response.status,
+    statusText: response.statusText,
+    headers: headersToObject(response.headers),
+    body,
+  };
+}
+
+function emitSealOutputDebug(label: string, details: SealOutputDebugDetails): void {
+  console.error(`[cofhe][${label}] request curl: ${details.curl}`);
+  console.error(`[cofhe][${label}] response: ${JSON.stringify(details.response ?? {})}`);
+}
+
 /**
  * Converts a number array to Uint8Array
  */
@@ -145,19 +233,34 @@ async function submitSealOutputRequest(
     host_chain_id: chainId,
     permit: permission,
   };
+  const submitUrl = `${thresholdNetworkUrl}/v2/sealoutput`;
+  const requestHeaders = {
+    'Content-Type': 'application/json',
+  };
   let attemptIndex = 0;
 
   for (;;) {
     let response: Response;
     try {
-      response = await fetch(`${thresholdNetworkUrl}/v2/sealoutput`, {
+      response = await fetch(submitUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: requestHeaders,
         body: JSON.stringify(body),
       });
     } catch (e) {
+      const debug: SealOutputDebugDetails = {
+        url: submitUrl,
+        method: 'POST',
+        requestHeaders,
+        requestBody: body,
+        curl: buildCurlCommand({
+          url: submitUrl,
+          method: 'POST',
+          headers: requestHeaders,
+          body,
+        }),
+      };
+      emitSealOutputDebug('sealoutput submit failed before response', debug);
       throw new CofheError({
         code: CofheErrorCode.SealOutputFailed,
         message: `sealOutput request failed`,
@@ -167,6 +270,7 @@ async function submitSealOutputRequest(
           thresholdNetworkUrl,
           body,
           attemptIndex,
+          httpDebug: debug,
         },
       });
     }
@@ -174,6 +278,20 @@ async function submitSealOutputRequest(
     const responseClassification = await classifySubmitResponse({ response });
 
     if (responseClassification.kind === 'fatal-http') {
+      const debug: SealOutputDebugDetails = {
+        url: submitUrl,
+        method: 'POST',
+        requestHeaders,
+        requestBody: body,
+        curl: buildCurlCommand({
+          url: submitUrl,
+          method: 'POST',
+          headers: requestHeaders,
+          body,
+        }),
+        response: await readResponseDebug(response),
+      };
+      emitSealOutputDebug('sealoutput submit fatal response', debug);
       throw new CofheError({
         code: CofheErrorCode.SealOutputFailed,
         message: `sealOutput request failed: ${responseClassification.errorMessage}`,
@@ -184,6 +302,7 @@ async function submitSealOutputRequest(
           statusText: response.statusText,
           body,
           attemptIndex,
+          httpDebug: debug,
         },
       });
     }
@@ -271,6 +390,9 @@ async function pollSealOutputStatus(
 ): Promise<EthEncryptedData> {
   let attemptIndex = 0;
   let completed = false;
+  const requestHeaders = {
+    'Content-Type': 'application/json',
+  };
 
   while (!completed) {
     const elapsedMs = Date.now() - overallStartTime;
@@ -302,14 +424,24 @@ async function pollSealOutputStatus(
     }
 
     let response: Response;
+    const pollUrl = `${thresholdNetworkUrl}/v2/sealoutput/${requestId}`;
     try {
-      response = await fetch(`${thresholdNetworkUrl}/v2/sealoutput/${requestId}`, {
+      response = await fetch(pollUrl, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: requestHeaders,
       });
     } catch (e) {
+      const debug: SealOutputDebugDetails = {
+        url: pollUrl,
+        method: 'GET',
+        requestHeaders,
+        curl: buildCurlCommand({
+          url: pollUrl,
+          method: 'GET',
+          headers: requestHeaders,
+        }),
+      };
+      emitSealOutputDebug('sealoutput poll failed before response', debug);
       throw new CofheError({
         code: CofheErrorCode.SealOutputFailed,
         message: `sealOutput status poll failed`,
@@ -318,6 +450,7 @@ async function pollSealOutputStatus(
         context: {
           thresholdNetworkUrl,
           requestId,
+          httpDebug: debug,
         },
       });
     }
@@ -338,12 +471,32 @@ async function pollSealOutputStatus(
     // Handle other non-200 status codes
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}`;
-      try {
-        const errorBody = await response.json();
-        errorMessage = errorBody.error_message || errorBody.message || errorMessage;
-      } catch {
+      const responseDebug = await readResponseDebug(response);
+      const errorBody = responseDebug?.body;
+      if (errorBody && typeof errorBody === 'object') {
+        const errorRecord = errorBody as Record<string, unknown>;
+        const detailedMessage = errorRecord.error_message ?? errorRecord.message;
+        if (typeof detailedMessage === 'string' && detailedMessage.length > 0) {
+          errorMessage = detailedMessage;
+        } else {
+          errorMessage = response.statusText || errorMessage;
+        }
+      } else {
         errorMessage = response.statusText || errorMessage;
       }
+
+      const debug: SealOutputDebugDetails = {
+        url: pollUrl,
+        method: 'GET',
+        requestHeaders,
+        curl: buildCurlCommand({
+          url: pollUrl,
+          method: 'GET',
+          headers: requestHeaders,
+        }),
+        response: responseDebug,
+      };
+      emitSealOutputDebug('sealoutput poll fatal response', debug);
 
       throw new CofheError({
         code: CofheErrorCode.SealOutputFailed,
@@ -353,6 +506,7 @@ async function pollSealOutputStatus(
           requestId,
           status: response.status,
           statusText: response.statusText,
+          httpDebug: debug,
         },
       });
     }
