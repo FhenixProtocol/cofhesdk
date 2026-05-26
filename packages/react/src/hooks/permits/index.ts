@@ -4,4 +4,4 @@ export { usePermitsList } from './usePermitsList';
 export type { PermitStatus, PermitActionId } from './usePermitsList';
 export { useReceivePermit } from './useReceivePermit';
 export { usePermitDetailsAndActions as usePermitDetailsPage } from './usePermitDetailsAndActions';
-export { useCofheCreatePermitMutation } from './useCofheCreatePermitMutation';
+export { useCofheCreatePermit } from './useCofheCreatePermit';

@@ -20,7 +20,7 @@ type Input = {
   onError?: (error: Error) => void;
 };
 
-export const useCofheCreatePermitMutation = ({ onSuccess, onError }: Input = {}) => {
+export const useCofheCreatePermit = ({ onSuccess, onError }: Input = {}) => {
   const cofheClient = useCofheClient();
   const { setHasCreatedFirstPermit } = usePortalPersisted();
 

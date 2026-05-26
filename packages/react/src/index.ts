@@ -85,6 +85,7 @@ export type { CofheContextValue, CofheProviderProps, CofheClientConfig } from '.
 export { createCofheClient } from '@cofhe/sdk/web';
 
 export { useCofheNavigateToCreatePermit } from '@/hooks/permits/useCofheNavigateToCreatePermit';
+export { useCofheCreatePermit } from '@/hooks/permits/useCofheCreatePermit';
 export { useCofheAutoConnect } from '@/hooks/useCofheAutoConnect';
 
 export type { CofheConfigWithReact as CofhesdkConfigWithReact } from './config';
