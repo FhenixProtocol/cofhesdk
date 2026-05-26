@@ -1,6 +1,9 @@
 import { getTokenContractConfig } from '@/constants/confidentialTokenABIs';
 import { constructCofheReadContractQueryForInvalidation } from '../useCofheReadContract';
-import { constructPublicTokenBalanceQueryKeyForInvalidation, getPublicTokenBalanceSource } from '../useCofheTokenPublicBalance';
+import {
+    constructPublicTokenBalanceQueryKeyForInvalidation,
+    getPublicTokenBalanceSource,
+} from '../useCofheTokenPublicBalance';
 import { constructTokenAllowanceQueryKeyForInvalidation } from '../useTokenAllowance';
 import { cofheLogger } from '@/utils/debug';
 import { invalidateQueriesWithContext } from '@/utils/invalidationContext';
@@ -8,6 +11,7 @@ import { assert } from 'ts-essentials';
 import { QueryClient } from '@tanstack/react-query';
 import type { Address } from 'viem';
 import type { Token } from '../useCofheTokenLists';
+import { constructUnshieldClaimsQueryKeyForInvalidation } from '../useCofheTokenClaimable';
 
 export function invalidateConfidentialTokenBalanceQueries(
     token: Token,
@@ -102,4 +106,34 @@ export function invalidateTokenAllowanceQueries(
     });
 
     queryClient.invalidateQueries({ queryKey });
+}
+
+export function invalidateClaimableQueries({
+    token,
+    accountAddress,
+    queryClient,
+    blockHashToBeAwareOf,
+}: {
+    token: Token;
+    accountAddress: Address;
+    queryClient: QueryClient;
+    blockHashToBeAwareOf?: `0x${string}`;
+}) {
+    cofheLogger.log('Invalidating unshield claims queries for token:', token);
+
+    const filters = {
+        queryKey: constructUnshieldClaimsQueryKeyForInvalidation({
+            chainId: token.chainId,
+            tokenAddress: token.address,
+            confidentialityType: token.extensions.fhenix.confidentialityType,
+            accountAddress,
+        }),
+    } as const;
+
+    if (!blockHashToBeAwareOf) {
+        queryClient.invalidateQueries(filters);
+        return;
+    }
+
+    invalidateQueriesWithContext(queryClient, filters, { blockHashToBeAwareOf });
 }

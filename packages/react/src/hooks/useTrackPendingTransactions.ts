@@ -11,7 +11,7 @@ import { type QueriesOptions } from '@tanstack/react-query';
 import type { Address, TransactionReceipt } from 'viem';
 import { ETH_ADDRESS_LOWERCASE } from './useCofheTokenLists';
 import { getPublicTokenBalanceSource } from './useCofheTokenPublicBalance';
-import { constructUnshieldClaimsQueryKeyForInvalidation, invalidateClaimableQueries } from './useCofheTokenClaimable';
+import { constructUnshieldClaimsQueryKeyForInvalidation } from './useCofheTokenClaimable';
 import { usePendingTransactions } from './usePendingTransactions';
 import { useDecryptionWatchersStore } from '@/stores/decryptionWatchingStore';
 import { useTransactionGlobalLifecycle } from './useTransactionGlobalLifecycle';
@@ -19,6 +19,7 @@ import { useEffect, useRef } from 'react';
 import { cofheLogger } from '@/utils/debug';
 import { isTokenOperationSupported } from '@/types/token';
 import {
+  invalidateClaimableQueries,
   invalidateConfidentialTokenBalanceQueries,
   invalidatePublicAndConfidentialTokenBalanceQueries,
   invalidatePublicTokenBalanceQueries,
