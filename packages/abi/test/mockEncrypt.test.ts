@@ -1,6 +1,18 @@
 import { Encryptable, FheTypes } from '@cofhe/sdk';
 import { generateMockCtHash, mockEncrypt, mockEncryptEncryptable } from 'src/mockEncrypt';
 import { describe, expect, it } from 'vitest';
+// 0xffffffffn
+const UINT32_MAX = (1n << 32n) - 1n;
+
+function uint32TruncatedStringHash(value: string): bigint {
+  let hash = 0n;
+  for (let index = 0; index < value.length; index++) {
+    hash = (hash << 5n) - hash + BigInt(value.charCodeAt(index));
+    hash = BigInt.asUintN(32, hash);
+  }
+
+  return hash;
+}
 
 describe('mockEncrypt', () => {
   it('should encrypt a boolean', () => {
@@ -111,5 +123,21 @@ describe('mockEncrypt', () => {
         signature: '0xMockSignature',
       },
     ]);
+  });
+
+  it('should mask string ctHash values to 32 bits on every iteration', () => {
+    const longString = '0x' + '1234567890abcdef'.repeat(32);
+
+    expect(generateMockCtHash(longString)).toBe(uint32TruncatedStringHash(longString));
+    expect(generateMockCtHash(longString)).toBeLessThanOrEqual(UINT32_MAX);
+  });
+
+  it('should use the masked string hash when encrypting string-backed inputs', () => {
+    const longAddressLikeString = '0x' + 'ab'.repeat(80);
+    const encryptable = Encryptable.address(longAddressLikeString);
+    const encrypted = mockEncryptEncryptable(encryptable);
+
+    expect(encrypted.ctHash).toBe(uint32TruncatedStringHash(longAddressLikeString));
+    expect(encrypted.ctHash).toBeLessThanOrEqual(UINT32_MAX);
   });
 });
