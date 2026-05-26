@@ -1,22 +1,17 @@
-import { type UseMutationOptions, type UseMutationResult } from '@tanstack/react-query';
-import { type Address, type Hex } from 'viem';
-import { useCofheWalletClient, useCofheChainId, useCofheAccount, useCofhePublicClient } from './useCofheConnection.js';
-import { type Token } from './useCofheTokenLists.js';
 import { assertTokenOperationSupported } from '@/types/token';
-import { getClaimAllContractConfig, getClaimSingleContractConfig } from '../constants/confidentialTokenABIs.js';
-import { TransactionActionType, useTransactionStore } from '../stores/transactionStore.js';
-import { useInternalMutation } from '../providers/index.js';
-import { assert } from 'ts-essentials';
-import { useTransactionGlobalLifecycle } from './useTransactionGlobalLifecycle.js';
-import type { CofheSimulateWriteContractCallArgs } from './useCofheSimulateWriteContract.js';
-import { useCofheClient } from './useCofheClient.js';
-import {
-  constructUnshieldClaimsQueryKey,
-  fetchUnshieldClaims,
-  isTokenConfidentialityTypeClaimable,
-  type UnshieldClaim,
-} from './useCofheTokenClaimable.js';
 import { cofheLogger } from '@/utils/debug';
+import { type UseMutationOptions, type UseMutationResult } from '@tanstack/react-query';
+import { assert } from 'ts-essentials';
+import { type Address, type Hex } from 'viem';
+import { getClaimAllContractConfig, getClaimSingleContractConfig } from '../constants/confidentialTokenABIs';
+import { useInternalMutation } from '../providers/index';
+import { TransactionActionType, useTransactionStore } from '../stores/transactionStore';
+import { useCofheClient } from './useCofheClient';
+import { useCofheAccount, useCofheChainId, useCofhePublicClient, useCofheWalletClient } from './useCofheConnection';
+import type { CofheSimulateWriteContractCallArgs } from './useCofheSimulateWriteContract';
+import { fetchUnshieldClaims, isTokenConfidentialityTypeClaimable, type UnshieldClaim } from './useCofheTokenClaimable';
+import { type Token } from './useCofheTokenLists';
+import { useTransactionGlobalLifecycle } from './useTransactionGlobalLifecycle';
 
 export function getCofheTokenClaimUnshieldedCallArgs(params: {
   token: Token;
@@ -118,8 +113,6 @@ export function useCofheTokenClaimUnshielded(
         assert(account, 'Wallet account is required for dual claim');
         assert(isTokenConfidentialityTypeClaimable(confidentialityType), 'dual claim type must be claimable');
 
-        input.token.extensions.fhenix.confidentialityType;
-
         const claims = await fetchUnshieldClaims({
           publicClient,
           token: input.token,
@@ -133,7 +126,6 @@ export function useCofheTokenClaimUnshielded(
 
         for (const claim of pendingClaims) {
           try {
-            input.token;
             const decryptResult = await client
               .decryptForTx(claim.ctHash)
               .setChainId(chainId)
