@@ -1,9 +1,39 @@
 {
   "name": "@cofhe/tsconfig",
   "version": "0.1.2",
-  "private": true,
+  "description": "Shared TypeScript configuration presets used across the CoFHE monorepo.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/FhenixProtocol/cofhesdk.git",
+    "directory": "packages/tsconfig"
+  },
+  "bugs": {
+    "url": "https://github.com/FhenixProtocol/cofhesdk/issues"
+  },
+  "homepage": "https://github.com/FhenixProtocol/cofhesdk/tree/master/packages/tsconfig#readme",
+  "keywords": [
+    "typescript",
+    "tsconfig",
+    "shared-config"
+  ],
+  "files": [
+    "base.json",
+    "nextjs.json",
+    "node14.json",
+    "react-library.json",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "exports": {
+    "./base.json": "./base.json",
+    "./nextjs.json": "./nextjs.json",
+    "./node14.json": "./node14.json",
+    "./react-library.json": "./react-library.json",
+    "./package.json": "./package.json"
+  },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   }
 }

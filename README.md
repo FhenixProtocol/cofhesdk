@@ -34,6 +34,8 @@ This Turborepo includes the following:
 - `@cofhe/eslint-config`: Shared ESLint preset.
 - `@cofhe/tsconfig`: Shared TypeScript configuration.
 
+The shared tooling packages are intended to be publishable and reusable outside this monorepo. See `packages/eslint-config/README.md` and `packages/tsconfig/README.md` for external install and usage guidance.
+
 Each package and app is 100% [TypeScript](https://www.typescriptlang.org/).
 
 ### Utilities
