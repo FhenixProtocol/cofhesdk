@@ -302,9 +302,6 @@ importers:
       '@cofhe/sdk':
         specifier: workspace:*
         version: link:../sdk
-      '@cofhe/test-setup':
-        specifier: workspace:*
-        version: link:../../test/setup
       '@cofhe/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig
