@@ -90,7 +90,7 @@ export async function setup(project: TestProject): Promise<void> {
   console.log(`${HARDHAT_LOG_PREFIX} Deploying mock contracts...`);
   await deployMocks(
     { publicClient, walletClient, artifacts: artifacts as any },
-    { deployTestBed: false, gasWarning: false, mocksDeployVerbosity: 'v' }
+    { gasWarning: false, mocksDeployVerbosity: 'v' }
   );
 
   console.log(`${HARDHAT_LOG_PREFIX} Deploying SimpleTest...`);

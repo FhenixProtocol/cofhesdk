@@ -2,15 +2,15 @@
 pragma solidity ^0.8.13;
 
 import { Test } from 'forge-std/Test.sol';
-import { TestBed } from '@cofhe/mock-contracts/contracts/TestBed.sol';
+import { SimpleTest } from '@cofhe/test-setup/contracts/SimpleTest.sol';
 import { CofheTest } from '../contracts/CofheTest.sol';
 import { CofheClient } from '../contracts/CofheClient.sol';
 import { FHE, InEuint32, euint8, euint128 } from '@fhenixprotocol/cofhe-contracts/FHE.sol';
 
-/// @title TestBed Foundry Tests
+/// @title SimpleTest Foundry Tests
 /// @notice Foundry-native smoke tests for the CoFHE mock environment and FHE Solidity surface.
-contract TestBedTest is CofheTest {
-  TestBed private testbed;
+contract SimpleTestTest is CofheTest {
+  SimpleTest private simpleTest;
   CofheClient private cofheClient;
 
   uint256 private constant USER_PKEY = 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
@@ -19,7 +19,7 @@ contract TestBedTest is CofheTest {
     deployMocks();
     cofheClient = createCofheClient();
     cofheClient.connect(USER_PKEY);
-    testbed = new TestBed();
+    simpleTest = new SimpleTest();
   }
 
   /// @notice Fuzz test: create an encrypted input and set it as state.
@@ -27,9 +27,9 @@ contract TestBedTest is CofheTest {
     InEuint32 memory number = cofheClient.createInEuint32(n);
 
     vm.prank(cofheClient.account());
-    testbed.setNumber(number);
+    simpleTest.setValue(number);
 
-    expectPlaintext(testbed.eNumber(), n);
+    expectPlaintext(simpleTest.getValue(), n);
   }
 
   /// @notice Validates that mock arithmetic matches EVM uint8 wraparound behavior.

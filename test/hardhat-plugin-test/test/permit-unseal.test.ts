@@ -1,6 +1,14 @@
 import hre from 'hardhat';
 import { FheTypes } from '@cofhe/sdk';
 import { expect } from 'chai';
+import type { SharedSimpleTest } from '../typechain-types/contracts/SharedSimpleTest';
+
+async function deploySharedSimpleTest(): Promise<SharedSimpleTest> {
+  const factory = await hre.ethers.getContractFactory('SharedSimpleTest');
+  const simpleTest = (await factory.deploy()) as SharedSimpleTest;
+  await simpleTest.waitForDeployment();
+  return simpleTest;
+}
 
 describe('Permit Unseal Test', () => {
   it('Permit should be used to unseal data', async () => {
@@ -8,12 +16,12 @@ describe('Permit Unseal Test', () => {
 
     const client = await hre.cofhe.createClientWithBatteries(signer);
 
-    // Add number to TestBed
-    const testBed = await hre.cofhe.mocks.getTestBed();
-    await testBed.setNumberTrivial(7);
-    const ctHash = await testBed.numberHash();
+    // Add number to SimpleTest
+    const simpleTest = await deploySharedSimpleTest();
+    await simpleTest.setValueTrivial(7);
+    const ctHash = await simpleTest.getValueHash();
 
-    // Decrypt number from TestBed
+    // Decrypt number from SimpleTest
     const unsealed = await client.decryptForView(ctHash, FheTypes.Uint32).execute();
 
     expect(unsealed).to.be.equal(7n);

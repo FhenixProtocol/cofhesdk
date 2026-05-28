@@ -4,7 +4,7 @@ import { createTestClient, custom } from 'viem';
 import chalk from 'chalk';
 import { privateKeyToAccount } from 'viem/accounts';
 
-import { MockTaskManagerArtifact, MockThresholdNetworkArtifact, TestBedArtifact } from '@cofhe/mock-contracts';
+import { MockTaskManagerArtifact, MockThresholdNetworkArtifact } from '@cofhe/mock-contracts';
 import {
   TASK_MANAGER_ADDRESS,
   MOCKS_ZK_VERIFIER_ADDRESS,
@@ -12,7 +12,6 @@ import {
   MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY,
   MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY,
   MOCKS_THRESHOLD_NETWORK_ADDRESS,
-  TEST_BED_ADDRESS,
 } from '@cofhe/sdk';
 
 /**
@@ -29,11 +28,9 @@ export type DeployedMockContracts = {
   MockACL: `0x${string}`;
   MockZkVerifier: `0x${string}`;
   MockThresholdNetwork: `0x${string}`;
-  TestBed: `0x${string}` | undefined;
 };
 
 export type DeployMocksArgs = {
-  deployTestBed?: boolean;
   gasWarning?: boolean;
   mocksDeployVerbosity?: LogMocksDeploy;
 };
@@ -62,7 +59,7 @@ async function isLocalHardhatNetwork(publicClient: PublicClient): Promise<boolea
 }
 
 export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs = {}): Promise<DeployedMockContracts> {
-  const { deployTestBed = true, gasWarning = true } = options;
+  const { gasWarning = true } = options;
   verbosity = options.mocksDeployVerbosity ?? 'v';
 
   if (!(await isLocalHardhatNetwork(ctx.publicClient))) {
@@ -167,12 +164,6 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
     chain: null,
   });
 
-  // 11. Optionally deploy TestBed
-  if (deployTestBed) {
-    await deployFixed(ctx.publicClient, 'TestBed', TestBedArtifact.fixedAddress, ctx.artifacts);
-    logDeployment('TestBed', TestBedArtifact.fixedAddress);
-  }
-
   log('v', chalk.bold('cofhe-hardhat-3-plugin :: mocks deployed'), 0);
 
   if (gasWarning) {
@@ -192,7 +183,6 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
     MockACL: aclAddress,
     MockZkVerifier: MOCKS_ZK_VERIFIER_ADDRESS,
     MockThresholdNetwork: MOCKS_THRESHOLD_NETWORK_ADDRESS,
-    TestBed: deployTestBed ? TEST_BED_ADDRESS : undefined,
   };
 }
 

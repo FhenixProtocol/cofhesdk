@@ -6,7 +6,6 @@ import type {
   MockACLArtifact,
   MockZkVerifierArtifact,
   MockThresholdNetworkArtifact,
-  TestBedArtifact,
 } from '@cofhe/mock-contracts';
 
 import 'hardhat/types/network';
@@ -60,9 +59,6 @@ export interface CofheConnection {
 
     /** MockThresholdNetwork contract descriptor */
     MockThresholdNetwork: { address: `0x${string}`; abi: typeof MockThresholdNetworkArtifact.abi };
-
-    /** TestBed contract descriptor */
-    TestBed: { address: `0x${string}`; abi: typeof TestBedArtifact.abi };
   };
 }
 
@@ -100,7 +96,8 @@ declare module 'hardhat/types/network' {
   interface NetworkConnection {
     /**
      * CoFHE mock environment — ready to use immediately after network.connect().
-     * Mock contracts are deployed automatically on every connect().
+     * Core mock contracts are deployed automatically on every connect().
+     * Contracts like SimpleTest should be deployed explicitly when a test needs them.
      */
     cofhe: CofheConnection;
   }

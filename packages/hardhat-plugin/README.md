@@ -59,7 +59,7 @@ Key differences from the real CoFHE system:
 
 ### Mock Contracts Deployment
 
-Mock contracts are automatically deployed when using the Hardhat network:
+Core mock contracts are automatically deployed when using the Hardhat network:
 
 - Running tests: `npx hardhat test`
 - Starting a local node: `npx hardhat node`
@@ -73,13 +73,8 @@ COFHE_SKIP_MOCKS_DEPLOY=1
 You can also manually deploy mock contracts:
 
 ```bash
-npx hardhat deploy-mocks [--deploy-test-bed true|false] [--log-mocks true|false]
+npx hardhat task:cofhe-mocks:deploy
 ```
-
-Options:
-
-- `--deploy-test-bed`: Deploy the TestBed contract (default: true)
-- `--log-mocks`: Log mock operations (default: true)
 
 ### Utility Functions
 

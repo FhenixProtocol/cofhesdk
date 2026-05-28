@@ -1,0 +1,1 @@
+@cofhe/test-setup/=node_modules/@cofhe/test-setup/

@@ -5,4 +5,3 @@ export type { MockACL } from './MockACL';
 export type { MockTaskManager } from './MockTaskManager';
 export type { MockThresholdNetwork } from './MockThresholdNetwork';
 export type { MockZkVerifier } from './MockZkVerifier';
-export type { TestBed } from './TestBed';
