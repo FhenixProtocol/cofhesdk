@@ -27,6 +27,7 @@ function inspect(contract: string, field: string): any {
 }
 
 const abiDir = 'abi';
+fs.rmSync(abiDir, { recursive: true, force: true });
 fs.mkdirSync(abiDir, { recursive: true });
 
 function writeArtifactFile(name: string, artifact: Record<string, unknown>, abi: any): void {
