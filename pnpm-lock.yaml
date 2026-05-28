@@ -163,9 +163,6 @@ importers:
       '@cofhe/mock-contracts':
         specifier: workspace:*
         version: link:../mock-contracts
-      '@cofhe/test-setup':
-        specifier: workspace:*
-        version: link:../../test/setup
       '@fhenixprotocol/cofhe-contracts':
         specifier: 0.1.3
         version: 0.1.3
@@ -173,6 +170,9 @@ importers:
         specifier: 5.4.0
         version: 5.4.0
     devDependencies:
+      '@cofhe/test-setup':
+        specifier: workspace:*
+        version: link:../../test/setup
       forge-std:
         specifier: github:foundry-rs/forge-std#c0f966cb111f621bfb283b2a388bc7be18953bba
         version: github.com/foundry-rs/forge-std/c0f966cb111f621bfb283b2a388bc7be18953bba
