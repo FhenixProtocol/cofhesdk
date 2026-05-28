@@ -609,7 +609,6 @@ export class EncryptInputsBuilder<T extends EncryptableItem[], HPP extends boole
 
     // On hardhat chain, interact with MockZkVerifier contract instead of CoFHE
     if (this.chainId === hardhat.id) items = await this.mocksExecute();
-
     // On other chains, interact with CoFHE coprocessor
     else items = await this.productionExecute();
 
