@@ -3,6 +3,6 @@
   "compilerOptions": {
     "noEmit": true
   },
-  "include": ["hardhat.config.ts", "test/**/*.ts"],
+  "include": ["hardhat.config.ts", "test/**/*.ts", "artifacts/**/*.d.ts"],
   "exclude": ["node_modules"]
 }

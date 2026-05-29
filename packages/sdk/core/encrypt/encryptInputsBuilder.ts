@@ -576,7 +576,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[], HPP extends boole
     let proof: string = '';
 
     for (const item of inItems) {
-      hashes.push(item.ctHash.toString());
+      hashes.push('0x' + item.ctHash.toString(16).padStart(64, '0'));
       proof += item.signature;
     }
 

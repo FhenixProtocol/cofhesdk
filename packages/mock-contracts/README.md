@@ -145,6 +145,7 @@ CoFheTest also exposes useful test methods such as
 
 - `assertHashValue(euint, uint)` - asserting an encrypted value is equal to an expected plaintext value
 - `createInEuint..(number, user)` - for creating encrypted inputs (8-256bits) for a given user
+- `createInEuint*_asHashPlusProof(number, user)` - for creating encrypted inputs in the hash plus proof format
 
 Example:
 
