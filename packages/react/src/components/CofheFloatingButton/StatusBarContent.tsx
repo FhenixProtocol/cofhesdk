@@ -1,13 +1,3 @@
-import { MdOutlineSettings } from 'react-icons/md';
-import { IoIosCheckmarkCircleOutline, IoIosCloseCircleOutline, IoIosTime } from 'react-icons/io';
-import { useMemo } from 'react';
-import { cn } from '@/utils';
-import { useCofheFloatingButtonContext } from './CofheFloatingButtonContext';
-import { FloatingButtonPage } from './pagesConfig/types';
-import { FhenixLogoIcon } from '../FhenixLogoIcon';
-import type { CofheStatus, CofheStatusVariant } from './types';
-import { AnimatedZStack } from '../primitives/AnimatedZStack';
-import { usePortalNavigation, usePortalStatuses } from '@/stores';
 import { useCofheConnection } from '@/hooks';
 import { CLAIMS_AVAILABLE_STATUS_ID } from '@/hooks/useWatchClaimablesStatus';
 import {
@@ -16,6 +6,17 @@ import {
   STATUS_ID_PERMIT_EXPIRING_SOON,
   STATUS_ID_PERMIT_SHARED,
 } from '@/hooks/useWatchPermitStatus';
+import { usePortalNavigation, usePortalStatuses } from '@/stores';
+import { usePortalUI } from '@/stores/portalUIStore';
+import { cn } from '@/utils';
+import { useMemo } from 'react';
+import { IoIosCheckmarkCircleOutline, IoIosCloseCircleOutline } from 'react-icons/io';
+import { MdOutlineSettings } from 'react-icons/md';
+import { FhenixLogoIcon } from '../FhenixLogoIcon';
+import { AnimatedZStack } from '../primitives/AnimatedZStack';
+import { useCofheFloatingButtonContext } from './CofheFloatingButtonContext';
+import { FloatingButtonPage } from './pagesConfig/types';
+import type { CofheFloatingButtonStatus, CofheStatusActionIntent, CofheStatusVariant } from './types';
 
 const ConnectionStatus: React.FC = () => {
   const { theme } = useCofheFloatingButtonContext();
@@ -69,8 +70,39 @@ const statusBorderColorMap: Record<CofheStatusVariant, string> = {
   info: 'border-blue-500',
 };
 
-const ActiveStatusContent: React.FC<{ status: CofheStatus }> = ({ status }) => {
+function resolveStatusIntentOnClick(
+  intent: CofheStatusActionIntent,
+  actions: {
+    navigateTo: (page: FloatingButtonPage) => void;
+    replace: (page: FloatingButtonPage) => void;
+    openPortal: () => void;
+  }
+): () => void {
+  switch (intent) {
+    case 'open-permits':
+      return () => {
+        actions.openPortal();
+        actions.replace(FloatingButtonPage.Permits);
+      };
+    case 'open-claimable-tokens':
+      return () => {
+        actions.openPortal();
+        actions.navigateTo(FloatingButtonPage.ClaimableTokens);
+      };
+  }
+}
+
+const ActiveStatusContent: React.FC<{ status: CofheFloatingButtonStatus }> = ({ status }) => {
   const { theme } = useCofheFloatingButtonContext();
+  const { navigateTo, replace } = usePortalNavigation();
+  const { openPortal } = usePortalUI();
+
+  const actionOnClick =
+    status.action == null
+      ? undefined
+      : 'intent' in status.action
+        ? resolveStatusIntentOnClick(status.action.intent, { navigateTo, replace, openPortal })
+        : status.action.onClick;
 
   return (
     <div
@@ -91,9 +123,9 @@ const ActiveStatusContent: React.FC<{ status: CofheStatus }> = ({ status }) => {
       </div>
 
       {/* Action Button */}
-      {status.action != null && (
+      {status.action != null && actionOnClick != null && (
         <button
-          onClick={status.action?.onClick}
+          onClick={actionOnClick}
           className={cn('p-1 rounded cofhe-hover-overlay transition-colors', 'cofhe-text-primary')}
         >
           {status.action.label}
@@ -120,7 +152,7 @@ const STATUSES_ORDER = new Map<string, number>(
     .map((id, index) => [id, index])
 );
 
-function sortStatuses(a: CofheStatus, b: CofheStatus): number {
+function sortStatuses(a: CofheFloatingButtonStatus, b: CofheFloatingButtonStatus): number {
   const aIndex = STATUSES_ORDER.get(a.id) ?? -1;
   const bIndex = STATUSES_ORDER.get(b.id) ?? -1;
 

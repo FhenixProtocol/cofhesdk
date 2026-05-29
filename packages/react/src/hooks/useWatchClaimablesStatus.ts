@@ -1,15 +1,11 @@
-import { usePortalNavigation, usePortalStatuses, usePortalUI } from '@/stores';
+import { usePortalStatuses } from '@/stores';
 
 import { useEffect } from 'react';
 
 import { useCofheClaimableTokens } from './useCofheClaimableTokens';
-import { FloatingButtonPage } from '@/components/CofheFloatingButton/pagesConfig/types';
 
 export const CLAIMS_AVAILABLE_STATUS_ID = 'claims-available';
-type Input = {
-  onClick: () => void;
-};
-export const showClaimsAvailableStatus = ({ onClick }: Input) => {
+export const showClaimsAvailableStatus = () => {
   usePortalStatuses.getState().addStatus({
     id: CLAIMS_AVAILABLE_STATUS_ID,
     variant: 'info',
@@ -17,7 +13,7 @@ export const showClaimsAvailableStatus = ({ onClick }: Input) => {
     description: `You have unclaimed encrypted tokens`,
     action: {
       label: 'VIEW',
-      onClick,
+      intent: 'open-claimable-tokens',
     },
   });
 };
@@ -27,22 +23,15 @@ export const hideClaimsAvailableStatus = () => {
 
 export const useWatchClaimablesStatus = () => {
   const { totalTokensClaimable } = useCofheClaimableTokens();
-  const { navigateTo } = usePortalNavigation();
-  const { openPortal } = usePortalUI();
 
   useEffect(() => {
     const claimsAvailableStatusShown = usePortalStatuses.getState().hasStatus(CLAIMS_AVAILABLE_STATUS_ID);
     if (totalTokensClaimable > 0 && !claimsAvailableStatusShown) {
-      showClaimsAvailableStatus({
-        onClick: () => {
-          openPortal();
-          navigateTo(FloatingButtonPage.ClaimableTokens);
-        },
-      });
+      showClaimsAvailableStatus();
     }
 
     if (totalTokensClaimable === 0 && claimsAvailableStatusShown) {
       hideClaimsAvailableStatus();
     }
-  }, [navigateTo, openPortal, totalTokensClaimable]);
+  }, [totalTokensClaimable]);
 };

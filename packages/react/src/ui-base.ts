@@ -1,6 +1,11 @@
-export { CofheEncryptInput, CofheFloatingButtonWithProvider } from './components/index';
 export { MainPage, SettingsPage } from './components/CofheFloatingButton/pages/index';
+export { CofheEncryptInput, CofheFloatingButtonProvider, CofheFloatingButtonWithProvider } from './components/index';
+export { useCofheStatuses } from './hooks/useCofheStatuses';
 export { FheTypesList } from './utils/index';
 
-export type { CofheFloatingButtonProps } from './components/CofheFloatingButton/types';
-export type { FloatingButtonPosition } from './components/CofheFloatingButton/types';
+export type {
+  CofheFloatingButtonProps,
+  CofheStatus,
+  CofheStatusActionIntent,
+  FloatingButtonPosition,
+} from './components/CofheFloatingButton/types';

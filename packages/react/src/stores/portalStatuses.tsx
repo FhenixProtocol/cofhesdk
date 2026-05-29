@@ -1,12 +1,12 @@
-import type { CofheStatus } from '@/components/CofheFloatingButton/types';
+import type { CofheFloatingButtonStatus } from '@/components/CofheFloatingButton/types';
 import { create } from 'zustand';
 
 type PortalStatusesStore = {
-  statuses: CofheStatus[];
+  statuses: CofheFloatingButtonStatus[];
 };
 
 type PortalStatusesActions = {
-  addStatus: (status: CofheStatus) => void;
+  addStatus: (status: CofheFloatingButtonStatus) => void;
   removeStatus: (id: string) => void;
   hasStatus: (id: string) => boolean;
 };

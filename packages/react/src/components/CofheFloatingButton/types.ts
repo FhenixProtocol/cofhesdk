@@ -57,15 +57,23 @@ export type CofheToastImperativeParams = {
 
 export type CofheToastVariant = 'info' | 'success' | 'error' | 'warning';
 
+export type CofheStatusActionIntent = 'open-permits' | 'open-claimable-tokens';
+
+export type CofheStatusAction = {
+  label: string;
+  intent: CofheStatusActionIntent;
+};
+
 export type CofheStatus = {
   id: string;
   variant: CofheStatusVariant;
   title: string;
   description?: string;
-  action?: {
-    label: string;
-    onClick: () => void;
-  };
+  action?: CofheStatusAction;
+};
+
+export type CofheFloatingButtonStatus = Omit<CofheStatus, 'action'> & {
+  action?: CofheStatusAction | { label: string; onClick: () => void };
 };
 
 export type CofheStatusVariant = 'error' | 'warning' | 'info';

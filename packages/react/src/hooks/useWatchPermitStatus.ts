@@ -1,10 +1,9 @@
 import { useCofheActivePermit } from '@/hooks';
-import { usePortalNavigation, usePortalStatuses, usePortalUI } from '@/stores';
+import { usePortalStatuses } from '@/stores';
+import { usePortalPersisted } from '@/stores/portalPersisted';
 import { truncateHash } from '@/utils';
 import { type Permit } from '@cofhe/sdk/permits';
 import { useEffect, useRef } from 'react';
-import { FloatingButtonPage } from '../components/CofheFloatingButton/pagesConfig/types';
-import { usePortalPersisted } from '@/stores/portalPersisted';
 import { useCofheIsConnected } from './useCofheConnection';
 
 export const STATUS_ID_MISSING_PERMIT = 'missing-permit';
@@ -20,10 +19,7 @@ export const showMissingPermitStatus = () => {
     description: 'Select or create a new permit',
     action: {
       label: 'FIX',
-      onClick: () => {
-        usePortalUI.getState().openPortal();
-        usePortalNavigation.getState().replace(FloatingButtonPage.Permits);
-      },
+      intent: 'open-permits',
     },
   });
 };
@@ -40,10 +36,7 @@ export const showPermitExpiredStatus = () => {
     description: 'Select or create a new permit',
     action: {
       label: 'FIX',
-      onClick: () => {
-        usePortalUI.getState().openPortal();
-        usePortalNavigation.getState().replace(FloatingButtonPage.Permits);
-      },
+      intent: 'open-permits',
     },
   });
 };
@@ -59,10 +52,7 @@ export const showPermitExpiringSoonStatus = (permit: Permit) => {
     description: `Expires at ${new Date(permit.expiration * 1000).toLocaleTimeString()}`,
     action: {
       label: 'FIX',
-      onClick: () => {
-        usePortalUI.getState().openPortal();
-        usePortalNavigation.getState().replace(FloatingButtonPage.Permits);
-      },
+      intent: 'open-permits',
     },
   });
 };

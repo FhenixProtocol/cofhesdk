@@ -3,48 +3,49 @@ export { CofheProvider, useCofheContext } from './providers/index';
 
 // Hooks
 export {
-  useCofheConnection,
-  useCofheEnabled,
+  ETH_ADDRESS_LOWERCASE,
+  getCofheTokenClaimUnshieldedCallArgs,
+  getCofheTokenShieldCallArgs,
+  getCofheTokenUnshieldCallArgs,
   useCofheActivePermit,
   useCofheAllPermits,
+  useCofheClient,
+  useCofheConnection,
+  useCofheEnabled,
+  useCofheEncrypt,
+  useCofhePublicClient,
   useCofheRemovePermit,
   useCofheSelectPermit,
-  useCofhePublicClient,
-  useCofheWalletClient,
-  useCofheEncrypt,
-  useCofheWriteContract,
   useCofheSimulateWriteContract,
-  useCofheClient,
-  useCofheTokens,
-  useCofheTokensWithExistingEncryptedBalances,
-  useTokensWithPublicBalances,
-  useCofheTokenLists,
-  useCofheTokenShield,
-  getCofheTokenShieldCallArgs,
-  useCofheTokenUnshield,
-  getCofheTokenUnshieldCallArgs,
-  useCofheTokenClaimUnshielded,
-  getCofheTokenClaimUnshieldedCallArgs,
+  useCofheStatuses,
   useCofheTokenClaimable,
-  useCofheTokensClaimable,
+  useCofheTokenClaimUnshielded,
   useCofheTokenDecryptedBalance,
+  useCofheTokenLists,
+  useCofheTokens,
+  useCofheTokensClaimable,
+  useCofheTokenShield,
+  useCofheTokensWithExistingEncryptedBalances,
   useCofheTokenTransfer,
+  useCofheTokenUnshield,
+  useCofheWalletClient,
+  useCofheWriteContract,
+  useCoingeckoContractMarketChartRange,
+  useCoingeckoUsdPrice,
   useTokenAllowance,
+  useTokensWithPublicBalances,
   useTransactionReceiptsByHash,
-  ETH_ADDRESS_LOWERCASE,
+  type ClaimableAmountByTokenAddress,
+  type CoingeckoMarketChartPoint,
   type Erc20Pair,
   type UnshieldClaim,
   type UnshieldClaimsSummary,
   type UnshieldClaimsSummaryByTokenAddress,
-  type ClaimableAmountByTokenAddress,
-  type UseTransactionReceiptsByHashInput,
-  useCoingeckoUsdPrice,
-  type UseCoingeckoUsdPriceInput,
-  type UseCoingeckoUsdPriceOptions,
-  useCoingeckoContractMarketChartRange,
-  type CoingeckoMarketChartPoint,
   type UseCoingeckoContractMarketChartRangeInput,
   type UseCoingeckoContractMarketChartRangeOptions,
+  type UseCoingeckoUsdPriceInput,
+  type UseCoingeckoUsdPriceOptions,
+  type UseTransactionReceiptsByHashInput,
 } from '@/hooks/index';
 
 export { useCofheEncryptAndWriteContract } from '@/hooks/useCofheEncryptAndWriteContract';
@@ -53,43 +54,45 @@ export { useCofheReadContractAndDecrypt } from '@/hooks/useCofheReadContractAndD
 // Utils
 export {
   FheTypesList,
-  getBlockExplorerUrl,
-  getBlockExplorerTxUrl,
+  formatRelativeTime,
   getBlockExplorerAddressUrl,
   getBlockExplorerTokenUrl,
-  formatRelativeTime,
-  truncateHash,
+  getBlockExplorerTxUrl,
+  getBlockExplorerUrl,
   isEthPair,
   isWrappedEthToken,
+  truncateHash,
 } from './utils/index';
 
 // Stores
 export {
-  useTransactionStore,
-  TransactionStatus,
-  TransactionActionType,
   actionToString,
   statusToString,
+  TransactionActionType,
+  TransactionStatus,
+  useTransactionStore,
   type Transaction,
-  type TransactionStore,
-  type TransactionStatusString,
   type TransactionActionString,
+  type TransactionStatusString,
+  type TransactionStore,
 } from './stores/transactionStore';
 
 export { createCofheConfig } from './config';
 export type { CofheReactLogger, CofheReactLoggerMethod } from './config';
 
 // Types
-export type { CofheContextValue, CofheProviderProps, CofheClientConfig } from './types/index';
+export type { CofheClientConfig, CofheContextValue, CofheProviderProps } from './types/index';
 
 export { createCofheClient } from '@cofhe/sdk/web';
 
-export { useCofheNavigateToCreatePermit } from '@/hooks/permits/useCofheNavigateToCreatePermit';
 export { useCofheCreatePermit } from '@/hooks/permits/useCofheCreatePermit';
+export { useCofheNavigateToCreatePermit } from '@/hooks/permits/useCofheNavigateToCreatePermit';
 export { useCofheAutoConnect } from '@/hooks/useCofheAutoConnect';
+export { CofheFloatingButtonProvider } from './components/index';
 
 export type { CofheConfigWithReact as CofhesdkConfigWithReact } from './config';
 
+export type { CofheStatus, CofheStatusActionIntent } from './components/CofheFloatingButton/types';
 export type { Token } from './types/token';
 
 export { useInternalQueryClient } from './providers/index';
