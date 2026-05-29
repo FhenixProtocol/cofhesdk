@@ -97,3 +97,6 @@ export type { CofheStatus, CofheStatusActionIntent, CofheStatusId } from './comp
 export type { Token } from './types/token';
 
 export { useInternalQueryClient } from './providers/index';
+
+// Type bridges for cross-repo / multi-instance viem peer dependency scenarios
+export { asCofhePublicClient, asCofheWalletClient } from './utils/viemClientBridge';
