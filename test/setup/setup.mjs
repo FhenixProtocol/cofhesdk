@@ -489,6 +489,7 @@ export const simpleTestAbi = ${JSON.stringify(abi, null, 2)} as const;
 `;
 
   writeFileSync(SIMPLE_TEST_ABI_PATH, file);
+  run(`npx prettier --write ${SIMPLE_TEST_ABI_PATH}`);
   console.log(`  ${SIMPLE_TEST_ABI_PATH}`);
 }
 

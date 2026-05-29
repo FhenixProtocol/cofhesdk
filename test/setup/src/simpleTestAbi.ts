@@ -3,317 +3,317 @@
 
 export const simpleTestAbi = [
   {
-    "type": "function",
-    "name": "addValue",
-    "inputs": [
+    type: 'function',
+    name: 'addValue',
+    inputs: [
       {
-        "name": "inValue",
-        "type": "tuple",
-        "internalType": "struct InEuint32",
-        "components": [
+        name: 'inValue',
+        type: 'tuple',
+        internalType: 'struct InEuint32',
+        components: [
           {
-            "name": "ctHash",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'ctHash',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "securityZone",
-            "type": "uint8",
-            "internalType": "uint8"
+            name: 'securityZone',
+            type: 'uint8',
+            internalType: 'uint8',
           },
           {
-            "name": "utype",
-            "type": "uint8",
-            "internalType": "uint8"
+            name: 'utype',
+            type: 'uint8',
+            internalType: 'uint8',
           },
           {
-            "name": "signature",
-            "type": "bytes",
-            "internalType": "bytes"
-          }
-        ]
-      }
+            name: 'signature',
+            type: 'bytes',
+            internalType: 'bytes',
+          },
+        ],
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "addValueTrivial",
-    "inputs": [
+    type: 'function',
+    name: 'addValueTrivial',
+    inputs: [
       {
-        "name": "inValue",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'inValue',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "getDecryptResultSafe",
-    "inputs": [
+    type: 'function',
+    name: 'getDecryptResultSafe',
+    inputs: [
       {
-        "name": "input",
-        "type": "bytes32",
-        "internalType": "euint32"
-      }
+        name: 'input',
+        type: 'bytes32',
+        internalType: 'euint32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "value",
-        "type": "uint32",
-        "internalType": "uint32"
+        name: 'value',
+        type: 'uint32',
+        internalType: 'uint32',
       },
       {
-        "name": "decrypted",
-        "type": "bool",
-        "internalType": "bool"
-      }
+        name: 'decrypted',
+        type: 'bool',
+        internalType: 'bool',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getValue",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'getValue',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "euint32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'euint32',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getValueHash",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'getValueHash',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "publicValue",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'publicValue',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "euint32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'euint32',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "publicValueHash",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'publicValueHash',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "publishDecryptResult",
-    "inputs": [
+    type: 'function',
+    name: 'publishDecryptResult',
+    inputs: [
       {
-        "name": "input",
-        "type": "bytes32",
-        "internalType": "euint32"
+        name: 'input',
+        type: 'bytes32',
+        internalType: 'euint32',
       },
       {
-        "name": "result",
-        "type": "uint32",
-        "internalType": "uint32"
+        name: 'result',
+        type: 'uint32',
+        internalType: 'uint32',
       },
       {
-        "name": "signature",
-        "type": "bytes",
-        "internalType": "bytes"
-      }
+        name: 'signature',
+        type: 'bytes',
+        internalType: 'bytes',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "setPublicValue",
-    "inputs": [
+    type: 'function',
+    name: 'setPublicValue',
+    inputs: [
       {
-        "name": "inValue",
-        "type": "tuple",
-        "internalType": "struct InEuint32",
-        "components": [
+        name: 'inValue',
+        type: 'tuple',
+        internalType: 'struct InEuint32',
+        components: [
           {
-            "name": "ctHash",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'ctHash',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "securityZone",
-            "type": "uint8",
-            "internalType": "uint8"
+            name: 'securityZone',
+            type: 'uint8',
+            internalType: 'uint8',
           },
           {
-            "name": "utype",
-            "type": "uint8",
-            "internalType": "uint8"
+            name: 'utype',
+            type: 'uint8',
+            internalType: 'uint8',
           },
           {
-            "name": "signature",
-            "type": "bytes",
-            "internalType": "bytes"
-          }
-        ]
-      }
+            name: 'signature',
+            type: 'bytes',
+            internalType: 'bytes',
+          },
+        ],
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "setPublicValueTrivial",
-    "inputs": [
+    type: 'function',
+    name: 'setPublicValueTrivial',
+    inputs: [
       {
-        "name": "inValue",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'inValue',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "setValue",
-    "inputs": [
+    type: 'function',
+    name: 'setValue',
+    inputs: [
       {
-        "name": "inValue",
-        "type": "tuple",
-        "internalType": "struct InEuint32",
-        "components": [
+        name: 'inValue',
+        type: 'tuple',
+        internalType: 'struct InEuint32',
+        components: [
           {
-            "name": "ctHash",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'ctHash',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "securityZone",
-            "type": "uint8",
-            "internalType": "uint8"
+            name: 'securityZone',
+            type: 'uint8',
+            internalType: 'uint8',
           },
           {
-            "name": "utype",
-            "type": "uint8",
-            "internalType": "uint8"
+            name: 'utype',
+            type: 'uint8',
+            internalType: 'uint8',
           },
           {
-            "name": "signature",
-            "type": "bytes",
-            "internalType": "bytes"
-          }
-        ]
-      }
+            name: 'signature',
+            type: 'bytes',
+            internalType: 'bytes',
+          },
+        ],
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "setValueHashPlusProof",
-    "inputs": [
+    type: 'function',
+    name: 'setValueHashPlusProof',
+    inputs: [
       {
-        "name": "inValue",
-        "type": "bytes32",
-        "internalType": "externalEuint32"
+        name: 'inValue',
+        type: 'bytes32',
+        internalType: 'externalEuint32',
       },
       {
-        "name": "proof",
-        "type": "bytes",
-        "internalType": "bytes"
-      }
+        name: 'proof',
+        type: 'bytes',
+        internalType: 'bytes',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "setValueTrivial",
-    "inputs": [
+    type: 'function',
+    name: 'setValueTrivial',
+    inputs: [
       {
-        "name": "inValue",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'inValue',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "storedValue",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'storedValue',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "euint32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'euint32',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "storedValueHash",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'storedValueHash',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "error",
-    "name": "InvalidEncryptedInput",
-    "inputs": [
+    type: 'error',
+    name: 'InvalidEncryptedInput',
+    inputs: [
       {
-        "name": "got",
-        "type": "uint8",
-        "internalType": "uint8"
+        name: 'got',
+        type: 'uint8',
+        internalType: 'uint8',
       },
       {
-        "name": "expected",
-        "type": "uint8",
-        "internalType": "uint8"
-      }
-    ]
+        name: 'expected',
+        type: 'uint8',
+        internalType: 'uint8',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "SecurityZoneOutOfBounds",
-    "inputs": [
+    type: 'error',
+    name: 'SecurityZoneOutOfBounds',
+    inputs: [
       {
-        "name": "value",
-        "type": "int32",
-        "internalType": "int32"
-      }
-    ]
-  }
+        name: 'value',
+        type: 'int32',
+        internalType: 'int32',
+      },
+    ],
+  },
 ] as const;
