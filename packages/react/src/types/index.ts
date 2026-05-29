@@ -1,7 +1,7 @@
 import type { CofheClient } from '@cofhe/sdk';
 import type { CofheConfigWithReact } from '../config';
 import type { QueryClient } from '@tanstack/react-query';
-import type { PublicClient, WalletClient } from 'viem';
+import type { PublicClientLike, WalletClientLike } from '../utils/viemClientBridge';
 import type { FloatingButtonPosition } from '@/components/CofheFloatingButton/types';
 
 export interface CofheContextValue {
@@ -28,8 +28,8 @@ export type CofheProviderProps = {
   config?: CofheConfigWithReact;
 
   // @TODO: define our own pair of classes, with only the methods we need
-  walletClient?: WalletClient;
-  publicClient?: PublicClient;
+  walletClient?: WalletClientLike;
+  publicClient?: PublicClientLike;
 };
 
 export interface CofheClientConfig {
