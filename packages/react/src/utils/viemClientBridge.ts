@@ -47,9 +47,7 @@ export interface WalletClientLike {
 export function asCofhePublicClient(client: PublicClientLike | undefined): PublicClient | undefined {
   if (client === undefined) return undefined;
   if (typeof client.request !== 'function' || typeof client.readContract !== 'function') {
-    throw new Error(
-      'asCofhePublicClient: value is missing expected methods --- expected a viem PublicClient',
-    );
+    throw new Error('asCofhePublicClient: value is missing expected methods --- expected a viem PublicClient');
   }
   return client as unknown as PublicClient;
 }
@@ -64,9 +62,7 @@ export function asCofhePublicClient(client: PublicClientLike | undefined): Publi
 export function asCofheWalletClient(client: WalletClientLike | undefined): WalletClient | undefined {
   if (client === undefined) return undefined;
   if (typeof client.request !== 'function' || typeof client.sendTransaction !== 'function') {
-    throw new Error(
-      'asCofheWalletClient: value is missing expected methods --- expected a viem WalletClient',
-    );
+    throw new Error('asCofheWalletClient: value is missing expected methods --- expected a viem WalletClient');
   }
   return client as unknown as WalletClient;
 }
