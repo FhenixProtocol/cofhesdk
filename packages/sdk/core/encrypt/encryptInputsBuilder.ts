@@ -571,7 +571,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[], HPP extends boole
     return encryptedInputs as [...EncryptedItemInputs<T>];
   }
 
-  private async structsToHashPlusProof(inItems: [...EncryptedItemInputs<T>]): Promise<HashPlusProofResult<T>> {
+  private structsToHashPlusProof(inItems: [...EncryptedItemInputs<T>]): HashPlusProofResult<T> {
     let hashes: string[] = [];
     let proof: string = '';
 
