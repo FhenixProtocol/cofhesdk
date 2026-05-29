@@ -7,7 +7,6 @@ import {
   MOCKS_ZK_VERIFIER_ADDRESS,
   MOCKS_THRESHOLD_NETWORK_ADDRESS,
   MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
-  TEST_BED_ADDRESS,
   FheTypes,
 } from '@cofhe/sdk';
 import { privateKeyToAccount } from 'viem/accounts';
@@ -114,10 +113,15 @@ describe('Deploy Mocks', async () => {
     assert.equal(aclFromThreshold.toLowerCase(), aclFromTm.toLowerCase());
   });
 
-  it('TestBed is deployed at the expected fixed address', async () => {
-    const { address } = cofhe.mocks.TestBed;
-    assert.equal(address.toLowerCase(), TEST_BED_ADDRESS.toLowerCase());
-    assert.ok(await hasCode(publicClient, address));
+  it('SimpleTest can be deployed explicitly when needed', async () => {
+    const simpleTest = await viem.deployContract('SharedSimpleTest', [], {
+      client: {
+        public: publicClient,
+        wallet: walletClient,
+      },
+    });
+    assert.ok(simpleTest.address);
+    assert.ok(await hasCode(publicClient, simpleTest.address));
   });
 
   it('Negative: only the owner can call MockTaskManager admin setters', async () => {

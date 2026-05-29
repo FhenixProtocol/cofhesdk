@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { spawnSync } from 'node:child_process';
+import { rmSync } from 'node:fs';
 
 function hasCommand(cmd) {
   const whichCmd = process.platform === 'win32' ? 'where' : 'which';
@@ -16,6 +17,7 @@ function run(cmd, args) {
 const hasForge = hasCommand('forge');
 
 if (hasForge) {
+  rmSync('src/typechain-types', { recursive: true, force: true });
   run('forge', ['build', '-q']);
   run('tsx', ['scripts/build-artifacts.ts']);
   run('npx', ['typechain', '--target', 'ethers-v6', '--out-dir', 'src/typechain-types', 'abi/*.json']);

@@ -142,13 +142,14 @@ await cofhe.mocks.disableLogs();
 Each mock contract is exposed as a `{ address, abi }` object that can be spread directly into Viem's `readContract` / `writeContract`:
 
 ```ts
-// All mock contracts are synchronous { address, abi } descriptors:
+// Core mock contracts are synchronous { address, abi } descriptors:
 cofhe.mocks.MockTaskManager;
 cofhe.mocks.MockACL;
 cofhe.mocks.MockZkVerifier;
 cofhe.mocks.MockThresholdNetwork;
-cofhe.mocks.TestBed;
 ```
+
+`SimpleTest` is deployed explicitly when needed and bound locally from its fixed address and ABI.
 
 ## Complete example
 
@@ -162,6 +163,15 @@ describe('Encrypted counter', async () => {
   const { viem, cofhe } = await network.connect();
   const publicClient = await viem.getPublicClient();
   const [walletClient] = await viem.getWalletClients();
+  const simpleTestArtifact = /* your compiled SimpleTest artifact */;
+  const deployHash = await walletClient.deployContract({
+    abi: simpleTestArtifact.abi,
+    bytecode: simpleTestArtifact.bytecode.object as `0x${string}`,
+  });
+  const deployReceipt = await publicClient.waitForTransactionReceipt({ hash: deployHash });
+  if (!deployReceipt.contractAddress) throw new Error('SimpleTest deployment failed');
+
+  const simpleTest = { address: deployReceipt.contractAddress, abi: simpleTestArtifact.abi } as const;
 
   it('encrypts, stores, and reads back a uint32', async () => {
     const client = await cofhe.createClientWithBatteries(walletClient);
@@ -171,14 +181,14 @@ describe('Encrypted counter', async () => {
       .execute();
 
     await walletClient.writeContract({
-      ...cofhe.mocks.TestBed,
-      functionName: 'setNumber',
+      ...simpleTest,
+      functionName: 'setValue',
       args: [enc],
     });
 
     const ctHash = await publicClient.readContract({
-      ...cofhe.mocks.TestBed,
-      functionName: 'numberHash',
+      ...simpleTest,
+      functionName: 'getValueHash',
     });
 
     await cofhe.mocks.expectPlaintext(ctHash, 42n);

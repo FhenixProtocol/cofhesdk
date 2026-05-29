@@ -7,9 +7,6 @@ export const MOCKS_ZK_VERIFIER_ADDRESS = '0x000000000000000000000000000000000000
 /** Mock Threshold Network contract address (used for testing) */
 export const MOCKS_THRESHOLD_NETWORK_ADDRESS = '0x0000000000000000000000000000000000005002' as const;
 
-/** Test Bed contract address (used for testing) */
-export const TEST_BED_ADDRESS = '0x0000000000000000000000000000000000005003' as const;
-
 /** Private key for the Mock ZK Verifier signer account */
 export const MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY =
   '0x6C8D7F768A6BB4AAFE85E8A2F5A9680355239C7E14646ED62B044E39DE154512' as const;

@@ -11,7 +11,6 @@ import {
   MockACLArtifact,
   MockZkVerifierArtifact,
   MockThresholdNetworkArtifact,
-  TestBedArtifact,
 } from '@cofhe/mock-contracts';
 import { MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY, type CofheInputConfig } from '@cofhe/sdk';
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/node';
@@ -113,7 +112,6 @@ function createCofheConnection(
         address: deployedMockContracts.MockThresholdNetwork,
         abi: MockThresholdNetworkArtifact.abi,
       },
-      TestBed: { address: deployedMockContracts.TestBed!, abi: TestBedArtifact.abi },
     },
   };
 }
@@ -173,7 +171,6 @@ const hreHooks: Partial<HardhatRuntimeEnvironmentHooks> = {
         const deployedMockContracts = await deployMocks(
           { publicClient, walletClient, artifacts: hre.artifacts },
           {
-            deployTestBed: true,
             gasWarning: hre.config.cofhe.gasWarning,
             mocksDeployVerbosity: hre.config.cofhe.mocksDeployVerbosity,
           }

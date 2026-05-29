@@ -6,20 +6,18 @@ describe('Mocks Plaintext', async () => {
   const { viem, cofhe } = await network.connect();
   const publicClient = await viem.getPublicClient();
   const [walletClient] = await viem.getWalletClients();
+  const simpleTest = await viem.deployContract('SharedSimpleTest', [], {
+    client: {
+      public: publicClient,
+      wallet: walletClient,
+    },
+  });
 
   const setTrivialNumber = async (value: number) => {
-    await walletClient.writeContract({
-      ...cofhe.mocks.TestBed,
-      functionName: 'setNumberTrivial',
-      args: [value],
-    });
+    await simpleTest.write.setValueTrivial([BigInt(value)]);
   };
 
-  const getCtHash = () =>
-    publicClient.readContract({
-      ...cofhe.mocks.TestBed,
-      functionName: 'numberHash',
-    });
+  const getCtHash = () => simpleTest.read.getValueHash();
 
   beforeEach(async () => {
     await setTrivialNumber(7);
