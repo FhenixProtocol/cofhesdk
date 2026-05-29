@@ -7,11 +7,12 @@ export {
 } from './components/index';
 export { useCofheStatuses } from './hooks/useCofheStatuses';
 export { FheTypesList } from './utils/index';
-export { CofheStatusActionIntents } from './components/CofheFloatingButton/types';
+export { COFHE_STATUS_IDS, CofheStatusActionIntents } from './components/CofheFloatingButton/types';
 
 export type {
   CofheFloatingButtonProps,
   CofheStatus,
   CofheStatusActionIntent,
+  CofheStatusId,
   FloatingButtonPosition,
 } from './components/CofheFloatingButton/types';

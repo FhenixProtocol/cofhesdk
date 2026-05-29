@@ -89,11 +89,11 @@ export { useCofheCreatePermit } from '@/hooks/permits/useCofheCreatePermit';
 export { useCofheNavigateToCreatePermit } from '@/hooks/permits/useCofheNavigateToCreatePermit';
 export { useCofheAutoConnect } from '@/hooks/useCofheAutoConnect';
 export { CofheFloatingButtonProvider, sortCofheStatuses } from './components/index';
-export { CofheStatusActionIntents } from './components/CofheFloatingButton/types';
+export { COFHE_STATUS_IDS, CofheStatusActionIntents } from './components/CofheFloatingButton/types';
 
 export type { CofheConfigWithReact as CofhesdkConfigWithReact } from './config';
 
-export type { CofheStatus, CofheStatusActionIntent } from './components/CofheFloatingButton/types';
+export type { CofheStatus, CofheStatusActionIntent, CofheStatusId } from './components/CofheFloatingButton/types';
 export type { Token } from './types/token';
 
 export { useInternalQueryClient } from './providers/index';

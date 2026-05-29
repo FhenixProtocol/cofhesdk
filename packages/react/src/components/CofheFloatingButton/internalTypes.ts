@@ -16,3 +16,7 @@ export type CofheFloatingButtonInternalAction = CofheStatusAction | { label: str
 export type CofheFloatingButtonInternalStatus = Omit<CofheStatus, 'action'> & {
   action?: CofheFloatingButtonInternalAction;
 };
+
+export function isCofhePublicStatus(status: CofheFloatingButtonInternalStatus): status is CofheStatus {
+  return status.action == null || 'intent' in status.action;
+}

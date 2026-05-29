@@ -1,13 +1,13 @@
 import { usePortalStatuses } from '@/stores';
+import { COFHE_STATUS_IDS } from '@/components/CofheFloatingButton/types';
 
 import { useEffect } from 'react';
 
 import { useCofheClaimableTokens } from './useCofheClaimableTokens';
 
-export const CLAIMS_AVAILABLE_STATUS_ID = 'claims-available';
 export const showClaimsAvailableStatus = () => {
   usePortalStatuses.getState().addStatus({
-    id: CLAIMS_AVAILABLE_STATUS_ID,
+    id: COFHE_STATUS_IDS.claimsAvailable,
     variant: 'info',
     title: '', // TODO: no title per design
     description: `You have unclaimed encrypted tokens`,
@@ -18,14 +18,14 @@ export const showClaimsAvailableStatus = () => {
   });
 };
 export const hideClaimsAvailableStatus = () => {
-  usePortalStatuses.getState().removeStatus(CLAIMS_AVAILABLE_STATUS_ID);
+  usePortalStatuses.getState().removeStatus(COFHE_STATUS_IDS.claimsAvailable);
 };
 
 export const useWatchClaimablesStatus = () => {
   const { totalTokensClaimable } = useCofheClaimableTokens();
 
   useEffect(() => {
-    const claimsAvailableStatusShown = usePortalStatuses.getState().hasStatus(CLAIMS_AVAILABLE_STATUS_ID);
+    const claimsAvailableStatusShown = usePortalStatuses.getState().hasStatus(COFHE_STATUS_IDS.claimsAvailable);
     if (totalTokensClaimable > 0 && !claimsAvailableStatusShown) {
       showClaimsAvailableStatus();
     }

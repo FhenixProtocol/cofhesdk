@@ -1,11 +1,4 @@
 import { useCofheConnection } from '@/hooks';
-import { CLAIMS_AVAILABLE_STATUS_ID } from '@/hooks/useWatchClaimablesStatus';
-import {
-  STATUS_ID_MISSING_PERMIT,
-  STATUS_ID_PERMIT_EXPIRED,
-  STATUS_ID_PERMIT_EXPIRING_SOON,
-  STATUS_ID_PERMIT_SHARED,
-} from '@/hooks/useWatchPermitStatus';
 import { usePortalNavigation, usePortalStatuses } from '@/stores';
 import { usePortalUI } from '@/stores/portalUIStore';
 import { cn } from '@/utils';
@@ -17,7 +10,7 @@ import { AnimatedZStack } from '../primitives/AnimatedZStack';
 import { useCofheFloatingButtonContext } from './CofheFloatingButtonContext';
 import type { CofheFloatingButtonInternalStatus } from './internalTypes';
 import { FloatingButtonPage } from './pagesConfig/types';
-import type { CofheStatusActionIntent, CofheStatusVariant } from './types';
+import { COFHE_STATUS_IDS, type CofheStatusActionIntent, type CofheStatusVariant } from './types';
 
 const ConnectionStatus: React.FC = () => {
   const { theme } = useCofheFloatingButtonContext();
@@ -139,13 +132,13 @@ const ActiveStatusContent: React.FC<{ status: CofheFloatingButtonInternalStatus 
 const STATUSES_ORDER = new Map<string, number>(
   [
     // first always goes "claims available" as claiming doesn't require a permit
-    CLAIMS_AVAILABLE_STATUS_ID,
+    COFHE_STATUS_IDS.claimsAvailable,
 
     // next goes all permit related statuses
-    STATUS_ID_MISSING_PERMIT,
-    STATUS_ID_PERMIT_EXPIRED,
-    STATUS_ID_PERMIT_EXPIRING_SOON,
-    STATUS_ID_PERMIT_SHARED,
+    COFHE_STATUS_IDS.missingPermit,
+    COFHE_STATUS_IDS.permitExpired,
+    COFHE_STATUS_IDS.permitExpiringSoon,
+    COFHE_STATUS_IDS.permitShared,
 
     // next everything else can be sorted by time or just left in the order they were added
   ]

@@ -13,7 +13,7 @@ type Tab = 'modal' | 'status' | 'toast' | 'permit';
 
 export const DebugPage: React.FC = () => {
   const { navigateBack } = usePortalNavigation();
-  const { statuses, addStatus, removeStatus } = usePortalStatuses();
+  const { statuses, addInternalStatus, addStatus, removeStatus } = usePortalStatuses();
   const { addToast } = usePortalToasts();
   const { openModal } = usePortalModals();
   const [modalSelection, setModalSelection] = useState<string | undefined>(undefined);
@@ -109,7 +109,7 @@ export const DebugPage: React.FC = () => {
               </button>
               <button
                 onClick={() => {
-                  addStatus({
+                  addInternalStatus({
                     id: 'test-status-with-action',
                     variant: 'warning',
                     title: 'Warning status',
