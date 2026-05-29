@@ -69,16 +69,18 @@ export type CofheStatusAction = {
   intent: CofheStatusActionIntent;
 };
 
+/**
+ * Public status shape exposed to consumers.
+ *
+ * Consumer-facing status actions must declare an intent so the widget can map
+ * them to the correct internal handler.
+ */
 export type CofheStatus = {
   id: string;
   variant: CofheStatusVariant;
   title: string;
   description?: string;
   action?: CofheStatusAction;
-};
-
-export type CofheFloatingButtonStatus = Omit<CofheStatus, 'action'> & {
-  action?: CofheStatusAction | { label: string; onClick: () => void };
 };
 
 export type CofheStatusVariant = 'error' | 'warning' | 'info';

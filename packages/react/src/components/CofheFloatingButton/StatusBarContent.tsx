@@ -15,8 +15,9 @@ import { MdOutlineSettings } from 'react-icons/md';
 import { FhenixLogoIcon } from '../FhenixLogoIcon';
 import { AnimatedZStack } from '../primitives/AnimatedZStack';
 import { useCofheFloatingButtonContext } from './CofheFloatingButtonContext';
+import type { CofheFloatingButtonInternalStatus } from './internalTypes';
 import { FloatingButtonPage } from './pagesConfig/types';
-import type { CofheFloatingButtonStatus, CofheStatusActionIntent, CofheStatusVariant } from './types';
+import type { CofheStatusActionIntent, CofheStatusVariant } from './types';
 
 const ConnectionStatus: React.FC = () => {
   const { theme } = useCofheFloatingButtonContext();
@@ -92,7 +93,7 @@ function resolveStatusIntentOnClick(
   }
 }
 
-const ActiveStatusContent: React.FC<{ status: CofheFloatingButtonStatus }> = ({ status }) => {
+const ActiveStatusContent: React.FC<{ status: CofheFloatingButtonInternalStatus }> = ({ status }) => {
   const { theme } = useCofheFloatingButtonContext();
   const { navigateTo, replace } = usePortalNavigation();
   const { openPortal } = usePortalUI();
@@ -152,7 +153,10 @@ const STATUSES_ORDER = new Map<string, number>(
     .map((id, index) => [id, index])
 );
 
-export function sortCofheStatuses(a: CofheFloatingButtonStatus, b: CofheFloatingButtonStatus): number {
+export function sortCofheStatuses(
+  a: Pick<CofheFloatingButtonInternalStatus, 'id'>,
+  b: Pick<CofheFloatingButtonInternalStatus, 'id'>
+): number {
   const aIndex = STATUSES_ORDER.get(a.id) ?? -1;
   const bIndex = STATUSES_ORDER.get(b.id) ?? -1;
 

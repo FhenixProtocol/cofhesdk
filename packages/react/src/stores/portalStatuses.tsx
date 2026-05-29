@@ -1,12 +1,17 @@
-import type { CofheFloatingButtonStatus } from '@/components/CofheFloatingButton/types';
+import type { CofheFloatingButtonInternalStatus } from '@/components/CofheFloatingButton/internalTypes';
 import { create } from 'zustand';
 
 type PortalStatusesStore = {
-  statuses: CofheFloatingButtonStatus[];
+  statuses: CofheFloatingButtonInternalStatus[];
 };
 
 type PortalStatusesActions = {
-  addStatus: (status: CofheFloatingButtonStatus) => void;
+  /**
+   * Internal widget entry point for statuses.
+   * Public consumers should observe statuses through useCofheStatuses, which
+   * narrows actions to the intent-based public shape.
+   */
+  addStatus: (status: CofheFloatingButtonInternalStatus) => void;
   removeStatus: (id: string) => void;
   hasStatus: (id: string) => boolean;
 };
