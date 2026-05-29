@@ -152,7 +152,7 @@ const STATUSES_ORDER = new Map<string, number>(
     .map((id, index) => [id, index])
 );
 
-function sortStatuses(a: CofheFloatingButtonStatus, b: CofheFloatingButtonStatus): number {
+export function sortCofheStatuses(a: CofheFloatingButtonStatus, b: CofheFloatingButtonStatus): number {
   const aIndex = STATUSES_ORDER.get(a.id) ?? -1;
   const bIndex = STATUSES_ORDER.get(b.id) ?? -1;
 
@@ -175,7 +175,7 @@ function sortStatuses(a: CofheFloatingButtonStatus, b: CofheFloatingButtonStatus
 export const StatusBarContent: React.FC = () => {
   const { statuses } = usePortalStatuses();
 
-  const sortedStatuses = useMemo(() => statuses.sort(sortStatuses), [statuses]);
+  const sortedStatuses = useMemo(() => statuses.slice().sort(sortCofheStatuses), [statuses]);
 
   return (
     <AnimatedZStack>

@@ -88,7 +88,7 @@ export { createCofheClient } from '@cofhe/sdk/web';
 export { useCofheCreatePermit } from '@/hooks/permits/useCofheCreatePermit';
 export { useCofheNavigateToCreatePermit } from '@/hooks/permits/useCofheNavigateToCreatePermit';
 export { useCofheAutoConnect } from '@/hooks/useCofheAutoConnect';
-export { CofheFloatingButtonProvider } from './components/index';
+export { CofheFloatingButtonProvider, sortCofheStatuses } from './components/index';
 
 export type { CofheConfigWithReact as CofhesdkConfigWithReact } from './config';
 
