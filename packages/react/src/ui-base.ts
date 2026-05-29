@@ -7,6 +7,7 @@ export {
 } from './components/index';
 export { useCofheStatuses } from './hooks/useCofheStatuses';
 export { FheTypesList } from './utils/index';
+export { CofheStatusActionIntents } from './components/CofheFloatingButton/types';
 
 export type {
   CofheFloatingButtonProps,

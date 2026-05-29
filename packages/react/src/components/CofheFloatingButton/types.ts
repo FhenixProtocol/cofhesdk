@@ -57,7 +57,12 @@ export type CofheToastImperativeParams = {
 
 export type CofheToastVariant = 'info' | 'success' | 'error' | 'warning';
 
-export type CofheStatusActionIntent = 'open-permits' | 'open-claimable-tokens';
+export const CofheStatusActionIntents = {
+  openPermits: 'open-permits',
+  openClaimableTokens: 'open-claimable-tokens',
+} as const;
+
+export type CofheStatusActionIntent = (typeof CofheStatusActionIntents)[keyof typeof CofheStatusActionIntents];
 
 export type CofheStatusAction = {
   label: string;
