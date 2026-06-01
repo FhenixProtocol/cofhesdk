@@ -58,7 +58,7 @@ export function getCofheTokenShieldCallArgs(params: { token: Token; amount: bigi
         address: tokenAddress,
         abi: contractConfig.abi,
         functionName: contractConfig.functionName,
-        args: [account, amount],
+        args: confidentialityType === 'dual' ? ([amount] as const) : ([account, amount] as const),
         account,
         chain: undefined,
       },
