@@ -1,5 +1,6 @@
 import { QueryClient } from '@tanstack/react-query';
 import { createContext, useContext, useMemo } from 'react';
+import { usePersistentQueriesSubscription } from './queryUtils';
 
 // Internal context to expose the QueryClient used by this module
 const InternalQueryClientContext = createContext<QueryClient | null>(null);
@@ -22,6 +23,11 @@ export const QueryProvider = ({
     if (overridingQueryClient) return overridingQueryClient;
     return new QueryClient();
   }, [overridingQueryClient]);
+
+  usePersistentQueriesSubscription({
+    queryClient,
+    overridingQueryClient,
+  });
 
   return <InternalQueryClientContext.Provider value={queryClient}>{children}</InternalQueryClientContext.Provider>;
 };
