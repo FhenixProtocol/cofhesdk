@@ -117,7 +117,9 @@ function getShieldContractsForToken(token: Token): TokenShieldContracts | undefi
 export function getShieldContractConfig(token: Token) {
   const contracts = getShieldContractsForToken(token);
   if (!contracts) {
-    throw new Error(`shield config is not defined for confidentialityType: ${token.extensions.fhenix.confidentialityType}`);
+    throw new Error(
+      `shield config is not defined for confidentialityType: ${token.extensions.fhenix.confidentialityType}`
+    );
   }
   return contracts.erc20;
 }
@@ -133,7 +135,9 @@ export function getShieldApproveContractConfig() {
 export function getShieldEthContractConfig(token: Token) {
   const contracts = getShieldContractsForToken(token);
   if (!contracts?.native) {
-    throw new Error(`shield ETH config is not defined for confidentialityType: ${token.extensions.fhenix.confidentialityType}`);
+    throw new Error(
+      `shield ETH config is not defined for confidentialityType: ${token.extensions.fhenix.confidentialityType}`
+    );
   }
   return contracts.native;
 }
