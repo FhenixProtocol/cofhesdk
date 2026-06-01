@@ -9,7 +9,7 @@ import {
 import type { Abi } from 'viem';
 
 import { DUAL_TOKEN_CONTRACTS } from './confidentialTokenDual';
-import { WRAPPED_TOKEN_CONTRACTS } from './confidentialTokenWrapped';
+import { WRAPPED_NATIVE_TOKEN_CONTRACTS, WRAPPED_TOKEN_CONTRACTS } from './confidentialTokenWrapped';
 
 export type ContractConfig = {
   abi: Abi;
@@ -66,6 +66,7 @@ function getRequiredContractConfig<TConfig>(
 const TOKEN_CONFIDENTIALITY_CONTRACTS: TokenConfidentialityContractsByType = {
   dual: DUAL_TOKEN_CONTRACTS,
   wrapped: WRAPPED_TOKEN_CONTRACTS,
+  wrappedNative: WRAPPED_NATIVE_TOKEN_CONTRACTS,
 };
 
 function getDefaultShieldApprovalContracts(): Erc20ApprovalContracts {
@@ -91,7 +92,7 @@ export function getSupportedTokenDetectionConfigs(): Array<{
 }> {
   return TOKEN_CONFIDENTIALITY_TYPES.filter(
     (confidentialityType): confidentialityType is SupportedTokenConfidentialityType =>
-      isSupportedTokenConfidentialityType(confidentialityType)
+      isSupportedTokenConfidentialityType(confidentialityType) && confidentialityType !== 'wrappedNative'
   ).map((confidentialityType) => ({
     confidentialityType,
     probe: getContractsForType(confidentialityType).detection,

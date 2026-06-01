@@ -5,6 +5,7 @@ import {
   DEFAULT_TOKEN_BY_CHAIN_ID,
   ETH_ADDRESS_LOWERCASE,
   isSupportedTokenConfidentialityType,
+  type SupportedTokenConfidentialityType,
   type Erc20Pair,
   type Token,
 } from '../types/token.js';
@@ -29,10 +30,16 @@ type RawTokenListEntry = Omit<Token, 'extensions'> & {
 };
 
 function normalizeTokenFromList(token: RawTokenListEntry): Token | undefined {
-  const confidentialityType = token.extensions?.fhenix?.confidentialityType;
-  if (!isSupportedTokenConfidentialityType(confidentialityType)) {
+  const rawConfidentialityType = token.extensions?.fhenix?.confidentialityType;
+  if (!isSupportedTokenConfidentialityType(rawConfidentialityType)) {
     return undefined;
   }
+
+  const erc20Pair = token.extensions?.fhenix?.erc20Pair ?? token.extensions?.erc20Pair;
+  const confidentialityType: SupportedTokenConfidentialityType =
+    rawConfidentialityType === 'wrapped' && erc20Pair?.address?.toLowerCase() === ETH_ADDRESS_LOWERCASE
+      ? 'wrappedNative'
+      : rawConfidentialityType;
 
   return {
     ...token,
@@ -42,7 +49,7 @@ function normalizeTokenFromList(token: RawTokenListEntry): Token | undefined {
         ...token.extensions?.fhenix,
         confidentialityType,
         confidentialValueType: token.extensions?.fhenix?.confidentialValueType ?? 'uint64',
-        erc20Pair: token.extensions?.fhenix?.erc20Pair ?? token.extensions?.erc20Pair,
+        erc20Pair,
       },
     },
   };
@@ -75,10 +82,7 @@ type UseTokenListsResult = UseQueryResult<TokenList, Error>[];
 type UseTokenListsInput = {
   chainId?: number;
 };
-type UseTokenListsOptions = Omit<
-  UseQueryOptions<RawTokenList, Error, TokenList>,
-  'queryKey' | 'queryFn' | 'select'
->;
+type UseTokenListsOptions = Omit<UseQueryOptions<RawTokenList, Error, TokenList>, 'queryKey' | 'queryFn' | 'select'>;
 
 class TokenListFetchError extends Error {
   constructor(

@@ -13,7 +13,7 @@ const wrappedErc20ApprovalContracts = {
   },
 } as const;
 
-export const WRAPPED_TOKEN_CONTRACTS = {
+const SHARED_WRAPPED_TOKEN_CONTRACTS = {
   detection: {
     abi: [
       {
@@ -114,21 +114,6 @@ export const WRAPPED_TOKEN_CONTRACTS = {
     ] as const,
     functionName: 'confidentialTransfer' as const,
   },
-  shield: {
-    approval: wrappedErc20ApprovalContracts,
-    erc20: {
-      abi: parseAbi(['function shieldWrappedNative(address to, uint256 value) returns (bytes32)']),
-      functionName: 'shieldWrappedNative' as const,
-    },
-    native: {
-      abi: parseAbi(['function shieldNative(address to) payable returns (bytes32)']),
-      functionName: 'shieldNative' as const,
-    },
-    wrappedPair: {
-      abi: parseAbi(['function shieldWrappedNative(address to, uint256 value) returns (bytes32)']),
-      functionName: 'shieldWrappedNative' as const,
-    },
-  },
   unshield: {
     abi: parseAbi(['function unshield(address from, address to, uint64 amount) returns (bytes32)']),
     functionName: 'unshield' as const,
@@ -169,6 +154,40 @@ export const WRAPPED_TOKEN_CONTRACTS = {
         },
       ] as const,
       functionName: 'getUserClaims' as const,
+    },
+  },
+} as const;
+
+export const WRAPPED_TOKEN_CONTRACTS = {
+  ...SHARED_WRAPPED_TOKEN_CONTRACTS,
+  shield: {
+    approval: wrappedErc20ApprovalContracts,
+    erc20: {
+      abi: parseAbi(['function shield(address to, uint256 amount) returns (bytes32)']),
+      functionName: 'shield' as const,
+    },
+    wrappedPair: {
+      abi: parseAbi(['function shield(address to, uint256 amount) returns (bytes32)']),
+      functionName: 'shield' as const,
+    },
+  },
+} as const satisfies TokenConfidentialityContracts;
+
+export const WRAPPED_NATIVE_TOKEN_CONTRACTS = {
+  ...SHARED_WRAPPED_TOKEN_CONTRACTS,
+  shield: {
+    approval: wrappedErc20ApprovalContracts,
+    erc20: {
+      abi: parseAbi(['function shieldWrappedNative(address to, uint256 value) returns (bytes32)']),
+      functionName: 'shieldWrappedNative' as const,
+    },
+    native: {
+      abi: parseAbi(['function shieldNative(address to) payable returns (bytes32)']),
+      functionName: 'shieldNative' as const,
+    },
+    wrappedPair: {
+      abi: parseAbi(['function shieldWrappedNative(address to, uint256 value) returns (bytes32)']),
+      functionName: 'shieldWrappedNative' as const,
     },
   },
 } as const satisfies TokenConfidentialityContracts;

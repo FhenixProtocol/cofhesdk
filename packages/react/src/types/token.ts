@@ -61,6 +61,21 @@ export const TOKEN_CONFIDENTIALITY_SUPPORT = {
       claimable: true,
     },
   },
+  wrappedNative: {
+    enabled: true,
+    label: 'Native wrapped confidential token',
+    confidentialValueType: 'uint64',
+    publicBalanceSource: 'erc20Pair',
+    operations: {
+      confidentialBalance: true,
+      transfer: true,
+      publicBalance: true,
+      shield: true,
+      unshield: true,
+      claim: true,
+      claimable: true,
+    },
+  },
   pure: {
     enabled: false,
     label: 'Pure confidential token',
@@ -189,7 +204,7 @@ const WETH_BASE_SEPOLIA_TOKEN: Token = {
   decimals: 6,
   extensions: {
     fhenix: {
-      confidentialityType: 'wrapped',
+      confidentialityType: 'wrappedNative',
       confidentialValueType: 'uint64',
       erc20Pair: {
         address: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',

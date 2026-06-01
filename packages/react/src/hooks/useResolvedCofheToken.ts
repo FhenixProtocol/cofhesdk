@@ -130,7 +130,9 @@ export function useResolvedCofheToken(
         throw new Error('Address is not a supported CoFHE token');
       }
 
-      const confidentialityType: SupportedTokenConfidentialityType = supportedType.confidentialityType;
+      // TODO: needs an approach or renaming here re wrappedNative
+
+      let confidentialityType: SupportedTokenConfidentialityType = supportedType.confidentialityType;
 
       const extensions: Token['extensions'] = {
         fhenix: {
@@ -143,6 +145,8 @@ export function useResolvedCofheToken(
         const pairAddress = pickUnderlyingPairAddress(pairGetterResults, address);
         if (pairAddress) {
           if (pairAddress.toLowerCase() === ETH_ADDRESS_LOWERCASE) {
+            confidentialityType = 'wrappedNative';
+            extensions.fhenix.confidentialityType = confidentialityType;
             extensions.fhenix.erc20Pair = {
               address: ETH_ADDRESS_LOWERCASE,
               symbol: 'ETH',
