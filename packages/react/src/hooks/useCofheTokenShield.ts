@@ -194,7 +194,6 @@ export function useCofheTokenShield(
         tokenAmount: input.amount,
         chainId,
         actionType: TransactionActionType.Shield,
-        isPendingDecryption: false, // doesn't need decryption afterwards
         account,
       });
     },

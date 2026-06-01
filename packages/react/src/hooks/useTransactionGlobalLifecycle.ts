@@ -1,5 +1,4 @@
 import { usePortalToasts } from '@/stores';
-import type { DecryptionWatcher } from '@/stores/decryptionWatchingStore';
 import type { Transaction } from '@/stores/transactionStore';
 import { ContractFunctionExecutionError, ContractFunctionRevertedError, type TransactionReceipt } from 'viem';
 import { cofheHumanizeRevertReason } from '@/utils/cofheErrors';
@@ -52,12 +51,11 @@ function useTransactionGlobalToastsLifecycle() {
     onTransactionMined: (transaction: Transaction, receipt: TransactionReceipt /*  could be fail or success */) => {
       cofheLogger.log('____ Transaction mined:', transaction, 'with receipt:', receipt);
       if (receipt.status === 'success') {
-        const descriptionPostfix = transaction.isPendingDecryption ? ' It is pending decryption now.' : '';
         addToast(
           {
-            variant: transaction.isPendingDecryption ? 'info' : 'success', // if pending decryption, show as info
+            variant: 'success',
             title: `${transaction.actionType} Transaction Mined`,
-            description: `${transaction.actionType} transaction has been mined.${descriptionPostfix}`,
+            description: `${transaction.actionType} transaction has been mined.`,
             transaction: {
               hash: transaction.hash,
               chainId: transaction.chainId,
@@ -96,23 +94,6 @@ function useTransactionGlobalToastsLifecycle() {
         TOAST_DELAY_MS
       );
     },
-
-    // 3. tx is decrypted (if applicable)
-    onTransactionDecrypted: (decryptionCausingTx: Transaction, decryptionWatcher: DecryptionWatcher) => {
-      cofheLogger.log('____ Transaction decrypted:', decryptionCausingTx, 'with watcher:', decryptionWatcher);
-      addToast(
-        {
-          variant: 'success',
-          title: `${decryptionCausingTx.actionType} Decryption Succeeded`,
-          description: `${decryptionCausingTx.actionType} transaction has been decrypted.`,
-          transaction: {
-            hash: decryptionCausingTx.hash,
-            chainId: decryptionCausingTx.chainId,
-          },
-        },
-        TOAST_DELAY_MS
-      );
-    },
   };
 }
 
@@ -121,7 +102,6 @@ export function useTransactionGlobalLifecycle() {
     onTransactionSubmitted: handleToastsOnTransactionSubmitted,
     onTransactionMined: handleToastsOnTransactionMined,
     onWatchReceiptFailure: handleToastsOnWatchReceiptFailure,
-    onTransactionDecrypted: handleToastsOnTransactionDecrypted,
     onTransactionSubmitError: handleToastsOnTransactionSubmitError,
   } = useTransactionGlobalToastsLifecycle();
 
@@ -130,7 +110,6 @@ export function useTransactionGlobalLifecycle() {
     onTransactionSubmitted: handleToastsOnTransactionSubmitted,
     onTransactionMined: handleToastsOnTransactionMined,
     onWatchReceiptFailure: handleToastsOnWatchReceiptFailure,
-    onTransactionDecrypted: handleToastsOnTransactionDecrypted,
     onTransactionSubmitError: handleToastsOnTransactionSubmitError,
   };
 }

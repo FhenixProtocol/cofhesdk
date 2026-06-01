@@ -170,7 +170,6 @@ export function useCofheTokenClaimUnshielded(
               tokenAmount: decryptResult.decryptedValue,
               chainId,
               actionType: TransactionActionType.Claim,
-              isPendingDecryption: false,
               account,
             });
           } catch (error) {
@@ -269,7 +268,6 @@ export function useCofheTokenClaimUnshielded(
 
         chainId,
         actionType: TransactionActionType.Claim,
-        isPendingDecryption: false, // doesn't need decryption afterwards
         account,
       });
     },

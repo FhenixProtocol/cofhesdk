@@ -38,7 +38,6 @@ type BaseTransaction = {
   //
 
   tokenAmount: bigint;
-  isPendingDecryption: boolean;
 };
 
 type ShieldingTransaction = BaseTransaction & {
@@ -81,7 +80,6 @@ export interface TransactionStore {
     status: TransactionStatus,
     minedData?: { receipt?: TransactionReceipt }
   ) => void;
-  setTransactionDecryptionStatus: (chainId: number, hash: string, isPendingDecryption: boolean) => void;
   clearTransactions: (chainId?: number) => void;
 }
 
@@ -135,26 +133,6 @@ export const useTransactionStore = create<TransactionStore>()(
         });
       },
 
-      setTransactionDecryptionStatus: (chainId: number, hash: string, isPendingDecryption: boolean) => {
-        set((state) => {
-          const chainTxs = state.transactions[chainId];
-          if (!chainTxs || !chainTxs[hash]) return state;
-
-          return {
-            transactions: {
-              ...state.transactions,
-              [chainId]: {
-                ...chainTxs,
-                [hash]: {
-                  ...chainTxs[hash],
-                  isPendingDecryption,
-                },
-              },
-            },
-          };
-        });
-      },
-
       updateTransactionStatus: (
         chainId: number,
         hash: string,
@@ -174,8 +152,6 @@ export const useTransactionStore = create<TransactionStore>()(
                   ...chainTxs[hash],
                   status,
                   receipt: minedData?.receipt ?? chainTxs[hash].receipt,
-                  // if tx failed, it's no longer pending decryption
-                  isPendingDecryption: status === TransactionStatus.Failed ? false : chainTxs[hash].isPendingDecryption,
                 },
               },
             },

@@ -53,7 +53,6 @@ export {
   type UseCoingeckoUsdPriceInput,
   type UseCoingeckoUsdPriceOptions,
 } from './useCoingeckoUsdPrice';
-export { useOnceDecrypted } from './useOnceDecrypted';
 export { useReschedulableTimeout } from './useReschedulableTimeout';
 export { useResolvedCofheToken } from './useResolvedCofheToken';
 export {

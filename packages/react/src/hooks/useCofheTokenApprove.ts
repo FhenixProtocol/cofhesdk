@@ -44,7 +44,6 @@ export function useCofheTokenApprove(writeMutationOptions?: UseCofheTokenApprove
         tokenAmount,
         chainId: token.chainId,
         actionType: TransactionActionType.Approve,
-        isPendingDecryption: false,
         account,
       });
     },

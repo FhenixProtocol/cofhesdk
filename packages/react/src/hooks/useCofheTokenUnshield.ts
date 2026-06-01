@@ -128,7 +128,6 @@ function useCofheTokenUnshieldMutation(
         tokenAmount: input.amount,
         chainId,
         actionType: TransactionActionType.Unshield,
-        isPendingDecryption: false,
         account,
       });
     },
@@ -141,7 +140,6 @@ type UseCofheTokenUnshieldInput = {
   onTransactionSubmitSuccess?: (hash: `0x${string}`) => void;
   onTransactionSubmitError?: (error: Error) => void;
   onceMined?: (transaction: { hash: `0x${string}`; status: TransactionStatus }) => void;
-  onceDecrypted?: () => void;
 };
 export function useCofheTokenUnshield(input: UseCofheTokenUnshieldInput) {
   const unshieldMutation = useCofheTokenUnshieldMutation({
@@ -158,6 +156,5 @@ export function useCofheTokenUnshield(input: UseCofheTokenUnshieldInput) {
   return {
     ...unshieldMutation,
     isTokenUnshieldMining,
-    isPendingDecryption: false,
   };
 }

@@ -453,7 +453,7 @@ function useUnshieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps
   return {
     status,
     error: error ?? simulationError,
-    isProcessing: tokenUnshield.isPending || tokenUnshield.isTokenUnshieldMining || tokenUnshield.isPendingDecryption,
+    isProcessing: tokenUnshield.isPending || tokenUnshield.isTokenUnshieldMining,
     inputAmount: unshieldAmount,
     setInputAmount: setUnshieldAmount,
     onMaxClick: handleUnshieldMax,
