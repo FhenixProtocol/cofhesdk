@@ -270,7 +270,7 @@ const WETH_BASE_SEPOLIA_TOKEN: Token = normalizeSourceToken({
   decimals: 6,
   extensions: {
     fhenix: {
-      confidentialityType: 'wrappedNative',
+      confidentialityType: 'wrapped',
       confidentialValueType: 'uint64',
       erc20Pair: {
         address: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
