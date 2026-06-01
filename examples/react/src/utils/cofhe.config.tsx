@@ -34,7 +34,9 @@ const cofheConfig = createCofheConfig({
       // ],
 
       // dual USD and EUR
-      84532: ['https://api.npoint.io/2811dad903f0dbb6745e'],
+      84532: [
+        'https://api.jsonstorage.net/v1/json/c81e2b0c-c4ec-410f-a921-958381d9a8be/cf78da4e-d00b-481b-b997-8f932307acdd',
+      ],
       // dual USD and EUR
       421613: ['https://api.npoint.io/01ad319fb7b447ebaa92'],
 

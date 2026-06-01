@@ -49,7 +49,7 @@ export const TOKEN_CONFIDENTIALITY_SUPPORT = {
   wrapped: {
     enabled: true,
     label: 'Wrapped confidential token',
-    confidentialValueType: 'uint128',
+    confidentialValueType: 'uint64',
     publicBalanceSource: 'erc20Pair',
     operations: {
       confidentialBalance: true,
