@@ -7,7 +7,6 @@ import { useCofheAccount, useCofheChainId, useCofhePublicClient } from './useCof
 import { type Token } from './useCofheTokenLists.js';
 import { useInternalQueries } from '../providers/index.js';
 import { useNormalizedList } from './useNormalizedList.js';
-import { useIsWaitingForDecryptionByAddress } from './useIsWaitingForDecryptionByAddress.js';
 import {
   constructUnshieldClaimsQueryKey,
   DEFAULT_UNSHIELD_CLAIM_SUMMARY,
@@ -103,23 +102,6 @@ export function useCofheTokensClaimable(
   });
 
   const enabledBase = !!publicClient && !!account && normalizedTokens.length > 0;
-
-  const waitingEntries = useMemo(() => {
-    if (!account) return [];
-    return normalizedTokens
-      .filter((token) => token.extensions.fhenix.confidentialityType !== 'dual')
-      .map((token) => ({
-        address: token.address,
-        queryKey: constructUnshieldClaimsQueryKey({
-          chainId: token.chainId,
-          tokenAddress: token.address,
-          confidentialityType: token.extensions.fhenix.confidentialityType,
-          accountAddress: account,
-        }),
-      }));
-  }, [account, normalizedTokens]);
-
-  const isWaitingForDecryptionByTokenAddress = useIsWaitingForDecryptionByAddress(waitingEntries);
 
   const chainId = useCofheChainId();
 
@@ -225,7 +207,7 @@ export function useCofheTokensClaimable(
     isFetching: combined.isFetching,
     isError: combined.isError,
     error: combined.error,
-    isWaitingForDecryptionByTokenAddress,
+    isWaitingForDecryptionByTokenAddress: {},
     isUnshieldingInProgressByTokenAddress,
     isClaimingByTokenAddress,
   };

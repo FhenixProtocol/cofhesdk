@@ -5,7 +5,6 @@ import { type Token } from './useCofheTokenLists.js';
 import { getClaimableContractConfig } from '../constants/confidentialTokenABIs.js';
 import { isTokenOperationSupported, type SupportedTokenConfidentialityType } from '@/types/token';
 import { useInternalQuery } from '../providers/index.js';
-import { useIsWaitingForDecryptionToInvalidate } from './useIsWaitingForDecryptionToInvalidate.js';
 import { assert } from 'ts-essentials';
 import { cofheLogger } from '@/utils/debug';
 import { maybeWaitUntilRpcAwareAndReadContract } from '@/utils/waitUntilRpcAwareAndReadContract.js';
@@ -136,7 +135,7 @@ export async function fetchUnshieldClaimsSummary({
 
   const { claimableAmount, pendingAmount } = claims.reduce(
     (acc, claim) => {
-      if (confidentialityType === 'dual') {
+      if (confidentialityType === 'dual' || confidentialityType === 'wrapped') {
         acc.claimableAmount += claim.requestedAmount;
         return acc;
       }
@@ -210,8 +209,6 @@ export function useCofheTokenClaimable(
     confidentialityType,
     accountAddress: account,
   });
-  // is waiting for decryption finalization -> once Unshield tx mined, but before Decryption result available
-  const isWaitingForDecryption = useIsWaitingForDecryptionToInvalidate(queryKey);
 
   const result = useInternalQuery({
     queryKey,
@@ -246,6 +243,6 @@ export function useCofheTokenClaimable(
 
   return {
     ...result,
-    isWaitingForDecryption,
+    isWaitingForDecryption: false,
   };
 }

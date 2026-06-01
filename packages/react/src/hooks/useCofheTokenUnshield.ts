@@ -2,13 +2,12 @@ import { type MutationFunctionContext, type UseMutationOptions, type UseMutation
 import { type Address } from 'viem';
 import { useCofheWalletClient, useCofheChainId, useCofheAccount, useCofhePublicClient } from './useCofheConnection.js';
 import { type Token } from './useCofheTokenLists.js';
-import { assertTokenOperationSupported, isTokenOperationSupported } from '@/types/token';
+import { assertTokenOperationSupported } from '@/types/token';
 import { getUnshieldContractConfig } from '../constants/confidentialTokenABIs.js';
 import { TransactionActionType, TransactionStatus, useTransactionStore } from '../stores/transactionStore.js';
 import { useInternalMutation } from '../providers/index.js';
 import { assert } from 'ts-essentials';
 import { useOnceTransactionMined } from './useOnceTransactionMined.js';
-import { useOnceDecrypted } from './useOnceDecrypted.js';
 import { useTransactionGlobalLifecycle } from './useTransactionGlobalLifecycle.js';
 import type { CofheSimulateWriteContractCallArgs } from './useCofheSimulateWriteContract.js';
 
@@ -123,17 +122,13 @@ function useCofheTokenUnshieldMutation(
       assert(account, 'Wallet account is required for token unshield');
       if (onSuccess) await onSuccess(hash, input, onMutateResult, context);
 
-      const requiresExternalDecryptionTracking =
-        input.token.extensions.fhenix.confidentialityType !== 'dual' &&
-        isTokenOperationSupported(input.token.extensions.fhenix.confidentialityType, 'claimable');
-
       useTransactionStore.getState().addTransaction({
         hash,
         token: input.token,
         tokenAmount: input.amount,
         chainId,
         actionType: TransactionActionType.Unshield,
-        isPendingDecryption: requiresExternalDecryptionTracking,
+        isPendingDecryption: false,
         account,
       });
     },
@@ -160,14 +155,9 @@ export function useCofheTokenUnshield(input: UseCofheTokenUnshieldInput) {
     onceMined: input.onceMined,
   });
 
-  const { isPendingDecryption } = useOnceDecrypted({
-    txHash: unshieldMutation.data,
-    onceDecrypted: input.onceDecrypted,
-  });
-
   return {
     ...unshieldMutation,
     isTokenUnshieldMining,
-    isPendingDecryption,
+    isPendingDecryption: false,
   };
 }

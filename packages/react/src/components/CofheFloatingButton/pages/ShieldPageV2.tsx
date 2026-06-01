@@ -401,9 +401,7 @@ function useUnshieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps
           message: (
             <>
               Unshield transaction confirmed! Hash: <TxHashWithActions hash={transaction.hash} chainId={chainId} />
-              {token.extensions.fhenix.confidentialityType === 'dual'
-                ? ' Claim data is now available.'
-                : ' Now waiting for decryption...'}
+              {' Claim data is now available.'}
             </>
           ),
           type: 'success',
@@ -416,10 +414,6 @@ function useUnshieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps
         );
         setStatus(null);
       }
-    },
-    onceDecrypted: () => {
-      setStatus({ message: 'Unshield decryption completed!', type: 'success' });
-      scheduleStatusClear();
     },
   });
   const handleUnshield = async () => {
@@ -546,11 +540,7 @@ function UnshieldTab({
 function ClaimingSection({ token }: { token: Token }) {
   const account = useCofheAccount();
   const isDualToken = token.extensions.fhenix.confidentialityType === 'dual';
-  const {
-    data: unshieldedClaims,
-    isFetching: isFetchingClaims,
-    isWaitingForDecryption: isWaitingForNewClaimsDecryption,
-  } = useCofheTokenClaimable({
+  const { data: unshieldedClaims, isFetching: isFetchingClaims } = useCofheTokenClaimable({
     token,
     accountAddress: account,
   });
@@ -599,14 +589,13 @@ function ClaimingSection({ token }: { token: Token }) {
             isClaimingMining ||
             isFetchingClaims ||
             isUnshieldingMining ||
-            (!isDualToken && isWaitingForNewClaimsDecryption) ||
             (shouldSimulateClaim && claimSimulation.isFetching) ||
             (shouldSimulateClaim && !!claimSimulation.error)
           }
           label={
             claimUnshield.isPending
               ? 'Claiming...'
-              : `Claim ${isFetchingClaims || (!isDualToken && isWaitingForNewClaimsDecryption) ? '...' : formatTokenAmount(unshieldedClaims?.claimableAmount ?? 0n, token.decimals, 5).formatted} ${pairedSymbol}`
+              : `Claim ${isFetchingClaims ? '...' : formatTokenAmount(unshieldedClaims?.claimableAmount ?? 0n, token.decimals, 5).formatted} ${pairedSymbol}`
           }
           className="mt-1"
         />
