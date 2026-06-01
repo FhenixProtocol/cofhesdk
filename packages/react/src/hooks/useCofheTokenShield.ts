@@ -38,7 +38,7 @@ export function getCofheTokenShieldCallArgs(params: { token: Token; amount: bigi
   const isEth = erc20PairAddress?.toLowerCase() === ETH_ADDRESS_LOWERCASE;
 
   if (isEth) {
-    const contractConfig = getShieldEthContractConfig(confidentialityType);
+    const contractConfig = getShieldEthContractConfig(token);
     return {
       main: {
         address: tokenAddress,
@@ -52,7 +52,7 @@ export function getCofheTokenShieldCallArgs(params: { token: Token; amount: bigi
     };
   }
   if (!erc20PairAddress) {
-    const contractConfig = getShieldContractConfig(confidentialityType);
+    const contractConfig = getShieldContractConfig(token);
     return {
       main: {
         address: tokenAddress,
@@ -65,7 +65,7 @@ export function getCofheTokenShieldCallArgs(params: { token: Token; amount: bigi
     };
   }
 
-  const contractConfig = getShieldWrappedPairContractConfig(confidentialityType);
+  const contractConfig = getShieldWrappedPairContractConfig(token);
 
   return {
     approval: {

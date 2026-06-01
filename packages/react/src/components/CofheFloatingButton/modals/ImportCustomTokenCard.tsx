@@ -78,8 +78,7 @@ export const ImportCustomTokenCard: React.FC<{
             {getTokenConfidentialityLabel(previewToken.extensions.fhenix.confidentialityType) ?? 'Confidential token'}
           </p>
           {balanceType === 'public' &&
-            (previewToken.extensions.fhenix.confidentialityType === 'wrapped' ||
-              previewToken.extensions.fhenix.confidentialityType === 'wrappedNative') &&
+            previewToken.extensions.fhenix.confidentialityType === 'wrapped' &&
             !previewToken.extensions.fhenix.erc20Pair && (
               <p className="text-xxxs opacity-70">
                 Public-balance actions may stay unavailable until the token&apos;s paired asset can be discovered.

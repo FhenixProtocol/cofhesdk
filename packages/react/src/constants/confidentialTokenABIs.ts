@@ -1,4 +1,5 @@
 import {
+  getTokenWrapperKind,
   getTokenConfidentialValueType,
   isSupportedTokenConfidentialityType,
   type Token,
@@ -66,7 +67,6 @@ function getRequiredContractConfig<TConfig>(
 const TOKEN_CONFIDENTIALITY_CONTRACTS: TokenConfidentialityContractsByType = {
   dual: DUAL_TOKEN_CONTRACTS,
   wrapped: WRAPPED_TOKEN_CONTRACTS,
-  wrappedNative: WRAPPED_NATIVE_TOKEN_CONTRACTS,
 };
 
 function getDefaultShieldApprovalContracts(): Erc20ApprovalContracts {
@@ -92,7 +92,7 @@ export function getSupportedTokenDetectionConfigs(): Array<{
 }> {
   return TOKEN_CONFIDENTIALITY_TYPES.filter(
     (confidentialityType): confidentialityType is SupportedTokenConfidentialityType =>
-      isSupportedTokenConfidentialityType(confidentialityType) && confidentialityType !== 'wrappedNative'
+      isSupportedTokenConfidentialityType(confidentialityType)
   ).map((confidentialityType) => ({
     confidentialityType,
     probe: getContractsForType(confidentialityType).detection,
@@ -104,10 +104,20 @@ export function getTransferContractConfig(confidentialityType: Token['extensions
   return getContractsForType(confidentialityType).confidentialTransfer;
 }
 
-export function getShieldContractConfig(confidentialityType: Token['extensions']['fhenix']['confidentialityType']) {
-  const contracts = getContractsForType(confidentialityType).shield;
+function getShieldContractsForToken(token: Token): TokenShieldContracts | undefined {
+  if (token.extensions.fhenix.confidentialityType === 'wrapped') {
+    return getTokenWrapperKind(token) === 'native'
+      ? WRAPPED_NATIVE_TOKEN_CONTRACTS.shield
+      : WRAPPED_TOKEN_CONTRACTS.shield;
+  }
+
+  return getContractsForType(token.extensions.fhenix.confidentialityType).shield;
+}
+
+export function getShieldContractConfig(token: Token) {
+  const contracts = getShieldContractsForToken(token);
   if (!contracts) {
-    throw new Error(`shield config is not defined for confidentialityType: ${confidentialityType}`);
+    throw new Error(`shield config is not defined for confidentialityType: ${token.extensions.fhenix.confidentialityType}`);
   }
   return contracts.erc20;
 }
@@ -120,20 +130,20 @@ export function getShieldApproveContractConfig() {
   return getDefaultShieldApprovalContracts().approve;
 }
 
-export function getShieldEthContractConfig(confidentialityType: Token['extensions']['fhenix']['confidentialityType']) {
-  const contracts = getContractsForType(confidentialityType).shield;
+export function getShieldEthContractConfig(token: Token) {
+  const contracts = getShieldContractsForToken(token);
   if (!contracts?.native) {
-    throw new Error(`shield ETH config is not defined for confidentialityType: ${confidentialityType}`);
+    throw new Error(`shield ETH config is not defined for confidentialityType: ${token.extensions.fhenix.confidentialityType}`);
   }
   return contracts.native;
 }
 
-export function getShieldWrappedPairContractConfig(
-  confidentialityType: Token['extensions']['fhenix']['confidentialityType']
-) {
-  const contracts = getContractsForType(confidentialityType).shield;
+export function getShieldWrappedPairContractConfig(token: Token) {
+  const contracts = getShieldContractsForToken(token);
   if (!contracts?.wrappedPair) {
-    throw new Error(`shield wrapped pair config is not defined for confidentialityType: ${confidentialityType}`);
+    throw new Error(
+      `shield wrapped pair config is not defined for confidentialityType: ${token.extensions.fhenix.confidentialityType}`
+    );
   }
   return contracts.wrappedPair;
 }

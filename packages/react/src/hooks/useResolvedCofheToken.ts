@@ -4,7 +4,7 @@ import { type Address, isAddress, parseAbi, zeroAddress } from 'viem';
 import { ERC20_DECIMALS_ABI, ERC20_NAME_ABI, ERC20_SYMBOL_ABI } from '@/constants/erc20ABIs';
 import { getSupportedTokenDetectionConfigs } from '@/constants/confidentialTokenABIs';
 import { useInternalQuery } from '@/providers';
-import { ETH_ADDRESS_LOWERCASE, type SupportedTokenConfidentialityType, type Token } from '@/types/token';
+import { ETH_ADDRESS_LOWERCASE, buildToken, type SupportedTokenConfidentialityType, type Token } from '@/types/token';
 
 import { useCofheChainId, useCofhePublicClient } from './useCofheConnection';
 
@@ -130,29 +130,22 @@ export function useResolvedCofheToken(
         throw new Error('Address is not a supported CoFHE token');
       }
 
-      // TODO: needs an approach or renaming here re wrappedNative
-
-      let confidentialityType: SupportedTokenConfidentialityType = supportedType.confidentialityType;
-
-      const extensions: Token['extensions'] = {
-        fhenix: {
-          confidentialityType,
-          confidentialValueType: supportedType.confidentialValueType,
-        },
-      };
+      const confidentialityType: SupportedTokenConfidentialityType = supportedType.confidentialityType;
+      let wrapperKind: Token['extensions']['fhenix']['wrapperKind'];
+      let erc20Pair: Token['extensions']['fhenix']['erc20Pair'];
 
       if (confidentialityType === 'wrapped') {
         const pairAddress = pickUnderlyingPairAddress(pairGetterResults, address);
         if (pairAddress) {
           if (pairAddress.toLowerCase() === ETH_ADDRESS_LOWERCASE) {
-            confidentialityType = 'wrappedNative';
-            extensions.fhenix.confidentialityType = confidentialityType;
-            extensions.fhenix.erc20Pair = {
+            wrapperKind = 'native';
+            erc20Pair = {
               address: ETH_ADDRESS_LOWERCASE,
               symbol: 'ETH',
               decimals: 18,
             };
           } else {
+            wrapperKind = 'erc20';
             const pairMetadata = await publicClient.multicall({
               contracts: [
                 {
@@ -173,7 +166,7 @@ export function useResolvedCofheToken(
             const pairSymbol = pairMetadata[1]?.status === 'success' ? pairMetadata[1].result : undefined;
 
             if (pairDecimals != null && pairSymbol != null) {
-              extensions.fhenix.erc20Pair = {
+              erc20Pair = {
                 address: pairAddress,
                 symbol: pairSymbol,
                 decimals: pairDecimals,
@@ -183,14 +176,20 @@ export function useResolvedCofheToken(
         }
       }
 
-      return {
-        chainId,
-        address,
-        decimals,
-        symbol,
-        name,
-        extensions,
-      };
+      return buildToken({
+        base: {
+          chainId,
+          address,
+          decimals,
+          symbol,
+          name,
+          logoURI: undefined,
+        },
+        confidentialityType,
+        confidentialValueType: supportedType.confidentialValueType,
+        wrapperKind,
+        erc20Pair,
+      });
     },
     enabled: (queryOptions?.enabled ?? true) && !!publicClient && !!chainId && !!address,
     staleTime: Infinity,

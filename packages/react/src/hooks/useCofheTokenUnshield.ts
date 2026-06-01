@@ -28,10 +28,7 @@ export function getCofheTokenUnshieldCallArgs(params: {
   assertTokenOperationSupported(confidentialityType, 'unshield');
 
   const contractConfig = getUnshieldContractConfig(confidentialityType);
-  const args =
-    confidentialityType === 'wrapped' || confidentialityType === 'wrappedNative'
-      ? ([account, account, rawAmount] as const)
-      : ([rawAmount] as const);
+  const args = confidentialityType === 'wrapped' ? ([account, account, rawAmount] as const) : ([rawAmount] as const);
 
   return {
     address: tokenAddress,

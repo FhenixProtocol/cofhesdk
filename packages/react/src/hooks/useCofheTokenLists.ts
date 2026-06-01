@@ -5,8 +5,9 @@ import {
   DEFAULT_TOKEN_BY_CHAIN_ID,
   ETH_ADDRESS_LOWERCASE,
   isSupportedTokenConfidentialityType,
-  type SupportedTokenConfidentialityType,
+  normalizeSourceToken,
   type Erc20Pair,
+  type SourceToken,
   type Token,
 } from '../types/token.js';
 import { useInternalQueries } from '../providers/index.js';
@@ -17,43 +18,6 @@ import { useResolvedCofheToken } from './useResolvedCofheToken';
 import { cofheLogger } from '@/utils/debug';
 
 export { ETH_ADDRESS_LOWERCASE, type Token, type Erc20Pair };
-
-type RawTokenListEntry = Omit<Token, 'extensions'> & {
-  extensions?: Record<string, unknown> & {
-    fhenix?: {
-      confidentialityType?: string;
-      confidentialValueType?: 'uint64' | 'uint128';
-      erc20Pair?: Erc20Pair;
-    };
-    erc20Pair?: Erc20Pair;
-  };
-};
-
-function normalizeTokenFromList(token: RawTokenListEntry): Token | undefined {
-  const rawConfidentialityType = token.extensions?.fhenix?.confidentialityType;
-  if (!isSupportedTokenConfidentialityType(rawConfidentialityType)) {
-    return undefined;
-  }
-
-  const erc20Pair = token.extensions?.fhenix?.erc20Pair ?? token.extensions?.erc20Pair;
-  const confidentialityType: SupportedTokenConfidentialityType =
-    rawConfidentialityType === 'wrapped' && erc20Pair?.address?.toLowerCase() === ETH_ADDRESS_LOWERCASE
-      ? 'wrappedNative'
-      : rawConfidentialityType;
-
-  return {
-    ...token,
-    extensions: {
-      ...token.extensions,
-      fhenix: {
-        ...token.extensions?.fhenix,
-        confidentialityType,
-        confidentialValueType: token.extensions?.fhenix?.confidentialValueType ?? 'uint64',
-        erc20Pair,
-      },
-    },
-  };
-}
 
 function isSupportedToken(token: Token): boolean {
   const confidentialityType = token.extensions?.fhenix?.confidentialityType;
@@ -75,7 +39,7 @@ type TokenList = TokenListBase & {
 };
 
 type RawTokenList = TokenListBase & {
-  tokens: RawTokenListEntry[];
+  tokens: SourceToken[];
 };
 
 type UseTokenListsResult = UseQueryResult<TokenList, Error>[];
@@ -139,7 +103,7 @@ export function useCofheTokenLists(
           ...data,
           tokens: data.tokens
             .filter((token) => token.chainId === chainId)
-            .map((token) => normalizeTokenFromList(token))
+            .map((token) => normalizeSourceToken(token))
             .filter((token): token is Token => !!token && isSupportedToken(token)),
         };
       },

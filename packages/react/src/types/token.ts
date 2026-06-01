@@ -36,6 +36,9 @@ export type Erc20Pair = {
   logoURI?: string;
 };
 
+export type TokenWrapperKind = 'erc20' | 'native';
+export type TokenConfidentialValueType = 'uint64' | 'uint128';
+
 export type TokenSupportOperation =
   | 'confidentialBalance'
   | 'transfer'
@@ -49,21 +52,6 @@ export const TOKEN_CONFIDENTIALITY_SUPPORT = {
   wrapped: {
     enabled: true,
     label: 'Wrapped confidential token',
-    confidentialValueType: 'uint64',
-    publicBalanceSource: 'erc20Pair',
-    operations: {
-      confidentialBalance: true,
-      transfer: true,
-      publicBalance: true,
-      shield: true,
-      unshield: true,
-      claim: true,
-      claimable: true,
-    },
-  },
-  wrappedNative: {
-    enabled: true,
-    label: 'Native wrapped confidential token',
     confidentialValueType: 'uint64',
     publicBalanceSource: 'erc20Pair',
     operations: {
@@ -149,6 +137,17 @@ export function getTokenConfidentialValueType(
   return TOKEN_CONFIDENTIALITY_SUPPORT[type].confidentialValueType;
 }
 
+export function getTokenWrapperKind(token: Pick<Token, 'extensions'>): TokenWrapperKind | undefined {
+  if (token.extensions.fhenix.confidentialityType !== 'wrapped') {
+    return undefined;
+  }
+
+  return (
+    token.extensions.fhenix.wrapperKind ??
+    (token.extensions.fhenix.erc20Pair?.address?.toLowerCase() === ETH_ADDRESS_LOWERCASE ? 'native' : 'erc20')
+  );
+}
+
 export function assertTokenOperationSupported(
   type: string | undefined,
   operation: TokenSupportOperation
@@ -167,12 +166,79 @@ export type Token = {
   extensions: Record<string, unknown> & {
     fhenix: {
       confidentialityType: TokenConfidentialityType;
-      confidentialValueType: 'uint64' | 'uint128';
+      confidentialValueType: TokenConfidentialValueType;
+      wrapperKind?: TokenWrapperKind;
       /** ERC20 pair for wrapped tokens - contains underlying token info */
       erc20Pair?: Erc20Pair;
     };
   };
 };
+
+export type SourceToken = Omit<Token, 'extensions'> & {
+  extensions?: Record<string, unknown> & {
+    fhenix?: {
+      confidentialityType?: string;
+      confidentialValueType?: TokenConfidentialValueType;
+      erc20Pair?: Erc20Pair;
+    };
+    erc20Pair?: Erc20Pair;
+  };
+};
+
+export function buildToken(params: {
+  base: TokenWithoutExtensions;
+  confidentialityType: SupportedTokenConfidentialityType;
+  confidentialValueType: TokenConfidentialValueType;
+  wrapperKind?: TokenWrapperKind;
+  erc20Pair?: Erc20Pair;
+  extensions?: Record<string, unknown>;
+}): Token {
+  const { base, confidentialityType, confidentialValueType, wrapperKind, erc20Pair, extensions } = params;
+
+  return {
+    ...base,
+    extensions: {
+      ...extensions,
+      fhenix: {
+        confidentialityType,
+        confidentialValueType,
+        ...(wrapperKind ? { wrapperKind } : {}),
+        ...(erc20Pair ? { erc20Pair } : {}),
+      },
+    },
+  };
+}
+
+export function normalizeSourceToken(token: SourceToken): Token | undefined {
+  const confidentialityType = token.extensions?.fhenix?.confidentialityType;
+  if (!isSupportedTokenConfidentialityType(confidentialityType)) {
+    return undefined;
+  }
+
+  const erc20Pair = token.extensions?.fhenix?.erc20Pair ?? token.extensions?.erc20Pair;
+  const wrapperKind =
+    confidentialityType === 'wrapped'
+      ? erc20Pair?.address?.toLowerCase() === ETH_ADDRESS_LOWERCASE
+        ? 'native'
+        : 'erc20'
+      : undefined;
+
+  return buildToken({
+    base: {
+      chainId: token.chainId,
+      address: token.address,
+      symbol: token.symbol,
+      decimals: token.decimals,
+      name: token.name,
+      logoURI: token.logoURI,
+    },
+    confidentialityType,
+    confidentialValueType: token.extensions?.fhenix?.confidentialValueType ?? 'uint64',
+    wrapperKind,
+    erc20Pair,
+    extensions: token.extensions,
+  });
+}
 
 // // source: https://storage.googleapis.com/cofhesdk/sepolia.json
 // export const WETH_SEPOLIA_TOKEN: Token = {
@@ -196,7 +262,7 @@ export type Token = {
 //   },
 // };
 
-const WETH_BASE_SEPOLIA_TOKEN: Token = {
+const WETH_BASE_SEPOLIA_TOKEN: Token = normalizeSourceToken({
   name: 'Sample FHE ETH',
   symbol: 'fhETH',
   address: '0x3Cdcdd0EB7311a59fDe92D44B01165B2Ca2019C4',
@@ -214,7 +280,7 @@ const WETH_BASE_SEPOLIA_TOKEN: Token = {
       },
     },
   },
-};
+})!;
 export const DEFAULT_TOKEN_BY_CHAIN_ID: Record<number, Token> = {
   // [sepolia.id]: WETH_SEPOLIA_TOKEN,
   [baseSepolia.id]: WETH_BASE_SEPOLIA_TOKEN,
