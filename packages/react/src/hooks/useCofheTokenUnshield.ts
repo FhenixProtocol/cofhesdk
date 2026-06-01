@@ -28,7 +28,7 @@ export function getCofheTokenUnshieldCallArgs(params: {
   assertTokenOperationSupported(confidentialityType, 'unshield');
 
   const contractConfig = getUnshieldContractConfig(confidentialityType);
-  const args = (token.extensions.fhenix.erc20Pair ? [account, rawAmount] : [rawAmount]) as readonly unknown[];
+  const args = confidentialityType === 'wrapped' ? ([account, account, rawAmount] as const) : ([rawAmount] as const);
 
   return {
     address: tokenAddress,
@@ -58,7 +58,7 @@ type UseTokenUnshieldMutationOptions = Omit<
 >;
 /**
  * Hook to unshield tokens (initiate conversion from confidential to regular)
- * Wrapped tokens call `decrypt(address to, uint128 value)` and then need to be claimed.
+ * Wrapped tokens call `unshield(address from, address to, uint64 amount)` and then need to be claimed.
  * @param options - Optional React Query mutation options
  * @returns Mutation result with transaction hash
  */

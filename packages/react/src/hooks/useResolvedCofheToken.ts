@@ -17,6 +17,7 @@ const TOKEN_PAIR_GETTER_ABIS = {
   asset: parseAbi(['function asset() view returns (address)']),
   erc20: parseAbi(['function erc20() view returns (address)']),
   erc20Token: parseAbi(['function erc20Token() view returns (address)']),
+  weth: parseAbi(['function weth() view returns (address)']),
 } as const;
 
 const PAIR_GETTER_ENTRIES = [
@@ -26,6 +27,7 @@ const PAIR_GETTER_ENTRIES = [
   ['asset', TOKEN_PAIR_GETTER_ABIS.asset],
   ['erc20', TOKEN_PAIR_GETTER_ABIS.erc20],
   ['erc20Token', TOKEN_PAIR_GETTER_ABIS.erc20Token],
+  ['weth', TOKEN_PAIR_GETTER_ABIS.weth],
 ] as const;
 
 function pickUnderlyingPairAddress(results: readonly unknown[], tokenAddress: Address): Address | undefined {

@@ -159,41 +159,38 @@ export type Token = {
   };
 };
 
-// source: https://storage.googleapis.com/cofhesdk/sepolia.json
-export const WETH_SEPOLIA_TOKEN: Token = {
-  chainId: 11155111,
-  address: '0x87A3effB84CBE1E4caB6Ab430139eC41d156D55A',
-  name: 'Redact eETH',
-  symbol: 'eETH',
-  decimals: 18,
-  logoURI: 'https://storage.googleapis.com/cofhesdk/token-icons/eth.webp',
-  extensions: {
-    fhenix: {
-      confidentialityType: 'wrapped',
-      confidentialValueType: 'uint128',
-      erc20Pair: {
-        address: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
-        symbol: 'ETH',
-        decimals: 18,
-        logoURI: 'https://storage.googleapis.com/cofhesdk/token-icons/eth.webp',
-      },
-    },
-  },
-};
+// // source: https://storage.googleapis.com/cofhesdk/sepolia.json
+// export const WETH_SEPOLIA_TOKEN: Token = {
+//   chainId: 11155111,
+//   address: '0x87A3effB84CBE1E4caB6Ab430139eC41d156D55A',
+//   name: 'Redact eETH',
+//   symbol: 'eETH',
+//   decimals: 18,
+//   logoURI: 'https://storage.googleapis.com/cofhesdk/token-icons/eth.webp',
+//   extensions: {
+//     fhenix: {
+//       confidentialityType: 'wrapped',
+//       confidentialValueType: 'uint128',
+//       erc20Pair: {
+//         address: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+//         symbol: 'ETH',
+//         decimals: 18,
+//         logoURI: 'https://storage.googleapis.com/cofhesdk/token-icons/eth.webp',
+//       },
+//     },
+//   },
+// };
 
-// source: https://storage.googleapis.com/cofhesdk/base-sepolia.json
 const WETH_BASE_SEPOLIA_TOKEN: Token = {
+  name: 'Sample FHE ETH',
+  symbol: 'fhETH',
+  address: '0x3Cdcdd0EB7311a59fDe92D44B01165B2Ca2019C4',
   chainId: 84532,
-  address: '0xbED96aa98a49FeA71fcC55d755b915cF022a9159',
-  name: 'Redact eETH',
-  symbol: 'eETH',
-  decimals: 18,
-  logoURI: 'https://storage.googleapis.com/cofhesdk/token-icons/eth.webp',
+  decimals: 6,
   extensions: {
-    coingeckoId: 'eeth',
     fhenix: {
       confidentialityType: 'wrapped',
-      confidentialValueType: 'uint128',
+      confidentialValueType: 'uint64',
       erc20Pair: {
         address: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
         symbol: 'ETH',
@@ -204,6 +201,6 @@ const WETH_BASE_SEPOLIA_TOKEN: Token = {
   },
 };
 export const DEFAULT_TOKEN_BY_CHAIN_ID: Record<number, Token> = {
-  [sepolia.id]: WETH_SEPOLIA_TOKEN,
+  // [sepolia.id]: WETH_SEPOLIA_TOKEN,
   [baseSepolia.id]: WETH_BASE_SEPOLIA_TOKEN,
 };

@@ -21,8 +21,13 @@ export function getCofheTokenClaimUnshieldedCallArgs(params: {
     decryptedAmount: bigint;
     decryptionProof: `0x${string}`;
   };
-}): CofheSimulateWriteContractCallArgs {
-  const { token, account, claim } = params;
+  claims?: Array<{
+    ctHash: Hex | bigint;
+    decryptedAmount: bigint;
+    decryptionProof: `0x${string}`;
+  }>;
+}): CofheSimulateWriteContractCallArgs | undefined {
+  const { token, account, claim, claims } = params;
 
   const tokenAddress: Address = token.address;
   const confidentialityType = token.extensions.fhenix.confidentialityType;
@@ -47,13 +52,21 @@ export function getCofheTokenClaimUnshieldedCallArgs(params: {
     };
   }
 
+  if (!claims?.length) {
+    return undefined;
+  }
+
   const contractConfig = getClaimAllContractConfig(confidentialityType);
 
   return {
     address: tokenAddress,
     abi: contractConfig.abi,
     functionName: contractConfig.functionName,
-    args: [],
+    args: [
+      claims.map((item) => item.ctHash),
+      claims.map((item) => item.decryptedAmount),
+      claims.map((item) => item.decryptionProof),
+    ],
     account,
     chain: undefined,
   };
@@ -70,8 +83,7 @@ type UseClaimUnshieldInput = {
 };
 type UseClaimUnshieldOptions = Omit<UseMutationOptions<`0x${string}`, Error, UseClaimUnshieldInput>, 'mutationFn'>;
 /**
- * Hook to claim unshielded tokens after decryption completes
- * Wrapped tokens call `claimAllDecrypted()`.
+ * Hook to claim unshielded tokens after decryption completes.
  * @param options - Optional React Query mutation options
  * @returns Mutation result with transaction hash
  */
@@ -143,6 +155,8 @@ export function useCofheTokenClaimUnshielded(
               },
             });
 
+            assert(callArgs, 'Dual claim call args are required when a claim proof is available');
+
             const { request } = await publicClient.simulateContract({
               ...callArgs,
               account: walletClient.account,
@@ -174,13 +188,62 @@ export function useCofheTokenClaimUnshielded(
         return submitted[submitted.length - 1].hash;
       }
 
-      const contractConfig = getClaimAllContractConfig(confidentialityType);
+      assert(chainId, 'Chain ID is required for wrapped claim');
+      assert(account, 'Wallet account is required for wrapped claim');
+
+      const claims = await fetchUnshieldClaims({
+        publicClient,
+        token: input.token,
+        accountAddress: account,
+        confidentialityType,
+        signal: new AbortController().signal,
+      });
+
+      const pendingClaims = claims.filter((claim) => !claim.claimed);
+      const submitted = [] as Array<{
+        ctHash: Hex | bigint;
+        decryptedAmount: bigint;
+        decryptionProof: `0x${string}`;
+      }>;
+
+      for (const currentClaim of pendingClaims) {
+        try {
+          const decryptResult = await client
+            .decryptForTx(currentClaim.ctHash)
+            .setChainId(chainId)
+            .setAccount(account)
+            .withoutPermit()
+            .execute();
+
+          submitted.push({
+            ctHash: currentClaim.ctHash,
+            decryptedAmount: decryptResult.decryptedValue,
+            decryptionProof: decryptResult.signature,
+          });
+        } catch (error) {
+          cofheLogger.warn('Skipping wrapped claim that is not yet ready or failed to prove', {
+            ctHash: currentClaim.ctHash.toString(),
+            error,
+          });
+        }
+      }
+
+      if (submitted.length === 0) {
+        throw new Error('No wrapped unshield claims are ready to be claimed yet.');
+      }
+
+      const callArgs = getCofheTokenClaimUnshieldedCallArgs({
+        token: input.token,
+        account: walletClient.account.address,
+        claims: submitted,
+      });
+
+      if (!callArgs) {
+        throw new Error('Wrapped claim call args are required when claim proofs are available');
+      }
 
       const { request } = await publicClient.simulateContract({
-        address: tokenAddress,
-        abi: contractConfig.abi,
-        functionName: contractConfig.functionName,
-        args: [],
+        ...callArgs,
         account: walletClient.account,
       });
       return await walletClient.writeContract({ ...request, chain: undefined });
