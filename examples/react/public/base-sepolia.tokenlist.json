@@ -1,0 +1,95 @@
+{
+  "name": "Fhenix Base Sepolia Tokenlist",
+  "timestamp": "2026-06-01T00:00:00Z",
+  "version": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "logoURI": "https://cdn.prod.website-files.com/6864e9aed9e0a3fac780db8/68a473dd63e0265d2d6cf9a3_(fhenix_)%20(16).svg",
+  "keywords": ["fhenix", "base-sepolia", "confidential", "sample", "wrapper"],
+  "tokens": [
+    {
+      "name": "Dual cEUR",
+      "symbol": "cEUR",
+      "address": "0x19E3454cd5AbA2C9b29715bFD5286790460F1CEF",
+      "chainId": 84532,
+      "logoURI": "https://storage.googleapis.com/cofhesdk/token-icons/eurc.webp",
+      "decimals": 6,
+      "extensions": {
+        "fhenix": {
+          "confidentialityType": "dual",
+          "confidentialValueType": "uint64"
+        }
+      }
+    },
+    {
+      "name": "Dual cUSD",
+      "symbol": "cUSDC",
+      "address": "0x7751e77d7487EF204CF8e96fa3C60fDd0Ca873f8",
+      "chainId": 84532,
+      "logoURI": "https://storage.googleapis.com/cofhesdk/token-icons/usdc.webp",
+      "decimals": 6,
+      "extensions": {
+        "fhenix": {
+          "confidentialityType": "dual",
+          "confidentialValueType": "uint64"
+        }
+      }
+    },
+    {
+      "name": "Sample Test cUSD",
+      "symbol": "cUSD",
+      "address": "0xbD0d8133Dfd8112076aF19c524E1326078cDFf66",
+      "chainId": 84532,
+      "logoURI": "https://storage.googleapis.com/cofhesdk/token-icons/usdc.webp",
+      "decimals": 6
+    },
+    {
+      "name": "SampleERC20 Without Wrapper",
+      "symbol": "SAMPLE",
+      "address": "0xF9CCc0f7F365AA5B041E20e0E32CBDaD50FE8f02",
+      "chainId": 84532,
+      "decimals": 18
+    },
+    {
+      "name": "Sample FHE ETH",
+      "symbol": "fhETH",
+      "address": "0x3Cdcdd0EB7311a59fDe92D44B01165B2Ca2019C4",
+      "chainId": 84532,
+      "decimals": 6,
+      "extensions": {
+        "fhenix": {
+          "confidentialityType": "wrapped",
+          "confidentialValueType": "uint64"
+        },
+        "erc20Pair": {
+          "address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "symbol": "ETH",
+          "decimals": 18,
+          "logoURI": "https://storage.googleapis.com/cofhesdk/token-icons/eth.webp"
+        }
+      }
+    },
+    {
+      "name": "Sample FHE cUSD",
+      "symbol": "fhcUSD",
+      "address": "0xBC8A9878E99B3C6f03167C9BBCeA5184289f3076",
+      "chainId": 84532,
+      "logoURI": "https://storage.googleapis.com/cofhesdk/token-icons/usdc.webp",
+      "decimals": 6,
+      "extensions": {
+        "fhenix": {
+          "confidentialityType": "wrapped",
+          "confidentialValueType": "uint64"
+        },
+        "erc20Pair": {
+          "address": "0xbD0d8133Dfd8112076aF19c524E1326078cDFf66",
+          "symbol": "Sample Test cUSD",
+          "decimals": 6,
+          "logoURI": "https://storage.googleapis.com/cofhesdk/token-icons/usdc.webp"
+        }
+      }
+    }
+  ]
+}

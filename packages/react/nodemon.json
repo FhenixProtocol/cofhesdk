@@ -2,7 +2,7 @@
   "watch": ["src"],
   "ext": "ts,tsx,css",
   "ignore": ["dist", "node_modules", "**/*.test.ts", "**/*.test.tsx"],
-  "exec": "rm -rf dist && tsup && postcss ./src/styles.css -o ./dist/styles.css && node ./scripts/create-ui-entry.mjs",
+  "exec": "tsup --no-dts --no-clean --silent && node ./scripts/create-ui-entry.mjs",
   "legacyWatch": true,
   "delay": "500",
   "verbose": true
