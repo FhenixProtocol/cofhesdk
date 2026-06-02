@@ -744,6 +744,41 @@ describe('EncryptInputsBuilder', () => {
     });
   });
 
+  describe('asHashPlusProof', () => {
+    it('should return the same builder instance for chaining', () => {
+      expect(builder.asHashPlusProof()).toBe(builder);
+    });
+
+    it('execute() returns [hash, proof] for a single input', async () => {
+      const result = await builder.asHashPlusProof().execute();
+      expect(Array.isArray(result)).toBe(true);
+      expect(result).toHaveLength(2); // 1 hash + 1 proof
+    });
+
+    it('execute() returns [hash1, hash2, proof] for two inputs', async () => {
+      const result = await new EncryptInputsBuilder({
+        ...createDefaultParams(),
+        inputs: [Encryptable.uint128(100n), Encryptable.bool(true)] as [
+          ReturnType<typeof Encryptable.uint128>,
+          ReturnType<typeof Encryptable.bool>,
+        ],
+      })
+        .asHashPlusProof()
+        .execute();
+
+      expect(Array.isArray(result)).toBe(true);
+      expect(result).toHaveLength(3); // 2 hashes + 1 proof
+    });
+
+    it('should be composable with other builder methods', async () => {
+      const overriddenSender = '0x5555555555555555555555555555555555555555';
+      const result = await builder.asHashPlusProof().setAccount(overriddenSender).execute();
+
+      expect(Array.isArray(result)).toBe(true);
+      expect(result).toHaveLength(2);
+    });
+  });
+
   describe('setUseWorker and getUseWorker', () => {
     it('should have setUseWorker method', () => {
       expect(builder).toHaveProperty('setUseWorker');

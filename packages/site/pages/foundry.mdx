@@ -128,6 +128,31 @@ All `createInE*` functions operate under security zone 0. Use the returned struc
 | `createInEuint128(uint128)` | `InEuint128` |
 | `createInEaddress(address)` | `InEaddress` |
 
+#### Hash plus proof variants
+
+`CofheClient` also provides `_asHashPlusProof` equivalents for each type. These return a split `(hash, proof)` pair that matches Solidity functions accepting `externalEuint*` + `bytes proof` instead of an `InE*` struct.
+
+| Function                                    | Returns                              |
+| ------------------------------------------- | ------------------------------------ |
+| `createInEbool_asHashPlusProof(bool)`       | `(externalEbool, bytes memory)`      |
+| `createInEuint8_asHashPlusProof(uint8)`     | `(externalEuint8, bytes memory)`     |
+| `createInEuint16_asHashPlusProof(uint16)`   | `(externalEuint16, bytes memory)`    |
+| `createInEuint32_asHashPlusProof(uint32)`   | `(externalEuint32, bytes memory)`    |
+| `createInEuint64_asHashPlusProof(uint64)`   | `(externalEuint64, bytes memory)`    |
+| `createInEuint128_asHashPlusProof(uint128)` | `(externalEuint128, bytes memory)`   |
+| `createInEaddress_asHashPlusProof(address)` | `(externalEaddress, bytes memory)`   |
+
+Example:
+
+```solidity
+function testSetValueHashPlusProof(uint32 n) public {
+    (externalEuint32 hash, bytes memory proof) = cofheClient.createInEuint32_asHashPlusProof(n);
+    vm.prank(cofheClient.account());
+    myContract.setValueHashPlusProof(hash, proof);
+    expectPlaintext(myContract.getValue(), n);
+}
+```
+
 ### Decryption
 
 | Function                                                         | Returns                     | Description                                                                       |

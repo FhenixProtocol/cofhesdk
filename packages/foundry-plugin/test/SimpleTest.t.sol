@@ -5,7 +5,7 @@ import { Test } from 'forge-std/Test.sol';
 import { SimpleTest } from '@cofhe/test-setup/contracts/SimpleTest.sol';
 import { CofheTest } from '../contracts/CofheTest.sol';
 import { CofheClient } from '../contracts/CofheClient.sol';
-import { FHE, InEuint32, euint8, euint128 } from '@fhenixprotocol/cofhe-contracts/FHE.sol';
+import { FHE, InEuint32, euint8, euint128, externalEuint32 } from '@fhenixprotocol/cofhe-contracts/FHE.sol';
 
 /// @title SimpleTest Foundry Tests
 /// @notice Foundry-native smoke tests for the CoFHE mock environment and FHE Solidity surface.
@@ -29,6 +29,14 @@ contract SimpleTestTest is CofheTest {
     vm.prank(cofheClient.account());
     simpleTest.setValue(number);
 
+    expectPlaintext(simpleTest.getValue(), n);
+  }
+
+  /// @notice Hash plus proof: set an encrypted value and validate it.
+  function testSetValueHashPlusProof(uint32 n) public {
+    (externalEuint32 hash, bytes memory proof) = cofheClient.createInEuint32_asHashPlusProof(n);
+    vm.prank(cofheClient.account());
+    simpleTest.setValueHashPlusProof(hash, proof);
     expectPlaintext(simpleTest.getValue(), n);
   }
 

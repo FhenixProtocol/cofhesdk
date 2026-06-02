@@ -11,7 +11,10 @@ import { MockZkVerifierSigner } from './MockZkVerifierSigner.sol';
 import { MockThresholdNetwork } from '@cofhe/mock-contracts/contracts/MockThresholdNetwork.sol';
 import { MockThresholdNetworkSigner } from './MockThresholdNetworkSigner.sol';
 import { Permission, PermissionUtils } from '@cofhe/mock-contracts/contracts/Permissioned.sol';
-import { ZK_VERIFIER_SIGNER_ADDRESS, DECRYPT_RESULT_SIGNER_ADDRESS } from '@cofhe/mock-contracts/contracts/MockCoFHE.sol';
+import {
+  ZK_VERIFIER_SIGNER_ADDRESS,
+  DECRYPT_RESULT_SIGNER_ADDRESS
+} from '@cofhe/mock-contracts/contracts/MockCoFHE.sol';
 
 /// @notice Portable representation of the issuer's half of a shared permit, safe to transmit as cleartext.
 struct SharedPermitExport {
@@ -116,6 +119,55 @@ contract CofheClient is Test {
     return abi.decode(abi.encode(createEncryptedInput(Utils.EADDRESS_TFHE, uint256(uint160(value)))), (InEaddress));
   }
 
+  /// @notice Creates an encrypted boolean input as hash plus proof.
+  function createInEbool_asHashPlusProof(bool value) public returns (externalEbool hash, bytes memory proof) {
+    InEbool memory input = createInEbool(value);
+    hash = externalEbool.wrap(bytes32(input.ctHash));
+    proof = input.signature;
+  }
+
+  /// @notice Creates an encrypted uint8 input as hash plus proof.
+  function createInEuint8_asHashPlusProof(uint8 value) public returns (externalEuint8 hash, bytes memory proof) {
+    InEuint8 memory input = createInEuint8(value);
+    hash = externalEuint8.wrap(bytes32(input.ctHash));
+    proof = input.signature;
+  }
+
+  /// @notice Creates an encrypted uint16 input as hash plus proof.
+  function createInEuint16_asHashPlusProof(uint16 value) public returns (externalEuint16 hash, bytes memory proof) {
+    InEuint16 memory input = createInEuint16(value);
+    hash = externalEuint16.wrap(bytes32(input.ctHash));
+    proof = input.signature;
+  }
+
+  /// @notice Creates an encrypted uint32 input as hash plus proof.
+  function createInEuint32_asHashPlusProof(uint32 value) public returns (externalEuint32 hash, bytes memory proof) {
+    InEuint32 memory input = createInEuint32(value);
+    hash = externalEuint32.wrap(bytes32(input.ctHash));
+    proof = input.signature;
+  }
+
+  /// @notice Creates an encrypted uint64 input as hash plus proof.
+  function createInEuint64_asHashPlusProof(uint64 value) public returns (externalEuint64 hash, bytes memory proof) {
+    InEuint64 memory input = createInEuint64(value);
+    hash = externalEuint64.wrap(bytes32(input.ctHash));
+    proof = input.signature;
+  }
+
+  /// @notice Creates an encrypted uint128 input as hash plus proof.
+  function createInEuint128_asHashPlusProof(uint128 value) public returns (externalEuint128 hash, bytes memory proof) {
+    InEuint128 memory input = createInEuint128(value);
+    hash = externalEuint128.wrap(bytes32(input.ctHash));
+    proof = input.signature;
+  }
+
+  /// @notice Creates an encrypted address input as hash plus proof.
+  function createInEaddress_asHashPlusProof(address value) public returns (externalEaddress hash, bytes memory proof) {
+    InEaddress memory input = createInEaddress(value);
+    hash = externalEaddress.wrap(bytes32(input.ctHash));
+    proof = input.signature;
+  }
+
   // =====================
   //    DECRYPT FOR TX
   // =====================
@@ -155,10 +207,7 @@ contract CofheClient is Test {
   // =====================
 
   /// @notice Decrypts a ciphertext for off-chain reading by sealing/unsealing with the permit's sealing key.
-  function decryptForView(
-    bytes32 ctHash,
-    Permission memory permission
-  ) public view onlyConnected returns (uint256) {
+  function decryptForView(bytes32 ctHash, Permission memory permission) public view onlyConnected returns (uint256) {
     uint256 ct = uint256(ctHash);
 
     (bool allowed, string memory error, bytes32 sealedOutput) = mockThresholdNetwork.querySealOutput(
