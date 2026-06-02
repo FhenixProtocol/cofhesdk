@@ -27,6 +27,7 @@ export {
 export { useCofheTokenClaimable, type UnshieldClaimsSummary } from './useCofheTokenClaimable';
 export { getCofheTokenClaimUnshieldedCallArgs, useCofheTokenClaimUnshielded } from './useCofheTokenClaimUnshielded';
 export { useCofheTokenDecryptedBalance } from './useCofheTokenDecryptedBalance';
+export { useCofheTokenPublicBalance } from './useCofheTokenPublicBalance';
 export {
   ETH_ADDRESS_LOWERCASE,
   useCofheTokenLists,
