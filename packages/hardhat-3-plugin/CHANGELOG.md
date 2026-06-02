@@ -1,5 +1,21 @@
 # @cofhe/hardhat-3-plugin
 
+## 0.6.0
+
+### Minor Changes
+
+- 566f126: Remove the legacy `TestBed` mock surface and stop auto-deploying `SimpleTest` through the Hardhat plugins. Core mock contracts still deploy automatically, while tests that need `SimpleTest` should deploy it explicitly from their own artifacts.
+
+  This also removes `TEST_BED_ADDRESS` and cleans up duplicate `SimpleTest` exports from `@cofhe/mock-contracts`.
+
+### Patch Changes
+
+- Updated dependencies [bf23270]
+- Updated dependencies [2711f9b]
+- Updated dependencies [566f126]
+  - @cofhe/sdk@0.6.0
+  - @cofhe/mock-contracts@0.6.0
+
 ## 0.5.2
 
 ### Patch Changes
