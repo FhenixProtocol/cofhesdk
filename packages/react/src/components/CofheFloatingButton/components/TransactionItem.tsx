@@ -7,8 +7,10 @@ import {
   TransactionStatus,
   TransactionActionType,
   actionToString,
+  isCustomTransactionActionType,
   statusToString,
 } from '../../../stores/transactionStore.js';
+import { useCofheContext } from '../../../providers/index.js';
 import { formatRelativeTime } from '../../../utils/utils.js';
 import { HashLink } from './HashLink.js';
 
@@ -35,7 +37,27 @@ const ActionIcon: React.FC<{ actionType: TransactionActionType }> = ({ actionTyp
   }
 };
 
+function stringifyPayload(payload: unknown): string {
+  try {
+    return JSON.stringify(payload, null, 2);
+  } catch {
+    return String(payload);
+  }
+}
+
 export const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
+  const { transactionRenderers } = useCofheContext();
+  const Renderer = transactionRenderers?.[transaction.actionType];
+
+  if (Renderer) {
+    return <Renderer transaction={transaction} />;
+  }
+
+  const amountLabel =
+    'token' in transaction
+      ? `${formatUnits(transaction.tokenAmount, transaction.token.decimals)} ${transaction.token.symbol}`
+      : null;
+
   const statusColorClass =
     transaction.status === TransactionStatus.Pending
       ? 'text-yellow-600 dark:text-yellow-400'
@@ -54,16 +76,26 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({ transaction })
         {/* Transaction Details */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-sm font-semibold cofhe-text-primary">{actionToString(transaction.actionType)}</span>
             <span className="text-sm font-semibold cofhe-text-primary">
-              {formatUnits(transaction.tokenAmount, transaction.token.decimals)} {transaction.token.symbol}
+              {actionToString(transaction.actionType, transaction.title)}
             </span>
+            {amountLabel ? <span className="text-sm font-semibold cofhe-text-primary">{amountLabel}</span> : null}
           </div>
 
           <div className="flex items-center justify-between gap-2 mt-1">
             <span className={cn('text-xs font-medium', statusColorClass)}>{statusToString(transaction.status)}</span>
             <span className="text-xs cofhe-text-primary opacity-60">{formatRelativeTime(transaction.timestamp)}</span>
           </div>
+
+          {transaction.description ? (
+            <p className="mt-1 text-xs cofhe-text-primary opacity-70">{transaction.description}</p>
+          ) : null}
+
+          {isCustomTransactionActionType(transaction.actionType) && transaction.payload !== undefined ? (
+            <pre className="mt-2 max-h-24 overflow-auto rounded cofhe-card-bg p-2 text-[10px] cofhe-text-primary opacity-80">
+              {stringifyPayload(transaction.payload)}
+            </pre>
+          ) : null}
 
           <div className="mt-1">
             <HashLink type="tx" hash={transaction.hash} chainId={transaction.chainId} copyable />

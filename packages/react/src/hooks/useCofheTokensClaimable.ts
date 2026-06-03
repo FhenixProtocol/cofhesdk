@@ -79,9 +79,11 @@ const pendingUnshieldsFilter = (tx: { actionType: TransactionActionType; status:
   tx.actionType === TransactionActionType.Unshield && tx.status === TransactionStatus.Pending;
 
 const asBooleanByTokenAddressLowercase = (
-  txs: { token: { address: string }; actionType: TransactionActionType; status: TransactionStatus }[]
+  txs: { token?: { address: string }; actionType: TransactionActionType; status: TransactionStatus }[]
 ) => {
   return txs.reduce<Record<string, boolean>>((acc, tx) => {
+    if (!tx.token) return acc;
+
     const key = tx.token.address.toLowerCase();
     acc[key] = true;
 

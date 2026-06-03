@@ -47,6 +47,7 @@ export {
   type UseCofheTokensWithExistingBalancesResult,
 } from './useCofheTokensWithExistingEncryptedBalances';
 export { useCofheTokenTransfer } from './useCofheTokenTransfer';
+export { addCofheTransaction, useCofheTransactions, type AddCofheTransactionInput } from './useCofheTransactions';
 export { getCofheTokenUnshieldCallArgs, useCofheTokenUnshield } from './useCofheTokenUnshield';
 export { useCofheWriteContract } from './useCofheWriteContract';
 export {

@@ -16,14 +16,20 @@ export enum TransactionStatus {
 }
 export type TransactionStatusString = 'Pending' | 'Failed' | 'Confirmed';
 
-export enum TransactionActionType {
-  ShieldSend = 'shieldSend',
-  Shield = 'shield',
-  Unshield = 'unshield',
-  Claim = 'claim',
-  Approve = 'approve',
-}
-export type TransactionActionString = 'Shielded Transfer' | 'Shield' | 'Unshield' | 'Claim' | 'Approve';
+export const TransactionActionType = {
+  ShieldSend: 'shieldSend',
+  Shield: 'shield',
+  Unshield: 'unshield',
+  Claim: 'claim',
+  Approve: 'approve',
+} as const;
+
+export type BuiltInTransactionActionType = (typeof TransactionActionType)[keyof typeof TransactionActionType];
+export type CustomTransactionActionType = `custom-${string}`;
+export type TransactionActionType = BuiltInTransactionActionType | CustomTransactionActionType;
+export type TransactionActionString = 'Shielded Transfer' | 'Shield' | 'Unshield' | 'Claim' | 'Approve' | string;
+
+export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 
 type BaseTransaction = {
   hash: `0x${string}`;
@@ -31,31 +37,44 @@ type BaseTransaction = {
   status: TransactionStatus;
   timestamp: number;
   chainId: number;
-  // actionType: Exclude<TransactionActionType, TransactionActionType.Unshield>;
   account: Address;
 
-  token: Token;
-  //
+  /**
+   * Action identifier. For custom transactions this must be `custom-${string}` and also serves as the
+   * renderer lookup key.
+   */
+  actionType: TransactionActionType;
+  title?: string;
+  description?: string;
+  tokenTags?: `0x${string}`[];
+  payload?: JsonValue;
+};
 
+type TokenTransaction = BaseTransaction & {
+  token: Token;
   tokenAmount: bigint;
 };
 
-type ShieldingTransaction = BaseTransaction & {
-  actionType: TransactionActionType.Shield;
+type ShieldingTransaction = TokenTransaction & {
+  actionType: typeof TransactionActionType.Shield;
 };
-type SendingTransaction = BaseTransaction & {
-  actionType: TransactionActionType.ShieldSend;
+type SendingTransaction = TokenTransaction & {
+  actionType: typeof TransactionActionType.ShieldSend;
 };
-type ClaimingTransaction = BaseTransaction & {
-  actionType: TransactionActionType.Claim;
-};
-
-type ApprovingTransaction = BaseTransaction & {
-  actionType: TransactionActionType.Approve;
+type ClaimingTransaction = TokenTransaction & {
+  actionType: typeof TransactionActionType.Claim;
 };
 
-type UnshieldingTransaction = BaseTransaction & {
-  actionType: TransactionActionType.Unshield;
+type ApprovingTransaction = TokenTransaction & {
+  actionType: typeof TransactionActionType.Approve;
+};
+
+type UnshieldingTransaction = TokenTransaction & {
+  actionType: typeof TransactionActionType.Unshield;
+};
+
+type CustomTransaction = BaseTransaction & {
+  actionType: CustomTransactionActionType;
 };
 
 export type Transaction =
@@ -63,9 +82,10 @@ export type Transaction =
   | ShieldingTransaction
   | SendingTransaction
   | ClaimingTransaction
-  | ApprovingTransaction;
+  | ApprovingTransaction
+  | CustomTransaction;
 
-type NewTransaction = DistributiveOmit<Transaction, 'status' | 'timestamp'>;
+export type NewTransaction = DistributiveOmit<Transaction, 'status' | 'timestamp'>;
 
 export interface TransactionStore {
   // TODO: should be chainId -> account -> txHash -> Transaction
@@ -83,7 +103,7 @@ export interface TransactionStore {
   clearTransactions: (chainId?: number) => void;
 }
 
-const actionToStringMap: Record<TransactionActionType, TransactionActionString> = {
+const actionToStringMap: Record<BuiltInTransactionActionType, TransactionActionString> = {
   [TransactionActionType.ShieldSend]: 'Shielded Transfer',
   [TransactionActionType.Shield]: 'Shield',
   [TransactionActionType.Unshield]: 'Unshield',
@@ -91,7 +111,11 @@ const actionToStringMap: Record<TransactionActionType, TransactionActionString> 
   [TransactionActionType.Approve]: 'Approve',
 };
 
-export const actionToString = (a: TransactionActionType): TransactionActionString => actionToStringMap[a];
+export const actionToString = (a: TransactionActionType, fallbackTitle?: string): TransactionActionString =>
+  actionToStringMap[a as BuiltInTransactionActionType] ?? fallbackTitle ?? a;
+
+export const isCustomTransactionActionType = (actionType: TransactionActionType): actionType is CustomTransactionActionType =>
+  actionType.startsWith('custom-');
 
 const statusToStringMap: Record<TransactionStatus, TransactionStatusString> = {
   [TransactionStatus.Pending]: 'Pending',
@@ -101,15 +125,34 @@ const statusToStringMap: Record<TransactionStatus, TransactionStatusString> = {
 
 export const statusToString = (a: TransactionStatus): TransactionStatusString => statusToStringMap[a];
 
+function normalizeAddressList(addresses: readonly `0x${string}`[] | undefined): `0x${string}`[] | undefined {
+  if (!addresses || addresses.length === 0) return undefined;
+
+  return Array.from(new Set(addresses.map((address) => address.toLowerCase() as `0x${string}`)));
+}
+
+function transactionMatchesToken(tx: Transaction, tokenAddress: string): boolean {
+  const normalizedTokenAddress = tokenAddress.toLowerCase();
+  if ('token' in tx && tx.token.address.toLowerCase() === normalizedTokenAddress) return true;
+
+  return tx.tokenTags?.some((tag) => tag.toLowerCase() === normalizedTokenAddress) ?? false;
+}
+
 // Custom storage to handle bigint serialization
 const bigintStorage = createJSONStorage<TransactionStore>(() => localStorage, bigintJSONStorageOptions);
 
 function constructNewTx(transaction: NewTransaction): Transaction {
+  const tokenTags = normalizeAddressList([
+    ...(transaction.tokenTags ?? []),
+    ...('token' in transaction ? [transaction.token.address as `0x${string}`] : []),
+  ]);
+
   return {
     ...transaction,
+    ...(tokenTags ? { tokenTags } : {}),
     status: TransactionStatus.Pending,
     timestamp: Date.now(),
-  };
+  } as Transaction;
 }
 
 export const useTransactionStore = create<TransactionStore>()(
@@ -177,7 +220,8 @@ export const useTransactionStore = create<TransactionStore>()(
         return chainTxs
           ? Object.values(chainTxs)
               .filter((tx) => {
-                return tx.account.toLowerCase() === account?.toLowerCase();
+                if (!transactionMatchesToken(tx, tokenAddress)) return false;
+                return !account || tx.account.toLowerCase() === account.toLowerCase();
               })
               .sort((a, b) => b.timestamp - a.timestamp) // newest first
           : [];

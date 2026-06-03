@@ -3,9 +3,21 @@ import type { CofheConfigWithReact } from '../config';
 import type { QueryClient } from '@tanstack/react-query';
 import type { PublicClientLike, WalletClientLike } from '../utils/viemClientBridge';
 import type { FloatingButtonPosition } from '@/components/CofheFloatingButton/types';
+import type { Transaction, TransactionActionType } from '@/stores/transactionStore';
+
+export type TransactionRendererProps<TTransaction extends Transaction = Transaction> = {
+  transaction: TTransaction;
+};
+
+export type TransactionRenderer<TTransaction extends Transaction = Transaction> = (
+  props: TransactionRendererProps<TTransaction>
+) => React.ReactNode;
+
+export type TransactionRenderers = Partial<Record<TransactionActionType, TransactionRenderer>>;
 
 export interface CofheContextValue {
   client: CofheClient<CofheConfigWithReact>;
+  transactionRenderers?: TransactionRenderers;
 
   // dynamic values, which aren't worth re-creating the whole client on each change via config
   state: {
@@ -30,6 +42,12 @@ export type CofheProviderProps = {
   // @TODO: define our own pair of classes, with only the methods we need
   walletClient?: WalletClientLike;
   publicClient?: PublicClientLike;
+
+  /**
+   * Optional transaction renderers keyed by actionType. For custom action types (`custom-${string}`),
+   * actionType serves as the renderer mapping key.
+   */
+  transactionRenderers?: TransactionRenderers;
 };
 
 export interface CofheClientConfig {

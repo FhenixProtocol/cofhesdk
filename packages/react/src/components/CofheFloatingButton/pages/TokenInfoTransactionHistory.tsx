@@ -46,7 +46,11 @@ export const TokenInfoTransactionHistory: React.FC<TokenInfoTransactionHistoryPr
   const { filteredTxs: tokenTxs } = useStoredTransactions({
     chainId: token.chainId,
     account,
-    filter: (tx) => tx.token.address.toLowerCase() === token.address.toLowerCase(),
+    filter: (tx) => {
+      const tokenAddress = token.address.toLowerCase();
+      if ('token' in tx && tx.token.address.toLowerCase() === tokenAddress) return true;
+      return tx.tokenTags?.some((tag) => tag.toLowerCase() === tokenAddress) ?? false;
+    },
   });
 
   const activity = useMemo(() => {
@@ -54,12 +58,20 @@ export const TokenInfoTransactionHistory: React.FC<TokenInfoTransactionHistoryPr
       .slice()
       .sort((a, b) => b.timestamp - a.timestamp)
       .map((tx) => {
+        if (!('token' in tx)) {
+          return {
+            kind: actionToString(tx.actionType, tx.title),
+            description: tx.description,
+          };
+        }
+
         const amountToken = parseFloat(formatUnits(tx.tokenAmount, tx.token.decimals));
         const amountUsd =
           typeof priceUsd === 'number' && Number.isFinite(amountToken) ? amountToken * priceUsd : undefined;
 
         return {
-          kind: actionToString(tx.actionType),
+          kind: actionToString(tx.actionType, tx.title),
+          description: tx.description,
           amountUsd,
           amountToken: Number.isFinite(amountToken) ? amountToken : 0,
         };
@@ -88,17 +100,20 @@ export const TokenInfoTransactionHistory: React.FC<TokenInfoTransactionHistoryPr
                     />
                     <div className="flex flex-col">
                       <p className="text-sm font-bold cofhe-text-primary">{item.kind}</p>
+                      {item.description ? <p className="text-xs opacity-70">{item.description}</p> : null}
                     </div>
                   </div>
 
-                  <div className="flex flex-col items-end">
-                    <p className="text-sm font-bold cofhe-text-primary">
-                      {typeof item.amountUsd === 'number' ? money(item.amountUsd) : '--'}
-                    </p>
-                    <p className="text-xxxs opacity-70">
-                      {item.amountToken} {token.symbol}
-                    </p>
-                  </div>
+                  {'amountToken' in item ? (
+                    <div className="flex flex-col items-end">
+                      <p className="text-sm font-bold cofhe-text-primary">
+                        {typeof item.amountUsd === 'number' ? money(item.amountUsd) : '--'}
+                      </p>
+                      <p className="text-xxxs opacity-70">
+                        {item.amountToken} {token.symbol}
+                      </p>
+                    </div>
+                  ) : null}
                 </div>
               );
             })}
