@@ -114,8 +114,9 @@ const actionToStringMap: Record<BuiltInTransactionActionType, TransactionActionS
 export const actionToString = (a: TransactionActionType, fallbackTitle?: string): TransactionActionString =>
   actionToStringMap[a as BuiltInTransactionActionType] ?? fallbackTitle ?? a;
 
-export const isCustomTransactionActionType = (actionType: TransactionActionType): actionType is CustomTransactionActionType =>
-  actionType.startsWith('custom-');
+export const isCustomTransactionActionType = (
+  actionType: TransactionActionType
+): actionType is CustomTransactionActionType => actionType.startsWith('custom-');
 
 const statusToStringMap: Record<TransactionStatus, TransactionStatusString> = {
   [TransactionStatus.Pending]: 'Pending',

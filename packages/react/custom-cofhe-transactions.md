@@ -11,12 +11,7 @@ This should replace app-specific SDK action types such as KYC verification. KYC 
 The SDK should keep built-in transaction action types for built-in CoFHE flows:
 
 ```ts
-type BuiltInTransactionActionType =
-  | 'shieldSend'
-  | 'shield'
-  | 'unshield'
-  | 'claim'
-  | 'approve';
+type BuiltInTransactionActionType = 'shieldSend' | 'shield' | 'unshield' | 'claim' | 'approve';
 ```
 
 Consumer-owned transactions should use a custom action type namespace:
@@ -24,9 +19,7 @@ Consumer-owned transactions should use a custom action type namespace:
 ```ts
 type CustomTransactionActionType = `custom-${string}`;
 
-type TransactionActionType =
-  | BuiltInTransactionActionType
-  | CustomTransactionActionType;
+type TransactionActionType = BuiltInTransactionActionType | CustomTransactionActionType;
 ```
 
 For custom transactions, `actionType` is also the renderer lookup key. For example, `custom-kyc-verification` maps to the renderer registered for `custom-kyc-verification`.
@@ -34,13 +27,7 @@ For custom transactions, `actionType` is also the renderer lookup key. For examp
 Suggested stored shape:
 
 ```ts
-type JsonValue =
-  | null
-  | boolean
-  | number
-  | string
-  | JsonValue[]
-  | { [key: string]: JsonValue };
+type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 
 type StoredTransaction = {
   hash: `0x${string}`;
@@ -99,9 +86,7 @@ const transactionRenderers = {
 Preferred placement is a React-facing provider/config layer. If renderers are React components, provider props are likely the cleanest fit:
 
 ```tsx
-<CofheProvider transactionRenderers={transactionRenderers}>
-  {children}
-</CofheProvider>
+<CofheProvider transactionRenderers={transactionRenderers}>{children}</CofheProvider>
 ```
 
 If the existing `createCofheConfig({ react: ... })` path is already React-component-friendly, this can also live under React config:
@@ -138,7 +123,7 @@ If no renderer is registered for a custom transaction, the SDK should render nor
 The fallback payload rendering can be simple and explicit:
 
 ```ts
-JSON.stringify(transaction.payload, null, 2)
+JSON.stringify(transaction.payload, null, 2);
 ```
 
 ## Token History Filtering
