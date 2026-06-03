@@ -11,6 +11,12 @@ const srcDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), 'src')
 const srcAliasPlugin = {
   name: 'src-alias',
   setup(build: any) {
+    const useSyncExternalStoreWithSelectorShim = path.resolve(srcDir, 'internal/useSyncExternalStoreWithSelector.ts');
+
+    build.onResolve({ filter: /^use-sync-external-store\/(?:shim\/)?with-selector(?:\.js)?$/ }, () => ({
+      path: useSyncExternalStoreWithSelectorShim,
+    }));
+
     build.onResolve({ filter: /^@\// }, (args: any) => {
       const relativePath = args.path.slice(2); // drop '@/'
       const candidate = path.resolve(srcDir, relativePath);
@@ -95,6 +101,25 @@ export default defineConfig({
     },
   ],
   external: ['react', 'react-dom', '@cofhe/sdk', '@cofhe/abi', 'viem'],
+  // Bundle React-package implementation dependencies so consumers can safely
+  // serve @cofhe/react as raw ESM in dev without exposing transitive CJS/ESM
+  // edges from packages like Recharts, Zustand, or use-sync-external-store.
+  noExternal: [
+    '@fhenixprotocol/cofhe-errors',
+    '@radix-ui/react-dropdown-menu',
+    '@radix-ui/react-select',
+    '@tanstack/query-async-storage-persister',
+    '@tanstack/react-query',
+    '@tanstack/react-query-persist-client',
+    'bignumber.js',
+    'clsx',
+    'motion',
+    'react-icons',
+    'recharts',
+    'tailwind-merge',
+    'zod',
+    'zustand',
+  ],
   esbuildOptions(options) {
     options.jsx = 'automatic';
     // Handle image imports as data URLs
