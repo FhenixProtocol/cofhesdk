@@ -46,6 +46,10 @@ export type CofheProviderProps = {
   /**
    * Optional transaction renderers keyed by actionType. For custom action types (`custom-${string}`),
    * actionType serves as the renderer mapping key.
+   *
+   * This intentionally lives on the React provider rather than createCofheConfig({ react }). Renderer
+   * values are React components/functions, while the config object is schema-validated and can be
+   * created outside React UI setup or shared with non-rendering SDK setup.
    */
   transactionRenderers?: TransactionRenderers;
 };
