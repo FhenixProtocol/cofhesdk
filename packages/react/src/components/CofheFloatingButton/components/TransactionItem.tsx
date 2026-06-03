@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { formatUnits } from 'viem';
 import { cn } from '../../../utils/cn.js';
 import { GoArrowUpRight } from 'react-icons/go';
@@ -12,11 +13,14 @@ import {
 } from '../../../stores/transactionStore.js';
 import { useCofheContext } from '../../../providers/index.js';
 import { formatRelativeTime } from '../../../utils/utils.js';
+import { cofheLogger } from '../../../utils/debug.js';
 import { HashLink } from './HashLink.js';
 
 interface TransactionItemProps {
   transaction: Transaction;
 }
+
+const warnedMissingCustomRendererActionTypes = new Set<string>();
 
 const ActionIcon: React.FC<{ actionType: TransactionActionType }> = ({ actionType }) => {
   const iconClassName = 'w-5 h-5';
@@ -48,6 +52,23 @@ function stringifyPayload(payload: unknown): string {
 export const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
   const { transactionRenderers } = useCofheContext();
   const Renderer = transactionRenderers?.[transaction.actionType];
+
+  useEffect(() => {
+    if (Renderer || !isCustomTransactionActionType(transaction.actionType)) return;
+    if (warnedMissingCustomRendererActionTypes.has(transaction.actionType)) return;
+
+    warnedMissingCustomRendererActionTypes.add(transaction.actionType);
+    cofheLogger.warn(
+      `No custom transaction renderer registered for "${transaction.actionType}". ` +
+        'The SDK is using the fallback JSON renderer. ' +
+        'Register a renderer by passing transactionRenderers to CofheProvider, for example: ',
+      {
+        transactionRenderers: {
+          [transaction.actionType]: 'YourTransactionRenderer',
+        },
+      }
+    );
+  }, [Renderer, transaction.actionType]);
 
   if (Renderer) {
     return <Renderer transaction={transaction} />;
