@@ -9,11 +9,7 @@ function QueryDebug() {
   return <ReactQueryDevtools client={cofheQueryClient} position="left" buttonPosition="bottom-left" />;
 }
 const cofheConfig = createCofheConfig({
-  supportedChains: [
-    // sepolia,
-    baseSepolia,
-    arbSepolia,
-  ],
+  supportedChains: [sepolia, baseSepolia, arbSepolia],
   react: {
     projectName: 'Demo App',
     logger: {
@@ -35,10 +31,9 @@ const cofheConfig = createCofheConfig({
 
       84532: ['/base-sepolia.tokenlist.json'],
       // dual USD and EUR
-      421613: ['https://api.npoint.io/01ad319fb7b447ebaa92'],
+      421614: ['https://api.npoint.io/01ad319fb7b447ebaa92'],
 
       // 84532: ['https://storage.googleapis.com/cofhesdk/base-sepolia.json'],
-      // 421613: ['https://tokens.cofhe.io/arbitrum-sepolia.json'],
     },
   },
 });

@@ -1,13 +1,14 @@
 import { WagmiProvider, http, createConfig, injected } from 'wagmi';
-import { baseSepolia, sepolia } from 'wagmi/chains';
+import { baseSepolia, sepolia, arbitrumSepolia } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 export const injectedProvider = injected({ shimDisconnect: true });
 const config = createConfig({
-  chains: [sepolia, baseSepolia],
+  chains: [sepolia, baseSepolia, arbitrumSepolia],
   transports: {
     [sepolia.id]: http(),
     [baseSepolia.id]: http(),
+    [arbitrumSepolia.id]: http(),
   },
   connectors: [injectedProvider],
   ssr: false,
