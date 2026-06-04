@@ -1,5 +1,29 @@
 # @cofhe/sdk Changelog
 
+## 0.6.0
+
+### Minor Changes
+
+- 566f126: Remove the legacy `TestBed` mock surface and stop auto-deploying `SimpleTest` through the Hardhat plugins. Core mock contracts still deploy automatically, while tests that need `SimpleTest` should deploy it explicitly from their own artifacts.
+
+  This also removes `TEST_BED_ADDRESS` and cleans up duplicate `SimpleTest` exports from `@cofhe/mock-contracts`.
+
+### Patch Changes
+
+- bf23270: Upgrade `zustand` to 5.0.13 to pick up the upstream persist storage fix used by the SDK and React package.
+- 2711f9b: Add hash-plus-proof (HPP) support to `EncryptInputsBuilder`.
+
+  Calling `.asHashPlusProof()` on the builder transitions its type parameter to `HPP = true`, causing `.execute()` to return `HashPlusProofResult<T>` — a typed tuple of per-input `External*Hash` values followed by a single `ExternalHashProof`, matching the Solidity `externalEbool` / `externalEuint*` / `externalEaddress` type aliases.
+
+  New public types exported from `@cofhe/sdk`:
+
+  - `ExternalBoolHash`, `ExternalUint8Hash`, `ExternalUint16Hash`, `ExternalUint32Hash`, `ExternalUint64Hash`, `ExternalUint128Hash`, `ExternalAddressHash` — branded `0x${string}` types discriminated by `utype`
+  - `ExternalHashProof` — branded `0x${string}` proof blob
+  - `AnyExternalHash` — union of all `External*Hash` types
+  - `EncryptableToExternalHashMap<E>` — maps a single `EncryptableItem` to its `External*Hash`
+  - `ExternalItemHashes<T>` — maps an `EncryptableItem[]` tuple to the corresponding hash tuple
+  - `HashPlusProofResult<T>` — `[...ExternalItemHashes<T>, ExternalHashProof]`
+
 ## 0.5.2
 
 ### Patch Changes

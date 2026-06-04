@@ -42,6 +42,22 @@ describe('Inherited SDK Tests', async () => {
     assert.equal(typeof ctHash, 'string');
   });
 
+  it('encrypt (hash plus proof) → store on-chain → read back ctHash', async () => {
+    const client = await cofhe.createClientWithBatteries(bobWalletClient);
+    const [encHash, encProof] = await client
+      .encryptInputs([Encryptable.uint32(42n)])
+      .asHashPlusProof()
+      .execute();
+
+    await simpleTest.write.setValueHashPlusProof([encHash, encProof]);
+    const ctHash = await simpleTest.read.getValueHash();
+
+    assert.equal(typeof ctHash, 'string');
+    assert.match(encHash, /^0x[0-9a-f]*$/i);
+    assert.match(encProof, /^0x[0-9a-f]*$/i);
+    assert.equal(encHash, ctHash);
+  });
+
   it('encrypt → store on-chain → decryptForView', async () => {
     const testValue = 100n;
     const client = await cofhe.createClientWithBatteries(bobWalletClient);

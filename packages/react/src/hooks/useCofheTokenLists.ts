@@ -60,6 +60,18 @@ class TokenListFetchError extends Error {
 
 const DEFAULT_RETRY_DELAY_ON_429 = 30_000; // 30 seconds
 
+class TokenListFetchError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number
+  ) {
+    super(message);
+    this.name = 'TokenListFetchError';
+  }
+}
+
+const DEFAULT_RETRY_DELAY_ON_429 = 30_000; // 30 seconds
+
 function getCustomTokensForChain(customTokensByChainId: Record<string, Token[]>, chainId?: number): Token[] {
   if (!chainId) return [];
   return customTokensByChainId[chainId.toString()] ?? [];
