@@ -6,7 +6,7 @@ import { useCofheChainId } from '@/hooks/useCofheConnection';
 import { useCofheTokens } from '@/hooks/useCofheTokenLists';
 import { TokenIcon } from '../components/TokenIcon';
 import { formatTokenAmount } from '@/utils/format';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useCofheTokenClaimUnshielded } from '@/hooks';
 import { cn } from '@/utils';
 import { Button } from '../components';
@@ -16,7 +16,6 @@ export function ClaimableTokens() {
   // TODO: or show multichain, with switching?
 
   const chainsClaimableTokens = useCofheClaimableTokens();
-  const claimableByTokenAddress = chainsClaimableTokens.claimableByTokenAddress;
   const summariesByTokenAddress = chainsClaimableTokens.summariesByTokenAddress;
   const unshieldingInProgressByTokenAddress = chainsClaimableTokens.isUnshieldingInProgressByTokenAddress;
   const isClaimingByTokenAddress = chainsClaimableTokens.isClaimingByTokenAddress;
