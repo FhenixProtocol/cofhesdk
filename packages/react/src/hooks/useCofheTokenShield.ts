@@ -34,6 +34,20 @@ export function getCofheTokenShieldCallArgs(params: { token: Token; amount: bigi
 
   assertTokenOperationSupported(confidentialityType, 'shield');
 
+  if (confidentialityType === 'dual') {
+    const contractConfig = getShieldContractConfig(token);
+    return {
+      main: {
+        address: tokenAddress,
+        abi: contractConfig.abi,
+        functionName: contractConfig.functionName,
+        args: [amount] as const,
+        account,
+        chain: undefined,
+      },
+    };
+  }
+
   const erc20PairAddress = token.extensions.fhenix.erc20Pair?.address;
   const isEth = erc20PairAddress?.toLowerCase() === ETH_ADDRESS_LOWERCASE;
 
@@ -58,7 +72,7 @@ export function getCofheTokenShieldCallArgs(params: { token: Token; amount: bigi
         address: tokenAddress,
         abi: contractConfig.abi,
         functionName: contractConfig.functionName,
-        args: confidentialityType === 'dual' ? ([amount] as const) : ([account, amount] as const),
+        args: [account, amount] as const,
         account,
         chain: undefined,
       },
