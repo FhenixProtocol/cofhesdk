@@ -385,6 +385,68 @@ export type EncryptStepCallbackContext = Record<string, any> & {
 };
 export type EncryptStepCallbackFunction = (state: EncryptStep, context?: EncryptStepCallbackContext) => void;
 
+// HASH PLUS PROOF ENCRYPTED INPUTS
+
+/**
+ * Branded bytes32 types for external encrypted inputs (Solidity: externalEbool, externalEuint*, externalEaddress).
+ * The readonly `utype` field brands each hash so it can't be accidentally passed to the wrong asE* function.
+ */
+export type ExternalBoolHash = `0x${string}` & { readonly utype: FheTypes.Bool };
+export type ExternalUint8Hash = `0x${string}` & { readonly utype: FheTypes.Uint8 };
+export type ExternalUint16Hash = `0x${string}` & { readonly utype: FheTypes.Uint16 };
+export type ExternalUint32Hash = `0x${string}` & { readonly utype: FheTypes.Uint32 };
+export type ExternalUint64Hash = `0x${string}` & { readonly utype: FheTypes.Uint64 };
+export type ExternalUint128Hash = `0x${string}` & { readonly utype: FheTypes.Uint128 };
+export type ExternalAddressHash = `0x${string}` & { readonly utype: FheTypes.Uint160 };
+
+/** Branded bytes proof blob (Solidity: bytes memory proof). */
+export type ExternalHashProof = `0x${string}` & { readonly _kind: 'ExternalHashProof' };
+
+/** Union of all External*Hash types — useful for utilities that operate on any hash without caring about the specific FHE type. */
+export type AnyExternalHash =
+  | ExternalBoolHash
+  | ExternalUint8Hash
+  | ExternalUint16Hash
+  | ExternalUint32Hash
+  | ExternalUint64Hash
+  | ExternalUint128Hash
+  | ExternalAddressHash;
+
+/**
+ * Maps a single EncryptableItem to its corresponding External*Hash type.
+ * Mirrors EncryptableToEncryptedItemInputMap.
+ */
+export type EncryptableToExternalHashMap<E extends EncryptableItem> = E extends EncryptableBool
+  ? ExternalBoolHash
+  : E extends EncryptableUint8
+    ? ExternalUint8Hash
+    : E extends EncryptableUint16
+      ? ExternalUint16Hash
+      : E extends EncryptableUint32
+        ? ExternalUint32Hash
+        : E extends EncryptableUint64
+          ? ExternalUint64Hash
+          : E extends EncryptableUint128
+            ? ExternalUint128Hash
+            : E extends EncryptableAddress
+              ? ExternalAddressHash
+              : never;
+
+/**
+ * Maps an EncryptableItem[] tuple to a tuple of corresponding External*Hash types,
+ * preserving index positions. e.g. [EncryptableBool, EncryptableUint32] → [ExternalBoolHash, ExternalUint32Hash]
+ */
+export type ExternalItemHashes<T extends EncryptableItem[]> = {
+  [K in keyof T]: T[K] extends EncryptableItem ? EncryptableToExternalHashMap<T[K]> : never;
+};
+
+/**
+ * Return type of EncryptInputsBuilder.execute() when asHashPlusProof() is set.
+ * Tuple of per-input hashes in input order, followed by a single proof blob.
+ * e.g. [Encryptable.bool(true), Encryptable.uint32(5)] → [ExternalBoolHash, ExternalUint32Hash, ExternalHashProof]
+ */
+export type HashPlusProofResult<T extends EncryptableItem[]> = [...ExternalItemHashes<T>, ExternalHashProof];
+
 // DECRYPT
 
 export type DecryptEndpoint = 'decrypt' | 'sealoutput';
