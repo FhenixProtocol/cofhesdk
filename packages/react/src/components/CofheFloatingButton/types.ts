@@ -57,15 +57,46 @@ export type CofheToastImperativeParams = {
 
 export type CofheToastVariant = 'info' | 'success' | 'error' | 'warning';
 
+export const CofheStatusActionIntents = {
+  openPermits: 'open-permits',
+  openClaimableTokens: 'open-claimable-tokens',
+} as const;
+
+export type CofheStatusActionIntent = (typeof CofheStatusActionIntents)[keyof typeof CofheStatusActionIntents];
+
+/**
+ * Status ids emitted by the SDK's built-in status watchers.
+ *
+ * `useCofheStatuses()` may still include additional custom statuses added by
+ * internal or app-specific flows, so treat this as the known built-in subset.
+ */
+export const COFHE_STATUS_IDS = {
+  claimsAvailable: 'claims-available',
+  missingPermit: 'missing-permit',
+  permitExpired: 'permit-expired',
+  permitExpiringSoon: 'permit-expiring-soon',
+  permitShared: 'permit-shared',
+} as const;
+
+export type CofheStatusId = (typeof COFHE_STATUS_IDS)[keyof typeof COFHE_STATUS_IDS];
+
+export type CofheStatusAction = {
+  label: string;
+  intent: CofheStatusActionIntent;
+};
+
+/**
+ * Public status shape exposed to consumers.
+ *
+ * Consumer-facing status actions must declare an intent so the widget can map
+ * them to the correct internal handler.
+ */
 export type CofheStatus = {
   id: string;
   variant: CofheStatusVariant;
   title: string;
   description?: string;
-  action?: {
-    label: string;
-    onClick: () => void;
-  };
+  action?: CofheStatusAction;
 };
 
 export type CofheStatusVariant = 'error' | 'warning' | 'info';

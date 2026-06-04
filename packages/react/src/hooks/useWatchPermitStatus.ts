@@ -1,85 +1,71 @@
 import { useCofheActivePermit } from '@/hooks';
-import { usePortalNavigation, usePortalStatuses, usePortalUI } from '@/stores';
+import { COFHE_STATUS_IDS } from '@/components/CofheFloatingButton/types';
+import { usePortalStatuses } from '@/stores';
+import { usePortalPersisted } from '@/stores/portalPersisted';
 import { truncateHash } from '@/utils';
 import { type Permit } from '@cofhe/sdk/permits';
 import { useEffect, useRef } from 'react';
-import { FloatingButtonPage } from '../components/CofheFloatingButton/pagesConfig/types';
-import { usePortalPersisted } from '@/stores/portalPersisted';
 import { useCofheIsConnected } from './useCofheConnection';
-
-export const STATUS_ID_MISSING_PERMIT = 'missing-permit';
-export const STATUS_ID_PERMIT_EXPIRED = 'permit-expired';
-export const STATUS_ID_PERMIT_EXPIRING_SOON = 'permit-expiring-soon';
-export const STATUS_ID_PERMIT_SHARED = 'permit-shared';
 
 export const showMissingPermitStatus = () => {
   usePortalStatuses.getState().addStatus({
-    id: STATUS_ID_MISSING_PERMIT,
+    id: COFHE_STATUS_IDS.missingPermit,
     variant: 'error',
     title: 'Missing permit',
     description: 'Select or create a new permit',
     action: {
       label: 'FIX',
-      onClick: () => {
-        usePortalUI.getState().openPortal();
-        usePortalNavigation.getState().replace(FloatingButtonPage.Permits);
-      },
+      intent: 'open-permits',
     },
   });
 };
 
 export const hideMissingPermitStatus = () => {
-  usePortalStatuses.getState().removeStatus(STATUS_ID_MISSING_PERMIT);
+  usePortalStatuses.getState().removeStatus(COFHE_STATUS_IDS.missingPermit);
 };
 
 export const showPermitExpiredStatus = () => {
   usePortalStatuses.getState().addStatus({
-    id: STATUS_ID_PERMIT_EXPIRED,
+    id: COFHE_STATUS_IDS.permitExpired,
     variant: 'error',
     title: 'Permit expired',
     description: 'Select or create a new permit',
     action: {
       label: 'FIX',
-      onClick: () => {
-        usePortalUI.getState().openPortal();
-        usePortalNavigation.getState().replace(FloatingButtonPage.Permits);
-      },
+      intent: 'open-permits',
     },
   });
 };
 export const hidePermitExpiredStatus = () => {
-  usePortalStatuses.getState().removeStatus(STATUS_ID_PERMIT_EXPIRED);
+  usePortalStatuses.getState().removeStatus(COFHE_STATUS_IDS.permitExpired);
 };
 
 export const showPermitExpiringSoonStatus = (permit: Permit) => {
   usePortalStatuses.getState().addStatus({
-    id: STATUS_ID_PERMIT_EXPIRING_SOON,
+    id: COFHE_STATUS_IDS.permitExpiringSoon,
     variant: 'warning',
     title: 'Permit expiring soon',
     description: `Expires at ${new Date(permit.expiration * 1000).toLocaleTimeString()}`,
     action: {
       label: 'FIX',
-      onClick: () => {
-        usePortalUI.getState().openPortal();
-        usePortalNavigation.getState().replace(FloatingButtonPage.Permits);
-      },
+      intent: 'open-permits',
     },
   });
 };
 export const hidePermitExpiringSoonStatus = () => {
-  usePortalStatuses.getState().removeStatus(STATUS_ID_PERMIT_EXPIRING_SOON);
+  usePortalStatuses.getState().removeStatus(COFHE_STATUS_IDS.permitExpiringSoon);
 };
 
 export const showPermitSharedStatus = (permit: Permit) => {
   usePortalStatuses.getState().addStatus({
-    id: STATUS_ID_PERMIT_SHARED,
+    id: COFHE_STATUS_IDS.permitShared,
     variant: 'info',
     title: 'Imported permit active',
     description: `Viewing ${truncateHash(permit.issuer, 4, 4)}'s data`,
   });
 };
 export const hidePermitSharedStatus = () => {
-  usePortalStatuses.getState().removeStatus(STATUS_ID_PERMIT_SHARED);
+  usePortalStatuses.getState().removeStatus(COFHE_STATUS_IDS.permitShared);
 };
 
 /**
@@ -96,10 +82,10 @@ export const useWatchPermitStatus = () => {
   useEffect(() => {
     const updateStatuses = (permit: Permit | undefined) => {
       const hasCreatedFirstPermit = usePortalPersisted.getState().hasCreatedFirstPermit;
-      const missingPermitStatusShown = usePortalStatuses.getState().hasStatus(STATUS_ID_MISSING_PERMIT);
-      const expiredStatusShown = usePortalStatuses.getState().hasStatus(STATUS_ID_PERMIT_EXPIRED);
-      const expiringSoonStatusShown = usePortalStatuses.getState().hasStatus(STATUS_ID_PERMIT_EXPIRING_SOON);
-      const sharedStatusShown = usePortalStatuses.getState().hasStatus(STATUS_ID_PERMIT_SHARED);
+      const missingPermitStatusShown = usePortalStatuses.getState().hasStatus(COFHE_STATUS_IDS.missingPermit);
+      const expiredStatusShown = usePortalStatuses.getState().hasStatus(COFHE_STATUS_IDS.permitExpired);
+      const expiringSoonStatusShown = usePortalStatuses.getState().hasStatus(COFHE_STATUS_IDS.permitExpiringSoon);
+      const sharedStatusShown = usePortalStatuses.getState().hasStatus(COFHE_STATUS_IDS.permitShared);
 
       if (permit == null) {
         if (hasCreatedFirstPermit && !missingPermitStatusShown && connected) {

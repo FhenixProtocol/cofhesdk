@@ -1,48 +1,37 @@
-import { usePortalNavigation, usePortalStatuses, usePortalUI } from '@/stores';
+import { usePortalStatuses } from '@/stores';
+import { COFHE_STATUS_IDS } from '@/components/CofheFloatingButton/types';
 
 import { useEffect } from 'react';
 
 import { useCofheClaimableTokens } from './useCofheClaimableTokens';
-import { FloatingButtonPage } from '@/components/CofheFloatingButton/pagesConfig/types';
 
-export const CLAIMS_AVAILABLE_STATUS_ID = 'claims-available';
-type Input = {
-  onClick: () => void;
-};
-export const showClaimsAvailableStatus = ({ onClick }: Input) => {
+export const showClaimsAvailableStatus = () => {
   usePortalStatuses.getState().addStatus({
-    id: CLAIMS_AVAILABLE_STATUS_ID,
+    id: COFHE_STATUS_IDS.claimsAvailable,
     variant: 'info',
     title: '', // TODO: no title per design
     description: `You have unclaimed encrypted tokens`,
     action: {
       label: 'VIEW',
-      onClick,
+      intent: 'open-claimable-tokens',
     },
   });
 };
 export const hideClaimsAvailableStatus = () => {
-  usePortalStatuses.getState().removeStatus(CLAIMS_AVAILABLE_STATUS_ID);
+  usePortalStatuses.getState().removeStatus(COFHE_STATUS_IDS.claimsAvailable);
 };
 
 export const useWatchClaimablesStatus = () => {
   const { totalTokensClaimable } = useCofheClaimableTokens();
-  const { navigateTo } = usePortalNavigation();
-  const { openPortal } = usePortalUI();
 
   useEffect(() => {
-    const claimsAvailableStatusShown = usePortalStatuses.getState().hasStatus(CLAIMS_AVAILABLE_STATUS_ID);
+    const claimsAvailableStatusShown = usePortalStatuses.getState().hasStatus(COFHE_STATUS_IDS.claimsAvailable);
     if (totalTokensClaimable > 0 && !claimsAvailableStatusShown) {
-      showClaimsAvailableStatus({
-        onClick: () => {
-          openPortal();
-          navigateTo(FloatingButtonPage.ClaimableTokens);
-        },
-      });
+      showClaimsAvailableStatus();
     }
 
     if (totalTokensClaimable === 0 && claimsAvailableStatusShown) {
       hideClaimsAvailableStatus();
     }
-  }, [navigateTo, openPortal, totalTokensClaimable]);
+  }, [totalTokensClaimable]);
 };
