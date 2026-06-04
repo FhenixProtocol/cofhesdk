@@ -53,6 +53,18 @@ export function asCofhePublicClient(client: PublicClientLike | undefined): Publi
 }
 
 /**
+ * Best-effort variant for render paths that should treat invalid clients as
+ * disconnected instead of throwing before cleanup effects can run.
+ */
+export function tryAsCofhePublicClient(client: PublicClientLike | null | undefined): PublicClient | undefined {
+  try {
+    return asCofhePublicClient(client ?? undefined);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Assert and cast a viem-like WalletClient into the one expected by @cofhe/react.
  *
  * Accepts undefined (no wallet connected), or any object satisfying
@@ -65,4 +77,16 @@ export function asCofheWalletClient(client: WalletClientLike | undefined): Walle
     throw new Error('asCofheWalletClient: value is missing expected methods --- expected a viem WalletClient');
   }
   return client as unknown as WalletClient;
+}
+
+/**
+ * Best-effort variant for render paths that should treat invalid clients as
+ * disconnected instead of throwing before cleanup effects can run.
+ */
+export function tryAsCofheWalletClient(client: WalletClientLike | null | undefined): WalletClient | undefined {
+  try {
+    return asCofheWalletClient(client ?? undefined);
+  } catch {
+    return undefined;
+  }
 }

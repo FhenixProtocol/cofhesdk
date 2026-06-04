@@ -1,17 +1,16 @@
-import type { PublicClient, WalletClient } from 'viem';
-import { asCofhePublicClient, asCofheWalletClient } from '../utils/viemClientBridge';
+import { tryAsCofhePublicClient, tryAsCofheWalletClient } from '../utils/viemClientBridge';
 import type { PublicClientLike, WalletClientLike } from '../utils/viemClientBridge';
 import { useCofheClient } from './useCofheClient';
 import { useCallback, useEffect, useMemo } from 'react';
 import { useCofheConnect } from './useCofheConnect';
 
 type Input = {
-  publicClient?: PublicClientLike;
-  walletClient?: WalletClientLike;
+  publicClient?: PublicClientLike | null;
+  walletClient?: WalletClientLike | null;
 };
 export const useCofheAutoConnect = ({ walletClient: _walletClient, publicClient: _publicClient }: Input) => {
-  const publicClient = useMemo(() => asCofhePublicClient(_publicClient), [_publicClient]);
-  const walletClient = useMemo(() => asCofheWalletClient(_walletClient), [_walletClient]);
+  const publicClient = useMemo(() => tryAsCofhePublicClient(_publicClient), [_publicClient]);
+  const walletClient = useMemo(() => tryAsCofheWalletClient(_walletClient), [_walletClient]);
 
   const client = useCofheClient();
 
