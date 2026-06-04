@@ -12,6 +12,7 @@ import type { Address } from 'viem';
 import { useCofheChainId } from './useCofheConnection';
 import { useCustomTokensStore } from '@/stores/customTokensStore';
 import { useResolvedCofheToken } from './useResolvedCofheToken';
+import { cofheLogger } from '@/utils/debug';
 
 export { ETH_ADDRESS_LOWERCASE, type Token, type Erc20Pair };
 
@@ -37,6 +38,18 @@ type UseTokenListsInput = {
 };
 type UseTokenListsOptions = Omit<UseQueryOptions<TokenList, Error>, 'queryKey' | 'queryFn' | 'select'>;
 
+class TokenListFetchError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number
+  ) {
+    super(message);
+    this.name = 'TokenListFetchError';
+  }
+}
+
+const DEFAULT_RETRY_DELAY_ON_429 = 30_000; // 30 seconds
+
 function getCustomTokensForChain(customTokensByChainId: Record<string, Token[]>, chainId?: number): Token[] {
   if (!chainId) return [];
   return customTokensByChainId[chainId.toString()] ?? [];
@@ -57,12 +70,20 @@ export function useCofheTokenLists(
       refetchOnMount: false,
       refetchOnWindowFocus: false,
       queryKey: ['tokenList', chainId, url],
+      retryDelay(failureCount, error) {
+        if (error instanceof TokenListFetchError && error.status === 429) {
+          cofheLogger.debug(`Rate limited when fetching token list from ${url}. Not retrying for 30 seconds.`);
+          return DEFAULT_RETRY_DELAY_ON_429;
+        }
+
+        return Math.min(1000 * 2 ** failureCount, DEFAULT_RETRY_DELAY_ON_429);
+      },
       queryFn: async ({ signal }): Promise<TokenList> => {
         const timestamp = Date.now();
         const urlWithCacheBust = `${url}${url.includes('?') ? '&' : '?'}v=${timestamp}`;
         const res = await fetch(urlWithCacheBust, { signal });
         if (!res.ok) {
-          throw new Error(`Failed to fetch token list: ${res.status} ${res.statusText}`);
+          throw new TokenListFetchError(`Failed to fetch token list: ${res.status} ${res.statusText}`, res.status);
         }
         return await res.json();
       },

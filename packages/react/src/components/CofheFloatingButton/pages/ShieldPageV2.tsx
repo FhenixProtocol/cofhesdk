@@ -352,9 +352,9 @@ function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 
     setInputAmount: setShieldAmount,
     onMaxClick: handleShieldMax,
     canWriteContract: canWrite,
-    sourceSymbol: token.extensions.fhenix.erc20Pair?.symbol,
+    sourceSymbol: token.extensions.fhenix.erc20Pair?.symbol ?? token.symbol,
     destSymbol: token.symbol,
-    sourceLogoURI: token.extensions.fhenix.erc20Pair?.logoURI,
+    sourceLogoURI: token.extensions.fhenix.erc20Pair?.logoURI ?? token.logoURI,
     destLogoURI: token.logoURI,
     handlePrimaryAction: shouldApprove ? handleApprove : handleShield,
     primaryLabel: shouldApprove ? 'Approve' : 'Shield',
@@ -399,8 +399,10 @@ function useUnshieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps
         setStatus({
           message: (
             <>
-              Unshield transaction confirmed! Hash: <TxHashWithActions hash={transaction.hash} chainId={chainId} /> Now
-              waiting for decryption...
+              Unshield transaction confirmed! Hash: <TxHashWithActions hash={transaction.hash} chainId={chainId} />
+              {token.extensions.fhenix.confidentialityType === 'dual'
+                ? ' Claim data is now available.'
+                : ' Now waiting for decryption...'}
             </>
           ),
           type: 'success',
@@ -462,9 +464,9 @@ function useUnshieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps
     onMaxClick: handleUnshieldMax,
     canWriteContract: canUnshield,
     sourceSymbol: token.symbol,
-    destSymbol: token.extensions.fhenix.erc20Pair?.symbol,
+    destSymbol: token.extensions.fhenix.erc20Pair?.symbol ?? token.symbol,
     sourceLogoURI: token.logoURI,
-    destLogoURI: token.extensions.fhenix.erc20Pair?.logoURI,
+    destLogoURI: token.extensions.fhenix.erc20Pair?.logoURI ?? token.logoURI,
     handlePrimaryAction: handleUnshield,
     primaryLabel: 'Unshield',
     primaryIcon: <TbShieldMinus className="w-3 h-3" />,
@@ -542,6 +544,7 @@ function UnshieldTab({
 
 function ClaimingSection({ token }: { token: Token }) {
   const account = useCofheAccount();
+  const isDualToken = token.extensions.fhenix.confidentialityType === 'dual';
   const {
     data: unshieldedClaims,
     isFetching: isFetchingClaims,
@@ -557,7 +560,7 @@ function ClaimingSection({ token }: { token: Token }) {
     isClaimingMining,
   } = useClaimUnshieldedWithLifecycle();
 
-  const pairedSymbol = token.extensions.fhenix.erc20Pair?.symbol;
+  const pairedSymbol = token.extensions.fhenix.erc20Pair?.symbol ?? token.symbol;
   const handleClaim = async () => {
     assert(unshieldedClaims, 'Unshield claims data is required to claim unshielded tokens');
     claimUnshield.mutateAsync({
@@ -569,9 +572,9 @@ function ClaimingSection({ token }: { token: Token }) {
   const isUnshieldingMining = useIsUnshieldingMining(token);
 
   const claimCallArgs = useMemo(() => {
-    if (!account || !unshieldedClaims?.hasClaimable) return undefined;
+    if (isDualToken || !account || !unshieldedClaims?.hasClaimable) return undefined;
     return getCofheTokenClaimUnshieldedCallArgs({ token, account });
-  }, [account, token, unshieldedClaims?.hasClaimable]);
+  }, [account, isDualToken, token, unshieldedClaims?.hasClaimable]);
 
   const claimSimulation = useCofheSimulateWriteContract(claimCallArgs, {
     enabled: !!claimCallArgs,
@@ -592,22 +595,22 @@ function ClaimingSection({ token }: { token: Token }) {
             claimUnshield.isPending ||
             isClaimingMining ||
             isFetchingClaims ||
-            isWaitingForNewClaimsDecryption ||
             isUnshieldingMining ||
-            !claimCallArgs ||
-            claimSimulation.isFetching ||
-            !!claimSimulation.error
+            (!isDualToken && isWaitingForNewClaimsDecryption) ||
+            (!isDualToken && !claimCallArgs) ||
+            (!isDualToken && claimSimulation.isFetching) ||
+            (!isDualToken && !!claimSimulation.error)
           }
           label={
             claimUnshield.isPending
               ? 'Claiming...'
-              : `Claim ${isFetchingClaims || isWaitingForNewClaimsDecryption ? '...' : formatTokenAmount(unshieldedClaims.claimableAmount, token.decimals, 5).formatted} ${pairedSymbol}`
+              : `Claim ${isFetchingClaims || (!isDualToken && isWaitingForNewClaimsDecryption) ? '...' : formatTokenAmount(unshieldedClaims?.claimableAmount ?? 0n, token.decimals, 5).formatted} ${pairedSymbol}`
           }
           className="mt-1"
         />
       )}
 
-      {unshieldedClaims?.hasPending && token && !unshieldedClaims.hasClaimable && (
+      {unshieldedClaims?.hasPending && token && !unshieldedClaims.hasClaimable && !isDualToken && (
         <p className="text-xxs text-yellow-600 dark:text-yellow-400 text-center">
           Pending: {formatTokenAmount(unshieldedClaims.pendingAmount, token.decimals).formatted} {pairedSymbol}
         </p>
@@ -808,7 +811,9 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
             className="py-2"
           />
           <StatusAndError status={status} error={error} />
-          <ClaimingSection token={token} />
+          {isTokenOperationSupported(token.extensions.fhenix.confidentialityType, 'claimable') && (
+            <ClaimingSection token={token} />
+          )}
 
           {/* Not Shieldable Token Warning */}
           {!isShieldableToken && (

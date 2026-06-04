@@ -105,9 +105,15 @@ export const TokenDetailsView: React.FC<TokenDetailsViewProps> = ({
           <div className="p-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <TokenIcon logoURI={token.logoURI} alt={token.extensions.fhenix.erc20Pair?.symbol} size="md" />
+                <TokenIcon
+                  logoURI={token.logoURI}
+                  alt={token.extensions.fhenix.erc20Pair?.symbol ?? token.symbol}
+                  size="md"
+                />
                 <div className="flex flex-col leading-tight">
-                  <p className="text-sm font-bold cofhe-text-primary">{token.extensions.fhenix.erc20Pair?.symbol}</p>
+                  <p className="text-sm font-bold cofhe-text-primary">
+                    {token.extensions.fhenix.erc20Pair?.symbol ?? token.symbol}
+                  </p>
                   <div className="flex items-center gap-3 text-xxs opacity-80">
                     <div
                       className="inline-flex items-center gap-1"

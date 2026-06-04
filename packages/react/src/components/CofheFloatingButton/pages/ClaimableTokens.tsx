@@ -17,6 +17,7 @@ export function ClaimableTokens() {
 
   const chainsClaimableTokens = useCofheClaimableTokens();
   const claimableByTokenAddress = chainsClaimableTokens.claimableByTokenAddress;
+  const summariesByTokenAddress = chainsClaimableTokens.summariesByTokenAddress;
   const unshieldingInProgressByTokenAddress = chainsClaimableTokens.isUnshieldingInProgressByTokenAddress;
   const waitingByTokenAddress = chainsClaimableTokens.isWaitingForDecryptionByTokenAddress;
   const isClaimingByTokenAddress = chainsClaimableTokens.isClaimingByTokenAddress;
@@ -28,15 +29,22 @@ export function ClaimableTokens() {
 
   const rows = useMemo(() => {
     const byLower = new Map(allTokens.map((t) => [t.address.toLowerCase(), t] as const));
-    // TODO: show those that have zero claimable right now but is maybe ongoing unshielding/decryption?
-    return Object.entries(claimableByTokenAddress)
-      .filter(([_t, amount]) => amount > 0n)
-      .map(([tokenAddress, claimableAmount]) => {
+    return Object.entries(summariesByTokenAddress)
+      .filter(([_tokenAddress, summary]) => {
+        const token = byLower.get(_tokenAddress.toLowerCase());
+        if (!token) return false;
+        return summary.claimableAmount > 0n;
+      })
+      .map(([tokenAddress, summary]) => {
         const token = byLower.get(tokenAddress.toLowerCase());
-        return token ? { token, claimableAmount } : null;
+        if (!token) return null;
+
+        const displayAmount = summary.claimableAmount;
+
+        return { token, claimableAmount: displayAmount };
       })
       .filter((x): x is NonNullable<typeof x> => Boolean(x));
-  }, [allTokens, claimableByTokenAddress]);
+  }, [allTokens, summariesByTokenAddress]);
 
   const handleClaim = async (tokenAddress: string) => {
     const row = rows.find((r) => r.token.address.toLowerCase() === tokenAddress.toLowerCase());
@@ -62,7 +70,10 @@ export function ClaimableTokens() {
       content={
         <div className="flex flex-col gap-4 pr-1">
           {rows.map(({ token, claimableAmount }) => {
-            const isDecrypting = waitingByTokenAddress?.[token.address] ?? false;
+            const isDecrypting =
+              token.extensions.fhenix.confidentialityType === 'dual'
+                ? false
+                : waitingByTokenAddress?.[token.address] ?? false;
             const isUnshielding =
               unshieldingInProgressByTokenAddress?.[token.address.toLowerCase() as Address] ?? false;
             const formatted = formatTokenAmount(claimableAmount, token.decimals, 5).formatted;

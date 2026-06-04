@@ -12,6 +12,8 @@ import { assert } from 'ts-essentials';
 import { useInternalQuery } from '../providers/index';
 import { transformEncryptedReturnTypes, type Abi, type CofheReturnType, type ContractReturnType } from '@cofhe/abi';
 import { serializeBigintRecursively } from '../utils/serializeBigint.js';
+import { maybeWaitUntilRpcAwareAndReadContract } from '@/utils/waitUntilRpcAwareAndReadContract';
+import { withInvalidationContext } from '@/utils/invalidationContext';
 
 const QUERY_CACHE_PREFIX = 'cofheReadContract';
 
@@ -149,17 +151,25 @@ export function createCofheReadContractQueryOptions<
       activePermitHash,
       enabled,
     }),
-    queryFn: async () => {
+    queryFn: withInvalidationContext<
+      readonly unknown[],
+      { blockHashToBeAwareOf: `0x${string}` },
+      CofheReturnType<TAbi, TfunctionName>
+    >(async ({ invalidationContext }) => {
+      // the invalidationContext matches the current query by key
       assert(address, 'Contract address should be guaranteed by enabled check');
       assert(publicClient, 'PublicClient should be guaranteed by enabled check');
       assert(abi, 'ABI should be guaranteed by enabled check');
       assert(functionName, 'Function name should be guaranteed by enabled check');
 
-      const out = await publicClient.readContract({
+      const normalizedArgs = (args ?? []) as ContractFunctionArgs<TAbi, 'pure' | 'view', TfunctionName>;
+
+      const out = await maybeWaitUntilRpcAwareAndReadContract(publicClient, {
+        blockHashToBeAwareOf: invalidationContext?.blockHashToBeAwareOf,
         address,
         abi,
         functionName,
-        args,
+        args: normalizedArgs,
       });
 
       const convertedOut = convertReadContractResultToCofheReturnType<TAbi, TfunctionName, TArgs>(out);
@@ -167,7 +177,7 @@ export function createCofheReadContractQueryOptions<
       const transformed = transformEncryptedReturnTypes(abi, functionName, convertedOut);
 
       return transformed;
-    },
+    }),
     ...restQueryOptions,
   };
 }

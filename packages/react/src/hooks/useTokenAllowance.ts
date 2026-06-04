@@ -1,7 +1,9 @@
 import { type UseQueryOptions } from '@tanstack/react-query';
-import { type Address } from 'viem';
 import { assert } from 'ts-essentials';
+import { type Address } from 'viem';
 
+import { withInvalidationContext } from '@/utils/invalidationContext';
+import { maybeWaitUntilRpcAwareAndReadContract } from '@/utils/waitUntilRpcAwareAndReadContract';
 import { getShieldAllowanceContractConfig } from '../constants/confidentialTokenABIs';
 import { useInternalQuery } from '../providers/index';
 import { useCofhePublicClient } from './useCofheConnection';
@@ -80,22 +82,29 @@ export function createTokenAllowanceQueryOptions<TSelectedData = bigint>(params:
 
   return {
     queryKey,
-    queryFn: async () => {
-      assert(publicClient, 'PublicClient is required to fetch token allowance');
-      assert(tokenAddress, 'Token address is required to fetch token allowance');
-      assert(ownerAddress, 'Owner address is required to fetch token allowance');
-      assert(spenderAddress, 'Spender address is required to fetch token allowance');
-      const allowanceContract = getShieldAllowanceContractConfig();
+    queryFn: withInvalidationContext<readonly unknown[], { blockHashToBeAwareOf: `0x${string}` }, bigint>(
+      async ({ invalidationContext, signal }) => {
+        assert(publicClient, 'PublicClient is required to fetch token allowance');
+        assert(tokenAddress, 'Token address is required to fetch token allowance');
+        assert(ownerAddress, 'Owner address is required to fetch token allowance');
+        assert(spenderAddress, 'Spender address is required to fetch token allowance');
+        const allowanceContract = getShieldAllowanceContractConfig();
 
-      const allowance = await publicClient.readContract({
-        address: tokenAddress,
-        abi: allowanceContract.abi,
-        functionName: allowanceContract.functionName,
-        args: [ownerAddress, spenderAddress],
-      });
-      assert(typeof allowance === 'bigint', 'Token allowance must resolve to bigint');
-      return allowance;
-    },
+        const allowance = await maybeWaitUntilRpcAwareAndReadContract(
+          publicClient,
+          {
+            blockHashToBeAwareOf: invalidationContext?.blockHashToBeAwareOf,
+            address: tokenAddress,
+            abi: allowanceContract.abi,
+            functionName: allowanceContract.functionName,
+            args: [ownerAddress, spenderAddress],
+          },
+          { signal }
+        );
+        assert(typeof allowance === 'bigint', 'Token allowance must resolve to bigint');
+        return allowance;
+      }
+    ),
     enabled,
     refetchOnMount: false,
     ...restQueryOptions,

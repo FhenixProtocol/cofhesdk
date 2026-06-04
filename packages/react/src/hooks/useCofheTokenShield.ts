@@ -50,9 +50,17 @@ export function getCofheTokenShieldCallArgs(params: { token: Token; amount: bigi
       },
     };
   }
-
+  // TODO revisit
   if (!erc20PairAddress) {
-    throw new Error('erc20Pair address is required for wrapped ERC20 tokens');
+    return {
+      main: {
+        address: tokenAddress,
+        ...getShieldContractConfig(confidentialityType),
+        args: [amount],
+        account,
+        chain: undefined,
+      },
+    };
   }
 
   return {
@@ -142,33 +150,25 @@ export function useCofheTokenShield(
 
       const erc20PairAddress = input.token.extensions.fhenix.erc20Pair?.address;
       const isEth = erc20PairAddress?.toLowerCase() === ETH_ADDRESS_LOWERCASE;
+      const { main: shieldCallArgs } = getCofheTokenShieldCallArgs({
+        token: input.token,
+        amount: input.amount,
+        account: walletClient.account.address,
+      });
 
       if (isEth) {
-        const contractConfig = getShieldEthContractConfig(confidentialityType);
         const { request } = await publicClient.simulateContract({
-          address: tokenAddress,
-          abi: contractConfig.abi,
-          functionName: contractConfig.functionName,
-          args: [walletClient.account.address],
-          value: input.amount,
+          ...shieldCallArgs,
           account: walletClient.account,
         });
         hash = await walletClient.writeContract({ ...request, chain: undefined });
       } else {
-        if (!erc20PairAddress) {
-          throw new Error('erc20Pair address is required for wrapped ERC20 tokens');
-        }
-
         input.onStatusChange?.('Please confirm shield in wallet...');
-        const contractConfig = getShieldContractConfig(confidentialityType);
-        const { request: encryptRequest } = await publicClient.simulateContract({
-          address: tokenAddress,
-          abi: contractConfig.abi,
-          functionName: contractConfig.functionName,
-          args: [walletClient.account.address, input.amount],
+        const { request: shieldRequest } = await publicClient.simulateContract({
+          ...shieldCallArgs,
           account: walletClient.account,
         });
-        hash = await walletClient.writeContract({ ...encryptRequest, chain: undefined });
+        hash = await walletClient.writeContract({ ...shieldRequest, chain: undefined });
       }
 
       return hash;

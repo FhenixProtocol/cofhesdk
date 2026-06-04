@@ -55,12 +55,19 @@ function useTrackDecryptingTransactionsBase({ onDecryptionResolve }: UseTrackDec
   const minedTxsWithCiphertextsToWatch = useMemo(() => {
     return Object.entries(minedTxsPendingDecryptionByHash)
       .filter(([, tx]) => receiptsByHash[tx.hash] !== undefined)
-      .map(([, tx]) => {
+      .flatMap(([, tx]) => {
         const ciphertextToWatch = findDecryptRequestLog(tx.account, receiptsByHash[tx.hash].logs)?.ciphertext;
-        assert(
-          ciphertextToWatch,
-          'Ciphertext to watch should be found in the transaction logs if a tx that isPendingDecryption and has a receipt'
-        );
+
+        if (!ciphertextToWatch) {
+          cofheLogger.warn('Skipping decryption tracking for transaction without decrypt-request log', {
+            hash: tx.hash,
+            actionType: tx.actionType,
+            confidentialityType: tx.token.extensions.fhenix.confidentialityType,
+          });
+          useTransactionStore.getState().setTransactionDecryptionStatus(tx.chainId, tx.hash, false);
+          return [];
+        }
+
         return {
           tx,
           receipt: receiptsByHash[tx.hash],

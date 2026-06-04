@@ -169,6 +169,10 @@ The root `@cofhe/react` entrypoint is headless and does not load package styles.
 
 If you import components from `@cofhe/react/ui`, the package styles are loaded automatically.
 
+## Maintainer Notes
+
+- Query invalidation context and block-hash-aware refetching: [INVALIDATION_CONTEXT.md](./INVALIDATION_CONTEXT.md)
+
 ## Dependencies
 
 ### Required Peer Dependencies

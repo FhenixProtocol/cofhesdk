@@ -1,12 +1,14 @@
-import { type UseQueryOptions } from '@tanstack/react-query';
-import { type Address } from 'viem';
-import { useCofheAccount, useCofhePublicClient } from './useCofheConnection';
-import { type Token, ETH_ADDRESS_LOWERCASE } from './useCofheTokenLists';
 import { getPublicBalanceSourceType } from '@/types/token';
-import { ERC20_BALANCE_OF_ABI } from '../constants/erc20ABIs';
-import { assert } from 'ts-essentials';
-import { useInternalQuery } from '../providers/index';
 import { formatTokenAmount, type TokenFormatOutput } from '@/utils/format';
+import { withInvalidationContext } from '@/utils/invalidationContext';
+import { maybeWaitUntilRpcAware } from '@/utils/waitUntilRpcAwareAndReadContract';
+import { type UseQueryOptions } from '@tanstack/react-query';
+import { assert } from 'ts-essentials';
+import { type Address } from 'viem';
+import { ERC20_BALANCE_OF_ABI } from '../constants/erc20ABIs';
+import { useInternalQuery } from '../providers/index';
+import { useCofheAccount, useCofhePublicClient } from './useCofheConnection';
+import { ETH_ADDRESS_LOWERCASE, type Token } from './useCofheTokenLists';
 
 export function constructPublicTokenBalanceQueryKey({
   chainId,
@@ -89,26 +91,37 @@ export function createPublicTokenBalanceQueryOptions<TSelectedData = bigint>(par
 
   return {
     queryKey,
-    queryFn: async () => {
-      assert(tokenAddress, 'Token address is required to fetch token balance');
-      assert(publicClient, 'PublicClient is required to fetch token balance');
-      assert(accountAddress, 'Account address is required to fetch token balance');
+    queryFn: withInvalidationContext<readonly unknown[], { blockHashToBeAwareOf: `0x${string}` }, bigint>(
+      async ({ invalidationContext, signal }) => {
+        assert(tokenAddress, 'Token address is required to fetch token balance');
+        assert(publicClient, 'PublicClient is required to fetch token balance');
+        assert(accountAddress, 'Account address is required to fetch token balance');
 
-      const isNativeToken = tokenAddress.toLowerCase() === ETH_ADDRESS_LOWERCASE;
+        const isNativeToken = tokenAddress.toLowerCase() === ETH_ADDRESS_LOWERCASE;
 
-      const balance = isNativeToken
-        ? publicClient.getBalance({
-            address: accountAddress,
-          })
-        : publicClient.readContract({
-            address: tokenAddress,
-            abi: ERC20_BALANCE_OF_ABI,
-            functionName: 'balanceOf',
-            args: [accountAddress],
-          });
+        const balance = await maybeWaitUntilRpcAware(
+          publicClient,
+          {
+            blockHashToBeAwareOf: invalidationContext?.blockHashToBeAwareOf,
+            readDescription: isNativeToken ? 'read native balance' : 'read ERC20 balance',
+            read: () =>
+              isNativeToken
+                ? publicClient.getBalance({
+                    address: accountAddress,
+                  })
+                : publicClient.readContract({
+                    address: tokenAddress,
+                    abi: ERC20_BALANCE_OF_ABI,
+                    functionName: 'balanceOf',
+                    args: [accountAddress],
+                  }),
+          },
+          { signal }
+        );
 
-      return balance;
-    },
+        return balance;
+      }
+    ),
     enabled,
     refetchOnMount: false,
     ...restQueryOptions,

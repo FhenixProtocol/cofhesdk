@@ -1,109 +1,31 @@
+import { useInternalQueries, useInternalQueryClient } from '@/providers';
+import { useDecryptionWatchersStore } from '@/stores/decryptionWatchingStore';
 import {
   TransactionActionType,
   TransactionStatus,
   useTransactionStore,
   type Transaction,
 } from '@/stores/transactionStore';
-import { useCofhePublicClient } from './useCofheConnection';
-import { useInternalQueries, useInternalQueryClient } from '@/providers';
-import { assert } from 'ts-essentials';
-import { constructCofheReadContractQueryForInvalidation } from './useCofheReadContract';
-import { QueryClient, type QueriesOptions } from '@tanstack/react-query';
-import type { Address, TransactionReceipt } from 'viem';
-import { getTokenContractConfig } from '@/constants/confidentialTokenABIs';
-import { ETH_ADDRESS_LOWERCASE, type Token } from './useCofheTokenLists';
-import { constructPublicTokenBalanceQueryKeyForInvalidation } from './useCofheTokenPublicBalance';
-import { constructUnshieldClaimsQueryKeyForInvalidation, invalidateClaimableQueries } from './useCofheTokenClaimable';
-import { constructTokenAllowanceQueryKeyForInvalidation } from './useTokenAllowance';
-import { usePendingTransactions } from './usePendingTransactions';
-import { useDecryptionWatchersStore } from '@/stores/decryptionWatchingStore';
-import { useTransactionGlobalLifecycle } from './useTransactionGlobalLifecycle';
-import { useEffect, useRef } from 'react';
+import { isTokenOperationSupported } from '@/types/token';
 import { cofheLogger } from '@/utils/debug';
-
-function invalidateConfidentialTokenBalanceQueries(token: Token, queryClient: QueryClient) {
-  const tokenBalanceQueryKey = constructCofheReadContractQueryForInvalidation({
-    cofheChainId: token.chainId,
-    address: token.address,
-    functionName: getTokenContractConfig(token.extensions.fhenix.confidentialityType).functionName,
-  });
-
-  cofheLogger.log('Invalidating shield/send read contract queries for token:', token);
-
-  queryClient.invalidateQueries({
-    queryKey: tokenBalanceQueryKey,
-    // TODO: it can potentially invalidate irrelevenat queries who happen to belong to the same contract but different function. Not sure if worth fixing
-    exact: false,
-  });
-}
-
-function invalidatePublicTokenBalanceQueries(
-  {
-    tokenAddress,
-    chainId,
-    accountAddress,
-  }: {
-    tokenAddress: Address;
-    chainId: number;
-    accountAddress: Address;
-  },
-  queryClient: QueryClient
-) {
-  const tokenBalanceQueryKey = constructPublicTokenBalanceQueryKeyForInvalidation({
-    chainId,
-    tokenAddress,
-    accountAddress,
-  });
-
-  cofheLogger.log('Invalidating public token balance read contract queries for token:', tokenBalanceQueryKey);
-
-  queryClient.invalidateQueries({
-    queryKey: tokenBalanceQueryKey,
-  });
-}
-
-function invalidatePublicAndConfidentialTokenBalanceQueries(
-  token: Token,
-  accountAddress: Address,
-  queryClient: QueryClient
-) {
-  invalidateConfidentialTokenBalanceQueries(token, queryClient);
-
-  const publicPairTokenAddress = token.extensions.fhenix.erc20Pair?.address;
-  assert(publicPairTokenAddress, 'Public pair token address is required for shield transaction invalidation');
-  invalidatePublicTokenBalanceQueries(
-    {
-      tokenAddress: publicPairTokenAddress,
-      chainId: token.chainId,
-      accountAddress,
-    },
-    queryClient
-  );
-}
-
-function invalidateTokenAllowanceQueries(
-  {
-    chainId,
-    tokenAddress,
-    ownerAddress,
-    spenderAddress,
-  }: {
-    chainId: number;
-    tokenAddress: Address;
-    ownerAddress: Address;
-    spenderAddress: Address;
-  },
-  queryClient: QueryClient
-) {
-  const queryKey = constructTokenAllowanceQueryKeyForInvalidation({
-    chainId,
-    tokenAddress,
-    ownerAddress,
-    spenderAddress,
-  });
-
-  queryClient.invalidateQueries({ queryKey });
-}
+import { resolveReceiptBlockHash } from '@/utils/resolveReceiptBlockHash';
+import { type QueriesOptions } from '@tanstack/react-query';
+import { useEffect, useRef } from 'react';
+import { assert } from 'ts-essentials';
+import type { TransactionReceipt } from 'viem';
+import {
+  invalidateClaimableQueries,
+  invalidateConfidentialTokenBalanceQueries,
+  invalidatePublicAndConfidentialTokenBalanceQueries,
+  invalidatePublicTokenBalanceQueries,
+  invalidateTokenAllowanceQueries,
+} from './internal/transactionInvalidation';
+import { useCofhePublicClient } from './useCofheConnection';
+import { constructUnshieldClaimsQueryKeyForInvalidation } from './useCofheTokenClaimable';
+import { ETH_ADDRESS_LOWERCASE } from './useCofheTokenLists';
+import { getPublicTokenBalanceSource } from './useCofheTokenPublicBalance';
+import { usePendingTransactions } from './usePendingTransactions';
+import { useTransactionGlobalLifecycle } from './useTransactionGlobalLifecycle';
 
 type UseTrackPendingTransactionsInput = {
   onReceiptSuccess: (tx: Transaction, receipt: TransactionReceipt) => void;
@@ -121,21 +43,26 @@ function useTrackPendingTransactionsBase({
 
   const queries: QueriesOptions<TransactionReceipt[]> = accountsPendingTxs.map((tx) => ({
     queryKey: ['tx-receipt', tx.chainId, tx.hash],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       assert(publicClient, 'Public client is guaranteed by enabled condition');
       try {
         const receipt = await publicClient.waitForTransactionReceipt({
           hash: tx.hash as `0x${string}`,
         });
 
-        const status = receipt.status === 'success' ? TransactionStatus.Confirmed : TransactionStatus.Failed;
+        const normalizedReceipt = await resolveReceiptBlockHash(receipt, publicClient, signal);
+
+        const status = normalizedReceipt.status === 'success' ? TransactionStatus.Confirmed : TransactionStatus.Failed;
+
+        useTransactionStore.getState().updateTransactionStatus(tx.chainId, tx.hash, status, {
+          receipt: normalizedReceipt,
+        });
+
         // invalidate if tx was successful
-        if (status === TransactionStatus.Confirmed) onReceiptSuccess(tx, receipt);
-        else onReceiptFail?.(tx, receipt);
+        if (status === TransactionStatus.Confirmed) onReceiptSuccess(tx, normalizedReceipt);
+        else onReceiptFail?.(tx, normalizedReceipt);
 
-        useTransactionStore.getState().updateTransactionStatus(tx.chainId, tx.hash, status);
-
-        return receipt;
+        return normalizedReceipt;
       } catch (e) {
         onFetchFailure?.(e, tx);
         // no need to invalidate on failure, since nothing has changed on chain
@@ -158,7 +85,8 @@ function useHandleInvalidations() {
 
   const { upsert: upsertDecryptionWatcher, byKey } = useDecryptionWatchersStore();
   cofheLogger.log('Scheduled invalidations store:', byKey);
-  const handleInvalidations = (tx: Transaction) => {
+  const handleInvalidations = (tx: Transaction, receipt?: TransactionReceipt) => {
+    const blockHashToBeAwareOf = receipt?.blockHash ?? tx.receipt?.blockHash;
     // each transaction requires gas, so native token balance changes on every transaction
     invalidatePublicTokenBalanceQueries(
       {
@@ -166,63 +94,76 @@ function useHandleInvalidations() {
         chainId: tx.chainId,
         accountAddress: tx.account,
       },
-      queryClient
+      queryClient,
+      blockHashToBeAwareOf
     );
     if (tx.actionType === TransactionActionType.ShieldSend) {
-      invalidateConfidentialTokenBalanceQueries(tx.token, queryClient);
+      invalidateConfidentialTokenBalanceQueries(tx.token, queryClient, blockHashToBeAwareOf);
     } else if (tx.actionType === TransactionActionType.Shield) {
       // on shield public balance decreases and private increases
-      invalidatePublicAndConfidentialTokenBalanceQueries(tx.token, tx.account, queryClient);
+      invalidatePublicAndConfidentialTokenBalanceQueries(tx.token, tx.account, queryClient, blockHashToBeAwareOf);
     } else if (tx.actionType === TransactionActionType.Unshield) {
       // on unshield - private balance decreases, claimable increases, public remains the same
-      invalidateConfidentialTokenBalanceQueries(tx.token, queryClient);
+      invalidateConfidentialTokenBalanceQueries(tx.token, queryClient, blockHashToBeAwareOf);
 
-      // schedule invalidation for unshield claims once decryption is observed
-      upsertDecryptionWatcher({
-        key: `${tx.actionType}-tx-${tx.hash}`,
-        accountAddress: tx.account,
-        createdAt: Date.now(),
-        chainId: tx.chainId,
-        triggerTxHash: tx.hash,
-        queryKeys: [
-          constructUnshieldClaimsQueryKeyForInvalidation({
-            chainId: tx.token.chainId,
-            tokenAddress: tx.token.address,
-            confidentialityType: tx.token.extensions.fhenix.confidentialityType,
-            accountAddress: tx.account,
-          }),
-        ],
-      });
+      if (tx.token.extensions.fhenix.confidentialityType === 'dual') {
+        invalidateClaimableQueries({
+          token: tx.token,
+          accountAddress: tx.account,
+          queryClient,
+          blockHashToBeAwareOf,
+        });
+      } else if (isTokenOperationSupported(tx.token.extensions.fhenix.confidentialityType, 'claimable')) {
+        // schedule invalidation for unshield claims once decryption is observed
+        upsertDecryptionWatcher({
+          key: `${tx.actionType}-tx-${tx.hash}`,
+          accountAddress: tx.account,
+          createdAt: Date.now(),
+          chainId: tx.chainId,
+          triggerTxHash: tx.hash,
+          queryKeys: [
+            constructUnshieldClaimsQueryKeyForInvalidation({
+              chainId: tx.token.chainId,
+              tokenAddress: tx.token.address,
+              confidentialityType: tx.token.extensions.fhenix.confidentialityType,
+              accountAddress: tx.account,
+            }),
+          ],
+        });
+      }
     } else if (tx.actionType === TransactionActionType.Claim) {
       // on claim - claimable decreases, public increases, private remains the same
-      const publicTokenAddress = tx.token.extensions.fhenix.erc20Pair?.address;
-      assert(publicTokenAddress, 'Public pair token address is required for claim transaction invalidation');
-      invalidatePublicTokenBalanceQueries(
-        {
-          tokenAddress: publicTokenAddress,
-          chainId: tx.token.chainId,
-          accountAddress: tx.account,
-        },
-        queryClient
-      );
+      const publicBalanceSource = getPublicTokenBalanceSource(tx.token);
+      if (publicBalanceSource) {
+        invalidatePublicTokenBalanceQueries(
+          {
+            tokenAddress: publicBalanceSource.address,
+            chainId: tx.token.chainId,
+            accountAddress: tx.account,
+          },
+          queryClient,
+          blockHashToBeAwareOf
+        );
+      }
       invalidateClaimableQueries({
         token: tx.token,
         accountAddress: tx.account,
 
         queryClient,
+        blockHashToBeAwareOf,
       });
     } else if (tx.actionType === TransactionActionType.Approve) {
-      const underlying = tx.token.extensions.fhenix.erc20Pair?.address;
-      assert(underlying, 'erc20Pair is required for approve transaction invalidation');
-      if (underlying.toLowerCase() !== ETH_ADDRESS_LOWERCASE) {
+      const publicBalanceSource = getPublicTokenBalanceSource(tx.token);
+      if (publicBalanceSource && publicBalanceSource.address.toLowerCase() !== ETH_ADDRESS_LOWERCASE) {
         invalidateTokenAllowanceQueries(
           {
             chainId: tx.token.chainId,
-            tokenAddress: underlying,
+            tokenAddress: publicBalanceSource.address,
             ownerAddress: tx.account,
             spenderAddress: tx.token.address,
           },
-          queryClient
+          queryClient,
+          blockHashToBeAwareOf
         );
       }
     } else {
@@ -263,7 +204,7 @@ export function useTrackPendingTransactions() {
   useTrackPendingTransactionsBase({
     // 2.a. tx mined successfully
     onReceiptSuccess: (tx, receipt) => {
-      handleInvalidations(tx);
+      handleInvalidations(tx, receipt);
       onTransactionMined(tx, receipt);
     },
     // 2.b. tx mined with failure

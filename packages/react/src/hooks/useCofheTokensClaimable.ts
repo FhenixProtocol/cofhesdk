@@ -1,4 +1,4 @@
-import { type QueryFunctionContext, type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
+import { type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { type Address } from 'viem';
 import { assert } from 'ts-essentials';
@@ -17,6 +17,7 @@ import {
 } from './useCofheTokenClaimable.js';
 import { useStoredTransactions } from './useStoredTransactions.js';
 import { TransactionActionType, TransactionStatus } from '@/stores/transactionStore.js';
+import { withInvalidationContext } from '@/utils/invalidationContext';
 
 export type UnshieldClaimsSummaryByTokenAddress = Record<Address, UnshieldClaimsSummary>;
 export type ClaimableAmountByTokenAddress = Record<Address, bigint>;
@@ -40,7 +41,7 @@ type UseUnshieldClaimsManyOptions = Omit<
 type ClaimableToken = Token & {
   extensions: Token['extensions'] & {
     fhenix: Token['extensions']['fhenix'] & {
-      confidentialityType: 'wrapped';
+      confidentialityType: Token['extensions']['fhenix']['confidentialityType'];
     };
   };
 };
@@ -105,15 +106,17 @@ export function useCofheTokensClaimable(
 
   const waitingEntries = useMemo(() => {
     if (!account) return [];
-    return normalizedTokens.map((token) => ({
-      address: token.address,
-      queryKey: constructUnshieldClaimsQueryKey({
-        chainId: token.chainId,
-        tokenAddress: token.address,
-        confidentialityType: token.extensions.fhenix.confidentialityType,
-        accountAddress: account,
-      }),
-    }));
+    return normalizedTokens
+      .filter((token) => token.extensions.fhenix.confidentialityType !== 'dual')
+      .map((token) => ({
+        address: token.address,
+        queryKey: constructUnshieldClaimsQueryKey({
+          chainId: token.chainId,
+          tokenAddress: token.address,
+          confidentialityType: token.extensions.fhenix.confidentialityType,
+          accountAddress: account,
+        }),
+      }));
   }, [account, normalizedTokens]);
 
   const isWaitingForDecryptionByTokenAddress = useIsWaitingForDecryptionByAddress(waitingEntries);
@@ -146,10 +149,11 @@ export function useCofheTokensClaimable(
 
       return {
         queryKey,
-        queryFn: async ({
-          signal,
-          queryKey,
-        }: QueryFunctionContext<ReturnType<typeof constructUnshieldClaimsQueryKey>>) => {
+        queryFn: withInvalidationContext<
+          readonly unknown[],
+          { blockHashToBeAwareOf: `0x${string}` },
+          UnshieldClaimsSummary
+        >(async ({ signal, invalidationContext }) => {
           assert(
             isTokenConfidentialityTypeClaimable(confidentialityType),
             'confidentialityType narrowed by token guard'
@@ -163,10 +167,10 @@ export function useCofheTokensClaimable(
             token,
             accountAddress: account,
             confidentialityType,
-            queryKey,
             signal,
+            blockHashToBeAwareOf: invalidationContext?.blockHashToBeAwareOf,
           });
-        },
+        }),
         refetchOnMount: false,
         enabled: enabledBase,
         ...queryOptions,

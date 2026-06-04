@@ -2,7 +2,7 @@ import { type MutationFunctionContext, type UseMutationOptions, type UseMutation
 import { type Address } from 'viem';
 import { useCofheWalletClient, useCofheChainId, useCofheAccount, useCofhePublicClient } from './useCofheConnection.js';
 import { type Token } from './useCofheTokenLists.js';
-import { assertTokenOperationSupported } from '@/types/token';
+import { assertTokenOperationSupported, isTokenOperationSupported } from '@/types/token';
 import { getUnshieldContractConfig } from '../constants/confidentialTokenABIs.js';
 import { TransactionActionType, TransactionStatus, useTransactionStore } from '../stores/transactionStore.js';
 import { useInternalMutation } from '../providers/index.js';
@@ -28,12 +28,13 @@ export function getCofheTokenUnshieldCallArgs(params: {
   assertTokenOperationSupported(confidentialityType, 'unshield');
 
   const contractConfig = getUnshieldContractConfig(confidentialityType);
+  const args = (token.extensions.fhenix.erc20Pair ? [account, rawAmount] : [rawAmount]) as readonly unknown[];
 
   return {
     address: tokenAddress,
     abi: contractConfig.abi,
     functionName: contractConfig.functionName,
-    args: [account, rawAmount],
+    args,
     account,
     chain: undefined,
   };
@@ -98,14 +99,15 @@ function useCofheTokenUnshieldMutation(
       const contractConfig = getUnshieldContractConfig(confidentialityType);
 
       let hash: `0x${string}`;
+      const unshieldCallArgs = getCofheTokenUnshieldCallArgs({
+        token: input.token,
+        amount: input.amount,
+        account: walletClient.account.address,
+      });
 
       input.onStatusChange?.('Please confirm in wallet...');
-
       const { request } = await publicClient.simulateContract({
-        address: tokenAddress,
-        abi: contractConfig.abi,
-        functionName: contractConfig.functionName,
-        args: [walletClient.account.address, input.amount],
+        ...unshieldCallArgs,
         account: walletClient.account,
       });
       hash = await walletClient.writeContract({ ...request, chain: undefined });
@@ -121,13 +123,17 @@ function useCofheTokenUnshieldMutation(
       assert(account, 'Wallet account is required for token unshield');
       if (onSuccess) await onSuccess(hash, input, onMutateResult, context);
 
+      const requiresExternalDecryptionTracking =
+        input.token.extensions.fhenix.confidentialityType !== 'dual' &&
+        isTokenOperationSupported(input.token.extensions.fhenix.confidentialityType, 'claimable');
+
       useTransactionStore.getState().addTransaction({
         hash,
         token: input.token,
         tokenAmount: input.amount,
         chainId,
         actionType: TransactionActionType.Unshield,
-        isPendingDecryption: true, // is tx that requires decryption afterwards
+        isPendingDecryption: requiresExternalDecryptionTracking,
         account,
       });
     },
