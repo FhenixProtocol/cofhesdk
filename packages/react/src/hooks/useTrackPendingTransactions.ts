@@ -46,7 +46,7 @@ function useTrackPendingTransactionsBase({
       assert(publicClient, 'Public client is guaranteed by enabled condition');
       try {
         const receipt = await publicClient.waitForTransactionReceipt({
-          hash: tx.hash as `0x${string}`,
+          hash: tx.hash,
         });
 
         const normalizedReceipt = await resolveReceiptBlockHash(receipt, publicClient, signal);
