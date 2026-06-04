@@ -12,6 +12,11 @@ async function deploySharedSimpleTest(): Promise<SharedSimpleTest> {
 }
 
 describe('Encrypt Inputs Test', () => {
+  let simpleTest: SharedSimpleTest;
+  before(async () => {
+    simpleTest = await deploySharedSimpleTest();
+  });
+
   it('Should encrypt inputs', async () => {
     const [signer] = await hre.ethers.getSigners();
     const client = await hre.cofhe.createClientWithBatteries(signer);
@@ -19,8 +24,28 @@ describe('Encrypt Inputs Test', () => {
     const encrypted = await client.encryptInputs([Encryptable.uint32(7n)]).execute();
 
     // Add number to SimpleTest
-    const simpleTest = await deploySharedSimpleTest();
     await simpleTest.setValue(encrypted[0]);
+    const ctHash = await simpleTest.getValueHash();
+
+    // Decrypt number from SimpleTest
+    const unsealed = await client.decryptForView(ctHash, FheTypes.Uint32).execute();
+
+    expect(unsealed).to.be.equal(7n);
+  });
+  it('should encrypt inputs with hash plus proof', async () => {
+    const [signer] = await hre.ethers.getSigners();
+    const client = await hre.cofhe.createClientWithBatteries(signer);
+
+    const [encHash, encProof] = await client
+      .encryptInputs([Encryptable.uint32(7n)])
+      .asHashPlusProof()
+      .execute();
+
+    expect(encHash).to.match(/^0x[0-9a-f]*$/i);
+    expect(encProof).to.match(/^0x[0-9a-f]*$/i);
+
+    // Add number to SimpleTest
+    await simpleTest.setValueHashPlusProof(encHash, encProof);
     const ctHash = await simpleTest.getValueHash();
 
     // Decrypt number from SimpleTest

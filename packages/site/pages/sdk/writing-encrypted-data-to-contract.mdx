@@ -85,8 +85,69 @@ await publicClient.waitForTransactionReceipt({ hash });
 
 :::
 
+## Hash plus proof
+
+Some contracts use an alternative calling convention that accepts a bare `bytes32` hash and a `bytes` proof argument instead of an `InE*` struct:
+
+```solidity
+function setValueHashPlusProof(externalEuint32 inValue, bytes calldata proof) external {
+  storedValue = FHE.asEuint32(inValue, proof);
+  FHE.allowThis(storedValue);
+}
+```
+
+For these you chain `.asHashPlusProof()` before `.execute()`. The result is `[hash, proof]` for a single input (or `[hash1, hash2, ..., proof]` for multiple):
+
+:::code-group
+
+```solidity [Solidity]
+function setValueHashPlusProof(externalEuint32 inValue, bytes calldata proof) external {
+  storedValue = FHE.asEuint32(inValue, proof);
+  FHE.allowThis(storedValue);
+  FHE.allowSender(storedValue);
+}
+```
+
+```ts twoslash [TypeScript]
+import { Encryptable } from '@cofhe/sdk';
+import type { CofheClient } from '@cofhe/sdk';
+import { parseAbi, type PublicClient, type WalletClient } from 'viem';
+import { sepolia } from 'viem/chains';
+
+declare const cofheClient: CofheClient;
+declare const publicClient: PublicClient;
+declare const walletClient: WalletClient;
+declare const account: `0x${string}`;
+declare const contractAddress: `0x${string}`;
+
+const abi = parseAbi([
+  'function setValueHashPlusProof(bytes32 inValue, bytes proof)',
+]);
+
+// 1) Encrypt in hash plus proof mode
+const [encHash, encProof] = await cofheClient
+  .encryptInputs([Encryptable.uint32(42n)])
+  .asHashPlusProof() // [!code focus]
+  .execute();
+
+// 2) Pass hash and proof as separate arguments
+const hash = await walletClient.writeContract({
+  chain: sepolia,
+  account,
+  address: contractAddress,
+  abi,
+  functionName: 'setValueHashPlusProof',
+  args: [encHash, encProof], // [!code focus]
+});
+
+await publicClient.waitForTransactionReceipt({ hash });
+```
+
+:::
+
 ## Common pitfalls
 
 - **Wrong `Encryptable` type**: the `Encryptable.*` factory must match the Solidity parameter type (`InEuint32` vs `InEuint64`, etc).
 - **Wrong account / chain**: encrypted inputs are authorized for a specific `account + chainId`. If you encrypt under the wrong wallet/network, the contract call may revert.
 - **ABI struct shape mismatch**: if you hand-write an ABI, ensure the tuple fields are `(ctHash, securityZone, utype, signature)` in the same order your client library expects.
+- **Mixing formats**: do not pass a hash plus proof result to a function expecting `InE*`, or vice versa. The on-chain CoFHE library validates signature format and will revert on a mismatch.
