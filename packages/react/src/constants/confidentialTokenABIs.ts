@@ -7,7 +7,7 @@ import {
   TOKEN_CONFIDENTIALITY_TYPES,
   type SupportedTokenConfidentialityType,
 } from '@/types/token';
-import type { Abi } from 'viem';
+import { toFunctionSelector, type Abi, type Hex } from 'viem';
 
 import { DUAL_TOKEN_CONTRACTS } from './confidentialTokenDual';
 import { WRAPPED_NATIVE_TOKEN_CONTRACTS, WRAPPED_TOKEN_CONTRACTS } from './confidentialTokenWrapped';
@@ -69,6 +69,40 @@ const TOKEN_CONFIDENTIALITY_CONTRACTS: TokenConfidentialityContractsByType = {
   wrapped: WRAPPED_TOKEN_CONTRACTS,
 };
 
+function toInterfaceId(signatures: readonly string[]): Hex {
+  const interfaceId = signatures
+    .map((signature) => Number.parseInt(toFunctionSelector(signature), 16))
+    .reduce((acc, selector) => acc ^ selector, 0);
+
+  return `0x${(interfaceId >>> 0).toString(16).padStart(8, '0')}`;
+}
+
+export const TOKEN_CONFIDENTIALITY_TYPE_INTERFACE_IDS: Partial<Record<SupportedTokenConfidentialityType, Hex>> = {
+  dual: toInterfaceId([
+    'function shield(uint256)',
+    'function unshield(uint64)',
+    'function claimUnshielded(bytes32,uint64,bytes)',
+  ]),
+  wrapped: toInterfaceId([
+    'function shield(address,uint256)',
+    'function shieldNative(address)',
+    'function shieldWrappedNative(address,uint256)',
+    'function unshield(address,address,uint64)',
+    'function getClaim(bytes32)',
+    'function claimUnshieldedBatch(bytes32[],uint64[],bytes[])',
+  ]),
+};
+
+export function detectSupportedTokenTypeFromInterfaces(
+  results: Partial<Record<SupportedTokenConfidentialityType, boolean>>
+): SupportedTokenConfidentialityType | undefined {
+  const supportedTypes = TOKEN_CONFIDENTIALITY_TYPES.filter(
+    (confidentialityType): confidentialityType is SupportedTokenConfidentialityType =>
+      isSupportedTokenConfidentialityType(confidentialityType) && results[confidentialityType] === true
+  );
+
+  return supportedTypes.length === 1 ? supportedTypes[0] : undefined;
+}
 function getDefaultShieldApprovalContracts(): Erc20ApprovalContracts {
   const approval = WRAPPED_TOKEN_CONTRACTS.shield.approval;
   if (!approval) {
