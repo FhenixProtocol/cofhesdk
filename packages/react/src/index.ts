@@ -24,12 +24,14 @@ export {
   useCofheTokenDecryptedBalance,
   useCofheTokenPublicBalance,
   useCofheTokenLists,
+  useCofheToken,
   useCofheTokens,
   useCofheTokensClaimable,
   useCofheTokenShield,
   useCofheTokensWithExistingEncryptedBalances,
   useCofheTokenTransactions,
   useCofheTokenTransfer,
+  useResolvedCofheToken,
   useCofheTransactions,
   addCofheTransaction,
   useCofheTokenUnshield,
@@ -73,6 +75,8 @@ export {
 } from './utils/index';
 
 // Stores
+export { useCustomTokensStore } from './stores/customTokensStore';
+
 export {
   actionToString,
   isCustomTransactionActionType,

@@ -36,6 +36,7 @@ export {
 export {
   ETH_ADDRESS_LOWERCASE,
   useCofheTokenLists,
+  useCofheToken,
   useCofheTokens,
   type Erc20Pair,
   type Token,
