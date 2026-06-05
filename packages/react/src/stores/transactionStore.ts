@@ -132,7 +132,7 @@ function normalizeAddressList(addresses: readonly `0x${string}`[] | undefined): 
   return Array.from(new Set(addresses.map((address) => address.toLowerCase() as `0x${string}`)));
 }
 
-function transactionMatchesToken(tx: Transaction, tokenAddress: string): boolean {
+export function transactionMatchesToken(tx: Transaction, tokenAddress: string): boolean {
   const normalizedTokenAddress = tokenAddress.toLowerCase();
   if ('token' in tx && tx.token.address.toLowerCase() === normalizedTokenAddress) return true;
 

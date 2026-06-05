@@ -29,6 +29,11 @@ export { getCofheTokenClaimUnshieldedCallArgs, useCofheTokenClaimUnshielded } fr
 export { useCofheTokenDecryptedBalance } from './useCofheTokenDecryptedBalance';
 export { useCofheTokenPublicBalance } from './useCofheTokenPublicBalance';
 export {
+  useCofheTokenTransactions,
+  type UseCofheTokenTransactionsInput,
+  type UseCofheTokenTransactionsResult,
+} from './useCofheTokenTransactions';
+export {
   ETH_ADDRESS_LOWERCASE,
   useCofheTokenLists,
   useCofheTokens,

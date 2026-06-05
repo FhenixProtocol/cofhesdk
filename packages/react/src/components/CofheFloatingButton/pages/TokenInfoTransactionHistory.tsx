@@ -5,8 +5,7 @@ import { formatUnits } from 'viem';
 import { HashLink } from '../components/HashLink';
 import { cn } from '@/utils/cn';
 
-import { useCofheAccount } from '@/hooks/useCofheConnection';
-import { useStoredTransactions } from '@/hooks/useStoredTransactions.js';
+import { useCofheTokenTransactions } from '@/hooks/useCofheTokenTransactions';
 import { actionToString } from '@/stores/transactionStore';
 
 import type { Token } from '@/types/token';
@@ -41,23 +40,10 @@ const money = (n: number) =>
   });
 
 export const TokenInfoTransactionHistory: React.FC<TokenInfoTransactionHistoryProps> = ({ token, priceUsd }) => {
-  const account = useCofheAccount();
-
-  const { filteredTxs: tokenTxs } = useStoredTransactions({
-    chainId: token.chainId,
-    account,
-    filter: (tx) => {
-      const tokenAddress = token.address.toLowerCase();
-      if ('token' in tx && tx.token.address.toLowerCase() === tokenAddress) return true;
-      return tx.tokenTags?.some((tag) => tag.toLowerCase() === tokenAddress) ?? false;
-    },
-  });
+  const { transactions: tokenTxs } = useCofheTokenTransactions({ token });
 
   const activity = useMemo(() => {
-    return tokenTxs
-      .slice()
-      .sort((a, b) => b.timestamp - a.timestamp)
-      .map((tx) => {
+    return tokenTxs.map((tx) => {
         if (!('token' in tx)) {
           return {
             kind: actionToString(tx.actionType, tx.title),
