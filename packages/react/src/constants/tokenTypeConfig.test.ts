@@ -14,7 +14,9 @@ describe('TOKEN_TYPE_CONFIG', () => {
     >) {
       if (!config.enabled) continue;
 
-      const interfaceIds = TOKEN_CONFIDENTIALITY_TYPE_INTERFACE_IDS as Partial<Record<TokenConfidentialityType, string>>;
+      const interfaceIds = TOKEN_CONFIDENTIALITY_TYPE_INTERFACE_IDS as Partial<
+        Record<TokenConfidentialityType, string>
+      >;
 
       expect(interfaceIds[confidentialityType]).toMatch(/^0x[0-9a-f]{8}$/);
       expect(config.contracts?.confidentialBalance).toBeDefined();

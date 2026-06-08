@@ -27,7 +27,9 @@ export const ERC20_NAME_ABI = parseAbi(['function name() view returns (string)']
 /**
  * Standard ERC20 allowance function ABI
  */
-export const ERC20_ALLOWANCE_ABI = parseAbi(['function allowance(address owner, address spender) view returns (uint256)']);
+export const ERC20_ALLOWANCE_ABI = parseAbi([
+  'function allowance(address owner, address spender) view returns (uint256)',
+]);
 
 /**
  * Standard ERC20 approve function ABI

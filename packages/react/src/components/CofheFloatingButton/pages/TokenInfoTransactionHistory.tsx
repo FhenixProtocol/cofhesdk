@@ -44,24 +44,24 @@ export const TokenInfoTransactionHistory: React.FC<TokenInfoTransactionHistoryPr
 
   const activity = useMemo(() => {
     return tokenTxs.map((tx) => {
-        if (!('token' in tx)) {
-          return {
-            kind: actionToString(tx.actionType, tx.title),
-            description: tx.description,
-          };
-        }
-
-        const amountToken = parseFloat(formatUnits(tx.tokenAmount, tx.token.decimals));
-        const amountUsd =
-          typeof priceUsd === 'number' && Number.isFinite(amountToken) ? amountToken * priceUsd : undefined;
-
+      if (!('token' in tx)) {
         return {
           kind: actionToString(tx.actionType, tx.title),
           description: tx.description,
-          amountUsd,
-          amountToken: Number.isFinite(amountToken) ? amountToken : 0,
         };
-      });
+      }
+
+      const amountToken = parseFloat(formatUnits(tx.tokenAmount, tx.token.decimals));
+      const amountUsd =
+        typeof priceUsd === 'number' && Number.isFinite(amountToken) ? amountToken * priceUsd : undefined;
+
+      return {
+        kind: actionToString(tx.actionType, tx.title),
+        description: tx.description,
+        amountUsd,
+        amountToken: Number.isFinite(amountToken) ? amountToken : 0,
+      };
+    });
   }, [tokenTxs, priceUsd]);
 
   return (

@@ -47,7 +47,8 @@ export function useCofheTokenDecryptedBalance(
 ): UseConfidentialTokenBalanceResult {
   const { enabled: userEnabled = true, ...restOptions } = options ?? {};
 
-  const contractConfig = token && getTokenTypeContracts(token.extensions.fhenix.confidentialityType).confidentialBalance;
+  const contractConfig =
+    token && getTokenTypeContracts(token.extensions.fhenix.confidentialityType).confidentialBalance;
 
   const {
     decrypted: { data: decryptedData, isFetching: isDecryptionFetching },

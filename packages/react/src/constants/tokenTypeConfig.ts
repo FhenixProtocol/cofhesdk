@@ -231,11 +231,7 @@ export function getShieldContractsForToken(token: TokenLike): TokenShieldContrac
   return config.contracts?.shield;
 }
 
-export function buildTokenShieldCallArgs(params: {
-  token: TokenLike;
-  amount: bigint;
-  account: Address;
-}): {
+export function buildTokenShieldCallArgs(params: { token: TokenLike; amount: bigint; account: Address }): {
   main: ContractCallArgs;
   approval?: ContractCallArgs;
 } {
@@ -244,7 +240,9 @@ export function buildTokenShieldCallArgs(params: {
   const contracts = getShieldContractsForToken(token);
 
   if (!contracts) {
-    throw new Error(`shield config is not defined for confidentialityType: ${token.extensions.fhenix.confidentialityType}`);
+    throw new Error(
+      `shield config is not defined for confidentialityType: ${token.extensions.fhenix.confidentialityType}`
+    );
   }
 
   if (token.extensions.fhenix.confidentialityType === 'dual') {
