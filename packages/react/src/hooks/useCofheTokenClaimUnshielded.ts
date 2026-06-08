@@ -9,7 +9,7 @@ import { TransactionActionType, useTransactionStore } from '../stores/transactio
 import { useCofheClient } from './useCofheClient';
 import { useCofheAccount, useCofheChainId, useCofhePublicClient, useCofheWalletClient } from './useCofheConnection';
 import type { CofheSimulateWriteContractCallArgs } from './useCofheSimulateWriteContract';
-import { fetchUnshieldClaims, isTokenConfidentialityTypeClaimable, type UnshieldClaim } from './useCofheTokenClaimable';
+import { fetchUnshieldClaims, isTokenConfidentialityTypeClaimable } from './useCofheTokenClaimable';
 import { type Token } from './useCofheTokenLists';
 import { useTransactionGlobalLifecycle } from './useTransactionGlobalLifecycle';
 
@@ -90,13 +90,14 @@ export function useCofheTokenClaimUnshielded(
         throw new Error('Wallet account is required for claim');
       }
 
+      assert(chainId, 'Chain ID is required for claim');
+      assert(account, 'Wallet account is required for claim');
       assertTokenOperationSupported(confidentialityType, 'claim');
 
-      if (getTokenTypeConfig(confidentialityType).claimSubmission === 'single') {
-        assert(chainId, 'Chain ID is required for dual claim');
-        assert(account, 'Wallet account is required for dual claim');
-        assert(isTokenConfidentialityTypeClaimable(confidentialityType), 'dual claim type must be claimable');
+      const tokenConfig = getTokenTypeConfig(confidentialityType);
+      const claimKind = tokenConfig.claimSubmission === 'single' ? 'dual' : 'wrapped';
 
+      const fetchReadyClaims = async () => {
         const claims = await fetchUnshieldClaims({
           publicClient,
           token: input.token,
@@ -105,10 +106,13 @@ export function useCofheTokenClaimUnshielded(
           signal: new AbortController().signal,
         });
 
-        const pendingClaims = claims.filter((claim) => !claim.claimed);
-        const submitted: Array<{ hash: `0x${string}`; claim: UnshieldClaim; decryptedAmount: bigint }> = [];
+        const readyClaims: Array<{
+          ctHash: Hex | bigint;
+          decryptedAmount: bigint;
+          decryptionProof: `0x${string}`;
+        }> = [];
 
-        for (const claim of pendingClaims) {
+        for (const claim of claims.filter((claim) => !claim.claimed)) {
           try {
             const decryptResult = await client
               .decryptForTx(claim.ctHash)
@@ -117,116 +121,86 @@ export function useCofheTokenClaimUnshielded(
               .withoutPermit()
               .execute();
 
-            const callArgs = getCofheTokenClaimUnshieldedCallArgs({
-              token: input.token,
-              account: walletClient.account.address,
-              claim: {
-                ctHash: claim.ctHash,
-                decryptedAmount: decryptResult.decryptedValue,
-                decryptionProof: decryptResult.signature,
-              },
-            });
-
-            assert(callArgs, 'Dual claim call args are required when a claim proof is available');
-
-            const { request } = await publicClient.simulateContract({
-              ...callArgs,
-              account: walletClient.account,
-            });
-            const hash = await walletClient.writeContract({ ...request, chain: undefined });
-
-            submitted.push({ hash, claim, decryptedAmount: decryptResult.decryptedValue });
-            useTransactionStore.getState().addTransaction({
-              hash,
-              token: input.token,
-              tokenAmount: decryptResult.decryptedValue,
-              chainId,
-              actionType: TransactionActionType.Claim,
-              account,
+            readyClaims.push({
+              ctHash: claim.ctHash,
+              decryptedAmount: decryptResult.decryptedValue,
+              decryptionProof: decryptResult.signature,
             });
           } catch (error) {
-            cofheLogger.warn('Skipping dual claim that is not yet ready or failed to prove', {
+            cofheLogger.warn(`Skipping ${claimKind} claim that is not yet ready or failed to prove`, {
               ctHash: claim.ctHash.toString(),
               error,
             });
           }
         }
 
-        if (submitted.length === 0) {
-          throw new Error('No dual unshield claims are ready to be claimed yet.');
+        if (readyClaims.length === 0) {
+          throw new Error(`No ${claimKind} unshield claims are ready to be claimed yet.`);
         }
 
-        return submitted[submitted.length - 1].hash;
-      }
+        return readyClaims;
+      };
 
-      assert(chainId, 'Chain ID is required for wrapped claim');
-      assert(account, 'Wallet account is required for wrapped claim');
+      const writeClaim = async (callArgs: CofheSimulateWriteContractCallArgs) => {
+        const { request } = await publicClient.simulateContract({
+          ...callArgs,
+          account: walletClient.account,
+        });
 
-      const claims = await fetchUnshieldClaims({
-        publicClient,
-        token: input.token,
-        accountAddress: account,
-        confidentialityType,
-        signal: new AbortController().signal,
-      });
+        return walletClient.writeContract({ ...request, chain: undefined });
+      };
 
-      const pendingClaims = claims.filter((claim) => !claim.claimed);
-      const submitted = [] as Array<{
-        ctHash: Hex | bigint;
-        decryptedAmount: bigint;
-        decryptionProof: `0x${string}`;
-      }>;
+      const trackClaim = (hash: `0x${string}`, tokenAmount: bigint) => {
+        useTransactionStore.getState().addTransaction({
+          hash,
+          token: input.token,
+          tokenAmount,
+          chainId,
+          actionType: TransactionActionType.Claim,
+          account,
+        });
+      };
 
-      for (const currentClaim of pendingClaims) {
-        try {
-          const decryptResult = await client
-            .decryptForTx(currentClaim.ctHash)
-            .setChainId(chainId)
-            .setAccount(account)
-            .withoutPermit()
-            .execute();
+      // logic goes here
+      const readyClaims = await fetchReadyClaims();
 
-          submitted.push({
-            ctHash: currentClaim.ctHash,
-            decryptedAmount: decryptResult.decryptedValue,
-            decryptionProof: decryptResult.signature,
+      if (tokenConfig.claimSubmission === 'single') {
+        // claim one by one
+        assert(isTokenConfidentialityTypeClaimable(confidentialityType), 'dual claim type must be claimable');
+
+        const submittedHashes = [] as `0x${string}`[];
+
+        for (const claim of readyClaims) {
+          const callArgs = getCofheTokenClaimUnshieldedCallArgs({
+            token: input.token,
+            account: walletClient.account.address,
+            claim,
           });
-        } catch (error) {
-          cofheLogger.warn('Skipping wrapped claim that is not yet ready or failed to prove', {
-            ctHash: currentClaim.ctHash.toString(),
-            error,
-          });
+
+          assert(callArgs, 'Dual claim call args are required when a claim proof is available');
+
+          const hash = await writeClaim(callArgs);
+          submittedHashes.push(hash);
+          // track one by one
+          trackClaim(hash, claim.decryptedAmount);
         }
+
+        return submittedHashes[submittedHashes.length - 1];
       }
 
-      if (submitted.length === 0) {
-        throw new Error('No wrapped unshield claims are ready to be claimed yet.');
-      }
-
+      // batched claim
       const callArgs = getCofheTokenClaimUnshieldedCallArgs({
         token: input.token,
         account: walletClient.account.address,
-        claims: submitted,
+        claims: readyClaims,
       });
 
-      if (!callArgs) {
-        throw new Error('Wrapped claim call args are required when claim proofs are available');
-      }
+      assert(callArgs, 'Wrapped claim call args are required when claim proofs are available');
 
-      const { request } = await publicClient.simulateContract({
-        ...callArgs,
-        account: walletClient.account,
-      });
-      const hash = await walletClient.writeContract({ ...request, chain: undefined });
+      const hash = await writeClaim(callArgs);
 
-      useTransactionStore.getState().addTransaction({
-        hash,
-        token: input.token,
-        tokenAmount: input.amount,
-        chainId,
-        actionType: TransactionActionType.Claim,
-        account,
-      });
+      // track just one batched tx
+      trackClaim(hash, input.amount);
 
       return hash;
     },
