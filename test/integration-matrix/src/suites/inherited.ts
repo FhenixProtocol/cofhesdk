@@ -133,6 +133,42 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
   let alreadyFetchedCtHash: bigint | string;
   describe('Full encrypt->increment->decrypt flow + refetch cached response', () => {
     const testValue = 100n;
+    it('Should encrypt inputs with hash plus proof', async () => {
+      await ctx.cofheClient.permits.createSelf({
+        issuer: ctx.bobAccount.address,
+        name: 'Encrypt View Permit',
+      });
+
+      const [encHash, encProof] = await ctx.cofheClient
+        .encryptInputs([Encryptable.uint32(testValue)])
+        .asHashPlusProof()
+        .execute();
+
+      const txHash = await ctx.bobWalletClient.writeContract({
+        address: ctx.contractAddress,
+        abi: simpleTestAbi,
+        functionName: 'setValueHashPlusProof',
+        args: [encHash, encProof],
+        chain: chainConfig.viemChain,
+        account: ctx.bobAccount,
+      });
+      await ctx.publicClient.waitForTransactionReceipt({
+        hash: txHash,
+        retryCount: 30,
+        pollingInterval: 4_000,
+        confirmations: chainConfig.txConfirmationsRequired,
+      });
+
+      const ctHash = await ctx.publicClient.readContract({
+        address: ctx.contractAddress,
+        abi: simpleTestAbi,
+        functionName: 'getValueHash',
+      });
+
+      const result = await ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
+
+      expect(result).toBe(testValue);
+    });
     it('Decrypt for View (with permit) - should encrypt → store → decryptForView a value', async () => {
       await ctx.cofheClient.permits.createSelf({
         issuer: ctx.bobAccount.address,
