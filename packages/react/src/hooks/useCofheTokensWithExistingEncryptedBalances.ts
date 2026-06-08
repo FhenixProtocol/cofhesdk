@@ -4,7 +4,7 @@ import type { Address } from 'viem';
 import type { Token } from '@/types/token';
 import { useCofheAccount, useCofheChainId } from './useCofheConnection';
 import { useCofheTokens } from './useCofheTokenLists';
-import { getTokenContractConfig } from '../constants/confidentialTokenABIs';
+import { getTokenTypeContracts } from '../constants/tokenTypeConfig';
 import {
   useCofheReadContracts,
   type CofheReadContractsContract,
@@ -72,7 +72,7 @@ export function useCofheTokensWithExistingEncryptedBalances(
     if (!account) return [];
 
     return tokens.map((token) => {
-      const config = getTokenContractConfig(token.extensions.fhenix.confidentialityType);
+      const config = getTokenTypeContracts(token.extensions.fhenix.confidentialityType).confidentialBalance;
       return {
         address: token.address,
         abi: config.abi,

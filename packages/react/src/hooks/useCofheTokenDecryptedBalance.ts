@@ -2,7 +2,7 @@ import { type UseQueryOptions } from '@tanstack/react-query';
 import { type Address } from 'viem';
 import { FheTypes } from '@cofhe/sdk';
 import { type Token } from './useCofheTokenLists';
-import { getTokenContractConfig } from '../constants/confidentialTokenABIs';
+import { getTokenTypeContracts } from '../constants/tokenTypeConfig';
 import { assert } from 'ts-essentials';
 import { formatTokenAmount, type TokenFormatOutput } from '@/utils/format';
 import { useCofheReadContractAndDecrypt } from './useCofheReadContractAndDecrypt';
@@ -47,7 +47,7 @@ export function useCofheTokenDecryptedBalance(
 ): UseConfidentialTokenBalanceResult {
   const { enabled: userEnabled = true, ...restOptions } = options ?? {};
 
-  const contractConfig = token && getTokenContractConfig(token.extensions.fhenix.confidentialityType);
+  const contractConfig = token && getTokenTypeContracts(token.extensions.fhenix.confidentialityType).confidentialBalance;
 
   const {
     decrypted: { data: decryptedData, isFetching: isDecryptionFetching },

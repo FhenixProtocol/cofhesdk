@@ -3,7 +3,7 @@ import { cofheLogger } from '@/utils/debug';
 import { type UseMutationOptions, type UseMutationResult } from '@tanstack/react-query';
 import { assert } from 'ts-essentials';
 import { type Address, type Hex } from 'viem';
-import { getClaimAllContractConfig, getClaimSingleContractConfig } from '../constants/confidentialTokenABIs';
+import { buildTokenClaimCallArgs, getTokenTypeConfig } from '../constants/tokenTypeConfig';
 import { useInternalMutation } from '../providers/index';
 import { TransactionActionType, useTransactionStore } from '../stores/transactionStore';
 import { useCofheClient } from './useCofheClient';
@@ -29,7 +29,6 @@ export function getCofheTokenClaimUnshieldedCallArgs(params: {
 }): CofheSimulateWriteContractCallArgs | undefined {
   const { token, account, claim, claims } = params;
 
-  const tokenAddress: Address = token.address;
   const confidentialityType = token.extensions.fhenix.confidentialityType;
 
   if (!confidentialityType) {
@@ -38,38 +37,12 @@ export function getCofheTokenClaimUnshieldedCallArgs(params: {
 
   assertTokenOperationSupported(confidentialityType, 'claim');
 
-  if (confidentialityType === 'dual') {
-    assert(claim, 'dual claim requires ctHash, decryptedAmount, and decryptionProof');
-    const contractConfig = getClaimSingleContractConfig(confidentialityType);
-
-    return {
-      address: tokenAddress,
-      abi: contractConfig.abi,
-      functionName: contractConfig.functionName,
-      args: [claim.ctHash, claim.decryptedAmount, claim.decryptionProof],
-      account,
-      chain: undefined,
-    };
-  }
-
-  if (!claims?.length) {
-    return undefined;
-  }
-
-  const contractConfig = getClaimAllContractConfig(confidentialityType);
-
-  return {
-    address: tokenAddress,
-    abi: contractConfig.abi,
-    functionName: contractConfig.functionName,
-    args: [
-      claims.map((item) => item.ctHash),
-      claims.map((item) => item.decryptedAmount),
-      claims.map((item) => item.decryptionProof),
-    ],
+  return buildTokenClaimCallArgs({
+    token,
     account,
-    chain: undefined,
-  };
+    claim,
+    claims,
+  }) as CofheSimulateWriteContractCallArgs | undefined;
 }
 
 // ============================================================================
@@ -107,7 +80,6 @@ export function useCofheTokenClaimUnshielded(
         throw new Error('PublicClient is required to simulate claim before writing');
       }
 
-      const tokenAddress: Address = input.token.address;
       const confidentialityType = input.token.extensions.fhenix.confidentialityType;
 
       if (!confidentialityType) {
@@ -120,7 +92,7 @@ export function useCofheTokenClaimUnshielded(
 
       assertTokenOperationSupported(confidentialityType, 'claim');
 
-      if (confidentialityType === 'dual') {
+      if (getTokenTypeConfig(confidentialityType).claimSubmission === 'single') {
         assert(chainId, 'Chain ID is required for dual claim');
         assert(account, 'Wallet account is required for dual claim');
         assert(isTokenConfidentialityTypeClaimable(confidentialityType), 'dual claim type must be claimable');
@@ -256,7 +228,7 @@ export function useCofheTokenClaimUnshielded(
       assert(account, 'Wallet account is required for claim');
       if (onSuccess) await onSuccess(hash, input, onMutateResult, context);
 
-      if (input.token.extensions.fhenix.confidentialityType === 'dual') {
+      if (getTokenTypeConfig(input.token.extensions.fhenix.confidentialityType).claimSubmission === 'single') {
         return;
       }
 

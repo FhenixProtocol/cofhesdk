@@ -1,12 +1,29 @@
 /**
  * Token types shared across hooks/components/utils.
  *
- * IMPORTANT: Keep this file dependency-free (no imports from hooks/providers/utils)
+ * IMPORTANT: Keep this file free from hooks/providers/utils imports
  * to avoid circular dependencies.
  */
 
 import { baseSepolia, sepolia } from '@cofhe/sdk/chains';
+import {
+  TOKEN_CONFIDENTIALITY_TYPES,
+  TOKEN_TYPE_CONFIG as TOKEN_CONFIDENTIALITY_SUPPORT,
+  isSupportedTokenConfidentialityType,
+  isTokenConfidentialityType,
+  type SupportedTokenConfidentialityType,
+  type TokenConfidentialityType,
+  type TokenSupportOperation,
+} from '@/constants/tokenTypeConfig';
 import type { Address } from 'viem';
+
+export {
+  TOKEN_CONFIDENTIALITY_TYPES,
+  TOKEN_CONFIDENTIALITY_SUPPORT,
+  isSupportedTokenConfidentialityType,
+  isTokenConfidentialityType,
+};
+export type { SupportedTokenConfidentialityType, TokenConfidentialityType, TokenSupportOperation };
 
 /**
  * Special address representing native ETH (used in erc20Pair for ConfidentialETH tokens)
@@ -38,82 +55,6 @@ export type Erc20Pair = {
 
 export type TokenWrapperKind = 'erc20' | 'native';
 export type TokenConfidentialValueType = 'uint64' | 'uint128';
-
-export type TokenSupportOperation =
-  | 'confidentialBalance'
-  | 'transfer'
-  | 'publicBalance'
-  | 'shield'
-  | 'unshield'
-  | 'claim'
-  | 'claimable';
-
-export const TOKEN_CONFIDENTIALITY_SUPPORT = {
-  wrapped: {
-    enabled: true,
-    label: 'Wrapped confidential token',
-    confidentialValueType: 'uint64',
-    publicBalanceSource: 'erc20Pair',
-    operations: {
-      confidentialBalance: true,
-      transfer: true,
-      publicBalance: true,
-      shield: true,
-      unshield: true,
-      claim: true,
-      claimable: true,
-    },
-  },
-  pure: {
-    enabled: false,
-    label: 'Pure confidential token',
-    confidentialValueType: 'uint64',
-    publicBalanceSource: null,
-    operations: {
-      confidentialBalance: false,
-      transfer: false,
-      publicBalance: false,
-      shield: false,
-      unshield: false,
-      claim: false,
-      claimable: false,
-    },
-  },
-  dual: {
-    enabled: true,
-    label: 'Dual-balance confidential token',
-    confidentialValueType: 'uint64',
-    publicBalanceSource: 'token',
-    operations: {
-      confidentialBalance: true,
-      transfer: true,
-      publicBalance: true,
-      shield: true,
-      unshield: true,
-      claim: true,
-      claimable: true,
-    },
-  },
-} as const;
-
-export type TokenConfidentialityType = keyof typeof TOKEN_CONFIDENTIALITY_SUPPORT;
-type EnabledTokenConfidentialityType<T extends Record<string, { enabled: boolean }>> = {
-  [K in keyof T]: T[K]['enabled'] extends true ? K : never;
-}[keyof T];
-
-export type SupportedTokenConfidentialityType = EnabledTokenConfidentialityType<typeof TOKEN_CONFIDENTIALITY_SUPPORT>;
-
-export const TOKEN_CONFIDENTIALITY_TYPES = Object.keys(TOKEN_CONFIDENTIALITY_SUPPORT) as TokenConfidentialityType[];
-
-export function isTokenConfidentialityType(value: string | undefined): value is TokenConfidentialityType {
-  return typeof value === 'string' && value in TOKEN_CONFIDENTIALITY_SUPPORT;
-}
-
-export function isSupportedTokenConfidentialityType(
-  value: string | undefined
-): value is SupportedTokenConfidentialityType {
-  return isTokenConfidentialityType(value) && TOKEN_CONFIDENTIALITY_SUPPORT[value].enabled;
-}
 
 export function isTokenOperationSupported(type: string | undefined, operation: TokenSupportOperation): boolean {
   return isTokenConfidentialityType(type) && TOKEN_CONFIDENTIALITY_SUPPORT[type].operations[operation];

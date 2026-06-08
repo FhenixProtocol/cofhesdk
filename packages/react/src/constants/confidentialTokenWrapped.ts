@@ -1,14 +1,15 @@
 import { parseAbi } from 'viem';
 
-import type { TokenConfidentialityContracts } from './confidentialTokenABIs';
+import { ERC20_ALLOWANCE_ABI, ERC20_APPROVE_ABI } from './erc20ABIs';
+import type { TokenConfidentialityContracts } from './tokenTypeConfig';
 
 const wrappedErc20ApprovalContracts = {
   allowance: {
-    abi: parseAbi(['function allowance(address owner, address spender) view returns (uint256)']),
+    abi: ERC20_ALLOWANCE_ABI,
     functionName: 'allowance' as const,
   },
   approve: {
-    abi: parseAbi(['function approve(address spender, uint256 amount) returns (bool)']),
+    abi: ERC20_APPROVE_ABI,
     functionName: 'approve' as const,
   },
 } as const;

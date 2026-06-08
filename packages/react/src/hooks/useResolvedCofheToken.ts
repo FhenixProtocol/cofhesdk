@@ -1,11 +1,12 @@
 import type { UseQueryOptions } from '@tanstack/react-query';
-import { type Address, isAddress, parseAbi, zeroAddress } from 'viem';
+import { type Abi, type Address, isAddress, parseAbi, zeroAddress } from 'viem';
 
 import { ERC20_DECIMALS_ABI, ERC20_NAME_ABI, ERC20_SYMBOL_ABI } from '@/constants/erc20ABIs';
 import {
   TOKEN_CONFIDENTIALITY_TYPE_INTERFACE_IDS,
   detectSupportedTokenTypeFromInterfaces,
-} from '@/constants/confidentialTokenABIs';
+  getTokenTypeConfig,
+} from '@/constants/tokenTypeConfig';
 import { useInternalQuery } from '@/providers';
 import {
   ETH_ADDRESS_LOWERCASE,
@@ -22,25 +23,17 @@ const TOKEN_INTERFACE_DETECTION_ENTRIES = Object.entries(TOKEN_CONFIDENTIALITY_T
   [SupportedTokenConfidentialityType, `0x${string}`]
 >;
 
-const TOKEN_PAIR_GETTER_ABIS = {
-  token: parseAbi(['function token() view returns (address)']),
-  underlying: parseAbi(['function underlying() view returns (address)']),
-  underlyingToken: parseAbi(['function underlyingToken() view returns (address)']),
-  asset: parseAbi(['function asset() view returns (address)']),
-  erc20: parseAbi(['function erc20() view returns (address)']),
-  erc20Token: parseAbi(['function erc20Token() view returns (address)']),
-  weth: parseAbi(['function weth() view returns (address)']),
-} as const;
-
-const PAIR_GETTER_ENTRIES = [
-  ['token', TOKEN_PAIR_GETTER_ABIS.token],
-  ['underlying', TOKEN_PAIR_GETTER_ABIS.underlying],
-  ['underlyingToken', TOKEN_PAIR_GETTER_ABIS.underlyingToken],
-  ['asset', TOKEN_PAIR_GETTER_ABIS.asset],
-  ['erc20', TOKEN_PAIR_GETTER_ABIS.erc20],
-  ['erc20Token', TOKEN_PAIR_GETTER_ABIS.erc20Token],
-  ['weth', TOKEN_PAIR_GETTER_ABIS.weth],
-] as const;
+function getAddressGetterAbi(functionName: string): Abi {
+  return [
+    {
+      inputs: [],
+      name: functionName,
+      outputs: [{ name: '', type: 'address' }],
+      stateMutability: 'view',
+      type: 'function',
+    },
+  ];
+}
 
 function pickUnderlyingPairAddress(results: readonly unknown[], tokenAddress: Address): Address | undefined {
   for (const result of results) {
@@ -137,12 +130,14 @@ export function useResolvedCofheToken(
       let wrapperKind: Token['extensions']['fhenix']['wrapperKind'];
       let erc20Pair: Token['extensions']['fhenix']['erc20Pair'];
 
-      if (confidentialityType === 'wrapped') {
+      const pairGetterFunctionNames = getTokenTypeConfig(confidentialityType).pairGetterFunctionNames ?? [];
+
+      if (pairGetterFunctionNames.length > 0) {
         const pairGetterResults = await publicClient.multicall({
-          contracts: PAIR_GETTER_ENTRIES.map(([, abi]) => ({
+          contracts: pairGetterFunctionNames.map((functionName) => ({
             address,
-            abi,
-            functionName: abi[0].name,
+            abi: getAddressGetterAbi(functionName),
+            functionName,
           })),
           allowFailure: true,
         });

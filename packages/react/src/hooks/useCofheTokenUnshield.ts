@@ -3,7 +3,7 @@ import { type Address } from 'viem';
 import { useCofheWalletClient, useCofheChainId, useCofheAccount, useCofhePublicClient } from './useCofheConnection.js';
 import { type Token } from './useCofheTokenLists.js';
 import { assertTokenOperationSupported } from '@/types/token';
-import { getUnshieldContractConfig } from '../constants/confidentialTokenABIs.js';
+import { buildTokenUnshieldCallArgs } from '../constants/tokenTypeConfig.js';
 import { TransactionActionType, TransactionStatus, useTransactionStore } from '../stores/transactionStore.js';
 import { useInternalMutation } from '../providers/index.js';
 import { assert } from 'ts-essentials';
@@ -17,7 +17,6 @@ export function getCofheTokenUnshieldCallArgs(params: {
   account: Address;
 }): CofheSimulateWriteContractCallArgs {
   const { token, amount: rawAmount, account } = params;
-  const tokenAddress: Address = token.address;
   const confidentialityType = token.extensions.fhenix.confidentialityType;
 
   if (!confidentialityType) {
@@ -26,17 +25,11 @@ export function getCofheTokenUnshieldCallArgs(params: {
 
   assertTokenOperationSupported(confidentialityType, 'unshield');
 
-  const contractConfig = getUnshieldContractConfig(confidentialityType);
-  const args = confidentialityType === 'wrapped' ? ([account, account, rawAmount] as const) : ([rawAmount] as const);
-
-  return {
-    address: tokenAddress,
-    abi: contractConfig.abi,
-    functionName: contractConfig.functionName,
-    args,
+  return buildTokenUnshieldCallArgs({
+    token,
+    amount: rawAmount,
     account,
-    chain: undefined,
-  };
+  }) as CofheSimulateWriteContractCallArgs;
 }
 
 // ============================================================================
@@ -82,7 +75,6 @@ function useCofheTokenUnshieldMutation(
         throw new Error('PublicClient is required to simulate unshield before writing');
       }
 
-      const tokenAddress: Address = input.token.address;
       const confidentialityType = input.token.extensions.fhenix.confidentialityType;
 
       if (!confidentialityType) {
@@ -94,8 +86,6 @@ function useCofheTokenUnshieldMutation(
       }
 
       assertTokenOperationSupported(confidentialityType, 'unshield');
-
-      const contractConfig = getUnshieldContractConfig(confidentialityType);
 
       let hash: `0x${string}`;
       const unshieldCallArgs = getCofheTokenUnshieldCallArgs({

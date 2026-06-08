@@ -2,7 +2,7 @@ import { QueryClient, type QueryKey, type UseQueryOptions, type UseQueryResult }
 import { type Address, type Hex } from 'viem';
 import { useCofhePublicClient } from './useCofheConnection.js';
 import { type Token } from './useCofheTokenLists.js';
-import { getClaimableContractConfig } from '../constants/confidentialTokenABIs.js';
+import { getTokenTypeConfig, getTokenTypeContracts } from '../constants/tokenTypeConfig.js';
 import { isTokenOperationSupported, type SupportedTokenConfidentialityType } from '@/types/token';
 import { useInternalQuery } from '../providers/index.js';
 import { assert } from 'ts-essentials';
@@ -98,7 +98,8 @@ export async function fetchUnshieldClaims({
   signal,
   blockHashToBeAwareOf,
 }: FetchUnshieldClaimsSummaryInput): Promise<UnshieldClaim[]> {
-  const contractConfig = getClaimableContractConfig(confidentialityType);
+  const contractConfig = getTokenTypeContracts(confidentialityType).claims?.query;
+  assert(contractConfig, `claimable config is not defined for confidentialityType: ${confidentialityType}`);
   const result = await maybeWaitUntilRpcAwareAndReadContract(
     publicClient,
     {
@@ -135,7 +136,7 @@ export async function fetchUnshieldClaimsSummary({
 
   const { claimableAmount, pendingAmount } = claims.reduce(
     (acc, claim) => {
-      if (confidentialityType === 'dual' || confidentialityType === 'wrapped') {
+      if (getTokenTypeConfig(confidentialityType).claimSummaryAmount === 'requested') {
         acc.claimableAmount += claim.requestedAmount;
         return acc;
       }

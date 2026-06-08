@@ -1,6 +1,6 @@
 import { parseAbi } from 'viem';
 
-import type { TokenConfidentialityContracts } from './confidentialTokenABIs';
+import type { TokenConfidentialityContracts } from './tokenTypeConfig';
 
 export const DUAL_TOKEN_CONTRACTS = {
   confidentialBalance: {

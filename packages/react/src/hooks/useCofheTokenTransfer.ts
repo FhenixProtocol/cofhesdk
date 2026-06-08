@@ -1,7 +1,7 @@
 import { type Address } from 'viem';
 import type { Token } from './useCofheTokenLists.js';
 import { assertTokenOperationSupported } from '@/types/token';
-import { getTransferContractConfig } from '../constants/confidentialTokenABIs.js';
+import { getTokenTypeContracts } from '../constants/tokenTypeConfig.js';
 import { TransactionActionType, useTransactionStore } from '../stores/transactionStore.js';
 import { type EncryptableItem } from '@cofhe/sdk';
 import { useCofheEncryptAndWriteContract } from './useCofheEncryptAndWriteContract.js';
@@ -66,7 +66,7 @@ export function useCofheTokenTransfer(writeMutationOptions?: UseCofheTokenTransf
 
       const { input: _ignoredInput, ...encryptionOpts } = encryptionOptions ?? {};
       assertTokenOperationSupported(token.extensions.fhenix.confidentialityType, 'transfer');
-      const contractConfig = getTransferContractConfig(token.extensions.fhenix.confidentialityType);
+      const contractConfig = getTokenTypeContracts(token.extensions.fhenix.confidentialityType).confidentialTransfer;
 
       return encryptAndWrite({
         params: {

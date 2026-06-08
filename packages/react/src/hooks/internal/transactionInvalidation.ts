@@ -1,4 +1,4 @@
-import { getTokenContractConfig } from '@/constants/confidentialTokenABIs';
+import { getTokenTypeContracts } from '@/constants/tokenTypeConfig';
 import { cofheLogger } from '@/utils/debug';
 import { invalidateQueriesWithContext } from '@/utils/invalidationContext';
 import { QueryClient } from '@tanstack/react-query';
@@ -21,7 +21,7 @@ export function invalidateConfidentialTokenBalanceQueries(
   const tokenBalanceQueryKey = constructCofheReadContractQueryForInvalidation({
     cofheChainId: token.chainId,
     address: token.address,
-    functionName: getTokenContractConfig(token.extensions.fhenix.confidentialityType).functionName,
+    functionName: getTokenTypeContracts(token.extensions.fhenix.confidentialityType).confidentialBalance.functionName,
   });
 
   cofheLogger.log('Invalidating shield/send read contract queries for token:', { token, tokenBalanceQueryKey });
