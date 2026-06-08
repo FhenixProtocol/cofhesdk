@@ -32,10 +32,7 @@ export function getCofheTokenShieldCallArgs(params: { token: Token; amount: bigi
     token,
     amount,
     account,
-  }) as {
-    main: CofheSimulateWriteContractCallArgs;
-    approval?: CofheSimulateWriteContractCallArgs;
-  };
+  });
 }
 
 // ============================================================================

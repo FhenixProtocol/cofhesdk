@@ -29,7 +29,7 @@ export function getCofheTokenUnshieldCallArgs(params: {
     token,
     amount: rawAmount,
     account,
-  }) as CofheSimulateWriteContractCallArgs;
+  });
 }
 
 // ============================================================================
