@@ -5,14 +5,17 @@ import { ERC20_DECIMALS_ABI, ERC20_NAME_ABI, ERC20_SYMBOL_ABI } from '@/constant
 import {
   TOKEN_CONFIDENTIALITY_TYPE_INTERFACE_IDS,
   detectSupportedTokenTypeFromInterfaces,
-  getSupportedTokenDetectionConfigs,
 } from '@/constants/confidentialTokenABIs';
 import { useInternalQuery } from '@/providers';
-import { ETH_ADDRESS_LOWERCASE, buildToken, type SupportedTokenConfidentialityType, type Token } from '@/types/token';
+import {
+  ETH_ADDRESS_LOWERCASE,
+  buildToken,
+  getTokenConfidentialValueType,
+  type SupportedTokenConfidentialityType,
+  type Token,
+} from '@/types/token';
 
 import { useCofheChainId, useCofhePublicClient } from './useCofheConnection';
-
-const SUPPORTED_TOKEN_DETECTION_CONFIGS = getSupportedTokenDetectionConfigs();
 
 const ERC165_ABI = parseAbi(['function supportsInterface(bytes4 interfaceId) view returns (bool)']);
 const TOKEN_INTERFACE_DETECTION_ENTRIES = Object.entries(TOKEN_CONFIDENTIALITY_TYPE_INTERFACE_IDS) as Array<
@@ -109,40 +112,15 @@ export function useResolvedCofheToken(
         throw new Error('Failed to fetch token metadata');
       }
 
-      const [detectedEntries, interfaceResults, pairGetterResults] = await Promise.all([
-        Promise.all(
-          SUPPORTED_TOKEN_DETECTION_CONFIGS.map(async (entry) => {
-            const detected = await publicClient
-              .readContract({
-                address,
-                abi: entry.probe.abi,
-                functionName: entry.probe.functionName,
-                args: entry.probe.args,
-              })
-              .then(() => true)
-              .catch(() => false);
-
-            return detected ? entry : null;
-          })
-        ).then((entries) => entries.filter((entry): entry is NonNullable<typeof entry> => entry != null)),
-        publicClient.multicall({
-          contracts: TOKEN_INTERFACE_DETECTION_ENTRIES.map(([, interfaceId]) => ({
-            address,
-            abi: ERC165_ABI,
-            functionName: 'supportsInterface',
-            args: [interfaceId],
-          })),
-          allowFailure: true,
-        }),
-        publicClient.multicall({
-          contracts: PAIR_GETTER_ENTRIES.map(([, abi]) => ({
-            address,
-            abi,
-            functionName: abi[0].name,
-          })),
-          allowFailure: true,
-        }),
-      ]);
+      const interfaceResults = await publicClient.multicall({
+        contracts: TOKEN_INTERFACE_DETECTION_ENTRIES.map(([, interfaceId]) => ({
+          address,
+          abi: ERC165_ABI,
+          functionName: 'supportsInterface',
+          args: [interfaceId],
+        })),
+        allowFailure: true,
+      });
 
       const interfaceSupport = Object.fromEntries(
         TOKEN_INTERFACE_DETECTION_ENTRIES.map(([confidentialityType], index) => [
@@ -150,29 +128,26 @@ export function useResolvedCofheToken(
           interfaceResults[index]?.status === 'success' ? interfaceResults[index].result === true : false,
         ])
       ) as Partial<Record<SupportedTokenConfidentialityType, boolean>>;
-      const interfaceDetectedType = detectSupportedTokenTypeFromInterfaces(interfaceSupport);
-      const pairAddress = pickUnderlyingPairAddress(pairGetterResults, address);
-      const interfaceSupportedType = interfaceDetectedType
-        ? detectedEntries.find((entry) => entry.confidentialityType === interfaceDetectedType)
-        : undefined;
-      const pairSupportedType = pairAddress
-        ? detectedEntries.find((entry) => entry.confidentialityType === 'wrapped')
-        : undefined;
-      const supportedType =
-        interfaceSupportedType ??
-        pairSupportedType ??
-        detectedEntries.find((entry) => entry.confidentialityType === 'dual') ??
-        detectedEntries[0];
+      const confidentialityType = detectSupportedTokenTypeFromInterfaces(interfaceSupport);
 
-      if (!supportedType) {
+      if (!confidentialityType) {
         throw new Error('Address is not a supported CoFHE token');
       }
 
-      const confidentialityType: SupportedTokenConfidentialityType = supportedType.confidentialityType;
       let wrapperKind: Token['extensions']['fhenix']['wrapperKind'];
       let erc20Pair: Token['extensions']['fhenix']['erc20Pair'];
 
       if (confidentialityType === 'wrapped') {
+        const pairGetterResults = await publicClient.multicall({
+          contracts: PAIR_GETTER_ENTRIES.map(([, abi]) => ({
+            address,
+            abi,
+            functionName: abi[0].name,
+          })),
+          allowFailure: true,
+        });
+        const pairAddress = pickUnderlyingPairAddress(pairGetterResults, address);
+
         if (pairAddress) {
           if (pairAddress.toLowerCase() === ETH_ADDRESS_LOWERCASE) {
             wrapperKind = 'native';
@@ -223,7 +198,7 @@ export function useResolvedCofheToken(
           logoURI: undefined,
         },
         confidentialityType,
-        confidentialValueType: supportedType.confidentialValueType,
+        confidentialValueType: getTokenConfidentialValueType(confidentialityType),
         wrapperKind,
         erc20Pair,
       });
