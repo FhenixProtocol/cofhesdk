@@ -217,32 +217,24 @@ export function useCofheTokenClaimUnshielded(
         ...callArgs,
         account: walletClient.account,
       });
-      return await walletClient.writeContract({ ...request, chain: undefined });
+      const hash = await walletClient.writeContract({ ...request, chain: undefined });
+
+      useTransactionStore.getState().addTransaction({
+        hash,
+        token: input.token,
+        tokenAmount: input.amount,
+        chainId,
+        actionType: TransactionActionType.Claim,
+        account,
+      });
+
+      return hash;
     },
     onError: (error, variables, onMutateResult, context) => {
       if (onError) onError(error, variables, onMutateResult, context);
       onTransactionSubmitError(error, TransactionActionType.Claim);
     },
-    onSuccess: async (hash, input, onMutateResult, context) => {
-      assert(chainId, 'Chain ID is required for claim');
-      assert(account, 'Wallet account is required for claim');
-      if (onSuccess) await onSuccess(hash, input, onMutateResult, context);
-
-      if (getTokenTypeConfig(input.token.extensions.fhenix.confidentialityType).claimSubmission === 'single') {
-        return;
-      }
-
-      useTransactionStore.getState().addTransaction({
-        hash,
-
-        token: input.token,
-        tokenAmount: input.amount,
-
-        chainId,
-        actionType: TransactionActionType.Claim,
-        account,
-      });
-    },
+    onSuccess,
     ...restOfOptions,
   });
 }
