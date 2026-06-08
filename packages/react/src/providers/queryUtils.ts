@@ -1,8 +1,7 @@
-import { type QueryKey } from '@tanstack/react-query';
+import { QueryClient, type QueryKey } from '@tanstack/react-query';
 import { persistQueryClientRestore, persistQueryClientSubscribe } from '@tanstack/react-query-persist-client';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import { useEffect } from 'react';
-import type { useInternalQueryClient } from './QueryProvider';
 import { createSsrStorage, hasDOM } from '@cofhe/sdk/web';
 
 export function isPersistedQuery(options: { meta?: unknown; queryKey?: QueryKey }): boolean {
@@ -57,8 +56,8 @@ export function usePersistentQueriesSubscription({
   queryClient,
   overridingQueryClient,
 }: {
-  queryClient: ReturnType<typeof useInternalQueryClient>;
-  overridingQueryClient?: ReturnType<typeof useInternalQueryClient>;
+  queryClient: QueryClient;
+  overridingQueryClient?: QueryClient;
 }) {
   // IMPORTANT:
   // Do NOT use <PersistQueryClientProvider>.

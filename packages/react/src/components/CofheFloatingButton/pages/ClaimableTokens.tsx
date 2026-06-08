@@ -19,7 +19,6 @@ export function ClaimableTokens() {
   const claimableByTokenAddress = chainsClaimableTokens.claimableByTokenAddress;
   const summariesByTokenAddress = chainsClaimableTokens.summariesByTokenAddress;
   const unshieldingInProgressByTokenAddress = chainsClaimableTokens.isUnshieldingInProgressByTokenAddress;
-  const waitingByTokenAddress = chainsClaimableTokens.isWaitingForDecryptionByTokenAddress;
   const isClaimingByTokenAddress = chainsClaimableTokens.isClaimingByTokenAddress;
   const { navigateBack } = usePortalNavigation();
 
@@ -70,10 +69,6 @@ export function ClaimableTokens() {
       content={
         <div className="flex flex-col gap-4 pr-1">
           {rows.map(({ token, claimableAmount }) => {
-            const isDecrypting =
-              token.extensions.fhenix.confidentialityType === 'dual'
-                ? false
-                : waitingByTokenAddress?.[token.address] ?? false;
             const isUnshielding =
               unshieldingInProgressByTokenAddress?.[token.address.toLowerCase() as Address] ?? false;
             const formatted = formatTokenAmount(claimableAmount, token.decimals, 5).formatted;
@@ -103,9 +98,9 @@ export function ClaimableTokens() {
                 <Button
                   type="button"
                   onClick={() => handleClaim(token.address)}
-                  disabled={isUnshielding || isDecrypting || isClaimingThis || claimMutation.isPending}
+                  disabled={isUnshielding || isClaimingThis || claimMutation.isPending}
                 >
-                  {isDecrypting ? 'Decrypting' : isUnshielding ? 'Unshielding' : 'Claim'}
+                  {isUnshielding ? 'Unshielding' : 'Claim'}
                 </Button>
               </div>
             );

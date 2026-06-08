@@ -4,7 +4,7 @@ import { type Address, isAddress, parseAbi, zeroAddress } from 'viem';
 import { ERC20_DECIMALS_ABI, ERC20_NAME_ABI, ERC20_SYMBOL_ABI } from '@/constants/erc20ABIs';
 import { getSupportedTokenDetectionConfigs } from '@/constants/confidentialTokenABIs';
 import { useInternalQuery } from '@/providers';
-import { ETH_ADDRESS_LOWERCASE, type SupportedTokenConfidentialityType, type Token } from '@/types/token';
+import { ETH_ADDRESS_LOWERCASE, buildToken, type SupportedTokenConfidentialityType, type Token } from '@/types/token';
 
 import { useCofheChainId, useCofhePublicClient } from './useCofheConnection';
 
@@ -17,6 +17,7 @@ const TOKEN_PAIR_GETTER_ABIS = {
   asset: parseAbi(['function asset() view returns (address)']),
   erc20: parseAbi(['function erc20() view returns (address)']),
   erc20Token: parseAbi(['function erc20Token() view returns (address)']),
+  weth: parseAbi(['function weth() view returns (address)']),
 } as const;
 
 const PAIR_GETTER_ENTRIES = [
@@ -26,6 +27,7 @@ const PAIR_GETTER_ENTRIES = [
   ['asset', TOKEN_PAIR_GETTER_ABIS.asset],
   ['erc20', TOKEN_PAIR_GETTER_ABIS.erc20],
   ['erc20Token', TOKEN_PAIR_GETTER_ABIS.erc20Token],
+  ['weth', TOKEN_PAIR_GETTER_ABIS.weth],
 ] as const;
 
 function pickUnderlyingPairAddress(results: readonly unknown[], tokenAddress: Address): Address | undefined {
@@ -129,24 +131,21 @@ export function useResolvedCofheToken(
       }
 
       const confidentialityType: SupportedTokenConfidentialityType = supportedType.confidentialityType;
-
-      const extensions: Token['extensions'] = {
-        fhenix: {
-          confidentialityType,
-          confidentialValueType: supportedType.confidentialValueType,
-        },
-      };
+      let wrapperKind: Token['extensions']['fhenix']['wrapperKind'];
+      let erc20Pair: Token['extensions']['fhenix']['erc20Pair'];
 
       if (confidentialityType === 'wrapped') {
         const pairAddress = pickUnderlyingPairAddress(pairGetterResults, address);
         if (pairAddress) {
           if (pairAddress.toLowerCase() === ETH_ADDRESS_LOWERCASE) {
-            extensions.fhenix.erc20Pair = {
+            wrapperKind = 'native';
+            erc20Pair = {
               address: ETH_ADDRESS_LOWERCASE,
               symbol: 'ETH',
               decimals: 18,
             };
           } else {
+            wrapperKind = 'erc20';
             const pairMetadata = await publicClient.multicall({
               contracts: [
                 {
@@ -167,7 +166,7 @@ export function useResolvedCofheToken(
             const pairSymbol = pairMetadata[1]?.status === 'success' ? pairMetadata[1].result : undefined;
 
             if (pairDecimals != null && pairSymbol != null) {
-              extensions.fhenix.erc20Pair = {
+              erc20Pair = {
                 address: pairAddress,
                 symbol: pairSymbol,
                 decimals: pairDecimals,
@@ -177,14 +176,20 @@ export function useResolvedCofheToken(
         }
       }
 
-      return {
-        chainId,
-        address,
-        decimals,
-        symbol,
-        name,
-        extensions,
-      };
+      return buildToken({
+        base: {
+          chainId,
+          address,
+          decimals,
+          symbol,
+          name,
+          logoURI: undefined,
+        },
+        confidentialityType,
+        confidentialValueType: supportedType.confidentialValueType,
+        wrapperKind,
+        erc20Pair,
+      });
     },
     enabled: (queryOptions?.enabled ?? true) && !!publicClient && !!chainId && !!address,
     staleTime: Infinity,

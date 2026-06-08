@@ -33,8 +33,7 @@ const cofheConfig = createCofheConfig({
       //   'https://api.npoint.io/439ce3fd4b44eaa6f917', // contains "failing usdc"
       // ],
 
-      // dual USD and EUR
-      84532: ['https://api.npoint.io/2811dad903f0dbb6745e'],
+      84532: ['/base-sepolia.tokenlist.json'],
       // dual USD and EUR
       421613: ['https://api.npoint.io/01ad319fb7b447ebaa92'],
 

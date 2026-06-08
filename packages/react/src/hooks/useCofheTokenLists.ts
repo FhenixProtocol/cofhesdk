@@ -2,9 +2,12 @@ import { type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query
 import { useCofheContext } from '../providers/CofheProvider';
 import { useMemo } from 'react';
 import {
+  DEFAULT_TOKEN_BY_CHAIN_ID,
   ETH_ADDRESS_LOWERCASE,
   isSupportedTokenConfidentialityType,
+  normalizeSourceToken,
   type Erc20Pair,
+  type SourceToken,
   type Token,
 } from '../types/token.js';
 import { useInternalQueries } from '../providers/index.js';
@@ -21,7 +24,7 @@ function isSupportedToken(token: Token): boolean {
   return isSupportedTokenConfidentialityType(confidentialityType);
 }
 
-type TokenList = {
+type TokenListBase = {
   name: string;
   timestamp: string;
   version: {
@@ -29,14 +32,33 @@ type TokenList = {
     minor: number;
     patch: number;
   };
+};
+
+type TokenList = TokenListBase & {
   tokens: Token[];
+};
+
+type RawTokenList = TokenListBase & {
+  tokens: SourceToken[];
 };
 
 type UseTokenListsResult = UseQueryResult<TokenList, Error>[];
 type UseTokenListsInput = {
   chainId?: number;
 };
-type UseTokenListsOptions = Omit<UseQueryOptions<TokenList, Error>, 'queryKey' | 'queryFn' | 'select'>;
+type UseTokenListsOptions = Omit<UseQueryOptions<RawTokenList, Error, TokenList>, 'queryKey' | 'queryFn' | 'select'>;
+
+class TokenListFetchError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number
+  ) {
+    super(message);
+    this.name = 'TokenListFetchError';
+  }
+}
+
+const DEFAULT_RETRY_DELAY_ON_429 = 30_000; // 30 seconds
 
 class TokenListFetchError extends Error {
   constructor(
@@ -63,7 +85,7 @@ export function useCofheTokenLists(
   const widgetConfig = useCofheContext().client.config.react;
   const tokensListsUrls = chainId ? widgetConfig.tokenLists?.[chainId] : [];
 
-  const queriesOptions: UseQueryOptions<TokenList, Error>[] =
+  const queriesOptions: UseQueryOptions<RawTokenList, Error, TokenList>[] =
     tokensListsUrls?.map((url) => ({
       cacheTime: Infinity,
       staleTime: Infinity,
@@ -78,7 +100,7 @@ export function useCofheTokenLists(
 
         return Math.min(1000 * 2 ** failureCount, DEFAULT_RETRY_DELAY_ON_429);
       },
-      queryFn: async ({ signal }): Promise<TokenList> => {
+      queryFn: async ({ signal }): Promise<RawTokenList> => {
         const timestamp = Date.now();
         const urlWithCacheBust = `${url}${url.includes('?') ? '&' : '?'}v=${timestamp}`;
         const res = await fetch(urlWithCacheBust, { signal });
@@ -87,11 +109,14 @@ export function useCofheTokenLists(
         }
         return await res.json();
       },
-      select: (data: TokenList): TokenList => {
+      select: (data: RawTokenList): TokenList => {
         // filter only tokens for the current chain (some lists contain multiple chains)
         return {
           ...data,
-          tokens: data.tokens.filter((token) => token.chainId === chainId && isSupportedToken(token)),
+          tokens: data.tokens
+            .filter((token) => token.chainId === chainId)
+            .map((token) => normalizeSourceToken(token))
+            .filter((token): token is Token => !!token && isSupportedToken(token)),
         };
       },
       ...queryOptions,
@@ -112,6 +137,7 @@ export function useCofheTokens(chainId?: number): Token[] {
   const tokenLists = useCofheTokenLists({ chainId });
   const customTokensByChainId = useCustomTokensStore((state) => state.customTokensByChainId);
   const customTokens = getCustomTokensForChain(customTokensByChainId, chainId);
+  const defaultToken = chainId ? DEFAULT_TOKEN_BY_CHAIN_ID[chainId] : undefined;
 
   const tokens = useMemo(() => {
     const map = new Map<string, Token>();
@@ -132,8 +158,15 @@ export function useCofheTokens(chainId?: number): Token[] {
       map.set(key, token);
     });
 
+    if (defaultToken) {
+      const key = `${defaultToken.chainId}-${defaultToken.address.toLowerCase()}`;
+      if (!map.has(key)) {
+        map.set(key, defaultToken);
+      }
+    }
+
     return Array.from(map.values());
-  }, [customTokens, tokenLists]);
+  }, [customTokens, defaultToken, tokenLists]);
   return tokens;
 }
 

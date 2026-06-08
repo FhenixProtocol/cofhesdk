@@ -28,8 +28,8 @@ export type CofheProviderProps = {
   config?: CofheConfigWithReact;
 
   // @TODO: define our own pair of classes, with only the methods we need
-  walletClient?: WalletClientLike | null;
-  publicClient?: PublicClientLike | null;
+  walletClient?: WalletClientLike;
+  publicClient?: PublicClientLike;
 };
 
 export interface CofheClientConfig {

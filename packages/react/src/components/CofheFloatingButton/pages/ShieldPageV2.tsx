@@ -177,6 +177,7 @@ function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 
   const account = useCofheAccount();
   const chainId = useCofheChainId();
   const [shieldAmount, setShieldAmount] = useState('');
+  const shieldSourceDecimals = token.extensions.fhenix.erc20Pair?.decimals ?? token.decimals;
   const { setError, setStatus, error, status } = useLifecycleStore();
   const { schedule: scheduleStatusClear } = useReschedulableTimeout(() => setStatus(null), AUTOCLEAR_TX_STATUS_TIMEOUT);
   const tokenShield = useCofheTokenShield({
@@ -236,7 +237,7 @@ function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 
   });
 
   const handleShield = async () => {
-    const amountWei = unitToWei(shieldAmount, token.decimals);
+    const amountWei = unitToWei(shieldAmount, shieldSourceDecimals);
     await tokenShield.mutateAsync({
       token,
       amount: amountWei,
@@ -271,11 +272,11 @@ function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 
   const shieldAmountWei = useMemo<bigint | undefined>(() => {
     if (!isValidShieldAmount) return undefined;
     try {
-      return unitToWei(shieldAmount, token.decimals);
+      return unitToWei(shieldAmount, shieldSourceDecimals);
     } catch {
       return undefined;
     }
-  }, [isValidShieldAmount, shieldAmount, token.decimals]);
+  }, [isValidShieldAmount, shieldAmount, shieldSourceDecimals]);
 
   const shieldTxCallArgs = useMemo(() => {
     if (!account || !shieldAmountWei) return undefined;
@@ -400,9 +401,7 @@ function useUnshieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps
           message: (
             <>
               Unshield transaction confirmed! Hash: <TxHashWithActions hash={transaction.hash} chainId={chainId} />
-              {token.extensions.fhenix.confidentialityType === 'dual'
-                ? ' Claim data is now available.'
-                : ' Now waiting for decryption...'}
+              {' Claim data is now available.'}
             </>
           ),
           type: 'success',
@@ -415,10 +414,6 @@ function useUnshieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps
         );
         setStatus(null);
       }
-    },
-    onceDecrypted: () => {
-      setStatus({ message: 'Unshield decryption completed!', type: 'success' });
-      scheduleStatusClear();
     },
   });
   const handleUnshield = async () => {
@@ -458,7 +453,7 @@ function useUnshieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps
   return {
     status,
     error: error ?? simulationError,
-    isProcessing: tokenUnshield.isPending || tokenUnshield.isTokenUnshieldMining || tokenUnshield.isPendingDecryption,
+    isProcessing: tokenUnshield.isPending || tokenUnshield.isTokenUnshieldMining,
     inputAmount: unshieldAmount,
     setInputAmount: setUnshieldAmount,
     onMaxClick: handleUnshieldMax,
@@ -545,11 +540,7 @@ function UnshieldTab({
 function ClaimingSection({ token }: { token: Token }) {
   const account = useCofheAccount();
   const isDualToken = token.extensions.fhenix.confidentialityType === 'dual';
-  const {
-    data: unshieldedClaims,
-    isFetching: isFetchingClaims,
-    isWaitingForDecryption: isWaitingForNewClaimsDecryption,
-  } = useCofheTokenClaimable({
+  const { data: unshieldedClaims, isFetching: isFetchingClaims } = useCofheTokenClaimable({
     token,
     accountAddress: account,
   });
@@ -573,7 +564,7 @@ function ClaimingSection({ token }: { token: Token }) {
 
   const claimCallArgs = useMemo(() => {
     if (isDualToken || !account || !unshieldedClaims?.hasClaimable) return undefined;
-    return getCofheTokenClaimUnshieldedCallArgs({ token, account });
+    return undefined;
   }, [account, isDualToken, token, unshieldedClaims?.hasClaimable]);
 
   const claimSimulation = useCofheSimulateWriteContract(claimCallArgs, {
@@ -584,6 +575,8 @@ function ClaimingSection({ token }: { token: Token }) {
     () => humanizeSimulationError(claimSimulation.error, 'Failed to simulate claim transaction'),
     [claimSimulation.error]
   );
+
+  const shouldSimulateClaim = !!claimCallArgs;
 
   return (
     <>
@@ -596,15 +589,13 @@ function ClaimingSection({ token }: { token: Token }) {
             isClaimingMining ||
             isFetchingClaims ||
             isUnshieldingMining ||
-            (!isDualToken && isWaitingForNewClaimsDecryption) ||
-            (!isDualToken && !claimCallArgs) ||
-            (!isDualToken && claimSimulation.isFetching) ||
-            (!isDualToken && !!claimSimulation.error)
+            (shouldSimulateClaim && claimSimulation.isFetching) ||
+            (shouldSimulateClaim && !!claimSimulation.error)
           }
           label={
             claimUnshield.isPending
               ? 'Claiming...'
-              : `Claim ${isFetchingClaims || (!isDualToken && isWaitingForNewClaimsDecryption) ? '...' : formatTokenAmount(unshieldedClaims?.claimableAmount ?? 0n, token.decimals, 5).formatted} ${pairedSymbol}`
+              : `Claim ${isFetchingClaims ? '...' : formatTokenAmount(unshieldedClaims?.claimableAmount ?? 0n, token.decimals, 5).formatted} ${pairedSymbol}`
           }
           className="mt-1"
         />

@@ -1,5 +1,4 @@
 import { useInternalQueries, useInternalQueryClient } from '@/providers';
-import { useDecryptionWatchersStore } from '@/stores/decryptionWatchingStore';
 import {
   TransactionActionType,
   TransactionStatus,
@@ -21,7 +20,6 @@ import {
   invalidateTokenAllowanceQueries,
 } from './internal/transactionInvalidation';
 import { useCofhePublicClient } from './useCofheConnection';
-import { constructUnshieldClaimsQueryKeyForInvalidation } from './useCofheTokenClaimable';
 import { ETH_ADDRESS_LOWERCASE } from './useCofheTokenLists';
 import { getPublicTokenBalanceSource } from './useCofheTokenPublicBalance';
 import { usePendingTransactions } from './usePendingTransactions';
@@ -82,9 +80,6 @@ function useTrackPendingTransactionsBase({
 
 function useHandleInvalidations() {
   const queryClient = useInternalQueryClient();
-
-  const { upsert: upsertDecryptionWatcher, byKey } = useDecryptionWatchersStore();
-  cofheLogger.log('Scheduled invalidations store:', byKey);
   const handleInvalidations = (tx: Transaction, receipt?: TransactionReceipt) => {
     const blockHashToBeAwareOf = receipt?.blockHash ?? tx.receipt?.blockHash;
     // each transaction requires gas, so native token balance changes on every transaction
@@ -106,29 +101,12 @@ function useHandleInvalidations() {
       // on unshield - private balance decreases, claimable increases, public remains the same
       invalidateConfidentialTokenBalanceQueries(tx.token, queryClient, blockHashToBeAwareOf);
 
-      if (tx.token.extensions.fhenix.confidentialityType === 'dual') {
+      if (isTokenOperationSupported(tx.token.extensions.fhenix.confidentialityType, 'claimable')) {
         invalidateClaimableQueries({
           token: tx.token,
           accountAddress: tx.account,
           queryClient,
           blockHashToBeAwareOf,
-        });
-      } else if (isTokenOperationSupported(tx.token.extensions.fhenix.confidentialityType, 'claimable')) {
-        // schedule invalidation for unshield claims once decryption is observed
-        upsertDecryptionWatcher({
-          key: `${tx.actionType}-tx-${tx.hash}`,
-          accountAddress: tx.account,
-          createdAt: Date.now(),
-          chainId: tx.chainId,
-          triggerTxHash: tx.hash,
-          queryKeys: [
-            constructUnshieldClaimsQueryKeyForInvalidation({
-              chainId: tx.token.chainId,
-              tokenAddress: tx.token.address,
-              confidentialityType: tx.token.extensions.fhenix.confidentialityType,
-              accountAddress: tx.account,
-            }),
-          ],
         });
       }
     } else if (tx.actionType === TransactionActionType.Claim) {

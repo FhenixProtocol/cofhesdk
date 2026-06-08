@@ -12,6 +12,7 @@ import {
   getShieldContractConfig,
   getShieldApproveContractConfig,
   getShieldEthContractConfig,
+  getShieldWrappedPairContractConfig,
 } from '../constants/confidentialTokenABIs.js';
 import { TransactionActionType, useTransactionStore } from '../stores/transactionStore.js';
 import { useInternalMutation, useInternalQuery } from '../providers/index.js';
@@ -37,7 +38,7 @@ export function getCofheTokenShieldCallArgs(params: { token: Token; amount: bigi
   const isEth = erc20PairAddress?.toLowerCase() === ETH_ADDRESS_LOWERCASE;
 
   if (isEth) {
-    const contractConfig = getShieldEthContractConfig(confidentialityType);
+    const contractConfig = getShieldEthContractConfig(token);
     return {
       main: {
         address: tokenAddress,
@@ -50,18 +51,21 @@ export function getCofheTokenShieldCallArgs(params: { token: Token; amount: bigi
       },
     };
   }
-  // TODO revisit
   if (!erc20PairAddress) {
+    const contractConfig = getShieldContractConfig(token);
     return {
       main: {
         address: tokenAddress,
-        ...getShieldContractConfig(confidentialityType),
-        args: [amount],
+        abi: contractConfig.abi,
+        functionName: contractConfig.functionName,
+        args: confidentialityType === 'dual' ? ([amount] as const) : ([account, amount] as const),
         account,
         chain: undefined,
       },
     };
   }
+
+  const contractConfig = getShieldWrappedPairContractConfig(token);
 
   return {
     approval: {
@@ -72,8 +76,9 @@ export function getCofheTokenShieldCallArgs(params: { token: Token; amount: bigi
       chain: undefined,
     },
     main: {
-      ...getShieldContractConfig(confidentialityType),
       address: tokenAddress,
+      abi: contractConfig.abi,
+      functionName: contractConfig.functionName,
       args: [account, amount],
       account,
       chain: undefined,
@@ -110,7 +115,7 @@ type UseTokenShieldOptions = Omit<UseMutationOptions<`0x${string}`, Error, UseTo
 
 /**
  * Hook to shield tokens (convert regular balance to confidential)
- * Wrapped tokens call `encrypt` or `encryptETH`, depending on the paired asset.
+ * Wrapped tokens call `shieldWrappedNative` or `shieldNative`, depending on the paired asset.
  * @param options - Optional React Query mutation options
  * @returns Mutation result with transaction hash
  */
@@ -189,7 +194,6 @@ export function useCofheTokenShield(
         tokenAmount: input.amount,
         chainId,
         actionType: TransactionActionType.Shield,
-        isPendingDecryption: false, // doesn't need decryption afterwards
         account,
       });
     },

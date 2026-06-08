@@ -27,6 +27,7 @@ export {
 export { useCofheTokenClaimable, type UnshieldClaimsSummary } from './useCofheTokenClaimable';
 export { getCofheTokenClaimUnshieldedCallArgs, useCofheTokenClaimUnshielded } from './useCofheTokenClaimUnshielded';
 export { useCofheTokenDecryptedBalance } from './useCofheTokenDecryptedBalance';
+export { useCofheTokenPublicBalance } from './useCofheTokenPublicBalance';
 export {
   ETH_ADDRESS_LOWERCASE,
   useCofheTokenLists,
@@ -53,7 +54,6 @@ export {
   type UseCoingeckoUsdPriceInput,
   type UseCoingeckoUsdPriceOptions,
 } from './useCoingeckoUsdPrice';
-export { useOnceDecrypted } from './useOnceDecrypted';
 export { useReschedulableTimeout } from './useReschedulableTimeout';
 export { useResolvedCofheToken } from './useResolvedCofheToken';
 export {

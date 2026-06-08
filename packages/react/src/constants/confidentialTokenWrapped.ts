@@ -13,7 +13,7 @@ const wrappedErc20ApprovalContracts = {
   },
 } as const;
 
-export const WRAPPED_TOKEN_CONTRACTS = {
+const SHARED_WRAPPED_TOKEN_CONTRACTS = {
   detection: {
     abi: [
       {
@@ -24,19 +24,19 @@ export const WRAPPED_TOKEN_CONTRACTS = {
             type: 'address',
           },
         ],
-        name: 'encBalanceOf',
+        name: 'confidentialBalanceOf',
         outputs: [
           {
-            internalType: 'euint128',
+            internalType: 'euint64',
             name: '',
-            type: 'uint256',
+            type: 'bytes32',
           },
         ],
         stateMutability: 'view',
         type: 'function',
       },
     ] as const,
-    functionName: 'encBalanceOf' as const,
+    functionName: 'confidentialBalanceOf' as const,
     args: [zeroAddress],
   },
   confidentialBalance: {
@@ -49,19 +49,19 @@ export const WRAPPED_TOKEN_CONTRACTS = {
             type: 'address',
           },
         ],
-        name: 'encBalanceOf',
+        name: 'confidentialBalanceOf',
         outputs: [
           {
-            internalType: 'euint128',
+            internalType: 'euint64',
             name: '',
-            type: 'uint256',
+            type: 'bytes32',
           },
         ],
         stateMutability: 'view',
         type: 'function',
       },
     ] as const,
-    functionName: 'encBalanceOf' as const,
+    functionName: 'confidentialBalanceOf' as const,
   },
   confidentialTransfer: {
     abi: [
@@ -95,52 +95,41 @@ export const WRAPPED_TOKEN_CONTRACTS = {
                 type: 'bytes',
               },
             ],
-            internalType: 'struct InEuint128',
-            name: 'inValue',
+            internalType: 'struct InEuint64',
+            name: 'encryptedAmount',
             type: 'tuple',
           },
         ],
-        name: 'encTransfer',
+        name: 'confidentialTransfer',
         outputs: [
           {
-            internalType: 'euint128',
+            internalType: 'euint64',
             name: 'transferred',
-            type: 'uint256',
+            type: 'bytes32',
           },
         ],
         stateMutability: 'nonpayable',
         type: 'function',
       },
     ] as const,
-    functionName: 'encTransfer' as const,
-  },
-  shield: {
-    approval: wrappedErc20ApprovalContracts,
-    erc20: {
-      abi: parseAbi(['function encrypt(address to, uint128 value) public']),
-      functionName: 'encrypt' as const,
-    },
-    native: {
-      abi: parseAbi(['function encryptETH(address to) public payable']),
-      functionName: 'encryptETH' as const,
-    },
-    wrappedPair: {
-      abi: parseAbi(['function encryptWETH(address to, uint128 value) public']),
-      functionName: 'encryptWETH' as const,
-    },
+    functionName: 'confidentialTransfer' as const,
   },
   unshield: {
-    abi: parseAbi(['function decrypt(address to, uint128 value) public']),
-    functionName: 'decrypt' as const,
+    abi: parseAbi(['function unshield(address from, address to, uint64 amount) returns (bytes32)']),
+    functionName: 'unshield' as const,
   },
   claims: {
     single: {
-      abi: parseAbi(['function claimDecrypted(uint256 ctHash) public']),
-      functionName: 'claimDecrypted' as const,
+      abi: parseAbi([
+        'function getClaim(bytes32 ctHash) view returns ((address to, bytes32 ctHash, uint64 requestedAmount, uint64 decryptedAmount, bool claimed))',
+      ]),
+      functionName: 'getClaim' as const,
     },
     all: {
-      abi: parseAbi(['function claimAllDecrypted() public']),
-      functionName: 'claimAllDecrypted' as const,
+      abi: parseAbi([
+        'function claimUnshieldedBatch(bytes32[] ctHashes, uint64[] decryptedAmounts, bytes[] decryptionProofs)',
+      ]),
+      functionName: 'claimUnshieldedBatch' as const,
     },
     query: {
       abi: [
@@ -150,14 +139,13 @@ export const WRAPPED_TOKEN_CONTRACTS = {
           outputs: [
             {
               components: [
-                { name: 'ctHash', type: 'uint256' },
-                { name: 'requestedAmount', type: 'uint128' },
-                { name: 'decryptedAmount', type: 'uint128' },
-                { name: 'decrypted', type: 'bool' },
                 { name: 'to', type: 'address' },
+                { name: 'ctHash', type: 'bytes32' },
+                { name: 'requestedAmount', type: 'uint64' },
+                { name: 'decryptedAmount', type: 'uint64' },
                 { name: 'claimed', type: 'bool' },
               ],
-              name: '',
+              name: 'userClaims',
               type: 'tuple[]',
             },
           ],
@@ -166,6 +154,40 @@ export const WRAPPED_TOKEN_CONTRACTS = {
         },
       ] as const,
       functionName: 'getUserClaims' as const,
+    },
+  },
+} as const;
+
+export const WRAPPED_TOKEN_CONTRACTS = {
+  ...SHARED_WRAPPED_TOKEN_CONTRACTS,
+  shield: {
+    approval: wrappedErc20ApprovalContracts,
+    erc20: {
+      abi: parseAbi(['function shield(address to, uint256 amount) returns (bytes32)']),
+      functionName: 'shield' as const,
+    },
+    wrappedPair: {
+      abi: parseAbi(['function shield(address to, uint256 amount) returns (bytes32)']),
+      functionName: 'shield' as const,
+    },
+  },
+} as const satisfies TokenConfidentialityContracts;
+
+export const WRAPPED_NATIVE_TOKEN_CONTRACTS = {
+  ...SHARED_WRAPPED_TOKEN_CONTRACTS,
+  shield: {
+    approval: wrappedErc20ApprovalContracts,
+    erc20: {
+      abi: parseAbi(['function shieldWrappedNative(address to, uint256 value) returns (bytes32)']),
+      functionName: 'shieldWrappedNative' as const,
+    },
+    native: {
+      abi: parseAbi(['function shieldNative(address to) payable returns (bytes32)']),
+      functionName: 'shieldNative' as const,
+    },
+    wrappedPair: {
+      abi: parseAbi(['function shieldWrappedNative(address to, uint256 value) returns (bytes32)']),
+      functionName: 'shieldWrappedNative' as const,
     },
   },
 } as const satisfies TokenConfidentialityContracts;
