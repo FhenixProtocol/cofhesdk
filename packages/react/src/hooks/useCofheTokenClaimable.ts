@@ -197,9 +197,7 @@ type UseUnshieldClaimsOptions = Omit<UseQueryOptions<UnshieldClaimsSummary, Erro
 export function useCofheTokenClaimable(
   { accountAddress: account, token }: UseUnshieldClaimsInput,
   queryOptions?: UseUnshieldClaimsOptions
-): UseQueryResult<UnshieldClaimsSummary, Error> & {
-  isWaitingForDecryption: boolean;
-} {
+): UseQueryResult<UnshieldClaimsSummary, Error> {
   const publicClient = useCofhePublicClient();
 
   const confidentialityType = token?.extensions.fhenix.confidentialityType;
@@ -242,8 +240,5 @@ export function useCofheTokenClaimable(
     ...queryOptions,
   });
 
-  return {
-    ...result,
-    isWaitingForDecryption: false,
-  };
+  return result;
 }

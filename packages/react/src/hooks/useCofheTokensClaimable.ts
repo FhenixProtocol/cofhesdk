@@ -61,7 +61,6 @@ function claimableSort(a: ClaimableToken, b: ClaimableToken): number {
 type CombinedResult = {
   summariesByTokenAddress: UnshieldClaimsSummaryByTokenAddress;
   claimableByTokenAddress: ClaimableAmountByTokenAddress;
-  isWaitingForDecryptionByTokenAddress?: BooleanByAddress;
   isUnshieldingInProgressByTokenAddress?: BooleanByAddress;
   isClaimingByTokenAddress?: BooleanByAddress;
   queries: UseQueryResult<UnshieldClaimsSummary, Error>[];
@@ -162,10 +161,7 @@ export function useCofheTokensClaimable(
     }),
     combine: (results) => {
       return results.reduce<
-        Omit<
-          CombinedResult,
-          'isWaitingForDecryptionByTokenAddress' | 'isUnshieldingInProgressByTokenAddress' | 'isClaimingByTokenAddress'
-        >
+        Omit<CombinedResult, 'isUnshieldingInProgressByTokenAddress' | 'isClaimingByTokenAddress'>
       >(
         (acc, result, index) => {
           const token = normalizedTokens[index];
@@ -209,7 +205,6 @@ export function useCofheTokensClaimable(
     isFetching: combined.isFetching,
     isError: combined.isError,
     error: combined.error,
-    isWaitingForDecryptionByTokenAddress: {},
     isUnshieldingInProgressByTokenAddress,
     isClaimingByTokenAddress,
   };
