@@ -3,6 +3,7 @@ import {
   TransactionActionType,
   TransactionStatus,
   useTransactionStore,
+  isCustomTransactionActionType,
   type Transaction,
 } from '@/stores/transactionStore';
 import { isTokenOperationSupported } from '@/types/token';
@@ -144,8 +145,9 @@ function useHandleInvalidations() {
           blockHashToBeAwareOf
         );
       }
+    } else if (isCustomTransactionActionType(tx.actionType)) {
+      // Gas balance was invalidated above; custom transactions own any app-specific cache invalidation.
     } else {
-      // @ts-expect-error actionType = "never" at this point
       cofheLogger.warn('No invalidation logic for transaction action type:', tx.actionType);
     }
   };

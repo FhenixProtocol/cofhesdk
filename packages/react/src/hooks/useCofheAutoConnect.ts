@@ -1,3 +1,4 @@
+import type { PublicClient, WalletClient } from 'viem';
 import { asCofhePublicClient, asCofheWalletClient } from '../utils/viemClientBridge';
 import type { PublicClientLike, WalletClientLike } from '../utils/viemClientBridge';
 import { useCofheClient } from './useCofheClient';

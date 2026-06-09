@@ -29,6 +29,8 @@ export {
   useCofheTokenShield,
   useCofheTokensWithExistingEncryptedBalances,
   useCofheTokenTransfer,
+  useCofheTransactions,
+  addCofheTransaction,
   useCofheTokenUnshield,
   useCofheWalletClient,
   useCofheWriteContract,
@@ -48,6 +50,7 @@ export {
   type UseCoingeckoUsdPriceInput,
   type UseCoingeckoUsdPriceOptions,
   type UseTransactionReceiptsByHashInput,
+  type AddCofheTransactionInput,
 } from '@/hooks/index';
 
 export { useCofheEncryptAndWriteContract } from '@/hooks/useCofheEncryptAndWriteContract';
@@ -69,11 +72,16 @@ export {
 // Stores
 export {
   actionToString,
+  isCustomTransactionActionType,
   statusToString,
   TransactionActionType,
   TransactionStatus,
   useTransactionStore,
   type Transaction,
+  type BuiltInTransactionActionType,
+  type CustomTransactionActionType,
+  type JsonValue,
+  type NewTransaction,
   type TransactionActionString,
   type TransactionStatusString,
   type TransactionStore,
@@ -83,7 +91,14 @@ export { createCofheConfig } from './config';
 export type { CofheReactLogger, CofheReactLoggerMethod } from './config';
 
 // Types
-export type { CofheClientConfig, CofheContextValue, CofheProviderProps } from './types/index';
+export type {
+  CofheClientConfig,
+  CofheContextValue,
+  CofheProviderProps,
+  TransactionRenderer,
+  TransactionRendererProps,
+  TransactionRenderers,
+} from './types/index';
 
 export { createCofheClient } from '@cofhe/sdk/web';
 

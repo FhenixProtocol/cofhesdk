@@ -9,6 +9,7 @@ export function useIsUnshieldingMining(token: Token) {
   const filter = useCallback(
     (tx: Transaction) => {
       return (
+        'token' in tx &&
         tx.token.address === token.address &&
         tx.actionType === TransactionActionType.Unshield &&
         tx.status === TransactionStatus.Pending
