@@ -1,5 +1,5 @@
 ---
-"@cofhe/sdk": patch
+'@cofhe/sdk': patch
 ---
 
 Prepare an alpha snapshot release.
