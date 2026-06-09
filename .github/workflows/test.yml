@@ -76,7 +76,7 @@ jobs:
     concurrency:
       group: testnet-integration-${{ matrix.network.slug }}
       cancel-in-progress: false
-    name: Test (${{ matrix.network.name }})
+    name: Matrix (${{ matrix.network.name }})
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
@@ -119,7 +119,7 @@ jobs:
       - name: Setup test fixtures
         if: matrix.network.setupChainId
         env:
-          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}          
+          TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
         run: pnpm --filter @cofhe/test-setup run setup -- --chains ${{ matrix.network.setupChainId }}
 
       - name: Run Integration Matrix Tests

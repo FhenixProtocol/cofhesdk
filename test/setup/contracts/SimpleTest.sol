@@ -38,6 +38,10 @@ contract SimpleTest {
     _setStoredValue(FHE.asEuint32(inValue));
   }
 
+  function setValueHashPlusProof(externalEuint32 inValue, bytes memory proof) public {
+    _setStoredValue(FHE.asEuint32(inValue, proof));
+  }
+
   function addValue(InEuint32 memory inValue) public {
     euint32 valueToAdd = FHE.asEuint32(inValue);
     _setStoredValue(FHE.add(storedValue, valueToAdd));

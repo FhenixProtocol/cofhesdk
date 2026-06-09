@@ -19,20 +19,14 @@ contract EncryptedValueStore {
   euint128 public storedEuint128;
   eaddress public storedEaddress;
 
-  function storeEuint32(InEuint32 memory input) public {
-    storedEuint32 = FHE.asEuint32(input);
-    FHE.allowThis(storedEuint32);
-    FHE.allowSender(storedEuint32);
-  }
-
-  function storeEuint32Trivial(uint32 value) public {
-    storedEuint32 = FHE.asEuint32(value);
-    FHE.allowThis(storedEuint32);
-    FHE.allowSender(storedEuint32);
-  }
-
   function storeEbool(InEbool memory input) public {
     storedEbool = FHE.asEbool(input);
+    FHE.allowThis(storedEbool);
+    FHE.allowSender(storedEbool);
+  }
+
+  function storeEboolHashPlusProof(externalEbool hash, bytes memory proof) public {
+    storedEbool = FHE.asEbool(hash, proof);
     FHE.allowThis(storedEbool);
     FHE.allowSender(storedEbool);
   }
@@ -43,14 +37,50 @@ contract EncryptedValueStore {
     FHE.allowSender(storedEuint8);
   }
 
+  function storeEuint8HashPlusProof(externalEuint8 hash, bytes memory proof) public {
+    storedEuint8 = FHE.asEuint8(hash, proof);
+    FHE.allowThis(storedEuint8);
+    FHE.allowSender(storedEuint8);
+  }
+
   function storeEuint16(InEuint16 memory input) public {
     storedEuint16 = FHE.asEuint16(input);
     FHE.allowThis(storedEuint16);
     FHE.allowSender(storedEuint16);
   }
 
+  function storeEuint16HashPlusProof(externalEuint16 hash, bytes memory proof) public {
+    storedEuint16 = FHE.asEuint16(hash, proof);
+    FHE.allowThis(storedEuint16);
+    FHE.allowSender(storedEuint16);
+  }
+
+  function storeEuint32(InEuint32 memory input) public {
+    storedEuint32 = FHE.asEuint32(input);
+    FHE.allowThis(storedEuint32);
+    FHE.allowSender(storedEuint32);
+  }
+
+  function storeEuint32HashPlusProof(externalEuint32 hash, bytes memory proof) public {
+    storedEuint32 = FHE.asEuint32(hash, proof);
+    FHE.allowThis(storedEuint32);
+    FHE.allowSender(storedEuint32);
+  }
+
+  function storeEuint32Trivial(uint32 value) public {
+    storedEuint32 = FHE.asEuint32(value);
+    FHE.allowThis(storedEuint32);
+    FHE.allowSender(storedEuint32);
+  }
+
   function storeEuint64(InEuint64 memory input) public {
     storedEuint64 = FHE.asEuint64(input);
+    FHE.allowThis(storedEuint64);
+    FHE.allowSender(storedEuint64);
+  }
+
+  function storeEuint64HashPlusProof(externalEuint64 hash, bytes memory proof) public {
+    storedEuint64 = FHE.asEuint64(hash, proof);
     FHE.allowThis(storedEuint64);
     FHE.allowSender(storedEuint64);
   }
@@ -61,8 +91,20 @@ contract EncryptedValueStore {
     FHE.allowSender(storedEuint128);
   }
 
+  function storeEuint128HashPlusProof(externalEuint128 hash, bytes memory proof) public {
+    storedEuint128 = FHE.asEuint128(hash, proof);
+    FHE.allowThis(storedEuint128);
+    FHE.allowSender(storedEuint128);
+  }
+
   function storeEaddress(InEaddress memory input) public {
     storedEaddress = FHE.asEaddress(input);
+    FHE.allowThis(storedEaddress);
+    FHE.allowSender(storedEaddress);
+  }
+
+  function storeEaddressHashPlusProof(externalEaddress hash, bytes memory proof) public {
+    storedEaddress = FHE.asEaddress(hash, proof);
     FHE.allowThis(storedEaddress);
     FHE.allowSender(storedEaddress);
   }
@@ -332,6 +374,68 @@ contract CofheClientTest is CofheTest {
     InEaddress memory input = cofheClient.createInEaddress(target);
     vm.prank(cofheClient.account());
     store.storeEaddress(input);
+    assertEq(getPlaintext(store.storedEaddress()), target);
+  }
+
+  // --------------- createIn*HashPlusProof ---------------
+
+  function testCreateInEbool_asHashPlusProof_true() public {
+    (externalEbool hash, bytes memory proof) = cofheClient.createInEbool_asHashPlusProof(true);
+    vm.prank(cofheClient.account());
+    store.storeEboolHashPlusProof(hash, proof);
+    assertTrue(getPlaintext(store.storedEbool()));
+  }
+
+  function testCreateInEbool_asHashPlusProof_false() public {
+    (externalEbool hash, bytes memory proof) = cofheClient.createInEbool_asHashPlusProof(false);
+    vm.prank(cofheClient.account());
+    store.storeEboolHashPlusProof(hash, proof);
+    assertFalse(getPlaintext(store.storedEbool()));
+  }
+
+  function testCreateInEuint8_asHashPlusProof() public {
+    (externalEuint8 hash, bytes memory proof) = cofheClient.createInEuint8_asHashPlusProof(42);
+    vm.prank(cofheClient.account());
+    store.storeEuint8HashPlusProof(hash, proof);
+    assertEq(getPlaintext(store.storedEuint8()), 42);
+  }
+
+  function testCreateInEuint16_asHashPlusProof() public {
+    (externalEuint16 hash, bytes memory proof) = cofheClient.createInEuint16_asHashPlusProof(1234);
+    vm.prank(cofheClient.account());
+    store.storeEuint16HashPlusProof(hash, proof);
+    assertEq(getPlaintext(store.storedEuint16()), 1234);
+  }
+
+  function testCreateInEuint32_asHashPlusProof() public {
+    uint32 n = 42;
+    (externalEuint32 hash, bytes memory proof) = cofheClient.createInEuint32_asHashPlusProof(n);
+    vm.prank(cofheClient.account());
+    store.storeEuint32HashPlusProof(hash, proof);
+    assertEq(getPlaintext(store.storedEuint32()), n);
+  }
+
+  function testCreateInEuint64_asHashPlusProof() public {
+    uint64 val = 1e18;
+    (externalEuint64 hash, bytes memory proof) = cofheClient.createInEuint64_asHashPlusProof(val);
+    vm.prank(cofheClient.account());
+    store.storeEuint64HashPlusProof(hash, proof);
+    assertEq(getPlaintext(store.storedEuint64()), val);
+  }
+
+  function testCreateInEuint128_asHashPlusProof() public {
+    uint128 val = type(uint128).max;
+    (externalEuint128 hash, bytes memory proof) = cofheClient.createInEuint128_asHashPlusProof(val);
+    vm.prank(cofheClient.account());
+    store.storeEuint128HashPlusProof(hash, proof);
+    assertEq(getPlaintext(store.storedEuint128()), val);
+  }
+
+  function testCreateInEaddress_asHashPlusProof() public {
+    address target = address(0xBEEFCAFE);
+    (externalEaddress hash, bytes memory proof) = cofheClient.createInEaddress_asHashPlusProof(target);
+    vm.prank(cofheClient.account());
+    store.storeEaddressHashPlusProof(hash, proof);
     assertEq(getPlaintext(store.storedEaddress()), target);
   }
 
