@@ -132,15 +132,15 @@ All `createInE*` functions operate under security zone 0. Use the returned struc
 
 `CofheClient` also provides `_asHashPlusProof` equivalents for each type. These return a split `(hash, proof)` pair that matches Solidity functions accepting `externalEuint*` + `bytes proof` instead of an `InE*` struct.
 
-| Function                                    | Returns                              |
-| ------------------------------------------- | ------------------------------------ |
-| `createInEbool_asHashPlusProof(bool)`       | `(externalEbool, bytes memory)`      |
-| `createInEuint8_asHashPlusProof(uint8)`     | `(externalEuint8, bytes memory)`     |
-| `createInEuint16_asHashPlusProof(uint16)`   | `(externalEuint16, bytes memory)`    |
-| `createInEuint32_asHashPlusProof(uint32)`   | `(externalEuint32, bytes memory)`    |
-| `createInEuint64_asHashPlusProof(uint64)`   | `(externalEuint64, bytes memory)`    |
-| `createInEuint128_asHashPlusProof(uint128)` | `(externalEuint128, bytes memory)`   |
-| `createInEaddress_asHashPlusProof(address)` | `(externalEaddress, bytes memory)`   |
+| Function                                    | Returns                            |
+| ------------------------------------------- | ---------------------------------- |
+| `createInEbool_asHashPlusProof(bool)`       | `(externalEbool, bytes memory)`    |
+| `createInEuint8_asHashPlusProof(uint8)`     | `(externalEuint8, bytes memory)`   |
+| `createInEuint16_asHashPlusProof(uint16)`   | `(externalEuint16, bytes memory)`  |
+| `createInEuint32_asHashPlusProof(uint32)`   | `(externalEuint32, bytes memory)`  |
+| `createInEuint64_asHashPlusProof(uint64)`   | `(externalEuint64, bytes memory)`  |
+| `createInEuint128_asHashPlusProof(uint128)` | `(externalEuint128, bytes memory)` |
+| `createInEaddress_asHashPlusProof(address)` | `(externalEaddress, bytes memory)` |
 
 Example:
 

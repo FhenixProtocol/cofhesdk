@@ -120,11 +120,7 @@ The SDK normalizes `tokenTags` for matching. Token-specific views include transa
 If you want a custom Activity row, register a renderer on `CofheProvider`. The renderer key is the transaction `actionType`.
 
 ```tsx
-import {
-  CofheProvider,
-  type TransactionRendererProps,
-  type Transaction,
-} from '@cofhe/react';
+import { CofheProvider, type TransactionRendererProps, type Transaction } from '@cofhe/react';
 
 type KycTransaction = Transaction & {
   actionType: 'custom-kyc-verification';
@@ -163,13 +159,8 @@ If no renderer is registered for a custom action type, the SDK still renders the
 `useCofheTransactions()` returns the current transaction map plus helper methods:
 
 ```ts
-const {
-  transactions,
-  getTransaction,
-  getAllTransactions,
-  getAllTransactionsByToken,
-  clearTransactions,
-} = useCofheTransactions();
+const { transactions, getTransaction, getAllTransactions, getAllTransactionsByToken, clearTransactions } =
+  useCofheTransactions();
 ```
 
 Prefer these helpers for app code. `useTransactionStore` is exported for low-level integrations and SDK internals, but most consumers should not need it.
