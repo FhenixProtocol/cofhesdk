@@ -160,9 +160,7 @@ export function useCofheTokensClaimable(
       };
     }),
     combine: (results) => {
-      return results.reduce<
-        Omit<CombinedResult, 'isUnshieldingInProgressByTokenAddress' | 'isClaimingByTokenAddress'>
-      >(
+      return results.reduce<Omit<CombinedResult, 'isUnshieldingInProgressByTokenAddress' | 'isClaimingByTokenAddress'>>(
         (acc, result, index) => {
           const token = normalizedTokens[index];
           if (!token) return acc;
