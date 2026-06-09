@@ -45,11 +45,23 @@ export interface WalletClientLike {
  * compatible with a viem PublicClient from any viem instance.
  */
 export function asCofhePublicClient(client: PublicClientLike | undefined): PublicClient | undefined {
-  if (client === undefined) return undefined;
+  if (!client) return undefined;
   if (typeof client.request !== 'function' || typeof client.readContract !== 'function') {
     throw new Error('asCofhePublicClient: value is missing expected methods --- expected a viem PublicClient');
   }
   return client as unknown as PublicClient;
+}
+
+/**
+ * Best-effort variant for render paths that should treat invalid clients as
+ * disconnected instead of throwing before cleanup effects can run.
+ */
+export function tryAsCofhePublicClient(client: PublicClientLike | null | undefined): PublicClient | undefined {
+  try {
+    return asCofhePublicClient(client ?? undefined);
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -60,9 +72,21 @@ export function asCofhePublicClient(client: PublicClientLike | undefined): Publi
  * from any viem instance.
  */
 export function asCofheWalletClient(client: WalletClientLike | undefined): WalletClient | undefined {
-  if (client === undefined) return undefined;
+  if (!client) return undefined;
   if (typeof client.request !== 'function' || typeof client.sendTransaction !== 'function') {
     throw new Error('asCofheWalletClient: value is missing expected methods --- expected a viem WalletClient');
   }
   return client as unknown as WalletClient;
+}
+
+/**
+ * Best-effort variant for render paths that should treat invalid clients as
+ * disconnected instead of throwing before cleanup effects can run.
+ */
+export function tryAsCofheWalletClient(client: WalletClientLike | null | undefined): WalletClient | undefined {
+  try {
+    return asCofheWalletClient(client ?? undefined);
+  } catch {
+    return undefined;
+  }
 }

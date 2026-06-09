@@ -133,6 +133,37 @@ const encrypted = await cofheClient
   .execute();
 ```
 
+### `.asHashPlusProof()` — optional
+
+Switches the result format to **hash plus proof**. Instead of returning an array of `EncryptedItemInput` structs (one per encrypted value), `.execute()` returns an array of per-item `bytes32` hashes followed by a single combined `bytes` proof string.
+
+Use this when your contract uses the `externalEuint*` + `bytes proof` calling convention rather than the legacy `InE*` struct pattern.
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { Encryptable } from '@cofhe/sdk';
+import { chains } from '@cofhe/sdk/chains';
+import type { PublicClient, WalletClient } from 'viem';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const cofheClient = createCofheClient(config);
+declare const publicClient: PublicClient;
+declare const walletClient: WalletClient;
+// ---cut---
+await cofheClient.connect(publicClient, walletClient);
+
+// Returns [hash, proof] for a single input
+const [encHash, encProof] = await cofheClient
+  .encryptInputs([Encryptable.uint32(42n)])
+  .asHashPlusProof() // [!code focus]
+  .execute();
+
+// encHash  → `0x${string}` (32-byte hex, e.g. externalEuint32)
+// encProof → `0x${string}` (combined proof bytes for all inputs)
+```
+
+See [Writing Encrypted Data — Hash plus proof](./writing-encrypted-data-to-contract.mdx#hash-plus-proof) for a full contract call example.
+
 ### `.setUseWorker(boolean)` — optional
 
 Overrides the `useWorkers` flag from `CofheConfig` for this specific call. When `true` (the default), ZK proof generation runs in a Web Worker to avoid blocking the main thread.
@@ -236,7 +267,9 @@ Encryptable.create('address', '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045');
 
 **Bit limit:** A single `encryptInputs` call may encrypt at most **2048 bits** of plaintext in total. Exceeding this limit throws a `ZkPackFailed` error.
 
-## `EncryptedItemInput` — the result type
+## Result types
+
+### `EncryptedItemInput` — default format
 
 Each element of the returned array is an `EncryptedItemInput`:
 
@@ -250,6 +283,23 @@ type EncryptedItemInput = {
 ```
 
 Pass these directly into a contract function that accepts `InEuint*` structs. The contract's CoFHE library validates the signature on-chain before operating on the ciphertext.
+
+### `HashPlusProofResult` — hash plus proof format
+
+When `.asHashPlusProof()` is used, `.execute()` returns a typed tuple of the form `[...hashes, proof]`:
+
+- One `0x`-prefixed 32-byte hash string per input (typed as `externalEuint*` / `externalEbool` / `externalEaddress` on the Solidity side).
+- One combined `bytes` proof string at the end (concatenation of all per-item signatures).
+
+```ts
+// For one input:
+// [externalHash, combinedProof]
+
+// For two inputs:
+// [externalHash1, externalHash2, combinedProof]
+```
+
+Use this format with Solidity functions that accept `externalEuint*` + `bytes proof` instead of the `InE*` struct.
 
 ## Common pitfalls
 
