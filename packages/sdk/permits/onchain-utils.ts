@@ -41,6 +41,10 @@ export const getAclEIP712Domain = async (publicClient: PublicClient): Promise<EI
   // eslint-disable-next-line no-unused-vars
   const [_fields, name, version, chainId, verifyingContract, _salt, _extensions] = domain;
 
+  if (chainId > BigInt(Number.MAX_SAFE_INTEGER)) {
+    throw new Error(`EIP712 domain chainId exceeds the maximum safe integer: ${chainId}`);
+  }
+
   return {
     name,
     version,
