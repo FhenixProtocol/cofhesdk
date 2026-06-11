@@ -187,7 +187,7 @@ export function getTokenTypeContracts(confidentialityType: TokenConfidentialityT
   return contracts;
 }
 
-type TokenLike = {
+type ConfidentialTokenLike = {
   address: Address;
   extensions: {
     fhenix: {
@@ -210,7 +210,7 @@ type ContractCallArgs = {
   chain: undefined;
 };
 
-export function getTokenWrapperKindFromConfig(token: TokenLike): 'erc20' | 'native' | undefined {
+export function getTokenWrapperKindFromConfig(token: ConfidentialTokenLike): 'erc20' | 'native' | undefined {
   if (token.extensions.fhenix.confidentialityType !== 'wrapped') {
     return undefined;
   }
@@ -221,7 +221,7 @@ export function getTokenWrapperKindFromConfig(token: TokenLike): 'erc20' | 'nati
   );
 }
 
-export function getShieldContractsForToken(token: TokenLike): TokenShieldContracts | undefined {
+export function getShieldContractsForToken(token: ConfidentialTokenLike): TokenShieldContracts | undefined {
   const config = getTokenTypeConfig(token.extensions.fhenix.confidentialityType);
 
   if (token.extensions.fhenix.confidentialityType === 'wrapped' && getTokenWrapperKindFromConfig(token) === 'native') {
@@ -231,7 +231,7 @@ export function getShieldContractsForToken(token: TokenLike): TokenShieldContrac
   return config.contracts?.shield;
 }
 
-export function buildTokenShieldCallArgs(params: { token: TokenLike; amount: bigint; account: Address }): {
+export function buildTokenShieldCallArgs(params: { token: ConfidentialTokenLike; amount: bigint; account: Address }): {
   main: ContractCallArgs;
   approval?: ContractCallArgs;
 } {
@@ -315,7 +315,7 @@ export function buildTokenShieldCallArgs(params: { token: TokenLike; amount: big
 }
 
 export function buildTokenUnshieldCallArgs(params: {
-  token: TokenLike;
+  token: ConfidentialTokenLike;
   amount: bigint;
   account: Address;
 }): ContractCallArgs {
@@ -338,7 +338,7 @@ export function buildTokenUnshieldCallArgs(params: {
 }
 
 export function buildTokenClaimCallArgs(params: {
-  token: TokenLike;
+  token: ConfidentialTokenLike;
   account: Address;
   claim?: {
     ctHash: Hex | bigint;
