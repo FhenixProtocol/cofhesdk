@@ -60,7 +60,7 @@
       "decimals": 6,
       "extensions": {
         "fhenix": {
-          "confidentialityType": "wrapped",
+          "confidentialityType": "wrappedNative",
           "confidentialValueType": "uint64",
           "erc20Pair": {
             "address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
@@ -80,7 +80,7 @@
       "decimals": 6,
       "extensions": {
         "fhenix": {
-          "confidentialityType": "wrapped",
+          "confidentialityType": "wrappedErc20",
           "confidentialValueType": "uint64",
           "erc20Pair": {
             "address": "0xbD0d8133Dfd8112076aF19c524E1326078cDFf66",

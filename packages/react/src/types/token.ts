@@ -211,5 +211,5 @@ const WETH_BASE_SEPOLIA_TOKEN: ConfidentialToken = normalizeToken({
 })!;
 export const DEFAULT_TOKEN_BY_CHAIN_ID: Record<number, ConfidentialToken> = {
   // [sepolia.id]: WETH_SEPOLIA_TOKEN,
-  // [baseSepolia.id]: WETH_BASE_SEPOLIA_TOKEN,
+  [baseSepolia.id]: WETH_BASE_SEPOLIA_TOKEN,
 };
