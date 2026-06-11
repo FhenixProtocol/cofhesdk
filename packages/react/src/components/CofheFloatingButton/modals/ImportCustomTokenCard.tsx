@@ -4,15 +4,15 @@ import { isAddress, type Address } from 'viem';
 import { useCofheChainId } from '@/hooks/useCofheConnection';
 import { useResolvedCofheToken } from '@/hooks/useResolvedCofheToken';
 import { useCustomTokensStore } from '@/stores/customTokensStore';
-import { getTokenConfidentialityLabel, type Token } from '@/types/token';
+import { getTokenConfidentialityLabel, isWrappedTokenConfidentialityType, type ConfidentialToken } from '@/types/token';
 
 import type { BalanceType } from '../components/CofheTokenConfidentialBalance';
 import { Button } from '../components';
 
 export const ImportCustomTokenCard: React.FC<{
   balanceType: BalanceType;
-  tokens: Token[];
-  onSelectToken: (token: Token) => void;
+  tokens: ConfidentialToken[];
+  onSelectToken: (token: ConfidentialToken) => void;
 }> = ({ tokens, onSelectToken, balanceType }) => {
   const [addressInput, setAddressInput] = useState('');
   const chainId = useCofheChainId();
@@ -47,7 +47,7 @@ export const ImportCustomTokenCard: React.FC<{
   return (
     <div className="fnx-card-bg border fnx-card-border rounded-lg p-3 flex flex-col gap-3">
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium opacity-70">Token contract address</label>
+        <label className="text-xs font-medium opacity-70">ConfidentialToken contract address</label>
         <input
           type="text"
           value={addressInput}
@@ -78,7 +78,7 @@ export const ImportCustomTokenCard: React.FC<{
             {getTokenConfidentialityLabel(previewToken.extensions.fhenix.confidentialityType) ?? 'Confidential token'}
           </p>
           {balanceType === 'public' &&
-            previewToken.extensions.fhenix.confidentialityType === 'wrapped' &&
+            isWrappedTokenConfidentialityType(previewToken.extensions.fhenix.confidentialityType) &&
             !previewToken.extensions.fhenix.erc20Pair && (
               <p className="text-xxxs opacity-70">
                 Public-balance actions may stay unavailable until the token&apos;s paired asset can be discovered.

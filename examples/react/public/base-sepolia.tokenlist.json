@@ -60,14 +60,14 @@
       "decimals": 6,
       "extensions": {
         "fhenix": {
-          "confidentialityType": "wrapped",
-          "confidentialValueType": "uint64"
-        },
-        "erc20Pair": {
-          "address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-          "symbol": "ETH",
-          "decimals": 18,
-          "logoURI": "https://storage.googleapis.com/cofhesdk/token-icons/eth.webp"
+          "confidentialityType": "wrappedNative",
+          "confidentialValueType": "uint64",
+          "erc20Pair": {
+            "address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "symbol": "ETH",
+            "decimals": 18,
+            "logoURI": "https://storage.googleapis.com/cofhesdk/token-icons/eth.webp"
+          }
         }
       }
     },
@@ -80,14 +80,14 @@
       "decimals": 6,
       "extensions": {
         "fhenix": {
-          "confidentialityType": "wrapped",
-          "confidentialValueType": "uint64"
-        },
-        "erc20Pair": {
-          "address": "0xbD0d8133Dfd8112076aF19c524E1326078cDFf66",
-          "symbol": "Sample Test cUSD",
-          "decimals": 6,
-          "logoURI": "https://storage.googleapis.com/cofhesdk/token-icons/usdc.webp"
+          "confidentialityType": "wrappedErc20",
+          "confidentialValueType": "uint64",
+          "erc20Pair": {
+            "address": "0xbD0d8133Dfd8112076aF19c524E1326078cDFf66",
+            "symbol": "Sample Test cUSD",
+            "decimals": 6,
+            "logoURI": "https://storage.googleapis.com/cofhesdk/token-icons/usdc.webp"
+          }
         }
       }
     }

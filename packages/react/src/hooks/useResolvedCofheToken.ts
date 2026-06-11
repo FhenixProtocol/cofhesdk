@@ -1,34 +1,42 @@
 import type { UseQueryOptions } from '@tanstack/react-query';
-import { type Address, isAddress, parseAbi, zeroAddress } from 'viem';
+import { type Abi, type Address, type Hex, isAddress, zeroAddress } from 'viem';
 
+import { ERC165_SUPPORTS_INTERFACE_ABI } from '@/constants/erc165ABIs';
 import { ERC20_DECIMALS_ABI, ERC20_NAME_ABI, ERC20_SYMBOL_ABI } from '@/constants/erc20ABIs';
-import { getSupportedTokenDetectionConfigs } from '@/constants/confidentialTokenABIs';
+import {
+  TOKEN_CONFIDENTIALITY_TYPE_INTERFACE_IDS,
+  detectSupportedTokenTypeFromInterfaces,
+  getTokenTypeConfig,
+} from '@/constants/tokenTypeConfig';
 import { useInternalQuery } from '@/providers';
-import { ETH_ADDRESS_LOWERCASE, buildToken, type SupportedTokenConfidentialityType, type Token } from '@/types/token';
+import {
+  ETH_ADDRESS_LOWERCASE,
+  buildToken,
+  getTokenConfidentialValueType,
+  type SupportedTokenConfidentialityType,
+  type ConfidentialToken,
+} from '@/types/token';
 
 import { useCofheChainId, useCofhePublicClient } from './useCofheConnection';
 
-const SUPPORTED_TOKEN_DETECTION_CONFIGS = getSupportedTokenDetectionConfigs();
+type TokenInterfaceDetectionEntry = readonly [SupportedTokenConfidentialityType, Hex];
 
-const TOKEN_PAIR_GETTER_ABIS = {
-  token: parseAbi(['function token() view returns (address)']),
-  underlying: parseAbi(['function underlying() view returns (address)']),
-  underlyingToken: parseAbi(['function underlyingToken() view returns (address)']),
-  asset: parseAbi(['function asset() view returns (address)']),
-  erc20: parseAbi(['function erc20() view returns (address)']),
-  erc20Token: parseAbi(['function erc20Token() view returns (address)']),
-  weth: parseAbi(['function weth() view returns (address)']),
-} as const;
+const TOKEN_INTERFACE_DETECTION_ENTRIES = Object.entries(TOKEN_CONFIDENTIALITY_TYPE_INTERFACE_IDS).flatMap(
+  ([confidentialityType, interfaceIds]) =>
+    interfaceIds.map((interfaceId) => [confidentialityType as SupportedTokenConfidentialityType, interfaceId] as const)
+) satisfies TokenInterfaceDetectionEntry[];
 
-const PAIR_GETTER_ENTRIES = [
-  ['token', TOKEN_PAIR_GETTER_ABIS.token],
-  ['underlying', TOKEN_PAIR_GETTER_ABIS.underlying],
-  ['underlyingToken', TOKEN_PAIR_GETTER_ABIS.underlyingToken],
-  ['asset', TOKEN_PAIR_GETTER_ABIS.asset],
-  ['erc20', TOKEN_PAIR_GETTER_ABIS.erc20],
-  ['erc20Token', TOKEN_PAIR_GETTER_ABIS.erc20Token],
-  ['weth', TOKEN_PAIR_GETTER_ABIS.weth],
-] as const;
+function getAddressGetterAbi(functionName: string): Abi {
+  return [
+    {
+      inputs: [],
+      name: functionName,
+      outputs: [{ name: '', type: 'address' }],
+      stateMutability: 'view',
+      type: 'function',
+    },
+  ];
+}
 
 function pickUnderlyingPairAddress(results: readonly unknown[], tokenAddress: Address): Address | undefined {
   for (const result of results) {
@@ -52,7 +60,7 @@ type UseResolvedCofheTokenInput = {
   address?: Address;
 };
 
-type UseResolvedCofheTokenOptions = Omit<UseQueryOptions<Token | undefined, Error>, 'queryKey' | 'queryFn'>;
+type UseResolvedCofheTokenOptions = Omit<UseQueryOptions<ConfidentialToken | undefined, Error>, 'queryKey' | 'queryFn'>;
 
 export function useResolvedCofheToken(
   { chainId: _chainId, address }: UseResolvedCofheTokenInput,
@@ -64,7 +72,7 @@ export function useResolvedCofheToken(
 
   return useInternalQuery({
     queryKey: ['resolvedCofheToken', chainId, address?.toLowerCase()],
-    queryFn: async (): Promise<Token | undefined> => {
+    queryFn: async (): Promise<ConfidentialToken | undefined> => {
       if (!publicClient) {
         throw new Error('PublicClient is required to resolve a token');
       }
@@ -100,52 +108,62 @@ export function useResolvedCofheToken(
         throw new Error('Failed to fetch token metadata');
       }
 
-      const [supportedType, pairGetterResults] = await Promise.all([
-        Promise.all(
-          SUPPORTED_TOKEN_DETECTION_CONFIGS.map(async (entry) => {
-            const detected = await publicClient
-              .readContract({
-                address,
-                abi: entry.probe.abi,
-                functionName: entry.probe.functionName,
-                args: entry.probe.args,
-              })
-              .then(() => true)
-              .catch(() => false);
+      const interfaceResults = await publicClient.multicall({
+        contracts: TOKEN_INTERFACE_DETECTION_ENTRIES.map(([, interfaceId]) => ({
+          address,
+          abi: ERC165_SUPPORTS_INTERFACE_ABI,
+          functionName: 'supportsInterface',
+          args: [interfaceId],
+        })),
+        allowFailure: true,
+      });
 
-            return detected ? entry : null;
-          })
-        ).then((entries) => entries.find((entry) => entry != null) ?? null),
-        publicClient.multicall({
-          contracts: PAIR_GETTER_ENTRIES.map(([, abi]) => ({
-            address,
-            abi,
-            functionName: abi[0].name,
-          })),
-          allowFailure: true,
-        }),
-      ]);
+      const interfaceSupport: Partial<Record<SupportedTokenConfidentialityType, boolean>> = {};
 
-      if (!supportedType) {
+      TOKEN_INTERFACE_DETECTION_ENTRIES.forEach(([confidentialityType], index) => {
+        const isSupported = interfaceResults[index]?.status === 'success' && interfaceResults[index].result === true;
+        interfaceSupport[confidentialityType] = interfaceSupport[confidentialityType] === true || isSupported;
+      });
+
+      const confidentialityType = detectSupportedTokenTypeFromInterfaces(interfaceSupport);
+
+      if (!confidentialityType) {
         throw new Error('Address is not a supported CoFHE token');
       }
 
-      const confidentialityType: SupportedTokenConfidentialityType = supportedType.confidentialityType;
-      let wrapperKind: Token['extensions']['fhenix']['wrapperKind'];
-      let erc20Pair: Token['extensions']['fhenix']['erc20Pair'];
+      let erc20Pair: ConfidentialToken['extensions']['fhenix']['erc20Pair'];
 
-      if (confidentialityType === 'wrapped') {
+      const tokenTypeConfig = getTokenTypeConfig(confidentialityType);
+
+      if (tokenTypeConfig.pairResolution === 'native') {
+        erc20Pair = {
+          address: ETH_ADDRESS_LOWERCASE,
+          symbol: 'ETH',
+          decimals: 18,
+        };
+      }
+
+      const pairGetterFunctionNames = tokenTypeConfig.pairGetterFunctionNames ?? [];
+
+      if (!erc20Pair && pairGetterFunctionNames.length > 0) {
+        const pairGetterResults = await publicClient.multicall({
+          contracts: pairGetterFunctionNames.map((functionName) => ({
+            address,
+            abi: getAddressGetterAbi(functionName),
+            functionName,
+          })),
+          allowFailure: true,
+        });
         const pairAddress = pickUnderlyingPairAddress(pairGetterResults, address);
+
         if (pairAddress) {
           if (pairAddress.toLowerCase() === ETH_ADDRESS_LOWERCASE) {
-            wrapperKind = 'native';
             erc20Pair = {
               address: ETH_ADDRESS_LOWERCASE,
               symbol: 'ETH',
               decimals: 18,
             };
           } else {
-            wrapperKind = 'erc20';
             const pairMetadata = await publicClient.multicall({
               contracts: [
                 {
@@ -186,8 +204,7 @@ export function useResolvedCofheToken(
           logoURI: undefined,
         },
         confidentialityType,
-        confidentialValueType: supportedType.confidentialValueType,
-        wrapperKind,
+        confidentialValueType: getTokenConfidentialValueType(confidentialityType),
         erc20Pair,
       });
     },

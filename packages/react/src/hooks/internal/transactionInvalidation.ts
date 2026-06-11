@@ -1,4 +1,4 @@
-import { getTokenContractConfig } from '@/constants/confidentialTokenABIs';
+import { getTokenTypeContracts } from '@/constants/tokenTypeConfig';
 import { cofheLogger } from '@/utils/debug';
 import { invalidateQueriesWithContext } from '@/utils/invalidationContext';
 import { QueryClient } from '@tanstack/react-query';
@@ -6,7 +6,7 @@ import { assert } from 'ts-essentials';
 import type { Address } from 'viem';
 import { constructCofheReadContractQueryForInvalidation } from '../useCofheReadContract';
 import { constructUnshieldClaimsQueryKeyForInvalidation } from '../useCofheTokenClaimable';
-import type { Token } from '../useCofheTokenLists';
+import type { ConfidentialToken } from '../useCofheTokenLists';
 import {
   constructPublicTokenBalanceQueryKeyForInvalidation,
   getPublicTokenBalanceSource,
@@ -14,14 +14,14 @@ import {
 import { constructTokenAllowanceQueryKeyForInvalidation } from '../useTokenAllowance';
 
 export function invalidateConfidentialTokenBalanceQueries(
-  token: Token,
+  token: ConfidentialToken,
   queryClient: QueryClient,
   blockHashToBeAwareOf?: `0x${string}`
 ) {
   const tokenBalanceQueryKey = constructCofheReadContractQueryForInvalidation({
     cofheChainId: token.chainId,
     address: token.address,
-    functionName: getTokenContractConfig(token.extensions.fhenix.confidentialityType).functionName,
+    functionName: getTokenTypeContracts(token.extensions.fhenix.confidentialityType).confidentialBalance.functionName,
   });
 
   cofheLogger.log('Invalidating shield/send read contract queries for token:', { token, tokenBalanceQueryKey });
@@ -74,7 +74,7 @@ export function invalidatePublicTokenBalanceQueries(
 }
 
 export function invalidatePublicAndConfidentialTokenBalanceQueries(
-  token: Token,
+  token: ConfidentialToken,
   accountAddress: Address,
   queryClient: QueryClient,
   blockHashToBeAwareOf?: `0x${string}`
@@ -132,7 +132,7 @@ export function invalidateClaimableQueries({
   queryClient,
   blockHashToBeAwareOf,
 }: {
-  token: Token;
+  token: ConfidentialToken;
   accountAddress: Address;
   queryClient: QueryClient;
   blockHashToBeAwareOf?: `0x${string}`;

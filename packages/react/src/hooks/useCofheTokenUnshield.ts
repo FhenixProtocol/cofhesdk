@@ -1,9 +1,9 @@
 import { type MutationFunctionContext, type UseMutationOptions, type UseMutationResult } from '@tanstack/react-query';
 import { type Address } from 'viem';
 import { useCofheWalletClient, useCofheChainId, useCofheAccount, useCofhePublicClient } from './useCofheConnection.js';
-import { type Token } from './useCofheTokenLists.js';
+import { type ConfidentialToken } from './useCofheTokenLists.js';
+import { buildTokenUnshieldCallArgs } from '../constants/tokenTypeConfig.js';
 import { assertTokenOperationSupported, isTokenOperationSupported } from '@/types/token';
-import { getUnshieldContractConfig } from '../constants/confidentialTokenABIs.js';
 import { TransactionActionType, TransactionStatus, useTransactionStore } from '../stores/transactionStore.js';
 import { useInternalMutation } from '../providers/index.js';
 import { assert } from 'ts-essentials';
@@ -12,12 +12,11 @@ import { useTransactionGlobalLifecycle } from './useTransactionGlobalLifecycle.j
 import type { CofheSimulateWriteContractCallArgs } from './useCofheSimulateWriteContract.js';
 
 export function getCofheTokenUnshieldCallArgs(params: {
-  token: Token;
+  token: ConfidentialToken;
   amount: bigint;
   account: Address;
 }): CofheSimulateWriteContractCallArgs {
   const { token, amount: rawAmount, account } = params;
-  const tokenAddress: Address = token.address;
   const confidentialityType = token.extensions.fhenix.confidentialityType;
 
   if (!confidentialityType) {
@@ -26,17 +25,11 @@ export function getCofheTokenUnshieldCallArgs(params: {
 
   assertTokenOperationSupported(confidentialityType, 'unshield');
 
-  const contractConfig = getUnshieldContractConfig(confidentialityType);
-  const args = confidentialityType === 'wrapped' ? ([account, account, rawAmount] as const) : ([rawAmount] as const);
-
-  return {
-    address: tokenAddress,
-    abi: contractConfig.abi,
-    functionName: contractConfig.functionName,
-    args,
+  return buildTokenUnshieldCallArgs({
+    token,
+    amount: rawAmount,
     account,
-    chain: undefined,
-  };
+  });
 }
 
 // ============================================================================
@@ -44,7 +37,7 @@ export function getCofheTokenUnshieldCallArgs(params: {
 // ============================================================================
 type UseTokenUnshieldMutationInput = {
   /** Token object with confidentialityType */
-  token: Token;
+  token: ConfidentialToken;
   /** Amount to unshield (in token's smallest unit) */
   amount: bigint;
   /** Optional callback for status updates during the operation */
@@ -82,7 +75,6 @@ function useCofheTokenUnshieldMutation(
         throw new Error('PublicClient is required to simulate unshield before writing');
       }
 
-      const tokenAddress: Address = input.token.address;
       const confidentialityType = input.token.extensions.fhenix.confidentialityType;
 
       if (!confidentialityType) {
@@ -94,8 +86,6 @@ function useCofheTokenUnshieldMutation(
       }
 
       assertTokenOperationSupported(confidentialityType, 'unshield');
-
-      const contractConfig = getUnshieldContractConfig(confidentialityType);
 
       let hash: `0x${string}`;
       const unshieldCallArgs = getCofheTokenUnshieldCallArgs({

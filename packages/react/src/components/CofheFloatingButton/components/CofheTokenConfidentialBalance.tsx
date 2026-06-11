@@ -1,7 +1,7 @@
 import type { Address } from 'viem';
 import { useCofheTokenDecryptedBalance } from '@/hooks/useCofheTokenDecryptedBalance';
 import { useCofheAccount } from '@/hooks/useCofheConnection';
-import { type Token } from '@/hooks/useCofheTokenLists';
+import { type ConfidentialToken } from '@/hooks/useCofheTokenLists';
 import { TokenBalanceView } from './TokenBalanceView';
 import { useCofheTokenPublicBalance } from '@/hooks/useCofheTokenPublicBalance';
 
@@ -12,7 +12,7 @@ export enum BalanceType {
 
 interface TokenBalanceProps {
   /** Token object from token list (for non-native tokens) */
-  token?: Token;
+  token?: ConfidentialToken;
   /** Account address to fetch balance for */
   accountAddress?: Address;
 

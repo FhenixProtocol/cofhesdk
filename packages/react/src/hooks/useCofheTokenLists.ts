@@ -5,10 +5,9 @@ import {
   DEFAULT_TOKEN_BY_CHAIN_ID,
   ETH_ADDRESS_LOWERCASE,
   isSupportedTokenConfidentialityType,
-  normalizeSourceToken,
+  normalizeToken,
   type Erc20Pair,
-  type SourceToken,
-  type Token,
+  type ConfidentialToken,
 } from '../types/token.js';
 import { useInternalQueries } from '../providers/index.js';
 import type { Address } from 'viem';
@@ -17,9 +16,9 @@ import { useCustomTokensStore } from '@/stores/customTokensStore';
 import { useResolvedCofheToken } from './useResolvedCofheToken';
 import { cofheLogger } from '@/utils/debug';
 
-export { ETH_ADDRESS_LOWERCASE, type Token, type Erc20Pair };
+export { ETH_ADDRESS_LOWERCASE, type ConfidentialToken, type Erc20Pair };
 
-function isSupportedToken(token: Token): boolean {
+function isSupportedToken(token: ConfidentialToken): boolean {
   const confidentialityType = token.extensions?.fhenix?.confidentialityType;
   return isSupportedTokenConfidentialityType(confidentialityType);
 }
@@ -35,18 +34,14 @@ type TokenListBase = {
 };
 
 type TokenList = TokenListBase & {
-  tokens: Token[];
-};
-
-type RawTokenList = TokenListBase & {
-  tokens: SourceToken[];
+  tokens: ConfidentialToken[];
 };
 
 type UseTokenListsResult = UseQueryResult<TokenList, Error>[];
 type UseTokenListsInput = {
   chainId?: number;
 };
-type UseTokenListsOptions = Omit<UseQueryOptions<RawTokenList, Error, TokenList>, 'queryKey' | 'queryFn' | 'select'>;
+type UseTokenListsOptions = Omit<UseQueryOptions<TokenList, Error, TokenList>, 'queryKey' | 'queryFn' | 'select'>;
 
 class TokenListFetchError extends Error {
   constructor(
@@ -60,7 +55,10 @@ class TokenListFetchError extends Error {
 
 const DEFAULT_RETRY_DELAY_ON_429 = 30_000; // 30 seconds
 
-function getCustomTokensForChain(customTokensByChainId: Record<string, Token[]>, chainId?: number): Token[] {
+function getCustomTokensForChain(
+  customTokensByChainId: Record<string, ConfidentialToken[]>,
+  chainId?: number
+): ConfidentialToken[] {
   if (!chainId) return [];
   return customTokensByChainId[chainId.toString()] ?? [];
 }
@@ -73,7 +71,7 @@ export function useCofheTokenLists(
   const widgetConfig = useCofheContext().client.config.react;
   const tokensListsUrls = chainId ? widgetConfig.tokenLists?.[chainId] : [];
 
-  const queriesOptions: UseQueryOptions<RawTokenList, Error, TokenList>[] =
+  const queriesOptions: UseQueryOptions<TokenList, Error, TokenList>[] =
     tokensListsUrls?.map((url) => ({
       cacheTime: Infinity,
       staleTime: Infinity,
@@ -88,7 +86,7 @@ export function useCofheTokenLists(
 
         return Math.min(1000 * 2 ** failureCount, DEFAULT_RETRY_DELAY_ON_429);
       },
-      queryFn: async ({ signal }): Promise<RawTokenList> => {
+      queryFn: async ({ signal }): Promise<TokenList> => {
         const timestamp = Date.now();
         const urlWithCacheBust = `${url}${url.includes('?') ? '&' : '?'}v=${timestamp}`;
         const res = await fetch(urlWithCacheBust, { signal });
@@ -97,14 +95,14 @@ export function useCofheTokenLists(
         }
         return await res.json();
       },
-      select: (data: RawTokenList): TokenList => {
+      select: (data: TokenList): TokenList => {
         // filter only tokens for the current chain (some lists contain multiple chains)
         return {
           ...data,
           tokens: data.tokens
             .filter((token) => token.chainId === chainId)
-            .map((token) => normalizeSourceToken(token))
-            .filter((token): token is Token => !!token && isSupportedToken(token)),
+            .map((token) => normalizeToken(token))
+            .filter((token): token is ConfidentialToken => !!token && isSupportedToken(token)),
         };
       },
       ...queryOptions,
@@ -117,18 +115,18 @@ export function useCofheTokenLists(
   return result;
 }
 
-export function selectTokensFromTokensList(tokenList: TokenList): Token[] {
+export function selectTokensFromTokensList(tokenList: TokenList): ConfidentialToken[] {
   return tokenList.tokens;
 }
 
-export function useCofheTokens(chainId?: number): Token[] {
+export function useCofheTokens(chainId?: number): ConfidentialToken[] {
   const tokenLists = useCofheTokenLists({ chainId });
   const customTokensByChainId = useCustomTokensStore((state) => state.customTokensByChainId);
   const customTokens = getCustomTokensForChain(customTokensByChainId, chainId);
   const defaultToken = chainId ? DEFAULT_TOKEN_BY_CHAIN_ID[chainId] : undefined;
 
   const tokens = useMemo(() => {
-    const map = new Map<string, Token>();
+    const map = new Map<string, ConfidentialToken>();
 
     tokenLists.forEach((result) => {
       if (!result.data) return;
@@ -161,7 +159,7 @@ export function useCofheTokens(chainId?: number): Token[] {
 export function useCofheToken(
   { chainId: _chainId, address }: { chainId?: number; address?: Address },
   // TODO: after adding this functionality, don't fetch if not enabled
-  metdataQueryOptions?: Omit<UseQueryOptions<Token | undefined, Error>, 'queryKey' | 'queryFn' | 'select'>
+  metdataQueryOptions?: Omit<UseQueryOptions<ConfidentialToken | undefined, Error>, 'queryKey' | 'queryFn' | 'select'>
 ) {
   const cofheChainId = useCofheChainId();
   const chainId = _chainId ?? cofheChainId;

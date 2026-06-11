@@ -1,8 +1,8 @@
 import { QueryClient, type QueryKey, type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
 import { type Address, type Hex } from 'viem';
 import { useCofhePublicClient } from './useCofheConnection.js';
-import { type Token } from './useCofheTokenLists.js';
-import { getClaimableContractConfig } from '../constants/confidentialTokenABIs.js';
+import { type ConfidentialToken } from './useCofheTokenLists.js';
+import { getTokenTypeConfig, getTokenTypeContracts } from '../constants/tokenTypeConfig.js';
 import { isTokenOperationSupported, type SupportedTokenConfidentialityType } from '@/types/token';
 import { useInternalQuery } from '../providers/index.js';
 import { assert } from 'ts-essentials';
@@ -67,7 +67,7 @@ export function isTokenConfidentialityTypeClaimable(
 
 export type FetchUnshieldClaimsSummaryInput = {
   publicClient: NonNullable<ReturnType<typeof useCofhePublicClient>>;
-  token: Token;
+  token: ConfidentialToken;
   accountAddress: Address;
   confidentialityType: SupportedTokenConfidentialityType;
   signal: AbortSignal;
@@ -98,7 +98,8 @@ export async function fetchUnshieldClaims({
   signal,
   blockHashToBeAwareOf,
 }: FetchUnshieldClaimsSummaryInput): Promise<UnshieldClaim[]> {
-  const contractConfig = getClaimableContractConfig(confidentialityType);
+  const contractConfig = getTokenTypeContracts(confidentialityType).claims?.query;
+  assert(contractConfig, `claimable config is not defined for confidentialityType: ${confidentialityType}`);
   const result = await maybeWaitUntilRpcAwareAndReadContract(
     publicClient,
     {
@@ -135,7 +136,7 @@ export async function fetchUnshieldClaimsSummary({
 
   const { claimableAmount, pendingAmount } = claims.reduce(
     (acc, claim) => {
-      if (confidentialityType === 'dual' || confidentialityType === 'wrapped') {
+      if (getTokenTypeConfig(confidentialityType).claimSummaryAmount === 'requested') {
         acc.claimableAmount += claim.requestedAmount;
         return acc;
       }
@@ -180,7 +181,7 @@ export type UnshieldClaimsSummary = {
 
 type UseUnshieldClaimsInput = {
   /** Token object with confidentialityType */
-  token: Token | undefined;
+  token: ConfidentialToken | undefined;
   /** Account address (optional, defaults to connected account) */
   accountAddress: Address | undefined;
 };
@@ -196,9 +197,7 @@ type UseUnshieldClaimsOptions = Omit<UseQueryOptions<UnshieldClaimsSummary, Erro
 export function useCofheTokenClaimable(
   { accountAddress: account, token }: UseUnshieldClaimsInput,
   queryOptions?: UseUnshieldClaimsOptions
-): UseQueryResult<UnshieldClaimsSummary, Error> & {
-  isWaitingForDecryption: boolean;
-} {
+): UseQueryResult<UnshieldClaimsSummary, Error> {
   const publicClient = useCofhePublicClient();
 
   const confidentialityType = token?.extensions.fhenix.confidentialityType;
@@ -241,8 +240,5 @@ export function useCofheTokenClaimable(
     ...queryOptions,
   });
 
-  return {
-    ...result,
-    isWaitingForDecryption: false,
-  };
+  return result;
 }

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import type { Address } from 'viem';
 
-import type { Token } from '@/types/token';
+import type { ConfidentialToken } from '@/types/token';
 import { useInternalQueries } from '../providers';
 import { useCofheAccount, useCofheChainId, useCofhePublicClient } from './useCofheConnection';
 import { useCofheTokens } from './useCofheTokenLists';
@@ -20,8 +20,8 @@ export type UseTokensWithPublicBalancesInput = {
 };
 
 export type UseTokensWithPublicBalancesResult = {
-  tokens: Token[];
-  tokensWithPublicBalances: Token[];
+  tokens: ConfidentialToken[];
+  tokensWithPublicBalances: ConfidentialToken[];
   publicBalanceByTokenAddress: Record<string, TokenFormatOutput>;
 
   isLoading: boolean;
@@ -52,11 +52,11 @@ export function useTokensWithPublicBalances(
 
   const tokens = useCofheTokens(chainIdForTokens);
 
-  const sources = useMemo((): Array<{ source: PublicTokenBalanceSource; tokens: Token[] }> => {
+  const sources = useMemo((): Array<{ source: PublicTokenBalanceSource; tokens: ConfidentialToken[] }> => {
     // Multiple CoFHE tokens can share the same public-balance source (e.g. multiple wrapped tokens
     // pointing at the same underlying ERC20). rq warns if we pass duplicate queryKeys
     // within a single `useQueries` call, so we group by source address and fan out results.
-    const bySourceAddress = new Map<string, { source: PublicTokenBalanceSource; tokens: Token[] }>();
+    const bySourceAddress = new Map<string, { source: PublicTokenBalanceSource; tokens: ConfidentialToken[] }>();
 
     for (const token of tokens) {
       const source = getPublicTokenBalanceSource(token);
@@ -90,7 +90,7 @@ export function useTokensWithPublicBalances(
       })
     ),
     combine: (results) => {
-      const out: Token[] = [];
+      const out: ConfidentialToken[] = [];
       const balanceMap: Record<string, TokenFormatOutput> = {};
 
       let isLoading = false;

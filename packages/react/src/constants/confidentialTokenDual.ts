@@ -1,33 +1,8 @@
-import { parseAbi, zeroAddress } from 'viem';
+import { parseAbi } from 'viem';
 
-import type { TokenConfidentialityContracts } from './confidentialTokenABIs';
+import type { ConfidentialTokenContracts } from './tokenTypeConfig';
 
 export const DUAL_TOKEN_CONTRACTS = {
-  detection: {
-    abi: [
-      {
-        inputs: [
-          {
-            internalType: 'address',
-            name: 'account',
-            type: 'address',
-          },
-        ],
-        name: 'confidentialBalanceOf',
-        outputs: [
-          {
-            internalType: 'euint64',
-            name: '',
-            type: 'bytes32',
-          },
-        ],
-        stateMutability: 'view',
-        type: 'function',
-      },
-    ] as const,
-    functionName: 'confidentialBalanceOf' as const,
-    args: [zeroAddress],
-  },
   confidentialBalance: {
     abi: [
       {
@@ -143,4 +118,4 @@ export const DUAL_TOKEN_CONTRACTS = {
       functionName: 'getUserClaims' as const,
     },
   },
-} as const satisfies TokenConfidentialityContracts;
+} as const satisfies ConfidentialTokenContracts;

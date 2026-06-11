@@ -4,7 +4,7 @@ import { type Address } from 'viem';
 
 import { withInvalidationContext } from '@/utils/invalidationContext';
 import { maybeWaitUntilRpcAwareAndReadContract } from '@/utils/waitUntilRpcAwareAndReadContract';
-import { getShieldAllowanceContractConfig } from '../constants/confidentialTokenABIs';
+import { ERC20_ALLOWANCE_ABI } from '../constants/erc20ABIs';
 import { useInternalQuery } from '../providers/index';
 import { useCofhePublicClient } from './useCofheConnection';
 
@@ -88,15 +88,13 @@ export function createTokenAllowanceQueryOptions<TSelectedData = bigint>(params:
         assert(tokenAddress, 'Token address is required to fetch token allowance');
         assert(ownerAddress, 'Owner address is required to fetch token allowance');
         assert(spenderAddress, 'Spender address is required to fetch token allowance');
-        const allowanceContract = getShieldAllowanceContractConfig();
-
         const allowance = await maybeWaitUntilRpcAwareAndReadContract(
           publicClient,
           {
             blockHashToBeAwareOf: invalidationContext?.blockHashToBeAwareOf,
             address: tokenAddress,
-            abi: allowanceContract.abi,
-            functionName: allowanceContract.functionName,
+            abi: ERC20_ALLOWANCE_ABI,
+            functionName: 'allowance',
             args: [ownerAddress, spenderAddress],
           },
           { signal }

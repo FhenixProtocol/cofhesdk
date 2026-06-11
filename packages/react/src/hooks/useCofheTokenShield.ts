@@ -6,26 +6,20 @@ import {
 } from '@tanstack/react-query';
 import { type Address } from 'viem';
 import { useCofheWalletClient, useCofheChainId, useCofheAccount, useCofhePublicClient } from './useCofheConnection.js';
-import { type Token, ETH_ADDRESS_LOWERCASE } from './useCofheTokenLists.js';
+import { type ConfidentialToken, ETH_ADDRESS_LOWERCASE } from './useCofheTokenLists.js';
 import { assertTokenOperationSupported } from '@/types/token';
-import {
-  getShieldContractConfig,
-  getShieldApproveContractConfig,
-  getShieldEthContractConfig,
-  getShieldWrappedPairContractConfig,
-} from '../constants/confidentialTokenABIs.js';
+import { buildTokenShieldCallArgs } from '../constants/tokenTypeConfig.js';
 import { TransactionActionType, useTransactionStore } from '../stores/transactionStore.js';
 import { useInternalMutation, useInternalQuery } from '../providers/index.js';
 import { assert } from 'ts-essentials';
 import { useTransactionGlobalLifecycle } from './useTransactionGlobalLifecycle.js';
 import type { CofheSimulateWriteContractCallArgs } from './useCofheSimulateWriteContract.js';
 
-export function getCofheTokenShieldCallArgs(params: { token: Token; amount: bigint; account: Address }): {
+export function getCofheTokenShieldCallArgs(params: { token: ConfidentialToken; amount: bigint; account: Address }): {
   main: CofheSimulateWriteContractCallArgs;
   approval?: CofheSimulateWriteContractCallArgs;
 } {
   const { token, amount, account } = params;
-  const tokenAddress: Address = token.address;
   const confidentialityType = token.extensions.fhenix.confidentialityType;
 
   if (!confidentialityType) {
@@ -34,56 +28,11 @@ export function getCofheTokenShieldCallArgs(params: { token: Token; amount: bigi
 
   assertTokenOperationSupported(confidentialityType, 'shield');
 
-  const erc20PairAddress = token.extensions.fhenix.erc20Pair?.address;
-  const isEth = erc20PairAddress?.toLowerCase() === ETH_ADDRESS_LOWERCASE;
-
-  if (isEth) {
-    const contractConfig = getShieldEthContractConfig(token);
-    return {
-      main: {
-        address: tokenAddress,
-        abi: contractConfig.abi,
-        functionName: contractConfig.functionName,
-        args: [account],
-        value: amount,
-        account,
-        chain: undefined,
-      },
-    };
-  }
-  if (!erc20PairAddress) {
-    const contractConfig = getShieldContractConfig(token);
-    return {
-      main: {
-        address: tokenAddress,
-        abi: contractConfig.abi,
-        functionName: contractConfig.functionName,
-        args: confidentialityType === 'dual' ? ([amount] as const) : ([account, amount] as const),
-        account,
-        chain: undefined,
-      },
-    };
-  }
-
-  const contractConfig = getShieldWrappedPairContractConfig(token);
-
-  return {
-    approval: {
-      address: erc20PairAddress,
-      ...getShieldApproveContractConfig(),
-      args: [tokenAddress, amount],
-      account,
-      chain: undefined,
-    },
-    main: {
-      address: tokenAddress,
-      abi: contractConfig.abi,
-      functionName: contractConfig.functionName,
-      args: [account, amount],
-      account,
-      chain: undefined,
-    },
-  };
+  return buildTokenShieldCallArgs({
+    token,
+    amount,
+    account,
+  });
 }
 
 // ============================================================================
@@ -100,7 +49,7 @@ export type UnshieldClaim = {
 
 type UseTokenShieldInput = {
   /** Token object with confidentialityType */
-  token: Token;
+  token: ConfidentialToken;
   /** Amount to shield (in token's smallest unit) */
   amount: bigint;
   /** Optional callback for status updates during the operation */
@@ -138,7 +87,6 @@ export function useCofheTokenShield(
         throw new Error('PublicClient is required to simulate shield before writing');
       }
 
-      const tokenAddress: Address = input.token.address;
       const confidentialityType = input.token.extensions.fhenix.confidentialityType;
 
       if (!confidentialityType) {

@@ -1,10 +1,10 @@
 import { TransactionActionType, TransactionStatus, type Transaction } from '@/stores/transactionStore';
 import { useCofheAccount } from './useCofheConnection';
-import type { Token } from './useCofheTokenLists';
+import type { ConfidentialToken } from './useCofheTokenLists';
 import { useStoredTransactions } from './useStoredTransactions';
 import { useCallback } from 'react';
 
-export function useIsUnshieldingMining(token: Token) {
+export function useIsUnshieldingMining(token: ConfidentialToken) {
   const account = useCofheAccount();
   const filter = useCallback(
     (tx: Transaction) => {

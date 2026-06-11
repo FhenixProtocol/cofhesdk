@@ -1,11 +1,11 @@
 import type { Address } from 'viem';
-import type { Token } from './useCofheTokenLists.js';
+import type { ConfidentialToken } from './useCofheTokenLists.js';
 import { TransactionActionType, useTransactionStore } from '../stores/transactionStore.js';
 import { useTransactionGlobalLifecycle } from './useTransactionGlobalLifecycle.js';
 import { hasExtras, useCofheWriteContract, type useCofheWriteContractOptions } from './useCofheWriteContract.js';
 
 export type TokenApproveExtras = {
-  token: Token;
+  token: ConfidentialToken;
   tokenAmount: bigint;
   account: Address;
 };

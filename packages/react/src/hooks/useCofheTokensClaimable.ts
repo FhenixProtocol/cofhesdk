@@ -4,7 +4,7 @@ import { type Address } from 'viem';
 import { assert } from 'ts-essentials';
 
 import { useCofheAccount, useCofheChainId, useCofhePublicClient } from './useCofheConnection.js';
-import { type Token } from './useCofheTokenLists.js';
+import { type ConfidentialToken } from './useCofheTokenLists.js';
 import { useInternalQueries } from '../providers/index.js';
 import { useNormalizedList } from './useNormalizedList.js';
 import {
@@ -23,7 +23,7 @@ export type ClaimableAmountByTokenAddress = Record<Address, bigint>;
 export type BooleanByAddress = Record<Address, boolean>;
 
 type UseUnshieldClaimsManyInput = {
-  tokens: Token[];
+  tokens: ConfidentialToken[];
   accountAddress: Address | undefined;
 };
 
@@ -37,15 +37,15 @@ type UseUnshieldClaimsManyOptions = Omit<
   'queryKey' | 'queryFn' | 'enabled'
 >;
 
-type ClaimableToken = Token & {
-  extensions: Token['extensions'] & {
-    fhenix: Token['extensions']['fhenix'] & {
-      confidentialityType: Token['extensions']['fhenix']['confidentialityType'];
+type ClaimableToken = ConfidentialToken & {
+  extensions: ConfidentialToken['extensions'] & {
+    fhenix: ConfidentialToken['extensions']['fhenix'] & {
+      confidentialityType: ConfidentialToken['extensions']['fhenix']['confidentialityType'];
     };
   };
 };
 
-function isClaimableToken(token: Token): token is ClaimableToken {
+function isClaimableToken(token: ConfidentialToken): token is ClaimableToken {
   return isTokenConfidentialityTypeClaimable(token.extensions?.fhenix?.confidentialityType);
 }
 
@@ -61,7 +61,6 @@ function claimableSort(a: ClaimableToken, b: ClaimableToken): number {
 type CombinedResult = {
   summariesByTokenAddress: UnshieldClaimsSummaryByTokenAddress;
   claimableByTokenAddress: ClaimableAmountByTokenAddress;
-  isWaitingForDecryptionByTokenAddress?: BooleanByAddress;
   isUnshieldingInProgressByTokenAddress?: BooleanByAddress;
   isClaimingByTokenAddress?: BooleanByAddress;
   queries: UseQueryResult<UnshieldClaimsSummary, Error>[];
@@ -161,12 +160,7 @@ export function useCofheTokensClaimable(
       };
     }),
     combine: (results) => {
-      return results.reduce<
-        Omit<
-          CombinedResult,
-          'isWaitingForDecryptionByTokenAddress' | 'isUnshieldingInProgressByTokenAddress' | 'isClaimingByTokenAddress'
-        >
-      >(
+      return results.reduce<Omit<CombinedResult, 'isUnshieldingInProgressByTokenAddress' | 'isClaimingByTokenAddress'>>(
         (acc, result, index) => {
           const token = normalizedTokens[index];
           if (!token) return acc;
@@ -209,7 +203,6 @@ export function useCofheTokensClaimable(
     isFetching: combined.isFetching,
     isError: combined.isError,
     error: combined.error,
-    isWaitingForDecryptionByTokenAddress: {},
     isUnshieldingInProgressByTokenAddress,
     isClaimingByTokenAddress,
   };

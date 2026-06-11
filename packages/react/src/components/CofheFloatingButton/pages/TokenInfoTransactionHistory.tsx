@@ -5,14 +5,13 @@ import { formatUnits } from 'viem';
 import { HashLink } from '../components/HashLink';
 import { cn } from '@/utils/cn';
 
-import { useCofheAccount } from '@/hooks/useCofheConnection';
-import { useStoredTransactions } from '@/hooks/useStoredTransactions.js';
+import { useCofheTokenTransactions } from '@/hooks/useCofheTokenTransactions';
 import { actionToString } from '@/stores/transactionStore';
 
-import type { Token } from '@/types/token';
+import type { ConfidentialToken } from '@/types/token';
 
 interface TokenInfoTransactionHistoryHeaderProps {
-  token: Token;
+  token: ConfidentialToken;
 }
 
 export const TokenInfoTransactionHistoryHeader: React.FC<TokenInfoTransactionHistoryHeaderProps> = ({ token }) => {
@@ -28,7 +27,7 @@ export const TokenInfoTransactionHistoryHeader: React.FC<TokenInfoTransactionHis
 };
 
 interface TokenInfoTransactionHistoryProps {
-  token: Token;
+  token: ConfidentialToken;
   priceUsd?: number;
 }
 
@@ -41,41 +40,28 @@ const money = (n: number) =>
   });
 
 export const TokenInfoTransactionHistory: React.FC<TokenInfoTransactionHistoryProps> = ({ token, priceUsd }) => {
-  const account = useCofheAccount();
-
-  const { filteredTxs: tokenTxs } = useStoredTransactions({
-    chainId: token.chainId,
-    account,
-    filter: (tx) => {
-      const tokenAddress = token.address.toLowerCase();
-      if ('token' in tx && tx.token.address.toLowerCase() === tokenAddress) return true;
-      return tx.tokenTags?.some((tag) => tag.toLowerCase() === tokenAddress) ?? false;
-    },
-  });
+  const { transactions: tokenTxs } = useCofheTokenTransactions({ token });
 
   const activity = useMemo(() => {
-    return tokenTxs
-      .slice()
-      .sort((a, b) => b.timestamp - a.timestamp)
-      .map((tx) => {
-        if (!('token' in tx)) {
-          return {
-            kind: actionToString(tx.actionType, tx.title),
-            description: tx.description,
-          };
-        }
-
-        const amountToken = parseFloat(formatUnits(tx.tokenAmount, tx.token.decimals));
-        const amountUsd =
-          typeof priceUsd === 'number' && Number.isFinite(amountToken) ? amountToken * priceUsd : undefined;
-
+    return tokenTxs.map((tx) => {
+      if (!('token' in tx)) {
         return {
           kind: actionToString(tx.actionType, tx.title),
           description: tx.description,
-          amountUsd,
-          amountToken: Number.isFinite(amountToken) ? amountToken : 0,
         };
-      });
+      }
+
+      const amountToken = parseFloat(formatUnits(tx.tokenAmount, tx.token.decimals));
+      const amountUsd =
+        typeof priceUsd === 'number' && Number.isFinite(amountToken) ? amountToken * priceUsd : undefined;
+
+      return {
+        kind: actionToString(tx.actionType, tx.title),
+        description: tx.description,
+        amountUsd,
+        amountToken: Number.isFinite(amountToken) ? amountToken : 0,
+      };
+    });
   }, [tokenTxs, priceUsd]);
 
   return (

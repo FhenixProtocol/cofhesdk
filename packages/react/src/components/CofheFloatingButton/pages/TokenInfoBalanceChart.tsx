@@ -11,10 +11,10 @@ import { TokenPriceChart, type TokenPriceChartPoint } from '../components/TokenP
 import { LoadingDots } from '../components/LoadingDots';
 import { CofheTokenConfidentialBalance } from '../components/CofheTokenConfidentialBalance';
 
-import type { Token } from '@/types/token';
+import type { ConfidentialToken } from '@/types/token';
 
 interface TokenInfoBalanceChartProps {
-  token: Token;
+  token: ConfidentialToken;
   chartPoints: TokenPriceChartPoint[];
 }
 
@@ -75,7 +75,7 @@ export const TokenInfoBalanceChart: React.FC<TokenInfoBalanceChartProps> = ({ to
 
   return (
     <>
-      {/* Token summary */}
+      {/* ConfidentialToken summary */}
       <div className="p-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

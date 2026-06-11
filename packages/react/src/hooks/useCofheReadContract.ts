@@ -155,7 +155,7 @@ export function createCofheReadContractQueryOptions<
       readonly unknown[],
       { blockHashToBeAwareOf: `0x${string}` },
       CofheReturnType<TAbi, TfunctionName>
-    >(async ({ invalidationContext }) => {
+    >(async ({ invalidationContext, signal }) => {
       // the invalidationContext matches the current query by key
       assert(address, 'Contract address should be guaranteed by enabled check');
       assert(publicClient, 'PublicClient should be guaranteed by enabled check');
@@ -164,13 +164,17 @@ export function createCofheReadContractQueryOptions<
 
       const normalizedArgs = (args ?? []) as ContractFunctionArgs<TAbi, 'pure' | 'view', TfunctionName>;
 
-      const out = await maybeWaitUntilRpcAwareAndReadContract(publicClient, {
-        blockHashToBeAwareOf: invalidationContext?.blockHashToBeAwareOf,
-        address,
-        abi,
-        functionName,
-        args: normalizedArgs,
-      });
+      const out = await maybeWaitUntilRpcAwareAndReadContract(
+        publicClient,
+        {
+          blockHashToBeAwareOf: invalidationContext?.blockHashToBeAwareOf,
+          address,
+          abi,
+          functionName,
+          args: normalizedArgs,
+        },
+        { signal }
+      );
 
       const convertedOut = convertReadContractResultToCofheReturnType<TAbi, TfunctionName, TArgs>(out);
 

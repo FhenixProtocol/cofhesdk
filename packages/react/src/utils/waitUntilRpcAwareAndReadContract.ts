@@ -29,6 +29,8 @@ export async function maybeWaitUntilRpcAware<T>(
   },
   options: WaitUntilRpcAwareAndReadContractOptions = {}
 ): Promise<T> {
+  if (options.signal?.aborted) throw abortError();
+
   if (!params.blockHashToBeAwareOf) return params.read();
 
   const pollingInterval = options.pollingInterval ?? 1_000;

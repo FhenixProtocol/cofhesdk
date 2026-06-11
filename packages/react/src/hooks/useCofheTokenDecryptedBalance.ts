@@ -1,8 +1,8 @@
 import { type UseQueryOptions } from '@tanstack/react-query';
 import { type Address } from 'viem';
 import { FheTypes } from '@cofhe/sdk';
-import { type Token } from './useCofheTokenLists';
-import { getTokenContractConfig } from '../constants/confidentialTokenABIs';
+import { type ConfidentialToken } from './useCofheTokenLists';
+import { getTokenTypeContracts } from '../constants/tokenTypeConfig';
 import { assert } from 'ts-essentials';
 import { formatTokenAmount, type TokenFormatOutput } from '@/utils/format';
 import { useCofheReadContractAndDecrypt } from './useCofheReadContractAndDecrypt';
@@ -13,7 +13,7 @@ import { useCofheReadContractAndDecrypt } from './useCofheReadContractAndDecrypt
 
 type UseConfidentialTokenBalanceInput = {
   /** Token from token list */
-  token?: Token;
+  token?: ConfidentialToken;
   /** Account address (optional, defaults to connected account) */
   accountAddress?: Address;
   /** Display decimals for formatting (default: 5) */
@@ -37,7 +37,7 @@ type UseConfidentialTokenBalanceResult = {
 /**
  * Hook to get confidential (encrypted) balance for a token with convenient formatting.
  *
- * @param input - Token and optional account address
+ * @param input - token and optional account address
  * @param options - Query options
  * @returns Balance data with raw bigint, formatted string, numeric value, loading state, and refetch function
  */
@@ -47,7 +47,8 @@ export function useCofheTokenDecryptedBalance(
 ): UseConfidentialTokenBalanceResult {
   const { enabled: userEnabled = true, ...restOptions } = options ?? {};
 
-  const contractConfig = token && getTokenContractConfig(token.extensions.fhenix.confidentialityType);
+  const contractConfig =
+    token && getTokenTypeContracts(token.extensions.fhenix.confidentialityType).confidentialBalance;
 
   const {
     decrypted: { data: decryptedData, isFetching: isDecryptionFetching },
@@ -69,7 +70,7 @@ export function useCofheTokenDecryptedBalance(
       decryptingQueryOptions: {
         refetchOnMount: false,
         select: (amountWei) => {
-          assert(token, 'Token must be defined to format confidential balance');
+          assert(token, 'ConfidentialToken must be defined to format confidential balance');
           if (typeof amountWei !== 'bigint') {
             throw new Error('Expected bigint from confidential decryption');
           }

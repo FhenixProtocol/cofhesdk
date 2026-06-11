@@ -1,44 +1,20 @@
-import { parseAbi, zeroAddress } from 'viem';
+import { parseAbi } from 'viem';
 
-import type { TokenConfidentialityContracts } from './confidentialTokenABIs';
+import { ERC20_ALLOWANCE_ABI, ERC20_APPROVE_ABI } from './erc20ABIs';
+import type { ConfidentialTokenContracts } from './tokenTypeConfig';
 
 const wrappedErc20ApprovalContracts = {
   allowance: {
-    abi: parseAbi(['function allowance(address owner, address spender) view returns (uint256)']),
+    abi: ERC20_ALLOWANCE_ABI,
     functionName: 'allowance' as const,
   },
   approve: {
-    abi: parseAbi(['function approve(address spender, uint256 amount) returns (bool)']),
+    abi: ERC20_APPROVE_ABI,
     functionName: 'approve' as const,
   },
 } as const;
 
 const SHARED_WRAPPED_TOKEN_CONTRACTS = {
-  detection: {
-    abi: [
-      {
-        inputs: [
-          {
-            internalType: 'address',
-            name: 'account',
-            type: 'address',
-          },
-        ],
-        name: 'confidentialBalanceOf',
-        outputs: [
-          {
-            internalType: 'euint64',
-            name: '',
-            type: 'bytes32',
-          },
-        ],
-        stateMutability: 'view',
-        type: 'function',
-      },
-    ] as const,
-    functionName: 'confidentialBalanceOf' as const,
-    args: [zeroAddress],
-  },
   confidentialBalance: {
     abi: [
       {
@@ -171,7 +147,7 @@ export const WRAPPED_TOKEN_CONTRACTS = {
       functionName: 'shield' as const,
     },
   },
-} as const satisfies TokenConfidentialityContracts;
+} as const satisfies ConfidentialTokenContracts;
 
 export const WRAPPED_NATIVE_TOKEN_CONTRACTS = {
   ...SHARED_WRAPPED_TOKEN_CONTRACTS,
@@ -190,4 +166,4 @@ export const WRAPPED_NATIVE_TOKEN_CONTRACTS = {
       functionName: 'shieldWrappedNative' as const,
     },
   },
-} as const satisfies TokenConfidentialityContracts;
+} as const satisfies ConfidentialTokenContracts;

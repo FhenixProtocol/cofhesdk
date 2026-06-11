@@ -23,3 +23,15 @@ export const ERC20_SYMBOL_ABI = parseAbi(['function symbol() view returns (strin
  * Standard ERC20 name function ABI
  */
 export const ERC20_NAME_ABI = parseAbi(['function name() view returns (string)']);
+
+/**
+ * Standard ERC20 allowance function ABI
+ */
+export const ERC20_ALLOWANCE_ABI = parseAbi([
+  'function allowance(address owner, address spender) view returns (uint256)',
+]);
+
+/**
+ * Standard ERC20 approve function ABI
+ */
+export const ERC20_APPROVE_ABI = parseAbi(['function approve(address spender, uint256 amount) returns (bool)']);

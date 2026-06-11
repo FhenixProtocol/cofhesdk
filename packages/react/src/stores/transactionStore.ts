@@ -1,4 +1,4 @@
-import type { Token } from '@/types/token';
+import type { ConfidentialToken } from '@/types/token';
 import { bigintJSONStorageOptions } from '@/utils/bigintJson';
 import type { Address, TransactionReceipt } from 'viem';
 import { create } from 'zustand';
@@ -51,7 +51,7 @@ type BaseTransaction = {
 };
 
 type TokenTransaction = BaseTransaction & {
-  token: Token;
+  token: ConfidentialToken;
   tokenAmount: bigint;
 };
 
@@ -132,7 +132,7 @@ function normalizeAddressList(addresses: readonly `0x${string}`[] | undefined): 
   return Array.from(new Set(addresses.map((address) => address.toLowerCase() as `0x${string}`)));
 }
 
-function transactionMatchesToken(tx: Transaction, tokenAddress: string): boolean {
+export function transactionMatchesToken(tx: Transaction, tokenAddress: string): boolean {
   const normalizedTokenAddress = tokenAddress.toLowerCase();
   if ('token' in tx && tx.token.address.toLowerCase() === normalizedTokenAddress) return true;
 

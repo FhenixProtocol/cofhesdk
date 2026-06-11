@@ -10,7 +10,7 @@ import { TokenIcon } from '../components/TokenIcon';
 import { unitToWei } from '@/utils/format';
 import { assert } from 'ts-essentials';
 import { CofheTokenConfidentialBalance } from '../components';
-import { useCofheTokensWithExistingEncryptedBalances, type Token } from '@/hooks';
+import { useCofheTokensWithExistingEncryptedBalances, type ConfidentialToken } from '@/hooks';
 import { getStepConfig } from '@/hooks/useCofheEncrypt';
 import { cofheHumanizeViemError } from '@/utils/cofheErrors';
 import { useOnceTransactionMined } from '@/hooks/useOnceTransactionMined';
@@ -21,7 +21,7 @@ import { BalanceType } from '../components/CofheTokenConfidentialBalance';
 import { cofheLogger } from '@/utils/debug';
 
 export type SendPageProps = {
-  token: Token;
+  token: ConfidentialToken;
 };
 
 declare module '../pagesConfig/types' {
@@ -31,7 +31,7 @@ declare module '../pagesConfig/types' {
 }
 
 export const SendPage: React.FC<SendPageProps> = ({ token: _token }) => {
-  const [overriddenToken, setOverriddenToken] = useState<Token | null>(null);
+  const [overriddenToken, setOverriddenToken] = useState<ConfidentialToken | null>(null);
 
   const token = overriddenToken ?? _token;
   const { navigateBack } = usePortalNavigation();
@@ -142,7 +142,7 @@ export const SendPage: React.FC<SendPageProps> = ({ token: _token }) => {
               <label className="block text-xs font-medium opacity-70">Asset to be sent</label>
             </div>
             <div className="flex items-center gap-3">
-              {/* Token Icon */}
+              {/* ConfidentialToken Icon */}
               <TokenIcon logoURI={token.logoURI} alt={token.name} size="md" />
 
               {/* Amount Input and Symbol on same line, centered with logo */}
