@@ -1,4 +1,4 @@
-import { toFunctionSelector, type Abi, type Address, type Hex } from 'viem';
+import { type Abi, type Address, type Hex } from 'viem';
 
 import { DUAL_TOKEN_CONTRACTS } from './confidentialTokenDual';
 import { WRAPPED_NATIVE_TOKEN_CONTRACTS, WRAPPED_TOKEN_CONTRACTS } from './confidentialTokenWrapped';
@@ -52,7 +52,7 @@ export type ConfidentialTokenTypeConfig = {
   operations: ConfidentialTokenOperationSupport;
   contracts?: ConfidentialTokenContracts;
   nativeContracts?: ConfidentialTokenContracts;
-  interfaceSignatures?: readonly string[];
+  interfaceId?: Hex;
   pairGetterFunctionNames?: readonly string[];
   claimSubmission?: 'single' | 'batch';
   claimSummaryAmount?: 'requested' | 'decryptedWhenReady';
@@ -77,14 +77,7 @@ export const TOKEN_TYPE_CONFIG = {
     },
     contracts: WRAPPED_TOKEN_CONTRACTS,
     nativeContracts: WRAPPED_NATIVE_TOKEN_CONTRACTS,
-    interfaceSignatures: [
-      'function shield(address,uint256)',
-      'function shieldNative(address)',
-      'function shieldWrappedNative(address,uint256)',
-      'function unshield(address,address,uint64)',
-      'function getClaim(bytes32)',
-      'function claimUnshieldedBatch(bytes32[],uint64[],bytes[])',
-    ],
+    interfaceId: '0x4d52d826', // IFHERC20ERC20Wrapper
     pairGetterFunctionNames: ['token', 'underlying', 'underlyingToken', 'asset', 'erc20', 'erc20Token', 'weth'],
     claimSubmission: 'batch',
     claimSummaryAmount: 'requested',
@@ -120,11 +113,7 @@ export const TOKEN_TYPE_CONFIG = {
       claimable: true,
     },
     contracts: DUAL_TOKEN_CONTRACTS,
-    interfaceSignatures: [
-      'function shield(uint256)',
-      'function unshield(uint64)',
-      'function claimUnshielded(bytes32,uint64,bytes)',
-    ],
+    interfaceId: '0xbe4d657f', // IERC20Confidential
     claimSubmission: 'single',
     claimSummaryAmount: 'requested',
   },
@@ -138,19 +127,11 @@ export type SupportedTokenConfidentialityType = {
 
 export const TOKEN_CONFIDENTIALITY_TYPES = Object.keys(TOKEN_TYPE_CONFIG) as TokenConfidentialityType[];
 
-function toInterfaceId(signatures: readonly string[]): Hex {
-  const interfaceId = signatures
-    .map((signature) => Number.parseInt(toFunctionSelector(signature), 16))
-    .reduce((acc, selector) => acc ^ selector, 0);
-
-  return `0x${(interfaceId >>> 0).toString(16).padStart(8, '0')}`;
-}
-
 export const TOKEN_CONFIDENTIALITY_TYPE_INTERFACE_IDS = Object.fromEntries(
   TOKEN_CONFIDENTIALITY_TYPES.flatMap((confidentialityType) => {
     const config = TOKEN_TYPE_CONFIG[confidentialityType];
-    if (!config.enabled || !config.interfaceSignatures?.length) return [];
-    return [[confidentialityType, toInterfaceId(config.interfaceSignatures)]];
+    if (!config.enabled) return [];
+    return 'interfaceId' in config ? [[confidentialityType, config.interfaceId]] : [];
   })
 ) as Partial<Record<SupportedTokenConfidentialityType, Hex>>;
 
