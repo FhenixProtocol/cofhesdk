@@ -119,7 +119,7 @@ export { COFHE_STATUS_IDS, CofheStatusActionIntents } from './components/CofheFl
 export type { CofheConfigWithReact as CofhesdkConfigWithReact } from './config';
 
 export type { CofheStatus, CofheStatusActionIntent, CofheStatusId } from './components/CofheFloatingButton/types';
-export type { Token } from './types/token';
+export type { ConfidentialToken } from './types/token';
 
 export { useInternalQueryClient } from './providers/index';
 

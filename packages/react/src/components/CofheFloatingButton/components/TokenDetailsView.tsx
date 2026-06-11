@@ -3,7 +3,7 @@ import { useMemo, type ReactNode } from 'react';
 import { ArrowBackIcon, LockIcon, PublicIcon } from '@/components/Icons';
 
 import { cn } from '@/utils/cn';
-import type { Token } from '@/types/token';
+import type { ConfidentialToken } from '@/types/token';
 
 import { Button } from './Button';
 import { HashLink } from './HashLink';
@@ -34,7 +34,7 @@ export interface TokenDetailsResources {
 }
 
 export interface TokenDetailsViewProps {
-  token: Token;
+  token: ConfidentialToken;
   onBack?: () => void;
   onUnshield?: () => void;
   onSend?: () => void;
@@ -101,7 +101,7 @@ export const TokenDetailsView: React.FC<TokenDetailsViewProps> = ({
               </div>
             </button>
           </div>
-          {/* Token summary */}
+          {/* ConfidentialToken summary */}
           <div className="p-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">

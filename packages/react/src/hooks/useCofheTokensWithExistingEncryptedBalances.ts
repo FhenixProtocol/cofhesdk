@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import type { Address } from 'viem';
 
-import type { Token } from '@/types/token';
+import type { ConfidentialToken } from '@/types/token';
 import { useCofheAccount, useCofheChainId } from './useCofheConnection';
 import { useCofheTokens } from './useCofheTokenLists';
 import { getTokenTypeContracts } from '../constants/tokenTypeConfig';
@@ -40,8 +40,8 @@ export type UseCofheTokensWithExistingBalancesInput = {
 };
 
 export type UseCofheTokensWithExistingBalancesResult = {
-  tokens: Token[];
-  tokensWithExistingEncryptedBalance: Token[];
+  tokens: ConfidentialToken[];
+  tokensWithExistingEncryptedBalance: ConfidentialToken[];
   ctHashByTokenAddress: Record<string, bigint>;
 
   isLoading: boolean;
@@ -98,7 +98,7 @@ export function useCofheTokensWithExistingEncryptedBalances(
 
   const { tokensWithExistingEncryptedBalance, ctHashByTokenAddress, error } = useMemo(() => {
     const map: Record<string, bigint> = {};
-    const filtered: Token[] = [];
+    const filtered: ConfidentialToken[] = [];
 
     const items = read.data;
     if (!items || items.length === 0) {

@@ -1,15 +1,15 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-import type { Token } from '@/types/token';
+import type { ConfidentialToken } from '@/types/token';
 
 type CustomTokensStore = {
-  customTokensByChainId: Record<string, Token[]>;
+  customTokensByChainId: Record<string, ConfidentialToken[]>;
 };
 
 type CustomTokensActions = {
-  addCustomToken: (token: Token) => void;
-  removeCustomToken: (params: { chainId: number; address: Token['address'] }) => void;
+  addCustomToken: (token: ConfidentialToken) => void;
+  removeCustomToken: (params: { chainId: number; address: ConfidentialToken['address'] }) => void;
 };
 
 export const useCustomTokensStore = create<CustomTokensStore & CustomTokensActions>()(

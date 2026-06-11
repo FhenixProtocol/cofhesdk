@@ -1,4 +1,4 @@
-import type { Token } from '@/types/token';
+import type { ConfidentialToken } from '@/types/token';
 import { useCoingeckoContractMarketChartRange } from '@/hooks';
 import { FloatingButtonPage } from '../pagesConfig/types';
 import { usePortalNavigation } from '@/stores';
@@ -14,7 +14,7 @@ import { TokenInfoBalanceChart } from './TokenInfoBalanceChart';
 import { TokenInfoTransactionHistory, TokenInfoTransactionHistoryHeader } from './TokenInfoTransactionHistory';
 
 type TokenInfoPageProps = {
-  token: Token;
+  token: ConfidentialToken;
 };
 
 declare module '../pagesConfig/types' {

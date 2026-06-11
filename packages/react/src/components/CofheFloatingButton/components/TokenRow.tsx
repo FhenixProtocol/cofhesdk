@@ -1,6 +1,6 @@
 import { KeyboardArrowRightIcon } from '@/components/Icons';
 import { cn } from '../../../utils/cn';
-import type { Token } from '@/hooks/useCofheTokenLists';
+import type { ConfidentialToken } from '@/hooks/useCofheTokenLists';
 import { TokenIcon } from './TokenIcon';
 import { CofheTokenConfidentialBalance, BalanceType, CofheTokenPublicBalance } from './CofheTokenConfidentialBalance';
 import { useCofheTokenDecryptedBalance, useCoingeckoUsdPrice } from '@/hooks';
@@ -11,7 +11,7 @@ import { useCofheTokenPublicBalance } from '@/hooks/useCofheTokenPublicBalance';
 import { TMP_WBTC_ON_MAINNET } from '@/utils/coingecko';
 
 export const TokenRow: React.FC<{
-  token: Token;
+  token: ConfidentialToken;
   onClick: () => void;
   balanceType: BalanceType;
   topLabel?: string;
@@ -61,10 +61,10 @@ export const TokenRow: React.FC<{
       )}
     >
       <div className="flex items-center gap-3 flex-1 min-w-0">
-        {/* Token Icon */}
+        {/* ConfidentialToken Icon */}
         <TokenIcon logoURI={token.logoURI} alt={token.name} size="sm" />
 
-        {/* Token label */}
+        {/* ConfidentialToken label */}
         <div className="min-w-0 flex-1">
           {topLabel && <div className="text-xxxs opacity-70 cofhe-text-primary leading-none">{topLabel}</div>}
           <div className="text-sm font-medium cofhe-text-primary truncate leading-tight">

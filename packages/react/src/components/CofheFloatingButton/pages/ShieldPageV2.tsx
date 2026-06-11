@@ -6,7 +6,7 @@ import { ContractFunctionExecutionError, parseUnits, type Address } from 'viem';
 import { isTokenOperationSupported } from '@/types/token';
 import { useCofheAccount, useCofheChainId } from '@/hooks/useCofheConnection';
 import { useCofheTokenDecryptedBalance } from '@/hooks/useCofheTokenDecryptedBalance';
-import { type Token } from '@/hooks/useCofheTokenLists';
+import { type ConfidentialToken } from '@/hooks/useCofheTokenLists';
 import { useCofheTokenShield } from '@/hooks/useCofheTokenShield';
 import { FloatingButtonPage } from '../pagesConfig/types';
 import { cn } from '../../../utils/cn';
@@ -47,7 +47,7 @@ type Mode = 'shield' | 'unshield';
 type LifecycleStatus = { message: React.ReactNode; type: 'info' | 'success' };
 
 export type ShieldPageProps = {
-  token: Token;
+  token: ConfidentialToken;
   defaultMode?: Mode;
 };
 
@@ -173,7 +173,7 @@ function useClaimUnshieldedWithLifecycle() {
 
 type ShieldAndUnshieldViewProps = Omit<ShieldPageViewProps, 'token' | 'mode' | 'setMode'>;
 
-function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 'setToken'> {
+function useShieldWithLifecycle(token: ConfidentialToken): Omit<ShieldAndUnshieldViewProps, 'setToken'> {
   const account = useCofheAccount();
   const chainId = useCofheChainId();
   const [shieldAmount, setShieldAmount] = useState('');
@@ -363,7 +363,7 @@ function useShieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 
   };
 }
 
-function useUnshieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps, 'setToken'> {
+function useUnshieldWithLifecycle(token: ConfidentialToken): Omit<ShieldAndUnshieldViewProps, 'setToken'> {
   const account = useCofheAccount();
   const chainId = useCofheChainId();
   const { setError, setStatus, error, status } = useLifecycleStore();
@@ -470,7 +470,7 @@ function useUnshieldWithLifecycle(token: Token): Omit<ShieldAndUnshieldViewProps
 
 export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token: _token, defaultMode }) => {
   const [mode, setMode] = useState<Mode>(defaultMode ?? 'shield');
-  const [overriddenToken, setOverriddenToken] = useState<Token | null>(null);
+  const [overriddenToken, setOverriddenToken] = useState<ConfidentialToken | null>(null);
   const token = overriddenToken ?? _token;
 
   return mode === 'shield' ? (
@@ -482,10 +482,10 @@ export const ShieldPageV2: React.FC<ShieldPageProps> = ({ token: _token, default
 
 type ShieldPageViewProps = {
   error: React.ReactNode | null;
-  token: Token;
+  token: ConfidentialToken;
   mode: Mode;
   status: LifecycleStatus | null;
-  setToken: (token: Token) => void;
+  setToken: (token: ConfidentialToken) => void;
   setMode: (mode: Mode) => void;
 
   isProcessing: boolean;
@@ -509,10 +509,10 @@ function ShieldTab({
   setMode,
   setToken,
 }: {
-  token: Token;
+  token: ConfidentialToken;
   mode: Mode;
   setMode: (mode: Mode) => void;
-  setToken: (token: Token) => void;
+  setToken: (token: ConfidentialToken) => void;
 }) {
   const shieldViewProps = useShieldWithLifecycle(token);
   return (
@@ -526,10 +526,10 @@ function UnshieldTab({
   setMode,
   setToken,
 }: {
-  token: Token;
+  token: ConfidentialToken;
   mode: Mode;
   setMode: (mode: Mode) => void;
-  setToken: (token: Token) => void;
+  setToken: (token: ConfidentialToken) => void;
 }) {
   const unshieldViewProps = useUnshieldWithLifecycle(token);
   return (
@@ -537,7 +537,7 @@ function UnshieldTab({
   );
 }
 
-function ClaimingSection({ token }: { token: Token }) {
+function ClaimingSection({ token }: { token: ConfidentialToken }) {
   const account = useCofheAccount();
   const isDualToken = token.extensions.fhenix.confidentialityType === 'dual';
   const { data: unshieldedClaims, isFetching: isFetchingClaims } = useCofheTokenClaimable({
@@ -806,7 +806,7 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
             <ClaimingSection token={token} />
           )}
 
-          {/* Not Shieldable Token Warning */}
+          {/* Not Shieldable ConfidentialToken Warning */}
           {!isShieldableToken && (
             <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-2">
               <p className="text-xs text-yellow-800 dark:text-yellow-200">

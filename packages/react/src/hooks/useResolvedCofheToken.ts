@@ -13,7 +13,7 @@ import {
   buildToken,
   getTokenConfidentialValueType,
   type SupportedTokenConfidentialityType,
-  type Token,
+  type ConfidentialToken,
 } from '@/types/token';
 
 import { useCofheChainId, useCofhePublicClient } from './useCofheConnection';
@@ -57,7 +57,7 @@ type UseResolvedCofheTokenInput = {
   address?: Address;
 };
 
-type UseResolvedCofheTokenOptions = Omit<UseQueryOptions<Token | undefined, Error>, 'queryKey' | 'queryFn'>;
+type UseResolvedCofheTokenOptions = Omit<UseQueryOptions<ConfidentialToken | undefined, Error>, 'queryKey' | 'queryFn'>;
 
 export function useResolvedCofheToken(
   { chainId: _chainId, address }: UseResolvedCofheTokenInput,
@@ -69,7 +69,7 @@ export function useResolvedCofheToken(
 
   return useInternalQuery({
     queryKey: ['resolvedCofheToken', chainId, address?.toLowerCase()],
-    queryFn: async (): Promise<Token | undefined> => {
+    queryFn: async (): Promise<ConfidentialToken | undefined> => {
       if (!publicClient) {
         throw new Error('PublicClient is required to resolve a token');
       }
@@ -127,8 +127,8 @@ export function useResolvedCofheToken(
         throw new Error('Address is not a supported CoFHE token');
       }
 
-      let wrapperKind: Token['extensions']['fhenix']['wrapperKind'];
-      let erc20Pair: Token['extensions']['fhenix']['erc20Pair'];
+      let wrapperKind: ConfidentialToken['extensions']['fhenix']['wrapperKind'];
+      let erc20Pair: ConfidentialToken['extensions']['fhenix']['erc20Pair'];
 
       const pairGetterFunctionNames = getTokenTypeConfig(confidentialityType).pairGetterFunctionNames ?? [];
 

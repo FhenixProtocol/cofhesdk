@@ -6,7 +6,7 @@ import {
 } from '@tanstack/react-query';
 import { type Address } from 'viem';
 import { useCofheWalletClient, useCofheChainId, useCofheAccount, useCofhePublicClient } from './useCofheConnection.js';
-import { type Token, ETH_ADDRESS_LOWERCASE } from './useCofheTokenLists.js';
+import { type ConfidentialToken, ETH_ADDRESS_LOWERCASE } from './useCofheTokenLists.js';
 import { assertTokenOperationSupported } from '@/types/token';
 import { buildTokenShieldCallArgs } from '../constants/tokenTypeConfig.js';
 import { TransactionActionType, useTransactionStore } from '../stores/transactionStore.js';
@@ -15,7 +15,7 @@ import { assert } from 'ts-essentials';
 import { useTransactionGlobalLifecycle } from './useTransactionGlobalLifecycle.js';
 import type { CofheSimulateWriteContractCallArgs } from './useCofheSimulateWriteContract.js';
 
-export function getCofheTokenShieldCallArgs(params: { token: Token; amount: bigint; account: Address }): {
+export function getCofheTokenShieldCallArgs(params: { token: ConfidentialToken; amount: bigint; account: Address }): {
   main: CofheSimulateWriteContractCallArgs;
   approval?: CofheSimulateWriteContractCallArgs;
 } {
@@ -49,7 +49,7 @@ export type UnshieldClaim = {
 
 type UseTokenShieldInput = {
   /** Token object with confidentialityType */
-  token: Token;
+  token: ConfidentialToken;
   /** Amount to shield (in token's smallest unit) */
   amount: bigint;
   /** Optional callback for status updates during the operation */

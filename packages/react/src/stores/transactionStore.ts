@@ -1,4 +1,4 @@
-import type { Token } from '@/types/token';
+import type { ConfidentialToken } from '@/types/token';
 import { bigintJSONStorageOptions } from '@/utils/bigintJson';
 import type { Address, TransactionReceipt } from 'viem';
 import { create } from 'zustand';
@@ -51,7 +51,7 @@ type BaseTransaction = {
 };
 
 type TokenTransaction = BaseTransaction & {
-  token: Token;
+  token: ConfidentialToken;
   tokenAmount: bigint;
 };
 

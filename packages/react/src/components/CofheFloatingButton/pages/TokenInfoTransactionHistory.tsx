@@ -8,10 +8,10 @@ import { cn } from '@/utils/cn';
 import { useCofheTokenTransactions } from '@/hooks/useCofheTokenTransactions';
 import { actionToString } from '@/stores/transactionStore';
 
-import type { Token } from '@/types/token';
+import type { ConfidentialToken } from '@/types/token';
 
 interface TokenInfoTransactionHistoryHeaderProps {
-  token: Token;
+  token: ConfidentialToken;
 }
 
 export const TokenInfoTransactionHistoryHeader: React.FC<TokenInfoTransactionHistoryHeaderProps> = ({ token }) => {
@@ -27,7 +27,7 @@ export const TokenInfoTransactionHistoryHeader: React.FC<TokenInfoTransactionHis
 };
 
 interface TokenInfoTransactionHistoryProps {
-  token: Token;
+  token: ConfidentialToken;
   priceUsd?: number;
 }
 

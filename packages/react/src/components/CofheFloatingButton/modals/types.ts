@@ -1,5 +1,5 @@
 import type { PermitType } from '@cofhe/sdk/permits';
-import type { Token } from '@/types/token';
+import type { ConfidentialToken } from '@/types/token';
 import type { BalanceType } from '../components/CofheTokenConfidentialBalance';
 
 export enum PortalModal {
@@ -21,14 +21,14 @@ export type PortalModalPropsMap = {
   [PortalModal.TokenList]: {
     balanceType: BalanceType;
     title: string;
-    tokens: Token[];
-    onSelectToken: (token: Token) => void;
+    tokens: ConfidentialToken[];
+    onSelectToken: (token: ConfidentialToken) => void;
   };
   [PortalModal.ImportCustomToken]: {
     balanceType: BalanceType;
     title: string;
-    tokens: Token[];
-    onSelectToken: (token: Token) => void;
+    tokens: ConfidentialToken[];
+    onSelectToken: (token: ConfidentialToken) => void;
   };
 };
 

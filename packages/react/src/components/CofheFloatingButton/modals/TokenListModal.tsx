@@ -1,6 +1,6 @@
 import { PageContainer } from '../components/PageContainer';
 import { PortalModal, type PortalModalStateMap } from './types';
-import { type Token } from '@/hooks';
+import { type ConfidentialToken } from '@/hooks';
 import { ArrowBackIcon } from '@/components/Icons';
 import { TokenRow } from '../components/TokenRow';
 import { useCofhePinnedTokenAddress } from '@/hooks/useCofhePinnedTokenAddress';
@@ -56,9 +56,9 @@ export const TokenListModal: React.FC<PortalModalStateMap[PortalModal.TokenList]
 };
 
 export const TokenListContent: React.FC<{
-  tokens: Token[];
+  tokens: ConfidentialToken[];
   balanceType: BalanceType;
-  onSelectToken: (token: Token) => void;
+  onSelectToken: (token: ConfidentialToken) => void;
 }> = ({ tokens, onSelectToken, balanceType }) => {
   const pinnedTokenAddress = useCofhePinnedTokenAddress();
   const normalizedPinnedAddress = pinnedTokenAddress?.toLowerCase();

@@ -8,7 +8,7 @@ import { type Address } from 'viem';
 import { ERC20_BALANCE_OF_ABI } from '../constants/erc20ABIs';
 import { useInternalQuery } from '../providers/index';
 import { useCofheAccount, useCofhePublicClient } from './useCofheConnection';
-import { ETH_ADDRESS_LOWERCASE, type Token } from './useCofheTokenLists';
+import { ETH_ADDRESS_LOWERCASE, type ConfidentialToken } from './useCofheTokenLists';
 
 export function constructPublicTokenBalanceQueryKey({
   chainId,
@@ -55,7 +55,7 @@ export type PublicTokenBalanceSource = {
   decimals: number;
 };
 
-export function getPublicTokenBalanceSource(token: Token | undefined): PublicTokenBalanceSource | undefined {
+export function getPublicTokenBalanceSource(token: ConfidentialToken | undefined): PublicTokenBalanceSource | undefined {
   const confidentialityType = token?.extensions.fhenix.confidentialityType;
   const underlyingErc20 = token?.extensions.fhenix.erc20Pair;
 
@@ -156,7 +156,7 @@ function useTokenBalance<TSelectedData = bigint>(
 
 type UsePublicTokenBalanceInput = {
   /** Token from token list */
-  token: Token | undefined;
+  token: ConfidentialToken | undefined;
   /** Account address (optional, defaults to connected account) */
   accountAddress?: Address;
   /** Display decimals for formatting (default: 5) */
@@ -175,7 +175,7 @@ type UsePublicTokenBalanceResult = {
  * Hook to get public (non-confidential) balance for a token.
  * Handles wrapped tokens by reading the paired ERC20 balance or native ETH balance.
  *
- * @param input - Token and optional account address
+ * @param input - token and optional account address
  * @param options - Query options
  * @returns Balance data with formatted string, numeric value, loading state, and refetch function
  */
@@ -200,7 +200,7 @@ export function useCofheTokenPublicBalance(
       select: (value) => {
         assert(
           typeof tokenToFetchBalanceFrom?.decimals === 'number',
-          'Token decimals must be defined to format public token balance'
+          'ConfidentialToken decimals must be defined to format public token balance'
         );
         return formatTokenAmount(value, tokenToFetchBalanceFrom.decimals, displayDecimals);
       },

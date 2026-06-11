@@ -1,7 +1,7 @@
 import { type MutationFunctionContext, type UseMutationOptions, type UseMutationResult } from '@tanstack/react-query';
 import { type Address } from 'viem';
 import { useCofheWalletClient, useCofheChainId, useCofheAccount, useCofhePublicClient } from './useCofheConnection.js';
-import { type Token } from './useCofheTokenLists.js';
+import { type ConfidentialToken } from './useCofheTokenLists.js';
 import { buildTokenUnshieldCallArgs } from '../constants/tokenTypeConfig.js';
 import { assertTokenOperationSupported, isTokenOperationSupported } from '@/types/token';
 import { TransactionActionType, TransactionStatus, useTransactionStore } from '../stores/transactionStore.js';
@@ -12,7 +12,7 @@ import { useTransactionGlobalLifecycle } from './useTransactionGlobalLifecycle.j
 import type { CofheSimulateWriteContractCallArgs } from './useCofheSimulateWriteContract.js';
 
 export function getCofheTokenUnshieldCallArgs(params: {
-  token: Token;
+  token: ConfidentialToken;
   amount: bigint;
   account: Address;
 }): CofheSimulateWriteContractCallArgs {
@@ -37,7 +37,7 @@ export function getCofheTokenUnshieldCallArgs(params: {
 // ============================================================================
 type UseTokenUnshieldMutationInput = {
   /** Token object with confidentialityType */
-  token: Token;
+  token: ConfidentialToken;
   /** Amount to unshield (in token's smallest unit) */
   amount: bigint;
   /** Optional callback for status updates during the operation */

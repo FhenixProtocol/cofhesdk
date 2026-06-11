@@ -30,8 +30,8 @@ export type { SupportedTokenConfidentialityType, TokenConfidentialityType, Confi
  */
 export const ETH_ADDRESS_LOWERCASE = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' as const;
 
-type TokenWithoutExtensions = Omit<Token, 'extensions'>;
-export function constructNativeToken(chainId: number): TokenWithoutExtensions {
+type ConfidentialTokenWithoutExtensions = Omit<ConfidentialToken, 'extensions'>;
+export function constructNativeToken(chainId: number): ConfidentialTokenWithoutExtensions {
   return {
     chainId,
     address: ETH_ADDRESS_LOWERCASE,
@@ -78,7 +78,7 @@ export function getTokenConfidentialValueType(
   return TOKEN_CONFIDENTIALITY_SUPPORT[type].confidentialValueType;
 }
 
-export function getTokenWrapperKind(token: Pick<Token, 'extensions'>): TokenWrapperKind | undefined {
+export function getTokenWrapperKind(token: Pick<ConfidentialToken, 'extensions'>): TokenWrapperKind | undefined {
   if (token.extensions.fhenix.confidentialityType !== 'wrapped') {
     return undefined;
   }
@@ -97,7 +97,7 @@ export function assertTokenOperationSupported(
   throw new Error(`${operation} not supported for confidentialityType: ${type ?? 'undefined'}`);
 }
 
-export type Token = {
+export type ConfidentialToken = {
   chainId: number;
   address: `0x${string}`;
   symbol: string;
@@ -115,7 +115,7 @@ export type Token = {
   };
 };
 
-export type SourceToken = Omit<Token, 'extensions'> & {
+export type SourceToken = Omit<ConfidentialToken, 'extensions'> & {
   extensions?: Record<string, unknown> & {
     fhenix?: {
       confidentialityType?: string;
@@ -127,13 +127,13 @@ export type SourceToken = Omit<Token, 'extensions'> & {
 };
 
 export function buildToken(params: {
-  base: TokenWithoutExtensions;
+  base: ConfidentialTokenWithoutExtensions;
   confidentialityType: SupportedTokenConfidentialityType;
   confidentialValueType: TokenConfidentialValueType;
   wrapperKind?: TokenWrapperKind;
   erc20Pair?: Erc20Pair;
   extensions?: Record<string, unknown>;
-}): Token {
+}): ConfidentialToken {
   const { base, confidentialityType, confidentialValueType, wrapperKind, erc20Pair, extensions } = params;
 
   return {
@@ -150,7 +150,7 @@ export function buildToken(params: {
   };
 }
 
-export function normalizeSourceToken(token: SourceToken): Token | undefined {
+export function normalizeSourceToken(token: SourceToken): ConfidentialToken | undefined {
   const confidentialityType = token.extensions?.fhenix?.confidentialityType;
   if (!isSupportedTokenConfidentialityType(confidentialityType)) {
     return undefined;
@@ -182,7 +182,7 @@ export function normalizeSourceToken(token: SourceToken): Token | undefined {
 }
 
 // // source: https://storage.googleapis.com/cofhesdk/sepolia.json
-// export const WETH_SEPOLIA_TOKEN: Token = {
+// export const WETH_SEPOLIA_TOKEN: ConfidentialToken = {
 //   chainId: 11155111,
 //   address: '0x87A3effB84CBE1E4caB6Ab430139eC41d156D55A',
 //   name: 'Redact eETH',
@@ -203,7 +203,7 @@ export function normalizeSourceToken(token: SourceToken): Token | undefined {
 //   },
 // };
 
-const WETH_BASE_SEPOLIA_TOKEN: Token = normalizeSourceToken({
+const WETH_BASE_SEPOLIA_TOKEN: ConfidentialToken = normalizeSourceToken({
   name: 'Sample FHE ETH',
   symbol: 'fhETH',
   address: '0x3Cdcdd0EB7311a59fDe92D44B01165B2Ca2019C4',
@@ -222,7 +222,7 @@ const WETH_BASE_SEPOLIA_TOKEN: Token = normalizeSourceToken({
     },
   },
 })!;
-export const DEFAULT_TOKEN_BY_CHAIN_ID: Record<number, Token> = {
+export const DEFAULT_TOKEN_BY_CHAIN_ID: Record<number, ConfidentialToken> = {
   // [sepolia.id]: WETH_SEPOLIA_TOKEN,
   [baseSepolia.id]: WETH_BASE_SEPOLIA_TOKEN,
 };

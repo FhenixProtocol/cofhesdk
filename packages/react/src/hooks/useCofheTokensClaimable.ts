@@ -4,7 +4,7 @@ import { type Address } from 'viem';
 import { assert } from 'ts-essentials';
 
 import { useCofheAccount, useCofheChainId, useCofhePublicClient } from './useCofheConnection.js';
-import { type Token } from './useCofheTokenLists.js';
+import { type ConfidentialToken } from './useCofheTokenLists.js';
 import { useInternalQueries } from '../providers/index.js';
 import { useNormalizedList } from './useNormalizedList.js';
 import {
@@ -23,7 +23,7 @@ export type ClaimableAmountByTokenAddress = Record<Address, bigint>;
 export type BooleanByAddress = Record<Address, boolean>;
 
 type UseUnshieldClaimsManyInput = {
-  tokens: Token[];
+  tokens: ConfidentialToken[];
   accountAddress: Address | undefined;
 };
 
@@ -37,15 +37,15 @@ type UseUnshieldClaimsManyOptions = Omit<
   'queryKey' | 'queryFn' | 'enabled'
 >;
 
-type ClaimableToken = Token & {
-  extensions: Token['extensions'] & {
-    fhenix: Token['extensions']['fhenix'] & {
-      confidentialityType: Token['extensions']['fhenix']['confidentialityType'];
+type ClaimableToken = ConfidentialToken & {
+  extensions: ConfidentialToken['extensions'] & {
+    fhenix: ConfidentialToken['extensions']['fhenix'] & {
+      confidentialityType: ConfidentialToken['extensions']['fhenix']['confidentialityType'];
     };
   };
 };
 
-function isClaimableToken(token: Token): token is ClaimableToken {
+function isClaimableToken(token: ConfidentialToken): token is ClaimableToken {
   return isTokenConfidentialityTypeClaimable(token.extensions?.fhenix?.confidentialityType);
 }
 

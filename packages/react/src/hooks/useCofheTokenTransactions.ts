@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
-import type { Token } from '@/types/token';
+import type { ConfidentialToken } from '@/types/token';
 import { transactionMatchesToken, type Transaction } from '@/stores/transactionStore';
 import { useCofheAccount } from './useCofheConnection';
 import { useStoredTransactions } from './useStoredTransactions';
 
 export interface UseCofheTokenTransactionsInput {
-  token?: Token;
+  token?: ConfidentialToken;
   accountAddress?: string;
   chainId?: number;
 }

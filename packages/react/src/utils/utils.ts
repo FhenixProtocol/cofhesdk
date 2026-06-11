@@ -2,7 +2,7 @@ import * as viemChains from 'viem/chains';
 import {
   ETH_ADDRESS_LOWERCASE,
   isSupportedTokenConfidentialityType,
-  type Token,
+  type ConfidentialToken,
   type Erc20Pair,
 } from '../types/token.js';
 import type { FheTypeValue } from '@cofhe/sdk';
@@ -63,7 +63,7 @@ export const getBlockExplorerTokenUrl = (chainId: number, tokenAddress: string):
 };
 
 // ============================================================================
-// Token Helper Functions
+// ConfidentialToken Helper Functions
 // ============================================================================
 
 /**
@@ -81,7 +81,7 @@ export const isEthPair = (erc20Pair: Erc20Pair | undefined): boolean => {
  * @param token - The token object
  * @returns True if the token is a wrapped token with ETH as the underlying pair
  */
-export const isWrappedEthToken = (token: Token): boolean => {
+export const isWrappedEthToken = (token: ConfidentialToken): boolean => {
   if (!isSupportedTokenConfidentialityType(token.extensions.fhenix.confidentialityType)) return false;
   return isEthPair(token.extensions.fhenix.erc20Pair);
 };

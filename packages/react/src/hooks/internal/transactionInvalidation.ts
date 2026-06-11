@@ -6,7 +6,7 @@ import { assert } from 'ts-essentials';
 import type { Address } from 'viem';
 import { constructCofheReadContractQueryForInvalidation } from '../useCofheReadContract';
 import { constructUnshieldClaimsQueryKeyForInvalidation } from '../useCofheTokenClaimable';
-import type { Token } from '../useCofheTokenLists';
+import type { ConfidentialToken } from '../useCofheTokenLists';
 import {
   constructPublicTokenBalanceQueryKeyForInvalidation,
   getPublicTokenBalanceSource,
@@ -14,7 +14,7 @@ import {
 import { constructTokenAllowanceQueryKeyForInvalidation } from '../useTokenAllowance';
 
 export function invalidateConfidentialTokenBalanceQueries(
-  token: Token,
+  token: ConfidentialToken,
   queryClient: QueryClient,
   blockHashToBeAwareOf?: `0x${string}`
 ) {
@@ -74,7 +74,7 @@ export function invalidatePublicTokenBalanceQueries(
 }
 
 export function invalidatePublicAndConfidentialTokenBalanceQueries(
-  token: Token,
+  token: ConfidentialToken,
   accountAddress: Address,
   queryClient: QueryClient,
   blockHashToBeAwareOf?: `0x${string}`
@@ -132,7 +132,7 @@ export function invalidateClaimableQueries({
   queryClient,
   blockHashToBeAwareOf,
 }: {
-  token: Token;
+  token: ConfidentialToken;
   accountAddress: Address;
   queryClient: QueryClient;
   blockHashToBeAwareOf?: `0x${string}`;

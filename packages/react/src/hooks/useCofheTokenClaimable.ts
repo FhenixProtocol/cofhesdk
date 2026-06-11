@@ -1,7 +1,7 @@
 import { QueryClient, type QueryKey, type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
 import { type Address, type Hex } from 'viem';
 import { useCofhePublicClient } from './useCofheConnection.js';
-import { type Token } from './useCofheTokenLists.js';
+import { type ConfidentialToken } from './useCofheTokenLists.js';
 import { getTokenTypeConfig, getTokenTypeContracts } from '../constants/tokenTypeConfig.js';
 import { isTokenOperationSupported, type SupportedTokenConfidentialityType } from '@/types/token';
 import { useInternalQuery } from '../providers/index.js';
@@ -67,7 +67,7 @@ export function isTokenConfidentialityTypeClaimable(
 
 export type FetchUnshieldClaimsSummaryInput = {
   publicClient: NonNullable<ReturnType<typeof useCofhePublicClient>>;
-  token: Token;
+  token: ConfidentialToken;
   accountAddress: Address;
   confidentialityType: SupportedTokenConfidentialityType;
   signal: AbortSignal;
@@ -181,7 +181,7 @@ export type UnshieldClaimsSummary = {
 
 type UseUnshieldClaimsInput = {
   /** Token object with confidentialityType */
-  token: Token | undefined;
+  token: ConfidentialToken | undefined;
   /** Account address (optional, defaults to connected account) */
   accountAddress: Address | undefined;
 };

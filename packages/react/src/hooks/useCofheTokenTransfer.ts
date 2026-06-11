@@ -1,5 +1,5 @@
 import { type Address } from 'viem';
-import type { Token } from './useCofheTokenLists.js';
+import type { ConfidentialToken } from './useCofheTokenLists.js';
 import { assertTokenOperationSupported } from '@/types/token';
 import { getTokenTypeContracts } from '../constants/tokenTypeConfig.js';
 import { TransactionActionType, useTransactionStore } from '../stores/transactionStore.js';
@@ -9,7 +9,7 @@ import type { useCofheWriteContractOptions } from './useCofheWriteContract.js';
 import type { EncryptionOptions } from './useCofheEncrypt.js';
 import { useTransactionGlobalLifecycle } from './useTransactionGlobalLifecycle.js';
 
-type TokenTransferExtras = { token: Token; amount: bigint; userAddress: Address };
+type TokenTransferExtras = { token: ConfidentialToken; amount: bigint; userAddress: Address };
 type UseCofheTokenTransferOptions = Pick<
   useCofheWriteContractOptions<TokenTransferExtras>,
   'onSuccess' | 'onError' | 'onMutate'
@@ -17,7 +17,7 @@ type UseCofheTokenTransferOptions = Pick<
 
 type EncryptAndSendInput = {
   input: {
-    token: Token;
+    token: ConfidentialToken;
     to: Address;
     amount: bigint;
     userAddress: Address;

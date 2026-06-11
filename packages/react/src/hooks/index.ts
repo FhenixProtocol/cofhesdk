@@ -39,7 +39,7 @@ export {
   useCofheToken,
   useCofheTokens,
   type Erc20Pair,
-  type Token,
+  type ConfidentialToken,
 } from './useCofheTokenLists';
 export {
   useCofheTokensClaimable,

@@ -10,11 +10,11 @@ import { useCofheClient } from './useCofheClient';
 import { useCofheAccount, useCofheChainId, useCofhePublicClient, useCofheWalletClient } from './useCofheConnection';
 import type { CofheSimulateWriteContractCallArgs } from './useCofheSimulateWriteContract';
 import { fetchUnshieldClaims, isTokenConfidentialityTypeClaimable } from './useCofheTokenClaimable';
-import { type Token } from './useCofheTokenLists';
+import { type ConfidentialToken } from './useCofheTokenLists';
 import { useTransactionGlobalLifecycle } from './useTransactionGlobalLifecycle';
 
 export function getCofheTokenClaimUnshieldedCallArgs(params: {
-  token: Token;
+  token: ConfidentialToken;
   account: Address;
   claim?: {
     ctHash: Hex | bigint;
@@ -50,7 +50,7 @@ export function getCofheTokenClaimUnshieldedCallArgs(params: {
 // ============================================================================
 type UseClaimUnshieldInput = {
   /** Token object with confidentialityType */
-  token: Token;
+  token: ConfidentialToken;
   /** Amount being claimed (for activity logging) */
   amount: bigint;
 };
