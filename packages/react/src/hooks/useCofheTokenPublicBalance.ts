@@ -55,7 +55,9 @@ export type PublicTokenBalanceSource = {
   decimals: number;
 };
 
-export function getPublicTokenBalanceSource(token: ConfidentialToken | undefined): PublicTokenBalanceSource | undefined {
+export function getPublicTokenBalanceSource(
+  token: ConfidentialToken | undefined
+): PublicTokenBalanceSource | undefined {
   const confidentialityType = token?.extensions.fhenix.confidentialityType;
   const underlyingErc20 = token?.extensions.fhenix.erc20Pair;
 

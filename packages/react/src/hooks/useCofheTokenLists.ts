@@ -55,7 +55,10 @@ class TokenListFetchError extends Error {
 
 const DEFAULT_RETRY_DELAY_ON_429 = 30_000; // 30 seconds
 
-function getCustomTokensForChain(customTokensByChainId: Record<string, ConfidentialToken[]>, chainId?: number): ConfidentialToken[] {
+function getCustomTokensForChain(
+  customTokensByChainId: Record<string, ConfidentialToken[]>,
+  chainId?: number
+): ConfidentialToken[] {
   if (!chainId) return [];
   return customTokensByChainId[chainId.toString()] ?? [];
 }

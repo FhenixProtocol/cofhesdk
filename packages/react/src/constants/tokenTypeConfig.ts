@@ -210,14 +210,6 @@ type ContractCallArgs = {
   chain: undefined;
 };
 
-export function getTokenWrapperKindFromConfig(token: ConfidentialTokenLike): 'erc20' | 'native' | undefined {
-  if (!isWrappedTokenConfidentialityType(token.extensions.fhenix.confidentialityType)) {
-    return undefined;
-  }
-
-  return token.extensions.fhenix.erc20Pair?.address?.toLowerCase() === ETH_ADDRESS_LOWERCASE ? 'native' : 'erc20';
-}
-
 export function getShieldContractsForToken(token: ConfidentialTokenLike): ConfidentialTokenShieldContracts | undefined {
   const config = getTokenTypeConfig(token.extensions.fhenix.confidentialityType);
 

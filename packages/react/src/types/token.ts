@@ -55,7 +55,6 @@ export type Erc20Pair = {
   logoURI?: string;
 };
 
-export type TokenWrapperKind = 'erc20' | 'native';
 export type TokenConfidentialValueType = 'uint64' | 'uint128';
 
 export function isTokenOperationSupported(
@@ -81,14 +80,6 @@ export function getTokenConfidentialValueType(
   type: TokenConfidentialityType
 ): (typeof TOKEN_CONFIDENTIALITY_SUPPORT)[TokenConfidentialityType]['confidentialValueType'] {
   return TOKEN_CONFIDENTIALITY_SUPPORT[type].confidentialValueType;
-}
-
-export function getTokenWrapperKind(token: Pick<ConfidentialToken, 'extensions'>): TokenWrapperKind | undefined {
-  if (!isWrappedTokenConfidentialityType(token.extensions.fhenix.confidentialityType)) {
-    return undefined;
-  }
-
-  return token.extensions.fhenix.erc20Pair?.address?.toLowerCase() === ETH_ADDRESS_LOWERCASE ? 'native' : 'erc20';
 }
 
 export function assertTokenOperationSupported(
