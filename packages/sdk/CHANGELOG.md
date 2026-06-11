@@ -1,5 +1,11 @@
 # @cofhe/sdk Changelog
 
+## 0.6.1
+
+### Patch Changes
+
+- 670cda8: Prepare an alpha snapshot release.
+
 ## 0.6.0
 
 ### Minor Changes
