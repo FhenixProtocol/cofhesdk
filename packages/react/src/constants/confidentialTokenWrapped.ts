@@ -1,7 +1,7 @@
 import { parseAbi } from 'viem';
 
 import { ERC20_ALLOWANCE_ABI, ERC20_APPROVE_ABI } from './erc20ABIs';
-import type { TokenConfidentialityContracts } from './tokenTypeConfig';
+import type { ConfidentialTokenContracts } from './tokenTypeConfig';
 
 const wrappedErc20ApprovalContracts = {
   allowance: {
@@ -147,7 +147,7 @@ export const WRAPPED_TOKEN_CONTRACTS = {
       functionName: 'shield' as const,
     },
   },
-} as const satisfies TokenConfidentialityContracts;
+} as const satisfies ConfidentialTokenContracts;
 
 export const WRAPPED_NATIVE_TOKEN_CONTRACTS = {
   ...SHARED_WRAPPED_TOKEN_CONTRACTS,
@@ -166,4 +166,4 @@ export const WRAPPED_NATIVE_TOKEN_CONTRACTS = {
       functionName: 'shieldWrappedNative' as const,
     },
   },
-} as const satisfies TokenConfidentialityContracts;
+} as const satisfies ConfidentialTokenContracts;

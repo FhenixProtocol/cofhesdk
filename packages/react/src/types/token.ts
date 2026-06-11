@@ -13,7 +13,7 @@ import {
   isTokenConfidentialityType,
   type SupportedTokenConfidentialityType,
   type TokenConfidentialityType,
-  type TokenSupportOperation,
+  type ConfidentialTokenSupportOperation,
 } from '@/constants/tokenTypeConfig';
 import type { Address } from 'viem';
 
@@ -23,7 +23,7 @@ export {
   isSupportedTokenConfidentialityType,
   isTokenConfidentialityType,
 };
-export type { SupportedTokenConfidentialityType, TokenConfidentialityType, TokenSupportOperation };
+export type { SupportedTokenConfidentialityType, TokenConfidentialityType, ConfidentialTokenSupportOperation };
 
 /**
  * Special address representing native ETH (used in erc20Pair for ConfidentialETH tokens)
@@ -56,7 +56,7 @@ export type Erc20Pair = {
 export type TokenWrapperKind = 'erc20' | 'native';
 export type TokenConfidentialValueType = 'uint64' | 'uint128';
 
-export function isTokenOperationSupported(type: string | undefined, operation: TokenSupportOperation): boolean {
+export function isTokenOperationSupported(type: string | undefined, operation: ConfidentialTokenSupportOperation): boolean {
   return isTokenConfidentialityType(type) && TOKEN_CONFIDENTIALITY_SUPPORT[type].operations[operation];
 }
 
@@ -91,7 +91,7 @@ export function getTokenWrapperKind(token: Pick<Token, 'extensions'>): TokenWrap
 
 export function assertTokenOperationSupported(
   type: string | undefined,
-  operation: TokenSupportOperation
+  operation: ConfidentialTokenSupportOperation
 ): asserts type is SupportedTokenConfidentialityType {
   if (isTokenOperationSupported(type, operation)) return;
   throw new Error(`${operation} not supported for confidentialityType: ${type ?? 'undefined'}`);

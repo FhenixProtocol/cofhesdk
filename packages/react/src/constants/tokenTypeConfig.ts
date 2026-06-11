@@ -13,28 +13,28 @@ export type Erc20ApprovalContracts = {
   approve: ContractConfig;
 };
 
-export type TokenShieldContracts = {
+export type ConfidentialTokenShieldContracts = {
   approval?: Erc20ApprovalContracts;
   erc20: ContractConfig;
   native?: ContractConfig;
   wrappedPair?: ContractConfig;
 };
 
-export type TokenClaimContracts = {
+export type ConfidentialTokenClaimContracts = {
   single: ContractConfig;
   all?: ContractConfig;
   query: ContractConfig;
 };
 
-export type TokenConfidentialityContracts = {
+export type ConfidentialTokenContracts = {
   confidentialBalance: ContractConfig;
   confidentialTransfer: ContractConfig;
-  shield?: TokenShieldContracts;
+  shield?: ConfidentialTokenShieldContracts;
   unshield?: ContractConfig;
-  claims?: TokenClaimContracts;
+  claims?: ConfidentialTokenClaimContracts;
 };
 
-export type TokenOperationSupport = {
+export type ConfidentialTokenOperationSupport = {
   confidentialBalance: boolean;
   transfer: boolean;
   publicBalance: boolean;
@@ -44,14 +44,14 @@ export type TokenOperationSupport = {
   claimable: boolean;
 };
 
-export type TokenTypeConfig = {
+export type ConfidentialTokenTypeConfig = {
   enabled: boolean;
   label: string;
   confidentialValueType: 'uint64' | 'uint128';
   publicBalanceSource: 'erc20Pair' | 'token' | null;
-  operations: TokenOperationSupport;
-  contracts?: TokenConfidentialityContracts;
-  nativeContracts?: TokenConfidentialityContracts;
+  operations: ConfidentialTokenOperationSupport;
+  contracts?: ConfidentialTokenContracts;
+  nativeContracts?: ConfidentialTokenContracts;
   interfaceSignatures?: readonly string[];
   pairGetterFunctionNames?: readonly string[];
   claimSubmission?: 'single' | 'batch';
@@ -128,10 +128,10 @@ export const TOKEN_TYPE_CONFIG = {
     claimSubmission: 'single',
     claimSummaryAmount: 'requested',
   },
-} as const satisfies Record<string, TokenTypeConfig>;
+} as const satisfies Record<string, ConfidentialTokenTypeConfig>;
 
 export type TokenConfidentialityType = keyof typeof TOKEN_TYPE_CONFIG;
-export type TokenSupportOperation = keyof TokenOperationSupport;
+export type ConfidentialTokenSupportOperation = keyof ConfidentialTokenOperationSupport;
 export type SupportedTokenConfidentialityType = {
   [K in TokenConfidentialityType]: (typeof TOKEN_TYPE_CONFIG)[K]['enabled'] extends true ? K : never;
 }[TokenConfidentialityType];
@@ -175,7 +175,7 @@ export function detectSupportedTokenTypeFromInterfaces(
   return supportedTypes.length === 1 ? supportedTypes[0] : undefined;
 }
 
-export function getTokenTypeConfig(confidentialityType: TokenConfidentialityType): TokenTypeConfig {
+export function getTokenTypeConfig(confidentialityType: TokenConfidentialityType): ConfidentialTokenTypeConfig {
   return TOKEN_TYPE_CONFIG[confidentialityType];
 }
 
@@ -221,7 +221,7 @@ export function getTokenWrapperKindFromConfig(token: ConfidentialTokenLike): 'er
   );
 }
 
-export function getShieldContractsForToken(token: ConfidentialTokenLike): TokenShieldContracts | undefined {
+export function getShieldContractsForToken(token: ConfidentialTokenLike): ConfidentialTokenShieldContracts | undefined {
   const config = getTokenTypeConfig(token.extensions.fhenix.confidentialityType);
 
   if (token.extensions.fhenix.confidentialityType === 'wrapped' && getTokenWrapperKindFromConfig(token) === 'native') {
