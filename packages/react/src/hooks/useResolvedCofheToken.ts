@@ -1,6 +1,7 @@
 import type { UseQueryOptions } from '@tanstack/react-query';
-import { type Abi, type Address, type Hex, isAddress, parseAbi, zeroAddress } from 'viem';
+import { type Abi, type Address, type Hex, isAddress, zeroAddress } from 'viem';
 
+import { ERC165_SUPPORTS_INTERFACE_ABI } from '@/constants/erc165ABIs';
 import { ERC20_DECIMALS_ABI, ERC20_NAME_ABI, ERC20_SYMBOL_ABI } from '@/constants/erc20ABIs';
 import {
   TOKEN_CONFIDENTIALITY_TYPE_INTERFACE_IDS,
@@ -18,7 +19,6 @@ import {
 
 import { useCofheChainId, useCofhePublicClient } from './useCofheConnection';
 
-const ERC165_ABI = parseAbi(['function supportsInterface(bytes4 interfaceId) view returns (bool)']);
 type TokenInterfaceDetectionEntry = readonly [SupportedTokenConfidentialityType, Hex];
 
 const TOKEN_INTERFACE_DETECTION_ENTRIES = Object.entries(TOKEN_CONFIDENTIALITY_TYPE_INTERFACE_IDS).flatMap(
@@ -111,7 +111,7 @@ export function useResolvedCofheToken(
       const interfaceResults = await publicClient.multicall({
         contracts: TOKEN_INTERFACE_DETECTION_ENTRIES.map(([, interfaceId]) => ({
           address,
-          abi: ERC165_ABI,
+          abi: ERC165_SUPPORTS_INTERFACE_ABI,
           functionName: 'supportsInterface',
           args: [interfaceId],
         })),
