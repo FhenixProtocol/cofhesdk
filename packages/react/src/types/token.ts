@@ -11,6 +11,7 @@ import {
   TOKEN_TYPE_CONFIG as TOKEN_CONFIDENTIALITY_SUPPORT,
   isSupportedTokenConfidentialityType,
   isTokenConfidentialityType,
+  isWrappedTokenConfidentialityType,
   type SupportedTokenConfidentialityType,
   type TokenConfidentialityType,
   type ConfidentialTokenSupportOperation,
@@ -22,6 +23,7 @@ export {
   TOKEN_CONFIDENTIALITY_SUPPORT,
   isSupportedTokenConfidentialityType,
   isTokenConfidentialityType,
+  isWrappedTokenConfidentialityType,
 };
 export type { SupportedTokenConfidentialityType, TokenConfidentialityType, ConfidentialTokenSupportOperation };
 
@@ -82,7 +84,7 @@ export function getTokenConfidentialValueType(
 }
 
 export function getTokenWrapperKind(token: Pick<ConfidentialToken, 'extensions'>): TokenWrapperKind | undefined {
-  if (token.extensions.fhenix.confidentialityType !== 'wrapped') {
+  if (!isWrappedTokenConfidentialityType(token.extensions.fhenix.confidentialityType)) {
     return undefined;
   }
 
@@ -137,12 +139,19 @@ export function buildToken(params: {
 }
 
 export function normalizeToken(token: ConfidentialToken): ConfidentialToken | undefined {
-  const confidentialityType = token.extensions?.fhenix?.confidentialityType;
+  const erc20Pair = token.extensions?.fhenix?.erc20Pair;
+  const inputConfidentialityType = token.extensions?.fhenix?.confidentialityType as string | undefined;
+  const confidentialityType =
+    inputConfidentialityType === 'wrapped'
+      ? erc20Pair?.address?.toLowerCase() === ETH_ADDRESS_LOWERCASE
+        ? 'wrappedNative'
+        : 'wrappedErc20'
+      : inputConfidentialityType;
+
   if (!isSupportedTokenConfidentialityType(confidentialityType)) {
     return undefined;
   }
 
-  const erc20Pair = token.extensions?.fhenix?.erc20Pair;
   return buildToken({
     base: {
       chainId: token.chainId,
@@ -169,7 +178,7 @@ export function normalizeToken(token: ConfidentialToken): ConfidentialToken | un
 //   logoURI: 'https://storage.googleapis.com/cofhesdk/token-icons/eth.webp',
 //   extensions: {
 //     fhenix: {
-//       confidentialityType: 'wrapped',
+//       confidentialityType: 'wrappedNative',
 //       confidentialValueType: 'uint128',
 //       erc20Pair: {
 //         address: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
@@ -189,7 +198,7 @@ const WETH_BASE_SEPOLIA_TOKEN: ConfidentialToken = normalizeToken({
   decimals: 6,
   extensions: {
     fhenix: {
-      confidentialityType: 'wrapped',
+      confidentialityType: 'wrappedNative',
       confidentialValueType: 'uint64',
       erc20Pair: {
         address: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',

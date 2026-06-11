@@ -51,9 +51,8 @@ export type ConfidentialTokenTypeConfig = {
   publicBalanceSource: 'erc20Pair' | 'token' | null;
   operations: ConfidentialTokenOperationSupport;
   contracts?: ConfidentialTokenContracts;
-  nativeContracts?: ConfidentialTokenContracts;
   interfaceIds?: readonly Hex[];
-  nativeWrapperInterfaceIds?: readonly Hex[];
+  pairResolution?: 'contractGetter' | 'native';
   pairGetterFunctionNames?: readonly string[];
   claimSubmission?: 'single' | 'batch';
   claimSummaryAmount?: 'requested' | 'decryptedWhenReady';
@@ -61,26 +60,39 @@ export type ConfidentialTokenTypeConfig = {
 
 const ETH_ADDRESS_LOWERCASE = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
 
+const WRAPPED_TOKEN_OPERATIONS = {
+  confidentialBalance: true,
+  transfer: true,
+  publicBalance: true,
+  shield: true,
+  unshield: true,
+  claim: true,
+  claimable: true,
+} as const satisfies ConfidentialTokenOperationSupport;
+
 export const TOKEN_TYPE_CONFIG = {
-  wrapped: {
+  wrappedErc20: {
     enabled: true,
-    label: 'Wrapped confidential token',
+    label: 'Wrapped ERC20 confidential token',
     confidentialValueType: 'uint64',
     publicBalanceSource: 'erc20Pair',
-    operations: {
-      confidentialBalance: true,
-      transfer: true,
-      publicBalance: true,
-      shield: true,
-      unshield: true,
-      claim: true,
-      claimable: true,
-    },
+    operations: WRAPPED_TOKEN_OPERATIONS,
     contracts: WRAPPED_TOKEN_CONTRACTS,
-    nativeContracts: WRAPPED_NATIVE_TOKEN_CONTRACTS,
-    interfaceIds: ['0x4d52d826', '0xaefc9bc7'], // IFHERC20ERC20Wrapper, IFHERC20NativeWrapper
-    nativeWrapperInterfaceIds: ['0xaefc9bc7'], // IFHERC20NativeWrapper
-    pairGetterFunctionNames: ['token', 'underlying', 'underlyingToken', 'asset', 'erc20', 'erc20Token', 'weth'],
+    interfaceIds: ['0x4d52d826'], // IFHERC20ERC20Wrapper
+    pairResolution: 'contractGetter',
+    pairGetterFunctionNames: ['token', 'underlying', 'underlyingToken', 'asset', 'erc20', 'erc20Token'],
+    claimSubmission: 'batch',
+    claimSummaryAmount: 'requested',
+  },
+  wrappedNative: {
+    enabled: true,
+    label: 'Wrapped native confidential token',
+    confidentialValueType: 'uint64',
+    publicBalanceSource: 'erc20Pair',
+    operations: WRAPPED_TOKEN_OPERATIONS,
+    contracts: WRAPPED_NATIVE_TOKEN_CONTRACTS,
+    interfaceIds: ['0xaefc9bc7'], // IFHERC20NativeWrapper
+    pairResolution: 'native',
     claimSubmission: 'batch',
     claimSummaryAmount: 'requested',
   },
@@ -170,6 +182,12 @@ export function getTokenTypeContracts(confidentialityType: TokenConfidentialityT
   return contracts;
 }
 
+export function isWrappedTokenConfidentialityType(
+  confidentialityType: string | undefined
+): confidentialityType is Extract<TokenConfidentialityType, 'wrappedErc20' | 'wrappedNative'> {
+  return confidentialityType === 'wrappedErc20' || confidentialityType === 'wrappedNative';
+}
+
 type ConfidentialTokenLike = {
   address: Address;
   extensions: {
@@ -193,7 +211,7 @@ type ContractCallArgs = {
 };
 
 export function getTokenWrapperKindFromConfig(token: ConfidentialTokenLike): 'erc20' | 'native' | undefined {
-  if (token.extensions.fhenix.confidentialityType !== 'wrapped') {
+  if (!isWrappedTokenConfidentialityType(token.extensions.fhenix.confidentialityType)) {
     return undefined;
   }
 
@@ -202,10 +220,6 @@ export function getTokenWrapperKindFromConfig(token: ConfidentialTokenLike): 'er
 
 export function getShieldContractsForToken(token: ConfidentialTokenLike): ConfidentialTokenShieldContracts | undefined {
   const config = getTokenTypeConfig(token.extensions.fhenix.confidentialityType);
-
-  if (token.extensions.fhenix.confidentialityType === 'wrapped' && getTokenWrapperKindFromConfig(token) === 'native') {
-    return config.nativeContracts?.shield;
-  }
 
   return config.contracts?.shield;
 }
@@ -310,7 +324,7 @@ export function buildTokenUnshieldCallArgs(params: {
     address: token.address,
     abi: contractConfig.abi,
     functionName: contractConfig.functionName,
-    args: confidentialityType === 'wrapped' ? [account, account, amount] : [amount],
+    args: isWrappedTokenConfidentialityType(confidentialityType) ? [account, account, amount] : [amount],
     account,
     chain: undefined,
   };

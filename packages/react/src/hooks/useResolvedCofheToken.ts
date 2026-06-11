@@ -119,15 +119,10 @@ export function useResolvedCofheToken(
       });
 
       const interfaceSupport: Partial<Record<SupportedTokenConfidentialityType, boolean>> = {};
-      const matchedInterfaceIds: Partial<Record<SupportedTokenConfidentialityType, Hex[]>> = {};
 
-      TOKEN_INTERFACE_DETECTION_ENTRIES.forEach(([confidentialityType, interfaceId], index) => {
+      TOKEN_INTERFACE_DETECTION_ENTRIES.forEach(([confidentialityType], index) => {
         const isSupported = interfaceResults[index]?.status === 'success' && interfaceResults[index].result === true;
         interfaceSupport[confidentialityType] = interfaceSupport[confidentialityType] === true || isSupported;
-
-        if (isSupported) {
-          matchedInterfaceIds[confidentialityType] = [...(matchedInterfaceIds[confidentialityType] ?? []), interfaceId];
-        }
       });
 
       const confidentialityType = detectSupportedTokenTypeFromInterfaces(interfaceSupport);
@@ -139,12 +134,8 @@ export function useResolvedCofheToken(
       let erc20Pair: ConfidentialToken['extensions']['fhenix']['erc20Pair'];
 
       const tokenTypeConfig = getTokenTypeConfig(confidentialityType);
-      const nativeWrapperInterfaceIds = tokenTypeConfig.nativeWrapperInterfaceIds ?? [];
-      const isNativeWrappedToken = matchedInterfaceIds[confidentialityType]?.some((interfaceId) =>
-        nativeWrapperInterfaceIds.includes(interfaceId)
-      );
 
-      if (isNativeWrappedToken) {
+      if (tokenTypeConfig.pairResolution === 'native') {
         erc20Pair = {
           address: ETH_ADDRESS_LOWERCASE,
           symbol: 'ETH',
