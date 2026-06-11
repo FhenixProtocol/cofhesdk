@@ -5,10 +5,9 @@ import {
   DEFAULT_TOKEN_BY_CHAIN_ID,
   ETH_ADDRESS_LOWERCASE,
   isSupportedTokenConfidentialityType,
-  normalizeSourceToken,
+  normalizeToken,
   type Erc20Pair,
   type ConfidentialToken,
-  type SourceToken,
 } from '../types/token.js';
 import { useInternalQueries } from '../providers/index.js';
 import type { Address } from 'viem';
@@ -38,15 +37,11 @@ type TokenList = TokenListBase & {
   tokens: ConfidentialToken[];
 };
 
-type RawTokenList = TokenListBase & {
-  tokens: SourceToken[];
-};
-
 type UseTokenListsResult = UseQueryResult<TokenList, Error>[];
 type UseTokenListsInput = {
   chainId?: number;
 };
-type UseTokenListsOptions = Omit<UseQueryOptions<RawTokenList, Error, TokenList>, 'queryKey' | 'queryFn' | 'select'>;
+type UseTokenListsOptions = Omit<UseQueryOptions<TokenList, Error, TokenList>, 'queryKey' | 'queryFn' | 'select'>;
 
 class TokenListFetchError extends Error {
   constructor(
@@ -73,7 +68,7 @@ export function useCofheTokenLists(
   const widgetConfig = useCofheContext().client.config.react;
   const tokensListsUrls = chainId ? widgetConfig.tokenLists?.[chainId] : [];
 
-  const queriesOptions: UseQueryOptions<RawTokenList, Error, TokenList>[] =
+  const queriesOptions: UseQueryOptions<TokenList, Error, TokenList>[] =
     tokensListsUrls?.map((url) => ({
       cacheTime: Infinity,
       staleTime: Infinity,
@@ -88,7 +83,7 @@ export function useCofheTokenLists(
 
         return Math.min(1000 * 2 ** failureCount, DEFAULT_RETRY_DELAY_ON_429);
       },
-      queryFn: async ({ signal }): Promise<RawTokenList> => {
+      queryFn: async ({ signal }): Promise<TokenList> => {
         const timestamp = Date.now();
         const urlWithCacheBust = `${url}${url.includes('?') ? '&' : '?'}v=${timestamp}`;
         const res = await fetch(urlWithCacheBust, { signal });
@@ -97,13 +92,13 @@ export function useCofheTokenLists(
         }
         return await res.json();
       },
-      select: (data: RawTokenList): TokenList => {
+      select: (data: TokenList): TokenList => {
         // filter only tokens for the current chain (some lists contain multiple chains)
         return {
           ...data,
           tokens: data.tokens
             .filter((token) => token.chainId === chainId)
-            .map((token) => normalizeSourceToken(token))
+            .map((token) => normalizeToken(token))
             .filter((token): token is ConfidentialToken => !!token && isSupportedToken(token)),
         };
       },

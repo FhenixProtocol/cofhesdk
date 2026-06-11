@@ -127,7 +127,6 @@ export function useResolvedCofheToken(
         throw new Error('Address is not a supported CoFHE token');
       }
 
-      let wrapperKind: ConfidentialToken['extensions']['fhenix']['wrapperKind'];
       let erc20Pair: ConfidentialToken['extensions']['fhenix']['erc20Pair'];
 
       const pairGetterFunctionNames = getTokenTypeConfig(confidentialityType).pairGetterFunctionNames ?? [];
@@ -145,14 +144,12 @@ export function useResolvedCofheToken(
 
         if (pairAddress) {
           if (pairAddress.toLowerCase() === ETH_ADDRESS_LOWERCASE) {
-            wrapperKind = 'native';
             erc20Pair = {
               address: ETH_ADDRESS_LOWERCASE,
               symbol: 'ETH',
               decimals: 18,
             };
           } else {
-            wrapperKind = 'erc20';
             const pairMetadata = await publicClient.multicall({
               contracts: [
                 {
@@ -194,7 +191,6 @@ export function useResolvedCofheToken(
         },
         confidentialityType,
         confidentialValueType: getTokenConfidentialValueType(confidentialityType),
-        wrapperKind,
         erc20Pair,
       });
     },

@@ -83,10 +83,7 @@ export function getTokenWrapperKind(token: Pick<ConfidentialToken, 'extensions'>
     return undefined;
   }
 
-  return (
-    token.extensions.fhenix.wrapperKind ??
-    (token.extensions.fhenix.erc20Pair?.address?.toLowerCase() === ETH_ADDRESS_LOWERCASE ? 'native' : 'erc20')
-  );
+  return token.extensions.fhenix.erc20Pair?.address?.toLowerCase() === ETH_ADDRESS_LOWERCASE ? 'native' : 'erc20';
 }
 
 export function assertTokenOperationSupported(
@@ -108,21 +105,9 @@ export type ConfidentialToken = {
     fhenix: {
       confidentialityType: TokenConfidentialityType;
       confidentialValueType: TokenConfidentialValueType;
-      wrapperKind?: TokenWrapperKind;
       /** ERC20 pair for wrapped tokens - contains underlying token info */
       erc20Pair?: Erc20Pair;
     };
-  };
-};
-
-export type SourceToken = Omit<ConfidentialToken, 'extensions'> & {
-  extensions?: Record<string, unknown> & {
-    fhenix?: {
-      confidentialityType?: string;
-      confidentialValueType?: TokenConfidentialValueType;
-      erc20Pair?: Erc20Pair;
-    };
-    erc20Pair?: Erc20Pair;
   };
 };
 
@@ -130,11 +115,10 @@ export function buildToken(params: {
   base: ConfidentialTokenWithoutExtensions;
   confidentialityType: SupportedTokenConfidentialityType;
   confidentialValueType: TokenConfidentialValueType;
-  wrapperKind?: TokenWrapperKind;
   erc20Pair?: Erc20Pair;
   extensions?: Record<string, unknown>;
 }): ConfidentialToken {
-  const { base, confidentialityType, confidentialValueType, wrapperKind, erc20Pair, extensions } = params;
+  const { base, confidentialityType, confidentialValueType, erc20Pair, extensions } = params;
 
   return {
     ...base,
@@ -143,27 +127,19 @@ export function buildToken(params: {
       fhenix: {
         confidentialityType,
         confidentialValueType,
-        ...(wrapperKind ? { wrapperKind } : {}),
         ...(erc20Pair ? { erc20Pair } : {}),
       },
     },
   };
 }
 
-export function normalizeSourceToken(token: SourceToken): ConfidentialToken | undefined {
+export function normalizeToken(token: ConfidentialToken): ConfidentialToken | undefined {
   const confidentialityType = token.extensions?.fhenix?.confidentialityType;
   if (!isSupportedTokenConfidentialityType(confidentialityType)) {
     return undefined;
   }
 
-  const erc20Pair = token.extensions?.fhenix?.erc20Pair ?? token.extensions?.erc20Pair;
-  const wrapperKind =
-    confidentialityType === 'wrapped'
-      ? erc20Pair?.address?.toLowerCase() === ETH_ADDRESS_LOWERCASE
-        ? 'native'
-        : 'erc20'
-      : undefined;
-
+  const erc20Pair = token.extensions?.fhenix?.erc20Pair;
   return buildToken({
     base: {
       chainId: token.chainId,
@@ -175,7 +151,6 @@ export function normalizeSourceToken(token: SourceToken): ConfidentialToken | un
     },
     confidentialityType,
     confidentialValueType: token.extensions?.fhenix?.confidentialValueType ?? 'uint64',
-    wrapperKind,
     erc20Pair,
     extensions: token.extensions,
   });
@@ -203,7 +178,7 @@ export function normalizeSourceToken(token: SourceToken): ConfidentialToken | un
 //   },
 // };
 
-const WETH_BASE_SEPOLIA_TOKEN: ConfidentialToken = normalizeSourceToken({
+const WETH_BASE_SEPOLIA_TOKEN: ConfidentialToken = normalizeToken({
   name: 'Sample FHE ETH',
   symbol: 'fhETH',
   address: '0x3Cdcdd0EB7311a59fDe92D44B01165B2Ca2019C4',

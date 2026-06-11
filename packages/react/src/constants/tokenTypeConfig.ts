@@ -192,7 +192,6 @@ type ConfidentialTokenLike = {
   extensions: {
     fhenix: {
       confidentialityType: TokenConfidentialityType;
-      wrapperKind?: 'erc20' | 'native';
       erc20Pair?: {
         address: Address;
       };
@@ -215,10 +214,7 @@ export function getTokenWrapperKindFromConfig(token: ConfidentialTokenLike): 'er
     return undefined;
   }
 
-  return (
-    token.extensions.fhenix.wrapperKind ??
-    (token.extensions.fhenix.erc20Pair?.address?.toLowerCase() === ETH_ADDRESS_LOWERCASE ? 'native' : 'erc20')
-  );
+  return token.extensions.fhenix.erc20Pair?.address?.toLowerCase() === ETH_ADDRESS_LOWERCASE ? 'native' : 'erc20';
 }
 
 export function getShieldContractsForToken(token: ConfidentialTokenLike): ConfidentialTokenShieldContracts | undefined {
