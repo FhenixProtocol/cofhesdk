@@ -52,7 +52,8 @@ export type ConfidentialTokenTypeConfig = {
   operations: ConfidentialTokenOperationSupport;
   contracts?: ConfidentialTokenContracts;
   nativeContracts?: ConfidentialTokenContracts;
-  interfaceId?: Hex;
+  interfaceIds?: readonly Hex[];
+  nativeWrapperInterfaceIds?: readonly Hex[];
   pairGetterFunctionNames?: readonly string[];
   claimSubmission?: 'single' | 'batch';
   claimSummaryAmount?: 'requested' | 'decryptedWhenReady';
@@ -77,7 +78,8 @@ export const TOKEN_TYPE_CONFIG = {
     },
     contracts: WRAPPED_TOKEN_CONTRACTS,
     nativeContracts: WRAPPED_NATIVE_TOKEN_CONTRACTS,
-    interfaceId: '0x4d52d826', // IFHERC20ERC20Wrapper
+    interfaceIds: ['0x4d52d826', '0xaefc9bc7'], // IFHERC20ERC20Wrapper, IFHERC20NativeWrapper
+    nativeWrapperInterfaceIds: ['0xaefc9bc7'], // IFHERC20NativeWrapper
     pairGetterFunctionNames: ['token', 'underlying', 'underlyingToken', 'asset', 'erc20', 'erc20Token', 'weth'],
     claimSubmission: 'batch',
     claimSummaryAmount: 'requested',
@@ -113,7 +115,7 @@ export const TOKEN_TYPE_CONFIG = {
       claimable: true,
     },
     contracts: DUAL_TOKEN_CONTRACTS,
-    interfaceId: '0xbe4d657f', // IERC20Confidential
+    interfaceIds: ['0xbe4d657f'], // IERC20Confidential
     claimSubmission: 'single',
     claimSummaryAmount: 'requested',
   },
@@ -131,9 +133,9 @@ export const TOKEN_CONFIDENTIALITY_TYPE_INTERFACE_IDS = Object.fromEntries(
   TOKEN_CONFIDENTIALITY_TYPES.flatMap((confidentialityType) => {
     const config = TOKEN_TYPE_CONFIG[confidentialityType];
     if (!config.enabled) return [];
-    return 'interfaceId' in config ? [[confidentialityType, config.interfaceId]] : [];
+    return 'interfaceIds' in config ? [[confidentialityType, config.interfaceIds]] : [];
   })
-) as Partial<Record<SupportedTokenConfidentialityType, Hex>>;
+) as Partial<Record<SupportedTokenConfidentialityType, readonly Hex[]>>;
 
 export function isTokenConfidentialityType(value: string | undefined): value is TokenConfidentialityType {
   return typeof value === 'string' && value in TOKEN_TYPE_CONFIG;

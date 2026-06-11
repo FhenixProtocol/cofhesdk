@@ -56,7 +56,10 @@ export type Erc20Pair = {
 export type TokenWrapperKind = 'erc20' | 'native';
 export type TokenConfidentialValueType = 'uint64' | 'uint128';
 
-export function isTokenOperationSupported(type: string | undefined, operation: ConfidentialTokenSupportOperation): boolean {
+export function isTokenOperationSupported(
+  type: string | undefined,
+  operation: ConfidentialTokenSupportOperation
+): boolean {
   return isTokenConfidentialityType(type) && TOKEN_CONFIDENTIALITY_SUPPORT[type].operations[operation];
 }
 
@@ -199,5 +202,5 @@ const WETH_BASE_SEPOLIA_TOKEN: ConfidentialToken = normalizeToken({
 })!;
 export const DEFAULT_TOKEN_BY_CHAIN_ID: Record<number, ConfidentialToken> = {
   // [sepolia.id]: WETH_SEPOLIA_TOKEN,
-  [baseSepolia.id]: WETH_BASE_SEPOLIA_TOKEN,
+  // [baseSepolia.id]: WETH_BASE_SEPOLIA_TOKEN,
 };
