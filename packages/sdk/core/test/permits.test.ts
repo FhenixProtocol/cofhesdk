@@ -304,6 +304,33 @@ describe('Core Permits Tests', () => {
       expect(Object.keys(allPermits).length).toBe(2);
     });
 
+    it('should create a new self permit when active permit is expired', async () => {
+      // Create an expired self permit (expiration in the past)
+      const expiredPermit = await permits.createSelf(
+        { name: 'Expired Self Permit', issuer: bobAddress, expiration: Math.floor(Date.now() / 1000) - 3600 },
+        publicClient,
+        bobWalletClient
+      );
+
+      // Sanity check - it is the active permit and is expired
+      const activeBefore = await permits.getActivePermit(chainId, bobAddress);
+      expect(activeBefore?.hash).toBe(expiredPermit.hash);
+
+      // getOrCreateSelfPermit should treat the expired permit as missing and create a fresh one
+      const permit = await permits.getOrCreateSelfPermit(publicClient, bobWalletClient, chainId, bobAddress, {
+        issuer: bobAddress,
+        name: 'Fresh Self Permit',
+      });
+
+      expect(permit.name).toBe('Fresh Self Permit');
+      expect(permit.type).toBe('self');
+      expect(permit.hash).not.toBe(expiredPermit.hash);
+
+      // The fresh permit should now be active
+      const activeAfter = await permits.getActivePermit(chainId, bobAddress);
+      expect(activeAfter?.hash).toBe(permit.hash);
+    });
+
     it('should use default options when none provided', async () => {
       const permit = await permits.getOrCreateSelfPermit(publicClient, bobWalletClient, chainId, bobAddress);
 
@@ -410,6 +437,41 @@ describe('Core Permits Tests', () => {
       // Verify two permits exist now
       const allPermits = await permits.getPermits(chainId, bobAddress);
       expect(Object.keys(allPermits).length).toBe(2);
+    });
+
+    it('should create a new sharing permit when active permit is expired', async () => {
+      // Create an expired sharing permit (expiration in the past)
+      const expiredPermit = await permits.createSharing(
+        {
+          name: 'Expired Sharing Permit',
+          issuer: bobAddress,
+          recipient: aliceAddress,
+          expiration: Math.floor(Date.now() / 1000) - 3600,
+        },
+        publicClient,
+        bobWalletClient
+      );
+
+      // getOrCreateSharingPermit should treat the expired permit as missing and create a fresh one
+      const permit = await permits.getOrCreateSharingPermit(
+        publicClient,
+        bobWalletClient,
+        {
+          issuer: bobAddress,
+          recipient: aliceAddress,
+          name: 'Fresh Sharing Permit',
+        },
+        chainId,
+        bobAddress
+      );
+
+      expect(permit.name).toBe('Fresh Sharing Permit');
+      expect(permit.type).toBe('sharing');
+      expect(permit.hash).not.toBe(expiredPermit.hash);
+
+      // The fresh permit should now be active
+      const activeAfter = await permits.getActivePermit(chainId, bobAddress);
+      expect(activeAfter?.hash).toBe(permit.hash);
     });
 
     it('should use default chainId and account when not provided', async () => {
