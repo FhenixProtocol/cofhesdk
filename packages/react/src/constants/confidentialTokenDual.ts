@@ -93,6 +93,12 @@ export const DUAL_TOKEN_CONTRACTS = {
       abi: parseAbi(['function claimUnshielded(bytes32 ctHash, uint64 decryptedAmount, bytes decryptionProof)']),
       functionName: 'claimUnshielded' as const,
     },
+    all: {
+      abi: parseAbi([
+        'function claimUnshieldedBatch(bytes32[] ctHashes, uint64[] decryptedAmounts, bytes[] decryptionProofs)',
+      ]),
+      functionName: 'claimUnshieldedBatch' as const,
+    },
     query: {
       abi: [
         {

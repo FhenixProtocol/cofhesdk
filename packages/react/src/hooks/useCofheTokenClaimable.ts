@@ -242,3 +242,58 @@ export function useCofheTokenClaimable(
 
   return result;
 }
+
+type UseUnshieldClaimsListOptions = Omit<UseQueryOptions<UnshieldClaim[], Error>, 'queryKey' | 'queryFn'>;
+
+/**
+ * Hook returning the raw list of unclaimed unshield claims for a token (the per-claim
+ * breakdown the {@link useCofheTokenClaimable} summary is derived from).
+ */
+export function useCofheTokenClaims(
+  { accountAddress: account, token }: UseUnshieldClaimsInput,
+  queryOptions?: UseUnshieldClaimsListOptions
+): UseQueryResult<UnshieldClaim[], Error> {
+  const publicClient = useCofhePublicClient();
+
+  const confidentialityType = token?.extensions.fhenix.confidentialityType;
+
+  const queryKey = [
+    ...constructUnshieldClaimsQueryKey({
+      chainId: token?.chainId,
+      tokenAddress: token?.address,
+      confidentialityType,
+      accountAddress: account,
+    }),
+    'list',
+  ];
+
+  return useInternalQuery({
+    queryKey,
+    queryFn: withInvalidationContext<readonly unknown[], { blockHashToBeAwareOf: `0x${string}` }, UnshieldClaim[]>(
+      async ({ signal, invalidationContext }): Promise<UnshieldClaim[]> => {
+        assert(token, 'token is guaranteed to be defined in query function due to `enabled` condition');
+        assert(confidentialityType, 'token.confidentialityType is guaranteed to be defined in query function');
+        assert(account, 'account is guaranteed to be defined in query function due to `enabled` condition');
+        assert(publicClient, 'publicClient is guaranteed to be defined in query function due to `enabled` condition');
+        assert(
+          isTokenConfidentialityTypeClaimable(confidentialityType),
+          'confidentialityType is guaranteed to be claimable type due to `enabled` condition'
+        );
+
+        const claims = await fetchUnshieldClaims({
+          publicClient,
+          token,
+          accountAddress: account,
+          confidentialityType,
+          signal,
+          blockHashToBeAwareOf: invalidationContext?.blockHashToBeAwareOf,
+        });
+
+        return claims.filter((claim) => !claim.claimed);
+      }
+    ),
+    refetchOnMount: false,
+    enabled: !!publicClient && !!account && !!token && isTokenConfidentialityTypeClaimable(confidentialityType),
+    ...queryOptions,
+  });
+}

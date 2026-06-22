@@ -128,7 +128,7 @@ export const TOKEN_TYPE_CONFIG = {
     },
     contracts: DUAL_TOKEN_CONTRACTS,
     interfaceIds: ['0xbe4d657f'], // IERC20Confidential
-    claimSubmission: 'single',
+    claimSubmission: 'batch',
     claimSummaryAmount: 'requested',
   },
 } as const satisfies Record<string, ConfidentialTokenTypeConfig>;
