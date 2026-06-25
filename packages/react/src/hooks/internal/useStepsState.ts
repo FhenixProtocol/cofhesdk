@@ -46,7 +46,7 @@ export function useStepsState(): StepsState {
   }, []);
 
   const compactSteps = useMemo(
-    () => validateAndCompactizeSteps(currentKey ? (steps[currentKey] ?? []) : []),
+    () => validateAndCompactizeSteps(currentKey ? steps[currentKey] ?? [] : []),
     [steps, currentKey]
   );
 
