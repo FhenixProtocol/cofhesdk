@@ -46,11 +46,12 @@ export function useStepsState(): StepsState {
   }, []);
 
   const compactSteps = useMemo(
-    () => validateAndCompactizeSteps(currentKey ? steps[currentKey] : []),
+    () => validateAndCompactizeSteps(currentKey ? (steps[currentKey] ?? []) : []),
     [steps, currentKey]
   );
 
-  const lastStep = currentKey ? steps[currentKey][steps[currentKey].length - 1] : null;
+  const currentSteps = currentKey ? steps[currentKey] : undefined;
+  const lastStep = currentSteps?.length ? currentSteps[currentSteps.length - 1] : null;
 
   return {
     onStep,
