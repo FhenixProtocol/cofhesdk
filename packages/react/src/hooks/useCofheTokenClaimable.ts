@@ -190,6 +190,12 @@ type UseUnshieldClaimsOptions = Omit<UseQueryOptions<UnshieldClaimsSummary, Erro
 
 /**
  * Hook to fetch wrapped-token unshield claims.
+ *
+ * Returns an aggregate {@link UnshieldClaimsSummary} (totals only). The summary is
+ * derived from the same per-claim list that {@link useCofheTokenClaims} exposes —
+ * both share `fetchUnshieldClaims`/`constructUnshieldClaimsQueryKey`. Use this hook
+ * for totals; use {@link useCofheTokenClaims} when you need the individual claims.
+ *
  * @param input - Token object and optional account address
  * @param queryOptions - Optional React Query options
  * @returns Query result with UnshieldClaimsSummary
@@ -248,6 +254,12 @@ type UseUnshieldClaimsListOptions = Omit<UseQueryOptions<UnshieldClaim[], Error>
 /**
  * Hook returning the raw list of unclaimed unshield claims for a token (the per-claim
  * breakdown the {@link useCofheTokenClaimable} summary is derived from).
+ *
+ * Not a duplicate of {@link useCofheTokenClaimable}: that hook collapses these claims
+ * into aggregate totals, whereas this one surfaces the individual claims (amount,
+ * claimed/pending state, ctHash) needed for batch claiming and detailed claim views.
+ * Both share `fetchUnshieldClaims`/`constructUnshieldClaimsQueryKey`; this hook appends
+ * `'list'` to the key so the list and summary cache as separate entries.
  */
 export function useCofheTokenClaims(
   { accountAddress: account, token }: UseUnshieldClaimsInput,
