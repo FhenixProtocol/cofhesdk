@@ -190,6 +190,12 @@ type UseUnshieldClaimsOptions = Omit<UseQueryOptions<UnshieldClaimsSummary, Erro
 
 /**
  * Hook to fetch wrapped-token unshield claims.
+ *
+ * Returns an aggregate {@link UnshieldClaimsSummary} (totals only). The summary is
+ * derived from the same per-claim list that {@link useCofheTokenClaims} exposes —
+ * both share `fetchUnshieldClaims`/`constructUnshieldClaimsQueryKey`. Use this hook
+ * for totals; use {@link useCofheTokenClaims} when you need the individual claims.
+ *
  * @param input - Token object and optional account address
  * @param queryOptions - Optional React Query options
  * @returns Query result with UnshieldClaimsSummary
@@ -241,4 +247,65 @@ export function useCofheTokenClaimable(
   });
 
   return result;
+}
+
+type UseUnshieldClaimsListOptions = Omit<UseQueryOptions<UnshieldClaim[], Error>, 'queryKey' | 'queryFn'>;
+
+/**
+ * Hook returning the raw list of unclaimed unshield claims for a token (the per-claim
+ * breakdown the {@link useCofheTokenClaimable} summary is derived from).
+ *
+ * Not a duplicate of {@link useCofheTokenClaimable}: that hook collapses these claims
+ * into aggregate totals, whereas this one surfaces the individual claims (amount,
+ * claimed/pending state, ctHash) needed for batch claiming and detailed claim views.
+ * Both share `fetchUnshieldClaims`/`constructUnshieldClaimsQueryKey`; this hook appends
+ * `'list'` to the key so the list and summary cache as separate entries.
+ */
+export function useCofheTokenClaims(
+  { accountAddress: account, token }: UseUnshieldClaimsInput,
+  queryOptions?: UseUnshieldClaimsListOptions
+): UseQueryResult<UnshieldClaim[], Error> {
+  const publicClient = useCofhePublicClient();
+
+  const confidentialityType = token?.extensions.fhenix.confidentialityType;
+
+  const queryKey = [
+    ...constructUnshieldClaimsQueryKey({
+      chainId: token?.chainId,
+      tokenAddress: token?.address,
+      confidentialityType,
+      accountAddress: account,
+    }),
+    'list',
+  ];
+
+  return useInternalQuery({
+    queryKey,
+    queryFn: withInvalidationContext<readonly unknown[], { blockHashToBeAwareOf: `0x${string}` }, UnshieldClaim[]>(
+      async ({ signal, invalidationContext }): Promise<UnshieldClaim[]> => {
+        assert(token, 'token is guaranteed to be defined in query function due to `enabled` condition');
+        assert(confidentialityType, 'token.confidentialityType is guaranteed to be defined in query function');
+        assert(account, 'account is guaranteed to be defined in query function due to `enabled` condition');
+        assert(publicClient, 'publicClient is guaranteed to be defined in query function due to `enabled` condition');
+        assert(
+          isTokenConfidentialityTypeClaimable(confidentialityType),
+          'confidentialityType is guaranteed to be claimable type due to `enabled` condition'
+        );
+
+        const claims = await fetchUnshieldClaims({
+          publicClient,
+          token,
+          accountAddress: account,
+          confidentialityType,
+          signal,
+          blockHashToBeAwareOf: invalidationContext?.blockHashToBeAwareOf,
+        });
+
+        return claims.filter((claim) => !claim.claimed);
+      }
+    ),
+    refetchOnMount: false,
+    enabled: !!publicClient && !!account && !!token && isTokenConfidentialityTypeClaimable(confidentialityType),
+    ...queryOptions,
+  });
 }

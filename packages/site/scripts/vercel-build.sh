@@ -15,7 +15,11 @@ if ! command -v forge >/dev/null 2>&1; then
   echo "[vercel-build] Installing Foundry (forge)" >&2
   curl -L https://foundry.paradigm.xyz | bash
   export PATH="$HOME/.foundry/bin:$PATH"
-  foundryup
+  # --force skips foundryup's attestation/SHA verification step. That step parses
+  # the attestation artifact via bash process substitution (/dev/fd/63), which is
+  # unavailable in Vercel's build sandbox and fails the build (Foundry >= v1.7.1).
+  # Binaries are fetched over HTTPS from the official Foundry GitHub releases.
+  foundryup --force
 else
   echo "[vercel-build] Foundry already available" >&2
 fi
