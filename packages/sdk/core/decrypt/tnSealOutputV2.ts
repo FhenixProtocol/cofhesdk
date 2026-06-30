@@ -1,4 +1,5 @@
 import { type Permission, type EthEncryptedData } from '@/permits';
+import { cofheFetch } from '../debug.js';
 
 import { CofheError, CofheErrorCode } from '../error.js';
 import { type DecryptPollCallbackFunction } from '../types.js';
@@ -150,13 +151,16 @@ async function submitSealOutputRequest(
   for (;;) {
     let response: Response;
     try {
-      response = await fetch(`${thresholdNetworkUrl}/v2/sealoutput`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-      });
+      response = await cofheFetch(
+        `${thresholdNetworkUrl}/v2/sealoutput`,
+        /*op:sealoutput*/ {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(body),
+        }
+      );
     } catch (e) {
       throw new CofheError({
         code: CofheErrorCode.SealOutputFailed,
@@ -303,12 +307,15 @@ async function pollSealOutputStatus(
 
     let response: Response;
     try {
-      response = await fetch(`${thresholdNetworkUrl}/v2/sealoutput/${requestId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      response = await cofheFetch(
+        `${thresholdNetworkUrl}/v2/sealoutput/${requestId}`,
+        /*op:sealoutput-poll*/ {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
     } catch (e) {
       throw new CofheError({
         code: CofheErrorCode.SealOutputFailed,
