@@ -6,6 +6,7 @@ import { getTokenTypeContracts } from '../constants/tokenTypeConfig';
 import { assert } from 'ts-essentials';
 import { formatTokenAmount, type TokenFormatOutput } from '@/utils/format';
 import { useCofheReadContractAndDecrypt } from './useCofheReadContractAndDecrypt';
+import type { CofheDecryptMeta } from '@/meta';
 
 // ============================================================================
 // Unified Confidential Balance Hook
@@ -18,6 +19,11 @@ type UseConfidentialTokenBalanceInput = {
   accountAddress?: Address;
   /** Display decimals for formatting (default: 5) */
   displayDecimals?: number;
+  /**
+   * Consumer metadata for debug/activity views. `label` defaults to the token
+   * symbol when omitted; any extra fields are carried onto the decryption card.
+   */
+  meta?: CofheDecryptMeta;
 };
 
 type UseConfidentialTokenBalanceOptions = Omit<UseQueryOptions<bigint, Error>, 'queryKey' | 'queryFn' | 'select'> & {
@@ -32,6 +38,10 @@ type UseConfidentialTokenBalanceResult = {
   /** Refetch function */
   refetch: () => Promise<unknown>;
   disabledDueToMissingValidPermit: boolean;
+  /** The on-chain ctHash read is currently failing. */
+  isReadError: boolean;
+  /** A balance is shown but the read that produced it is currently failing (stale). */
+  isValueStale: boolean;
 };
 
 /**
@@ -42,7 +52,7 @@ type UseConfidentialTokenBalanceResult = {
  * @returns Balance data with raw bigint, formatted string, numeric value, loading state, and refetch function
  */
 export function useCofheTokenDecryptedBalance(
-  { token, accountAddress, displayDecimals = 5 }: UseConfidentialTokenBalanceInput,
+  { token, accountAddress, displayDecimals = 5, meta }: UseConfidentialTokenBalanceInput,
   options?: UseConfidentialTokenBalanceOptions
 ): UseConfidentialTokenBalanceResult {
   const { enabled: userEnabled = true, ...restOptions } = options ?? {};
@@ -50,10 +60,15 @@ export function useCofheTokenDecryptedBalance(
   const contractConfig =
     token && getTokenTypeContracts(token.extensions.fhenix.confidentialityType).confidentialBalance;
 
+  // Recognition label defaults to the token symbol; consumer overrides win.
+  const decryptMeta: CofheDecryptMeta = { label: token?.symbol, ...meta };
+
   const {
     decrypted: { data: decryptedData, isFetching: isDecryptionFetching },
     encrypted: { isFetching: isEncryptedFetching, refetch: refetchCiphertext },
     disabledDueToMissingValidPermit,
+    isReadError,
+    isValueStale,
   } = useCofheReadContractAndDecrypt(
     {
       address: token?.address,
@@ -77,6 +92,7 @@ export function useCofheTokenDecryptedBalance(
           return formatTokenAmount(amountWei, token.decimals, displayDecimals);
         },
       },
+      meta: decryptMeta,
       ...restOptions,
     }
   );
@@ -88,5 +104,7 @@ export function useCofheTokenDecryptedBalance(
 
     isFetching: isDecryptionFetching || isEncryptedFetching,
     refetch: refetchCiphertext,
+    isReadError,
+    isValueStale,
   };
 }

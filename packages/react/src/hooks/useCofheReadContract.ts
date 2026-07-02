@@ -138,10 +138,19 @@ export function createCofheReadContractQueryOptions<
     queryOptions,
   } = params;
 
-  const { enabled: _ignoredEnabled, ...restQueryOptions } = queryOptions || {};
+  const { enabled: _ignoredEnabled, meta: optionMeta, ...restQueryOptions } = queryOptions || {};
 
   return {
     enabled,
+    // Recognition metadata for observers (debug panels / activity hook): the
+    // contract + method, without them having to parse the query key.
+    meta: {
+      kind: 'cofheRead',
+      chainId: cofheChainId,
+      address,
+      functionName,
+      ...optionMeta,
+    },
     queryKey: constructCofheReadContractQueryKey({
       cofheChainId,
       address,
