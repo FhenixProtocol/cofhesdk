@@ -122,6 +122,8 @@ export type { CofheConfigWithReact as CofhesdkConfigWithReact } from './config';
 export type { CofheStatus, CofheStatusActionIntent, CofheStatusId } from './components/CofheFloatingButton/types';
 export type { ConfidentialToken } from './types/token';
 
+export type { CofheDecryptMeta, CofheQueryMeta } from './meta';
+
 export { useInternalQueryClient } from './providers/index';
 
 // Type bridges for cross-repo / multi-instance viem peer dependency scenarios
