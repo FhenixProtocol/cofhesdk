@@ -124,6 +124,17 @@ export type { ConfidentialToken } from './types/token';
 
 export type { CofheDecryptMeta, CofheQueryMeta } from './meta';
 
+export { useCofheDecryptionActivity } from '@/hooks/useCofheDecryptionActivity';
+export type {
+  DecryptionActivityRow,
+  DecryptionActivityResult,
+  DecryptionActivityCategory,
+  UseCofheDecryptionActivityOptions,
+  FetchStageState,
+  DecryptStageState,
+  PermitState,
+} from '@/hooks/useCofheDecryptionActivity';
+
 export { useInternalQueryClient } from './providers/index';
 
 // Type bridges for cross-repo / multi-instance viem peer dependency scenarios
