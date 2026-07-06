@@ -69,6 +69,7 @@ export function useCofheTokenDecryptedBalance(
     disabledDueToMissingValidPermit,
     isReadError,
     isValueStale,
+    isKnownZero,
   } = useCofheReadContractAndDecrypt(
     {
       address: token?.address,
@@ -97,10 +98,14 @@ export function useCofheTokenDecryptedBalance(
     }
   );
 
+  // A 0 handle is a known-zero balance (no ciphertext to decrypt) — return a formatted 0 so callers
+  // don't mistake the absent decrypted value for a fault.
+  const data = isKnownZero && token ? formatTokenAmount(0n, token.decimals, displayDecimals) : decryptedData;
+
   return {
     disabledDueToMissingValidPermit,
 
-    data: decryptedData,
+    data,
 
     isFetching: isDecryptionFetching || isEncryptedFetching,
     refetch: refetchCiphertext,
