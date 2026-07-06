@@ -85,6 +85,8 @@ export function useCofheReadContractAndDecrypt<
   isReadError: boolean;
   /** A value is present but the read that produced it is currently failing. */
   isValueStale: boolean;
+  /** The read succeeded and the handle is 0 — a *known zero* value, with no ciphertext to decrypt. */
+  isKnownZero: boolean;
 } {
   const { address, abi, functionName, args, requiresPermit = true } = params;
   const queryClient = useInternalQueryClient();
@@ -108,6 +110,11 @@ export function useCofheReadContractAndDecrypt<
 
   const currentCtHash = asEncryptedReturnType?.ctHash?.toString();
   const currentUtype = asEncryptedReturnType?.utype;
+
+  // A read that succeeds with a 0 handle is a known zero — there is no ciphertext, so the decrypt
+  // query stays disabled (see useCofheDecrypt) and never yields a value. Surface it explicitly so
+  // callers render a clear `0` instead of mistaking the absent value for a fault.
+  const isKnownZero = asEncryptedReturnType != null && BigInt(asEncryptedReturnType.ctHash) === 0n;
 
   // Evict a superseded decrypt (a ctHash that is no longer the active input, e.g.
   // because the read now errors or produced a different handle) so it can't linger
@@ -142,5 +149,6 @@ export function useCofheReadContractAndDecrypt<
     disabledDueToMissingValidPermit: encrypted.disabledDueToMissingValidPermit,
     isReadError,
     isValueStale,
+    isKnownZero,
   };
 }
