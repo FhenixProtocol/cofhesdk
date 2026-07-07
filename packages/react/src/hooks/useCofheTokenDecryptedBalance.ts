@@ -40,6 +40,8 @@ type UseConfidentialTokenBalanceResult = {
   disabledDueToMissingValidPermit: boolean;
   /** The on-chain ctHash read is currently failing. */
   isReadError: boolean;
+  /** The decryption's latest outcome is an error; any stale decrypted value is withheld from `data`. */
+  isDecryptError: boolean;
   /** A balance is shown but the read that produced it is currently failing (stale). */
   isValueStale: boolean;
 };
@@ -68,6 +70,7 @@ export function useCofheTokenDecryptedBalance(
     encrypted: { isFetching: isEncryptedFetching, refetch: refetchCiphertext },
     disabledDueToMissingValidPermit,
     isReadError,
+    isDecryptError,
     isValueStale,
     isKnownZero,
   } = useCofheReadContractAndDecrypt(
@@ -99,17 +102,21 @@ export function useCofheTokenDecryptedBalance(
   );
 
   // A 0 handle is a known-zero balance (no ciphertext to decrypt) — return a formatted 0 so callers
-  // don't mistake the absent decrypted value for a fault.
+  // don't mistake the absent decrypted value for a fault. When the decrypt itself is faulted, drop
+  // any stale decrypted value: react-query keeps the last success across a failed refetch, so
+  // returning it would render a faulted balance as if it were current. `data === undefined` then
+  // unambiguously means "no trustworthy value" (pending or faulted).
   const data = isKnownZero && token ? formatTokenAmount(0n, token.decimals, displayDecimals) : decryptedData;
 
   return {
     disabledDueToMissingValidPermit,
 
-    data,
+    data: isDecryptError ? undefined : data,
 
     isFetching: isDecryptionFetching || isEncryptedFetching,
     refetch: refetchCiphertext,
     isReadError,
+    isDecryptError,
     isValueStale,
   };
 }
