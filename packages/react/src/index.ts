@@ -19,6 +19,7 @@ export {
   useCofheSimulateWriteContract,
   useCofheStatuses,
   useCofheTokenClaimable,
+  useCofheTokenClaims,
   useCofheTokenApprove,
   useCofheTokenClaimUnshielded,
   useCofheTokenDecryptedBalance,

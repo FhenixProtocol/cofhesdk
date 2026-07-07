@@ -24,7 +24,7 @@ export {
   type TokenApproveExtras,
   type UseCofheTokenApproveOptions,
 } from './useCofheTokenApprove';
-export { useCofheTokenClaimable, type UnshieldClaimsSummary } from './useCofheTokenClaimable';
+export { useCofheTokenClaimable, useCofheTokenClaims, type UnshieldClaimsSummary } from './useCofheTokenClaimable';
 export { getCofheTokenClaimUnshieldedCallArgs, useCofheTokenClaimUnshielded } from './useCofheTokenClaimUnshielded';
 export { useCofheTokenDecryptedBalance } from './useCofheTokenDecryptedBalance';
 export { useCofheTokenPublicBalance } from './useCofheTokenPublicBalance';
