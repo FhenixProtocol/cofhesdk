@@ -138,8 +138,33 @@ export type {
 export { useInternalQueryClient } from './providers/index';
 
 // Type bridges for cross-repo / multi-instance viem peer dependency scenarios
-export { asCofhePublicClient, asCofheWalletClient } from './utils/viemClientBridge';
+export { asCofhePublicClient, tryAsCofhePublicClient, asCofheWalletClient, tryAsCofheWalletClient } from './utils/viemClientBridge';
 export type {
   PublicClientLike as CofhePublicClientLike,
   WalletClientLike as CofheWalletClientLike,
 } from './utils/viemClientBridge';
+
+// Block-aware cache invalidation primitives.
+//
+// These are the building blocks behind the SDK's own "wait until the serving RPC
+// node has the mined block before returning a read" behaviour. They are exported
+// so consumers (e.g. a wagmi-based app) can build the same reliability into their
+// own reads + post-tx invalidation, sharing THIS module's single invalidation-
+// context store — so an invalidation registered here is honoured by both the
+// SDK's confidential reads and the consumer's own block-aware queries.
+export {
+  invalidateQueriesWithContext,
+  withInvalidationContext,
+  findMatchingInvalidationContext,
+  consumeInvalidationContext,
+  type InvalidationContextQueryFilters,
+  type QueryFunctionWithInvalidationContext,
+} from './utils/invalidationContext';
+export {
+  maybeWaitUntilRpcAware,
+  maybeWaitUntilRpcAwareAndReadContract,
+  type WaitUntilRpcAwareAndReadContractOptions,
+  type ReadContractResult,
+} from './utils/waitUntilRpcAwareAndReadContract';
+export { resolveReceiptBlockHash } from './utils/resolveReceiptBlockHash';
+export { useInvalidationContextStore, type InvalidationContextEntry } from './stores/invalidationContextStore';
