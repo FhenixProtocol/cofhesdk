@@ -138,7 +138,12 @@ export type {
 export { useInternalQueryClient } from './providers/index';
 
 // Type bridges for cross-repo / multi-instance viem peer dependency scenarios
-export { asCofhePublicClient, tryAsCofhePublicClient, asCofheWalletClient, tryAsCofheWalletClient } from './utils/viemClientBridge';
+export {
+  asCofhePublicClient,
+  tryAsCofhePublicClient,
+  asCofheWalletClient,
+  tryAsCofheWalletClient,
+} from './utils/viemClientBridge';
 export type {
   PublicClientLike as CofhePublicClientLike,
   WalletClientLike as CofheWalletClientLike,
