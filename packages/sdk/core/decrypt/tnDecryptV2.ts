@@ -1,4 +1,5 @@
 import { type Permission } from '@/permits';
+import { cofheFetch } from '../debug.js';
 
 import { CofheError, CofheErrorCode } from '../error';
 import { type DecryptPollCallbackFunction } from '../types';
@@ -200,13 +201,16 @@ async function submitDecryptRequestV2(
   for (;;) {
     let response: Response;
     try {
-      response = await fetch(`${thresholdNetworkUrl}/v2/decrypt`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-      });
+      response = await cofheFetch(
+        `${thresholdNetworkUrl}/v2/decrypt`,
+        /*op:decrypt*/ {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(body),
+        }
+      );
     } catch (e) {
       throw new CofheError({
         code: CofheErrorCode.DecryptFailed,
@@ -352,12 +356,15 @@ async function pollDecryptStatusV2(
 
     let response: Response;
     try {
-      response = await fetch(`${thresholdNetworkUrl}/v2/decrypt/${requestId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      response = await cofheFetch(
+        `${thresholdNetworkUrl}/v2/decrypt/${requestId}`,
+        /*op:decrypt-poll*/ {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
     } catch (e) {
       throw new CofheError({
         code: CofheErrorCode.DecryptFailed,
