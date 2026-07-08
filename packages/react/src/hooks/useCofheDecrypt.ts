@@ -3,6 +3,7 @@ import { CofheError, FheTypes, type DecryptPollCallbackFunction, type UnsealedIt
 import type { UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
 import { assert } from 'ts-essentials';
 import type { EncryptedReturnTypeByUtype } from '@cofhe/abi';
+import type { CofheDecryptMeta } from '@/meta';
 
 /**
  * Hook to decrypt a ciphertext using the Cofhe client.
@@ -15,15 +16,21 @@ export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<
   {
     input,
     onPoll,
+    meta,
+    context,
   }: {
     input?: EncryptedReturnTypeByUtype<U>;
     onPoll?: DecryptPollCallbackFunction;
+    /** Consumer-supplied metadata for debug/activity views. */
+    meta?: CofheDecryptMeta;
+    /** Structural context from the originating read (address/method), for recognition. */
+    context?: { chainId?: number; address?: string; functionName?: string };
   },
   queryOptions?: Omit<UseQueryOptions<UnsealedItem<U>, Error, TSeletedData>, 'queryKey' | 'queryFn'>
 ): UseQueryResult<TSeletedData, Error> {
   const { client } = useCofheContext();
 
-  const { enabled: userEnabled, ...restQueryOptions } = queryOptions || {};
+  const { enabled: userEnabled, meta: optionMeta, ...restQueryOptions } = queryOptions || {};
   const enabled = !!input && BigInt(input.ctHash) > 0n && !!client && (userEnabled ?? true);
 
   return useInternalQuery({
@@ -37,6 +44,13 @@ export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<
     },
     meta: {
       persist: true,
+      kind: 'cofheDecrypt',
+      ctHash: input?.ctHash?.toString(),
+      chainId: context?.chainId,
+      address: context?.address,
+      functionName: context?.functionName,
+      consumer: meta,
+      ...optionMeta,
     },
     ...restQueryOptions,
     retry: (failureCount, error) => {
