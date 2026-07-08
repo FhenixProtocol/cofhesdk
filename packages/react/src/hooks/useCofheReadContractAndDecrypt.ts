@@ -83,8 +83,12 @@ export function useCofheReadContractAndDecrypt<
   disabledDueToMissingValidPermit: boolean;
   /** The read's latest outcome is an error (its cached ctHash, if any, is stale). */
   isReadError: boolean;
+  /** The decryption's latest outcome is an error (any cached decrypted value is stale). */
+  isDecryptError: boolean;
   /** A value is present but the read that produced it is currently failing. */
   isValueStale: boolean;
+  /** The read succeeded and the handle is 0 — a *known zero* value, with no ciphertext to decrypt. */
+  isKnownZero: boolean;
 } {
   const { address, abi, functionName, args, requiresPermit = true } = params;
   const queryClient = useInternalQueryClient();
@@ -108,6 +112,11 @@ export function useCofheReadContractAndDecrypt<
 
   const currentCtHash = asEncryptedReturnType?.ctHash?.toString();
   const currentUtype = asEncryptedReturnType?.utype;
+
+  // A read that succeeds with a 0 handle is a known zero — there is no ciphertext, so the decrypt
+  // query stays disabled (see useCofheDecrypt) and never yields a value. Surface it explicitly so
+  // callers render a clear `0` instead of mistaking the absent value for a fault.
+  const isKnownZero = asEncryptedReturnType != null && BigInt(asEncryptedReturnType.ctHash) === 0n;
 
   // Evict a superseded decrypt (a ctHash that is no longer the active input, e.g.
   // because the read now errors or produced a different handle) so it can't linger
@@ -136,11 +145,19 @@ export function useCofheReadContractAndDecrypt<
     decryptingQueryOptions
   );
 
+  // The decryption's latest outcome is an error. Mirrors `isReadError` for the ctHash read:
+  // react-query keeps the last successful `data` across a failed refetch, so `errorUpdatedAt >
+  // dataUpdatedAt` is the unambiguous "the most recent decrypt attempt errored" — regardless of
+  // whether a stale value is still cached.
+  const isDecryptError = decrypted.errorUpdatedAt > decrypted.dataUpdatedAt;
+
   return {
     encrypted,
     decrypted,
     disabledDueToMissingValidPermit: encrypted.disabledDueToMissingValidPermit,
     isReadError,
+    isDecryptError,
     isValueStale,
+    isKnownZero,
   };
 }

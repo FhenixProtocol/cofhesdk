@@ -178,10 +178,28 @@ export function useCofheDecryptionActivity(options?: UseCofheDecryptionActivityO
 
   // Re-render on cache changes AND on a slow tick (staleness is time-based, not
   // event-driven — a query sitting pending emits no cache events).
+  //
+  // Coalesce cache events to one bump per animation frame. `cache.subscribe` fires
+  // synchronously on EVERY cache event (including observer option/result updates),
+  // and a consumer re-render can itself emit fresh cache events — an unbounded
+  // bump→render→event→bump storm that pins the main thread and starves unrelated
+  // updates (e.g. a route change never commits). One bump per frame keeps the view
+  // live while capping re-renders so the loop can't run away.
   const [version, bump] = useReducer((n: number) => n + 1, 0);
   useEffect(() => {
     const cache = queryClient.getQueryCache();
-    const unsub = cache.subscribe(() => bump());
+    let scheduled = false;
+    const schedule = () => {
+      if (scheduled) return;
+      scheduled = true;
+      const run = () => {
+        scheduled = false;
+        bump();
+      };
+      if (typeof requestAnimationFrame === 'function') requestAnimationFrame(run);
+      else setTimeout(run, 16);
+    };
+    const unsub = cache.subscribe(schedule);
     const tick = setInterval(bump, 5_000);
     return () => {
       unsub();
