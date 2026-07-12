@@ -18,11 +18,11 @@ pnpm add @cofhe/react @cofhe/sdk
 import { CofheProvider } from '@cofhe/react';
 import { createCofheClient } from '@cofhe/sdk/web';
 
-const client = createCofheClient(config);
+const cofheClient = createCofheClient(config);
 
 function App() {
   return (
-    <CofheProvider client={client}>
+    <CofheProvider cofheClient={cofheClient}>
       <YourApp />
     </CofheProvider>
   );
