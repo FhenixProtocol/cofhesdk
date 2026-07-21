@@ -13,7 +13,10 @@ describe('Ethers5Adapter', () => {
   beforeEach(() => {
     // Create common setup for all tests
     provider = new ethers5.providers.JsonRpcProvider(testRpcUrl);
-    wallet = new ethers5.Wallet('0x' + '1'.repeat(64), provider);
+    // Fresh random key each run → a guaranteed-empty account (0 balance, nonce 0), so the
+    // sendTransaction test deterministically fails with "insufficient funds". The old shared
+    // 0x11…11 key is funded and heavily used on Sepolia, so its tx failed with other errors.
+    wallet = new ethers5.Wallet(ethers5.Wallet.createRandom().privateKey, provider);
   });
 
   it('should work with real JsonRpcProvider and Wallet', async () => {
