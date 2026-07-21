@@ -33,9 +33,9 @@ const storeActivePermit = async (permit: Permit, publicClient: any, walletClient
 };
 
 // Generic function to handle permit creation with error handling.
-// `activate` controls whether the new permit becomes the issuer's active permit — true for self
-// permits (the issuer uses them to decrypt their own balances), false for sharing permits (those
-// are granted to a recipient and must not hijack the issuer's active permit).
+// `activate` controls whether the new permit becomes the issuer's active permit — true for
+// self/imported permits (the connected user decrypts with them), false for sharing permits (those
+// are delegated to a recipient and are never the issuer's own active permit).
 const createPermitWithSign = async <T, TPermit extends Permit>(
   options: T,
   publicClient: PublicClient,
@@ -71,13 +71,11 @@ const createSelf = async (
 const createSharing = async (
   options: CreateSharingPermitOptions,
   publicClient: PublicClient,
-  walletClient: WalletClient,
-  // Default to NOT activating — a delegated permit is for the recipient, so creating one from the
-  // UI must not change the issuer's own active permit. Callers that genuinely want it active
-  // (e.g. getOrCreateSharingPermit) pass `activate: true`.
-  activate = false
+  walletClient: WalletClient
 ): Promise<SharingPermit> => {
-  return createPermitWithSign(options, publicClient, walletClient, PermitUtils.createSharingAndSign, activate);
+  // A sharing permit is delegated to a recipient — it is never the issuer's own active permit, so
+  // creating one only stores it (unlike self/imported permits, which activate).
+  return createPermitWithSign(options, publicClient, walletClient, PermitUtils.createSharingAndSign, false);
 };
 
 const importShared = async (
@@ -166,18 +164,19 @@ const getOrCreateSelfPermit = async (
 };
 
 /**
- * Get the active sharing permit if a valid one exists, otherwise create a new one.
+ * Return the active permit if it is already a valid sharing permit, otherwise create and store a
+ * new sharing permit.
  *
- * An active permit is reused only when it is a sharing permit and is still valid
- * (signed and not expired). An expired or otherwise invalid active permit is
- * treated as missing and a fresh permit is created.
+ * The newly created permit is NOT activated: a sharing permit is delegated to a recipient and is
+ * never the issuer's own active permit. (The existing-active branch only matches if a sharing
+ * permit was made active by other means, e.g. `selectActivePermit`.)
  *
  * @param publicClient - The public client
  * @param walletClient - The wallet client
  * @param options - The options for creating a sharing permit (required)
  * @param chainId - Optional chain ID (will use publicClient if not provided)
  * @param account - Optional account (will use walletClient if not provided)
- * @returns The existing valid permit or a newly created one
+ * @returns The existing valid active sharing permit, or a newly created (unactivated) one
  */
 const getOrCreateSharingPermit = async (
   publicClient: PublicClient,
@@ -196,8 +195,7 @@ const getOrCreateSharingPermit = async (
     return activePermit;
   }
 
-  // This explicitly wants an active sharing permit, so activate the newly-created one.
-  return createSharing(options, publicClient, walletClient, true);
+  return createSharing(options, publicClient, walletClient);
 };
 
 // REMOVE

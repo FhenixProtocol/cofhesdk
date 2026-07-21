@@ -377,14 +377,15 @@ describe('Core Permits Tests', () => {
       expect(permit.recipient).toBe(aliceAddress);
       expect(permit.issuerSignature).toBeDefined();
 
-      // Verify it was stored and set as active
-      const activePermit = await permits.getActivePermit(chainId, bobAddress);
-      expect(activePermit?.name).toBe('New Sharing Permit');
+      // Stored but NOT activated — a sharing permit is delegated, never the issuer's active permit.
+      const allPermits = await permits.getPermits(chainId, bobAddress);
+      expect(allPermits[permit.hash]?.name).toBe('New Sharing Permit');
+      expect(await permits.getActivePermit(chainId, bobAddress)).toBeUndefined();
     });
 
     it('should return existing sharing permit when one exists', async () => {
-      // Create an initial sharing permit AND activate it (getOrCreateSharingPermit only reuses the
-      // ACTIVE sharing permit; a plain delegated permit is intentionally not activated).
+      // Create an initial sharing permit, then make it active by hand (sharing permits are not
+      // auto-activated), so getOrCreateSharingPermit reuses it instead of creating another.
       const firstPermit = await permits.createSharing(
         {
           name: 'First Sharing Permit',
@@ -392,9 +393,9 @@ describe('Core Permits Tests', () => {
           recipient: aliceAddress,
         },
         publicClient,
-        bobWalletClient,
-        true
+        bobWalletClient
       );
+      permits.selectActivePermit(chainId, bobAddress, firstPermit.hash);
 
       // Call getOrCreateSharingPermit - should return existing
       const permit = await permits.getOrCreateSharingPermit(
@@ -443,7 +444,8 @@ describe('Core Permits Tests', () => {
     });
 
     it('should create a new sharing permit when active permit is expired', async () => {
-      // Create an expired sharing permit (expiration in the past)
+      // Create an expired sharing permit and make it the active permit (by hand — sharing permits
+      // aren't auto-activated), so the "active permit is expired" branch is exercised.
       const expiredPermit = await permits.createSharing(
         {
           name: 'Expired Sharing Permit',
@@ -454,6 +456,7 @@ describe('Core Permits Tests', () => {
         publicClient,
         bobWalletClient
       );
+      permits.selectActivePermit(chainId, bobAddress, expiredPermit.hash);
 
       // getOrCreateSharingPermit should treat the expired permit as missing and create a fresh one
       const permit = await permits.getOrCreateSharingPermit(
@@ -472,9 +475,9 @@ describe('Core Permits Tests', () => {
       expect(permit.type).toBe('sharing');
       expect(permit.hash).not.toBe(expiredPermit.hash);
 
-      // The fresh permit should now be active
-      const activeAfter = await permits.getActivePermit(chainId, bobAddress);
-      expect(activeAfter?.hash).toBe(permit.hash);
+      // The fresh sharing permit is stored (but not auto-activated).
+      const allPermits = await permits.getPermits(chainId, bobAddress);
+      expect(allPermits[permit.hash]).toBeDefined();
     });
 
     it('should use default chainId and account when not provided', async () => {
@@ -494,9 +497,9 @@ describe('Core Permits Tests', () => {
       expect(permit.issuer).toBe(bobAddress);
       expect(permit.recipient).toBe(aliceAddress);
 
-      // Verify it was stored with the chain's actual chainId
-      const activePermit = await permits.getActivePermit(chainId, bobAddress);
-      expect(activePermit?.name).toBe('Test Sharing Permit');
+      // Stored under the connected wallet's chainId/account (not activated).
+      const allPermits = await permits.getPermits(chainId, bobAddress);
+      expect(allPermits[permit.hash]?.name).toBe('Test Sharing Permit');
     });
   });
 
@@ -542,15 +545,15 @@ describe('Core Permits Tests', () => {
   });
 
   describe('getOrCreate - Multiple Types Scenarios', () => {
-    it('should handle switching between self and sharing permits', async () => {
-      // Create self permit
+    it('should keep the self permit active when a sharing permit is also created', async () => {
+      // Create self permit (this one activates)
       const selfPermit = await permits.getOrCreateSelfPermit(publicClient, bobWalletClient, chainId, bobAddress, {
         issuer: bobAddress,
         name: 'Self Permit',
       });
       expect(selfPermit.type).toBe('self');
 
-      // Create sharing permit (should create new one)
+      // Create sharing permit (creates a new one, but does NOT activate it)
       const sharingPermit = await permits.getOrCreateSharingPermit(
         publicClient,
         bobWalletClient,
@@ -568,10 +571,10 @@ describe('Core Permits Tests', () => {
       const allPermits = await permits.getPermits(chainId, bobAddress);
       expect(Object.keys(allPermits).length).toBe(2);
 
-      // Active permit should be the sharing one
+      // The active permit stays the self permit — creating the sharing permit doesn't hijack it.
       const activePermit = await permits.getActivePermit(chainId, bobAddress);
-      expect(activePermit?.type).toBe('sharing');
-      expect(activePermit?.name).toBe('Sharing Permit');
+      expect(activePermit?.type).toBe('self');
+      expect(activePermit?.name).toBe('Self Permit');
     });
 
     it('should correctly handle sequential getOrCreate calls', async () => {
