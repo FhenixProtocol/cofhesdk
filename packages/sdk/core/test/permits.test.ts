@@ -96,12 +96,13 @@ describe('Core Permits Tests', () => {
       expect(permit.issuerSignature).toBeDefined();
       expect(permit.issuerSignature).not.toBe('0x');
 
-      // Verify localStorage
+      // Verify localStorage: the sharing permit is stored, but it must NOT become the issuer's
+      // active permit (it's delegated to the recipient).
       const storedData = localStorage.getItem('cofhesdk-permits');
       expect(storedData).toBeDefined();
       const parsedData = JSON.parse(storedData!);
       expect(parsedData.state.permits[chainId][bobAddress]).toBeDefined();
-      expect(parsedData.state.activePermitHash[chainId][bobAddress]).toBeDefined();
+      expect(parsedData.state.activePermitHash[chainId]?.[bobAddress]).toBeUndefined();
     });
 
     it('should import shared permit from JSON string', async () => {
@@ -232,9 +233,9 @@ describe('Core Permits Tests', () => {
       const allPermits = await permits.getPermits(chainId, bobAddress);
       expect(Object.keys(allPermits).length).toBeGreaterThanOrEqual(2);
 
-      // Verify active permit is the last created one
+      // The self permit stays active — creating the sharing (delegated) permit must not change it.
       const activePermit = await permits.getActivePermit(chainId, bobAddress);
-      expect(activePermit?.name).toBe('Permit 2');
+      expect(activePermit?.name).toBe('Permit 1');
     });
   });
 
@@ -382,7 +383,8 @@ describe('Core Permits Tests', () => {
     });
 
     it('should return existing sharing permit when one exists', async () => {
-      // Create an initial sharing permit
+      // Create an initial sharing permit AND activate it (getOrCreateSharingPermit only reuses the
+      // ACTIVE sharing permit; a plain delegated permit is intentionally not activated).
       const firstPermit = await permits.createSharing(
         {
           name: 'First Sharing Permit',
@@ -390,7 +392,8 @@ describe('Core Permits Tests', () => {
           recipient: aliceAddress,
         },
         publicClient,
-        bobWalletClient
+        bobWalletClient,
+        true
       );
 
       // Call getOrCreateSharingPermit - should return existing

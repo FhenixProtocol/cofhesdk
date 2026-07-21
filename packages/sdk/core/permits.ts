@@ -16,24 +16,39 @@ import { type PublicClient, type WalletClient } from 'viem';
 
 // HELPERS
 
-// Helper function to store permit as active permit
-const storeActivePermit = async (permit: Permit, publicClient: any, walletClient: any) => {
+// Store a permit without changing which permit is active.
+const storePermit = async (permit: Permit, publicClient: any, walletClient: any) => {
   const chainId = await publicClient.getChainId();
   const account = walletClient.account!.address;
 
   permitStore.setPermit(chainId, account, permit);
+};
+
+// Store a permit AND select it as the active permit.
+const storeActivePermit = async (permit: Permit, publicClient: any, walletClient: any) => {
+  await storePermit(permit, publicClient, walletClient);
+  const chainId = await publicClient.getChainId();
+  const account = walletClient.account!.address;
   permitStore.setActivePermitHash(chainId, account, permit.hash);
 };
 
-// Generic function to handle permit creation with error handling
+// Generic function to handle permit creation with error handling.
+// `activate` controls whether the new permit becomes the issuer's active permit — true for self
+// permits (the issuer uses them to decrypt their own balances), false for sharing permits (those
+// are granted to a recipient and must not hijack the issuer's active permit).
 const createPermitWithSign = async <T, TPermit extends Permit>(
   options: T,
   publicClient: PublicClient,
   walletClient: WalletClient,
-  permitMethod: (options: T, publicClient: PublicClient, walletClient: WalletClient) => Promise<TPermit>
+  permitMethod: (options: T, publicClient: PublicClient, walletClient: WalletClient) => Promise<TPermit>,
+  activate = true
 ): Promise<TPermit> => {
   const permit = await permitMethod(options, publicClient, walletClient);
-  await storeActivePermit(permit, publicClient, walletClient);
+  if (activate) {
+    await storeActivePermit(permit, publicClient, walletClient);
+  } else {
+    await storePermit(permit, publicClient, walletClient);
+  }
   return permit;
 };
 
@@ -56,9 +71,13 @@ const createSelf = async (
 const createSharing = async (
   options: CreateSharingPermitOptions,
   publicClient: PublicClient,
-  walletClient: WalletClient
+  walletClient: WalletClient,
+  // Default to NOT activating — a delegated permit is for the recipient, so creating one from the
+  // UI must not change the issuer's own active permit. Callers that genuinely want it active
+  // (e.g. getOrCreateSharingPermit) pass `activate: true`.
+  activate = false
 ): Promise<SharingPermit> => {
-  return createPermitWithSign(options, publicClient, walletClient, PermitUtils.createSharingAndSign);
+  return createPermitWithSign(options, publicClient, walletClient, PermitUtils.createSharingAndSign, activate);
 };
 
 const importShared = async (
@@ -177,7 +196,8 @@ const getOrCreateSharingPermit = async (
     return activePermit;
   }
 
-  return createSharing(options, publicClient, walletClient);
+  // This explicitly wants an active sharing permit, so activate the newly-created one.
+  return createSharing(options, publicClient, walletClient, true);
 };
 
 // REMOVE
