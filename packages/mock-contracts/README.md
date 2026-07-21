@@ -1,7 +1,7 @@
 # cofhe/mock-contracts [![NPM Package][npm-badge]][npm] [![License: MIT][license-badge]][license]
 
-[npm]: https://www.npmjs.com/package/@fhenixprotocol/cofhe-mock-contracts
-[npm-badge]: https://img.shields.io/npm/v/@fhenixprotocol/cofhe-mock-contracts.svg
+[npm]: https://www.npmjs.com/package/@cofhe/mock-contracts
+[npm-badge]: https://img.shields.io/npm/v/@cofhe/mock-contracts.svg
 [license]: https://opensource.org/licenses/MIT
 [license-badge]: https://img.shields.io/badge/License-MIT-blue.svg
 
@@ -23,13 +23,13 @@ A mock smart contract library for testing CoFHE (Confidential Computing Framewor
 npm
 
 ```bash
-npm install @fhenixprotocol/cofhe-mock-contracts
+npm install @cofhe/mock-contracts
 ```
 
 foundry
 
 ```bash
-forge install fhenixprotocol/cofhe-mock-contracts
+forge install FhenixProtocol/cofhesdk
 ```
 
 ## Usages and Integrations
@@ -90,9 +90,9 @@ Use this when you are writing tests in **Solidity** and running them with `forge
 
 > **Important**: You must set `isolate = true` in your `foundry.toml`. Without this setting, some variables may be used without proper permission checks, which will cause failures on production chains.
 
-`@cofhe/sdk` is designed to work with mock contracts in a testing / hardhat environment. `cofhesdk/hardhat-plugin` deploys the mock contracts in this repo, and the `cofheClient` detects a testnet chain and interacts correctly using the mocks rather than the true CoFHE coprocessor.
+`@cofhe/sdk` is designed to work with mock contracts in a testing / hardhat environment. `@cofhe/hardhat-plugin` deploys the mock contracts in this repo, and the `cofheClient` detects a testnet chain and interacts correctly using the mocks rather than the true CoFHE coprocessor.
 
-When installed and imported in the `hardhat.config.ts`, `cofhesdk/hardhat-plugin` will watch for Hardhat `node` and `test` tasks, and will deploy the mocks to the hardhat testnet chain at fixed addresses.
+When installed and imported in the `hardhat.config.ts`, `@cofhe/hardhat-plugin` will watch for Hardhat `node` and `test` tasks, and will deploy the mocks to the hardhat testnet chain at fixed addresses.
 
 Once deployed, interaction with the mock contracts is handled by the `cofheClient` (created with `createCofheClient(...)`). The client checks for the existence of mock contracts at known addresses, and if they exist, marks the current connection as a testnet.
 
