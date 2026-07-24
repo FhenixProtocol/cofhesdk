@@ -412,6 +412,7 @@ try {
   if (isCofheError(err)) {
     console.error(err.code); // CofheErrorCode enum
     console.error(err.message); // human-readable message
+    console.error(err.apiErrorCode); // raw backend error code, if this came from a threshold-network response
   }
 }
 ```

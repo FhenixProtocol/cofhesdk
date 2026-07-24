@@ -50,7 +50,7 @@ This means:
 
 This is the case the SDK now handles automatically.
 
-The SDK also treats short-lived submit-time `404 Not Found` responses as retryable during an initial indexing window. By default, that `404` retry window is 10 seconds and can be changed via `.set404RetryTimeout(timeoutMs)` on either decrypt builder.
+The SDK also treats short-lived submit-time `404 Not Found` responses as retryable during an initial indexing window — but only while the backend's error body reports `ct_not_found` (the "ciphertext not indexed yet" case). A `404` carrying any other error code is surfaced immediately as that code's dedicated error, not retried. By default, the `ct_not_found` retry window is 10 seconds and can be changed via `.set404RetryTimeout(timeoutMs)` on either decrypt builder.
 
 For both `decryptForTx` and `decryptForView`, the SDK will:
 
@@ -119,8 +119,9 @@ Interpretation:
 ```text
 decrypt call starts
   -> submit request
-    -> 404 within retry window: SDK retries submit automatically
-    -> 404 after retry window: fail and surface submit-time error
+    -> 404, error: ct_not_found, within retry window: SDK retries submit automatically
+    -> 404, error: ct_not_found, after retry window: fail and surface submit-time error
+    -> 404, any other error code: fail immediately, not retried
     -> 204 without request_id: SDK retries submit automatically
     -> 200 with request_id: SDK starts status polling
       -> PROCESSING: keep polling
@@ -130,9 +131,22 @@ decrypt call starts
 ## Practical guidance
 
 - If you just submitted the encrypting transaction, expect decryption to be eventually consistent rather than immediate.
-- If you get a submit-time `404`, the SDK now retries automatically for a short window; increase `.set404RetryTimeout(...)` if your backend indexes handles more slowly.
+- If you get a submit-time `404` reporting `ct_not_found`, the SDK now retries automatically for a short window; increase `.set404RetryTimeout(...)` if your backend indexes handles more slowly. A `404` reporting anything else fails immediately.
 - If you want progress UI, use `.onPoll(...)` and treat an empty `requestId` as `waiting for request creation`.
 - If you are debugging slow decrypts, separate `coprocessor has not created a request yet` from `Threshold Network is processing an existing request`.
+
+## Error codes
+
+Decrypt/sealoutput failures throw a typed `CofheError` (see [Migrating from cofhejs](/migrating-from-cofhejs) for the general `isCofheError`/`err.code` pattern). The threshold network's stable backend error codes each map to a dedicated `CofheErrorCode`, for example:
+
+- `permit_denied`, `permit_expired`, `permit_invalid`, `permit_malformed` — permit was rejected or malformed.
+- `not_publicly_allowed` — no permit was supplied and the handle isn't publicly decryptable.
+- `ct_not_found` — the ciphertext handle is unknown to the ct-server (after any indexing retry window has elapsed).
+- `unsupported_security_zone`, `unsupported_type` — the handle's zone or encryption type isn't supported.
+- `internal_error`, `signing_failed`, `ct_source_error`, `permit_verifier_error`, `ct_source_timeout`, `permit_verifier_timeout` — backend-side failures.
+- `permit_required`, `seal_failed` — sealoutput-specific.
+
+`err.apiErrorCode` carries the raw backend string verbatim (e.g. `'permit_denied'`), independent of which `CofheErrorCode` it mapped to — useful for logging, or if the backend introduces a new code before the SDK adds a dedicated enum member for it (in that case `err.code` falls back to the operation's generic failure code, but `err.apiErrorCode` still tells you exactly what the backend reported).
 
 ## See also
 

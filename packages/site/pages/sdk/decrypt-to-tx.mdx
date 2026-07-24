@@ -326,7 +326,7 @@ result.signature;
 
 ### `.set404RetryTimeout(timeoutMs)` — optional
 
-Controls how long the SDK should keep retrying submit-time `404 Not Found` responses before failing. The default is `10000` ms.
+Controls how long the SDK should keep retrying submit-time `404 Not Found` responses before failing. The default is `10000` ms. This retry only applies while the backend reports the ciphertext isn't indexed yet (`ct_not_found`); a `404` with any other error code fails immediately.
 
 Use this when your backend is eventually consistent and may need a few seconds to index a freshly-created ciphertext handle.
 
