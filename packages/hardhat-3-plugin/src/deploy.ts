@@ -4,7 +4,7 @@ import { createTestClient, custom } from 'viem';
 import chalk from 'chalk';
 import { privateKeyToAccount } from 'viem/accounts';
 
-import { MockTaskManagerArtifact, MockThresholdNetworkArtifact } from '@cofhe/mock-contracts';
+import { MockACLArtifact, MockTaskManagerArtifact, MockThresholdNetworkArtifact } from '@cofhe/mock-contracts';
 import {
   TASK_MANAGER_ADDRESS,
   MOCKS_ZK_VERIFIER_ADDRESS,
@@ -26,6 +26,8 @@ export type LogMocksDeploy = '' | 'v' | 'vv';
 export type DeployedMockContracts = {
   MockTaskManager: `0x${string}`;
   MockACL: `0x${string}`;
+  MockACP: `0x${string}`;
+  TimestampBasedACPValidator: `0x${string}`;
   MockZkVerifier: `0x${string}`;
   MockThresholdNetwork: `0x${string}`;
 };
@@ -109,6 +111,23 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
   });
   log('vv', 'ACL address set in TaskManager', 2);
 
+  // 5b. ACP (Permit V3): structure verifier + default revocation validator
+  const acpAddress = await deployVariable(ctx, 'MockACP', []);
+  logDeployment('MockACP', acpAddress);
+
+  const acpValidatorAddress = await deployVariable(ctx, 'TimestampBasedACPValidator', []);
+  logDeployment('TimestampBasedACPValidator', acpValidatorAddress);
+
+  await ctx.walletClient.writeContract({
+    address: aclAddress,
+    abi: MockACLArtifact.abi,
+    functionName: 'setACPVerifier',
+    args: [acpAddress],
+    account,
+    chain: null,
+  });
+  log('vv', 'ACP verifier set in ACL', 2);
+
   // 6. Set ZkVerifier signer (the key is well-known and shared with the SDK)
   const verifierSigner = privateKeyToAccount(MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY);
   await ctx.walletClient.writeContract({
@@ -181,6 +200,8 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
   return {
     MockTaskManager: TASK_MANAGER_ADDRESS,
     MockACL: aclAddress,
+    MockACP: acpAddress,
+    TimestampBasedACPValidator: acpValidatorAddress,
     MockZkVerifier: MOCKS_ZK_VERIFIER_ADDRESS,
     MockThresholdNetwork: MOCKS_THRESHOLD_NETWORK_ADDRESS,
   };
