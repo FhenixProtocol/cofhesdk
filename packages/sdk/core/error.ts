@@ -42,6 +42,25 @@ export enum CofheErrorCode {
   PublicWalletGetChainIdFailed = 'PUBLIC_WALLET_GET_CHAIN_ID_FAILED',
   PublicWalletGetAddressesFailed = 'PUBLIC_WALLET_GET_ADDRESSES_FAILED',
   RehydrateKeysStoreFailed = 'REHYDRATE_KEYS_STORE_FAILED',
+
+  // Threshold-network stable error codes (decrypt/sealoutput), see API-RESPONSES.md
+  BadRequest = 'BAD_REQUEST',
+  UnknownChain = 'UNKNOWN_CHAIN',
+  PermitMalformed = 'PERMIT_MALFORMED',
+  PermitDenied = 'PERMIT_DENIED',
+  PermitExpired = 'PERMIT_EXPIRED',
+  PermitInvalid = 'PERMIT_INVALID',
+  NotPubliclyAllowed = 'NOT_PUBLICLY_ALLOWED',
+  CtNotFound = 'CT_NOT_FOUND',
+  UnsupportedSecurityZone = 'UNSUPPORTED_SECURITY_ZONE',
+  UnsupportedType = 'UNSUPPORTED_TYPE',
+  SigningFailed = 'SIGNING_FAILED',
+  CtSourceError = 'CT_SOURCE_ERROR',
+  PermitVerifierError = 'PERMIT_VERIFIER_ERROR',
+  CtSourceTimeout = 'CT_SOURCE_TIMEOUT',
+  PermitVerifierTimeout = 'PERMIT_VERIFIER_TIMEOUT',
+  PermitRequired = 'PERMIT_REQUIRED',
+  SealFailed = 'SEAL_FAILED',
 }
 
 export type CofheErrorParams = {
@@ -50,6 +69,8 @@ export type CofheErrorParams = {
   cause?: Error;
   hint?: string;
   context?: Record<string, unknown>;
+  /** Raw backend `error` string, when this error originated from a threshold-network response. */
+  apiErrorCode?: string;
 };
 
 /**
@@ -68,8 +89,9 @@ export class CofheError extends Error {
   public readonly cause?: Error;
   public readonly hint?: string;
   public readonly context?: Record<string, unknown>;
+  public readonly apiErrorCode?: string;
 
-  constructor({ code, message, cause, hint, context }: CofheErrorParams) {
+  constructor({ code, message, cause, hint, context, apiErrorCode }: CofheErrorParams) {
     // If there's a cause, append its message to provide full context
     const fullMessage = cause ? `${message} | Caused by: ${cause.message}` : message;
 
@@ -79,6 +101,7 @@ export class CofheError extends Error {
     this.cause = cause;
     this.hint = hint;
     this.context = context;
+    this.apiErrorCode = apiErrorCode;
 
     // Maintains proper stack trace for where our error was thrown (only available on V8)
     if (Error.captureStackTrace) {
@@ -101,6 +124,7 @@ export class CofheError extends Error {
       message: wrapperError?.message ?? 'An internal error occurred',
       hint: wrapperError?.hint,
       context: wrapperError?.context,
+      apiErrorCode: wrapperError?.apiErrorCode,
       cause: cause,
     });
   }
@@ -115,6 +139,7 @@ export class CofheError extends Error {
       message: this.message,
       hint: this.hint,
       context: this.context,
+      apiErrorCode: this.apiErrorCode,
       cause: this.cause
         ? {
             name: this.cause.name,
@@ -130,7 +155,8 @@ export class CofheError extends Error {
    * Returns a human-readable string representation of the error
    */
   toString(): string {
-    const parts = [`${this.name} [${this.code}]: ${this.message}`];
+    const codeSuffix = this.apiErrorCode ? ` (api: ${this.apiErrorCode})` : '';
+    const parts = [`${this.name} [${this.code}]${codeSuffix}: ${this.message}`];
 
     if (this.hint) {
       parts.push(`Hint: ${this.hint}`);

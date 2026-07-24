@@ -5,6 +5,7 @@ import { CofheError, CofheErrorCode } from '../error';
 import { type DecryptPollCallbackFunction } from '../types';
 import { normalizeTnSignature, parseDecryptedBytesToBigInt } from './tnDecryptUtils';
 import { computeMinuteRampPollIntervalMs } from './polling.js';
+import { mapApiErrorCodeToCofheErrorCode, parseApiErrorResponseBody } from './apiError.js';
 import { classifySubmitResponse, normalize404RetryTimeoutMs, throwIfSubmitRetryTimedOut } from './submitRetry.js';
 
 // Polling configuration
@@ -197,6 +198,7 @@ async function submitDecryptRequestV2(
   }
 
   let attemptIndex = 0;
+  let last404ApiErrorMessage: string | undefined;
 
   for (;;) {
     let response: Response;
@@ -225,17 +227,20 @@ async function submitDecryptRequestV2(
       });
     }
 
-    const responseClassification = await classifySubmitResponse({ response });
+    const responseClassification = await classifySubmitResponse({
+      response,
+      fallbackErrorCode: CofheErrorCode.DecryptFailed,
+    });
 
     if (responseClassification.kind === 'fatal-http') {
       throw new CofheError({
-        code: CofheErrorCode.DecryptFailed,
+        code: responseClassification.cofheErrorCode,
+        apiErrorCode: responseClassification.apiErrorCode,
         message: `decrypt request failed: ${responseClassification.errorMessage}`,
         hint: 'Check the threshold network URL and request parameters.',
         context: {
           thresholdNetworkUrl,
-          status: response.status,
-          statusText: response.statusText,
+          status: responseClassification.status,
           body,
           attemptIndex,
         },
@@ -289,6 +294,10 @@ async function submitDecryptRequestV2(
       });
     }
 
+    if (responseClassification.status === 404) {
+      last404ApiErrorMessage = responseClassification.apiErrorMessage;
+    }
+
     const elapsedMs = Date.now() - overallStartTime;
 
     throwIfSubmitRetryTimedOut({
@@ -301,6 +310,7 @@ async function submitDecryptRequestV2(
       thresholdNetworkUrl,
       body,
       attemptIndex,
+      lastKnownErrorMessage: last404ApiErrorMessage,
     });
 
     onPoll?.({
@@ -391,17 +401,11 @@ async function pollDecryptStatusV2(
     }
 
     if (!response.ok) {
-      let errorMessage = `HTTP ${response.status}`;
-      try {
-        const errorBody = (await response.json()) as Record<string, unknown>;
-        const maybeMessage = (errorBody.error_message || errorBody.message) as unknown;
-        if (typeof maybeMessage === 'string' && maybeMessage.length > 0) errorMessage = maybeMessage;
-      } catch {
-        errorMessage = response.statusText || errorMessage;
-      }
+      const { apiErrorCode, errorMessage } = await parseApiErrorResponseBody(response);
 
       throw new CofheError({
-        code: CofheErrorCode.DecryptFailed,
+        code: mapApiErrorCodeToCofheErrorCode(apiErrorCode, CofheErrorCode.DecryptFailed),
+        apiErrorCode,
         message: `decrypt status poll failed: ${errorMessage}`,
         context: {
           thresholdNetworkUrl,
