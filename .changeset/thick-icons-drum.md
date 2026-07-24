@@ -1,6 +1,6 @@
 ---
-"@cofhe/sdk": patch
-"@cofhe/site": patch
+'@cofhe/sdk': patch
+'@cofhe/site': patch
 ---
 
 Decrypt/sealoutput failures now map the threshold network's stable `error` codes to dedicated `CofheErrorCode` values (e.g. `PermitDenied`, `CtNotFound`, `UnsupportedType`) instead of a generic `DecryptFailed`/`SealOutputFailed`, and `CofheError` gains an `apiErrorCode` field with the raw backend string.
