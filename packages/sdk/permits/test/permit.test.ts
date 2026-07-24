@@ -16,7 +16,8 @@ vi.mock('../onchain-utils.js', async (importOriginal) => ({
     name: 'ACL',
     version: '2',
     chainId: 421614,
-    verifyingContract: '0x0000000000000000000000000000000000000acb' as `0x${string}`,
+    // arbitrary non-zero address — signatures are never verified on-chain in these tests
+    verifyingContract: '0x1111111111111111111111111111111111111111' as `0x${string}`,
   }),
 }));
 import { createPublicClient, createWalletClient, http, type PublicClient, type WalletClient } from 'viem';

@@ -12,7 +12,14 @@ import {
   type PermitHashFields,
 } from '@/permits';
 
-import { type PublicClient, type WalletClient } from 'viem';
+import { type Hex, type PublicClient, type WalletClient, parseAbi, zeroAddress } from 'viem';
+
+// ACP default validator (timestamp-based revocation) — interface shared by all validators
+const ACP_VALIDATOR_ABI = parseAbi([
+  'function revokeSingle(uint256 id)',
+  'function revokeAllExisting()',
+  'function disabled(address issuer, uint256 id) view returns (bool)',
+]);
 
 // HELPERS
 
@@ -180,6 +187,85 @@ const getOrCreateSharingPermit = async (
   return createSharing(options, publicClient, walletClient);
 };
 
+// REVOKE (on-chain, via the permit's validator contract)
+
+/**
+ * Revoke a single permit on-chain via its validator contract.
+ * Only the permit's issuer can revoke it (enforced by the validator: revocations
+ * are keyed by msg.sender). The permit stays in local storage — on-chain
+ * validation will reject it from the next block onwards.
+ *
+ * @returns the revocation transaction hash
+ */
+const revokePermit = async (permit: Permit, walletClient: WalletClient): Promise<Hex> => {
+  if (permit.validatorContract === zeroAddress || permit.validatorId === 0) {
+    throw new Error('Permit is not revocable: it has no validator (validatorContract/validatorId unset)');
+  }
+  if (walletClient.account == null) throw new Error('Missing walletClient account');
+  if (walletClient.account.address.toLowerCase() !== permit.issuer.toLowerCase()) {
+    throw new Error('Only the permit issuer can revoke it');
+  }
+
+  return walletClient.writeContract({
+    address: permit.validatorContract,
+    abi: ACP_VALIDATOR_ABI,
+    functionName: 'revokeSingle',
+    args: [BigInt(permit.validatorId)],
+    account: walletClient.account,
+    chain: walletClient.chain,
+  });
+};
+
+/**
+ * Revoke ALL of the caller's permits created up to now (O(1) on-chain:
+ * a single threshold write on the validator). Permits created after this
+ * transaction remain valid.
+ *
+ * @param validatorContract - the validator to revoke against (defaults to the
+ *   connected account's active permit's validator when omitted)
+ * @returns the revocation transaction hash
+ */
+const revokeAllPermits = async (
+  walletClient: WalletClient,
+  publicClient: PublicClient,
+  validatorContract?: Hex
+): Promise<Hex> => {
+  if (walletClient.account == null) throw new Error('Missing walletClient account');
+
+  let validator = validatorContract;
+  if (validator == null) {
+    const chainId = await publicClient.getChainId();
+    const active = getActivePermit(chainId, walletClient.account.address);
+    validator = active?.validatorContract;
+  }
+  if (validator == null || validator === zeroAddress) {
+    throw new Error('No validator contract: pass `validatorContract` or activate a revocable permit first');
+  }
+
+  return walletClient.writeContract({
+    address: validator,
+    abi: ACP_VALIDATOR_ABI,
+    functionName: 'revokeAllExisting',
+    args: [],
+    account: walletClient.account,
+    chain: walletClient.chain,
+  });
+};
+
+/**
+ * Check whether a permit has been revoked (or is otherwise disabled) by its
+ * validator. Returns false for permits without a validator (not revocable).
+ */
+const isPermitRevoked = async (permit: Permit, publicClient: PublicClient): Promise<boolean> => {
+  if (permit.validatorContract === zeroAddress || permit.validatorId === 0) return false;
+  return publicClient.readContract({
+    address: permit.validatorContract,
+    abi: ACP_VALIDATOR_ABI,
+    functionName: 'disabled',
+    args: [permit.issuer, BigInt(permit.validatorId)],
+  });
+};
+
 // REMOVE
 
 const removePermit = async (chainId: number, account: string, hash: string): Promise<void> =>
@@ -213,4 +299,8 @@ export const permits = {
   removePermit,
   selectActivePermit,
   removeActivePermit,
+
+  revokePermit,
+  revokeAllPermits,
+  isPermitRevoked,
 };

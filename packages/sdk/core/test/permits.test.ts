@@ -9,13 +9,14 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 // Public testnets still run the V2 contracts, so the domain fetch is stubbed here —
 // these tests cover the permit orchestration flow, not on-chain domain resolution
 // (exercised e2e against mocks in test/hardhat-plugin-test).
-vi.mock('@/permits/onchain-utils.js', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/permits/onchain-utils.js')>()),
+vi.mock('../../permits/onchain-utils.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../permits/onchain-utils.js')>()),
   getAclEIP712Domain: async () => ({
     name: 'ACL',
     version: '2',
     chainId: 421614,
-    verifyingContract: '0x0000000000000000000000000000000000000acb' as `0x${string}`,
+    // arbitrary non-zero address — signatures are never verified on-chain in these tests
+    verifyingContract: '0x1111111111111111111111111111111111111111' as `0x${string}`,
   }),
 }));
 import { createPublicClient, createWalletClient, http, type PublicClient, type WalletClient } from 'viem';
