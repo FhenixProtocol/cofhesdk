@@ -9,7 +9,8 @@ pragma solidity >=0.8.19 <0.9.0;
 
 import { MockACL } from './MockACL.sol';
 import { MockTaskManager } from './MockTaskManager.sol';
-import { Permission, MockPermissioned } from './Permissioned.sol';
+import { MockPermissioned } from './Permissioned.sol';
+import { ACPermission } from './ACP.sol';
 
 contract MockThresholdNetwork {
   MockTaskManager public mockTaskManager;
@@ -35,10 +36,10 @@ contract MockThresholdNetwork {
   function queryDecrypt(
     uint256 ctHash,
     uint256,
-    Permission memory permission
+    ACPermission memory permission
   ) public view returns (bool allowed, string memory error, uint256) {
     bool isAllowed;
-    try mockAcl.isAllowedWithPermission(permission, ctHash) returns (bool _isAllowed) {
+    try mockAcl.isAllowedWithACP(permission, ctHash) returns (bool _isAllowed) {
       isAllowed = _isAllowed;
     } catch Error(string memory reason) {
       // Handle string error messages
@@ -92,12 +93,12 @@ contract MockThresholdNetwork {
   function querySealOutput(
     uint256 ctHash,
     uint256,
-    Permission memory permission
+    ACPermission memory permission
   ) public view returns (bool allowed, string memory error, bytes32) {
     if (permission.sealingKey == bytes32(0)) revert SealingKeyMissing();
 
     bool isAllowed;
-    try mockAcl.isAllowedWithPermission(permission, ctHash) returns (bool _isAllowed) {
+    try mockAcl.isAllowedWithACP(permission, ctHash) returns (bool _isAllowed) {
       isAllowed = _isAllowed;
     } catch Error(string memory reason) {
       // Handle string error messages
@@ -119,9 +120,9 @@ contract MockThresholdNetwork {
 
   function _isAllowedWithPermit(
     uint256 ctHash,
-    Permission memory permission
+    ACPermission memory permission
   ) internal view returns (bool isAllowed, string memory error) {
-    try mockTaskManager.isAllowedWithPermission(permission, ctHash) returns (bool _isAllowed) {
+    try mockTaskManager.isAllowedWithACP(permission, ctHash) returns (bool _isAllowed) {
       isAllowed = _isAllowed;
     } catch Error(string memory reason) {
       return (false, reason);
@@ -153,7 +154,7 @@ contract MockThresholdNetwork {
   /// @notice Decrypt a ciphertext for a transaction using a permit.
   function decryptForTxWithPermit(
     uint256 ctHash,
-    Permission memory permission
+    ACPermission memory permission
   ) public view returns (bool allowed, string memory error, uint256 decryptedValue) {
     if (permission.issuer == address(0)) {
       return (false, 'PermissionMissing', 0);

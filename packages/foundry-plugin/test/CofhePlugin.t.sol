@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import { Test } from 'forge-std/Test.sol';
 import { CofheTest } from '../contracts/CofheTest.sol';
 import { CofheClient, SharedPermitExport } from '../contracts/CofheClient.sol';
-import { Permission } from '@cofhe/mock-contracts/contracts/Permissioned.sol';
+import { ACPermission } from '@cofhe/mock-contracts/contracts/ACP.sol';
 import { ZK_VERIFIER_SIGNER_ADDRESS } from '@cofhe/mock-contracts/contracts/MockCoFHE.sol';
 import '@fhenixprotocol/cofhe-contracts/FHE.sol';
 
@@ -474,7 +474,7 @@ contract CofheClientTest is CofheTest {
     store.storeEuint32Trivial(plainValue);
     store.allowAccount(cofheClient.account());
 
-    Permission memory permit = cofheClient.permit_createSelf();
+    ACPermission memory permit = cofheClient.permit_createSelf();
     bytes32 ctHash = euint32.unwrap(store.storedEuint32());
 
     (bytes32 ct, uint256 decrypted, bytes memory sig) = cofheClient.decryptForTx_withPermit(ctHash, permit);
@@ -488,7 +488,7 @@ contract CofheClientTest is CofheTest {
     // Store as a different address so Alice is NOT in the ACL
     store.storeEuint32Trivial(99);
 
-    Permission memory permit = cofheClient.permit_createSelf();
+    ACPermission memory permit = cofheClient.permit_createSelf();
     bytes32 ctHash = euint32.unwrap(store.storedEuint32());
 
     vm.expectRevert();
@@ -542,7 +542,7 @@ contract CofheClientTest is CofheTest {
     store.storeEuint32Trivial(plainValue);
     store.allowAccount(cofheClient.account());
 
-    Permission memory permit = cofheClient.permit_createSelf();
+    ACPermission memory permit = cofheClient.permit_createSelf();
     bytes32 ctHash = euint32.unwrap(store.storedEuint32());
 
     uint256 unsealed = cofheClient.decryptForView(ctHash, permit);
@@ -553,7 +553,7 @@ contract CofheClientTest is CofheTest {
     // Store as a different address so Alice is NOT in the ACL
     store.storeEuint32Trivial(123);
 
-    Permission memory permit = cofheClient.permit_createSelf();
+    ACPermission memory permit = cofheClient.permit_createSelf();
     bytes32 ctHash = euint32.unwrap(store.storedEuint32());
 
     vm.expectRevert();
@@ -563,14 +563,14 @@ contract CofheClientTest is CofheTest {
   // --------------- permit_createSelf ---------------
 
   function testPermitCreateSelf_isValid() public view {
-    Permission memory permit = cofheClient.permit_createSelf();
+    ACPermission memory permit = cofheClient.permit_createSelf();
 
     assertEq(permit.issuer, cofheClient.account());
     assertEq(permit.recipient, address(0));
     assertTrue(permit.sealingKey != bytes32(0));
     assertTrue(permit.issuerSignature.length > 0);
 
-    bool valid = mockAcl.checkPermitValidity(permit);
+    bool valid = mockAcp.checkPermissionValidity(permit);
     assertTrue(valid);
   }
 
@@ -578,7 +578,7 @@ contract CofheClientTest is CofheTest {
 
   function testPermitCreateShared_isValid() public view {
     address bob = vm.addr(BOB_PKEY);
-    Permission memory permit = cofheClient.permit_createShared(bob);
+    ACPermission memory permit = cofheClient.permit_createShared(bob);
 
     assertEq(permit.issuer, cofheClient.account());
     assertEq(permit.recipient, bob);
@@ -592,7 +592,7 @@ contract CofheClientTest is CofheTest {
     address bob = vm.addr(BOB_PKEY);
 
     // Alice creates a shared permit for Bob
-    Permission memory alicePermit = cofheClient.permit_createShared(bob);
+    ACPermission memory alicePermit = cofheClient.permit_createShared(bob);
     SharedPermitExport memory exported = cofheClient.permit_exportShared(alicePermit);
 
     assertEq(exported.issuer, cofheClient.account());
@@ -602,14 +602,14 @@ contract CofheClientTest is CofheTest {
     CofheClient bobClient = createCofheClient();
     bobClient.connect(BOB_PKEY);
 
-    Permission memory bobPermit = bobClient.permit_importShared(exported);
+    ACPermission memory bobPermit = bobClient.permit_importShared(exported);
 
     assertEq(bobPermit.issuer, cofheClient.account());
     assertEq(bobPermit.recipient, bob);
     assertTrue(bobPermit.sealingKey != bytes32(0));
     assertTrue(bobPermit.recipientSignature.length > 0);
 
-    bool valid = mockAcl.checkPermitValidity(bobPermit);
+    bool valid = mockAcp.checkPermissionValidity(bobPermit);
     assertTrue(valid);
   }
 
@@ -617,7 +617,7 @@ contract CofheClientTest is CofheTest {
     address bob = vm.addr(BOB_PKEY);
 
     // Alice creates a shared permit for Bob
-    Permission memory alicePermit = cofheClient.permit_createShared(bob);
+    ACPermission memory alicePermit = cofheClient.permit_createShared(bob);
     SharedPermitExport memory exported = cofheClient.permit_exportShared(alicePermit);
 
     // Charlie tries to import Bob's permit
@@ -641,13 +641,13 @@ contract CofheClientTest is CofheTest {
     store.allowAccount(alice);
 
     // Alice creates a shared permit for Bob
-    Permission memory alicePermit = cofheClient.permit_createShared(bob);
+    ACPermission memory alicePermit = cofheClient.permit_createShared(bob);
     SharedPermitExport memory exported = cofheClient.permit_exportShared(alicePermit);
 
     // Bob imports the shared permit
     CofheClient bobClient = createCofheClient();
     bobClient.connect(BOB_PKEY);
-    Permission memory bobPermit = bobClient.permit_importShared(exported);
+    ACPermission memory bobPermit = bobClient.permit_importShared(exported);
 
     bytes32 ctHash = euint32.unwrap(store.storedEuint32());
 
@@ -672,7 +672,7 @@ contract CofheClientTest is CofheTest {
 
   function testDecryptForView_revertsWhenNotConnected() public {
     CofheClient unconnected = createCofheClient();
-    Permission memory p;
+    ACPermission memory p;
     vm.expectRevert('CofheClient: not connected');
     unconnected.decryptForView(bytes32(uint256(1)), p);
   }

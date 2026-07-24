@@ -5,6 +5,8 @@ import { Contract, Wallet } from 'ethers';
 import {
   MockTaskManagerArtifact,
   MockACLArtifact,
+  MockACPArtifact,
+  TimestampBasedACPValidatorArtifact,
   MockZkVerifierArtifact,
   MockThresholdNetworkArtifact,
 } from '@cofhe/mock-contracts';
@@ -64,6 +66,16 @@ export const deployMocks = async (
 
   const acl = await deployMockACL(hre);
   logDeployment('MockACL', await acl.getAddress());
+
+  // ACP (Permit V3): structure verifier + default revocation validator
+  const acp = await deployMockContractFromArtifact(hre, MockACPArtifact);
+  logDeployment('MockACP', await acp.getAddress());
+
+  const acpValidator = await deployMockContractFromArtifact(hre, TimestampBasedACPValidatorArtifact);
+  logDeployment('TimestampBasedACPValidator', await acpValidator.getAddress());
+
+  await (await acl.setACPVerifier(await acp.getAddress())).wait();
+  log('vv', 'ACP verifier set in ACL', 2);
 
   await linkTaskManagerAndACL(taskManager, acl);
   log('vv', 'ACL address set in TaskManager', 2);

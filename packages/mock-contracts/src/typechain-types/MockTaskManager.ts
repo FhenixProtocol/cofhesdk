@@ -23,6 +23,46 @@ import type {
   TypedContractMethod,
 } from './common';
 
+export type ACPermissionStruct = {
+  issuer: AddressLike;
+  expiration: BigNumberish;
+  recipient: AddressLike;
+  validatorId: BigNumberish;
+  validatorContract: AddressLike;
+  global: boolean;
+  contracts: AddressLike[];
+  handles: BigNumberish[];
+  sealingKey: BytesLike;
+  issuerSignature: BytesLike;
+  recipientSignature: BytesLike;
+};
+
+export type ACPermissionStructOutput = [
+  issuer: string,
+  expiration: bigint,
+  recipient: string,
+  validatorId: bigint,
+  validatorContract: string,
+  global: boolean,
+  contracts: string[],
+  handles: bigint[],
+  sealingKey: string,
+  issuerSignature: string,
+  recipientSignature: string,
+] & {
+  issuer: string;
+  expiration: bigint;
+  recipient: string;
+  validatorId: bigint;
+  validatorContract: string;
+  global: boolean;
+  contracts: string[];
+  handles: bigint[];
+  sealingKey: string;
+  issuerSignature: string;
+  recipientSignature: string;
+};
+
 export type PermissionStruct = {
   issuer: AddressLike;
   expiration: BigNumberish;
@@ -91,6 +131,7 @@ export interface MockTaskManagerInterface extends Interface {
       | 'inMockStorage'
       | 'initialize'
       | 'isAllowed'
+      | 'isAllowedWithACP'
       | 'isAllowedWithPermission'
       | 'isInitialized'
       | 'isPubliclyAllowed'
@@ -143,6 +184,7 @@ export interface MockTaskManagerInterface extends Interface {
   encodeFunctionData(functionFragment: 'inMockStorage', values: [BigNumberish]): string;
   encodeFunctionData(functionFragment: 'initialize', values: [AddressLike]): string;
   encodeFunctionData(functionFragment: 'isAllowed', values: [BigNumberish, AddressLike]): string;
+  encodeFunctionData(functionFragment: 'isAllowedWithACP', values: [ACPermissionStruct, BigNumberish]): string;
   encodeFunctionData(functionFragment: 'isAllowedWithPermission', values: [PermissionStruct, BigNumberish]): string;
   encodeFunctionData(functionFragment: 'isInitialized', values?: undefined): string;
   encodeFunctionData(functionFragment: 'isPubliclyAllowed', values: [BigNumberish]): string;
@@ -198,6 +240,7 @@ export interface MockTaskManagerInterface extends Interface {
   decodeFunctionResult(functionFragment: 'inMockStorage', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'initialize', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'isAllowed', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'isAllowedWithACP', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'isAllowedWithPermission', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'isInitialized', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'isPubliclyAllowed', data: BytesLike): Result;
@@ -365,6 +408,8 @@ export interface MockTaskManager extends BaseContract {
 
   isAllowed: TypedContractMethod<[ctHash: BigNumberish, account: AddressLike], [boolean], 'view'>;
 
+  isAllowedWithACP: TypedContractMethod<[permission: ACPermissionStruct, handle: BigNumberish], [boolean], 'view'>;
+
   isAllowedWithPermission: TypedContractMethod<[permission: PermissionStruct, handle: BigNumberish], [boolean], 'view'>;
 
   isInitialized: TypedContractMethod<[], [boolean], 'view'>;
@@ -485,6 +530,9 @@ export interface MockTaskManager extends BaseContract {
   getFunction(
     nameOrSignature: 'isAllowed'
   ): TypedContractMethod<[ctHash: BigNumberish, account: AddressLike], [boolean], 'view'>;
+  getFunction(
+    nameOrSignature: 'isAllowedWithACP'
+  ): TypedContractMethod<[permission: ACPermissionStruct, handle: BigNumberish], [boolean], 'view'>;
   getFunction(
     nameOrSignature: 'isAllowedWithPermission'
   ): TypedContractMethod<[permission: PermissionStruct, handle: BigNumberish], [boolean], 'view'>;

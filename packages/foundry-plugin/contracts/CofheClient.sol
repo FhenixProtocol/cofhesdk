@@ -10,7 +10,7 @@ import { MockZkVerifier } from '@cofhe/mock-contracts/contracts/MockZkVerifier.s
 import { MockZkVerifierSigner } from './MockZkVerifierSigner.sol';
 import { MockThresholdNetwork } from '@cofhe/mock-contracts/contracts/MockThresholdNetwork.sol';
 import { MockThresholdNetworkSigner } from './MockThresholdNetworkSigner.sol';
-import { Permission, PermissionUtils } from '@cofhe/mock-contracts/contracts/Permissioned.sol';
+import { ACPermission, ACPUtils, MockACP } from '@cofhe/mock-contracts/contracts/ACP.sol';
 import {
   ZK_VERIFIER_SIGNER_ADDRESS,
   DECRYPT_RESULT_SIGNER_ADDRESS
@@ -23,6 +23,10 @@ struct SharedPermitExport {
   address recipient;
   uint256 validatorId;
   address validatorContract;
+  // (scope) part of the issuer signature — the recipient needs them to reconstruct it
+  bool global;
+  address[] contracts;
+  uint256[] handles;
   bytes issuerSignature;
 }
 
@@ -188,7 +192,7 @@ contract CofheClient is Test {
   /// @notice Decrypts a ciphertext using a permit and returns the plaintext with a publishable signature.
   function decryptForTx_withPermit(
     bytes32 ctHash,
-    Permission memory permission
+    ACPermission memory permission
   ) public view onlyConnected returns (bytes32, uint256, bytes memory) {
     uint256 ct = uint256(ctHash);
 
@@ -207,7 +211,7 @@ contract CofheClient is Test {
   // =====================
 
   /// @notice Decrypts a ciphertext for off-chain reading by sealing/unsealing with the permit's sealing key.
-  function decryptForView(bytes32 ctHash, Permission memory permission) public view onlyConnected returns (uint256) {
+  function decryptForView(bytes32 ctHash, ACPermission memory permission) public view onlyConnected returns (uint256) {
     uint256 ct = uint256(ctHash);
 
     (bool allowed, string memory error, bytes32 sealedOutput) = mockThresholdNetwork.querySealOutput(
@@ -233,7 +237,8 @@ contract CofheClient is Test {
     uint256 chainId;
     address verifyingContract;
 
-    (, name, version, chainId, verifyingContract, , ) = mockAcl.eip712Domain();
+    // ACP (V3): the signing domain lives on the ACP verifier (name "ACL", version "2")
+    (, name, version, chainId, verifyingContract, , ) = MockACP(mockAcl.acpVerifier()).eip712Domain();
 
     return
       keccak256(
@@ -251,35 +256,38 @@ contract CofheClient is Test {
     return abi.encodePacked(r, s, v);
   }
 
-  function _signIssuerSelf(Permission memory permission, uint256 pkey) internal view returns (Permission memory) {
-    bytes32 permissionHash = PermissionUtils.issuerSelfHash(permission);
+  function _signIssuerSelf(ACPermission memory permission, uint256 pkey) internal view returns (ACPermission memory) {
+    bytes32 permissionHash = ACPUtils.issuerSelfHash(permission);
     bytes32 structHash = permissionHashTypedDataV4(permissionHash);
     permission.issuerSignature = _signPermission(structHash, pkey);
     return permission;
   }
 
-  function _signIssuerShared(Permission memory permission, uint256 pkey) internal view returns (Permission memory) {
-    bytes32 permissionHash = PermissionUtils.issuerSharedHash(permission);
+  function _signIssuerShared(ACPermission memory permission, uint256 pkey) internal view returns (ACPermission memory) {
+    bytes32 permissionHash = ACPUtils.issuerSharedHash(permission);
     bytes32 structHash = permissionHashTypedDataV4(permissionHash);
     permission.issuerSignature = _signPermission(structHash, pkey);
     return permission;
   }
 
-  function _signRecipient(Permission memory permission, uint256 pkey) internal view returns (Permission memory) {
-    bytes32 permissionHash = PermissionUtils.recipientHash(permission);
+  function _signRecipient(ACPermission memory permission, uint256 pkey) internal view returns (ACPermission memory) {
+    bytes32 permissionHash = ACPUtils.recipientHash(permission);
     bytes32 structHash = permissionHashTypedDataV4(permissionHash);
     permission.recipientSignature = _signPermission(structHash, pkey);
     return permission;
   }
 
-  /// @notice Returns a blank Permission with default field values.
-  function createBasePermission() public pure returns (Permission memory permission) {
-    permission = Permission({
+  /// @notice Returns a blank ACPermission with default field values.
+  function createBasePermission() public pure returns (ACPermission memory permission) {
+    permission = ACPermission({
       issuer: address(0),
       expiration: 1000000000000,
       recipient: address(0),
       validatorId: 0,
       validatorContract: address(0),
+      global: true,
+      contracts: new address[](0),
+      handles: new uint256[](0),
       sealingKey: bytes32(0),
       issuerSignature: new bytes(0),
       recipientSignature: new bytes(0)
@@ -292,7 +300,7 @@ contract CofheClient is Test {
   }
 
   /// @notice Creates a self-permit for the connected account, signed with the stored private key.
-  function permit_createSelf() public view onlyConnected returns (Permission memory permission) {
+  function permit_createSelf() public view onlyConnected returns (ACPermission memory permission) {
     permission = createBasePermission();
     permission.issuer = _account;
     permission.sealingKey = createSealingKey(uint256(uint160(_account)));
@@ -300,7 +308,7 @@ contract CofheClient is Test {
   }
 
   /// @notice Creates the issuer side of a shared permit. The result has no sealingKey (added by recipient on import).
-  function permit_createShared(address recipient) public view onlyConnected returns (Permission memory permission) {
+  function permit_createShared(address recipient) public view onlyConnected returns (ACPermission memory permission) {
     permission = createBasePermission();
     permission.issuer = _account;
     permission.recipient = recipient;
@@ -308,13 +316,16 @@ contract CofheClient is Test {
   }
 
   /// @notice Exports a shared permit, stripping sensitive/recipient-specific fields.
-  function permit_exportShared(Permission memory permission) public pure returns (SharedPermitExport memory exported) {
+  function permit_exportShared(ACPermission memory permission) public pure returns (SharedPermitExport memory exported) {
     exported = SharedPermitExport({
       issuer: permission.issuer,
       expiration: permission.expiration,
       recipient: permission.recipient,
       validatorId: permission.validatorId,
       validatorContract: permission.validatorContract,
+      global: permission.global,
+      contracts: permission.contracts,
+      handles: permission.handles,
       issuerSignature: permission.issuerSignature
     });
   }
@@ -322,15 +333,18 @@ contract CofheClient is Test {
   /// @notice Imports a shared permit export, adds the recipient's sealing key and signature.
   function permit_importShared(
     SharedPermitExport memory data
-  ) public view onlyConnected returns (Permission memory permission) {
+  ) public view onlyConnected returns (ACPermission memory permission) {
     require(data.recipient == _account, 'CofheClient: recipient mismatch');
 
-    permission = Permission({
+    permission = ACPermission({
       issuer: data.issuer,
       expiration: data.expiration,
       recipient: data.recipient,
       validatorId: data.validatorId,
       validatorContract: data.validatorContract,
+      global: data.global,
+      contracts: data.contracts,
+      handles: data.handles,
       sealingKey: createSealingKey(uint256(uint160(_account))),
       issuerSignature: data.issuerSignature,
       recipientSignature: new bytes(0)

@@ -37,7 +37,7 @@ export const MockThresholdNetworkArtifact = {
         {
           name: 'permission',
           type: 'tuple',
-          internalType: 'struct Permission',
+          internalType: 'struct ACPermission',
           components: [
             {
               name: 'issuer',
@@ -63,6 +63,21 @@ export const MockThresholdNetworkArtifact = {
               name: 'validatorContract',
               type: 'address',
               internalType: 'address',
+            },
+            {
+              name: 'global',
+              type: 'bool',
+              internalType: 'bool',
+            },
+            {
+              name: 'contracts',
+              type: 'address[]',
+              internalType: 'address[]',
+            },
+            {
+              name: 'handles',
+              type: 'uint256[]',
+              internalType: 'uint256[]',
             },
             {
               name: 'sealingKey',
@@ -243,7 +258,7 @@ export const MockThresholdNetworkArtifact = {
         {
           name: 'permission',
           type: 'tuple',
-          internalType: 'struct Permission',
+          internalType: 'struct ACPermission',
           components: [
             {
               name: 'issuer',
@@ -269,6 +284,21 @@ export const MockThresholdNetworkArtifact = {
               name: 'validatorContract',
               type: 'address',
               internalType: 'address',
+            },
+            {
+              name: 'global',
+              type: 'bool',
+              internalType: 'bool',
+            },
+            {
+              name: 'contracts',
+              type: 'address[]',
+              internalType: 'address[]',
+            },
+            {
+              name: 'handles',
+              type: 'uint256[]',
+              internalType: 'uint256[]',
             },
             {
               name: 'sealingKey',
@@ -324,7 +354,7 @@ export const MockThresholdNetworkArtifact = {
         {
           name: 'permission',
           type: 'tuple',
-          internalType: 'struct Permission',
+          internalType: 'struct ACPermission',
           components: [
             {
               name: 'issuer',
@@ -350,6 +380,21 @@ export const MockThresholdNetworkArtifact = {
               name: 'validatorContract',
               type: 'address',
               internalType: 'address',
+            },
+            {
+              name: 'global',
+              type: 'bool',
+              internalType: 'bool',
+            },
+            {
+              name: 'contracts',
+              type: 'address[]',
+              internalType: 'address[]',
+            },
+            {
+              name: 'handles',
+              type: 'uint256[]',
+              internalType: 'uint256[]',
             },
             {
               name: 'sealingKey',

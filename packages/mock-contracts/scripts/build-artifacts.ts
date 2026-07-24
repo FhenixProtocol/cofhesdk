@@ -18,6 +18,12 @@ const contracts: Array<{ name: string; fixedAddress?: string }> = [
   {
     name: 'MockACL',
   },
+  {
+    name: 'MockACP',
+  },
+  {
+    name: 'TimestampBasedACPValidator',
+  },
 ];
 
 function inspect(contract: string, field: string): any {

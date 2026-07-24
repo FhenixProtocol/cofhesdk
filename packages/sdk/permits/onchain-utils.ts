@@ -23,8 +23,29 @@ export const getAclAddress = async (publicClient: PublicClient): Promise<Hex> =>
   })) as `0x${string}`;
 };
 
-export const getAclEIP712Domain = async (publicClient: PublicClient): Promise<EIP712Domain> => {
+/**
+ * Resolves the ACP structure verifier: TaskManager -> acl() -> acpVerifier().
+ * The verifier carries the V3 EIP-712 domain (name "ACL", version "2") and the
+ * structure-validity entry point.
+ */
+export const getAcpVerifierAddress = async (publicClient: PublicClient): Promise<Hex> => {
   const aclAddress = await getAclAddress(publicClient);
+  const verifierAbi = parseAbi(['function acpVerifier() view returns (address)']);
+
+  return (await publicClient.readContract({
+    address: aclAddress,
+    abi: verifierAbi,
+    functionName: 'acpVerifier',
+  })) as `0x${string}`;
+};
+
+/**
+ * ACP (Permit V3) signing domain — fetched from the ACP verifier contract.
+ * (Name kept for API stability; since V3 the domain lives on the verifier,
+ * which signs as name "ACL", version "2".)
+ */
+export const getAclEIP712Domain = async (publicClient: PublicClient): Promise<EIP712Domain> => {
+  const verifierAddress = await getAcpVerifierAddress(publicClient);
   const EIP712_DOMAIN_IFACE =
     'function eip712Domain() public view returns (bytes1 fields, string name, string version, uint256 chainId, address verifyingContract, bytes32 salt, uint256[] extensions)';
 
@@ -33,7 +54,7 @@ export const getAclEIP712Domain = async (publicClient: PublicClient): Promise<EI
 
   // Get the EIP712 domain
   const domain = await publicClient.readContract({
-    address: aclAddress,
+    address: verifierAddress,
     abi: domainAbi,
     functionName: 'eip712Domain',
   });
@@ -53,14 +74,14 @@ export const checkPermitValidityOnChain = async (
   permission: Permission,
   publicClient: PublicClient
 ): Promise<boolean> => {
-  const aclAddress = await getAclAddress(publicClient);
+  const verifierAddress = await getAcpVerifierAddress(publicClient);
 
-  // Check if the permit is valid
+  // Check if the permit is valid (structure: expiration / signatures / revocation)
   try {
     await publicClient.simulateContract({
-      address: aclAddress,
+      address: verifierAddress,
       abi: checkPermitValidityAbi,
-      functionName: 'checkPermitValidity',
+      functionName: 'checkPermissionValidity',
       args: [
         {
           issuer: permission.issuer,
@@ -68,6 +89,9 @@ export const checkPermitValidityOnChain = async (
           recipient: permission.recipient,
           validatorId: BigInt(permission.validatorId),
           validatorContract: permission.validatorContract,
+          global: permission.global,
+          contracts: permission.contracts,
+          handles: permission.handles,
           sealingKey: permission.sealingKey,
           issuerSignature: permission.issuerSignature,
           recipientSignature: permission.recipientSignature,
@@ -139,12 +163,12 @@ function extractReturnData(err: unknown): `0x${string}` | undefined {
 const checkPermitValidityAbi = [
   {
     type: 'function',
-    name: 'checkPermitValidity',
+    name: 'checkPermissionValidity',
     inputs: [
       {
         name: 'permission',
         type: 'tuple',
-        internalType: 'struct Permission',
+        internalType: 'struct ACPermission',
         components: [
           {
             name: 'issuer',
@@ -170,6 +194,21 @@ const checkPermitValidityAbi = [
             name: 'validatorContract',
             type: 'address',
             internalType: 'address',
+          },
+          {
+            name: 'global',
+            type: 'bool',
+            internalType: 'bool',
+          },
+          {
+            name: 'contracts',
+            type: 'address[]',
+            internalType: 'address[]',
+          },
+          {
+            name: 'handles',
+            type: 'uint256[]',
+            internalType: 'uint256[]',
           },
           {
             name: 'sealingKey',

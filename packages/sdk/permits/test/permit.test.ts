@@ -1,10 +1,24 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   PermitUtils,
   type CreateSelfPermitOptions,
   type CreateSharingPermitOptions,
   type ImportSharedPermitOptions,
 } from '../index.js';
+
+// ACP (V3) domain resolution requires an upgraded on-chain ACL (acl.acpVerifier()).
+// Public testnets still run the V2 contracts, so the domain fetch is stubbed here —
+// these tests cover the signing flow, not on-chain domain resolution (which is
+// exercised e2e against mocks in test/hardhat-plugin-test).
+vi.mock('../onchain-utils.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../onchain-utils.js')>()),
+  getAclEIP712Domain: async () => ({
+    name: 'ACL',
+    version: '2',
+    chainId: 421614,
+    verifyingContract: '0x0000000000000000000000000000000000000acb' as `0x${string}`,
+  }),
+}));
 import { createPublicClient, createWalletClient, http, type PublicClient, type WalletClient } from 'viem';
 import { arbitrumSepolia } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
