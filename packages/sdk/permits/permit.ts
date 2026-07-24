@@ -191,6 +191,7 @@ export const PermitUtils = {
   deserialize: (data: SerializedPermit): Permit => {
     return {
       ...data,
+      handles: data.handles.map((h) => BigInt(h)),
       sealingPair: SealingKey.deserialize(data.sealingPair.privateKey, data.sealingPair.publicKey),
     };
   },
@@ -208,6 +209,9 @@ export const PermitUtils = {
       recipient: permit.recipient,
       validatorId: permit.validatorId,
       validatorContract: permit.validatorContract,
+      global: permit.global,
+      contracts: permit.contracts,
+      handles: permit.handles.map((h) => h.toString()),
       issuerSignature: permit.issuerSignature,
       recipientSignature: permit.recipientSignature,
       _signedDomain: permit._signedDomain,
@@ -260,6 +264,9 @@ export const PermitUtils = {
       recipient: permit.recipient,
       validatorId: permit.validatorId,
       validatorContract: permit.validatorContract,
+      global: permit.global,
+      contracts: permit.contracts,
+      handles: permit.handles,
       sealingKey: `0x${permit.sealingPair.publicKey}`,
       issuerSignature: permit.issuerSignature,
       recipientSignature: permit.recipientSignature,
@@ -277,6 +284,10 @@ export const PermitUtils = {
       recipient: permit.recipient,
       validatorId: permit.validatorId,
       validatorContract: permit.validatorContract,
+      global: permit.global,
+      contracts: permit.contracts,
+      // bigint is not JSON-serializable — hash over decimal strings
+      handles: permit.handles.map((h) => h.toString()),
     });
     return keccak256(toHex(data));
   },
@@ -295,6 +306,10 @@ export const PermitUtils = {
     if (permit.recipient !== zeroAddress) cleanedPermit.recipient = permit.recipient;
     if (permit.validatorId !== 0) cleanedPermit.validatorId = permit.validatorId;
     if (permit.validatorContract !== zeroAddress) cleanedPermit.validatorContract = permit.validatorContract;
+    // scope fields are part of the issuer signature — the recipient needs them to reconstruct it
+    cleanedPermit.global = permit.global;
+    if (permit.contracts.length > 0) cleanedPermit.contracts = permit.contracts;
+    if (permit.handles.length > 0) cleanedPermit.handles = permit.handles.map((h) => h.toString());
     if (permit.type === 'sharing' && permit.issuerSignature !== '0x')
       cleanedPermit.issuerSignature = permit.issuerSignature;
 

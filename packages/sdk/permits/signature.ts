@@ -1,11 +1,15 @@
 import { type EIP712Message, type EIP712Types, type Permission, type PermitSignaturePrimaryType } from './types.js';
 
+// Field order must match the on-chain ACP typehash strings exactly (see ACP.sol / ACPUtils)
 const PermitSignatureAllFields = [
   { name: 'issuer', type: 'address' },
   { name: 'expiration', type: 'uint64' },
   { name: 'recipient', type: 'address' },
   { name: 'validatorId', type: 'uint256' },
   { name: 'validatorContract', type: 'address' },
+  { name: 'global', type: 'bool' },
+  { name: 'contracts', type: 'address[]' },
+  { name: 'handles', type: 'uint256[]' },
   { name: 'sealingKey', type: 'bytes32' },
   { name: 'issuerSignature', type: 'bytes' },
 ] as const;
@@ -13,22 +17,28 @@ const PermitSignatureAllFields = [
 type PermitSignatureFieldOption = (typeof PermitSignatureAllFields)[number]['name'];
 
 export const SignatureTypes = {
-  PermissionedV2IssuerSelf: [
+  ACPIssuerSelf: [
     'issuer',
     'expiration',
     'recipient',
     'validatorId',
     'validatorContract',
+    'global',
+    'contracts',
+    'handles',
     'sealingKey',
   ] satisfies PermitSignatureFieldOption[],
-  PermissionedV2IssuerShared: [
+  ACPIssuerShared: [
     'issuer',
     'expiration',
     'recipient',
     'validatorId',
     'validatorContract',
+    'global',
+    'contracts',
+    'handles',
   ] satisfies PermitSignatureFieldOption[],
-  PermissionedV2Recipient: ['sealingKey', 'issuerSignature'] satisfies PermitSignatureFieldOption[],
+  ACPRecipient: ['sealingKey', 'issuerSignature'] satisfies PermitSignatureFieldOption[],
 } as const;
 
 /**
@@ -43,9 +53,9 @@ export const getSignatureTypesAndMessage = <T extends PermitSignatureFieldOption
     [primaryType]: PermitSignatureAllFields.filter((fieldType) => fields.includes(fieldType.name as T)),
   };
 
-  const message: Record<T, string | string[] | number | number[]> = {} as Record<
+  const message: Record<T, string | string[] | number | number[] | boolean | bigint[]> = {} as Record<
     T,
-    string | string[] | number | number[]
+    string | string[] | number | number[] | boolean | bigint[]
   >;
   fields.forEach((field) => {
     if (field in values) {
@@ -71,9 +81,9 @@ export const SignatureUtils = {
    * Determine the required signature type based on permit type
    */
   getPrimaryType: (permitType: 'self' | 'sharing' | 'recipient'): PermitSignaturePrimaryType => {
-    if (permitType === 'self') return 'PermissionedV2IssuerSelf';
-    if (permitType === 'sharing') return 'PermissionedV2IssuerShared';
-    if (permitType === 'recipient') return 'PermissionedV2Recipient';
+    if (permitType === 'self') return 'ACPIssuerSelf';
+    if (permitType === 'sharing') return 'ACPIssuerShared';
+    if (permitType === 'recipient') return 'ACPRecipient';
     throw new Error(`Unknown permit type: ${permitType}`);
   },
 };

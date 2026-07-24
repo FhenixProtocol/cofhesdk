@@ -20,8 +20,22 @@ export const PERMIT_STORE_DEFAULTS: PermitsStore = {
   activePermitHash: {},
 };
 
+/**
+ * Store version 2 = ACP (Permit V3). V2 permits are signed with retired EIP-712
+ * types and cannot verify on-chain anymore — the migration drops them rather
+ * than carrying dead entries (users re-create permits on next use).
+ */
+const PERMIT_STORE_VERSION = 2;
+
 export const _permitStore = createStore<PermitsStore>()(
-  persist(() => PERMIT_STORE_DEFAULTS, { name: 'cofhesdk-permits' })
+  persist(() => PERMIT_STORE_DEFAULTS, {
+    name: 'cofhesdk-permits',
+    version: PERMIT_STORE_VERSION,
+    migrate: (persistedState, version) => {
+      if (version < PERMIT_STORE_VERSION) return PERMIT_STORE_DEFAULTS;
+      return persistedState as PermitsStore;
+    },
+  })
 );
 
 export const clearStaleStore = () => {

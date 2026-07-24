@@ -33,6 +33,25 @@ export const bytesNotEmptySchema = bytesSchema.refine((val) => val !== '0x', {
 
 const DEFAULT_EXPIRATION_FN = () => Math.round(Date.now() / 1000) + 7 * 24 * 60 * 60; // 7 days from now
 
+/** (scope) ciphertext handles — accepts bigint / int / decimal string (JSON transport), normalizes to bigint */
+export const handlesSchema = z
+  .array(z.union([z.bigint(), z.int(), z.string().regex(/^\d+$/, 'Invalid handle')]).transform((v) => BigInt(v)))
+  .optional()
+  .default([]);
+
+/** (scope) contract addresses */
+export const contractsSchema = z.array(addressSchema).optional().default([]);
+
+/**
+ * Context-sensitive `global` default: with no scope arrays it defaults to true
+ * (V2 behavior); when contracts/handles are provided it defaults to false
+ * (narrowest matching scope).
+ */
+const withGlobalDefault = <T extends { global?: boolean; contracts: Hex[]; handles: bigint[] }>(data: T) => ({
+  ...data,
+  global: data.global ?? (data.contracts.length === 0 && data.handles.length === 0),
+});
+
 const zPermitWithDefaults = z.object({
   name: z.string().optional().default('Unnamed Permit'),
   type: z.enum(['self', 'sharing', 'recipient']),
@@ -41,6 +60,9 @@ const zPermitWithDefaults = z.object({
   recipient: addressSchema.optional().default(zeroAddress),
   validatorId: z.int().optional().default(0),
   validatorContract: addressSchema.optional().default(zeroAddress),
+  global: z.boolean().optional().default(true),
+  contracts: contractsSchema,
+  handles: handlesSchema,
   issuerSignature: bytesSchema.optional().default('0x'),
   recipientSignature: bytesSchema.optional().default('0x'),
 });
@@ -57,7 +79,7 @@ type zPermitType = z.infer<typeof zPermitWithDefaults>;
  * ELSE ensures that both `validatorId` and `validatorContract` are empty
  */
 const ExternalValidatorRefinement = [
-  (data: zPermitType) =>
+  (data: Pick<zPermitType, 'validatorId' | 'validatorContract'>) =>
     (data.validatorId !== 0 && data.validatorContract !== zeroAddress) ||
     (data.validatorId === 0 && data.validatorContract === zeroAddress),
   {
@@ -70,7 +92,7 @@ const ExternalValidatorRefinement = [
  * Prevents sharable permit from having the same issuer and recipient
  */
 const RecipientRefinement = [
-  (data: zPermitType) => data.issuer !== data.recipient,
+  (data: Pick<zPermitType, 'issuer' | 'recipient'>) => data.issuer !== data.recipient,
   {
     error: 'Sharing permit :: issuer and recipient must not be the same',
     path: ['issuer', 'recipient'] as string[],
@@ -93,10 +115,14 @@ export const SelfPermitOptionsValidator = z
     recipient: addressSchema.optional().default(zeroAddress),
     validatorId: z.int().optional().default(0),
     validatorContract: addressSchema.optional().default(zeroAddress),
+    global: z.boolean().optional(),
+    contracts: contractsSchema,
+    handles: handlesSchema,
     issuerSignature: bytesSchema.optional().default('0x'),
     recipientSignature: bytesSchema.optional().default('0x'),
   })
-  .refine(...ExternalValidatorRefinement);
+  .refine(...ExternalValidatorRefinement)
+  .transform(withGlobalDefault);
 
 /**
  * Validator for fully formed self permits
@@ -132,11 +158,15 @@ export const SharingPermitOptionsValidator = z
     expiration: z.int().optional().default(DEFAULT_EXPIRATION_FN),
     validatorId: z.int().optional().default(0),
     validatorContract: addressSchema.optional().default(zeroAddress),
+    global: z.boolean().optional(),
+    contracts: contractsSchema,
+    handles: handlesSchema,
     issuerSignature: bytesSchema.optional().default('0x'),
     recipientSignature: bytesSchema.optional().default('0x'),
   })
   .refine(...RecipientRefinement)
-  .refine(...ExternalValidatorRefinement);
+  .refine(...ExternalValidatorRefinement)
+  .transform(withGlobalDefault);
 
 /**
  * Validator for fully formed sharing permits
@@ -172,10 +202,14 @@ export const ImportPermitOptionsValidator = z
     expiration: z.int(),
     validatorId: z.int().optional().default(0),
     validatorContract: addressSchema.optional().default(zeroAddress),
+    global: z.boolean().optional(),
+    contracts: contractsSchema,
+    handles: handlesSchema,
     issuerSignature: bytesNotEmptySchema,
     recipientSignature: bytesSchema.optional().default('0x'),
   })
-  .refine(...ExternalValidatorRefinement);
+  .refine(...ExternalValidatorRefinement)
+  .transform(withGlobalDefault);
 
 /**
  * Validator for fully formed import/recipient permits

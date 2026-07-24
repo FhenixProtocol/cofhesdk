@@ -12,6 +12,9 @@ export const createMockPermit = async (overrides: Partial<Permit> = {}): Promise
     recipient: '0x0000000000000000000000000000000000000000',
     validatorId: 0,
     validatorContract: '0x0000000000000000000000000000000000000000',
+    global: true,
+    contracts: [] as Permit['contracts'],
+    handles: [] as Permit['handles'],
     sealingPair: sealingPair.serialize(),
     issuerSignature: '0x',
     recipientSignature: '0x',
@@ -20,8 +23,9 @@ export const createMockPermit = async (overrides: Partial<Permit> = {}): Promise
   } as const;
 
   const serializedPermit: SerializedPermit = {
-    hash: PermitUtils.getHash(fields),
+    hash: PermitUtils.getHash({ ...fields, handles: fields.handles.map((h: string | bigint) => BigInt(h)) }),
     ...fields,
+    handles: fields.handles.map((h: string | bigint) => h.toString()),
   };
 
   return PermitUtils.deserialize(serializedPermit);

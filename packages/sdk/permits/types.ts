@@ -59,7 +59,9 @@ export interface Permit {
    */
   recipient: Hex;
   /**
-   * (issuer defined validation) An id used to query a contract to check this permissions validity
+   * (issuer defined validation) An id used to query a contract to check this permissions validity.
+   * Opaque to the chain verifier; interpreted by `validatorContract` — the default
+   * validator interprets it as the permit's creation timestamp (enables revocation).
    * ** optional, use `0` to disable **
    */
   validatorId: number;
@@ -68,6 +70,19 @@ export interface Permit {
    * ** optional, user `address(0)` to disable **
    */
   validatorContract: Hex;
+  /**
+   * (scope) Grants access to all of `issuer`s encrypted values (V2 behavior)
+   */
+  global: boolean;
+  /**
+   * (scope) Grants access to `issuer`s values readable by any of these contracts.
+   * Checked on-chain as an intersection with the ACL's persisted allowances.
+   */
+  contracts: Hex[];
+  /**
+   * (scope) Grants access to these specific ciphertext handles
+   */
+  handles: bigint[];
   /**
    * (base) The publicKey of a sealingPair used to re-encrypt `issuer`s confidential data
    *   (non-sharing) Populated by `issuer`
@@ -128,8 +143,20 @@ export interface PermitMetadata {
  * Utility types for permit creation
  */
 
+/**
+ * Scope fields shared by all permit creation options.
+ * When any scope array is populated and `global` is not explicitly set,
+ * `global` defaults to false (narrowest matching scope); with no scope
+ * arrays it defaults to true (V2 behavior).
+ */
+export type PermitScopeOptions = {
+  global?: boolean;
+  contracts?: string[];
+  handles?: (bigint | number | string)[];
+};
+
 // Specific option types for each permit creation method
-export type CreateSelfPermitOptions = {
+export type CreateSelfPermitOptions = PermitScopeOptions & {
   type?: 'self';
   issuer: string;
   name?: string;
@@ -138,7 +165,7 @@ export type CreateSelfPermitOptions = {
   validatorContract?: string;
 };
 
-export type CreateSharingPermitOptions = {
+export type CreateSharingPermitOptions = PermitScopeOptions & {
   type?: 'sharing';
   issuer: string;
   recipient: string;
@@ -148,7 +175,7 @@ export type CreateSharingPermitOptions = {
   validatorContract?: string;
 };
 
-export type ImportSharedPermitOptions = {
+export type ImportSharedPermitOptions = PermitScopeOptions & {
   type?: 'sharing';
   issuer: string;
   recipient: string;
@@ -159,8 +186,10 @@ export type ImportSharedPermitOptions = {
   validatorContract?: string;
 };
 
-export type SerializedPermit = Omit<Permit, 'sealingPair'> & {
+export type SerializedPermit = Omit<Permit, 'sealingPair' | 'handles'> & {
   _signedDomain?: EIP712Domain;
+  /** bigint is not JSON-serializable — handles persist as decimal strings */
+  handles: string[];
   sealingPair: {
     privateKey: string;
     publicKey: string;
@@ -181,7 +210,7 @@ export type Permission = Expand<
  */
 export type PermitHashFields = Pick<
   Permit,
-  'type' | 'issuer' | 'expiration' | 'recipient' | 'validatorId' | 'validatorContract'
+  'type' | 'issuer' | 'expiration' | 'recipient' | 'validatorId' | 'validatorContract' | 'global' | 'contracts' | 'handles'
 >;
 
 /**
@@ -195,10 +224,7 @@ export interface ValidationResult {
 /**
  * Signature types for EIP712 signing
  */
-export type PermitSignaturePrimaryType =
-  | 'PermissionedV2IssuerSelf'
-  | 'PermissionedV2IssuerShared'
-  | 'PermissionedV2Recipient';
+export type PermitSignaturePrimaryType = 'ACPIssuerSelf' | 'ACPIssuerShared' | 'ACPRecipient';
 
 // Utils
 export type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
