@@ -217,7 +217,12 @@ const applyPermitDefaults = <
   const hasValidatorOptions = options.validatorId != null || options.validatorContract != null;
   if (defaultValidator != null && !hasValidatorOptions) {
     result.validatorContract = defaultValidator;
-    result.validatorId = Math.round(Date.now() / 1000);
+    // Creation timestamp minus a clock-skew allowance: the validator rejects
+    // future-dated ids (vs block.timestamp of the LAST block), so a local clock
+    // ahead of the chain — or a chain with sparse blocks — would otherwise make
+    // a fresh permit temporarily unusable. 60s of backdating costs nothing
+    // (revokeAllExisting at time T still kills this permit for any T >= id).
+    result.validatorId = Math.round(Date.now() / 1000) - 60;
   }
 
   const defaultContracts = permitConfig?.defaultContractScopes?.[chainId];

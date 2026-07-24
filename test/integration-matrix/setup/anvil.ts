@@ -88,7 +88,7 @@ export async function setup(project: TestProject): Promise<void> {
   const artifacts = createFoundryArtifactReader();
 
   console.log(`${HARDHAT_LOG_PREFIX} Deploying mock contracts...`);
-  await deployMocks(
+  const deployedMocks = await deployMocks(
     { publicClient, walletClient, artifacts: artifacts as any },
     { gasWarning: false, mocksDeployVerbosity: 'v' }
   );
@@ -99,6 +99,7 @@ export async function setup(project: TestProject): Promise<void> {
 
   project.provide('anvilRpc', ANVIL_RPC);
   project.provide('anvilSimpleTest', simpleTestAddress);
+  project.provide('anvilAcpValidator', deployedMocks.TimestampBasedACPValidator);
 
   await printMatrix(process.env.MATRIX_CHAIN, process.env.MATRIX_ENV);
 }

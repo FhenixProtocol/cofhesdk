@@ -24,8 +24,8 @@ describe('applyPermitDefaults', () => {
     const before = Math.round(Date.now() / 1000);
     const result = permits.applyPermitDefaults(opts({  }), permitConfig, CHAIN);
     expect(result.validatorContract).toBe(VALIDATOR);
-    expect(result.validatorId).toBeGreaterThanOrEqual(before);
-    expect(result.validatorId).toBeLessThanOrEqual(Math.round(Date.now() / 1000));
+    expect(result.validatorId).toBeGreaterThanOrEqual(before - 60); // 60s clock-skew backdating
+    expect(result.validatorId).toBeLessThanOrEqual(Math.round(Date.now() / 1000) - 59);
   });
 
   it('does not override an explicit validator pair', () => {
