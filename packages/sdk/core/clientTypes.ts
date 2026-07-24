@@ -103,6 +103,11 @@ export type CofheClientPermits = {
   removePermit: (hash: string, chainId?: number, account?: string) => void;
   removeActivePermit: (chainId?: number, account?: string) => void;
 
+  // Revocation (on-chain, require connection)
+  revokePermit: (permit: Permit) => Promise<`0x${string}`>;
+  revokeAllPermits: (validatorContract?: `0x${string}`) => Promise<`0x${string}`>;
+  isPermitRevoked: (permit: Permit) => Promise<boolean>;
+
   // Utils
   getHash: typeof PermitUtils.getHash;
   export: typeof PermitUtils.export;

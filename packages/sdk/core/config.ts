@@ -29,6 +29,22 @@ export type CofheConfig = {
    * Default: true
    */
   useWorkers: boolean;
+  /** ACP permit defaults, applied when creating permits (user options always win) */
+  permit: {
+    /**
+     * Default revocation validator per chainId. When set, created permits are
+     * revocable by default: validatorContract = this address and
+     * validatorId = permit creation timestamp (interpreted by the default
+     * timestamp validator; enables revokeSingle + O(1) revokeAll).
+     */
+    defaultValidator?: Record<number, `0x${string}`>;
+    /**
+     * Default contract scopes per chainId, injected into created permits'
+     * `contracts` when the caller doesn't provide scope options.
+     * Note: injecting scopes makes created permits non-global by default.
+     */
+    defaultContractScopes?: Record<number, `0x${string}`[]>;
+  };
   /** Mocks configs */
   mocks: {
     /**
@@ -82,6 +98,14 @@ export const CofheConfigSchema = z.object({
     .default(null),
   /** Whether to use Web Workers for ZK proof generation (web platform only) */
   useWorkers: z.boolean().optional().default(true),
+  /** ACP permit defaults */
+  permit: z
+    .object({
+      defaultValidator: z.custom<Record<number, `0x${string}`>>().optional(),
+      defaultContractScopes: z.custom<Record<number, `0x${string}`[]>>().optional(),
+    })
+    .optional()
+    .default({}),
   /** Mocks configs */
   mocks: z
     .object({

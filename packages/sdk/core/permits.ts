@@ -187,6 +187,48 @@ const getOrCreateSharingPermit = async (
   return createSharing(options, publicClient, walletClient);
 };
 
+// CONFIG DEFAULTS
+
+/**
+ * Applies the config's ACP permit defaults to creation options (pure).
+ * Explicit user options always win:
+ *  - validator: injected only when the options carry NO validator pair —
+ *    validatorContract = config default, validatorId = creation timestamp
+ *    ("every permit revocable by default")
+ *  - contracts: injected only when the options carry NO scope fields at all —
+ *    injecting scope makes the created permit non-global by default
+ */
+const applyPermitDefaults = <
+  T extends {
+    validatorId?: number;
+    validatorContract?: string;
+    global?: boolean;
+    contracts?: string[];
+    handles?: (bigint | number | string)[];
+  },
+>(
+  options: T,
+  permitConfig: { defaultValidator?: Record<number, Hex>; defaultContractScopes?: Record<number, Hex[]> } | undefined,
+  chainId: number
+): T => {
+  const result = { ...options };
+
+  const defaultValidator = permitConfig?.defaultValidator?.[chainId];
+  const hasValidatorOptions = options.validatorId != null || options.validatorContract != null;
+  if (defaultValidator != null && !hasValidatorOptions) {
+    result.validatorContract = defaultValidator;
+    result.validatorId = Math.round(Date.now() / 1000);
+  }
+
+  const defaultContracts = permitConfig?.defaultContractScopes?.[chainId];
+  const hasScopeOptions = options.global != null || options.contracts != null || options.handles != null;
+  if (defaultContracts != null && defaultContracts.length > 0 && !hasScopeOptions) {
+    result.contracts = defaultContracts;
+  }
+
+  return result;
+};
+
 // REVOKE (on-chain, via the permit's validator contract)
 
 /**
@@ -303,4 +345,6 @@ export const permits = {
   revokePermit,
   revokeAllPermits,
   isPermitRevoked,
+
+  applyPermitDefaults,
 };
