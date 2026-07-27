@@ -23,7 +23,7 @@ import type {
   TypedContractMethod,
 } from './common';
 
-export type ACPermissionStruct = {
+export type ACPStruct = {
   issuer: AddressLike;
   expiration: BigNumberish;
   recipient: AddressLike;
@@ -37,7 +37,7 @@ export type ACPermissionStruct = {
   recipientSignature: BytesLike;
 };
 
-export type ACPermissionStructOutput = [
+export type ACPStructOutput = [
   issuer: string,
   expiration: bigint,
   recipient: string,
@@ -68,7 +68,7 @@ export interface MockACPInterface extends Interface {
 
   getEvent(nameOrSignatureOrTopic: 'EIP712DomainChanged'): EventFragment;
 
-  encodeFunctionData(functionFragment: 'checkPermissionValidity', values: [ACPermissionStruct]): string;
+  encodeFunctionData(functionFragment: 'checkPermissionValidity', values: [ACPStruct]): string;
   encodeFunctionData(functionFragment: 'eip712Domain', values?: undefined): string;
   encodeFunctionData(functionFragment: 'hashTypedDataV4', values: [BytesLike]): string;
 
@@ -120,7 +120,7 @@ export interface MockACP extends BaseContract {
   listeners(eventName?: string): Promise<Array<Listener>>;
   removeAllListeners<TCEvent extends TypedContractEvent>(event?: TCEvent): Promise<this>;
 
-  checkPermissionValidity: TypedContractMethod<[permission: ACPermissionStruct], [boolean], 'view'>;
+  checkPermissionValidity: TypedContractMethod<[permission: ACPStruct], [boolean], 'view'>;
 
   eip712Domain: TypedContractMethod<
     [],
@@ -144,7 +144,7 @@ export interface MockACP extends BaseContract {
 
   getFunction(
     nameOrSignature: 'checkPermissionValidity'
-  ): TypedContractMethod<[permission: ACPermissionStruct], [boolean], 'view'>;
+  ): TypedContractMethod<[permission: ACPStruct], [boolean], 'view'>;
   getFunction(nameOrSignature: 'eip712Domain'): TypedContractMethod<
     [],
     [

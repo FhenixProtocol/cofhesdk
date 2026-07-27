@@ -45,7 +45,7 @@ export const TYPES_RECIPIENT = {
   ],
 };
 
-export type ACPermission = {
+export type ACP = {
   issuer: string;
   expiration: bigint;
   recipient: string;
@@ -73,9 +73,9 @@ export const latestTimestamp = async (): Promise<bigint> =>
 export const signedSelfPermission = async (
   acpVerifier: Contract,
   issuer: HardhatEthersSigner,
-  overrides: Partial<ACPermission> = {}
-): Promise<ACPermission> => {
-  const p: ACPermission = {
+  overrides: Partial<ACP> = {}
+): Promise<ACP> => {
+  const p: ACP = {
     issuer: issuer.address,
     expiration: (await latestTimestamp()) + 7n * 24n * 3600n,
     recipient: ZERO_ADDRESS,

@@ -432,7 +432,7 @@ export const MockACLArtifact = {
         {
           name: 'permission',
           type: 'tuple',
-          internalType: 'struct ACPermission',
+          internalType: 'struct ACP',
           components: [
             {
               name: 'issuer',

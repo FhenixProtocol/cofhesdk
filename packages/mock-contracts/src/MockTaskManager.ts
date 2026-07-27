@@ -399,7 +399,7 @@ export const MockTaskManagerArtifact = {
         {
           name: 'permission',
           type: 'tuple',
-          internalType: 'struct ACPermission',
+          internalType: 'struct ACP',
           components: [
             {
               name: 'issuer',

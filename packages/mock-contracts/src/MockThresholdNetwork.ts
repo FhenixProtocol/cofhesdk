@@ -37,7 +37,7 @@ export const MockThresholdNetworkArtifact = {
         {
           name: 'permission',
           type: 'tuple',
-          internalType: 'struct ACPermission',
+          internalType: 'struct ACP',
           components: [
             {
               name: 'issuer',
@@ -258,7 +258,7 @@ export const MockThresholdNetworkArtifact = {
         {
           name: 'permission',
           type: 'tuple',
-          internalType: 'struct ACPermission',
+          internalType: 'struct ACP',
           components: [
             {
               name: 'issuer',
@@ -354,7 +354,7 @@ export const MockThresholdNetworkArtifact = {
         {
           name: 'permission',
           type: 'tuple',
-          internalType: 'struct ACPermission',
+          internalType: 'struct ACP',
           components: [
             {
               name: 'issuer',

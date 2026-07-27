@@ -23,7 +23,7 @@ import type {
   TypedContractMethod,
 } from './common';
 
-export type ACPermissionStruct = {
+export type ACPStruct = {
   issuer: AddressLike;
   expiration: BigNumberish;
   recipient: AddressLike;
@@ -37,7 +37,7 @@ export type ACPermissionStruct = {
   recipientSignature: BytesLike;
 };
 
-export type ACPermissionStructOutput = [
+export type ACPStructOutput = [
   issuer: string,
   expiration: bigint,
   recipient: string,
@@ -184,7 +184,7 @@ export interface MockTaskManagerInterface extends Interface {
   encodeFunctionData(functionFragment: 'inMockStorage', values: [BigNumberish]): string;
   encodeFunctionData(functionFragment: 'initialize', values: [AddressLike]): string;
   encodeFunctionData(functionFragment: 'isAllowed', values: [BigNumberish, AddressLike]): string;
-  encodeFunctionData(functionFragment: 'isAllowedWithACP', values: [ACPermissionStruct, BigNumberish]): string;
+  encodeFunctionData(functionFragment: 'isAllowedWithACP', values: [ACPStruct, BigNumberish]): string;
   encodeFunctionData(functionFragment: 'isAllowedWithPermission', values: [PermissionStruct, BigNumberish]): string;
   encodeFunctionData(functionFragment: 'isInitialized', values?: undefined): string;
   encodeFunctionData(functionFragment: 'isPubliclyAllowed', values: [BigNumberish]): string;
@@ -408,7 +408,7 @@ export interface MockTaskManager extends BaseContract {
 
   isAllowed: TypedContractMethod<[ctHash: BigNumberish, account: AddressLike], [boolean], 'view'>;
 
-  isAllowedWithACP: TypedContractMethod<[permission: ACPermissionStruct, handle: BigNumberish], [boolean], 'view'>;
+  isAllowedWithACP: TypedContractMethod<[permission: ACPStruct, handle: BigNumberish], [boolean], 'view'>;
 
   isAllowedWithPermission: TypedContractMethod<[permission: PermissionStruct, handle: BigNumberish], [boolean], 'view'>;
 
@@ -532,7 +532,7 @@ export interface MockTaskManager extends BaseContract {
   ): TypedContractMethod<[ctHash: BigNumberish, account: AddressLike], [boolean], 'view'>;
   getFunction(
     nameOrSignature: 'isAllowedWithACP'
-  ): TypedContractMethod<[permission: ACPermissionStruct, handle: BigNumberish], [boolean], 'view'>;
+  ): TypedContractMethod<[permission: ACPStruct, handle: BigNumberish], [boolean], 'view'>;
   getFunction(
     nameOrSignature: 'isAllowedWithPermission'
   ): TypedContractMethod<[permission: PermissionStruct, handle: BigNumberish], [boolean], 'view'>;

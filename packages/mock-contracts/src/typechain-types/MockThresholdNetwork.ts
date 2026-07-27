@@ -21,7 +21,7 @@ import type {
   TypedContractMethod,
 } from './common';
 
-export type ACPermissionStruct = {
+export type ACPStruct = {
   issuer: AddressLike;
   expiration: BigNumberish;
   recipient: AddressLike;
@@ -35,7 +35,7 @@ export type ACPermissionStruct = {
   recipientSignature: BytesLike;
 };
 
-export type ACPermissionStructOutput = [
+export type ACPStructOutput = [
   issuer: string,
   expiration: bigint,
   recipient: string,
@@ -79,21 +79,15 @@ export interface MockThresholdNetworkInterface extends Interface {
   ): FunctionFragment;
 
   encodeFunctionData(functionFragment: 'decodeLowLevelReversion', values: [BytesLike]): string;
-  encodeFunctionData(functionFragment: 'decryptForTxWithPermit', values: [BigNumberish, ACPermissionStruct]): string;
+  encodeFunctionData(functionFragment: 'decryptForTxWithPermit', values: [BigNumberish, ACPStruct]): string;
   encodeFunctionData(functionFragment: 'decryptForTxWithoutPermit', values: [BigNumberish]): string;
   encodeFunctionData(functionFragment: 'exists', values?: undefined): string;
   encodeFunctionData(functionFragment: 'initialize', values: [AddressLike, AddressLike]): string;
   encodeFunctionData(functionFragment: 'mockAcl', values?: undefined): string;
   encodeFunctionData(functionFragment: 'mockQueryDecrypt', values: [BigNumberish, BigNumberish, AddressLike]): string;
   encodeFunctionData(functionFragment: 'mockTaskManager', values?: undefined): string;
-  encodeFunctionData(
-    functionFragment: 'queryDecrypt',
-    values: [BigNumberish, BigNumberish, ACPermissionStruct]
-  ): string;
-  encodeFunctionData(
-    functionFragment: 'querySealOutput',
-    values: [BigNumberish, BigNumberish, ACPermissionStruct]
-  ): string;
+  encodeFunctionData(functionFragment: 'queryDecrypt', values: [BigNumberish, BigNumberish, ACPStruct]): string;
+  encodeFunctionData(functionFragment: 'querySealOutput', values: [BigNumberish, BigNumberish, ACPStruct]): string;
   encodeFunctionData(functionFragment: 'seal', values: [BigNumberish, BytesLike]): string;
   encodeFunctionData(functionFragment: 'unseal', values: [BytesLike, BytesLike]): string;
 
@@ -147,7 +141,7 @@ export interface MockThresholdNetwork extends BaseContract {
   decodeLowLevelReversion: TypedContractMethod<[data: BytesLike], [string], 'view'>;
 
   decryptForTxWithPermit: TypedContractMethod<
-    [ctHash: BigNumberish, permission: ACPermissionStruct],
+    [ctHash: BigNumberish, permission: ACPStruct],
     [
       [boolean, string, bigint] & {
         allowed: boolean;
@@ -185,13 +179,13 @@ export interface MockThresholdNetwork extends BaseContract {
   mockTaskManager: TypedContractMethod<[], [string], 'view'>;
 
   queryDecrypt: TypedContractMethod<
-    [ctHash: BigNumberish, arg1: BigNumberish, permission: ACPermissionStruct],
+    [ctHash: BigNumberish, arg1: BigNumberish, permission: ACPStruct],
     [[boolean, string, bigint] & { allowed: boolean; error: string }],
     'view'
   >;
 
   querySealOutput: TypedContractMethod<
-    [ctHash: BigNumberish, arg1: BigNumberish, permission: ACPermissionStruct],
+    [ctHash: BigNumberish, arg1: BigNumberish, permission: ACPStruct],
     [[boolean, string, string] & { allowed: boolean; error: string }],
     'view'
   >;
@@ -204,7 +198,7 @@ export interface MockThresholdNetwork extends BaseContract {
 
   getFunction(nameOrSignature: 'decodeLowLevelReversion'): TypedContractMethod<[data: BytesLike], [string], 'view'>;
   getFunction(nameOrSignature: 'decryptForTxWithPermit'): TypedContractMethod<
-    [ctHash: BigNumberish, permission: ACPermissionStruct],
+    [ctHash: BigNumberish, permission: ACPStruct],
     [
       [boolean, string, bigint] & {
         allowed: boolean;
@@ -241,14 +235,14 @@ export interface MockThresholdNetwork extends BaseContract {
   getFunction(
     nameOrSignature: 'queryDecrypt'
   ): TypedContractMethod<
-    [ctHash: BigNumberish, arg1: BigNumberish, permission: ACPermissionStruct],
+    [ctHash: BigNumberish, arg1: BigNumberish, permission: ACPStruct],
     [[boolean, string, bigint] & { allowed: boolean; error: string }],
     'view'
   >;
   getFunction(
     nameOrSignature: 'querySealOutput'
   ): TypedContractMethod<
-    [ctHash: BigNumberish, arg1: BigNumberish, permission: ACPermissionStruct],
+    [ctHash: BigNumberish, arg1: BigNumberish, permission: ACPStruct],
     [[boolean, string, string] & { allowed: boolean; error: string }],
     'view'
   >;

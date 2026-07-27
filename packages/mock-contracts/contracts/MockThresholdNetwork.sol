@@ -10,7 +10,7 @@ pragma solidity >=0.8.19 <0.9.0;
 import { MockACL } from './MockACL.sol';
 import { MockTaskManager } from './MockTaskManager.sol';
 import { MockPermissioned } from './Permissioned.sol';
-import { ACPermission } from './ACP.sol';
+import { ACP } from './ACP.sol';
 
 contract MockThresholdNetwork {
   MockTaskManager public mockTaskManager;
@@ -36,7 +36,7 @@ contract MockThresholdNetwork {
   function queryDecrypt(
     uint256 ctHash,
     uint256,
-    ACPermission memory permission
+    ACP memory permission
   ) public view returns (bool allowed, string memory error, uint256) {
     bool isAllowed;
     try mockAcl.isAllowedWithACP(permission, ctHash) returns (bool _isAllowed) {
@@ -93,7 +93,7 @@ contract MockThresholdNetwork {
   function querySealOutput(
     uint256 ctHash,
     uint256,
-    ACPermission memory permission
+    ACP memory permission
   ) public view returns (bool allowed, string memory error, bytes32) {
     if (permission.sealingKey == bytes32(0)) revert SealingKeyMissing();
 
@@ -120,7 +120,7 @@ contract MockThresholdNetwork {
 
   function _isAllowedWithPermit(
     uint256 ctHash,
-    ACPermission memory permission
+    ACP memory permission
   ) internal view returns (bool isAllowed, string memory error) {
     try mockTaskManager.isAllowedWithACP(permission, ctHash) returns (bool _isAllowed) {
       isAllowed = _isAllowed;
@@ -154,7 +154,7 @@ contract MockThresholdNetwork {
   /// @notice Decrypt a ciphertext for a transaction using a permit.
   function decryptForTxWithPermit(
     uint256 ctHash,
-    ACPermission memory permission
+    ACP memory permission
   ) public view returns (bool allowed, string memory error, uint256 decryptedValue) {
     if (permission.issuer == address(0)) {
       return (false, 'PermissionMissing', 0);

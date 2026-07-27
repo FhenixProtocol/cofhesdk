@@ -29,7 +29,7 @@ import {IPermissionCustomIdValidator} from "./Permissioned.sol";
  * creation timestamp, enabling O(1) revoke-all. `validatorId = 0` or
  * `validatorContract = address(0)` disables the check (permission not revocable).
  */
-struct ACPermission {
+struct ACP {
     // (base) User that initially created the permission, target of data fetching
     address issuer;
     // (base) Expiration timestamp
@@ -66,7 +66,7 @@ struct ACPermission {
 }
 
 contract MockACP is EIP712 {
-    using ACPUtils for ACPermission;
+    using ACPUtils for ACP;
 
     /// @dev Same verifying-contract identity as V2 ("ACL"), domain version bumped for the V3 types.
     constructor() EIP712("ACL", "2") {}
@@ -95,7 +95,7 @@ contract MockACP is EIP712 {
     ///
     /// NOTE: Functions protected by `withPermission` should return ONLY the sensitive data of `permission.issuer`.
     /// !! Returning data of `msg.sender` will leak sensitive values - `msg.sender` cannot be trusted in view functions !!
-    modifier withPermission(ACPermission memory permission) {
+    modifier withPermission(ACP memory permission) {
         // Expiration
         if (permission.expiration < block.timestamp)
             revert PermissionInvalid_Expired();
@@ -136,7 +136,7 @@ contract MockACP is EIP712 {
     /// Scope checks (global/contracts/handles vs a handle) are the ACL's job and
     /// are exercised against MockACL in a separate increment.
     function checkPermissionValidity(
-        ACPermission memory permission
+        ACP memory permission
     ) public view withPermission(permission) returns (bool) {
         return true;
     }
@@ -154,7 +154,7 @@ library ACPUtils {
     /// @dev EIP-712: dynamic arrays are hashed as keccak256 of the concatenated
     /// 32-byte-encoded elements — which is what `abi.encodePacked` produces for arrays.
     function issuerHash(
-        ACPermission memory permission
+        ACP memory permission
     ) internal pure returns (bytes32) {
         if (permission.recipient == address(0))
             return issuerSelfHash(permission);
@@ -162,7 +162,7 @@ library ACPUtils {
     }
 
     function issuerSelfHash(
-        ACPermission memory permission
+        ACP memory permission
     ) internal pure returns (bytes32) {
         return
             keccak256(
@@ -184,7 +184,7 @@ library ACPUtils {
     }
 
     function issuerSharedHash(
-        ACPermission memory permission
+        ACP memory permission
     ) internal pure returns (bytes32) {
         return
             keccak256(
@@ -205,7 +205,7 @@ library ACPUtils {
     }
 
     function recipientHash(
-        ACPermission memory permission
+        ACP memory permission
     ) internal pure returns (bytes32) {
         return
             keccak256(

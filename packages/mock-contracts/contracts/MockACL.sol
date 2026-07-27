@@ -3,7 +3,7 @@ pragma solidity >=0.8.19 <0.9.0;
 
 import { Strings } from '@openzeppelin/contracts/utils/Strings.sol';
 import { MockPermissioned, Permission } from './Permissioned.sol';
-import { MockACP, ACPermission } from './ACP.sol';
+import { MockACP, ACP } from './ACP.sol';
 import { TASK_MANAGER_ADDRESS } from '@fhenixprotocol/cofhe-contracts/FHE.sol';
 
 /**
@@ -349,7 +349,7 @@ contract MockACL is MockPermissioned {
   ///      `persistedAllowedPairs` (populated via FHE.allow/allowThis) —
   ///      no new data structures. Transient allowances deliberately do not
   ///      satisfy contract scope: only persisted grants count.
-  function isAllowedWithACP(ACPermission memory permission, uint256 handle) public view returns (bool) {
+  function isAllowedWithACP(ACP memory permission, uint256 handle) public view returns (bool) {
     // Structure validity (expiration, signatures, validator) — reverts if invalid
     acpVerifier.checkPermissionValidity(permission);
 
