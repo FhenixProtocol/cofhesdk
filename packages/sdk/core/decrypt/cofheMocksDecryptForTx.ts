@@ -31,7 +31,7 @@ export async function cofheMocksDecryptForTx(
 
   // With permit
   if (permit !== null) {
-    let permission = PermitUtils.getPermission(permit, true);
+    let permission = PermitUtils.getPublic(permit, true);
     const permissionWithBigInts = {
       ...permission,
       expiration: BigInt(permission.expiration),

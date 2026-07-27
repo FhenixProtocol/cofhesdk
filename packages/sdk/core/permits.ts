@@ -353,3 +353,6 @@ export const permits = {
 
   applyPermitDefaults,
 };
+
+/** @deprecated renamed — use `acp` (public terminology: permit -> ACP) */
+export const acp = permits;

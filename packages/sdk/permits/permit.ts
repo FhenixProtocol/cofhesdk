@@ -29,7 +29,7 @@ import { checkPermitValidityOnChain, getAclEIP712Domain } from './onchain-utils.
 /**
  * Main Permit utilities - functional approach for React compatibility
  */
-export const PermitUtils = {
+export const ACPUtils = {
   /**
    * Create a self permit for personal use
    */
@@ -40,7 +40,7 @@ export const PermitUtils = {
     const sealingPair = GenerateSealingKey();
 
     const permit = {
-      hash: PermitUtils.getHash(validation),
+      hash: ACPUtils.getHash(validation),
       ...validation,
       sealingPair,
       _signedDomain: undefined,
@@ -59,7 +59,7 @@ export const PermitUtils = {
     const sealingPair = GenerateSealingKey();
 
     const permit = {
-      hash: PermitUtils.getHash(validation),
+      hash: ACPUtils.getHash(validation),
       ...validation,
       sealingPair,
       _signedDomain: undefined,
@@ -100,7 +100,7 @@ export const PermitUtils = {
     const sealingPair = GenerateSealingKey();
 
     const permit = {
-      hash: PermitUtils.getHash(validation),
+      hash: ACPUtils.getHash(validation),
       ...validation,
       sealingPair,
       _signedDomain: undefined,
@@ -121,7 +121,7 @@ export const PermitUtils = {
 
     const primaryType = SignatureUtils.getPrimaryType(permit.type);
     const domain = await getAclEIP712Domain(publicClient);
-    const { types, message } = SignatureUtils.getSignatureParams(PermitUtils.getPermission(permit, true), primaryType);
+    const { types, message } = SignatureUtils.getSignatureParams(ACPUtils.getPublic(permit, true), primaryType);
 
     const signature = await walletClient.signTypedData({
       domain,
@@ -157,8 +157,8 @@ export const PermitUtils = {
     publicClient: PublicClient,
     walletClient: WalletClient
   ): Promise<SelfPermit> => {
-    const permit = PermitUtils.createSelf(options);
-    return PermitUtils.sign(permit, publicClient, walletClient);
+    const permit = ACPUtils.createSelf(options);
+    return ACPUtils.sign(permit, publicClient, walletClient);
   },
 
   /**
@@ -169,8 +169,8 @@ export const PermitUtils = {
     publicClient: PublicClient,
     walletClient: WalletClient
   ): Promise<SharingPermit> => {
-    const permit = PermitUtils.createSharing(options);
-    return PermitUtils.sign(permit, publicClient, walletClient);
+    const permit = ACPUtils.createSharing(options);
+    return ACPUtils.sign(permit, publicClient, walletClient);
   },
 
   /**
@@ -181,8 +181,8 @@ export const PermitUtils = {
     publicClient: PublicClient,
     walletClient: WalletClient
   ): Promise<RecipientPermit> => {
-    const permit = PermitUtils.importShared(options);
-    return PermitUtils.sign(permit, publicClient, walletClient);
+    const permit = ACPUtils.importShared(options);
+    return ACPUtils.sign(permit, publicClient, walletClient);
   },
 
   /**
@@ -245,17 +245,18 @@ export const PermitUtils = {
    * For schema-only validation, use `validateSchema(permit)`.
    */
   validate: (permit: Permit) => {
-    const validated = PermitUtils.validateSchema(permit);
+    const validated = ACPUtils.validateSchema(permit);
     ValidationUtils.assertSignedAndNotExpired(validated as Permit);
     return validated;
   },
 
   /**
-   * Get the permission object from a permit (for use in contracts)
+   * Get the public component of an ACP — the signed struct sent on-chain / to the decryption backend.
+   * Strips the private component (hash, name, type, sealing pair).
    */
-  getPermission: (permit: Permit, skipValidation = false): Permission => {
+  getPublic: (permit: Permit, skipValidation = false): Permission => {
     if (!skipValidation) {
-      PermitUtils.validateSchema(permit);
+      ACPUtils.validateSchema(permit);
     }
 
     return {
@@ -387,14 +388,17 @@ export const PermitUtils = {
   checkSignedDomainValid: async (permit: Permit, publicClient: PublicClient): Promise<boolean> => {
     if (permit._signedDomain == null) return false;
     const domain = await getAclEIP712Domain(publicClient);
-    return PermitUtils.matchesDomain(permit, domain);
+    return ACPUtils.matchesDomain(permit, domain);
   },
 
   /**
    * Check if permit passes the on-chain validation
    */
   checkValidityOnChain: async (permit: Permit, publicClient: PublicClient): Promise<boolean> => {
-    const permission = PermitUtils.getPermission(permit);
+    const permission = ACPUtils.getPublic(permit);
     return checkPermitValidityOnChain(permission, publicClient);
   },
 };
+
+/** @deprecated renamed — use `ACPUtils` */
+export const PermitUtils = ACPUtils;

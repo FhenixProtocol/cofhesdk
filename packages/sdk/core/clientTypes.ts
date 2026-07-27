@@ -52,6 +52,9 @@ export type CofheClient<TConfig extends CofheConfig = CofheConfig> = {
   decryptForView<U extends FheTypes>(ctHash: bigint | string, utype: U): DecryptForViewBuilder<U>;
   decryptForTx(ctHash: bigint | string): DecryptForTxBuilderUnset;
   verifyDecryptResult(handle: bigint | string, cleartext: bigint, signature: Hex): Promise<boolean>;
+  /** ACP (Access Control Permission) management — create, share, revoke, select. */
+  acp: CofheClientPermits;
+  /** @deprecated renamed — use `client.acp` */
   permits: CofheClientPermits;
 };
 

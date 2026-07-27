@@ -27,9 +27,13 @@ export type { EthEncryptedData };
 // Viem client types will be imported from viem package
 
 /**
- * Core Permit interface - immutable design for React compatibility
+ * Core ACP (Access Control Permission) interface - immutable design for React compatibility.
+ *
+ * Structurally: ACP = ACPPrivate & ACPPublic.
+ *  - ACPPrivate: client-side-only fields (store key, UI metadata, sealing pair) — never leaves the client
+ *  - ACPPublic: the signed wire/on-chain component — produced by `getPublic()`
  */
-export interface Permit {
+export interface ACP {
   /**
    * Stable hash of relevant permit data, used as key in storage
    */
@@ -197,13 +201,25 @@ export type SerializedPermit = Omit<Permit, 'sealingPair' | 'handles'> & {
 };
 
 /**
- * A type representing the Permission struct that is passed to Permissioned.sol to grant encrypted data access.
+ * The client-side-only component of an ACP. Never leaves the client.
  */
-export type Permission = Expand<
-  Omit<Permit, 'name' | 'type' | 'sealingPair' | 'hash'> & {
+export type ACPPrivate = Expand<Pick<ACP, 'hash' | 'name' | 'type' | 'sealingPair' | '_signedDomain'>>;
+
+/**
+ * The public component of an ACP — the signed struct passed on-chain / to the
+ * decryption backend to grant encrypted data access. Produced by `getPublic()`.
+ */
+export type ACPPublic = Expand<
+  Omit<ACP, keyof ACPPrivate> & {
     sealingKey: Hex;
   }
 >;
+
+/** @deprecated renamed — use `ACPPublic` */
+export type Permission = ACPPublic;
+
+/** @deprecated renamed — use `ACP` */
+export type Permit = ACP;
 
 /**
  * A type representing the permit fields that are used to generate the hash

@@ -287,7 +287,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
     this.assertPublicClient();
 
     const thresholdNetworkUrl = await this.getThresholdNetworkUrl();
-    const permission = PermitUtils.getPermission(permit, true);
+    const permission = PermitUtils.getPublic(permit, true);
     // const sealed = await tnSealOutputV1(this.ctHash, this.chainId, permission, thresholdNetworkUrl);
     const sealed = await tnSealOutputV2({
       ctHash: this.ctHash,

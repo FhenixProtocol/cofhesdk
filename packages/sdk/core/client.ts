@@ -370,6 +370,8 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
     decryptHandle: decryptForView,
     decryptForTx,
     verifyDecryptResult,
+    acp: clientPermits,
+    // Deprecated alias — same object, kept for migration (public terminology: permit -> ACP)
     permits: clientPermits,
 
     // Add SDK-specific methods below that require connection

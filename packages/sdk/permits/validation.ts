@@ -47,6 +47,20 @@ export const contractsSchema = z.array(addressSchema).optional().default([]);
  * (V2 behavior); when contracts/handles are provided it defaults to false
  * (narrowest matching scope).
  */
+/**
+ * Global scope invariant (standup decision): a global-scope ACP must carry
+ * empty `contracts` / `handles` arrays — global and granular scopes are
+ * mutually exclusive.
+ */
+const GlobalScopeRefinement = [
+  (data: { global: boolean; contracts: Hex[]; handles: bigint[] }) =>
+    !data.global || (data.contracts.length === 0 && data.handles.length === 0),
+  {
+    error: 'Global scope ACP :: `global: true` requires empty `contracts` and `handles` (scopes are mutually exclusive)',
+    path: ['global'] as string[],
+  },
+] as const;
+
 const withGlobalDefault = <T extends { global?: boolean; contracts: Hex[]; handles: bigint[] }>(data: T) => ({
   ...data,
   global: data.global ?? (data.contracts.length === 0 && data.handles.length === 0),
@@ -122,7 +136,7 @@ export const SelfPermitOptionsValidator = z
     recipientSignature: bytesSchema.optional().default('0x'),
   })
   .refine(...ExternalValidatorRefinement)
-  .transform(withGlobalDefault);
+  .transform(withGlobalDefault).refine(...GlobalScopeRefinement);
 
 /**
  * Validator for fully formed self permits
@@ -166,7 +180,7 @@ export const SharingPermitOptionsValidator = z
   })
   .refine(...RecipientRefinement)
   .refine(...ExternalValidatorRefinement)
-  .transform(withGlobalDefault);
+  .transform(withGlobalDefault).refine(...GlobalScopeRefinement);
 
 /**
  * Validator for fully formed sharing permits
@@ -209,7 +223,7 @@ export const ImportPermitOptionsValidator = z
     recipientSignature: bytesSchema.optional().default('0x'),
   })
   .refine(...ExternalValidatorRefinement)
-  .transform(withGlobalDefault);
+  .transform(withGlobalDefault).refine(...GlobalScopeRefinement);
 
 /**
  * Validator for fully formed import/recipient permits

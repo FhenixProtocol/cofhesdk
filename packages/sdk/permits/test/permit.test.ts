@@ -371,7 +371,7 @@ describe('PermitUtils Tests', () => {
         bobWalletClient
       );
 
-      const permission = PermitUtils.getPermission(permit);
+      const permission = PermitUtils.getPublic(permit);
 
       expect(permission.issuer).toBe(permit.issuer);
       expect(permission.sealingKey).toBe(`0x${permit.sealingPair.publicKey}`);
