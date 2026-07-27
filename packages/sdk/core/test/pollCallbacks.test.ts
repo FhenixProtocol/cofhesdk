@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { tnDecryptV2 } from '../decrypt/tnDecryptV2.js';
 import { tnSealOutputV2 } from '../decrypt/tnSealOutputV2.js';
+import { CofheErrorCode } from '../error.js';
 
 const makeMockResponse = (opts: { ok: boolean; status?: number; statusText?: string; json: () => Promise<any> }) => {
   return {
@@ -201,7 +202,7 @@ describe('decrypt polling callbacks', () => {
             ok: false,
             status: 404,
             statusText: 'Not Found',
-            json: async () => ({ message: 'Not Found' }),
+            json: async () => ({ error: 'ct_not_found', error_message: 'ciphertext not indexed yet' }),
           });
         }
 
@@ -275,7 +276,7 @@ describe('decrypt polling callbacks', () => {
           ok: false,
           status: 404,
           statusText: 'Not Found',
-          json: async () => ({ message: 'Not Found' }),
+          json: async () => ({ error: 'ct_not_found', error_message: 'ciphertext not indexed yet' }),
         });
       }
 
@@ -292,11 +293,45 @@ describe('decrypt polling callbacks', () => {
     });
 
     const rejection = expect(promise).rejects.toMatchObject({
-      message: 'decrypt submit retried 404 responses without receiving request_id for 10000ms',
+      code: CofheErrorCode.CtNotFound,
+      apiErrorCode: 'ct_not_found',
+      message: 'decrypt ciphertext not found after retrying for 10000ms: ciphertext not indexed yet',
     });
 
     await vi.advanceTimersByTimeAsync(11_000);
     await rejection;
+  });
+
+  it('tnDecryptV2 fails immediately on a 404 that is not ct_not_found', async () => {
+    const fetchMock = vi.fn(async (url: string, options?: any) => {
+      if (url === `${thresholdNetworkUrl}/v2/decrypt` && options?.method === 'POST') {
+        return makeMockResponse({
+          ok: false,
+          status: 404,
+          statusText: 'Not Found',
+          json: async () => ({ error: 'permit_denied', error_message: 'permit was rejected' }),
+        });
+      }
+
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+
+    global.fetch = fetchMock as any;
+
+    const promise = tnDecryptV2({
+      ctHash: 1n,
+      chainId: 1,
+      permission: null,
+      thresholdNetworkUrl,
+    });
+
+    await expect(promise).rejects.toMatchObject({
+      code: CofheErrorCode.PermitDenied,
+      apiErrorCode: 'permit_denied',
+      message: 'decrypt request failed: permit was rejected',
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('tnDecryptV2 returns immediately when submit responds with cached completed payload', async () => {
@@ -582,7 +617,7 @@ describe('decrypt polling callbacks', () => {
             ok: false,
             status: 404,
             statusText: 'Not Found',
-            json: async () => ({ message: 'Not Found' }),
+            json: async () => ({ error: 'ct_not_found', error_message: 'ciphertext not indexed yet' }),
           });
         }
 
@@ -659,7 +694,7 @@ describe('decrypt polling callbacks', () => {
           ok: false,
           status: 404,
           statusText: 'Not Found',
-          json: async () => ({ message: 'Not Found' }),
+          json: async () => ({ error: 'ct_not_found', error_message: 'ciphertext not indexed yet' }),
         });
       }
 
@@ -677,11 +712,45 @@ describe('decrypt polling callbacks', () => {
     });
 
     const rejection = expect(promise).rejects.toMatchObject({
-      message: 'sealOutput submit retried 404 responses without receiving request_id for 2000ms',
+      code: CofheErrorCode.CtNotFound,
+      apiErrorCode: 'ct_not_found',
+      message: 'sealOutput ciphertext not found after retrying for 2000ms: ciphertext not indexed yet',
     });
 
     await vi.advanceTimersByTimeAsync(3000);
     await rejection;
+  });
+
+  it('tnSealOutputV2 fails immediately on a 404 that is not ct_not_found', async () => {
+    const fetchMock = vi.fn(async (url: string, options?: any) => {
+      if (url === `${thresholdNetworkUrl}/v2/sealoutput` && options?.method === 'POST') {
+        return makeMockResponse({
+          ok: false,
+          status: 404,
+          statusText: 'Not Found',
+          json: async () => ({ error: 'permit_denied', error_message: 'permit was rejected' }),
+        });
+      }
+
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+
+    global.fetch = fetchMock as any;
+
+    const promise = tnSealOutputV2({
+      ctHash: 1n,
+      chainId: 1,
+      permission: {} as any,
+      thresholdNetworkUrl,
+    });
+
+    await expect(promise).rejects.toMatchObject({
+      code: CofheErrorCode.PermitDenied,
+      apiErrorCode: 'permit_denied',
+      message: 'sealOutput request failed: permit was rejected',
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('tnSealOutputV2 returns immediately when submit responds with cached completed payload', async () => {

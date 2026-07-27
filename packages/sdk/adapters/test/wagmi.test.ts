@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { parseEther, createPublicClient, createWalletClient, http, type PublicClient, type WalletClient } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
+import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import { WagmiAdapter } from '../wagmi.js';
 
 describe('WagmiAdapter', () => {
@@ -12,7 +12,10 @@ describe('WagmiAdapter', () => {
 
   beforeEach(() => {
     // Create common setup for all tests - no chain needed
-    account = privateKeyToAccount(('0x' + '1'.repeat(64)) as `0x${string}`);
+    // Fresh random key each run → a guaranteed-empty account (0 balance, nonce 0), so the
+    // sendTransaction test deterministically fails with "insufficient funds". The old shared
+    // 0x11…11 key is funded and heavily used on Sepolia, so its tx failed with other errors.
+    account = privateKeyToAccount(generatePrivateKey());
 
     publicClient = createPublicClient({
       transport: http(testRpcUrl),
