@@ -13,6 +13,7 @@ export type BackendApiErrorCode =
   | 'permit_denied'
   | 'permit_expired'
   | 'permit_invalid'
+  | 'permit_revoked'
   | 'not_publicly_allowed'
   | 'ct_not_found'
   | 'unsupported_security_zone'
@@ -33,6 +34,7 @@ const BACKEND_ERROR_CODE_TO_COFHE_ERROR_CODE: Record<BackendApiErrorCode, CofheE
   permit_denied: CofheErrorCode.PermitDenied,
   permit_expired: CofheErrorCode.PermitExpired,
   permit_invalid: CofheErrorCode.PermitInvalid,
+  permit_revoked: CofheErrorCode.PermitRevoked,
   not_publicly_allowed: CofheErrorCode.NotPubliclyAllowed,
   ct_not_found: CofheErrorCode.CtNotFound,
   unsupported_security_zone: CofheErrorCode.UnsupportedSecurityZone,

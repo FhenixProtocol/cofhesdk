@@ -208,6 +208,8 @@ const fundingSections = [];
 const fundingSectionsByEnv = new Map();
 
 for (const chain of ALL_CHAINS) {
+  // respect --chains: don't balance-gate chains we aren't setting up
+  if (args.chains && !args.chains.includes(chain.id)) continue;
   const pkEnvName = getPrivateKeyEnvName(chain);
   let section = fundingSectionsByEnv.get(pkEnvName);
 

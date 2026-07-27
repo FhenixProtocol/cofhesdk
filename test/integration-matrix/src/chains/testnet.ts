@@ -56,8 +56,14 @@ export function createTestnetSetup(chain: Pick<TestChainConfig, 'viemChain' | 'c
       account: aliceAccount,
     });
 
+    // ACP: default revocation validator, if one is deployed on this chain
+    // (e.g. TEST_LOCALCOFHE_ACP_VALIDATOR for the local stack)
+    const acpValidator =
+      chain.id === 420105 ? (process.env.TEST_LOCALCOFHE_ACP_VALIDATOR as `0x${string}` | undefined) : undefined;
+
     const config = factory.createConfig({
       supportedChains: [chain.cofheChain],
+      permit: acpValidator ? { defaultValidator: { [chain.id]: acpValidator } } : undefined,
     });
     const cofheClient = factory.createClient(config);
     await cofheClient.connect(publicClient, bobWalletClient);
