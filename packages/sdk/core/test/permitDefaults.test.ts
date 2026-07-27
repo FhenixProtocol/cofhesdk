@@ -22,24 +22,20 @@ const permitConfig = {
 describe('applyPermitDefaults', () => {
   it('injects default validator (contract + creation timestamp) when no validator options given', () => {
     const before = Math.round(Date.now() / 1000);
-    const result = permits.applyPermitDefaults(opts({  }), permitConfig, CHAIN);
+    const result = permits.applyPermitDefaults(opts({}), permitConfig, CHAIN);
     expect(result.validatorContract).toBe(VALIDATOR);
     expect(result.validatorId).toBeGreaterThanOrEqual(before - 60); // 60s clock-skew backdating
     expect(result.validatorId).toBeLessThanOrEqual(Math.round(Date.now() / 1000) - 59);
   });
 
   it('does not override an explicit validator pair', () => {
-    const result = permits.applyPermitDefaults(
-      { validatorId: 42, validatorContract: CONTRACT_A },
-      permitConfig,
-      CHAIN
-    );
+    const result = permits.applyPermitDefaults({ validatorId: 42, validatorContract: CONTRACT_A }, permitConfig, CHAIN);
     expect(result.validatorId).toBe(42);
     expect(result.validatorContract).toBe(CONTRACT_A);
   });
 
   it('injects default contract scopes when no scope options given', () => {
-    const result = permits.applyPermitDefaults(opts({  }), permitConfig, CHAIN);
+    const result = permits.applyPermitDefaults(opts({}), permitConfig, CHAIN);
     expect(result.contracts).toEqual([CONTRACT_A]);
   });
 
@@ -50,7 +46,7 @@ describe('applyPermitDefaults', () => {
   });
 
   it('no-op for chains without defaults and for missing config', () => {
-    expect(permits.applyPermitDefaults(opts({  }), permitConfig, 999)).toEqual({  });
-    expect(permits.applyPermitDefaults(opts({  }), undefined, CHAIN)).toEqual({  });
+    expect(permits.applyPermitDefaults(opts({}), permitConfig, 999)).toEqual({});
+    expect(permits.applyPermitDefaults(opts({}), undefined, CHAIN)).toEqual({});
   });
 });

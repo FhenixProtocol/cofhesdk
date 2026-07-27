@@ -169,7 +169,7 @@ describe('ACP Permission (V3 struct)', () => {
       const p = await signIssuer(basePermission(), stranger);
       await expect(acp.checkPermissionValidity(p)).to.be.revertedWithCustomError(
         acp,
-        'PermissionInvalid_IssuerSignature',
+        'PermissionInvalid_IssuerSignature'
       );
     });
   });
@@ -180,7 +180,7 @@ describe('ACP Permission (V3 struct)', () => {
     const expectIssuerSigRevert = async (p: Permission) => {
       await expect(acp.checkPermissionValidity(p)).to.be.revertedWithCustomError(
         acp,
-        'PermissionInvalid_IssuerSignature',
+        'PermissionInvalid_IssuerSignature'
       );
     };
 
@@ -239,9 +239,10 @@ describe('ACP Permission (V3 struct)', () => {
 
     it('third party swapping sealingKey after recipient signed reverts', async () => {
       const p = await sharedPermission();
-      await expect(
-        acp.checkPermissionValidity({ ...p, sealingKey: SEALING_KEY_EVIL }),
-      ).to.be.revertedWithCustomError(acp, 'PermissionInvalid_RecipientSignature');
+      await expect(acp.checkPermissionValidity({ ...p, sealingKey: SEALING_KEY_EVIL })).to.be.revertedWithCustomError(
+        acp,
+        'PermissionInvalid_RecipientSignature'
+      );
     });
 
     it('missing recipient signature reverts', async () => {
@@ -250,7 +251,7 @@ describe('ACP Permission (V3 struct)', () => {
       p = await signIssuer(p);
       await expect(acp.checkPermissionValidity(p)).to.be.revertedWithCustomError(
         acp,
-        'PermissionInvalid_RecipientSignature',
+        'PermissionInvalid_RecipientSignature'
       );
     });
 
@@ -262,7 +263,7 @@ describe('ACP Permission (V3 struct)', () => {
       p = await signRecipient(p, stranger);
       await expect(acp.checkPermissionValidity(p)).to.be.revertedWithCustomError(
         acp,
-        'PermissionInvalid_RecipientSignature',
+        'PermissionInvalid_RecipientSignature'
       );
     });
   });
@@ -326,19 +327,19 @@ describe('ACP Permission (V3 struct)', () => {
       expect(
         keccak256(
           toUtf8Bytes(
-            'ACPIssuerSelf(address issuer,uint64 expiration,address recipient,uint256 validatorId,address validatorContract,bool global,address[] contracts,uint256[] handles,bytes32 sealingKey)',
-          ),
-        ),
+            'ACPIssuerSelf(address issuer,uint64 expiration,address recipient,uint256 validatorId,address validatorContract,bool global,address[] contracts,uint256[] handles,bytes32 sealingKey)'
+          )
+        )
       ).to.equal('0xcb570a16e5462f1eb5a5e297381312ac733c363ae7383f530a78e011b922663b');
       expect(
         keccak256(
           toUtf8Bytes(
-            'ACPIssuerShared(address issuer,uint64 expiration,address recipient,uint256 validatorId,address validatorContract,bool global,address[] contracts,uint256[] handles)',
-          ),
-        ),
+            'ACPIssuerShared(address issuer,uint64 expiration,address recipient,uint256 validatorId,address validatorContract,bool global,address[] contracts,uint256[] handles)'
+          )
+        )
       ).to.equal('0x78d4dc89504fadebf121225e739c38cc5e5ad8a2a53a3892795e02798fb459c0');
       expect(keccak256(toUtf8Bytes('ACPRecipient(bytes32 sealingKey,bytes issuerSignature)'))).to.equal(
-        '0xa61bec9390ffc1eea10897f1dc01a2abf1b8210f228d8235fb672f8754f639d6',
+        '0xa61bec9390ffc1eea10897f1dc01a2abf1b8210f228d8235fb672f8754f639d6'
       );
     });
   });

@@ -210,7 +210,15 @@ export type Permission = Expand<
  */
 export type PermitHashFields = Pick<
   Permit,
-  'type' | 'issuer' | 'expiration' | 'recipient' | 'validatorId' | 'validatorContract' | 'global' | 'contracts' | 'handles'
+  | 'type'
+  | 'issuer'
+  | 'expiration'
+  | 'recipient'
+  | 'validatorId'
+  | 'validatorContract'
+  | 'global'
+  | 'contracts'
+  | 'handles'
 >;
 
 /**

@@ -222,7 +222,11 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
       _requireConnected();
       const { publicClient, walletClient } = clients ?? connectStore.getState();
       const chainId = await publicClient!.getChainId();
-      return permits.createSelf(permits.applyPermitDefaults(options, opts.config.permit, chainId), publicClient!, walletClient!);
+      return permits.createSelf(
+        permits.applyPermitDefaults(options, opts.config.permit, chainId),
+        publicClient!,
+        walletClient!
+      );
     },
 
     createSharing: async (

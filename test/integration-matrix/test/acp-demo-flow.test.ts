@@ -54,70 +54,66 @@ describe.each(enabledChains)('[ACP DEMO] $label', (chainConfig) => {
     await ctx.cofheClient.connect(ctx.publicClient, demoWallet);
   }, 120_000);
 
-  it(
-    'full flow: scoped revocable permit → decrypt → revoke → denied → fresh permit works',
-    async () => {
-      // 1. encrypt + store
-      const encrypted = await ctx.cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
-      const txHash = await demoWallet.writeContract({
-        address: ctx.contractAddress,
-        abi: simpleTestAbi,
-        functionName: 'setValue',
-        args: [encrypted[0]],
-        chain: chainConfig.viemChain,
-        account: demoAccount,
-      });
-      await ctx.publicClient.waitForTransactionReceipt({
-        hash: txHash,
-        confirmations: chainConfig.txConfirmationsRequired,
-      });
-      const ctHash = await ctx.publicClient.readContract({
-        address: ctx.contractAddress,
-        abi: simpleTestAbi,
-        functionName: 'getValueHash',
-      });
+  it('full flow: scoped revocable permit → decrypt → revoke → denied → fresh permit works', async () => {
+    // 1. encrypt + store
+    const encrypted = await ctx.cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
+    const txHash = await demoWallet.writeContract({
+      address: ctx.contractAddress,
+      abi: simpleTestAbi,
+      functionName: 'setValue',
+      args: [encrypted[0]],
+      chain: chainConfig.viemChain,
+      account: demoAccount,
+    });
+    await ctx.publicClient.waitForTransactionReceipt({
+      hash: txHash,
+      confirmations: chainConfig.txConfirmationsRequired,
+    });
+    const ctHash = await ctx.publicClient.readContract({
+      address: ctx.contractAddress,
+      abi: simpleTestAbi,
+      functionName: 'getValueHash',
+    });
 
-      // 2. contract-scoped permit; revocable by default via config.permit.defaultValidator
-      const permit = await ctx.cofheClient.permits.createSelf({
-        issuer: demoAccount.address,
-        name: 'ACP Demo Permit',
-        contracts: [ctx.contractAddress],
-      });
-      expect(permit.global).toBe(false); // scope narrows automatically
-      expect(permit.validatorContract).not.toBe('0x0000000000000000000000000000000000000000');
-      expect(permit.validatorId).toBeGreaterThan(0); // creation timestamp
+    // 2. contract-scoped permit; revocable by default via config.permit.defaultValidator
+    const permit = await ctx.cofheClient.permits.createSelf({
+      issuer: demoAccount.address,
+      name: 'ACP Demo Permit',
+      contracts: [ctx.contractAddress],
+    });
+    expect(permit.global).toBe(false); // scope narrows automatically
+    expect(permit.validatorContract).not.toBe('0x0000000000000000000000000000000000000000');
+    expect(permit.validatorId).toBeGreaterThan(0); // creation timestamp
 
-      // 3. decrypt with the scoped permit
-      const value = await ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
-      expect(value).toBe(BigInt(testValue));
-      expect(await ctx.cofheClient.permits.isPermitRevoked(permit)).toBe(false);
+    // 3. decrypt with the scoped permit
+    const value = await ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
+    expect(value).toBe(BigInt(testValue));
+    expect(await ctx.cofheClient.permits.isPermitRevoked(permit)).toBe(false);
 
-      // 4. revoke on-chain
-      const revokeTx = await ctx.cofheClient.permits.revokePermit(permit);
-      await ctx.publicClient.waitForTransactionReceipt({
-        hash: revokeTx,
-        confirmations: chainConfig.txConfirmationsRequired,
-      });
-      expect(await ctx.cofheClient.permits.isPermitRevoked(permit)).toBe(true);
+    // 4. revoke on-chain
+    const revokeTx = await ctx.cofheClient.permits.revokePermit(permit);
+    await ctx.publicClient.waitForTransactionReceipt({
+      hash: revokeTx,
+      confirmations: chainConfig.txConfirmationsRequired,
+    });
+    expect(await ctx.cofheClient.permits.isPermitRevoked(permit)).toBe(true);
 
-      // 5. the revoked permit no longer decrypts
-      await expect(ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute()).rejects.toThrow(
-        /PermissionInvalid_Disabled/
-      );
+    // 5. the revoked permit no longer decrypts
+    await expect(ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute()).rejects.toThrow(
+      /PermissionInvalid_Disabled/
+    );
 
-      // 6. a fresh permit restores access.
-      // Wait >1s first: permit ids are second-resolution creation timestamps, and
-      // a permit minted in the same second as the revoked one shares its id — the
-      // documented same-second collision (accepted as fail-safe over-revocation).
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      await ctx.cofheClient.permits.createSelf({
-        issuer: demoAccount.address,
-        name: 'ACP Demo Permit (fresh)',
-        contracts: [ctx.contractAddress],
-      });
-      const valueAgain = await ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
-      expect(valueAgain).toBe(BigInt(testValue));
-    },
-    180_000
-  );
+    // 6. a fresh permit restores access.
+    // Wait >1s first: permit ids are second-resolution creation timestamps, and
+    // a permit minted in the same second as the revoked one shares its id — the
+    // documented same-second collision (accepted as fail-safe over-revocation).
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await ctx.cofheClient.permits.createSelf({
+      issuer: demoAccount.address,
+      name: 'ACP Demo Permit (fresh)',
+      contracts: [ctx.contractAddress],
+    });
+    const valueAgain = await ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
+    expect(valueAgain).toBe(BigInt(testValue));
+  }, 180_000);
 });

@@ -114,7 +114,7 @@ describe('ACP default validator (timestamp-based revocation)', () => {
       await validator.connect(issuer).revokeSingle(createdAt);
       await expect(acp.checkPermissionValidity(permission)).to.be.revertedWithCustomError(
         acp,
-        'PermissionInvalid_Disabled',
+        'PermissionInvalid_Disabled'
       );
     });
 
@@ -126,7 +126,7 @@ describe('ACP default validator (timestamp-based revocation)', () => {
       await validator.connect(issuer).revokeAllExisting();
       await expect(acp.checkPermissionValidity(oldPermission)).to.be.revertedWithCustomError(
         acp,
-        'PermissionInvalid_Disabled',
+        'PermissionInvalid_Disabled'
       );
 
       await advanceTime(60);
@@ -144,7 +144,7 @@ describe('ACP default validator (timestamp-based revocation)', () => {
       });
       await expect(acp.checkPermissionValidity(permission)).to.be.revertedWithCustomError(
         acp,
-        'PermissionInvalid_Disabled',
+        'PermissionInvalid_Disabled'
       );
     });
 

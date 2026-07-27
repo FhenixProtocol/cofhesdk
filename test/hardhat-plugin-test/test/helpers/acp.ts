@@ -73,7 +73,7 @@ export const latestTimestamp = async (): Promise<bigint> =>
 export const signedSelfPermission = async (
   acpVerifier: Contract,
   issuer: HardhatEthersSigner,
-  overrides: Partial<ACPermission> = {},
+  overrides: Partial<ACPermission> = {}
 ): Promise<ACPermission> => {
   const p: ACPermission = {
     issuer: issuer.address,
