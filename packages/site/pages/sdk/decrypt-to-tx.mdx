@@ -254,7 +254,7 @@ const config = createCofheConfig({ supportedChains: [chains.sepolia] });
 const client = createCofheClient(config);
 declare const ctHash: `0x${string}`;
 // ---cut---
-const permit = await client.permits.getOrCreateSelfPermit();
+const permit = await client.acp.getOrCreateSelfPermit();
 
 const decryptResult = await client
   .decryptForTx(ctHash)
@@ -381,7 +381,7 @@ const config = createCofheConfig({ supportedChains: [chains.sepolia] });
 const client = createCofheClient(config);
 declare const ctHash: `0x${string}`;
 // ---cut---
-const permit = await client.permits.getOrCreateSelfPermit();
+const permit = await client.acp.getOrCreateSelfPermit();
 
 const result = await client
   .decryptForTx(ctHash)

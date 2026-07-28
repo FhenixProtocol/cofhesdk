@@ -12,7 +12,7 @@ Each permit includes a sealing keypair. The public key is sent to CoFHE so it ca
 Permits can be used to decrypt your own data (self permits), or to delegate your access to another party (sharing permits).
 
 :::info
-The examples below show two approaches for working with permits. The `client.permits` API is the recommended approach -- it automatically signs permits with the connected wallet and manages the permit store. The `PermitUtils` API is a lower-level alternative that gives you direct control over signing and storage.
+The examples below show two approaches for working with permits. The `client.acp` API is the recommended approach -- it automatically signs permits with the connected wallet and manages the permit store. The `ACPUtils` API is a lower-level alternative that gives you direct control over signing and storage.
 :::
 
 ## When do you need a permit?
@@ -34,7 +34,7 @@ The recommended approach is to create (or reuse) a self permit. Once created, it
 
 ::::code-group
 
-```ts twoslash [client.permits]
+```ts twoslash [client.acp]
 // @noErrors
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
 import { chains } from '@cofhe/sdk/chains';
@@ -48,13 +48,13 @@ declare const walletClient: WalletClient;
 await client.connect(publicClient, walletClient);
 
 // Returns the active self permit if one exists, otherwise creates and signs a new one.
-const permit = await client.permits.getOrCreateSelfPermit();
+const permit = await client.acp.getOrCreateSelfPermit();
 ```
 
-```ts twoslash [PermitUtils]
+```ts twoslash [ACPUtils]
 // @noErrors
 import {
-  PermitUtils,
+  ACPUtils,
   setPermit,
   setActivePermitHash,
 } from '@cofhe/sdk/permits';
@@ -63,7 +63,7 @@ import type { PublicClient, WalletClient } from 'viem';
 declare const publicClient: PublicClient;
 declare const walletClient: WalletClient;
 // ---cut---
-const permit = await PermitUtils.createSelfAndSign(
+const permit = await ACPUtils.createSelfAndSign(
   { issuer: walletClient.account!.address },
   publicClient,
   walletClient
@@ -97,7 +97,7 @@ Notes:
 
 - A permit includes a **sealing keypair**. The public key is sent to CoFHE for re-encryption. The private key stays client-side for unsealing.
 - Permit `expiration` is a unix timestamp in **seconds**. The default is **7 days from creation**.
-- When a permit is created via `client.permits.*`, it is automatically stored and set as the active permit for the current chain and account.
+- When a permit is created via `client.acp.*`, it is automatically stored and set as the active permit for the current chain and account.
 
 ## Creating a self permit
 
@@ -107,7 +107,7 @@ A self permit lets you decrypt data that was allowed to your address. Use `creat
 
 ::::code-group
 
-```ts twoslash [client.permits]
+```ts twoslash [client.acp]
 // @noErrors
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
 import { chains } from '@cofhe/sdk/chains';
@@ -120,7 +120,7 @@ declare const walletClient: WalletClient;
 // ---cut---
 await client.connect(publicClient, walletClient);
 
-const permit = await client.permits.createSelf({
+const permit = await client.acp.createSelf({
   issuer: walletClient.account!.address,
   name: 'My self permit',
 });
@@ -129,15 +129,15 @@ permit.type;
 permit.hash;
 ```
 
-```ts twoslash [PermitUtils]
+```ts twoslash [ACPUtils]
 // @noErrors
-import { PermitUtils } from '@cofhe/sdk/permits';
+import { ACPUtils } from '@cofhe/sdk/permits';
 import type { PublicClient, WalletClient } from 'viem';
 
 declare const publicClient: PublicClient;
 declare const walletClient: WalletClient;
 // ---cut---
-const permit = await PermitUtils.createSelfAndSign(
+const permit = await ACPUtils.createSelfAndSign(
   {
     issuer: walletClient.account!.address,
     name: 'My self permit',
@@ -154,9 +154,9 @@ permit.hash;
 
 ### getOrCreateSelfPermit
 
-Only available via the `client.permits` API. Returns the active self permit if one exists. Otherwise creates and signs a new one. This is the recommended approach for most applications.
+Only available via the `client.acp` API. Returns the active self permit if one exists. Otherwise creates and signs a new one. This is the recommended approach for most applications.
 
-```ts twoslash [client.permits]
+```ts twoslash [client.acp]
 // @noErrors
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
 import { chains } from '@cofhe/sdk/chains';
@@ -169,7 +169,7 @@ declare const walletClient: WalletClient;
 // ---cut---
 await client.connect(publicClient, walletClient);
 
-const permit = await client.permits.getOrCreateSelfPermit();
+const permit = await client.acp.getOrCreateSelfPermit();
 permit.type;
 ```
 
@@ -185,7 +185,7 @@ The issuer creates a sharing permit specifying the recipient's address. The issu
 
 ::::code-group
 
-```ts twoslash [client.permits]
+```ts twoslash [client.acp]
 // @noErrors
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
 import { chains } from '@cofhe/sdk/chains';
@@ -199,23 +199,23 @@ declare const recipient: `0x${string}`;
 // ---cut---
 await client.connect(publicClient, walletClient);
 
-const sharingPermit = await client.permits.createSharing({
+const sharingPermit = await client.acp.createSharing({
   issuer: walletClient.account!.address,
   recipient,
   name: 'Share with recipient',
 });
 ```
 
-```ts twoslash [PermitUtils]
+```ts twoslash [ACPUtils]
 // @noErrors
-import { PermitUtils } from '@cofhe/sdk/permits';
+import { ACPUtils } from '@cofhe/sdk/permits';
 import type { PublicClient, WalletClient } from 'viem';
 
 declare const publicClient: PublicClient;
 declare const walletClient: WalletClient;
 declare const recipient: `0x${string}`;
 // ---cut---
-const sharingPermit = await PermitUtils.createSharingAndSign(
+const sharingPermit = await ACPUtils.createSharingAndSign(
   {
     issuer: walletClient.account!.address,
     recipient,
@@ -232,14 +232,14 @@ const sharingPermit = await PermitUtils.createSharingAndSign(
 
 Export the permit as a JSON blob and share it with the recipient.
 
-```ts twoslash [PermitUtils]
+```ts twoslash [ACPUtils]
 // @noErrors
-import { PermitUtils } from '@cofhe/sdk/permits';
-import type { Permit } from '@cofhe/sdk/permits';
+import { ACPUtils } from '@cofhe/sdk/permits';
+import type { ACP } from '@cofhe/sdk/permits';
 
-declare const sharingPermit: Permit;
+declare const sharingPermit: ACP;
 // ---cut---
-const exported = PermitUtils.export(sharingPermit);
+const exported = ACPUtils.export(sharingPermit);
 ```
 
 :::info
@@ -255,7 +255,7 @@ The recipient imports the exported JSON and signs it with their wallet. On impor
 
 ::::code-group
 
-```ts twoslash [client.permits]
+```ts twoslash [client.acp]
 // @noErrors
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
 import { chains } from '@cofhe/sdk/chains';
@@ -269,16 +269,16 @@ declare const exported: string;
 // ---cut---
 await client.connect(publicClient, walletClient);
 
-const recipientPermit = await client.permits.importShared(exported);
+const recipientPermit = await client.acp.importShared(exported);
 
 recipientPermit.type;
 recipientPermit.hash;
 ```
 
-```ts twoslash [PermitUtils]
+```ts twoslash [ACPUtils]
 // @noErrors
 import {
-  PermitUtils,
+  ACPUtils,
   setPermit,
   setActivePermitHash,
 } from '@cofhe/sdk/permits';
@@ -288,7 +288,7 @@ declare const publicClient: PublicClient;
 declare const walletClient: WalletClient;
 declare const exported: string;
 // ---cut---
-const recipientPermit = await PermitUtils.importSharedAndSign(
+const recipientPermit = await ACPUtils.importSharedAndSign(
   exported,
   publicClient,
   walletClient
@@ -306,7 +306,7 @@ setActivePermitHash(chainId, account, recipientPermit.hash);
 
 ## Active permit management
 
-The SDK tracks all stored permits and an **active permit hash** per `chainId + account`. Creating or importing a permit via `client.permits.*` automatically stores it and selects it as active.
+The SDK tracks all stored permits and an **active permit hash** per `chainId + account`. Creating or importing a permit via `client.acp.*` automatically stores it and selects it as active.
 
 ### List stored permits
 
@@ -323,7 +323,7 @@ declare const walletClient: WalletClient;
 // ---cut---
 await client.connect(publicClient, walletClient);
 
-const permits = client.permits.getPermits();
+const permits = client.acp.getPermits();
 Object.keys(permits);
 ```
 
@@ -343,10 +343,10 @@ declare const somePermitHash: string;
 // ---cut---
 await client.connect(publicClient, walletClient);
 
-const active = client.permits.getActivePermit();
+const active = client.acp.getActivePermit();
 active?.hash;
 
-client.permits.selectActivePermit(somePermitHash);
+client.acp.selectActivePermit(somePermitHash);
 ```
 
 ### Removing permits
@@ -365,8 +365,8 @@ declare const permitHash: string;
 // ---cut---
 await client.connect(publicClient, walletClient);
 
-client.permits.removePermit(permitHash);
-client.permits.removeActivePermit();
+client.acp.removePermit(permitHash);
+client.acp.removeActivePermit();
 ```
 
 ## Persistence and security
@@ -375,4 +375,4 @@ client.permits.removeActivePermit();
 - In web and React environments, this store uses `localStorage` under the key `cofhesdk-permits`.
 - A stored permit includes the **sealing private key**. Treat it like a secret.
   - Never share serialized permits with other users.
-  - To share access, use `PermitUtils.export(...)` which strips sensitive fields.
+  - To share access, use `ACPUtils.export(...)` which strips sensitive fields.

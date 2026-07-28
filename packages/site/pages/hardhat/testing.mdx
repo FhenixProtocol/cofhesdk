@@ -96,19 +96,19 @@ See [Mock Contracts](/hardhat/mock-contracts) for details.
 ```ts twoslash
 // @noErrors
 import { CofheClient } from '@cofhe/sdk';
-import { PermitUtils } from '@cofhe/sdk/permits';
+import { ACPUtils } from '@cofhe/sdk/permits';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 declare const cofheClient: CofheClient;
 declare const signer: HardhatEthersSigner;
 // ---cut---
-const permit = await cofheClient.permits.createSelf({
+const permit = await cofheClient.acp.createSelf({
   issuer: signer.address,
   name: 'My Test Permit',
 });
 
 // Select it as the active permit
-const permitHash = PermitUtils.getHash(permit);
-cofheClient.permits.selectActivePermit(permitHash);
+const permitHash = ACPUtils.getHash(permit);
+cofheClient.acp.selectActivePermit(permitHash);
 ```
 
 Alternatively, you may find it easier to create a cofheClient for each of the multiple signers you need to test.
@@ -158,11 +158,11 @@ For handles restricted by ACL policy, supply a permit:
 ```ts twoslash [Explicit permit]
 // @noErrors
 import { CofheClient } from '@cofhe/sdk';
-import { Permit } from '@cofhe/sdk/permits';
+import { ACP } from '@cofhe/sdk/permits';
 import { expect } from 'chai';
 declare const cofheClient: CofheClient;
 declare const ctHash: string;
-declare const permit: Permit;
+declare const permit: ACP;
 // ---cut---
 const result = await cofheClient
   .decryptForTx(ctHash)

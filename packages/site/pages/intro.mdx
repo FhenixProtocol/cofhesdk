@@ -16,7 +16,7 @@ On-chain, contracts use [`FHE.sol`](https://cofhe-docs.fhenix.zone/fhe-library/i
 | Encrypt inputs   | `client.encryptInputs([...]).execute()`                      | Packs plaintext values, generates a ZKPoK, and submits them to the CoFHE verifier. Returns signed `EncryptedItemInput` objects for use in contract calls.    |
 | Decrypt for view | `client.decryptForView(ctHash, utype).execute()`             | Requests decryption of a [ciphertext handle](/reference/dictionary#handle) using a permit. Returns the plaintext locally (not published on-chain).           |
 | Decrypt for tx   | `client.decryptForTx(ctHash).execute()`                      | Requests decryption and returns the plaintext with a Threshold Network signature. The signature can be verified on-chain via `FHE.verifyDecryptResult(...)`. |
-| Manage permits   | `client.permits.createSelf(...)` / `getOrCreateSelfPermit()` | Creates, stores, and manages EIP-712 permits that authorize decryption of specific ciphertext handles.                                                       |
+| Manage permits   | `client.acp.createSelf(...)` / `getOrCreateSelfPermit()` | Creates, stores, and manages EIP-712 permits that authorize decryption of specific ciphertext handles.                                                       |
 
 ## Entrypoints
 
@@ -79,7 +79,7 @@ const [encrypted] = await client
 await contract.deposit(encrypted);
 
 // Decrypt for UI
-await client.permits.getOrCreateSelfPermit();
+await client.acp.getOrCreateSelfPermit();
 const ctHash = await contract.getBalance();
 const balance = await client
   .decryptForView(ctHash, FheTypes.Uint64)
