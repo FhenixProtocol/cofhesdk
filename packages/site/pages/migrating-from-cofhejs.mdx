@@ -5,7 +5,7 @@ description: Step-by-step guide to upgrade from cofhejs to @cofhe/sdk
 
 # Migrating from `cofhejs`
 
-`@cofhe/sdk` is the successor to `cofhejs`, redesigned around an explicit, builder-pattern API that gives you full control over encryption, decryption, and permit management. Migration should be strightforward with a 1-to-1 mapping of functions and features.
+`@cofhe/sdk` is the successor to `cofhejs`, redesigned around an explicit, builder-pattern API that gives you full control over encryption, decryption, and ACP (Access Control Permission) management. Migration should be strightforward with a 1-to-1 mapping of functions and features.
 
 ### Why migrate?
 
@@ -207,7 +207,7 @@ The `Encryptable` factory functions (`Encryptable.uint32(...)`, `Encryptable.boo
 | | `cofhejs` | `@cofhe/sdk` |
 | ------------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | **Function** | `cofhejs.unseal(sealed, type)` | `client.decryptForView(ctHash, type)` or `client.decryptForTx(ctHash)` |
-| **Permit handling** | Automatic (uses most recent permit) | Explicit — `.withPermit()` / `.withPermit(permit)` / `.withPermit(hash)` / `.withoutPermit()` |
+| **ACP handling** | Automatic (uses most recent permit) | Explicit — `.withPermit()` / `.withPermit(permit)` / `.withPermit(hash)` / `.withoutPermit()` |
 | **Return value** | `Result<bigint \| boolean \| string>` | Direct value: `bigint`, `boolean`, or `string` for view; `{ ctHash, decryptedValue, signature }` for tx |
 | **On-chain verification** | Not built in | `decryptForTx` returns a signature for `FHE.publishDecryptResult(...)` or `FHE.verifyDecryptResult(...)` |
 | **`utype`** | Required for `unseal` | Required for `decryptForView`, not needed for `decryptForTx` |
@@ -297,9 +297,9 @@ contract MyContract {
 
 :::
 
-## 4. Permits
+## 4. Permits → ACPs
 
-Permits are no longer auto-generated during initialization. All permit operations are now explicit through `client.acp`, with separate methods for self permits, sharing permits, and importing shared permits.
+Permits are now called **ACPs** (Access Control Permissions) and are no longer auto-generated during initialization. All ACP operations are explicit through `client.acp`, with separate methods for self ACPs, sharing ACPs, and importing shared ACPs.
 
 ::::note
 :::details[Changes]
@@ -308,7 +308,7 @@ Permits are no longer auto-generated during initialization. All permit operation
 | **Auto-generation** | `generatePermit: true` (default) | Never — always explicit |
 | **Creation** | `cofhejs.createPermit({ type, issuer })` | `client.acp.createSelf(...)`, `client.acp.createSharing(...)`, `client.acp.importShared(...)` |
 | **Return type** | `Result<Permit>` | Direct `ACP` object |
-| **Active permit** | Implicitly used by `unseal` | `getOrCreateSelfPermit()` sets the active permit; `decryptForView/Tx` uses it automatically |
+| **Active ACP** | Implicitly used by `unseal` | `getOrCreateSelfPermit()` sets the active ACP; `decryptForView/Tx` uses it automatically |
 | **Sharing** | `createPermit({ type: "sharing", recipient })` → `createPermit({ type: "recipient", ...permit })` | `createSharing(...)` → `importShared(...)` |
 | **Selection** | Implicit | `client.acp.selectActivePermit(hash)` |
 | **Retrieval** | `cofhejs.getPermit(...)` | `client.acp.getPermit(hash)`, `client.acp.getPermits()`, `client.acp.getActivePermit()` |
@@ -342,7 +342,7 @@ if (!result.success) {
 
 ### After (`@cofhe/sdk`)
 
-Permits are never auto-generated. You explicitly create, retrieve, and select them through `client.acp`:
+ACPs are never auto-generated. You explicitly create, retrieve, and select them through `client.acp`:
 
 ```ts twoslash
 // @noErrors
@@ -351,21 +351,21 @@ declare const client: CofheClient<CofheConfig>;
 declare const account: `0x${string}`;
 declare const ctHash: `0x${string}`;
 // ---cut---
-// Create a self permit (prompts for wallet signature)
+// Create a self ACP (prompts for wallet signature)
 const permit = await client.acp.createSelf({
   issuer: account,
-  name: 'My dApp permit',
+  name: 'My dApp ACP',
 });
 
 // Or use the convenience method that creates one only if needed
 const permit2 = await client.acp.getOrCreateSelfPermit();
 
-// Use with decryptForView (active permit is used automatically)
+// Use with decryptForView (active ACP is used automatically)
 const value = await client
   .decryptForView(ctHash, FheTypes.Uint32)
   .execute();
 
-// Or pass a specific permit
+// Or pass a specific ACP
 const value2 = await client
   .decryptForView(ctHash, FheTypes.Uint32)
   .withPermit(permit)

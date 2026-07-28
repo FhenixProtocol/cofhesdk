@@ -35,25 +35,25 @@ The payload you submit in a transaction when calling a contract function that ac
 - Off-chain: produced by `client.encryptInputs([...]).execute()` as `EncryptedItemInput` objects.
 - On-chain: passed into functions as `InEuint32`, `InEuint64`, etc. (structs validated by the CoFHE library before use).
 
-## Permit
+## ACP
 
-A **permit** is an EIP-712 signature that authorizes decryption of one or more handles.
+An **ACP** (Access Control Permission, formerly called a *permit*) is an EIP-712 signature that authorizes decryption of one or more handles.
 
-- The permit’s **issuer** is the address doing the decryption.
-- Permits are checked against the on-chain ACL policy (e.g. via `FHE.allow(handle, address)`).
+- The ACP’s **issuer** is the address doing the decryption.
+- ACPs are checked against the on-chain ACL policy (e.g. via `FHE.allow(handle, address)`).
 
-See: [/sdk/permits](/sdk/permits).
+See: [/sdk/acp](/sdk/acp).
 
 ## Sealing keypair
 
-Permits include a sealing keypair used for transport security:
+ACPs include a sealing keypair used for transport security:
 
-- The **public key** is sent to CoFHE so it can **re-encrypt** decrypted data for the permit holder.
+- The **public key** is sent to CoFHE so it can **re-encrypt** decrypted data for the ACP holder.
 - The **private key** stays client-side and is used to **unseal** the returned data.
 
 ## Re-encryption
 
-A step where CoFHE/Threshold Network transforms decrypted data into a form that only the permit holder can unseal (using the permit’s sealing public key).
+A step where CoFHE/Threshold Network transforms decrypted data into a form that only the ACP holder can unseal (using the ACP’s sealing public key).
 
 ## Threshold Network
 
@@ -64,7 +64,7 @@ The off-chain network that performs decryption operations (and, for tx flows, pr
 A decryption flow intended for UI / off-chain reads:
 
 - Returns plaintext only to the caller (not published on-chain).
-- **Always requires a permit.**
+- **Always requires an ACP.**
 
 ## decryptForTx
 
@@ -72,7 +72,7 @@ A decryption flow intended for transactions:
 
 - Returns plaintext **plus a signature** that binds the plaintext to the handle.
 - The signature can be checked on-chain via `FHE.verifyDecryptResult(handle, plaintext, signature)`.
-- May or may not require a permit depending on the contract’s ACL policy for that handle.
+- May or may not require an ACP depending on the contract’s ACL policy for that handle.
 
 ## ACL
 
