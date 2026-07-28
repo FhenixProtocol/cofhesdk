@@ -429,6 +429,43 @@ describe('ACPUtils Tests', () => {
       expect(parsed.issuerSignature).not.toBe('0x');
       expect(parsed).not.toHaveProperty('sealingPrivateKey');
     });
+
+    it('exports the fixed SharedACP shape — empty fields present, not omitted', async () => {
+      // unsigned sharing permit: every zero-value field must still appear in the JSON
+      const permit = ACPUtils.createSharing({
+        issuer: bobAddress,
+        recipient: aliceAddress,
+        name: 'Test Sharing ACP',
+      });
+
+      const parsed = JSON.parse(ACPUtils.export(permit));
+
+      expect(Object.keys(parsed).sort()).toEqual(
+        [
+          'name',
+          'type',
+          'issuer',
+          'expiration',
+          'recipient',
+          'revokerData',
+          'revokerContract',
+          'scope',
+          'contracts',
+          'handles',
+          'issuerSignature',
+        ].sort()
+      );
+      expect(parsed.issuerSignature).toBe('0x');
+      expect(parsed.scope).toBe(0);
+      expect(parsed.contracts).toEqual([]);
+      expect(parsed.handles).toEqual([]);
+      expect(parsed.revokerData).toBe(0);
+      // private component never leaves the client
+      expect(parsed).not.toHaveProperty('sealingPrivateKey');
+      expect(parsed).not.toHaveProperty('sealingKey');
+      expect(parsed).not.toHaveProperty('hash');
+      expect(parsed).not.toHaveProperty('recipientSignature');
+    });
   });
 
   describe('updateName', () => {
