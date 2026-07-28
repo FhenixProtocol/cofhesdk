@@ -58,7 +58,7 @@ export {
 } from './store.js';
 
 // Sealing utilities
-export { SealingKey, GenerateSealingKey } from './sealing.js';
+export { GenerateSealingKey, seal, unsealWithPrivateKey, type SealingKeyPair } from './sealing.js';
 export type { EthEncryptedData } from './sealing.js';
 
 // Re-export everything for convenience

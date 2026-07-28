@@ -1,4 +1,4 @@
-import { SealingKey as SealingKeyClass, type EthEncryptedData } from './sealing.js';
+import { type EthEncryptedData } from './sealing.js';
 import { type Hex } from 'viem';
 
 /**
@@ -13,11 +13,6 @@ export type EIP712Domain = {
   verifyingContract: Hex;
   version: string;
 };
-
-/**
- * Sealing key type - using the actual SealingKey class
- */
-export type SealingKey = SealingKeyClass;
 
 /**
  * Re-export EthEncryptedData from sealing module

@@ -43,8 +43,8 @@ export const ACPUtils = {
     const permit = {
       hash: ACPUtils.getHash(validation),
       ...validation,
-      sealingPrivateKey: `0x${sealingPair.privateKey}` as Hex,
-      sealingKey: `0x${sealingPair.publicKey}` as Hex,
+      sealingPrivateKey: sealingPair.privateKey,
+      sealingKey: sealingPair.publicKey,
       _signedDomain: undefined,
     } satisfies SelfPermit;
 
@@ -63,8 +63,8 @@ export const ACPUtils = {
     const permit = {
       hash: ACPUtils.getHash(validation),
       ...validation,
-      sealingPrivateKey: `0x${sealingPair.privateKey}` as Hex,
-      sealingKey: `0x${sealingPair.publicKey}` as Hex,
+      sealingPrivateKey: sealingPair.privateKey,
+      sealingKey: sealingPair.publicKey,
       _signedDomain: undefined,
     } satisfies SharingPermit;
 
@@ -105,8 +105,8 @@ export const ACPUtils = {
     const permit = {
       hash: ACPUtils.getHash(validation),
       ...validation,
-      sealingPrivateKey: `0x${sealingPair.privateKey}` as Hex,
-      sealingKey: `0x${sealingPair.publicKey}` as Hex,
+      sealingPrivateKey: sealingPair.privateKey,
+      sealingKey: sealingPair.publicKey,
       _signedDomain: undefined,
     } satisfies RecipientPermit;
 
