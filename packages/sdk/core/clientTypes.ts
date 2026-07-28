@@ -8,10 +8,10 @@ import { type ZkBuilderAndCrsGenerator, type ZkProveWorkerFunction } from './enc
 import { type FheKeyDeserializer } from './fetchKeys.js';
 import { permits } from './permits.js';
 import type { EncryptableItem, FheTypes, TfheInitializer } from './types.js';
-import type { PermitUtils } from 'permits/permit.js';
+import type { ACPUtils } from 'permits/permit.js';
 import type {
   CreateSelfPermitOptions,
-  Permit,
+  ACP,
   CreateSharingPermitOptions,
   ImportSharedPermitOptions,
   SharingPermit,
@@ -54,8 +54,6 @@ export type CofheClient<TConfig extends CofheConfig = CofheConfig> = {
   verifyDecryptResult(handle: bigint | string, cleartext: bigint, signature: Hex): Promise<boolean>;
   /** ACP (Access Control Permission) management — create, share, revoke, select. */
   acp: CofheClientPermits;
-  /** @deprecated renamed — use `client.acp` */
-  permits: CofheClientPermits;
 };
 
 export type CofheClientConnectionState = {
@@ -88,18 +86,14 @@ export type CofheClientPermits = {
   ) => Promise<RecipientPermit>;
 
   // Retrieval methods (chainId/account optional)
-  getPermit: (hash: string, chainId?: number, account?: string) => Permit | undefined;
-  getPermits: (chainId?: number, account?: string) => Record<string, Permit>;
-  getActivePermit: (chainId?: number, account?: string) => Permit | undefined;
+  getPermit: (hash: string, chainId?: number, account?: string) => ACP | undefined;
+  getPermits: (chainId?: number, account?: string) => Record<string, ACP>;
+  getActivePermit: (chainId?: number, account?: string) => ACP | undefined;
   getActivePermitHash: (chainId?: number, account?: string) => string | undefined;
 
   // Get or create methods (get active or create new, chainId/account optional)
-  getOrCreateSelfPermit: (chainId?: number, account?: string, options?: CreateSelfPermitOptions) => Promise<Permit>;
-  getOrCreateSharingPermit: (
-    options: CreateSharingPermitOptions,
-    chainId?: number,
-    account?: string
-  ) => Promise<Permit>;
+  getOrCreateSelfPermit: (chainId?: number, account?: string, options?: CreateSelfPermitOptions) => Promise<ACP>;
+  getOrCreateSharingPermit: (options: CreateSharingPermitOptions, chainId?: number, account?: string) => Promise<ACP>;
 
   // Mutation methods (chainId/account optional)
   selectActivePermit: (hash: string, chainId?: number, account?: string) => void;
@@ -107,15 +101,15 @@ export type CofheClientPermits = {
   removeActivePermit: (chainId?: number, account?: string) => void;
 
   // Revocation (on-chain, require connection)
-  revokePermit: (permit: Permit) => Promise<`0x${string}`>;
+  revokePermit: (permit: ACP) => Promise<`0x${string}`>;
   revokeAllPermits: (revokerContract?: `0x${string}`) => Promise<`0x${string}`>;
-  isPermitRevoked: (permit: Permit) => Promise<boolean>;
+  isPermitRevoked: (permit: ACP) => Promise<boolean>;
 
   // Utils
-  getHash: typeof PermitUtils.getHash;
-  export: typeof PermitUtils.export;
-  serialize: typeof PermitUtils.serialize;
-  deserialize: typeof PermitUtils.deserialize;
+  getHash: typeof ACPUtils.getHash;
+  export: typeof ACPUtils.export;
+  serialize: typeof ACPUtils.serialize;
+  deserialize: typeof ACPUtils.deserialize;
 };
 
 export type CofheClientParams<TConfig extends CofheConfig> = {

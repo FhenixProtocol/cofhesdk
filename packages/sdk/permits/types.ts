@@ -27,13 +27,9 @@ export type { EthEncryptedData };
 // Viem client types will be imported from viem package
 
 /**
- * Core ACP (Access Control Permission) interface - immutable design for React compatibility.
- *
- * Structurally: ACP = ACPPrivate & ACPPublic.
- *  - ACPPrivate: client-side-only fields (store key, UI metadata, sealing pair) — never leaves the client
- *  - ACPPublic: the signed wire/on-chain component — produced by `getPublic()`
+ * The client-side-only component of an ACP — never leaves the client.
  */
-export interface ACP {
+export interface ACPPrivate {
   /**
    * Stable hash of relevant permit data, used as key in storage
    */
@@ -43,12 +39,29 @@ export interface ACP {
    */
   name: string;
   /**
-   * The type of the Permit (self / sharing)
-   * (self) Permit that will be signed and used by the issuer
-   * (sharing) Permit that is signed by the issuer, but intended to be shared with recipient
-   * (recipient) Permit that has been received, and signed by the recipient
+   * The type of the ACP (self / sharing / recipient)
+   * (self) ACP that will be signed and used by the issuer
+   * (sharing) ACP that is signed by the issuer, but intended to be shared with recipient
+   * (recipient) ACP that has been received, and signed by the recipient
    */
   type: 'self' | 'sharing' | 'recipient';
+  /**
+   * The sealingPair used to re-encrypt and unseal `issuer`s confidential data.
+   * `sealingKey` (in the public component) is this pair's public key.
+   */
+  sealingPair: SealingKey;
+  /**
+   * EIP712 domain used to sign this permit.
+   * Should not be set manually, included in metadata as part of serialization flows.
+   */
+  _signedDomain?: EIP712Domain;
+}
+
+/**
+ * The public component of an ACP — the signed struct passed on-chain / to the
+ * decryption backend to grant encrypted data access. Produced by `getPublic()`.
+ */
+export interface ACPPublic {
   /**
    * (base) User that initially created the permission, target of data fetching
    */
@@ -63,15 +76,14 @@ export interface ACP {
    */
   recipient: Hex;
   /**
-   * (issuer defined validation) An id used to query a contract to check this permissions validity.
-   * Opaque to the chain verifier; interpreted by `revokerContract` — the default
-   * validator interprets it as the permit's creation timestamp (enables revocation).
+   * (revocation) Opaque data interpreted by `revokerContract` — the default
+   * revoker interprets it as the permit's creation timestamp.
    * ** optional, use `0` to disable **
    */
   revokerData: number;
   /**
-   * (issuer defined validation) The contract to query to determine permission validity
-   * ** optional, user `address(0)` to disable **
+   * (revocation) The contract to query to determine permission validity
+   * ** optional, use `address(0)` to disable **
    */
   revokerContract: Hex;
   /**
@@ -86,39 +98,37 @@ export interface ACP {
    */
   contracts: Hex[];
   /**
-   * (scope) Grants access to these specific ciphertext handles
+   * (scope) Grants access to these specific ciphertext handles (bytes32 hex)
    */
-  handles: bigint[];
+  handles: Hex[];
   /**
-   * (base) The publicKey of a sealingPair used to re-encrypt `issuer`s confidential data
+   * (base) The publicKey of the sealingPair — used to re-encrypt `issuer`s confidential data
    *   (non-sharing) Populated by `issuer`
    *   (sharing)     Populated by `recipient`
    */
-  sealingPair: SealingKey;
+  sealingKey: Hex;
   /**
    * (base) `signTypedData` signature created by `issuer`.
    * (base) Shared- and Self- permissions differ in signature format: (`sealingKey` absent in shared signature)
-   *   (non-sharing) < issuer, expiration, recipient, revokerData, revokerContract, sealingKey >
-   *   (sharing)     < issuer, expiration, recipient, revokerData, revokerContract >
    */
   issuerSignature: Hex;
   /**
-   * (sharing) `signTypedData` signature created by `recipient` with format:
-   * (sharing) < sealingKey, issuerSignature>
+   * (sharing) `signTypedData` signature created by `recipient`
    * ** required for shared permits **
    */
   recipientSignature: Hex;
-  /**
-   * EIP712 domain used to sign this permit.
-   * Should not be set manually, included in metadata as part of serialization flows.
-   */
-  _signedDomain?: EIP712Domain;
 }
 
 /**
- * Permit discriminant helpers
+ * Core ACP (Access Control Permission) type — immutable design for React compatibility.
+ * The union of the private (client-only) and public (signed) components.
  */
-export type PermitType = Permit['type'];
+export type ACP = Expand<ACPPrivate & ACPPublic>;
+
+/**
+ * ACP discriminant helpers
+ */
+export type PermitType = ACP['type'];
 
 /**
  * Utility type to narrow a permit to a specific discriminant.
@@ -126,14 +136,14 @@ export type PermitType = Permit['type'];
  * Note: this only narrows the `type` field. Runtime/validation constraints
  * (e.g. recipient == zeroAddress for self permits) are enforced elsewhere.
  */
-export type PermitOf<T extends PermitType> = Expand<Omit<Permit, 'type'> & { type: T }>;
+export type PermitOf<T extends PermitType> = Expand<Omit<ACP, 'type'> & { type: T }>;
 
 export type SelfPermit = PermitOf<'self'>;
 export type SharingPermit = PermitOf<'sharing'>;
 export type RecipientPermit = PermitOf<'recipient'>;
 
 /**
- * Optional additional metadata of a Permit
+ * Optional additional metadata of a ACP
  * Can be passed into the constructor, but not necessary
  * Useful for deserialization
  */
@@ -163,8 +173,8 @@ export const ACPScope = {
 
 export type PermitScopeOptions = {
   scope?: number;
-  contracts?: string[];
-  handles?: (bigint | number | string)[];
+  contracts?: Hex[];
+  handles?: Hex[];
 };
 
 // Specific option types for each permit creation method
@@ -198,10 +208,8 @@ export type ImportSharedPermitOptions = PermitScopeOptions & {
   revokerContract?: string;
 };
 
-export type SerializedPermit = Omit<Permit, 'sealingPair' | 'handles'> & {
+export type SerializedPermit = Omit<ACP, 'sealingPair'> & {
   _signedDomain?: EIP712Domain;
-  /** bigint is not JSON-serializable — handles persist as decimal strings */
-  handles: string[];
   sealingPair: {
     privateKey: string;
     publicKey: string;
@@ -209,31 +217,10 @@ export type SerializedPermit = Omit<Permit, 'sealingPair' | 'handles'> & {
 };
 
 /**
- * The client-side-only component of an ACP. Never leaves the client.
- */
-export type ACPPrivate = Expand<Pick<ACP, 'hash' | 'name' | 'type' | 'sealingPair' | '_signedDomain'>>;
-
-/**
- * The public component of an ACP — the signed struct passed on-chain / to the
- * decryption backend to grant encrypted data access. Produced by `getPublic()`.
- */
-export type ACPPublic = Expand<
-  Omit<ACP, keyof ACPPrivate> & {
-    sealingKey: Hex;
-  }
->;
-
-/** @deprecated renamed — use `ACPPublic` */
-export type Permission = ACPPublic;
-
-/** @deprecated renamed — use `ACP` */
-export type Permit = ACP;
-
-/**
  * A type representing the permit fields that are used to generate the hash
  */
 export type PermitHashFields = Pick<
-  Permit,
+  ACP,
   'type' | 'issuer' | 'expiration' | 'recipient' | 'revokerData' | 'revokerContract' | 'scope' | 'contracts' | 'handles'
 >;
 
