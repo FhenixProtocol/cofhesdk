@@ -59,7 +59,7 @@ export function usePermitForm(options: UsePermitFormOptions = {}): UsePermitForm
     if (isPermitCreationPending) return;
     const nameToUse = permitName.trim();
     if (!nameToUse) {
-      setNameError('Permit name is required.');
+      setNameError('ACP name is required.');
       return;
     }
     if (isDelegate) {

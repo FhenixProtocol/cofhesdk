@@ -41,7 +41,7 @@ describe('CoFHE Plugin Config', async () => {
     assert.equal(client.config.environment, 'hardhat');
     assert.equal(client.connection.account?.toLowerCase(), expectedAddress.toLowerCase());
 
-    const activePermit = client.permits.getActivePermit();
+    const activePermit = client.acp.getActivePermit();
     assert.ok(activePermit, 'expected createClientWithBatteries() to create and select an active permit');
     assert.equal(activePermit.issuer.toLowerCase(), expectedAddress.toLowerCase());
   });

@@ -685,8 +685,8 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   }
 
   /// @notice ACP (Permit V3) — scope-checked access, forwarded to the ACL
-  function isAllowedWithACP(ACP memory permission, uint256 handle) public view returns (bool) {
-    return acl.isAllowedWithACP(permission, handle);
+  function isAllowedWithACP(ACP memory acp, uint256 handle) public view returns (bool) {
+    return acl.isAllowedWithACP(acp, handle);
   }
 
   // Stub implementations for new ITaskManager interface methods (inc PR #48)

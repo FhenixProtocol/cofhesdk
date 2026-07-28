@@ -486,7 +486,7 @@ extendEnvironment((hre) => {
       await hre.cofhe.connectWithHardhatSigner(client, signer);
 
       // Create self-usage permit
-      await client.permits.createSelf({
+      await client.acp.createSelf({
         issuer: signer.address,
       });
 

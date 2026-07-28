@@ -72,7 +72,7 @@ describe('@cofhe/web - Inherited Client Tests', () => {
       expect(typeof cofheClient.decryptForTx).toBe('function');
       expect(typeof cofheClient.getSnapshot).toBe('function');
       expect(typeof cofheClient.subscribe).toBe('function');
-      expect(cofheClient.permits).toBeDefined();
+      expect(cofheClient.acp).toBeDefined();
     });
   });
 
@@ -106,37 +106,37 @@ describe('@cofhe/web - Inherited Client Tests', () => {
     }, 60000);
   });
 
-  describe('Self Permit', () => {
+  describe('Self ACP', () => {
     it('should create a self permit', async () => {
       await cofheClient.connect(publicClient, bobWalletClient);
 
-      const permit = await cofheClient.permits.createSelf({
+      const permit = await cofheClient.acp.createSelf({
         issuer: bobAccount.address,
-        name: 'Test Self Permit',
+        name: 'Test Self ACP',
       });
 
       expect(permit).toBeDefined();
       expect(permit.type).toBe('self');
-      expect(permit.name).toBe('Test Self Permit');
+      expect(permit.name).toBe('Test Self ACP');
       expect(permit.issuer).toBe(bobAccount.address);
       expect(permit.issuerSignature).not.toBe('0x');
       expect(permit.sealingPair).toBeDefined();
       expect(permit.sealingPair.publicKey).toBeDefined();
 
-      const activePermit = cofheClient.permits.getActivePermit();
+      const activePermit = cofheClient.acp.getActivePermit();
       expect(activePermit).toBeDefined();
       expect(activePermit!.hash).toBe(permit.hash);
     }, 30000);
   });
 
-  describe('Sharing Permit', () => {
+  describe('Sharing ACP', () => {
     it('should create a sharing permit, export it, and import it as another user', async () => {
       await cofheClient.connect(publicClient, bobWalletClient);
 
-      const sharingPermit = await cofheClient.permits.createSharing({
+      const sharingPermit = await cofheClient.acp.createSharing({
         issuer: bobAccount.address,
         recipient: aliceAccount.address,
-        name: 'Test Sharing Permit',
+        name: 'Test Sharing ACP',
       });
 
       expect(sharingPermit).toBeDefined();
@@ -145,7 +145,7 @@ describe('@cofhe/web - Inherited Client Tests', () => {
       expect(sharingPermit.recipient).toBe(aliceAccount.address);
       expect(sharingPermit.issuerSignature).not.toBe('0x');
 
-      const exported = cofheClient.permits.export(sharingPermit);
+      const exported = cofheClient.acp.export(sharingPermit);
       expect(exported).toBeDefined();
       const parsed = JSON.parse(exported);
       expect(parsed.type).toBe('sharing');
@@ -160,7 +160,7 @@ describe('@cofhe/web - Inherited Client Tests', () => {
       const aliceClient = createCofheClient(aliceConfig);
       await aliceClient.connect(publicClient, aliceWalletClient);
 
-      const importedPermit = await aliceClient.permits.importShared(exported);
+      const importedPermit = await aliceClient.acp.importShared(exported);
 
       expect(importedPermit).toBeDefined();
       expect(importedPermit.type).toBe('recipient');
@@ -208,9 +208,9 @@ describe('@cofhe/web - Inherited Client Tests', () => {
     it('decryptForView — private value with permit', async () => {
       await decryptClient.connect(decryptPublicClient, decryptWalletClient);
 
-      await decryptClient.permits.createSelf({
+      await decryptClient.acp.createSelf({
         issuer: bobAccount.address,
-        name: 'Decrypt View Permit',
+        name: 'Decrypt View ACP',
       });
 
       const result = await decryptClient.decryptForView(privateCtHash, FheTypes.Uint32).execute();
@@ -230,9 +230,9 @@ describe('@cofhe/web - Inherited Client Tests', () => {
     it('decryptForTx — private value with permit', async () => {
       await decryptClient.connect(decryptPublicClient, decryptWalletClient);
 
-      const permit = await decryptClient.permits.createSelf({
+      const permit = await decryptClient.acp.createSelf({
         issuer: bobAccount.address,
-        name: 'Decrypt Tx Permit',
+        name: 'Decrypt Tx ACP',
       });
 
       const result = await decryptClient.decryptForTx(privateCtHash).withPermit(permit).execute();

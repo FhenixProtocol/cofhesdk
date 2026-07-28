@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
-  PermitUtils,
+  ACPUtils,
   type CreateSelfPermitOptions,
   type CreateSharingPermitOptions,
   type ImportSharedPermitOptions,
@@ -50,20 +50,20 @@ const aliceWalletClient: WalletClient = createWalletClient({
 const bobAddress = bobWalletClient.account!.address;
 const aliceAddress = aliceWalletClient.account!.address;
 
-describe('PermitUtils Tests', () => {
+describe('ACPUtils Tests', () => {
   describe('createSelf', () => {
     it('should create a self permit with valid options', async () => {
       const options: CreateSelfPermitOptions = {
         type: 'self',
         issuer: bobAddress,
-        name: 'Test Permit',
+        name: 'Test ACP',
       };
 
-      const permit = PermitUtils.createSelf(options);
+      const permit = ACPUtils.createSelf(options);
 
-      expect(permit.hash).toBe(PermitUtils.getHash(permit));
+      expect(permit.hash).toBe(ACPUtils.getHash(permit));
       expect(permit.type).toBe('self');
-      expect(permit.name).toBe('Test Permit');
+      expect(permit.name).toBe('Test ACP');
       expect(permit.type).toBe('self');
       expect(permit.issuer).toBe(bobAddress);
       expect(permit.sealingPair).toBeDefined();
@@ -79,10 +79,10 @@ describe('PermitUtils Tests', () => {
       const options: CreateSelfPermitOptions = {
         type: 'self',
         issuer: 'invalid-address',
-        name: 'Test Permit',
+        name: 'Test ACP',
       };
 
-      expect(() => PermitUtils.createSelf(options)).toThrowError();
+      expect(() => ACPUtils.createSelf(options)).toThrowError();
     });
   });
 
@@ -92,14 +92,14 @@ describe('PermitUtils Tests', () => {
         type: 'sharing',
         issuer: bobAddress,
         recipient: aliceAddress,
-        name: 'Test Sharing Permit',
+        name: 'Test Sharing ACP',
       };
 
-      const permit = PermitUtils.createSharing(options);
+      const permit = ACPUtils.createSharing(options);
 
-      expect(permit.hash).toBe(PermitUtils.getHash(permit));
+      expect(permit.hash).toBe(ACPUtils.getHash(permit));
       expect(permit.type).toBe('sharing');
-      expect(permit.name).toBe('Test Sharing Permit');
+      expect(permit.name).toBe('Test Sharing ACP');
       expect(permit.type).toBe('sharing');
       expect(permit.issuer).toBe(bobAddress);
       expect(permit.recipient).toBe(aliceAddress);
@@ -117,10 +117,10 @@ describe('PermitUtils Tests', () => {
         type: 'sharing',
         issuer: bobAddress,
         recipient: 'invalid-address',
-        name: 'Test Sharing Permit',
+        name: 'Test Sharing ACP',
       };
 
-      expect(() => PermitUtils.createSharing(options)).toThrow();
+      expect(() => ACPUtils.createSharing(options)).toThrow();
     });
   });
 
@@ -131,14 +131,14 @@ describe('PermitUtils Tests', () => {
         expiration: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
         recipient: aliceAddress,
         issuerSignature: '0x1234567890abcdef',
-        name: 'Test Import Permit',
+        name: 'Test Import ACP',
       };
 
-      const permit = PermitUtils.importShared(options);
+      const permit = ACPUtils.importShared(options);
 
-      expect(permit.hash).toBe(PermitUtils.getHash(permit));
+      expect(permit.hash).toBe(ACPUtils.getHash(permit));
       expect(permit.type).toBe('recipient');
-      expect(permit.name).toBe('Test Import Permit');
+      expect(permit.name).toBe('Test Import ACP');
       expect(permit.issuer).toBe(bobAddress);
       expect(permit.recipient).toBe(aliceAddress);
       expect(permit.issuerSignature).toBe('0x1234567890abcdef');
@@ -160,7 +160,7 @@ describe('PermitUtils Tests', () => {
 
       const stringOptions = JSON.stringify(options);
 
-      const permit = PermitUtils.importShared(stringOptions);
+      const permit = ACPUtils.importShared(stringOptions);
 
       expect(permit.type).toBe('recipient');
     });
@@ -173,7 +173,7 @@ describe('PermitUtils Tests', () => {
         issuerSignature: '0x1234567890abcdef',
       } as unknown as ImportSharedPermitOptions;
 
-      expect(() => PermitUtils.importShared(options)).toThrow();
+      expect(() => ACPUtils.importShared(options)).toThrow();
 
       const options2 = {
         type: 'recipient',
@@ -182,7 +182,7 @@ describe('PermitUtils Tests', () => {
         issuerSignature: '0x1234567890abcdef',
       } as unknown as ImportSharedPermitOptions;
 
-      expect(() => PermitUtils.importShared(options2)).toThrow();
+      expect(() => ACPUtils.importShared(options2)).toThrow();
     });
 
     it('should throw error for missing issuerSignature', async () => {
@@ -191,10 +191,10 @@ describe('PermitUtils Tests', () => {
         expiration: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
         recipient: aliceAddress,
         issuerSignature: '0x', // Invalid empty signature
-        name: 'Test Import Permit',
+        name: 'Test Import ACP',
       };
 
-      expect(() => PermitUtils.importShared(options)).toThrow();
+      expect(() => ACPUtils.importShared(options)).toThrow();
     });
 
     it('should throw error for missing expiration', async () => {
@@ -203,7 +203,7 @@ describe('PermitUtils Tests', () => {
         recipient: aliceAddress,
         issuerSignature: '0x1234567890abcdef',
       } as unknown as ImportSharedPermitOptions;
-      expect(() => PermitUtils.importShared(options)).toThrow();
+      expect(() => ACPUtils.importShared(options)).toThrow();
     });
   });
 
@@ -211,10 +211,10 @@ describe('PermitUtils Tests', () => {
     it('should create and sign a self permit', async () => {
       const options: CreateSelfPermitOptions = {
         issuer: bobAddress,
-        name: 'Test Permit',
+        name: 'Test ACP',
       };
 
-      const permit = await PermitUtils.createSelfAndSign(options, publicClient, bobWalletClient);
+      const permit = await ACPUtils.createSelfAndSign(options, publicClient, bobWalletClient);
 
       expect(permit.type).toBe('self');
       expect(permit.issuerSignature).toBeDefined();
@@ -229,10 +229,10 @@ describe('PermitUtils Tests', () => {
       const options: CreateSharingPermitOptions = {
         issuer: bobAddress,
         recipient: aliceAddress,
-        name: 'Test Sharing Permit',
+        name: 'Test Sharing ACP',
       };
 
-      const permit = await PermitUtils.createSharingAndSign(options, publicClient, bobWalletClient);
+      const permit = await ACPUtils.createSharingAndSign(options, publicClient, bobWalletClient);
 
       expect(permit.type).toBe('sharing');
       expect(permit.issuerSignature).toBeDefined();
@@ -249,10 +249,10 @@ describe('PermitUtils Tests', () => {
         recipient: aliceAddress,
         expiration: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
         issuerSignature: '0x1234567890abcdef',
-        name: 'Test Import Permit',
+        name: 'Test Import ACP',
       };
 
-      const permit = await PermitUtils.importSharedAndSign(options, publicClient, aliceWalletClient);
+      const permit = await ACPUtils.importSharedAndSign(options, publicClient, aliceWalletClient);
 
       expect(permit.type).toBe('recipient');
       expect(permit.recipientSignature).toBeDefined();
@@ -270,7 +270,7 @@ describe('PermitUtils Tests', () => {
 
       const stringOptions = JSON.stringify(options);
 
-      const permit = await PermitUtils.importSharedAndSign(stringOptions, publicClient, aliceWalletClient);
+      const permit = await ACPUtils.importSharedAndSign(stringOptions, publicClient, aliceWalletClient);
 
       expect(permit.type).toBe('recipient');
       expect(permit.recipientSignature).toBeDefined();
@@ -288,7 +288,7 @@ describe('PermitUtils Tests', () => {
 
       const jsonOptions = JSON.parse(JSON.stringify(options));
 
-      const permit = await PermitUtils.importSharedAndSign(jsonOptions, publicClient, aliceWalletClient);
+      const permit = await ACPUtils.importSharedAndSign(jsonOptions, publicClient, aliceWalletClient);
 
       expect(permit.type).toBe('recipient');
       expect(permit.recipientSignature).toBeDefined();
@@ -299,12 +299,12 @@ describe('PermitUtils Tests', () => {
 
   describe('sign', () => {
     it('should sign a self permit', async () => {
-      const permit = PermitUtils.createSelf({
+      const permit = ACPUtils.createSelf({
         issuer: bobAddress,
-        name: 'Test Permit',
+        name: 'Test ACP',
       });
 
-      const signedPermit = await PermitUtils.sign(permit, publicClient, bobWalletClient);
+      const signedPermit = await ACPUtils.sign(permit, publicClient, bobWalletClient);
 
       expect(signedPermit.type).toBe('self');
       expect(signedPermit.issuerSignature).toBeDefined();
@@ -313,15 +313,15 @@ describe('PermitUtils Tests', () => {
     });
 
     it('should sign a recipient permit', async () => {
-      const permit = PermitUtils.importShared({
+      const permit = ACPUtils.importShared({
         issuer: bobAddress,
         recipient: aliceAddress,
         expiration: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
         issuerSignature: '0x1111111111111111111111111111111111111111111111111111111111111111',
-        name: 'Test Permit',
+        name: 'Test ACP',
       });
 
-      const signedPermit = await PermitUtils.sign(permit, publicClient, aliceWalletClient);
+      const signedPermit = await ACPUtils.sign(permit, publicClient, aliceWalletClient);
 
       expect(signedPermit.recipientSignature).toBeDefined();
       expect(signedPermit.recipientSignature).not.toBe('0x');
@@ -329,27 +329,27 @@ describe('PermitUtils Tests', () => {
     });
 
     it('should throw error for undefined signer', async () => {
-      const permit = PermitUtils.createSelf({
+      const permit = ACPUtils.createSelf({
         issuer: bobAddress,
-        name: 'Test Permit',
+        name: 'Test ACP',
       });
 
       await expect(
         // @ts-expect-error - undefined signer
-        PermitUtils.sign(permit, publicClient, undefined)
+        ACPUtils.sign(permit, publicClient, undefined)
       ).rejects.toThrow();
     });
   });
 
   describe('serialize/deserialize', () => {
     it('should serialize and deserialize a permit', async () => {
-      const originalPermit = PermitUtils.createSelf({
+      const originalPermit = ACPUtils.createSelf({
         issuer: bobAddress,
-        name: 'Test Permit',
+        name: 'Test ACP',
       });
 
-      const serialized = PermitUtils.serialize(originalPermit);
-      const deserialized = PermitUtils.deserialize(serialized);
+      const serialized = ACPUtils.serialize(originalPermit);
+      const deserialized = ACPUtils.deserialize(serialized);
 
       expect(deserialized.type).toBe('self');
       expect(deserialized.name).toBe(originalPermit.name);
@@ -362,16 +362,16 @@ describe('PermitUtils Tests', () => {
 
   describe('getPermission', () => {
     it('should extract permission from permit', async () => {
-      const permit = await PermitUtils.createSelfAndSign(
+      const permit = await ACPUtils.createSelfAndSign(
         {
           issuer: bobAddress,
-          name: 'Test Permit',
+          name: 'Test ACP',
         },
         publicClient,
         bobWalletClient
       );
 
-      const permission = PermitUtils.getPublic(permit);
+      const permission = ACPUtils.getPublic(permit);
 
       expect(permission.issuer).toBe(permit.issuer);
       expect(permission.sealingKey).toBe(`0x${permit.sealingPair.publicKey}`);
@@ -383,16 +383,16 @@ describe('PermitUtils Tests', () => {
   describe('getHash', () => {
     it('should generate consistent hash for same permit data', async () => {
       const expiration = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
-      const permit1 = PermitUtils.createSelf({
+      const permit1 = ACPUtils.createSelf({
         expiration,
         issuer: bobAddress,
-        name: 'Test Permit',
+        name: 'Test ACP',
       });
 
-      const permit2 = PermitUtils.createSelf({
+      const permit2 = ACPUtils.createSelf({
         expiration,
         issuer: bobAddress,
-        name: 'Test Permit',
+        name: 'Test ACP',
       });
 
       expect(permit1.hash).toBe(permit2.hash);
@@ -401,35 +401,35 @@ describe('PermitUtils Tests', () => {
 
   describe('export', () => {
     it('should export permit data without sensitive fields', async () => {
-      const permit = PermitUtils.createSelf({
+      const permit = ACPUtils.createSelf({
         issuer: bobAddress,
-        name: 'Test Permit',
+        name: 'Test ACP',
       });
 
-      const exported = PermitUtils.export(permit);
+      const exported = ACPUtils.export(permit);
       const parsed = JSON.parse(exported);
 
-      expect(parsed.name).toBe('Test Permit');
+      expect(parsed.name).toBe('Test ACP');
       expect(parsed.issuer).toBe(bobAddress);
       expect(parsed).not.toHaveProperty('sealingPair');
       expect(parsed).not.toHaveProperty('issuerSignature');
     });
 
     it('should export sharing permit data with recipient and issuerSignature', async () => {
-      const permit = await PermitUtils.createSharingAndSign(
+      const permit = await ACPUtils.createSharingAndSign(
         {
           issuer: bobAddress,
           recipient: aliceAddress,
-          name: 'Test Sharing Permit',
+          name: 'Test Sharing ACP',
         },
         publicClient,
         bobWalletClient
       );
 
-      const exported = PermitUtils.export(permit);
+      const exported = ACPUtils.export(permit);
       const parsed = JSON.parse(exported);
 
-      expect(parsed.name).toBe('Test Sharing Permit');
+      expect(parsed.name).toBe('Test Sharing ACP');
       expect(parsed.type).toBe('sharing');
       expect(parsed.issuer).toBe(bobAddress);
       expect(parsed.recipient).toBe(aliceAddress);
@@ -441,12 +441,12 @@ describe('PermitUtils Tests', () => {
 
   describe('updateName', () => {
     it('should update permit name immutably', async () => {
-      const permit = PermitUtils.createSelf({
+      const permit = ACPUtils.createSelf({
         issuer: bobAddress,
         name: 'Original Name',
       });
 
-      const updatedPermit = PermitUtils.updateName(permit, 'New Name');
+      const updatedPermit = ACPUtils.updateName(permit, 'New Name');
 
       expect(updatedPermit.name).toBe('New Name');
       expect(permit.name).toBe('Original Name'); // Original should be unchanged
@@ -456,64 +456,64 @@ describe('PermitUtils Tests', () => {
 
   describe('validation helpers', () => {
     it('should check if permit is expired', async () => {
-      const expiredPermit = PermitUtils.createSelf({
+      const expiredPermit = ACPUtils.createSelf({
         issuer: bobAddress,
-        name: 'Test Permit',
+        name: 'Test ACP',
         expiration: Math.floor(Date.now() / 1000) - 3600, // 1 hour ago
       });
 
-      const validPermit = PermitUtils.createSelf({
+      const validPermit = ACPUtils.createSelf({
         issuer: bobAddress,
-        name: 'Test Permit',
+        name: 'Test ACP',
         expiration: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
       });
 
-      expect(PermitUtils.isExpired(expiredPermit)).toBe(true);
-      expect(PermitUtils.isExpired(validPermit)).toBe(false);
+      expect(ACPUtils.isExpired(expiredPermit)).toBe(true);
+      expect(ACPUtils.isExpired(validPermit)).toBe(false);
     });
 
     it('should check if permit is signed', async () => {
-      const unsignedPermit = PermitUtils.createSelf({
+      const unsignedPermit = ACPUtils.createSelf({
         issuer: bobAddress,
-        name: 'Test Permit',
+        name: 'Test ACP',
       });
 
-      const signedPermit = await PermitUtils.sign(unsignedPermit, publicClient, bobWalletClient);
+      const signedPermit = await ACPUtils.sign(unsignedPermit, publicClient, bobWalletClient);
 
-      expect(PermitUtils.isSigned(unsignedPermit)).toBe(false);
-      expect(PermitUtils.isSigned(signedPermit)).toBe(true);
+      expect(ACPUtils.isSigned(unsignedPermit)).toBe(false);
+      expect(ACPUtils.isSigned(signedPermit)).toBe(true);
     });
 
     it('should check overall validity', async () => {
-      const validPermit = PermitUtils.createSelf({
+      const validPermit = ACPUtils.createSelf({
         issuer: bobAddress,
-        name: 'Test Permit',
+        name: 'Test ACP',
         expiration: Math.floor(Date.now() / 1000) + 3600,
       });
 
-      const signedPermit = await PermitUtils.sign(validPermit, publicClient, bobWalletClient);
+      const signedPermit = await ACPUtils.sign(validPermit, publicClient, bobWalletClient);
 
-      const validation = PermitUtils.isValid(signedPermit);
+      const validation = ACPUtils.isValid(signedPermit);
       expect(validation.valid).toBe(true);
       expect(validation.error).toBeNull();
     });
 
     it('should throw on validate() for expired signed permit', async () => {
-      const expiredPermit = PermitUtils.createSelf({
+      const expiredPermit = ACPUtils.createSelf({
         issuer: bobAddress,
-        name: 'Expired Permit',
+        name: 'Expired ACP',
         expiration: Math.floor(Date.now() / 1000) - 3600,
       });
 
-      const signedExpiredPermit = await PermitUtils.sign(expiredPermit, publicClient, bobWalletClient);
-      expect(() => PermitUtils.validate(signedExpiredPermit)).toThrow('Permit is expired');
+      const signedExpiredPermit = await ACPUtils.sign(expiredPermit, publicClient, bobWalletClient);
+      expect(() => ACPUtils.validate(signedExpiredPermit)).toThrow('ACP is expired');
     });
   });
 
   describe('real contract interactions', () => {
     it('should fetch EIP712 domain from real Arbitrum Sepolia contract', async () => {
       // This test uses the real public client to fetch actual contract data
-      const domain = await PermitUtils.fetchEIP712Domain(publicClient);
+      const domain = await ACPUtils.fetchEIP712Domain(publicClient);
 
       expect(domain).toBeDefined();
       expect(domain.name).toBeDefined();
@@ -524,17 +524,17 @@ describe('PermitUtils Tests', () => {
     }, 10000); // 10 second timeout for network call
 
     it('should check signed domain validity with real contract data', async () => {
-      const permit = PermitUtils.createSelf({
+      const permit = ACPUtils.createSelf({
         type: 'self',
         issuer: bobAddress,
-        name: 'Test Permit',
+        name: 'Test ACP',
       });
 
       // Sign the permit to get a domain
-      const signedPermit = await PermitUtils.sign(permit, publicClient, bobWalletClient);
+      const signedPermit = await ACPUtils.sign(permit, publicClient, bobWalletClient);
 
       // Check if the signed domain is valid against the real contract
-      const isValid = await PermitUtils.checkSignedDomainValid(signedPermit, publicClient);
+      const isValid = await ACPUtils.checkSignedDomainValid(signedPermit, publicClient);
 
       expect(typeof isValid).toBe('boolean');
     }, 10000); // 10 second timeout for network call
@@ -542,28 +542,28 @@ describe('PermitUtils Tests', () => {
     // TODO: Uncomment when updated ACL with checkPermitValidity function is deployed
 
     // it('should check permit validity on chain with real contract data', async () => {
-    //   const permit = PermitUtils.createSelf({
+    //   const permit = ACPUtils.createSelf({
     //     type: 'self',
     //     issuer: bobAddress,
-    //     name: 'Test Permit',
+    //     name: 'Test ACP',
     //   });
 
-    //   const signedPermit = await PermitUtils.sign(permit, publicClient, bobWalletClient);
+    //   const signedPermit = await ACPUtils.sign(permit, publicClient, bobWalletClient);
 
-    //   const isValid = await PermitUtils.checkValidityOnChain(signedPermit, publicClient);
+    //   const isValid = await ACPUtils.checkValidityOnChain(signedPermit, publicClient);
 
     //   expect(typeof isValid).toBe('boolean');
     //   expect(isValid).toBe(true);
 
-    //   const permitInvalid = PermitUtils.createSelf({
+    //   const permitInvalid = ACPUtils.createSelf({
     //     type: 'self',
     //     issuer: bobAddress,
-    //     name: 'Test Permit',
+    //     name: 'Test ACP',
     //     expiration: Math.floor(Date.now() / 1000) - 3600, // 1 hour ago
     //   });
 
-    //   const signedPermitInvalid = await PermitUtils.sign(permitInvalid, publicClient, bobWalletClient);
-    //   const isValidInvalid = await PermitUtils.checkValidityOnChain(signedPermitInvalid, publicClient);
+    //   const signedPermitInvalid = await ACPUtils.sign(permitInvalid, publicClient, bobWalletClient);
+    //   const isValidInvalid = await ACPUtils.checkValidityOnChain(signedPermitInvalid, publicClient);
 
     //   expect(typeof isValidInvalid).toBe('boolean');
     //   expect(isValidInvalid).toBe(false);

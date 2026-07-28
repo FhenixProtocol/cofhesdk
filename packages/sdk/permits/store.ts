@@ -1,8 +1,8 @@
 import { createStore } from 'zustand/vanilla';
 import { persist } from 'zustand/middleware';
 import { produce } from 'immer';
-import { type Permit, type SerializedPermit } from './types.js';
-import { PermitUtils } from './permit.js';
+import { type ACP, type SerializedPermit } from './types.js';
+import { ACPUtils } from './permit.js';
 
 type ChainRecord<T> = Record<number, T>;
 type AccountRecord<T> = Record<string, T>;
@@ -60,17 +60,17 @@ export const getPermit = (
   chainId: number | undefined,
   account: string | undefined,
   hash: string | undefined
-): Permit | undefined => {
+): ACP | undefined => {
   clearStaleStore();
   if (chainId == null || account == null || hash == null) return;
 
   const savedPermit = _permitStore.getState().permits[chainId]?.[account]?.[hash];
   if (savedPermit == null) return;
 
-  return PermitUtils.deserialize(savedPermit);
+  return ACPUtils.deserialize(savedPermit);
 };
 
-export const getActivePermit = (chainId: number | undefined, account: string | undefined): Permit | undefined => {
+export const getActivePermit = (chainId: number | undefined, account: string | undefined): ACP | undefined => {
   clearStaleStore();
   if (chainId == null || account == null) return;
 
@@ -78,26 +78,26 @@ export const getActivePermit = (chainId: number | undefined, account: string | u
   return getPermit(chainId, account, activePermitHash);
 };
 
-export const getPermits = (chainId: number | undefined, account: string | undefined): Record<string, Permit> => {
+export const getPermits = (chainId: number | undefined, account: string | undefined): Record<string, ACP> => {
   clearStaleStore();
   if (chainId == null || account == null) return {};
 
   return Object.entries(_permitStore.getState().permits[chainId]?.[account] ?? {}).reduce(
     (acc, [hash, permit]) => {
       if (permit == undefined) return acc;
-      return { ...acc, [hash]: PermitUtils.deserialize(permit) };
+      return { ...acc, [hash]: ACPUtils.deserialize(permit) };
     },
-    {} as Record<string, Permit>
+    {} as Record<string, ACP>
   );
 };
 
-export const setPermit = (chainId: number, account: string, permit: Permit) => {
+export const setPermit = (chainId: number, account: string, permit: ACP) => {
   clearStaleStore();
   _permitStore.setState(
     produce<PermitsStore>((state) => {
       if (state.permits[chainId] == null) state.permits[chainId] = {};
       if (state.permits[chainId][account] == null) state.permits[chainId][account] = {};
-      state.permits[chainId][account][permit.hash] = PermitUtils.serialize(permit);
+      state.permits[chainId][account][permit.hash] = ACPUtils.serialize(permit);
     })
   );
 };

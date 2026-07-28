@@ -26,7 +26,7 @@ export const ImportPermitPage: React.FC = () => {
       navigateBack();
       addToast({
         variant: 'success',
-        title: 'Permit imported',
+        title: 'ACP imported',
       });
     },
     onError: (error) => {
@@ -80,7 +80,7 @@ export const ImportPermitPage: React.FC = () => {
             <>
               <div className="gap-2">
                 <label className="text-sm font-semibold text-[#0E2F3F] dark:text-white" htmlFor="cofhe-permit-name">
-                  Imported Permit:
+                  Imported ACP:
                 </label>
                 <BasePermitCard permit={importedPermit} />
               </div>
@@ -91,7 +91,7 @@ export const ImportPermitPage: React.FC = () => {
                 <input
                   id="cofhe-permit-name"
                   type="text"
-                  placeholder={importedPermit.name ?? 'Permit name...'}
+                  placeholder={importedPermit.name ?? 'ACP name...'}
                   className="w-full rounded-xl border border-[#0E2F3F]/30 bg-[#F4F6F8] px-4 py-3 text-sm text-[#0E2F3F] outline-none transition focus:border-[#0EA5A7] dark:border-white/30 dark:bg-transparent dark:text-white dark:placeholder:text-white/50"
                   value={permitName}
                   onChange={(e) => setPermitName(e.target.value)}
@@ -110,7 +110,7 @@ export const ImportPermitPage: React.FC = () => {
               Cancel
             </Button>
             <Button variant="primary" disabled={isSubmitting} onClick={submit}>
-              {isSubmitting ? 'Importing...' : 'Import Permit'}
+              {isSubmitting ? 'Importing...' : 'Import ACP'}
             </Button>
           </div>
         </div>

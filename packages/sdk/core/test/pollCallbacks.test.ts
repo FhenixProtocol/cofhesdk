@@ -71,7 +71,7 @@ describe('decrypt polling callbacks', () => {
     const promise = tnDecryptV2({
       ctHash: 1n,
       chainId: 1,
-      permission: null,
+      acp: null,
       thresholdNetworkUrl,
       onPoll,
     });
@@ -154,7 +154,7 @@ describe('decrypt polling callbacks', () => {
     const promise = tnDecryptV2({
       ctHash: 1n,
       chainId: 1,
-      permission: null,
+      acp: null,
       thresholdNetworkUrl,
       onPoll,
     });
@@ -234,7 +234,7 @@ describe('decrypt polling callbacks', () => {
     const promise = tnDecryptV2({
       ctHash: 1n,
       chainId: 1,
-      permission: null,
+      acp: null,
       thresholdNetworkUrl,
       onPoll,
     });
@@ -288,7 +288,7 @@ describe('decrypt polling callbacks', () => {
     const promise = tnDecryptV2({
       ctHash: 1n,
       chainId: 1,
-      permission: null,
+      acp: null,
       thresholdNetworkUrl,
     });
 
@@ -321,7 +321,7 @@ describe('decrypt polling callbacks', () => {
     const promise = tnDecryptV2({
       ctHash: 1n,
       chainId: 1,
-      permission: null,
+      acp: null,
       thresholdNetworkUrl,
     });
 
@@ -359,7 +359,7 @@ describe('decrypt polling callbacks', () => {
     const result = await tnDecryptV2({
       ctHash: 1n,
       chainId: 1,
-      permission: null,
+      acp: null,
       thresholdNetworkUrl,
       onPoll,
     });
@@ -414,7 +414,7 @@ describe('decrypt polling callbacks', () => {
     const promise = tnDecryptV2({
       ctHash: 1n,
       chainId: 1,
-      permission: null,
+      acp: null,
       thresholdNetworkUrl,
       onPoll,
     });
@@ -485,7 +485,7 @@ describe('decrypt polling callbacks', () => {
     const promise = tnSealOutputV2({
       ctHash: 1n,
       chainId: 1,
-      permission: {} as any,
+      acp: {} as any,
       thresholdNetworkUrl,
       onPoll,
     });
@@ -569,7 +569,7 @@ describe('decrypt polling callbacks', () => {
     const promise = tnSealOutputV2({
       ctHash: 1n,
       chainId: 1,
-      permission: {} as any,
+      acp: {} as any,
       thresholdNetworkUrl,
       onPoll,
     });
@@ -652,7 +652,7 @@ describe('decrypt polling callbacks', () => {
     const promise = tnSealOutputV2({
       ctHash: 1n,
       chainId: 1,
-      permission: {} as any,
+      acp: {} as any,
       thresholdNetworkUrl,
       onPoll,
     });
@@ -706,7 +706,7 @@ describe('decrypt polling callbacks', () => {
     const promise = tnSealOutputV2({
       ctHash: 1n,
       chainId: 1,
-      permission: {} as any,
+      acp: {} as any,
       thresholdNetworkUrl,
       retry404TimeoutMs: 2000,
     });
@@ -740,7 +740,7 @@ describe('decrypt polling callbacks', () => {
     const promise = tnSealOutputV2({
       ctHash: 1n,
       chainId: 1,
-      permission: {} as any,
+      acp: {} as any,
       thresholdNetworkUrl,
     });
 
@@ -779,7 +779,7 @@ describe('decrypt polling callbacks', () => {
     const sealed = await tnSealOutputV2({
       ctHash: 1n,
       chainId: 1,
-      permission: {} as any,
+      acp: {} as any,
       thresholdNetworkUrl,
       onPoll,
     });
@@ -835,7 +835,7 @@ describe('decrypt polling callbacks', () => {
     const promise = tnSealOutputV2({
       ctHash: 1n,
       chainId: 1,
-      permission: {} as any,
+      acp: {} as any,
       thresholdNetworkUrl,
       onPoll,
     });

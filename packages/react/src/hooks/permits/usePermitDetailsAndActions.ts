@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { zeroAddress } from 'viem';
-import { PermitUtils } from '@cofhe/sdk/permits';
+import { ACPUtils } from '@cofhe/sdk/permits';
 import {
   useCofheActivePermit,
   useCofhePermit,
@@ -23,7 +23,7 @@ export const usePermitDetailsAndActions = (permitHash: string) => {
     onSuccess: () => {
       addToast({
         variant: 'success',
-        title: 'Permit selected',
+        title: 'ACP selected',
       });
     },
     onError: (error) => {
@@ -38,7 +38,7 @@ export const usePermitDetailsAndActions = (permitHash: string) => {
     onSuccess: () => {
       addToast({
         variant: 'success',
-        title: 'Permit deleted',
+        title: 'ACP deleted',
       });
     },
     onError: (error) => {
@@ -66,7 +66,7 @@ export const usePermitDetailsAndActions = (permitHash: string) => {
 
   const permitJson = useMemo(() => {
     if (!permit) return undefined;
-    return PermitUtils.export(permit);
+    return ACPUtils.export(permit);
   }, [permit]);
 
   const handleBack = useCallback(() => {
@@ -78,7 +78,7 @@ export const usePermitDetailsAndActions = (permitHash: string) => {
     copyWithFeedback(COPY_KEY, permitJson);
     addToast({
       variant: 'success',
-      title: 'Permit data copied',
+      title: 'ACP data copied',
       description: 'Share copied data with recipient.',
     });
   }, [copyWithFeedback, permitJson, addToast]);

@@ -1,5 +1,5 @@
 import type { PermitStatus } from '@/hooks/permits/index.js';
-import { ValidationUtils, type Permit } from '@cofhe/sdk/permits';
+import { ValidationUtils, type ACP } from '@cofhe/sdk/permits';
 import type { FC } from 'react';
 import { cn } from '@/utils/cn';
 import { Button } from '@/components/CofheFloatingButton/components';
@@ -17,7 +17,7 @@ const statusToLabel: Record<PermitStatus, string> = {
 };
 
 interface PermitItemProps {
-  permit: Permit;
+  permit: ACP;
   activePermitHash?: string;
   onClick?: (id: string) => void;
 }

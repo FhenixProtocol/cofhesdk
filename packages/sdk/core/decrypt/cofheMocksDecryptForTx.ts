@@ -1,4 +1,4 @@
-import { type Permit, PermitUtils } from '@/permits';
+import { type ACP, ACPUtils } from '@/permits';
 
 import { encodePacked, keccak256, type PublicClient } from 'viem';
 import { sign } from 'viem/accounts';
@@ -22,7 +22,7 @@ export type DecryptForTxMocksResult = {
 export async function cofheMocksDecryptForTx(
   ctHash: bigint | string,
   utype: FheTypes,
-  permit: Permit | null,
+  permit: ACP | null,
   publicClient: PublicClient
 ): Promise<DecryptForTxMocksResult> {
   let allowed: boolean;
@@ -31,11 +31,11 @@ export async function cofheMocksDecryptForTx(
 
   // With permit
   if (permit !== null) {
-    let permission = PermitUtils.getPublic(permit, true);
+    let acp = ACPUtils.getPublic(permit, true);
     const permissionWithBigInts = {
-      ...permission,
-      expiration: BigInt(permission.expiration),
-      revokerData: BigInt(permission.revokerData),
+      ...acp,
+      expiration: BigInt(acp.expiration),
+      revokerData: BigInt(acp.revokerData),
     };
 
     [allowed, error, decryptedValue] = await publicClient.readContract({

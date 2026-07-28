@@ -41,7 +41,7 @@ export const DebugPage: React.FC = () => {
               Toast
             </button>
             <button onClick={() => setActiveTab('permit')} className={activeTab === 'permit' ? 'font-bold' : ''}>
-              Permit
+              ACP
             </button>
           </div>
         </div>
@@ -282,7 +282,7 @@ export const DebugPage: React.FC = () => {
                 onClick={() => {
                   addToast({
                     variant: 'error',
-                    title: 'Permit invalid',
+                    title: 'ACP invalid',
                     description: 'Unable to decrypt data with this permit',
                     action: {
                       label: 'OPEN PERMITS',
@@ -293,17 +293,17 @@ export const DebugPage: React.FC = () => {
                   });
                 }}
               >
-                Invalid Permit
+                Invalid ACP
               </button>
               <button
                 onClick={() => {
                   addToast({
                     variant: 'success',
-                    title: 'Permit created successfully',
+                    title: 'ACP created successfully',
                   });
                 }}
               >
-                Permit created
+                ACP created
               </button>
             </div>
           )}
@@ -344,7 +344,7 @@ const CreateSelfExpiringPermitButton = () => {
     const { account } = cofheClient.getSnapshot();
     if (!account) throw new Error('No connected account found');
     const expiration = Math.floor(Date.now() / 1000) + 2 * 60;
-    await cofheClient.permits.createSelf({
+    await cofheClient.acp.createSelf({
       name: `Exp ${expiration}`,
       issuer: account,
       expiration: expiration,
@@ -372,7 +372,7 @@ const CreateAndUseReceivingPermitButton = () => {
     });
 
     // Create a sharing permit with account {sharingAccount} and recipient {account}
-    const sharedPermit = await cofheClient.permits.createSharing(
+    const sharedPermit = await cofheClient.acp.createSharing(
       {
         name: 'Sharing permit',
         issuer: sharingAccount.address,
@@ -386,7 +386,7 @@ const CreateAndUseReceivingPermitButton = () => {
     );
 
     // Receive shared permit
-    await cofheClient.permits.importShared(sharedPermit);
+    await cofheClient.acp.importShared(sharedPermit);
     usePortalPersisted.getState().setHasCreatedFirstPermit(true);
   };
 

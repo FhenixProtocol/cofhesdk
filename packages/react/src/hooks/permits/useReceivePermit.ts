@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useCofheContext } from '../../providers/CofheProvider.js';
-import { PermitUtils, type RecipientPermit } from '@cofhe/sdk/permits';
+import { ACPUtils, type RecipientPermit } from '@cofhe/sdk/permits';
 import { cofheLogger } from '@/utils/debug.js';
 
 export type UseReceivePermitReturn = {
@@ -53,9 +53,9 @@ export function useReceivePermit({ onSuccess, onError }: Input = {}): UseReceive
         }
       }
 
-      await client.permits.importShared(importArg);
+      await client.acp.importShared(importArg);
 
-      setSuccessMsg('Permit received and set active.');
+      setSuccessMsg('ACP received and set active.');
       onSuccess?.();
     } catch (err: any) {
       const message = err?.message ?? 'Failed to import permit';
@@ -69,7 +69,7 @@ export function useReceivePermit({ onSuccess, onError }: Input = {}): UseReceive
   const handleSetPermitData = useCallback((v: string) => {
     setPermitData(v);
     try {
-      const permit = PermitUtils.importShared(v);
+      const permit = ACPUtils.importShared(v);
       setImportedPermit(permit);
       setErrorMsg(null);
     } catch (e) {

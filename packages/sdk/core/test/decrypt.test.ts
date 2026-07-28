@@ -88,7 +88,7 @@ describe('Core – Decrypt Tests', () => {
   }
 
   async function createPermit() {
-    return permits.createSelf({ issuer: account.address, name: 'Decrypt Test Permit' }, publicClient, walletClient);
+    return permits.createSelf({ issuer: account.address, name: 'Decrypt Test ACP' }, publicClient, walletClient);
   }
 
   // ---------------------------------------------------------------------------
