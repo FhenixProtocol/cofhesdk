@@ -397,24 +397,14 @@ describe('ACPUtils Tests', () => {
   });
 
   describe('export', () => {
-    it('should export permit data without sensitive fields', async () => {
+    it('throws when exporting a non-sharing permit', async () => {
       const permit = ACPUtils.createSelf({
         issuer: bobAddress,
         name: 'Test ACP',
       });
 
-      const exported = ACPUtils.export(permit);
-      const parsed = JSON.parse(exported);
-
-      expect(parsed.name).toBe('Test ACP');
-      expect(parsed.issuer).toBe(bobAddress);
-      expect(parsed).not.toHaveProperty('sealingPrivateKey');
-      expect(parsed).not.toHaveProperty('hash');
-      // fixed SharedACP shape: every public field is always present
-      expect(parsed.issuerSignature).toBe('0x');
-      expect(parsed.scope).toBe(0);
-      expect(parsed.contracts).toEqual([]);
-      expect(parsed.handles).toEqual([]);
+      // export includes the issuer signature — only sharing permits are exportable
+      expect(() => ACPUtils.export(permit)).toThrow(/only 'sharing' ACPs are exportable/);
     });
 
     it('should export sharing permit data with recipient and issuerSignature', async () => {

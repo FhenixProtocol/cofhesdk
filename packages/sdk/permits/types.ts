@@ -222,7 +222,7 @@ export type SerializedPermit = ACP;
 export type SharedACP = Expand<
   Omit<ACPPublic, 'sealingKey' | 'recipientSignature'> & {
     name: string;
-    type: ACP['type'];
+    type: 'sharing';
   }
 >;
 

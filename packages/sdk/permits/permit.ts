@@ -299,6 +299,12 @@ export const ACPUtils = {
    * `ACPPublic` and the on-chain sharing payload.
    */
   export: (permit: ACP): string => {
+    if (permit.type !== 'sharing') {
+      throw new Error(
+        `Cannot export a '${permit.type}' ACP — only 'sharing' ACPs are exportable. The export includes the issuer signature.`
+      );
+    }
+
     const shared: SharedACP = {
       name: permit.name,
       type: permit.type,

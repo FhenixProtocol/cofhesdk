@@ -511,25 +511,15 @@ describe('Core Permits Tests', () => {
   });
 
   describe('Export', () => {
-    it('should export self permit data without sensitive fields', async () => {
+    it('throws when exporting a self permit', async () => {
       const permit = await permits.createSelf(
         { name: 'Test Self ACP', issuer: bobAddress },
         publicClient,
         bobWalletClient
       );
 
-      const exported = permits.export(permit);
-      const parsed = JSON.parse(exported);
-
-      expect(parsed.name).toBe('Test Self ACP');
-      expect(parsed.issuer).toBe(bobAddress);
-      expect(parsed).not.toHaveProperty('sealingPrivateKey');
-      expect(parsed).not.toHaveProperty('hash');
-      // fixed SharedACP shape: every public field is always present
-      expect(parsed.issuerSignature).toMatch(/^0x/); // signed here; fixed shape always carries the field
-      expect(parsed.scope).toBe(0);
-      expect(parsed.contracts).toEqual([]);
-      expect(parsed.handles).toEqual([]);
+      // export includes the issuer signature — only sharing permits are exportable
+      expect(() => permits.export(permit)).toThrow(/only 'sharing' ACPs are exportable/);
     });
 
     it('should export sharing permit data with recipient and issuerSignature', async () => {

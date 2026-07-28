@@ -65,7 +65,8 @@ export const usePermitDetailsAndActions = (permitHash: string) => {
   const expirationInfo = useMemo(() => formatExpirationLabel(permit?.expiration), [permit?.expiration]);
 
   const permitJson = useMemo(() => {
-    if (!permit) return undefined;
+    // only sharing ACPs are exportable — export() includes the issuer signature
+    if (!permit || permit.type !== 'sharing') return undefined;
     return ACPUtils.export(permit);
   }, [permit]);
 
