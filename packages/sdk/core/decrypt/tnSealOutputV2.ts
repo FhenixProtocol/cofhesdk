@@ -6,6 +6,7 @@ import { type DecryptPollCallbackFunction } from '../types.js';
 import { computeMinuteRampPollIntervalMs } from './polling.js';
 import { mapApiErrorCodeToCofheErrorCode, parseApiErrorResponseBody } from './apiError.js';
 import { classifySubmitResponse, normalize404RetryTimeoutMs, throwIfSubmitRetryTimedOut } from './submitRetry.js';
+import { toWirePermission } from './tnDecryptUtils.js';
 
 // Polling configuration
 const POLL_INTERVAL_MS = 1000; // 1 second
@@ -145,7 +146,7 @@ async function submitSealOutputRequest(
   const body = {
     ct_tempkey: BigInt(ctHash).toString(16).padStart(64, '0'),
     host_chain_id: chainId,
-    permit: permission,
+    permit: toWirePermission(permission),
   };
   let attemptIndex = 0;
   let last404ApiErrorMessage: string | undefined;

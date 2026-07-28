@@ -3,7 +3,12 @@ import { cofheFetch } from '../debug.js';
 
 import { CofheError, CofheErrorCode } from '../error';
 import { type DecryptPollCallbackFunction } from '../types';
-import { normalizeTnSignature, parseDecryptedBytesToBigInt } from './tnDecryptUtils';
+import {
+  normalizeTnSignature,
+  parseDecryptedBytesToBigInt,
+  toWirePermission,
+  type WirePermission,
+} from './tnDecryptUtils';
 import { computeMinuteRampPollIntervalMs } from './polling.js';
 import { mapApiErrorCodeToCofheErrorCode, parseApiErrorResponseBody } from './apiError.js';
 import { classifySubmitResponse, normalize404RetryTimeoutMs, throwIfSubmitRetryTimedOut } from './submitRetry.js';
@@ -187,14 +192,14 @@ async function submitDecryptRequestV2(
   const body: {
     ct_tempkey: string;
     host_chain_id: number;
-    permit?: Permission;
+    permit?: WirePermission;
   } = {
     ct_tempkey: BigInt(ctHash).toString(16).padStart(64, '0'),
     host_chain_id: chainId,
   };
 
   if (permission) {
-    body.permit = permission;
+    body.permit = toWirePermission(permission);
   }
 
   let attemptIndex = 0;

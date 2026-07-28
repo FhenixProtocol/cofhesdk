@@ -1,7 +1,12 @@
 import { type Permission } from '@/permits';
 
 import { CofheError, CofheErrorCode } from '../error';
-import { normalizeTnSignature, parseDecryptedBytesToBigInt } from './tnDecryptUtils';
+import {
+  normalizeTnSignature,
+  parseDecryptedBytesToBigInt,
+  toWirePermission,
+  type WirePermission,
+} from './tnDecryptUtils';
 
 type TnDecryptResponseV1 = {
   // TN returns bytes in big-endian order, e.g. [0,0,0,42]
@@ -74,14 +79,14 @@ export async function tnDecryptV1(
   const body: {
     ct_tempkey: string;
     host_chain_id: number;
-    permit?: Permission;
+    permit?: WirePermission;
   } = {
     ct_tempkey: BigInt(ctHash).toString(16).padStart(64, '0'),
     host_chain_id: chainId,
   };
 
   if (permission) {
-    body.permit = permission;
+    body.permit = toWirePermission(permission);
   }
 
   let response: Response;

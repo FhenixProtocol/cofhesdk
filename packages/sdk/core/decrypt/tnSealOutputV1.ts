@@ -1,6 +1,7 @@
 import { type Permission, type EthEncryptedData } from '@/permits';
 
 import { CofheError, CofheErrorCode } from '../error.js';
+import { toWirePermission } from './tnDecryptUtils.js';
 
 export async function tnSealOutputV1(
   ctHash: bigint,
@@ -15,7 +16,7 @@ export async function tnSealOutputV1(
   const body = {
     ct_tempkey: ctHash.toString(16).padStart(64, '0'),
     host_chain_id: chainId,
-    permit: permission,
+    permit: toWirePermission(permission),
   };
 
   try {
