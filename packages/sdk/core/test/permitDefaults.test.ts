@@ -11,24 +11,24 @@ type ScopeOpts = {
 const opts = (o: ScopeOpts): ScopeOpts => o;
 
 const CHAIN = 31337;
-const VALIDATOR = '0x00000000000000000000000000000000000000aa' as `0x${string}`;
+const REVOKER = '0x00000000000000000000000000000000000000aa' as `0x${string}`;
 const CONTRACT_A = '0x00000000000000000000000000000000000000bb' as `0x${string}`;
 
 const permitConfig = {
-  defaultRevoker: { [CHAIN]: VALIDATOR },
+  defaultRevoker: { [CHAIN]: REVOKER },
   defaultContractScopes: { [CHAIN]: [CONTRACT_A] },
 };
 
 describe('applyPermitDefaults', () => {
-  it('injects default validator (contract + creation timestamp) when no validator options given', () => {
+  it('injects default revoker (contract + creation timestamp) when no revoker options given', () => {
     const before = Math.round(Date.now() / 1000);
     const result = permits.applyPermitDefaults(opts({}), permitConfig, CHAIN);
-    expect(result.revokerContract).toBe(VALIDATOR);
+    expect(result.revokerContract).toBe(REVOKER);
     expect(result.revokerData).toBeGreaterThanOrEqual(before - 60); // 60s clock-skew backdating
     expect(result.revokerData).toBeLessThanOrEqual(Math.round(Date.now() / 1000) - 59);
   });
 
-  it('does not override an explicit validator pair', () => {
+  it('does not override an explicit revoker pair', () => {
     const result = permits.applyPermitDefaults({ revokerData: 42, revokerContract: CONTRACT_A }, permitConfig, CHAIN);
     expect(result.revokerData).toBe(42);
     expect(result.revokerContract).toBe(CONTRACT_A);

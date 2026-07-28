@@ -102,8 +102,8 @@ const zPermitWithSealingKeys = zPermitWithDefaults.extend({
 type zPermitType = z.infer<typeof zPermitWithDefaults>;
 
 /**
- * Permits allow a hook into an optional external validator contract,
- * this check ensures that IF an external validator is applied, that both `revokerData` and `revokerContract` are populated,
+ * Permits allow a hook into an optional external revoker contract,
+ * this check ensures that IF an external revoker is applied, that both `revokerData` and `revokerContract` are populated,
  * ELSE ensures that both `revokerData` and `revokerContract` are empty
  */
 const ExternalValidatorRefinement = [
@@ -111,7 +111,7 @@ const ExternalValidatorRefinement = [
     (data.revokerData !== 0 && data.revokerContract !== zeroAddress) ||
     (data.revokerData === 0 && data.revokerContract === zeroAddress),
   {
-    error: 'ACP external validator :: revokerData and revokerContract must either both be set or both be unset.',
+    error: 'ACP external revoker :: revokerData and revokerContract must either both be set or both be unset.',
     path: ['revokerData', 'revokerContract'] as string[],
   },
 ] as const;

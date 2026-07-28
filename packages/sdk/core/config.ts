@@ -32,10 +32,10 @@ export type CofheConfig = {
   /** ACP permit defaults, applied when creating permits (user options always win) */
   permit: {
     /**
-     * Default revocation validator per chainId. When set, created permits are
+     * Default revoker contract per chainId. When set, created permits are
      * revocable by default: revokerContract = this address and
      * revokerData = permit creation timestamp (interpreted by the default
-     * timestamp validator; enables revokeSingle + O(1) revokeAll).
+     * timestamp revoker; enables revokeSingle + O(1) revokeAll).
      */
     defaultRevoker?: Record<number, `0x${string}`>;
     /**

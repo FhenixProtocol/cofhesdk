@@ -6,7 +6,7 @@ import {
   type ImportSharedPermitOptions,
 } from '../index.js';
 
-// ACP (V3) domain resolution requires an upgraded on-chain ACL (acl.acpVerifier()).
+// ACP domain resolution requires an upgraded on-chain ACL (domain ("ACL","2") served by the ACL itself).
 // Public testnets still run the V2 contracts, so the domain fetch is stubbed here —
 // these tests cover the signing flow, not on-chain domain resolution (which is
 // exercised e2e against mocks in test/hardhat-plugin-test).

@@ -5,7 +5,7 @@ import { permitStore } from '@/permits';
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-// ACP (V3) domain resolution requires an upgraded on-chain ACL (acl.acpVerifier()).
+// ACP domain resolution requires an upgraded on-chain ACL (domain ("ACL","2") served by the ACL itself).
 // Public testnets still run the V2 contracts, so the domain fetch is stubbed here —
 // these tests cover the permit orchestration flow, not on-chain domain resolution
 // (exercised e2e against mocks in test/hardhat-plugin-test).
@@ -212,7 +212,7 @@ describe('Core Permits Tests', () => {
   });
 
   // TODO(ACP): domain fetch is stubbed until public testnets run the upgraded ACL
-  // (acpVerifier resolution) — re-enable real-network domain fetching then.
+  // (domain resolution) — re-enable real-network domain fetching then.
   describe('Real Network Integration', () => {
     it('should create permit with real EIP712 domain from Arbitrum Sepolia', async () => {
       const permit = await permits.createSelf(
