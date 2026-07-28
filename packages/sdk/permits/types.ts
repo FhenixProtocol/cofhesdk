@@ -213,6 +213,20 @@ export type ImportSharedPermitOptions = PermitScopeOptions & {
 export type SerializedPermit = ACP;
 
 /**
+ * The share payload produced by `ACPUtils.export()` — the full public component
+ * with `sealingKey`/`recipientSignature` left for the recipient to fill, plus
+ * the display name and permit type. Fixed shape: every field is always present
+ * (zero-values instead of omissions), so importers can parse a single schema.
+ * Mirrors the on-chain sharing payload struct field-for-field.
+ */
+export type SharedACP = Expand<
+  Omit<ACPPublic, 'sealingKey' | 'recipientSignature'> & {
+    name: string;
+    type: ACP['type'];
+  }
+>;
+
+/**
  * A type representing the permit fields that are used to generate the hash
  */
 export type PermitHashFields = Pick<

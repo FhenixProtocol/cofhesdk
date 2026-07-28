@@ -7,6 +7,7 @@ import {
   type CreateSelfPermitOptions,
   type CreateSharingPermitOptions,
   type ImportSharedPermitOptions,
+  type SharedACP,
   type SerializedPermit,
   type EIP712Domain,
   type ACPPublic,
@@ -293,27 +294,26 @@ export const ACPUtils = {
   },
 
   /**
-   * Export permit data for sharing (removes sensitive fields)
+   * Export permit data for sharing (strips the private component).
+   * Fixed `SharedACP` shape — every field always present, aligned with
+   * `ACPPublic` and the on-chain sharing payload.
    */
   export: (permit: ACP): string => {
-    const cleanedPermit: Record<string, unknown> = {
+    const shared: SharedACP = {
       name: permit.name,
       type: permit.type,
       issuer: permit.issuer,
       expiration: permit.expiration,
+      recipient: permit.recipient,
+      revokerData: permit.revokerData,
+      revokerContract: permit.revokerContract,
+      scope: permit.scope,
+      contracts: permit.contracts,
+      handles: permit.handles,
+      issuerSignature: permit.issuerSignature,
     };
 
-    if (permit.recipient !== zeroAddress) cleanedPermit.recipient = permit.recipient;
-    if (permit.revokerData !== 0) cleanedPermit.revokerData = permit.revokerData;
-    if (permit.revokerContract !== zeroAddress) cleanedPermit.revokerContract = permit.revokerContract;
-    // scope fields are part of the issuer signature — the recipient needs them to reconstruct it
-    cleanedPermit.scope = permit.scope;
-    if (permit.contracts.length > 0) cleanedPermit.contracts = permit.contracts;
-    if (permit.handles.length > 0) cleanedPermit.handles = permit.handles;
-    if (permit.type === 'sharing' && permit.issuerSignature !== '0x')
-      cleanedPermit.issuerSignature = permit.issuerSignature;
-
-    return JSON.stringify(cleanedPermit, undefined, 2);
+    return JSON.stringify(shared, undefined, 2);
   },
 
   /**
