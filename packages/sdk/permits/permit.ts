@@ -304,6 +304,11 @@ export const ACPUtils = {
         `Cannot export a '${permit.type}' ACP — only 'sharing' ACPs are exportable. The export includes the issuer signature.`
       );
     }
+    if (permit.issuerSignature === '0x') {
+      throw new Error(
+        'Cannot export an unsigned sharing ACP — sign it first (the recipient needs the issuer signature).'
+      );
+    }
 
     const shared: SharedACP = {
       name: permit.name,

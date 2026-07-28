@@ -407,6 +407,16 @@ describe('ACPUtils Tests', () => {
       expect(() => ACPUtils.export(permit)).toThrow(/only 'sharing' ACPs are exportable/);
     });
 
+    it('throws when exporting an unsigned sharing permit', async () => {
+      const permit = ACPUtils.createSharing({
+        issuer: bobAddress,
+        recipient: aliceAddress,
+        name: 'Test Sharing ACP',
+      });
+
+      expect(() => ACPUtils.export(permit)).toThrow(/sign it first/);
+    });
+
     it('should export sharing permit data with recipient and issuerSignature', async () => {
       const permit = await ACPUtils.createSharingAndSign(
         {
@@ -431,12 +441,16 @@ describe('ACPUtils Tests', () => {
     });
 
     it('exports the fixed SharedACP shape — empty fields present, not omitted', async () => {
-      // unsigned sharing permit: every zero-value field must still appear in the JSON
-      const permit = ACPUtils.createSharing({
-        issuer: bobAddress,
-        recipient: aliceAddress,
-        name: 'Test Sharing ACP',
-      });
+      // every zero-value field must still appear in the JSON (signature set manually
+      // to pass the unsigned-export guard without touching the other defaults)
+      const permit = {
+        ...ACPUtils.createSharing({
+          issuer: bobAddress,
+          recipient: aliceAddress,
+          name: 'Test Sharing ACP',
+        }),
+        issuerSignature: '0xsig' as `0x${string}`,
+      };
 
       const parsed = JSON.parse(ACPUtils.export(permit));
 
@@ -455,7 +469,7 @@ describe('ACPUtils Tests', () => {
           'issuerSignature',
         ].sort()
       );
-      expect(parsed.issuerSignature).toBe('0x');
+      expect(parsed.issuerSignature).toBe('0xsig');
       expect(parsed.scope).toBe(0);
       expect(parsed.contracts).toEqual([]);
       expect(parsed.handles).toEqual([]);
