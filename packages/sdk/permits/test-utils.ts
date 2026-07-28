@@ -10,9 +10,9 @@ export const createMockPermit = async (overrides: Partial<Permit> = {}): Promise
     issuer: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', // Bob's address
     expiration: 1000000000000,
     recipient: '0x0000000000000000000000000000000000000000',
-    validatorId: 0,
-    validatorContract: '0x0000000000000000000000000000000000000000',
-    global: true,
+    revokerData: 0,
+    revokerContract: '0x0000000000000000000000000000000000000000',
+    scope: 0,
     contracts: [] as Permit['contracts'],
     handles: [] as Permit['handles'],
     sealingPair: sealingPair.serialize(),

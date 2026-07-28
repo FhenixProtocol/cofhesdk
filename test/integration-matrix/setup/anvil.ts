@@ -99,7 +99,7 @@ export async function setup(project: TestProject): Promise<void> {
 
   project.provide('anvilRpc', ANVIL_RPC);
   project.provide('anvilSimpleTest', simpleTestAddress);
-  project.provide('anvilAcpValidator', deployedMocks.TimestampBasedACPValidator);
+  project.provide('anvilAcpValidator', deployedMocks.ACPTimestampRevoker);
 
   await printMatrix(process.env.MATRIX_CHAIN, process.env.MATRIX_ENV);
 }

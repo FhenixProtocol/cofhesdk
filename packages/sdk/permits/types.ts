@@ -64,20 +64,22 @@ export interface ACP {
   recipient: Hex;
   /**
    * (issuer defined validation) An id used to query a contract to check this permissions validity.
-   * Opaque to the chain verifier; interpreted by `validatorContract` — the default
+   * Opaque to the chain verifier; interpreted by `revokerContract` — the default
    * validator interprets it as the permit's creation timestamp (enables revocation).
    * ** optional, use `0` to disable **
    */
-  validatorId: number;
+  revokerData: number;
   /**
    * (issuer defined validation) The contract to query to determine permission validity
    * ** optional, user `address(0)` to disable **
    */
-  validatorContract: Hex;
+  revokerContract: Hex;
   /**
-   * (scope) Grants access to all of `issuer`s encrypted values (V2 behavior)
+   * (scope) Scope discriminator — exactly one scope mode per ACP (see ACPScope).
+   * Global: all of `issuer`s values (arrays empty). Contract: values readable by
+   * `contracts`. Handles: the listed `handles` only.
    */
-  global: boolean;
+  scope: number;
   /**
    * (scope) Grants access to `issuer`s values readable by any of these contracts.
    * Checked on-chain as an intersection with the ACL's persisted allowances.
@@ -96,8 +98,8 @@ export interface ACP {
   /**
    * (base) `signTypedData` signature created by `issuer`.
    * (base) Shared- and Self- permissions differ in signature format: (`sealingKey` absent in shared signature)
-   *   (non-sharing) < issuer, expiration, recipient, validatorId, validatorContract, sealingKey >
-   *   (sharing)     < issuer, expiration, recipient, validatorId, validatorContract >
+   *   (non-sharing) < issuer, expiration, recipient, revokerData, revokerContract, sealingKey >
+   *   (sharing)     < issuer, expiration, recipient, revokerData, revokerContract >
    */
   issuerSignature: Hex;
   /**
@@ -153,8 +155,14 @@ export interface PermitMetadata {
  * `global` defaults to false (narrowest matching scope); with no scope
  * arrays it defaults to true (V2 behavior).
  */
+export const ACPScope = {
+  Global: 0,
+  Contract: 1,
+  Handles: 2,
+} as const;
+
 export type PermitScopeOptions = {
-  global?: boolean;
+  scope?: number;
   contracts?: string[];
   handles?: (bigint | number | string)[];
 };
@@ -165,8 +173,8 @@ export type CreateSelfPermitOptions = PermitScopeOptions & {
   issuer: string;
   name?: string;
   expiration?: number;
-  validatorId?: number;
-  validatorContract?: string;
+  revokerData?: number;
+  revokerContract?: string;
 };
 
 export type CreateSharingPermitOptions = PermitScopeOptions & {
@@ -175,8 +183,8 @@ export type CreateSharingPermitOptions = PermitScopeOptions & {
   recipient: string;
   name?: string;
   expiration?: number;
-  validatorId?: number;
-  validatorContract?: string;
+  revokerData?: number;
+  revokerContract?: string;
 };
 
 export type ImportSharedPermitOptions = PermitScopeOptions & {
@@ -186,8 +194,8 @@ export type ImportSharedPermitOptions = PermitScopeOptions & {
   issuerSignature: string;
   name?: string;
   expiration: number;
-  validatorId?: number;
-  validatorContract?: string;
+  revokerData?: number;
+  revokerContract?: string;
 };
 
 export type SerializedPermit = Omit<Permit, 'sealingPair' | 'handles'> & {
@@ -226,15 +234,7 @@ export type Permit = ACP;
  */
 export type PermitHashFields = Pick<
   Permit,
-  | 'type'
-  | 'issuer'
-  | 'expiration'
-  | 'recipient'
-  | 'validatorId'
-  | 'validatorContract'
-  | 'global'
-  | 'contracts'
-  | 'handles'
+  'type' | 'issuer' | 'expiration' | 'recipient' | 'revokerData' | 'revokerContract' | 'scope' | 'contracts' | 'handles'
 >;
 
 /**

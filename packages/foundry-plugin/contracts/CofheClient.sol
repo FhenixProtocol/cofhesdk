@@ -10,7 +10,7 @@ import { MockZkVerifier } from '@cofhe/mock-contracts/contracts/MockZkVerifier.s
 import { MockZkVerifierSigner } from './MockZkVerifierSigner.sol';
 import { MockThresholdNetwork } from '@cofhe/mock-contracts/contracts/MockThresholdNetwork.sol';
 import { MockThresholdNetworkSigner } from './MockThresholdNetworkSigner.sol';
-import { ACP, ACPUtils, MockACP } from '@cofhe/mock-contracts/contracts/ACP.sol';
+import { ACP, ACPUtils, SCOPE_GLOBAL } from '@cofhe/mock-contracts/contracts/Permissioned.sol';
 import {
   ZK_VERIFIER_SIGNER_ADDRESS,
   DECRYPT_RESULT_SIGNER_ADDRESS
@@ -21,10 +21,10 @@ struct SharedPermitExport {
   address issuer;
   uint64 expiration;
   address recipient;
-  uint256 validatorId;
-  address validatorContract;
+  uint256 revokerData;
+  address revokerContract;
   // (scope) part of the issuer signature — the recipient needs them to reconstruct it
-  bool global;
+  uint8 scope;
   address[] contracts;
   uint256[] handles;
   bytes issuerSignature;
@@ -237,8 +237,8 @@ contract CofheClient is Test {
     uint256 chainId;
     address verifyingContract;
 
-    // ACP (V3): the signing domain lives on the ACP verifier (name "ACL", version "2")
-    (, name, version, chainId, verifyingContract, , ) = MockACP(mockAcl.acpVerifier()).eip712Domain();
+    // ACP (V3): the signing domain lives on the ACL (name "ACL", version "2")
+    (, name, version, chainId, verifyingContract, , ) = mockAcl.eip712Domain();
 
     return
       keccak256(
@@ -278,14 +278,14 @@ contract CofheClient is Test {
   }
 
   /// @notice Returns a blank ACP with default field values.
-  function createBasePermission() public pure returns (ACP memory permission) {
+  function createBaseACP() public pure returns (ACP memory permission) {
     permission = ACP({
       issuer: address(0),
       expiration: 1000000000000,
       recipient: address(0),
-      validatorId: 0,
-      validatorContract: address(0),
-      global: true,
+      revokerData: 0,
+      revokerContract: address(0),
+      scope: SCOPE_GLOBAL,
       contracts: new address[](0),
       handles: new uint256[](0),
       sealingKey: bytes32(0),
@@ -300,30 +300,30 @@ contract CofheClient is Test {
   }
 
   /// @notice Creates a self-permit for the connected account, signed with the stored private key.
-  function permit_createSelf() public view onlyConnected returns (ACP memory permission) {
-    permission = createBasePermission();
+  function ACP_createSelf() public view onlyConnected returns (ACP memory permission) {
+    permission = createBaseACP();
     permission.issuer = _account;
     permission.sealingKey = createSealingKey(uint256(uint160(_account)));
     permission = _signIssuerSelf(permission, _pkey);
   }
 
   /// @notice Creates the issuer side of a shared permit. The result has no sealingKey (added by recipient on import).
-  function permit_createShared(address recipient) public view onlyConnected returns (ACP memory permission) {
-    permission = createBasePermission();
+  function ACP_createShared(address recipient) public view onlyConnected returns (ACP memory permission) {
+    permission = createBaseACP();
     permission.issuer = _account;
     permission.recipient = recipient;
     permission = _signIssuerShared(permission, _pkey);
   }
 
   /// @notice Exports a shared permit, stripping sensitive/recipient-specific fields.
-  function permit_exportShared(ACP memory permission) public pure returns (SharedPermitExport memory exported) {
+  function ACP_exportShared(ACP memory permission) public pure returns (SharedPermitExport memory exported) {
     exported = SharedPermitExport({
       issuer: permission.issuer,
       expiration: permission.expiration,
       recipient: permission.recipient,
-      validatorId: permission.validatorId,
-      validatorContract: permission.validatorContract,
-      global: permission.global,
+      revokerData: permission.revokerData,
+      revokerContract: permission.revokerContract,
+      scope: permission.scope,
       contracts: permission.contracts,
       handles: permission.handles,
       issuerSignature: permission.issuerSignature
@@ -331,7 +331,7 @@ contract CofheClient is Test {
   }
 
   /// @notice Imports a shared permit export, adds the recipient's sealing key and signature.
-  function permit_importShared(
+  function ACP_importShared(
     SharedPermitExport memory data
   ) public view onlyConnected returns (ACP memory permission) {
     require(data.recipient == _account, 'CofheClient: recipient mismatch');
@@ -340,9 +340,9 @@ contract CofheClient is Test {
       issuer: data.issuer,
       expiration: data.expiration,
       recipient: data.recipient,
-      validatorId: data.validatorId,
-      validatorContract: data.validatorContract,
-      global: data.global,
+      revokerData: data.revokerData,
+      revokerContract: data.revokerContract,
+      scope: data.scope,
       contracts: data.contracts,
       handles: data.handles,
       sealingKey: createSealingKey(uint256(uint160(_account))),

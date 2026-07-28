@@ -138,8 +138,8 @@ describe('Core Permits Tests', () => {
         issuer: sharingPermit.issuer,
         expiration: sharingPermit.expiration,
         recipient: sharingPermit.recipient,
-        validatorId: sharingPermit.validatorId,
-        validatorContract: sharingPermit.validatorContract,
+        revokerData: sharingPermit.revokerData,
+        revokerContract: sharingPermit.revokerContract,
         issuerSignature: sharingPermit.issuerSignature,
       });
 

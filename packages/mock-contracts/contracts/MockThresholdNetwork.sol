@@ -9,8 +9,7 @@ pragma solidity >=0.8.19 <0.9.0;
 
 import { MockACL } from './MockACL.sol';
 import { MockTaskManager } from './MockTaskManager.sol';
-import { MockPermissioned } from './Permissioned.sol';
-import { ACP } from './ACP.sol';
+import { MockPermissioned, ACP } from './Permissioned.sol';
 
 contract MockThresholdNetwork {
   MockTaskManager public mockTaskManager;

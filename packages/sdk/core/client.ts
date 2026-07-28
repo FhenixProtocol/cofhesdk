@@ -285,10 +285,10 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
       return permits.revokePermit(permit, walletClient!);
     },
 
-    revokeAllPermits: async (validatorContract?: `0x${string}`) => {
+    revokeAllPermits: async (revokerContract?: `0x${string}`) => {
       _requireConnected();
       const { publicClient, walletClient } = connectStore.getState();
-      return permits.revokeAllPermits(walletClient!, publicClient!, validatorContract);
+      return permits.revokeAllPermits(walletClient!, publicClient!, revokerContract);
     },
 
     isPermitRevoked: async (permit) => {

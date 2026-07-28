@@ -207,9 +207,9 @@ export const ACPUtils = {
       issuer: permit.issuer,
       expiration: permit.expiration,
       recipient: permit.recipient,
-      validatorId: permit.validatorId,
-      validatorContract: permit.validatorContract,
-      global: permit.global,
+      revokerData: permit.revokerData,
+      revokerContract: permit.revokerContract,
+      scope: permit.scope,
       contracts: permit.contracts,
       handles: permit.handles.map((h) => h.toString()),
       issuerSignature: permit.issuerSignature,
@@ -263,9 +263,9 @@ export const ACPUtils = {
       issuer: permit.issuer,
       expiration: permit.expiration,
       recipient: permit.recipient,
-      validatorId: permit.validatorId,
-      validatorContract: permit.validatorContract,
-      global: permit.global,
+      revokerData: permit.revokerData,
+      revokerContract: permit.revokerContract,
+      scope: permit.scope,
       contracts: permit.contracts,
       handles: permit.handles,
       sealingKey: `0x${permit.sealingPair.publicKey}`,
@@ -283,9 +283,9 @@ export const ACPUtils = {
       issuer: permit.issuer,
       expiration: permit.expiration,
       recipient: permit.recipient,
-      validatorId: permit.validatorId,
-      validatorContract: permit.validatorContract,
-      global: permit.global,
+      revokerData: permit.revokerData,
+      revokerContract: permit.revokerContract,
+      scope: permit.scope,
       contracts: permit.contracts,
       // bigint is not JSON-serializable — hash over decimal strings
       handles: permit.handles.map((h) => h.toString()),
@@ -305,10 +305,10 @@ export const ACPUtils = {
     };
 
     if (permit.recipient !== zeroAddress) cleanedPermit.recipient = permit.recipient;
-    if (permit.validatorId !== 0) cleanedPermit.validatorId = permit.validatorId;
-    if (permit.validatorContract !== zeroAddress) cleanedPermit.validatorContract = permit.validatorContract;
+    if (permit.revokerData !== 0) cleanedPermit.revokerData = permit.revokerData;
+    if (permit.revokerContract !== zeroAddress) cleanedPermit.revokerContract = permit.revokerContract;
     // scope fields are part of the issuer signature — the recipient needs them to reconstruct it
-    cleanedPermit.global = permit.global;
+    cleanedPermit.global = permit.scope;
     if (permit.contracts.length > 0) cleanedPermit.contracts = permit.contracts;
     if (permit.handles.length > 0) cleanedPermit.handles = permit.handles.map((h) => h.toString());
     if (permit.type === 'sharing' && permit.issuerSignature !== '0x')

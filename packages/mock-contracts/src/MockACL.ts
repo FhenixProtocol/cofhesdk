@@ -25,19 +25,6 @@ export const MockACLArtifact = {
     },
     {
       type: 'function',
-      name: 'acpVerifier',
-      inputs: [],
-      outputs: [
-        {
-          name: '',
-          type: 'address',
-          internalType: 'contract MockACP',
-        },
-      ],
-      stateMutability: 'view',
-    },
-    {
-      type: 'function',
       name: 'allow',
       inputs: [
         {
@@ -178,12 +165,12 @@ export const MockACLArtifact = {
     },
     {
       type: 'function',
-      name: 'checkPermitValidity',
+      name: 'checkPermissionValidity',
       inputs: [
         {
           name: 'permission',
           type: 'tuple',
-          internalType: 'struct Permission',
+          internalType: 'struct ACP',
           components: [
             {
               name: 'issuer',
@@ -201,14 +188,29 @@ export const MockACLArtifact = {
               internalType: 'address',
             },
             {
-              name: 'validatorId',
+              name: 'revokerData',
               type: 'uint256',
               internalType: 'uint256',
             },
             {
-              name: 'validatorContract',
+              name: 'revokerContract',
               type: 'address',
               internalType: 'address',
+            },
+            {
+              name: 'scope',
+              type: 'uint8',
+              internalType: 'uint8',
+            },
+            {
+              name: 'contracts',
+              type: 'address[]',
+              internalType: 'address[]',
+            },
+            {
+              name: 'handles',
+              type: 'uint256[]',
+              internalType: 'uint256[]',
             },
             {
               name: 'sealingKey',
@@ -450,19 +452,19 @@ export const MockACLArtifact = {
               internalType: 'address',
             },
             {
-              name: 'validatorId',
+              name: 'revokerData',
               type: 'uint256',
               internalType: 'uint256',
             },
             {
-              name: 'validatorContract',
+              name: 'revokerContract',
               type: 'address',
               internalType: 'address',
             },
             {
-              name: 'global',
-              type: 'bool',
-              internalType: 'bool',
+              name: 'scope',
+              type: 'uint8',
+              internalType: 'uint8',
             },
             {
               name: 'contracts',
@@ -473,72 +475,6 @@ export const MockACLArtifact = {
               name: 'handles',
               type: 'uint256[]',
               internalType: 'uint256[]',
-            },
-            {
-              name: 'sealingKey',
-              type: 'bytes32',
-              internalType: 'bytes32',
-            },
-            {
-              name: 'issuerSignature',
-              type: 'bytes',
-              internalType: 'bytes',
-            },
-            {
-              name: 'recipientSignature',
-              type: 'bytes',
-              internalType: 'bytes',
-            },
-          ],
-        },
-        {
-          name: 'handle',
-          type: 'uint256',
-          internalType: 'uint256',
-        },
-      ],
-      outputs: [
-        {
-          name: '',
-          type: 'bool',
-          internalType: 'bool',
-        },
-      ],
-      stateMutability: 'view',
-    },
-    {
-      type: 'function',
-      name: 'isAllowedWithPermission',
-      inputs: [
-        {
-          name: 'permission',
-          type: 'tuple',
-          internalType: 'struct Permission',
-          components: [
-            {
-              name: 'issuer',
-              type: 'address',
-              internalType: 'address',
-            },
-            {
-              name: 'expiration',
-              type: 'uint64',
-              internalType: 'uint64',
-            },
-            {
-              name: 'recipient',
-              type: 'address',
-              internalType: 'address',
-            },
-            {
-              name: 'validatorId',
-              type: 'uint256',
-              internalType: 'uint256',
-            },
-            {
-              name: 'validatorContract',
-              type: 'address',
-              internalType: 'address',
             },
             {
               name: 'sealingKey',
@@ -595,19 +531,6 @@ export const MockACLArtifact = {
         },
       ],
       stateMutability: 'view',
-    },
-    {
-      type: 'function',
-      name: 'setACPVerifier',
-      inputs: [
-        {
-          name: 'verifier',
-          type: 'address',
-          internalType: 'address',
-        },
-      ],
-      outputs: [],
-      stateMutability: 'nonpayable',
     },
     {
       type: 'event',

@@ -5,8 +5,7 @@ import { Test } from 'forge-std/Test.sol';
 import '@fhenixprotocol/cofhe-contracts/FHE.sol';
 import { MockTaskManager } from '@cofhe/mock-contracts/contracts/MockTaskManager.sol';
 import { MockACL } from '@cofhe/mock-contracts/contracts/MockACL.sol';
-import { MockACP } from '@cofhe/mock-contracts/contracts/ACP.sol';
-import { TimestampBasedACPValidator } from '@cofhe/mock-contracts/contracts/TimestampBasedACPValidator.sol';
+import { ACPTimestampRevoker } from '@cofhe/mock-contracts/contracts/ACPTimestampRevoker.sol';
 import { MockZkVerifier } from '@cofhe/mock-contracts/contracts/MockZkVerifier.sol';
 import { MockZkVerifierSigner } from './MockZkVerifierSigner.sol';
 import { MockThresholdNetwork } from '@cofhe/mock-contracts/contracts/MockThresholdNetwork.sol';
@@ -23,8 +22,7 @@ import {
 abstract contract CofheTest is Test {
   MockTaskManager public mockTaskManager;
   MockACL public mockAcl;
-  MockACP public mockAcp;
-  TimestampBasedACPValidator public acpValidator;
+  ACPTimestampRevoker public acpRevoker;
   MockZkVerifier public mockZkVerifier;
   MockZkVerifierSigner public mockZkVerifierSigner;
   MockThresholdNetwork public mockThresholdNetwork;
@@ -53,13 +51,9 @@ abstract contract CofheTest is Test {
     mockAcl = new MockACL();
     vm.label(address(mockAcl), 'MockACL');
 
-    // ACP (Permit V3): structure verifier + default revocation validator
-    mockAcp = new MockACP();
-    vm.label(address(mockAcp), 'MockACP');
-    mockAcl.setACPVerifier(address(mockAcp));
-
-    acpValidator = new TimestampBasedACPValidator();
-    vm.label(address(acpValidator), 'TimestampBasedACPValidator');
+    // ACP (Permit V3): default revoker (verification inherited by the ACL)
+    acpRevoker = new ACPTimestampRevoker();
+    vm.label(address(acpRevoker), 'ACPTimestampRevoker');
 
     // 3. Link Task Manager <-> ACL, configure signers
     vm.startPrank(TM_ADMIN);

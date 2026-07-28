@@ -1,10 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-// Pulls MockACP into this package's compilation so tests can deploy it directly.
-// MockACP is not yet part of the plugin's fixed-address mock set — it moves there
-// once MockACL consumes the V3 struct.
-import {MockACP} from '@cofhe/mock-contracts/contracts/ACP.sol';
 import {IPermissionCustomIdValidator} from '@cofhe/mock-contracts/contracts/Permissioned.sol';
 
 /// @dev Configurable validator stub — `disabled()` returns whatever it is told to.

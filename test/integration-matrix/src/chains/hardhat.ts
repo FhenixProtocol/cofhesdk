@@ -66,7 +66,7 @@ async function setupHardhat(factory: ClientFactory): Promise<TestContext> {
     environment: 'hardhat',
     supportedChains: [hardhatCofheChain],
     mocks: { encryptDelay: 0 },
-    permit: acpValidator ? { defaultValidator: { 31337: acpValidator } } : undefined,
+    permit: acpValidator ? { defaultRevoker: { 31337: acpValidator } } : undefined,
     _internal: { zkvWalletClient },
   });
   const cofheClient = factory.createClient(config);

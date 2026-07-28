@@ -25,9 +25,9 @@ export type ACPStruct = {
   issuer: AddressLike;
   expiration: BigNumberish;
   recipient: AddressLike;
-  validatorId: BigNumberish;
-  validatorContract: AddressLike;
-  global: boolean;
+  revokerData: BigNumberish;
+  revokerContract: AddressLike;
+  scope: BigNumberish;
   contracts: AddressLike[];
   handles: BigNumberish[];
   sealingKey: BytesLike;
@@ -39,9 +39,9 @@ export type ACPStructOutput = [
   issuer: string,
   expiration: bigint,
   recipient: string,
-  validatorId: bigint,
-  validatorContract: string,
-  global: boolean,
+  revokerData: bigint,
+  revokerContract: string,
+  scope: bigint,
   contracts: string[],
   handles: bigint[],
   sealingKey: string,
@@ -51,9 +51,9 @@ export type ACPStructOutput = [
   issuer: string;
   expiration: bigint;
   recipient: string;
-  validatorId: bigint;
-  validatorContract: string;
-  global: boolean;
+  revokerData: bigint;
+  revokerContract: string;
+  scope: bigint;
   contracts: string[];
   handles: bigint[];
   sealingKey: string;

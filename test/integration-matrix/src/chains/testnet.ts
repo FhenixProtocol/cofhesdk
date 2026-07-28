@@ -63,7 +63,7 @@ export function createTestnetSetup(chain: Pick<TestChainConfig, 'viemChain' | 'c
 
     const config = factory.createConfig({
       supportedChains: [chain.cofheChain],
-      permit: acpValidator ? { defaultValidator: { [chain.id]: acpValidator } } : undefined,
+      permit: acpValidator ? { defaultRevoker: { [chain.id]: acpValidator } } : undefined,
     });
     const cofheClient = factory.createClient(config);
     await cofheClient.connect(publicClient, bobWalletClient);

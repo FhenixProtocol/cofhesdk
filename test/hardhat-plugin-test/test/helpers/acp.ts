@@ -16,9 +16,9 @@ export const TYPES_ISSUER_SELF = {
     { name: 'issuer', type: 'address' },
     { name: 'expiration', type: 'uint64' },
     { name: 'recipient', type: 'address' },
-    { name: 'validatorId', type: 'uint256' },
-    { name: 'validatorContract', type: 'address' },
-    { name: 'global', type: 'bool' },
+    { name: 'revokerData', type: 'uint256' },
+    { name: 'revokerContract', type: 'address' },
+    { name: 'scope', type: 'uint8' },
     { name: 'contracts', type: 'address[]' },
     { name: 'handles', type: 'uint256[]' },
     { name: 'sealingKey', type: 'bytes32' },
@@ -30,9 +30,9 @@ export const TYPES_ISSUER_SHARED = {
     { name: 'issuer', type: 'address' },
     { name: 'expiration', type: 'uint64' },
     { name: 'recipient', type: 'address' },
-    { name: 'validatorId', type: 'uint256' },
-    { name: 'validatorContract', type: 'address' },
-    { name: 'global', type: 'bool' },
+    { name: 'revokerData', type: 'uint256' },
+    { name: 'revokerContract', type: 'address' },
+    { name: 'scope', type: 'uint8' },
     { name: 'contracts', type: 'address[]' },
     { name: 'handles', type: 'uint256[]' },
   ],
@@ -49,9 +49,9 @@ export type ACP = {
   issuer: string;
   expiration: bigint;
   recipient: string;
-  validatorId: bigint;
-  validatorContract: string;
-  global: boolean;
+  revokerData: bigint;
+  revokerContract: string;
+  scope: number;
   contracts: string[];
   handles: bigint[];
   sealingKey: string;
@@ -79,9 +79,9 @@ export const signedSelfPermission = async (
     issuer: issuer.address,
     expiration: (await latestTimestamp()) + 7n * 24n * 3600n,
     recipient: ZERO_ADDRESS,
-    validatorId: 0n,
-    validatorContract: ZERO_ADDRESS,
-    global: true,
+    revokerData: 0n,
+    revokerContract: ZERO_ADDRESS,
+    scope: 0,
     contracts: [],
     handles: [],
     sealingKey: DEFAULT_SEALING_KEY,

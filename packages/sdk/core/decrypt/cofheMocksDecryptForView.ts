@@ -16,7 +16,7 @@ export async function cofheMocksDecryptForView(
   const permissionWithBigInts = {
     ...permission,
     expiration: BigInt(permission.expiration),
-    validatorId: BigInt(permission.validatorId),
+    revokerData: BigInt(permission.revokerData),
   };
 
   const [allowed, error, result] = await publicClient.readContract({

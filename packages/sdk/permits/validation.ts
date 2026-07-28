@@ -48,22 +48,33 @@ export const contractsSchema = z.array(addressSchema).optional().default([]);
  * (narrowest matching scope).
  */
 /**
- * Global scope invariant (standup decision): a global-scope ACP must carry
- * empty `contracts` / `handles` arrays — global and granular scopes are
- * mutually exclusive.
+ * Scope derivation + per-scope array rules (client-side validation, per review):
+ *  - explicit `scope` wins; otherwise derived: contracts -> Contract, handles -> Handles, else Global
+ *  - Global   => contracts and handles must be empty
+ *  - Contract => contracts non-empty, handles empty
+ *  - Handles  => handles non-empty, contracts empty
+ * Exactly one scope mode per ACP — no overlapping scopes.
  */
-const GlobalScopeRefinement = [
-  (data: { global: boolean; contracts: Hex[]; handles: bigint[] }) =>
-    !data.global || (data.contracts.length === 0 && data.handles.length === 0),
+const SCOPE_GLOBAL = 0;
+const SCOPE_CONTRACT = 1;
+const SCOPE_HANDLES = 2;
+
+const ScopeConsistencyRefinement = [
+  (data: { scope: number; contracts: Hex[]; handles: bigint[] }) =>
+    (data.scope === SCOPE_GLOBAL && data.contracts.length === 0 && data.handles.length === 0) ||
+    (data.scope === SCOPE_CONTRACT && data.contracts.length > 0 && data.handles.length === 0) ||
+    (data.scope === SCOPE_HANDLES && data.handles.length > 0 && data.contracts.length === 0),
   {
-    error: 'Global scope ACP :: `global: true` requires empty `contracts` and `handles` (scopes are mutually exclusive)',
-    path: ['global'] as string[],
+    error:
+      'ACP scope :: arrays must match the scope mode (Global: both empty; Contract: contracts only; Handles: handles only)',
+    path: ['scope'] as string[],
   },
 ] as const;
 
-const withGlobalDefault = <T extends { global?: boolean; contracts: Hex[]; handles: bigint[] }>(data: T) => ({
+const withDerivedScope = <T extends { scope?: number; contracts: Hex[]; handles: bigint[] }>(data: T) => ({
   ...data,
-  global: data.global ?? (data.contracts.length === 0 && data.handles.length === 0),
+  scope:
+    data.scope ?? (data.contracts.length > 0 ? SCOPE_CONTRACT : data.handles.length > 0 ? SCOPE_HANDLES : SCOPE_GLOBAL),
 });
 
 const zPermitWithDefaults = z.object({
@@ -72,9 +83,9 @@ const zPermitWithDefaults = z.object({
   issuer: addressNotZeroSchema,
   expiration: z.int().optional().default(DEFAULT_EXPIRATION_FN),
   recipient: addressSchema.optional().default(zeroAddress),
-  validatorId: z.int().optional().default(0),
-  validatorContract: addressSchema.optional().default(zeroAddress),
-  global: z.boolean().optional().default(true),
+  revokerData: z.int().optional().default(0),
+  revokerContract: addressSchema.optional().default(zeroAddress),
+  scope: z.int().min(0).max(2).optional().default(0),
   contracts: contractsSchema,
   handles: handlesSchema,
   issuerSignature: bytesSchema.optional().default('0x'),
@@ -89,16 +100,16 @@ type zPermitType = z.infer<typeof zPermitWithDefaults>;
 
 /**
  * Permits allow a hook into an optional external validator contract,
- * this check ensures that IF an external validator is applied, that both `validatorId` and `validatorContract` are populated,
- * ELSE ensures that both `validatorId` and `validatorContract` are empty
+ * this check ensures that IF an external validator is applied, that both `revokerData` and `revokerContract` are populated,
+ * ELSE ensures that both `revokerData` and `revokerContract` are empty
  */
 const ExternalValidatorRefinement = [
-  (data: Pick<zPermitType, 'validatorId' | 'validatorContract'>) =>
-    (data.validatorId !== 0 && data.validatorContract !== zeroAddress) ||
-    (data.validatorId === 0 && data.validatorContract === zeroAddress),
+  (data: Pick<zPermitType, 'revokerData' | 'revokerContract'>) =>
+    (data.revokerData !== 0 && data.revokerContract !== zeroAddress) ||
+    (data.revokerData === 0 && data.revokerContract === zeroAddress),
   {
-    error: 'Permit external validator :: validatorId and validatorContract must either both be set or both be unset.',
-    path: ['validatorId', 'validatorContract'] as string[],
+    error: 'Permit external validator :: revokerData and revokerContract must either both be set or both be unset.',
+    path: ['revokerData', 'revokerContract'] as string[],
   },
 ] as const;
 
@@ -127,16 +138,17 @@ export const SelfPermitOptionsValidator = z
     name: z.string().optional().default('Unnamed Permit'),
     expiration: z.int().optional().default(DEFAULT_EXPIRATION_FN),
     recipient: addressSchema.optional().default(zeroAddress),
-    validatorId: z.int().optional().default(0),
-    validatorContract: addressSchema.optional().default(zeroAddress),
-    global: z.boolean().optional(),
+    revokerData: z.int().optional().default(0),
+    revokerContract: addressSchema.optional().default(zeroAddress),
+    scope: z.int().min(0).max(2).optional(),
     contracts: contractsSchema,
     handles: handlesSchema,
     issuerSignature: bytesSchema.optional().default('0x'),
     recipientSignature: bytesSchema.optional().default('0x'),
   })
   .refine(...ExternalValidatorRefinement)
-  .transform(withGlobalDefault).refine(...GlobalScopeRefinement);
+  .transform(withDerivedScope)
+  .refine(...ScopeConsistencyRefinement);
 
 /**
  * Validator for fully formed self permits
@@ -170,9 +182,9 @@ export const SharingPermitOptionsValidator = z
     recipient: addressNotZeroSchema,
     name: z.string().optional().default('Unnamed Permit'),
     expiration: z.int().optional().default(DEFAULT_EXPIRATION_FN),
-    validatorId: z.int().optional().default(0),
-    validatorContract: addressSchema.optional().default(zeroAddress),
-    global: z.boolean().optional(),
+    revokerData: z.int().optional().default(0),
+    revokerContract: addressSchema.optional().default(zeroAddress),
+    scope: z.int().min(0).max(2).optional(),
     contracts: contractsSchema,
     handles: handlesSchema,
     issuerSignature: bytesSchema.optional().default('0x'),
@@ -180,7 +192,8 @@ export const SharingPermitOptionsValidator = z
   })
   .refine(...RecipientRefinement)
   .refine(...ExternalValidatorRefinement)
-  .transform(withGlobalDefault).refine(...GlobalScopeRefinement);
+  .transform(withDerivedScope)
+  .refine(...ScopeConsistencyRefinement);
 
 /**
  * Validator for fully formed sharing permits
@@ -214,16 +227,17 @@ export const ImportPermitOptionsValidator = z
     recipient: addressNotZeroSchema,
     name: z.string().optional().default('Unnamed Permit'),
     expiration: z.int(),
-    validatorId: z.int().optional().default(0),
-    validatorContract: addressSchema.optional().default(zeroAddress),
-    global: z.boolean().optional(),
+    revokerData: z.int().optional().default(0),
+    revokerContract: addressSchema.optional().default(zeroAddress),
+    scope: z.int().min(0).max(2).optional(),
     contracts: contractsSchema,
     handles: handlesSchema,
     issuerSignature: bytesNotEmptySchema,
     recipientSignature: bytesSchema.optional().default('0x'),
   })
   .refine(...ExternalValidatorRefinement)
-  .transform(withGlobalDefault).refine(...GlobalScopeRefinement);
+  .transform(withDerivedScope)
+  .refine(...ScopeConsistencyRefinement);
 
 /**
  * Validator for fully formed import/recipient permits

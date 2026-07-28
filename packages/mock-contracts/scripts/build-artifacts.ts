@@ -19,10 +19,7 @@ const contracts: Array<{ name: string; fixedAddress?: string }> = [
     name: 'MockACL',
   },
   {
-    name: 'MockACP',
-  },
-  {
-    name: 'TimestampBasedACPValidator',
+    name: 'ACPTimestampRevoker',
   },
 ];
 

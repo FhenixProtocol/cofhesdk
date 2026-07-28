@@ -17,7 +17,8 @@ function makeThresholdRequestBody(chainConfig: TestChainConfig, ctHash: bigint |
   return {
     ct_tempkey: BigInt(ctHash).toString(16).padStart(64, '0'),
     host_chain_id: chainConfig.cofheChain.id,
-    permit: permission,
+    // handles are bigint in `Permission`; the backend takes them as strings
+    permit: { ...permission, handles: permission.handles.map((h) => h.toString()) },
   };
 }
 
@@ -311,7 +312,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(
-            makeThresholdRequestBody(chainConfig, alreadyFetchedCtHash, PermitUtils.getPermission(activePermit!, true))
+            makeThresholdRequestBody(chainConfig, alreadyFetchedCtHash, PermitUtils.getPublic(activePermit!, true))
           ),
         });
 

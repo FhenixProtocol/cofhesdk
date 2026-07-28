@@ -108,7 +108,7 @@ export type CofheClientPermits = {
 
   // Revocation (on-chain, require connection)
   revokePermit: (permit: Permit) => Promise<`0x${string}`>;
-  revokeAllPermits: (validatorContract?: `0x${string}`) => Promise<`0x${string}`>;
+  revokeAllPermits: (revokerContract?: `0x${string}`) => Promise<`0x${string}`>;
   isPermitRevoked: (permit: Permit) => Promise<boolean>;
 
   // Utils

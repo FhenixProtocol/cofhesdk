@@ -417,19 +417,19 @@ export const MockTaskManagerArtifact = {
               internalType: 'address',
             },
             {
-              name: 'validatorId',
+              name: 'revokerData',
               type: 'uint256',
               internalType: 'uint256',
             },
             {
-              name: 'validatorContract',
+              name: 'revokerContract',
               type: 'address',
               internalType: 'address',
             },
             {
-              name: 'global',
-              type: 'bool',
-              internalType: 'bool',
+              name: 'scope',
+              type: 'uint8',
+              internalType: 'uint8',
             },
             {
               name: 'contracts',
@@ -440,72 +440,6 @@ export const MockTaskManagerArtifact = {
               name: 'handles',
               type: 'uint256[]',
               internalType: 'uint256[]',
-            },
-            {
-              name: 'sealingKey',
-              type: 'bytes32',
-              internalType: 'bytes32',
-            },
-            {
-              name: 'issuerSignature',
-              type: 'bytes',
-              internalType: 'bytes',
-            },
-            {
-              name: 'recipientSignature',
-              type: 'bytes',
-              internalType: 'bytes',
-            },
-          ],
-        },
-        {
-          name: 'handle',
-          type: 'uint256',
-          internalType: 'uint256',
-        },
-      ],
-      outputs: [
-        {
-          name: '',
-          type: 'bool',
-          internalType: 'bool',
-        },
-      ],
-      stateMutability: 'view',
-    },
-    {
-      type: 'function',
-      name: 'isAllowedWithPermission',
-      inputs: [
-        {
-          name: 'permission',
-          type: 'tuple',
-          internalType: 'struct Permission',
-          components: [
-            {
-              name: 'issuer',
-              type: 'address',
-              internalType: 'address',
-            },
-            {
-              name: 'expiration',
-              type: 'uint64',
-              internalType: 'uint64',
-            },
-            {
-              name: 'recipient',
-              type: 'address',
-              internalType: 'address',
-            },
-            {
-              name: 'validatorId',
-              type: 'uint256',
-              internalType: 'uint256',
-            },
-            {
-              name: 'validatorContract',
-              type: 'address',
-              internalType: 'address',
             },
             {
               name: 'sealingKey',
