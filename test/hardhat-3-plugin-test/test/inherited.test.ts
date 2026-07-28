@@ -106,8 +106,8 @@ describe('Inherited SDK Tests', async () => {
     assert.equal(permit.name, 'Test Self Permit');
     assert.equal(permit.issuer.toLowerCase(), bobAddress.toLowerCase());
     assert.notEqual(permit.issuerSignature, '0x');
-    assert.ok(permit.sealingPair);
-    assert.ok(permit.sealingPair.publicKey);
+    assert.ok(permit.sealingPrivateKey);
+    assert.ok(permit.sealingKey);
 
     const activePermit = client.acp.getActivePermit();
     assert.ok(activePermit);
@@ -138,7 +138,7 @@ describe('Inherited SDK Tests', async () => {
     assert.equal(parsed.issuer.toLowerCase(), bobAddress.toLowerCase());
     assert.equal(parsed.recipient.toLowerCase(), aliceAddress.toLowerCase());
     assert.ok(parsed.issuerSignature);
-    assert.equal(parsed.sealingPair, undefined);
+    assert.equal(parsed.sealingPrivateKey, undefined);
 
     const aliceClient = await cofhe.createClientWithBatteries(aliceWalletClient);
     const importedPermit = await aliceClient.acp.importShared(exported);
@@ -148,6 +148,6 @@ describe('Inherited SDK Tests', async () => {
     assert.equal(importedPermit.issuer.toLowerCase(), bobAddress.toLowerCase());
     assert.equal(importedPermit.recipient!.toLowerCase(), aliceAddress.toLowerCase());
     assert.notEqual(importedPermit.recipientSignature, '0x');
-    assert.ok(importedPermit.sealingPair);
+    assert.ok(importedPermit.sealingPrivateKey);
   });
 });

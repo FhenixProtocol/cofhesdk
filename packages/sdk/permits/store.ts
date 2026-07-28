@@ -21,11 +21,12 @@ export const PERMIT_STORE_DEFAULTS: PermitsStore = {
 };
 
 /**
+ * Store version 3 = ACP with flattened sealing keys (sealingPrivateKey/sealingKey).
  * Store version 2 = ACP (Permit V3). V2 permits are signed with retired EIP-712
  * types and cannot verify on-chain anymore — the migration drops them rather
  * than carrying dead entries (users re-create permits on next use).
  */
-const PERMIT_STORE_VERSION = 2;
+const PERMIT_STORE_VERSION = 3;
 
 export const _permitStore = createStore<PermitsStore>()(
   persist(() => PERMIT_STORE_DEFAULTS, {

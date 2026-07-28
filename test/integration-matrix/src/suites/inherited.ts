@@ -77,8 +77,8 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
     expect(permit.name).toBe('Test Self Permit');
     expect(permit.issuer).toBe(ctx.bobAccount.address);
     expect(permit.issuerSignature).not.toBe('0x');
-    expect(permit.sealingPair).toBeDefined();
-    expect(permit.sealingPair.publicKey).toBeDefined();
+    expect(permit.sealingPrivateKey).toBeDefined();
+    expect(permit.sealingKey).toBeDefined();
 
     const activePermit = ctx.cofheClient.acp.getActivePermit();
     expect(activePermit).toBeDefined();
@@ -105,7 +105,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
     expect(parsed.issuer).toBe(ctx.bobAccount.address);
     expect(parsed.recipient).toBe(ctx.aliceAccount.address);
     expect(parsed.issuerSignature).toBeDefined();
-    expect(parsed).not.toHaveProperty('sealingPair');
+    expect(parsed).not.toHaveProperty('sealingPrivateKey');
 
     // Alice imports the shared permit via a fresh client
     const aliceConfig = factory.createConfig({
@@ -127,7 +127,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
     expect(importedPermit.issuer).toBe(ctx.bobAccount.address);
     expect(importedPermit.recipient).toBe(ctx.aliceAccount.address);
     expect(importedPermit.recipientSignature).not.toBe('0x');
-    expect(importedPermit.sealingPair).toBeDefined();
+    expect(importedPermit.sealingPrivateKey).toBeDefined();
   }, 30_000);
 
   let alreadyFetchedCtHash: bigint | string;

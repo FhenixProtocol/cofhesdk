@@ -523,7 +523,7 @@ describe('Core Permits Tests', () => {
 
       expect(parsed.name).toBe('Test Self ACP');
       expect(parsed.issuer).toBe(bobAddress);
-      expect(parsed).not.toHaveProperty('sealingPair');
+      expect(parsed).not.toHaveProperty('sealingPrivateKey');
       expect(parsed).not.toHaveProperty('issuerSignature');
     });
 
@@ -547,7 +547,7 @@ describe('Core Permits Tests', () => {
       expect(parsed.recipient).toBe(aliceAddress);
       expect(parsed.issuerSignature).toBeDefined();
       expect(parsed.issuerSignature).not.toBe('0x');
-      expect(parsed).not.toHaveProperty('sealingPair');
+      expect(parsed).not.toHaveProperty('sealingPrivateKey');
     });
   });
 

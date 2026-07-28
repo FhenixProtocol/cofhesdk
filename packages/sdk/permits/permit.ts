@@ -23,7 +23,7 @@ import {
   ValidationUtils,
 } from './validation.js';
 import { SignatureUtils } from './signature.js';
-import { GenerateSealingKey, SealingKey } from './sealing.js';
+import { GenerateSealingKey, unsealWithPrivateKey } from './sealing.js';
 import { checkPermitValidityOnChain, getAclEIP712Domain } from './onchain-utils.js';
 
 /**
@@ -42,7 +42,7 @@ export const ACPUtils = {
     const permit = {
       hash: ACPUtils.getHash(validation),
       ...validation,
-      sealingPair,
+      sealingPrivateKey: `0x${sealingPair.privateKey}` as Hex,
       sealingKey: `0x${sealingPair.publicKey}` as Hex,
       _signedDomain: undefined,
     } satisfies SelfPermit;
@@ -62,7 +62,7 @@ export const ACPUtils = {
     const permit = {
       hash: ACPUtils.getHash(validation),
       ...validation,
-      sealingPair,
+      sealingPrivateKey: `0x${sealingPair.privateKey}` as Hex,
       sealingKey: `0x${sealingPair.publicKey}` as Hex,
       _signedDomain: undefined,
     } satisfies SharingPermit;
@@ -104,7 +104,7 @@ export const ACPUtils = {
     const permit = {
       hash: ACPUtils.getHash(validation),
       ...validation,
-      sealingPair,
+      sealingPrivateKey: `0x${sealingPair.privateKey}` as Hex,
       sealingKey: `0x${sealingPair.publicKey}` as Hex,
       _signedDomain: undefined,
     } satisfies RecipientPermit;
@@ -192,10 +192,7 @@ export const ACPUtils = {
    * Deserialize a permit from serialized data
    */
   deserialize: (data: SerializedPermit): ACP => {
-    return {
-      ...data,
-      sealingPair: SealingKey.deserialize(data.sealingPair.privateKey, data.sealingPair.publicKey),
-    };
+    return { ...data };
   },
 
   /**
@@ -218,7 +215,7 @@ export const ACPUtils = {
       issuerSignature: permit.issuerSignature,
       recipientSignature: permit.recipientSignature,
       _signedDomain: permit._signedDomain,
-      sealingPair: permit.sealingPair.serialize(),
+      sealingPrivateKey: permit.sealingPrivateKey,
     };
   },
 
@@ -310,9 +307,9 @@ export const ACPUtils = {
     if (permit.revokerData !== 0) cleanedPermit.revokerData = permit.revokerData;
     if (permit.revokerContract !== zeroAddress) cleanedPermit.revokerContract = permit.revokerContract;
     // scope fields are part of the issuer signature — the recipient needs them to reconstruct it
-    cleanedPermit.global = permit.scope;
+    cleanedPermit.scope = permit.scope;
     if (permit.contracts.length > 0) cleanedPermit.contracts = permit.contracts;
-    if (permit.handles.length > 0) cleanedPermit.handles = permit.handles.map((h) => h.toString());
+    if (permit.handles.length > 0) cleanedPermit.handles = permit.handles;
     if (permit.type === 'sharing' && permit.issuerSignature !== '0x')
       cleanedPermit.issuerSignature = permit.issuerSignature;
 
@@ -323,7 +320,7 @@ export const ACPUtils = {
    * Unseal encrypted data using the permit's sealing key
    */
   unseal: (permit: ACP, ciphertext: EthEncryptedData): bigint => {
-    return permit.sealingPair.unseal(ciphertext);
+    return unsealWithPrivateKey(permit.sealingPrivateKey, ciphertext);
   },
 
   /**

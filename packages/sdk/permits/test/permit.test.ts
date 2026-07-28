@@ -66,9 +66,8 @@ describe('ACPUtils Tests', () => {
       expect(permit.name).toBe('Test ACP');
       expect(permit.type).toBe('self');
       expect(permit.issuer).toBe(bobAddress);
-      expect(permit.sealingPair).toBeDefined();
-      expect(permit.sealingPair.privateKey).toBeDefined();
-      expect(permit.sealingPair.publicKey).toBeDefined();
+      expect(permit.sealingPrivateKey).toBeDefined();
+      expect(permit.sealingKey).toBeDefined();
 
       // Should not be signed yet
       expect(permit.issuerSignature).toBe('0x');
@@ -103,9 +102,8 @@ describe('ACPUtils Tests', () => {
       expect(permit.type).toBe('sharing');
       expect(permit.issuer).toBe(bobAddress);
       expect(permit.recipient).toBe(aliceAddress);
-      expect(permit.sealingPair).toBeDefined();
-      expect(permit.sealingPair.privateKey).toBeDefined();
-      expect(permit.sealingPair.publicKey).toBeDefined();
+      expect(permit.sealingPrivateKey).toBeDefined();
+      expect(permit.sealingKey).toBeDefined();
 
       // Should not be signed yet
       expect(permit.issuerSignature).toBe('0x');
@@ -142,9 +140,8 @@ describe('ACPUtils Tests', () => {
       expect(permit.issuer).toBe(bobAddress);
       expect(permit.recipient).toBe(aliceAddress);
       expect(permit.issuerSignature).toBe('0x1234567890abcdef');
-      expect(permit.sealingPair).toBeDefined();
-      expect(permit.sealingPair.privateKey).toBeDefined();
-      expect(permit.sealingPair.publicKey).toBeDefined();
+      expect(permit.sealingPrivateKey).toBeDefined();
+      expect(permit.sealingKey).toBeDefined();
 
       // Should not be signed yet
       expect(permit.recipientSignature).toBe('0x');
@@ -355,8 +352,8 @@ describe('ACPUtils Tests', () => {
       expect(deserialized.name).toBe(originalPermit.name);
       expect(deserialized.type).toBe(originalPermit.type);
       expect(deserialized.issuer).toBe(originalPermit.issuer);
-      expect(deserialized.sealingPair.privateKey).toBe(originalPermit.sealingPair.privateKey);
-      expect(deserialized.sealingPair.publicKey).toBe(originalPermit.sealingPair.publicKey);
+      expect(deserialized.sealingPrivateKey).toBe(originalPermit.sealingPrivateKey);
+      expect(deserialized.sealingKey).toBe(originalPermit.sealingKey);
     });
   });
 
@@ -374,7 +371,7 @@ describe('ACPUtils Tests', () => {
       const permission = ACPUtils.getPublic(permit);
 
       expect(permission.issuer).toBe(permit.issuer);
-      expect(permission.sealingKey).toBe(`0x${permit.sealingPair.publicKey}`);
+      expect(permission.sealingKey).toBe(permit.sealingKey);
       expect(permission).not.toHaveProperty('name');
       expect(permission).not.toHaveProperty('type');
     });
@@ -411,7 +408,7 @@ describe('ACPUtils Tests', () => {
 
       expect(parsed.name).toBe('Test ACP');
       expect(parsed.issuer).toBe(bobAddress);
-      expect(parsed).not.toHaveProperty('sealingPair');
+      expect(parsed).not.toHaveProperty('sealingPrivateKey');
       expect(parsed).not.toHaveProperty('issuerSignature');
     });
 
@@ -435,7 +432,7 @@ describe('ACPUtils Tests', () => {
       expect(parsed.recipient).toBe(aliceAddress);
       expect(parsed.issuerSignature).toBeDefined();
       expect(parsed.issuerSignature).not.toBe('0x');
-      expect(parsed).not.toHaveProperty('sealingPair');
+      expect(parsed).not.toHaveProperty('sealingPrivateKey');
     });
   });
 

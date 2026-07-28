@@ -46,10 +46,11 @@ export interface ACPPrivate {
    */
   type: 'self' | 'sharing' | 'recipient';
   /**
-   * The sealingPair used to re-encrypt and unseal `issuer`s confidential data.
-   * `sealingKey` (in the public component) is this pair's public key.
+   * The private half of the sealing keypair — used to unseal returned data.
+   * `sealingKey` (in the public component) is the corresponding public key.
+   * Never leaves the client.
    */
-  sealingPair: SealingKey;
+  sealingPrivateKey: Hex;
   /**
    * EIP712 domain used to sign this permit.
    * Should not be set manually, included in metadata as part of serialization flows.
@@ -102,7 +103,7 @@ export interface ACPPublic {
    */
   handles: Hex[];
   /**
-   * (base) The publicKey of the sealingPair — used to re-encrypt `issuer`s confidential data
+   * (base) The public half of the sealing keypair — used to re-encrypt `issuer`s confidential data
    *   (non-sharing) Populated by `issuer`
    *   (sharing)     Populated by `recipient`
    */
@@ -208,13 +209,8 @@ export type ImportSharedPermitOptions = PermitScopeOptions & {
   revokerContract?: string;
 };
 
-export type SerializedPermit = Omit<ACP, 'sealingPair'> & {
-  _signedDomain?: EIP712Domain;
-  sealingPair: {
-    privateKey: string;
-    publicKey: string;
-  };
-};
+/** An ACP is plain JSON-serializable data — the serialized form is the ACP itself. */
+export type SerializedPermit = ACP;
 
 /**
  * A type representing the permit fields that are used to generate the hash

@@ -120,8 +120,8 @@ describe('@cofhe/web - Inherited Client Tests', () => {
       expect(permit.name).toBe('Test Self ACP');
       expect(permit.issuer).toBe(bobAccount.address);
       expect(permit.issuerSignature).not.toBe('0x');
-      expect(permit.sealingPair).toBeDefined();
-      expect(permit.sealingPair.publicKey).toBeDefined();
+      expect(permit.sealingPrivateKey).toBeDefined();
+      expect(permit.sealingKey).toBeDefined();
 
       const activePermit = cofheClient.acp.getActivePermit();
       expect(activePermit).toBeDefined();
@@ -152,7 +152,7 @@ describe('@cofhe/web - Inherited Client Tests', () => {
       expect(parsed.issuer).toBe(bobAccount.address);
       expect(parsed.recipient).toBe(aliceAccount.address);
       expect(parsed.issuerSignature).toBeDefined();
-      expect(parsed).not.toHaveProperty('sealingPair');
+      expect(parsed).not.toHaveProperty('sealingPrivateKey');
 
       const aliceConfig = createCofheConfig({
         supportedChains: [cofheArbSepolia],
@@ -167,7 +167,7 @@ describe('@cofhe/web - Inherited Client Tests', () => {
       expect(importedPermit.issuer).toBe(bobAccount.address);
       expect(importedPermit.recipient).toBe(aliceAccount.address);
       expect(importedPermit.recipientSignature).not.toBe('0x');
-      expect(importedPermit.sealingPair).toBeDefined();
+      expect(importedPermit.sealingPrivateKey).toBeDefined();
     }, 30000);
   });
 

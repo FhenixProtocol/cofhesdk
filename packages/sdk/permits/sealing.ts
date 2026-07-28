@@ -129,3 +129,23 @@ export const GenerateSealingKey = (): SealingKey => {
 
   return new SealingKey(toHexString(sodiumKeypair.secretKey), toHexString(sodiumKeypair.publicKey));
 };
+
+/**
+ * Unseal (decrypt) data with a sealing private key (0x-prefixed or bare hex).
+ * The ephemeral public key travels inside the payload, so the private key alone suffices.
+ */
+export const unsealWithPrivateKey = (privateKey: string, parsedData: EthEncryptedData): bigint => {
+  const bare = privateKey.startsWith('0x') ? privateKey.slice(2) : privateKey;
+
+  const nonce = parsedData.nonce instanceof Uint8Array ? parsedData.nonce : new Uint8Array(parsedData.nonce);
+  const ephemPublicKey =
+    parsedData.public_key instanceof Uint8Array ? parsedData.public_key : new Uint8Array(parsedData.public_key);
+  const dataToDecrypt = parsedData.data instanceof Uint8Array ? parsedData.data : new Uint8Array(parsedData.data);
+
+  const decryptedMessage = nacl.box.open(dataToDecrypt, nonce, ephemPublicKey, fromHexString(bare));
+  if (!decryptedMessage) {
+    throw new Error('Failed to decrypt message');
+  }
+
+  return toBigInt(decryptedMessage);
+};

@@ -142,7 +142,7 @@ describe('Validation Tests', () => {
     });
 
     it('should reject self permit with missing sealing pair', async () => {
-      const permit = { ...(await createMockPermit()), sealingPair: undefined };
+      const permit = { ...(await createMockPermit()), sealingPrivateKey: undefined };
       permit.type = 'self';
       expect(() => validateSelfPermit(permit as unknown as ACP)).toThrow();
     });

@@ -2,11 +2,6 @@ import { z } from 'zod';
 import { getAddress, isAddress, isHex, zeroAddress, type Hex } from 'viem';
 import type { ACP, ValidationResult } from './types.js';
 
-const SerializedSealingPair = z.object({
-  privateKey: z.string(),
-  publicKey: z.string(),
-});
-
 export const addressSchema = z
   .string()
   .refine((val) => isAddress(val), {
@@ -92,8 +87,16 @@ const zPermitWithDefaults = z.object({
   recipientSignature: bytesSchema.optional().default('0x'),
 });
 
-const zPermitWithSealingPair = zPermitWithDefaults.extend({
-  sealingPair: SerializedSealingPair.optional(),
+const zPermitWithSealingKeys = zPermitWithDefaults.extend({
+  /** X25519 private key, 0x-prefixed 32-byte hex; never leaves the client */
+  sealingPrivateKey: z
+    .string()
+    .regex(/^0x[0-9a-fA-F]{64}$/, 'Invalid sealing private key')
+    .optional(),
+  sealingKey: z
+    .string()
+    .regex(/^0x[0-9a-fA-F]{64}$/, 'Invalid sealing key')
+    .optional(),
 });
 
 type zPermitType = z.infer<typeof zPermitWithDefaults>;
@@ -153,7 +156,7 @@ export const SelfPermitOptionsValidator = z
 /**
  * Validator for fully formed self permits
  */
-export const SelfPermitValidator = zPermitWithSealingPair
+export const SelfPermitValidator = zPermitWithSealingKeys
   .refine((data) => data.type === 'self', {
     error: "Type must be 'self'",
   })
@@ -198,7 +201,7 @@ export const SharingPermitOptionsValidator = z
 /**
  * Validator for fully formed sharing permits
  */
-export const SharingPermitValidator = zPermitWithSealingPair
+export const SharingPermitValidator = zPermitWithSealingKeys
   .refine((data) => data.type === 'sharing', {
     error: "Type must be 'sharing'",
   })
@@ -242,7 +245,7 @@ export const ImportPermitOptionsValidator = z
 /**
  * Validator for fully formed import/recipient permits
  */
-export const ImportPermitValidator = zPermitWithSealingPair
+export const ImportPermitValidator = zPermitWithSealingKeys
   .refine((data) => data.type === 'recipient', {
     error: "Type must be 'recipient'",
   })
