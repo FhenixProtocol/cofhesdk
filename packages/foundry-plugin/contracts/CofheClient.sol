@@ -26,7 +26,7 @@ struct SharedPermitExport {
   // (scope) part of the issuer signature — the recipient needs them to reconstruct it
   uint8 scope;
   address[] contracts;
-  uint256[] handles;
+  bytes32[] handles;
   bytes issuerSignature;
 }
 
@@ -192,13 +192,13 @@ contract CofheClient is Test {
   /// @notice Decrypts a ciphertext using a permit and returns the plaintext with a publishable signature.
   function decryptForTx_withPermit(
     bytes32 ctHash,
-    ACP memory permission
+    ACP memory acp
   ) public view onlyConnected returns (bytes32, uint256, bytes memory) {
     uint256 ct = uint256(ctHash);
 
     (bool allowed, string memory error, uint256 decryptedValue) = mockThresholdNetwork.decryptForTxWithPermit(
       ct,
-      permission
+      acp
     );
     require(allowed, string.concat('CofheClient: decryptForTx failed: ', error));
 
@@ -211,17 +211,17 @@ contract CofheClient is Test {
   // =====================
 
   /// @notice Decrypts a ciphertext for off-chain reading by sealing/unsealing with the permit's sealing key.
-  function decryptForView(bytes32 ctHash, ACP memory permission) public view onlyConnected returns (uint256) {
+  function decryptForView(bytes32 ctHash, ACP memory acp) public view onlyConnected returns (uint256) {
     uint256 ct = uint256(ctHash);
 
     (bool allowed, string memory error, bytes32 sealedOutput) = mockThresholdNetwork.querySealOutput(
       ct,
       block.chainid,
-      permission
+      acp
     );
     require(allowed, string.concat('CofheClient: decryptForView failed: ', error));
 
-    return mockThresholdNetwork.unseal(sealedOutput, permission.sealingKey);
+    return mockThresholdNetwork.unseal(sealedOutput, acp.sealingKey);
   }
 
   // =====================
@@ -256,30 +256,30 @@ contract CofheClient is Test {
     return abi.encodePacked(r, s, v);
   }
 
-  function _signIssuerSelf(ACP memory permission, uint256 pkey) internal view returns (ACP memory) {
-    bytes32 permissionHash = ACPUtils.issuerSelfHash(permission);
+  function _signIssuerSelf(ACP memory acp, uint256 pkey) internal view returns (ACP memory) {
+    bytes32 permissionHash = ACPUtils.issuerSelfHash(acp);
     bytes32 structHash = permissionHashTypedDataV4(permissionHash);
-    permission.issuerSignature = _signPermission(structHash, pkey);
-    return permission;
+    acp.issuerSignature = _signPermission(structHash, pkey);
+    return acp;
   }
 
-  function _signIssuerShared(ACP memory permission, uint256 pkey) internal view returns (ACP memory) {
-    bytes32 permissionHash = ACPUtils.issuerSharedHash(permission);
+  function _signIssuerShared(ACP memory acp, uint256 pkey) internal view returns (ACP memory) {
+    bytes32 permissionHash = ACPUtils.issuerSharedHash(acp);
     bytes32 structHash = permissionHashTypedDataV4(permissionHash);
-    permission.issuerSignature = _signPermission(structHash, pkey);
-    return permission;
+    acp.issuerSignature = _signPermission(structHash, pkey);
+    return acp;
   }
 
-  function _signRecipient(ACP memory permission, uint256 pkey) internal view returns (ACP memory) {
-    bytes32 permissionHash = ACPUtils.recipientHash(permission);
+  function _signRecipient(ACP memory acp, uint256 pkey) internal view returns (ACP memory) {
+    bytes32 permissionHash = ACPUtils.recipientHash(acp);
     bytes32 structHash = permissionHashTypedDataV4(permissionHash);
-    permission.recipientSignature = _signPermission(structHash, pkey);
-    return permission;
+    acp.recipientSignature = _signPermission(structHash, pkey);
+    return acp;
   }
 
   /// @notice Returns a blank ACP with default field values.
-  function createBaseACP() public pure returns (ACP memory permission) {
-    permission = ACP({
+  function createBaseACP() public pure returns (ACP memory acp) {
+    acp = ACP({
       issuer: address(0),
       expiration: 1000000000000,
       recipient: address(0),
@@ -287,7 +287,7 @@ contract CofheClient is Test {
       revokerContract: address(0),
       scope: SCOPE_GLOBAL,
       contracts: new address[](0),
-      handles: new uint256[](0),
+      handles: new bytes32[](0),
       sealingKey: bytes32(0),
       issuerSignature: new bytes(0),
       recipientSignature: new bytes(0)
@@ -300,43 +300,43 @@ contract CofheClient is Test {
   }
 
   /// @notice Creates a self-permit for the connected account, signed with the stored private key.
-  function ACP_createSelf() public view onlyConnected returns (ACP memory permission) {
-    permission = createBaseACP();
-    permission.issuer = _account;
-    permission.sealingKey = createSealingKey(uint256(uint160(_account)));
-    permission = _signIssuerSelf(permission, _pkey);
+  function ACP_createSelf() public view onlyConnected returns (ACP memory acp) {
+    acp = createBaseACP();
+    acp.issuer = _account;
+    acp.sealingKey = createSealingKey(uint256(uint160(_account)));
+    acp = _signIssuerSelf(acp, _pkey);
   }
 
   /// @notice Creates the issuer side of a shared permit. The result has no sealingKey (added by recipient on import).
-  function ACP_createShared(address recipient) public view onlyConnected returns (ACP memory permission) {
-    permission = createBaseACP();
-    permission.issuer = _account;
-    permission.recipient = recipient;
-    permission = _signIssuerShared(permission, _pkey);
+  function ACP_createShared(address recipient) public view onlyConnected returns (ACP memory acp) {
+    acp = createBaseACP();
+    acp.issuer = _account;
+    acp.recipient = recipient;
+    acp = _signIssuerShared(acp, _pkey);
   }
 
   /// @notice Exports a shared permit, stripping sensitive/recipient-specific fields.
-  function ACP_exportShared(ACP memory permission) public pure returns (SharedPermitExport memory exported) {
+  function ACP_exportShared(ACP memory acp) public pure returns (SharedPermitExport memory exported) {
     exported = SharedPermitExport({
-      issuer: permission.issuer,
-      expiration: permission.expiration,
-      recipient: permission.recipient,
-      revokerData: permission.revokerData,
-      revokerContract: permission.revokerContract,
-      scope: permission.scope,
-      contracts: permission.contracts,
-      handles: permission.handles,
-      issuerSignature: permission.issuerSignature
+      issuer: acp.issuer,
+      expiration: acp.expiration,
+      recipient: acp.recipient,
+      revokerData: acp.revokerData,
+      revokerContract: acp.revokerContract,
+      scope: acp.scope,
+      contracts: acp.contracts,
+      handles: acp.handles,
+      issuerSignature: acp.issuerSignature
     });
   }
 
   /// @notice Imports a shared permit export, adds the recipient's sealing key and signature.
   function ACP_importShared(
     SharedPermitExport memory data
-  ) public view onlyConnected returns (ACP memory permission) {
+  ) public view onlyConnected returns (ACP memory acp) {
     require(data.recipient == _account, 'CofheClient: recipient mismatch');
 
-    permission = ACP({
+    acp = ACP({
       issuer: data.issuer,
       expiration: data.expiration,
       recipient: data.recipient,
@@ -349,6 +349,6 @@ contract CofheClient is Test {
       issuerSignature: data.issuerSignature,
       recipientSignature: new bytes(0)
     });
-    permission = _signRecipient(permission, _pkey);
+    acp = _signRecipient(acp, _pkey);
   }
 }

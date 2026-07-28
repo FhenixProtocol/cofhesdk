@@ -1,14 +1,9 @@
-import { type Permission } from '@/permits';
+import { type ACPPublic } from '@/permits';
 import { cofheFetch } from '../debug.js';
 
 import { CofheError, CofheErrorCode } from '../error';
 import { type DecryptPollCallbackFunction } from '../types';
-import {
-  normalizeTnSignature,
-  parseDecryptedBytesToBigInt,
-  toWirePermission,
-  type WirePermission,
-} from './tnDecryptUtils';
+import { normalizeTnSignature, parseDecryptedBytesToBigInt } from './tnDecryptUtils';
 import { computeMinuteRampPollIntervalMs } from './polling.js';
 import { mapApiErrorCodeToCofheErrorCode, parseApiErrorResponseBody } from './apiError.js';
 import { classifySubmitResponse, normalize404RetryTimeoutMs, throwIfSubmitRetryTimedOut } from './submitRetry.js';
@@ -184,7 +179,7 @@ async function submitDecryptRequestV2(
   thresholdNetworkUrl: string,
   ctHash: bigint | string,
   chainId: number,
-  permission: Permission | null,
+  acp: ACPPublic | null,
   overallStartTime: number,
   retry404TimeoutMs: number,
   onPoll?: DecryptPollCallbackFunction
@@ -192,14 +187,14 @@ async function submitDecryptRequestV2(
   const body: {
     ct_tempkey: string;
     host_chain_id: number;
-    permit?: WirePermission;
+    permit?: ACPPublic;
   } = {
     ct_tempkey: BigInt(ctHash).toString(16).padStart(64, '0'),
     host_chain_id: chainId,
   };
 
-  if (permission) {
-    body.permit = toWirePermission(permission);
+  if (acp) {
+    body.permit = acp;
   }
 
   let attemptIndex = 0;
@@ -464,12 +459,12 @@ async function pollDecryptStatusV2(
 export async function tnDecryptV2(params: {
   ctHash: bigint | string;
   chainId: number;
-  permission: Permission | null;
+  acp: ACPPublic | null;
   thresholdNetworkUrl: string;
   retry404TimeoutMs?: number;
   onPoll?: DecryptPollCallbackFunction;
 }): Promise<{ decryptedValue: bigint; signature: `0x${string}` }> {
-  const { thresholdNetworkUrl, ctHash, chainId, permission, retry404TimeoutMs, onPoll } = params;
+  const { thresholdNetworkUrl, ctHash, chainId, acp, retry404TimeoutMs, onPoll } = params;
   const normalized404RetryTimeoutMs = normalize404RetryTimeoutMs({
     timeoutMs: retry404TimeoutMs,
     operationLabel: 'decrypt',
@@ -480,7 +475,7 @@ export async function tnDecryptV2(params: {
     thresholdNetworkUrl,
     ctHash,
     chainId,
-    permission,
+    acp,
     overallStartTime,
     normalized404RetryTimeoutMs,
     onPoll

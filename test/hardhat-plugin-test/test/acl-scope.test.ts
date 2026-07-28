@@ -32,7 +32,7 @@ const TYPES_ISSUER_SELF = {
     { name: 'revokerContract', type: 'address' },
     { name: 'scope', type: 'uint8' },
     { name: 'contracts', type: 'address[]' },
-    { name: 'handles', type: 'uint256[]' },
+    { name: 'handles', type: 'bytes32[]' },
     { name: 'sealingKey', type: 'bytes32' },
   ],
 };
@@ -40,6 +40,8 @@ const TYPES_ISSUER_SELF = {
 // arbitrary "contract" addresses — persistedAllowedPairs keys need no code behind them
 const CONTRACT_A = '0x' + 'aaaa'.padStart(40, '0');
 const CONTRACT_B = '0x' + 'bbbb'.padStart(40, '0');
+
+const b32 = (v: bigint) => ('0x' + v.toString(16).padStart(64, '0')) as `0x${string}`;
 
 const H1 = 101n;
 const H2 = 202n;
@@ -90,7 +92,7 @@ describe('ACP scope table (MockACL.isAllowedWithACP)', () => {
   });
 
   /** Signed self permission with the given scope. */
-  const permission = async (scope: { scope?: number; contracts?: string[]; handles?: bigint[] }) => {
+  const permission = async (scope: { scope?: number; contracts?: string[]; handles?: string[] }) => {
     const p = {
       issuer: issuer.address,
       expiration: now + 7n * 24n * 3600n,
@@ -150,12 +152,12 @@ describe('ACP scope table (MockACL.isAllowedWithACP)', () => {
   });
 
   it('row: handle scope, handle in list — true', async () => {
-    const p = await permission({ handles: [H2, H1] });
+    const p = await permission({ handles: [b32(H2), b32(H1)] });
     expect(await acl.isAllowedWithACP(p, H1)).to.equal(true);
   });
 
   it('row: handle scope, handle not in list — false', async () => {
-    const p = await permission({ handles: [H2] });
+    const p = await permission({ handles: [b32(H2)] });
     expect(await acl.isAllowedWithACP(p, H1)).to.equal(false);
   });
 
@@ -182,7 +184,7 @@ describe('ACP scope table (MockACL.isAllowedWithACP)', () => {
       revokerContract: ZERO_ADDRESS,
       scope: 1,
       contracts: [CONTRACT_B],
-      handles: [] as bigint[],
+      handles: [] as string[],
       sealingKey: '0x' + '5ea1'.padStart(64, '0'),
       issuerSignature: '0x',
       recipientSignature: '0x',
@@ -198,7 +200,7 @@ describe('ACP scope table (MockACL.isAllowedWithACP)', () => {
   });
 
   it('ciphertext scope narrows too: handle in list but issuer lacks access — false', async () => {
-    const p = await permission({ handles: [H_UNSEEDED] });
+    const p = await permission({ handles: [b32(H_UNSEEDED)] });
     expect(await acl.isAllowedWithACP(p, H_UNSEEDED)).to.equal(false);
   });
 

@@ -35,7 +35,7 @@ export const MockThresholdNetworkArtifact = {
           internalType: 'uint256',
         },
         {
-          name: 'permission',
+          name: 'acp',
           type: 'tuple',
           internalType: 'struct ACP',
           components: [
@@ -76,8 +76,8 @@ export const MockThresholdNetworkArtifact = {
             },
             {
               name: 'handles',
-              type: 'uint256[]',
-              internalType: 'uint256[]',
+              type: 'bytes32[]',
+              internalType: 'bytes32[]',
             },
             {
               name: 'sealingKey',
@@ -256,7 +256,7 @@ export const MockThresholdNetworkArtifact = {
           internalType: 'uint256',
         },
         {
-          name: 'permission',
+          name: 'acp',
           type: 'tuple',
           internalType: 'struct ACP',
           components: [
@@ -297,8 +297,8 @@ export const MockThresholdNetworkArtifact = {
             },
             {
               name: 'handles',
-              type: 'uint256[]',
-              internalType: 'uint256[]',
+              type: 'bytes32[]',
+              internalType: 'bytes32[]',
             },
             {
               name: 'sealingKey',
@@ -352,7 +352,7 @@ export const MockThresholdNetworkArtifact = {
           internalType: 'uint256',
         },
         {
-          name: 'permission',
+          name: 'acp',
           type: 'tuple',
           internalType: 'struct ACP',
           components: [
@@ -393,8 +393,8 @@ export const MockThresholdNetworkArtifact = {
             },
             {
               name: 'handles',
-              type: 'uint256[]',
-              internalType: 'uint256[]',
+              type: 'bytes32[]',
+              internalType: 'bytes32[]',
             },
             {
               name: 'sealingKey',

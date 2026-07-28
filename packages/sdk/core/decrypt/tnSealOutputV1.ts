@@ -1,12 +1,12 @@
-import { type Permission, type EthEncryptedData } from '@/permits';
+import { type ACPPublic, type EthEncryptedData } from '@/permits';
 
 import { CofheError, CofheErrorCode } from '../error.js';
-import { toWirePermission } from './tnDecryptUtils.js';
+import {} from './tnDecryptUtils.js';
 
 export async function tnSealOutputV1(
   ctHash: bigint,
   chainId: number,
-  permission: Permission,
+  acp: ACPPublic,
   thresholdNetworkUrl: string
 ): Promise<EthEncryptedData> {
   let sealed: EthEncryptedData | undefined;
@@ -16,7 +16,7 @@ export async function tnSealOutputV1(
   const body = {
     ct_tempkey: ctHash.toString(16).padStart(64, '0'),
     host_chain_id: chainId,
-    permit: toWirePermission(permission),
+    permit: acp,
   };
 
   try {

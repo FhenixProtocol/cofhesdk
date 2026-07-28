@@ -31,7 +31,7 @@ export type ACPStruct = {
   revokerContract: AddressLike;
   scope: BigNumberish;
   contracts: AddressLike[];
-  handles: BigNumberish[];
+  handles: BytesLike[];
   sealingKey: BytesLike;
   issuerSignature: BytesLike;
   recipientSignature: BytesLike;
@@ -45,7 +45,7 @@ export type ACPStructOutput = [
   revokerContract: string,
   scope: bigint,
   contracts: string[],
-  handles: bigint[],
+  handles: string[],
   sealingKey: string,
   issuerSignature: string,
   recipientSignature: string,
@@ -57,7 +57,7 @@ export type ACPStructOutput = [
   revokerContract: string;
   scope: bigint;
   contracts: string[];
-  handles: bigint[];
+  handles: string[];
   sealingKey: string;
   issuerSignature: string;
   recipientSignature: string;
@@ -374,7 +374,7 @@ export interface MockTaskManager extends BaseContract {
 
   isAllowed: TypedContractMethod<[ctHash: BigNumberish, account: AddressLike], [boolean], 'view'>;
 
-  isAllowedWithACP: TypedContractMethod<[permission: ACPStruct, handle: BigNumberish], [boolean], 'view'>;
+  isAllowedWithACP: TypedContractMethod<[acp: ACPStruct, handle: BigNumberish], [boolean], 'view'>;
 
   isInitialized: TypedContractMethod<[], [boolean], 'view'>;
 
@@ -496,7 +496,7 @@ export interface MockTaskManager extends BaseContract {
   ): TypedContractMethod<[ctHash: BigNumberish, account: AddressLike], [boolean], 'view'>;
   getFunction(
     nameOrSignature: 'isAllowedWithACP'
-  ): TypedContractMethod<[permission: ACPStruct, handle: BigNumberish], [boolean], 'view'>;
+  ): TypedContractMethod<[acp: ACPStruct, handle: BigNumberish], [boolean], 'view'>;
   getFunction(nameOrSignature: 'isInitialized'): TypedContractMethod<[], [boolean], 'view'>;
   getFunction(nameOrSignature: 'isPubliclyAllowed'): TypedContractMethod<[ctHash: BigNumberish], [boolean], 'view'>;
   getFunction(nameOrSignature: 'logOps'): TypedContractMethod<[], [boolean], 'view'>;

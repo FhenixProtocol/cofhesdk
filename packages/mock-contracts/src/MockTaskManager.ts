@@ -397,7 +397,7 @@ export const MockTaskManagerArtifact = {
       name: 'isAllowedWithACP',
       inputs: [
         {
-          name: 'permission',
+          name: 'acp',
           type: 'tuple',
           internalType: 'struct ACP',
           components: [
@@ -438,8 +438,8 @@ export const MockTaskManagerArtifact = {
             },
             {
               name: 'handles',
-              type: 'uint256[]',
-              internalType: 'uint256[]',
+              type: 'bytes32[]',
+              internalType: 'bytes32[]',
             },
             {
               name: 'sealingKey',

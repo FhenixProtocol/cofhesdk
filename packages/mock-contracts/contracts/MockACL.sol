@@ -330,22 +330,22 @@ contract MockACL is MockPermissioned {
   ///      `persistedAllowedPairs` (populated via FHE.allow/allowThis) —
   ///      no new data structures. Transient allowances deliberately do not
   ///      satisfy contract scope: only persisted grants count.
-  function isAllowedWithACP(ACP memory permission, uint256 handle) public view withPermission(permission) returns (bool) {
+  function isAllowedWithACP(ACP memory acp, uint256 handle) public view withPermission(acp) returns (bool) {
     // Scopes narrow the issuer's existing access, never widen it
-    if (!isAllowed(handle, permission.issuer)) return false;
+    if (!isAllowed(handle, acp.issuer)) return false;
 
-    if (permission.scope == SCOPE_GLOBAL) return true;
+    if (acp.scope == SCOPE_GLOBAL) return true;
 
-    if (permission.scope == SCOPE_CONTRACT) {
-      for (uint256 i = 0; i < permission.contracts.length; i++) {
-        if (isAllowed(handle, permission.contracts[i])) return true;
+    if (acp.scope == SCOPE_CONTRACT) {
+      for (uint256 i = 0; i < acp.contracts.length; i++) {
+        if (isAllowed(handle, acp.contracts[i])) return true;
       }
       return false;
     }
 
-    if (permission.scope == SCOPE_HANDLES) {
-      for (uint256 i = 0; i < permission.handles.length; i++) {
-        if (permission.handles[i] == handle) return true;
+    if (acp.scope == SCOPE_HANDLES) {
+      for (uint256 i = 0; i < acp.handles.length; i++) {
+        if (acp.handles[i] == bytes32(handle)) return true;
       }
       return false;
     }

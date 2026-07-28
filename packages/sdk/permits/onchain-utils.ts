@@ -6,7 +6,7 @@ import {
   decodeErrorResult,
   parseAbi,
 } from 'viem';
-import type { EIP712Domain, Permission } from './types';
+import type { EIP712Domain, ACPPublic } from './types';
 import { TASK_MANAGER_ADDRESS } from '../core/consts.js';
 
 export const getAclAddress = async (publicClient: PublicClient): Promise<Hex> => {
@@ -53,10 +53,7 @@ export const getAclEIP712Domain = async (publicClient: PublicClient): Promise<EI
   };
 };
 
-export const checkPermitValidityOnChain = async (
-  permission: Permission,
-  publicClient: PublicClient
-): Promise<boolean> => {
+export const checkPermitValidityOnChain = async (acp: ACPPublic, publicClient: PublicClient): Promise<boolean> => {
   const aclAddress = await getAclAddress(publicClient);
 
   // Check if the permit is valid (structure: expiration / signatures / revocation)
@@ -67,17 +64,17 @@ export const checkPermitValidityOnChain = async (
       functionName: 'checkPermissionValidity',
       args: [
         {
-          issuer: permission.issuer,
-          expiration: BigInt(permission.expiration),
-          recipient: permission.recipient,
-          revokerData: BigInt(permission.revokerData),
-          revokerContract: permission.revokerContract,
-          scope: permission.scope,
-          contracts: permission.contracts,
-          handles: permission.handles,
-          sealingKey: permission.sealingKey,
-          issuerSignature: permission.issuerSignature,
-          recipientSignature: permission.recipientSignature,
+          issuer: acp.issuer,
+          expiration: BigInt(acp.expiration),
+          recipient: acp.recipient,
+          revokerData: BigInt(acp.revokerData),
+          revokerContract: acp.revokerContract,
+          scope: acp.scope,
+          contracts: acp.contracts,
+          handles: acp.handles,
+          sealingKey: acp.sealingKey,
+          issuerSignature: acp.issuerSignature,
+          recipientSignature: acp.recipientSignature,
         },
       ],
     });
@@ -149,7 +146,7 @@ const checkPermitValidityAbi = [
     name: 'checkPermissionValidity',
     inputs: [
       {
-        name: 'permission',
+        name: 'acp',
         type: 'tuple',
         internalType: 'struct ACP',
         components: [
@@ -190,8 +187,8 @@ const checkPermitValidityAbi = [
           },
           {
             name: 'handles',
-            type: 'uint256[]',
-            internalType: 'uint256[]',
+            type: 'bytes32[]',
+            internalType: 'bytes32[]',
           },
           {
             name: 'sealingKey',

@@ -1,6 +1,5 @@
 import { CofheError, CofheErrorCode } from '../error';
 import { parseSignature, serializeSignature } from 'viem';
-import type { Permission } from '../../permits/types';
 
 export function normalizeTnSignature(signature: unknown): `0x${string}` {
   if (typeof signature !== 'string') {
@@ -63,21 +62,4 @@ export function parseDecryptedBytesToBigInt(decrypted: unknown): bigint {
   }
 
   return BigInt(`0x${hex}`);
-}
-
-/**
- * Wire shape of an ACP as sent to the threshold network.
- *
- * Identical to `Permission` except `handles`, which the backend deserializes as
- * `Vec<String>` — and which `JSON.stringify` cannot encode as bigint anyway.
- */
-export type WirePermission = Omit<Permission, 'handles'> & { handles: string[] };
-
-/** Encode an ACP for the threshold-network HTTP API (handles as decimal strings). */
-export function toWirePermission(permission: Permission): WirePermission {
-  return {
-    ...permission,
-    // tolerate a permission that predates the scope fields — an absent list is an empty one
-    handles: (permission.handles ?? []).map((h) => h.toString()),
-  };
 }

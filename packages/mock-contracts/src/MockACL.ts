@@ -168,7 +168,7 @@ export const MockACLArtifact = {
       name: 'checkPermissionValidity',
       inputs: [
         {
-          name: 'permission',
+          name: 'acp',
           type: 'tuple',
           internalType: 'struct ACP',
           components: [
@@ -209,8 +209,8 @@ export const MockACLArtifact = {
             },
             {
               name: 'handles',
-              type: 'uint256[]',
-              internalType: 'uint256[]',
+              type: 'bytes32[]',
+              internalType: 'bytes32[]',
             },
             {
               name: 'sealingKey',
@@ -432,7 +432,7 @@ export const MockACLArtifact = {
       name: 'isAllowedWithACP',
       inputs: [
         {
-          name: 'permission',
+          name: 'acp',
           type: 'tuple',
           internalType: 'struct ACP',
           components: [
@@ -473,8 +473,8 @@ export const MockACLArtifact = {
             },
             {
               name: 'handles',
-              type: 'uint256[]',
-              internalType: 'uint256[]',
+              type: 'bytes32[]',
+              internalType: 'bytes32[]',
             },
             {
               name: 'sealingKey',

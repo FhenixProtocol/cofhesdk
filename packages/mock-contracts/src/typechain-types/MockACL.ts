@@ -31,7 +31,7 @@ export type ACPStruct = {
   revokerContract: AddressLike;
   scope: BigNumberish;
   contracts: AddressLike[];
-  handles: BigNumberish[];
+  handles: BytesLike[];
   sealingKey: BytesLike;
   issuerSignature: BytesLike;
   recipientSignature: BytesLike;
@@ -45,7 +45,7 @@ export type ACPStructOutput = [
   revokerContract: string,
   scope: bigint,
   contracts: string[],
-  handles: bigint[],
+  handles: string[],
   sealingKey: string,
   issuerSignature: string,
   recipientSignature: string,
@@ -57,7 +57,7 @@ export type ACPStructOutput = [
   revokerContract: string;
   scope: bigint;
   contracts: string[];
-  handles: bigint[];
+  handles: string[];
   sealingKey: string;
   issuerSignature: string;
   recipientSignature: string;
@@ -231,7 +231,7 @@ export interface MockACL extends BaseContract {
 
   allowedTransient: TypedContractMethod<[handle: BigNumberish, account: AddressLike], [boolean], 'view'>;
 
-  checkPermissionValidity: TypedContractMethod<[permission: ACPStruct], [boolean], 'view'>;
+  checkPermissionValidity: TypedContractMethod<[acp: ACPStruct], [boolean], 'view'>;
 
   cleanTransientStorage: TypedContractMethod<[], [void], 'nonpayable'>;
 
@@ -267,7 +267,7 @@ export interface MockACL extends BaseContract {
 
   isAllowedForDecryption: TypedContractMethod<[handle: BigNumberish], [boolean], 'view'>;
 
-  isAllowedWithACP: TypedContractMethod<[permission: ACPStruct, handle: BigNumberish], [boolean], 'view'>;
+  isAllowedWithACP: TypedContractMethod<[acp: ACPStruct, handle: BigNumberish], [boolean], 'view'>;
 
   persistAllowed: TypedContractMethod<[handle: BigNumberish, account: AddressLike], [boolean], 'view'>;
 
@@ -296,9 +296,7 @@ export interface MockACL extends BaseContract {
   getFunction(
     nameOrSignature: 'allowedTransient'
   ): TypedContractMethod<[handle: BigNumberish, account: AddressLike], [boolean], 'view'>;
-  getFunction(
-    nameOrSignature: 'checkPermissionValidity'
-  ): TypedContractMethod<[permission: ACPStruct], [boolean], 'view'>;
+  getFunction(nameOrSignature: 'checkPermissionValidity'): TypedContractMethod<[acp: ACPStruct], [boolean], 'view'>;
   getFunction(nameOrSignature: 'cleanTransientStorage'): TypedContractMethod<[], [void], 'nonpayable'>;
   getFunction(
     nameOrSignature: 'delegateAccount'
@@ -331,7 +329,7 @@ export interface MockACL extends BaseContract {
   ): TypedContractMethod<[handle: BigNumberish], [boolean], 'view'>;
   getFunction(
     nameOrSignature: 'isAllowedWithACP'
-  ): TypedContractMethod<[permission: ACPStruct, handle: BigNumberish], [boolean], 'view'>;
+  ): TypedContractMethod<[acp: ACPStruct, handle: BigNumberish], [boolean], 'view'>;
   getFunction(
     nameOrSignature: 'persistAllowed'
   ): TypedContractMethod<[handle: BigNumberish, account: AddressLike], [boolean], 'view'>;

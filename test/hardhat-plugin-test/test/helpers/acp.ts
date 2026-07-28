@@ -20,7 +20,7 @@ export const TYPES_ISSUER_SELF = {
     { name: 'revokerContract', type: 'address' },
     { name: 'scope', type: 'uint8' },
     { name: 'contracts', type: 'address[]' },
-    { name: 'handles', type: 'uint256[]' },
+    { name: 'handles', type: 'bytes32[]' },
     { name: 'sealingKey', type: 'bytes32' },
   ],
 };
@@ -34,7 +34,7 @@ export const TYPES_ISSUER_SHARED = {
     { name: 'revokerContract', type: 'address' },
     { name: 'scope', type: 'uint8' },
     { name: 'contracts', type: 'address[]' },
-    { name: 'handles', type: 'uint256[]' },
+    { name: 'handles', type: 'bytes32[]' },
   ],
 };
 
@@ -53,7 +53,7 @@ export type ACP = {
   revokerContract: string;
   scope: number;
   contracts: string[];
-  handles: bigint[];
+  handles: string[];
   sealingKey: string;
   issuerSignature: string;
   recipientSignature: string;

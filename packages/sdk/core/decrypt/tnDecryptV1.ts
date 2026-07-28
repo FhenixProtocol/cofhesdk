@@ -1,12 +1,7 @@
-import { type Permission } from '@/permits';
+import { type ACPPublic } from '@/permits';
 
 import { CofheError, CofheErrorCode } from '../error';
-import {
-  normalizeTnSignature,
-  parseDecryptedBytesToBigInt,
-  toWirePermission,
-  type WirePermission,
-} from './tnDecryptUtils';
+import { normalizeTnSignature, parseDecryptedBytesToBigInt } from './tnDecryptUtils';
 
 type TnDecryptResponseV1 = {
   // TN returns bytes in big-endian order, e.g. [0,0,0,42]
@@ -73,20 +68,20 @@ function assertTnDecryptResponseV1(value: unknown): TnDecryptResponseV1 {
 export async function tnDecryptV1(
   ctHash: bigint | string,
   chainId: number,
-  permission: Permission | null,
+  acp: ACPPublic | null,
   thresholdNetworkUrl: string
 ): Promise<{ decryptedValue: bigint; signature: `0x${string}` }> {
   const body: {
     ct_tempkey: string;
     host_chain_id: number;
-    permit?: WirePermission;
+    permit?: ACPPublic;
   } = {
     ct_tempkey: BigInt(ctHash).toString(16).padStart(64, '0'),
     host_chain_id: chainId,
   };
 
-  if (permission) {
-    body.permit = toWirePermission(permission);
+  if (acp) {
+    body.permit = acp;
   }
 
   let response: Response;

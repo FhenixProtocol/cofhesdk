@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { getAddress, isAddress, isHex, zeroAddress, type Hex } from 'viem';
-import type { Permit, ValidationResult } from './types.js';
+import type { ACP, ValidationResult } from './types.js';
 
 const SerializedSealingPair = z.object({
   privateKey: z.string(),
@@ -33,9 +33,9 @@ export const bytesNotEmptySchema = bytesSchema.refine((val) => val !== '0x', {
 
 const DEFAULT_EXPIRATION_FN = () => Math.round(Date.now() / 1000) + 7 * 24 * 60 * 60; // 7 days from now
 
-/** (scope) ciphertext handles — accepts bigint / int / decimal string (JSON transport), normalizes to bigint */
+/** (scope) ciphertext handles — bytes32 hex strings */
 export const handlesSchema = z
-  .array(z.union([z.bigint(), z.int(), z.string().regex(/^\d+$/, 'Invalid handle')]).transform((v) => BigInt(v)))
+  .array(z.string().regex(/^0x[0-9a-fA-F]{64}$/, 'Invalid handle: expected 32-byte hex') as z.ZodType<Hex>)
   .optional()
   .default([]);
 
@@ -60,7 +60,7 @@ const SCOPE_CONTRACT = 1;
 const SCOPE_HANDLES = 2;
 
 const ScopeConsistencyRefinement = [
-  (data: { scope: number; contracts: Hex[]; handles: bigint[] }) =>
+  (data: { scope: number; contracts: Hex[]; handles: Hex[] }) =>
     (data.scope === SCOPE_GLOBAL && data.contracts.length === 0 && data.handles.length === 0) ||
     (data.scope === SCOPE_CONTRACT && data.contracts.length > 0 && data.handles.length === 0) ||
     (data.scope === SCOPE_HANDLES && data.handles.length > 0 && data.contracts.length === 0),
@@ -71,14 +71,14 @@ const ScopeConsistencyRefinement = [
   },
 ] as const;
 
-const withDerivedScope = <T extends { scope?: number; contracts: Hex[]; handles: bigint[] }>(data: T) => ({
+const withDerivedScope = <T extends { scope?: number; contracts: Hex[]; handles: Hex[] }>(data: T) => ({
   ...data,
   scope:
     data.scope ?? (data.contracts.length > 0 ? SCOPE_CONTRACT : data.handles.length > 0 ? SCOPE_HANDLES : SCOPE_GLOBAL),
 });
 
 const zPermitWithDefaults = z.object({
-  name: z.string().optional().default('Unnamed Permit'),
+  name: z.string().optional().default('Unnamed ACP'),
   type: z.enum(['self', 'sharing', 'recipient']),
   issuer: addressNotZeroSchema,
   expiration: z.int().optional().default(DEFAULT_EXPIRATION_FN),
@@ -108,7 +108,7 @@ const ExternalValidatorRefinement = [
     (data.revokerData !== 0 && data.revokerContract !== zeroAddress) ||
     (data.revokerData === 0 && data.revokerContract === zeroAddress),
   {
-    error: 'Permit external validator :: revokerData and revokerContract must either both be set or both be unset.',
+    error: 'ACP external validator :: revokerData and revokerContract must either both be set or both be unset.',
     path: ['revokerData', 'revokerContract'] as string[],
   },
 ] as const;
@@ -135,7 +135,7 @@ export const SelfPermitOptionsValidator = z
   .object({
     type: z.literal('self').optional().default('self'),
     issuer: addressNotZeroSchema,
-    name: z.string().optional().default('Unnamed Permit'),
+    name: z.string().optional().default('Unnamed ACP'),
     expiration: z.int().optional().default(DEFAULT_EXPIRATION_FN),
     recipient: addressSchema.optional().default(zeroAddress),
     revokerData: z.int().optional().default(0),
@@ -180,7 +180,7 @@ export const SharingPermitOptionsValidator = z
     type: z.literal('sharing').optional().default('sharing'),
     issuer: addressNotZeroSchema,
     recipient: addressNotZeroSchema,
-    name: z.string().optional().default('Unnamed Permit'),
+    name: z.string().optional().default('Unnamed ACP'),
     expiration: z.int().optional().default(DEFAULT_EXPIRATION_FN),
     revokerData: z.int().optional().default(0),
     revokerContract: addressSchema.optional().default(zeroAddress),
@@ -225,7 +225,7 @@ export const ImportPermitOptionsValidator = z
     type: z.literal('recipient').optional().default('recipient'),
     issuer: addressNotZeroSchema,
     recipient: addressNotZeroSchema,
-    name: z.string().optional().default('Unnamed Permit'),
+    name: z.string().optional().default('Unnamed ACP'),
     expiration: z.int(),
     revokerData: z.int().optional().default(0),
     revokerContract: addressSchema.optional().default(zeroAddress),
@@ -317,14 +317,14 @@ export const ValidationUtils = {
   /**
    * Check if permit is expired
    */
-  isExpired: (permit: Permit): boolean => {
+  isExpired: (permit: ACP): boolean => {
     return permit.expiration < Math.floor(Date.now() / 1000);
   },
 
   /**
    * Check if permit is signed by the active party
    */
-  isSigned: (permit: Permit): boolean => {
+  isSigned: (permit: ACP): boolean => {
     if (permit.type === 'self' || permit.type === 'sharing') {
       return permit.issuerSignature !== '0x';
     }
@@ -337,7 +337,7 @@ export const ValidationUtils = {
   /**
    * Checks that a permit is signed and not expired.
    */
-  isSignedAndNotExpired: (permit: Permit): ValidationResult => {
+  isSignedAndNotExpired: (permit: ACP): ValidationResult => {
     if (ValidationUtils.isExpired(permit)) {
       return { valid: false, error: 'expired' };
     }
@@ -351,25 +351,25 @@ export const ValidationUtils = {
    * Asserts that a permit is signed and not expired.
    *
    * Throws `Error` with message:
-   * - `Permit is expired`
-   * - `Permit is not signed`
+   * - `ACP is expired`
+   * - `ACP is not signed`
    */
-  assertSignedAndNotExpired: (permit: Permit): void => {
+  assertSignedAndNotExpired: (permit: ACP): void => {
     const result = ValidationUtils.isSignedAndNotExpired(permit);
     if (result.valid) return;
 
     if (result.error === 'expired') {
-      throw new Error('Permit is expired');
+      throw new Error('ACP is expired');
     }
     if (result.error === 'not-signed') {
-      throw new Error('Permit is not signed');
+      throw new Error('ACP is not signed');
     }
 
     // Should be unreachable, but keeps this future-proof.
-    throw new Error('Permit is invalid');
+    throw new Error('ACP is invalid');
   },
 
-  isValid: (permit: Permit): ValidationResult => {
+  isValid: (permit: ACP): ValidationResult => {
     const schema =
       permit.type === 'self'
         ? SelfPermitValidator
