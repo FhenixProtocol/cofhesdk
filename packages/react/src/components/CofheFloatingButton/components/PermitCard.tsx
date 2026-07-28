@@ -71,14 +71,14 @@ export const BasePermitCard: React.FC<{ permit: Permit; className?: string; head
               <br />
             </>
           )}
-          {permit.validatorContract != null && permit.validatorContract !== zeroAddress && (
+          {permit.revokerContract != null && permit.revokerContract !== zeroAddress && (
             <>
-              Validator:
+              Revoker:
               <br />
-              {'  '}Contract: <b>{truncateAddress(permit.validatorContract, 6, 6)}</b>{' '}
-              <CopyButton hash={permit.validatorContract} />
+              {'  '}Contract: <b>{truncateAddress(permit.revokerContract, 6, 6)}</b>{' '}
+              <CopyButton hash={permit.revokerContract} />
               <br />
-              {'  '}ID: <b>{permit.validatorId}</b>
+              {'  '}Data: <b>{permit.revokerData}</b>
               <br />
             </>
           )}

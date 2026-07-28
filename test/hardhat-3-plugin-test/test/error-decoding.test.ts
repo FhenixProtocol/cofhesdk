@@ -30,8 +30,11 @@ describe('Error Decoding', async () => {
       issuer: '0x0000000000000000000000000000000000000000' as `0x${string}`,
       expiration: 0n,
       recipient: '0x0000000000000000000000000000000000000000' as `0x${string}`,
-      validatorId: 0n,
-      validatorContract: '0x0000000000000000000000000000000000000000' as `0x${string}`,
+      revokerData: 0n,
+      revokerContract: '0x0000000000000000000000000000000000000000' as `0x${string}`,
+      scope: 0,
+      contracts: [],
+      handles: [],
       sealingKey: '0x0000000000000000000000000000000000000000000000000000000000000000' as `0x${string}`,
       issuerSignature: '0x' as `0x${string}`,
       recipientSignature: '0x' as `0x${string}`,
@@ -41,7 +44,7 @@ describe('Error Decoding', async () => {
     try {
       await publicClient.readContract({
         ...acl,
-        functionName: 'checkPermitValidity',
+        functionName: 'checkPermissionValidity',
         args: [expiredPermission],
       });
     } catch (e) {
