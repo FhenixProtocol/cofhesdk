@@ -7,6 +7,7 @@ export type {
   SerializedPermit,
   PermitMetadata,
   ACPPublic,
+  SharedACP,
   EIP712Domain,
   EIP712Types,
   EIP712Message,

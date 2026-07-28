@@ -409,7 +409,12 @@ describe('ACPUtils Tests', () => {
       expect(parsed.name).toBe('Test ACP');
       expect(parsed.issuer).toBe(bobAddress);
       expect(parsed).not.toHaveProperty('sealingPrivateKey');
-      expect(parsed).not.toHaveProperty('issuerSignature');
+      expect(parsed).not.toHaveProperty('hash');
+      // fixed SharedACP shape: every public field is always present
+      expect(parsed.issuerSignature).toBe('0x');
+      expect(parsed.scope).toBe(0);
+      expect(parsed.contracts).toEqual([]);
+      expect(parsed.handles).toEqual([]);
     });
 
     it('should export sharing permit data with recipient and issuerSignature', async () => {
