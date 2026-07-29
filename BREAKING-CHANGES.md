@@ -64,7 +64,7 @@ interface ACPPublic {
 type ACP = ACPPrivate & ACPPublic;
 ```
 
-- The sealing keypair is flattened to two hex fields — the `SealingKey` class is no longer part of the type surface.
+- The sealing keypair is flattened to two hex fields. The `SealingKey` class is **removed** — `GenerateSealingKey()` returns a plain `SealingKeyPair { privateKey: Hex; publicKey: Hex }`, and `seal()` / `unsealWithPrivateKey()` are standalone functions.
 - An ACP is plain JSON-serializable: `SerializedPermit = ACP` (no serialize/deserialize special-casing).
 - `handles` are **bytes32 hex strings** (`0x` + 64 hex chars), not `bigint`s.
 
@@ -105,6 +105,11 @@ The permit object sent to the decryption backend changed keys:
 
 - Permit store version bumped to 3. Older stored permits are wiped on load — they were signed with retired EIP-712 types and cannot verify anyway. Users re-create on next use.
 - The exported share JSON uses `scope` / `revokerData` / `revokerContract` keys.
+
+## Sharing export
+
+- `ACPUtils.export()` returns a fixed `SharedACP` shape: every public field always present (zero-values instead of omissions), aligned with `ACPPublic` and the on-chain sharing payload.
+- `export()` **throws** for non-sharing permits (the payload includes the issuer signature) and for unsigned sharing permits (the recipient could not import them anyway).
 
 ## Not (yet) changed
 
