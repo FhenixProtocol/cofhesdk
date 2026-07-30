@@ -685,7 +685,6 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   }
 
   /// @notice ACP scope-checked access, forwarded to the ACL.
-  /// Keeps the pre-ACP name — the TaskManager itself is deliberately untouched by the ACP wave.
   function isAllowedWithPermission(ACP memory acp, uint256 handle) public view returns (bool) {
     return acl.isAllowedWithACP(acp, handle);
   }
