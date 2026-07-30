@@ -40,9 +40,9 @@ export function normalize404RetryTimeoutMs(params: {
 }
 
 /**
- * Classifies a submit (POST) response into: bodyless-retryable 204, a 404 whose parsed body
- * reports `ct_not_found` (still-indexing ciphertext — retryable under the 404 retry budget),
- * a 200 to be JSON-parsed, or a fatal error carrying the mapped CofheErrorCode.
+ * Classifies a submit (POST) response into: bodyless-retryable 204, any 404 (still-indexing /
+ * not-found — retryable under the 404 retry budget), a 200 to be JSON-parsed, or a fatal error
+ * carrying the mapped CofheErrorCode.
  */
 export async function classifySubmitResponse(params: {
   response: Response;

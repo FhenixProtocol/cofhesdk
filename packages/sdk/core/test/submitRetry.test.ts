@@ -49,7 +49,7 @@ describe('classifySubmitResponse', () => {
     expect(result).toEqual({ kind: 'retryable', status: 404, apiErrorMessage: 'ciphertext not indexed yet' });
   });
 
-  it('classifies 404 with a different error code as fatal', async () => {
+  it('classifies 404 with a different error code as retryable', async () => {
     const response = makeResponse({
       ok: false,
       status: 404,
@@ -59,15 +59,13 @@ describe('classifySubmitResponse', () => {
     const result = await classifySubmitResponse({ response, fallbackErrorCode: CofheErrorCode.DecryptFailed });
 
     expect(result).toEqual({
-      kind: 'fatal-http',
+      kind: 'retryable',
       status: 404,
-      cofheErrorCode: CofheErrorCode.PermitDenied,
-      apiErrorCode: 'permit_denied',
-      errorMessage: 'permit was rejected',
+      apiErrorMessage: 'permit was rejected',
     });
   });
 
-  it('classifies 404 with an unparsable body as fatal', async () => {
+  it('classifies 404 with an unparsable body as retryable', async () => {
     const response = makeResponse({
       ok: false,
       status: 404,
@@ -80,11 +78,9 @@ describe('classifySubmitResponse', () => {
     const result = await classifySubmitResponse({ response, fallbackErrorCode: CofheErrorCode.DecryptFailed });
 
     expect(result).toEqual({
-      kind: 'fatal-http',
+      kind: 'retryable',
       status: 404,
-      cofheErrorCode: CofheErrorCode.DecryptFailed,
-      apiErrorCode: undefined,
-      errorMessage: 'Not Found',
+      apiErrorMessage: 'Not Found',
     });
   });
 

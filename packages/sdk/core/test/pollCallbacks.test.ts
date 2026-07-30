@@ -302,7 +302,7 @@ describe('decrypt polling callbacks', () => {
     await rejection;
   });
 
-  it('tnDecryptV2 fails immediately on a 404 that is not ct_not_found', async () => {
+  it('tnDecryptV2 retries any 404 and times out with the last error message', async () => {
     const fetchMock = vi.fn(async (url: string, options?: any) => {
       if (url === `${thresholdNetworkUrl}/v2/decrypt` && options?.method === 'POST') {
         return makeMockResponse({
@@ -325,13 +325,14 @@ describe('decrypt polling callbacks', () => {
       thresholdNetworkUrl,
     });
 
-    await expect(promise).rejects.toMatchObject({
-      code: CofheErrorCode.PermitDenied,
-      apiErrorCode: 'permit_denied',
-      message: 'decrypt request failed: permit was rejected',
+    const rejection = expect(promise).rejects.toMatchObject({
+      code: CofheErrorCode.CtNotFound,
+      apiErrorCode: 'ct_not_found',
+      message: 'decrypt ciphertext not found after retrying for 10000ms: permit was rejected',
     });
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(11_000);
+    await rejection;
   });
 
   it('tnDecryptV2 returns immediately when submit responds with cached completed payload', async () => {
@@ -721,7 +722,7 @@ describe('decrypt polling callbacks', () => {
     await rejection;
   });
 
-  it('tnSealOutputV2 fails immediately on a 404 that is not ct_not_found', async () => {
+  it('tnSealOutputV2 retries any 404 and times out with the last error message', async () => {
     const fetchMock = vi.fn(async (url: string, options?: any) => {
       if (url === `${thresholdNetworkUrl}/v2/sealoutput` && options?.method === 'POST') {
         return makeMockResponse({
@@ -744,13 +745,14 @@ describe('decrypt polling callbacks', () => {
       thresholdNetworkUrl,
     });
 
-    await expect(promise).rejects.toMatchObject({
-      code: CofheErrorCode.PermitDenied,
-      apiErrorCode: 'permit_denied',
-      message: 'sealOutput request failed: permit was rejected',
+    const rejection = expect(promise).rejects.toMatchObject({
+      code: CofheErrorCode.CtNotFound,
+      apiErrorCode: 'ct_not_found',
+      message: 'sealOutput ciphertext not found after retrying for 10000ms: permit was rejected',
     });
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(11_000);
+    await rejection;
   });
 
   it('tnSealOutputV2 returns immediately when submit responds with cached completed payload', async () => {
