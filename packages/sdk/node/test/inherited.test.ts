@@ -94,14 +94,15 @@ describe('@cofhe/node - Inherited Client Tests', () => {
 
       const encrypted = await cofheClient.encryptInputs([Encryptable.uint128(100n)]).execute();
 
+      // [hash, signature] - one hash per input, followed by the shared batch signature.
       expect(encrypted).toBeDefined();
-      expect(encrypted.length).toBe(1);
-      expect(encrypted[0].utype).toBe(FheTypes.Uint128);
-      expect(encrypted[0].ctHash).toBeDefined();
-      expect(typeof encrypted[0].ctHash).toBe('bigint');
-      expect(encrypted[0].signature).toBeDefined();
-      expect(typeof encrypted[0].signature).toBe('string');
-      expect(encrypted[0].securityZone).toBe(0);
+      expect(encrypted.length).toBe(2);
+
+      const [hash, signature] = encrypted;
+      expect(typeof hash).toBe('string');
+      expect(hash).toMatch(/^0x[0-9a-fA-F]+$/);
+      expect(typeof signature).toBe('string');
+      expect(signature).toMatch(/^0x[0-9a-fA-F]+$/);
     }, 60000);
   });
 

@@ -111,43 +111,6 @@ export type EncryptedNumber = {
   securityZone: number;
 };
 
-export type EncryptedItemInput = {
-  ctHash: bigint;
-  securityZone: number;
-  utype: FheTypes;
-  signature: `0x${string}`;
-};
-
-export function assertCorrectEncryptedItemInput(input: EncryptedItemInput): asserts input is EncryptedItemInput {
-  if (!input.signature.startsWith('0x')) throw new Error('Signature must be a hex string starting with 0x');
-}
-
-export type EncryptedBoolInput = EncryptedItemInput & {
-  utype: FheTypes.Bool;
-};
-export type EncryptedUint8Input = EncryptedItemInput & {
-  utype: FheTypes.Uint8;
-};
-export type EncryptedUint16Input = EncryptedItemInput & {
-  utype: FheTypes.Uint16;
-};
-export type EncryptedUint32Input = EncryptedItemInput & {
-  utype: FheTypes.Uint32;
-};
-export type EncryptedUint64Input = EncryptedItemInput & {
-  utype: FheTypes.Uint64;
-};
-export type EncryptedUint128Input = EncryptedItemInput & {
-  utype: FheTypes.Uint128;
-};
-// [U256-DISABLED]
-// export type EncryptedUint256Input = EncryptedItemInput & {
-//   utype: FheTypes.Uint256;
-// };
-export type EncryptedAddressInput = EncryptedItemInput & {
-  utype: FheTypes.Uint160;
-};
-
 export type EncryptableBase<U extends FheTypes, D> = {
   data: D;
   securityZone: number;
@@ -321,34 +284,6 @@ export type EncryptableItemByFheType<T extends FheTypes> = T extends FheTypes.Bo
               ? EncryptableAddress
               : never;
 
-// COFHE Encrypt
-export type EncryptableToEncryptedItemInputMap<E extends EncryptableItem> = E extends EncryptableBool
-  ? EncryptedBoolInput
-  : E extends EncryptableUint8
-    ? EncryptedUint8Input
-    : E extends EncryptableUint16
-      ? EncryptedUint16Input
-      : E extends EncryptableUint32
-        ? EncryptedUint32Input
-        : E extends EncryptableUint64
-          ? EncryptedUint64Input
-          : E extends EncryptableUint128
-            ? EncryptedUint128Input
-            : // [U256-DISABLED]
-              // : E extends EncryptableUint256
-              //   ? EncryptedUint256Input
-              E extends EncryptableAddress
-              ? EncryptedAddressInput
-              : never;
-
-export type EncryptedItemInputs<T> = T extends Primitive
-  ? LiteralToPrimitive<T>
-  : T extends EncryptableItem
-    ? EncryptableToEncryptedItemInputMap<T>
-    : {
-        [K in keyof T]: EncryptedItemInputs<T[K]>;
-      };
-
 export function isEncryptableItem(value: unknown): value is EncryptableItem {
   return (
     // Is object and exists
@@ -399,7 +334,12 @@ export type ExternalUint64Hash = `0x${string}` & { readonly utype: FheTypes.Uint
 export type ExternalUint128Hash = `0x${string}` & { readonly utype: FheTypes.Uint128 };
 export type ExternalAddressHash = `0x${string}` & { readonly utype: FheTypes.Uint160 };
 
-/** Branded bytes proof blob (Solidity: bytes memory proof). */
+/**
+ * Branded batch signature (Solidity: bytes memory signature).
+ * A single ECDSA signature (65-byte r||s||v, hex-encoded) authenticating an entire batch of
+ * ciphertexts at once — it covers keccak256(h_0 || h_1 || ... || h_n), where each h_i is the
+ * per-ciphertext message hash for the corresponding ExternalItemHashes entry, in order.
+ */
 export type ExternalHashProof = `0x${string}` & { readonly _kind: 'ExternalHashProof' };
 
 /** Union of all External*Hash types — useful for utilities that operate on any hash without caring about the specific FHE type. */
@@ -414,7 +354,6 @@ export type AnyExternalHash =
 
 /**
  * Maps a single EncryptableItem to its corresponding External*Hash type.
- * Mirrors EncryptableToEncryptedItemInputMap.
  */
 export type EncryptableToExternalHashMap<E extends EncryptableItem> = E extends EncryptableBool
   ? ExternalBoolHash
@@ -441,8 +380,9 @@ export type ExternalItemHashes<T extends EncryptableItem[]> = {
 };
 
 /**
- * Return type of EncryptInputsBuilder.execute() when asHashPlusProof() is set.
- * Tuple of per-input hashes in input order, followed by a single proof blob.
+ * Return type of EncryptInputsBuilder.execute().
+ * Tuple of per-input hashes in input order, followed by the single batch signature that
+ * authenticates all of them together.
  * e.g. [Encryptable.bool(true), Encryptable.uint32(5)] → [ExternalBoolHash, ExternalUint32Hash, ExternalHashProof]
  */
 export type HashPlusProofResult<T extends EncryptableItem[]> = [...ExternalItemHashes<T>, ExternalHashProof];

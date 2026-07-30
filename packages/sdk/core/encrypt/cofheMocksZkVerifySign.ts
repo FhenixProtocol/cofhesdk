@@ -1,12 +1,10 @@
 import { type EncryptableItem, FheTypes } from '../types.js';
-import { type VerifyResult } from './zkPackProveVerify.js';
+import { type VerifyBatchResult } from './zkPackProveVerify.js';
 import {
   createWalletClient,
   http,
   encodePacked,
   keccak256,
-  hashMessage,
-  toBytes,
   type PublicClient,
   type WalletClient,
 } from 'viem';
@@ -178,55 +176,41 @@ async function insertCtHashes(items: EncryptableItemWithCtHash[], walletClient: 
 }
 
 /**
- * The mocks verify the EncryptedInputs' signature against the known proof signer account.
- * Locally, we create the proof signatures from the known proof signer account.
+ * The mocks verify a batch's signature against the known verifier signer account.
+ * Locally, we create the single batch signature from the known signer account, over
+ * keccak256(h_0 || h_1 || ... || h_n), where each h_i is the same per-item message hash
+ * used by the (legacy, single-item) on-chain digest. This is the one canonical signer
+ * implementation used by the mocks - there is no separate per-item signing path.
  */
-async function createProofSignatures(
+async function createBatchProofSignature(
   items: EncryptableItemWithCtHash[],
   securityZone: number,
   account: string
-): Promise<`0x${string}`[]> {
-  let signatures: `0x${string}`[] = [];
-
-  // Create wallet client for the encrypted input signer
-  // This wallet won't send a transaction, so gas isn't needed
-  // This wallet doesn't need to be connected to the network
-  let encInputSignerClient: WalletClient | undefined;
-
+): Promise<`0x${string}`> {
   try {
-    encInputSignerClient = createMockZkVerifierSigner();
-  } catch (err) {
-    throw new CofheError({
-      code: CofheErrorCode.ZkMocksCreateProofSignatureFailed,
-      message: `mockZkVerifySign createProofSignatures failed while creating wallet client`,
-      cause: err instanceof Error ? err : undefined,
-      context: {
-        MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY,
-      },
+    // Compute each item's per-item message hash h_i
+    const itemHashes = items.map((item) =>
+      keccak256(
+        encodePacked(
+          ['uint256', 'uint8', 'uint8', 'address', 'uint256'],
+          [BigInt(item.ctHash), item.utype, securityZone, account as `0x${string}`, BigInt(hardhat.id)]
+        )
+      )
+    );
+
+    // Fold into one batch digest: keccak256(h_0 || h_1 || ... || h_n)
+    const batchDigest = keccak256(encodePacked(itemHashes.map(() => 'bytes32' as const), itemHashes));
+
+    // Sign once for the whole batch
+    return await sign({
+      hash: batchDigest,
+      privateKey: MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY,
+      to: 'hex',
     });
-  }
-
-  try {
-    for (const item of items) {
-      // Pack the data into bytes and hash it
-      const packedData = encodePacked(
-        ['uint256', 'uint8', 'uint8', 'address', 'uint256'],
-        [BigInt(item.ctHash), item.utype, securityZone, account as `0x${string}`, BigInt(hardhat.id)]
-      );
-      const messageHash = keccak256(packedData);
-
-      const signature = await sign({
-        hash: messageHash,
-        privateKey: MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY,
-        to: 'hex',
-      });
-
-      signatures.push(signature);
-    }
   } catch (err) {
     throw new CofheError({
       code: CofheErrorCode.ZkMocksCreateProofSignatureFailed,
-      message: `mockZkVerifySign createProofSignatures failed while calling signMessage`,
+      message: `mockZkVerifySign createBatchProofSignature failed while signing the batch digest`,
       cause: err instanceof Error ? err : undefined,
       context: {
         items,
@@ -234,24 +218,12 @@ async function createProofSignatures(
       },
     });
   }
-
-  if (signatures.length !== items.length) {
-    throw new CofheError({
-      code: CofheErrorCode.ZkMocksCreateProofSignatureFailed,
-      message: `mockZkVerifySign createProofSignatures returned incorrect number of signatures`,
-      context: {
-        items,
-        securityZone,
-      },
-    });
-  }
-
-  return signatures;
 }
 
 /**
- * Transforms the encryptable items into EncryptedInputs ready to be used in a transaction on the hardhat chain.
- * The EncryptedInputs are returned in the same format as from CoFHE, and include on-chain verifiable signatures.
+ * Transforms the encryptable items into a batch-verified result ready to be used in a
+ * transaction on the hardhat chain. Mirrors the shape returned by CoFHE's `/verify-batch`:
+ * per-item ctHash/ctType, plus one shared on-chain verifiable signature for the whole batch.
  */
 export async function cofheMocksZkVerifySign(
   items: EncryptableItem[],
@@ -260,7 +232,7 @@ export async function cofheMocksZkVerifySign(
   publicClient: PublicClient,
   walletClient: WalletClient,
   zkvWalletClient: WalletClient | undefined
-): Promise<VerifyResult[]> {
+): Promise<VerifyBatchResult> {
   // Use config._internal?.zkvWalletClient if provided, otherwise use a mock zk verifier signer
   const _walletClient = zkvWalletClient ?? createMockZkVerifierSigner();
 
@@ -270,12 +242,15 @@ export async function cofheMocksZkVerifySign(
   // Insert the ctHashes into the MockZkVerifier contract
   await insertCtHashes(encryptableItems, _walletClient);
 
-  // Locally create the proof signatures from the known proof signer account
-  const signatures = await createProofSignatures(encryptableItems, securityZone, account);
+  // Locally create the single batch signature from the known signer account
+  const signature = await createBatchProofSignature(encryptableItems, securityZone, account);
 
-  // Return the ctHashes and signatures in the same format as CoFHE
-  return encryptableItems.map((item, index) => ({
-    ct_hash: item.ctHash.toString(),
-    signature: signatures[index],
-  }));
+  // Return the ctHashes/ctTypes and the batch signature, in the same shape as CoFHE's /verify-batch
+  return {
+    outputs: encryptableItems.map((item) => ({
+      ct_hash: item.ctHash.toString(),
+      ct_type: item.utype,
+    })),
+    signature,
+  };
 }

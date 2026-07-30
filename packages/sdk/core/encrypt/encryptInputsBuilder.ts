@@ -1,10 +1,11 @@
 import {
   type ZkBuilderAndCrsGenerator,
   type ZkProveWorkerFunction,
+  type VerifyBatchResult,
   zkPack,
   zkProve,
   zkProveWithWorker,
-  zkVerify,
+  zkVerifyBatch,
   constructZkPoKMetadata,
 } from './zkPackProveVerify.js';
 import { CofheError, CofheErrorCode } from '../error.js';
@@ -12,8 +13,6 @@ import {
   type EncryptStepCallbackFunction,
   EncryptStep,
   type EncryptableItem,
-  type EncryptedItemInput,
-  type EncryptedItemInputs,
   type TfheInitializer,
   type EncryptStepCallbackContext,
   type HashPlusProofResult,
@@ -48,11 +47,10 @@ type EncryptInputsBuilderParams<T extends EncryptableItem[]> = BaseBuilderParams
  * config, tfhePublicKeyDeserializer, compactPkeCrsDeserializer, and zkBuilderAndCrsGenerator are required to be set in the builder.
  */
 
-export class EncryptInputsBuilder<T extends EncryptableItem[], HPP extends boolean = false> extends BaseBuilder {
+export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuilder {
   private securityZone: number;
   private stepCallback?: EncryptStepCallbackFunction;
   private inputItems: [...T];
-  private hpp: boolean = false;
 
   private zkvWalletClient: WalletClient | undefined;
 
@@ -156,7 +154,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[], HPP extends boole
    *
    * @returns The chainable EncryptInputsBuilder instance.
    */
-  setAccount(account: string): EncryptInputsBuilder<T, HPP> {
+  setAccount(account: string): EncryptInputsBuilder<T> {
     this.account = account;
     return this;
   }
@@ -179,7 +177,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[], HPP extends boole
    *
    * @returns The chainable EncryptInputsBuilder instance.
    */
-  setChainId(chainId: number): EncryptInputsBuilder<T, HPP> {
+  setChainId(chainId: number): EncryptInputsBuilder<T> {
     this.chainId = chainId;
     return this;
   }
@@ -202,28 +200,13 @@ export class EncryptInputsBuilder<T extends EncryptableItem[], HPP extends boole
    *
    * @returns The chainable EncryptInputsBuilder instance.
    */
-  setSecurityZone(securityZone: number): EncryptInputsBuilder<T, HPP> {
+  setSecurityZone(securityZone: number): EncryptInputsBuilder<T> {
     this.securityZone = securityZone;
     return this;
   }
 
   getSecurityZone(): number {
     return this.securityZone;
-  }
-
-  /**
-   * Example:
-   * ```typescript
-   * const encrypted = await encryptInputs([Encryptable.uint128(10n)])
-   *   .asHashPlusProof()
-   *   .execute();
-   * ```
-   *
-   * @returns Chainable EncryptInputsBuilder instance that will return a HashPlusProofResult instead of an array of EncryptedItemInputs.
-   */
-  asHashPlusProof(): EncryptInputsBuilder<T, true> {
-    this.hpp = true;
-    return this as unknown as EncryptInputsBuilder<T, true>;
   }
 
   /**
@@ -240,7 +223,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[], HPP extends boole
    *
    * @returns The chainable EncryptInputsBuilder instance.
    */
-  setUseWorker(useWorker: boolean): EncryptInputsBuilder<T, HPP> {
+  setUseWorker(useWorker: boolean): EncryptInputsBuilder<T> {
     this.useWorker = useWorker;
     return this;
   }
@@ -277,7 +260,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[], HPP extends boole
    *
    * @returns The EncryptInputsBuilder instance.
    */
-  onStep(callback: EncryptStepCallbackFunction): EncryptInputsBuilder<T, HPP> {
+  onStep(callback: EncryptStepCallbackFunction): EncryptInputsBuilder<T> {
     this.stepCallback = callback;
     return this;
   }
@@ -433,7 +416,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[], HPP extends boole
    * cofheMocksInsertPackedHashes - stores the ctHashes and their plaintext values for on-chain mocking of FHE operations.
    * cofheMocksZkCreateProofSignatures - creates signatures to be included in the encrypted inputs. The signers address is known and verified in the mock contracts.
    */
-  private async mocksExecute(): Promise<[...EncryptedItemInputs<T>]> {
+  private async mocksExecute(): Promise<VerifyBatchResult> {
     this.assertAccount();
     this.assertPublicClient();
     this.assertWalletClient();
@@ -468,7 +451,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[], HPP extends boole
 
     this.fireStepStart(EncryptStep.Verify);
     await sleep(verifyDelay);
-    const signedResults = await cofheMocksZkVerifySign(
+    const result = await cofheMocksZkVerifySign(
       this.inputItems,
       this.account,
       this.securityZone,
@@ -476,21 +459,15 @@ export class EncryptInputsBuilder<T extends EncryptableItem[], HPP extends boole
       this.walletClient,
       this.zkvWalletClient
     );
-    const encryptedInputs: EncryptedItemInput[] = signedResults.map(({ ct_hash, signature }, index) => ({
-      ctHash: BigInt(ct_hash),
-      securityZone: this.securityZone,
-      utype: this.inputItems[index].utype,
-      signature,
-    }));
     this.fireStepEnd(EncryptStep.Verify, { isMocks: true, mockSleep: verifyDelay });
 
-    return encryptedInputs as [...EncryptedItemInputs<T>];
+    return result;
   }
 
   /**
    * In the production context, perform a true encryption with the CoFHE coprocessor.
    */
-  private async productionExecute(): Promise<[...EncryptedItemInputs<T>]> {
+  private async productionExecute(): Promise<VerifyBatchResult> {
     this.assertAccount();
     this.assertChainId();
 
@@ -555,32 +532,21 @@ export class EncryptInputsBuilder<T extends EncryptableItem[], HPP extends boole
 
     const zkVerifierUrl = await this.getZkVerifierUrl();
 
-    const verifyResults = await zkVerify(zkVerifierUrl, proof, this.account, this.securityZone, this.chainId);
-    // Add securityZone and utype to the verify results
-    const encryptedInputs: EncryptedItemInput[] = verifyResults.map(
-      ({ ct_hash, signature }: { ct_hash: string; signature: `0x${string}` }, index: number) => ({
-        ctHash: BigInt(ct_hash),
-        securityZone: this.securityZone,
-        utype: this.inputItems[index].utype,
-        signature,
-      })
-    );
+    const result = await zkVerifyBatch(zkVerifierUrl, proof, this.account, this.securityZone, this.chainId);
 
     this.fireStepEnd(EncryptStep.Verify);
 
-    return encryptedInputs as [...EncryptedItemInputs<T>];
+    return result;
   }
 
-  private structsToHashPlusProof(inItems: [...EncryptedItemInputs<T>]): HashPlusProofResult<T> {
-    let hashes: string[] = [];
-    let proof: string = '';
+  /**
+   * Converts a batch-verified result (per-item ctHash/ctType + one shared signature) into the
+   * tuple returned by `execute()`: per-item hashes in input order, followed by the single signature.
+   */
+  private buildBatchResult(result: VerifyBatchResult): HashPlusProofResult<T> {
+    const hashes = result.outputs.map((output) => '0x' + BigInt(output.ct_hash).toString(16).padStart(64, '0'));
 
-    for (const item of inItems) {
-      hashes.push('0x' + item.ctHash.toString(16).padStart(64, '0'));
-      proof += item.signature;
-    }
-
-    return [...hashes, proof] as unknown as HashPlusProofResult<T>;
+    return [...hashes, result.signature] as unknown as HashPlusProofResult<T>;
   }
 
   /**
@@ -602,17 +568,14 @@ export class EncryptInputsBuilder<T extends EncryptableItem[], HPP extends boole
    *
    * @returns The encrypted inputs.
    */
-  async execute(): Promise<HPP extends true ? HashPlusProofResult<T> : [...EncryptedItemInputs<T>]> {
-    type Result = HPP extends true ? HashPlusProofResult<T> : [...EncryptedItemInputs<T>];
-
-    let items: [...EncryptedItemInputs<T>];
+  async execute(): Promise<HashPlusProofResult<T>> {
+    let result: VerifyBatchResult;
 
     // On hardhat chain, interact with MockZkVerifier contract instead of CoFHE
-    if (this.chainId === hardhat.id) items = await this.mocksExecute();
+    if (this.chainId === hardhat.id) result = await this.mocksExecute();
     // On other chains, interact with CoFHE coprocessor
-    else items = await this.productionExecute();
+    else result = await this.productionExecute();
 
-    if (this.hpp) return this.structsToHashPlusProof(items) as unknown as Result;
-    return items as unknown as Result;
+    return this.buildBatchResult(result);
   }
 }

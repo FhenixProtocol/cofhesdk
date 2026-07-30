@@ -59,7 +59,7 @@ Without `evmVersion: 'cancun'`, compilation will fail with errors from `@fhenixp
 Import `FHE.sol` and use the FHE types in your contract. The key types are:
 
 - **`euint32`** — an encrypted `uint32` stored on-chain
-- **`InEuint32`** — the encrypted input type passed in from the SDK
+- **`externalEuint32`** — the encrypted input handle passed in from the SDK, authenticated by a shared `bytes` signature
 
 ```solidity [contracts/MyContract.sol]
 // SPDX-License-Identifier: UNLICENSED
@@ -70,8 +70,8 @@ import '@fhenixprotocol/cofhe-contracts/FHE.sol';
 contract MyContract {
   euint32 public storedValue;
 
-  function setValue(InEuint32 memory inValue) external {
-    storedValue = FHE.asEuint32(inValue);    // [!code focus]
+  function setValue(externalEuint32[] memory inValues, bytes memory signature) external {
+    storedValue = FHE.asEuint32s(inValues, signature)[0];    // [!code focus]
     FHE.allowThis(storedValue);               // [!code focus]
     FHE.allowSender(storedValue);             // [!code focus]
   }
@@ -103,13 +103,13 @@ describe('MyContract', () => {
     const MyContract = await hre.ethers.getContractFactory('MyContract');
     const contract = await MyContract.deploy();
 
-    // Encrypt the input
-    const [encrypted] = await cofheClient
+    // Encrypt the input: [hash, signature]
+    const [encHash, signature] = await cofheClient
       .encryptInputs([Encryptable.uint32(42n)])
       .execute();
 
     // Send to contract
-    await (await contract.setValue(encrypted)).wait();
+    await (await contract.setValue([encHash], signature)).wait();
 
     // Read the stored handle and decrypt
     const ctHash = await contract.storedValue();

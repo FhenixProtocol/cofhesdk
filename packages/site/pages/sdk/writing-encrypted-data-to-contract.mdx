@@ -5,31 +5,31 @@ description: Send encrypted inputs to on-chain functions
 
 # Writing Encrypted Data to Contract
 
-This page covers the “encrypt → write tx” flow: encrypt plaintext values into `InE*` structs and pass them directly into a contract call.
+This page covers the “encrypt → write tx” flow: encrypt plaintext values into ciphertext hashes and pass them, plus one shared signature, directly into a contract call.
 
-`encryptInputs` returns `EncryptedItemInput` objects that match the Solidity `InE*` input structs. The on-chain CoFHE library validates the verifier signature before the contract can use the ciphertext.
+`encryptInputs` returns a `[...hashes, signature]` tuple — one `external*` handle per input, followed by a single signature that authenticates the whole batch together. The on-chain CoFHE library validates that signature before the contract can use any of the ciphertexts.
 
 The flow is as follows:
 
-1. Ensure your contract function accepts encrypted `InE*` parameters.
+1. Ensure your contract function accepts `external*` handles followed by a trailing `bytes` parameter for the shared signature.
 2. Encrypt the plaintext values with [`encryptInputs`](./encrypting-inputs.mdx).
-3. Send a transaction and pass the encrypted structs as the `InE*` arguments.
+3. Send a transaction, passing the hashes and the signature as arguments.
 
 ## Prerequisites
 
 1. Create and connect a client (see the [client page](./client.mdx)).
 
-2. Your contract function must accept encrypted `InE*` structs.
+2. Your contract function must accept `external*` handles (`externalEbool`, `externalEuint32`, etc.) plus a trailing `bytes` parameter for the shared batch signature.
 
 The encrypted type you choose in JavaScript/TypeScript must match the Solidity parameter type:
 
-- `Encryptable.uint32(...)` → `InEuint32`
-- `Encryptable.bool(...)` → `InEbool`
-- `Encryptable.address(...)` → `InEaddress`
+- `Encryptable.uint32(...)` → `externalEuint32`
+- `Encryptable.bool(...)` → `externalEbool`
+- `Encryptable.address(...)` → `externalEaddress`
 
 ## Example: encrypt and call a contract
 
-The reference contract used throughout these docs is [`EncryptedCounter.sol`](/reference/encrypted-counter-sol). It exposes `setCount(InEuint32)` which is the canonical “encrypt input → send in the same transaction” flow.
+The reference contract used throughout these docs is [`EncryptedCounter.sol`](/reference/encrypted-counter-sol). It exposes `setCount(externalEuint32[], bytes)` which is the canonical “encrypt input → send in the same transaction” flow.
 
 :::note
 In `EncryptedCounter.sol`, `setCount` is `onlyOwner`, so the connected `account` must be the contract owner.
@@ -39,72 +39,12 @@ In `EncryptedCounter.sol`, `setCount` is `onlyOwner`, so the connected `account`
 
 ```solidity [Solidity]
 // From EncryptedCounter.sol (see /reference/encrypted-counter-sol)
-function setCount(InEuint32 memory _inCount) external onlyOwner {
-  count = FHE.asEuint32(_inCount);
+function setCount(externalEuint32[] memory _inCounts, bytes memory _signature) external onlyOwner {
+  count = FHE.asEuint32s(_inCounts, _signature)[0];
   FHE.allowThis(count);
   FHE.allowSender(count);
   decrypted = false;
   decryptedCount = 0;
-}
-```
-
-```ts twoslash [TypeScript]
-import { Encryptable, assertCorrectEncryptedItemInput } from '@cofhe/sdk';
-import type { CofheClient } from '@cofhe/sdk';
-import { parseAbi, type PublicClient, type WalletClient } from 'viem';
-import { sepolia } from 'viem/chains';
-
-declare const cofheClient: CofheClient;
-declare const publicClient: PublicClient;
-declare const walletClient: WalletClient;
-declare const account: `0x${string}`;
-declare const encryptedCounterAddress: `0x${string}`;
-
-const encryptedCounterAbi = parseAbi([
-  'function setCount((uint256 ctHash,uint8 securityZone,uint8 utype,bytes signature) _inCount)',
-]);
-
-// 1) Encrypt right before sending the transaction
-const [inCount] = await cofheClient
-  .encryptInputs([Encryptable.uint32(42n)])
-  .execute();
-assertCorrectEncryptedItemInput(inCount);
-
-// 2) Pass the encrypted struct as the `InE*` argument
-const hash = await walletClient.writeContract({
-  chain: sepolia,
-  account,
-  address: encryptedCounterAddress,
-  abi: encryptedCounterAbi,
-  functionName: 'setCount',
-  args: [inCount],
-});
-
-await publicClient.waitForTransactionReceipt({ hash });
-```
-
-:::
-
-## Hash plus proof
-
-Some contracts use an alternative calling convention that accepts a bare `bytes32` hash and a `bytes` proof argument instead of an `InE*` struct:
-
-```solidity
-function setValueHashPlusProof(externalEuint32 inValue, bytes calldata proof) external {
-  storedValue = FHE.asEuint32(inValue, proof);
-  FHE.allowThis(storedValue);
-}
-```
-
-For these you chain `.asHashPlusProof()` before `.execute()`. The result is `[hash, proof]` for a single input (or `[hash1, hash2, ..., proof]` for multiple):
-
-:::code-group
-
-```solidity [Solidity]
-function setValueHashPlusProof(externalEuint32 inValue, bytes calldata proof) external {
-  storedValue = FHE.asEuint32(inValue, proof);
-  FHE.allowThis(storedValue);
-  FHE.allowSender(storedValue);
 }
 ```
 
@@ -118,26 +58,25 @@ declare const cofheClient: CofheClient;
 declare const publicClient: PublicClient;
 declare const walletClient: WalletClient;
 declare const account: `0x${string}`;
-declare const contractAddress: `0x${string}`;
+declare const encryptedCounterAddress: `0x${string}`;
 
-const abi = parseAbi([
-  'function setValueHashPlusProof(bytes32 inValue, bytes proof)',
+const encryptedCounterAbi = parseAbi([
+  'function setCount(bytes32[] _inCounts, bytes _signature)',
 ]);
 
-// 1) Encrypt in hash plus proof mode
-const [encHash, encProof] = await cofheClient
+// 1) Encrypt right before sending the transaction: [hash, signature]
+const [inCountHash, signature] = await cofheClient
   .encryptInputs([Encryptable.uint32(42n)])
-  .asHashPlusProof() // [!code focus]
   .execute();
 
-// 2) Pass hash and proof as separate arguments
+// 2) Pass the hash(es) and the shared signature as separate arguments
 const hash = await walletClient.writeContract({
   chain: sepolia,
   account,
-  address: contractAddress,
-  abi,
-  functionName: 'setValueHashPlusProof',
-  args: [encHash, encProof], // [!code focus]
+  address: encryptedCounterAddress,
+  abi: encryptedCounterAbi,
+  functionName: 'setCount',
+  args: [[inCountHash], signature],
 });
 
 await publicClient.waitForTransactionReceipt({ hash });
@@ -145,9 +84,13 @@ await publicClient.waitForTransactionReceipt({ hash });
 
 :::
 
+## Automatic argument wiring with `@cofhe/abi`
+
+For contracts with a mix of plain and encrypted arguments, `@cofhe/abi`'s `extractEncryptableValues`/`insertEncryptedValues` will detect the `external*` parameters and the trailing `bytes` signature slot for you, so you can call `encryptInputs` and build the final call args from the ABI alone — see the `@cofhe/react` `useCofheEncryptAndWriteContract` hook for a ready-made version of this pattern.
+
 ## Common pitfalls
 
-- **Wrong `Encryptable` type**: the `Encryptable.*` factory must match the Solidity parameter type (`InEuint32` vs `InEuint64`, etc).
+- **Wrong `Encryptable` type**: the `Encryptable.*` factory must match the Solidity parameter type (`externalEuint32` vs `externalEuint64`, etc).
+- **Missing/misplaced signature parameter**: a contract function with `external*` inputs must end with a plain `bytes` parameter to receive the shared batch signature — the SDK and `@cofhe/abi` both rely on this convention.
 - **Wrong account / chain**: encrypted inputs are authorized for a specific `account + chainId`. If you encrypt under the wrong wallet/network, the contract call may revert.
-- **ABI struct shape mismatch**: if you hand-write an ABI, ensure the tuple fields are `(ctHash, securityZone, utype, signature)` in the same order your client library expects.
-- **Mixing formats**: do not pass a hash plus proof result to a function expecting `InE*`, or vice versa. The on-chain CoFHE library validates signature format and will revert on a mismatch.
+- **Splitting a batch**: don't reorder the hashes relative to how they were encrypted, and don't pass a subset of a batch's hashes with its signature — the signature covers the exact ordered set produced by that `execute()` call.

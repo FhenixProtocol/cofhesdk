@@ -76,10 +76,12 @@ contract CounterTest is CofheTest {
     }
 
     function test_increment() public {
-        InEuint32 memory enc = cofheClient.createInEuint32(5);
+        (externalEuint32 hash, bytes memory proof) = cofheClient.createInEuint32(5);
+        externalEuint32[] memory hashes = new externalEuint32[](1);
+        hashes[0] = hash;
 
         vm.prank(cofheClient.account());
-        counter.setNumber(enc);
+        counter.setNumberBatch(hashes, proof);
 
         expectPlaintext(counter.numberHash(), 5);
     }
@@ -116,42 +118,62 @@ contract CounterTest is CofheTest {
 
 ### Encryption
 
-All `createInE*` functions operate under security zone 0. Use the returned struct directly in contract calls.
+`CofheClient.createEncryptedInputsBatch` is the root of every encryption helper on the client —
+a whole array of ciphertexts authenticated by **one shared signature**, verified via
+`ITaskManager.batchVerifyInputs` (matching
+[`FhenixProtocol/cofhe-contracts#78`](https://github.com/FhenixProtocol/cofhe-contracts/pull/78)).
+`createInEbool`...`createInEaddress` are thin single-item wrappers over a batch of size one, not
+a separate signing scheme — every hash they return is only valid when consumed via the batch
+path (`FHE.asEuint32s([hash], signature)`, not the legacy single-item `FHE.asEuint32(hash, proof)`).
 
-| Function                    | Returns      |
-| --------------------------- | ------------ |
-| `createInEbool(bool)`       | `InEbool`    |
-| `createInEuint8(uint8)`     | `InEuint8`   |
-| `createInEuint16(uint16)`   | `InEuint16`  |
-| `createInEuint32(uint32)`   | `InEuint32`  |
-| `createInEuint64(uint64)`   | `InEuint64`  |
-| `createInEuint128(uint128)` | `InEuint128` |
-| `createInEaddress(address)` | `InEaddress` |
+| Function                    | Returns                            |
+| ---------------------------- | ----------------------------------- |
+| `createInEbool(bool)`       | `(externalEbool, bytes memory)`    |
+| `createInEuint8(uint8)`     | `(externalEuint8, bytes memory)`   |
+| `createInEuint16(uint16)`   | `(externalEuint16, bytes memory)`  |
+| `createInEuint32(uint32)`   | `(externalEuint32, bytes memory)`  |
+| `createInEuint64(uint64)`   | `(externalEuint64, bytes memory)`  |
+| `createInEuint128(uint128)` | `(externalEuint128, bytes memory)` |
+| `createInEaddress(address)` | `(externalEaddress, bytes memory)` |
 
-#### Hash plus proof variants
+Example — note the contract's entry point must accept an array (even for a single value) plus the shared signature:
 
-`CofheClient` also provides `_asHashPlusProof` equivalents for each type. These return a split `(hash, proof)` pair that matches Solidity functions accepting `externalEuint*` + `bytes proof` instead of an `InE*` struct.
+```solidity
+function testSetValue(uint32 n) public {
+    (externalEuint32 hash, bytes memory signature) = cofheClient.createInEuint32(n);
+    externalEuint32[] memory hashes = new externalEuint32[](1);
+    hashes[0] = hash;
 
-| Function                                    | Returns                            |
-| ------------------------------------------- | ---------------------------------- |
-| `createInEbool_asHashPlusProof(bool)`       | `(externalEbool, bytes memory)`    |
-| `createInEuint8_asHashPlusProof(uint8)`     | `(externalEuint8, bytes memory)`   |
-| `createInEuint16_asHashPlusProof(uint16)`   | `(externalEuint16, bytes memory)`  |
-| `createInEuint32_asHashPlusProof(uint32)`   | `(externalEuint32, bytes memory)`  |
-| `createInEuint64_asHashPlusProof(uint64)`   | `(externalEuint64, bytes memory)`  |
-| `createInEuint128_asHashPlusProof(uint128)` | `(externalEuint128, bytes memory)` |
-| `createInEaddress_asHashPlusProof(address)` | `(externalEaddress, bytes memory)` |
+    vm.prank(cofheClient.account());
+    myContract.setValueBatch(hashes, signature);
+
+    expectPlaintext(myContract.getValue(), n);
+}
+```
+
+#### Batch variants
+
+For batches of more than one ciphertext, use `createEncryptedInputsBatch` directly (mixed
+`utype`s allowed) or the typed `createEuint32sBatch` convenience wrapper.
+
+| Function                                         | Returns                              |
+| ------------------------------------------------- | ------------------------------------- |
+| `createEncryptedInputsBatch(uint8[], uint256[])` | `(BatchedEncryptedInput[], bytes memory)` — mixed utypes allowed |
+| `createEuint32sBatch(uint32[])`                   | `(externalEuint32[] memory, bytes memory)` |
 
 Example:
 
 ```solidity
-function testSetValueHashPlusProof(uint32 n) public {
-    (externalEuint32 hash, bytes memory proof) = cofheClient.createInEuint32_asHashPlusProof(n);
+function testSetValueBatch(uint32[] memory values) public {
+    (externalEuint32[] memory hashes, bytes memory signature) = cofheClient.createEuint32sBatch(values);
     vm.prank(cofheClient.account());
-    myContract.setValueHashPlusProof(hash, proof);
-    expectPlaintext(myContract.getValue(), n);
+    myContract.setValueBatch(hashes, signature);
 }
 ```
+
+This is the canonical signing path, backed by `MockZkVerifierSigner.zkVerifyBatchSign` — this
+repo's own tooling routes all encryption (including batches of size 1) through it, rather than
+maintaining a second independent signing implementation.
 
 ### Decryption
 

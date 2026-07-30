@@ -41,14 +41,19 @@ export interface ZkProveWorkerResponse {
   error?: string;
 }
 
-export type VerifyResultRaw = {
+export type VerifyBatchOutputRaw = {
   ct_hash: string;
+  ct_type: number;
+};
+
+export type VerifyBatchResultRaw = {
+  outputs: VerifyBatchOutputRaw[];
   signature: string;
   recid: number;
 };
 
-export type VerifyResult = {
-  ct_hash: string;
+export type VerifyBatchResult = {
+  outputs: VerifyBatchOutputRaw[];
   signature: `0x${string}`;
 };
 
@@ -256,13 +261,13 @@ export const constructZkPoKMetadata = (accountAddr: string, securityZone: number
   return metadata;
 };
 
-export const zkVerify = async (
+export const zkVerifyBatch = async (
   verifierUrl: string,
   serializedBytes: Uint8Array,
   address: string,
   securityZone: number,
   chainId: number
-): Promise<VerifyResult[]> => {
+): Promise<VerifyBatchResult> => {
   // Convert bytearray to hex string
   const packed_list = toHexString(serializedBytes);
 
@@ -280,7 +285,7 @@ export const zkVerify = async (
 
   // Send request to verification server
   try {
-    const response = await fetch(`${verifierUrl}/verify`, {
+    const response = await fetch(`${verifierUrl}/verify-batch`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -293,34 +298,34 @@ export const zkVerify = async (
       const errorBody = await response.text();
       throw new CofheError({
         code: CofheErrorCode.ZkVerifyFailed,
-        message: `HTTP error! ZK proof verification failed - ${errorBody}`,
+        message: `HTTP error! ZK batch proof verification failed - ${errorBody}`,
       });
     }
 
-    const json = (await response.json()) as { status: string; data: VerifyResultRaw[]; error: string };
+    const json = (await response.json()) as { status: string; data: VerifyBatchResultRaw; error: string };
 
     if (json.status !== 'success') {
       throw new CofheError({
         code: CofheErrorCode.ZkVerifyFailed,
-        message: `ZK proof verification response malformed - ${json.error}`,
+        message: `ZK batch proof verification response malformed - ${json.error}`,
       });
     }
 
-    return json.data.map(({ ct_hash, signature, recid }) => {
-      return {
-        ct_hash,
-        signature: concatSigRecid(signature, recid),
-      };
-    });
+    const { outputs, signature, recid } = json.data;
+
+    return {
+      outputs,
+      signature: concatSigRecid(signature, recid),
+    };
   } catch (e) {
     throw new CofheError({
       code: CofheErrorCode.ZkVerifyFailed,
-      message: `ZK proof verification failed`,
+      message: `ZK batch proof verification failed`,
       cause: e instanceof Error ? e : undefined,
     });
   }
 };
 
-const concatSigRecid = (signature: string, recid: number): `0x${string}` => {
+export const concatSigRecid = (signature: string, recid: number): `0x${string}` => {
   return `${signature}${(recid + 27).toString(16).padStart(2, '0')}` as `0x${string}`;
 };

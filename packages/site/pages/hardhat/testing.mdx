@@ -47,13 +47,13 @@ import { expect } from 'chai';
 declare const cofheClient: CofheClient;
 declare const testContract: Contract;
 // ---cut---
-// 1. Encrypt the input
-const encrypted = await cofheClient
+// 1. Encrypt the input: [hash, signature]
+const [hash, signature] = await cofheClient
   .encryptInputs([Encryptable.uint32(100n)])
   .execute();
 
 // 2. Send to contract
-const tx = await testContract.setValue(encrypted[0]);
+const tx = await testContract.setValueBatch([hash], signature);
 await tx.wait();
 
 // 3. Read the stored handle

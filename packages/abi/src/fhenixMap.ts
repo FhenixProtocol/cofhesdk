@@ -1,11 +1,11 @@
 import type {
-  EncryptedAddressInput,
-  EncryptedBoolInput,
-  EncryptedUint128Input,
-  EncryptedUint16Input,
-  EncryptedUint32Input,
-  EncryptedUint64Input,
-  EncryptedUint8Input,
+  ExternalAddressHash,
+  ExternalBoolHash,
+  ExternalUint128Hash,
+  ExternalUint16Hash,
+  ExternalUint32Hash,
+  ExternalUint64Hash,
+  ExternalUint8Hash,
   FheTypes,
 } from '@cofhe/sdk';
 import type {
@@ -57,14 +57,15 @@ export type EncryptedReturnType = EBool | EUint8 | EUint16 | EUint32 | EUint64 |
 export type EncryptedReturnTypeByUtype<U extends FheTypes> = Extract<EncryptedReturnType, { utype: U }>;
 
 export type FhenixInternalTypeMap = {
-  // Input Structs
-  'struct InEbool': EncryptedBoolInput;
-  'struct InEuint8': EncryptedUint8Input;
-  'struct InEuint16': EncryptedUint16Input;
-  'struct InEuint32': EncryptedUint32Input;
-  'struct InEuint64': EncryptedUint64Input;
-  'struct InEuint128': EncryptedUint128Input;
-  'struct InEaddress': EncryptedAddressInput;
+  // Encrypted input handles (Solidity: externalEbool, externalEuint*, externalEaddress -
+  // plain bytes32-based value types, not structs)
+  externalEbool: ExternalBoolHash;
+  externalEuint8: ExternalUint8Hash;
+  externalEuint16: ExternalUint16Hash;
+  externalEuint32: ExternalUint32Hash;
+  externalEuint64: ExternalUint64Hash;
+  externalEuint128: ExternalUint128Hash;
+  externalEaddress: ExternalAddressHash;
 
   // Exposed encrypted primitives
   ebool: EBool;

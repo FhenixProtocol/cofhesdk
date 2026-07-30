@@ -142,6 +142,52 @@ export const MockTaskManagerArtifact = {
     },
     {
       type: 'function',
+      name: 'batchVerifyInputs',
+      inputs: [
+        {
+          name: 'inputs',
+          type: 'tuple[]',
+          internalType: 'struct BatchedEncryptedInput[]',
+          components: [
+            {
+              name: 'ctHash',
+              type: 'uint256',
+              internalType: 'uint256',
+            },
+            {
+              name: 'securityZone',
+              type: 'uint8',
+              internalType: 'uint8',
+            },
+            {
+              name: 'utype',
+              type: 'uint8',
+              internalType: 'uint8',
+            },
+          ],
+        },
+        {
+          name: 'sender',
+          type: 'address',
+          internalType: 'address',
+        },
+        {
+          name: 'signature',
+          type: 'bytes',
+          internalType: 'bytes',
+        },
+      ],
+      outputs: [
+        {
+          name: '',
+          type: 'uint256[]',
+          internalType: 'uint256[]',
+        },
+      ],
+      stateMutability: 'nonpayable',
+    },
+    {
+      type: 'function',
       name: 'createDecryptTask',
       inputs: [
         {
@@ -876,6 +922,11 @@ export const MockTaskManagerArtifact = {
           name: 'sender',
           type: 'address',
           internalType: 'address',
+        },
+        {
+          name: 'signature',
+          type: 'bytes',
+          internalType: 'bytes',
         },
       ],
       outputs: [

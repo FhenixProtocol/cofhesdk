@@ -25,8 +25,8 @@ contract EncryptedValueStore {
     FHE.allowSender(storedEbool);
   }
 
-  function storeEboolHashPlusProof(externalEbool hash, bytes memory proof) public {
-    storedEbool = FHE.asEbool(hash, proof);
+  function storeEboolBatch(externalEbool[] memory hashes, bytes memory signature) public {
+    storedEbool = FHE.asEbools(hashes, signature)[0];
     FHE.allowThis(storedEbool);
     FHE.allowSender(storedEbool);
   }
@@ -37,8 +37,8 @@ contract EncryptedValueStore {
     FHE.allowSender(storedEuint8);
   }
 
-  function storeEuint8HashPlusProof(externalEuint8 hash, bytes memory proof) public {
-    storedEuint8 = FHE.asEuint8(hash, proof);
+  function storeEuint8Batch(externalEuint8[] memory hashes, bytes memory signature) public {
+    storedEuint8 = FHE.asEuint8s(hashes, signature)[0];
     FHE.allowThis(storedEuint8);
     FHE.allowSender(storedEuint8);
   }
@@ -49,8 +49,8 @@ contract EncryptedValueStore {
     FHE.allowSender(storedEuint16);
   }
 
-  function storeEuint16HashPlusProof(externalEuint16 hash, bytes memory proof) public {
-    storedEuint16 = FHE.asEuint16(hash, proof);
+  function storeEuint16Batch(externalEuint16[] memory hashes, bytes memory signature) public {
+    storedEuint16 = FHE.asEuint16s(hashes, signature)[0];
     FHE.allowThis(storedEuint16);
     FHE.allowSender(storedEuint16);
   }
@@ -61,8 +61,8 @@ contract EncryptedValueStore {
     FHE.allowSender(storedEuint32);
   }
 
-  function storeEuint32HashPlusProof(externalEuint32 hash, bytes memory proof) public {
-    storedEuint32 = FHE.asEuint32(hash, proof);
+  function storeEuint32Batch(externalEuint32[] memory hashes, bytes memory signature) public {
+    storedEuint32 = FHE.asEuint32s(hashes, signature)[0];
     FHE.allowThis(storedEuint32);
     FHE.allowSender(storedEuint32);
   }
@@ -79,8 +79,8 @@ contract EncryptedValueStore {
     FHE.allowSender(storedEuint64);
   }
 
-  function storeEuint64HashPlusProof(externalEuint64 hash, bytes memory proof) public {
-    storedEuint64 = FHE.asEuint64(hash, proof);
+  function storeEuint64Batch(externalEuint64[] memory hashes, bytes memory signature) public {
+    storedEuint64 = FHE.asEuint64s(hashes, signature)[0];
     FHE.allowThis(storedEuint64);
     FHE.allowSender(storedEuint64);
   }
@@ -91,8 +91,8 @@ contract EncryptedValueStore {
     FHE.allowSender(storedEuint128);
   }
 
-  function storeEuint128HashPlusProof(externalEuint128 hash, bytes memory proof) public {
-    storedEuint128 = FHE.asEuint128(hash, proof);
+  function storeEuint128Batch(externalEuint128[] memory hashes, bytes memory signature) public {
+    storedEuint128 = FHE.asEuint128s(hashes, signature)[0];
     FHE.allowThis(storedEuint128);
     FHE.allowSender(storedEuint128);
   }
@@ -103,8 +103,8 @@ contract EncryptedValueStore {
     FHE.allowSender(storedEaddress);
   }
 
-  function storeEaddressHashPlusProof(externalEaddress hash, bytes memory proof) public {
-    storedEaddress = FHE.asEaddress(hash, proof);
+  function storeEaddressBatch(externalEaddress[] memory hashes, bytes memory signature) public {
+    storedEaddress = FHE.asEaddresses(hashes, signature)[0];
     FHE.allowThis(storedEaddress);
     FHE.allowSender(storedEaddress);
   }
@@ -316,126 +316,80 @@ contract CofheClientTest is CofheTest {
     assertEq(cofheClient.account(), vm.addr(BOB_PKEY));
   }
 
-  // --------------- createIn* ---------------
+  // --------------- createIn* (hash plus proof, batch of one) ---------------
 
   function testCreateInEbool_true() public {
-    InEbool memory input = cofheClient.createInEbool(true);
+    (externalEbool hash, bytes memory proof) = cofheClient.createInEbool(true);
+    externalEbool[] memory hashes = new externalEbool[](1);
+    hashes[0] = hash;
     vm.prank(cofheClient.account());
-    store.storeEbool(input);
+    store.storeEboolBatch(hashes, proof);
     assertTrue(getPlaintext(store.storedEbool()));
   }
 
   function testCreateInEbool_false() public {
-    InEbool memory input = cofheClient.createInEbool(false);
+    (externalEbool hash, bytes memory proof) = cofheClient.createInEbool(false);
+    externalEbool[] memory hashes = new externalEbool[](1);
+    hashes[0] = hash;
     vm.prank(cofheClient.account());
-    store.storeEbool(input);
+    store.storeEboolBatch(hashes, proof);
     assertFalse(getPlaintext(store.storedEbool()));
   }
 
   function testCreateInEuint8() public {
-    InEuint8 memory input = cofheClient.createInEuint8(42);
+    (externalEuint8 hash, bytes memory proof) = cofheClient.createInEuint8(42);
+    externalEuint8[] memory hashes = new externalEuint8[](1);
+    hashes[0] = hash;
     vm.prank(cofheClient.account());
-    store.storeEuint8(input);
+    store.storeEuint8Batch(hashes, proof);
     assertEq(getPlaintext(store.storedEuint8()), 42);
   }
 
   function testCreateInEuint16() public {
-    InEuint16 memory input = cofheClient.createInEuint16(1234);
+    (externalEuint16 hash, bytes memory proof) = cofheClient.createInEuint16(1234);
+    externalEuint16[] memory hashes = new externalEuint16[](1);
+    hashes[0] = hash;
     vm.prank(cofheClient.account());
-    store.storeEuint16(input);
+    store.storeEuint16Batch(hashes, proof);
     assertEq(getPlaintext(store.storedEuint16()), 1234);
   }
 
   function testCreateInEuint32_fuzz(uint32 n) public {
-    InEuint32 memory input = cofheClient.createInEuint32(n);
+    (externalEuint32 hash, bytes memory proof) = cofheClient.createInEuint32(n);
+    externalEuint32[] memory hashes = new externalEuint32[](1);
+    hashes[0] = hash;
     vm.prank(cofheClient.account());
-    store.storeEuint32(input);
+    store.storeEuint32Batch(hashes, proof);
     assertEq(getPlaintext(store.storedEuint32()), n);
   }
 
   function testCreateInEuint64() public {
     uint64 val = 1e18;
-    InEuint64 memory input = cofheClient.createInEuint64(val);
+    (externalEuint64 hash, bytes memory proof) = cofheClient.createInEuint64(val);
+    externalEuint64[] memory hashes = new externalEuint64[](1);
+    hashes[0] = hash;
     vm.prank(cofheClient.account());
-    store.storeEuint64(input);
+    store.storeEuint64Batch(hashes, proof);
     assertEq(getPlaintext(store.storedEuint64()), val);
   }
 
   function testCreateInEuint128() public {
     uint128 val = type(uint128).max;
-    InEuint128 memory input = cofheClient.createInEuint128(val);
+    (externalEuint128 hash, bytes memory proof) = cofheClient.createInEuint128(val);
+    externalEuint128[] memory hashes = new externalEuint128[](1);
+    hashes[0] = hash;
     vm.prank(cofheClient.account());
-    store.storeEuint128(input);
+    store.storeEuint128Batch(hashes, proof);
     assertEq(getPlaintext(store.storedEuint128()), val);
   }
 
   function testCreateInEaddress() public {
     address target = address(0xBEEFCAFE);
-    InEaddress memory input = cofheClient.createInEaddress(target);
+    (externalEaddress hash, bytes memory proof) = cofheClient.createInEaddress(target);
+    externalEaddress[] memory hashes = new externalEaddress[](1);
+    hashes[0] = hash;
     vm.prank(cofheClient.account());
-    store.storeEaddress(input);
-    assertEq(getPlaintext(store.storedEaddress()), target);
-  }
-
-  // --------------- createIn*HashPlusProof ---------------
-
-  function testCreateInEbool_asHashPlusProof_true() public {
-    (externalEbool hash, bytes memory proof) = cofheClient.createInEbool_asHashPlusProof(true);
-    vm.prank(cofheClient.account());
-    store.storeEboolHashPlusProof(hash, proof);
-    assertTrue(getPlaintext(store.storedEbool()));
-  }
-
-  function testCreateInEbool_asHashPlusProof_false() public {
-    (externalEbool hash, bytes memory proof) = cofheClient.createInEbool_asHashPlusProof(false);
-    vm.prank(cofheClient.account());
-    store.storeEboolHashPlusProof(hash, proof);
-    assertFalse(getPlaintext(store.storedEbool()));
-  }
-
-  function testCreateInEuint8_asHashPlusProof() public {
-    (externalEuint8 hash, bytes memory proof) = cofheClient.createInEuint8_asHashPlusProof(42);
-    vm.prank(cofheClient.account());
-    store.storeEuint8HashPlusProof(hash, proof);
-    assertEq(getPlaintext(store.storedEuint8()), 42);
-  }
-
-  function testCreateInEuint16_asHashPlusProof() public {
-    (externalEuint16 hash, bytes memory proof) = cofheClient.createInEuint16_asHashPlusProof(1234);
-    vm.prank(cofheClient.account());
-    store.storeEuint16HashPlusProof(hash, proof);
-    assertEq(getPlaintext(store.storedEuint16()), 1234);
-  }
-
-  function testCreateInEuint32_asHashPlusProof() public {
-    uint32 n = 42;
-    (externalEuint32 hash, bytes memory proof) = cofheClient.createInEuint32_asHashPlusProof(n);
-    vm.prank(cofheClient.account());
-    store.storeEuint32HashPlusProof(hash, proof);
-    assertEq(getPlaintext(store.storedEuint32()), n);
-  }
-
-  function testCreateInEuint64_asHashPlusProof() public {
-    uint64 val = 1e18;
-    (externalEuint64 hash, bytes memory proof) = cofheClient.createInEuint64_asHashPlusProof(val);
-    vm.prank(cofheClient.account());
-    store.storeEuint64HashPlusProof(hash, proof);
-    assertEq(getPlaintext(store.storedEuint64()), val);
-  }
-
-  function testCreateInEuint128_asHashPlusProof() public {
-    uint128 val = type(uint128).max;
-    (externalEuint128 hash, bytes memory proof) = cofheClient.createInEuint128_asHashPlusProof(val);
-    vm.prank(cofheClient.account());
-    store.storeEuint128HashPlusProof(hash, proof);
-    assertEq(getPlaintext(store.storedEuint128()), val);
-  }
-
-  function testCreateInEaddress_asHashPlusProof() public {
-    address target = address(0xBEEFCAFE);
-    (externalEaddress hash, bytes memory proof) = cofheClient.createInEaddress_asHashPlusProof(target);
-    vm.prank(cofheClient.account());
-    store.storeEaddressHashPlusProof(hash, proof);
+    store.storeEaddressBatch(hashes, proof);
     assertEq(getPlaintext(store.storedEaddress()), target);
   }
 
