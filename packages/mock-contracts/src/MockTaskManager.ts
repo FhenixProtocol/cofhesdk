@@ -394,7 +394,7 @@ export const MockTaskManagerArtifact = {
     },
     {
       type: 'function',
-      name: 'isAllowedWithACP',
+      name: 'isAllowedWithPermission',
       inputs: [
         {
           name: 'acp',

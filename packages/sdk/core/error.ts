@@ -50,7 +50,6 @@ export enum CofheErrorCode {
   PermitDenied = 'PERMIT_DENIED',
   PermitExpired = 'PERMIT_EXPIRED',
   PermitInvalid = 'PERMIT_INVALID',
-  /** ACP: the permit was explicitly revoked by its issuer (revoker `disabled()` returned true) */
   PermitRevoked = 'PERMIT_REVOKED',
   NotPubliclyAllowed = 'NOT_PUBLICLY_ALLOWED',
   CtNotFound = 'CT_NOT_FOUND',

@@ -121,7 +121,7 @@ contract MockThresholdNetwork {
     uint256 ctHash,
     ACP memory acp
   ) internal view returns (bool isAllowed, string memory error) {
-    try mockTaskManager.isAllowedWithACP(acp, ctHash) returns (bool _isAllowed) {
+    try mockTaskManager.isAllowedWithPermission(acp, ctHash) returns (bool _isAllowed) {
       isAllowed = _isAllowed;
     } catch Error(string memory reason) {
       return (false, reason);
