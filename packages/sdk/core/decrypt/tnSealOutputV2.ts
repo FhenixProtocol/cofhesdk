@@ -4,6 +4,7 @@ import { cofheFetch } from '../debug.js';
 import { CofheError, CofheErrorCode } from '../error.js';
 import { type DecryptPollCallbackFunction } from '../types.js';
 import { computeMinuteRampPollIntervalMs } from './polling.js';
+import { mapApiErrorCodeToCofheErrorCode, parseApiErrorResponseBody } from './apiError.js';
 import { classifySubmitResponse, normalize404RetryTimeoutMs, throwIfSubmitRetryTimedOut } from './submitRetry.js';
 
 // Polling configuration
@@ -147,6 +148,7 @@ async function submitSealOutputRequest(
     permit: permission,
   };
   let attemptIndex = 0;
+  let last404ApiErrorMessage: string | undefined;
 
   for (;;) {
     let response: Response;
@@ -175,17 +177,20 @@ async function submitSealOutputRequest(
       });
     }
 
-    const responseClassification = await classifySubmitResponse({ response });
+    const responseClassification = await classifySubmitResponse({
+      response,
+      fallbackErrorCode: CofheErrorCode.SealOutputFailed,
+    });
 
     if (responseClassification.kind === 'fatal-http') {
       throw new CofheError({
-        code: CofheErrorCode.SealOutputFailed,
+        code: responseClassification.cofheErrorCode,
+        apiErrorCode: responseClassification.apiErrorCode,
         message: `sealOutput request failed: ${responseClassification.errorMessage}`,
         hint: 'Check the threshold network URL and request parameters.',
         context: {
           thresholdNetworkUrl,
-          status: response.status,
-          statusText: response.statusText,
+          status: responseClassification.status,
           body,
           attemptIndex,
         },
@@ -236,6 +241,10 @@ async function submitSealOutputRequest(
       });
     }
 
+    if (responseClassification.status === 404) {
+      last404ApiErrorMessage = responseClassification.apiErrorMessage;
+    }
+
     const elapsedMs = Date.now() - overallStartTime;
 
     throwIfSubmitRetryTimedOut({
@@ -248,6 +257,7 @@ async function submitSealOutputRequest(
       thresholdNetworkUrl,
       body,
       attemptIndex,
+      lastKnownErrorMessage: last404ApiErrorMessage,
     });
 
     onPoll?.({
@@ -344,16 +354,11 @@ async function pollSealOutputStatus(
 
     // Handle other non-200 status codes
     if (!response.ok) {
-      let errorMessage = `HTTP ${response.status}`;
-      try {
-        const errorBody = await response.json();
-        errorMessage = errorBody.error_message || errorBody.message || errorMessage;
-      } catch {
-        errorMessage = response.statusText || errorMessage;
-      }
+      const { apiErrorCode, errorMessage } = await parseApiErrorResponseBody(response);
 
       throw new CofheError({
-        code: CofheErrorCode.SealOutputFailed,
+        code: mapApiErrorCodeToCofheErrorCode(apiErrorCode, CofheErrorCode.SealOutputFailed),
+        apiErrorCode,
         message: `sealOutput status poll failed: ${errorMessage}`,
         context: {
           thresholdNetworkUrl,
