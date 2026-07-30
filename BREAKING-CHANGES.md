@@ -89,6 +89,7 @@ ACPRecipient    0xa61bec9390ffc1eea10897f1dc01a2abf1b8210f228d8235fb672f8754f639
 - `isAllowedWithPermission` / `checkPermitValidity` are **removed**; use `isAllowedWithACP(ACP, handle)` / `checkPermissionValidity(ACP)`.
 - `struct ACP` replaces `struct Permission` — renamed revoker fields plus the new scope fields (`scope`, `contracts`, `handles bytes32[]`).
 - ACP verification and the EIP-712 domain live on the ACL itself.
+- `TaskManager.isAllowedWithPermission` keeps its name but its parameter is now the `ACP` struct (the old `Permission` overload is gone).
 - Scope semantics: scopes narrow the issuer's existing ACL access, never widen it (Global passes; Contract intersects existing allowances; Handles matches the listed ciphertexts).
 
 ## Decryption API payload
