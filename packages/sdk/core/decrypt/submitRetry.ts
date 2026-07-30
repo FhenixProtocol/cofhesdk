@@ -61,10 +61,7 @@ export async function classifySubmitResponse(params: {
 
   const { apiErrorCode, errorMessage } = await parseApiErrorResponseBody(response);
 
-  // A 404 whose parsed error is exactly `ct_not_found` is still the "not indexed yet" case —
-  // keep retrying it under the existing timeout budget. Anything else on 404 (a different code,
-  // or an unparsable/empty body) is fatal immediately.
-  if (response.status === 404 && apiErrorCode === 'ct_not_found') {
+  if (response.status === 404) {
     return { kind: 'retryable', status: 404, apiErrorMessage: errorMessage };
   }
 
