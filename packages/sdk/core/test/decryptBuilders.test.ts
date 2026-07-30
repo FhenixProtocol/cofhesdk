@@ -248,7 +248,7 @@ describe('DecryptForTxBuilder', () => {
         expect.fail('Expected PermitNotFound error');
       } catch (error) {
         expect((error as any).code).toBe(CofheErrorCode.PermitNotFound);
-        expect((error as Error).message).toContain('Permit with hash');
+        expect((error as Error).message).toContain('ACP with hash');
       }
     });
   });
@@ -380,7 +380,7 @@ describe('DecryptForViewBuilder', () => {
         expect.fail('Expected PermitNotFound error');
       } catch (error) {
         expect((error as any).code).toBe(CofheErrorCode.PermitNotFound);
-        expect((error as Error).message).toContain('Permit with hash');
+        expect((error as Error).message).toContain('ACP with hash');
       }
     });
 

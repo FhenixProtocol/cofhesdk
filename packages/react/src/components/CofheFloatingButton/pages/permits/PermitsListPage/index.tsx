@@ -7,7 +7,7 @@ import { usePermitsList } from '@/hooks/permits/index.js';
 import type { PermitActionId } from '@/hooks/permits/index.js';
 import { PageContainer } from '@/components/CofheFloatingButton/components/PageContainer.js';
 import { useCofheActivePermit } from '@/hooks/useCofhePermits.js';
-import type { Permit } from '@cofhe/sdk/permits';
+import type { ACP } from '@cofhe/sdk/permits';
 import { Button } from '@/components/CofheFloatingButton/components/Button.js';
 import { InfoModalButton } from '@/components/CofheFloatingButton/modals/InfoModalButton.js';
 import { usePortalModals, usePortalNavigation } from '@/stores';
@@ -25,7 +25,7 @@ const permitActions: PermitActionItem[] = [
 type Args = {
   generatedPermitsCount: number;
   receivedPermitsCount: number;
-  activePermit?: Permit;
+  activePermit?: ACP;
 };
 
 function computeDefaultActiveAccordionId({ activePermit }: Args): 'self' | 'received' {
@@ -68,7 +68,7 @@ export const PermitsListPage: React.FC = () => {
             <PermitCard
               hash={activePermitHash}
               className="-ml-4 -mr-4"
-              header={<p className="text-sm font-semibold">Active Permit:</p>}
+              header={<p className="text-sm font-semibold">Active ACP:</p>}
             />
           )}
         </div>

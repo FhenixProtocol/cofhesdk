@@ -23,11 +23,11 @@ const TYPES_ISSUER_SELF = {
     { name: 'issuer', type: 'address' },
     { name: 'expiration', type: 'uint64' },
     { name: 'recipient', type: 'address' },
-    { name: 'validatorId', type: 'uint256' },
-    { name: 'validatorContract', type: 'address' },
-    { name: 'global', type: 'bool' },
+    { name: 'revokerData', type: 'uint256' },
+    { name: 'revokerContract', type: 'address' },
+    { name: 'scope', type: 'uint8' },
     { name: 'contracts', type: 'address[]' },
-    { name: 'handles', type: 'uint256[]' },
+    { name: 'handles', type: 'bytes32[]' },
     { name: 'sealingKey', type: 'bytes32' },
   ],
 };
@@ -37,11 +37,11 @@ const TYPES_ISSUER_SHARED = {
     { name: 'issuer', type: 'address' },
     { name: 'expiration', type: 'uint64' },
     { name: 'recipient', type: 'address' },
-    { name: 'validatorId', type: 'uint256' },
-    { name: 'validatorContract', type: 'address' },
-    { name: 'global', type: 'bool' },
+    { name: 'revokerData', type: 'uint256' },
+    { name: 'revokerContract', type: 'address' },
+    { name: 'scope', type: 'uint8' },
     { name: 'contracts', type: 'address[]' },
-    { name: 'handles', type: 'uint256[]' },
+    { name: 'handles', type: 'bytes32[]' },
   ],
 };
 
@@ -56,17 +56,19 @@ const SEALING_KEY_ISSUER = '0x' + '5ea1'.padStart(64, '0');
 const SEALING_KEY_RECIPIENT = '0x' + '5ea2'.padStart(64, '0');
 const SEALING_KEY_EVIL = '0x' + 'e011'.padStart(64, '0');
 const ZERO_BYTES32 = '0x' + '0'.repeat(64);
+const b32 = (v: bigint) => ('0x' + v.toString(16).padStart(64, '0')) as `0x${string}`;
+
 const ZERO_ADDRESS = '0x' + '0'.repeat(40);
 
 type Permission = {
   issuer: string;
   expiration: bigint;
   recipient: string;
-  validatorId: bigint;
-  validatorContract: string;
-  global: boolean;
+  revokerData: bigint;
+  revokerContract: string;
+  scope: number;
   contracts: string[];
-  handles: bigint[];
+  handles: string[];
   sealingKey: string;
   issuerSignature: string;
   recipientSignature: string;
@@ -89,7 +91,7 @@ describe('ACP Permission (V3 struct)', () => {
 
   before(async () => {
     [issuer, recipient, stranger] = await hre.ethers.getSigners();
-    acp = await (await hre.ethers.getContractFactory('MockACP')).deploy();
+    acp = await (await hre.ethers.getContractFactory('MockACL')).deploy();
     await acp.waitForDeployment();
     validator = await (await hre.ethers.getContractFactory('StubValidator')).deploy();
     await validator.waitForDeployment();
@@ -102,9 +104,9 @@ describe('ACP Permission (V3 struct)', () => {
     issuer: issuer.address,
     expiration: now + 7n * 24n * 3600n,
     recipient: ZERO_ADDRESS,
-    validatorId: 0n,
-    validatorContract: ZERO_ADDRESS,
-    global: true,
+    revokerData: 0n,
+    revokerContract: ZERO_ADDRESS,
+    scope: 0,
     contracts: [],
     handles: [],
     sealingKey: SEALING_KEY_ISSUER,
@@ -151,9 +153,9 @@ describe('ACP Permission (V3 struct)', () => {
 
     it('valid permit with populated scope arrays passes', async () => {
       let p = basePermission();
-      p.global = false;
+      p.scope = 1;
       p.contracts = ['0x' + 'c0ffee'.padStart(40, '0'), '0x' + 'decaf'.padStart(40, '0')];
-      p.handles = [42n, 1337n];
+      p.handles = [b32(42n), b32(1337n)];
       p = await signIssuer(p);
       expect(await acp.checkPermissionValidity(p)).to.equal(true);
     });
@@ -189,11 +191,11 @@ describe('ACP Permission (V3 struct)', () => {
       await expectIssuerSigRevert({ ...p, expiration: p.expiration + 24n * 3600n });
     });
 
-    it('tampered global flag (scope widening)', async () => {
+    it('tampered scope (widening to global)', async () => {
       let p = basePermission();
-      p.global = false;
+      p.scope = 1;
       p = await signIssuer(p);
-      await expectIssuerSigRevert({ ...p, global: true });
+      await expectIssuerSigRevert({ ...p, scope: 0, contracts: [] });
     });
 
     it('tampered contracts array', async () => {
@@ -203,15 +205,15 @@ describe('ACP Permission (V3 struct)', () => {
 
     it('tampered handles array', async () => {
       const p = await signIssuer(basePermission());
-      await expectIssuerSigRevert({ ...p, handles: [1337n] });
+      await expectIssuerSigRevert({ ...p, handles: [b32(1337n)] });
     });
 
     it('tampered validator fields (stripping revocability)', async () => {
       let p = basePermission();
-      p.validatorId = now;
-      p.validatorContract = await validator.getAddress();
+      p.revokerData = now;
+      p.revokerContract = await validator.getAddress();
       p = await signIssuer(p);
-      await expectIssuerSigRevert({ ...p, validatorId: 0n });
+      await expectIssuerSigRevert({ ...p, revokerData: 0n });
     });
 
     it('tampered sealingKey (prevents redirecting decryption output)', async () => {
@@ -271,19 +273,19 @@ describe('ACP Permission (V3 struct)', () => {
   // -------------------------------------------------------------- validator
 
   describe('validator hook (interface unchanged from V2)', () => {
-    it('validatorId = 0 skips the check even if the validator reports disabled', async () => {
+    it('revokerData = 0 skips the check even if the validator reports disabled', async () => {
       await validator.set(true);
       let p = basePermission();
-      p.validatorId = 0n;
-      p.validatorContract = await validator.getAddress();
+      p.revokerData = 0n;
+      p.revokerContract = await validator.getAddress();
       p = await signIssuer(p);
       expect(await acp.checkPermissionValidity(p)).to.equal(true);
     });
 
-    it('validatorContract = address(0) skips the check', async () => {
+    it('revokerContract = address(0) skips the check', async () => {
       let p = basePermission();
-      p.validatorId = now; // default-validator convention: creation timestamp
-      p.validatorContract = ZERO_ADDRESS;
+      p.revokerData = now; // default-validator convention: creation timestamp
+      p.revokerContract = ZERO_ADDRESS;
       p = await signIssuer(p);
       expect(await acp.checkPermissionValidity(p)).to.equal(true);
     });
@@ -291,8 +293,8 @@ describe('ACP Permission (V3 struct)', () => {
     it('validator not disabled — permit valid', async () => {
       await validator.set(false);
       let p = basePermission();
-      p.validatorId = now;
-      p.validatorContract = await validator.getAddress();
+      p.revokerData = now;
+      p.revokerContract = await validator.getAddress();
       p = await signIssuer(p);
       expect(await acp.checkPermissionValidity(p)).to.equal(true);
     });
@@ -300,8 +302,8 @@ describe('ACP Permission (V3 struct)', () => {
     it('validator disabled — permit reverts', async () => {
       await validator.set(true);
       let p = basePermission();
-      p.validatorId = now;
-      p.validatorContract = await validator.getAddress();
+      p.revokerData = now;
+      p.revokerContract = await validator.getAddress();
       p = await signIssuer(p);
       await expect(acp.checkPermissionValidity(p)).to.be.revertedWithCustomError(acp, 'PermissionInvalid_Disabled');
     });
@@ -310,8 +312,8 @@ describe('ACP Permission (V3 struct)', () => {
       const broken = await (await hre.ethers.getContractFactory('RevertingValidator')).deploy();
       await broken.waitForDeployment();
       let p = basePermission();
-      p.validatorId = now;
-      p.validatorContract = await broken.getAddress();
+      p.revokerData = now;
+      p.revokerContract = await broken.getAddress();
       p = await signIssuer(p);
       await expect(acp.checkPermissionValidity(p)).to.be.reverted;
     });
@@ -327,17 +329,17 @@ describe('ACP Permission (V3 struct)', () => {
       expect(
         keccak256(
           toUtf8Bytes(
-            'ACPIssuerSelf(address issuer,uint64 expiration,address recipient,uint256 validatorId,address validatorContract,bool global,address[] contracts,uint256[] handles,bytes32 sealingKey)'
+            'ACPIssuerSelf(address issuer,uint64 expiration,address recipient,uint256 revokerData,address revokerContract,uint8 scope,address[] contracts,bytes32[] handles,bytes32 sealingKey)'
           )
         )
-      ).to.equal('0xcb570a16e5462f1eb5a5e297381312ac733c363ae7383f530a78e011b922663b');
+      ).to.equal('0x0fb7b9df91360518f2617af1188c0c4675b99cdd742b6b779137cb8fedc8c348');
       expect(
         keccak256(
           toUtf8Bytes(
-            'ACPIssuerShared(address issuer,uint64 expiration,address recipient,uint256 validatorId,address validatorContract,bool global,address[] contracts,uint256[] handles)'
+            'ACPIssuerShared(address issuer,uint64 expiration,address recipient,uint256 revokerData,address revokerContract,uint8 scope,address[] contracts,bytes32[] handles)'
           )
         )
-      ).to.equal('0x78d4dc89504fadebf121225e739c38cc5e5ad8a2a53a3892795e02798fb459c0');
+      ).to.equal('0x4aa934032eb375f7abe059849ea8ea61b18b8340b17d1426f22d0830c65e4e51');
       expect(keccak256(toUtf8Bytes('ACPRecipient(bytes32 sealingKey,bytes issuerSignature)'))).to.equal(
         '0xa61bec9390ffc1eea10897f1dc01a2abf1b8210f228d8235fb672f8754f639d6'
       );

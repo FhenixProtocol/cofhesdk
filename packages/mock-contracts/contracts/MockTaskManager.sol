@@ -2,8 +2,8 @@
 /* solhint-disable one-contract-per-file */
 pragma solidity >=0.8.25 <0.9.0;
 
-import { MockACL, Permission } from './MockACL.sol';
-import { ACPermission } from './ACP.sol';
+import { MockACL } from './MockACL.sol';
+import { ACP } from './Permissioned.sol';
 // import {PlaintextsStorage} from "./PlaintextsStorage.sol";
 import { Strings } from '@openzeppelin/contracts/utils/Strings.sol';
 import { ECDSA } from '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
@@ -684,13 +684,9 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     aggregator = _aggregatorAddress;
   }
 
-  function isAllowedWithPermission(Permission memory permission, uint256 handle) public view returns (bool) {
-    return acl.isAllowedWithPermission(permission, handle);
-  }
-
   /// @notice ACP (Permit V3) — scope-checked access, forwarded to the ACL
-  function isAllowedWithACP(ACPermission memory permission, uint256 handle) public view returns (bool) {
-    return acl.isAllowedWithACP(permission, handle);
+  function isAllowedWithACP(ACP memory acp, uint256 handle) public view returns (bool) {
+    return acl.isAllowedWithACP(acp, handle);
   }
 
   // Stub implementations for new ITaskManager interface methods (inc PR #48)

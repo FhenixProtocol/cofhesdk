@@ -9,7 +9,7 @@ import {
   removePermit,
   getActivePermitHash,
   setActivePermitHash,
-  PermitUtils,
+  ACPUtils,
   permitStore,
 } from '../index.js';
 import { createMockPermit } from '../test-utils.js';
@@ -70,12 +70,12 @@ describe('Permits localStorage Tests', () => {
     // Add permit to localStorage
     setPermit(chainId, account, permit);
     setActivePermitHash(chainId, account, permit.hash);
-    const serializedPermit = PermitUtils.serialize(permit);
+    const serializedPermit = ACPUtils.serialize(permit);
 
     // Verify data is restored
     const retrievedPermit = getPermit(chainId, account, permit.hash);
     expect(retrievedPermit).toBeDefined();
-    expect(PermitUtils.serialize(retrievedPermit!)).toEqual(serializedPermit);
+    expect(ACPUtils.serialize(retrievedPermit!)).toEqual(serializedPermit);
 
     const activeHash = getActivePermitHash(chainId, account);
     expect(activeHash).toBe(permit.hash);

@@ -12,7 +12,7 @@ import {
   removePermit,
   getActivePermitHash,
   setActivePermitHash,
-  PermitUtils,
+  ACPUtils,
 } from '../index.js';
 
 import { createMockPermit } from '../test-utils.js';
@@ -29,7 +29,7 @@ describe('Storage Tests', () => {
     permitStore.resetStore();
   });
 
-  describe('Permit Storage', () => {
+  describe('ACP Storage', () => {
     it('should store and retrieve permits', async () => {
       const permit = await createMockPermit();
 
@@ -37,7 +37,7 @@ describe('Storage Tests', () => {
       const retrieved = getPermit(chainId, account, permit.hash);
 
       expect(retrieved).toBeDefined();
-      expect(PermitUtils.serialize(retrieved!)).toEqual(PermitUtils.serialize(permit));
+      expect(ACPUtils.serialize(retrieved!)).toEqual(ACPUtils.serialize(permit));
     });
 
     it('should handle multiple permits per account', async () => {
@@ -52,8 +52,8 @@ describe('Storage Tests', () => {
       const permits = getPermits(chainId, account);
       expect(Object.keys(permits)).toHaveLength(2);
 
-      expect(PermitUtils.serialize(permits[permit1.hash])).toEqual(PermitUtils.serialize(permit1));
-      expect(PermitUtils.serialize(permits[permit2.hash])).toEqual(PermitUtils.serialize(permit2));
+      expect(ACPUtils.serialize(permits[permit1.hash])).toEqual(ACPUtils.serialize(permit1));
+      expect(ACPUtils.serialize(permits[permit2.hash])).toEqual(ACPUtils.serialize(permit2));
     });
 
     it('should handle active permit hash', async () => {
@@ -67,7 +67,7 @@ describe('Storage Tests', () => {
 
       const activePermit = getActivePermit(chainId, account);
       expect(activePermit).toBeDefined();
-      expect(PermitUtils.serialize(activePermit!)).toEqual(PermitUtils.serialize(permit));
+      expect(ACPUtils.serialize(activePermit!)).toEqual(ACPUtils.serialize(permit));
     });
 
     it('should remove permits', async () => {

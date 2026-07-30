@@ -1,11 +1,6 @@
 import { z } from 'zod';
 import { getAddress, isAddress, isHex, zeroAddress, type Hex } from 'viem';
-import type { Permit, ValidationResult } from './types.js';
-
-const SerializedSealingPair = z.object({
-  privateKey: z.string(),
-  publicKey: z.string(),
-});
+import type { ACP, ValidationResult } from './types.js';
 
 export const addressSchema = z
   .string()
@@ -33,9 +28,9 @@ export const bytesNotEmptySchema = bytesSchema.refine((val) => val !== '0x', {
 
 const DEFAULT_EXPIRATION_FN = () => Math.round(Date.now() / 1000) + 7 * 24 * 60 * 60; // 7 days from now
 
-/** (scope) ciphertext handles — accepts bigint / int / decimal string (JSON transport), normalizes to bigint */
+/** (scope) ciphertext handles — bytes32 hex strings */
 export const handlesSchema = z
-  .array(z.union([z.bigint(), z.int(), z.string().regex(/^\d+$/, 'Invalid handle')]).transform((v) => BigInt(v)))
+  .array(z.string().regex(/^0x[0-9a-fA-F]{64}$/, 'Invalid handle: expected 32-byte hex') as z.ZodType<Hex>)
   .optional()
   .default([]);
 
@@ -47,44 +42,77 @@ export const contractsSchema = z.array(addressSchema).optional().default([]);
  * (V2 behavior); when contracts/handles are provided it defaults to false
  * (narrowest matching scope).
  */
-const withGlobalDefault = <T extends { global?: boolean; contracts: Hex[]; handles: bigint[] }>(data: T) => ({
+/**
+ * Scope derivation + per-scope array rules (client-side validation, per review):
+ *  - explicit `scope` wins; otherwise derived: contracts -> Contract, handles -> Handles, else Global
+ *  - Global   => contracts and handles must be empty
+ *  - Contract => contracts non-empty, handles empty
+ *  - Handles  => handles non-empty, contracts empty
+ * Exactly one scope mode per ACP — no overlapping scopes.
+ */
+const SCOPE_GLOBAL = 0;
+const SCOPE_CONTRACT = 1;
+const SCOPE_HANDLES = 2;
+
+const ScopeConsistencyRefinement = [
+  (data: { scope: number; contracts: Hex[]; handles: Hex[] }) =>
+    (data.scope === SCOPE_GLOBAL && data.contracts.length === 0 && data.handles.length === 0) ||
+    (data.scope === SCOPE_CONTRACT && data.contracts.length > 0 && data.handles.length === 0) ||
+    (data.scope === SCOPE_HANDLES && data.handles.length > 0 && data.contracts.length === 0),
+  {
+    error:
+      'ACP scope :: arrays must match the scope mode (Global: both empty; Contract: contracts only; Handles: handles only)',
+    path: ['scope'] as string[],
+  },
+] as const;
+
+const withDerivedScope = <T extends { scope?: number; contracts: Hex[]; handles: Hex[] }>(data: T) => ({
   ...data,
-  global: data.global ?? (data.contracts.length === 0 && data.handles.length === 0),
+  scope:
+    data.scope ?? (data.contracts.length > 0 ? SCOPE_CONTRACT : data.handles.length > 0 ? SCOPE_HANDLES : SCOPE_GLOBAL),
 });
 
 const zPermitWithDefaults = z.object({
-  name: z.string().optional().default('Unnamed Permit'),
+  name: z.string().optional().default('Unnamed ACP'),
   type: z.enum(['self', 'sharing', 'recipient']),
   issuer: addressNotZeroSchema,
   expiration: z.int().optional().default(DEFAULT_EXPIRATION_FN),
   recipient: addressSchema.optional().default(zeroAddress),
-  validatorId: z.int().optional().default(0),
-  validatorContract: addressSchema.optional().default(zeroAddress),
-  global: z.boolean().optional().default(true),
+  revokerData: z.int().optional().default(0),
+  revokerContract: addressSchema.optional().default(zeroAddress),
+  scope: z.int().min(0).max(2).optional().default(0),
   contracts: contractsSchema,
   handles: handlesSchema,
   issuerSignature: bytesSchema.optional().default('0x'),
   recipientSignature: bytesSchema.optional().default('0x'),
 });
 
-const zPermitWithSealingPair = zPermitWithDefaults.extend({
-  sealingPair: SerializedSealingPair.optional(),
+const zPermitWithSealingKeys = zPermitWithDefaults.extend({
+  /** X25519 private key, 0x-prefixed 32-byte hex; never leaves the client */
+  sealingPrivateKey: z
+    .string()
+    .regex(/^0x[0-9a-fA-F]{64}$/, 'Invalid sealing private key')
+    .optional(),
+  sealingKey: z
+    .string()
+    .regex(/^0x[0-9a-fA-F]{64}$/, 'Invalid sealing key')
+    .optional(),
 });
 
 type zPermitType = z.infer<typeof zPermitWithDefaults>;
 
 /**
- * Permits allow a hook into an optional external validator contract,
- * this check ensures that IF an external validator is applied, that both `validatorId` and `validatorContract` are populated,
- * ELSE ensures that both `validatorId` and `validatorContract` are empty
+ * Permits allow a hook into an optional external revoker contract,
+ * this check ensures that IF an external revoker is applied, that both `revokerData` and `revokerContract` are populated,
+ * ELSE ensures that both `revokerData` and `revokerContract` are empty
  */
 const ExternalValidatorRefinement = [
-  (data: Pick<zPermitType, 'validatorId' | 'validatorContract'>) =>
-    (data.validatorId !== 0 && data.validatorContract !== zeroAddress) ||
-    (data.validatorId === 0 && data.validatorContract === zeroAddress),
+  (data: Pick<zPermitType, 'revokerData' | 'revokerContract'>) =>
+    (data.revokerData !== 0 && data.revokerContract !== zeroAddress) ||
+    (data.revokerData === 0 && data.revokerContract === zeroAddress),
   {
-    error: 'Permit external validator :: validatorId and validatorContract must either both be set or both be unset.',
-    path: ['validatorId', 'validatorContract'] as string[],
+    error: 'ACP external revoker :: revokerData and revokerContract must either both be set or both be unset.',
+    path: ['revokerData', 'revokerContract'] as string[],
   },
 ] as const;
 
@@ -110,24 +138,25 @@ export const SelfPermitOptionsValidator = z
   .object({
     type: z.literal('self').optional().default('self'),
     issuer: addressNotZeroSchema,
-    name: z.string().optional().default('Unnamed Permit'),
+    name: z.string().optional().default('Unnamed ACP'),
     expiration: z.int().optional().default(DEFAULT_EXPIRATION_FN),
     recipient: addressSchema.optional().default(zeroAddress),
-    validatorId: z.int().optional().default(0),
-    validatorContract: addressSchema.optional().default(zeroAddress),
-    global: z.boolean().optional(),
+    revokerData: z.int().optional().default(0),
+    revokerContract: addressSchema.optional().default(zeroAddress),
+    scope: z.int().min(0).max(2).optional(),
     contracts: contractsSchema,
     handles: handlesSchema,
     issuerSignature: bytesSchema.optional().default('0x'),
     recipientSignature: bytesSchema.optional().default('0x'),
   })
   .refine(...ExternalValidatorRefinement)
-  .transform(withGlobalDefault);
+  .transform(withDerivedScope)
+  .refine(...ScopeConsistencyRefinement);
 
 /**
  * Validator for fully formed self permits
  */
-export const SelfPermitValidator = zPermitWithSealingPair
+export const SelfPermitValidator = zPermitWithSealingKeys
   .refine((data) => data.type === 'self', {
     error: "Type must be 'self'",
   })
@@ -154,11 +183,11 @@ export const SharingPermitOptionsValidator = z
     type: z.literal('sharing').optional().default('sharing'),
     issuer: addressNotZeroSchema,
     recipient: addressNotZeroSchema,
-    name: z.string().optional().default('Unnamed Permit'),
+    name: z.string().optional().default('Unnamed ACP'),
     expiration: z.int().optional().default(DEFAULT_EXPIRATION_FN),
-    validatorId: z.int().optional().default(0),
-    validatorContract: addressSchema.optional().default(zeroAddress),
-    global: z.boolean().optional(),
+    revokerData: z.int().optional().default(0),
+    revokerContract: addressSchema.optional().default(zeroAddress),
+    scope: z.int().min(0).max(2).optional(),
     contracts: contractsSchema,
     handles: handlesSchema,
     issuerSignature: bytesSchema.optional().default('0x'),
@@ -166,12 +195,13 @@ export const SharingPermitOptionsValidator = z
   })
   .refine(...RecipientRefinement)
   .refine(...ExternalValidatorRefinement)
-  .transform(withGlobalDefault);
+  .transform(withDerivedScope)
+  .refine(...ScopeConsistencyRefinement);
 
 /**
  * Validator for fully formed sharing permits
  */
-export const SharingPermitValidator = zPermitWithSealingPair
+export const SharingPermitValidator = zPermitWithSealingKeys
   .refine((data) => data.type === 'sharing', {
     error: "Type must be 'sharing'",
   })
@@ -198,23 +228,24 @@ export const ImportPermitOptionsValidator = z
     type: z.literal('recipient').optional().default('recipient'),
     issuer: addressNotZeroSchema,
     recipient: addressNotZeroSchema,
-    name: z.string().optional().default('Unnamed Permit'),
+    name: z.string().optional().default('Unnamed ACP'),
     expiration: z.int(),
-    validatorId: z.int().optional().default(0),
-    validatorContract: addressSchema.optional().default(zeroAddress),
-    global: z.boolean().optional(),
+    revokerData: z.int().optional().default(0),
+    revokerContract: addressSchema.optional().default(zeroAddress),
+    scope: z.int().min(0).max(2).optional(),
     contracts: contractsSchema,
     handles: handlesSchema,
     issuerSignature: bytesNotEmptySchema,
     recipientSignature: bytesSchema.optional().default('0x'),
   })
   .refine(...ExternalValidatorRefinement)
-  .transform(withGlobalDefault);
+  .transform(withDerivedScope)
+  .refine(...ScopeConsistencyRefinement);
 
 /**
  * Validator for fully formed import/recipient permits
  */
-export const ImportPermitValidator = zPermitWithSealingPair
+export const ImportPermitValidator = zPermitWithSealingKeys
   .refine((data) => data.type === 'recipient', {
     error: "Type must be 'recipient'",
   })
@@ -289,14 +320,14 @@ export const ValidationUtils = {
   /**
    * Check if permit is expired
    */
-  isExpired: (permit: Permit): boolean => {
+  isExpired: (permit: ACP): boolean => {
     return permit.expiration < Math.floor(Date.now() / 1000);
   },
 
   /**
    * Check if permit is signed by the active party
    */
-  isSigned: (permit: Permit): boolean => {
+  isSigned: (permit: ACP): boolean => {
     if (permit.type === 'self' || permit.type === 'sharing') {
       return permit.issuerSignature !== '0x';
     }
@@ -309,7 +340,7 @@ export const ValidationUtils = {
   /**
    * Checks that a permit is signed and not expired.
    */
-  isSignedAndNotExpired: (permit: Permit): ValidationResult => {
+  isSignedAndNotExpired: (permit: ACP): ValidationResult => {
     if (ValidationUtils.isExpired(permit)) {
       return { valid: false, error: 'expired' };
     }
@@ -323,25 +354,25 @@ export const ValidationUtils = {
    * Asserts that a permit is signed and not expired.
    *
    * Throws `Error` with message:
-   * - `Permit is expired`
-   * - `Permit is not signed`
+   * - `ACP is expired`
+   * - `ACP is not signed`
    */
-  assertSignedAndNotExpired: (permit: Permit): void => {
+  assertSignedAndNotExpired: (permit: ACP): void => {
     const result = ValidationUtils.isSignedAndNotExpired(permit);
     if (result.valid) return;
 
     if (result.error === 'expired') {
-      throw new Error('Permit is expired');
+      throw new Error('ACP is expired');
     }
     if (result.error === 'not-signed') {
-      throw new Error('Permit is not signed');
+      throw new Error('ACP is not signed');
     }
 
     // Should be unreachable, but keeps this future-proof.
-    throw new Error('Permit is invalid');
+    throw new Error('ACP is invalid');
   },
 
-  isValid: (permit: Permit): ValidationResult => {
+  isValid: (permit: ACP): ValidationResult => {
     const schema =
       permit.type === 'self'
         ? SelfPermitValidator

@@ -16,7 +16,7 @@ export interface CofheFloatingButtonProps extends BaseProps {
   /** Dark mode for the button (independent of page theme) */
   darkMode?: boolean;
 
-  // is used for error handling (i.e. override to Permit Creation page on PermitNotFound error)
+  // is used for error handling (i.e. override to ACP Creation page on PermitNotFound error)
   overriddingPage?: PageState;
 }
 

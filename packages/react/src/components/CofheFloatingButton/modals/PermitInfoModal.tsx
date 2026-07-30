@@ -5,7 +5,7 @@ import { BaseInfoModal } from './BaseInfoModal';
 export const PermitInfoModal: React.FC<PortalModalStateMap[PortalModal.PermitInfo]> = ({ onClose }) => {
   return (
     <BaseInfoModal
-      header="Permit"
+      header="ACP"
       content={
         <>
           <div className="flex flex-col w-full justify-center items-center gap-3 text-[#0E2F3F] dark:text-white">

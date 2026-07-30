@@ -96,7 +96,7 @@ describe('Inherited SDK Tests', async () => {
     const client = await cofhe.createClientWithBatteries(bobWalletClient);
     const [bobAddress] = await bobWalletClient.getAddresses();
 
-    const permit = await client.permits.createSelf({
+    const permit = await client.acp.createSelf({
       issuer: bobAddress,
       name: 'Test Self Permit',
     });
@@ -106,10 +106,10 @@ describe('Inherited SDK Tests', async () => {
     assert.equal(permit.name, 'Test Self Permit');
     assert.equal(permit.issuer.toLowerCase(), bobAddress.toLowerCase());
     assert.notEqual(permit.issuerSignature, '0x');
-    assert.ok(permit.sealingPair);
-    assert.ok(permit.sealingPair.publicKey);
+    assert.ok(permit.sealingPrivateKey);
+    assert.ok(permit.sealingKey);
 
-    const activePermit = client.permits.getActivePermit();
+    const activePermit = client.acp.getActivePermit();
     assert.ok(activePermit);
     assert.equal(activePermit.hash, permit.hash);
   });
@@ -119,7 +119,7 @@ describe('Inherited SDK Tests', async () => {
     const [bobAddress] = await bobWalletClient.getAddresses();
     const [aliceAddress] = await aliceWalletClient.getAddresses();
 
-    const sharingPermit = await bobClient.permits.createSharing({
+    const sharingPermit = await bobClient.acp.createSharing({
       issuer: bobAddress,
       recipient: aliceAddress,
       name: 'Test Sharing Permit',
@@ -131,23 +131,23 @@ describe('Inherited SDK Tests', async () => {
     assert.equal(sharingPermit.recipient!.toLowerCase(), aliceAddress.toLowerCase());
     assert.notEqual(sharingPermit.issuerSignature, '0x');
 
-    const exported = bobClient.permits.export(sharingPermit);
+    const exported = bobClient.acp.export(sharingPermit);
     assert.ok(exported);
     const parsed = JSON.parse(exported);
     assert.equal(parsed.type, 'sharing');
     assert.equal(parsed.issuer.toLowerCase(), bobAddress.toLowerCase());
     assert.equal(parsed.recipient.toLowerCase(), aliceAddress.toLowerCase());
     assert.ok(parsed.issuerSignature);
-    assert.equal(parsed.sealingPair, undefined);
+    assert.equal(parsed.sealingPrivateKey, undefined);
 
     const aliceClient = await cofhe.createClientWithBatteries(aliceWalletClient);
-    const importedPermit = await aliceClient.permits.importShared(exported);
+    const importedPermit = await aliceClient.acp.importShared(exported);
 
     assert.ok(importedPermit);
     assert.equal(importedPermit.type, 'recipient');
     assert.equal(importedPermit.issuer.toLowerCase(), bobAddress.toLowerCase());
     assert.equal(importedPermit.recipient!.toLowerCase(), aliceAddress.toLowerCase());
     assert.notEqual(importedPermit.recipientSignature, '0x');
-    assert.ok(importedPermit.sealingPair);
+    assert.ok(importedPermit.sealingPrivateKey);
   });
 });

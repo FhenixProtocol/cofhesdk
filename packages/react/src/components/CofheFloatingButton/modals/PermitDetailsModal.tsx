@@ -86,7 +86,7 @@ export const PermitDetailsModal: React.FC<PortalModalStateMap[PortalModal.Permit
               type="button"
             >
               <CloseIcon fontSize="small" />
-              <span>Permit</span>
+              <span>ACP</span>
             </button>
           }
         />

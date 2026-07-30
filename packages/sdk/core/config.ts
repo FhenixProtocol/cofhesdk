@@ -32,12 +32,12 @@ export type CofheConfig = {
   /** ACP permit defaults, applied when creating permits (user options always win) */
   permit: {
     /**
-     * Default revocation validator per chainId. When set, created permits are
-     * revocable by default: validatorContract = this address and
-     * validatorId = permit creation timestamp (interpreted by the default
-     * timestamp validator; enables revokeSingle + O(1) revokeAll).
+     * Default revoker contract per chainId. When set, created permits are
+     * revocable by default: revokerContract = this address and
+     * revokerData = permit creation timestamp (interpreted by the default
+     * timestamp revoker; enables revokeSingle + O(1) revokeAll).
      */
-    defaultValidator?: Record<number, `0x${string}`>;
+    defaultRevoker?: Record<number, `0x${string}`>;
     /**
      * Default contract scopes per chainId, injected into created permits'
      * `contracts` when the caller doesn't provide scope options.
@@ -101,7 +101,7 @@ export const CofheConfigSchema = z.object({
   /** ACP permit defaults */
   permit: z
     .object({
-      defaultValidator: z.custom<Record<number, `0x${string}`>>().optional(),
+      defaultRevoker: z.custom<Record<number, `0x${string}`>>().optional(),
       defaultContractScopes: z.custom<Record<number, `0x${string}`[]>>().optional(),
     })
     .optional()

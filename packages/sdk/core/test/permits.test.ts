@@ -5,7 +5,7 @@ import { permitStore } from '@/permits';
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-// ACP (V3) domain resolution requires an upgraded on-chain ACL (acl.acpVerifier()).
+// ACP domain resolution requires an upgraded on-chain ACL (domain ("ACL","2") served by the ACL itself).
 // Public testnets still run the V2 contracts, so the domain fetch is stubbed here —
 // these tests cover the permit orchestration flow, not on-chain domain resolution
 // (exercised e2e against mocks in test/hardhat-plugin-test).
@@ -70,16 +70,16 @@ describe('Core Permits Tests', () => {
     permitStore.store.setState({ permits: {}, activePermitHash: {} });
   });
 
-  describe('Permit Creation', () => {
+  describe('ACP Creation', () => {
     it('should create and store self permit', async () => {
       const permit = await permits.createSelf(
-        { name: 'Test Self Permit', issuer: bobAddress },
+        { name: 'Test Self ACP', issuer: bobAddress },
         publicClient,
         bobWalletClient
       );
 
       expect(permit).toBeDefined();
-      expect(permit.name).toBe('Test Self Permit');
+      expect(permit.name).toBe('Test Self ACP');
       expect(permit.type).toBe('self');
       expect(permit.issuer).toBe(bobAddress);
       expect(permit.issuerSignature).toBeDefined();
@@ -96,7 +96,7 @@ describe('Core Permits Tests', () => {
     it('should create and store sharing permit', async () => {
       const permit = await permits.createSharing(
         {
-          name: 'Test Sharing Permit',
+          name: 'Test Sharing ACP',
           issuer: bobAddress,
           recipient: aliceAddress,
         },
@@ -104,7 +104,7 @@ describe('Core Permits Tests', () => {
         bobWalletClient
       );
 
-      expect(permit.name).toBe('Test Sharing Permit');
+      expect(permit.name).toBe('Test Sharing ACP');
       expect(permit.type).toBe('sharing');
       expect(permit.issuer).toBe(bobAddress);
       expect(permit.recipient).toBe(aliceAddress);
@@ -123,7 +123,7 @@ describe('Core Permits Tests', () => {
       // First create a sharing permit to import
       const sharingPermit = await permits.createSharing(
         {
-          name: 'Original Sharing Permit',
+          name: 'Original Sharing ACP',
           issuer: bobAddress,
           recipient: aliceAddress,
         },
@@ -138,15 +138,15 @@ describe('Core Permits Tests', () => {
         issuer: sharingPermit.issuer,
         expiration: sharingPermit.expiration,
         recipient: sharingPermit.recipient,
-        validatorId: sharingPermit.validatorId,
-        validatorContract: sharingPermit.validatorContract,
+        revokerData: sharingPermit.revokerData,
+        revokerContract: sharingPermit.revokerContract,
         issuerSignature: sharingPermit.issuerSignature,
       });
 
       // Import the permit as Alice (recipient)
       const permit = await permits.importShared(permitJson, publicClient, aliceWalletClient);
 
-      expect(permit.name).toBe('Original Sharing Permit');
+      expect(permit.name).toBe('Original Sharing ACP');
       expect(permit.type).toBe('recipient');
       expect(permit.issuer).toBe(bobAddress);
       expect(permit.recipient).toBe(aliceAddress);
@@ -155,23 +155,19 @@ describe('Core Permits Tests', () => {
     });
   });
 
-  describe('Permit Retrieval', () => {
+  describe('ACP Retrieval', () => {
     let createdPermit: any;
     let permitHash: string;
 
     beforeEach(async () => {
       // Create a real permit for testing
-      createdPermit = await permits.createSelf(
-        { name: 'Test Permit', issuer: bobAddress },
-        publicClient,
-        bobWalletClient
-      );
+      createdPermit = await permits.createSelf({ name: 'Test ACP', issuer: bobAddress }, publicClient, bobWalletClient);
       permitHash = createdPermit.hash;
     });
 
     it('should get permit by hash', async () => {
       const permit = await permits.getPermit(chainId, bobAddress, permitHash);
-      expect(permit?.name).toBe('Test Permit');
+      expect(permit?.name).toBe('Test ACP');
       expect(permit?.type).toBe('self');
     });
 
@@ -182,7 +178,7 @@ describe('Core Permits Tests', () => {
 
     it('should get active permit', async () => {
       const permit = await permits.getActivePermit(chainId, bobAddress);
-      expect(permit?.name).toBe('Test Permit');
+      expect(permit?.name).toBe('Test ACP');
     });
 
     it('should get active permit hash', async () => {
@@ -194,7 +190,7 @@ describe('Core Permits Tests', () => {
   describe('localStorage Integration', () => {
     it('should persist permits to localStorage', async () => {
       const createdPermit = await permits.createSelf(
-        { name: 'Test Permit', issuer: bobAddress },
+        { name: 'Test ACP', issuer: bobAddress },
         publicClient,
         bobWalletClient
       );
@@ -216,11 +212,11 @@ describe('Core Permits Tests', () => {
   });
 
   // TODO(ACP): domain fetch is stubbed until public testnets run the upgraded ACL
-  // (acpVerifier resolution) — re-enable real-network domain fetching then.
+  // (domain resolution) — re-enable real-network domain fetching then.
   describe('Real Network Integration', () => {
     it('should create permit with real EIP712 domain from Arbitrum Sepolia', async () => {
       const permit = await permits.createSelf(
-        { name: 'Real Network Permit', issuer: bobAddress },
+        { name: 'Real Network ACP', issuer: bobAddress },
         publicClient,
         bobWalletClient
       );
@@ -234,10 +230,10 @@ describe('Core Permits Tests', () => {
 
     it('should handle multiple permits on real network', async () => {
       // Create multiple permits
-      await permits.createSelf({ name: 'Permit 1', issuer: bobAddress }, publicClient, bobWalletClient);
+      await permits.createSelf({ name: 'ACP 1', issuer: bobAddress }, publicClient, bobWalletClient);
       await permits.createSharing(
         {
-          name: 'Permit 2',
+          name: 'ACP 2',
           issuer: bobAddress,
           recipient: aliceAddress,
         },
@@ -251,7 +247,7 @@ describe('Core Permits Tests', () => {
 
       // Verify active permit is the last created one
       const activePermit = await permits.getActivePermit(chainId, bobAddress);
-      expect(activePermit?.name).toBe('Permit 2');
+      expect(activePermit?.name).toBe('ACP 2');
     });
   });
 
@@ -259,24 +255,24 @@ describe('Core Permits Tests', () => {
     it('should create a new self permit when none exists', async () => {
       const permit = await permits.getOrCreateSelfPermit(publicClient, bobWalletClient, chainId, bobAddress, {
         issuer: bobAddress,
-        name: 'New Self Permit',
+        name: 'New Self ACP',
       });
 
       expect(permit).toBeDefined();
-      expect(permit.name).toBe('New Self Permit');
+      expect(permit.name).toBe('New Self ACP');
       expect(permit.type).toBe('self');
       expect(permit.issuer).toBe(bobAddress);
       expect(permit.issuerSignature).toBeDefined();
 
       // Verify it was stored and set as active
       const activePermit = await permits.getActivePermit(chainId, bobAddress);
-      expect(activePermit?.name).toBe('New Self Permit');
+      expect(activePermit?.name).toBe('New Self ACP');
     });
 
     it('should return existing self permit when one exists', async () => {
       // Create an initial self permit
       const firstPermit = await permits.createSelf(
-        { name: 'First Self Permit', issuer: bobAddress },
+        { name: 'First Self ACP', issuer: bobAddress },
         publicClient,
         bobWalletClient
       );
@@ -287,7 +283,7 @@ describe('Core Permits Tests', () => {
         name: 'Should Not Create This',
       });
 
-      expect(permit.name).toBe('First Self Permit');
+      expect(permit.name).toBe('First Self ACP');
       expect(permit.hash).toBe(firstPermit.hash);
 
       // Verify no new permit was created
@@ -299,7 +295,7 @@ describe('Core Permits Tests', () => {
       // Create a sharing permit first
       await permits.createSharing(
         {
-          name: 'Sharing Permit',
+          name: 'Sharing ACP',
           issuer: bobAddress,
           recipient: aliceAddress,
         },
@@ -310,10 +306,10 @@ describe('Core Permits Tests', () => {
       // Call getOrCreateSelfPermit - should create new since active is sharing type
       const permit = await permits.getOrCreateSelfPermit(publicClient, bobWalletClient, chainId, bobAddress, {
         issuer: bobAddress,
-        name: 'New Self Permit',
+        name: 'New Self ACP',
       });
 
-      expect(permit.name).toBe('New Self Permit');
+      expect(permit.name).toBe('New Self ACP');
       expect(permit.type).toBe('self');
 
       // Verify two permits exist now
@@ -324,7 +320,7 @@ describe('Core Permits Tests', () => {
     it('should create a new self permit when active permit is expired', async () => {
       // Create an expired self permit (expiration in the past)
       const expiredPermit = await permits.createSelf(
-        { name: 'Expired Self Permit', issuer: bobAddress, expiration: Math.floor(Date.now() / 1000) - 3600 },
+        { name: 'Expired Self ACP', issuer: bobAddress, expiration: Math.floor(Date.now() / 1000) - 3600 },
         publicClient,
         bobWalletClient
       );
@@ -336,10 +332,10 @@ describe('Core Permits Tests', () => {
       // getOrCreateSelfPermit should treat the expired permit as missing and create a fresh one
       const permit = await permits.getOrCreateSelfPermit(publicClient, bobWalletClient, chainId, bobAddress, {
         issuer: bobAddress,
-        name: 'Fresh Self Permit',
+        name: 'Fresh Self ACP',
       });
 
-      expect(permit.name).toBe('Fresh Self Permit');
+      expect(permit.name).toBe('Fresh Self ACP');
       expect(permit.type).toBe('self');
       expect(permit.hash).not.toBe(expiredPermit.hash);
 
@@ -354,13 +350,13 @@ describe('Core Permits Tests', () => {
       expect(permit).toBeDefined();
       expect(permit.type).toBe('self');
       expect(permit.issuer).toBe(bobAddress);
-      expect(permit.name).toBe('Autogenerated Self Permit');
+      expect(permit.name).toBe('Autogenerated Self ACP');
     });
 
     it('should use default chainId and account when not provided', async () => {
       const permit = await permits.getOrCreateSelfPermit(publicClient, bobWalletClient, undefined, undefined, {
         issuer: bobAddress,
-        name: 'Test Permit',
+        name: 'Test ACP',
       });
 
       expect(permit).toBeDefined();
@@ -368,7 +364,7 @@ describe('Core Permits Tests', () => {
 
       // Verify it was stored with the chain's actual chainId
       const activePermit = await permits.getActivePermit(chainId, bobAddress);
-      expect(activePermit?.name).toBe('Test Permit');
+      expect(activePermit?.name).toBe('Test ACP');
     });
   });
 
@@ -380,14 +376,14 @@ describe('Core Permits Tests', () => {
         {
           issuer: bobAddress,
           recipient: aliceAddress,
-          name: 'New Sharing Permit',
+          name: 'New Sharing ACP',
         },
         chainId,
         bobAddress
       );
 
       expect(permit).toBeDefined();
-      expect(permit.name).toBe('New Sharing Permit');
+      expect(permit.name).toBe('New Sharing ACP');
       expect(permit.type).toBe('sharing');
       expect(permit.issuer).toBe(bobAddress);
       expect(permit.recipient).toBe(aliceAddress);
@@ -395,14 +391,14 @@ describe('Core Permits Tests', () => {
 
       // Verify it was stored and set as active
       const activePermit = await permits.getActivePermit(chainId, bobAddress);
-      expect(activePermit?.name).toBe('New Sharing Permit');
+      expect(activePermit?.name).toBe('New Sharing ACP');
     });
 
     it('should return existing sharing permit when one exists', async () => {
       // Create an initial sharing permit
       const firstPermit = await permits.createSharing(
         {
-          name: 'First Sharing Permit',
+          name: 'First Sharing ACP',
           issuer: bobAddress,
           recipient: aliceAddress,
         },
@@ -423,7 +419,7 @@ describe('Core Permits Tests', () => {
         bobAddress
       );
 
-      expect(permit.name).toBe('First Sharing Permit');
+      expect(permit.name).toBe('First Sharing ACP');
       expect(permit.hash).toBe(firstPermit.hash);
 
       // Verify no new permit was created
@@ -433,7 +429,7 @@ describe('Core Permits Tests', () => {
 
     it('should create new sharing permit when active permit is self type', async () => {
       // Create a self permit first
-      await permits.createSelf({ name: 'Self Permit', issuer: bobAddress }, publicClient, bobWalletClient);
+      await permits.createSelf({ name: 'Self ACP', issuer: bobAddress }, publicClient, bobWalletClient);
 
       // Call getOrCreateSharingPermit - should create new since active is self type
       const permit = await permits.getOrCreateSharingPermit(
@@ -442,13 +438,13 @@ describe('Core Permits Tests', () => {
         {
           issuer: bobAddress,
           recipient: aliceAddress,
-          name: 'New Sharing Permit',
+          name: 'New Sharing ACP',
         },
         chainId,
         bobAddress
       );
 
-      expect(permit.name).toBe('New Sharing Permit');
+      expect(permit.name).toBe('New Sharing ACP');
       expect(permit.type).toBe('sharing');
 
       // Verify two permits exist now
@@ -460,7 +456,7 @@ describe('Core Permits Tests', () => {
       // Create an expired sharing permit (expiration in the past)
       const expiredPermit = await permits.createSharing(
         {
-          name: 'Expired Sharing Permit',
+          name: 'Expired Sharing ACP',
           issuer: bobAddress,
           recipient: aliceAddress,
           expiration: Math.floor(Date.now() / 1000) - 3600,
@@ -476,13 +472,13 @@ describe('Core Permits Tests', () => {
         {
           issuer: bobAddress,
           recipient: aliceAddress,
-          name: 'Fresh Sharing Permit',
+          name: 'Fresh Sharing ACP',
         },
         chainId,
         bobAddress
       );
 
-      expect(permit.name).toBe('Fresh Sharing Permit');
+      expect(permit.name).toBe('Fresh Sharing ACP');
       expect(permit.type).toBe('sharing');
       expect(permit.hash).not.toBe(expiredPermit.hash);
 
@@ -498,7 +494,7 @@ describe('Core Permits Tests', () => {
         {
           issuer: bobAddress,
           recipient: aliceAddress,
-          name: 'Test Sharing Permit',
+          name: 'Test Sharing ACP',
         },
         undefined,
         undefined
@@ -510,31 +506,26 @@ describe('Core Permits Tests', () => {
 
       // Verify it was stored with the chain's actual chainId
       const activePermit = await permits.getActivePermit(chainId, bobAddress);
-      expect(activePermit?.name).toBe('Test Sharing Permit');
+      expect(activePermit?.name).toBe('Test Sharing ACP');
     });
   });
 
   describe('Export', () => {
-    it('should export self permit data without sensitive fields', async () => {
+    it('throws when exporting a self permit', async () => {
       const permit = await permits.createSelf(
-        { name: 'Test Self Permit', issuer: bobAddress },
+        { name: 'Test Self ACP', issuer: bobAddress },
         publicClient,
         bobWalletClient
       );
 
-      const exported = permits.export(permit);
-      const parsed = JSON.parse(exported);
-
-      expect(parsed.name).toBe('Test Self Permit');
-      expect(parsed.issuer).toBe(bobAddress);
-      expect(parsed).not.toHaveProperty('sealingPair');
-      expect(parsed).not.toHaveProperty('issuerSignature');
+      // export includes the issuer signature — only sharing permits are exportable
+      expect(() => permits.export(permit)).toThrow(/only 'sharing' ACPs are exportable/);
     });
 
     it('should export sharing permit data with recipient and issuerSignature', async () => {
       const permit = await permits.createSharing(
         {
-          name: 'Test Sharing Permit',
+          name: 'Test Sharing ACP',
           issuer: bobAddress,
           recipient: aliceAddress,
         },
@@ -545,13 +536,13 @@ describe('Core Permits Tests', () => {
       const exported = permits.export(permit);
       const parsed = JSON.parse(exported);
 
-      expect(parsed.name).toBe('Test Sharing Permit');
+      expect(parsed.name).toBe('Test Sharing ACP');
       expect(parsed.type).toBe('sharing');
       expect(parsed.issuer).toBe(bobAddress);
       expect(parsed.recipient).toBe(aliceAddress);
       expect(parsed.issuerSignature).toBeDefined();
       expect(parsed.issuerSignature).not.toBe('0x');
-      expect(parsed).not.toHaveProperty('sealingPair');
+      expect(parsed).not.toHaveProperty('sealingPrivateKey');
     });
   });
 
@@ -560,7 +551,7 @@ describe('Core Permits Tests', () => {
       // Create self permit
       const selfPermit = await permits.getOrCreateSelfPermit(publicClient, bobWalletClient, chainId, bobAddress, {
         issuer: bobAddress,
-        name: 'Self Permit',
+        name: 'Self ACP',
       });
       expect(selfPermit.type).toBe('self');
 
@@ -571,7 +562,7 @@ describe('Core Permits Tests', () => {
         {
           issuer: bobAddress,
           recipient: aliceAddress,
-          name: 'Sharing Permit',
+          name: 'Sharing ACP',
         },
         chainId,
         bobAddress
@@ -585,25 +576,25 @@ describe('Core Permits Tests', () => {
       // Active permit should be the sharing one
       const activePermit = await permits.getActivePermit(chainId, bobAddress);
       expect(activePermit?.type).toBe('sharing');
-      expect(activePermit?.name).toBe('Sharing Permit');
+      expect(activePermit?.name).toBe('Sharing ACP');
     });
 
     it('should correctly handle sequential getOrCreate calls', async () => {
       // First call - creates new
       const permit1 = await permits.getOrCreateSelfPermit(publicClient, bobWalletClient, chainId, bobAddress, {
         issuer: bobAddress,
-        name: 'Permit 1',
+        name: 'ACP 1',
       });
 
       // Second call - returns existing
       const permit2 = await permits.getOrCreateSelfPermit(publicClient, bobWalletClient, chainId, bobAddress, {
         issuer: bobAddress,
-        name: 'Permit 2',
+        name: 'ACP 2',
       });
 
       // Should be the same permit
       expect(permit1.hash).toBe(permit2.hash);
-      expect(permit2.name).toBe('Permit 1'); // Original name
+      expect(permit2.name).toBe('ACP 1'); // Original name
 
       // Only one permit should exist
       const allPermits = await permits.getPermits(chainId, bobAddress);

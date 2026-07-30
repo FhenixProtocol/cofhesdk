@@ -1,15 +1,15 @@
-import { type EIP712Message, type EIP712Types, type Permission, type PermitSignaturePrimaryType } from './types.js';
+import { type EIP712Message, type EIP712Types, type ACPPublic, type PermitSignaturePrimaryType } from './types.js';
 
 // Field order must match the on-chain ACP typehash strings exactly (see ACP.sol / ACPUtils)
 const PermitSignatureAllFields = [
   { name: 'issuer', type: 'address' },
   { name: 'expiration', type: 'uint64' },
   { name: 'recipient', type: 'address' },
-  { name: 'validatorId', type: 'uint256' },
-  { name: 'validatorContract', type: 'address' },
-  { name: 'global', type: 'bool' },
+  { name: 'revokerData', type: 'uint256' },
+  { name: 'revokerContract', type: 'address' },
+  { name: 'scope', type: 'uint8' },
   { name: 'contracts', type: 'address[]' },
-  { name: 'handles', type: 'uint256[]' },
+  { name: 'handles', type: 'bytes32[]' },
   { name: 'sealingKey', type: 'bytes32' },
   { name: 'issuerSignature', type: 'bytes' },
 ] as const;
@@ -21,9 +21,9 @@ export const SignatureTypes = {
     'issuer',
     'expiration',
     'recipient',
-    'validatorId',
-    'validatorContract',
-    'global',
+    'revokerData',
+    'revokerContract',
+    'scope',
     'contracts',
     'handles',
     'sealingKey',
@@ -32,9 +32,9 @@ export const SignatureTypes = {
     'issuer',
     'expiration',
     'recipient',
-    'validatorId',
-    'validatorContract',
-    'global',
+    'revokerData',
+    'revokerContract',
+    'scope',
     'contracts',
     'handles',
   ] satisfies PermitSignatureFieldOption[],
@@ -47,15 +47,15 @@ export const SignatureTypes = {
 export const getSignatureTypesAndMessage = <T extends PermitSignatureFieldOption>(
   primaryType: PermitSignaturePrimaryType,
   fields: T[] | readonly T[],
-  values: Pick<Permission, T> & Partial<Permission>
+  values: Pick<ACPPublic, T> & Partial<ACPPublic>
 ): { types: EIP712Types; primaryType: string; message: EIP712Message } => {
   const types = {
     [primaryType]: PermitSignatureAllFields.filter((fieldType) => fields.includes(fieldType.name as T)),
   };
 
-  const message: Record<T, string | string[] | number | number[] | boolean | bigint[]> = {} as Record<
+  const message: Record<T, string | string[] | number | number[] | boolean> = {} as Record<
     T,
-    string | string[] | number | number[] | boolean | bigint[]
+    string | string[] | number | number[] | boolean
   >;
   fields.forEach((field) => {
     if (field in values) {
@@ -73,7 +73,7 @@ export const SignatureUtils = {
   /**
    * Get signature parameters for a permit
    */
-  getSignatureParams: (permit: Permission, primaryType: PermitSignaturePrimaryType) => {
+  getSignatureParams: (permit: ACPPublic, primaryType: PermitSignaturePrimaryType) => {
     return getSignatureTypesAndMessage(primaryType, SignatureTypes[primaryType], permit);
   },
 

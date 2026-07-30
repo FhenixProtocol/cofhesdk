@@ -32,7 +32,7 @@ This contract is included as a reference that is used throughout the SDK documen
 The counter is stored as an `euint32` — an encrypted handle. `getValue` returns this handle (a `bytes32` on-chain), which can then be decrypted off-chain. The `count` state variable is also `public`, so it can be read directly.
 
 :::info
-[Permits](/sdk/permits) and [Decrypting to View](/sdk/decrypt-to-view) documentation
+[ACPs](/sdk/acp) and [Decrypting to View](/sdk/decrypt-to-view) documentation
 :::
 
 ```solidity
@@ -51,7 +51,7 @@ The counter is stored as an `euint32` — an encrypted handle. `getValue` return
 
 ### Reveal an encrypted value
 
-`revealCount` accepts a plaintext value and a cryptographic signature proving it matches the current encrypted counter. The contract verifies the proof on-chain via `FHE.verifyDecryptResult` and, if valid, stores the plaintext. `allowCountPublicly` can be called beforehand to allow anyone to generate the decryption proof (no permit required).
+`revealCount` accepts a plaintext value and a cryptographic signature proving it matches the current encrypted counter. The contract verifies the proof on-chain via `FHE.verifyDecryptResult` and, if valid, stores the plaintext. `allowCountPublicly` can be called beforehand to allow anyone to generate the decryption proof (no ACP required).
 
 :::info
 [Decrypting to Transact](/sdk/decrypt-to-tx) documentation

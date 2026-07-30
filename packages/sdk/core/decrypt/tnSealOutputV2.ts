@@ -1,4 +1,4 @@
-import { type Permission, type EthEncryptedData } from '@/permits';
+import { type ACPPublic, type EthEncryptedData } from '@/permits';
 import { cofheFetch } from '../debug.js';
 
 import { CofheError, CofheErrorCode } from '../error.js';
@@ -6,6 +6,7 @@ import { type DecryptPollCallbackFunction } from '../types.js';
 import { computeMinuteRampPollIntervalMs } from './polling.js';
 import { mapApiErrorCodeToCofheErrorCode, parseApiErrorResponseBody } from './apiError.js';
 import { classifySubmitResponse, normalize404RetryTimeoutMs, throwIfSubmitRetryTimedOut } from './submitRetry.js';
+import {} from './tnDecryptUtils.js';
 
 // Polling configuration
 const POLL_INTERVAL_MS = 1000; // 1 second
@@ -137,7 +138,7 @@ async function submitSealOutputRequest(
   thresholdNetworkUrl: string,
   ctHash: bigint | string,
   chainId: number,
-  permission: Permission,
+  acp: ACPPublic,
   overallStartTime: number,
   retry404TimeoutMs: number,
   onPoll?: DecryptPollCallbackFunction
@@ -145,7 +146,7 @@ async function submitSealOutputRequest(
   const body = {
     ct_tempkey: BigInt(ctHash).toString(16).padStart(64, '0'),
     host_chain_id: chainId,
-    permit: permission,
+    permit: acp,
   };
   let attemptIndex = 0;
   let last404ApiErrorMessage: string | undefined;
@@ -412,12 +413,12 @@ async function pollSealOutputStatus(
 export async function tnSealOutputV2(params: {
   ctHash: bigint | string;
   chainId: number;
-  permission: Permission;
+  acp: ACPPublic;
   thresholdNetworkUrl: string;
   retry404TimeoutMs?: number;
   onPoll?: DecryptPollCallbackFunction;
 }): Promise<EthEncryptedData> {
-  const { thresholdNetworkUrl, ctHash, chainId, permission, retry404TimeoutMs, onPoll } = params;
+  const { thresholdNetworkUrl, ctHash, chainId, acp, retry404TimeoutMs, onPoll } = params;
   const normalized404RetryTimeoutMs = normalize404RetryTimeoutMs({
     timeoutMs: retry404TimeoutMs,
     operationLabel: 'sealOutput',
@@ -430,7 +431,7 @@ export async function tnSealOutputV2(params: {
     thresholdNetworkUrl,
     ctHash,
     chainId,
-    permission,
+    acp,
     overallStartTime,
     normalized404RetryTimeoutMs,
     onPoll

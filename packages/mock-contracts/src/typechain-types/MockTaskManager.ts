@@ -23,29 +23,29 @@ import type {
   TypedContractMethod,
 } from './common';
 
-export type ACPermissionStruct = {
+export type ACPStruct = {
   issuer: AddressLike;
   expiration: BigNumberish;
   recipient: AddressLike;
-  validatorId: BigNumberish;
-  validatorContract: AddressLike;
-  global: boolean;
+  revokerData: BigNumberish;
+  revokerContract: AddressLike;
+  scope: BigNumberish;
   contracts: AddressLike[];
-  handles: BigNumberish[];
+  handles: BytesLike[];
   sealingKey: BytesLike;
   issuerSignature: BytesLike;
   recipientSignature: BytesLike;
 };
 
-export type ACPermissionStructOutput = [
+export type ACPStructOutput = [
   issuer: string,
   expiration: bigint,
   recipient: string,
-  validatorId: bigint,
-  validatorContract: string,
-  global: boolean,
+  revokerData: bigint,
+  revokerContract: string,
+  scope: bigint,
   contracts: string[],
-  handles: bigint[],
+  handles: string[],
   sealingKey: string,
   issuerSignature: string,
   recipientSignature: string,
@@ -53,42 +53,11 @@ export type ACPermissionStructOutput = [
   issuer: string;
   expiration: bigint;
   recipient: string;
-  validatorId: bigint;
-  validatorContract: string;
-  global: boolean;
+  revokerData: bigint;
+  revokerContract: string;
+  scope: bigint;
   contracts: string[];
-  handles: bigint[];
-  sealingKey: string;
-  issuerSignature: string;
-  recipientSignature: string;
-};
-
-export type PermissionStruct = {
-  issuer: AddressLike;
-  expiration: BigNumberish;
-  recipient: AddressLike;
-  validatorId: BigNumberish;
-  validatorContract: AddressLike;
-  sealingKey: BytesLike;
-  issuerSignature: BytesLike;
-  recipientSignature: BytesLike;
-};
-
-export type PermissionStructOutput = [
-  issuer: string,
-  expiration: bigint,
-  recipient: string,
-  validatorId: bigint,
-  validatorContract: string,
-  sealingKey: string,
-  issuerSignature: string,
-  recipientSignature: string,
-] & {
-  issuer: string;
-  expiration: bigint;
-  recipient: string;
-  validatorId: bigint;
-  validatorContract: string;
+  handles: string[];
   sealingKey: string;
   issuerSignature: string;
   recipientSignature: string;
@@ -132,7 +101,6 @@ export interface MockTaskManagerInterface extends Interface {
       | 'initialize'
       | 'isAllowed'
       | 'isAllowedWithACP'
-      | 'isAllowedWithPermission'
       | 'isInitialized'
       | 'isPubliclyAllowed'
       | 'logOps'
@@ -184,8 +152,7 @@ export interface MockTaskManagerInterface extends Interface {
   encodeFunctionData(functionFragment: 'inMockStorage', values: [BigNumberish]): string;
   encodeFunctionData(functionFragment: 'initialize', values: [AddressLike]): string;
   encodeFunctionData(functionFragment: 'isAllowed', values: [BigNumberish, AddressLike]): string;
-  encodeFunctionData(functionFragment: 'isAllowedWithACP', values: [ACPermissionStruct, BigNumberish]): string;
-  encodeFunctionData(functionFragment: 'isAllowedWithPermission', values: [PermissionStruct, BigNumberish]): string;
+  encodeFunctionData(functionFragment: 'isAllowedWithACP', values: [ACPStruct, BigNumberish]): string;
   encodeFunctionData(functionFragment: 'isInitialized', values?: undefined): string;
   encodeFunctionData(functionFragment: 'isPubliclyAllowed', values: [BigNumberish]): string;
   encodeFunctionData(functionFragment: 'logOps', values?: undefined): string;
@@ -241,7 +208,6 @@ export interface MockTaskManagerInterface extends Interface {
   decodeFunctionResult(functionFragment: 'initialize', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'isAllowed', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'isAllowedWithACP', data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: 'isAllowedWithPermission', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'isInitialized', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'isPubliclyAllowed', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'logOps', data: BytesLike): Result;
@@ -408,9 +374,7 @@ export interface MockTaskManager extends BaseContract {
 
   isAllowed: TypedContractMethod<[ctHash: BigNumberish, account: AddressLike], [boolean], 'view'>;
 
-  isAllowedWithACP: TypedContractMethod<[permission: ACPermissionStruct, handle: BigNumberish], [boolean], 'view'>;
-
-  isAllowedWithPermission: TypedContractMethod<[permission: PermissionStruct, handle: BigNumberish], [boolean], 'view'>;
+  isAllowedWithACP: TypedContractMethod<[acp: ACPStruct, handle: BigNumberish], [boolean], 'view'>;
 
   isInitialized: TypedContractMethod<[], [boolean], 'view'>;
 
@@ -532,10 +496,7 @@ export interface MockTaskManager extends BaseContract {
   ): TypedContractMethod<[ctHash: BigNumberish, account: AddressLike], [boolean], 'view'>;
   getFunction(
     nameOrSignature: 'isAllowedWithACP'
-  ): TypedContractMethod<[permission: ACPermissionStruct, handle: BigNumberish], [boolean], 'view'>;
-  getFunction(
-    nameOrSignature: 'isAllowedWithPermission'
-  ): TypedContractMethod<[permission: PermissionStruct, handle: BigNumberish], [boolean], 'view'>;
+  ): TypedContractMethod<[acp: ACPStruct, handle: BigNumberish], [boolean], 'view'>;
   getFunction(nameOrSignature: 'isInitialized'): TypedContractMethod<[], [boolean], 'view'>;
   getFunction(nameOrSignature: 'isPubliclyAllowed'): TypedContractMethod<[ctHash: BigNumberish], [boolean], 'view'>;
   getFunction(nameOrSignature: 'logOps'): TypedContractMethod<[], [boolean], 'view'>;

@@ -9,15 +9,15 @@
 
 import { it, describe, expect, beforeAll, afterAll } from 'vitest';
 import { Encryptable, FheTypes } from '@cofhe/sdk';
-import { PermitUtils, type Permission } from '@cofhe/sdk/permits';
+import { ACPUtils, type ACPPublic } from '@cofhe/sdk/permits';
 import { simpleTestAbi } from '@cofhe/test-setup';
 import type { TestChainConfig, ClientFactory, TestContext } from '../types.js';
 
-function makeThresholdRequestBody(chainConfig: TestChainConfig, ctHash: bigint | string, permission: Permission) {
+function makeThresholdRequestBody(chainConfig: TestChainConfig, ctHash: bigint | string, acp: ACPPublic) {
   return {
     ct_tempkey: BigInt(ctHash).toString(16).padStart(64, '0'),
     host_chain_id: chainConfig.cofheChain.id,
-    permit: permission,
+    permit: acp,
   };
 }
 
@@ -43,7 +43,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
     expect(typeof ctx.cofheClient.decryptForTx).toBe('function');
     expect(typeof ctx.cofheClient.getSnapshot).toBe('function');
     expect(typeof ctx.cofheClient.subscribe).toBe('function');
-    expect(ctx.cofheClient.permits).toBeDefined();
+    expect(ctx.cofheClient.acp).toBeDefined();
   });
 
   it('Clients should connect successfully', () => {
@@ -67,7 +67,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
   }, 60_000);
 
   it('Permits - should create a self permit', async () => {
-    const permit = await ctx.cofheClient.permits.createSelf({
+    const permit = await ctx.cofheClient.acp.createSelf({
       issuer: ctx.bobAccount.address,
       name: 'Test Self Permit',
     });
@@ -77,16 +77,16 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
     expect(permit.name).toBe('Test Self Permit');
     expect(permit.issuer).toBe(ctx.bobAccount.address);
     expect(permit.issuerSignature).not.toBe('0x');
-    expect(permit.sealingPair).toBeDefined();
-    expect(permit.sealingPair.publicKey).toBeDefined();
+    expect(permit.sealingPrivateKey).toBeDefined();
+    expect(permit.sealingKey).toBeDefined();
 
-    const activePermit = ctx.cofheClient.permits.getActivePermit();
+    const activePermit = ctx.cofheClient.acp.getActivePermit();
     expect(activePermit).toBeDefined();
     expect(activePermit!.hash).toBe(permit.hash);
   }, 30_000);
 
   it('Permits - should create a sharing permit, export it, and import it as another user', async () => {
-    const sharingPermit = await ctx.cofheClient.permits.createSharing({
+    const sharingPermit = await ctx.cofheClient.acp.createSharing({
       issuer: ctx.bobAccount.address,
       recipient: ctx.aliceAccount.address,
       name: 'Test Sharing Permit',
@@ -98,14 +98,14 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
     expect(sharingPermit.recipient).toBe(ctx.aliceAccount.address);
     expect(sharingPermit.issuerSignature).not.toBe('0x');
 
-    const exported = ctx.cofheClient.permits.export(sharingPermit);
+    const exported = ctx.cofheClient.acp.export(sharingPermit);
     expect(exported).toBeDefined();
     const parsed = JSON.parse(exported);
     expect(parsed.type).toBe('sharing');
     expect(parsed.issuer).toBe(ctx.bobAccount.address);
     expect(parsed.recipient).toBe(ctx.aliceAccount.address);
     expect(parsed.issuerSignature).toBeDefined();
-    expect(parsed).not.toHaveProperty('sealingPair');
+    expect(parsed).not.toHaveProperty('sealingPrivateKey');
 
     // Alice imports the shared permit via a fresh client
     const aliceConfig = factory.createConfig({
@@ -120,21 +120,21 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
     const aliceClient = factory.createClient(aliceConfig);
     await aliceClient.connect(ctx.publicClient, ctx.aliceWalletClient);
 
-    const importedPermit = await aliceClient.permits.importShared(exported);
+    const importedPermit = await aliceClient.acp.importShared(exported);
 
     expect(importedPermit).toBeDefined();
     expect(importedPermit.type).toBe('recipient');
     expect(importedPermit.issuer).toBe(ctx.bobAccount.address);
     expect(importedPermit.recipient).toBe(ctx.aliceAccount.address);
     expect(importedPermit.recipientSignature).not.toBe('0x');
-    expect(importedPermit.sealingPair).toBeDefined();
+    expect(importedPermit.sealingPrivateKey).toBeDefined();
   }, 30_000);
 
   let alreadyFetchedCtHash: bigint | string;
   describe('Full encrypt->increment->decrypt flow + refetch cached response', () => {
     const testValue = 100n;
     it('Should encrypt inputs with hash plus proof', async () => {
-      await ctx.cofheClient.permits.createSelf({
+      await ctx.cofheClient.acp.createSelf({
         issuer: ctx.bobAccount.address,
         name: 'Encrypt View Permit',
       });
@@ -170,7 +170,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       expect(result).toBe(testValue);
     });
     it('Decrypt for View (with permit) - should encrypt → store → decryptForView a value', async () => {
-      await ctx.cofheClient.permits.createSelf({
+      await ctx.cofheClient.acp.createSelf({
         issuer: ctx.bobAccount.address,
         name: 'Decrypt View Permit',
       });
@@ -303,7 +303,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
     it.skipIf(chainConfig.id === 31337)(
       '200 -> from cache',
       async () => {
-        const activePermit = ctx.cofheClient.permits.getActivePermit();
+        const activePermit = ctx.cofheClient.acp.getActivePermit();
 
         const secondSubmitResponse = await fetch(`${chainConfig.cofheChain.thresholdNetworkUrl}/v2/decrypt`, {
           method: 'POST',
@@ -311,7 +311,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(
-            makeThresholdRequestBody(chainConfig, alreadyFetchedCtHash, PermitUtils.getPermission(activePermit!, true))
+            makeThresholdRequestBody(chainConfig, alreadyFetchedCtHash, ACPUtils.getPublic(activePermit!, true))
           ),
         });
 

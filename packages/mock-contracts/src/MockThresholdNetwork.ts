@@ -35,9 +35,9 @@ export const MockThresholdNetworkArtifact = {
           internalType: 'uint256',
         },
         {
-          name: 'permission',
+          name: 'acp',
           type: 'tuple',
-          internalType: 'struct ACPermission',
+          internalType: 'struct ACP',
           components: [
             {
               name: 'issuer',
@@ -55,19 +55,19 @@ export const MockThresholdNetworkArtifact = {
               internalType: 'address',
             },
             {
-              name: 'validatorId',
+              name: 'revokerData',
               type: 'uint256',
               internalType: 'uint256',
             },
             {
-              name: 'validatorContract',
+              name: 'revokerContract',
               type: 'address',
               internalType: 'address',
             },
             {
-              name: 'global',
-              type: 'bool',
-              internalType: 'bool',
+              name: 'scope',
+              type: 'uint8',
+              internalType: 'uint8',
             },
             {
               name: 'contracts',
@@ -76,8 +76,8 @@ export const MockThresholdNetworkArtifact = {
             },
             {
               name: 'handles',
-              type: 'uint256[]',
-              internalType: 'uint256[]',
+              type: 'bytes32[]',
+              internalType: 'bytes32[]',
             },
             {
               name: 'sealingKey',
@@ -256,9 +256,9 @@ export const MockThresholdNetworkArtifact = {
           internalType: 'uint256',
         },
         {
-          name: 'permission',
+          name: 'acp',
           type: 'tuple',
-          internalType: 'struct ACPermission',
+          internalType: 'struct ACP',
           components: [
             {
               name: 'issuer',
@@ -276,19 +276,19 @@ export const MockThresholdNetworkArtifact = {
               internalType: 'address',
             },
             {
-              name: 'validatorId',
+              name: 'revokerData',
               type: 'uint256',
               internalType: 'uint256',
             },
             {
-              name: 'validatorContract',
+              name: 'revokerContract',
               type: 'address',
               internalType: 'address',
             },
             {
-              name: 'global',
-              type: 'bool',
-              internalType: 'bool',
+              name: 'scope',
+              type: 'uint8',
+              internalType: 'uint8',
             },
             {
               name: 'contracts',
@@ -297,8 +297,8 @@ export const MockThresholdNetworkArtifact = {
             },
             {
               name: 'handles',
-              type: 'uint256[]',
-              internalType: 'uint256[]',
+              type: 'bytes32[]',
+              internalType: 'bytes32[]',
             },
             {
               name: 'sealingKey',
@@ -352,9 +352,9 @@ export const MockThresholdNetworkArtifact = {
           internalType: 'uint256',
         },
         {
-          name: 'permission',
+          name: 'acp',
           type: 'tuple',
-          internalType: 'struct ACPermission',
+          internalType: 'struct ACP',
           components: [
             {
               name: 'issuer',
@@ -372,19 +372,19 @@ export const MockThresholdNetworkArtifact = {
               internalType: 'address',
             },
             {
-              name: 'validatorId',
+              name: 'revokerData',
               type: 'uint256',
               internalType: 'uint256',
             },
             {
-              name: 'validatorContract',
+              name: 'revokerContract',
               type: 'address',
               internalType: 'address',
             },
             {
-              name: 'global',
-              type: 'bool',
-              internalType: 'bool',
+              name: 'scope',
+              type: 'uint8',
+              internalType: 'uint8',
             },
             {
               name: 'contracts',
@@ -393,8 +393,8 @@ export const MockThresholdNetworkArtifact = {
             },
             {
               name: 'handles',
-              type: 'uint256[]',
-              internalType: 'uint256[]',
+              type: 'bytes32[]',
+              internalType: 'bytes32[]',
             },
             {
               name: 'sealingKey',

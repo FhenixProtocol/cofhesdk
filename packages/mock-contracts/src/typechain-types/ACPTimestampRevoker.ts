@@ -23,7 +23,7 @@ import type {
   TypedContractMethod,
 } from './common';
 
-export interface TimestampBasedACPValidatorInterface extends Interface {
+export interface ACPTimestampRevokerInterface extends Interface {
   getFunction(
     nameOrSignature: 'disabled' | 'revokeAllAt' | 'revokeAllExisting' | 'revokeSingle' | 'revokedSingle'
   ): FunctionFragment;
@@ -69,11 +69,11 @@ export namespace RevokedSingleEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
-export interface TimestampBasedACPValidator extends BaseContract {
-  connect(runner?: ContractRunner | null): TimestampBasedACPValidator;
+export interface ACPTimestampRevoker extends BaseContract {
+  connect(runner?: ContractRunner | null): ACPTimestampRevoker;
   waitForDeployment(): Promise<this>;
 
-  interface: TimestampBasedACPValidatorInterface;
+  interface: ACPTimestampRevokerInterface;
 
   queryFilter<TCEvent extends TypedContractEvent>(
     event: TCEvent,

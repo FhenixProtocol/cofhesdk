@@ -11,7 +11,7 @@ const PermitTypeLabel: Record<PermitType, string> = {
 export const PermitTypeInfoModal: React.FC<PortalModalStateMap[PortalModal.PermitTypeInfo]> = ({ type, onClose }) => {
   return (
     <BaseInfoModal
-      header={`${PermitTypeLabel[type]} Permit`}
+      header={`${PermitTypeLabel[type]} ACP`}
       content={
         <>
           {/* TODO: Improve copy */}

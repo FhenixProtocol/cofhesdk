@@ -9,7 +9,7 @@ This page shows the common patterns for writing Hardhat tests with the CoFHE plu
 
 ## Test setup
 
-Use `hre.cofhe.createClientWithBatteries` in a `before` hook. It creates and connects a fully configured `CofheClient` — including a self-permit — so the client is ready for every test in the suite:
+Use `hre.cofhe.createClientWithBatteries` in a `before` hook. It creates and connects a fully configured `CofheClient` — including a self-ACP — so the client is ready for every test in the suite:
 
 ```ts twoslash
 // @noErrors
@@ -71,7 +71,7 @@ For more on each step, see [Encrypting Inputs](/sdk/encrypting-inputs) and [Decr
 
 ## Reading plaintext directly
 
-In tests you can bypass the normal decrypt flow and read the raw plaintext stored by the mock contracts. This is useful for asserting contract state without needing a permit:
+In tests you can bypass the normal decrypt flow and read the raw plaintext stored by the mock contracts. This is useful for asserting contract state without needing an ACP:
 
 ```ts twoslash
 // @noErrors
@@ -89,26 +89,26 @@ await hre.cofhe.mocks.expectPlaintext(ctHash, 100n);
 
 See [Mock Contracts](/hardhat/mock-contracts) for details.
 
-## Permits
+## ACPs
 
-`createClientWithBatteries` pre-generates a self-permit, so `decryptForView` and `decryptForTx().withPermit()` work immediately. For tests that need named permits or multiple signers, create them explicitly:
+`createClientWithBatteries` pre-generates a self-ACP, so `decryptForView` and `decryptForTx().withPermit()` work immediately. For tests that need named ACPs or multiple signers, create them explicitly:
 
 ```ts twoslash
 // @noErrors
 import { CofheClient } from '@cofhe/sdk';
-import { PermitUtils } from '@cofhe/sdk/permits';
+import { ACPUtils } from '@cofhe/sdk/permits';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 declare const cofheClient: CofheClient;
 declare const signer: HardhatEthersSigner;
 // ---cut---
-const permit = await cofheClient.permits.createSelf({
+const permit = await cofheClient.acp.createSelf({
   issuer: signer.address,
   name: 'My Test Permit',
 });
 
 // Select it as the active permit
-const permitHash = PermitUtils.getHash(permit);
-cofheClient.permits.selectActivePermit(permitHash);
+const permitHash = ACPUtils.getHash(permit);
+cofheClient.acp.selectActivePermit(permitHash);
 ```
 
 Alternatively, you may find it easier to create a cofheClient for each of the multiple signers you need to test.
@@ -128,11 +128,11 @@ const aliceClient = await hre.cofhe.createClientWithBatteries(alice);
 
 ## `decryptForTx` patterns
 
-[`decryptForTx`](/sdk/decrypt-to-tx) returns a `{ ctHash, decryptedValue, signature }` tuple for on-chain submission. The permit mode must be selected explicitly.
+[`decryptForTx`](/sdk/decrypt-to-tx) returns a `{ ctHash, decryptedValue, signature }` tuple for on-chain submission. The ACP mode must be selected explicitly.
 
 ### Globally allowed values (`.withoutPermit()`)
 
-When a contract calls `FHE.allowPublic(handle)`, anyone can decrypt without a permit:
+When a contract calls `FHE.allowPublic(handle)`, anyone can decrypt without an ACP:
 
 ```ts twoslash
 // @noErrors
@@ -151,18 +151,18 @@ expect(result.decryptedValue).to.equal(55n);
 
 ### Access-controlled values (`.withPermit()`)
 
-For handles restricted by ACL policy, supply a permit:
+For handles restricted by ACL policy, supply an ACP:
 
 :::code-group
 
 ```ts twoslash [Explicit permit]
 // @noErrors
 import { CofheClient } from '@cofhe/sdk';
-import { Permit } from '@cofhe/sdk/permits';
+import { ACP } from '@cofhe/sdk/permits';
 import { expect } from 'chai';
 declare const cofheClient: CofheClient;
 declare const ctHash: string;
-declare const permit: Permit;
+declare const permit: ACP;
 // ---cut---
 const result = await cofheClient
   .decryptForTx(ctHash)

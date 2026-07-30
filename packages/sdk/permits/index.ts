@@ -1,12 +1,13 @@
 // Core types
 export type {
-  Permit,
+  ACP,
   CreateSelfPermitOptions as SelfPermitOptions,
   CreateSharingPermitOptions as SharingPermitOptions,
   ImportSharedPermitOptions as ImportPermitOptions,
   SerializedPermit,
   PermitMetadata,
-  Permission,
+  ACPPublic,
+  SharedACP,
   EIP712Domain,
   EIP712Types,
   EIP712Message,
@@ -15,7 +16,7 @@ export type {
 } from './types.js';
 
 // Main utilities
-export { PermitUtils } from './permit.js';
+export { ACPUtils } from './permit.js';
 
 // Validation utilities
 export {
@@ -57,7 +58,7 @@ export {
 } from './store.js';
 
 // Sealing utilities
-export { SealingKey, GenerateSealingKey } from './sealing.js';
+export { GenerateSealingKey, seal, unsealWithPrivateKey, type SealingKeyPair } from './sealing.js';
 export type { EthEncryptedData } from './sealing.js';
 
 // Re-export everything for convenience

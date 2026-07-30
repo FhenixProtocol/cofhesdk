@@ -2,8 +2,7 @@
 pragma solidity >=0.8.19 <0.9.0;
 
 import { Strings } from '@openzeppelin/contracts/utils/Strings.sol';
-import { MockPermissioned, Permission } from './Permissioned.sol';
-import { MockACP, ACPermission } from './ACP.sol';
+import { MockPermissioned, ACP, SCOPE_GLOBAL, SCOPE_CONTRACT, SCOPE_HANDLES } from './Permissioned.sol';
 import { TASK_MANAGER_ADDRESS } from '@fhenixprotocol/cofhe-contracts/FHE.sol';
 
 /**
@@ -308,29 +307,11 @@ contract MockACL is MockPermissioned {
     }
   }
 
-  function isAllowedWithPermission(
-    Permission memory permission,
-    uint256 handle
-  ) public view withPermission(permission) returns (bool) {
-    return isAllowed(handle, permission.issuer);
-  }
-
-  function checkPermitValidity(Permission memory permission) public view withPermission(permission) returns (bool) {
-    return true;
-  }
 
   // ---------------------------------------------------------------------------
   // ACP (Permit V3) — scope-checked access
   // ---------------------------------------------------------------------------
 
-  /// @dev V3 structure verifier (expiration/signatures/revocation lives there —
-  /// separate contract because it carries the V3 EIP-712 domain version).
-  MockACP public acpVerifier;
-
-  /// @dev Mock-only wiring convenience (production wiring is part of the ACL upgrade).
-  function setACPVerifier(address verifier) external {
-    acpVerifier = MockACP(verifier);
-  }
 
   /// @notice V3 (ACP) access check — the scope table. Replaces
   ///         `isAllowedWithPermission` once the V2 permit path is dropped.
@@ -349,24 +330,24 @@ contract MockACL is MockPermissioned {
   ///      `persistedAllowedPairs` (populated via FHE.allow/allowThis) —
   ///      no new data structures. Transient allowances deliberately do not
   ///      satisfy contract scope: only persisted grants count.
-  function isAllowedWithACP(ACPermission memory permission, uint256 handle) public view returns (bool) {
-    // Structure validity (expiration, signatures, validator) — reverts if invalid
-    acpVerifier.checkPermissionValidity(permission);
+  function isAllowedWithACP(ACP memory acp, uint256 handle) public view withPermission(acp) returns (bool) {
+    // Scopes narrow the issuer's existing access, never widen it
+    if (!isAllowed(handle, acp.issuer)) return false;
 
-    // Scopes narrow, never widen: issuer must have access first
-    if (!isAllowed(handle, permission.issuer)) return false;
+    if (acp.scope == SCOPE_GLOBAL) return true;
 
-    // Global scope (V2 behavior)
-    if (permission.global) return true;
-
-    // Contract scope: intersection over existing persisted allowances
-    for (uint256 i = 0; i < permission.contracts.length; i++) {
-      if (persistAllowed(handle, permission.contracts[i])) return true;
+    if (acp.scope == SCOPE_CONTRACT) {
+      for (uint256 i = 0; i < acp.contracts.length; i++) {
+        if (isAllowed(handle, acp.contracts[i])) return true;
+      }
+      return false;
     }
 
-    // Ciphertext scope
-    for (uint256 i = 0; i < permission.handles.length; i++) {
-      if (permission.handles[i] == handle) return true;
+    if (acp.scope == SCOPE_HANDLES) {
+      for (uint256 i = 0; i < acp.handles.length; i++) {
+        if (acp.handles[i] == bytes32(handle)) return true;
+      }
+      return false;
     }
 
     return false;

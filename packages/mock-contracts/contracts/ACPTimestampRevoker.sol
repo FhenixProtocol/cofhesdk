@@ -4,10 +4,10 @@ pragma solidity >=0.8.19 <0.9.0;
 import { IPermissionCustomIdValidator } from './Permissioned.sol';
 
 /**
- * @notice Default ACP validator — timestamp-based revocation.
+ * @notice Default ACP revoker — timestamp-based revocation.
  *
- * Implements the unchanged V2 validator interface. Interprets a permission's
- * `validatorId` as its creation timestamp (populated by the SDK at permit
+ * Implements the unchanged revoker interface. Interprets a permission's
+ * `revokerData` as its creation timestamp (populated by the SDK at permit
  * creation). Every SDK-created permit points here by default: no upfront
  * contract call is needed — a permit is revocable from birth.
  *
@@ -31,7 +31,7 @@ import { IPermissionCustomIdValidator } from './Permissioned.sol';
  * The production counterpart is upgradeable (OZ AccessControl for the
  * upgrader role) and deployed to a fixed address as core infrastructure.
  */
-contract TimestampBasedACPValidator is IPermissionCustomIdValidator {
+contract ACPTimestampRevoker is IPermissionCustomIdValidator {
   /// @notice issuer => threshold; permits with id (creation ts) at or before this are revoked
   mapping(address => uint256) public revokeAllAt;
 
@@ -55,7 +55,7 @@ contract TimestampBasedACPValidator is IPermissionCustomIdValidator {
     emit RevokedAll(msg.sender, block.timestamp);
   }
 
-  /// @dev Called by the ACP verifier during permission validation.
+  /// @dev Called by the ACL during permission validation.
   function disabled(address issuer, uint256 id) external view returns (bool) {
     return id > block.timestamp || id <= revokeAllAt[issuer] || revokedSingle[issuer][id];
   }

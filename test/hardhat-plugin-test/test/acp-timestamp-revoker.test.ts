@@ -26,14 +26,14 @@ describe('ACP default validator (timestamp-based revocation)', () => {
 
   before(async () => {
     [issuer, other] = await hre.ethers.getSigners();
-    acp = await (await hre.ethers.getContractFactory('MockACP')).deploy();
+    acp = await (await hre.ethers.getContractFactory('MockACL')).deploy();
     await acp.waitForDeployment();
   });
 
   // fresh validator per test — revocation state must not leak between scenarios
   let validator: Contract;
   beforeEach(async () => {
-    validator = await (await hre.ethers.getContractFactory('TimestampBasedACPValidator')).deploy();
+    validator = await (await hre.ethers.getContractFactory('ACPTimestampRevoker')).deploy();
     await validator.waitForDeployment();
   });
 
@@ -97,13 +97,13 @@ describe('ACP default validator (timestamp-based revocation)', () => {
       return {
         createdAt,
         permission: await signedSelfPermission(acp, signer, {
-          validatorId: createdAt,
-          validatorContract: await validator.getAddress(),
+          revokerData: createdAt,
+          revokerContract: await validator.getAddress(),
         }),
       };
     };
 
-    it('default permit (validatorId = creation timestamp) is valid from birth', async () => {
+    it('default permit (revokerData = creation timestamp) is valid from birth', async () => {
       const { permission } = await revocablePermission();
       expect(await acp.checkPermissionValidity(permission)).to.equal(true);
     });
@@ -139,8 +139,8 @@ describe('ACP default validator (timestamp-based revocation)', () => {
       // future so it would survive a later revokeAllExisting — must be dead on arrival
       const farFuture = (await latestTimestamp()) + 365n * 24n * 3600n;
       const permission = await signedSelfPermission(acp, issuer, {
-        validatorId: farFuture,
-        validatorContract: await validator.getAddress(),
+        revokerData: farFuture,
+        revokerContract: await validator.getAddress(),
       });
       await expect(acp.checkPermissionValidity(permission)).to.be.revertedWithCustomError(
         acp,
