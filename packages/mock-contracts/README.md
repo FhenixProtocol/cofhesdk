@@ -54,7 +54,7 @@ Both integrations use the same underlying mock contracts, but they differ in **h
 
 Use this when you are already using **Hardhat** and/or want to run the **TypeScript SDK (`@cofhe/sdk`)** against a local chain.
 
-- The `cofhesdk/hardhat-plugin` watches Hardhat `node` and `test` tasks.
+- The `@cofhe/hardhat-plugin` watches Hardhat `node` and `test` tasks.
 - It automatically deploys the mocks to the Hardhat network at fixed addresses.
 - The `cofheClient` (created with `createCofheClient(...)`) detects the mocks and routes CoFHE actions to them.
 
@@ -62,7 +62,7 @@ Minimal setup:
 
 ```ts
 // hardhat.config.ts
-import 'cofhe-hardhat-plugin';
+import '@cofhe/hardhat-plugin';
 
 export default {
   cofhe: {
@@ -108,7 +108,7 @@ The CoFHE coprocessor uses symbolic execution when performing operations on chai
 
 FHE operations between one or more `ctHash`es returns a resultant `ctHash`, which is symbolically linked to the true `ciphertext` which includes the encrypted values.
 
-In `cofhe-mock-contracts` the symbolic execution is preserved. In the case of the mocks, the `ciphertext` is not encrypted to be used in the FHE scheme, but is stored as a plaintext value. In this case, the `ctHash` associated with the `ciphertext` is pointing directly at the plaintext value instead.
+In `@cofhe/mock-contracts` the symbolic execution is preserved. In the case of the mocks, the `ciphertext` is not encrypted to be used in the FHE scheme, but is stored as a plaintext value. In this case, the `ctHash` associated with the `ciphertext` is pointing directly at the plaintext value instead.
 
 During the execution of a mock FHE operation, say `FHE.add(euint8 ctHashA, euint8 ctHashB) -> euint8 ctHashC`, rather than being performed off-chain by the FHE computation engine, the input `ctHashes` are mapped to their plaintext value, and the operation performed as plaintext math on-chain. The result is inserted into the symbolic value position of `ctHashC`.
 
