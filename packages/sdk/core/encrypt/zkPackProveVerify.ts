@@ -266,7 +266,8 @@ export const zkVerifyBatch = async (
   serializedBytes: Uint8Array,
   address: string,
   securityZone: number,
-  chainId: number
+  chainId: number,
+  consumingContract: string
 ): Promise<VerifyBatchResult> => {
   // Convert bytearray to hex string
   const packed_list = toHexString(serializedBytes);
@@ -274,11 +275,16 @@ export const zkVerifyBatch = async (
   const sz_byte = new Uint8Array([securityZone]);
 
   // Construct request payload
+  // NOTE: `contract_addr` is provisional - it mirrors the digest binding added by
+  // cofhe-contracts#77 (TaskManager.verifyInput now folds the consuming contract into the
+  // signed message), but the real CoFHE `/verify-batch` endpoint doesn't document this field
+  // yet (BATCH_SIGNATURE_CHANGES.md predates #77). Rename/remove once the real spec lands.
   const payload = {
     packed_list,
     account_addr: address,
     security_zone: sz_byte[0],
     chain_id: chainId,
+    contract_addr: consumingContract,
   };
 
   const body = JSON.stringify(payload);

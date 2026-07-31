@@ -22,7 +22,10 @@ describe('Encrypt Inputs Test', () => {
     const client = await hre.cofhe.createClientWithBatteries(signer);
 
     // [hash, signature] - one hash per input, followed by the shared batch signature.
-    const [encHash, encSignature] = await client.encryptInputs([Encryptable.uint32(7n)]).execute();
+    const [encHash, encSignature] = await client
+      .encryptInputs([Encryptable.uint32(7n)])
+      .setConsumingContract(await simpleTest.getAddress())
+      .execute();
 
     expect(encHash).to.match(/^0x[0-9a-f]*$/i);
     expect(encSignature).to.match(/^0x[0-9a-f]*$/i);
@@ -55,6 +58,7 @@ describe('Encrypt Inputs Test', () => {
 
       await client
         .encryptInputs([Encryptable.uint32(7n)])
+        .setConsumingContract(await simpleTest.getAddress())
         .onStep((step, context) => {
           if (context == null || context.isStart) return;
           const stepDelay = Array.isArray(delay) ? delay[completedSteps] : delay;

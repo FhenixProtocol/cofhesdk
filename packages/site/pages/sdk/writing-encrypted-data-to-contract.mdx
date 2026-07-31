@@ -67,6 +67,7 @@ const encryptedCounterAbi = parseAbi([
 // 1) Encrypt right before sending the transaction: [hash, signature]
 const [inCountHash, signature] = await cofheClient
   .encryptInputs([Encryptable.uint32(42n)])
+  .setConsumingContract(encryptedCounterAddress)
   .execute();
 
 // 2) Pass the hash(es) and the shared signature as separate arguments

@@ -179,6 +179,7 @@ describe('Encrypted counter', async () => {
     // [hash, signature] - one hash per input, followed by the shared batch signature
     const [hash, signature] = await client
       .encryptInputs([Encryptable.uint32(42n)])
+      .setConsumingContract(simpleTest.address)
       .execute();
 
     await walletClient.writeContract({

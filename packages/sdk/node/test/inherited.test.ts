@@ -92,7 +92,10 @@ describe('@cofhe/node - Inherited Client Tests', () => {
     it('should encrypt a uint128 value', async () => {
       await cofheClient.connect(publicClient, bobWalletClient);
 
-      const encrypted = await cofheClient.encryptInputs([Encryptable.uint128(100n)]).execute();
+      const encrypted = await cofheClient
+        .encryptInputs([Encryptable.uint128(100n)])
+        .setConsumingContract(bobAccount.address)
+        .execute();
 
       // [hash, signature] - one hash per input, followed by the shared batch signature.
       expect(encrypted).toBeDefined();

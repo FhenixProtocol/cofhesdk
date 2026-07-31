@@ -41,6 +41,7 @@ contract BatchVerifyInputTest is CofheTest {
     cofheClient.connect(ALICE_PKEY);
     alice = cofheClient.account();
     store = new BatchValueStore();
+    cofheClient.setConsumingContract(address(store));
   }
 
   function testValidBatch_storesAllValuesInOrder() public {
@@ -66,7 +67,7 @@ contract BatchVerifyInputTest is CofheTest {
     (BatchedEncryptedInput[] memory inputs, ) = _computeBatch(values);
 
     // Sign the correct digest with the WRONG private key.
-    bytes32 batchHash = _batchDigest(inputs, alice);
+    bytes32 batchHash = _batchDigest(inputs, alice, address(store));
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(0xBAD5163EA, batchHash);
     bytes memory wrongSignature = abi.encodePacked(r, s, v);
 
@@ -93,6 +94,22 @@ contract BatchVerifyInputTest is CofheTest {
     vm.expectRevert();
     vm.prank(alice);
     store.storeEuint32sBatch(hashes, signature);
+  }
+
+  /// @notice A batch signed for one contract must not verify when consumed via a different
+  ///         contract - the whole point of cofhe-contracts#77's contract-binding fix.
+  function testWrongConsumingContract_reverts() public {
+    BatchValueStore otherStore = new BatchValueStore();
+
+    uint32[] memory values = new uint32[](1);
+    values[0] = 42;
+
+    // Signed for `store` (set in setUp), but consumed via `otherStore`.
+    (externalEuint32[] memory hashes, bytes memory signature) = cofheClient.createEuint32sBatch(values);
+
+    vm.expectRevert();
+    vm.prank(alice);
+    otherStore.storeEuint32sBatch(hashes, signature);
   }
 
   function testDebugBypass_worksWithZeroSigner() public {
@@ -126,7 +143,11 @@ contract BatchVerifyInputTest is CofheTest {
     }
   }
 
-  function _batchDigest(BatchedEncryptedInput[] memory inputs, address sender) private view returns (bytes32) {
+  function _batchDigest(
+    BatchedEncryptedInput[] memory inputs,
+    address sender,
+    address contractAddress
+  ) private view returns (bytes32) {
     bytes memory concatenatedHashes;
     for (uint256 i = 0; i < inputs.length; i++) {
       bytes memory combined = abi.encodePacked(
@@ -134,7 +155,8 @@ contract BatchVerifyInputTest is CofheTest {
         inputs[i].utype,
         inputs[i].securityZone,
         sender,
-        block.chainid
+        block.chainid,
+        contractAddress
       );
       concatenatedHashes = abi.encodePacked(concatenatedHashes, keccak256(combined));
     }

@@ -199,3 +199,71 @@ migration — `cofheClient.encryptInputs(...).execute()` against a real chain wi
 `test/hardhat-plugin-test` and `test/hardhat-3-plugin-test`. `test/integration-matrix` (which
 exercises live CoFHE infrastructure) was intentionally left out of this migration for the same
 reason.
+
+---
+
+# Breaking change: encrypted inputs are now bound to a consuming contract
+
+Follow-up to the batch migration above, implementing
+[`FhenixProtocol/cofhe-contracts#77`](https://github.com/FhenixProtocol/cofhe-contracts/pull/77).
+
+## Why
+
+`TaskManager.verifyInput`/`batchVerifyInputs` previously signed
+`keccak256(ctHash || utype || securityZone || sender || chainId)`. Since a signed input packet
+travels in public calldata, an attacker could lift a victim's valid packet and replay it into a
+*different* contract than the one it was signed for — `verifyInput`/`batchVerifyInputs` are
+permissionless and hand the caller a transient ACL allowance over the resulting handle. PR #77
+closes this by folding the consuming contract (the caller of `FHE.asEuint*`/`FHE.asEuint*s`,
+i.e. `msg.sender` as seen by the TaskManager) into the signed message:
+
+```
+keccak256(ctHash || utype || securityZone || sender || chainId || contractAddress)
+```
+
+Because the SDK/mocks compute this signature **off-chain, before** any transaction happens, the
+caller must now declare in advance which contract will consume the result.
+
+## `@cofhe/sdk`
+
+- **New, required** `EncryptInputsBuilder.setConsumingContract(address)` /
+  `.getConsumingContract()`. `execute()` throws `CofheErrorCode.ConsumingContractUninitialized`
+  if it was never called — there is no default (e.g. falling back to `msg.sender` at execute
+  time defeats the point: the caller must commit to the target contract before signing).
+- **Changed** signature digest (mocks path, `cofheMocksZkVerifySign.ts`): now folds in the
+  consuming contract per the formula above.
+- **Changed** production request: `zkVerifyBatch` now sends a `contract_addr` field to
+  `POST /verify-batch`, alongside the existing `account_addr`/`security_zone`/`chain_id`. This
+  field is **not yet documented** in `BATCH_SIGNATURE_CHANGES.md` (which predates PR #77) — it's
+  a forward-looking addition on the assumption the real endpoint will grow a matching field once
+  CoFHE ships its own lockstep verifier update. The live service does not yet implement
+  `/verify-batch` at all (see "Known temporary limitation" above), so this has no observable
+  effect until then.
+
+## `@cofhe/mock-contracts`
+
+- `MockTaskManager.sol`: `inputMessageHash`/`extractSigner`/`extractBatchSigner` now take an
+  additional `contractAddress` parameter, folded into the digest exactly as above.
+  `verifyInput`/`batchVerifyInputs`'s **external ABI is unchanged** — `contractAddress` is read
+  from `msg.sender` inside the TaskManager (the immediate caller of these functions), not passed
+  as an argument, matching PR #77 exactly.
+
+## `@cofhe/foundry-plugin`
+
+- **New, required** `CofheClient.setConsumingContract(address)` — mirrors the SDK builder.
+  `createEncryptedInputsBatch` (the root of every `createIn*`/`createEncryptedInputsBatch`/
+  `createEuint32sBatch` helper) now reverts with `'CofheClient: consuming contract not set'` if
+  it was never called.
+- `MockZkVerifierSigner.zkVerifyBatchSign` gained a required `contractAddress` parameter.
+- Existing Foundry tests that create encrypted inputs must call
+  `cofheClient.setConsumingContract(address(targetContract))` once (typically in `setUp()`)
+  before creating any encrypted input.
+
+## `@cofhe/react`
+
+- `EncryptInputsOptions` (used by `useCofheEncrypt`) gained an optional `consumingContract`
+  field, threaded through to `builder.setConsumingContract(...)`.
+- `useCofheEncryptAndWriteContract` now defaults `consumingContract` to the write's target
+  `address` automatically (the one call site in the repo where the consuming contract is
+  already unambiguously known) — an explicit `encryptionOptions.consumingContract` still
+  overrides this default.

@@ -73,6 +73,7 @@ contract CounterTest is CofheTest {
         cofheClient = createCofheClient();  // create SDK-like client
         cofheClient.connect(USER_PKEY);     // set account/signer
         counter = new Counter();
+        cofheClient.setConsumingContract(address(counter)); // bind inputs to this contract
     }
 
     function test_increment() public {
@@ -115,6 +116,8 @@ contract CounterTest is CofheTest {
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | `connect(uint256 pkey)` | Stores the private key, derives the account address, and marks the client as ready. Must be called before all other functions. |
 | `account()`             | Returns the address derived from the connected private key.                                                                    |
+| `setConsumingContract(address target)` | Sets the contract that will consume the next encrypted input(s). Required before creating any encrypted input — the verifier binds this address into the signed digest, so a batch signed for one contract cannot be replayed into another. |
+| `consumingContract()`   | Returns the address set via `setConsumingContract`.                                                                             |
 
 ### Encryption
 
@@ -125,6 +128,10 @@ a whole array of ciphertexts authenticated by **one shared signature**, verified
 `createInEbool`...`createInEaddress` are thin single-item wrappers over a batch of size one, not
 a separate signing scheme — every hash they return is only valid when consumed via the batch
 path (`FHE.asEuint32s([hash], signature)`, not the legacy single-item `FHE.asEuint32(hash, proof)`).
+
+`setConsumingContract(address)` (see [Setup](#setup)) must be called before any of these — the
+verifier binds that address into the signature, matching
+[`FhenixProtocol/cofhe-contracts#77`](https://github.com/FhenixProtocol/cofhe-contracts/pull/77).
 
 | Function                    | Returns                            |
 | ---------------------------- | ----------------------------------- |
@@ -140,6 +147,7 @@ Example — note the contract's entry point must accept an array (even for a sin
 
 ```solidity
 function testSetValue(uint32 n) public {
+    cofheClient.setConsumingContract(address(myContract));
     (externalEuint32 hash, bytes memory signature) = cofheClient.createInEuint32(n);
     externalEuint32[] memory hashes = new externalEuint32[](1);
     hashes[0] = hash;
@@ -165,6 +173,7 @@ Example:
 
 ```solidity
 function testSetValueBatch(uint32[] memory values) public {
+    cofheClient.setConsumingContract(address(myContract));
     (externalEuint32[] memory hashes, bytes memory signature) = cofheClient.createEuint32sBatch(values);
     vm.prank(cofheClient.account());
     myContract.setValueBatch(hashes, signature);

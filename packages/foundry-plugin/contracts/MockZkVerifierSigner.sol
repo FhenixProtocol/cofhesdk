@@ -16,10 +16,14 @@ contract MockZkVerifierSigner is Test {
   /// @notice The canonical batch signer: one signature over a whole batch of inputs, matching
   ///         `MockTaskManager.batchVerifyInputs`/`extractBatchSigner`'s digest -
   ///         keccak256(h_0 || h_1 || ... || h_n), where each h_i is the per-input message hash
-  ///         (`ctHash || utype || securityZone || sender || chainid`).
+  ///         (`ctHash || utype || securityZone || sender || chainid || contractAddress`).
+  ///         `contractAddress` binds the batch to the specific contract that will consume it
+  ///         (matching cofhe-contracts#77's contract-binding fix) - the caller must know in
+  ///         advance which contract will call `FHE.asEuint*s` with the resulting hashes.
   function zkVerifyBatchSign(
     BatchedEncryptedInput[] memory inputs,
-    address sender
+    address sender,
+    address contractAddress
   ) public view returns (bytes memory signature) {
     bytes memory concatenatedHashes;
     for (uint256 i = 0; i < inputs.length; i++) {
@@ -28,7 +32,8 @@ contract MockZkVerifierSigner is Test {
         inputs[i].utype,
         inputs[i].securityZone,
         sender,
-        block.chainid
+        block.chainid,
+        contractAddress
       );
       concatenatedHashes = abi.encodePacked(concatenatedHashes, keccak256(combined));
     }

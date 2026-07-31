@@ -26,7 +26,10 @@ describe('Inherited SDK Tests', async () => {
 
   const storeEncrypted = async (client: Awaited<ReturnType<typeof cofhe.createClientWithBatteries>>, value: bigint) => {
     // [hash, signature] - one hash per input, followed by the shared batch signature.
-    const [hash, signature] = await client.encryptInputs([Encryptable.uint32(value)]).execute();
+    const [hash, signature] = await client
+      .encryptInputs([Encryptable.uint32(value)])
+      .setConsumingContract(simpleTest.address)
+      .execute();
     await simpleTest.write.setValueBatch([[hash], signature]);
     const ctHash = await simpleTest.read.getValueHash();
     return { hash, signature, ctHash };

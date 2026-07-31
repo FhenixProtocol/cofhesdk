@@ -161,6 +161,10 @@ export function useCofheEncryptAndWriteContract<TExtraVars = unknown>({
       encrypt: (encryptableItems) =>
         encryption.encryptInputsAsync({
           items: encryptableItems,
+          // The target contract of this write is already known - default the consuming
+          // contract to it so callers don't have to specify it twice. An explicit
+          // `encryptionOptions.consumingContract` still wins.
+          consumingContract: args.params.address,
           ...(args.encryptionOptions ?? {}),
         }),
       write: (writeParams) => {

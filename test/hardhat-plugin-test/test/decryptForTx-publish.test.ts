@@ -31,7 +31,10 @@ describe('Hardhat Mocks – publishDecryptResult revert behavior', () => {
     const testValue = 123n;
 
     // [hash, signature] - one hash per input, followed by the shared batch signature.
-    const [hash, signature] = await cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
+    const [hash, signature] = await cofheClient
+      .encryptInputs([Encryptable.uint32(testValue)])
+      .setConsumingContract(await simpleTest.getAddress())
+      .execute();
 
     const tx = await simpleTest.connect(signer).setPublicValueBatch([hash], signature);
     await tx.wait();

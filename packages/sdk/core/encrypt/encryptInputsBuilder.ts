@@ -49,6 +49,7 @@ type EncryptInputsBuilderParams<T extends EncryptableItem[]> = BaseBuilderParams
 
 export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuilder {
   private securityZone: number;
+  protected consumingContract: string | undefined;
   private stepCallback?: EncryptStepCallbackFunction;
   private inputItems: [...T];
 
@@ -207,6 +208,47 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
 
   getSecurityZone(): number {
     return this.securityZone;
+  }
+
+  /**
+   * @param address - The contract that will consume the resulting hashes+signature (i.e. the
+   * contract that will call `FHE.asEuint*`/`FHE.asEuint*s` with them).
+   *
+   * Required before `execute()` - the verifier binds this address into the signed digest, so a
+   * batch signed for one contract cannot be replayed into another.
+   *
+   * Example:
+   * ```typescript
+   * const encrypted = await encryptInputs([Encryptable.uint128(10n)])
+   *   .setConsumingContract("0x123...890")
+   *   .execute();
+   * ```
+   *
+   * @returns The chainable EncryptInputsBuilder instance.
+   */
+  setConsumingContract(address: string): EncryptInputsBuilder<T> {
+    this.consumingContract = address;
+    return this;
+  }
+
+  getConsumingContract(): string | undefined {
+    return this.consumingContract;
+  }
+
+  /**
+   * Asserts that this.consumingContract is populated
+   * @throws {CofheError} If consumingContract is not set
+   */
+  private assertConsumingContract(): asserts this is this & { consumingContract: string } {
+    if (this.consumingContract) return;
+    throw new CofheError({
+      code: CofheErrorCode.ConsumingContractUninitialized,
+      message: 'Consuming contract is not set',
+      hint: 'Use setConsumingContract(...) to set the contract that will consume the encrypted inputs.',
+      context: {
+        consumingContract: this.consumingContract,
+      },
+    });
   }
 
   /**
@@ -420,6 +462,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
     this.assertAccount();
     this.assertPublicClient();
     this.assertWalletClient();
+    this.assertConsumingContract();
 
     const [initTfheDelay, fetchKeysDelay, packDelay, proveDelay, verifyDelay] = this.resolveEncryptDelays();
 
@@ -455,6 +498,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
       this.inputItems,
       this.account,
       this.securityZone,
+      this.consumingContract,
       this.publicClient,
       this.walletClient,
       this.zkvWalletClient
@@ -470,6 +514,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   private async productionExecute(): Promise<VerifyBatchResult> {
     this.assertAccount();
     this.assertChainId();
+    this.assertConsumingContract();
 
     this.fireStepStart(EncryptStep.InitTfhe);
 
@@ -532,7 +577,14 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
 
     const zkVerifierUrl = await this.getZkVerifierUrl();
 
-    const result = await zkVerifyBatch(zkVerifierUrl, proof, this.account, this.securityZone, this.chainId);
+    const result = await zkVerifyBatch(
+      zkVerifierUrl,
+      proof,
+      this.account,
+      this.securityZone,
+      this.chainId,
+      this.consumingContract
+    );
 
     this.fireStepEnd(EncryptStep.Verify);
 

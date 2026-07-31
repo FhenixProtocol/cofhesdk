@@ -117,6 +117,7 @@ describe('MyContract', () => {
     // 1. Encrypt the input: [hash, signature]
     const [encHash, signature] = await cofheClient
       .encryptInputs([Encryptable.uint32(42n)])
+      .setConsumingContract(await contract.getAddress())
       .execute();
 
     // 2. Send to contract

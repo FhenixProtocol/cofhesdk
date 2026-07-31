@@ -566,7 +566,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
         revert InvalidSecurityZone(securityZone, securityZoneMin, securityZoneMax);
       }
 
-      address signer = extractSigner(input, sender, signature);
+      address signer = extractSigner(input, sender, msg.sender, signature);
       if (signer != verifierSigner) {
         revert InvalidSigner(signer, verifierSigner);
       }
@@ -582,7 +582,9 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   /// @dev The verifier signs the whole batch with one signature over
   ///      keccak256(h_0 || h_1 || ... || h_n), where each h_i is the same
   ///      per-input message hash used by `verifyInput`:
-  ///      keccak256(ctHash || utype || securityZone || sender || chainid).
+  ///      keccak256(ctHash || utype || securityZone || sender || chainid || contractAddress).
+  ///      `contractAddress` (the caller of this function) binds the batch to the specific
+  ///      consuming contract, matching cofhe-contracts#77.
   ///      Inputs are processed in order; the returned hashes line up with `inputs`.
   ///      This is the canonical verification path our own mocks/tooling route through -
   ///      including for single-input batches (n=1) - to avoid maintaining two separate
@@ -608,7 +610,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
         }
       }
 
-      address signer = extractBatchSigner(inputs, sender, signature);
+      address signer = extractBatchSigner(inputs, sender, msg.sender, signature);
       if (signer != verifierSigner) {
         revert InvalidSigner(signer, verifierSigner);
       }
@@ -671,13 +673,28 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   }
 
   /// @dev Per-input message hash, shared by single and batch verification:
-  ///      keccak256(ctHash || utype || securityZone || sender || chainid).
-  function inputMessageHash(uint256 ctHash, uint8 utype, uint8 securityZone, address sender) private view returns (bytes32) {
-    return keccak256(abi.encodePacked(ctHash, utype, securityZone, sender, block.chainid));
+  ///      keccak256(ctHash || utype || securityZone || sender || chainid || contractAddress).
+  ///      `contractAddress` binds the input to the specific contract that consumes it
+  ///      (the caller of `verifyInput`/`batchVerifyInputs`), matching cofhe-contracts#77 -
+  ///      without this, a signed input observed on-chain could be replayed into any other
+  ///      contract, which would then obtain an ACL allowance over the ciphertext.
+  function inputMessageHash(
+    uint256 ctHash,
+    uint8 utype,
+    uint8 securityZone,
+    address sender,
+    address contractAddress
+  ) private view returns (bytes32) {
+    return keccak256(abi.encodePacked(ctHash, utype, securityZone, sender, block.chainid, contractAddress));
   }
 
-  function extractSigner(EncryptedInput memory input, address sender, bytes memory signature) private view returns (address) {
-    bytes32 expectedHash = inputMessageHash(input.ctHash, input.utype, input.securityZone, sender);
+  function extractSigner(
+    EncryptedInput memory input,
+    address sender,
+    address contractAddress,
+    bytes memory signature
+  ) private view returns (address) {
+    bytes32 expectedHash = inputMessageHash(input.ctHash, input.utype, input.securityZone, sender, contractAddress);
 
     address signer = ECDSA.recover(expectedHash, signature);
 
@@ -693,13 +710,14 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   function extractBatchSigner(
     BatchedEncryptedInput[] memory inputs,
     address sender,
+    address contractAddress,
     bytes memory signature
   ) private view returns (address) {
     bytes memory concatenatedHashes;
     for (uint256 i = 0; i < inputs.length; i++) {
       concatenatedHashes = abi.encodePacked(
         concatenatedHashes,
-        inputMessageHash(inputs[i].ctHash, inputs[i].utype, inputs[i].securityZone, sender)
+        inputMessageHash(inputs[i].ctHash, inputs[i].utype, inputs[i].securityZone, sender, contractAddress)
       );
     }
 

@@ -13,8 +13,9 @@ The flow is as follows:
 
 1. Decide which plaintext value(s) you want to encrypt.
 2. Wrap each value with a typing helper (e.g. `Encryptable.uint32(…)`) to construct typed encryptable inputs (see [`Encryptable` — typing inputs](#encryptable--typing-inputs)).
-3. Call `client.encryptInputs([...]).execute()` to produce a [batch-verified result](#what-encryptinputs-returns) — one ciphertext hash per input, followed by a single shared signature.
-4. Submit a transaction to your contract, passing the hashes and signature as `external*` + `bytes` parameters (see [Writing encrypted data to a contract](./writing-encrypted-data-to-contract.mdx)).
+3. Call `.setConsumingContract(address)` with the address of the contract you'll submit the result to — the verifier binds this into the signed digest, so a batch signed for one contract can't be replayed into another.
+4. Call `client.encryptInputs([...]).setConsumingContract(...).execute()` to produce a [batch-verified result](#what-encryptinputs-returns) — one ciphertext hash per input, followed by a single shared signature.
+5. Submit a transaction to your contract, passing the hashes and signature as `external*` + `bytes` parameters (see [Writing encrypted data to a contract](./writing-encrypted-data-to-contract.mdx)).
 
 ## Prerequisites
 
@@ -47,6 +48,7 @@ const encrypted = await cofheClient
     Encryptable.bool(true),
     Encryptable.address('0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045'),
   ])
+  .setConsumingContract('0x5FbDB2315678afecb367f032d93F642f64180aa3')
   .execute();
 
 const [eUint32Hash, eBoolHash, eAddressHash, signature] = encrypted;
@@ -84,7 +86,31 @@ await cofheClient.connect(publicClient, walletClient);
 
 const [encryptedAge, encryptedFlag, signature] = await cofheClient
   .encryptInputs([Encryptable.uint8(25n), Encryptable.bool(true)])
+  .setConsumingContract('0x5FbDB2315678afecb367f032d93F642f64180aa3')
   .execute(); // [!code focus]
+```
+
+### `.setConsumingContract(address)` — required
+
+Sets the contract that will consume the resulting hashes+signature — i.e. the contract whose function call will pass them into `FHE.asEuint*s(...)`. The CoFHE verifier binds this address into the signed digest, so a batch signed for one contract cannot be replayed into another. `.execute()` throws `ConsumingContractUninitialized` if this was never called.
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { Encryptable } from '@cofhe/sdk';
+import { chains } from '@cofhe/sdk/chains';
+import type { PublicClient, WalletClient } from 'viem';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const cofheClient = createCofheClient(config);
+declare const publicClient: PublicClient;
+declare const walletClient: WalletClient;
+// ---cut---
+await cofheClient.connect(publicClient, walletClient);
+
+const encrypted = await cofheClient
+  .encryptInputs([Encryptable.uint64(10n)])
+  .setConsumingContract('0x5FbDB2315678afecb367f032d93F642f64180aa3') // [!code focus]
+  .execute();
 ```
 
 ### `.setAccount(address)` — optional
@@ -106,6 +132,7 @@ await cofheClient.connect(publicClient, walletClient);
 
 const encrypted = await cofheClient
   .encryptInputs([Encryptable.uint64(10n)])
+  .setConsumingContract('0x5FbDB2315678afecb367f032d93F642f64180aa3')
   .setAccount('0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045') // [!code focus]
   .execute();
 ```
@@ -129,6 +156,7 @@ await cofheClient.connect(publicClient, walletClient);
 
 const encrypted = await cofheClient
   .encryptInputs([Encryptable.uint64(10n)])
+  .setConsumingContract('0x5FbDB2315678afecb367f032d93F642f64180aa3')
   .setChainId(11155111) // [!code focus]
   .execute();
 ```
@@ -153,6 +181,7 @@ await cofheClient.connect(publicClient, walletClient);
 
 const encrypted = await cofheClient
   .encryptInputs([Encryptable.uint32(7n)])
+  .setConsumingContract('0x5FbDB2315678afecb367f032d93F642f64180aa3')
   .setUseWorker(false) // [!code focus]
   .execute();
 ```
@@ -178,6 +207,7 @@ await cofheClient.connect(publicClient, walletClient);
 
 const encrypted = await cofheClient
   .encryptInputs([Encryptable.uint64(10n)])
+  .setConsumingContract('0x5FbDB2315678afecb367f032d93F642f64180aa3')
   .onStep((step, ctx) => {
     // [!code focus]
     if (ctx?.isStart) console.log(`Starting: ${step}`); // [!code focus]
@@ -257,6 +287,7 @@ Use this with Solidity functions that accept `external*` handles followed by a t
 
 ## Common pitfalls
 
+- **Missing `.setConsumingContract(...)`**: required before `.execute()` — throws `ConsumingContractUninitialized` otherwise. It must be the exact contract you submit the hashes/signature to; the verifier binds this address into the signature.
 - **Wrong `Encryptable` type**: `Encryptable.uint32(...)` must match what your Solidity function expects (e.g. `externalEuint32`).
 - **Splitting a batch**: the signature authenticates *all* the hashes in that `execute()` call together, in order. You can't reuse a subset of the hashes with a different signature, or reorder them.
 - **Wrong account / chain**: encrypted inputs are authorized for a specific `account + chainId`. If you override these (or connect to the wrong network/wallet), your inputs may not be usable for the intended transaction.

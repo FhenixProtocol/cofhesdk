@@ -151,7 +151,7 @@ await client.connect(publicClient, walletClient);
 | **Progress callback** | Second argument to `encrypt` | `.onStep(callback)` on the builder |
 | **Callback states** | `Extract`, `Pack`, `Prove`, `Verify`, `Replace`, `Done` | `InitTfhe`, `FetchKeys`, `Pack`, `Prove`, `Verify` |
 | **Result types** | `CoFheInUint8`, `CoFheInBool`, etc. | `[...hashes, signature]` — one `external*` hash per input, followed by one shared batch signature |
-| **Overrides** | Not available | `.setAccount(...)`, `.setChainId(...)`, `.setUseWorker(...)` |
+| **Overrides** | Not available | `.setConsumingContract(...)` (required), `.setAccount(...)`, `.setChainId(...)`, `.setUseWorker(...)` |
 | **Mixed-type arrays** | `cofhejs.encrypt([{ a: Encryptable.uint8(10) }])` | Not supported — pass a flat array of `Encryptable` items |
 :::
 ::::
@@ -180,12 +180,14 @@ const [eAmount, eFlag] = result.data;
 // @noErrors
 import { type CofheClient, type CofheConfig } from '@cofhe/sdk';
 declare const client: CofheClient<CofheConfig>;
+declare const myContractAddress: `0x${string}`;
 // ---cut---
 import { Encryptable, EncryptStep } from '@cofhe/sdk';
 
 // [hash1, hash2, signature] - one hash per input, followed by the shared batch signature
 const [eAmountHash, eFlagHash, signature] = await client
   .encryptInputs([Encryptable.uint64(42n), Encryptable.bool(true)])
+  .setConsumingContract(myContractAddress)
   .onStep((step, ctx) => {
     if (ctx?.isStart) console.log(`Starting: ${step}`);
   })
@@ -402,12 +404,14 @@ import {
   Encryptable,
 } from '@cofhe/sdk';
 declare const client: CofheClient<CofheConfig>;
+declare const myContractAddress: `0x${string}`;
 // ---cut---
 import { isCofheError, CofheErrorCode } from '@cofhe/sdk';
 
 try {
   const encrypted = await client
     .encryptInputs([Encryptable.uint32(42n)])
+    .setConsumingContract(myContractAddress)
     .execute();
 } catch (err) {
   if (isCofheError(err)) {
@@ -508,6 +512,7 @@ await client.connect(publicClient, walletClient);
 // 2. Encrypt: [hash, signature]
 const [eAmountHash, signature] = await client
   .encryptInputs([Encryptable.uint64(100n)])
+  .setConsumingContract(await contract.getAddress())
   .onStep((step) => console.log(step))
   .execute();
 

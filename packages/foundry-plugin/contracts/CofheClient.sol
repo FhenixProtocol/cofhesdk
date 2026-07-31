@@ -45,6 +45,9 @@ contract CofheClient is Test {
   address private _account;
   bool private _connected;
 
+  address private _consumingContract;
+  bool private _consumingContractSet;
+
   constructor() {
     mockTaskManager = MockTaskManager(TASK_MANAGER_ADDRESS);
     mockAcl = MockACL(address(mockTaskManager.acl()));
@@ -59,6 +62,11 @@ contract CofheClient is Test {
     _;
   }
 
+  modifier onlyConsumingContractSet() {
+    require(_consumingContractSet, 'CofheClient: consuming contract not set');
+    _;
+  }
+
   /// @notice Returns the address derived from the connected private key.
   function account() public view onlyConnected returns (address) {
     return _account;
@@ -69,6 +77,21 @@ contract CofheClient is Test {
     _pkey = pkey;
     _account = vm.addr(pkey);
     _connected = true;
+  }
+
+  /// @notice Sets the contract that will consume the next encrypted input(s) - i.e. the
+  ///         contract that will call `FHE.asEuint*`/`FHE.asEuint*s` with the resulting hashes.
+  ///         Required before creating any encrypted input: the verifier binds this address into
+  ///         the signed digest (cofhe-contracts#77), so a batch signed for one contract cannot
+  ///         be replayed into another.
+  function setConsumingContract(address target) public {
+    _consumingContract = target;
+    _consumingContractSet = true;
+  }
+
+  /// @notice Returns the contract address set via `setConsumingContract`.
+  function consumingContract() public view returns (address) {
+    return _consumingContract;
   }
 
   // =====================
@@ -157,7 +180,7 @@ contract CofheClient is Test {
   function createEncryptedInputsBatch(
     uint8[] memory utypes,
     uint256[] memory values
-  ) internal onlyConnected returns (BatchedEncryptedInput[] memory inputs, bytes memory signature) {
+  ) internal onlyConnected onlyConsumingContractSet returns (BatchedEncryptedInput[] memory inputs, bytes memory signature) {
     require(utypes.length == values.length, 'CofheClient: length mismatch');
 
     inputs = new BatchedEncryptedInput[](utypes.length);
@@ -167,7 +190,7 @@ contract CofheClient is Test {
       inputs[i] = BatchedEncryptedInput({ ctHash: ctHash, securityZone: 0, utype: utypes[i] });
     }
 
-    signature = mockZkVerifierSigner.zkVerifyBatchSign(inputs, _account);
+    signature = mockZkVerifierSigner.zkVerifyBatchSign(inputs, _account, _consumingContract);
   }
 
   /// @notice Creates a batch of encrypted uint32 inputs sharing one signature.

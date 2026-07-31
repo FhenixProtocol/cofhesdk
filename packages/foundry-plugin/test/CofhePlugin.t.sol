@@ -296,6 +296,7 @@ contract CofheClientTest is CofheTest {
     cofheClient = createCofheClient();
     cofheClient.connect(ALICE_PKEY);
     store = new EncryptedValueStore();
+    cofheClient.setConsumingContract(address(store));
   }
 
   // --------------- connect / account ---------------

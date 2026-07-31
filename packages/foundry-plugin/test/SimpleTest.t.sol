@@ -20,6 +20,7 @@ contract SimpleTestTest is CofheTest {
     cofheClient = createCofheClient();
     cofheClient.connect(USER_PKEY);
     simpleTest = new SimpleTest();
+    cofheClient.setConsumingContract(address(simpleTest));
   }
 
   /// @notice Fuzz test: create an encrypted input (hash plus proof, batch of one) and set it as state.

@@ -47,8 +47,8 @@ const parseWithBigInt = (str: string): any =>
 
 // packMetadata function removed as it's no longer needed
 const unpackMetadata = (metadata: string) => {
-  const [signer, securityZone, chainId] = metadata.split('-');
-  return { signer, securityZone: parseInt(securityZone), chainId: parseInt(chainId) };
+  const [signer, securityZone, chainId, contractAddr] = metadata.split('-');
+  return { signer, securityZone: parseInt(securityZone), chainId: parseInt(chainId), contractAddr };
 };
 
 export const deconstructZkPoKMetadata = (
@@ -127,16 +127,17 @@ const MockCrs = {
 
 // Setup fetch mock for http://localhost:3001/verify-batch
 // Simulates batch verification of a zk proof: one signature covering the whole batch.
-// The signature is `${account_addr}-${security_zone}-${chain_id}-` (a debug string, not a real
-// signature) so tests can recover the request payload that was sent for a given result.
-// Expects the proof to be created by the MockZkListBuilder `build_with_proof_packed` above
+// The signature is `${account_addr}-${security_zone}-${chain_id}-${contract_addr}-` (a debug
+// string, not a real signature) so tests can recover the request payload that was sent for a
+// given result. Expects the proof to be created by the MockZkListBuilder `build_with_proof_packed`
+// above
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 const setupZkVerifyMock = () => {
   mockFetch.mockImplementation((url: string, options: any) => {
     if (url === `${MockZkVerifierUrl}/verify-batch`) {
       const body = JSON.parse(options.body as string);
-      const { packed_list, account_addr, security_zone, chain_id } = body;
+      const { packed_list, account_addr, security_zone, chain_id, contract_addr } = body;
 
       // Decode the proof data
       const arr = fromHexString(packed_list);
@@ -157,7 +158,7 @@ const setupZkVerifyMock = () => {
             status: 'success',
             data: {
               outputs,
-              signature: `${account_addr}-${security_zone}-${chain_id}-`,
+              signature: `${account_addr}-${security_zone}-${chain_id}-${contract_addr}-`,
               recid: 0,
             },
             error: null,
@@ -236,6 +237,7 @@ class MockZkProvenList {
 describe('EncryptInputsBuilder', () => {
   const defaultSender = '0x1234567890123456789012345678901234567890';
   const defaultChainId = 1;
+  const defaultConsumingContract = '0xbeefbeefbeefbeefbeefbeefbeefbeefbeefbeef';
   const createDefaultParams = () => {
     return {
       inputs: [Encryptable.uint128(100n)] as [EncryptableUint128],
@@ -264,6 +266,7 @@ describe('EncryptInputsBuilder', () => {
     setupZkVerifyMock();
     insertMockKeys(defaultChainId, 0);
     builder = new EncryptInputsBuilder(createDefaultParams());
+    builder.setConsumingContract(defaultConsumingContract);
   });
 
   describe('constructor and initialization', () => {
@@ -324,7 +327,9 @@ describe('EncryptInputsBuilder', () => {
         await new EncryptInputsBuilder({
           ...createDefaultParams(),
           initTfhe: vi.fn().mockRejectedValue(new Error('Failed to initialize TFHE')),
-        }).execute();
+        })
+          .setConsumingContract(defaultConsumingContract)
+          .execute();
       } catch (error) {
         expect(error).toBeInstanceOf(CofheError);
         expect((error as CofheError).code).toBe(CofheErrorCode.InitTfheFailed);
@@ -335,7 +340,9 @@ describe('EncryptInputsBuilder', () => {
       const result = await new EncryptInputsBuilder({
         ...createDefaultParams(),
         initTfhe: mockInitTfhe,
-      }).execute();
+      })
+        .setConsumingContract(defaultConsumingContract)
+        .execute();
       expect(result).toBeDefined();
     });
   });
@@ -421,6 +428,25 @@ describe('EncryptInputsBuilder', () => {
     });
   });
 
+  describe('setConsumingContract', () => {
+    it('should set consuming contract and return builder for chaining', () => {
+      const contract = '0xdeaddeaddeaddeaddeaddeaddeaddeaddeaddead';
+      const result = builder.setConsumingContract(contract);
+      expect(result).toBe(builder);
+      expect(result.getConsumingContract()).toBe(contract);
+    });
+
+    it('should throw an error if consumingContract is not set', async () => {
+      try {
+        await new EncryptInputsBuilder(createDefaultParams()).execute();
+        expect.unreachable('execute() should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(CofheError);
+        expect((error as CofheError).code).toBe(CofheErrorCode.ConsumingContractUninitialized);
+      }
+    });
+  });
+
   describe('zkVerifierUrl', () => {
     it('should throw if zkVerifierUrl is not set', async () => {
       try {
@@ -430,7 +456,9 @@ describe('EncryptInputsBuilder', () => {
           account: '0x1234567890123456789012345678901234567890',
           chainId: 1,
           config: createMockCofheConfig(defaultChainId, undefined as unknown as string),
-        }).execute();
+        })
+          .setConsumingContract(defaultConsumingContract)
+          .execute();
       } catch (error) {
         expect(error).toBeInstanceOf(CofheError);
         expect((error as CofheError).code).toBe(CofheErrorCode.ZkVerifierUrlUninitialized);
@@ -616,6 +644,7 @@ describe('EncryptInputsBuilder', () => {
           ReturnType<typeof Encryptable.bool>,
         ],
       });
+      multiInputBuilder.setConsumingContract(defaultConsumingContract);
 
       const result = await multiInputBuilder.execute();
 
@@ -649,7 +678,9 @@ describe('EncryptInputsBuilder', () => {
             Encryptable.uint128(100n),
             Encryptable.uint128(100n),
           ],
-        }).execute();
+        })
+          .setConsumingContract(defaultConsumingContract)
+          .execute();
       } catch (error) {
         expect(error).toBeInstanceOf(CofheError);
         expect((error as CofheError).code).toBe(CofheErrorCode.ZkPackFailed);
@@ -762,7 +793,9 @@ describe('EncryptInputsBuilder', () => {
           ReturnType<typeof Encryptable.uint128>,
           ReturnType<typeof Encryptable.bool>,
         ],
-      }).execute();
+      })
+        .setConsumingContract(defaultConsumingContract)
+        .execute();
 
       expect(Array.isArray(result)).toBe(true);
       expect(result).toHaveLength(3); // 2 hashes + 1 signature

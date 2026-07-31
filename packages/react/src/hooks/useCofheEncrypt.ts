@@ -59,6 +59,7 @@ export type EncryptInputsOptions = {
   account?: string;
   chainId?: number;
   securityZone?: number;
+  consumingContract?: string;
   onStepChange?: (step: EncryptStep, context?: EncryptStepCallbackContext) => void;
 };
 
@@ -152,6 +153,7 @@ export function useCofheEncrypt(options?: UseCofheEncryptOptions): UseMutationRe
         if (variables.account) builder.setAccount(variables.account);
         if (variables.chainId) builder.setChainId(variables.chainId);
         if (variables.securityZone) builder.setSecurityZone(variables.securityZone);
+        if (variables.consumingContract) builder.setConsumingContract(variables.consumingContract);
       }
 
       return builder.execute();

@@ -179,21 +179,31 @@ async function insertCtHashes(items: EncryptableItemWithCtHash[], walletClient: 
  * The mocks verify a batch's signature against the known verifier signer account.
  * Locally, we create the single batch signature from the known signer account, over
  * keccak256(h_0 || h_1 || ... || h_n), where each h_i is the same per-item message hash
- * used by the (legacy, single-item) on-chain digest. This is the one canonical signer
- * implementation used by the mocks - there is no separate per-item signing path.
+ * used by the on-chain digest (`ctHash || utype || securityZone || sender || chainId ||
+ * consumingContract`, per cofhe-contracts#77's contract-binding fix). This is the one
+ * canonical signer implementation used by the mocks - there is no separate per-item signing
+ * path.
  */
 async function createBatchProofSignature(
   items: EncryptableItemWithCtHash[],
   securityZone: number,
-  account: string
+  account: string,
+  consumingContract: string
 ): Promise<`0x${string}`> {
   try {
     // Compute each item's per-item message hash h_i
     const itemHashes = items.map((item) =>
       keccak256(
         encodePacked(
-          ['uint256', 'uint8', 'uint8', 'address', 'uint256'],
-          [BigInt(item.ctHash), item.utype, securityZone, account as `0x${string}`, BigInt(hardhat.id)]
+          ['uint256', 'uint8', 'uint8', 'address', 'uint256', 'address'],
+          [
+            BigInt(item.ctHash),
+            item.utype,
+            securityZone,
+            account as `0x${string}`,
+            BigInt(hardhat.id),
+            consumingContract as `0x${string}`,
+          ]
         )
       )
     );
@@ -215,6 +225,7 @@ async function createBatchProofSignature(
       context: {
         items,
         securityZone,
+        consumingContract,
       },
     });
   }
@@ -229,6 +240,7 @@ export async function cofheMocksZkVerifySign(
   items: EncryptableItem[],
   account: string,
   securityZone: number,
+  consumingContract: string,
   publicClient: PublicClient,
   walletClient: WalletClient,
   zkvWalletClient: WalletClient | undefined
@@ -243,7 +255,7 @@ export async function cofheMocksZkVerifySign(
   await insertCtHashes(encryptableItems, _walletClient);
 
   // Locally create the single batch signature from the known signer account
-  const signature = await createBatchProofSignature(encryptableItems, securityZone, account);
+  const signature = await createBatchProofSignature(encryptableItems, securityZone, account, consumingContract);
 
   // Return the ctHashes/ctTypes and the batch signature, in the same shape as CoFHE's /verify-batch
   return {

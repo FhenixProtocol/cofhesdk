@@ -50,6 +50,7 @@ declare const testContract: Contract;
 // 1. Encrypt the input: [hash, signature]
 const [hash, signature] = await cofheClient
   .encryptInputs([Encryptable.uint32(100n)])
+  .setConsumingContract(await testContract.getAddress())
   .execute();
 
 // 2. Send to contract

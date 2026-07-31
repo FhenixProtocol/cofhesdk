@@ -48,6 +48,7 @@ describe('@cofhe/web - TFHE Initialization Browser Tests', () => {
   let cofheClient: CofheClient;
   let publicClient: PublicClient;
   let walletClient: WalletClient;
+  let consumingContract: `0x${string}`;
 
   beforeAll(() => {
     // Create real viem clients
@@ -62,6 +63,7 @@ describe('@cofhe/web - TFHE Initialization Browser Tests', () => {
       transport: http(),
       account,
     });
+    consumingContract = account.address;
   });
 
   beforeEach(() => {
@@ -81,6 +83,7 @@ describe('@cofhe/web - TFHE Initialization Browser Tests', () => {
       // This will trigger real TFHE initialization in browser
       const result = await cofheClient
         .encryptInputs([Encryptable.uint128(100n)])
+        .setConsumingContract(consumingContract)
         .onStep((step, context) => {
           logger.onStep(step, context);
           if (step === 'initTfhe' && context?.isEnd) {
@@ -106,6 +109,7 @@ describe('@cofhe/web - TFHE Initialization Browser Tests', () => {
       // First encryption
       const firstResult = await cofheClient
         .encryptInputs([Encryptable.uint128(100n)])
+        .setConsumingContract(consumingContract)
         .onStep((step, context) => {
           logger.onStep(step, context);
           if (step === 'initTfhe' && context?.isEnd) {
@@ -119,6 +123,7 @@ describe('@cofhe/web - TFHE Initialization Browser Tests', () => {
       // Second encryption should reuse initialization
       const secondResult = await cofheClient
         .encryptInputs([Encryptable.uint64(50n)])
+        .setConsumingContract(consumingContract)
         .onStep((step, context) => {
           logger.onStep(step, context);
           if (step === 'initTfhe' && context?.isEnd) {
