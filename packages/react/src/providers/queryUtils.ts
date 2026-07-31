@@ -1,4 +1,4 @@
-import { QueryClient, type QueryKey } from '@tanstack/react-query';
+import { QueryClient, type Query, type QueryKey } from '@tanstack/react-query';
 import { persistQueryClientRestore, persistQueryClientSubscribe } from '@tanstack/react-query-persist-client';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import { useEffect } from 'react';
@@ -7,6 +7,16 @@ import { createSsrStorage, hasDOM } from '@cofhe/sdk/web';
 export function isPersistedQuery(options: { meta?: unknown; queryKey?: QueryKey }): boolean {
   const meta = options.meta as { persist?: boolean } | undefined;
   return meta?.persist === true;
+}
+
+// Persist only opt-in (meta.persist) queries, and only while they are in the success state.
+// An errored query must NOT be dehydrated: persisted queries default to staleTime Infinity /
+// refetchOnMount false, so a restored error never refetches — the UI is stuck with a silent,
+// unreported failure that survives reloads. Excluding it here also drops the query's
+// previously-persisted success snapshot the moment it errors (dehydration reflects current
+// state), so the next load starts clean and refetches live.
+export function shouldDehydrateQuery(query: Pick<Query, 'meta' | 'state'>): boolean {
+  return isPersistedQuery(query) && query.state.status === 'success';
 }
 const persistenceConfig = {
   storage: 'localStorage' satisfies 'sessionStorage' | 'localStorage',
@@ -79,9 +89,7 @@ export function usePersistentQueriesSubscription({
       maxAge: persistenceConfig.maxAgeMs ?? 86_400_000,
       buster: 'cofhe-react-query-v1',
       dehydrateOptions: {
-        // Persist only queries that opt-in via meta.persist.
-        // Backwards-compat: also persist decrypt results by queryKey prefix.
-        shouldDehydrateQuery: (query: unknown) => isPersistedQuery(query as any),
+        shouldDehydrateQuery: (query: unknown) => shouldDehydrateQuery(query as Query),
       },
     };
 
