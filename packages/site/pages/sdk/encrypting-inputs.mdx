@@ -232,27 +232,27 @@ EncryptStep.Verify; // 'verify'
 
 Calling `.execute()` runs five sequential steps. You can observe them via the `.onStep()` callback.
 
-| Step        | Description                                                                          |
-| ----------- | ------------------------------------------------------------------------------------ |
-| `InitTfhe`  | Lazy-initializes the TFHE WASM module (browser/Node). A no-op after the first call.  |
-| `FetchKeys` | Fetches (or loads from cache) the FHE public key and CRS for the target chain.       |
-| `Pack`      | Packs the plaintext values into a ZK list ready for proving.                         |
-| `Prove`     | Generates the ZK proof of knowledge (ZKPoK). Uses a Web Worker when available.       |
+| Step        | Description                                                                                                          |
+| ----------- | -------------------------------------------------------------------------------------------------------------------- |
+| `InitTfhe`  | Lazy-initializes the TFHE WASM module (browser/Node). A no-op after the first call.                                  |
+| `FetchKeys` | Fetches (or loads from cache) the FHE public key and CRS for the target chain.                                       |
+| `Pack`      | Packs the plaintext values into a ZK list ready for proving.                                                         |
+| `Prove`     | Generates the ZK proof of knowledge (ZKPoK). Uses a Web Worker when available.                                       |
 | `Verify`    | Sends the proof to the CoFHE verifier's `/verify-batch` endpoint. Returns the hashes and one shared batch signature. |
 
 ## `Encryptable` — typing inputs
 
 Use the `Encryptable` factory to create the items you want to encrypt. Each factory function accepts the plaintext value and an optional `securityZone`.
 
-| Factory                       | Data type          | Solidity input param |
-| ----------------------------- | ------------------ | --------------------- |
-| `Encryptable.bool(value)`     | `boolean`          | `externalEbool`       |
-| `Encryptable.uint8(value)`    | `bigint \| string` | `externalEuint8`      |
-| `Encryptable.uint16(value)`   | `bigint \| string` | `externalEuint16`     |
-| `Encryptable.uint32(value)`   | `bigint \| string` | `externalEuint32`     |
-| `Encryptable.uint64(value)`   | `bigint \| string` | `externalEuint64`     |
-| `Encryptable.uint128(value)`  | `bigint \| string` | `externalEuint128`    |
-| `Encryptable.address(value)`  | `bigint \| string` | `externalEaddress`    |
+| Factory                      | Data type          | Solidity input param |
+| ---------------------------- | ------------------ | -------------------- |
+| `Encryptable.bool(value)`    | `boolean`          | `externalEbool`      |
+| `Encryptable.uint8(value)`   | `bigint \| string` | `externalEuint8`     |
+| `Encryptable.uint16(value)`  | `bigint \| string` | `externalEuint16`    |
+| `Encryptable.uint32(value)`  | `bigint \| string` | `externalEuint32`    |
+| `Encryptable.uint64(value)`  | `bigint \| string` | `externalEuint64`    |
+| `Encryptable.uint128(value)` | `bigint \| string` | `externalEuint128`   |
+| `Encryptable.address(value)` | `bigint \| string` | `externalEaddress`   |
 
 You can also use the generic `Encryptable.create(type, value)` form:
 
@@ -289,6 +289,6 @@ Use this with Solidity functions that accept `external*` handles followed by a t
 
 - **Missing `.setConsumingContract(...)`**: required before `.execute()` — throws `ConsumingContractUninitialized` otherwise. It must be the exact contract you submit the hashes/signature to; the verifier binds this address into the signature.
 - **Wrong `Encryptable` type**: `Encryptable.uint32(...)` must match what your Solidity function expects (e.g. `externalEuint32`).
-- **Splitting a batch**: the signature authenticates *all* the hashes in that `execute()` call together, in order. You can't reuse a subset of the hashes with a different signature, or reorder them.
+- **Splitting a batch**: the signature authenticates _all_ the hashes in that `execute()` call together, in order. You can't reuse a subset of the hashes with a different signature, or reorder them.
 - **Wrong account / chain**: encrypted inputs are authorized for a specific `account + chainId`. If you override these (or connect to the wrong network/wallet), your inputs may not be usable for the intended transaction.
 - **Bit limit exceeded**: a single call can encrypt at most **2048 bits** of plaintext. Exceeding this throws `ZkPackFailed`.

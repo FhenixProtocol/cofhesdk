@@ -112,12 +112,12 @@ contract CounterTest is CofheTest {
 
 ### Setup
 
-| Function                | Description                                                                                                                    |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `connect(uint256 pkey)` | Stores the private key, derives the account address, and marks the client as ready. Must be called before all other functions. |
-| `account()`             | Returns the address derived from the connected private key.                                                                    |
+| Function                               | Description                                                                                                                                                                                                                                 |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `connect(uint256 pkey)`                | Stores the private key, derives the account address, and marks the client as ready. Must be called before all other functions.                                                                                                              |
+| `account()`                            | Returns the address derived from the connected private key.                                                                                                                                                                                 |
 | `setConsumingContract(address target)` | Sets the contract that will consume the next encrypted input(s). Required before creating any encrypted input — the verifier binds this address into the signed digest, so a batch signed for one contract cannot be replayed into another. |
-| `consumingContract()`   | Returns the address set via `setConsumingContract`.                                                                             |
+| `consumingContract()`                  | Returns the address set via `setConsumingContract`.                                                                                                                                                                                         |
 
 ### Encryption
 
@@ -134,7 +134,7 @@ verifier binds that address into the signature, matching
 [`FhenixProtocol/cofhe-contracts#77`](https://github.com/FhenixProtocol/cofhe-contracts/pull/77).
 
 | Function                    | Returns                            |
-| ---------------------------- | ----------------------------------- |
+| --------------------------- | ---------------------------------- |
 | `createInEbool(bool)`       | `(externalEbool, bytes memory)`    |
 | `createInEuint8(uint8)`     | `(externalEuint8, bytes memory)`   |
 | `createInEuint16(uint16)`   | `(externalEuint16, bytes memory)`  |
@@ -164,10 +164,10 @@ function testSetValue(uint32 n) public {
 For batches of more than one ciphertext, use `createEncryptedInputsBatch` directly (mixed
 `utype`s allowed) or the typed `createEuint32sBatch` convenience wrapper.
 
-| Function                                         | Returns                              |
-| ------------------------------------------------- | ------------------------------------- |
+| Function                                         | Returns                                                          |
+| ------------------------------------------------ | ---------------------------------------------------------------- |
 | `createEncryptedInputsBatch(uint8[], uint256[])` | `(BatchedEncryptedInput[], bytes memory)` — mixed utypes allowed |
-| `createEuint32sBatch(uint32[])`                   | `(externalEuint32[] memory, bytes memory)` |
+| `createEuint32sBatch(uint32[])`                  | `(externalEuint32[] memory, bytes memory)`                       |
 
 Example:
 

@@ -259,7 +259,11 @@ export function extractEncryptableValues<TAbi extends Abi, TFunctionName extends
   return encryptableItems;
 }
 
-function assertTrailingSignatureSlot(inputs: readonly AbiParameter[], hasExternalInputs: boolean, functionName: string) {
+function assertTrailingSignatureSlot(
+  inputs: readonly AbiParameter[],
+  hasExternalInputs: boolean,
+  functionName: string
+) {
   if (!hasExternalInputs) return;
   const lastInput = inputs[inputs.length - 1];
   if (lastInput?.type !== 'bytes') {
@@ -332,7 +336,9 @@ export function insertEncryptedValues<TAbi extends Abi, TFunctionName extends st
       }
 
       if (hashIndex + arrayLength > hashes.length) {
-        throw new Error(`Not enough encrypted hashes: expected at least ${hashIndex + arrayLength}, got ${hashes.length}`);
+        throw new Error(
+          `Not enough encrypted hashes: expected at least ${hashIndex + arrayLength}, got ${hashes.length}`
+        );
       }
 
       const hashArray = hashes.slice(hashIndex, hashIndex + arrayLength);

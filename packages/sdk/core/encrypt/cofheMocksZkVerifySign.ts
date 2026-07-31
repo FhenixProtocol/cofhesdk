@@ -1,13 +1,6 @@
 import { type EncryptableItem, FheTypes } from '../types.js';
 import { type VerifyBatchResult } from './zkPackProveVerify.js';
-import {
-  createWalletClient,
-  http,
-  encodePacked,
-  keccak256,
-  type PublicClient,
-  type WalletClient,
-} from 'viem';
+import { createWalletClient, http, encodePacked, keccak256, type PublicClient, type WalletClient } from 'viem';
 import { MockZkVerifierAbi } from './MockZkVerifierAbi.js';
 import { hardhat } from 'viem/chains';
 import { CofheError, CofheErrorCode } from '../error.js';
@@ -209,7 +202,12 @@ async function createBatchProofSignature(
     );
 
     // Fold into one batch digest: keccak256(h_0 || h_1 || ... || h_n)
-    const batchDigest = keccak256(encodePacked(itemHashes.map(() => 'bytes32' as const), itemHashes));
+    const batchDigest = keccak256(
+      encodePacked(
+        itemHashes.map(() => 'bytes32' as const),
+        itemHashes
+      )
+    );
 
     // Sign once for the whole batch
     return await sign({

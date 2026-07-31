@@ -21,7 +21,7 @@ from that single signature, so the per-item-struct output had to be removed outr
 
 The shape that replaces it — an ordered array of ciphertext hashes followed by one shared
 signature — is exactly what the old, rarely-used `.asHashPlusProof()` mode approximated. That
-mode's per-item signature *concatenation* was already invalid for batches of more than one
+mode's per-item signature _concatenation_ was already invalid for batches of more than one
 item; the real batch signature fixes this properly. `.asHashPlusProof()` is now simply what
 `execute()` always returns, so the opt-in method is gone.
 
@@ -65,8 +65,7 @@ item; the real batch signature fixes this properly. `.asHashPlusProof()` is now 
   function has `external*` inputs but its last parameter isn't `bytes`.
 - **Changed** `insertEncryptedValues`'s `encryptedValues` parameter: was
   `readonly EncryptedItemInput[]` (one struct per encrypted arg), now
-  `readonly \`0x${string}\`[]` — the `[...hashes, signature]` shape returned by
-  `EncryptInputsBuilder.execute()`.
+  `readonly \`0x${string}\`[]`— the`[...hashes, signature]`shape returned by`EncryptInputsBuilder.execute()`.
 - **Changed** `CofheInputArgsPreTransform<abi, functionName>`: now computed at the function
   level — when the function has `external*` inputs, the trailing signature parameter is
   dropped from the pre-transform shape entirely (callers never supply it; the SDK injects it
@@ -89,6 +88,7 @@ for full details of what's patched and — importantly — **removal instruction
 `packages/foundry-plugin`, and `test/setup`, and delete the patch entirely.
 
 Patched additions (mirroring the PR exactly):
+
 - `ICofhe.sol`: new `BatchedEncryptedInput` struct (`{ctHash, securityZone, utype}`, no
   per-item signature); `ITaskManager.verifyInput` gains an explicit `bytes signature`
   parameter (moved out of `EncryptedInput`); new
@@ -149,8 +149,8 @@ single-item hash+proof pair — see below).
 ## `@cofhe/react`
 
 - `useCofheEncrypt`: return type changed from `readonly EncryptedItemInput[]` to
-  `readonly \`0x${string}\`[]` (the `[...hashes, signature]` shape). The runtime assertion now
-  checks the trailing element is a `0x`-prefixed signature instead of validating a `.signature`
+  `readonly \`0x${string}\`[]`(the`[...hashes, signature]`shape). The runtime assertion now
+checks the trailing element is a`0x`-prefixed signature instead of validating a `.signature`
   field per item.
 - `useCofheEncryptAndWriteContract`: the internal `encrypt` callback type updated to match;
   composes with the `@cofhe/abi` changes above via `extractEncryptableValues`/`insertEncryptedValues`.
@@ -212,7 +212,7 @@ Follow-up to the batch migration above, implementing
 `TaskManager.verifyInput`/`batchVerifyInputs` previously signed
 `keccak256(ctHash || utype || securityZone || sender || chainId)`. Since a signed input packet
 travels in public calldata, an attacker could lift a victim's valid packet and replay it into a
-*different* contract than the one it was signed for — `verifyInput`/`batchVerifyInputs` are
+_different_ contract than the one it was signed for — `verifyInput`/`batchVerifyInputs` are
 permissionless and hand the caller a transient ACL allowance over the resulting handle. PR #77
 closes this by folding the consuming contract (the caller of `FHE.asEuint*`/`FHE.asEuint*s`,
 i.e. `msg.sender` as seen by the TaskManager) into the signed message:

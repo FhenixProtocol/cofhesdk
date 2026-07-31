@@ -1,9 +1,9 @@
 ---
-'@cofhe/sdk': major
-'@cofhe/abi': major
-'@cofhe/mock-contracts': major
-'@cofhe/react': major
-'@cofhe/foundry-plugin': major
+'@cofhe/sdk': minor
+'@cofhe/abi': minor
+'@cofhe/mock-contracts': minor
+'@cofhe/react': minor
+'@cofhe/foundry-plugin': minor
 ---
 
 Migrate `cofheClient.encryptInputs` from one-signature-per-ciphertext to the new batch verification scheme (one signature per batch, per `FhenixProtocol/cofhe-contracts#78`).

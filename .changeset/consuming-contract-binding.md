@@ -1,8 +1,8 @@
 ---
-'@cofhe/sdk': major
-'@cofhe/mock-contracts': major
-'@cofhe/react': major
-'@cofhe/foundry-plugin': major
+'@cofhe/sdk': minor
+'@cofhe/mock-contracts': minor
+'@cofhe/react': minor
+'@cofhe/foundry-plugin': minor
 ---
 
 Bind encrypted inputs to a consuming contract (`FhenixProtocol/cofhe-contracts#77`). The verifier-signed digest now includes the contract that will consume the ciphertext, closing a replay path where a signed input packet observed on-chain could be reused against a different contract than the one it was signed for.

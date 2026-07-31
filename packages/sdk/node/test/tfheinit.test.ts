@@ -53,9 +53,15 @@ describe('@cofhe/node - TFHE Initialization Tests', () => {
     it('should handle multiple encryptions without re-initializing', async () => {
       await cofheClient.connect(publicClient, walletClient);
 
-      await cofheClient.encryptInputs([Encryptable.uint128(100n)]).setConsumingContract(consumingContract).execute();
+      await cofheClient
+        .encryptInputs([Encryptable.uint128(100n)])
+        .setConsumingContract(consumingContract)
+        .execute();
 
-      await cofheClient.encryptInputs([Encryptable.uint64(50n)]).setConsumingContract(consumingContract).execute();
+      await cofheClient
+        .encryptInputs([Encryptable.uint64(50n)])
+        .setConsumingContract(consumingContract)
+        .execute();
     }, 120000);
   });
 });
