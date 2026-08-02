@@ -51,7 +51,7 @@ describe('SealingKey', () => {
 
     expect(() => {
       SealingKey.seal(value, invalidPublicKey);
-    }).toThrow('bad public key size');
+    }).toThrow('Invalid hex string: contains non-hexadecimal characters');
   });
 
   it('should throw error for invalid value in seal', () => {

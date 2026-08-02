@@ -1,10 +1,28 @@
 // Utility functions for sealing key operations
 
+import { CofheError, CofheErrorCode } from '../core/error.js';
+
 declare const BigInt: (value: string | number | bigint) => bigint;
 
+const HEX_BODY_REGEX = /^[0-9a-fA-F]*$/;
+
 export const fromHexString = (hexString: string): Uint8Array => {
-  const cleanString = hexString.length % 2 === 1 ? `0${hexString}` : hexString;
-  const arr = cleanString.replace(/^0x/, '').match(/.{1,2}/g);
+  // Strip `0x` before padding: padding first turns `0x123` into `00x123`, which no
+  // longer matches the prefix and decodes to garbage bytes.
+  const body = hexString.replace(/^0x/i, '');
+
+  if (!HEX_BODY_REGEX.test(body)) {
+    throw new CofheError({
+      code: CofheErrorCode.InvalidPermitData,
+      message: 'Invalid hex string: contains non-hexadecimal characters',
+      hint: 'Expected a hex string of 0-9/a-f characters, optionally prefixed with `0x`.',
+      // The value itself is omitted on purpose - this helper also receives sealing private keys.
+      context: { length: hexString.length },
+    });
+  }
+
+  const padded = body.length % 2 === 1 ? `0${body}` : body;
+  const arr = padded.match(/.{1,2}/g);
   if (!arr) return new Uint8Array();
   return new Uint8Array(arr.map((byte) => parseInt(byte, 16)));
 };
