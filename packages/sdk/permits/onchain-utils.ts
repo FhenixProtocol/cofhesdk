@@ -8,6 +8,7 @@ import {
 } from 'viem';
 import type { EIP712Domain, Permission } from './types';
 import { TASK_MANAGER_ADDRESS } from '../core/consts.js';
+import { CofheError, CofheErrorCode } from '../core/error.js';
 
 export const getAclAddress = async (publicClient: PublicClient): Promise<Hex> => {
   const ACL_IFACE = 'function acl() view returns (address)';
@@ -75,37 +76,60 @@ export const checkPermitValidityOnChain = async (
       ],
     });
     return true;
-  } catch (err: any) {
+  } catch (err: unknown) {
     // Viem default handling
     if (err instanceof BaseError) {
-      const revertError = err.walk((err: any) => err instanceof ContractFunctionRevertedError);
+      const revertError = err.walk((inner) => inner instanceof ContractFunctionRevertedError);
       if (revertError instanceof ContractFunctionRevertedError) {
-        const errorName = revertError.data?.errorName ?? '';
-        throw new Error(errorName);
+        // `data` is undefined when the revert data doesn't decode against our ABI (e.g. a custom
+        // error declared elsewhere). Fall through to the strategies below rather than throwing an
+        // empty error that discards the original one.
+        const errorName = revertError.data?.errorName;
+        if (errorName) {
+          throw permitInvalidError(errorName, err);
+        }
       }
     }
 
     // Check details field for custom error names (e.g., from Hardhat test nodes)
     const customErrorName = extractCustomErrorFromDetails(err, checkPermitValidityAbi);
     if (customErrorName) {
-      throw new Error(customErrorName);
+      throw permitInvalidError(customErrorName, err);
     }
 
     // Hardhat wrapped error will need to be unwrapped to get the return data
     const hhDetailsData = extractReturnData(err);
     if (hhDetailsData != null) {
-      const decoded = decodeErrorResult({
-        abi: checkPermitValidityAbi,
-        data: hhDetailsData,
-      });
-
-      throw new Error(decoded.errorName);
+      // Decoding throws when the return data isn't one of our ABI errors; keep the original error
+      // in that case instead of surfacing an unrelated decode failure.
+      const decodedErrorName = tryDecodeErrorName(hhDetailsData);
+      if (decodedErrorName != null) {
+        throw permitInvalidError(decodedErrorName, err);
+      }
     }
 
     // Fallback throw the original error
     throw err;
   }
 };
+
+/** Builds the error thrown when the ACL rejected the permit with a known revert reason. */
+function permitInvalidError(errorName: string, cause: unknown): CofheError {
+  return new CofheError({
+    code: CofheErrorCode.PermitInvalid,
+    message: `On-chain permit validation reverted with ${errorName}`,
+    cause: cause instanceof Error ? cause : new Error(String(cause)),
+    context: { errorName },
+  });
+}
+
+function tryDecodeErrorName(data: `0x${string}`): string | undefined {
+  try {
+    return decodeErrorResult({ abi: checkPermitValidityAbi, data }).errorName;
+  } catch {
+    return undefined;
+  }
+}
 
 function extractCustomErrorFromDetails(err: unknown, abi: readonly any[]): string | undefined {
   // Check details field for custom error names (e.g., from Hardhat test nodes)
