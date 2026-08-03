@@ -2,14 +2,28 @@ import { CofheProvider, createCofheConfig, useInternalQueryClient } from '@cofhe
 import { CofheFloatingButtonWithProvider } from '@cofhe/react/ui';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
-import { arbSepolia, baseSepolia, sepolia } from '@cofhe/sdk/chains';
+import { arbSepolia, baseSepolia, sepolia, localcofhe } from '@cofhe/sdk/chains';
+
+// Local CoFHE endpoints — overridable via .env.local so the app can be tested
+// from other devices (point them at proxied HTTPS URLs for the local stack).
+const localcofheChain = {
+  ...localcofhe,
+  coFheUrl: import.meta.env.VITE_LOCALCOFHE_COFHE_URL ?? localcofhe.coFheUrl,
+  verifierUrl: import.meta.env.VITE_LOCALCOFHE_VERIFIER_URL ?? localcofhe.verifierUrl,
+  thresholdNetworkUrl: import.meta.env.VITE_LOCALCOFHE_TN_URL ?? localcofhe.thresholdNetworkUrl,
+};
 
 function QueryDebug() {
   const cofheQueryClient = useInternalQueryClient();
   return <ReactQueryDevtools client={cofheQueryClient} position="left" buttonPosition="bottom-left" />;
 }
 const cofheConfig = createCofheConfig({
-  supportedChains: [sepolia, baseSepolia, arbSepolia],
+  supportedChains: [sepolia, baseSepolia, arbSepolia, localcofheChain],
+  permit: {
+    // Local CoFHE stack deployments (see the ACP dashboard / localcofhe setup)
+    defaultRevoker: { 420105: '0xa04de41ccadeeec8f51325a45cb6cceb6d6fd6d6' },
+    sharingRegistry: { 420105: '0xdbb6f51fbde06da9337b88ecf110cf53bad0c7e2' },
+  },
   react: {
     projectName: 'Demo App',
     logger: {

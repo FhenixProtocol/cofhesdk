@@ -1,12 +1,23 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import wasm from 'vite-plugin-wasm';
 import topLevelAwait from 'vite-plugin-top-level-await';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  // Optional comma-separated host allowlist for serving the app to other
+  // devices through a proxy (set VITE_ALLOWED_HOSTS in .env.local).
+  const allowedHosts = loadEnv(mode, __dirname, 'VITE_').VITE_ALLOWED_HOSTS?.split(',') ?? [];
+
+  return {
   plugins: [react(), wasm(), topLevelAwait()],
   server: {
-    port: 3000,
+    // 5199: the local CoFHE stack occupies :3000 (threshold network). Bound to
+    // all interfaces so other devices can reach the dev server; port pinned so
+    // external proxy mappings stay valid, strictPort fails loudly instead of hopping.
+    port: 5199,
+    host: true,
+    strictPort: true,
+    allowedHosts,
     fs: {
       allow: ['..', '../..'], // Allow serving files from parent directories (for node_modules)
     },
@@ -19,6 +30,13 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
+  },
+  // `vite preview` (production build) with the same reachability as the dev server.
+  preview: {
+    host: true,
+    port: 5198,
+    strictPort: true,
+    allowedHosts,
   },
   // Optimize dependency handling for TFHE
   optimizeDeps: {
@@ -37,4 +55,5 @@ export default defineConfig({
   worker: {
     format: 'es',
   },
+  };
 });

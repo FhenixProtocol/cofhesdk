@@ -1,11 +1,11 @@
 import { FaCheck, FaRegCopy } from 'react-icons/fa6';
 import { CloseIcon } from '@/components/Icons';
-import { usePermitDetailsPage } from '@/hooks/permits/index.js';
+import { usePermitDetailsPage, useShareOnChain, useRemoveShare } from '@/hooks/permits/index.js';
 import { PageContainer } from '@/components/CofheFloatingButton/components/PageContainer';
 import { PortalModal, type PortalModalStateMap } from './types';
 import { Button } from '../components';
 import { InfoModalButton } from './InfoModalButton';
-import { usePortalModals } from '@/stores';
+import { usePortalModals, usePortalToasts } from '@/stores';
 import type { PermitType } from '@cofhe/sdk/permits';
 import { PermitCard } from '../components/PermitCard';
 import { truncateAddress } from '@/utils';
@@ -47,8 +47,35 @@ export const PermitDetailsModal: React.FC<PortalModalStateMap[PortalModal.Permit
     isCopyComplete,
   } = usePermitDetailsPage(hash);
   const { openModal } = usePortalModals();
+  const { addToast } = usePortalToasts();
 
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // set after a successful on-chain share this session — enables retracting it
+  const [postedShareId, setPostedShareId] = useState<`0x${string}` | null>(null);
+
+  const shareOnChain = useShareOnChain({
+    onError: (error) => addToast({ variant: 'error', title: 'On-chain share failed', description: error.message }),
+  });
+  const cancelShare = useRemoveShare({
+    onSuccess: () => {
+      setPostedShareId(null);
+      addToast({ variant: 'success', title: 'On-chain share retracted' });
+    },
+    onError: (error) => addToast({ variant: 'error', title: 'Retract failed', description: error.message }),
+  });
+
+  const handleShareOnChain = useCallback(async () => {
+    if (permit == null) return;
+    const { shareId } = await shareOnChain.mutateAsync(permit).catch(() => ({ shareId: null }) as never);
+    if (shareId) {
+      setPostedShareId(shareId);
+      addToast({
+        variant: 'success',
+        title: 'Shared on-chain',
+        description: 'The recipient will see this share in any cofhesdk-enabled app.',
+      });
+    }
+  }, [permit, shareOnChain, addToast]);
 
   const handlePermitSelect = useCallback(() => {
     handleSelectActivePermit();
@@ -139,6 +166,23 @@ export const PermitDetailsModal: React.FC<PortalModalStateMap[PortalModal.Permit
               {isCopyComplete ? <FaCheck /> : <FaRegCopy />}
               {isCopyComplete ? 'COPIED' : 'SHARE'}
             </Button>
+          )}
+          {isShareablePermit && postedShareId == null && (
+            <Button
+              variant="primary"
+              disabled={shareOnChain.isPending}
+              aria-busy={shareOnChain.isPending}
+              label={shareOnChain.isPending ? 'SHARING…' : 'SHARE ON-CHAIN'}
+              onClick={handleShareOnChain}
+            />
+          )}
+          {isShareablePermit && postedShareId != null && (
+            <Button
+              disabled={cancelShare.isPending}
+              aria-busy={cancelShare.isPending}
+              label={cancelShare.isPending ? 'RETRACTING…' : 'RETRACT SHARE'}
+              onClick={() => cancelShare.mutate(postedShareId)}
+            />
           )}
           {!isShareablePermit && (
             <Button

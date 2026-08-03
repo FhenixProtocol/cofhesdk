@@ -3,7 +3,7 @@ import { FaKey, FaDownload, FaPlus } from 'react-icons/fa';
 import { type ElementType } from 'react';
 import { Accordion, AccordionSection } from '../../../Accordion.js';
 import { PermitItem } from '../components/PermitItem.js';
-import { usePermitsList } from '@/hooks/permits/index.js';
+import { usePermitsList, useIncomingShares } from '@/hooks/permits/index.js';
 import type { PermitActionId } from '@/hooks/permits/index.js';
 import { PageContainer } from '@/components/CofheFloatingButton/components/PageContainer.js';
 import { useCofheActivePermit } from '@/hooks/useCofhePermits.js';
@@ -12,6 +12,7 @@ import { Button } from '@/components/CofheFloatingButton/components/Button.js';
 import { InfoModalButton } from '@/components/CofheFloatingButton/modals/InfoModalButton.js';
 import { usePortalModals, usePortalNavigation } from '@/stores';
 import { PortalModal } from '@/components/CofheFloatingButton/modals/types.js';
+import { FloatingButtonPage } from '@/components/CofheFloatingButton/pagesConfig/types.js';
 import { PermitCard } from '@/components/CofheFloatingButton/components/PermitCard.js';
 
 type PermitActionItem = { id: PermitActionId; label: string; icon: ElementType };
@@ -38,7 +39,9 @@ function computeDefaultActiveAccordionId({ activePermit }: Args): 'self' | 'rece
 export const PermitsListPage: React.FC = () => {
   const { activePermitHash, selfPermits, delegatedPermits, importedPermits, handlePermitAction, handleOpenPermit } =
     usePermitsList();
-  const { navigateBack } = usePortalNavigation();
+  const { navigateBack, navigateTo } = usePortalNavigation();
+  const incomingShares = useIncomingShares();
+  const incomingCount = incomingShares.data?.length ?? 0;
   const { openModal } = usePortalModals();
 
   const { permit } = useCofheActivePermit() ?? {};
@@ -75,6 +78,18 @@ export const PermitsListPage: React.FC = () => {
       }
       content={
         <div className="gap-4">
+          {incomingCount > 0 && (
+            <button
+              type="button"
+              className="mb-3 flex w-full items-center justify-between rounded-lg border border-[#0E2F3F]/20 bg-[#F8FAFB] px-4 py-3 text-sm font-semibold text-[#0E2F3F] transition-opacity hover:opacity-80 dark:border-white/15 dark:bg-[#121212] dark:text-white"
+              onClick={() => navigateTo(FloatingButtonPage.IncomingShares)}
+            >
+              <span>
+                Incoming on-chain shares <b>({incomingCount})</b>
+              </span>
+              <span aria-hidden>→</span>
+            </button>
+          )}
           <Accordion defaultActiveId={defaultActiveAccordionId}>
             <div className="flex flex-col gap-3">
               <AccordionSection
