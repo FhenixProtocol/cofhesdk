@@ -49,6 +49,19 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
   };
 
   // Called before any operation, throws of connection not yet established
+  const _requireSharingRegistry = (chainId: number): `0x${string}` => {
+    const registry = opts.config.permit?.sharingRegistry?.[chainId];
+    if (registry == null) {
+      throw new CofheError({
+        code: CofheErrorCode.MissingConfig,
+        message: `No ACP share registry configured for chainId <${chainId}>`,
+        hint: 'Set `permit.sharingRegistry` in the cofhe config to use on-chain sharing.',
+        context: { chainId },
+      });
+    }
+    return registry;
+  };
+
   const _requireConnected = () => {
     const state = connectStore.getState();
     const notConnected =
@@ -295,6 +308,42 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
       _requireConnected();
       const { publicClient } = connectStore.getState();
       return permits.isPermitRevoked(permit, publicClient!);
+    },
+
+    // On-chain sharing (require connection + config.permit.sharingRegistry)
+    shareOnChain: async (permit) => {
+      _requireConnected();
+      const { publicClient, walletClient } = connectStore.getState();
+      const chainId = await publicClient!.getChainId();
+      return permits.shareOnChain(permit, walletClient!, _requireSharingRegistry(chainId));
+    },
+
+    getIncomingShares: async () => {
+      _requireConnected();
+      const { publicClient, walletClient } = connectStore.getState();
+      const chainId = await publicClient!.getChainId();
+      const account = walletClient!.account!.address;
+      return permits.getIncomingShares(publicClient!, _requireSharingRegistry(chainId), account);
+    },
+
+    importFromChain: async (share) => {
+      _requireConnected();
+      const { publicClient, walletClient } = connectStore.getState();
+      return permits.importFromChain(share, publicClient!, walletClient!);
+    },
+
+    dismissShare: async (shareId) => {
+      _requireConnected();
+      const { publicClient, walletClient } = connectStore.getState();
+      const chainId = await publicClient!.getChainId();
+      return permits.removeShareOnChain(shareId, walletClient!, _requireSharingRegistry(chainId));
+    },
+
+    cancelShare: async (shareId) => {
+      _requireConnected();
+      const { publicClient, walletClient } = connectStore.getState();
+      const chainId = await publicClient!.getChainId();
+      return permits.removeShareOnChain(shareId, walletClient!, _requireSharingRegistry(chainId));
     },
 
     // Retrieval methods (auto-fill chainId/account)

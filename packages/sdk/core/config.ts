@@ -44,6 +44,12 @@ export type CofheConfig = {
      * Note: injecting scopes makes created permits non-global by default.
      */
     defaultContractScopes?: Record<number, `0x${string}`[]>;
+    /**
+     * ACPShareRegistry address per chainId — the on-chain hand-off for sharing
+     * ACPs. Required for client.acp.shareOnChain / getIncomingShares /
+     * importFromChain.
+     */
+    sharingRegistry?: Record<number, `0x${string}`>;
   };
   /** Mocks configs */
   mocks: {
@@ -103,6 +109,7 @@ export const CofheConfigSchema = z.object({
     .object({
       defaultRevoker: z.custom<Record<number, `0x${string}`>>().optional(),
       defaultContractScopes: z.custom<Record<number, `0x${string}`[]>>().optional(),
+      sharingRegistry: z.custom<Record<number, `0x${string}`>>().optional(),
     })
     .optional()
     .default({}),

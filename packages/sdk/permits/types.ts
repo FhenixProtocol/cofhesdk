@@ -222,6 +222,12 @@ export type SharedACP = Expand<
 >;
 
 /**
+ * A share read back from the on-chain ACPShareRegistry: the posted payload
+ * (SharedACP minus the client-side name/type) plus its registry id.
+ */
+export type IncomingShare = Expand<Omit<SharedACP, 'name' | 'type'> & { shareId: Hex }>;
+
+/**
  * A type representing the permit fields that are used to generate the hash
  */
 export type PermitHashFields = Pick<

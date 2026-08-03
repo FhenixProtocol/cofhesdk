@@ -8,11 +8,20 @@ import {
   type SerializedPermit,
   type SelfPermit,
   type RecipientPermit,
+  type IncomingShare,
   type SharingPermit,
   type PermitHashFields,
 } from '@/permits';
 
-import { type Hex, type PublicClient, type WalletClient, parseAbi, zeroAddress } from 'viem';
+import {
+  type Hex,
+  type PublicClient,
+  type WalletClient,
+  encodeAbiParameters,
+  keccak256,
+  parseAbi,
+  zeroAddress,
+} from 'viem';
 
 // ACP default revoker (timestamp-based revocation) — interface shared by all revokers
 const ACP_VALIDATOR_ABI = parseAbi([
@@ -331,6 +340,145 @@ const isPermitRevoked = async (permit: ACP, publicClient: PublicClient): Promise
   });
 };
 
+// SHARE (on-chain, via the ACPShareRegistry)
+
+const ACP_SHARE_REGISTRY_ABI = parseAbi([
+  'struct ACP { address issuer; uint64 expiration; address recipient; uint256 revokerData; address revokerContract; uint8 scope; address[] contracts; bytes32[] handles; bytes32 sealingKey; bytes issuerSignature; bytes recipientSignature; }',
+  'function share(ACP calldata acp) external returns (bytes32)',
+  'function removeShare(bytes32 shareId) external',
+  'function sharesFor(address recipient) external view returns (ACP[] memory)',
+  'function getShare(bytes32 shareId) external view returns (ACP memory)',
+  'function isShareValid(bytes32 shareId) external view returns (bool)',
+]);
+
+const ACP_TUPLE = [
+  {
+    type: 'tuple',
+    components: [
+      { name: 'issuer', type: 'address' },
+      { name: 'expiration', type: 'uint64' },
+      { name: 'recipient', type: 'address' },
+      { name: 'revokerData', type: 'uint256' },
+      { name: 'revokerContract', type: 'address' },
+      { name: 'scope', type: 'uint8' },
+      { name: 'contracts', type: 'address[]' },
+      { name: 'handles', type: 'bytes32[]' },
+      { name: 'sealingKey', type: 'bytes32' },
+      { name: 'issuerSignature', type: 'bytes' },
+      { name: 'recipientSignature', type: 'bytes' },
+    ],
+  },
+] as const;
+
+const ZERO_BYTES32 = `0x${'0'.repeat(64)}` as Hex;
+
+/** The on-chain payload for a sharing ACP: recipient-side fields empty. */
+const toChainShare = (acp: ACP) => ({
+  issuer: acp.issuer,
+  expiration: BigInt(acp.expiration),
+  recipient: acp.recipient,
+  revokerData: BigInt(acp.revokerData),
+  revokerContract: acp.revokerContract,
+  scope: acp.scope,
+  contracts: acp.contracts,
+  handles: acp.handles,
+  sealingKey: ZERO_BYTES32,
+  issuerSignature: acp.issuerSignature,
+  recipientSignature: '0x' as Hex,
+});
+
+/** Mirrors the registry's `keccak256(abi.encode(acp))` share id. */
+const computeShareId = (acp: ACP): Hex => {
+  const p = toChainShare(acp);
+  return keccak256(encodeAbiParameters(ACP_TUPLE, [p]));
+};
+
+/**
+ * Post a signed sharing ACP to the on-chain share registry for its recipient
+ * to discover and import — the on-chain alternative to `export()`.
+ */
+const shareOnChain = async (
+  acp: ACP,
+  walletClient: WalletClient,
+  registry: Hex
+): Promise<{ txHash: Hex; shareId: Hex }> => {
+  if (acp.type !== 'sharing') {
+    throw new Error(`Cannot share a '${acp.type}' ACP on-chain — only 'sharing' ACPs are shareable.`);
+  }
+  if (acp.issuerSignature === '0x') {
+    throw new Error('Cannot share an unsigned sharing ACP — sign it first.');
+  }
+  if (walletClient.account == null) throw new Error('Missing walletClient account');
+  if (walletClient.account.address.toLowerCase() !== acp.issuer.toLowerCase()) {
+    throw new Error('Only the ACP issuer can share it on-chain');
+  }
+
+  const txHash = await walletClient.writeContract({
+    address: registry,
+    abi: ACP_SHARE_REGISTRY_ABI,
+    functionName: 'share',
+    args: [toChainShare(acp)],
+    account: walletClient.account,
+    chain: walletClient.chain ?? null,
+  });
+
+  return { txHash, shareId: computeShareId(acp) };
+};
+
+/** All importable shares addressed to `recipient` (unexpired, not revoked). */
+const getIncomingShares = async (
+  publicClient: PublicClient,
+  registry: Hex,
+  recipient: Hex
+): Promise<IncomingShare[]> => {
+  const raw = await publicClient.readContract({
+    address: registry,
+    abi: ACP_SHARE_REGISTRY_ABI,
+    functionName: 'sharesFor',
+    args: [recipient],
+  });
+
+  return raw.map((s) => ({
+    shareId: keccak256(encodeAbiParameters(ACP_TUPLE, [s])),
+    issuer: s.issuer,
+    expiration: Number(s.expiration),
+    recipient: s.recipient,
+    revokerData: Number(s.revokerData),
+    revokerContract: s.revokerContract,
+    scope: Number(s.scope),
+    contracts: [...s.contracts],
+    handles: [...s.handles],
+    issuerSignature: s.issuerSignature,
+  }));
+};
+
+/**
+ * Import a share read from the registry: fills the recipient's sealing key,
+ * signs, stores and activates — the on-chain counterpart of importing an
+ * exported JSON blob. The share stays on-chain until dismissed.
+ */
+const importFromChain = async (
+  share: IncomingShare,
+  publicClient: PublicClient,
+  walletClient: WalletClient
+): Promise<RecipientPermit> => {
+  const { shareId: _shareId, ...options } = share;
+  return importShared({ ...options, type: 'sharing' }, publicClient, walletClient);
+};
+
+/** Remove a share from the registry (issuer retracts / recipient dismisses). */
+const removeShareOnChain = async (shareId: Hex, walletClient: WalletClient, registry: Hex): Promise<Hex> => {
+  if (walletClient.account == null) throw new Error('Missing walletClient account');
+  return walletClient.writeContract({
+    address: registry,
+    abi: ACP_SHARE_REGISTRY_ABI,
+    functionName: 'removeShare',
+    args: [shareId],
+    account: walletClient.account,
+    chain: walletClient.chain ?? null,
+  });
+};
+
 // REMOVE
 
 const removePermit = async (chainId: number, account: string, hash: string): Promise<void> =>
@@ -368,6 +516,12 @@ export const permits = {
   revokePermit,
   revokeAllPermits,
   isPermitRevoked,
+
+  shareOnChain,
+  getIncomingShares,
+  importFromChain,
+  removeShareOnChain,
+  computeShareId,
 
   applyPermitDefaults,
 };
