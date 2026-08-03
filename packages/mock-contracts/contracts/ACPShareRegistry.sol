@@ -90,19 +90,23 @@ contract ACPShareRegistry {
   function sharesFor(address recipient) external view returns (ACP[] memory acps) {
     EnumerableSet.Bytes32Set storage ids = _shareIdsFor[recipient];
     uint256 len = ids.length();
+    if (len == 0) return acps;
 
+    // single pass: allocate for the maximum, fill with valid shares only
+    acps = new ACP[](len);
     uint256 live = 0;
-    for (uint256 i = 0; i < len; i++) {
-      if (_isValid(_shares[ids.at(i)])) live++;
-    }
-
-    acps = new ACP[](live);
-    uint256 j = 0;
     for (uint256 i = 0; i < len; i++) {
       ACP storage acp = _shares[ids.at(i)];
       if (_isValid(acp)) {
-        acps[j] = acp;
-        j++;
+        acps[live] = acp;
+        live++;
+      }
+    }
+
+    // truncate the memory array's length to the live count (shrink-only)
+    if (live < len) {
+      assembly {
+        mstore(acps, live)
       }
     }
   }
