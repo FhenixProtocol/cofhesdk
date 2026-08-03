@@ -12,6 +12,8 @@ import {
   removePermit,
   getActivePermitHash,
   setActivePermitHash,
+  clearStaleStore,
+  PERMIT_STORE_DEFAULTS,
   PermitUtils,
 } from '../index.js';
 
@@ -83,6 +85,58 @@ describe('Storage Tests', () => {
 
       const activeHash = getActivePermitHash(chainId, account);
       expect(activeHash).toBeUndefined();
+    });
+  });
+
+  describe('Stale Store Detection', () => {
+    // `typeof null` and `typeof []` are both 'object', so these shapes used to pass
+    // the structure guard and only blow up later on `permits[chainId]`.
+    const seedRawState = (state: unknown) => {
+      permitStore.store.setState(state as never, true);
+    };
+
+    it('should clear the store when permits is null', () => {
+      seedRawState({ permits: null, activePermitHash: {} });
+
+      clearStaleStore();
+
+      expect(permitStore.store.getState()).toEqual(PERMIT_STORE_DEFAULTS);
+      expect(() => getPermit(chainId, account, '0xdeadbeef')).not.toThrow();
+      expect(getPermit(chainId, account, '0xdeadbeef')).toBeUndefined();
+    });
+
+    it('should clear the store when permits is an array', () => {
+      seedRawState({ permits: [], activePermitHash: {} });
+
+      clearStaleStore();
+
+      expect(permitStore.store.getState()).toEqual(PERMIT_STORE_DEFAULTS);
+      expect(() => getPermit(chainId, account, '0xdeadbeef')).not.toThrow();
+      expect(getPermit(chainId, account, '0xdeadbeef')).toBeUndefined();
+    });
+
+    it('should clear the store when activePermitHash is null', () => {
+      seedRawState({ permits: {}, activePermitHash: null });
+
+      clearStaleStore();
+
+      expect(permitStore.store.getState()).toEqual(PERMIT_STORE_DEFAULTS);
+      expect(() => getActivePermit(chainId, account)).not.toThrow();
+      expect(getActivePermit(chainId, account)).toBeUndefined();
+    });
+
+    it('should leave a valid store untouched', async () => {
+      const permit = await createMockPermit();
+      setPermit(chainId, account, permit);
+      setActivePermitHash(chainId, account, permit.hash);
+
+      const before = permitStore.store.getState();
+
+      clearStaleStore();
+
+      expect(permitStore.store.getState()).toEqual(before);
+      expect(PermitUtils.serialize(getPermit(chainId, account, permit.hash)!)).toEqual(PermitUtils.serialize(permit));
+      expect(getActivePermitHash(chainId, account)).toBe(permit.hash);
     });
   });
 });
