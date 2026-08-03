@@ -159,7 +159,7 @@ describe('ACPShareRegistry', () => {
     );
   });
 
-  it('swap-and-pop keeps the remaining shares listed', async () => {
+  it('removal keeps the remaining shares listed', async () => {
     const p1 = await signedSharingPermission(acl, bob, alice.address);
     const p2 = await signedSharingPermission(acl, bob, alice.address, { revokerData: 1n }); // distinct id
     const p3 = await signedSharingPermission(acl, bob, alice.address, { revokerData: 2n });

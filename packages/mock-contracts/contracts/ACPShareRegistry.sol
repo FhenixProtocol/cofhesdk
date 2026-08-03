@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.19 <0.9.0;
 
+import { EnumerableSet } from '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
 import { ACP, IPermissionCustomIdValidator } from './Permissioned.sol';
 
 /**
@@ -31,14 +32,13 @@ import { ACP, IPermissionCustomIdValidator } from './Permissioned.sol';
  * role) and deployed to a fixed address as core infrastructure.
  */
 contract ACPShareRegistry {
+  using EnumerableSet for EnumerableSet.Bytes32Set;
+
   /// @notice recipient => ids of shares addressed to them
-  mapping(address => bytes32[]) private _shareIdsFor;
+  mapping(address => EnumerableSet.Bytes32Set) private _shareIdsFor;
 
   /// @notice share id => stored payload
   mapping(bytes32 => ACP) private _shares;
-
-  /// @notice share id => index+1 in the recipient's id list (0 = not present)
-  mapping(bytes32 => uint256) private _sharePos;
 
   event Shared(address indexed recipient, address indexed issuer, bytes32 shareId);
   event ShareRemoved(address indexed recipient, address indexed issuer, bytes32 shareId);
@@ -62,11 +62,9 @@ contract ACPShareRegistry {
     if (acp.expiration < block.timestamp) revert ShareExpired();
 
     shareId = keccak256(abi.encode(acp));
-    if (_sharePos[shareId] != 0) revert AlreadyShared();
-
+    // the id commits to the recipient, so a duplicate can only be in this set
+    if (!_shareIdsFor[acp.recipient].add(shareId)) revert AlreadyShared();
     _shares[shareId] = acp;
-    _shareIdsFor[acp.recipient].push(shareId);
-    _sharePos[shareId] = _shareIdsFor[acp.recipient].length;
 
     emit Shared(acp.recipient, acp.issuer, shareId);
   }
@@ -74,26 +72,14 @@ contract ACPShareRegistry {
   /// @notice Remove a share. The issuer may retract it; the recipient may dismiss it
   ///         (e.g. after importing, or to decline).
   function removeShare(bytes32 shareId) external {
-    uint256 pos = _sharePos[shareId];
-    if (pos == 0) revert UnknownShare();
-
     ACP storage acp = _shares[shareId];
+    if (acp.issuer == address(0)) revert UnknownShare();
     if (msg.sender != acp.issuer && msg.sender != acp.recipient) revert NotIssuerOrRecipient();
 
     address recipient = acp.recipient;
     address issuer = acp.issuer;
 
-    // swap-and-pop the recipient's id list
-    bytes32[] storage ids = _shareIdsFor[recipient];
-    uint256 idx = pos - 1;
-    uint256 lastIdx = ids.length - 1;
-    if (idx != lastIdx) {
-      bytes32 movedId = ids[lastIdx];
-      ids[idx] = movedId;
-      _sharePos[movedId] = pos;
-    }
-    ids.pop();
-    delete _sharePos[shareId];
+    _shareIdsFor[recipient].remove(shareId);
     delete _shares[shareId];
 
     emit ShareRemoved(recipient, issuer, shareId);
@@ -102,17 +88,18 @@ contract ACPShareRegistry {
   /// @notice All importable shares addressed to `recipient`: unexpired and not revoked.
   ///         Dead entries stay in storage until removed but are filtered here.
   function sharesFor(address recipient) external view returns (ACP[] memory acps) {
-    bytes32[] storage ids = _shareIdsFor[recipient];
+    EnumerableSet.Bytes32Set storage ids = _shareIdsFor[recipient];
+    uint256 len = ids.length();
 
     uint256 live = 0;
-    for (uint256 i = 0; i < ids.length; i++) {
-      if (_isValid(_shares[ids[i]])) live++;
+    for (uint256 i = 0; i < len; i++) {
+      if (_isValid(_shares[ids.at(i)])) live++;
     }
 
     acps = new ACP[](live);
     uint256 j = 0;
-    for (uint256 i = 0; i < ids.length; i++) {
-      ACP storage acp = _shares[ids[i]];
+    for (uint256 i = 0; i < len; i++) {
+      ACP storage acp = _shares[ids.at(i)];
       if (_isValid(acp)) {
         acps[j] = acp;
         j++;
@@ -129,7 +116,7 @@ contract ACPShareRegistry {
   ///         claimed issuer (guaranteed at posting), is unexpired, and is not
   ///         revoked per its own revoker contract.
   function isShareValid(bytes32 shareId) external view returns (bool) {
-    if (_sharePos[shareId] == 0) return false;
+    if (_shares[shareId].issuer == address(0)) return false;
     return _isValid(_shares[shareId]);
   }
 
