@@ -232,11 +232,12 @@ caller must now declare in advance which contract will consume the result.
   time defeats the point: the caller must commit to the target contract before signing).
 - **Changed** signature digest (mocks path, `cofheMocksZkVerifySign.ts`): now folds in the
   consuming contract per the formula above.
-- **Changed** production request: `zkVerifyBatch` now sends a `contract_addr` field to
+- **Changed** production request: `zkVerifyBatch` now sends a `contract_address` field to
   `POST /verify-batch`, alongside the existing `account_addr`/`security_zone`/`chain_id`. This
-  field is **not yet documented** in `BATCH_SIGNATURE_CHANGES.md` (which predates PR #77) — it's
-  a forward-looking addition on the assumption the real endpoint will grow a matching field once
-  CoFHE ships its own lockstep verifier update. The live service does not yet implement
+  exact field name is confirmed against the real verifier service's `VerifyRequest` struct
+  (`zee-k-verifier#37`, which added it to the legacy `/verify` endpoint) — `BATCH_SIGNATURE_CHANGES.md`
+  predates PR #77 and doesn't document it for `/verify-batch` specifically yet, so this assumes the
+  batch endpoint will use the same field name once it ships. The live service does not yet implement
   `/verify-batch` at all (see "Known temporary limitation" above), so this has no observable
   effect until then.
 

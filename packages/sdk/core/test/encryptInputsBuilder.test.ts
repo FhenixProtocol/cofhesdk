@@ -127,7 +127,7 @@ const MockCrs = {
 
 // Setup fetch mock for http://localhost:3001/verify-batch
 // Simulates batch verification of a zk proof: one signature covering the whole batch.
-// The signature is `${account_addr}-${security_zone}-${chain_id}-${contract_addr}-` (a debug
+// The signature is `${account_addr}-${security_zone}-${chain_id}-${contract_address}-` (a debug
 // string, not a real signature) so tests can recover the request payload that was sent for a
 // given result. Expects the proof to be created by the MockZkListBuilder `build_with_proof_packed`
 // above
@@ -137,7 +137,7 @@ const setupZkVerifyMock = () => {
   mockFetch.mockImplementation((url: string, options: any) => {
     if (url === `${MockZkVerifierUrl}/verify-batch`) {
       const body = JSON.parse(options.body as string);
-      const { packed_list, account_addr, security_zone, chain_id, contract_addr } = body;
+      const { packed_list, account_addr, security_zone, chain_id, contract_address } = body;
 
       // Decode the proof data
       const arr = fromHexString(packed_list);
@@ -158,7 +158,7 @@ const setupZkVerifyMock = () => {
             status: 'success',
             data: {
               outputs,
-              signature: `${account_addr}-${security_zone}-${chain_id}-${contract_addr}-`,
+              signature: `${account_addr}-${security_zone}-${chain_id}-${contract_address}-`,
               recid: 0,
             },
             error: null,
