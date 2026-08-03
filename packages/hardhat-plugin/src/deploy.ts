@@ -6,6 +6,7 @@ import {
   MockTaskManagerArtifact,
   MockACLArtifact,
   ACPTimestampRevokerArtifact,
+  ACPShareRegistryArtifact,
   MockZkVerifierArtifact,
   MockThresholdNetworkArtifact,
 } from '@cofhe/mock-contracts';
@@ -69,6 +70,10 @@ export const deployMocks = async (
   // ACP (Permit V3): default revoker (verification is inherited by the ACL)
   const acpRevoker = await deployMockContractFromArtifact(hre, ACPTimestampRevokerArtifact);
   logDeployment('ACPTimestampRevoker', await acpRevoker.getAddress());
+
+  // ACP: on-chain hand-off for sharing ACPs
+  const acpShareRegistry = await deployMockContractFromArtifact(hre, ACPShareRegistryArtifact);
+  logDeployment('ACPShareRegistry', await acpShareRegistry.getAddress());
 
   await linkTaskManagerAndACL(taskManager, acl);
   log('vv', 'ACL address set in TaskManager', 2);

@@ -21,6 +21,9 @@ const contracts: Array<{ name: string; fixedAddress?: string }> = [
   {
     name: 'ACPTimestampRevoker',
   },
+  {
+    name: 'ACPShareRegistry',
+  },
 ];
 
 function inspect(contract: string, field: string): any {

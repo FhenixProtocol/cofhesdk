@@ -6,6 +6,7 @@ import '@fhenixprotocol/cofhe-contracts/FHE.sol';
 import { MockTaskManager } from '@cofhe/mock-contracts/contracts/MockTaskManager.sol';
 import { MockACL } from '@cofhe/mock-contracts/contracts/MockACL.sol';
 import { ACPTimestampRevoker } from '@cofhe/mock-contracts/contracts/ACPTimestampRevoker.sol';
+import { ACPShareRegistry } from '@cofhe/mock-contracts/contracts/ACPShareRegistry.sol';
 import { MockZkVerifier } from '@cofhe/mock-contracts/contracts/MockZkVerifier.sol';
 import { MockZkVerifierSigner } from './MockZkVerifierSigner.sol';
 import { MockThresholdNetwork } from '@cofhe/mock-contracts/contracts/MockThresholdNetwork.sol';
@@ -23,6 +24,7 @@ abstract contract CofheTest is Test {
   MockTaskManager public mockTaskManager;
   MockACL public mockAcl;
   ACPTimestampRevoker public acpRevoker;
+  ACPShareRegistry public acpShareRegistry;
   MockZkVerifier public mockZkVerifier;
   MockZkVerifierSigner public mockZkVerifierSigner;
   MockThresholdNetwork public mockThresholdNetwork;
@@ -54,6 +56,8 @@ abstract contract CofheTest is Test {
     // ACP (Permit V3): default revoker (verification inherited by the ACL)
     acpRevoker = new ACPTimestampRevoker();
     vm.label(address(acpRevoker), 'ACPTimestampRevoker');
+    acpShareRegistry = new ACPShareRegistry();
+    vm.label(address(acpShareRegistry), 'ACPShareRegistry');
 
     // 3. Link Task Manager <-> ACL, configure signers
     vm.startPrank(TM_ADMIN);

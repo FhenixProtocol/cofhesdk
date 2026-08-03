@@ -27,6 +27,7 @@ export type DeployedMockContracts = {
   MockTaskManager: `0x${string}`;
   MockACL: `0x${string}`;
   ACPTimestampRevoker: `0x${string}`;
+  ACPShareRegistry: `0x${string}`;
   MockZkVerifier: `0x${string}`;
   MockThresholdNetwork: `0x${string}`;
 };
@@ -114,6 +115,10 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
   const acpRevokerAddress = await deployVariable(ctx, 'ACPTimestampRevoker', []);
   logDeployment('ACPTimestampRevoker', acpRevokerAddress);
 
+  // 5c. ACP: on-chain hand-off for sharing ACPs
+  const acpShareRegistryAddress = await deployVariable(ctx, 'ACPShareRegistry', []);
+  logDeployment('ACPShareRegistry', acpShareRegistryAddress);
+
   // 6. Set ZkVerifier signer (the key is well-known and shared with the SDK)
   const verifierSigner = privateKeyToAccount(MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY);
   await ctx.walletClient.writeContract({
@@ -187,6 +192,7 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
     MockTaskManager: TASK_MANAGER_ADDRESS,
     MockACL: aclAddress,
     ACPTimestampRevoker: acpRevokerAddress,
+    ACPShareRegistry: acpShareRegistryAddress,
     MockZkVerifier: MOCKS_ZK_VERIFIER_ADDRESS,
     MockThresholdNetwork: MOCKS_THRESHOLD_NETWORK_ADDRESS,
   };
