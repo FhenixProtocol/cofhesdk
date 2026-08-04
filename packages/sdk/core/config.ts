@@ -54,6 +54,12 @@ export type CofheConfig = {
      * names a registry.
      */
     sharingRegistry?: Record<number, `0x${string}`>;
+    /**
+     * Force the permit protocol per chainId instead of probing the chain's
+     * ACL ('v2' = released Permission struct, 'acp' = upgraded ACL). Escape
+     * hatch for backward compatibility — normally left unset.
+     */
+    aclVersion?: Record<number, 'v2' | 'acp'>;
   };
   /** Mocks configs */
   mocks: {
@@ -114,6 +120,7 @@ export const CofheConfigSchema = z.object({
       defaultRevoker: z.custom<Record<number, `0x${string}`>>().optional(),
       defaultContractScopes: z.custom<Record<number, `0x${string}`[]>>().optional(),
       sharingRegistry: z.custom<Record<number, `0x${string}`>>().optional(),
+      aclVersion: z.custom<Record<number, 'v2' | 'acp'>>().optional(),
     })
     .optional()
     .default({}),

@@ -24,6 +24,7 @@ import {
 } from 'viem';
 
 import { TASK_MANAGER_ADDRESS } from './consts.js';
+import { getAclEIP712Domain } from '../permits/onchain-utils.js';
 
 // ACP default revoker (timestamp-based revocation) — interface shared by all revokers
 const ACP_VALIDATOR_ABI = parseAbi([
@@ -323,6 +324,47 @@ const getAclServedAddresses = async (publicClient: PublicClient, chainId: number
 };
 
 /**
+ * The permit protocol a chain's ACL speaks.
+ *  - 'v2':  released Permission struct (PermissionedV2* typed data) — pre-upgrade ACL
+ *  - 'acp': ACP struct (scoped, revocable) — upgraded ACL
+ */
+export type AclVersion = 'v2' | 'acp';
+
+const aclVersionCache = new Map<number, AclVersion>();
+
+/** Test hook: forget probed versions (e.g. between redeployments on one chainId). */
+const clearAclVersions = () => aclVersionCache.clear();
+
+/**
+ * Which permit protocol the chain's ACL speaks, probed via the EIP-712 domain
+ * the ACL serves: version "1" -> V2 Permission, "2" -> ACP. Both ACL
+ * generations expose `eip712Domain()` (the released SDK already relied on it),
+ * so the probe costs the same read the signing path performs anyway.
+ *
+ * Cached per chainId. A failed probe (network error, no CoFHE deployment) is
+ * NOT cached and resolves to 'acp' — the forward path.
+ */
+const getAclVersion = async (
+  publicClient: PublicClient,
+  chainId: number,
+  override?: AclVersion
+): Promise<AclVersion> => {
+  if (override != null) return override;
+  const cached = aclVersionCache.get(chainId);
+  if (cached != null) return cached;
+
+  let version: AclVersion;
+  try {
+    const domain = await getAclEIP712Domain(publicClient);
+    version = domain.version === '1' ? 'v2' : 'acp';
+  } catch {
+    return 'acp';
+  }
+  aclVersionCache.set(chainId, version);
+  return version;
+};
+
+/**
  * `applyPermitDefaults` with the ACL consulted for the default revoker when
  * `permit.defaultRevoker` config does not name one for this chain — explicit
  * config wins over the ACL-served address.
@@ -619,6 +661,8 @@ export const permits = {
   applyPermitDefaultsFromChain,
   getAclServedAddresses,
   clearAclServedAddresses,
+  getAclVersion,
+  clearAclVersions,
 };
 
 /** @deprecated renamed — use `acp` (public terminology: permit -> ACP) */
