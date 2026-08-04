@@ -69,6 +69,8 @@ export const deployMocks = async (
   // ACP (Permit V3): default revoker (verification is inherited by the ACL)
   const acpRevoker = await deployMockContractFromArtifact(hre, ACPTimestampRevokerArtifact);
   logDeployment('ACPTimestampRevoker', await acpRevoker.getAddress());
+  await (await acl.setDefaultRevokerContract(await acpRevoker.getAddress())).wait();
+  log('vv', 'Default revoker contract set in ACL', 2);
 
   await linkTaskManagerAndACL(taskManager, acl);
   log('vv', 'ACL address set in TaskManager', 2);

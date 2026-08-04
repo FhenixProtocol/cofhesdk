@@ -54,6 +54,7 @@ abstract contract CofheTest is Test {
     // ACP (Permit V3): default revoker (verification inherited by the ACL)
     acpRevoker = new ACPTimestampRevoker();
     vm.label(address(acpRevoker), 'ACPTimestampRevoker');
+    mockAcl.setDefaultRevokerContract(address(acpRevoker));
 
     // 3. Link Task Manager <-> ACL, configure signers
     vm.startPrank(TM_ADMIN);

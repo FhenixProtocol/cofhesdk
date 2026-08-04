@@ -37,6 +37,12 @@ contract MockACL is MockPermissioned {
   /// @param contractAddress  Contract address.
   event NewDelegation(address indexed sender, address indexed delegatee, address indexed contractAddress);
 
+  /// @notice Emitted when the default revoker contract address is updated (zero = unset).
+  event DefaultRevokerContractUpdated(address oldAddress, address newAddress);
+
+  /// @notice Emitted when the share registry address is updated (zero = unset).
+  event ShareRegistryUpdated(address oldAddress, address newAddress);
+
   /// @custom:storage-location erc7201:cofhe.storage.ACL
   struct ACLStorage {
     mapping(uint256 handle => bool isGlobal) globalHandles;
@@ -48,6 +54,9 @@ contract MockACL is MockPermissioned {
     ///      so it auto-expires when the block changes — no explicit cleanup required.
     ///      In Hardhat automine mode (one tx per block) this faithfully replicates per-tx transience.
     mapping(bytes32 => uint256) transientAllowanceBlocks;
+    /// @dev ACP infrastructure addresses served to SDKs (appended fields — do not reorder)
+    address defaultRevokerContract;
+    address shareRegistry;
   }
 
   /// @notice Name of the contract.
@@ -312,9 +321,33 @@ contract MockACL is MockPermissioned {
   // ACP (Permit V3) — scope-checked access
   // ---------------------------------------------------------------------------
 
+  /// @notice Default revoker contract for newly created ACPs, served to SDKs (zero = unset).
+  function defaultRevokerContract() public view returns (address) {
+    return _getACLStorage().defaultRevokerContract;
+  }
 
-  /// @notice V3 (ACP) access check — the scope table. Replaces
-  ///         `isAllowedWithPermission` once the V2 permit path is dropped.
+  /// @notice The ACPShareRegistry address, served to SDKs (zero = sharing unavailable).
+  function shareRegistry() public view returns (address) {
+    return _getACLStorage().shareRegistry;
+  }
+
+  /// @notice Sets the default revoker contract address (unrestricted in the mock;
+  ///         the production setter is onlyOwner).
+  function setDefaultRevokerContract(address newAddress) external {
+    ACLStorage storage $ = _getACLStorage();
+    emit DefaultRevokerContractUpdated($.defaultRevokerContract, newAddress);
+    $.defaultRevokerContract = newAddress;
+  }
+
+  /// @notice Sets the share registry address (unrestricted in the mock;
+  ///         the production setter is onlyOwner).
+  function setShareRegistry(address newAddress) external {
+    ACLStorage storage $ = _getACLStorage();
+    emit ShareRegistryUpdated($.shareRegistry, newAddress);
+    $.shareRegistry = newAddress;
+  }
+
+  /// @notice V3 (ACP) access check — the scope table.
   ///
   ///         | condition                                            | result |
   ///         |------------------------------------------------------|--------|

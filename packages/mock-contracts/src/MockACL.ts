@@ -248,6 +248,19 @@ export const MockACLArtifact = {
     },
     {
       type: 'function',
+      name: 'defaultRevokerContract',
+      inputs: [],
+      outputs: [
+        {
+          name: '',
+          type: 'address',
+          internalType: 'address',
+        },
+      ],
+      stateMutability: 'view',
+    },
+    {
+      type: 'function',
       name: 'delegateAccount',
       inputs: [
         {
@@ -533,6 +546,45 @@ export const MockACLArtifact = {
       stateMutability: 'view',
     },
     {
+      type: 'function',
+      name: 'setDefaultRevokerContract',
+      inputs: [
+        {
+          name: 'newAddress',
+          type: 'address',
+          internalType: 'address',
+        },
+      ],
+      outputs: [],
+      stateMutability: 'nonpayable',
+    },
+    {
+      type: 'function',
+      name: 'setShareRegistry',
+      inputs: [
+        {
+          name: 'newAddress',
+          type: 'address',
+          internalType: 'address',
+        },
+      ],
+      outputs: [],
+      stateMutability: 'nonpayable',
+    },
+    {
+      type: 'function',
+      name: 'shareRegistry',
+      inputs: [],
+      outputs: [
+        {
+          name: '',
+          type: 'address',
+          internalType: 'address',
+        },
+      ],
+      stateMutability: 'view',
+    },
+    {
       type: 'event',
       name: 'AllowedForDecryption',
       inputs: [
@@ -541,6 +593,25 @@ export const MockACLArtifact = {
           type: 'uint256[]',
           indexed: false,
           internalType: 'uint256[]',
+        },
+      ],
+      anonymous: false,
+    },
+    {
+      type: 'event',
+      name: 'DefaultRevokerContractUpdated',
+      inputs: [
+        {
+          name: 'oldAddress',
+          type: 'address',
+          indexed: false,
+          internalType: 'address',
+        },
+        {
+          name: 'newAddress',
+          type: 'address',
+          indexed: false,
+          internalType: 'address',
         },
       ],
       anonymous: false,
@@ -571,6 +642,25 @@ export const MockACLArtifact = {
           name: 'contractAddress',
           type: 'address',
           indexed: true,
+          internalType: 'address',
+        },
+      ],
+      anonymous: false,
+    },
+    {
+      type: 'event',
+      name: 'ShareRegistryUpdated',
+      inputs: [
+        {
+          name: 'oldAddress',
+          type: 'address',
+          indexed: false,
+          internalType: 'address',
+        },
+        {
+          name: 'newAddress',
+          type: 'address',
+          indexed: false,
           internalType: 'address',
         },
       ],
