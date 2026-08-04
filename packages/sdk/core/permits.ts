@@ -392,6 +392,16 @@ const aclVersionCache = new Map<number, AclVersion>();
 const clearAclVersions = () => aclVersionCache.clear();
 
 /**
+ * Forget everything probed from chains' ACLs — the permit protocol version and
+ * the served infrastructure addresses. Call after a known ACL upgrade (or
+ * between redeployments on a reused chainId) so the next operation re-probes.
+ */
+export const clearAclCaches = (): void => {
+  clearAclServedAddresses();
+  clearAclVersions();
+};
+
+/**
  * Which permit protocol the chain's ACL speaks, probed via the EIP-712 domain
  * the ACL serves: version "1" -> V2 Permission, "2" -> ACP. Both ACL
  * generations expose `eip712Domain()` (the released SDK already relied on it),

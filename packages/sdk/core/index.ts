@@ -1,5 +1,6 @@
 // Client (base implementations)
 export { createCofheClientBase, InitialConnectStore as CONNECT_STORE_DEFAULTS } from './client.js';
+export { clearAclCaches, type AclVersion } from './permits.js';
 
 // Debug interceptors (neutral, opt-in network hooks for fault injection / logging)
 export { setCofheDebugInterceptors, getCofheDebugInterceptors, cofheFetch } from './debug.js';
