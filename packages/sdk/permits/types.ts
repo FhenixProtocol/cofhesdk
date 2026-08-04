@@ -47,6 +47,13 @@ export interface ACPPrivate {
    */
   sealingPrivateKey: Hex;
   /**
+   * The permit protocol this ACP was signed under. Absent (or 'acp') = the
+   * upgraded ACL's ACP struct; 'v2' = the released Permission struct, signed
+   * for a pre-upgrade chain and normalized into the ACP shape (see
+   * legacy-v2/bridge.ts). Client-side metadata — never part of the signature.
+   */
+  format?: 'v2' | 'acp';
+  /**
    * EIP712 domain used to sign this permit.
    * Should not be set manually, included in metadata as part of serialization flows.
    */

@@ -26,6 +26,7 @@ import {
 import { SignatureUtils } from './signature.js';
 import { GenerateSealingKey, unsealWithPrivateKey } from './sealing.js';
 import { checkPermitValidityOnChain, getAclEIP712Domain } from './onchain-utils.js';
+import { checkPermitValidityOnChain as checkPermitValidityOnChainV2 } from './legacy-v2/onchain-utils.js';
 
 /**
  * Main ACP utilities - functional approach for React compatibility
@@ -217,6 +218,7 @@ export const ACPUtils = {
       recipientSignature: permit.recipientSignature,
       _signedDomain: permit._signedDomain,
       sealingPrivateKey: permit.sealingPrivateKey,
+      format: permit.format,
     };
   },
 
@@ -308,6 +310,22 @@ export const ACPUtils = {
       throw new Error(
         'Cannot export an unsigned sharing ACP — sign it first (the recipient needs the issuer signature).'
       );
+    }
+
+    // A v2-format permit exports the released-SDK JSON shape (validatorId keys,
+    // sparse optional fields) so recipients on the old SDK can import it.
+    if (permit.format === 'v2') {
+      const cleaned: Record<string, unknown> = {
+        name: permit.name,
+        type: permit.type,
+        issuer: permit.issuer,
+        expiration: permit.expiration,
+      };
+      if (permit.recipient !== zeroAddress) cleaned.recipient = permit.recipient;
+      if (permit.revokerData !== 0) cleaned.validatorId = permit.revokerData;
+      if (permit.revokerContract !== zeroAddress) cleaned.validatorContract = permit.revokerContract;
+      cleaned.issuerSignature = permit.issuerSignature;
+      return JSON.stringify(cleaned, undefined, 2);
     }
 
     const shared: SharedACP = {
@@ -405,6 +423,23 @@ export const ACPUtils = {
    * Check if permit passes the on-chain validation
    */
   checkValidityOnChain: async (permit: ACP, publicClient: PublicClient): Promise<boolean> => {
+    // A v2-format permit is validated against the V2 ACL entry point
+    // (checkPermitValidity, Permission tuple) — see legacy-v2/.
+    if (permit.format === 'v2') {
+      return checkPermitValidityOnChainV2(
+        {
+          issuer: permit.issuer,
+          expiration: permit.expiration,
+          recipient: permit.recipient,
+          validatorId: permit.revokerData,
+          validatorContract: permit.revokerContract,
+          sealingKey: permit.sealingKey,
+          issuerSignature: permit.issuerSignature,
+          recipientSignature: permit.recipientSignature,
+        },
+        publicClient
+      );
+    }
     const acp = ACPUtils.getPublic(permit);
     return checkPermitValidityOnChain(acp, publicClient);
   },

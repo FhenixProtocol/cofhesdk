@@ -1,6 +1,7 @@
 /* eslint-disable no-dupe-class-members */
 import { hardhat } from '@/chains';
 import { type ACP, type ACPPublic, ACPUtils } from '@/permits';
+import { toWirePermit } from '../../permits/legacy-v2/bridge.js';
 
 import { FheTypes } from '../types';
 import { getThresholdNetworkUrlOrThrow } from '../config';
@@ -319,7 +320,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
 
     const thresholdNetworkUrl = await this.getThresholdNetworkUrl();
 
-    const acp = permit ? ACPUtils.getPublic(permit, true) : null;
+    const acp = permit ? toWirePermit(permit) : null;
     const { decryptedValue, signature } = await tnDecryptV2({
       ctHash: this.ctHash,
       chainId: this.chainId,

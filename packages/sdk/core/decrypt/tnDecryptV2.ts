@@ -1,4 +1,4 @@
-import { type ACPPublic } from '@/permits';
+import { type WirePermit } from '../../permits/legacy-v2/bridge.js';
 import { cofheFetch } from '../debug.js';
 
 import { CofheError, CofheErrorCode } from '../error';
@@ -179,7 +179,7 @@ async function submitDecryptRequestV2(
   thresholdNetworkUrl: string,
   ctHash: bigint | string,
   chainId: number,
-  acp: ACPPublic | null,
+  acp: WirePermit | null,
   overallStartTime: number,
   retry404TimeoutMs: number,
   onPoll?: DecryptPollCallbackFunction
@@ -187,7 +187,7 @@ async function submitDecryptRequestV2(
   const body: {
     ct_tempkey: string;
     host_chain_id: number;
-    permit?: ACPPublic;
+    permit?: WirePermit;
   } = {
     ct_tempkey: BigInt(ctHash).toString(16).padStart(64, '0'),
     host_chain_id: chainId,
@@ -459,7 +459,7 @@ async function pollDecryptStatusV2(
 export async function tnDecryptV2(params: {
   ctHash: bigint | string;
   chainId: number;
-  acp: ACPPublic | null;
+  acp: WirePermit | null;
   thresholdNetworkUrl: string;
   retry404TimeoutMs?: number;
   onPoll?: DecryptPollCallbackFunction;
