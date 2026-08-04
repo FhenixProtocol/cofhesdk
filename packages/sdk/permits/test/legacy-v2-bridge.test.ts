@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { zeroAddress } from 'viem';
-import { toV2SelfOptions, toV2SharingOptions, v2PermitToAcp, acpToV2Permission, toWirePermit } from '../legacy-v2/bridge.js';
+import {
+  toV2SelfOptions,
+  toV2SharingOptions,
+  v2PermitToAcp,
+  acpToV2Permission,
+  toWirePermit,
+} from '../legacy-v2/bridge.js';
 import { SealingKeyV2 } from '../legacy-v2/index.js';
 import type { PermitV2 } from '../legacy-v2/index.js';
 
@@ -65,19 +71,22 @@ describe('legacy-v2 bridge', () => {
 
   it('refuses to build a V2 Permission from an acp-format permit', () => {
     const sealingPair = new SealingKeyV2('ab'.repeat(32), 'cd'.repeat(32));
-    const acp = { ...v2PermitToAcp({
-      hash: '0x',
-      name: '',
-      type: 'self',
-      issuer: ISSUER,
-      expiration: 0,
-      recipient: zeroAddress,
-      validatorId: 0,
-      validatorContract: zeroAddress,
-      sealingPair,
-      issuerSignature: '0x',
-      recipientSignature: '0x',
-    } as PermitV2), format: 'acp' as const };
+    const acp = {
+      ...v2PermitToAcp({
+        hash: '0x',
+        name: '',
+        type: 'self',
+        issuer: ISSUER,
+        expiration: 0,
+        recipient: zeroAddress,
+        validatorId: 0,
+        validatorContract: zeroAddress,
+        sealingPair,
+        issuerSignature: '0x',
+        recipientSignature: '0x',
+      } as PermitV2),
+      format: 'acp' as const,
+    };
     expect(() => acpToV2Permission(acp)).to.throw(/format "v2"/);
   });
 });

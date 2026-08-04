@@ -34,11 +34,7 @@ import type {
  * This file is NOT part of the frozen engine — it may evolve with the ACP API.
  */
 
-const assertNoScopeOptions = (options: {
-  scope?: number;
-  contracts?: string[];
-  handles?: unknown[];
-}): void => {
+const assertNoScopeOptions = (options: { scope?: number; contracts?: string[]; handles?: unknown[] }): void => {
   const hasScope =
     (options.scope != null && options.scope !== 0) ||
     (options.contracts != null && options.contracts.length > 0) ||
