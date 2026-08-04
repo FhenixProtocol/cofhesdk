@@ -47,7 +47,7 @@ const H1 = 101n;
 const H2 = 202n;
 const H_UNSEEDED = 999n;
 
-describe('ACP scope table (MockACL.isAllowedWithACP)', () => {
+describe('ACP scope table (MockACL.isAllowedWithPermission)', () => {
   let acl: Contract;
   let issuer: HardhatEthersSigner;
   let tm: HardhatEthersSigner;
@@ -122,52 +122,52 @@ describe('ACP scope table (MockACL.isAllowedWithACP)', () => {
     const p = await permission({});
     p.expiration = now - 1000n;
     p.issuerSignature = '0x'; // (re-signing an expired permit would also revert — keep it simple)
-    await expect(acl.isAllowedWithACP(p, H1)).to.be.reverted;
+    await expect(acl.isAllowedWithPermission(p, H1)).to.be.reverted;
   });
 
   it('row: issuer has no access to handle — false (even with global scope)', async () => {
     const p = await permission({});
-    expect(await acl.isAllowedWithACP(p, H_UNSEEDED)).to.equal(false);
+    expect(await acl.isAllowedWithPermission(p, H_UNSEEDED)).to.equal(false);
   });
 
   it('row: global scope — true', async () => {
     const p = await permission({});
-    expect(await acl.isAllowedWithACP(p, H1)).to.equal(true);
+    expect(await acl.isAllowedWithPermission(p, H1)).to.equal(true);
   });
 
   it('row: contract scope, contract allowed for handle — true', async () => {
     const p = await permission({ contracts: [CONTRACT_A] });
-    expect(await acl.isAllowedWithACP(p, H1)).to.equal(true);
+    expect(await acl.isAllowedWithPermission(p, H1)).to.equal(true);
   });
 
   it('row: contract scope, later array element matches — true (loop coverage)', async () => {
     const p = await permission({ contracts: [CONTRACT_B, CONTRACT_A] });
-    expect(await acl.isAllowedWithACP(p, H1)).to.equal(true);
+    expect(await acl.isAllowedWithPermission(p, H1)).to.equal(true);
   });
 
   it('row: contract scope, contract not allowed for this handle — false', async () => {
     // CONTRACT_A is seeded for H1, not H2 — a permit scoped to A must not read H2
     const p = await permission({ contracts: [CONTRACT_A] });
-    expect(await acl.isAllowedWithACP(p, H2)).to.equal(false);
+    expect(await acl.isAllowedWithPermission(p, H2)).to.equal(false);
   });
 
   it('row: handle scope, handle in list — true', async () => {
     const p = await permission({ handles: [b32(H2), b32(H1)] });
-    expect(await acl.isAllowedWithACP(p, H1)).to.equal(true);
+    expect(await acl.isAllowedWithPermission(p, H1)).to.equal(true);
   });
 
   it('row: handle scope, handle not in list — false', async () => {
     const p = await permission({ handles: [b32(H2)] });
-    expect(await acl.isAllowedWithACP(p, H1)).to.equal(false);
+    expect(await acl.isAllowedWithPermission(p, H1)).to.equal(false);
   });
 
   it('row: scoped but empty list — false, despite issuer access', async () => {
     // scope CONTRACT with no contracts (and scope HANDLES with no handles) can't
     // match anything; the client-side refinement rejects these, the ACL just says no
     const pContract = await permission({ scope: 1 });
-    expect(await acl.isAllowedWithACP(pContract, H1)).to.equal(false);
+    expect(await acl.isAllowedWithPermission(pContract, H1)).to.equal(false);
     const pHandles = await permission({ scope: 2 });
-    expect(await acl.isAllowedWithACP(pHandles, H1)).to.equal(false);
+    expect(await acl.isAllowedWithPermission(pHandles, H1)).to.equal(false);
   });
 
   // --------------------------------------------------- narrowing invariants
@@ -196,21 +196,22 @@ describe('ACP scope table (MockACL.isAllowedWithACP)', () => {
       verifyingContract: await acl.getAddress(),
     };
     p.issuerSignature = await freshIssuer.signTypedData(domain, TYPES_ISSUER_SELF, p);
-    expect(await acl.isAllowedWithACP(p, H2)).to.equal(false);
+    expect(await acl.isAllowedWithPermission(p, H2)).to.equal(false);
   });
 
   it('ciphertext scope narrows too: handle in list but issuer lacks access — false', async () => {
     const p = await permission({ handles: [b32(H_UNSEEDED)] });
-    expect(await acl.isAllowedWithACP(p, H_UNSEEDED)).to.equal(false);
+    expect(await acl.isAllowedWithPermission(p, H_UNSEEDED)).to.equal(false);
   });
 
   // ------------------------------------------------ V3 replaced V2 in place
 
-  it('V2 entry points are gone, V3 replaces them on the ACL itself', async () => {
-    expect(acl.interface.getFunction('isAllowedWithPermission')).to.equal(null);
+  it('V2 entry points are replaced in place on the ACL itself', async () => {
     expect(acl.interface.getFunction('checkPermitValidity')).to.equal(null);
     expect(acl.interface.getFunction('acpVerifier')).to.equal(null);
-    expect(typeof acl.isAllowedWithACP).to.equal('function');
+    // isAllowedWithPermission keeps its V2 name but now takes the ACP struct
+    const fn = acl.interface.getFunction('isAllowedWithPermission');
+    expect(fn!.inputs[0].components!.length).to.equal(11);
     expect(typeof acl.checkPermissionValidity).to.equal('function');
     expect(typeof acl.eip712Domain).to.equal('function');
   });

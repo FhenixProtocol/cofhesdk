@@ -84,7 +84,7 @@ export interface MockACLInterface extends Interface {
       | 'hashTypedDataV4'
       | 'isAllowed'
       | 'isAllowedForDecryption'
-      | 'isAllowedWithACP'
+      | 'isAllowedWithPermission'
       | 'persistAllowed'
   ): FunctionFragment;
 
@@ -111,7 +111,7 @@ export interface MockACLInterface extends Interface {
   encodeFunctionData(functionFragment: 'hashTypedDataV4', values: [BytesLike]): string;
   encodeFunctionData(functionFragment: 'isAllowed', values: [BigNumberish, AddressLike]): string;
   encodeFunctionData(functionFragment: 'isAllowedForDecryption', values: [BigNumberish]): string;
-  encodeFunctionData(functionFragment: 'isAllowedWithACP', values: [ACPStruct, BigNumberish]): string;
+  encodeFunctionData(functionFragment: 'isAllowedWithPermission', values: [ACPStruct, BigNumberish]): string;
   encodeFunctionData(functionFragment: 'persistAllowed', values: [BigNumberish, AddressLike]): string;
 
   decodeFunctionResult(functionFragment: 'TASK_MANAGER_ADDRESS_', data: BytesLike): Result;
@@ -132,7 +132,7 @@ export interface MockACLInterface extends Interface {
   decodeFunctionResult(functionFragment: 'hashTypedDataV4', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'isAllowed', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'isAllowedForDecryption', data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: 'isAllowedWithACP', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'isAllowedWithPermission', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'persistAllowed', data: BytesLike): Result;
 }
 
@@ -267,7 +267,7 @@ export interface MockACL extends BaseContract {
 
   isAllowedForDecryption: TypedContractMethod<[handle: BigNumberish], [boolean], 'view'>;
 
-  isAllowedWithACP: TypedContractMethod<[acp: ACPStruct, handle: BigNumberish], [boolean], 'view'>;
+  isAllowedWithPermission: TypedContractMethod<[acp: ACPStruct, handle: BigNumberish], [boolean], 'view'>;
 
   persistAllowed: TypedContractMethod<[handle: BigNumberish, account: AddressLike], [boolean], 'view'>;
 
@@ -328,7 +328,7 @@ export interface MockACL extends BaseContract {
     nameOrSignature: 'isAllowedForDecryption'
   ): TypedContractMethod<[handle: BigNumberish], [boolean], 'view'>;
   getFunction(
-    nameOrSignature: 'isAllowedWithACP'
+    nameOrSignature: 'isAllowedWithPermission'
   ): TypedContractMethod<[acp: ACPStruct, handle: BigNumberish], [boolean], 'view'>;
   getFunction(
     nameOrSignature: 'persistAllowed'

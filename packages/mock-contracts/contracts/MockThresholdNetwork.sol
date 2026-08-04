@@ -38,7 +38,7 @@ contract MockThresholdNetwork {
     ACP memory acp
   ) public view returns (bool allowed, string memory error, uint256) {
     bool isAllowed;
-    try mockAcl.isAllowedWithACP(acp, ctHash) returns (bool _isAllowed) {
+    try mockAcl.isAllowedWithPermission(acp, ctHash) returns (bool _isAllowed) {
       isAllowed = _isAllowed;
     } catch Error(string memory reason) {
       // Handle string error messages
@@ -97,7 +97,7 @@ contract MockThresholdNetwork {
     if (acp.sealingKey == bytes32(0)) revert SealingKeyMissing();
 
     bool isAllowed;
-    try mockAcl.isAllowedWithACP(acp, ctHash) returns (bool _isAllowed) {
+    try mockAcl.isAllowedWithPermission(acp, ctHash) returns (bool _isAllowed) {
       isAllowed = _isAllowed;
     } catch Error(string memory reason) {
       // Handle string error messages
