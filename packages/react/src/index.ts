@@ -26,6 +26,7 @@ export {
   useCofheTokenPublicBalance,
   useCofheTokenLists,
   useCofheToken,
+  useKnownCofheToken,
   useCofheTokens,
   useCofheTokensClaimable,
   useCofheTokenShield,
