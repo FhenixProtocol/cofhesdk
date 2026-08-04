@@ -79,7 +79,8 @@ contract ACPShareRegistry {
     address recipient = acp.recipient;
     address issuer = acp.issuer;
 
-    _shareIdsFor[recipient].remove(shareId);
+    // the id set and the payload map stay in sync — mirror share()'s add() handling
+    if (!_shareIdsFor[recipient].remove(shareId)) revert UnknownShare();
     delete _shares[shareId];
 
     emit ShareRemoved(recipient, issuer, shareId);
