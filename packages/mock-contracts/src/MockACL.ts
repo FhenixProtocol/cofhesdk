@@ -429,7 +429,7 @@ export const MockACLArtifact = {
     },
     {
       type: 'function',
-      name: 'isAllowedWithACP',
+      name: 'isAllowedWithPermission',
       inputs: [
         {
           name: 'acp',
