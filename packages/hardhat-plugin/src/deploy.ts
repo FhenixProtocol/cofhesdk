@@ -70,10 +70,14 @@ export const deployMocks = async (
   // ACP (Permit V3): default revoker (verification is inherited by the ACL)
   const acpRevoker = await deployMockContractFromArtifact(hre, ACPTimestampRevokerArtifact);
   logDeployment('ACPTimestampRevoker', await acpRevoker.getAddress());
+  await (await acl.setDefaultRevokerContract(await acpRevoker.getAddress())).wait();
+  log('vv', 'Default revoker contract set in ACL', 2);
 
   // ACP: on-chain hand-off for sharing ACPs
   const acpShareRegistry = await deployMockContractFromArtifact(hre, ACPShareRegistryArtifact);
   logDeployment('ACPShareRegistry', await acpShareRegistry.getAddress());
+  await (await acl.setShareRegistry(await acpShareRegistry.getAddress())).wait();
+  log('vv', 'Share registry set in ACL', 2);
 
   await linkTaskManagerAndACL(taskManager, acl);
   log('vv', 'ACL address set in TaskManager', 2);

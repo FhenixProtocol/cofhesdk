@@ -114,10 +114,28 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
   // 5b. ACP (Permit V3): default revoker (verification is inherited by the ACL)
   const acpRevokerAddress = await deployVariable(ctx, 'ACPTimestampRevoker', []);
   logDeployment('ACPTimestampRevoker', acpRevokerAddress);
+  await ctx.walletClient.writeContract({
+    address: aclAddress,
+    abi: MockACLArtifact.abi,
+    functionName: 'setDefaultRevokerContract',
+    args: [acpRevokerAddress],
+    account,
+    chain: null,
+  });
+  log('vv', 'Default revoker contract set in ACL', 2);
 
   // 5c. ACP: on-chain hand-off for sharing ACPs
   const acpShareRegistryAddress = await deployVariable(ctx, 'ACPShareRegistry', []);
   logDeployment('ACPShareRegistry', acpShareRegistryAddress);
+  await ctx.walletClient.writeContract({
+    address: aclAddress,
+    abi: MockACLArtifact.abi,
+    functionName: 'setShareRegistry',
+    args: [acpShareRegistryAddress],
+    account,
+    chain: null,
+  });
+  log('vv', 'Share registry set in ACL', 2);
 
   // 6. Set ZkVerifier signer (the key is well-known and shared with the SDK)
   const verifierSigner = privateKeyToAccount(MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY);

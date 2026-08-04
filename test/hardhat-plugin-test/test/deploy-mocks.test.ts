@@ -21,6 +21,10 @@ describe('Deploy Mocks Task', () => {
     expect(await aclFromCofhesdk.exists()).to.be.true;
     expect(await aclFromCofhesdk.getAddress()).to.be.equal(await taskManagerFromCofhesdk.acl());
 
+    // ACP infrastructure addresses served by the ACL
+    expect(await aclFromCofhesdk.defaultRevokerContract()).to.not.equal(hre.ethers.ZeroAddress);
+    expect(await aclFromCofhesdk.shareRegistry()).to.not.equal(hre.ethers.ZeroAddress);
+
     // ZK VERIFIER
 
     const zkVerifierFromCofhesdk = await hre.cofhe.mocks.getMockZkVerifier();
