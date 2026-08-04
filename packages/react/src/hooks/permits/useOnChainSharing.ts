@@ -1,4 +1,5 @@
 import type { ACP, IncomingShare } from '@cofhe/sdk/permits';
+import { CofheError, CofheErrorCode } from '@cofhe/sdk';
 import { useInternalMutation, useInternalQuery, useInternalQueryClient } from '../../providers/index.js';
 import { useCofheClient } from '../useCofheClient.js';
 import { useCofheAccount, useCofheChainId } from '../useCofheConnection.js';
@@ -8,21 +9,28 @@ const INCOMING_SHARES_REFETCH_MS = 15_000;
 
 /**
  * Importable on-chain shares addressed to the connected account (unexpired,
- * not revoked). Polls the share registry; disabled when no registry is
- * configured for the connected chain (`permit.sharingRegistry`).
+ * not revoked). Polls the share registry — resolved from the chain's ACL, with
+ * `permit.sharingRegistry` config as an explicit override. Resolves to an
+ * empty list on chains where neither names a registry.
  */
 export const useIncomingShares = () => {
   const cofheClient = useCofheClient();
   const account = useCofheAccount();
   const chainId = useCofheChainId();
 
-  const registryConfigured = chainId != null && cofheClient.config.permit?.sharingRegistry?.[chainId] != null;
-
   return useInternalQuery<IncomingShare[]>({
     queryKey: [INCOMING_SHARES_KEY, chainId, account],
-    enabled: account != null && registryConfigured,
+    enabled: account != null && chainId != null,
     refetchInterval: INCOMING_SHARES_REFETCH_MS,
-    queryFn: () => cofheClient.acp.getIncomingShares(),
+    queryFn: async () => {
+      try {
+        return await cofheClient.acp.getIncomingShares();
+      } catch (e) {
+        // no registry on this chain — sharing is simply unavailable, not an error
+        if (e instanceof CofheError && e.code === CofheErrorCode.MissingConfig) return [];
+        throw e;
+      }
+    },
   });
 };
 

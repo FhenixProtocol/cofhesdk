@@ -101,6 +101,42 @@ describe('ACP on-chain sharing (SDK e2e)', () => {
     expect((await aliceClient.acp.getIncomingShares()).length).to.equal(0);
   });
 
+  it('resolves the share registry from the ACL when config names none', async () => {
+    const [bob, alice] = await hre.ethers.getSigners();
+
+    // No `permit.sharingRegistry` — the client must discover the plugin-deployed
+    // registry via TaskManager -> acl() -> shareRegistry()
+    const config = await hre.cofhe.createConfig({
+      environment: 'hardhat',
+      supportedChains: [hardhat],
+    });
+
+    const bobClient = hre.cofhe.createClient(config);
+    await hre.cofhe.connectWithHardhatSigner(bobClient, bob);
+
+    const sharingPermit = await bobClient.acp.createSharing({
+      issuer: bob.address,
+      recipient: alice.address,
+    });
+    const { shareId } = await bobClient.acp.shareOnChain(sharingPermit);
+
+    const aclRegistry = await (await hre.cofhe.mocks.getMockACL()).shareRegistry();
+    const registry = await hre.ethers.getContractAt('ACPShareRegistry', aclRegistry);
+    expect(await registry.isShareValid(shareId)).to.equal(true);
+
+    const aliceClient = hre.cofhe.createClient(config);
+    await hre.cofhe.connectWithHardhatSigner(aliceClient, alice);
+    const incoming = await aliceClient.acp.getIncomingShares();
+    expect(incoming.length).to.equal(1);
+    expect(incoming[0].shareId).to.equal(shareId);
+
+    // The ACL-served default revoker was applied at creation
+    const aclRevoker = await (await hre.cofhe.mocks.getMockACL()).defaultRevokerContract();
+    expect(sharingPermit.revokerContract.toLowerCase()).to.equal(aclRevoker.toLowerCase());
+
+    await aliceClient.acp.dismissShare(shareId);
+  });
+
   it('shareOnChain rejects a self permit', async () => {
     const [bob] = await hre.ethers.getSigners();
 

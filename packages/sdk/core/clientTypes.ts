@@ -106,7 +106,7 @@ export type CofheClientPermits = {
   revokeAllPermits: (revokerContract?: `0x${string}`) => Promise<`0x${string}`>;
   isPermitRevoked: (permit: ACP) => Promise<boolean>;
 
-  /** Post a signed sharing ACP to the on-chain share registry (config `permit.sharingRegistry`). */
+  /** Post a signed sharing ACP to the on-chain share registry (ACL-served, or config `permit.sharingRegistry`). */
   shareOnChain: (permit: ACP) => Promise<{ txHash: `0x${string}`; shareId: `0x${string}` }>;
   /** Importable shares addressed to the connected account (unexpired, not revoked). */
   getIncomingShares: () => Promise<IncomingShare[]>;
