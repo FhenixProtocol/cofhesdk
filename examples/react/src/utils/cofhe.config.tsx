@@ -19,11 +19,8 @@ function QueryDebug() {
 }
 const cofheConfig = createCofheConfig({
   supportedChains: [sepolia, baseSepolia, arbSepolia, localcofheChain],
-  permit: {
-    // Local CoFHE stack deployments (see the ACP dashboard / localcofhe setup)
-    defaultRevoker: { 420105: '0xa04de41ccadeeec8f51325a45cb6cceb6d6fd6d6' },
-    sharingRegistry: { 420105: '0xdbb6f51fbde06da9337b88ecf110cf53bad0c7e2' },
-  },
+  // No permit.* overrides: the default revoker and share registry are resolved
+  // from each chain's ACL (defaultRevokerContract() / shareRegistry()).
   react: {
     projectName: 'Demo App',
     logger: {
