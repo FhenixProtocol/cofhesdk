@@ -332,7 +332,8 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
       _requireConnected();
       const { publicClient, walletClient } = connectStore.getState();
       const chainId = await publicClient!.getChainId();
-      return permits.shareOnChain(permit, walletClient!, await _resolveSharingRegistry(publicClient!, chainId));
+      const sharingRegistry = await _resolveSharingRegistry(publicClient!, chainId);
+      return permits.shareOnChain(permit, walletClient!, sharingRegistry);
     },
 
     getIncomingShares: async () => {
@@ -340,7 +341,8 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
       const { publicClient, walletClient } = connectStore.getState();
       const chainId = await publicClient!.getChainId();
       const account = walletClient!.account!.address;
-      return permits.getIncomingShares(publicClient!, await _resolveSharingRegistry(publicClient!, chainId), account);
+      const sharingRegistry = await _resolveSharingRegistry(publicClient!, chainId);
+      return permits.getIncomingShares(publicClient!, sharingRegistry, account);
     },
 
     importFromChain: async (share) => {
@@ -353,14 +355,16 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
       _requireConnected();
       const { publicClient, walletClient } = connectStore.getState();
       const chainId = await publicClient!.getChainId();
-      return permits.removeShareOnChain(shareId, walletClient!, await _resolveSharingRegistry(publicClient!, chainId));
+      const sharingRegistry = await _resolveSharingRegistry(publicClient!, chainId);
+      return permits.removeShareOnChain(shareId, walletClient!, sharingRegistry);
     },
 
     cancelShare: async (shareId) => {
       _requireConnected();
       const { publicClient, walletClient } = connectStore.getState();
       const chainId = await publicClient!.getChainId();
-      return permits.removeShareOnChain(shareId, walletClient!, await _resolveSharingRegistry(publicClient!, chainId));
+      const sharingRegistry = await _resolveSharingRegistry(publicClient!, chainId);
+      return permits.removeShareOnChain(shareId, walletClient!, sharingRegistry);
     },
 
     // Retrieval methods (auto-fill chainId/account)
