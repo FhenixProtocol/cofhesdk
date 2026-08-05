@@ -465,19 +465,19 @@ const ACP_TUPLE = [
 const ZERO_BYTES32 = `0x${'0'.repeat(64)}` as Hex;
 
 /** The on-chain payload for a sharing ACP: recipient-side fields empty. */
-const toChainShare = (acp: ACP) => ({
-  issuer: acp.issuer,
-  expiration: BigInt(acp.expiration),
-  recipient: acp.recipient,
-  revokerData: BigInt(acp.revokerData),
-  revokerContract: acp.revokerContract,
-  scope: acp.scope,
-  contracts: acp.contracts,
-  handles: acp.handles,
-  sealingKey: ZERO_BYTES32,
-  issuerSignature: acp.issuerSignature,
-  recipientSignature: '0x' as Hex,
-});
+const toChainShare = (acp: ACP) => {
+  // Same public struct as the off-chain export flow (ACPUtils.getPublic), with
+  // the recipient-side fields blanked — the recipient supplies them at import —
+  // and uint fields widened for the ABI encoder.
+  const pub = ACPUtils.getPublic(acp, true);
+  return {
+    ...pub,
+    expiration: BigInt(pub.expiration),
+    revokerData: BigInt(pub.revokerData),
+    sealingKey: ZERO_BYTES32,
+    recipientSignature: '0x' as Hex,
+  };
+};
 
 /** Mirrors the registry's `keccak256(abi.encode(acp))` share id. */
 const computeShareId = (acp: ACP): Hex => {
