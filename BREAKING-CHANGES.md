@@ -18,6 +18,10 @@ const acpPublic = ACPUtils.getPublic(acp);
 
 Existing signed permits **do not verify** against the upgraded ACL (typehashes and domain version changed). Recreate them after upgrading — the SDK's store migration wipes retired-format permits automatically.
 
+## Chain backward compatibility
+
+The breaking changes above are about the **API surface**, not about which chains work. The SDK probes each chain's ACL (via the EIP-712 domain it serves) and speaks whichever permit protocol that chain runs: upgraded chains get ACP; chains still on the V2 ACL are signed for by a frozen copy of the released V2 engine, behind the same `client.acp.*` API. One app can connect to both generations at once during the rollout window. On V2 chains, scoped permits and on-chain sharing are unavailable and fail with explicit errors; everything else (creation, decryption, JSON sharing — importable by old-SDK recipients) works unchanged. Escape hatches: `permit.aclVersion` config forces a version per chainId, `clearAclCaches()` re-probes after a known ACL upgrade.
+
 ## Renames (removed, not deprecated)
 
 | Old                                          | New                               |
