@@ -565,7 +565,7 @@ function ClaimingSection({ token }: { token: ConfidentialToken }) {
   const claimCallArgs = useMemo(() => {
     if (isDualToken || !account || !unshieldedClaims?.hasClaimable) return undefined;
     return undefined;
-  }, [account, isDualToken, token, unshieldedClaims?.hasClaimable]);
+  }, [account, isDualToken, unshieldedClaims?.hasClaimable]);
 
   const claimSimulation = useCofheSimulateWriteContract(claimCallArgs, {
     enabled: !!claimCallArgs,
