@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { ArrowBackIcon, KeyboardArrowRightIcon } from '@/components/Icons';
 import { isAddress, maxUint128 } from 'viem';
+import { FloatingButtonPage } from '../pagesConfig/types';
 import { useCofheAccount } from '@/hooks/useCofheConnection';
 import { useCofheTokenDecryptedBalance } from '@/hooks/useCofheTokenDecryptedBalance';
 import { useCofheTokenTransfer } from '@/hooks/useCofheTokenTransfer';
