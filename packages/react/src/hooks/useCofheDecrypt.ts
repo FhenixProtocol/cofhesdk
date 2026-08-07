@@ -37,8 +37,7 @@ export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<
   const activePermit = useCofheActivePermit();
 
   const { enabled: userEnabled, meta: optionMeta, ...restQueryOptions } = queryOptions || {};
-  const enabled =
-    !!input && BigInt(input.ctHash) > 0n && !!client && !!activePermit?.isValid && (userEnabled ?? true);
+  const enabled = !!input && BigInt(input.ctHash) > 0n && !!client && !!activePermit?.isValid && (userEnabled ?? true);
 
   return useInternalQuery({
     enabled,
