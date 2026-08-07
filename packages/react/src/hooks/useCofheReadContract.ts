@@ -74,17 +74,17 @@ export function getEnabledForCofheReadContract(params: {
   abi?: Abi;
   functionName?: string;
   requiresPermit: boolean;
-  hasActivePermit: boolean;
+  hasValidActivePermit: boolean;
   userEnabled?: boolean;
 }): boolean {
-  const { publicClient, address, abi, functionName, requiresPermit, hasActivePermit, userEnabled } = params;
+  const { publicClient, address, abi, functionName, requiresPermit, hasValidActivePermit, userEnabled } = params;
 
   return (
     !!publicClient &&
     !!address &&
     !!abi &&
     !!functionName &&
-    (!requiresPermit || hasActivePermit) &&
+    (!requiresPermit || hasValidActivePermit) &&
     (userEnabled ?? true)
   );
 }
@@ -230,7 +230,7 @@ export function useCofheReadContract<
     abi,
     functionName,
     requiresPermit,
-    hasActivePermit: !!activePermit,
+    hasValidActivePermit: !!activePermit?.isValid,
     userEnabled: queryOptions?.enabled,
   });
 
