@@ -236,9 +236,8 @@ export class DecryptForTxBuilder extends BaseBuilder {
     return this.permitHash;
   }
 
-  private async getThresholdNetworkUrl(): Promise<string> {
-    this.assertChainId();
-    return getThresholdNetworkUrlOrThrow(this.config, this.chainId);
+  private async getThresholdNetworkUrl(chainId: number): Promise<string> {
+    return getThresholdNetworkUrlOrThrow(this.config, chainId);
   }
 
   private async getResolvedPermit(): Promise<Permit | null> {
@@ -313,16 +312,15 @@ export class DecryptForTxBuilder extends BaseBuilder {
   /**
    * In the production context, perform a true decryption with the CoFHE coprocessor.
    */
-  private async productionDecryptForTx(permit: Permit | null): Promise<DecryptForTxResult> {
-    this.assertChainId();
+  private async productionDecryptForTx(permit: Permit | null, chainId: number): Promise<DecryptForTxResult> {
     this.assertPublicClient();
 
-    const thresholdNetworkUrl = await this.getThresholdNetworkUrl();
+    const thresholdNetworkUrl = await this.getThresholdNetworkUrl(chainId);
 
     const permission = permit ? PermitUtils.getPermission(permit, true) : null;
     const { decryptedValue, signature } = await tnDecryptV2({
       ctHash: this.ctHash,
-      chainId: this.chainId,
+      chainId,
       permission,
       thresholdNetworkUrl,
       retry404TimeoutMs: this.retry404TimeoutMs,
@@ -358,7 +356,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
       if (chainId === hardhat.id) {
         return await this.mocksDecryptForTx(permit);
       } else {
-        return await this.productionDecryptForTx(permit);
+        return await this.productionDecryptForTx(permit, chainId);
       }
     } else {
       // Global allowance - no permit
@@ -373,7 +371,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
       if (this.chainId === hardhat.id) {
         return await this.mocksDecryptForTx(null);
       } else {
-        return await this.productionDecryptForTx(null);
+        return await this.productionDecryptForTx(null, this.chainId);
       }
     }
   }

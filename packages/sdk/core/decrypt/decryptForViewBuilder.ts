@@ -208,9 +208,8 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
     return this.permit;
   }
 
-  private async getThresholdNetworkUrl(): Promise<string> {
-    this.assertChainId();
-    return getThresholdNetworkUrlOrThrow(this.config, this.chainId);
+  private async getThresholdNetworkUrl(chainId: number): Promise<string> {
+    return getThresholdNetworkUrlOrThrow(this.config, chainId);
   }
 
   private validateUtypeOrThrow(): void {
@@ -282,16 +281,15 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
   /**
    * In the production context, perform a true decryption with the CoFHE coprocessor.
    */
-  private async productionSealOutput(permit: Permit): Promise<bigint> {
-    this.assertChainId();
+  private async productionSealOutput(permit: Permit, chainId: number): Promise<bigint> {
     this.assertPublicClient();
 
-    const thresholdNetworkUrl = await this.getThresholdNetworkUrl();
+    const thresholdNetworkUrl = await this.getThresholdNetworkUrl(chainId);
     const permission = PermitUtils.getPermission(permit, true);
-    // const sealed = await tnSealOutputV1(this.ctHash, this.chainId, permission, thresholdNetworkUrl);
+    // const sealed = await tnSealOutputV1(this.ctHash, chainId, permission, thresholdNetworkUrl);
     const sealed = await tnSealOutputV2({
       ctHash: this.ctHash,
-      chainId: this.chainId,
+      chainId,
       permission,
       thresholdNetworkUrl,
       retry404TimeoutMs: this.retry404TimeoutMs,
@@ -343,7 +341,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
     if (chainId === hardhat.id) {
       unsealed = await this.mocksSealOutput(permit);
     } else {
-      unsealed = await this.productionSealOutput(permit);
+      unsealed = await this.productionSealOutput(permit, chainId);
     }
 
     return convertViaUtype(this.utype, unsealed);
