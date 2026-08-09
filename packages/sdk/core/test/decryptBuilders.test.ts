@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { type PublicClient, type WalletClient, createPublicClient, createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { arbitrumSepolia } from 'viem/chains';
@@ -7,6 +7,7 @@ import { DecryptForViewBuilder } from '../decrypt/decryptForViewBuilder.js';
 import { createCofheConfigBase, type CofheConfig } from '../config.js';
 import { CofheErrorCode } from '../error.js';
 import { FheTypes } from '../types.js';
+import { type EIP712Domain, ACPUtils, SignatureUtils } from '../../acps/index.js';
 
 const TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 const account = privateKeyToAccount(TEST_PRIVATE_KEY);
@@ -14,6 +15,24 @@ const TEST_CHAIN_ID = 421614;
 const TEST_CT_HASH = '0xabcdef1234567890';
 
 const MockCoFheUrl = 'http://localhost:3001';
+
+async function createSignedTestACP() {
+  const acp = ACPUtils.createSelf({
+    issuer: account.address,
+    name: 'Decrypt Builder Test ACP',
+  });
+  const domain = {
+    chainId: TEST_CHAIN_ID,
+    name: 'ACL',
+    version: '1',
+    verifyingContract: '0x0000000000000000000000000000000000000001',
+  } satisfies EIP712Domain;
+  const primaryType = SignatureUtils.getPrimaryType(acp.type);
+  const { types, message } = SignatureUtils.getSignatureParams(ACPUtils.getPublic(acp, true), primaryType);
+  const issuerSignature = await account.signTypedData({ domain, types, primaryType, message });
+
+  return { ...acp, issuerSignature, _signedDomain: domain };
+}
 
 const publicClient: PublicClient = createPublicClient({
   chain: arbitrumSepolia,
@@ -253,6 +272,22 @@ describe('DecryptForTxBuilder', () => {
     });
   });
 
+  describe('execute - acp chain resolution', () => {
+    it('should use the signed acp chain when the builder chain is unset', async () => {
+      const acp = await createSignedTestACP();
+      const builder = createTxBuilder({ chainId: undefined });
+      const productionDecrypt = vi.spyOn(builder as any, 'productionDecryptForTx').mockResolvedValue({
+        ctHash: TEST_CT_HASH,
+        decryptedValue: 1n,
+        signature: '0x01',
+      });
+
+      await builder.withACP(acp).execute();
+
+      expect(productionDecrypt).toHaveBeenCalledWith(acp, TEST_CHAIN_ID);
+    });
+  });
+
   // --- constructor error paths ---
 
   describe('constructor – error paths', () => {
@@ -393,6 +428,18 @@ describe('DecryptForViewBuilder', () => {
       } catch (error) {
         expect((error as any).code).toBe(CofheErrorCode.InvalidUtype);
       }
+    });
+  });
+
+  describe('execute - acp chain resolution', () => {
+    it('should prefer the signed acp chain over a stale builder chain', async () => {
+      const acp = await createSignedTestACP();
+      const builder = createViewBuilder(FheTypes.Uint32, { chainId: 1 });
+      const productionDecrypt = vi.spyOn(builder as any, 'productionSealOutput').mockResolvedValue(1n);
+
+      await builder.withACP(acp).execute();
+
+      expect(productionDecrypt).toHaveBeenCalledWith(acp, TEST_CHAIN_ID);
     });
   });
 
