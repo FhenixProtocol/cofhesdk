@@ -75,95 +75,126 @@ contract CofheClient is Test {
   //       ENCRYPT
   // =====================
 
-  /// @notice Creates a signed encrypted input for the connected account (security zone 0).
+  /// @notice Creates a signed encrypted input for the connected account (security zone 0), bound
+  ///         to `consumingContract` - i.e. the contract that will call `FHE.asEuint*` with the
+  ///         resulting struct/hash. The verifier binds this address into the signed digest
+  ///         (cofhe-contracts#77), so an input signed for one contract cannot be replayed into
+  ///         another.
   function createEncryptedInput(
     uint8 utype,
-    uint256 value
+    uint256 value,
+    address consumingContract
   ) internal onlyConnected returns (EncryptedInput memory input) {
+    require(consumingContract != address(0), 'CofheClient: consuming contract must not be the zero address');
     input = mockZkVerifier.zkVerify(value, utype, _account, 0, block.chainid);
-    input = mockZkVerifierSigner.zkVerifySign(input, _account);
+    input = mockZkVerifierSigner.zkVerifySign(input, _account, consumingContract);
   }
 
   /// @notice Creates an encrypted boolean input.
-  function createInEbool(bool value) public returns (InEbool memory) {
-    return abi.decode(abi.encode(createEncryptedInput(Utils.EBOOL_TFHE, value ? 1 : 0)), (InEbool));
+  function createInEbool(bool value, address consumingContract) public returns (InEbool memory) {
+    return abi.decode(abi.encode(createEncryptedInput(Utils.EBOOL_TFHE, value ? 1 : 0, consumingContract)), (InEbool));
   }
 
   /// @notice Creates an encrypted uint8 input.
-  function createInEuint8(uint8 value) public returns (InEuint8 memory) {
-    return abi.decode(abi.encode(createEncryptedInput(Utils.EUINT8_TFHE, value)), (InEuint8));
+  function createInEuint8(uint8 value, address consumingContract) public returns (InEuint8 memory) {
+    return abi.decode(abi.encode(createEncryptedInput(Utils.EUINT8_TFHE, value, consumingContract)), (InEuint8));
   }
 
   /// @notice Creates an encrypted uint16 input.
-  function createInEuint16(uint16 value) public returns (InEuint16 memory) {
-    return abi.decode(abi.encode(createEncryptedInput(Utils.EUINT16_TFHE, value)), (InEuint16));
+  function createInEuint16(uint16 value, address consumingContract) public returns (InEuint16 memory) {
+    return abi.decode(abi.encode(createEncryptedInput(Utils.EUINT16_TFHE, value, consumingContract)), (InEuint16));
   }
 
   /// @notice Creates an encrypted uint32 input.
-  function createInEuint32(uint32 value) public returns (InEuint32 memory) {
-    return abi.decode(abi.encode(createEncryptedInput(Utils.EUINT32_TFHE, value)), (InEuint32));
+  function createInEuint32(uint32 value, address consumingContract) public returns (InEuint32 memory) {
+    return abi.decode(abi.encode(createEncryptedInput(Utils.EUINT32_TFHE, value, consumingContract)), (InEuint32));
   }
 
   /// @notice Creates an encrypted uint64 input.
-  function createInEuint64(uint64 value) public returns (InEuint64 memory) {
-    return abi.decode(abi.encode(createEncryptedInput(Utils.EUINT64_TFHE, value)), (InEuint64));
+  function createInEuint64(uint64 value, address consumingContract) public returns (InEuint64 memory) {
+    return abi.decode(abi.encode(createEncryptedInput(Utils.EUINT64_TFHE, value, consumingContract)), (InEuint64));
   }
 
   /// @notice Creates an encrypted uint128 input.
-  function createInEuint128(uint128 value) public returns (InEuint128 memory) {
-    return abi.decode(abi.encode(createEncryptedInput(Utils.EUINT128_TFHE, value)), (InEuint128));
+  function createInEuint128(uint128 value, address consumingContract) public returns (InEuint128 memory) {
+    return abi.decode(abi.encode(createEncryptedInput(Utils.EUINT128_TFHE, value, consumingContract)), (InEuint128));
   }
 
   /// @notice Creates an encrypted address input.
-  function createInEaddress(address value) public returns (InEaddress memory) {
-    return abi.decode(abi.encode(createEncryptedInput(Utils.EADDRESS_TFHE, uint256(uint160(value)))), (InEaddress));
+  function createInEaddress(address value, address consumingContract) public returns (InEaddress memory) {
+    return
+      abi.decode(
+        abi.encode(createEncryptedInput(Utils.EADDRESS_TFHE, uint256(uint160(value)), consumingContract)),
+        (InEaddress)
+      );
   }
 
   /// @notice Creates an encrypted boolean input as hash plus proof.
-  function createInEbool_asHashPlusProof(bool value) public returns (externalEbool hash, bytes memory proof) {
-    InEbool memory input = createInEbool(value);
+  function createInEbool_asHashPlusProof(
+    bool value,
+    address consumingContract
+  ) public returns (externalEbool hash, bytes memory proof) {
+    InEbool memory input = createInEbool(value, consumingContract);
     hash = externalEbool.wrap(bytes32(input.ctHash));
     proof = input.signature;
   }
 
   /// @notice Creates an encrypted uint8 input as hash plus proof.
-  function createInEuint8_asHashPlusProof(uint8 value) public returns (externalEuint8 hash, bytes memory proof) {
-    InEuint8 memory input = createInEuint8(value);
+  function createInEuint8_asHashPlusProof(
+    uint8 value,
+    address consumingContract
+  ) public returns (externalEuint8 hash, bytes memory proof) {
+    InEuint8 memory input = createInEuint8(value, consumingContract);
     hash = externalEuint8.wrap(bytes32(input.ctHash));
     proof = input.signature;
   }
 
   /// @notice Creates an encrypted uint16 input as hash plus proof.
-  function createInEuint16_asHashPlusProof(uint16 value) public returns (externalEuint16 hash, bytes memory proof) {
-    InEuint16 memory input = createInEuint16(value);
+  function createInEuint16_asHashPlusProof(
+    uint16 value,
+    address consumingContract
+  ) public returns (externalEuint16 hash, bytes memory proof) {
+    InEuint16 memory input = createInEuint16(value, consumingContract);
     hash = externalEuint16.wrap(bytes32(input.ctHash));
     proof = input.signature;
   }
 
   /// @notice Creates an encrypted uint32 input as hash plus proof.
-  function createInEuint32_asHashPlusProof(uint32 value) public returns (externalEuint32 hash, bytes memory proof) {
-    InEuint32 memory input = createInEuint32(value);
+  function createInEuint32_asHashPlusProof(
+    uint32 value,
+    address consumingContract
+  ) public returns (externalEuint32 hash, bytes memory proof) {
+    InEuint32 memory input = createInEuint32(value, consumingContract);
     hash = externalEuint32.wrap(bytes32(input.ctHash));
     proof = input.signature;
   }
 
   /// @notice Creates an encrypted uint64 input as hash plus proof.
-  function createInEuint64_asHashPlusProof(uint64 value) public returns (externalEuint64 hash, bytes memory proof) {
-    InEuint64 memory input = createInEuint64(value);
+  function createInEuint64_asHashPlusProof(
+    uint64 value,
+    address consumingContract
+  ) public returns (externalEuint64 hash, bytes memory proof) {
+    InEuint64 memory input = createInEuint64(value, consumingContract);
     hash = externalEuint64.wrap(bytes32(input.ctHash));
     proof = input.signature;
   }
 
   /// @notice Creates an encrypted uint128 input as hash plus proof.
-  function createInEuint128_asHashPlusProof(uint128 value) public returns (externalEuint128 hash, bytes memory proof) {
-    InEuint128 memory input = createInEuint128(value);
+  function createInEuint128_asHashPlusProof(
+    uint128 value,
+    address consumingContract
+  ) public returns (externalEuint128 hash, bytes memory proof) {
+    InEuint128 memory input = createInEuint128(value, consumingContract);
     hash = externalEuint128.wrap(bytes32(input.ctHash));
     proof = input.signature;
   }
 
   /// @notice Creates an encrypted address input as hash plus proof.
-  function createInEaddress_asHashPlusProof(address value) public returns (externalEaddress hash, bytes memory proof) {
-    InEaddress memory input = createInEaddress(value);
+  function createInEaddress_asHashPlusProof(
+    address value,
+    address consumingContract
+  ) public returns (externalEaddress hash, bytes memory proof) {
+    InEaddress memory input = createInEaddress(value, consumingContract);
     hash = externalEaddress.wrap(bytes32(input.ctHash));
     proof = input.signature;
   }

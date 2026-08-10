@@ -54,7 +54,10 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
   });
 
   it('Should encrypt a uint128 input', async () => {
-    const encrypted = await ctx.cofheClient.encryptInputs([Encryptable.uint128(100n)]).execute();
+    const encrypted = await ctx.cofheClient
+      .encryptInputs([Encryptable.uint128(100n)])
+      .setConsumingContract(ctx.contractAddress)
+      .execute();
 
     expect(encrypted).toBeDefined();
     expect(encrypted.length).toBe(1);
@@ -141,6 +144,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
 
       const [encHash, encProof] = await ctx.cofheClient
         .encryptInputs([Encryptable.uint32(testValue)])
+        .setConsumingContract(ctx.contractAddress)
         .asHashPlusProof()
         .execute();
 
@@ -175,7 +179,10 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         name: 'Decrypt View Permit',
       });
 
-      const encrypted = await ctx.cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
+      const encrypted = await ctx.cofheClient
+        .encryptInputs([Encryptable.uint32(testValue)])
+        .setConsumingContract(ctx.contractAddress)
+        .execute();
 
       const encryptedInput = encrypted[0];
       const txHash = await ctx.bobWalletClient.writeContract({
@@ -207,7 +214,10 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
     const valueToAdd = 7n;
     const expectedViewValue = testValue + valueToAdd;
     it('successfully decrypts a new on-chain-produced ctHash with decryptForView, transparently retrying until the backend has it', async () => {
-      const [encryptedAddendInput] = await ctx.cofheClient.encryptInputs([Encryptable.uint32(valueToAdd)]).execute();
+      const [encryptedAddendInput] = await ctx.cofheClient
+        .encryptInputs([Encryptable.uint32(valueToAdd)])
+        .setConsumingContract(ctx.contractAddress)
+        .execute();
 
       // This on-chain FHE op produces a fresh ctHash that decryptForView consumes next.
       // The SDK should retry transparently if the backend still responds with 404 or no content.
@@ -241,6 +251,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       const expectedTxValue = expectedViewValue + secondValueToAdd;
       const [encryptedSecondAddendInput] = await ctx.cofheClient
         .encryptInputs([Encryptable.uint32(secondValueToAdd)])
+        .setConsumingContract(ctx.contractAddress)
         .execute();
 
       // This second on-chain FHE op again produces a fresh ctHash for decryptForTx.
@@ -341,7 +352,10 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
 
   it('Decrypt for Tx (without permit) - should encrypt → store public → decryptForTx → publishDecryptResult → verify', async () => {
     const testValue = 42n;
-    const encrypted = await ctx.cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
+    const encrypted = await ctx.cofheClient
+      .encryptInputs([Encryptable.uint32(testValue)])
+      .setConsumingContract(ctx.contractAddress)
+      .execute();
 
     const encryptedInput = encrypted[0];
     const storeTxHash = await ctx.bobWalletClient.writeContract({

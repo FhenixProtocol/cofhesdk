@@ -15,7 +15,8 @@
  *
  * Env (loaded from root .env):
  *   TEST_PRIVATE_KEY, PRIMARY_TEST_CHAIN,
- *   TEST_LOCALCOFHE_PRIVATE_KEY, LOCALCOFHE_HOST_CHAIN_RPC
+ *   TEST_LOCALCOFHE_PRIVATE_KEY, LOCALCOFHE_HOST_CHAIN_RPC,
+ *   TEST_STAGING_ENABLED (set to "true" to include CoFHE Staging)
  *
  * Requires: forge, cast (Foundry)
  */
@@ -54,6 +55,16 @@ const TESTNET_CHAINS = [
   { id: 84532, label: 'Base Sepolia', rpcEnv: 'BASE_SEPOLIA_RPC_URL', rpc: 'https://sepolia.base.org' },
   { id: 421614, label: 'Arbitrum Sepolia', rpcEnv: 'ARBITRUM_SEPOLIA_RPC_URL', rpc: 'https://sepolia-rollup.arbitrum.io/rpc' },
 ];
+
+// Shares a chain ID with LOCALCOFHE_CHAIN (same devnet genesis, hosted remotely) —
+// use a distinct registry key so their deployments.json entries don't collide.
+const STAGING_CHAIN = {
+  id: 420105,
+  label: 'CoFHE Staging',
+  rpcEnv: 'STAGING_RPC_URL',
+  rpc: 'https://staging-hostchain-v1.sw-dom.co',
+  registryKey: '420105-staging',
+};
 
 const LOCALCOFHE_CHAIN = {
   id: 420105,
@@ -152,7 +163,11 @@ function parseArgs() {
 loadEnv();
 const args = parseArgs();
 
-const ALL_CHAINS = [...TESTNET_CHAINS, LOCALCOFHE_CHAIN];
+const ALL_CHAINS = [
+  ...TESTNET_CHAINS,
+  ...(process.env.TEST_STAGING_ENABLED === 'true' ? [STAGING_CHAIN] : []),
+  LOCALCOFHE_CHAIN,
+];
 const HARDHAT_MOCK_RPC = 'http://127.0.0.1:8546';
 const HARDHAT_MOCK_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 const HARDHAT_MOCK_STARTING_BALANCE_ETH = '10000';
@@ -316,7 +331,7 @@ for (const contract of CONTRACTS) {
     const rpc = process.env[chain.rpcEnv] || chain.rpc;
     const pkEnvName = getPrivateKeyEnvName(chain);
     const pkValue = process.env[pkEnvName];
-    const key = String(chain.id);
+    const key = chain.registryKey || String(chain.id);
     const entry = registry[contract][key];
     let action, reason;
 

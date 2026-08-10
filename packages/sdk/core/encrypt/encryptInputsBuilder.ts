@@ -50,6 +50,7 @@ type EncryptInputsBuilderParams<T extends EncryptableItem[]> = BaseBuilderParams
 
 export class EncryptInputsBuilder<T extends EncryptableItem[], HPP extends boolean = false> extends BaseBuilder {
   private securityZone: number;
+  protected consumingContract: string | undefined;
   private stepCallback?: EncryptStepCallbackFunction;
   private inputItems: [...T];
   private hpp: boolean = false;
@@ -209,6 +210,47 @@ export class EncryptInputsBuilder<T extends EncryptableItem[], HPP extends boole
 
   getSecurityZone(): number {
     return this.securityZone;
+  }
+
+  /**
+   * @param address - The contract that will consume the resulting encrypted input(s) - i.e. the
+   * contract whose function call will pass them into `FHE.asEuint*`.
+   *
+   * Required before `execute()` - the verifier binds this address into the signed digest, so an
+   * input signed for one contract cannot be replayed into another.
+   *
+   * Example:
+   * ```typescript
+   * const encrypted = await encryptInputs([Encryptable.uint128(10n)])
+   *   .setConsumingContract("0x123...890")
+   *   .execute();
+   * ```
+   *
+   * @returns The chainable EncryptInputsBuilder instance.
+   */
+  setConsumingContract(address: string): EncryptInputsBuilder<T, HPP> {
+    this.consumingContract = address;
+    return this;
+  }
+
+  getConsumingContract(): string | undefined {
+    return this.consumingContract;
+  }
+
+  /**
+   * Asserts that this.consumingContract is populated
+   * @throws {CofheError} If consumingContract is not set
+   */
+  private assertConsumingContract(): asserts this is this & { consumingContract: string } {
+    if (this.consumingContract) return;
+    throw new CofheError({
+      code: CofheErrorCode.ConsumingContractUninitialized,
+      message: 'Consuming contract is not set',
+      hint: 'Use setConsumingContract(...) to set the contract that will consume the encrypted inputs.',
+      context: {
+        consumingContract: this.consumingContract,
+      },
+    });
   }
 
   /**
@@ -437,6 +479,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[], HPP extends boole
     this.assertAccount();
     this.assertPublicClient();
     this.assertWalletClient();
+    this.assertConsumingContract();
 
     const [initTfheDelay, fetchKeysDelay, packDelay, proveDelay, verifyDelay] = this.resolveEncryptDelays();
 
@@ -472,6 +515,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[], HPP extends boole
       this.inputItems,
       this.account,
       this.securityZone,
+      this.consumingContract,
       this.publicClient,
       this.walletClient,
       this.zkvWalletClient
@@ -493,6 +537,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[], HPP extends boole
   private async productionExecute(): Promise<[...EncryptedItemInputs<T>]> {
     this.assertAccount();
     this.assertChainId();
+    this.assertConsumingContract();
 
     this.fireStepStart(EncryptStep.InitTfhe);
 
@@ -555,7 +600,14 @@ export class EncryptInputsBuilder<T extends EncryptableItem[], HPP extends boole
 
     const zkVerifierUrl = await this.getZkVerifierUrl();
 
-    const verifyResults = await zkVerify(zkVerifierUrl, proof, this.account, this.securityZone, this.chainId);
+    const verifyResults = await zkVerify(
+      zkVerifierUrl,
+      proof,
+      this.account,
+      this.securityZone,
+      this.chainId,
+      this.consumingContract
+    );
     // Add securityZone and utype to the verify results
     const encryptedInputs: EncryptedItemInput[] = verifyResults.map(
       ({ ct_hash, signature }: { ct_hash: string; signature: `0x${string}` }, index: number) => ({

@@ -24,7 +24,7 @@ contract SimpleTestTest is CofheTest {
 
   /// @notice Fuzz test: create an encrypted input and set it as state.
   function testSetNumberFuzz(uint32 n) public {
-    InEuint32 memory number = cofheClient.createInEuint32(n);
+    InEuint32 memory number = cofheClient.createInEuint32(n, address(simpleTest));
 
     vm.prank(cofheClient.account());
     simpleTest.setValue(number);
@@ -34,7 +34,7 @@ contract SimpleTestTest is CofheTest {
 
   /// @notice Hash plus proof: set an encrypted value and validate it.
   function testSetValueHashPlusProof(uint32 n) public {
-    (externalEuint32 hash, bytes memory proof) = cofheClient.createInEuint32_asHashPlusProof(n);
+    (externalEuint32 hash, bytes memory proof) = cofheClient.createInEuint32_asHashPlusProof(n, address(simpleTest));
     vm.prank(cofheClient.account());
     simpleTest.setValueHashPlusProof(hash, proof);
     expectPlaintext(simpleTest.getValue(), n);

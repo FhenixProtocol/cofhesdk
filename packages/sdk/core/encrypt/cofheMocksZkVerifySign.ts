@@ -184,7 +184,8 @@ async function insertCtHashes(items: EncryptableItemWithCtHash[], walletClient: 
 async function createProofSignatures(
   items: EncryptableItemWithCtHash[],
   securityZone: number,
-  account: string
+  account: string,
+  consumingContract: string
 ): Promise<`0x${string}`[]> {
   let signatures: `0x${string}`[] = [];
 
@@ -210,8 +211,15 @@ async function createProofSignatures(
     for (const item of items) {
       // Pack the data into bytes and hash it
       const packedData = encodePacked(
-        ['uint256', 'uint8', 'uint8', 'address', 'uint256'],
-        [BigInt(item.ctHash), item.utype, securityZone, account as `0x${string}`, BigInt(hardhat.id)]
+        ['uint256', 'uint8', 'uint8', 'address', 'uint256', 'address'],
+        [
+          BigInt(item.ctHash),
+          item.utype,
+          securityZone,
+          account as `0x${string}`,
+          BigInt(hardhat.id),
+          consumingContract as `0x${string}`,
+        ]
       );
       const messageHash = keccak256(packedData);
 
@@ -231,6 +239,7 @@ async function createProofSignatures(
       context: {
         items,
         securityZone,
+        consumingContract,
       },
     });
   }
@@ -242,6 +251,7 @@ async function createProofSignatures(
       context: {
         items,
         securityZone,
+        consumingContract,
       },
     });
   }
@@ -257,6 +267,7 @@ export async function cofheMocksZkVerifySign(
   items: EncryptableItem[],
   account: string,
   securityZone: number,
+  consumingContract: string,
   publicClient: PublicClient,
   walletClient: WalletClient,
   zkvWalletClient: WalletClient | undefined
@@ -271,7 +282,7 @@ export async function cofheMocksZkVerifySign(
   await insertCtHashes(encryptableItems, _walletClient);
 
   // Locally create the proof signatures from the known proof signer account
-  const signatures = await createProofSignatures(encryptableItems, securityZone, account);
+  const signatures = await createProofSignatures(encryptableItems, securityZone, account, consumingContract);
 
   // Return the ctHashes and signatures in the same format as CoFHE
   return encryptableItems.map((item, index) => ({
