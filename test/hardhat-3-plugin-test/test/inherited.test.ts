@@ -24,55 +24,34 @@ describe('Inherited SDK Tests', async () => {
     transport: http('http://127.0.0.1:8545'),
   });
 
-  const storeEncrypted = async (client: Awaited<ReturnType<typeof cofhe.createClientWithBatteries>>) => {
-    const [enc] = await client
-      .encryptInputs([Encryptable.uint32(42n)])
+  const storeEncrypted = async (client: Awaited<ReturnType<typeof cofhe.createClientWithBatteries>>, value: bigint) => {
+    // [hash, signature] - one hash per input, followed by the shared batch signature.
+    const [hash, signature] = await client
+      .encryptInputs([Encryptable.uint32(value)])
       .setConsumingContract(simpleTest.address)
       .execute();
-    await simpleTest.write.setValue([enc]);
+    await simpleTest.write.setValueBatch([[hash], signature]);
     const ctHash = await simpleTest.read.getValueHash();
-    return { enc, ctHash };
+    return { hash, signature, ctHash };
   };
 
   it('encrypt → store on-chain → read back ctHash', async () => {
     const client = await cofhe.createClientWithBatteries(bobWalletClient);
-    const { enc, ctHash } = await storeEncrypted(client);
+    const { hash, signature, ctHash } = await storeEncrypted(client, 42n);
 
-    assert.equal(typeof enc.ctHash, 'bigint');
-    assert.ok(enc.ctHash > 0n);
-    assert.equal(typeof enc.signature, 'string');
-    assert.match(enc.signature, /^0x[0-9a-f]*$/i);
+    assert.equal(typeof hash, 'string');
+    assert.match(hash, /^0x[0-9a-f]*$/i);
+    assert.equal(typeof signature, 'string');
+    assert.match(signature, /^0x[0-9a-f]*$/i);
     assert.equal(typeof ctHash, 'string');
-  });
-
-  it('encrypt (hash plus proof) → store on-chain → read back ctHash', async () => {
-    const client = await cofhe.createClientWithBatteries(bobWalletClient);
-    const [encHash, encProof] = await client
-      .encryptInputs([Encryptable.uint32(42n)])
-      .setConsumingContract(simpleTest.address)
-      .asHashPlusProof()
-      .execute();
-
-    await simpleTest.write.setValueHashPlusProof([encHash, encProof]);
-    const ctHash = await simpleTest.read.getValueHash();
-
-    assert.equal(typeof ctHash, 'string');
-    assert.match(encHash, /^0x[0-9a-f]*$/i);
-    assert.match(encProof, /^0x[0-9a-f]*$/i);
-    assert.equal(encHash, ctHash);
+    // The batch-verified hash is the same value stored/appended-metadata on-chain.
+    assert.equal(hash, ctHash);
   });
 
   it('encrypt → store on-chain → decryptForView', async () => {
     const testValue = 100n;
     const client = await cofhe.createClientWithBatteries(bobWalletClient);
-    const [enc] = await client
-      .encryptInputs([Encryptable.uint32(testValue)])
-      .setConsumingContract(simpleTest.address)
-      .execute();
-
-    await simpleTest.write.setValue([enc]);
-
-    const ctHash = await simpleTest.read.getValueHash();
+    const { ctHash } = await storeEncrypted(client, testValue);
 
     const decrypted = await client.decryptForView(ctHash, FheTypes.Uint32).execute();
     assert.equal(decrypted, testValue);
@@ -81,14 +60,7 @@ describe('Inherited SDK Tests', async () => {
   it('encrypt → store on-chain → decryptForTx → publish → verify', async () => {
     const testValue = 55n;
     const client = await cofhe.createClientWithBatteries(bobWalletClient);
-    const [enc] = await client
-      .encryptInputs([Encryptable.uint32(testValue)])
-      .setConsumingContract(simpleTest.address)
-      .execute();
-
-    await simpleTest.write.setValue([enc]);
-
-    const ctHash = await simpleTest.read.getValueHash();
+    const { ctHash } = await storeEncrypted(client, testValue);
 
     const result = await client.decryptForTx(ctHash).withPermit().execute();
     assert.equal(result.decryptedValue, testValue);

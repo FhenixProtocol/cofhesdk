@@ -39,6 +39,24 @@ export const simpleTestAbi = [
   },
   {
     type: 'function',
+    name: 'addValueBatch',
+    inputs: [
+      {
+        name: 'inValues',
+        type: 'bytes32[]',
+        internalType: 'externalEuint32[]',
+      },
+      {
+        name: 'signature',
+        type: 'bytes',
+        internalType: 'bytes',
+      },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
     name: 'addValueTrivial',
     inputs: [
       {
@@ -186,6 +204,24 @@ export const simpleTestAbi = [
   },
   {
     type: 'function',
+    name: 'setPublicValueBatch',
+    inputs: [
+      {
+        name: 'inValues',
+        type: 'bytes32[]',
+        internalType: 'externalEuint32[]',
+      },
+      {
+        name: 'signature',
+        type: 'bytes',
+        internalType: 'bytes',
+      },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
     name: 'setPublicValueTrivial',
     inputs: [
       {
@@ -227,6 +263,24 @@ export const simpleTestAbi = [
             internalType: 'bytes',
           },
         ],
+      },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'setValueBatch',
+    inputs: [
+      {
+        name: 'inValues',
+        type: 'bytes32[]',
+        internalType: 'externalEuint32[]',
+      },
+      {
+        name: 'signature',
+        type: 'bytes',
+        internalType: 'bytes',
       },
     ],
     outputs: [],

@@ -59,26 +59,21 @@ describe('@cofhe/sdk/web - Worker vs Main Thread Output Validation', () => {
     expect(resultWithWorker).toBeDefined();
     expect(resultWithoutWorker).toBeDefined();
 
-    // Both should have same structure (but different encrypted values)
-    const withWorker = resultWithWorker[0];
-    const withoutWorker = resultWithoutWorker[0];
+    // Both should have same structure (but different encrypted values):
+    // [hash, signature] - one hash per input, followed by the shared batch signature.
+    expect(resultWithWorker.length).toBe(2);
+    expect(resultWithoutWorker.length).toBe(2);
 
-    expect(withWorker).toHaveProperty('ctHash');
-    expect(withWorker).toHaveProperty('signature');
-    expect(withWorker).toHaveProperty('utype');
-    expect(withWorker).toHaveProperty('securityZone');
-    expect(withoutWorker).toHaveProperty('ctHash');
-    expect(withoutWorker).toHaveProperty('signature');
-    expect(withoutWorker).toHaveProperty('utype');
-    expect(withoutWorker).toHaveProperty('securityZone');
+    const [hashWithWorker, signatureWithWorker] = resultWithWorker;
+    const [hashWithoutWorker, signatureWithoutWorker] = resultWithoutWorker;
 
     // Format should be identical
-    expect(typeof withWorker.ctHash).toBe('bigint');
-    expect(typeof withoutWorker.ctHash).toBe('bigint');
-    expect(withWorker.signature.startsWith('0x')).toBe(true);
-    expect(withoutWorker.signature.startsWith('0x')).toBe(true);
-    expect(typeof withWorker.utype).toBe('number');
-    expect(typeof withoutWorker.utype).toBe('number');
+    expect(typeof hashWithWorker).toBe('string');
+    expect(typeof hashWithoutWorker).toBe('string');
+    expect(hashWithWorker.startsWith('0x')).toBe(true);
+    expect(hashWithoutWorker.startsWith('0x')).toBe(true);
+    expect(signatureWithWorker.startsWith('0x')).toBe(true);
+    expect(signatureWithoutWorker.startsWith('0x')).toBe(true);
 
     // Note: The actual encrypted values will differ because of randomness
     // in the encryption process, so we don't check equality

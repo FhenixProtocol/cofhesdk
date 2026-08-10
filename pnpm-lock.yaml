@@ -7,6 +7,11 @@ settings:
 overrides:
   typescript: 5.5.4
 
+patchedDependencies:
+  '@fhenixprotocol/cofhe-contracts@0.1.4':
+    hash: tgzn6rbsoaehvio6zijix2bhmy
+    path: patches/@fhenixprotocol__cofhe-contracts@0.1.4.patch
+
 importers:
 
   .:
@@ -165,7 +170,7 @@ importers:
         version: link:../mock-contracts
       '@fhenixprotocol/cofhe-contracts':
         specifier: 0.1.4
-        version: 0.1.4
+        version: 0.1.4(patch_hash=tgzn6rbsoaehvio6zijix2bhmy)
       '@openzeppelin/contracts':
         specifier: 5.4.0
         version: 5.4.0
@@ -218,7 +223,7 @@ importers:
         version: link:../sdk
       '@fhenixprotocol/cofhe-contracts':
         specifier: '>=0.1.4'
-        version: 0.1.4
+        version: 0.1.4(patch_hash=tgzn6rbsoaehvio6zijix2bhmy)
       '@openzeppelin/contracts':
         specifier: ^5.0.0
         version: 5.4.0
@@ -291,7 +296,7 @@ importers:
     dependencies:
       '@fhenixprotocol/cofhe-contracts':
         specifier: 0.1.4
-        version: 0.1.4
+        version: 0.1.4(patch_hash=tgzn6rbsoaehvio6zijix2bhmy)
       '@openzeppelin/contracts':
         specifier: 5.4.0
         version: 5.4.0
@@ -679,7 +684,7 @@ importers:
         version: link:../setup
       '@fhenixprotocol/cofhe-contracts':
         specifier: 0.1.4
-        version: 0.1.4
+        version: 0.1.4(patch_hash=tgzn6rbsoaehvio6zijix2bhmy)
       '@nomicfoundation/hardhat-ethers':
         specifier: 3.1.0
         version: 3.1.0(ethers@6.15.0)(hardhat@2.26.3)
@@ -748,7 +753,7 @@ importers:
     dependencies:
       '@fhenixprotocol/cofhe-contracts':
         specifier: 0.1.4
-        version: 0.1.4
+        version: 0.1.4(patch_hash=tgzn6rbsoaehvio6zijix2bhmy)
       '@openzeppelin/contracts':
         specifier: 5.4.0
         version: 5.4.0
@@ -2583,11 +2588,12 @@ packages:
     engines: {node: '>=14'}
     dev: true
 
-  /@fhenixprotocol/cofhe-contracts@0.1.4:
+  /@fhenixprotocol/cofhe-contracts@0.1.4(patch_hash=tgzn6rbsoaehvio6zijix2bhmy):
     resolution: {integrity: sha512-WNtMxEwZvtjFEHAlOJD1ydKF2qf4zl2/eneYQibe6pnnoeFGWyT9+TRcdgt9iReoB/urZCNzsYAAQCDL1MTPIQ==}
     requiresBuild: true
     dependencies:
       '@openzeppelin/contracts': 5.4.0
+    patched: true
 
   /@fhenixprotocol/cofhe-errors@1.0.2:
     resolution: {integrity: sha512-4dw4TU4ki+W+EV7JEEocpgZbdVOmvq4i9b14ltmiOMKhlMZtpqd2FoSGvS1eMe1LDRw+Dq/skIGzmx1/EPRCoQ==}

@@ -1,11 +1,9 @@
 import type { UseMutationOptions, UseMutationResult } from '@tanstack/react-query';
 import {
-  assertCorrectEncryptedItemInput,
   EncryptStep,
   type EncryptableItem,
-  type EncryptedItemInput,
   type EncryptStepCallbackContext,
-  type EncryptedItemInputs,
+  type HashPlusProofResult,
   isLastEncryptionStep,
 } from '@cofhe/sdk';
 import { assert } from 'ts-essentials';
@@ -56,7 +54,7 @@ export function getStepConfig(step: EncryptionStep) {
 
   return STEP_CONFIG[step.step];
 }
-type EncryptInputsResult<T extends readonly EncryptableItem[]> = EncryptedItemInputs<[...T]>;
+type EncryptInputsResult<T extends readonly EncryptableItem[]> = HashPlusProofResult<[...T]>;
 
 export type EncryptInputsOptions = {
   account?: string;
@@ -78,37 +76,40 @@ function hasEncryptInputsOptions<T extends readonly EncryptableItem[]>(
   return typeof variables === 'object' && variables !== null && 'items' in variables;
 }
 
+/**
+ * Validates the batch-verified result: `inputs.length` hashes followed by one shared signature,
+ * each a hex string starting with `0x`.
+ */
 function assertEncryptInputsResult<T extends readonly EncryptableItem[]>(
   inputs: T,
-  encrypted: readonly EncryptedItemInput[]
+  encrypted: readonly `0x${string}`[]
 ): asserts encrypted is EncryptInputsResult<T> {
-  if (encrypted.length !== inputs.length) {
-    throw new Error(`Encryption result length mismatch (expected ${inputs.length}, got ${encrypted.length})`);
+  const expectedLength = inputs.length + 1; // hashes + one trailing signature
+
+  if (encrypted.length !== expectedLength) {
+    throw new Error(`Encryption result length mismatch (expected ${expectedLength}, got ${encrypted.length})`);
   }
 
   for (let i = 0; i < encrypted.length; i++) {
-    const encryptedItem = encrypted[i];
-    const inputItem = inputs[i];
-
-    assertCorrectEncryptedItemInput(encryptedItem);
-
-    if (encryptedItem.utype !== inputItem.utype) {
-      throw new Error(`Encryption result type mismatch at index ${i}`);
+    const value = encrypted[i];
+    if (typeof value !== 'string' || !value.startsWith('0x')) {
+      throw new Error(`Encryption result value at index ${i} must be a hex string starting with 0x`);
     }
   }
 }
 
 export type UseCofheEncryptOptions = Omit<
-  UseMutationOptions<readonly EncryptedItemInput[], Error, EncryptInputsVariables, void>,
+  UseMutationOptions<readonly `0x${string}`[], Error, EncryptInputsVariables, void>,
   'mutationFn'
 >;
 
 /**
- * Low-level mutation hook: encrypt a list of EncryptableItems into encrypted input structs.
+ * Low-level mutation hook: encrypt a list of EncryptableItems into a batch-verified result
+ * (per-item hashes followed by one shared signature authenticating the whole batch).
  *
  */
 export function useCofheEncrypt(options?: UseCofheEncryptOptions): UseMutationResult<
-  readonly EncryptedItemInput[],
+  readonly `0x${string}`[],
   Error,
   EncryptInputsVariables,
   void
@@ -124,7 +125,7 @@ export function useCofheEncrypt(options?: UseCofheEncryptOptions): UseMutationRe
   const stepsState = useStepsState();
   const { onStep: handleStepStateChange, onSetKey: handleStepSetKey } = stepsState;
 
-  const mutation = useInternalMutation<readonly EncryptedItemInput[], Error, EncryptInputsVariables, void>({
+  const mutation = useInternalMutation<readonly `0x${string}`[], Error, EncryptInputsVariables, void>({
     ...options,
     mutationKey: options?.mutationKey ?? ['cofhe', 'encryptInputs'],
     mutationFn: async (variables) => {

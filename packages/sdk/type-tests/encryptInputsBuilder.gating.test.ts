@@ -8,13 +8,6 @@ import type {
   EncryptableUint64,
   EncryptableUint128,
   EncryptableAddress,
-  EncryptedBoolInput,
-  EncryptedUint8Input,
-  EncryptedUint16Input,
-  EncryptedUint32Input,
-  EncryptedUint64Input,
-  EncryptedUint128Input,
-  EncryptedAddressInput,
   ExternalBoolHash,
   ExternalUint8Hash,
   ExternalUint16Hash,
@@ -56,86 +49,33 @@ declare const builder_all: EncryptInputsBuilder<
   ]
 >;
 
-// ─── 1. HPP type parameter defaults to false ──────────────────────────────────
+// ─── 1. EncryptInputsBuilder takes a single type parameter (no HPP toggle) ───
 
-type _DefaultHPP_bool = Assert<Equals<typeof builder_bool, EncryptInputsBuilder<[EncryptableBool], false>>>;
-type _DefaultHPP_boolUint32 = Assert<
-  Equals<typeof builder_bool_uint32, EncryptInputsBuilder<[EncryptableBool, EncryptableUint32], false>>
+type _Builder_bool = Assert<Equals<typeof builder_bool, EncryptInputsBuilder<[EncryptableBool]>>>;
+type _Builder_boolUint32 = Assert<
+  Equals<typeof builder_bool_uint32, EncryptInputsBuilder<[EncryptableBool, EncryptableUint32]>>
 >;
 
-// ─── 2. asHashPlusProof() transitions HPP to true ────────────────────────────
+// ─── 2. execute() always returns HashPlusProofResult (hashes + one shared signature) ──
 
-type _HPP_bool = Assert<
-  Equals<ReturnType<typeof builder_bool.asHashPlusProof>, EncryptInputsBuilder<[EncryptableBool], true>>
->;
-type _HPP_boolUint32 = Assert<
-  Equals<
-    ReturnType<typeof builder_bool_uint32.asHashPlusProof>,
-    EncryptInputsBuilder<[EncryptableBool, EncryptableUint32], true>
-  >
+type _Exec_bool = Assert<
+  Equals<Awaited<ReturnType<typeof builder_bool.execute>>, [ExternalBoolHash, ExternalHashProof]>
 >;
 
-// ─── 3. execute() default output (HPP = false) → EncryptedItemInputs ─────────
-
-type _Exec_bool = Assert<Equals<Awaited<ReturnType<typeof builder_bool.execute>>, [EncryptedBoolInput]>>;
-
-type _Exec_uint32 = Assert<Equals<Awaited<ReturnType<typeof builder_uint32.execute>>, [EncryptedUint32Input]>>;
+type _Exec_uint32 = Assert<
+  Equals<Awaited<ReturnType<typeof builder_uint32.execute>>, [ExternalUint32Hash, ExternalHashProof]>
+>;
 
 type _Exec_bool_uint32 = Assert<
-  Equals<Awaited<ReturnType<typeof builder_bool_uint32.execute>>, [EncryptedBoolInput, EncryptedUint32Input]>
+  Equals<
+    Awaited<ReturnType<typeof builder_bool_uint32.execute>>,
+    [ExternalBoolHash, ExternalUint32Hash, ExternalHashProof]
+  >
 >;
 
 type _Exec_all = Assert<
   Equals<
     Awaited<ReturnType<typeof builder_all.execute>>,
-    [
-      EncryptedBoolInput,
-      EncryptedUint8Input,
-      EncryptedUint16Input,
-      EncryptedUint32Input,
-      EncryptedUint64Input,
-      EncryptedUint128Input,
-      EncryptedAddressInput,
-    ]
-  >
->;
-
-// ─── 4. execute() HPP output (HPP = true) → HashPlusProofResult ──────────────
-
-declare const builderHpp_bool: EncryptInputsBuilder<[EncryptableBool], true>;
-declare const builderHpp_uint32: EncryptInputsBuilder<[EncryptableUint32], true>;
-declare const builderHpp_bool_uint32: EncryptInputsBuilder<[EncryptableBool, EncryptableUint32], true>;
-declare const builderHpp_all: EncryptInputsBuilder<
-  [
-    EncryptableBool,
-    EncryptableUint8,
-    EncryptableUint16,
-    EncryptableUint32,
-    EncryptableUint64,
-    EncryptableUint128,
-    EncryptableAddress,
-  ],
-  true
->;
-
-type _ExecHPP_bool = Assert<
-  Equals<Awaited<ReturnType<typeof builderHpp_bool.execute>>, [ExternalBoolHash, ExternalHashProof]>
->;
-
-type _ExecHPP_uint32 = Assert<
-  Equals<Awaited<ReturnType<typeof builderHpp_uint32.execute>>, [ExternalUint32Hash, ExternalHashProof]>
->;
-
-type _ExecHPP_bool_uint32 = Assert<
-  Equals<
-    Awaited<ReturnType<typeof builderHpp_bool_uint32.execute>>,
-    [ExternalBoolHash, ExternalUint32Hash, ExternalHashProof]
-  >
->;
-
-type _ExecHPP_all = Assert<
-  Equals<
-    Awaited<ReturnType<typeof builderHpp_all.execute>>,
     [
       ExternalBoolHash,
       ExternalUint8Hash,
@@ -146,14 +86,6 @@ type _ExecHPP_all = Assert<
       ExternalAddressHash,
       ExternalHashProof,
     ]
-  >
->;
-
-// Verify asHashPlusProof().execute() produces the same type as the direct HPP builder
-type _ChainedHPP_bool_uint32 = Assert<
-  Equals<
-    Awaited<ReturnType<ReturnType<typeof builder_bool_uint32.asHashPlusProof>['execute']>>,
-    [ExternalBoolHash, ExternalUint32Hash, ExternalHashProof]
   >
 >;
 

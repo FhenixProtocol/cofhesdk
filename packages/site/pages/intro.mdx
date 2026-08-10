@@ -11,12 +11,12 @@ On-chain, contracts use [`FHE.sol`](https://cofhe-docs.fhenix.zone/fhe-library/i
 
 ## What the SDK does
 
-| Operation        | Function                                                     | Description                                                                                                                                                  |
-| ---------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Encrypt inputs   | `client.encryptInputs([...]).execute()`                      | Packs plaintext values, generates a ZKPoK, and submits them to the CoFHE verifier. Returns signed `EncryptedItemInput` objects for use in contract calls.    |
-| Decrypt for view | `client.decryptForView(ctHash, utype).execute()`             | Requests decryption of a [ciphertext handle](/reference/dictionary#handle) using a permit. Returns the plaintext locally (not published on-chain).           |
-| Decrypt for tx   | `client.decryptForTx(ctHash).execute()`                      | Requests decryption and returns the plaintext with a Threshold Network signature. The signature can be verified on-chain via `FHE.verifyDecryptResult(...)`. |
-| Manage permits   | `client.permits.createSelf(...)` / `getOrCreateSelfPermit()` | Creates, stores, and manages EIP-712 permits that authorize decryption of specific ciphertext handles.                                                       |
+| Operation        | Function                                                           | Description                                                                                                                                                                                                                                                                                                                |
+| ---------------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Encrypt inputs   | `client.encryptInputs([...]).setConsumingContract(addr).execute()` | Packs plaintext values, generates a ZKPoK, and submits them to the CoFHE verifier's batch endpoint. Returns `[...hashes, signature]` — one ciphertext hash per input plus one shared signature — for use in contract calls. `setConsumingContract` is required: the verifier binds the target contract into the signature. |
+| Decrypt for view | `client.decryptForView(ctHash, utype).execute()`                   | Requests decryption of a [ciphertext handle](/reference/dictionary#handle) using a permit. Returns the plaintext locally (not published on-chain).                                                                                                                                                                         |
+| Decrypt for tx   | `client.decryptForTx(ctHash).execute()`                            | Requests decryption and returns the plaintext with a Threshold Network signature. The signature can be verified on-chain via `FHE.verifyDecryptResult(...)`.                                                                                                                                                               |
+| Manage permits   | `client.permits.createSelf(...)` / `getOrCreateSelfPermit()`       | Creates, stores, and manages EIP-712 permits that authorize decryption of specific ciphertext handles.                                                                                                                                                                                                                     |
 
 ## Entrypoints
 
@@ -58,7 +58,8 @@ import { type PublicClient, type WalletClient } from 'viem';
 declare const publicClient: PublicClient;
 declare const walletClient: WalletClient;
 declare const contract: {
-  deposit: (encrypted: any) => Promise<any>;
+  address: `0x${string}`;
+  deposit: (hash: `0x${string}`, signature: `0x${string}`) => Promise<any>;
   getBalance: () => Promise<string>;
 };
 // ---cut---
@@ -72,11 +73,12 @@ const config = createCofheConfig({
 const client = createCofheClient(config);
 await client.connect(publicClient, walletClient);
 
-// Encrypt and send
-const [encrypted] = await client
+// Encrypt and send: [hash, signature]
+const [hash, signature] = await client
   .encryptInputs([Encryptable.uint64(100n)])
+  .setConsumingContract(contract.address)
   .execute();
-await contract.deposit(encrypted);
+await contract.deposit(hash, signature);
 
 // Decrypt for UI
 await client.permits.getOrCreateSelfPermit();
