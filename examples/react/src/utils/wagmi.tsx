@@ -1,8 +1,26 @@
 import { WagmiProvider, http, createConfig, injected } from 'wagmi';
 import { baseSepolia, sepolia, arbitrumSepolia } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { pickMetaMaskProvider, pickOkxProvider } from './walletProviders';
 
-export const injectedProvider = injected({ shimDisconnect: true });
+export const metaMaskConnector = injected({
+  shimDisconnect: true,
+  target: {
+    id: 'metamask',
+    name: 'MetaMask',
+    provider: pickMetaMaskProvider,
+  },
+});
+
+export const okxConnector = injected({
+  shimDisconnect: true,
+  target: {
+    id: 'okxwallet',
+    name: 'OKX Wallet',
+    provider: pickOkxProvider,
+  },
+});
+
 const config = createConfig({
   chains: [sepolia, baseSepolia, arbitrumSepolia],
   transports: {
@@ -10,7 +28,7 @@ const config = createConfig({
     [baseSepolia.id]: http(),
     [arbitrumSepolia.id]: http(),
   },
-  connectors: [injectedProvider],
+  connectors: [metaMaskConnector, okxConnector],
   ssr: false,
   syncConnectedChain: true,
 });
@@ -21,9 +39,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <WagmiProvider
       config={config}
-      // TMP/TODO: had to disable reconnectOnMount to fix the problem with failed reconnecting even on button click.
-      // possible cause: the way the example app works (i.e. prevent eager connect) -- we don't pass injected() connector into config.connectors, instead we pass it at the wagm connection time (on button click)
-      // probably that's why it fails to reconnect
       reconnectOnMount={false}
     >
       <QueryClientProvider client={wagmiQueryClient}>{children}</QueryClientProvider>
