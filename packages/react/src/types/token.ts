@@ -82,6 +82,27 @@ export function getTokenConfidentialValueType(
   return TOKEN_CONFIDENTIALITY_SUPPORT[type].confidentialValueType;
 }
 
+/**
+ * Decimals of the public (underlying) side: the ERC20 pair for wrapped tokens, the token
+ * itself otherwise. Public balances, shield inputs and approvals are denominated in these.
+ */
+export function getPublicDecimals(token: ConfidentialToken): number {
+  return token.extensions.fhenix.erc20Pair?.decimals ?? token.decimals;
+}
+
+/**
+ * Decimals of the confidential (encrypted) side. Confidential balances, unshield, transfer
+ * and claim amounts are denominated in these. May differ from the public side (e.g. 6 vs 18).
+ */
+export function getConfidentialDecimals(token: ConfidentialToken): number {
+  return token.decimals;
+}
+
+/** Symbol of the public (underlying) side. */
+export function getPublicSymbol(token: ConfidentialToken): string {
+  return token.extensions.fhenix.erc20Pair?.symbol ?? token.symbol;
+}
+
 export function assertTokenOperationSupported(
   type: string | undefined,
   operation: ConfidentialTokenSupportOperation
