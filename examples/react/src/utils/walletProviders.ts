@@ -25,7 +25,7 @@ export function pickMetaMaskProvider(window: any): any {
   const okx = window?.okxwallet
   if (!eth) return undefined
 
-  // Prefer EIP-5749 providers array when present
+  // Prefer window.ethereum.providers when present (informal multi-injection convention)
   const candidates =
     Array.isArray(eth.providers) && eth.providers.length > 0
       ? eth.providers
