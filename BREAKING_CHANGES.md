@@ -10,7 +10,7 @@ environment that has this fix but not the separate batch-verification work
 
 `TaskManager.verifyInput` previously signed `keccak256(ctHash || utype || securityZone || sender || chainId)`.
 Since a signed input packet travels in public calldata, an attacker could lift a victim's
-valid packet and replay it into a *different* contract than the one it was signed for —
+valid packet and replay it into a _different_ contract than the one it was signed for —
 `verifyInput` is permissionless and hands the caller a transient ACL allowance over the
 resulting handle. This fix closes that by folding the consuming contract (the caller of
 `FHE.asEuint*`, i.e. `msg.sender` as seen by the TaskManager) into the signed message:

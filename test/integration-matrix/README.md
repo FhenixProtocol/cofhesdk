@@ -6,8 +6,8 @@ Runs inherited SDK tests across **every supported chain × {Node, Web}**.
 
 |          | Hardhat (Mock) | Local CoFHE | Ethereum Sepolia | Arbitrum Sepolia | Base Sepolia | CoFHE Staging |
 | -------- | :------------: | :---------: | :--------------: | :--------------: | :----------: | :-----------: |
-| **Node** |       ✓        |     ✓\*     |       ✓\*        |       ✓\*        |     ✓\*      |     ✓\*       |
-| **Web**  |       ✓        |     ✓\*     |       ✓\*        |       ✓\*        |     ✓\*      |     ✓\*       |
+| **Node** |       ✓        |     ✓\*     |       ✓\*        |       ✓\*        |     ✓\*      |      ✓\*      |
+| **Web**  |       ✓        |     ✓\*     |       ✓\*        |       ✓\*        |     ✓\*      |      ✓\*      |
 
 \* Enabled when `SimpleTest` is deployed (via `@cofhe/test-setup`) and a funded `TEST_PRIVATE_KEY` is present.
 Local CoFHE and CoFHE Staging are **opt-in** — disabled by default unless `MATRIX_CHAIN` explicitly names them
