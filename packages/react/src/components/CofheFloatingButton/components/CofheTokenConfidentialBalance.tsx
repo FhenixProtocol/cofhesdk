@@ -2,6 +2,7 @@ import type { Address } from 'viem';
 import { useCofheTokenDecryptedBalance } from '@/hooks/useCofheTokenDecryptedBalance';
 import { useCofheAccount } from '@/hooks/useCofheConnection';
 import { type ConfidentialToken } from '@/hooks/useCofheTokenLists';
+import { getPublicSymbol } from '@/types/token';
 import { TokenBalanceView } from './TokenBalanceView';
 import { useCofheTokenPublicBalance } from '@/hooks/useCofheTokenPublicBalance';
 
@@ -87,7 +88,7 @@ export const CofheTokenPublicBalance: React.FC<TokenBalanceProps> = ({
       size={size}
       isFetching={isFetchingPublic}
       formattedBalance={publicBalanceFormatted}
-      symbol={showSymbol ? token?.symbol : undefined}
+      symbol={showSymbol && token ? getPublicSymbol(token) : undefined}
     />
   );
 };
