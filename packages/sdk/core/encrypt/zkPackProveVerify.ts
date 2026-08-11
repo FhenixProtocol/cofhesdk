@@ -47,7 +47,7 @@ export type VerifyBatchOutputRaw = {
 };
 
 export type VerifyBatchResultRaw = {
-  outputs: VerifyBatchOutputRaw[];
+  ciphertexts: VerifyBatchOutputRaw[];
   signature: string;
   recid: number;
 };
@@ -287,7 +287,7 @@ export const zkVerifyBatch = async (
 
   // Send request to verification server
   try {
-    const response = await fetch(`${verifierUrl}/verify-batch`, {
+    const response = await fetch(`${verifierUrl}/verifyBatch`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -313,10 +313,10 @@ export const zkVerifyBatch = async (
       });
     }
 
-    const { outputs, signature, recid } = json.data;
+    const { ciphertexts, signature, recid } = json.data;
 
     return {
-      outputs,
+      outputs: ciphertexts,
       signature: concatSigRecid(signature, recid),
     };
   } catch (e) {

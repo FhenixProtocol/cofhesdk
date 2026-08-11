@@ -125,7 +125,7 @@ const MockCrs = {
   safe_serialize: (_serializedSizeLimit: bigint) => new Uint8Array(),
 };
 
-// Setup fetch mock for http://localhost:3001/verify-batch
+// Setup fetch mock for http://localhost:3001/verifyBatch
 // Simulates batch verification of a zk proof: one signature covering the whole batch.
 // The signature is `${account_addr}-${security_zone}-${chain_id}-${contract_address}-` (a debug
 // string, not a real signature) so tests can recover the request payload that was sent for a
@@ -135,7 +135,7 @@ const mockFetch = vi.fn();
 global.fetch = mockFetch;
 const setupZkVerifyMock = () => {
   mockFetch.mockImplementation((url: string, options: any) => {
-    if (url === `${MockZkVerifierUrl}/verify-batch`) {
+    if (url === `${MockZkVerifierUrl}/verifyBatch`) {
       const body = JSON.parse(options.body as string);
       const { packed_list, account_addr, security_zone, chain_id, contract_address } = body;
 
@@ -146,7 +146,7 @@ const setupZkVerifyMock = () => {
       const { items } = decodedData;
 
       // Create a mock batch verify result: per-item ct_hash/ct_type, and one shared signature
-      const outputs = items.map((item: EncryptableItem) => ({
+      const ciphertexts = items.map((item: EncryptableItem) => ({
         ct_hash: BigInt(item.data).toString(),
         ct_type: item.utype,
       }));
@@ -157,7 +157,7 @@ const setupZkVerifyMock = () => {
           Promise.resolve({
             status: 'success',
             data: {
-              outputs,
+              ciphertexts,
               signature: `${account_addr}-${security_zone}-${chain_id}-${contract_address}-`,
               recid: 0,
             },

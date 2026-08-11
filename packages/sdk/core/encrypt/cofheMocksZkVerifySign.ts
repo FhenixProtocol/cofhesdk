@@ -231,7 +231,7 @@ async function createBatchProofSignature(
 
 /**
  * Transforms the encryptable items into a batch-verified result ready to be used in a
- * transaction on the hardhat chain. Mirrors the shape returned by CoFHE's `/verify-batch`:
+ * transaction on the hardhat chain. Mirrors the shape returned by CoFHE's `/verifyBatch`:
  * per-item ctHash/ctType, plus one shared on-chain verifiable signature for the whole batch.
  */
 export async function cofheMocksZkVerifySign(
@@ -255,7 +255,7 @@ export async function cofheMocksZkVerifySign(
   // Locally create the single batch signature from the known signer account
   const signature = await createBatchProofSignature(encryptableItems, securityZone, account, consumingContract);
 
-  // Return the ctHashes/ctTypes and the batch signature, in the same shape as CoFHE's /verify-batch
+  // Return the ctHashes/ctTypes and the batch signature, in the same shape as CoFHE's /verifyBatch
   return {
     outputs: encryptableItems.map((item) => ({
       ct_hash: item.ctHash.toString(),

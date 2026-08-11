@@ -8,30 +8,13 @@ export const simpleTestAbi = [
     inputs: [
       {
         name: 'inValue',
-        type: 'tuple',
-        internalType: 'struct InEuint32',
-        components: [
-          {
-            name: 'ctHash',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'securityZone',
-            type: 'uint8',
-            internalType: 'uint8',
-          },
-          {
-            name: 'utype',
-            type: 'uint8',
-            internalType: 'uint8',
-          },
-          {
-            name: 'signature',
-            type: 'bytes',
-            internalType: 'bytes',
-          },
-        ],
+        type: 'bytes32',
+        internalType: 'externalEuint32',
+      },
+      {
+        name: 'proof',
+        type: 'bytes',
+        internalType: 'bytes',
       },
     ],
     outputs: [],
@@ -173,30 +156,13 @@ export const simpleTestAbi = [
     inputs: [
       {
         name: 'inValue',
-        type: 'tuple',
-        internalType: 'struct InEuint32',
-        components: [
-          {
-            name: 'ctHash',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'securityZone',
-            type: 'uint8',
-            internalType: 'uint8',
-          },
-          {
-            name: 'utype',
-            type: 'uint8',
-            internalType: 'uint8',
-          },
-          {
-            name: 'signature',
-            type: 'bytes',
-            internalType: 'bytes',
-          },
-        ],
+        type: 'bytes32',
+        internalType: 'externalEuint32',
+      },
+      {
+        name: 'proof',
+        type: 'bytes',
+        internalType: 'bytes',
       },
     ],
     outputs: [],
@@ -239,30 +205,13 @@ export const simpleTestAbi = [
     inputs: [
       {
         name: 'inValue',
-        type: 'tuple',
-        internalType: 'struct InEuint32',
-        components: [
-          {
-            name: 'ctHash',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'securityZone',
-            type: 'uint8',
-            internalType: 'uint8',
-          },
-          {
-            name: 'utype',
-            type: 'uint8',
-            internalType: 'uint8',
-          },
-          {
-            name: 'signature',
-            type: 'bytes',
-            internalType: 'bytes',
-          },
-        ],
+        type: 'bytes32',
+        internalType: 'externalEuint32',
+      },
+      {
+        name: 'proof',
+        type: 'bytes',
+        internalType: 'bytes',
       },
     ],
     outputs: [],
@@ -342,22 +291,6 @@ export const simpleTestAbi = [
       },
     ],
     stateMutability: 'view',
-  },
-  {
-    type: 'error',
-    name: 'InvalidEncryptedInput',
-    inputs: [
-      {
-        name: 'got',
-        type: 'uint8',
-        internalType: 'uint8',
-      },
-      {
-        name: 'expected',
-        type: 'uint8',
-        internalType: 'uint8',
-      },
-    ],
   },
   {
     type: 'error',

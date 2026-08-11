@@ -30,8 +30,8 @@ contract SimpleTest {
     _setStoredValue(FHE.asEuint32(inValue));
   }
 
-  function setPublicValue(InEuint32 memory inValue) public {
-    _setPublicValue(FHE.asEuint32(inValue));
+  function setPublicValue(externalEuint32 inValue, bytes memory proof) public {
+    _setPublicValue(FHE.asEuint32(inValue, proof));
   }
 
   /// @notice Sets publicValue from a batch-verified input - see setValueBatch.
@@ -40,8 +40,8 @@ contract SimpleTest {
     _setPublicValue(values[0]);
   }
 
-  function setValue(InEuint32 memory inValue) public {
-    _setStoredValue(FHE.asEuint32(inValue));
+  function setValue(externalEuint32 inValue, bytes memory proof) public {
+    _setStoredValue(FHE.asEuint32(inValue, proof));
   }
 
   function setValueHashPlusProof(externalEuint32 inValue, bytes memory proof) public {
@@ -56,8 +56,8 @@ contract SimpleTest {
     _setStoredValue(values[0]);
   }
 
-  function addValue(InEuint32 memory inValue) public {
-    euint32 valueToAdd = FHE.asEuint32(inValue);
+  function addValue(externalEuint32 inValue, bytes memory proof) public {
+    euint32 valueToAdd = FHE.asEuint32(inValue, proof);
     _setStoredValue(FHE.add(storedValue, valueToAdd));
   }
 
