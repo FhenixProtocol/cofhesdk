@@ -27,7 +27,7 @@ contract ABITest {
 
   struct ContainsEncryptedInput {
     uint256 value;
-    InEuint32 encryptedInput;
+    externalEuint32 encryptedInput;
   }
 
   struct ContainsEncryptedResult {
@@ -36,28 +36,41 @@ contract ABITest {
   }
 
   // INPUTS
+  //
+  // Encrypted inputs are `external*` ciphertext handles (plain bytes32-based value types).
+  // Every function that takes one or more `external*` params must end with a trailing
+  // `bytes` parameter - the single signature authenticating the whole batch of handles
+  // passed to that call.
 
   function fnNoEncryptedInputs(uint8 value) public {}
 
-  function fnEncryptedInput(InEuint32 memory inNumber) public {}
+  function fnEncryptedInput(externalEuint32 inNumber, bytes memory inputProof) public {}
 
-  function fnBlendedInputsIncludingEncryptedInput(uint256 value, InEuint32 memory inNumber) public {}
-
-  function fnAllEncryptedInputs(
-    InEuint8 memory inEuint8,
-    InEuint16 memory inEuint16,
-    InEuint32 memory inEuint32,
-    InEuint64 memory inEuint64,
-    InEuint128 memory inEuint128,
-    InEbool memory inEbool,
-    InEaddress memory inEaddress
+  function fnBlendedInputsIncludingEncryptedInput(
+    uint256 value,
+    externalEuint32 inNumber,
+    bytes memory inputProof
   ) public {}
 
-  function fnStructContainsEncryptedInput(ContainsEncryptedInput memory containsEncryptedInput) public {}
+  function fnAllEncryptedInputs(
+    externalEuint8 inEuint8,
+    externalEuint16 inEuint16,
+    externalEuint32 inEuint32,
+    externalEuint64 inEuint64,
+    externalEuint128 inEuint128,
+    externalEbool inEbool,
+    externalEaddress inEaddress,
+    bytes memory inputProof
+  ) public {}
 
-  function fnArrayContainsEncryptedInput(InEuint32[] memory inEuint32Array) public {}
+  function fnStructContainsEncryptedInput(
+    ContainsEncryptedInput memory containsEncryptedInput,
+    bytes memory inputProof
+  ) public {}
 
-  function fnTupleContainsEncryptedInput(InEuint32[2] memory inEuint32Array) public {}
+  function fnArrayContainsEncryptedInput(externalEuint32[] memory inEuint32Array, bytes memory inputProof) public {}
+
+  function fnTupleContainsEncryptedInput(externalEuint32[2] memory inEuint32Array, bytes memory inputProof) public {}
 
   // OUTPUTS
 

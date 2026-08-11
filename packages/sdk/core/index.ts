@@ -40,18 +40,8 @@ export type {
   EncryptableAddress,
   // Encrypted types
   EncryptedNumber,
-  EncryptedItemInput,
-  EncryptedBoolInput,
-  EncryptedUint8Input,
-  EncryptedUint16Input,
-  EncryptedUint32Input,
-  EncryptedUint64Input,
-  EncryptedUint128Input,
-  EncryptedAddressInput,
-  EncryptedItemInputs,
-  EncryptableToEncryptedItemInputMap,
   FheTypeValue,
-  // Hash-plus-proof external types
+  // Batch-verified external hash + signature types
   ExternalBoolHash,
   ExternalUint8Hash,
   ExternalUint16Hash,
@@ -81,7 +71,6 @@ export {
   isEncryptableItem,
   EncryptStep,
   isLastEncryptionStep,
-  assertCorrectEncryptedItemInput,
 } from './types.js';
 
 // Error handling

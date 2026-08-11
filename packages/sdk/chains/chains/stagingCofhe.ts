@@ -15,7 +15,7 @@ export const stagingCofhe = defineChain({
   name: 'CoFHE Staging',
   network: 'cofhe-staging',
   coFheUrl: 'https://staging-cofhe-v1.sw-dom.co',
-  verifierUrl: 'https://zkkkkk-kkkkk-kkkk.sw-dom.co',
-  thresholdNetworkUrl: 'https://zolanezzzz.sw-dom.co',
+  verifierUrl: 'https://staging-zk-verifier-v1.sw-dom.co',
+  thresholdNetworkUrl: 'https://staging-dispatcher-v1.sw-dom.co',
   environment: 'TESTNET',
 });

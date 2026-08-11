@@ -23,6 +23,18 @@ import type {
   TypedContractMethod,
 } from './common';
 
+export type UnsignedEncryptedInputStruct = {
+  ctHash: BigNumberish;
+  securityZone: BigNumberish;
+  utype: BigNumberish;
+};
+
+export type UnsignedEncryptedInputStructOutput = [ctHash: bigint, securityZone: bigint, utype: bigint] & {
+  ctHash: bigint;
+  securityZone: bigint;
+  utype: bigint;
+};
+
 export type PermissionStruct = {
   issuer: AddressLike;
   expiration: BigNumberish;
@@ -54,20 +66,6 @@ export type PermissionStructOutput = [
   recipientSignature: string;
 };
 
-export type EncryptedInputStruct = {
-  ctHash: BigNumberish;
-  securityZone: BigNumberish;
-  utype: BigNumberish;
-  signature: BytesLike;
-};
-
-export type EncryptedInputStructOutput = [ctHash: bigint, securityZone: bigint, utype: bigint, signature: string] & {
-  ctHash: bigint;
-  securityZone: bigint;
-  utype: bigint;
-  signature: string;
-};
-
 export interface MockTaskManagerInterface extends Interface {
   getFunction(
     nameOrSignature:
@@ -79,6 +77,7 @@ export interface MockTaskManagerInterface extends Interface {
       | 'allowForDecryption'
       | 'allowGlobal'
       | 'allowTransient'
+      | 'batchVerifyInputs'
       | 'createDecryptTask'
       | 'createRandomTask'
       | 'createTask'
@@ -112,7 +111,6 @@ export interface MockTaskManagerInterface extends Interface {
       | 'verifyDecryptResultBatch'
       | 'verifyDecryptResultBatchSafe'
       | 'verifyDecryptResultSafe'
-      | 'verifyInput'
   ): FunctionFragment;
 
   getEvent(nameOrSignatureOrTopic: 'DecryptionResult' | 'ProtocolNotification' | 'TaskCreated'): EventFragment;
@@ -125,6 +123,10 @@ export interface MockTaskManagerInterface extends Interface {
   encodeFunctionData(functionFragment: 'allowForDecryption', values: [BigNumberish]): string;
   encodeFunctionData(functionFragment: 'allowGlobal', values: [BigNumberish]): string;
   encodeFunctionData(functionFragment: 'allowTransient', values: [BigNumberish, AddressLike]): string;
+  encodeFunctionData(
+    functionFragment: 'batchVerifyInputs',
+    values: [UnsignedEncryptedInputStruct[], AddressLike, BytesLike]
+  ): string;
   encodeFunctionData(functionFragment: 'createDecryptTask', values: [BigNumberish, AddressLike]): string;
   encodeFunctionData(functionFragment: 'createRandomTask', values: [BigNumberish, BigNumberish, BigNumberish]): string;
   encodeFunctionData(
@@ -176,7 +178,6 @@ export interface MockTaskManagerInterface extends Interface {
     functionFragment: 'verifyDecryptResultSafe',
     values: [BigNumberish, BigNumberish, BytesLike]
   ): string;
-  encodeFunctionData(functionFragment: 'verifyInput', values: [EncryptedInputStruct, AddressLike]): string;
 
   decodeFunctionResult(functionFragment: 'MOCK_logAllow', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'MOCK_setInEuintKey', data: BytesLike): Result;
@@ -186,6 +187,7 @@ export interface MockTaskManagerInterface extends Interface {
   decodeFunctionResult(functionFragment: 'allowForDecryption', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'allowGlobal', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'allowTransient', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'batchVerifyInputs', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'createDecryptTask', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'createRandomTask', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'createTask', data: BytesLike): Result;
@@ -219,7 +221,6 @@ export interface MockTaskManagerInterface extends Interface {
   decodeFunctionResult(functionFragment: 'verifyDecryptResultBatch', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'verifyDecryptResultBatchSafe', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'verifyDecryptResultSafe', data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: 'verifyInput', data: BytesLike): Result;
 }
 
 export namespace DecryptionResultEvent {
@@ -320,6 +321,12 @@ export interface MockTaskManager extends BaseContract {
   allowGlobal: TypedContractMethod<[ctHash: BigNumberish], [void], 'nonpayable'>;
 
   allowTransient: TypedContractMethod<[ctHash: BigNumberish, account: AddressLike], [void], 'nonpayable'>;
+
+  batchVerifyInputs: TypedContractMethod<
+    [inputs: UnsignedEncryptedInputStruct[], sender: AddressLike, signature: BytesLike],
+    [bigint[]],
+    'nonpayable'
+  >;
 
   createDecryptTask: TypedContractMethod<[ctHash: BigNumberish, arg1: AddressLike], [void], 'nonpayable'>;
 
@@ -431,8 +438,6 @@ export interface MockTaskManager extends BaseContract {
     'view'
   >;
 
-  verifyInput: TypedContractMethod<[input: EncryptedInputStruct, sender: AddressLike], [bigint], 'nonpayable'>;
-
   getFunction<T extends ContractMethod = ContractMethod>(key: string | FunctionFragment): T;
 
   getFunction(
@@ -451,6 +456,13 @@ export interface MockTaskManager extends BaseContract {
   getFunction(
     nameOrSignature: 'allowTransient'
   ): TypedContractMethod<[ctHash: BigNumberish, account: AddressLike], [void], 'nonpayable'>;
+  getFunction(
+    nameOrSignature: 'batchVerifyInputs'
+  ): TypedContractMethod<
+    [inputs: UnsignedEncryptedInputStruct[], sender: AddressLike, signature: BytesLike],
+    [bigint[]],
+    'nonpayable'
+  >;
   getFunction(
     nameOrSignature: 'createDecryptTask'
   ): TypedContractMethod<[ctHash: BigNumberish, arg1: AddressLike], [void], 'nonpayable'>;
@@ -544,9 +556,6 @@ export interface MockTaskManager extends BaseContract {
   getFunction(
     nameOrSignature: 'verifyDecryptResultSafe'
   ): TypedContractMethod<[ctHash: BigNumberish, result: BigNumberish, signature: BytesLike], [boolean], 'view'>;
-  getFunction(
-    nameOrSignature: 'verifyInput'
-  ): TypedContractMethod<[input: EncryptedInputStruct, sender: AddressLike], [bigint], 'nonpayable'>;
 
   getEvent(
     key: 'DecryptionResult'

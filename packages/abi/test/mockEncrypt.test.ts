@@ -1,4 +1,4 @@
-import { Encryptable, FheTypes } from '@cofhe/sdk';
+import { Encryptable } from '@cofhe/sdk';
 import { generateMockCtHash, mockEncrypt, mockEncryptEncryptable } from 'src/mockEncrypt';
 import { describe, expect, it } from 'vitest';
 // 0xffffffffn
@@ -14,71 +14,43 @@ function uint32TruncatedStringHash(value: string): bigint {
   return hash;
 }
 
+const hexHash = (ctHash: bigint): `0x${string}` => `0x${ctHash.toString(16).padStart(64, '0')}` as `0x${string}`;
+
 describe('mockEncrypt', () => {
   it('should encrypt a boolean', () => {
     const encryptable = Encryptable.bool(true);
     const encrypted = mockEncryptEncryptable(encryptable);
-    expect(encrypted).toEqual({
-      ctHash: 1n,
-      securityZone: 0,
-      utype: FheTypes.Bool,
-      signature: '0xMockSignature',
-    });
+    expect(encrypted).toEqual(hexHash(1n));
   });
 
   it('should encrypt a uint8', () => {
     const encryptable = Encryptable.uint8(123n);
     const encrypted = mockEncryptEncryptable(encryptable);
-    expect(encrypted).toEqual({
-      ctHash: 123n,
-      securityZone: 0,
-      utype: FheTypes.Uint8,
-      signature: '0xMockSignature',
-    });
+    expect(encrypted).toEqual(hexHash(123n));
   });
 
   it('should encrypt a uint16', () => {
     const encryptable = Encryptable.uint16(1234n);
     const encrypted = mockEncryptEncryptable(encryptable);
-    expect(encrypted).toEqual({
-      ctHash: 1234n,
-      securityZone: 0,
-      utype: FheTypes.Uint16,
-      signature: '0xMockSignature',
-    });
+    expect(encrypted).toEqual(hexHash(1234n));
   });
 
   it('should encrypt a uint32', () => {
     const encryptable = Encryptable.uint32(12345n);
     const encrypted = mockEncryptEncryptable(encryptable);
-    expect(encrypted).toEqual({
-      ctHash: 12345n,
-      securityZone: 0,
-      utype: FheTypes.Uint32,
-      signature: '0xMockSignature',
-    });
+    expect(encrypted).toEqual(hexHash(12345n));
   });
 
   it('should encrypt a uint64', () => {
     const encryptable = Encryptable.uint64(123456n);
     const encrypted = mockEncryptEncryptable(encryptable);
-    expect(encrypted).toEqual({
-      ctHash: 123456n,
-      securityZone: 0,
-      utype: FheTypes.Uint64,
-      signature: '0xMockSignature',
-    });
+    expect(encrypted).toEqual(hexHash(123456n));
   });
 
   it('should encrypt a uint128', () => {
     const encryptable = Encryptable.uint128(1234567n);
     const encrypted = mockEncryptEncryptable(encryptable);
-    expect(encrypted).toEqual({
-      ctHash: 1234567n,
-      securityZone: 0,
-      utype: FheTypes.Uint128,
-      signature: '0xMockSignature',
-    });
+    expect(encrypted).toEqual(hexHash(1234567n));
   });
 
   it('should encrypt a address', () => {
@@ -86,12 +58,7 @@ describe('mockEncrypt', () => {
     const encryptableAddressCtHash = generateMockCtHash(encryptableAddress);
     const encryptable = Encryptable.address(encryptableAddress);
     const encrypted = mockEncryptEncryptable(encryptable);
-    expect(encrypted).toEqual({
-      ctHash: encryptableAddressCtHash,
-      securityZone: 0,
-      utype: FheTypes.Uint160,
-      signature: '0xMockSignature',
-    });
+    expect(encrypted).toEqual(hexHash(encryptableAddressCtHash));
   });
 
   it('should encrypt multiple encryptables', () => {
@@ -103,26 +70,9 @@ describe('mockEncrypt', () => {
       Encryptable.address(encryptableAddress),
     ];
     const encrypted = mockEncrypt(encryptables);
-    expect(encrypted).toEqual([
-      {
-        ctHash: 1n,
-        securityZone: 0,
-        utype: FheTypes.Bool,
-        signature: '0xMockSignature',
-      },
-      {
-        ctHash: 1234567n,
-        securityZone: 0,
-        utype: FheTypes.Uint128,
-        signature: '0xMockSignature',
-      },
-      {
-        ctHash: encryptableAddressCtHash,
-        securityZone: 0,
-        utype: FheTypes.Uint160,
-        signature: '0xMockSignature',
-      },
-    ]);
+
+    // [hash, hash, hash, signature] - one hash per encryptable, followed by the mock batch signature.
+    expect(encrypted).toEqual([hexHash(1n), hexHash(1234567n), hexHash(encryptableAddressCtHash), '0xMockSignature']);
   });
 
   it('should mask string ctHash values to 32 bits on every iteration', () => {
@@ -137,7 +87,6 @@ describe('mockEncrypt', () => {
     const encryptable = Encryptable.address(longAddressLikeString);
     const encrypted = mockEncryptEncryptable(encryptable);
 
-    expect(encrypted.ctHash).toBe(uint32TruncatedStringHash(longAddressLikeString));
-    expect(encrypted.ctHash).toBeLessThanOrEqual(UINT32_MAX);
+    expect(encrypted).toEqual(hexHash(uint32TruncatedStringHash(longAddressLikeString)));
   });
 });

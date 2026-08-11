@@ -21,35 +21,17 @@ describe('Encrypt Inputs Test', () => {
     const [signer] = await hre.ethers.getSigners();
     const client = await hre.cofhe.createClientWithBatteries(signer);
 
-    const encrypted = await client
+    // [hash, signature] - one hash per input, followed by the shared batch signature.
+    const [encHash, encSignature] = await client
       .encryptInputs([Encryptable.uint32(7n)])
       .setConsumingContract(await simpleTest.getAddress())
-      .execute();
-
-    // Add number to SimpleTest
-    await simpleTest.setValue(encrypted[0]);
-    const ctHash = await simpleTest.getValueHash();
-
-    // Decrypt number from SimpleTest
-    const unsealed = await client.decryptForView(ctHash, FheTypes.Uint32).execute();
-
-    expect(unsealed).to.be.equal(7n);
-  });
-  it('should encrypt inputs with hash plus proof', async () => {
-    const [signer] = await hre.ethers.getSigners();
-    const client = await hre.cofhe.createClientWithBatteries(signer);
-
-    const [encHash, encProof] = await client
-      .encryptInputs([Encryptable.uint32(7n)])
-      .setConsumingContract(await simpleTest.getAddress())
-      .asHashPlusProof()
       .execute();
 
     expect(encHash).to.match(/^0x[0-9a-f]*$/i);
-    expect(encProof).to.match(/^0x[0-9a-f]*$/i);
+    expect(encSignature).to.match(/^0x[0-9a-f]*$/i);
 
-    // Add number to SimpleTest
-    await simpleTest.setValueHashPlusProof(encHash, encProof);
+    // Add number to SimpleTest via the batch-verified entry point
+    await simpleTest.setValueBatch([encHash], encSignature);
     const ctHash = await simpleTest.getValueHash();
 
     // Decrypt number from SimpleTest

@@ -176,14 +176,16 @@ describe('Encrypted counter', async () => {
   it('encrypts, stores, and reads back a uint32', async () => {
     const client = await cofhe.createClientWithBatteries(walletClient);
 
-    const [enc] = await client
+    // [hash, signature] - one hash per input, followed by the shared batch signature
+    const [hash, signature] = await client
       .encryptInputs([Encryptable.uint32(42n)])
+      .setConsumingContract(simpleTest.address)
       .execute();
 
     await walletClient.writeContract({
       ...simpleTest,
-      functionName: 'setValue',
-      args: [enc],
+      functionName: 'setValueBatch',
+      args: [[hash], signature],
     });
 
     const ctHash = await publicClient.readContract({

@@ -5,7 +5,7 @@ import { Test } from 'forge-std/Test.sol';
 import { SimpleTest } from '@cofhe/test-setup/contracts/SimpleTest.sol';
 import { CofheTest } from '../contracts/CofheTest.sol';
 import { CofheClient } from '../contracts/CofheClient.sol';
-import { FHE, InEuint32, euint8, euint128, externalEuint32 } from '@fhenixprotocol/cofhe-contracts/FHE.sol';
+import { FHE, euint8, euint128, externalEuint32 } from '@fhenixprotocol/cofhe-contracts/FHE.sol';
 
 /// @title SimpleTest Foundry Tests
 /// @notice Foundry-native smoke tests for the CoFHE mock environment and FHE Solidity surface.
@@ -22,21 +22,15 @@ contract SimpleTestTest is CofheTest {
     simpleTest = new SimpleTest();
   }
 
-  /// @notice Fuzz test: create an encrypted input and set it as state.
+  /// @notice Fuzz test: create an encrypted input (hash plus proof, batch of one) and set it as state.
   function testSetNumberFuzz(uint32 n) public {
-    InEuint32 memory number = cofheClient.createInEuint32(n, address(simpleTest));
+    (externalEuint32 hash, bytes memory proof) = cofheClient.createExternalEuint32(n, address(simpleTest));
+    externalEuint32[] memory hashes = new externalEuint32[](1);
+    hashes[0] = hash;
 
     vm.prank(cofheClient.account());
-    simpleTest.setValue(number);
+    simpleTest.setValueBatch(hashes, proof);
 
-    expectPlaintext(simpleTest.getValue(), n);
-  }
-
-  /// @notice Hash plus proof: set an encrypted value and validate it.
-  function testSetValueHashPlusProof(uint32 n) public {
-    (externalEuint32 hash, bytes memory proof) = cofheClient.createInEuint32_asHashPlusProof(n, address(simpleTest));
-    vm.prank(cofheClient.account());
-    simpleTest.setValueHashPlusProof(hash, proof);
     expectPlaintext(simpleTest.getValue(), n);
   }
 
