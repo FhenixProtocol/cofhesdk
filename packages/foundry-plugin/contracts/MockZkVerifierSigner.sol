@@ -4,7 +4,7 @@
 pragma solidity >=0.8.19 <0.9.0;
 
 import { Test } from 'forge-std/Test.sol';
-import { BatchedEncryptedInput } from '@fhenixprotocol/cofhe-contracts/ICofhe.sol';
+import { UnsignedEncryptedInput } from '@fhenixprotocol/cofhe-contracts/ICofhe.sol';
 import { ZK_VERIFIER_SIGNER_PRIVATE_KEY } from '@cofhe/mock-contracts/contracts/MockCoFHE.sol';
 
 /**
@@ -21,7 +21,7 @@ contract MockZkVerifierSigner is Test {
   ///         (matching cofhe-contracts#77's contract-binding fix) - the caller must know in
   ///         advance which contract will call `FHE.asEuint*s` with the resulting hashes.
   function zkVerifyBatchSign(
-    BatchedEncryptedInput[] memory inputs,
+    UnsignedEncryptedInput[] memory inputs,
     address sender,
     address contractAddress
   ) public view returns (bytes memory signature) {

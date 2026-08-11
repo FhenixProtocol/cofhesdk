@@ -147,7 +147,7 @@ export const MockTaskManagerArtifact = {
         {
           name: 'inputs',
           type: 'tuple[]',
-          internalType: 'struct BatchedEncryptedInput[]',
+          internalType: 'struct UnsignedEncryptedInput[]',
           components: [
             {
               name: 'ctHash',
@@ -886,57 +886,6 @@ export const MockTaskManagerArtifact = {
         },
       ],
       stateMutability: 'view',
-    },
-    {
-      type: 'function',
-      name: 'verifyInput',
-      inputs: [
-        {
-          name: 'input',
-          type: 'tuple',
-          internalType: 'struct EncryptedInput',
-          components: [
-            {
-              name: 'ctHash',
-              type: 'uint256',
-              internalType: 'uint256',
-            },
-            {
-              name: 'securityZone',
-              type: 'uint8',
-              internalType: 'uint8',
-            },
-            {
-              name: 'utype',
-              type: 'uint8',
-              internalType: 'uint8',
-            },
-            {
-              name: 'signature',
-              type: 'bytes',
-              internalType: 'bytes',
-            },
-          ],
-        },
-        {
-          name: 'sender',
-          type: 'address',
-          internalType: 'address',
-        },
-        {
-          name: 'signature',
-          type: 'bytes',
-          internalType: 'bytes',
-        },
-      ],
-      outputs: [
-        {
-          name: '',
-          type: 'uint256',
-          internalType: 'uint256',
-        },
-      ],
-      stateMutability: 'nonpayable',
     },
     {
       type: 'event',

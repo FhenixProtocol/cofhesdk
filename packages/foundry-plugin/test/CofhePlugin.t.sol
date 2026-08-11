@@ -19,8 +19,8 @@ contract EncryptedValueStore {
   euint128 public storedEuint128;
   eaddress public storedEaddress;
 
-  function storeEbool(InEbool memory input) public {
-    storedEbool = FHE.asEbool(input);
+  function storeEbool(externalEbool input, bytes memory proof) public {
+    storedEbool = FHE.asEbool(input, proof);
     FHE.allowThis(storedEbool);
     FHE.allowSender(storedEbool);
   }
@@ -31,8 +31,8 @@ contract EncryptedValueStore {
     FHE.allowSender(storedEbool);
   }
 
-  function storeEuint8(InEuint8 memory input) public {
-    storedEuint8 = FHE.asEuint8(input);
+  function storeEuint8(externalEuint8 input, bytes memory proof) public {
+    storedEuint8 = FHE.asEuint8(input, proof);
     FHE.allowThis(storedEuint8);
     FHE.allowSender(storedEuint8);
   }
@@ -43,8 +43,8 @@ contract EncryptedValueStore {
     FHE.allowSender(storedEuint8);
   }
 
-  function storeEuint16(InEuint16 memory input) public {
-    storedEuint16 = FHE.asEuint16(input);
+  function storeEuint16(externalEuint16 input, bytes memory proof) public {
+    storedEuint16 = FHE.asEuint16(input, proof);
     FHE.allowThis(storedEuint16);
     FHE.allowSender(storedEuint16);
   }
@@ -55,8 +55,8 @@ contract EncryptedValueStore {
     FHE.allowSender(storedEuint16);
   }
 
-  function storeEuint32(InEuint32 memory input) public {
-    storedEuint32 = FHE.asEuint32(input);
+  function storeEuint32(externalEuint32 input, bytes memory proof) public {
+    storedEuint32 = FHE.asEuint32(input, proof);
     FHE.allowThis(storedEuint32);
     FHE.allowSender(storedEuint32);
   }
@@ -73,8 +73,8 @@ contract EncryptedValueStore {
     FHE.allowSender(storedEuint32);
   }
 
-  function storeEuint64(InEuint64 memory input) public {
-    storedEuint64 = FHE.asEuint64(input);
+  function storeEuint64(externalEuint64 input, bytes memory proof) public {
+    storedEuint64 = FHE.asEuint64(input, proof);
     FHE.allowThis(storedEuint64);
     FHE.allowSender(storedEuint64);
   }
@@ -85,8 +85,8 @@ contract EncryptedValueStore {
     FHE.allowSender(storedEuint64);
   }
 
-  function storeEuint128(InEuint128 memory input) public {
-    storedEuint128 = FHE.asEuint128(input);
+  function storeEuint128(externalEuint128 input, bytes memory proof) public {
+    storedEuint128 = FHE.asEuint128(input, proof);
     FHE.allowThis(storedEuint128);
     FHE.allowSender(storedEuint128);
   }
@@ -97,8 +97,8 @@ contract EncryptedValueStore {
     FHE.allowSender(storedEuint128);
   }
 
-  function storeEaddress(InEaddress memory input) public {
-    storedEaddress = FHE.asEaddress(input);
+  function storeEaddress(externalEaddress input, bytes memory proof) public {
+    storedEaddress = FHE.asEaddress(input, proof);
     FHE.allowThis(storedEaddress);
     FHE.allowSender(storedEaddress);
   }

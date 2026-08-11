@@ -3,7 +3,6 @@ pragma solidity ^0.8.13;
 
 import { CofheTest } from '../contracts/CofheTest.sol';
 import { CofheClient } from '../contracts/CofheClient.sol';
-import { BatchedEncryptedInput } from '@fhenixprotocol/cofhe-contracts/ICofhe.sol';
 import '@fhenixprotocol/cofhe-contracts/FHE.sol';
 
 /// @dev Helper contract that verifies a batch of encrypted uint32 inputs sharing one signature.
@@ -63,7 +62,7 @@ contract BatchVerifyInputTest is CofheTest {
     values[0] = 1;
     values[1] = 2;
 
-    (BatchedEncryptedInput[] memory inputs, ) = _computeBatch(values);
+    (UnsignedEncryptedInput[] memory inputs, ) = _computeBatch(values);
 
     // Sign the correct digest with the WRONG private key.
     bytes32 batchHash = _batchDigest(inputs, alice, address(store));
@@ -131,19 +130,19 @@ contract BatchVerifyInputTest is CofheTest {
   ///      can compute the correct digest and sign it with an arbitrary (wrong) key.
   function _computeBatch(
     uint32[] memory values
-  ) private returns (BatchedEncryptedInput[] memory inputs, externalEuint32[] memory hashes) {
-    inputs = new BatchedEncryptedInput[](values.length);
+  ) private returns (UnsignedEncryptedInput[] memory inputs, externalEuint32[] memory hashes) {
+    inputs = new UnsignedEncryptedInput[](values.length);
     hashes = new externalEuint32[](values.length);
     for (uint256 i = 0; i < values.length; i++) {
       uint256 ctHash = mockZkVerifier.zkVerifyCalcCtHash(values[i], Utils.EUINT32_TFHE, alice, 0, block.chainid);
       mockZkVerifier.insertCtHash(ctHash, values[i]);
-      inputs[i] = BatchedEncryptedInput({ ctHash: ctHash, securityZone: 0, utype: Utils.EUINT32_TFHE });
+      inputs[i] = UnsignedEncryptedInput({ ctHash: ctHash, securityZone: 0, utype: Utils.EUINT32_TFHE });
       hashes[i] = externalEuint32.wrap(bytes32(ctHash));
     }
   }
 
   function _batchDigest(
-    BatchedEncryptedInput[] memory inputs,
+    UnsignedEncryptedInput[] memory inputs,
     address sender,
     address contractAddress
   ) private view returns (bytes32) {

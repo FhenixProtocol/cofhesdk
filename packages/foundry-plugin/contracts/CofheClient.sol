@@ -94,7 +94,7 @@ contract CofheClient is Test {
     utypes[0] = utype;
     values[0] = value;
 
-    (BatchedEncryptedInput[] memory inputs, bytes memory sig) = createEncryptedInputsBatch(
+    (UnsignedEncryptedInput[] memory inputs, bytes memory sig) = createEncryptedInputsBatch(
       utypes,
       values,
       consumingContract
@@ -216,15 +216,15 @@ contract CofheClient is Test {
     uint8[] memory utypes,
     uint256[] memory values,
     address consumingContract
-  ) internal onlyConnected returns (BatchedEncryptedInput[] memory inputs, bytes memory signature) {
+  ) internal onlyConnected returns (UnsignedEncryptedInput[] memory inputs, bytes memory signature) {
     require(utypes.length == values.length, 'CofheClient: length mismatch');
     require(consumingContract != address(0), 'CofheClient: consuming contract must not be the zero address');
 
-    inputs = new BatchedEncryptedInput[](utypes.length);
+    inputs = new UnsignedEncryptedInput[](utypes.length);
     for (uint256 i = 0; i < utypes.length; i++) {
       uint256 ctHash = mockZkVerifier.zkVerifyCalcCtHash(values[i], utypes[i], _account, 0, block.chainid);
       mockZkVerifier.insertCtHash(ctHash, values[i]);
-      inputs[i] = BatchedEncryptedInput({ ctHash: ctHash, securityZone: 0, utype: utypes[i] });
+      inputs[i] = UnsignedEncryptedInput({ ctHash: ctHash, securityZone: 0, utype: utypes[i] });
     }
 
     signature = mockZkVerifierSigner.zkVerifyBatchSign(inputs, _account, consumingContract);
@@ -243,7 +243,7 @@ contract CofheClient is Test {
       rawValues[i] = values[i];
     }
 
-    (BatchedEncryptedInput[] memory inputs, bytes memory sig) = createEncryptedInputsBatch(
+    (UnsignedEncryptedInput[] memory inputs, bytes memory sig) = createEncryptedInputsBatch(
       utypes,
       rawValues,
       consumingContract
