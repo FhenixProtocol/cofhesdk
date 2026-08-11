@@ -1,0 +1,155 @@
+---
+title: Sharing Encrypted Values Between Contracts
+description: Move encrypted values from one contract to another within a transaction using sharedEuint types
+---
+
+# Sharing Encrypted Values Between Contracts
+
+Passing an encrypted handle to another contract is easy — it is a `bytes32`. Letting that contract
+_compute_ on it is the part that needs care, because the ACL decides who may use a ciphertext and by default
+only your contract can.
+
+`sharedEuintXX` carries a handle **and** permission to use it, for one transaction. Nothing is decrypted or
+re-encrypted; the receiver gets access to the same ciphertext.
+
+## Which type do I need?
+
+| Type              | Comes from                      | Used for                                          |
+| ----------------- | ------------------------------- | ------------------------------------------------- |
+| `externalEuint64` | a user, offchain                | encrypted input submitted with a proof            |
+| `sharedEuint64`   | another contract                | handing a value to a contract in this transaction |
+| `euint64`         | your own storage or computation | everything you do internally                      |
+
+One `shared*` type exists per encrypted type: `sharedEbool`, `sharedEuint8`, `sharedEuint16`,
+`sharedEuint32`, `sharedEuint64`, `sharedEuint128`, `sharedEaddress`.
+
+## When to use it
+
+| You want to…                                           | Use                                               |
+| ------------------------------------------------------ | ------------------------------------------------- |
+| Accept an encrypted value from a user                  | `externalEuint64` + `FHE.asEuint64(value, proof)` |
+| Hand a value to another contract in this transaction   | `sharedEuint64` + share / receive                 |
+| Keep using a value in a later transaction              | `FHE.allowThis(value)`                            |
+| Let another address use a value in a later transaction | `FHE.allow(value, account)`                       |
+| Make a value readable by anyone                        | `FHE.allowGlobal(value)`                          |
+
+The deciding factor is **lifetime**: sharing lasts one transaction, the `allow*` family is persistent.
+
+## Usage
+
+```solidity [Vault.sol]
+contract Vault {
+    function deposit(Token token, externalEuint64 inAmount, bytes memory proof) external {
+        euint64 amount = FHE.asEuint64(inAmount, proof);
+        token.accept(FHE.shareEuint64(amount, address(token)));
+    }
+}
+```
+
+```solidity [Token.sol]
+contract Token {
+    function accept(sharedEuint64 shared) external {
+        euint64 amount = FHE.receiveEuint64Param(shared);
+        // ... compute with `amount`
+    }
+}
+```
+
+`FHE.shareEuint64` reverts unless your contract is allowed on the handle — you cannot share what you cannot
+use.
+
+## Keeping a received value
+
+A received value is **transient**: usable for the rest of this transaction, gone afterwards. To keep it, call
+`FHE.allowThis` on the unwrapped `euint64` — not on the `sharedEuint64`:
+
+```solidity [Token.sol]
+mapping(address => euint64) public deposits;
+
+function accept(sharedEuint64 shared) external {
+    euint64 amount = FHE.receiveEuint64Param(shared);
+
+    FHE.allowThis(amount);
+    deposits[msg.sender] = amount;
+}
+```
+
+:::danger
+Storing a value without `FHE.allowThis` is the most common mistake. The write succeeds and the transaction
+succeeds — the failure appears in the _next_ transaction that touches the value, when your contract is no
+longer allowed on it.
+:::
+
+The same applies to anything derived from a received value: `FHE.add(balance, amount)` produces a new handle
+that needs its own `FHE.allowThis` before being stored.
+
+## Choosing the receive function
+
+Which one you need depends only on how the value reached you:
+
+| The value arrived as…                  | Use                                      |
+| -------------------------------------- | ---------------------------------------- |
+| a parameter of the function you are in | `receiveEuint64Param(shared)`            |
+| the return value of a call you made    | `receiveEuint64FromCall(shared, callee)` |
+
+`receiveEuint64Param` needs no address — use it whenever the value came in through your function signature.
+
+:::warning
+The address passed to `receiveEuint64FromCall` must be the contract called **in that same expression**. If
+nothing is called on that line, use `receiveEuint64Param`.
+
+Passing anything else — a stored `officialVault`, a constant — compiles and usually works, but checks the
+wrong thing: who _created_ the share rather than who _handed it to you_. That lets an unrelated caller
+present a value never meant for them.
+:::
+
+## Returning a value
+
+Share the result back with `msg.sender`, and unwrap it with `FromCall`:
+
+```solidity [Token.sol]
+function swap(sharedEuint64 shared) external returns (sharedEuint64) {
+    euint64 amountIn = FHE.receiveEuint64Param(shared);
+    return FHE.shareEuint64(FHE.div(amountIn, FHE.asEuint64(2)), msg.sender);
+}
+```
+
+```solidity [Vault.sol]
+euint64 out = FHE.receiveEuint64FromCall(token.swap(shared), address(token));
+FHE.allowThis(out);
+```
+
+## Limits
+
+- **One transaction.** A `sharedEuintXX` cannot be stored and received later.
+- **One use.** The first successful receive consumes it.
+- **One receiver.** Only the address named in `shareEuint64` can receive it.
+- **No batching.** Each share and each receive is one TaskManager call.
+
+## Errors
+
+| Revert                               | Meaning                                                                                                                                              |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SenderNotAllowed(sharer)`           | You shared a handle your contract is not allowed to use.                                                                                             |
+| `NotShared(handle, receiver)`        | Nothing shared with you for this handle — never shared, already consumed, shared with a different address, or an earlier transaction.                |
+| `UnexpectedSharer(expected, actual)` | A share exists but came from a different contract than the one named. Usually the wrong receive function, or the wrong address passed to `FromCall`. |
+
+## Access control is still yours
+
+Receiving proves the caller deliberately handed you the value. It says nothing about whether that caller
+should be talking to you:
+
+```solidity
+require(msg.sender == address(officialVault), "token: unknown vault"); // who may call
+euint64 amount = FHE.receiveEuint64Param(shared);                      // did they really share it
+```
+
+## Relaying
+
+A share names one receiver and must be handed over by the contract that created it — "A shares with C, B
+passes it along" does not work. Chain the hops instead: each contract receives, then shares onward.
+
+```solidity
+euint64 value = FHE.receiveEuint64Param(fromA);
+c.consume(FHE.shareEuint64(value, address(c)));
+```

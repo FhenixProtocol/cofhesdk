@@ -34,6 +34,9 @@
   "pnpm": {
     "overrides": {
       "typescript": "5.5.4"
+    },
+    "patchedDependencies": {
+      "@fhenixprotocol/cofhe-contracts@0.2.0-beta.1": "patches/@fhenixprotocol__cofhe-contracts@0.2.0-beta.1.patch"
     }
   },
   "packageManager": "pnpm@8.15.6",
