@@ -8,6 +8,7 @@ import { cn } from '../../../utils/cn';
 import { truncateAddress, sanitizeNumericInput } from '../../../utils/utils';
 import { TokenIcon } from '../components/TokenIcon';
 import { unitToWei } from '@/utils/format';
+import { getConfidentialDecimals } from '@/types/token';
 import { assert } from 'ts-essentials';
 import { CofheTokenConfidentialBalance } from '../components';
 import { useCofheTokensWithExistingEncryptedBalances, type ConfidentialToken } from '@/hooks';
@@ -97,7 +98,7 @@ export const SendPage: React.FC<SendPageProps> = ({ token: _token }) => {
   const handleSend = async () => {
     assert(isAddress(recipientAddress), 'Recipient address is not valid');
 
-    const amountWei = unitToWei(amount, token.decimals);
+    const amountWei = unitToWei(amount, getConfidentialDecimals(token));
     const maxConfidentialAmount = token.extensions.fhenix.confidentialValueType === 'uint128' ? maxUint128 : maxUint64;
     assert(amountWei <= maxConfidentialAmount, 'Amount exceeds maximum supported confidential value');
     assert(account, 'Sender account is required');

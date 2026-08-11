@@ -92,10 +92,13 @@ export function getPublicDecimals(token: ConfidentialToken): number {
 
 /**
  * Decimals of the confidential (encrypted) side. Confidential balances, unshield, transfer
- * and claim amounts are denominated in these. May differ from the public side (e.g. 6 vs 18).
+ * and claim amounts are denominated in these. May differ from the public side (e.g. 6 vs 18):
+ * wrapped tokens carry them as `token.decimals` (the public side lives on the erc20Pair);
+ * dual tokens keep `token.decimals` public (ERC20 `decimals()`) and declare the confidential
+ * side via `extensions.fhenix.confidentialDecimals` (contract getter `confidentialDecimals()`).
  */
 export function getConfidentialDecimals(token: ConfidentialToken): number {
-  return token.decimals;
+  return token.extensions.fhenix.confidentialDecimals ?? token.decimals;
 }
 
 /** Symbol of the public (underlying) side. */
@@ -122,6 +125,11 @@ export type ConfidentialToken = {
     fhenix: {
       confidentialityType: TokenConfidentialityType;
       confidentialValueType: TokenConfidentialValueType;
+      /**
+       * Confidential-side decimals for dual tokens whose public `decimals()` differs
+       * (e.g. public 18 / confidential 6). Defaults to `decimals` when absent.
+       */
+      confidentialDecimals?: number;
       /** ERC20 pair for wrapped tokens - contains underlying token info */
       erc20Pair?: Erc20Pair;
     };
@@ -132,10 +140,11 @@ export function buildToken(params: {
   base: ConfidentialTokenWithoutExtensions;
   confidentialityType: SupportedTokenConfidentialityType;
   confidentialValueType: TokenConfidentialValueType;
+  confidentialDecimals?: number;
   erc20Pair?: Erc20Pair;
   extensions?: Record<string, unknown>;
 }): ConfidentialToken {
-  const { base, confidentialityType, confidentialValueType, erc20Pair, extensions } = params;
+  const { base, confidentialityType, confidentialValueType, confidentialDecimals, erc20Pair, extensions } = params;
 
   return {
     ...base,
@@ -144,6 +153,7 @@ export function buildToken(params: {
       fhenix: {
         confidentialityType,
         confidentialValueType,
+        ...(confidentialDecimals !== undefined ? { confidentialDecimals } : {}),
         ...(erc20Pair ? { erc20Pair } : {}),
       },
     },
@@ -175,6 +185,7 @@ export function normalizeToken(token: ConfidentialToken): ConfidentialToken | un
     },
     confidentialityType,
     confidentialValueType: token.extensions?.fhenix?.confidentialValueType ?? 'uint64',
+    confidentialDecimals: token.extensions?.fhenix?.confidentialDecimals,
     erc20Pair,
     extensions: token.extensions,
   });

@@ -614,7 +614,7 @@ function ClaimingSection({ token }: { token: ConfidentialToken }) {
           label={
             claimUnshield.isPending
               ? 'Claiming...'
-              : `Claim ${isFetchingClaims ? '...' : formatTokenAmount(unshieldedClaims?.claimableAmount ?? 0n, token.decimals, 5).formatted} ${pairedSymbol}`
+              : `Claim ${isFetchingClaims ? '...' : formatTokenAmount(unshieldedClaims?.claimableAmount ?? 0n, getConfidentialDecimals(token), 5).formatted} ${pairedSymbol}`
           }
           className="mt-1"
         />
@@ -622,7 +622,8 @@ function ClaimingSection({ token }: { token: ConfidentialToken }) {
 
       {unshieldedClaims?.hasPending && token && !unshieldedClaims.hasClaimable && !isDualToken && (
         <p className="text-xxs text-yellow-600 dark:text-yellow-400 text-center">
-          Pending: {formatTokenAmount(unshieldedClaims.pendingAmount, token.decimals).formatted} {pairedSymbol}
+          Pending: {formatTokenAmount(unshieldedClaims.pendingAmount, getConfidentialDecimals(token)).formatted}{' '}
+          {pairedSymbol}
         </p>
       )}
       <StatusAndError status={claimingStatus} error={claimingError ?? claimSimulationError} />

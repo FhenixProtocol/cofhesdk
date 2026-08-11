@@ -33,6 +33,26 @@ describe('decimals accessors', () => {
     expect(getPublicDecimals(dual)).toBe(6);
     expect(getPublicSymbol(dual)).toBe('fhETH');
   });
+
+  it('separates dual-token sides via confidentialDecimals', () => {
+    const dual18 = normalizeToken({
+      chainId: 84532,
+      address: '0x0000000000000000000000000000000000000001',
+      name: 'Dual cUSD18',
+      symbol: 'cUSD18',
+      decimals: 18,
+      extensions: {
+        fhenix: {
+          confidentialityType: 'dual',
+          confidentialValueType: 'uint64',
+          confidentialDecimals: 6,
+        },
+      },
+    })!;
+    expect(getPublicDecimals(dual18)).toBe(18);
+    expect(getConfidentialDecimals(dual18)).toBe(6);
+    expect(dual18.extensions.fhenix.confidentialDecimals).toBe(6);
+  });
 });
 
 describe('scaleAmount', () => {
