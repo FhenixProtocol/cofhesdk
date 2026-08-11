@@ -49,11 +49,6 @@ contract MockACL is MockPermissioned {
     mapping(uint256 handle => mapping(address account => bool isAllowed)) persistedAllowedPairs;
     mapping(uint256 => bool) allowedForDecryption;
     mapping(address account => mapping(address delegatee => mapping(address contractAddress => bool isDelegate))) delegates;
-    /// @dev Approximates EIP-1153 transient storage: stores the block.number when the allowance
-    ///      was granted. An allowance is considered active only if it was set in the current block,
-    ///      so it auto-expires when the block changes — no explicit cleanup required.
-    ///      In Hardhat automine mode (one tx per block) this faithfully replicates per-tx transience.
-    mapping(bytes32 => uint256) transientAllowanceBlocks;
     /// @dev ACP infrastructure addresses served to SDKs (appended fields — do not reorder)
     address defaultRevokerContract;
     address shareRegistry;
@@ -165,9 +160,14 @@ contract MockACL is MockPermissioned {
       revert SenderNotAllowed(requester);
     }
 
-    ACLStorage storage $ = _getACLStorage();
     bytes32 key = keccak256(abi.encodePacked(handle, account));
-    $.transientAllowanceBlocks[key] = block.number;
+    assembly {
+      tstore(key, 1)
+      let length := tload(0)
+      let lengthPlusOne := add(length, 1)
+      tstore(lengthPlusOne, key)
+      tstore(0, lengthPlusOne)
+    }
   }
 
   /**
@@ -222,9 +222,12 @@ contract MockACL is MockPermissioned {
    * @return isAllowedTransient   Whether the account can access transiently the handle.
    */
   function allowedTransient(uint256 handle, address account) public view virtual returns (bool) {
-    ACLStorage storage $ = _getACLStorage();
+    bool isAllowedTransient;
     bytes32 key = keccak256(abi.encodePacked(handle, account));
-    return $.transientAllowanceBlocks[key] == block.number;
+    assembly {
+      isAllowedTransient := tload(key)
+    }
+    return isAllowedTransient;
   }
 
   /**
@@ -278,12 +281,27 @@ contract MockACL is MockPermissioned {
   }
 
   /**
-   * @dev No-op in the mock: transient allowances auto-expire when the block changes, so explicit
-   *      cleanup is not needed. Kept for interface compatibility with the production ACL.
+   * @dev This function removes the transient allowances, which could be useful for integration with
+   *      Account Abstraction when bundling several UserOps calling the TaskManagerCoprocessor.
    */
   function cleanTransientStorage() external virtual {
     if (msg.sender != TASK_MANAGER_ADDRESS_) {
       revert DirectAllowForbidden(msg.sender);
+    }
+
+    assembly {
+      let length := tload(0)
+      tstore(0, 0)
+      let lengthPlusOne := add(length, 1)
+      for {
+        let i := 1
+      } lt(i, lengthPlusOne) {
+        i := add(i, 1)
+      } {
+        let handle := tload(i)
+        tstore(i, 0)
+        tstore(handle, 0)
+      }
     }
   }
 
