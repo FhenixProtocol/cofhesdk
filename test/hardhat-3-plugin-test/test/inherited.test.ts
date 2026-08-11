@@ -25,7 +25,10 @@ describe('Inherited SDK Tests', async () => {
   });
 
   const storeEncrypted = async (client: Awaited<ReturnType<typeof cofhe.createClientWithBatteries>>) => {
-    const [enc] = await client.encryptInputs([Encryptable.uint32(42n)]).execute();
+    const [enc] = await client
+      .encryptInputs([Encryptable.uint32(42n)])
+      .setConsumingContract(simpleTest.address)
+      .execute();
     await simpleTest.write.setValue([enc]);
     const ctHash = await simpleTest.read.getValueHash();
     return { enc, ctHash };
@@ -46,6 +49,7 @@ describe('Inherited SDK Tests', async () => {
     const client = await cofhe.createClientWithBatteries(bobWalletClient);
     const [encHash, encProof] = await client
       .encryptInputs([Encryptable.uint32(42n)])
+      .setConsumingContract(simpleTest.address)
       .asHashPlusProof()
       .execute();
 
@@ -61,7 +65,10 @@ describe('Inherited SDK Tests', async () => {
   it('encrypt → store on-chain → decryptForView', async () => {
     const testValue = 100n;
     const client = await cofhe.createClientWithBatteries(bobWalletClient);
-    const [enc] = await client.encryptInputs([Encryptable.uint32(testValue)]).execute();
+    const [enc] = await client
+      .encryptInputs([Encryptable.uint32(testValue)])
+      .setConsumingContract(simpleTest.address)
+      .execute();
 
     await simpleTest.write.setValue([enc]);
 
@@ -74,7 +81,10 @@ describe('Inherited SDK Tests', async () => {
   it('encrypt → store on-chain → decryptForTx → publish → verify', async () => {
     const testValue = 55n;
     const client = await cofhe.createClientWithBatteries(bobWalletClient);
-    const [enc] = await client.encryptInputs([Encryptable.uint32(testValue)]).execute();
+    const [enc] = await client
+      .encryptInputs([Encryptable.uint32(testValue)])
+      .setConsumingContract(simpleTest.address)
+      .execute();
 
     await simpleTest.write.setValue([enc]);
 

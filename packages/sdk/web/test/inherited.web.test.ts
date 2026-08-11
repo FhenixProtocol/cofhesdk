@@ -93,7 +93,10 @@ describe('@cofhe/web - Inherited Client Tests', () => {
     it('should encrypt a uint128 value', async () => {
       await cofheClient.connect(publicClient, bobWalletClient);
 
-      const encrypted = await cofheClient.encryptInputs([Encryptable.uint128(100n)]).execute();
+      const encrypted = await cofheClient
+        .encryptInputs([Encryptable.uint128(100n)])
+        .setConsumingContract(bobAccount.address)
+        .execute();
 
       expect(encrypted).toBeDefined();
       expect(encrypted.length).toBe(1);

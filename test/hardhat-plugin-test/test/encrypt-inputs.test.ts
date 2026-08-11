@@ -21,7 +21,10 @@ describe('Encrypt Inputs Test', () => {
     const [signer] = await hre.ethers.getSigners();
     const client = await hre.cofhe.createClientWithBatteries(signer);
 
-    const encrypted = await client.encryptInputs([Encryptable.uint32(7n)]).execute();
+    const encrypted = await client
+      .encryptInputs([Encryptable.uint32(7n)])
+      .setConsumingContract(await simpleTest.getAddress())
+      .execute();
 
     // Add number to SimpleTest
     await simpleTest.setValue(encrypted[0]);
@@ -38,6 +41,7 @@ describe('Encrypt Inputs Test', () => {
 
     const [encHash, encProof] = await client
       .encryptInputs([Encryptable.uint32(7n)])
+      .setConsumingContract(await simpleTest.getAddress())
       .asHashPlusProof()
       .execute();
 
@@ -72,6 +76,7 @@ describe('Encrypt Inputs Test', () => {
 
       await client
         .encryptInputs([Encryptable.uint32(7n)])
+        .setConsumingContract(await simpleTest.getAddress())
         .onStep((step, context) => {
           if (context == null || context.isStart) return;
           const stepDelay = Array.isArray(delay) ? delay[completedSteps] : delay;

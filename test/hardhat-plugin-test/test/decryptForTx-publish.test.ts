@@ -30,7 +30,10 @@ describe('Hardhat Mocks – publishDecryptResult revert behavior', () => {
   it('should revert publishDecryptResult with incorrect value', async function () {
     const testValue = 123n;
 
-    const [enc] = await cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
+    const [enc] = await cofheClient
+      .encryptInputs([Encryptable.uint32(testValue)])
+      .setConsumingContract(await simpleTest.getAddress())
+      .execute();
 
     const tx = await simpleTest.connect(signer).setPublicValue(enc);
     await tx.wait();

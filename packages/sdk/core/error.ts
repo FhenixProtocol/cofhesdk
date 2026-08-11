@@ -15,6 +15,7 @@ export enum CofheErrorCode {
   CannotRemoveLastPermit = 'CANNOT_REMOVE_LAST_PERMIT',
   AccountUninitialized = 'ACCOUNT_UNINITIALIZED',
   ChainIdUninitialized = 'CHAIN_ID_UNINITIALIZED',
+  ConsumingContractUninitialized = 'CONSUMING_CONTRACT_UNINITIALIZED',
   SealOutputFailed = 'SEAL_OUTPUT_FAILED',
   SealOutputReturnedNull = 'SEAL_OUTPUT_RETURNED_NULL',
   InvalidUtype = 'INVALID_UTYPE',

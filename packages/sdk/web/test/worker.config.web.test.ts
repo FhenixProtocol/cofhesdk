@@ -13,6 +13,7 @@ const TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae78
 describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
   let publicClient: PublicClient;
   let walletClient: WalletClient;
+  let consumingContract: `0x${string}`;
 
   beforeAll(() => {
     publicClient = createPublicClient({
@@ -26,6 +27,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
       transport: http(),
       account,
     });
+    consumingContract = account.address;
   });
 
   describe('useWorkers config flag', () => {
@@ -44,6 +46,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
       let proveContext: any;
       const result = await client
         .encryptInputs([Encryptable.uint128(100n)])
+        .setConsumingContract(consumingContract)
         .onStep((step, context) => {
           if (step === 'prove' && context?.isEnd) {
             proveContext = context;
@@ -85,6 +88,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
       let proveContext: any;
       const result = await client
         .encryptInputs([Encryptable.uint128(100n)])
+        .setConsumingContract(consumingContract)
         .onStep((step, context) => {
           if (step === 'prove' && context?.isEnd) {
             proveContext = context;
@@ -115,6 +119,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
       let proveContext: any;
       const result = await client
         .encryptInputs([Encryptable.uint128(100n)])
+        .setConsumingContract(consumingContract)
         .setUseWorker(false) // Override to false
         .onStep((step, context) => {
           if (step === 'prove' && context?.isEnd) {
@@ -143,6 +148,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
       let proveContext: any;
       const result = await client
         .encryptInputs([Encryptable.uint128(100n)])
+        .setConsumingContract(consumingContract)
         .setUseWorker(true) // Override to true
         .onStep((step, context) => {
           if (step === 'prove' && context?.isEnd) {
@@ -170,6 +176,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
       let proveContext: any;
       const result = await client
         .encryptInputs([Encryptable.uint128(100n)])
+        .setConsumingContract(consumingContract)
         .onStep((step, context) => {
           if (step === 'prove' && context?.isEnd) {
             proveContext = context;
@@ -214,6 +221,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
       let proveContext: any;
       const result = await client
         .encryptInputs([Encryptable.uint128(100n)])
+        .setConsumingContract(consumingContract)
         .onStep((step, context) => {
           if (step === 'prove' && context?.isEnd) {
             proveContext = context;
@@ -249,6 +257,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
       let proveContext: any;
       const result = await client
         .encryptInputs([Encryptable.uint128(100n), Encryptable.uint64(50n), Encryptable.bool(true)])
+        .setConsumingContract(consumingContract)
         .onStep((step, context) => {
           if (step === 'prove' && context?.isEnd) {
             proveContext = context;
@@ -284,6 +293,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
       let proveContext: any;
       const result = await client
         .encryptInputs([Encryptable.uint8(42n)])
+        .setConsumingContract(consumingContract)
         .onStep((step, context) => {
           if (step === 'prove' && context?.isEnd) {
             proveContext = context;
@@ -310,6 +320,7 @@ describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
       let proveContext: any;
       const result = await client
         .encryptInputs([Encryptable.uint8(42n)])
+        .setConsumingContract(consumingContract)
         .setUseWorker(false) // But override to disable worker
         .onStep((step, context) => {
           if (step === 'prove' && context?.isEnd) {

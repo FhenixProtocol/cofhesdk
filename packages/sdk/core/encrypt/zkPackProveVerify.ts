@@ -261,7 +261,8 @@ export const zkVerify = async (
   serializedBytes: Uint8Array,
   address: string,
   securityZone: number,
-  chainId: number
+  chainId: number,
+  consumingContract: string
 ): Promise<VerifyResult[]> => {
   // Convert bytearray to hex string
   const packed_list = toHexString(serializedBytes);
@@ -269,11 +270,15 @@ export const zkVerify = async (
   const sz_byte = new Uint8Array([securityZone]);
 
   // Construct request payload
+  // `contract_address` binds the verifier's signature to the specific contract that will
+  // consume the result (cofhe-contracts#77 / zee-k-verifier#37) - a signed input can no longer
+  // be replayed into a different contract than the one it was signed for.
   const payload = {
     packed_list,
     account_addr: address,
     security_zone: sz_byte[0],
     chain_id: chainId,
+    contract_address: consumingContract,
   };
 
   const body = JSON.stringify(payload);

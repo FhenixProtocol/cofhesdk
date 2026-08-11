@@ -319,35 +319,35 @@ contract CofheClientTest is CofheTest {
   // --------------- createIn* ---------------
 
   function testCreateInEbool_true() public {
-    InEbool memory input = cofheClient.createInEbool(true);
+    InEbool memory input = cofheClient.createInEbool(true, address(store));
     vm.prank(cofheClient.account());
     store.storeEbool(input);
     assertTrue(getPlaintext(store.storedEbool()));
   }
 
   function testCreateInEbool_false() public {
-    InEbool memory input = cofheClient.createInEbool(false);
+    InEbool memory input = cofheClient.createInEbool(false, address(store));
     vm.prank(cofheClient.account());
     store.storeEbool(input);
     assertFalse(getPlaintext(store.storedEbool()));
   }
 
   function testCreateInEuint8() public {
-    InEuint8 memory input = cofheClient.createInEuint8(42);
+    InEuint8 memory input = cofheClient.createInEuint8(42, address(store));
     vm.prank(cofheClient.account());
     store.storeEuint8(input);
     assertEq(getPlaintext(store.storedEuint8()), 42);
   }
 
   function testCreateInEuint16() public {
-    InEuint16 memory input = cofheClient.createInEuint16(1234);
+    InEuint16 memory input = cofheClient.createInEuint16(1234, address(store));
     vm.prank(cofheClient.account());
     store.storeEuint16(input);
     assertEq(getPlaintext(store.storedEuint16()), 1234);
   }
 
   function testCreateInEuint32_fuzz(uint32 n) public {
-    InEuint32 memory input = cofheClient.createInEuint32(n);
+    InEuint32 memory input = cofheClient.createInEuint32(n, address(store));
     vm.prank(cofheClient.account());
     store.storeEuint32(input);
     assertEq(getPlaintext(store.storedEuint32()), n);
@@ -355,7 +355,7 @@ contract CofheClientTest is CofheTest {
 
   function testCreateInEuint64() public {
     uint64 val = 1e18;
-    InEuint64 memory input = cofheClient.createInEuint64(val);
+    InEuint64 memory input = cofheClient.createInEuint64(val, address(store));
     vm.prank(cofheClient.account());
     store.storeEuint64(input);
     assertEq(getPlaintext(store.storedEuint64()), val);
@@ -363,7 +363,7 @@ contract CofheClientTest is CofheTest {
 
   function testCreateInEuint128() public {
     uint128 val = type(uint128).max;
-    InEuint128 memory input = cofheClient.createInEuint128(val);
+    InEuint128 memory input = cofheClient.createInEuint128(val, address(store));
     vm.prank(cofheClient.account());
     store.storeEuint128(input);
     assertEq(getPlaintext(store.storedEuint128()), val);
@@ -371,7 +371,7 @@ contract CofheClientTest is CofheTest {
 
   function testCreateInEaddress() public {
     address target = address(0xBEEFCAFE);
-    InEaddress memory input = cofheClient.createInEaddress(target);
+    InEaddress memory input = cofheClient.createInEaddress(target, address(store));
     vm.prank(cofheClient.account());
     store.storeEaddress(input);
     assertEq(getPlaintext(store.storedEaddress()), target);
@@ -380,28 +380,28 @@ contract CofheClientTest is CofheTest {
   // --------------- createIn*HashPlusProof ---------------
 
   function testCreateInEbool_asHashPlusProof_true() public {
-    (externalEbool hash, bytes memory proof) = cofheClient.createInEbool_asHashPlusProof(true);
+    (externalEbool hash, bytes memory proof) = cofheClient.createInEbool_asHashPlusProof(true, address(store));
     vm.prank(cofheClient.account());
     store.storeEboolHashPlusProof(hash, proof);
     assertTrue(getPlaintext(store.storedEbool()));
   }
 
   function testCreateInEbool_asHashPlusProof_false() public {
-    (externalEbool hash, bytes memory proof) = cofheClient.createInEbool_asHashPlusProof(false);
+    (externalEbool hash, bytes memory proof) = cofheClient.createInEbool_asHashPlusProof(false, address(store));
     vm.prank(cofheClient.account());
     store.storeEboolHashPlusProof(hash, proof);
     assertFalse(getPlaintext(store.storedEbool()));
   }
 
   function testCreateInEuint8_asHashPlusProof() public {
-    (externalEuint8 hash, bytes memory proof) = cofheClient.createInEuint8_asHashPlusProof(42);
+    (externalEuint8 hash, bytes memory proof) = cofheClient.createInEuint8_asHashPlusProof(42, address(store));
     vm.prank(cofheClient.account());
     store.storeEuint8HashPlusProof(hash, proof);
     assertEq(getPlaintext(store.storedEuint8()), 42);
   }
 
   function testCreateInEuint16_asHashPlusProof() public {
-    (externalEuint16 hash, bytes memory proof) = cofheClient.createInEuint16_asHashPlusProof(1234);
+    (externalEuint16 hash, bytes memory proof) = cofheClient.createInEuint16_asHashPlusProof(1234, address(store));
     vm.prank(cofheClient.account());
     store.storeEuint16HashPlusProof(hash, proof);
     assertEq(getPlaintext(store.storedEuint16()), 1234);
@@ -409,7 +409,7 @@ contract CofheClientTest is CofheTest {
 
   function testCreateInEuint32_asHashPlusProof() public {
     uint32 n = 42;
-    (externalEuint32 hash, bytes memory proof) = cofheClient.createInEuint32_asHashPlusProof(n);
+    (externalEuint32 hash, bytes memory proof) = cofheClient.createInEuint32_asHashPlusProof(n, address(store));
     vm.prank(cofheClient.account());
     store.storeEuint32HashPlusProof(hash, proof);
     assertEq(getPlaintext(store.storedEuint32()), n);
@@ -417,7 +417,7 @@ contract CofheClientTest is CofheTest {
 
   function testCreateInEuint64_asHashPlusProof() public {
     uint64 val = 1e18;
-    (externalEuint64 hash, bytes memory proof) = cofheClient.createInEuint64_asHashPlusProof(val);
+    (externalEuint64 hash, bytes memory proof) = cofheClient.createInEuint64_asHashPlusProof(val, address(store));
     vm.prank(cofheClient.account());
     store.storeEuint64HashPlusProof(hash, proof);
     assertEq(getPlaintext(store.storedEuint64()), val);
@@ -425,7 +425,7 @@ contract CofheClientTest is CofheTest {
 
   function testCreateInEuint128_asHashPlusProof() public {
     uint128 val = type(uint128).max;
-    (externalEuint128 hash, bytes memory proof) = cofheClient.createInEuint128_asHashPlusProof(val);
+    (externalEuint128 hash, bytes memory proof) = cofheClient.createInEuint128_asHashPlusProof(val, address(store));
     vm.prank(cofheClient.account());
     store.storeEuint128HashPlusProof(hash, proof);
     assertEq(getPlaintext(store.storedEuint128()), val);
@@ -433,10 +433,29 @@ contract CofheClientTest is CofheTest {
 
   function testCreateInEaddress_asHashPlusProof() public {
     address target = address(0xBEEFCAFE);
-    (externalEaddress hash, bytes memory proof) = cofheClient.createInEaddress_asHashPlusProof(target);
+    (externalEaddress hash, bytes memory proof) = cofheClient.createInEaddress_asHashPlusProof(target, address(store));
     vm.prank(cofheClient.account());
     store.storeEaddressHashPlusProof(hash, proof);
     assertEq(getPlaintext(store.storedEaddress()), target);
+  }
+
+  // --------------- consuming contract binding ---------------
+
+  function testCreateInEuint32_revertsWhenConsumingContractIsZeroAddress() public {
+    vm.expectRevert('CofheClient: consuming contract must not be the zero address');
+    cofheClient.createInEuint32(42, address(0));
+  }
+
+  function testCreateInEuint32_revertsWhenConsumedByWrongContract() public {
+    EncryptedValueStore otherStore = new EncryptedValueStore();
+
+    // Signed for `store`, but consumed via `otherStore`.
+    InEuint32 memory input = cofheClient.createInEuint32(42, address(store));
+    address alice = cofheClient.account();
+
+    vm.expectRevert();
+    vm.prank(alice);
+    otherStore.storeEuint32(input);
   }
 
   // --------------- decryptForTx_withoutPermit ---------------
@@ -661,7 +680,7 @@ contract CofheClientTest is CofheTest {
   function testCreateInEuint32_revertsWhenNotConnected() public {
     CofheClient unconnected = createCofheClient();
     vm.expectRevert('CofheClient: not connected');
-    unconnected.createInEuint32(42);
+    unconnected.createInEuint32(42, address(store));
   }
 
   function testDecryptForTx_revertsWhenNotConnected() public {

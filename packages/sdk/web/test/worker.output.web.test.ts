@@ -13,6 +13,7 @@ const TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae78
 describe('@cofhe/sdk/web - Worker vs Main Thread Output Validation', () => {
   let publicClient: PublicClient;
   let walletClient: WalletClient;
+  let consumingContract: `0x${string}`;
 
   beforeAll(() => {
     publicClient = createPublicClient({
@@ -26,6 +27,7 @@ describe('@cofhe/sdk/web - Worker vs Main Thread Output Validation', () => {
       transport: http(),
       account,
     });
+    consumingContract = account.address;
   });
 
   it('should produce consistent output format regardless of worker usage', async () => {
@@ -49,8 +51,8 @@ describe('@cofhe/sdk/web - Worker vs Main Thread Output Validation', () => {
     const value = Encryptable.uint128(12345n);
 
     const [resultWithWorker, resultWithoutWorker] = await Promise.all([
-      clientWithWorker.encryptInputs([value]).execute(),
-      clientWithoutWorker.encryptInputs([value]).execute(),
+      clientWithWorker.encryptInputs([value]).setConsumingContract(consumingContract).execute(),
+      clientWithoutWorker.encryptInputs([value]).setConsumingContract(consumingContract).execute(),
     ]);
 
     // Both should succeed

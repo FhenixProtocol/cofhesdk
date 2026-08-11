@@ -10,6 +10,11 @@
       "bytecodeHash": "0x629a314a08077f66227274fd4f4b3059cb11dd2c03b269c0757d78d62fcc4faa",
       "deployedAt": "2026-04-27T19:53:17.064Z"
     },
+    "420105-staging": {
+      "address": "0x995e576B80b2612F5290c06a115ef48AE49AdbD2",
+      "bytecodeHash": "0xa7cc4225444b89bfd38e08d64d5c0b41327520341922dcd6e4bb22fd7745227d",
+      "deployedAt": "2026-08-03T11:16:02.479Z"
+    },
     "421614": {
       "address": "0x9987aa7a3992d6DC1E17aBec2F6f19e4BbdE1a38",
       "bytecodeHash": "0xa7cc4225444b89bfd38e08d64d5c0b41327520341922dcd6e4bb22fd7745227d",

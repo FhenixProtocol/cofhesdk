@@ -17,17 +17,32 @@ import { ZK_VERIFIER_SIGNER_PRIVATE_KEY } from '@cofhe/mock-contracts/contracts/
 contract MockZkVerifierSigner is Test {
   function zkVerifySignPacked(
     EncryptedInput[] memory inputs,
-    address sender
+    address sender,
+    address consumingContract
   ) public view returns (EncryptedInput[] memory) {
     EncryptedInput[] memory signedInputs = new EncryptedInput[](inputs.length);
     for (uint256 i = 0; i < inputs.length; i++) {
-      signedInputs[i] = zkVerifySign(inputs[i], sender);
+      signedInputs[i] = zkVerifySign(inputs[i], sender, consumingContract);
     }
     return signedInputs;
   }
 
-  function zkVerifySign(EncryptedInput memory input, address sender) public view returns (EncryptedInput memory) {
-    bytes memory combined = abi.encodePacked(input.ctHash, input.utype, input.securityZone, sender, block.chainid);
+  /// @dev `consumingContract` binds the signature to the specific contract that will consume
+  ///      this input (matching cofhe-contracts#77 / MockTaskManager.extractSigner), so a signed
+  ///      input cannot be replayed into a different contract than the one it was signed for.
+  function zkVerifySign(
+    EncryptedInput memory input,
+    address sender,
+    address consumingContract
+  ) public view returns (EncryptedInput memory) {
+    bytes memory combined = abi.encodePacked(
+      input.ctHash,
+      input.utype,
+      input.securityZone,
+      sender,
+      block.chainid,
+      consumingContract
+    );
 
     bytes32 expectedHash = keccak256(combined);
 

@@ -566,7 +566,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
         revert InvalidSecurityZone(securityZone, securityZoneMin, securityZoneMax);
       }
 
-      address signer = extractSigner(input, sender);
+      address signer = extractSigner(input, sender, msg.sender);
       if (signer != verifierSigner) {
         revert InvalidSigner(signer, verifierSigner);
       }
@@ -623,8 +623,23 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     return acl.isAllowed(ctHash, account);
   }
 
-  function extractSigner(EncryptedInput memory input, address sender) private view returns (address) {
-    bytes memory combined = abi.encodePacked(input.ctHash, input.utype, input.securityZone, sender, block.chainid);
+  /// @dev `contractAddress` binds the input to the specific contract that consumes it (the
+  ///      caller of `verifyInput`, i.e. the contract that called `FHE.asEuint*`), matching
+  ///      cofhe-contracts#77 - without this, a signed input observed on-chain could be replayed
+  ///      into any other contract, which would then obtain an ACL allowance over the ciphertext.
+  function extractSigner(
+    EncryptedInput memory input,
+    address sender,
+    address contractAddress
+  ) private view returns (address) {
+    bytes memory combined = abi.encodePacked(
+      input.ctHash,
+      input.utype,
+      input.securityZone,
+      sender,
+      block.chainid,
+      contractAddress
+    );
     bytes32 expectedHash = keccak256(combined);
 
     address signer = ECDSA.recover(expectedHash, input.signature);
