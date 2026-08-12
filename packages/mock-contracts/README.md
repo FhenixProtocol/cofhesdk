@@ -85,7 +85,7 @@ If you want to assert on plaintext values in Hardhat tests, the plugin exposes h
 
 Use this when you are writing tests in **Solidity** and running them with `forge test`.
 
-- You typically inherit from the abstract `CoFheTest` helper to deploy/setup the necessary FHE mock environment.
+- You typically inherit from the abstract `CofheTest` helper (shipped by `@cofhe/foundry-plugin`) to deploy/setup the necessary FHE mock environment.
 - You use helper methods to create encrypted inputs and assert their underlying values.
 
 > **Important**: You must set `isolate = true` in your `foundry.toml`. Without this setting, some variables may be used without proper permission checks, which will cause failures on production chains.
@@ -139,44 +139,61 @@ When working with the mocks, the `cofheClient` instead queries the `MockThreshol
 
 ### Using Foundry
 
-Use abstract CoFheTest contract to automatically deploy all necessary FHE contracts for testing.
+The Foundry helpers are shipped by `@cofhe/foundry-plugin`, which deploys the mock contracts from this package:
 
-CoFheTest also exposes useful test methods such as
+- `CofheTest` - abstract base contract (already inherits `forge-std/Test`). Inherit it and call `deployMocks()` in `setUp()`.
+- `CofheClient` - SDK-like client obtained from `createCofheClient()`. Holds the active account and creates encrypted inputs.
 
-- `assertHashValue(euint, uint)` - asserting an encrypted value is equal to an expected plaintext value
-- `createInEuint..(number, user)` - for creating encrypted inputs (8-256bits) for a given user
-- `createInEuint*_asHashPlusProof(number, user)` - for creating encrypted inputs in the hash plus proof format
+`CofheTest` exposes useful test methods such as
+
+- `deployMocks()` - deploys all mock contracts and wires them together
+- `createCofheClient()` - returns a new `CofheClient` (call `connect(pkey)` on it before use)
+- `expectPlaintext(handle, value)` - asserting an encrypted value is equal to an expected plaintext value
+- `getPlaintext(handle)` - reading the stored plaintext of an encrypted value
+- `enableLogs()` / `disableLogs()` - toggling verbose logging of the mock FHE operations (after `deployMocks()`)
+
+`CofheClient` exposes
+
+- `connect(pkey)` / `account()` - setting and reading the active account
+- `createInEuint..(number)` - for creating encrypted inputs (bool, 8-128 bits, address)
+- `createInEuint*_asHashPlusProof(number)` - for creating encrypted inputs in the hash plus proof format
 
 Example:
 
 ```solidity
-import {Test} from "forge-std/Test.sol";
-import {CoFheTest} from "@fhenixprotocol/cofhe-contracts/FHE.sol";
+import {CofheTest} from "@cofhe/foundry-plugin/contracts/CofheTest.sol";
+import {CofheClient} from "@cofhe/foundry-plugin/contracts/CofheClient.sol";
+import {InEuint32} from "@fhenixprotocol/cofhe-contracts/FHE.sol";
 import {MyFheContract} from "./MyFheContract.sol";
-...
-contract MyFheContractExample is Test, CoFheTest {
 
+contract MyFheContractExample is CofheTest {
   MyFheContract private target;
+  CofheClient private cofheClient;
 
-  address private user = makeAddr("user");
+  uint256 private constant USER_PKEY = 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
 
   function setUp() public {
+    deployMocks();
+
     // optional ... enable verbose logging for fhe mocks
-    // setLog(true);
+    // enableLogs();
+
+    cofheClient = createCofheClient();
+    cofheClient.connect(USER_PKEY);
 
     target = new MyFheContract();
   }
 
   function testSetValue() public {
     uint32 n = 10;
-    InEuint32 memory number = createInEuint32(n, user);
+    InEuint32 memory number = cofheClient.createInEuint32(n);
 
-    //must be the user who sends transaction
+    //must be the connected account who sends transaction
     //or else invalid permissions from fhe allow
-    vm.prank(user);
+    vm.prank(cofheClient.account());
     target.setValue(number);
 
-    assertHashValue(target.getValue(), n);
+    expectPlaintext(target.getValue(), n);
   }
 }
 ```
