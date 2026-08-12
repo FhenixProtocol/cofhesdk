@@ -78,98 +78,186 @@ contract CofheClient is Test {
   // =====================
   //       ENCRYPT
   // =====================
+  // Every encryption helper takes the consuming contract explicitly as its last parameter - i.e.
+  // the contract that will call `FHE.asEuint*`/`FHE.asEuint*s` with the resulting hashes. The
+  // verifier binds this address into the signed digest (cofhe-contracts#77), so a batch signed
+  // for one contract cannot be replayed into another. It is a required argument rather than
+  // client-level state so that a single test can encrypt for several contracts without a
+  // stateful setter to keep track of.
 
-  /// @notice Creates a signed encrypted input for the connected account (security zone 0).
-  function createEncryptedInput(
+  /// @notice Computes, stores, and signs a single-item encrypted input via the canonical batch
+  ///         path (createEncryptedInputsBatch, with a batch of size 1) - the root of all
+  ///         encryption helpers on this client, single-item or not.
+  function _createSingleEncryptedInput(
     uint8 utype,
-    uint256 value
-  ) internal onlyConnected returns (EncryptedInput memory input) {
-    input = mockZkVerifier.zkVerify(value, utype, _account, 0, block.chainid);
-    input = mockZkVerifierSigner.zkVerifySign(input, _account);
+    uint256 value,
+    address consumingContract
+  ) internal onlyConnected returns (uint256 ctHash, bytes memory signature) {
+    uint8[] memory utypes = new uint8[](1);
+    uint256[] memory values = new uint256[](1);
+    utypes[0] = utype;
+    values[0] = value;
+
+    (UnsignedEncryptedInput[] memory inputs, bytes memory sig) = createEncryptedInputsBatch(
+      utypes,
+      values,
+      consumingContract
+    );
+    ctHash = inputs[0].ctHash;
+    signature = sig;
   }
 
-  /// @notice Creates an encrypted boolean input.
-  function createInEbool(bool value) public returns (InEbool memory) {
-    return abi.decode(abi.encode(createEncryptedInput(Utils.EBOOL_TFHE, value ? 1 : 0)), (InEbool));
+  /// @notice Creates an encrypted boolean input as hash plus proof, bound to `consumingContract`.
+  function createExternalEbool(
+    bool value,
+    address consumingContract
+  ) public returns (externalEbool hash, bytes memory proof) {
+    (uint256 ctHash, bytes memory signature) = _createSingleEncryptedInput(
+      Utils.EBOOL_TFHE,
+      value ? 1 : 0,
+      consumingContract
+    );
+    hash = externalEbool.wrap(bytes32(ctHash));
+    proof = signature;
   }
 
-  /// @notice Creates an encrypted uint8 input.
-  function createInEuint8(uint8 value) public returns (InEuint8 memory) {
-    return abi.decode(abi.encode(createEncryptedInput(Utils.EUINT8_TFHE, value)), (InEuint8));
+  /// @notice Creates an encrypted uint8 input as hash plus proof, bound to `consumingContract`.
+  function createExternalEuint8(
+    uint8 value,
+    address consumingContract
+  ) public returns (externalEuint8 hash, bytes memory proof) {
+    (uint256 ctHash, bytes memory signature) = _createSingleEncryptedInput(
+      Utils.EUINT8_TFHE,
+      value,
+      consumingContract
+    );
+    hash = externalEuint8.wrap(bytes32(ctHash));
+    proof = signature;
   }
 
-  /// @notice Creates an encrypted uint16 input.
-  function createInEuint16(uint16 value) public returns (InEuint16 memory) {
-    return abi.decode(abi.encode(createEncryptedInput(Utils.EUINT16_TFHE, value)), (InEuint16));
+  /// @notice Creates an encrypted uint16 input as hash plus proof, bound to `consumingContract`.
+  function createExternalEuint16(
+    uint16 value,
+    address consumingContract
+  ) public returns (externalEuint16 hash, bytes memory proof) {
+    (uint256 ctHash, bytes memory signature) = _createSingleEncryptedInput(
+      Utils.EUINT16_TFHE,
+      value,
+      consumingContract
+    );
+    hash = externalEuint16.wrap(bytes32(ctHash));
+    proof = signature;
   }
 
-  /// @notice Creates an encrypted uint32 input.
-  function createInEuint32(uint32 value) public returns (InEuint32 memory) {
-    return abi.decode(abi.encode(createEncryptedInput(Utils.EUINT32_TFHE, value)), (InEuint32));
+  /// @notice Creates an encrypted uint32 input as hash plus proof, bound to `consumingContract`.
+  function createExternalEuint32(
+    uint32 value,
+    address consumingContract
+  ) public returns (externalEuint32 hash, bytes memory proof) {
+    (uint256 ctHash, bytes memory signature) = _createSingleEncryptedInput(
+      Utils.EUINT32_TFHE,
+      value,
+      consumingContract
+    );
+    hash = externalEuint32.wrap(bytes32(ctHash));
+    proof = signature;
   }
 
-  /// @notice Creates an encrypted uint64 input.
-  function createInEuint64(uint64 value) public returns (InEuint64 memory) {
-    return abi.decode(abi.encode(createEncryptedInput(Utils.EUINT64_TFHE, value)), (InEuint64));
+  /// @notice Creates an encrypted uint64 input as hash plus proof, bound to `consumingContract`.
+  function createExternalEuint64(
+    uint64 value,
+    address consumingContract
+  ) public returns (externalEuint64 hash, bytes memory proof) {
+    (uint256 ctHash, bytes memory signature) = _createSingleEncryptedInput(
+      Utils.EUINT64_TFHE,
+      value,
+      consumingContract
+    );
+    hash = externalEuint64.wrap(bytes32(ctHash));
+    proof = signature;
   }
 
-  /// @notice Creates an encrypted uint128 input.
-  function createInEuint128(uint128 value) public returns (InEuint128 memory) {
-    return abi.decode(abi.encode(createEncryptedInput(Utils.EUINT128_TFHE, value)), (InEuint128));
+  /// @notice Creates an encrypted uint128 input as hash plus proof, bound to `consumingContract`.
+  function createExternalEuint128(
+    uint128 value,
+    address consumingContract
+  ) public returns (externalEuint128 hash, bytes memory proof) {
+    (uint256 ctHash, bytes memory signature) = _createSingleEncryptedInput(
+      Utils.EUINT128_TFHE,
+      value,
+      consumingContract
+    );
+    hash = externalEuint128.wrap(bytes32(ctHash));
+    proof = signature;
   }
 
-  /// @notice Creates an encrypted address input.
-  function createInEaddress(address value) public returns (InEaddress memory) {
-    return abi.decode(abi.encode(createEncryptedInput(Utils.EADDRESS_TFHE, uint256(uint160(value)))), (InEaddress));
+  /// @notice Creates an encrypted address input as hash plus proof, bound to `consumingContract`.
+  function createExternalEaddress(
+    address value,
+    address consumingContract
+  ) public returns (externalEaddress hash, bytes memory proof) {
+    (uint256 ctHash, bytes memory signature) = _createSingleEncryptedInput(
+      Utils.EADDRESS_TFHE,
+      uint256(uint160(value)),
+      consumingContract
+    );
+    hash = externalEaddress.wrap(bytes32(ctHash));
+    proof = signature;
   }
 
-  /// @notice Creates an encrypted boolean input as hash plus proof.
-  function createInEbool_asHashPlusProof(bool value) public returns (externalEbool hash, bytes memory proof) {
-    InEbool memory input = createInEbool(value);
-    hash = externalEbool.wrap(bytes32(input.ctHash));
-    proof = input.signature;
+  // =====================
+  //   ENCRYPT (BATCH)
+  // =====================
+  // The canonical batch verification path - a whole batch of inputs authenticated by a single
+  // signature over keccak256(h_0 || ... || h_n) (see MockZkVerifierSigner.zkVerifyBatchSign /
+  // MockTaskManager.batchVerifyInputs). This is the root of every encryption helper on this
+  // client - the single-item createExternalEuintX helpers above are thin wrappers over a batch of
+  // size 1, not a separate signing scheme.
+
+  /// @notice Creates a batch of encrypted inputs (mixed utypes allowed) sharing one signature,
+  ///         all bound to `consumingContract`.
+  function createEncryptedInputsBatch(
+    uint8[] memory utypes,
+    uint256[] memory values,
+    address consumingContract
+  ) internal onlyConnected returns (UnsignedEncryptedInput[] memory inputs, bytes memory signature) {
+    require(utypes.length == values.length, 'CofheClient: length mismatch');
+    require(consumingContract != address(0), 'CofheClient: consuming contract must not be the zero address');
+
+    inputs = new UnsignedEncryptedInput[](utypes.length);
+    for (uint256 i = 0; i < utypes.length; i++) {
+      uint256 ctHash = mockZkVerifier.zkVerifyCalcCtHash(values[i], utypes[i], _account, 0, block.chainid);
+      mockZkVerifier.insertCtHash(ctHash, values[i]);
+      inputs[i] = UnsignedEncryptedInput({ ctHash: ctHash, securityZone: 0, utype: utypes[i] });
+    }
+
+    signature = mockZkVerifierSigner.zkVerifyBatchSign(inputs, _account, consumingContract);
   }
 
-  /// @notice Creates an encrypted uint8 input as hash plus proof.
-  function createInEuint8_asHashPlusProof(uint8 value) public returns (externalEuint8 hash, bytes memory proof) {
-    InEuint8 memory input = createInEuint8(value);
-    hash = externalEuint8.wrap(bytes32(input.ctHash));
-    proof = input.signature;
-  }
+  /// @notice Creates a batch of encrypted uint32 inputs sharing one signature, all bound to
+  ///         `consumingContract`.
+  function createEuint32sBatch(
+    uint32[] memory values,
+    address consumingContract
+  ) public returns (externalEuint32[] memory hashes, bytes memory signature) {
+    uint8[] memory utypes = new uint8[](values.length);
+    uint256[] memory rawValues = new uint256[](values.length);
+    for (uint256 i = 0; i < values.length; i++) {
+      utypes[i] = Utils.EUINT32_TFHE;
+      rawValues[i] = values[i];
+    }
 
-  /// @notice Creates an encrypted uint16 input as hash plus proof.
-  function createInEuint16_asHashPlusProof(uint16 value) public returns (externalEuint16 hash, bytes memory proof) {
-    InEuint16 memory input = createInEuint16(value);
-    hash = externalEuint16.wrap(bytes32(input.ctHash));
-    proof = input.signature;
-  }
+    (UnsignedEncryptedInput[] memory inputs, bytes memory sig) = createEncryptedInputsBatch(
+      utypes,
+      rawValues,
+      consumingContract
+    );
 
-  /// @notice Creates an encrypted uint32 input as hash plus proof.
-  function createInEuint32_asHashPlusProof(uint32 value) public returns (externalEuint32 hash, bytes memory proof) {
-    InEuint32 memory input = createInEuint32(value);
-    hash = externalEuint32.wrap(bytes32(input.ctHash));
-    proof = input.signature;
-  }
-
-  /// @notice Creates an encrypted uint64 input as hash plus proof.
-  function createInEuint64_asHashPlusProof(uint64 value) public returns (externalEuint64 hash, bytes memory proof) {
-    InEuint64 memory input = createInEuint64(value);
-    hash = externalEuint64.wrap(bytes32(input.ctHash));
-    proof = input.signature;
-  }
-
-  /// @notice Creates an encrypted uint128 input as hash plus proof.
-  function createInEuint128_asHashPlusProof(uint128 value) public returns (externalEuint128 hash, bytes memory proof) {
-    InEuint128 memory input = createInEuint128(value);
-    hash = externalEuint128.wrap(bytes32(input.ctHash));
-    proof = input.signature;
-  }
-
-  /// @notice Creates an encrypted address input as hash plus proof.
-  function createInEaddress_asHashPlusProof(address value) public returns (externalEaddress hash, bytes memory proof) {
-    InEaddress memory input = createInEaddress(value);
-    hash = externalEaddress.wrap(bytes32(input.ctHash));
-    proof = input.signature;
+    hashes = new externalEuint32[](inputs.length);
+    for (uint256 i = 0; i < inputs.length; i++) {
+      hashes[i] = externalEuint32.wrap(bytes32(inputs[i].ctHash));
+    }
+    signature = sig;
   }
 
   // =====================

@@ -106,8 +106,8 @@ graph TD
             PPack["2.4 Pack inputs<br/>zkPack(items, builder)"]
             PMeta["2.5 Construct metadata<br/>constructZkPoKMetadata()"]
             PProve["2.6 Prove (worker or main)<br/>zkProveWithWorker()/zkProve()"]
-            PVerify["2.7 Verify proof (resolve URL + POST /verify)<br/>getZkVerifierUrl() + zkVerify(...)"]
-            PRet["2.8 Return VerifyResult[]<br/>(ct_hash + signature)"]
+            PVerify["2.7 Verify proof (resolve URL + POST /verify-batch)<br/>getZkVerifierUrl() + zkVerifyBatch(...)"]
+            PRet["2.8 Return VerifyBatchResult<br/>(outputs[] + one shared batch signature)"]
         end
 
         PPackage["3. Map VerifyResult[] -> EncryptedInputs"]
@@ -325,8 +325,8 @@ The **ZK Verifier** is responsible for the **encryption phase** - converting pla
 The SDK uses the term **"ZK Verifier"** for the component that ultimately produces **on-chain verifiable attestations** that an encrypted handle (ctHash) is _well-formed_.
 
 - **Production (testnet/mainnet):** the verifier is an **off-chain verifier service** (configured via `supportedChains[].verifierUrl`).
-  - The SDK calls `POST {verifierUrl}/verify` (see `zkPackProveVerify.ts`).
-  - That service verifies the ZK proof and returns `(ct_hash, signature)` for each input.
+  - The SDK calls `POST {verifierUrl}/verify-batch` (see `zkPackProveVerify.ts`).
+  - That service verifies the ZK proof and returns one `ct_hash` per input plus a **single signature authenticating the whole batch**, computed over `keccak256(h_0 || ... || h_n)`. The request also carries `contract_address`, binding the signature to the contract that will consume the inputs.
 - **Mock mode (Hardhat/local testing):** there is no real ZK proof verification.
   - `MockZkVerifier` (contract) exists only to deterministically derive ctHashes and store ctHash→plaintext mappings for mock FHE operations.
   - The SDK produces a **mock signature** using `MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY` so you can still exercise the "signed input" plumbing.
@@ -432,12 +432,16 @@ contract.storeValue(fakeCtHash);    // Contract accepts it blindly
 ✅ **Protection With ZK Verifier:**
 
 ```solidity
-// ZK Verifier ensures the ctHash is legitimate:
-EncryptedInputs memory inputs = client.encryptInputs([42, 100]).execute();
-// inputs.ctHashes[0] comes with a valid signature/proof
-// CoFHE system contracts (Task Manager via FHE.sol) verify the signature on-chain
-contract.storeValue(inputs.ctHashes[0], inputs.signatures[0]);
-// If signature is invalid → the CoFHE verification step reverts
+// ZK Verifier ensures the ctHashes are legitimate:
+const [hash1, hash2, signature] = await client
+  .encryptInputs([Encryptable.uint32(42), Encryptable.uint32(100)])
+  .setConsumingContract(contractAddress)
+  .execute();
+// One signature authenticates the whole batch, and is bound to `contractAddress`.
+// CoFHE system contracts (Task Manager via FHE.sol) verify it on-chain.
+contract.storeValues([hash1, hash2], signature);
+// If the signature is invalid, or it's replayed into a different contract → the
+// CoFHE verification step reverts
 ```
 
 **The Core Security Guarantee:**
@@ -607,8 +611,11 @@ The CoFHE SDK provides a **unified API** that works identically in both modes:
 
 ```typescript
 // Same code works in both mock and production!
-const encrypted = await client.encryptInputs([Encryptable.uint32(42)]).execute();
-const plaintext = await client.decryptForView(encrypted[0].ctHash, FheTypes.Uint32).execute();
+const [hash, signature] = await client
+  .encryptInputs([Encryptable.uint32(42)])
+  .setConsumingContract(contractAddress)
+  .execute();
+const plaintext = await client.decryptForView(hash, FheTypes.Uint32).execute();
 ```
 
 The difference is **implementation**:

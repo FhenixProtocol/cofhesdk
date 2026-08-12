@@ -110,6 +110,7 @@ const ALL_CHAINS = [
   { label: 'Ethereum Sepolia' },
   { label: 'Arbitrum Sepolia' },
   { label: 'Base Sepolia' },
+  { label: 'CoFHE Staging', optIn: true },
 ];
 
 function shouldStartAnvil(matrixChain?: string, matrixEnv?: string): boolean {

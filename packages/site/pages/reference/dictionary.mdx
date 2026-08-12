@@ -32,8 +32,8 @@ A **type tag** that describes the encrypted primitive type (e.g. `Uint32`, `Uint
 
 The payload you submit in a transaction when calling a contract function that accepts encrypted inputs.
 
-- Off-chain: produced by `client.encryptInputs([...]).execute()` as `EncryptedItemInput` objects.
-- On-chain: passed into functions as `InEuint32`, `InEuint64`, etc. (structs validated by the CoFHE library before use).
+- Off-chain: produced by `client.encryptInputs([...]).setConsumingContract(contractAddress).execute()` as a `[...hashes, signature]` tuple — one ciphertext hash per input, followed by a single signature authenticating the whole batch together. `setConsumingContract` is required — the signature is bound to the specific contract that will consume it.
+- On-chain: passed into functions as `externalEuint32`, `externalEuint64`, etc. handles plus a trailing `bytes` signature parameter (validated by the CoFHE library, e.g. `FHE.asEuint32s(hashes, signature)`, before use).
 
 ## ACP
 

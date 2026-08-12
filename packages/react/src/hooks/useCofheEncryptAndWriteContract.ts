@@ -8,7 +8,7 @@ import type {
   WriteContractReturnType,
 } from 'viem';
 import { type CofheInputArgsPreTransform, extractEncryptableValues, insertEncryptedValues } from '@cofhe/abi';
-import type { EncryptableItem, EncryptedItemInput } from '@cofhe/sdk';
+import type { EncryptableItem } from '@cofhe/sdk';
 import { useCofheEncrypt, type EncryptInputsOptions, type UseCofheEncryptOptions } from './useCofheEncrypt';
 import { useCofheWriteContract, type useCofheWriteContractOptions } from './useCofheWriteContract';
 
@@ -43,7 +43,7 @@ export async function _encryptAndWriteContract<
   // Otherwise, an incorrect args shape can cause TS to widen TAbi to `readonly unknown[]`
   // (and then args become `unknown[]`, silently accepting anything).
   args: ConfidentialityAwareAbiArgs<TAbi, TFunctionName>;
-  encrypt: (encryptableItems: EncryptableItem[]) => Promise<readonly EncryptedItemInput[]>;
+  encrypt: (encryptableItems: EncryptableItem[]) => Promise<readonly `0x${string}`[]>;
   write: (
     writeParams: WriteContractParameters<
       TAbi,
@@ -95,7 +95,7 @@ function constructEncryptAndTransform<
 >(
   abi: TAbi,
   functionName: TFunctionName,
-  encrypt: (encryptableItems: EncryptableItem[]) => Promise<readonly EncryptedItemInput[]>
+  encrypt: (encryptableItems: EncryptableItem[]) => Promise<readonly `0x${string}`[]>
 ): (
   mixedArgs: Exclude<CofheInputArgsPreTransform<TAbi, TFunctionName>, undefined>
 ) => Promise<
@@ -161,6 +161,10 @@ export function useCofheEncryptAndWriteContract<TExtraVars = unknown>({
       encrypt: (encryptableItems) =>
         encryption.encryptInputsAsync({
           items: encryptableItems,
+          // The target contract of this write is already known - default the consuming
+          // contract to it so callers don't have to specify it twice. An explicit
+          // `encryptionOptions.consumingContract` still wins.
+          consumingContract: args.params.address,
           ...(args.encryptionOptions ?? {}),
         }),
       write: (writeParams) => {

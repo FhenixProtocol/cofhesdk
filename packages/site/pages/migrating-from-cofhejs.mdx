@@ -140,18 +140,18 @@ await client.connect(publicClient, walletClient);
 
 ## 2. Encrypting inputs
 
-`cofhejs.encrypt(...)` is replaced by a builder: `client.encryptInputs([...]).execute()`. The builder lets you chain optional overrides (account, chain, worker, progress callback) before executing.
+`cofhejs.encrypt(...)` is replaced by a builder: `client.encryptInputs([...]).setConsumingContract(address).execute()`. `setConsumingContract` is required — the verifier binds that address into the signature, so a batch signed for one contract can't be replayed into another. The builder also lets you chain optional overrides (account, chain, worker, progress callback) before executing.
 
 ::::note
 :::details[Changes]
 | | `cofhejs` | `@cofhe/sdk` |
 | --------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| **Function** | `cofhejs.encrypt([...], callback)` | `client.encryptInputs([...]).execute()` |
+| **Function** | `cofhejs.encrypt([...], callback)` | `client.encryptInputs([...]).setConsumingContract(addr).execute()` |
 | **Return value** | `Result<T>` with `.success` / `.data` / `.error` | Direct value (throws `CofheError` on failure) |
 | **Progress callback** | Second argument to `encrypt` | `.onStep(callback)` on the builder |
 | **Callback states** | `Extract`, `Pack`, `Prove`, `Verify`, `Replace`, `Done` | `InitTfhe`, `FetchKeys`, `Pack`, `Prove`, `Verify` |
-| **Result types** | `CoFheInUint8`, `CoFheInBool`, etc. | `EncryptedUint8Input`, `EncryptedBoolInput`, etc. (all extend `EncryptedItemInput`) |
-| **Overrides** | Not available | `.setAccount(...)`, `.setChainId(...)`, `.setUseWorker(...)` |
+| **Result types** | `CoFheInUint8`, `CoFheInBool`, etc. | `[...hashes, signature]` — one `external*` hash per input, followed by one shared batch signature |
+| **Overrides** | Not available | `.setConsumingContract(...)` (required), `.setAccount(...)`, `.setChainId(...)`, `.setUseWorker(...)` |
 | **Mixed-type arrays** | `cofhejs.encrypt([{ a: Encryptable.uint8(10) }])` | Not supported — pass a flat array of `Encryptable` items |
 :::
 ::::
@@ -180,11 +180,14 @@ const [eAmount, eFlag] = result.data;
 // @noErrors
 import { type CofheClient, type CofheConfig } from '@cofhe/sdk';
 declare const client: CofheClient<CofheConfig>;
+declare const myContractAddress: `0x${string}`;
 // ---cut---
 import { Encryptable, EncryptStep } from '@cofhe/sdk';
 
-const [eAmount, eFlag] = await client
+// [hash1, hash2, signature] - one hash per input, followed by the shared batch signature
+const [eAmountHash, eFlagHash, signature] = await client
   .encryptInputs([Encryptable.uint64(42n), Encryptable.bool(true)])
+  .setConsumingContract(myContractAddress)
   .onStep((step, ctx) => {
     if (ctx?.isStart) console.log(`Starting: ${step}`);
   })
@@ -401,12 +404,14 @@ import {
   Encryptable,
 } from '@cofhe/sdk';
 declare const client: CofheClient<CofheConfig>;
+declare const myContractAddress: `0x${string}`;
 // ---cut---
 import { isCofheError, CofheErrorCode } from '@cofhe/sdk';
 
 try {
   const encrypted = await client
     .encryptInputs([Encryptable.uint32(42n)])
+    .setConsumingContract(myContractAddress)
     .execute();
 } catch (err) {
   if (isCofheError(err)) {
@@ -430,16 +435,12 @@ try {
 
 ## 7. Type renames
 
-| `cofhejs`        | `@cofhe/sdk`            |
-| ---------------- | ----------------------- |
-| `CoFheInItem`    | `EncryptedItemInput`    |
-| `CoFheInBool`    | `EncryptedBoolInput`    |
-| `CoFheInUint8`   | `EncryptedUint8Input`   |
-| `CoFheInUint16`  | `EncryptedUint16Input`  |
-| `CoFheInUint32`  | `EncryptedUint32Input`  |
-| `CoFheInUint64`  | `EncryptedUint64Input`  |
-| `CoFheInUint128` | `EncryptedUint128Input` |
-| `CoFheInAddress` | `EncryptedAddressInput` |
+`cofhejs`'s per-type result structs (`CoFheInBool`, `CoFheInUint8`, etc.) have no direct
+equivalent — `@cofhe/sdk` returns a single `[...hashes, signature]` tuple instead, typed as
+`HashPlusProofResult<T>`. Each hash is branded by its type (`ExternalBoolHash`,
+`ExternalUint8Hash`, `ExternalUint16Hash`, `ExternalUint32Hash`, `ExternalUint64Hash`,
+`ExternalUint128Hash`, `ExternalAddressHash`), and the final element is a single
+`ExternalHashProof` (the shared batch signature) rather than a per-item signature.
 
 ## Quick-reference: full before & after
 
@@ -508,14 +509,15 @@ const { publicClient, walletClient } = await Ethers6Adapter(
 );
 await client.connect(publicClient, walletClient);
 
-// 2. Encrypt
-const [eAmount] = await client
+// 2. Encrypt: [hash, signature]
+const [eAmountHash, signature] = await client
   .encryptInputs([Encryptable.uint64(100n)])
+  .setConsumingContract(await contract.getAddress())
   .onStep((step) => console.log(step))
   .execute();
 
 // 3. Send transaction
-await contract.deposit(eAmount);
+await contract.deposit(eAmountHash, signature);
 
 // 4. Create permit & decrypt
 await client.acp.getOrCreateSelfPermit();
@@ -534,8 +536,8 @@ import '@fhenixprotocol/cofhe-contracts/FHE.sol';
 contract ConfidentialVault {
     mapping(address => euint64) private _balances;
 
-    function deposit(InEuint64 calldata encryptedAmount) external {
-        euint64 amount = FHE.asEuint64(encryptedAmount);
+    function deposit(externalEuint64[] calldata encryptedAmounts, bytes calldata signature) external {
+        euint64 amount = FHE.asEuint64s(encryptedAmounts, signature)[0];
         _balances[msg.sender] = FHE.add(_balances[msg.sender], amount);
     }
 
