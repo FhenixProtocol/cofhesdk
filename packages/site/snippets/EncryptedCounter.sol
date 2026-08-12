@@ -33,8 +33,8 @@ contract EncryptedCounter {
   // [!endregion get-count]
 
   // [!region encrypt-input]
-  function setCount(InEuint32 memory _inCount) external onlyOwner {
-    count = FHE.asEuint32(_inCount);
+  function setCount(externalEuint32[] memory _inCounts, bytes memory _signature) external onlyOwner {
+    count = FHE.asEuint32s(_inCounts, _signature)[0];
     FHE.allowThis(count);
     FHE.allowSender(count);
     decrypted = false;

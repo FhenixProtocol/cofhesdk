@@ -4,13 +4,15 @@ Runs inherited SDK tests across **every supported chain × {Node, Web}**.
 
 ## Coverage matrix
 
-|          | Hardhat (Mock) | Local CoFHE | Ethereum Sepolia | Arbitrum Sepolia | Base Sepolia |
-| -------- | :------------: | :---------: | :--------------: | :--------------: | :----------: |
-| **Node** |       ✓        |     ✓\*     |       ✓\*        |       ✓\*        |     ✓\*      |
-| **Web**  |       ✓        |     ✓\*     |       ✓\*        |       ✓\*        |     ✓\*      |
+|          | Hardhat (Mock) | Local CoFHE | Ethereum Sepolia | Arbitrum Sepolia | Base Sepolia | CoFHE Staging |
+| -------- | :------------: | :---------: | :--------------: | :--------------: | :----------: | :-----------: |
+| **Node** |       ✓        |     ✓\*     |       ✓\*        |       ✓\*        |     ✓\*      |      ✓\*      |
+| **Web**  |       ✓        |     ✓\*     |       ✓\*        |       ✓\*        |     ✓\*      |      ✓\*      |
 
 \* Enabled when `SimpleTest` is deployed (via `@cofhe/test-setup`) and a funded `TEST_PRIVATE_KEY` is present.
-Local CoFHE is **opt-in** — disabled by default unless `MATRIX_CHAIN` explicitly names it (`localcofhe`) or uses the `all` group.
+Local CoFHE and CoFHE Staging are **opt-in** — disabled by default unless `MATRIX_CHAIN` explicitly names them
+(`localcofhe`, `staging`) or uses the `all` group. CoFHE Staging shares its chain ID (420105) with Local CoFHE
+(same devnet genesis, hosted remotely) — select it by the `staging` slug, not by chain ID.
 
 ## Usage
 
@@ -50,7 +52,8 @@ MATRIX_CHAIN=hardhat pnpm test:node           # single chain
 MATRIX_CHAIN=hardhat,arb-sepolia pnpm test    # multiple chains
 MATRIX_CHAIN=testnet pnpm test                # all testnets
 MATRIX_CHAIN=localcofhe pnpm test:node        # localcofhe opt-in
-MATRIX_CHAIN=all pnpm test                    # all chains, including localcofhe
+MATRIX_CHAIN=staging pnpm test:node           # CoFHE staging opt-in
+MATRIX_CHAIN=all pnpm test                    # all chains, including localcofhe and staging
 MATRIX_ENV=node pnpm test                     # node environment only
 MATRIX_ENV=web pnpm test                      # web environment only
 ```
@@ -62,9 +65,9 @@ MATRIX_CHAIN=arb-sepolia pnpm --filter @cofhe/integration-matrix test
 MATRIX_CHAIN=hardhat pnpm --filter @cofhe/integration-matrix test:node
 ```
 
-Valid chain slugs: `hardhat`, `localcofhe`, `sepolia`, `arb-sepolia` / `arbitrum-sepolia`, `base-sepolia`.
-Chain IDs are also valid: `31337`, `420105`, `11155111`, `421614`, `84532`.
-Group aliases: `testnet` → `sepolia`, `arb-sepolia`, `base-sepolia`; `all` → every chain including `localcofhe`.
+Valid chain slugs: `hardhat`, `localcofhe`, `sepolia`, `arb-sepolia` / `arbitrum-sepolia`, `base-sepolia`, `staging`.
+Chain IDs are also valid: `31337`, `420105` (→ Local CoFHE), `11155111`, `421614`, `84532`.
+Group aliases: `testnet` → `sepolia`, `arb-sepolia`, `base-sepolia`; `all` → every chain including `localcofhe` and `staging`.
 
 ## Structure
 

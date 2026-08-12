@@ -13,7 +13,6 @@ import { useInternalQueries } from '../providers/index.js';
 import type { Address } from 'viem';
 import { useCofheChainId } from './useCofheConnection';
 import { useCustomTokensStore } from '@/stores/customTokensStore';
-import { useResolvedCofheToken } from './useResolvedCofheToken';
 import { cofheLogger } from '@/utils/debug';
 
 export { ETH_ADDRESS_LOWERCASE, type ConfidentialToken, type Erc20Pair };
@@ -156,30 +155,41 @@ export function useCofheTokens(chainId?: number): ConfidentialToken[] {
   return tokens;
 }
 
-export function useCofheToken(
-  { chainId: _chainId, address }: { chainId?: number; address?: Address },
-  // TODO: after adding this functionality, don't fetch if not enabled
-  metdataQueryOptions?: Omit<UseQueryOptions<ConfidentialToken | undefined, Error>, 'queryKey' | 'queryFn' | 'select'>
-) {
+/**
+ * Resolve a token address against what the client already KNOWS: the configured
+ * tokenlists, the user's imported (custom) tokens, and the chain's default token.
+ * Never touches the chain — an address that isn't known resolves to `undefined`
+ * (which, before the tokenlists have loaded, simply means "not known yet").
+ */
+export function useKnownCofheToken({
+  chainId: _chainId,
+  address,
+}: {
+  chainId?: number;
+  address?: Address;
+}): ConfidentialToken | undefined {
   const cofheChainId = useCofheChainId();
   const chainId = _chainId ?? cofheChainId;
 
   const tokens = useCofheTokens(chainId);
-  const tokenFromList = useMemo(() => {
+  return useMemo(() => {
     if (!address || !chainId) return;
     return tokens.find((t) => t.chainId === chainId && t.address.toLowerCase() === address.toLowerCase());
   }, [address, chainId, tokens]);
+}
 
-  const resolvedToken = useResolvedCofheToken(
-    {
-      chainId,
-      address,
-    },
-    {
-      ...metdataQueryOptions,
-      enabled: (metdataQueryOptions?.enabled ?? true) && !!address && !!chainId && !tokenFromList,
-    }
-  );
-
-  return tokenFromList ?? resolvedToken.data;
+export function useCofheToken(
+  { chainId, address }: { chainId?: number; address?: Address },
+  /** @deprecated No longer used — this hook no longer issues any query (see below). */
+  _metadataQueryOptions?: Omit<UseQueryOptions<ConfidentialToken | undefined, Error>, 'queryKey' | 'queryFn' | 'select'>
+) {
+  // This hook used to silently fall back to useResolvedCofheToken's ON-CHAIN interface
+  // probe for any address not found in the lists. That was incorrect: it also fired for
+  // known tokens during the tokenlist-loading window and probed the CONNECTED chain
+  // regardless of the requested chainId, producing spurious "Address is not a supported
+  // CoFHE token" failures for stale/wrong-chain addresses. Consumers who genuinely want
+  // on-chain resolution must call useResolvedCofheToken explicitly.
+  // TODO: if implicit resolution is ever wanted again, design it as an explicit opt-in
+  // (e.g. `probeUnknown: true`) with a null-not-throw negative verdict.
+  return useKnownCofheToken({ chainId, address });
 }

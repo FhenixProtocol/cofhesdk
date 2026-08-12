@@ -1,4 +1,4 @@
-import { type EncryptableItem, type EncryptedItemInputs } from '@cofhe/sdk';
+import { type EncryptableItem, type EncryptableToExternalHashMap, type HashPlusProofResult } from '@cofhe/sdk';
 
 /**
  * Generates a mock ctHash from the encryptable data.
@@ -36,39 +36,37 @@ export function generateMockCtHash(data: unknown): bigint {
 }
 
 /**
- * Generates a mock signature for testing purposes.
+ * Generates a mock batch signature for testing purposes.
  * Returns a hex string that looks like a valid signature.
  */
 function generateMockSignature(): `0x${string}` {
   return '0xMockSignature';
 }
 
-export function mockEncryptEncryptable<T extends EncryptableItem>(encryptable: T): EncryptedItemInputs<T> {
+/**
+ * Converts an EncryptableItem to its mock external hash, without any real encryption or signing.
+ *
+ * @param encryptable - The EncryptableItem to convert
+ * @returns A mock hash (branded by utype), deterministically derived from the encryptable's data
+ */
+export function mockEncryptEncryptable<T extends EncryptableItem>(encryptable: T): EncryptableToExternalHashMap<T> {
   const ctHash = generateMockCtHash(encryptable.data);
-  const signature = generateMockSignature();
-
-  return {
-    ctHash,
-    securityZone: 0,
-    utype: encryptable.utype,
-    signature,
-  } as EncryptedItemInputs<T>;
+  return ('0x' + ctHash.toString(16).padStart(64, '0')) as EncryptableToExternalHashMap<T>;
 }
 
 /**
- * Converts an EncryptableItem to a mock EncryptedItemInput.
- * This is useful for testing and development when you don't need actual encryption.
- *
- * @param encryptable - The EncryptableItem to convert
- * @returns A mock EncryptedItemInput with the same utype and securityZone, but with mock ctHash and signature
+ * Converts an array of EncryptableItems into a mock batch-verified result: per-item hashes
+ * followed by a single mock batch signature - the same shape `EncryptInputsBuilder.execute()`
+ * returns. Useful for testing and development when you don't need actual encryption.
  *
  * @example
- * const encryptable = Encryptable.uint32(100n);
- * const mockEncrypted = mockEncryptedInput(encryptable);
- * // Returns: { ctHash: 100n, securityZone: 0, utype: FheTypes.Uint32, signature: "0x..." }
+ * const mockEncrypted = mockEncrypt([Encryptable.uint32(100n)]);
+ * // Returns: [hash, "0xMockSignature"]
  */
 export function mockEncrypt<T extends EncryptableItem[]>(
   encryptables: [...T] | readonly [...T]
-): [...EncryptedItemInputs<T>] {
-  return encryptables.map(mockEncryptEncryptable) as [...EncryptedItemInputs<[...T]>];
+): HashPlusProofResult<T> {
+  const hashes = encryptables.map(mockEncryptEncryptable);
+  const signature = generateMockSignature();
+  return [...hashes, signature] as unknown as HashPlusProofResult<T>;
 }

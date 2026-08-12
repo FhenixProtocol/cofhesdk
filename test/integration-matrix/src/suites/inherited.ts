@@ -54,16 +54,21 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
   });
 
   it('Should encrypt a uint128 input', async () => {
-    const encrypted = await ctx.cofheClient.encryptInputs([Encryptable.uint128(100n)]).execute();
+    const encrypted = await ctx.cofheClient
+      .encryptInputs([Encryptable.uint128(100n)])
+      .setConsumingContract(ctx.contractAddress)
+      .execute();
 
+    // [hash, signature] - one hash per input, followed by the single signature that
+    // authenticates the whole batch.
     expect(encrypted).toBeDefined();
-    expect(encrypted.length).toBe(1);
-    expect(encrypted[0].utype).toBe(FheTypes.Uint128);
-    expect(encrypted[0].ctHash).toBeDefined();
-    expect(typeof encrypted[0].ctHash).toBe('bigint');
-    expect(encrypted[0].signature).toBeDefined();
-    expect(typeof encrypted[0].signature).toBe('string');
-    expect(encrypted[0].securityZone).toBe(0);
+    expect(encrypted.length).toBe(2);
+
+    const [hash, signature] = encrypted;
+    expect(typeof hash).toBe('string');
+    expect(hash).toMatch(/^0x[0-9a-f]+$/i);
+    expect(typeof signature).toBe('string');
+    expect(signature).toMatch(/^0x[0-9a-f]+$/i);
   }, 60_000);
 
   it('Permits - should create a self permit', async () => {
@@ -133,22 +138,24 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
   let alreadyFetchedCtHash: bigint | string;
   describe('Full encrypt->increment->decrypt flow + refetch cached response', () => {
     const testValue = 100n;
-    it('Should encrypt inputs with hash plus proof', async () => {
+    it('Should encrypt a multi-input batch under one shared signature', async () => {
       await ctx.cofheClient.acp.createSelf({
         issuer: ctx.bobAccount.address,
         name: 'Encrypt View Permit',
       });
 
-      const [encHash, encProof] = await ctx.cofheClient
-        .encryptInputs([Encryptable.uint32(testValue)])
-        .asHashPlusProof()
+      // Two inputs, one signature over keccak256(h_0 || h_1) - the contract verifies the whole
+      // batch in a single call and only reads the first value.
+      const [firstHash, secondHash, signature] = await ctx.cofheClient
+        .encryptInputs([Encryptable.uint32(testValue), Encryptable.uint32(testValue + 1n)])
+        .setConsumingContract(ctx.contractAddress)
         .execute();
 
       const txHash = await ctx.bobWalletClient.writeContract({
         address: ctx.contractAddress,
         abi: simpleTestAbi,
-        functionName: 'setValueHashPlusProof',
-        args: [encHash, encProof],
+        functionName: 'setValueBatch',
+        args: [[firstHash, secondHash], signature],
         chain: chainConfig.viemChain,
         account: ctx.bobAccount,
       });
@@ -175,14 +182,16 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         name: 'Decrypt View Permit',
       });
 
-      const encrypted = await ctx.cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
+      const [hash, signature] = await ctx.cofheClient
+        .encryptInputs([Encryptable.uint32(testValue)])
+        .setConsumingContract(ctx.contractAddress)
+        .execute();
 
-      const encryptedInput = encrypted[0];
       const txHash = await ctx.bobWalletClient.writeContract({
         address: ctx.contractAddress,
         abi: simpleTestAbi,
-        functionName: 'setValue',
-        args: [encryptedInput],
+        functionName: 'setValueBatch',
+        args: [[hash], signature],
         chain: chainConfig.viemChain,
         account: ctx.bobAccount,
       });
@@ -207,15 +216,18 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
     const valueToAdd = 7n;
     const expectedViewValue = testValue + valueToAdd;
     it('successfully decrypts a new on-chain-produced ctHash with decryptForView, transparently retrying until the backend has it', async () => {
-      const [encryptedAddendInput] = await ctx.cofheClient.encryptInputs([Encryptable.uint32(valueToAdd)]).execute();
+      const [addendHash, addendSignature] = await ctx.cofheClient
+        .encryptInputs([Encryptable.uint32(valueToAdd)])
+        .setConsumingContract(ctx.contractAddress)
+        .execute();
 
       // This on-chain FHE op produces a fresh ctHash that decryptForView consumes next.
       // The SDK should retry transparently if the backend still responds with 404 or no content.
       const addTxHash = await ctx.bobWalletClient.writeContract({
         address: ctx.contractAddress,
         abi: simpleTestAbi,
-        functionName: 'addValue',
-        args: [encryptedAddendInput],
+        functionName: 'addValueBatch',
+        args: [[addendHash], addendSignature],
         chain: chainConfig.viemChain,
         account: ctx.bobAccount,
       });
@@ -239,8 +251,9 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
     it('successfully decrypts a new on-chain-produced ctHash with decryptForTx, transparently retrying until the backend has it', async () => {
       const secondValueToAdd = 11n;
       const expectedTxValue = expectedViewValue + secondValueToAdd;
-      const [encryptedSecondAddendInput] = await ctx.cofheClient
+      const [secondAddendHash, secondAddendSignature] = await ctx.cofheClient
         .encryptInputs([Encryptable.uint32(secondValueToAdd)])
+        .setConsumingContract(ctx.contractAddress)
         .execute();
 
       // This second on-chain FHE op again produces a fresh ctHash for decryptForTx.
@@ -248,8 +261,8 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       const secondAddTxHash = await ctx.bobWalletClient.writeContract({
         address: ctx.contractAddress,
         abi: simpleTestAbi,
-        functionName: 'addValue',
-        args: [encryptedSecondAddendInput],
+        functionName: 'addValueBatch',
+        args: [[secondAddendHash], secondAddendSignature],
         chain: chainConfig.viemChain,
         account: ctx.bobAccount,
       });
@@ -343,14 +356,16 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
 
   it('Decrypt for Tx (without permit) - should encrypt → store public → decryptForTx → publishDecryptResult → verify', async () => {
     const testValue = 42n;
-    const encrypted = await ctx.cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
+    const [hash, signature] = await ctx.cofheClient
+      .encryptInputs([Encryptable.uint32(testValue)])
+      .setConsumingContract(ctx.contractAddress)
+      .execute();
 
-    const encryptedInput = encrypted[0];
     const storeTxHash = await ctx.bobWalletClient.writeContract({
       address: ctx.contractAddress,
       abi: simpleTestAbi,
-      functionName: 'setPublicValue',
-      args: [encryptedInput],
+      functionName: 'setPublicValueBatch',
+      args: [[hash], signature],
       chain: chainConfig.viemChain,
       account: ctx.bobAccount,
     });
