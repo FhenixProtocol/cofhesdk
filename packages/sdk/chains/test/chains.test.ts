@@ -3,12 +3,13 @@ import { sepolia, arbSepolia, baseSepolia, hardhat, chains, getChainById, getCha
 
 describe('Chains', () => {
   it('should export all chains', () => {
-    expect(Object.keys(chains)).toHaveLength(5);
+    expect(Object.keys(chains)).toHaveLength(6);
     expect(chains).toHaveProperty('sepolia');
     expect(chains).toHaveProperty('arbSepolia');
     expect(chains).toHaveProperty('baseSepolia');
     expect(chains).toHaveProperty('hardhat');
     expect(chains).toHaveProperty('localcofhe');
+    expect(chains).toHaveProperty('stagingCofhe');
   });
 
   it('should have correct chain configurations', () => {

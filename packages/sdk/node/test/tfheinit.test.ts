@@ -14,6 +14,7 @@ describe('@cofhe/node - TFHE Initialization Tests', () => {
   let cofheClient: CofheClient;
   let publicClient: PublicClient;
   let walletClient: WalletClient;
+  let consumingContract: `0x${string}`;
 
   beforeAll(() => {
     publicClient = createPublicClient({
@@ -27,6 +28,7 @@ describe('@cofhe/node - TFHE Initialization Tests', () => {
       transport: http(),
       account,
     });
+    consumingContract = account.address;
   });
 
   beforeEach(() => {
@@ -40,7 +42,10 @@ describe('@cofhe/node - TFHE Initialization Tests', () => {
     it('should initialize node-tfhe on first encryption', async () => {
       await cofheClient.connect(publicClient, walletClient);
 
-      const result = await cofheClient.encryptInputs([Encryptable.uint128(100n)]).execute();
+      const result = await cofheClient
+        .encryptInputs([Encryptable.uint128(100n)])
+        .setConsumingContract(consumingContract)
+        .execute();
 
       expect(result).toBeDefined();
     }, 60000);
@@ -48,9 +53,15 @@ describe('@cofhe/node - TFHE Initialization Tests', () => {
     it('should handle multiple encryptions without re-initializing', async () => {
       await cofheClient.connect(publicClient, walletClient);
 
-      await cofheClient.encryptInputs([Encryptable.uint128(100n)]).execute();
+      await cofheClient
+        .encryptInputs([Encryptable.uint128(100n)])
+        .setConsumingContract(consumingContract)
+        .execute();
 
-      await cofheClient.encryptInputs([Encryptable.uint64(50n)]).execute();
+      await cofheClient
+        .encryptInputs([Encryptable.uint64(50n)])
+        .setConsumingContract(consumingContract)
+        .execute();
     }, 120000);
   });
 });

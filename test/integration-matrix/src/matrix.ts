@@ -10,11 +10,12 @@ const CHAIN_SLUGS: Record<string, string> = {
   '421614': 'Arbitrum Sepolia',
   'base-sepolia': 'Base Sepolia',
   '84532': 'Base Sepolia',
+  staging: 'CoFHE Staging',
 };
 
 const CHAIN_GROUPS: Record<string, string[]> = {
   testnet: ['sepolia', 'arb-sepolia', 'base-sepolia'],
-  all: ['hardhat', 'localcofhe', 'sepolia', 'arb-sepolia', 'base-sepolia'],
+  all: ['hardhat', 'localcofhe', 'sepolia', 'arb-sepolia', 'base-sepolia', 'staging'],
 };
 
 export function resolveChainFilter(matrixChain?: string): string[] | null {

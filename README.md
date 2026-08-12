@@ -100,7 +100,10 @@ See [Working with the npm registry](https://docs.github.com/en/packages/working-
 
 # Migration
 
-Type `CofheInUint8` -> `EncryptedUint8Input`
+`cofheClient.encryptInputs(...).execute()` returns `[...hashes, signature]` — one `external*` handle
+per input followed by a single signature authenticating the whole batch — replacing the old
+per-item `CofheInUint8`/`EncryptedUint8Input` structs. `setConsumingContract(address)` is required
+before `execute()`. See `BREAKING_CHANGES.md`.
 
 # Changes
 
