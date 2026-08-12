@@ -1,5 +1,5 @@
 import { type EthEncryptedData } from '@/permits';
-import { type WirePermit } from '../../permits/legacy-v2/bridge.js';
+import { type WirePermit, wirePermitBody } from '../../permits/legacy-v2/bridge.js';
 import { cofheFetch } from '../debug.js';
 
 import { CofheError, CofheErrorCode } from '../error.js';
@@ -147,7 +147,7 @@ async function submitSealOutputRequest(
   const body = {
     ct_tempkey: BigInt(ctHash).toString(16).padStart(64, '0'),
     host_chain_id: chainId,
-    permit: acp,
+    ...wirePermitBody(acp),
   };
   let attemptIndex = 0;
   let last404ApiErrorMessage: string | undefined;

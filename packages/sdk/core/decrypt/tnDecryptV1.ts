@@ -1,5 +1,6 @@
 import { type ACPPublic } from '@/permits';
 
+import { wirePermitBody } from '../../permits/legacy-v2/bridge.js';
 import { CofheError, CofheErrorCode } from '../error';
 import { normalizeTnSignature, parseDecryptedBytesToBigInt } from './tnDecryptUtils';
 
@@ -75,13 +76,14 @@ export async function tnDecryptV1(
     ct_tempkey: string;
     host_chain_id: number;
     permit?: ACPPublic;
+    acp?: ACPPublic;
   } = {
     ct_tempkey: BigInt(ctHash).toString(16).padStart(64, '0'),
     host_chain_id: chainId,
   };
 
   if (acp) {
-    body.permit = acp;
+    Object.assign(body, wirePermitBody(acp));
   }
 
   let response: Response;

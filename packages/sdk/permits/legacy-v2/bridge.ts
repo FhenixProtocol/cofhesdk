@@ -145,3 +145,7 @@ export const acpToV2Permission = (acp: ACP): PermissionV2 => {
     recipientSignature: acp.recipientSignature,
   };
 };
+
+/** Wire-permit request-body entries. Pre-upgrade (V2) backends read "permit"; the ACP migration guide specifies "acp", but currently deployed ACP-era backends still read the ACP object from "permit" — so ACP payloads are sent under both keys (each backend ignores the key it does not know). */
+export const wirePermitBody = <T extends object>(wire: T): { permit: T; acp?: T } =>
+  'validatorId' in wire ? { permit: wire } : { permit: wire, acp: wire };
