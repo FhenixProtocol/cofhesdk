@@ -24,18 +24,23 @@ export const _permitStore = createStore<PermitsStore>()(
   persist(() => PERMIT_STORE_DEFAULTS, { name: 'cofhesdk-permits' })
 );
 
+// `typeof null` and `typeof []` are both 'object', so a bare typeof check lets a
+// broken persisted store through the guard and it only fails later, on the first
+// `permits[chainId]` lookup.
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  value != null && typeof value === 'object' && !Array.isArray(value);
+
 export const clearStaleStore = () => {
   // Any is used here because we do not have types of the previous store
   const state = _permitStore.getState() as any;
 
   // Check if the store has the expected structure
   const hasExpectedStructure =
-    state &&
-    typeof state === 'object' &&
+    isRecord(state) &&
     'permits' in state &&
     'activePermitHash' in state &&
-    typeof state.permits === 'object' &&
-    typeof state.activePermitHash === 'object';
+    isRecord(state.permits) &&
+    isRecord(state.activePermitHash);
 
   if (hasExpectedStructure) return;
   // Invalid structure detected - clear the store
