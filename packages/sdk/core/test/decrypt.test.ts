@@ -41,7 +41,9 @@ describe('Core – Decrypt Tests', () => {
   let publicValue: bigint;
 
   beforeAll(() => {
-    const reg = STAGING_TESTS ? (stagingTestChainRegistry as typeof primaryTestChainRegistry) : primaryTestChainRegistry;
+    const reg = STAGING_TESTS
+      ? (stagingTestChainRegistry as typeof primaryTestChainRegistry)
+      : primaryTestChainRegistry;
     if (!isPrimaryTestChainReady(reg)) {
       throw new Error('Test chain registry is not initialized. Run `pnpm test:setup` first.');
     }

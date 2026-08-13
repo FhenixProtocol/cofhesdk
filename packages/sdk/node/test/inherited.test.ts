@@ -190,7 +190,9 @@ describe('@cofhe/node - Inherited Client Tests', () => {
     let publicValue: bigint;
 
     beforeAll(() => {
-      const reg = STAGING_TESTS ? (stagingTestChainRegistry as typeof primaryTestChainRegistry) : primaryTestChainRegistry;
+      const reg = STAGING_TESTS
+        ? (stagingTestChainRegistry as typeof primaryTestChainRegistry)
+        : primaryTestChainRegistry;
       if (!isPrimaryTestChainReady(reg)) {
         throw new Error('Test chain registry not initialized. Run `pnpm test:setup` first.');
       }
