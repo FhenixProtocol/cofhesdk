@@ -16,7 +16,7 @@ export async function tnSealOutputV1(
   const body = {
     ct_tempkey: ctHash.toString(16).padStart(64, '0'),
     host_chain_id: chainId,
-    acp,
+    permit: acp,
   };
 
   try {

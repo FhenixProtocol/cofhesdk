@@ -74,14 +74,14 @@ export async function tnDecryptV1(
   const body: {
     ct_tempkey: string;
     host_chain_id: number;
-    acp?: ACPPublic;
+    permit?: ACPPublic;
   } = {
     ct_tempkey: BigInt(ctHash).toString(16).padStart(64, '0'),
     host_chain_id: chainId,
   };
 
   if (acp) {
-    body.acp = acp;
+    body.permit = acp;
   }
 
   let response: Response;
