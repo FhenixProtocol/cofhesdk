@@ -1,6 +1,6 @@
 {
   "chainId": 420105,
-  "initializedBy": "0x701a1b926ebcee410fabc1a633282e5e73a1d745",
+  "initializedBy": "0x6684a670330032f0a9d1b5204b6420febbf5c728",
   "contractAddress": "0xa08Bf4cE15943ceCd04ddf11BdDd5B8d5f83AD5e",
   "deploymentTimestamp": "2026-08-13T06:53:30.826Z",
   "privateValue": {
@@ -20,5 +20,5 @@
     "ctHash": "0x95e8992efb9806c20377652fb5da7d98eba97b2f3c392b1ab6bb7d8b06450400",
     "handle": "0x95e8992efb9806c20377652fb5da7d98eba97b2f3c392b1ab6bb7d8b06450400"
   },
-  "initializedAt": "2026-08-13T08:37:31.566Z"
+  "initializedAt": "2026-08-13T08:41:13.232Z"
 }
