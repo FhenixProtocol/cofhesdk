@@ -502,10 +502,13 @@ function initializeStagingChain() {
 
   let stagingReg;
   try { stagingReg = JSON.parse(readFileSync(STAGING_REGISTRY_PATH, 'utf8')); } catch { stagingReg = {}; }
+  const initPkEnvName = getPrivateKeyEnvName(STAGING_CHAIN);
+  const initializedBy = run(`cast wallet address --private-key $${initPkEnvName}`).trim().toLowerCase();
   const deployedAt = registry['SimpleTest'][STAGING_CHAIN.registryKey].deployedAt;
   const needsInit = !stagingReg.chainId
     || stagingReg.contractAddress !== contractAddress
-    || stagingReg.deploymentTimestamp !== deployedAt;
+    || stagingReg.deploymentTimestamp !== deployedAt
+    || (stagingReg.initializedBy || '').toLowerCase() !== initializedBy;
 
   if (!needsInit) {
     console.log(`\nStaging chain: values already initialized`);
@@ -539,6 +542,7 @@ function initializeStagingChain() {
 
   const newStagingReg = {
     chainId: STAGING_CHAIN.id,
+    initializedBy,
     contractAddress,
     deploymentTimestamp: deployedAt,
     privateValue: { value: PRIVATE_VALUE, ctHash: privateCtHash, handle: privateHandle },
