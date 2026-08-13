@@ -11,18 +11,21 @@
 
 import { defineChain, createPublicClient, createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { TEST_PRIVATE_KEY, STAGING_RPC, getStagingSimpleTestAddress } from '@cofhe/test-setup';
+import {
+  TEST_PRIVATE_KEY,
+  TEST_ALICE_PRIVATE_KEY,
+  STAGING_RPC_URL,
+  getStagingSimpleTestAddress,
+} from '@cofhe/test-setup';
 import { stagingCofhe as cofheStagingChain } from '@cofhe/sdk/chains';
 import type { ClientFactory, TestContext, TestChainConfig } from '../types.js';
-
-const ALICE_PRIVATE_KEY = '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d' as const;
 
 export const viemStagingCofhe = defineChain({
   id: 420105,
   name: 'CoFHE Staging',
   nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   rpcUrls: {
-    default: { http: [STAGING_RPC] },
+    default: { http: [STAGING_RPC_URL] },
   },
 });
 
@@ -39,9 +42,9 @@ async function setupStaging(factory: ClientFactory): Promise<TestContext> {
   }
 
   const bobAccount = privateKeyToAccount(TEST_PRIVATE_KEY as `0x${string}`);
-  const aliceAccount = privateKeyToAccount(ALICE_PRIVATE_KEY);
+  const aliceAccount = privateKeyToAccount(TEST_ALICE_PRIVATE_KEY);
 
-  const transport = http(STAGING_RPC, { timeout: 60_000, retryCount: 3 });
+  const transport = http(STAGING_RPC_URL, { timeout: 60_000, retryCount: 3 });
 
   const publicClient = createPublicClient({
     chain: viemStagingCofhe,
@@ -84,7 +87,7 @@ export const stagingChainConfig: TestChainConfig = {
   label: 'CoFHE Staging',
   viemChain: viemStagingCofhe,
   cofheChain: cofheStagingChain,
-  rpc: STAGING_RPC,
+  rpc: STAGING_RPC_URL,
   txConfirmationsRequired: 1,
   disabled: !isStagingEnabled(),
   optIn: true,
