@@ -100,6 +100,7 @@ export async function setup(project: TestProject): Promise<void> {
   project.provide('anvilRpc', ANVIL_RPC);
   project.provide('anvilSimpleTest', simpleTestAddress);
   project.provide('anvilAcpValidator', deployedMocks.ACPTimestampRevoker);
+  project.provide('anvilAcpShareRegistry', deployedMocks.ACPShareRegistry);
 
   await printMatrix(process.env.MATRIX_CHAIN, process.env.MATRIX_ENV);
 }
@@ -162,6 +163,8 @@ declare module 'vitest' {
   export interface ProvidedContext {
     anvilRpc: string;
     anvilSimpleTest: string;
+    anvilAcpValidator: string;
+    anvilAcpShareRegistry: string;
     matrixChain: string;
     matrixEnv: string;
   }

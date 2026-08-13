@@ -32,10 +32,12 @@ export type CofheConfig = {
   /** ACP permit defaults, applied when creating permits (user options always win) */
   permit: {
     /**
-     * Default revoker contract per chainId. When set, created permits are
-     * revocable by default: revokerContract = this address and
-     * revokerData = permit creation timestamp (interpreted by the default
-     * timestamp revoker; enables revokeSingle + O(1) revokeAll).
+     * Default revoker contract per chainId — an explicit override; when unset,
+     * the address served by the chain's ACL (`defaultRevokerContract()`) is
+     * used. When available, created permits are revocable by default:
+     * revokerContract = this address and revokerData = permit creation
+     * timestamp (interpreted by the default timestamp revoker; enables
+     * revokeSingle + O(1) revokeAll).
      */
     defaultRevoker?: Record<number, `0x${string}`>;
     /**
@@ -44,6 +46,14 @@ export type CofheConfig = {
      * Note: injecting scopes makes created permits non-global by default.
      */
     defaultContractScopes?: Record<number, `0x${string}`[]>;
+    /**
+     * ACPShareRegistry address per chainId — the on-chain hand-off for sharing
+     * ACPs. An explicit override; when unset, the address served by the
+     * chain's ACL (`shareRegistry()`) is used. client.acp.shareOnChain /
+     * getIncomingShares / importFromChain throw MissingConfig when neither
+     * names a registry.
+     */
+    sharingRegistry?: Record<number, `0x${string}`>;
   };
   /** Mocks configs */
   mocks: {
@@ -103,6 +113,7 @@ export const CofheConfigSchema = z.object({
     .object({
       defaultRevoker: z.custom<Record<number, `0x${string}`>>().optional(),
       defaultContractScopes: z.custom<Record<number, `0x${string}`[]>>().optional(),
+      sharingRegistry: z.custom<Record<number, `0x${string}`>>().optional(),
     })
     .optional()
     .default({}),

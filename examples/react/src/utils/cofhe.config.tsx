@@ -2,14 +2,25 @@ import { CofheProvider, createCofheConfig, useInternalQueryClient } from '@cofhe
 import { CofheFloatingButtonWithProvider } from '@cofhe/react/ui';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
-import { arbSepolia, baseSepolia, sepolia } from '@cofhe/sdk/chains';
+import { arbSepolia, baseSepolia, sepolia, localcofhe } from '@cofhe/sdk/chains';
+
+// Local CoFHE endpoints — overridable via .env.local so the app can be tested
+// from other devices (point them at proxied HTTPS URLs for the local stack).
+const localcofheChain = {
+  ...localcofhe,
+  coFheUrl: import.meta.env.VITE_LOCALCOFHE_COFHE_URL ?? localcofhe.coFheUrl,
+  verifierUrl: import.meta.env.VITE_LOCALCOFHE_VERIFIER_URL ?? localcofhe.verifierUrl,
+  thresholdNetworkUrl: import.meta.env.VITE_LOCALCOFHE_TN_URL ?? localcofhe.thresholdNetworkUrl,
+};
 
 function QueryDebug() {
   const cofheQueryClient = useInternalQueryClient();
   return <ReactQueryDevtools client={cofheQueryClient} position="left" buttonPosition="bottom-left" />;
 }
 const cofheConfig = createCofheConfig({
-  supportedChains: [sepolia, baseSepolia, arbSepolia],
+  supportedChains: [sepolia, baseSepolia, arbSepolia, localcofheChain],
+  // No permit.* overrides: the default revoker and share registry are resolved
+  // from each chain's ACL (defaultRevokerContract() / shareRegistry()).
   react: {
     projectName: 'Demo App',
     logger: {

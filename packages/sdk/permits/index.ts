@@ -8,6 +8,7 @@ export type {
   PermitMetadata,
   ACPPublic,
   SharedACP,
+  IncomingShare,
   EIP712Domain,
   EIP712Types,
   EIP712Message,

@@ -98,3 +98,29 @@ export const advanceTime = async (seconds: number) => {
   await hre.network.provider.send('evm_increaseTime', [seconds]);
   await hre.network.provider.send('evm_mine');
 };
+
+/** Build and issuer-sign a sharing permission addressed to `recipient`
+ *  (sealingKey stays empty — the recipient supplies it at import). */
+export const signedSharingPermission = async (
+  acpVerifier: Contract,
+  issuer: HardhatEthersSigner,
+  recipient: string,
+  overrides: Partial<ACP> = {}
+): Promise<ACP> => {
+  const p: ACP = {
+    issuer: issuer.address,
+    expiration: (await latestTimestamp()) + 7n * 24n * 3600n,
+    recipient,
+    revokerData: 0n,
+    revokerContract: ZERO_ADDRESS,
+    scope: 0,
+    contracts: [],
+    handles: [],
+    sealingKey: ZERO_BYTES32,
+    issuerSignature: '0x',
+    recipientSignature: '0x',
+    ...overrides,
+  };
+  p.issuerSignature = await issuer.signTypedData(await acpDomain(acpVerifier), TYPES_ISSUER_SHARED, p);
+  return p;
+};

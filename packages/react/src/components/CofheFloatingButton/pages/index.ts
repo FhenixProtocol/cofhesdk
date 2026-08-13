@@ -4,6 +4,7 @@ export { PermitsListPage } from './permits/PermitsListPage';
 export { GeneratePermitPage } from './permits/GeneratePermitPage';
 export { DelegatePermitPage } from './permits/DelegatePermitPage';
 export { ImportPermitPage } from './permits/ImportPermitPage';
+export { IncomingSharesPage } from './permits/IncomingSharesPage';
 export { TokenInfoPage } from './TokenInfoPage.js';
 export { SendPage } from './SendPage.js';
 export { ShieldPageV2 } from './ShieldPageV2.js';

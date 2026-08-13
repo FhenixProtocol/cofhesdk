@@ -304,6 +304,57 @@ setActivePermitHash(chainId, account, recipientPermit.hash);
 
 :::::
 
+## Sharing on-chain
+
+Instead of exporting JSON and sending it over a second channel, the issuer can post the share to the on-chain **ACP share registry**. The recipient discovers it from any cofhesdk-enabled app and imports it directly — no copy-paste.
+
+Configure the registry address per chain:
+
+```ts
+const config = createCofheConfig({
+  // ...
+  permit: {
+    sharingRegistry: { 11155111: '0x…' },
+  },
+});
+```
+
+### Issuer shares on-chain
+
+```ts twoslash [client.acp]
+// @noErrors
+declare const client: import('@cofhe/sdk').CofheClient;
+declare const recipientAddress: `0x${string}`;
+// ---cut---
+const sharingAcp = await client.acp.createSharing({
+  issuer: '0x…', // connected account
+  recipient: recipientAddress,
+});
+
+// posts the signed share payload to the registry
+const { txHash, shareId } = await client.acp.shareOnChain(sharingAcp);
+```
+
+Only signed sharing ACPs can be posted (same rule as `export()`), and only by their issuer. The issuer can retract a pending share with `client.acp.cancelShare(shareId)`.
+
+### Recipient discovers and imports
+
+```ts twoslash [client.acp]
+// @noErrors
+declare const client: import('@cofhe/sdk').CofheClient;
+// ---cut---
+// importable shares addressed to the connected account (unexpired, not revoked)
+const incoming = await client.acp.getIncomingShares();
+
+// fills in the recipient's sealing key, signs, stores and activates
+const acp = await client.acp.importFromChain(incoming[0]);
+
+// optionally clean up the on-chain entry afterwards (or decline a share)
+await client.acp.dismissShare(incoming[0].shareId);
+```
+
+The registry lists only importable shares: expired shares and shares whose underlying permit was revoked are filtered out. Everything posted is cleartext by design (the same data as the exported JSON) — note that posting on-chain makes the issuer→recipient relationship public.
+
 ## Active ACP management
 
 The SDK tracks all stored ACPs and an **active ACP hash** per `chainId + account`. Creating or importing an ACP via `client.acp.*` automatically stores it and selects it as active.

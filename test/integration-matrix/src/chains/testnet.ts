@@ -60,10 +60,15 @@ export function createTestnetSetup(chain: Pick<TestChainConfig, 'viemChain' | 'c
     // (e.g. TEST_LOCALCOFHE_ACP_VALIDATOR for the local stack)
     const acpValidator =
       chain.id === 420105 ? (process.env.TEST_LOCALCOFHE_ACP_VALIDATOR as `0x${string}` | undefined) : undefined;
+    const acpShareRegistry =
+      chain.id === 420105 ? (process.env.TEST_LOCALCOFHE_ACP_SHARE_REGISTRY as `0x${string}` | undefined) : undefined;
 
     const config = factory.createConfig({
       supportedChains: [chain.cofheChain],
-      permit: acpValidator ? { defaultRevoker: { [chain.id]: acpValidator } } : undefined,
+      permit: {
+        ...(acpValidator ? { defaultRevoker: { [chain.id]: acpValidator } } : {}),
+        ...(acpShareRegistry ? { sharingRegistry: { [chain.id]: acpShareRegistry } } : {}),
+      },
     });
     const cofheClient = factory.createClient(config);
     await cofheClient.connect(publicClient, bobWalletClient);

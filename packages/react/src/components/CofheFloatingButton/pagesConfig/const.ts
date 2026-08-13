@@ -11,6 +11,7 @@ import {
   ShieldPageV2,
   DelegatePermitPage,
   ImportPermitPage,
+  IncomingSharesPage,
 } from '../pages';
 import { FloatingButtonPage } from './types';
 import { PortfolioPage } from '../pages/PortfolioPage';
@@ -27,6 +28,7 @@ export const pages: Record<FloatingButtonPage, FC<any>> = {
   [FloatingButtonPage.GeneratePermits]: GeneratePermitPage,
   [FloatingButtonPage.DelegatePermits]: DelegatePermitPage,
   [FloatingButtonPage.ReceivePermits]: ImportPermitPage,
+  [FloatingButtonPage.IncomingShares]: IncomingSharesPage,
   [FloatingButtonPage.Debug]: DebugPage,
   [FloatingButtonPage.Portfolio]: PortfolioPage,
   [FloatingButtonPage.ClaimableTokens]: ClaimableTokens,

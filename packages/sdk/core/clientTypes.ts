@@ -17,6 +17,7 @@ import type {
   SharingPermit,
   RecipientPermit,
   SelfPermit,
+  IncomingShare,
 } from 'permits/types.js';
 
 // CLIENT
@@ -104,6 +105,17 @@ export type CofheClientPermits = {
   revokePermit: (permit: ACP) => Promise<`0x${string}`>;
   revokeAllPermits: (revokerContract?: `0x${string}`) => Promise<`0x${string}`>;
   isPermitRevoked: (permit: ACP) => Promise<boolean>;
+
+  /** Post a signed sharing ACP to the on-chain share registry (ACL-served, or config `permit.sharingRegistry`). */
+  shareOnChain: (permit: ACP) => Promise<{ txHash: `0x${string}`; shareId: `0x${string}` }>;
+  /** Importable shares addressed to the connected account (unexpired, not revoked). */
+  getIncomingShares: () => Promise<IncomingShare[]>;
+  /** Import a share read from the registry: sign as recipient, store and activate. */
+  importFromChain: (share: IncomingShare) => Promise<RecipientPermit>;
+  /** Recipient-side: remove a share from the registry (after import, or to decline). */
+  dismissShare: (shareId: `0x${string}`) => Promise<`0x${string}`>;
+  /** Issuer-side: retract a pending share from the registry. */
+  cancelShare: (shareId: `0x${string}`) => Promise<`0x${string}`>;
 
   // Utils
   getHash: typeof ACPUtils.getHash;
