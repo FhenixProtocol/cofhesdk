@@ -1,6 +1,5 @@
 import { type ACPPublic } from '@/permits';
 
-import { wirePermitBody } from '../../permits/wire.js';
 import { CofheError, CofheErrorCode } from '../error';
 import { normalizeTnSignature, parseDecryptedBytesToBigInt } from './tnDecryptUtils';
 
@@ -82,7 +81,7 @@ export async function tnDecryptV1(
   };
 
   if (acp) {
-    Object.assign(body, wirePermitBody(acp));
+    body.acp = acp;
   }
 
   let response: Response;

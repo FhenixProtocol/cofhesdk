@@ -5,6 +5,3 @@ import { ACPUtils } from './permit.js';
 export type WirePermit = ACPPublic;
 
 export const toWirePermit = (acp: ACP): WirePermit => ACPUtils.getPublic(acp, true);
-
-/** Request-body entry for a wire permit — ACP-era backends read the "acp" key. */
-export const wirePermitBody = <T extends object>(wire: T): { acp: T } => ({ acp: wire });

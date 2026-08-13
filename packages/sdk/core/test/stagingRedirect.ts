@@ -1,4 +1,5 @@
 import { defineChain } from 'viem';
+import { STAGING_RPC } from '@cofhe/test-setup';
 
 declare const __STAGING_TESTS__: boolean | undefined;
 
@@ -13,5 +14,5 @@ export const stagingViemChain = defineChain({
   id: 420105,
   name: 'CoFHE Staging',
   nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-  rpcUrls: { default: { http: ['https://staging-hostchain-v1.sw-dom.co'] } },
+  rpcUrls: { default: { http: [STAGING_RPC] } },
 });

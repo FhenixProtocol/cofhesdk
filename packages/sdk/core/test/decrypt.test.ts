@@ -21,7 +21,7 @@ import { arbitrumSepolia, baseSepolia, sepolia } from 'viem/chains';
 
 const account = privateKeyToAccount(TEST_PRIVATE_KEY);
 
-const TEST_CHAIN_ID = STAGING_TESTS ? 420105 : PRIMARY_TEST_CHAIN;
+const TEST_CHAIN_ID = STAGING_TESTS ? stagingViemChain.id : PRIMARY_TEST_CHAIN;
 
 const VIEM_CHAINS: Record<number, Chain> = {
   421614: arbitrumSepolia,

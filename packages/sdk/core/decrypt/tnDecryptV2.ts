@@ -1,4 +1,4 @@
-import { type WirePermit, wirePermitBody } from '../../permits/wire.js';
+import { type WirePermit } from '../../permits/wire.js';
 import { cofheFetch } from '../debug.js';
 
 import { CofheError, CofheErrorCode } from '../error';
@@ -194,7 +194,7 @@ async function submitDecryptRequestV2(
   };
 
   if (acp) {
-    Object.assign(body, wirePermitBody(acp));
+    body.acp = acp;
   }
 
   let attemptIndex = 0;

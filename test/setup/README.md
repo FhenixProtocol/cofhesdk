@@ -72,3 +72,12 @@ Exports `TEST_PRIVATE_KEY`, `TEST_LOCALCOFHE_PRIVATE_KEY`, `PRIMARY_TEST_CHAIN`.
 ### `src/primaryTestChain.ts`
 
 Typed accessor for `primaryTestChainRegistry.json`. Exports the registry and `isPrimaryTestChainReady()` type guard — tests call this to fail fast with a clear message when setup hasn't been run.
+
+## Staging test-chain registry
+
+`src/stagingTestChainRegistry.json` holds the SimpleTest values initialized on the
+CoFHE staging chain (populated by `pnpm test:setup` when `TEST_STAGING_ENABLED=true`).
+The private values grant on-chain access to the account that initialized them, so the
+file records `initializedBy` and setup re-initializes whenever a different
+`TEST_PRIVATE_KEY` runs it — expect this file to churn between developers; that is
+by design, commit or discard freely.

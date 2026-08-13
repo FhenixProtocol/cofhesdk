@@ -68,4 +68,4 @@ export * from './permit.js';
 export * from './validation.js';
 export * from './signature.js';
 export * from './store.js';
-export { toWirePermit, wirePermitBody, type WirePermit } from './wire.js';
+export { toWirePermit, type WirePermit } from './wire.js';

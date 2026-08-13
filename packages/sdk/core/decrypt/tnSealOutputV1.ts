@@ -1,6 +1,5 @@
 import { type ACPPublic, type EthEncryptedData } from '@/permits';
 
-import { wirePermitBody } from '../../permits/wire.js';
 import { CofheError, CofheErrorCode } from '../error.js';
 import {} from './tnDecryptUtils.js';
 
@@ -17,7 +16,7 @@ export async function tnSealOutputV1(
   const body = {
     ct_tempkey: ctHash.toString(16).padStart(64, '0'),
     host_chain_id: chainId,
-    ...wirePermitBody(acp),
+    acp,
   };
 
   try {

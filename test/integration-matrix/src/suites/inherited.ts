@@ -9,7 +9,7 @@
 
 import { it, describe, expect, beforeAll, afterAll } from 'vitest';
 import { Encryptable, FheTypes } from '@cofhe/sdk';
-import { toWirePermit, wirePermitBody, type WirePermit } from '@cofhe/sdk/permits';
+import { toWirePermit, type WirePermit } from '@cofhe/sdk/permits';
 import { simpleTestAbi } from '@cofhe/test-setup';
 import type { TestChainConfig, ClientFactory, TestContext } from '../types.js';
 
@@ -17,7 +17,7 @@ function makeThresholdRequestBody(chainConfig: TestChainConfig, ctHash: bigint |
   return {
     ct_tempkey: BigInt(ctHash).toString(16).padStart(64, '0'),
     host_chain_id: chainConfig.cofheChain.id,
-    ...wirePermitBody(acp),
+    acp,
   };
 }
 
