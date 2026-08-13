@@ -32,6 +32,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REGISTRY_PATH = resolve(__dirname, 'src/deployments.json');
 const PRIMARY_REGISTRY_PATH = resolve(__dirname, 'src/primaryTestChainRegistry.json');
+const STAGING_REGISTRY_PATH = resolve(__dirname, 'src/stagingTestChainRegistry.json');
 
 // ── .env ────────────────────────────────────────────────────────────────────
 
@@ -488,6 +489,75 @@ function initializePrimaryChain() {
 }
 
 initializePrimaryChain();
+
+
+function initializeStagingChain() {
+  if (process.env.TEST_STAGING_ENABLED !== 'true') return;
+
+  const contractAddress = registry['SimpleTest']?.[STAGING_CHAIN.registryKey]?.address;
+  if (!contractAddress) {
+    console.log(`\nStaging chain: no SimpleTest deployment, skipping value initialization`);
+    return;
+  }
+
+  let stagingReg;
+  try { stagingReg = JSON.parse(readFileSync(STAGING_REGISTRY_PATH, 'utf8')); } catch { stagingReg = {}; }
+  const deployedAt = registry['SimpleTest'][STAGING_CHAIN.registryKey].deployedAt;
+  const needsInit = !stagingReg.chainId
+    || stagingReg.contractAddress !== contractAddress
+    || stagingReg.deploymentTimestamp !== deployedAt;
+
+  if (!needsInit) {
+    console.log(`\nStaging chain: values already initialized`);
+    return;
+  }
+
+  if (args.dryRun) {
+    console.log(`\nStaging chain: [dry-run] would initialize values`);
+    return;
+  }
+
+  const rpc = process.env[STAGING_CHAIN.rpcEnv] || STAGING_CHAIN.rpc;
+  const pkEnvName = getPrivateKeyEnvName(STAGING_CHAIN);
+
+  console.log(`\nInitializing staging chain values on ${STAGING_CHAIN.label}...`);
+
+  console.log(`  setValueTrivial(${PRIVATE_VALUE})...`);
+  castSend(rpc, pkEnvName, contractAddress, 'setValueTrivial(uint256)', String(PRIVATE_VALUE));
+  const privateCtHash = castCall(rpc, contractAddress, 'getValueHash()');
+  const privateHandle = castCall(rpc, contractAddress, 'getValue()');
+
+  console.log(`  setPublicValueTrivial(${PUBLIC_VALUE})...`);
+  castSend(rpc, pkEnvName, contractAddress, 'setPublicValueTrivial(uint256)', String(PUBLIC_VALUE));
+  const publicCtHash = castCall(rpc, contractAddress, 'publicValueHash()');
+  const publicHandle = castCall(rpc, contractAddress, 'publicValue()');
+
+  console.log(`  addValueTrivial(${ADD_VALUE})...`);
+  castSend(rpc, pkEnvName, contractAddress, 'addValueTrivial(uint256)', String(ADD_VALUE));
+  const addedCtHash = castCall(rpc, contractAddress, 'getValueHash()');
+  const addedHandle = castCall(rpc, contractAddress, 'getValue()');
+
+  const newStagingReg = {
+    chainId: STAGING_CHAIN.id,
+    contractAddress,
+    deploymentTimestamp: deployedAt,
+    privateValue: { value: PRIVATE_VALUE, ctHash: privateCtHash, handle: privateHandle },
+    publicValue: { value: PUBLIC_VALUE, ctHash: publicCtHash, handle: publicHandle },
+    addedValue: {
+      value: PRIVATE_VALUE + ADD_VALUE,
+      addend: ADD_VALUE,
+      expectedSum: PRIVATE_VALUE + ADD_VALUE,
+      ctHash: addedCtHash,
+      handle: addedHandle,
+    },
+    initializedAt: new Date().toISOString(),
+  };
+
+  writeFileSync(STAGING_REGISTRY_PATH, JSON.stringify(newStagingReg, null, 2) + '\n');
+  console.log(`  Staging test chain registry updated: ${STAGING_REGISTRY_PATH}`);
+}
+
+initializeStagingChain();
 
 // ── Write SimpleTest.sol abi ────────────────────────────────────────────────
 

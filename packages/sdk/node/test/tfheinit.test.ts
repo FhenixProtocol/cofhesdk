@@ -1,6 +1,6 @@
-import { LIVE_TESTNETS } from '../../core/test/liveTestnets.js';
+import { STAGING_TESTS, stagingViemChain } from '../../core/test/stagingRedirect.js';
 import { Encryptable, type CofheClient } from '@/core';
-import { arbSepolia as cofheArbSepolia } from '@/chains';
+import { arbSepolia as cofheArbSepolia, stagingCofhe } from '@/chains';
 
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import type { PublicClient, WalletClient } from 'viem';
@@ -11,6 +11,9 @@ import { createCofheClient, createCofheConfig } from '../index.js';
 
 const TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 
+const testViemChain = STAGING_TESTS ? stagingViemChain : viemArbitrumSepolia;
+const testCofheChain = STAGING_TESTS ? stagingCofhe : cofheArbSepolia;
+
 describe('@cofhe/node - TFHE Initialization Tests', () => {
   let cofheClient: CofheClient;
   let publicClient: PublicClient;
@@ -19,13 +22,13 @@ describe('@cofhe/node - TFHE Initialization Tests', () => {
 
   beforeAll(() => {
     publicClient = createPublicClient({
-      chain: viemArbitrumSepolia,
+      chain: testViemChain,
       transport: http(),
     });
 
     const account = privateKeyToAccount(TEST_PRIVATE_KEY);
     walletClient = createWalletClient({
-      chain: viemArbitrumSepolia,
+      chain: testViemChain,
       transport: http(),
       account,
     });
@@ -34,12 +37,12 @@ describe('@cofhe/node - TFHE Initialization Tests', () => {
 
   beforeEach(() => {
     const config = createCofheConfig({
-      supportedChains: [cofheArbSepolia],
+      supportedChains: [testCofheChain],
     });
     cofheClient = createCofheClient(config);
   });
 
-  describe.skipIf(!LIVE_TESTNETS)('Node TFHE Initialization', () => {
+  describe('Node TFHE Initialization', () => {
     it('should initialize node-tfhe on first encryption', async () => {
       await cofheClient.connect(publicClient, walletClient);
 
@@ -49,7 +52,7 @@ describe('@cofhe/node - TFHE Initialization Tests', () => {
         .execute();
 
       expect(result).toBeDefined();
-    }, 60000);
+    }, 120000);
 
     it('should handle multiple encryptions without re-initializing', async () => {
       await cofheClient.connect(publicClient, walletClient);

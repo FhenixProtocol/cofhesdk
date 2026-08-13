@@ -1,10 +1,11 @@
-import { LIVE_TESTNETS } from './liveTestnets.js';
+import { STAGING_TESTS, stagingViemChain } from './stagingRedirect.js';
 import { FheTypes, verifyDecryptResult, createCofheConfigBase, TASK_MANAGER_ADDRESS } from '@/core';
-import { getChainById } from '@/chains';
+import { getChainById, stagingCofhe } from '@/chains';
 import {
   TEST_PRIVATE_KEY,
   PRIMARY_TEST_CHAIN,
   primaryTestChainRegistry,
+  stagingTestChainRegistry,
   isPrimaryTestChainReady,
 } from '@cofhe/test-setup';
 
@@ -20,13 +21,15 @@ import { arbitrumSepolia, baseSepolia, sepolia } from 'viem/chains';
 
 const account = privateKeyToAccount(TEST_PRIVATE_KEY);
 
+const TEST_CHAIN_ID = STAGING_TESTS ? 420105 : PRIMARY_TEST_CHAIN;
+
 const VIEM_CHAINS: Record<number, Chain> = {
   421614: arbitrumSepolia,
   84532: baseSepolia,
   11155111: sepolia,
 };
 
-describe.skipIf(!LIVE_TESTNETS)('Core – Decrypt Tests', () => {
+describe('Core – Decrypt Tests', () => {
   let publicClient: PublicClient;
   let walletClient: WalletClient;
   let config: ReturnType<typeof createCofheConfigBase>;
@@ -38,17 +41,16 @@ describe.skipIf(!LIVE_TESTNETS)('Core – Decrypt Tests', () => {
   let publicValue: bigint;
 
   beforeAll(() => {
-    if (!isPrimaryTestChainReady(primaryTestChainRegistry)) {
-      throw new Error('Primary test chain registry is not initialized. Run `pnpm test:setup` first.');
+    const reg = STAGING_TESTS ? (stagingTestChainRegistry as typeof primaryTestChainRegistry) : primaryTestChainRegistry;
+    if (!isPrimaryTestChainReady(reg)) {
+      throw new Error('Test chain registry is not initialized. Run `pnpm test:setup` first.');
     }
-
-    const reg = primaryTestChainRegistry;
     const chainId = reg.chainId;
 
-    const viemChain = VIEM_CHAINS[chainId];
+    const viemChain = STAGING_TESTS ? stagingViemChain : VIEM_CHAINS[chainId];
     if (!viemChain) throw new Error(`No viem chain mapping for chain ${chainId}`);
 
-    const cofheChain = getChainById(chainId);
+    const cofheChain = STAGING_TESTS ? stagingCofhe : getChainById(chainId);
     if (!cofheChain) throw new Error(`No cofhe chain config for chain ${chainId}`);
 
     config = createCofheConfigBase({ supportedChains: [cofheChain] });
@@ -68,7 +70,7 @@ describe.skipIf(!LIVE_TESTNETS)('Core – Decrypt Tests', () => {
       config,
       publicClient,
       walletClient,
-      chainId: PRIMARY_TEST_CHAIN,
+      chainId: TEST_CHAIN_ID,
       account: account.address,
       ctHash,
       requireConnected: undefined,
@@ -80,7 +82,7 @@ describe.skipIf(!LIVE_TESTNETS)('Core – Decrypt Tests', () => {
       config,
       publicClient,
       walletClient,
-      chainId: PRIMARY_TEST_CHAIN,
+      chainId: TEST_CHAIN_ID,
       account: account.address,
       ctHash,
       utype,
@@ -123,7 +125,7 @@ describe.skipIf(!LIVE_TESTNETS)('Core – Decrypt Tests', () => {
 
     it('should auto-resolve active permit', async () => {
       const permit = await createPermit();
-      permits.selectActivePermit(PRIMARY_TEST_CHAIN, account.address, permit.hash);
+      permits.selectActivePermit(TEST_CHAIN_ID, account.address, permit.hash);
 
       const result = await txBuilder(privateCtHash).withPermit().execute();
 

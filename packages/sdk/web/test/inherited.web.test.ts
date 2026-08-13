@@ -1,10 +1,11 @@
-import { LIVE_TESTNETS } from '../../core/test/liveTestnets.js';
+import { STAGING_TESTS, stagingViemChain } from '../../core/test/stagingRedirect.js';
 import { Encryptable, FheTypes, type CofheClient } from '@/core';
-import { arbSepolia as cofheArbSepolia, getChainById } from '@/chains';
+import { arbSepolia as cofheArbSepolia, getChainById, stagingCofhe } from '@/chains';
 import {
   TEST_PRIVATE_KEY,
   PRIMARY_TEST_CHAIN,
   primaryTestChainRegistry,
+  stagingTestChainRegistry,
   isPrimaryTestChainReady,
 } from '@cofhe/test-setup';
 
@@ -29,6 +30,9 @@ const VIEM_CHAINS: Record<number, Chain> = {
   11155111: sepolia,
 };
 
+const testViemChain = STAGING_TESTS ? stagingViemChain : arbitrumSepolia;
+const testCofheChain = STAGING_TESTS ? stagingCofhe : cofheArbSepolia;
+
 describe('@cofhe/web - Inherited Client Tests', () => {
   let cofheClient: CofheClient;
   let publicClient: PublicClient;
@@ -37,18 +41,18 @@ describe('@cofhe/web - Inherited Client Tests', () => {
 
   beforeAll(() => {
     publicClient = createPublicClient({
-      chain: arbitrumSepolia,
+      chain: testViemChain,
       transport: http(),
     });
 
     bobWalletClient = createWalletClient({
-      chain: arbitrumSepolia,
+      chain: testViemChain,
       transport: http(),
       account: bobAccount,
     });
 
     aliceWalletClient = createWalletClient({
-      chain: arbitrumSepolia,
+      chain: testViemChain,
       transport: http(),
       account: aliceAccount,
     });
@@ -56,7 +60,7 @@ describe('@cofhe/web - Inherited Client Tests', () => {
 
   beforeEach(() => {
     const config = createCofheConfig({
-      supportedChains: [cofheArbSepolia],
+      supportedChains: [testCofheChain],
     });
     cofheClient = createCofheClient(config);
   });
@@ -85,12 +89,12 @@ describe('@cofhe/web - Inherited Client Tests', () => {
 
       const snapshot = cofheClient.getSnapshot();
       expect(snapshot.connected).toBe(true);
-      expect(snapshot.chainId).toBe(cofheArbSepolia.id);
+      expect(snapshot.chainId).toBe(testCofheChain.id);
       expect(snapshot.account).toBe(bobAccount.address);
     }, 30000);
   });
 
-  describe.skipIf(!LIVE_TESTNETS)('Encrypt Input', () => {
+  describe('Encrypt Input', () => {
     it('should encrypt a uint128 value', async () => {
       await cofheClient.connect(publicClient, bobWalletClient);
 
@@ -108,7 +112,7 @@ describe('@cofhe/web - Inherited Client Tests', () => {
       expect(hash).toMatch(/^0x[0-9a-fA-F]+$/);
       expect(typeof signature).toBe('string');
       expect(signature).toMatch(/^0x[0-9a-fA-F]+$/);
-    }, 60000);
+    }, 120000);
   });
 
   describe('Self ACP', () => {
@@ -160,7 +164,7 @@ describe('@cofhe/web - Inherited Client Tests', () => {
       expect(parsed).not.toHaveProperty('sealingPrivateKey');
 
       const aliceConfig = createCofheConfig({
-        supportedChains: [cofheArbSepolia],
+        supportedChains: [testCofheChain],
       });
       const aliceClient = createCofheClient(aliceConfig);
       await aliceClient.connect(publicClient, aliceWalletClient);
@@ -176,7 +180,7 @@ describe('@cofhe/web - Inherited Client Tests', () => {
     }, 30000);
   });
 
-  describe.skipIf(!LIVE_TESTNETS)('Decrypt (read-only, pre-stored values)', () => {
+  describe('Decrypt (read-only, pre-stored values)', () => {
     let decryptClient: CofheClient;
     let decryptPublicClient: PublicClient;
     let decryptWalletClient: WalletClient;
@@ -187,15 +191,14 @@ describe('@cofhe/web - Inherited Client Tests', () => {
     let publicValue: bigint;
 
     beforeAll(() => {
-      if (!isPrimaryTestChainReady(primaryTestChainRegistry)) {
-        throw new Error('Primary test chain registry not initialized. Run `pnpm test:setup` first.');
+      const reg = STAGING_TESTS ? (stagingTestChainRegistry as typeof primaryTestChainRegistry) : primaryTestChainRegistry;
+      if (!isPrimaryTestChainReady(reg)) {
+        throw new Error('Test chain registry not initialized. Run `pnpm test:setup` first.');
       }
-
-      const reg = primaryTestChainRegistry;
-      const viemChain = VIEM_CHAINS[reg.chainId];
+      const viemChain = STAGING_TESTS ? stagingViemChain : VIEM_CHAINS[reg.chainId];
       if (!viemChain) throw new Error(`No viem chain mapping for chain ${reg.chainId}`);
 
-      const cofheChain = getChainById(reg.chainId);
+      const cofheChain = STAGING_TESTS ? stagingCofhe : getChainById(reg.chainId);
       if (!cofheChain) throw new Error(`No cofhe chain config for chain ${reg.chainId}`);
 
       privateCtHash = reg.privateValue.ctHash as `0x${string}`;

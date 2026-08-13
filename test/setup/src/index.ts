@@ -8,3 +8,4 @@ export {
   type PrimaryTestChainRegistry,
   type StoredValue,
 } from './primaryTestChain';
+export { stagingTestChainRegistry } from './stagingTestChain';

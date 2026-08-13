@@ -1,5 +1,5 @@
-import { LIVE_TESTNETS } from '../../core/test/liveTestnets.js';
-import { arbSepolia as cofheArbSepolia } from '@/chains';
+import { STAGING_TESTS, stagingViemChain } from '../../core/test/stagingRedirect.js';
+import { arbSepolia as cofheArbSepolia, stagingCofhe } from '@/chains';
 import { Encryptable } from '@/core';
 
 import { describe, it, expect, beforeAll } from 'vitest';
@@ -11,20 +11,23 @@ import { createCofheClient, createCofheConfig, createCofheClientWithCustomWorker
 
 const TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 
-describe.skipIf(!LIVE_TESTNETS)('@cofhe/sdk/web - Worker Configuration Tests', () => {
+const testViemChain = STAGING_TESTS ? stagingViemChain : viemArbitrumSepolia;
+const testCofheChain = STAGING_TESTS ? stagingCofhe : cofheArbSepolia;
+
+describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
   let publicClient: PublicClient;
   let walletClient: WalletClient;
   let consumingContract: `0x${string}`;
 
   beforeAll(() => {
     publicClient = createPublicClient({
-      chain: viemArbitrumSepolia,
+      chain: testViemChain,
       transport: http(),
     });
 
     const account = privateKeyToAccount(TEST_PRIVATE_KEY);
     walletClient = createWalletClient({
-      chain: viemArbitrumSepolia,
+      chain: testViemChain,
       transport: http(),
       account,
     });
@@ -34,7 +37,7 @@ describe.skipIf(!LIVE_TESTNETS)('@cofhe/sdk/web - Worker Configuration Tests', (
   describe('useWorkers config flag', () => {
     it('should use workers by default (useWorkers: true)', async () => {
       const config = createCofheConfig({
-        supportedChains: [cofheArbSepolia],
+        supportedChains: [testCofheChain],
         // useWorkers defaults to true
       });
 
@@ -72,11 +75,11 @@ describe.skipIf(!LIVE_TESTNETS)('@cofhe/sdk/web - Worker Configuration Tests', (
         console.log('Worker fallback occurred (expected in test env):', proveContext.workerFailedError);
         expect(proveContext.workerFailedError).toBeDefined();
       }
-    }, 60000);
+    }, 120000);
 
     it('should disable workers when useWorkers: false', async () => {
       const config = createCofheConfig({
-        supportedChains: [cofheArbSepolia],
+        supportedChains: [testCofheChain],
         useWorkers: false,
       });
 
@@ -103,13 +106,13 @@ describe.skipIf(!LIVE_TESTNETS)('@cofhe/sdk/web - Worker Configuration Tests', (
       expect(proveContext).toBeDefined();
       expect(proveContext.useWorker).toBe(false);
       expect(proveContext.usedWorker).toBe(false);
-    }, 60000);
+    }, 120000);
   });
 
   describe('setUseWorker() method', () => {
     it('should override config with setUseWorker(false)', async () => {
       const config = createCofheConfig({
-        supportedChains: [cofheArbSepolia],
+        supportedChains: [testCofheChain],
         useWorkers: true, // Config says true
       });
 
@@ -134,11 +137,11 @@ describe.skipIf(!LIVE_TESTNETS)('@cofhe/sdk/web - Worker Configuration Tests', (
       // Should respect the override
       expect(proveContext.useWorker).toBe(false);
       expect(proveContext.usedWorker).toBe(false);
-    }, 60000);
+    }, 120000);
 
     it('should override config with setUseWorker(true)', async () => {
       const config = createCofheConfig({
-        supportedChains: [cofheArbSepolia],
+        supportedChains: [testCofheChain],
         useWorkers: false, // Config says false
       });
 
@@ -162,13 +165,13 @@ describe.skipIf(!LIVE_TESTNETS)('@cofhe/sdk/web - Worker Configuration Tests', (
 
       // Should use worker since we overrode to true
       expect(proveContext.useWorker).toBe(true);
-    }, 60000);
+    }, 120000);
   });
 
   describe('Step callback worker context', () => {
     it('should include worker debug info in prove step', async () => {
       const config = createCofheConfig({
-        supportedChains: [cofheArbSepolia],
+        supportedChains: [testCofheChain],
       });
 
       const client = createCofheClient(config);
@@ -199,13 +202,13 @@ describe.skipIf(!LIVE_TESTNETS)('@cofhe/sdk/web - Worker Configuration Tests', (
         expect(proveContext).toHaveProperty('workerFailedError');
         expect(typeof proveContext.workerFailedError).toBe('string');
       }
-    }, 60000);
+    }, 120000);
   });
 
   describe('Worker fallback behavior', () => {
     it('should fallback to main thread when worker fails', async () => {
       const config = createCofheConfig({
-        supportedChains: [cofheArbSepolia],
+        supportedChains: [testCofheChain],
         useWorkers: true,
       });
 
@@ -232,18 +235,18 @@ describe.skipIf(!LIVE_TESTNETS)('@cofhe/sdk/web - Worker Configuration Tests', (
 
       // Verify encryption succeeded via fallback to main thread
       expect(result).toBeDefined();
-      expect(result.length).toBe(1);
+      expect(result.length).toBe(2); // 1 ctHash + shared signature
 
       // Verify worker was attempted but failed, triggering fallback
       expect(proveContext).toBeDefined();
       expect(proveContext.useWorker).toBe(true); // Worker was requested
       expect(proveContext.usedWorker).toBe(false); // But it failed
       expect(proveContext.workerFailedError).toBe('Worker failed intentionally');
-    }, 60000);
+    }, 120000);
 
     it('should fallback when encrypting multiple values', async () => {
       const config = createCofheConfig({
-        supportedChains: [cofheArbSepolia],
+        supportedChains: [testCofheChain],
         useWorkers: true,
       });
 
@@ -268,17 +271,17 @@ describe.skipIf(!LIVE_TESTNETS)('@cofhe/sdk/web - Worker Configuration Tests', (
 
       // All values should encrypt successfully via fallback
       expect(result).toBeDefined();
-      expect(result.length).toBe(3);
+      expect(result.length).toBe(4); // 3 ctHashes + shared signature
 
       // Verify fallback occurred
       expect(proveContext.useWorker).toBe(true);
       expect(proveContext.usedWorker).toBe(false);
       expect(proveContext.workerFailedError).toBe('Worker unavailable');
-    }, 60000);
+    }, 120000);
 
     it('should handle async worker errors gracefully', async () => {
       const config = createCofheConfig({
-        supportedChains: [cofheArbSepolia],
+        supportedChains: [testCofheChain],
         useWorkers: true,
       });
 
@@ -307,11 +310,11 @@ describe.skipIf(!LIVE_TESTNETS)('@cofhe/sdk/web - Worker Configuration Tests', (
       expect(proveContext.useWorker).toBe(true);
       expect(proveContext.usedWorker).toBe(false);
       expect(proveContext.workerFailedError).toBe('Async worker failure');
-    }, 60000);
+    }, 120000);
 
     it('should work without worker when explicitly disabled', async () => {
       const config = createCofheConfig({
-        supportedChains: [cofheArbSepolia],
+        supportedChains: [testCofheChain],
         useWorkers: true, // Config says use workers
       });
 
@@ -336,6 +339,6 @@ describe.skipIf(!LIVE_TESTNETS)('@cofhe/sdk/web - Worker Configuration Tests', (
       expect(proveContext.useWorker).toBe(false);
       expect(proveContext.usedWorker).toBe(false);
       expect(proveContext.workerFailedError).toBeUndefined();
-    }, 60000);
+    }, 120000);
   });
 });
