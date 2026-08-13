@@ -1,4 +1,4 @@
-import { STAGING_TESTS, stagingViemChain } from '../../core/test/stagingRedirect.js';
+import { STAGING_TESTS, stagingViemChain } from '../../core/test/stagingRedirect';
 import { Encryptable, FheTypes, type CofheClient } from '@/core';
 import { arbSepolia as cofheArbSepolia, getChainById, stagingCofhe } from '@/chains';
 import {

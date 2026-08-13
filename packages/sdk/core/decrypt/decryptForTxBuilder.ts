@@ -1,7 +1,7 @@
 /* eslint-disable no-dupe-class-members */
 import { hardhat } from '@/chains';
 import { type ACP, type ACPPublic, ACPUtils } from '@/permits';
-import { toWirePermit } from '../../permits/wire.js';
+import { toWirePermit } from '../../permits/wire';
 
 import { FheTypes } from '../types';
 import { getThresholdNetworkUrlOrThrow } from '../config';

@@ -1,5 +1,5 @@
-import { type ACP, type ACPPublic } from './types.js';
-import { ACPUtils } from './permit.js';
+import { type ACP, type ACPPublic } from './types';
+import { ACPUtils } from './permit';
 
 /** The permit object as decryption-backend request bodies carry it. */
 export type WirePermit = ACPPublic;

@@ -1,4 +1,4 @@
-import { STAGING_TESTS, stagingViemChain } from '../../core/test/stagingRedirect.js';
+import { STAGING_TESTS, stagingViemChain } from '../../core/test/stagingRedirect';
 import { arbSepolia as cofheArbSepolia, stagingCofhe } from '@/chains';
 import { Encryptable } from '@/core';
 

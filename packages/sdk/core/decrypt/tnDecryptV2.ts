@@ -1,4 +1,4 @@
-import { type WirePermit } from '../../permits/wire.js';
+import { type WirePermit } from '../../permits/wire';
 import { cofheFetch } from '../debug.js';
 
 import { CofheError, CofheErrorCode } from '../error';

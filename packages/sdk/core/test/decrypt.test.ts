@@ -1,4 +1,4 @@
-import { STAGING_TESTS, stagingViemChain } from './stagingRedirect.js';
+import { STAGING_TESTS, stagingViemChain } from './stagingRedirect';
 import { FheTypes, verifyDecryptResult, createCofheConfigBase, TASK_MANAGER_ADDRESS } from '@/core';
 import { getChainById, stagingCofhe } from '@/chains';
 import {
