@@ -1,5 +1,4 @@
-import { type EthEncryptedData } from '@/permits';
-import { type WirePermit } from '../../permits/wire';
+import { type ACPPublic, type EthEncryptedData } from '@/permits';
 import { cofheFetch } from '../debug.js';
 
 import { CofheError, CofheErrorCode } from '../error.js';
@@ -139,7 +138,7 @@ async function submitSealOutputRequest(
   thresholdNetworkUrl: string,
   ctHash: bigint | string,
   chainId: number,
-  acp: WirePermit,
+  acp: ACPPublic,
   overallStartTime: number,
   retry404TimeoutMs: number,
   onPoll?: DecryptPollCallbackFunction
@@ -414,7 +413,7 @@ async function pollSealOutputStatus(
 export async function tnSealOutputV2(params: {
   ctHash: bigint | string;
   chainId: number;
-  acp: WirePermit;
+  acp: ACPPublic;
   thresholdNetworkUrl: string;
   retry404TimeoutMs?: number;
   onPoll?: DecryptPollCallbackFunction;

@@ -1,7 +1,6 @@
 /* eslint-disable no-dupe-class-members */
 import { hardhat } from '@/chains';
 import { type ACP, ACPUtils } from '@/permits';
-import { toWirePermit } from '../../permits/wire';
 
 import { FheTypes, type UnsealedItem } from '../types.js';
 import { getThresholdNetworkUrlOrThrow } from '../config.js';
@@ -288,7 +287,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
     this.assertPublicClient();
 
     const thresholdNetworkUrl = await this.getThresholdNetworkUrl();
-    const acp = toWirePermit(permit);
+    const acp = ACPUtils.getPublic(permit, true);
     // const sealed = await tnSealOutputV1(this.ctHash, this.chainId, permission, thresholdNetworkUrl);
     const sealed = await tnSealOutputV2({
       ctHash: this.ctHash,

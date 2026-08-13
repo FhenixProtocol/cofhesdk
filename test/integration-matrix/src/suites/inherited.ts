@@ -9,11 +9,11 @@
 
 import { it, describe, expect, beforeAll, afterAll } from 'vitest';
 import { Encryptable, FheTypes } from '@cofhe/sdk';
-import { toWirePermit, type WirePermit } from '@cofhe/sdk/permits';
+import { ACPUtils, type ACPPublic } from '@cofhe/sdk/permits';
 import { simpleTestAbi } from '@cofhe/test-setup';
 import type { TestChainConfig, ClientFactory, TestContext } from '../types.js';
 
-function makeThresholdRequestBody(chainConfig: TestChainConfig, ctHash: bigint | string, acp: WirePermit) {
+function makeThresholdRequestBody(chainConfig: TestChainConfig, ctHash: bigint | string, acp: ACPPublic) {
   return {
     ct_tempkey: BigInt(ctHash).toString(16).padStart(64, '0'),
     host_chain_id: chainConfig.cofheChain.id,
@@ -324,7 +324,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(
-            makeThresholdRequestBody(chainConfig, alreadyFetchedCtHash, toWirePermit(activePermit!))
+            makeThresholdRequestBody(chainConfig, alreadyFetchedCtHash, ACPUtils.getPublic(activePermit!, true))
           ),
         });
 
