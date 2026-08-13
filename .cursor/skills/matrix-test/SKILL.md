@@ -1,11 +1,11 @@
 ---
 name: matrix-test
 description: >-
-  Runs cofhesdk's integration-matrix test workflow: building the SDK, running
-  test:setup (deploy contracts + fund accounts), and/or running the integration
-  matrix tests against a given chain and environment. Invoked as `/matrix-test <steps>`,
-  e.g. `/matrix-test staging node`, `/matrix-test setup`, `/matrix-test build`, or chained
-  phrasing like `/matrix-test build setup then run staging node`.
+  Runs cofhesdk's integration-matrix test workflow: building the matrix's dependency
+  closure, running test:setup (deploy contracts + fund accounts), and/or running the
+  integration matrix tests against a given chain and environment. Invoked as
+  `/matrix-test <steps>`, e.g. `/matrix-test staging node`, `/matrix-test setup`,
+  `/matrix-test build`, or chained phrasing like `/matrix-test build setup then run staging node`.
 disable-model-invocation: true
 ---
 
@@ -17,8 +17,11 @@ named**, sequentially.
 
 ## Steps
 
-- **`build`** — rebuild the SDK (needed after any core SDK code change):
-  `pnpm --filter @cofhe/sdk build` from the repo root.
+- **`build`** — rebuild integration-matrix's full dependency closure (needed after any
+  core SDK/mocks/plugin code change): `pnpm exec turbo run build --filter=@cofhe/integration-matrix...`
+  from the repo root. The trailing `...` builds everything the matrix depends on — `@cofhe/sdk`,
+  `@cofhe/test-setup`, `@cofhe/mock-contracts`, `@cofhe/hardhat-3-plugin` today, and automatically
+  whatever gets added tomorrow — with turbo's cache keeping it near-instant when nothing changed.
 - **`setup`** — deploy/verify SimpleTest contracts and fund test accounts:
   `pnpm test:setup` from the repo root. Auto-funds the staging deployer from
   `STAGING_FUNDER_KEY` when it drops below 0.1 ETH; real testnets still require manual
@@ -45,7 +48,7 @@ split on whitespace. Match remaining tokens left to right:
 
 Run the parsed steps sequentially in the order given — later steps often depend on
 earlier ones (e.g. `setup` must finish before a matrix run reads the freshly deployed
-contract address; `build` should precede a matrix run that needs the latest SDK).
+contract address; `build` should precede a matrix run that needs latest SDK/mocks/plugin code).
 
 ## Execution notes
 
@@ -62,7 +65,7 @@ contract address; `build` should precede a matrix run that needs the latest SDK)
 - `/matrix-test staging node` → `MATRIX_CHAIN=staging pnpm test:node` in
   `test/integration-matrix`.
 - `/matrix-test setup` → `pnpm test:setup` at repo root.
-- `/matrix-test build` → `pnpm --filter @cofhe/sdk build` at repo root.
+- `/matrix-test build` → `pnpm exec turbo run build --filter=@cofhe/integration-matrix...` at repo root.
 - `/matrix-test build setup then run staging node` → build, then setup, then
   `MATRIX_CHAIN=staging pnpm test:node`, in that order.
 - `/matrix-test testnet` → `MATRIX_CHAIN=testnet pnpm test:all` (node + web).
