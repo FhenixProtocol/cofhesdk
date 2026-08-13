@@ -21,9 +21,9 @@
       "deployedAt": "2026-06-02T07:47:25.144Z"
     },
     "420105-staging": {
-      "address": "0x35b8031650b8Cdd5c5fEB4bE09Ed422E942cD794",
+      "address": "0xa08Bf4cE15943ceCd04ddf11BdDd5B8d5f83AD5e",
       "bytecodeHash": "0xc30a2bf42eb442a13d59db0f0c38c78508062c21ce668c1ba1bb5def7fd451f9",
-      "deployedAt": "2026-08-11T09:54:19.438Z"
+      "deployedAt": "2026-08-13T06:53:30.826Z"
     }
   }
 }

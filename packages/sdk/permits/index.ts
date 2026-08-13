@@ -21,7 +21,7 @@ export { ACPUtils } from './permit.js';
 
 // Wire-shape helper: the permit struct as the decryption backend expects it —
 // ACP for upgraded chains, the legacy V2 Permission for pre-upgrade chains
-export { toWirePermit, type WirePermit } from './legacy-v2/bridge.js';
+export { toWirePermit, wirePermitBody, type WirePermit } from './legacy-v2/bridge.js';
 
 // Validation utilities
 export {
