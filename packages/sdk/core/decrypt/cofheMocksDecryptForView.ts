@@ -12,11 +12,11 @@ export async function cofheMocksDecryptForView(
   acp: ACP,
   publicClient: PublicClient
 ): Promise<bigint> {
-  const acp = ACPUtils.getPublic(acp, true);
+  const wireAcp = ACPUtils.getPublic(acp, true);
   const permissionWithBigInts = {
-    ...acp,
-    expiration: BigInt(acp.expiration),
-    revokerData: BigInt(acp.revokerData),
+    ...wireAcp,
+    expiration: BigInt(wireAcp.expiration),
+    revokerData: BigInt(wireAcp.revokerData),
   };
 
   const [allowed, error, result] = await publicClient.readContract({
