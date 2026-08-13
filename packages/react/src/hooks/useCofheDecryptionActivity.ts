@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import { useInternalQueryClient } from '@/providers';
 import { useCofheAccount, useCofheChainId } from './useCofheConnection';
-import { useCofheActivePermit } from './useCofhePermits';
+import { useCofheActiveACP } from './useCofheACPs';
 import type { CofheQueryMeta } from '@/meta';
 
 // ============================================================================
@@ -18,7 +18,7 @@ import type { CofheQueryMeta } from '@/meta';
 // This hook observes the cache, correlates the two stages by ctHash, and returns
 // one row per confidential value with a recognizable contract/method/label (from
 // each query's `meta`) — surfacing states a plain error/loading flag can't:
-//   • "blocked" — gated off by a missing/invalid permit (never runs, never errors)
+//   • "blocked" — gated off by a missing/invalid acp (never runs, never errors)
 //   • "stale"   — fetched, but the decrypt is pending far too long / never lands
 // Consumers render the rows; no query-key parsing or side registries required.
 
@@ -28,7 +28,7 @@ const nowSec = () => Math.floor(Date.now() / 1000);
 /** 'idle' = a read/decrypt query exists but is disabled/never-ran (fetchStatus 'idle'), vs 'pending' (in flight). */
 export type FetchStageState = 'ok' | 'pending' | 'idle' | 'error' | 'empty';
 export type DecryptStageState = 'ok' | 'pending' | 'idle' | 'stale' | 'error' | 'blocked' | 'absent';
-export type PermitState = 'valid' | 'expired' | 'unsigned' | 'none';
+export type ACPState = 'valid' | 'expired' | 'unsigned' | 'none';
 /** Coarse bucket for filtering: something wrong / decrypted / nothing conclusive. */
 export type DecryptionActivityCategory = 'error' | 'success' | 'idle';
 
@@ -48,7 +48,7 @@ export interface DecryptionActivityRow {
   fetch: FetchStageState;
   decrypt: DecryptStageState;
   category: DecryptionActivityCategory;
-  /** Why the row is blocked, e.g. "permit none". */
+  /** Why the row is blocked, e.g. "acp none". */
   blockedReason?: string;
   /** How long the decrypt has been pending, ms (drives "stale"). */
   pendingMs?: number;
@@ -62,7 +62,7 @@ export interface DecryptionActivityRow {
 export interface DecryptionActivityResult {
   rows: DecryptionActivityRow[];
   counts: { total: number; ok: number; pending: number; stale: number; blocked: number; error: number };
-  permit: { state: PermitState; expiresInSec?: number };
+  acp: { state: ACPState; expiresInSec?: number };
   /** Wipe the whole SDK query cache; mounted reads/decryptions refetch from scratch. */
   clearCache: () => void;
 }
@@ -129,8 +129,8 @@ function extractCtHash(data: unknown): string | undefined {
   return undefined;
 }
 
-// The read key bakes the transient activePermitHash + enabled flags into its tail,
-// so the SAME value gets a fresh cache entry each time a permit appears/rotates.
+// The read key bakes the transient activeACPHash + enabled flags into its tail,
+// so the SAME value gets a fresh cache entry each time a acp appears/rotates.
 // Its stable identity is [prefix, chainId, address, fn, args] (indices 0-4).
 function stableReadKey(k: unknown[]): string {
   try {
@@ -161,7 +161,7 @@ function categoryFor(fetch: FetchStageState, decrypt: DecryptStageState): Decryp
 
 /**
  * Observe the ctHash-fetch → decrypt pipeline on the SDK's QueryClient, correlated
- * by ctHash and cross-referenced against the active permit. Must be used inside the
+ * by ctHash and cross-referenced against the active acp. Must be used inside the
  * Cofhe provider.
  */
 export function useCofheDecryptionActivity(options?: UseCofheDecryptionActivityOptions): DecryptionActivityResult {
@@ -169,8 +169,8 @@ export function useCofheDecryptionActivity(options?: UseCofheDecryptionActivityO
   const queryClient = useInternalQueryClient() as unknown as ClientLike;
   const account = useCofheAccount();
   const chainId = useCofheChainId();
-  const active = useCofheActivePermit();
-  const permitObj = active?.permit;
+  const active = useCofheActiveACP();
+  const acpObj = active?.acp;
 
   // Track when each decrypt first went pending, so "stale" is real elapsed time
   // (react-query doesn't expose a fetch-start timestamp for a never-resolved query).
@@ -216,14 +216,14 @@ export function useCofheDecryptionActivity(options?: UseCofheDecryptionActivityO
 
     const refetch = (key: unknown) => void queryClient.refetchQueries({ queryKey: key, exact: true });
 
-    const permitState: PermitState = !permitObj
+    const acpState: ACPState = !acpObj
       ? 'none'
-      : !permitObj.issuerSignature || permitObj.issuerSignature === '0x'
+      : !acpObj.issuerSignature || acpObj.issuerSignature === '0x'
         ? 'unsigned'
-        : permitObj.expiration <= nowSec()
+        : acpObj.expiration <= nowSec()
           ? 'expired'
           : 'valid';
-    const permitValid = permitState === 'valid';
+    const acpValid = acpState === 'valid';
 
     // Index decrypt queries by ctHash (source contract + label come from meta).
     const decryptByCt = new Map<
@@ -261,7 +261,7 @@ export function useCofheDecryptionActivity(options?: UseCofheDecryptionActivityO
     const rows: DecryptionActivityRow[] = [];
     const usedCt = new Set<string>();
 
-    // Collapse per-permit/enabled key rotations to one entry per value.
+    // Collapse per-acp/enabled key rotations to one entry per value.
     const readByValue = new Map<string, QueryLike>();
     for (const q of queries) {
       const k = q.queryKey;
@@ -324,13 +324,13 @@ export function useCofheDecryptionActivity(options?: UseCofheDecryptionActivityO
           pendingMs = d.pendingMs;
           decrypt = (d.pendingMs ?? 0) > staleMs ? 'stale' : 'pending';
         } else {
-          decrypt = permitValid ? 'absent' : 'blocked';
-          if (!permitValid) blockedReason = `permit ${permitState}`;
+          decrypt = acpValid ? 'absent' : 'blocked';
+          if (!acpValid) blockedReason = `acp ${acpState}`;
         }
-      } else if (fetchState === 'idle' && !permitValid) {
-        // The read is gated off (no valid permit) — blocked before any ctHash.
+      } else if (fetchState === 'idle' && !acpValid) {
+        // The read is gated off (no valid acp) — blocked before any ctHash.
         decrypt = 'blocked';
-        blockedReason = `permit ${permitState}`;
+        blockedReason = `acp ${acpState}`;
       }
 
       const meta = m ?? decryptMeta;
@@ -409,10 +409,10 @@ export function useCofheDecryptionActivity(options?: UseCofheDecryptionActivityO
     };
     rows.sort((a, b) => rank[a.decrypt] - rank[b.decrypt]);
 
-    const expiresInSec = permitObj ? permitObj.expiration - nowSec() : undefined;
-    return { rows, permit: { state: permitState, expiresInSec }, counts };
+    const expiresInSec = acpObj ? acpObj.expiration - nowSec() : undefined;
+    return { rows, acp: { state: acpState, expiresInSec }, counts };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [queryClient, account, chainId, permitObj, staleMs, version]);
+  }, [queryClient, account, chainId, acpObj, staleMs, version]);
 
   return { ...data, clearCache };
 }

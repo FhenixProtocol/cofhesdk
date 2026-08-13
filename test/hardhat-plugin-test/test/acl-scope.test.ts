@@ -4,7 +4,7 @@ import type { Contract } from 'ethers';
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 
 /**
- * ACP (Permit V3) — the ACL scope check table.
+ * ACP (ACP V3) — the ACL scope check table.
  *
  * One test per row:
  *
@@ -121,7 +121,7 @@ describe('ACP scope table (MockACL.isAllowedWithPermission)', () => {
   it('row: invalid structure (expired) — REVERT', async () => {
     const p = await permission({});
     p.expiration = now - 1000n;
-    p.issuerSignature = '0x'; // (re-signing an expired permit would also revert — keep it simple)
+    p.issuerSignature = '0x'; // (re-signing an expired acp would also revert — keep it simple)
     await expect(acl.isAllowedWithPermission(p, H1)).to.be.reverted;
   });
 
@@ -146,7 +146,7 @@ describe('ACP scope table (MockACL.isAllowedWithPermission)', () => {
   });
 
   it('row: contract scope, contract not allowed for this handle — false', async () => {
-    // CONTRACT_A is seeded for H1, not H2 — a permit scoped to A must not read H2
+    // CONTRACT_A is seeded for H1, not H2 — a acp scoped to A must not read H2
     const p = await permission({ contracts: [CONTRACT_A] });
     expect(await acl.isAllowedWithPermission(p, H2)).to.equal(false);
   });
@@ -173,7 +173,7 @@ describe('ACP scope table (MockACL.isAllowedWithPermission)', () => {
   // --------------------------------------------------- narrowing invariants
 
   it('scopes never widen: contract allowed for handle, but issuer lacks access — false', async () => {
-    // CONTRACT_B is allowed for H2, but this permit's issuer is a fresh account
+    // CONTRACT_B is allowed for H2, but this acp's issuer is a fresh account
     // with no access — the contract scope must not grant anything
     const [, freshIssuer] = await hre.ethers.getSigners();
     const p = {
@@ -207,7 +207,7 @@ describe('ACP scope table (MockACL.isAllowedWithPermission)', () => {
   // ------------------------------------------------ V3 replaced V2 in place
 
   it('V2 entry points are replaced in place on the ACL itself', async () => {
-    expect(acl.interface.getFunction('checkPermitValidity')).to.equal(null);
+    expect(acl.interface.getFunction('checkACPValidity')).to.equal(null);
     expect(acl.interface.getFunction('acpVerifier')).to.equal(null);
     // isAllowedWithPermission keeps its V2 name but now takes the ACP struct
     const fn = acl.interface.getFunction('isAllowedWithPermission');

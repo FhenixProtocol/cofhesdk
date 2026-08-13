@@ -16,7 +16,7 @@ export interface CofheFloatingButtonProps extends BaseProps {
   /** Dark mode for the button (independent of page theme) */
   darkMode?: boolean;
 
-  // is used for error handling (i.e. override to ACP Creation page on PermitNotFound error)
+  // is used for error handling (i.e. override to ACP Creation page on ACPNotFound error)
   overriddingPage?: PageState;
 }
 
@@ -58,7 +58,7 @@ export type CofheToastImperativeParams = {
 export type CofheToastVariant = 'info' | 'success' | 'error' | 'warning';
 
 export const CofheStatusActionIntents = {
-  openPermits: 'open-permits',
+  openACPs: 'open-acps',
   openClaimableTokens: 'open-claimable-tokens',
 } as const;
 
@@ -72,10 +72,10 @@ export type CofheStatusActionIntent = (typeof CofheStatusActionIntents)[keyof ty
  */
 export const COFHE_STATUS_IDS = {
   claimsAvailable: 'claims-available',
-  missingPermit: 'missing-permit',
-  permitExpired: 'permit-expired',
-  permitExpiringSoon: 'permit-expiring-soon',
-  permitShared: 'permit-shared',
+  missingACP: 'missing-acp',
+  acpExpired: 'acp-expired',
+  acpExpiringSoon: 'acp-expiring-soon',
+  acpShared: 'acp-shared',
 } as const;
 
 export type CofheStatusId = (typeof COFHE_STATUS_IDS)[keyof typeof COFHE_STATUS_IDS];

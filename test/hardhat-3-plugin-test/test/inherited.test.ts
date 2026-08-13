@@ -62,7 +62,7 @@ describe('Inherited SDK Tests', async () => {
     const client = await cofhe.createClientWithBatteries(bobWalletClient);
     const { ctHash } = await storeEncrypted(client, testValue);
 
-    const result = await client.decryptForTx(ctHash).withPermit().execute();
+    const result = await client.decryptForTx(ctHash).withACP().execute();
     assert.equal(result.decryptedValue, testValue);
     assert.equal(typeof result.signature, 'string');
 
@@ -74,46 +74,46 @@ describe('Inherited SDK Tests', async () => {
     assert.equal(Number(publishedValue), Number(testValue));
   });
 
-  it('self permit: create → verify active', async () => {
+  it('self acp: create → verify active', async () => {
     const client = await cofhe.createClientWithBatteries(bobWalletClient);
     const [bobAddress] = await bobWalletClient.getAddresses();
 
-    const permit = await client.acp.createSelf({
+    const acp = await client.acp.createSelf({
       issuer: bobAddress,
-      name: 'Test Self Permit',
+      name: 'Test Self ACP',
     });
 
-    assert.ok(permit);
-    assert.equal(permit.type, 'self');
-    assert.equal(permit.name, 'Test Self Permit');
-    assert.equal(permit.issuer.toLowerCase(), bobAddress.toLowerCase());
-    assert.notEqual(permit.issuerSignature, '0x');
-    assert.ok(permit.sealingPrivateKey);
-    assert.ok(permit.sealingKey);
+    assert.ok(acp);
+    assert.equal(acp.type, 'self');
+    assert.equal(acp.name, 'Test Self ACP');
+    assert.equal(acp.issuer.toLowerCase(), bobAddress.toLowerCase());
+    assert.notEqual(acp.issuerSignature, '0x');
+    assert.ok(acp.sealingPrivateKey);
+    assert.ok(acp.sealingKey);
 
-    const activePermit = client.acp.getActivePermit();
-    assert.ok(activePermit);
-    assert.equal(activePermit.hash, permit.hash);
+    const activeACP = client.acp.getActiveACP();
+    assert.ok(activeACP);
+    assert.equal(activeACP.hash, acp.hash);
   });
 
-  it('sharing permit: create → export → import as recipient', async () => {
+  it('sharing acp: create → export → import as recipient', async () => {
     const bobClient = await cofhe.createClientWithBatteries(bobWalletClient);
     const [bobAddress] = await bobWalletClient.getAddresses();
     const [aliceAddress] = await aliceWalletClient.getAddresses();
 
-    const sharingPermit = await bobClient.acp.createSharing({
+    const sharingACP = await bobClient.acp.createSharing({
       issuer: bobAddress,
       recipient: aliceAddress,
-      name: 'Test Sharing Permit',
+      name: 'Test Sharing ACP',
     });
 
-    assert.ok(sharingPermit);
-    assert.equal(sharingPermit.type, 'sharing');
-    assert.equal(sharingPermit.issuer.toLowerCase(), bobAddress.toLowerCase());
-    assert.equal(sharingPermit.recipient!.toLowerCase(), aliceAddress.toLowerCase());
-    assert.notEqual(sharingPermit.issuerSignature, '0x');
+    assert.ok(sharingACP);
+    assert.equal(sharingACP.type, 'sharing');
+    assert.equal(sharingACP.issuer.toLowerCase(), bobAddress.toLowerCase());
+    assert.equal(sharingACP.recipient!.toLowerCase(), aliceAddress.toLowerCase());
+    assert.notEqual(sharingACP.issuerSignature, '0x');
 
-    const exported = bobClient.acp.export(sharingPermit);
+    const exported = bobClient.acp.export(sharingACP);
     assert.ok(exported);
     const parsed = JSON.parse(exported);
     assert.equal(parsed.type, 'sharing');
@@ -123,13 +123,13 @@ describe('Inherited SDK Tests', async () => {
     assert.equal(parsed.sealingPrivateKey, undefined);
 
     const aliceClient = await cofhe.createClientWithBatteries(aliceWalletClient);
-    const importedPermit = await aliceClient.acp.importShared(exported);
+    const importedACP = await aliceClient.acp.importShared(exported);
 
-    assert.ok(importedPermit);
-    assert.equal(importedPermit.type, 'recipient');
-    assert.equal(importedPermit.issuer.toLowerCase(), bobAddress.toLowerCase());
-    assert.equal(importedPermit.recipient!.toLowerCase(), aliceAddress.toLowerCase());
-    assert.notEqual(importedPermit.recipientSignature, '0x');
-    assert.ok(importedPermit.sealingPrivateKey);
+    assert.ok(importedACP);
+    assert.equal(importedACP.type, 'recipient');
+    assert.equal(importedACP.issuer.toLowerCase(), bobAddress.toLowerCase());
+    assert.equal(importedACP.recipient!.toLowerCase(), aliceAddress.toLowerCase());
+    assert.notEqual(importedACP.recipientSignature, '0x');
+    assert.ok(importedACP.sealingPrivateKey);
   });
 });

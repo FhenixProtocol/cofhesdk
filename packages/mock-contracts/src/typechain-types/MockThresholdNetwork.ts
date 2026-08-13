@@ -65,8 +65,8 @@ export interface MockThresholdNetworkInterface extends Interface {
   getFunction(
     nameOrSignature:
       | 'decodeLowLevelReversion'
-      | 'decryptForTxWithPermit'
-      | 'decryptForTxWithoutPermit'
+      | 'decryptForTxWithACP'
+      | 'decryptForTxWithoutACP'
       | 'exists'
       | 'initialize'
       | 'mockAcl'
@@ -79,8 +79,8 @@ export interface MockThresholdNetworkInterface extends Interface {
   ): FunctionFragment;
 
   encodeFunctionData(functionFragment: 'decodeLowLevelReversion', values: [BytesLike]): string;
-  encodeFunctionData(functionFragment: 'decryptForTxWithPermit', values: [BigNumberish, ACPStruct]): string;
-  encodeFunctionData(functionFragment: 'decryptForTxWithoutPermit', values: [BigNumberish]): string;
+  encodeFunctionData(functionFragment: 'decryptForTxWithACP', values: [BigNumberish, ACPStruct]): string;
+  encodeFunctionData(functionFragment: 'decryptForTxWithoutACP', values: [BigNumberish]): string;
   encodeFunctionData(functionFragment: 'exists', values?: undefined): string;
   encodeFunctionData(functionFragment: 'initialize', values: [AddressLike, AddressLike]): string;
   encodeFunctionData(functionFragment: 'mockAcl', values?: undefined): string;
@@ -92,8 +92,8 @@ export interface MockThresholdNetworkInterface extends Interface {
   encodeFunctionData(functionFragment: 'unseal', values: [BytesLike, BytesLike]): string;
 
   decodeFunctionResult(functionFragment: 'decodeLowLevelReversion', data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: 'decryptForTxWithPermit', data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: 'decryptForTxWithoutPermit', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'decryptForTxWithACP', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'decryptForTxWithoutACP', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'exists', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'initialize', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'mockAcl', data: BytesLike): Result;
@@ -140,7 +140,7 @@ export interface MockThresholdNetwork extends BaseContract {
 
   decodeLowLevelReversion: TypedContractMethod<[data: BytesLike], [string], 'view'>;
 
-  decryptForTxWithPermit: TypedContractMethod<
+  decryptForTxWithACP: TypedContractMethod<
     [ctHash: BigNumberish, acp: ACPStruct],
     [
       [boolean, string, bigint] & {
@@ -152,7 +152,7 @@ export interface MockThresholdNetwork extends BaseContract {
     'view'
   >;
 
-  decryptForTxWithoutPermit: TypedContractMethod<
+  decryptForTxWithoutACP: TypedContractMethod<
     [ctHash: BigNumberish],
     [
       [boolean, string, bigint] & {
@@ -197,7 +197,7 @@ export interface MockThresholdNetwork extends BaseContract {
   getFunction<T extends ContractMethod = ContractMethod>(key: string | FunctionFragment): T;
 
   getFunction(nameOrSignature: 'decodeLowLevelReversion'): TypedContractMethod<[data: BytesLike], [string], 'view'>;
-  getFunction(nameOrSignature: 'decryptForTxWithPermit'): TypedContractMethod<
+  getFunction(nameOrSignature: 'decryptForTxWithACP'): TypedContractMethod<
     [ctHash: BigNumberish, acp: ACPStruct],
     [
       [boolean, string, bigint] & {
@@ -208,7 +208,7 @@ export interface MockThresholdNetwork extends BaseContract {
     ],
     'view'
   >;
-  getFunction(nameOrSignature: 'decryptForTxWithoutPermit'): TypedContractMethod<
+  getFunction(nameOrSignature: 'decryptForTxWithoutACP'): TypedContractMethod<
     [ctHash: BigNumberish],
     [
       [boolean, string, bigint] & {

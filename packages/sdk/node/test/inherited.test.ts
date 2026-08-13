@@ -115,45 +115,45 @@ describe('@cofhe/node - Inherited Client Tests', () => {
   });
 
   describe('Self ACP', () => {
-    it('should create a self permit', async () => {
+    it('should create a self acp', async () => {
       await cofheClient.connect(publicClient, bobWalletClient);
 
-      const permit = await cofheClient.acp.createSelf({
+      const acp = await cofheClient.acp.createSelf({
         issuer: bobAccount.address,
         name: 'Test Self ACP',
       });
 
-      expect(permit).toBeDefined();
-      expect(permit.type).toBe('self');
-      expect(permit.name).toBe('Test Self ACP');
-      expect(permit.issuer).toBe(bobAccount.address);
-      expect(permit.issuerSignature).not.toBe('0x');
-      expect(permit.sealingPrivateKey).toBeDefined();
-      expect(permit.sealingKey).toBeDefined();
+      expect(acp).toBeDefined();
+      expect(acp.type).toBe('self');
+      expect(acp.name).toBe('Test Self ACP');
+      expect(acp.issuer).toBe(bobAccount.address);
+      expect(acp.issuerSignature).not.toBe('0x');
+      expect(acp.sealingPrivateKey).toBeDefined();
+      expect(acp.sealingKey).toBeDefined();
 
-      const activePermit = cofheClient.acp.getActivePermit();
-      expect(activePermit).toBeDefined();
-      expect(activePermit!.hash).toBe(permit.hash);
+      const activeACP = cofheClient.acp.getActiveACP();
+      expect(activeACP).toBeDefined();
+      expect(activeACP!.hash).toBe(acp.hash);
     }, 30000);
   });
 
   describe('Sharing ACP', () => {
-    it('should create a sharing permit, export it, and import it as another user', async () => {
+    it('should create a sharing acp, export it, and import it as another user', async () => {
       await cofheClient.connect(publicClient, bobWalletClient);
 
-      const sharingPermit = await cofheClient.acp.createSharing({
+      const sharingACP = await cofheClient.acp.createSharing({
         issuer: bobAccount.address,
         recipient: aliceAccount.address,
         name: 'Test Sharing ACP',
       });
 
-      expect(sharingPermit).toBeDefined();
-      expect(sharingPermit.type).toBe('sharing');
-      expect(sharingPermit.issuer).toBe(bobAccount.address);
-      expect(sharingPermit.recipient).toBe(aliceAccount.address);
-      expect(sharingPermit.issuerSignature).not.toBe('0x');
+      expect(sharingACP).toBeDefined();
+      expect(sharingACP.type).toBe('sharing');
+      expect(sharingACP.issuer).toBe(bobAccount.address);
+      expect(sharingACP.recipient).toBe(aliceAccount.address);
+      expect(sharingACP.issuerSignature).not.toBe('0x');
 
-      const exported = cofheClient.acp.export(sharingPermit);
+      const exported = cofheClient.acp.export(sharingACP);
       expect(exported).toBeDefined();
       const parsed = JSON.parse(exported);
       expect(parsed.type).toBe('sharing');
@@ -168,14 +168,14 @@ describe('@cofhe/node - Inherited Client Tests', () => {
       const aliceClient = createCofheClient(aliceConfig);
       await aliceClient.connect(publicClient, aliceWalletClient);
 
-      const importedPermit = await aliceClient.acp.importShared(exported);
+      const importedACP = await aliceClient.acp.importShared(exported);
 
-      expect(importedPermit).toBeDefined();
-      expect(importedPermit.type).toBe('recipient');
-      expect(importedPermit.issuer).toBe(bobAccount.address);
-      expect(importedPermit.recipient).toBe(aliceAccount.address);
-      expect(importedPermit.recipientSignature).not.toBe('0x');
-      expect(importedPermit.sealingPrivateKey).toBeDefined();
+      expect(importedACP).toBeDefined();
+      expect(importedACP.type).toBe('recipient');
+      expect(importedACP.issuer).toBe(bobAccount.address);
+      expect(importedACP.recipient).toBe(aliceAccount.address);
+      expect(importedACP.recipientSignature).not.toBe('0x');
+      expect(importedACP.sealingPrivateKey).toBeDefined();
     }, 30000);
   });
 
@@ -214,7 +214,7 @@ describe('@cofhe/node - Inherited Client Tests', () => {
       decryptClient = createCofheClient(config);
     });
 
-    it('decryptForView — private value with permit', async () => {
+    it('decryptForView — private value with acp', async () => {
       await decryptClient.connect(decryptPublicClient, decryptWalletClient);
 
       await decryptClient.acp.createSelf({
@@ -226,25 +226,25 @@ describe('@cofhe/node - Inherited Client Tests', () => {
       expect(result).toBe(privateValue);
     }, 180000);
 
-    it('decryptForTx — public value without permit', async () => {
+    it('decryptForTx — public value without acp', async () => {
       await decryptClient.connect(decryptPublicClient, decryptWalletClient);
 
-      const result = await decryptClient.decryptForTx(publicCtHash).withoutPermit().execute();
+      const result = await decryptClient.decryptForTx(publicCtHash).withoutACP().execute();
 
       expect(BigInt(result.ctHash)).toBe(BigInt(publicCtHash));
       expect(result.decryptedValue).toBe(publicValue);
       expect(result.signature).toMatch(/^0x[0-9a-fA-F]+$/);
     }, 180000);
 
-    it('decryptForTx — private value with permit', async () => {
+    it('decryptForTx — private value with acp', async () => {
       await decryptClient.connect(decryptPublicClient, decryptWalletClient);
 
-      const permit = await decryptClient.acp.createSelf({
+      const acp = await decryptClient.acp.createSelf({
         issuer: bobAccount.address,
         name: 'Decrypt Tx ACP',
       });
 
-      const result = await decryptClient.decryptForTx(privateCtHash).withPermit(permit).execute();
+      const result = await decryptClient.decryptForTx(privateCtHash).withACP(acp).execute();
 
       expect(BigInt(result.ctHash)).toBe(BigInt(privateCtHash));
       expect(result.decryptedValue).toBe(privateValue);

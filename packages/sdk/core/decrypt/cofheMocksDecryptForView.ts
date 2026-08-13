@@ -1,4 +1,4 @@
-import { type ACP, ACPUtils } from '@/permits';
+import { type ACP, ACPUtils } from '@/acps';
 
 import { type PublicClient } from 'viem';
 import { MockThresholdNetworkAbi } from './MockThresholdNetworkAbi.js';
@@ -9,10 +9,10 @@ import { MOCKS_THRESHOLD_NETWORK_ADDRESS } from '../consts.js';
 export async function cofheMocksDecryptForView(
   ctHash: bigint | string,
   utype: FheTypes,
-  permit: ACP,
+  acp: ACP,
   publicClient: PublicClient
 ): Promise<bigint> {
-  const acp = ACPUtils.getPublic(permit, true);
+  const acp = ACPUtils.getPublic(acp, true);
   const permissionWithBigInts = {
     ...acp,
     expiration: BigInt(acp.expiration),

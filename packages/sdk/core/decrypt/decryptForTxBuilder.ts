@@ -1,11 +1,11 @@
 /* eslint-disable no-dupe-class-members */
 import { hardhat } from '@/chains';
-import { type ACP, type ACPPublic, ACPUtils } from '@/permits';
+import { type ACP, type ACPPublic, ACPUtils } from '@/acps';
 
 import { FheTypes } from '../types';
 import { getThresholdNetworkUrlOrThrow } from '../config';
 import { CofheError, CofheErrorCode } from '../error';
-import { permits } from '../permits';
+import { acps } from '../acps';
 import { BaseBuilder, type BaseBuilderParams } from '../baseBuilder';
 import { cofheMocksDecryptForTx } from './cofheMocksDecryptForTx';
 import { getPublicClientChainID, sleep } from '../utils';
@@ -20,23 +20,23 @@ const DEFAULT_404_RETRY_TIMEOUT_MS = 10_000;
  * await client.decryptForTx(ctHash)
  *   .setChainId(chainId)
  *   .setAccount(account)
- *   .withPermit(permit | permitHash | undefined)
- *   // or .withoutPermit()
+ *   .withACP(acp | acpHash | undefined)
+ *   // or .withoutACP()
  *   .execute()
  *
  * If chainId not set, uses client's chainId
  * If account not set, uses client's account
- * You MUST choose one permit mode before calling execute():
- *   - withPermit(...) to decrypt using a permit
- *   - withoutPermit() to decrypt via global allowance (no permit)
+ * You MUST choose one acp mode before calling execute():
+ *   - withACP(...) to decrypt using a acp
+ *   - withoutACP() to decrypt via global allowance (no acp)
  *
- * withPermit() (no args / undefined) uses the active permit for chainId + account.
- * withoutPermit() uses global allowance (no permit required).
+ * withACP() (no args / undefined) uses the active acp for chainId + account.
+ * withoutACP() uses global allowance (no acp required).
  *
  * Returns the decrypted value + proof ready for tx.
  */
 
-type DecryptForTxPermitSelection = 'unset' | 'with-permit' | 'without-permit';
+type DecryptForTxACPSelection = 'unset' | 'with-acp' | 'without-acp';
 
 type DecryptForTxBuilderParams = BaseBuilderParams & {
   ctHash: bigint | string;
@@ -51,18 +51,18 @@ export type DecryptForTxResult = {
 /**
  * Type-level gating:
  * - The initial builder returned from `client.decryptForTx(...)` intentionally does not expose `execute()`.
- * - Calling `withPermit(...)` or `withoutPermit()` returns a builder that *does* expose `execute()`, but no longer
- *   exposes `withPermit/withoutPermit` (so you can't select twice, or switch modes).
+ * - Calling `withACP(...)` or `withoutACP()` returns a builder that *does* expose `execute()`, but no longer
+ *   exposes `withACP/withoutACP` (so you can't select twice, or switch modes).
  */
 export type DecryptForTxBuilderUnset = Omit<DecryptForTxBuilder, 'execute'>;
 
-export type DecryptForTxBuilderSelected = Omit<DecryptForTxBuilder, 'withPermit' | 'withoutPermit'>;
+export type DecryptForTxBuilderSelected = Omit<DecryptForTxBuilder, 'withACP' | 'withoutACP'>;
 
 export class DecryptForTxBuilder extends BaseBuilder {
   private ctHash: bigint | string;
-  private permitHash?: string;
-  private permit?: ACP;
-  private permitSelection: DecryptForTxPermitSelection = 'unset';
+  private acpHash?: string;
+  private acp?: ACP;
+  private acpSelection: DecryptForTxACPSelection = 'unset';
   private pollCallback?: DecryptPollCallbackFunction;
   private retry404TimeoutMs = DEFAULT_404_RETRY_TIMEOUT_MS;
 
@@ -80,7 +80,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
   }
 
   /**
-   * @param chainId - Chain to decrypt values from. Used to fetch the threshold network URL and use the correct permit.
+   * @param chainId - Chain to decrypt values from. Used to fetch the threshold network URL and use the correct acp.
    *
    * If not provided, the chainId will be fetched from the connected publicClient.
    *
@@ -105,7 +105,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
   }
 
   /**
-   * @param account - Account to decrypt values from. Used to fetch the correct permit.
+   * @param account - Account to decrypt values from. Used to fetch the correct acp.
    *
    * If not provided, the account will be fetched from the connected walletClient.
    *
@@ -154,86 +154,86 @@ export class DecryptForTxBuilder extends BaseBuilder {
   }
 
   /**
-   * Select "use permit" mode.
+   * Select "use acp" mode.
    *
-   * - `withPermit(permit)` uses the provided permit.
-   * - `withPermit(permitHash)` fetches that permit.
-   * - `withPermit()` uses the active permit for the resolved `chainId + account`.
+   * - `withACP(acp)` uses the provided acp.
+   * - `withACP(acpHash)` fetches that acp.
+   * - `withACP()` uses the active acp for the resolved `chainId + account`.
    *
-   * Note: "global allowance" (no permit) is ONLY available via `withoutPermit()`.
+   * Note: "global allowance" (no acp) is ONLY available via `withoutACP()`.
    */
-  withPermit(): DecryptForTxBuilderSelected;
-  withPermit(permitHash: string): DecryptForTxBuilderSelected;
-  withPermit(permit: ACP): DecryptForTxBuilderSelected;
-  withPermit(permitOrPermitHash?: ACP | string): DecryptForTxBuilderSelected {
-    if (this.permitSelection === 'with-permit') {
+  withACP(): DecryptForTxBuilderSelected;
+  withACP(acpHash: string): DecryptForTxBuilderSelected;
+  withACP(acp: ACP): DecryptForTxBuilderSelected;
+  withACP(acpOrACPHash?: ACP | string): DecryptForTxBuilderSelected {
+    if (this.acpSelection === 'with-acp') {
       throw new CofheError({
         code: CofheErrorCode.InternalError,
-        message: 'decryptForTx: withPermit() can only be selected once.',
-        hint: 'Choose the permit mode once. If you need a different permit, start a new decryptForTx() builder chain.',
+        message: 'decryptForTx: withACP() can only be selected once.',
+        hint: 'Choose the acp mode once. If you need a different acp, start a new decryptForTx() builder chain.',
       });
     }
 
-    if (this.permitSelection === 'without-permit') {
+    if (this.acpSelection === 'without-acp') {
       throw new CofheError({
         code: CofheErrorCode.InternalError,
-        message: 'decryptForTx: cannot call withPermit() after withoutPermit() has been selected.',
-        hint: 'Choose exactly one permit mode: either call .withPermit(...) or .withoutPermit(), but not both.',
+        message: 'decryptForTx: cannot call withACP() after withoutACP() has been selected.',
+        hint: 'Choose exactly one acp mode: either call .withACP(...) or .withoutACP(), but not both.',
       });
     }
 
-    this.permitSelection = 'with-permit';
+    this.acpSelection = 'with-acp';
 
-    if (typeof permitOrPermitHash === 'string') {
-      this.permitHash = permitOrPermitHash;
-      this.permit = undefined;
-    } else if (permitOrPermitHash === undefined) {
-      // Explicitly choose "active permit" resolution at execute()
-      this.permitHash = undefined;
-      this.permit = undefined;
+    if (typeof acpOrACPHash === 'string') {
+      this.acpHash = acpOrACPHash;
+      this.acp = undefined;
+    } else if (acpOrACPHash === undefined) {
+      // Explicitly choose "active acp" resolution at execute()
+      this.acpHash = undefined;
+      this.acp = undefined;
     } else {
       // ACP object
-      this.permit = permitOrPermitHash;
-      this.permitHash = undefined;
+      this.acp = acpOrACPHash;
+      this.acpHash = undefined;
     }
 
     return this as unknown as DecryptForTxBuilderSelected;
   }
 
   /**
-   * Select "no permit" mode.
+   * Select "no acp" mode.
    *
-   * This uses global allowance (no permit required) and sends an empty permission payload to `/decrypt`.
+   * This uses global allowance (no acp required) and sends an empty permission payload to `/decrypt`.
    */
-  withoutPermit(): DecryptForTxBuilderSelected {
-    if (this.permitSelection === 'without-permit') {
+  withoutACP(): DecryptForTxBuilderSelected {
+    if (this.acpSelection === 'without-acp') {
       throw new CofheError({
         code: CofheErrorCode.InternalError,
-        message: 'decryptForTx: withoutPermit() can only be selected once.',
-        hint: 'Choose the permit mode once. If you need a different mode, start a new decryptForTx() builder chain.',
+        message: 'decryptForTx: withoutACP() can only be selected once.',
+        hint: 'Choose the acp mode once. If you need a different mode, start a new decryptForTx() builder chain.',
       });
     }
 
-    if (this.permitSelection === 'with-permit') {
+    if (this.acpSelection === 'with-acp') {
       throw new CofheError({
         code: CofheErrorCode.InternalError,
-        message: 'decryptForTx: cannot call withoutPermit() after withPermit() has been selected.',
-        hint: 'Choose exactly one permit mode: either call .withPermit(...) or .withoutPermit(), but not both.',
+        message: 'decryptForTx: cannot call withoutACP() after withACP() has been selected.',
+        hint: 'Choose exactly one acp mode: either call .withACP(...) or .withoutACP(), but not both.',
       });
     }
 
-    this.permitSelection = 'without-permit';
-    this.permitHash = undefined;
-    this.permit = undefined;
+    this.acpSelection = 'without-acp';
+    this.acpHash = undefined;
+    this.acp = undefined;
     return this as unknown as DecryptForTxBuilderSelected;
   }
 
-  getPermit(): ACP | undefined {
-    return this.permit;
+  getACP(): ACP | undefined {
+    return this.acp;
   }
 
-  getPermitHash(): string | undefined {
-    return this.permitHash;
+  getACPHash(): string | undefined {
+    return this.acpHash;
   }
 
   private async getThresholdNetworkUrl(): Promise<string> {
@@ -241,63 +241,63 @@ export class DecryptForTxBuilder extends BaseBuilder {
     return getThresholdNetworkUrlOrThrow(this.config, this.chainId);
   }
 
-  private async getResolvedPermit(): Promise<ACP | null> {
-    if (this.permitSelection === 'unset') {
+  private async getResolvedACP(): Promise<ACP | null> {
+    if (this.acpSelection === 'unset') {
       throw new CofheError({
         code: CofheErrorCode.InternalError,
-        message: 'decryptForTx: missing permit selection; call withPermit(...) or withoutPermit() before execute().',
-        hint: 'Call .withPermit() to use the active permit, or .withoutPermit() for global allowance.',
+        message: 'decryptForTx: missing acp selection; call withACP(...) or withoutACP() before execute().',
+        hint: 'Call .withACP() to use the active acp, or .withoutACP() for global allowance.',
       });
     }
 
-    if (this.permitSelection === 'without-permit') {
+    if (this.acpSelection === 'without-acp') {
       return null;
     }
 
-    // with-permit mode
-    if (this.permit) return this.permit;
+    // with-acp mode
+    if (this.acp) return this.acp;
 
     this.assertChainId();
     this.assertAccount();
 
-    // Fetch with permit hash
-    if (this.permitHash) {
-      const permit = await permits.getPermit(this.chainId, this.account, this.permitHash);
-      if (!permit) {
+    // Fetch with acp hash
+    if (this.acpHash) {
+      const acp = await acps.getACP(this.chainId, this.account, this.acpHash);
+      if (!acp) {
         throw new CofheError({
-          code: CofheErrorCode.PermitNotFound,
-          message: `ACP with hash <${this.permitHash}> not found for account <${this.account}> and chainId <${this.chainId}>`,
-          hint: 'Ensure the permit exists and is valid.',
+          code: CofheErrorCode.ACPNotFound,
+          message: `ACP with hash <${this.acpHash}> not found for account <${this.account}> and chainId <${this.chainId}>`,
+          hint: 'Ensure the acp exists and is valid.',
           context: {
             chainId: this.chainId,
             account: this.account,
-            permitHash: this.permitHash,
+            acpHash: this.acpHash,
           },
         });
       }
-      return permit;
+      return acp;
     }
 
-    // Fetch active permit (default for withPermit() with no args)
-    const permit = await permits.getActivePermit(this.chainId, this.account);
-    if (!permit) {
+    // Fetch active acp (default for withACP() with no args)
+    const acp = await acps.getActiveACP(this.chainId, this.account);
+    if (!acp) {
       throw new CofheError({
-        code: CofheErrorCode.PermitNotFound,
-        message: `Active permit not found for chainId <${this.chainId}> and account <${this.account}>`,
-        hint: 'Create a permit (e.g. client.acp.createSelf(...)) and/or set it active (client.acp.selectActivePermit(hash)).',
+        code: CofheErrorCode.ACPNotFound,
+        message: `Active acp not found for chainId <${this.chainId}> and account <${this.account}>`,
+        hint: 'Create a acp (e.g. client.acp.createSelf(...)) and/or set it active (client.acp.selectActiveACP(hash)).',
         context: {
           chainId: this.chainId,
           account: this.account,
         },
       });
     }
-    return permit;
+    return acp;
   }
 
   /**
    * On hardhat, interact with MockThresholdNetwork contract
    */
-  private async mocksDecryptForTx(permit: ACP | null): Promise<DecryptForTxResult> {
+  private async mocksDecryptForTx(acp: ACP | null): Promise<DecryptForTxResult> {
     this.assertPublicClient();
 
     // Configurable delay before decrypting to simulate the CoFHE decrypt processing time
@@ -306,20 +306,20 @@ export class DecryptForTxBuilder extends BaseBuilder {
     const delay = this.config.mocks.decryptDelay;
     if (delay > 0) await sleep(delay);
 
-    const result = await cofheMocksDecryptForTx(this.ctHash, 0 as FheTypes, permit, this.publicClient);
+    const result = await cofheMocksDecryptForTx(this.ctHash, 0 as FheTypes, acp, this.publicClient);
     return result;
   }
 
   /**
    * In the production context, perform a true decryption with the CoFHE coprocessor.
    */
-  private async productionDecryptForTx(permit: ACP | null): Promise<DecryptForTxResult> {
+  private async productionDecryptForTx(acp: ACP | null): Promise<DecryptForTxResult> {
     this.assertChainId();
     this.assertPublicClient();
 
     const thresholdNetworkUrl = await this.getThresholdNetworkUrl();
 
-    const acp = permit ? ACPUtils.getPublic(permit, true) : null;
+    const acp = acp ? ACPUtils.getPublic(acp, true) : null;
     const { decryptedValue, signature } = await tnDecryptV2({
       ctHash: this.ctHash,
       chainId: this.chainId,
@@ -339,29 +339,29 @@ export class DecryptForTxBuilder extends BaseBuilder {
   /**
    * Final step of the decryptForTx process. MUST BE CALLED LAST IN THE CHAIN.
    *
-   * You must explicitly choose one permit mode before calling `execute()`:
-   * - `withPermit(permit)` / `withPermit(permitHash)` / `withPermit()` (active permit)
-   * - `withoutPermit()` (global allowance)
+   * You must explicitly choose one acp mode before calling `execute()`:
+   * - `withACP(acp)` / `withACP(acpHash)` / `withACP()` (active acp)
+   * - `withoutACP()` (global allowance)
    */
   async execute(): Promise<DecryptForTxResult> {
-    // Resolve permit (can be ACP object or null for global allowance)
-    const permit = await this.getResolvedPermit();
+    // Resolve acp (can be ACP object or null for global allowance)
+    const acp = await this.getResolvedACP();
 
-    // If permit is provided, validate it
-    if (permit !== null) {
-      // Ensure permit validity
-      ACPUtils.validate(permit);
+    // If acp is provided, validate it
+    if (acp !== null) {
+      // Ensure acp validity
+      ACPUtils.validate(acp);
 
-      // Extract chainId from signed permit
-      const chainId = permit._signedDomain!.chainId;
+      // Extract chainId from signed acp
+      const chainId = acp._signedDomain!.chainId;
 
       if (chainId === hardhat.id) {
-        return await this.mocksDecryptForTx(permit);
+        return await this.mocksDecryptForTx(acp);
       } else {
-        return await this.productionDecryptForTx(permit);
+        return await this.productionDecryptForTx(acp);
       }
     } else {
-      // Global allowance - no permit
+      // Global allowance - no acp
       // If chainId not set, try to get it from publicClient
       if (!this.chainId) {
         this.assertPublicClient();

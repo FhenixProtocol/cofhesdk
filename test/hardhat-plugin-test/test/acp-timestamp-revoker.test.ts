@@ -7,7 +7,7 @@ import { signedSelfPermission, latestTimestamp, advanceTime } from './helpers/ac
 /**
  * ACP default validator — timestamp-based revocation.
  *
- * Truth table of `disabled(issuer, id)` (id = permit creation timestamp):
+ * Truth table of `disabled(issuer, id)` (id = acp creation timestamp):
  *
  *   | condition                   | result |
  *   |-----------------------------|--------|
@@ -71,7 +71,7 @@ describe('ACP default validator (timestamp-based revocation)', () => {
       expect(await validator.disabled(issuer.address, threshold)).to.equal(true); // boundary: same-second → revoked
     });
 
-    it('ids after a revoke-all remain valid (new permits work)', async () => {
+    it('ids after a revoke-all remain valid (new acps work)', async () => {
       await validator.connect(issuer).revokeAllExisting();
       const threshold = await validator.revokeAllAt(issuer.address);
       await advanceTime(60);
@@ -91,7 +91,7 @@ describe('ACP default validator (timestamp-based revocation)', () => {
 
   // ------------------------------------------------- full stack (via MockACP)
 
-  describe('full stack: permit lifecycle through MockACP', () => {
+  describe('full stack: acp lifecycle through MockACP', () => {
     const revocablePermission = async (signer: HardhatEthersSigner = issuer) => {
       const createdAt = await latestTimestamp();
       return {
@@ -103,12 +103,12 @@ describe('ACP default validator (timestamp-based revocation)', () => {
       };
     };
 
-    it('default permit (revokerData = creation timestamp) is valid from birth', async () => {
+    it('default acp (revokerData = creation timestamp) is valid from birth', async () => {
       const { permission } = await revocablePermission();
       expect(await acp.checkPermissionValidity(permission)).to.equal(true);
     });
 
-    it('revokeSingle kills the permit', async () => {
+    it('revokeSingle kills the acp', async () => {
       const { createdAt, permission } = await revocablePermission();
       expect(await acp.checkPermissionValidity(permission)).to.equal(true);
       await validator.connect(issuer).revokeSingle(createdAt);
@@ -118,7 +118,7 @@ describe('ACP default validator (timestamp-based revocation)', () => {
       );
     });
 
-    it('revokeAllExisting kills old permits; a permit created afterwards is valid', async () => {
+    it('revokeAllExisting kills old acps; a acp created afterwards is valid', async () => {
       const { permission: oldPermission } = await revocablePermission();
       expect(await acp.checkPermissionValidity(oldPermission)).to.equal(true);
 
@@ -134,8 +134,8 @@ describe('ACP default validator (timestamp-based revocation)', () => {
       expect(await acp.checkPermissionValidity(newPermission)).to.equal(true);
     });
 
-    it('future-dated permit never validates (revoke-all dodge closed)', async () => {
-      // attacker with temporary key access signs a permit "created" far in the
+    it('future-dated acp never validates (revoke-all dodge closed)', async () => {
+      // attacker with temporary key access signs a acp "created" far in the
       // future so it would survive a later revokeAllExisting — must be dead on arrival
       const farFuture = (await latestTimestamp()) + 365n * 24n * 3600n;
       const permission = await signedSelfPermission(acp, issuer, {
@@ -148,7 +148,7 @@ describe('ACP default validator (timestamp-based revocation)', () => {
       );
     });
 
-    it("a stranger's revocations cannot kill the issuer's permit", async () => {
+    it("a stranger's revocations cannot kill the issuer's acp", async () => {
       const { createdAt, permission } = await revocablePermission();
       await validator.connect(other).revokeSingle(createdAt);
       await validator.connect(other).revokeAllExisting();

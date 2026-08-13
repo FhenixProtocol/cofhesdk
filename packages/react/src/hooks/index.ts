@@ -1,4 +1,4 @@
-export * from './permits';
+export * from './acps';
 export { useCofheAutoConnect } from './useCofheAutoConnect';
 export { useCofheClient } from './useCofheClient';
 export { useCofheConnect } from './useCofheConnect';
@@ -6,11 +6,11 @@ export { useCofheConnection, useCofhePublicClient, useCofheWalletClient } from '
 export { useCofheEnabled, type UseCofheEnabledOptions, type UseCofheEnabledResult } from './useCofheEnabled';
 export { useCofheEncrypt } from './useCofheEncrypt';
 export {
-  useCofheActivePermit,
-  useCofheAllPermits,
-  useCofheRemovePermit,
-  useCofheSelectPermit,
-} from './useCofhePermits';
+  useCofheActiveACP,
+  useCofheAllACPs,
+  useCofheRemoveACP,
+  useCofheSelectACP,
+} from './useCofheACPs';
 export { useCofheReadContract, type UseCofheReadContractQueryOptions } from './useCofheReadContract';
 export {
   useCofheReadContracts,

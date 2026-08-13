@@ -29,13 +29,13 @@ export type BackendApiErrorCode =
 const BACKEND_ERROR_CODE_TO_COFHE_ERROR_CODE: Record<BackendApiErrorCode, CofheErrorCode> = {
   bad_request: CofheErrorCode.BadRequest,
   unknown_chain: CofheErrorCode.UnknownChain,
-  acp_malformed: CofheErrorCode.PermitMalformed,
-  acp_denied: CofheErrorCode.PermitDenied, // ACP-era backends fold revoked into denied
-  acp_expired: CofheErrorCode.PermitExpired,
-  acp_invalid: CofheErrorCode.PermitInvalid,
-  acp_required: CofheErrorCode.PermitRequired,
-  acp_verifier_error: CofheErrorCode.PermitVerifierError,
-  acp_verifier_timeout: CofheErrorCode.PermitVerifierTimeout,
+  acp_malformed: CofheErrorCode.ACPMalformed,
+  acp_denied: CofheErrorCode.ACPDenied, // ACP-era backends fold revoked into denied
+  acp_expired: CofheErrorCode.ACPExpired,
+  acp_invalid: CofheErrorCode.ACPInvalid,
+  acp_required: CofheErrorCode.ACPRequired,
+  acp_verifier_error: CofheErrorCode.ACPVerifierError,
+  acp_verifier_timeout: CofheErrorCode.ACPVerifierTimeout,
   not_publicly_allowed: CofheErrorCode.NotPubliclyAllowed,
   ct_not_found: CofheErrorCode.CtNotFound,
   unsupported_security_zone: CofheErrorCode.UnsupportedSecurityZone,

@@ -19,7 +19,7 @@ function QueryDebug() {
 }
 const cofheConfig = createCofheConfig({
   supportedChains: [sepolia, baseSepolia, arbSepolia, localcofheChain],
-  // No permit.* overrides: the default revoker and share registry are resolved
+  // No acp.* overrides: the default revoker and share registry are resolved
   // from each chain's ACL (defaultRevokerContract() / shareRegistry()).
   react: {
     projectName: 'Demo App',

@@ -139,14 +139,14 @@ decrypt call starts
 
 Decrypt/sealoutput failures throw a typed `CofheError` (see [Migrating from cofhejs](/migrating-from-cofhejs) for the general `isCofheError`/`err.code` pattern). The threshold network's stable backend error codes each map to a dedicated `CofheErrorCode`, for example:
 
-- `permit_denied`, `permit_expired`, `permit_invalid`, `permit_malformed` — ACP was rejected or malformed.
+- `acp_denied`, `acp_expired`, `acp_invalid`, `acp_malformed` — ACP was rejected or malformed.
 - `not_publicly_allowed` — no ACP was supplied and the handle isn't publicly decryptable.
 - `ct_not_found` — the ciphertext handle is unknown to the ct-server (after any indexing retry window has elapsed).
 - `unsupported_security_zone`, `unsupported_type` — the handle's zone or encryption type isn't supported.
-- `internal_error`, `signing_failed`, `ct_source_error`, `permit_verifier_error`, `ct_source_timeout`, `permit_verifier_timeout` — backend-side failures.
-- `permit_required`, `seal_failed` — sealoutput-specific.
+- `internal_error`, `signing_failed`, `ct_source_error`, `acp_verifier_error`, `ct_source_timeout`, `acp_verifier_timeout` — backend-side failures.
+- `acp_required`, `seal_failed` — sealoutput-specific.
 
-`err.apiErrorCode` carries the raw backend string verbatim (e.g. `'permit_denied'`), independent of which `CofheErrorCode` it mapped to — useful for logging, or if the backend introduces a new code before the SDK adds a dedicated enum member for it (in that case `err.code` falls back to the operation's generic failure code, but `err.apiErrorCode` still tells you exactly what the backend reported).
+`err.apiErrorCode` carries the raw backend string verbatim (e.g. `'acp_denied'`), independent of which `CofheErrorCode` it mapped to — useful for logging, or if the backend introduces a new code before the SDK adds a dedicated enum member for it (in that case `err.code` falls back to the operation's generic failure code, but `err.apiErrorCode` still tells you exactly what the backend reported).
 
 ## See also
 

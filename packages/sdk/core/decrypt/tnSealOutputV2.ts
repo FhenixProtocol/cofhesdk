@@ -1,4 +1,4 @@
-import { type ACPPublic, type EthEncryptedData } from '@/permits';
+import { type ACPPublic, type EthEncryptedData } from '@/acps';
 import { cofheFetch } from '../debug.js';
 
 import { CofheError, CofheErrorCode } from '../error.js';

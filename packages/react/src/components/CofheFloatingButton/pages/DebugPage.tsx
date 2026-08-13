@@ -9,7 +9,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { createWalletClient, http } from 'viem';
 import { usePortalPersisted } from '@/stores/portalPersisted.js';
 
-type Tab = 'modal' | 'status' | 'toast' | 'permit';
+type Tab = 'modal' | 'status' | 'toast' | 'acp';
 
 export const DebugPage: React.FC = () => {
   const { navigateBack } = usePortalNavigation();
@@ -40,7 +40,7 @@ export const DebugPage: React.FC = () => {
             <button onClick={() => setActiveTab('toast')} className={activeTab === 'toast' ? 'font-bold' : ''}>
               Toast
             </button>
-            <button onClick={() => setActiveTab('permit')} className={activeTab === 'permit' ? 'font-bold' : ''}>
+            <button onClick={() => setActiveTab('acp')} className={activeTab === 'acp' ? 'font-bold' : ''}>
               ACP
             </button>
           </div>
@@ -283,11 +283,11 @@ export const DebugPage: React.FC = () => {
                   addToast({
                     variant: 'error',
                     title: 'ACP invalid',
-                    description: 'Unable to decrypt data with this permit',
+                    description: 'Unable to decrypt data with this acp',
                     action: {
-                      label: 'OPEN PERMITS',
+                      label: 'OPEN ACPS',
                       onClick: () => {
-                        alert('open permits');
+                        alert('open acps');
                       },
                     },
                   });
@@ -308,11 +308,11 @@ export const DebugPage: React.FC = () => {
             </div>
           )}
 
-          {activeTab === 'permit' && (
+          {activeTab === 'acp' && (
             <div className="flex flex-col gap-3">
-              <FirstPermitDebug />
-              <CreateSelfExpiringPermitButton />
-              <CreateAndUseReceivingPermitButton />
+              <FirstACPDebug />
+              <CreateSelfExpiringACPButton />
+              <CreateAndUseReceivingACPButton />
             </div>
           )}
         </>
@@ -321,23 +321,23 @@ export const DebugPage: React.FC = () => {
   );
 };
 
-const FirstPermitDebug = () => {
-  const { hasCreatedFirstPermit, setHasCreatedFirstPermit } = usePortalPersisted();
+const FirstACPDebug = () => {
+  const { hasCreatedFirstACP, setHasCreatedFirstACP } = usePortalPersisted();
   return (
     <div>
-      <p>Has created first permit: {hasCreatedFirstPermit ? '[Y]' : '[N]'}</p>
+      <p>Has created first acp: {hasCreatedFirstACP ? '[Y]' : '[N]'}</p>
       <button
         onClick={() => {
-          setHasCreatedFirstPermit(false);
+          setHasCreatedFirstACP(false);
         }}
       >
-        Reset first permit created flag
+        Reset first acp created flag
       </button>
     </div>
   );
 };
 
-const CreateSelfExpiringPermitButton = () => {
+const CreateSelfExpiringACPButton = () => {
   const cofheClient = useCofheClient();
 
   const create = async () => {
@@ -349,13 +349,13 @@ const CreateSelfExpiringPermitButton = () => {
       issuer: account,
       expiration: expiration,
     });
-    usePortalPersisted.getState().setHasCreatedFirstPermit(true);
+    usePortalPersisted.getState().setHasCreatedFirstACP(true);
   };
 
-  return <button onClick={create}>Create self permit (expires in 2 minutes)</button>;
+  return <button onClick={create}>Create self acp (expires in 2 minutes)</button>;
 };
 
-const CreateAndUseReceivingPermitButton = () => {
+const CreateAndUseReceivingACPButton = () => {
   const cofheClient = useCofheClient();
 
   const receiveAndUse = async () => {
@@ -363,7 +363,7 @@ const CreateAndUseReceivingPermitButton = () => {
     if (!account) throw new Error('No connected account found');
     if (!publicClient) throw new Error('No public client found');
 
-    // Create account to create the sharing permit from private key
+    // Create account to create the sharing acp from private key
     const sharingAccount = privateKeyToAccount('0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80');
     const sharingWalletClient = createWalletClient({
       chain: publicClient!.chain,
@@ -371,10 +371,10 @@ const CreateAndUseReceivingPermitButton = () => {
       account: sharingAccount,
     });
 
-    // Create a sharing permit with account {sharingAccount} and recipient {account}
-    const sharedPermit = await cofheClient.acp.createSharing(
+    // Create a sharing acp with account {sharingAccount} and recipient {account}
+    const sharedACP = await cofheClient.acp.createSharing(
       {
-        name: 'Sharing permit',
+        name: 'Sharing acp',
         issuer: sharingAccount.address,
         expiration: Math.floor(Date.now() / 1000) + 120 * 60,
         recipient: account,
@@ -385,10 +385,10 @@ const CreateAndUseReceivingPermitButton = () => {
       }
     );
 
-    // Receive shared permit
-    await cofheClient.acp.importShared(sharedPermit);
-    usePortalPersisted.getState().setHasCreatedFirstPermit(true);
+    // Receive shared acp
+    await cofheClient.acp.importShared(sharedACP);
+    usePortalPersisted.getState().setHasCreatedFirstACP(true);
   };
 
-  return <button onClick={receiveAndUse}>Create and use receiving permit</button>;
+  return <button onClick={receiveAndUse}>Create and use receiving acp</button>;
 };

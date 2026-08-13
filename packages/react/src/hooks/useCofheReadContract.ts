@@ -7,7 +7,7 @@ import {
   type ReadContractReturnType,
 } from 'viem';
 import { useCofheChainId, useCofhePublicClient } from './useCofheConnection';
-import { useCofheActivePermit } from './useCofhePermits';
+import { useCofheActiveACP } from './useCofheACPs';
 import { assert } from 'ts-essentials';
 import { useInternalQuery } from '../providers/index';
 import { transformEncryptedReturnTypes, type Abi, type CofheReturnType, type ContractReturnType } from '@cofhe/abi';
@@ -22,16 +22,16 @@ export function constructCofheReadContractQueryKey({
   address,
   functionName,
   args,
-  requiresPermit,
-  activePermitHash,
+  requiresACP,
+  activeACPHash,
   enabled,
 }: {
   cofheChainId?: number;
   address?: Address;
   functionName?: string;
   args?: readonly unknown[];
-  requiresPermit?: boolean;
-  activePermitHash?: string;
+  requiresACP?: boolean;
+  activeACPHash?: string;
   enabled?: boolean;
 }): readonly unknown[] {
   return [
@@ -42,7 +42,7 @@ export function constructCofheReadContractQueryKey({
     }),
 
     args ? serializeBigintRecursively(args) : [],
-    requiresPermit ? activePermitHash : undefined,
+    requiresACP ? activeACPHash : undefined,
     // normally, "enabled" shouldn't be part of queryKey, but without adding it, there is a weird bug: when there's a CofheError, query still running queryFn resulting in the blank screen
     enabled,
   ];
@@ -73,18 +73,18 @@ export function getEnabledForCofheReadContract(params: {
   address?: Address;
   abi?: Abi;
   functionName?: string;
-  requiresPermit: boolean;
-  hasActivePermit: boolean;
+  requiresACP: boolean;
+  hasActiveACP: boolean;
   userEnabled?: boolean;
 }): boolean {
-  const { publicClient, address, abi, functionName, requiresPermit, hasActivePermit, userEnabled } = params;
+  const { publicClient, address, abi, functionName, requiresACP, hasActiveACP, userEnabled } = params;
 
   return (
     !!publicClient &&
     !!address &&
     !!abi &&
     !!functionName &&
-    (!requiresPermit || hasActivePermit) &&
+    (!requiresACP || hasActiveACP) &&
     (userEnabled ?? true)
   );
 }
@@ -120,8 +120,8 @@ export function createCofheReadContractQueryOptions<
   abi?: TAbi;
   functionName?: TfunctionName;
   args?: TArgs;
-  requiresPermit: boolean;
-  activePermitHash?: string;
+  requiresACP: boolean;
+  activeACPHash?: string;
   publicClient: ReturnType<typeof useCofhePublicClient>;
   queryOptions?: UseCofheReadContractQueryOptions<TAbi, TfunctionName>;
 }): UseQueryOptions<CofheReturnType<TAbi, TfunctionName>, Error> {
@@ -132,8 +132,8 @@ export function createCofheReadContractQueryOptions<
     abi,
     functionName,
     args,
-    requiresPermit,
-    activePermitHash,
+    requiresACP,
+    activeACPHash,
     publicClient,
     queryOptions,
   } = params;
@@ -156,8 +156,8 @@ export function createCofheReadContractQueryOptions<
       address,
       functionName,
       args: Array.isArray(args) ? args : undefined,
-      requiresPermit,
-      activePermitHash,
+      requiresACP,
+      activeACPHash,
       enabled,
     }),
     queryFn: withInvalidationContext<
@@ -196,14 +196,14 @@ export function createCofheReadContractQueryOptions<
 }
 
 /**
- * Generic hook: read a contract and return the result (with permit/error gating support).
+ * Generic hook: read a contract and return the result (with acp/error gating support).
  * is Cofhe-ABI aware: returns CofheReturnType (but doesn't support TArgs typing yet).
  */
 export type UseCofheReadContractResult<
   TAbi extends Abi,
   TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>,
 > = UseQueryResult<CofheReturnType<TAbi, TfunctionName>, Error> & {
-  disabledDueToMissingValidPermit: boolean;
+  disabledDueToMissingValidACP: boolean;
 };
 export function useCofheReadContract<
   TAbi extends Abi,
@@ -214,23 +214,23 @@ export function useCofheReadContract<
     abi?: TAbi;
     functionName?: TfunctionName;
     args?: ContractFunctionArgs<TAbi, 'pure' | 'view', TfunctionName>;
-    requiresPermit?: boolean;
+    requiresACP?: boolean;
   },
   queryOptions?: UseCofheReadContractQueryOptions<TAbi, TfunctionName>
 ): UseCofheReadContractResult<TAbi, TfunctionName> {
-  const { address, abi, functionName, args, requiresPermit = true } = params;
+  const { address, abi, functionName, args, requiresACP = true } = params;
 
   const publicClient = useCofhePublicClient();
   const cofheChainId = useCofheChainId();
-  const activePermit = useCofheActivePermit();
+  const activeACP = useCofheActiveACP();
 
   const enabled = getEnabledForCofheReadContract({
     publicClient,
     address,
     abi,
     functionName,
-    requiresPermit,
-    hasActivePermit: !!activePermit,
+    requiresACP,
+    hasActiveACP: !!activeACP,
     userEnabled: queryOptions?.enabled,
   });
 
@@ -242,8 +242,8 @@ export function useCofheReadContract<
       abi,
       functionName,
       args: Array.isArray(args) ? args : undefined,
-      requiresPermit,
-      activePermitHash: activePermit?.permit.hash,
+      requiresACP,
+      activeACPHash: activeACP?.acp.hash,
       publicClient,
       queryOptions,
     })
@@ -251,6 +251,6 @@ export function useCofheReadContract<
 
   return {
     ...result,
-    disabledDueToMissingValidPermit: requiresPermit && (!activePermit || !activePermit.isValid),
+    disabledDueToMissingValidACP: requiresACP && (!activeACP || !activeACP.isValid),
   };
 }

@@ -1,18 +1,18 @@
 import { ExampleSelectionPage } from './ExampleSelectionPage';
 import { ExampleInfoPage } from './ExampleInfoPage';
 import { PortalModal, type PortalModalStateMap } from './types';
-import { PermitDetailsModal } from './PermitDetailsModal';
-import { PermitTypeInfoModal } from './PermitTypeInfoModal';
-import { PermitInfoModal } from './PermitInfoModal';
+import { ACPDetailsModal } from './ACPDetailsModal';
+import { ACPTypeInfoModal } from './ACPTypeInfoModal';
+import { ACPInfoModal } from './ACPInfoModal';
 import { TokenListModal } from './TokenListModal';
 import { ImportCustomTokenModal } from './ImportCustomTokenModal';
 
 export const modals: { [M in PortalModal]: React.FC<PortalModalStateMap[M]> } = {
   [PortalModal.ExampleSelection]: ExampleSelectionPage,
   [PortalModal.ExampleInfo]: ExampleInfoPage,
-  [PortalModal.PermitDetails]: PermitDetailsModal,
-  [PortalModal.PermitTypeInfo]: PermitTypeInfoModal,
-  [PortalModal.PermitInfo]: PermitInfoModal,
+  [PortalModal.ACPDetails]: ACPDetailsModal,
+  [PortalModal.ACPTypeInfo]: ACPTypeInfoModal,
+  [PortalModal.ACPInfo]: ACPInfoModal,
   [PortalModal.TokenList]: TokenListModal,
   [PortalModal.ImportCustomToken]: ImportCustomTokenModal,
 };

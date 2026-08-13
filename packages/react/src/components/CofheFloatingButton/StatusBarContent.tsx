@@ -73,10 +73,10 @@ function resolveStatusIntentOnClick(
   }
 ): () => void {
   switch (intent) {
-    case 'open-permits':
+    case 'open-acps':
       return () => {
         actions.openPortal();
-        actions.replace(FloatingButtonPage.Permits);
+        actions.replace(FloatingButtonPage.ACPs);
       };
     case 'open-claimable-tokens':
       return () => {
@@ -131,14 +131,14 @@ const ActiveStatusContent: React.FC<{ status: CofheFloatingButtonInternalStatus 
 
 const STATUSES_ORDER = new Map<string, number>(
   [
-    // first always goes "claims available" as claiming doesn't require a permit
+    // first always goes "claims available" as claiming doesn't require a acp
     COFHE_STATUS_IDS.claimsAvailable,
 
-    // next goes all permit related statuses
-    COFHE_STATUS_IDS.missingPermit,
-    COFHE_STATUS_IDS.permitExpired,
-    COFHE_STATUS_IDS.permitExpiringSoon,
-    COFHE_STATUS_IDS.permitShared,
+    // next goes all acp related statuses
+    COFHE_STATUS_IDS.missingACP,
+    COFHE_STATUS_IDS.acpExpired,
+    COFHE_STATUS_IDS.acpExpiringSoon,
+    COFHE_STATUS_IDS.acpShared,
 
     // next everything else can be sorted by time or just left in the order they were added
   ]

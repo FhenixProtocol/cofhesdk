@@ -189,7 +189,7 @@ describe('ACPShareRegistry', () => {
     expect(await registry.isShareValid(await shareIdOf(p))).to.equal(false);
   });
 
-  it('revoking the underlying permit invalidates the share', async () => {
+  it('revoking the underlying acp invalidates the share', async () => {
     const createdAt = await latestTimestamp();
     const p = await signedSharingPermission(acl, bob, alice.address, {
       revokerData: createdAt,

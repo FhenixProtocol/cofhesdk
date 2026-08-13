@@ -1,4 +1,4 @@
-import { type ACPPublic, type EthEncryptedData } from '@/permits';
+import { type ACPPublic, type EthEncryptedData } from '@/acps';
 
 import { CofheError, CofheErrorCode } from '../error.js';
 import {} from './tnDecryptUtils.js';
@@ -16,7 +16,7 @@ export async function tnSealOutputV1(
   const body = {
     ct_tempkey: ctHash.toString(16).padStart(64, '0'),
     host_chain_id: chainId,
-    permit: acp,
+    acp: acp,
   };
 
   try {

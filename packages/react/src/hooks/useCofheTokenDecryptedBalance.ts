@@ -37,7 +37,7 @@ type UseConfidentialTokenBalanceResult = {
   isFetching: boolean;
   /** Refetch function */
   refetch: () => Promise<unknown>;
-  disabledDueToMissingValidPermit: boolean;
+  disabledDueToMissingValidACP: boolean;
   /** The on-chain ctHash read is currently failing. */
   isReadError: boolean;
   /** The decryption's latest outcome is an error; any stale decrypted value is withheld from `data`. */
@@ -68,7 +68,7 @@ export function useCofheTokenDecryptedBalance(
   const {
     decrypted: { data: decryptedData, isFetching: isDecryptionFetching },
     encrypted: { isFetching: isEncryptedFetching, refetch: refetchCiphertext },
-    disabledDueToMissingValidPermit,
+    disabledDueToMissingValidACP,
     isReadError,
     isDecryptError,
     isValueStale,
@@ -79,7 +79,7 @@ export function useCofheTokenDecryptedBalance(
       abi: contractConfig?.abi,
       functionName: contractConfig?.functionName,
       args: accountAddress ? [accountAddress] : undefined,
-      requiresPermit: true,
+      requiresACP: true,
     },
     {
       readQueryOptions: {
@@ -109,7 +109,7 @@ export function useCofheTokenDecryptedBalance(
   const data = isKnownZero && token ? formatTokenAmount(0n, token.decimals, displayDecimals) : decryptedData;
 
   return {
-    disabledDueToMissingValidPermit,
+    disabledDueToMissingValidACP,
 
     data: isDecryptError ? undefined : data,
 

@@ -16,7 +16,7 @@ On-chain, contracts use [`FHE.sol`](https://cofhe-docs.fhenix.zone/fhe-library/i
 | Encrypt inputs   | `client.encryptInputs([...]).setConsumingContract(addr).execute()` | Packs plaintext values, generates a ZKPoK, and submits them to the CoFHE verifier's batch endpoint. Returns `[...hashes, signature]` — one ciphertext hash per input plus one shared signature — for use in contract calls. `setConsumingContract` is required: the verifier binds the target contract into the signature. |
 | Decrypt for view | `client.decryptForView(ctHash, utype).execute()`                   | Requests decryption of a [ciphertext handle](/reference/dictionary#handle) using an ACP. Returns the plaintext locally (not published on-chain).                                                                                                                                                                         |
 | Decrypt for tx   | `client.decryptForTx(ctHash).execute()`                            | Requests decryption and returns the plaintext with a Threshold Network signature. The signature can be verified on-chain via `FHE.verifyDecryptResult(...)`.                                                                                                                                                               |
-| Manage ACPs      | `client.acp.createSelf(...)` / `getOrCreateSelfPermit()`       | Creates, stores, and manages EIP-712 ACPs that authorize decryption of specific ciphertext handles.                                                                                                                                                                                                                     |
+| Manage ACPs      | `client.acp.createSelf(...)` / `getOrCreateSelfACP()`       | Creates, stores, and manages EIP-712 ACPs that authorize decryption of specific ciphertext handles.                                                                                                                                                                                                                     |
 
 ## Entrypoints
 
@@ -25,7 +25,7 @@ On-chain, contracts use [`FHE.sol`](https://cofhe-docs.fhenix.zone/fhe-library/i
 | `@cofhe/sdk`          | Core types (`Encryptable`, `FheTypes`, `EncryptStep`, `CofheError`), shared across runtimes                 |
 | `@cofhe/sdk/web`      | `createCofheConfig` / `createCofheClient` with browser defaults (IndexedDB storage, TFHE WASM, Web Workers) |
 | `@cofhe/sdk/node`     | `createCofheConfig` / `createCofheClient` with Node.js defaults (filesystem storage, `node-tfhe`)           |
-| `@cofhe/sdk/permits`  | ACP creation, validation, serialization, and storage utilities                                              |
+| `@cofhe/sdk/acps`  | ACP creation, validation, serialization, and storage utilities                                              |
 | `@cofhe/sdk/adapters` | `Ethers5Adapter`, `Ethers6Adapter`, `WagmiAdapter`, `HardhatSignerAdapter`                                  |
 | `@cofhe/sdk/chains`   | Built-in chain definitions and `getChainById` / `getChainByName` helpers                                    |
 
@@ -81,7 +81,7 @@ const [hash, signature] = await client
 await contract.deposit(hash, signature);
 
 // Decrypt for UI
-await client.acp.getOrCreateSelfPermit();
+await client.acp.getOrCreateSelfACP();
 const ctHash = await contract.getBalance();
 const balance = await client
   .decryptForView(ctHash, FheTypes.Uint64)

@@ -5,7 +5,7 @@ description: EIP-712 signed ACPs (Access Control Permissions) for accessing encr
 
 # ACPs
 
-ACPs (Access Control Permissions, formerly called _permits_) are EIP-712 signatures that authorize decryption of confidential data. The `issuer` field identifies who is accessing the data - the issuer must have been granted access on-chain via `FHE.allow(handle, address)`. When an ACP is used, CoFHE validates it against the ACL contract to confirm that the issuer has access to the requested encrypted handle.
+ACPs (Access Control Permissions, formerly called _acps_) are EIP-712 signatures that authorize decryption of confidential data. The `issuer` field identifies who is accessing the data - the issuer must have been granted access on-chain via `FHE.allow(handle, address)`. When an ACP is used, CoFHE validates it against the ACL contract to confirm that the issuer has access to the requested encrypted handle.
 
 Each ACP includes a sealing keypair. The public key is sent to CoFHE so it can re-encrypt the data for the ACP holder. The private key stays client-side and is used to unseal the returned data. ACPs are stored locally and identified by a deterministic hash of their fields.
 
@@ -19,8 +19,8 @@ The examples below show two approaches for working with ACPs. The `client.acp` A
 
 - **`decryptForView`**: always requires an ACP.
 - **`decryptForTx`**: depends on the contract's ACL policy for that [handle](/reference/dictionary#handle) (`ctHash` in code).
-  - If the policy allows anyone to decrypt, you can use `.withoutPermit()`.
-  - If the policy restricts decryption, you must use `.withPermit(...)`.
+  - If the policy allows anyone to decrypt, you can use `.withoutACP()`.
+  - If the policy restricts decryption, you must use `.withACP(...)`.
 
 ## Prerequisites
 
@@ -48,22 +48,22 @@ declare const walletClient: WalletClient;
 await client.connect(publicClient, walletClient);
 
 // Returns the active self ACP if one exists, otherwise creates and signs a new one.
-const permit = await client.acp.getOrCreateSelfPermit();
+const acp = await client.acp.getOrCreateSelfACP();
 ```
 
 ```ts twoslash [ACPUtils]
 // @noErrors
 import {
   ACPUtils,
-  setPermit,
-  setActivePermitHash,
-} from '@cofhe/sdk/permits';
+  setACP,
+  setActiveACPHash,
+} from '@cofhe/sdk/acps';
 import type { PublicClient, WalletClient } from 'viem';
 
 declare const publicClient: PublicClient;
 declare const walletClient: WalletClient;
 // ---cut---
-const permit = await ACPUtils.createSelfAndSign(
+const acp = await ACPUtils.createSelfAndSign(
   { issuer: walletClient.account!.address },
   publicClient,
   walletClient
@@ -72,8 +72,8 @@ const permit = await ACPUtils.createSelfAndSign(
 // Manually store and activate the ACP
 const chainId = await publicClient.getChainId();
 const account = walletClient.account!.address;
-setPermit(chainId, account, permit);
-setActivePermitHash(chainId, account, permit.hash);
+setACP(chainId, account, acp);
+setActiveACPHash(chainId, account, acp.hash);
 ```
 
 ::::
@@ -81,7 +81,7 @@ setActivePermitHash(chainId, account, permit.hash);
 After this, the active ACP is picked up automatically:
 
 - `decryptForView(...).execute()` uses the active ACP.
-- `decryptForTx(...).withPermit().execute()` uses the active ACP.
+- `decryptForTx(...).withACP().execute()` uses the active ACP.
 
 ## ACP types
 
@@ -101,7 +101,7 @@ Notes:
 
 ## Creating a self ACP
 
-A self ACP lets you decrypt data that was allowed to your address. Use `createSelf` to always create a new ACP, or `getOrCreateSelfPermit` to reuse an existing active ACP.
+A self ACP lets you decrypt data that was allowed to your address. Use `createSelf` to always create a new ACP, or `getOrCreateSelfACP` to reuse an existing active ACP.
 
 ### createSelf
 
@@ -120,24 +120,24 @@ declare const walletClient: WalletClient;
 // ---cut---
 await client.connect(publicClient, walletClient);
 
-const permit = await client.acp.createSelf({
+const acp = await client.acp.createSelf({
   issuer: walletClient.account!.address,
   name: 'My self ACP',
 });
 
-permit.type;
-permit.hash;
+acp.type;
+acp.hash;
 ```
 
 ```ts twoslash [ACPUtils]
 // @noErrors
-import { ACPUtils } from '@cofhe/sdk/permits';
+import { ACPUtils } from '@cofhe/sdk/acps';
 import type { PublicClient, WalletClient } from 'viem';
 
 declare const publicClient: PublicClient;
 declare const walletClient: WalletClient;
 // ---cut---
-const permit = await ACPUtils.createSelfAndSign(
+const acp = await ACPUtils.createSelfAndSign(
   {
     issuer: walletClient.account!.address,
     name: 'My self ACP',
@@ -146,13 +146,13 @@ const permit = await ACPUtils.createSelfAndSign(
   walletClient
 );
 
-permit.type;
-permit.hash;
+acp.type;
+acp.hash;
 ```
 
 ::::
 
-### getOrCreateSelfPermit
+### getOrCreateSelfACP
 
 Only available via the `client.acp` API. Returns the active self ACP if one exists. Otherwise creates and signs a new one. This is the recommended approach for most applications.
 
@@ -169,8 +169,8 @@ declare const walletClient: WalletClient;
 // ---cut---
 await client.connect(publicClient, walletClient);
 
-const permit = await client.acp.getOrCreateSelfPermit();
-permit.type;
+const acp = await client.acp.getOrCreateSelfACP();
+acp.type;
 ```
 
 ## Sharing ACPs
@@ -199,7 +199,7 @@ declare const recipient: `0x${string}`;
 // ---cut---
 await client.connect(publicClient, walletClient);
 
-const sharingPermit = await client.acp.createSharing({
+const sharingACP = await client.acp.createSharing({
   issuer: walletClient.account!.address,
   recipient,
   name: 'Share with recipient',
@@ -208,14 +208,14 @@ const sharingPermit = await client.acp.createSharing({
 
 ```ts twoslash [ACPUtils]
 // @noErrors
-import { ACPUtils } from '@cofhe/sdk/permits';
+import { ACPUtils } from '@cofhe/sdk/acps';
 import type { PublicClient, WalletClient } from 'viem';
 
 declare const publicClient: PublicClient;
 declare const walletClient: WalletClient;
 declare const recipient: `0x${string}`;
 // ---cut---
-const sharingPermit = await ACPUtils.createSharingAndSign(
+const sharingACP = await ACPUtils.createSharingAndSign(
   {
     issuer: walletClient.account!.address,
     recipient,
@@ -234,19 +234,19 @@ Export the ACP as a JSON blob and share it with the recipient.
 
 ```ts twoslash [ACPUtils]
 // @noErrors
-import { ACPUtils } from '@cofhe/sdk/permits';
-import type { ACP } from '@cofhe/sdk/permits';
+import { ACPUtils } from '@cofhe/sdk/acps';
+import type { ACP } from '@cofhe/sdk/acps';
 
-declare const sharingPermit: ACP;
+declare const sharingACP: ACP;
 // ---cut---
-const exported = ACPUtils.export(sharingPermit);
+const exported = ACPUtils.export(sharingACP);
 ```
 
 :::info
 The exported JSON does not contain any sensitive data and can be shared via any channel.
 :::
 :::warning
-Do not share `serialize(permit)` output -- serialization is meant for _local persistence_ and includes the sealing private key.
+Do not share `serialize(acp)` output -- serialization is meant for _local persistence_ and includes the sealing private key.
 :::
 
 ### Recipient imports and signs
@@ -269,26 +269,26 @@ declare const exported: string;
 // ---cut---
 await client.connect(publicClient, walletClient);
 
-const recipientPermit = await client.acp.importShared(exported);
+const recipientACP = await client.acp.importShared(exported);
 
-recipientPermit.type;
-recipientPermit.hash;
+recipientACP.type;
+recipientACP.hash;
 ```
 
 ```ts twoslash [ACPUtils]
 // @noErrors
 import {
   ACPUtils,
-  setPermit,
-  setActivePermitHash,
-} from '@cofhe/sdk/permits';
+  setACP,
+  setActiveACPHash,
+} from '@cofhe/sdk/acps';
 import type { PublicClient, WalletClient } from 'viem';
 
 declare const publicClient: PublicClient;
 declare const walletClient: WalletClient;
 declare const exported: string;
 // ---cut---
-const recipientPermit = await ACPUtils.importSharedAndSign(
+const recipientACP = await ACPUtils.importSharedAndSign(
   exported,
   publicClient,
   walletClient
@@ -296,8 +296,8 @@ const recipientPermit = await ACPUtils.importSharedAndSign(
 
 const chainId = await publicClient.getChainId();
 const account = walletClient.account!.address;
-setPermit(chainId, account, recipientPermit);
-setActivePermitHash(chainId, account, recipientPermit.hash);
+setACP(chainId, account, recipientACP);
+setActiveACPHash(chainId, account, recipientACP.hash);
 ```
 
 ::::
@@ -313,7 +313,7 @@ Configure the registry address per chain:
 ```ts
 const config = createCofheConfig({
   // ...
-  permit: {
+  acp: {
     sharingRegistry: { 11155111: '0x…' },
   },
 });
@@ -353,7 +353,7 @@ const acp = await client.acp.importFromChain(incoming[0]);
 await client.acp.dismissShare(incoming[0].shareId);
 ```
 
-The registry lists only importable shares: expired shares and shares whose underlying permit was revoked are filtered out. Everything posted is cleartext by design (the same data as the exported JSON) — note that posting on-chain makes the issuer→recipient relationship public.
+The registry lists only importable shares: expired shares and shares whose underlying acp was revoked are filtered out. Everything posted is cleartext by design (the same data as the exported JSON) — note that posting on-chain makes the issuer→recipient relationship public.
 
 ## Active ACP management
 
@@ -374,8 +374,8 @@ declare const walletClient: WalletClient;
 // ---cut---
 await client.connect(publicClient, walletClient);
 
-const permits = client.acp.getPermits();
-Object.keys(permits);
+const acps = client.acp.getACPs();
+Object.keys(acps);
 ```
 
 ### Read / select the active ACP
@@ -390,14 +390,14 @@ const config = createCofheConfig({ supportedChains: [chains.sepolia] });
 const client = createCofheClient(config);
 declare const publicClient: PublicClient;
 declare const walletClient: WalletClient;
-declare const somePermitHash: string;
+declare const someACPHash: string;
 // ---cut---
 await client.connect(publicClient, walletClient);
 
-const active = client.acp.getActivePermit();
+const active = client.acp.getActiveACP();
 active?.hash;
 
-client.acp.selectActivePermit(somePermitHash);
+client.acp.selectActiveACP(someACPHash);
 ```
 
 ### Removing ACPs
@@ -412,18 +412,18 @@ const config = createCofheConfig({ supportedChains: [chains.sepolia] });
 const client = createCofheClient(config);
 declare const publicClient: PublicClient;
 declare const walletClient: WalletClient;
-declare const permitHash: string;
+declare const acpHash: string;
 // ---cut---
 await client.connect(publicClient, walletClient);
 
-client.acp.removePermit(permitHash);
-client.acp.removeActivePermit();
+client.acp.removeACP(acpHash);
+client.acp.removeActiveACP();
 ```
 
 ## Persistence and security
 
 - The SDK persists ACPs in a store keyed by `chainId + account`.
-- In web and React environments, this store uses `localStorage` under the key `cofhesdk-permits`.
+- In web and React environments, this store uses `localStorage` under the key `cofhesdk-acps`.
 - A stored ACP includes the **sealing private key**. Treat it like a secret.
   - Never share serialized ACPs with other users.
   - To share access, use `ACPUtils.export(...)` which strips sensitive fields.

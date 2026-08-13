@@ -406,8 +406,8 @@ describe('createCofheClientBase', () => {
     });
   });
 
-  describe('permits', () => {
-    it('should expose permits', () => {
+  describe('acps', () => {
+    it('should expose acps', () => {
       expect(client.acp).toBeDefined();
       expect(client.acp).toHaveProperty('getSnapshot');
       expect(client.acp).toHaveProperty('subscribe');
@@ -417,13 +417,13 @@ describe('createCofheClientBase', () => {
       expect(client.acp).toHaveProperty('getHash');
       expect(client.acp).toHaveProperty('serialize');
       expect(client.acp).toHaveProperty('deserialize');
-      expect(client.acp).toHaveProperty('getPermit');
-      expect(client.acp).toHaveProperty('getPermits');
-      expect(client.acp).toHaveProperty('getActivePermit');
-      expect(client.acp).toHaveProperty('getActivePermitHash');
-      expect(client.acp).toHaveProperty('removePermit');
-      expect(client.acp).toHaveProperty('selectActivePermit');
-      expect(client.acp).toHaveProperty('removeActivePermit');
+      expect(client.acp).toHaveProperty('getACP');
+      expect(client.acp).toHaveProperty('getACPs');
+      expect(client.acp).toHaveProperty('getActiveACP');
+      expect(client.acp).toHaveProperty('getActiveACPHash');
+      expect(client.acp).toHaveProperty('removeACP');
+      expect(client.acp).toHaveProperty('selectActiveACP');
+      expect(client.acp).toHaveProperty('removeActiveACP');
     });
   });
 });

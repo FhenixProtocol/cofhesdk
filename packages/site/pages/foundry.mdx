@@ -186,18 +186,18 @@ maintaining a second independent signing implementation.
 
 | Function                                                         | Returns                     | Description                                                                       |
 | ---------------------------------------------------------------- | --------------------------- | --------------------------------------------------------------------------------- |
-| `decryptForTx_withoutPermit(bytes32 ctHash)`                     | `(bytes32, uint256, bytes)` | Decrypts a globally-allowed ciphertext. Returns `(ctHash, plaintext, signature)`. |
-| `decryptForTx_withPermit(bytes32 ctHash, Permission permission)` | `(bytes32, uint256, bytes)` | Decrypts using an ACP. Same return shape.                                         |
+| `decryptForTx_withoutACP(bytes32 ctHash)`                     | `(bytes32, uint256, bytes)` | Decrypts a globally-allowed ciphertext. Returns `(ctHash, plaintext, signature)`. |
+| `decryptForTx_withACP(bytes32 ctHash, Permission permission)` | `(bytes32, uint256, bytes)` | Decrypts using an ACP. Same return shape.                                         |
 | `decryptForView(bytes32 ctHash, Permission permission)`          | `uint256`                   | Seals and unseals with the ACP's sealing key for off-chain reading.               |
 
 ### ACPs
 
 | Function                                  | Returns              | Description                                                                                   |
 | ----------------------------------------- | -------------------- | --------------------------------------------------------------------------------------------- |
-| `permit_createSelf()`                     | `Permission`         | Creates a self-ACP signed by the connected account.                                           |
-| `permit_createShared(address recipient)`  | `Permission`         | Creates the issuer half of a shared ACP.                                                      |
-| `permit_exportShared(Permission)`         | `SharedPermitExport` | Strips private fields for safe transmission.                                                  |
-| `permit_importShared(SharedPermitExport)` | `Permission`         | Reconstructs a `Permission` as the recipient, adding the sealing key and recipient signature. |
+| `acp_createSelf()`                     | `Permission`         | Creates a self-ACP signed by the connected account.                                           |
+| `acp_createShared(address recipient)`  | `Permission`         | Creates the issuer half of a shared ACP.                                                      |
+| `acp_exportShared(Permission)`         | `SharedACPExport` | Strips private fields for safe transmission.                                                  |
+| `acp_importShared(SharedACPExport)` | `Permission`         | Reconstructs a `Permission` as the recipient, adding the sealing key and recipient signature. |
 
 ## Hardhat 3 Solidity tests
 

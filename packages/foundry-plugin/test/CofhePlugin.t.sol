@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import { Test } from 'forge-std/Test.sol';
 import { CofheTest } from '../contracts/CofheTest.sol';
-import { CofheClient, SharedPermitExport } from '../contracts/CofheClient.sol';
+import { CofheClient, SharedACPExport } from '../contracts/CofheClient.sol';
 import { ACP } from '@cofhe/mock-contracts/contracts/Permissioned.sol';
 import { ZK_VERIFIER_SIGNER_ADDRESS } from '@cofhe/mock-contracts/contracts/MockCoFHE.sol';
 import '@fhenixprotocol/cofhe-contracts/FHE.sol';
@@ -433,9 +433,9 @@ contract CofheClientTest is CofheTest {
     otherStore.storeEuint32Batch(hashes, signature);
   }
 
-  // --------------- decryptForTx_withoutPermit ---------------
+  // --------------- decryptForTx_withoutACP ---------------
 
-  function testDecryptForTx_withoutPermit() public {
+  function testDecryptForTx_withoutACP() public {
     uint32 plainValue = 42;
 
     vm.prank(cofheClient.account());
@@ -443,50 +443,50 @@ contract CofheClientTest is CofheTest {
     store.makeGlobal();
 
     bytes32 ctHash = euint32.unwrap(store.storedEuint32());
-    (bytes32 ct, uint256 decrypted, bytes memory sig) = cofheClient.decryptForTx_withoutPermit(ctHash);
+    (bytes32 ct, uint256 decrypted, bytes memory sig) = cofheClient.decryptForTx_withoutACP(ctHash);
 
     assertEq(ct, ctHash);
     assertEq(decrypted, plainValue);
     assertTrue(sig.length > 0);
   }
 
-  function testDecryptForTx_withoutPermit_revertsIfNotGlobal() public {
+  function testDecryptForTx_withoutACP_revertsIfNotGlobal() public {
     vm.prank(cofheClient.account());
     store.storeEuint32Trivial(42);
 
     bytes32 ctHash = euint32.unwrap(store.storedEuint32());
     vm.expectRevert();
-    cofheClient.decryptForTx_withoutPermit(ctHash);
+    cofheClient.decryptForTx_withoutACP(ctHash);
   }
 
-  // --------------- decryptForTx_withPermit ---------------
+  // --------------- decryptForTx_withACP ---------------
 
-  function testDecryptForTx_withPermit() public {
+  function testDecryptForTx_withACP() public {
     uint32 plainValue = 99;
 
     vm.prank(cofheClient.account());
     store.storeEuint32Trivial(plainValue);
     store.allowAccount(cofheClient.account());
 
-    ACP memory permit = cofheClient.ACP_createSelf();
+    ACP memory acp = cofheClient.ACP_createSelf();
     bytes32 ctHash = euint32.unwrap(store.storedEuint32());
 
-    (bytes32 ct, uint256 decrypted, bytes memory sig) = cofheClient.decryptForTx_withPermit(ctHash, permit);
+    (bytes32 ct, uint256 decrypted, bytes memory sig) = cofheClient.decryptForTx_withACP(ctHash, acp);
 
     assertEq(ct, ctHash);
     assertEq(decrypted, plainValue);
     assertTrue(sig.length > 0);
   }
 
-  function testDecryptForTx_withPermit_revertsWithoutAllow() public {
+  function testDecryptForTx_withACP_revertsWithoutAllow() public {
     // Store as a different address so Alice is NOT in the ACL
     store.storeEuint32Trivial(99);
 
-    ACP memory permit = cofheClient.ACP_createSelf();
+    ACP memory acp = cofheClient.ACP_createSelf();
     bytes32 ctHash = euint32.unwrap(store.storedEuint32());
 
     vm.expectRevert();
-    cofheClient.decryptForTx_withPermit(ctHash, permit);
+    cofheClient.decryptForTx_withACP(ctHash, acp);
   }
 
   // --------------- publishDecryptResult full flow ---------------
@@ -499,7 +499,7 @@ contract CofheClientTest is CofheTest {
     store.makeGlobal();
 
     bytes32 ctHash = euint32.unwrap(store.storedEuint32());
-    (, uint256 decrypted, bytes memory sig) = cofheClient.decryptForTx_withoutPermit(ctHash);
+    (, uint256 decrypted, bytes memory sig) = cofheClient.decryptForTx_withoutACP(ctHash);
 
     store.publishResult(uint32(decrypted), sig);
 
@@ -519,7 +519,7 @@ contract CofheClientTest is CofheTest {
     assertEq(valBefore, 0);
 
     bytes32 ctHash = euint32.unwrap(store.storedEuint32());
-    (, uint256 decrypted, bytes memory sig) = cofheClient.decryptForTx_withoutPermit(ctHash);
+    (, uint256 decrypted, bytes memory sig) = cofheClient.decryptForTx_withoutACP(ctHash);
     store.publishResult(uint32(decrypted), sig);
 
     (uint32 valAfter, bool decryptedAfter) = store.getResultSafe();
@@ -536,10 +536,10 @@ contract CofheClientTest is CofheTest {
     store.storeEuint32Trivial(plainValue);
     store.allowAccount(cofheClient.account());
 
-    ACP memory permit = cofheClient.ACP_createSelf();
+    ACP memory acp = cofheClient.ACP_createSelf();
     bytes32 ctHash = euint32.unwrap(store.storedEuint32());
 
-    uint256 unsealed = cofheClient.decryptForView(ctHash, permit);
+    uint256 unsealed = cofheClient.decryptForView(ctHash, acp);
     assertEq(unsealed, plainValue);
   }
 
@@ -547,74 +547,74 @@ contract CofheClientTest is CofheTest {
     // Store as a different address so Alice is NOT in the ACL
     store.storeEuint32Trivial(123);
 
-    ACP memory permit = cofheClient.ACP_createSelf();
+    ACP memory acp = cofheClient.ACP_createSelf();
     bytes32 ctHash = euint32.unwrap(store.storedEuint32());
 
     vm.expectRevert();
-    cofheClient.decryptForView(ctHash, permit);
+    cofheClient.decryptForView(ctHash, acp);
   }
 
   // --------------- ACP_createSelf ---------------
 
-  function testPermitCreateSelf_isValid() public view {
-    ACP memory permit = cofheClient.ACP_createSelf();
+  function testACPCreateSelf_isValid() public view {
+    ACP memory acp = cofheClient.ACP_createSelf();
 
-    assertEq(permit.issuer, cofheClient.account());
-    assertEq(permit.recipient, address(0));
-    assertTrue(permit.sealingKey != bytes32(0));
-    assertTrue(permit.issuerSignature.length > 0);
+    assertEq(acp.issuer, cofheClient.account());
+    assertEq(acp.recipient, address(0));
+    assertTrue(acp.sealingKey != bytes32(0));
+    assertTrue(acp.issuerSignature.length > 0);
 
-    bool valid = mockAcl.checkPermissionValidity(permit);
+    bool valid = mockAcl.checkPermissionValidity(acp);
     assertTrue(valid);
   }
 
   // --------------- ACP_createShared ---------------
 
-  function testPermitCreateShared_isValid() public view {
+  function testACPCreateShared_isValid() public view {
     address bob = vm.addr(BOB_PKEY);
-    ACP memory permit = cofheClient.ACP_createShared(bob);
+    ACP memory acp = cofheClient.ACP_createShared(bob);
 
-    assertEq(permit.issuer, cofheClient.account());
-    assertEq(permit.recipient, bob);
-    assertEq(permit.sealingKey, bytes32(0));
-    assertTrue(permit.issuerSignature.length > 0);
+    assertEq(acp.issuer, cofheClient.account());
+    assertEq(acp.recipient, bob);
+    assertEq(acp.sealingKey, bytes32(0));
+    assertTrue(acp.issuerSignature.length > 0);
   }
 
   // --------------- ACP_exportShared / ACP_importShared ---------------
 
-  function testPermitExportImportShared() public {
+  function testACPExportImportShared() public {
     address bob = vm.addr(BOB_PKEY);
 
-    // Alice creates a shared permit for Bob
-    ACP memory alicePermit = cofheClient.ACP_createShared(bob);
-    SharedPermitExport memory exported = cofheClient.ACP_exportShared(alicePermit);
+    // Alice creates a shared acp for Bob
+    ACP memory aliceACP = cofheClient.ACP_createShared(bob);
+    SharedACPExport memory exported = cofheClient.ACP_exportShared(aliceACP);
 
     assertEq(exported.issuer, cofheClient.account());
     assertEq(exported.recipient, bob);
 
-    // Bob imports the shared permit
+    // Bob imports the shared acp
     CofheClient bobClient = createCofheClient();
     bobClient.connect(BOB_PKEY);
 
-    ACP memory bobPermit = bobClient.ACP_importShared(exported);
+    ACP memory bobACP = bobClient.ACP_importShared(exported);
 
-    assertEq(bobPermit.issuer, cofheClient.account());
-    assertEq(bobPermit.recipient, bob);
-    assertTrue(bobPermit.sealingKey != bytes32(0));
-    assertTrue(bobPermit.recipientSignature.length > 0);
+    assertEq(bobACP.issuer, cofheClient.account());
+    assertEq(bobACP.recipient, bob);
+    assertTrue(bobACP.sealingKey != bytes32(0));
+    assertTrue(bobACP.recipientSignature.length > 0);
 
-    bool valid = mockAcl.checkPermissionValidity(bobPermit);
+    bool valid = mockAcl.checkPermissionValidity(bobACP);
     assertTrue(valid);
   }
 
-  function testPermitImportShared_recipientMismatch_reverts() public {
+  function testACPImportShared_recipientMismatch_reverts() public {
     address bob = vm.addr(BOB_PKEY);
 
-    // Alice creates a shared permit for Bob
-    ACP memory alicePermit = cofheClient.ACP_createShared(bob);
-    SharedPermitExport memory exported = cofheClient.ACP_exportShared(alicePermit);
+    // Alice creates a shared acp for Bob
+    ACP memory aliceACP = cofheClient.ACP_createShared(bob);
+    SharedACPExport memory exported = cofheClient.ACP_exportShared(aliceACP);
 
-    // Charlie tries to import Bob's permit
+    // Charlie tries to import Bob's acp
     CofheClient charlieClient = createCofheClient();
     charlieClient.connect(CHARLIE_PKEY);
 
@@ -622,9 +622,9 @@ contract CofheClientTest is CofheTest {
     charlieClient.ACP_importShared(exported);
   }
 
-  // --------------- Shared permit decrypt flow (end-to-end) ---------------
+  // --------------- Shared acp decrypt flow (end-to-end) ---------------
 
-  function testPermitSharedDecryptFlow() public {
+  function testACPSharedDecryptFlow() public {
     uint32 plainValue = 200;
     address alice = cofheClient.account();
     address bob = vm.addr(BOB_PKEY);
@@ -634,19 +634,19 @@ contract CofheClientTest is CofheTest {
     store.storeEuint32Trivial(plainValue);
     store.allowAccount(alice);
 
-    // Alice creates a shared permit for Bob
-    ACP memory alicePermit = cofheClient.ACP_createShared(bob);
-    SharedPermitExport memory exported = cofheClient.ACP_exportShared(alicePermit);
+    // Alice creates a shared acp for Bob
+    ACP memory aliceACP = cofheClient.ACP_createShared(bob);
+    SharedACPExport memory exported = cofheClient.ACP_exportShared(aliceACP);
 
-    // Bob imports the shared permit
+    // Bob imports the shared acp
     CofheClient bobClient = createCofheClient();
     bobClient.connect(BOB_PKEY);
-    ACP memory bobPermit = bobClient.ACP_importShared(exported);
+    ACP memory bobACP = bobClient.ACP_importShared(exported);
 
     bytes32 ctHash = euint32.unwrap(store.storedEuint32());
 
-    // Bob uses the shared permit to decrypt Alice's data via decryptForView
-    uint256 unsealed = bobClient.decryptForView(ctHash, bobPermit);
+    // Bob uses the shared acp to decrypt Alice's data via decryptForView
+    uint256 unsealed = bobClient.decryptForView(ctHash, bobACP);
     assertEq(unsealed, plainValue);
   }
 
@@ -661,7 +661,7 @@ contract CofheClientTest is CofheTest {
   function testDecryptForTx_revertsWhenNotConnected() public {
     CofheClient unconnected = createCofheClient();
     vm.expectRevert('CofheClient: not connected');
-    unconnected.decryptForTx_withoutPermit(bytes32(uint256(1)));
+    unconnected.decryptForTx_withoutACP(bytes32(uint256(1)));
   }
 
   function testDecryptForView_revertsWhenNotConnected() public {
@@ -671,7 +671,7 @@ contract CofheClientTest is CofheTest {
     unconnected.decryptForView(bytes32(uint256(1)), p);
   }
 
-  function testPermitCreateSelf_revertsWhenNotConnected() public {
+  function testACPCreateSelf_revertsWhenNotConnected() public {
     CofheClient unconnected = createCofheClient();
     vm.expectRevert('CofheClient: not connected');
     unconnected.ACP_createSelf();

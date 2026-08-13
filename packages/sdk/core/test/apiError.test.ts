@@ -14,10 +14,10 @@ describe('mapApiErrorCodeToCofheErrorCode', () => {
   const cases: Array<[string, CofheErrorCode]> = [
     ['bad_request', CofheErrorCode.BadRequest],
     ['unknown_chain', CofheErrorCode.UnknownChain],
-    ['acp_malformed', CofheErrorCode.PermitMalformed],
-    ['acp_denied', CofheErrorCode.PermitDenied],
-    ['acp_expired', CofheErrorCode.PermitExpired],
-    ['acp_invalid', CofheErrorCode.PermitInvalid],
+    ['acp_malformed', CofheErrorCode.ACPMalformed],
+    ['acp_denied', CofheErrorCode.ACPDenied],
+    ['acp_expired', CofheErrorCode.ACPExpired],
+    ['acp_invalid', CofheErrorCode.ACPInvalid],
     ['not_publicly_allowed', CofheErrorCode.NotPubliclyAllowed],
     ['ct_not_found', CofheErrorCode.CtNotFound],
     ['unsupported_security_zone', CofheErrorCode.UnsupportedSecurityZone],
@@ -25,10 +25,10 @@ describe('mapApiErrorCodeToCofheErrorCode', () => {
     ['internal_error', CofheErrorCode.InternalError],
     ['signing_failed', CofheErrorCode.SigningFailed],
     ['ct_source_error', CofheErrorCode.CtSourceError],
-    ['acp_verifier_error', CofheErrorCode.PermitVerifierError],
+    ['acp_verifier_error', CofheErrorCode.ACPVerifierError],
     ['ct_source_timeout', CofheErrorCode.CtSourceTimeout],
-    ['acp_verifier_timeout', CofheErrorCode.PermitVerifierTimeout],
-    ['acp_required', CofheErrorCode.PermitRequired],
+    ['acp_verifier_timeout', CofheErrorCode.ACPVerifierTimeout],
+    ['acp_required', CofheErrorCode.ACPRequired],
     ['seal_failed', CofheErrorCode.SealFailed],
   ];
 
@@ -53,12 +53,12 @@ describe('parseApiErrorResponseBody', () => {
   it('reads error and error_message from a well-formed body', async () => {
     const response = makeResponse({
       status: 401,
-      json: async () => ({ error: 'acp_expired', error_message: 'permit has expired' }),
+      json: async () => ({ error: 'acp_expired', error_message: 'acp has expired' }),
     });
 
     await expect(parseApiErrorResponseBody(response)).resolves.toEqual({
       apiErrorCode: 'acp_expired',
-      errorMessage: 'permit has expired',
+      errorMessage: 'acp has expired',
     });
   });
 

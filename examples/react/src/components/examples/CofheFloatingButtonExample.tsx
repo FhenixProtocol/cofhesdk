@@ -96,7 +96,7 @@ export function App() {
 
         <div>
           <h3 className="text-lg font-semibold mb-3">
-            2. use Cofhe React API to make the user generate a permit when it's needed (needed for decrypting)
+            2. use Cofhe React API to make the user generate a acp when it's needed (needed for decrypting)
           </h3>
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border">
             <pre className="text-sm overflow-x-auto">
@@ -108,22 +108,22 @@ import { WETH_SEPOLIA_TOKEN } from '../constants/tokens';
 function MyComponent() {
   const account = useCofheConnection().account;
   
-  const navigateToGeneratePermit = useCofheCreatePermit({
-    ReasonBody: CREATE_PERMITT_BODY_BY_ERROR_CAUSE[ErrorCause.AttemptToFetchConfidentialBalance],
+  const navigateToGenerateACP = useCofheCreateACP({
+    ReasonBody: CREATE_ACPT_BODY_BY_ERROR_CAUSE[ErrorCause.AttemptToFetchConfidentialBalance],
   });
   
-  const { disabledDueToMissingPermit, data, error, isFetching } = useCofheTokenConfidentialBalance({
+  const { disabledDueToMissingACP, data, error, isFetching } = useCofheTokenConfidentialBalance({
     token: WETH_SEPOLIA_TOKEN,
     accountAddress: account,
   });
 
   return (
     <pre>
-      {disabledDueToMissingPermit ? (
+      {disabledDueToMissingACP ? (
         <div
           onClick={async (e) => {
             e.stopPropagation();
-            navigateToGeneratePermit();
+            navigateToGenerateACP();
             
           }}
         >
