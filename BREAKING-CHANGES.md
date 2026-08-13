@@ -1,5 +1,18 @@
 # Breaking changes
 
+## Permit renamed to ACP (complete)
+
+Every remaining `Permit` name is now `ACP` — the vocabulary migration started with the ACP (Permit V3) work is complete. Mechanical migration for consumers: replace the tokens `Permit`/`permit`/`PERMIT` (and plurals) with `ACP`/`acp`/`ACP` in identifiers imported from this SDK. Highlights:
+
+- Types: `SelfPermit`/`SharingPermit`/`RecipientPermit` → `SelfACP`/`SharingACP`/`RecipientACP`; `SerializedPermit` → `SerializedACP`.
+- Methods: `getOrCreateSelfPermit` → `getOrCreateSelfACP`, `withPermit`/`withoutPermit` → `withACP`/`withoutACP`, etc.
+- React: `useCofhePermits` → `useCofheACPs`, `useCofheActivePermit` → `useCofheActiveACP`, `PermitCard` → `ACPCard`, and the floating-button page tree.
+- Error codes: `CofheErrorCode.Permit*` members and their `PERMIT_*` string values → `Acp*`/`ACP_*`.
+- Entrypoint: `@cofhe/sdk/permits` → `@cofhe/sdk/acps`.
+- Storage: the persisted store key changed and old data is not migrated — stored ACPs are re-created on next use (they are cheap, signed client-side artifacts).
+
+Not renamed: English words (`permitted`, `isPermittedCofheEnvironment`), protocol-mirroring contract interfaces (`isAllowedWithPermission`), licenses, and historical changelogs.
+
 ## ACP-era chains only
 
 The SDK no longer serves pre-upgrade (V2 `Permission`) chains: the ACL must sign as EIP-712 domain version "2" (ACP / ACP V3). ACP creation on a V2 chain fails with an explicit error instead of producing signatures the chain cannot verify.
@@ -10,8 +23,8 @@ The `acp_*` error codes emitted by pre-upgrade decryption backends are no
 longer recognized; ACP-era backends emit `acp_*`. Seven codes correspond 1:1
 and map onto the same stable `CofheErrorCode` values as before:
 
-| Wire code              | HTTP | `CofheErrorCode`                                   |
-| ---------------------- | ---- | -------------------------------------------------- |
+| Wire code              | HTTP | `CofheErrorCode`                                |
+| ---------------------- | ---- | ----------------------------------------------- |
 | `acp_malformed`        | 400  | `ACPMalformed`                                  |
 | `acp_denied`           | 401  | `ACPDenied` (also covers revocation, see below) |
 | `acp_expired`          | 401  | `ACPExpired`                                    |
@@ -48,15 +61,15 @@ Existing signed acps **do not verify** against the upgraded ACL (typehashes and 
 
 | Old                                          | New                               |
 | -------------------------------------------- | --------------------------------- |
-| `ACP` (type)                              | `ACP`                             |
+| `ACP` (type)                                 | `ACP`                             |
 | `Permission` (type)                          | `ACPPublic`                       |
-| `ACPUtils`                                | `ACPUtils`                        |
-| `client.acps.*`                           | `client.acp.*`                    |
-| `ACPUtils.getPermission()`                | `ACPUtils.getPublic()`            |
+| `ACPUtils`                                   | `ACPUtils`                        |
+| `client.acps.*`                              | `client.acp.*`                    |
+| `ACPUtils.getPermission()`                   | `ACPUtils.getPublic()`            |
 | `validatorId` / `validatorContract` (fields) | `revokerData` / `revokerContract` |
-| config `acp.defaultValidator`             | `acp.defaultRevoker`           |
+| config `acp.defaultValidator`                | `acp.defaultRevoker`              |
 | `TimestampBasedACPValidator` (contract)      | `ACPTimestampRevoker`             |
-| docs `/sdk/acps`                          | `/sdk/acp`                        |
+| docs `/sdk/acps`                             | `/sdk/acp`                        |
 
 `permission` variables are named `acp` throughout the codebase (Solidity params included).
 
