@@ -107,10 +107,11 @@ const environment = getCofheEnvironmentFromNetwork(networkName);
 import { isPermittedCofheEnvironment } from '@cofhe/hardhat-plugin';
 const isPermitted = isPermittedCofheEnvironment(hre, environmentName);
 
-// Initialize CoFHEjs with a Hardhat signer
-import { cofhejs_initializeWithHardhatSigner } from '@cofhe/hardhat-plugin';
-await cofhejs_initializeWithHardhatSigner(signer, options);
-```
+// // Create a CoFHE client from a Hardhat signer (mock-aware)
+const client = await hre.cofhe.createClientWithBatteries(signer)
+
+// Or get viem clients manually:
+// const { publicClient, walletClient } = await hre.cofhe.hardhatSignerAdapter(signer)
 
 ## Usage in Tests
 
