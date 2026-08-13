@@ -9,7 +9,7 @@ description: Step-by-step guide to upgrade from cofhejs to @cofhe/sdk
 
 ### Why migrate?
 
-- **Explicit API** — no more implicit initialization or auto-generated acps. Every action is opt-in.
+- **Explicit API** — no more implicit initialization or auto-generated permits. Every action is opt-in.
 - **Builder pattern** — `encryptInputs`, `decryptForView`, and `decryptForTx` use a chainable builder so you can set overrides (account, chain, callbacks) before calling `.execute()`.
 - **`decryptForTx` feature** — `cofhejs` does not provide an api for generating decryption signatures for on-chain usage.
 - **Deferred key loading** — FHE keys and TFHE WASM are fetched lazily on the first `encryptInputs` call, not during initialization.
@@ -210,7 +210,7 @@ The `Encryptable` factory functions (`Encryptable.uint32(...)`, `Encryptable.boo
 | | `cofhejs` | `@cofhe/sdk` |
 | ------------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | **Function** | `cofhejs.unseal(sealed, type)` | `client.decryptForView(ctHash, type)` or `client.decryptForTx(ctHash)` |
-| **ACP handling** | Automatic (uses most recent acp) | Explicit — `.withACP()` / `.withACP(acp)` / `.withACP(hash)` / `.withoutACP()` |
+| **ACP handling** | Automatic (uses most recent permit) | Explicit — `.withACP()` / `.withACP(permit)` / `.withACP(hash)` / `.withoutACP()` |
 | **Return value** | `Result<bigint \| boolean \| string>` | Direct value: `bigint`, `boolean`, or `string` for view; `{ ctHash, decryptedValue, signature }` for tx |
 | **On-chain verification** | Not built in | `decryptForTx` returns a signature for `FHE.publishDecryptResult(...)` or `FHE.verifyDecryptResult(...)` |
 | **`utype`** | Required for `unseal` | Required for `decryptForView`, not needed for `decryptForTx` |
@@ -300,27 +300,27 @@ contract MyContract {
 
 :::
 
-## 4. ACPs → ACPs
+## 4. Permits → ACPs
 
-ACPs are now called **ACPs** (Access Control Permissions) and are no longer auto-generated during initialization. All ACP operations are explicit through `client.acp`, with separate methods for self ACPs, sharing ACPs, and importing shared ACPs.
+Permits are now called **ACPs** (Access Control Permissions) and are no longer auto-generated during initialization. All ACP operations are explicit through `client.acp`, with separate methods for self ACPs, sharing ACPs, and importing shared ACPs.
 
 ::::note
 :::details[Changes]
 | | `cofhejs` | `@cofhe/sdk` |
 | ------------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| **Auto-generation** | `generateACP: true` (default) | Never — always explicit |
-| **Creation** | `cofhejs.createACP({ type, issuer })` | `client.acp.createSelf(...)`, `client.acp.createSharing(...)`, `client.acp.importShared(...)` |
-| **Return type** | `Result<ACP>` | Direct `ACP` object |
+| **Auto-generation** | `generatePermit: true` (default) | Never — always explicit |
+| **Creation** | `cofhejs.createPermit({ type, issuer })` | `client.acp.createSelf(...)`, `client.acp.createSharing(...)`, `client.acp.importShared(...)` |
+| **Return type** | `Result<Permit>` | Direct `ACP` object |
 | **Active ACP** | Implicitly used by `unseal` | `getOrCreateSelfACP()` sets the active ACP; `decryptForView/Tx` uses it automatically |
-| **Sharing** | `createACP({ type: "sharing", recipient })` → `createACP({ type: "recipient", ...acp })` | `createSharing(...)` → `importShared(...)` |
+| **Sharing** | `createPermit({ type: "sharing", recipient })` → `createPermit({ type: "recipient", ...permit })` | `createSharing(...)` → `importShared(...)` |
 | **Selection** | Implicit | `client.acp.selectActiveACP(hash)` |
-| **Retrieval** | `cofhejs.getACP(...)` | `client.acp.getACP(hash)`, `client.acp.getACPs()`, `client.acp.getActiveACP()` |
+| **Retrieval** | `cofhejs.getPermit(...)` | `client.acp.getACP(hash)`, `client.acp.getACPs()`, `client.acp.getActiveACP()` |
 :::
 ::::
 
 ### Before (`cofhejs`)
 
-ACPs could be auto-generated during initialization (`generateACP: true`, the default), or created manually:
+Permits could be auto-generated during initialization (`generatePermit: true`, the default), or created manually:
 
 ```ts
 // Auto-generated during init (default)
@@ -328,11 +328,11 @@ await cofhejs.initializeWithEthers({
   ethersProvider: provider,
   ethersSigner: signer,
   environment: 'TESTNET',
-  // generateACP: true  ← default
+  // generatePermit: true  ← default
 });
 
 // Manual creation
-const result = await cofhejs.createACP({
+const result = await cofhejs.createPermit({
   type: 'self',
   issuer: wallet.address,
 });
@@ -355,13 +355,13 @@ declare const account: `0x${string}`;
 declare const ctHash: `0x${string}`;
 // ---cut---
 // Create a self ACP (prompts for wallet signature)
-const acp = await client.acp.createSelf({
+const permit = await client.acp.createSelf({
   issuer: account,
   name: 'My dApp ACP',
 });
 
 // Or use the convenience method that creates one only if needed
-const acp2 = await client.acp.getOrCreateSelfACP();
+const permit2 = await client.acp.getOrCreateSelfACP();
 
 // Use with decryptForView (active ACP is used automatically)
 const value = await client
@@ -371,7 +371,7 @@ const value = await client
 // Or pass a specific ACP
 const value2 = await client
   .decryptForView(ctHash, FheTypes.Uint32)
-  .withACP(acp)
+  .withACP(permit)
   .execute();
 ```
 
@@ -429,7 +429,7 @@ try {
 | `cofhejs/node` | `@cofhe/sdk/node`                                    |
 | `cofhejs/web`  | `@cofhe/sdk/web`                                     |
 | N/A            | `@cofhe/sdk` (core types, `Encryptable`, `FheTypes`) |
-| N/A            | `@cofhe/sdk/acps`                                 |
+| N/A            | `@cofhe/sdk/permits`                                 |
 | N/A            | `@cofhe/sdk/adapters`                                |
 | N/A            | `@cofhe/sdk/chains`                                  |
 
@@ -470,12 +470,12 @@ if (!encrypted.success) throw new Error(encrypted.error);
 // 3. Send transaction
 await contract.deposit(encrypted.data[0]);
 
-// 4. Create acp & unseal
-const acp = await cofhejs.createACP({
+// 4. Create permit & unseal
+const permit = await cofhejs.createPermit({
   type: 'self',
   issuer: wallet.address,
 });
-if (!acp.success) throw new Error(acp.error);
+if (!permit.success) throw new Error(permit.error);
 
 const sealed = await contract.getBalance();
 const balance = await cofhejs.unseal(sealed, FheTypes.Uint64);
@@ -519,7 +519,7 @@ const [eAmountHash, signature] = await client
 // 3. Send transaction
 await contract.deposit(eAmountHash, signature);
 
-// 4. Create acp & decrypt
+// 4. Create permit & decrypt
 await client.acp.getOrCreateSelfACP();
 
 const ctHash = await contract.getBalance();
