@@ -287,12 +287,12 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
     this.assertPublicClient();
 
     const thresholdNetworkUrl = await this.getThresholdNetworkUrl();
-    const acp = ACPUtils.getPublic(acp, true);
+    const wireAcp = ACPUtils.getPublic(acp, true);
     // const sealed = await tnSealOutputV1(this.ctHash, this.chainId, permission, thresholdNetworkUrl);
     const sealed = await tnSealOutputV2({
       ctHash: this.ctHash,
       chainId: this.chainId,
-      acp,
+      acp: wireAcp,
       thresholdNetworkUrl,
       retry404TimeoutMs: this.retry404TimeoutMs,
       onPoll: this.pollCallback,

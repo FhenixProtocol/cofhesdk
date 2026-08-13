@@ -319,11 +319,11 @@ export class DecryptForTxBuilder extends BaseBuilder {
 
     const thresholdNetworkUrl = await this.getThresholdNetworkUrl();
 
-    const acp = acp ? ACPUtils.getPublic(acp, true) : null;
+    const wireAcp = acp ? ACPUtils.getPublic(acp, true) : null;
     const { decryptedValue, signature } = await tnDecryptV2({
       ctHash: this.ctHash,
       chainId: this.chainId,
-      acp,
+      acp: wireAcp,
       thresholdNetworkUrl,
       retry404TimeoutMs: this.retry404TimeoutMs,
       onPoll: this.pollCallback,
