@@ -8,19 +8,19 @@ import { CofheErrorCode } from '../error.js';
 const SHARED_ERROR_CASES: Array<{ status: number; error: string; cofheErrorCode: CofheErrorCode }> = [
   { status: 400, error: 'bad_request', cofheErrorCode: CofheErrorCode.BadRequest },
   { status: 400, error: 'unknown_chain', cofheErrorCode: CofheErrorCode.UnknownChain },
-  { status: 400, error: 'permit_malformed', cofheErrorCode: CofheErrorCode.PermitMalformed },
-  { status: 401, error: 'permit_denied', cofheErrorCode: CofheErrorCode.PermitDenied },
-  { status: 401, error: 'permit_expired', cofheErrorCode: CofheErrorCode.PermitExpired },
-  { status: 401, error: 'permit_invalid', cofheErrorCode: CofheErrorCode.PermitInvalid },
+  { status: 400, error: 'acp_malformed', cofheErrorCode: CofheErrorCode.PermitMalformed },
+  { status: 401, error: 'acp_denied', cofheErrorCode: CofheErrorCode.PermitDenied },
+  { status: 401, error: 'acp_expired', cofheErrorCode: CofheErrorCode.PermitExpired },
+  { status: 401, error: 'acp_invalid', cofheErrorCode: CofheErrorCode.PermitInvalid },
   { status: 403, error: 'not_publicly_allowed', cofheErrorCode: CofheErrorCode.NotPubliclyAllowed },
   { status: 422, error: 'unsupported_security_zone', cofheErrorCode: CofheErrorCode.UnsupportedSecurityZone },
   { status: 422, error: 'unsupported_type', cofheErrorCode: CofheErrorCode.UnsupportedType },
   { status: 500, error: 'internal_error', cofheErrorCode: CofheErrorCode.InternalError },
   { status: 500, error: 'signing_failed', cofheErrorCode: CofheErrorCode.SigningFailed },
   { status: 502, error: 'ct_source_error', cofheErrorCode: CofheErrorCode.CtSourceError },
-  { status: 502, error: 'permit_verifier_error', cofheErrorCode: CofheErrorCode.PermitVerifierError },
+  { status: 502, error: 'acp_verifier_error', cofheErrorCode: CofheErrorCode.PermitVerifierError },
   { status: 504, error: 'ct_source_timeout', cofheErrorCode: CofheErrorCode.CtSourceTimeout },
-  { status: 504, error: 'permit_verifier_timeout', cofheErrorCode: CofheErrorCode.PermitVerifierTimeout },
+  { status: 504, error: 'acp_verifier_timeout', cofheErrorCode: CofheErrorCode.PermitVerifierTimeout },
 ];
 // ct_not_found (404) is deliberately excluded here: on the submit endpoints it's the
 // conditionally-retryable case (covered by pollCallbacks.test.ts / submitRetry.test.ts), and on
@@ -116,19 +116,19 @@ describe('decrypt/sealoutput API-RESPONSES.md error-code coverage', () => {
     });
   });
 
-  it('sealoutput submit maps 400 permit_required (sealoutput-specific)', async () => {
+  it('sealoutput submit maps 400 acp_required (sealoutput-specific)', async () => {
     global.fetch = vi.fn(async () =>
       makeMockResponse({
         ok: false,
         status: 400,
-        json: async () => ({ error: 'permit_required', error_message: 'no permit in request' }),
+        json: async () => ({ error: 'acp_required', error_message: 'no permit in request' }),
       })
     ) as any;
 
     await expect(tnSealOutputV2({ ctHash: 1n, chainId: 1, acp: {} as any, thresholdNetworkUrl })).rejects.toMatchObject(
       {
         code: CofheErrorCode.PermitRequired,
-        apiErrorCode: 'permit_required',
+        apiErrorCode: 'acp_required',
       }
     );
   });

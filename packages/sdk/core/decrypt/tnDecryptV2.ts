@@ -187,14 +187,14 @@ async function submitDecryptRequestV2(
   const body: {
     ct_tempkey: string;
     host_chain_id: number;
-    permit?: ACPPublic;
+    acp?: ACPPublic;
   } = {
     ct_tempkey: BigInt(ctHash).toString(16).padStart(64, '0'),
     host_chain_id: chainId,
   };
 
   if (acp) {
-    body.permit = acp;
+    body.acp = acp;
   }
 
   let attemptIndex = 0;

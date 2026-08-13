@@ -29,7 +29,7 @@ const enabledChains = matrix.filter(({ chainEnabled }) => chainEnabled).map(({ c
 
 describe.each(enabledChains)('[ACP SHARE] $label', (chainConfig) => {
   let ctx: TestContext;
-  const testValue = 77;
+  const testValue = 77n;
 
   beforeAll(async () => {
     ctx = await chainConfig.setup(factory);
@@ -50,12 +50,15 @@ describe.each(enabledChains)('[ACP SHARE] $label', (chainConfig) => {
     expect(Array.isArray(incomingProbe)).toBe(true);
 
     // 1. Bob (ctx default connection) encrypts + stores a value
-    const encrypted = await ctx.cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
+    const [encryptedHash, encryptedSignature] = await ctx.cofheClient
+      .encryptInputs([Encryptable.uint32(testValue)])
+      .setConsumingContract(ctx.contractAddress)
+      .execute();
     const txHash = await ctx.bobWalletClient.writeContract({
       address: ctx.contractAddress,
       abi: simpleTestAbi,
       functionName: 'setValue',
-      args: [encrypted[0]],
+      args: [encryptedHash, encryptedSignature],
       chain: chainConfig.viemChain,
       account: ctx.bobAccount,
     });

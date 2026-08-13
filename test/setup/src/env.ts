@@ -6,3 +6,5 @@ export const TEST_LOCALCOFHE_PRIVATE_KEY = (process.env.TEST_LOCALCOFHE_PRIVATE_
   '0xb6b15c8cb491557369f3c7d2c287b053eb229daa9c22138887752191c9520659') as `0x${string}`;
 
 export const PRIMARY_TEST_CHAIN = Number(process.env.PRIMARY_TEST_CHAIN || '421614');
+
+export const STAGING_RPC = process.env.STAGING_RPC_URL || 'https://staging-hostchain-v1.sw-dom.co';

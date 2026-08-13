@@ -1,4 +1,5 @@
-import { arbSepolia as cofheArbSepolia } from '@/chains';
+import { STAGING_TESTS, stagingViemChain } from '../../core/test/stagingRedirect';
+import { arbSepolia as cofheArbSepolia, stagingCofhe } from '@/chains';
 import { Encryptable } from '@/core';
 
 import { describe, it, expect, beforeAll } from 'vitest';
@@ -10,6 +11,9 @@ import { createCofheClient, createCofheConfig } from '../index.js';
 
 const TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 
+const testViemChain = STAGING_TESTS ? stagingViemChain : viemArbitrumSepolia;
+const testCofheChain = STAGING_TESTS ? stagingCofhe : cofheArbSepolia;
+
 describe('@cofhe/sdk/web - Worker vs Main Thread Output Validation', () => {
   let publicClient: PublicClient;
   let walletClient: WalletClient;
@@ -17,13 +21,13 @@ describe('@cofhe/sdk/web - Worker vs Main Thread Output Validation', () => {
 
   beforeAll(() => {
     publicClient = createPublicClient({
-      chain: viemArbitrumSepolia,
+      chain: testViemChain,
       transport: http(),
     });
 
     const account = privateKeyToAccount(TEST_PRIVATE_KEY);
     walletClient = createWalletClient({
-      chain: viemArbitrumSepolia,
+      chain: testViemChain,
       transport: http(),
       account,
     });
@@ -33,12 +37,12 @@ describe('@cofhe/sdk/web - Worker vs Main Thread Output Validation', () => {
   it('should produce consistent output format regardless of worker usage', async () => {
     // Create two clients - one with workers, one without
     const configWithWorker = createCofheConfig({
-      supportedChains: [cofheArbSepolia],
+      supportedChains: [testCofheChain],
       useWorkers: true,
     });
 
     const configWithoutWorker = createCofheConfig({
-      supportedChains: [cofheArbSepolia],
+      supportedChains: [testCofheChain],
       useWorkers: false,
     });
 

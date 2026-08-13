@@ -40,7 +40,7 @@ describe.each(enabledChains)('[ACP DEMO] $label', (chainConfig) => {
   let ctx: TestContext;
   let demoWallet: WalletClient;
   let demoAccount: ReturnType<typeof privateKeyToAccount>;
-  const testValue = 42;
+  const testValue = 42n;
 
   beforeAll(async () => {
     ctx = await chainConfig.setup(factory);
@@ -56,12 +56,15 @@ describe.each(enabledChains)('[ACP DEMO] $label', (chainConfig) => {
 
   it('full flow: scoped revocable permit → decrypt → revoke → denied → fresh permit works', async () => {
     // 1. encrypt + store
-    const encrypted = await ctx.cofheClient.encryptInputs([Encryptable.uint32(testValue)]).execute();
+    const [encryptedHash, encryptedSignature] = await ctx.cofheClient
+      .encryptInputs([Encryptable.uint32(testValue)])
+      .setConsumingContract(ctx.contractAddress)
+      .execute();
     const txHash = await demoWallet.writeContract({
       address: ctx.contractAddress,
       abi: simpleTestAbi,
       functionName: 'setValue',
-      args: [encrypted[0]],
+      args: [encryptedHash, encryptedSignature],
       chain: chainConfig.viemChain,
       account: demoAccount,
     });
@@ -98,9 +101,10 @@ describe.each(enabledChains)('[ACP DEMO] $label', (chainConfig) => {
     });
     expect(await ctx.cofheClient.acp.isPermitRevoked(permit)).toBe(true);
 
-    // 5. the revoked permit no longer decrypts
+    // 5. the revoked permit no longer decrypts. Mocks propagate the on-chain revert
+    // reason directly; the staging sealOutput backend reports it as a generic denial.
     await expect(ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute()).rejects.toThrow(
-      /PermissionInvalid_Disabled/
+      /PermissionInvalid_Disabled|acp_denied/
     );
 
     // 6. a fresh permit restores access.

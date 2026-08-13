@@ -1,4 +1,5 @@
-import { arbSepolia as cofheArbSepolia } from '@/chains';
+import { STAGING_TESTS, stagingViemChain } from '../../core/test/stagingRedirect';
+import { arbSepolia as cofheArbSepolia, stagingCofhe } from '@/chains';
 import { Encryptable, type CofheClient } from '@/core';
 
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
@@ -10,6 +11,9 @@ import { createCofheClient, createCofheConfig } from '../index.js';
 
 // Real test setup - runs in browser with real tfhe
 const TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
+
+const testViemChain = STAGING_TESTS ? stagingViemChain : viemArbitrumSepolia;
+const testCofheChain = STAGING_TESTS ? stagingCofhe : cofheArbSepolia;
 
 // Logs per-step durations using the built-in `context.duration` provided by the SDK.
 // Each encryption run is a separate entry so multi-encrypt tests show per-run breakdowns.
@@ -53,13 +57,13 @@ describe('@cofhe/web - TFHE Initialization Browser Tests', () => {
   beforeAll(() => {
     // Create real viem clients
     publicClient = createPublicClient({
-      chain: viemArbitrumSepolia,
+      chain: testViemChain,
       transport: http(),
     });
 
     const account = privateKeyToAccount(TEST_PRIVATE_KEY);
     walletClient = createWalletClient({
-      chain: viemArbitrumSepolia,
+      chain: testViemChain,
       transport: http(),
       account,
     });
@@ -68,7 +72,7 @@ describe('@cofhe/web - TFHE Initialization Browser Tests', () => {
 
   beforeEach(() => {
     const config = createCofheConfig({
-      supportedChains: [cofheArbSepolia],
+      supportedChains: [testCofheChain],
     });
     cofheClient = createCofheClient(config);
   });
@@ -98,7 +102,7 @@ describe('@cofhe/web - TFHE Initialization Browser Tests', () => {
       expect(result).toBeDefined();
       expect(initTfheContext).toBeDefined();
       expect(initTfheContext?.tfheInitializationExecuted).toBe(true);
-    }, 60000); // Longer timeout for real operations
+    }, 120000); // Longer timeout for real operations
 
     it('should handle multiple encryptions without re-initializing', async () => {
       await cofheClient.connect(publicClient, walletClient);

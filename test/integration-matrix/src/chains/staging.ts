@@ -11,11 +11,10 @@
 
 import { defineChain, createPublicClient, createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { TEST_PRIVATE_KEY, getStagingSimpleTestAddress } from '@cofhe/test-setup';
+import { TEST_PRIVATE_KEY, STAGING_RPC, getStagingSimpleTestAddress } from '@cofhe/test-setup';
 import { stagingCofhe as cofheStagingChain } from '@cofhe/sdk/chains';
 import type { ClientFactory, TestContext, TestChainConfig } from '../types.js';
 
-const STAGING_RPC = 'https://staging-hostchain-v1.sw-dom.co';
 const ALICE_PRIVATE_KEY = '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d' as const;
 
 export const viemStagingCofhe = defineChain({

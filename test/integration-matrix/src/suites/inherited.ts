@@ -17,7 +17,7 @@ function makeThresholdRequestBody(chainConfig: TestChainConfig, ctHash: bigint |
   return {
     ct_tempkey: BigInt(ctHash).toString(16).padStart(64, '0'),
     host_chain_id: chainConfig.cofheChain.id,
-    permit: acp,
+    acp,
   };
 }
 

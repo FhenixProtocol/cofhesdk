@@ -28,5 +28,6 @@ export default defineConfig({
     'process.env.TEST_PRIVATE_KEY': JSON.stringify(process.env.TEST_PRIVATE_KEY ?? ''),
     'process.env.TEST_LOCALCOFHE_PRIVATE_KEY': JSON.stringify(process.env.TEST_LOCALCOFHE_PRIVATE_KEY ?? ''),
     'process.env.PRIMARY_TEST_CHAIN': JSON.stringify(process.env.PRIMARY_TEST_CHAIN ?? ''),
+    'process.env.STAGING_RPC_URL': JSON.stringify(process.env.STAGING_RPC_URL ?? ''),
   },
 });

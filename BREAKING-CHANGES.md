@@ -1,4 +1,30 @@
-# Breaking changes: Permit (V2) → ACP
+# Breaking changes
+
+## ACP-era chains only
+
+The SDK no longer serves pre-upgrade (V2 `Permission`) chains: the ACL must sign as EIP-712 domain version "2" (ACP / Permit V3). Permit creation on a V2 chain fails with an explicit error instead of producing signatures the chain cannot verify.
+
+### Backend error codes: `acp_*` replaces `permit_*`
+
+The `permit_*` error codes emitted by pre-upgrade decryption backends are no
+longer recognized; ACP-era backends emit `acp_*`. Seven codes correspond 1:1
+and map onto the same stable `CofheErrorCode` values as before:
+
+| Wire code              | HTTP | `CofheErrorCode`                                   |
+| ---------------------- | ---- | -------------------------------------------------- |
+| `acp_malformed`        | 400  | `PermitMalformed`                                  |
+| `acp_denied`           | 401  | `PermitDenied` (also covers revocation, see below) |
+| `acp_expired`          | 401  | `PermitExpired`                                    |
+| `acp_invalid`          | 401  | `PermitInvalid`                                    |
+| `acp_required`         | 400  | `PermitRequired`                                   |
+| `acp_verifier_error`   | 502  | `PermitVerifierError`                              |
+| `acp_verifier_timeout` | 504  | `PermitVerifierTimeout`                            |
+
+`permit_revoked` has no `acp_*` twin by design: ACP-era backends no longer
+distinguish revocation from no-access or scope-miss — all three come back as
+`acp_denied`. Consequently `CofheErrorCode.PermitRevoked` can no longer be
+produced from a backend response (the enum member remains for source
+compatibility).: Permit (V2) → ACP
 
 All breaking changes in the ACP migration, in one place. Applies to `@cofhe/sdk`, the mock contracts, and the on-chain ACL. **There are no deprecated aliases — old names are removed** so the compiler points at every site that needs attention.
 

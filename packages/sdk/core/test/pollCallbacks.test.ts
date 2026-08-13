@@ -309,7 +309,7 @@ describe('decrypt polling callbacks', () => {
           ok: false,
           status: 404,
           statusText: 'Not Found',
-          json: async () => ({ error: 'permit_denied', error_message: 'permit was rejected' }),
+          json: async () => ({ error: 'acp_denied', error_message: 'permit was rejected' }),
         });
       }
 
@@ -729,7 +729,7 @@ describe('decrypt polling callbacks', () => {
           ok: false,
           status: 404,
           statusText: 'Not Found',
-          json: async () => ({ error: 'permit_denied', error_message: 'permit was rejected' }),
+          json: async () => ({ error: 'acp_denied', error_message: 'permit was rejected' }),
         });
       }
 
