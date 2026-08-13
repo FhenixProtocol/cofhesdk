@@ -405,7 +405,7 @@ export const ACPUtils = {
    * Check if acp passes the on-chain validation
    */
   checkValidityOnChain: async (acp: ACP, publicClient: PublicClient): Promise<boolean> => {
-    const acp = ACPUtils.getPublic(acp);
-    return checkACPValidityOnChain(acp, publicClient);
+    const publicAcp = ACPUtils.getPublic(acp);
+    return checkACPValidityOnChain(publicAcp, publicClient);
   },
 };
