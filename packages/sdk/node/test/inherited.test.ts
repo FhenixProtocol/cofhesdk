@@ -1,3 +1,4 @@
+import { LIVE_TESTNETS } from '../../core/test/liveTestnets.js';
 import { Encryptable, FheTypes, type CofheClient } from '@/core';
 import { arbSepolia as cofheArbSepolia, getChainById } from '@/chains';
 import {
@@ -88,7 +89,7 @@ describe('@cofhe/node - Inherited Client Tests', () => {
     }, 30000);
   });
 
-  describe('Encrypt Input', () => {
+  describe.skipIf(!LIVE_TESTNETS)('Encrypt Input', () => {
     it('should encrypt a uint128 value', async () => {
       await cofheClient.connect(publicClient, bobWalletClient);
 
@@ -174,7 +175,7 @@ describe('@cofhe/node - Inherited Client Tests', () => {
     }, 30000);
   });
 
-  describe('Decrypt (read-only, pre-stored values)', () => {
+  describe.skipIf(!LIVE_TESTNETS)('Decrypt (read-only, pre-stored values)', () => {
     let decryptClient: CofheClient;
     let decryptPublicClient: PublicClient;
     let decryptWalletClient: WalletClient;

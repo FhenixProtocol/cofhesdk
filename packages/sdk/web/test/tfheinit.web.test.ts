@@ -1,3 +1,4 @@
+import { LIVE_TESTNETS } from '../../core/test/liveTestnets.js';
 import { arbSepolia as cofheArbSepolia } from '@/chains';
 import { Encryptable, type CofheClient } from '@/core';
 
@@ -73,7 +74,7 @@ describe('@cofhe/web - TFHE Initialization Browser Tests', () => {
     cofheClient = createCofheClient(config);
   });
 
-  describe('Browser TFHE Initialization', () => {
+  describe.skipIf(!LIVE_TESTNETS)('Browser TFHE Initialization', () => {
     it('should initialize tfhe on first encryption', async () => {
       await cofheClient.connect(publicClient, walletClient);
 

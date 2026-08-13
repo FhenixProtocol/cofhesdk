@@ -1,3 +1,4 @@
+import { LIVE_TESTNETS } from '../../core/test/liveTestnets.js';
 import { arbSepolia as cofheArbSepolia } from '@/chains';
 import { Encryptable } from '@/core';
 
@@ -10,7 +11,7 @@ import { createCofheClient, createCofheConfig, createCofheClientWithCustomWorker
 
 const TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 
-describe('@cofhe/sdk/web - Worker Configuration Tests', () => {
+describe.skipIf(!LIVE_TESTNETS)('@cofhe/sdk/web - Worker Configuration Tests', () => {
   let publicClient: PublicClient;
   let walletClient: WalletClient;
   let consumingContract: `0x${string}`;

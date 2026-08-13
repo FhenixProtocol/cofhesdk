@@ -1,3 +1,4 @@
+import { LIVE_TESTNETS } from './liveTestnets.js';
 import { FheTypes, verifyDecryptResult, createCofheConfigBase, TASK_MANAGER_ADDRESS } from '@/core';
 import { getChainById } from '@/chains';
 import {
@@ -25,7 +26,7 @@ const VIEM_CHAINS: Record<number, Chain> = {
   11155111: sepolia,
 };
 
-describe('Core – Decrypt Tests', () => {
+describe.skipIf(!LIVE_TESTNETS)('Core – Decrypt Tests', () => {
   let publicClient: PublicClient;
   let walletClient: WalletClient;
   let config: ReturnType<typeof createCofheConfigBase>;

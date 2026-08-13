@@ -6,6 +6,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const alias = { '@': resolve(__dirname, './') }; // or './src'
 
 export default defineConfig({
+  define: { __LIVE_TESTNETS__: JSON.stringify(process.env.TEST_TESTNETS_ENABLED === 'true') },
   resolve: { alias },
 
   test: {
