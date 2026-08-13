@@ -3,15 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import {
-  getACP,
-  setACP,
-  removeACP,
-  getActiveACPHash,
-  setActiveACPHash,
-  ACPUtils,
-  acpStore,
-} from '../index.js';
+import { getACP, setACP, removeACP, getActiveACPHash, setActiveACPHash, ACPUtils, acpStore } from '../index.js';
 import { createMockACP } from '../test-utils.js';
 
 // Type declarations for happy-dom environment

@@ -1,12 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { zeroAddress } from 'viem';
 import { ACPUtils } from '@cofhe/sdk/acps';
-import {
-  useCofheActiveACP,
-  useCofheACP,
-  useCofheRemoveACP,
-  useCofheSelectACP,
-} from '../useCofheACPs.js';
+import { useCofheActiveACP, useCofheACP, useCofheRemoveACP, useCofheSelectACP } from '../useCofheACPs.js';
 import { useCopyFeedback } from '../useCopyFeedback.js';
 import { formatExpirationLabel, truncateAddress } from '@/utils/utils.js';
 import { usePortalNavigation, usePortalToasts } from '@/stores';
@@ -57,8 +52,7 @@ export const useACPDetailsAndActions = (acpHash: string) => {
   const acpLabel = useMemo(() => {
     if (!acp) return undefined;
     if (acp.name?.trim()) return acp.name;
-    const fallbackAddress =
-      acp.recipient && acp.recipient !== zeroAddress ? acp.recipient : acp.issuer || zeroAddress;
+    const fallbackAddress = acp.recipient && acp.recipient !== zeroAddress ? acp.recipient : acp.issuer || zeroAddress;
     return truncateAddress(fallbackAddress, 4, 4) ?? fallbackAddress;
   }, [acp]);
 

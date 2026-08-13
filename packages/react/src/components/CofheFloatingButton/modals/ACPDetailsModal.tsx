@@ -132,28 +132,27 @@ export const ACPDetailsModal: React.FC<PortalModalStateMap[PortalModal.ACPDetail
 
             {acp.type === 'self' && (
               <p className="text-sm">
-                To select this acp for usage, click the <b>"SELECT"</b> button below. When this acp is active, you
-                will be able to view your own encrypted data.
+                To select this acp for usage, click the <b>"SELECT"</b> button below. When this acp is active, you will
+                be able to view your own encrypted data.
               </p>
             )}
             {acp.type === 'sharing' && (
               <p className="text-sm">
-                To share this acp with <b>recipient</b>, click the <b>"SHARE"</b> button below to copy the acp
-                data to your clipboard. Share the copied acp data with <b>recipient</b> to grant them access to your
-                encrypted data.
+                To share this acp with <b>recipient</b>, click the <b>"SHARE"</b> button below to copy the acp data to
+                your clipboard. Share the copied acp data with <b>recipient</b> to grant them access to your encrypted
+                data.
                 <br />
                 <br />
                 <i>
-                  <b>Note:</b> The copied acp data is not sensitive and can be sent to recipient via any
-                  communication channel.
+                  <b>Note:</b> The copied acp data is not sensitive and can be sent to recipient via any communication
+                  channel.
                 </i>
               </p>
             )}
             {acp.type === 'recipient' && (
               <p className="text-sm">
-                To select this imported acp for usage, click the <b>"SELECT"</b> button below. When this acp is
-                active, you will be able to view <b>issuer</b>'s ({truncateAddress(acp.issuer, 4, 4)}) encrypted
-                data.
+                To select this imported acp for usage, click the <b>"SELECT"</b> button below. When this acp is active,
+                you will be able to view <b>issuer</b>'s ({truncateAddress(acp.issuer, 4, 4)}) encrypted data.
               </p>
             )}
           </div>

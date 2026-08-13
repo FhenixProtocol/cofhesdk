@@ -73,8 +73,8 @@ export const DelegateACPPage: React.FC<DelegateACPPageProps> = ({ onSuccessNavig
           <p className="text-sm leading-relaxed text-[#355366] dark:text-white/80">
             ACPs are used to authenticate your identity when accessing encrypted data.
             <br />
-            This form generates a acp that can be copied and shared with "recipient". Recipient will be granted
-            access to the signer's (your) data.
+            This form generates a acp that can be copied and shared with "recipient". Recipient will be granted access
+            to the signer's (your) data.
           </p>
 
           <NameSection acpName={acpName} error={nameError} onNameChange={handleNameChange} />

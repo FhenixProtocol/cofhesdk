@@ -81,10 +81,7 @@ export type CofheClientACPs = {
   // Creation methods (require connection, no params)
   createSelf: (options: CreateSelfACPOptions, clients?: CofheClientACPsClients) => Promise<SelfACP>;
   createSharing: (options: CreateSharingACPOptions, clients?: CofheClientACPsClients) => Promise<SharingACP>;
-  importShared: (
-    options: ImportSharedACPOptions | string,
-    clients?: CofheClientACPsClients
-  ) => Promise<RecipientACP>;
+  importShared: (options: ImportSharedACPOptions | string, clients?: CofheClientACPsClients) => Promise<RecipientACP>;
 
   // Retrieval methods (chainId/account optional)
   getACP: (hash: string, chainId?: number, account?: string) => ACP | undefined;

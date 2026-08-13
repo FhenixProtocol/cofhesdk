@@ -37,8 +37,7 @@ function computeDefaultActiveAccordionId({ activeACP }: Args): 'self' | 'receive
 }
 
 export const ACPsListPage: React.FC = () => {
-  const { activeACPHash, selfACPs, delegatedACPs, importedACPs, handleACPAction, handleOpenACP } =
-    useACPsList();
+  const { activeACPHash, selfACPs, delegatedACPs, importedACPs, handleACPAction, handleOpenACP } = useACPsList();
   const { navigateBack, navigateTo } = usePortalNavigation();
   const incomingShares = useIncomingShares();
   const incomingCount = incomingShares.data?.length ?? 0;
@@ -118,9 +117,7 @@ export const ACPsListPage: React.FC = () => {
               <AccordionSection
                 id="delegated"
                 renderHeader={() => <span>Delegated: ({delegatedACPs.length})</span>}
-                accessory={
-                  <InfoModalButton onClick={() => openModal(PortalModal.ACPTypeInfo, { type: 'sharing' })} />
-                }
+                accessory={<InfoModalButton onClick={() => openModal(PortalModal.ACPTypeInfo, { type: 'sharing' })} />}
               >
                 {delegatedACPs.length === 0 ? (
                   <div className="pl-1 text-xs p-2 px-4 italic">No delegated acps.</div>

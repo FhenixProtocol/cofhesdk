@@ -88,10 +88,10 @@ contract MyTest is CofheTest {
 | `account()`                                                            | Returns the connected account address                                                                           |
 | `createExternalEbool/8/16/32/64/128/address(value, consumingContract)` | Creates a batch-signed encrypted input bound to `consumingContract`; returns `(external*Hash, bytes signature)` |
 | `createEuint32sBatch(values, consumingContract)`                       | Creates a batch of encrypted uint32s sharing one signature                                                      |
-| `decryptForTx_withoutACP(ctHash)`                                   | Decrypts a globally-allowed ciphertext; returns `(ctHash, plaintext, signature)`                                |
-| `decryptForTx_withACP(ctHash, acp)`                              | Decrypts with a permission; returns `(ctHash, plaintext, signature)`                                            |
-| `decryptForView(ctHash, sealingKey, acp)`                           | Seals and unseals for off-chain reading                                                                         |
-| `acp_createSelf()`                                                  | Creates a self-acp for the connected account                                                                 |
-| `acp_createShared(recipient)`                                       | Creates the issuer half of a shared acp                                                                      |
-| `acp_exportShared(acp)`                                          | Strips recipient fields for safe transmission                                                                   |
-| `acp_importShared(export)`                                          | Completes a shared acp as the recipient                                                                      |
+| `decryptForTx_withoutACP(ctHash)`                                      | Decrypts a globally-allowed ciphertext; returns `(ctHash, plaintext, signature)`                                |
+| `decryptForTx_withACP(ctHash, acp)`                                    | Decrypts with a permission; returns `(ctHash, plaintext, signature)`                                            |
+| `decryptForView(ctHash, sealingKey, acp)`                              | Seals and unseals for off-chain reading                                                                         |
+| `acp_createSelf()`                                                     | Creates a self-acp for the connected account                                                                    |
+| `acp_createShared(recipient)`                                          | Creates the issuer half of a shared acp                                                                         |
+| `acp_exportShared(acp)`                                                | Strips recipient fields for safe transmission                                                                   |
+| `acp_importShared(export)`                                             | Completes a shared acp as the recipient                                                                         |

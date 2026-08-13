@@ -80,12 +80,7 @@ export function getEnabledForCofheReadContract(params: {
   const { publicClient, address, abi, functionName, requiresACP, hasActiveACP, userEnabled } = params;
 
   return (
-    !!publicClient &&
-    !!address &&
-    !!abi &&
-    !!functionName &&
-    (!requiresACP || hasActiveACP) &&
-    (userEnabled ?? true)
+    !!publicClient && !!address && !!abi && !!functionName && (!requiresACP || hasActiveACP) && (userEnabled ?? true)
   );
 }
 

@@ -11,33 +11,24 @@ export const ImportACPPage: React.FC = () => {
   const { navigateBack } = usePortalNavigation();
   const { addToast } = usePortalToasts();
 
-  const {
-    importedACP,
-    acpData,
-    setACPData,
-    acpName,
-    setACPName,
-    isSubmitting,
-    errorMsg,
-    successMsg,
-    submit,
-  } = useReceiveACP({
-    onSuccess: () => {
-      navigateBack();
-      addToast({
-        variant: 'success',
-        title: 'ACP imported',
-      });
-    },
-    onError: (error) => {
-      addToast({
-        variant: 'error',
-        title: 'Failed to import acp',
-        description: error.message,
-      });
-      cofheLogger.error('Error importing acp', error);
-    },
-  });
+  const { importedACP, acpData, setACPData, acpName, setACPName, isSubmitting, errorMsg, successMsg, submit } =
+    useReceiveACP({
+      onSuccess: () => {
+        navigateBack();
+        addToast({
+          variant: 'success',
+          title: 'ACP imported',
+        });
+      },
+      onError: (error) => {
+        addToast({
+          variant: 'error',
+          title: 'Failed to import acp',
+          description: error.message,
+        });
+        cofheLogger.error('Error importing acp', error);
+      },
+    });
 
   return (
     <PageContainer

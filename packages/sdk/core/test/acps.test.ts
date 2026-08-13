@@ -72,11 +72,7 @@ describe('Core ACPs Tests', () => {
 
   describe('ACP Creation', () => {
     it('should create and store self acp', async () => {
-      const acp = await acps.createSelf(
-        { name: 'Test Self ACP', issuer: bobAddress },
-        publicClient,
-        bobWalletClient
-      );
+      const acp = await acps.createSelf({ name: 'Test Self ACP', issuer: bobAddress }, publicClient, bobWalletClient);
 
       expect(acp).toBeDefined();
       expect(acp.name).toBe('Test Self ACP');
@@ -190,11 +186,7 @@ describe('Core ACPs Tests', () => {
 
   describe('localStorage Integration', () => {
     it('should persist acps to localStorage', async () => {
-      const createdACP = await acps.createSelf(
-        { name: 'Test ACP', issuer: bobAddress },
-        publicClient,
-        bobWalletClient
-      );
+      const createdACP = await acps.createSelf({ name: 'Test ACP', issuer: bobAddress }, publicClient, bobWalletClient);
 
       const storedData = localStorage.getItem('cofhesdk-acps');
       expect(storedData).toBeDefined();
@@ -516,11 +508,7 @@ describe('Core ACPs Tests', () => {
 
   describe('Export', () => {
     it('throws when exporting a self acp', async () => {
-      const acp = await acps.createSelf(
-        { name: 'Test Self ACP', issuer: bobAddress },
-        publicClient,
-        bobWalletClient
-      );
+      const acp = await acps.createSelf({ name: 'Test Self ACP', issuer: bobAddress }, publicClient, bobWalletClient);
 
       // export includes the issuer signature — only sharing acps are exportable
       expect(() => acps.export(acp)).toThrow(/only 'sharing' ACPs are exportable/);
