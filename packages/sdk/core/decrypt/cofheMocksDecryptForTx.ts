@@ -31,11 +31,11 @@ export async function cofheMocksDecryptForTx(
 
   // With acp
   if (acp !== null) {
-    let acp = ACPUtils.getPublic(acp, true);
+    const wireAcp = ACPUtils.getPublic(acp, true);
     const permissionWithBigInts = {
-      ...acp,
-      expiration: BigInt(acp.expiration),
-      revokerData: BigInt(acp.revokerData),
+      ...wireAcp,
+      expiration: BigInt(wireAcp.expiration),
+      revokerData: BigInt(wireAcp.revokerData),
     };
 
     [allowed, error, decryptedValue] = await publicClient.readContract({
