@@ -38,7 +38,7 @@ export const useCofheCreatePermit = ({ onSuccess, onError }: Input = {}) => {
       if (!account) throw new Error('No connected account found');
 
       if (isSelf) {
-        await cofheClient.permits.createSelf({
+        await cofheClient.acp.createSelf({
           expiration: expirationSeconds,
           issuer: account,
           name: name.trim(),
@@ -46,7 +46,7 @@ export const useCofheCreatePermit = ({ onSuccess, onError }: Input = {}) => {
         return;
       }
 
-      await cofheClient.permits.createSharing({
+      await cofheClient.acp.createSharing({
         expiration: expirationSeconds,
         issuer: account,
         recipient: args.receiver,

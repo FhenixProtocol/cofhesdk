@@ -5,6 +5,7 @@ import { Test } from 'forge-std/Test.sol';
 import '@fhenixprotocol/cofhe-contracts/FHE.sol';
 import { MockTaskManager } from '@cofhe/mock-contracts/contracts/MockTaskManager.sol';
 import { MockACL } from '@cofhe/mock-contracts/contracts/MockACL.sol';
+import { ACPTimestampRevoker } from '@cofhe/mock-contracts/contracts/ACPTimestampRevoker.sol';
 import { MockZkVerifier } from '@cofhe/mock-contracts/contracts/MockZkVerifier.sol';
 import { MockZkVerifierSigner } from './MockZkVerifierSigner.sol';
 import { MockThresholdNetwork } from '@cofhe/mock-contracts/contracts/MockThresholdNetwork.sol';
@@ -21,6 +22,7 @@ import {
 abstract contract CofheTest is Test {
   MockTaskManager public mockTaskManager;
   MockACL public mockAcl;
+  ACPTimestampRevoker public acpRevoker;
   MockZkVerifier public mockZkVerifier;
   MockZkVerifierSigner public mockZkVerifierSigner;
   MockThresholdNetwork public mockThresholdNetwork;
@@ -48,6 +50,11 @@ abstract contract CofheTest is Test {
     // 2. ACL (non-fixed deploy so constructor runs and EIP712 domain is set)
     mockAcl = new MockACL();
     vm.label(address(mockAcl), 'MockACL');
+
+    // ACP (Permit V3): default revoker (verification inherited by the ACL)
+    acpRevoker = new ACPTimestampRevoker();
+    vm.label(address(acpRevoker), 'ACPTimestampRevoker');
+    mockAcl.setDefaultRevokerContract(address(acpRevoker));
 
     // 3. Link Task Manager <-> ACL, configure signers
     vm.startPrank(TM_ADMIN);

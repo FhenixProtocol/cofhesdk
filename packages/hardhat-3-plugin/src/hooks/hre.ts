@@ -74,7 +74,7 @@ function createCofheConnection(
       const config = await this.createConfig();
       const client = this.createClient(config);
       await client.connect(publicClient, signerClient);
-      await client.permits.createSelf({ issuer: address });
+      await client.acp.createSelf({ issuer: address });
       return client;
     },
 

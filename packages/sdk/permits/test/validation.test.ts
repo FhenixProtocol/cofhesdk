@@ -7,7 +7,7 @@ import {
   validateSelfPermit,
   validateSharingPermit,
   validateImportPermit,
-  type Permit,
+  type ACP,
   type CreateSelfPermitOptions,
   type CreateSharingPermitOptions,
   type ImportSharedPermitOptions,
@@ -20,7 +20,7 @@ describe('Validation Tests', () => {
       const options: CreateSelfPermitOptions = {
         type: 'self',
         issuer: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', // Bob's address
-        name: 'Test Permit',
+        name: 'Test ACP',
       };
 
       expect(() => validateSelfPermitOptions(options)).not.toThrow();
@@ -32,7 +32,7 @@ describe('Validation Tests', () => {
       const options: CreateSelfPermitOptions = {
         type: 'self',
         issuer: 'invalid-address',
-        name: 'Test Permit',
+        name: 'Test ACP',
       };
 
       expect(() => validateSelfPermitOptions(options)).toThrow();
@@ -42,7 +42,7 @@ describe('Validation Tests', () => {
       const options: CreateSelfPermitOptions = {
         type: 'self',
         issuer: '0x0000000000000000000000000000000000000000',
-        name: 'Test Permit',
+        name: 'Test ACP',
       };
 
       expect(() => validateSelfPermitOptions(options)).toThrow();
@@ -55,7 +55,7 @@ describe('Validation Tests', () => {
         type: 'sharing',
         issuer: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', // Bob's address
         recipient: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8', // Alice's address
-        name: 'Sharing Permit',
+        name: 'Sharing ACP',
       };
 
       expect(() => validateSharingPermitOptions(options)).not.toThrow();
@@ -66,7 +66,7 @@ describe('Validation Tests', () => {
         type: 'sharing',
         issuer: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', // Bob's address
         recipient: '0x0000000000000000000000000000000000000000',
-        name: 'Sharing Permit',
+        name: 'Sharing ACP',
       };
 
       expect(() => validateSharingPermitOptions(options)).toThrow();
@@ -77,7 +77,7 @@ describe('Validation Tests', () => {
         type: 'sharing',
         issuer: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', // Bob's address
         recipient: 'invalid-address',
-        name: 'Sharing Permit',
+        name: 'Sharing ACP',
       };
 
       expect(() => validateSharingPermitOptions(options)).toThrow();
@@ -91,7 +91,7 @@ describe('Validation Tests', () => {
         expiration: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
         recipient: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8', // Alice's address
         issuerSignature: '0x1234567890abcdef',
-        name: 'Import Permit',
+        name: 'Import ACP',
       };
 
       expect(() => validateImportPermitOptions(options)).not.toThrow();
@@ -102,7 +102,7 @@ describe('Validation Tests', () => {
         issuer: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', // Bob's address
         recipient: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8', // Alice's address
         issuerSignature: '0x1234567890abcdef',
-        name: 'Import Permit',
+        name: 'Import ACP',
       };
       expect(() => validateImportPermitOptions(options)).toThrow();
     });
@@ -113,7 +113,7 @@ describe('Validation Tests', () => {
         expiration: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
         recipient: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8', // Alice's address
         issuerSignature: '0x',
-        name: 'Import Permit',
+        name: 'Import ACP',
       };
 
       expect(() => validateImportPermitOptions(options)).toThrow();
@@ -125,7 +125,7 @@ describe('Validation Tests', () => {
         expiration: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
         recipient: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8', // Alice's address
         issuerSignature: '0x',
-        name: 'Import Permit',
+        name: 'Import ACP',
       };
 
       expect(() => validateImportPermitOptions(options)).toThrow();
@@ -142,9 +142,9 @@ describe('Validation Tests', () => {
     });
 
     it('should reject self permit with missing sealing pair', async () => {
-      const permit = { ...(await createMockPermit()), sealingPair: undefined };
+      const permit = { ...(await createMockPermit()), sealingPrivateKey: undefined };
       permit.type = 'self';
-      expect(() => validateSelfPermit(permit as unknown as Permit)).toThrow();
+      expect(() => validateSelfPermit(permit as unknown as ACP)).toThrow();
     });
   });
 
@@ -298,7 +298,7 @@ describe('Validation Tests', () => {
           expiration: Math.floor(Date.now() / 1000) - 3600,
           issuerSignature: '0x1234567890abcdef' as `0x${string}`,
         };
-        expect(() => ValidationUtils.assertSignedAndNotExpired(permit)).toThrow('Permit is expired');
+        expect(() => ValidationUtils.assertSignedAndNotExpired(permit)).toThrow('ACP is expired');
       });
 
       it('should throw for unsigned permit', async () => {
@@ -307,7 +307,7 @@ describe('Validation Tests', () => {
           expiration: Math.floor(Date.now() / 1000) + 3600,
           issuerSignature: '0x' as `0x${string}`,
         };
-        expect(() => ValidationUtils.assertSignedAndNotExpired(permit)).toThrow('Permit is not signed');
+        expect(() => ValidationUtils.assertSignedAndNotExpired(permit)).toThrow('ACP is not signed');
       });
     });
 
@@ -322,7 +322,7 @@ describe('Validation Tests', () => {
           recipient: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8' as `0x${string}`,
         };
 
-        const result = ValidationUtils.isValid(permit as unknown as Permit);
+        const result = ValidationUtils.isValid(permit as unknown as ACP);
         expect(result.valid).toBe(false);
         expect(result.error).toBe('invalid-schema');
       });
@@ -337,7 +337,7 @@ describe('Validation Tests', () => {
           recipientSignature: '0x' as `0x${string}`,
         };
 
-        const result = ValidationUtils.isValid(permit as unknown as Permit);
+        const result = ValidationUtils.isValid(permit as unknown as ACP);
         expect(result.valid).toBe(false);
         expect(result.error).toBe('expired');
       });
@@ -352,7 +352,7 @@ describe('Validation Tests', () => {
           recipientSignature: '0x' as `0x${string}`,
         };
 
-        const result = ValidationUtils.isValid(permit as unknown as Permit);
+        const result = ValidationUtils.isValid(permit as unknown as ACP);
         expect(result.valid).toBe(true);
         expect(result.error).toBeNull();
       });

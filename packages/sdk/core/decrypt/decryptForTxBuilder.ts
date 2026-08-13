@@ -1,6 +1,6 @@
 /* eslint-disable no-dupe-class-members */
 import { hardhat } from '@/chains';
-import { type Permit, type Permission, PermitUtils } from '@/permits';
+import { type ACP, type ACPPublic, ACPUtils } from '@/permits';
 
 import { FheTypes } from '../types';
 import { getThresholdNetworkUrlOrThrow } from '../config';
@@ -61,7 +61,7 @@ export type DecryptForTxBuilderSelected = Omit<DecryptForTxBuilder, 'withPermit'
 export class DecryptForTxBuilder extends BaseBuilder {
   private ctHash: bigint | string;
   private permitHash?: string;
-  private permit?: Permit;
+  private permit?: ACP;
   private permitSelection: DecryptForTxPermitSelection = 'unset';
   private pollCallback?: DecryptPollCallbackFunction;
   private retry404TimeoutMs = DEFAULT_404_RETRY_TIMEOUT_MS;
@@ -164,8 +164,8 @@ export class DecryptForTxBuilder extends BaseBuilder {
    */
   withPermit(): DecryptForTxBuilderSelected;
   withPermit(permitHash: string): DecryptForTxBuilderSelected;
-  withPermit(permit: Permit): DecryptForTxBuilderSelected;
-  withPermit(permitOrPermitHash?: Permit | string): DecryptForTxBuilderSelected {
+  withPermit(permit: ACP): DecryptForTxBuilderSelected;
+  withPermit(permitOrPermitHash?: ACP | string): DecryptForTxBuilderSelected {
     if (this.permitSelection === 'with-permit') {
       throw new CofheError({
         code: CofheErrorCode.InternalError,
@@ -192,7 +192,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
       this.permitHash = undefined;
       this.permit = undefined;
     } else {
-      // Permit object
+      // ACP object
       this.permit = permitOrPermitHash;
       this.permitHash = undefined;
     }
@@ -228,7 +228,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
     return this as unknown as DecryptForTxBuilderSelected;
   }
 
-  getPermit(): Permit | undefined {
+  getPermit(): ACP | undefined {
     return this.permit;
   }
 
@@ -241,7 +241,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
     return getThresholdNetworkUrlOrThrow(this.config, this.chainId);
   }
 
-  private async getResolvedPermit(): Promise<Permit | null> {
+  private async getResolvedPermit(): Promise<ACP | null> {
     if (this.permitSelection === 'unset') {
       throw new CofheError({
         code: CofheErrorCode.InternalError,
@@ -266,7 +266,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
       if (!permit) {
         throw new CofheError({
           code: CofheErrorCode.PermitNotFound,
-          message: `Permit with hash <${this.permitHash}> not found for account <${this.account}> and chainId <${this.chainId}>`,
+          message: `ACP with hash <${this.permitHash}> not found for account <${this.account}> and chainId <${this.chainId}>`,
           hint: 'Ensure the permit exists and is valid.',
           context: {
             chainId: this.chainId,
@@ -284,7 +284,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
       throw new CofheError({
         code: CofheErrorCode.PermitNotFound,
         message: `Active permit not found for chainId <${this.chainId}> and account <${this.account}>`,
-        hint: 'Create a permit (e.g. client.permits.createSelf(...)) and/or set it active (client.permits.selectActivePermit(hash)).',
+        hint: 'Create a permit (e.g. client.acp.createSelf(...)) and/or set it active (client.acp.selectActivePermit(hash)).',
         context: {
           chainId: this.chainId,
           account: this.account,
@@ -297,7 +297,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
   /**
    * On hardhat, interact with MockThresholdNetwork contract
    */
-  private async mocksDecryptForTx(permit: Permit | null): Promise<DecryptForTxResult> {
+  private async mocksDecryptForTx(permit: ACP | null): Promise<DecryptForTxResult> {
     this.assertPublicClient();
 
     // Configurable delay before decrypting to simulate the CoFHE decrypt processing time
@@ -313,17 +313,17 @@ export class DecryptForTxBuilder extends BaseBuilder {
   /**
    * In the production context, perform a true decryption with the CoFHE coprocessor.
    */
-  private async productionDecryptForTx(permit: Permit | null): Promise<DecryptForTxResult> {
+  private async productionDecryptForTx(permit: ACP | null): Promise<DecryptForTxResult> {
     this.assertChainId();
     this.assertPublicClient();
 
     const thresholdNetworkUrl = await this.getThresholdNetworkUrl();
 
-    const permission = permit ? PermitUtils.getPermission(permit, true) : null;
+    const acp = permit ? ACPUtils.getPublic(permit, true) : null;
     const { decryptedValue, signature } = await tnDecryptV2({
       ctHash: this.ctHash,
       chainId: this.chainId,
-      permission,
+      acp,
       thresholdNetworkUrl,
       retry404TimeoutMs: this.retry404TimeoutMs,
       onPoll: this.pollCallback,
@@ -344,13 +344,13 @@ export class DecryptForTxBuilder extends BaseBuilder {
    * - `withoutPermit()` (global allowance)
    */
   async execute(): Promise<DecryptForTxResult> {
-    // Resolve permit (can be Permit object or null for global allowance)
+    // Resolve permit (can be ACP object or null for global allowance)
     const permit = await this.getResolvedPermit();
 
     // If permit is provided, validate it
     if (permit !== null) {
       // Ensure permit validity
-      PermitUtils.validate(permit);
+      ACPUtils.validate(permit);
 
       // Extract chainId from signed permit
       const chainId = permit._signedDomain!.chainId;

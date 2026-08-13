@@ -76,8 +76,8 @@ export default defineConfig({
             text: 'Decryption',
             items: [
               {
-                text: 'Permits',
-                link: '/sdk/permits',
+                text: 'ACPs',
+                link: '/sdk/acp',
               },
               {
                 text: 'Decrypting to View',

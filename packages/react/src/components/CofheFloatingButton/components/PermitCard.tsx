@@ -2,7 +2,7 @@ import { FaCheck, FaRegCopy } from 'react-icons/fa6';
 import { zeroAddress } from 'viem';
 import { cn, formatExpirationLabel, truncateAddress } from '@/utils';
 import { useCopyFeedback } from '@/hooks/useCopyFeedback';
-import { type Permit, type PermitType } from '@cofhe/sdk/permits';
+import { type ACP, type PermitType } from '@cofhe/sdk/permits';
 import { PermitStripedBackground } from '@/components/StripedBackground';
 import { useCofheActivePermitHash, useCofhePermit } from '@/hooks/useCofhePermits';
 import { useMemo } from 'react';
@@ -23,7 +23,7 @@ const CopyButton: React.FC<{ hash: string }> = ({ hash }) => {
   );
 };
 
-export const BasePermitCard: React.FC<{ permit: Permit; className?: string; header?: React.ReactNode }> = ({
+export const BasePermitCard: React.FC<{ permit: ACP; className?: string; header?: React.ReactNode }> = ({
   permit,
   className,
   header,
@@ -71,14 +71,14 @@ export const BasePermitCard: React.FC<{ permit: Permit; className?: string; head
               <br />
             </>
           )}
-          {permit.validatorContract != null && permit.validatorContract !== zeroAddress && (
+          {permit.revokerContract != null && permit.revokerContract !== zeroAddress && (
             <>
-              Validator:
+              Revoker:
               <br />
-              {'  '}Contract: <b>{truncateAddress(permit.validatorContract, 6, 6)}</b>{' '}
-              <CopyButton hash={permit.validatorContract} />
+              {'  '}Contract: <b>{truncateAddress(permit.revokerContract, 6, 6)}</b>{' '}
+              <CopyButton hash={permit.revokerContract} />
               <br />
-              {'  '}ID: <b>{permit.validatorId}</b>
+              {'  '}Data: <b>{permit.revokerData}</b>
               <br />
             </>
           )}
@@ -111,7 +111,7 @@ export const PermitCard: React.FC<{ hash: string; className?: string; header?: R
         )}
       >
         {header}
-        <pre className="whitespace-pre-wrap break-words text-left italic p-10">Permit not found.</pre>
+        <pre className="whitespace-pre-wrap break-words text-left italic p-10">ACP not found.</pre>
       </div>
     );
   }

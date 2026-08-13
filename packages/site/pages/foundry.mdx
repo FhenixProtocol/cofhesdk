@@ -8,7 +8,7 @@ description: Install and configure @cofhe/foundry-plugin for local FHE developme
 `@cofhe/foundry-plugin` provides two contracts for writing CoFHE tests with Foundry:
 
 - **`CofheTest`** — abstract base contract. Inherits `forge-std/Test`. Exposes `deployMocks()`, `createCofheClient()`, `getPlaintext()`, and `expectPlaintext()`.
-- **`CofheClient`** — SDK-like client. Manages a private key / account pair and exposes encrypt, decrypt, and permit helpers.
+- **`CofheClient`** — SDK-like client. Manages a private key / account pair and exposes encrypt, decrypt, and ACP helpers.
 
 ## Installation
 
@@ -187,15 +187,15 @@ maintaining a second independent signing implementation.
 | Function                                                         | Returns                     | Description                                                                       |
 | ---------------------------------------------------------------- | --------------------------- | --------------------------------------------------------------------------------- |
 | `decryptForTx_withoutPermit(bytes32 ctHash)`                     | `(bytes32, uint256, bytes)` | Decrypts a globally-allowed ciphertext. Returns `(ctHash, plaintext, signature)`. |
-| `decryptForTx_withPermit(bytes32 ctHash, Permission permission)` | `(bytes32, uint256, bytes)` | Decrypts using a permit. Same return shape.                                       |
-| `decryptForView(bytes32 ctHash, Permission permission)`          | `uint256`                   | Seals and unseals with the permit's sealing key for off-chain reading.            |
+| `decryptForTx_withPermit(bytes32 ctHash, Permission permission)` | `(bytes32, uint256, bytes)` | Decrypts using an ACP. Same return shape.                                         |
+| `decryptForView(bytes32 ctHash, Permission permission)`          | `uint256`                   | Seals and unseals with the ACP's sealing key for off-chain reading.               |
 
-### Permits
+### ACPs
 
 | Function                                  | Returns              | Description                                                                                   |
 | ----------------------------------------- | -------------------- | --------------------------------------------------------------------------------------------- |
-| `permit_createSelf()`                     | `Permission`         | Creates a self-permit signed by the connected account.                                        |
-| `permit_createShared(address recipient)`  | `Permission`         | Creates the issuer half of a shared permit.                                                   |
+| `permit_createSelf()`                     | `Permission`         | Creates a self-ACP signed by the connected account.                                           |
+| `permit_createShared(address recipient)`  | `Permission`         | Creates the issuer half of a shared ACP.                                                      |
 | `permit_exportShared(Permission)`         | `SharedPermitExport` | Strips private fields for safe transmission.                                                  |
 | `permit_importShared(SharedPermitExport)` | `Permission`         | Reconstructs a `Permission` as the recipient, adding the sealing key and recipient signature. |
 

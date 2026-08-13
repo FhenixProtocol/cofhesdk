@@ -408,22 +408,22 @@ describe('createCofheClientBase', () => {
 
   describe('permits', () => {
     it('should expose permits', () => {
-      expect(client.permits).toBeDefined();
-      expect(client.permits).toHaveProperty('getSnapshot');
-      expect(client.permits).toHaveProperty('subscribe');
-      expect(client.permits).toHaveProperty('createSelf');
-      expect(client.permits).toHaveProperty('createSharing');
-      expect(client.permits).toHaveProperty('importShared');
-      expect(client.permits).toHaveProperty('getHash');
-      expect(client.permits).toHaveProperty('serialize');
-      expect(client.permits).toHaveProperty('deserialize');
-      expect(client.permits).toHaveProperty('getPermit');
-      expect(client.permits).toHaveProperty('getPermits');
-      expect(client.permits).toHaveProperty('getActivePermit');
-      expect(client.permits).toHaveProperty('getActivePermitHash');
-      expect(client.permits).toHaveProperty('removePermit');
-      expect(client.permits).toHaveProperty('selectActivePermit');
-      expect(client.permits).toHaveProperty('removeActivePermit');
+      expect(client.acp).toBeDefined();
+      expect(client.acp).toHaveProperty('getSnapshot');
+      expect(client.acp).toHaveProperty('subscribe');
+      expect(client.acp).toHaveProperty('createSelf');
+      expect(client.acp).toHaveProperty('createSharing');
+      expect(client.acp).toHaveProperty('importShared');
+      expect(client.acp).toHaveProperty('getHash');
+      expect(client.acp).toHaveProperty('serialize');
+      expect(client.acp).toHaveProperty('deserialize');
+      expect(client.acp).toHaveProperty('getPermit');
+      expect(client.acp).toHaveProperty('getPermits');
+      expect(client.acp).toHaveProperty('getActivePermit');
+      expect(client.acp).toHaveProperty('getActivePermitHash');
+      expect(client.acp).toHaveProperty('removePermit');
+      expect(client.acp).toHaveProperty('selectActivePermit');
+      expect(client.acp).toHaveProperty('removeActivePermit');
     });
   });
 });

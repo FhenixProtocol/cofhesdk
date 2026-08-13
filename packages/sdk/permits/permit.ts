@@ -1,15 +1,16 @@
-import { keccak256, toHex, zeroAddress, parseAbi, type PublicClient, type WalletClient } from 'viem';
+import { keccak256, toHex, zeroAddress, parseAbi, type Hex, type PublicClient, type WalletClient } from 'viem';
 import {
-  type Permit,
+  type ACP,
   type SelfPermit,
   type SharingPermit,
   type RecipientPermit,
   type CreateSelfPermitOptions,
   type CreateSharingPermitOptions,
   type ImportSharedPermitOptions,
+  type SharedACP,
   type SerializedPermit,
   type EIP712Domain,
-  type Permission,
+  type ACPPublic,
   type EthEncryptedData,
   type PermitHashFields,
 } from './types.js';
@@ -23,13 +24,13 @@ import {
   ValidationUtils,
 } from './validation.js';
 import { SignatureUtils } from './signature.js';
-import { GenerateSealingKey, SealingKey } from './sealing.js';
+import { GenerateSealingKey, unsealWithPrivateKey } from './sealing.js';
 import { checkPermitValidityOnChain, getAclEIP712Domain } from './onchain-utils.js';
 
 /**
- * Main Permit utilities - functional approach for React compatibility
+ * Main ACP utilities - functional approach for React compatibility
  */
-export const PermitUtils = {
+export const ACPUtils = {
   /**
    * Create a self permit for personal use
    */
@@ -40,9 +41,10 @@ export const PermitUtils = {
     const sealingPair = GenerateSealingKey();
 
     const permit = {
-      hash: PermitUtils.getHash(validation),
+      hash: ACPUtils.getHash(validation),
       ...validation,
-      sealingPair,
+      sealingPrivateKey: sealingPair.privateKey,
+      sealingKey: sealingPair.publicKey,
       _signedDomain: undefined,
     } satisfies SelfPermit;
 
@@ -59,9 +61,10 @@ export const PermitUtils = {
     const sealingPair = GenerateSealingKey();
 
     const permit = {
-      hash: PermitUtils.getHash(validation),
+      hash: ACPUtils.getHash(validation),
       ...validation,
-      sealingPair,
+      sealingPrivateKey: sealingPair.privateKey,
+      sealingKey: sealingPair.publicKey,
       _signedDomain: undefined,
     } satisfies SharingPermit;
 
@@ -100,9 +103,10 @@ export const PermitUtils = {
     const sealingPair = GenerateSealingKey();
 
     const permit = {
-      hash: PermitUtils.getHash(validation),
+      hash: ACPUtils.getHash(validation),
       ...validation,
-      sealingPair,
+      sealingPrivateKey: sealingPair.privateKey,
+      sealingKey: sealingPair.publicKey,
       _signedDomain: undefined,
     } satisfies RecipientPermit;
 
@@ -112,7 +116,7 @@ export const PermitUtils = {
   /**
    * Sign a permit with the provided wallet client
    */
-  sign: async <T extends Permit>(permit: T, publicClient: PublicClient, walletClient: WalletClient): Promise<T> => {
+  sign: async <T extends ACP>(permit: T, publicClient: PublicClient, walletClient: WalletClient): Promise<T> => {
     if (walletClient == null || walletClient.account == null) {
       throw new Error(
         'Missing walletClient, you must pass in a `walletClient` for the connected user to create a permit signature'
@@ -121,7 +125,7 @@ export const PermitUtils = {
 
     const primaryType = SignatureUtils.getPrimaryType(permit.type);
     const domain = await getAclEIP712Domain(publicClient);
-    const { types, message } = SignatureUtils.getSignatureParams(PermitUtils.getPermission(permit, true), primaryType);
+    const { types, message } = SignatureUtils.getSignatureParams(ACPUtils.getPublic(permit, true), primaryType);
 
     const signature = await walletClient.signTypedData({
       domain,
@@ -131,7 +135,7 @@ export const PermitUtils = {
       account: walletClient.account,
     });
 
-    let updatedPermit: Permit;
+    let updatedPermit: ACP;
     if (permit.type === 'self' || permit.type === 'sharing') {
       updatedPermit = {
         ...permit,
@@ -157,8 +161,8 @@ export const PermitUtils = {
     publicClient: PublicClient,
     walletClient: WalletClient
   ): Promise<SelfPermit> => {
-    const permit = PermitUtils.createSelf(options);
-    return PermitUtils.sign(permit, publicClient, walletClient);
+    const permit = ACPUtils.createSelf(options);
+    return ACPUtils.sign(permit, publicClient, walletClient);
   },
 
   /**
@@ -169,8 +173,8 @@ export const PermitUtils = {
     publicClient: PublicClient,
     walletClient: WalletClient
   ): Promise<SharingPermit> => {
-    const permit = PermitUtils.createSharing(options);
-    return PermitUtils.sign(permit, publicClient, walletClient);
+    const permit = ACPUtils.createSharing(options);
+    return ACPUtils.sign(permit, publicClient, walletClient);
   },
 
   /**
@@ -181,24 +185,21 @@ export const PermitUtils = {
     publicClient: PublicClient,
     walletClient: WalletClient
   ): Promise<RecipientPermit> => {
-    const permit = PermitUtils.importShared(options);
-    return PermitUtils.sign(permit, publicClient, walletClient);
+    const permit = ACPUtils.importShared(options);
+    return ACPUtils.sign(permit, publicClient, walletClient);
   },
 
   /**
    * Deserialize a permit from serialized data
    */
-  deserialize: (data: SerializedPermit): Permit => {
-    return {
-      ...data,
-      sealingPair: SealingKey.deserialize(data.sealingPair.privateKey, data.sealingPair.publicKey),
-    };
+  deserialize: (data: SerializedPermit): ACP => {
+    return { ...data };
   },
 
   /**
    * Serialize a permit for storage
    */
-  serialize: (permit: Permit): SerializedPermit => {
+  serialize: (permit: ACP): SerializedPermit => {
     return {
       hash: permit.hash,
       name: permit.name,
@@ -206,19 +207,23 @@ export const PermitUtils = {
       issuer: permit.issuer,
       expiration: permit.expiration,
       recipient: permit.recipient,
-      validatorId: permit.validatorId,
-      validatorContract: permit.validatorContract,
+      revokerData: permit.revokerData,
+      revokerContract: permit.revokerContract,
+      scope: permit.scope,
+      contracts: permit.contracts,
+      handles: permit.handles,
+      sealingKey: permit.sealingKey,
       issuerSignature: permit.issuerSignature,
       recipientSignature: permit.recipientSignature,
       _signedDomain: permit._signedDomain,
-      sealingPair: permit.sealingPair.serialize(),
+      sealingPrivateKey: permit.sealingPrivateKey,
     };
   },
 
   /**
    * Validate a permit (schema-level validation)
    */
-  validateSchema: (permit: Permit) => {
+  validateSchema: (permit: ACP) => {
     if (permit.type === 'self') {
       return validateSelfPermit(permit);
     } else if (permit.type === 'sharing') {
@@ -234,33 +239,37 @@ export const PermitUtils = {
    * Validate a permit (holistic validation).
    *
    * This validates:
-   * - Permit schema (shape + invariants)
-   * - Permit is signed
-   * - Permit is not expired
+   * - ACP schema (shape + invariants)
+   * - ACP is signed
+   * - ACP is not expired
    *
    * For schema-only validation, use `validateSchema(permit)`.
    */
-  validate: (permit: Permit) => {
-    const validated = PermitUtils.validateSchema(permit);
-    ValidationUtils.assertSignedAndNotExpired(validated as Permit);
+  validate: (permit: ACP) => {
+    const validated = ACPUtils.validateSchema(permit);
+    ValidationUtils.assertSignedAndNotExpired(validated as ACP);
     return validated;
   },
 
   /**
-   * Get the permission object from a permit (for use in contracts)
+   * Get the public component of an ACP — the signed struct sent on-chain / to the decryption backend.
+   * Strips the private component (hash, name, type, sealing pair).
    */
-  getPermission: (permit: Permit, skipValidation = false): Permission => {
+  getPublic: (permit: ACP, skipValidation = false): ACPPublic => {
     if (!skipValidation) {
-      PermitUtils.validateSchema(permit);
+      ACPUtils.validateSchema(permit);
     }
 
     return {
       issuer: permit.issuer,
       expiration: permit.expiration,
       recipient: permit.recipient,
-      validatorId: permit.validatorId,
-      validatorContract: permit.validatorContract,
-      sealingKey: `0x${permit.sealingPair.publicKey}`,
+      revokerData: permit.revokerData,
+      revokerContract: permit.revokerContract,
+      scope: permit.scope,
+      contracts: permit.contracts,
+      handles: permit.handles,
+      sealingKey: permit.sealingKey,
       issuerSignature: permit.issuerSignature,
       recipientSignature: permit.recipientSignature,
     };
@@ -275,75 +284,92 @@ export const PermitUtils = {
       issuer: permit.issuer,
       expiration: permit.expiration,
       recipient: permit.recipient,
-      validatorId: permit.validatorId,
-      validatorContract: permit.validatorContract,
+      revokerData: permit.revokerData,
+      revokerContract: permit.revokerContract,
+      scope: permit.scope,
+      contracts: permit.contracts,
+      handles: permit.handles,
     });
     return keccak256(toHex(data));
   },
 
   /**
-   * Export permit data for sharing (removes sensitive fields)
+   * Export permit data for sharing (strips the private component).
+   * Fixed `SharedACP` shape — every field always present, aligned with
+   * `ACPPublic` and the on-chain sharing payload.
    */
-  export: (permit: Permit): string => {
-    const cleanedPermit: Record<string, unknown> = {
+  export: (permit: ACP): string => {
+    if (permit.type !== 'sharing') {
+      throw new Error(
+        `Cannot export a '${permit.type}' ACP — only 'sharing' ACPs are exportable. The export includes the issuer signature.`
+      );
+    }
+    if (permit.issuerSignature === '0x') {
+      throw new Error(
+        'Cannot export an unsigned sharing ACP — sign it first (the recipient needs the issuer signature).'
+      );
+    }
+
+    const shared: SharedACP = {
       name: permit.name,
       type: permit.type,
       issuer: permit.issuer,
       expiration: permit.expiration,
+      recipient: permit.recipient,
+      revokerData: permit.revokerData,
+      revokerContract: permit.revokerContract,
+      scope: permit.scope,
+      contracts: permit.contracts,
+      handles: permit.handles,
+      issuerSignature: permit.issuerSignature,
     };
 
-    if (permit.recipient !== zeroAddress) cleanedPermit.recipient = permit.recipient;
-    if (permit.validatorId !== 0) cleanedPermit.validatorId = permit.validatorId;
-    if (permit.validatorContract !== zeroAddress) cleanedPermit.validatorContract = permit.validatorContract;
-    if (permit.type === 'sharing' && permit.issuerSignature !== '0x')
-      cleanedPermit.issuerSignature = permit.issuerSignature;
-
-    return JSON.stringify(cleanedPermit, undefined, 2);
+    return JSON.stringify(shared, undefined, 2);
   },
 
   /**
    * Unseal encrypted data using the permit's sealing key
    */
-  unseal: (permit: Permit, ciphertext: EthEncryptedData): bigint => {
-    return permit.sealingPair.unseal(ciphertext);
+  unseal: (permit: ACP, ciphertext: EthEncryptedData): bigint => {
+    return unsealWithPrivateKey(permit.sealingPrivateKey, ciphertext);
   },
 
   /**
    * Check if permit is expired
    */
-  isExpired: (permit: Permit): boolean => {
+  isExpired: (permit: ACP): boolean => {
     return ValidationUtils.isExpired(permit);
   },
 
   /**
    * Check if permit is signed
    */
-  isSigned: (permit: Permit): boolean => {
+  isSigned: (permit: ACP): boolean => {
     return ValidationUtils.isSigned(permit);
   },
 
   /**
    * Check if permit is signed and not expired
    */
-  isSignedAndNotExpired: (permit: Permit) => {
+  isSignedAndNotExpired: (permit: ACP) => {
     return ValidationUtils.isSignedAndNotExpired(permit);
   },
 
   /**
    * Assert that permit is signed and not expired
    */
-  assertSignedAndNotExpired: (permit: Permit): void => {
+  assertSignedAndNotExpired: (permit: ACP): void => {
     return ValidationUtils.assertSignedAndNotExpired(permit);
   },
 
-  isValid: (permit: Permit) => {
+  isValid: (permit: ACP) => {
     return ValidationUtils.isValid(permit);
   },
 
   /**
    * Update permit name (returns new permit instance)
    */
-  updateName: (permit: Permit, name: string): Permit => {
+  updateName: (permit: ACP, name: string): ACP => {
     return { ...permit, name };
   },
 
@@ -357,7 +383,7 @@ export const PermitUtils = {
   /**
    * Check if permit's signed domain matches the provided domain
    */
-  matchesDomain: (permit: Permit, domain: EIP712Domain): boolean => {
+  matchesDomain: (permit: ACP, domain: EIP712Domain): boolean => {
     return (
       permit._signedDomain?.name === domain.name &&
       permit._signedDomain?.version === domain.version &&
@@ -369,17 +395,17 @@ export const PermitUtils = {
   /**
    * Check if permit's signed domain is valid for the current chain
    */
-  checkSignedDomainValid: async (permit: Permit, publicClient: PublicClient): Promise<boolean> => {
+  checkSignedDomainValid: async (permit: ACP, publicClient: PublicClient): Promise<boolean> => {
     if (permit._signedDomain == null) return false;
     const domain = await getAclEIP712Domain(publicClient);
-    return PermitUtils.matchesDomain(permit, domain);
+    return ACPUtils.matchesDomain(permit, domain);
   },
 
   /**
    * Check if permit passes the on-chain validation
    */
-  checkValidityOnChain: async (permit: Permit, publicClient: PublicClient): Promise<boolean> => {
-    const permission = PermitUtils.getPermission(permit);
-    return checkPermitValidityOnChain(permission, publicClient);
+  checkValidityOnChain: async (permit: ACP, publicClient: PublicClient): Promise<boolean> => {
+    const acp = ACPUtils.getPublic(permit);
+    return checkPermitValidityOnChain(acp, publicClient);
   },
 };

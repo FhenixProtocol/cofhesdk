@@ -1,6 +1,6 @@
 /* eslint-disable no-dupe-class-members */
 import { hardhat } from '@/chains';
-import { type Permit, PermitUtils } from '@/permits';
+import { type ACP, ACPUtils } from '@/permits';
 
 import { FheTypes, type UnsealedItem } from '../types.js';
 import { getThresholdNetworkUrlOrThrow } from '../config.js';
@@ -41,14 +41,14 @@ type DecryptForViewBuilderParams<U extends FheTypes> = BaseBuilderParams & {
   ctHash: bigint | string;
   utype: U;
   permitHash?: string;
-  permit?: Permit;
+  permit?: ACP;
 };
 
 export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
   private ctHash: bigint | string;
   private utype: U;
   private permitHash?: string;
-  private permit?: Permit;
+  private permit?: ACP;
   private pollCallback?: DecryptPollCallbackFunction;
   private retry404TimeoutMs = DEFAULT_404_RETRY_TIMEOUT_MS;
 
@@ -143,8 +143,8 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
    */
   withPermit(): DecryptForViewBuilder<U>;
   withPermit(permitHash: string): DecryptForViewBuilder<U>;
-  withPermit(permit: Permit): DecryptForViewBuilder<U>;
-  withPermit(permitOrPermitHash?: Permit | string): DecryptForViewBuilder<U> {
+  withPermit(permit: ACP): DecryptForViewBuilder<U>;
+  withPermit(permitOrPermitHash?: ACP | string): DecryptForViewBuilder<U> {
     if (typeof permitOrPermitHash === 'string') {
       this.permitHash = permitOrPermitHash;
       this.permit = undefined;
@@ -153,7 +153,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
       this.permitHash = undefined;
       this.permit = undefined;
     } else {
-      // Permit object
+      // ACP object
       this.permit = permitOrPermitHash;
       this.permitHash = undefined;
     }
@@ -162,7 +162,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
   }
 
   /**
-   * @param permitHash - Permit hash to decrypt values from. Used to fetch the correct permit.
+   * @param permitHash - ACP hash to decrypt values from. Used to fetch the correct permit.
    *
    * If not provided, the active permit for the chainId and account will be used.
    * If `setPermit()` is called, it will be used regardless of chainId, account, or permitHash.
@@ -186,7 +186,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
   }
 
   /**
-   * @param permit - Permit to decrypt values with. If provided, it will be used regardless of chainId, account, or permitHash.
+   * @param permit - ACP to decrypt values with. If provided, it will be used regardless of chainId, account, or permitHash.
    *
    * If not provided, the permit will be determined by chainId, account, and permitHash.
    *
@@ -200,11 +200,11 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
    * @returns The chainable DecryptForViewBuilder instance.
    */
   /** @deprecated Use `withPermit(permit)` instead. */
-  setPermit(permit: Permit): DecryptForViewBuilder<U> {
+  setPermit(permit: ACP): DecryptForViewBuilder<U> {
     return this.withPermit(permit);
   }
 
-  getPermit(): Permit | undefined {
+  getPermit(): ACP | undefined {
     return this.permit;
   }
 
@@ -224,7 +224,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
       });
   }
 
-  private async getResolvedPermit(): Promise<Permit> {
+  private async getResolvedPermit(): Promise<ACP> {
     if (this.permit) return this.permit;
 
     this.assertChainId();
@@ -236,7 +236,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
       if (!permit) {
         throw new CofheError({
           code: CofheErrorCode.PermitNotFound,
-          message: `Permit with hash <${this.permitHash}> not found for account <${this.account}> and chainId <${this.chainId}>`,
+          message: `ACP with hash <${this.permitHash}> not found for account <${this.account}> and chainId <${this.chainId}>`,
           hint: 'Ensure the permit exists and is valid.',
           context: {
             chainId: this.chainId,
@@ -267,7 +267,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
   /**
    * On hardhat, interact with MockZkVerifier contract instead of CoFHE
    */
-  private async mocksSealOutput(permit: Permit): Promise<bigint> {
+  private async mocksSealOutput(permit: ACP): Promise<bigint> {
     this.assertPublicClient();
 
     // Configurable delay before decrypting the output to simulate the CoFHE decrypt processing time
@@ -282,22 +282,22 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
   /**
    * In the production context, perform a true decryption with the CoFHE coprocessor.
    */
-  private async productionSealOutput(permit: Permit): Promise<bigint> {
+  private async productionSealOutput(permit: ACP): Promise<bigint> {
     this.assertChainId();
     this.assertPublicClient();
 
     const thresholdNetworkUrl = await this.getThresholdNetworkUrl();
-    const permission = PermitUtils.getPermission(permit, true);
+    const acp = ACPUtils.getPublic(permit, true);
     // const sealed = await tnSealOutputV1(this.ctHash, this.chainId, permission, thresholdNetworkUrl);
     const sealed = await tnSealOutputV2({
       ctHash: this.ctHash,
       chainId: this.chainId,
-      permission,
+      acp,
       thresholdNetworkUrl,
       retry404TimeoutMs: this.retry404TimeoutMs,
       onPoll: this.pollCallback,
     });
-    return PermitUtils.unseal(permit, sealed);
+    return ACPUtils.unseal(permit, sealed);
   }
 
   /**
@@ -329,14 +329,14 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
     const permit = await this.getResolvedPermit();
 
     // Ensure permit validity
-    PermitUtils.validate(permit);
+    ACPUtils.validate(permit);
 
     // Extract chainId from signed permit
     // Use this chainId to fetch the threshold network URL since this.chainId may be undefined
     const chainId = permit._signedDomain!.chainId;
 
     // Check permit validity on-chain
-    // TODO: PermitUtils.validateOnChain(permit, this.publicClient);
+    // TODO: ACPUtils.validateOnChain(permit, this.publicClient);
 
     let unsealed: bigint;
 

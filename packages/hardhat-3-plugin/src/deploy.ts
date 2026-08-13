@@ -4,7 +4,7 @@ import { createTestClient, custom } from 'viem';
 import chalk from 'chalk';
 import { privateKeyToAccount } from 'viem/accounts';
 
-import { MockTaskManagerArtifact, MockThresholdNetworkArtifact } from '@cofhe/mock-contracts';
+import { MockACLArtifact, MockTaskManagerArtifact, MockThresholdNetworkArtifact } from '@cofhe/mock-contracts';
 import {
   TASK_MANAGER_ADDRESS,
   MOCKS_ZK_VERIFIER_ADDRESS,
@@ -26,6 +26,7 @@ export type LogMocksDeploy = '' | 'v' | 'vv';
 export type DeployedMockContracts = {
   MockTaskManager: `0x${string}`;
   MockACL: `0x${string}`;
+  ACPTimestampRevoker: `0x${string}`;
   MockZkVerifier: `0x${string}`;
   MockThresholdNetwork: `0x${string}`;
 };
@@ -109,6 +110,19 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
   });
   log('vv', 'ACL address set in TaskManager', 2);
 
+  // 5b. ACP (Permit V3): default revoker (verification is inherited by the ACL)
+  const acpRevokerAddress = await deployVariable(ctx, 'ACPTimestampRevoker', []);
+  logDeployment('ACPTimestampRevoker', acpRevokerAddress);
+  await ctx.walletClient.writeContract({
+    address: aclAddress,
+    abi: MockACLArtifact.abi,
+    functionName: 'setDefaultRevokerContract',
+    args: [acpRevokerAddress],
+    account,
+    chain: null,
+  });
+  log('vv', 'Default revoker contract set in ACL', 2);
+
   // 6. Set ZkVerifier signer (the key is well-known and shared with the SDK)
   const verifierSigner = privateKeyToAccount(MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY);
   await ctx.walletClient.writeContract({
@@ -181,6 +195,7 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
   return {
     MockTaskManager: TASK_MANAGER_ADDRESS,
     MockACL: aclAddress,
+    ACPTimestampRevoker: acpRevokerAddress,
     MockZkVerifier: MOCKS_ZK_VERIFIER_ADDRESS,
     MockThresholdNetwork: MOCKS_THRESHOLD_NETWORK_ADDRESS,
   };

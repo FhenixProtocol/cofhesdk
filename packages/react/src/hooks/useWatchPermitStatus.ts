@@ -3,7 +3,7 @@ import { COFHE_STATUS_IDS } from '@/components/CofheFloatingButton/types';
 import { usePortalStatuses } from '@/stores';
 import { usePortalPersisted } from '@/stores/portalPersisted';
 import { truncateHash } from '@/utils';
-import { type Permit } from '@cofhe/sdk/permits';
+import { type ACP } from '@cofhe/sdk/permits';
 import { useEffect, useRef } from 'react';
 import { useCofheIsConnected } from './useCofheConnection';
 
@@ -28,7 +28,7 @@ export const showPermitExpiredStatus = () => {
   usePortalStatuses.getState().addStatus({
     id: COFHE_STATUS_IDS.permitExpired,
     variant: 'error',
-    title: 'Permit expired',
+    title: 'ACP expired',
     description: 'Select or create a new permit',
     action: {
       label: 'FIX',
@@ -40,11 +40,11 @@ export const hidePermitExpiredStatus = () => {
   usePortalStatuses.getState().removeStatus(COFHE_STATUS_IDS.permitExpired);
 };
 
-export const showPermitExpiringSoonStatus = (permit: Permit) => {
+export const showPermitExpiringSoonStatus = (permit: ACP) => {
   usePortalStatuses.getState().addStatus({
     id: COFHE_STATUS_IDS.permitExpiringSoon,
     variant: 'warning',
-    title: 'Permit expiring soon',
+    title: 'ACP expiring soon',
     description: `Expires at ${new Date(permit.expiration * 1000).toLocaleTimeString()}`,
     action: {
       label: 'FIX',
@@ -56,7 +56,7 @@ export const hidePermitExpiringSoonStatus = () => {
   usePortalStatuses.getState().removeStatus(COFHE_STATUS_IDS.permitExpiringSoon);
 };
 
-export const showPermitSharedStatus = (permit: Permit) => {
+export const showPermitSharedStatus = (permit: ACP) => {
   usePortalStatuses.getState().addStatus({
     id: COFHE_STATUS_IDS.permitShared,
     variant: 'info',
@@ -80,7 +80,7 @@ export const useWatchPermitStatus = () => {
   const connected = useCofheIsConnected();
 
   useEffect(() => {
-    const updateStatuses = (permit: Permit | undefined) => {
+    const updateStatuses = (permit: ACP | undefined) => {
       const hasCreatedFirstPermit = usePortalPersisted.getState().hasCreatedFirstPermit;
       const missingPermitStatusShown = usePortalStatuses.getState().hasStatus(COFHE_STATUS_IDS.missingPermit);
       const expiredStatusShown = usePortalStatuses.getState().hasStatus(COFHE_STATUS_IDS.permitExpired);

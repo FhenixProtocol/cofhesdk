@@ -35,7 +35,7 @@ export const DelegatePermitPage: React.FC<DelegatePermitPageProps> = ({ onSucces
       onSuccessNavigateTo ? onSuccessNavigateTo() : navigateTo(FloatingButtonPage.Permits);
       addToast({
         variant: 'success',
-        title: 'Permit created',
+        title: 'ACP created',
         description: 'Copy and share data with recipient',
       });
     },
@@ -59,7 +59,7 @@ export const DelegatePermitPage: React.FC<DelegatePermitPageProps> = ({ onSucces
           onClick={onBack ?? navigateBack}
         >
           {(pageHistory.length > 0 || onBack) && <ArrowBackIcon fontSize="small" />}
-          <span>Delegate Permit</span>
+          <span>Delegate ACP</span>
         </button>
       }
       content={
@@ -104,7 +104,7 @@ export const DelegatePermitPage: React.FC<DelegatePermitPageProps> = ({ onSucces
               variant="primary"
               disabled={!isValid || isSubmitting}
               aria-busy={isSubmitting}
-              label={isSubmitting ? 'Creating...' : 'Create Permit'}
+              label={isSubmitting ? 'Creating...' : 'Create ACP'}
               onClick={handleSubmit}
             />
           </div>

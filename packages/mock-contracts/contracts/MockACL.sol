@@ -2,7 +2,7 @@
 pragma solidity >=0.8.19 <0.9.0;
 
 import { Strings } from '@openzeppelin/contracts/utils/Strings.sol';
-import { MockPermissioned, Permission } from './Permissioned.sol';
+import { MockPermissioned, ACP, SCOPE_GLOBAL, SCOPE_CONTRACT, SCOPE_HANDLES } from './Permissioned.sol';
 import { TASK_MANAGER_ADDRESS } from '@fhenixprotocol/cofhe-contracts/FHE.sol';
 
 /**
@@ -37,6 +37,12 @@ contract MockACL is MockPermissioned {
   /// @param contractAddress  Contract address.
   event NewDelegation(address indexed sender, address indexed delegatee, address indexed contractAddress);
 
+  /// @notice Emitted when the default revoker contract address is updated (zero = unset).
+  event DefaultRevokerContractUpdated(address oldAddress, address newAddress);
+
+  /// @notice Emitted when the share registry address is updated (zero = unset).
+  event ShareRegistryUpdated(address oldAddress, address newAddress);
+
   /// @custom:storage-location erc7201:cofhe.storage.ACL
   struct ACLStorage {
     mapping(uint256 handle => bool isGlobal) globalHandles;
@@ -48,6 +54,9 @@ contract MockACL is MockPermissioned {
     ///      so it auto-expires when the block changes — no explicit cleanup required.
     ///      In Hardhat automine mode (one tx per block) this faithfully replicates per-tx transience.
     mapping(bytes32 => uint256) transientAllowanceBlocks;
+    /// @dev ACP infrastructure addresses served to SDKs (appended fields — do not reorder)
+    address defaultRevokerContract;
+    address shareRegistry;
   }
 
   /// @notice Name of the contract.
@@ -307,14 +316,73 @@ contract MockACL is MockPermissioned {
     }
   }
 
-  function isAllowedWithPermission(
-    Permission memory permission,
-    uint256 handle
-  ) public view withPermission(permission) returns (bool) {
-    return isAllowed(handle, permission.issuer);
+
+  // ---------------------------------------------------------------------------
+  // ACP (Permit V3) — scope-checked access
+  // ---------------------------------------------------------------------------
+
+  /// @notice Default revoker contract for newly created ACPs, served to SDKs (zero = unset).
+  function defaultRevokerContract() public view returns (address) {
+    return _getACLStorage().defaultRevokerContract;
   }
 
-  function checkPermitValidity(Permission memory permission) public view withPermission(permission) returns (bool) {
-    return true;
+  /// @notice The ACPShareRegistry address, served to SDKs (zero = sharing unavailable).
+  function shareRegistry() public view returns (address) {
+    return _getACLStorage().shareRegistry;
+  }
+
+  /// @notice Sets the default revoker contract address (unrestricted in the mock;
+  ///         the production setter is onlyOwner).
+  function setDefaultRevokerContract(address newAddress) external {
+    ACLStorage storage $ = _getACLStorage();
+    emit DefaultRevokerContractUpdated($.defaultRevokerContract, newAddress);
+    $.defaultRevokerContract = newAddress;
+  }
+
+  /// @notice Sets the share registry address (unrestricted in the mock;
+  ///         the production setter is onlyOwner).
+  function setShareRegistry(address newAddress) external {
+    ACLStorage storage $ = _getACLStorage();
+    emit ShareRegistryUpdated($.shareRegistry, newAddress);
+    $.shareRegistry = newAddress;
+  }
+
+  /// @notice V3 (ACP) access check — the scope table.
+  ///
+  ///         | condition                                            | result |
+  ///         |------------------------------------------------------|--------|
+  ///         | permission structure invalid (expired/sig/revoked)   | REVERT |
+  ///         | issuer does NOT have access to handle                | false  |
+  ///         | permission.global                                    | true   |
+  ///         | any permission.contracts allowed for handle          | true   |
+  ///         | permission.handles contains handle                   | true   |
+  ///         | otherwise                                            | false  |
+  ///
+  /// @dev Scopes narrow the issuer's existing access, never widen it.
+  ///      Contract scope is an intersection over the EXISTING
+  ///      `persistedAllowedPairs` (populated via FHE.allow/allowThis) —
+  ///      no new data structures. Transient allowances deliberately do not
+  ///      satisfy contract scope: only persisted grants count.
+  function isAllowedWithPermission(ACP memory acp, uint256 handle) public view withPermission(acp) returns (bool) {
+    // Scopes narrow the issuer's existing access, never widen it
+    if (!isAllowed(handle, acp.issuer)) return false;
+
+    if (acp.scope == SCOPE_GLOBAL) return true;
+
+    if (acp.scope == SCOPE_CONTRACT) {
+      for (uint256 i = 0; i < acp.contracts.length; i++) {
+        if (isAllowed(handle, acp.contracts[i])) return true;
+      }
+      return false;
+    }
+
+    if (acp.scope == SCOPE_HANDLES) {
+      for (uint256 i = 0; i < acp.handles.length; i++) {
+        if (acp.handles[i] == bytes32(handle)) return true;
+      }
+      return false;
+    }
+
+    return false;
   }
 }

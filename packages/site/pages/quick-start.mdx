@@ -34,7 +34,7 @@ yarn add @cofhe/hardhat-plugin@^0.4.0 @cofhe/sdk@^0.4.0 @fhenixprotocol/cofhe-co
 | Package                           | Version  | Purpose                                                                |
 | --------------------------------- | -------- | ---------------------------------------------------------------------- |
 | `@cofhe/hardhat-plugin`           | `^0.4.0` | Extends Hardhat with `hre.cofhe`, deploys mock contracts automatically |
-| `@cofhe/sdk`                      | `^0.4.0` | Client-side encryption, decryption, and permit management              |
+| `@cofhe/sdk`                      | `^0.4.0` | Client-side encryption, decryption, and ACP management                 |
 | `@fhenixprotocol/cofhe-contracts` | `^0.1.0` | `FHE.sol` — the Solidity library imported by your contracts            |
 
 :::note
@@ -93,7 +93,7 @@ contract MyContract {
 
 ## 4) Write a test
 
-Use `hre.cofhe.createClientWithBatteries` to get a fully configured SDK client with a self-permit, then encrypt → send → decrypt.
+Use `hre.cofhe.createClientWithBatteries` to get a fully configured SDK client with a self-ACP, then encrypt → send → decrypt.
 
 ```ts [test/MyContract.test.ts]
 import hre from 'hardhat';
@@ -152,10 +152,10 @@ The plugin deploys mock contracts automatically — no extra setup needed.
 ## What just happened?
 
 1. The **Hardhat plugin** deployed mock versions of the CoFHE coprocessor contracts (TaskManager, ACL, ZK verifier, threshold network) before the test ran.
-2. `createClientWithBatteries` created an SDK client connected to the Hardhat network, with a self-permit ready to go.
+2. `createClientWithBatteries` created an SDK client connected to the Hardhat network, with a self-ACP ready to go.
 3. `encryptInputs` encrypted the plaintext `42` into an FHE ciphertext with a ZK proof (simulated by the mock verifier).
 4. The contract stored the ciphertext handle on-chain and set ACL permissions.
-5. `decryptForView` used the permit to decrypt the handle back to `42n` locally.
+5. `decryptForView` used the ACP to decrypt the handle back to `42n` locally.
 
 ## Next steps
 
@@ -163,9 +163,9 @@ Now that you have a working setup, explore the full SDK and tooling:
 
 - [Client](/sdk/client) — config options, adapters, and connection lifecycle.
 - [Encrypting Inputs](/sdk/encrypting-inputs) — the builder API, supported types, and progress callbacks.
-- [Decrypting to View](/sdk/decrypt-to-view) — reveal encrypted state in your UI with permits.
+- [Decrypting to View](/sdk/decrypt-to-view) — reveal encrypted state in your UI with ACPs.
 - [Decrypting to Transact](/sdk/decrypt-to-tx) — reveal values on-chain with a verifiable signature.
-- [Permits](/sdk/permits) — create, share, and manage decryption authorization.
+- [ACPs](/sdk/acp) — create, share, and manage decryption authorization.
 - [Mock Contracts](/hardhat/mock-contracts) — read plaintext directly and assert encrypted state in tests.
 - [Logging](/hardhat/logging) — inspect every FHE operation your contracts perform.
 - [EncryptedCounter.sol](/reference/encrypted-counter-sol) — a more complete reference contract demonstrating all SDK features.

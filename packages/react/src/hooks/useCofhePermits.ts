@@ -2,16 +2,16 @@ import type { CofheClient } from '@cofhe/sdk';
 import { useCofheContext } from '../providers';
 import { useCallback, useMemo, useSyncExternalStore } from 'react';
 import { NOOP_CALLBACK } from '../utils';
-import { PERMIT_STORE_DEFAULTS, PermitUtils, type Permit } from '@cofhe/sdk/permits';
+import { PERMIT_STORE_DEFAULTS, ACPUtils, type ACP } from '@cofhe/sdk/permits';
 import { useCofheConnection } from './useCofheConnection';
 
 const subscribeToPermitsConstructor = (client: CofheClient) => (onStoreChange: () => void) => {
-  return client.permits.subscribe(() => {
+  return client.acp.subscribe(() => {
     onStoreChange();
   });
 };
 
-const getPermitsSnapshotConstructor = (client: CofheClient) => () => client.permits.getSnapshot();
+const getPermitsSnapshotConstructor = (client: CofheClient) => () => client.acp.getSnapshot();
 
 // type PermitsState = ReturnType<CofheClientPermits['getSnapshot']>;
 
@@ -37,7 +37,7 @@ const useCofhePermitsStore = () => {
 
 export const useCofheActivePermit = ():
   | {
-      permit: Permit;
+      permit: ACP;
       isValid: boolean;
     }
   | undefined => {
@@ -52,11 +52,11 @@ export const useCofheActivePermit = ():
   const serialized = hash && allPermits ? allPermits[hash] : undefined;
 
   const permitData = useMemo(() => {
-    const _permit = serialized ? PermitUtils.deserialize(serialized) : undefined;
+    const _permit = serialized ? ACPUtils.deserialize(serialized) : undefined;
     if (!_permit || !hash) return undefined;
     return {
       permit: _permit,
-      isValid: _permit ? PermitUtils.isValid(_permit).valid : false,
+      isValid: _permit ? ACPUtils.isValid(_permit).valid : false,
       hash,
     };
   }, [serialized, hash]);
@@ -69,7 +69,7 @@ export const useCofheActivePermitHash = (): string | undefined => {
   return useMemo(() => activePermit?.permit.hash, [activePermit?.permit.hash]);
 };
 
-export const useCofheAllPermits = (): Permit[] => {
+export const useCofheAllPermits = (): ACP[] => {
   const { account, chainId, connected } = useCofheConnection();
 
   const { state } = useCofhePermitsStore();
@@ -83,9 +83,9 @@ export const useCofheAllPermits = (): Permit[] => {
             .filter((hash) => !!allPermits[hash])
             .map((hash) => {
               const serializedPermit = allPermits[hash];
-              if (!serializedPermit) throw new Error('Permit data missing');
+              if (!serializedPermit) throw new Error('ACP data missing');
 
-              return PermitUtils.deserialize(serializedPermit);
+              return ACPUtils.deserialize(serializedPermit);
             })
         : [],
     [allPermits]
@@ -94,14 +94,14 @@ export const useCofheAllPermits = (): Permit[] => {
   return connected ? allPermitsWithHashes : [];
 };
 
-export const useCofhePermit = (hash: string): Permit | undefined => {
+export const useCofhePermit = (hash: string): ACP | undefined => {
   const { account, chainId, connected } = useCofheConnection();
   const { state } = useCofhePermitsStore();
   return useMemo(() => {
     if (!connected || !chainId || !account) return undefined;
     const serializedPermit = state.permits[chainId]?.[account]?.[hash];
     if (!serializedPermit) return undefined;
-    return PermitUtils.deserialize(serializedPermit);
+    return ACPUtils.deserialize(serializedPermit);
   }, [connected, chainId, account, hash, state.permits]);
 };
 
@@ -121,7 +121,7 @@ export const useCofheRemovePermit = ({ onSuccess, onError }: Callbacks = {}) => 
           throw new Error('Client, chainId, and account must be defined to remove a permit');
         }
 
-        client.permits.removePermit(hashToRemove, chainId, account);
+        client.acp.removePermit(hashToRemove, chainId, account);
         onSuccess?.();
       } catch (error) {
         onError?.(new Error(error instanceof Error ? error.message : 'Unknown error'));
@@ -141,7 +141,7 @@ export const useCofheSelectPermit = ({ onSuccess, onError }: Callbacks = {}) => 
         if (!client || !chainId || !account) {
           throw new Error('Client, chainId, and account must be defined to set active permit hash');
         }
-        client.permits.selectActivePermit(hashToSet, chainId, account);
+        client.acp.selectActivePermit(hashToSet, chainId, account);
         onSuccess?.();
       } catch (error) {
         onError?.(new Error(error instanceof Error ? error.message : 'Unknown error'));

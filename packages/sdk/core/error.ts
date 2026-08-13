@@ -51,6 +51,7 @@ export enum CofheErrorCode {
   PermitDenied = 'PERMIT_DENIED',
   PermitExpired = 'PERMIT_EXPIRED',
   PermitInvalid = 'PERMIT_INVALID',
+  PermitRevoked = 'PERMIT_REVOKED',
   NotPubliclyAllowed = 'NOT_PUBLICLY_ALLOWED',
   CtNotFound = 'CT_NOT_FOUND',
   UnsupportedSecurityZone = 'UNSUPPORTED_SECURITY_ZONE',

@@ -6,7 +6,7 @@ import {
   decodeErrorResult,
   parseAbi,
 } from 'viem';
-import type { EIP712Domain, Permission } from './types';
+import type { EIP712Domain, ACPPublic } from './types';
 import { TASK_MANAGER_ADDRESS } from '../core/consts.js';
 
 export const getAclAddress = async (publicClient: PublicClient): Promise<Hex> => {
@@ -23,6 +23,10 @@ export const getAclAddress = async (publicClient: PublicClient): Promise<Hex> =>
   })) as `0x${string}`;
 };
 
+/**
+ * ACP (Permit V3) signing domain — fetched from the ACL contract, which since V3
+ * carries the ACP verification logic and signs as name "ACL", version "2".
+ */
 export const getAclEIP712Domain = async (publicClient: PublicClient): Promise<EIP712Domain> => {
   const aclAddress = await getAclAddress(publicClient);
   const EIP712_DOMAIN_IFACE =
@@ -49,28 +53,28 @@ export const getAclEIP712Domain = async (publicClient: PublicClient): Promise<EI
   };
 };
 
-export const checkPermitValidityOnChain = async (
-  permission: Permission,
-  publicClient: PublicClient
-): Promise<boolean> => {
+export const checkPermitValidityOnChain = async (acp: ACPPublic, publicClient: PublicClient): Promise<boolean> => {
   const aclAddress = await getAclAddress(publicClient);
 
-  // Check if the permit is valid
+  // Check if the permit is valid (structure: expiration / signatures / revocation)
   try {
     await publicClient.simulateContract({
       address: aclAddress,
       abi: checkPermitValidityAbi,
-      functionName: 'checkPermitValidity',
+      functionName: 'checkPermissionValidity',
       args: [
         {
-          issuer: permission.issuer,
-          expiration: BigInt(permission.expiration),
-          recipient: permission.recipient,
-          validatorId: BigInt(permission.validatorId),
-          validatorContract: permission.validatorContract,
-          sealingKey: permission.sealingKey,
-          issuerSignature: permission.issuerSignature,
-          recipientSignature: permission.recipientSignature,
+          issuer: acp.issuer,
+          expiration: BigInt(acp.expiration),
+          recipient: acp.recipient,
+          revokerData: BigInt(acp.revokerData),
+          revokerContract: acp.revokerContract,
+          scope: acp.scope,
+          contracts: acp.contracts,
+          handles: acp.handles,
+          sealingKey: acp.sealingKey,
+          issuerSignature: acp.issuerSignature,
+          recipientSignature: acp.recipientSignature,
         },
       ],
     });
@@ -139,12 +143,12 @@ function extractReturnData(err: unknown): `0x${string}` | undefined {
 const checkPermitValidityAbi = [
   {
     type: 'function',
-    name: 'checkPermitValidity',
+    name: 'checkPermissionValidity',
     inputs: [
       {
-        name: 'permission',
+        name: 'acp',
         type: 'tuple',
-        internalType: 'struct Permission',
+        internalType: 'struct ACP',
         components: [
           {
             name: 'issuer',
@@ -162,14 +166,29 @@ const checkPermitValidityAbi = [
             internalType: 'address',
           },
           {
-            name: 'validatorId',
+            name: 'revokerData',
             type: 'uint256',
             internalType: 'uint256',
           },
           {
-            name: 'validatorContract',
+            name: 'revokerContract',
             type: 'address',
             internalType: 'address',
+          },
+          {
+            name: 'scope',
+            type: 'uint8',
+            internalType: 'uint8',
+          },
+          {
+            name: 'contracts',
+            type: 'address[]',
+            internalType: 'address[]',
+          },
+          {
+            name: 'handles',
+            type: 'bytes32[]',
+            internalType: 'bytes32[]',
           },
           {
             name: 'sealingKey',

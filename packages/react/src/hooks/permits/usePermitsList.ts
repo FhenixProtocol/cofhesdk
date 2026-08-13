@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { type Permit } from '@cofhe/sdk/permits';
+import { type ACP } from '@cofhe/sdk/permits';
 import { useCofheActivePermit, useCofheAllPermits } from '../useCofhePermits';
 import { FloatingButtonPage } from '@/components/CofheFloatingButton/pagesConfig/types';
 import { useCofheNavigateToCreatePermit } from './useCofheNavigateToCreatePermit';
@@ -19,15 +19,15 @@ export const usePermitsList = () => {
     return activePermit?.permit.hash;
   }, [activePermit?.permit.hash]);
 
-  const selfPermits = useMemo<Permit[]>(() => {
+  const selfPermits = useMemo<ACP[]>(() => {
     return allPermits.filter((permit) => permit.type === 'self');
   }, [allPermits]);
 
-  const delegatedPermits = useMemo<Permit[]>(() => {
+  const delegatedPermits = useMemo<ACP[]>(() => {
     return allPermits.filter((permit) => permit.type === 'sharing');
   }, [allPermits]);
 
-  const importedPermits = useMemo<Permit[]>(() => {
+  const importedPermits = useMemo<ACP[]>(() => {
     return allPermits.filter((permit) => permit.type === 'recipient');
   }, [allPermits]);
 

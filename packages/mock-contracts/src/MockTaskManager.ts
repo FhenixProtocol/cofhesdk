@@ -443,9 +443,9 @@ export const MockTaskManagerArtifact = {
       name: 'isAllowedWithPermission',
       inputs: [
         {
-          name: 'permission',
+          name: 'acp',
           type: 'tuple',
-          internalType: 'struct Permission',
+          internalType: 'struct ACP',
           components: [
             {
               name: 'issuer',
@@ -463,14 +463,29 @@ export const MockTaskManagerArtifact = {
               internalType: 'address',
             },
             {
-              name: 'validatorId',
+              name: 'revokerData',
               type: 'uint256',
               internalType: 'uint256',
             },
             {
-              name: 'validatorContract',
+              name: 'revokerContract',
               type: 'address',
               internalType: 'address',
+            },
+            {
+              name: 'scope',
+              type: 'uint8',
+              internalType: 'uint8',
+            },
+            {
+              name: 'contracts',
+              type: 'address[]',
+              internalType: 'address[]',
+            },
+            {
+              name: 'handles',
+              type: 'bytes32[]',
+              internalType: 'bytes32[]',
             },
             {
               name: 'sealingKey',

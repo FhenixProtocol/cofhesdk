@@ -1,41 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { SealingKey, GenerateSealingKey } from '../index.js';
+import { GenerateSealingKey, seal, unsealWithPrivateKey } from '../index.js';
 
-describe('SealingKey', () => {
-  it('should create a SealingKey with valid keys', () => {
-    const privateKey = 'a'.repeat(64);
-    const publicKey = 'b'.repeat(64);
-
-    const sealingKey = new SealingKey(privateKey, publicKey);
-
-    expect(sealingKey.privateKey).toBe(privateKey);
-    expect(sealingKey.publicKey).toBe(publicKey);
-  });
-
-  it('should throw error for invalid private key length', () => {
-    const privateKey = 'a'.repeat(32); // Too short
-    const publicKey = 'b'.repeat(64);
-
-    expect(() => {
-      new SealingKey(privateKey, publicKey);
-    }).toThrow('Private key must be of length 64');
-  });
-
-  it('should throw error for invalid public key length', () => {
-    const privateKey = 'a'.repeat(64);
-    const publicKey = 'b'.repeat(32); // Too short
-
-    expect(() => {
-      new SealingKey(privateKey, publicKey);
-    }).toThrow('Public key must be of length 64');
-  });
-
-  it('should seal and unseal data correctly', () => {
-    const publicKey = 'b'.repeat(64);
+describe('seal / unsealWithPrivateKey', () => {
+  it('should seal data into EthEncryptedData shape', () => {
+    const publicKey = `0x${'b'.repeat(64)}`;
     const value = BigInt(12345);
 
-    // Seal the data
-    const encryptedData = SealingKey.seal(value, publicKey);
+    const encryptedData = seal(value, publicKey);
 
     expect(encryptedData).toHaveProperty('data');
     expect(encryptedData).toHaveProperty('public_key');
@@ -45,36 +16,58 @@ describe('SealingKey', () => {
     expect(encryptedData.nonce).toBeInstanceOf(Uint8Array);
   });
 
+  it('should round-trip: seal for a generated key, unseal with its private key', () => {
+    const pair = GenerateSealingKey();
+    const value = BigInt(987654321);
+
+    const sealed = seal(value, pair.publicKey);
+    const unsealed = unsealWithPrivateKey(pair.privateKey, sealed);
+
+    expect(unsealed).toBe(value);
+  });
+
+  it('accepts keys with or without the 0x prefix', () => {
+    const pair = GenerateSealingKey();
+    const value = BigInt(42);
+
+    const sealed = seal(value, pair.publicKey.slice(2));
+    expect(unsealWithPrivateKey(pair.privateKey.slice(2), sealed)).toBe(value);
+  });
+
   it('should throw error for invalid public key in seal', () => {
-    const value = BigInt(12345);
-    const invalidPublicKey = 'invalid';
+    expect(() => {
+      seal(BigInt(12345), 'invalid');
+    }).toThrow('Public key must be of length 64');
+  });
+
+  it('should throw error for invalid private key in unseal', () => {
+    const pair = GenerateSealingKey();
+    const sealed = seal(BigInt(1), pair.publicKey);
 
     expect(() => {
-      SealingKey.seal(value, invalidPublicKey);
-    }).toThrow('bad public key size');
+      unsealWithPrivateKey('deadbeef', sealed);
+    }).toThrow('Private key must be of length 64');
   });
 
   it('should throw error for invalid value in seal', () => {
-    const publicKey = 'b'.repeat(64);
-    const invalidValue = 'not a number';
+    const publicKey = `0x${'b'.repeat(64)}`;
 
     expect(() => {
       // @ts-expect-error - invalid value
-      SealingKey.seal(invalidValue, publicKey);
+      seal('not a number', publicKey);
     }).toThrow('Value not a number is not a number or bigint: string');
   });
 });
 
 describe('GenerateSealingKey', () => {
-  it('should generate a valid SealingKey', async () => {
-    const sealingKey = GenerateSealingKey();
+  it('should generate a 0x-prefixed 32-byte hex pair', () => {
+    const pair = GenerateSealingKey();
 
-    expect(sealingKey).toBeInstanceOf(SealingKey);
-    expect(sealingKey.privateKey).toHaveLength(64);
-    expect(sealingKey.publicKey).toHaveLength(64);
+    expect(pair.privateKey).toMatch(/^0x[0-9a-f]{64}$/);
+    expect(pair.publicKey).toMatch(/^0x[0-9a-f]{64}$/);
   });
 
-  it('should generate different keys on each call', async () => {
+  it('should generate different keys on each call', () => {
     const key1 = GenerateSealingKey();
     const key2 = GenerateSealingKey();
 

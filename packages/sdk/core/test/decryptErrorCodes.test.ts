@@ -71,9 +71,7 @@ describe('decrypt/sealoutput API-RESPONSES.md error-code coverage', () => {
 
       const expectedCode = SHARED_ERROR_CASES.find((c) => c.error === error)!.cofheErrorCode;
 
-      await expect(
-        run({ ctHash: 1n, chainId: 1, permission: {} as any, thresholdNetworkUrl } as any)
-      ).rejects.toMatchObject({
+      await expect(run({ ctHash: 1n, chainId: 1, acp: {} as any, thresholdNetworkUrl } as any)).rejects.toMatchObject({
         code: expectedCode,
         apiErrorCode: error,
         message: expect.stringContaining(`backend said ${error}`),
@@ -91,9 +89,7 @@ describe('decrypt/sealoutput API-RESPONSES.md error-code coverage', () => {
       );
       global.fetch = fetchMock as any;
 
-      await expect(
-        run({ ctHash: 1n, chainId: 1, permission: {} as any, thresholdNetworkUrl } as any)
-      ).rejects.toMatchObject({
+      await expect(run({ ctHash: 1n, chainId: 1, acp: {} as any, thresholdNetworkUrl } as any)).rejects.toMatchObject({
         code: fallback,
         apiErrorCode: 'some_future_code',
       });
@@ -112,9 +108,7 @@ describe('decrypt/sealoutput API-RESPONSES.md error-code coverage', () => {
       );
       global.fetch = fetchMock as any;
 
-      await expect(
-        run({ ctHash: 1n, chainId: 1, permission: {} as any, thresholdNetworkUrl } as any)
-      ).rejects.toMatchObject({
+      await expect(run({ ctHash: 1n, chainId: 1, acp: {} as any, thresholdNetworkUrl } as any)).rejects.toMatchObject({
         code: fallback,
         apiErrorCode: undefined,
         message: expect.stringContaining('Unsupported Media Type'),
@@ -131,12 +125,12 @@ describe('decrypt/sealoutput API-RESPONSES.md error-code coverage', () => {
       })
     ) as any;
 
-    await expect(
-      tnSealOutputV2({ ctHash: 1n, chainId: 1, permission: {} as any, thresholdNetworkUrl })
-    ).rejects.toMatchObject({
-      code: CofheErrorCode.PermitRequired,
-      apiErrorCode: 'permit_required',
-    });
+    await expect(tnSealOutputV2({ ctHash: 1n, chainId: 1, acp: {} as any, thresholdNetworkUrl })).rejects.toMatchObject(
+      {
+        code: CofheErrorCode.PermitRequired,
+        apiErrorCode: 'permit_required',
+      }
+    );
   });
 
   it('sealoutput submit maps 500 seal_failed (sealoutput-specific)', async () => {
@@ -148,12 +142,12 @@ describe('decrypt/sealoutput API-RESPONSES.md error-code coverage', () => {
       })
     ) as any;
 
-    await expect(
-      tnSealOutputV2({ ctHash: 1n, chainId: 1, permission: {} as any, thresholdNetworkUrl })
-    ).rejects.toMatchObject({
-      code: CofheErrorCode.SealFailed,
-      apiErrorCode: 'seal_failed',
-    });
+    await expect(tnSealOutputV2({ ctHash: 1n, chainId: 1, acp: {} as any, thresholdNetworkUrl })).rejects.toMatchObject(
+      {
+        code: CofheErrorCode.SealFailed,
+        apiErrorCode: 'seal_failed',
+      }
+    );
   });
 
   describe.each([
@@ -190,7 +184,7 @@ describe('decrypt/sealoutput API-RESPONSES.md error-code coverage', () => {
       });
       global.fetch = fetchMock as any;
 
-      const promise = run({ ctHash: 1n, chainId: 1, permission: {} as any, thresholdNetworkUrl } as any);
+      const promise = run({ ctHash: 1n, chainId: 1, acp: {} as any, thresholdNetworkUrl } as any);
 
       await expect(promise).rejects.toMatchObject({
         code: CofheErrorCode.InternalError,
@@ -214,7 +208,7 @@ describe('decrypt/sealoutput API-RESPONSES.md error-code coverage', () => {
       });
       global.fetch = fetchMock as any;
 
-      const promise = run({ ctHash: 1n, chainId: 1, permission: {} as any, thresholdNetworkUrl } as any);
+      const promise = run({ ctHash: 1n, chainId: 1, acp: {} as any, thresholdNetworkUrl } as any);
 
       await expect(promise).rejects.toMatchObject({ code: fallback });
       expect(statusJson).not.toHaveBeenCalled();

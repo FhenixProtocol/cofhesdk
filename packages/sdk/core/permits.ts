@@ -1,9 +1,9 @@
 import {
   type ImportSharedPermitOptions,
-  PermitUtils,
+  ACPUtils,
   type CreateSelfPermitOptions,
   type CreateSharingPermitOptions,
-  type Permit,
+  type ACP,
   permitStore,
   type SerializedPermit,
   type SelfPermit,
@@ -12,44 +12,51 @@ import {
   type PermitHashFields,
 } from '@/permits';
 
-import { type PublicClient, type WalletClient } from 'viem';
+import { type Hex, type PublicClient, type WalletClient, parseAbi, zeroAddress } from 'viem';
+
+// ACP default revoker (timestamp-based revocation) — interface shared by all revokers
+const ACP_VALIDATOR_ABI = parseAbi([
+  'function revokeSingle(uint256 id)',
+  'function revokeAllExisting()',
+  'function disabled(address issuer, uint256 id) view returns (bool)',
+]);
 
 // HELPERS
 
 // Store a permit without changing which permit is active.
-const storePermit = async (permit: Permit, publicClient: any, walletClient: any) => {
+const storePermit = async (acp: ACP, publicClient: any, walletClient: any) => {
   const chainId = await publicClient.getChainId();
   const account = walletClient.account!.address;
 
-  permitStore.setPermit(chainId, account, permit);
+  permitStore.setPermit(chainId, account, acp);
 };
 
 // Store a permit AND select it as the active permit.
-const storeActivePermit = async (permit: Permit, publicClient: any, walletClient: any) => {
-  await storePermit(permit, publicClient, walletClient);
+const storeActivePermit = async (acp: ACP, publicClient: any, walletClient: any) => {
+  await storePermit(acp, publicClient, walletClient);
   const chainId = await publicClient.getChainId();
   const account = walletClient.account!.address;
-  permitStore.setActivePermitHash(chainId, account, permit.hash);
+  permitStore.setActivePermitHash(chainId, account, acp.hash);
 };
 
 // Generic function to handle permit creation with error handling.
 // `activate` controls whether the new permit becomes the issuer's active permit — true for
 // self/imported permits (the connected user decrypts with them), false for sharing permits (those
 // are delegated to a recipient and are never the issuer's own active permit).
-const createPermitWithSign = async <T, TPermit extends Permit>(
+const createPermitWithSign = async <T, TPermit extends ACP>(
   options: T,
   publicClient: PublicClient,
   walletClient: WalletClient,
   permitMethod: (options: T, publicClient: PublicClient, walletClient: WalletClient) => Promise<TPermit>,
   activate = true
 ): Promise<TPermit> => {
-  const permit = await permitMethod(options, publicClient, walletClient);
+  const acp = await permitMethod(options, publicClient, walletClient);
   if (activate) {
-    await storeActivePermit(permit, publicClient, walletClient);
+    await storeActivePermit(acp, publicClient, walletClient);
   } else {
-    await storePermit(permit, publicClient, walletClient);
+    await storePermit(acp, publicClient, walletClient);
   }
-  return permit;
+  return acp;
 };
 
 // CREATE
@@ -65,7 +72,7 @@ const createSelf = async (
   publicClient: PublicClient,
   walletClient: WalletClient
 ): Promise<SelfPermit> => {
-  return createPermitWithSign(options, publicClient, walletClient, PermitUtils.createSelfAndSign);
+  return createPermitWithSign(options, publicClient, walletClient, ACPUtils.createSelfAndSign);
 };
 
 const createSharing = async (
@@ -75,7 +82,7 @@ const createSharing = async (
 ): Promise<SharingPermit> => {
   // A sharing permit is delegated to a recipient — it is never the issuer's own active permit, so
   // creating one only stores it (unlike self/imported permits, which activate).
-  return createPermitWithSign(options, publicClient, walletClient, PermitUtils.createSharingAndSign, false);
+  return createPermitWithSign(options, publicClient, walletClient, ACPUtils.createSharingAndSign, false);
 };
 
 const importShared = async (
@@ -83,38 +90,38 @@ const importShared = async (
   publicClient: PublicClient,
   walletClient: WalletClient
 ): Promise<RecipientPermit> => {
-  return createPermitWithSign(options, publicClient, walletClient, PermitUtils.importSharedAndSign);
+  return createPermitWithSign(options, publicClient, walletClient, ACPUtils.importSharedAndSign);
 };
 
 // PERMIT UTILS
 
 const getHash = (permit: PermitHashFields) => {
-  return PermitUtils.getHash(permit);
+  return ACPUtils.getHash(permit);
 };
 
-const exportShared = (permit: Permit) => {
-  return PermitUtils.export(permit);
+const exportShared = (permit: ACP) => {
+  return ACPUtils.export(permit);
 };
 
-const serialize = (permit: Permit) => {
-  return PermitUtils.serialize(permit);
+const serialize = (permit: ACP) => {
+  return ACPUtils.serialize(permit);
 };
 
 const deserialize = (serialized: SerializedPermit) => {
-  return PermitUtils.deserialize(serialized);
+  return ACPUtils.deserialize(serialized);
 };
 
 // GET
 
-const getPermit = (chainId: number, account: string, hash: string): Permit | undefined => {
+const getPermit = (chainId: number, account: string, hash: string): ACP | undefined => {
   return permitStore.getPermit(chainId, account, hash);
 };
 
-const getPermits = (chainId: number, account: string): Record<string, Permit> => {
+const getPermits = (chainId: number, account: string): Record<string, ACP> => {
   return permitStore.getPermits(chainId, account);
 };
 
-const getActivePermit = (chainId: number, account: string): Permit | undefined => {
+const getActivePermit = (chainId: number, account: string): ACP | undefined => {
   return permitStore.getActivePermit(chainId, account);
 };
 
@@ -148,19 +155,19 @@ const getOrCreateSelfPermit = async (
   chainId?: number,
   account?: string,
   options?: CreateSelfPermitOptions
-): Promise<Permit> => {
+): Promise<ACP> => {
   const _chainId = chainId ?? (await publicClient.getChainId());
   const _account = account ?? walletClient.account!.address;
 
   // Try to get active permit first
   const activePermit = await getActivePermit(_chainId, _account);
 
-  if (activePermit && activePermit.type === 'self' && PermitUtils.isValid(activePermit).valid) {
+  if (activePermit && activePermit.type === 'self' && ACPUtils.isValid(activePermit).valid) {
     return activePermit;
   }
 
   // No active permit, wrong type, or expired/invalid - create new one
-  return createSelf(options ?? { issuer: _account, name: 'Autogenerated Self Permit' }, publicClient, walletClient);
+  return createSelf(options ?? { issuer: _account, name: 'Autogenerated Self ACP' }, publicClient, walletClient);
 };
 
 /**
@@ -184,18 +191,144 @@ const getOrCreateSharingPermit = async (
   options: CreateSharingPermitOptions,
   chainId?: number,
   account?: string
-): Promise<Permit> => {
+): Promise<ACP> => {
   const _chainId = chainId ?? (await publicClient.getChainId());
   const _account = account ?? walletClient.account!.address;
 
   // Try to get active permit first
   const activePermit = await getActivePermit(_chainId, _account);
 
-  if (activePermit && activePermit.type === 'sharing' && PermitUtils.isValid(activePermit).valid) {
+  if (activePermit && activePermit.type === 'sharing' && ACPUtils.isValid(activePermit).valid) {
     return activePermit;
   }
 
   return createSharing(options, publicClient, walletClient);
+};
+
+// CONFIG DEFAULTS
+
+/**
+ * Applies the config's ACP permit defaults to creation options (pure).
+ * Explicit user options always win:
+ *  - revoker: injected only when the options carry NO revoker pair —
+ *    revokerContract = config default, revokerData = creation timestamp
+ *    ("every permit revocable by default")
+ *  - contracts: injected only when the options carry NO scope fields at all —
+ *    injecting scope makes the created permit non-global by default
+ */
+const applyPermitDefaults = <
+  T extends {
+    revokerData?: number;
+    revokerContract?: string;
+    scope?: number;
+    contracts?: string[];
+    handles?: (bigint | number | string)[];
+  },
+>(
+  options: T,
+  permitConfig: { defaultRevoker?: Record<number, Hex>; defaultContractScopes?: Record<number, Hex[]> } | undefined,
+  chainId: number
+): T => {
+  const result = { ...options };
+
+  const defaultRevoker = permitConfig?.defaultRevoker?.[chainId];
+  const hasValidatorOptions = options.revokerData != null || options.revokerContract != null;
+  if (defaultRevoker != null && !hasValidatorOptions) {
+    result.revokerContract = defaultRevoker;
+    // Creation timestamp minus a clock-skew allowance: the revoker rejects
+    // future-dated ids (vs block.timestamp of the LAST block), so a local clock
+    // ahead of the chain — or a chain with sparse blocks — would otherwise make
+    // a fresh permit temporarily unusable. 60s of backdating costs nothing
+    // (revokeAllExisting at time T still kills this permit for any T >= id).
+    result.revokerData = Math.round(Date.now() / 1000) - 60;
+  }
+
+  const defaultContracts = permitConfig?.defaultContractScopes?.[chainId];
+  const hasScopeOptions = options.scope != null || options.contracts != null || options.handles != null;
+  if (defaultContracts != null && defaultContracts.length > 0 && !hasScopeOptions) {
+    result.contracts = defaultContracts;
+  }
+
+  return result;
+};
+
+// REVOKE (on-chain, via the permit's revoker contract)
+
+/**
+ * Revoke a single permit on-chain via its revoker contract.
+ * Only the permit's issuer can revoke it (enforced by the revoker: revocations
+ * are keyed by msg.sender). The permit stays in local storage — on-chain
+ * validation will reject it from the next block onwards.
+ *
+ * @returns the revocation transaction hash
+ */
+const revokePermit = async (permit: ACP, walletClient: WalletClient): Promise<Hex> => {
+  if (permit.revokerContract === zeroAddress || permit.revokerData === 0) {
+    throw new Error('ACP is not revocable: it has no revoker (revokerContract/revokerData unset)');
+  }
+  if (walletClient.account == null) throw new Error('Missing walletClient account');
+  if (walletClient.account.address.toLowerCase() !== permit.issuer.toLowerCase()) {
+    throw new Error('Only the permit issuer can revoke it');
+  }
+
+  return walletClient.writeContract({
+    address: permit.revokerContract,
+    abi: ACP_VALIDATOR_ABI,
+    functionName: 'revokeSingle',
+    args: [BigInt(permit.revokerData)],
+    account: walletClient.account,
+    chain: walletClient.chain,
+  });
+};
+
+/**
+ * Revoke ALL of the caller's permits created up to now (O(1) on-chain:
+ * a single threshold write on the revoker). Permits created after this
+ * transaction remain valid.
+ *
+ * @param revokerContract - the revoker to revoke against (defaults to the
+ *   connected account's active permit's revoker when omitted)
+ * @returns the revocation transaction hash
+ */
+const revokeAllPermits = async (
+  walletClient: WalletClient,
+  publicClient: PublicClient,
+  revokerContract?: Hex
+): Promise<Hex> => {
+  if (walletClient.account == null) throw new Error('Missing walletClient account');
+
+  let revoker = revokerContract;
+  if (revoker == null) {
+    const chainId = await publicClient.getChainId();
+    const active = getActivePermit(chainId, walletClient.account.address);
+    revoker = active?.revokerContract;
+  }
+  if (revoker == null || revoker === zeroAddress) {
+    throw new Error('No revoker contract: pass `revokerContract` or activate a revocable permit first');
+  }
+
+  return walletClient.writeContract({
+    address: revoker,
+    abi: ACP_VALIDATOR_ABI,
+    functionName: 'revokeAllExisting',
+    args: [],
+    account: walletClient.account,
+    chain: walletClient.chain,
+  });
+};
+
+/**
+ * Check whether a permit has been revoked (or is otherwise disabled) by its
+ * revoker. Returns false for permits without a revoker (not revocable).
+ */
+const isPermitRevoked = async (permit: ACP, publicClient: PublicClient): Promise<boolean> => {
+  if (permit.revokerContract === zeroAddress || permit.revokerData === 0) return false;
+  return publicClient.readContract({
+    address: permit.revokerContract,
+    abi: ACP_VALIDATOR_ABI,
+    functionName: 'disabled',
+    args: [permit.issuer, BigInt(permit.revokerData)],
+  });
 };
 
 // REMOVE
@@ -231,4 +364,13 @@ export const permits = {
   removePermit,
   selectActivePermit,
   removeActivePermit,
+
+  revokePermit,
+  revokeAllPermits,
+  isPermitRevoked,
+
+  applyPermitDefaults,
 };
+
+/** @deprecated renamed — use `acp` (public terminology: permit -> ACP) */
+export const acp = permits;

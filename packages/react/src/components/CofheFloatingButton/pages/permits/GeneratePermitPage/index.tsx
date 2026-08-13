@@ -35,7 +35,7 @@ export const GeneratePermitPage: React.FC<GeneratePermitPageProps> = ({
       onSuccessNavigateTo ? onSuccessNavigateTo() : navigateTo(FloatingButtonPage.Permits);
       addToast({
         variant: 'success',
-        title: 'Permit created',
+        title: 'ACP created',
       });
     },
     onError: (error) => {
@@ -58,7 +58,7 @@ export const GeneratePermitPage: React.FC<GeneratePermitPageProps> = ({
           onClick={onBack ?? navigateBack}
         >
           {(pageHistory.length > 0 || onBack) && <ArrowBackIcon fontSize="small" />}
-          <span>Create Self-usage Permit</span>
+          <span>Create Self-usage ACP</span>
         </button>
       }
       content={
@@ -105,7 +105,7 @@ export const GeneratePermitPage: React.FC<GeneratePermitPageProps> = ({
               variant="primary"
               disabled={!isValid || isSubmitting}
               aria-busy={isSubmitting}
-              label={isSubmitting ? 'Creating...' : 'Create Permit'}
+              label={isSubmitting ? 'Creating...' : 'Create ACP'}
               onClick={handleSubmit}
             />
           </div>
