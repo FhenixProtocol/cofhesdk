@@ -1,4 +1,4 @@
-import { type WirePermit, wirePermitBody } from '../../permits/legacy-v2/bridge.js';
+import { type WirePermit, wirePermitBody } from '../../permits/wire.js';
 import { cofheFetch } from '../debug.js';
 
 import { CofheError, CofheErrorCode } from '../error';
@@ -187,7 +187,6 @@ async function submitDecryptRequestV2(
   const body: {
     ct_tempkey: string;
     host_chain_id: number;
-    permit?: WirePermit;
     acp?: WirePermit;
   } = {
     ct_tempkey: BigInt(ctHash).toString(16).padStart(64, '0'),

@@ -1,4 +1,8 @@
-# Breaking changes: Permit (V2) → ACP
+# Breaking changes
+
+## ACP-era chains only
+
+The SDK no longer serves pre-upgrade (V2 `Permission`) chains: the ACL must sign as EIP-712 domain version "2" (ACP / Permit V3). Permit creation on a V2 chain fails with an explicit error instead of producing signatures the chain cannot verify.: Permit (V2) → ACP
 
 All breaking changes in the ACP migration, in one place. Applies to `@cofhe/sdk`, the mock contracts, and the on-chain ACL. **There are no deprecated aliases — old names are removed** so the compiler points at every site that needs attention.
 
@@ -17,10 +21,6 @@ const acpPublic = ACPUtils.getPublic(acp);
 ```
 
 Existing signed permits **do not verify** against the upgraded ACL (typehashes and domain version changed). Recreate them after upgrading — the SDK's store migration wipes retired-format permits automatically.
-
-## Chain backward compatibility
-
-The breaking changes above are about the **API surface**, not about which chains work. The SDK probes each chain's ACL (via the EIP-712 domain it serves) and speaks whichever permit protocol that chain runs: upgraded chains get ACP; chains still on the V2 ACL are signed for by a frozen copy of the released V2 engine, behind the same `client.acp.*` API. One app can connect to both generations at once during the rollout window. On V2 chains, scoped permits and on-chain sharing are unavailable and fail with explicit errors; everything else (creation, decryption, JSON sharing — importable by old-SDK recipients) works unchanged. Escape hatches: `permit.aclVersion` config forces a version per chainId, `clearAclCaches()` re-probes after a known ACL upgrade.
 
 ## Renames (removed, not deprecated)
 

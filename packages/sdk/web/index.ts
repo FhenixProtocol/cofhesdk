@@ -13,10 +13,6 @@ import {
   TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT,
 } from '@/core';
 
-// Re-exported here so consumers clear the SAME module instance this entry's
-// client uses (each bundle entry carries its own per-chain ACL probe caches).
-export { clearAclCaches } from '@/core';
-
 // Import web-specific storage (internal use only)
 import { createSsrStorage, createWebStorage } from './storage.js';
 

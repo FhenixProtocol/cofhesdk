@@ -24,9 +24,6 @@ import {
 } from 'viem';
 
 import { TASK_MANAGER_ADDRESS } from './consts.js';
-import { getAclEIP712Domain } from '../permits/onchain-utils.js';
-import { PermitV2Utils, checkPermitValidityOnChain } from '../permits/legacy-v2/index.js';
-import { toV2SelfOptions, toV2SharingOptions, toV2ImportOptions, v2PermitToAcp } from '../permits/legacy-v2/bridge.js';
 
 // ACP default revoker (timestamp-based revocation) — interface shared by all revokers
 const ACP_VALIDATOR_ABI = parseAbi([
@@ -81,68 +78,30 @@ const createPermitWithSign = async <T, TPermit extends ACP>(
  * @param options - The options for creating a self permit
  * @returns The created permit or error
  */
-// V2-chain variants: translate options, sign the PermissionedV2* typed data with
-// the frozen engine, normalize the result into a format-tagged ACP shape.
-const createSelfV2AndSign = async (
-  options: CreateSelfPermitOptions,
-  publicClient: PublicClient,
-  walletClient: WalletClient
-): Promise<SelfPermit> => {
-  const permit = await PermitV2Utils.createSelfAndSign(toV2SelfOptions(options), publicClient, walletClient);
-  return v2PermitToAcp(permit) as SelfPermit;
-};
-
-const createSharingV2AndSign = async (
-  options: CreateSharingPermitOptions,
-  publicClient: PublicClient,
-  walletClient: WalletClient
-): Promise<SharingPermit> => {
-  const permit = await PermitV2Utils.createSharingAndSign(toV2SharingOptions(options), publicClient, walletClient);
-  return v2PermitToAcp(permit) as SharingPermit;
-};
-
-const importSharedV2AndSign = async (
-  options: ImportSharedPermitOptions | string,
-  publicClient: PublicClient,
-  walletClient: WalletClient
-): Promise<RecipientPermit> => {
-  const permit = await PermitV2Utils.importSharedAndSign(toV2ImportOptions(options), publicClient, walletClient);
-  return v2PermitToAcp(permit) as RecipientPermit;
-};
-
 const createSelf = async (
   options: CreateSelfPermitOptions,
   publicClient: PublicClient,
-  walletClient: WalletClient,
-  aclVersionOverride?: AclVersion
+  walletClient: WalletClient
 ): Promise<SelfPermit> => {
-  const version = await getAclVersion(publicClient, await publicClient.getChainId(), aclVersionOverride);
-  const method = version === 'v2' ? createSelfV2AndSign : ACPUtils.createSelfAndSign;
-  return createPermitWithSign(options, publicClient, walletClient, method);
+  return createPermitWithSign(options, publicClient, walletClient, ACPUtils.createSelfAndSign);
 };
 
 const createSharing = async (
   options: CreateSharingPermitOptions,
   publicClient: PublicClient,
-  walletClient: WalletClient,
-  aclVersionOverride?: AclVersion
+  walletClient: WalletClient
 ): Promise<SharingPermit> => {
-  const version = await getAclVersion(publicClient, await publicClient.getChainId(), aclVersionOverride);
-  const method = version === 'v2' ? createSharingV2AndSign : ACPUtils.createSharingAndSign;
   // A sharing permit is delegated to a recipient — it is never the issuer's own active permit, so
   // creating one only stores it (unlike self/imported permits, which activate).
-  return createPermitWithSign(options, publicClient, walletClient, method, false);
+  return createPermitWithSign(options, publicClient, walletClient, ACPUtils.createSharingAndSign, false);
 };
 
 const importShared = async (
   options: ImportSharedPermitOptions | string,
   publicClient: PublicClient,
-  walletClient: WalletClient,
-  aclVersionOverride?: AclVersion
+  walletClient: WalletClient
 ): Promise<RecipientPermit> => {
-  const version = await getAclVersion(publicClient, await publicClient.getChainId(), aclVersionOverride);
-  const method = version === 'v2' ? importSharedV2AndSign : ACPUtils.importSharedAndSign;
-  return createPermitWithSign(options, publicClient, walletClient, method);
+  return createPermitWithSign(options, publicClient, walletClient, ACPUtils.importSharedAndSign);
 };
 
 // PERMIT UTILS
@@ -206,8 +165,7 @@ const getOrCreateSelfPermit = async (
   walletClient: WalletClient,
   chainId?: number,
   account?: string,
-  options?: CreateSelfPermitOptions,
-  aclVersionOverride?: AclVersion
+  options?: CreateSelfPermitOptions
 ): Promise<ACP> => {
   const _chainId = chainId ?? (await publicClient.getChainId());
   const _account = account ?? walletClient.account!.address;
@@ -215,22 +173,12 @@ const getOrCreateSelfPermit = async (
   // Try to get active permit first
   const activePermit = await getActivePermit(_chainId, _account);
 
-  // Reuse only when the permit's protocol matches what the chain's ACL speaks —
-  // a stored permit from before/after an ACL upgrade must be recreated.
-  const version = await getAclVersion(publicClient, _chainId, aclVersionOverride);
-  const formatMatches = activePermit != null && (activePermit.format ?? 'acp') === version;
-
-  if (activePermit && activePermit.type === 'self' && formatMatches && ACPUtils.isValid(activePermit).valid) {
+  if (activePermit && activePermit.type === 'self' && ACPUtils.isValid(activePermit).valid) {
     return activePermit;
   }
 
-  // No active permit, wrong type/format, or expired/invalid - create new one
-  return createSelf(
-    options ?? { issuer: _account, name: 'Autogenerated Self ACP' },
-    publicClient,
-    walletClient,
-    aclVersionOverride
-  );
+  // No active permit, wrong type, or expired/invalid - create new one
+  return createSelf(options ?? { issuer: _account, name: 'Autogenerated Self ACP' }, publicClient, walletClient);
 };
 
 /**
@@ -253,8 +201,7 @@ const getOrCreateSharingPermit = async (
   walletClient: WalletClient,
   options: CreateSharingPermitOptions,
   chainId?: number,
-  account?: string,
-  aclVersionOverride?: AclVersion
+  account?: string
 ): Promise<ACP> => {
   const _chainId = chainId ?? (await publicClient.getChainId());
   const _account = account ?? walletClient.account!.address;
@@ -262,15 +209,11 @@ const getOrCreateSharingPermit = async (
   // Try to get active permit first
   const activePermit = await getActivePermit(_chainId, _account);
 
-  // Reuse only when the permit's protocol matches what the chain's ACL speaks
-  const version = await getAclVersion(publicClient, _chainId, aclVersionOverride);
-  const formatMatches = activePermit != null && (activePermit.format ?? 'acp') === version;
-
-  if (activePermit && activePermit.type === 'sharing' && formatMatches && ACPUtils.isValid(activePermit).valid) {
+  if (activePermit && activePermit.type === 'sharing' && ACPUtils.isValid(activePermit).valid) {
     return activePermit;
   }
 
-  return createSharing(options, publicClient, walletClient, aclVersionOverride);
+  return createSharing(options, publicClient, walletClient);
 };
 
 // CONFIG DEFAULTS
@@ -377,57 +320,6 @@ const getAclServedAddresses = async (publicClient: PublicClient, chainId: number
   };
   aclServedAddressesCache.set(chainId, resolved);
   return resolved;
-};
-
-/**
- * The permit protocol a chain's ACL speaks.
- *  - 'v2':  released Permission struct (PermissionedV2* typed data) — pre-upgrade ACL
- *  - 'acp': ACP struct (scoped, revocable) — upgraded ACL
- */
-export type AclVersion = 'v2' | 'acp';
-
-const aclVersionCache = new Map<number, AclVersion>();
-
-/** Test hook: forget probed versions (e.g. between redeployments on one chainId). */
-const clearAclVersions = () => aclVersionCache.clear();
-
-/**
- * Forget everything probed from chains' ACLs — the permit protocol version and
- * the served infrastructure addresses. Call after a known ACL upgrade (or
- * between redeployments on a reused chainId) so the next operation re-probes.
- */
-export const clearAclCaches = (): void => {
-  clearAclServedAddresses();
-  clearAclVersions();
-};
-
-/**
- * Which permit protocol the chain's ACL speaks, probed via the EIP-712 domain
- * the ACL serves: version "1" -> V2 Permission, "2" -> ACP. Both ACL
- * generations expose `eip712Domain()` (the released SDK already relied on it),
- * so the probe costs the same read the signing path performs anyway.
- *
- * Cached per chainId. A failed probe (network error, no CoFHE deployment) is
- * NOT cached and resolves to 'acp' — the forward path.
- */
-const getAclVersion = async (
-  publicClient: PublicClient,
-  chainId: number,
-  override?: AclVersion
-): Promise<AclVersion> => {
-  if (override != null) return override;
-  const cached = aclVersionCache.get(chainId);
-  if (cached != null) return cached;
-
-  let version: AclVersion;
-  try {
-    const domain = await getAclEIP712Domain(publicClient);
-    version = domain.version === '1' ? 'v2' : 'acp';
-  } catch {
-    return 'acp';
-  }
-  aclVersionCache.set(chainId, version);
-  return version;
 };
 
 /**
@@ -605,11 +497,6 @@ const shareOnChain = async (
   if (acp.type !== 'sharing') {
     throw new Error(`Cannot share a '${acp.type}' ACP on-chain — only 'sharing' ACPs are shareable.`);
   }
-  if (acp.format === 'v2') {
-    throw new Error(
-      'On-chain sharing requires the upgraded (ACP) ACL — this permit was signed for a pre-upgrade chain. Use export() for the JSON hand-off instead.'
-    );
-  }
   if (acp.issuerSignature === '0x') {
     throw new Error('Cannot share an unsigned sharing ACP — sign it first.');
   }
@@ -732,8 +619,6 @@ export const permits = {
   applyPermitDefaultsFromChain,
   getAclServedAddresses,
   clearAclServedAddresses,
-  getAclVersion,
-  clearAclVersions,
 };
 
 /** @deprecated renamed — use `acp` (public terminology: permit -> ACP) */

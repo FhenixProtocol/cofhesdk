@@ -45,6 +45,12 @@ export const getAclEIP712Domain = async (publicClient: PublicClient): Promise<EI
   // eslint-disable-next-line no-unused-vars
   const [_fields, name, version, chainId, verifyingContract, _salt, _extensions] = domain;
 
+  if (version !== '2') {
+    throw new Error(
+      `Chain ${chainId}'s ACL serves EIP-712 domain version "${version}" — this SDK requires the upgraded (ACP-era) ACL, which signs as version "2". Pre-upgrade (V2 Permission) chains are not supported.`
+    );
+  }
+
   return {
     name,
     version,

@@ -48,8 +48,6 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
     connectStore.setState((state) => ({ ...state, ...partial }));
   };
 
-  const _aclVersionOverride = (chainId: number) => opts.config.permit?.aclVersion?.[chainId];
-
   // Share registry resolution: explicit `permit.sharingRegistry` config wins,
   // otherwise the address the chain's ACL serves.
   const _resolveSharingRegistry = async (publicClient: PublicClient, chainId: number): Promise<`0x${string}`> => {
@@ -243,8 +241,7 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
       return permits.createSelf(
         await permits.applyPermitDefaultsFromChain(options, opts.config.permit, publicClient!, chainId),
         publicClient!,
-        walletClient!,
-        _aclVersionOverride(chainId)
+        walletClient!
       );
     },
 
@@ -258,8 +255,7 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
       return permits.createSharing(
         await permits.applyPermitDefaultsFromChain(options, opts.config.permit, publicClient!, chainId),
         publicClient!,
-        walletClient!,
-        _aclVersionOverride(chainId)
+        walletClient!
       );
     },
 
@@ -269,8 +265,7 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
     ) => {
       _requireConnected();
       const { publicClient, walletClient } = clients ?? connectStore.getState();
-      const chainId = await publicClient!.getChainId();
-      return permits.importShared(options, publicClient!, walletClient!, _aclVersionOverride(chainId));
+      return permits.importShared(options, publicClient!, walletClient!);
     },
 
     // Get or create methods (require connection)
@@ -284,14 +279,7 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
         publicClient!,
         _chainId
       );
-      return permits.getOrCreateSelfPermit(
-        publicClient!,
-        walletClient!,
-        _chainId,
-        _account,
-        optionsWithDefaults,
-        _aclVersionOverride(_chainId)
-      );
+      return permits.getOrCreateSelfPermit(publicClient!, walletClient!, _chainId, _account, optionsWithDefaults);
     },
 
     getOrCreateSharingPermit: async (options: CreateSharingPermitOptions, chainId?: number, account?: string) => {
@@ -303,8 +291,7 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
         walletClient!,
         await permits.applyPermitDefaultsFromChain(options, opts.config.permit, publicClient!, _chainId),
         _chainId,
-        _account,
-        _aclVersionOverride(_chainId)
+        _account
       );
     },
 

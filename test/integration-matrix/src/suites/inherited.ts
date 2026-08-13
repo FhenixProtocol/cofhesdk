@@ -324,8 +324,6 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(
-            // toWirePermit: on a pre-upgrade (V2) chain the active permit is
-            // v2-format and the backend expects the V2 Permission shape
             makeThresholdRequestBody(chainConfig, alreadyFetchedCtHash, toWirePermit(activePermit!))
           ),
         });

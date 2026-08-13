@@ -1,5 +1,5 @@
 import { type EthEncryptedData } from '@/permits';
-import { type WirePermit, wirePermitBody } from '../../permits/legacy-v2/bridge.js';
+import { type WirePermit, wirePermitBody } from '../../permits/wire.js';
 import { cofheFetch } from '../debug.js';
 
 import { CofheError, CofheErrorCode } from '../error.js';
