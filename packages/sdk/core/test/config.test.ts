@@ -72,12 +72,12 @@ describe('createCofheConfigBase', () => {
     expectValidConfigItem('supportedChains', [sepolia, hardhat], [sepolia, hardhat]);
   });
 
-  it('defaultPermitExpiration', () => {
-    expectInvalidConfigItem('defaultPermitExpiration', 'not-a-number');
-    expectInvalidConfigItem('defaultPermitExpiration', null);
+  it('defaultACPExpiration', () => {
+    expectInvalidConfigItem('defaultACPExpiration', 'not-a-number');
+    expectInvalidConfigItem('defaultACPExpiration', null);
 
-    expectValidConfigItem('defaultPermitExpiration', 5, 5);
-    expectValidConfigItem('defaultPermitExpiration', undefined, 60 * 60 * 24 * 30);
+    expectValidConfigItem('defaultACPExpiration', 5, 5);
+    expectValidConfigItem('defaultACPExpiration', undefined, 60 * 60 * 24 * 30);
   });
 
   it('fheKeyStorage', async () => {

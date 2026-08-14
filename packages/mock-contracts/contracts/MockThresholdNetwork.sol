@@ -117,7 +117,7 @@ contract MockThresholdNetwork {
 
   // DECRYPT FOR TX
 
-  function _isAllowedWithPermit(
+  function _isAllowedWithACP(
     uint256 ctHash,
     ACP memory acp
   ) internal view returns (bool isAllowed, string memory error) {
@@ -135,7 +135,7 @@ contract MockThresholdNetwork {
     return (true, '');
   }
 
-  function _isAllowedWithoutPermit(uint256 ctHash) internal view returns (bool isAllowed, string memory error) {
+  function _isAllowedWithoutACP(uint256 ctHash) internal view returns (bool isAllowed, string memory error) {
     try mockAcl.globalAllowed(ctHash) returns (bool _isAllowed) {
       isAllowed = _isAllowed;
     } catch Error(string memory reason) {
@@ -150,8 +150,8 @@ contract MockThresholdNetwork {
     return (true, '');
   }
 
-  /// @notice Decrypt a ciphertext for a transaction using a permit.
-  function decryptForTxWithPermit(
+  /// @notice Decrypt a ciphertext for a transaction using an ACP.
+  function decryptForTxWithACP(
     uint256 ctHash,
     ACP memory acp
   ) public view returns (bool allowed, string memory error, uint256 decryptedValue) {
@@ -159,18 +159,18 @@ contract MockThresholdNetwork {
       return (false, 'PermissionMissing', 0);
     }
 
-    (bool isAllowed, string memory err) = _isAllowedWithPermit(ctHash, acp);
+    (bool isAllowed, string memory err) = _isAllowedWithACP(ctHash, acp);
     if (!isAllowed) return (false, err, 0);
 
     uint256 value = mockTaskManager.mockStorage(ctHash);
     return (true, '', value);
   }
 
-  /// @notice Decrypt a ciphertext for a transaction using global allowance (no permit).
-  function decryptForTxWithoutPermit(
+  /// @notice Decrypt a ciphertext for a transaction using global allowance (no acp).
+  function decryptForTxWithoutACP(
     uint256 ctHash
   ) public view returns (bool allowed, string memory error, uint256 decryptedValue) {
-    (bool isAllowed, string memory err) = _isAllowedWithoutPermit(ctHash);
+    (bool isAllowed, string memory err) = _isAllowedWithoutACP(ctHash);
     if (!isAllowed) return (false, err, 0);
 
     uint256 value = mockTaskManager.mockStorage(ctHash);

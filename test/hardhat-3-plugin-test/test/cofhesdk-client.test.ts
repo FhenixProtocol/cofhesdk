@@ -41,9 +41,9 @@ describe('CoFHE Plugin Config', async () => {
     assert.equal(client.config.environment, 'hardhat');
     assert.equal(client.connection.account?.toLowerCase(), expectedAddress.toLowerCase());
 
-    const activePermit = client.acp.getActivePermit();
-    assert.ok(activePermit, 'expected createClientWithBatteries() to create and select an active permit');
-    assert.equal(activePermit.issuer.toLowerCase(), expectedAddress.toLowerCase());
+    const activeACP = client.acp.getActiveACP();
+    assert.ok(activeACP, 'expected createClientWithBatteries() to create and select an active acp');
+    assert.equal(activeACP.issuer.toLowerCase(), expectedAddress.toLowerCase());
   });
 
   it('createClientWithBatteries accepts an explicit walletClient', async () => {

@@ -118,7 +118,7 @@ export function useCofheTokenClaimUnshielded(
               .decryptForTx(claim.ctHash)
               .setChainId(chainId)
               .setAccount(account)
-              .withoutPermit()
+              .withoutACP()
               .execute();
 
             readyClaims.push({

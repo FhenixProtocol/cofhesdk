@@ -16,8 +16,8 @@ import {
   DECRYPT_RESULT_SIGNER_ADDRESS
 } from '@cofhe/mock-contracts/contracts/MockCoFHE.sol';
 
-/// @notice Portable representation of the issuer's half of a shared permit, safe to transmit as cleartext.
-struct SharedPermitExport {
+/// @notice Portable representation of the issuer's half of a shared acp, safe to transmit as cleartext.
+struct SharedACPExport {
   address issuer;
   uint64 expiration;
   address recipient;
@@ -265,26 +265,26 @@ contract CofheClient is Test {
   // =====================
 
   /// @notice Decrypts a globally-allowed ciphertext and returns the plaintext with a publishable signature.
-  function decryptForTx_withoutPermit(
+  function decryptForTx_withoutACP(
     bytes32 ctHash
   ) public view onlyConnected returns (bytes32, uint256, bytes memory) {
     uint256 ct = uint256(ctHash);
 
-    (bool allowed, string memory error, uint256 decryptedValue) = mockThresholdNetwork.decryptForTxWithoutPermit(ct);
+    (bool allowed, string memory error, uint256 decryptedValue) = mockThresholdNetwork.decryptForTxWithoutACP(ct);
     require(allowed, string.concat('CofheClient: decryptForTx failed: ', error));
 
     bytes memory signature = mockThresholdNetworkSigner.signDecryptResult(ct, decryptedValue);
     return (ctHash, decryptedValue, signature);
   }
 
-  /// @notice Decrypts a ciphertext using a permit and returns the plaintext with a publishable signature.
-  function decryptForTx_withPermit(
+  /// @notice Decrypts a ciphertext using an ACP and returns the plaintext with a publishable signature.
+  function decryptForTx_withACP(
     bytes32 ctHash,
     ACP memory acp
   ) public view onlyConnected returns (bytes32, uint256, bytes memory) {
     uint256 ct = uint256(ctHash);
 
-    (bool allowed, string memory error, uint256 decryptedValue) = mockThresholdNetwork.decryptForTxWithPermit(
+    (bool allowed, string memory error, uint256 decryptedValue) = mockThresholdNetwork.decryptForTxWithACP(
       ct,
       acp
     );
@@ -298,7 +298,7 @@ contract CofheClient is Test {
   //   DECRYPT FOR VIEW
   // =====================
 
-  /// @notice Decrypts a ciphertext for off-chain reading by sealing/unsealing with the permit's sealing key.
+  /// @notice Decrypts a ciphertext for off-chain reading by sealing/unsealing with the acp's sealing key.
   function decryptForView(bytes32 ctHash, ACP memory acp) public view onlyConnected returns (uint256) {
     uint256 ct = uint256(ctHash);
 
@@ -313,7 +313,7 @@ contract CofheClient is Test {
   }
 
   // =====================
-  //      PERMITS
+  //      ACPS
   // =====================
 
   bytes32 private constant PERMISSION_TYPE_HASH =
@@ -387,7 +387,7 @@ contract CofheClient is Test {
     return keccak256(abi.encodePacked(seed));
   }
 
-  /// @notice Creates a self-permit for the connected account, signed with the stored private key.
+  /// @notice Creates a self-acp for the connected account, signed with the stored private key.
   function ACP_createSelf() public view onlyConnected returns (ACP memory acp) {
     acp = createBaseACP();
     acp.issuer = _account;
@@ -395,7 +395,7 @@ contract CofheClient is Test {
     acp = _signIssuerSelf(acp, _pkey);
   }
 
-  /// @notice Creates the issuer side of a shared permit. The result has no sealingKey (added by recipient on import).
+  /// @notice Creates the issuer side of a shared acp. The result has no sealingKey (added by recipient on import).
   function ACP_createShared(address recipient) public view onlyConnected returns (ACP memory acp) {
     acp = createBaseACP();
     acp.issuer = _account;
@@ -403,9 +403,9 @@ contract CofheClient is Test {
     acp = _signIssuerShared(acp, _pkey);
   }
 
-  /// @notice Exports a shared permit, stripping sensitive/recipient-specific fields.
-  function ACP_exportShared(ACP memory acp) public pure returns (SharedPermitExport memory exported) {
-    exported = SharedPermitExport({
+  /// @notice Exports a shared acp, stripping sensitive/recipient-specific fields.
+  function ACP_exportShared(ACP memory acp) public pure returns (SharedACPExport memory exported) {
+    exported = SharedACPExport({
       issuer: acp.issuer,
       expiration: acp.expiration,
       recipient: acp.recipient,
@@ -418,9 +418,9 @@ contract CofheClient is Test {
     });
   }
 
-  /// @notice Imports a shared permit export, adds the recipient's sealing key and signature.
+  /// @notice Imports a shared acp export, adds the recipient's sealing key and signature.
   function ACP_importShared(
-    SharedPermitExport memory data
+    SharedACPExport memory data
   ) public view onlyConnected returns (ACP memory acp) {
     require(data.recipient == _account, 'CofheClient: recipient mismatch');
 

@@ -210,7 +210,7 @@ The `Encryptable` factory functions (`Encryptable.uint32(...)`, `Encryptable.boo
 | | `cofhejs` | `@cofhe/sdk` |
 | ------------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | **Function** | `cofhejs.unseal(sealed, type)` | `client.decryptForView(ctHash, type)` or `client.decryptForTx(ctHash)` |
-| **ACP handling** | Automatic (uses most recent permit) | Explicit — `.withPermit()` / `.withPermit(permit)` / `.withPermit(hash)` / `.withoutPermit()` |
+| **ACP handling** | Automatic (uses most recent permit) | Explicit — `.withACP()` / `.withACP(permit)` / `.withACP(hash)` / `.withoutACP()` |
 | **Return value** | `Result<bigint \| boolean \| string>` | Direct value: `bigint`, `boolean`, or `string` for view; `{ ctHash, decryptedValue, signature }` for tx |
 | **On-chain verification** | Not built in | `decryptForTx` returns a signature for `FHE.publishDecryptResult(...)` or `FHE.verifyDecryptResult(...)` |
 | **`utype`** | Required for `unseal` | Required for `decryptForView`, not needed for `decryptForTx` |
@@ -272,7 +272,7 @@ const ctHash = await myContract.getEncryptedAmount();
 
 const { decryptedValue, signature } = await client
   .decryptForTx(ctHash)
-  .withoutPermit()
+  .withoutACP()
   .execute();
 
 await myContract.publishDecryptResult(ctHash, decryptedValue, signature);
@@ -311,10 +311,10 @@ Permits are now called **ACPs** (Access Control Permissions) and are no longer a
 | **Auto-generation** | `generatePermit: true` (default) | Never — always explicit |
 | **Creation** | `cofhejs.createPermit({ type, issuer })` | `client.acp.createSelf(...)`, `client.acp.createSharing(...)`, `client.acp.importShared(...)` |
 | **Return type** | `Result<Permit>` | Direct `ACP` object |
-| **Active ACP** | Implicitly used by `unseal` | `getOrCreateSelfPermit()` sets the active ACP; `decryptForView/Tx` uses it automatically |
+| **Active ACP** | Implicitly used by `unseal` | `getOrCreateSelfACP()` sets the active ACP; `decryptForView/Tx` uses it automatically |
 | **Sharing** | `createPermit({ type: "sharing", recipient })` → `createPermit({ type: "recipient", ...permit })` | `createSharing(...)` → `importShared(...)` |
-| **Selection** | Implicit | `client.acp.selectActivePermit(hash)` |
-| **Retrieval** | `cofhejs.getPermit(...)` | `client.acp.getPermit(hash)`, `client.acp.getPermits()`, `client.acp.getActivePermit()` |
+| **Selection** | Implicit | `client.acp.selectActiveACP(hash)` |
+| **Retrieval** | `cofhejs.getPermit(...)` | `client.acp.getACP(hash)`, `client.acp.getACPs()`, `client.acp.getActiveACP()` |
 :::
 ::::
 
@@ -361,7 +361,7 @@ const permit = await client.acp.createSelf({
 });
 
 // Or use the convenience method that creates one only if needed
-const permit2 = await client.acp.getOrCreateSelfPermit();
+const permit2 = await client.acp.getOrCreateSelfACP();
 
 // Use with decryptForView (active ACP is used automatically)
 const value = await client
@@ -371,7 +371,7 @@ const value = await client
 // Or pass a specific ACP
 const value2 = await client
   .decryptForView(ctHash, FheTypes.Uint32)
-  .withPermit(permit)
+  .withACP(permit)
   .execute();
 ```
 
@@ -429,7 +429,7 @@ try {
 | `cofhejs/node` | `@cofhe/sdk/node`                                    |
 | `cofhejs/web`  | `@cofhe/sdk/web`                                     |
 | N/A            | `@cofhe/sdk` (core types, `Encryptable`, `FheTypes`) |
-| N/A            | `@cofhe/sdk/permits`                                 |
+| N/A            | `@cofhe/sdk/acps`                                    |
 | N/A            | `@cofhe/sdk/adapters`                                |
 | N/A            | `@cofhe/sdk/chains`                                  |
 
@@ -520,7 +520,7 @@ const [eAmountHash, signature] = await client
 await contract.deposit(eAmountHash, signature);
 
 // 4. Create permit & decrypt
-await client.acp.getOrCreateSelfPermit();
+await client.acp.getOrCreateSelfACP();
 
 const ctHash = await contract.getBalance();
 const balance = await client

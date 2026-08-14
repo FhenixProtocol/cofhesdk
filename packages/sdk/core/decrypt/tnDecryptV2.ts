@@ -1,4 +1,4 @@
-import { type ACPPublic } from '@/permits';
+import { type ACPPublic } from '@/acps';
 import { cofheFetch } from '../debug.js';
 
 import { CofheError, CofheErrorCode } from '../error';

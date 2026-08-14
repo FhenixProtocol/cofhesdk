@@ -10,7 +10,7 @@ import type { SharedSimpleTest } from '../typechain-types/contracts/SharedSimple
  *   1. Bob stores an encrypted value and creates a signed sharing ACP for Alice
  *   2. Bob posts it to the ACPShareRegistry (shareOnChain)
  *   3. Alice discovers it (getIncomingShares), imports it (importFromChain),
- *      and decrypts Bob's value with the imported permit
+ *      and decrypts Bob's value with the imported acp
  *   4. Alice dismisses the share — her incoming list is empty again
  */
 describe('ACP on-chain sharing (SDK e2e)', () => {
@@ -25,7 +25,7 @@ describe('ACP on-chain sharing (SDK e2e)', () => {
     const config = await hre.cofhe.createConfig({
       environment: 'hardhat',
       supportedChains: [hardhat],
-      permit: { sharingRegistry: { 31337: registryAddress } },
+      acp: { sharingRegistry: { 31337: registryAddress } },
     });
 
     // --- Bob: store a value and share access with Alice ---
@@ -37,13 +37,13 @@ describe('ACP on-chain sharing (SDK e2e)', () => {
     await simpleTest.connect(bob).setValueTrivial(42);
     const ctHash = await simpleTest.getValueHash();
 
-    const sharingPermit = await bobClient.acp.createSharing({
+    const sharingACP = await bobClient.acp.createSharing({
       issuer: bob.address,
       recipient: alice.address,
       name: 'Bob shares with Alice',
     });
 
-    const { shareId } = await bobClient.acp.shareOnChain(sharingPermit);
+    const { shareId } = await bobClient.acp.shareOnChain(sharingACP);
     expect(shareId).to.match(/^0x[0-9a-f]{64}$/);
 
     // the client-side share id matches the registry's
@@ -63,7 +63,7 @@ describe('ACP on-chain sharing (SDK e2e)', () => {
     expect(imported.type).to.equal('recipient');
     expect(imported.issuer).to.equal(bob.address);
 
-    // Alice decrypts Bob's value using the imported permit (active after import)
+    // Alice decrypts Bob's value using the imported acp (active after import)
     const unsealed = await aliceClient.decryptForView(ctHash, FheTypes.Uint32).execute();
     expect(unsealed).to.equal(42n);
 
@@ -82,17 +82,17 @@ describe('ACP on-chain sharing (SDK e2e)', () => {
     const config = await hre.cofhe.createConfig({
       environment: 'hardhat',
       supportedChains: [hardhat],
-      permit: { sharingRegistry: { 31337: (await registry.getAddress()) as `0x${string}` } },
+      acp: { sharingRegistry: { 31337: (await registry.getAddress()) as `0x${string}` } },
     });
 
     const bobClient = hre.cofhe.createClient(config);
     await hre.cofhe.connectWithHardhatSigner(bobClient, bob);
 
-    const sharingPermit = await bobClient.acp.createSharing({
+    const sharingACP = await bobClient.acp.createSharing({
       issuer: bob.address,
       recipient: alice.address,
     });
-    const { shareId } = await bobClient.acp.shareOnChain(sharingPermit);
+    const { shareId } = await bobClient.acp.shareOnChain(sharingACP);
 
     await bobClient.acp.cancelShare(shareId);
 
@@ -104,7 +104,7 @@ describe('ACP on-chain sharing (SDK e2e)', () => {
   it('resolves the share registry from the ACL when config names none', async () => {
     const [bob, alice] = await hre.ethers.getSigners();
 
-    // No `permit.sharingRegistry` — the client must discover the plugin-deployed
+    // No `acp.sharingRegistry` — the client must discover the plugin-deployed
     // registry via TaskManager -> acl() -> shareRegistry()
     const config = await hre.cofhe.createConfig({
       environment: 'hardhat',
@@ -114,11 +114,11 @@ describe('ACP on-chain sharing (SDK e2e)', () => {
     const bobClient = hre.cofhe.createClient(config);
     await hre.cofhe.connectWithHardhatSigner(bobClient, bob);
 
-    const sharingPermit = await bobClient.acp.createSharing({
+    const sharingACP = await bobClient.acp.createSharing({
       issuer: bob.address,
       recipient: alice.address,
     });
-    const { shareId } = await bobClient.acp.shareOnChain(sharingPermit);
+    const { shareId } = await bobClient.acp.shareOnChain(sharingACP);
 
     const aclRegistry = await (await hre.cofhe.mocks.getMockACL()).shareRegistry();
     const registry = await hre.ethers.getContractAt('ACPShareRegistry', aclRegistry);
@@ -132,12 +132,12 @@ describe('ACP on-chain sharing (SDK e2e)', () => {
 
     // The ACL-served default revoker was applied at creation
     const aclRevoker = await (await hre.cofhe.mocks.getMockACL()).defaultRevokerContract();
-    expect(sharingPermit.revokerContract.toLowerCase()).to.equal(aclRevoker.toLowerCase());
+    expect(sharingACP.revokerContract.toLowerCase()).to.equal(aclRevoker.toLowerCase());
 
     await aliceClient.acp.dismissShare(shareId);
   });
 
-  it('shareOnChain rejects a self permit', async () => {
+  it('shareOnChain rejects a self acp', async () => {
     const [bob] = await hre.ethers.getSigners();
 
     const registry = await (await hre.ethers.getContractFactory('ACPShareRegistry')).deploy();
@@ -146,16 +146,16 @@ describe('ACP on-chain sharing (SDK e2e)', () => {
     const config = await hre.cofhe.createConfig({
       environment: 'hardhat',
       supportedChains: [hardhat],
-      permit: { sharingRegistry: { 31337: (await registry.getAddress()) as `0x${string}` } },
+      acp: { sharingRegistry: { 31337: (await registry.getAddress()) as `0x${string}` } },
     });
 
     const client = hre.cofhe.createClient(config);
     await hre.cofhe.connectWithHardhatSigner(client, bob);
 
-    const selfPermit = await client.acp.createSelf({ issuer: bob.address });
+    const selfACP = await client.acp.createSelf({ issuer: bob.address });
 
     try {
-      await client.acp.shareOnChain(selfPermit);
+      await client.acp.shareOnChain(selfACP);
       expect.fail('expected shareOnChain to throw');
     } catch (e: any) {
       expect(e.message).to.match(/only 'sharing' ACPs are shareable/);

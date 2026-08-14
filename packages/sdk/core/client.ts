@@ -1,16 +1,16 @@
-import type { CreateSelfPermitOptions, CreateSharingPermitOptions, ImportSharedPermitOptions } from '@/permits';
+import type { CreateSelfACPOptions, CreateSharingACPOptions, ImportSharedACPOptions } from '@/acps';
 
 import { createStore } from 'zustand/vanilla';
 import { type Hex, type PublicClient, type WalletClient } from 'viem';
 import { CofheError, CofheErrorCode } from './error.js';
 import { EncryptInputsBuilder } from './encrypt/encryptInputsBuilder.js';
 import { createKeysStore } from './keyStore.js';
-import { permits } from './permits.js';
+import { acps } from './acps.js';
 import { DecryptForViewBuilder } from './decrypt/decryptForViewBuilder.js';
 import { DecryptForTxBuilder, type DecryptForTxBuilderUnset } from './decrypt/decryptForTxBuilder.js';
 import { verifyDecryptResult as verifyDecryptResultStandalone } from './decrypt/verifyDecryptResult.js';
 import { getPublicClientChainID, getWalletClientAccount } from './utils.js';
-import type { CofheClientConnectionState, CofheClientParams, CofheClient, CofheClientPermits } from './clientTypes.js';
+import type { CofheClientConnectionState, CofheClientParams, CofheClient, CofheClientACPs } from './clientTypes.js';
 import type { EncryptableItem, FheTypes } from './types.js';
 import type { CofheConfig } from './config.js';
 
@@ -48,17 +48,17 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
     connectStore.setState((state) => ({ ...state, ...partial }));
   };
 
-  // Share registry resolution: explicit `permit.sharingRegistry` config wins,
+  // Share registry resolution: explicit `acp.sharingRegistry` config wins,
   // otherwise the address the chain's ACL serves.
   const _resolveSharingRegistry = async (publicClient: PublicClient, chainId: number): Promise<`0x${string}`> => {
-    const configured = opts.config.permit?.sharingRegistry?.[chainId];
+    const configured = opts.config.acp?.sharingRegistry?.[chainId];
     if (configured != null) return configured;
-    const registry = (await permits.getAclServedAddresses(publicClient, chainId)).shareRegistry;
+    const registry = (await acps.getAclServedAddresses(publicClient, chainId)).shareRegistry;
     if (registry == null) {
       throw new CofheError({
         code: CofheErrorCode.MissingConfig,
         message: `No ACP share registry available for chainId <${chainId}>`,
-        hint: 'The ACL on this chain does not serve a share registry address. Set `permit.sharingRegistry` in the cofhe config to use on-chain sharing.',
+        hint: 'The ACL on this chain does not serve a share registry address. Set `acp.sharingRegistry` in the cofhe config to use on-chain sharing.',
         context: { chainId },
       });
     }
@@ -203,7 +203,7 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
     return verifyDecryptResultStandalone(handle, cleartext, signature, publicClient!);
   }
 
-  // PERMITS - Context-aware wrapper
+  // ACPS - Context-aware wrapper
 
   const _getChainIdAndAccount = (chainId?: number, account?: string) => {
     const state = connectStore.getState();
@@ -225,102 +225,102 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
     return { chainId: _chainId, account: _account };
   };
 
-  const clientPermits: CofheClientPermits = {
+  const clientACPs: CofheClientACPs = {
     // Pass through store access
-    getSnapshot: permits.getSnapshot,
-    subscribe: permits.subscribe,
+    getSnapshot: acps.getSnapshot,
+    subscribe: acps.subscribe,
 
     // Creation methods (require connection)
     createSelf: async (
-      options: CreateSelfPermitOptions,
+      options: CreateSelfACPOptions,
       clients?: { publicClient: PublicClient; walletClient: WalletClient }
     ) => {
       _requireConnected();
       const { publicClient, walletClient } = clients ?? connectStore.getState();
       const chainId = await publicClient!.getChainId();
-      return permits.createSelf(
-        await permits.applyPermitDefaultsFromChain(options, opts.config.permit, publicClient!, chainId),
+      return acps.createSelf(
+        await acps.applyACPDefaultsFromChain(options, opts.config.acp, publicClient!, chainId),
         publicClient!,
         walletClient!
       );
     },
 
     createSharing: async (
-      options: CreateSharingPermitOptions,
+      options: CreateSharingACPOptions,
       clients?: { publicClient: PublicClient; walletClient: WalletClient }
     ) => {
       _requireConnected();
       const { publicClient, walletClient } = clients ?? connectStore.getState();
       const chainId = await publicClient!.getChainId();
-      return permits.createSharing(
-        await permits.applyPermitDefaultsFromChain(options, opts.config.permit, publicClient!, chainId),
+      return acps.createSharing(
+        await acps.applyACPDefaultsFromChain(options, opts.config.acp, publicClient!, chainId),
         publicClient!,
         walletClient!
       );
     },
 
     importShared: async (
-      options: ImportSharedPermitOptions | string,
+      options: ImportSharedACPOptions | string,
       clients?: { publicClient: PublicClient; walletClient: WalletClient }
     ) => {
       _requireConnected();
       const { publicClient, walletClient } = clients ?? connectStore.getState();
-      return permits.importShared(options, publicClient!, walletClient!);
+      return acps.importShared(options, publicClient!, walletClient!);
     },
 
     // Get or create methods (require connection)
-    getOrCreateSelfPermit: async (chainId?: number, account?: string, options?: CreateSelfPermitOptions) => {
+    getOrCreateSelfACP: async (chainId?: number, account?: string, options?: CreateSelfACPOptions) => {
       _requireConnected();
       const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
       const { publicClient, walletClient } = connectStore.getState();
-      const optionsWithDefaults = await permits.applyPermitDefaultsFromChain(
+      const optionsWithDefaults = await acps.applyACPDefaultsFromChain(
         options ?? { issuer: _account, name: 'Autogenerated Self ACP' },
-        opts.config.permit,
+        opts.config.acp,
         publicClient!,
         _chainId
       );
-      return permits.getOrCreateSelfPermit(publicClient!, walletClient!, _chainId, _account, optionsWithDefaults);
+      return acps.getOrCreateSelfACP(publicClient!, walletClient!, _chainId, _account, optionsWithDefaults);
     },
 
-    getOrCreateSharingPermit: async (options: CreateSharingPermitOptions, chainId?: number, account?: string) => {
+    getOrCreateSharingACP: async (options: CreateSharingACPOptions, chainId?: number, account?: string) => {
       _requireConnected();
       const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
       const { publicClient, walletClient } = connectStore.getState();
-      return permits.getOrCreateSharingPermit(
+      return acps.getOrCreateSharingACP(
         publicClient!,
         walletClient!,
-        await permits.applyPermitDefaultsFromChain(options, opts.config.permit, publicClient!, _chainId),
+        await acps.applyACPDefaultsFromChain(options, opts.config.acp, publicClient!, _chainId),
         _chainId,
         _account
       );
     },
 
     // Revocation (require connection)
-    revokePermit: async (permit) => {
+    revokeACP: async (acp) => {
       _requireConnected();
       const { walletClient } = connectStore.getState();
-      return permits.revokePermit(permit, walletClient!);
+      return acps.revokeACP(acp, walletClient!);
     },
 
-    revokeAllPermits: async (revokerContract?: `0x${string}`) => {
+    revokeAllACPs: async (revokerContract?: `0x${string}`) => {
       _requireConnected();
       const { publicClient, walletClient } = connectStore.getState();
-      return permits.revokeAllPermits(walletClient!, publicClient!, revokerContract);
+      return acps.revokeAllACPs(walletClient!, publicClient!, revokerContract);
     },
 
-    isPermitRevoked: async (permit) => {
+    isACPRevoked: async (acp) => {
       _requireConnected();
       const { publicClient } = connectStore.getState();
-      return permits.isPermitRevoked(permit, publicClient!);
+      return acps.isACPRevoked(acp, publicClient!);
     },
 
-    // On-chain sharing (require connection + config.permit.sharingRegistry)
-    shareOnChain: async (permit) => {
+    // On-chain sharing (require connection + config.acp.sharingRegistry)
+    shareOnChain: async (acp) => {
       _requireConnected();
       const { publicClient, walletClient } = connectStore.getState();
       const chainId = await publicClient!.getChainId();
       const sharingRegistry = await _resolveSharingRegistry(publicClient!, chainId);
-      return permits.shareOnChain(permit, walletClient!, sharingRegistry);
+      return acps.shareOnChain(acp, walletClient!, sharingRegistry);
     },
 
     getIncomingShares: async () => {
@@ -329,13 +329,13 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
       const chainId = await publicClient!.getChainId();
       const account = walletClient!.account!.address;
       const sharingRegistry = await _resolveSharingRegistry(publicClient!, chainId);
-      return permits.getIncomingShares(publicClient!, sharingRegistry, account);
+      return acps.getIncomingShares(publicClient!, sharingRegistry, account);
     },
 
     importFromChain: async (share) => {
       _requireConnected();
       const { publicClient, walletClient } = connectStore.getState();
-      return permits.importFromChain(share, publicClient!, walletClient!);
+      return acps.importFromChain(share, publicClient!, walletClient!);
     },
 
     dismissShare: async (shareId) => {
@@ -343,7 +343,7 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
       const { publicClient, walletClient } = connectStore.getState();
       const chainId = await publicClient!.getChainId();
       const sharingRegistry = await _resolveSharingRegistry(publicClient!, chainId);
-      return permits.removeShareOnChain(shareId, walletClient!, sharingRegistry);
+      return acps.removeShareOnChain(shareId, walletClient!, sharingRegistry);
     },
 
     cancelShare: async (shareId) => {
@@ -351,51 +351,51 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
       const { publicClient, walletClient } = connectStore.getState();
       const chainId = await publicClient!.getChainId();
       const sharingRegistry = await _resolveSharingRegistry(publicClient!, chainId);
-      return permits.removeShareOnChain(shareId, walletClient!, sharingRegistry);
+      return acps.removeShareOnChain(shareId, walletClient!, sharingRegistry);
     },
 
     // Retrieval methods (auto-fill chainId/account)
-    getPermit: (hash: string, chainId?: number, account?: string) => {
+    getACP: (hash: string, chainId?: number, account?: string) => {
       const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
-      return permits.getPermit(_chainId, _account, hash);
+      return acps.getACP(_chainId, _account, hash);
     },
 
-    getPermits: (chainId?: number, account?: string) => {
+    getACPs: (chainId?: number, account?: string) => {
       const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
-      return permits.getPermits(_chainId, _account);
+      return acps.getACPs(_chainId, _account);
     },
 
-    getActivePermit: (chainId?: number, account?: string) => {
+    getActiveACP: (chainId?: number, account?: string) => {
       const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
-      return permits.getActivePermit(_chainId, _account);
+      return acps.getActiveACP(_chainId, _account);
     },
 
-    getActivePermitHash: (chainId?: number, account?: string) => {
+    getActiveACPHash: (chainId?: number, account?: string) => {
       const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
-      return permits.getActivePermitHash(_chainId, _account);
+      return acps.getActiveACPHash(_chainId, _account);
     },
 
     // Mutation methods (auto-fill chainId/account)
-    selectActivePermit: (hash: string, chainId?: number, account?: string) => {
+    selectActiveACP: (hash: string, chainId?: number, account?: string) => {
       const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
-      return permits.selectActivePermit(_chainId, _account, hash);
+      return acps.selectActiveACP(_chainId, _account, hash);
     },
 
-    removePermit: async (hash: string, chainId?: number, account?: string) => {
+    removeACP: async (hash: string, chainId?: number, account?: string) => {
       const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
-      return permits.removePermit(_chainId, _account, hash);
+      return acps.removeACP(_chainId, _account, hash);
     },
 
-    removeActivePermit: async (chainId?: number, account?: string) => {
+    removeActiveACP: async (chainId?: number, account?: string) => {
       const { chainId: _chainId, account: _account } = _getChainIdAndAccount(chainId, account);
-      return permits.removeActivePermit(_chainId, _account);
+      return acps.removeActiveACP(_chainId, _account);
     },
 
     // Utils (no context needed)
-    getHash: permits.getHash,
-    export: permits.export,
-    serialize: permits.serialize,
-    deserialize: permits.deserialize,
+    getHash: acps.getHash,
+    export: acps.export,
+    serialize: acps.serialize,
+    deserialize: acps.deserialize,
   };
 
   return {
@@ -427,7 +427,7 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
     decryptHandle: decryptForView,
     decryptForTx,
     verifyDecryptResult,
-    acp: clientPermits,
+    acp: clientACPs,
 
     // Add SDK-specific methods below that require connection
     // Example:

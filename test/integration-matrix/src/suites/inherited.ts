@@ -9,7 +9,7 @@
 
 import { it, describe, expect, beforeAll, afterAll } from 'vitest';
 import { Encryptable, FheTypes } from '@cofhe/sdk';
-import { ACPUtils, type ACPPublic } from '@cofhe/sdk/permits';
+import { ACPUtils, type ACPPublic } from '@cofhe/sdk/acps';
 import { simpleTestAbi } from '@cofhe/test-setup';
 import type { TestChainConfig, ClientFactory, TestContext } from '../types.js';
 
@@ -71,39 +71,39 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
     expect(signature).toMatch(/^0x[0-9a-f]+$/i);
   }, 60_000);
 
-  it('Permits - should create a self permit', async () => {
-    const permit = await ctx.cofheClient.acp.createSelf({
+  it('ACPs - should create a self acp', async () => {
+    const acp = await ctx.cofheClient.acp.createSelf({
       issuer: ctx.bobAccount.address,
-      name: 'Test Self Permit',
+      name: 'Test Self ACP',
     });
 
-    expect(permit).toBeDefined();
-    expect(permit.type).toBe('self');
-    expect(permit.name).toBe('Test Self Permit');
-    expect(permit.issuer).toBe(ctx.bobAccount.address);
-    expect(permit.issuerSignature).not.toBe('0x');
-    expect(permit.sealingPrivateKey).toBeDefined();
-    expect(permit.sealingKey).toBeDefined();
+    expect(acp).toBeDefined();
+    expect(acp.type).toBe('self');
+    expect(acp.name).toBe('Test Self ACP');
+    expect(acp.issuer).toBe(ctx.bobAccount.address);
+    expect(acp.issuerSignature).not.toBe('0x');
+    expect(acp.sealingPrivateKey).toBeDefined();
+    expect(acp.sealingKey).toBeDefined();
 
-    const activePermit = ctx.cofheClient.acp.getActivePermit();
-    expect(activePermit).toBeDefined();
-    expect(activePermit!.hash).toBe(permit.hash);
+    const activeACP = ctx.cofheClient.acp.getActiveACP();
+    expect(activeACP).toBeDefined();
+    expect(activeACP!.hash).toBe(acp.hash);
   }, 30_000);
 
-  it('Permits - should create a sharing permit, export it, and import it as another user', async () => {
-    const sharingPermit = await ctx.cofheClient.acp.createSharing({
+  it('ACPs - should create a sharing acp, export it, and import it as another user', async () => {
+    const sharingACP = await ctx.cofheClient.acp.createSharing({
       issuer: ctx.bobAccount.address,
       recipient: ctx.aliceAccount.address,
-      name: 'Test Sharing Permit',
+      name: 'Test Sharing ACP',
     });
 
-    expect(sharingPermit).toBeDefined();
-    expect(sharingPermit.type).toBe('sharing');
-    expect(sharingPermit.issuer).toBe(ctx.bobAccount.address);
-    expect(sharingPermit.recipient).toBe(ctx.aliceAccount.address);
-    expect(sharingPermit.issuerSignature).not.toBe('0x');
+    expect(sharingACP).toBeDefined();
+    expect(sharingACP.type).toBe('sharing');
+    expect(sharingACP.issuer).toBe(ctx.bobAccount.address);
+    expect(sharingACP.recipient).toBe(ctx.aliceAccount.address);
+    expect(sharingACP.issuerSignature).not.toBe('0x');
 
-    const exported = ctx.cofheClient.acp.export(sharingPermit);
+    const exported = ctx.cofheClient.acp.export(sharingACP);
     expect(exported).toBeDefined();
     const parsed = JSON.parse(exported);
     expect(parsed.type).toBe('sharing');
@@ -112,7 +112,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
     expect(parsed.issuerSignature).toBeDefined();
     expect(parsed).not.toHaveProperty('sealingPrivateKey');
 
-    // Alice imports the shared permit via a fresh client
+    // Alice imports the shared acp via a fresh client
     const aliceConfig = factory.createConfig({
       supportedChains: [chainConfig.cofheChain],
       ...(chainConfig.id === 31337
@@ -125,14 +125,14 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
     const aliceClient = factory.createClient(aliceConfig);
     await aliceClient.connect(ctx.publicClient, ctx.aliceWalletClient);
 
-    const importedPermit = await aliceClient.acp.importShared(exported);
+    const importedACP = await aliceClient.acp.importShared(exported);
 
-    expect(importedPermit).toBeDefined();
-    expect(importedPermit.type).toBe('recipient');
-    expect(importedPermit.issuer).toBe(ctx.bobAccount.address);
-    expect(importedPermit.recipient).toBe(ctx.aliceAccount.address);
-    expect(importedPermit.recipientSignature).not.toBe('0x');
-    expect(importedPermit.sealingPrivateKey).toBeDefined();
+    expect(importedACP).toBeDefined();
+    expect(importedACP.type).toBe('recipient');
+    expect(importedACP.issuer).toBe(ctx.bobAccount.address);
+    expect(importedACP.recipient).toBe(ctx.aliceAccount.address);
+    expect(importedACP.recipientSignature).not.toBe('0x');
+    expect(importedACP.sealingPrivateKey).toBeDefined();
   }, 30_000);
 
   let alreadyFetchedCtHash: bigint | string;
@@ -141,7 +141,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
     it('Should encrypt a multi-input batch under one shared signature', async () => {
       await ctx.cofheClient.acp.createSelf({
         issuer: ctx.bobAccount.address,
-        name: 'Encrypt View Permit',
+        name: 'Encrypt View ACP',
       });
 
       // Two inputs, one signature over keccak256(h_0 || h_1) - the contract verifies the whole
@@ -176,10 +176,10 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
 
       expect(result).toBe(testValue);
     });
-    it('Decrypt for View (with permit) - should encrypt → store → decryptForView a value', async () => {
+    it('Decrypt for View (with acp) - should encrypt → store → decryptForView a value', async () => {
       await ctx.cofheClient.acp.createSelf({
         issuer: ctx.bobAccount.address,
-        name: 'Decrypt View Permit',
+        name: 'Decrypt View ACP',
       });
 
       const [hash, signature] = await ctx.cofheClient
@@ -279,7 +279,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
         functionName: 'getValueHash',
       });
 
-      const decryptResult = await ctx.cofheClient.decryptForTx(updatedCtHash).withPermit().execute();
+      const decryptResult = await ctx.cofheClient.decryptForTx(updatedCtHash).withACP().execute();
       // now that it was fetched - next time it should fetch from cache
       alreadyFetchedCtHash = updatedCtHash;
 
@@ -316,7 +316,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
     it.skipIf(chainConfig.id === 31337)(
       '200 -> from cache',
       async () => {
-        const activePermit = ctx.cofheClient.acp.getActivePermit();
+        const activeACP = ctx.cofheClient.acp.getActiveACP();
 
         const secondSubmitResponse = await fetch(`${chainConfig.cofheChain.thresholdNetworkUrl}/v2/decrypt`, {
           method: 'POST',
@@ -324,7 +324,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(
-            makeThresholdRequestBody(chainConfig, alreadyFetchedCtHash, ACPUtils.getPublic(activePermit!, true))
+            makeThresholdRequestBody(chainConfig, alreadyFetchedCtHash, ACPUtils.getPublic(activeACP!, true))
           ),
         });
 
@@ -352,7 +352,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
     );
   });
 
-  it('Decrypt for Tx (without permit) - should encrypt → store public → decryptForTx → publishDecryptResult → verify', async () => {
+  it('Decrypt for Tx (without acp) - should encrypt → store public → decryptForTx → publishDecryptResult → verify', async () => {
     const testValue = 42n;
     const [hash, signature] = await ctx.cofheClient
       .encryptInputs([Encryptable.uint32(testValue)])
@@ -380,7 +380,7 @@ export function runInheritedSuite(chainConfig: TestChainConfig, factory: ClientF
       functionName: 'publicValueHash',
     });
 
-    const decryptResult = await ctx.cofheClient.decryptForTx(ctHash).withoutPermit().execute();
+    const decryptResult = await ctx.cofheClient.decryptForTx(ctHash).withoutACP().execute();
 
     expect(decryptResult.ctHash).toBe(ctHash);
     expect(decryptResult.decryptedValue).toBe(testValue);

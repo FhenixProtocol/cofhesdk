@@ -114,7 +114,7 @@ await client.connect(publicClient, walletClient);
 
 ### `cofhe.createClientWithBatteries(walletClient?)`
 
-Creates a fully initialized `CofheClient` in one call — configures it for Hardhat, connects it, and creates a self-permit so it can decrypt encrypted FHE variables out of the box.
+Creates a fully initialized `CofheClient` in one call — configures it for Hardhat, connects it, and creates a self-acp so it can decrypt encrypted FHE variables out of the box.
 
 ```typescript
 // Uses the first account in the connection automatically:

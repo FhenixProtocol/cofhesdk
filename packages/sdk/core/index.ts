@@ -21,7 +21,7 @@ export type {
   CofheClient as CofheClient,
   CofheClientParams as CofheClientParams,
   CofheClientConnectionState as CofheClientConnectionState,
-  CofheClientPermits as CofheClientPermits,
+  CofheClientACPs as CofheClientACPs,
 } from './clientTypes.js';
 
 export type {

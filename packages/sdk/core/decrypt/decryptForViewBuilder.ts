@@ -1,11 +1,11 @@
 /* eslint-disable no-dupe-class-members */
 import { hardhat } from '@/chains';
-import { type ACP, ACPUtils } from '@/permits';
+import { type ACP, ACPUtils } from '@/acps';
 
 import { FheTypes, type UnsealedItem } from '../types.js';
 import { getThresholdNetworkUrlOrThrow } from '../config.js';
 import { CofheError, CofheErrorCode } from '../error.js';
-import { permits } from '../permits.js';
+import { acps } from '../acps.js';
 import { isValidUtype, convertViaUtype } from './decryptUtils.js';
 import { BaseBuilder, type BaseBuilderParams } from '../baseBuilder.js';
 import { cofheMocksDecryptForView } from './cofheMocksDecryptForView.js';
@@ -22,17 +22,17 @@ const DEFAULT_404_RETRY_TIMEOUT_MS = 10_000;
  * await client.decryptForView(ctHash, utype)
  *   .setChainId(chainId)
  *   .setAccount(account)
- *   .withPermit()              // optional (active permit)
- *   // or .withPermit(permitHash) / .withPermit(permit)
+ *   .withACP()              // optional (active acp)
+ *   // or .withACP(acpHash) / .withACP(acp)
  *   .execute()
  *
  * If chainId not set, uses client's chainId
  * If account not set, uses client's account
- * withPermit() uses chainId + account to get the active permit.
- * withPermit(permitHash) fetches that permit using chainId + account.
- * withPermit(permit) uses the provided permit regardless of chainId/account.
+ * withACP() uses chainId + account to get the active acp.
+ * withACP(acpHash) fetches that acp using chainId + account.
+ * withACP(acp) uses the provided acp regardless of chainId/account.
  *
- * Note: decryptForView always requires a permit (no global-allowance mode).
+ * Note: decryptForView always requires an ACP (no global-allowance mode).
  *
  * Returns the unsealed item.
  */
@@ -40,15 +40,15 @@ const DEFAULT_404_RETRY_TIMEOUT_MS = 10_000;
 type DecryptForViewBuilderParams<U extends FheTypes> = BaseBuilderParams & {
   ctHash: bigint | string;
   utype: U;
-  permitHash?: string;
-  permit?: ACP;
+  acpHash?: string;
+  acp?: ACP;
 };
 
 export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
   private ctHash: bigint | string;
   private utype: U;
-  private permitHash?: string;
-  private permit?: ACP;
+  private acpHash?: string;
+  private acp?: ACP;
   private pollCallback?: DecryptPollCallbackFunction;
   private retry404TimeoutMs = DEFAULT_404_RETRY_TIMEOUT_MS;
 
@@ -64,12 +64,12 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
 
     this.ctHash = params.ctHash;
     this.utype = params.utype;
-    this.permitHash = params.permitHash;
-    this.permit = params.permit;
+    this.acpHash = params.acpHash;
+    this.acp = params.acp;
   }
 
   /**
-   * @param chainId - Chain to decrypt values from. Used to fetch the threshold network URL and use the correct permit.
+   * @param chainId - Chain to decrypt values from. Used to fetch the threshold network URL and use the correct acp.
    *
    * If not provided, the chainId will be fetched from the connected publicClient.
    *
@@ -92,7 +92,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
   }
 
   /**
-   * @param account - Account to decrypt values from. Used to fetch the correct permit.
+   * @param account - Account to decrypt values from. Used to fetch the correct acp.
    *
    * If not provided, the account will be fetched from the connected walletClient.
    *
@@ -135,77 +135,77 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
   }
 
   /**
-   * Select "use permit" mode (optional).
+   * Select "use acp" mode (optional).
    *
-   * - `withPermit(permit)` uses the provided permit.
-   * - `withPermit(permitHash)` fetches that permit.
-   * - `withPermit()` uses the active permit for the resolved `chainId + account`.
+   * - `withACP(acp)` uses the provided acp.
+   * - `withACP(acpHash)` fetches that acp.
+   * - `withACP()` uses the active acp for the resolved `chainId + account`.
    */
-  withPermit(): DecryptForViewBuilder<U>;
-  withPermit(permitHash: string): DecryptForViewBuilder<U>;
-  withPermit(permit: ACP): DecryptForViewBuilder<U>;
-  withPermit(permitOrPermitHash?: ACP | string): DecryptForViewBuilder<U> {
-    if (typeof permitOrPermitHash === 'string') {
-      this.permitHash = permitOrPermitHash;
-      this.permit = undefined;
-    } else if (permitOrPermitHash === undefined) {
-      // Explicitly choose "active permit" resolution at execute()
-      this.permitHash = undefined;
-      this.permit = undefined;
+  withACP(): DecryptForViewBuilder<U>;
+  withACP(acpHash: string): DecryptForViewBuilder<U>;
+  withACP(acp: ACP): DecryptForViewBuilder<U>;
+  withACP(acpOrACPHash?: ACP | string): DecryptForViewBuilder<U> {
+    if (typeof acpOrACPHash === 'string') {
+      this.acpHash = acpOrACPHash;
+      this.acp = undefined;
+    } else if (acpOrACPHash === undefined) {
+      // Explicitly choose "active acp" resolution at execute()
+      this.acpHash = undefined;
+      this.acp = undefined;
     } else {
       // ACP object
-      this.permit = permitOrPermitHash;
-      this.permitHash = undefined;
+      this.acp = acpOrACPHash;
+      this.acpHash = undefined;
     }
 
     return this;
   }
 
   /**
-   * @param permitHash - ACP hash to decrypt values from. Used to fetch the correct permit.
+   * @param acpHash - ACP hash to decrypt values from. Used to fetch the correct acp.
    *
-   * If not provided, the active permit for the chainId and account will be used.
-   * If `setPermit()` is called, it will be used regardless of chainId, account, or permitHash.
+   * If not provided, the active acp for the chainId and account will be used.
+   * If `setACP()` is called, it will be used regardless of chainId, account, or acpHash.
    *
    * Example:
    * ```typescript
    * const unsealed = await client.decryptForView(ctHash, utype)
-   *   .setPermitHash('0x1234567890123456789012345678901234567890')
+   *   .setACPHash('0x1234567890123456789012345678901234567890')
    *   .execute();
    * ```
    *
    * @returns The chainable DecryptForViewBuilder instance.
    */
-  /** @deprecated Use `withPermit(permitHash)` instead. */
-  setPermitHash(permitHash: string): DecryptForViewBuilder<U> {
-    return this.withPermit(permitHash);
+  /** @deprecated Use `withACP(acpHash)` instead. */
+  setACPHash(acpHash: string): DecryptForViewBuilder<U> {
+    return this.withACP(acpHash);
   }
 
-  getPermitHash(): string | undefined {
-    return this.permitHash;
+  getACPHash(): string | undefined {
+    return this.acpHash;
   }
 
   /**
-   * @param permit - ACP to decrypt values with. If provided, it will be used regardless of chainId, account, or permitHash.
+   * @param acp - ACP to decrypt values with. If provided, it will be used regardless of chainId, account, or acpHash.
    *
-   * If not provided, the permit will be determined by chainId, account, and permitHash.
+   * If not provided, the acp will be determined by chainId, account, and acpHash.
    *
    * Example:
    * ```typescript
    * const unsealed = await client.decryptForView(ctHash, utype)
-   *   .setPermit(permit)
+   *   .setACP(acp)
    *   .execute();
    * ```
    *
    * @returns The chainable DecryptForViewBuilder instance.
    */
-  /** @deprecated Use `withPermit(permit)` instead. */
-  setPermit(permit: ACP): DecryptForViewBuilder<U> {
-    return this.withPermit(permit);
+  /** @deprecated Use `withACP(acp)` instead. */
+  setACP(acp: ACP): DecryptForViewBuilder<U> {
+    return this.withACP(acp);
   }
 
-  getPermit(): ACP | undefined {
-    return this.permit;
+  getACP(): ACP | undefined {
+    return this.acp;
   }
 
   private async getThresholdNetworkUrl(): Promise<string> {
@@ -224,50 +224,50 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
       });
   }
 
-  private async getResolvedPermit(): Promise<ACP> {
-    if (this.permit) return this.permit;
+  private async getResolvedACP(): Promise<ACP> {
+    if (this.acp) return this.acp;
 
     this.assertChainId();
     this.assertAccount();
 
-    // Fetch with permit hash
-    if (this.permitHash) {
-      const permit = await permits.getPermit(this.chainId, this.account, this.permitHash);
-      if (!permit) {
+    // Fetch with acp hash
+    if (this.acpHash) {
+      const acp = await acps.getACP(this.chainId, this.account, this.acpHash);
+      if (!acp) {
         throw new CofheError({
-          code: CofheErrorCode.PermitNotFound,
-          message: `ACP with hash <${this.permitHash}> not found for account <${this.account}> and chainId <${this.chainId}>`,
-          hint: 'Ensure the permit exists and is valid.',
+          code: CofheErrorCode.ACPNotFound,
+          message: `ACP with hash <${this.acpHash}> not found for account <${this.account}> and chainId <${this.chainId}>`,
+          hint: 'Ensure the acp exists and is valid.',
           context: {
             chainId: this.chainId,
             account: this.account,
-            permitHash: this.permitHash,
+            acpHash: this.acpHash,
           },
         });
       }
-      return permit;
+      return acp;
     }
 
-    // Fetch with active permit
-    const permit = await permits.getActivePermit(this.chainId, this.account);
-    if (!permit) {
+    // Fetch with active acp
+    const acp = await acps.getActiveACP(this.chainId, this.account);
+    if (!acp) {
       throw new CofheError({
-        code: CofheErrorCode.PermitNotFound,
-        message: `Active permit not found for chainId <${this.chainId}> and account <${this.account}>`,
-        hint: 'Ensure a permit exists for this account on this chain.',
+        code: CofheErrorCode.ACPNotFound,
+        message: `Active acp not found for chainId <${this.chainId}> and account <${this.account}>`,
+        hint: 'Ensure an ACP exists for this account on this chain.',
         context: {
           chainId: this.chainId,
           account: this.account,
         },
       });
     }
-    return permit;
+    return acp;
   }
 
   /**
    * On hardhat, interact with MockZkVerifier contract instead of CoFHE
    */
-  private async mocksSealOutput(permit: ACP): Promise<bigint> {
+  private async mocksSealOutput(acp: ACP): Promise<bigint> {
     this.assertPublicClient();
 
     // Configurable delay before decrypting the output to simulate the CoFHE decrypt processing time
@@ -276,38 +276,38 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
     const mocksDecryptDelay = this.config.mocks.decryptDelay;
     if (mocksDecryptDelay > 0) await sleep(mocksDecryptDelay);
 
-    return cofheMocksDecryptForView(this.ctHash, this.utype, permit, this.publicClient);
+    return cofheMocksDecryptForView(this.ctHash, this.utype, acp, this.publicClient);
   }
 
   /**
    * In the production context, perform a true decryption with the CoFHE coprocessor.
    */
-  private async productionSealOutput(permit: ACP): Promise<bigint> {
+  private async productionSealOutput(acp: ACP): Promise<bigint> {
     this.assertChainId();
     this.assertPublicClient();
 
     const thresholdNetworkUrl = await this.getThresholdNetworkUrl();
-    const acp = ACPUtils.getPublic(permit, true);
+    const wireAcp = ACPUtils.getPublic(acp, true);
     // const sealed = await tnSealOutputV1(this.ctHash, this.chainId, permission, thresholdNetworkUrl);
     const sealed = await tnSealOutputV2({
       ctHash: this.ctHash,
       chainId: this.chainId,
-      acp,
+      acp: wireAcp,
       thresholdNetworkUrl,
       retry404TimeoutMs: this.retry404TimeoutMs,
       onPoll: this.pollCallback,
     });
-    return ACPUtils.unseal(permit, sealed);
+    return ACPUtils.unseal(acp, sealed);
   }
 
   /**
    * Final step of the decryption process. MUST BE CALLED LAST IN THE CHAIN.
    *
    * This will:
-   * - Use a permit based on provided permit OR chainId + account + permitHash
-   * - Check permit validity
-   * - Call CoFHE `/sealoutput` with the permit, which returns a sealed (encrypted) item
-   * - Unseal the sealed item with the permit
+   * - Use an ACP based on provided acp OR chainId + account + acpHash
+   * - Check acp validity
+   * - Call CoFHE `/sealoutput` with the acp, which returns a sealed (encrypted) item
+   * - Unseal the sealed item with the acp
    * - Return the unsealed item
    *
    * Example:
@@ -315,7 +315,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
    * const unsealed = await client.decryptForView(ctHash, utype)
    *   .setChainId(11155111)      // optional
    *   .setAccount('0x123...890') // optional
-   *   .withPermit()              // optional
+   *   .withACP()              // optional
    *   .execute();                // execute
    * ```
    *
@@ -325,25 +325,25 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
     // Ensure utype is valid
     this.validateUtypeOrThrow();
 
-    // Resolve permit
-    const permit = await this.getResolvedPermit();
+    // Resolve acp
+    const acp = await this.getResolvedACP();
 
-    // Ensure permit validity
-    ACPUtils.validate(permit);
+    // Ensure acp validity
+    ACPUtils.validate(acp);
 
-    // Extract chainId from signed permit
+    // Extract chainId from signed acp
     // Use this chainId to fetch the threshold network URL since this.chainId may be undefined
-    const chainId = permit._signedDomain!.chainId;
+    const chainId = acp._signedDomain!.chainId;
 
-    // Check permit validity on-chain
-    // TODO: ACPUtils.validateOnChain(permit, this.publicClient);
+    // Check acp validity on-chain
+    // TODO: ACPUtils.validateOnChain(acp, this.publicClient);
 
     let unsealed: bigint;
 
     if (chainId === hardhat.id) {
-      unsealed = await this.mocksSealOutput(permit);
+      unsealed = await this.mocksSealOutput(acp);
     } else {
-      unsealed = await this.productionSealOutput(permit);
+      unsealed = await this.productionSealOutput(acp);
     }
 
     return convertViaUtype(this.utype, unsealed);

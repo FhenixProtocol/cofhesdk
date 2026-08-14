@@ -4,19 +4,19 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 type PortalPersistedStore = {
-  hasCreatedFirstPermit: boolean;
+  hasCreatedFirstACP: boolean;
 };
 
 type PortalPersistedActions = {
-  setHasCreatedFirstPermit: (hasCreated: boolean) => void;
+  setHasCreatedFirstACP: (hasCreated: boolean) => void;
 };
 
 export const usePortalPersisted = create<PortalPersistedStore & PortalPersistedActions>()(
   persist(
     (set, get) => ({
-      hasCreatedFirstPermit: false,
+      hasCreatedFirstACP: false,
 
-      setHasCreatedFirstPermit: (hasCreated) => set({ hasCreatedFirstPermit: hasCreated }),
+      setHasCreatedFirstACP: (hasCreated) => set({ hasCreatedFirstACP: hasCreated }),
     }),
     {
       name: 'cofhesdk-react-persisted',

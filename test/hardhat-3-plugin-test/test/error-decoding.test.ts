@@ -6,7 +6,7 @@
  * ```
  * Error: VM Exception while processing transaction: reverted with custom error 'PermissionInvalid_Expired()'
  *         at MockACL.withPermission (npm/@cofhe/mock-contracts@local/contracts/Permissioned.sol:110)
- *         at MockACL.checkPermitValidity (npm/@cofhe/mock-contracts@local/contracts/MockACL.sol:317)
+ *         at MockACL.checkACPValidity (npm/@cofhe/mock-contracts@local/contracts/MockACL.sol:317)
  * ```
  */
 

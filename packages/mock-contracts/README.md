@@ -131,18 +131,18 @@ The `MockZkVerifier` contract handles the on-chain storage of encrypted inputs. 
 
 ### Off-chain Decryption / Sealing
 
-For view-oriented decryption, use the SDK flow `cofheClient.decryptForView(...)` (also exposed as `decryptHandle(...)`) with a valid `ctHash`, the matching FHE type, and a valid `permit` when required.
+For view-oriented decryption, use the SDK flow `cofheClient.decryptForView(...)` (also exposed as `decryptHandle(...)`) with a valid `ctHash`, the matching FHE type, and a valid `acp` when required.
 
 When interacting with CoFHE this request is routed to the Threshold Network, which returns the plaintext to the consumer for local use.
 
-When working with the mocks, the `cofheClient` instead queries the `MockThresholdNetwork` contract, which verifies the request `permit` and returns the decrypted result.
+When working with the mocks, the `cofheClient` instead queries the `MockThresholdNetwork` contract, which verifies the request `acp` and returns the decrypted result.
 
 ### Using Foundry
 
 Use [`@cofhe/foundry-plugin`](../foundry-plugin/README.md), which builds on these mocks. Inherit its
 abstract `CofheTest` contract and call `deployMocks()` to deploy the full mock stack, then
 `createCofheClient()` for an SDK-like client that encrypts inputs, decrypts outputs, and manages
-permits.
+acps.
 
 `CofheTest` exposes useful test helpers such as
 

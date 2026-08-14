@@ -2,7 +2,7 @@ import hre from 'hardhat';
 import type { Contract } from 'ethers';
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 
-/** Shared ACP (Permit V3) EIP-712 helpers for tests. */
+/** Shared ACP (ACP V3) EIP-712 helpers for tests. */
 
 export const ZERO_ADDRESS = '0x' + '0'.repeat(40);
 export const ZERO_BYTES32 = '0x' + '0'.repeat(64);
