@@ -142,13 +142,39 @@ export const CofheConfigSchema = z.object({
 export type CofheInputConfig = z.input<typeof CofheConfigSchema>;
 
 /**
+ * Config keys renamed in the ACP migration, mapped to their replacements.
+ *
+ * Unknown keys are rejected rather than stripped: silently dropping `defaultPermitExpiration` would
+ * leave the caller on the default expiration with no error, no warning, and no compiler complaint.
+ */
+export const RENAMED_COFHE_CONFIG_KEYS: Record<string, string> = {
+  defaultPermitExpiration: 'defaultACPExpiration',
+};
+
+/**
+ * Throws a migration-shaped error if any pre-ACP config key is present.
+ * @throws {Error} Naming each stale key and its replacement.
+ */
+export function assertNoRenamedConfigKeys(config: object, renamedKeys: Record<string, string>, label: string): void {
+  const stale = Object.keys(config).filter((key) => key in renamedKeys);
+  if (stale.length === 0) return;
+
+  const renames = stale.map((key) => `\`${key}\` is now \`${renamedKeys[key]}\``).join('; ');
+  throw new Error(`Invalid ${label}: ${renames}. See the v0.7.0 migration guide.`);
+}
+
+/**
  * Creates and validates a cofhe configuration (base implementation)
  * @param config - The configuration object to validate
  * @returns The validated configuration
  * @throws {Error} If the configuration is invalid
  */
 export function createCofheConfigBase(config: CofheInputConfig): CofheConfig {
-  const result = CofheConfigSchema.safeParse(config);
+  assertNoRenamedConfigKeys(config, RENAMED_COFHE_CONFIG_KEYS, 'cofhe configuration');
+
+  // .strict(): reject unknown keys instead of stripping them - a stale or typo'd key is an error,
+  // not a silent no-op that leaves the caller on a default they didn't ask for.
+  const result = CofheConfigSchema.strict().safeParse(config);
 
   if (!result.success) {
     throw new Error(`Invalid cofhe configuration: ${z.prettifyError(result.error)}`, { cause: result.error });

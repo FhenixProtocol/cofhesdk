@@ -383,7 +383,10 @@ describe('createCofheClientBase', () => {
   describe('encryptInputs', () => {
     it('should throw if not connected', async () => {
       try {
-        await client.encryptInputs([Encryptable.uint8(1n), Encryptable.uint8(2n), Encryptable.uint8(3n)]).execute();
+        await client
+          .encryptInputs([Encryptable.uint8(1n), Encryptable.uint8(2n), Encryptable.uint8(3n)])
+          .setConsumingContract('0xbeefbeefbeefbeefbeefbeefbeefbeefbeefbeef')
+          .execute();
       } catch (error) {
         expect(error).toBeInstanceOf(CofheError);
         expect((error as CofheError).code).toBe(CofheErrorCode.NotConnected);

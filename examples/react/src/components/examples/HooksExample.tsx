@@ -2,6 +2,9 @@ import React from 'react';
 import { useCofheConnection, useCofheContext, useCofheEncrypt } from '@cofhe/react';
 import { Encryptable } from '@cofhe/sdk';
 
+/** Stand-in for the contract this example would hand the encrypted inputs to. */
+const EXAMPLE_CONSUMING_CONTRACT = '0xbeefbeefbeefbeefbeefbeefbeefbeefbeefbeef';
+
 export const HooksExample: React.FC = () => {
   const { client } = useCofheContext();
   const { connectError } = useCofheConnection();
@@ -18,7 +21,11 @@ export const HooksExample: React.FC = () => {
 
   const handleDirectEncryption = async () => {
     try {
-      const result = await encrypt([Encryptable.uint128(123n)]);
+      const result = await encrypt({
+        items: [Encryptable.uint128(123n)],
+        // The contract that will consume the batch - the verifier binds it into the signature.
+        consumingContract: EXAMPLE_CONSUMING_CONTRACT,
+      });
       console.log('Direct encryption result:', result);
     } catch (err) {
       console.error('Direct encryption error:', err);

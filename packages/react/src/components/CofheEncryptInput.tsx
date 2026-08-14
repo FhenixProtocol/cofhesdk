@@ -16,6 +16,11 @@ import { getStepConfig, useCofheEncrypt } from '@/hooks/useCofheEncrypt';
 import { cofheLogger } from '@/utils/debug';
 
 export interface CofheEncryptInputProps extends BaseProps {
+  /**
+   * The contract that will consume the encrypted value. Required: the verifier binds it into the
+   * signed digest, so the result is only usable by this contract.
+   */
+  consumingContract: string;
   /** Placeholder text for the text field */
   placeholder?: string;
   /** Initial value for the text field */
@@ -51,6 +56,7 @@ export interface CofheEncryptInputProps extends BaseProps {
 export const CofheEncryptInput: React.FC<CofheEncryptInputProps> = ({
   className,
   testId,
+  consumingContract,
   placeholder = 'Enter number or address...',
   initialValue = '',
   options = FheTypesList,
@@ -299,7 +305,10 @@ export const CofheEncryptInput: React.FC<CofheEncryptInputProps> = ({
         // Not really work, need to improve cofhejs side to make it non-blocking
         (async () => {
           try {
-            const [encryptionResult] = await encrypt([Encryptable.create(type, textValue)]);
+            const [encryptionResult] = await encrypt({
+              items: [Encryptable.create(type, textValue)],
+              consumingContract,
+            });
 
             // Store the result for the copy button
             setEncryptedResult(encryptionResult);

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { type CofheConfig, type CofheInputConfig } from '@cofhe/sdk';
+import { assertNoRenamedConfigKeys, type CofheConfig, type CofheInputConfig } from '@cofhe/sdk';
 import { createCofheConfig as createCofheConfigWeb } from '@cofhe/sdk/web';
 import { getAddress, isAddress, zeroAddress } from 'viem';
 import { setReactLogger } from '@/utils/debug';
@@ -105,6 +105,17 @@ export const CofheReactConfigSchema = z.object({
 });
 
 /**
+ * React config keys renamed in the ACP migration, mapped to their replacements.
+ * @see assertNoRenamedConfigKeys
+ */
+export const RENAMED_REACT_CONFIG_KEYS: Record<string, string> = {
+  shareablePermits: 'shareableACPs',
+  autogeneratePermits: 'autogenerateACPs',
+  permitExpirationOptions: 'acpExpirationOptions',
+  defaultPermitExpirationSeconds: 'defaultACPExpirationSeconds',
+};
+
+/**
  * Input config type inferred from the schema
  */
 export type CofheReactInputConfig = CofheInputConfig & {
@@ -126,7 +137,10 @@ export function createCofheConfig(config: CofheReactInputConfig): CofheConfigWit
     environment: 'react',
     ...webConfig,
   });
-  const reactConfigResult = CofheReactConfigSchema.safeParse(reactConfigInput);
+  assertNoRenamedConfigKeys(reactConfigInput, RENAMED_REACT_CONFIG_KEYS, 'cofhe react configuration');
+
+  // .strict(): reject unknown keys instead of stripping them - see createCofheConfigBase.
+  const reactConfigResult = CofheReactConfigSchema.strict().safeParse(reactConfigInput);
 
   if (!reactConfigResult.success) {
     throw new Error(`Invalid cofhe react configuration: ${z.prettifyError(reactConfigResult.error)}`, {

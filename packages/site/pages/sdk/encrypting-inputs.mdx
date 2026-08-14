@@ -92,7 +92,9 @@ const [encryptedAge, encryptedFlag, signature] = await cofheClient
 
 ### `.setConsumingContract(address)` — required
 
-Sets the contract that will consume the resulting hashes+signature — i.e. the contract whose function call will pass them into `FHE.asEuint*s(...)`. The CoFHE verifier binds this address into the signed digest, so a batch signed for one contract cannot be replayed into another. `.execute()` throws `ConsumingContractUninitialized` if this was never called.
+Sets the contract that will consume the resulting hashes+signature — i.e. the contract whose function call will pass them into `FHE.asEuint*s(...)`. The CoFHE verifier binds this address into the signed digest, so a batch signed for one contract cannot be replayed into another.
+
+This is enforced by the type system: `client.encryptInputs(...)` returns a builder with no `.execute()` method, and `.setConsumingContract(...)` is what returns the builder that has one. Omitting it is a compile error rather than a runtime failure. (JavaScript callers, who get no such check, still hit a `ConsumingContractUninitialized` throw at `.execute()`.)
 
 ```ts twoslash
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';

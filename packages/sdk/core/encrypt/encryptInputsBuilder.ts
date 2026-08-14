@@ -47,6 +47,15 @@ type EncryptInputsBuilderParams<T extends EncryptableItem[]> = BaseBuilderParams
  * config, tfhePublicKeyDeserializer, compactPkeCrsDeserializer, and zkBuilderAndCrsGenerator are required to be set in the builder.
  */
 
+/**
+ * The builder as returned by `client.encryptInputs(...)`, before a consuming contract has been set.
+ *
+ * `execute()` is intentionally absent: the verifier binds the consuming contract into the signed
+ * digest, so no batch can be produced until the caller commits to the contract that will consume it.
+ * `setConsumingContract(...)` returns the full {@link EncryptInputsBuilder}, unlocking `execute()`.
+ */
+export type EncryptInputsBuilderUnset<T extends EncryptableItem[]> = Omit<EncryptInputsBuilder<T>, 'execute'>;
+
 export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuilder {
   private securityZone: number;
   protected consumingContract: string | undefined;
@@ -155,6 +164,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    *
    * @returns The chainable EncryptInputsBuilder instance.
    */
+  setAccount(this: EncryptInputsBuilder<T>, account: string): EncryptInputsBuilder<T>;
+  setAccount(this: EncryptInputsBuilderUnset<T>, account: string): EncryptInputsBuilderUnset<T>;
   setAccount(account: string): EncryptInputsBuilder<T> {
     this.account = account;
     return this;
@@ -178,6 +189,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    *
    * @returns The chainable EncryptInputsBuilder instance.
    */
+  setChainId(this: EncryptInputsBuilder<T>, chainId: number): EncryptInputsBuilder<T>;
+  setChainId(this: EncryptInputsBuilderUnset<T>, chainId: number): EncryptInputsBuilderUnset<T>;
   setChainId(chainId: number): EncryptInputsBuilder<T> {
     this.chainId = chainId;
     return this;
@@ -201,6 +214,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    *
    * @returns The chainable EncryptInputsBuilder instance.
    */
+  setSecurityZone(this: EncryptInputsBuilder<T>, securityZone: number): EncryptInputsBuilder<T>;
+  setSecurityZone(this: EncryptInputsBuilderUnset<T>, securityZone: number): EncryptInputsBuilderUnset<T>;
   setSecurityZone(securityZone: number): EncryptInputsBuilder<T> {
     this.securityZone = securityZone;
     return this;
@@ -265,6 +280,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    *
    * @returns The chainable EncryptInputsBuilder instance.
    */
+  setUseWorker(this: EncryptInputsBuilder<T>, useWorker: boolean): EncryptInputsBuilder<T>;
+  setUseWorker(this: EncryptInputsBuilderUnset<T>, useWorker: boolean): EncryptInputsBuilderUnset<T>;
   setUseWorker(useWorker: boolean): EncryptInputsBuilder<T> {
     this.useWorker = useWorker;
     return this;
@@ -302,6 +319,8 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
    *
    * @returns The EncryptInputsBuilder instance.
    */
+  onStep(this: EncryptInputsBuilder<T>, callback: EncryptStepCallbackFunction): EncryptInputsBuilder<T>;
+  onStep(this: EncryptInputsBuilderUnset<T>, callback: EncryptStepCallbackFunction): EncryptInputsBuilderUnset<T>;
   onStep(callback: EncryptStepCallbackFunction): EncryptInputsBuilder<T> {
     this.stepCallback = callback;
     return this;
