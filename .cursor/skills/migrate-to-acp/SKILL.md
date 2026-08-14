@@ -16,15 +16,16 @@ Upgrades a codebase that consumes `@cofhe/sdk` / `@cofhe/react` / `@cofhe/mock-c
 `@cofhe/hardhat-plugin` / `@cofhe/foundry-plugin` across the ACP-era breaking changes.
 
 **Roughly half of these breakages are invisible to the TypeScript compiler.** A clean `typecheck`
-after the version bump does NOT mean the migration is done — steps 4 and 5 below are the ones that
-fail at runtime, in production, on a user's first encrypt or decrypt.
+after the version bump does NOT mean the migration is done — steps 3, 4 and 5 are the ones that fail
+at runtime, in production, on a user's first encrypt or decrypt. In a real consumer app this was the
+difference between _zero_ type errors and _19_ broken encrypt paths.
 
 ---
 
 ## Step 0 — Preflight: is the target deployment ACP-era? (BLOCKING)
 
 The new SDK refuses to sign for chains whose ACL predates ACP, and its encrypted inputs only verify
-against a batch-capable zk-verifier. **If the chain/backends you target are not upgraded yet, stop —
+against a batch-capable zk-verifier. **If the chains/backends you target are not upgraded yet, stop —
 this migration cannot ship**, no matter how clean the code changes are.
 
 For every chain the app supports, resolve the ACL from the TaskManager and read its EIP-712 domain:
@@ -66,29 +67,43 @@ Remember `contracts/`-style packages: they usually pin `@cofhe/hardhat-plugin`,
 
 ## Step 2 — Mechanical renames (the compiler finds these)
 
-Run `pnpm typecheck` (or `tsc --noEmit`) and work the errors. The full mapping:
+Run `pnpm typecheck` (or `tsc --noEmit`) and work the errors. Known mapping:
 
-| Before                                                                                                                                 | After                                                      |
-| -------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| `@cofhe/sdk/permits`                                                                                                                   | `@cofhe/sdk/acps`                                          |
-| `client.permits.*`                                                                                                                     | `client.acp.*`                                             |
-| `useCofheActivePermit`                                                                                                                 | `useCofheActiveACP`                                        |
-| `useCofheAllPermits`                                                                                                                   | `useCofheAllACPs`                                          |
-| `useCofhePermits`                                                                                                                      | `useCofheACPs`                                             |
-| `useCofheCreatePermit`                                                                                                                 | `useCofheCreateACP`                                        |
-| `useCofheSelectPermit`                                                                                                                 | `useCofheSelectACP`                                        |
-| `useCofheRemovePermit`                                                                                                                 | `useCofheRemoveACP`                                        |
-| `.withPermit()` / `.withoutPermit()`                                                                                                   | `.withACP()` / `.withoutACP()`                             |
-| `SelfPermit` / `SharingPermit` / `RecipientPermit`                                                                                     | `SelfACP` / `SharingACP` / `RecipientACP`                  |
-| `SerializedPermit`                                                                                                                     | `SerializedACP`                                            |
-| `CofheErrorCode.PermitNotFound`                                                                                                        | `CofheErrorCode.ACPNotFound` (`'ACP_NOT_FOUND'`)           |
-| `CofheErrorCode.InvalidPermitData`                                                                                                     | `CofheErrorCode.InvalidACPData` (`'INVALID_ACP_DATA'`)     |
-| `CofheErrorCode.InvalidPermitDomain`                                                                                                   | `CofheErrorCode.InvalidACPDomain` (`'INVALID_ACP_DOMAIN'`) |
-| status fields `missingPermit`, `permitExpired`, `permitExpiringSoon`, `permitShared`, `openPermits`, `disabledDueToMissingValidPermit` | same names with `Permit` → `ACP`                           |
+| Before                                                                                                                                 | After                                     |
+| -------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| `@cofhe/sdk/permits`                                                                                                                   | `@cofhe/sdk/acps`                         |
+| `client.permits.*` / `cofheClient.permits.*`                                                                                           | `client.acp.*`                            |
+| `useCofheActivePermit`                                                                                                                 | `useCofheActiveACP`                       |
+| `useCofheAllPermits`                                                                                                                   | `useCofheAllACPs`                         |
+| `useCofhePermits`                                                                                                                      | `useCofheACPs`                            |
+| `useCofheCreatePermit`                                                                                                                 | `useCofheCreateACP`                       |
+| `useCofheSelectPermit`                                                                                                                 | `useCofheSelectACP`                       |
+| `useCofheRemovePermit`                                                                                                                 | `useCofheRemoveACP`                       |
+| `.withPermit()` / `.withoutPermit()`                                                                                                   | `.withACP()` / `.withoutACP()`            |
+| bare `Permit` type                                                                                                                     | `ACP`                                     |
+| `SelfPermit` / `SharingPermit` / `RecipientPermit`                                                                                     | `SelfACP` / `SharingACP` / `RecipientACP` |
+| `SerializedPermit`                                                                                                                     | `SerializedACP`                           |
+| `PermitUtils`                                                                                                                          | `ACPUtils`                                |
+| `PermitUtils.getPermission(permit)`                                                                                                    | `ACPUtils.getPublic(acp)`                 |
+| `Permission` (wire struct type)                                                                                                        | `ACPPublic`                               |
+| `getActivePermit` / `getActivePermitHash` (standalone exports)                                                                         | `getActiveACP` / `getActiveACPHash`       |
+| `PermitState` (from `@cofhe/react`)                                                                                                    | `ACPState`                                |
+| `.permit` field on returned objects (e.g. `{ permit, isValid }`)                                                                       | `.acp`                                    |
+| `CofheErrorCode.PermitNotFound`                                                                                                        | `CofheErrorCode.ACPNotFound`              |
+| `CofheErrorCode.InvalidPermitData`                                                                                                     | `CofheErrorCode.InvalidACPData`           |
+| `CofheErrorCode.InvalidPermitDomain`                                                                                                   | `CofheErrorCode.InvalidACPDomain`         |
+| status fields `missingPermit`, `permitExpired`, `permitExpiringSoon`, `permitShared`, `openPermits`, `disabledDueToMissingValidPermit` | same names with `Permit` → `ACP`          |
 
-Rule of thumb for anything not listed: replace the token `Permit`/`permit`/`PERMIT` with
-`ACP`/`acp`/`ACP` — **but only in identifiers imported from `@cofhe/*`**. Do not touch English words
-(`permitted`, `permitting`), and do not rename the on-chain `isAllowedWithPermission` interface.
+Two rules that matter more than the table:
+
+1. **Iterate.** The table is what one real consumer app needed; yours may differ. Run `typecheck`
+   repeatedly — each fixed import reveals the next layer (module member → type annotation → object
+   field). Expect two or three passes before it goes quiet.
+2. **Match whole tokens, never substrings.** A blind `Permit` → `ACP` replace corrupts the app's own
+   identifiers: `PermitAccessRequest` (a consumer type) silently becomes `ACPAccessRequest` and stops
+   compiling. Rename only identifiers that come from `@cofhe/*`; leave the app's own `Permit`-named
+   code alone (see step 8). Never touch English words (`permitted`, `permitting`) or the on-chain
+   `isAllowedWithPermission` interface.
 
 If the app matches on serialized error codes, note the wire codes changed too: `permit_*` → `acp_*`,
 and `permit_revoked` is gone — ACP-era backends fold revocation into `acp_denied`.
@@ -99,10 +114,10 @@ and `permit_revoked` is gone — ACP-era backends fold revocation into `acp_deni
 
 **The compiler will not catch this.** `consumingContract` is an _optional_ field on the options type,
 but the builder throws `CofheErrorCode.ConsumingContractUninitialized` ("Consuming contract is not
-set") at `execute()` if it is missing. Every encrypt path in the app must be audited by hand:
+set") at `execute()` if it is missing. Every encrypt path must be audited by hand:
 
 ```bash
-grep -rn "encryptInputs(" --include="*.ts" --include="*.tsx" . | grep -v node_modules
+grep -rn "encryptInputs(\|useCofheEncrypt\b" --include="*.ts" --include="*.tsx" . | grep -v node_modules
 ```
 
 - **SDK builder:** `client.encryptInputs([...]).setConsumingContract(addr).execute()`.
@@ -122,9 +137,12 @@ Batch verification replaced per-item signatures with one signature per batch:
 - **Before:** `EncryptedItemInput[]` — one object per input, each carrying its own `signature`.
 - **After:** `[...hashes, signature]` — every ciphertext hash, then a single trailing signature.
 
-Consumers that spread the result straight into contract args (especially with `as never` or `as any`,
-which silences the compiler) are silently broken. Audit every call that passes encrypted values into
-`writeContract` / `simulateContract` / gas estimation.
+Consumers that spread the result straight into contract args are silently broken — and casts hide it
+completely. Grep for the cast pattern specifically, because `typecheck` says nothing about it:
+
+```bash
+grep -rn "encrypted as never\|encrypted as any\|\.\.\.encrypted" --include="*.ts" --include="*.tsx" . | grep -v node_modules
+```
 
 **The Solidity side changes with it:** contracts consuming these inputs must adopt the batch-verifying
 `FHE.asEuint*` signatures from the current `@fhenixprotocol/cofhe-contracts`. A TypeScript-only
@@ -137,12 +155,12 @@ contract-author details, and update `@fhenixprotocol/cofhe-contracts` in `contra
 
 - **Stored ACPs are dropped.** The persisted store key changed; previously stored permits are not
   migrated. Every user re-creates (re-signs) an ACP on first use after the upgrade. If that is
-  unacceptable, raise it with the SDK team before shipping — the signatures themselves are still valid.
+  unacceptable, raise it with the SDK team before shipping — the signatures themselves stay valid.
 - **React first-ACP flag resets.** `hasCreatedFirstPermit` → `hasCreatedFirstACP` in the persisted
   portal store, so onboarding prompts may re-appear (or stay suppressed) for existing users.
 - **ACPs are now revocable by default,** carrying a timestamp-based revoker and optional contract
   scopes. Defaults are applied at creation; apps that build ACP options by hand should review
-  `revokerData`/`revokerContract`/`scope`/`contracts`/`handles`.
+  `revokerData` / `revokerContract` / `scope` / `contracts` / `handles`.
 - **Sharing ACPs are no longer auto-activated on creation** — select explicitly if the app relied on
   the old behavior.
 - **`useCofheToken` no longer probes on-chain.** Apps that depended on probing should use
@@ -155,7 +173,7 @@ contract-author details, and update `@fhenixprotocol/cofhe-contracts` in `contra
 ## Step 6 — Optional: on-chain ACP sharing
 
 New in this window. If the app shares ACPs between users, on-chain sharing (share registry +
-`useIncomingShares` / import flows) replaces manual JSON hand-off. Requires a deployment whose ACL
+incoming-share hooks and import flows) replaces manual JSON hand-off. Requires a deployment whose ACL
 returns a non-zero `shareRegistry()` (step 0). Skip entirely if the app does not share.
 
 ---
@@ -169,8 +187,8 @@ returns a non-zero `shareRegistry()` (step 0). Skip entirely if the app does not
    - encrypt an input and send it through the target contract,
    - `decryptForView` and `decryptForTx` a value written by that contract,
    - if the app shares ACPs: share, import, and decrypt as the recipient.
-4. Watch the console for `CONSUMING_CONTRACT_UNINITIALIZED`, `ACP_DENIED`, or on-chain
-   `InvalidSigner` reverts — those are the signatures of an incomplete steps 3–4.
+4. Watch for `CONSUMING_CONTRACT_UNINITIALIZED`, `ACP_DENIED`, or on-chain `InvalidSigner` reverts —
+   those are the signatures of an incomplete step 3 or 4.
 
 ---
 
@@ -180,9 +198,9 @@ Summarize for the user:
 
 - versions before → after, per manifest;
 - counts: renames applied, encrypt sites given a consuming contract, contract-arg sites reshaped;
-- **anything that needs a human decision** — dropped stored ACPs, Solidity changes required,
-  chains that failed the step 0 preflight;
-- **the app's own `Permit`-named internals** (components, hooks, context, local state that are not
-  SDK API). List them and let the team decide: they are unaffected by the SDK upgrade, but leaving
-  them keeps the old vocabulary alive in the codebase. Do not rename them as part of this migration
-  unless the user asks.
+- **anything needing a human decision** — dropped stored ACPs, Solidity changes required, chains that
+  failed the step 0 preflight;
+- **the app's own `Permit`-named internals** (components, hooks, context, local state that are not SDK
+  API). List them and let the team decide: they are unaffected by the SDK upgrade, but leaving them
+  keeps the old vocabulary alive in the codebase. Do not rename them as part of this migration unless
+  the user asks.
