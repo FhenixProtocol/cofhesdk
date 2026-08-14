@@ -151,13 +151,13 @@ Renamed config keys. Both config schemas now **reject unknown keys** instead of 
 name the replacement for any stale key — previously a renamed key was silently dropped and its
 replacement fell back to a default, with no error and no warning.
 
-| Old (`0.6.x`)                              | New                              | Silent default it used to fall back to |
-| ------------------------------------------ | -------------------------------- | -------------------------------------- |
-| `defaultPermitExpiration`                  | `defaultACPExpiration`           | 30 days                                |
-| `react.shareablePermits`                   | `react.shareableACPs`            | `false`                                |
-| `react.autogeneratePermits`                | `react.autogenerateACPs`         | `true`                                 |
-| `react.permitExpirationOptions`            | `react.acpExpirationOptions`     | built-in option list                   |
-| `react.defaultPermitExpirationSeconds`     | `react.defaultACPExpirationSeconds` | 1 week                              |
+| Old (`0.6.x`)                          | New                                 | Silent default it used to fall back to |
+| -------------------------------------- | ----------------------------------- | -------------------------------------- |
+| `defaultPermitExpiration`              | `defaultACPExpiration`              | 30 days                                |
+| `react.shareablePermits`               | `react.shareableACPs`               | `false`                                |
+| `react.autogeneratePermits`            | `react.autogenerateACPs`            | `true`                                 |
+| `react.permitExpirationOptions`        | `react.acpExpirationOptions`        | built-in option list                   |
+| `react.defaultPermitExpirationSeconds` | `react.defaultACPExpirationSeconds` | 1 week                                 |
 
 ## Storage
 

@@ -155,11 +155,7 @@ export const RENAMED_COFHE_CONFIG_KEYS: Record<string, string> = {
  * Throws a migration-shaped error if any pre-ACP config key is present.
  * @throws {Error} Naming each stale key and its replacement.
  */
-export function assertNoRenamedConfigKeys(
-  config: object,
-  renamedKeys: Record<string, string>,
-  label: string
-): void {
+export function assertNoRenamedConfigKeys(config: object, renamedKeys: Record<string, string>, label: string): void {
   const stale = Object.keys(config).filter((key) => key in renamedKeys);
   if (stale.length === 0) return;
 
