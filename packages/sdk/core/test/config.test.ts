@@ -240,3 +240,23 @@ describe('Config helper functions', () => {
     });
   });
 });
+
+describe('createCofheConfigBase - stale key rejection', () => {
+  const validBaseConfig: CofheInputConfig = { supportedChains: [] };
+
+  it('rejects the pre-ACP defaultPermitExpiration and names its replacement', () => {
+    expect(() =>
+      createCofheConfigBase({ ...validBaseConfig, defaultPermitExpiration: 60 } as unknown as CofheInputConfig)
+    ).toThrow(/`defaultPermitExpiration` is now `defaultACPExpiration`/);
+  });
+
+  it('rejects unknown keys instead of silently stripping them', () => {
+    expect(() =>
+      createCofheConfigBase({ ...validBaseConfig, notARealKey: true } as unknown as CofheInputConfig)
+    ).toThrow(/Invalid cofhe configuration/);
+  });
+
+  it('still accepts a valid config', () => {
+    expect(() => createCofheConfigBase({ ...validBaseConfig, defaultACPExpiration: 60 })).not.toThrow();
+  });
+});

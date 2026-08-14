@@ -3,7 +3,7 @@ import type { CreateSelfACPOptions, CreateSharingACPOptions, ImportSharedACPOpti
 import { createStore } from 'zustand/vanilla';
 import { type Hex, type PublicClient, type WalletClient } from 'viem';
 import { CofheError, CofheErrorCode } from './error.js';
-import { EncryptInputsBuilder } from './encrypt/encryptInputsBuilder.js';
+import { EncryptInputsBuilder, type EncryptInputsBuilderUnset } from './encrypt/encryptInputsBuilder.js';
 import { createKeysStore } from './keyStore.js';
 import { acps } from './acps.js';
 import { DecryptForViewBuilder } from './decrypt/decryptForViewBuilder.js';
@@ -138,7 +138,7 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
 
   // CLIENT OPERATIONS
 
-  function encryptInputs<T extends EncryptableItem[]>(inputs: [...T]): EncryptInputsBuilder<[...T]> {
+  function encryptInputs<T extends EncryptableItem[]>(inputs: [...T]): EncryptInputsBuilderUnset<[...T]> {
     const state = connectStore.getState();
 
     return new EncryptInputsBuilder({

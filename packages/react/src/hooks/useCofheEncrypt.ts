@@ -56,6 +56,10 @@ export function getStepConfig(step: EncryptionStep) {
 }
 type EncryptInputsResult<T extends readonly EncryptableItem[]> = HashPlusProofResult<[...T]>;
 
+/**
+ * Overrides accepted by the higher-level hooks that already know their target contract
+ * (e.g. `useCofheEncryptAndWriteContract`), where `consumingContract` is an optional override.
+ */
 export type EncryptInputsOptions = {
   account?: string;
   chainId?: number;
@@ -64,17 +68,14 @@ export type EncryptInputsOptions = {
   onStepChange?: (step: EncryptStep, context?: EncryptStepCallbackContext) => void;
 };
 
-export type EncryptInputsVariables<T extends readonly EncryptableItem[] = readonly EncryptableItem[]> =
-  | T
-  | ({
-      items: T;
-    } & EncryptInputsOptions);
-
-function hasEncryptInputsOptions<T extends readonly EncryptableItem[]>(
-  variables: EncryptInputsVariables<T>
-): variables is { items: T } & EncryptInputsOptions {
-  return typeof variables === 'object' && variables !== null && 'items' in variables;
-}
+export type EncryptInputsVariables<T extends readonly EncryptableItem[] = readonly EncryptableItem[]> = {
+  items: T;
+  /**
+   * The contract that will consume the resulting hashes+signature. Required: the verifier binds
+   * it into the signed digest, so a batch signed for one contract cannot be replayed into another.
+   */
+  consumingContract: string;
+} & Omit<EncryptInputsOptions, 'consumingContract'>;
 
 /**
  * Validates the batch-verified result: `inputs.length` hashes followed by one shared signature,
@@ -134,28 +135,23 @@ export function useCofheEncrypt(options?: UseCofheEncryptOptions): UseMutationRe
       const key = crypto.randomUUID();
       handleStepSetKey(key);
 
-      const items = hasEncryptInputsOptions(variables) ? variables.items : variables;
       // SDK expects a mutable array type; copy preserves runtime value while satisfying typing.
-      const mutableItems = Array.from(items);
+      const mutableItems = Array.from(variables.items);
 
-      const builder = client.encryptInputs(mutableItems);
-
-      const externalOnStepChange = hasEncryptInputsOptions(variables) ? variables.onStepChange : undefined;
+      // Committing to the consuming contract is what unlocks `execute()` on the builder.
+      const builder = client.encryptInputs(mutableItems).setConsumingContract(variables.consumingContract);
 
       const combinedOnStepChange = (step: EncryptStep, context?: EncryptStepCallbackContext) => {
         handleStepStateChange(key, step, context);
-        externalOnStepChange?.(step, context);
+        variables.onStepChange?.(step, context);
       };
 
       // Always set callback so we can track steps consistently.
       builder.onStep(combinedOnStepChange);
 
-      if (hasEncryptInputsOptions(variables)) {
-        if (variables.account) builder.setAccount(variables.account);
-        if (variables.chainId) builder.setChainId(variables.chainId);
-        if (variables.securityZone) builder.setSecurityZone(variables.securityZone);
-        if (variables.consumingContract) builder.setConsumingContract(variables.consumingContract);
-      }
+      if (variables.account) builder.setAccount(variables.account);
+      if (variables.chainId) builder.setChainId(variables.chainId);
+      if (variables.securityZone) builder.setSecurityZone(variables.securityZone);
 
       return builder.execute();
     },
@@ -164,9 +160,8 @@ export function useCofheEncrypt(options?: UseCofheEncryptOptions): UseMutationRe
   return {
     ...mutation,
     encryptInputsAsync: async <const T extends readonly EncryptableItem[]>(variables: EncryptInputsVariables<T>) => {
-      const items = hasEncryptInputsOptions(variables) ? variables.items : variables;
       const result = await mutation.mutateAsync(variables);
-      assertEncryptInputsResult(items, result);
+      assertEncryptInputsResult(variables.items, result);
       return result;
     },
     encryptInputs: (variables) => mutation.mutate(variables),

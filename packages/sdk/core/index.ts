@@ -12,7 +12,7 @@ export type {
 } from './debug.js';
 
 // Configuration (base implementations)
-export { createCofheConfigBase, getCofheConfigItem } from './config.js';
+export { createCofheConfigBase, getCofheConfigItem, assertNoRenamedConfigKeys } from './config.js';
 export type { CofheConfig, CofheInputConfig, CofheInternalConfig } from './config.js';
 
 // Types
@@ -87,6 +87,7 @@ export type { KeysStorage, KeysStore } from './keyStore.js';
 
 // Builders (exported via client, but can be imported directly for typing)
 export { EncryptInputsBuilder } from './encrypt/encryptInputsBuilder.js';
+export type { EncryptInputsBuilderUnset } from './encrypt/encryptInputsBuilder.js';
 export { DecryptForViewBuilder } from './decrypt/decryptForViewBuilder.js';
 export { DecryptForTxBuilder } from './decrypt/decryptForTxBuilder.js';
 export type { DecryptForTxResult } from './decrypt/decryptForTxBuilder.js';

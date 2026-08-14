@@ -1,4 +1,4 @@
-import type { EncryptInputsBuilder } from '../core/encrypt/encryptInputsBuilder.js';
+import type { EncryptInputsBuilder, EncryptInputsBuilderUnset } from '../core/encrypt/encryptInputsBuilder.js';
 import type {
   FheTypes,
   EncryptableBool,
@@ -201,3 +201,37 @@ type _HPPResult_all = Assert<
     ]
   >
 >;
+
+// ─── 4. execute() is gated behind setConsumingContract() ─────────────────────
+// `client.encryptInputs(...)` hands back the Unset builder: the verifier binds the consuming
+// contract into the signed digest, so no batch can be produced before the caller commits to one.
+
+declare const unset_uint32: EncryptInputsBuilderUnset<[EncryptableUint32]>;
+
+// `execute` is absent from the unset builder...
+type _Execute_absent_when_unset = Assert<Equals<'execute' extends keyof typeof unset_uint32 ? true : false, false>>;
+
+// ...and present once a consuming contract has been set.
+type _Execute_present_after_set = Assert<
+  Equals<'execute' extends keyof ReturnType<typeof unset_uint32.setConsumingContract> ? true : false, true>
+>;
+
+// Chaining is checked through real call expressions rather than `ReturnType`: these methods are
+// overloaded on `this`, and `ReturnType` would collapse them to the last overload regardless of
+// the receiver's actual state.
+function _chainingPreservesBuilderState(
+  unset: EncryptInputsBuilderUnset<[EncryptableUint32]>,
+  set: EncryptInputsBuilder<[EncryptableUint32]>
+): void {
+  // Other chainable setters preserve the unset state rather than silently unlocking execute().
+  const stillUnset = unset.setAccount('0x0').setChainId(1);
+  type _StillUnset = Assert<Equals<'execute' extends keyof typeof stillUnset ? true : false, false>>;
+
+  // Committing to a consuming contract is what unlocks execute()...
+  const ready = unset.setConsumingContract('0x0');
+  type _Ready = Assert<Equals<'execute' extends keyof typeof ready ? true : false, true>>;
+
+  // ...and further chaining on a set builder keeps it available.
+  const stillReady = set.setAccount('0x0').setChainId(1);
+  type _StillReady = Assert<Equals<'execute' extends keyof typeof stillReady ? true : false, true>>;
+}

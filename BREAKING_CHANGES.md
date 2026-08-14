@@ -76,18 +76,17 @@ item; the real batch signature fixes this properly. `.asHashPlusProof()` is now 
 - **Changed** `mockEncrypt`/`mockEncryptEncryptable` (`packages/abi/src/mockEncrypt.ts`): now
   return a hash / `[...hashes, signature]` instead of `EncryptedItemInput` struct(s).
 
-## `@fhenixprotocol/cofhe-contracts` (external dependency — temporary patch)
+## `@fhenixprotocol/cofhe-contracts` (external dependency — version bump)
 
-`FhenixProtocol/cofhe-contracts#78` is **not yet published to npm** (latest published version
-is `0.1.4`; the PR is open, unmerged, as of this migration). To develop and test against the
-new batch scheme now, the installed package is **patched in place** via `pnpm patch`
-(`patches/@fhenixprotocol__cofhe-contracts@0.1.4.patch`, applied automatically on `pnpm install`
-via the `pnpm.patchedDependencies` entry in the root `package.json`). See `patches/README.md`
-for full details of what's patched and — importantly — **removal instructions**: once
-`cofhe-contracts` publishes PR #78, bump the pinned dependency in `packages/mock-contracts`,
-`packages/foundry-plugin`, and `test/setup`, and delete the patch entirely.
+`FhenixProtocol/cofhe-contracts#78` now ships in **`0.2.0-beta.1`**, so the temporary `pnpm patch`
+that carried these changes has been removed. `packages/mock-contracts` and
+`packages/foundry-plugin` pin `0.2.0-beta.1`; `packages/hardhat-plugin` requires
+`>=0.2.0-beta.1` as a peer.
 
-Patched additions (mirroring the PR exactly):
+> **Pre-release pin.** `0.2.0-beta.1` is a beta. The final `0.2.0` version must be pinned here
+> before `@cofhe/*` `0.7.0` is published.
+
+Additions in that release used by this migration:
 
 - `ICofhe.sol`: new `BatchedEncryptedInput` struct (`{ctHash, securityZone, utype}`, no
   per-item signature); `ITaskManager.verifyInput` gains an explicit `bytes signature`
@@ -200,13 +199,22 @@ available via the local patch described above.) For mixed-type batches, call
 
 ## Known temporary limitation
 
-The live CoFHE verifier service does not implement `/verify-batch` yet at the time of this
-migration — `cofheClient.encryptInputs(...).execute()` against a real chain will fail with
-`ZK_VERIFY_FAILED` until the server ships the endpoint. The hardhat-mocks path
+The live CoFHE verifier service does not implement the batch endpoint yet —
+`cofheClient.encryptInputs(...).execute()` against a real chain fails with `ZK_VERIFY_FAILED`
+until the server ships it. This is the cause of the currently-failing live tests in
+`packages/sdk` (`node/test/tfheinit.test.ts`, `node/test/inherited.test.ts`,
+`core/test/decrypt.test.ts` and their web counterparts). The hardhat-mocks path
 (`MockTaskManager.batchVerifyInputs`) works end-to-end today and is covered by tests in
-`test/hardhat-plugin-test` and `test/hardhat-3-plugin-test`. `test/integration-matrix` (which
-exercises live CoFHE infrastructure) was intentionally left out of this migration for the same
-reason.
+`test/hardhat-plugin-test` and `test/hardhat-3-plugin-test`. `test/integration-matrix` now
+exercises `encryptInputs` (including against staging), so those suites will go green once the
+endpoint ships.
+
+> **⚠ Unresolved: endpoint path mismatch.** This document and `BATCH_SIGNATURE_CHANGES.md`
+> specify `POST /verify-batch`, but `zkVerifyBatch` in
+> `packages/sdk/core/encrypt/zkPackProveVerify.ts` calls **`POST /verifyBatch`**. Because the
+> service does not implement either path yet, nothing currently proves which is correct. **This
+> must be reconciled against the verifier service before `0.7.0` ships** — if the docs are right,
+> the SDK is calling a path that will 404.
 
 ---
 
