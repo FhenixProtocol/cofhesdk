@@ -111,7 +111,7 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
   });
   log('vv', 'ACL address set in TaskManager', 2);
 
-  // 5b. ACP (Permit V3): default revoker (verification is inherited by the ACL)
+  // 5b. ACP (ACP V3): default revoker (verification is inherited by the ACL)
   const acpRevokerAddress = await deployVariable(ctx, 'ACPTimestampRevoker', []);
   logDeployment('ACPTimestampRevoker', acpRevokerAddress);
   await ctx.walletClient.writeContract({

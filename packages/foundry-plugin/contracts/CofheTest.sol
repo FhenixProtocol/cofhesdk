@@ -53,7 +53,7 @@ abstract contract CofheTest is Test {
     mockAcl = new MockACL();
     vm.label(address(mockAcl), 'MockACL');
 
-    // ACP (Permit V3): default revoker (verification inherited by the ACL)
+    // ACP (ACP V3): default revoker (verification inherited by the ACL)
     acpRevoker = new ACPTimestampRevoker();
     vm.label(address(acpRevoker), 'ACPTimestampRevoker');
     mockAcl.setDefaultRevokerContract(address(acpRevoker));

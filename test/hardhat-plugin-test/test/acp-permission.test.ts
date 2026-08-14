@@ -4,7 +4,7 @@ import { keccak256, toUtf8Bytes, type Contract } from 'ethers';
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 
 /**
- * ACP (Permit V3) Permission struct — sign & verify round-trip.
+ * ACP (ACP V3) Permission struct — sign & verify round-trip.
  *
  * Signs with ethers `signTypedData` (the real JS wallet path) against the
  * deployed MockACP verifier, proving JS <> Solidity EIP-712 parity for the new
@@ -99,7 +99,7 @@ describe('ACP Permission (V3 struct)', () => {
     now = BigInt(block!.timestamp);
   });
 
-  /** A self permission with global scope and no validator (minimal V3 permit). */
+  /** A self permission with global scope and no validator (minimal V3 acp). */
   const basePermission = (): Permission => ({
     issuer: issuer.address,
     expiration: now + 7n * 24n * 3600n,
@@ -143,15 +143,15 @@ describe('ACP Permission (V3 struct)', () => {
     return p;
   };
 
-  // ------------------------------------------------------------- self permit
+  // ------------------------------------------------------------- self acp
 
-  describe('self permit', () => {
-    it('valid permit passes', async () => {
+  describe('self acp', () => {
+    it('valid acp passes', async () => {
       const p = await signIssuer(basePermission());
       expect(await acp.checkPermissionValidity(p)).to.equal(true);
     });
 
-    it('valid permit with populated scope arrays passes', async () => {
+    it('valid acp with populated scope arrays passes', async () => {
       let p = basePermission();
       p.scope = 1;
       p.contracts = ['0x' + 'c0ffee'.padStart(40, '0'), '0x' + 'decaf'.padStart(40, '0')];
@@ -160,14 +160,14 @@ describe('ACP Permission (V3 struct)', () => {
       expect(await acp.checkPermissionValidity(p)).to.equal(true);
     });
 
-    it('expired permit reverts', async () => {
+    it('expired acp reverts', async () => {
       let p = basePermission();
       p.expiration = now - 1000n;
       p = await signIssuer(p);
       await expect(acp.checkPermissionValidity(p)).to.be.revertedWithCustomError(acp, 'PermissionInvalid_Expired');
     });
 
-    it('permit signed by a stranger reverts', async () => {
+    it('acp signed by a stranger reverts', async () => {
       const p = await signIssuer(basePermission(), stranger);
       await expect(acp.checkPermissionValidity(p)).to.be.revertedWithCustomError(
         acp,
@@ -290,7 +290,7 @@ describe('ACP Permission (V3 struct)', () => {
       expect(await acp.checkPermissionValidity(p)).to.equal(true);
     });
 
-    it('validator not disabled — permit valid', async () => {
+    it('validator not disabled — acp valid', async () => {
       await validator.set(false);
       let p = basePermission();
       p.revokerData = now;
@@ -299,7 +299,7 @@ describe('ACP Permission (V3 struct)', () => {
       expect(await acp.checkPermissionValidity(p)).to.equal(true);
     });
 
-    it('validator disabled — permit reverts', async () => {
+    it('validator disabled — acp reverts', async () => {
       await validator.set(true);
       let p = basePermission();
       p.revokerData = now;

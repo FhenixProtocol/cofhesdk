@@ -15,8 +15,8 @@ export type CofheConfig = {
   environment: 'node' | 'hardhat' | 'web' | 'react';
   /** List of supported chains */
   supportedChains: CofheChain[];
-  /** Default permit expiration in seconds, default is 30 days */
-  defaultPermitExpiration: number;
+  /** Default acp expiration in seconds, default is 30 days */
+  defaultACPExpiration: number;
   /**
    * Storage scheme for the fetched fhe keys
    * FHE keys are large, and caching prevents re-fetching them on each encryptInputs call
@@ -29,21 +29,21 @@ export type CofheConfig = {
    * Default: true
    */
   useWorkers: boolean;
-  /** ACP permit defaults, applied when creating permits (user options always win) */
-  permit: {
+  /** ACP acp defaults, applied when creating acps (user options always win) */
+  acp: {
     /**
      * Default revoker contract per chainId — an explicit override; when unset,
      * the address served by the chain's ACL (`defaultRevokerContract()`) is
-     * used. When available, created permits are revocable by default:
-     * revokerContract = this address and revokerData = permit creation
+     * used. When available, created acps are revocable by default:
+     * revokerContract = this address and revokerData = acp creation
      * timestamp (interpreted by the default timestamp revoker; enables
      * revokeSingle + O(1) revokeAll).
      */
     defaultRevoker?: Record<number, `0x${string}`>;
     /**
-     * Default contract scopes per chainId, injected into created permits'
+     * Default contract scopes per chainId, injected into created acps'
      * `contracts` when the caller doesn't provide scope options.
-     * Note: injecting scopes makes created permits non-global by default.
+     * Note: injecting scopes makes created acps non-global by default.
      */
     defaultContractScopes?: Record<number, `0x${string}`[]>;
     /**
@@ -86,8 +86,8 @@ export const CofheConfigSchema = z.object({
   environment: z.enum(['node', 'hardhat', 'web', 'react']).optional().default('node'),
   /** List of supported chain configurations */
   supportedChains: z.array(z.custom<CofheChain>()),
-  /** Default permit expiration in seconds, default is 30 days */
-  defaultPermitExpiration: z
+  /** Default acp expiration in seconds, default is 30 days */
+  defaultACPExpiration: z
     .number()
     .optional()
     .default(60 * 60 * 24 * 30),
@@ -108,8 +108,8 @@ export const CofheConfigSchema = z.object({
     .default(null),
   /** Whether to use Web Workers for ZK proof generation (web platform only) */
   useWorkers: z.boolean().optional().default(true),
-  /** ACP permit defaults */
-  permit: z
+  /** ACP acp defaults */
+  acp: z
     .object({
       defaultRevoker: z.custom<Record<number, `0x${string}`>>().optional(),
       defaultContractScopes: z.custom<Record<number, `0x${string}`[]>>().optional(),

@@ -76,12 +76,12 @@ export const addressSchema = z
   .transform((val) => getAddress(val));
 
 export const CofheReactConfigSchema = z.object({
-  shareablePermits: z.boolean().optional().default(false),
+  shareableACPs: z.boolean().optional().default(false),
   enableShieldUnshield: z.boolean().optional().default(true),
-  autogeneratePermits: z.boolean().optional().default(true),
+  autogenerateACPs: z.boolean().optional().default(true),
   projectName: z.string().trim().optional().default(''),
   logger: CofheReactLoggerSchema,
-  permitExpirationOptions: z
+  acpExpirationOptions: z
     .array(
       z.object({
         label: z.string(),
@@ -94,7 +94,7 @@ export const CofheReactConfigSchema = z.object({
       { label: '1 Week', intervalSeconds: 604800 },
       { label: '1 Month', intervalSeconds: 2592000 },
     ]),
-  defaultPermitExpirationSeconds: z.number().optional().default(604800), // 1 week
+  defaultACPExpirationSeconds: z.number().optional().default(604800), // 1 week
   pinnedTokens: z.record(z.string(), addressSchema).optional(),
   tokenLists: z
     .record(z.string(), z.array(z.string()))

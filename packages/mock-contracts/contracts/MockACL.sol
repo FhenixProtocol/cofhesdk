@@ -318,7 +318,7 @@ contract MockACL is MockPermissioned {
 
 
   // ---------------------------------------------------------------------------
-  // ACP (Permit V3) — scope-checked access
+  // ACP (ACP V3) — scope-checked access
   // ---------------------------------------------------------------------------
 
   /// @notice Default revoker contract for newly created ACPs, served to SDKs (zero = unset).

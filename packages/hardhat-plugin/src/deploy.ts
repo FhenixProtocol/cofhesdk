@@ -67,7 +67,7 @@ export const deployMocks = async (
   const acl = await deployMockACL(hre);
   logDeployment('MockACL', await acl.getAddress());
 
-  // ACP (Permit V3): default revoker (verification is inherited by the ACL)
+  // ACP (ACP V3): default revoker (verification is inherited by the ACL)
   const acpRevoker = await deployMockContractFromArtifact(hre, ACPTimestampRevokerArtifact);
   logDeployment('ACPTimestampRevoker', await acpRevoker.getAddress());
   await (await acl.setDefaultRevokerContract(await acpRevoker.getAddress())).wait();

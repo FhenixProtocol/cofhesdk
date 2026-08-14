@@ -1,10 +1,10 @@
 export { MainPage } from './MainPage.js';
 export { SettingsPage } from './SettingsPage.js';
-export { PermitsListPage } from './permits/PermitsListPage';
-export { GeneratePermitPage } from './permits/GeneratePermitPage';
-export { DelegatePermitPage } from './permits/DelegatePermitPage';
-export { ImportPermitPage } from './permits/ImportPermitPage';
-export { IncomingSharesPage } from './permits/IncomingSharesPage';
+export { ACPsListPage } from './acps/ACPsListPage';
+export { GenerateACPPage } from './acps/GenerateACPPage';
+export { DelegateACPPage } from './acps/DelegateACPPage';
+export { ImportACPPage } from './acps/ImportACPPage';
+export { IncomingSharesPage } from './acps/IncomingSharesPage';
 export { TokenInfoPage } from './TokenInfoPage.js';
 export { SendPage } from './SendPage.js';
 export { ShieldPageV2 } from './ShieldPageV2.js';

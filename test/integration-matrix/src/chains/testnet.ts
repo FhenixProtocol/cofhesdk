@@ -69,7 +69,7 @@ export function createTestnetSetup(chain: Pick<TestChainConfig, 'viemChain' | 'c
 
     const config = factory.createConfig({
       supportedChains: [chain.cofheChain],
-      permit: {
+      acp: {
         ...(acpValidator ? { defaultRevoker: { [chain.id]: acpValidator } } : {}),
         ...(acpShareRegistry ? { sharingRegistry: { [chain.id]: acpShareRegistry } } : {}),
       },

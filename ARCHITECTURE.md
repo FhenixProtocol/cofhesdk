@@ -179,7 +179,7 @@ graph TD
 
     subgraph Prod["🌐 PRODUCTION MODE"]
         P1["Query Threshold Network<br/>via CoFHE API"]
-        P2["Validate permission<br/>with permit if needed"]
+        P2["Validate permission<br/>with acp if needed"]
         P3["Unseal output<br/>using TN response"]
         P4["Return plaintext"]
     end
@@ -276,8 +276,8 @@ graph TB
     Query["Decrypt Request"]
 
     subgraph Scenarios["Access Control Scenarios"]
-        NoPerm["No Permit Provided"]
-        WithPerm["Permit Provided"]
+        NoPerm["No ACP Provided"]
+        WithPerm["ACP Provided"]
     end
 
     Query --> Scenarios
@@ -288,8 +288,8 @@ graph TB
         CheckGlobal -->|no| DenyGlobal["❌ NotAllowed"]
     end
 
-    subgraph PermCheck["Permit-Based Check"]
-        ValidatePerm["Validate Permit:<br/>signature, expiration"]
+    subgraph PermCheck["ACP-Based Check"]
+        ValidatePerm["Validate ACP:<br/>signature, expiration"]
         ValidatePerm -->|valid| CheckPerm["MockTaskManager<br/>.isAllowedWithPermission()"]
         ValidatePerm -->|invalid| DenyPerm["❌ Permission Invalid"]
         CheckPerm -->|allowed| AllowPerm["✅ Decrypt allowed"]
@@ -594,14 +594,14 @@ sequenceDiagram
 
 ## Component Interaction Matrix
 
-| Component          | Mock Mode                                                                                             | Production Mode                                                                                                          | Purpose                                                            |
-| ------------------ | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
-| **EncryptInputs**  | Uses MockZkVerifier to calculate ctHashes                                                             | Uses TFHE + ZK proofs                                                                                                    | Generate encrypted inputs                                          |
-| **decryptForView** | Reads from MockZkVerifier storage + checks MockACL, returns sealed plaintext, unseals with permit key | Retries submit until `request_id`, then polls Threshold Network for sealed plaintext and unseals with permit sealing key | View calls (read & unseal plaintext, no proof)                     |
-| **decryptForTx**   | Calls MockThresholdNetwork with permission check, gets plaintext + signature                          | Retries submit until `request_id`, then polls Threshold Network for plaintext + signature                                | Transaction submission (needs signature for on-chain verification) |
-| **Permits**        | Stored in-memory + validated against MockACL                                                          | Stored on-chain + validated by TN                                                                                        | Access control mechanism                                           |
-| **Signatures**     | Mock signer key (hardcoded for testing, using the same decrypt-result payload format as production)   | Real TN signer (from network)                                                                                            | Proof of decryption                                                |
-| **State Storage**  | In-memory maps in mock contracts                                                                      | On-chain encrypted state                                                                                                 | Where encrypted values live                                        |
+| Component          | Mock Mode                                                                                           | Production Mode                                                                                                       | Purpose                                                            |
+| ------------------ | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| **EncryptInputs**  | Uses MockZkVerifier to calculate ctHashes                                                           | Uses TFHE + ZK proofs                                                                                                 | Generate encrypted inputs                                          |
+| **decryptForView** | Reads from MockZkVerifier storage + checks MockACL, returns sealed plaintext, unseals with acp key  | Retries submit until `request_id`, then polls Threshold Network for sealed plaintext and unseals with acp sealing key | View calls (read & unseal plaintext, no proof)                     |
+| **decryptForTx**   | Calls MockThresholdNetwork with permission check, gets plaintext + signature                        | Retries submit until `request_id`, then polls Threshold Network for plaintext + signature                             | Transaction submission (needs signature for on-chain verification) |
+| **ACPs**           | Stored in-memory + validated against MockACL                                                        | Stored on-chain + validated by TN                                                                                     | Access control mechanism                                           |
+| **Signatures**     | Mock signer key (hardcoded for testing, using the same decrypt-result payload format as production) | Real TN signer (from network)                                                                                         | Proof of decryption                                                |
+| **State Storage**  | In-memory maps in mock contracts                                                                    | On-chain encrypted state                                                                                              | Where encrypted values live                                        |
 
 ---
 

@@ -27,7 +27,7 @@ export const MockThresholdNetworkArtifact = {
     },
     {
       type: 'function',
-      name: 'decryptForTxWithPermit',
+      name: 'decryptForTxWithACP',
       inputs: [
         {
           name: 'ctHash',
@@ -118,7 +118,7 @@ export const MockThresholdNetworkArtifact = {
     },
     {
       type: 'function',
-      name: 'decryptForTxWithoutPermit',
+      name: 'decryptForTxWithoutACP',
       inputs: [
         {
           name: 'ctHash',

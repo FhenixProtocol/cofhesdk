@@ -1,4 +1,4 @@
-import { type ACP, ACPUtils } from '@/permits';
+import { type ACP, ACPUtils } from '@/acps';
 
 import { encodePacked, keccak256, type PublicClient } from 'viem';
 import { sign } from 'viem/accounts';
@@ -22,34 +22,34 @@ export type DecryptForTxMocksResult = {
 export async function cofheMocksDecryptForTx(
   ctHash: bigint | string,
   utype: FheTypes,
-  permit: ACP | null,
+  acp: ACP | null,
   publicClient: PublicClient
 ): Promise<DecryptForTxMocksResult> {
   let allowed: boolean;
   let error: string;
   let decryptedValue: bigint;
 
-  // With permit
-  if (permit !== null) {
-    let acp = ACPUtils.getPublic(permit, true);
+  // With acp
+  if (acp !== null) {
+    const wireAcp = ACPUtils.getPublic(acp, true);
     const permissionWithBigInts = {
-      ...acp,
-      expiration: BigInt(acp.expiration),
-      revokerData: BigInt(acp.revokerData),
+      ...wireAcp,
+      expiration: BigInt(wireAcp.expiration),
+      revokerData: BigInt(wireAcp.revokerData),
     };
 
     [allowed, error, decryptedValue] = await publicClient.readContract({
       address: MOCKS_THRESHOLD_NETWORK_ADDRESS,
       abi: MockThresholdNetworkAbi,
-      functionName: 'decryptForTxWithPermit',
+      functionName: 'decryptForTxWithACP',
       args: [BigInt(ctHash), permissionWithBigInts],
     });
   } else {
-    // Without permit (global allowance)
+    // Without acp (global allowance)
     [allowed, error, decryptedValue] = await publicClient.readContract({
       address: MOCKS_THRESHOLD_NETWORK_ADDRESS,
       abi: MockThresholdNetworkAbi,
-      functionName: 'decryptForTxWithoutPermit',
+      functionName: 'decryptForTxWithoutACP',
       args: [BigInt(ctHash)],
     });
   }

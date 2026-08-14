@@ -309,7 +309,7 @@ describe('decrypt polling callbacks', () => {
           ok: false,
           status: 404,
           statusText: 'Not Found',
-          json: async () => ({ error: 'acp_denied', error_message: 'permit was rejected' }),
+          json: async () => ({ error: 'acp_denied', error_message: 'acp was rejected' }),
         });
       }
 
@@ -328,7 +328,7 @@ describe('decrypt polling callbacks', () => {
     const rejection = expect(promise).rejects.toMatchObject({
       code: CofheErrorCode.CtNotFound,
       apiErrorCode: 'ct_not_found',
-      message: 'decrypt ciphertext not found after retrying for 10000ms: permit was rejected',
+      message: 'decrypt ciphertext not found after retrying for 10000ms: acp was rejected',
     });
 
     await vi.advanceTimersByTimeAsync(11_000);
@@ -729,7 +729,7 @@ describe('decrypt polling callbacks', () => {
           ok: false,
           status: 404,
           statusText: 'Not Found',
-          json: async () => ({ error: 'acp_denied', error_message: 'permit was rejected' }),
+          json: async () => ({ error: 'acp_denied', error_message: 'acp was rejected' }),
         });
       }
 
@@ -748,7 +748,7 @@ describe('decrypt polling callbacks', () => {
     const rejection = expect(promise).rejects.toMatchObject({
       code: CofheErrorCode.CtNotFound,
       apiErrorCode: 'ct_not_found',
-      message: 'sealOutput ciphertext not found after retrying for 10000ms: permit was rejected',
+      message: 'sealOutput ciphertext not found after retrying for 10000ms: acp was rejected',
     });
 
     await vi.advanceTimersByTimeAsync(11_000);

@@ -92,24 +92,24 @@ See [Mock Contracts](/hardhat/mock-contracts) for details.
 
 ## ACPs
 
-`createClientWithBatteries` pre-generates a self-ACP, so `decryptForView` and `decryptForTx().withPermit()` work immediately. For tests that need named ACPs or multiple signers, create them explicitly:
+`createClientWithBatteries` pre-generates a self-ACP, so `decryptForView` and `decryptForTx().withACP()` work immediately. For tests that need named ACPs or multiple signers, create them explicitly:
 
 ```ts twoslash
 // @noErrors
 import { CofheClient } from '@cofhe/sdk';
-import { ACPUtils } from '@cofhe/sdk/permits';
+import { ACPUtils } from '@cofhe/sdk/acps';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 declare const cofheClient: CofheClient;
 declare const signer: HardhatEthersSigner;
 // ---cut---
-const permit = await cofheClient.acp.createSelf({
+const acp = await cofheClient.acp.createSelf({
   issuer: signer.address,
-  name: 'My Test Permit',
+  name: 'My Test ACP',
 });
 
-// Select it as the active permit
-const permitHash = ACPUtils.getHash(permit);
-cofheClient.acp.selectActivePermit(permitHash);
+// Select it as the active acp
+const acpHash = ACPUtils.getHash(acp);
+cofheClient.acp.selectActiveACP(acpHash);
 ```
 
 Alternatively, you may find it easier to create a cofheClient for each of the multiple signers you need to test.
@@ -131,7 +131,7 @@ const aliceClient = await hre.cofhe.createClientWithBatteries(alice);
 
 [`decryptForTx`](/sdk/decrypt-to-tx) returns a `{ ctHash, decryptedValue, signature }` tuple for on-chain submission. The ACP mode must be selected explicitly.
 
-### Globally allowed values (`.withoutPermit()`)
+### Globally allowed values (`.withoutACP()`)
 
 When a contract calls `FHE.allowPublic(handle)`, anyone can decrypt without an ACP:
 
@@ -144,46 +144,46 @@ declare const publicCtHash: string;
 // ---cut---
 const result = await cofheClient
   .decryptForTx(publicCtHash)
-  .withoutPermit() // [!code focus]
+  .withoutACP() // [!code focus]
   .execute();
 
 expect(result.decryptedValue).to.equal(55n);
 ```
 
-### Access-controlled values (`.withPermit()`)
+### Access-controlled values (`.withACP()`)
 
 For handles restricted by ACL policy, supply an ACP:
 
 :::code-group
 
-```ts twoslash [Explicit permit]
+```ts twoslash [Explicit acp]
 // @noErrors
 import { CofheClient } from '@cofhe/sdk';
-import { ACP } from '@cofhe/sdk/permits';
+import { ACP } from '@cofhe/sdk/acps';
 import { expect } from 'chai';
 declare const cofheClient: CofheClient;
 declare const ctHash: string;
-declare const permit: ACP;
+declare const acp: ACP;
 // ---cut---
 const result = await cofheClient
   .decryptForTx(ctHash)
-  .withPermit(permit) // [!code focus]
+  .withACP(acp) // [!code focus]
   .execute();
 
 expect(result.decryptedValue).to.equal(99n);
 ```
 
-```ts twoslash [Active permit]
+```ts twoslash [Active acp]
 // @noErrors
 import { CofheClient } from '@cofhe/sdk';
 import { expect } from 'chai';
 declare const cofheClient: CofheClient;
 declare const ctHash: string;
 // ---cut---
-// resolves the active permit automatically
+// resolves the active acp automatically
 const result = await cofheClient
   .decryptForTx(ctHash)
-  .withPermit() // [!code focus]
+  .withACP() // [!code focus]
   .execute();
 
 expect(result.decryptedValue).to.equal(99n);

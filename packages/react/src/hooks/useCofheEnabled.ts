@@ -34,7 +34,7 @@ export function useCofheEnabled(options?: UseCofheEnabledOptions): UseCofheEnabl
       address: TASK_MANAGER_ADDRESS,
       abi: TASK_MANAGER_IS_ENABLED_ABI,
       functionName: 'isEnabled',
-      requiresPermit: false,
+      requiresACP: false,
     },
     options
   );

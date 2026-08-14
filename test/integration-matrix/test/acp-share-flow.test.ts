@@ -12,7 +12,7 @@ import type { ClientFactory, TestContext } from '../src/types.js';
  *   1. Bob encrypts + stores a value
  *   2. Bob creates a signed sharing ACP for Alice and posts it (shareOnChain)
  *   3. Alice discovers it (getIncomingShares) and imports it (importFromChain)
- *   4. Alice decrypts Bob's value with the imported permit
+ *   4. Alice decrypts Bob's value with the imported acp
  *   5. Alice dismisses the share
  *
  * Chain-agnostic: runs wherever the chain setup provides a sharingRegistry
@@ -73,12 +73,12 @@ describe.each(enabledChains)('[ACP SHARE] $label', (chainConfig) => {
     });
 
     // 2. Bob shares with Alice on-chain
-    const sharingPermit = await ctx.cofheClient.acp.createSharing({
+    const sharingACP = await ctx.cofheClient.acp.createSharing({
       issuer: ctx.bobAccount.address,
       recipient: ctx.aliceAccount.address,
       name: 'On-chain share to Alice',
     });
-    const { txHash: shareTx, shareId } = await ctx.cofheClient.acp.shareOnChain(sharingPermit);
+    const { txHash: shareTx, shareId } = await ctx.cofheClient.acp.shareOnChain(sharingACP);
     expect(shareId).toMatch(/^0x[0-9a-f]{64}$/);
     await ctx.publicClient.waitForTransactionReceipt({
       hash: shareTx,
@@ -95,7 +95,7 @@ describe.each(enabledChains)('[ACP SHARE] $label', (chainConfig) => {
     const imported = await ctx.cofheClient.acp.importFromChain(share!);
     expect(imported.type).toBe('recipient');
 
-    // 4. Alice decrypts Bob's value with the imported permit
+    // 4. Alice decrypts Bob's value with the imported acp
     const value = await ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
     expect(value).toBe(BigInt(testValue));
 

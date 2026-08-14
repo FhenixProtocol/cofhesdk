@@ -10,19 +10,19 @@ import type { ClientFactory, TestContext } from '../src/types.js';
 
 // Dedicated demo issuer (anvil key #2): validator revocation state is keyed
 // per-issuer, so using our own account isolates this file's revocations from
-// the other suites sharing the same anvil instance (and their Bob permits).
+// the other suites sharing the same anvil instance (and their Bob acps).
 const DEMO_PRIVATE_KEY = '0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a' as const;
 
 /**
- * ACP (Permit V3) — minimal user-flow demo, end to end:
+ * ACP (ACP V3) — minimal user-flow demo, end to end:
  *
  *   1. encrypt + store a value
- *   2. create a CONTRACT-SCOPED, REVOCABLE permit
- *      (validator injected by config.permit.defaultRevoker — no explicit opts)
+ *   2. create a CONTRACT-SCOPED, REVOCABLE acp
+ *      (validator injected by config.acp.defaultRevoker — no explicit opts)
  *   3. decrypt with it
  *   4. revoke it on-chain (revokeSingle via the timestamp validator)
- *   5. decrypting with the revoked permit fails (PermissionInvalid_Disabled)
- *   6. a freshly created permit works again
+ *   5. decrypting with the revoked acp fails (PermissionInvalid_Disabled)
+ *   6. a freshly created acp works again
  *
  * Chain-agnostic by construction: runs against anvil+mocks today; remote
  * devnet inherits it once the upgraded ACL/ACP contracts are deployed there.
@@ -54,7 +54,7 @@ describe.each(enabledChains)('[ACP DEMO] $label', (chainConfig) => {
     await ctx.cofheClient.connect(ctx.publicClient, demoWallet);
   }, 120_000);
 
-  it('full flow: scoped revocable permit → decrypt → revoke → denied → fresh permit works', async () => {
+  it('full flow: scoped revocable acp → decrypt → revoke → denied → fresh acp works', async () => {
     // 1. encrypt + store
     const [encryptedHash, encryptedSignature] = await ctx.cofheClient
       .encryptInputs([Encryptable.uint32(testValue)])
@@ -78,43 +78,43 @@ describe.each(enabledChains)('[ACP DEMO] $label', (chainConfig) => {
       functionName: 'getValueHash',
     });
 
-    // 2. contract-scoped permit; revocable by default via config.permit.defaultRevoker
-    const permit = await ctx.cofheClient.acp.createSelf({
+    // 2. contract-scoped acp; revocable by default via config.acp.defaultRevoker
+    const acp = await ctx.cofheClient.acp.createSelf({
       issuer: demoAccount.address,
-      name: 'ACP Demo Permit',
+      name: 'ACP Demo ACP',
       contracts: [ctx.contractAddress],
     });
-    expect(permit.scope).toBe(1); // contract scope derived automatically
-    expect(permit.revokerContract).not.toBe('0x0000000000000000000000000000000000000000');
-    expect(permit.revokerData).toBeGreaterThan(0); // creation timestamp
+    expect(acp.scope).toBe(1); // contract scope derived automatically
+    expect(acp.revokerContract).not.toBe('0x0000000000000000000000000000000000000000');
+    expect(acp.revokerData).toBeGreaterThan(0); // creation timestamp
 
-    // 3. decrypt with the scoped permit
+    // 3. decrypt with the scoped acp
     const value = await ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();
     expect(value).toBe(BigInt(testValue));
-    expect(await ctx.cofheClient.acp.isPermitRevoked(permit)).toBe(false);
+    expect(await ctx.cofheClient.acp.isACPRevoked(acp)).toBe(false);
 
     // 4. revoke on-chain
-    const revokeTx = await ctx.cofheClient.acp.revokePermit(permit);
+    const revokeTx = await ctx.cofheClient.acp.revokeACP(acp);
     await ctx.publicClient.waitForTransactionReceipt({
       hash: revokeTx,
       confirmations: chainConfig.txConfirmationsRequired,
     });
-    expect(await ctx.cofheClient.acp.isPermitRevoked(permit)).toBe(true);
+    expect(await ctx.cofheClient.acp.isACPRevoked(acp)).toBe(true);
 
-    // 5. the revoked permit no longer decrypts. Mocks propagate the on-chain revert
+    // 5. the revoked acp no longer decrypts. Mocks propagate the on-chain revert
     // reason directly; the staging sealOutput backend reports it as a generic denial.
     await expect(ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute()).rejects.toThrow(
       /PermissionInvalid_Disabled|acp_denied/
     );
 
-    // 6. a fresh permit restores access.
-    // Wait >1s first: permit ids are second-resolution creation timestamps, and
-    // a permit minted in the same second as the revoked one shares its id — the
+    // 6. a fresh acp restores access.
+    // Wait >1s first: acp ids are second-resolution creation timestamps, and
+    // an ACP minted in the same second as the revoked one shares its id — the
     // documented same-second collision (accepted as fail-safe over-revocation).
     await new Promise((resolve) => setTimeout(resolve, 1500));
     await ctx.cofheClient.acp.createSelf({
       issuer: demoAccount.address,
-      name: 'ACP Demo Permit (fresh)',
+      name: 'ACP Demo ACP (fresh)',
       contracts: [ctx.contractAddress],
     });
     const valueAgain = await ctx.cofheClient.decryptForView(ctHash, FheTypes.Uint32).execute();

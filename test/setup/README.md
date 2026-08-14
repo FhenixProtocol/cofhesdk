@@ -63,7 +63,7 @@ Auto-generated registry keyed by `[contractName][chainId]`. Committed so tests c
 
 ### `src/primaryTestChainRegistry.json`
 
-Pre-stored encrypted values on the primary test chain. Lets core SDK tests decrypt/verify/publish without performing on-chain encryption. Contains `privateValue` (permit-gated), `publicValue` (public), `addedValue` (FHE.add result).
+Pre-stored encrypted values on the primary test chain. Lets core SDK tests decrypt/verify/publish without performing on-chain encryption. Contains `privateValue` (acp-gated), `publicValue` (public), `addedValue` (FHE.add result).
 
 ### `src/env.ts`
 

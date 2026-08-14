@@ -3,7 +3,7 @@
 This repo contains the full toolkit for interacting with Fhenix's CoFHE coprocessor.
 The repo is split into the following packages:
 
-- `@cofhe/sdk` Core SDK that fetches FHE keys, encrypts inputs, decrypts handles, and exposes subpath modules such as `@cofhe/sdk/adapters`, `@cofhe/sdk/permits`, `@cofhe/sdk/web`, and `@cofhe/sdk/node`.
+- `@cofhe/sdk` Core SDK that fetches FHE keys, encrypts inputs, decrypts handles, and exposes subpath modules such as `@cofhe/sdk/adapters`, `@cofhe/sdk/acps`, `@cofhe/sdk/web`, and `@cofhe/sdk/node`.
 - `@cofhe/react` React-specific hooks and pre-built components for building CoFHE-enabled frontends.
 - `@cofhe/mock-contracts` Mock contracts replicating the off-chain CoFHE functionality on-chain for local testing.
 - `@cofhe/hardhat-plugin` Hardhat plugin that deploys mock contracts and provides utilities for testing CoFHE flows.
@@ -26,7 +26,7 @@ This Turborepo includes the following:
 
 ### Apps and Packages
 
-- `@cofhe/sdk`: Core SDK with adapters, permits, node, and web subpath exports.
+- `@cofhe/sdk`: Core SDK with adapters, acps, node, and web subpath exports.
 - `@cofhe/react`: React bindings and components built on top of the core SDK.
 - `@cofhe/mock-contracts`: Solidity contracts and build pipeline for local CoFHE testing.
 - `@cofhe/hardhat-plugin`: Hardhat integration that deploys mock contracts and exposes CoFHE utilities.

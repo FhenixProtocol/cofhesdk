@@ -39,7 +39,7 @@ describe('Hardhat Mocks – publishDecryptResult revert behavior', () => {
     const tx = await simpleTest.connect(signer).setPublicValueBatch([hash], signature);
     await tx.wait();
 
-    const decryptResult = await cofheClient.decryptForTx(hash).withoutPermit().execute();
+    const decryptResult = await cofheClient.decryptForTx(hash).withoutACP().execute();
 
     const ctHashBytes32 = hre.ethers.toBeHex(decryptResult.ctHash, 32);
     await expect(simpleTest.publishDecryptResult(ctHashBytes32, 0n, decryptResult.signature)).to.be.reverted;
