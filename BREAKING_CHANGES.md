@@ -3,7 +3,7 @@
 This document logs the breaking changes made while migrating `cofheClient.encryptInputs`
 (and everything built on top of it) from the legacy **one-signature-per-ciphertext**
 verification scheme to the new **one-signature-per-batch** scheme described in
-`BATCH_SIGNATURE_CHANGES.md` (`POST /verify-batch`) and implemented on-chain by
+`BATCH_SIGNATURE_CHANGES.md` (`POST /verifyBatch`) and implemented on-chain by
 [`FhenixProtocol/cofhe-contracts#78`](https://github.com/FhenixProtocol/cofhe-contracts/pull/78).
 
 **There is no backwards-compatibility shim.** A single batch signature cannot be split
@@ -14,7 +14,7 @@ back into N valid per-item signatures, so the old output shape is gone, not depr
 ## Why
 
 `cofheClient.encryptInputs(...).execute()` used to return an array of `EncryptedItemInput`
-structs — one **valid signature per ciphertext**. The new `/verify-batch` endpoint (and the
+structs — one **valid signature per ciphertext**. The new `/verifyBatch` endpoint (and the
 matching on-chain `batchVerifyInputs`) issues **one signature for the whole batch**, computed
 over `keccak256(h_0 || h_1 || ... || h_n)`. You cannot derive N valid individual signatures
 from that single signature, so the per-item-struct output had to be removed outright.
@@ -41,7 +41,7 @@ item; the real batch signature fixes this properly. `.asHashPlusProof()` is now 
 - **Removed** `zkVerify`, `VerifyResult`, `VerifyResultRaw` (`packages/sdk/core/encrypt/zkPackProveVerify.ts`) —
   the per-ciphertext `/verify` HTTP client.
 - **Added** `zkVerifyBatch`, `VerifyBatchResult`, `VerifyBatchResultRaw`, `VerifyBatchOutputRaw` —
-  the `/verify-batch` HTTP client.
+  the `/verifyBatch` HTTP client.
 - **Changed** `ExternalHashProof`: now documents that it's a real ECDSA batch signature (not a
   naive per-item signature concatenation, which is what it degenerated to previously for N>1).
 - **Deleted** `packages/sdk/core/encrypt/encryptUtils.ts` (`encryptReplace`/`encryptExtract`) —
@@ -233,12 +233,9 @@ until the server ships it. This is the cause of the currently-failing live tests
 exercises `encryptInputs` (including against staging), so those suites will go green once the
 endpoint ships.
 
-> **⚠ Unresolved: endpoint path mismatch.** This document and `BATCH_SIGNATURE_CHANGES.md`
-> specify `POST /verify-batch`, but `zkVerifyBatch` in
-> `packages/sdk/core/encrypt/zkPackProveVerify.ts` calls **`POST /verifyBatch`**. Because the
-> service does not implement either path yet, nothing currently proves which is correct. **This
-> must be reconciled against the verifier service before `0.7.0` ships** — if the docs are right,
-> the SDK is calling a path that will 404.
+The endpoint path is **`POST /verifyBatch`**, matching `zkVerifyBatch` in
+`packages/sdk/core/encrypt/zkPackProveVerify.ts`. Only the deployment is outstanding; the path
+itself is settled.
 
 ---
 
@@ -273,13 +270,13 @@ caller must now declare in advance which contract will consume the result.
 - **Changed** signature digest (mocks path, `cofheMocksZkVerifySign.ts`): now folds in the
   consuming contract per the formula above.
 - **Changed** production request: `zkVerifyBatch` now sends a `contract_address` field to
-  `POST /verify-batch`, alongside the existing `account_addr`/`security_zone`/`chain_id`. This
+  `POST /verifyBatch`, alongside the existing `account_addr`/`security_zone`/`chain_id`. This
   exact field name is confirmed against the real verifier service's `VerifyRequest` struct
   (`zee-k-verifier#37`, which added it to the legacy `/verify` endpoint) — `BATCH_SIGNATURE_CHANGES.md`
-  predates PR #77 and doesn't document it for `/verify-batch` specifically yet, so this assumes the
-  batch endpoint will use the same field name once it ships. The live service does not yet implement
-  `/verify-batch` at all (see "Known temporary limitation" above), so this has no observable
-  effect until then.
+  predates PR #77 and doesn't document it for `/verifyBatch` specifically yet, so this assumes the
+  batch endpoint will use the same field name once it ships. The live service does not yet deploy
+  `/verifyBatch` (see "Known temporary limitation" above), so this has no observable effect until
+  then.
 
 ## `@cofhe/mock-contracts`
 

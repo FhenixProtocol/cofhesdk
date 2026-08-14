@@ -49,6 +49,10 @@ export default defineConfig({
         link: '/quick-start',
       },
       {
+        text: 'Migrating to 0.7.0',
+        link: '/migrating-to-0-7-0',
+      },
+      {
         text: 'Migrating from `cofhejs`',
         link: '/migrating-from-cofhejs',
       },

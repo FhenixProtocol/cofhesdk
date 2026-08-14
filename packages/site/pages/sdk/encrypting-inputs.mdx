@@ -234,13 +234,13 @@ EncryptStep.Verify; // 'verify'
 
 Calling `.execute()` runs five sequential steps. You can observe them via the `.onStep()` callback.
 
-| Step        | Description                                                                                                          |
-| ----------- | -------------------------------------------------------------------------------------------------------------------- |
-| `InitTfhe`  | Lazy-initializes the TFHE WASM module (browser/Node). A no-op after the first call.                                  |
-| `FetchKeys` | Fetches (or loads from cache) the FHE public key and CRS for the target chain.                                       |
-| `Pack`      | Packs the plaintext values into a ZK list ready for proving.                                                         |
-| `Prove`     | Generates the ZK proof of knowledge (ZKPoK). Uses a Web Worker when available.                                       |
-| `Verify`    | Sends the proof to the CoFHE verifier's `/verify-batch` endpoint. Returns the hashes and one shared batch signature. |
+| Step        | Description                                                                                                         |
+| ----------- | ------------------------------------------------------------------------------------------------------------------- |
+| `InitTfhe`  | Lazy-initializes the TFHE WASM module (browser/Node). A no-op after the first call.                                 |
+| `FetchKeys` | Fetches (or loads from cache) the FHE public key and CRS for the target chain.                                      |
+| `Pack`      | Packs the plaintext values into a ZK list ready for proving.                                                        |
+| `Prove`     | Generates the ZK proof of knowledge (ZKPoK). Uses a Web Worker when available.                                      |
+| `Verify`    | Sends the proof to the CoFHE verifier's `/verifyBatch` endpoint. Returns the hashes and one shared batch signature. |
 
 ## `Encryptable` — typing inputs
 

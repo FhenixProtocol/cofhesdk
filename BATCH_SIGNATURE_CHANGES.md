@@ -1,10 +1,10 @@
 # TL;DR — batch signature endpoint
 
-A **new** endpoint `POST /verify-batch` returns **one signature for the whole batch**.
+A **new** endpoint `POST /verifyBatch` returns **one signature for the whole batch**.
 The existing `POST /verify` endpoint is **unchanged** (one signature per ciphertext) and stays
 fully backward compatible — existing SDK clients need no changes.
 
-|                 | `POST /verify` (legacy, unchanged)         | `POST /verify-batch` (new)                   |
+|                 | `POST /verify` (legacy, unchanged)         | `POST /verifyBatch` (new)                    |
 | --------------- | ------------------------------------------ | -------------------------------------------- |
 | Signatures      | **one per ciphertext**                     | **one for the whole batch**                  |
 | `data` shape    | **array** of `{ct_hash, signature, recid}` | **object**: `{outputs[], signature, recid}`  |
@@ -46,7 +46,7 @@ calls `FHE.asEuint*`/`FHE.asEuint*s` with them. It is folded into every per-ciph
 Each entry's signature covers that ciphertext's own message hash:
 `keccak256(ct_hash || ct_type || security_zone || account_addr || chain_id_padded || contract_address)`.
 
-### `POST /verify-batch` — new
+### `POST /verifyBatch` — new
 
 ```json
 {
@@ -68,12 +68,12 @@ Each entry's signature covers that ciphertext's own message hash:
 
 ## What SDK devs should do
 
-**Nothing is required** — `/verify` keeps working exactly as before. Migrate to `/verify-batch`
+**Nothing is required** — `/verify` keeps working exactly as before. Migrate to `/verifyBatch`
 only if you want a single signature per request (fewer signatures to store / verify on-chain).
 
 ### To use the new batch endpoint
 
-1. **Call `POST /verify-batch`** instead of `/verify` (same request body).
+1. **Call `POST /verifyBatch`** instead of `/verify` (same request body).
 
 2. **Parse the new shape.** Read `data.outputs` for the per-ciphertext hashes/types, and read the
    single `data.signature` + `data.recid` once (instead of iterating an array).
@@ -114,7 +114,7 @@ only if you want a single signature per request (fewer signatures to store / ver
   return it.
 - The per-ciphertext binding (`ct_hash`, `ct_type`, `security_zone`, `account_addr`, `chain_id`,
   `contract_address`) is identical to the legacy endpoint — only the final fold into one signature is
-  new. So `hash_i` for `/verify-batch` is exactly the message the legacy `/verify` signs per
+  new. So `hash_i` for `/verifyBatch` is exactly the message the legacy `/verify` signs per
   ciphertext.
 - One signature covers the whole batch: it verifies all-or-nothing. You can't validate a single
   ciphertext's inclusion without the full ordered `outputs` set.
