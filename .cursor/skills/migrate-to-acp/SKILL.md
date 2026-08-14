@@ -151,6 +151,15 @@ contract-author details, and update `@fhenixprotocol/cofhe-contracts` in `contra
 
 ---
 
+## Step 4b — Code that touches the decryption wire payload
+
+Apps that inspect, log, proxy, or mutate the request bodies the SDK sends to the decryption backend
+(fault injection, test harnesses, request interceptors, analytics) depend on the wire schema, which
+also changed: the permission object now travels under the **acp** key, not **permit**.
+
+Rename both the access and its type annotation. TypeScript only catches this when the value is typed;
+anything parsed as unknown/any passes compilation and fails against the backend.
+
 ## Step 5 — Behavioral changes with no compile-time signal
 
 - **Stored ACPs are dropped.** The persisted store key changed; previously stored permits are not
