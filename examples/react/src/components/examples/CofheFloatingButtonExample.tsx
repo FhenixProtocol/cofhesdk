@@ -96,7 +96,7 @@ export function App() {
 
         <div>
           <h3 className="text-lg font-semibold mb-3">
-            2. use Cofhe React API to make the user generate a acp when it's needed (needed for decrypting)
+            2. use Cofhe React API to make the user generate an ACP when it's needed (needed for decrypting)
           </h3>
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border">
             <pre className="text-sm overflow-x-auto">

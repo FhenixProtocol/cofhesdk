@@ -21,17 +21,17 @@ export { ACPUtils } from './acp.js';
 
 // Validation utilities
 export {
-  // Self acp validators
+  // Self ACP validators
   SelfACPOptionsValidator,
   SelfACPValidator,
   validateSelfACPOptions,
   validateSelfACP,
-  // Sharing acp validators
+  // Sharing ACP validators
   SharingACPOptionsValidator,
   SharingACPValidator,
   validateSharingACPOptions,
   validateSharingACP,
-  // Import acp validators
+  // Import ACP validators
   ImportACPOptionsValidator,
   ImportACPValidator,
   validateImportACPOptions,

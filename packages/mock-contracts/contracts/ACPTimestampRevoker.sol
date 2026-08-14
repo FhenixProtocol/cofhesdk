@@ -9,7 +9,7 @@ import { IPermissionCustomIdValidator } from './Permissioned.sol';
  * Implements the unchanged revoker interface. Interprets a permission's
  * `revokerData` as its creation timestamp (populated by the SDK at acp
  * creation). Every SDK-created acp points here by default: no upfront
- * contract call is needed — a acp is revocable from birth.
+ * contract call is needed — an ACP is revocable from birth.
  *
  * `disabled(issuer, id)` truth table:
  *
@@ -17,7 +17,7 @@ import { IPermissionCustomIdValidator } from './Permissioned.sol';
  *   |-----------------------------|--------|----------------------------------|
  *   | id > block.timestamp        | true   | future-dated acps never       |
  *   |                             |        | validate (closes the revoke-all  |
- *   |                             |        | dodge: a acp dated ahead of a |
+ *   |                             |        | dodge: an ACP dated ahead of a|
  *   |                             |        | mass revocation would survive it)|
  *   | id <= revokeAllAt[issuer]   | true   | mass revocation (inclusive)      |
  *   | revokedSingle[issuer][id]   | true   | targeted revocation              |

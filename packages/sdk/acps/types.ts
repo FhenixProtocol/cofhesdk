@@ -127,7 +127,7 @@ export type ACP = Expand<ACPPrivate & ACPPublic>;
 export type ACPType = ACP['type'];
 
 /**
- * Utility type to narrow a acp to a specific discriminant.
+ * Utility type to narrow an ACP to a specific discriminant.
  *
  * Note: this only narrows the `type` field. Runtime/validation constraints
  * (e.g. recipient == zeroAddress for self acps) are enforced elsewhere.
@@ -139,7 +139,7 @@ export type SharingACP = ACPOf<'sharing'>;
 export type RecipientACP = ACPOf<'recipient'>;
 
 /**
- * Optional additional metadata of a ACP
+ * Optional additional metadata of an ACP
  * Can be passed into the constructor, but not necessary
  * Useful for deserialization
  */

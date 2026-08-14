@@ -5,7 +5,7 @@ description: EIP-712 signed ACPs (Access Control Permissions) for accessing encr
 
 # ACPs
 
-ACPs (Access Control Permissions, formerly called _acps_) are EIP-712 signatures that authorize decryption of confidential data. The `issuer` field identifies who is accessing the data - the issuer must have been granted access on-chain via `FHE.allow(handle, address)`. When an ACP is used, CoFHE validates it against the ACL contract to confirm that the issuer has access to the requested encrypted handle.
+ACPs (Access Control Permissions, formerly called _permits_) are EIP-712 signatures that authorize decryption of confidential data. The `issuer` field identifies who is accessing the data - the issuer must have been granted access on-chain via `FHE.allow(handle, address)`. When an ACP is used, CoFHE validates it against the ACL contract to confirm that the issuer has access to the requested encrypted handle.
 
 Each ACP includes a sealing keypair. The public key is sent to CoFHE so it can re-encrypt the data for the ACP holder. The private key stays client-side and is used to unseal the returned data. ACPs are stored locally and identified by a deterministic hash of their fields.
 

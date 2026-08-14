@@ -67,11 +67,11 @@ export const getSignatureTypesAndMessage = <T extends ACPSignatureFieldOption>(
 };
 
 /**
- * Signature utilities for acp operations
+ * Signature utilities for ACP operations
  */
 export const SignatureUtils = {
   /**
-   * Get signature parameters for a acp
+   * Get signature parameters for an ACP
    */
   getSignatureParams: (acp: ACPPublic, primaryType: ACPSignaturePrimaryType) => {
     return getSignatureTypesAndMessage(primaryType, SignatureTypes[primaryType], acp);

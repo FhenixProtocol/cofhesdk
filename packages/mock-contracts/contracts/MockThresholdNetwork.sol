@@ -150,7 +150,7 @@ contract MockThresholdNetwork {
     return (true, '');
   }
 
-  /// @notice Decrypt a ciphertext for a transaction using a acp.
+  /// @notice Decrypt a ciphertext for a transaction using an ACP.
   function decryptForTxWithACP(
     uint256 ctHash,
     ACP memory acp

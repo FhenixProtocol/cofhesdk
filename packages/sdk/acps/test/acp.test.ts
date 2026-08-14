@@ -339,7 +339,7 @@ describe('ACPUtils Tests', () => {
   });
 
   describe('serialize/deserialize', () => {
-    it('should serialize and deserialize a acp', async () => {
+    it('should serialize and deserialize an ACP', async () => {
       const originalACP = ACPUtils.createSelf({
         issuer: bobAddress,
         name: 'Test ACP',

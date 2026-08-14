@@ -338,7 +338,7 @@ export const ValidationUtils = {
   },
 
   /**
-   * Checks that a acp is signed and not expired.
+   * Checks that an ACP is signed and not expired.
    */
   isSignedAndNotExpired: (acp: ACP): ValidationResult => {
     if (ValidationUtils.isExpired(acp)) {
@@ -351,7 +351,7 @@ export const ValidationUtils = {
   },
 
   /**
-   * Asserts that a acp is signed and not expired.
+   * Asserts that an ACP is signed and not expired.
    *
    * Throws `Error` with message:
    * - `ACP is expired`

@@ -39,21 +39,21 @@ export const ImportACPPage: React.FC = () => {
           onClick={navigateBack}
         >
           <ArrowBackIcon fontSize="small" />
-          <span>Import acp</span>
+          <span>Import ACP</span>
         </button>
       }
       content={
         <div className="flex flex-col w-full gap-3">
           <div className="flex items-center gap-3 text-[#0E2F3F] dark:text-white">
             <div className="flex items-center justify-center rounded-lg border border-[#0E2F3F]/30 p-2 dark:border-white/40">
-              <ACPReceiveIcon className="h-7 w-7 fill-inherit" aria-label="CoFHE import acp icon" />
+              <ACPReceiveIcon className="h-7 w-7 fill-inherit" aria-label="CoFHE import ACP icon" />
             </div>
             <div className="text-lg font-semibold">CoFHE ACPs</div>
           </div>
           <p className="text-sm leading-relaxed text-[#355366] dark:text-white/80">
-            This form importes a acp that has been shared with you.
+            This form imports an ACP that has been shared with you.
             <br />
-            Paste the acp data into the input below to import it.
+            Paste the ACP data into the input below to import it.
           </p>
 
           {importedACP == null && (

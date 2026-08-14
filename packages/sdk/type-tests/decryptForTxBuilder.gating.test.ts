@@ -1,7 +1,7 @@
 import type { CofheClient } from '../core/clientTypes.js';
 
 // This file is compiled by `pnpm -C packages/sdk check:types`.
-// It ensures TypeScript prevents calling execute() before selecting a acp mode.
+// It ensures TypeScript prevents calling execute() before selecting an ACP mode.
 
 declare const client: CofheClient;
 declare const ctHash: bigint | string;

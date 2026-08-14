@@ -34,7 +34,7 @@ const ACP_VALIDATOR_ABI = parseAbi([
 
 // HELPERS
 
-// Store a acp without changing which acp is active.
+// Store an ACP without changing which acp is active.
 const storeACP = async (acp: ACP, publicClient: any, walletClient: any) => {
   const chainId = await publicClient.getChainId();
   const account = walletClient.account!.address;
@@ -42,7 +42,7 @@ const storeACP = async (acp: ACP, publicClient: any, walletClient: any) => {
   acpStore.setACP(chainId, account, acp);
 };
 
-// Store a acp AND select it as the active acp.
+// Store an ACP AND select it as the active acp.
 const storeActiveACP = async (acp: ACP, publicClient: any, walletClient: any) => {
   await storeACP(acp, publicClient, walletClient);
   const chainId = await publicClient.getChainId();
@@ -73,7 +73,7 @@ const createACPWithSign = async <T, TACP extends ACP>(
 // CREATE
 
 /**
- * Create a acp usable by the connected user
+ * Create an ACP usable by the connected user
  * Stores the acp and selects it as the active acp
  * @param options - The options for creating a self acp
  * @returns The created acp or error
@@ -419,7 +419,7 @@ const revokeAllACPs = async (
 };
 
 /**
- * Check whether a acp has been revoked (or is otherwise disabled) by its
+ * Check whether an ACP has been revoked (or is otherwise disabled) by its
  * revoker. Returns false for acps without a revoker (not revocable).
  */
 const isACPRevoked = async (acp: ACP, publicClient: PublicClient): Promise<boolean> => {

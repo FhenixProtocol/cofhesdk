@@ -146,7 +146,7 @@ describe('ACP scope table (MockACL.isAllowedWithPermission)', () => {
   });
 
   it('row: contract scope, contract not allowed for this handle — false', async () => {
-    // CONTRACT_A is seeded for H1, not H2 — a acp scoped to A must not read H2
+    // CONTRACT_A is seeded for H1, not H2 — an ACP scoped to A must not read H2
     const p = await permission({ contracts: [CONTRACT_A] });
     expect(await acl.isAllowedWithPermission(p, H2)).to.equal(false);
   });

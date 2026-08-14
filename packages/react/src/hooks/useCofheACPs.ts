@@ -118,7 +118,7 @@ export const useCofheRemoveACP = ({ onSuccess, onError }: Callbacks = {}) => {
     async (hashToRemove: string) => {
       try {
         if (!client || !chainId || !account) {
-          throw new Error('Client, chainId, and account must be defined to remove a acp');
+          throw new Error('Client, chainId, and account must be defined to remove an ACP');
         }
 
         client.acp.removeACP(hashToRemove, chainId, account);

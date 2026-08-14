@@ -66,14 +66,14 @@ export const DelegateACPPage: React.FC<DelegateACPPageProps> = ({ onSuccessNavig
         <div className="flex flex-col w-full gap-3">
           <div className="flex items-center gap-3 text-[#0E2F3F] dark:text-white">
             <div className="flex items-center justify-center rounded-lg border border-[#0E2F3F]/30 p-2 dark:border-white/40">
-              <ACPIcon className="h-7 w-7 fill-inherit" aria-label="CoFHE acp icon" />
+              <ACPIcon className="h-7 w-7 fill-inherit" aria-label="CoFHE ACP icon" />
             </div>
             <div className="text-lg font-semibold">CoFHE ACPs</div>
           </div>
           <p className="text-sm leading-relaxed text-[#355366] dark:text-white/80">
             ACPs are used to authenticate your identity when accessing encrypted data.
             <br />
-            This form generates a acp that can be copied and shared with "recipient". Recipient will be granted access
+            This form generates an ACP that can be copied and shared with "recipient". Recipient will be granted access
             to the signer's (your) data.
           </p>
 

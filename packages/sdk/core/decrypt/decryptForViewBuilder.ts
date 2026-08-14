@@ -32,7 +32,7 @@ const DEFAULT_404_RETRY_TIMEOUT_MS = 10_000;
  * withACP(acpHash) fetches that acp using chainId + account.
  * withACP(acp) uses the provided acp regardless of chainId/account.
  *
- * Note: decryptForView always requires a acp (no global-allowance mode).
+ * Note: decryptForView always requires an ACP (no global-allowance mode).
  *
  * Returns the unsealed item.
  */
@@ -254,7 +254,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
       throw new CofheError({
         code: CofheErrorCode.ACPNotFound,
         message: `Active acp not found for chainId <${this.chainId}> and account <${this.account}>`,
-        hint: 'Ensure a acp exists for this account on this chain.',
+        hint: 'Ensure an ACP exists for this account on this chain.',
         context: {
           chainId: this.chainId,
           account: this.account,
@@ -304,7 +304,7 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
    * Final step of the decryption process. MUST BE CALLED LAST IN THE CHAIN.
    *
    * This will:
-   * - Use a acp based on provided acp OR chainId + account + acpHash
+   * - Use an ACP based on provided acp OR chainId + account + acpHash
    * - Check acp validity
    * - Call CoFHE `/sealoutput` with the acp, which returns a sealed (encrypted) item
    * - Unseal the sealed item with the acp

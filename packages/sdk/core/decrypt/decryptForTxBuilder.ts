@@ -27,7 +27,7 @@ const DEFAULT_404_RETRY_TIMEOUT_MS = 10_000;
  * If chainId not set, uses client's chainId
  * If account not set, uses client's account
  * You MUST choose one acp mode before calling execute():
- *   - withACP(...) to decrypt using a acp
+ *   - withACP(...) to decrypt using an ACP
  *   - withoutACP() to decrypt via global allowance (no acp)
  *
  * withACP() (no args / undefined) uses the active acp for chainId + account.
@@ -284,7 +284,7 @@ export class DecryptForTxBuilder extends BaseBuilder {
       throw new CofheError({
         code: CofheErrorCode.ACPNotFound,
         message: `Active acp not found for chainId <${this.chainId}> and account <${this.account}>`,
-        hint: 'Create a acp (e.g. client.acp.createSelf(...)) and/or set it active (client.acp.selectActiveACP(hash)).',
+        hint: 'Create an ACP (e.g. client.acp.createSelf(...)) and/or set it active (client.acp.selectActiveACP(hash)).',
         context: {
           chainId: this.chainId,
           account: this.account,

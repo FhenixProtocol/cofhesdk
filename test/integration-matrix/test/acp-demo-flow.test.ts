@@ -109,7 +109,7 @@ describe.each(enabledChains)('[ACP DEMO] $label', (chainConfig) => {
 
     // 6. a fresh acp restores access.
     // Wait >1s first: acp ids are second-resolution creation timestamps, and
-    // a acp minted in the same second as the revoked one shares its id — the
+    // an ACP minted in the same second as the revoked one shares its id — the
     // documented same-second collision (accepted as fail-safe over-revocation).
     await new Promise((resolve) => setTimeout(resolve, 1500));
     await ctx.cofheClient.acp.createSelf({

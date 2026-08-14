@@ -131,7 +131,7 @@ const ActiveStatusContent: React.FC<{ status: CofheFloatingButtonInternalStatus 
 
 const STATUSES_ORDER = new Map<string, number>(
   [
-    // first always goes "claims available" as claiming doesn't require a acp
+    // first always goes "claims available" as claiming doesn't require an ACP
     COFHE_STATUS_IDS.claimsAvailable,
 
     // next goes all acp related statuses

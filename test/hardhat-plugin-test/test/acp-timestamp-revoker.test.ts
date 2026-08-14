@@ -118,7 +118,7 @@ describe('ACP default validator (timestamp-based revocation)', () => {
       );
     });
 
-    it('revokeAllExisting kills old acps; a acp created afterwards is valid', async () => {
+    it('revokeAllExisting kills old acps; an ACP created afterwards is valid', async () => {
       const { permission: oldPermission } = await revocablePermission();
       expect(await acp.checkPermissionValidity(oldPermission)).to.equal(true);
 
@@ -135,7 +135,7 @@ describe('ACP default validator (timestamp-based revocation)', () => {
     });
 
     it('future-dated acp never validates (revoke-all dodge closed)', async () => {
-      // attacker with temporary key access signs a acp "created" far in the
+      // attacker with temporary key access signs an ACP "created" far in the
       // future so it would survive a later revokeAllExisting — must be dead on arrival
       const farFuture = (await latestTimestamp()) + 365n * 24n * 3600n;
       const permission = await signedSelfPermission(acp, issuer, {

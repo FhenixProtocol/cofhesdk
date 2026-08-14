@@ -277,7 +277,7 @@ contract CofheClient is Test {
     return (ctHash, decryptedValue, signature);
   }
 
-  /// @notice Decrypts a ciphertext using a acp and returns the plaintext with a publishable signature.
+  /// @notice Decrypts a ciphertext using an ACP and returns the plaintext with a publishable signature.
   function decryptForTx_withACP(
     bytes32 ctHash,
     ACP memory acp

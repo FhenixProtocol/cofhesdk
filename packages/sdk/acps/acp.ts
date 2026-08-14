@@ -114,12 +114,12 @@ export const ACPUtils = {
   },
 
   /**
-   * Sign a acp with the provided wallet client
+   * Sign an ACP with the provided wallet client
    */
   sign: async <T extends ACP>(acp: T, publicClient: PublicClient, walletClient: WalletClient): Promise<T> => {
     if (walletClient == null || walletClient.account == null) {
       throw new Error(
-        'Missing walletClient, you must pass in a `walletClient` for the connected user to create a acp signature'
+        'Missing walletClient, you must pass in a `walletClient` for the connected user to create an ACP signature'
       );
     }
 
@@ -190,14 +190,14 @@ export const ACPUtils = {
   },
 
   /**
-   * Deserialize a acp from serialized data
+   * Deserialize an ACP from serialized data
    */
   deserialize: (data: SerializedACP): ACP => {
     return { ...data };
   },
 
   /**
-   * Serialize a acp for storage
+   * Serialize an ACP for storage
    */
   serialize: (acp: ACP): SerializedACP => {
     return {
@@ -221,7 +221,7 @@ export const ACPUtils = {
   },
 
   /**
-   * Validate a acp (schema-level validation)
+   * Validate an ACP (schema-level validation)
    */
   validateSchema: (acp: ACP) => {
     if (acp.type === 'self') {
@@ -231,12 +231,12 @@ export const ACPUtils = {
     } else if (acp.type === 'recipient') {
       return validateImportACP(acp);
     } else {
-      throw new Error('Invalid acp type');
+      throw new Error('Invalid ACP type');
     }
   },
 
   /**
-   * Validate a acp (holistic validation).
+   * Validate an ACP (holistic validation).
    *
    * This validates:
    * - ACP schema (shape + invariants)

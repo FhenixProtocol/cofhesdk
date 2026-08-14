@@ -130,7 +130,7 @@ function extractCtHash(data: unknown): string | undefined {
 }
 
 // The read key bakes the transient activeACPHash + enabled flags into its tail,
-// so the SAME value gets a fresh cache entry each time a acp appears/rotates.
+// so the SAME value gets a fresh cache entry each time an ACP appears/rotates.
 // Its stable identity is [prefix, chainId, address, fn, args] (indices 0-4).
 function stableReadKey(k: unknown[]): string {
   try {
