@@ -161,9 +161,9 @@ caller-side only.
     `SimpleTest.setValueBatch` in `test/setup/contracts/SimpleTest.sol`.
   - In `cofhe-contracts` `0.2.0-beta.1`, `FHE.asEuint32(hash, proof)` also routes through
     `batchVerifyInputs` as a one-element batch (see the dependency section above), so a
-    single-value entry point should accept a batch-of-1 signature unchanged. **This repo has no
-    test covering that path** — every suite calls the `*Batch` entry points — so treat it as
-    untested rather than guaranteed, and prefer a batch-shaped entry point where you can.
+    single-value entry point accepts a batch-of-1 signature unchanged. Covered by
+    "Should accept a batch-of-1 signature via a single-value entry point" in
+    `test/hardhat-plugin-test/test/encrypt-inputs.test.ts`.
   - **Removed** `MockZkVerifierSigner.zkVerifySign` (the legacy single-item signer) — nothing
     produces legacy single-item signatures anymore, and with `MockTaskManager.verifyInput`
     removed there is nothing left that would verify one.
@@ -189,11 +189,10 @@ checks the trailing element is a`0x`-prefixed signature instead of validating a 
   `setPublicValueBatch`/`addValueBatch` — new canonical batch entry points, calling
   `FHE.asEuint32s(...)`. The single-value entry points
   `setValue`/`setPublicValue`/`setValueHashPlusProof`/`addValue` still take
-  `(externalEuint32, bytes)` and are unchanged. Since `FHE.asEuint32(hash, proof)` now verifies as
-  a one-element batch, `encryptInputs()`'s output for a single input should pass into them
-  unchanged — but **no test in this repo covers that**, since every suite calls the `*Batch`
-  entry points. Because the fixture's bytecode changed, `pnpm test:setup` will redeploy it on
-  every chain it targets.
+  `(externalEuint32, bytes)` and are unchanged: since `FHE.asEuint32(hash, proof)` now verifies as
+  a one-element batch, `encryptInputs()`'s output for a single input passes into them unchanged
+  (covered by `encrypt-inputs.test.ts`). Because the fixture's bytecode changed, `pnpm test:setup`
+  will redeploy it on every chain it targets.
 - `packages/mock-contracts/contracts/ABITest.sol`: encrypted-input test fixtures migrated from
   `InEuintXX` struct parameters to `external*` + trailing `bytes` signature parameters.
 

@@ -39,6 +39,28 @@ describe('Encrypt Inputs Test', () => {
 
     expect(unsealed).to.be.equal(7n);
   });
+  // Regression guard for the migration guide: contracts with a single encrypted parameter are
+  // told they can keep their `(externalEuint32, bytes)` ABI. That holds only because
+  // cofhe-contracts 0.2.x routes `FHE.asEuint32(hash, proof)` through `batchVerifyInputs` as a
+  // one-element batch, so encryptInputs()'s batch-of-1 signature verifies through it unchanged.
+  it('Should accept a batch-of-1 signature via a single-value entry point', async () => {
+    const [signer] = await hre.ethers.getSigners();
+    const client = await hre.cofhe.createClientWithBatteries(signer);
+
+    const [encHash, encSignature] = await client
+      .encryptInputs([Encryptable.uint32(11n)])
+      .setConsumingContract(await simpleTest.getAddress())
+      .execute();
+
+    // setValue takes (externalEuint32, bytes) - not the *Batch entry point.
+    await simpleTest.setValue(encHash, encSignature);
+    const ctHash = await simpleTest.getValueHash();
+
+    const unsealed = await client.decryptForView(ctHash, FheTypes.Uint32).execute();
+
+    expect(unsealed).to.be.equal(11n);
+  });
+
   it('should encrypt inputs with configurable encryptDelay', async () => {
     const [signer] = await hre.ethers.getSigners();
 
