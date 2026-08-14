@@ -17,6 +17,8 @@
  *   TEST_PRIVATE_KEY, PRIMARY_TEST_CHAIN,
  *   TEST_LOCALCOFHE_PRIVATE_KEY, LOCALCOFHE_HOST_CHAIN_RPC,
  *   TEST_STAGING_ENABLED (set to "true" to include CoFHE Staging)
+ *   STAGING_RPC_URL (override the staging host chain RPC)
+ *   STAGING_FUNDER_KEY (auto-tops-up the staging deployer with 1 ETH if it drops below 0.1 ETH)
  *
  * Requires: forge, cast (Foundry)
  */
@@ -65,6 +67,10 @@ const STAGING_CHAIN = {
   rpcEnv: 'STAGING_RPC_URL',
   rpc: 'https://staging-hostchain-v1.sw-dom.co',
   registryKey: '420105-staging',
+  // Staging resets periodically and drains the deployer account; auto-top-up from this
+  // funder key rather than failing outright when the deployer dips below MIN_BALANCE_ETH.
+  funderKeyEnv: 'STAGING_FUNDER_KEY',
+  fundAmountEth: '1',
 };
 
 const LOCALCOFHE_CHAIN = {
@@ -220,6 +226,23 @@ function getAccountAddress(privateKey) {
 const MIN_BALANCE_ETH = 0.1;
 const underfunded = [];
 
+function tryAutoFund(chain, rpc, address, balanceEth) {
+  const funderKeyEnv = chain.funderKeyEnv;
+  if (!funderKeyEnv || !process.env[funderKeyEnv]) return null;
+
+  const amount = chain.fundAmountEth || '1';
+  console.log(
+    `\n  ${yellow(bold('Auto-funding'))} ${chain.label} deployer ${address} (${balanceEth} ETH < ${MIN_BALANCE_ETH}) — sending ${amount} ETH from ${funderKeyEnv}...`
+  );
+  try {
+    run(`cast send ${address} --value ${amount}ether --private-key $${funderKeyEnv} --rpc-url ${rpc}`);
+  } catch (e) {
+    console.error(`  ${red('Auto-funding failed:')} ${e.message}`);
+    return null;
+  }
+  return getBalanceEther(rpc, address);
+}
+
 const fundingSections = [];
 const fundingSectionsByEnv = new Map();
 
@@ -244,9 +267,18 @@ for (const chain of ALL_CHAINS) {
     continue;
   }
 
-  const bal = getBalanceEther(rpc, section.address);
+  let bal = getBalanceEther(rpc, section.address);
+  let parsed = parseFloat(bal);
+
+  if (!isNaN(parsed) && parsed < MIN_BALANCE_ETH) {
+    const funded = tryAutoFund(chain, rpc, section.address, bal);
+    if (funded != null) {
+      bal = funded;
+      parsed = parseFloat(bal);
+    }
+  }
+
   section.entries.push({ label: chain.label, output: `${colorBalance(bal)} ETH` });
-  const parsed = parseFloat(bal);
   if (!isNaN(parsed) && parsed < MIN_BALANCE_ETH) {
     underfunded.push({ label: chain.label, address: section.address, balance: bal });
   }
