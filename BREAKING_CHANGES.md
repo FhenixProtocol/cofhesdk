@@ -271,8 +271,11 @@ caller must now declare in advance which contract will consume the result.
 
 ## `@cofhe/react`
 
-- `EncryptionOptions`/`EncryptInputsOptions` (used by `useCofheEncrypt`) gained an optional
+- `EncryptionOptions`/`EncryptInputsOptions` (used by `useCofheEncrypt`) gained a
   `consumingContract` field, threaded through to `builder.setConsumingContract(...)`.
+  **The field is optional in the type but required at runtime:** omitting it throws
+  `CofheErrorCode.ConsumingContractUninitialized` at `execute()`, so existing `useCofheEncrypt`
+  call sites keep compiling and start failing at runtime until each one passes it.
 - `useCofheEncryptAndWriteContract` now defaults `consumingContract` to the write's target
   `address` automatically (the one call site in the repo where the consuming contract is
   already unambiguously known) — an explicit `encryptionOptions.consumingContract` still

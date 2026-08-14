@@ -1,5 +1,12 @@
 # Breaking changes
 
+> **Upgrading an app across the whole ACP era?** The breaking changes span several waves and
+> three documents: this file (ACP / Permit V3, ACP-era-only chains), `BREAKING_CHANGES.md`
+> (batch input verification, consuming-contract binding), and `BATCH_SIGNATURE_CHANGES.md`
+> (contract-side signatures). The `/migrate-to-acp` skill in `.cursor/skills/migrate-to-acp/`
+> walks a consumer codebase through all of them in order — including the breakages the
+> TypeScript compiler cannot see.
+
 ## ACP-era chains only
 
 The SDK no longer serves pre-upgrade (V2 `Permission`) chains: the ACL must sign as EIP-712 domain version "2" (ACP / Permit V3). Permit creation on a V2 chain fails with an explicit error instead of producing signatures the chain cannot verify.
