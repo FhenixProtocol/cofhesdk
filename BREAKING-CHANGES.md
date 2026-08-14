@@ -24,14 +24,14 @@ longer recognized; ACP-era backends emit `acp_*`. Seven codes correspond 1:1
 and map onto the same stable `CofheErrorCode` values as before:
 
 | Wire code              | HTTP | `CofheErrorCode`                                |
-| ---------------------- | ---- | ------------------------------------------------ |
-| `acp_malformed`        | 400  | `ACPMalformed`                                    |
-| `acp_denied`           | 401  | `ACPDenied` (also covers revocation, see below)   |
-| `acp_expired`          | 401  | `ACPExpired`                                      |
-| `acp_invalid`          | 401  | `ACPInvalid`                                      |
-| `acp_required`         | 400  | `ACPRequired`                                     |
-| `acp_verifier_error`   | 502  | `ACPVerifierError`                                |
-| `acp_verifier_timeout` | 504  | `ACPVerifierTimeout`                              |
+| ---------------------- | ---- | ----------------------------------------------- |
+| `acp_malformed`        | 400  | `ACPMalformed`                                  |
+| `acp_denied`           | 401  | `ACPDenied` (also covers revocation, see below) |
+| `acp_expired`          | 401  | `ACPExpired`                                    |
+| `acp_invalid`          | 401  | `ACPInvalid`                                    |
+| `acp_required`         | 400  | `ACPRequired`                                   |
+| `acp_verifier_error`   | 502  | `ACPVerifierError`                              |
+| `acp_verifier_timeout` | 504  | `ACPVerifierTimeout`                            |
 
 `permit_revoked` has no `acp_*` twin by design: ACP-era backends no longer
 distinguish revocation from no-access or scope-miss — all three come back as
