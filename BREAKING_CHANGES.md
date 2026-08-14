@@ -86,33 +86,54 @@ that carried these changes has been removed. `packages/mock-contracts` and
 > **Pre-release pin.** `0.2.0-beta.1` is a beta. The final `0.2.0` version must be pinned here
 > before `@cofhe/*` `0.7.0` is published.
 
-Additions in that release used by this migration:
+**This bump breaks your own Solidity.** The published `0.2.0-beta.1` does not just add the batch
+path — it removes the legacy single-item one. Contracts written against `InEuintXX` will not
+compile.
 
-- `ICofhe.sol`: new `BatchedEncryptedInput` struct (`{ctHash, securityZone, utype}`, no
-  per-item signature); `ITaskManager.verifyInput` gains an explicit `bytes signature`
-  parameter (moved out of `EncryptedInput`); new
-  `ITaskManager.batchVerifyInputs(BatchedEncryptedInput[], address, bytes)`.
-- `FHE.sol`: `Impl.verifyInput`/`Impl.verifyBatchInputs` plumbing; every `asE*` overload now
-  passes its signature explicitly; new batch helpers `asEbools`, `asEuint8s`, `asEuint16s`,
+### Removed (compile errors)
+
+| Removed from   | Symbols                                                                                             |
+| -------------- | --------------------------------------------------------------------------------------------------- |
+| `ICofhe.sol`   | `struct InEbool`, `InEuint8`, `InEuint16`, `InEuint32`, `InEuint64`, `InEuint128`, `InEaddress` (7) |
+| `FHE.sol`      | `FHE.asEbool(InEbool)` … `FHE.asEaddress(InEaddress)` — the struct-taking overloads (7)             |
+| `ICofhe.sol`   | `Utils.inputFromEbool(...)` … `Utils.inputFromEaddress(...)` (7)                                    |
+| `ITaskManager` | `verifyInput(EncryptedInput, address)`                                                              |
+
+### Added
+
+- `ICofhe.sol`: `struct UnsignedEncryptedInput { uint256 ctHash; uint8 securityZone; uint8 utype; }`
+  — like `EncryptedInput`, minus the per-item `signature`; and
+  `ITaskManager.batchVerifyInputs(UnsignedEncryptedInput[], address sender, bytes signature)`.
+- `FHE.sol`: `Impl.verifyBatchInputs` plumbing; `Utils.batchInputEntryFromBytes` /
+  `Utils.batchInputsFromBytes`; new batch helpers `asEbools`, `asEuint8s`, `asEuint16s`,
   `asEuint32s`, `asEuint64s`, `asEuint128s`, `asEaddresses` (each with an `external*[]` and a
   `bytes[]` overload).
 
-**The legacy single-item `InEuintXX` structs and `verifyInput`/single-item `asE*(hash, proof)`
-overloads are unchanged and still valid** — real chains keep supporting them. Only
-`cofheClient.encryptInputs()`'s own output changed; contracts still written against the
-single-item ABI shape continue to work for anyone calling them directly (just not via the
-SDK's `encryptInputs()` anymore, since it can no longer produce a valid single-item struct or
-single-item hash+proof pair — see below).
+### Survives, but with different signature semantics
+
+`FHE.asEuint32(externalEuint32 hash, bytes proof)` and its six siblings still exist and still
+compile — but `Impl.verifyInput` now wraps the input into a one-element batch and calls
+`batchVerifyInputs`:
+
+```solidity
+UnsignedEncryptedInput[] memory inputs = new UnsignedEncryptedInput[](1);
+inputs[0] = UnsignedEncryptedInput(input.ctHash, input.securityZone, input.utype);
+return verifyBatchInputs(inputs, input.signature)[0];
+```
+
+So `proof` must now be a **batch signature over a one-item batch**, not a legacy per-item
+signature. A contract keeping this shape compiles cleanly and **reverts at runtime** if handed a
+legacy signature. This is what `cofheClient.encryptInputs()` produces for a single input, so
+single-value entry points can keep their existing ABI — for that shape the migration is
+caller-side only.
 
 ## `@cofhe/mock-contracts`
 
-- `MockTaskManager.verifyInput`: signature changed from `(EncryptedInput, address)` to
-  `(EncryptedInput, address, bytes signature)`, matching the patched `ITaskManager`. Still
-  present for interface conformance / anyone exercising the legacy single-item path directly —
-  no longer called by anything in this repo's own tooling.
-- **Added** `MockTaskManager.batchVerifyInputs(BatchedEncryptedInput[], address, bytes)` — the
-  canonical verification path used everywhere in this repo going forward, including for
-  single-item batches (n=1).
+- **Removed** `MockTaskManager.verifyInput` and `extractSigner` — the legacy single-item verifier.
+  `ITaskManager` no longer declares `verifyInput`, so there is nothing left to conform to.
+- **Added** `MockTaskManager.batchVerifyInputs(UnsignedEncryptedInput[], address, bytes)` — the
+  only verification path now, including for single-item batches (n=1). `inputMessageHash` and
+  `extractBatchSigner` are its digest/recovery helpers.
 - ABI/typechain artifacts (`packages/mock-contracts/abi/*.json`, `src/*.ts`,
   `src/typechain-types/*`) regenerated to reflect the above.
 
@@ -133,18 +154,19 @@ single-item hash+proof pair — see below).
   legacy single-item digest — they call `createEncryptedInputsBatch` with a batch of size 1 and
   unwrap the result, so their returned `(hash, proof)` is a **batch signature**, not a legacy
   single-item signature.
-  - **Breaking for consumers of these helpers**: the returned signature no longer verifies
-    against the legacy single-item path (`FHE.asEuint32(hash, proof)` /
-    `MockTaskManager.verifyInput`/`extractSigner`) — it only verifies via the batch path
-    (`FHE.asEuint32s([hash], signature)` / `MockTaskManager.batchVerifyInputs`). Test contracts
-    consuming these helpers must expose a batch-shaped entry point (see
-    `EncryptedValueStore.storeEuint32Batch` etc. in `test/CofhePlugin.t.sol`, or
-    `SimpleTest.setValueBatch` in `test/setup/contracts/SimpleTest.sol`).
+  - **Breaking for consumers of these helpers**: the returned signature is a batch signature. It
+    verifies via the batch path (`FHE.asEuint32s([hash], signature)` /
+    `MockTaskManager.batchVerifyInputs`), which is the path every test in this repo exercises —
+    see `EncryptedValueStore.storeEuint32Batch` in `test/CofhePlugin.t.sol` or
+    `SimpleTest.setValueBatch` in `test/setup/contracts/SimpleTest.sol`.
+  - In `cofhe-contracts` `0.2.0-beta.1`, `FHE.asEuint32(hash, proof)` also routes through
+    `batchVerifyInputs` as a one-element batch (see the dependency section above), so a
+    single-value entry point should accept a batch-of-1 signature unchanged. **This repo has no
+    test covering that path** — every suite calls the `*Batch` entry points — so treat it as
+    untested rather than guaranteed, and prefer a batch-shaped entry point where you can.
   - **Removed** `MockZkVerifierSigner.zkVerifySign` (the legacy single-item signer) — nothing
-    in this repo's own tooling produces legacy single-item signatures anymore. The on-chain
-    `MockTaskManager.verifyInput`/`extractSigner` (the legacy single-item verifier) is
-    unchanged and still present for interface conformance / real-chain compatibility, but
-    there's no longer a Foundry-side helper to produce a matching signature for it.
+    produces legacy single-item signatures anymore, and with `MockTaskManager.verifyInput`
+    removed there is nothing left that would verify one.
 - **Added** `CofheClient.createEncryptedInputsBatch` (generic, mixed-utype) and
   `CofheClient.createEuint32sBatch` (typed convenience wrapper) — build a batch and sign it via
   the canonical `zkVerifyBatchSign` path.
@@ -165,10 +187,13 @@ checks the trailing element is a`0x`-prefixed signature instead of validating a 
 - `test/setup/contracts/SimpleTest.sol` (shared by `hardhat-plugin-test`,
   `hardhat-3-plugin-test` and `integration-matrix`): added `setValueBatch`/
   `setPublicValueBatch`/`addValueBatch` — new canonical batch entry points, calling
-  `FHE.asEuint32s(...)`. `setValue`/`setPublicValue`/`setValueHashPlusProof`/`addValue` (legacy
-  single-item entry points) are unchanged and still valid, but **`encryptInputs()`'s new output
-  can no longer be passed into them directly** — see below. Because the fixture's bytecode
-  changed, `pnpm test:setup` will redeploy it on every chain it targets.
+  `FHE.asEuint32s(...)`. The single-value entry points
+  `setValue`/`setPublicValue`/`setValueHashPlusProof`/`addValue` still take
+  `(externalEuint32, bytes)` and are unchanged. Since `FHE.asEuint32(hash, proof)` now verifies as
+  a one-element batch, `encryptInputs()`'s output for a single input should pass into them
+  unchanged — but **no test in this repo covers that**, since every suite calls the `*Batch`
+  entry points. Because the fixture's bytecode changed, `pnpm test:setup` will redeploy it on
+  every chain it targets.
 - `packages/mock-contracts/contracts/ABITest.sol`: encrypted-input test fixtures migrated from
   `InEuintXX` struct parameters to `external*` + trailing `bytes` signature parameters.
 
@@ -195,7 +220,7 @@ function myFunction(externalEuint32[] calldata hashes, bytes calldata signature)
 
 (`FHE.asEuint32s` etc. are the new batch helpers from `cofhe-contracts#78`, currently only
 available via the local patch described above.) For mixed-type batches, call
-`ITaskManager.batchVerifyInputs` directly with the appropriate `BatchedEncryptedInput[]`.
+`ITaskManager.batchVerifyInputs` directly with the appropriate `UnsignedEncryptedInput[]`.
 
 ## Known temporary limitation
 

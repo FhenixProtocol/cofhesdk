@@ -163,10 +163,10 @@ function testSetValue(uint32 n) public {
 For batches of more than one ciphertext, use `createEncryptedInputsBatch` directly (mixed
 `utype`s allowed) or the typed `createEuint32sBatch` convenience wrapper.
 
-| Function                                                                    | Returns                                                          |
-| --------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| `createEncryptedInputsBatch(uint8[], uint256[], address consumingContract)` | `(BatchedEncryptedInput[], bytes memory)` — mixed utypes allowed |
-| `createEuint32sBatch(uint32[], address consumingContract)`                  | `(externalEuint32[] memory, bytes memory)`                       |
+| Function                                                                    | Returns                                                           |
+| --------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `createEncryptedInputsBatch(uint8[], uint256[], address consumingContract)` | `(UnsignedEncryptedInput[], bytes memory)` — mixed utypes allowed |
+| `createEuint32sBatch(uint32[], address consumingContract)`                  | `(externalEuint32[] memory, bytes memory)`                        |
 
 Example:
 
