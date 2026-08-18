@@ -1,108 +1,76 @@
-# @cofhe/sdk
+# CoFHE SDK
 
-This repo contains the full toolkit for interacting with Fhenix's CoFHE coprocessor.
-The repo is split into the following packages:
+This repository contains the tooling for interacting with Fhenix's CoFHE coprocessor.
 
-- `@cofhe/sdk` Core SDK that fetches FHE keys, encrypts inputs, decrypts handles, and exposes subpath modules such as `@cofhe/sdk/adapters`, `@cofhe/sdk/permits`, `@cofhe/sdk/web`, and `@cofhe/sdk/node`.
-- `@cofhe/react` React-specific hooks and pre-built components for building CoFHE-enabled frontends.
-- `@cofhe/mock-contracts` Mock contracts replicating the off-chain CoFHE functionality on-chain for local testing.
-- `@cofhe/hardhat-plugin` Hardhat plugin that deploys mock contracts and provides utilities for testing CoFHE flows.
+## Packages
 
-# Turborepo Design System starter with Changesets
+- `@cofhe/sdk` — core SDK for fetching FHE keys, encrypting inputs, decrypting handles, and working with permits.
+- `@cofhe/react` — React hooks and components for CoFHE-enabled frontends.
+- `@cofhe/abi` — shared contract ABIs.
+- `@cofhe/mock-contracts` — local mock contracts for testing CoFHE flows.
+- `@cofhe/hardhat-plugin` — Hardhat 2 integration for deploying and using the mock stack.
+- `@cofhe/hardhat-3-plugin` — Hardhat 3 integration.
+- `@cofhe/foundry-plugin` — Foundry helpers for CoFHE contract tests.
+- `@cofhe/site` — documentation site.
 
-This is a community-maintained example. If you experience a problem, please submit a pull request with a fix. GitHub Issues will be closed.
+The repository also contains shared TypeScript and ESLint configuration packages under `packages/`.
 
-## Using this example
+## Requirements
 
-Run the following command:
+- Node.js 18 or newer
+- pnpm 8.15.6
 
-```sh
-npx create-turbo@latest -e with-changesets
-```
+## Development
 
-## What's inside?
-
-This Turborepo includes the following:
-
-### Apps and Packages
-
-- `@cofhe/sdk`: Core SDK with adapters, permits, node, and web subpath exports.
-- `@cofhe/react`: React bindings and components built on top of the core SDK.
-- `@cofhe/mock-contracts`: Solidity contracts and build pipeline for local CoFHE testing.
-- `@cofhe/hardhat-plugin`: Hardhat integration that deploys mock contracts and exposes CoFHE utilities.
-- `@cofhe/hardhat-plugin(tests)`: Tests for the hardhat-plugin.
-- `@cofhe/eslint-config`: Shared ESLint preset.
-- `@cofhe/tsconfig`: Shared TypeScript configuration.
-
-Each package and app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Useful commands
-
-- `pnpm build` - Build all packages
-- `pnpm dev` - Develop all packages
-- `pnpm lint` - Lint all packages
-- `pnpm changeset` - Generate a changeset
-- `pnpm clean` - Clean up all `node_modules` and `dist` folders (runs each package's clean script)
-
-### React Components Example
-
-To see the React components in action:
+Install dependencies:
 
 ```bash
-# Run the interactive example
-./run-example.sh
-
-# Or manually:
-cd example && pnpm dev
+pnpm install
 ```
 
-Visit `http://localhost:3000` to explore all React components with live examples.
+Build the packages:
 
-### Changing the npm organization scope
-
-The npm organization scope for this design system starter is `@cofhe`. To change this, it's a bit manual at the moment, but you'll need to do the following:
-
-- Rename folders in `packages/*` to replace `acme` with your desired scope
-- Search and replace `acme` with your desired scope
-- Re-run `yarn install`
-
-## Versioning and Publishing packages
-
-Package publishing has been configured using [Changesets](https://github.com/changesets/changesets). Please review their [documentation](https://github.com/changesets/changesets#documentation) to familiarize yourself with the workflow.
-
-This example comes with automated npm releases setup in a [GitHub Action](https://github.com/changesets/action). To get this working, you will need to create an `NPM_TOKEN` and `GITHUB_TOKEN` in your repository settings. You should also install the [Changesets bot](https://github.com/apps/changeset-bot) on your GitHub repository as well.
-
-For more information about this automation, refer to the official [changesets documentation](https://github.com/changesets/changesets/blob/main/docs/automating-changesets.md)
-
-### npm
-
-If you want to publish package to the public npm registry and make them publicly available, this is already setup.
-
-To publish packages to a private npm organization scope, **remove** the following from each of the `package.json`'s
-
-```diff
-- "publishConfig": {
--  "access": "public"
-- },
+```bash
+pnpm build
 ```
 
-### GitHub Package Registry
+Run the test suite:
 
-See [Working with the npm registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-npm-registry#publishing-a-package-using-publishconfig-in-the-packagejson-file)
+```bash
+pnpm test
+```
 
-# Migration
+Useful repository-wide commands:
 
-Type `CofheInUint8` -> `EncryptedUint8Input`
+```bash
+pnpm lint
+pnpm check:types
+pnpm check:formatting
+pnpm format
+```
 
-# Changes
+## Documentation
 
-- Fhe keys aren't fetched until `client.encryptInputs(...).execute()`, they aren't used anywhere else other than encrypting inputs, so their fetching is deferred until then.
-- Initializing the tfhe wasm is also deferred until `client.encryptInputs(...).execute()` is called
+Run the documentation site locally with:
+
+```bash
+pnpm docs
+```
+
+The main Fhenix developer documentation is available at [docs.fhenix.zone](https://docs.fhenix.zone/).
+
+## Examples
+
+Example applications live in [`examples/`](./examples). See [`examples/README.md`](./examples/README.md) for the current example setup and usage instructions.
+
+## Versioning and releases
+
+This monorepo uses [Changesets](https://github.com/changesets/changesets) for package versioning and release notes.
+
+Create a changeset for package changes with:
+
+```bash
+pnpm changeset
+```
+
+Documentation-only changes may not require a package version bump; follow the conventions used by existing pull requests when deciding whether to add a changeset.
