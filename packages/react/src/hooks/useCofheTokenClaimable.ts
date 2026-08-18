@@ -2,7 +2,7 @@ import { QueryClient, type QueryKey, type UseQueryOptions, type UseQueryResult }
 import { type Address, type Hex } from 'viem';
 import { useCofhePublicClient } from './useCofheConnection.js';
 import { type ConfidentialToken } from './useCofheTokenLists.js';
-import { getTokenTypeConfig, getTokenTypeContracts } from '../constants/tokenTypeConfig.js';
+import { getTokenTypeContracts } from '../constants/tokenTypeConfig.js';
 import { isTokenOperationSupported, type SupportedTokenConfidentialityType } from '@/types/token';
 import { useInternalQuery } from '../providers/index.js';
 import { assert } from 'ts-essentials';
@@ -45,14 +45,14 @@ export function constructUnshieldClaimsQueryKeyForInvalidation({
 
 export const DEFAULT_UNSHIELD_CLAIM_SUMMARY: UnshieldClaimsSummary = {
   claimableAmount: 0n,
-  pendingAmount: 0n,
+  pendingCount: 0,
   hasClaimable: false,
   hasPending: false,
 };
 
 export type UnshieldClaim = {
   ctHash: Hex | bigint;
-  requestedAmount: bigint;
+  id: Hex;
   decryptedAmount: bigint;
   claimed: boolean;
   decrypted?: boolean;
@@ -85,8 +85,8 @@ function normalizeUnshieldClaims(result: unknown): UnshieldClaim[] {
       typeof claim.claimed === 'boolean' &&
       'decryptedAmount' in claim &&
       typeof claim.decryptedAmount === 'bigint' &&
-      'requestedAmount' in claim &&
-      typeof claim.requestedAmount === 'bigint'
+      'id' in claim &&
+      typeof claim.id === 'string'
   );
 }
 
@@ -134,30 +134,28 @@ export async function fetchUnshieldClaimsSummary({
     })
   ).filter((claim) => !claim.claimed);
 
-  const { claimableAmount, pendingAmount } = claims.reduce(
+  const { claimableAmount, pendingCount } = claims.reduce(
     (acc, claim) => {
-      if (getTokenTypeConfig(confidentialityType).claimSummaryAmount === 'requested') {
-        acc.claimableAmount += claim.requestedAmount;
-        return acc;
-      }
-
+      // Only a proven claim carries a plaintext amount: decryptedAmount is written by
+      // handleClaim once the decryption proof lands. Before that the claim's value is
+      // unknowable to the client, so it counts as pending rather than as an amount.
       const isDecrypted = 'decrypted' in claim ? claim.decrypted === true : claim.decryptedAmount > 0n;
 
       if (isDecrypted) {
         acc.claimableAmount += claim.decryptedAmount;
       } else {
-        acc.pendingAmount += claim.requestedAmount;
+        acc.pendingCount += 1;
       }
       return acc;
     },
-    { claimableAmount: 0n, pendingAmount: 0n }
+    { claimableAmount: 0n, pendingCount: 0 }
   );
 
   return {
     claimableAmount,
-    pendingAmount,
+    pendingCount,
     hasClaimable: claimableAmount > 0n,
-    hasPending: pendingAmount > 0n,
+    hasPending: pendingCount > 0,
   };
 }
 
@@ -171,8 +169,8 @@ export async function fetchUnshieldClaimsSummary({
 export type UnshieldClaimsSummary = {
   /** Total amount that can be claimed now (decrypted and not claimed) */
   claimableAmount: bigint;
-  /** Total amount pending decryption */
-  pendingAmount: bigint;
+  /** Number of claims still awaiting decryption */
+  pendingCount: number;
   /** Whether there are any claimable amounts */
   hasClaimable: boolean;
   /** Whether there are any pending (not yet decrypted) claims */

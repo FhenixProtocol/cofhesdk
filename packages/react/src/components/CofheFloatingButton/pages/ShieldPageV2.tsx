@@ -603,7 +603,8 @@ function ClaimingSection({ token }: { token: ConfidentialToken }) {
 
       {unshieldedClaims?.hasPending && token && !unshieldedClaims.hasClaimable && !isDualToken && (
         <p className="text-xxs text-yellow-600 dark:text-yellow-400 text-center">
-          Pending: {formatTokenAmount(unshieldedClaims.pendingAmount, token.decimals).formatted} {pairedSymbol}
+          Pending: {unshieldedClaims.pendingCount} {unshieldedClaims.pendingCount === 1 ? 'claim' : 'claims'} awaiting
+          decryption
         </p>
       )}
       <StatusAndError status={claimingStatus} error={claimingError ?? claimSimulationError} />
