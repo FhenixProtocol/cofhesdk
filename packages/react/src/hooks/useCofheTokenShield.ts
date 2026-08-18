@@ -39,14 +39,6 @@ export function getCofheTokenShieldCallArgs(params: { token: ConfidentialToken; 
 // Types
 // ============================================================================
 
-export type UnshieldClaim = {
-  ctHash: bigint;
-  requestedAmount: bigint;
-  decryptedAmount: bigint;
-  decrypted: boolean;
-  claimed: boolean;
-};
-
 type UseTokenShieldInput = {
   /** Token object with confidentialityType */
   token: ConfidentialToken;
