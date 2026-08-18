@@ -9,7 +9,10 @@ description: >-
   "ConsumingContractUninitialized", "Identifier not found or not unique: InEuint32",
   "EncryptedItemInput is not exported", "acp_denied", or a config error naming
   `defaultACPExpiration`. Also triggers on "migrate to ACP", "Permit renamed to ACP",
-  "encryptInputs return type changed", or "batch input verification".
+  "encryptInputs return type changed", or "batch input verification". Covers the additive
+  `sharedEuintXX` contract-to-contract sharing types too — "sharedEuint", "share encrypted value
+  between contracts", "NotShared", "UnexpectedSharer", or
+  "Identifier not found or not unique: sharedEuint64".
 license: MIT
 compatibility: >-
   Requires a git repository and a Node package manager. Contract steps additionally require the
@@ -51,6 +54,7 @@ There are no deprecation shims. Old names are removed so the compiler finds the 
 | error-code handling / a custom backend                          | [errors-and-wire.md](references/errors-and-wire.md)                                          |
 | `@cofhe/foundry-plugin`                                         | [foundry.md](references/foundry.md)                                                          |
 | custom mock deployment scripts                                  | [environment.md](references/environment.md)                                                  |
+| `allowTransient` in Solidity, or own mock-based tests           | [shared-euints.md](references/shared-euints.md) — additive, plus one test-breaking change    |
 
 4. **Present the plan and get confirmation.** List the archetype detected, the ordered steps, and
    the files you expect to touch. Then ask whether to:
@@ -73,6 +77,11 @@ going backwards means rewriting the same call sites twice.
 6. **React** — [react.md](references/react.md)
 7. **Errors / wire format** — [errors-and-wire.md](references/errors-and-wire.md)
 8. **Verify** — [verification.md](references/verification.md)
+
+[shared-euints.md](references/shared-euints.md) sits outside this order. Its mock
+transient-storage note belongs with step 2 if the project has its own mock-based tests; the
+`sharedEuintXX` types themselves are an optional follow-up to raise **after** the migration is
+green, never a step to fold into it.
 
 Step 4 before step 5 is deliberate: sweep the renames first so that every error `tsc` reports
 afterwards is a genuine shape problem rather than a missing identifier.
@@ -113,9 +122,12 @@ State plainly:
 
 ## Known issues to warn about
 
-- **`ZK_VERIFY_FAILED` against a live chain is expected right now.** The CoFHE verifier's batch
-  endpoint is not deployed yet. Encryption works end-to-end against hardhat mocks; against a real
-  chain it will fail until the service ships. This is not a migration error — tell the user
-  before they debug it.
-- **`@fhenixprotocol/cofhe-contracts` is pinned to a `0.2.0-beta.*` prerelease.** Confirm the
-  version this release actually ships against before relying on the pin.
+- **`ZK_VERIFY_FAILED` depends on which chain you are pointed at.** The verifier's batch endpoint
+  is live on **CoFHE staging** and the host chain, and encryption works end-to-end there and
+  against hardhat mocks. It is **not yet deployed on the public testnets** (Sepolia, Arbitrum
+  Sepolia, Base Sepolia), where batch encryption still fails with `ZK_VERIFY_FAILED`. This is not
+  a migration error — tell the user before they debug it, and have them retarget staging to
+  confirm their code is correct.
+- **`@fhenixprotocol/cofhe-contracts` is pinned to a `0.2.0-beta.*` prerelease** — `0.2.0-beta.3`
+  as of this release, which is also the floor for the `sharedEuintXX` types. Confirm the final
+  `0.2.0` version before relying on the pin in a production project.

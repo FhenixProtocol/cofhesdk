@@ -18,6 +18,11 @@ Added: `struct UnsignedEncryptedInput { uint256 ctHash; uint8 securityZone; uint
 `FHE.asEbools` / `asEuint8s` / `asEuint16s` / `asEuint32s` / `asEuint64s` / `asEuint128s` /
 `asEaddresses` (each with an `external*[]` and a `bytes[]` overload).
 
+Also added, and **purely additive** — nothing below depends on it: the `sharedEuintXX` family for
+contract-to-contract value passing, in `0.2.0-beta.3` and later. Deal with the deletions first;
+see [shared-euints.md](shared-euints.md) only afterwards, and only if the project hand-rolls
+sharing with `FHE.allowTransient`.
+
 ## Find the affected functions
 
 ```bash

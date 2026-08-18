@@ -33,6 +33,9 @@ hits '\bIn(Ebool|Euint8|Euint16|Euint32|Euint64|Euint128|Eaddress)\b' "${SOL[@]}
 section "CONTRACTS - already on external* (count encrypted params: 1 = no change, 2+ = Case C)"
 hits '\bexternal(Ebool|Euint8|Euint16|Euint32|Euint64|Euint128|Eaddress)\b' "${SOL[@]}"
 
+section "CONTRACTS - hand-rolled sharing (optional: sharedEuintXX can replace this)"
+hits '\ballowTransient\b' "${SOL[@]}"
+
 section "FOUNDRY - removed helpers"
 hits 'createIn(Ebool|Euint8|Euint16|Euint32|Euint64|Euint128|Eaddress)|_asHashPlusProof|zkVerifySign(Packed)?|createEncryptedInput\b|createBasePermission' "${SOL[@]}"
 
