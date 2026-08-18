@@ -106,7 +106,7 @@ graph TD
             PPack["2.4 Pack inputs<br/>zkPack(items, builder)"]
             PMeta["2.5 Construct metadata<br/>constructZkPoKMetadata()"]
             PProve["2.6 Prove (worker or main)<br/>zkProveWithWorker()/zkProve()"]
-            PVerify["2.7 Verify proof (resolve URL + POST /verify-batch)<br/>getZkVerifierUrl() + zkVerifyBatch(...)"]
+            PVerify["2.7 Verify proof (resolve URL + POST /verifyBatch)<br/>getZkVerifierUrl() + zkVerifyBatch(...)"]
             PRet["2.8 Return VerifyBatchResult<br/>(outputs[] + one shared batch signature)"]
         end
 
@@ -325,7 +325,7 @@ The **ZK Verifier** is responsible for the **encryption phase** - converting pla
 The SDK uses the term **"ZK Verifier"** for the component that ultimately produces **on-chain verifiable attestations** that an encrypted handle (ctHash) is _well-formed_.
 
 - **Production (testnet/mainnet):** the verifier is an **off-chain verifier service** (configured via `supportedChains[].verifierUrl`).
-  - The SDK calls `POST {verifierUrl}/verify-batch` (see `zkPackProveVerify.ts`).
+  - The SDK calls `POST {verifierUrl}/verifyBatch` (see `zkPackProveVerify.ts`).
   - That service verifies the ZK proof and returns one `ct_hash` per input plus a **single signature authenticating the whole batch**, computed over `keccak256(h_0 || ... || h_n)`. The request also carries `contract_address`, binding the signature to the contract that will consume the inputs.
 - **Mock mode (Hardhat/local testing):** there is no real ZK proof verification.
   - `MockZkVerifier` (contract) exists only to deterministically derive ctHashes and store ctHash→plaintext mappings for mock FHE operations.
