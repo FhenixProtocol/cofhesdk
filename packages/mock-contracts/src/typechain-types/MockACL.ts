@@ -87,8 +87,10 @@ export interface MockACLInterface extends Interface {
       | 'isAllowedForDecryption'
       | 'isAllowedWithPermission'
       | 'persistAllowed'
+      | 'receiveCtHash'
       | 'setDefaultRevokerContract'
       | 'setShareRegistry'
+      | 'shareCtHash'
       | 'shareRegistry'
   ): FunctionFragment;
 
@@ -125,8 +127,10 @@ export interface MockACLInterface extends Interface {
   encodeFunctionData(functionFragment: 'isAllowedForDecryption', values: [BigNumberish]): string;
   encodeFunctionData(functionFragment: 'isAllowedWithPermission', values: [ACPStruct, BigNumberish]): string;
   encodeFunctionData(functionFragment: 'persistAllowed', values: [BigNumberish, AddressLike]): string;
+  encodeFunctionData(functionFragment: 'receiveCtHash', values: [BigNumberish, AddressLike, AddressLike]): string;
   encodeFunctionData(functionFragment: 'setDefaultRevokerContract', values: [AddressLike]): string;
   encodeFunctionData(functionFragment: 'setShareRegistry', values: [AddressLike]): string;
+  encodeFunctionData(functionFragment: 'shareCtHash', values: [BigNumberish, AddressLike, AddressLike]): string;
   encodeFunctionData(functionFragment: 'shareRegistry', values?: undefined): string;
 
   decodeFunctionResult(functionFragment: 'TASK_MANAGER_ADDRESS_', data: BytesLike): Result;
@@ -150,8 +154,10 @@ export interface MockACLInterface extends Interface {
   decodeFunctionResult(functionFragment: 'isAllowedForDecryption', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'isAllowedWithPermission', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'persistAllowed', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'receiveCtHash', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'setDefaultRevokerContract', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'setShareRegistry', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'shareCtHash', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'shareRegistry', data: BytesLike): Result;
 }
 
@@ -318,9 +324,21 @@ export interface MockACL extends BaseContract {
 
   persistAllowed: TypedContractMethod<[handle: BigNumberish, account: AddressLike], [boolean], 'view'>;
 
+  receiveCtHash: TypedContractMethod<
+    [handle: BigNumberish, expectedSharer: AddressLike, receiver: AddressLike],
+    [void],
+    'nonpayable'
+  >;
+
   setDefaultRevokerContract: TypedContractMethod<[newAddress: AddressLike], [void], 'nonpayable'>;
 
   setShareRegistry: TypedContractMethod<[newAddress: AddressLike], [void], 'nonpayable'>;
+
+  shareCtHash: TypedContractMethod<
+    [handle: BigNumberish, sharer: AddressLike, receiver: AddressLike],
+    [void],
+    'nonpayable'
+  >;
 
   shareRegistry: TypedContractMethod<[], [string], 'view'>;
 
@@ -388,11 +406,21 @@ export interface MockACL extends BaseContract {
     nameOrSignature: 'persistAllowed'
   ): TypedContractMethod<[handle: BigNumberish, account: AddressLike], [boolean], 'view'>;
   getFunction(
+    nameOrSignature: 'receiveCtHash'
+  ): TypedContractMethod<
+    [handle: BigNumberish, expectedSharer: AddressLike, receiver: AddressLike],
+    [void],
+    'nonpayable'
+  >;
+  getFunction(
     nameOrSignature: 'setDefaultRevokerContract'
   ): TypedContractMethod<[newAddress: AddressLike], [void], 'nonpayable'>;
   getFunction(
     nameOrSignature: 'setShareRegistry'
   ): TypedContractMethod<[newAddress: AddressLike], [void], 'nonpayable'>;
+  getFunction(
+    nameOrSignature: 'shareCtHash'
+  ): TypedContractMethod<[handle: BigNumberish, sharer: AddressLike, receiver: AddressLike], [void], 'nonpayable'>;
   getFunction(nameOrSignature: 'shareRegistry'): TypedContractMethod<[], [string], 'view'>;
 
   getEvent(

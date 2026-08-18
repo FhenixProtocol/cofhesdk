@@ -19,8 +19,10 @@ Do this first. If the chain can't serve ACPs, nothing downstream matters.
 Every `@cofhe/*` package must be on the same version. Mixed versions produce type errors that
 look like migration bugs but aren't.
 
-> **Check the exact `cofhe-contracts` version this release pins.** It shipped against a
-> `0.2.0-beta.*` prerelease; confirm the final version before pinning it in a production project.
+> **Check the exact `cofhe-contracts` version this release pins.** It shipped against
+> `0.2.0-beta.3`; confirm the final `0.2.0` version before pinning it in a production project.
+> `0.2.0-beta.3` is also the floor for the `sharedEuintXX` types, which every cross-contract
+> encrypted value has to move onto — see [shared-euints.md](shared-euints.md).
 
 Install, then let the compiler drive the rest.
 
@@ -61,6 +63,12 @@ throw `MissingConfig` when neither the ACL nor `config.acp.sharingRegistry` name
 
 Projects using `@cofhe/hardhat-plugin` or `@cofhe/hardhat-3-plugin`'s built-in deployment get this
 automatically.
+
+## Mock transient allowances are now per-transaction
+
+`MockACL` no longer approximates transient storage with `block.number`. If the project has its own
+mock-based tests that grant a transient allowance in one transaction and use it in a later one,
+they break — see [shared-euints.md](shared-euints.md).
 
 ## Contract fixtures need redeploying
 

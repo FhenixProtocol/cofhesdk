@@ -95,6 +95,37 @@ than omitted) and now **throws** for non-sharing ACPs and for unsigned sharing A
 
 **`PermitUtils.getPermission()`** → **`ACPUtils.getPublic()`**.
 
+## EIP-712 signing and the on-chain ACL
+
+Only relevant if the project signs ACPs itself, pins typehashes, or calls the ACL directly.
+Going through the SDK means this is handled for you — but the domain bump is why stored ACPs stop
+verifying (below).
+
+|               | Old (V2)                                              | New (ACP)                                                                                           |
+| ------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Domain        | `("ACL", "1")`                                        | `("ACL", "2")` — served by the ACL itself                                                           |
+| Primary types | `PermissionedV2IssuerSelf` / `…Shared` / `…Recipient` | `ACPIssuerSelf` / `ACPIssuerShared` / `ACPRecipient`                                                |
+| Fields        | `validatorId uint256, validatorContract address`      | `revokerData uint256, revokerContract address, scope uint8, contracts address[], handles bytes32[]` |
+
+Pinned typehashes, enforced by freeze tests on both the contract and SDK side:
+
+```
+ACPIssuerSelf   0x0fb7b9df91360518f2617af1188c0c4675b99cdd742b6b779137cb8fedc8c348
+ACPIssuerShared 0x4aa934032eb375f7abe059849ea8ea61b18b8340b17d1426f22d0830c65e4e51
+ACPRecipient    0xa61bec9390ffc1eea10897f1dc01a2abf1b8210f228d8235fb672f8754f639d6
+```
+
+On the ACL itself:
+
+- `struct ACP` replaces `struct Permission`, and ACP verification plus the EIP-712 domain now live
+  on the ACL rather than a separate verifier.
+- `checkPermitValidity` is **removed** — use `checkPermissionValidity(ACP)`.
+- `isAllowedWithPermission` keeps its name on both the ACL and the TaskManager, but takes the `ACP`
+  struct; the old `Permission` overload is gone.
+- **Scopes narrow, never widen.** A scope only ever restricts the issuer's existing ACL access:
+  Global passes through, Contract intersects the handle's existing allowances, and Handles matches
+  the listed ciphertexts. A scope cannot grant access the issuer did not already have.
+
 ## Stored ACPs are wiped
 
 The store version bumped to 3 under a new key. Previously stored permits were signed with retired

@@ -631,6 +631,24 @@ export const MockTaskManagerArtifact = {
     },
     {
       type: 'function',
+      name: 'receiveCtHash',
+      inputs: [
+        {
+          name: 'ctHash',
+          type: 'uint256',
+          internalType: 'uint256',
+        },
+        {
+          name: 'expectedSharer',
+          type: 'address',
+          internalType: 'address',
+        },
+      ],
+      outputs: [],
+      stateMutability: 'nonpayable',
+    },
+    {
+      type: 'function',
       name: 'removeFirstLetter',
       inputs: [
         {
@@ -750,6 +768,24 @@ export const MockTaskManagerArtifact = {
       inputs: [
         {
           name: 'signer',
+          type: 'address',
+          internalType: 'address',
+        },
+      ],
+      outputs: [],
+      stateMutability: 'nonpayable',
+    },
+    {
+      type: 'function',
+      name: 'shareCtHash',
+      inputs: [
+        {
+          name: 'ctHash',
+          type: 'uint256',
+          internalType: 'uint256',
+        },
+        {
+          name: 'receiver',
           type: 'address',
           internalType: 'address',
         },

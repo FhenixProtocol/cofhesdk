@@ -18,6 +18,12 @@ Added: `struct UnsignedEncryptedInput { uint256 ctHash; uint8 securityZone; uint
 `FHE.asEbools` / `asEuint8s` / `asEuint16s` / `asEuint32s` / `asEuint64s` / `asEuint128s` /
 `asEaddresses` (each with an `external*[]` and a `bytes[]` overload).
 
+Also added, in `0.2.0-beta.3` and later: the `sharedEuintXX` family for passing encrypted values
+between contracts. The cases below are about values arriving **from a user**; once they are done,
+work through [shared-euints.md](shared-euints.md) for every value that crosses a **contract**
+boundary. That pass is required too, and unlike everything on this page the compiler will not
+surface it — the old spelling still builds.
+
 ## Find the affected functions
 
 ```bash
@@ -133,3 +139,6 @@ forge build            # or: npx hardhat compile
 
 Zero references to `InEuint*` should remain. Then redeploy anything in Case A or C and update the
 addresses your client code uses.
+
+A clean build here does **not** mean the contract work is finished — see
+[shared-euints.md](shared-euints.md).

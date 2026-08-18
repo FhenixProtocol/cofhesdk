@@ -651,6 +651,20 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     return acl.isAllowed(ctHash, account);
   }
 
+  function shareCtHash(uint256 ctHash, address receiver) external {
+    acl.shareCtHash(ctHash, msg.sender, receiver);
+
+    // NOTE: MOCK
+    MOCK_logAllow('FHE.share', ctHash, receiver);
+  }
+
+  function receiveCtHash(uint256 ctHash, address expectedSharer) external {
+    acl.receiveCtHash(ctHash, expectedSharer, msg.sender);
+
+    // NOTE: MOCK
+    MOCK_logAllow('FHE.receive', ctHash, expectedSharer);
+  }
+
   /// @dev Per-input message hash used by batch verification:
   ///      keccak256(ctHash || utype || securityZone || sender || chainid || contractAddress).
   ///      `contractAddress` binds the input to the specific contract that consumes it

@@ -27,6 +27,16 @@ contract MockACL is MockPermissioned {
   /// @param sender   Sender address.
   error DirectAllowForbidden(address sender);
 
+  /// @notice         Returned when no share is pending for `receiver` on `handle`.
+  /// @param handle   Handle.
+  /// @param receiver Address the share would have been directed at.
+  error NotShared(uint256 handle, address receiver);
+
+  /// @notice          Returned when a share is pending but was written by a different party.
+  /// @param expected  Sharer the receiver named.
+  /// @param actual    Sharer recorded in the slot.
+  error UnexpectedSharer(address expected, address actual);
+
   /// @notice             Emitted when a list of handles is allowed for decryption.
   /// @param handlesList  List of handles allowed for decryption.
   event AllowedForDecryption(uint256[] handlesList);
@@ -49,11 +59,6 @@ contract MockACL is MockPermissioned {
     mapping(uint256 handle => mapping(address account => bool isAllowed)) persistedAllowedPairs;
     mapping(uint256 => bool) allowedForDecryption;
     mapping(address account => mapping(address delegatee => mapping(address contractAddress => bool isDelegate))) delegates;
-    /// @dev Approximates EIP-1153 transient storage: stores the block.number when the allowance
-    ///      was granted. An allowance is considered active only if it was set in the current block,
-    ///      so it auto-expires when the block changes — no explicit cleanup required.
-    ///      In Hardhat automine mode (one tx per block) this faithfully replicates per-tx transience.
-    mapping(bytes32 => uint256) transientAllowanceBlocks;
     /// @dev ACP infrastructure addresses served to SDKs (appended fields — do not reorder)
     address defaultRevokerContract;
     address shareRegistry;
@@ -77,6 +82,11 @@ contract MockACL is MockPermissioned {
   /// @dev keccak256(abi.encode(uint256(keccak256("cofhe.storage.ACL")) - 1)) & ~bytes32(uint256(0xff))
   bytes32 private constant ACL_SLOT =
     keccak256(abi.encode(uint256(keccak256('cofhe.storage.ACL')) - 1)) & ~bytes32(uint256(0xff));
+
+  /// @dev Domain separator for share slots. Transient allowance keys are
+  ///      keccak256(abi.encodePacked(handle, account)) with no prefix, so share keys must be
+  ///      separated to stop a (handle, receiver) pair aliasing between the two namespaces.
+  bytes32 private constant SHARE_DOMAIN = keccak256('cofhe.acl.share');
 
   /// @custom:oz-upgrades-unsafe-allow constructor
   constructor() MockPermissioned() {}
@@ -165,9 +175,92 @@ contract MockACL is MockPermissioned {
       revert SenderNotAllowed(requester);
     }
 
-    ACLStorage storage $ = _getACLStorage();
-    bytes32 key = keccak256(abi.encodePacked(handle, account));
-    $.transientAllowanceBlocks[key] = block.number;
+    _allowTransient(handle, account);
+  }
+
+  /**
+   * @dev             Derives the transient slot holding the sharer for a directed share.
+   * @param handle    Handle.
+   * @param receiver  Address the share is directed at.
+   */
+  function _shareKey(uint256 handle, address receiver) private pure returns (bytes32) {
+    return keccak256(abi.encodePacked(SHARE_DOMAIN, handle, receiver));
+  }
+
+  /**
+   * @dev         tstore plus registration in the cleanup index at transient slot 0, so that
+   *              cleanTransientStorage() clears the key. Every transient write goes through here,
+   *              which is what keeps allowances and share slots cleared together.
+   * @param key   Transient slot.
+   * @param value Value to store.
+   */
+  function _tstoreTracked(bytes32 key, uint256 value) private {
+    assembly {
+      tstore(key, value)
+      let length := tload(0)
+      let lengthPlusOne := add(length, 1)
+      tstore(lengthPlusOne, key)
+      tstore(0, lengthPlusOne)
+    }
+  }
+
+  /**
+   * @dev             Writes the transient allowance. Callers own the custody check.
+   * @param handle    Handle.
+   * @param account   Address being granted access.
+   */
+  function _allowTransient(uint256 handle, address account) internal {
+    _tstoreTracked(keccak256(abi.encodePacked(handle, account)), 1);
+  }
+
+  /**
+   * @notice          Grants `receiver` transient access to `handle` and records `sharer` as the
+   *                  party that handed it over, for the duration of this transaction.
+   * @dev             The caller must be the Task Manager contract.
+   * @dev             Stricter than allowTransient: there is no TASK_MANAGER_ADDRESS bypass, since
+   *                  nothing shares on the Task Manager's own behalf.
+   * @param handle    Handle.
+   * @param sharer    Address handing the handle over.
+   * @param receiver  Address the handle is being handed to.
+   */
+  function shareCtHash(uint256 handle, address sharer, address receiver) public virtual {
+    if (msg.sender != TASK_MANAGER_ADDRESS_) {
+      revert DirectAllowForbidden(msg.sender);
+    }
+
+    if (!isAllowed(handle, sharer)) {
+      revert SenderNotAllowed(sharer);
+    }
+
+    _allowTransient(handle, receiver); // capability
+    _tstoreTracked(_shareKey(handle, receiver), uint256(uint160(sharer))); // provenance
+  }
+
+  /**
+   * @notice                Consumes the share directed at `receiver` for `handle`.
+   * @dev                   The caller must be the Task Manager contract. The slot is cleared, so a
+   *                        share is claimable exactly once. On revert the clear is rolled back with
+   *                        the frame, leaving the share available to its intended receiver.
+   * @param handle          Handle.
+   * @param expectedSharer  Sharer the receiver requires. Must be the party that delivered the
+   *                        handle, not merely one the receiver trusts.
+   * @param receiver        Address consuming the share.
+   */
+  function receiveCtHash(uint256 handle, address expectedSharer, address receiver) public virtual {
+    if (msg.sender != TASK_MANAGER_ADDRESS_) {
+      revert DirectAllowForbidden(msg.sender);
+    }
+
+    bytes32 shareKey = _shareKey(handle, receiver);
+    address sharer;
+    assembly {
+      sharer := tload(shareKey)
+      tstore(shareKey, 0)
+    }
+
+    if (sharer == address(0)) revert NotShared(handle, receiver);
+    if (sharer != expectedSharer) revert UnexpectedSharer(expectedSharer, sharer);
+    if (!isAllowed(handle, sharer)) revert SenderNotAllowed(sharer);
   }
 
   /**
@@ -222,9 +315,12 @@ contract MockACL is MockPermissioned {
    * @return isAllowedTransient   Whether the account can access transiently the handle.
    */
   function allowedTransient(uint256 handle, address account) public view virtual returns (bool) {
-    ACLStorage storage $ = _getACLStorage();
+    bool isAllowedTransient;
     bytes32 key = keccak256(abi.encodePacked(handle, account));
-    return $.transientAllowanceBlocks[key] == block.number;
+    assembly {
+      isAllowedTransient := tload(key)
+    }
+    return isAllowedTransient;
   }
 
   /**
@@ -278,12 +374,27 @@ contract MockACL is MockPermissioned {
   }
 
   /**
-   * @dev No-op in the mock: transient allowances auto-expire when the block changes, so explicit
-   *      cleanup is not needed. Kept for interface compatibility with the production ACL.
+   * @dev This function removes the transient allowances, which could be useful for integration with
+   *      Account Abstraction when bundling several UserOps calling the TaskManagerCoprocessor.
    */
   function cleanTransientStorage() external virtual {
     if (msg.sender != TASK_MANAGER_ADDRESS_) {
       revert DirectAllowForbidden(msg.sender);
+    }
+
+    assembly {
+      let length := tload(0)
+      tstore(0, 0)
+      let lengthPlusOne := add(length, 1)
+      for {
+        let i := 1
+      } lt(i, lengthPlusOne) {
+        i := add(i, 1)
+      } {
+        let handle := tload(i)
+        tstore(i, 0)
+        tstore(handle, 0)
+      }
     }
   }
 
