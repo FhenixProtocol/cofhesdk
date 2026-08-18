@@ -76,6 +76,29 @@ const r = await client.encryptInputs([a]).setConsumingContract(addr).execute();
 Internal HTTP clients `zkVerify` / `VerifyResult` / `VerifyResultRaw` are replaced by
 `zkVerifyBatch` / `VerifyBatchResult` / `VerifyBatchResultRaw` / `VerifyBatchOutputRaw`.
 
+## `@cofhe/abi` — ABI detection and helpers
+
+Only relevant if the project calls `@cofhe/abi` directly, or uses
+`useCofheEncryptAndWriteContract` against hand-written ABI types.
+
+- **Detection changed shape.** `extractEncryptableValues` / `insertEncryptedValues` no longer
+  recognise the `struct InEuintXX` tuple shapes. They now detect `externalEbool` … `externalEaddress`
+  — plain `bytes32` value types, not structs.
+- **The trailing `bytes` is now mandatory.** Any ABI function with `external*` inputs must end with
+  a plain `bytes` parameter to receive the shared batch signature; both helpers throw if it is
+  missing. See [contracts.md](contracts.md).
+- **`insertEncryptedValues`'s `encryptedValues` parameter** was `readonly EncryptedItemInput[]`
+  (one struct per encrypted argument) and is now ``readonly `0x${string}`[]`` — the
+  `[...hashes, signature]` shape `execute()` returns.
+- **`CofheInputArgsPreTransform<abi, functionName>`** is computed per function, and drops the
+  trailing signature parameter entirely: callers never supply it, the SDK injects it after
+  encryption.
+- **`FhenixInternalTypeMap`** lost its `'struct InEbool'`-style entries and gained
+  `externalEbool`-style ones, mapping to the SDK's `External*Hash` branded types.
+- **`mockEncrypt` / `mockEncryptEncryptable`** return a hash / `[...hashes, signature]` instead of
+  `EncryptedItemInput` struct(s). Test helpers, but exported — annotations around them need
+  updating.
+
 ## Find them
 
 ```bash

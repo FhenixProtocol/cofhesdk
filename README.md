@@ -103,7 +103,8 @@ See [Working with the npm registry](https://docs.github.com/en/packages/working-
 `cofheClient.encryptInputs(...).execute()` returns `[...hashes, signature]` — one `external*` handle
 per input followed by a single signature authenticating the whole batch — replacing the old
 per-item `CofheInUint8`/`EncryptedUint8Input` structs. `setConsumingContract(address)` is required
-before `execute()`. See `BREAKING_CHANGES.md`.
+before `execute()`. See the [0.7.0 migration guide](https://cofhesdk.fhenix.io/migrating-to-0-7-0), or run
+the [migration skill](skills/cofhe-migrate-0-6-to-0-7) against your project.
 
 # Changes
 

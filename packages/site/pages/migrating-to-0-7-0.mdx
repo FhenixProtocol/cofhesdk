@@ -110,6 +110,42 @@ count. `setConsumingContract` is required; omitting it is a compile error, becau
 binds that address into the signature so a batch signed for one contract can't be replayed into
 another.
 
+### Passing encrypted values between contracts
+
+If a contract hands an encrypted value to another contract — as a parameter, or as the return value
+of a non-`view` function — that has to move onto the new `sharedEuintXX` types.
+
+```solidity
+// BEFORE - permission granted out of band, and the receiver cannot tell who sent it
+FHE.allowTransient(amount, address(token));
+token.pull(amount);
+
+// AFTER - the type carries the permission, and the sharer is checked
+token.pull(FHE.shareEuint64(amount, address(token)));
+```
+
+```solidity
+// in Token
+function pull(sharedEuint64 shared) external {
+  euint64 amount = FHE.receiveEuint64Param(shared);   // reverts unless our caller shared it
+}
+```
+
+:::danger
+The old spelling still compiles and still runs, so **your compiler will not find these**. It is
+also unsafe: a function taking a bare `euintXX` can be called by anyone, with any handle your
+contract is allowed on — including your contract's own stored ciphertexts. FHE operations check the
+permission of the _contract_, not the caller, so it will happily compute on them and hand the result
+back. That makes it an oracle over your encrypted state.
+:::
+
+Both sides must migrate together — `pull(euint64)` and `pull(sharedEuint64)` are both `bytes32` on
+the wire, so an unmigrated caller compiles fine and fails at runtime with `NotShared`. `view`
+functions returning an encrypted value are unaffected: they never granted anything.
+
+Full details, including which `receive` function to use and why it matters, are in
+[Sharing Encrypted Values](/reference/sharing-encrypted-values).
+
 ### Permit → ACP
 
 `@cofhe/sdk/permits` → `@cofhe/sdk/acps`, `Permit` → `ACP`, `Permission` → `ACPPublic`,
@@ -134,7 +170,9 @@ replacement.
 
 ## Known issue
 
-Encrypting against a **live chain** currently fails with `ZK_VERIFY_FAILED`: the CoFHE verifier's
-batch endpoint is not deployed yet. Encryption works end-to-end against hardhat mocks. This is not
-a problem with your migration, and it will start working with no further code changes once the
-endpoint ships.
+The verifier's batch endpoint is live on **CoFHE staging** and the host chain, and encryption works
+end-to-end there and against hardhat mocks. It is **not yet deployed on the public testnets**
+(Sepolia, Arbitrum Sepolia, Base Sepolia), where encrypting still fails with `ZK_VERIFY_FAILED`.
+
+This is not a problem with your migration. Point at staging to confirm your code is correct; the
+testnets will start working with no further code changes once the endpoint ships there.
