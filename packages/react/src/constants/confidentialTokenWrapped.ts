@@ -1,5 +1,6 @@
 import { parseAbi } from 'viem';
 
+import { CONFIDENTIAL_TOKEN_CLAIM_CONTRACTS } from './confidentialTokenClaims';
 import { ERC20_ALLOWANCE_ABI, ERC20_APPROVE_ABI } from './erc20ABIs';
 import type { ConfidentialTokenContracts } from './tokenTypeConfig';
 
@@ -94,44 +95,7 @@ const SHARED_WRAPPED_TOKEN_CONTRACTS = {
     abi: parseAbi(['function unshield(address from, address to, uint64 amount) returns (bytes32)']),
     functionName: 'unshield' as const,
   },
-  claims: {
-    single: {
-      abi: parseAbi([
-        'function getClaim(bytes32 ctHash) view returns ((address to, bytes32 ctHash, uint64 requestedAmount, uint64 decryptedAmount, bool claimed))',
-      ]),
-      functionName: 'getClaim' as const,
-    },
-    all: {
-      abi: parseAbi([
-        'function claimUnshieldedBatch(bytes32[] ctHashes, uint64[] decryptedAmounts, bytes[] decryptionProofs)',
-      ]),
-      functionName: 'claimUnshieldedBatch' as const,
-    },
-    query: {
-      abi: [
-        {
-          inputs: [{ name: 'user', type: 'address' }],
-          name: 'getUserClaims',
-          outputs: [
-            {
-              components: [
-                { name: 'to', type: 'address' },
-                { name: 'ctHash', type: 'bytes32' },
-                { name: 'requestedAmount', type: 'uint64' },
-                { name: 'decryptedAmount', type: 'uint64' },
-                { name: 'claimed', type: 'bool' },
-              ],
-              name: 'userClaims',
-              type: 'tuple[]',
-            },
-          ],
-          stateMutability: 'view',
-          type: 'function',
-        },
-      ] as const,
-      functionName: 'getUserClaims' as const,
-    },
-  },
+  claims: CONFIDENTIAL_TOKEN_CLAIM_CONTRACTS,
 } as const;
 
 export const WRAPPED_TOKEN_CONTRACTS = {
