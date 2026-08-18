@@ -547,6 +547,29 @@ export const MockACLArtifact = {
     },
     {
       type: 'function',
+      name: 'receiveCtHash',
+      inputs: [
+        {
+          name: 'handle',
+          type: 'uint256',
+          internalType: 'uint256',
+        },
+        {
+          name: 'expectedSharer',
+          type: 'address',
+          internalType: 'address',
+        },
+        {
+          name: 'receiver',
+          type: 'address',
+          internalType: 'address',
+        },
+      ],
+      outputs: [],
+      stateMutability: 'nonpayable',
+    },
+    {
+      type: 'function',
       name: 'setDefaultRevokerContract',
       inputs: [
         {
@@ -564,6 +587,29 @@ export const MockACLArtifact = {
       inputs: [
         {
           name: 'newAddress',
+          type: 'address',
+          internalType: 'address',
+        },
+      ],
+      outputs: [],
+      stateMutability: 'nonpayable',
+    },
+    {
+      type: 'function',
+      name: 'shareCtHash',
+      inputs: [
+        {
+          name: 'handle',
+          type: 'uint256',
+          internalType: 'uint256',
+        },
+        {
+          name: 'sharer',
+          type: 'address',
+          internalType: 'address',
+        },
+        {
+          name: 'receiver',
           type: 'address',
           internalType: 'address',
         },
@@ -689,6 +735,22 @@ export const MockACLArtifact = {
     },
     {
       type: 'error',
+      name: 'NotShared',
+      inputs: [
+        {
+          name: 'handle',
+          type: 'uint256',
+          internalType: 'uint256',
+        },
+        {
+          name: 'receiver',
+          type: 'address',
+          internalType: 'address',
+        },
+      ],
+    },
+    {
+      type: 'error',
       name: 'PermissionInvalid_Disabled',
       inputs: [],
     },
@@ -731,6 +793,22 @@ export const MockACLArtifact = {
           name: 'str',
           type: 'string',
           internalType: 'string',
+        },
+      ],
+    },
+    {
+      type: 'error',
+      name: 'UnexpectedSharer',
+      inputs: [
+        {
+          name: 'expected',
+          type: 'address',
+          internalType: 'address',
+        },
+        {
+          name: 'actual',
+          type: 'address',
+          internalType: 'address',
         },
       ],
     },

@@ -78,12 +78,12 @@ item; the real batch signature fixes this properly. `.asHashPlusProof()` is now 
 
 ## `@fhenixprotocol/cofhe-contracts` (external dependency — version bump)
 
-`FhenixProtocol/cofhe-contracts#78` now ships in **`0.2.0-beta.1`**, so the temporary `pnpm patch`
-that carried these changes has been removed. `packages/mock-contracts` and
-`packages/foundry-plugin` pin `0.2.0-beta.1`; `packages/hardhat-plugin` requires
-`>=0.2.0-beta.1` as a peer.
+`FhenixProtocol/cofhe-contracts#78` first shipped in `0.2.0-beta.1`, so the temporary `pnpm patch`
+that carried these changes has been removed. The repo now pins **`0.2.0-beta.3`**, which adds the
+`sharedEuintXX` family on top (see below). `packages/mock-contracts`, `packages/foundry-plugin` and
+`test/setup` pin `0.2.0-beta.3`; `packages/hardhat-plugin` requires `>=0.2.0-beta.3` as a peer.
 
-> **Pre-release pin.** `0.2.0-beta.1` is a beta. The final `0.2.0` version must be pinned here
+> **Pre-release pin.** `0.2.0-beta.3` is a beta. The final `0.2.0` version must be pinned here
 > before `@cofhe/*` `0.7.0` is published.
 
 **This bump breaks your own Solidity.** The published `0.2.0-beta.1` does not just add the batch
@@ -159,7 +159,7 @@ caller-side only.
     `MockTaskManager.batchVerifyInputs`), which is the path every test in this repo exercises —
     see `EncryptedValueStore.storeEuint32Batch` in `test/CofhePlugin.t.sol` or
     `SimpleTest.setValueBatch` in `test/setup/contracts/SimpleTest.sol`.
-  - In `cofhe-contracts` `0.2.0-beta.1`, `FHE.asEuint32(hash, proof)` also routes through
+  - In `cofhe-contracts` `0.2.0-beta.3`, `FHE.asEuint32(hash, proof)` also routes through
     `batchVerifyInputs` as a one-element batch (see the dependency section above), so a
     single-value entry point accepts a batch-of-1 signature unchanged. Covered by
     "Should accept a batch-of-1 signature via a single-value entry point" in

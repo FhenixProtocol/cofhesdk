@@ -1,6 +1,6 @@
 # Proposal: `sharedEuint` — encrypted data movement between contracts
 
-**Status:** draft
+**Status:** implemented — shipped in `@fhenixprotocol/cofhe-contracts@0.2.0-beta.3`
 **Affects:** `@fhenixprotocol/cofhe-contracts` (`FHE.sol`, `ICofhe.sol`, `ACL.sol`, `TaskManager.sol`), `@cofhe/mock-contracts` (`MockACL`, `MockTaskManager`)
 
 ## Summary
@@ -280,20 +280,23 @@ The receiver passes no address; the sharer passes the address it is already call
 
 ## Rollout
 
-1. **`pnpm patch @fhenixprotocol/cofhe-contracts@0.1.4`** — types and `FHE` functions in `FHE.sol`,
-   `ITaskManager` additions in `ICofhe.sol`.
-2. **Mocks** — `shareCtHash` / `receiveCtHash` in `MockACL` and `MockTaskManager`, plus the neighbouring
-   `MOCK_log` hooks.
-3. **Tests** — `Vault.sol` / `Token.sol` fixtures and a Hardhat suite covering the round trip, single-use
-   enforcement, unshared claim, wrong-receiver claim, unauthorized-sharer revert, and cross-transaction
-   expiry. Plus an `Attacker.sol` fixture reproducing
-   [presenter substitution](#presenter-substitution) against a `Token` using `Param` — asserts
-   `UnexpectedSharer`. Pair it with a second `Token` misusing `FromCall(shared, address(vault))` at a
-   parameter site and assert the attack **succeeds**: without it the first assertion passes vacuously
-   whenever the setup is subtly wrong, and it is the only thing pinning the `FromCall` review rule.
-4. **Upstream** — PRs to `cofhe-contracts` for the library and interface, and to the `ACL` / `TaskManager`
-   deployments.
+All four steps have shipped; this section is kept as the record of how it landed.
 
-Steps 1–3 work against the mocks immediately; nothing works against real CoFHE until step 4 ships. A
-standalone `FHEShared.sol` for consumers who cannot patch is possible but does not remove the deployment
-dependency.
+1. **Library** — the seven `shared*` types and the `share*` / `receive*Param` / `receive*FromCall`
+   helpers in `FHE.sol`, and the `ITaskManager` additions in `ICofhe.sol`. Carried briefly as a
+   `pnpm patch`, now published in `@fhenixprotocol/cofhe-contracts@0.2.0-beta.3`; the patch has been
+   removed and the repo pins the release.
+2. **Mocks** — `shareCtHash` / `receiveCtHash` in `MockACL` and `MockTaskManager`, plus the
+   neighbouring `MOCK_log` hooks. `MockACL` also moved from approximating transient storage with
+   `block.number` to real EIP-1153 transient storage, which the transaction-scoped share slot
+   requires.
+3. **Tests** — `SharedEuintFixtures.sol` (`SharedVault` / `SharedToken` / `SharedTokenUnsafe` /
+   `SharedAttacker`) and `test/hardhat-plugin-test/test/shared-euint.test.ts`, covering the round
+   trip, single-use enforcement, unshared claim, wrong-receiver claim, unauthorized-sharer revert, and
+   cross-transaction expiry. The [presenter substitution](#presenter-substitution) case is paired:
+   `SharedToken` (using `Param`) must revert `UnexpectedSharer`, and `SharedTokenUnsafe` (misusing
+   `FromCall` at a parameter site) must let the attack **succeed** — without the second assertion the
+   first passes vacuously whenever the setup is subtly wrong, and it is the only thing pinning the
+   `FromCall` review rule.
+4. **Upstream** — the library and interface changes are in `cofhe-contracts`, and the `ACL` /
+   `TaskManager` deployments are live on staging and the host chain.

@@ -152,6 +152,10 @@ export default defineConfig({
             text: 'Decryption Lifecycle',
             link: '/reference/decryption-lifecycle',
           },
+          {
+            text: 'Sharing Encrypted Values',
+            link: '/reference/sharing-encrypted-values',
+          },
         ],
       },
     ],
