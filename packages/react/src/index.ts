@@ -122,6 +122,8 @@ export type { CofheConfigWithReact as CofhesdkConfigWithReact } from './config';
 
 export type { CofheStatus, CofheStatusActionIntent, CofheStatusId } from './components/CofheFloatingButton/types';
 export type { ConfidentialToken } from './types/token';
+export { getConfidentialDecimals, getPublicDecimals, getPublicSymbol } from './types/token';
+export { scaleAmount, quantizeAmount } from './utils/format';
 
 export type { CofheDecryptMeta, CofheQueryMeta } from './meta';
 
