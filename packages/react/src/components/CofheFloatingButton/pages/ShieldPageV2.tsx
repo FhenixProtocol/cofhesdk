@@ -2,8 +2,8 @@ import { ArrowBackIcon, KeyboardArrowDownIcon } from '@/components/Icons';
 import { TbShieldPlus, TbShieldMinus } from 'react-icons/tb';
 import { LuExternalLink } from 'react-icons/lu';
 import { useMemo, useState } from 'react';
-import { ContractFunctionExecutionError, parseUnits, type Address } from 'viem';
-import { isTokenOperationSupported } from '@/types/token';
+import { ContractFunctionExecutionError, maxUint128, maxUint64, parseUnits, type Address } from 'viem';
+import { getConfidentialDecimals, getPublicDecimals, isTokenOperationSupported } from '@/types/token';
 import { useCofheAccount, useCofheChainId } from '@/hooks/useCofheConnection';
 import { useCofheTokenDecryptedBalance } from '@/hooks/useCofheTokenDecryptedBalance';
 import { type ConfidentialToken } from '@/hooks/useCofheTokenLists';
@@ -13,7 +13,7 @@ import { cn } from '../../../utils/cn';
 import { getBlockExplorerTxUrl, truncateHash } from '../../../utils/utils';
 import { ActionButton, AmountInput, CofheTokenConfidentialBalance, TokenIcon } from '../components/index';
 import { useCofheTokenPublicBalance } from '@/hooks/useCofheTokenPublicBalance';
-import { formatTokenAmount, unitToWei } from '@/utils/format';
+import { formatTokenAmount, quantizeAmount, unitToWei } from '@/utils/format';
 import {
   getCofheTokenClaimUnshieldedCallArgs,
   getCofheTokenShieldCallArgs,
@@ -177,7 +177,9 @@ function useShieldWithLifecycle(token: ConfidentialToken): Omit<ShieldAndUnshiel
   const account = useCofheAccount();
   const chainId = useCofheChainId();
   const [shieldAmount, setShieldAmount] = useState('');
-  const shieldSourceDecimals = token.extensions.fhenix.erc20Pair?.decimals ?? token.decimals;
+  const shieldSourceDecimals = getPublicDecimals(token);
+  // on-chain the minted confidential amount is truncated to the confidential side's precision
+  const shieldInputDecimals = Math.min(shieldSourceDecimals, getConfidentialDecimals(token));
   const { setError, setStatus, error, status } = useLifecycleStore();
   const { schedule: scheduleStatusClear } = useReschedulableTimeout(() => setStatus(null), AUTOCLEAR_TX_STATUS_TIMEOUT);
   const tokenShield = useCofheTokenShield({
@@ -237,7 +239,7 @@ function useShieldWithLifecycle(token: ConfidentialToken): Omit<ShieldAndUnshiel
   });
 
   const handleShield = async () => {
-    const amountWei = unitToWei(shieldAmount, shieldSourceDecimals);
+    const amountWei = unitToWei(quantizeAmount(shieldAmount, shieldInputDecimals), shieldSourceDecimals);
     await tokenShield.mutateAsync({
       token,
       amount: amountWei,
@@ -264,7 +266,7 @@ function useShieldWithLifecycle(token: ConfidentialToken): Omit<ShieldAndUnshiel
     useCofheTokenDecryptedBalance({ token, accountAddress: account });
 
   const handleShieldMax = () => {
-    if (publicBalanceUnit) setShieldAmount(publicBalanceUnit.toFixed());
+    if (publicBalanceUnit) setShieldAmount(quantizeAmount(publicBalanceUnit.toFixed(), shieldInputDecimals));
   };
 
   const isValidShieldAmount = (shieldAmount.length > 0 && publicBalanceUnit?.gte(shieldAmount)) ?? false;
@@ -272,11 +274,11 @@ function useShieldWithLifecycle(token: ConfidentialToken): Omit<ShieldAndUnshiel
   const shieldAmountWei = useMemo<bigint | undefined>(() => {
     if (!isValidShieldAmount) return undefined;
     try {
-      return unitToWei(shieldAmount, shieldSourceDecimals);
+      return unitToWei(quantizeAmount(shieldAmount, shieldInputDecimals), shieldSourceDecimals);
     } catch {
       return undefined;
     }
-  }, [isValidShieldAmount, shieldAmount, shieldSourceDecimals]);
+  }, [isValidShieldAmount, shieldAmount, shieldSourceDecimals, shieldInputDecimals]);
 
   const shieldTxCallArgs = useMemo(() => {
     if (!account || !shieldAmountWei) return undefined;
@@ -350,6 +352,7 @@ function useShieldWithLifecycle(token: ConfidentialToken): Omit<ShieldAndUnshiel
     error: error ?? simulationError,
     isProcessing: tokenShield.isPending || isTokenShieldMining || tokenApprove.isPending || isApprovingMining,
     inputAmount: shieldAmount,
+    receivedAmount: quantizeAmount(shieldAmount, shieldInputDecimals),
     setInputAmount: setShieldAmount,
     onMaxClick: handleShieldMax,
     canWriteContract: canWrite,
@@ -416,14 +419,9 @@ function useUnshieldWithLifecycle(token: ConfidentialToken): Omit<ShieldAndUnshi
       }
     },
   });
-  const handleUnshield = async () => {
-    const amountWei = parseUnits(unshieldAmount, token.decimals);
-    tokenUnshield.mutateAsync({
-      token,
-      amount: amountWei,
-      onStatusChange: (message) => setStatus({ message, type: 'info' }),
-    });
-  };
+  const confidentialDecimals = getConfidentialDecimals(token);
+  // unshield amount is encoded as the token's confidential value type on-chain
+  const maxConfidentialAmount = token.extensions.fhenix.confidentialValueType === 'uint128' ? maxUint128 : maxUint64;
 
   const { data: { unit: confidentialBalanceUnit } = {}, isFetching: isFetchingConfidential } =
     useCofheTokenDecryptedBalance({ token, accountAddress: account });
@@ -432,11 +430,29 @@ function useUnshieldWithLifecycle(token: ConfidentialToken): Omit<ShieldAndUnshi
   };
   const isValidUnshieldAmount = (unshieldAmount.length > 0 && confidentialBalanceUnit?.gte(unshieldAmount)) ?? false;
 
+  const unshieldAmountWei = useMemo<bigint | undefined>(() => {
+    if (!isValidUnshieldAmount) return undefined;
+    try {
+      const amountWei = parseUnits(quantizeAmount(unshieldAmount, confidentialDecimals), confidentialDecimals);
+      return amountWei <= maxConfidentialAmount ? amountWei : undefined;
+    } catch {
+      return undefined;
+    }
+  }, [isValidUnshieldAmount, unshieldAmount, confidentialDecimals, maxConfidentialAmount]);
+
+  const handleUnshield = async () => {
+    assert(unshieldAmountWei !== undefined, 'Unshield amount is required');
+    tokenUnshield.mutateAsync({
+      token,
+      amount: unshieldAmountWei,
+      onStatusChange: (message) => setStatus({ message, type: 'info' }),
+    });
+  };
+
   const unshieldCallArgs = useMemo(() => {
-    if (!account || !isValidUnshieldAmount) return undefined;
-    const amountWei = parseUnits(unshieldAmount, token.decimals);
-    return getCofheTokenUnshieldCallArgs({ token, amount: amountWei, account });
-  }, [account, isValidUnshieldAmount, token, unshieldAmount]);
+    if (!account || unshieldAmountWei === undefined) return undefined;
+    return getCofheTokenUnshieldCallArgs({ token, amount: unshieldAmountWei, account });
+  }, [account, token, unshieldAmountWei]);
 
   const unshieldSimulation = useCofheSimulateWriteContract(unshieldCallArgs, {
     enabled: !!unshieldCallArgs,
@@ -455,6 +471,7 @@ function useUnshieldWithLifecycle(token: ConfidentialToken): Omit<ShieldAndUnshi
     error: error ?? simulationError,
     isProcessing: tokenUnshield.isPending || tokenUnshield.isTokenUnshieldMining,
     inputAmount: unshieldAmount,
+    receivedAmount: quantizeAmount(unshieldAmount, Math.min(getPublicDecimals(token), confidentialDecimals)),
     setInputAmount: setUnshieldAmount,
     onMaxClick: handleUnshieldMax,
     canWriteContract: canUnshield,
@@ -490,6 +507,8 @@ type ShieldPageViewProps = {
 
   isProcessing: boolean;
   inputAmount: string;
+  /** `inputAmount` quantized to the precision actually delivered on the destination side */
+  receivedAmount: string;
   setInputAmount: (value: string) => void;
   onMaxClick: () => void;
   canWriteContract: boolean;
@@ -595,7 +614,7 @@ function ClaimingSection({ token }: { token: ConfidentialToken }) {
           label={
             claimUnshield.isPending
               ? 'Claiming...'
-              : `Claim ${isFetchingClaims ? '...' : formatTokenAmount(unshieldedClaims?.claimableAmount ?? 0n, token.decimals, 5).formatted} ${pairedSymbol}`
+              : `Claim ${isFetchingClaims ? '...' : formatTokenAmount(unshieldedClaims?.claimableAmount ?? 0n, getConfidentialDecimals(token), 5).formatted} ${pairedSymbol}`
           }
           className="mt-1"
         />
@@ -603,7 +622,8 @@ function ClaimingSection({ token }: { token: ConfidentialToken }) {
 
       {unshieldedClaims?.hasPending && token && !unshieldedClaims.hasClaimable && !isDualToken && (
         <p className="text-xxs text-yellow-600 dark:text-yellow-400 text-center">
-          Pending: {formatTokenAmount(unshieldedClaims.pendingAmount, token.decimals).formatted} {pairedSymbol}
+          Pending: {formatTokenAmount(unshieldedClaims.pendingAmount, getConfidentialDecimals(token)).formatted}{' '}
+          {pairedSymbol}
         </p>
       )}
       <StatusAndError status={claimingStatus} error={claimingError ?? claimSimulationError} />
@@ -655,6 +675,7 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
 
   isProcessing,
   inputAmount,
+  receivedAmount,
   setInputAmount,
   onMaxClick,
   canWriteContract,
@@ -775,7 +796,7 @@ const ShieldAndUnshieldPageView: React.FC<ShieldPageViewProps> = ({
                 <div className="flex items-center gap-2 min-w-0">
                   <TokenIcon logoURI={destLogoURI} alt={destSymbol} size="sm" />
                   <div className="min-w-0">
-                    <p className="text-lg font-bold leading-none">{inputAmount || '0'}</p>
+                    <p className="text-lg font-bold leading-none">{receivedAmount || '0'}</p>
                   </div>
                 </div>
                 <div className="text-right">

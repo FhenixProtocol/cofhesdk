@@ -3,11 +3,17 @@
   "timestamp": "2026-06-01T00:00:00Z",
   "version": {
     "major": 1,
-    "minor": 1,
+    "minor": 2,
     "patch": 0
   },
   "logoURI": "https://cdn.prod.website-files.com/6864e9aed9e0a3fac780db8/68a473dd63e0265d2d6cf9a3_(fhenix_)%20(16).svg",
-  "keywords": ["fhenix", "base-sepolia", "confidential", "sample", "wrapper"],
+  "keywords": [
+    "fhenix",
+    "base-sepolia",
+    "confidential",
+    "sample",
+    "wrapper"
+  ],
   "tokens": [
     {
       "name": "Dual cEUR",
@@ -34,6 +40,21 @@
         "fhenix": {
           "confidentialityType": "dual",
           "confidentialValueType": "uint64"
+        }
+      }
+    },
+    {
+      "name": "Dual cUSD18",
+      "symbol": "cUSD18",
+      "address": "0x5Be13CCbcc3b93579d49d682E58c207Df615e963",
+      "chainId": 84532,
+      "logoURI": "https://storage.googleapis.com/cofhesdk/token-icons/usdc.webp",
+      "decimals": 18,
+      "extensions": {
+        "fhenix": {
+          "confidentialityType": "dual",
+          "confidentialValueType": "uint64",
+          "confidentialDecimals": 6
         }
       }
     },

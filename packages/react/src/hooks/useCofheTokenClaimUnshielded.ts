@@ -1,4 +1,4 @@
-import { assertTokenOperationSupported } from '@/types/token';
+import { assertTokenOperationSupported, getConfidentialDecimals } from '@/types/token';
 import { cofheLogger } from '@/utils/debug';
 import { type UseMutationOptions, type UseMutationResult } from '@tanstack/react-query';
 import { assert } from 'ts-essentials';
@@ -155,6 +155,7 @@ export function useCofheTokenClaimUnshielded(
           hash,
           token: input.token,
           tokenAmount,
+          tokenAmountDecimals: getConfidentialDecimals(input.token),
           chainId,
           actionType: TransactionActionType.Claim,
           account,

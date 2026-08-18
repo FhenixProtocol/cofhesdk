@@ -7,7 +7,7 @@ import {
 import { type Address } from 'viem';
 import { useCofheWalletClient, useCofheChainId, useCofheAccount, useCofhePublicClient } from './useCofheConnection.js';
 import { type ConfidentialToken, ETH_ADDRESS_LOWERCASE } from './useCofheTokenLists.js';
-import { assertTokenOperationSupported } from '@/types/token';
+import { assertTokenOperationSupported, getPublicDecimals } from '@/types/token';
 import { buildTokenShieldCallArgs } from '../constants/tokenTypeConfig.js';
 import { TransactionActionType, useTransactionStore } from '../stores/transactionStore.js';
 import { useInternalMutation, useInternalQuery } from '../providers/index.js';
@@ -140,6 +140,7 @@ export function useCofheTokenShield(
         hash,
         token: input.token,
         tokenAmount: input.amount,
+        tokenAmountDecimals: getPublicDecimals(input.token),
         chainId,
         actionType: TransactionActionType.Shield,
         account,
