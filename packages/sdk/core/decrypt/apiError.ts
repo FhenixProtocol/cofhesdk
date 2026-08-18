@@ -48,7 +48,10 @@ const BACKEND_ERROR_CODE_TO_COFHE_ERROR_CODE: Record<BackendApiErrorCode, CofheE
 };
 
 function isBackendApiErrorCode(value: string): value is BackendApiErrorCode {
-  return value in BACKEND_ERROR_CODE_TO_COFHE_ERROR_CODE;
+  // Own-property check, not `in`: `in` also matches Object.prototype keys, so codes like
+  // `toString` or `constructor` would be treated as recognised and the lookup would return a
+  // function instead of a CofheErrorCode.
+  return Object.prototype.hasOwnProperty.call(BACKEND_ERROR_CODE_TO_COFHE_ERROR_CODE, value);
 }
 
 export type ParsedApiError = {
