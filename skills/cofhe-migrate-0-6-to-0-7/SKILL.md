@@ -9,10 +9,10 @@ description: >-
   "ConsumingContractUninitialized", "Identifier not found or not unique: InEuint32",
   "EncryptedItemInput is not exported", "acp_denied", or a config error naming
   `defaultACPExpiration`. Also triggers on "migrate to ACP", "Permit renamed to ACP",
-  "encryptInputs return type changed", or "batch input verification". Covers the additive
-  `sharedEuintXX` contract-to-contract sharing types too — "sharedEuint", "share encrypted value
-  between contracts", "NotShared", "UnexpectedSharer", or
-  "Identifier not found or not unique: sharedEuint64".
+  "encryptInputs return type changed", or "batch input verification". Also covers moving
+  contract-to-contract encrypted values onto the `sharedEuintXX` types — "sharedEuint", "share
+  encrypted value between contracts", "pass euint to another contract", "NotShared",
+  "UnexpectedSharer", or "Identifier not found or not unique: sharedEuint64".
 license: MIT
 compatibility: >-
   Requires a git repository and a Node package manager. Contract steps additionally require the
@@ -45,16 +45,16 @@ There are no deprecation shims. Old names are removed so the compiler finds the 
    - **Mixed `@cofhe/*` versions** → stop and have the user align them before migrating.
 3. **Detect what's in play** and load only the references you need:
 
-| If the project has                                              | Load                                                                                         |
-| --------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| any Solidity (`foundry.toml`, `hardhat.config.*`, `contracts/`) | [contracts.md](references/contracts.md) **first**                                            |
-| `@cofhe/sdk`                                                    | [encrypt-inputs.md](references/encrypt-inputs.md), [acp-rename.md](references/acp-rename.md) |
-| `@cofhe/react`                                                  | [react.md](references/react.md)                                                              |
-| any client config (`createCofheConfig`)                         | [config.md](references/config.md)                                                            |
-| error-code handling / a custom backend                          | [errors-and-wire.md](references/errors-and-wire.md)                                          |
-| `@cofhe/foundry-plugin`                                         | [foundry.md](references/foundry.md)                                                          |
-| custom mock deployment scripts                                  | [environment.md](references/environment.md)                                                  |
-| `allowTransient` in Solidity, or own mock-based tests           | [shared-euints.md](references/shared-euints.md) — additive, plus one test-breaking change    |
+| If the project has                                              | Load                                                                                             |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| any Solidity (`foundry.toml`, `hardhat.config.*`, `contracts/`) | [contracts.md](references/contracts.md) **first**                                                |
+| `@cofhe/sdk`                                                    | [encrypt-inputs.md](references/encrypt-inputs.md), [acp-rename.md](references/acp-rename.md)     |
+| `@cofhe/react`                                                  | [react.md](references/react.md)                                                                  |
+| any client config (`createCofheConfig`)                         | [config.md](references/config.md)                                                                |
+| error-code handling / a custom backend                          | [errors-and-wire.md](references/errors-and-wire.md)                                              |
+| `@cofhe/foundry-plugin`                                         | [foundry.md](references/foundry.md)                                                              |
+| custom mock deployment scripts                                  | [environment.md](references/environment.md)                                                      |
+| encrypted values crossing a contract boundary                   | [shared-euints.md](references/shared-euints.md) — **security-relevant, not compiler-detectable** |
 
 4. **Present the plan and get confirmation.** List the archetype detected, the ordered steps, and
    the files you expect to touch. Then ask whether to:
@@ -70,18 +70,15 @@ Work **contract-first**, then outward. Each step's outcome determines the next o
 going backwards means rewriting the same call sites twice.
 
 1. **Dependencies & chain** — [environment.md](references/environment.md)
-2. **Contracts** — [contracts.md](references/contracts.md) — decide each function's ABI, compile, redeploy
+2. **Contracts** — [contracts.md](references/contracts.md) — decide each function's ABI, compile, redeploy —
+   then [shared-euints.md](references/shared-euints.md) for every encrypted value crossing a contract
+   boundary. A bare handle parameter is a disclosure risk, not a style issue; report each one.
 3. **Config keys** — [config.md](references/config.md) — these throw at client construction
 4. **Permit → ACP rename** — [acp-rename.md](references/acp-rename.md) — makes the compiler's remaining errors meaningful
 5. **Encrypt call sites** — [encrypt-inputs.md](references/encrypt-inputs.md) — batch result + consuming contract
 6. **React** — [react.md](references/react.md)
 7. **Errors / wire format** — [errors-and-wire.md](references/errors-and-wire.md)
 8. **Verify** — [verification.md](references/verification.md)
-
-[shared-euints.md](references/shared-euints.md) sits outside this order. Its mock
-transient-storage note belongs with step 2 if the project has its own mock-based tests; the
-`sharedEuintXX` types themselves are an optional follow-up to raise **after** the migration is
-green, never a step to fold into it.
 
 Step 4 before step 5 is deliberate: sweep the renames first so that every error `tsc` reports
 afterwards is a genuine shape problem rather than a missing identifier.
@@ -108,7 +105,8 @@ afterwards is a genuine shape problem rather than a missing identifier.
   transactions or services). One batch signature now binds all its hashes to a single contract.
 - The contract being called is **third-party**. If the developer doesn't control it, they are
   blocked until that contract migrates. Say so plainly rather than generating code that
-  cannot work.
+  cannot work. This applies to encrypted-input call sites **and** to every contract on the other
+  end of an encrypted-value handoff ([shared-euints.md](references/shared-euints.md)).
 
 ## Finish with a report
 
@@ -117,6 +115,8 @@ State plainly:
 - what changed, by area
 - what was skipped and why
 - what still needs a human decision
+- **every bare-handle site left unmigrated**, individually — each is a potential disclosure path
+  ([shared-euints.md](references/shared-euints.md)), not a cleanup item
 - the verification commands run, and their results
 - anything from _Known issues_ below that applies
 

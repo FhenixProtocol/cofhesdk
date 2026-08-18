@@ -1,31 +1,67 @@
 # Sharing encrypted values between contracts (`sharedEuintXX`)
 
-**This is additive. Nothing in 0.6.x breaks because of it, and no project is required to adopt
-it.** Load this reference for two reasons only:
+0.2.x introduces one `sharedEuintXX` type per encrypted type, and **every place an encrypted value
+crosses a contract boundary has to move onto it**:
 
-1. The project hand-rolls contract-to-contract sharing with `FHE.allowTransient` and a bare
-   `bytes32`/`euintXX` parameter — there is now a typed, safer way to spell it, worth **offering**
-   once the required migration is green.
-2. The project has its own mock-based tests that depend on transient allowances surviving across
-   transactions — those **will** break. See _The mock transient-storage change_ below. That part
-   is not optional.
+- a function that **receives** an encrypted value from another contract, and
+- a **non-view** function that **returns** an encrypted value to its caller.
 
-Do not rewrite working sharing code as part of the migration. Finish the required work first,
-then raise this as a follow-up.
+> **The compiler will not find these for you.** The 0.6.x spelling — an `allowTransient` grant plus
+> a bare `euintXX`/`bytes32` on the wire — still compiles and still executes. These sites have to
+> be found by search, and the greps below are the whole detection story. Do not treat a clean
+> `forge build` as evidence there is nothing to do here.
 
-## What 0.2.x adds
+The old spelling is not merely untyped, it is an **antipattern with a concrete disclosure risk** —
+left in place it can expose every ciphertext the contract holds. Treat these sites as security
+work, report them individually, and do not let them be deferred as cleanup.
 
-Seven new types alongside the `external*` family, one per encrypted type:
+## Why it changed — a bare handle parameter is a decryption oracle
+
+This is the part to lead with when explaining the work to a developer. It is not a style
+preference: **a function taking a bare `euintXX` from outside can be turned into an oracle over
+every ciphertext the contract holds.**
+
+FHE operations check the permission of the **contract performing them**, not of whoever called it.
+`FHE.div(amount, ...)` succeeds whenever the contract is allowed on `amount` — and a contract is
+always allowed on its own stored state. So a function like this:
 
 ```solidity
-type sharedEbool is bytes32;
-type sharedEuint8 is bytes32;
-type sharedEuint16 is bytes32;
-type sharedEuint32 is bytes32;
-type sharedEuint64 is bytes32;
-type sharedEuint128 is bytes32;
-type sharedEaddress is bytes32;
+function pull(euint64 amount) external returns (euint64) {
+  euint64 result = FHE.div(amount, FHE.asEuint64(2));
+  FHE.allowThis(result);
+  FHE.allowTransient(result, msg.sender);   // hand the derived value back to the caller
+  return result;
+}
 ```
+
+does not just serve the counterparty it was written for. Anyone can call it, and anyone can pass
+**any handle the contract is allowed on** — handles are plain `bytes32`, readable from storage,
+events, or a public getter. The attacker names one of the contract's own private ciphertexts, the
+operation passes the ACL check because the _contract_ holds it, and the function hands back a value
+derived from it that the attacker is now permitted to persist and decrypt. Repeat per handle and
+the contract's encrypted state is readable.
+
+The root cause is that a bare handle carries no provenance. The receiver can see that it is allowed
+to use a ciphertext, but not **who handed it over** or whether it was handed over at all.
+
+`sharedEuintXX` closes it. The mechanism is a directed, single-use, transaction-scoped share slot in
+the ACL: `share` grants `receiver` transient access and records the sharer; `receive` consumes that
+record, requires the recorded sharer to be who the receiver named, and re-checks that the sharer
+still holds the handle. An attacker calling `pull` with a handle nobody shared reverts `NotShared`,
+because a value now has to be deliberately directed at this contract, by name, in this transaction.
+
+The same reasoning applies to Case S2. Returning an encrypted value with a bare
+`FHE.allowTransient(result, msg.sender)` grants the value to whoever called — which, on a function
+that never authenticated its caller, is whoever asked.
+
+## What does _not_ change
+
+- **`view` / `pure` functions returning an encrypted value.** They cannot grant anything — sharing
+  writes transient state through the TaskManager — so returning a `euintXX` from a view function
+  was never a permission handoff. The caller has to be allowed by some other route already. Leave
+  these alone.
+- **Values that never leave the contract**, and values arriving from a user. Those are `euintXX`
+  and `externalEuint32` respectively.
 
 | Type              | Comes from                      | Lifetime                     |
 | ----------------- | ------------------------------- | ---------------------------- |
@@ -33,56 +69,47 @@ type sharedEaddress is bytes32;
 | `sharedEuint64`   | another contract                | one transaction              |
 | `euint64`         | your own storage or computation | as long as the ACL allows it |
 
-Plus three helpers per type, shown here for `euint64`:
-
-| Function                                     | Use                                                       |
-| -------------------------------------------- | --------------------------------------------------------- |
-| `FHE.shareEuint64(value, receiver)`          | hand a value to `receiver` for this transaction           |
-| `FHE.receiveEuint64Param(shared)`            | consume a share that arrived **as a function argument**   |
-| `FHE.receiveEuint64FromCall(shared, callee)` | consume a share that arrived **as a call's return value** |
-
-and two `ITaskManager` entry points behind them, `shareCtHash(ctHash, receiver)` and
-`receiveCtHash(ctHash, expectedSharer)`.
-
-The mechanism is a directed, single-use, transaction-scoped share slot in the ACL: `share` grants
-`receiver` transient access and records the sharer; `receive` consumes that record, requires the
-recorded sharer to be who the receiver named, and re-checks the sharer still holds the handle.
-
-## When it applies
+## Find the affected functions
 
 ```bash
-# hand-rolled sharing: a transient grant aimed at another contract
+# 1. the out-of-band permission grant that marks the old pattern
 grep -rn 'allowTransient' --include='*.sol' .
 
-# ... paired with an untyped handle crossing a contract boundary
-grep -rnE 'function .*\b(bytes32|euint(8|16|32|64|128)|ebool|eaddress)\b.*\)\s*(external|public)' --include='*.sol' .
+# 2. functions taking an encrypted value that is NOT from a user (external*) - candidates for S1
+grep -rnE 'function [A-Za-z0-9_]+\([^)]*\b(euint(8|16|32|64|128)|ebool|eaddress|bytes32)\b' \
+  --include='*.sol' .
+
+# 3. non-view functions returning an encrypted value - candidates for S2
+grep -rnE 'returns\s*\([^)]*\b(euint(8|16|32|64|128)|ebool|eaddress)\b' --include='*.sol' . \
+  | grep -vE '\bview\b|\bpure\b'
 ```
 
-A function that takes a bare `euint64`/`bytes32` from another contract and relies on the caller
-having called `allowTransient` first is the pattern this replaces. If nothing matches, skip this
-reference entirely.
+Grep 2 is deliberately wide — it catches internal helpers and same-contract plumbing too. Keep only
+the functions another **contract** calls; a `bytes32` parameter that is really a handle is the easy
+one to miss.
 
-## Before / after
+## Case S1 — receiving an encrypted value from another contract
 
 ```solidity
-// BEFORE - 0.6.x: untyped handle, permission granted out of band, sharer unverifiable
+// BEFORE - permission granted out of band, sharer unverifiable
 contract Vault {
   function pushToToken(Token token, euint64 amount) external {
     FHE.allowTransient(amount, address(token));
-    token.pull(euint64.unwrap(amount));            // just a bytes32 on the wire
+    token.pull(amount);                                // just a handle on the wire
   }
 }
 
 contract Token {
-  function pull(bytes32 handle) external {
-    euint64 amount = euint64.wrap(handle);         // trusts whoever called
+  // Anyone can call this with any handle Token is allowed on - including Token's own state.
+  function pull(euint64 amount) external {
+    euint64 half = FHE.div(amount, FHE.asEuint64(2));  // ACL checks Token, not the caller
     ...
   }
 }
 ```
 
 ```solidity
-// AFTER - 0.2.x: the type carries the permission, and the sharer is checked
+// AFTER - the type carries the permission, and the sharer is checked
 contract Vault {
   function pushToToken(Token token, euint64 amount) external {
     token.pull(FHE.shareEuint64(amount, address(token)));
@@ -92,29 +119,80 @@ contract Vault {
 contract Token {
   function pull(sharedEuint64 shared) external {
     euint64 amount = FHE.receiveEuint64Param(shared);   // sharer must be our caller
+    euint64 half = FHE.div(amount, FHE.asEuint64(2));
     ...
   }
 }
 ```
 
-`FHE.shareEuint64` reverts `SenderNotAllowed` unless the sharing contract is itself allowed on the
-handle — you cannot share what you cannot use.
+The explicit `FHE.allowTransient` disappears — `shareEuint64` grants the transient access itself.
+It reverts `SenderNotAllowed` unless the sharing contract is allowed on the handle: you cannot
+share what you cannot use.
+
+**This changes the ABI.** `pull(euint64)` and `pull(sharedEuint64)` are both `bytes32` on the wire,
+so callers you do not control keep compiling against the old signature and fail at runtime with
+`NotShared`. Every caller must be migrated in the same change, and the contract redeployed.
+
+## Case S2 — returning an encrypted value from a non-view function
+
+```solidity
+// BEFORE
+contract Token {
+  function pull(euint64 amount) external returns (euint64) {
+    euint64 result = FHE.div(amount, FHE.asEuint64(2));
+    FHE.allowThis(result);
+    FHE.allowTransient(result, msg.sender);            // hand it back out of band
+    return result;
+  }
+}
+
+contract Vault {
+  function pushToToken(Token token, euint64 amount) external {
+    euint64 back = token.pull(amount);                 // cannot tell this came from `token`
+    ...
+  }
+}
+```
+
+```solidity
+// AFTER
+contract Token {
+  function pull(sharedEuint64 shared) external returns (sharedEuint64) {
+    euint64 amount = FHE.receiveEuint64Param(shared);
+    euint64 result = FHE.div(amount, FHE.asEuint64(2));
+    FHE.allowThis(result);
+    return FHE.shareEuint64(result, msg.sender);       // directed back at the caller
+  }
+}
+
+contract Vault {
+  function pushToToken(Token token, euint64 amount) external {
+    euint64 back = FHE.receiveEuint64FromCall(
+      token.pull(FHE.shareEuint64(amount, address(token))),
+      address(token)                                   // the address called on this line
+    );
+    FHE.allowThis(back);                               // still transient until persisted
+    ...
+  }
+}
+```
+
+Both sides of a round trip usually need both cases at once, as above.
 
 ## The call-edge rule — get this one right
 
 The two `receive` forms are not interchangeable, and picking the wrong one silently weakens the
-check:
+check rather than failing:
 
 | How the value reached you           | Use                      | Sharer is checked against  |
 | ----------------------------------- | ------------------------ | -------------------------- |
 | An argument to your function        | `receiveEuint64Param`    | your caller (`msg.sender`) |
 | The return value of a call you made | `receiveEuint64FromCall` | the contract you called    |
 
-`receiveEuint64FromCall(shared, callee)` — **`callee` must be the address called in the same
-expression.** Naming a merely-trusted address instead makes the call check who _created_ the
-share rather than who _handed it over_, which is exploitable: a share left unconsumed earlier in
-the transaction can be presented by an attacker, and naming its original creator satisfies the
-check.
+`receiveEuint64FromCall(shared, callee)` — **`callee` must be the address called in that same
+expression.** Naming a merely-trusted address instead checks who _created_ the share rather than
+who _handed it over_, which is exploitable: a share left unconsumed earlier in the transaction can
+be presented by an attacker, and naming its original creator satisfies the check.
 
 ```solidity
 // RIGHT - the address called is the address named
@@ -125,7 +203,8 @@ euint64 amount = FHE.receiveEuint64FromCall(shared, trustedSharer);
 ```
 
 If the value arrived as a parameter, use `Param`. It reads `msg.sender` itself and takes no
-address, so it cannot be spelled wrong.
+address, so it cannot be spelled wrong. **Flag any `FromCall` whose second argument is not the
+receiver of the call on that line for the developer to review.**
 
 ## What it does not give you
 
@@ -137,10 +216,18 @@ address, so it cannot be spelled wrong.
   should not disclose.
 
 New errors to expect while wiring this up: `NotShared` (no share pending for you),
-`UnexpectedSharer` (a share is pending but from someone else), `SenderNotAllowed` (the sharer does
-not hold the handle).
+`UnexpectedSharer` (a share is pending, but from someone other than the party you named),
+`SenderNotAllowed` (the sharer does not hold the handle).
 
-## The mock transient-storage change — not optional
+## Stop and ask
+
+- **A counterparty contract is third-party.** Both sides of a handoff have to migrate together.
+  If the developer does not control the contract on the other end, they are blocked until it
+  migrates — say so plainly rather than generating a side that cannot work.
+- **A handle is passed through more than two contracts**, or re-shared onward. Each hop needs its
+  own share/receive pair, and who names whom is a design decision.
+
+## The mock transient-storage change
 
 `@cofhe/mock-contracts` 0.7.0 replaces `MockACL`'s old approximation of transient storage — which
 recorded `block.number` and treated an allowance as live for the rest of the **block** — with real
@@ -151,9 +238,9 @@ the production ACL.
 **A transient allowance now expires at the end of its own transaction, not the end of the block.**
 
 Any test that granted a transient allowance in one transaction and relied on it in a later
-transaction of the same block now fails, typically as `SenderNotAllowed` from a subsequent
-`allow`. Disabling automine and batching the calls into one block does **not** rescue it —
-transient storage is per-transaction regardless of block packing.
+transaction of the same block now fails, typically as `SenderNotAllowed` from a subsequent `allow`.
+Disabling automine and batching the calls into one block does **not** rescue it — transient storage
+is per-transaction regardless of block packing.
 
 Tests that fabricated bare handles and bootstrapped permissions this way should instead mint
 handles the way production does: have a contract create the value and call `FHE.allowThis` /
@@ -175,6 +262,10 @@ requires the requester to already be allowed, and in production that comes from 
 forge build            # or: npx hardhat compile
 ```
 
-Then exercise one round trip and assert the receiver actually got the value — a share that is
-never consumed fails silently at the type level and only shows up as `ACLNotAllowed` when the
-receiver tries to compute on the handle.
+A clean build proves nothing here — the old spelling compiles too. Confirm the migration by
+exercising a round trip and asserting the receiver got the value, and by re-running the greps above
+and checking every remaining hit is deliberate.
+
+For each site left unmigrated, ask the oracle question directly: _can an arbitrary caller reach this
+function with a handle this contract is allowed on, and learn something about the result?_ If yes,
+it is a live disclosure path and belongs in the report as such, not in a cleanup list.

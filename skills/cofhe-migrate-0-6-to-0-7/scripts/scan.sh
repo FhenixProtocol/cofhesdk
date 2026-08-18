@@ -33,8 +33,13 @@ hits '\bIn(Ebool|Euint8|Euint16|Euint32|Euint64|Euint128|Eaddress)\b' "${SOL[@]}
 section "CONTRACTS - already on external* (count encrypted params: 1 = no change, 2+ = Case C)"
 hits '\bexternal(Ebool|Euint8|Euint16|Euint32|Euint64|Euint128|Eaddress)\b' "${SOL[@]}"
 
-section "CONTRACTS - hand-rolled sharing (optional: sharedEuintXX can replace this)"
+section "CONTRACTS - cross-contract encrypted values -> sharedEuintXX (compiler will NOT catch these)"
 hits '\ballowTransient\b' "${SOL[@]}"
+
+section "CONTRACTS - non-view functions returning an encrypted value (Case S2)"
+grep -rnE 'returns\s*\([^)]*\b(euint(8|16|32|64|128)|ebool|eaddress)\b' \
+  "${EXCLUDES[@]}" "${SOL[@]}" "$ROOT" 2>/dev/null \
+  | grep -vE '\bview\b|\bpure\b' | sed 's/^/  /' || echo "  none"
 
 section "FOUNDRY - removed helpers"
 hits 'createIn(Ebool|Euint8|Euint16|Euint32|Euint64|Euint128|Eaddress)|_asHashPlusProof|zkVerifySign(Packed)?|createEncryptedInput\b|createBasePermission' "${SOL[@]}"
