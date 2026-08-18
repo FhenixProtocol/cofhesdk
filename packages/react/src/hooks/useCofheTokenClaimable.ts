@@ -44,10 +44,9 @@ export function constructUnshieldClaimsQueryKeyForInvalidation({
 }
 
 export const DEFAULT_UNSHIELD_CLAIM_SUMMARY: UnshieldClaimsSummary = {
+  claimableCount: 0,
   claimableAmount: 0n,
-  pendingCount: 0,
   hasClaimable: false,
-  hasPending: false,
 };
 
 export type UnshieldClaim = {
@@ -134,31 +133,22 @@ export async function fetchUnshieldClaimsSummary({
     })
   ).filter((claim) => !claim.claimed);
 
-  const { claimableAmount, pendingCount } = claims.reduce(
-    (acc, claim) => {
-      // Only a proven claim carries a plaintext amount: decryptedAmount is written by
-      // handleClaim once the decryption proof lands. Before that the claim's value is
-      // unknowable to the client, so it counts as pending rather than as an amount.
-      const isDecrypted = 'decrypted' in claim ? claim.decrypted === true : claim.decryptedAmount > 0n;
-
-      if (isDecrypted) {
-        acc.claimableAmount += claim.decryptedAmount;
-      } else {
-        acc.pendingCount += 1;
-      }
-      return acc;
-    },
-    { claimableAmount: 0n, pendingCount: 0 }
-  );
+  // getUserClaims only ever returns UNCLAIMED claims: handleClaim writes decryptedAmount
+  // and removes the id from the claimant's set in the same call. So every entry here is
+  // actionable, and every entry necessarily carries decryptedAmount == 0 — testing that
+  // field to decide claimability can never be true.
+  //
+  // The settle amount is not knowable on chain before claiming: it lives encrypted in
+  // ctHash, and the claim flow decrypts that client-side to build the proof. The summary
+  // therefore reports how many claims are ready, not how much they are worth.
+  const claimableCount = claims.length;
 
   return {
-    claimableAmount,
-    pendingCount,
-    hasClaimable: claimableAmount > 0n,
-    hasPending: pendingCount > 0,
+    claimableCount,
+    claimableAmount: 0n,
+    hasClaimable: claimableCount > 0,
   };
 }
-
 // ============================================================================
 // Unified Unshield Claims Hook
 // ============================================================================
@@ -167,14 +157,22 @@ export async function fetchUnshieldClaimsSummary({
  * Unshield claims summary for wrapped tokens.
  */
 export type UnshieldClaimsSummary = {
-  /** Total amount that can be claimed now (decrypted and not claimed) */
+  /**
+   * How many unshield claims are ready to claim.
+   *
+   * Not an amount: the settle value is encrypted in each claim's ctHash and is only
+   * written on chain by handleClaim, i.e. after claiming. Showing a figure requires
+   * decrypting ctHash client-side, which the claim flow already does to build its proof.
+   */
+  claimableCount: number;
+  /**
+   * Always 0n before a claim is settled. Retained so callers that log or display an
+   * amount keep compiling; the real value only exists encrypted in ctHash until the
+   * claim flow decrypts it. Prefer claimableCount for anything user-facing.
+   */
   claimableAmount: bigint;
-  /** Number of claims still awaiting decryption */
-  pendingCount: number;
-  /** Whether there are any claimable amounts */
+  /** Whether anything is ready to claim. */
   hasClaimable: boolean;
-  /** Whether there are any pending (not yet decrypted) claims */
-  hasPending: boolean;
 };
 
 type UseUnshieldClaimsInput = {

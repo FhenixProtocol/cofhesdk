@@ -50,31 +50,14 @@ const SHARED_WRAPPED_TOKEN_CONTRACTS = {
             type: 'address',
           },
           {
-            components: [
-              {
-                internalType: 'uint256',
-                name: 'ctHash',
-                type: 'uint256',
-              },
-              {
-                internalType: 'uint8',
-                name: 'securityZone',
-                type: 'uint8',
-              },
-              {
-                internalType: 'uint8',
-                name: 'utype',
-                type: 'uint8',
-              },
-              {
-                internalType: 'bytes',
-                name: 'signature',
-                type: 'bytes',
-              },
-            ],
-            internalType: 'struct InEuint64',
+            internalType: 'externalEuint64',
             name: 'encryptedAmount',
-            type: 'tuple',
+            type: 'bytes32',
+          },
+          {
+            internalType: 'bytes',
+            name: 'inputProof',
+            type: 'bytes',
           },
         ],
         name: 'confidentialTransfer',

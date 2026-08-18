@@ -32,7 +32,7 @@ export function ClaimableTokens() {
       .filter(([_tokenAddress, summary]) => {
         const token = byLower.get(_tokenAddress.toLowerCase());
         if (!token) return false;
-        return summary.claimableAmount > 0n;
+        return summary.hasClaimable;
       })
       .map(([tokenAddress, summary]) => {
         const token = byLower.get(tokenAddress.toLowerCase());
