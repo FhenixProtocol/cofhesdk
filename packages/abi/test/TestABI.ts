@@ -557,4 +557,51 @@ export const TestABI = [
       },
     ],
   },
+  // ERC-7984 `*AndCall`: the proof pairs with the handle, and the call payload follows it.
+  {
+    type: 'function',
+    name: 'fnProofNotLast',
+    inputs: [
+      { name: 'to', type: 'address', internalType: 'address' },
+      { name: 'encryptedAmount', type: 'bytes32', internalType: 'externalEuint64' },
+      { name: 'inputProof', type: 'bytes', internalType: 'bytes' },
+      { name: 'data', type: 'bytes', internalType: 'bytes' },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  // Two named handles sharing one signature, with a trailing non-encrypted arg.
+  {
+    type: 'function',
+    name: 'fnTwoHashesProofThenExtra',
+    inputs: [
+      { name: 'amount', type: 'bytes32', internalType: 'externalEuint32' },
+      { name: 'fee', type: 'bytes32', internalType: 'externalEuint32' },
+      { name: 'signature', type: 'bytes', internalType: 'bytes' },
+      { name: 'memo', type: 'string', internalType: 'string' },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  // Invalid: encrypted inputs separated by a non-encrypted parameter.
+  {
+    type: 'function',
+    name: 'fnNonContiguousExternals',
+    inputs: [
+      { name: 'a', type: 'bytes32', internalType: 'externalEuint32' },
+      { name: 'to', type: 'address', internalType: 'address' },
+      { name: 'b', type: 'bytes32', internalType: 'externalEuint32' },
+      { name: 'signature', type: 'bytes', internalType: 'bytes' },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  // Invalid: nothing follows the encrypted input.
+  {
+    type: 'function',
+    name: 'fnMissingProofSlot',
+    inputs: [{ name: 'amount', type: 'bytes32', internalType: 'externalEuint32' }],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
 ] as const;

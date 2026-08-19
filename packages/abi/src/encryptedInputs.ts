@@ -61,8 +61,34 @@ type EncryptedInputsToInputs<T> = T extends AnyExternalHash
         [K in keyof T]: EncryptedInputsToInputs<T[K]>;
       };
 
-/** Drops the last element of a tuple type (used to elide the trailing batch-signature arg). */
-type DropLast<T> = T extends readonly [...infer Init, unknown] ? readonly [...Init] : T;
+/**
+ * Drops the batch-signature argument from an args tuple.
+ *
+ * The signature slot is the first non-`external*` parameter that follows the contiguous run of
+ * `external*` parameters - `FHE.asEuintXX(hash, proof)` is a pair, so the proof sits with the
+ * hashes it authenticates rather than at the end of the parameter list. Walks the ABI parameters
+ * and the args tuple in lockstep and elides the arg at that position.
+ */
+type DropSignatureSlotTuple<
+  params extends readonly unknown[],
+  args extends readonly unknown[],
+  afterExternalRun extends boolean = false,
+> = params extends readonly [infer P, ...infer PRest extends readonly unknown[]]
+  ? args extends readonly [infer A, ...infer ARest extends readonly unknown[]]
+    ? P extends AbiParameter
+      ? ParamHasExternalInput<P> extends true
+        ? readonly [A, ...DropSignatureSlotTuple<PRest, ARest, true>]
+        : afterExternalRun extends true
+          ? DropSignatureSlotTuple<PRest, ARest, false>
+          : readonly [A, ...DropSignatureSlotTuple<PRest, ARest, false>]
+      : readonly [A, ...DropSignatureSlotTuple<PRest, ARest, afterExternalRun>]
+    : readonly []
+  : args;
+
+/** Non-tuple args (e.g. `undefined`) pass through unchanged, as the previous `DropLast` did. */
+type DropSignatureSlot<params extends readonly unknown[], args> = args extends readonly unknown[]
+  ? DropSignatureSlotTuple<params, args>
+  : args;
 
 const EXTERNAL_INPUT_INTERNAL_TYPES = [
   'externalEbool',
@@ -99,8 +125,8 @@ type ParamsHaveExternalInput<params extends readonly AbiParameter[]> = params ex
 /**
  * Pre-transform args for a function ABI: the raw plain values a caller supplies before encryption.
  *
- * If the function has one or more `external*` (encrypted) inputs, its last ABI parameter is
- * expected to be the shared batch signature slot (a plain `bytes`) - the caller never supplies it
+ * If the function has one or more `external*` (encrypted) inputs, the plain `bytes` parameter
+ * immediately following them is the shared batch signature slot - the caller never supplies it
  * directly (the SDK injects it after encryption), so it's dropped from this type entirely.
  */
 export type CofheInputArgsPreTransform<
@@ -109,7 +135,7 @@ export type CofheInputArgsPreTransform<
   abiFunction extends AbiFunction = abi extends Abi ? ExtractAbiFunction<abi, functionName> : AbiFunction,
 > = EncryptedInputsToInputs<
   ParamsHaveExternalInput<abiFunction['inputs']> extends true
-    ? DropLast<CofheInputArgs<abi, functionName>>
+    ? DropSignatureSlot<abiFunction['inputs'], CofheInputArgs<abi, functionName>>
     : CofheInputArgs<abi, functionName>
 >;
 
@@ -210,7 +236,7 @@ export function extractEncryptableValues<TAbi extends Abi, TFunctionName extends
   }
 
   const hasExternalInputs = inputs.some((input) => paramHasExternalInput(input));
-  assertTrailingSignatureSlot(inputs, hasExternalInputs, functionName);
+  const signatureSlotIndex = findSignatureSlotIndex(inputs, hasExternalInputs, functionName);
 
   // Collect encrypted values as EncryptableItem objects in order (flat array)
   const encryptableItems: EncryptableItem[] = [];
@@ -246,32 +272,62 @@ export function extractEncryptableValues<TAbi extends Abi, TFunctionName extends
     return;
   }
 
-  // Process all inputs, skipping the trailing batch-signature slot (nothing to extract there)
+  // Process all inputs, skipping the batch-signature slot (nothing to extract there). `args` is the
+  // pre-transform tuple, which omits that slot, so its indices lag by one past the signature.
+  let argIndex = 0;
   inputs.forEach((input, index) => {
-    if (hasExternalInputs && index === inputs.length - 1) return;
-    const arg = args[index];
+    if (index === signatureSlotIndex) return;
+    const arg = args[argIndex];
     if (arg == null) {
-      throw new Error(`Argument ${index} is undefined`);
+      throw new Error(`Argument ${argIndex} is undefined`);
     }
+    argIndex++;
     processParameter(input, arg);
   });
 
   return encryptableItems;
 }
 
-function assertTrailingSignatureSlot(
+/**
+ * Index of the shared batch-signature parameter: the plain `bytes` immediately after the
+ * contiguous run of `external*` parameters. Returns -1 when the function has no encrypted inputs.
+ *
+ * The proof pairs with the hashes it authenticates (`FHE.asEuintXX(hash, proof)`), so it does not
+ * have to be the last parameter - anything may follow it.
+ */
+function findSignatureSlotIndex(
   inputs: readonly AbiParameter[],
   hasExternalInputs: boolean,
   functionName: string
-) {
-  if (!hasExternalInputs) return;
-  const lastInput = inputs[inputs.length - 1];
-  if (lastInput?.type !== 'bytes') {
+): number {
+  if (!hasExternalInputs) return -1;
+
+  const externalIndices = inputs.reduce<number[]>((acc, input, index) => {
+    if (paramHasExternalInput(input)) acc.push(index);
+    return acc;
+  }, []);
+
+  const first = externalIndices[0]!;
+  const last = externalIndices[externalIndices.length - 1]!;
+  if (last - first + 1 !== externalIndices.length) {
     throw new Error(
-      `Function ${functionName} has encrypted (external*) inputs, so its last parameter must be a plain 'bytes' ` +
-        `parameter to receive the shared batch signature - found '${lastInput?.type}' instead`
+      `Function ${functionName} has encrypted (external*) inputs at non-adjacent positions ` +
+        `(${externalIndices.join(', ')}). They share one batch signature, so they must be contiguous ` +
+        `with the 'bytes' signature parameter immediately after them`
     );
   }
+
+  const slotIndex = last + 1;
+  const slot = inputs[slotIndex];
+  if (slot?.type !== 'bytes') {
+    throw new Error(
+      `Function ${functionName} has encrypted (external*) inputs, so the parameter immediately after ` +
+        `them must be a plain 'bytes' parameter to receive the shared batch signature - found ` +
+        `'${slot?.type ?? 'nothing'}' at position ${slotIndex} instead`
+    );
+  }
+
+  return slotIndex;
 }
 
 /**
@@ -306,7 +362,7 @@ export function insertEncryptedValues<TAbi extends Abi, TFunctionName extends st
   }
 
   const hasExternalInputs = inputs.some((input) => paramHasExternalInput(input));
-  assertTrailingSignatureSlot(inputs, hasExternalInputs, functionName);
+  const signatureSlotIndex = findSignatureSlotIndex(inputs, hasExternalInputs, functionName);
 
   const hashes = hasExternalInputs ? encryptedResult.slice(0, -1) : [];
   const signature = hasExternalInputs ? encryptedResult[encryptedResult.length - 1] : undefined;
@@ -371,15 +427,18 @@ export function insertEncryptedValues<TAbi extends Abi, TFunctionName extends st
     return value;
   }
 
-  // Process all inputs in order; the trailing signature slot (if any) is injected directly
+  // Rebuild the full arg list; the signature slot is injected directly. `args` omits that slot, so
+  // its indices lag by one past the signature position.
+  let argIndex = 0;
   const result = inputs.map((input, index) => {
-    if (hasExternalInputs && index === inputs.length - 1) {
+    if (index === signatureSlotIndex) {
       return signature;
     }
-    const arg = args[index];
+    const arg = args[argIndex];
     if (arg == null) {
-      throw new Error(`Argument ${index} is undefined`);
+      throw new Error(`Argument ${argIndex} is undefined`);
     }
+    argIndex++;
     return processParameter(input, arg);
   });
 
