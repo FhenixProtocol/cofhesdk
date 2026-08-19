@@ -17,12 +17,12 @@ export function getCofheTokenClaimUnshieldedCallArgs(params: {
   token: ConfidentialToken;
   account: Address;
   claim?: {
-    ctHash: Hex | bigint;
+    id: Hex;
     decryptedAmount: bigint;
     decryptionProof: `0x${string}`;
   };
   claims?: Array<{
-    ctHash: Hex | bigint;
+    id: Hex;
     decryptedAmount: bigint;
     decryptionProof: `0x${string}`;
   }>;
@@ -107,7 +107,7 @@ export function useCofheTokenClaimUnshielded(
         });
 
         const readyClaims: Array<{
-          ctHash: Hex | bigint;
+          id: Hex;
           decryptedAmount: bigint;
           decryptionProof: `0x${string}`;
         }> = [];
@@ -122,7 +122,7 @@ export function useCofheTokenClaimUnshielded(
               .execute();
 
             readyClaims.push({
-              ctHash: claim.ctHash,
+              id: claim.id,
               decryptedAmount: decryptResult.decryptedValue,
               decryptionProof: decryptResult.signature,
             });

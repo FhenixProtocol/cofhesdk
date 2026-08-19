@@ -19,7 +19,12 @@ export {
   type TokenApproveExtras,
   type UseCofheTokenApproveOptions,
 } from './useCofheTokenApprove';
-export { useCofheTokenClaimable, useCofheTokenClaims, type UnshieldClaimsSummary } from './useCofheTokenClaimable';
+export {
+  useCofheTokenClaimable,
+  useCofheTokenClaims,
+  type UnshieldClaim,
+  type UnshieldClaimsSummary,
+} from './useCofheTokenClaimable';
 export { getCofheTokenClaimUnshieldedCallArgs, useCofheTokenClaimUnshielded } from './useCofheTokenClaimUnshielded';
 export { useCofheTokenDecryptedBalance } from './useCofheTokenDecryptedBalance';
 export { useCofheTokenPublicBalance } from './useCofheTokenPublicBalance';
@@ -42,7 +47,7 @@ export {
   type ClaimableAmountByTokenAddress,
   type UnshieldClaimsSummaryByTokenAddress,
 } from './useCofheTokensClaimable';
-export { getCofheTokenShieldCallArgs, useCofheTokenShield, type UnshieldClaim } from './useCofheTokenShield';
+export { getCofheTokenShieldCallArgs, useCofheTokenShield } from './useCofheTokenShield';
 export {
   useCofheTokensWithExistingEncryptedBalances,
   type UseCofheTokensWithExistingBalancesInput,
