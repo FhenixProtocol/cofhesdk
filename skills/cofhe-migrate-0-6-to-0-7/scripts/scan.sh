@@ -50,13 +50,35 @@ hits '\.encryptInputs\(|asHashPlusProof' "${TS[@]}"
 section "SDK - removed encrypted-input types"
 hits 'EncryptedItemInput|Encrypted(Bool|Uint8|Uint16|Uint32|Uint64|Uint128|Address)Input|assertCorrectEncryptedItemInput' "${TS[@]}"
 
-section "SDK - Permit -> ACP (verify each traces to a @cofhe/* import before rewriting)"
+# Split by kind so no single list dominates, and so a cap (if any) is obvious rather than silent.
 # 'Permit' is deliberately unanchored: identifiers embed it mid-word (SerializedPermit,
 # useCofheCreatePermit), so \bPermit would miss almost everything. Lowercase 'permit' IS
 # anchored, to keep 'permitted'/'permitting' out.
-grep -rnE 'Permit|\bpermits?\b' "${EXCLUDES[@]}" "${TS[@]}" "$ROOT" 2>/dev/null \
-  | grep -vE 'permitted|permitting|permissible|isPermittedCofheEnvironment|isAllowedWithPermission|Permitted' \
-  | sed 's/^/  /' | head -80 || echo "  none"
+PERMIT_NOISE='permitted|permitting|permissible|isPermittedCofheEnvironment|isAllowedWithPermission|Permitted'
+
+section "SDK - Permit -> ACP :: client namespace and builders"
+hits 'client\.permits|\.withPermit\(|\.withoutPermit\(|setPermitHash|PermitUtils' "${TS[@]}"
+
+section "SDK - Permit -> ACP :: imports and type names"
+hits "from ['\"]@cofhe/sdk/permits|\\bSerializedPermit\\b|\\bPermitState\\b|\\bPermitOptions\\b" "${TS[@]}"
+
+section "SDK - Permit -> ACP :: everything else mentioning permit (verify each traces to a @cofhe/* import)"
+# Deliberately uncapped - this section under-reporting is worse than it being long.
+permit_all=$(grep -rnE 'Permit|\bpermits?\b' "${EXCLUDES[@]}" "${TS[@]}" "$ROOT" 2>/dev/null \
+  | grep -vE "$PERMIT_NOISE")
+if [ -z "$permit_all" ]; then
+  echo "  none"
+else
+  echo "$permit_all" | sed 's/^/  /'
+  echo "  ---"
+  echo "  $(printf '%s\n' "$permit_all" | wc -l | tr -d ' ') total hits (uncapped)"
+fi
+
+section "SDK - Permit -> ACP :: prefix and value compares (no import to grep for)"
+hits "startsWith\\(['\"]permit|includes\\(['\"]permit|=== ['\"]permit|body\\.permit|['\"]permit['\"][[:space:]]*:" "${TS[@]}"
+
+section "REACT - old status-id / intent string VALUES (member access is compiler-caught, values are not)"
+hits "'(open-permits|missing-permit|permit-expired|permit-expiring-soon|permit-shared)'" "${TS[@]}"
 
 section "CONFIG - renamed keys (silently ignored in 0.6.x, now throw)"
 hits 'defaultPermitExpiration|shareablePermits|autogeneratePermits|permitExpirationOptions|defaultPermitExpirationSeconds' "${TS[@]}"

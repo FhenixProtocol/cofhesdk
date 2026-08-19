@@ -53,8 +53,20 @@ threshold-network codes landed after that release, so a `0.6.1` app saw generic 
 
 ## Request body
 
-The decryption request carries the ACP under the `acp` key (was `permit`). Only matters if the
-project constructs these requests itself rather than going through the SDK.
+The decryption request carries the ACP under the `acp` key (was `permit`). This matters if the
+project **constructs, intercepts, rewrites, records, or asserts on** these requests — not just if
+it originates them. Anything touching the wire shape counts.
+
+The dangerous version is a `fetch` wrapper or fault injector that reads the SDK's own body through
+a cast:
+
+```ts
+const body = JSON.parse(bodyStr) as { permit?: Record<string, unknown> };
+if (!body.permit) return bodyStr; // now always true - the switcher silently no-ops
+```
+
+Zero compile errors, and the code path it was written to exercise stops being exercised. Grep for
+`body.permit` and `'permit':` alongside the code renames.
 
 ## `CofheError.apiErrorCode`
 

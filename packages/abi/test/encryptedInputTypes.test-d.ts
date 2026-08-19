@@ -82,3 +82,23 @@ test('extractArrayParameterType should return [externalEuint32, 2]', () => {
   type test2 = MaybeExtractArrayParameterType<'externalEuint32[]'>;
   assertType<test2>(['externalEuint32', '']);
 });
+
+test('fnProofNotLast drops the paired proof slot, keeping the trailing data arg', () => {
+  type pre = CofheInputArgsPreTransform<typeof TestABI, 'fnProofNotLast'>;
+  // (to, encryptedAmount, [inputProof dropped], data)
+  assertType<pre>(['0x1234567890123456789012345678901234567890', 500n, '0xc0ffee']);
+});
+
+test('fnTwoHashesProofThenExtra drops the signature, not the trailing string', () => {
+  type pre = CofheInputArgsPreTransform<typeof TestABI, 'fnTwoHashesProofThenExtra'>;
+  // The third element must be `memo: string`. If the signature slot were still assumed to be
+  // last, this would be the `bytes` signature and a plain string would not assign.
+  assertType<pre>([100n, 3n, 'memo']);
+  const memo: pre[2] = 'memo';
+  assertType<string>(memo);
+});
+
+test('fnProofNotLast full args still include the proof slot', () => {
+  type args = CofheInputArgs<typeof TestABI, 'fnProofNotLast'>;
+  assertType<args>(['0x1234567890123456789012345678901234567890', hash64, signature, '0xc0ffee']);
+});

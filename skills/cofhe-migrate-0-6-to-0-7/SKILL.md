@@ -4,7 +4,7 @@ description: >-
   Migrates a codebase from @cofhe/* v0.6.x to v0.7.0 (the ACP + batch-input-verification release).
   Use when a developer asks to upgrade @cofhe/sdk, @cofhe/react, @cofhe/hardhat-plugin,
   @cofhe/hardhat-3-plugin, @cofhe/foundry-plugin, @cofhe/abi or @cofhe/mock-contracts, or when
-  they hit any of: "Permit is not exported", "useCofhePermits is not defined",
+  they hit any of: "Permit is not exported", "useCofheActivePermit is not defined",
   "Property 'execute' does not exist on type 'EncryptInputsBuilderUnset'",
   "ConsumingContractUninitialized", "Identifier not found or not unique: InEuint32",
   "EncryptedItemInput is not exported", "acp_denied", or a config error naming
@@ -37,27 +37,58 @@ There are no deprecation shims. Old names are removed so the compiler finds the 
    user to commit or stash. This skill edits source files in place.
 2. **Establish the starting version.** Read the `@cofhe/*` versions from `package.json` (and the
    lockfile if the manifest uses ranges).
-   - `0.7.x` already → nothing to do; say so and stop.
+   - `0.7.x` already → the **JavaScript** packages are done. Check the contracts anyway: `InEuint*`
+     and hand-rolled `allowTransient` sharing routinely lag the JS bump. If the Solidity is clean
+     too, say so and stop.
    - `0.6.x` → proceed.
-   - **`< 0.6.0` → refuse.** Say: "This skill migrates 0.6.x → 0.7.0. Upgrade to 0.6.1 first
+   - `0.5.x` → **proceed.** The Solidity work is identical — the `InEuint*` structs did not change
+     between 0.5 and 0.6 — so contract Case A applies unchanged. Note in the final report that
+     0.5 → 0.6 **TypeScript** changes are outside this skill's scope and were not detected; do not
+     make the user do a 0.6.1 hop first.
+   - **`< 0.5.0` → refuse.** Say: "This skill migrates 0.5.x–0.6.x → 0.7.0. Upgrade to 0.6.1 first
      using the package changelog, then re-run." Do not attempt a best-effort migration.
    - Coming from `cofhejs` (not `@cofhe/sdk`) → point at the "Migrating from cofhejs" guide first.
-   - **Mixed `@cofhe/*` versions** → stop and have the user align them before migrating.
+   - **Mixed `@cofhe/*` versions within one install graph** → stop and have the user align them
+     before migrating. Mixed across **deliberately isolated** graphs (a `contracts/` tree installed
+     with `--ignore-workspace`, sharing no resolution with the apps) is fine — note it and move on.
+     Do not halt on a version skew that cannot interact.
 3. **Detect what's in play** and load only the references you need:
 
 | If the project has                                              | Load                                                                                             |
 | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | any Solidity (`foundry.toml`, `hardhat.config.*`, `contracts/`) | [contracts.md](references/contracts.md) **first**                                                |
-| `@cofhe/sdk`                                                    | [encrypt-inputs.md](references/encrypt-inputs.md), [acp-rename.md](references/acp-rename.md)     |
+| `@cofhe/sdk` (**including test-only usage**)                    | [encrypt-inputs.md](references/encrypt-inputs.md), [acp-rename.md](references/acp-rename.md)     |
 | `@cofhe/react`                                                  | [react.md](references/react.md)                                                                  |
 | any client config (`createCofheConfig`)                         | [config.md](references/config.md)                                                                |
 | error-code handling / a custom backend                          | [errors-and-wire.md](references/errors-and-wire.md)                                              |
 | `@cofhe/foundry-plugin`                                         | [foundry.md](references/foundry.md)                                                              |
 | custom mock deployment scripts                                  | [environment.md](references/environment.md)                                                      |
 | encrypted values crossing a contract boundary                   | [shared-euints.md](references/shared-euints.md) — **security-relevant, not compiler-detectable** |
+| any test suite                                                  | [tests.md](references/tests.md) — EOAs cannot share; selectors are not compiler-checked          |
 
-4. **Present the plan and get confirmation.** List the archetype detected, the ordered steps, and
-   the files you expect to touch. Then ask whether to:
+Rows are independent, not exclusive. A repo with both Hardhat and Foundry tests loads
+[encrypt-inputs.md](references/encrypt-inputs.md) **and** [foundry.md](references/foundry.md) — doing
+the Foundry side and forgetting `withoutPermit` in `test/*.ts` is a common miss.
+
+4. **Present an inventory table, and wait.** Not a prose plan — a table. This is the first
+   user-visible artifact, and no file may be edited before it is agreed:
+
+   When Solidity is in scope:
+
+   | File | Function | Case | Proposed signature | Action |
+   | ---- | -------- | ---- | ------------------ | ------ |
+
+   `Case` is A/B/C from [contracts.md](references/contracts.md) or S1/S2 from
+   [shared-euints.md](references/shared-euints.md).
+
+   For a TypeScript-only migration — no contracts, no encrypt call sites — those columns are empty
+   on every row. Use this instead:
+
+   | File | Symbol / site | Change | Action |
+   | ---- | ------------- | ------ | ------ |
+
+   Either way, include the rows you intend to **skip**, with the reason — what was ruled out is what
+   makes the rest reviewable. Then ask whether to:
 
    - **propose** each change as a diff and wait for approval (default), or
    - **apply** everything and report afterwards (only if the user asks for it explicitly).
@@ -92,6 +123,13 @@ afterwards is a genuine shape problem rather than a missing identifier.
   [acp-rename.md](references/acp-rename.md).
 - **Be idempotent.** The user may re-run this after an interruption. Check whether each site is
   already migrated before changing it.
+- **Only add the proof argument to actual contract calls.** An encrypted input is frequently created
+  in one place and _carried_ through others before it is used: a fixture's `return { … encInput … }`,
+  a `const { … encInput … } =` destructure, a config object, an array. Those are **not** call sites
+  and must not gain a proof argument. Confirm the callee resolves to a contract before patching an
+  argument list, and thread the proof through the carrier separately — the fixture returns the proof
+  too, and each destructure takes it. A mechanical "append the proof wherever this variable appears"
+  corrupts the `return` and the destructures, and reports more patched sites than exist.
 - If a change needs a decision only the developer can make (see _Stop and ask_ below), leave the
   code alone, and collect it for the final report.
 
@@ -131,3 +169,7 @@ State plainly:
 - **`@fhenixprotocol/cofhe-contracts` is pinned to a `0.2.0-beta.*` prerelease** — `0.2.0-beta.3`
   as of this release, which is also the floor for the `sharedEuintXX` types. Confirm the final
   `0.2.0` version before relying on the pin in a production project.
+- **`@cofhe/*` `0.7.0` is not published yet.** `latest` is still `0.6.1`, so `^0.7.0` will not
+  install. Use the matching `alpha` tag across every package, pinned to one timestamp — see
+  [environment.md](references/environment.md). Check this before quoting a version to the user; it
+  changes the moment 0.7.0 ships.

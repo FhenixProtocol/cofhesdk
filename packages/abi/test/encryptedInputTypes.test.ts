@@ -223,3 +223,59 @@ describe('error handling', () => {
     }).toThrow('Function nonExistentFunction not found in ABI');
   });
 });
+
+describe('signature slot follows the encrypted run, not the parameter list', () => {
+  const ADDR = '0x1234567890123456789012345678901234567890' as const;
+
+  it('extracts past a proof that is not the last parameter', () => {
+    // (to, encryptedAmount, inputProof, data) - `data` sits after the signature slot
+    const args = [ADDR, 500n, '0xc0ffee'] as const;
+    const extracted = extractEncryptableValues(TestABI, 'fnProofNotLast', args);
+    expect(extracted).toEqual([Encryptable.uint64(500n)]);
+  });
+
+  it('inserts the signature into the paired slot and keeps later args in place', () => {
+    const args = [ADDR, 500n, '0xc0ffee'] as const;
+    const inserted = insertEncryptedValues(TestABI, 'fnProofNotLast', args, [createHash(1n), SIGNATURE]);
+    expect(inserted).toEqual([ADDR, createHash(1n), SIGNATURE, '0xc0ffee']);
+  });
+
+  it('round-trips the ERC-7984 *AndCall shape', () => {
+    const args = [ADDR, 500n, '0xc0ffee'] as const;
+    const extracted = extractEncryptableValues(TestABI, 'fnProofNotLast', args);
+    expect(extracted).toEqual([Encryptable.uint64(500n)]);
+    const inserted = insertEncryptedValues(TestABI, 'fnProofNotLast', args, [createHash(7n), SIGNATURE]);
+    expect(inserted).toEqual([ADDR, createHash(7n), SIGNATURE, '0xc0ffee']);
+  });
+
+  it('handles a contiguous run of two handles sharing one signature', () => {
+    const args = [100n, 3n, 'memo'] as const;
+    expect(extractEncryptableValues(TestABI, 'fnTwoHashesProofThenExtra', args)).toEqual([
+      Encryptable.uint32(100n),
+      Encryptable.uint32(3n),
+    ]);
+    const inserted = insertEncryptedValues(TestABI, 'fnTwoHashesProofThenExtra', args, [
+      createHash(1n),
+      createHash(2n),
+      SIGNATURE,
+    ]);
+    expect(inserted).toEqual([createHash(1n), createHash(2n), SIGNATURE, 'memo']);
+  });
+
+  it('rejects encrypted inputs at non-adjacent positions', () => {
+    // Deliberately malformed ABI: the pre-transform type cannot describe it, so cast and assert
+    // that the runtime rejects it rather than silently mis-pairing.
+    const badArgs = [1n, ADDR, 2n] as unknown as Parameters<
+      typeof extractEncryptableValues<typeof TestABI, 'fnNonContiguousExternals'>
+    >[2];
+    expect(() => extractEncryptableValues(TestABI, 'fnNonContiguousExternals', badArgs)).toThrow(
+      /non-adjacent positions/
+    );
+  });
+
+  it('rejects an encrypted input with no bytes parameter after it', () => {
+    expect(() => extractEncryptableValues(TestABI, 'fnMissingProofSlot', [1n])).toThrow(
+      /must be a plain 'bytes' parameter/
+    );
+  });
+});
