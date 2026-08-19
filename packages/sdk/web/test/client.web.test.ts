@@ -130,7 +130,11 @@ describe('@cofhe/web - Client', () => {
       expect(typeof builder.setChainId).toBe('function');
       expect(typeof builder.setAccount).toBe('function');
       expect(typeof builder.setSecurityZone).toBe('function');
-      expect(typeof builder.execute).toBe('function');
+      expect(typeof builder.setConsumingContract).toBe('function');
+      // execute() only exists once a consuming contract has been committed to.
+      expect(typeof builder.setConsumingContract('0xbeefbeefbeefbeefbeefbeefbeefbeefbeefbeef').execute).toBe(
+        'function'
+      );
     }, 30000);
 
     it('should create decrypt builder after connection', async () => {

@@ -13,8 +13,9 @@ The flow is as follows:
 
 1. Decide which plaintext value(s) you want to encrypt.
 2. Wrap each value with a typing helper (e.g. `Encryptable.uint32(…)`) to construct typed encryptable inputs (see [`Encryptable` — typing inputs](#encryptable--typing-inputs)).
-3. Call `client.encryptInputs([...]).execute()` to produce [`EncryptedItemInput` objects](#encryptediteminput--the-result-type) (see [Builder API](#builder-api)).
-4. Submit a transaction to your contract and pass the encrypted inputs as `InE*` parameters (see [Writing encrypted data to a contract](./writing-encrypted-data-to-contract.mdx)).
+3. Call `.setConsumingContract(address)` with the address of the contract you'll submit the result to — the verifier binds this into the signed digest, so a batch signed for one contract can't be replayed into another.
+4. Call `client.encryptInputs([...]).setConsumingContract(...).execute()` to produce a [batch-verified result](#what-encryptinputs-returns) — one ciphertext hash per input, followed by a single shared signature.
+5. Submit a transaction to your contract, passing the hashes and signature as `external*` + `bytes` parameters (see [Writing encrypted data to a contract](./writing-encrypted-data-to-contract.mdx)).
 
 ## Prerequisites
 
@@ -24,7 +25,7 @@ The flow is as follows:
 
 2. Know which encrypted type you want to encode each value as.
 
-The type is chosen by which `Encryptable.*` factory you use (and must match the Solidity parameter type your contract expects, e.g. `InEuint32` vs `InEuint64`).
+The type is chosen by which `Encryptable.*` factory you use (and must match the Solidity parameter type your contract expects, e.g. `externalEuint32` vs `externalEuint64`).
 
 ## Basic usage
 
@@ -47,27 +48,28 @@ const encrypted = await cofheClient
     Encryptable.bool(true),
     Encryptable.address('0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045'),
   ])
+  .setConsumingContract('0x5FbDB2315678afecb367f032d93F642f64180aa3')
   .execute();
 
-const [eUint32, eBool, eAddress] = encrypted;
+const [eUint32Hash, eBoolHash, eAddressHash, signature] = encrypted;
 ```
 
-The return type is a typed tuple that mirrors the array you pass in — each element is the corresponding `Encrypted*Input` type.
-For the exact shape of each item, see [`EncryptedItemInput` — the result type](#encryptediteminput--the-result-type).
+The return value is a typed tuple: one hash per encryptable you passed in (in order), followed by a single signature that authenticates the whole batch. For the exact shape, see [What `encryptInputs` returns](#what-encryptinputs-returns).
 
 ## What `encryptInputs` returns
 
-Running `.execute()` returns a typed tuple of `EncryptedItemInput` items that mirrors the array you passed to `encryptInputs([...])`.
+Running `.execute()` returns a `HashPlusProofResult` tuple: `[...hashes, signature]`.
 
-Each item contains the [handle](/reference/dictionary#handle) (`ctHash` in the SDK type), the encrypted type ([`utype`](/reference/dictionary#utype)), the security zone, and a verifier signature authorizing that input.
+- One `0x`-prefixed [handle](/reference/dictionary#handle) hash per input, in the same order as the array you passed to `encryptInputs([...])` — typed as `externalEuint*` / `externalEbool` / `externalEaddress` on the Solidity side.
+- One trailing `bytes` signature, shared by the whole batch. The CoFHE verifier signs `keccak256(h_0 || h_1 || ... || h_n)`, where each `h_i` binds that ciphertext's hash to its type, security zone, account, and chain ID — a single call to your contract must therefore submit **all** of a batch's hashes together with that one signature; you can't split a batch apart after the fact.
 
-For the exact shape, see [`EncryptedItemInput` — the result type](#encryptediteminput--the-result-type).
+For the exact shape, see [`HashPlusProofResult` — the result type](#hashplusproofresult--the-result-type).
 
 ## Builder API
 
 ### `.execute()` — required, call last
 
-Runs the encryption pipeline and returns the `EncryptedItemInput[]` tuple.
+Runs the encryption pipeline and returns the `[...hashes, signature]` tuple.
 
 ```ts twoslash
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
@@ -82,9 +84,35 @@ declare const walletClient: WalletClient;
 // ---cut---
 await cofheClient.connect(publicClient, walletClient);
 
-const [encryptedAge, encryptedFlag] = await cofheClient
+const [encryptedAge, encryptedFlag, signature] = await cofheClient
   .encryptInputs([Encryptable.uint8(25n), Encryptable.bool(true)])
+  .setConsumingContract('0x5FbDB2315678afecb367f032d93F642f64180aa3')
   .execute(); // [!code focus]
+```
+
+### `.setConsumingContract(address)` — required
+
+Sets the contract that will consume the resulting hashes+signature — i.e. the contract whose function call will pass them into `FHE.asEuint*s(...)`. The CoFHE verifier binds this address into the signed digest, so a batch signed for one contract cannot be replayed into another.
+
+This is enforced by the type system: `client.encryptInputs(...)` returns a builder with no `.execute()` method, and `.setConsumingContract(...)` is what returns the builder that has one. Omitting it is a compile error rather than a runtime failure. (JavaScript callers, who get no such check, still hit a `ConsumingContractUninitialized` throw at `.execute()`.)
+
+```ts twoslash
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { Encryptable } from '@cofhe/sdk';
+import { chains } from '@cofhe/sdk/chains';
+import type { PublicClient, WalletClient } from 'viem';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const cofheClient = createCofheClient(config);
+declare const publicClient: PublicClient;
+declare const walletClient: WalletClient;
+// ---cut---
+await cofheClient.connect(publicClient, walletClient);
+
+const encrypted = await cofheClient
+  .encryptInputs([Encryptable.uint64(10n)])
+  .setConsumingContract('0x5FbDB2315678afecb367f032d93F642f64180aa3') // [!code focus]
+  .execute();
 ```
 
 ### `.setAccount(address)` — optional
@@ -106,6 +134,7 @@ await cofheClient.connect(publicClient, walletClient);
 
 const encrypted = await cofheClient
   .encryptInputs([Encryptable.uint64(10n)])
+  .setConsumingContract('0x5FbDB2315678afecb367f032d93F642f64180aa3')
   .setAccount('0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045') // [!code focus]
   .execute();
 ```
@@ -129,40 +158,10 @@ await cofheClient.connect(publicClient, walletClient);
 
 const encrypted = await cofheClient
   .encryptInputs([Encryptable.uint64(10n)])
+  .setConsumingContract('0x5FbDB2315678afecb367f032d93F642f64180aa3')
   .setChainId(11155111) // [!code focus]
   .execute();
 ```
-
-### `.asHashPlusProof()` — optional
-
-Switches the result format to **hash plus proof**. Instead of returning an array of `EncryptedItemInput` structs (one per encrypted value), `.execute()` returns an array of per-item `bytes32` hashes followed by a single combined `bytes` proof string.
-
-Use this when your contract uses the `externalEuint*` + `bytes proof` calling convention rather than the legacy `InE*` struct pattern.
-
-```ts twoslash
-import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
-import { Encryptable } from '@cofhe/sdk';
-import { chains } from '@cofhe/sdk/chains';
-import type { PublicClient, WalletClient } from 'viem';
-
-const config = createCofheConfig({ supportedChains: [chains.sepolia] });
-const cofheClient = createCofheClient(config);
-declare const publicClient: PublicClient;
-declare const walletClient: WalletClient;
-// ---cut---
-await cofheClient.connect(publicClient, walletClient);
-
-// Returns [hash, proof] for a single input
-const [encHash, encProof] = await cofheClient
-  .encryptInputs([Encryptable.uint32(42n)])
-  .asHashPlusProof() // [!code focus]
-  .execute();
-
-// encHash  → `0x${string}` (32-byte hex, e.g. externalEuint32)
-// encProof → `0x${string}` (combined proof bytes for all inputs)
-```
-
-See [Writing Encrypted Data — Hash plus proof](./writing-encrypted-data-to-contract.mdx#hash-plus-proof) for a full contract call example.
 
 ### `.setUseWorker(boolean)` — optional
 
@@ -184,6 +183,7 @@ await cofheClient.connect(publicClient, walletClient);
 
 const encrypted = await cofheClient
   .encryptInputs([Encryptable.uint32(7n)])
+  .setConsumingContract('0x5FbDB2315678afecb367f032d93F642f64180aa3')
   .setUseWorker(false) // [!code focus]
   .execute();
 ```
@@ -209,6 +209,7 @@ await cofheClient.connect(publicClient, walletClient);
 
 const encrypted = await cofheClient
   .encryptInputs([Encryptable.uint64(10n)])
+  .setConsumingContract('0x5FbDB2315678afecb367f032d93F642f64180aa3')
   .onStep((step, ctx) => {
     // [!code focus]
     if (ctx?.isStart) console.log(`Starting: ${step}`); // [!code focus]
@@ -233,13 +234,13 @@ EncryptStep.Verify; // 'verify'
 
 Calling `.execute()` runs five sequential steps. You can observe them via the `.onStep()` callback.
 
-| Step        | Description                                                                         |
-| ----------- | ----------------------------------------------------------------------------------- |
-| `InitTfhe`  | Lazy-initializes the TFHE WASM module (browser/Node). A no-op after the first call. |
-| `FetchKeys` | Fetches (or loads from cache) the FHE public key and CRS for the target chain.      |
-| `Pack`      | Packs the plaintext values into a ZK list ready for proving.                        |
-| `Prove`     | Generates the ZK proof of knowledge (ZKPoK). Uses a Web Worker when available.      |
-| `Verify`    | Sends the proof to the CoFHE verifier. Returns signed `EncryptedItemInput` objects. |
+| Step        | Description                                                                                                         |
+| ----------- | ------------------------------------------------------------------------------------------------------------------- |
+| `InitTfhe`  | Lazy-initializes the TFHE WASM module (browser/Node). A no-op after the first call.                                 |
+| `FetchKeys` | Fetches (or loads from cache) the FHE public key and CRS for the target chain.                                      |
+| `Pack`      | Packs the plaintext values into a ZK list ready for proving.                                                        |
+| `Prove`     | Generates the ZK proof of knowledge (ZKPoK). Uses a Web Worker when available.                                      |
+| `Verify`    | Sends the proof to the CoFHE verifier's `/verifyBatch` endpoint. Returns the hashes and one shared batch signature. |
 
 ## `Encryptable` — typing inputs
 
@@ -247,13 +248,13 @@ Use the `Encryptable` factory to create the items you want to encrypt. Each fact
 
 | Factory                      | Data type          | Solidity input param |
 | ---------------------------- | ------------------ | -------------------- |
-| `Encryptable.bool(value)`    | `boolean`          | `InEbool`            |
-| `Encryptable.uint8(value)`   | `bigint \| string` | `InEuint8`           |
-| `Encryptable.uint16(value)`  | `bigint \| string` | `InEuint16`          |
-| `Encryptable.uint32(value)`  | `bigint \| string` | `InEuint32`          |
-| `Encryptable.uint64(value)`  | `bigint \| string` | `InEuint64`          |
-| `Encryptable.uint128(value)` | `bigint \| string` | `InEuint128`         |
-| `Encryptable.address(value)` | `bigint \| string` | `InEaddress`         |
+| `Encryptable.bool(value)`    | `boolean`          | `externalEbool`      |
+| `Encryptable.uint8(value)`   | `bigint \| string` | `externalEuint8`     |
+| `Encryptable.uint16(value)`  | `bigint \| string` | `externalEuint16`    |
+| `Encryptable.uint32(value)`  | `bigint \| string` | `externalEuint32`    |
+| `Encryptable.uint64(value)`  | `bigint \| string` | `externalEuint64`    |
+| `Encryptable.uint128(value)` | `bigint \| string` | `externalEuint128`   |
+| `Encryptable.address(value)` | `bigint \| string` | `externalEaddress`   |
 
 You can also use the generic `Encryptable.create(type, value)` form:
 
@@ -269,40 +270,27 @@ Encryptable.create('address', '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045');
 
 ## Result types
 
-### `EncryptedItemInput` — default format
+### `HashPlusProofResult` — the result type
 
-Each element of the returned array is an `EncryptedItemInput`:
-
-```ts
-type EncryptedItemInput = {
-  ctHash: bigint; // The handle registered with CoFHE
-  securityZone: number; // The security zone the input was encrypted under
-  utype: FheTypes; // The FHE type (Bool, Uint8, …, Uint160)
-  signature: string; // CoFHE verifier signature authorizing this input
-};
-```
-
-Pass these directly into a contract function that accepts `InEuint*` structs. The contract's CoFHE library validates the signature on-chain before operating on the ciphertext.
-
-### `HashPlusProofResult` — hash plus proof format
-
-When `.asHashPlusProof()` is used, `.execute()` returns a typed tuple of the form `[...hashes, proof]`:
+`.execute()` always returns a typed tuple of the form `[...hashes, signature]`:
 
 - One `0x`-prefixed 32-byte hash string per input (typed as `externalEuint*` / `externalEbool` / `externalEaddress` on the Solidity side).
-- One combined `bytes` proof string at the end (concatenation of all per-item signatures).
+- One `bytes` signature at the end, authenticating the entire batch of hashes together.
 
 ```ts
 // For one input:
-// [externalHash, combinedProof]
+// [externalHash, signature]
 
 // For two inputs:
-// [externalHash1, externalHash2, combinedProof]
+// [externalHash1, externalHash2, signature]
 ```
 
-Use this format with Solidity functions that accept `externalEuint*` + `bytes proof` instead of the `InE*` struct.
+Use this with Solidity functions that accept `external*` handles plus a `bytes` parameter for the shared signature — see [Writing Encrypted Data to a Contract](./writing-encrypted-data-to-contract.mdx) for contract examples, and the [`@cofhe/abi` reference](/reference/dictionary) for how `insertEncryptedValues` threads the hashes/signature into arbitrary contract calls automatically.
 
 ## Common pitfalls
 
-- **Wrong `Encryptable` type**: `Encryptable.uint32(...)` must match what your Solidity function expects (e.g. `InEuint32`).
+- **Missing `.setConsumingContract(...)`**: required before `.execute()` — throws `ConsumingContractUninitialized` otherwise. It must be the exact contract you submit the hashes/signature to; the verifier binds this address into the signature.
+- **Wrong `Encryptable` type**: `Encryptable.uint32(...)` must match what your Solidity function expects (e.g. `externalEuint32`).
+- **Splitting a batch**: the signature authenticates _all_ the hashes in that `execute()` call together, in order. You can't reuse a subset of the hashes with a different signature, or reorder them.
 - **Wrong account / chain**: encrypted inputs are authorized for a specific `account + chainId`. If you override these (or connect to the wrong network/wallet), your inputs may not be usable for the intended transaction.
 - **Bit limit exceeded**: a single call can encrypt at most **2048 bits** of plaintext. Exceeding this throws `ZkPackFailed`.

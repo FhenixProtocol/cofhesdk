@@ -12,7 +12,7 @@ export type {
 } from './debug.js';
 
 // Configuration (base implementations)
-export { createCofheConfigBase, getCofheConfigItem } from './config.js';
+export { createCofheConfigBase, getCofheConfigItem, assertNoRenamedConfigKeys } from './config.js';
 export type { CofheConfig, CofheInputConfig, CofheInternalConfig } from './config.js';
 
 // Types
@@ -21,7 +21,7 @@ export type {
   CofheClient as CofheClient,
   CofheClientParams as CofheClientParams,
   CofheClientConnectionState as CofheClientConnectionState,
-  CofheClientPermits as CofheClientPermits,
+  CofheClientACPs as CofheClientACPs,
 } from './clientTypes.js';
 
 export type {
@@ -40,18 +40,8 @@ export type {
   EncryptableAddress,
   // Encrypted types
   EncryptedNumber,
-  EncryptedItemInput,
-  EncryptedBoolInput,
-  EncryptedUint8Input,
-  EncryptedUint16Input,
-  EncryptedUint32Input,
-  EncryptedUint64Input,
-  EncryptedUint128Input,
-  EncryptedAddressInput,
-  EncryptedItemInputs,
-  EncryptableToEncryptedItemInputMap,
   FheTypeValue,
-  // Hash-plus-proof external types
+  // Batch-verified external hash + signature types
   ExternalBoolHash,
   ExternalUint8Hash,
   ExternalUint16Hash,
@@ -81,7 +71,6 @@ export {
   isEncryptableItem,
   EncryptStep,
   isLastEncryptionStep,
-  assertCorrectEncryptedItemInput,
 } from './types.js';
 
 // Error handling
@@ -98,6 +87,7 @@ export type { KeysStorage, KeysStore } from './keyStore.js';
 
 // Builders (exported via client, but can be imported directly for typing)
 export { EncryptInputsBuilder } from './encrypt/encryptInputsBuilder.js';
+export type { EncryptInputsBuilderUnset } from './encrypt/encryptInputsBuilder.js';
 export { DecryptForViewBuilder } from './decrypt/decryptForViewBuilder.js';
 export { DecryptForTxBuilder } from './decrypt/decryptForTxBuilder.js';
 export type { DecryptForTxResult } from './decrypt/decryptForTxBuilder.js';

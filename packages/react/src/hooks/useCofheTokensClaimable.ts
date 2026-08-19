@@ -4,6 +4,7 @@ import { type Address } from 'viem';
 import { assert } from 'ts-essentials';
 
 import { useCofheAccount, useCofheChainId, useCofhePublicClient } from './useCofheConnection.js';
+import { useCofheClient } from './useCofheClient';
 import { type ConfidentialToken } from './useCofheTokenLists.js';
 import { useInternalQueries } from '../providers/index.js';
 import { useNormalizedList } from './useNormalizedList.js';
@@ -95,6 +96,7 @@ export function useCofheTokensClaimable(
   queryOptions?: UseUnshieldClaimsManyOptions
 ): CombinedResult {
   const publicClient = useCofhePublicClient();
+  const client = useCofheClient();
 
   const normalizedTokens = useNormalizedList(tokens, {
     filter: isClaimableToken,
@@ -147,6 +149,8 @@ export function useCofheTokensClaimable(
 
           return fetchUnshieldClaimsSummary({
             publicClient,
+            client,
+            chainId,
             token,
             accountAddress: account,
             confidentialityType,

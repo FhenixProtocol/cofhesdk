@@ -1,6 +1,6 @@
 {
   "name": "@cofhe/sdk",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "type": "module",
   "description": "SDK for Fhenix COFHE coprocessor interaction",
   "main": "./dist/core.cjs",
@@ -23,10 +23,10 @@
       "require": "./dist/chains.cjs",
       "types": "./dist/chains.d.ts"
     },
-    "./permits": {
-      "import": "./dist/permits.js",
-      "require": "./dist/permits.cjs",
-      "types": "./dist/permits.d.ts"
+    "./acps": {
+      "import": "./dist/acps.js",
+      "require": "./dist/acps.cjs",
+      "types": "./dist/acps.d.ts"
     },
     "./node": {
       "import": "./dist/node.js",
@@ -51,7 +51,7 @@
     "core/**",
     "adapters/**",
     "chains/**",
-    "permits/**",
+    "acps/**",
     "node/**",
     "web/**",
     "CHANGELOG.md"

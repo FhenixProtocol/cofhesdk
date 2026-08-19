@@ -4,7 +4,7 @@
 
 - This repository is a pnpm + Turbo monorepo. Use workspace-aware commands from the repo root unless a package README or script clearly requires a package-local command.
 - The main package boundaries are:
-  - `packages/sdk`: core CoFHE SDK, including encryption, decryption, adapters, permits, chains, and the `@cofhe/sdk/node` and `@cofhe/sdk/web` entrypoints.
+  - `packages/sdk`: core CoFHE SDK, including encryption, decryption, adapters, acps, chains, and the `@cofhe/sdk/node` and `@cofhe/sdk/web` entrypoints.
   - `packages/react`: React hooks and UI built on top of `@cofhe/sdk`.
   - `packages/mock-contracts`: Solidity mock contracts used for local CoFHE testing.
   - `packages/hardhat-plugin`: Hardhat integration and mock deployment utilities.

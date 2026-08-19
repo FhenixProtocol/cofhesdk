@@ -45,10 +45,10 @@ In most apps, you get the handle by reading it from your contract (e.g. a stored
 `decryptForTx` does not take a `utype`. It always returns the plaintext as a `bigint` because the result is intended to be passed into a transaction (your contract decides whether that `bigint` is interpreted as `uint32`, `uint64`, etc). If you need UI-friendly decoding (e.g. `boolean` or address formatting), use [`decryptForView`](./decrypt-to-view.mdx).
 :::
 
-3. Determine whether the contract-level ACL policy for this specific handle requires a [permit](/reference/dictionary#permit) (see [permits](./permits.mdx)).
+3. Determine whether the contract-level ACL policy for this specific handle requires an [ACP](/reference/dictionary#acp) (see [ACPs](./acp.mdx)).
 
-   - If the policy allows **anyone** to decrypt it (a common setup), a permit is not required and `.withoutPermit()` will work.
-   - If the policy restricts decryption, you must use `.withPermit(...)` or the decryption will fail.
+   - If the policy allows **anyone** to decrypt it (a common setup), an ACP is not required and `.withoutACP()` will work.
+   - If the policy restricts decryption, you must use `.withACP(...)` or the decryption will fail.
 
 ## Reading from a contract (getting a handle)
 
@@ -150,7 +150,7 @@ encrypted.utype; // ^?
 
 :::
 
-## Preparations: Permit (only if required)
+## Preparations: ACP (only if required)
 
 Often, `decryptForTx` is used to reveal a value at a point where your protocol already considers it OK for that value to become public on-chain. In those cases, there’s usually no need to restrict who is allowed to perform the reveal, so the contract’s ACL policy can allow anyone to decrypt.
 
@@ -159,14 +159,14 @@ For example:
 - **Unshielding**: once a user chooses to unshield (i.e. convert a portion of their confidential balance into a public amount), the amount being unshielded is no longer meant to stay secret.
 - **Auction / game reveal**: when it’s time to reveal the outcome, it typically doesn’t matter who submits the reveal transaction — only that the result is revealed verifiably.
 
-In these cases, you can skip permits and use `.withoutPermit()`.
+In these cases, you can skip ACPs and use `.withoutACP()`.
 
-If the ACL policy restricts decryption for this handle, obtain a permit before calling `decryptForTx`:
+If the ACL policy restricts decryption for this handle, obtain an ACP before calling `decryptForTx`:
 
-- If decryption is restricted to your address, generate a self-permit.
-- If decryption is restricted to a different address, import a permit from the address that is allowed to decrypt.
+- If decryption is restricted to your address, generate a self-ACP.
+- If decryption is restricted to a different address, import an ACP from the address that is allowed to decrypt.
 
-For details, see [permits](./permits.mdx).
+For details, see [ACPs](./acp.mdx).
 
 Decision guide:
 
@@ -174,23 +174,23 @@ Decision guide:
 ACL policy for this ctHash
 │
 ├─ Anyone can decrypt (no restriction)
-│  └─ No permit needed
+│  └─ No acp needed
 │     └─ decryptForTx(ctHash)
-│           .withoutPermit()
+│           .withoutACP()
 │           .execute()
 │
 └─ Restricted to a specific address
    │
    ├─ Your address is allowed
-   │  └─ Generate a self-permit
+   │  └─ Generate a self-acp
    │     └─ decryptForTx(ctHash)
-   │           .withPermit()
+   │           .withACP()
    │           .execute()
    │
    └─ A different address is allowed
-      └─ Import a permit from them
+      └─ Import an ACP from them
          └─ decryptForTx(ctHash)
-               .withPermit(importedPermit)
+               .withACP(importedACP)
                .execute()
 ```
 
@@ -206,13 +206,13 @@ ACL policy for this ctHash
 
 You’ll typically pass `decryptedValue` and `signature` directly into your transaction.
 
-### Decrypt (choose permit mode)
+### Decrypt (choose ACP mode)
 
 Choose the mode that matches the contract’s ACL policy for this handle:
 
 :::code-group
 
-```ts twoslash [No permit]
+```ts twoslash [No acp]
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
 import { chains } from '@cofhe/sdk/chains';
 
@@ -222,7 +222,7 @@ declare const ctHash: `0x${string}`;
 // ---cut---
 const decryptResult = await client
   .decryptForTx(ctHash)
-  .withoutPermit()
+  .withoutACP()
   .execute();
 
 decryptResult; // ^?
@@ -230,7 +230,7 @@ decryptResult.decryptedValue;
 decryptResult.signature;
 ```
 
-```ts twoslash [Permit (active)]
+```ts twoslash [ACP (active)]
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
 import { chains } from '@cofhe/sdk/chains';
 
@@ -240,13 +240,13 @@ declare const ctHash: `0x${string}`;
 // ---cut---
 const decryptResult = await client
   .decryptForTx(ctHash)
-  .withPermit()
+  .withACP()
   .execute();
 
 decryptResult; // ^?
 ```
 
-```ts twoslash [Permit (explicit)]
+```ts twoslash [ACP (explicit)]
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
 import { chains } from '@cofhe/sdk/chains';
 
@@ -254,11 +254,11 @@ const config = createCofheConfig({ supportedChains: [chains.sepolia] });
 const client = createCofheClient(config);
 declare const ctHash: `0x${string}`;
 // ---cut---
-const permit = await client.permits.getOrCreateSelfPermit();
+const acp = await client.acp.getOrCreateSelfACP();
 
 const decryptResult = await client
   .decryptForTx(ctHash)
-  .withPermit(permit)
+  .withACP(acp)
   .execute();
 
 decryptResult; // ^?
@@ -277,7 +277,7 @@ See [Writing Decrypt Result to Contract](./writing-decrypt-result-to-contract.md
 
 ## Builder API
 
-`decryptForTx(ctHash)` returns a builder. Before calling `.execute()`, you must select exactly one permit mode: `.withPermit(...)` or `.withoutPermit()`.
+`decryptForTx(ctHash)` returns a builder. Before calling `.execute()`, you must select exactly one ACP mode: `.withACP(...)` or `.withoutACP()`.
 
 ### `.execute()` — required, call last
 
@@ -291,7 +291,7 @@ const config = createCofheConfig({ supportedChains: [chains.sepolia] });
 const client = createCofheClient(config);
 declare const ctHash: `0x${string}`;
 // ---cut---
-const result = await client.decryptForTx(ctHash).withPermit().execute(); // [!code focus]
+const result = await client.decryptForTx(ctHash).withACP().execute(); // [!code focus]
 
 result.decryptedValue;
 result.signature;
@@ -318,7 +318,7 @@ const result = await client
   .onPoll(({ attemptIndex, elapsedMs }) => { // [!code focus]
     console.log('decrypt polling', { attemptIndex, elapsedMs }); // [!code focus]
   }) // [!code focus]
-  .withPermit()
+  .withACP()
   .execute();
 
 result.signature;
@@ -341,23 +341,23 @@ declare const ctHash: `0x${string}`;
 const result = await client
   .decryptForTx(ctHash)
   .set404RetryTimeout(15_000) // [!code focus]
-  .withPermit()
+  .withACP()
   .execute();
 
 result.signature;
 ```
 
-### `.withPermit(...)` — required unless using `.withoutPermit()`
+### `.withACP(...)` — required unless using `.withoutACP()`
 
-Decrypt using a permit:
+Decrypt using an ACP:
 
-- `.withPermit()` uses the active permit for the resolved `chainId + account`.
-- `.withPermit(permitHash)` fetches a stored permit by hash.
-- `.withPermit(permit)` uses the provided permit object.
+- `.withACP()` uses the active ACP for the resolved `chainId + account`.
+- `.withACP(acpHash)` fetches a stored ACP by hash.
+- `.withACP(acp)` uses the provided ACP object.
 
 :::code-group
 
-```ts twoslash [Active permit]
+```ts twoslash [Active acp]
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
 import { chains } from '@cofhe/sdk/chains';
 
@@ -367,13 +367,13 @@ declare const ctHash: `0x${string}`;
 // ---cut---
 const result = await client
   .decryptForTx(ctHash)
-  .withPermit() // [!code focus]
+  .withACP() // [!code focus]
   .execute();
 
 result.signature;
 ```
 
-```ts twoslash [Permit object]
+```ts twoslash [ACP object]
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
 import { chains } from '@cofhe/sdk/chains';
 
@@ -381,28 +381,28 @@ const config = createCofheConfig({ supportedChains: [chains.sepolia] });
 const client = createCofheClient(config);
 declare const ctHash: `0x${string}`;
 // ---cut---
-const permit = await client.permits.getOrCreateSelfPermit();
+const acp = await client.acp.getOrCreateSelfACP();
 
 const result = await client
   .decryptForTx(ctHash)
-  .withPermit(permit) // [!code focus]
+  .withACP(acp) // [!code focus]
   .execute();
 
 result.decryptedValue;
 ```
 
-```ts twoslash [Permit hash]
+```ts twoslash [ACP hash]
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
 import { chains } from '@cofhe/sdk/chains';
 
 const config = createCofheConfig({ supportedChains: [chains.sepolia] });
 const client = createCofheClient(config);
 declare const ctHash: `0x${string}`;
-declare const permitHash: `0x${string}`;
+declare const acpHash: `0x${string}`;
 // ---cut---
 const result = await client
   .decryptForTx(ctHash)
-  .withPermit(permitHash) // [!code focus]
+  .withACP(acpHash) // [!code focus]
   .execute();
 
 result;
@@ -410,9 +410,9 @@ result;
 
 :::
 
-### `.withoutPermit()` — required unless using `.withPermit(...)`
+### `.withoutACP()` — required unless using `.withACP(...)`
 
-Decrypt via global allowance (no permit). This only works if your contract’s ACL policy allows anyone to decrypt that handle.
+Decrypt via global allowance (no ACP). This only works if your contract’s ACL policy allows anyone to decrypt that handle.
 
 ```ts twoslash
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
@@ -424,7 +424,7 @@ declare const ctHash: `0x${string}`;
 // ---cut---
 const result = await client
   .decryptForTx(ctHash)
-  .withoutPermit() // [!code focus]
+  .withoutACP() // [!code focus]
   .execute();
 
 result.decryptedValue;
@@ -432,7 +432,7 @@ result.decryptedValue;
 
 ### `.setAccount(address)` — optional
 
-Overrides the account used to resolve the active permit / stored permit.
+Overrides the account used to resolve the active ACP / stored ACP.
 
 ```ts twoslash
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
@@ -445,7 +445,7 @@ declare const ctHash: `0x${string}`;
 const result = await client
   .decryptForTx(ctHash)
   .setAccount('0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045') // [!code focus]
-  .withPermit()
+  .withACP()
   .execute();
 
 const handleFromResult = result.ctHash;
@@ -454,7 +454,7 @@ handleFromResult;
 
 ### `.setChainId(chainId)` — optional
 
-Overrides the chain used to resolve the Threshold Network URL and permits.
+Overrides the chain used to resolve the Threshold Network URL and ACPs.
 
 ```ts twoslash
 import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
@@ -467,7 +467,7 @@ declare const ctHash: `0x${string}`;
 const result = await client
   .decryptForTx(ctHash)
   .setChainId(11155111) // [!code focus]
-  .withPermit()
+  .withACP()
   .execute();
 
 result.signature;
@@ -475,5 +475,5 @@ result.signature;
 
 ## Common pitfalls
 
-- **Permit mode must be selected**: you must call exactly one of `.withPermit(...)` or `.withoutPermit()` before `.execute()`.
-- **Wrong chain/account**: permits are scoped to `chainId + account`. If you use `.withPermit()` and get an ACL/permit error, double-check you’re connected to the expected chain and account (or explicitly set them via `.setChainId(...)` / `.setAccount(...)`).
+- **ACP mode must be selected**: you must call exactly one of `.withACP(...)` or `.withoutACP()` before `.execute()`.
+- **Wrong chain/account**: ACPs are scoped to `chainId + account`. If you use `.withACP()` and get an ACL/ACP error, double-check you’re connected to the expected chain and account (or explicitly set them via `.setChainId(...)` / `.setAccount(...)`).

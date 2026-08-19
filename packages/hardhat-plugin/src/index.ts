@@ -314,7 +314,7 @@ declare module 'hardhat/types/runtime' {
       connectWithHardhatSigner: (client: CofheClient, signer: HardhatEthersSigner) => Promise<void>;
       /**
        * Create and connect to a batteries included client.
-       * Also generates a self-usage a permit for the signer.
+       * Also generates a self-usage ACP for the signer.
        * If customization is needed, use createCofheClient and connectWithHardhatSigner.
        * @param {HardhatEthersSigner} signer - The Hardhat ethers signer to use (optional - defaults to first signer)
        * @returns {Promise<CofheClient>} The CoFHE client instance
@@ -485,8 +485,8 @@ extendEnvironment((hre) => {
       // Connect client
       await hre.cofhe.connectWithHardhatSigner(client, signer);
 
-      // Create self-usage permit
-      await client.permits.createSelf({
+      // Create self-usage acp
+      await client.acp.createSelf({
         issuer: signer.address,
       });
 

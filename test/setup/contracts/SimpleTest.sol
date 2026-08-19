@@ -30,21 +30,44 @@ contract SimpleTest {
     _setStoredValue(FHE.asEuint32(inValue));
   }
 
-  function setPublicValue(InEuint32 memory inValue) public {
-    _setPublicValue(FHE.asEuint32(inValue));
+  function setPublicValue(externalEuint32 inValue, bytes memory proof) public {
+    _setPublicValue(FHE.asEuint32(inValue, proof));
   }
 
-  function setValue(InEuint32 memory inValue) public {
-    _setStoredValue(FHE.asEuint32(inValue));
+  /// @notice Sets publicValue from a batch-verified input - see setValueBatch.
+  function setPublicValueBatch(externalEuint32[] memory inValues, bytes memory signature) public {
+    euint32[] memory values = FHE.asEuint32s(inValues, signature);
+    _setPublicValue(values[0]);
+  }
+
+  function setValue(externalEuint32 inValue, bytes memory proof) public {
+    _setStoredValue(FHE.asEuint32(inValue, proof));
   }
 
   function setValueHashPlusProof(externalEuint32 inValue, bytes memory proof) public {
     _setStoredValue(FHE.asEuint32(inValue, proof));
   }
 
-  function addValue(InEuint32 memory inValue) public {
-    euint32 valueToAdd = FHE.asEuint32(inValue);
+  /// @notice Sets storedValue from a batch-verified input (one shared signature over the whole
+  ///         batch, per FhenixProtocol/cofhe-contracts#78) - only the first value is used, and the
+  ///         batch may contain exactly one entry.
+  function setValueBatch(externalEuint32[] memory inValues, bytes memory signature) public {
+    euint32[] memory values = FHE.asEuint32s(inValues, signature);
+    _setStoredValue(values[0]);
+  }
+
+  function addValue(externalEuint32 inValue, bytes memory proof) public {
+    euint32 valueToAdd = FHE.asEuint32(inValue, proof);
     _setStoredValue(FHE.add(storedValue, valueToAdd));
+  }
+
+  /// @notice Adds a batch-verified input to storedValue - see setValueBatch. Only the first value
+  ///         is used. Lets the integration suite drive an on-chain FHE op (which produces a fresh
+  ///         ctHash) from a batch-verified input, now that per-item `InEuint32` inputs can no
+  ///         longer be produced by the SDK.
+  function addValueBatch(externalEuint32[] memory inValues, bytes memory signature) public {
+    euint32[] memory values = FHE.asEuint32s(inValues, signature);
+    _setStoredValue(FHE.add(storedValue, values[0]));
   }
 
   function getValue() public view returns (euint32) {

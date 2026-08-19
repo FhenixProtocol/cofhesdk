@@ -9,10 +9,13 @@ import { CofheErrorCode } from '../error.js';
 export type BackendApiErrorCode =
   | 'bad_request'
   | 'unknown_chain'
-  | 'permit_malformed'
-  | 'permit_denied'
-  | 'permit_expired'
-  | 'permit_invalid'
+  | 'acp_malformed'
+  | 'acp_denied'
+  | 'acp_expired'
+  | 'acp_invalid'
+  | 'acp_required'
+  | 'acp_verifier_error'
+  | 'acp_verifier_timeout'
   | 'not_publicly_allowed'
   | 'ct_not_found'
   | 'unsupported_security_zone'
@@ -20,19 +23,19 @@ export type BackendApiErrorCode =
   | 'internal_error'
   | 'signing_failed'
   | 'ct_source_error'
-  | 'permit_verifier_error'
   | 'ct_source_timeout'
-  | 'permit_verifier_timeout'
-  | 'permit_required'
   | 'seal_failed';
 
 const BACKEND_ERROR_CODE_TO_COFHE_ERROR_CODE: Record<BackendApiErrorCode, CofheErrorCode> = {
   bad_request: CofheErrorCode.BadRequest,
   unknown_chain: CofheErrorCode.UnknownChain,
-  permit_malformed: CofheErrorCode.PermitMalformed,
-  permit_denied: CofheErrorCode.PermitDenied,
-  permit_expired: CofheErrorCode.PermitExpired,
-  permit_invalid: CofheErrorCode.PermitInvalid,
+  acp_malformed: CofheErrorCode.ACPMalformed,
+  acp_denied: CofheErrorCode.ACPDenied, // ACP-era backends fold revoked into denied
+  acp_expired: CofheErrorCode.ACPExpired,
+  acp_invalid: CofheErrorCode.ACPInvalid,
+  acp_required: CofheErrorCode.ACPRequired,
+  acp_verifier_error: CofheErrorCode.ACPVerifierError,
+  acp_verifier_timeout: CofheErrorCode.ACPVerifierTimeout,
   not_publicly_allowed: CofheErrorCode.NotPubliclyAllowed,
   ct_not_found: CofheErrorCode.CtNotFound,
   unsupported_security_zone: CofheErrorCode.UnsupportedSecurityZone,
@@ -40,10 +43,7 @@ const BACKEND_ERROR_CODE_TO_COFHE_ERROR_CODE: Record<BackendApiErrorCode, CofheE
   internal_error: CofheErrorCode.InternalError,
   signing_failed: CofheErrorCode.SigningFailed,
   ct_source_error: CofheErrorCode.CtSourceError,
-  permit_verifier_error: CofheErrorCode.PermitVerifierError,
   ct_source_timeout: CofheErrorCode.CtSourceTimeout,
-  permit_verifier_timeout: CofheErrorCode.PermitVerifierTimeout,
-  permit_required: CofheErrorCode.PermitRequired,
   seal_failed: CofheErrorCode.SealFailed,
 };
 

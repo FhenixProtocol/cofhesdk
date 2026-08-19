@@ -1,13 +1,13 @@
-import type { PermitType } from '@cofhe/sdk/permits';
+import type { ACPType } from '@cofhe/sdk/acps';
 import type { ConfidentialToken } from '@/types/token';
 import type { BalanceType } from '../components/CofheTokenConfidentialBalance';
 
 export enum PortalModal {
   ExampleSelection = 'exampleSelection',
   ExampleInfo = 'exampleInfo',
-  PermitDetails = 'permitDetails',
-  PermitTypeInfo = 'permitTypeInfo',
-  PermitInfo = 'permitInfo',
+  ACPDetails = 'acpDetails',
+  ACPTypeInfo = 'acpTypeInfo',
+  ACPInfo = 'acpInfo',
   TokenList = 'tokenList',
   ImportCustomToken = 'importCustomToken',
 }
@@ -15,9 +15,9 @@ export enum PortalModal {
 export type PortalModalPropsMap = {
   [PortalModal.ExampleSelection]: { onSelect: (selectedItem: string) => void };
   [PortalModal.ExampleInfo]: void;
-  [PortalModal.PermitDetails]: { hash: string };
-  [PortalModal.PermitTypeInfo]: { type: PermitType };
-  [PortalModal.PermitInfo]: void;
+  [PortalModal.ACPDetails]: { hash: string };
+  [PortalModal.ACPTypeInfo]: { type: ACPType };
+  [PortalModal.ACPInfo]: void;
   [PortalModal.TokenList]: {
     balanceType: BalanceType;
     title: string;
