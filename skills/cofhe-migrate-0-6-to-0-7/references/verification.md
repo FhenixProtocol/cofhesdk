@@ -87,6 +87,24 @@ Go through these with the developer:
 - [ ] **Mock stack wires up `ACPTimestampRevoker` and `ACPShareRegistry`**, if the project
       deploys mocks itself.
 
+## 5b. Behaviour changes with no compile error
+
+These compile clean after a faithful rename and break at runtime. Check each explicitly:
+
+- [ ] **`ACPUtils.export()` throws for non-sharing and unsigned ACPs.** 0.6 never threw. A bare
+      `export(acp)` on a self ACP — especially during render — now throws every time. Gate on
+      `acp.type === 'sharing'`.
+- [ ] **String _values_ behind renamed const-map members changed** (`'missing-permit'` →
+      `'missing-acp'`, `'open-permits'` → `'open-acps'`). Compiler-invisible. Anything that
+      persisted, keyed, or transmitted one of these breaks silently — see
+      [react.md](react.md).
+- [ ] **Error classification by prefix or substring.** `startsWith('permit')` /
+      `includes('permit_…')` against a lowercased wire token matches no rename and silently
+      stops classifying.
+- [ ] **Anything that inspects the request body.** The decrypt request carries `acp`, not
+      `permit`. A fault injector, proxy, recorder, or test assertion reading `body.permit`
+      through a cast no-ops with zero errors.
+
 ## Expected failure: `ZK_VERIFY_FAILED` on the public testnets
 
 The verifier's batch endpoint is live on **CoFHE staging** and the host chain, and encryption works

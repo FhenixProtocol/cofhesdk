@@ -5,35 +5,72 @@ four of the five renamed config keys live under `react`.
 
 ## Hooks
 
+Exported from the package barrel — a project can import these, so a rename here is a real
+compile error:
+
 | Before                           | After                         |
 | -------------------------------- | ----------------------------- |
-| `useCofhePermits`                | `useCofheACPs`                |
 | `useCofheActivePermit`           | `useCofheActiveACP`           |
 | `useCofheAllPermits`             | `useCofheAllACPs`             |
 | `useCofheRemovePermit`           | `useCofheRemoveACP`           |
 | `useCofheSelectPermit`           | `useCofheSelectACP`           |
 | `useCofheCreatePermit`           | `useCofheCreateACP`           |
 | `useCofheNavigateToCreatePermit` | `useCofheNavigateToCreateACP` |
-| `useWatchPermitStatus`           | `useWatchACPStatus`           |
 | type `PermitState`               | `ACPState`                    |
 
-## Components
+## Not importable — do not go hunting for these
 
-`PermitCard`→`ACPCard`, `PermitItem`→`ACPItem`, `PermitInfoModal`→`ACPInfoModal`,
-`PermitDetailsModal`→`ACPDetailsModal`, `PermitTypeInfoModal`→`ACPTypeInfoModal`. The
-floating-button page tree moved from `pages/permits/**` to `pages/acps/**`.
+`@cofhe/react`'s barrel is fully explicit (no `export *`), and these were **never** exported. They
+renamed internally, but no consumer can be importing them, so there is nothing to migrate:
+
+`useCofhePermits`, `useWatchPermitStatus`, `PermitCard`, `PermitItem`, `PermitInfoModal`,
+`PermitDetailsModal`, `PermitTypeInfoModal`, and the floating-button page tree
+(`pages/permits/**` → `pages/acps/**`).
+
+If a project references one of these it reached past the barrel into `src/`, which the rename
+tables here do not cover — flag it rather than guessing.
+
+## Renamed members inside exported const maps
+
+A category no barrel diff can see: the **container name never changes**, only its members. `tsc`
+catches member access, but nothing catches code comparing the _string values_, which moved in
+lockstep.
+
+Exported, so a project can be reading these:
+
+| Container                  | Renamed members                                                                                                                |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `COFHE_STATUS_IDS`         | `missingPermit`→`missingACP`, `permitExpired`→`acpExpired`, `permitExpiringSoon`→`acpExpiringSoon`, `permitShared`→`acpShared` |
+| `CofheStatusActionIntents` | `openPermits`→`openACPs`                                                                                                       |
+| `SignatureTypes`           | `PermissionedV2IssuerSelf`→`ACPIssuerSelf`, `…IssuerShared`→`ACPIssuerShared`, `…Recipient`→`ACPRecipient` (from `@cofhe/sdk`) |
+
+Internal — renamed, but not importable, so nothing to migrate: `FloatingButtonPage`
+(`Permits`→`ACPs`, `GeneratePermits`→`GenerateACPs`, `DelegatePermits`→`DelegateACPs`,
+`ReceivePermits`→`ReceiveACPs`) and `PortalModal` (`PermitDetails`→`ACPDetails`,
+`PermitInfo`→`ACPInfo`, `PermitTypeInfo`→`ACPTypeInfo`).
+
+The values changed too: `'missing-permit'`→`'missing-acp'`, `'permit-expired'`→`'acp-expired'`,
+`'open-permits'`→`'open-acps'`. A codebase that persisted a status id, keyed a dismissal by it, or
+sent it in telemetry breaks **silently**:
+
+```bash
+grep -rnE "'(open-permits|missing-permit|permit-expired|permit-expiring-soon|permit-shared)'" \
+  --include='*.ts' --include='*.tsx' .
+```
 
 ## Hook options and returned fields
 
 Easy to miss: these are **fields on objects**, not imported names, so they don't show up when you
 grep for imports — but destructuring one that no longer exists silently yields `undefined`.
 
-| Before                            | After                          | Where                                                                                      |
-| --------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------ |
-| `requiresPermit`                  | `requiresACP`                  | option to `useCofheReadContract`, `useCofheReadContracts`, `useCofheTokenDecryptedBalance` |
-| `disabledDueToMissingValidPermit` | `disabledDueToMissingValidACP` | returned by the same hooks                                                                 |
-| `hasActivePermit`                 | `hasActiveACP`                 | returned                                                                                   |
-| `activePermitHash`                | `activeACPHash`                | returned / option                                                                          |
+| Before                                         | After                                            | Where                                                                                          |
+| ---------------------------------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| `requiresPermit`                               | `requiresACP`                                    | option to `useCofheReadContractAndDecrypt`, `useCofheTokenDecryptedBalance`, `useCofheEnabled` |
+| `disabledDueToMissingValidPermit`              | `disabledDueToMissingValidACP`                   | returned by the same hooks                                                                     |
+| `hasActivePermit`                              | `hasActiveACP`                                   | returned                                                                                       |
+| `useCofheActivePermit()` → `{ permit }`        | `useCofheActiveACP()` → `{ acp, isValid, hash }` | the return shape gained two fields as well as renaming one                                     |
+| `useCofheDecryptionActivity()` → `permit: {…}` | → `acp: {…}`                                     | same shape, field renamed only                                                                 |
+| `activePermitHash`                             | `activeACPHash`                                  | returned / option                                                                              |
 
 ```tsx
 // BEFORE
@@ -123,7 +160,7 @@ These landed alongside the rename and change runtime behaviour without any compi
 ## Find them
 
 ```bash
-grep -rnE 'useCofhe(Permits|ActivePermit|AllPermits|RemovePermit|SelectPermit|CreatePermit|NavigateToCreatePermit)|useWatchPermitStatus|PermitState|Permit(Card|Item|InfoModal|DetailsModal|TypeInfoModal)' \
+grep -rnE 'useCofhe(ActivePermit|AllPermits|RemovePermit|SelectPermit|CreatePermit|NavigateToCreatePermit)|PermitState' \
   --include='*.ts' --include='*.tsx' .
 
 # bare-array useCofheEncrypt calls

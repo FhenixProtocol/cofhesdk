@@ -4,7 +4,7 @@ description: >-
   Migrates a codebase from @cofhe/* v0.6.x to v0.7.0 (the ACP + batch-input-verification release).
   Use when a developer asks to upgrade @cofhe/sdk, @cofhe/react, @cofhe/hardhat-plugin,
   @cofhe/hardhat-3-plugin, @cofhe/foundry-plugin, @cofhe/abi or @cofhe/mock-contracts, or when
-  they hit any of: "Permit is not exported", "useCofhePermits is not defined",
+  they hit any of: "Permit is not exported", "useCofheActivePermit is not defined",
   "Property 'execute' does not exist on type 'EncryptInputsBuilderUnset'",
   "ConsumingContractUninitialized", "Identifier not found or not unique: InEuint32",
   "EncryptedItemInput is not exported", "acp_denied", or a config error naming
@@ -48,7 +48,10 @@ There are no deprecation shims. Old names are removed so the compiler finds the 
    - **`< 0.5.0` → refuse.** Say: "This skill migrates 0.5.x–0.6.x → 0.7.0. Upgrade to 0.6.1 first
      using the package changelog, then re-run." Do not attempt a best-effort migration.
    - Coming from `cofhejs` (not `@cofhe/sdk`) → point at the "Migrating from cofhejs" guide first.
-   - **Mixed `@cofhe/*` versions** → stop and have the user align them before migrating.
+   - **Mixed `@cofhe/*` versions within one install graph** → stop and have the user align them
+     before migrating. Mixed across **deliberately isolated** graphs (a `contracts/` tree installed
+     with `--ignore-workspace`, sharing no resolution with the apps) is fine — note it and move on.
+     Do not halt on a version skew that cannot interact.
 3. **Detect what's in play** and load only the references you need:
 
 | If the project has                                              | Load                                                                                             |
@@ -70,12 +73,22 @@ the Foundry side and forgetting `withoutPermit` in `test/*.ts` is a common miss.
 4. **Present an inventory table, and wait.** Not a prose plan — a table. This is the first
    user-visible artifact, and no file may be edited before it is agreed:
 
+   When Solidity is in scope:
+
    | File | Function | Case | Proposed signature | Action |
    | ---- | -------- | ---- | ------------------ | ------ |
 
    `Case` is A/B/C from [contracts.md](references/contracts.md) or S1/S2 from
-   [shared-euints.md](references/shared-euints.md). Include the rows you intend to **skip**, with
-   the reason — what was ruled out is what makes the rest reviewable. Then ask whether to:
+   [shared-euints.md](references/shared-euints.md).
+
+   For a TypeScript-only migration — no contracts, no encrypt call sites — those columns are empty
+   on every row. Use this instead:
+
+   | File | Symbol / site | Change | Action |
+   | ---- | ------------- | ------ | ------ |
+
+   Either way, include the rows you intend to **skip**, with the reason — what was ruled out is what
+   makes the rest reviewable. Then ask whether to:
 
    - **propose** each change as a diff and wait for approval (default), or
    - **apply** everything and report afterwards (only if the user asks for it explicitly).

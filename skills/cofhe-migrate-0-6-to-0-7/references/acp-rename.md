@@ -91,7 +91,13 @@ permit.sealingPair.privateKey      acp.sealingPrivateKey   // Hex
 `contracts: Hex[]`, `handles: Hex[]`. Handles are **bytes32 hex strings**, not `bigint`s.
 
 **`ACPUtils.export()`** returns a fixed `SharedACP` shape (every field present, zero-valued rather
-than omitted) and now **throws** for non-sharing ACPs and for unsigned sharing ACPs.
+than omitted).
+
+> **It now throws where the old one never threw at all.** 0.6's `export()` serialized any permit
+> type unconditionally; 0.7's rejects anything that is not a **signed sharing** ACP. Self ACPs are
+> the common case, so a bare `exportACP(acp)` — especially one called during render — goes from
+> always working to always throwing. Find every call site and gate it on
+> `acp.type === 'sharing'`, or wrap it. This is a behaviour change with no compile error.
 
 **`PermitUtils.getPermission()`** → **`ACPUtils.getPublic()`**.
 

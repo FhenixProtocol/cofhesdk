@@ -19,6 +19,12 @@ Do this first. If the chain can't serve ACPs, nothing downstream matters.
 Every `@cofhe/*` package must be on the same version. Mixed versions produce type errors that
 look like migration bugs but aren't.
 
+> **In a monorepo, align every workspace manifest — including ones you are not migrating.** A
+> workspace whose code you leave alone but which is **bundled into** an app you are migrating
+> resolves its own copy of `@cofhe/react`. Two copies in one bundle means two provider contexts,
+> and hooks read a store nothing writes. There is no compile error and no install warning; the app
+> just behaves as though no provider is mounted.
+
 > **`0.7.0` is not on npm yet.** `npm view @cofhe/sdk dist-tags` currently resolves `latest` to
 > `0.6.1`. Installing `^0.7.0` fails. Until it publishes, take the matching `alpha` tag across
 > every `@cofhe/*` package — they are timestamped, so pin one timestamp rather than re-resolving
@@ -85,6 +91,23 @@ automatically.
 `MockACL` no longer approximates transient storage with `block.number`. If the project has its own
 mock-based tests that grant a transient allowance in one transaction and use it in a later one,
 they break — see [shared-euints.md](shared-euints.md).
+
+## Retargeting staging is a project, not a flag
+
+`ZK_VERIFY_FAILED` on the public testnets is expected, and the advice is to confirm against
+staging — but for anything token-driven that is not a config change. It needs three things:
+
+1. **`stagingCofhe`**, a new exported chain in `@cofhe/sdk/chains` (id `420105`). New in this
+   release and easy to miss.
+2. **A viem chain definition and wagmi transport.** `CofheChain` carries `coFheUrl`,
+   `verifierUrl` and `thresholdNetworkUrl` but **no host-chain RPC**, so the app still has to get
+   one from somewhere.
+3. **Confidential tokens deployed on 420105, and a tokenlist published for them**, for any app
+   whose token set is per-chain. Without that there is nothing to shield, send, or decrypt and the
+   retarget proves nothing.
+
+Tell the developer this up front so they can decide whether it is ten minutes or a day, rather
+than discovering it midway.
 
 ## Contract fixtures need redeploying
 

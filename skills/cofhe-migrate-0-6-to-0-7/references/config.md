@@ -74,3 +74,12 @@ grep -rnE 'defaultPermitExpiration|shareablePermits|autogeneratePermits|permitEx
 Construct the client. A stale or unknown key throws immediately with the replacement named, so
 booting the app once is the check. Grep as well — config is often built in a file that no test
 exercises.
+
+## New export: `assertNoRenamedConfigKeys`
+
+The throwing behaviour above is also available directly, if a project wants to run the same check on
+its own config object before constructing a client:
+
+```ts
+import { assertNoRenamedConfigKeys } from '@cofhe/sdk';
+```
