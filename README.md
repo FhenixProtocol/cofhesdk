@@ -4,7 +4,7 @@ This repository contains the tooling for interacting with Fhenix's CoFHE coproce
 
 ## Packages
 
-- `@cofhe/sdk` — core SDK for fetching FHE keys, encrypting inputs, decrypting handles, and working with permits.
+- `@cofhe/sdk` — core SDK for fetching FHE keys, encrypting inputs, decrypting handles, and working with ACPs via subpath modules such as `@cofhe/sdk/adapters`, `@cofhe/sdk/acps`, `@cofhe/sdk/web`, and `@cofhe/sdk/node`.
 - `@cofhe/react` — React hooks and components for CoFHE-enabled frontends.
 - `@cofhe/abi` — shared contract ABIs.
 - `@cofhe/mock-contracts` — local mock contracts for testing CoFHE flows.
@@ -63,6 +63,12 @@ The main Fhenix developer documentation is available at [docs.fhenix.zone](https
 
 Example applications live in [`examples/`](./examples). See [`examples/README.md`](./examples/README.md) for the current example setup and usage instructions.
 
+## Migration
+
+`cofheClient.encryptInputs(...).execute()` returns `[...hashes, signature]` — one `external*` handle per input followed by a single signature authenticating the whole batch — replacing the old per-item `CofheInUint8`/`EncryptedUint8Input` structs. `setConsumingContract(address)` is required before `execute()`.
+
+See the [0.7.0 migration guide](https://cofhesdk.fhenix.io/migrating-to-0-7-0), or run the [migration skill](skills/cofhe-migrate-0-6-to-0-7) against your project.
+
 ## Versioning and releases
 
 This monorepo uses [Changesets](https://github.com/changesets/changesets) for package versioning and release notes.
@@ -74,3 +80,8 @@ pnpm changeset
 ```
 
 Documentation-only changes may not require a package version bump; follow the conventions used by existing pull requests when deciding whether to add a changeset.
+
+## Notes
+
+- FHE keys are fetched only when `client.encryptInputs(...).execute()` is called because they are only needed for input encryption.
+- TFHE WASM initialization is also deferred until `client.encryptInputs(...).execute()` is called.
