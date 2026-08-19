@@ -1,6 +1,8 @@
 import { QueryClient, type QueryKey, type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
 import { type Address, type Hex } from 'viem';
-import { useCofhePublicClient } from './useCofheConnection.js';
+import { FheTypes } from '@cofhe/sdk';
+import { useCofheChainId, useCofhePublicClient } from './useCofheConnection.js';
+import { useCofheClient } from './useCofheClient';
 import { type ConfidentialToken } from './useCofheTokenLists.js';
 import { getTokenTypeContracts } from '../constants/tokenTypeConfig.js';
 import { isTokenOperationSupported, type SupportedTokenConfidentialityType } from '@/types/token';
@@ -46,6 +48,7 @@ export function constructUnshieldClaimsQueryKeyForInvalidation({
 export const DEFAULT_UNSHIELD_CLAIM_SUMMARY: UnshieldClaimsSummary = {
   claimableCount: 0,
   claimableAmount: 0n,
+  undecryptedCount: 0,
   hasClaimable: false,
 };
 
@@ -71,6 +74,9 @@ export type FetchUnshieldClaimsSummaryInput = {
   confidentialityType: SupportedTokenConfidentialityType;
   signal: AbortSignal;
   blockHashToBeAwareOf?: `0x${string}`;
+  /** CoFHE client + chain, required to decrypt each pending claim amount for display. */
+  client?: ReturnType<typeof useCofheClient>;
+  chainId?: number;
 };
 
 function normalizeUnshieldClaims(result: unknown): UnshieldClaim[] {
@@ -116,6 +122,8 @@ export async function fetchUnshieldClaims({
 
 export async function fetchUnshieldClaimsSummary({
   publicClient,
+  client,
+  chainId,
   token,
   accountAddress,
   confidentialityType,
@@ -135,21 +143,55 @@ export async function fetchUnshieldClaimsSummary({
 
   // getUserClaims only ever returns UNCLAIMED claims: handleClaim writes decryptedAmount
   // and removes the id from the claimant's set in the same call. So every entry here is
-  // actionable, and every entry necessarily carries decryptedAmount == 0 — testing that
+  // actionable, and every one necessarily carries decryptedAmount == 0 — testing that
   // field to decide claimability can never be true.
   //
-  // The settle amount is not knowable on chain before claiming: it lives encrypted in
-  // ctHash, and the claim flow decrypts that client-side to build the proof. The summary
-  // therefore reports how many claims are ready, not how much they are worth.
-  const claimableCount = claims.length;
+  // The settle amount is not recorded in plaintext any more. The old struct carried a
+  // requestedAmount, but only the plaintext unshield overload ever filled it — the
+  // encrypted overload passed 0. The unified implementation now wraps a plaintext amount
+  // to a handle before createClaim runs, so there is no plaintext left to record. The
+  // value lives encrypted in ctHash until the claim proves it, so showing a figure means
+  // decrypting under the holder's own ACP, which is what this does.
+  //
+  // Failures are tolerated per claim: a missing or expired ACP, or a ciphertext the
+  // threshold network has not indexed yet, degrades the TOTAL and is counted in
+  // undecryptedCount. It never drops a claim from the list, because an amount we cannot
+  // read is not the same as an amount that is not there — hiding it would strand funds.
+  const decrypted = await Promise.all(
+    claims.map(async (claim) => {
+      if (!client || chainId == null) return undefined;
+      try {
+        return (await client
+          .decryptForView(claim.ctHash as Hex, FheTypes.Uint64)
+          .setChainId(chainId)
+          .setAccount(accountAddress)
+          .withACP()
+          .execute()) as bigint;
+      } catch (error) {
+        cofheLogger.warn('Could not decrypt a pending unshield claim amount for display', {
+          ctHash: String(claim.ctHash),
+          error,
+        });
+        return undefined;
+      }
+    })
+  );
+
+  let claimableAmount = 0n;
+  let undecryptedCount = 0;
+  for (const amount of decrypted) {
+    if (typeof amount === 'bigint') claimableAmount += amount;
+    else undecryptedCount += 1;
+  }
 
   return {
-    claimableCount,
-    claimableAmount: 0n,
-    hasClaimable: claimableCount > 0,
+    claimableCount: claims.length,
+    claimableAmount,
+    undecryptedCount,
+    hasClaimable: claims.length > 0,
   };
-}
 // ============================================================================
+}
 // Unified Unshield Claims Hook
 // ============================================================================
 
@@ -171,6 +213,12 @@ export type UnshieldClaimsSummary = {
    * claim flow decrypts it. Prefer claimableCount for anything user-facing.
    */
   claimableAmount: bigint;
+  /**
+   * How many of those claims could NOT be decrypted for display (no valid ACP, or the
+   * ciphertext is not yet readable). Their value is missing from claimableAmount, so a
+   * non-zero count means the total shown is an understatement, not the whole picture.
+   */
+  undecryptedCount: number;
   /** Whether anything is ready to claim. */
   hasClaimable: boolean;
 };
@@ -201,6 +249,8 @@ export function useCofheTokenClaimable(
   queryOptions?: UseUnshieldClaimsOptions
 ): UseQueryResult<UnshieldClaimsSummary, Error> {
   const publicClient = useCofhePublicClient();
+  const client = useCofheClient();
+  const chainId = useCofheChainId();
 
   const confidentialityType = token?.extensions.fhenix.confidentialityType;
 
@@ -230,6 +280,8 @@ export function useCofheTokenClaimable(
 
       return fetchUnshieldClaimsSummary({
         publicClient,
+        client,
+        chainId,
         token,
         accountAddress: account,
         confidentialityType,
