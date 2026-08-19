@@ -1,5 +1,39 @@
 # @cofhe/hardhat-3-plugin
 
+## 0.7.0
+
+### Minor Changes
+
+- fb87d91: **Breaking: Permit (V2) → ACP (Access Control Permission).** Permits become scoped, revocable ACPs; old names are removed rather than deprecated. Highlights (full list in the [0.7.0 migration guide](https://cofhesdk.fhenix.io/migrating-to-0-7-0)):
+
+  - `Permit`/`Permission`/`PermitUtils`/`client.permits` → `ACP`/`ACPPublic`/`ACPUtils`/`client.acp`; `getPermission()` → `getPublic()`
+  - `ACPPrivate` & `ACPPublic` are top-level types, `ACP` is the union; the sealing keypair is flattened to `sealingPrivateKey`/`sealingKey` (the `SealingKey` class is removed)
+  - New scope fields (`scope`, `contracts`, `handles: bytes32[]`) and revocation fields renamed `validatorId`/`validatorContract` → `revokerData`/`revokerContract`; default revoker `ACPTimestampRevoker` with `revokeACP`/`revokeAllACPs`/`isACPRevoked` on the client
+  - EIP-712 domain bumped to `("ACL", "2")` with new `ACPIssuerSelf`/`ACPIssuerShared`/`ACPRecipient` types — previously signed permits no longer verify; the permit store migrates by wiping retired-format permits
+  - `ACPUtils.export()` produces a fixed `SharedACP` shape and only accepts signed sharing ACPs
+
+- fb87d91: **On-chain ACP sharing.** New `ACPShareRegistry` contract (deployed with the mocks) lets an issuer post a sharing ACP on-chain for its recipient to discover and import — replacing the JSON copy-paste hand-off.
+
+  - `client.acp.shareOnChain(acp)` posts a signed sharing ACP (issuer-only, same guards as `export()`); `cancelShare(shareId)` retracts it
+  - `client.acp.getIncomingShares()` lists importable shares addressed to the connected account (unexpired, not revoked — the registry checks the share's own revoker)
+  - `client.acp.importFromChain(share)` imports like the JSON flow (recipient sealing key + signature); `dismissShare(shareId)` cleans up the entry
+  - config: `acp.sharingRegistry: Record<chainId, address>`
+  - registry exposes `isShareValid(shareId)` as an on-chain verification hook for contracts
+
+### Patch Changes
+
+- Updated dependencies [fb87d91]
+- Updated dependencies [fb87d91]
+- Updated dependencies [fb87d91]
+- Updated dependencies [fb87d91]
+- Updated dependencies [fb87d91]
+- Updated dependencies [d4d662f]
+- Updated dependencies [fb87d91]
+- Updated dependencies [fb87d91]
+- Updated dependencies [f01cac7]
+  - @cofhe/sdk@0.7.0
+  - @cofhe/mock-contracts@0.7.0
+
 ## 0.6.1
 
 ### Patch Changes
