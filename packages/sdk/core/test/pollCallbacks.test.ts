@@ -71,7 +71,7 @@ describe('decrypt polling callbacks', () => {
     const promise = tnDecryptV2({
       ctHash: 1n,
       chainId: 1,
-      permission: null,
+      acp: null,
       thresholdNetworkUrl,
       onPoll,
     });
@@ -154,7 +154,7 @@ describe('decrypt polling callbacks', () => {
     const promise = tnDecryptV2({
       ctHash: 1n,
       chainId: 1,
-      permission: null,
+      acp: null,
       thresholdNetworkUrl,
       onPoll,
     });
@@ -234,7 +234,7 @@ describe('decrypt polling callbacks', () => {
     const promise = tnDecryptV2({
       ctHash: 1n,
       chainId: 1,
-      permission: null,
+      acp: null,
       thresholdNetworkUrl,
       onPoll,
     });
@@ -288,7 +288,7 @@ describe('decrypt polling callbacks', () => {
     const promise = tnDecryptV2({
       ctHash: 1n,
       chainId: 1,
-      permission: null,
+      acp: null,
       thresholdNetworkUrl,
     });
 
@@ -309,7 +309,7 @@ describe('decrypt polling callbacks', () => {
           ok: false,
           status: 404,
           statusText: 'Not Found',
-          json: async () => ({ error: 'permit_denied', error_message: 'permit was rejected' }),
+          json: async () => ({ error: 'acp_denied', error_message: 'acp was rejected' }),
         });
       }
 
@@ -321,14 +321,14 @@ describe('decrypt polling callbacks', () => {
     const promise = tnDecryptV2({
       ctHash: 1n,
       chainId: 1,
-      permission: null,
+      acp: null,
       thresholdNetworkUrl,
     });
 
     const rejection = expect(promise).rejects.toMatchObject({
       code: CofheErrorCode.CtNotFound,
       apiErrorCode: 'ct_not_found',
-      message: 'decrypt ciphertext not found after retrying for 10000ms: permit was rejected',
+      message: 'decrypt ciphertext not found after retrying for 10000ms: acp was rejected',
     });
 
     await vi.advanceTimersByTimeAsync(11_000);
@@ -360,7 +360,7 @@ describe('decrypt polling callbacks', () => {
     const result = await tnDecryptV2({
       ctHash: 1n,
       chainId: 1,
-      permission: null,
+      acp: null,
       thresholdNetworkUrl,
       onPoll,
     });
@@ -415,7 +415,7 @@ describe('decrypt polling callbacks', () => {
     const promise = tnDecryptV2({
       ctHash: 1n,
       chainId: 1,
-      permission: null,
+      acp: null,
       thresholdNetworkUrl,
       onPoll,
     });
@@ -486,7 +486,7 @@ describe('decrypt polling callbacks', () => {
     const promise = tnSealOutputV2({
       ctHash: 1n,
       chainId: 1,
-      permission: {} as any,
+      acp: {} as any,
       thresholdNetworkUrl,
       onPoll,
     });
@@ -570,7 +570,7 @@ describe('decrypt polling callbacks', () => {
     const promise = tnSealOutputV2({
       ctHash: 1n,
       chainId: 1,
-      permission: {} as any,
+      acp: {} as any,
       thresholdNetworkUrl,
       onPoll,
     });
@@ -653,7 +653,7 @@ describe('decrypt polling callbacks', () => {
     const promise = tnSealOutputV2({
       ctHash: 1n,
       chainId: 1,
-      permission: {} as any,
+      acp: {} as any,
       thresholdNetworkUrl,
       onPoll,
     });
@@ -707,7 +707,7 @@ describe('decrypt polling callbacks', () => {
     const promise = tnSealOutputV2({
       ctHash: 1n,
       chainId: 1,
-      permission: {} as any,
+      acp: {} as any,
       thresholdNetworkUrl,
       retry404TimeoutMs: 2000,
     });
@@ -729,7 +729,7 @@ describe('decrypt polling callbacks', () => {
           ok: false,
           status: 404,
           statusText: 'Not Found',
-          json: async () => ({ error: 'permit_denied', error_message: 'permit was rejected' }),
+          json: async () => ({ error: 'acp_denied', error_message: 'acp was rejected' }),
         });
       }
 
@@ -741,14 +741,14 @@ describe('decrypt polling callbacks', () => {
     const promise = tnSealOutputV2({
       ctHash: 1n,
       chainId: 1,
-      permission: {} as any,
+      acp: {} as any,
       thresholdNetworkUrl,
     });
 
     const rejection = expect(promise).rejects.toMatchObject({
       code: CofheErrorCode.CtNotFound,
       apiErrorCode: 'ct_not_found',
-      message: 'sealOutput ciphertext not found after retrying for 10000ms: permit was rejected',
+      message: 'sealOutput ciphertext not found after retrying for 10000ms: acp was rejected',
     });
 
     await vi.advanceTimersByTimeAsync(11_000);
@@ -781,7 +781,7 @@ describe('decrypt polling callbacks', () => {
     const sealed = await tnSealOutputV2({
       ctHash: 1n,
       chainId: 1,
-      permission: {} as any,
+      acp: {} as any,
       thresholdNetworkUrl,
       onPoll,
     });
@@ -837,7 +837,7 @@ describe('decrypt polling callbacks', () => {
     const promise = tnSealOutputV2({
       ctHash: 1n,
       chainId: 1,
-      permission: {} as any,
+      acp: {} as any,
       thresholdNetworkUrl,
       onPoll,
     });

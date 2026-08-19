@@ -1,4 +1,5 @@
-import { arbSepolia as cofheArbSepolia } from '@/chains';
+import { STAGING_TESTS, stagingViemChain } from '../../core/test/stagingRedirect';
+import { arbSepolia as cofheArbSepolia, stagingCofhe } from '@/chains';
 import { Encryptable } from '@/core';
 
 import { describe, it, expect, beforeAll } from 'vitest';
@@ -10,33 +11,38 @@ import { createCofheClient, createCofheConfig } from '../index.js';
 
 const TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 
+const testViemChain = STAGING_TESTS ? stagingViemChain : viemArbitrumSepolia;
+const testCofheChain = STAGING_TESTS ? stagingCofhe : cofheArbSepolia;
+
 describe('@cofhe/sdk/web - Worker vs Main Thread Output Validation', () => {
   let publicClient: PublicClient;
   let walletClient: WalletClient;
+  let consumingContract: `0x${string}`;
 
   beforeAll(() => {
     publicClient = createPublicClient({
-      chain: viemArbitrumSepolia,
+      chain: testViemChain,
       transport: http(),
     });
 
     const account = privateKeyToAccount(TEST_PRIVATE_KEY);
     walletClient = createWalletClient({
-      chain: viemArbitrumSepolia,
+      chain: testViemChain,
       transport: http(),
       account,
     });
+    consumingContract = account.address;
   });
 
   it('should produce consistent output format regardless of worker usage', async () => {
     // Create two clients - one with workers, one without
     const configWithWorker = createCofheConfig({
-      supportedChains: [cofheArbSepolia],
+      supportedChains: [testCofheChain],
       useWorkers: true,
     });
 
     const configWithoutWorker = createCofheConfig({
-      supportedChains: [cofheArbSepolia],
+      supportedChains: [testCofheChain],
       useWorkers: false,
     });
 
@@ -49,34 +55,29 @@ describe('@cofhe/sdk/web - Worker vs Main Thread Output Validation', () => {
     const value = Encryptable.uint128(12345n);
 
     const [resultWithWorker, resultWithoutWorker] = await Promise.all([
-      clientWithWorker.encryptInputs([value]).execute(),
-      clientWithoutWorker.encryptInputs([value]).execute(),
+      clientWithWorker.encryptInputs([value]).setConsumingContract(consumingContract).execute(),
+      clientWithoutWorker.encryptInputs([value]).setConsumingContract(consumingContract).execute(),
     ]);
 
     // Both should succeed
     expect(resultWithWorker).toBeDefined();
     expect(resultWithoutWorker).toBeDefined();
 
-    // Both should have same structure (but different encrypted values)
-    const withWorker = resultWithWorker[0];
-    const withoutWorker = resultWithoutWorker[0];
+    // Both should have same structure (but different encrypted values):
+    // [hash, signature] - one hash per input, followed by the shared batch signature.
+    expect(resultWithWorker.length).toBe(2);
+    expect(resultWithoutWorker.length).toBe(2);
 
-    expect(withWorker).toHaveProperty('ctHash');
-    expect(withWorker).toHaveProperty('signature');
-    expect(withWorker).toHaveProperty('utype');
-    expect(withWorker).toHaveProperty('securityZone');
-    expect(withoutWorker).toHaveProperty('ctHash');
-    expect(withoutWorker).toHaveProperty('signature');
-    expect(withoutWorker).toHaveProperty('utype');
-    expect(withoutWorker).toHaveProperty('securityZone');
+    const [hashWithWorker, signatureWithWorker] = resultWithWorker;
+    const [hashWithoutWorker, signatureWithoutWorker] = resultWithoutWorker;
 
     // Format should be identical
-    expect(typeof withWorker.ctHash).toBe('bigint');
-    expect(typeof withoutWorker.ctHash).toBe('bigint');
-    expect(withWorker.signature.startsWith('0x')).toBe(true);
-    expect(withoutWorker.signature.startsWith('0x')).toBe(true);
-    expect(typeof withWorker.utype).toBe('number');
-    expect(typeof withoutWorker.utype).toBe('number');
+    expect(typeof hashWithWorker).toBe('string');
+    expect(typeof hashWithoutWorker).toBe('string');
+    expect(hashWithWorker.startsWith('0x')).toBe(true);
+    expect(hashWithoutWorker.startsWith('0x')).toBe(true);
+    expect(signatureWithWorker.startsWith('0x')).toBe(true);
+    expect(signatureWithoutWorker.startsWith('0x')).toBe(true);
 
     // Note: The actual encrypted values will differ because of randomness
     // in the encryption process, so we don't check equality

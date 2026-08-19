@@ -5,6 +5,9 @@ export default defineConfig({
     globals: true,
     testTimeout: 180_000,
     globalSetup: ['./setup/anvil.ts'],
+    // suites share one anvil instance and the zk-verifier signer wallet —
+    // parallel files race its nonce (observed: 'Nonce provided ... too low')
+    fileParallelism: false,
 
     projects: [
       {

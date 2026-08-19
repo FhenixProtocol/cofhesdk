@@ -61,7 +61,7 @@ export function useCofheReadContractAndDecrypt<
     abi?: TAbi;
     functionName?: TfunctionName;
     args?: ContractFunctionArgs<TAbi, 'pure' | 'view', TfunctionName>;
-    requiresPermit?: boolean;
+    requiresACP?: boolean;
   },
 
   {
@@ -80,7 +80,7 @@ export function useCofheReadContractAndDecrypt<
 ): {
   encrypted: UseCofheReadContractResult<TAbi, TfunctionName>;
   decrypted: UseQueryResult<TDecryptedSelectedData, Error>;
-  disabledDueToMissingValidPermit: boolean;
+  disabledDueToMissingValidACP: boolean;
   /** The read's latest outcome is an error (its cached ctHash, if any, is stale). */
   isReadError: boolean;
   /** The decryption's latest outcome is an error (any cached decrypted value is stale). */
@@ -90,10 +90,10 @@ export function useCofheReadContractAndDecrypt<
   /** The read succeeded and the handle is 0 — a *known zero* value, with no ciphertext to decrypt. */
   isKnownZero: boolean;
 } {
-  const { address, abi, functionName, args, requiresPermit = true } = params;
+  const { address, abi, functionName, args, requiresACP = true } = params;
   const queryClient = useInternalQueryClient();
 
-  const encrypted = useCofheReadContract({ address, abi, functionName, args, requiresPermit }, readQueryOptions);
+  const encrypted = useCofheReadContract({ address, abi, functionName, args, requiresACP }, readQueryOptions);
 
   const encryptedData = encrypted.data;
 
@@ -154,7 +154,7 @@ export function useCofheReadContractAndDecrypt<
   return {
     encrypted,
     decrypted,
-    disabledDueToMissingValidPermit: encrypted.disabledDueToMissingValidPermit,
+    disabledDueToMissingValidACP: encrypted.disabledDueToMissingValidACP,
     isReadError,
     isDecryptError,
     isValueStale,

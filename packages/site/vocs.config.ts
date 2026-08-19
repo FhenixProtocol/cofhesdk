@@ -49,6 +49,10 @@ export default defineConfig({
         link: '/quick-start',
       },
       {
+        text: 'Migrating to 0.7.0',
+        link: '/migrating-to-0-7-0',
+      },
+      {
         text: 'Migrating from `cofhejs`',
         link: '/migrating-from-cofhejs',
       },
@@ -76,8 +80,8 @@ export default defineConfig({
             text: 'Decryption',
             items: [
               {
-                text: 'Permits',
-                link: '/sdk/permits',
+                text: 'ACPs',
+                link: '/sdk/acp',
               },
               {
                 text: 'Decrypting to View',
@@ -147,6 +151,10 @@ export default defineConfig({
           {
             text: 'Decryption Lifecycle',
             link: '/reference/decryption-lifecycle',
+          },
+          {
+            text: 'Sharing Encrypted Values',
+            link: '/reference/sharing-encrypted-values',
           },
         ],
       },

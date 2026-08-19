@@ -5,11 +5,15 @@
 
 import { createPublicClient, createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { TEST_LOCALCOFHE_PRIVATE_KEY, TEST_PRIVATE_KEY, getSimpleTestAddress } from '@cofhe/test-setup';
+import {
+  TEST_LOCALCOFHE_PRIVATE_KEY,
+  TEST_PRIVATE_KEY,
+  TEST_ALICE_PRIVATE_KEY,
+  getSimpleTestAddress,
+} from '@cofhe/test-setup';
 import type { ClientFactory, TestContext, TestChainConfig } from '../types.js';
 
 const DEFAULT_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
-const ALICE_PRIVATE_KEY = '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d' as const;
 
 function getChainPrivateKey(chainId: number): `0x${string}` {
   if (chainId === 420105) {
@@ -34,7 +38,7 @@ export function createTestnetSetup(chain: Pick<TestChainConfig, 'viemChain' | 'c
     }
 
     const bobAccount = privateKeyToAccount(getChainPrivateKey(chain.id));
-    const aliceAccount = privateKeyToAccount(ALICE_PRIVATE_KEY);
+    const aliceAccount = privateKeyToAccount(TEST_ALICE_PRIVATE_KEY);
 
     const transport = http(chain.rpc, { timeout: 60_000, retryCount: 3 });
 
@@ -56,8 +60,19 @@ export function createTestnetSetup(chain: Pick<TestChainConfig, 'viemChain' | 'c
       account: aliceAccount,
     });
 
+    // ACP: default revocation validator, if one is deployed on this chain
+    // (e.g. TEST_LOCALCOFHE_ACP_VALIDATOR for the local stack)
+    const acpValidator =
+      chain.id === 420105 ? (process.env.TEST_LOCALCOFHE_ACP_VALIDATOR as `0x${string}` | undefined) : undefined;
+    const acpShareRegistry =
+      chain.id === 420105 ? (process.env.TEST_LOCALCOFHE_ACP_SHARE_REGISTRY as `0x${string}` | undefined) : undefined;
+
     const config = factory.createConfig({
       supportedChains: [chain.cofheChain],
+      acp: {
+        ...(acpValidator ? { defaultRevoker: { [chain.id]: acpValidator } } : {}),
+        ...(acpShareRegistry ? { sharingRegistry: { [chain.id]: acpShareRegistry } } : {}),
+      },
     });
     const cofheClient = factory.createClient(config);
     await cofheClient.connect(publicClient, bobWalletClient);

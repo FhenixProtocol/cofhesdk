@@ -1,0 +1,429 @@
+---
+title: ACPs
+description: EIP-712 signed ACPs (Access Control Permissions) for accessing encrypted on-chain data
+---
+
+# ACPs
+
+ACPs (Access Control Permissions, formerly called _permits_) are EIP-712 signatures that authorize decryption of confidential data. The `issuer` field identifies who is accessing the data - the issuer must have been granted access on-chain via `FHE.allow(handle, address)`. When an ACP is used, CoFHE validates it against the ACL contract to confirm that the issuer has access to the requested encrypted handle.
+
+Each ACP includes a sealing keypair. The public key is sent to CoFHE so it can re-encrypt the data for the ACP holder. The private key stays client-side and is used to unseal the returned data. ACPs are stored locally and identified by a deterministic hash of their fields.
+
+ACPs can be used to decrypt your own data (self ACPs), or to delegate your access to another party (sharing ACPs).
+
+:::info
+The examples below show two approaches for working with ACPs. The `client.acp` API is the recommended approach -- it automatically signs ACPs with the connected wallet and manages the ACP store. The `ACPUtils` API is a lower-level alternative that gives you direct control over signing and storage.
+:::
+
+## When do you need an ACP?
+
+- **`decryptForView`**: always requires an ACP.
+- **`decryptForTx`**: depends on the contract's ACL policy for that [handle](/reference/dictionary#handle) (`ctHash` in code).
+  - If the policy allows anyone to decrypt, you can use `.withoutACP()`.
+  - If the policy restricts decryption, you must use `.withACP(...)`.
+
+## Prerequisites
+
+1. Create and connect a client (see the [client page](./client.mdx)).
+
+ACPs are scoped to a **chainId + account**. The SDK uses the connected chain and account by default.
+
+## Quickstart
+
+The recommended approach is to create (or reuse) a self ACP. Once created, it is stored and set as the active ACP for the connected chain and account.
+
+::::code-group
+
+```ts twoslash [client.acp]
+// @noErrors
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+import type { PublicClient, WalletClient } from 'viem';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const publicClient: PublicClient;
+declare const walletClient: WalletClient;
+// ---cut---
+await client.connect(publicClient, walletClient);
+
+// Returns the active self ACP if one exists, otherwise creates and signs a new one.
+const acp = await client.acp.getOrCreateSelfACP();
+```
+
+```ts twoslash [ACPUtils]
+// @noErrors
+import {
+  ACPUtils,
+  setACP,
+  setActiveACPHash,
+} from '@cofhe/sdk/acps';
+import type { PublicClient, WalletClient } from 'viem';
+
+declare const publicClient: PublicClient;
+declare const walletClient: WalletClient;
+// ---cut---
+const acp = await ACPUtils.createSelfAndSign(
+  { issuer: walletClient.account!.address },
+  publicClient,
+  walletClient
+);
+
+// Manually store and activate the ACP
+const chainId = await publicClient.getChainId();
+const account = walletClient.account!.address;
+setACP(chainId, account, acp);
+setActiveACPHash(chainId, account, acp.hash);
+```
+
+::::
+
+After this, the active ACP is picked up automatically:
+
+- `decryptForView(...).execute()` uses the active ACP.
+- `decryptForTx(...).withACP().execute()` uses the active ACP.
+
+## ACP types
+
+The SDK supports three ACP types:
+
+| Type        | Who signs                                 | Use case                                                  |
+| ----------- | ----------------------------------------- | --------------------------------------------------------- |
+| `self`      | issuer only                               | Decrypt your own data (most common)                       |
+| `sharing`   | issuer only                               | A shareable "offer" created by the issuer for a recipient |
+| `recipient` | recipient (and includes issuer signature) | The imported ACP after the recipient signs it             |
+
+Notes:
+
+- An ACP includes a **sealing keypair**. The public key is sent to CoFHE for re-encryption. The private key stays client-side for unsealing.
+- ACP `expiration` is a unix timestamp in **seconds**. The default is **7 days from creation**.
+- When an ACP is created via `client.acp.*`, it is automatically stored and set as the active ACP for the current chain and account.
+
+## Creating a self ACP
+
+A self ACP lets you decrypt data that was allowed to your address. Use `createSelf` to always create a new ACP, or `getOrCreateSelfACP` to reuse an existing active ACP.
+
+### createSelf
+
+::::code-group
+
+```ts twoslash [client.acp]
+// @noErrors
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+import type { PublicClient, WalletClient } from 'viem';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const publicClient: PublicClient;
+declare const walletClient: WalletClient;
+// ---cut---
+await client.connect(publicClient, walletClient);
+
+const acp = await client.acp.createSelf({
+  issuer: walletClient.account!.address,
+  name: 'My self ACP',
+});
+
+acp.type;
+acp.hash;
+```
+
+```ts twoslash [ACPUtils]
+// @noErrors
+import { ACPUtils } from '@cofhe/sdk/acps';
+import type { PublicClient, WalletClient } from 'viem';
+
+declare const publicClient: PublicClient;
+declare const walletClient: WalletClient;
+// ---cut---
+const acp = await ACPUtils.createSelfAndSign(
+  {
+    issuer: walletClient.account!.address,
+    name: 'My self ACP',
+  },
+  publicClient,
+  walletClient
+);
+
+acp.type;
+acp.hash;
+```
+
+::::
+
+### getOrCreateSelfACP
+
+Only available via the `client.acp` API. Returns the active self ACP if one exists. Otherwise creates and signs a new one. This is the recommended approach for most applications.
+
+```ts twoslash [client.acp]
+// @noErrors
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+import type { PublicClient, WalletClient } from 'viem';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const publicClient: PublicClient;
+declare const walletClient: WalletClient;
+// ---cut---
+await client.connect(publicClient, walletClient);
+
+const acp = await client.acp.getOrCreateSelfACP();
+acp.type;
+```
+
+## Sharing ACPs
+
+Sharing ACPs let an issuer delegate their ACL access to a recipient. The recipient can then decrypt the issuer's data without needing their own `FHE.allow`. This flow may be useful for auditors or other parties that need to access data but do not have the ability to grant themselves access.
+
+:::::steps
+
+### Issuer creates a sharing ACP
+
+The issuer creates a sharing ACP specifying the recipient's address. The issuer's signature does not include a sealing key.
+
+::::code-group
+
+```ts twoslash [client.acp]
+// @noErrors
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+import type { PublicClient, WalletClient } from 'viem';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const publicClient: PublicClient;
+declare const walletClient: WalletClient;
+declare const recipient: `0x${string}`;
+// ---cut---
+await client.connect(publicClient, walletClient);
+
+const sharingACP = await client.acp.createSharing({
+  issuer: walletClient.account!.address,
+  recipient,
+  name: 'Share with recipient',
+});
+```
+
+```ts twoslash [ACPUtils]
+// @noErrors
+import { ACPUtils } from '@cofhe/sdk/acps';
+import type { PublicClient, WalletClient } from 'viem';
+
+declare const publicClient: PublicClient;
+declare const walletClient: WalletClient;
+declare const recipient: `0x${string}`;
+// ---cut---
+const sharingACP = await ACPUtils.createSharingAndSign(
+  {
+    issuer: walletClient.account!.address,
+    recipient,
+    name: 'Share with recipient',
+  },
+  publicClient,
+  walletClient
+);
+```
+
+::::
+
+### Issuer exports the ACP
+
+Export the ACP as a JSON blob and share it with the recipient.
+
+```ts twoslash [ACPUtils]
+// @noErrors
+import { ACPUtils } from '@cofhe/sdk/acps';
+import type { ACP } from '@cofhe/sdk/acps';
+
+declare const sharingACP: ACP;
+// ---cut---
+const exported = ACPUtils.export(sharingACP);
+```
+
+:::info
+The exported JSON does not contain any sensitive data and can be shared via any channel.
+:::
+:::warning
+Do not share `serialize(acp)` output -- serialization is meant for _local persistence_ and includes the sealing private key.
+:::
+
+### Recipient imports and signs
+
+The recipient imports the exported JSON and signs it with their wallet. On import, a new sealing key is generated for the recipient. The recipient's sealing key is the one CoFHE uses for re-encryption. The resulting ACP is stored and set as active.
+
+::::code-group
+
+```ts twoslash [client.acp]
+// @noErrors
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+import type { PublicClient, WalletClient } from 'viem';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const publicClient: PublicClient;
+declare const walletClient: WalletClient;
+declare const exported: string;
+// ---cut---
+await client.connect(publicClient, walletClient);
+
+const recipientACP = await client.acp.importShared(exported);
+
+recipientACP.type;
+recipientACP.hash;
+```
+
+```ts twoslash [ACPUtils]
+// @noErrors
+import {
+  ACPUtils,
+  setACP,
+  setActiveACPHash,
+} from '@cofhe/sdk/acps';
+import type { PublicClient, WalletClient } from 'viem';
+
+declare const publicClient: PublicClient;
+declare const walletClient: WalletClient;
+declare const exported: string;
+// ---cut---
+const recipientACP = await ACPUtils.importSharedAndSign(
+  exported,
+  publicClient,
+  walletClient
+);
+
+const chainId = await publicClient.getChainId();
+const account = walletClient.account!.address;
+setACP(chainId, account, recipientACP);
+setActiveACPHash(chainId, account, recipientACP.hash);
+```
+
+::::
+
+:::::
+
+## Sharing on-chain
+
+Instead of exporting JSON and sending it over a second channel, the issuer can post the share to the on-chain **ACP share registry**. The recipient discovers it from any cofhesdk-enabled app and imports it directly — no copy-paste.
+
+Configure the registry address per chain:
+
+```ts
+const config = createCofheConfig({
+  // ...
+  acp: {
+    sharingRegistry: { 11155111: '0x…' },
+  },
+});
+```
+
+### Issuer shares on-chain
+
+```ts twoslash [client.acp]
+// @noErrors
+declare const client: import('@cofhe/sdk').CofheClient;
+declare const recipientAddress: `0x${string}`;
+// ---cut---
+const sharingAcp = await client.acp.createSharing({
+  issuer: '0x…', // connected account
+  recipient: recipientAddress,
+});
+
+// posts the signed share payload to the registry
+const { txHash, shareId } = await client.acp.shareOnChain(sharingAcp);
+```
+
+Only signed sharing ACPs can be posted (same rule as `export()`), and only by their issuer. The issuer can retract a pending share with `client.acp.cancelShare(shareId)`.
+
+### Recipient discovers and imports
+
+```ts twoslash [client.acp]
+// @noErrors
+declare const client: import('@cofhe/sdk').CofheClient;
+// ---cut---
+// importable shares addressed to the connected account (unexpired, not revoked)
+const incoming = await client.acp.getIncomingShares();
+
+// fills in the recipient's sealing key, signs, stores and activates
+const acp = await client.acp.importFromChain(incoming[0]);
+
+// optionally clean up the on-chain entry afterwards (or decline a share)
+await client.acp.dismissShare(incoming[0].shareId);
+```
+
+The registry lists only importable shares: expired shares and shares whose underlying acp was revoked are filtered out. Everything posted is cleartext by design (the same data as the exported JSON) — note that posting on-chain makes the issuer→recipient relationship public.
+
+## Active ACP management
+
+The SDK tracks all stored ACPs and an **active ACP hash** per `chainId + account`. Creating or importing an ACP via `client.acp.*` automatically stores it and selects it as active.
+
+### List stored ACPs
+
+```ts twoslash
+// @noErrors
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+import type { PublicClient, WalletClient } from 'viem';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const publicClient: PublicClient;
+declare const walletClient: WalletClient;
+// ---cut---
+await client.connect(publicClient, walletClient);
+
+const acps = client.acp.getACPs();
+Object.keys(acps);
+```
+
+### Read / select the active ACP
+
+```ts twoslash
+// @noErrors
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+import type { PublicClient, WalletClient } from 'viem';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const publicClient: PublicClient;
+declare const walletClient: WalletClient;
+declare const someACPHash: string;
+// ---cut---
+await client.connect(publicClient, walletClient);
+
+const active = client.acp.getActiveACP();
+active?.hash;
+
+client.acp.selectActiveACP(someACPHash);
+```
+
+### Removing ACPs
+
+```ts twoslash
+// @noErrors
+import { createCofheConfig, createCofheClient } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+import type { PublicClient, WalletClient } from 'viem';
+
+const config = createCofheConfig({ supportedChains: [chains.sepolia] });
+const client = createCofheClient(config);
+declare const publicClient: PublicClient;
+declare const walletClient: WalletClient;
+declare const acpHash: string;
+// ---cut---
+await client.connect(publicClient, walletClient);
+
+client.acp.removeACP(acpHash);
+client.acp.removeActiveACP();
+```
+
+## Persistence and security
+
+- The SDK persists ACPs in a store keyed by `chainId + account`.
+- In web and React environments, this store uses `localStorage` under the key `cofhesdk-acps`.
+- A stored ACP includes the **sealing private key**. Treat it like a secret.
+  - Never share serialized ACPs with other users.
+  - To share access, use `ACPUtils.export(...)` which strips sensitive fields.

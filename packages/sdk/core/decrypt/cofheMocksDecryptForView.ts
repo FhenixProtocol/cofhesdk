@@ -1,4 +1,4 @@
-import { type Permit, PermitUtils } from '@/permits';
+import { type ACP, ACPUtils } from '@/acps';
 
 import { type PublicClient } from 'viem';
 import { MockThresholdNetworkAbi } from './MockThresholdNetworkAbi.js';
@@ -9,14 +9,14 @@ import { MOCKS_THRESHOLD_NETWORK_ADDRESS } from '../consts.js';
 export async function cofheMocksDecryptForView(
   ctHash: bigint | string,
   utype: FheTypes,
-  permit: Permit,
+  acp: ACP,
   publicClient: PublicClient
 ): Promise<bigint> {
-  const permission = PermitUtils.getPermission(permit, true);
+  const wireAcp = ACPUtils.getPublic(acp, true);
   const permissionWithBigInts = {
-    ...permission,
-    expiration: BigInt(permission.expiration),
-    validatorId: BigInt(permission.validatorId),
+    ...wireAcp,
+    expiration: BigInt(wireAcp.expiration),
+    revokerData: BigInt(wireAcp.revokerData),
   };
 
   const [allowed, error, result] = await publicClient.readContract({
@@ -41,7 +41,7 @@ export async function cofheMocksDecryptForView(
   }
 
   const sealedBigInt = BigInt(result);
-  const sealingKeyBigInt = BigInt(permission.sealingKey);
+  const sealingKeyBigInt = BigInt(acp.sealingKey);
   const unsealed = sealedBigInt ^ sealingKeyBigInt;
 
   return unsealed;
