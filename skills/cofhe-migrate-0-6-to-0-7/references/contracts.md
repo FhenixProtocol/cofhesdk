@@ -37,6 +37,21 @@ grep -rnE '\bexternal(Ebool|Euint8|Euint16|Euint32|Euint64|Euint128|Eaddress)\b'
 Then classify each function by the two questions that decide everything:
 **(1) which shape does it use now, and (2) how many encrypted parameters does it take?**
 
+### Sizing the job in one compile
+
+`solc` and `hardhat compile` stop at the **first** unresolved import, so you cannot enumerate the
+work by compiling — you fix one error and get the next. To see the whole blast radius at once, in a
+**scratch copy that is never committed**, re-declare the deleted struct and repoint the imports at
+it, then compile:
+
+```solidity
+// scratch copy only
+struct InEuint64 { uint256 ctHash; uint8 securityZone; uint8 utype; bytes signature; }
+```
+
+Every other 0.2.x incompatibility surfaces together, with no ABI decisions made yet. Knowing the
+exposure up front is what makes it safe to script the change rather than hand-edit each signature.
+
 ---
 
 ## Case A — uses `InEuintXX` (most 0.6.x contracts) → must change
@@ -58,7 +73,17 @@ function setValue(externalEuint32 inValue, bytes memory proof) public {
 }
 ```
 
-The signature moves out of the struct into a trailing `bytes` parameter. **Requires a redeploy.**
+The signature moves out of the struct into a `bytes` parameter immediately after the `external*`
+handle. Extra non-encrypted arguments can follow that pair. **Requires a redeploy.**
+
+`InEuintXX memory` and `InEuintXX calldata` both occur — the examples here show `memory`, but a
+rewrite keyed on that spelling silently skips the `calldata` ones. The detection greps match the
+bare type name and catch both; the transformation must too.
+
+> **Linked libraries need more than a redeploy.** If the changed code lives in an external library
+> that consumers link **by address**, the library gets a new address, **every host must be relinked
+> and redeployed**, and any reproducible-bytecode or explorer-verification arrangement resets to a
+> new baseline. Libraries deployed before the migration are not interchangeable with the new one.
 
 If the function takes more than one encrypted value, go to Case C instead.
 
@@ -109,6 +134,30 @@ You **cannot** keep two `(hash, proof)` pairs. The signature covers
 **Ask the developer before doing this.** Named parameters collapse into array indices, which
 changes how every caller reads. The ordering is a design decision, not a mechanical one.
 
+### Keeping the names
+
+The array is not forced. What is forced is **one signature covering all the hashes** — the handles
+can stay as separate named parameters, assembled into the array inside the function:
+
+```solidity
+function transfer(
+  address to,
+  externalEuint32 amount,
+  externalEuint32 fee,
+  bytes calldata signature
+) public {
+  externalEuint32[] memory packed = new externalEuint32[](2);
+  packed[0] = amount;
+  packed[1] = fee;
+  euint32[] memory v = FHE.asEuint32s(packed, signature);
+  // v[0] is amount, v[1] is fee
+}
+```
+
+Same signature, same verification, readable call sites. It costs a few lines of assembly in the
+function body and keeps the ABI self-documenting. Offer this alongside the array form — most
+projects that resist Case C are resisting the loss of names, not the batching.
+
 ### Mixed types in one batch
 
 There is no single typed array for a `euint32` plus an `ebool`. Call `batchVerifyInputs` directly:
@@ -122,14 +171,39 @@ uint256[] memory handles = ITaskManager(TASK_MANAGER_ADDRESS).batchVerifyInputs(
 
 ---
 
-## The trailing-`bytes` rule
+## The proof-follows-hash rule
 
-`@cofhe/abi` (used by `useCofheEncryptAndWriteContract` and the ABI helpers) requires that **any
-function with `external*` inputs has a plain `bytes` as its last parameter** — the slot the shared
-batch signature goes into. `extractEncryptableValues` / `insertEncryptedValues` throw otherwise.
+The batch signature does **not** have to be the function's last parameter. It has to immediately
+follow the `external*` handle it authenticates — `FHE.asEuintXX(hash, proof)` is a pair, not a
+trailing slot.
 
-If you put the signature anywhere but last, the TypeScript helpers will reject the ABI even
-though the contract compiles.
+Extra non-encrypted arguments after that pair are fine. ERC-7984's `*AndCall` overloads are the
+canonical example (OpenZeppelin confidential contracts / Zama):
+
+```solidity
+function confidentialTransferAndCall(
+  address to,
+  externalEuint64 encryptedAmount,
+  bytes calldata inputProof,
+  bytes calldata data
+) external returns (euint64 transferred);
+
+function confidentialTransferFromAndCall(
+  address from,
+  address to,
+  externalEuint64 encryptedAmount,
+  bytes calldata inputProof,
+  bytes calldata data
+) external returns (euint64 transferred);
+```
+
+Do **not** move `inputProof` to the last slot to please TypeScript helpers. Match that pairing.
+
+`@cofhe/abi` (`extractEncryptableValues` / `insertEncryptedValues`, and
+`useCofheEncryptAndWriteContract`) follows the same rule: it takes the `bytes` immediately after the
+contiguous run of `external*` parameters as the signature slot, so ERC-7984-style `*AndCall` wires
+up automatically. The one shape it rejects is `external*` parameters that are **not adjacent** to
+each other — they share a single signature, so there is no unambiguous slot to pair them with.
 
 ## Verify
 

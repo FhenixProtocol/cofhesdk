@@ -11,7 +11,7 @@ This page covers the “encrypt → write tx” flow: encrypt plaintext values i
 
 The flow is as follows:
 
-1. Ensure your contract function accepts `external*` handles followed by a trailing `bytes` parameter for the shared signature.
+1. Ensure your contract function accepts `external*` handles, each followed by a `bytes` parameter carrying the shared signature.
 2. Encrypt the plaintext values with [`encryptInputs`](./encrypting-inputs.mdx).
 3. Send a transaction, passing the hashes and the signature as arguments.
 
@@ -19,7 +19,7 @@ The flow is as follows:
 
 1. Create and connect a client (see the [client page](./client.mdx)).
 
-2. Your contract function must accept `external*` handles (`externalEbool`, `externalEuint32`, etc.) plus a trailing `bytes` parameter for the shared batch signature.
+2. Your contract function must accept `external*` handles (`externalEbool`, `externalEuint32`, etc.) plus a `bytes` parameter carrying the shared batch signature. Convention is to place the `bytes` immediately after the handle it authenticates — `FHE.asEuintXX(hash, proof)` is a pair. Other arguments may follow.
 
 The encrypted type you choose in JavaScript/TypeScript must match the Solidity parameter type:
 
@@ -87,11 +87,18 @@ await publicClient.waitForTransactionReceipt({ hash });
 
 ## Automatic argument wiring with `@cofhe/abi`
 
-For contracts with a mix of plain and encrypted arguments, `@cofhe/abi`'s `extractEncryptableValues`/`insertEncryptedValues` will detect the `external*` parameters and the trailing `bytes` signature slot for you, so you can call `encryptInputs` and build the final call args from the ABI alone — see the `@cofhe/react` `useCofheEncryptAndWriteContract` hook for a ready-made version of this pattern.
+For contracts with a mix of plain and encrypted arguments, `@cofhe/abi`'s `extractEncryptableValues`/`insertEncryptedValues` will detect the `external*` parameters and inject the signature for you, so you can call `encryptInputs` and build the final call args from the ABI alone — see the `@cofhe/react` `useCofheEncryptAndWriteContract` hook for a ready-made version of this pattern.
+
+:::info
+The helpers take the `bytes` immediately after the encrypted parameters as the signature slot, so
+ERC-7984-style `*AndCall` overloads — where a `data` payload follows the proof — wire up without
+any special handling. The one layout they reject is `external*` parameters that are not adjacent to
+each other: they share a single signature, so there is no unambiguous slot to pair them with.
+:::
 
 ## Common pitfalls
 
 - **Wrong `Encryptable` type**: the `Encryptable.*` factory must match the Solidity parameter type (`externalEuint32` vs `externalEuint64`, etc).
-- **Missing/misplaced signature parameter**: a contract function with `external*` inputs must end with a plain `bytes` parameter to receive the shared batch signature — the SDK and `@cofhe/abi` both rely on this convention.
+- **Missing or misplaced signature parameter**: a contract function with `external*` inputs needs a plain `bytes` parameter immediately after them to receive the shared batch signature. Other arguments may follow it, but the encrypted parameters themselves must be adjacent.
 - **Wrong account / chain**: encrypted inputs are authorized for a specific `account + chainId`. If you encrypt under the wrong wallet/network, the contract call may revert.
 - **Splitting a batch**: don't reorder the hashes relative to how they were encrypted, and don't pass a subset of a batch's hashes with its signature — the signature covers the exact ordered set produced by that `execute()` call.

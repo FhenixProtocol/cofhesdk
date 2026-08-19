@@ -42,11 +42,35 @@ grep -rnE 'defaultPermitExpiration|shareablePermits|autogeneratePermits|permitEx
 grep -rnE 'createIn(Ebool|Euint)|_asHashPlusProof|zkVerifySign' --include='*.sol' .
 ```
 
-## 4. Build and test
+## 4. Build and test — every runner the project has
+
+A green `forge build` is not a pass. Neither is one test suite. Run all of these:
 
 ```bash
-npm run build && npm test      # adapt to the project's scripts
+forge build && forge test              # if the project uses Foundry
+npx hardhat compile && npx hardhat test # if the project uses Hardhat
+npx tsc --noEmit                        # must include test files, not just src
+npm run build && npm test               # adapt to the project's scripts
 ```
+
+A repo with both runners will have **different** failures in each — Foundry catches the Solidity
+and helper renames, Hardhat catches the selector strings and EOA-share breakage
+([tests.md](tests.md)).
+
+## 4b. Re-run the greps
+
+The compiler cannot see any of these, so do them last, when the code is otherwise green:
+
+```bash
+grep -rnE '\bIn(Ebool|Euint8|Euint16|Euint32|Euint64|Euint128|Eaddress)\b' --include='*.sol' .
+grep -rn  'allowTransient' --include='*.sol' .
+grep -rnE 'createIn(Ebool|Euint)|_asHashPlusProof|zkVerifySign' --include='*.sol' .
+grep -rnE 'withoutPermit|withPermit|decryptForTx_with' --include='*.ts' --include='*.sol' .
+grep -rnE '\(uint256,uint8,uint8,bytes\)' --include='*.ts' --include='*.tsx' .
+```
+
+Every remaining hit is either unfinished work or a deliberate skip. There is no third category —
+if it is deliberate, it belongs in the report.
 
 ## 5. Checks the tooling cannot make
 
@@ -63,14 +87,15 @@ Go through these with the developer:
 - [ ] **Mock stack wires up `ACPTimestampRevoker` and `ACPShareRegistry`**, if the project
       deploys mocks itself.
 
-## Expected failure: `ZK_VERIFY_FAILED` on a live chain
+## Expected failure: `ZK_VERIFY_FAILED` on the public testnets
 
-The CoFHE verifier's batch endpoint is not deployed yet. Encryption against a **real chain** fails
-with `ZK_VERIFY_FAILED` regardless of whether the migration is correct.
+The verifier's batch endpoint is live on **CoFHE staging** and the host chain, and encryption works
+end-to-end there and against hardhat mocks. It is **not yet deployed on the public testnets**
+(Sepolia, Arbitrum Sepolia, Base Sepolia), where encryption fails with `ZK_VERIFY_FAILED` regardless
+of whether the migration is correct.
 
-**Tell the developer this before they debug it.** Right now, "did my migration work?" can only be
-answered against hardhat mocks. Once the endpoint ships, live encryption starts working with no
-further code changes.
+**Tell the developer this before they debug it.** Point a run at staging to confirm the migration is
+correct; the testnets start working with no further code changes once the endpoint ships there.
 
 ## Final report
 

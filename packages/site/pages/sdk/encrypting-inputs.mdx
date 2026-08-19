@@ -285,7 +285,7 @@ Encryptable.create('address', '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045');
 // [externalHash1, externalHash2, signature]
 ```
 
-Use this with Solidity functions that accept `external*` handles followed by a trailing `bytes` parameter for the shared signature — see [Writing Encrypted Data to a Contract](./writing-encrypted-data-to-contract.mdx) for contract examples, and the [`@cofhe/abi` reference](/reference/dictionary) for how `insertEncryptedValues` threads the hashes/signature into arbitrary contract calls automatically.
+Use this with Solidity functions that accept `external*` handles plus a `bytes` parameter for the shared signature — see [Writing Encrypted Data to a Contract](./writing-encrypted-data-to-contract.mdx) for contract examples, and the [`@cofhe/abi` reference](/reference/dictionary) for how `insertEncryptedValues` threads the hashes/signature into arbitrary contract calls automatically.
 
 ## Common pitfalls
 

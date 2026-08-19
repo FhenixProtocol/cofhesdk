@@ -36,8 +36,16 @@ which has no `execute()` method. `setConsumingContract(address)` returns the bui
 Property 'execute' does not exist on type 'EncryptInputsBuilderUnset<[...]>'
 ```
 
-The address is the contract whose function will pass the values into `FHE.asEuint*` — i.e. the
-contract you are about to call, not the user's wallet.
+The address is the contract whose function will pass the values into `FHE.asEuint*` /
+`batchVerifyInputs` — **not** the user's wallet, and **not necessarily the contract you are
+calling.**
+
+Those two come apart whenever a call is forwarded. If a test or app calls `vault.deposit(hash,
+proof)` and the _vault_ is what runs `FHE.asEuint64`, the consuming contract is the vault. Binding
+it to the token — the thing the value is conceptually "for" — compiles, typechecks, and reverts at
+runtime when the on-chain digest is recomputed against `msg.sender`.
+
+Trace the value to the `FHE.asEuint*` call and use that contract's address.
 
 Chainable setters (`setAccount`, `setChainId`, `setSecurityZone`, `setUseWorker`, `onStep`)
 preserve whichever state they are called on, so order doesn't matter:
@@ -63,6 +71,10 @@ hash) or ``readonly `0x${string}`[]`` (the whole result).
 `EncryptedUint32Input`, `EncryptedUint64Input`, `EncryptedUint128Input`, `EncryptedAddressInput`,
 `EncryptedItemInputs<T>`, `EncryptableToEncryptedItemInputMap`, `assertCorrectEncryptedItemInput`.
 
+These also fail as **type-only imports on your own helpers** — a fixture typed
+`(encAmount: EncryptedUint64Input)` breaks at its definition, not at the call site. Spread the pair
+(`[hash, proof]`) or infer it: `Awaited<ReturnType<typeof encryptAmount>>`.
+
 Also removed: `EncryptInputsBuilder.asHashPlusProof()` — its output is what `execute()` always
 returns now, so delete the call. `EncryptInputsBuilder<T, HPP>` takes a single type parameter.
 
@@ -84,9 +96,10 @@ Only relevant if the project calls `@cofhe/abi` directly, or uses
 - **Detection changed shape.** `extractEncryptableValues` / `insertEncryptedValues` no longer
   recognise the `struct InEuintXX` tuple shapes. They now detect `externalEbool` … `externalEaddress`
   — plain `bytes32` value types, not structs.
-- **The trailing `bytes` is now mandatory.** Any ABI function with `external*` inputs must end with
-  a plain `bytes` parameter to receive the shared batch signature; both helpers throw if it is
-  missing. See [contracts.md](contracts.md).
+- **The proof follows the encrypted handle, it does not have to be last.** Solidity wants
+  `(external* hash, bytes proof)` as a pair; extra args (`data` on ERC-7984 `*AndCall`) can come
+  after, and the helpers pair it correctly. See [contracts.md](contracts.md). Encrypted parameters
+  must be **adjacent** to one another — they share one signature, so a non-adjacent layout throws.
 - **`insertEncryptedValues`'s `encryptedValues` parameter** was `readonly EncryptedItemInput[]`
   (one struct per encrypted argument) and is now ``readonly `0x${string}`[]`` — the
   `[...hashes, signature]` shape `execute()` returns.
@@ -98,6 +111,14 @@ Only relevant if the project calls `@cofhe/abi` directly, or uses
 - **`mockEncrypt` / `mockEncryptEncryptable`** return a hash / `[...hashes, signature]` instead of
   `EncryptedItemInput` struct(s). Test helpers, but exported — annotations around them need
   updating.
+
+## Overload selectors and interface ids
+
+`InEuint64` was a tuple `(uint256,uint8,uint8,bytes)`; `externalEuint64` is a plain `bytes32`. Any
+place that names a function by its full signature changes shape, and none of it is compiler-checked:
+explicit overload selector strings, ERC-165 interface id constants, and anything computing a
+selector by hand. Recompute interface ids rather than porting the old bytes. See
+[tests.md](tests.md).
 
 ## Find them
 

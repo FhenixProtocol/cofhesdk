@@ -25,10 +25,22 @@ per-item signatures, not one signature over the batch).
 
 Also renamed: `createBasePermission()` → `createBaseACP()`, returning an `ACP` struct.
 
+The decrypt helpers renamed too, and are easy to miss because they are not on the `createIn*` grep:
+
+| Before                          | After                        |
+| ------------------------------- | ---------------------------- |
+| `decryptForTx_withoutPermit(…)` | `decryptForTx_withoutACP(…)` |
+| `decryptForTx_withPermit(…)`    | `decryptForTx_withACP(…)`    |
+
 ## Every helper takes a consuming contract
 
 There is no global setter; pass it at each call site. Reverts with
 `'CofheClient: consuming contract must not be the zero address'` on `address(0)`.
+
+It is the contract that will call `FHE.asEuint*`, which is not always the one the test calls. If
+the test calls `vault.deposit(...)` and the vault forwards into a token that runs `FHE.asEuint64`,
+the consuming contract is the **vault** — whichever contract actually verifies. Getting this wrong
+compiles and reverts at runtime.
 
 ```solidity
 // BEFORE
@@ -77,5 +89,10 @@ grep -rnE 'createIn(Ebool|Euint8|Euint16|Euint32|Euint64|Euint128|Eaddress)|_asH
 ## Verify
 
 ```bash
+forge build      # first - a build error here is not a test failure
 forge test
 ```
+
+If `forge build` cannot find `Test.sol` or `forge-std/*`, the submodules are not initialised
+(`git submodule update --init --recursive`) — that is a checkout problem, not a migration one.
+Diagnose it before reading any Solidity error underneath it.
