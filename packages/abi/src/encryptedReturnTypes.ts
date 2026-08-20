@@ -230,7 +230,6 @@ export function transformEncryptedReturnTypes<TAbi extends Abi, TFunctionName ex
 
       // Is array of encrypted return types
       if (internalTypeSize != null) {
-        console.log('array of encrypted return types', internalTypeHead, internalTypeSize, value);
         return transformArrayOfEncryptedReturnTypesToReturnTypes(internalTypeHead, internalTypeSize, value as string[]);
       }
     }
