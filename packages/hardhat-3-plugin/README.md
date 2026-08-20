@@ -114,7 +114,7 @@ await client.connect(publicClient, walletClient);
 
 ### `cofhe.createClientWithBatteries(walletClient?)`
 
-Creates a fully initialized `CofheClient` in one call — configures it for Hardhat, connects it, and creates a self-permit so it can decrypt encrypted FHE variables out of the box.
+Creates a fully initialized `CofheClient` in one call — configures it for Hardhat, connects it, and creates a self-acp so it can decrypt encrypted FHE variables out of the box.
 
 ```typescript
 // Uses the first account in the connection automatically:
@@ -241,14 +241,18 @@ describe('Encrypted counter', async () => {
   it('encrypts, stores, and decrypts a uint32', async () => {
     const client = await cofhe.createClientWithBatteries(walletClient);
 
-    // Encrypt
-    const [enc] = await client.encryptInputs([Encryptable.uint32(42n)]).execute();
+    // Encrypt - returns [hash, signature]: one hash per input, plus the shared batch signature.
+    // setConsumingContract binds the signature to the contract that will consume it.
+    const [hash, signature] = await client
+      .encryptInputs([Encryptable.uint32(42n)])
+      .setConsumingContract(simpleTest.address)
+      .execute();
 
-    // Store on-chain via SimpleTest
+    // Store on-chain via SimpleTest (batch entry point takes an array plus the signature)
     await walletClient.writeContract({
       ...simpleTest,
-      functionName: 'setValue',
-      args: [enc],
+      functionName: 'setValueBatch',
+      args: [[hash], signature],
     });
 
     const ctHash = (await publicClient.readContract({

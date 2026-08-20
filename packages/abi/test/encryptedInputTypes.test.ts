@@ -1,68 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { TestABI } from './TestABI';
 import { extractEncryptableValues, insertEncryptedValues } from 'src/encryptedInputs';
-import {
-  Encryptable,
-  FheTypes,
-  type EncryptedAddressInput,
-  type EncryptedBoolInput,
-  type EncryptedItemInput,
-  type EncryptedUint128Input,
-  type EncryptedUint16Input,
-  type EncryptedUint32Input,
-  type EncryptedUint64Input,
-  type EncryptedUint8Input,
-} from '@cofhe/sdk';
+import { Encryptable } from '@cofhe/sdk';
 
-// Helper to create encrypted input objects
-const createEncryptedUint8 = (ctHash: bigint): EncryptedUint8Input => ({
-  ctHash,
-  securityZone: 0,
-  utype: FheTypes.Uint8,
-  signature: '0x1234567890abcdef',
-});
-
-const createEncryptedUint16 = (ctHash: bigint): EncryptedUint16Input => ({
-  ctHash,
-  securityZone: 0,
-  utype: FheTypes.Uint16,
-  signature: '0x1234567890abcdef',
-});
-
-const createEncryptedUint32 = (ctHash: bigint): EncryptedUint32Input => ({
-  ctHash,
-  securityZone: 0,
-  utype: FheTypes.Uint32,
-  signature: '0x1234567890abcdef',
-});
-
-const createEncryptedUint64 = (ctHash: bigint): EncryptedUint64Input => ({
-  ctHash,
-  securityZone: 0,
-  utype: FheTypes.Uint64,
-  signature: '0x1234567890abcdef',
-});
-
-const createEncryptedUint128 = (ctHash: bigint): EncryptedUint128Input => ({
-  ctHash,
-  securityZone: 0,
-  utype: FheTypes.Uint128,
-  signature: '0x1234567890abcdef',
-});
-
-const createEncryptedBool = (ctHash: bigint): EncryptedBoolInput => ({
-  ctHash,
-  securityZone: 0,
-  utype: FheTypes.Bool,
-  signature: '0x1234567890abcdef',
-});
-
-const createEncryptedAddress = (ctHash: bigint): EncryptedAddressInput => ({
-  ctHash,
-  securityZone: 0,
-  utype: FheTypes.Uint160,
-  signature: '0x1234567890abcdef',
-});
+// Encrypted values are now just hashes (0x-prefixed hex), plus one shared signature appended
+// after all the hashes - the same shape EncryptInputsBuilder.execute() returns.
+const createHash = (ctHash: bigint): `0x${string}` => ('0x' + ctHash.toString(16).padStart(64, '0')) as `0x${string}`;
+const SIGNATURE = '0xdeadbeef' as `0x${string}`;
 
 describe('extractEncryptableValues', () => {
   it('should extract nothing from function with no encrypted inputs', () => {
@@ -131,40 +75,41 @@ describe('extractEncryptableValues', () => {
 describe('insertEncryptedValues', () => {
   it('should insert nothing for function with no encrypted inputs', () => {
     const originalArgs = [42] as const;
-    const encryptedValues: EncryptedItemInput[] = [];
+    const encryptedValues: readonly `0x${string}`[] = [];
     const result = insertEncryptedValues(TestABI, 'fnNoEncryptedInputs', originalArgs, encryptedValues);
     expect(result).toEqual([42]);
   });
 
   it('should insert encrypted value for single encrypted input', () => {
     const originalArgs = [100n] as const;
-    const encryptedValues = [createEncryptedUint32(999n)];
+    const encryptedValues = [createHash(999n), SIGNATURE];
     const result = insertEncryptedValues(TestABI, 'fnEncryptedInput', originalArgs, encryptedValues);
-    expect(result).toEqual([createEncryptedUint32(999n)]);
+    expect(result).toEqual([createHash(999n), SIGNATURE]);
   });
 
   it('should insert encrypted value for blended inputs', () => {
     const originalArgs = [500n, 200n] as const;
-    const encryptedValues = [createEncryptedUint32(888n)];
+    const encryptedValues = [createHash(888n), SIGNATURE];
     const result = insertEncryptedValues(
       TestABI,
       'fnBlendedInputsIncludingEncryptedInput',
       originalArgs,
       encryptedValues
     );
-    expect(result).toEqual([500n, createEncryptedUint32(888n)]);
+    expect(result).toEqual([500n, createHash(888n), SIGNATURE]);
   });
 
   it('should insert encrypted values for all encrypted inputs', () => {
     const originalArgs = [1n, 2n, 3n, 4n, 5n, true, '0x1234567890123456789012345678901234567890'] as const;
     const encryptedValues = [
-      createEncryptedUint8(111n),
-      createEncryptedUint16(222n),
-      createEncryptedUint32(333n),
-      createEncryptedUint64(444n),
-      createEncryptedUint128(555n),
-      createEncryptedBool(666n),
-      createEncryptedAddress(777n),
+      createHash(111n),
+      createHash(222n),
+      createHash(333n),
+      createHash(444n),
+      createHash(555n),
+      createHash(666n),
+      createHash(777n),
+      SIGNATURE,
     ];
     const result = insertEncryptedValues(TestABI, 'fnAllEncryptedInputs', originalArgs, encryptedValues);
     expect(result).toEqual(encryptedValues);
@@ -177,28 +122,29 @@ describe('insertEncryptedValues', () => {
         encryptedInput: 300n,
       },
     ] as const;
-    const encryptedValues = [createEncryptedUint32(777n)];
+    const encryptedValues = [createHash(777n), SIGNATURE];
     const result = insertEncryptedValues(TestABI, 'fnStructContainsEncryptedInput', originalArgs, encryptedValues);
     expect(result).toEqual([
       {
         value: 1000n,
-        encryptedInput: createEncryptedUint32(777n),
+        encryptedInput: createHash(777n),
       },
+      SIGNATURE,
     ]);
   });
 
   it('should insert encrypted values in array of encrypted inputs', () => {
     const originalArgs = [[10n, 20n, 30n]] as const;
-    const encryptedValues = [createEncryptedUint32(111n), createEncryptedUint32(222n), createEncryptedUint32(333n)];
+    const encryptedValues = [createHash(111n), createHash(222n), createHash(333n), SIGNATURE];
     const result = insertEncryptedValues(TestABI, 'fnArrayContainsEncryptedInput', originalArgs, encryptedValues);
-    expect(result).toEqual([[createEncryptedUint32(111n), createEncryptedUint32(222n), createEncryptedUint32(333n)]]);
+    expect(result).toEqual([[createHash(111n), createHash(222n), createHash(333n)], SIGNATURE]);
   });
 
   it('should insert encrypted values in fixed-size array (tuple) of encrypted inputs', () => {
     const originalArgs = [[40n, 50n]] as const;
-    const encryptedValues = [createEncryptedUint32(444n), createEncryptedUint32(555n)];
+    const encryptedValues = [createHash(444n), createHash(555n), SIGNATURE];
     const result = insertEncryptedValues(TestABI, 'fnTupleContainsEncryptedInput', originalArgs, encryptedValues);
-    expect(result).toEqual([[createEncryptedUint32(444n), createEncryptedUint32(555n)]]);
+    expect(result).toEqual([[createHash(444n), createHash(555n)], SIGNATURE]);
   });
 });
 
@@ -207,7 +153,7 @@ describe('extractEncryptableValues and insertEncryptedValues round-trip', () => 
     const originalArgs = [100n] as const;
     const extracted = extractEncryptableValues(TestABI, 'fnEncryptedInput', originalArgs);
     expect(extracted).toEqual([Encryptable.uint32(100n)]);
-    const encrypted = [createEncryptedUint32(999n)];
+    const encrypted = [createHash(999n), SIGNATURE];
     const result = insertEncryptedValues(TestABI, 'fnEncryptedInput', originalArgs, encrypted);
     expect(result).toEqual(encrypted);
   });
@@ -216,9 +162,9 @@ describe('extractEncryptableValues and insertEncryptedValues round-trip', () => 
     const originalArgs = [500n, 200n] as const;
     const extracted = extractEncryptableValues(TestABI, 'fnBlendedInputsIncludingEncryptedInput', originalArgs);
     expect(extracted).toEqual([Encryptable.uint32(200n)]);
-    const encrypted = [createEncryptedUint32(888n)];
+    const encrypted = [createHash(888n), SIGNATURE];
     const result = insertEncryptedValues(TestABI, 'fnBlendedInputsIncludingEncryptedInput', originalArgs, encrypted);
-    expect(result).toEqual([500n, createEncryptedUint32(888n)]);
+    expect(result).toEqual([500n, createHash(888n), SIGNATURE]);
   });
 
   it('should round-trip struct containing encrypted input', () => {
@@ -230,13 +176,14 @@ describe('extractEncryptableValues and insertEncryptedValues round-trip', () => 
     ] as const;
     const extracted = extractEncryptableValues(TestABI, 'fnStructContainsEncryptedInput', originalArgs);
     expect(extracted).toEqual([Encryptable.uint32(300n)]);
-    const encrypted = [createEncryptedUint32(777n)];
+    const encrypted = [createHash(777n), SIGNATURE];
     const result = insertEncryptedValues(TestABI, 'fnStructContainsEncryptedInput', originalArgs, encrypted);
     expect(result).toEqual([
       {
         value: 1000n,
-        encryptedInput: createEncryptedUint32(777n),
+        encryptedInput: createHash(777n),
       },
+      SIGNATURE,
     ]);
   });
 
@@ -244,18 +191,19 @@ describe('extractEncryptableValues and insertEncryptedValues round-trip', () => 
     const originalArgs = [[10n, 20n]] as const;
     const extracted = extractEncryptableValues(TestABI, 'fnArrayContainsEncryptedInput', originalArgs);
     expect(extracted).toEqual([Encryptable.uint32(10n), Encryptable.uint32(20n)]);
-    const encrypted = [createEncryptedUint32(111n), createEncryptedUint32(222n)];
+    const encrypted = [createHash(111n), createHash(222n), SIGNATURE];
     const result = insertEncryptedValues(TestABI, 'fnArrayContainsEncryptedInput', originalArgs, encrypted);
-    expect(result).toEqual([[createEncryptedUint32(111n), createEncryptedUint32(222n)]]);
+    expect(result).toEqual([[createHash(111n), createHash(222n)], SIGNATURE]);
   });
 
   it('should handle empty array of encrypted inputs', () => {
     const originalArgs = [[]] as const;
     const extracted = extractEncryptableValues(TestABI, 'fnArrayContainsEncryptedInput', originalArgs);
     expect(extracted).toEqual([]);
-    const encrypted: EncryptedItemInput[] = [];
+    // No external inputs actually present (empty array), so no signature slot is expected either.
+    const encrypted: readonly `0x${string}`[] = [];
     const result = insertEncryptedValues(TestABI, 'fnArrayContainsEncryptedInput', originalArgs, encrypted);
-    expect(result).toEqual([[]]);
+    expect(result).toEqual([[], undefined]);
   });
 });
 
@@ -269,9 +217,65 @@ describe('error handling', () => {
 
   it('should throw error when inserting into non-existent function', () => {
     const args = [42] as const;
-    const encrypted: EncryptedItemInput[] = [];
+    const encrypted: readonly `0x${string}`[] = [];
     expect(() => {
       insertEncryptedValues(TestABI, 'nonExistentFunction' as any, args as any, encrypted);
     }).toThrow('Function nonExistentFunction not found in ABI');
+  });
+});
+
+describe('signature slot follows the encrypted run, not the parameter list', () => {
+  const ADDR = '0x1234567890123456789012345678901234567890' as const;
+
+  it('extracts past a proof that is not the last parameter', () => {
+    // (to, encryptedAmount, inputProof, data) - `data` sits after the signature slot
+    const args = [ADDR, 500n, '0xc0ffee'] as const;
+    const extracted = extractEncryptableValues(TestABI, 'fnProofNotLast', args);
+    expect(extracted).toEqual([Encryptable.uint64(500n)]);
+  });
+
+  it('inserts the signature into the paired slot and keeps later args in place', () => {
+    const args = [ADDR, 500n, '0xc0ffee'] as const;
+    const inserted = insertEncryptedValues(TestABI, 'fnProofNotLast', args, [createHash(1n), SIGNATURE]);
+    expect(inserted).toEqual([ADDR, createHash(1n), SIGNATURE, '0xc0ffee']);
+  });
+
+  it('round-trips the ERC-7984 *AndCall shape', () => {
+    const args = [ADDR, 500n, '0xc0ffee'] as const;
+    const extracted = extractEncryptableValues(TestABI, 'fnProofNotLast', args);
+    expect(extracted).toEqual([Encryptable.uint64(500n)]);
+    const inserted = insertEncryptedValues(TestABI, 'fnProofNotLast', args, [createHash(7n), SIGNATURE]);
+    expect(inserted).toEqual([ADDR, createHash(7n), SIGNATURE, '0xc0ffee']);
+  });
+
+  it('handles a contiguous run of two handles sharing one signature', () => {
+    const args = [100n, 3n, 'memo'] as const;
+    expect(extractEncryptableValues(TestABI, 'fnTwoHashesProofThenExtra', args)).toEqual([
+      Encryptable.uint32(100n),
+      Encryptable.uint32(3n),
+    ]);
+    const inserted = insertEncryptedValues(TestABI, 'fnTwoHashesProofThenExtra', args, [
+      createHash(1n),
+      createHash(2n),
+      SIGNATURE,
+    ]);
+    expect(inserted).toEqual([createHash(1n), createHash(2n), SIGNATURE, 'memo']);
+  });
+
+  it('rejects encrypted inputs at non-adjacent positions', () => {
+    // Deliberately malformed ABI: the pre-transform type cannot describe it, so cast and assert
+    // that the runtime rejects it rather than silently mis-pairing.
+    const badArgs = [1n, ADDR, 2n] as unknown as Parameters<
+      typeof extractEncryptableValues<typeof TestABI, 'fnNonContiguousExternals'>
+    >[2];
+    expect(() => extractEncryptableValues(TestABI, 'fnNonContiguousExternals', badArgs)).toThrow(
+      /non-adjacent positions/
+    );
+  });
+
+  it('rejects an encrypted input with no bytes parameter after it', () => {
+    expect(() => extractEncryptableValues(TestABI, 'fnMissingProofSlot', [1n])).toThrow(
+      /must be a plain 'bytes' parameter/
+    );
   });
 });

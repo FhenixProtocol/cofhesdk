@@ -7,15 +7,15 @@ export {
   getCofheTokenClaimUnshieldedCallArgs,
   getCofheTokenShieldCallArgs,
   getCofheTokenUnshieldCallArgs,
-  useCofheActivePermit,
-  useCofheAllPermits,
+  useCofheActiveACP,
+  useCofheAllACPs,
   useCofheClient,
   useCofheConnection,
   useCofheEnabled,
   useCofheEncrypt,
   useCofhePublicClient,
-  useCofheRemovePermit,
-  useCofheSelectPermit,
+  useCofheRemoveACP,
+  useCofheSelectACP,
   useCofheSimulateWriteContract,
   useCofheStatuses,
   useCofheTokenClaimable,
@@ -112,8 +112,8 @@ export type {
 
 export { createCofheClient } from '@cofhe/sdk/web';
 
-export { useCofheCreatePermit } from '@/hooks/permits/useCofheCreatePermit';
-export { useCofheNavigateToCreatePermit } from '@/hooks/permits/useCofheNavigateToCreatePermit';
+export { useCofheCreateACP } from '@/hooks/acps/useCofheCreateACP';
+export { useCofheNavigateToCreateACP } from '@/hooks/acps/useCofheNavigateToCreateACP';
 export { useCofheAutoConnect } from '@/hooks/useCofheAutoConnect';
 export { CofheFloatingButtonProvider, sortCofheStatuses } from './components/index';
 export { COFHE_STATUS_IDS, CofheStatusActionIntents } from './components/CofheFloatingButton/types';
@@ -122,6 +122,8 @@ export type { CofheConfigWithReact as CofhesdkConfigWithReact } from './config';
 
 export type { CofheStatus, CofheStatusActionIntent, CofheStatusId } from './components/CofheFloatingButton/types';
 export type { ConfidentialToken } from './types/token';
+export { getConfidentialDecimals, getPublicDecimals, getPublicSymbol } from './types/token';
+export { scaleAmount, quantizeAmount } from './utils/format';
 
 export type { CofheDecryptMeta, CofheQueryMeta } from './meta';
 
@@ -133,7 +135,7 @@ export type {
   UseCofheDecryptionActivityOptions,
   FetchStageState,
   DecryptStageState,
-  PermitState,
+  ACPState,
 } from '@/hooks/useCofheDecryptionActivity';
 
 export { useInternalQueryClient } from './providers/index';

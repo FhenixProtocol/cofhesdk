@@ -8,7 +8,7 @@ description: Install and configure @cofhe/foundry-plugin for local FHE developme
 `@cofhe/foundry-plugin` provides two contracts for writing CoFHE tests with Foundry:
 
 - **`CofheTest`** — abstract base contract. Inherits `forge-std/Test`. Exposes `deployMocks()`, `createCofheClient()`, `getPlaintext()`, and `expectPlaintext()`.
-- **`CofheClient`** — SDK-like client. Manages a private key / account pair and exposes encrypt, decrypt, and permit helpers.
+- **`CofheClient`** — SDK-like client. Manages a private key / account pair and exposes encrypt, decrypt, and ACP helpers.
 
 ## Installation
 
@@ -75,10 +75,13 @@ contract CounterTest is CofheTest {
     }
 
     function test_increment() public {
-        InEuint32 memory enc = cofheClient.createInEuint32(5);
+        // The last argument binds the input to the contract that will consume it.
+        (externalEuint32 hash, bytes memory proof) = cofheClient.createExternalEuint32(5, address(counter));
+        externalEuint32[] memory hashes = new externalEuint32[](1);
+        hashes[0] = hash;
 
         vm.prank(cofheClient.account());
-        counter.setNumber(enc);
+        counter.setNumberBatch(hashes, proof);
 
         expectPlaintext(counter.numberHash(), 5);
     }
@@ -115,59 +118,85 @@ contract CounterTest is CofheTest {
 
 ### Encryption
 
-All `createInE*` functions operate under security zone 0. Use the returned struct directly in contract calls.
+`CofheClient.createEncryptedInputsBatch` is the root of every encryption helper on the client —
+a whole array of ciphertexts authenticated by **one shared signature**, verified via
+`ITaskManager.batchVerifyInputs` (matching
+[`FhenixProtocol/cofhe-contracts#78`](https://github.com/FhenixProtocol/cofhe-contracts/pull/78)).
+`createExternalEbool`...`createExternalEaddress` are thin single-item wrappers over a batch of size one, not
+a separate signing scheme — every hash they return is only valid when consumed via the batch
+path (`FHE.asEuint32s([hash], signature)`, not the legacy single-item `FHE.asEuint32(hash, proof)`).
 
-| Function                    | Returns      |
-| --------------------------- | ------------ |
-| `createInEbool(bool)`       | `InEbool`    |
-| `createInEuint8(uint8)`     | `InEuint8`   |
-| `createInEuint16(uint16)`   | `InEuint16`  |
-| `createInEuint32(uint32)`   | `InEuint32`  |
-| `createInEuint64(uint64)`   | `InEuint64`  |
-| `createInEuint128(uint128)` | `InEuint128` |
-| `createInEaddress(address)` | `InEaddress` |
+Every helper takes the consuming contract as a required **last argument** — the verifier binds
+that address into the signature, matching
+[`FhenixProtocol/cofhe-contracts#77`](https://github.com/FhenixProtocol/cofhe-contracts/pull/77).
+There is no client-level setter; passing it per call lets one test encrypt for several contracts
+without tracking hidden state. Passing `address(0)` reverts.
 
-#### Hash plus proof variants
+| Function                                                     | Returns                            |
+| ------------------------------------------------------------ | ---------------------------------- |
+| `createExternalEbool(bool, address consumingContract)`       | `(externalEbool, bytes memory)`    |
+| `createExternalEuint8(uint8, address consumingContract)`     | `(externalEuint8, bytes memory)`   |
+| `createExternalEuint16(uint16, address consumingContract)`   | `(externalEuint16, bytes memory)`  |
+| `createExternalEuint32(uint32, address consumingContract)`   | `(externalEuint32, bytes memory)`  |
+| `createExternalEuint64(uint64, address consumingContract)`   | `(externalEuint64, bytes memory)`  |
+| `createExternalEuint128(uint128, address consumingContract)` | `(externalEuint128, bytes memory)` |
+| `createExternalEaddress(address, address consumingContract)` | `(externalEaddress, bytes memory)` |
 
-`CofheClient` also provides `_asHashPlusProof` equivalents for each type. These return a split `(hash, proof)` pair that matches Solidity functions accepting `externalEuint*` + `bytes proof` instead of an `InE*` struct.
-
-| Function                                    | Returns                            |
-| ------------------------------------------- | ---------------------------------- |
-| `createInEbool_asHashPlusProof(bool)`       | `(externalEbool, bytes memory)`    |
-| `createInEuint8_asHashPlusProof(uint8)`     | `(externalEuint8, bytes memory)`   |
-| `createInEuint16_asHashPlusProof(uint16)`   | `(externalEuint16, bytes memory)`  |
-| `createInEuint32_asHashPlusProof(uint32)`   | `(externalEuint32, bytes memory)`  |
-| `createInEuint64_asHashPlusProof(uint64)`   | `(externalEuint64, bytes memory)`  |
-| `createInEuint128_asHashPlusProof(uint128)` | `(externalEuint128, bytes memory)` |
-| `createInEaddress_asHashPlusProof(address)` | `(externalEaddress, bytes memory)` |
-
-Example:
+Example — note the contract's entry point must accept an array (even for a single value) plus the shared signature:
 
 ```solidity
-function testSetValueHashPlusProof(uint32 n) public {
-    (externalEuint32 hash, bytes memory proof) = cofheClient.createInEuint32_asHashPlusProof(n);
+function testSetValue(uint32 n) public {
+    (externalEuint32 hash, bytes memory signature) = cofheClient.createExternalEuint32(n, address(myContract));
+    externalEuint32[] memory hashes = new externalEuint32[](1);
+    hashes[0] = hash;
+
     vm.prank(cofheClient.account());
-    myContract.setValueHashPlusProof(hash, proof);
+    myContract.setValueBatch(hashes, signature);
+
     expectPlaintext(myContract.getValue(), n);
 }
 ```
 
+#### Batch variants
+
+For batches of more than one ciphertext, use `createEncryptedInputsBatch` directly (mixed
+`utype`s allowed) or the typed `createEuint32sBatch` convenience wrapper.
+
+| Function                                                                    | Returns                                                           |
+| --------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `createEncryptedInputsBatch(uint8[], uint256[], address consumingContract)` | `(UnsignedEncryptedInput[], bytes memory)` — mixed utypes allowed |
+| `createEuint32sBatch(uint32[], address consumingContract)`                  | `(externalEuint32[] memory, bytes memory)`                        |
+
+Example:
+
+```solidity
+function testSetValueBatch(uint32[] memory values) public {
+    (externalEuint32[] memory hashes, bytes memory signature) = cofheClient.createEuint32sBatch(values, address(myContract));
+    vm.prank(cofheClient.account());
+    myContract.setValueBatch(hashes, signature);
+}
+```
+
+This is the canonical signing path, backed by `MockZkVerifierSigner.zkVerifyBatchSign` — this
+repo's own tooling routes all encryption (including batches of size 1) through it, rather than
+maintaining a second independent signing implementation.
+
 ### Decryption
 
-| Function                                                         | Returns                     | Description                                                                       |
-| ---------------------------------------------------------------- | --------------------------- | --------------------------------------------------------------------------------- |
-| `decryptForTx_withoutPermit(bytes32 ctHash)`                     | `(bytes32, uint256, bytes)` | Decrypts a globally-allowed ciphertext. Returns `(ctHash, plaintext, signature)`. |
-| `decryptForTx_withPermit(bytes32 ctHash, Permission permission)` | `(bytes32, uint256, bytes)` | Decrypts using a permit. Same return shape.                                       |
-| `decryptForView(bytes32 ctHash, Permission permission)`          | `uint256`                   | Seals and unseals with the permit's sealing key for off-chain reading.            |
+| Function                                                      | Returns                     | Description                                                                       |
+| ------------------------------------------------------------- | --------------------------- | --------------------------------------------------------------------------------- |
+| `decryptForTx_withoutACP(bytes32 ctHash)`                     | `(bytes32, uint256, bytes)` | Decrypts a globally-allowed ciphertext. Returns `(ctHash, plaintext, signature)`. |
+| `decryptForTx_withACP(bytes32 ctHash, Permission permission)` | `(bytes32, uint256, bytes)` | Decrypts using an ACP. Same return shape.                                         |
+| `decryptForView(bytes32 ctHash, Permission permission)`       | `uint256`                   | Seals and unseals with the ACP's sealing key for off-chain reading.               |
 
-### Permits
+### ACPs
 
-| Function                                  | Returns              | Description                                                                                   |
-| ----------------------------------------- | -------------------- | --------------------------------------------------------------------------------------------- |
-| `permit_createSelf()`                     | `Permission`         | Creates a self-permit signed by the connected account.                                        |
-| `permit_createShared(address recipient)`  | `Permission`         | Creates the issuer half of a shared permit.                                                   |
-| `permit_exportShared(Permission)`         | `SharedPermitExport` | Strips private fields for safe transmission.                                                  |
-| `permit_importShared(SharedPermitExport)` | `Permission`         | Reconstructs a `Permission` as the recipient, adding the sealing key and recipient signature. |
+| Function                              | Returns           | Description                                                                                   |
+| ------------------------------------- | ----------------- | --------------------------------------------------------------------------------------------- |
+| `acp_createSelf()`                    | `Permission`      | Creates a self-ACP signed by the connected account.                                           |
+| `acp_createShared(address recipient)` | `Permission`      | Creates the issuer half of a shared ACP.                                                      |
+| `acp_exportShared(Permission)`        | `SharedACPExport` | Strips private fields for safe transmission.                                                  |
+| `acp_importShared(SharedACPExport)`   | `Permission`      | Reconstructs a `Permission` as the recipient, adding the sealing key and recipient signature. |
 
 ## Hardhat 3 Solidity tests
 

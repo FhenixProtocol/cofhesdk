@@ -1,13 +1,15 @@
+import { STAGING_TESTS, stagingViemChain } from './stagingRedirect';
 import { FheTypes, verifyDecryptResult, createCofheConfigBase, TASK_MANAGER_ADDRESS } from '@/core';
-import { getChainById } from '@/chains';
+import { getChainById, stagingCofhe } from '@/chains';
 import {
   TEST_PRIVATE_KEY,
   PRIMARY_TEST_CHAIN,
   primaryTestChainRegistry,
+  stagingTestChainRegistry,
   isPrimaryTestChainReady,
 } from '@cofhe/test-setup';
 
-import { permits } from '../permits.js';
+import { acps } from '../acps.js';
 import { DecryptForTxBuilder } from '../decrypt/decryptForTxBuilder.js';
 import { DecryptForViewBuilder } from '../decrypt/decryptForViewBuilder.js';
 
@@ -18,6 +20,8 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { arbitrumSepolia, baseSepolia, sepolia } from 'viem/chains';
 
 const account = privateKeyToAccount(TEST_PRIVATE_KEY);
+
+const TEST_CHAIN_ID = STAGING_TESTS ? stagingViemChain.id : PRIMARY_TEST_CHAIN;
 
 const VIEM_CHAINS: Record<number, Chain> = {
   421614: arbitrumSepolia,
@@ -37,17 +41,18 @@ describe('Core – Decrypt Tests', () => {
   let publicValue: bigint;
 
   beforeAll(() => {
-    if (!isPrimaryTestChainReady(primaryTestChainRegistry)) {
-      throw new Error('Primary test chain registry is not initialized. Run `pnpm test:setup` first.');
+    const reg = STAGING_TESTS
+      ? (stagingTestChainRegistry as typeof primaryTestChainRegistry)
+      : primaryTestChainRegistry;
+    if (!isPrimaryTestChainReady(reg)) {
+      throw new Error('Test chain registry is not initialized. Run `pnpm test:setup` first.');
     }
-
-    const reg = primaryTestChainRegistry;
     const chainId = reg.chainId;
 
-    const viemChain = VIEM_CHAINS[chainId];
+    const viemChain = STAGING_TESTS ? stagingViemChain : VIEM_CHAINS[chainId];
     if (!viemChain) throw new Error(`No viem chain mapping for chain ${chainId}`);
 
-    const cofheChain = getChainById(chainId);
+    const cofheChain = STAGING_TESTS ? stagingCofhe : getChainById(chainId);
     if (!cofheChain) throw new Error(`No cofhe chain config for chain ${chainId}`);
 
     config = createCofheConfigBase({ supportedChains: [cofheChain] });
@@ -67,7 +72,7 @@ describe('Core – Decrypt Tests', () => {
       config,
       publicClient,
       walletClient,
-      chainId: PRIMARY_TEST_CHAIN,
+      chainId: TEST_CHAIN_ID,
       account: account.address,
       ctHash,
       requireConnected: undefined,
@@ -79,7 +84,7 @@ describe('Core – Decrypt Tests', () => {
       config,
       publicClient,
       walletClient,
-      chainId: PRIMARY_TEST_CHAIN,
+      chainId: TEST_CHAIN_ID,
       account: account.address,
       ctHash,
       utype,
@@ -87,17 +92,17 @@ describe('Core – Decrypt Tests', () => {
     });
   }
 
-  async function createPermit() {
-    return permits.createSelf({ issuer: account.address, name: 'Decrypt Test Permit' }, publicClient, walletClient);
+  async function createACP() {
+    return acps.createSelf({ issuer: account.address, name: 'Decrypt Test ACP' }, publicClient, walletClient);
   }
 
   // ---------------------------------------------------------------------------
-  // decryptForTx – withoutPermit (global allowance)
+  // decryptForTx – withoutACP (global allowance)
   // ---------------------------------------------------------------------------
 
-  describe('decryptForTx – withoutPermit (global allowance)', () => {
+  describe('decryptForTx – withoutACP (global allowance)', () => {
     it('should decrypt a publicly allowed ciphertext', async () => {
-      const result = await txBuilder(publicCtHash).withoutPermit().execute();
+      const result = await txBuilder(publicCtHash).withoutACP().execute();
 
       expect(BigInt(result.ctHash)).toBe(BigInt(publicCtHash));
       expect(result.decryptedValue).toBe(publicValue);
@@ -106,25 +111,25 @@ describe('Core – Decrypt Tests', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // decryptForTx – withPermit
+  // decryptForTx – withACP
   // ---------------------------------------------------------------------------
 
-  describe('decryptForTx – withPermit', () => {
-    it('should decrypt with a self permit', async () => {
-      const permit = await createPermit();
+  describe('decryptForTx – withACP', () => {
+    it('should decrypt with a self acp', async () => {
+      const acp = await createACP();
 
-      const result = await txBuilder(privateCtHash).withPermit(permit).execute();
+      const result = await txBuilder(privateCtHash).withACP(acp).execute();
 
       expect(BigInt(result.ctHash)).toBe(BigInt(privateCtHash));
       expect(result.decryptedValue).toBe(privateValue);
       expect(result.signature).toBeDefined();
     }, 180000);
 
-    it('should auto-resolve active permit', async () => {
-      const permit = await createPermit();
-      permits.selectActivePermit(PRIMARY_TEST_CHAIN, account.address, permit.hash);
+    it('should auto-resolve active acp', async () => {
+      const acp = await createACP();
+      acps.selectActiveACP(TEST_CHAIN_ID, account.address, acp.hash);
 
-      const result = await txBuilder(privateCtHash).withPermit().execute();
+      const result = await txBuilder(privateCtHash).withACP().execute();
 
       expect(BigInt(result.ctHash)).toBe(BigInt(privateCtHash));
       expect(result.decryptedValue).toBe(privateValue);
@@ -137,9 +142,9 @@ describe('Core – Decrypt Tests', () => {
 
   describe('verifyDecryptResult', () => {
     it('should verify a valid decrypt result', async () => {
-      const permit = await createPermit();
+      const acp = await createACP();
 
-      const decryptResult = await txBuilder(privateCtHash).withPermit(permit).execute();
+      const decryptResult = await txBuilder(privateCtHash).withACP(acp).execute();
 
       const isValid = await verifyDecryptResult(
         decryptResult.ctHash,
@@ -151,9 +156,9 @@ describe('Core – Decrypt Tests', () => {
     }, 180000);
 
     it('should return false for invalid inputs', async () => {
-      const permit = await createPermit();
+      const acp = await createACP();
 
-      const decryptResult = await txBuilder(privateCtHash).withPermit(permit).execute();
+      const decryptResult = await txBuilder(privateCtHash).withACP(acp).execute();
 
       expect(
         await verifyDecryptResult(decryptResult.ctHash, privateValue + 1n, decryptResult.signature, publicClient)
@@ -167,17 +172,17 @@ describe('Core – Decrypt Tests', () => {
 
   describe('decryptForView', () => {
     it('should return the plaintext value', async () => {
-      await createPermit();
+      await createACP();
 
       const result = await viewBuilder(privateCtHash, FheTypes.Uint32).execute();
       expect(result).toBe(privateValue);
     }, 180000);
 
     it('should agree with decryptForTx on the same handle', async () => {
-      const permit = await createPermit();
+      const acp = await createACP();
 
       const viewResult = await viewBuilder(privateCtHash, FheTypes.Uint32).execute();
-      const txResult = await txBuilder(privateCtHash).withPermit(permit).execute();
+      const txResult = await txBuilder(privateCtHash).withACP(acp).execute();
 
       expect(viewResult).toBe(privateValue);
       expect(BigInt(txResult.ctHash)).toBe(BigInt(privateCtHash));
@@ -187,9 +192,9 @@ describe('Core – Decrypt Tests', () => {
 
   describe('verifyDecryptResult', () => {
     it('should correctly verify a valid decrypt result', async () => {
-      const permit = await createPermit();
+      const acp = await createACP();
 
-      const decryptResult = await txBuilder(privateCtHash).withPermit(permit).execute();
+      const decryptResult = await txBuilder(privateCtHash).withACP(acp).execute();
 
       const isValid = await verifyDecryptResult(
         decryptResult.ctHash,
@@ -201,8 +206,8 @@ describe('Core – Decrypt Tests', () => {
     }, 180000);
 
     it('should verify identically to the on-chain TaskManager contract', async () => {
-      const permit = await createPermit();
-      const decryptResult = await txBuilder(privateCtHash).withPermit(permit).execute();
+      const acp = await createACP();
+      const decryptResult = await txBuilder(privateCtHash).withACP(acp).execute();
 
       const samples = [
         {

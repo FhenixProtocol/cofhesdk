@@ -53,7 +53,7 @@ describe('classifySubmitResponse', () => {
     const response = makeResponse({
       ok: false,
       status: 404,
-      json: async () => ({ error: 'permit_denied', error_message: 'permit was rejected' }),
+      json: async () => ({ error: 'acp_denied', error_message: 'acp was rejected' }),
     });
 
     const result = await classifySubmitResponse({ response, fallbackErrorCode: CofheErrorCode.DecryptFailed });
@@ -61,7 +61,7 @@ describe('classifySubmitResponse', () => {
     expect(result).toEqual({
       kind: 'retryable',
       status: 404,
-      apiErrorMessage: 'permit was rejected',
+      apiErrorMessage: 'acp was rejected',
     });
   });
 

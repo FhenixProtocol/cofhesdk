@@ -24,48 +24,34 @@ describe('Inherited SDK Tests', async () => {
     transport: http('http://127.0.0.1:8545'),
   });
 
-  const storeEncrypted = async (client: Awaited<ReturnType<typeof cofhe.createClientWithBatteries>>) => {
-    const [enc] = await client.encryptInputs([Encryptable.uint32(42n)]).execute();
-    await simpleTest.write.setValue([enc]);
+  const storeEncrypted = async (client: Awaited<ReturnType<typeof cofhe.createClientWithBatteries>>, value: bigint) => {
+    // [hash, signature] - one hash per input, followed by the shared batch signature.
+    const [hash, signature] = await client
+      .encryptInputs([Encryptable.uint32(value)])
+      .setConsumingContract(simpleTest.address)
+      .execute();
+    await simpleTest.write.setValueBatch([[hash], signature]);
     const ctHash = await simpleTest.read.getValueHash();
-    return { enc, ctHash };
+    return { hash, signature, ctHash };
   };
 
   it('encrypt → store on-chain → read back ctHash', async () => {
     const client = await cofhe.createClientWithBatteries(bobWalletClient);
-    const { enc, ctHash } = await storeEncrypted(client);
+    const { hash, signature, ctHash } = await storeEncrypted(client, 42n);
 
-    assert.equal(typeof enc.ctHash, 'bigint');
-    assert.ok(enc.ctHash > 0n);
-    assert.equal(typeof enc.signature, 'string');
-    assert.match(enc.signature, /^0x[0-9a-f]*$/i);
+    assert.equal(typeof hash, 'string');
+    assert.match(hash, /^0x[0-9a-f]*$/i);
+    assert.equal(typeof signature, 'string');
+    assert.match(signature, /^0x[0-9a-f]*$/i);
     assert.equal(typeof ctHash, 'string');
-  });
-
-  it('encrypt (hash plus proof) → store on-chain → read back ctHash', async () => {
-    const client = await cofhe.createClientWithBatteries(bobWalletClient);
-    const [encHash, encProof] = await client
-      .encryptInputs([Encryptable.uint32(42n)])
-      .asHashPlusProof()
-      .execute();
-
-    await simpleTest.write.setValueHashPlusProof([encHash, encProof]);
-    const ctHash = await simpleTest.read.getValueHash();
-
-    assert.equal(typeof ctHash, 'string');
-    assert.match(encHash, /^0x[0-9a-f]*$/i);
-    assert.match(encProof, /^0x[0-9a-f]*$/i);
-    assert.equal(encHash, ctHash);
+    // The batch-verified hash is the same value stored/appended-metadata on-chain.
+    assert.equal(hash, ctHash);
   });
 
   it('encrypt → store on-chain → decryptForView', async () => {
     const testValue = 100n;
     const client = await cofhe.createClientWithBatteries(bobWalletClient);
-    const [enc] = await client.encryptInputs([Encryptable.uint32(testValue)]).execute();
-
-    await simpleTest.write.setValue([enc]);
-
-    const ctHash = await simpleTest.read.getValueHash();
+    const { ctHash } = await storeEncrypted(client, testValue);
 
     const decrypted = await client.decryptForView(ctHash, FheTypes.Uint32).execute();
     assert.equal(decrypted, testValue);
@@ -74,13 +60,9 @@ describe('Inherited SDK Tests', async () => {
   it('encrypt → store on-chain → decryptForTx → publish → verify', async () => {
     const testValue = 55n;
     const client = await cofhe.createClientWithBatteries(bobWalletClient);
-    const [enc] = await client.encryptInputs([Encryptable.uint32(testValue)]).execute();
+    const { ctHash } = await storeEncrypted(client, testValue);
 
-    await simpleTest.write.setValue([enc]);
-
-    const ctHash = await simpleTest.read.getValueHash();
-
-    const result = await client.decryptForTx(ctHash).withPermit().execute();
+    const result = await client.decryptForTx(ctHash).withACP().execute();
     assert.equal(result.decryptedValue, testValue);
     assert.equal(typeof result.signature, 'string');
 
@@ -92,62 +74,62 @@ describe('Inherited SDK Tests', async () => {
     assert.equal(Number(publishedValue), Number(testValue));
   });
 
-  it('self permit: create → verify active', async () => {
+  it('self acp: create → verify active', async () => {
     const client = await cofhe.createClientWithBatteries(bobWalletClient);
     const [bobAddress] = await bobWalletClient.getAddresses();
 
-    const permit = await client.permits.createSelf({
+    const acp = await client.acp.createSelf({
       issuer: bobAddress,
-      name: 'Test Self Permit',
+      name: 'Test Self ACP',
     });
 
-    assert.ok(permit);
-    assert.equal(permit.type, 'self');
-    assert.equal(permit.name, 'Test Self Permit');
-    assert.equal(permit.issuer.toLowerCase(), bobAddress.toLowerCase());
-    assert.notEqual(permit.issuerSignature, '0x');
-    assert.ok(permit.sealingPair);
-    assert.ok(permit.sealingPair.publicKey);
+    assert.ok(acp);
+    assert.equal(acp.type, 'self');
+    assert.equal(acp.name, 'Test Self ACP');
+    assert.equal(acp.issuer.toLowerCase(), bobAddress.toLowerCase());
+    assert.notEqual(acp.issuerSignature, '0x');
+    assert.ok(acp.sealingPrivateKey);
+    assert.ok(acp.sealingKey);
 
-    const activePermit = client.permits.getActivePermit();
-    assert.ok(activePermit);
-    assert.equal(activePermit.hash, permit.hash);
+    const activeACP = client.acp.getActiveACP();
+    assert.ok(activeACP);
+    assert.equal(activeACP.hash, acp.hash);
   });
 
-  it('sharing permit: create → export → import as recipient', async () => {
+  it('sharing acp: create → export → import as recipient', async () => {
     const bobClient = await cofhe.createClientWithBatteries(bobWalletClient);
     const [bobAddress] = await bobWalletClient.getAddresses();
     const [aliceAddress] = await aliceWalletClient.getAddresses();
 
-    const sharingPermit = await bobClient.permits.createSharing({
+    const sharingACP = await bobClient.acp.createSharing({
       issuer: bobAddress,
       recipient: aliceAddress,
-      name: 'Test Sharing Permit',
+      name: 'Test Sharing ACP',
     });
 
-    assert.ok(sharingPermit);
-    assert.equal(sharingPermit.type, 'sharing');
-    assert.equal(sharingPermit.issuer.toLowerCase(), bobAddress.toLowerCase());
-    assert.equal(sharingPermit.recipient!.toLowerCase(), aliceAddress.toLowerCase());
-    assert.notEqual(sharingPermit.issuerSignature, '0x');
+    assert.ok(sharingACP);
+    assert.equal(sharingACP.type, 'sharing');
+    assert.equal(sharingACP.issuer.toLowerCase(), bobAddress.toLowerCase());
+    assert.equal(sharingACP.recipient!.toLowerCase(), aliceAddress.toLowerCase());
+    assert.notEqual(sharingACP.issuerSignature, '0x');
 
-    const exported = bobClient.permits.export(sharingPermit);
+    const exported = bobClient.acp.export(sharingACP);
     assert.ok(exported);
     const parsed = JSON.parse(exported);
     assert.equal(parsed.type, 'sharing');
     assert.equal(parsed.issuer.toLowerCase(), bobAddress.toLowerCase());
     assert.equal(parsed.recipient.toLowerCase(), aliceAddress.toLowerCase());
     assert.ok(parsed.issuerSignature);
-    assert.equal(parsed.sealingPair, undefined);
+    assert.equal(parsed.sealingPrivateKey, undefined);
 
     const aliceClient = await cofhe.createClientWithBatteries(aliceWalletClient);
-    const importedPermit = await aliceClient.permits.importShared(exported);
+    const importedACP = await aliceClient.acp.importShared(exported);
 
-    assert.ok(importedPermit);
-    assert.equal(importedPermit.type, 'recipient');
-    assert.equal(importedPermit.issuer.toLowerCase(), bobAddress.toLowerCase());
-    assert.equal(importedPermit.recipient!.toLowerCase(), aliceAddress.toLowerCase());
-    assert.notEqual(importedPermit.recipientSignature, '0x');
-    assert.ok(importedPermit.sealingPair);
+    assert.ok(importedACP);
+    assert.equal(importedACP.type, 'recipient');
+    assert.equal(importedACP.issuer.toLowerCase(), bobAddress.toLowerCase());
+    assert.equal(importedACP.recipient!.toLowerCase(), aliceAddress.toLowerCase());
+    assert.notEqual(importedACP.recipientSignature, '0x');
+    assert.ok(importedACP.sealingPrivateKey);
   });
 });

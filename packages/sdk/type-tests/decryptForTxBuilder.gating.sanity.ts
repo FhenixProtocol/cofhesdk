@@ -5,7 +5,7 @@ import type { DecryptForTxBuilderSelected, DecryptForTxBuilderUnset } from '../c
 
 declare const b: DecryptForTxBuilderUnset;
 
-// @ts-expect-error execute() not allowed before withPermit/withoutPermit
+// @ts-expect-error execute() not allowed before withACP/withoutACP
 b.execute();
 
 declare const bw: DecryptForTxBuilderSelected;
@@ -16,13 +16,13 @@ bw.execute();
 bn.execute();
 
 // Cannot switch modes once selected (selection methods are not present)
-// @ts-expect-error cannot call withoutPermit() after selection
-bw.withoutPermit();
-// @ts-expect-error cannot call withPermit() after selection
-bn.withPermit();
+// @ts-expect-error cannot call withoutACP() after selection
+bw.withoutACP();
+// @ts-expect-error cannot call withACP() after selection
+bn.withACP();
 
 // Repeated selection is also disallowed (selection methods are not present)
-// @ts-expect-error cannot call withPermit() twice
-bw.withPermit();
-// @ts-expect-error cannot call withoutPermit() twice
-bn.withoutPermit();
+// @ts-expect-error cannot call withACP() twice
+bw.withACP();
+// @ts-expect-error cannot call withoutACP() twice
+bn.withoutACP();

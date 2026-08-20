@@ -2,6 +2,7 @@ import { type UseQueryOptions } from '@tanstack/react-query';
 import { type Address } from 'viem';
 import { FheTypes } from '@cofhe/sdk';
 import { type ConfidentialToken } from './useCofheTokenLists';
+import { getConfidentialDecimals } from '@/types/token';
 import { getTokenTypeContracts } from '../constants/tokenTypeConfig';
 import { assert } from 'ts-essentials';
 import { formatTokenAmount, type TokenFormatOutput } from '@/utils/format';
@@ -37,7 +38,7 @@ type UseConfidentialTokenBalanceResult = {
   isFetching: boolean;
   /** Refetch function */
   refetch: () => Promise<unknown>;
-  disabledDueToMissingValidPermit: boolean;
+  disabledDueToMissingValidACP: boolean;
   /** The on-chain ctHash read is currently failing. */
   isReadError: boolean;
   /** The decryption's latest outcome is an error; any stale decrypted value is withheld from `data`. */
@@ -68,7 +69,7 @@ export function useCofheTokenDecryptedBalance(
   const {
     decrypted: { data: decryptedData, isFetching: isDecryptionFetching },
     encrypted: { isFetching: isEncryptedFetching, refetch: refetchCiphertext },
-    disabledDueToMissingValidPermit,
+    disabledDueToMissingValidACP,
     isReadError,
     isDecryptError,
     isValueStale,
@@ -79,7 +80,7 @@ export function useCofheTokenDecryptedBalance(
       abi: contractConfig?.abi,
       functionName: contractConfig?.functionName,
       args: accountAddress ? [accountAddress] : undefined,
-      requiresPermit: true,
+      requiresACP: true,
     },
     {
       readQueryOptions: {
@@ -93,7 +94,7 @@ export function useCofheTokenDecryptedBalance(
           if (typeof amountWei !== 'bigint') {
             throw new Error('Expected bigint from confidential decryption');
           }
-          return formatTokenAmount(amountWei, token.decimals, displayDecimals);
+          return formatTokenAmount(amountWei, getConfidentialDecimals(token), displayDecimals);
         },
       },
       meta: decryptMeta,
@@ -106,10 +107,11 @@ export function useCofheTokenDecryptedBalance(
   // any stale decrypted value: react-query keeps the last success across a failed refetch, so
   // returning it would render a faulted balance as if it were current. `data === undefined` then
   // unambiguously means "no trustworthy value" (pending or faulted).
-  const data = isKnownZero && token ? formatTokenAmount(0n, token.decimals, displayDecimals) : decryptedData;
+  const data =
+    isKnownZero && token ? formatTokenAmount(0n, getConfidentialDecimals(token), displayDecimals) : decryptedData;
 
   return {
-    disabledDueToMissingValidPermit,
+    disabledDueToMissingValidACP,
 
     data: isDecryptError ? undefined : data,
 
