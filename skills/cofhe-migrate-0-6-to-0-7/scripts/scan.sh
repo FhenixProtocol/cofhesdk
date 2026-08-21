@@ -53,8 +53,18 @@ hits 'onConfidentialTransferReceived' "${SOL[@]}" "${TS[@]}"
 section "CONFIDENTIAL TOKENS - call sites (arg shape changed; non-view returns are now sharedEuint64)"
 hits 'confidentialTransfer(From)?(AndCall)?\(|shield(Native|WrappedNative)?\(|unshield\(' "${SOL[@]}" "${TS[@]}"
 
-section "CONFIDENTIAL TOKENS - removed claim helpers and renamed error (claims are now id-keyed, NOT ctHash-keyed)"
-hits 'FHERC20WrapperClaimHelper|\bLengthMismatch\b|getClaim\(|getUserClaims\(|claimUnshielded' "${SOL[@]}" "${TS[@]}"
+# The claim surface is the most dangerous part of 0.4.0 and has NO compile-time signal:
+# claimUnshielded(bytes32,uint64,bytes) kept its selector while its first argument changed
+# meaning from ciphertext handle to claim id. Split into three sections so none of it is
+# buried behind the others.
+section "CONFIDENTIAL TOKENS - claim call sites (SELECTOR UNCHANGED: arg 1 is now an id, not a ctHash - verify each BY HAND)"
+hits 'claimUnshielded|getClaim\(|getUserClaims\(' "${SOL[@]}" "${TS[@]}"
+
+section "CONFIDENTIAL TOKENS - removed plaintext field + dead readiness tests (decryptedAmount is always 0 while pending)"
+hits 'requestedAmount|decryptedAmount[[:space:]]*[>!=]' "${SOL[@]}" "${TS[@]}"
+
+section "CONFIDENTIAL TOKENS - removed claim helpers and renamed error"
+hits 'FHERC20WrapperClaimHelper|\bLengthMismatch\b' "${SOL[@]}" "${TS[@]}"
 
 section "CONFIDENTIAL TOKENS - deploy paths that must now link ERC20ConfidentialLib (fails at deploy, not compile)"
 grep -rnE 'getContractFactory|deployProxy|deployContract|ContractFactory\(' \

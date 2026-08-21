@@ -2,6 +2,20 @@
 
 Run these in order — each one's failures are noise until the previous passes.
 
+> **Never truncate a verification run.** No `| head`, no `2>&1 | tail -20`, no "first N errors". In
+> a real migration of this skill, `tsc --noEmit` was piped through `head -60`; errors from an
+> unrelated unmigrated package filled the budget, and the run was reported as **"0 errors"** while
+> hiding three in the migrated code — one of them a defect the migration had just introduced. Run
+> each check whole and filter by **path**, not by line count, when the output is large:
+>
+> ```bash
+> npx tsc --noEmit 2>&1 | grep '^apps/platform/src'   # filter by path
+> npx tsc --noEmit 2>&1 | wc -l                       # and always report the total
+> ```
+>
+> If a command's output is genuinely too large to read, say so and report the counts. Do not report
+> a truncated run as a pass.
+
 ## 0. One version of everything
 
 Before trusting any compile result, confirm the dependency set is coherent — the failure mode here
@@ -132,8 +146,17 @@ These compile clean after a faithful rename and break at runtime. Check each exp
 - [ ] **Anything that inspects the request body.** The decrypt request carries `acp`, not
       `permit`. A fault injector, proxy, recorder, or test assertion reading `body.permit`
       through a cast no-ops with zero errors.
-- [ ] **Claim lookups pass an id, not a ciphertext handle.** Both are `bytes32`, so a stale call
-      typechecks and reverts `ClaimNotFound` at runtime. Confidential tokens only.
+- [ ] **`claimUnshielded` is passed a claim id, not a ciphertext handle.** The **selector is
+      unchanged**, so a stale call compiles, encodes, broadcasts and reverts on chain. Both values
+      are `bytes32` and both are still needed — decrypt `claim.ctHash`, submit `claim.id`. The only
+      proof this works is a claim that settles. Confidential tokens only.
+- [ ] **Nothing reads `requestedAmount`.** Removed with no plaintext replacement; showing a pending
+      amount is now a decrypt under the holder's ACP that can partially fail.
+- [ ] **No `decryptedAmount > 0` readiness test survives.** `getUserClaims` only returns unclaimed
+      claims, which all carry `0` — the branch can never be true and reports "pending" forever.
+- [ ] **No claim-struct ABI is hardcoded to the old five-field shape.** Both versions are five
+      static slots, so a migrated client reading an un-upgraded contract decodes garbage that passes
+      every type check. Do not exercise unshield across that mismatch on a chain that matters.
 - [ ] **Confidential-token transfers are `nonReentrant` now.** A receiver that re-entered the token
       during its callback used to work and now reverts.
 

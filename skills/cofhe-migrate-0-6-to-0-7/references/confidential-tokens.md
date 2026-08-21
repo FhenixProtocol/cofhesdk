@@ -195,25 +195,133 @@ library like a deployment of its own: record its address per chain and verify it
 The linked-library warning in [contracts.md](contracts.md) Case A applies from here on — a future
 library change means relinking and redeploying every host.
 
-## 7. Unshield claims are re-keyed — this one can lose user funds in flight
+## 7. Unshield claims — the most dangerous change in the release
+
+Nothing in the toolchain catches any part of this. Read the whole section before touching a claim
+call site.
 
 `FHERC20WrapperClaimHelper` and `FHERC20WrapperClaimHelperUpgradeable` are replaced by a single
-`FHERC20WrapperClaims`. Claims are now keyed by a **unique per-claimant id**
-(`keccak256(to, nonce++, handle)`) rather than by the ciphertext handle, because CoFHE handles are
-content-addressed: two unshields with an identical burned-amount lineage produce the same handle,
-so handle-keyed claims could overwrite each other and redirect a payout.
+`FHERC20WrapperClaims`, over the linked library's claim store. The struct was **reshaped** and
+claiming was **re-keyed**:
 
 ```solidity
-function getClaim(bytes32 id)          public view returns (ERC20ConfidentialLib.Claim memory);  // id, not ctHash
-function getUserClaims(address user)   public view returns (ERC20ConfidentialLib.Claim[] memory);
+// 0.3.x
+struct Claim { address to; bytes32 ctHash; uint64 requestedAmount; uint64 decryptedAmount; bool claimed; }
+function claimUnshielded(bytes32 ctHash, uint64 decryptedAmount, bytes decryptionProof);
+function claimUnshieldedBatch(bytes32[] ctHashes, uint64[] amounts, bytes[] proofs);
+
+// 0.4.0
+struct Claim { bytes32 id; address to; bytes32 ctHash; uint64 decryptedAmount; bool claimed; }
+function claimUnshielded(bytes32 id, uint64 decryptedAmount, bytes decryptionProof);
+function claimUnshieldedBatch(bytes32[] ids, uint64[] amounts, bytes[] proofs);
 ```
 
-Read ids from `getClaim` / `getUserClaims`. The handle is still there as `Claim.ctHash`, and still
-what binds the decryption proof — so code that passed a handle where an id is now expected
-typechecks (`bytes32` either way) and reverts `ClaimNotFound`. Grep for every `getClaim` call site.
+Claims are keyed by a **unique per-claimant id** — `keccak256(to, nonce++, handle)` — rather than by
+the ciphertext handle, because CoFHE handles are content-addressed: two unshields with an identical
+burned-amount lineage produce the same handle, so handle-keyed claims could overwrite each other and
+redirect a payout.
 
-`LengthMismatch` was also renamed to `ClaimBatchLengthMismatch`; a test asserting the old name
-stops matching.
+### (a) The selector did not change
+
+`claimUnshielded(bytes32,uint64,bytes)` is the same signature, so the **same selector**, in both
+versions. Only the meaning of the first argument moved. An unmigrated caller passing a `ctHash`
+where an `id` is expected produces a well-formed transaction that reverts `ClaimNotFound` on chain.
+No compile error, no ABI mismatch, no decode failure — nothing surfaces it but a live test. Treat
+every `claimUnshielded` / `claimUnshieldedBatch` call site as an edit that must be made by hand and
+verified on chain.
+
+**Two `bytes32` values are now in play and they are not interchangeable:**
+
+| Value          | What it is for                                                    |
+| -------------- | ----------------------------------------------------------------- |
+| `Claim.id`     | the lookup key — `getClaim(id)`, and the argument you submit      |
+| `Claim.ctHash` | the burned handle — what you decrypt, and what the proof binds to |
+
+So a claim submission decrypts one and submits the other:
+
+```ts
+const { decryptedValue, signature } = await client
+  .decryptForTx(claim.ctHash) // ctHash
+  .setChainId(chainId)
+  .setAccount(account)
+  .withoutACP()
+  .execute();
+await token.claimUnshielded(claim.id, decryptedValue, signature); //           id
+```
+
+Reversing them typechecks — both are `bytes32` / `Hex` — and fails on chain.
+
+> **The library's own naming will mislead you here.** `IERC20ConfidentialCore` declares
+> `claimUnshielded(bytes32 id, …)`, but `IERC20Confidential` still declares the same function as
+> `claimUnshielded(bytes32 ctHash, …)`. The parameter name is cosmetic and the behaviour is the
+> core's — it wants the id. Do not take the `ctHash` spelling in that one interface as evidence the
+> old contract is in play.
+
+### (b) `requestedAmount` is gone, and reading a pending amount is now a decrypt
+
+The old struct carried a plaintext `requestedAmount`. It is removed, and there is no replacement
+field: only the plaintext `unshield` overload ever filled it (the encrypted overload wrote 0), and
+the unified implementation wraps a plaintext amount into a handle before `createClaim` runs, so
+there is no plaintext left to record. There is no escape route — the struct has no other plaintext,
+`TokensUnshielded` carries a `euint64`, and `UnshieldedTokensClaimed` emits cleartext only at
+**claim** time, after the decrypt already happened.
+
+**Showing a pending claim's amount therefore costs a decrypt per claim, under the holder's ACP**
+(`decryptForView(claim.ctHash).withACP()`), with partial-failure semantics: a missing or expired
+ACP, or a ciphertext the threshold network has not indexed, degrades the displayed total rather than
+failing the query. `useCofheTokenClaimable` handles this and reports an `undecryptedCount` for the
+claims it could not read, deliberately keeping them listed — an amount that cannot be read is not
+the same as an amount that is not there, and hiding it would strand funds.
+
+That is a UX and error-handling change, not a rename. An app that displayed `requestedAmount` needs
+a story for "amount unknown". Three ways to avoid the decrypt entirely, if the developer prefers:
+show count and state only; fold the amount into the claim action, where `decryptForTx` yields it
+anyway; or cache it client-side at unshield time (same-device only, and untrusted).
+
+**Claiming itself did not get harder.** The claim decrypt is `decryptForTx`, which needs **no ACP**,
+and `claimUnshielded` always required a proven plaintext plus proof. Only the _display_ decrypt is
+new. Keep the two separate when explaining this.
+
+Worth carrying: `requestedAmount` was **already** unreliable in 0.3.x — an app using the encrypted
+`unshield` overload was reading 0 from it all along.
+
+### (c) `decryptedAmount > 0` is now dead logic
+
+`getUserClaims` returns **only unclaimed** claims: `handleClaim` writes `decryptedAmount` and
+removes the id from the claimant's set in the same call. So every claim it returns necessarily
+carries `decryptedAmount == 0`.
+
+Any code testing `decryptedAmount > 0n` to mean "ready to claim" is now a branch that can never be
+true, and reports everything as pending forever. No type error, no runtime error — just a feature
+that silently stops working. Grep for it.
+
+### (d) Against un-upgraded contracts the decode is silent, not loud
+
+Both structs are **five static slots**, so a migrated client reading an old contract decodes
+successfully and misaligns: old `to` is read as `id`, old `ctHash` as `to`, old `requestedAmount` as
+`ctHash`. The shape validation in `normalizeUnshieldClaims` only checks types, and every misaligned
+field still has the right type, so every garbage row survives the filter.
+
+The user sees a populated claims list of nonsense, display decrypts aimed at a meaningless `ctHash`
+— which surface as `undecryptedCount`, indistinguishable from "no valid ACP" — and a claim
+submission carrying a bogus id that reverts.
+
+> **Do not exercise unshield from a migrated client against un-upgraded contracts on any chain that
+> matters.** The call succeeds and creates a claim that cannot afterwards be read or claimed.
+
+This is why the redeploy below is not optional.
+
+### Redeploying the token contracts is mandatory
+
+State this plainly rather than leaving it implied. Old contracts and new clients cannot interoperate
+in either direction, for three independent reasons:
+
+1. storage layout changed (claim records, and `FHERC20`'s move to the ERC-7201 struct);
+2. the claim key changed under a **stable selector**, so the mismatch is silent;
+3. `confidentialTransfer` and friends moved to `externalEuint64 + inputProof`.
+
+`LengthMismatch` was also renamed to `ClaimBatchLengthMismatch`; a test asserting the old name stops
+matching.
 
 > **Stop and ask: pending claims do not survive the upgrade.** The new records live in the same
 > ERC-7201 slot as the old helpers' but are **not layout-compatible** — different key derivation,
@@ -262,11 +370,18 @@ forge build            # or: npx hardhat compile
 Then, because none of these are compile-detectable:
 
 ```bash
-# claim lookups that may be passing a handle where an id is now required
+# claim lookups and submissions that may be passing a handle where an id is now required.
+# SELECTOR-STABLE: none of these produce a compile error. Check each by hand.
 grep -rnE 'getClaim|getUserClaims|claimUnshielded' --include='*.ts' --include='*.tsx' --include='*.sol' .
+
+# the removed plaintext field, and readiness tests that can never be true again
+grep -rnE 'requestedAmount|decryptedAmount\s*[>!=]' --include='*.ts' --include='*.tsx' --include='*.sol' .
 
 # the old claim helper names and error
 grep -rnE 'FHERC20WrapperClaimHelper|LengthMismatch' --include='*.ts' --include='*.sol' .
+
+# hardcoded claim-struct ABIs - a 5-field tuple decodes either version without complaint
+grep -rnE "requestedAmount|getUserClaims" --include='*.ts' --include='*.tsx' . | grep -iE 'abi|parseAbi|tuple'
 
 # deploy paths that must now link the library
 grep -rnE 'getContractFactory|deployProxy|deployContract' --include='*.ts' . \
@@ -279,12 +394,21 @@ npm ls @fhenixprotocol/cofhe-contracts fhenix-confidential-contracts 2>/dev/null
 
 Then exercise, on mocks or staging: a wallet-initiated `confidentialTransfer` (argument change), a
 contract-to-contract one (share round trip), a transfer into a contract implementing
-`IERC7984Receiver` (both share directions), and a shield → unshield → claim cycle (the new claim
-id). A green compile covers none of these.
+`IERC7984Receiver` (both share directions), and a **full shield → unshield → display → claim cycle**.
+A green compile covers none of these, and the claim path in particular has no compile-time signal at
+all: the selector is stable, so the only proof it works is a claim that actually settles on chain.
+
+Never truncate a verification run. Piping `tsc --noEmit` through `head` while unrelated errors fill
+the budget is how a real defect in this area gets reported as "0 errors" — run it whole, then filter
+by path if the output is large.
 
 ## Report
 
 - **every unclaimed unshield found on a proxy being upgraded** — individually, as a funds risk
+- **every `claimUnshielded` / `getClaim` call site**, whether it was changed and how it was verified
+  — the selector is stable, so "it compiles" is not evidence
+- any place that displayed `requestedAmount`, and what it shows now for an undecryptable claim
+- any `decryptedAmount > 0` readiness test found, since it was silently always false
 - the `ERC20ConfidentialLib` address deployed per chain, and whether it was explorer-verified
 - any `IERC7984Receiver` implementation whose access widened, and what it can now read
 - contracts left on the bare-`euint64` overload because a counterparty has not migrated

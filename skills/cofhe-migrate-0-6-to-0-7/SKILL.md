@@ -78,18 +78,19 @@ Details for each in [environment.md](references/environment.md).
      Do not halt on a version skew that cannot interact.
 3. **Detect what's in play** and load only the references you need:
 
-| If the project has                                              | Load                                                                                                   |
-| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| any Solidity (`foundry.toml`, `hardhat.config.*`, `contracts/`) | [contracts.md](references/contracts.md) **first**                                                      |
-| `@cofhe/sdk` (**including test-only usage**)                    | [encrypt-inputs.md](references/encrypt-inputs.md), [acp-rename.md](references/acp-rename.md)           |
-| `@cofhe/react`                                                  | [react.md](references/react.md)                                                                        |
-| any client config (`createCofheConfig`)                         | [config.md](references/config.md)                                                                      |
-| error-code handling / a custom backend                          | [errors-and-wire.md](references/errors-and-wire.md)                                                    |
-| `@cofhe/foundry-plugin`                                         | [foundry.md](references/foundry.md)                                                                    |
-| custom mock deployment scripts                                  | [environment.md](references/environment.md)                                                            |
-| encrypted values crossing a contract boundary                   | [shared-euints.md](references/shared-euints.md) — **security-relevant, not compiler-detectable**       |
-| `fhenix-confidential-contracts` (FHERC20 / confidential tokens) | [confidential-tokens.md](references/confidential-tokens.md) — its own 0.4.0 break, on top of the above |
-| any test suite                                                  | [tests.md](references/tests.md) — EOAs cannot share; selectors are not compiler-checked                |
+| If the project has                                              | Load                                                                                                                            |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| any Solidity (`foundry.toml`, `hardhat.config.*`, `contracts/`) | [contracts.md](references/contracts.md) **first**                                                                               |
+| `@cofhe/sdk` (**including test-only usage**)                    | [encrypt-inputs.md](references/encrypt-inputs.md), [acp-rename.md](references/acp-rename.md)                                    |
+| `@cofhe/react`                                                  | [react.md](references/react.md)                                                                                                 |
+| any client config (`createCofheConfig`)                         | [config.md](references/config.md)                                                                                               |
+| error-code handling / a custom backend                          | [errors-and-wire.md](references/errors-and-wire.md)                                                                             |
+| `@cofhe/foundry-plugin`                                         | [foundry.md](references/foundry.md)                                                                                             |
+| custom mock deployment scripts                                  | [environment.md](references/environment.md)                                                                                     |
+| encrypted values crossing a contract boundary                   | [shared-euints.md](references/shared-euints.md) — **security-relevant, not compiler-detectable**                                |
+| `fhenix-confidential-contracts` (FHERC20 / confidential tokens) | [confidential-tokens.md](references/confidential-tokens.md) — its own 0.4.0 break, on top of the above                          |
+| any claim / unshield flow (`claimUnshielded`, `getUserClaims`)  | [confidential-tokens.md](references/confidential-tokens.md) §7 — **re-keyed under a stable selector; zero compile-time signal** |
+| any test suite                                                  | [tests.md](references/tests.md) — EOAs cannot share; selectors are not compiler-checked                                         |
 
 Rows are independent, not exclusive. A repo with both Hardhat and Foundry tests loads
 [encrypt-inputs.md](references/encrypt-inputs.md) **and** [foundry.md](references/foundry.md) — doing
@@ -179,6 +180,14 @@ afterwards is a genuine shape problem rather than a missing identifier.
   re-keys claim records, so pending ones are orphaned and their burned underlying is unrecoverable.
   That is a data migration and a user-funds decision
   ([confidential-tokens.md](references/confidential-tokens.md)).
+- The project calls **`claimUnshielded` / `claimUnshieldedBatch`**. The first argument changed
+  meaning from a ciphertext handle to a claim id **under an unchanged selector** — so an unmigrated
+  call compiles, encodes and broadcasts, then reverts on chain. Nothing in the toolchain catches it.
+  Show each call site and get the change confirmed rather than patching them in bulk
+  ([confidential-tokens.md](references/confidential-tokens.md), §7).
+- The project **displayed a pending claim's amount**. `requestedAmount` is gone with no plaintext
+  replacement, so this is now a decrypt per claim under the holder's ACP, and it can partially fail.
+  The developer has to decide what the UI shows when an amount cannot be read.
 
 ## Finish with a report
 
