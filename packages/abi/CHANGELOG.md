@@ -1,5 +1,11 @@
 # @cofhe/abi Changelog
 
+## 0.7.1
+
+### Patch Changes
+
+- @cofhe/sdk@0.7.1
+
 ## 0.7.0
 
 ### Minor Changes
