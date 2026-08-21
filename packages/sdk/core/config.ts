@@ -3,7 +3,7 @@ import { type CofheChain } from '@/chains';
 import { z } from 'zod';
 import { type WalletClient } from 'viem';
 import { CofheError, CofheErrorCode } from './error.js';
-import { type IStorage } from './types.js';
+import { type IStorage, type TfheThreadsSetting } from './types.js';
 
 export type CofheEnvironment = 'node' | 'hardhat' | 'web' | 'react';
 
@@ -29,6 +29,25 @@ export type CofheConfig = {
    * Default: true
    */
   useWorkers: boolean;
+  /**
+   * How many threads tfhe's rayon pool may use for ZK proof generation
+   * (web platform only; ignored on node/hardhat).
+   *
+   * Proving dominates the cost of `encryptInputs`, and tfhe's wasm is built with
+   * rayon, so spreading it across threads is a large win — roughly 5x on an
+   * 8-thread pool.
+   *
+   * Requires a cross-origin-isolated page (`Cross-Origin-Opener-Policy: same-origin`
+   * plus `Cross-Origin-Embedder-Policy: require-corp` or `credentialless`). When the
+   * page isn't isolated the pool is skipped and proving stays single-threaded, so
+   * this is safe to leave on.
+   *
+   * `'auto'` derives the count from `navigator.hardwareConcurrency` (capped, since
+   * the speedup flattens out); a number requests exactly that many; `false` keeps
+   * tfhe single-threaded.
+   * Default: 'auto'
+   */
+  tfheThreads: TfheThreadsSetting;
   /** ACP acp defaults, applied when creating acps (user options always win) */
   acp: {
     /**
@@ -108,6 +127,11 @@ export const CofheConfigSchema = z.object({
     .default(null),
   /** Whether to use Web Workers for ZK proof generation (web platform only) */
   useWorkers: z.boolean().optional().default(true),
+  /** How many threads tfhe's rayon pool may use for ZK proof generation (web platform only) */
+  tfheThreads: z
+    .union([z.number().int().positive(), z.literal('auto'), z.literal(false)])
+    .optional()
+    .default('auto'),
   /** ACP acp defaults */
   acp: z
     .object({

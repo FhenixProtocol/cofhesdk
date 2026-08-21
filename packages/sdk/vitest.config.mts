@@ -5,9 +5,20 @@ import { dirname, resolve } from 'path';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const alias = { '@': resolve(__dirname, './') }; // or './src'
 
+// tfhe's rayon thread pool (`initThreadPool`) hands a shared WebAssembly.Memory
+// to its worker threads via postMessage, which the browser only permits in a
+// cross-origin-isolated context. Without these headers `crossOriginIsolated` is
+// false and initThreadPool fails with "SharedArrayBuffer transfer requires
+// self.crossOriginIsolated". Single-threaded tfhe works either way.
+const crossOriginIsolationHeaders = {
+  'Cross-Origin-Embedder-Policy': 'credentialless',
+  'Cross-Origin-Opener-Policy': 'same-origin',
+};
+
 export default defineConfig({
   define: { __STAGING_TESTS__: JSON.stringify(process.env.TEST_STAGING_ENABLED === 'true') },
   resolve: { alias },
+  server: { headers: crossOriginIsolationHeaders },
 
   test: {
     globals: true,
@@ -58,7 +69,7 @@ export default defineConfig({
           exclude: ['tfhe', 'node-tfhe'],
           esbuildOptions: { target: 'esnext' },
         },
-        server: { fs: { allow: ['..'] } },
+        server: { fs: { allow: ['..'] }, headers: crossOriginIsolationHeaders },
       },
 
       // HARDHAT 2 (*.hh2.test.ts)
