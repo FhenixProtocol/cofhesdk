@@ -1,10 +1,10 @@
 # Contracts (Solidity)
 
-`@cofhe/*` 0.7.0 depends on `@fhenixprotocol/cofhe-contracts` **0.2.x**, which removes the
+`@cofhe/*` 0.7.1 depends on `@fhenixprotocol/cofhe-contracts` **0.2.0**, which removes the
 single-item input path. Do this **before** touching TypeScript: the ABI you land on determines
 what every call site must look like.
 
-## What 0.2.x deletes
+## What 0.2.0 deletes
 
 | Deleted from   | Symbols                                                                                         |
 | -------------- | ----------------------------------------------------------------------------------------------- |
@@ -18,7 +18,7 @@ Added: `struct UnsignedEncryptedInput { uint256 ctHash; uint8 securityZone; uint
 `FHE.asEbools` / `asEuint8s` / `asEuint16s` / `asEuint32s` / `asEuint64s` / `asEuint128s` /
 `asEaddresses` (each with an `external*[]` and a `bytes[]` overload).
 
-Also added, in `0.2.0-beta.3` and later: the `sharedEuintXX` family for passing encrypted values
+Also added in `0.2.0`: the `sharedEuintXX` family for passing encrypted values
 between contracts. The cases below are about values arriving **from a user**; once they are done,
 work through [shared-euints.md](shared-euints.md) for every value that crosses a **contract**
 boundary. That pass is required too, and unlike everything on this page the compiler will not
@@ -49,7 +49,7 @@ it, then compile:
 struct InEuint64 { uint256 ctHash; uint8 securityZone; uint8 utype; bytes signature; }
 ```
 
-Every other 0.2.x incompatibility surfaces together, with no ABI decisions made yet. Knowing the
+Every other 0.2.0 incompatibility surfaces together, with no ABI decisions made yet. Knowing the
 exposure up front is what makes it safe to script the change rather than hand-edit each signature.
 
 ---
@@ -98,7 +98,7 @@ function setValue(externalEuint32 inValue, bytes memory proof) public {
 }
 ```
 
-`FHE.asEuint32(hash, proof)` still exists in 0.2.x, but now wraps the input into a one-element
+`FHE.asEuint32(hash, proof)` still exists in 0.2.0, but now wraps the input into a one-element
 batch and calls `batchVerifyInputs`. So `proof` must be a **batch signature over a one-item
 batch** — which is exactly what `encryptInputs()` produces for a single input. No redeploy.
 
@@ -178,7 +178,7 @@ follow the `external*` handle it authenticates — `FHE.asEuintXX(hash, proof)` 
 trailing slot.
 
 Extra non-encrypted arguments after that pair are fine. ERC-7984's `*AndCall` overloads are the
-canonical example (OpenZeppelin confidential contracts / Zama):
+canonical example — and this is the shape `fhenix-confidential-contracts` 0.4.0 actually ships:
 
 ```solidity
 function confidentialTransferAndCall(
@@ -186,7 +186,7 @@ function confidentialTransferAndCall(
   externalEuint64 encryptedAmount,
   bytes calldata inputProof,
   bytes calldata data
-) external returns (euint64 transferred);
+) external returns (sharedEuint64 transferred);
 
 function confidentialTransferFromAndCall(
   address from,
@@ -194,10 +194,15 @@ function confidentialTransferFromAndCall(
   externalEuint64 encryptedAmount,
   bytes calldata inputProof,
   bytes calldata data
-) external returns (euint64 transferred);
+) external returns (sharedEuint64 transferred);
 ```
 
 Do **not** move `inputProof` to the last slot to please TypeScript helpers. Match that pairing.
+
+The `sharedEuint64` return is the other half of the same migration — see
+[shared-euints.md](shared-euints.md) for why, and
+[confidential-tokens.md](confidential-tokens.md) if the project actually depends on that library
+rather than merely resembling it.
 
 `@cofhe/abi` (`extractEncryptableValues` / `insertEncryptedValues`, and
 `useCofheEncryptAndWriteContract`) follows the same rule: it takes the `bytes` immediately after the
