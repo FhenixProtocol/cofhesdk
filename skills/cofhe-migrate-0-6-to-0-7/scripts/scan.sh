@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Read-only survey of a codebase for @cofhe/* 0.6.x -> 0.7.0 migration work.
+# Read-only survey of a codebase for @cofhe/* 0.6.x -> 0.7.1 migration work.
 # Writes nothing. Usage: ./scan.sh [path]   (default: current directory)
 
 set -uo pipefail
@@ -21,10 +21,12 @@ hits() {
   if [ -z "$out" ]; then echo "  none"; else echo "$out" | sed 's/^/  /'; fi
 }
 
-section "Installed @cofhe/* versions"
+section "Installed versions (targets: @cofhe/* 0.7.1, cofhe-contracts 0.2.0, confidential-contracts 0.4.0)"
 grep -rhoE '"@cofhe/[a-z0-9-]+"[[:space:]]*:[[:space:]]*"[^"]+"' \
   --include=package.json "${EXCLUDES[@]}" "$ROOT" 2>/dev/null | sort -u | sed 's/^/  /' || echo "  none"
-grep -rhoE '"@fhenixprotocol/cofhe-contracts"[[:space:]]*:[[:space:]]*"[^"]+"' \
+# Both contract packages are part of this migration. A 0.2.0-beta.* pin alongside
+# confidential-contracts 0.4.0 (which needs an exact 0.2.0) resolves two copies of FHE.sol.
+grep -rhoE '"(@fhenixprotocol/cofhe-contracts|fhenix-confidential-contracts)"[[:space:]]*:[[:space:]]*"[^"]+"' \
   --include=package.json "${EXCLUDES[@]}" "$ROOT" 2>/dev/null | sort -u | sed 's/^/  /'
 
 section "CONTRACTS - deleted InEuintXX structs (Case A: must change + redeploy)"
@@ -40,6 +42,24 @@ section "CONTRACTS - non-view functions returning an encrypted value (Case S2)"
 grep -rnE 'returns\s*\([^)]*\b(euint(8|16|32|64|128)|ebool|eaddress)\b' \
   "${EXCLUDES[@]}" "${SOL[@]}" "$ROOT" 2>/dev/null \
   | grep -vE '\bview\b|\bpure\b' | sed 's/^/  /' || echo "  none"
+
+# --- fhenix-confidential-contracts 0.3.x -> 0.4.0 (its own version line; see confidential-tokens.md)
+section "CONFIDENTIAL TOKENS - library base contracts and interfaces in use (signatures changed under them)"
+hits '\b(FHERC20|FHERC20Upgradeable|FHERC20Core|FHERC20ERC20Wrapper(Upgradeable|Core)?|FHERC20NativeWrapper(Upgradeable|Core)?|ERC20Confidential[A-Za-z]*|IFHERC20[A-Za-z]*|IERC7984[A-Za-z]*|IERC20Confidential[A-Za-z]*)\b' "${SOL[@]}"
+
+section "CONFIDENTIAL TOKENS - IERC7984Receiver impls (amount -> sharedEuint64, return -> sharedEbool)"
+hits 'onConfidentialTransferReceived' "${SOL[@]}" "${TS[@]}"
+
+section "CONFIDENTIAL TOKENS - call sites (arg shape changed; non-view returns are now sharedEuint64)"
+hits 'confidentialTransfer(From)?(AndCall)?\(|shield(Native|WrappedNative)?\(|unshield\(' "${SOL[@]}" "${TS[@]}"
+
+section "CONFIDENTIAL TOKENS - removed claim helpers and renamed error (claims are now id-keyed, NOT ctHash-keyed)"
+hits 'FHERC20WrapperClaimHelper|\bLengthMismatch\b|getClaim\(|getUserClaims\(|claimUnshielded' "${SOL[@]}" "${TS[@]}"
+
+section "CONFIDENTIAL TOKENS - deploy paths that must now link ERC20ConfidentialLib (fails at deploy, not compile)"
+grep -rnE 'getContractFactory|deployProxy|deployContract|ContractFactory\(' \
+  "${EXCLUDES[@]}" "${TS[@]}" "$ROOT" 2>/dev/null \
+  | grep -iE 'confidential|wrapper|fherc20' | sed 's/^/  /' || echo "  none"
 
 section "FOUNDRY - removed helpers"
 hits 'createIn(Ebool|Euint8|Euint16|Euint32|Euint64|Euint128|Eaddress)|_asHashPlusProof|zkVerifySign(Packed)?|createEncryptedInput\b|createBasePermission' "${SOL[@]}"

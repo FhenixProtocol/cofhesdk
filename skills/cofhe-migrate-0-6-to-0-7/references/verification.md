@@ -2,6 +2,24 @@
 
 Run these in order — each one's failures are noise until the previous passes.
 
+## 0. One version of everything
+
+Before trusting any compile result, confirm the dependency set is coherent — the failure mode here
+is errors that read as code problems:
+
+```bash
+# every @cofhe/* on the same version (0.7.1, or 0.7.0 if 0.7.1 has not shipped)
+npm ls @cofhe/sdk @cofhe/react @cofhe/abi 2>/dev/null | grep '@cofhe/'
+
+# exactly ONE line per contract package - two copies of FHE.sol means two distinct
+# sharedEuintXX types with the same name, and mismatch errors that look absurd
+npm ls @fhenixprotocol/cofhe-contracts fhenix-confidential-contracts 2>/dev/null \
+  | grep -E 'cofhe-contracts|confidential-contracts'
+```
+
+`@fhenixprotocol/cofhe-contracts` must be `0.2.0`, and `fhenix-confidential-contracts` — if present
+at all — `0.4.0`. See [environment.md](environment.md).
+
 ## 1. Contracts compile
 
 ```bash
@@ -67,6 +85,10 @@ grep -rn  'allowTransient' --include='*.sol' .
 grep -rnE 'createIn(Ebool|Euint)|_asHashPlusProof|zkVerifySign' --include='*.sol' .
 grep -rnE 'withoutPermit|withPermit|decryptForTx_with' --include='*.ts' --include='*.sol' .
 grep -rnE '\(uint256,uint8,uint8,bytes\)' --include='*.ts' --include='*.tsx' .
+
+# confidential tokens only - stale claim keying and removed helper names
+grep -rnE 'FHERC20WrapperClaimHelper|\bLengthMismatch\b' --include='*.ts' --include='*.sol' .
+grep -rnE 'getClaim\(|getUserClaims\(' --include='*.ts' --include='*.tsx' --include='*.sol' .
 ```
 
 Every remaining hit is either unfinished work or a deliberate skip. There is no third category —
@@ -86,6 +108,12 @@ Go through these with the developer:
 - [ ] **Revocation no longer has a distinct wire code** — it arrives as `acp_denied`.
 - [ ] **Mock stack wires up `ACPTimestampRevoker` and `ACPShareRegistry`**, if the project
       deploys mocks itself.
+- [ ] **`ERC20ConfidentialLib` is deployed and linked** into every confidential-token factory,
+      proxy deploy and test fixture — and its address recorded per chain. Confidential tokens only
+      ([confidential-tokens.md](confidential-tokens.md)).
+- [ ] **No unclaimed unshields are in flight** on any confidential-token proxy being upgraded.
+      Old claim records are not layout-compatible with the new id-keyed ones, so pending claims are
+      orphaned and the burned underlying is unrecoverable. A funds question, not a code one.
 
 ## 5b. Behaviour changes with no compile error
 
@@ -104,6 +132,10 @@ These compile clean after a faithful rename and break at runtime. Check each exp
 - [ ] **Anything that inspects the request body.** The decrypt request carries `acp`, not
       `permit`. A fault injector, proxy, recorder, or test assertion reading `body.permit`
       through a cast no-ops with zero errors.
+- [ ] **Claim lookups pass an id, not a ciphertext handle.** Both are `bytes32`, so a stale call
+      typechecks and reverts `ClaimNotFound` at runtime. Confidential tokens only.
+- [ ] **Confidential-token transfers are `nonReentrant` now.** A receiver that re-entered the token
+      during its callback used to work and now reverts.
 
 ## Expected failure: `ZK_VERIFY_FAILED` on the public testnets
 
