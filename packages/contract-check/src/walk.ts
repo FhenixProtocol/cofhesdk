@@ -92,7 +92,7 @@ export function walk(node: unknown, visit: (n: AstNode) => void): void {
 export function collectTypeNames(
   typeNameNode: unknown,
   structsById: Map<number, AstNode>,
-  seenStructs = new Set<number>(),
+  seenStructs = new Set<number>()
 ): string[] {
   const found: string[] = [];
 

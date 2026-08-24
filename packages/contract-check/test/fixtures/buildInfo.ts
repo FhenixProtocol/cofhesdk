@@ -80,11 +80,7 @@ function unwrapCall(typeString: string, member: 'wrap' | 'unwrap') {
   };
 }
 
-export function buildInfoWith(
-  sourcePath: string,
-  nodes: unknown[],
-  content = '\n'.repeat(50),
-): BuildInfo {
+export function buildInfoWith(sourcePath: string, nodes: unknown[], content = '\n'.repeat(50)): BuildInfo {
   return {
     solcVersion: '0.8.27',
     input: { sources: { [sourcePath]: { content } } },

@@ -1,11 +1,4 @@
-import {
-  collectTypeNames,
-  indexStructs,
-  lineOf,
-  walk,
-  type AstNode,
-  type SourceUnit,
-} from '../walk.js';
+import { collectTypeNames, indexStructs, lineOf, walk, type AstNode, type SourceUnit } from '../walk.js';
 import {
   BASE_ENCRYPTED_TYPES,
   isBaseEncryptedType,
@@ -55,10 +48,7 @@ function isLibrarySource(path: string, libraryPaths: string[]): boolean {
   return libraryPaths.some((frag) => path.includes(frag));
 }
 
-function encryptedTypesIn(
-  typeNameNode: unknown,
-  structsById: Map<number, AstNode>,
-): string[] {
+function encryptedTypesIn(typeNameNode: unknown, structsById: Map<number, AstNode>): string[] {
   return collectTypeNames(typeNameNode, structsById)
     .map((t) => typeIdentifier(t))
     .filter((t): t is string => !!t && isBaseEncryptedType(t));
@@ -66,12 +56,9 @@ function encryptedTypesIn(
 
 function paramTypeName(param: AstNode): string | undefined {
   const fromTypeName = (
-    (param.typeName as AstNode | undefined)?.typeDescriptions as
-      | { typeString?: string }
-      | undefined
+    (param.typeName as AstNode | undefined)?.typeDescriptions as { typeString?: string } | undefined
   )?.typeString;
-  const fromParam = (param.typeDescriptions as { typeString?: string } | undefined)
-    ?.typeString;
+  const fromParam = (param.typeDescriptions as { typeString?: string } | undefined)?.typeString;
   return typeIdentifier(fromTypeName ?? fromParam);
 }
 
@@ -85,15 +72,12 @@ function isExternalEncryptedParam(param: AstNode): boolean {
   return !!name && isExternalEncryptedType(name);
 }
 
-function externallyVisibleFunctions(
-  unit: SourceUnit,
-): Array<{ node: AstNode; params: AstNode[] }> {
+function externallyVisibleFunctions(unit: SourceUnit): Array<{ node: AstNode; params: AstNode[] }> {
   const out: Array<{ node: AstNode; params: AstNode[] }> = [];
   walk(unit.ast, (n) => {
     if (n.nodeType !== 'FunctionDefinition') return;
     if (!EXTERNALLY_VISIBLE.has(String(n.visibility))) return;
-    const params =
-      ((n.parameters as AstNode | undefined)?.parameters as AstNode[] | undefined) ?? [];
+    const params = ((n.parameters as AstNode | undefined)?.parameters as AstNode[] | undefined) ?? [];
     out.push({ node: n, params });
   });
   return out;
@@ -121,7 +105,7 @@ const noRawWrapUnwrap: Rule = {
         const expr = n.expression as AstNode | undefined;
         const name = typeIdentifier(
           (expr?.typeDescriptions as { typeString?: string } | undefined)?.typeString ??
-            (typeof expr?.name === 'string' ? (expr.name as string) : undefined),
+            (typeof expr?.name === 'string' ? (expr.name as string) : undefined)
         );
         if (!name || !isSharedEncryptedType(name)) return;
 
@@ -159,9 +143,7 @@ const noRawEncryptedParams: Rule = {
         if (n.nodeType !== 'FunctionDefinition') return;
         if (!EXTERNALLY_VISIBLE.has(String(n.visibility))) return;
 
-        const params = (n.parameters as AstNode | undefined)?.parameters as
-          | AstNode[]
-          | undefined;
+        const params = (n.parameters as AstNode | undefined)?.parameters as AstNode[] | undefined;
         for (const param of params ?? []) {
           for (const bad of encryptedTypesIn(param.typeName, structsById)) {
             findings.push({
@@ -192,8 +174,7 @@ const noRawEncryptedParams: Rule = {
  */
 const noRawEncryptedReturns: Rule = {
   id: 'no-raw-encrypted-returns',
-  description:
-    'external/public state-mutating functions must not return raw encrypted types',
+  description: 'external/public state-mutating functions must not return raw encrypted types',
   run({ units, structsById, libraryPaths }) {
     const findings: Finding[] = [];
     for (const unit of units) {
@@ -206,9 +187,7 @@ const noRawEncryptedReturns: Rule = {
         const mutability = String(n.stateMutability);
         if (mutability === 'view' || mutability === 'pure') return;
 
-        const returns = (n.returnParameters as AstNode | undefined)?.parameters as
-          | AstNode[]
-          | undefined;
+        const returns = (n.returnParameters as AstNode | undefined)?.parameters as AstNode[] | undefined;
         for (const ret of returns ?? []) {
           for (const bad of encryptedTypesIn(ret.typeName, structsById)) {
             findings.push({
@@ -243,8 +222,7 @@ function cap(t: string): string {
  */
 const externalInputMissingProof: Rule = {
   id: 'external-input-missing-proof',
-  description:
-    'functions taking externalE* inputs must also accept the proof bytes that verify them',
+  description: 'functions taking externalE* inputs must also accept the proof bytes that verify them',
   run({ units, libraryPaths }) {
     const findings: Finding[] = [];
     for (const unit of units) {
@@ -281,8 +259,7 @@ const externalInputMissingProof: Rule = {
  */
 const proofPlacement: Rule = {
   id: 'proof-placement',
-  description:
-    'externalE* inputs follow the configured proof arrangement (opt-in via proofStyle)',
+  description: 'externalE* inputs follow the configured proof arrangement (opt-in via proofStyle)',
   run({ units, libraryPaths, proofStyle }) {
     if (proofStyle === 'any') return [];
 
@@ -369,8 +346,7 @@ function receiveVariantOf(memberName: string): 'Param' | 'FromCall' | undefined 
 /** Parameter declaration ids of a function, for identity checks on Identifiers. */
 function parameterIds(fnNode: AstNode): Set<number> {
   const ids = new Set<number>();
-  const params =
-    ((fnNode.parameters as AstNode | undefined)?.parameters as AstNode[] | undefined) ?? [];
+  const params = ((fnNode.parameters as AstNode | undefined)?.parameters as AstNode[] | undefined) ?? [];
   for (const p of params) if (typeof p.id === 'number') ids.add(p.id);
   return ids;
 }
@@ -404,12 +380,7 @@ function singleAssignedLocals(body: unknown): Map<number, AstNode> {
   return initialized;
 }
 
-function originOf(
-  expr: AstNode | undefined,
-  paramIds: Set<number>,
-  locals: Map<number, AstNode>,
-  depth = 0,
-): Origin {
+function originOf(expr: AstNode | undefined, paramIds: Set<number>, locals: Map<number, AstNode>, depth = 0): Origin {
   if (!expr || depth > 1) return 'unknown';
 
   if (expr.nodeType === 'FunctionCall') return 'call';
@@ -427,8 +398,7 @@ function originOf(
 
 const receiveVariant: Rule = {
   id: 'receive-variant',
-  description:
-    'shared values returned by a call use receive*FromCall; values arriving as parameters use receive*Param',
+  description: 'shared values returned by a call use receive*FromCall; values arriving as parameters use receive*Param',
   run({ units, libraryPaths }) {
     const findings: Finding[] = [];
 
@@ -496,7 +466,5 @@ export const RULES: Rule[] = [
 export function runRules(ctx: Omit<RuleContext, 'structsById'>): Finding[] {
   const structsById = indexStructs(ctx.units);
   const full: RuleContext = { ...ctx, structsById };
-  return RULES.flatMap((rule) => rule.run(full)).sort(
-    (a, b) => a.file.localeCompare(b.file) || a.line - b.line,
-  );
+  return RULES.flatMap((rule) => rule.run(full)).sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line);
 }

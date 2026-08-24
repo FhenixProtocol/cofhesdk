@@ -27,9 +27,7 @@ describe('external-input-missing-proof', () => {
       fn({ name: 'deposit', visibility: 'external', params: ['externalEuint64', 'address'] }),
     ]);
 
-    const findings = checkBuildInfo(info).filter(
-      (f) => f.rule === 'external-input-missing-proof',
-    );
+    const findings = checkBuildInfo(info).filter((f) => f.rule === 'external-input-missing-proof');
 
     expect(findings).toHaveLength(1);
     expect(findings[0]!.severity).toBe('error');

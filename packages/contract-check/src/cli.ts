@@ -29,9 +29,7 @@ function parseProofStyle(argv: string[]): ProofStyle {
   if (at === -1) return 'any';
   const value = argv[at + 1];
   if (!value || !PROOF_STYLES.has(value as ProofStyle)) {
-    throw new Error(
-      `--proof-style expects one of: ${[...PROOF_STYLES].join(', ')}`,
-    );
+    throw new Error(`--proof-style expects one of: ${[...PROOF_STYLES].join(', ')}`);
   }
   return value as ProofStyle;
 }
@@ -46,9 +44,7 @@ async function resolveTarget(explicit?: string): Promise<string> {
       // try the next default
     }
   }
-  throw new Error(
-    'No build-info found. Compile first, or pass the path explicitly (see --help).',
-  );
+  throw new Error('No build-info found. Compile first, or pass the path explicitly (see --help).');
 }
 
 async function main(): Promise<void> {
@@ -59,9 +55,7 @@ async function main(): Promise<void> {
   }
 
   const proofStyle = parseProofStyle(argv);
-  const positional = argv.filter(
-    (a, i) => !a.startsWith('-') && argv[i - 1] !== '--proof-style',
-  );
+  const positional = argv.filter((a, i) => !a.startsWith('-') && argv[i - 1] !== '--proof-style');
 
   const target = await resolveTarget(positional[0]);
   const info = await stat(target);

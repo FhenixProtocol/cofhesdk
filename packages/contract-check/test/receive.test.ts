@@ -118,7 +118,7 @@ describe('receive-variant', () => {
     const fn = fnWithSharedParam(
       'consume',
       [receiveCall('receiveEuint64FromCall', identifier('shared', paramId))],
-      paramId,
+      paramId
     );
     const info = buildInfoWith('contracts/Consumer.sol', [fn]);
 
@@ -131,14 +131,8 @@ describe('receive-variant', () => {
   it('accepts each variant on its matching origin', () => {
     const paramId = nextId++;
     const ok = buildInfoWith('contracts/Ok.sol', [
-      fnWithSharedParam(
-        'fromParam',
-        [receiveCall('receiveEuint64Param', identifier('shared', paramId))],
-        paramId,
-      ),
-      fnWithSharedParam('fromCall', [
-        receiveCall('receiveEuint64FromCall', externalCall()),
-      ]),
+      fnWithSharedParam('fromParam', [receiveCall('receiveEuint64Param', identifier('shared', paramId))], paramId),
+      fnWithSharedParam('fromCall', [receiveCall('receiveEuint64FromCall', externalCall())]),
     ]);
 
     expect(checkBuildInfo(ok).filter((f) => f.rule === 'receive-variant')).toHaveLength(0);
@@ -147,10 +141,7 @@ describe('receive-variant', () => {
   it('follows a local assigned exactly once', () => {
     const declId = nextId++;
     const decl = localFrom(externalCall(), declId);
-    const fn = fnWithSharedParam('consume', [
-      decl,
-      receiveCall('receiveEuint64Param', identifier('local', declId)),
-    ]);
+    const fn = fnWithSharedParam('consume', [decl, receiveCall('receiveEuint64Param', identifier('local', declId))]);
     const info = buildInfoWith('contracts/Local.sol', [fn]);
 
     const findings = checkBuildInfo(info).filter((f) => f.rule === 'receive-variant');
@@ -181,7 +172,7 @@ describe('receive-variant', () => {
     ]);
 
     const findings = checkBuildInfo(buildInfoWith('contracts/Reassigned.sol', [fn])).filter(
-      (f) => f.rule === 'receive-variant',
+      (f) => f.rule === 'receive-variant'
     );
 
     expect(findings).toHaveLength(0);
@@ -199,7 +190,7 @@ describe('receive-variant', () => {
     ]);
 
     const findings = checkBuildInfo(buildInfoWith('contracts/Unknown.sol', [fn])).filter(
-      (f) => f.rule === 'receive-variant',
+      (f) => f.rule === 'receive-variant'
     );
 
     expect(findings).toHaveLength(0);
@@ -207,13 +198,11 @@ describe('receive-variant', () => {
 
   it('covers every encrypted width', () => {
     const fns = ['Ebool', 'Euint8', 'Euint128', 'Eaddress'].map((cap, i) =>
-      fnWithSharedParam(`consume${i}`, [
-        receiveCall(`receive${cap}Param`, externalCall()),
-      ]),
+      fnWithSharedParam(`consume${i}`, [receiveCall(`receive${cap}Param`, externalCall())])
     );
 
     const findings = checkBuildInfo(buildInfoWith('contracts/Wide.sol', fns)).filter(
-      (f) => f.rule === 'receive-variant',
+      (f) => f.rule === 'receive-variant'
     );
 
     expect(findings).toHaveLength(4);

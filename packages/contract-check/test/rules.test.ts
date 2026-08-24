@@ -11,9 +11,7 @@ describe('no-raw-encrypted-params', () => {
       fn({ name: 'confidentialDeposit', visibility: 'external', params: ['euint64', 'address'] }),
     ]);
 
-    const findings = checkBuildInfo(info).filter(
-      (f) => f.rule === 'no-raw-encrypted-params',
-    );
+    const findings = checkBuildInfo(info).filter((f) => f.rule === 'no-raw-encrypted-params');
 
     expect(findings).toHaveLength(1);
     expect(findings[0]!.message).toContain('euint64');
@@ -48,9 +46,7 @@ describe('no-raw-encrypted-params', () => {
       fn({ name: 'f', visibility: 'public', params: ['eaddress'] }),
     ]);
 
-    expect(
-      checkBuildInfo(info).filter((f) => f.rule === 'no-raw-encrypted-params'),
-    ).toHaveLength(6);
+    expect(checkBuildInfo(info).filter((f) => f.rule === 'no-raw-encrypted-params')).toHaveLength(6);
   });
 });
 
@@ -60,9 +56,7 @@ describe('no-raw-encrypted-returns', () => {
       fn({ name: 'deposit', visibility: 'external', returns: ['euint64'] }),
     ]);
 
-    const findings = checkBuildInfo(info).filter(
-      (f) => f.rule === 'no-raw-encrypted-returns',
-    );
+    const findings = checkBuildInfo(info).filter((f) => f.rule === 'no-raw-encrypted-returns');
 
     expect(findings).toHaveLength(1);
     expect(findings[0]!.message).toContain('share');
@@ -110,10 +104,10 @@ describe('no-raw-shared-wrap', () => {
   });
 
   it('allows wrap/unwrap inside the FHE library itself', () => {
-    const info = buildInfoWith(
-      'node_modules/@fhenixprotocol/cofhe-contracts/FHE.sol',
-      [unwrapCall('sharedEuint64', 'unwrap'), unwrapCall('sharedEuint64', 'wrap')],
-    );
+    const info = buildInfoWith('node_modules/@fhenixprotocol/cofhe-contracts/FHE.sol', [
+      unwrapCall('sharedEuint64', 'unwrap'),
+      unwrapCall('sharedEuint64', 'wrap'),
+    ]);
 
     expect(checkBuildInfo(info)).toHaveLength(0);
   });
@@ -173,9 +167,7 @@ describe('struct smuggling', () => {
       },
     ]);
 
-    const findings = checkBuildInfo(info).filter(
-      (f) => f.rule === 'no-raw-encrypted-params',
-    );
+    const findings = checkBuildInfo(info).filter((f) => f.rule === 'no-raw-encrypted-params');
 
     expect(findings).toHaveLength(1);
     expect(findings[0]!.message).toContain('euint64');

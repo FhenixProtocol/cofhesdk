@@ -17,14 +17,10 @@ export const BASE_ENCRYPTED_TYPES = [
 export type BaseEncryptedType = (typeof BASE_ENCRYPTED_TYPES)[number];
 
 /** Inert wrappers guarding the EOA -> contract boundary (carry a proof). */
-export const EXTERNAL_ENCRYPTED_TYPES = BASE_ENCRYPTED_TYPES.map(
-  (t) => `external${t[0].toUpperCase()}${t.slice(1)}`,
-);
+export const EXTERNAL_ENCRYPTED_TYPES = BASE_ENCRYPTED_TYPES.map((t) => `external${t[0].toUpperCase()}${t.slice(1)}`);
 
 /** Inert wrappers guarding the contract -> contract boundary. */
-export const SHARED_ENCRYPTED_TYPES = BASE_ENCRYPTED_TYPES.map(
-  (t) => `shared${t[0].toUpperCase()}${t.slice(1)}`,
-);
+export const SHARED_ENCRYPTED_TYPES = BASE_ENCRYPTED_TYPES.map((t) => `shared${t[0].toUpperCase()}${t.slice(1)}`);
 
 const BASE = new Set<string>(BASE_ENCRYPTED_TYPES);
 const EXTERNAL = new Set<string>(EXTERNAL_ENCRYPTED_TYPES);

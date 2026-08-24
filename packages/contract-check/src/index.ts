@@ -31,10 +31,7 @@ export function checkBuildInfo(buildInfo: BuildInfo, options: CheckOptions = {})
   });
 }
 
-export async function checkBuildInfoFile(
-  path: string,
-  options: CheckOptions = {},
-): Promise<Finding[]> {
+export async function checkBuildInfoFile(path: string, options: CheckOptions = {}): Promise<Finding[]> {
   const raw = await readFile(path, 'utf8');
   return checkBuildInfo(JSON.parse(raw) as BuildInfo, options);
 }
@@ -43,10 +40,7 @@ export async function checkBuildInfoFile(
  * Check every build-info JSON in a directory — the shape hardhat
  * (`artifacts/build-info`) and foundry (`out/build-info`) both produce.
  */
-export async function checkBuildInfoDir(
-  dir: string,
-  options: CheckOptions = {},
-): Promise<Finding[]> {
+export async function checkBuildInfoDir(dir: string, options: CheckOptions = {}): Promise<Finding[]> {
   const entries = await readdir(dir);
   const files = entries.filter((f) => f.endsWith('.json'));
   const all: Finding[] = [];
@@ -70,7 +64,7 @@ function dedupe(findings: Finding[]): Finding[] {
 export function formatFindings(findings: Finding[]): string {
   if (findings.length === 0) return 'cofhe contract-check: no violations found.';
   const lines = findings.map(
-    (f) => `  ${f.severity === 'error' ? 'error' : 'warn '} ${f.file}:${f.line}  [${f.rule}]\n         ${f.message}`,
+    (f) => `  ${f.severity === 'error' ? 'error' : 'warn '} ${f.file}:${f.line}  [${f.rule}]\n         ${f.message}`
   );
   const errors = findings.filter((f) => f.severity === 'error').length;
   const warnings = findings.length - errors;

@@ -1,28 +1,27 @@
 /**
- * Smoke test against real compiler output, when a local build-info is present.
+ * Smoke test against real compiler output.
  *
- * Skipped automatically where the artifacts are absent (CI, fresh clones), so
- * it documents behaviour on production sources without becoming a dependency
- * on someone else's checkout.
+ * Point CONTRACT_CHECK_FIXTURE at any project's build-info directory to see the
+ * rules run over production sources:
+ *
+ *   CONTRACT_CHECK_FIXTURE=../my-app/artifacts/build-info pnpm test
+ *
+ * Skipped when unset (the default, including CI), so the suite never depends on
+ * a particular checkout.
  */
 import { existsSync } from 'node:fs';
-import { homedir } from 'node:os';
-import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
 import { checkBuildInfoDir, formatFindings } from '../src/index.js';
 
-const REAL_BUILD_INFO = join(
-  homedir(),
-  'repos/TGE-platform/contracts/stablecoin/artifacts/build-info',
-);
+const REAL_BUILD_INFO = process.env.CONTRACT_CHECK_FIXTURE;
 
-const maybe = existsSync(REAL_BUILD_INFO) ? describe : describe.skip;
+const maybe = REAL_BUILD_INFO && existsSync(REAL_BUILD_INFO) ? describe : describe.skip;
 
 maybe('real build-info', () => {
   it('parses production output and reports findings without throwing', async () => {
-    const findings = await checkBuildInfoDir(REAL_BUILD_INFO);
+    const findings = await checkBuildInfoDir(REAL_BUILD_INFO!);
 
     // eslint-disable-next-line no-console -- the point of the smoke test
     console.log(formatFindings(findings));

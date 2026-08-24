@@ -24,14 +24,14 @@ npx contract-check
 
 ## Rules
 
-| id | severity | status |
-|---|---|---|
-| [`no-raw-encrypted-params`](#no-raw-encrypted-params) | error | implemented |
-| [`no-raw-encrypted-returns`](#no-raw-encrypted-returns) | error | implemented |
-| [`no-raw-shared-wrap`](#no-raw-shared-wrap) | error | implemented |
-| [`external-input-missing-proof`](#external-input-missing-proof) | error | implemented |
-| [`proof-placement`](#proof-placement) | warning | opt-in, off by default |
-| [`receive-variant`](#receive-variant) | warning | implemented |
+| id                                                              | severity | status                 |
+| --------------------------------------------------------------- | -------- | ---------------------- |
+| [`no-raw-encrypted-params`](#no-raw-encrypted-params)           | error    | implemented            |
+| [`no-raw-encrypted-returns`](#no-raw-encrypted-returns)         | error    | implemented            |
+| [`no-raw-shared-wrap`](#no-raw-shared-wrap)                     | error    | implemented            |
+| [`external-input-missing-proof`](#external-input-missing-proof) | error    | implemented            |
+| [`proof-placement`](#proof-placement)                           | warning  | opt-in, off by default |
+| [`receive-variant`](#receive-variant)                           | warning  | implemented            |
 
 The encrypted types the rules recognise, mirroring the `type` declarations in
 `cofhe-contracts/FHE.sol`:
@@ -102,7 +102,7 @@ A function accepting `externalE*` inputs must also accept the proof bytes that v
 `externalEuint64` is inert — the only routes to a usable handle are `FHE.asEuint64(hash, proof)`
 and the batch verifier, both of which need proof bytes. A signature with external inputs but no
 `bytes` parameter cannot supply them, so the value can never be converted. That is wrong under
-*every* arrangement, which is why this rule needs no convention.
+_every_ arrangement, which is why this rule needs no convention.
 
 ```solidity
 // flagged — nothing can verify this input
@@ -115,7 +115,7 @@ function deposit(externalEuint64 amount, bytes calldata proof) external;
 ### `proof-placement`
 
 **Opt-in; silent unless you configure it.** The library supports a proof per value
-(`FHE.asEuintXX(hash, proof)`) *and* one signature covering a batch, so neither arrangement is a
+(`FHE.asEuintXX(hash, proof)`) _and_ one signature covering a batch, so neither arrangement is a
 defect and the checker accepts both by default.
 
 Pin a style only when you want house consistency — usually so signatures match a generated client
@@ -124,15 +124,16 @@ encoder, since the SDK builds calldata in a fixed order:
 ```ts
 await checkBuildInfoDir('artifacts/build-info', { proofStyle: 'trailing' });
 ```
+
 ```bash
 npx contract-check --proof-style trailing
 ```
 
-| setting | accepts |
-|---|---|
-| `any` *(default)* | both arrangements; rule reports nothing |
-| `trailing` | exactly one proof, as the final parameter |
-| `per-value` | each external input immediately followed by its own proof |
+| setting           | accepts                                                   |
+| ----------------- | --------------------------------------------------------- |
+| `any` _(default)_ | both arrangements; rule reports nothing                   |
+| `trailing`        | exactly one proof, as the final parameter                 |
+| `per-value`       | each external input immediately followed by its own proof |
 
 Deviations are reported as **warnings**, never errors — this is a style preference, not a
 security property. Functions missing a proof entirely are left to
@@ -209,7 +210,7 @@ Exit code is `1` when any error-severity finding is reported, `0` otherwise — 
 
 ```yaml
 - run: npx hardhat compile
-- run: npx contract-check      # fails the job on any error finding
+- run: npx contract-check # fails the job on any error finding
 ```
 
 ### Programmatic
