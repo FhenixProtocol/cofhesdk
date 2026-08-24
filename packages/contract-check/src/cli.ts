@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { stat } from 'node:fs/promises';
 
-import { checkBuildInfoDir, checkBuildInfoFile, formatFindings } from './index.js';
+import { checkBuildInfoDir, checkBuildInfoFile, formatFindings, type ProofStyle } from './index.js';
 
 const USAGE = `cofhe contract-check
 
@@ -12,8 +12,29 @@ const USAGE = `cofhe contract-check
                                  (default: artifacts/build-info, then out/build-info)
     contract-check --help
 
+  Options:
+    --proof-style <style>        any (default) | per-value | trailing
+                                 House arrangement for proofs covering external
+                                 inputs. Both arrangements are valid in the
+                                 library, so this only reports deviations when
+                                 you pin one; it never blocks by default.
+
   Exit code is 1 when any error-severity finding is reported.
 `;
+
+const PROOF_STYLES = new Set<ProofStyle>(['any', 'per-value', 'trailing']);
+
+function parseProofStyle(argv: string[]): ProofStyle {
+  const at = argv.indexOf('--proof-style');
+  if (at === -1) return 'any';
+  const value = argv[at + 1];
+  if (!value || !PROOF_STYLES.has(value as ProofStyle)) {
+    throw new Error(
+      `--proof-style expects one of: ${[...PROOF_STYLES].join(', ')}`,
+    );
+  }
+  return value as ProofStyle;
+}
 
 async function resolveTarget(explicit?: string): Promise<string> {
   if (explicit) return explicit;
@@ -31,17 +52,23 @@ async function resolveTarget(explicit?: string): Promise<string> {
 }
 
 async function main(): Promise<void> {
-  const arg = process.argv[2];
-  if (arg === '--help' || arg === '-h') {
+  const argv = process.argv.slice(2);
+  if (argv.includes('--help') || argv.includes('-h')) {
     process.stdout.write(USAGE);
     return;
   }
 
-  const target = await resolveTarget(arg);
+  const proofStyle = parseProofStyle(argv);
+  const positional = argv.filter(
+    (a, i) => !a.startsWith('-') && argv[i - 1] !== '--proof-style',
+  );
+
+  const target = await resolveTarget(positional[0]);
   const info = await stat(target);
+  const options = { proofStyle };
   const findings = info.isDirectory()
-    ? await checkBuildInfoDir(target)
-    : await checkBuildInfoFile(target);
+    ? await checkBuildInfoDir(target, options)
+    : await checkBuildInfoFile(target, options);
 
   process.stdout.write(`${formatFindings(findings)}\n`);
   if (findings.some((f) => f.severity === 'error')) process.exitCode = 1;

@@ -2,10 +2,10 @@ import { readFile } from 'node:fs/promises';
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { runRules, type Finding } from './rules/index.js';
+import { runRules, type Finding, type ProofStyle } from './rules/index.js';
 import { sourceUnitsFromBuildInfo, type BuildInfo } from './walk.js';
 
-export type { Finding, Severity, Rule } from './rules/index.js';
+export type { Finding, Severity, Rule, ProofStyle } from './rules/index.js';
 export { RULES } from './rules/index.js';
 
 /** Sources exempt from the rules: the FHE library defines the turnstile itself. */
@@ -14,6 +14,12 @@ const DEFAULT_LIBRARY_PATHS = ['@fhenixprotocol/cofhe-contracts/', '/FHE.sol'];
 export interface CheckOptions {
   /** Path fragments treated as library code (defaults cover cofhe-contracts). */
   libraryPaths?: string[];
+  /**
+   * House arrangement for proofs covering external inputs. Defaults to `any`,
+   * which accepts both a proof per value and one trailing proof over a batch —
+   * the library supports both, so neither is a defect.
+   */
+  proofStyle?: ProofStyle;
 }
 
 export function checkBuildInfo(buildInfo: BuildInfo, options: CheckOptions = {}): Finding[] {
@@ -21,6 +27,7 @@ export function checkBuildInfo(buildInfo: BuildInfo, options: CheckOptions = {})
   return runRules({
     units,
     libraryPaths: options.libraryPaths ?? DEFAULT_LIBRARY_PATHS,
+    proofStyle: options.proofStyle ?? 'any',
   });
 }
 

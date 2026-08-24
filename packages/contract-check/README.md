@@ -29,7 +29,8 @@ npx contract-check
 | [`no-raw-encrypted-params`](#no-raw-encrypted-params) | error | implemented |
 | [`no-raw-encrypted-returns`](#no-raw-encrypted-returns) | error | implemented |
 | [`no-raw-shared-wrap`](#no-raw-shared-wrap) | error | implemented |
-| [`proof-placement`](#proof-placement) | — | registered, inert |
+| [`external-input-missing-proof`](#external-input-missing-proof) | error | implemented |
+| [`proof-placement`](#proof-placement) | warning | opt-in, off by default |
 | [`receive-variant`](#receive-variant) | — | registered, inert |
 
 The encrypted types the rules recognise, mirroring the `type` declarations in
@@ -94,13 +95,49 @@ euint64 amount = euint64.wrap(sharedEuint64.unwrap(shared));
 euint64 amount = FHE.receiveEuint64Param(shared);
 ```
 
+### `external-input-missing-proof`
+
+A function accepting `externalE*` inputs must also accept the proof bytes that verify them.
+
+`externalEuint64` is inert — the only routes to a usable handle are `FHE.asEuint64(hash, proof)`
+and the batch verifier, both of which need proof bytes. A signature with external inputs but no
+`bytes` parameter cannot supply them, so the value can never be converted. That is wrong under
+*every* arrangement, which is why this rule needs no convention.
+
+```solidity
+// flagged — nothing can verify this input
+function deposit(externalEuint64 amount, address receiver) external;
+
+// ok
+function deposit(externalEuint64 amount, bytes calldata proof) external;
+```
+
 ### `proof-placement`
 
-*Registered but inert.* Intended to enforce where a proof sits relative to the `externalE*`
-parameters it covers — one proof per value, or a single trailing proof covering a batch. The
-convention is still being decided (batch input verification argues for a single trailing proof);
-the rule is wired into the runner so encoding the decision is a small change rather than a
-reshape.
+**Opt-in; silent unless you configure it.** The library supports a proof per value
+(`FHE.asEuintXX(hash, proof)`) *and* one signature covering a batch, so neither arrangement is a
+defect and the checker accepts both by default.
+
+Pin a style only when you want house consistency — usually so signatures match a generated client
+encoder, since the SDK builds calldata in a fixed order:
+
+```ts
+await checkBuildInfoDir('artifacts/build-info', { proofStyle: 'trailing' });
+```
+```bash
+npx contract-check --proof-style trailing
+```
+
+| setting | accepts |
+|---|---|
+| `any` *(default)* | both arrangements; rule reports nothing |
+| `trailing` | exactly one proof, as the final parameter |
+| `per-value` | each external input immediately followed by its own proof |
+
+Deviations are reported as **warnings**, never errors — this is a style preference, not a
+security property. Functions missing a proof entirely are left to
+[`external-input-missing-proof`](#external-input-missing-proof) so one mistake is not reported
+twice.
 
 ### `receive-variant`
 
@@ -197,6 +234,6 @@ exclude globs land (see below), scope the run with `libraryPaths`, or read the r
 ## Not implemented yet
 
 - config file with `exclude` globs and per-rule severity (needed before this can be a hard gate
-  in a repo with vendored contracts)
+  in a repo with vendored contracts); `libraryPaths` and `proofStyle` are options today
 - a Hardhat plugin that runs the check automatically after `compile`
-- `proof-placement` and `receive-variant`, as described above
+- `receive-variant`, as described above
