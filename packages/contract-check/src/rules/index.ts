@@ -7,6 +7,7 @@ import {
   type SourceUnit,
 } from '../walk.js';
 import {
+  BASE_ENCRYPTED_TYPES,
   isBaseEncryptedType,
   isExternalEncryptedType,
   isSharedEncryptedType,
@@ -342,20 +343,144 @@ const proofPlacement: Rule = {
 };
 
 /**
- * R5 (stub) — receive-variant correctness.
+ * R5 — the receive variant must match where the shared value came from.
  *
- * `receive*Param` checks provenance against msg.sender; `receive*FromCall`
- * checks it against a named callee. Using the wrong one fails closed at
- * runtime with an opaque revert, so catching it statically is a usability win.
- * Requires light data-flow (where did this shared value come from), hence a
- * warning-grade heuristic rather than a v1 blocker.
+ * `FHE.receive*Param(shared)` verifies provenance against `msg.sender`, which
+ * is right for a value that arrived as a parameter. `FHE.receive*FromCall(shared, callee)`
+ * verifies against a named callee, which is right for a value another contract
+ * returned. Swapping them fails closed, but with an opaque revert.
+ *
+ * Origin is resolved only where it is locally provable — the argument is a call
+ * expression, a reference to a parameter, or a local assigned exactly once. Any
+ * other shape (reassigned locals, storage, struct members) yields `unknown` and
+ * the rule says nothing, so it does not guess.
  */
+type Origin = 'call' | 'param' | 'unknown';
+
+function receiveVariantOf(memberName: string): 'Param' | 'FromCall' | undefined {
+  for (const base of BASE_ENCRYPTED_TYPES) {
+    const cap = `${base[0]!.toUpperCase()}${base.slice(1)}`;
+    if (memberName === `receive${cap}Param`) return 'Param';
+    if (memberName === `receive${cap}FromCall`) return 'FromCall';
+  }
+  return undefined;
+}
+
+/** Parameter declaration ids of a function, for identity checks on Identifiers. */
+function parameterIds(fnNode: AstNode): Set<number> {
+  const ids = new Set<number>();
+  const params =
+    ((fnNode.parameters as AstNode | undefined)?.parameters as AstNode[] | undefined) ?? [];
+  for (const p of params) if (typeof p.id === 'number') ids.add(p.id);
+  return ids;
+}
+
+/**
+ * Locals declared with an initializer and never assigned again — the only
+ * locals whose origin can be read off a single expression.
+ */
+function singleAssignedLocals(body: unknown): Map<number, AstNode> {
+  const initialized = new Map<number, AstNode>();
+  const reassigned = new Set<number>();
+
+  walk(body, (n) => {
+    if (n.nodeType === 'VariableDeclarationStatement') {
+      const declarations = (n.declarations as AstNode[] | undefined) ?? [];
+      const value = n.initialValue as AstNode | undefined;
+      if (declarations.length === 1 && value) {
+        const decl = declarations[0];
+        if (decl && typeof decl.id === 'number') initialized.set(decl.id, value);
+      }
+      return;
+    }
+    if (n.nodeType === 'Assignment') {
+      const lhs = n.leftHandSide as AstNode | undefined;
+      const ref = lhs?.referencedDeclaration;
+      if (typeof ref === 'number') reassigned.add(ref);
+    }
+  });
+
+  for (const id of reassigned) initialized.delete(id);
+  return initialized;
+}
+
+function originOf(
+  expr: AstNode | undefined,
+  paramIds: Set<number>,
+  locals: Map<number, AstNode>,
+  depth = 0,
+): Origin {
+  if (!expr || depth > 1) return 'unknown';
+
+  if (expr.nodeType === 'FunctionCall') return 'call';
+
+  if (expr.nodeType === 'Identifier') {
+    const ref = expr.referencedDeclaration;
+    if (typeof ref !== 'number') return 'unknown';
+    if (paramIds.has(ref)) return 'param';
+    const init = locals.get(ref);
+    if (init) return originOf(init, paramIds, locals, depth + 1);
+  }
+
+  return 'unknown';
+}
+
 const receiveVariant: Rule = {
   id: 'receive-variant',
   description:
-    'shared values from call returns should use receive*FromCall; parameters should use receive*Param (unimplemented)',
-  run() {
-    return [];
+    'shared values returned by a call use receive*FromCall; values arriving as parameters use receive*Param',
+  run({ units, libraryPaths }) {
+    const findings: Finding[] = [];
+
+    for (const unit of units) {
+      if (isLibrarySource(unit.sourcePath, libraryPaths)) continue;
+
+      walk(unit.ast, (fnNode) => {
+        if (fnNode.nodeType !== 'FunctionDefinition') return;
+        const body = fnNode.body;
+        if (!body) return;
+
+        const paramIds = parameterIds(fnNode);
+        const locals = singleAssignedLocals(body);
+
+        walk(body, (call) => {
+          if (call.nodeType !== 'FunctionCall') return;
+          const callee = call.expression as AstNode | undefined;
+          if (callee?.nodeType !== 'MemberAccess') return;
+
+          const variant = receiveVariantOf(String(callee.memberName));
+          if (!variant) return;
+
+          const args = (call.arguments as AstNode[] | undefined) ?? [];
+          const origin = originOf(args[0], paramIds, locals);
+          if (origin === 'unknown') return;
+
+          if (variant === 'Param' && origin === 'call') {
+            findings.push({
+              rule: receiveVariant.id,
+              severity: 'warning',
+              file: unit.sourcePath,
+              line: lineOf(call, unit),
+              message:
+                `${String(callee.memberName)} verifies provenance against msg.sender, but this ` +
+                `value came from a call return. Use the FromCall variant with the callee address.`,
+            });
+          } else if (variant === 'FromCall' && origin === 'param') {
+            findings.push({
+              rule: receiveVariant.id,
+              severity: 'warning',
+              file: unit.sourcePath,
+              line: lineOf(call, unit),
+              message:
+                `${String(callee.memberName)} verifies provenance against the named callee, but this ` +
+                `value arrived as a parameter. Use the Param variant, which checks msg.sender.`,
+            });
+          }
+        });
+      });
+    }
+
+    return findings;
   },
 };
 

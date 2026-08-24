@@ -31,7 +31,7 @@ npx contract-check
 | [`no-raw-shared-wrap`](#no-raw-shared-wrap) | error | implemented |
 | [`external-input-missing-proof`](#external-input-missing-proof) | error | implemented |
 | [`proof-placement`](#proof-placement) | warning | opt-in, off by default |
-| [`receive-variant`](#receive-variant) | — | registered, inert |
+| [`receive-variant`](#receive-variant) | warning | implemented |
 
 The encrypted types the rules recognise, mirroring the `type` declarations in
 `cofhe-contracts/FHE.sol`:
@@ -141,15 +141,31 @@ twice.
 
 ### `receive-variant`
 
-*Registered but inert.* `FHE.receiveEuintXXParam(shared)` verifies provenance against
-`msg.sender` — correct for a handle that arrived as a parameter. `FHE.receiveEuintXXFromCall(shared, callee)`
-verifies against a named callee — correct for a handle another contract returned to you. Using
-the wrong one fails closed, but with an opaque revert, so catching it statically is a usability
-win rather than a security one.
+The receive function must match where the shared value came from.
 
-Detecting it means answering "where did this value come from?" — data-flow analysis, not the
-shape matching the other rules use. Implementing it as a naive heuristic would produce false
-positives, so it waits for either a dataflow pass or a Slither detector.
+`FHE.receiveEuintXXParam(shared)` verifies provenance against `msg.sender` — correct for a handle
+that arrived as a parameter. `FHE.receiveEuintXXFromCall(shared, callee)` verifies against a named
+callee — correct for a handle another contract returned to you. Swapping them fails closed, but
+with an opaque revert, so catching it statically is a usability win rather than a security one.
+Hence **warning** severity.
+
+```solidity
+function consume(sharedEuint64 shared) external {
+    // ok — arrived as a parameter, checked against msg.sender
+    euint64 a = FHE.receiveEuint64Param(shared);
+
+    // flagged — came back from a call, so the callee is the grantor
+    euint64 b = FHE.receiveEuint64Param(token.pull());
+
+    // ok
+    euint64 c = FHE.receiveEuint64FromCall(token.pull(), address(token));
+}
+```
+
+Origin is resolved **only where it is locally provable**: the argument is a call expression, a
+reference to a parameter, or a local variable assigned exactly once. Reassigned locals, storage
+reads, struct members and anything else yield "unknown" and the rule stays silent — it reports
+what it can prove rather than guessing, which keeps it usable without a full data-flow pass.
 
 ---
 
@@ -236,4 +252,6 @@ exclude globs land (see below), scope the run with `libraryPaths`, or read the r
 - config file with `exclude` globs and per-rule severity (needed before this can be a hard gate
   in a repo with vendored contracts); `libraryPaths` and `proofStyle` are options today
 - a Hardhat plugin that runs the check automatically after `compile`
-- `receive-variant`, as described above
+- deeper origin analysis for [`receive-variant`](#receive-variant) — reassigned locals and values
+  passed through helper functions are currently "unknown"; a Slither detector would close that gap
+- callee matching: whether the address given to `receive*FromCall` is the contract actually called
