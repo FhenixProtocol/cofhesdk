@@ -132,26 +132,25 @@ subtask(TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS).setAction(async (taskArgs: { sou
 });
 
 extendConfig((config, userConfig) => {
-  // Allow users to override the localcofhe network config
-  if (userConfig.networks && userConfig.networks.localcofhe) {
-    return;
+  // Inject localcofhe preset only when the user hasn't defined it.
+  // Must not early-return: sepolia presets and config.cofhe still need to run
+  // (Hardhat 3 plugin already scopes the skip this way).
+  if (!userConfig.networks?.localcofhe) {
+    config.networks.localcofhe = {
+      gas: 'auto',
+      gasMultiplier: 1.2,
+      gasPrice: 'auto',
+      timeout: 10_000,
+      httpHeaders: {},
+      url: 'http://127.0.0.1:42069',
+      accounts: [
+        '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
+        '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d',
+        '0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a',
+        '0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6',
+      ],
+    };
   }
-
-  // Default config
-  config.networks.localcofhe = {
-    gas: 'auto',
-    gasMultiplier: 1.2,
-    gasPrice: 'auto',
-    timeout: 10_000,
-    httpHeaders: {},
-    url: 'http://127.0.0.1:42069',
-    accounts: [
-      '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
-      '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d',
-      '0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a',
-      '0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6',
-    ],
-  };
 
   // Only add Sepolia config if user hasn't defined it
   if (!userConfig.networks?.['eth-sepolia']) {
