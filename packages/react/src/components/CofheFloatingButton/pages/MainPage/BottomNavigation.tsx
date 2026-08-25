@@ -51,7 +51,7 @@ type PagesInBottomMenu =
   | FloatingButtonPage.Send
   | FloatingButtonPage.Shield
   | FloatingButtonPage.Portfolio
-  | FloatingButtonPage.Permits
+  | FloatingButtonPage.ACPs
   | FloatingButtonPage.Debug;
 
 const baseNavItems: {
@@ -75,8 +75,8 @@ const baseNavItems: {
     icon: <AiOutlinePieChart className={iconClassName} />,
   },
   {
-    id: FloatingButtonPage.Permits,
-    label: 'Permits',
+    id: FloatingButtonPage.ACPs,
+    label: 'ACPs',
     icon: <IoMdKey className={iconClassName} />,
   },
 ] as const;

@@ -3,8 +3,8 @@ pragma solidity ^0.8.13;
 
 import { Test } from 'forge-std/Test.sol';
 import { CofheTest } from '../contracts/CofheTest.sol';
-import { CofheClient, SharedPermitExport } from '../contracts/CofheClient.sol';
-import { Permission } from '@cofhe/mock-contracts/contracts/Permissioned.sol';
+import { CofheClient, SharedACPExport } from '../contracts/CofheClient.sol';
+import { ACP } from '@cofhe/mock-contracts/contracts/Permissioned.sol';
 import { ZK_VERIFIER_SIGNER_ADDRESS } from '@cofhe/mock-contracts/contracts/MockCoFHE.sol';
 import '@fhenixprotocol/cofhe-contracts/FHE.sol';
 
@@ -19,50 +19,50 @@ contract EncryptedValueStore {
   euint128 public storedEuint128;
   eaddress public storedEaddress;
 
-  function storeEbool(InEbool memory input) public {
-    storedEbool = FHE.asEbool(input);
+  function storeEbool(externalEbool input, bytes memory proof) public {
+    storedEbool = FHE.asEbool(input, proof);
     FHE.allowThis(storedEbool);
     FHE.allowSender(storedEbool);
   }
 
-  function storeEboolHashPlusProof(externalEbool hash, bytes memory proof) public {
-    storedEbool = FHE.asEbool(hash, proof);
+  function storeEboolBatch(externalEbool[] memory hashes, bytes memory signature) public {
+    storedEbool = FHE.asEbools(hashes, signature)[0];
     FHE.allowThis(storedEbool);
     FHE.allowSender(storedEbool);
   }
 
-  function storeEuint8(InEuint8 memory input) public {
-    storedEuint8 = FHE.asEuint8(input);
+  function storeEuint8(externalEuint8 input, bytes memory proof) public {
+    storedEuint8 = FHE.asEuint8(input, proof);
     FHE.allowThis(storedEuint8);
     FHE.allowSender(storedEuint8);
   }
 
-  function storeEuint8HashPlusProof(externalEuint8 hash, bytes memory proof) public {
-    storedEuint8 = FHE.asEuint8(hash, proof);
+  function storeEuint8Batch(externalEuint8[] memory hashes, bytes memory signature) public {
+    storedEuint8 = FHE.asEuint8s(hashes, signature)[0];
     FHE.allowThis(storedEuint8);
     FHE.allowSender(storedEuint8);
   }
 
-  function storeEuint16(InEuint16 memory input) public {
-    storedEuint16 = FHE.asEuint16(input);
+  function storeEuint16(externalEuint16 input, bytes memory proof) public {
+    storedEuint16 = FHE.asEuint16(input, proof);
     FHE.allowThis(storedEuint16);
     FHE.allowSender(storedEuint16);
   }
 
-  function storeEuint16HashPlusProof(externalEuint16 hash, bytes memory proof) public {
-    storedEuint16 = FHE.asEuint16(hash, proof);
+  function storeEuint16Batch(externalEuint16[] memory hashes, bytes memory signature) public {
+    storedEuint16 = FHE.asEuint16s(hashes, signature)[0];
     FHE.allowThis(storedEuint16);
     FHE.allowSender(storedEuint16);
   }
 
-  function storeEuint32(InEuint32 memory input) public {
-    storedEuint32 = FHE.asEuint32(input);
+  function storeEuint32(externalEuint32 input, bytes memory proof) public {
+    storedEuint32 = FHE.asEuint32(input, proof);
     FHE.allowThis(storedEuint32);
     FHE.allowSender(storedEuint32);
   }
 
-  function storeEuint32HashPlusProof(externalEuint32 hash, bytes memory proof) public {
-    storedEuint32 = FHE.asEuint32(hash, proof);
+  function storeEuint32Batch(externalEuint32[] memory hashes, bytes memory signature) public {
+    storedEuint32 = FHE.asEuint32s(hashes, signature)[0];
     FHE.allowThis(storedEuint32);
     FHE.allowSender(storedEuint32);
   }
@@ -73,38 +73,38 @@ contract EncryptedValueStore {
     FHE.allowSender(storedEuint32);
   }
 
-  function storeEuint64(InEuint64 memory input) public {
-    storedEuint64 = FHE.asEuint64(input);
+  function storeEuint64(externalEuint64 input, bytes memory proof) public {
+    storedEuint64 = FHE.asEuint64(input, proof);
     FHE.allowThis(storedEuint64);
     FHE.allowSender(storedEuint64);
   }
 
-  function storeEuint64HashPlusProof(externalEuint64 hash, bytes memory proof) public {
-    storedEuint64 = FHE.asEuint64(hash, proof);
+  function storeEuint64Batch(externalEuint64[] memory hashes, bytes memory signature) public {
+    storedEuint64 = FHE.asEuint64s(hashes, signature)[0];
     FHE.allowThis(storedEuint64);
     FHE.allowSender(storedEuint64);
   }
 
-  function storeEuint128(InEuint128 memory input) public {
-    storedEuint128 = FHE.asEuint128(input);
+  function storeEuint128(externalEuint128 input, bytes memory proof) public {
+    storedEuint128 = FHE.asEuint128(input, proof);
     FHE.allowThis(storedEuint128);
     FHE.allowSender(storedEuint128);
   }
 
-  function storeEuint128HashPlusProof(externalEuint128 hash, bytes memory proof) public {
-    storedEuint128 = FHE.asEuint128(hash, proof);
+  function storeEuint128Batch(externalEuint128[] memory hashes, bytes memory signature) public {
+    storedEuint128 = FHE.asEuint128s(hashes, signature)[0];
     FHE.allowThis(storedEuint128);
     FHE.allowSender(storedEuint128);
   }
 
-  function storeEaddress(InEaddress memory input) public {
-    storedEaddress = FHE.asEaddress(input);
+  function storeEaddress(externalEaddress input, bytes memory proof) public {
+    storedEaddress = FHE.asEaddress(input, proof);
     FHE.allowThis(storedEaddress);
     FHE.allowSender(storedEaddress);
   }
 
-  function storeEaddressHashPlusProof(externalEaddress hash, bytes memory proof) public {
-    storedEaddress = FHE.asEaddress(hash, proof);
+  function storeEaddressBatch(externalEaddress[] memory hashes, bytes memory signature) public {
+    storedEaddress = FHE.asEaddresses(hashes, signature)[0];
     FHE.allowThis(storedEaddress);
     FHE.allowSender(storedEaddress);
   }
@@ -316,132 +316,126 @@ contract CofheClientTest is CofheTest {
     assertEq(cofheClient.account(), vm.addr(BOB_PKEY));
   }
 
-  // --------------- createIn* ---------------
+  // --------------- createExternal* (hash plus proof, batch of one) ---------------
 
-  function testCreateInEbool_true() public {
-    InEbool memory input = cofheClient.createInEbool(true);
+  function testCreateExternalEbool_true() public {
+    (externalEbool hash, bytes memory proof) = cofheClient.createExternalEbool(true, address(store));
+    externalEbool[] memory hashes = new externalEbool[](1);
+    hashes[0] = hash;
     vm.prank(cofheClient.account());
-    store.storeEbool(input);
+    store.storeEboolBatch(hashes, proof);
     assertTrue(getPlaintext(store.storedEbool()));
   }
 
-  function testCreateInEbool_false() public {
-    InEbool memory input = cofheClient.createInEbool(false);
+  function testCreateExternalEbool_false() public {
+    (externalEbool hash, bytes memory proof) = cofheClient.createExternalEbool(false, address(store));
+    externalEbool[] memory hashes = new externalEbool[](1);
+    hashes[0] = hash;
     vm.prank(cofheClient.account());
-    store.storeEbool(input);
+    store.storeEboolBatch(hashes, proof);
     assertFalse(getPlaintext(store.storedEbool()));
   }
 
-  function testCreateInEuint8() public {
-    InEuint8 memory input = cofheClient.createInEuint8(42);
+  function testCreateExternalEuint8() public {
+    (externalEuint8 hash, bytes memory proof) = cofheClient.createExternalEuint8(42, address(store));
+    externalEuint8[] memory hashes = new externalEuint8[](1);
+    hashes[0] = hash;
     vm.prank(cofheClient.account());
-    store.storeEuint8(input);
+    store.storeEuint8Batch(hashes, proof);
     assertEq(getPlaintext(store.storedEuint8()), 42);
   }
 
-  function testCreateInEuint16() public {
-    InEuint16 memory input = cofheClient.createInEuint16(1234);
+  function testCreateExternalEuint16() public {
+    (externalEuint16 hash, bytes memory proof) = cofheClient.createExternalEuint16(1234, address(store));
+    externalEuint16[] memory hashes = new externalEuint16[](1);
+    hashes[0] = hash;
     vm.prank(cofheClient.account());
-    store.storeEuint16(input);
+    store.storeEuint16Batch(hashes, proof);
     assertEq(getPlaintext(store.storedEuint16()), 1234);
   }
 
-  function testCreateInEuint32_fuzz(uint32 n) public {
-    InEuint32 memory input = cofheClient.createInEuint32(n);
+  function testCreateExternalEuint32_fuzz(uint32 n) public {
+    (externalEuint32 hash, bytes memory proof) = cofheClient.createExternalEuint32(n, address(store));
+    externalEuint32[] memory hashes = new externalEuint32[](1);
+    hashes[0] = hash;
     vm.prank(cofheClient.account());
-    store.storeEuint32(input);
+    store.storeEuint32Batch(hashes, proof);
     assertEq(getPlaintext(store.storedEuint32()), n);
   }
 
-  function testCreateInEuint64() public {
+  function testCreateExternalEuint64() public {
     uint64 val = 1e18;
-    InEuint64 memory input = cofheClient.createInEuint64(val);
+    (externalEuint64 hash, bytes memory proof) = cofheClient.createExternalEuint64(val, address(store));
+    externalEuint64[] memory hashes = new externalEuint64[](1);
+    hashes[0] = hash;
     vm.prank(cofheClient.account());
-    store.storeEuint64(input);
+    store.storeEuint64Batch(hashes, proof);
     assertEq(getPlaintext(store.storedEuint64()), val);
   }
 
-  function testCreateInEuint128() public {
+  function testCreateExternalEuint128() public {
     uint128 val = type(uint128).max;
-    InEuint128 memory input = cofheClient.createInEuint128(val);
+    (externalEuint128 hash, bytes memory proof) = cofheClient.createExternalEuint128(val, address(store));
+    externalEuint128[] memory hashes = new externalEuint128[](1);
+    hashes[0] = hash;
     vm.prank(cofheClient.account());
-    store.storeEuint128(input);
+    store.storeEuint128Batch(hashes, proof);
     assertEq(getPlaintext(store.storedEuint128()), val);
   }
 
-  function testCreateInEaddress() public {
+  function testCreateExternalEaddress() public {
     address target = address(0xBEEFCAFE);
-    InEaddress memory input = cofheClient.createInEaddress(target);
+    (externalEaddress hash, bytes memory proof) = cofheClient.createExternalEaddress(target, address(store));
+    externalEaddress[] memory hashes = new externalEaddress[](1);
+    hashes[0] = hash;
     vm.prank(cofheClient.account());
-    store.storeEaddress(input);
+    store.storeEaddressBatch(hashes, proof);
     assertEq(getPlaintext(store.storedEaddress()), target);
   }
 
-  // --------------- createIn*HashPlusProof ---------------
+  // --------------- consuming contract binding ---------------
 
-  function testCreateInEbool_asHashPlusProof_true() public {
-    (externalEbool hash, bytes memory proof) = cofheClient.createInEbool_asHashPlusProof(true);
-    vm.prank(cofheClient.account());
-    store.storeEboolHashPlusProof(hash, proof);
-    assertTrue(getPlaintext(store.storedEbool()));
+  function testCreateExternalEuint32_revertsWhenConsumingContractIsZeroAddress() public {
+    vm.expectRevert('CofheClient: consuming contract must not be the zero address');
+    cofheClient.createExternalEuint32(42, address(0));
   }
 
-  function testCreateInEbool_asHashPlusProof_false() public {
-    (externalEbool hash, bytes memory proof) = cofheClient.createInEbool_asHashPlusProof(false);
-    vm.prank(cofheClient.account());
-    store.storeEboolHashPlusProof(hash, proof);
-    assertFalse(getPlaintext(store.storedEbool()));
+  function testCreateExternalEuint32_revertsWhenConsumedByWrongContract() public {
+    EncryptedValueStore otherStore = new EncryptedValueStore();
+
+    // Signed for `store`, but consumed via `otherStore`.
+    (externalEuint32 hash, bytes memory proof) = cofheClient.createExternalEuint32(42, address(store));
+    externalEuint32[] memory hashes = new externalEuint32[](1);
+    hashes[0] = hash;
+    address alice = cofheClient.account();
+
+    vm.expectRevert();
+    vm.prank(alice);
+    otherStore.storeEuint32Batch(hashes, proof);
   }
 
-  function testCreateInEuint8_asHashPlusProof() public {
-    (externalEuint8 hash, bytes memory proof) = cofheClient.createInEuint8_asHashPlusProof(42);
-    vm.prank(cofheClient.account());
-    store.storeEuint8HashPlusProof(hash, proof);
-    assertEq(getPlaintext(store.storedEuint8()), 42);
+  function testCreateEuint32sBatch_revertsWhenConsumedByWrongContract() public {
+    EncryptedValueStore otherStore = new EncryptedValueStore();
+
+    uint32[] memory values = new uint32[](2);
+    values[0] = 11;
+    values[1] = 22;
+
+    // The whole batch is bound to `store` by the single shared signature.
+    (externalEuint32[] memory hashes, bytes memory signature) = cofheClient.createEuint32sBatch(
+      values,
+      address(store)
+    );
+    address alice = cofheClient.account();
+
+    vm.expectRevert();
+    vm.prank(alice);
+    otherStore.storeEuint32Batch(hashes, signature);
   }
 
-  function testCreateInEuint16_asHashPlusProof() public {
-    (externalEuint16 hash, bytes memory proof) = cofheClient.createInEuint16_asHashPlusProof(1234);
-    vm.prank(cofheClient.account());
-    store.storeEuint16HashPlusProof(hash, proof);
-    assertEq(getPlaintext(store.storedEuint16()), 1234);
-  }
+  // --------------- decryptForTx_withoutACP ---------------
 
-  function testCreateInEuint32_asHashPlusProof() public {
-    uint32 n = 42;
-    (externalEuint32 hash, bytes memory proof) = cofheClient.createInEuint32_asHashPlusProof(n);
-    vm.prank(cofheClient.account());
-    store.storeEuint32HashPlusProof(hash, proof);
-    assertEq(getPlaintext(store.storedEuint32()), n);
-  }
-
-  function testCreateInEuint64_asHashPlusProof() public {
-    uint64 val = 1e18;
-    (externalEuint64 hash, bytes memory proof) = cofheClient.createInEuint64_asHashPlusProof(val);
-    vm.prank(cofheClient.account());
-    store.storeEuint64HashPlusProof(hash, proof);
-    assertEq(getPlaintext(store.storedEuint64()), val);
-  }
-
-  function testCreateInEuint128_asHashPlusProof() public {
-    uint128 val = type(uint128).max;
-    (externalEuint128 hash, bytes memory proof) = cofheClient.createInEuint128_asHashPlusProof(val);
-    vm.prank(cofheClient.account());
-    store.storeEuint128HashPlusProof(hash, proof);
-    assertEq(getPlaintext(store.storedEuint128()), val);
-  }
-
-  function testCreateInEaddress_asHashPlusProof() public {
-    address target = address(0xBEEFCAFE);
-    (externalEaddress hash, bytes memory proof) = cofheClient.createInEaddress_asHashPlusProof(target);
-    vm.prank(cofheClient.account());
-    store.storeEaddressHashPlusProof(hash, proof);
-    assertEq(getPlaintext(store.storedEaddress()), target);
-  }
-
-  // --------------- decryptForTx_withoutPermit ---------------
-
-  function testDecryptForTx_withoutPermit() public {
+  function testDecryptForTx_withoutACP() public {
     uint32 plainValue = 42;
 
     vm.prank(cofheClient.account());
@@ -449,50 +443,50 @@ contract CofheClientTest is CofheTest {
     store.makeGlobal();
 
     bytes32 ctHash = euint32.unwrap(store.storedEuint32());
-    (bytes32 ct, uint256 decrypted, bytes memory sig) = cofheClient.decryptForTx_withoutPermit(ctHash);
+    (bytes32 ct, uint256 decrypted, bytes memory sig) = cofheClient.decryptForTx_withoutACP(ctHash);
 
     assertEq(ct, ctHash);
     assertEq(decrypted, plainValue);
     assertTrue(sig.length > 0);
   }
 
-  function testDecryptForTx_withoutPermit_revertsIfNotGlobal() public {
+  function testDecryptForTx_withoutACP_revertsIfNotGlobal() public {
     vm.prank(cofheClient.account());
     store.storeEuint32Trivial(42);
 
     bytes32 ctHash = euint32.unwrap(store.storedEuint32());
     vm.expectRevert();
-    cofheClient.decryptForTx_withoutPermit(ctHash);
+    cofheClient.decryptForTx_withoutACP(ctHash);
   }
 
-  // --------------- decryptForTx_withPermit ---------------
+  // --------------- decryptForTx_withACP ---------------
 
-  function testDecryptForTx_withPermit() public {
+  function testDecryptForTx_withACP() public {
     uint32 plainValue = 99;
 
     vm.prank(cofheClient.account());
     store.storeEuint32Trivial(plainValue);
     store.allowAccount(cofheClient.account());
 
-    Permission memory permit = cofheClient.permit_createSelf();
+    ACP memory acp = cofheClient.ACP_createSelf();
     bytes32 ctHash = euint32.unwrap(store.storedEuint32());
 
-    (bytes32 ct, uint256 decrypted, bytes memory sig) = cofheClient.decryptForTx_withPermit(ctHash, permit);
+    (bytes32 ct, uint256 decrypted, bytes memory sig) = cofheClient.decryptForTx_withACP(ctHash, acp);
 
     assertEq(ct, ctHash);
     assertEq(decrypted, plainValue);
     assertTrue(sig.length > 0);
   }
 
-  function testDecryptForTx_withPermit_revertsWithoutAllow() public {
+  function testDecryptForTx_withACP_revertsWithoutAllow() public {
     // Store as a different address so Alice is NOT in the ACL
     store.storeEuint32Trivial(99);
 
-    Permission memory permit = cofheClient.permit_createSelf();
+    ACP memory acp = cofheClient.ACP_createSelf();
     bytes32 ctHash = euint32.unwrap(store.storedEuint32());
 
     vm.expectRevert();
-    cofheClient.decryptForTx_withPermit(ctHash, permit);
+    cofheClient.decryptForTx_withACP(ctHash, acp);
   }
 
   // --------------- publishDecryptResult full flow ---------------
@@ -505,7 +499,7 @@ contract CofheClientTest is CofheTest {
     store.makeGlobal();
 
     bytes32 ctHash = euint32.unwrap(store.storedEuint32());
-    (, uint256 decrypted, bytes memory sig) = cofheClient.decryptForTx_withoutPermit(ctHash);
+    (, uint256 decrypted, bytes memory sig) = cofheClient.decryptForTx_withoutACP(ctHash);
 
     store.publishResult(uint32(decrypted), sig);
 
@@ -525,7 +519,7 @@ contract CofheClientTest is CofheTest {
     assertEq(valBefore, 0);
 
     bytes32 ctHash = euint32.unwrap(store.storedEuint32());
-    (, uint256 decrypted, bytes memory sig) = cofheClient.decryptForTx_withoutPermit(ctHash);
+    (, uint256 decrypted, bytes memory sig) = cofheClient.decryptForTx_withoutACP(ctHash);
     store.publishResult(uint32(decrypted), sig);
 
     (uint32 valAfter, bool decryptedAfter) = store.getResultSafe();
@@ -542,10 +536,10 @@ contract CofheClientTest is CofheTest {
     store.storeEuint32Trivial(plainValue);
     store.allowAccount(cofheClient.account());
 
-    Permission memory permit = cofheClient.permit_createSelf();
+    ACP memory acp = cofheClient.ACP_createSelf();
     bytes32 ctHash = euint32.unwrap(store.storedEuint32());
 
-    uint256 unsealed = cofheClient.decryptForView(ctHash, permit);
+    uint256 unsealed = cofheClient.decryptForView(ctHash, acp);
     assertEq(unsealed, plainValue);
   }
 
@@ -553,84 +547,84 @@ contract CofheClientTest is CofheTest {
     // Store as a different address so Alice is NOT in the ACL
     store.storeEuint32Trivial(123);
 
-    Permission memory permit = cofheClient.permit_createSelf();
+    ACP memory acp = cofheClient.ACP_createSelf();
     bytes32 ctHash = euint32.unwrap(store.storedEuint32());
 
     vm.expectRevert();
-    cofheClient.decryptForView(ctHash, permit);
+    cofheClient.decryptForView(ctHash, acp);
   }
 
-  // --------------- permit_createSelf ---------------
+  // --------------- ACP_createSelf ---------------
 
-  function testPermitCreateSelf_isValid() public view {
-    Permission memory permit = cofheClient.permit_createSelf();
+  function testACPCreateSelf_isValid() public view {
+    ACP memory acp = cofheClient.ACP_createSelf();
 
-    assertEq(permit.issuer, cofheClient.account());
-    assertEq(permit.recipient, address(0));
-    assertTrue(permit.sealingKey != bytes32(0));
-    assertTrue(permit.issuerSignature.length > 0);
+    assertEq(acp.issuer, cofheClient.account());
+    assertEq(acp.recipient, address(0));
+    assertTrue(acp.sealingKey != bytes32(0));
+    assertTrue(acp.issuerSignature.length > 0);
 
-    bool valid = mockAcl.checkPermitValidity(permit);
+    bool valid = mockAcl.checkPermissionValidity(acp);
     assertTrue(valid);
   }
 
-  // --------------- permit_createShared ---------------
+  // --------------- ACP_createShared ---------------
 
-  function testPermitCreateShared_isValid() public view {
+  function testACPCreateShared_isValid() public view {
     address bob = vm.addr(BOB_PKEY);
-    Permission memory permit = cofheClient.permit_createShared(bob);
+    ACP memory acp = cofheClient.ACP_createShared(bob);
 
-    assertEq(permit.issuer, cofheClient.account());
-    assertEq(permit.recipient, bob);
-    assertEq(permit.sealingKey, bytes32(0));
-    assertTrue(permit.issuerSignature.length > 0);
+    assertEq(acp.issuer, cofheClient.account());
+    assertEq(acp.recipient, bob);
+    assertEq(acp.sealingKey, bytes32(0));
+    assertTrue(acp.issuerSignature.length > 0);
   }
 
-  // --------------- permit_exportShared / permit_importShared ---------------
+  // --------------- ACP_exportShared / ACP_importShared ---------------
 
-  function testPermitExportImportShared() public {
+  function testACPExportImportShared() public {
     address bob = vm.addr(BOB_PKEY);
 
-    // Alice creates a shared permit for Bob
-    Permission memory alicePermit = cofheClient.permit_createShared(bob);
-    SharedPermitExport memory exported = cofheClient.permit_exportShared(alicePermit);
+    // Alice creates a shared acp for Bob
+    ACP memory aliceACP = cofheClient.ACP_createShared(bob);
+    SharedACPExport memory exported = cofheClient.ACP_exportShared(aliceACP);
 
     assertEq(exported.issuer, cofheClient.account());
     assertEq(exported.recipient, bob);
 
-    // Bob imports the shared permit
+    // Bob imports the shared acp
     CofheClient bobClient = createCofheClient();
     bobClient.connect(BOB_PKEY);
 
-    Permission memory bobPermit = bobClient.permit_importShared(exported);
+    ACP memory bobACP = bobClient.ACP_importShared(exported);
 
-    assertEq(bobPermit.issuer, cofheClient.account());
-    assertEq(bobPermit.recipient, bob);
-    assertTrue(bobPermit.sealingKey != bytes32(0));
-    assertTrue(bobPermit.recipientSignature.length > 0);
+    assertEq(bobACP.issuer, cofheClient.account());
+    assertEq(bobACP.recipient, bob);
+    assertTrue(bobACP.sealingKey != bytes32(0));
+    assertTrue(bobACP.recipientSignature.length > 0);
 
-    bool valid = mockAcl.checkPermitValidity(bobPermit);
+    bool valid = mockAcl.checkPermissionValidity(bobACP);
     assertTrue(valid);
   }
 
-  function testPermitImportShared_recipientMismatch_reverts() public {
+  function testACPImportShared_recipientMismatch_reverts() public {
     address bob = vm.addr(BOB_PKEY);
 
-    // Alice creates a shared permit for Bob
-    Permission memory alicePermit = cofheClient.permit_createShared(bob);
-    SharedPermitExport memory exported = cofheClient.permit_exportShared(alicePermit);
+    // Alice creates a shared acp for Bob
+    ACP memory aliceACP = cofheClient.ACP_createShared(bob);
+    SharedACPExport memory exported = cofheClient.ACP_exportShared(aliceACP);
 
-    // Charlie tries to import Bob's permit
+    // Charlie tries to import Bob's acp
     CofheClient charlieClient = createCofheClient();
     charlieClient.connect(CHARLIE_PKEY);
 
     vm.expectRevert('CofheClient: recipient mismatch');
-    charlieClient.permit_importShared(exported);
+    charlieClient.ACP_importShared(exported);
   }
 
-  // --------------- Shared permit decrypt flow (end-to-end) ---------------
+  // --------------- Shared acp decrypt flow (end-to-end) ---------------
 
-  function testPermitSharedDecryptFlow() public {
+  function testACPSharedDecryptFlow() public {
     uint32 plainValue = 200;
     address alice = cofheClient.account();
     address bob = vm.addr(BOB_PKEY);
@@ -640,46 +634,46 @@ contract CofheClientTest is CofheTest {
     store.storeEuint32Trivial(plainValue);
     store.allowAccount(alice);
 
-    // Alice creates a shared permit for Bob
-    Permission memory alicePermit = cofheClient.permit_createShared(bob);
-    SharedPermitExport memory exported = cofheClient.permit_exportShared(alicePermit);
+    // Alice creates a shared acp for Bob
+    ACP memory aliceACP = cofheClient.ACP_createShared(bob);
+    SharedACPExport memory exported = cofheClient.ACP_exportShared(aliceACP);
 
-    // Bob imports the shared permit
+    // Bob imports the shared acp
     CofheClient bobClient = createCofheClient();
     bobClient.connect(BOB_PKEY);
-    Permission memory bobPermit = bobClient.permit_importShared(exported);
+    ACP memory bobACP = bobClient.ACP_importShared(exported);
 
     bytes32 ctHash = euint32.unwrap(store.storedEuint32());
 
-    // Bob uses the shared permit to decrypt Alice's data via decryptForView
-    uint256 unsealed = bobClient.decryptForView(ctHash, bobPermit);
+    // Bob uses the shared acp to decrypt Alice's data via decryptForView
+    uint256 unsealed = bobClient.decryptForView(ctHash, bobACP);
     assertEq(unsealed, plainValue);
   }
 
   // --------------- onlyConnected modifier ---------------
 
-  function testCreateInEuint32_revertsWhenNotConnected() public {
+  function testCreateExternalEuint32_revertsWhenNotConnected() public {
     CofheClient unconnected = createCofheClient();
     vm.expectRevert('CofheClient: not connected');
-    unconnected.createInEuint32(42);
+    unconnected.createExternalEuint32(42, address(store));
   }
 
   function testDecryptForTx_revertsWhenNotConnected() public {
     CofheClient unconnected = createCofheClient();
     vm.expectRevert('CofheClient: not connected');
-    unconnected.decryptForTx_withoutPermit(bytes32(uint256(1)));
+    unconnected.decryptForTx_withoutACP(bytes32(uint256(1)));
   }
 
   function testDecryptForView_revertsWhenNotConnected() public {
     CofheClient unconnected = createCofheClient();
-    Permission memory p;
+    ACP memory p;
     vm.expectRevert('CofheClient: not connected');
     unconnected.decryptForView(bytes32(uint256(1)), p);
   }
 
-  function testPermitCreateSelf_revertsWhenNotConnected() public {
+  function testACPCreateSelf_revertsWhenNotConnected() public {
     CofheClient unconnected = createCofheClient();
     vm.expectRevert('CofheClient: not connected');
-    unconnected.permit_createSelf();
+    unconnected.ACP_createSelf();
   }
 }

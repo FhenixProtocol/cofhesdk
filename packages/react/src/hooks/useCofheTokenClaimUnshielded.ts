@@ -1,4 +1,4 @@
-import { assertTokenOperationSupported } from '@/types/token';
+import { assertTokenOperationSupported, getConfidentialDecimals } from '@/types/token';
 import { cofheLogger } from '@/utils/debug';
 import { type UseMutationOptions, type UseMutationResult } from '@tanstack/react-query';
 import { assert } from 'ts-essentials';
@@ -17,12 +17,12 @@ export function getCofheTokenClaimUnshieldedCallArgs(params: {
   token: ConfidentialToken;
   account: Address;
   claim?: {
-    ctHash: Hex | bigint;
+    id: Hex;
     decryptedAmount: bigint;
     decryptionProof: `0x${string}`;
   };
   claims?: Array<{
-    ctHash: Hex | bigint;
+    id: Hex;
     decryptedAmount: bigint;
     decryptionProof: `0x${string}`;
   }>;
@@ -107,7 +107,7 @@ export function useCofheTokenClaimUnshielded(
         });
 
         const readyClaims: Array<{
-          ctHash: Hex | bigint;
+          id: Hex;
           decryptedAmount: bigint;
           decryptionProof: `0x${string}`;
         }> = [];
@@ -118,11 +118,11 @@ export function useCofheTokenClaimUnshielded(
               .decryptForTx(claim.ctHash)
               .setChainId(chainId)
               .setAccount(account)
-              .withoutPermit()
+              .withoutACP()
               .execute();
 
             readyClaims.push({
-              ctHash: claim.ctHash,
+              id: claim.id,
               decryptedAmount: decryptResult.decryptedValue,
               decryptionProof: decryptResult.signature,
             });
@@ -155,6 +155,7 @@ export function useCofheTokenClaimUnshielded(
           hash,
           token: input.token,
           tokenAmount,
+          tokenAmountDecimals: getConfidentialDecimals(input.token),
           chainId,
           actionType: TransactionActionType.Claim,
           account,

@@ -55,7 +55,6 @@ export type ConfidentialTokenTypeConfig = {
   pairResolution?: 'contractGetter' | 'native';
   pairGetterFunctionNames?: readonly string[];
   claimSubmission?: 'single' | 'batch';
-  claimSummaryAmount?: 'requested' | 'decryptedWhenReady';
 };
 
 const ETH_ADDRESS_LOWERCASE = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
@@ -82,7 +81,6 @@ export const TOKEN_TYPE_CONFIG = {
     pairResolution: 'contractGetter',
     pairGetterFunctionNames: ['token', 'underlying', 'underlyingToken', 'asset', 'erc20', 'erc20Token'],
     claimSubmission: 'batch',
-    claimSummaryAmount: 'requested',
   },
   wrappedNative: {
     enabled: true,
@@ -94,7 +92,6 @@ export const TOKEN_TYPE_CONFIG = {
     interfaceIds: ['0xaefc9bc7'], // IFHERC20NativeWrapper
     pairResolution: 'native',
     claimSubmission: 'batch',
-    claimSummaryAmount: 'requested',
   },
   pure: {
     enabled: false,
@@ -110,7 +107,6 @@ export const TOKEN_TYPE_CONFIG = {
       claim: false,
       claimable: false,
     },
-    claimSummaryAmount: 'decryptedWhenReady',
   },
   dual: {
     enabled: true,
@@ -129,7 +125,6 @@ export const TOKEN_TYPE_CONFIG = {
     contracts: DUAL_TOKEN_CONTRACTS,
     interfaceIds: ['0xbe4d657f'], // IERC20Confidential
     claimSubmission: 'batch',
-    claimSummaryAmount: 'requested',
   },
 } as const satisfies Record<string, ConfidentialTokenTypeConfig>;
 
@@ -326,12 +321,12 @@ export function buildTokenClaimCallArgs(params: {
   token: ConfidentialTokenLike;
   account: Address;
   claim?: {
-    ctHash: Hex | bigint;
+    id: Hex;
     decryptedAmount: bigint;
     decryptionProof: `0x${string}`;
   };
   claims?: Array<{
-    ctHash: Hex | bigint;
+    id: Hex;
     decryptedAmount: bigint;
     decryptionProof: `0x${string}`;
   }>;
@@ -342,7 +337,7 @@ export function buildTokenClaimCallArgs(params: {
 
   if (claimSubmission === 'single') {
     if (!claim) {
-      throw new Error(`${confidentialityType} claim requires ctHash, decryptedAmount, and decryptionProof`);
+      throw new Error(`${confidentialityType} claim requires id, decryptedAmount, and decryptionProof`);
     }
 
     const contractConfig = getTokenTypeContracts(confidentialityType).claims?.single;
@@ -354,7 +349,7 @@ export function buildTokenClaimCallArgs(params: {
       address: token.address,
       abi: contractConfig.abi,
       functionName: contractConfig.functionName,
-      args: [claim.ctHash, claim.decryptedAmount, claim.decryptionProof],
+      args: [claim.id, claim.decryptedAmount, claim.decryptionProof],
       account,
       chain: undefined,
     };
@@ -374,7 +369,7 @@ export function buildTokenClaimCallArgs(params: {
     abi: contractConfig.abi,
     functionName: contractConfig.functionName,
     args: [
-      claims.map((item) => item.ctHash),
+      claims.map((item) => item.id),
       claims.map((item) => item.decryptedAmount),
       claims.map((item) => item.decryptionProof),
     ],

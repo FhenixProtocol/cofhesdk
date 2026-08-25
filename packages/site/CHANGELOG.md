@@ -1,5 +1,15 @@
 # @cofhe/site
 
+## 0.7.1
+
+## 0.7.0
+
+### Patch Changes
+
+- f01cac7: Decrypt/sealoutput failures now map the threshold network's stable `error` codes to dedicated `CofheErrorCode` values (e.g. `ACPDenied`, `CtNotFound`, `UnsupportedType`) instead of a generic `DecryptFailed`/`SealOutputFailed`, and `CofheError` gains an `apiErrorCode` field with the raw backend string.
+
+  Also fixes submit-time `404` retries: a `404` is only retried while the backend reports `ct_not_found` (still indexing); any other error code now fails immediately instead of being blindly retried for up to `set404RetryTimeout`.
+
 ## 0.6.1
 
 ## 0.6.0

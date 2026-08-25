@@ -111,58 +111,58 @@ describe('DecryptForTxBuilder', () => {
     });
   });
 
-  // --- withPermit / withoutPermit selection ---
+  // --- withACP / withoutACP selection ---
 
-  describe('withPermit / withoutPermit selection', () => {
-    it('withPermit() should set permit selection', () => {
+  describe('withACP / withoutACP selection', () => {
+    it('withACP() should set acp selection', () => {
       const builder = createTxBuilder();
-      const selected = builder.withPermit();
+      const selected = builder.withACP();
       expect(selected).toBeDefined();
-      expect(selected.getPermit()).toBeUndefined();
-      expect(selected.getPermitHash()).toBeUndefined();
+      expect(selected.getACP()).toBeUndefined();
+      expect(selected.getACPHash()).toBeUndefined();
     });
 
-    it('withPermit(hash) should store the permit hash', () => {
+    it('withACP(hash) should store the acp hash', () => {
       const builder = createTxBuilder();
-      const selected = builder.withPermit('0xmypermithash');
-      expect(selected.getPermitHash()).toBe('0xmypermithash');
-      expect(selected.getPermit()).toBeUndefined();
+      const selected = builder.withACP('0xmyacphash');
+      expect(selected.getACPHash()).toBe('0xmyacphash');
+      expect(selected.getACP()).toBeUndefined();
     });
 
-    it('withoutPermit() should set permit selection', () => {
+    it('withoutACP() should set acp selection', () => {
       const builder = createTxBuilder();
-      const selected = builder.withoutPermit();
+      const selected = builder.withoutACP();
       expect(selected).toBeDefined();
-      expect(selected.getPermit()).toBeUndefined();
-      expect(selected.getPermitHash()).toBeUndefined();
+      expect(selected.getACP()).toBeUndefined();
+      expect(selected.getACPHash()).toBeUndefined();
     });
 
-    it('should throw when withPermit() is called twice', () => {
+    it('should throw when withACP() is called twice', () => {
       const builder = createTxBuilder();
-      builder.withPermit();
+      builder.withACP();
 
-      expect(() => (builder as any).withPermit()).toThrow('withPermit() can only be selected once');
+      expect(() => (builder as any).withACP()).toThrow('withACP() can only be selected once');
     });
 
-    it('should throw when withoutPermit() is called twice', () => {
+    it('should throw when withoutACP() is called twice', () => {
       const builder = createTxBuilder();
-      builder.withoutPermit();
+      builder.withoutACP();
 
-      expect(() => (builder as any).withoutPermit()).toThrow('withoutPermit() can only be selected once');
+      expect(() => (builder as any).withoutACP()).toThrow('withoutACP() can only be selected once');
     });
 
-    it('should throw when withPermit() is called after withoutPermit()', () => {
+    it('should throw when withACP() is called after withoutACP()', () => {
       const builder = createTxBuilder();
-      builder.withoutPermit();
+      builder.withoutACP();
 
-      expect(() => (builder as any).withPermit()).toThrow('cannot call withPermit() after withoutPermit()');
+      expect(() => (builder as any).withACP()).toThrow('cannot call withACP() after withoutACP()');
     });
 
-    it('should throw when withoutPermit() is called after withPermit()', () => {
+    it('should throw when withoutACP() is called after withACP()', () => {
       const builder = createTxBuilder();
-      builder.withPermit();
+      builder.withACP();
 
-      expect(() => (builder as any).withoutPermit()).toThrow('cannot call withoutPermit() after withPermit()');
+      expect(() => (builder as any).withoutACP()).toThrow('cannot call withoutACP() after withACP()');
     });
   });
 
@@ -171,16 +171,16 @@ describe('DecryptForTxBuilder', () => {
   describe('chaining', () => {
     it('should return the builder from each setter for fluent chaining', () => {
       const builder = createTxBuilder({ chainId: undefined, account: undefined });
-      const result = builder.setChainId(TEST_CHAIN_ID).setAccount(account.address).withPermit();
+      const result = builder.setChainId(TEST_CHAIN_ID).setAccount(account.address).withACP();
 
       expect(result).toBeDefined();
       expect(result.getChainId()).toBe(TEST_CHAIN_ID);
       expect(result.getAccount()).toBe(account.address);
     });
 
-    it('should allow setChainId and setAccount after withPermit', () => {
+    it('should allow setChainId and setAccount after withACP', () => {
       const builder = createTxBuilder({ chainId: undefined, account: undefined });
-      const selected = builder.withPermit();
+      const selected = builder.withACP();
       selected.setChainId(99);
       selected.setAccount('0xabc');
 
@@ -188,9 +188,9 @@ describe('DecryptForTxBuilder', () => {
       expect(selected.getAccount()).toBe('0xabc');
     });
 
-    it('should allow setChainId and setAccount after withoutPermit', () => {
+    it('should allow setChainId and setAccount after withoutACP', () => {
       const builder = createTxBuilder({ chainId: undefined, account: undefined });
-      const selected = builder.withoutPermit();
+      const selected = builder.withoutACP();
       selected.setChainId(99);
       selected.setAccount('0xabc');
 
@@ -216,7 +216,7 @@ describe('DecryptForTxBuilder', () => {
   // --- execute error paths ---
 
   describe('execute – error paths', () => {
-    it('should throw when execute() is called without permit selection', async () => {
+    it('should throw when execute() is called without acp selection', async () => {
       const builder = createTxBuilder();
 
       try {
@@ -224,31 +224,31 @@ describe('DecryptForTxBuilder', () => {
         expect.fail('Expected error');
       } catch (error) {
         expect((error as any).code).toBe(CofheErrorCode.InternalError);
-        expect((error as Error).message).toContain('missing permit selection');
+        expect((error as Error).message).toContain('missing acp selection');
       }
     });
 
-    it('should throw when withPermit() has no active permit', async () => {
+    it('should throw when withACP() has no active acp', async () => {
       const builder = createTxBuilder();
 
       try {
-        await builder.withPermit().execute();
-        expect.fail('Expected PermitNotFound error');
+        await builder.withACP().execute();
+        expect.fail('Expected ACPNotFound error');
       } catch (error) {
-        expect((error as any).code).toBe(CofheErrorCode.PermitNotFound);
-        expect((error as Error).message).toContain('Active permit not found');
+        expect((error as any).code).toBe(CofheErrorCode.ACPNotFound);
+        expect((error as Error).message).toContain('Active acp not found');
       }
     });
 
-    it('should throw when withPermit(hash) cannot find permit', async () => {
+    it('should throw when withACP(hash) cannot find acp', async () => {
       const builder = createTxBuilder();
 
       try {
-        await builder.withPermit('0xnonexistent').execute();
-        expect.fail('Expected PermitNotFound error');
+        await builder.withACP('0xnonexistent').execute();
+        expect.fail('Expected ACPNotFound error');
       } catch (error) {
-        expect((error as any).code).toBe(CofheErrorCode.PermitNotFound);
-        expect((error as Error).message).toContain('Permit with hash');
+        expect((error as any).code).toBe(CofheErrorCode.ACPNotFound);
+        expect((error as Error).message).toContain('ACP with hash');
       }
     });
   });
@@ -302,30 +302,30 @@ describe('DecryptForViewBuilder', () => {
     });
   });
 
-  // --- withPermit ---
+  // --- withACP ---
 
-  describe('withPermit', () => {
-    it('withPermit() should clear permit and hash', () => {
+  describe('withACP', () => {
+    it('withACP() should clear acp and hash', () => {
       const builder = createViewBuilder(FheTypes.Uint32);
-      builder.withPermit();
-      expect(builder.getPermit()).toBeUndefined();
-      expect(builder.getPermitHash()).toBeUndefined();
+      builder.withACP();
+      expect(builder.getACP()).toBeUndefined();
+      expect(builder.getACPHash()).toBeUndefined();
     });
 
-    it('withPermit(hash) should store the permit hash', () => {
+    it('withACP(hash) should store the acp hash', () => {
       const builder = createViewBuilder(FheTypes.Uint32);
-      builder.withPermit('0xmypermithash');
-      expect(builder.getPermitHash()).toBe('0xmypermithash');
-      expect(builder.getPermit()).toBeUndefined();
+      builder.withACP('0xmyacphash');
+      expect(builder.getACPHash()).toBe('0xmyacphash');
+      expect(builder.getACP()).toBeUndefined();
     });
 
-    it('should allow overriding permit selection', () => {
+    it('should allow overriding acp selection', () => {
       const builder = createViewBuilder(FheTypes.Uint32);
-      builder.withPermit('0xfirst');
-      expect(builder.getPermitHash()).toBe('0xfirst');
+      builder.withACP('0xfirst');
+      expect(builder.getACPHash()).toBe('0xfirst');
 
-      builder.withPermit('0xsecond');
-      expect(builder.getPermitHash()).toBe('0xsecond');
+      builder.withACP('0xsecond');
+      expect(builder.getACPHash()).toBe('0xsecond');
     });
   });
 
@@ -334,7 +334,7 @@ describe('DecryptForViewBuilder', () => {
   describe('chaining', () => {
     it('should return the builder from each setter for fluent chaining', () => {
       const builder = createViewBuilder(FheTypes.Uint32, { chainId: undefined, account: undefined });
-      const result = builder.setChainId(TEST_CHAIN_ID).setAccount(account.address).withPermit();
+      const result = builder.setChainId(TEST_CHAIN_ID).setAccount(account.address).withACP();
 
       expect(result).toBeDefined();
       expect(result.getChainId()).toBe(TEST_CHAIN_ID);
@@ -359,28 +359,28 @@ describe('DecryptForViewBuilder', () => {
   // --- execute error paths ---
 
   describe('execute – error paths', () => {
-    it('should throw when active permit is not found', async () => {
+    it('should throw when active acp is not found', async () => {
       const builder = createViewBuilder(FheTypes.Uint32);
 
       try {
         await builder.execute();
-        expect.fail('Expected PermitNotFound error');
+        expect.fail('Expected ACPNotFound error');
       } catch (error) {
-        expect((error as any).code).toBe(CofheErrorCode.PermitNotFound);
-        expect((error as Error).message).toContain('Active permit not found');
+        expect((error as any).code).toBe(CofheErrorCode.ACPNotFound);
+        expect((error as Error).message).toContain('Active acp not found');
       }
     });
 
-    it('should throw when withPermit(hash) cannot find permit', async () => {
+    it('should throw when withACP(hash) cannot find acp', async () => {
       const builder = createViewBuilder(FheTypes.Uint32);
-      builder.withPermit('0xnonexistent');
+      builder.withACP('0xnonexistent');
 
       try {
         await builder.execute();
-        expect.fail('Expected PermitNotFound error');
+        expect.fail('Expected ACPNotFound error');
       } catch (error) {
-        expect((error as any).code).toBe(CofheErrorCode.PermitNotFound);
-        expect((error as Error).message).toContain('Permit with hash');
+        expect((error as any).code).toBe(CofheErrorCode.ACPNotFound);
+        expect((error as Error).message).toContain('ACP with hash');
       }
     });
 

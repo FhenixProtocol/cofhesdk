@@ -47,8 +47,8 @@ const parseWithBigInt = (str: string): any =>
 
 // packMetadata function removed as it's no longer needed
 const unpackMetadata = (metadata: string) => {
-  const [signer, securityZone, chainId] = metadata.split('-');
-  return { signer, securityZone: parseInt(securityZone), chainId: parseInt(chainId) };
+  const [signer, securityZone, chainId, contractAddr] = metadata.split('-');
+  return { signer, securityZone: parseInt(securityZone), chainId: parseInt(chainId), contractAddr };
 };
 
 export const deconstructZkPoKMetadata = (
@@ -125,17 +125,19 @@ const MockCrs = {
   safe_serialize: (_serializedSizeLimit: bigint) => new Uint8Array(),
 };
 
-// Setup fetch mock for http://localhost:3001/verify
-// Simulates verification of zk proof
-// Returns {ctHash: stringified value, signature: `${account_addr}-${security_zone}-${chain_id}-`, recid: 0}
-// Expects the proof to be created by the MockZkListBuilder `build_with_proof_packed` above
+// Setup fetch mock for http://localhost:3001/verifyBatch
+// Simulates batch verification of a zk proof: one signature covering the whole batch.
+// The signature is `${account_addr}-${security_zone}-${chain_id}-${contract_address}-` (a debug
+// string, not a real signature) so tests can recover the request payload that was sent for a
+// given result. Expects the proof to be created by the MockZkListBuilder `build_with_proof_packed`
+// above
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 const setupZkVerifyMock = () => {
   mockFetch.mockImplementation((url: string, options: any) => {
-    if (url === `${MockZkVerifierUrl}/verify`) {
+    if (url === `${MockZkVerifierUrl}/verifyBatch`) {
       const body = JSON.parse(options.body as string);
-      const { packed_list, account_addr, security_zone, chain_id } = body;
+      const { packed_list, account_addr, security_zone, chain_id, contract_address } = body;
 
       // Decode the proof data
       const arr = fromHexString(packed_list);
@@ -143,11 +145,10 @@ const setupZkVerifyMock = () => {
       const decodedData = parseWithBigInt(decoded);
       const { items } = decodedData;
 
-      // Create mock verify results
-      const mockResults = items.map((item: EncryptableItem) => ({
+      // Create a mock batch verify result: per-item ct_hash/ct_type, and one shared signature
+      const ciphertexts = items.map((item: EncryptableItem) => ({
         ct_hash: BigInt(item.data).toString(),
-        signature: `${account_addr}-${security_zone}-${chain_id}-`,
-        recid: 0,
+        ct_type: item.utype,
       }));
 
       return Promise.resolve({
@@ -155,7 +156,11 @@ const setupZkVerifyMock = () => {
         json: () =>
           Promise.resolve({
             status: 'success',
-            data: mockResults,
+            data: {
+              ciphertexts,
+              signature: `${account_addr}-${security_zone}-${chain_id}-${contract_address}-`,
+              recid: 0,
+            },
             error: null,
           }),
       });
@@ -232,6 +237,7 @@ class MockZkProvenList {
 describe('EncryptInputsBuilder', () => {
   const defaultSender = '0x1234567890123456789012345678901234567890';
   const defaultChainId = 1;
+  const defaultConsumingContract = '0xbeefbeefbeefbeefbeefbeefbeefbeefbeefbeef';
   const createDefaultParams = () => {
     return {
       inputs: [Encryptable.uint128(100n)] as [EncryptableUint128],
@@ -260,6 +266,7 @@ describe('EncryptInputsBuilder', () => {
     setupZkVerifyMock();
     insertMockKeys(defaultChainId, 0);
     builder = new EncryptInputsBuilder(createDefaultParams());
+    builder.setConsumingContract(defaultConsumingContract);
   });
 
   describe('constructor and initialization', () => {
@@ -320,7 +327,9 @@ describe('EncryptInputsBuilder', () => {
         await new EncryptInputsBuilder({
           ...createDefaultParams(),
           initTfhe: vi.fn().mockRejectedValue(new Error('Failed to initialize TFHE')),
-        }).execute();
+        })
+          .setConsumingContract(defaultConsumingContract)
+          .execute();
       } catch (error) {
         expect(error).toBeInstanceOf(CofheError);
         expect((error as CofheError).code).toBe(CofheErrorCode.InitTfheFailed);
@@ -331,7 +340,9 @@ describe('EncryptInputsBuilder', () => {
       const result = await new EncryptInputsBuilder({
         ...createDefaultParams(),
         initTfhe: mockInitTfhe,
-      }).execute();
+      })
+        .setConsumingContract(defaultConsumingContract)
+        .execute();
       expect(result).toBeDefined();
     });
   });
@@ -417,6 +428,25 @@ describe('EncryptInputsBuilder', () => {
     });
   });
 
+  describe('setConsumingContract', () => {
+    it('should set consuming contract and return builder for chaining', () => {
+      const contract = '0xdeaddeaddeaddeaddeaddeaddeaddeaddeaddead';
+      const result = builder.setConsumingContract(contract);
+      expect(result).toBe(builder);
+      expect(result.getConsumingContract()).toBe(contract);
+    });
+
+    it('should throw an error if consumingContract is not set', async () => {
+      try {
+        await new EncryptInputsBuilder(createDefaultParams()).execute();
+        expect.unreachable('execute() should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(CofheError);
+        expect((error as CofheError).code).toBe(CofheErrorCode.ConsumingContractUninitialized);
+      }
+    });
+  });
+
   describe('zkVerifierUrl', () => {
     it('should throw if zkVerifierUrl is not set', async () => {
       try {
@@ -426,7 +456,9 @@ describe('EncryptInputsBuilder', () => {
           account: '0x1234567890123456789012345678901234567890',
           chainId: 1,
           config: createMockCofheConfig(defaultChainId, undefined as unknown as string),
-        }).execute();
+        })
+          .setConsumingContract(defaultConsumingContract)
+          .execute();
       } catch (error) {
         expect(error).toBeInstanceOf(CofheError);
         expect((error as CofheError).code).toBe(CofheErrorCode.ZkVerifierUrlUninitialized);
@@ -555,8 +587,8 @@ describe('EncryptInputsBuilder', () => {
       expect(Array.isArray(result)).toBe(true);
 
       // Verify result embedded metadata
-      const [encrypted] = result;
-      const encryptedMetadata = unpackMetadata(encrypted.signature);
+      const signature = result[result.length - 1] as string;
+      const encryptedMetadata = unpackMetadata(signature);
       expect(encryptedMetadata).toBeDefined();
       expect(encryptedMetadata.signer).toBe(defaultSender);
       expect(encryptedMetadata.securityZone).toBe(0);
@@ -570,8 +602,8 @@ describe('EncryptInputsBuilder', () => {
       const result = await builder.execute();
 
       // Verify result embedded metadata
-      const [encrypted] = result;
-      const encryptedMetadata = unpackMetadata(encrypted.signature);
+      const signature = result[result.length - 1] as string;
+      const encryptedMetadata = unpackMetadata(signature);
       expect(encryptedMetadata).toBeDefined();
       expect(encryptedMetadata.signer).toBe(overriddenSender);
       expect(encryptedMetadata.securityZone).toBe(0);
@@ -587,8 +619,8 @@ describe('EncryptInputsBuilder', () => {
       const result = await builder.execute();
 
       // Verify result embedded metadata
-      const [encrypted] = result;
-      const encryptedMetadata = unpackMetadata(encrypted.signature);
+      const signature = result[result.length - 1] as string;
+      const encryptedMetadata = unpackMetadata(signature);
       expect(encryptedMetadata).toBeDefined();
       expect(encryptedMetadata.signer).toBe(defaultSender);
       expect(encryptedMetadata.securityZone).toBe(overriddenZone);
@@ -612,6 +644,7 @@ describe('EncryptInputsBuilder', () => {
           ReturnType<typeof Encryptable.bool>,
         ],
       });
+      multiInputBuilder.setConsumingContract(defaultConsumingContract);
 
       const result = await multiInputBuilder.execute();
 
@@ -645,7 +678,9 @@ describe('EncryptInputsBuilder', () => {
             Encryptable.uint128(100n),
             Encryptable.uint128(100n),
           ],
-        }).execute();
+        })
+          .setConsumingContract(defaultConsumingContract)
+          .execute();
       } catch (error) {
         expect(error).toBeInstanceOf(CofheError);
         expect((error as CofheError).code).toBe(CofheErrorCode.ZkPackFailed);
@@ -702,8 +737,8 @@ describe('EncryptInputsBuilder', () => {
       expect(stepCallback).toHaveBeenCalledTimes(10);
 
       // Verify result embedded metadata
-      const [encrypted] = result;
-      const encryptedMetadata = unpackMetadata(encrypted.signature);
+      const signature = result[result.length - 1] as string;
+      const encryptedMetadata = unpackMetadata(signature);
       expect(encryptedMetadata).toBeDefined();
       expect(encryptedMetadata.signer).toBe(sender);
       expect(encryptedMetadata.securityZone).toBe(securityZone);
@@ -727,16 +762,16 @@ describe('EncryptInputsBuilder', () => {
       expect(result2).toBeDefined();
 
       // Verify result embedded metadata
-      const [encrypted1] = result1;
-      const encryptedMetadata1 = unpackMetadata(encrypted1.signature);
+      const signature1 = result1[result1.length - 1] as string;
+      const encryptedMetadata1 = unpackMetadata(signature1);
       expect(encryptedMetadata1).toBeDefined();
       expect(encryptedMetadata1.signer).toBe(sender);
       expect(encryptedMetadata1.securityZone).toBe(securityZone);
       expect(encryptedMetadata1.chainId).toBe(defaultChainId);
 
       // Verify result embedded metadata
-      const [encrypted2] = result2;
-      const encryptedMetadata2 = unpackMetadata(encrypted2.signature);
+      const signature2 = result2[result2.length - 1] as string;
+      const encryptedMetadata2 = unpackMetadata(signature2);
       expect(encryptedMetadata2).toBeDefined();
       expect(encryptedMetadata2.signer).toBe(sender);
       expect(encryptedMetadata2.securityZone).toBe(securityZone);
@@ -744,18 +779,14 @@ describe('EncryptInputsBuilder', () => {
     });
   });
 
-  describe('asHashPlusProof', () => {
-    it('should return the same builder instance for chaining', () => {
-      expect(builder.asHashPlusProof()).toBe(builder);
-    });
-
-    it('execute() returns [hash, proof] for a single input', async () => {
-      const result = await builder.asHashPlusProof().execute();
+  describe('execute() batch result shape', () => {
+    it('execute() returns [hash, signature] for a single input', async () => {
+      const result = await builder.execute();
       expect(Array.isArray(result)).toBe(true);
-      expect(result).toHaveLength(2); // 1 hash + 1 proof
+      expect(result).toHaveLength(2); // 1 hash + 1 signature
     });
 
-    it('execute() returns [hash1, hash2, proof] for two inputs', async () => {
+    it('execute() returns [hash1, hash2, signature] for two inputs', async () => {
       const result = await new EncryptInputsBuilder({
         ...createDefaultParams(),
         inputs: [Encryptable.uint128(100n), Encryptable.bool(true)] as [
@@ -763,16 +794,16 @@ describe('EncryptInputsBuilder', () => {
           ReturnType<typeof Encryptable.bool>,
         ],
       })
-        .asHashPlusProof()
+        .setConsumingContract(defaultConsumingContract)
         .execute();
 
       expect(Array.isArray(result)).toBe(true);
-      expect(result).toHaveLength(3); // 2 hashes + 1 proof
+      expect(result).toHaveLength(3); // 2 hashes + 1 signature
     });
 
     it('should be composable with other builder methods', async () => {
       const overriddenSender = '0x5555555555555555555555555555555555555555';
-      const result = await builder.asHashPlusProof().setAccount(overriddenSender).execute();
+      const result = await builder.setAccount(overriddenSender).execute();
 
       expect(Array.isArray(result)).toBe(true);
       expect(result).toHaveLength(2);

@@ -5,7 +5,7 @@ description: Step-by-step guide to upgrade from cofhejs to @cofhe/sdk
 
 # Migrating from `cofhejs`
 
-`@cofhe/sdk` is the successor to `cofhejs`, redesigned around an explicit, builder-pattern API that gives you full control over encryption, decryption, and permit management. Migration should be strightforward with a 1-to-1 mapping of functions and features.
+`@cofhe/sdk` is the successor to `cofhejs`, redesigned around an explicit, builder-pattern API that gives you full control over encryption, decryption, and ACP (Access Control Permission) management. Migration should be strightforward with a 1-to-1 mapping of functions and features.
 
 ### Why migrate?
 
@@ -140,18 +140,18 @@ await client.connect(publicClient, walletClient);
 
 ## 2. Encrypting inputs
 
-`cofhejs.encrypt(...)` is replaced by a builder: `client.encryptInputs([...]).execute()`. The builder lets you chain optional overrides (account, chain, worker, progress callback) before executing.
+`cofhejs.encrypt(...)` is replaced by a builder: `client.encryptInputs([...]).setConsumingContract(address).execute()`. `setConsumingContract` is required — the verifier binds that address into the signature, so a batch signed for one contract can't be replayed into another. The builder also lets you chain optional overrides (account, chain, worker, progress callback) before executing.
 
 ::::note
 :::details[Changes]
 | | `cofhejs` | `@cofhe/sdk` |
 | --------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| **Function** | `cofhejs.encrypt([...], callback)` | `client.encryptInputs([...]).execute()` |
+| **Function** | `cofhejs.encrypt([...], callback)` | `client.encryptInputs([...]).setConsumingContract(addr).execute()` |
 | **Return value** | `Result<T>` with `.success` / `.data` / `.error` | Direct value (throws `CofheError` on failure) |
 | **Progress callback** | Second argument to `encrypt` | `.onStep(callback)` on the builder |
 | **Callback states** | `Extract`, `Pack`, `Prove`, `Verify`, `Replace`, `Done` | `InitTfhe`, `FetchKeys`, `Pack`, `Prove`, `Verify` |
-| **Result types** | `CoFheInUint8`, `CoFheInBool`, etc. | `EncryptedUint8Input`, `EncryptedBoolInput`, etc. (all extend `EncryptedItemInput`) |
-| **Overrides** | Not available | `.setAccount(...)`, `.setChainId(...)`, `.setUseWorker(...)` |
+| **Result types** | `CoFheInUint8`, `CoFheInBool`, etc. | `[...hashes, signature]` — one `external*` hash per input, followed by one shared batch signature |
+| **Overrides** | Not available | `.setConsumingContract(...)` (required), `.setAccount(...)`, `.setChainId(...)`, `.setUseWorker(...)` |
 | **Mixed-type arrays** | `cofhejs.encrypt([{ a: Encryptable.uint8(10) }])` | Not supported — pass a flat array of `Encryptable` items |
 :::
 ::::
@@ -180,11 +180,14 @@ const [eAmount, eFlag] = result.data;
 // @noErrors
 import { type CofheClient, type CofheConfig } from '@cofhe/sdk';
 declare const client: CofheClient<CofheConfig>;
+declare const myContractAddress: `0x${string}`;
 // ---cut---
 import { Encryptable, EncryptStep } from '@cofhe/sdk';
 
-const [eAmount, eFlag] = await client
+// [hash1, hash2, signature] - one hash per input, followed by the shared batch signature
+const [eAmountHash, eFlagHash, signature] = await client
   .encryptInputs([Encryptable.uint64(42n), Encryptable.bool(true)])
+  .setConsumingContract(myContractAddress)
   .onStep((step, ctx) => {
     if (ctx?.isStart) console.log(`Starting: ${step}`);
   })
@@ -207,7 +210,7 @@ The `Encryptable` factory functions (`Encryptable.uint32(...)`, `Encryptable.boo
 | | `cofhejs` | `@cofhe/sdk` |
 | ------------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | **Function** | `cofhejs.unseal(sealed, type)` | `client.decryptForView(ctHash, type)` or `client.decryptForTx(ctHash)` |
-| **Permit handling** | Automatic (uses most recent permit) | Explicit — `.withPermit()` / `.withPermit(permit)` / `.withPermit(hash)` / `.withoutPermit()` |
+| **ACP handling** | Automatic (uses most recent permit) | Explicit — `.withACP()` / `.withACP(permit)` / `.withACP(hash)` / `.withoutACP()` |
 | **Return value** | `Result<bigint \| boolean \| string>` | Direct value: `bigint`, `boolean`, or `string` for view; `{ ctHash, decryptedValue, signature }` for tx |
 | **On-chain verification** | Not built in | `decryptForTx` returns a signature for `FHE.publishDecryptResult(...)` or `FHE.verifyDecryptResult(...)` |
 | **`utype`** | Required for `unseal` | Required for `decryptForView`, not needed for `decryptForTx` |
@@ -269,7 +272,7 @@ const ctHash = await myContract.getEncryptedAmount();
 
 const { decryptedValue, signature } = await client
   .decryptForTx(ctHash)
-  .withoutPermit()
+  .withoutACP()
   .execute();
 
 await myContract.publishDecryptResult(ctHash, decryptedValue, signature);
@@ -297,21 +300,21 @@ contract MyContract {
 
 :::
 
-## 4. Permits
+## 4. Permits → ACPs
 
-Permits are no longer auto-generated during initialization. All permit operations are now explicit through `client.permits`, with separate methods for self permits, sharing permits, and importing shared permits.
+Permits are now called **ACPs** (Access Control Permissions) and are no longer auto-generated during initialization. All ACP operations are explicit through `client.acp`, with separate methods for self ACPs, sharing ACPs, and importing shared ACPs.
 
 ::::note
 :::details[Changes]
 | | `cofhejs` | `@cofhe/sdk` |
 | ------------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | **Auto-generation** | `generatePermit: true` (default) | Never — always explicit |
-| **Creation** | `cofhejs.createPermit({ type, issuer })` | `client.permits.createSelf(...)`, `client.permits.createSharing(...)`, `client.permits.importShared(...)` |
-| **Return type** | `Result<Permit>` | Direct `Permit` object |
-| **Active permit** | Implicitly used by `unseal` | `getOrCreateSelfPermit()` sets the active permit; `decryptForView/Tx` uses it automatically |
+| **Creation** | `cofhejs.createPermit({ type, issuer })` | `client.acp.createSelf(...)`, `client.acp.createSharing(...)`, `client.acp.importShared(...)` |
+| **Return type** | `Result<Permit>` | Direct `ACP` object |
+| **Active ACP** | Implicitly used by `unseal` | `getOrCreateSelfACP()` sets the active ACP; `decryptForView/Tx` uses it automatically |
 | **Sharing** | `createPermit({ type: "sharing", recipient })` → `createPermit({ type: "recipient", ...permit })` | `createSharing(...)` → `importShared(...)` |
-| **Selection** | Implicit | `client.permits.selectActivePermit(hash)` |
-| **Retrieval** | `cofhejs.getPermit(...)` | `client.permits.getPermit(hash)`, `client.permits.getPermits()`, `client.permits.getActivePermit()` |
+| **Selection** | Implicit | `client.acp.selectActiveACP(hash)` |
+| **Retrieval** | `cofhejs.getPermit(...)` | `client.acp.getACP(hash)`, `client.acp.getACPs()`, `client.acp.getActiveACP()` |
 :::
 ::::
 
@@ -342,7 +345,7 @@ if (!result.success) {
 
 ### After (`@cofhe/sdk`)
 
-Permits are never auto-generated. You explicitly create, retrieve, and select them through `client.permits`:
+ACPs are never auto-generated. You explicitly create, retrieve, and select them through `client.acp`:
 
 ```ts twoslash
 // @noErrors
@@ -351,24 +354,24 @@ declare const client: CofheClient<CofheConfig>;
 declare const account: `0x${string}`;
 declare const ctHash: `0x${string}`;
 // ---cut---
-// Create a self permit (prompts for wallet signature)
-const permit = await client.permits.createSelf({
+// Create a self ACP (prompts for wallet signature)
+const permit = await client.acp.createSelf({
   issuer: account,
-  name: 'My dApp permit',
+  name: 'My dApp ACP',
 });
 
 // Or use the convenience method that creates one only if needed
-const permit2 = await client.permits.getOrCreateSelfPermit();
+const permit2 = await client.acp.getOrCreateSelfACP();
 
-// Use with decryptForView (active permit is used automatically)
+// Use with decryptForView (active ACP is used automatically)
 const value = await client
   .decryptForView(ctHash, FheTypes.Uint32)
   .execute();
 
-// Or pass a specific permit
+// Or pass a specific ACP
 const value2 = await client
   .decryptForView(ctHash, FheTypes.Uint32)
-  .withPermit(permit)
+  .withACP(permit)
   .execute();
 ```
 
@@ -401,12 +404,14 @@ import {
   Encryptable,
 } from '@cofhe/sdk';
 declare const client: CofheClient<CofheConfig>;
+declare const myContractAddress: `0x${string}`;
 // ---cut---
 import { isCofheError, CofheErrorCode } from '@cofhe/sdk';
 
 try {
   const encrypted = await client
     .encryptInputs([Encryptable.uint32(42n)])
+    .setConsumingContract(myContractAddress)
     .execute();
 } catch (err) {
   if (isCofheError(err)) {
@@ -424,22 +429,18 @@ try {
 | `cofhejs/node` | `@cofhe/sdk/node`                                    |
 | `cofhejs/web`  | `@cofhe/sdk/web`                                     |
 | N/A            | `@cofhe/sdk` (core types, `Encryptable`, `FheTypes`) |
-| N/A            | `@cofhe/sdk/permits`                                 |
+| N/A            | `@cofhe/sdk/acps`                                    |
 | N/A            | `@cofhe/sdk/adapters`                                |
 | N/A            | `@cofhe/sdk/chains`                                  |
 
 ## 7. Type renames
 
-| `cofhejs`        | `@cofhe/sdk`            |
-| ---------------- | ----------------------- |
-| `CoFheInItem`    | `EncryptedItemInput`    |
-| `CoFheInBool`    | `EncryptedBoolInput`    |
-| `CoFheInUint8`   | `EncryptedUint8Input`   |
-| `CoFheInUint16`  | `EncryptedUint16Input`  |
-| `CoFheInUint32`  | `EncryptedUint32Input`  |
-| `CoFheInUint64`  | `EncryptedUint64Input`  |
-| `CoFheInUint128` | `EncryptedUint128Input` |
-| `CoFheInAddress` | `EncryptedAddressInput` |
+`cofhejs`'s per-type result structs (`CoFheInBool`, `CoFheInUint8`, etc.) have no direct
+equivalent — `@cofhe/sdk` returns a single `[...hashes, signature]` tuple instead, typed as
+`HashPlusProofResult<T>`. Each hash is branded by its type (`ExternalBoolHash`,
+`ExternalUint8Hash`, `ExternalUint16Hash`, `ExternalUint32Hash`, `ExternalUint64Hash`,
+`ExternalUint128Hash`, `ExternalAddressHash`), and the final element is a single
+`ExternalHashProof` (the shared batch signature) rather than a per-item signature.
 
 ## Quick-reference: full before & after
 
@@ -508,17 +509,18 @@ const { publicClient, walletClient } = await Ethers6Adapter(
 );
 await client.connect(publicClient, walletClient);
 
-// 2. Encrypt
-const [eAmount] = await client
+// 2. Encrypt: [hash, signature]
+const [eAmountHash, signature] = await client
   .encryptInputs([Encryptable.uint64(100n)])
+  .setConsumingContract(await contract.getAddress())
   .onStep((step) => console.log(step))
   .execute();
 
 // 3. Send transaction
-await contract.deposit(eAmount);
+await contract.deposit(eAmountHash, signature);
 
 // 4. Create permit & decrypt
-await client.permits.getOrCreateSelfPermit();
+await client.acp.getOrCreateSelfACP();
 
 const ctHash = await contract.getBalance();
 const balance = await client
@@ -534,8 +536,8 @@ import '@fhenixprotocol/cofhe-contracts/FHE.sol';
 contract ConfidentialVault {
     mapping(address => euint64) private _balances;
 
-    function deposit(InEuint64 calldata encryptedAmount) external {
-        euint64 amount = FHE.asEuint64(encryptedAmount);
+    function deposit(externalEuint64[] calldata encryptedAmounts, bytes calldata signature) external {
+        euint64 amount = FHE.asEuint64s(encryptedAmounts, signature)[0];
         _balances[msg.sender] = FHE.add(_balances[msg.sender], amount);
     }
 

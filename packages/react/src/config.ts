@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { type CofheConfig, type CofheInputConfig } from '@cofhe/sdk';
+import { assertNoRenamedConfigKeys, type CofheConfig, type CofheInputConfig } from '@cofhe/sdk';
 import { createCofheConfig as createCofheConfigWeb } from '@cofhe/sdk/web';
 import { getAddress, isAddress, zeroAddress } from 'viem';
 import { setReactLogger } from '@/utils/debug';
@@ -76,12 +76,12 @@ export const addressSchema = z
   .transform((val) => getAddress(val));
 
 export const CofheReactConfigSchema = z.object({
-  shareablePermits: z.boolean().optional().default(false),
+  shareableACPs: z.boolean().optional().default(false),
   enableShieldUnshield: z.boolean().optional().default(true),
-  autogeneratePermits: z.boolean().optional().default(true),
+  autogenerateACPs: z.boolean().optional().default(true),
   projectName: z.string().trim().optional().default(''),
   logger: CofheReactLoggerSchema,
-  permitExpirationOptions: z
+  acpExpirationOptions: z
     .array(
       z.object({
         label: z.string(),
@@ -94,7 +94,7 @@ export const CofheReactConfigSchema = z.object({
       { label: '1 Week', intervalSeconds: 604800 },
       { label: '1 Month', intervalSeconds: 2592000 },
     ]),
-  defaultPermitExpirationSeconds: z.number().optional().default(604800), // 1 week
+  defaultACPExpirationSeconds: z.number().optional().default(604800), // 1 week
   pinnedTokens: z.record(z.string(), addressSchema).optional(),
   tokenLists: z
     .record(z.string(), z.array(z.string()))
@@ -103,6 +103,17 @@ export const CofheReactConfigSchema = z.object({
   position: z.enum(['bottom-right', 'bottom-left', 'top-right', 'top-left']).optional().default('bottom-right'),
   initialTheme: z.enum(['dark', 'light']).optional().default('light'),
 });
+
+/**
+ * React config keys renamed in the ACP migration, mapped to their replacements.
+ * @see assertNoRenamedConfigKeys
+ */
+export const RENAMED_REACT_CONFIG_KEYS: Record<string, string> = {
+  shareablePermits: 'shareableACPs',
+  autogeneratePermits: 'autogenerateACPs',
+  permitExpirationOptions: 'acpExpirationOptions',
+  defaultPermitExpirationSeconds: 'defaultACPExpirationSeconds',
+};
 
 /**
  * Input config type inferred from the schema
@@ -126,7 +137,10 @@ export function createCofheConfig(config: CofheReactInputConfig): CofheConfigWit
     environment: 'react',
     ...webConfig,
   });
-  const reactConfigResult = CofheReactConfigSchema.safeParse(reactConfigInput);
+  assertNoRenamedConfigKeys(reactConfigInput, RENAMED_REACT_CONFIG_KEYS, 'cofhe react configuration');
+
+  // .strict(): reject unknown keys instead of stripping them - see createCofheConfigBase.
+  const reactConfigResult = CofheReactConfigSchema.strict().safeParse(reactConfigInput);
 
   if (!reactConfigResult.success) {
     throw new Error(`Invalid cofhe react configuration: ${z.prettifyError(reactConfigResult.error)}`, {

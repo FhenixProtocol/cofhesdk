@@ -5,7 +5,7 @@ export default defineConfig({
     core: 'core/index.ts',
     adapters: 'adapters/index.ts',
     chains: 'chains/index.ts',
-    permits: 'permits/index.ts',
+    acps: 'acps/index.ts',
     node: 'node/index.ts',
     web: 'web/index.ts',
     'zkProve.worker': 'web/zkProve.worker.ts',

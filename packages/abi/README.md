@@ -4,11 +4,18 @@ Type-safe ABI utilities for Fhenix fully homomorphic encryption (FHE) smart cont
 
 ## Overview
 
-Fhenix contracts use encrypted types (e.g., `euint32`, `ebool`) that are represented as structs in ABIs. This package bridges the gap between:
+Fhenix contracts use encrypted types (e.g., `euint32`, `ebool`) in their ABIs. This package bridges the gap between:
 
-- **Encrypted types** (`struct InEuint32`, `euint32`) - the ABI representation
+- **Encrypted types** (`externalEuint32` for inputs, `euint32` for outputs) - the ABI representation
 - **Primitive types** (`bigint`, `boolean`, `string`) - developer-friendly values
 - **Encryptable types** (`EncryptableItem`) - intermediate encryption format
+
+> **Calling convention for encrypted inputs.** Encrypted inputs are `external*` handles — plain
+> `bytes32`-based value types, not structs — and a single signature authenticates the whole batch.
+> Any ABI function with one or more `external*` inputs must therefore end with a plain `bytes`
+> parameter, the slot that receives that shared batch signature. `extractEncryptableValues` and
+> `insertEncryptedValues` throw if a function has `external*` inputs but its last parameter isn't
+> `bytes`.
 
 The package provides compile-time type safety through TypeScript generics, ensuring encrypted values are correctly extracted, transformed, and inserted based on ABI definitions.
 
@@ -32,7 +39,6 @@ yarn add @cofhe/abi
 ```typescript
 import { extractEncryptableValues, insertEncryptedValues, transformEncryptedReturnTypes } from '@cofhe/abi';
 import type { CofheInputArgs, CofheInputArgsPreTransform, CofheReturnType } from '@cofhe/abi';
-import { encrypt } from '@cofhe/sdk';
 
 const abi = [
   {
@@ -40,27 +46,30 @@ const abi = [
     name: 'add',
     inputs: [
       { name: 'a', type: 'uint256', internalType: 'uint256' },
-      { name: 'b', type: 'tuple', internalType: 'struct InEuint32', components: [...] }
+      { name: 'b', type: 'bytes32', internalType: 'externalEuint32' },
+      // Required trailing slot: receives the shared batch signature.
+      { name: 'signature', type: 'bytes', internalType: 'bytes' },
     ],
-    outputs: [{ name: '', type: 'uint256', internalType: 'euint32' }],
-    stateMutability: 'nonpayable'
-  }
+    outputs: [{ name: '', type: 'bytes32', internalType: 'euint32' }],
+    stateMutability: 'nonpayable',
+  },
 ] as const;
 
-// 1. Prepare arguments with primitive values
+// 1. Prepare arguments with primitive values.
+//    The trailing signature parameter is NOT part of the pre-transform shape - you never supply it.
 const args: CofheInputArgsPreTransform<typeof abi, 'add'> = [100n, 200n];
 
 // 2. Extract encryptable values
 const encryptables = extractEncryptableValues(abi, 'add', args);
 //    ^? [Encryptable.uint32(200n)]
 
-// 3. Encrypt the values
-const encrypted = await encrypt(encryptables);
-//    ^? [EncryptedUint32Input]
+// 3. Encrypt the values - one hash per input, followed by one signature for the whole batch
+const encrypted = await client.encryptInputs(encryptables).setConsumingContract(contractAddress).execute();
+//    ^? [ExternalUint32Hash, ExternalHashProof]
 
-// 4. Insert encrypted values back into arguments
+// 4. Insert encrypted values back into arguments (the signature lands in the trailing slot)
 const encryptedArgs: CofheInputArgs<typeof abi, 'add'> = insertEncryptedValues(abi, 'add', args, encrypted);
-//    ^? [100n, EncryptedUint32Input]
+//    ^? [100n, ExternalUint32Hash, ExternalHashProof]
 
 // 5. Call contract and transform return value
 const result = await contract.add(...encryptedArgs);
@@ -119,7 +128,7 @@ Works with multiple return values, nested structures and arrays.
 
 #### `CofheInputArgs<abi, functionName>`
 
-Type-level utility that infers function input arguments with encrypted types represented as encrypted input structs.
+Type-level utility that infers function input arguments with encrypted types represented as external handle types.
 
 **Type Parameters:**
 
@@ -128,8 +137,9 @@ Type-level utility that infers function input arguments with encrypted types rep
 
 **Returns:**
 
-- Tuple type where encrypted inputs are represented as encrypted input structs (`EncryptedUint32Input`, `EncryptedBoolInput`, etc.)
+- Tuple type where encrypted inputs are represented as branded external handles (`ExternalUint32Hash`, `ExternalBoolHash`, etc.)
 - Non-encrypted types use their primitive representations
+- Includes the trailing `bytes` signature parameter (typed `ExternalHashProof`), since this is the shape passed to the contract
 
 #### `CofheInputArgsPreTransform<abi, functionName>`
 
@@ -143,17 +153,18 @@ Type-level utility that infers function input arguments with encrypted types rep
 **Returns:**
 
 - Tuple type where encrypted inputs use primitive types (`bigint` for uints, `boolean` for bool, `string` for address)
+- When the function has `external*` inputs, the trailing `bytes` signature parameter is **dropped** — callers never supply it; the SDK injects it after encryption
 - This is the format you provide to `extractEncryptableValues`
 
 **Supported Encrypted Input Types:**
 
-- `struct InEbool` → `boolean` (pre-transform) → `EncryptedBoolInput` (post-transform)
-- `struct InEuint8` → `bigint | string` → `EncryptedUint8Input`
-- `struct InEuint16` → `bigint | string` → `EncryptedUint16Input`
-- `struct InEuint32` → `bigint | string` → `EncryptedUint32Input`
-- `struct InEuint64` → `bigint | string` → `EncryptedUint64Input`
-- `struct InEuint128` → `bigint | string` → `EncryptedUint128Input`
-- `struct InEaddress` → `string | bigint` → `EncryptedAddressInput`
+- `externalEbool` → `boolean` (pre-transform) → `ExternalBoolHash` (post-transform)
+- `externalEuint8` → `bigint | string` → `ExternalUint8Hash`
+- `externalEuint16` → `bigint | string` → `ExternalUint16Hash`
+- `externalEuint32` → `bigint | string` → `ExternalUint32Hash`
+- `externalEuint64` → `bigint | string` → `ExternalUint64Hash`
+- `externalEuint128` → `bigint | string` → `ExternalUint128Hash`
+- `externalEaddress` → `string | bigint` → `ExternalAddressHash`
 
 #### `extractEncryptableValues(abi, functionName, args)`
 
@@ -171,14 +182,14 @@ Works with arrays (fixed length or unbounded) and nested structures.
 
 #### `insertEncryptedValues(abi, functionName, args, encryptedValues)`
 
-Re-inserts encrypted values back into function arguments, replacing primitive values with encrypted input structs.
+Re-inserts encrypted values back into function arguments, replacing primitive values with their external handles and appending the shared batch signature.
 
 **Parameters:**
 
 - `abi` - Contract ABI
 - `functionName` - Function name
 - `args` - Original function arguments in `CofheInputArgsPreTransform` format
-- `encryptedValues` - Array of encrypted values in the same order as returned by `extractEncryptableValues`
+- `encryptedResult` - `readonly \`0x${string}\`[]`— the`[...hashes, signature]`tuple returned by`EncryptInputsBuilder.execute()`: one hash per encryptable, in the order returned by `extractEncryptableValues`, followed by the single batch signature
 
 **Returns:**
-Function arguments in `CofheInputArgs` format (ready for contract calls)
+Function arguments in `CofheInputArgs` format (ready for contract calls), with the batch signature placed in the function's trailing `bytes` slot.
