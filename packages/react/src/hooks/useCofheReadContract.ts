@@ -74,13 +74,18 @@ export function getEnabledForCofheReadContract(params: {
   abi?: Abi;
   functionName?: string;
   requiresACP: boolean;
-  hasActiveACP: boolean;
+  hasValidActiveACP: boolean;
   userEnabled?: boolean;
 }): boolean {
-  const { publicClient, address, abi, functionName, requiresACP, hasActiveACP, userEnabled } = params;
+  const { publicClient, address, abi, functionName, requiresACP, hasValidActiveACP, userEnabled } = params;
 
   return (
-    !!publicClient && !!address && !!abi && !!functionName && (!requiresACP || hasActiveACP) && (userEnabled ?? true)
+    !!publicClient &&
+    !!address &&
+    !!abi &&
+    !!functionName &&
+    (!requiresACP || hasValidActiveACP) &&
+    (userEnabled ?? true)
   );
 }
 
@@ -225,7 +230,7 @@ export function useCofheReadContract<
     abi,
     functionName,
     requiresACP,
-    hasActiveACP: !!activeACP,
+    hasValidActiveACP: !!activeACP?.isValid,
     userEnabled: queryOptions?.enabled,
   });
 
