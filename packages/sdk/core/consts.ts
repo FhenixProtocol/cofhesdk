@@ -26,3 +26,19 @@ export const TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT = BigInt(1 << 30);
 
 /** TFHE.rs key version (invalidates cached keys) */
 export const TFHE_RS_KEY_VERSION = 2;
+
+/**
+ * Recommended gas limits for FHE operations.
+ * Standard RPC `eth_estimateGas` underestimates precompile execution costs for homomorphic operations.
+ * Integrators can use these gas limits directly when building contract writes with viem / wagmi / ethers.
+ */
+export const FHE_GAS_LIMITS = {
+  /** Gas limit for contract functions performing FHE computation (FHE.asEuint*, FHE.add, FHE.select, FHE.eq, etc.) */
+  COMPUTE: 5_000_000n,
+  /** Gas limit for contract functions verifying and publishing threshold decryption results (FHE.publishDecryptResult) */
+  PUBLISH_RESULT: 500_000n,
+  /** Gas limit for contract functions verifying ZK encrypted inputs (verifyInput / TaskManager) */
+  VERIFY_INPUT: 1_000_000n,
+} as const;
+
+export type FheGasOperationType = keyof typeof FHE_GAS_LIMITS;
