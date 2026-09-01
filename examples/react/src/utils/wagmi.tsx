@@ -10,8 +10,26 @@ export const localcofheChain = defineChain({
   rpcUrls: { default: { http: [import.meta.env.VITE_LOCALCOFHE_RPC_URL ?? 'http://127.0.0.1:42069'] } },
 });
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { pickMetaMaskProvider, pickOkxProvider } from './walletProviders';
 
-export const injectedProvider = injected({ shimDisconnect: true });
+export const metaMaskConnector = injected({
+  shimDisconnect: true,
+  target: {
+    id: 'metamask',
+    name: 'MetaMask',
+    provider: pickMetaMaskProvider,
+  },
+});
+
+export const okxConnector = injected({
+  shimDisconnect: true,
+  target: {
+    id: 'okxwallet',
+    name: 'OKX Wallet',
+    provider: pickOkxProvider,
+  },
+});
+
 const config = createConfig({
   chains: [sepolia, baseSepolia, arbitrumSepolia, localcofheChain],
   transports: {
@@ -20,7 +38,7 @@ const config = createConfig({
     [arbitrumSepolia.id]: http(),
     [localcofheChain.id]: http(),
   },
-  connectors: [injectedProvider],
+  connectors: [metaMaskConnector, okxConnector],
   ssr: false,
   syncConnectedChain: true,
 });
@@ -31,9 +49,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <WagmiProvider
       config={config}
-      // TMP/TODO: had to disable reconnectOnMount to fix the problem with failed reconnecting even on button click.
-      // possible cause: the way the example app works (i.e. prevent eager connect) -- we don't pass injected() connector into config.connectors, instead we pass it at the wagm connection time (on button click)
-      // probably that's why it fails to reconnect
       reconnectOnMount={false}
     >
       <QueryClientProvider client={wagmiQueryClient}>{children}</QueryClientProvider>
