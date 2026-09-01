@@ -59,7 +59,6 @@ export function consumeInvalidationContext(match: { key: string } | undefined) {
   useInvalidationContextStore.getState().remove(match.key);
 }
 
-
 /**
  * Wraps a query function so it receives the `invalidationContext` stored by
  * `invalidateQueriesWithContext` (or `undefined` on ordinary fetches). The entry is consumed only
