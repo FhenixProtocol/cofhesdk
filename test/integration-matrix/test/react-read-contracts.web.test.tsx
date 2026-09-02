@@ -46,7 +46,7 @@ import {
   useCofheReadContracts,
   useCofheWriteContract,
   useInvalidationContextStore,
-  type CofheWriteInvalidationTarget,
+  type CofheWriteInvalidates,
 } from '@cofhe/react';
 
 const ANVIL_RPC = 'http://127.0.0.1:8546';
@@ -152,7 +152,7 @@ function KeyValueApp({
   writeValue,
 }: {
   contractAddress: Address;
-  invalidates?: readonly CofheWriteInvalidationTarget[];
+  invalidates?: CofheWriteInvalidates;
   writeKey: bigint;
   writeValue: bigint;
 }) {
@@ -225,11 +225,7 @@ function setup() {
     react: { autogenerateACPs: false },
   });
 
-  const renderApp = (props: {
-    invalidates?: readonly CofheWriteInvalidationTarget[];
-    writeKey: bigint;
-    writeValue: bigint;
-  }) =>
+  const renderApp = (props: { invalidates?: CofheWriteInvalidates; writeKey: bigint; writeValue: bigint }) =>
     render(
       <CofheProvider config={config} queryClient={queryClient} publicClient={publicClient} walletClient={walletClient}>
         <KeyValueApp contractAddress={contractAddress} {...props} />
@@ -277,6 +273,36 @@ describeOnAnvil('react hooks: useCofheWriteContract({ invalidates }) refreshes u
     expect(recorder.countBlockHashProbes(receipt.blockHash)).toBe(KEYS.length);
     expect(recorder.countBlockHashProbes()).toBe(KEYS.length);
     // The invalidation context is one-shot — consumed by the refetches that used it.
+    expect(useInvalidationContextStore.getState().byKey).toEqual({});
+  }, 180_000);
+
+  it('a receipt-derived, args-narrowed target refreshes exactly the touched entry', async () => {
+    const { contractAddress, recorder, publicClient, renderApp } = setup();
+    renderApp({
+      // The target is only known from the outcome: read the key out of the mined
+      // logs (ItemSet's indexed key = topics[1]) and narrow to that exact call.
+      invalidates: (receipt) => {
+        const log = receipt.logs.find((l) => l.address.toLowerCase() === contractAddress.toLowerCase());
+        return [{ address: contractAddress, functionName: 'getItem', args: [BigInt(log!.topics[1]!)] }];
+      },
+      writeKey: 2n,
+      writeValue: 999n,
+    });
+
+    await waitFor(() => expect(everyItemLoaded()).toBe(true), EVENTUALLY);
+    expect(recorder.countEthCalls(GET_ITEM_SELECTOR)).toBe(KEYS.length);
+
+    fireEvent.click(screen.getByRole('button', { name: 'set item' }));
+    await waitFor(() => expect(onScreen().txHash).toMatch(/^0x/), EVENTUALLY);
+    const receipt = await publicClient.waitForTransactionReceipt({ hash: onScreen().txHash as Hash });
+    expect(receipt.status).toBe('success');
+
+    // Only the written key's entry refreshes...
+    await waitFor(() => expect(onScreen().items[1]).toBe('999'), EVENTUALLY);
+    // ...via exactly ONE refetch — keys 1 and 3 (and the singular read) untouched...
+    expect(recorder.countEthCalls(GET_ITEM_SELECTOR)).toBe(KEYS.length + 1);
+    // ...block-gated, and the one-shot context is consumed.
+    expect(recorder.countBlockHashProbes(receipt.blockHash)).toBe(1);
     expect(useInvalidationContextStore.getState().byKey).toEqual({});
   }, 180_000);
 

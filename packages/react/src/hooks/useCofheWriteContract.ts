@@ -8,6 +8,7 @@ import type {
   ContractFunctionName,
   Hash,
   PublicClient,
+  TransactionReceipt,
   WalletClient,
   WriteContractParameters,
 } from 'viem';
@@ -17,6 +18,7 @@ import { useCofheChainId, useCofhePublicClient, useCofheWalletClient } from './u
 import { constructCofheReadContractQueryForInvalidation } from './useCofheReadContract';
 import { invalidateQueriesWithContext, type InvalidationContextQueryFilters } from '../utils/invalidationContext';
 import { resolveReceiptBlockHash } from '../utils/resolveReceiptBlockHash';
+import { serializeBigintRecursively } from '../utils/serializeBigint.js';
 import { cofheLogger } from '../utils/debug';
 
 type WalletWriteContractParamsAny = Parameters<WalletClient['writeContract']>[0];
@@ -47,22 +49,33 @@ export type WalletWriteContractParams<
 
 /**
  * Declarative invalidation target: the cofhe reads of one contract. `functionName` narrows it to
- * the `useCofheReadContract` queries for that view function (any args); omit it to refresh every
- * read of the contract. `chainId` defaults to the connected chain.
+ * the `useCofheReadContract` queries for that view function; `args` (with `functionName`) narrows
+ * further to the one exact call — e.g. `getOrder(orderId)` — leaving other args of the same
+ * function untouched. `chainId` defaults to the connected chain.
  */
 export type CofheReadInvalidationDescriptor = {
   address: Address;
   functionName?: string;
+  /** Exact-call narrowing; only meaningful together with `functionName` (ignored without it). */
+  args?: readonly unknown[];
   chainId?: number;
 };
 
 /**
- * A read-query target to refresh after a successful write: an `{ address, functionName }`
+ * A read-query target to refresh after a successful write: an `{ address, functionName?, args? }`
  * descriptor for cofhe contract reads, a raw query key (matched as a prefix, e.g. built with
  * `constructCofheReadContractQueryForInvalidation`), or full `InvalidateQueries` filters with a
  * required `queryKey`.
  */
 export type CofheWriteInvalidationTarget = CofheReadInvalidationDescriptor | QueryKey | InvalidationContextQueryFilters;
+
+/**
+ * The `invalidates` option: a fixed list of targets, or — when the targets depend on the outcome
+ * of the write — a function of the mined receipt (e.g. reading an id out of the event logs).
+ */
+export type CofheWriteInvalidates =
+  | readonly CofheWriteInvalidationTarget[]
+  | ((receipt: TransactionReceipt) => readonly CofheWriteInvalidationTarget[]);
 
 export type useCofheWriteContractOptions<TExtras = unknown> = Omit<
   UseMutationOptions<Hash, Error, WalletWriteContractMutationVariables<TExtras>, unknown>,
@@ -70,16 +83,19 @@ export type useCofheWriteContractOptions<TExtras = unknown> = Omit<
 > & {
   /**
    * Read queries to invalidate after the write is mined, e.g.
-   * `invalidates: [{ address: token, functionName: 'balanceOf' }]`. Invalidation fires once the
-   * transaction is MINED (not when the hash is returned) and carries the mined block's hash as
-   * invalidation context, so the triggered refetches wait until the serving RPC node knows that
-   * block before trusting its state (see `invalidateQueriesWithContext`). Mined means mined:
-   * a REVERTED transaction invalidates too — it still sits in a real block, burned gas and
-   * advanced the nonce, so reads like an ETH balance are stale either way; refetches of state
-   * the revert did not touch are cheap same-value no-ops. The wait runs in the background — the
-   * mutation still resolves with the tx hash as soon as the transaction is sent.
+   * `invalidates: [{ address: token, functionName: 'balanceOf' }]` — or, when the targets are only
+   * known from the outcome, a function of the mined receipt:
+   * `invalidates: (receipt) => [{ address, functionName: 'getOrder', args: [idFrom(receipt.logs)] }]`.
+   * Invalidation fires once the transaction is MINED (not when the hash is returned) and carries
+   * the mined block's hash as invalidation context, so the triggered refetches wait until the
+   * serving RPC node knows that block before trusting its state (see
+   * `invalidateQueriesWithContext`). Mined means mined: a REVERTED transaction invalidates too —
+   * it still sits in a real block, burned gas and advanced the nonce, so reads like an ETH balance
+   * are stale either way; refetches of state the revert did not touch are cheap same-value no-ops.
+   * The wait runs in the background — the mutation still resolves with the tx hash as soon as the
+   * transaction is sent.
    */
-  invalidates?: readonly CofheWriteInvalidationTarget[];
+  invalidates?: CofheWriteInvalidates;
 };
 
 function isQueryKeyTarget(target: CofheWriteInvalidationTarget): target is QueryKey {
@@ -102,13 +118,16 @@ function normalizeInvalidationTarget(
   return {
     // Trailing undefined segments (an omitted functionName) would only match queries carrying
     // that exact undefined segment; trimmed, the prefix matches every read of the contract.
-    queryKey: trimTrailingUndefined(
-      constructCofheReadContractQueryForInvalidation({
+    // With `args`, the serialized args segment extends the prefix so it matches exactly one
+    // call of the function — the same serialization the read key uses.
+    queryKey: trimTrailingUndefined([
+      ...constructCofheReadContractQueryForInvalidation({
         cofheChainId: target.chainId ?? connectedChainId,
         address: target.address,
         functionName: target.functionName,
-      })
-    ),
+      }),
+      ...(target.functionName != null && target.args != null ? [serializeBigintRecursively(target.args)] : []),
+    ]),
     exact: false,
   };
 }
@@ -117,17 +136,20 @@ async function invalidateOnceMined(params: {
   publicClient: PublicClient;
   queryClient: QueryClient;
   txHash: Hash;
-  targets: readonly CofheWriteInvalidationTarget[];
+  invalidates: CofheWriteInvalidates;
   connectedChainId: number | undefined;
 }): Promise<void> {
-  const { publicClient, queryClient, txHash, targets, connectedChainId } = params;
+  const { publicClient, queryClient, txHash, invalidates, connectedChainId } = params;
 
   try {
     const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
     // Deliberately NO status check: a reverted tx is still mined — it burned gas and advanced
     // the nonce in a real block, so declared reads (an ETH balance, a nonce-dependent view) are
     // stale regardless of outcome. Targets the revert did not touch refetch to the same value.
-    const { blockHash } = await resolveReceiptBlockHash(receipt, publicClient);
+    const resolvedReceipt = await resolveReceiptBlockHash(receipt, publicClient);
+    const { blockHash } = resolvedReceipt;
+
+    const targets = typeof invalidates === 'function' ? invalidates(resolvedReceipt) : invalidates;
 
     await Promise.all(
       targets.map((target) =>
@@ -187,13 +209,14 @@ export function useCofheWriteContract<TExtras = unknown>(
     ...mutationOptions,
     mutationKey: mutationOptions.mutationKey ?? ['cofhe', 'walletWriteContract'],
     onSuccess: (hash, ...rest) => {
-      if (invalidates?.length && publicClient) {
+      const hasInvalidates = typeof invalidates === 'function' || !!invalidates?.length;
+      if (hasInvalidates && invalidates && publicClient) {
         // Background: invalidation waits for the tx to mine; the mutation result is the hash.
         void invalidateOnceMined({
           publicClient,
           queryClient,
           txHash: hash,
-          targets: invalidates,
+          invalidates,
           connectedChainId: cofheChainId,
         });
       }
