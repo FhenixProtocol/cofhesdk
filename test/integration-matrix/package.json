@@ -7,7 +7,7 @@
     "test:unit": "vitest run --project node --reporter=verbose test/matrix-filter.test.ts",
     "test:node": "MATRIX_ENV=node vitest run --project node --reporter=verbose test/matrix.test.ts",
     "test:web": "MATRIX_ENV=web vitest run --project web --reporter=verbose test/matrix.web.test.ts",
-    "test:react": "vitest run --project web --reporter=verbose test/react-hooks.web.test.tsx",
+    "test:react": "vitest run --project web --reporter=verbose test/react-hooks.web.test.tsx test/react-read-contracts.web.test.tsx",
     "test:all": "pnpm test:node && pnpm test:web && pnpm test:react",
     "test:flexible:node": "vitest run --project node --reporter=verbose test/flexible.test.ts",
     "test:flexible:web": "vitest run --project web --reporter=verbose test/flexible.web.test.ts",

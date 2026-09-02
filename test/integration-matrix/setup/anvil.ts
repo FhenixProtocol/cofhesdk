@@ -63,6 +63,7 @@ export async function setup(project: TestProject): Promise<void> {
     project.provide('anvilRpc', '');
     project.provide('anvilSimpleTest', '');
     project.provide('anvilSimpleStorage', '');
+    project.provide('anvilSimpleKeyValueStore', '');
     console.log('[integration-matrix] Skipping Anvil setup; Hardhat is not selected in MATRIX_CHAIN.');
     await printMatrix(process.env.MATRIX_CHAIN, process.env.MATRIX_ENV);
     return;
@@ -102,9 +103,17 @@ export async function setup(project: TestProject): Promise<void> {
   const simpleStorageAddress = deployTestContract(ANVIL_RPC, 'contracts/SimpleStorage.sol:SimpleStorage');
   console.log(`${HARDHAT_LOG_PREFIX} SimpleStorage deployed at ${simpleStorageAddress}`);
 
+  console.log(`${HARDHAT_LOG_PREFIX} Deploying SimpleKeyValueStore...`);
+  const simpleKeyValueStoreAddress = deployTestContract(
+    ANVIL_RPC,
+    'contracts/SimpleKeyValueStore.sol:SimpleKeyValueStore'
+  );
+  console.log(`${HARDHAT_LOG_PREFIX} SimpleKeyValueStore deployed at ${simpleKeyValueStoreAddress}`);
+
   project.provide('anvilRpc', ANVIL_RPC);
   project.provide('anvilSimpleTest', simpleTestAddress);
   project.provide('anvilSimpleStorage', simpleStorageAddress);
+  project.provide('anvilSimpleKeyValueStore', simpleKeyValueStoreAddress);
   project.provide('anvilAcpValidator', deployedMocks.ACPTimestampRevoker);
   project.provide('anvilAcpShareRegistry', deployedMocks.ACPShareRegistry);
 
@@ -170,6 +179,7 @@ declare module 'vitest' {
     anvilRpc: string;
     anvilSimpleTest: string;
     anvilSimpleStorage: string;
+    anvilSimpleKeyValueStore: string;
     anvilAcpValidator: string;
     anvilAcpShareRegistry: string;
     matrixChain: string;

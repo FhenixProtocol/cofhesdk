@@ -11,6 +11,8 @@ export {
   useCofheReadContracts,
   type CofheReadContractsContract,
   type CofheReadContractsItem,
+  type UseCofheReadContractsResult,
+  type UseCofheReadContractsQueryOptions,
 } from './useCofheReadContracts';
 export { useCofheSimulateWriteContract } from './useCofheSimulateWriteContract';
 export { useCofheStatuses } from './useCofheStatuses';
