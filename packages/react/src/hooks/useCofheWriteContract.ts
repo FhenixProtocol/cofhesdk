@@ -113,7 +113,12 @@ function normalizeInvalidationTarget(
   };
 }
 
-async function invalidateOnceMined(params: {
+/**
+ * The write-side invalidation pipeline: wait for the receipt, resolve a real block hash, then
+ * invalidate every target with that hash as invalidation context. Used by `useCofheWriteContract`
+ * after a write; exported for tests and advanced orchestration.
+ */
+export async function invalidateOnceMined(params: {
   publicClient: PublicClient;
   queryClient: QueryClient;
   txHash: Hash;
