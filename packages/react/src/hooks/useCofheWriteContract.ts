@@ -69,13 +69,15 @@ export type useCofheWriteContractOptions<TExtras = unknown> = Omit<
   'mutationFn'
 > & {
   /**
-   * Read queries to invalidate after a successful write, e.g.
+   * Read queries to invalidate after the write is mined, e.g.
    * `invalidates: [{ address: token, functionName: 'balanceOf' }]`. Invalidation fires once the
    * transaction is MINED (not when the hash is returned) and carries the mined block's hash as
    * invalidation context, so the triggered refetches wait until the serving RPC node knows that
-   * block before trusting its state (see `invalidateQueriesWithContext`). A reverted transaction
-   * invalidates nothing. The wait runs in the background — the mutation still resolves with the
-   * tx hash as soon as the transaction is sent.
+   * block before trusting its state (see `invalidateQueriesWithContext`). Mined means mined:
+   * a REVERTED transaction invalidates too — it still sits in a real block, burned gas and
+   * advanced the nonce, so reads like an ETH balance are stale either way; refetches of state
+   * the revert did not touch are cheap same-value no-ops. The wait runs in the background — the
+   * mutation still resolves with the tx hash as soon as the transaction is sent.
    */
   invalidates?: readonly CofheWriteInvalidationTarget[];
 };
@@ -122,11 +124,9 @@ async function invalidateOnceMined(params: {
 
   try {
     const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
-    if (receipt.status !== 'success') {
-      cofheLogger.warn('Skipping write invalidation: transaction reverted', { txHash });
-      return;
-    }
-
+    // Deliberately NO status check: a reverted tx is still mined — it burned gas and advanced
+    // the nonce in a real block, so declared reads (an ETH balance, a nonce-dependent view) are
+    // stale regardless of outcome. Targets the revert did not touch refetch to the same value.
     const { blockHash } = await resolveReceiptBlockHash(receipt, publicClient);
 
     await Promise.all(
