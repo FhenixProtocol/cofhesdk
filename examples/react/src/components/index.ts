@@ -5,3 +5,4 @@ export { ComponentRenderer } from './ComponentRenderer';
 export { Overview } from './examples/Overview';
 export { CofheEncryptInputExample } from './examples/CofheEncryptInputExample';
 export { HooksExample } from './examples/HooksExample';
+export { PreparedUnshieldExample } from './examples/PreparedUnshieldExample';

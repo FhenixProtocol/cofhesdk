@@ -131,7 +131,7 @@ export function useCofheReadContracts(
         isFetching: queryResults.some((query) => query.isFetching),
         isSuccess: queryResults.length > 0 && queryResults.every((query) => query.isSuccess),
         isError: queryResults.some((query) => query.isError),
-        error: allowFailure ? null : (queryResults.find((query) => query.isError)?.error ?? null),
+        error: allowFailure ? null : queryResults.find((query) => query.isError)?.error ?? null,
         refetch: async () => {
           await Promise.all(queryResults.map((query) => query.refetch()));
         },

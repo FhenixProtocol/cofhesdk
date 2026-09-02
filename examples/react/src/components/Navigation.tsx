@@ -12,6 +12,7 @@ const components = [
   { id: 'overview', label: 'Overview', description: 'Introduction to CofheEncryptInput component' },
   { id: 'cofhe-encrypt-input', label: 'CofheEncryptInput', description: 'Advanced input with type selection' },
   { id: 'cofhe-floating-button', label: 'CofheFloatingButton', description: 'Floating action button component' },
+  { id: 'prepared-unshield', label: 'Prepared Unshield', description: 'Quote before you burn — atomic exit' },
   { id: 'hooks-example', label: 'Hooks Usage', description: 'Using useEncryptInput hook directly' },
 ];
 
