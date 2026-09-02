@@ -250,7 +250,10 @@ describe('useCofheReadContracts invalidation scenarios', () => {
     // A singular useCofheReadContract of the same read builds the identical
     // options — subscribing to it dedupes onto the cached entry: same data,
     // no second fetch.
-    const singular = observe(queryClient, entryOptions(mocked, { functionName: 'getTokenConfig', args: [TOKEN_A] }, { staleTime: 60_000 }));
+    const singular = observe(
+      queryClient,
+      entryOptions(mocked, { functionName: 'getTokenConfig', args: [TOKEN_A] }, { staleTime: 60_000 })
+    );
     cleanups.push(singular.unsubscribe);
 
     expect(singular.observer.getCurrentResult().data).toEqual(1n);
