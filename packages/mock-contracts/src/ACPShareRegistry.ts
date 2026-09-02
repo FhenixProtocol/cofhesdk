@@ -342,6 +342,11 @@ export const ACPShareRegistryArtifact = {
     },
     {
       type: 'error',
+      name: 'RecipientSignatureMustBeEmpty',
+      inputs: [],
+    },
+    {
+      type: 'error',
       name: 'SealingKeyMustBeEmpty',
       inputs: [],
     },
