@@ -3,7 +3,6 @@ import { Overview } from './examples/Overview';
 import { CofheEncryptInputExample } from './examples/CofheEncryptInputExample';
 import { HooksExample } from './examples/HooksExample';
 import { CofheFloatingButtonExample } from './examples/CofheFloatingButtonExample';
-import { PreparedUnshieldExample } from './examples/PreparedUnshieldExample';
 
 interface ComponentRendererProps {
   activeComponent: string;
@@ -19,8 +18,6 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({ activeComp
         return <CofheEncryptInputExample />;
       case 'cofhe-floating-button':
         return <CofheFloatingButtonExample />;
-      case 'prepared-unshield':
-        return <PreparedUnshieldExample />;
       case 'hooks-example':
         return <HooksExample />;
       default:
