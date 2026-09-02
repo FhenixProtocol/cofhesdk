@@ -174,7 +174,7 @@ describe('transformEncryptedReturnTypes: struct arrays', () => {
     const rows = [
       { id: 1n, owner: '0xaaaa000000000000000000000000000000000001' },
       { id: 2n, owner: '0xaaaa000000000000000000000000000000000002' },
-    ];
+    ] as const;
     const result = transformEncryptedReturnTypes(StructArrayABI, 'fnReturnPlainStructArray', rows);
     expect(result).toEqual(rows);
   });
