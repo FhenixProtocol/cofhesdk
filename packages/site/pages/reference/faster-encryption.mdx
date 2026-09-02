@@ -1,0 +1,236 @@
+---
+title: Faster Encryption (Multi-Threaded Proving)
+description: Enable cross-origin isolation so TFHE can generate ZK proofs across multiple threads
+---
+
+# Faster Encryption (Multi-Threaded Proving)
+
+Generating the ZK proof of knowledge is by far the most expensive part of
+`encryptInputs` — typically **90%+ of the total time**. TFHE's WASM build is compiled
+with [rayon](https://github.com/rayon-rs/rayon), so that proof can be computed across
+several threads instead of one.
+
+The SDK turns this on automatically when the browser allows it. Whether it's allowed is
+decided entirely by **your page's HTTP headers**, so this is something an app opts into
+by how it's served.
+
+## What it's worth
+
+Measured in Chromium on a 12-core machine — median of 5 proofs packing a `uint128`,
+`uint64`, and `uint32`:
+
+| Threads     | Proof time | Speedup |
+| ----------- | ---------: | ------: |
+| 1 (default) |    3199 ms |   1.00× |
+| 2           |    1687 ms |   1.90× |
+| 4           |     964 ms |   3.32× |
+| 6           |     728 ms |   4.39× |
+| **8**       | **657 ms** |   4.87× |
+| 12          |     624 ms |   5.13× |
+
+Roughly **5× faster proving**, turning a multi-second encryption into well under a
+second. Starting the thread pool costs about 37 ms, once, on first encryption.
+
+The gains flatten past 8 threads, so `'auto'` caps there rather than using every core —
+each thread is a real Web Worker competing with your app for CPU.
+
+## The requirement: cross-origin isolation
+
+Threads share TFHE's WASM memory, and browsers only permit sharing memory between
+threads in a **cross-origin isolated** context. That needs two response headers on the
+document:
+
+```
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Embedder-Policy: credentialless
+```
+
+Without them, `self.crossOriginIsolated` is `false`, `SharedArrayBuffer` is unavailable,
+and the SDK **silently stays single-threaded**. Encryption still works exactly as before
+— you just don't get the speedup. There is nothing to catch or handle.
+
+:::warning
+**These headers have real trade-offs. Read the next section before enabling them.**
+
+Cross-origin isolation restricts how your page interacts with other origins. For some
+dApps — particularly those using wallet popups — that's a breaking change, and the
+speedup isn't worth it.
+:::
+
+## Trade-offs to check first
+
+### `Cross-Origin-Opener-Policy: same-origin` breaks cross-origin popups
+
+This is the one most likely to bite a dApp. COOP `same-origin` severs the
+`window.opener` relationship with cross-origin popups. If your app depends on
+`postMessage` to or from a popup on another origin — some wallet connectors, social
+logins, and OAuth flows do — **that communication will break**.
+
+`same-origin-allow-popups` preserves popups but does _not_ enable cross-origin
+isolation. You cannot have both. If your wallet flow relies on cross-origin popup
+messaging, leave the headers off.
+
+Wallet connections that use WebSockets, browser extensions, or deep links (including
+most WalletConnect setups) are unaffected.
+
+### `Cross-Origin-Embedder-Policy` restricts embedded resources
+
+Both values require cross-origin subresources to opt in, and cross-origin iframes
+(wallet widgets, price charts, analytics embeds) must send COEP themselves or they'll be
+blocked.
+
+| Value            | Cross-origin subresources                        | Browser support                               |
+| ---------------- | ------------------------------------------------ | --------------------------------------------- |
+| `credentialless` | Load without credentials — no cooperation needed | Chrome/Edge 96+, Firefox 119+, **not Safari** |
+| `require-corp`   | Must send `Cross-Origin-Resource-Policy` or CORS | All isolation-capable browsers                |
+
+`credentialless` is usually the pragmatic choice: third-party images, fonts, and CDN
+assets keep working without the other origin changing anything. The cost is that Safari
+doesn't support it, so Safari users fall back to single-threaded proving. Use
+`require-corp` if you need Safari and control (or can vouch for) every cross-origin
+resource you load.
+
+## Setting the headers
+
+### Vite
+
+Headers must be set for both the dev server and `vite preview` — they're separate
+config blocks, and missing the second makes production builds look mysteriously slower
+than dev.
+
+```ts [vite.config.ts]
+import { defineConfig } from 'vite';
+
+const crossOriginIsolation = {
+  'Cross-Origin-Embedder-Policy': 'credentialless',
+  'Cross-Origin-Opener-Policy': 'same-origin',
+};
+
+export default defineConfig({
+  optimizeDeps: { exclude: ['tfhe'] },
+  worker: { format: 'es' },
+  server: { headers: crossOriginIsolation },
+  preview: { headers: crossOriginIsolation },
+});
+```
+
+### Next.js
+
+```js [next.config.js]
+module.exports = {
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'Cross-Origin-Embedder-Policy', value: 'credentialless' },
+          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+        ],
+      },
+    ];
+  },
+};
+```
+
+### Vercel
+
+```json [vercel.json]
+{
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Cross-Origin-Embedder-Policy", "value": "credentialless" },
+        { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" }
+      ]
+    }
+  ]
+}
+```
+
+### nginx
+
+```nginx
+add_header Cross-Origin-Embedder-Policy credentialless always;
+add_header Cross-Origin-Opener-Policy   same-origin      always;
+```
+
+## Verifying it worked
+
+In the browser console:
+
+```js
+crossOriginIsolated; // must be true
+```
+
+If that's `true`, the next encryption starts the thread pool. The SDK's proof worker
+logs which path it took:
+
+```
+[Worker] TFHE initialized (rayon thread pool: 8 threads)
+```
+
+or, when isolation is missing:
+
+```
+[Worker] TFHE initialized (single-threaded: not cross-origin isolated — serve the page with …)
+```
+
+You can also read the main-thread status programmatically:
+
+```ts
+import { getTfheThreadPoolStatus } from '@cofhe/sdk/web';
+
+// null until TFHE has been initialized (first encryption)
+const status = getTfheThreadPoolStatus();
+// { enabled: true, threads: 8 }
+// or { enabled: false, threads: 1, reason: '…why it bailed' }
+```
+
+The most direct signal is the `Prove` step duration in
+[`.onStep(...)`](/sdk/encrypting-inputs#onstepcallback--optional) dropping several-fold.
+
+## Tuning with `tfheThreads`
+
+`tfheThreads` on `CofheConfig` controls the thread count. It's web-only and ignored on
+Node/Hardhat.
+
+```ts twoslash
+import { createCofheConfig } from '@cofhe/sdk/web';
+import { chains } from '@cofhe/sdk/chains';
+
+const config = createCofheConfig({
+  supportedChains: [chains.sepolia],
+
+  // 'auto'  → navigator.hardwareConcurrency, capped at 8 (default)
+  // number  → request exactly this many threads
+  // false   → stay single-threaded
+  tfheThreads: 'auto',
+});
+```
+
+| Value    | Behaviour                                             |
+| -------- | ----------------------------------------------------- |
+| `'auto'` | Default. `navigator.hardwareConcurrency`, capped at 8 |
+| a number | Exactly that many threads, ignoring the cap           |
+| `false`  | Never start a pool — proving stays on one thread      |
+
+Lowering it (for example `tfheThreads: 4`) leaves more CPU for the rest of your app
+during encryption. Setting `false` opts out entirely.
+
+:::note
+TFHE's WASM instance is a singleton per page and its thread pool can only be started
+once. If your app creates several clients with different `tfheThreads` values, whichever
+encrypts first decides the count for the page.
+:::
+
+## Notes
+
+- **Proving already runs off the main thread.** With `useWorkers: true` (the default),
+  proofs are generated in a Web Worker regardless, so your UI never blocks. Threading
+  makes that work _finish sooner_; it doesn't change what blocks.
+- **No fallback needed.** Non-isolated pages, Safari with `credentialless`, single-core
+  devices, and thread-pool startup failures all degrade to single-threaded proving
+  automatically.
+- **Node is unaffected.** `@cofhe/sdk/node` uses `node-tfhe`, which has no browser
+  thread pool.

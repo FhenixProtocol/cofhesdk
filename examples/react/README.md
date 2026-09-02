@@ -60,7 +60,11 @@ Use these project settings:
 The included `vercel.json` does two things:
 
 - builds only the workspace packages this example actually needs, instead of running the repo-wide Turbo build
-- sets the `Cross-Origin-Embedder-Policy` and `Cross-Origin-Opener-Policy` headers required for the WASM worker setup
+- sets the `Cross-Origin-Embedder-Policy` and `Cross-Origin-Opener-Policy` headers that make the page
+  cross-origin isolated, which lets TFHE generate ZK proofs across multiple threads (~5x faster
+  encryption). Without them encryption still works, just single-threaded. These headers restrict how the
+  page interacts with other origins — see the [Faster Encryption](https://cofhesdk.fhenix.io/reference/faster-encryption)
+  docs for the trade-offs. `vite.config.ts` sets the same headers for the dev and `preview` servers.
 
 If the Vercel project is left at the repository root, Vercel will auto-detect Turbo and try to build unrelated workspace packages such as `test/setup`, which requires `forge` and will fail in a default Vercel environment.
 

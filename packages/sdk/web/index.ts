@@ -9,6 +9,8 @@ import {
   type ZkBuilderAndCrsGenerator,
   type FheKeyDeserializer,
   type EncryptableItem,
+  type TfheInitializer,
+  type TfheThreadsSetting,
   fheTypeToString,
   TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT,
 } from '@/core';
@@ -25,21 +27,71 @@ import { getWorkerManager, terminateWorker, areWorkersAvailable } from './worker
 // reference `self` at module top — into the import graph during Next.js SSR.
 import type { TfheCompactPublicKey, ProvenCompactCiphertextList, CompactPkeCrs } from 'tfhe';
 import { hasDOM } from './const';
+import { initTfheThreadPool, type TfheThreadPoolResult } from './tfheThreadPool.js';
 
-/**
- * Internal function to initialize TFHE for web
- * Called automatically on first encryption - users don't need to call this manually
- * @returns true if TFHE was initialized, false if already initialized
- */
 let tfheModule: typeof import('tfhe') | null = null;
 let tfheInitialized = false;
-async function initTfhe(): Promise<boolean> {
-  if (tfheInitialized) return false;
-  tfheModule = await import('tfhe');
-  await tfheModule.default();
-  await tfheModule.init_panic_hook();
-  tfheInitialized = true;
-  return true;
+let tfheInitPromise: Promise<void> | null = null;
+let threadPoolResult: TfheThreadPoolResult | null = null;
+
+/**
+ * Outcome of the rayon thread pool setup on the main thread, or `null` if tfhe
+ * hasn't been initialized yet. Useful for confirming whether multi-threaded
+ * proving actually came up — `enabled: false` carries a `reason`.
+ *
+ * Note this reflects the *main thread* only. When workers are enabled (the
+ * default) proving happens inside the zkProve worker, which runs its own pool.
+ */
+export function getTfheThreadPoolStatus(): TfheThreadPoolResult | null {
+  return threadPoolResult;
+}
+
+/**
+ * Internal factory for the TFHE initializer used on web.
+ * Called automatically on first encryption - users don't need to call this manually.
+ *
+ * The wasm instance is a module-level singleton and `initThreadPool` may only run
+ * once against it, so initialization is memoised here and the rayon thread pool is
+ * started as part of it. A consequence: if an app creates several clients with
+ * different `tfheThreads` values, whichever encrypts first wins for the page.
+ *
+ * @returns an initializer resolving true if it performed the initialization,
+ *          false if TFHE was already initialized
+ */
+function createInitTfhe(tfheThreads: TfheThreadsSetting): TfheInitializer {
+  return async (): Promise<boolean> => {
+    if (tfheInitialized) return false;
+
+    if (tfheInitPromise) {
+      // Another caller is already initializing; wait it out but don't claim
+      // credit for having done it.
+      await tfheInitPromise;
+      return false;
+    }
+
+    tfheInitPromise = (async () => {
+      const mod = await import('tfhe');
+      await mod.default();
+      await mod.init_panic_hook();
+      tfheModule = mod;
+
+      // Best-effort: leaves tfhe single-threaded when the page isn't
+      // cross-origin isolated rather than failing the encryption.
+      threadPoolResult = await initTfheThreadPool(mod, tfheThreads);
+
+      tfheInitialized = true;
+    })();
+
+    try {
+      await tfheInitPromise;
+    } catch (error) {
+      // Let the next call retry from scratch.
+      tfheInitPromise = null;
+      throw error;
+    }
+
+    return true;
+  };
 }
 
 function requireTfhe(): typeof import('tfhe') {
@@ -101,22 +153,27 @@ const zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator = (fhe: string, crs: st
 /**
  * Worker-enabled zkProve function
  * This submits proof generation to a Web Worker
+ *
+ * Bound to the client's `tfheThreads` setting, which the worker applies when it
+ * first initialises tfhe.
  */
-async function zkProveWithWorker(
-  fheKeyHex: string,
-  crsHex: string,
-  items: EncryptableItem[],
-  metadata: Uint8Array
-): Promise<Uint8Array> {
-  // Serialize items for worker (convert enum to string name)
-  const serializedItems = items.map((item) => ({
-    utype: fheTypeToString(item.utype),
-    data: typeof item.data === 'bigint' ? item.data.toString() : item.data,
-  }));
+function createZkProveWithWorker(tfheThreads: TfheThreadsSetting) {
+  return async function zkProveWithWorker(
+    fheKeyHex: string,
+    crsHex: string,
+    items: EncryptableItem[],
+    metadata: Uint8Array
+  ): Promise<Uint8Array> {
+    // Serialize items for worker (convert enum to string name)
+    const serializedItems = items.map((item) => ({
+      utype: fheTypeToString(item.utype),
+      data: typeof item.data === 'bigint' ? item.data.toString() : item.data,
+    }));
 
-  // Submit to worker
-  const workerManager = getWorkerManager();
-  return await workerManager.submitProof(fheKeyHex, crsHex, serializedItems, metadata);
+    // Submit to worker
+    const workerManager = getWorkerManager();
+    return await workerManager.submitProof(fheKeyHex, crsHex, serializedItems, metadata, tfheThreads);
+  };
 }
 
 /**
@@ -146,10 +203,10 @@ export function createCofheClient<TConfig extends CofheConfig>(config: TConfig):
     zkBuilderAndCrsGenerator,
     tfhePublicKeyDeserializer,
     compactPkeCrsDeserializer,
-    initTfhe,
+    initTfhe: createInitTfhe(config.tfheThreads),
     // Always provide the worker function if available - config.useWorkers controls usage
     // areWorkersAvailable will return true if the Worker API is available and false in Node.js
-    zkProveWorkerFn: areWorkersAvailable() ? zkProveWithWorker : undefined,
+    zkProveWorkerFn: areWorkersAvailable() ? createZkProveWithWorker(config.tfheThreads) : undefined,
   });
 }
 
@@ -181,7 +238,7 @@ export function createCofheClientWithCustomWorker(
     zkBuilderAndCrsGenerator,
     tfhePublicKeyDeserializer,
     compactPkeCrsDeserializer,
-    initTfhe,
+    initTfhe: createInitTfhe(config.tfheThreads),
     zkProveWorkerFn: customZkProveWorkerFn,
   });
 }
