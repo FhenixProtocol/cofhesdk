@@ -61,7 +61,7 @@ importers:
         version: 2.6.0
       viem:
         specifier: 2.38.6
-        version: 2.38.6(typescript@5.5.4)(zod@4.0.0)
+        version: 2.38.6(typescript@5.5.4)
       wagmi:
         specifier: 2.19.2
         version: 2.19.2(@tanstack/react-query@5.100.10)(@types/react@18.2.61)(react@18.3.1)(typescript@5.5.4)(viem@2.38.6)
@@ -236,7 +236,7 @@ importers:
         version: 3.3.2
       viem:
         specifier: 2.38.6
-        version: 2.38.6(typescript@5.5.4)(zod@4.0.0)
+        version: 2.38.6(typescript@5.5.4)
     devDependencies:
       '@cofhe/eslint-config':
         specifier: workspace:*
@@ -622,7 +622,7 @@ importers:
         version: 5.5.4
       viem:
         specifier: 2.38.6
-        version: 2.38.6(typescript@5.5.4)(zod@4.0.0)
+        version: 2.38.6(typescript@5.5.4)
 
   packages/tsconfig: {}
 
@@ -709,7 +709,7 @@ importers:
         version: 2.26.3(ts-node@10.9.2)(typescript@5.5.4)
       viem:
         specifier: 2.38.6
-        version: 2.38.6(typescript@5.5.4)(zod@4.0.0)
+        version: 2.38.6(typescript@5.5.4)
 
   test/integration-matrix:
     devDependencies:
@@ -719,27 +719,51 @@ importers:
       '@cofhe/mock-contracts':
         specifier: workspace:*
         version: link:../../packages/mock-contracts
+      '@cofhe/react':
+        specifier: workspace:*
+        version: link:../../packages/react
       '@cofhe/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
       '@cofhe/test-setup':
         specifier: workspace:*
         version: link:../setup
+      '@tanstack/react-query':
+        specifier: 5.100.10
+        version: 5.100.10(react@18.3.1)
+      '@testing-library/dom':
+        specifier: 10.4.1
+        version: 10.4.1
+      '@testing-library/react':
+        specifier: 16.3.0
+        version: 16.3.0(@testing-library/dom@10.4.1)(@types/react-dom@18.2.19)(@types/react@18.2.61)(react-dom@18.3.1)(react@18.3.1)
       '@types/node':
         specifier: 20.19.15
         version: 20.19.15
+      '@types/react':
+        specifier: 18.2.61
+        version: 18.2.61
+      '@types/react-dom':
+        specifier: 18.2.19
+        version: 18.2.19
       '@vitest/browser':
         specifier: 3.2.4
         version: 3.2.4(playwright@1.55.0)(vitest@3.2.4)
       playwright:
         specifier: 1.55.0
         version: 1.55.0
+      react:
+        specifier: 18.3.1
+        version: 18.3.1
+      react-dom:
+        specifier: 18.3.1
+        version: 18.3.1(react@18.3.1)
       typescript:
         specifier: 5.5.4
         version: 5.5.4
       viem:
         specifier: 2.38.6
-        version: 2.38.6(typescript@5.5.4)(zod@4.0.0)
+        version: 2.38.6(typescript@5.5.4)
       vitest:
         specifier: 3.2.4
         version: 3.2.4(@types/node@20.19.15)(@vitest/browser@3.2.4)(happy-dom@15.11.7)
@@ -754,7 +778,7 @@ importers:
         version: 5.4.0
       viem:
         specifier: 2.38.6
-        version: 2.38.6(typescript@5.5.4)(zod@4.0.0)
+        version: 2.38.6(typescript@5.5.4)
     devDependencies:
       '@types/node':
         specifier: 20.19.15
@@ -7532,6 +7556,29 @@ packages:
       pretty-format: 27.5.1
     dev: true
 
+  /@testing-library/react@16.3.0(@testing-library/dom@10.4.1)(@types/react-dom@18.2.19)(@types/react@18.2.61)(react-dom@18.3.1)(react@18.3.1):
+    resolution: {integrity: sha512-kFSyxiEDwv1WLl2fgsq6pPBbw5aWKrsY2/noi1Id0TK0UParSF62oFQFGHXIyaG4pp2tEub/Zlel+fjjZILDsw==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@testing-library/dom': ^10.0.0
+      '@types/react': ^18.0.0 || ^19.0.0
+      '@types/react-dom': ^18.0.0 || ^19.0.0
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+      '@types/react-dom':
+        optional: true
+    dependencies:
+      '@babel/runtime': 7.28.4
+      '@testing-library/dom': 10.4.1
+      '@types/react': 18.2.61
+      '@types/react-dom': 18.2.19
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+    dev: true
+
   /@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1):
     resolution: {integrity: sha512-vq7fv0rnt+QTXgPxr5Hjc210p6YKq2kmdziLgnsZGgLJ9e6VAShx1pACLuRjd/AS/sr7phAR58OIIpf0LlmQNw==}
     engines: {node: '>=12', npm: '>=6'}
@@ -9569,6 +9616,7 @@ packages:
     dependencies:
       typescript: 5.5.4
       zod: 4.0.0
+    dev: false
 
   /abitype@1.1.0(typescript@5.5.4)(zod@4.1.12):
     resolution: {integrity: sha512-6Vh4HcRxNMLA0puzPjM5GBgT4aAcFGKZzSgAXvuZ27shJP6NEpielTuqbBmZILR5/xd0PizkBGy5hReKz9jl5A==}
@@ -20216,7 +20264,7 @@ packages:
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      abitype: 1.1.0(typescript@5.5.4)(zod@4.0.0)
+      abitype: 1.1.0(typescript@5.5.4)(zod@4.1.12)
       isows: 1.0.7(ws@8.18.3)
       ox: 0.9.6(typescript@5.5.4)(zod@4.0.0)
       typescript: 5.5.4
@@ -20292,6 +20340,7 @@ packages:
       - bufferutil
       - utf-8-validate
       - zod
+    dev: false
 
   /viem@2.38.6(typescript@5.5.4)(zod@4.1.12):
     resolution: {integrity: sha512-aqO6P52LPXRjdnP6rl5Buab65sYa4cZ6Cpn+k4OLOzVJhGIK8onTVoKMFMT04YjDfyDICa/DZyV9HmvLDgcjkw==}
