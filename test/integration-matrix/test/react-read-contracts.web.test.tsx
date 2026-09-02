@@ -171,6 +171,15 @@ function KeyValueApp({
     args: [KEYS[0]],
     requiresACP: false,
   });
+  // Singular read of key 2 — the write target in the receipt-derived test. Shares
+  // the batch entry's cache, so a narrowed invalidation must refresh both at once.
+  const single2 = useCofheReadContract({
+    address: contractAddress,
+    abi: storeAbi,
+    functionName: 'getItem',
+    args: [KEYS[1]],
+    requiresACP: false,
+  });
   const { writeContract, data: txHash } = useCofheWriteContract({ invalidates });
 
   return (
@@ -184,6 +193,7 @@ function KeyValueApp({
         );
       })}
       <output aria-label="single item 1">{single.data === undefined ? '' : single.data.toString()}</output>
+      <output aria-label="single item 2">{single2.data === undefined ? '' : single2.data.toString()}</output>
       <output aria-label="tx hash">{txHash ?? ''}</output>
       <button
         onClick={() =>
@@ -239,10 +249,12 @@ function setup() {
 const onScreen = () => ({
   items: KEYS.map((key) => screen.getByRole('status', { name: `item ${key.toString()}` }).textContent),
   single: screen.getByRole('status', { name: 'single item 1' }).textContent,
+  single2: screen.getByRole('status', { name: 'single item 2' }).textContent,
   txHash: screen.getByRole('status', { name: 'tx hash' }).textContent,
 });
 
-const everyItemLoaded = () => onScreen().items.every((item) => item !== '') && onScreen().single !== '';
+const everyItemLoaded = () =>
+  onScreen().items.every((item) => item !== '') && onScreen().single !== '' && onScreen().single2 !== '';
 
 // Skips (instead of failing) on runs where the Hardhat chain is not selected.
 const describeOnAnvil = KEY_VALUE_STORE_ADDRESS ? describe : describe.skip;
@@ -297,9 +309,11 @@ describeOnAnvil('react hooks: useCofheWriteContract({ invalidates }) refreshes u
     const receipt = await publicClient.waitForTransactionReceipt({ hash: onScreen().txHash as Hash });
     expect(receipt.status).toBe('success');
 
-    // Only the written key's entry refreshes...
+    // Only the written key's entry refreshes — and the SINGULAR read of the same
+    // call updates with it, from the same shared cache entry...
     await waitFor(() => expect(onScreen().items[1]).toBe('999'), EVENTUALLY);
-    // ...via exactly ONE refetch — keys 1 and 3 (and the singular read) untouched...
+    await waitFor(() => expect(onScreen().single2).toBe('999'), EVENTUALLY);
+    // ...via exactly ONE refetch — keys 1 and 3 (and key 1's singular read) untouched...
     expect(recorder.countEthCalls(GET_ITEM_SELECTOR)).toBe(KEYS.length + 1);
     // ...block-gated, and the one-shot context is consumed.
     expect(recorder.countBlockHashProbes(receipt.blockHash)).toBe(1);
