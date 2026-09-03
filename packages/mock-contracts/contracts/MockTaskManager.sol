@@ -768,7 +768,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   }
 
   function isPubliclyAllowed(uint256 ctHash) external view returns (bool) {
-    revert NotImplemented();
+    return acl.globalAllowed(ctHash);
   }
 
   function verifyDecryptResultBatch(
