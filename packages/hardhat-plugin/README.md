@@ -107,9 +107,11 @@ const environment = getCofheEnvironmentFromNetwork(networkName);
 import { isPermittedCofheEnvironment } from '@cofhe/hardhat-plugin';
 const isPermitted = isPermittedCofheEnvironment(hre, environmentName);
 
-// Initialize CoFHEjs with a Hardhat signer
-import { cofhejs_initializeWithHardhatSigner } from '@cofhe/hardhat-plugin';
-await cofhejs_initializeWithHardhatSigner(signer, options);
+// Create a CoFHE client and connect a Hardhat signer
+import { createCofheClient, createCofheConfig } from '@cofhe/sdk/node';
+
+const client = createCofheClient(createCofheConfig({ /* ... */ }));
+await hre.cofhe.connectWithHardhatSigner(client, signer);
 ```
 
 ## Usage in Tests
