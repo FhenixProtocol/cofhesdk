@@ -4,6 +4,12 @@ set -euo pipefail
 # Vercel doesn't ship with Foundry (forge) in its default build image.
 # This script installs it (if missing) and then builds the docs.
 
+# Keep in sync with the foundry-toolchain pin in .github/workflows/*.yml.
+# Unpinned, foundryup installs the latest release, whose binaries are not
+# guaranteed to run on Vercel's build image (v1.8.1's anvil fails its
+# post-install `anvil -V` check there and aborts the whole install).
+FOUNDRY_VERSION="v1.7.1"
+
 nodeMajor="$(node -p "parseInt(process.versions.node.split('.')[0], 10)")"
 if [ "$nodeMajor" -lt 22 ]; then
   echo "[vercel-build] ERROR: Node >= 22 is required (current: $(node -v))." >&2
@@ -19,7 +25,7 @@ if ! command -v forge >/dev/null 2>&1; then
   # the attestation artifact via bash process substitution (/dev/fd/63), which is
   # unavailable in Vercel's build sandbox and fails the build (Foundry >= v1.7.1).
   # Binaries are fetched over HTTPS from the official Foundry GitHub releases.
-  foundryup --force
+  foundryup --force --install "$FOUNDRY_VERSION"
 else
   echo "[vercel-build] Foundry already available" >&2
 fi
