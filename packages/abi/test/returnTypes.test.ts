@@ -1,5 +1,5 @@
 import { transformEncryptedReturnTypes } from 'src/encryptedReturnTypes';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { TestABI } from './TestABI';
 import { FheTypes } from '@cofhe/sdk';
 
@@ -91,5 +91,14 @@ describe('transformEncryptedReturnTypes', () => {
         utype: FheTypes.Uint160,
       },
     ]);
+  });
+  it('should not write to the console when transforming an encrypted array', () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    try {
+      transformEncryptedReturnTypes(TestABI, 'fnReturnEncryptedArray', ['0x1', '0x2']);
+      expect(logSpy).not.toHaveBeenCalled();
+    } finally {
+      logSpy.mockRestore();
+    }
   });
 });
