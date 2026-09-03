@@ -11,15 +11,15 @@ type SecurityZoneRecord<T> = Record<number, T>;
 // Keys store for FHE keys and CRS
 export type KeysStore = {
   fhe: ChainRecord<SecurityZoneRecord<string | undefined>>;
-  crs: ChainRecord<string | undefined>;
+  crs: ChainRecord<SecurityZoneRecord<string | undefined>>;
 };
 
 export type KeysStorage = {
   store: StoreApi<KeysStore>;
   getFheKey: (chainId: number | undefined, securityZone?: number) => string | undefined;
-  getCrs: (chainId: number | undefined) => string | undefined;
+  getCrs: (chainId: number | undefined, securityZone?: number) => string | undefined;
   setFheKey: (chainId: number, securityZone: number, key: string) => void;
-  setCrs: (chainId: number, crs: string) => void;
+  setCrs: (chainId: number, securityZone: number, crs: string) => void;
   clearKeysStorage: () => Promise<void>;
   rehydrateKeysStore: () => Promise<void>;
 };
@@ -44,6 +44,10 @@ const DEFAULT_KEYS_STORE: KeysStore = {
   fhe: {},
   crs: {},
 };
+
+function isSecurityZoneRecord(value: unknown): value is SecurityZoneRecord<string | undefined> {
+  return value != null && typeof value === 'object';
+}
 
 type StoreWithPersist = ReturnType<typeof createStoreWithPersit>;
 
@@ -72,9 +76,9 @@ export function createKeysStore(storage: IStorage | null): KeysStorage {
     return stored;
   };
 
-  const getCrs = (chainId: number | undefined) => {
-    if (chainId == null) return undefined;
-    const stored = keysStore.getState().crs[chainId];
+  const getCrs = (chainId: number | undefined, securityZone = 0) => {
+    if (chainId == null || securityZone == null) return undefined;
+    const stored = keysStore.getState().crs[chainId]?.[securityZone];
     return stored;
   };
 
@@ -87,10 +91,11 @@ export function createKeysStore(storage: IStorage | null): KeysStorage {
     );
   };
 
-  const setCrs = (chainId: number, crs: string) => {
+  const setCrs = (chainId: number, securityZone: number, crs: string) => {
     keysStore.setState(
       produce<KeysStore>((state: KeysStore) => {
-        state.crs[chainId] = crs;
+        if (state.crs[chainId] == null) state.crs[chainId] = {};
+        state.crs[chainId][securityZone] = crs;
       })
     );
   };
@@ -143,8 +148,16 @@ function createStoreWithPersit(storage: IStorage) {
           mergedFhe[chainId] = { ...persistedZones, ...currentZones };
         }
 
-        // Deep merge for crs
-        const mergedCrs: KeysStore['crs'] = { ...persisted.crs, ...current.crs };
+        // Deep merge for crs. A `crs` persisted before it was keyed by security zone holds a
+        // bare string per chain; those entries are dropped so the CRS is refetched per zone
+        // rather than indexed as a string.
+        const mergedCrs: KeysStore['crs'] = {};
+        const allCrsChainIds = new Set([...Object.keys(current.crs), ...Object.keys(persisted.crs)]);
+        for (const chainId of allCrsChainIds) {
+          const persistedZones = isSecurityZoneRecord(persisted.crs[chainId]) ? persisted.crs[chainId] : {};
+          const currentZones = isSecurityZoneRecord(current.crs[chainId]) ? current.crs[chainId] : {};
+          mergedCrs[chainId] = { ...persistedZones, ...currentZones };
+        }
 
         return {
           fhe: mergedFhe,
