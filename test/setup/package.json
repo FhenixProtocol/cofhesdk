@@ -16,7 +16,7 @@
   },
   "scripts": {
     "setup": "node setup.mjs",
-    "build": "tsup && forge build",
+    "build": "node scripts/build.mjs",
     "clean": "rm -rf dist && forge clean"
   },
   "dependencies": {
