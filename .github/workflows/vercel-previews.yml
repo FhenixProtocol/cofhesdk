@@ -24,7 +24,7 @@ concurrency:
 jobs:
   preview:
     name: preview (${{ matrix.project.name }})
-    if: github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -91,7 +91,7 @@ jobs:
   preview-comment:
     name: Vercel preview comment
     needs: preview
-    if: always() && github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork
+    if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
