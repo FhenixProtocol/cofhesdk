@@ -3,10 +3,12 @@
  *
  * Public token balances (`balanceOf(account)`, or the native pseudo-read at the
  * ETH sentinel) and allowances (`allowance(owner, spender)`) are ordinary
- * contract reads — this suite proves they now live under the standard
- * `cofheReadContract` key grammar: a write whose `invalidates` names them with
- * PLAIN descriptors (no bespoke `['tokenBalance', …]` / `['tokenAllowance', …]`
- * vocabulary) refreshes them, block-gated, exactly like any other read.
+ * contract reads — and the hooks are now wrappers around the generic read
+ * machinery. This suite proves both consequences: a write whose `invalidates`
+ * names them with PLAIN descriptors (no bespoke `['tokenBalance', …]` /
+ * `['tokenAllowance', …]` vocabulary) refreshes them, block-gated, exactly like
+ * any other read; and a direct `useCofheReadContract` of the same call shares
+ * the wrapper's cache entry — two observers, ONE query, ONE `eth_call`.
  *
  * Same no-mock style as the sibling suites: real Anvil from globalSetup, real
  * CofheProvider + consumer-style component in Chromium, a recording EIP-1193
@@ -35,6 +37,7 @@ import { hardhat as hardhatCofheChain } from '@cofhe/sdk/chains';
 import {
   CofheProvider,
   createCofheConfig,
+  useCofheReadContract,
   useCofheTokenPublicBalance,
   useCofheWriteContract,
   useInvalidationContextStore,
@@ -188,6 +191,15 @@ function TokenFundsApp({
     // below the default 5 display decimals.
     displayDecimals: 12,
   });
+  // The hooks are wrappers around the generic read machinery, so a direct read
+  // of the SAME call must land on the SAME query — one cache entry, one fetch.
+  const directRead = useCofheReadContract({
+    address: erc20,
+    abi: erc20Abi,
+    functionName: 'balanceOf',
+    args: [TEST_ACCOUNT.address],
+    requiresACP: false,
+  });
   const { writeContract, data: txHash } = useCofheWriteContract({ invalidates });
 
   return (
@@ -195,6 +207,7 @@ function TokenFundsApp({
       <output aria-label="allowance">{allowance.data === undefined ? '' : allowance.data.toString()}</output>
       <output aria-label="erc20 balance">{erc20Balance.data?.formatted ?? ''}</output>
       <output aria-label="eth balance">{ethBalance.data?.formatted ?? ''}</output>
+      <output aria-label="direct read">{directRead.data === undefined ? '' : String(directRead.data)}</output>
       <output aria-label="tx hash">{txHash ?? ''}</output>
       <button
         onClick={() =>
@@ -248,10 +261,12 @@ const onScreen = () => ({
   allowance: screen.getByRole('status', { name: 'allowance' }).textContent,
   erc20: screen.getByRole('status', { name: 'erc20 balance' }).textContent,
   eth: screen.getByRole('status', { name: 'eth balance' }).textContent,
+  direct: screen.getByRole('status', { name: 'direct read' }).textContent,
   txHash: screen.getByRole('status', { name: 'tx hash' }).textContent,
 });
 
-const loaded = () => onScreen().allowance !== '' && onScreen().erc20 !== '' && onScreen().eth !== '';
+const loaded = () =>
+  onScreen().allowance !== '' && onScreen().erc20 !== '' && onScreen().eth !== '' && onScreen().direct !== '';
 
 const asNumber = (formatted: string | null) => Number((formatted ?? '').replace(/,/g, ''));
 
@@ -303,7 +318,12 @@ describeOnAnvil('token balances + allowances under the read key grammar (Anvil)'
     await waitFor(() => expect(loaded()).toBe(true), EVENTUALLY);
     const erc20Before = asNumber(onScreen().erc20);
     const ethBefore = asNumber(onScreen().eth);
+    const directBefore = BigInt(onScreen().direct ?? '');
     expect(ethBefore).toBeGreaterThan(0);
+    // Cache identity: the balance hook and the direct `useCofheReadContract` of
+    // the same call are TWO observers of ONE query — a single balanceOf eth_call
+    // served both.
+    expect(recorder.countEthCalls(BALANCE_OF_SELECTOR)).toBe(1);
 
     fireEvent.click(screen.getByRole('button', { name: 'send' }));
     await waitFor(() => expect(onScreen().txHash).toMatch(/^0x/), EVENTUALLY);
@@ -312,10 +332,13 @@ describeOnAnvil('token balances + allowances under the read key grammar (Anvil)'
 
     // ERC20 balance grows by the minted 1,000 (6 decimals)...
     await waitFor(() => expect(asNumber(onScreen().erc20)).toBeCloseTo(erc20Before + 1000, 3), EVENTUALLY);
+    // ...and the direct read of the shared query sees the same mint...
+    await waitFor(() => expect(BigInt(onScreen().direct ?? '')).toBe(directBefore + 1_000_000_000n), EVENTUALLY);
     // ...and the native pseudo-read refetches (observed on the wire), landing on
     // a LOWER balance — the gas the tx burned is the free observable.
     await waitFor(() => expect(recorder.countByMethod('eth_getBalance')).toBe(2), EVENTUALLY);
     await waitFor(() => expect(asNumber(onScreen().eth)).toBeLessThan(ethBefore), EVENTUALLY);
+    // Still one query behind both balance observers: ONE refetch served them.
     expect(recorder.countEthCalls(BALANCE_OF_SELECTOR)).toBe(2);
     // The allowance read was NOT touched.
     expect(recorder.countEthCalls(ALLOWANCE_SELECTOR)).toBe(1);

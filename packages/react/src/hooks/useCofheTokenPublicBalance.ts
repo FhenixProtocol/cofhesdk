@@ -9,37 +9,22 @@ import { ERC20_BALANCE_OF_ABI } from '../constants/erc20ABIs';
 import { useInternalQuery } from '../providers/index';
 import { serializeBigintRecursively } from '../utils/serializeBigint.js';
 import { useCofheAccount, useCofhePublicClient } from './useCofheConnection';
-import { checksummedOr, constructCofheReadContractQueryForInvalidation } from './useCofheReadContract';
+import {
+  checksummedOr,
+  constructCofheReadContractQueryForInvalidation,
+  constructCofheReadContractQueryKey,
+  createCofheReadContractQueryOptions,
+  type UseCofheReadContractQueryOptions,
+} from './useCofheReadContract';
 import { ETH_ADDRESS_LOWERCASE, type ConfidentialToken } from './useCofheTokenLists';
 
-/// A public token balance is an ORDINARY contract read — `balanceOf(account)`
-/// on the token (or the native pseudo-read, keyed at the ETH sentinel address) —
-/// so it lives under the same `cofheReadContract` key grammar as every other
-/// read: `[...readPrefix(token, 'balanceOf'), [account]]`. A plain invalidation
-/// descriptor `{ address: token, functionName: 'balanceOf' }` reaches it with no
-/// special vocabulary, and `args: [account]` narrows to one account. (This
-/// replaced the bespoke `['tokenBalance', …]` family, which forced consumers to
+/// A public token balance is an ORDINARY contract read — `balanceOf(account)` on the token (or
+/// the native pseudo-read, keyed at the ETH sentinel address) — and the query behind
+/// `useCofheTokenPublicBalance` is built by the generic read factory, so it lives under the
+/// standard `cofheReadContract` key grammar. This builds the args-narrowed invalidation prefix
+/// for one account; a plain descriptor `{ address: token, functionName: 'balanceOf' }` reaches
+/// it too. (This replaced the bespoke `['tokenBalance', …]` family, which forced consumers to
 /// couple to a second key shape.)
-export function constructPublicTokenBalanceQueryKey({
-  chainId,
-  accountAddress,
-  tokenAddress,
-}: {
-  chainId?: number;
-  accountAddress?: Address;
-  tokenAddress?: Address;
-}): readonly unknown[] {
-  return [
-    ...constructCofheReadContractQueryForInvalidation({
-      cofheChainId: chainId,
-      // The prefix builder canonicalizes (checksums) the address segment itself.
-      address: tokenAddress,
-      functionName: 'balanceOf',
-    }),
-    serializeBigintRecursively([checksummedOr(accountAddress)]),
-  ];
-}
-
 export function constructPublicTokenBalanceQueryKeyForInvalidation({
   chainId,
   accountAddress,
@@ -48,12 +33,15 @@ export function constructPublicTokenBalanceQueryKeyForInvalidation({
   chainId: number;
   accountAddress: Address;
   tokenAddress: Address;
-}) {
-  return constructPublicTokenBalanceQueryKey({
-    chainId,
-    accountAddress,
-    tokenAddress,
-  });
+}): readonly unknown[] {
+  return [
+    ...constructCofheReadContractQueryForInvalidation({
+      cofheChainId: chainId,
+      address: tokenAddress,
+      functionName: 'balanceOf',
+    }),
+    serializeBigintRecursively([checksummedOr(accountAddress)]),
+  ];
 }
 
 type UseTokenBalanceInput = {
@@ -66,7 +54,11 @@ type UseTokenBalanceInput = {
 export type UseTokenBalanceOptions<TSelectedData = bigint> = Omit<
   UseQueryOptions<bigint, Error, TSelectedData>,
   'queryKey' | 'queryFn'
->;
+> & {
+  // Plain boolean only (no callback form): the query key and the generic read
+  // factory need the resolved value at construction time.
+  enabled?: boolean;
+};
 
 export type PublicTokenBalanceSource = {
   address: Address;
@@ -100,49 +92,63 @@ export function createPublicTokenBalanceQueryOptions<TSelectedData = bigint>(par
   const { publicClient, accountAddress, tokenAddress, queryOptions } = params;
 
   const { enabled: userEnabled, ...restQueryOptions } = queryOptions ?? {};
-  const baseEnabled = !!publicClient && !!accountAddress && !!tokenAddress;
-  const enabled = baseEnabled && (userEnabled ?? true);
+  const enabled = !!publicClient && !!accountAddress && !!tokenAddress && (userEnabled ?? true);
 
-  const queryKey = constructPublicTokenBalanceQueryKey({
-    chainId: publicClient?.chain?.id,
-    accountAddress,
-    tokenAddress,
-  });
+  // Canonicalized at the input so the key, the fetch and any args-narrowed
+  // invalidation target all meet on the same checksummed account.
+  const account = checksummedOr(accountAddress);
+  const isNativeToken = !!tokenAddress && tokenAddress.toLowerCase() === ETH_ADDRESS_LOWERCASE;
 
+  if (!isNativeToken) {
+    // An ERC20 public balance IS an ordinary `balanceOf(account)` read: delegate to the generic
+    // read factory — the exact query (key, block-aware queryFn, recognition meta) that
+    // `useCofheReadContract` of the same call would run, shared cache entry included.
+    return createCofheReadContractQueryOptions({
+      enabled,
+      cofheChainId: publicClient?.chain?.id,
+      address: tokenAddress,
+      abi: ERC20_BALANCE_OF_ABI,
+      functionName: 'balanceOf',
+      args: account ? [account] : undefined,
+      requiresACP: false,
+      publicClient,
+      queryOptions: { refetchOnMount: false, ...restQueryOptions } as UseCofheReadContractQueryOptions<
+        typeof ERC20_BALANCE_OF_ABI,
+        'balanceOf'
+      >,
+    }) as UseQueryOptions<bigint, Error, TSelectedData>;
+  }
+
+  // The native balance has no contract behind it — `eth_getBalance`, not `eth_call` — so only
+  // the queryFn stays bespoke. Everything else is the generic read shape: the key comes from the
+  // generic builder (a pseudo-read of `balanceOf(account)` at the ETH sentinel address), so
+  // invalidation descriptors and cache tooling see just another read.
   return {
-    queryKey,
+    enabled,
+    meta: { kind: 'cofheRead', chainId: publicClient?.chain?.id, address: tokenAddress, functionName: 'balanceOf' },
+    queryKey: constructCofheReadContractQueryKey({
+      cofheChainId: publicClient?.chain?.id,
+      address: tokenAddress,
+      functionName: 'balanceOf',
+      args: account ? [account] : undefined,
+      requiresACP: false,
+    }),
     queryFn: withInvalidationContext<readonly unknown[], { blockHashToBeAwareOf: `0x${string}` }, bigint>(
       async ({ invalidationContext, signal }) => {
-        assert(tokenAddress, 'Token address is required to fetch token balance');
-        assert(publicClient, 'PublicClient is required to fetch token balance');
-        assert(accountAddress, 'Account address is required to fetch token balance');
+        assert(publicClient, 'PublicClient is required to fetch native balance');
+        assert(account, 'Account address is required to fetch native balance');
 
-        const isNativeToken = tokenAddress.toLowerCase() === ETH_ADDRESS_LOWERCASE;
-
-        const balance = await maybeWaitUntilRpcAware(
+        return maybeWaitUntilRpcAware(
           publicClient,
           {
             blockHashToBeAwareOf: invalidationContext?.blockHashToBeAwareOf,
-            readDescription: isNativeToken ? 'read native balance' : 'read ERC20 balance',
-            read: () =>
-              isNativeToken
-                ? publicClient.getBalance({
-                    address: accountAddress,
-                  })
-                : publicClient.readContract({
-                    address: tokenAddress,
-                    abi: ERC20_BALANCE_OF_ABI,
-                    functionName: 'balanceOf',
-                    args: [accountAddress],
-                  }),
+            readDescription: 'read native balance',
+            read: () => publicClient.getBalance({ address: account }),
           },
           { signal }
         );
-
-        return balance;
       }
     ),
-    enabled,
     refetchOnMount: false,
     ...restQueryOptions,
   };
