@@ -7,9 +7,19 @@ import { assert } from 'ts-essentials';
 import { type Address } from 'viem';
 import { ERC20_BALANCE_OF_ABI } from '../constants/erc20ABIs';
 import { useInternalQuery } from '../providers/index';
+import { serializeBigintRecursively } from '../utils/serializeBigint.js';
 import { useCofheAccount, useCofhePublicClient } from './useCofheConnection';
+import { checksummedOr, constructCofheReadContractQueryForInvalidation } from './useCofheReadContract';
 import { ETH_ADDRESS_LOWERCASE, type ConfidentialToken } from './useCofheTokenLists';
 
+/// A public token balance is an ORDINARY contract read — `balanceOf(account)`
+/// on the token (or the native pseudo-read, keyed at the ETH sentinel address) —
+/// so it lives under the same `cofheReadContract` key grammar as every other
+/// read: `[...readPrefix(token, 'balanceOf'), [account]]`. A plain invalidation
+/// descriptor `{ address: token, functionName: 'balanceOf' }` reaches it with no
+/// special vocabulary, and `args: [account]` narrows to one account. (This
+/// replaced the bespoke `['tokenBalance', …]` family, which forced consumers to
+/// couple to a second key shape.)
 export function constructPublicTokenBalanceQueryKey({
   chainId,
   accountAddress,
@@ -19,7 +29,15 @@ export function constructPublicTokenBalanceQueryKey({
   accountAddress?: Address;
   tokenAddress?: Address;
 }): readonly unknown[] {
-  return ['tokenBalance', chainId, accountAddress?.toLowerCase(), tokenAddress?.toLowerCase()];
+  return [
+    ...constructCofheReadContractQueryForInvalidation({
+      cofheChainId: chainId,
+      // The prefix builder canonicalizes (checksums) the address segment itself.
+      address: tokenAddress,
+      functionName: 'balanceOf',
+    }),
+    serializeBigintRecursively([checksummedOr(accountAddress)]),
+  ];
 }
 
 export function constructPublicTokenBalanceQueryKeyForInvalidation({

@@ -6,8 +6,15 @@ import { withInvalidationContext } from '@/utils/invalidationContext';
 import { maybeWaitUntilRpcAwareAndReadContract } from '@/utils/waitUntilRpcAwareAndReadContract';
 import { ERC20_ALLOWANCE_ABI } from '../constants/erc20ABIs';
 import { useInternalQuery } from '../providers/index';
+import { serializeBigintRecursively } from '../utils/serializeBigint.js';
 import { useCofhePublicClient } from './useCofheConnection';
+import { checksummedOr, constructCofheReadContractQueryForInvalidation } from './useCofheReadContract';
 
+/// A token allowance is an ORDINARY contract read — `allowance(owner, spender)`
+/// on the token — so it lives under the same `cofheReadContract` key grammar as
+/// every other read: `[...readPrefix(token, 'allowance'), [owner, spender]]`.
+/// A plain descriptor `{ address: token, functionName: 'allowance' }` reaches
+/// it (args-narrowable to one owner/spender pair); no bespoke key family.
 export function constructTokenAllowanceQueryKey({
   chainId,
   tokenAddress,
@@ -20,11 +27,13 @@ export function constructTokenAllowanceQueryKey({
   spenderAddress?: Address;
 }): readonly unknown[] {
   return [
-    'tokenAllowance',
-    chainId,
-    tokenAddress?.toLowerCase(),
-    ownerAddress?.toLowerCase(),
-    spenderAddress?.toLowerCase(),
+    ...constructCofheReadContractQueryForInvalidation({
+      cofheChainId: chainId,
+      // The prefix builder canonicalizes (checksums) the address segment itself.
+      address: tokenAddress,
+      functionName: 'allowance',
+    }),
+    serializeBigintRecursively([checksummedOr(ownerAddress), checksummedOr(spenderAddress)]),
   ];
 }
 

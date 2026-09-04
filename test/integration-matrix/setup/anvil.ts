@@ -64,6 +64,7 @@ export async function setup(project: TestProject): Promise<void> {
     project.provide('anvilSimpleTest', '');
     project.provide('anvilSimpleStorage', '');
     project.provide('anvilSimpleKeyValueStore', '');
+    project.provide('anvilSimpleErc20', '');
     console.log('[integration-matrix] Skipping Anvil setup; Hardhat is not selected in MATRIX_CHAIN.');
     await printMatrix(process.env.MATRIX_CHAIN, process.env.MATRIX_ENV);
     return;
@@ -110,10 +111,15 @@ export async function setup(project: TestProject): Promise<void> {
   );
   console.log(`${HARDHAT_LOG_PREFIX} SimpleKeyValueStore deployed at ${simpleKeyValueStoreAddress}`);
 
+  console.log(`${HARDHAT_LOG_PREFIX} Deploying SimpleERC20...`);
+  const simpleErc20Address = deployTestContract(ANVIL_RPC, 'contracts/SimpleERC20.sol:SimpleERC20');
+  console.log(`${HARDHAT_LOG_PREFIX} SimpleERC20 deployed at ${simpleErc20Address}`);
+
   project.provide('anvilRpc', ANVIL_RPC);
   project.provide('anvilSimpleTest', simpleTestAddress);
   project.provide('anvilSimpleStorage', simpleStorageAddress);
   project.provide('anvilSimpleKeyValueStore', simpleKeyValueStoreAddress);
+  project.provide('anvilSimpleErc20', simpleErc20Address);
   project.provide('anvilAcpValidator', deployedMocks.ACPTimestampRevoker);
   project.provide('anvilAcpShareRegistry', deployedMocks.ACPShareRegistry);
 
@@ -180,6 +186,7 @@ declare module 'vitest' {
     anvilSimpleTest: string;
     anvilSimpleStorage: string;
     anvilSimpleKeyValueStore: string;
+    anvilSimpleErc20: string;
     anvilAcpValidator: string;
     anvilAcpShareRegistry: string;
     matrixChain: string;
