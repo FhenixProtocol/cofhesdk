@@ -77,14 +77,54 @@ jobs:
             '{state: "success", context: $ctx, description: "Preview ready", target_url: $url}' \
             | gh api "repos/${{ github.repository }}/statuses/$HEAD_SHA" --input - > /dev/null
 
-      - name: Comment preview URL (sticky — one comment per project, edited in place)
+      - name: Save preview URL for the summary comment
+        run: |
+          mkdir -p /tmp/vercel-url
+          printf '%s\t%s\t%s\n' "${{ matrix.project.name }}" "${{ steps.deploy.outputs.url }}" \
+            "$(date -u +'%b %-d, %Y %H:%M UTC')" > "/tmp/vercel-url/${{ matrix.project.name }}.tsv"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vercel-url-${{ matrix.project.name }}
+          path: /tmp/vercel-url/${{ matrix.project.name }}.tsv
+          retention-days: 1
+
+  preview-comment:
+    name: Vercel preview comment
+    needs: preview
+    if: always() && github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: vercel-url-*
+          path: /tmp/vercel-url
+          merge-multiple: true
+      - name: Upsert single summary comment (table, edited in place)
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          PREVIEW_URL: ${{ steps.deploy.outputs.url }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          marker="<!-- vercel-preview:${{ matrix.project.name }} -->"
+          marker="<!-- vercel-previews-summary -->"
+          rows=""
+          for f in /tmp/vercel-url/*.tsv; do
+            [ -e "$f" ] || continue
+            IFS=$'\t' read -r name url updated < "$f"
+            rows="$rows| **$name** | [Visit Preview]($url) | $updated |
+          "
+          done
+          [ -n "$rows" ] || rows="| _no successful deploys_ | | |
+          "
           body="$marker
-          Vercel preview (**${{ matrix.project.name }}**): $PREVIEW_URL — updated $(date -u +'%Y-%m-%d %H:%M UTC') for ${{ github.event.pull_request.head.sha }}"
+          **Vercel previews** (commit \`${HEAD_SHA:0:7}\`)
+
+          | Project | Deployment | Updated |
+          | :--- | :--- | :--- |
+          $rows"
+          body=$(echo "$body" | sed 's/^          //')
           cid=$(gh api "repos/${{ github.repository }}/issues/$PR_NUMBER/comments" --paginate \
             --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -1)
           if [ -n "$cid" ]; then
