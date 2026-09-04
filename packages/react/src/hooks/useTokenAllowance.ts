@@ -2,39 +2,7 @@ import { type UseQueryOptions } from '@tanstack/react-query';
 import { type Address } from 'viem';
 
 import { ERC20_ALLOWANCE_ABI } from '../constants/erc20ABIs';
-import { serializeBigintRecursively } from '../utils/serializeBigint.js';
-import {
-  checksummedOr,
-  constructCofheReadContractQueryForInvalidation,
-  useCofheReadContract,
-} from './useCofheReadContract';
-
-/// A token allowance is an ORDINARY contract read — `allowance(owner, spender)` on the token —
-/// and `useTokenAllowance` is a thin wrapper around `useCofheReadContract`, so it lives under the
-/// standard `cofheReadContract` key grammar with the exact same query (key, block-aware queryFn,
-/// cache entry) a direct read would use. This builds the args-narrowed invalidation prefix for
-/// one owner/spender pair; a plain descriptor `{ address: token, functionName: 'allowance' }`
-/// reaches it too.
-export function constructTokenAllowanceQueryKeyForInvalidation({
-  chainId,
-  tokenAddress,
-  ownerAddress,
-  spenderAddress,
-}: {
-  chainId: number;
-  tokenAddress: Address;
-  ownerAddress: Address;
-  spenderAddress: Address;
-}): readonly unknown[] {
-  return [
-    ...constructCofheReadContractQueryForInvalidation({
-      cofheChainId: chainId,
-      address: tokenAddress,
-      functionName: 'allowance',
-    }),
-    serializeBigintRecursively([checksummedOr(ownerAddress), checksummedOr(spenderAddress)]),
-  ];
-}
+import { checksummedOr, useCofheReadContract } from './useCofheReadContract';
 
 type UseTokenAllowanceInput = {
   /** ERC20 token contract address */
@@ -57,6 +25,12 @@ export type UseTokenAllowanceResult = {
   refetch: () => Promise<unknown>;
 };
 
+/// A token allowance is an ORDINARY contract read — `allowance(owner, spender)` on the token —
+/// and `useTokenAllowance` is a thin wrapper around `useCofheReadContract`, so it lives under the
+/// standard `cofheReadContract` key grammar with the exact same query (key, block-aware queryFn,
+/// cache entry) a direct read would use. A plain invalidation descriptor
+/// `{ address: token, functionName: 'allowance' }` reaches it, args-narrowable to one
+/// owner/spender pair — no bespoke key vocabulary.
 export function useTokenAllowance(
   { tokenAddress, ownerAddress, spenderAddress }: UseTokenAllowanceInput,
   options?: UseTokenAllowanceOptions

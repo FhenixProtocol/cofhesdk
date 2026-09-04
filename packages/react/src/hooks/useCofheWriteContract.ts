@@ -108,7 +108,12 @@ function trimTrailingUndefined(queryKey: readonly unknown[]): readonly unknown[]
   return queryKey.slice(0, end);
 }
 
-function normalizeInvalidationTarget(
+/**
+ * Turn one invalidation target (descriptor, raw key, or filters) into query filters. Exported for
+ * internal reuse — the pending-transaction tracker speaks the same descriptor grammar instead of
+ * keeping key vocabulary of its own.
+ */
+export function normalizeInvalidationTarget(
   target: CofheWriteInvalidationTarget,
   connectedChainId: number | undefined
 ): InvalidationContextQueryFilters {

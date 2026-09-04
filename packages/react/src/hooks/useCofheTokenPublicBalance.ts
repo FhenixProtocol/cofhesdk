@@ -7,42 +7,14 @@ import { assert } from 'ts-essentials';
 import { type Address } from 'viem';
 import { ERC20_BALANCE_OF_ABI } from '../constants/erc20ABIs';
 import { useInternalQuery } from '../providers/index';
-import { serializeBigintRecursively } from '../utils/serializeBigint.js';
 import { useCofheAccount, useCofhePublicClient } from './useCofheConnection';
 import {
   checksummedOr,
-  constructCofheReadContractQueryForInvalidation,
   constructCofheReadContractQueryKey,
   createCofheReadContractQueryOptions,
   type UseCofheReadContractQueryOptions,
 } from './useCofheReadContract';
 import { ETH_ADDRESS_LOWERCASE, type ConfidentialToken } from './useCofheTokenLists';
-
-/// A public token balance is an ORDINARY contract read — `balanceOf(account)` on the token (or
-/// the native pseudo-read, keyed at the ETH sentinel address) — and the query behind
-/// `useCofheTokenPublicBalance` is built by the generic read factory, so it lives under the
-/// standard `cofheReadContract` key grammar. This builds the args-narrowed invalidation prefix
-/// for one account; a plain descriptor `{ address: token, functionName: 'balanceOf' }` reaches
-/// it too. (This replaced the bespoke `['tokenBalance', …]` family, which forced consumers to
-/// couple to a second key shape.)
-export function constructPublicTokenBalanceQueryKeyForInvalidation({
-  chainId,
-  accountAddress,
-  tokenAddress,
-}: {
-  chainId: number;
-  accountAddress: Address;
-  tokenAddress: Address;
-}): readonly unknown[] {
-  return [
-    ...constructCofheReadContractQueryForInvalidation({
-      cofheChainId: chainId,
-      address: tokenAddress,
-      functionName: 'balanceOf',
-    }),
-    serializeBigintRecursively([checksummedOr(accountAddress)]),
-  ];
-}
 
 type UseTokenBalanceInput = {
   /** Token contract address */
@@ -83,6 +55,12 @@ export function getPublicTokenBalanceSource(
   };
 }
 
+/// A public token balance is an ORDINARY contract read — `balanceOf(account)` on the token (or
+/// the native pseudo-read, keyed at the ETH sentinel address) — and the query built here comes
+/// from the generic read factory, so it lives under the standard `cofheReadContract` key grammar.
+/// A plain invalidation descriptor `{ address: token, functionName: 'balanceOf' }` reaches it,
+/// args-narrowable to one account — no bespoke key vocabulary. (This replaced the
+/// `['tokenBalance', …]` family, which forced consumers to couple to a second key shape.)
 export function createPublicTokenBalanceQueryOptions<TSelectedData = bigint>(params: {
   publicClient: ReturnType<typeof useCofhePublicClient>;
   accountAddress?: Address;
