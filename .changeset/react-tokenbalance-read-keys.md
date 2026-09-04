@@ -6,4 +6,6 @@ Public token balances and token allowances are ordinary contract reads (`balance
 
 Alongside this, the address segment of EVERY `cofheReadContract` key is now canonicalized (best-effort checksummed) inside `constructCofheReadContractQueryForInvalidation`, which both the read-key builders and `useCofheWriteContract`'s invalidation descriptors flow through — so a read key and an invalidation target can never disagree on address case again. Consumers no longer need to pre-checksum addresses on either side.
 
+`useCofheWriteContract` now invalidates the SENDER's native balance (the ETH-sentinel pseudo-read) implicitly after every mined transaction, success or revert — gas burned it, so that read is stale on any outcome. No call site declares it, and it runs even with no `invalidates` at all; when no native-balance read is mounted it is a true no-op. Recipients of value transfers remain the caller's knowledge, declared like any other target.
+
 Also removed: the trailing `enabled` segment of the read query key. It was a workaround (a CofheError could leave a disabled query's queryFn running and blank the screen) that no longer applies; keys are now pure data identity, so a read keeps its cache entry across disabled/enabled transitions.

@@ -15,7 +15,8 @@ import type {
 import { assert } from 'ts-essentials';
 import { useInternalMutation, useInternalQueryClient } from '../providers/index.js';
 import { useCofheChainId, useCofhePublicClient, useCofheWalletClient } from './useCofheConnection.js';
-import { constructCofheReadContractQueryForInvalidation } from './useCofheReadContract';
+import { checksummedOr, constructCofheReadContractQueryForInvalidation } from './useCofheReadContract';
+import { ETH_ADDRESS_LOWERCASE } from './useCofheTokenLists';
 import { invalidateQueriesWithContext, type InvalidationContextQueryFilters } from '../utils/invalidationContext';
 import { resolveReceiptBlockHash } from '../utils/resolveReceiptBlockHash';
 import { serializeBigintRecursively } from '../utils/serializeBigint.js';
@@ -94,6 +95,10 @@ export type useCofheWriteContractOptions<TExtras = unknown> = Omit<
    * are stale either way; refetches of state the revert did not touch are cheap same-value no-ops.
    * The wait runs in the background — the mutation still resolves with the tx hash as soon as the
    * transaction is sent.
+   *
+   * The SENDER's native balance (the ETH-sentinel pseudo-read) never needs declaring: every mined
+   * tx burned gas from it, so it is invalidated implicitly after every write — declared targets
+   * or none.
    */
   invalidates?: CofheWriteInvalidates;
 };
@@ -141,7 +146,7 @@ async function invalidateOnceMined(params: {
   publicClient: PublicClient;
   queryClient: QueryClient;
   txHash: Hash;
-  invalidates: CofheWriteInvalidates;
+  invalidates: CofheWriteInvalidates | undefined;
   connectedChainId: number | undefined;
 }): Promise<void> {
   const { publicClient, queryClient, txHash, invalidates, connectedChainId } = params;
@@ -154,13 +159,29 @@ async function invalidateOnceMined(params: {
     const resolvedReceipt = await resolveReceiptBlockHash(receipt, publicClient);
     const { blockHash } = resolvedReceipt;
 
-    const targets = typeof invalidates === 'function' ? invalidates(resolvedReceipt) : invalidates;
+    const declared = typeof invalidates === 'function' ? invalidates(resolvedReceipt) : invalidates ?? [];
+    const filters = declared.map((target) => normalizeInvalidationTarget(target, connectedChainId));
+
+    // Every mined tx burned gas from the SENDER, so their native balance — the ETH-sentinel
+    // pseudo-read — is stale on ANY outcome; it is invalidated implicitly, declared nowhere.
+    // Guarded on a mounted match so the no-native-read case stays a true no-op (the context
+    // stash is unconditional and would otherwise linger unconsumed). Recipients of value
+    // transfers are app knowledge — the caller declares those like any other target.
+    const nativeFilters = normalizeInvalidationTarget(
+      {
+        address: ETH_ADDRESS_LOWERCASE as Address,
+        functionName: 'balanceOf',
+        args: [checksummedOr(resolvedReceipt.from)],
+      },
+      connectedChainId
+    );
+    if (queryClient.getQueryCache().findAll({ queryKey: nativeFilters.queryKey, exact: false }).length > 0) {
+      filters.push(nativeFilters);
+    }
 
     await Promise.all(
-      targets.map((target) =>
-        invalidateQueriesWithContext(queryClient, normalizeInvalidationTarget(target, connectedChainId), {
-          blockHashToBeAwareOf: blockHash,
-        })
+      filters.map((queryFilters) =>
+        invalidateQueriesWithContext(queryClient, queryFilters, { blockHashToBeAwareOf: blockHash })
       )
     );
   } catch (error) {
@@ -214,9 +235,10 @@ export function useCofheWriteContract<TExtras = unknown>(
     ...mutationOptions,
     mutationKey: mutationOptions.mutationKey ?? ['cofhe', 'walletWriteContract'],
     onSuccess: (hash, ...rest) => {
-      const hasInvalidates = typeof invalidates === 'function' || !!invalidates?.length;
-      if (hasInvalidates && invalidates && publicClient) {
+      if (publicClient) {
         // Background: invalidation waits for the tx to mine; the mutation result is the hash.
+        // Runs even with nothing declared — the implicit sender-native-balance target applies
+        // to every mined tx.
         void invalidateOnceMined({
           publicClient,
           queryClient,

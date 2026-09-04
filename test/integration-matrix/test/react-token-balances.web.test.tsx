@@ -7,8 +7,10 @@
  * machinery. This suite proves both consequences: a write whose `invalidates`
  * names them with PLAIN descriptors (no bespoke `['tokenBalance', …]` /
  * `['tokenAllowance', …]` vocabulary) refreshes them, block-gated, exactly like
- * any other read; and a direct `useCofheReadContract` of the same call shares
- * the wrapper's cache entry — two observers, ONE query, ONE `eth_call`.
+ * any other read; a direct `useCofheReadContract` of the same call shares
+ * the wrapper's cache entry — two observers, ONE query, ONE `eth_call`; and the
+ * SENDER's native pseudo-read refreshes after EVERY mined tx via the write
+ * hook's implicit gas target, declared nowhere.
  *
  * Same no-mock style as the sibling suites: real Anvil from globalSetup, real
  * CofheProvider + consumer-style component in Chromium, a recording EIP-1193
@@ -299,19 +301,20 @@ describeOnAnvil('token balances + allowances under the read key grammar (Anvil)'
     await waitFor(() => expect(onScreen().allowance).toBe('777'), EVENTUALLY);
     expect(recorder.countEthCalls(ALLOWANCE_SELECTOR)).toBe(2);
     expect(recorder.countBlockHashProbes(receipt.blockHash)).toBeGreaterThanOrEqual(1);
-    // The balance reads were NOT touched by the narrowed target.
+    // The ERC20 balance read was NOT touched by the narrowed target...
     expect(recorder.countEthCalls(BALANCE_OF_SELECTOR)).toBe(1);
-    expect(recorder.countByMethod('eth_getBalance')).toBe(1);
+    // ...but the sender's native pseudo-read refetches after EVERY mined tx —
+    // the write hook's implicit gas target, declared nowhere.
+    await waitFor(() => expect(recorder.countByMethod('eth_getBalance')).toBe(2), EVENTUALLY);
   });
 
   it('a mint with plain balanceOf descriptors refreshes the ERC20 balance AND the native pseudo-read', async () => {
     const { recorder, publicClient, renderApp } = setup();
     renderApp({
-      invalidates: [
-        { address: ERC20_ADDRESS, functionName: 'balanceOf', args: [TEST_ACCOUNT.address] },
-        // Native ETH is the pseudo-read at the sentinel address — same grammar.
-        { address: ETH_SENTINEL_LOWERCASE, functionName: 'balanceOf', args: [TEST_ACCOUNT.address] },
-      ],
+      // No native target declared: the sender's ETH pseudo-read (at the
+      // sentinel address, same grammar) is invalidated IMPLICITLY on every
+      // mined tx — gas burned it.
+      invalidates: [{ address: ERC20_ADDRESS, functionName: 'balanceOf', args: [TEST_ACCOUNT.address] }],
       action: { functionName: 'mint', args: [TEST_ACCOUNT.address, 1_000_000_000n] },
     });
 
