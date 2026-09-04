@@ -1,0 +1,175 @@
+name: Vercel
+
+# Replaces the Vercel Git integration so fork PRs get no Vercel check at all
+# (the job is skipped, which renders neutral) instead of a permanent red X.
+# Internal PRs keep preview deploys; pushes to master keep production deploys.
+# Each deploy is also registered via the GitHub Deployments API, so the
+# familiar "View deployment" box on the PR page keeps working.
+#
+# Requires repo secrets: VERCEL_ORG_ID, VERCEL_PROJECT_ID_DOCS,
+# VERCEL_PROJECT_ID_REACT, and per-project tokens VERCEL_TOKEN_DOCS,
+# VERCEL_TOKEN_REACT (Vercel tokens scope to a single project).
+# Builds run remotely on Vercel with each project's stored settings
+# (root directory, env vars, build command), same as the Git integration did.
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+concurrency:
+  group: vercel-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    name: preview (${{ matrix.project.name }})
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      deployments: write
+      statuses: write
+    strategy:
+      fail-fast: false
+      matrix:
+        project:
+          - { name: docs, id_secret: VERCEL_PROJECT_ID_DOCS, token_secret: VERCEL_TOKEN_DOCS }
+          - { name: react, id_secret: VERCEL_PROJECT_ID_REACT, token_secret: VERCEL_TOKEN_REACT }
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets[matrix.project.id_secret] }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy preview
+        id: deploy
+        run: |
+          url=$(npx vercel@latest deploy --token "${{ secrets[matrix.project.token_secret] }}" --yes)
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Register GitHub deployment
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PREVIEW_URL: ${{ steps.deploy.outputs.url }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          deployment_id=$(jq -n \
+            --arg ref "$HEAD_SHA" \
+            --arg env "Preview – ${{ matrix.project.name }}" \
+            '{ref: $ref, environment: $env, auto_merge: false, required_contexts: [], transient_environment: true}' \
+            | gh api "repos/${{ github.repository }}/deployments" --input - --jq '.id')
+          jq -n \
+            --arg url "$PREVIEW_URL" \
+            --arg log "$RUN_URL" \
+            '{state: "success", environment_url: $url, log_url: $log, auto_inactive: true}' \
+            | gh api "repos/${{ github.repository }}/deployments/${deployment_id}/statuses" --input - > /dev/null
+
+      - name: Post commit status with preview link
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PREVIEW_URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          jq -n \
+            --arg url "$PREVIEW_URL" \
+            --arg ctx "Vercel Preview – ${{ matrix.project.name }}" \
+            '{state: "success", context: $ctx, description: "Preview ready", target_url: $url}' \
+            | gh api "repos/${{ github.repository }}/statuses/$HEAD_SHA" --input - > /dev/null
+
+      - name: Save preview URL for the summary comment
+        run: |
+          mkdir -p /tmp/vercel-url
+          printf '%s\t%s\t%s\n' "${{ matrix.project.name }}" "${{ steps.deploy.outputs.url }}" \
+            "$(date -u +'%b %-d, %Y %H:%M UTC')" > "/tmp/vercel-url/${{ matrix.project.name }}.tsv"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vercel-url-${{ matrix.project.name }}
+          path: /tmp/vercel-url/${{ matrix.project.name }}.tsv
+          retention-days: 1
+
+  preview-comment:
+    name: Vercel preview comment
+    needs: preview
+    if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: vercel-url-*
+          path: /tmp/vercel-url
+          merge-multiple: true
+      - name: Upsert single summary comment (table, edited in place)
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          marker="<!-- vercel-previews-summary -->"
+          rows=""
+          for f in /tmp/vercel-url/*.tsv; do
+            [ -e "$f" ] || continue
+            IFS=$'\t' read -r name url updated < "$f"
+            rows="$rows| **$name** | [Visit Preview]($url) | $updated |
+          "
+          done
+          [ -n "$rows" ] || rows="| _no successful deploys_ | | |
+          "
+          body="$marker
+          **Vercel previews** (commit \`${HEAD_SHA:0:7}\`)
+
+          | Project | Deployment | Updated |
+          | :--- | :--- | :--- |
+          $rows"
+          body=$(echo "$body" | sed 's/^          //')
+          cid=$(gh api "repos/${{ github.repository }}/issues/$PR_NUMBER/comments" --paginate \
+            --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -1)
+          if [ -n "$cid" ]; then
+            gh api -X PATCH "repos/${{ github.repository }}/issues/comments/$cid" -f body="$body" > /dev/null
+          else
+            gh api "repos/${{ github.repository }}/issues/$PR_NUMBER/comments" -f body="$body" > /dev/null
+          fi
+
+  production:
+    name: production (${{ matrix.project.name }})
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      deployments: write
+    strategy:
+      fail-fast: false
+      matrix:
+        project:
+          - { name: docs, id_secret: VERCEL_PROJECT_ID_DOCS, token_secret: VERCEL_TOKEN_DOCS }
+          - { name: react, id_secret: VERCEL_PROJECT_ID_REACT, token_secret: VERCEL_TOKEN_REACT }
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets[matrix.project.id_secret] }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy production
+        id: deploy
+        run: |
+          url=$(npx vercel@latest deploy --prod --token "${{ secrets[matrix.project.token_secret] }}" --yes)
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Register GitHub deployment
+        env:
+          PROD_URL: ${{ steps.deploy.outputs.url }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          deployment_id=$(jq -n \
+            --arg ref "${{ github.sha }}" \
+            --arg env "Production – ${{ matrix.project.name }}" \
+            '{ref: $ref, environment: $env, auto_merge: false, required_contexts: [], production_environment: true}' \
+            | gh api "repos/${{ github.repository }}/deployments" --input - --jq '.id')
+          jq -n \
+            --arg url "$PROD_URL" \
+            --arg log "$RUN_URL" \
+            '{state: "success", environment_url: $url, log_url: $log, auto_inactive: true}' \
+            | gh api "repos/${{ github.repository }}/deployments/${deployment_id}/statuses" --input - > /dev/null
