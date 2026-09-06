@@ -214,4 +214,34 @@ describe('ACPShareRegistry', () => {
     await registry.connect(bob).share(p);
     expect(await registry.isShareValid(await shareIdOf(p))).to.equal(false);
   });
+
+  // ----------------------------------------------------- pagination
+
+  it('sharesForCount and sharesForPage paginate live shares', async () => {
+    for (let i = 0; i < 5; i++) {
+      const p = await signedSharingPermission(acl, bob, alice.address, { revokerData: BigInt(i + 1) });
+      await registry.connect(bob).share(p);
+    }
+
+    expect(await registry.sharesForCount(alice.address)).to.equal(5n);
+
+    const page0 = await registry.sharesForPage(alice.address, 0, 2);
+    expect(page0.length).to.equal(2);
+    const page1 = await registry.sharesForPage(alice.address, 2, 2);
+    expect(page1.length).to.equal(2);
+    const page2 = await registry.sharesForPage(alice.address, 4, 2);
+    expect(page2.length).to.equal(1);
+
+    const maxPage = await registry.MAX_SHARES_PAGE();
+    expect(maxPage).to.equal(256n);
+    expect((await registry.sharesFor(alice.address)).length).to.equal(5);
+  });
+
+  it('sharesForPage caps limit at MAX_SHARES_PAGE', async () => {
+    const p = await signedSharingPermission(acl, bob, alice.address);
+    await registry.connect(bob).share(p);
+    const huge = await registry.sharesForPage(alice.address, 0, 10_000);
+    expect(huge.length).to.equal(1);
+  });
+
 });

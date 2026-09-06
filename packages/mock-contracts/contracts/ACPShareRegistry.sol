@@ -86,28 +86,57 @@ contract ACPShareRegistry {
     emit ShareRemoved(recipient, issuer, shareId);
   }
 
-  /// @notice All importable shares addressed to `recipient`: unexpired and not revoked.
-  ///         Dead entries stay in storage until removed but are filtered here.
-  function sharesFor(address recipient) external view returns (ACP[] memory acps) {
+  /// @notice Maximum number of live shares returned by `sharesFor` / one `sharesForPage` call.
+  /// @dev Caps unbounded iteration so a spam-filled inbox cannot grief callers with O(n) gas.
+  uint256 public constant MAX_SHARES_PAGE = 256;
+
+  /// @notice First page of importable shares for `recipient` (unexpired, not revoked).
+  /// @dev Equivalent to `sharesForPage(recipient, 0, MAX_SHARES_PAGE)`. Use
+  ///      `sharesForCount` + `sharesForPage` to walk larger inboxes safely.
+  function sharesFor(address recipient) external view returns (ACP[] memory) {
+    return sharesForPage(recipient, 0, MAX_SHARES_PAGE);
+  }
+
+  /// @notice Number of importable (live) shares addressed to `recipient`.
+  function sharesForCount(address recipient) external view returns (uint256 count) {
+    EnumerableSet.Bytes32Set storage ids = _shareIdsFor[recipient];
+    uint256 len = ids.length();
+    for (uint256 i = 0; i < len; i++) {
+      if (_isValid(_shares[ids.at(i)])) count++;
+    }
+  }
+
+  /// @notice Paginated importable shares for `recipient`, skipping `offset` live entries.
+  /// @param limit Max live shares to return; capped at `MAX_SHARES_PAGE`.
+  function sharesForPage(
+    address recipient,
+    uint256 offset,
+    uint256 limit
+  ) public view returns (ACP[] memory acps) {
+    if (limit > MAX_SHARES_PAGE) limit = MAX_SHARES_PAGE;
+    if (limit == 0) return acps;
+
     EnumerableSet.Bytes32Set storage ids = _shareIdsFor[recipient];
     uint256 len = ids.length();
     if (len == 0) return acps;
 
-    // single pass: allocate for the maximum, fill with valid shares only
-    acps = new ACP[](len);
-    uint256 live = 0;
-    for (uint256 i = 0; i < len; i++) {
+    acps = new ACP[](limit);
+    uint256 skipped = 0;
+    uint256 filled = 0;
+    for (uint256 i = 0; i < len && filled < limit; i++) {
       ACP storage acp = _shares[ids.at(i)];
-      if (_isValid(acp)) {
-        acps[live] = acp;
-        live++;
+      if (!_isValid(acp)) continue;
+      if (skipped < offset) {
+        skipped++;
+        continue;
       }
+      acps[filled] = acp;
+      filled++;
     }
 
-    // truncate the memory array's length to the live count (shrink-only)
-    if (live < len) {
+    if (filled < limit) {
       assembly {
-        mstore(acps, live)
+        mstore(acps, filled)
       }
     }
   }

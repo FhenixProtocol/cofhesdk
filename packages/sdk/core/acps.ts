@@ -439,6 +439,9 @@ const ACP_SHARE_REGISTRY_ABI = parseAbi([
   'function share(ACP calldata acp) external returns (bytes32)',
   'function removeShare(bytes32 shareId) external',
   'function sharesFor(address recipient) external view returns (ACP[] memory)',
+  'function sharesForCount(address recipient) external view returns (uint256)',
+  'function sharesForPage(address recipient, uint256 offset, uint256 limit) external view returns (ACP[] memory)',
+  'function MAX_SHARES_PAGE() external view returns (uint256)',
   'function getShare(bytes32 shareId) external view returns (ACP memory)',
   'function isShareValid(bytes32 shareId) external view returns (bool)',
 ]);
@@ -517,31 +520,60 @@ const shareOnChain = async (
   return { txHash, shareId: computeShareId(acp) };
 };
 
-/** All importable shares addressed to `recipient` (unexpired, not revoked). */
+/** Map a raw on-chain ACP share tuple into an IncomingShare. */
+const toIncomingShare = (s: {
+  issuer: Hex;
+  expiration: bigint;
+  recipient: Hex;
+  revokerData: bigint;
+  revokerContract: Hex;
+  scope: number;
+  contracts: readonly Hex[];
+  handles: readonly Hex[];
+  issuerSignature: Hex;
+}): IncomingShare => ({
+  shareId: keccak256(encodeAbiParameters(ACP_TUPLE, [s])),
+  issuer: s.issuer,
+  expiration: Number(s.expiration),
+  recipient: s.recipient,
+  revokerData: Number(s.revokerData),
+  revokerContract: s.revokerContract,
+  scope: Number(s.scope),
+  contracts: [...s.contracts],
+  handles: [...s.handles],
+  issuerSignature: s.issuerSignature,
+});
+
+/**
+ * All importable shares addressed to `recipient` (unexpired, not revoked).
+ * Walks `sharesForPage` so a spam-filled inbox cannot OOG a single eth_call.
+ */
 const getIncomingShares = async (
   publicClient: PublicClient,
   registry: Hex,
   recipient: Hex
 ): Promise<IncomingShare[]> => {
-  const raw = await publicClient.readContract({
+  const pageSize = await publicClient.readContract({
     address: registry,
     abi: ACP_SHARE_REGISTRY_ABI,
-    functionName: 'sharesFor',
-    args: [recipient],
+    functionName: 'MAX_SHARES_PAGE',
   });
 
-  return raw.map((s) => ({
-    shareId: keccak256(encodeAbiParameters(ACP_TUPLE, [s])),
-    issuer: s.issuer,
-    expiration: Number(s.expiration),
-    recipient: s.recipient,
-    revokerData: Number(s.revokerData),
-    revokerContract: s.revokerContract,
-    scope: Number(s.scope),
-    contracts: [...s.contracts],
-    handles: [...s.handles],
-    issuerSignature: s.issuerSignature,
-  }));
+  const out: IncomingShare[] = [];
+  let offset = 0n;
+  for (;;) {
+    const raw = await publicClient.readContract({
+      address: registry,
+      abi: ACP_SHARE_REGISTRY_ABI,
+      functionName: 'sharesForPage',
+      args: [recipient, offset, pageSize],
+    });
+    if (raw.length === 0) break;
+    out.push(...raw.map(toIncomingShare));
+    if (BigInt(raw.length) < pageSize) break;
+    offset += BigInt(raw.length);
+  }
+  return out;
 };
 
 /**
