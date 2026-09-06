@@ -266,6 +266,80 @@ export const ACPShareRegistryArtifact = {
       stateMutability: 'view',
     },
     {
+      type: 'function',
+      name: 'MAX_SHARES_PAGE',
+      inputs: [],
+      outputs: [
+        {
+          name: '',
+          type: 'uint256',
+          internalType: 'uint256',
+        },
+      ],
+      stateMutability: 'view',
+    },
+    {
+      type: 'function',
+      name: 'sharesForCount',
+      inputs: [
+        {
+          name: 'recipient',
+          type: 'address',
+          internalType: 'address',
+        },
+      ],
+      outputs: [
+        {
+          name: 'count',
+          type: 'uint256',
+          internalType: 'uint256',
+        },
+      ],
+      stateMutability: 'view',
+    },
+    {
+      type: 'function',
+      name: 'sharesForPage',
+      inputs: [
+        {
+          name: 'recipient',
+          type: 'address',
+          internalType: 'address',
+        },
+        {
+          name: 'offset',
+          type: 'uint256',
+          internalType: 'uint256',
+        },
+        {
+          name: 'limit',
+          type: 'uint256',
+          internalType: 'uint256',
+        },
+      ],
+      outputs: [
+        {
+          name: 'acps',
+          type: 'tuple[]',
+          internalType: 'struct ACP[]',
+          components: [
+            { name: 'issuer', type: 'address', internalType: 'address' },
+            { name: 'expiration', type: 'uint64', internalType: 'uint64' },
+            { name: 'recipient', type: 'address', internalType: 'address' },
+            { name: 'revokerData', type: 'uint256', internalType: 'uint256' },
+            { name: 'revokerContract', type: 'address', internalType: 'address' },
+            { name: 'scope', type: 'uint8', internalType: 'uint8' },
+            { name: 'contracts', type: 'address[]', internalType: 'address[]' },
+            { name: 'handles', type: 'bytes32[]', internalType: 'bytes32[]' },
+            { name: 'sealingKey', type: 'bytes32', internalType: 'bytes32' },
+            { name: 'issuerSignature', type: 'bytes', internalType: 'bytes' },
+            { name: 'recipientSignature', type: 'bytes', internalType: 'bytes' },
+          ],
+        },
+      ],
+      stateMutability: 'view',
+    },
+    {
       type: 'event',
       name: 'ShareRemoved',
       inputs: [
