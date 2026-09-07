@@ -237,8 +237,9 @@ describeOnAnvil('react hooks: useCofheWriteContract({ invalidates }) refreshes u
     // ...gated on exactly one probe that the serving node knows the mined block (and no others).
     expect(recorder.countBlockHashProbes(receipt.blockHash)).toBe(1);
     expect(recorder.countBlockHashProbes()).toBe(1);
-    // The invalidation context is one-shot — consumed by the refetch that used it.
-    expect(useInvalidationContextStore.getState().byKey).toEqual({});
+    // The invalidation context is a TTL watermark — it persists after delivery,
+    // so any later fetch under the prefix stays gated too.
+    expect(Object.keys(useInvalidationContextStore.getState().byKey)).not.toHaveLength(0);
   }, 180_000);
 
   it('without `invalidates` the read stays stale until invalidated manually', async () => {

@@ -15,7 +15,10 @@
  *   - a singular useCofheReadContract of the same call shares the batch entry's cache — no
  *     duplicate fetch, and one refetch serves both;
  *   - without `invalidates` the batch stays stale even though the chain moved, and the manual
- *     invalidation primitive (same machinery) refreshes it.
+ *     invalidation primitive (same machinery) refreshes it;
+ *   - the invalidation context is a TTL WATERMARK, not a one-shot note: a read whose first fetch
+ *     happens AFTER the invalidation's refetches settled (a new args variant, an enabled flip) is
+ *     gated exactly like its concurrent siblings — delivery is deterministic, not ordering luck.
  */
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -87,6 +90,8 @@ const GET_ITEM_SELECTOR = toFunctionSelector(getAbiItem({ abi: storeAbi, name: '
 
 /** The dynamic-length batch under test: one getItem read per key. */
 const KEYS = [1n, 2n, 3n];
+/** A key NO read ever touches until the staggered scenario enables its reader. */
+const LATE_KEY = 9n;
 
 // Chain interactions (connect, mining) take a while; waitFor defaults to 1s.
 const EVENTUALLY = { timeout: 90_000 } as const;
@@ -180,6 +185,20 @@ function KeyValueApp({
     args: [KEYS[1]],
     requiresACP: false,
   });
+  // The STAGGERED reader: disabled until a button enables it, so its first fetch
+  // happens long after an invalidation's own refetches settled — a brand-new
+  // cache entry under the invalidated prefix that the watermark must still gate.
+  const [showLate, setShowLate] = React.useState(false);
+  const late = useCofheReadContract(
+    {
+      address: contractAddress,
+      abi: storeAbi,
+      functionName: 'getItem',
+      args: [LATE_KEY],
+      requiresACP: false,
+    },
+    { enabled: showLate }
+  );
   const { writeContract, data: txHash } = useCofheWriteContract({ invalidates });
 
   return (
@@ -194,7 +213,9 @@ function KeyValueApp({
       })}
       <output aria-label="single item 1">{single.data === undefined ? '' : single.data.toString()}</output>
       <output aria-label="single item 2">{single2.data === undefined ? '' : single2.data.toString()}</output>
+      <output aria-label="late item">{late.data === undefined ? '' : late.data.toString()}</output>
       <output aria-label="tx hash">{txHash ?? ''}</output>
+      <button onClick={() => setShowLate(true)}>mount late</button>
       <button
         onClick={() =>
           writeContract({
@@ -250,6 +271,7 @@ const onScreen = () => ({
   items: KEYS.map((key) => screen.getByRole('status', { name: `item ${key.toString()}` }).textContent),
   single: screen.getByRole('status', { name: 'single item 1' }).textContent,
   single2: screen.getByRole('status', { name: 'single item 2' }).textContent,
+  late: screen.getByRole('status', { name: 'late item' }).textContent,
   txHash: screen.getByRole('status', { name: 'tx hash' }).textContent,
 });
 
@@ -284,8 +306,9 @@ describeOnAnvil('react hooks: useCofheWriteContract({ invalidates }) refreshes u
     // ...each gated on a probe that the serving node knows the mined block (and no other probes).
     expect(recorder.countBlockHashProbes(receipt.blockHash)).toBe(KEYS.length);
     expect(recorder.countBlockHashProbes()).toBe(KEYS.length);
-    // The invalidation context is one-shot — consumed by the refetches that used it.
-    expect(useInvalidationContextStore.getState().byKey).toEqual({});
+    // The invalidation context is a TTL watermark — it persists after delivery,
+    // so any later fetch under the prefix stays gated too.
+    expect(Object.keys(useInvalidationContextStore.getState().byKey)).not.toHaveLength(0);
   }, 180_000);
 
   it('a receipt-derived, args-narrowed target refreshes exactly the touched entry', async () => {
@@ -315,9 +338,35 @@ describeOnAnvil('react hooks: useCofheWriteContract({ invalidates }) refreshes u
     await waitFor(() => expect(onScreen().single2).toBe('999'), EVENTUALLY);
     // ...via exactly ONE refetch — keys 1 and 3 (and key 1's singular read) untouched...
     expect(recorder.countEthCalls(GET_ITEM_SELECTOR)).toBe(KEYS.length + 1);
-    // ...block-gated, and the one-shot context is consumed.
+    // ...block-gated; the watermark persists (TTL-bound) for later fetches.
     expect(recorder.countBlockHashProbes(receipt.blockHash)).toBe(1);
-    expect(useInvalidationContextStore.getState().byKey).toEqual({});
+    expect(Object.keys(useInvalidationContextStore.getState().byKey)).not.toHaveLength(0);
+  }, 180_000);
+
+  it('the watermark gates a STAGGERED read — first fetched only after the invalidation settled', async () => {
+    const { contractAddress, recorder, publicClient, renderApp } = setup();
+    renderApp({ invalidates: [{ address: contractAddress, functionName: 'getItem' }], writeKey: 2n, writeValue: 555n });
+
+    await waitFor(() => expect(everyItemLoaded()).toBe(true), EVENTUALLY);
+    expect(recorder.countEthCalls(GET_ITEM_SELECTOR)).toBe(KEYS.length);
+
+    fireEvent.click(screen.getByRole('button', { name: 'set item' }));
+    await waitFor(() => expect(onScreen().txHash).toMatch(/^0x/), EVENTUALLY);
+    const receipt = await publicClient.waitForTransactionReceipt({ hash: onScreen().txHash as Hash });
+    expect(receipt.status).toBe('success');
+
+    // Let the invalidation-driven refetches fully settle first…
+    await waitFor(() => expect(onScreen().items[1]).toBe('555'), EVENTUALLY);
+    await waitFor(() => expect(recorder.countEthCalls(GET_ITEM_SELECTOR)).toBe(KEYS.length * 2), EVENTUALLY);
+    const probesBefore = recorder.countBlockHashProbes(receipt.blockHash);
+    expect(probesBefore).toBeGreaterThanOrEqual(1);
+
+    // …then enable a read that has NEVER fetched: a new args variant under the
+    // invalidated prefix. Consume-on-first-delivery left it un-gated (ordering
+    // luck); the TTL watermark must gate it exactly like its concurrent siblings.
+    fireEvent.click(screen.getByRole('button', { name: 'mount late' }));
+    await waitFor(() => expect(onScreen().late).toBe('0'), EVENTUALLY);
+    expect(recorder.countBlockHashProbes(receipt.blockHash)).toBe(probesBefore + 1);
   }, 180_000);
 
   it('without `invalidates` the batch stays stale until invalidated manually', async () => {
