@@ -1,5 +1,49 @@
 # @cofhe/react
 
+## 0.8.0
+
+### Minor Changes
+
+- 2732c78: `useCofheReadContracts` (the dynamic-length companion of `useCofheReadContract`) now runs each entry as its own query under the exact `useCofheReadContract` query key, instead of one opaque multicall query. That makes batches first-class citizens of the invalidation design: a `useCofheWriteContract({ invalidates: [{ address, functionName }] })` target refreshes matching batch entries exactly like singular reads, the triggered refetches are block-aware (they wait until the serving RPC node knows the mined block), and cache entries are shared with singular reads of the same call. With a batching transport the entries still coalesce into one JSON-RPC request, and no multicall3 deployment is needed. The hook and its result types are now exported from the package root. The result is a per-entry aggregate (`data[i]` is `{ result }` / `{ error }` / `undefined` while loading) rather than a raw `UseQueryResult`; `multicallOptions` is kept for compatibility but only `allowFailure` is honored, and a new `requiresACP` option gates the whole batch on a valid active ACP like the singular hook.
+- 7c1883c: `useCofheWriteContract`'s `invalidates` option now also accepts a function of the mined receipt — `invalidates: (receipt) => targets` — for writes whose targets are only known from the outcome (e.g. an id read out of the event logs). Invalidation still fires once mined, block-aware, for any mined outcome. Invalidation descriptors additionally accept `args` (together with `functionName`) to narrow a target to one exact call — `{ address, functionName: 'getOrder', args: [orderId] }` refreshes just that read, leaving other args of the same function untouched. New exported type: `CofheWriteInvalidates`.
+- 273f134: Public token balances and token allowances are ordinary contract reads (`balanceOf(account)`, `allowance(owner, spender)`), and the hooks now ARE ordinary reads: `useTokenAllowance` is a thin wrapper around `useCofheReadContract` (`requiresACP: false`), and `createPublicTokenBalanceQueryOptions` delegates to the generic `createCofheReadContractQueryOptions` for ERC20 balances — same key grammar, same block-aware queryFn, same recognition meta, and the SAME cache entry as a direct read of that call. The bespoke `['tokenBalance', …]` / `['tokenAllowance', …]` key families are gone; a plain `useCofheWriteContract` invalidation descriptor (`{ address: token, functionName: 'balanceOf' | 'allowance' }`, args-narrowable) reaches them with no special vocabulary. The native ETH balance is the one carve-out — `eth_getBalance` is not a contract read — so only its queryFn stays bespoke: it is a documented pseudo-read keyed by the generic key builder at the ETH sentinel address, and `{ address: ETH_SENTINEL, functionName: 'balanceOf' }` targets it like any other read. The `construct…QueryKeyForInvalidation` builders are gone too: their only consumer, the internal pending-transaction tracker, now builds its filters from the same plain descriptors through `normalizeInvalidationTarget` (newly exported from the write hook) — one normalizer behind all invalidation. Existing cached entries under the old keys are simply abandoned to garbage collection.
+
+  Alongside this, the address segment of EVERY `cofheReadContract` key is now canonicalized (best-effort checksummed) inside `constructCofheReadContractQueryForInvalidation`, which both the read-key builders and `useCofheWriteContract`'s invalidation descriptors flow through — so a read key and an invalidation target can never disagree on address case again. Consumers no longer need to pre-checksum addresses on either side.
+
+  `useCofheWriteContract` now invalidates the SENDER's native balance (the ETH-sentinel pseudo-read) implicitly after every mined transaction, success or revert — gas burned it, so that read is stale on any outcome. No call site declares it, and it runs even with no `invalidates` at all; when no native-balance read is mounted it is a true no-op. Recipients of value transfers remain the caller's knowledge, declared like any other target.
+
+  Also removed: the trailing `enabled` segment of the read query key. It was a workaround (a CofheError could leave a disabled query's queryFn running and blank the screen) that no longer applies; keys are now pure data identity, so a read keeps its cache entry across disabled/enabled transitions.
+
+- 7ae7526: `useCofheWriteContract` accepts a new `invalidates` option — read queries to refresh once the write is mined, e.g. `useCofheWriteContract({ invalidates: [{ address, functionName: 'balanceOf' }] })` (`chainId` defaults to the connected chain; omit `functionName` to refresh every read of the contract). Invalidation waits for the transaction receipt and passes the mined block's hash as invalidation context, so the triggered refetches only trust an RPC node that already knows that block. It fires for any mined outcome — a reverted transaction invalidates too, since it still burned gas and advanced the nonce in a real block (reads the revert did not touch refetch to the same value). Raw query keys and full invalidation filters are also accepted.
+
+  Newly exported from the package root: `useCofheReadContract`, `constructCofheReadContractQueryForInvalidation`, and the `UseCofheReadContractResult`, `UseCofheReadContractQueryOptions`, `useCofheWriteContractOptions`, `CofheWriteInvalidationTarget`, `CofheReadInvalidationDescriptor` types.
+
+### Patch Changes
+
+- 594e250: `@tanstack/react-query` is now a peer dependency of `@cofhe/react` (`^5.90.20`)
+  instead of a hard dependency pinned to an exact version.
+
+  **Action required for consumers:** declare `@tanstack/react-query` in your own
+  dependencies if you do not already. Most apps do, via wagmi — which has always
+  declared it as a peer — so in practice nothing changes for them except that the
+  duplicate copy disappears.
+
+  Previously every consumer ended up with a _second_ react-query runtime: their own,
+  plus the one shipped inside `@cofhe/react`. Two module instances mean two sets of
+  React contexts, and anything this package exports that is typed in terms of
+  react-query becomes unusable from consumer code, because the type identities
+  differ across the two copies — `withInvalidationContext` being the notable case.
+
+  Also raises the floor to `^5.90.20`, which `@tanstack/react-query-persist-client@5.90.22`
+  (still a normal dependency here) already required; the previously-pinned `5.90.7`
+  never satisfied it. Note react-query has no `5.90.20+` release — the range is first
+  satisfiable at `5.91.3`.
+
+- 86d7fc9: Both block-aware wait primitives lose their unbounded failure modes. `maybeWaitUntilRpcAware` now distinguishes "the node doesn't know the block yet" (keep polling) from "the read failed on a node that HAS the block" (a real error — revert, missing contract — thrown immediately so react-query's retry/error handling sees it, instead of becoming an invisible 1 req/s poll), and gives up after `maxWaitMs` (default 60s) on a block the node never learns — a reorged-away hash can never become known — degrading to the un-gated read rather than failing it. `resolveReceiptBlockHash` is likewise bounded (throws after `maxWaitMs`), re-fetches the receipt BY TRANSACTION HASH instead of `getBlock({ blockNumber })` (by-height lookup hands back whichever block occupies that height after a reorg — the exact ambiguity hash gating exists to avoid), and takes an options object (`{ signal, maxWaitMs, pollingIntervalMs }`). The write hook's background invalidation deliberately passes no abort signal — invalidation is cache-global work that must survive component unmount — and relies on the bound as its safety.
+- Updated dependencies [7529d66]
+  - @cofhe/abi@0.8.0
+  - @cofhe/sdk@0.8.0
+
 ## 0.7.1
 
 ### Patch Changes
