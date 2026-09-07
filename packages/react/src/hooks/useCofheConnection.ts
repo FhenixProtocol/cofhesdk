@@ -50,6 +50,17 @@ export const useCofheSupportedChains = () => {
   return client.config.supportedChains;
 };
 
-export const useCofhePublicClient = () => useCofheConnection().publicClient;
+/**
+ * The public client for reads. With no argument (or the connected chain id): the connected
+ * client. With another chainId: the app-supplied client from CofheProvider publicClients —
+ * undefined when the app supplied none, which disables the pinned read rather than silently
+ * fetching the wrong chain.
+ */
+export const useCofhePublicClient = (chainId?: number) => {
+  const connection = useCofheConnection();
+  const { publicClients } = useCofheContext();
+  if (chainId === undefined || chainId === connection.chainId) return connection.publicClient;
+  return publicClients?.[chainId];
+};
 
 export const useCofheWalletClient = () => useCofheConnection().walletClient;

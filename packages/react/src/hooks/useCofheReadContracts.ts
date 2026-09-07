@@ -83,14 +83,22 @@ export function useCofheReadContracts(
     multicallOptions?: { allowFailure?: boolean; [key: string]: unknown };
     /** Gate every read on a valid active ACP, like `useCofheReadContract`. Defaults to `false`. */
     requiresACP?: boolean;
+    /**
+     * Pin the whole batch to a specific chain instead of following the connected one — same
+     * semantics as the singular hook's `chainId`: the pinned id becomes every entry's key chain
+     * segment, and the fetches go through the app-supplied client for that chain
+     * (`CofheProvider`'s `publicClients`); without one the batch stays disabled.
+     */
+    chainId?: number;
   },
   queryOptions?: UseCofheReadContractsQueryOptions
 ): UseCofheReadContractsResult {
-  const { contracts, multicallOptions, requiresACP = false } = params;
+  const { contracts, multicallOptions, requiresACP = false, chainId } = params;
   const allowFailure = multicallOptions?.allowFailure ?? true;
 
-  const publicClient = useCofhePublicClient();
-  const cofheChainId = useCofheChainId();
+  const publicClient = useCofhePublicClient(chainId);
+  const connectedChainId = useCofheChainId();
+  const cofheChainId = chainId ?? connectedChainId;
   const activeACP = useCofheActiveACP();
 
   const results = useInternalQueries({

@@ -92,6 +92,8 @@ const GET_ITEM_SELECTOR = toFunctionSelector(getAbiItem({ abi: storeAbi, name: '
 const KEYS = [1n, 2n, 3n];
 /** A key NO read ever touches until the staggered scenario enables its reader. */
 const LATE_KEY = 9n;
+/** The non-connected chain id the pinned-read scenario maps a client for. */
+const PINNED_CHAIN_ID = 31338;
 
 // Chain interactions (connect, mining) take a while; waitFor defaults to 1s.
 const EVENTUALLY = { timeout: 90_000 } as const;
@@ -238,6 +240,19 @@ afterEach(() => {
   useInvalidationContextStore.setState({ byKey: {} });
 });
 
+/** A read pinned to a chain the provider is NOT connected to. */
+function PinnedReadApp({ contractAddress }: { contractAddress: Address }) {
+  const pinned = useCofheReadContract({
+    address: contractAddress,
+    abi: storeAbi,
+    functionName: 'getItem',
+    args: [KEYS[0]],
+    requiresACP: false,
+    chainId: PINNED_CHAIN_ID,
+  });
+  return <output aria-label="pinned item">{pinned.data === undefined ? '' : pinned.data.toString()}</output>;
+}
+
 // Provided only when the Hardhat (Anvil) chain is selected — on testnet-only runs
 // (e.g. the sepolia CI legs) globalSetup boots no Anvil and the suite skips itself.
 const KEY_VALUE_STORE_ADDRESS = inject('anvilSimpleKeyValueStore') as Address;
@@ -367,6 +382,52 @@ describeOnAnvil('react hooks: useCofheWriteContract({ invalidates }) refreshes u
     fireEvent.click(screen.getByRole('button', { name: 'mount late' }));
     await waitFor(() => expect(onScreen().late).toBe('0'), EVENTUALLY);
     expect(recorder.countBlockHashProbes(receipt.blockHash)).toBe(probesBefore + 1);
+  }, 180_000);
+
+  it('a chainId-pinned read fetches through the mapped per-chain client and keys under the pinned chain', async () => {
+    const contractAddress = KEY_VALUE_STORE_ADDRESS;
+    // Two recording transports over the same Anvil: the CONNECTED client (31337)
+    // and a second client presented as another chain. What this pins down is the
+    // SDK's routing contract — a pinned read fetches through the MAPPED client
+    // only, and its cache key carries the pinned chain id (so chainId-pinned
+    // invalidation targets meet it). Chain identity itself is the app's promise.
+    const recorderMain = createRecordingProvider(ANVIL_RPC);
+    const publicClient = createPublicClient({ chain: anvilChain, transport: custom(recorderMain) });
+    const walletClient = createWalletClient({
+      chain: anvilChain,
+      transport: custom(recorderMain),
+      account: TEST_ACCOUNT,
+    });
+    const recorderPinned = createRecordingProvider(ANVIL_RPC);
+    const pinnedChain: Chain = defineChain({ ...anvilChain, id: PINNED_CHAIN_ID, name: 'Pinned' });
+    const pinnedClient = createPublicClient({ chain: pinnedChain, transport: custom(recorderPinned) });
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const config = createCofheConfig({ supportedChains: [hardhatCofheChain], react: { autogenerateACPs: false } });
+
+    render(
+      <CofheProvider
+        config={config}
+        queryClient={queryClient}
+        publicClient={publicClient}
+        walletClient={walletClient}
+        publicClients={{ [PINNED_CHAIN_ID]: pinnedClient }}
+      >
+        <PinnedReadApp contractAddress={contractAddress} />
+      </CofheProvider>
+    );
+
+    const pinnedOnScreen = () => screen.getByRole('status', { name: 'pinned item' }).textContent;
+    await waitFor(() => expect(pinnedOnScreen()).not.toBe(''), EVENTUALLY);
+
+    // The fetch went through the mapped client — never the connected one.
+    expect(recorderPinned.countEthCalls(GET_ITEM_SELECTOR)).toBe(1);
+    expect(recorderMain.countEthCalls(GET_ITEM_SELECTOR)).toBe(0);
+    // And the cache key carries the pinned chain id.
+    const cachedKeys = queryClient
+      .getQueryCache()
+      .getAll()
+      .map((query) => query.queryKey);
+    expect(cachedKeys.some((key) => key[0] === 'cofheReadContract' && key[1] === PINNED_CHAIN_ID)).toBe(true);
   }, 180_000);
 
   it('without `invalidates` the batch stays stale until invalidated manually', async () => {
