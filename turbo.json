@@ -8,6 +8,10 @@
       "dependsOn": ["^build"],
       "env": ["HOME", "USERPROFILE", "VOCS_BASE_URL"]
     },
+    "@cofhe/contract-check#test": {
+      "dependsOn": ["^build"],
+      "passThroughEnv": ["CONTRACT_CHECK_FIXTURE"]
+    },
     "@cofhe/test-setup#build": {
       "cache": false,
       "dependsOn": ["^build"],

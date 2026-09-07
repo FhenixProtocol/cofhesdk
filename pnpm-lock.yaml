@@ -128,6 +128,21 @@ importers:
         specifier: 3.2.4
         version: 3.2.4(@types/node@20.19.15)(@vitest/browser@3.2.4)(happy-dom@15.11.7)
 
+  packages/contract-check:
+    devDependencies:
+      '@cofhe/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
+      '@cofhe/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      typescript:
+        specifier: 5.5.4
+        version: 5.5.4
+      vitest:
+        specifier: 3.2.4
+        version: 3.2.4
+
   packages/eslint-config:
     devDependencies:
       '@next/eslint-plugin-next':
