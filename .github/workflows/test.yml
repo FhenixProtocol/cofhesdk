@@ -8,11 +8,51 @@ on:
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
-  test:
+  # Keyless tests: unit, mock-network, forge, and browser suites. Needs no
+  # secrets, so it runs on every pull request INCLUDING fork PRs — the
+  # live-chain suites in packages/sdk self-skip when TEST_PRIVATE_KEY is
+  # absent (see LIVE_TESTS in the gated test files).
+  test-local:
+    name: Test (local)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm 8
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Setup Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+
+      - name: Install Dependencies
+        run: pnpm i --frozen-lockfile
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: 1.7.1
+
+      - name: Install Playwright Browsers
+        run: cd packages/sdk && pnpm exec playwright install chromium --with-deps
+
+      - name: Run Tests
+        run: pnpm exec turbo run test --filter='!@cofhe/integration-matrix'
+
+  # Live-testnet suites (sdk decrypt + inherited client tests). These sign and
+  # transact with the funded TEST_PRIVATE_KEY wallet, so they only run where
+  # repository secrets exist: pushes and same-repo pull requests. Fork PRs
+  # skip this job entirely instead of failing on a missing secret.
+  test-live:
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     concurrency:
       group: testnet-integration
       cancel-in-progress: false
-    name: Test
+    name: Test (live testnet)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
@@ -46,18 +86,18 @@ jobs:
           if [ -z "$TEST_PRIVATE_KEY" ]; then
             echo "TEST_PRIVATE_KEY secret is not available to this workflow run."
             echo "Common causes:"
-            echo "- This workflow was triggered by a pull_request from a fork, where repository secrets are not exposed."
             echo "- The secret was added under a different name, repo, org, or environment."
             echo "- The secret is environment-scoped, but this job does not declare that environment."
             exit 1
           fi
 
-      - name: Run Tests
+      - name: Run Live Tests
         env:
           TEST_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
-        run: pnpm exec turbo run test --filter='!@cofhe/integration-matrix'
+        run: pnpm exec turbo run test:live --filter=@cofhe/sdk
 
   test-network:
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     strategy:
       fail-fast: false
       matrix:
@@ -110,7 +150,6 @@ jobs:
           if [ -z "$TEST_PRIVATE_KEY" ]; then
             echo "TEST_PRIVATE_KEY secret is not available to this workflow run."
             echo "Common causes:"
-            echo "- This workflow was triggered by a pull_request from a fork, where repository secrets are not exposed."
             echo "- The secret was added under a different name, repo, org, or environment."
             echo "- The secret is environment-scoped, but this job does not declare that environment."
             exit 1

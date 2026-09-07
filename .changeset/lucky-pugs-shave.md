@@ -10,7 +10,7 @@ dependencies if you do not already. Most apps do, via wagmi — which has always
 declared it as a peer — so in practice nothing changes for them except that the
 duplicate copy disappears.
 
-Previously every consumer ended up with a *second* react-query runtime: their own,
+Previously every consumer ended up with a _second_ react-query runtime: their own,
 plus the one shipped inside `@cofhe/react`. Two module instances mean two sets of
 React contexts, and anything this package exports that is typed in terms of
 react-query becomes unusable from consumer code, because the type identities
