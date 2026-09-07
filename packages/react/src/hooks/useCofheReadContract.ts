@@ -1,5 +1,6 @@
 import { type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
 import {
+  getAddress,
   type Address,
   type ContractFunctionReturnType,
   type ContractFunctionName,
@@ -17,6 +18,19 @@ import { withInvalidationContext } from '@/utils/invalidationContext';
 
 const QUERY_CACHE_PREFIX = 'cofheReadContract';
 
+/// Best-effort checksum. The address segment of every read key — and of every invalidation
+/// prefix, since both flow through `constructCofheReadContractQueryForInvalidation` — is
+/// canonicalized here, so a read key and an invalidation descriptor can never disagree on
+/// address case. Anything that isn't a valid address passes through untouched.
+export function checksummedOr(address: Address | undefined): Address | undefined {
+  if (!address) return address;
+  try {
+    return getAddress(address);
+  } catch {
+    return address;
+  }
+}
+
 export function constructCofheReadContractQueryKey({
   cofheChainId,
   address,
@@ -24,7 +38,6 @@ export function constructCofheReadContractQueryKey({
   args,
   requiresACP,
   activeACPHash,
-  enabled,
 }: {
   cofheChainId?: number;
   address?: Address;
@@ -32,7 +45,6 @@ export function constructCofheReadContractQueryKey({
   args?: readonly unknown[];
   requiresACP?: boolean;
   activeACPHash?: string;
-  enabled?: boolean;
 }): readonly unknown[] {
   return [
     ...constructCofheReadContractQueryForInvalidation({
@@ -43,8 +55,6 @@ export function constructCofheReadContractQueryKey({
 
     args ? serializeBigintRecursively(args) : [],
     requiresACP ? activeACPHash : undefined,
-    // normally, "enabled" shouldn't be part of queryKey, but without adding it, there is a weird bug: when there's a CofheError, query still running queryFn resulting in the blank screen
-    enabled,
   ];
 }
 
@@ -58,14 +68,16 @@ export function constructCofheReadContractQueryForInvalidation({
   functionName?: string;
   // add more specificity if needed. Just make sure it matches the order of keys
 }): readonly unknown[] {
-  return [QUERY_CACHE_PREFIX, cofheChainId, address, functionName];
+  return [QUERY_CACHE_PREFIX, cofheChainId, checksummedOr(address), functionName];
 }
 
 export type UseCofheReadContractQueryOptions<
   TAbi extends Abi,
   TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>,
 > = Omit<UseQueryOptions<CofheReturnType<TAbi, TfunctionName>, Error>, 'queryKey' | 'queryFn'> & {
-  enabled?: boolean; // TODO: check callback variant, maybe it'll fix the issue above about forcing enable to be query key
+  // Plain boolean only (no callback form): it is composed with the hook's own gating
+  // (client/address/ACP presence) at construction time.
+  enabled?: boolean;
 };
 
 export function getEnabledForCofheReadContract(params: {
@@ -158,7 +170,6 @@ export function createCofheReadContractQueryOptions<
       args: Array.isArray(args) ? args : undefined,
       requiresACP,
       activeACPHash,
-      enabled,
     }),
     queryFn: withInvalidationContext<
       readonly unknown[],
