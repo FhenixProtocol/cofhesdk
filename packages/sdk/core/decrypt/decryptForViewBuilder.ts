@@ -225,7 +225,22 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
   }
 
   private async getResolvedACP(): Promise<ACP> {
-    if (this.acp) return this.acp;
+    if (this.acp) {
+      const validation = ACPUtils.isValid(this.acp);
+      if (!validation.valid) {
+        throw new CofheError({
+          code: CofheErrorCode.InvalidACPData,
+          message: `Provided ACP for account <${this.account}> and chainId <${this.chainId}> is invalid: ${validation.reason}`,
+          hint: 'Ensure the ACP has not expired and has a valid signature.',
+          context: {
+            chainId: this.chainId,
+            account: this.account,
+            reason: validation.reason,
+          },
+        });
+      }
+      return this.acp;
+    }
 
     this.assertChainId();
     this.assertAccount();
@@ -245,6 +260,20 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
           },
         });
       }
+      const validation = ACPUtils.isValid(acp);
+      if (!validation.valid) {
+        throw new CofheError({
+          code: CofheErrorCode.InvalidACPData,
+          message: `ACP with hash <${this.acpHash}> for account <${this.account}> and chainId <${this.chainId}> is invalid: ${validation.reason}`,
+          hint: 'Ensure the ACP has not expired and has a valid signature.',
+          context: {
+            chainId: this.chainId,
+            account: this.account,
+            acpHash: this.acpHash,
+            reason: validation.reason,
+          },
+        });
+      }
       return acp;
     }
 
@@ -258,6 +287,19 @@ export class DecryptForViewBuilder<U extends FheTypes> extends BaseBuilder {
         context: {
           chainId: this.chainId,
           account: this.account,
+        },
+      });
+    }
+    const validation = ACPUtils.isValid(acp);
+    if (!validation.valid) {
+      throw new CofheError({
+        code: CofheErrorCode.InvalidACPData,
+        message: `Active ACP for chainId <${this.chainId}> and account <${this.account}> is invalid or expired: ${validation.reason}`,
+        hint: 'Generate a new ACP using client.acp.createSelf(...) or client.acp.getOrCreateSelfACP().',
+        context: {
+          chainId: this.chainId,
+          account: this.account,
+          reason: validation.reason,
         },
       });
     }
