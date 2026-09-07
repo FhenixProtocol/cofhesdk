@@ -69,6 +69,13 @@ export {
   type UseCofheReadContractQueryOptions,
 } from '@/hooks/useCofheReadContract';
 export {
+  useCofheReadContracts,
+  type CofheReadContractsContract,
+  type CofheReadContractsItem,
+  type UseCofheReadContractsResult,
+  type UseCofheReadContractsQueryOptions,
+} from '@/hooks/useCofheReadContracts';
+export {
   type useCofheWriteContractOptions,
   type CofheWriteInvalidationTarget,
   type CofheReadInvalidationDescriptor,
