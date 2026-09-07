@@ -38,11 +38,11 @@ async function waitForAnvil(url: string, timeoutMs = 15_000): Promise<void> {
   throw new Error(`Anvil did not start within ${timeoutMs}ms`);
 }
 
-function deploySimpleTest(rpcUrl: string): string {
+function deployTestContract(rpcUrl: string, target: string): string {
   const integrationSetupDir = resolve(import.meta.dirname, '..', '..', 'setup');
 
   const result = execSync(
-    `forge create contracts/SimpleTest.sol:SimpleTest ` +
+    `forge create ${target} ` +
       `--rpc-url ${rpcUrl} ` +
       `--private-key ${ANVIL_PRIVATE_KEY} ` +
       `--chain ${ANVIL_CHAIN_ID} ` +
@@ -51,7 +51,7 @@ function deploySimpleTest(rpcUrl: string): string {
   );
 
   const addressMatch = result.match(/Deployed to:\s+(0x[0-9a-fA-F]+)/);
-  if (!addressMatch) throw new Error(`Failed to parse SimpleTest deploy address:\n${result}`);
+  if (!addressMatch) throw new Error(`Failed to parse deploy address for ${target}:\n${result}`);
   return addressMatch[1];
 }
 
@@ -62,6 +62,7 @@ export async function setup(project: TestProject): Promise<void> {
   if (!shouldStartAnvil(process.env.MATRIX_CHAIN, process.env.MATRIX_ENV)) {
     project.provide('anvilRpc', '');
     project.provide('anvilSimpleTest', '');
+    project.provide('anvilSimpleStorage', '');
     console.log('[integration-matrix] Skipping Anvil setup; Hardhat is not selected in MATRIX_CHAIN.');
     await printMatrix(process.env.MATRIX_CHAIN, process.env.MATRIX_ENV);
     return;
@@ -94,11 +95,16 @@ export async function setup(project: TestProject): Promise<void> {
   );
 
   console.log(`${HARDHAT_LOG_PREFIX} Deploying SimpleTest...`);
-  const simpleTestAddress = deploySimpleTest(ANVIL_RPC);
+  const simpleTestAddress = deployTestContract(ANVIL_RPC, 'contracts/SimpleTest.sol:SimpleTest');
   console.log(`${HARDHAT_LOG_PREFIX} SimpleTest deployed at ${simpleTestAddress}`);
+
+  console.log(`${HARDHAT_LOG_PREFIX} Deploying SimpleStorage...`);
+  const simpleStorageAddress = deployTestContract(ANVIL_RPC, 'contracts/SimpleStorage.sol:SimpleStorage');
+  console.log(`${HARDHAT_LOG_PREFIX} SimpleStorage deployed at ${simpleStorageAddress}`);
 
   project.provide('anvilRpc', ANVIL_RPC);
   project.provide('anvilSimpleTest', simpleTestAddress);
+  project.provide('anvilSimpleStorage', simpleStorageAddress);
   project.provide('anvilAcpValidator', deployedMocks.ACPTimestampRevoker);
   project.provide('anvilAcpShareRegistry', deployedMocks.ACPShareRegistry);
 
@@ -163,6 +169,7 @@ declare module 'vitest' {
   export interface ProvidedContext {
     anvilRpc: string;
     anvilSimpleTest: string;
+    anvilSimpleStorage: string;
     anvilAcpValidator: string;
     anvilAcpShareRegistry: string;
     matrixChain: string;

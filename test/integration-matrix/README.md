@@ -24,6 +24,7 @@ pnpm test:node         # node only
 pnpm test:web          # web only
 pnpm test:all          # node then web, unconditionally
 pnpm test:unit         # unit tests for matrix filtering logic only (fast, no chain required)
+pnpm test:react        # @cofhe/react hooks against Anvil, in Chromium (write → invalidation → refetch)
 ```
 
 `anvil` and `forge` must be on `$PATH`.
@@ -73,7 +74,7 @@ Group aliases: `testnet` → `sepolia`, `arb-sepolia`, `base-sepolia`; `all` →
 
 ```
 setup/
-  anvil.ts                   # globalSetup — Anvil + mock deploy + SimpleTest deploy + matrix printout
+  anvil.ts                   # globalSetup — Anvil + mock deploy + SimpleTest/SimpleStorage deploy + matrix printout
   foundryArtifactReader.ts   # Foundry artifact shim for @cofhe/hardhat-3-plugin's deployMocks
 src/
   matrix.ts                  # chain/env filtering logic (no vitest imports — safe for globalSetup)
@@ -93,6 +94,7 @@ test/
   matrix.web.test.ts         # Web runner for inherited suite — @cofhe/sdk/web
   flexible.test.ts           # Node runner for flexible suite
   flexible.web.test.ts       # Web runner for flexible suite
+  react-hooks.web.test.tsx   # @cofhe/react useCofheWriteContract + useCofheReadContract invalidation, browser-only
 ```
 
 ## Design and Notes

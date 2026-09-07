@@ -2,6 +2,8 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
     "moduleResolution": "bundler",
     "esModuleInterop": true,
     "strict": true,
@@ -10,6 +12,6 @@
     "outDir": "dist",
     "resolveJsonModule": true
   },
-  "include": ["src/**/*.ts", "setup/**/*.ts", "test/**/*.ts"],
+  "include": ["src/**/*.ts", "setup/**/*.ts", "test/**/*.ts", "test/**/*.tsx"],
   "exclude": ["node_modules", "dist"]
 }

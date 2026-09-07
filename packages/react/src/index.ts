@@ -62,6 +62,17 @@ export {
 
 export { useCofheEncryptAndWriteContract } from '@/hooks/useCofheEncryptAndWriteContract';
 export { useCofheReadContractAndDecrypt } from '@/hooks/useCofheReadContractAndDecrypt';
+export {
+  useCofheReadContract,
+  constructCofheReadContractQueryForInvalidation,
+  type UseCofheReadContractResult,
+  type UseCofheReadContractQueryOptions,
+} from '@/hooks/useCofheReadContract';
+export {
+  type useCofheWriteContractOptions,
+  type CofheWriteInvalidationTarget,
+  type CofheReadInvalidationDescriptor,
+} from '@/hooks/useCofheWriteContract';
 
 // Utils
 export {
