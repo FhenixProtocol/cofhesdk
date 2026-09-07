@@ -78,6 +78,7 @@ export {
 export {
   type useCofheWriteContractOptions,
   type CofheWriteInvalidationTarget,
+  type CofheWriteInvalidates,
   type CofheReadInvalidationDescriptor,
 } from '@/hooks/useCofheWriteContract';
 
