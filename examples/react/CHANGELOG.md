@@ -1,5 +1,18 @@
 # @cofhe/example-react
 
+## 0.8.0
+
+### Patch Changes
+
+- Updated dependencies [594e250]
+- Updated dependencies [2732c78]
+- Updated dependencies [7c1883c]
+- Updated dependencies [273f134]
+- Updated dependencies [86d7fc9]
+- Updated dependencies [7ae7526]
+  - @cofhe/react@0.8.0
+  - @cofhe/sdk@0.8.0
+
 ## 0.7.1
 
 ### Patch Changes

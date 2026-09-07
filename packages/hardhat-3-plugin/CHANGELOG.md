@@ -1,5 +1,12 @@
 # @cofhe/hardhat-3-plugin
 
+## 0.8.0
+
+### Patch Changes
+
+- @cofhe/sdk@0.8.0
+- @cofhe/mock-contracts@0.8.0
+
 ## 0.7.1
 
 ### Patch Changes
