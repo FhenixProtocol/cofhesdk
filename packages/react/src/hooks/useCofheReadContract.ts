@@ -226,13 +226,22 @@ export function useCofheReadContract<
     functionName?: TfunctionName;
     args?: ContractFunctionArgs<TAbi, 'pure' | 'view', TfunctionName>;
     requiresACP?: boolean;
+    /**
+     * Pin the read to a specific chain instead of following the connected one. The pinned id
+     * becomes the key's chain segment (pin your `invalidates` targets to the same `chainId` so
+     * they meet), and the fetch goes through the app-supplied client for that chain
+     * (`CofheProvider`'s `publicClients`) — without one the read stays disabled rather than
+     * silently querying the wrong chain.
+     */
+    chainId?: number;
   },
   queryOptions?: UseCofheReadContractQueryOptions<TAbi, TfunctionName>
 ): UseCofheReadContractResult<TAbi, TfunctionName> {
-  const { address, abi, functionName, args, requiresACP = true } = params;
+  const { address, abi, functionName, args, requiresACP = true, chainId } = params;
 
-  const publicClient = useCofhePublicClient();
-  const cofheChainId = useCofheChainId();
+  const publicClient = useCofhePublicClient(chainId);
+  const connectedChainId = useCofheChainId();
+  const cofheChainId = chainId ?? connectedChainId;
   const activeACP = useCofheActiveACP();
 
   const enabled = getEnabledForCofheReadContract({

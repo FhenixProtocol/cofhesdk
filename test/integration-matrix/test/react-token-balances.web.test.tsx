@@ -345,6 +345,8 @@ describeOnAnvil('token balances + allowances under the read key grammar (Anvil)'
     expect(recorder.countEthCalls(BALANCE_OF_SELECTOR)).toBe(2);
     // The allowance read was NOT touched.
     expect(recorder.countEthCalls(ALLOWANCE_SELECTOR)).toBe(1);
-    expect(useInvalidationContextStore.getState().byKey).toEqual({});
+    // The contexts are TTL watermarks now — they persist after delivery so any
+    // later fetch under the prefixes stays gated too.
+    expect(Object.keys(useInvalidationContextStore.getState().byKey)).not.toHaveLength(0);
   });
 });

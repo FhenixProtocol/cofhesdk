@@ -1,6 +1,7 @@
 import type { CofheClient } from '@cofhe/sdk';
 import type { CofheConfigWithReact } from '../config';
 import type { QueryClient } from '@tanstack/react-query';
+import type { PublicClient } from 'viem';
 import type { PublicClientLike, WalletClientLike } from '../utils/viemClientBridge';
 import type { FloatingButtonPosition } from '@/components/CofheFloatingButton/types';
 import type { Transaction, TransactionActionType } from '@/stores/transactionStore';
@@ -18,6 +19,8 @@ export type TransactionRenderers = Partial<Record<TransactionActionType, Transac
 export interface CofheContextValue {
   client: CofheClient<CofheConfigWithReact>;
   transactionRenderers?: TransactionRenderers;
+  /** App-supplied clients for chain-pinned reads; see CofheProviderProps.publicClients. */
+  publicClients?: Readonly<Record<number, PublicClient>>;
 
   // dynamic values, which aren't worth re-creating the whole client on each change via config
   state: {
@@ -42,6 +45,15 @@ export type CofheProviderProps = {
   // @TODO: define our own pair of classes, with only the methods we need
   walletClient?: WalletClientLike;
   publicClient?: PublicClientLike;
+
+  /**
+   * Optional per-chain public clients for CHAIN-PINNED reads (the read hooks: chainId param).
+   * A read pinned to a non-connected chain fetches through the matching client here; without an
+   * entry it stays disabled. Supply clients with the same transport care as publicClient —
+   * batching recommended, since the block-aware gate batches its probe with the read. The
+   * connected chain needs no entry.
+   */
+  publicClients?: Readonly<Record<number, PublicClient>>;
 
   /**
    * Optional transaction renderers keyed by actionType. For custom action types (`custom-${string}`),
