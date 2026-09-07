@@ -49,7 +49,7 @@ function useTrackPendingTransactionsBase({
           hash: tx.hash,
         });
 
-        const normalizedReceipt = await resolveReceiptBlockHash(receipt, publicClient, signal);
+        const normalizedReceipt = await resolveReceiptBlockHash(receipt, publicClient, { signal });
 
         const status = normalizedReceipt.status === 'success' ? TransactionStatus.Confirmed : TransactionStatus.Failed;
 

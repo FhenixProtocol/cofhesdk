@@ -12,7 +12,11 @@ export type WaitUntilRpcAwareAndReadContractOptions = {
   onSuccess?: () => void;
   pollingInterval?: number;
   signal?: AbortSignal;
+  /** Give up waiting for the node to know the block after this long (default 60s) and serve the read un-gated. */
+  maxWaitMs?: number;
 };
+
+const DEFAULT_MAX_WAIT_MS = 60_000;
 
 function abortError(message = 'Aborted') {
   const err = new Error(message);
@@ -34,7 +38,9 @@ export async function maybeWaitUntilRpcAware<T>(
   if (!params.blockHashToBeAwareOf) return params.read();
 
   const pollingInterval = options.pollingInterval ?? 1_000;
+  const maxWaitMs = options.maxWaitMs ?? DEFAULT_MAX_WAIT_MS;
   const readDescription = params.readDescription ?? 'RPC read';
+  const startedAt = Date.now();
 
   cofheLogger.log(
     `[maybeWaitUntilRpcAware]: Waiting until RPC is aware of block ${params.blockHashToBeAwareOf} before ${readDescription}...`
@@ -53,16 +59,38 @@ export async function maybeWaitUntilRpcAware<T>(
 
     const blockKnown = blockRes.status === 'fulfilled' && blockRes.value != null;
 
-    if (blockKnown && readRes.status === 'fulfilled') {
-      options.onSuccess?.();
+    if (blockKnown) {
+      // The gate is satisfied: whatever the read did against this node is the real
+      // answer. A read that failed on a node that HAS the block failed for a real
+      // reason (a revert, a missing contract, bad args) — looping cannot fix it,
+      // and swallowing it would turn one error into an endless silent poll that
+      // the caller's error handling never sees. Throw; react-query's own retry
+      // policy takes it from here.
+      if (readRes.status === 'fulfilled') {
+        options.onSuccess?.();
 
-      cofheLogger.debug(
-        `[maybeWaitUntilRpcAware]: RPC is now aware of block ${params.blockHashToBeAwareOf}. Block fetch result:`,
-        blockRes,
-        'Read result:',
-        readRes
+        cofheLogger.debug(
+          `[maybeWaitUntilRpcAware]: RPC is now aware of block ${params.blockHashToBeAwareOf}. Block fetch result:`,
+          blockRes,
+          'Read result:',
+          readRes
+        );
+        return readRes.value;
+      }
+      throw readRes.reason;
+    }
+
+    if (Date.now() - startedAt >= maxWaitMs) {
+      // The node never learned the block: it lags hopelessly, or the block was
+      // reorged away — in which case this hash will NEVER become known and
+      // probing it further is guaranteed-futile. The gate is a freshness
+      // optimization, so degrade rather than fail: serve the un-gated read
+      // result (possibly stale), or its own real error.
+      cofheLogger.warn(
+        `[maybeWaitUntilRpcAware]: giving up waiting for block ${params.blockHashToBeAwareOf} after ${maxWaitMs}ms (lagging node or reorged-away block); serving ${readDescription} un-gated`
       );
-      return readRes.value;
+      if (readRes.status === 'fulfilled') return readRes.value;
+      throw readRes.reason;
     }
 
     cofheLogger.debug(

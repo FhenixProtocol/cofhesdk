@@ -156,6 +156,9 @@ async function invalidateOnceMined(params: {
     // Deliberately NO status check: a reverted tx is still mined — it burned gas and advanced
     // the nonce in a real block, so declared reads (an ETH balance, a nonce-dependent view) are
     // stale regardless of outcome. Targets the revert did not touch refetch to the same value.
+    // No abort signal on purpose: invalidation is cache-global work — the tx mined,
+    // so it must complete even if the writing component unmounts. The resolver's
+    // own maxWaitMs bound is the safety against a permanent background poll.
     const resolvedReceipt = await resolveReceiptBlockHash(receipt, publicClient);
     const { blockHash } = resolvedReceipt;
 
