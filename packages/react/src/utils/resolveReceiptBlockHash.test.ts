@@ -17,7 +17,7 @@ function receiptWith(blockHash: `0x${string}`): TransactionReceipt {
     blockHash,
     blockNumber: 5n,
     status: 'success',
-  } as TransactionReceipt;
+  } as unknown as TransactionReceipt;
 }
 
 function scriptedClient(answers: () => TransactionReceipt | Error) {
