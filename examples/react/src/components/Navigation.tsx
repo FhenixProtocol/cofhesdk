@@ -24,12 +24,12 @@ export const Navigation: React.FC<NavigationProps> = ({
   const isUsingBrowserWallet = useIsUsingBrowserWallet();
   const { connectBrowserWallet, isConnecting } = useConnectBrowserWallet();
 
-  const handleConnectBrowserWallet = async () => {
+  const handleConnect = async (walletType: 'metamask' | 'okx') => {
     try {
-      await connectBrowserWallet();
+      await connectBrowserWallet(walletType);
     } catch (error) {
       console.error('Failed to connect browser wallet:', error);
-      alert('Failed to connect wallet. Please make sure MetaMask or another wallet extension is installed.');
+      alert(`Failed to connect ${walletType === 'okx' ? 'OKX Wallet' : 'MetaMask'}. Please make sure the extension is installed.`);
     }
   };
 
@@ -54,21 +54,34 @@ export const Navigation: React.FC<NavigationProps> = ({
                 🌐 Browser Wallet Connected
               </div>
               <div className={`text-xs ${isDarkMode ? 'text-green-300' : 'text-green-600'}`}>
-                Using MetaMask or injected wallet
+                Using MetaMask or OKX Wallet
               </div>
             </div>
           ) : (
-            <button
-              onClick={handleConnectBrowserWallet}
-              disabled={isConnecting}
-              className={`w-full mt-2 px-3 py-2 text-sm rounded-lg transition-colors ${
-                isDarkMode
-                  ? 'bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-700 disabled:text-gray-400'
-                  : 'bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500'
-              }`}
-            >
-              {isConnecting ? 'Connecting...' : 'Connect Browser Wallet'}
-            </button>
+            <div className="flex flex-col gap-2 mt-2">
+              <button
+                onClick={() => handleConnect('metamask')}
+                disabled={isConnecting}
+                className={`w-full px-3 py-2 text-sm rounded-lg transition-colors ${
+                  isDarkMode
+                    ? 'bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-700 disabled:text-gray-400'
+                    : 'bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500'
+                }`}
+              >
+                {isConnecting ? 'Connecting...' : '🦊 Connect MetaMask'}
+              </button>
+              <button
+                onClick={() => handleConnect('okx')}
+                disabled={isConnecting}
+                className={`w-full px-3 py-2 text-sm rounded-lg transition-colors ${
+                  isDarkMode
+                    ? 'bg-gray-600 text-white hover:bg-gray-500 disabled:bg-gray-700 disabled:text-gray-400'
+                    : 'bg-gray-800 text-white hover:bg-gray-700 disabled:bg-gray-300 disabled:text-gray-500'
+                }`}
+              >
+                {isConnecting ? 'Connecting...' : '⭕ Connect OKX Wallet'}
+              </button>
+            </div>
           )}
         </div>
 
