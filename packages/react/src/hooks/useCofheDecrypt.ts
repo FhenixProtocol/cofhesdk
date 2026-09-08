@@ -36,7 +36,17 @@ export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<
   // read taken while the ACP was valid, so this gate cannot be left to the read hook.
   const activeACP = useCofheActiveACP();
 
-  const { enabled: userEnabled, meta: optionMeta, ...restQueryOptions } = queryOptions || {};
+  const {
+    enabled: userEnabled,
+    meta: optionMeta,
+    retry = (failureCount: number, error: Error) => {
+      if (error instanceof CofheError) return false; // don't retry decryption errors
+
+      // default retry behavior - 3 retries
+      return failureCount < 3;
+    },
+    ...restQueryOptions
+  } = queryOptions || {};
   const enabled = !!input && BigInt(input.ctHash) > 0n && !!client && !!activeACP?.isValid && (userEnabled ?? true);
 
   return useInternalQuery({
@@ -59,11 +69,6 @@ export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<
       ...optionMeta,
     },
     ...restQueryOptions,
-    retry: (failureCount, error) => {
-      if (error instanceof CofheError) return false; // don't retry decryption errors
-
-      // default retry behavior - 3 retries
-      return failureCount < 3;
-    },
+    retry,
   });
 }
