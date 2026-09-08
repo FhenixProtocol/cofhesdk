@@ -101,7 +101,7 @@ export type {
 } from './encrypt/zkPackProveVerify.js';
 export { zkProveWithWorker } from './encrypt/zkPackProveVerify.js';
 
-// Consts (contract addresses, serialized size limits)
+// Consts (contract addresses, serialized size limits, gas limits)
 export {
   TASK_MANAGER_ADDRESS,
   MOCKS_ZK_VERIFIER_ADDRESS,
@@ -111,10 +111,12 @@ export {
   MOCKS_THRESHOLD_NETWORK_ADDRESS,
   TFHE_RS_ZK_MAX_BITS,
   TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT,
+  FHE_GAS_LIMITS,
 } from './consts.js';
+export type { FheGasOperationType } from './consts.js';
 
 // Decrypt result verification
 export { verifyDecryptResult } from './decrypt/verifyDecryptResult.js';
 
 // Utils
-export { fheTypeToString } from './utils.js';
+export { fheTypeToString, getRecommendedFheGasLimit } from './utils.js';
