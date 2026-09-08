@@ -43,8 +43,10 @@ const mock_checkIsTestnet = async (fnName: string, provider: HardhatEthersProvid
   // Get bytecode at ZK_VERIFIER_ADDRESS
   const bytecode = await provider.getCode(MOCKS_ZK_VERIFIER_ADDRESS);
 
-  // If bytecode is empty, we are on a testnet
-  const isTestnet = bytecode.length === 0;
+  // provider.getCode() (eth_getCode) returns the string "0x" -- never a zero-length string --
+  // when there is no contract deployed at the address, so a real "no bytecode" check must
+  // compare against that, not against string length 0.
+  const isTestnet = !bytecode || bytecode.length <= 2;
 
   // Log if we are on a testnet
   if (isTestnet) {
