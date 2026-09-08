@@ -77,7 +77,7 @@ const fetchCrs = async (
   keysStorage?: KeysStorage | null
 ): Promise<[string, boolean]> => {
   // Escape if key already exists
-  const storedKey = keysStorage?.getCrs(chainId);
+  const storedKey = keysStorage?.getCrs(chainId, securityZone);
   const [storedKeyValid] = checkKeyValidity(storedKey, compactPkeCrsDeserializer);
   if (storedKeyValid) return [storedKey!, false];
 
@@ -108,7 +108,7 @@ const fetchCrs = async (
     throw new Error(`Error serializing CRS; ${err}`);
   }
 
-  keysStorage?.setCrs(chainId, crs_data);
+  keysStorage?.setCrs(chainId, securityZone, crs_data);
 
   return [crs_data, true];
 };

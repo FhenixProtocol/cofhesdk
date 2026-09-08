@@ -98,7 +98,7 @@ describe('KeyStore', () => {
     const testCrs = '0x1234567890';
 
     it('should set and get CRS', () => {
-      keysStorage.setCrs(testChainId, testCrs);
+      keysStorage.setCrs(testChainId, 0, testCrs);
 
       const retrievedCrs = keysStorage.getCrs(testChainId);
 
@@ -109,16 +109,28 @@ describe('KeyStore', () => {
       const crs1 = '0x1234567890';
       const crs2 = '0x2345678901';
 
-      keysStorage.setCrs(1, crs1);
-      keysStorage.setCrs(2, crs2);
+      keysStorage.setCrs(1, 0, crs1);
+      keysStorage.setCrs(2, 0, crs2);
 
       expect(keysStorage.getCrs(1)).toEqual(crs1);
       expect(keysStorage.getCrs(2)).toEqual(crs2);
     });
 
+    it('should keep CRS separate per security zone', () => {
+      const crsZone0 = '0xaaaaaaaaaa';
+      const crsZone1 = '0xbbbbbbbbbb';
+
+      keysStorage.setCrs(testChainId, 0, crsZone0);
+      keysStorage.setCrs(testChainId, 1, crsZone1);
+
+      expect(keysStorage.getCrs(testChainId, 0)).toEqual(crsZone0);
+      expect(keysStorage.getCrs(testChainId, 1)).toEqual(crsZone1);
+    });
+
     it('should return undefined for non-existent CRS', () => {
       expect(keysStorage.getCrs(999)).toBeUndefined();
       expect(keysStorage.getCrs(undefined)).toBeUndefined();
+      expect(keysStorage.getCrs(testChainId, 999)).toBeUndefined();
     });
   });
 
@@ -162,7 +174,7 @@ describe('KeyStore', () => {
       const testCrs = '0x2345678901';
 
       keysStorage.setFheKey(testChainId, 0, testKey);
-      keysStorage.setCrs(testChainId, testCrs);
+      keysStorage.setCrs(testChainId, 0, testCrs);
 
       expect(keysStorage.getFheKey(testChainId, 0)).toEqual(testKey);
       expect(keysStorage.getCrs(testChainId)).toEqual(testCrs);
@@ -194,13 +206,13 @@ describe('KeyStore', () => {
 
       keysStorage.setFheKey(1, 0, key1);
       keysStorage.setFheKey(2, 0, key2);
-      keysStorage.setCrs(1, crs1);
+      keysStorage.setCrs(1, 0, crs1);
 
       const state = keysStorage.store.getState();
 
       expect(state.fhe[1][0]).toEqual(key1);
       expect(state.fhe[2][0]).toEqual(key2);
-      expect(state.crs[1]).toEqual(crs1);
+      expect(state.crs[1][0]).toEqual(crs1);
     });
   });
 
