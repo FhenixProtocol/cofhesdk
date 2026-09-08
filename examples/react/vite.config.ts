@@ -37,6 +37,15 @@ export default defineConfig(({ mode }) => {
       port: 5198,
       strictPort: true,
       allowedHosts,
+      // Same isolation headers as `server`. Without them the page isn't
+      // cross-origin isolated, so tfhe's rayon thread pool silently stays off
+      // and proving falls back to single-threaded — which would make a
+      // production build look slower than dev for no obvious reason.
+      // (Deployed builds get these from vercel.json.)
+      headers: {
+        'Cross-Origin-Embedder-Policy': 'credentialless',
+        'Cross-Origin-Opener-Policy': 'same-origin',
+      },
     },
     // Optimize dependency handling for TFHE
     optimizeDeps: {
