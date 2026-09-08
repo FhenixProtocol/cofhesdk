@@ -10,7 +10,7 @@
     "dev": "vocs dev",
     "lint": "eslint .",
     "check:snippets": "node scripts/typecheck-docs-snippets.mjs",
-    "check": "npm run lint && npm run typecheck:docs && npm run build",
+    "check": "npm run lint && npm run check:snippets && npm run build",
     "build": "vocs build",
     "preview": "vocs preview"
   },
