@@ -17,7 +17,7 @@
   "scripts": {
     "setup": "node setup.mjs",
     "build": "node scripts/build.mjs",
-    "test": "node --test setup.test.mjs",
+    "test": "node --test *.test.mjs",
     "clean": "rm -rf dist && forge clean"
   },
   "dependencies": {
