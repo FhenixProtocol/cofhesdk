@@ -21,9 +21,9 @@ export const MockTaskManagerArtifact = {
           internalType: 'uint256',
         },
         {
-          name: 'operation',
-          type: 'string',
-          internalType: 'string',
+          name: 'funcId',
+          type: 'uint8',
+          internalType: 'enum FunctionId',
         },
         {
           name: 'inputs',

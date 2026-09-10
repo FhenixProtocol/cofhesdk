@@ -261,70 +261,70 @@ abstract contract MockCoFHE {
     if (!inMockStorage[ctHash]) revert InputNotInMockStorage(ctHash);
   }
 
-  function MOCK_unaryOperation(uint256 ctHash, string memory operation, uint256 input) internal {
-    if (opIs(operation, FunctionId.random)) {
+  function MOCK_unaryOperation(uint256 ctHash, FunctionId funcId, uint256 input) internal {
+    if (funcId == FunctionId.random) {
       _set(ctHash, uint256(blockhash(block.number - 1)));
-      logOperation('FHE.random', '', logCtHash(ctHash));
+      if (logOps) logOperation('FHE.random', '', logCtHash(ctHash));
       return;
     }
-    if (opIs(operation, FunctionId.cast)) {
+    if (funcId == FunctionId.cast) {
       _set(ctHash, _get(input));
-      logOperation('FHE.cast', logCtHash(input), logCtHash(ctHash));
+      if (logOps) logOperation('FHE.cast', logCtHash(input), logCtHash(ctHash));
       return;
     }
-    if (opIs(operation, FunctionId.not)) {
+    if (funcId == FunctionId.not) {
       bool inputIsTruthy = _get(input) == 1;
       _set(ctHash, !inputIsTruthy);
-      logOperation('FHE.not', logCtHash(input), logCtHash(ctHash));
+      if (logOps) logOperation('FHE.not', logCtHash(input), logCtHash(ctHash));
       return;
     }
-    if (opIs(operation, FunctionId.square)) {
+    if (funcId == FunctionId.square) {
       unchecked {
         _set(ctHash, _get(input) * _get(input));
       }
-      logOperation('FHE.square', string.concat(logCtHash(input), ' * ', logCtHash(input)), logCtHash(ctHash));
+      if (logOps) logOperation('FHE.square', string.concat(logCtHash(input), ' * ', logCtHash(input)), logCtHash(ctHash));
       return;
     }
-    revert InvalidUnaryOperation(operation);
+    revert InvalidUnaryOperation(Utils.functionIdToString(funcId));
   }
 
-  function MOCK_twoInputOperation(uint256 ctHash, string memory operation, uint256 input1, uint256 input2) internal {
-    if (opIs(operation, FunctionId.sub)) {
+  function MOCK_twoInputOperation(uint256 ctHash, FunctionId funcId, uint256 input1, uint256 input2) internal {
+    if (funcId == FunctionId.sub) {
       unchecked {
         _set(ctHash, _get(input1) - _get(input2));
       }
-      logOperation('FHE.sub', string.concat(logCtHash(input1), ' - ', logCtHash(input2)), logCtHash(ctHash));
+      if (logOps) logOperation('FHE.sub', string.concat(logCtHash(input1), ' - ', logCtHash(input2)), logCtHash(ctHash));
       return;
     }
-    if (opIs(operation, FunctionId.add)) {
+    if (funcId == FunctionId.add) {
       unchecked {
         _set(ctHash, _get(input1) + _get(input2));
       }
-      logOperation('FHE.add', string.concat(logCtHash(input1), ' + ', logCtHash(input2)), logCtHash(ctHash));
+      if (logOps) logOperation('FHE.add', string.concat(logCtHash(input1), ' + ', logCtHash(input2)), logCtHash(ctHash));
       return;
     }
-    if (opIs(operation, FunctionId.xor)) {
+    if (funcId == FunctionId.xor) {
       unchecked {
         _set(ctHash, _get(input1) ^ _get(input2));
       }
-      logOperation('FHE.xor', string.concat(logCtHash(input1), ' ^ ', logCtHash(input2)), logCtHash(ctHash));
+      if (logOps) logOperation('FHE.xor', string.concat(logCtHash(input1), ' ^ ', logCtHash(input2)), logCtHash(ctHash));
       return;
     }
-    if (opIs(operation, FunctionId.and)) {
+    if (funcId == FunctionId.and) {
       unchecked {
         _set(ctHash, _get(input1) & _get(input2));
       }
-      logOperation('FHE.and', string.concat(logCtHash(input1), ' & ', logCtHash(input2)), logCtHash(ctHash));
+      if (logOps) logOperation('FHE.and', string.concat(logCtHash(input1), ' & ', logCtHash(input2)), logCtHash(ctHash));
       return;
     }
-    if (opIs(operation, FunctionId.or)) {
+    if (funcId == FunctionId.or) {
       unchecked {
         _set(ctHash, _get(input1) | _get(input2));
       }
-      logOperation('FHE.or', string.concat(logCtHash(input1), ' | ', logCtHash(input2)), logCtHash(ctHash));
+      if (logOps) logOperation('FHE.or', string.concat(logCtHash(input1), ' | ', logCtHash(input2)), logCtHash(ctHash));
       return;
     }
-    if (opIs(operation, FunctionId.div)) {
+    if (funcId == FunctionId.div) {
       uint256 cleartext2 = _get(input2);
       if (cleartext2 == 0) {
         _set(ctHash, type(uint256).max);
@@ -333,143 +333,147 @@ abstract contract MockCoFHE {
           _set(ctHash, _get(input1) / cleartext2);
         }
       }
-      logOperation('FHE.div', string.concat(logCtHash(input1), ' / ', logCtHash(input2)), logCtHash(ctHash));
+      if (logOps) logOperation('FHE.div', string.concat(logCtHash(input1), ' / ', logCtHash(input2)), logCtHash(ctHash));
       return;
     }
-    if (opIs(operation, FunctionId.rem)) {
+    if (funcId == FunctionId.rem) {
       unchecked {
         _set(ctHash, _get(input1) % _get(input2));
       }
-      logOperation('FHE.rem', string.concat(logCtHash(input1), ' % ', logCtHash(input2)), logCtHash(ctHash));
+      if (logOps) logOperation('FHE.rem', string.concat(logCtHash(input1), ' % ', logCtHash(input2)), logCtHash(ctHash));
       return;
     }
-    if (opIs(operation, FunctionId.mul)) {
+    if (funcId == FunctionId.mul) {
       unchecked {
         _set(ctHash, _get(input1) * _get(input2));
       }
-      logOperation('FHE.mul', string.concat(logCtHash(input1), ' * ', logCtHash(input2)), logCtHash(ctHash));
+      if (logOps) logOperation('FHE.mul', string.concat(logCtHash(input1), ' * ', logCtHash(input2)), logCtHash(ctHash));
       return;
     }
-    if (opIs(operation, FunctionId.shl)) {
+    if (funcId == FunctionId.shl) {
       unchecked {
         _set(ctHash, _get(input1) << _get(input2));
       }
-      logOperation('FHE.shl', string.concat(logCtHash(input1), ' << ', logCtHash(input2)), logCtHash(ctHash));
+      if (logOps) logOperation('FHE.shl', string.concat(logCtHash(input1), ' << ', logCtHash(input2)), logCtHash(ctHash));
       return;
     }
-    if (opIs(operation, FunctionId.shr)) {
+    if (funcId == FunctionId.shr) {
       unchecked {
         _set(ctHash, _get(input1) >> _get(input2));
       }
-      logOperation('FHE.shr', string.concat(logCtHash(input1), ' >> ', logCtHash(input2)), logCtHash(ctHash));
+      if (logOps) logOperation('FHE.shr', string.concat(logCtHash(input1), ' >> ', logCtHash(input2)), logCtHash(ctHash));
       return;
     }
-    if (opIs(operation, FunctionId.gte)) {
+    if (funcId == FunctionId.gte) {
       _set(ctHash, _get(input1) >= _get(input2));
-      logOperation('FHE.gte', string.concat(logCtHash(input1), ' >= ', logCtHash(input2)), logCtHash(ctHash));
+      if (logOps) logOperation('FHE.gte', string.concat(logCtHash(input1), ' >= ', logCtHash(input2)), logCtHash(ctHash));
       return;
     }
-    if (opIs(operation, FunctionId.lte)) {
+    if (funcId == FunctionId.lte) {
       _set(ctHash, _get(input1) <= _get(input2));
-      logOperation('FHE.lte', string.concat(logCtHash(input1), ' <= ', logCtHash(input2)), logCtHash(ctHash));
+      if (logOps) logOperation('FHE.lte', string.concat(logCtHash(input1), ' <= ', logCtHash(input2)), logCtHash(ctHash));
       return;
     }
-    if (opIs(operation, FunctionId.lt)) {
+    if (funcId == FunctionId.lt) {
       _set(ctHash, _get(input1) < _get(input2));
-      logOperation('FHE.lt', string.concat(logCtHash(input1), ' < ', logCtHash(input2)), logCtHash(ctHash));
+      if (logOps) logOperation('FHE.lt', string.concat(logCtHash(input1), ' < ', logCtHash(input2)), logCtHash(ctHash));
       return;
     }
-    if (opIs(operation, FunctionId.gt)) {
+    if (funcId == FunctionId.gt) {
       _set(ctHash, _get(input1) > _get(input2));
-      logOperation('FHE.gt', string.concat(logCtHash(input1), ' > ', logCtHash(input2)), logCtHash(ctHash));
+      if (logOps) logOperation('FHE.gt', string.concat(logCtHash(input1), ' > ', logCtHash(input2)), logCtHash(ctHash));
       return;
     }
-    if (opIs(operation, FunctionId.min)) {
+    if (funcId == FunctionId.min) {
       uint256 min;
       unchecked {
         min = _get(input1) < _get(input2) ? _get(input1) : _get(input2);
       }
       _set(ctHash, min);
 
-      logOperation(
-        'FHE.min',
-        string.concat('min(', logCtHash(input1), ', ', logCtHash(input2), ')'),
-        logCtHash(ctHash)
-      );
+      if (logOps)
+        logOperation(
+          'FHE.min',
+          string.concat('min(', logCtHash(input1), ', ', logCtHash(input2), ')'),
+          logCtHash(ctHash)
+        );
       return;
     }
-    if (opIs(operation, FunctionId.max)) {
+    if (funcId == FunctionId.max) {
       uint256 max;
       unchecked {
         max = _get(input1) > _get(input2) ? _get(input1) : _get(input2);
       }
       _set(ctHash, max);
 
-      logOperation(
-        'FHE.max',
-        string.concat('max(', logCtHash(input1), ', ', logCtHash(input2), ')'),
-        logCtHash(ctHash)
-      );
+      if (logOps)
+        logOperation(
+          'FHE.max',
+          string.concat('max(', logCtHash(input1), ', ', logCtHash(input2), ')'),
+          logCtHash(ctHash)
+        );
       return;
     }
-    if (opIs(operation, FunctionId.eq)) {
+    if (funcId == FunctionId.eq) {
       _set(ctHash, _get(input1) == _get(input2));
 
-      logOperation('FHE.eq', string.concat(logCtHash(input1), ' == ', logCtHash(input2)), logCtHash(ctHash));
+      if (logOps) logOperation('FHE.eq', string.concat(logCtHash(input1), ' == ', logCtHash(input2)), logCtHash(ctHash));
       return;
     }
-    if (opIs(operation, FunctionId.ne)) {
+    if (funcId == FunctionId.ne) {
       _set(ctHash, _get(input1) != _get(input2));
 
-      logOperation('FHE.ne', string.concat(logCtHash(input1), ' != ', logCtHash(input2)), logCtHash(ctHash));
+      if (logOps) logOperation('FHE.ne', string.concat(logCtHash(input1), ' != ', logCtHash(input2)), logCtHash(ctHash));
       return;
     }
-    if (opIs(operation, FunctionId.rol)) {
+    if (funcId == FunctionId.rol) {
       unchecked {
         _set(ctHash, _get(input1) << _get(input2));
       }
 
-      logOperation('FHE.rol', string.concat(logCtHash(input1), ' << ', logCtHash(input2)), logCtHash(ctHash));
+      if (logOps) logOperation('FHE.rol', string.concat(logCtHash(input1), ' << ', logCtHash(input2)), logCtHash(ctHash));
       return;
     }
-    if (opIs(operation, FunctionId.ror)) {
+    if (funcId == FunctionId.ror) {
       unchecked {
         _set(ctHash, _get(input1) >> _get(input2));
       }
 
-      logOperation('FHE.ror', string.concat(logCtHash(input1), ' >> ', logCtHash(input2)), logCtHash(ctHash));
+      if (logOps) logOperation('FHE.ror', string.concat(logCtHash(input1), ' >> ', logCtHash(input2)), logCtHash(ctHash));
       return;
     }
-    revert InvalidTwoInputOperation(operation);
+    revert InvalidTwoInputOperation(Utils.functionIdToString(funcId));
   }
 
   function MOCK_threeInputOperation(
     uint256 ctHash,
-    string memory operation,
+    FunctionId funcId,
     uint256 input1,
     uint256 input2,
     uint256 input3
   ) internal {
-    if (opIs(operation, FunctionId.trivialEncrypt)) {
+    if (funcId == FunctionId.trivialEncrypt) {
       _set(ctHash, input1);
 
-      logOperation(
-        string.concat('FHE.asE', removeFirstLetter(getUtypeStringFromHash(ctHash))),
-        string.concat(removeFirstLetter(getUtypeStringFromHash(ctHash)), '(', Strings.toString(input1), ')'),
-        logCtHash(ctHash)
-      );
+      if (logOps)
+        logOperation(
+          string.concat('FHE.asE', removeFirstLetter(getUtypeStringFromHash(ctHash))),
+          string.concat(removeFirstLetter(getUtypeStringFromHash(ctHash)), '(', Strings.toString(input1), ')'),
+          logCtHash(ctHash)
+        );
       return;
     }
-    if (opIs(operation, FunctionId.select)) {
+    if (funcId == FunctionId.select) {
       _set(ctHash, _get(input1) == 1 ? _get(input2) : _get(input3));
 
-      logOperation(
-        'FHE.select',
-        string.concat(logCtHash(input1), ' ? ', logCtHash(input2), ' : ', logCtHash(input3)),
-        logCtHash(ctHash)
-      );
+      if (logOps)
+        logOperation(
+          'FHE.select',
+          string.concat(logCtHash(input1), ' ? ', logCtHash(input2), ' : ', logCtHash(input3)),
+          logCtHash(ctHash)
+        );
       return;
     }
-    revert InvalidThreeInputOperation(operation);
+    revert InvalidThreeInputOperation(Utils.functionIdToString(funcId));
   }
 }

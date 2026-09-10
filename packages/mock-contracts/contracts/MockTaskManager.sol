@@ -265,8 +265,13 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
 
   error OnlySelf();
 
-  function sendEventCreated(uint256 ctHash, string memory operation, uint256[] memory inputs) private {
-    uint8 arity = (inputs.length == 1 || opIs(operation, FunctionId.cast)) ? 1 : (inputs.length == 2 ? 2 : 3);
+  function sendEventCreated(
+    uint256 ctHash,
+    FunctionId funcId,
+    string memory operation,
+    uint256[] memory inputs
+  ) private {
+    uint8 arity = (inputs.length == 1 || funcId == FunctionId.cast) ? 1 : (inputs.length == 2 ? 2 : 3);
 
     if (arity == 1) {
       emit TaskCreated(ctHash, operation, inputs[0], 0, 0);
@@ -280,7 +285,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     // task manager, so (under forge, when enabled) it runs with gas metering paused.
     bool paused = _pauseGasMetering();
     if (!paused) {
-      _mockDispatch(ctHash, operation, inputs, arity);
+      _mockDispatch(ctHash, funcId, inputs, arity);
       return;
     }
 
@@ -288,7 +293,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     // resumed before bubbling the original error - otherwise the paused state leaks into
     // the rest of the test and every later call reports ~0 gas. The extra call itself
     // runs unmetered.
-    try this.MOCK_dispatchOperation(ctHash, operation, inputs, arity) {
+    try this.MOCK_dispatchOperation(ctHash, funcId, inputs, arity) {
       _resumeGasMetering(true);
     } catch (bytes memory err) {
       _resumeGasMetering(true);
@@ -299,23 +304,18 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
   }
 
   /// @dev Trampoline for `sendEventCreated`'s try/catch; not part of the mocked interface.
-  function MOCK_dispatchOperation(
-    uint256 ctHash,
-    string calldata operation,
-    uint256[] calldata inputs,
-    uint8 arity
-  ) external {
+  function MOCK_dispatchOperation(uint256 ctHash, FunctionId funcId, uint256[] calldata inputs, uint8 arity) external {
     if (msg.sender != address(this)) revert OnlySelf();
-    _mockDispatch(ctHash, operation, inputs, arity);
+    _mockDispatch(ctHash, funcId, inputs, arity);
   }
 
-  function _mockDispatch(uint256 ctHash, string memory operation, uint256[] memory inputs, uint8 arity) private {
+  function _mockDispatch(uint256 ctHash, FunctionId funcId, uint256[] memory inputs, uint8 arity) private {
     if (arity == 1) {
-      MOCK_unaryOperation(ctHash, operation, inputs[0]);
+      MOCK_unaryOperation(ctHash, funcId, inputs[0]);
     } else if (arity == 2) {
-      MOCK_twoInputOperation(ctHash, operation, inputs[0], inputs[1]);
+      MOCK_twoInputOperation(ctHash, funcId, inputs[0], inputs[1]);
     } else {
-      MOCK_threeInputOperation(ctHash, operation, inputs[0], inputs[1], inputs[2]);
+      MOCK_threeInputOperation(ctHash, funcId, inputs[0], inputs[1], inputs[2]);
     }
   }
 
@@ -436,9 +436,11 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     }
   }
 
-  function validateInputs(uint256[] memory encryptedHashes, FunctionId funcId) internal view {
-    string memory functionName = Utils.functionIdToString(funcId);
-
+  function validateInputs(
+    uint256[] memory encryptedHashes,
+    FunctionId funcId,
+    string memory functionName
+  ) internal view {
     if (encryptedHashes.length == 0) {
       if (!isPlaintextOperation(funcId)) {
         revert InvalidOperationInputs(functionName);
@@ -492,19 +494,20 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     if (funcId == FunctionId.random) {
       revert RandomFunctionNotSupported();
     }
+    string memory operation = Utils.functionIdToString(funcId);
     uint256 inputsLength = encryptedHashes.length + extraInputs.length;
     if (inputsLength > 3) {
-      revert TooManyInputs(Utils.functionIdToString(funcId), inputsLength, 3);
+      revert TooManyInputs(operation, inputsLength, 3);
     }
 
-    validateInputs(encryptedHashes, funcId);
+    validateInputs(encryptedHashes, funcId, operation);
     uint256[] memory inputs = TMCommon.combineInputs(encryptedHashes, extraInputs);
 
     int32 securityZone = getSecurityZone(funcId, encryptedHashes, extraInputs);
     uint256 ctHash = TMCommon.calcPlaceholderKey(returnType, securityZone, inputs, funcId);
 
     acl.allowTransient(ctHash, msg.sender, address(this));
-    sendEventCreated(ctHash, Utils.functionIdToString(funcId), inputs);
+    sendEventCreated(ctHash, funcId, operation, inputs);
 
     return ctHash;
   }

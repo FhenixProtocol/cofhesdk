@@ -131,7 +131,7 @@ export interface MockTaskManagerInterface extends Interface {
 
   encodeFunctionData(
     functionFragment: 'MOCK_dispatchOperation',
-    values: [BigNumberish, string, BigNumberish[], BigNumberish]
+    values: [BigNumberish, BigNumberish, BigNumberish[], BigNumberish]
   ): string;
   encodeFunctionData(functionFragment: 'MOCK_logAllow', values: [string, BigNumberish, AddressLike]): string;
   encodeFunctionData(functionFragment: 'MOCK_setInEuintKey', values: [BigNumberish, BigNumberish]): string;
@@ -334,7 +334,7 @@ export interface MockTaskManager extends BaseContract {
   removeAllListeners<TCEvent extends TypedContractEvent>(event?: TCEvent): Promise<this>;
 
   MOCK_dispatchOperation: TypedContractMethod<
-    [ctHash: BigNumberish, operation: string, inputs: BigNumberish[], arity: BigNumberish],
+    [ctHash: BigNumberish, funcId: BigNumberish, inputs: BigNumberish[], arity: BigNumberish],
     [void],
     'nonpayable'
   >;
@@ -484,7 +484,7 @@ export interface MockTaskManager extends BaseContract {
   getFunction(
     nameOrSignature: 'MOCK_dispatchOperation'
   ): TypedContractMethod<
-    [ctHash: BigNumberish, operation: string, inputs: BigNumberish[], arity: BigNumberish],
+    [ctHash: BigNumberish, funcId: BigNumberish, inputs: BigNumberish[], arity: BigNumberish],
     [void],
     'nonpayable'
   >;
