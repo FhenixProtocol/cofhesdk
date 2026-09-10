@@ -263,22 +263,61 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     return true;
   }
 
-  function sendEventCreated(uint256 ctHash, string memory operation, uint256[] memory inputs) private {
-    if (inputs.length == 1 || opIs(operation, FunctionId.cast)) {
+  error OnlySelf();
+
+  function sendEventCreated(
+    uint256 ctHash,
+    FunctionId funcId,
+    string memory operation,
+    uint256[] memory inputs
+  ) private {
+    uint8 arity = (inputs.length == 1 || funcId == FunctionId.cast) ? 1 : (inputs.length == 2 ? 2 : 3);
+
+    if (arity == 1) {
       emit TaskCreated(ctHash, operation, inputs[0], 0, 0);
-
-      // NOTE: MOCK
-      MOCK_unaryOperation(ctHash, operation, inputs[0]);
-    } else if (inputs.length == 2) {
+    } else if (arity == 2) {
       emit TaskCreated(ctHash, operation, inputs[0], inputs[1], 0);
-
-      // NOTE: MOCK
-      MOCK_twoInputOperation(ctHash, operation, inputs[0], inputs[1]);
     } else {
       emit TaskCreated(ctHash, operation, inputs[0], inputs[1], inputs[2]);
+    }
 
-      // NOTE: MOCK
-      MOCK_threeInputOperation(ctHash, operation, inputs[0], inputs[1], inputs[2]);
+    // NOTE: MOCK - plaintext replication is mock-only work that doesn't exist in the real
+    // task manager, so (under forge, when enabled) it runs with gas metering paused; when
+    // metered (hardhat) its cost is reported via MockGasConsumed instead.
+    (bool paused, uint256 startGas) = _mockGasTrackStart();
+    if (!paused) {
+      _mockDispatch(ctHash, funcId, inputs, arity);
+      _mockGasTrackEnd(false, startGas);
+      return;
+    }
+
+    // External self-call so a revert inside the mock op can be caught and gas metering
+    // resumed before bubbling the original error - otherwise the paused state leaks into
+    // the rest of the test and every later call reports ~0 gas. The extra call itself
+    // runs unmetered.
+    try this.MOCK_dispatchOperation(ctHash, funcId, inputs, arity) {
+      _resumeGasMetering(true);
+    } catch (bytes memory err) {
+      _resumeGasMetering(true);
+      assembly ('memory-safe') {
+        revert(add(err, 0x20), mload(err))
+      }
+    }
+  }
+
+  /// @dev Trampoline for `sendEventCreated`'s try/catch; not part of the mocked interface.
+  function MOCK_dispatchOperation(uint256 ctHash, FunctionId funcId, uint256[] calldata inputs, uint8 arity) external {
+    if (msg.sender != address(this)) revert OnlySelf();
+    _mockDispatch(ctHash, funcId, inputs, arity);
+  }
+
+  function _mockDispatch(uint256 ctHash, FunctionId funcId, uint256[] memory inputs, uint8 arity) private {
+    if (arity == 1) {
+      MOCK_unaryOperation(ctHash, funcId, inputs[0]);
+    } else if (arity == 2) {
+      MOCK_twoInputOperation(ctHash, funcId, inputs[0], inputs[1]);
+    } else {
+      MOCK_threeInputOperation(ctHash, funcId, inputs[0], inputs[1], inputs[2]);
     }
   }
 
@@ -299,12 +338,18 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     //     );
     // }
 
-    // NOTE: MOCK
+    // NOTE: MOCK - the real task manager only emits a task event here and the result lands
+    // in a later transaction; storing it synchronously is mock-only work. The plaintext is
+    // read before the tracked block so an InputNotInMockStorage revert can't leak paused
+    // gas metering.
+    uint256 result = _get(ctHash);
+    (bool paused, uint256 startGas) = _mockGasTrackStart();
     _decryptResultReady[ctHash] = true;
-    _decryptResult[ctHash] = _get(ctHash);
+    _decryptResult[ctHash] = result;
 
     uint64 asyncOffset = uint64((block.timestamp % 10) + 1);
     _decryptResultReadyTimestamp[ctHash] = uint64(block.timestamp) + asyncOffset;
+    _mockGasTrackEnd(paused, startGas);
   }
 
   function getDecryptResult(uint256 ctHash) public view returns (uint256) {
@@ -399,9 +444,11 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     }
   }
 
-  function validateInputs(uint256[] memory encryptedHashes, FunctionId funcId) internal view {
-    string memory functionName = Utils.functionIdToString(funcId);
-
+  function validateInputs(
+    uint256[] memory encryptedHashes,
+    FunctionId funcId,
+    string memory functionName
+  ) internal view {
     if (encryptedHashes.length == 0) {
       if (!isPlaintextOperation(funcId)) {
         revert InvalidOperationInputs(functionName);
@@ -455,19 +502,20 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     if (funcId == FunctionId.random) {
       revert RandomFunctionNotSupported();
     }
+    string memory operation = Utils.functionIdToString(funcId);
     uint256 inputsLength = encryptedHashes.length + extraInputs.length;
     if (inputsLength > 3) {
-      revert TooManyInputs(Utils.functionIdToString(funcId), inputsLength, 3);
+      revert TooManyInputs(operation, inputsLength, 3);
     }
 
-    validateInputs(encryptedHashes, funcId);
+    validateInputs(encryptedHashes, funcId, operation);
     uint256[] memory inputs = TMCommon.combineInputs(encryptedHashes, extraInputs);
 
     int32 securityZone = getSecurityZone(funcId, encryptedHashes, extraInputs);
     uint256 ctHash = TMCommon.calcPlaceholderKey(returnType, securityZone, inputs, funcId);
 
     acl.allowTransient(ctHash, msg.sender, address(this));
-    sendEventCreated(ctHash, Utils.functionIdToString(funcId), inputs);
+    sendEventCreated(ctHash, funcId, operation, inputs);
 
     return ctHash;
   }
@@ -611,7 +659,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
       acl.allow(ctHash, account, msg.sender);
 
       // NOTE: MOCK
-      MOCK_logAllow(account == msg.sender ? 'FHE.allowThis' : 'FHE.allow', ctHash, account);
+      MOCK_trackedLogAllow(account == msg.sender ? 'FHE.allowThis' : 'FHE.allow', ctHash, account);
     }
   }
 
@@ -620,7 +668,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
       acl.allowGlobal(ctHash, msg.sender);
 
       // NOTE: MOCK
-      MOCK_logAllow('FHE.allowGlobal', ctHash, msg.sender);
+      MOCK_trackedLogAllow('FHE.allowGlobal', ctHash, msg.sender);
     }
   }
 
@@ -629,7 +677,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
       acl.allowTransient(ctHash, account, msg.sender);
 
       // NOTE: MOCK
-      MOCK_logAllow('FHE.allowTransient', ctHash, account);
+      MOCK_trackedLogAllow('FHE.allowTransient', ctHash, account);
     }
   }
 
@@ -640,7 +688,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
       acl.allowForDecryption(hashes, msg.sender);
 
       // NOTE: MOCK
-      MOCK_logAllow('FHE.allowForDecryption', ctHash, msg.sender);
+      MOCK_trackedLogAllow('FHE.allowForDecryption', ctHash, msg.sender);
     }
   }
 
@@ -655,14 +703,14 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     acl.shareCtHash(ctHash, msg.sender, receiver);
 
     // NOTE: MOCK
-    MOCK_logAllow('FHE.share', ctHash, receiver);
+    MOCK_trackedLogAllow('FHE.share', ctHash, receiver);
   }
 
   function receiveCtHash(uint256 ctHash, address expectedSharer) external {
     acl.receiveCtHash(ctHash, expectedSharer, msg.sender);
 
     // NOTE: MOCK
-    MOCK_logAllow('FHE.receive', ctHash, expectedSharer);
+    MOCK_trackedLogAllow('FHE.receive', ctHash, expectedSharer);
   }
 
   /// @dev Per-input message hash used by batch verification:

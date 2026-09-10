@@ -66,17 +66,27 @@ contract MyTest is CofheTest {
 }
 ```
 
+## Gas reporting
+
+Mock FHE operations replicate the off-chain CoFHE work on-chain, which would normally inflate reported gas 2–3×. Under forge, `deployMocks()` excludes that mock-only work from gas metering by default (via `pauseGasMetering` cheatcodes), so `forge test --gas-report`, `forge snapshot`, and `gasleft()` measurements report numbers close to real-network costs.
+
+- Requires forge ≥ 1.0 (older versions had unreliable `pauseGasMetering` behavior). On unsupported setups the shim silently falls back to normal metering — correctness is never affected.
+- Opt out with `mockTaskManager.setMockGasExcluded(false)` to see raw mock gas.
+- When exclusion is off (or on Hardhat), the mock task manager instead emits a `MockGasConsumed(uint256)` event per block of mock-only work, so the overhead remains measurable from receipts.
+
+Note: upgrading to a version with this feature will lower existing `forge snapshot` numbers — the drop is the mock overhead disappearing from the report, not a change in your contracts.
+
 ## API
 
 ### `CofheTest` (abstract base)
 
-| Function                         | Description                                                  |
-| -------------------------------- | ------------------------------------------------------------ |
-| `deployMocks()`                  | Deploys all mock contracts and wires them together           |
-| `createCofheClient()`            | Returns a new unconnected `CofheClient`                      |
-| `enableLogs()` / `disableLogs()` | Toggle plaintext operation logging                           |
-| `getPlaintext(ctHash)`           | Returns the stored plaintext for a ciphertext handle         |
-| `expectPlaintext(handle, value)` | Asserts the plaintext of an encrypted handle matches `value` |
+| Function                         | Description                                                                                        |
+| -------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `deployMocks()`                  | Deploys all mock contracts and wires them together; enables mock-gas exclusion (see Gas reporting) |
+| `createCofheClient()`            | Returns a new unconnected `CofheClient`                                                            |
+| `enableLogs()` / `disableLogs()` | Toggle plaintext operation logging                                                                 |
+| `getPlaintext(ctHash)`           | Returns the stored plaintext for a ciphertext handle                                               |
+| `expectPlaintext(handle, value)` | Asserts the plaintext of an encrypted handle matches `value`                                       |
 
 `getPlaintext` and `expectPlaintext` have typed overloads for `ebool`, `euint8`, `euint16`, `euint32`, `euint64`, `euint128`, and `eaddress`.
 

@@ -1,6 +1,7 @@
 import type { WalletClient } from 'viem';
 import type { CofheClient, CofheConfig, CofheInputConfig } from '@cofhe/sdk';
 import type { DeployMocksArgs, LogMocksDeploy } from './deploy.js';
+import type { AdjustableGasReceipt, AdjustedGasBreakdown } from './gas.js';
 import type {
   MockTaskManagerArtifact,
   MockACLArtifact,
@@ -28,6 +29,22 @@ export interface CofheConnection {
    * first account from the connection is used automatically.
    */
   createClientWithBatteries(walletClient?: WalletClient): Promise<CofheClient>;
+
+  /**
+   * Returns a transaction's gas usage excluding mock-only overhead (FHE op replication,
+   * decrypt-task storage, mock logging) - an estimate of what the transaction would cost
+   * on a real CoFHE network. Pure function of the receipt (sums the mock task manager's
+   * MockGasConsumed events from `receipt.logs`); on a real network the receipt carries no
+   * such events and the raw `gasUsed` is returned unchanged.
+   */
+  getAdjustedGasUsed(receipt: AdjustableGasReceipt): bigint;
+
+  /**
+   * Full gas breakdown of a transaction receipt: raw `gasUsed`, the mock-only `mockGas`,
+   * the `adjustedGasUsed` (raw minus mock), and the number of mock gas events.
+   * See getAdjustedGasUsed.
+   */
+  getAdjustedGasBreakdown(receipt: AdjustableGasReceipt): AdjustedGasBreakdown;
 
   mocks: {
     /** Deploy (or re-deploy) the mock contracts. */
@@ -72,6 +89,12 @@ declare module 'hardhat/types/config' {
       /** Whether to show gas usage warnings for mock operations (default: true) */
       gasWarning?: boolean;
       /**
+       * Print a per-method gas summary after `hardhat test`, showing raw gas next to
+       * adjusted gas (mock-only overhead excluded - an estimate of real-network cost).
+       * (default: false)
+       */
+      gasSummary?: boolean;
+      /**
        * Controls deploy-mocks console output.
        * - `''`   — silent, no output
        * - `'v'`  — single summary line (default)
@@ -85,6 +108,8 @@ declare module 'hardhat/types/config' {
     cofhe: {
       logMocks: boolean;
       gasWarning: boolean;
+      /** Print a per-method adjusted-gas summary after `hardhat test` (default: false) */
+      gasSummary: boolean;
       mocksDeployVerbosity: LogMocksDeploy;
     };
   }

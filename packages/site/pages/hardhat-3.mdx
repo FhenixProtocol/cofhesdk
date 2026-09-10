@@ -50,16 +50,18 @@ export default defineConfig({
   cofhe: {
     logMocks: false, // log FHE ops to the console (default: false)
     gasWarning: false, // warn that mock gas differs from live FHE (default: false)
+    gasSummary: false, // print a per-method adjusted-gas summary after tests (default: false)
     mocksDeployVerbosity: 'v', // '' | 'v' | 'vv' — deployment output (default: 'v')
   },
 });
 ```
 
-| Option                 | Type                | Default | Description                                                   |
-| ---------------------- | ------------------- | ------- | ------------------------------------------------------------- |
-| `logMocks`             | `boolean`           | `false` | Enable structured FHE operation logs from mock contracts      |
-| `gasWarning`           | `boolean`           | `false` | Print a reminder that mock gas costs differ from live FHE     |
-| `mocksDeployVerbosity` | `'' \| 'v' \| 'vv'` | `'v'`   | `''` silent · `'v'` summary line · `'vv'` full deployment log |
+| Option                 | Type                | Default | Description                                                                      |
+| ---------------------- | ------------------- | ------- | -------------------------------------------------------------------------------- |
+| `logMocks`             | `boolean`           | `false` | Enable structured FHE operation logs from mock contracts                         |
+| `gasWarning`           | `boolean`           | `false` | Print a reminder that mock gas costs differ from live FHE                        |
+| `gasSummary`           | `boolean`           | `false` | Print a per-method gas summary after `hardhat test`, with mock overhead excluded |
+| `mocksDeployVerbosity` | `'' \| 'v' \| 'vv'` | `'v'`   | `''` silent · `'v'` summary line · `'vv'` full deployment log                    |
 
 ## Usage
 
@@ -136,6 +138,27 @@ await cofhe.mocks.enableLogs();
 await counter.increment();
 await cofhe.mocks.disableLogs();
 ```
+
+### Gas reporting
+
+Mock FHE operations consume extra gas replicating the off-chain CoFHE work on-chain. The mock task manager emits a `MockGasConsumed(uint256)` event per block of mock-only work, letting the plugin report corrected numbers:
+
+```ts
+const hash = await walletClient.writeContract({ ...simpleTest, functionName: 'setValueTrivial', args: [7n] });
+const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+// Gas usage excluding mock overhead — an estimate of real-network cost:
+const adjusted = cofhe.getAdjustedGasUsed(receipt);
+
+// Or the full breakdown:
+const { gasUsed, mockGas, adjustedGasUsed, mockGasEvents } = cofhe.getAdjustedGasBreakdown(receipt);
+```
+
+Both are pure functions of the receipt — no RPC calls — and pass raw `gasUsed` through unchanged on a real network. With `cofhe: { gasSummary: true }` in the config, a per-method table (raw vs adjusted gas) is printed after `hardhat test`.
+
+:::note
+`eth_estimateGas` is not adjusted — the mock work really does execute, so transactions still need the raw gas limit.
+:::
 
 ### Contract descriptors
 

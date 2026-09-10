@@ -36,18 +36,20 @@ export default defineConfig({
 
   // Optional cofhe config (all values shown are their defaults)
   cofhe: {
-    gasWarning: true, // warn when mock ops report higher gas than real FHE
-    logMocks: true, // enable mock contract event logging
+    gasWarning: false, // warn when mock ops report higher gas than real FHE
+    gasSummary: false, // print a per-method adjusted-gas summary after `hardhat test`
+    logMocks: false, // enable mock contract event logging
   },
 });
 ```
 
 ### Config options
 
-| Option       | Type      | Default | Description                                                                              |
-| ------------ | --------- | ------- | ---------------------------------------------------------------------------------------- |
-| `gasWarning` | `boolean` | `true`  | Print a warning after mock deployment reminding that mock gas costs differ from live FHE |
-| `logMocks`   | `boolean` | `true`  | Enable event-based logging inside mock contracts                                         |
+| Option       | Type      | Default | Description                                                                                       |
+| ------------ | --------- | ------- | ------------------------------------------------------------------------------------------------- |
+| `gasWarning` | `boolean` | `false` | Print a warning after mock deployment reminding that mock gas costs differ from live FHE          |
+| `gasSummary` | `boolean` | `false` | Print a per-method gas summary after `hardhat test`, with mock-only overhead excluded (see below) |
+| `logMocks`   | `boolean` | `false` | Enable event-based logging inside mock contracts                                                  |
 
 ---
 
@@ -124,6 +126,38 @@ const client = await cofhe.createClientWithBatteries();
 const [walletClient] = await viem.getWalletClients();
 const client = await cofhe.createClientWithBatteries(walletClient);
 ```
+
+---
+
+### `cofhe.getAdjustedGasUsed(receipt)` / `cofhe.getAdjustedGasBreakdown(receipt)`
+
+Mock transactions consume more gas than they would on a real CoFHE network, because the off-chain FHE work is replicated on-chain. The mock task manager measures that overhead and emits a `MockGasConsumed(uint256)` event per block of mock-only work, letting the plugin report corrected numbers:
+
+```typescript
+const hash = await myContract.write.doFheThings();
+const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+// Gas usage excluding mock overhead — an estimate of real-network cost.
+const adjusted = cofhe.getAdjustedGasUsed(receipt);
+
+// Or the full breakdown:
+const { gasUsed, mockGas, adjustedGasUsed, mockGasEvents } = cofhe.getAdjustedGasBreakdown(receipt);
+```
+
+Both are pure functions of the receipt (no RPC calls). On a real network the receipt carries no mock events, so `adjustedGasUsed` equals `gasUsed` — the same code works everywhere.
+
+With `cofhe: { gasSummary: true }` in the config, a per-method table (raw vs adjusted gas) is printed after `hardhat test`:
+
+```
+[COFHE-MOCKS] Gas summary — adjusted ≈ cost excluding mock-only overhead
+┌──────────────────┬──────────────────────────┬───────┬─────────────────┬────────────────────┬───────────────┐
+│ Contract         │ Method                   │ Calls │ Avg gas (mocks) │ Avg gas (adjusted) │ Mock overhead │
+├──────────────────┼──────────────────────────┼───────┼─────────────────┼────────────────────┼───────────────┤
+│ MyFHEContract    │ doFheThings()            │ 9     │ 146,199         │ 109,595            │ 25%           │
+└──────────────────┴──────────────────────────┴───────┴─────────────────┴────────────────────┴───────────────┘
+```
+
+Note: `eth_estimateGas` is not adjusted — the mock work really does execute, so transactions still need the raw gas limit. Use a testnet for estimate-sensitive flows.
 
 ---
 

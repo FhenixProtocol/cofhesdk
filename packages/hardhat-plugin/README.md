@@ -25,7 +25,9 @@ import '@cofhe/hardhat-plugin';
 module.exports = {
   // ... other config
   cofhe: {
-    logMocks: true, // Optional: Set to true to log mock operations
+    logMocks: true, // Optional: Log mock FHE operations to the console (default: false)
+    gasSummary: true, // Optional: Print a per-method adjusted-gas summary after tests (default: false)
+    gasWarning: false, // Optional: Warn that mock gas differs from live FHE (default: false)
   },
   // Network configuration is automatically added by the plugin
 };
@@ -56,6 +58,42 @@ Key differences from the real CoFHE system:
 - Plaintext values are stored on-chain for testing and verification
 - Decryption operations are simulated with mock delays
 - Operations are logged using hardhat/console.sol
+
+### Gas Reporting
+
+The on-chain replication of off-chain FHE work makes mock transactions consume more gas than they would on a real CoFHE network. The mock task manager measures this overhead and emits a `MockGasConsumed(uint256)` event for every block of mock-only work, so the plugin can report corrected numbers:
+
+```typescript
+const tx = await myContract.doFheThings();
+const receipt = await tx.wait();
+
+// Gas usage excluding mock overhead — an estimate of real-network cost.
+const adjusted = hre.cofhe.getAdjustedGasUsed(receipt);
+
+// Or the full breakdown:
+const { gasUsed, mockGas, adjustedGasUsed, mockGasEvents } = hre.cofhe.getAdjustedGasBreakdown(receipt);
+```
+
+Both are pure functions of the receipt (no RPC calls). On a real network the receipt carries no mock events, so `adjustedGasUsed` equals `gasUsed` — the same code works everywhere.
+
+To get a per-method overview after every test run, enable the summary table in your config:
+
+```typescript
+cofhe: {
+  gasSummary: true,
+}
+```
+
+```
+[COFHE-MOCKS] Gas summary — adjusted ≈ cost excluding mock-only overhead
+┌──────────────────┬──────────────────────────┬───────┬─────────────────┬────────────────────┬───────────────┐
+│ Contract         │ Method                   │ Calls │ Avg gas (mocks) │ Avg gas (adjusted) │ Mock overhead │
+├──────────────────┼──────────────────────────┼───────┼─────────────────┼────────────────────┼───────────────┤
+│ MyFHEContract    │ storeEncrypted(uint256)  │ 11    │ 179,897         │ 141,482            │ 21%           │
+└──────────────────┴──────────────────────────┴───────┴─────────────────┴────────────────────┴───────────────┘
+```
+
+Note: `eth_estimateGas` is not adjusted — the mock work really does execute, so transactions still need the raw gas limit. Use a testnet for estimate-sensitive flows.
 
 ### Mock Contracts Deployment
 

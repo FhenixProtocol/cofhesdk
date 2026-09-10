@@ -78,6 +78,7 @@ export type ACPStructOutput = [
 export interface MockTaskManagerInterface extends Interface {
   getFunction(
     nameOrSignature:
+      | 'MOCK_dispatchOperation'
       | 'MOCK_logAllow'
       | 'MOCK_setInEuintKey'
       | 'acl'
@@ -103,6 +104,7 @@ export interface MockTaskManagerInterface extends Interface {
       | 'isInitialized'
       | 'isPubliclyAllowed'
       | 'logOps'
+      | 'mockGasExcluded'
       | 'mockStorage'
       | 'publishDecryptResult'
       | 'publishDecryptResultBatch'
@@ -112,6 +114,7 @@ export interface MockTaskManagerInterface extends Interface {
       | 'setAggregator'
       | 'setDecryptResultSigner'
       | 'setLogOps'
+      | 'setMockGasExcluded'
       | 'setSecurityZoneMax'
       | 'setSecurityZoneMin'
       | 'setSecurityZones'
@@ -124,8 +127,14 @@ export interface MockTaskManagerInterface extends Interface {
       | 'verifyDecryptResultSafe'
   ): FunctionFragment;
 
-  getEvent(nameOrSignatureOrTopic: 'DecryptionResult' | 'ProtocolNotification' | 'TaskCreated'): EventFragment;
+  getEvent(
+    nameOrSignatureOrTopic: 'DecryptionResult' | 'MockGasConsumed' | 'ProtocolNotification' | 'TaskCreated'
+  ): EventFragment;
 
+  encodeFunctionData(
+    functionFragment: 'MOCK_dispatchOperation',
+    values: [BigNumberish, BigNumberish, BigNumberish[], BigNumberish]
+  ): string;
   encodeFunctionData(functionFragment: 'MOCK_logAllow', values: [string, BigNumberish, AddressLike]): string;
   encodeFunctionData(functionFragment: 'MOCK_setInEuintKey', values: [BigNumberish, BigNumberish]): string;
   encodeFunctionData(functionFragment: 'acl', values?: undefined): string;
@@ -160,6 +169,7 @@ export interface MockTaskManagerInterface extends Interface {
   encodeFunctionData(functionFragment: 'isInitialized', values?: undefined): string;
   encodeFunctionData(functionFragment: 'isPubliclyAllowed', values: [BigNumberish]): string;
   encodeFunctionData(functionFragment: 'logOps', values?: undefined): string;
+  encodeFunctionData(functionFragment: 'mockGasExcluded', values?: undefined): string;
   encodeFunctionData(functionFragment: 'mockStorage', values: [BigNumberish]): string;
   encodeFunctionData(functionFragment: 'publishDecryptResult', values: [BigNumberish, BigNumberish, BytesLike]): string;
   encodeFunctionData(
@@ -172,6 +182,7 @@ export interface MockTaskManagerInterface extends Interface {
   encodeFunctionData(functionFragment: 'setAggregator', values: [AddressLike]): string;
   encodeFunctionData(functionFragment: 'setDecryptResultSigner', values: [AddressLike]): string;
   encodeFunctionData(functionFragment: 'setLogOps', values: [boolean]): string;
+  encodeFunctionData(functionFragment: 'setMockGasExcluded', values: [boolean]): string;
   encodeFunctionData(functionFragment: 'setSecurityZoneMax', values: [BigNumberish]): string;
   encodeFunctionData(functionFragment: 'setSecurityZoneMin', values: [BigNumberish]): string;
   encodeFunctionData(functionFragment: 'setSecurityZones', values: [BigNumberish, BigNumberish]): string;
@@ -192,6 +203,7 @@ export interface MockTaskManagerInterface extends Interface {
     values: [BigNumberish, BigNumberish, BytesLike]
   ): string;
 
+  decodeFunctionResult(functionFragment: 'MOCK_dispatchOperation', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'MOCK_logAllow', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'MOCK_setInEuintKey', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'acl', data: BytesLike): Result;
@@ -217,6 +229,7 @@ export interface MockTaskManagerInterface extends Interface {
   decodeFunctionResult(functionFragment: 'isInitialized', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'isPubliclyAllowed', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'logOps', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'mockGasExcluded', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'mockStorage', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'publishDecryptResult', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'publishDecryptResultBatch', data: BytesLike): Result;
@@ -226,6 +239,7 @@ export interface MockTaskManagerInterface extends Interface {
   decodeFunctionResult(functionFragment: 'setAggregator', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'setDecryptResultSigner', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'setLogOps', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'setMockGasExcluded', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'setSecurityZoneMax', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'setSecurityZoneMin', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'setSecurityZones', data: BytesLike): Result;
@@ -245,6 +259,18 @@ export namespace DecryptionResultEvent {
     ctHash: bigint;
     result: bigint;
     requestor: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace MockGasConsumedEvent {
+  export type InputTuple = [gas: BigNumberish];
+  export type OutputTuple = [gas: bigint];
+  export interface OutputObject {
+    gas: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -321,6 +347,12 @@ export interface MockTaskManager extends BaseContract {
   listeners(eventName?: string): Promise<Array<Listener>>;
   removeAllListeners<TCEvent extends TypedContractEvent>(event?: TCEvent): Promise<this>;
 
+  MOCK_dispatchOperation: TypedContractMethod<
+    [ctHash: BigNumberish, funcId: BigNumberish, inputs: BigNumberish[], arity: BigNumberish],
+    [void],
+    'nonpayable'
+  >;
+
   MOCK_logAllow: TypedContractMethod<[operation: string, ctHash: BigNumberish, account: AddressLike], [void], 'view'>;
 
   MOCK_setInEuintKey: TypedContractMethod<[ctHash: BigNumberish, value: BigNumberish], [void], 'nonpayable'>;
@@ -395,6 +427,8 @@ export interface MockTaskManager extends BaseContract {
 
   logOps: TypedContractMethod<[], [boolean], 'view'>;
 
+  mockGasExcluded: TypedContractMethod<[], [boolean], 'view'>;
+
   mockStorage: TypedContractMethod<[arg0: BigNumberish], [bigint], 'view'>;
 
   publishDecryptResult: TypedContractMethod<
@@ -420,6 +454,8 @@ export interface MockTaskManager extends BaseContract {
   setDecryptResultSigner: TypedContractMethod<[signer: AddressLike], [void], 'nonpayable'>;
 
   setLogOps: TypedContractMethod<[_logOps: boolean], [void], 'nonpayable'>;
+
+  setMockGasExcluded: TypedContractMethod<[_mockGasExcluded: boolean], [void], 'nonpayable'>;
 
   setSecurityZoneMax: TypedContractMethod<[securityZone: BigNumberish], [void], 'nonpayable'>;
 
@@ -459,6 +495,13 @@ export interface MockTaskManager extends BaseContract {
 
   getFunction<T extends ContractMethod = ContractMethod>(key: string | FunctionFragment): T;
 
+  getFunction(
+    nameOrSignature: 'MOCK_dispatchOperation'
+  ): TypedContractMethod<
+    [ctHash: BigNumberish, funcId: BigNumberish, inputs: BigNumberish[], arity: BigNumberish],
+    [void],
+    'nonpayable'
+  >;
   getFunction(
     nameOrSignature: 'MOCK_logAllow'
   ): TypedContractMethod<[operation: string, ctHash: BigNumberish, account: AddressLike], [void], 'view'>;
@@ -522,6 +565,7 @@ export interface MockTaskManager extends BaseContract {
   getFunction(nameOrSignature: 'isInitialized'): TypedContractMethod<[], [boolean], 'view'>;
   getFunction(nameOrSignature: 'isPubliclyAllowed'): TypedContractMethod<[ctHash: BigNumberish], [boolean], 'view'>;
   getFunction(nameOrSignature: 'logOps'): TypedContractMethod<[], [boolean], 'view'>;
+  getFunction(nameOrSignature: 'mockGasExcluded'): TypedContractMethod<[], [boolean], 'view'>;
   getFunction(nameOrSignature: 'mockStorage'): TypedContractMethod<[arg0: BigNumberish], [bigint], 'view'>;
   getFunction(
     nameOrSignature: 'publishDecryptResult'
@@ -545,6 +589,9 @@ export interface MockTaskManager extends BaseContract {
     nameOrSignature: 'setDecryptResultSigner'
   ): TypedContractMethod<[signer: AddressLike], [void], 'nonpayable'>;
   getFunction(nameOrSignature: 'setLogOps'): TypedContractMethod<[_logOps: boolean], [void], 'nonpayable'>;
+  getFunction(
+    nameOrSignature: 'setMockGasExcluded'
+  ): TypedContractMethod<[_mockGasExcluded: boolean], [void], 'nonpayable'>;
   getFunction(
     nameOrSignature: 'setSecurityZoneMax'
   ): TypedContractMethod<[securityZone: BigNumberish], [void], 'nonpayable'>;
@@ -590,6 +637,13 @@ export interface MockTaskManager extends BaseContract {
     DecryptionResultEvent.OutputObject
   >;
   getEvent(
+    key: 'MockGasConsumed'
+  ): TypedContractEvent<
+    MockGasConsumedEvent.InputTuple,
+    MockGasConsumedEvent.OutputTuple,
+    MockGasConsumedEvent.OutputObject
+  >;
+  getEvent(
     key: 'ProtocolNotification'
   ): TypedContractEvent<
     ProtocolNotificationEvent.InputTuple,
@@ -610,6 +664,17 @@ export interface MockTaskManager extends BaseContract {
       DecryptionResultEvent.InputTuple,
       DecryptionResultEvent.OutputTuple,
       DecryptionResultEvent.OutputObject
+    >;
+
+    'MockGasConsumed(uint256)': TypedContractEvent<
+      MockGasConsumedEvent.InputTuple,
+      MockGasConsumedEvent.OutputTuple,
+      MockGasConsumedEvent.OutputObject
+    >;
+    MockGasConsumed: TypedContractEvent<
+      MockGasConsumedEvent.InputTuple,
+      MockGasConsumedEvent.OutputTuple,
+      MockGasConsumedEvent.OutputObject
     >;
 
     'ProtocolNotification(uint256,string,string)': TypedContractEvent<

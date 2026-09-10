@@ -60,12 +60,34 @@ import '@cofhe/hardhat-plugin';
 export default {
   solidity: '0.8.28',
   cofhe: {
-    logMocks: true,             // log FHE ops to the console (default: true)
-    gasWarning: true,           // warn when mock gas usage is high (default: true)
+    logMocks: true,             // log FHE ops to the console (default: false)
+    gasWarning: true,           // warn when mock gas usage is high (default: false)
+    gasSummary: true,           // print a per-method adjusted-gas summary after tests (default: false)
     mocksDeployVerbosity: 'v',  // '' | 'v' | 'vv' — mock deployment output (default: 'v')
   },
 };
 ```
+
+### Gas reporting
+
+Mock FHE operations consume extra gas replicating the off-chain CoFHE work on-chain. The mock task manager emits a `MockGasConsumed(uint256)` event per block of mock-only work, letting the plugin report corrected numbers:
+
+```ts
+const tx = await simpleTest.setValueTrivial(7);
+const receipt = await tx.wait();
+
+// Gas usage excluding mock overhead — an estimate of real-network cost:
+const adjusted = hre.cofhe.getAdjustedGasUsed(receipt);
+
+// Or the full breakdown:
+const { gasUsed, mockGas, adjustedGasUsed, mockGasEvents } = hre.cofhe.getAdjustedGasBreakdown(receipt);
+```
+
+Both are pure functions of the receipt — no RPC calls — and pass raw `gasUsed` through unchanged on a real network. With `cofhe: { gasSummary: true }` in the config, a per-method table (raw vs adjusted gas) is printed after `hardhat test`. See [Mock Contracts → Gas reporting](/hardhat/mock-contracts#gas-reporting) for details.
+
+:::note
+`eth_estimateGas` is not adjusted — the mock work really does execute, so transactions still need the raw gas limit.
+:::
 
 ### `mocksDeployVerbosity`
 
