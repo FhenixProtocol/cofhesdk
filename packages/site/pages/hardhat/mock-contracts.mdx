@@ -123,3 +123,59 @@ await hre.cofhe.mocks.expectPlaintext(ctHash, 7n); // [!code focus]
 :::warning
 `getPlaintext` and `expectPlaintext` only work on the Hardhat network (where `MockTaskManager` stores plaintexts). They will throw on `localcofhe` or any real network.
 :::
+
+## Gas reporting
+
+Mock FHE operations consume more gas than they would on a real CoFHE network, because the off-chain FHE work is replicated on-chain. `MockTaskManager` measures this overhead and emits a `MockGasConsumed(uint256)` event for every block of mock-only work (op replication, decrypt-task storage, mock logging), so the plugin can report corrected numbers.
+
+### `hre.cofhe.getAdjustedGasUsed(receipt)`
+
+Returns the transaction's gas usage with the mock overhead subtracted — an estimate of real-network cost:
+
+```ts twoslash
+// @noErrors
+import '@cofhe/hardhat-plugin';
+import '@nomicfoundation/hardhat-ethers';
+// ---cut---
+import hre from 'hardhat';
+
+const simpleTestFactory = await hre.ethers.getContractFactory('SimpleTest');
+const simpleTest = await simpleTestFactory.deploy();
+await simpleTest.waitForDeployment();
+
+const tx = await simpleTest.setValueTrivial(7);
+const receipt = await tx.wait();
+
+const adjusted = hre.cofhe.getAdjustedGasUsed(receipt!); // [!code focus]
+```
+
+### `hre.cofhe.getAdjustedGasBreakdown(receipt)`
+
+Returns the full breakdown:
+
+```ts
+const { gasUsed, mockGas, adjustedGasUsed, mockGasEvents } = hre.cofhe.getAdjustedGasBreakdown(receipt);
+// gasUsed         — raw gas (includes mock overhead)
+// mockGas         — gas consumed by mock-only work
+// adjustedGasUsed — gasUsed - mockGas (≈ real-network cost)
+// mockGasEvents   — number of mock-only blocks executed
+```
+
+Both helpers are pure functions of the receipt — no RPC calls. On a real network the receipt carries no mock events, so `adjustedGasUsed` equals `gasUsed`; the same code works everywhere.
+
+### End-of-run summary table
+
+Set `cofhe: { gasSummary: true }` in your Hardhat config to print a per-method table after every test run:
+
+```
+[COFHE-MOCKS] Gas summary — adjusted ≈ cost excluding mock-only overhead
+┌──────────────────┬──────────────────────────┬───────┬─────────────────┬────────────────────┬───────────────┐
+│ Contract         │ Method                   │ Calls │ Avg gas (mocks) │ Avg gas (adjusted) │ Mock overhead │
+├──────────────────┼──────────────────────────┼───────┼─────────────────┼────────────────────┼───────────────┤
+│ SimpleTest       │ setValueTrivial(uint256) │ 11    │ 179,897         │ 141,482            │ 21%           │
+└──────────────────┴──────────────────────────┴───────┴─────────────────┴────────────────────┴───────────────┘
+```
+
+:::note
+`eth_estimateGas` is not adjusted — the mock work really does execute, so transactions still need the raw gas limit. Use a testnet for estimate-sensitive flows. (In Foundry, the equivalent overhead is excluded from gas metering entirely — see the [Foundry plugin](/foundry).)
+:::
