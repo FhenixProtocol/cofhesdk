@@ -19,6 +19,7 @@ import { hardhat as hardhatChain } from '@cofhe/sdk/chains';
 import { deployMocks, type DeployMocksArgs, type DeployedMockContracts } from '../deploy.js';
 import { mock_setLoggingEnabled, mock_withLogs } from '../logging.js';
 import { mock_getPlaintext, mock_expectPlaintext, getMockContractsNpmPaths } from '../utils.js';
+import { mock_getAdjustedGasBreakdown, mock_getAdjustedGasUsed, registerGasSummaryConnection } from '../gas.js';
 import type { CofheConnection } from '../type-extensions.js';
 
 // ─── Per-connection cofhe object factory ─────────────────────────────────────
@@ -54,6 +55,9 @@ function createCofheConnection(
     createClient(config) {
       return createCofheClient(config);
     },
+
+    getAdjustedGasUsed: mock_getAdjustedGasUsed,
+    getAdjustedGasBreakdown: mock_getAdjustedGasBreakdown,
 
     async createClientWithBatteries(signerWalletClient?: WalletClient) {
       let signerClient: WalletClient;
@@ -175,6 +179,14 @@ const hreHooks: Partial<HardhatRuntimeEnvironmentHooks> = {
             mocksDeployVerbosity: hre.config.cofhe.mocksDeployVerbosity,
           }
         );
+
+        // With gasSummary enabled, track this connection so its adjusted-gas rows are
+        // dumped at process exit for the `test` task to merge and print. Connections
+        // (and their chains) live in node:test worker processes, so collection has to
+        // happen here rather than in the test task itself.
+        if (hre.config.cofhe.gasSummary) {
+          registerGasSummaryConnection(publicClient, hre.artifacts, hre.config.paths.cache);
+        }
 
         (conn as any).cofhe = createCofheConnection(
           publicClient,
