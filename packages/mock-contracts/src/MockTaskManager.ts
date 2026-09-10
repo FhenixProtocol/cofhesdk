@@ -13,6 +13,34 @@ export const MockTaskManagerArtifact = {
     },
     {
       type: 'function',
+      name: 'MOCK_dispatchOperation',
+      inputs: [
+        {
+          name: 'ctHash',
+          type: 'uint256',
+          internalType: 'uint256',
+        },
+        {
+          name: 'operation',
+          type: 'string',
+          internalType: 'string',
+        },
+        {
+          name: 'inputs',
+          type: 'uint256[]',
+          internalType: 'uint256[]',
+        },
+        {
+          name: 'arity',
+          type: 'uint8',
+          internalType: 'uint8',
+        },
+      ],
+      outputs: [],
+      stateMutability: 'nonpayable',
+    },
+    {
+      type: 'function',
       name: 'MOCK_logAllow',
       inputs: [
         {
@@ -566,6 +594,19 @@ export const MockTaskManagerArtifact = {
     },
     {
       type: 'function',
+      name: 'mockGasExcluded',
+      inputs: [],
+      outputs: [
+        {
+          name: '',
+          type: 'bool',
+          internalType: 'bool',
+        },
+      ],
+      stateMutability: 'view',
+    },
+    {
+      type: 'function',
       name: 'mockStorage',
       inputs: [
         {
@@ -711,6 +752,19 @@ export const MockTaskManagerArtifact = {
       inputs: [
         {
           name: '_logOps',
+          type: 'bool',
+          internalType: 'bool',
+        },
+      ],
+      outputs: [],
+      stateMutability: 'nonpayable',
+    },
+    {
+      type: 'function',
+      name: 'setMockGasExcluded',
+      inputs: [
+        {
+          name: '_mockGasExcluded',
           type: 'bool',
           internalType: 'bool',
         },
@@ -1271,6 +1325,11 @@ export const MockTaskManagerArtifact = {
           internalType: 'address',
         },
       ],
+    },
+    {
+      type: 'error',
+      name: 'OnlySelf',
+      inputs: [],
     },
     {
       type: 'error',

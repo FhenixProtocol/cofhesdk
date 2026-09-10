@@ -6,6 +6,11 @@ import { FHE } from '@fhenixprotocol/cofhe-contracts/FHE.sol';
 import { FunctionId, Utils } from '@fhenixprotocol/cofhe-contracts/ICofhe.sol';
 import { console } from 'hardhat/console.sol';
 
+/// @dev Foundry/hevm cheatcode address: address(uint160(uint256(keccak256('hevm cheat code')))).
+///      Only reachable when running under forge with cheatcode access granted (vm.allowCheatcodes);
+///      on Hardhat this address has no code and the shim is never enabled.
+address constant CHEATCODE_ADDRESS = 0x7109709ECfa91a80626fF3989D68f67F5b1DD12D;
+
 address constant ZK_VERIFIER_SIGNER_ADDRESS = 0x6E12D8C87503D4287c294f2Fdef96ACd9DFf6bd2;
 uint256 constant ZK_VERIFIER_SIGNER_PRIVATE_KEY = 49099792800763675079532137679706322989817545357788440619111868498148356080914;
 
@@ -33,6 +38,13 @@ abstract contract MockCoFHE {
 
   bool public logOps = true;
 
+  /// @dev When true, mock-only work (plaintext replication + logging) runs between
+  ///      pauseGasMetering/resumeGasMetering cheatcodes so it is excluded from forge's
+  ///      gas accounting, giving gas numbers closer to the real CoFHE task manager.
+  ///      Only enable under forge AFTER granting this contract cheatcode access
+  ///      (vm.allowCheatcodes(address(taskManager))); must stay false on Hardhat.
+  bool public mockGasExcluded = false;
+
   mapping(uint256 => uint256) public mockStorage;
   mapping(uint256 => bool) public inMockStorage;
 
@@ -47,6 +59,25 @@ abstract contract MockCoFHE {
 
   function setLogOps(bool _logOps) public {
     logOps = _logOps;
+  }
+
+  function setMockGasExcluded(bool _mockGasExcluded) public {
+    mockGasExcluded = _mockGasExcluded;
+  }
+
+  /// @dev Pauses forge's gas metering (no-op unless `mockGasExcluded` is enabled).
+  ///      Low-level call so a failure (no cheatcode access, non-forge environment)
+  ///      degrades to metered execution instead of reverting.
+  function _pauseGasMetering() internal returns (bool paused) {
+    if (!mockGasExcluded) return false;
+    (paused, ) = CHEATCODE_ADDRESS.call(abi.encodeWithSignature('pauseGasMetering()'));
+  }
+
+  /// @dev Resumes forge's gas metering if `_pauseGasMetering` paused it.
+  function _resumeGasMetering(bool paused) internal {
+    if (!paused) return;
+    (bool ok, ) = CHEATCODE_ADDRESS.call(abi.encodeWithSignature('resumeGasMetering()'));
+    ok;
   }
 
   // Utils

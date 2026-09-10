@@ -263,21 +263,58 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     return true;
   }
 
+  error OnlySelf();
+
   function sendEventCreated(uint256 ctHash, string memory operation, uint256[] memory inputs) private {
-    if (inputs.length == 1 || opIs(operation, FunctionId.cast)) {
+    uint8 arity = (inputs.length == 1 || opIs(operation, FunctionId.cast)) ? 1 : (inputs.length == 2 ? 2 : 3);
+
+    if (arity == 1) {
       emit TaskCreated(ctHash, operation, inputs[0], 0, 0);
-
-      // NOTE: MOCK
-      MOCK_unaryOperation(ctHash, operation, inputs[0]);
-    } else if (inputs.length == 2) {
+    } else if (arity == 2) {
       emit TaskCreated(ctHash, operation, inputs[0], inputs[1], 0);
-
-      // NOTE: MOCK
-      MOCK_twoInputOperation(ctHash, operation, inputs[0], inputs[1]);
     } else {
       emit TaskCreated(ctHash, operation, inputs[0], inputs[1], inputs[2]);
+    }
 
-      // NOTE: MOCK
+    // NOTE: MOCK - plaintext replication is mock-only work that doesn't exist in the real
+    // task manager, so (under forge, when enabled) it runs with gas metering paused.
+    bool paused = _pauseGasMetering();
+    if (!paused) {
+      _mockDispatch(ctHash, operation, inputs, arity);
+      return;
+    }
+
+    // External self-call so a revert inside the mock op can be caught and gas metering
+    // resumed before bubbling the original error - otherwise the paused state leaks into
+    // the rest of the test and every later call reports ~0 gas. The extra call itself
+    // runs unmetered.
+    try this.MOCK_dispatchOperation(ctHash, operation, inputs, arity) {
+      _resumeGasMetering(true);
+    } catch (bytes memory err) {
+      _resumeGasMetering(true);
+      assembly ('memory-safe') {
+        revert(add(err, 0x20), mload(err))
+      }
+    }
+  }
+
+  /// @dev Trampoline for `sendEventCreated`'s try/catch; not part of the mocked interface.
+  function MOCK_dispatchOperation(
+    uint256 ctHash,
+    string calldata operation,
+    uint256[] calldata inputs,
+    uint8 arity
+  ) external {
+    if (msg.sender != address(this)) revert OnlySelf();
+    _mockDispatch(ctHash, operation, inputs, arity);
+  }
+
+  function _mockDispatch(uint256 ctHash, string memory operation, uint256[] memory inputs, uint8 arity) private {
+    if (arity == 1) {
+      MOCK_unaryOperation(ctHash, operation, inputs[0]);
+    } else if (arity == 2) {
+      MOCK_twoInputOperation(ctHash, operation, inputs[0], inputs[1]);
+    } else {
       MOCK_threeInputOperation(ctHash, operation, inputs[0], inputs[1], inputs[2]);
     }
   }
