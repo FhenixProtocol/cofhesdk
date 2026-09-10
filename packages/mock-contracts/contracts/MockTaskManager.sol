@@ -282,10 +282,12 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     }
 
     // NOTE: MOCK - plaintext replication is mock-only work that doesn't exist in the real
-    // task manager, so (under forge, when enabled) it runs with gas metering paused.
-    bool paused = _pauseGasMetering();
+    // task manager, so (under forge, when enabled) it runs with gas metering paused; when
+    // metered (hardhat) its cost is reported via MockGasConsumed instead.
+    (bool paused, uint256 startGas) = _mockGasTrackStart();
     if (!paused) {
       _mockDispatch(ctHash, funcId, inputs, arity);
+      _mockGasTrackEnd(false, startGas);
       return;
     }
 
@@ -336,12 +338,18 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     //     );
     // }
 
-    // NOTE: MOCK
+    // NOTE: MOCK - the real task manager only emits a task event here and the result lands
+    // in a later transaction; storing it synchronously is mock-only work. The plaintext is
+    // read before the tracked block so an InputNotInMockStorage revert can't leak paused
+    // gas metering.
+    uint256 result = _get(ctHash);
+    (bool paused, uint256 startGas) = _mockGasTrackStart();
     _decryptResultReady[ctHash] = true;
-    _decryptResult[ctHash] = _get(ctHash);
+    _decryptResult[ctHash] = result;
 
     uint64 asyncOffset = uint64((block.timestamp % 10) + 1);
     _decryptResultReadyTimestamp[ctHash] = uint64(block.timestamp) + asyncOffset;
+    _mockGasTrackEnd(paused, startGas);
   }
 
   function getDecryptResult(uint256 ctHash) public view returns (uint256) {
@@ -651,7 +659,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
       acl.allow(ctHash, account, msg.sender);
 
       // NOTE: MOCK
-      MOCK_logAllow(account == msg.sender ? 'FHE.allowThis' : 'FHE.allow', ctHash, account);
+      MOCK_trackedLogAllow(account == msg.sender ? 'FHE.allowThis' : 'FHE.allow', ctHash, account);
     }
   }
 
@@ -660,7 +668,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
       acl.allowGlobal(ctHash, msg.sender);
 
       // NOTE: MOCK
-      MOCK_logAllow('FHE.allowGlobal', ctHash, msg.sender);
+      MOCK_trackedLogAllow('FHE.allowGlobal', ctHash, msg.sender);
     }
   }
 
@@ -669,7 +677,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
       acl.allowTransient(ctHash, account, msg.sender);
 
       // NOTE: MOCK
-      MOCK_logAllow('FHE.allowTransient', ctHash, account);
+      MOCK_trackedLogAllow('FHE.allowTransient', ctHash, account);
     }
   }
 
@@ -680,7 +688,7 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
       acl.allowForDecryption(hashes, msg.sender);
 
       // NOTE: MOCK
-      MOCK_logAllow('FHE.allowForDecryption', ctHash, msg.sender);
+      MOCK_trackedLogAllow('FHE.allowForDecryption', ctHash, msg.sender);
     }
   }
 
@@ -695,14 +703,14 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     acl.shareCtHash(ctHash, msg.sender, receiver);
 
     // NOTE: MOCK
-    MOCK_logAllow('FHE.share', ctHash, receiver);
+    MOCK_trackedLogAllow('FHE.share', ctHash, receiver);
   }
 
   function receiveCtHash(uint256 ctHash, address expectedSharer) external {
     acl.receiveCtHash(ctHash, expectedSharer, msg.sender);
 
     // NOTE: MOCK
-    MOCK_logAllow('FHE.receive', ctHash, expectedSharer);
+    MOCK_trackedLogAllow('FHE.receive', ctHash, expectedSharer);
   }
 
   /// @dev Per-input message hash used by batch verification:

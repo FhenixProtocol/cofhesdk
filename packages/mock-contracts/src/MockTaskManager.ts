@@ -1019,6 +1019,19 @@ export const MockTaskManagerArtifact = {
     },
     {
       type: 'event',
+      name: 'MockGasConsumed',
+      inputs: [
+        {
+          name: 'gas',
+          type: 'uint256',
+          indexed: false,
+          internalType: 'uint256',
+        },
+      ],
+      anonymous: false,
+    },
+    {
+      type: 'event',
       name: 'ProtocolNotification',
       inputs: [
         {

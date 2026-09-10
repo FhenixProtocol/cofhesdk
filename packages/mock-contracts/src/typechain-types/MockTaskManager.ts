@@ -127,7 +127,9 @@ export interface MockTaskManagerInterface extends Interface {
       | 'verifyDecryptResultSafe'
   ): FunctionFragment;
 
-  getEvent(nameOrSignatureOrTopic: 'DecryptionResult' | 'ProtocolNotification' | 'TaskCreated'): EventFragment;
+  getEvent(
+    nameOrSignatureOrTopic: 'DecryptionResult' | 'MockGasConsumed' | 'ProtocolNotification' | 'TaskCreated'
+  ): EventFragment;
 
   encodeFunctionData(
     functionFragment: 'MOCK_dispatchOperation',
@@ -257,6 +259,18 @@ export namespace DecryptionResultEvent {
     ctHash: bigint;
     result: bigint;
     requestor: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace MockGasConsumedEvent {
+  export type InputTuple = [gas: BigNumberish];
+  export type OutputTuple = [gas: bigint];
+  export interface OutputObject {
+    gas: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -623,6 +637,13 @@ export interface MockTaskManager extends BaseContract {
     DecryptionResultEvent.OutputObject
   >;
   getEvent(
+    key: 'MockGasConsumed'
+  ): TypedContractEvent<
+    MockGasConsumedEvent.InputTuple,
+    MockGasConsumedEvent.OutputTuple,
+    MockGasConsumedEvent.OutputObject
+  >;
+  getEvent(
     key: 'ProtocolNotification'
   ): TypedContractEvent<
     ProtocolNotificationEvent.InputTuple,
@@ -643,6 +664,17 @@ export interface MockTaskManager extends BaseContract {
       DecryptionResultEvent.InputTuple,
       DecryptionResultEvent.OutputTuple,
       DecryptionResultEvent.OutputObject
+    >;
+
+    'MockGasConsumed(uint256)': TypedContractEvent<
+      MockGasConsumedEvent.InputTuple,
+      MockGasConsumedEvent.OutputTuple,
+      MockGasConsumedEvent.OutputObject
+    >;
+    MockGasConsumed: TypedContractEvent<
+      MockGasConsumedEvent.InputTuple,
+      MockGasConsumedEvent.OutputTuple,
+      MockGasConsumedEvent.OutputObject
     >;
 
     'ProtocolNotification(uint256,string,string)': TypedContractEvent<

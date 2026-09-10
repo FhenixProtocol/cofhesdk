@@ -48,6 +48,17 @@ abstract contract MockCoFHE {
   mapping(uint256 => uint256) public mockStorage;
   mapping(uint256 => bool) public inMockStorage;
 
+  /// @dev Emitted for each block of mock-only work (op replication, decrypt-task storage,
+  ///      log building) with the gas it consumed, whenever that work runs metered (i.e. not
+  ///      under forge's paused gas metering). Tooling sums these per transaction to compute
+  ///      gas usage excluding mock overhead - see the hardhat plugin's getAdjustedGasUsed.
+  event MockGasConsumed(uint256 gas);
+
+  /// @dev Gas spent emitting MockGasConsumed itself (LOG1 + 32 data bytes + bookkeeping).
+  ///      It lands after the closing gasleft() read, so it is added back as a constant to
+  ///      keep the reported figure covering the full mock-only cost.
+  uint256 internal constant MOCK_GAS_EVENT_COST = 1030;
+
   error InputNotInMockStorage(uint256 ctHash);
 
   // Used internally to check if we missed any operations in the mocks
@@ -78,6 +89,25 @@ abstract contract MockCoFHE {
     if (!paused) return;
     (bool ok, ) = CHEATCODE_ADDRESS.call(abi.encodeWithSignature('resumeGasMetering()'));
     ok;
+  }
+
+  /// @dev Opens a mock-only block: pauses gas metering when enabled (forge), otherwise
+  ///      records gasleft() so `_mockGasTrackEnd` can report the block's cost.
+  ///      Only wrap code that cannot revert - a revert inside the block would skip
+  ///      `_mockGasTrackEnd` and leak paused metering (see sendEventCreated's trampoline
+  ///      for the revert-safe variant).
+  function _mockGasTrackStart() internal returns (bool paused, uint256 startGas) {
+    paused = _pauseGasMetering();
+    if (!paused) startGas = gasleft();
+  }
+
+  /// @dev Closes a mock-only block: resumes metering (forge) or emits the measured cost.
+  function _mockGasTrackEnd(bool paused, uint256 startGas) internal {
+    if (paused) {
+      _resumeGasMetering(true);
+    } else {
+      emit MockGasConsumed(startGas - gasleft() + MOCK_GAS_EVENT_COST);
+    }
   }
 
   // Utils
@@ -253,6 +283,17 @@ abstract contract MockCoFHE {
 
   function MOCK_logAllow(string memory operation, uint256 ctHash, address account) public view {
     logAllow(operation, ctHash, account);
+  }
+
+  /// @dev Same as MOCK_logAllow, but the log-string building runs excluded from forge gas
+  ///      metering / reported via MockGasConsumed, like the rest of the mock-only work.
+  ///      With logging disabled the whole thing is skipped - the residual cost is negligible.
+  ///      Safe without the revert trampoline: logAllow only formats bounded strings.
+  function MOCK_trackedLogAllow(string memory operation, uint256 ctHash, address account) internal {
+    if (!logOps) return;
+    (bool paused, uint256 startGas) = _mockGasTrackStart();
+    logAllow(operation, ctHash, account);
+    _mockGasTrackEnd(paused, startGas);
   }
 
   // Mock functions
