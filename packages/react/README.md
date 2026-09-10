@@ -109,6 +109,28 @@ function CustomComponent() {
 }
 ```
 
+## Wallet selection
+
+CoFHE signs with whatever `walletClient` the app supplies to `CofheProvider`
+(or `connect()`). It does not read `window.ethereum` or pick a wallet itself —
+the signing wallet is whichever provider your connector bound to. So when a user
+has multiple injected wallets installed, disambiguation is a connector-layer
+concern in your app, not something the SDK resolves.
+
+To pin a specific wallet, target its provider explicitly rather than relying on
+the default injected provider — for example naming `window.okxwallet`, or
+filtering `window.ethereum.providers`. [EIP-6963](https://eips.ethereum.org/EIPS/eip-6963)
+is the emerging standard for discovering multiple injected providers, and is
+worth adopting as wallet support for it grows.
+
+> **Caveat — don't trust a direct flag read.** Injected providers can expose
+> identity flags (`isMetaMask`, `isOkxWallet`, …) that behave inconsistently: a
+> direct property read (`provider.isOkxWallet`) may return `undefined` while the
+> same flag reads `true` when the object is enumerated (spread or
+> `JSON.stringify`). A naive `provider.isX !== true` guard can therefore pass
+> silently. Enumerate the object, or compare provider identity directly
+> (e.g. `provider === window.okxwallet`), instead of reading a single flag.
+
 ## CofheEncryptInput Component
 
 Advanced input component with integrated features:
