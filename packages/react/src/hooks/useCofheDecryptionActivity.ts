@@ -234,7 +234,7 @@ export function useCofheDecryptionActivity(options?: UseCofheDecryptionActivityO
     for (const q of queries) {
       const k = q.queryKey;
       if (!Array.isArray(k) || k[0] !== 'decryptCiphertext') continue;
-      const ct = normalizeCt(k[1]);
+      const ct = normalizeCt(k[k.length - 2]);
       if (!ct || isZeroCt(ct)) continue;
       const base = { key: q.queryKey, meta: q.meta };
       if (q.state.status === 'success') {

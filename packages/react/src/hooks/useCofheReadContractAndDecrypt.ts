@@ -12,6 +12,7 @@ import {
   type UseCofheReadContractResult,
 } from './useCofheReadContract';
 import type { CofheDecryptMeta } from '@/meta';
+import { useCofheChainId } from './useCofheConnection';
 
 type SupportedFheTypeFromReturn<TAbi extends Abi, TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>> =
   CofheFirstReturnFheType<TAbi, TfunctionName> extends FheTypes
@@ -92,6 +93,7 @@ export function useCofheReadContractAndDecrypt<
 } {
   const { address, abi, functionName, args, requiresACP = true } = params;
   const queryClient = useInternalQueryClient();
+  const chainId = useCofheChainId();
 
   const encrypted = useCofheReadContract({ address, abi, functionName, args, requiresACP }, readQueryOptions);
 
@@ -125,7 +127,17 @@ export function useCofheReadContractAndDecrypt<
   useEffect(() => {
     const prev = prevRef.current;
     if (prev && prev.ctHash !== currentCtHash) {
-      queryClient.removeQueries({ queryKey: ['decryptCiphertext', prev.ctHash, prev.utype], exact: true });
+      queryClient.removeQueries({
+        predicate: (query) => {
+          const key = query.queryKey;
+          return (
+            Array.isArray(key) &&
+            key[0] === 'decryptCiphertext' &&
+            key[key.length - 2] === prev.ctHash &&
+            key[key.length - 1] === prev.utype
+          );
+        },
+      });
     }
     prevRef.current =
       currentCtHash !== undefined && currentUtype !== undefined
@@ -140,7 +152,7 @@ export function useCofheReadContractAndDecrypt<
       meta,
       // Carry the source contract + method onto the decrypt so its card is
       // recognizable without a separate ctHash→address registry.
-      context: { address, functionName },
+      context: { chainId, address, functionName },
     },
     decryptingQueryOptions
   );
