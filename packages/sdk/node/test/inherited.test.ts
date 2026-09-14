@@ -16,6 +16,10 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { arbitrumSepolia, baseSepolia, sepolia } from 'viem/chains';
 import { createCofheClient, createCofheConfig } from '../index.js';
 
+// Live-chain suite: needs the funded TEST_PRIVATE_KEY (transacts against pre-deployed
+// testnet fixtures). Without it — fork PRs, where secrets are unavailable — the suite
+// skips; CI runs it separately with the key (test-live job).
+const LIVE_TESTS = Boolean(TEST_PRIVATE_KEY);
 const DEFAULT_TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 const BOB_PRIVATE_KEY = (TEST_PRIVATE_KEY || DEFAULT_TEST_PRIVATE_KEY) as `0x${string}`;
 const ALICE_PRIVATE_KEY = '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d';
@@ -32,7 +36,7 @@ const VIEM_CHAINS: Record<number, Chain> = {
 const testViemChain = STAGING_TESTS ? stagingViemChain : arbitrumSepolia;
 const testCofheChain = STAGING_TESTS ? stagingCofhe : cofheArbSepolia;
 
-describe('@cofhe/node - Inherited Client Tests', () => {
+describe.skipIf(!LIVE_TESTS)('@cofhe/node - Inherited Client Tests', () => {
   let cofheClient: CofheClient;
   let publicClient: PublicClient;
   let bobWalletClient: WalletClient;
