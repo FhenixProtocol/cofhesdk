@@ -8,6 +8,7 @@ import { type Abi, type Address, type ContractFunctionArgs, type ContractFunctio
 import { useCofheDecrypt } from './useCofheDecrypt';
 import {
   useCofheReadContract,
+  type CofheReadChainParams,
   type UseCofheReadContractQueryOptions,
   type UseCofheReadContractResult,
 } from './useCofheReadContract';
@@ -62,7 +63,7 @@ export function useCofheReadContractAndDecrypt<
     functionName?: TfunctionName;
     args?: ContractFunctionArgs<TAbi, 'pure' | 'view', TfunctionName>;
     requiresACP?: boolean;
-  },
+  } & CofheReadChainParams,
 
   {
     readQueryOptions,
@@ -81,6 +82,8 @@ export function useCofheReadContractAndDecrypt<
   encrypted: UseCofheReadContractResult<TAbi, TfunctionName>;
   decrypted: UseQueryResult<TDecryptedSelectedData, Error>;
   disabledDueToMissingValidACP: boolean;
+  /** The read is pinned to a `chainId` the client able to serve it is not on (see `CofheReadChainParams`). */
+  disabledDueToWrongChain: boolean;
   /** The read's latest outcome is an error (its cached ctHash, if any, is stale). */
   isReadError: boolean;
   /** The decryption's latest outcome is an error (any cached decrypted value is stale). */
@@ -90,10 +93,11 @@ export function useCofheReadContractAndDecrypt<
   /** The read succeeded and the handle is 0 — a *known zero* value, with no ciphertext to decrypt. */
   isKnownZero: boolean;
 } {
-  const { address, abi, functionName, args, requiresACP = true } = params;
+  const { address, functionName, requiresACP = true } = params;
   const queryClient = useInternalQueryClient();
 
-  const encrypted = useCofheReadContract({ address, abi, functionName, args, requiresACP }, readQueryOptions);
+  // The read and its decryption share one chain: the decrypt below uses the read's `chainId`.
+  const encrypted = useCofheReadContract({ ...params, requiresACP }, readQueryOptions);
 
   const encryptedData = encrypted.data;
 
@@ -141,6 +145,7 @@ export function useCofheReadContractAndDecrypt<
       // Carry the source contract + method onto the decrypt so its card is
       // recognizable without a separate ctHash→address registry.
       context: { address, functionName },
+      chainId: params.chainId,
     },
     decryptingQueryOptions
   );
@@ -155,6 +160,7 @@ export function useCofheReadContractAndDecrypt<
     encrypted,
     decrypted,
     disabledDueToMissingValidACP: encrypted.disabledDueToMissingValidACP,
+    disabledDueToWrongChain: encrypted.disabledDueToWrongChain,
     isReadError,
     isDecryptError,
     isValueStale,

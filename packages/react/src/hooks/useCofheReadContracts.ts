@@ -1,12 +1,13 @@
 import { type UseQueryOptions } from '@tanstack/react-query';
 import type { Address } from 'viem';
-import { useCofheChainId, useCofhePublicClient } from './useCofheConnection';
 import { useCofheActiveACP } from './useCofheACPs';
 import { useInternalQueries } from '../providers/index';
 import { type Abi } from '@cofhe/abi';
 import {
   createCofheReadContractQueryOptions,
   getEnabledForCofheReadContract,
+  useCofheReadTarget,
+  type CofheReadChainParams,
   type UseCofheReadContractQueryOptions,
 } from './useCofheReadContract';
 
@@ -54,6 +55,8 @@ export type UseCofheReadContractsResult = {
   refetch: () => Promise<void>;
   /** True when `requiresACP` is set and there is no valid active ACP (all reads are gated off). */
   disabledDueToMissingValidACP: boolean;
+  /** True when the batch is pinned to a `chainId` the client able to serve it is not on (see `CofheReadChainParams`). */
+  disabledDueToWrongChain: boolean;
 };
 
 /**
@@ -83,23 +86,15 @@ export function useCofheReadContracts(
     multicallOptions?: { allowFailure?: boolean; [key: string]: unknown };
     /** Gate every read on a valid active ACP, like `useCofheReadContract`. Defaults to `false`. */
     requiresACP?: boolean;
-    /**
-     * Pin the whole batch to a specific chain instead of following the connected one — same
-     * semantics as the singular hook's `chainId`: the pinned id becomes every entry's key chain
-     * segment, and the fetches go through the app-supplied client for that chain
-     * (`CofheProvider`'s `publicClients`); without one the batch stays disabled.
-     */
-    chainId?: number;
-  },
+  } & CofheReadChainParams,
   queryOptions?: UseCofheReadContractsQueryOptions
 ): UseCofheReadContractsResult {
-  const { contracts, multicallOptions, requiresACP = false, chainId } = params;
+  const { contracts, multicallOptions, requiresACP = false } = params;
   const allowFailure = multicallOptions?.allowFailure ?? true;
 
-  const publicClient = useCofhePublicClient(chainId);
-  const connectedChainId = useCofheChainId();
-  const cofheChainId = chainId ?? connectedChainId;
-  const activeACP = useCofheActiveACP();
+  // The whole batch shares one chain and client — same semantics as the singular hook.
+  const { publicClient, cofheChainId, disabledDueToWrongChain } = useCofheReadTarget(params);
+  const activeACP = useCofheActiveACP(cofheChainId);
 
   const results = useInternalQueries({
     queries: (contracts ?? []).map((contract) =>
@@ -150,5 +145,6 @@ export function useCofheReadContracts(
   return {
     ...results,
     disabledDueToMissingValidACP: requiresACP && (!activeACP || !activeACP.isValid),
+    disabledDueToWrongChain,
   };
 }

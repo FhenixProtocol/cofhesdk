@@ -7,7 +7,8 @@ import {
   type ContractFunctionArgs,
   type ReadContractReturnType,
 } from 'viem';
-import { useCofheChainId, useCofhePublicClient } from './useCofheConnection';
+import { useMemo } from 'react';
+import { useCofheConnection, type useCofhePublicClient } from './useCofheConnection';
 import { useCofheActiveACP } from './useCofheACPs';
 import { assert } from 'ts-essentials';
 import { useInternalQuery } from '../providers/index';
@@ -15,6 +16,7 @@ import { transformEncryptedReturnTypes, type Abi, type CofheReturnType, type Con
 import { serializeBigintRecursively } from '../utils/serializeBigint.js';
 import { maybeWaitUntilRpcAwareAndReadContract } from '@/utils/waitUntilRpcAwareAndReadContract';
 import { withInvalidationContext } from '@/utils/invalidationContext';
+import { asCofhePublicClient, type PublicClientLike } from '@/utils/viemClientBridge';
 
 const QUERY_CACHE_PREFIX = 'cofheReadContract';
 
@@ -71,6 +73,11 @@ export function constructCofheReadContractQueryForInvalidation({
   return [QUERY_CACHE_PREFIX, cofheChainId, checksummedOr(address), functionName];
 }
 
+/** The chain segment of a cofhe read key or invalidation prefix — `undefined` for any other key. */
+export function cofheReadKeyChainId(queryKey: readonly unknown[]): number | undefined {
+  return queryKey[0] === QUERY_CACHE_PREFIX && typeof queryKey[1] === 'number' ? queryKey[1] : undefined;
+}
+
 export type UseCofheReadContractQueryOptions<
   TAbi extends Abi,
   TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>,
@@ -79,6 +86,56 @@ export type UseCofheReadContractQueryOptions<
   // (client/address/ACP presence) at construction time.
   enabled?: boolean;
 };
+
+/**
+ * Which chain a read belongs to — its cache key's chain segment — and optionally the client that
+ * serves it:
+ * - neither: the read follows the connected wallet, its chain and its client;
+ * - `chainId` alone GUARDS the read to that chain: it runs only while the wallet is connected to
+ *   it, and is otherwise disabled with `disabledDueToWrongChain` — never a silent read of the
+ *   wrong chain;
+ * - `publicClient` (which requires `chainId`) serves the read through that client instead,
+ *   wherever the wallet sits — or with no wallet connected at all. A client whose own chain
+ *   disagrees with `chainId` keeps the read disabled (`disabledDueToWrongChain`).
+ *
+ * ACP gating (`requiresACP`) and decryption follow the read's chain: they use that chain's ACP.
+ */
+export type CofheReadChainParams =
+  | { chainId?: number; publicClient?: undefined }
+  | { chainId: number; publicClient: PublicClientLike | undefined };
+
+/** Resolves a read's `CofheReadChainParams` into the chain it belongs to and the client serving it. */
+export function useCofheReadTarget({ chainId, publicClient: ownClient }: CofheReadChainParams): {
+  publicClient: ReturnType<typeof useCofhePublicClient>;
+  cofheChainId: number | undefined;
+  disabledDueToWrongChain: boolean;
+} {
+  const connection = useCofheConnection();
+  const ownPublicClient = useMemo(() => asCofhePublicClient(ownClient), [ownClient]);
+
+  if (ownPublicClient) {
+    const clientChainId = ownPublicClient.chain?.id;
+    const wrongChain = chainId === undefined || (clientChainId !== undefined && clientChainId !== chainId);
+    return {
+      publicClient: wrongChain ? undefined : ownPublicClient,
+      cofheChainId: chainId,
+      disabledDueToWrongChain: wrongChain,
+    };
+  }
+
+  if (chainId === undefined) {
+    return { publicClient: connection.publicClient, cofheChainId: connection.chainId, disabledDueToWrongChain: false };
+  }
+
+  // Guarded: only the connected client of THAT chain may serve the read. Disconnected is not
+  // "wrong chain" — the read waits for a connection like any other.
+  const wrongChain = connection.chainId !== undefined && connection.chainId !== chainId;
+  return {
+    publicClient: wrongChain ? undefined : connection.publicClient,
+    cofheChainId: chainId,
+    disabledDueToWrongChain: wrongChain,
+  };
+}
 
 export function getEnabledForCofheReadContract(params: {
   publicClient: unknown;
@@ -215,6 +272,8 @@ export type UseCofheReadContractResult<
   TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>,
 > = UseQueryResult<CofheReturnType<TAbi, TfunctionName>, Error> & {
   disabledDueToMissingValidACP: boolean;
+  /** The read is pinned to a `chainId` the client able to serve it is not on (see `CofheReadChainParams`). */
+  disabledDueToWrongChain: boolean;
 };
 export function useCofheReadContract<
   TAbi extends Abi,
@@ -226,23 +285,13 @@ export function useCofheReadContract<
     functionName?: TfunctionName;
     args?: ContractFunctionArgs<TAbi, 'pure' | 'view', TfunctionName>;
     requiresACP?: boolean;
-    /**
-     * Pin the read to a specific chain instead of following the connected one. The pinned id
-     * becomes the key's chain segment (pin your `invalidates` targets to the same `chainId` so
-     * they meet), and the fetch goes through the app-supplied client for that chain
-     * (`CofheProvider`'s `publicClients`) — without one the read stays disabled rather than
-     * silently querying the wrong chain.
-     */
-    chainId?: number;
-  },
+  } & CofheReadChainParams,
   queryOptions?: UseCofheReadContractQueryOptions<TAbi, TfunctionName>
 ): UseCofheReadContractResult<TAbi, TfunctionName> {
-  const { address, abi, functionName, args, requiresACP = true, chainId } = params;
+  const { address, abi, functionName, args, requiresACP = true } = params;
 
-  const publicClient = useCofhePublicClient(chainId);
-  const connectedChainId = useCofheChainId();
-  const cofheChainId = chainId ?? connectedChainId;
-  const activeACP = useCofheActiveACP();
+  const { publicClient, cofheChainId, disabledDueToWrongChain } = useCofheReadTarget(params);
+  const activeACP = useCofheActiveACP(cofheChainId);
 
   const enabled = getEnabledForCofheReadContract({
     publicClient,
@@ -272,5 +321,6 @@ export function useCofheReadContract<
   return {
     ...result,
     disabledDueToMissingValidACP: requiresACP && (!activeACP || !activeACP.isValid),
+    disabledDueToWrongChain,
   };
 }

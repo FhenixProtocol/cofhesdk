@@ -35,7 +35,6 @@ export function CofheProvider(props: CofheProviderProps) {
       value={{
         client: cofheClient,
         transactionRenderers: props.transactionRenderers,
-        publicClients: props.publicClients,
         state: {
           position,
           setPosition,

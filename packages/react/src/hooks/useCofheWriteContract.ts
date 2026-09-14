@@ -15,7 +15,11 @@ import type {
 import { assert } from 'ts-essentials';
 import { useInternalMutation, useInternalQueryClient } from '../providers/index.js';
 import { useCofheChainId, useCofhePublicClient, useCofheWalletClient } from './useCofheConnection.js';
-import { checksummedOr, constructCofheReadContractQueryForInvalidation } from './useCofheReadContract';
+import {
+  checksummedOr,
+  cofheReadKeyChainId,
+  constructCofheReadContractQueryForInvalidation,
+} from './useCofheReadContract';
 import { ETH_ADDRESS_LOWERCASE } from './useCofheTokenLists';
 import { invalidateQueriesWithContext, type InvalidationContextQueryFilters } from '../utils/invalidationContext';
 import { resolveReceiptBlockHash } from '../utils/resolveReceiptBlockHash';
@@ -52,7 +56,9 @@ export type WalletWriteContractParams<
  * Declarative invalidation target: the cofhe reads of one contract. `functionName` narrows it to
  * the `useCofheReadContract` queries for that view function; `args` (with `functionName`) narrows
  * further to the one exact call — e.g. `getOrder(orderId)` — leaving other args of the same
- * function untouched. `chainId` defaults to the connected chain.
+ * function untouched. `chainId` defaults to the connected chain; a target on ANOTHER chain (a
+ * chain-pinned read) gets a plain refresh — that chain never sees the write's block, so there is
+ * nothing to be block-aware of.
  */
 export type CofheReadInvalidationDescriptor = {
   address: Address;
@@ -182,10 +188,18 @@ async function invalidateOnceMined(params: {
       filters.push(nativeFilters);
     }
 
+    // Block-awareness only means something on the chain the tx was mined on: a target on another
+    // chain (a chain-pinned read) would wait for a block hash its chain never produces, so it gets
+    // a plain refresh instead.
     await Promise.all(
-      filters.map((queryFilters) =>
-        invalidateQueriesWithContext(queryClient, queryFilters, { blockHashToBeAwareOf: blockHash })
-      )
+      filters.map((queryFilters) => {
+        const targetChainId = cofheReadKeyChainId(queryFilters.queryKey);
+        const onOtherChain =
+          targetChainId !== undefined && connectedChainId !== undefined && targetChainId !== connectedChainId;
+        return onOtherChain
+          ? queryClient.invalidateQueries(queryFilters)
+          : invalidateQueriesWithContext(queryClient, queryFilters, { blockHashToBeAwareOf: blockHash });
+      })
     );
   } catch (error) {
     cofheLogger.warn('Failed to invalidate read queries after write transaction', { txHash, error });
