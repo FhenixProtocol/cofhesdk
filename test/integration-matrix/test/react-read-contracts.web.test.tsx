@@ -18,7 +18,8 @@
  *     invalidation primitive (same machinery) refreshes it;
  *   - the invalidation context is a TTL WATERMARK, not a one-shot note: a read whose first fetch
  *     happens AFTER the invalidation's refetches settled (a new args variant, an enabled flip) is
- *     gated exactly like its concurrent siblings — delivery is deterministic, not ordering luck;
+ *     gated exactly like its concurrent siblings — delivery is deterministic, not ordering luck —
+ *     until the watermark expires (`ttlMs`), after which a new read goes to the node un-gated;
  *   - chain-pinned reads: `chainId` alone guards a read to that chain; with its own `publicClient`
  *     the read is served through that client wherever the wallet sits (or with none), keyed under
  *     the pinned chain; ACP gating and decryption follow the read's chain; a write's block-aware
@@ -52,6 +53,7 @@ import {
   CofheProvider,
   createCofheConfig,
   constructCofheReadContractQueryForInvalidation,
+  findMatchingInvalidationContext,
   invalidateQueriesWithContext,
   useCofheReadContract,
   useCofheReadContractAndDecrypt,
@@ -245,6 +247,22 @@ function KeyValueApp({
   );
 }
 
+/**
+ * The mined block hash each LIVE read under `prefix` would be gated on if it fetched right now,
+ * keyed by its args — `undefined` when no watermark covers it.
+ */
+function watermarksUnder(queryClient: QueryClient, prefix: readonly unknown[]) {
+  return Object.fromEntries(
+    queryClient
+      .getQueryCache()
+      .findAll({ queryKey: prefix })
+      .map((query) => [
+        String(query.queryKey[prefix.length]),
+        findMatchingInvalidationContext<{ blockHashToBeAwareOf: Hash }>(query.queryKey).context?.blockHashToBeAwareOf,
+      ])
+  );
+}
+
 afterEach(() => {
   useInvalidationContextStore.setState({ byKey: {} });
 });
@@ -420,7 +438,7 @@ const describeOnAnvil = KEY_VALUE_STORE_ADDRESS ? describe : describe.skip;
 
 describeOnAnvil('react hooks: useCofheWriteContract({ invalidates }) refreshes useCofheReadContracts (Anvil)', () => {
   it('a mined write refreshes every batch entry, block-gated, and the singular read shares the cache', async () => {
-    const { contractAddress, recorder, publicClient, renderApp } = setup();
+    const { contractAddress, recorder, publicClient, queryClient, renderApp } = setup();
     renderApp({ invalidates: [{ address: contractAddress, functionName: 'getItem' }], writeKey: 2n, writeValue: 777n });
 
     // The app connects and loads the batch: one fetch per key — and none extra for the
@@ -443,13 +461,18 @@ describeOnAnvil('react hooks: useCofheWriteContract({ invalidates }) refreshes u
     // ...each gated on a probe that the serving node knows the mined block (and no other probes).
     expect(recorder.countBlockHashProbes(receipt.blockHash)).toBe(KEYS.length);
     expect(recorder.countBlockHashProbes()).toBe(KEYS.length);
-    // The invalidation context is a TTL watermark — it persists after delivery,
-    // so any later fetch under the prefix stays gated too.
-    expect(Object.keys(useInvalidationContextStore.getState().byKey)).not.toHaveLength(0);
+    // The watermark outlives its delivery: every getItem read — the batch entries and the
+    // not-yet-enabled late reader alike — is still covered by the mined block.
+    expect(watermarksUnder(queryClient, itemReadKey(contractAddress))).toStrictEqual({
+      '1': receipt.blockHash,
+      '2': receipt.blockHash,
+      '3': receipt.blockHash,
+      '9': receipt.blockHash,
+    });
   }, 180_000);
 
   it('a receipt-derived, args-narrowed target refreshes exactly the touched entry', async () => {
-    const { contractAddress, recorder, publicClient, renderApp } = setup();
+    const { contractAddress, recorder, publicClient, queryClient, renderApp } = setup();
     renderApp({
       // The target is only known from the outcome: read the key out of the mined
       // logs (ItemSet's indexed key = topics[1]) and narrow to that exact call.
@@ -475,9 +498,14 @@ describeOnAnvil('react hooks: useCofheWriteContract({ invalidates }) refreshes u
     await waitFor(() => expect(onScreen().single2).toBe('999'), EVENTUALLY);
     // ...via exactly ONE refetch — keys 1 and 3 (and key 1's singular read) untouched...
     expect(recorder.countEthCalls(GET_ITEM_SELECTOR)).toBe(KEYS.length + 1);
-    // ...block-gated; the watermark persists (TTL-bound) for later fetches.
+    // ...block-gated — and the watermark it leaves is exactly as narrow: getItem(2) only.
     expect(recorder.countBlockHashProbes(receipt.blockHash)).toBe(1);
-    expect(Object.keys(useInvalidationContextStore.getState().byKey)).not.toHaveLength(0);
+    expect(watermarksUnder(queryClient, itemReadKey(contractAddress))).toStrictEqual({
+      '1': undefined,
+      '2': receipt.blockHash,
+      '3': undefined,
+      '9': undefined,
+    });
   }, 180_000);
 
   it('the watermark gates a STAGGERED read — first fetched only after the invalidation settled', async () => {
@@ -504,6 +532,42 @@ describeOnAnvil('react hooks: useCofheWriteContract({ invalidates }) refreshes u
     fireEvent.click(screen.getByRole('button', { name: 'mount late' }));
     await waitFor(() => expect(onScreen().late).toBe('0'), EVENTUALLY);
     expect(recorder.countBlockHashProbes(receipt.blockHash)).toBe(probesBefore + 1);
+  }, 180_000);
+
+  it('a watermark stops gating once its ttlMs has passed', async () => {
+    const { contractAddress, recorder, publicClient, queryClient, renderApp } = setup();
+    // No `invalidates`: the write only provides a mined block to be aware of; the watermark below
+    // is set by hand, with a short TTL.
+    renderApp({ writeKey: 3n, writeValue: 321n });
+    await waitFor(() => expect(everyItemLoaded()).toBe(true), EVENTUALLY);
+
+    fireEvent.click(screen.getByRole('button', { name: 'set item' }));
+    await waitFor(() => expect(onScreen().txHash).toMatch(/^0x/), EVENTUALLY);
+    const receipt = await publicClient.waitForTransactionReceipt({ hash: onScreen().txHash as Hash });
+    expect(receipt.status).toBe('success');
+
+    // Before expiry: the refetches the invalidation triggers are gated — one probe per entry.
+    await invalidateQueriesWithContext(
+      queryClient,
+      { queryKey: itemReadKey(contractAddress), exact: false },
+      { blockHashToBeAwareOf: receipt.blockHash },
+      { ttlMs: 2_000 }
+    );
+    await waitFor(() => expect(onScreen().items[2]).toBe('321'), EVENTUALLY);
+    expect(recorder.countBlockHashProbes(receipt.blockHash)).toBe(KEYS.length);
+
+    // After expiry: nothing is covered any more, and a read first fetched now — the late reader —
+    // goes straight to the node, with no probe.
+    await sleep(2_100);
+    expect(watermarksUnder(queryClient, itemReadKey(contractAddress))).toStrictEqual({
+      '1': undefined,
+      '2': undefined,
+      '3': undefined,
+      '9': undefined,
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'mount late' }));
+    await waitFor(() => expect(onScreen().late).toBe('0'), EVENTUALLY);
+    expect(recorder.countBlockHashProbes(receipt.blockHash)).toBe(KEYS.length);
   }, 180_000);
 
   it('without `invalidates` the batch stays stale until invalidated manually', async () => {
