@@ -175,8 +175,8 @@ function SimpleStorageApp({
 }
 
 /**
- * The mined block hash each LIVE read under `prefix` would be gated on if it fetched right now,
- * keyed by its args — `undefined` when no watermark covers it.
+ * For each cached read under `prefix`: the block its next fetch would wait for, keyed by the
+ * read's args — e.g. `{ '1': '0xabc…', '2': undefined }` (`undefined` = no wait).
  */
 function watermarksUnder(queryClient: QueryClient, prefix: readonly unknown[]) {
   return Object.fromEntries(
