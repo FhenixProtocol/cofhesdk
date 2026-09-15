@@ -74,6 +74,9 @@ export type UseCofheReadContractsResult = {
  *
  * With a batching transport the entries still coalesce into a single JSON-RPC request; unlike the
  * previous multicall implementation this needs no multicall3 deployment on the chain.
+ *
+ * Chain and client: `chainId` / `publicClient` work exactly as on `useCofheReadContract`, for the
+ * whole batch.
  */
 export function useCofheReadContracts(
   params: {

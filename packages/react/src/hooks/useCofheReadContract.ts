@@ -101,8 +101,42 @@ export type UseCofheReadContractQueryOptions<
  * ACP gating (`requiresACP`) and decryption follow the read's chain: they use that chain's ACP.
  */
 export type CofheReadChainParams =
-  | { chainId?: number; publicClient?: undefined }
-  | { chainId: number; publicClient: PublicClientLike | undefined };
+  | {
+      /**
+       * The read's chain — its cache key's chain segment.
+       * - alone: GUARDS the read — it runs only while the wallet is connected to this chain,
+       *   otherwise it stays disabled (`disabledDueToWrongChain`);
+       * - with `publicClient`: the read goes through that client, wherever the wallet sits.
+       *
+       * Omit both to follow the connected wallet.
+       */
+      chainId?: number;
+      /**
+       * Serve the read through this client instead of the wallet's — wherever the wallet sits, or
+       * with no wallet connected. Requires `chainId`; a client whose own chain disagrees with it
+       * keeps the read disabled (`disabledDueToWrongChain`). While `undefined` (e.g. still
+       * loading), the read behaves like `chainId` alone.
+       */
+      publicClient?: undefined;
+    }
+  | {
+      /**
+       * The read's chain — its cache key's chain segment.
+       * - alone: GUARDS the read — it runs only while the wallet is connected to this chain,
+       *   otherwise it stays disabled (`disabledDueToWrongChain`);
+       * - with `publicClient`: the read goes through that client, wherever the wallet sits.
+       *
+       * Omit both to follow the connected wallet.
+       */
+      chainId: number;
+      /**
+       * Serve the read through this client instead of the wallet's — wherever the wallet sits, or
+       * with no wallet connected. Requires `chainId`; a client whose own chain disagrees with it
+       * keeps the read disabled (`disabledDueToWrongChain`). While `undefined` (e.g. still
+       * loading), the read behaves like `chainId` alone.
+       */
+      publicClient: PublicClientLike | undefined;
+    };
 
 /** Resolves a read's `CofheReadChainParams` into the chain it belongs to and the client serving it. */
 export function useCofheReadTarget({ chainId, publicClient: ownClient }: CofheReadChainParams): {
@@ -275,6 +309,15 @@ export type UseCofheReadContractResult<
   /** The read is pinned to a `chainId` the client able to serve it is not on (see `CofheReadChainParams`). */
   disabledDueToWrongChain: boolean;
 };
+
+/**
+ * Read a contract view function through the SDK cache; `useCofheWriteContract({ invalidates })`
+ * refreshes it block-awarely. Which chain and client serve it:
+ * - neither `chainId` nor `publicClient`: the connected wallet's;
+ * - `chainId` alone: only while the wallet is on that chain (else `disabledDueToWrongChain`);
+ * - `chainId` + `publicClient`: that client, wherever the wallet sits;
+ * - `publicClient` alone: a type error.
+ */
 export function useCofheReadContract<
   TAbi extends Abi,
   TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>,

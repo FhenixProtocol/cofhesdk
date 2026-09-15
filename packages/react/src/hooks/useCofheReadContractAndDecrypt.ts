@@ -49,6 +49,9 @@ const onPoll = (context: DecryptPollCallbackContext) => {
 };
 /**
  * Generic hook: read a confidential contract value and decrypt it.
+ *
+ * Chain and client: `chainId` / `publicClient` work exactly as on `useCofheReadContract`, and the
+ * decryption follows the read's chain (it uses that chain's ACP).
  */
 // TODO: useCofheReadContractAndDecrypt only works for a scenario when the contract function returns a signle plain encrypted value (i.e. not struct etc)
 export function useCofheReadContractAndDecrypt<
