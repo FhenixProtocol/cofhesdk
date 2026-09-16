@@ -78,6 +78,16 @@ export function cofheReadKeyChainId(queryKey: readonly unknown[]): number | unde
   return queryKey[0] === QUERY_CACHE_PREFIX && typeof queryKey[1] === 'number' ? queryKey[1] : undefined;
 }
 
+/**
+ * A cofhe read prefix whose chain segment is missing or `undefined` (it spans every chain, e.g.
+ * `['cofheReadContract']`), pinned to `chainId`: the same prefix with that segment filled in.
+ * `undefined` for any other key — one that is not a cofhe read key, or already names a chain.
+ */
+export function cofheReadKeyPinnedTo(queryKey: readonly unknown[], chainId: number): readonly unknown[] | undefined {
+  if (queryKey[0] !== QUERY_CACHE_PREFIX || queryKey[1] !== undefined) return undefined;
+  return [QUERY_CACHE_PREFIX, chainId, ...queryKey.slice(2)];
+}
+
 export type UseCofheReadContractQueryOptions<
   TAbi extends Abi,
   TfunctionName extends ContractFunctionName<TAbi, 'pure' | 'view'>,
