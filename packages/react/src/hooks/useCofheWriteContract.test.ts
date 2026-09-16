@@ -57,13 +57,7 @@ describe('blockAwareWatermarkKey: gate only on the chain where the block exists'
     expect(blockAwareWatermarkKey({ queryKey: [PREFIX] }, undefined)).toBeUndefined();
   });
 
-  it('a cofhe prefix spanning every chain gates the mined chain’s slice only', () => {
+  it('the bare cofhe prefix, spanning every chain, gates the mined chain’s slice only', () => {
     expect(blockAwareWatermarkKey({ queryKey: [PREFIX] }, MINED)).toStrictEqual([PREFIX, MINED]);
-    expect(blockAwareWatermarkKey({ queryKey: [PREFIX, undefined, ADDR, 'getItem'] }, MINED)).toStrictEqual([
-      PREFIX,
-      MINED,
-      ADDR,
-      'getItem',
-    ]);
   });
 });

@@ -79,13 +79,14 @@ export function cofheReadKeyChainId(queryKey: readonly unknown[]): number | unde
 }
 
 /**
- * A cofhe read prefix whose chain segment is missing or `undefined` (it spans every chain, e.g.
- * `['cofheReadContract']`), pinned to `chainId`: the same prefix with that segment filled in.
- * `undefined` for any other key — one that is not a cofhe read key, or already names a chain.
+ * The bare cofhe read prefix `['cofheReadContract']` — the one key that spans every chain — pinned
+ * to `chainId`. `undefined` for any other key: a key that names a chain, or is not a cofhe read
+ * key at all. (An enabled read's key always carries its chain in slot 1: the connection sets
+ * chainId and publicClient together, and a pinned read requires `chainId`.)
  */
 export function cofheReadKeyPinnedTo(queryKey: readonly unknown[], chainId: number): readonly unknown[] | undefined {
-  if (queryKey[0] !== QUERY_CACHE_PREFIX || queryKey[1] !== undefined) return undefined;
-  return [QUERY_CACHE_PREFIX, chainId, ...queryKey.slice(2)];
+  if (queryKey.length !== 1 || queryKey[0] !== QUERY_CACHE_PREFIX) return undefined;
+  return [QUERY_CACHE_PREFIX, chainId];
 }
 
 export type UseCofheReadContractQueryOptions<

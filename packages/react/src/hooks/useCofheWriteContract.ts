@@ -160,7 +160,8 @@ export function normalizeInvalidationTarget(
  * Where a mined block's watermark goes for one target — dirty every declared target, gate only
  * the ones on the chain where the block exists:
  * - a target on the mined chain gates its whole key;
- * - a cofhe prefix that spans every chain (no chain segment) gates the mined chain's slice of it;
+ * - the bare cofhe prefix `['cofheReadContract']`, which spans every chain, gates the mined chain's
+ *   slice of it;
  * - a target on another chain, or of unknown chain, or when the mined chain itself is unknown,
  *   gets no watermark (`undefined`): a plain refresh. A wrong watermark stalls reads for the whole
  *   wait window; a plain refresh only forgoes the gate.
