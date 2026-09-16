@@ -5,7 +5,8 @@ import type { CofheFirstReturnFheType, CofheReturnType, EncryptedReturnTypeByUty
 import { FheTypes, type DecryptPollCallbackContext, type UnsealedItem } from '@cofhe/sdk';
 import { type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
 import { type Abi, type Address, type ContractFunctionArgs, type ContractFunctionName } from 'viem';
-import { useCofheDecrypt } from './useCofheDecrypt';
+import { constructCofheDecryptQueryKey, useCofheDecrypt } from './useCofheDecrypt';
+import { useCofheChainId } from './useCofheConnection';
 import {
   useCofheReadContract,
   type CofheReadChainParams,
@@ -98,6 +99,10 @@ export function useCofheReadContractAndDecrypt<
 } {
   const { address, functionName, requiresACP = true } = params;
   const queryClient = useInternalQueryClient();
+  // The chain the decrypt runs on — the same resolution `useCofheDecrypt` makes, needed here to
+  // name the exact cache entry a superseded decrypt lives under.
+  const connectedChainId = useCofheChainId();
+  const decryptChainId = params.chainId ?? connectedChainId;
 
   // The read and its decryption share one chain: the decrypt below uses the read's `chainId`.
   const encrypted = useCofheReadContract({ ...params, requiresACP }, readQueryOptions);
@@ -128,17 +133,17 @@ export function useCofheReadContractAndDecrypt<
   // Evict a superseded decrypt (a ctHash that is no longer the active input, e.g.
   // because the read now errors or produced a different handle) so it can't linger
   // in the cache as a phantom "fetched → …" entry disagreeing with the live read.
-  const prevRef = useRef<{ ctHash: string; utype: FheTypes } | undefined>(undefined);
+  const prevRef = useRef<{ ctHash: string; utype: FheTypes; chainId: number | undefined } | undefined>(undefined);
   useEffect(() => {
     const prev = prevRef.current;
     if (prev && prev.ctHash !== currentCtHash) {
-      queryClient.removeQueries({ queryKey: ['decryptCiphertext', prev.ctHash, prev.utype], exact: true });
+      queryClient.removeQueries({ queryKey: constructCofheDecryptQueryKey(prev), exact: true });
     }
     prevRef.current =
       currentCtHash !== undefined && currentUtype !== undefined
-        ? { ctHash: currentCtHash, utype: currentUtype }
+        ? { ctHash: currentCtHash, utype: currentUtype, chainId: decryptChainId }
         : undefined;
-  }, [currentCtHash, currentUtype, queryClient]);
+  }, [currentCtHash, currentUtype, decryptChainId, queryClient]);
 
   const decrypted = useCofheDecrypt(
     {

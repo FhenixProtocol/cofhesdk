@@ -1,10 +1,24 @@
 import { useCofheContext, useInternalQuery } from '@/providers';
 import { useCofheActiveACP } from './useCofheACPs';
+import { useCofheChainId } from './useCofheConnection';
 import { CofheError, FheTypes, type DecryptPollCallbackFunction, type UnsealedItem } from '@cofhe/sdk';
 import type { UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
 import { assert } from 'ts-essentials';
 import type { EncryptedReturnTypeByUtype } from '@cofhe/abi';
 import type { CofheDecryptMeta } from '@/meta';
+
+/**
+ * The cache key of one decrypt: a ciphertext handle decrypted on one chain. The chain is part of
+ * the key because it selects the ACP and threshold network that answer — the same handle on two
+ * chains is two requests. It sits last so observers indexing by `key[1]` (the ctHash) keep working.
+ */
+export function constructCofheDecryptQueryKey(params: {
+  ctHash: string | undefined;
+  utype: FheTypes | undefined;
+  chainId: number | undefined;
+}): readonly unknown[] {
+  return ['decryptCiphertext', params.ctHash, params.utype, params.chainId];
+}
 
 /**
  * Hook to decrypt a ciphertext using the Cofhe client.
@@ -37,6 +51,10 @@ export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<
   queryOptions?: Omit<UseQueryOptions<UnsealedItem<U>, Error, TSeletedData>, 'queryKey' | 'queryFn'>
 ): UseQueryResult<TSeletedData, Error> {
   const { client } = useCofheContext();
+  // The chain this decrypt runs on: the one given, else the connected chain. It picks the ACP
+  // below and the threshold network inside the builder, so it is part of the cache key.
+  const connectedChainId = useCofheChainId();
+  const decryptChainId = chainId ?? connectedChainId;
   // Sealed-output decryption runs against the ACTIVE ACP — without a currently VALID
   // one the request is guaranteed to fail server-side ("ACP is expired"/missing), so
   // don't fire it at all. Note the ciphertext input may still be present from a cached
@@ -48,7 +66,11 @@ export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<
 
   return useInternalQuery({
     enabled,
-    queryKey: ['decryptCiphertext', input?.ctHash.toString(), input?.utype],
+    queryKey: constructCofheDecryptQueryKey({
+      ctHash: input?.ctHash.toString(),
+      utype: input?.utype,
+      chainId: decryptChainId,
+    }),
     queryFn: async () => {
       assert(input, 'input is guaranteed to be defined by enabled condition');
       const builder = client.decryptForView(input.ctHash, input.utype);
@@ -60,7 +82,7 @@ export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<
       persist: true,
       kind: 'cofheDecrypt',
       ctHash: input?.ctHash?.toString(),
-      chainId: context?.chainId,
+      chainId: context?.chainId ?? decryptChainId,
       address: context?.address,
       functionName: context?.functionName,
       consumer: meta,
