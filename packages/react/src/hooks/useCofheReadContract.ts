@@ -85,8 +85,8 @@ export function cofheReadKeyChainId(queryKey: readonly unknown[]): number | unde
  * chainId and publicClient together, and a pinned read requires `chainId`.)
  */
 export function cofheReadKeyPinnedTo(queryKey: readonly unknown[], chainId: number): readonly unknown[] | undefined {
-  if (queryKey.length !== 1 || queryKey[0] !== QUERY_CACHE_PREFIX) return undefined;
-  return [QUERY_CACHE_PREFIX, chainId];
+  const isBarePrefix = queryKey.length === 1 && queryKey[0] === QUERY_CACHE_PREFIX;
+  return isBarePrefix ? [QUERY_CACHE_PREFIX, chainId] : undefined;
 }
 
 export type UseCofheReadContractQueryOptions<
