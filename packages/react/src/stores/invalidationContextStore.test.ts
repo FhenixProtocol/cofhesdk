@@ -57,6 +57,15 @@ describe('invalidation watermarks: matching (react-query partial-matching semant
     expect(watermarkFor(readKey(OTC, 'getPublish', ['8', '0']))).toBeUndefined();
     expect(watermarkFor(readKey(OTC, 'getOrder', ['7']))).toBeUndefined();
   });
+
+  it('matches exactly what `invalidateQueries` matches — a trailing undefined segment equals a missing one', () => {
+    // react-query compares segment by segment, and `undefined` equals a MISSING segment: this prefix
+    // reaches the shorter key, and — like `invalidateQueries` — not a read whose segment 3 is a name.
+    store().set({ queryKey: ['cofheReadContract', CHAIN, OTC, undefined], context: BLOCK_A });
+
+    expect(watermarkFor(['cofheReadContract', CHAIN, OTC])).toEqual(BLOCK_A);
+    expect(watermarkFor(readKey(OTC, 'getOrder', ['1']))).toBeUndefined();
+  });
 });
 
 describe('invalidation watermarks: expiry', () => {

@@ -1,4 +1,4 @@
-import type { QueryKey } from '@tanstack/react-query';
+import { partialMatchKey, type QueryKey } from '@tanstack/react-query';
 import { create } from 'zustand';
 
 /**
@@ -21,7 +21,6 @@ type InvalidationContextState = {
   byKey: Record<string, InvalidationContextEntry>;
   set: (params: { queryKey: QueryKey; context: unknown; ttlMs?: number }) => void;
   findMatching: (queryKey: QueryKey) => InvalidationContextEntry | undefined;
-  remove: (key: string) => void;
 };
 
 /** How long a watermark gates reads under its prefix. Once the serving node has
@@ -31,27 +30,6 @@ const DEFAULT_WATERMARK_TTL_MS = 60_000;
 
 function stringifyQueryKey(queryKey: QueryKey) {
   return JSON.stringify(queryKey);
-}
-
-/** react-query's partial matching: `a` matches when it is a (deep) subset of `b`.
- * Mirrored here so a watermark reaches exactly the queries its invalidation
- * refetched — e.g. an args-narrowed entry `[…, [orderId]]` matches the key
- * `[…, [orderId, seq]]`, just as `invalidateQueries` does. */
-function partialDeepEqual(a: unknown, b: unknown): boolean {
-  if (a === b) return true;
-  if (typeof a !== typeof b) return false;
-  if (a && b && typeof a === 'object') {
-    return Object.keys(a).every((key) =>
-      partialDeepEqual((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key])
-    );
-  }
-  return false;
-}
-
-function queryKeyStartsWith(fullQueryKey: QueryKey, prefixQueryKey: QueryKey) {
-  if (prefixQueryKey.length > fullQueryKey.length) return false;
-
-  return prefixQueryKey.every((segment, index) => partialDeepEqual(segment, fullQueryKey[index]));
 }
 
 function withoutExpired(byKey: Record<string, InvalidationContextEntry>, now: number) {
@@ -81,20 +59,15 @@ export const useInvalidationContextStore = create<InvalidationContextState>()((s
       },
     }));
   },
+  // A watermark covers exactly the queries its invalidation refetched: the same
+  // matcher `invalidateQueries` uses, react-query's own `partialMatchKey` (the
+  // entry's key is a deep subset of the query's) — e.g. an args-narrowed entry
+  // `[…, [orderId]]` reaches the key `[…, [orderId, seq]]`.
   findMatching: (queryKey) => {
     const now = Date.now();
     return Object.values(get().byKey)
       .filter((entry) => entry.expiresAt > now)
       .sort((left, right) => right.createdAt - left.createdAt)
-      .find((entry) => queryKeyStartsWith(queryKey, entry.queryKey));
-  },
-  remove: (key) => {
-    set((state) => {
-      if (!state.byKey[key]) return state;
-
-      const nextByKey = { ...state.byKey };
-      delete nextByKey[key];
-      return { byKey: nextByKey };
-    });
+      .find((entry) => partialMatchKey(queryKey, entry.queryKey));
   },
 }));
