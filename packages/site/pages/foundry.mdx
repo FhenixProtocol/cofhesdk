@@ -89,22 +89,33 @@ contract CounterTest is CofheTest {
 }
 ```
 
+## Gas reporting
+
+Mock FHE operations replicate the off-chain CoFHE work on-chain, which would normally inflate reported gas 2–3×. Under forge, `deployMocks()` excludes that mock-only work from gas metering by default (via `pauseGasMetering` cheatcodes), so `forge test --gas-report`, `forge snapshot`, and `gasleft()` measurements report numbers close to real-network costs — no configuration needed.
+
+- Requires forge ≥ 1.0 (older versions had unreliable `pauseGasMetering` behavior). If cheatcodes are unavailable, the mocks silently fall back to normal metering — correctness is never affected.
+- To see raw mock gas instead, opt out with `mockTaskManager.setMockGasExcluded(false)`.
+
+:::note
+Upgrading to a plugin version with this feature will lower existing `forge snapshot` numbers — the drop is the mock overhead disappearing from the report, not a change in your contracts.
+:::
+
 ## `CofheTest` API
 
 `CofheTest` is `abstract` and provides mock infrastructure. Inherit it in your test contract.
 
-| Function                                    | Description                                                                                                                                                                                                       |
-| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `deployMocks()`                             | Deploys the complete CoFHE mock stack: `MockTaskManager`, `MockACL`, `MockZkVerifier`, `MockZkVerifierSigner`, `MockThresholdNetwork`, `MockThresholdNetworkSigner`. Mirrors the Hardhat plugin deployment order. |
-| `createCofheClient()`                       | Returns a new `CofheClient` instance. Call `connect(pkey)` on the result before use.                                                                                                                              |
-| `enableLogs()`                              | Turns on plaintext operation logs from `MockTaskManager`.                                                                                                                                                         |
-| `disableLogs()`                             | Turns off plaintext operation logs.                                                                                                                                                                               |
-| `getPlaintext(bytes32 ctHash)`              | Returns the stored plaintext for a ciphertext hash as `uint256`. Reverts if the hash is not in mock storage.                                                                                                      |
-| `getPlaintext(euint32 eValue)`              | Typed overloads — returns the correct Solidity type (`bool`, `uint8`…`uint128`, `address`) for each FHE type. `internal` visibility only.                                                                         |
-| `expectPlaintext(bytes32, uint256)`         | Asserts `ctHash` exists in mock storage and equals `value`.                                                                                                                                                       |
-| `expectPlaintext(bytes32, uint256, string)` | Same with a custom failure message.                                                                                                                                                                               |
-| `expectPlaintext(euint32, uint32)`          | Typed overloads for each FHE type.                                                                                                                                                                                |
-| `expectPlaintext(euint32, uint32, string)`  | Typed overloads with failure message.                                                                                                                                                                             |
+| Function                                    | Description                                                                                                                                                                                                                                                                              |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `deployMocks()`                             | Deploys the complete CoFHE mock stack: `MockTaskManager`, `MockACL`, `MockZkVerifier`, `MockZkVerifierSigner`, `MockThresholdNetwork`, `MockThresholdNetworkSigner`. Mirrors the Hardhat plugin deployment order. Also enables mock-gas exclusion (see [Gas reporting](#gas-reporting)). |
+| `createCofheClient()`                       | Returns a new `CofheClient` instance. Call `connect(pkey)` on the result before use.                                                                                                                                                                                                     |
+| `enableLogs()`                              | Turns on plaintext operation logs from `MockTaskManager`.                                                                                                                                                                                                                                |
+| `disableLogs()`                             | Turns off plaintext operation logs.                                                                                                                                                                                                                                                      |
+| `getPlaintext(bytes32 ctHash)`              | Returns the stored plaintext for a ciphertext hash as `uint256`. Reverts if the hash is not in mock storage.                                                                                                                                                                             |
+| `getPlaintext(euint32 eValue)`              | Typed overloads — returns the correct Solidity type (`bool`, `uint8`…`uint128`, `address`) for each FHE type. `internal` visibility only.                                                                                                                                                |
+| `expectPlaintext(bytes32, uint256)`         | Asserts `ctHash` exists in mock storage and equals `value`.                                                                                                                                                                                                                              |
+| `expectPlaintext(bytes32, uint256, string)` | Same with a custom failure message.                                                                                                                                                                                                                                                      |
+| `expectPlaintext(euint32, uint32)`          | Typed overloads for each FHE type.                                                                                                                                                                                                                                                       |
+| `expectPlaintext(euint32, uint32, string)`  | Typed overloads with failure message.                                                                                                                                                                                                                                                    |
 
 ## `CofheClient` API
 

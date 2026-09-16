@@ -47,6 +47,11 @@ abstract contract CofheTest is Test {
     mockTaskManager = MockTaskManager(TASK_MANAGER_ADDRESS);
     mockTaskManager.initialize(TM_ADMIN);
     mockTaskManager.setLogOps(false);
+    // Exclude mock-only plaintext replication from gas metering so reported gas is closer
+    // to the real task manager. Requires cheatcode access, which etched contracts don't
+    // inherit from the test contract.
+    vm.allowCheatcodes(TASK_MANAGER_ADDRESS);
+    mockTaskManager.setMockGasExcluded(true);
     vm.label(address(mockTaskManager), 'MockTaskManager');
 
     // 2. ACL (non-fixed deploy so constructor runs and EIP712 domain is set)
