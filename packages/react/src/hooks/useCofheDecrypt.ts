@@ -8,16 +8,16 @@ import type { EncryptedReturnTypeByUtype } from '@cofhe/abi';
 import type { CofheDecryptMeta } from '@/meta';
 
 /**
- * The cache key of one decrypt: a ciphertext handle decrypted on one chain. The chain is part of
- * the key because it selects the ACP and threshold network that answer — the same handle on two
- * chains is two requests. It sits last so observers indexing by `key[1]` (the ctHash) keep working.
+ * The cache key of one decrypt: a ciphertext handle decrypted on one chain, shaped like the read
+ * key — `[prefix, chainId, ...]`. The chain is part of the key because it selects the ACP and
+ * threshold network that answer — the same handle on two chains is two requests.
  */
 export function constructCofheDecryptQueryKey(params: {
   ctHash: string | undefined;
   utype: FheTypes | undefined;
   chainId: number | undefined;
 }): readonly unknown[] {
-  return ['decryptCiphertext', params.ctHash, params.utype, params.chainId];
+  return ['decryptCiphertext', params.chainId, params.ctHash, params.utype];
 }
 
 /**

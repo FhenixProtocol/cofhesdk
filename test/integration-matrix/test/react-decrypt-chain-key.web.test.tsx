@@ -108,13 +108,13 @@ describeOnAnvil('react hooks: decrypt cache is per chain (Anvil)', () => {
     await waitFor(() => expect(shown('A')).toBe('42'), { timeout: 90_000 });
     await waitFor(() => expect(shown('B')).toBe('42'), { timeout: 90_000 });
 
-    // Two chains, two entries — the placeholder registered before the reads resolved carries no ctHash.
+    // Two chains, two entries, keyed `[prefix, chainId, ctHash, utype]` — the placeholder registered
+    // before the reads resolved carries no ctHash.
     const decrypts = queryClient
       .getQueryCache()
       .findAll({ queryKey: ['decryptCiphertext'] })
-      .filter((q) => q.queryKey[1] != null);
+      .filter((q) => q.queryKey[2] != null);
     expect(decrypts).toHaveLength(2);
-    const chains = decrypts.map((q) => q.queryKey.find((segment) => segment === CHAIN_A || segment === CHAIN_B));
-    expect(chains.sort()).toStrictEqual([CHAIN_A, CHAIN_B]);
+    expect(decrypts.map((q) => q.queryKey[1]).sort()).toStrictEqual([CHAIN_A, CHAIN_B]);
   }, 180_000);
 });
