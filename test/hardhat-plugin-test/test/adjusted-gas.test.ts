@@ -71,3 +71,43 @@ describe('Adjusted Gas', () => {
     expect(hre.cofhe.getAdjustedGasBreakdown(receipt!).mockGasEvents).to.equal(0);
   });
 });
+
+describe('Adjusted Gas — audit regressions', () => {
+  it('Should clamp adjustedGasUsed at zero for pathological receipts', () => {
+    // Synthetic receipt where reported mock gas exceeds (post-refund) gasUsed.
+    const { TASK_MANAGER_ADDRESS } = require('@cofhe/sdk');
+    const { MOCK_GAS_CONSUMED_TOPIC } = require('@cofhe/hardhat-plugin');
+    const fakeReceipt = {
+      gasUsed: 1_000n,
+      logs: [
+        {
+          address: TASK_MANAGER_ADDRESS,
+          topics: [MOCK_GAS_CONSUMED_TOPIC],
+          data: '0x' + 5_000n.toString(16).padStart(64, '0'),
+        },
+      ],
+    };
+    const breakdown = hre.cofhe.getAdjustedGasBreakdown(fakeReceipt);
+    expect(breakdown.mockGas).to.equal(5_000n);
+    expect(breakdown.adjustedGasUsed).to.equal(0n);
+    expect(hre.cofhe.getAdjustedGasUsed(fakeReceipt)).to.equal(0n);
+  });
+
+  it('Should keep emitting MockGasConsumed when mockGasExcluded is set on hardhat', async () => {
+    // setMockGasExcluded(true) enables the forge cheatcode shim; on hardhat the cheatcode
+    // address has no code, so the shim must fall through to the event path rather than
+    // silently disabling adjusted-gas reporting.
+    const taskManager = await hre.cofhe.mocks.getMockTaskManager();
+    await (await taskManager.setMockGasExcluded(true)).wait();
+    try {
+      const simpleTest = await deploySharedSimpleTest();
+      const tx = await simpleTest.setValueTrivial(13);
+      const receipt = await tx.wait();
+      const breakdown = hre.cofhe.getAdjustedGasBreakdown(receipt!);
+      expect(breakdown.mockGasEvents).to.be.greaterThan(0);
+      expect(breakdown.mockGas > 0n).to.equal(true);
+    } finally {
+      await (await taskManager.setMockGasExcluded(false)).wait();
+    }
+  });
+});

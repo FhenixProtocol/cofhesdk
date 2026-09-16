@@ -95,6 +95,8 @@ cofhe: {
 
 Note: `eth_estimateGas` is not adjusted — the mock work really does execute, so transactions still need the raw gas limit. Use a testnet for estimate-sensitive flows.
 
+The summary table is reconstructed from chain history after the run: transactions rolled back by `loadFixture` or `evm_snapshot`/`evm_revert` won't appear, and the table is best-effort after forced exits — use `getAdjustedGasUsed(receipt)` inside tests for exact per-transaction numbers.
+
 ### Mock Contracts Deployment
 
 Core mock contracts are automatically deployed when using the Hardhat network:

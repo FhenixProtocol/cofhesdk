@@ -184,8 +184,14 @@ const hreHooks: Partial<HardhatRuntimeEnvironmentHooks> = {
         // dumped at process exit for the `test` task to merge and print. Connections
         // (and their chains) live in node:test worker processes, so collection has to
         // happen here rather than in the test task itself.
-        if (hre.config.cofhe.gasSummary) {
-          registerGasSummaryConnection(publicClient, hre.artifacts, hre.config.paths.cache);
+        // Only connections where mocks were actually deployed are tracked (deployMocks
+        // skips non-hardhat networks and returns an empty result) - registering external
+        // RPCs would trigger pointless log scans at exit and double-count shared chains.
+        // The current block is recorded so the scan never reaches back before the deploy
+        // (relevant for forks and long-lived chains).
+        if (hre.config.cofhe.gasSummary && deployedMockContracts.MockTaskManager !== undefined) {
+          const fromBlock = await publicClient.getBlockNumber();
+          registerGasSummaryConnection(publicClient, hre.artifacts, hre.config.paths.cache, fromBlock);
         }
 
         (conn as any).cofhe = createCofheConnection(

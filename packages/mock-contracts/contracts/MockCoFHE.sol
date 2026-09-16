@@ -76,36 +76,51 @@ abstract contract MockCoFHE {
     mockGasExcluded = _mockGasExcluded;
   }
 
-  /// @dev Pauses forge's gas metering (no-op unless `mockGasExcluded` is enabled).
-  ///      Low-level call so a failure (no cheatcode access, non-forge environment)
-  ///      degrades to metered execution instead of reverting.
-  function _pauseGasMetering() internal returns (bool paused) {
-    if (!mockGasExcluded) return false;
-    (paused, ) = CHEATCODE_ADDRESS.call(abi.encodeWithSignature('pauseGasMetering()'));
+  /// @dev How a mock-only block is being accounted for.
+  ///      MEASURE           - metering is live: measure with gasleft() and emit MockGasConsumed.
+  ///      PAUSED_BY_MOCK    - we paused forge's metering and must resume it afterwards.
+  ///      ALREADY_UNMETERED - metering was already paused by the caller's own test; leave it
+  ///                          untouched (the mock work is unmetered either way) and emit nothing.
+  enum MockGasMode {
+    MEASURE,
+    PAUSED_BY_MOCK,
+    ALREADY_UNMETERED
   }
 
-  /// @dev Resumes forge's gas metering if `_pauseGasMetering` paused it.
-  function _resumeGasMetering(bool paused) internal {
-    if (!paused) return;
-    (bool ok, ) = CHEATCODE_ADDRESS.call(abi.encodeWithSignature('resumeGasMetering()'));
-    ok;
+  /// @dev True while forge's gas metering is paused: gasleft() is frozen, so two consecutive
+  ///      reads are equal. While metered they differ by the cost of the second GAS opcode.
+  ///      (Foundry has no query cheatcode for this state.)
+  function _isGasMeteringPaused() internal view returns (bool) {
+    uint256 a = gasleft();
+    uint256 b = gasleft();
+    return a == b;
   }
 
-  /// @dev Opens a mock-only block: pauses gas metering when enabled (forge), otherwise
-  ///      records gasleft() so `_mockGasTrackEnd` can report the block's cost.
+  /// @dev Opens a mock-only block. Under forge (detected by code at the cheatcode address -
+  ///      forge plants a marker byte there, other environments have none) with exclusion
+  ///      enabled, pauses gas metering unless the caller's test already paused it - never
+  ///      steal a pause we don't own, or `_mockGasTrackEnd` would resume metering out from
+  ///      under the user's own measurement region. Everywhere else, records gasleft() so the
+  ///      block's cost can be reported via MockGasConsumed.
   ///      Only wrap code that cannot revert - a revert inside the block would skip
   ///      `_mockGasTrackEnd` and leak paused metering (see sendEventCreated's trampoline
   ///      for the revert-safe variant).
-  function _mockGasTrackStart() internal returns (bool paused, uint256 startGas) {
-    paused = _pauseGasMetering();
-    if (!paused) startGas = gasleft();
+  function _mockGasTrackStart() internal returns (MockGasMode mode, uint256 startGas) {
+    if (mockGasExcluded && CHEATCODE_ADDRESS.code.length > 0) {
+      if (_isGasMeteringPaused()) return (MockGasMode.ALREADY_UNMETERED, 0);
+      (bool ok, ) = CHEATCODE_ADDRESS.call(abi.encodeWithSignature('pauseGasMetering()'));
+      if (ok) return (MockGasMode.PAUSED_BY_MOCK, 0);
+    }
+    return (MockGasMode.MEASURE, gasleft());
   }
 
-  /// @dev Closes a mock-only block: resumes metering (forge) or emits the measured cost.
-  function _mockGasTrackEnd(bool paused, uint256 startGas) internal {
-    if (paused) {
-      _resumeGasMetering(true);
-    } else {
+  /// @dev Closes a mock-only block: resumes metering (if we paused it) or emits the
+  ///      measured cost. A caller-owned pause is left exactly as we found it.
+  function _mockGasTrackEnd(MockGasMode mode, uint256 startGas) internal {
+    if (mode == MockGasMode.PAUSED_BY_MOCK) {
+      (bool ok, ) = CHEATCODE_ADDRESS.call(abi.encodeWithSignature('resumeGasMetering()'));
+      ok;
+    } else if (mode == MockGasMode.MEASURE) {
       emit MockGasConsumed(startGas - gasleft() + MOCK_GAS_EVENT_COST);
     }
   }
@@ -291,9 +306,9 @@ abstract contract MockCoFHE {
   ///      Safe without the revert trampoline: logAllow only formats bounded strings.
   function MOCK_trackedLogAllow(string memory operation, uint256 ctHash, address account) internal {
     if (!logOps) return;
-    (bool paused, uint256 startGas) = _mockGasTrackStart();
+    (MockGasMode mode, uint256 startGas) = _mockGasTrackStart();
     logAllow(operation, ctHash, account);
-    _mockGasTrackEnd(paused, startGas);
+    _mockGasTrackEnd(mode, startGas);
   }
 
   // Mock functions

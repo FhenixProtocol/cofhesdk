@@ -159,6 +159,8 @@ With `cofhe: { gasSummary: true }` in the config, a per-method table (raw vs adj
 
 Note: `eth_estimateGas` is not adjusted — the mock work really does execute, so transactions still need the raw gas limit. Use a testnet for estimate-sensitive flows.
 
+The summary table is collected per test worker at process exit and reconstructed from chain history: transactions rolled back by snapshots won't appear, and it is best-effort after forced exits (`process.exit`, Ctrl+C) — use `getAdjustedGasUsed(receipt)` inside tests for exact per-transaction numbers.
+
 ---
 
 ### `cofhe.mocks`

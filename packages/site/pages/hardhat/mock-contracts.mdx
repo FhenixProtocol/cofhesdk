@@ -176,6 +176,10 @@ Set `cofhe: { gasSummary: true }` in your Hardhat config to print a per-method t
 └──────────────────┴──────────────────────────┴───────┴─────────────────┴────────────────────┴───────────────┘
 ```
 
+:::warning
+The summary is reconstructed from chain history after the run. Tests using `loadFixture` or manual `evm_snapshot`/`evm_revert` roll back their blocks, so those transactions won't appear in the table — use `getAdjustedGasUsed(receipt)` inside tests for exact per-transaction numbers. The summary is also best-effort: it may be incomplete after forced exits (`process.exit`, Ctrl+C).
+:::
+
 :::note
 `eth_estimateGas` is not adjusted — the mock work really does execute, so transactions still need the raw gas limit. Use a testnet for estimate-sensitive flows. (In Foundry, the equivalent overhead is excluded from gas metering entirely — see the [Foundry plugin](/foundry).)
 :::

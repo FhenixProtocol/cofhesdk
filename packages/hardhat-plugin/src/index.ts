@@ -54,6 +54,8 @@ declare module 'hardhat/types/config' {
       /**
        * Print a per-method gas summary after `hardhat test`, showing raw gas next to
        * adjusted gas (mock-only overhead excluded - an estimate of real-network cost).
+       * Reconstructed from chain history: transactions rolled back by loadFixture /
+       * evm_revert won't appear - use getAdjustedGasUsed(receipt) for exact numbers.
        * (default: false)
        */
       gasSummary?: boolean;

@@ -150,6 +150,31 @@ contract GasMeteringTest is CofheTest {
     assertEq(eventCount, 0, 'no MockGasConsumed events expected while metering is paused');
   }
 
+  /// @dev A pause owned by the caller's test must survive FHE ops: the shim detects the
+  ///      pre-existing pause and neither re-pauses nor resumes (and emits no events).
+  function test_userOwnedPauseNotClobbered() public {
+    mockTaskManager.setMockGasExcluded(true);
+    GasConsumer consumer = new GasConsumer();
+    consumer.init(0);
+    consumer.addToCounter(1); // warm
+
+    vm.recordLogs();
+    vm.pauseGasMetering();
+
+    consumer.addToCounter(5); // FHE ops inside the user's paused region
+
+    // If the shim resumed metering, this is now metered.
+    uint256 g0 = gasleft();
+    consumer.addToCounter(7);
+    uint256 gasInsidePause = g0 - gasleft();
+    vm.resumeGasMetering();
+
+    assertEq(gasInsidePause, 0, 'mock shim resumed metering inside user-owned paused region');
+    (, uint256 eventCount) = _sumMockGasEvents(vm.getRecordedLogs());
+    assertEq(eventCount, 0, 'no MockGasConsumed events expected while unmetered');
+    expectPlaintext(euint32.unwrap(consumer.counter()), 13);
+  }
+
   /// @dev Correctness must be identical with the shim enabled.
   function test_resultsUnchangedWithExclusion() public {
     mockTaskManager.setMockGasExcluded(true);

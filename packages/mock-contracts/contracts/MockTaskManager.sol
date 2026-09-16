@@ -284,10 +284,12 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     // NOTE: MOCK - plaintext replication is mock-only work that doesn't exist in the real
     // task manager, so (under forge, when enabled) it runs with gas metering paused; when
     // metered (hardhat) its cost is reported via MockGasConsumed instead.
-    (bool paused, uint256 startGas) = _mockGasTrackStart();
-    if (!paused) {
+    (MockGasMode mode, uint256 startGas) = _mockGasTrackStart();
+    if (mode != MockGasMode.PAUSED_BY_MOCK) {
+      // MEASURE, or the caller's test already paused metering (nothing of ours to leak
+      // on revert in either case).
       _mockDispatch(ctHash, funcId, inputs, arity);
-      _mockGasTrackEnd(false, startGas);
+      _mockGasTrackEnd(mode, startGas);
       return;
     }
 
@@ -296,9 +298,9 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     // the rest of the test and every later call reports ~0 gas. The extra call itself
     // runs unmetered.
     try this.MOCK_dispatchOperation(ctHash, funcId, inputs, arity) {
-      _resumeGasMetering(true);
+      _mockGasTrackEnd(mode, startGas);
     } catch (bytes memory err) {
-      _resumeGasMetering(true);
+      _mockGasTrackEnd(mode, startGas);
       assembly ('memory-safe') {
         revert(add(err, 0x20), mload(err))
       }
@@ -339,17 +341,17 @@ contract MockTaskManager is ITaskManager, MockCoFHE {
     // }
 
     // NOTE: MOCK - the real task manager only emits a task event here and the result lands
-    // in a later transaction; storing it synchronously is mock-only work. The plaintext is
-    // read before the tracked block so an InputNotInMockStorage revert can't leak paused
-    // gas metering.
-    uint256 result = _get(ctHash);
-    (bool paused, uint256 startGas) = _mockGasTrackStart();
+    // in a later transaction; storing it synchronously is mock-only work. Only the cheap
+    // existence check runs before the tracked block (so an InputNotInMockStorage revert
+    // can't leak paused gas metering); the read itself is mock-only and stays inside.
+    MOCK_verifyKeyInStorage(ctHash);
+    (MockGasMode mode, uint256 startGas) = _mockGasTrackStart();
     _decryptResultReady[ctHash] = true;
-    _decryptResult[ctHash] = result;
+    _decryptResult[ctHash] = _get(ctHash);
 
     uint64 asyncOffset = uint64((block.timestamp % 10) + 1);
     _decryptResultReadyTimestamp[ctHash] = uint64(block.timestamp) + asyncOffset;
-    _mockGasTrackEnd(paused, startGas);
+    _mockGasTrackEnd(mode, startGas);
   }
 
   function getDecryptResult(uint256 ctHash) public view returns (uint256) {

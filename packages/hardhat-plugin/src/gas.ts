@@ -28,6 +28,9 @@ export type AdjustedGasBreakdown = {
 /// Computes the gas breakdown of a transaction receipt by summing the MockGasConsumed
 /// events emitted by the mock task manager. Pure function of the receipt - no RPC calls.
 /// On a real network (no mock events in the logs) `adjustedGasUsed` equals `gasUsed`.
+/// Caveat: `mockGas` is measured pre-refund while `gasUsed` is post-refund, so transactions
+/// that earn large gas refunds (storage clearing) can slightly overstate the mock share;
+/// `adjustedGasUsed` is clamped at 0 for the pathological case.
 export const mock_getAdjustedGasBreakdown = (receipt: AdjustableGasReceipt): AdjustedGasBreakdown => {
   let mockGas = 0n;
   let mockGasEvents = 0;
@@ -40,7 +43,7 @@ export const mock_getAdjustedGasBreakdown = (receipt: AdjustableGasReceipt): Adj
   }
 
   const gasUsed = BigInt(receipt.gasUsed);
-  return { gasUsed, mockGas, adjustedGasUsed: gasUsed - mockGas, mockGasEvents };
+  return { gasUsed, mockGas, adjustedGasUsed: mockGas > gasUsed ? 0n : gasUsed - mockGas, mockGasEvents };
 };
 
 /// Returns the receipt's gas usage excluding mock overhead - an estimate of what the
@@ -116,6 +119,10 @@ const buildAddressNameMap = async (
 /// real-network cost). Enabled via `cofhe: { gasSummary: true }` in the hardhat config;
 /// runs after the test task completes.
 export const printMockGasSummary = async (hre: HardhatRuntimeEnvironment) => {
+  // Only meaningful against the in-process Hardhat network: elsewhere the mocks aren't
+  // auto-deployed and a genesis-to-latest eth_getLogs could hammer an external RPC.
+  if (hre.network.name !== 'hardhat') return;
+
   let logs: Array<{ transactionHash: string; data: string }>;
   try {
     logs = await hre.network.provider.send('eth_getLogs', [
@@ -132,16 +139,19 @@ export const printMockGasSummary = async (hre: HardhatRuntimeEnvironment) => {
     mockGasPerTx.set(log.transactionHash, (mockGasPerTx.get(log.transactionHash) ?? 0n) + BigInt(log.data));
   }
 
-  // Aggregate per called contract + method
+  // Aggregate per called contract + method; deployments (FHE ops in constructors) are
+  // attributed to the created contract under a '(deployment)' method label.
   const aggregates = new Map<string, MethodAggregate>();
   for (const [txHash, mockGas] of mockGasPerTx) {
     try {
       const receipt = await hre.network.provider.send('eth_getTransactionReceipt', [txHash]);
       const tx = await hre.network.provider.send('eth_getTransactionByHash', [txHash]);
-      if (!receipt || !tx?.to) continue;
+      if (!receipt) continue;
+      const target = tx?.to ?? receipt.contractAddress;
+      if (!target) continue;
 
-      const to = ethers.getAddress(tx.to);
-      const selector = (tx.input ?? '0x').slice(0, 10);
+      const to = ethers.getAddress(target);
+      const selector = tx?.to ? (tx.input ?? '0x').slice(0, 10) : '(deployment)';
       const key = `${to}:${selector}`;
       const aggregate = aggregates.get(key) ?? { to, selector, calls: 0, totalGasUsed: 0n, totalMockGas: 0n };
       aggregate.calls += 1;
@@ -180,8 +190,8 @@ export const printMockGasSummary = async (hre: HardhatRuntimeEnvironment) => {
         method: r.method,
         calls: r.calls,
         avgGasUsed,
-        avgAdjusted: avgGasUsed - avgMockGas,
-        overheadPct: avgGasUsed === 0n ? 0 : Number((avgMockGas * 100n) / avgGasUsed),
+        avgAdjusted: avgMockGas > avgGasUsed ? 0n : avgGasUsed - avgMockGas,
+        overheadPct: avgGasUsed === 0n ? 0 : Math.min(100, Number((avgMockGas * 100n) / avgGasUsed)),
       };
     })
     .sort((a, b) => a.contract.localeCompare(b.contract) || a.method.localeCompare(b.method));

@@ -91,7 +91,9 @@ declare module 'hardhat/types/config' {
       /**
        * Print a per-method gas summary after `hardhat test`, showing raw gas next to
        * adjusted gas (mock-only overhead excluded - an estimate of real-network cost).
-       * (default: false)
+       * Collected per test worker from chain history: transactions rolled back by
+       * snapshots won't appear, and the table is best-effort after forced exits -
+       * use getAdjustedGasUsed(receipt) for exact numbers. (default: false)
        */
       gasSummary?: boolean;
       /**

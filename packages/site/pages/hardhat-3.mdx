@@ -154,7 +154,7 @@ const adjusted = cofhe.getAdjustedGasUsed(receipt);
 const { gasUsed, mockGas, adjustedGasUsed, mockGasEvents } = cofhe.getAdjustedGasBreakdown(receipt);
 ```
 
-Both are pure functions of the receipt — no RPC calls — and pass raw `gasUsed` through unchanged on a real network. With `cofhe: { gasSummary: true }` in the config, a per-method table (raw vs adjusted gas) is printed after `hardhat test`.
+Both are pure functions of the receipt — no RPC calls — and pass raw `gasUsed` through unchanged on a real network. With `cofhe: { gasSummary: true }` in the config, a per-method table (raw vs adjusted gas) is printed after `hardhat test`. The table is reconstructed from chain history at the end of each test worker: tests that roll back state via snapshots won't appear, and it is best-effort after forced exits — use the receipt helpers for exact numbers.
 
 :::note
 `eth_estimateGas` is not adjusted — the mock work really does execute, so transactions still need the raw gas limit.

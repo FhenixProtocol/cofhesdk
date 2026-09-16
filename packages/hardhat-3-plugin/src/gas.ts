@@ -31,6 +31,9 @@ export type AdjustedGasBreakdown = {
 /// Computes the gas breakdown of a transaction receipt by summing the MockGasConsumed
 /// events emitted by the mock task manager. Pure function of the receipt - no RPC calls.
 /// On a real network (no mock events in the logs) `adjustedGasUsed` equals `gasUsed`.
+/// Caveat: `mockGas` is measured pre-refund while `gasUsed` is post-refund, so transactions
+/// that earn large gas refunds (storage clearing) can slightly overstate the mock share;
+/// `adjustedGasUsed` is clamped at 0 for the pathological case.
 export const mock_getAdjustedGasBreakdown = (receipt: AdjustableGasReceipt): AdjustedGasBreakdown => {
   let mockGas = 0n;
   let mockGasEvents = 0;
@@ -46,7 +49,7 @@ export const mock_getAdjustedGasBreakdown = (receipt: AdjustableGasReceipt): Adj
   }
 
   const gasUsed = BigInt(receipt.gasUsed);
-  return { gasUsed, mockGas, adjustedGasUsed: gasUsed - mockGas, mockGasEvents };
+  return { gasUsed, mockGas, adjustedGasUsed: mockGas > gasUsed ? 0n : gasUsed - mockGas, mockGasEvents };
 };
 
 /// Returns the receipt's gas usage excluding mock overhead - an estimate of what the
@@ -81,6 +84,9 @@ export type MockGasSummaryRow = {
 type RegisteredConnection = {
   publicClient: PublicClient;
   artifacts: ArtifactManager;
+  /** Block at which the mocks were deployed on this connection's chain - the summary only
+   *  scans from here, so a long-lived or forked chain isn't queried from genesis. */
+  fromBlock: bigint;
 };
 
 const registeredConnections: RegisteredConnection[] = [];
@@ -144,14 +150,15 @@ const buildAddressNameMap = async (
 /// Collects per-method gas aggregates from one connection's chain.
 export const collectMockGasRows = async (
   publicClient: PublicClient,
-  artifacts: ArtifactManager
+  artifacts: ArtifactManager,
+  fromBlock: bigint = 0n
 ): Promise<MockGasSummaryRow[]> => {
   let logs;
   try {
     logs = await publicClient.getLogs({
       address: TASK_MANAGER_ADDRESS,
       event: MOCK_GAS_CONSUMED_EVENT,
-      fromBlock: 0n,
+      fromBlock,
       toBlock: 'latest',
     });
   } catch {
@@ -169,15 +176,18 @@ export const collectMockGasRows = async (
   // Aggregate per called contract + method
   type Aggregate = { to: `0x${string}`; selector: string; calls: number; totalGasUsed: bigint; totalMockGas: bigint };
   const aggregates = new Map<string, Aggregate>();
+  // Deployments (FHE ops in constructors) are attributed to the created contract under a
+  // '(deployment)' method label.
   for (const [txHash, mockGas] of mockGasPerTx) {
     try {
       const receipt = await publicClient.getTransactionReceipt({ hash: txHash });
       const tx = await publicClient.getTransaction({ hash: txHash });
-      if (!tx.to) continue;
+      const target = tx.to ?? receipt.contractAddress;
+      if (!target) continue;
 
-      const selector = (tx.input ?? '0x').slice(0, 10);
-      const key = `${tx.to}:${selector}`;
-      const aggregate = aggregates.get(key) ?? { to: tx.to, selector, calls: 0, totalGasUsed: 0n, totalMockGas: 0n };
+      const selector = tx.to ? (tx.input ?? '0x').slice(0, 10) : '(deployment)';
+      const key = `${target}:${selector}`;
+      const aggregate = aggregates.get(key) ?? { to: target, selector, calls: 0, totalGasUsed: 0n, totalMockGas: 0n };
       aggregate.calls += 1;
       aggregate.totalGasUsed += receipt.gasUsed;
       aggregate.totalMockGas += mockGas;
@@ -208,9 +218,10 @@ export const collectMockGasRows = async (
 export const registerGasSummaryConnection = (
   publicClient: PublicClient,
   artifacts: ArtifactManager,
-  cacheDir: string
+  cacheDir: string,
+  fromBlock: bigint
 ) => {
-  registeredConnections.push({ publicClient, artifacts });
+  registeredConnections.push({ publicClient, artifacts, fromBlock });
   summaryDir = path.join(cacheDir, SUMMARY_DIR_NAME);
 
   if (exitHookInstalled) return;
@@ -224,9 +235,9 @@ export const registerGasSummaryConnection = (
     // prevents re-entry when beforeExit fires again afterwards.
     void (async () => {
       const rows: MockGasSummaryRow[] = [];
-      for (const { publicClient: client, artifacts: arts } of registeredConnections) {
+      for (const { publicClient: client, artifacts: arts, fromBlock } of registeredConnections) {
         try {
-          rows.push(...(await collectMockGasRows(client, arts)));
+          rows.push(...(await collectMockGasRows(client, arts, fromBlock)));
         } catch {
           // A closed or unusable connection contributes nothing
         }
@@ -295,8 +306,8 @@ export const printMockGasSummaryFromDir = (cacheDir: string) => {
         method: r.method,
         calls: r.calls,
         avgGasUsed,
-        avgAdjusted: avgGasUsed - avgMockGas,
-        overheadPct: avgGasUsed === 0n ? 0 : Number((avgMockGas * 100n) / avgGasUsed),
+        avgAdjusted: avgMockGas > avgGasUsed ? 0n : avgGasUsed - avgMockGas,
+        overheadPct: avgGasUsed === 0n ? 0 : Math.min(100, Number((avgMockGas * 100n) / avgGasUsed)),
       };
     })
     .sort((a, b) => a.contract.localeCompare(b.contract) || a.method.localeCompare(b.method));

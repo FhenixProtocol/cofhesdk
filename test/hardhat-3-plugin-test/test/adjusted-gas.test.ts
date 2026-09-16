@@ -1,6 +1,8 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { network } from 'hardhat';
+import { TASK_MANAGER_ADDRESS } from '@cofhe/sdk';
+import { MOCK_GAS_CONSUMED_TOPIC } from '@cofhe/hardhat-3-plugin';
 
 describe('Adjusted Gas', async () => {
   const { viem, cofhe } = await network.connect();
@@ -74,5 +76,59 @@ describe('Adjusted Gas', async () => {
 
     assert.equal(cofhe.getAdjustedGasUsed(receipt), receipt.gasUsed);
     assert.equal(cofhe.getAdjustedGasBreakdown(receipt).mockGasEvents, 0);
+  });
+});
+
+describe('Adjusted Gas — audit regressions', async () => {
+  const { viem, cofhe } = await network.connect();
+  const publicClient = await viem.getPublicClient();
+  const [walletClient] = await viem.getWalletClients();
+  const simpleTest = await viem.deployContract('SharedSimpleTest', [], {
+    client: { public: publicClient, wallet: walletClient },
+  });
+
+  it('clamps adjustedGasUsed at zero for pathological receipts', () => {
+    // Synthetic receipt where reported mock gas exceeds (post-refund) gasUsed.
+    const fakeReceipt = {
+      gasUsed: 1_000n,
+      logs: [
+        {
+          address: TASK_MANAGER_ADDRESS,
+          topics: [MOCK_GAS_CONSUMED_TOPIC],
+          data: `0x${5_000n.toString(16).padStart(64, '0')}`,
+        },
+      ],
+    };
+    const breakdown = cofhe.getAdjustedGasBreakdown(fakeReceipt);
+    assert.equal(breakdown.mockGas, 5_000n);
+    assert.equal(breakdown.adjustedGasUsed, 0n);
+    assert.equal(cofhe.getAdjustedGasUsed(fakeReceipt), 0n);
+  });
+
+  it('keeps emitting MockGasConsumed when mockGasExcluded is set on hardhat', async () => {
+    // setMockGasExcluded(true) enables the forge cheatcode shim; on hardhat the cheatcode
+    // address has no code, so the shim must fall through to the event path rather than
+    // silently disabling adjusted-gas reporting.
+    const setFlag = async (value: boolean) => {
+      const hash = await walletClient!.writeContract({
+        ...cofhe.mocks.MockTaskManager,
+        functionName: 'setMockGasExcluded',
+        args: [value],
+        account: (await walletClient!.getAddresses())[0]!,
+        chain: null,
+      });
+      await publicClient.waitForTransactionReceipt({ hash });
+    };
+
+    await setFlag(true);
+    try {
+      const hash = await simpleTest.write.setValueTrivial([13n]);
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      const breakdown = cofhe.getAdjustedGasBreakdown(receipt);
+      assert.ok(breakdown.mockGasEvents > 0, 'events should still be emitted');
+      assert.ok(breakdown.mockGas > 0n, 'mockGas should still be tracked');
+    } finally {
+      await setFlag(false);
+    }
   });
 });
