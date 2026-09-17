@@ -1,25 +1,5 @@
-import { STAGING_TESTS } from '../../core/test/stagingRedirect';
-import { arbSepolia as cofheArbSepolia, stagingCofhe } from '@/chains';
-
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-
-const testCofheChain = STAGING_TESTS ? stagingCofhe : cofheArbSepolia;
-
-/** The network's FHE public key and CRS. Proving itself is fully local. */
-async function fetchKeys(): Promise<{ fheKey: string; crs: string }> {
-  const post = async (path: string) => {
-    const response = await fetch(`${testCofheChain.coFheUrl}/${path}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ securityZone: 0 }),
-    });
-    if (!response.ok) throw new Error(`${path} failed: ${response.status} ${response.statusText}`);
-    return response.json();
-  };
-
-  const [publicKey, crs] = await Promise.all([post('GetNetworkPublicKey'), post('GetCrs')]);
-  return { fheKey: publicKey.publicKey, crs: crs.crs };
-}
+import { fetchNetworkKeys } from './threadPoolBenchHelper';
 
 // What happens when the zkProve worker receives two proof requests before it
 // has finished initializing tfhe — e.g. an app doing
@@ -66,7 +46,7 @@ describe('@cofhe/sdk/web - zkProve worker init race', () => {
     });
 
   beforeAll(async () => {
-    keys = await fetchKeys();
+    keys = await fetchNetworkKeys();
 
     worker = new Worker(new URL('./countingZkProveWorker.ts', import.meta.url), { type: 'module' });
     await new Promise<void>((resolve, reject) => {
