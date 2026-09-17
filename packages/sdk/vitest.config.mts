@@ -16,7 +16,10 @@ const crossOriginIsolationHeaders = {
 };
 
 export default defineConfig({
-  define: { __STAGING_TESTS__: JSON.stringify(process.env.TEST_STAGING_ENABLED === 'true') },
+  define: {
+    __STAGING_TESTS__: JSON.stringify(process.env.TEST_STAGING_ENABLED === 'true'),
+    __THREADPOOL_TESTS__: JSON.stringify(process.env.TEST_THREADPOOL_ENABLED === 'true'),
+  },
   resolve: { alias },
   server: { headers: crossOriginIsolationHeaders },
 

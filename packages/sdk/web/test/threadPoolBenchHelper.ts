@@ -15,6 +15,21 @@ import { initTfheThreadPool, type TfheThreadPoolResult } from '../tfheThreadPool
 // TEST_STAGING_ENABLED=true.
 const COFHE_URL = (STAGING_TESTS ? stagingCofhe : cofheArbSepolia).coFheUrl;
 
+// Injected by vitest.config.mts from TEST_THREADPOOL_ENABLED.
+declare const __THREADPOOL_TESTS__: boolean | undefined;
+
+/**
+ * Gate for the suites that generate real proofs on a rayon pool. They are
+ * CPU-heavy: inside the regular, fully parallel test run they starve other
+ * proving tests into timeouts on small CI runners, and skew their own timings.
+ * So they are skipped by default and run on their own, one file at a time:
+ *
+ *   TEST_THREADPOOL_ENABLED=true pnpm test:threadpool
+ *
+ * which is what the "Test (thread pool)" CI job does.
+ */
+export const THREADPOOL_TESTS = typeof __THREADPOOL_TESTS__ !== 'undefined' ? __THREADPOOL_TESTS__ : false;
+
 function fromHexString(hexString: string): Uint8Array {
   const cleanString = hexString.length % 2 === 1 ? `0${hexString}` : hexString;
   const arr = cleanString.replace(/^0x/, '').match(/.{1,2}/g);

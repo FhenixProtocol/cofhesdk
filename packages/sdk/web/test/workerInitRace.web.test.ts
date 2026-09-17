@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { fetchNetworkKeys } from './threadPoolBenchHelper';
+import { THREADPOOL_TESTS, fetchNetworkKeys } from './threadPoolBenchHelper';
 
 // What happens when the zkProve worker receives two proof requests before it
 // has finished initializing tfhe — e.g. an app doing
@@ -18,7 +18,7 @@ const THREADS = 2;
 
 type WorkerReply = { id: string; type: string; error?: string; count?: number };
 
-describe('@cofhe/sdk/web - zkProve worker init race', () => {
+describe.skipIf(!THREADPOOL_TESTS)('@cofhe/sdk/web - zkProve worker init race', () => {
   let worker: Worker;
   let keys: { fheKey: string; crs: string };
   let replies: WorkerReply[];

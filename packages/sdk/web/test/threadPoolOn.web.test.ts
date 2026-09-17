@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { MAX_AUTO_THREADS, initTfheThreadPool, resolveThreadCount } from '../tfheThreadPool.js';
-import { benchProve, reportBench } from './threadPoolBenchHelper.js';
+import { THREADPOOL_TESTS, benchProve, reportBench } from './threadPoolBenchHelper.js';
 
 describe('resolveThreadCount', () => {
   it("derives from hardwareConcurrency for 'auto', capped", () => {
@@ -59,7 +59,7 @@ describe('initTfheThreadPool', () => {
   });
 });
 
-describe('tfhe proving — rayon thread pool', () => {
+describe.skipIf(!THREADPOOL_TESTS)('tfhe proving — rayon thread pool', () => {
   it('starts the pool and spawns real worker threads', async () => {
     const expectedThreads = resolveThreadCount('auto');
     const result = await benchProve(expectedThreads);

@@ -13,6 +13,7 @@ import {
   createCofheClientWithCustomWorker,
   getTfheThreadPoolStatus,
 } from '../index';
+import { THREADPOOL_TESTS } from './threadPoolBenchHelper';
 
 // Which thread needs a rayon pool?
 //
@@ -92,7 +93,7 @@ function createRealWorkerProver(tfheThreads: number) {
   return { prove, terminate: () => worker.terminate() };
 }
 
-describe('@cofhe/sdk/web - main-thread rayon pool', () => {
+describe.skipIf(!THREADPOOL_TESTS)('@cofhe/sdk/web - main-thread rayon pool', () => {
   const RealWorker = globalThis.Worker;
   let rayonWorkersStartedByPage = 0;
   let prover: ReturnType<typeof createRealWorkerProver>;
