@@ -91,9 +91,9 @@ describe('@cofhe/sdk/web - zkProve worker init race', () => {
     expect(replies.map((reply) => reply.type)).toEqual(['success', 'success']);
   });
 
-  // Fails today: the worker only guards against a finished init, not one that
-  // is still in flight, so both requests start a thread pool.
-  it.fails('starts exactly one rayon pool', () => {
+  // The worker memoises its in-flight init, so the second request waits for the
+  // first one's pool instead of starting another.
+  it('starts exactly one rayon pool', () => {
     expect(rayonWorkersStarted).toBe(THREADS);
   });
 });
