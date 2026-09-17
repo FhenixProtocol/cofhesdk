@@ -1,4 +1,5 @@
 import { useCofheContext, useInternalQuery } from '@/providers';
+import { useCofheActiveACP } from './useCofheACPs';
 import { CofheError, FheTypes, type DecryptPollCallbackFunction, type UnsealedItem } from '@cofhe/sdk';
 import type { UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
 import { assert } from 'ts-essentials';
@@ -29,9 +30,14 @@ export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<
   queryOptions?: Omit<UseQueryOptions<UnsealedItem<U>, Error, TSeletedData>, 'queryKey' | 'queryFn'>
 ): UseQueryResult<TSeletedData, Error> {
   const { client } = useCofheContext();
+  // Sealed-output decryption runs against the ACTIVE ACP — without a currently VALID
+  // one the request is guaranteed to fail server-side ("ACP is expired"/missing), so
+  // don't fire it at all. Note the ciphertext input may still be present from a cached
+  // read taken while the ACP was valid, so this gate cannot be left to the read hook.
+  const activeACP = useCofheActiveACP();
 
   const { enabled: userEnabled, meta: optionMeta, ...restQueryOptions } = queryOptions || {};
-  const enabled = !!input && BigInt(input.ctHash) > 0n && !!client && (userEnabled ?? true);
+  const enabled = !!input && BigInt(input.ctHash) > 0n && !!client && !!activeACP?.isValid && (userEnabled ?? true);
 
   return useInternalQuery({
     enabled,

@@ -1,5 +1,13 @@
 # @cofhe/hardhat-3-plugin
 
+## 0.7.1
+
+### Patch Changes
+
+- Updated dependencies [e907d8c]
+  - @cofhe/mock-contracts@0.7.1
+  - @cofhe/sdk@0.7.1
+
 ## 0.7.0
 
 ### Minor Changes

@@ -1,0 +1,5 @@
+---
+'@cofhe/react': minor
+---
+
+`useCofheReadContracts` (the dynamic-length companion of `useCofheReadContract`) now runs each entry as its own query under the exact `useCofheReadContract` query key, instead of one opaque multicall query. That makes batches first-class citizens of the invalidation design: a `useCofheWriteContract({ invalidates: [{ address, functionName }] })` target refreshes matching batch entries exactly like singular reads, the triggered refetches are block-aware (they wait until the serving RPC node knows the mined block), and cache entries are shared with singular reads of the same call. With a batching transport the entries still coalesce into one JSON-RPC request, and no multicall3 deployment is needed. The hook and its result types are now exported from the package root. The result is a per-entry aggregate (`data[i]` is `{ result }` / `{ error }` / `undefined` while loading) rather than a raw `UseQueryResult`; `multicallOptions` is kept for compatibility but only `allowFailure` is honored, and a new `requiresACP` option gates the whole batch on a valid active ACP like the singular hook.

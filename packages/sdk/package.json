@@ -1,6 +1,6 @@
 {
   "name": "@cofhe/sdk",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "type": "module",
   "description": "SDK for Fhenix COFHE coprocessor interaction",
   "main": "./dist/core.cjs",
@@ -63,6 +63,7 @@
     "check:types": "tsc --noEmit",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
     "test": "vitest run",
+    "test:live": "vitest run core/test/decrypt.test.ts node/test/inherited.test.ts web/test/inherited.web.test.ts",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
   },

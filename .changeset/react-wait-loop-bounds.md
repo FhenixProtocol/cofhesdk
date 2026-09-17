@@ -1,0 +1,5 @@
+---
+'@cofhe/react': patch
+---
+
+Both block-aware wait primitives lose their unbounded failure modes. `maybeWaitUntilRpcAware` now distinguishes "the node doesn't know the block yet" (keep polling) from "the read failed on a node that HAS the block" (a real error — revert, missing contract — thrown immediately so react-query's retry/error handling sees it, instead of becoming an invisible 1 req/s poll), and gives up after `maxWaitMs` (default 60s) on a block the node never learns — a reorged-away hash can never become known — degrading to the un-gated read rather than failing it. `resolveReceiptBlockHash` is likewise bounded (throws after `maxWaitMs`), re-fetches the receipt BY TRANSACTION HASH instead of `getBlock({ blockNumber })` (by-height lookup hands back whichever block occupies that height after a reorg — the exact ambiguity hash gating exists to avoid), and takes an options object (`{ signal, maxWaitMs, pollingIntervalMs }`). The write hook's background invalidation deliberately passes no abort signal — invalidation is cache-global work that must survive component unmount — and relies on the bound as its safety.

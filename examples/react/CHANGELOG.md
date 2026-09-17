@@ -1,5 +1,12 @@
 # @cofhe/example-react
 
+## 0.7.1
+
+### Patch Changes
+
+- @cofhe/sdk@0.7.1
+- @cofhe/react@0.7.1
+
 ## 0.7.0
 
 ### Patch Changes
