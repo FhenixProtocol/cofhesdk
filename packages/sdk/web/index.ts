@@ -32,65 +32,80 @@ import { initTfheThreadPool, type TfheThreadPoolResult } from './tfheThreadPool.
 let tfheModule: typeof import('tfhe') | null = null;
 let tfheInitialized = false;
 let tfheInitPromise: Promise<void> | null = null;
+let threadPoolPromise: Promise<TfheThreadPoolResult> | null = null;
 let threadPoolResult: TfheThreadPoolResult | null = null;
 
 /**
- * Outcome of the rayon thread pool setup on the main thread, or `null` if tfhe
- * hasn't been initialized yet. Useful for confirming whether multi-threaded
- * proving actually came up — `enabled: false` carries a `reason`.
+ * Outcome of the rayon thread pool setup on the main thread, or `null` if the
+ * main thread hasn't had to generate a proof yet. `enabled: false` carries a
+ * `reason`.
  *
  * Note this reflects the *main thread* only. When workers are enabled (the
- * default) proving happens inside the zkProve worker, which runs its own pool.
+ * default) proving happens inside the zkProve worker, which runs its own pool,
+ * and the main thread never starts one — so `null` is the normal value there.
  */
 export function getTfheThreadPoolStatus(): TfheThreadPoolResult | null {
   return threadPoolResult;
 }
 
 /**
- * Internal factory for the TFHE initializer used on web.
+ * Internal TFHE initializer used on web.
  * Called automatically on first encryption - users don't need to call this manually.
  *
- * The wasm instance is a module-level singleton and `initThreadPool` may only run
- * once against it, so initialization is memoised here and the rayon thread pool is
- * started as part of it. A consequence: if an app creates several clients with
- * different `tfheThreads` values, whichever encrypts first wins for the page.
+ * The wasm instance is a module-level singleton, so initialization is memoised.
+ * It deliberately does NOT start the rayon thread pool: the main thread only
+ * needs one when it generates a proof itself, see `createStartMainThreadPool`.
  *
- * @returns an initializer resolving true if it performed the initialization,
- *          false if TFHE was already initialized
+ * @returns true if it performed the initialization, false if TFHE was already initialized
  */
-function createInitTfhe(tfheThreads: TfheThreadsSetting): TfheInitializer {
-  return async (): Promise<boolean> => {
-    if (tfheInitialized) return false;
+const initTfhe: TfheInitializer = async () => {
+  if (tfheInitialized) return false;
 
-    if (tfheInitPromise) {
-      // Another caller is already initializing; wait it out but don't claim
-      // credit for having done it.
-      await tfheInitPromise;
-      return false;
-    }
+  if (tfheInitPromise) {
+    // Another caller is already initializing; wait it out but don't claim
+    // credit for having done it.
+    await tfheInitPromise;
+    return false;
+  }
 
-    tfheInitPromise = (async () => {
-      const mod = await import('tfhe');
-      await mod.default();
-      await mod.init_panic_hook();
-      tfheModule = mod;
+  tfheInitPromise = (async () => {
+    const mod = await import('tfhe');
+    await mod.default();
+    await mod.init_panic_hook();
+    tfheModule = mod;
+    tfheInitialized = true;
+  })();
 
-      // Best-effort: leaves tfhe single-threaded when the page isn't
-      // cross-origin isolated rather than failing the encryption.
-      threadPoolResult = await initTfheThreadPool(mod, tfheThreads);
+  try {
+    await tfheInitPromise;
+  } catch (error) {
+    // Let the next call retry from scratch.
+    tfheInitPromise = null;
+    throw error;
+  }
 
-      tfheInitialized = true;
-    })();
+  return true;
+};
 
-    try {
-      await tfheInitPromise;
-    } catch (error) {
-      // Let the next call retry from scratch.
-      tfheInitPromise = null;
-      throw error;
-    }
-
-    return true;
+/**
+ * Starts the main thread's rayon pool right before the main thread generates a
+ * proof (workers disabled, unavailable, or the worker failed). With workers on
+ * the proof runs in the zkProve worker, which has its own pool, so a second one
+ * here would just be idle Web Workers plus another shared wasm memory.
+ *
+ * Must run before the FIRST main-thread proof: rayon locks in its global pool
+ * on first use, and `initThreadPool` fails from then on. Deserializing keys and
+ * packing inputs beforehand is fine. Memoised because `initThreadPool` may only
+ * run once per wasm instance — if an app creates several clients with different
+ * `tfheThreads` values, whichever proves on the main thread first wins.
+ *
+ * Best-effort: leaves tfhe single-threaded when the page isn't cross-origin
+ * isolated rather than failing the encryption.
+ */
+function createStartMainThreadPool(tfheThreads: TfheThreadsSetting) {
+  return async (): Promise<void> => {
+    threadPoolPromise ??= initTfheThreadPool(requireTfhe(), tfheThreads);
+    threadPoolResult = await threadPoolPromise;
   };
 }
 
@@ -203,7 +218,8 @@ export function createCofheClient<TConfig extends CofheConfig>(config: TConfig):
     zkBuilderAndCrsGenerator,
     tfhePublicKeyDeserializer,
     compactPkeCrsDeserializer,
-    initTfhe: createInitTfhe(config.tfheThreads),
+    initTfhe,
+    beforeMainThreadProve: createStartMainThreadPool(config.tfheThreads),
     // Always provide the worker function if available - config.useWorkers controls usage
     // areWorkersAvailable will return true if the Worker API is available and false in Node.js
     zkProveWorkerFn: areWorkersAvailable() ? createZkProveWithWorker(config.tfheThreads) : undefined,
@@ -238,7 +254,8 @@ export function createCofheClientWithCustomWorker(
     zkBuilderAndCrsGenerator,
     tfhePublicKeyDeserializer,
     compactPkeCrsDeserializer,
-    initTfhe: createInitTfhe(config.tfheThreads),
+    initTfhe,
+    beforeMainThreadProve: createStartMainThreadPool(config.tfheThreads),
     zkProveWorkerFn: customZkProveWorkerFn,
   });
 }

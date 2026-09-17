@@ -7,10 +7,28 @@
  */
 
 import { TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT } from '../../core/consts';
-import { stagingCofhe } from '../../chains/chains/stagingCofhe.js';
+import { STAGING_TESTS } from '../../core/test/stagingRedirect';
+import { arbSepolia as cofheArbSepolia, stagingCofhe } from '@/chains';
 import { initTfheThreadPool, type TfheThreadPoolResult } from '../tfheThreadPool.js';
 
-const COFHE_URL = stagingCofhe.coFheUrl;
+// Same backend as the rest of the web suite: Arbitrum Sepolia, or staging when
+// TEST_STAGING_ENABLED=true.
+const COFHE_URL = (STAGING_TESTS ? stagingCofhe : cofheArbSepolia).coFheUrl;
+
+// Injected by vitest.config.mts from TEST_THREADPOOL_ENABLED.
+declare const __THREADPOOL_TESTS__: boolean | undefined;
+
+/**
+ * Gate for the suites that generate real proofs on a rayon pool. They are
+ * CPU-heavy: inside the regular, fully parallel test run they starve other
+ * proving tests into timeouts on small CI runners, and skew their own timings.
+ * So they are skipped by default and run on their own, one file at a time:
+ *
+ *   TEST_THREADPOOL_ENABLED=true pnpm test:threadpool
+ *
+ * which is what the "Test (thread pool)" CI job does.
+ */
+export const THREADPOOL_TESTS = typeof __THREADPOOL_TESTS__ !== 'undefined' ? __THREADPOOL_TESTS__ : false;
 
 function fromHexString(hexString: string): Uint8Array {
   const cleanString = hexString.length % 2 === 1 ? `0${hexString}` : hexString;
@@ -19,8 +37,8 @@ function fromHexString(hexString: string): Uint8Array {
   return new Uint8Array(arr.map((byte) => parseInt(byte, 16)));
 }
 
-/** Fetch the real staging FHE public key + CRS. Proving itself is fully local. */
-export async function fetchStagingKeys(securityZone = 0): Promise<{ fheKey: string; crs: string }> {
+/** Fetch the network's real FHE public key + CRS. Proving itself is fully local. */
+export async function fetchNetworkKeys(securityZone = 0): Promise<{ fheKey: string; crs: string }> {
   const post = async (path: string) => {
     const res = await fetch(`${COFHE_URL}/${path}`, {
       method: 'POST',
@@ -76,7 +94,7 @@ export async function benchProve(threads: number, iterations = 5): Promise<Bench
     (globalThis as any).Worker = RealWorker;
   }
 
-  const { fheKey, crs } = await fetchStagingKeys();
+  const { fheKey, crs } = await fetchNetworkKeys();
   const pk = mod.TfheCompactPublicKey.safe_deserialize(fromHexString(fheKey), TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT);
   const zkCrs = mod.CompactPkeCrs.safe_deserialize(fromHexString(crs), TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT);
 

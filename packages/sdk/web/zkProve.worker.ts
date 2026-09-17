@@ -13,7 +13,7 @@ import type { TfheThreadsSetting } from '../core/types.js';
 
 // TFHE module (will be initialized on first use)
 let tfheModule: any = null;
-let initialized = false;
+let initPromise: Promise<void> | null = null;
 let threadPool: TfheThreadPoolResult | null = null;
 
 /**
@@ -25,28 +25,36 @@ let threadPool: TfheThreadPoolResult | null = null;
  * worker's wasm memory, which requires the page to be cross-origin isolated;
  * `initTfheThreadPool` degrades to single-threaded instead of throwing when it
  * isn't.
+ *
+ * Memoised on the in-flight promise rather than on completion: further proof
+ * requests can arrive while the first one is still initializing, and
+ * `initThreadPool` may only run once per wasm instance — a second call spawns
+ * its workers, fails to build the pool, and leaves those workers stranded.
  */
-async function initTfhe(tfheThreads: TfheThreadsSetting = 'auto') {
-  if (initialized) return;
+function initTfhe(tfheThreads: TfheThreadsSetting = 'auto'): Promise<void> {
+  initPromise ??= (async () => {
+    try {
+      // Dynamic import of tfhe module
+      tfheModule = await import('tfhe');
+      await tfheModule.default();
+      await tfheModule.init_panic_hook();
 
-  try {
-    // Dynamic import of tfhe module
-    tfheModule = await import('tfhe');
-    await tfheModule.default();
-    await tfheModule.init_panic_hook();
+      threadPool = await initTfheThreadPool(tfheModule, tfheThreads);
 
-    threadPool = await initTfheThreadPool(tfheModule, tfheThreads);
+      console.log(
+        threadPool.enabled
+          ? `[Worker] TFHE initialized (rayon thread pool: ${threadPool.threads} threads)`
+          : `[Worker] TFHE initialized (single-threaded: ${threadPool.reason})`
+      );
+    } catch (error) {
+      console.error('[Worker] Failed to initialize TFHE:', error);
+      // Let the next request retry from scratch.
+      initPromise = null;
+      throw error;
+    }
+  })();
 
-    initialized = true;
-    console.log(
-      threadPool.enabled
-        ? `[Worker] TFHE initialized (rayon thread pool: ${threadPool.threads} threads)`
-        : `[Worker] TFHE initialized (single-threaded: ${threadPool.reason})`
-    );
-  } catch (error) {
-    console.error('[Worker] Failed to initialize TFHE:', error);
-    throw error;
-  }
+  return initPromise;
 }
 
 /**
