@@ -8,28 +8,53 @@
 
 import { TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT } from '../core/consts';
 import type { ZkProveWorkerRequest, ZkProveWorkerResponse } from '../core/encrypt/zkPackProveVerify.js';
+import { initTfheThreadPool, type TfheThreadPoolResult } from './tfheThreadPool.js';
+import type { TfheThreadsSetting } from '../core/types.js';
 
 // TFHE module (will be initialized on first use)
 let tfheModule: any = null;
-let initialized = false;
+let initPromise: Promise<void> | null = null;
+let threadPool: TfheThreadPoolResult | null = null;
 
 /**
  * Initialize TFHE in worker context
+ *
+ * This is where the heavy `build_with_proof_packed` call runs, so it's also
+ * where tfhe's rayon thread pool matters most — the main-thread pool only helps
+ * the non-worker fallback path. The pool spawns nested Workers that share this
+ * worker's wasm memory, which requires the page to be cross-origin isolated;
+ * `initTfheThreadPool` degrades to single-threaded instead of throwing when it
+ * isn't.
+ *
+ * Memoised on the in-flight promise rather than on completion: further proof
+ * requests can arrive while the first one is still initializing, and
+ * `initThreadPool` may only run once per wasm instance — a second call spawns
+ * its workers, fails to build the pool, and leaves those workers stranded.
  */
-async function initTfhe() {
-  if (initialized) return;
+function initTfhe(tfheThreads: TfheThreadsSetting = 'auto'): Promise<void> {
+  initPromise ??= (async () => {
+    try {
+      // Dynamic import of tfhe module
+      tfheModule = await import('tfhe');
+      await tfheModule.default();
+      await tfheModule.init_panic_hook();
 
-  try {
-    // Dynamic import of tfhe module
-    tfheModule = await import('tfhe');
-    await tfheModule.default();
-    await tfheModule.init_panic_hook();
-    initialized = true;
-    console.log('[Worker] TFHE initialized');
-  } catch (error) {
-    console.error('[Worker] Failed to initialize TFHE:', error);
-    throw error;
-  }
+      threadPool = await initTfheThreadPool(tfheModule, tfheThreads);
+
+      console.log(
+        threadPool.enabled
+          ? `[Worker] TFHE initialized (rayon thread pool: ${threadPool.threads} threads)`
+          : `[Worker] TFHE initialized (single-threaded: ${threadPool.reason})`
+      );
+    } catch (error) {
+      console.error('[Worker] Failed to initialize TFHE:', error);
+      // Let the next request retry from scratch.
+      initPromise = null;
+      throw error;
+    }
+  })();
+
+  return initPromise;
 }
 
 /**
@@ -51,7 +76,7 @@ if (typeof self !== 'undefined') {
    * Main message handler
    */
   self.onmessage = async (event: MessageEvent) => {
-    const { id, type, fheKeyHex, crsHex, items, metadata } = event.data as ZkProveWorkerRequest;
+    const { id, type, fheKeyHex, crsHex, items, metadata, tfheThreads } = event.data as ZkProveWorkerRequest;
 
     if (type !== 'zkProve') {
       self.postMessage({
@@ -64,7 +89,7 @@ if (typeof self !== 'undefined') {
 
     try {
       // Initialize TFHE if needed
-      await initTfhe();
+      await initTfhe(tfheThreads);
 
       if (!tfheModule) {
         throw new Error('TFHE module not initialized');

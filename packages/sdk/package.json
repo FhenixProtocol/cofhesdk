@@ -64,6 +64,7 @@
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
     "test": "vitest run",
     "test:live": "vitest run core/test/decrypt.test.ts node/test/inherited.test.ts web/test/inherited.web.test.ts",
+    "test:threadpool": "vitest run web/test/threadPoolOff.web.test.ts web/test/threadPoolOn.web.test.ts web/test/mainThreadPool.web.test.ts web/test/workerInitRace.web.test.ts --no-file-parallelism",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
   },

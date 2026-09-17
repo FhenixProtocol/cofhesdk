@@ -43,6 +43,45 @@ jobs:
       - name: Run Tests
         run: pnpm exec turbo run test --filter='!@cofhe/integration-matrix'
 
+  # tfhe thread-pool suites (packages/sdk/web/test: threadPoolOn/Off,
+  # mainThreadPool, workerInitRace). They generate real ZK proofs on a rayon
+  # pool that takes every core of the runner, so inside the fully parallel
+  # "Test (local)" run they starved other proving tests into timeouts. They
+  # self-skip there (see THREADPOOL_TESTS) and run here instead, one file at a
+  # time. Keyless, so this also runs on fork PRs.
+  test-threadpool:
+    name: Test (thread pool)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm 8
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Setup Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+
+      - name: Install Dependencies
+        run: pnpm i --frozen-lockfile
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: 1.7.1
+
+      - name: Install Playwright Browsers
+        run: cd packages/sdk && pnpm exec playwright install chromium --with-deps
+
+      - name: Run Thread Pool Tests
+        env:
+          TEST_THREADPOOL_ENABLED: 'true'
+        run: pnpm exec turbo run test:threadpool --filter=@cofhe/sdk
+
   # Live-testnet suites (sdk decrypt + inherited client tests). These sign and
   # transact with the funded TEST_PRIVATE_KEY wallet, so they only run where
   # repository secrets exist: pushes and same-repo pull requests. Fork PRs
