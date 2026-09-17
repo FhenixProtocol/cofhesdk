@@ -53,7 +53,9 @@ describe('blockAwareWatermarkKey: gate only on the chain where the block exists'
   });
 
   it('when the mined chain itself is unknown nothing is gated', () => {
-    expect(blockAwareWatermarkKey({ queryKey: [PREFIX, MINED, ADDR], targetChainId: MINED }, undefined)).toBeUndefined();
+    expect(
+      blockAwareWatermarkKey({ queryKey: [PREFIX, MINED, ADDR], targetChainId: MINED }, undefined)
+    ).toBeUndefined();
     expect(blockAwareWatermarkKey({ queryKey: [PREFIX] }, undefined)).toBeUndefined();
   });
 

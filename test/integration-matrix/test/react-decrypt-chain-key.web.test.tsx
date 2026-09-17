@@ -54,7 +54,15 @@ function transport() {
   };
 }
 
-function Decrypt({ label, chainId, publicClient }: { label: string; chainId: number; publicClient?: ReturnType<typeof createPublicClient> }) {
+function Decrypt({
+  label,
+  chainId,
+  publicClient,
+}: {
+  label: string;
+  chainId: number;
+  publicClient?: ReturnType<typeof createPublicClient>;
+}) {
   const { decrypted } = useCofheReadContractAndDecrypt({
     address: SIMPLE_TEST,
     abi: simpleTestAbi,
@@ -92,7 +100,12 @@ describeOnAnvil('react hooks: decrypt cache is per chain (Anvil)', () => {
     await publicClient.waitForTransactionReceipt({ hash });
 
     render(
-      <CofheProvider cofheClient={cofheClient} queryClient={queryClient} publicClient={publicClient} walletClient={walletClient}>
+      <CofheProvider
+        cofheClient={cofheClient}
+        queryClient={queryClient}
+        publicClient={publicClient}
+        walletClient={walletClient}
+      >
         <Decrypt label="A" chainId={CHAIN_A} />
         <Decrypt label="B" chainId={CHAIN_B} publicClient={clientB} />
       </CofheProvider>
