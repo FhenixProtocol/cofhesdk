@@ -176,12 +176,14 @@ or, when isolation is missing:
 [Worker] TFHE initialized (single-threaded: not cross-origin isolated — serve the page with …)
 ```
 
-You can also read the main-thread status programmatically:
+If the main thread generates proofs itself (`useWorkers: false`, or the worker failed and
+the SDK fell back), you can read its pool status programmatically. With workers on, the
+main thread never starts a pool, so this stays `null`:
 
 ```ts
 import { getTfheThreadPoolStatus } from '@cofhe/sdk/web';
 
-// null until TFHE has been initialized (first encryption)
+// null until the main thread has had to generate a proof
 const status = getTfheThreadPoolStatus();
 // { enabled: true, threads: 8 }
 // or { enabled: false, threads: 1, reason: '…why it bailed' }

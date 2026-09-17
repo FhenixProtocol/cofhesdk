@@ -3,17 +3,24 @@ import { arbSepolia as cofheArbSepolia, stagingCofhe } from '@/chains';
 import { Encryptable, fheTypeToString, type EncryptableItem } from '@/core';
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import type { PublicClient, WalletClient } from 'viem';
 import { createPublicClient, createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { arbitrumSepolia as viemArbitrumSepolia } from 'viem/chains';
-import { createCofheConfig, createCofheClientWithCustomWorker, getTfheThreadPoolStatus } from '../index';
+import {
+  createCofheClient,
+  createCofheConfig,
+  createCofheClientWithCustomWorker,
+  getTfheThreadPoolStatus,
+} from '../index';
 
 // Which thread needs a rayon pool?
 //
 // With workers on (the default) the ZK proof is generated inside the zkProve
 // worker, which runs its own rayon pool. The main thread only deserializes keys
 // and packs inputs, so a pool there is pure overhead: N idle Web Workers plus a
-// second shared wasm memory.
+// second shared wasm memory. The main thread should start one only when it has
+// to generate a proof itself.
 //
 // Rayon threads started by the main thread are `new Worker(...)` calls made by
 // the page. The ones the zkProve worker starts are made inside that worker and
@@ -21,7 +28,8 @@ import { createCofheConfig, createCofheClientWithCustomWorker, getTfheThreadPool
 // workers therefore measures the main-thread pool and nothing else.
 //
 // Own file on purpose: every vitest browser file gets a fresh tfhe wasm
-// instance, and a rayon pool can only be started once per instance.
+// instance, and a rayon pool can only be started once per instance. The tests
+// below share that instance and depend on their order.
 
 const TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 const THREADS = 2;
@@ -88,6 +96,9 @@ describe('@cofhe/sdk/web - main-thread rayon pool', () => {
   const RealWorker = globalThis.Worker;
   let rayonWorkersStartedByPage = 0;
   let prover: ReturnType<typeof createRealWorkerProver>;
+  let publicClient: PublicClient;
+  let walletClient: WalletClient;
+  let consumingContract: `0x${string}`;
   let proveContext: any;
 
   beforeAll(async () => {
@@ -98,9 +109,10 @@ describe('@cofhe/sdk/web - main-thread rayon pool', () => {
       }
     };
 
-    const publicClient = createPublicClient({ chain: testViemChain, transport: http() });
+    publicClient = createPublicClient({ chain: testViemChain, transport: http() });
     const account = privateKeyToAccount(TEST_PRIVATE_KEY);
-    const walletClient = createWalletClient({ chain: testViemChain, transport: http(), account });
+    walletClient = createWalletClient({ chain: testViemChain, transport: http(), account });
+    consumingContract = account.address;
 
     prover = createRealWorkerProver(THREADS);
 
@@ -110,7 +122,7 @@ describe('@cofhe/sdk/web - main-thread rayon pool', () => {
 
     await client
       .encryptInputs([Encryptable.uint32(7n)])
-      .setConsumingContract(account.address)
+      .setConsumingContract(consumingContract)
       .onStep((step, context) => {
         if (step === 'prove' && context?.isEnd) proveContext = context;
       })
@@ -128,10 +140,34 @@ describe('@cofhe/sdk/web - main-thread rayon pool', () => {
     expect(proveContext?.workerFailedError).toBeUndefined();
   });
 
-  // Fails today: initializing tfhe on the main thread unconditionally starts a
-  // rayon pool, even though this encryption never proves on the main thread.
-  it.fails('does not start a rayon pool on the main thread when the worker proves', () => {
+  it('does not start a rayon pool on the main thread when the worker proves', () => {
     expect(rayonWorkersStartedByPage).toBe(0);
-    expect(getTfheThreadPoolStatus()?.enabled ?? false).toBe(false);
+    expect(getTfheThreadPoolStatus()).toBeNull();
   });
+
+  // Runs after a worker-path encryption on the same wasm instance: the main
+  // thread has already deserialized keys and packed inputs by now, and the
+  // pool must still come up.
+  it('starts the pool once the main thread has to prove', async () => {
+    const config = createCofheConfig({
+      supportedChains: [testCofheChain],
+      tfheThreads: THREADS,
+      useWorkers: false,
+    });
+    const client = createCofheClient(config);
+    await client.connect(publicClient, walletClient);
+
+    let mainThreadProveContext: any;
+    await client
+      .encryptInputs([Encryptable.uint32(8n)])
+      .setConsumingContract(consumingContract)
+      .onStep((step, context) => {
+        if (step === 'prove' && context?.isEnd) mainThreadProveContext = context;
+      })
+      .execute();
+
+    expect(mainThreadProveContext?.usedWorker).toBe(false);
+    expect(rayonWorkersStartedByPage).toBe(THREADS);
+    expect(getTfheThreadPoolStatus()).toEqual({ enabled: true, threads: THREADS });
+  }, 240000);
 });
