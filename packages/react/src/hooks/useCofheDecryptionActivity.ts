@@ -13,7 +13,8 @@ import type { CofheQueryMeta } from '@/meta';
 //   A) FETCH  — read the ciphertext handle on-chain  (`cofheReadContract`),
 //               whose data carries the `ctHash`.
 //   B) DECRYPT— decrypt that handle off-chain         (`decryptCiphertext`, keyed
-//               BY the ctHash).
+//               by [chainId, account, acpHash, ctHash, utype] — the ctHash is
+//               always the second-to-last element).
 //
 // This hook observes the cache, correlates the two stages by ctHash, and returns
 // one row per confidential value with a recognizable contract/method/label (from
@@ -234,7 +235,7 @@ export function useCofheDecryptionActivity(options?: UseCofheDecryptionActivityO
     for (const q of queries) {
       const k = q.queryKey;
       if (!Array.isArray(k) || k[0] !== 'decryptCiphertext') continue;
-      const ct = normalizeCt(k[1]);
+      const ct = normalizeCt(k[k.length - 2]);
       if (!ct || isZeroCt(ct)) continue;
       const base = { key: q.queryKey, meta: q.meta };
       if (q.state.status === 'success') {

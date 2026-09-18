@@ -5,6 +5,7 @@ import type { UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
 import { assert } from 'ts-essentials';
 import type { EncryptedReturnTypeByUtype } from '@cofhe/abi';
 import type { CofheDecryptMeta } from '@/meta';
+import { useCofheAccount, useCofheChainId } from './useCofheConnection';
 
 /**
  * Hook to decrypt a ciphertext using the Cofhe client.
@@ -35,13 +36,16 @@ export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<
   // don't fire it at all. Note the ciphertext input may still be present from a cached
   // read taken while the ACP was valid, so this gate cannot be left to the read hook.
   const activeACP = useCofheActiveACP();
+  const chainId = useCofheChainId();
+  const account = useCofheAccount();
+  const activeACPHash = activeACP?.acp.hash;
 
   const { enabled: userEnabled, meta: optionMeta, ...restQueryOptions } = queryOptions || {};
   const enabled = !!input && BigInt(input.ctHash) > 0n && !!client && !!activeACP?.isValid && (userEnabled ?? true);
 
   return useInternalQuery({
     enabled,
-    queryKey: ['decryptCiphertext', input?.ctHash.toString(), input?.utype],
+    queryKey: ['decryptCiphertext', chainId, account, activeACPHash, input?.ctHash.toString(), input?.utype],
     queryFn: async () => {
       assert(input, 'input is guaranteed to be defined by enabled condition');
       const builder = client.decryptForView(input.ctHash, input.utype);
@@ -52,7 +56,7 @@ export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<
       persist: true,
       kind: 'cofheDecrypt',
       ctHash: input?.ctHash?.toString(),
-      chainId: context?.chainId,
+      chainId: context?.chainId ?? chainId,
       address: context?.address,
       functionName: context?.functionName,
       consumer: meta,
