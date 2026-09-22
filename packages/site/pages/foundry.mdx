@@ -46,11 +46,10 @@ remappings = [
 ### Git submodule
 
 ```bash
-forge install fhenixprotocol/foundry-plugin          # @cofhe/foundry-plugin
-forge install fhenixprotocol/cofhe-mock-contracts    # @cofhe/mock-contracts
+forge install FhenixProtocol/cofhesdk    # @cofhe/foundry-plugin + @cofhe/mock-contracts
 ```
 
-Forge will install these under `lib/`. Add the equivalent remappings pointing to `lib/` instead of `node_modules/`.
+Both packages live in the `cofhesdk` monorepo, so a single install covers them. Forge will check it out under `lib/`, so point the `@cofhe/foundry-plugin/` and `@cofhe/mock-contracts/` remappings at `lib/cofhesdk/packages/<package>/` instead of `node_modules/@cofhe/<package>/`.
 
 ## Quick start
 
