@@ -15,7 +15,12 @@ import type {
 import { assert } from 'ts-essentials';
 import { useInternalMutation, useInternalQueryClient } from '../providers/index.js';
 import { useCofheChainId, useCofhePublicClient, useCofheWalletClient } from './useCofheConnection.js';
-import { checksummedOr, constructCofheReadContractQueryForInvalidation } from './useCofheReadContract';
+import {
+  checksummedOr,
+  cofheReadKeyChainId,
+  cofheReadKeyPinnedTo,
+  constructCofheReadContractQueryForInvalidation,
+} from './useCofheReadContract';
 import { ETH_ADDRESS_LOWERCASE } from './useCofheTokenLists';
 import { invalidateQueriesWithContext, type InvalidationContextQueryFilters } from '../utils/invalidationContext';
 import { resolveReceiptBlockHash } from '../utils/resolveReceiptBlockHash';
@@ -52,7 +57,9 @@ export type WalletWriteContractParams<
  * Declarative invalidation target: the cofhe reads of one contract. `functionName` narrows it to
  * the `useCofheReadContract` queries for that view function; `args` (with `functionName`) narrows
  * further to the one exact call — e.g. `getOrder(orderId)` — leaving other args of the same
- * function untouched. `chainId` defaults to the connected chain.
+ * function untouched. `chainId` defaults to the connected chain; a target on ANOTHER chain (a
+ * chain-pinned read) gets a plain refresh — that chain never sees the write's block, so there is
+ * nothing to be block-aware of.
  */
 export type CofheReadInvalidationDescriptor = {
   address: Address;
@@ -66,7 +73,8 @@ export type CofheReadInvalidationDescriptor = {
  * A read-query target to refresh after a successful write: an `{ address, functionName?, args? }`
  * descriptor for cofhe contract reads, a raw query key (matched as a prefix, e.g. built with
  * `constructCofheReadContractQueryForInvalidation`), or full `InvalidateQueries` filters with a
- * required `queryKey`.
+ * required `queryKey` and an optional `targetChainId` — the chain serving the reads under it, for
+ * keys the hook cannot place on a chain itself (see `InvalidationContextQueryFilters`).
  */
 export type CofheWriteInvalidationTarget = CofheReadInvalidationDescriptor | QueryKey | InvalidationContextQueryFilters;
 
@@ -114,17 +122,22 @@ function trimTrailingUndefined(queryKey: readonly unknown[]): readonly unknown[]
 }
 
 /**
- * Turn one invalidation target (descriptor, raw key, or filters) into query filters. Exported for
- * internal reuse — the pending-transaction tracker speaks the same descriptor grammar instead of
- * keeping key vocabulary of its own.
+ * Turn one invalidation target (descriptor, raw key, or filters) into query filters, carrying the
+ * chain the target belongs to as `targetChainId` when it is known: a descriptor's own `chainId`
+ * (else the connected chain), the chain segment of a cofhe read key, or the `targetChainId` given
+ * on filters. Exported for internal reuse — the pending-transaction tracker speaks the same
+ * descriptor grammar instead of keeping key vocabulary of its own.
  */
 export function normalizeInvalidationTarget(
   target: CofheWriteInvalidationTarget,
   connectedChainId: number | undefined
 ): InvalidationContextQueryFilters {
-  if (isQueryKeyTarget(target)) return { queryKey: target, exact: false };
-  if ('queryKey' in target) return target;
+  if (isQueryKeyTarget(target)) return { queryKey: target, exact: false, targetChainId: cofheReadKeyChainId(target) };
+  if ('queryKey' in target) {
+    return { ...target, targetChainId: target.targetChainId ?? cofheReadKeyChainId(target.queryKey) };
+  }
 
+  const targetChainId = target.chainId ?? connectedChainId;
   return {
     // Trailing undefined segments (an omitted functionName) would only match queries carrying
     // that exact undefined segment; trimmed, the prefix matches every read of the contract.
@@ -132,14 +145,36 @@ export function normalizeInvalidationTarget(
     // call of the function — the same serialization the read key uses.
     queryKey: trimTrailingUndefined([
       ...constructCofheReadContractQueryForInvalidation({
-        cofheChainId: target.chainId ?? connectedChainId,
+        cofheChainId: targetChainId,
         address: target.address,
         functionName: target.functionName,
       }),
       ...(target.functionName != null && target.args != null ? [serializeBigintRecursively(target.args)] : []),
     ]),
     exact: false,
+    targetChainId,
   };
+}
+
+/**
+ * Where a mined block's watermark goes for one target — dirty every declared target, gate only
+ * the ones on the chain where the block exists:
+ * - a target on the mined chain gates its whole key;
+ * - the bare cofhe prefix `['cofheReadContract']`, which spans every chain, gates the mined chain's
+ *   slice of it;
+ * - a target on another chain, or of unknown chain, or when the mined chain itself is unknown,
+ *   gets no watermark (`undefined`): a plain refresh. A wrong watermark stalls reads for the whole
+ *   wait window; a plain refresh only forgoes the gate.
+ */
+export function blockAwareWatermarkKey(
+  filters: InvalidationContextQueryFilters,
+  minedChainId: number | undefined
+): QueryKey | undefined {
+  if (minedChainId === undefined) return undefined;
+  if (filters.targetChainId !== undefined) {
+    return filters.targetChainId === minedChainId ? filters.queryKey : undefined;
+  }
+  return cofheReadKeyPinnedTo(filters.queryKey, minedChainId);
 }
 
 async function invalidateOnceMined(params: {
@@ -182,10 +217,26 @@ async function invalidateOnceMined(params: {
       filters.push(nativeFilters);
     }
 
+    // Dirty every declared target, gate only the ones on the chain where the block exists.
+    // Block-awareness only means something on the chain the tx was mined on: a target on another
+    // chain (a chain-pinned read) would wait for a block hash its chain never produces, so it gets
+    // a plain refresh instead — and so does a target whose chain is unknown, since a wrong
+    // watermark costs a full wait window and a plain refresh only forgoes the gate.
+    const minedChainId = publicClient.chain?.id ?? connectedChainId;
     await Promise.all(
-      filters.map((queryFilters) =>
-        invalidateQueriesWithContext(queryClient, queryFilters, { blockHashToBeAwareOf: blockHash })
-      )
+      filters.map((queryFilters) => {
+        const watermarkKey = blockAwareWatermarkKey(queryFilters, minedChainId);
+        if (!watermarkKey) {
+          const { targetChainId: _targetChainId, ...plainFilters } = queryFilters;
+          return queryClient.invalidateQueries(plainFilters);
+        }
+        return invalidateQueriesWithContext(
+          queryClient,
+          queryFilters,
+          { blockHashToBeAwareOf: blockHash },
+          { watermarkKey }
+        );
+      })
     );
   } catch (error) {
     cofheLogger.warn('Failed to invalidate read queries after write transaction', { txHash, error });

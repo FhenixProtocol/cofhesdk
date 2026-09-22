@@ -183,7 +183,6 @@ export {
   invalidateQueriesWithContext,
   withInvalidationContext,
   findMatchingInvalidationContext,
-  consumeInvalidationContext,
   type InvalidationContextQueryFilters,
   type QueryFunctionWithInvalidationContext,
 } from './utils/invalidationContext';
