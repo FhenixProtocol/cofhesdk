@@ -6,7 +6,8 @@ import { FheTypes, type DecryptPollCallbackContext, type UnsealedItem } from '@c
 import { type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
 import { type Abi, type Address, type ContractFunctionArgs, type ContractFunctionName } from 'viem';
 import { constructCofheDecryptQueryKey, useCofheDecrypt } from './useCofheDecrypt';
-import { useCofheChainId } from './useCofheConnection';
+import { useCofheActiveACP } from './useCofheACPs';
+import { useCofheAccount, useCofheChainId } from './useCofheConnection';
 import {
   useCofheReadContract,
   type CofheReadChainParams,
@@ -103,6 +104,8 @@ export function useCofheReadContractAndDecrypt<
   // name the exact cache entry a superseded decrypt lives under.
   const connectedChainId = useCofheChainId();
   const decryptChainId = params.chainId ?? connectedChainId;
+  const account = useCofheAccount();
+  const acpHash = useCofheActiveACP(params.chainId)?.acp.hash;
 
   // The read and its decryption share one chain: the decrypt below uses the read's `chainId`.
   const encrypted = useCofheReadContract({ ...params, requiresACP }, readQueryOptions);
@@ -133,7 +136,16 @@ export function useCofheReadContractAndDecrypt<
   // Evict a superseded decrypt (a ctHash that is no longer the active input, e.g.
   // because the read now errors or produced a different handle) so it can't linger
   // in the cache as a phantom "fetched → …" entry disagreeing with the live read.
-  const prevRef = useRef<{ ctHash: string; utype: FheTypes; chainId: number | undefined } | undefined>(undefined);
+  const prevRef = useRef<
+    | {
+        ctHash: string;
+        utype: FheTypes;
+        chainId: number | undefined;
+        account: string | undefined;
+        acpHash: string | undefined;
+      }
+    | undefined
+  >(undefined);
   useEffect(() => {
     const prev = prevRef.current;
     if (prev && prev.ctHash !== currentCtHash) {
@@ -141,9 +153,9 @@ export function useCofheReadContractAndDecrypt<
     }
     prevRef.current =
       currentCtHash !== undefined && currentUtype !== undefined
-        ? { ctHash: currentCtHash, utype: currentUtype, chainId: decryptChainId }
+        ? { ctHash: currentCtHash, utype: currentUtype, chainId: decryptChainId, account, acpHash }
         : undefined;
-  }, [currentCtHash, currentUtype, decryptChainId, queryClient]);
+  }, [currentCtHash, currentUtype, decryptChainId, account, acpHash, queryClient]);
 
   const decrypted = useCofheDecrypt(
     {

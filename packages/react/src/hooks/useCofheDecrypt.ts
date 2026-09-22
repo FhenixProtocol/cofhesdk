@@ -1,6 +1,6 @@
 import { useCofheContext, useInternalQuery } from '@/providers';
 import { useCofheActiveACP } from './useCofheACPs';
-import { useCofheChainId } from './useCofheConnection';
+import { useCofheAccount, useCofheChainId } from './useCofheConnection';
 import { CofheError, FheTypes, type DecryptPollCallbackFunction, type UnsealedItem } from '@cofhe/sdk';
 import type { UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
 import { assert } from 'ts-essentials';
@@ -10,14 +10,18 @@ import type { CofheDecryptMeta } from '@/meta';
 /**
  * The cache key of one decrypt: a ciphertext handle decrypted on one chain, shaped like the read
  * key — `[prefix, chainId, ...]`. The chain is part of the key because it selects the ACP and
- * threshold network that answer — the same handle on two chains is two requests.
+ * threshold network that answer — the same handle on two chains is two requests. The account and
+ * its active ACP hash close the key: a plaintext decrypted under one account's ACP must not be
+ * served to another account (or another ACP) that reads the same handle.
  */
 export function constructCofheDecryptQueryKey(params: {
   ctHash: string | undefined;
   utype: FheTypes | undefined;
   chainId: number | undefined;
+  account: string | undefined;
+  acpHash: string | undefined;
 }): readonly unknown[] {
-  return ['decryptCiphertext', params.chainId, params.ctHash, params.utype];
+  return ['decryptCiphertext', params.chainId, params.ctHash, params.utype, params.account, params.acpHash];
 }
 
 /**
@@ -60,6 +64,7 @@ export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<
   // don't fire it at all. Note the ciphertext input may still be present from a cached
   // read taken while the ACP was valid, so this gate cannot be left to the read hook.
   const activeACP = useCofheActiveACP(chainId);
+  const account = useCofheAccount();
 
   const { enabled: userEnabled, meta: optionMeta, ...restQueryOptions } = queryOptions || {};
   const enabled = !!input && BigInt(input.ctHash) > 0n && !!client && !!activeACP?.isValid && (userEnabled ?? true);
@@ -70,6 +75,8 @@ export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<
       ctHash: input?.ctHash.toString(),
       utype: input?.utype,
       chainId: decryptChainId,
+      account,
+      acpHash: activeACP?.acp.hash,
     }),
     queryFn: async () => {
       assert(input, 'input is guaranteed to be defined by enabled condition');
