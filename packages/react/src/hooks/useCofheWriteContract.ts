@@ -46,12 +46,21 @@ export function hasExtras<TExtras>(
   );
 }
 
+/**
+ * The write a call site hands the hook: viem's `WriteContractParameters` with `chain` and `account`
+ * OPTIONAL. Both come from the connected wallet — `account` defaults to `walletClient.account` for
+ * the simulation and the broadcast, and `chain` only informs the simulation (the broadcast always
+ * goes to the wallet's own chain, see `mutationFn`). Instantiating viem's type with
+ * `Chain | undefined` / `Account | undefined` would make both fields REQUIRED, forcing every caller
+ * without a chain or account in hand into an `as never` cast — which also switches off the ABI's
+ * `functionName`/`args` checking for that call.
+ */
 export type WalletWriteContractParams<
   TAbi extends Abi | readonly unknown[],
   TFunctionName extends ContractFunctionName<TAbi, 'payable' | 'nonpayable'>,
   TArgs extends ContractFunctionArgs<TAbi, 'payable' | 'nonpayable', TFunctionName>,
   TChainOverride extends Chain | undefined = undefined,
-> = WriteContractParameters<TAbi, TFunctionName, TArgs, Chain | undefined, Account | undefined, TChainOverride>;
+> = WriteContractParameters<TAbi, TFunctionName, TArgs, Chain, Account, TChainOverride>;
 
 /**
  * Declarative invalidation target: the cofhe reads of one contract. `functionName` narrows it to
