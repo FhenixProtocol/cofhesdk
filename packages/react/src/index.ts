@@ -72,6 +72,8 @@ export {
   useCofheReadContracts,
   type CofheReadContractsContract,
   type CofheReadContractsItem,
+  type CofheReadContractsData,
+  type CofheReadContractsEntryResult,
   type UseCofheReadContractsResult,
   type UseCofheReadContractsQueryOptions,
 } from '@/hooks/useCofheReadContracts';

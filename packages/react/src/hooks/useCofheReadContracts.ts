@@ -1,8 +1,8 @@
 import { type UseQueryOptions } from '@tanstack/react-query';
-import type { Address } from 'viem';
+import type { Address, MulticallContracts, Narrow } from 'viem';
 import { useCofheActiveACP } from './useCofheACPs';
 import { useInternalQueries } from '../providers/index';
-import { type Abi } from '@cofhe/abi';
+import { type Abi, type CofheReturnType } from '@cofhe/abi';
 import {
   createCofheReadContractQueryOptions,
   getEnabledForCofheReadContract,
@@ -18,10 +18,45 @@ export type CofheReadContractsContract = {
   args?: readonly unknown[];
 };
 
-export type CofheReadContractsItem = {
-  result?: unknown;
+export type CofheReadContractsItem<TResult = unknown> = {
+  result?: TResult;
   error?: Error;
 };
+
+/**
+ * The decoded result of one `contracts` entry: what `useCofheReadContract` returns for the same
+ * read, encrypted outputs included — an `euint64` output is the encrypted value `{ ctHash, utype }`,
+ * not a bigint. `unknown` when the entry's `abi` / `functionName` are not literal enough to tell
+ * (an `abi` typed as plain `Abi`, a `functionName` widened to `string`).
+ */
+export type CofheReadContractsEntryResult<contract> = contract extends {
+  abi: infer abi extends Abi;
+  functionName: infer functionName extends string;
+}
+  ? CofheReturnType<abi, functionName>
+  : unknown;
+
+/**
+ * `data` for a `contracts` array: one item per entry, in input order, each typed by its own entry.
+ * A literal tuple maps index by index; a homogeneous list (`tokens.map(...)`, with a literal
+ * `functionName`) maps to an array of that entry's item; anything looser keeps `unknown` results.
+ * The walk mirrors viem's `MulticallResults`, with the SDK's encrypted-aware return type per entry.
+ */
+export type CofheReadContractsData<
+  contracts extends readonly unknown[],
+  result extends readonly unknown[] = readonly [],
+> = contracts extends readonly []
+  ? result
+  : contracts extends readonly [infer contract, ...infer rest]
+    ? CofheReadContractsData<
+        [...rest],
+        readonly [...result, CofheReadContractsItem<CofheReadContractsEntryResult<contract>> | undefined]
+      >
+    : readonly unknown[] extends contracts
+      ? (CofheReadContractsItem | undefined)[]
+      : contracts extends readonly (infer contract)[]
+        ? (CofheReadContractsItem<CofheReadContractsEntryResult<contract>> | undefined)[]
+        : (CofheReadContractsItem | undefined)[];
 
 export type UseCofheReadContractsQueryOptions = Omit<
   UseQueryOptions<unknown, Error>,
@@ -30,13 +65,14 @@ export type UseCofheReadContractsQueryOptions = Omit<
   enabled?: boolean;
 };
 
-export type UseCofheReadContractsResult = {
+export type UseCofheReadContractsResult<TContracts extends readonly unknown[] = readonly unknown[]> = {
   /**
-   * One item per contract entry, in input order. An index is `undefined` while that read has not
-   * resolved yet — entries settle independently, so a partially-resolved array is normal. The whole
-   * array is `undefined` when the hook is disabled or `contracts` is empty.
+   * One item per contract entry, in input order, typed by its entry (see `CofheReadContractsData`).
+   * An index is `undefined` while that read has not resolved yet — entries settle independently, so
+   * a partially-resolved array is normal. The whole array is `undefined` when the hook is disabled or
+   * `contracts` is empty.
    */
-  data: (CofheReadContractsItem | undefined)[] | undefined;
+  data: CofheReadContractsData<Narrow<TContracts>> | undefined;
   /** True while any entry is doing its initial load. */
   isLoading: boolean;
   /** True while any entry is fetching (initial load or refetch). */
@@ -75,12 +111,21 @@ export type UseCofheReadContractsResult = {
  * With a batching transport the entries still coalesce into a single JSON-RPC request; unlike the
  * previous multicall implementation this needs no multicall3 deployment on the chain.
  *
+ * Typing: `contracts` is a const generic checked entry by entry against its own `abi` (viem's
+ * `MulticallContracts` over `Narrow<…>`, exactly as viem's `multicall` and wagmi's `useReadContracts`
+ * declare it — `Narrow` is what keeps the literals through inference), and `data[i].result` is typed
+ * per entry (`CofheReadContractsData`). Entries built in a `.map` keep their types when the
+ * `functionName` stays literal (`functionName: 'balanceOf' as const`); a looser shape still works
+ * and falls back to `unknown` results.
+ *
  * Chain and client: `chainId` / `publicClient` work exactly as on `useCofheReadContract`, for the
  * whole batch.
  */
-export function useCofheReadContracts(
+export function useCofheReadContracts<
+  const TContracts extends readonly unknown[] = readonly CofheReadContractsContract[],
+>(
   params: {
-    contracts?: readonly CofheReadContractsContract[];
+    contracts?: MulticallContracts<Narrow<TContracts>, { mutability: 'pure' | 'view' }>;
     /**
      * Kept for API compatibility with the multicall-based implementation; only `allowFailure` is
      * honored (see `UseCofheReadContractsResult.error`). Other multicall options are obsolete —
@@ -91,16 +136,19 @@ export function useCofheReadContracts(
     requiresACP?: boolean;
   } & CofheReadChainParams,
   queryOptions?: UseCofheReadContractsQueryOptions
-): UseCofheReadContractsResult {
+): UseCofheReadContractsResult<TContracts> {
   const { contracts, multicallOptions, requiresACP = false } = params;
   const allowFailure = multicallOptions?.allowFailure ?? true;
+  // The per-entry types live at the signature; the batch itself runs on the loose entry shape,
+  // exactly as the singular hook's query builder does.
+  const entries = (contracts ?? []) as readonly CofheReadContractsContract[];
 
   // The whole batch shares one chain and client — same semantics as the singular hook.
   const { publicClient, cofheChainId, disabledDueToWrongChain } = useCofheReadTarget(params);
   const activeACP = useCofheActiveACP(cofheChainId);
 
   const results = useInternalQueries({
-    queries: (contracts ?? []).map((contract) =>
+    queries: entries.map((contract) =>
       createCofheReadContractQueryOptions({
         enabled: getEnabledForCofheReadContract({
           publicClient,
@@ -147,6 +195,9 @@ export function useCofheReadContracts(
 
   return {
     ...results,
+    // `combine` assembles the items on the loose shape; each `result` is what the singular query
+    // for that entry decoded, which is exactly what `CofheReadContractsData` states per entry.
+    data: results.data as CofheReadContractsData<Narrow<TContracts>> | undefined,
     disabledDueToMissingValidACP: requiresACP && (!activeACP || !activeACP.isValid),
     disabledDueToWrongChain,
   };
