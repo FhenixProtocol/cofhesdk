@@ -8,4 +8,7 @@ export default defineConfig({
     version: '0.8.28',
   },
   plugins: [cofhePlugin, hardhatViem, hardhatNodeTestRunner],
+  cofhe: {
+    gasSummary: true,
+  },
 });

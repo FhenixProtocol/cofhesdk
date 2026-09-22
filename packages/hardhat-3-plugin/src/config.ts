@@ -59,6 +59,7 @@ export function resolvePluginConfig(userConfig: HardhatUserConfig, resolvedConfi
   resolvedConfig.cofhe = {
     logMocks: userConfig.cofhe?.logMocks ?? false,
     gasWarning: userConfig.cofhe?.gasWarning ?? false,
+    gasSummary: userConfig.cofhe?.gasSummary ?? false,
     mocksDeployVerbosity: (userConfig.cofhe?.mocksDeployVerbosity ?? 'v') as LogMocksDeploy,
   };
 }

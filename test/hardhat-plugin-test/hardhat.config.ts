@@ -15,6 +15,9 @@ const config: HardhatUserConfig = {
       evmVersion: 'cancun',
     },
   },
+  cofhe: {
+    gasSummary: true,
+  },
 };
 
 export default config;
