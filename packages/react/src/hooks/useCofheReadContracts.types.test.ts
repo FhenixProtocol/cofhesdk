@@ -44,7 +44,7 @@ const TOKENS: readonly `0x${string}`[] = [TOKEN, TOKEN];
 // Named without the `use` prefix on purpose: the calls below never run, they are typed only.
 type ReadContracts = typeof useCofheReadContracts;
 
-function typeOnly(readContracts: ReadContracts) {
+function typeOnly(readContracts: ReadContracts, account: `0x${string}` | undefined) {
   // A literal tuple: every index carries its own entry's result type.
   const tuple = readContracts({
     contracts: [
@@ -60,6 +60,16 @@ function typeOnly(readContracts: ReadContracts) {
   type EncryptedResult = NonNullable<NonNullable<NonNullable<typeof tuple.data>[2]>['result']>;
   expectTypeOf<EncryptedResult>().toHaveProperty('utype');
   expectTypeOf<EncryptedResult>().not.toBeBigInt();
+
+  // Args not known yet: `undefined` with the batch gated by `enabled`, as on the singular hook —
+  // the entry stays typed.
+  const gated = readContracts(
+    {
+      contracts: [{ address: TOKEN, abi: ERC20_ABI, functionName: 'balanceOf', args: account ? [account] : undefined }],
+    },
+    { enabled: !!account }
+  );
+  expectTypeOf(gated.data?.[0]?.result).toEqualTypeOf<bigint | undefined>();
 
   // A homogeneous list built in a `.map`: one item type for every element, as long as the
   // `functionName` stays literal.

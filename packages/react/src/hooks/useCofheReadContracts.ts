@@ -1,5 +1,5 @@
 import { type UseQueryOptions } from '@tanstack/react-query';
-import type { Address, ContractFunctionName, MulticallContracts, Narrow } from 'viem';
+import type { Address, ContractFunctionArgs, ContractFunctionName, Narrow } from 'viem';
 import { useCofheActiveACP } from './useCofheACPs';
 import { useInternalQueries } from '../providers/index';
 import { type Abi, type CofheReturnType } from '@cofhe/abi';
@@ -17,6 +17,49 @@ export type CofheReadContractsContract = {
   functionName: string;
   args?: readonly unknown[];
 };
+
+/**
+ * One `contracts` entry, checked against its own `abi`: a literal `functionName` must be one of
+ * the ABI's view/pure functions and `args` must match that function's inputs — or, as on
+ * `useCofheReadContract`, be `undefined` while they are not known yet (`args: account ? [account]
+ * : undefined`, with the batch gated by `enabled`). A `functionName` widened to `string` (a `.map`
+ * without `as const`) is accepted as-is, unchecked, like an entry whose `abi` is not literal — the
+ * result is `unknown` in both cases (`CofheReadContractsEntryResult`).
+ */
+export type CofheReadContractsEntry<contract> = contract extends { abi: infer abi extends Abi }
+  ? contract extends { functionName: infer functionName extends ContractFunctionName<abi, 'pure' | 'view'> }
+    ? {
+        address: Address;
+        abi: abi;
+        functionName: functionName;
+        args?: ContractFunctionArgs<abi, 'pure' | 'view', functionName> | undefined;
+      }
+    : contract extends { functionName: infer functionName extends string }
+      ? string extends functionName
+        ? { address: Address; abi: abi; functionName: string; args?: readonly unknown[] | undefined }
+        : {
+            address: Address;
+            abi: abi;
+            functionName: ContractFunctionName<abi, 'pure' | 'view'>;
+            args?: readonly unknown[] | undefined;
+          }
+      : CofheReadContractsContract
+  : CofheReadContractsContract;
+
+/**
+ * The `contracts` parameter for a given (narrowed) array type: the same walk as viem's
+ * `MulticallContracts` — a literal tuple entry by entry, a homogeneous list element-wise, anything
+ * looser as-is — with `CofheReadContractsEntry`'s optional `args` instead of viem's mandatory ones.
+ */
+export type CofheReadContractsEntries<contracts extends readonly unknown[]> = contracts extends readonly []
+  ? readonly []
+  : contracts extends readonly [infer contract, ...infer rest]
+    ? readonly [CofheReadContractsEntry<contract>, ...CofheReadContractsEntries<[...rest]>]
+    : readonly unknown[] extends contracts
+      ? contracts
+      : contracts extends readonly (infer contract)[]
+        ? readonly CofheReadContractsEntry<contract>[]
+        : readonly CofheReadContractsContract[];
 
 export type CofheReadContractsItem<TResult = unknown> = {
   result?: TResult;
@@ -46,13 +89,13 @@ export type CofheReadContractsEntryResult<contract> = contract extends { abi: in
  */
 export type CofheReadContractsData<
   contracts extends readonly unknown[],
-  result extends readonly unknown[] = readonly [],
+  result extends unknown[] = [],
 > = contracts extends readonly []
   ? result
   : contracts extends readonly [infer contract, ...infer rest]
     ? CofheReadContractsData<
         [...rest],
-        readonly [...result, CofheReadContractsItem<CofheReadContractsEntryResult<contract>> | undefined]
+        [...result, CofheReadContractsItem<CofheReadContractsEntryResult<contract>> | undefined]
       >
     : readonly unknown[] extends contracts
       ? (CofheReadContractsItem | undefined)[]
@@ -113,12 +156,12 @@ export type UseCofheReadContractsResult<TContracts extends readonly unknown[] = 
  * With a batching transport the entries still coalesce into a single JSON-RPC request; unlike the
  * previous multicall implementation this needs no multicall3 deployment on the chain.
  *
- * Typing: `contracts` is a const generic checked entry by entry against its own `abi` (viem's
- * `MulticallContracts` over `Narrow<…>`, exactly as viem's `multicall` and wagmi's `useReadContracts`
- * declare it — `Narrow` is what keeps the literals through inference), and `data[i].result` is typed
- * per entry (`CofheReadContractsData`). Entries built in a `.map` keep their types when the
- * `functionName` stays literal (`functionName: 'balanceOf' as const`); a looser shape still works
- * and falls back to `unknown` results.
+ * Typing: `contracts` is a const generic checked entry by entry against its own `abi`
+ * (`CofheReadContractsEntries` over `Narrow<…>` — the shape viem's `multicall` and wagmi's
+ * `useReadContracts` use; `Narrow` is what carries the literals through inference), and
+ * `data[i].result` is typed per entry (`CofheReadContractsData`). Entries built in a `.map` keep
+ * their types when the `functionName` stays literal (`functionName: 'balanceOf' as const`); a
+ * looser shape still works and falls back to `unknown` results.
  *
  * Chain and client: `chainId` / `publicClient` work exactly as on `useCofheReadContract`, for the
  * whole batch.
@@ -127,7 +170,7 @@ export function useCofheReadContracts<
   const TContracts extends readonly unknown[] = readonly CofheReadContractsContract[],
 >(
   params: {
-    contracts?: MulticallContracts<Narrow<TContracts>, { mutability: 'pure' | 'view' }>;
+    contracts?: CofheReadContractsEntries<Narrow<TContracts>>;
     /**
      * Kept for API compatibility with the multicall-based implementation; only `allowFailure` is
      * honored (see `UseCofheReadContractsResult.error`). Other multicall options are obsolete —
