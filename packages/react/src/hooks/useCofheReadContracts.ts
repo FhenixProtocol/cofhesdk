@@ -1,5 +1,5 @@
 import { type UseQueryOptions } from '@tanstack/react-query';
-import type { Address, MulticallContracts, Narrow } from 'viem';
+import type { Address, ContractFunctionName, MulticallContracts, Narrow } from 'viem';
 import { useCofheActiveACP } from './useCofheACPs';
 import { useInternalQueries } from '../providers/index';
 import { type Abi, type CofheReturnType } from '@cofhe/abi';
@@ -26,14 +26,16 @@ export type CofheReadContractsItem<TResult = unknown> = {
 /**
  * The decoded result of one `contracts` entry: what `useCofheReadContract` returns for the same
  * read, encrypted outputs included — an `euint64` output is the encrypted value `{ ctHash, utype }`,
- * not a bigint. `unknown` when the entry's `abi` / `functionName` are not literal enough to tell
- * (an `abi` typed as plain `Abi`, a `functionName` widened to `string`).
+ * not a bigint. `unknown` when the entry is not literal enough to tell: an `abi` typed as plain
+ * `Abi`, or a `functionName` widened to `string` (a `.map` without `as const`) — never a guess
+ * across the ABI's functions, same rule as viem's multicall.
  */
-export type CofheReadContractsEntryResult<contract> = contract extends {
-  abi: infer abi extends Abi;
-  functionName: infer functionName extends string;
-}
-  ? CofheReturnType<abi, functionName>
+export type CofheReadContractsEntryResult<contract> = contract extends { abi: infer abi extends Abi }
+  ? contract extends { functionName: infer functionName extends ContractFunctionName<abi, 'pure' | 'view'> }
+    ? contract extends { args: infer args extends readonly unknown[] }
+      ? CofheReturnType<abi, functionName, args>
+      : CofheReturnType<abi, functionName>
+    : unknown
   : unknown;
 
 /**

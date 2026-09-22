@@ -73,6 +73,13 @@ function typeOnly(readContracts: ReadContracts) {
   });
   expectTypeOf(list.data?.[0]?.result).toEqualTypeOf<bigint | undefined>();
 
+  // A literal ABI with a widened `functionName` (a `.map` without `as const`) is `unknown` too — never
+  // a guess across the ABI's functions.
+  const widened = readContracts({
+    contracts: TOKENS.map((address) => ({ address, abi: ERC20_ABI, functionName: 'balanceOf', args: [HOLDER] })),
+  });
+  expectTypeOf(widened.data?.[0]?.result).toEqualTypeOf<unknown>();
+
   // A loose entry shape (plain `Abi`, `string` functionName) still compiles — results are `unknown`.
   const looseEntries: readonly { address: `0x${string}`; abi: Abi; functionName: string }[] = [];
   const loose = readContracts({ contracts: looseEntries });
