@@ -1,5 +1,5 @@
 import type { HardhatPlugin } from 'hardhat/types/plugins';
-import { task } from 'hardhat/config';
+import { overrideTask, task } from 'hardhat/config';
 import { ArgumentType } from 'hardhat/types/arguments';
 
 import { TASK_COFHE_USE_FAUCET, TASK_COFHE_SET_LOG_OPS } from './consts.js';
@@ -29,6 +29,11 @@ const plugin: HardhatPlugin = {
       .addFlag({ name: 'enable', description: 'Whether to enable logging' })
       .setAction(async () => import('./tasks/set-log-ops.js'))
       .build(),
+
+    // Prints the adjusted-gas summary after `hardhat test` when cofhe.gasSummary is enabled.
+    overrideTask('test')
+      .setAction(async () => import('./tasks/test-gas-summary.js'))
+      .build(),
   ],
 };
 
@@ -37,5 +42,6 @@ export default plugin;
 export * from './consts.js';
 export * from './deploy.js';
 export * from './fund.js';
+export * from './gas.js';
 export * from './logging.js';
 export * from './utils.js';

@@ -197,8 +197,8 @@ export async function deployMocks(ctx: DeployContext, options: DeployMocksArgs =
   if (gasWarning) {
     logEmpty('v');
     logWarning(
-      'When using mocks, FHE operations report a higher gas price due to on-chain mocking logic. ' +
-        'Deploy your contracts on a testnet to check true gas costs.\n' +
+      'When using mocks, FHE operations consume extra gas replicating off-chain CoFHE work on-chain. ' +
+        "Use conn.cofhe.getAdjustedGasUsed(receipt) or set 'cofhe.gasSummary: true' to see gas numbers with that overhead excluded.\n" +
         "(Disable this warning by setting 'cofhe.gasWarning: false' in your Hardhat config)",
       0
     );
