@@ -231,6 +231,13 @@ function tryAutoFund(chain, rpc, address, balanceEth) {
   if (!funderKeyEnv || !process.env[funderKeyEnv]) return null;
 
   const amount = chain.fundAmountEth || '1';
+  if (args.dryRun) {
+    console.log(
+      `\n  ${yellow(bold('[dry-run]'))} would auto-fund ${chain.label} deployer ${address} (${balanceEth} ETH < ${MIN_BALANCE_ETH}) with ${amount} ETH from ${funderKeyEnv}`
+    );
+    return { balance: balanceEth, planned: true };
+  }
+
   console.log(
     `\n  ${yellow(bold('Auto-funding'))} ${chain.label} deployer ${address} (${balanceEth} ETH < ${MIN_BALANCE_ETH}) — sending ${amount} ETH from ${funderKeyEnv}...`
   );
@@ -240,7 +247,7 @@ function tryAutoFund(chain, rpc, address, balanceEth) {
     console.error(`  ${red('Auto-funding failed:')} ${e.message}`);
     return null;
   }
-  return getBalanceEther(rpc, address);
+  return { balance: getBalanceEther(rpc, address), planned: false };
 }
 
 const fundingSections = [];
@@ -269,17 +276,19 @@ for (const chain of ALL_CHAINS) {
 
   let bal = getBalanceEther(rpc, section.address);
   let parsed = parseFloat(bal);
+  let autoFundPlanned = false;
 
   if (!isNaN(parsed) && parsed < MIN_BALANCE_ETH) {
     const funded = tryAutoFund(chain, rpc, section.address, bal);
     if (funded != null) {
-      bal = funded;
+      bal = funded.balance;
+      autoFundPlanned = funded.planned;
       parsed = parseFloat(bal);
     }
   }
 
   section.entries.push({ label: chain.label, output: `${colorBalance(bal)} ETH` });
-  if (!isNaN(parsed) && parsed < MIN_BALANCE_ETH) {
+  if (!isNaN(parsed) && parsed < MIN_BALANCE_ETH && !autoFundPlanned) {
     underfunded.push({ label: chain.label, address: section.address, balance: bal });
   }
 }
