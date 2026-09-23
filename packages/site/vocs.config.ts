@@ -156,6 +156,10 @@ export default defineConfig({
             text: 'Sharing Encrypted Values',
             link: '/reference/sharing-encrypted-values',
           },
+          {
+            text: 'Faster Encryption',
+            link: '/reference/faster-encryption',
+          },
         ],
       },
     ],

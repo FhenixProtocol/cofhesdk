@@ -62,6 +62,9 @@ export type {
   // Util types
   EncryptStepCallbackFunction as EncryptSetStateFn,
   EncryptStepCallbackContext,
+  // tfhe init types
+  TfheInitializer,
+  TfheThreadsSetting,
 } from './types.js';
 export {
   FheTypes,

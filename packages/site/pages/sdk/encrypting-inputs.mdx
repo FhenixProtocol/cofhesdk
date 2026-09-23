@@ -242,6 +242,10 @@ Calling `.execute()` runs five sequential steps. You can observe them via the `.
 | `Prove`     | Generates the ZK proof of knowledge (ZKPoK). Uses a Web Worker when available.                                      |
 | `Verify`    | Sends the proof to the CoFHE verifier's `/verifyBatch` endpoint. Returns the hashes and one shared batch signature. |
 
+`Prove` normally dominates the total time. On the web it can run across multiple threads
+— roughly 5× faster — if your app is served with the right headers. See
+[Faster Encryption](/reference/faster-encryption).
+
 ## `Encryptable` — typing inputs
 
 Use the `Encryptable` factory to create the items you want to encrypt. Each factory function accepts the plaintext value and an optional `securityZone`.

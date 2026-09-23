@@ -162,6 +162,22 @@ describe('createCofheConfigBase', () => {
     expectValidConfigItem('useWorkers', undefined, true); // defaults to true
   });
 
+  it('tfheThreads', () => {
+    expectInvalidConfigItem('tfheThreads', 'not-a-setting');
+    expectInvalidConfigItem('tfheThreads', null);
+    expectInvalidConfigItem('tfheThreads', true);
+    expectInvalidConfigItem('tfheThreads', 0);
+    expectInvalidConfigItem('tfheThreads', -4);
+    expectInvalidConfigItem('tfheThreads', 2.5);
+    expectInvalidConfigItem('tfheThreads', {});
+
+    expectValidConfigItem('tfheThreads', 'auto', 'auto');
+    expectValidConfigItem('tfheThreads', false, false);
+    expectValidConfigItem('tfheThreads', 1, 1);
+    expectValidConfigItem('tfheThreads', 4, 4);
+    expectValidConfigItem('tfheThreads', undefined, 'auto'); // defaults to 'auto'
+  });
+
   it('should get config item', () => {
     const config: CofheInputConfig = {
       supportedChains: [sepolia],
