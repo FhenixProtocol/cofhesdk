@@ -27,14 +27,23 @@ export const createNodeStorage = (): IStorage => {
       }
     },
     setItem: async (name: string, value: any) => {
+      const serialized = JSON.stringify(value);
+      let tempPath: string | undefined;
+
       try {
         const storageDir = join(process.env.HOME || process.env.USERPROFILE || '.', '.cofhesdk');
         await fs.mkdir(storageDir, { recursive: true });
         const filePath = join(storageDir, `${name}.json`);
-        await fs.writeFile(filePath, JSON.stringify(value));
+        tempPath = join(storageDir, `${name}.${process.pid}.${Date.now()}.${Math.random().toString(16).slice(2)}.tmp`);
+
+        await fs.writeFile(tempPath, serialized);
+        await fs.rename(tempPath, filePath);
       } catch (e) {
+        if (tempPath) {
+          await fs.unlink(tempPath).catch(() => {});
+        }
         console.warn('Node.js filesystem modules not available, falling back to memory storage' + e);
-        memoryStorage[name] = JSON.stringify(value);
+        memoryStorage[name] = serialized;
       }
     },
     removeItem: async (name: string) => {
