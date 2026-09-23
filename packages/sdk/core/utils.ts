@@ -1,6 +1,7 @@
 import { type PublicClient, type WalletClient } from 'viem';
 import { CofheError, CofheErrorCode } from './error.js';
 import { FheTypes } from './types.js';
+import { FHE_GAS_LIMITS, type FheGasOperationType } from './consts.js';
 
 export const toHexString = (bytes: Uint8Array) =>
   bytes.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
@@ -127,4 +128,12 @@ export function fheTypeToString(utype: FheTypes): string {
     default:
       throw new Error(`Unknown FheType: ${utype}`);
   }
+}
+
+/**
+ * Returns the recommended gas limit for a given FHE operation category.
+ * Helps prevent transaction execution failures from out-of-gas errors when standard RPC gas estimation fails.
+ */
+export function getRecommendedFheGasLimit(operation: FheGasOperationType = 'COMPUTE'): bigint {
+  return FHE_GAS_LIMITS[operation] ?? FHE_GAS_LIMITS.COMPUTE;
 }
