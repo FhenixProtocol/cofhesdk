@@ -106,12 +106,20 @@ type ParamHasExternalInput<param extends AbiParameter> =
   MaybeExtractArrayParameterType<param['internalType']> extends [infer head extends string, any]
     ? head extends ExternalInputInternalType
       ? true
-      : false
+      : // A struct array (`tuple[]` / `tuple[N]`) lands here too, with `head` the struct's own
+        // internalType. Falling through to the components keeps `Order[]` visible as carrying
+        // encrypted inputs, the way the runtime `paramHasExternalInput` already sees it.
+        ParamComponentsHaveExternalInput<param>
     : param['internalType'] extends ExternalInputInternalType
       ? true
-      : param extends { type: 'tuple'; components: infer components extends readonly AbiParameter[] }
-        ? ParamsHaveExternalInput<components>
-        : false;
+      : ParamComponentsHaveExternalInput<param>;
+
+/** Recurses into a parameter's `components`, for tuples at any array depth. */
+type ParamComponentsHaveExternalInput<param extends AbiParameter> = param extends {
+  components: infer components extends readonly AbiParameter[];
+}
+  ? ParamsHaveExternalInput<components>
+  : false;
 
 type ParamsHaveExternalInput<params extends readonly AbiParameter[]> = params extends readonly [
   infer Head extends AbiParameter,
@@ -261,9 +269,30 @@ export function extractEncryptableValues<TAbi extends Abi, TFunctionName extends
     // Tuple recursive case (struct that may itself contain external inputs)
     if (typeHead === 'tuple') {
       if ('components' in param && Array.isArray(param.components)) {
-        param.components.forEach((component) => {
-          processParameter(component, (value as Record<string, unknown>)[component.name]);
-        });
+        const components = param.components;
+
+        const processTuple = (tupleValue: unknown): void => {
+          const valueObj = tupleValue as Record<string, unknown>;
+          components.forEach((component) => {
+            processParameter(component, valueObj[component.name]);
+          });
+        };
+
+        // `tuple[]` / `tuple[N]`: walk each element as its own tuple. Treating the array
+        // itself as one tuple would look up named components on the array object, find
+        // none, and hand `undefined` to the encryptable transform.
+        if (typeSize != null) {
+          if (!Array.isArray(value)) {
+            throw new Error(`Expected an array value for ${param.type}`);
+          }
+          if (typeSize !== '' && parseInt(typeSize) !== value.length) {
+            throw new Error(`Array size mismatch: ${typeSize} !== ${value.length}`);
+          }
+          value.forEach(processTuple);
+          return;
+        }
+
+        processTuple(value);
       }
       return;
     }
@@ -405,20 +434,39 @@ export function insertEncryptedValues<TAbi extends Abi, TFunctionName extends st
     // Tuple recursive case (struct that may itself contain external inputs)
     if (typeHead === 'tuple') {
       if ('components' in param && Array.isArray(param.components)) {
-        const valueObj = value as Record<string, unknown>;
-        const result: Record<string, unknown> = {};
+        const components = param.components;
 
-        param.components.forEach((component) => {
-          const componentName = component.name;
-          if (componentName) {
-            const componentValue = valueObj[componentName];
-            if (componentValue !== undefined) {
-              result[componentName] = processParameter(component, componentValue);
+        const processTuple = (tupleValue: unknown): unknown => {
+          const valueObj = tupleValue as Record<string, unknown>;
+          const result: Record<string, unknown> = {};
+
+          components.forEach((component) => {
+            const componentName = component.name;
+            if (componentName) {
+              const componentValue = valueObj[componentName];
+              if (componentValue !== undefined) {
+                result[componentName] = processParameter(component, componentValue);
+              }
             }
-          }
-        });
+          });
 
-        return result;
+          return result;
+        };
+
+        // `tuple[]` / `tuple[N]`: rebuild each element as its own tuple, in the same order
+        // extractEncryptableValues walked them, so the hashes line up. Treating the array as
+        // one tuple would consume no hashes and collapse the argument to `{}`.
+        if (typeSize != null) {
+          if (!Array.isArray(value)) {
+            throw new Error(`Expected an array value for ${param.type}`);
+          }
+          if (typeSize !== '' && parseInt(typeSize) !== value.length) {
+            throw new Error(`Array size mismatch: ${typeSize} !== ${value.length}`);
+          }
+          return value.map(processTuple);
+        }
+
+        return processTuple(value);
       }
       return value;
     }
