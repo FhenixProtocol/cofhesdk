@@ -35,20 +35,29 @@ const useCofheACPsStore = () => {
   return { state, client };
 };
 
-export const useCofheActiveACP = ():
+/**
+ * The connected account's active ACP on `chainId` — the connected chain by default. ACPs are
+ * stored per chain, so a read pinned to another chain gates on THAT chain's ACP. Creating one
+ * still needs the wallet on that chain (the user signs for it).
+ */
+export const useCofheActiveACP = (
+  chainId?: number
+):
   | {
       acp: ACP;
       isValid: boolean;
     }
   | undefined => {
-  const { account, chainId, connected } = useCofheConnection();
+  const connection = useCofheConnection();
+  const { account, connected } = connection;
+  const acpChainId = chainId ?? connection.chainId;
 
   const { state } = useCofheACPsStore();
 
-  const allACPs = chainId && account ? state.acps[chainId]?.[account] : undefined;
+  const allACPs = acpChainId && account ? state.acps[acpChainId]?.[account] : undefined;
   // active acp
 
-  const hash = account && chainId ? state.activeACPHash[chainId]?.[account] : undefined;
+  const hash = account && acpChainId ? state.activeACPHash[acpChainId]?.[account] : undefined;
   const serialized = hash && allACPs ? allACPs[hash] : undefined;
 
   const acpData = useMemo(() => {

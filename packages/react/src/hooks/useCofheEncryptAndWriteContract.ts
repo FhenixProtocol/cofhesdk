@@ -1,21 +1,32 @@
-import type {
-  Abi,
-  Account,
-  Chain,
-  ContractFunctionArgs,
-  ContractFunctionName,
-  WriteContractParameters,
-  WriteContractReturnType,
-} from 'viem';
+import type { Abi, Chain, ContractFunctionArgs, ContractFunctionName, WriteContractReturnType } from 'viem';
 import { type CofheInputArgsPreTransform, extractEncryptableValues, insertEncryptedValues } from '@cofhe/abi';
 import type { EncryptableItem } from '@cofhe/sdk';
 import { useCofheEncrypt, type EncryptInputsOptions, type UseCofheEncryptOptions } from './useCofheEncrypt';
-import { useCofheWriteContract, type useCofheWriteContractOptions } from './useCofheWriteContract';
+import {
+  useCofheWriteContract,
+  type useCofheWriteContractOptions,
+  type WalletWriteContractParams,
+} from './useCofheWriteContract';
 
 type NoInferLocal<T> = [T][T extends any ? 0 : never];
 
 type ConfidentialityAwareAbiArgs<TAbi extends Abi | readonly unknown[], TFunctionName extends string> = NoInferLocal<
   Exclude<CofheInputArgsPreTransform<TAbi, TFunctionName>, undefined>
+>;
+
+/**
+ * The write handed on to `useCofheWriteContract` once the encryptable args are encrypted — the
+ * same shape that hook accepts (`chain` and `account` optional, both from the connected wallet).
+ */
+type EncryptAndWriteParams<
+  TAbi extends Abi,
+  TFunctionName extends ContractFunctionName<TAbi, 'payable' | 'nonpayable'>,
+  TChainOverride extends Chain | undefined,
+> = WalletWriteContractParams<
+  TAbi,
+  TFunctionName,
+  ContractFunctionArgs<TAbi, 'payable' | 'nonpayable', TFunctionName>,
+  TChainOverride
 >;
 
 export async function _encryptAndWriteContract<
@@ -28,46 +39,22 @@ export async function _encryptAndWriteContract<
   encrypt,
   write,
 }: {
-  params: Omit<
-    WriteContractParameters<
-      TAbi,
-      TFunctionName,
-      ContractFunctionArgs<TAbi, 'payable' | 'nonpayable', TFunctionName>,
-      Chain | undefined,
-      Account | undefined,
-      TChainOverride
-    >,
-    'args' | 'functionName'
-  > & { functionName: TFunctionName };
+  params: Omit<EncryptAndWriteParams<TAbi, TFunctionName, TChainOverride>, 'args' | 'functionName'> & {
+    functionName: TFunctionName;
+  };
   // Don't let args participate in inferring `TAbi`/`TFunctionName`.
   // Otherwise, an incorrect args shape can cause TS to widen TAbi to `readonly unknown[]`
   // (and then args become `unknown[]`, silently accepting anything).
   args: ConfidentialityAwareAbiArgs<TAbi, TFunctionName>;
   encrypt: (encryptableItems: EncryptableItem[]) => Promise<readonly `0x${string}`[]>;
-  write: (
-    writeParams: WriteContractParameters<
-      TAbi,
-      TFunctionName,
-      ContractFunctionArgs<TAbi, 'payable' | 'nonpayable', TFunctionName>,
-      Chain | undefined,
-      Account | undefined,
-      TChainOverride
-    >
-  ) => Promise<WriteContractReturnType>;
+  write: (writeParams: EncryptAndWriteParams<TAbi, TFunctionName, TChainOverride>) => Promise<WriteContractReturnType>;
 }): Promise<WriteContractReturnType> {
   const transformer = constructEncryptAndTransform<TAbi, TFunctionName, TChainOverride>(
     params.abi,
     params.functionName,
     encrypt
   );
-  const transformedArgs: WriteContractParameters<
-    TAbi,
-    TFunctionName,
-    ContractFunctionArgs<TAbi, 'payable' | 'nonpayable', TFunctionName>,
-    Chain | undefined,
-    Account | undefined,
-    TChainOverride
-  >['args'] = await transformer(args);
+  const transformedArgs: EncryptAndWriteParams<TAbi, TFunctionName, TChainOverride>['args'] = await transformer(args);
 
   // You can’t fix that spot “purely” (no as … and no any) while keeping this wrapper fully-generic over TAbi/TFunctionName.
   // Reason: viem’s WriteContractParameters ultimately includes a conditional type that depends on:
@@ -76,14 +63,7 @@ export async function _encryptAndWriteContract<
   const newParams = {
     ...params,
     args: transformedArgs,
-  } as WriteContractParameters<
-    TAbi,
-    TFunctionName,
-    ContractFunctionArgs<TAbi, 'payable' | 'nonpayable', TFunctionName>,
-    Chain | undefined,
-    Account | undefined,
-    TChainOverride
-  >;
+  } as EncryptAndWriteParams<TAbi, TFunctionName, TChainOverride>;
 
   return write(newParams);
 }
@@ -98,16 +78,7 @@ function constructEncryptAndTransform<
   encrypt: (encryptableItems: EncryptableItem[]) => Promise<readonly `0x${string}`[]>
 ): (
   mixedArgs: Exclude<CofheInputArgsPreTransform<TAbi, TFunctionName>, undefined>
-) => Promise<
-  WriteContractParameters<
-    TAbi,
-    TFunctionName,
-    ContractFunctionArgs<TAbi, 'payable' | 'nonpayable', TFunctionName>,
-    Chain | undefined,
-    Account | undefined,
-    TChainOverride
-  >['args']
-> {
+) => Promise<EncryptAndWriteParams<TAbi, TFunctionName, TChainOverride>['args']> {
   // encrypts inputs that need to be encrypted and transform them
   return async (mixedArgs) => {
     const extracted = extractEncryptableValues(abi, functionName, mixedArgs);
@@ -115,14 +86,7 @@ function constructEncryptAndTransform<
     const merged = insertEncryptedValues(abi, functionName, mixedArgs, encrypted);
 
     // TODO: mismatch between CofheInputArgs<TAbi, TFunctionName> and WriteContractParameters<...>['args'] types
-    return merged as WriteContractParameters<
-      TAbi,
-      TFunctionName,
-      ContractFunctionArgs<TAbi, 'payable' | 'nonpayable', TFunctionName>,
-      Chain | undefined,
-      Account | undefined,
-      TChainOverride
-    >['args'];
+    return merged as EncryptAndWriteParams<TAbi, TFunctionName, TChainOverride>['args'];
   };
 }
 
@@ -141,17 +105,9 @@ export function useCofheEncryptAndWriteContract<TExtraVars = unknown>({
     TFunctionName extends ContractFunctionName<TAbi, 'payable' | 'nonpayable'>,
     TChainOverride extends Chain | undefined = undefined,
   >(args: {
-    params: Omit<
-      WriteContractParameters<
-        TAbi,
-        TFunctionName,
-        ContractFunctionArgs<TAbi, 'payable' | 'nonpayable', TFunctionName>,
-        Chain | undefined,
-        Account | undefined,
-        TChainOverride
-      >,
-      'args' | 'functionName'
-    > & { functionName: TFunctionName };
+    params: Omit<EncryptAndWriteParams<TAbi, TFunctionName, TChainOverride>, 'args' | 'functionName'> & {
+      functionName: TFunctionName;
+    };
     args: ConfidentialityAwareAbiArgs<TAbi, TFunctionName>;
     extras?: TExtraVars;
     encryptionOptions?: EncryptInputsOptions;

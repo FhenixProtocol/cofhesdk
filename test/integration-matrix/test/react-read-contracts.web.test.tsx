@@ -15,7 +15,15 @@
  *   - a singular useCofheReadContract of the same call shares the batch entry's cache — no
  *     duplicate fetch, and one refetch serves both;
  *   - without `invalidates` the batch stays stale even though the chain moved, and the manual
- *     invalidation primitive (same machinery) refreshes it.
+ *     invalidation primitive (same machinery) refreshes it;
+ *   - the invalidation context is a TTL WATERMARK, not a one-shot note: a read whose first fetch
+ *     happens AFTER the invalidation's refetches settled (a new args variant, an enabled flip) is
+ *     gated exactly like its concurrent siblings — delivery is deterministic, not ordering luck —
+ *     until the watermark expires (`ttlMs`), after which a new read goes to the node un-gated;
+ *   - chain-pinned reads: `chainId` alone guards a read to that chain; with its own `publicClient`
+ *     the read is served through that client wherever the wallet sits (or with none), keyed under
+ *     the pinned chain; ACP gating and decryption follow the read's chain; a write's block-aware
+ *     refresh covers only the targets on its own chain.
  */
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -34,15 +42,21 @@ import {
   type EIP1193Parameters,
   type Hash,
   type Hex,
+  type PublicClient,
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { hardhat as hardhatCofheChain } from '@cofhe/sdk/chains';
+import { acpStore } from '@cofhe/sdk/acps';
+import { createCofheClient } from '@cofhe/sdk/web';
+import { simpleTestAbi } from '@cofhe/test-setup';
 import {
   CofheProvider,
   createCofheConfig,
   constructCofheReadContractQueryForInvalidation,
+  findMatchingInvalidationContext,
   invalidateQueriesWithContext,
   useCofheReadContract,
+  useCofheReadContractAndDecrypt,
   useCofheReadContracts,
   useCofheWriteContract,
   useInvalidationContextStore,
@@ -87,6 +101,10 @@ const GET_ITEM_SELECTOR = toFunctionSelector(getAbiItem({ abi: storeAbi, name: '
 
 /** The dynamic-length batch under test: one getItem read per key. */
 const KEYS = [1n, 2n, 3n];
+/** A key NO read ever touches until the staggered scenario enables its reader. */
+const LATE_KEY = 9n;
+/** A chain the provider is NOT connected to — presented by a second client over the same Anvil. */
+const PINNED_CHAIN_ID = 31338;
 
 // Chain interactions (connect, mining) take a while; waitFor defaults to 1s.
 const EVENTUALLY = { timeout: 90_000 } as const;
@@ -180,6 +198,20 @@ function KeyValueApp({
     args: [KEYS[1]],
     requiresACP: false,
   });
+  // The STAGGERED reader: disabled until a button enables it, so its first fetch
+  // happens long after an invalidation's own refetches settled — a brand-new
+  // cache entry under the invalidated prefix that the watermark must still gate.
+  const [showLate, setShowLate] = React.useState(false);
+  const late = useCofheReadContract(
+    {
+      address: contractAddress,
+      abi: storeAbi,
+      functionName: 'getItem',
+      args: [LATE_KEY],
+      requiresACP: false,
+    },
+    { enabled: showLate }
+  );
   const { writeContract, data: txHash } = useCofheWriteContract({ invalidates });
 
   return (
@@ -194,7 +226,9 @@ function KeyValueApp({
       })}
       <output aria-label="single item 1">{single.data === undefined ? '' : single.data.toString()}</output>
       <output aria-label="single item 2">{single2.data === undefined ? '' : single2.data.toString()}</output>
+      <output aria-label="late item">{late.data === undefined ? '' : late.data.toString()}</output>
       <output aria-label="tx hash">{txHash ?? ''}</output>
+      <button onClick={() => setShowLate(true)}>mount late</button>
       <button
         onClick={() =>
           writeContract({
@@ -213,13 +247,155 @@ function KeyValueApp({
   );
 }
 
+/**
+ * For each cached read under `prefix`: the block its next fetch would wait for, keyed by the
+ * read's args — e.g. `{ '1': '0xabc…', '2': undefined }` (`undefined` = no wait).
+ */
+function watermarksUnder(queryClient: QueryClient, prefix: readonly unknown[]) {
+  return Object.fromEntries(
+    queryClient
+      .getQueryCache()
+      .findAll({ queryKey: prefix })
+      .map((query) => [
+        String(query.queryKey[prefix.length]),
+        findMatchingInvalidationContext<{ blockHashToBeAwareOf: Hash }>(query.queryKey).context?.blockHashToBeAwareOf,
+      ])
+  );
+}
+
 afterEach(() => {
   useInvalidationContextStore.setState({ byKey: {} });
 });
 
+/**
+ * `getItem(KEYS[0])` pinned to `chainId` — alone (guarded to that chain) or served through its own
+ * client — rendered under a label prefix so several can share one screen.
+ */
+function PinnedRead({
+  label,
+  contractAddress,
+  chainId,
+  publicClient,
+  requiresACP = false,
+}: {
+  label: string;
+  contractAddress: Address;
+  chainId: number;
+  publicClient?: PublicClient;
+  requiresACP?: boolean;
+}) {
+  const read = useCofheReadContract({
+    address: contractAddress,
+    abi: storeAbi,
+    functionName: 'getItem',
+    args: [KEYS[0]],
+    requiresACP,
+    ...(publicClient ? { chainId, publicClient } : { chainId }),
+  });
+  return (
+    <>
+      <output aria-label={`${label} value`}>{read.data === undefined ? '' : read.data.toString()}</output>
+      <output aria-label={`${label} wrong chain`}>{String(read.disabledDueToWrongChain)}</output>
+      <output aria-label={`${label} missing acp`}>{String(read.disabledDueToMissingValidACP)}</output>
+    </>
+  );
+}
+
+/** The batch hook pinned the same way, over the same call as `PinnedRead` — so they share a cache entry. */
+function PinnedBatch({
+  contractAddress,
+  chainId,
+  publicClient,
+}: {
+  contractAddress: Address;
+  chainId: number;
+  publicClient: PublicClient;
+}) {
+  const batch = useCofheReadContracts({
+    contracts: [{ address: contractAddress, abi: storeAbi, functionName: 'getItem', args: [KEYS[0]] }],
+    chainId,
+    publicClient,
+  });
+  const item = batch.data?.[0];
+  return <output aria-label="batch value">{item?.result === undefined ? '' : String(item.result)}</output>;
+}
+
+/** Read-and-decrypt of SimpleTest's encrypted value, pinned to `chainId` through its own client. */
+function PinnedDecrypt({
+  contractAddress,
+  chainId,
+  publicClient,
+}: {
+  contractAddress: Address;
+  chainId: number;
+  publicClient: PublicClient;
+}) {
+  const { decrypted } = useCofheReadContractAndDecrypt({
+    address: contractAddress,
+    abi: simpleTestAbi,
+    functionName: 'getValue',
+    chainId,
+    publicClient,
+  });
+  return (
+    <>
+      <output aria-label="decrypted value">{decrypted.data === undefined ? '' : String(decrypted.data)}</output>
+      <output aria-label="decrypt error">{decrypted.error?.message ?? ''}</output>
+    </>
+  );
+}
+
+/**
+ * One write on the connected chain whose `invalidates` names the same call on BOTH chains: the
+ * connected read and a read pinned to another chain through its own client.
+ */
+function CrossChainWriteApp({
+  contractAddress,
+  pinnedClient,
+  writeValue,
+}: {
+  contractAddress: Address;
+  pinnedClient: PublicClient;
+  writeValue: bigint;
+}) {
+  const { writeContract, data: txHash } = useCofheWriteContract({
+    invalidates: [
+      { address: contractAddress, functionName: 'getItem' },
+      { address: contractAddress, functionName: 'getItem', chainId: PINNED_CHAIN_ID },
+    ],
+  });
+  return (
+    <main>
+      <PinnedRead label="connected" contractAddress={contractAddress} chainId={CHAIN_ID} />
+      <PinnedRead
+        label="pinned"
+        contractAddress={contractAddress}
+        chainId={PINNED_CHAIN_ID}
+        publicClient={pinnedClient}
+      />
+      <output aria-label="tx hash">{txHash ?? ''}</output>
+      <button
+        onClick={() =>
+          writeContract({
+            address: contractAddress,
+            abi: storeAbi,
+            functionName: 'setItem',
+            args: [KEYS[0], writeValue],
+            account: TEST_ACCOUNT,
+            chain: anvilChain,
+          })
+        }
+      >
+        set item
+      </button>
+    </main>
+  );
+}
+
 // Provided only when the Hardhat (Anvil) chain is selected — on testnet-only runs
 // (e.g. the sepolia CI legs) globalSetup boots no Anvil and the suite skips itself.
 const KEY_VALUE_STORE_ADDRESS = inject('anvilSimpleKeyValueStore') as Address;
+const SIMPLE_TEST_ADDRESS = inject('anvilSimpleTest') as Address;
 
 function setup() {
   const contractAddress = KEY_VALUE_STORE_ADDRESS;
@@ -250,6 +426,7 @@ const onScreen = () => ({
   items: KEYS.map((key) => screen.getByRole('status', { name: `item ${key.toString()}` }).textContent),
   single: screen.getByRole('status', { name: 'single item 1' }).textContent,
   single2: screen.getByRole('status', { name: 'single item 2' }).textContent,
+  late: screen.getByRole('status', { name: 'late item' }).textContent,
   txHash: screen.getByRole('status', { name: 'tx hash' }).textContent,
 });
 
@@ -261,7 +438,7 @@ const describeOnAnvil = KEY_VALUE_STORE_ADDRESS ? describe : describe.skip;
 
 describeOnAnvil('react hooks: useCofheWriteContract({ invalidates }) refreshes useCofheReadContracts (Anvil)', () => {
   it('a mined write refreshes every batch entry, block-gated, and the singular read shares the cache', async () => {
-    const { contractAddress, recorder, publicClient, renderApp } = setup();
+    const { contractAddress, recorder, publicClient, queryClient, renderApp } = setup();
     renderApp({ invalidates: [{ address: contractAddress, functionName: 'getItem' }], writeKey: 2n, writeValue: 777n });
 
     // The app connects and loads the batch: one fetch per key — and none extra for the
@@ -284,12 +461,18 @@ describeOnAnvil('react hooks: useCofheWriteContract({ invalidates }) refreshes u
     // ...each gated on a probe that the serving node knows the mined block (and no other probes).
     expect(recorder.countBlockHashProbes(receipt.blockHash)).toBe(KEYS.length);
     expect(recorder.countBlockHashProbes()).toBe(KEYS.length);
-    // The invalidation context is one-shot — consumed by the refetches that used it.
-    expect(useInvalidationContextStore.getState().byKey).toEqual({});
+    // The watermark outlives its delivery: every getItem read — the batch entries and the
+    // not-yet-enabled late reader alike — is still covered by the mined block.
+    expect(watermarksUnder(queryClient, itemReadKey(contractAddress))).toStrictEqual({
+      '1': receipt.blockHash,
+      '2': receipt.blockHash,
+      '3': receipt.blockHash,
+      '9': receipt.blockHash,
+    });
   }, 180_000);
 
   it('a receipt-derived, args-narrowed target refreshes exactly the touched entry', async () => {
-    const { contractAddress, recorder, publicClient, renderApp } = setup();
+    const { contractAddress, recorder, publicClient, queryClient, renderApp } = setup();
     renderApp({
       // The target is only known from the outcome: read the key out of the mined
       // logs (ItemSet's indexed key = topics[1]) and narrow to that exact call.
@@ -315,9 +498,76 @@ describeOnAnvil('react hooks: useCofheWriteContract({ invalidates }) refreshes u
     await waitFor(() => expect(onScreen().single2).toBe('999'), EVENTUALLY);
     // ...via exactly ONE refetch — keys 1 and 3 (and key 1's singular read) untouched...
     expect(recorder.countEthCalls(GET_ITEM_SELECTOR)).toBe(KEYS.length + 1);
-    // ...block-gated, and the one-shot context is consumed.
+    // ...block-gated — and the watermark it leaves is exactly as narrow: getItem(2) only.
     expect(recorder.countBlockHashProbes(receipt.blockHash)).toBe(1);
-    expect(useInvalidationContextStore.getState().byKey).toEqual({});
+    expect(watermarksUnder(queryClient, itemReadKey(contractAddress))).toStrictEqual({
+      '1': undefined,
+      '2': receipt.blockHash,
+      '3': undefined,
+      '9': undefined,
+    });
+  }, 180_000);
+
+  it('the watermark gates a STAGGERED read — first fetched only after the invalidation settled', async () => {
+    const { contractAddress, recorder, publicClient, renderApp } = setup();
+    renderApp({ invalidates: [{ address: contractAddress, functionName: 'getItem' }], writeKey: 2n, writeValue: 555n });
+
+    await waitFor(() => expect(everyItemLoaded()).toBe(true), EVENTUALLY);
+    expect(recorder.countEthCalls(GET_ITEM_SELECTOR)).toBe(KEYS.length);
+
+    fireEvent.click(screen.getByRole('button', { name: 'set item' }));
+    await waitFor(() => expect(onScreen().txHash).toMatch(/^0x/), EVENTUALLY);
+    const receipt = await publicClient.waitForTransactionReceipt({ hash: onScreen().txHash as Hash });
+    expect(receipt.status).toBe('success');
+
+    // Let the invalidation-driven refetches fully settle first…
+    await waitFor(() => expect(onScreen().items[1]).toBe('555'), EVENTUALLY);
+    await waitFor(() => expect(recorder.countEthCalls(GET_ITEM_SELECTOR)).toBe(KEYS.length * 2), EVENTUALLY);
+    const probesBefore = recorder.countBlockHashProbes(receipt.blockHash);
+    expect(probesBefore).toBeGreaterThanOrEqual(1);
+
+    // …then enable a read that has NEVER fetched: a new args variant under the
+    // invalidated prefix. Consume-on-first-delivery left it un-gated (ordering
+    // luck); the TTL watermark must gate it exactly like its concurrent siblings.
+    fireEvent.click(screen.getByRole('button', { name: 'mount late' }));
+    await waitFor(() => expect(onScreen().late).toBe('0'), EVENTUALLY);
+    expect(recorder.countBlockHashProbes(receipt.blockHash)).toBe(probesBefore + 1);
+  }, 180_000);
+
+  it('a watermark stops gating once its ttlMs has passed', async () => {
+    const { contractAddress, recorder, publicClient, queryClient, renderApp } = setup();
+    // No `invalidates`: the write only provides a mined block to be aware of; the watermark below
+    // is set by hand, with a short TTL.
+    renderApp({ writeKey: 3n, writeValue: 321n });
+    await waitFor(() => expect(everyItemLoaded()).toBe(true), EVENTUALLY);
+
+    fireEvent.click(screen.getByRole('button', { name: 'set item' }));
+    await waitFor(() => expect(onScreen().txHash).toMatch(/^0x/), EVENTUALLY);
+    const receipt = await publicClient.waitForTransactionReceipt({ hash: onScreen().txHash as Hash });
+    expect(receipt.status).toBe('success');
+
+    // Before expiry: the refetches the invalidation triggers are gated — one probe per entry.
+    await invalidateQueriesWithContext(
+      queryClient,
+      { queryKey: itemReadKey(contractAddress), exact: false },
+      { blockHashToBeAwareOf: receipt.blockHash },
+      { ttlMs: 2_000 }
+    );
+    await waitFor(() => expect(onScreen().items[2]).toBe('321'), EVENTUALLY);
+    expect(recorder.countBlockHashProbes(receipt.blockHash)).toBe(KEYS.length);
+
+    // After expiry: nothing is covered any more, and a read first fetched now — the late reader —
+    // goes straight to the node, with no probe.
+    await sleep(2_100);
+    expect(watermarksUnder(queryClient, itemReadKey(contractAddress))).toStrictEqual({
+      '1': undefined,
+      '2': undefined,
+      '3': undefined,
+      '9': undefined,
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'mount late' }));
+    await waitFor(() => expect(onScreen().late).toBe('0'), EVENTUALLY);
+    expect(recorder.countBlockHashProbes(receipt.blockHash)).toBe(KEYS.length);
   }, 180_000);
 
   it('without `invalidates` the batch stays stale until invalidated manually', async () => {
@@ -356,5 +606,244 @@ describeOnAnvil('react hooks: useCofheWriteContract({ invalidates }) refreshes u
     await waitFor(() => expect(onScreen().items[2]).toBe('888'), EVENTUALLY);
     await waitFor(() => expect(recorder.countEthCalls(GET_ITEM_SELECTOR)).toBe(KEYS.length * 2), EVENTUALLY);
     expect(recorder.countBlockHashProbes(receipt.blockHash)).toBe(KEYS.length);
+  }, 180_000);
+});
+
+/** Read the on-screen outputs of the `PinnedRead` labelled `label`. */
+const pinnedOnScreen = (label: string) => ({
+  value: screen.getByRole('status', { name: `${label} value` }).textContent,
+  wrongChain: screen.getByRole('status', { name: `${label} wrong chain` }).textContent,
+  missingAcp: screen.getByRole('status', { name: `${label} missing acp` }).textContent,
+});
+
+/**
+ * Two recording transports over the same Anvil: the CONNECTED client (31337) and a second client
+ * presented as another chain (PINNED_CHAIN_ID). Chain identity itself is the app's promise; what
+ * these tests pin down is which client serves which read, under which key, gated by which ACP.
+ */
+function setupPinned({ withWallet = true }: { withWallet?: boolean } = {}) {
+  const contractAddress = KEY_VALUE_STORE_ADDRESS;
+  const recorderMain = createRecordingProvider(ANVIL_RPC);
+  const publicClient = createPublicClient({ chain: anvilChain, transport: custom(recorderMain) });
+  const walletClient = createWalletClient({
+    chain: anvilChain,
+    transport: custom(recorderMain),
+    account: TEST_ACCOUNT,
+  });
+  const recorderPinned = createRecordingProvider(ANVIL_RPC);
+  const pinnedChain: Chain = defineChain({ ...anvilChain, id: PINNED_CHAIN_ID, name: 'Pinned' });
+  const pinnedClient = createPublicClient({ chain: pinnedChain, transport: custom(recorderPinned) });
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const config = createCofheConfig({ supportedChains: [hardhatCofheChain], react: { autogenerateACPs: false } });
+  // Created here rather than inside the provider so the tests can issue ACPs through it.
+  const cofheClient = createCofheClient(config);
+
+  const renderPinned = (children: React.ReactNode) =>
+    render(
+      <CofheProvider
+        cofheClient={cofheClient}
+        queryClient={queryClient}
+        {...(withWallet ? { publicClient, walletClient } : {})}
+      >
+        {children}
+      </CofheProvider>
+    );
+
+  return {
+    contractAddress,
+    recorderMain,
+    recorderPinned,
+    publicClient,
+    walletClient,
+    pinnedClient,
+    queryClient,
+    cofheClient,
+    renderPinned,
+  };
+}
+
+describeOnAnvil('react hooks: chain-pinned reads (Anvil)', () => {
+  afterEach(() => {
+    acpStore.resetStore();
+  });
+
+  it('chainId alone guards the read: on the connected chain it reads, on another it stays disabled', async () => {
+    const { contractAddress, recorderMain, recorderPinned, renderPinned } = setupPinned();
+    renderPinned(
+      <>
+        <PinnedRead label="here" contractAddress={contractAddress} chainId={CHAIN_ID} />
+        <PinnedRead label="elsewhere" contractAddress={contractAddress} chainId={PINNED_CHAIN_ID} />
+      </>
+    );
+
+    // Pinned to the connected chain: an ordinary read through the connected client.
+    await waitFor(() => expect(pinnedOnScreen('here').value).not.toBe(''), EVENTUALLY);
+    expect(pinnedOnScreen('here').wrongChain).toBe('false');
+
+    // Pinned to another chain with no client of its own: the connected client is on the wrong
+    // chain to serve it, so it is flagged and never fetched.
+    expect(pinnedOnScreen('elsewhere').wrongChain).toBe('true');
+    await sleep(500);
+    expect(pinnedOnScreen('elsewhere').value).toBe('');
+    expect(recorderMain.countEthCalls(GET_ITEM_SELECTOR)).toBe(1);
+    expect(recorderPinned.calls).toHaveLength(0);
+  }, 180_000);
+
+  it('with its own publicClient a pinned read and batch fetch only through it, keyed under the pinned chain', async () => {
+    const { contractAddress, recorderMain, recorderPinned, pinnedClient, queryClient, renderPinned } = setupPinned();
+    renderPinned(
+      <>
+        <PinnedRead
+          label="pinned"
+          contractAddress={contractAddress}
+          chainId={PINNED_CHAIN_ID}
+          publicClient={pinnedClient}
+        />
+        <PinnedBatch contractAddress={contractAddress} chainId={PINNED_CHAIN_ID} publicClient={pinnedClient} />
+      </>
+    );
+
+    await waitFor(() => expect(pinnedOnScreen('pinned').value).not.toBe(''), EVENTUALLY);
+    await waitFor(
+      () => expect(screen.getByRole('status', { name: 'batch value' }).textContent).not.toBe(''),
+      EVENTUALLY
+    );
+    expect(pinnedOnScreen('pinned').wrongChain).toBe('false');
+
+    // One fetch, through the pinned client only — the batch entry and the singular read are the
+    // same call on the same chain, so they share one cache entry.
+    expect(recorderPinned.countEthCalls(GET_ITEM_SELECTOR)).toBe(1);
+    expect(recorderMain.countEthCalls(GET_ITEM_SELECTOR)).toBe(0);
+    // The key carries the pinned chain id, so chainId-pinned invalidation targets meet it.
+    const cachedKeys = queryClient
+      .getQueryCache()
+      .getAll()
+      .map((query) => query.queryKey);
+    expect(cachedKeys.some((key) => key[0] === 'cofheReadContract' && key[1] === PINNED_CHAIN_ID)).toBe(true);
+  }, 180_000);
+
+  it('a publicClient whose own chain disagrees with chainId keeps the read disabled', async () => {
+    const { contractAddress, recorderMain, publicClient, renderPinned } = setupPinned();
+    // The CONNECTED client (31337) handed to a read pinned to PINNED_CHAIN_ID.
+    renderPinned(
+      <PinnedRead
+        label="mismatch"
+        contractAddress={contractAddress}
+        chainId={PINNED_CHAIN_ID}
+        publicClient={publicClient}
+      />
+    );
+
+    await waitFor(() => expect(pinnedOnScreen('mismatch').wrongChain).toBe('true'), EVENTUALLY);
+    await sleep(500);
+    expect(pinnedOnScreen('mismatch').value).toBe('');
+    expect(recorderMain.countEthCalls(GET_ITEM_SELECTOR)).toBe(0);
+  }, 180_000);
+
+  it('a read with its own client runs with no wallet connected', async () => {
+    const { contractAddress, recorderMain, recorderPinned, pinnedClient, cofheClient, renderPinned } = setupPinned({
+      withWallet: false,
+    });
+    renderPinned(
+      <PinnedRead
+        label="walletless"
+        contractAddress={contractAddress}
+        chainId={PINNED_CHAIN_ID}
+        publicClient={pinnedClient}
+      />
+    );
+
+    await waitFor(() => expect(pinnedOnScreen('walletless').value).not.toBe(''), EVENTUALLY);
+    expect(cofheClient.connected).toBe(false);
+    expect(recorderPinned.countEthCalls(GET_ITEM_SELECTOR)).toBe(1);
+    expect(recorderMain.calls).toHaveLength(0);
+  }, 180_000);
+
+  it("ACP gating follows the read's chain, not the connected one", async () => {
+    const { contractAddress, recorderPinned, pinnedClient, cofheClient, renderPinned } = setupPinned();
+    renderPinned(
+      <>
+        <PinnedRead label="here" contractAddress={contractAddress} chainId={CHAIN_ID} requiresACP />
+        <PinnedRead
+          label="pinned"
+          contractAddress={contractAddress}
+          chainId={PINNED_CHAIN_ID}
+          publicClient={pinnedClient}
+          requiresACP
+        />
+      </>
+    );
+    await waitFor(() => expect(cofheClient.connected).toBe(true), EVENTUALLY);
+    const account = cofheClient.getSnapshot().account!;
+
+    // An ACP on the CONNECTED chain only: the connected read runs, the pinned one stays gated.
+    const acp = await cofheClient.acp.createSelf({ issuer: account, name: 'pinned-read test' });
+    await waitFor(() => expect(pinnedOnScreen('here').value).not.toBe(''), EVENTUALLY);
+    expect(pinnedOnScreen('pinned').missingAcp).toBe('true');
+    expect(recorderPinned.countEthCalls(GET_ITEM_SELECTOR)).toBe(0);
+
+    // The same ACP in the PINNED chain's slot: now the pinned read runs, through its own client.
+    acpStore.setACP(PINNED_CHAIN_ID, account, acp);
+    acpStore.setActiveACPHash(PINNED_CHAIN_ID, account, acp.hash);
+    await waitFor(() => expect(pinnedOnScreen('pinned').value).not.toBe(''), EVENTUALLY);
+    expect(pinnedOnScreen('pinned').missingAcp).toBe('false');
+    expect(recorderPinned.countEthCalls(GET_ITEM_SELECTOR)).toBe(1);
+  }, 180_000);
+
+  it("decryption follows the read's chain: the pinned chain's ACP decrypts the pinned value", async () => {
+    const { publicClient, walletClient, pinnedClient, cofheClient, renderPinned } = setupPinned();
+    // A nonzero encrypted value — a zero handle is a known zero, with nothing to decrypt.
+    const hash = await walletClient.writeContract({
+      address: SIMPLE_TEST_ADDRESS,
+      abi: simpleTestAbi,
+      functionName: 'setValueTrivial',
+      args: [42n],
+      account: TEST_ACCOUNT,
+      chain: anvilChain,
+    });
+    await publicClient.waitForTransactionReceipt({ hash });
+
+    renderPinned(
+      <PinnedDecrypt contractAddress={SIMPLE_TEST_ADDRESS} chainId={PINNED_CHAIN_ID} publicClient={pinnedClient} />
+    );
+    await waitFor(() => expect(cofheClient.connected).toBe(true), EVENTUALLY);
+    const account = cofheClient.getSnapshot().account!;
+
+    // The ONLY ACP moves to the pinned chain's slot. With none on the connected chain, a decrypt
+    // that followed the wallet could neither start (its gate) nor resolve an ACP (the builder).
+    const acp = await cofheClient.acp.createSelf({ issuer: account, name: 'pinned-decrypt test' });
+    acpStore.setACP(PINNED_CHAIN_ID, account, acp);
+    acpStore.setActiveACPHash(PINNED_CHAIN_ID, account, acp.hash);
+    acpStore.removeACP(CHAIN_ID, account, acp.hash);
+
+    await waitFor(
+      () => expect(screen.getByRole('status', { name: 'decrypted value' }).textContent).toBe('42'),
+      EVENTUALLY
+    );
+    expect(screen.getByRole('status', { name: 'decrypt error' }).textContent).toBe('');
+  }, 180_000);
+
+  it('a write refreshes a target on ANOTHER chain plainly — only its own chain is block-aware', async () => {
+    const { contractAddress, recorderMain, recorderPinned, publicClient, pinnedClient, renderPinned } = setupPinned();
+    renderPinned(
+      <CrossChainWriteApp contractAddress={contractAddress} pinnedClient={pinnedClient} writeValue={4242n} />
+    );
+    await waitFor(() => expect(pinnedOnScreen('connected').value).not.toBe(''), EVENTUALLY);
+    await waitFor(() => expect(pinnedOnScreen('pinned').value).not.toBe(''), EVENTUALLY);
+
+    fireEvent.click(screen.getByRole('button', { name: 'set item' }));
+    const txHashOnScreen = () => screen.getByRole('status', { name: 'tx hash' }).textContent;
+    await waitFor(() => expect(txHashOnScreen()).toMatch(/^0x/), EVENTUALLY);
+    const receipt = await publicClient.waitForTransactionReceipt({ hash: txHashOnScreen() as Hash });
+    expect(receipt.status).toBe('success');
+
+    // Both reads refresh to the written value (both "chains" are the same Anvil)…
+    await waitFor(() => expect(pinnedOnScreen('connected').value).toBe('4242'), EVENTUALLY);
+    await waitFor(() => expect(pinnedOnScreen('pinned').value).toBe('4242'), EVENTUALLY);
+    // …the connected one gated on the mined block, the pinned one plainly: its chain never
+    // produced that block, so a gate there could only wait out its timeout.
+    expect(recorderMain.countBlockHashProbes(receipt.blockHash)).toBe(1);
+    expect(recorderPinned.countBlockHashProbes()).toBe(0);
+    expect(recorderPinned.countEthCalls(GET_ITEM_SELECTOR)).toBe(2);
   }, 180_000);
 });

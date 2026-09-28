@@ -38,7 +38,9 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { hardhat as hardhatCofheChain } from '@cofhe/sdk/chains';
 import {
   CofheProvider,
+  constructCofheReadContractQueryForInvalidation,
   createCofheConfig,
+  findMatchingInvalidationContext,
   useCofheReadContract,
   useCofheTokenPublicBalance,
   useCofheWriteContract,
@@ -229,6 +231,22 @@ function TokenFundsApp({
   );
 }
 
+/**
+ * For each cached read under `prefix`: the block its next fetch would wait for, keyed by the
+ * read's args — e.g. `{ '1': '0xabc…', '2': undefined }` (`undefined` = no wait).
+ */
+function watermarksUnder(queryClient: QueryClient, prefix: readonly unknown[]) {
+  return Object.fromEntries(
+    queryClient
+      .getQueryCache()
+      .findAll({ queryKey: prefix })
+      .map((query) => [
+        String(query.queryKey[prefix.length]),
+        findMatchingInvalidationContext<{ blockHashToBeAwareOf: Hash }>(query.queryKey).context?.blockHashToBeAwareOf,
+      ])
+  );
+}
+
 afterEach(() => {
   useInvalidationContextStore.setState({ byKey: {} });
 });
@@ -256,7 +274,7 @@ function setup() {
       </CofheProvider>
     );
 
-  return { recorder, publicClient, renderApp };
+  return { recorder, publicClient, queryClient, renderApp };
 }
 
 const onScreen = () => ({
@@ -309,7 +327,7 @@ describeOnAnvil('token balances + allowances under the read key grammar (Anvil)'
   });
 
   it('a mint with plain balanceOf descriptors refreshes the ERC20 balance AND the native pseudo-read', async () => {
-    const { recorder, publicClient, renderApp } = setup();
+    const { recorder, publicClient, queryClient, renderApp } = setup();
     renderApp({
       // No native target declared: the sender's ETH pseudo-read (at the
       // sentinel address, same grammar) is invalidated IMPLICITLY on every
@@ -345,6 +363,19 @@ describeOnAnvil('token balances + allowances under the read key grammar (Anvil)'
     expect(recorder.countEthCalls(BALANCE_OF_SELECTOR)).toBe(2);
     // The allowance read was NOT touched.
     expect(recorder.countEthCalls(ALLOWANCE_SELECTOR)).toBe(1);
-    expect(useInvalidationContextStore.getState().byKey).toEqual({});
+    // The watermarks outlive their delivery: both balance reads — the declared ERC20 one and the
+    // implicit native one — are still covered by the mined block, so later fetches stay gated too.
+    const balanceReads = (token: Address) =>
+      constructCofheReadContractQueryForInvalidation({
+        cofheChainId: CHAIN_ID,
+        address: token,
+        functionName: 'balanceOf',
+      });
+    expect(watermarksUnder(queryClient, balanceReads(ERC20_ADDRESS))).toStrictEqual({
+      [TEST_ACCOUNT.address]: receipt.blockHash,
+    });
+    expect(watermarksUnder(queryClient, balanceReads(ETH_SENTINEL_LOWERCASE))).toStrictEqual({
+      [TEST_ACCOUNT.address]: receipt.blockHash,
+    });
   });
 });
