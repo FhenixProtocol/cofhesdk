@@ -1,6 +1,6 @@
 import { TFHE_RS_ZK_MAX_BITS, TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT } from '../consts';
 import { CofheError, CofheErrorCode } from '../error';
-import { type EncryptableItem, FheTypes } from '../types';
+import { type EncryptableItem, FheTypes, type TfheThreadsSetting } from '../types';
 import { toBigIntOrThrow, validateBigIntInRange, toHexString, hexToBytes } from '../utils';
 
 // ===== TYPES =====
@@ -29,6 +29,12 @@ export interface ZkProveWorkerRequest {
     data: any;
   }>;
   metadata: number[]; // Uint8Array serialized as array
+  /**
+   * Forwarded from `config.tfheThreads`. The worker applies it the first time it
+   * initialises tfhe — `initThreadPool` can only run once per wasm instance, so
+   * later requests carrying a different value have no effect.
+   */
+  tfheThreads?: TfheThreadsSetting;
 }
 
 /**

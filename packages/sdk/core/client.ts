@@ -156,6 +156,7 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
       zkBuilderAndCrsGenerator: opts.zkBuilderAndCrsGenerator,
       initTfhe: opts.initTfhe,
       zkProveWorkerFn: opts.zkProveWorkerFn,
+      beforeMainThreadProve: opts.beforeMainThreadProve,
 
       keysStorage,
 

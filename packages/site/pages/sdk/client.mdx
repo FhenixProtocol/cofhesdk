@@ -49,8 +49,20 @@ const config = createCofheConfig({
   // Optional knobs
   // defaultACPExpiration: 60 * 60 * 24 * 30,
   // useWorkers: true,
+  // tfheThreads: 'auto',
 });
 ```
+
+:::tip
+**Encryption can be ~5× faster**
+
+If you serve your app with two extra HTTP headers, TFHE generates ZK proofs across
+multiple threads instead of one. The SDK enables this automatically when the browser
+allows it, and silently stays single-threaded when it doesn't.
+
+The headers restrict how your page interacts with other origins, so check the
+trade-offs first — see [Faster Encryption](/reference/faster-encryption).
+:::
 
 ## 2) Create cofhe client
 

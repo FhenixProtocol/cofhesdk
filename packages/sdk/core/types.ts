@@ -1,5 +1,13 @@
 export type TfheInitializer = () => Promise<boolean>;
 
+/**
+ * How many threads tfhe's rayon pool may use for ZK proof generation (web only).
+ * - `'auto'` (default): derive from `navigator.hardwareConcurrency`, capped
+ * - a positive number: request exactly that many
+ * - `false`: stay single-threaded
+ */
+export type TfheThreadsSetting = number | 'auto' | false;
+
 export interface IStorage {
   getItem: (name: string) => Promise<any>;
   setItem: (name: string, value: any) => Promise<void>;

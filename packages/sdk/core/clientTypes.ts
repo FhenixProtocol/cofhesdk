@@ -128,4 +128,11 @@ export type CofheClientParams<TConfig extends CofheConfig> = {
   compactPkeCrsDeserializer: FheKeyDeserializer;
   initTfhe: TfheInitializer;
   zkProveWorkerFn?: ZkProveWorkerFunction;
+  /**
+   * Runs right before a ZK proof is generated on the calling thread, i.e. only
+   * when the worker path is disabled, unavailable or has failed. Platforms use
+   * it for setup that only pays off when that thread does the proving (web
+   * starts tfhe's rayon thread pool here).
+   */
+  beforeMainThreadProve?: () => Promise<void>;
 };
