@@ -11,6 +11,10 @@ export {
   useCofheReadContracts,
   type CofheReadContractsContract,
   type CofheReadContractsItem,
+  type CofheReadContractsData,
+  type CofheReadContractsEntry,
+  type CofheReadContractsEntries,
+  type CofheReadContractsEntryResult,
   type UseCofheReadContractsResult,
   type UseCofheReadContractsQueryOptions,
 } from './useCofheReadContracts';
