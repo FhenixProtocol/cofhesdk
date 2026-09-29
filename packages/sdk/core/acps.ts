@@ -11,6 +11,7 @@ import {
   type IncomingShare,
   type SharingACP,
   type ACPHashFields,
+  type ACPAccessStatus,
 } from '@/acps';
 
 import {
@@ -431,6 +432,14 @@ const revokeAllACPs = async (
 };
 
 /**
+ * The ACP on-chain status as a value instead of a revert (see `ACPAccessStatus`): validity
+ * without a handle, and whether the ACP may read `handle` with one.
+ */
+const checkAccess = async (acp: ACP, publicClient: PublicClient, handle?: bigint | Hex): Promise<ACPAccessStatus> => {
+  return ACPUtils.checkAccessOnChain(acp, publicClient, handle);
+};
+
+/**
  * Check whether an ACP has been revoked (or is otherwise disabled) by its
  * revoker. Returns false for acps without a revoker (not revocable).
  */
@@ -622,6 +631,7 @@ export const acps = {
   revokeACP,
   revokeAllACPs,
   isACPRevoked,
+  checkAccess,
 
   shareOnChain,
   getIncomingShares,

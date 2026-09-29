@@ -368,6 +368,35 @@ await client.acp.dismissShare(incoming[0].shareId);
 
 The registry lists only importable shares: expired shares and shares whose underlying acp was revoked are filtered out. Everything posted is cleartext by design (the same data as the exported JSON) — note that posting on-chain makes the issuer→recipient relationship public.
 
+## Checking an ACP on-chain
+
+The ACL reverts when an ACP is expired, revoked or wrongly signed. `client.acp.checkAccess` runs the same checks and returns the outcome as a status, so an app can tell the user why instead of catching reverts:
+
+```ts twoslash
+// @noErrors
+declare const client: import('@cofhe/sdk').CofheClient;
+declare const acp: import('@cofhe/sdk/acps').ACP;
+declare const ctHash: bigint;
+// ---cut---
+// the ACP itself
+const status = await client.acp.checkAccess(acp);
+
+// the ACP and one encrypted value
+const access = await client.acp.checkAccess(acp, ctHash);
+```
+
+| Status                                                     | Meaning                                                      |
+| ---------------------------------------------------------- | ------------------------------------------------------------ |
+| `valid`                                                    | The ACP passes the ACL checks (no handle given).             |
+| `allowed`                                                  | The ACP may read the handle.                                 |
+| `out-of-scope`                                             | The ACP is valid, but its scope does not cover the handle.   |
+| `issuer-not-allowed`                                       | The issuer may not read the handle, so no ACP of theirs can. |
+| `expired`                                                  | Past its expiration.                                         |
+| `revoked`                                                  | Disabled by its revoker (e.g. `client.acp.revokeACP`).       |
+| `invalid-issuer-signature` / `invalid-recipient-signature` | A signature does not match.                                  |
+
+Each check is one view call to the ACL, plus a second only to tell `out-of-scope` from `issuer-not-allowed`. A network error still throws.
+
 ## Active ACP management
 
 The SDK tracks all stored ACPs and an **active ACP hash** per `chainId + account`. Creating or importing an ACP via `client.acp.*` automatically stores it and selects it as active, except for sharing ACPs and imports made with `activate: false`, which are only stored.

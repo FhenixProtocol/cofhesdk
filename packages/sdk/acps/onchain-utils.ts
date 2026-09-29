@@ -1,12 +1,5 @@
-import {
-  BaseError,
-  ContractFunctionRevertedError,
-  type Hex,
-  type PublicClient,
-  decodeErrorResult,
-  parseAbi,
-} from 'viem';
-import type { EIP712Domain, ACPPublic } from './types';
+import { type Hex, type PublicClient, decodeErrorResult, parseAbi } from 'viem';
+import type { ACPAccessStatus, EIP712Domain, ACPPublic } from './types';
 import { TASK_MANAGER_ADDRESS } from '../core/consts.js';
 
 export const getAclAddress = async (publicClient: PublicClient): Promise<Hex> => {
@@ -59,6 +52,48 @@ export const getAclEIP712Domain = async (publicClient: PublicClient): Promise<EI
   };
 };
 
+const toACPTuple = (acp: ACPPublic) => ({
+  issuer: acp.issuer,
+  expiration: BigInt(acp.expiration),
+  recipient: acp.recipient,
+  revokerData: BigInt(acp.revokerData),
+  revokerContract: acp.revokerContract,
+  scope: acp.scope,
+  contracts: acp.contracts,
+  handles: acp.handles,
+  sealingKey: acp.sealingKey,
+  issuerSignature: acp.issuerSignature,
+  recipientSignature: acp.recipientSignature,
+});
+
+/**
+ * The custom error a reverted ACL call carries, however the node reports it: a viem revert, a
+ * Hardhat-style 'reverted with custom error' detail, or raw return data. `undefined` when the
+ * failure is not a contract revert (e.g. a network error).
+ */
+function revertErrorName(err: unknown, abi: readonly any[]): string | undefined {
+  // Viem revert. Matched by name, not `instanceof`: the public client may come from another copy of
+  // viem than this package (an app bringing its own), and then no class check ever matches.
+  const walk = (err as { walk?: (fn: (e: unknown) => boolean) => unknown } | null)?.walk;
+  if (typeof walk === 'function') {
+    const revertError = walk.call(err, (e) => (e as { name?: string })?.name === 'ContractFunctionRevertedError') as
+      | { data?: { errorName?: string } }
+      | null
+      | undefined;
+    if (revertError) return revertError.data?.errorName ?? '';
+  }
+
+  // Check details field for custom error names (e.g., from Hardhat test nodes)
+  const customErrorName = extractCustomErrorFromDetails(err, abi);
+  if (customErrorName) return customErrorName;
+
+  // Hardhat wrapped error will need to be unwrapped to get the return data
+  const hhDetailsData = extractReturnData(err);
+  if (hhDetailsData != null) return decodeErrorResult({ abi, data: hhDetailsData }).errorName;
+
+  return undefined;
+}
+
 export const checkACPValidityOnChain = async (acp: ACPPublic, publicClient: PublicClient): Promise<boolean> => {
   const aclAddress = await getAclAddress(publicClient);
 
@@ -68,51 +103,69 @@ export const checkACPValidityOnChain = async (acp: ACPPublic, publicClient: Publ
       address: aclAddress,
       abi: checkACPValidityAbi,
       functionName: 'checkPermissionValidity',
-      args: [
-        {
-          issuer: acp.issuer,
-          expiration: BigInt(acp.expiration),
-          recipient: acp.recipient,
-          revokerData: BigInt(acp.revokerData),
-          revokerContract: acp.revokerContract,
-          scope: acp.scope,
-          contracts: acp.contracts,
-          handles: acp.handles,
-          sealingKey: acp.sealingKey,
-          issuerSignature: acp.issuerSignature,
-          recipientSignature: acp.recipientSignature,
-        },
-      ],
+      args: [toACPTuple(acp)],
     });
     return true;
   } catch (err: any) {
-    // Viem default handling
-    if (err instanceof BaseError) {
-      const revertError = err.walk((err: any) => err instanceof ContractFunctionRevertedError);
-      if (revertError instanceof ContractFunctionRevertedError) {
-        const errorName = revertError.data?.errorName ?? '';
-        throw new Error(errorName);
-      }
-    }
-
-    // Check details field for custom error names (e.g., from Hardhat test nodes)
-    const customErrorName = extractCustomErrorFromDetails(err, checkACPValidityAbi);
-    if (customErrorName) {
-      throw new Error(customErrorName);
-    }
-
-    // Hardhat wrapped error will need to be unwrapped to get the return data
-    const hhDetailsData = extractReturnData(err);
-    if (hhDetailsData != null) {
-      const decoded = decodeErrorResult({
-        abi: checkACPValidityAbi,
-        data: hhDetailsData,
-      });
-
-      throw new Error(decoded.errorName);
-    }
-
+    const errorName = revertErrorName(err, checkACPValidityAbi);
+    if (errorName !== undefined) throw new Error(errorName);
     // Fallback throw the original error
+    throw err;
+  }
+};
+
+/** The ACL permission reverts, as statuses. */
+const PERMISSION_ERROR_STATUS: Record<string, ACPAccessStatus> = {
+  PermissionInvalid_Expired: 'expired',
+  PermissionInvalid_Disabled: 'revoked',
+  PermissionInvalid_IssuerSignature: 'invalid-issuer-signature',
+  PermissionInvalid_RecipientSignature: 'invalid-recipient-signature',
+};
+
+/**
+ * An ACP status on chain, read from the ACL: its validity (expiration, signatures, revocation)
+ * and, given a handle, whether the ACP may read it. The ACL reverts for an invalid ACP; those
+ * reverts come back as statuses. Anything else (e.g. a network error) still throws.
+ */
+export const getACPAccessStatusOnChain = async (
+  acp: ACPPublic,
+  publicClient: PublicClient,
+  handle?: bigint | Hex
+): Promise<ACPAccessStatus> => {
+  const aclAddress = await getAclAddress(publicClient);
+
+  try {
+    if (handle === undefined) {
+      await publicClient.simulateContract({
+        address: aclAddress,
+        abi: acpAccessAbi,
+        functionName: 'checkPermissionValidity',
+        args: [toACPTuple(acp)],
+      });
+      return 'valid';
+    }
+
+    const ctHash = BigInt(handle);
+    const allowed = await publicClient.readContract({
+      address: aclAddress,
+      abi: acpAccessAbi,
+      functionName: 'isAllowedWithPermission',
+      args: [toACPTuple(acp), ctHash],
+    });
+    if (allowed) return 'allowed';
+
+    // The ACL answers false both when the scope misses the handle and when the issuer itself may
+    // not read it; the issuer own allowance tells the two apart.
+    const issuerAllowed = await publicClient.readContract({
+      address: aclAddress,
+      abi: acpAccessAbi,
+      functionName: 'isAllowed',
+      args: [ctHash, acp.issuer],
+    });
+    return issuerAllowed ? 'out-of-scope' : 'issuer-not-allowed';
+  } catch (err) {
+    const status = PERMISSION_ERROR_STATUS[revertErrorName(err, acpAccessAbi) ?? ''];
+    if (status) return status;
     throw err;
   }
 };
@@ -242,5 +295,26 @@ const checkACPValidityAbi = [
     type: 'error',
     name: 'PermissionInvalid_RecipientSignature',
     inputs: [],
+  },
+] as const;
+
+const acpAccessAbi = [
+  ...checkACPValidityAbi,
+  {
+    type: 'function',
+    name: 'isAllowedWithPermission',
+    inputs: [checkACPValidityAbi[0].inputs[0], { name: 'handle', type: 'uint256', internalType: 'uint256' }],
+    outputs: [{ name: '', type: 'bool', internalType: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'isAllowed',
+    inputs: [
+      { name: 'handle', type: 'uint256', internalType: 'uint256' },
+      { name: 'account', type: 'address', internalType: 'address' },
+    ],
+    outputs: [{ name: '', type: 'bool', internalType: 'bool' }],
+    stateMutability: 'view',
   },
 ] as const;

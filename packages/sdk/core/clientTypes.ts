@@ -10,6 +10,7 @@ import { acps, type ImportActivationOptions } from './acps.js';
 import type { EncryptableItem, FheTypes, TfheInitializer } from './types.js';
 import type { ACPUtils } from 'acps/acp.js';
 import type {
+  ACPAccessStatus,
   CreateSelfACPOptions,
   ACP,
   CreateSharingACPOptions,
@@ -112,6 +113,12 @@ export type CofheClientACPs = {
   revokeACP: (acp: ACP) => Promise<`0x${string}`>;
   revokeAllACPs: (revokerContract?: `0x${string}`) => Promise<`0x${string}`>;
   isACPRevoked: (acp: ACP) => Promise<boolean>;
+  /**
+   * The ACP on-chain status as a value instead of a revert. Without a handle: 'valid', or
+   * 'expired' / 'revoked' / an invalid signature. With a handle, a valid ACP reports
+   * 'allowed', 'out-of-scope' or 'issuer-not-allowed'.
+   */
+  checkAccess: (acp: ACP, handle?: bigint | `0x${string}`) => Promise<ACPAccessStatus>;
 
   /** Post a signed sharing ACP to the on-chain share registry (ACL-served, or config `acp.sharingRegistry`). */
   shareOnChain: (acp: ACP) => Promise<{ txHash: `0x${string}`; shareId: `0x${string}` }>;

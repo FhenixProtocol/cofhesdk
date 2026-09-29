@@ -313,6 +313,12 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
       return acps.isACPRevoked(acp, publicClient!);
     },
 
+    checkAccess: async (acp, handle) => {
+      _requireConnected();
+      const { publicClient } = connectStore.getState();
+      return acps.checkAccess(acp, publicClient!, handle);
+    },
+
     // On-chain sharing (require connection + config.acp.sharingRegistry)
     shareOnChain: async (acp) => {
       _requireConnected();
