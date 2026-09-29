@@ -1,0 +1,131 @@
+# ACPs in React
+
+The React hooks decrypt with an ACP the same way the SDK does. By default that is the active ACP of the connected account, so a signed-in user sees their own data with no extra code. This page covers the case where one view should decrypt with a different ACP: data someone shared with the user. For creating, sharing and importing ACPs themselves, see [ACPs](/sdk/acp).
+
+## Viewing shared data
+
+A recipient usually wants the issuer data in one view while the rest of the app keeps decrypting their own. Import the share without activating it, find it in the store when the user opens it, and wrap that view in `<CofheACPScope>`.
+
+The pieces fit together like this; each component is defined in the steps below:
+
+```tsx
+function AccessPage({ exported, me }: { exported: string; me: Address }) {
+  const [openHash, setOpenHash] = useState<string>();
+  return (
+    <>
+      {/* 1. once: import the share, the active ACP stays the user own */}
+      <AcceptShare exported={exported} />
+      {/* 2. any later visit: list received shares from the store */}
+      <SharedWithMe onOpen={setOpenHash} />
+      {openHash && (
+        <>
+          {/* 3. everything inside decrypts with the share */}
+          <CofheACPScope acp={openHash}>
+            <SharedBalance token={fusd} />
+            <SharedVaultPosition />
+          </CofheACPScope>
+          {/* no scope: one hook picks the ACP itself */}
+          <BothBalances token={fusd} me={me} shareHash={openHash} />
+        </>
+      )}
+    </>
+  );
+}
+```
+
+### 1. Import without activating
+
+```tsx
+import { useCofheClient } from '@cofhe/react';
+
+function AcceptShare({ exported }: { exported: string }) {
+  const client = useCofheClient();
+  // Stored, not activated: the user own ACP keeps serving the rest of the app.
+  const accept = () => client.acp.importShared(exported, { activate: false });
+  return <button onClick={accept}>Accept</button>;
+}
+```
+
+For a share from the registry, use `client.acp.importFromChain(share, { activate: false })`.
+
+### 2. Find it again later
+
+Imported ACPs are stored with type `'recipient'` and survive a reload, so a later visit lists them from the store. `useCofheACPs` returns the connected account ACPs on the connected chain (or `chainId`), narrowed by `type`:
+
+```tsx
+import { useCofheACPs } from '@cofhe/react';
+
+function SharedWithMe({ onOpen }: { onOpen: (hash: string) => void }) {
+  const received = useCofheACPs({ type: 'recipient' });
+  return received.map((acp) => (
+    <button key={acp.hash} onClick={() => onOpen(acp.hash)}>
+      {acp.name} from {acp.issuer}
+    </button>
+  ));
+}
+```
+
+### 3. Scope the view
+
+```tsx
+<CofheACPScope acp={openHash}>
+  <SharedBalance token={fusd} />
+</CofheACPScope>
+```
+
+`acp` takes the ACP or its hash. Inside the scope:
+
+- `useCofheTokenDecryptedBalance`, `useCofheReadContractAndDecrypt` and `useCofheReadContract(s)` gate on and decrypt with the scope ACP.
+- `useCofheTokenDecryptedBalance` reads the issuer balance when no `accountAddress` is given.
+- An expired or unknown ACP disables the hooks (`disabledDueToMissingValidACP`); they never fall back to the active ACP.
+- Nested scopes: the innermost wins. Outside any scope nothing changes.
+
+```tsx
+import { useCofheTokenDecryptedBalance, type ConfidentialToken } from '@cofhe/react';
+
+function SharedBalance({ token }: { token: ConfidentialToken }) {
+  // No account given: inside a scope this is the issuer balance.
+  const { data, disabledDueToMissingValidACP } = useCofheTokenDecryptedBalance({ token });
+  if (disabledDueToMissingValidACP) return <p>This share has expired or was removed.</p>;
+  return <p>{data ? `${data.formatted} ${token.symbol}` : '…'}</p>;
+}
+```
+
+Any contract read works the same way. `useCofheACPScope()` returns `{ acp, issuer, isValid }` (or `null` outside a scope), for arguments that name the issuer:
+
+```tsx
+import { useCofheACPScope, useCofheReadContractAndDecrypt } from '@cofhe/react';
+
+function SharedVaultPosition() {
+  const scope = useCofheACPScope();
+  const { decrypted } = useCofheReadContractAndDecrypt({
+    address: VAULT_ADDRESS,
+    abi: vaultAbi,
+    functionName: 'confidentialBalanceOf',
+    args: scope?.issuer ? [scope.issuer] : undefined,
+  });
+  return <p>{decrypted.data?.toString() ?? '…'}</p>;
+}
+```
+
+### One value without a scope
+
+Pass `acp` to the hook itself; it wins over any enclosing scope. Here the user own balance and a shared one sit side by side:
+
+```tsx
+function BothBalances({ token, me, shareHash }: { token: ConfidentialToken; me: Address; shareHash: string }) {
+  const mine = useCofheTokenDecryptedBalance({ token, accountAddress: me }); // active ACP
+  const theirs = useCofheTokenDecryptedBalance({ token, acp: shareHash }); // shared ACP, issuer account
+  return (
+    <p>
+      You: {mine.data?.formatted} · Them: {theirs.data?.formatted}
+    </p>
+  );
+}
+```
+
+### What happens to the decrypted values
+
+- Values decrypted with a shared ACP stay in memory; they are never written to the persisted query cache.
+- They are dropped when the ACP is removed (`client.acp.removeACP(hash)`) or expires, even while the view is open.
+- Revocation is not detected automatically: check `client.acp.isACPRevoked(acp)` and remove the ACP when it returns `true`.

@@ -170,6 +170,10 @@ export default defineConfig({
           text: 'Coming Soon',
           link: '/react',
         },
+        {
+          text: 'ACPs',
+          link: '/react/acp',
+        },
       ],
     },
   },
