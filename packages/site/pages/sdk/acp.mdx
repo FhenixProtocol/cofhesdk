@@ -372,6 +372,33 @@ The registry lists only importable shares: expired shares and shares whose under
 
 A recipient usually wants the issuer data in one view while the rest of the app keeps decrypting their own. Import the share without activating it, find it in the store when the user opens it, and wrap that view in `<CofheACPScope>`.
 
+The pieces fit together like this; each component is defined in the steps below:
+
+```tsx
+function AccessPage({ exported, me }: { exported: string; me: Address }) {
+  const [openHash, setOpenHash] = useState<string>();
+  return (
+    <>
+      {/* 1. once: import the share, the active ACP stays the user own */}
+      <AcceptShare exported={exported} />
+      {/* 2. any later visit: list received shares from the store */}
+      <SharedWithMe onOpen={setOpenHash} />
+      {openHash && (
+        <>
+          {/* 3. everything inside decrypts with the share */}
+          <CofheACPScope acp={openHash}>
+            <SharedBalance token={fusd} />
+            <SharedVaultPosition />
+          </CofheACPScope>
+          {/* no scope: one hook picks the ACP itself */}
+          <BothBalances token={fusd} me={me} shareHash={openHash} />
+        </>
+      )}
+    </>
+  );
+}
+```
+
 ### 1. Import without activating
 
 ```tsx
