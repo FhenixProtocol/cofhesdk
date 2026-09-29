@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useCofheContext, useInternalQuery, useInternalQueryClient } from '@/providers';
 import { removeDecryptsOfACPs } from '@/providers/acpDecryptCache';
-import { useCofheEffectiveACP, type CofheACPInput } from './useCofheACPScope';
+import { isHandleOutOfScope, useCofheEffectiveACP, type CofheACPInput } from './useCofheACPScope';
 import { useCofheChainId } from './useCofheConnection';
 import { CofheError, FheTypes, type DecryptPollCallbackFunction, type UnsealedItem } from '@cofhe/sdk';
 import type { UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
@@ -85,7 +85,10 @@ export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<
   }, [invalidScopedHash, queryClient]);
 
   const { enabled: userEnabled, meta: optionMeta, ...restQueryOptions } = queryOptions || {};
-  const enabled = !!input && BigInt(input.ctHash) > 0n && !!client && effectiveACP.isValid && (userEnabled ?? true);
+  // A SNAPSHOT share that does not list this handle can only fail: never send it.
+  const outOfScope = isHandleOutOfScope(scopedACP, input?.ctHash);
+  const enabled =
+    !!input && BigInt(input.ctHash) > 0n && !!client && effectiveACP.isValid && !outOfScope && (userEnabled ?? true);
 
   return useInternalQuery({
     enabled,

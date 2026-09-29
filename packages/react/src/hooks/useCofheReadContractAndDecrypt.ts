@@ -7,7 +7,7 @@ import { type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query
 import { type Abi, type Address, type ContractFunctionArgs, type ContractFunctionName } from 'viem';
 import { constructCofheDecryptQueryKey, useCofheDecrypt } from './useCofheDecrypt';
 import { useCofheChainId } from './useCofheConnection';
-import { useCofheEffectiveACP, type CofheACPInput } from './useCofheACPScope';
+import { isHandleOutOfScope, useCofheEffectiveACP, type CofheACPInput } from './useCofheACPScope';
 import {
   useCofheReadContract,
   type CofheReadChainParams,
@@ -105,6 +105,12 @@ export function useCofheReadContractAndDecrypt<
   isValueStale: boolean;
   /** The read succeeded and the handle is 0 — a *known zero* value, with no ciphertext to decrypt. */
   isKnownZero: boolean;
+  /**
+   * The decrypt ACP is a SNAPSHOT (handle-scope) share that does not cover this value, so it is never
+   * sent for decryption. Shares of other scopes are not pre-checked: a value they do not cover
+   * shows as a decrypt error.
+   */
+  isOutOfScope: boolean;
 } {
   const { address, functionName, requiresACP = true } = params;
   const queryClient = useInternalQueryClient();
@@ -141,6 +147,7 @@ export function useCofheReadContractAndDecrypt<
   // query stays disabled (see useCofheDecrypt) and never yields a value. Surface it explicitly so
   // callers render a clear `0` instead of mistaking the absent value for a fault.
   const isKnownZero = asEncryptedReturnType != null && BigInt(asEncryptedReturnType.ctHash) === 0n;
+  const isOutOfScope = decryptACP.scoped && isHandleOutOfScope(decryptACP.acp, currentCtHash);
 
   // Evict a superseded decrypt (a ctHash that is no longer the active input, e.g.
   // because the read now errors or produced a different handle) so it can't linger
@@ -188,5 +195,6 @@ export function useCofheReadContractAndDecrypt<
     isDecryptError,
     isValueStale,
     isKnownZero,
+    isOutOfScope,
   };
 }

@@ -19,6 +19,7 @@ import { createCofheClient } from '@cofhe/sdk/web';
 import { simpleTestAbi } from '@cofhe/test-setup';
 import {
   CofheACPScope,
+  useCofheACPScope,
   CofheProvider,
   createCofheConfig,
   useCofheACPs,
@@ -58,7 +59,7 @@ function transport() {
 }
 
 function Decrypt({ label, acp }: { label: string; acp?: CofheACPInput }) {
-  const { decrypted, isDecryptError, disabledDueToMissingValidACP } = useCofheReadContractAndDecrypt({
+  const { decrypted, isDecryptError, disabledDueToMissingValidACP, isOutOfScope } = useCofheReadContractAndDecrypt({
     address: SIMPLE_TEST,
     abi: simpleTestAbi,
     functionName: 'getValue',
@@ -66,11 +67,13 @@ function Decrypt({ label, acp }: { label: string; acp?: CofheACPInput }) {
   });
   const text = disabledDueToMissingValidACP
     ? 'no valid acp'
-    : isDecryptError
-      ? 'decrypt error'
-      : decrypted.data === undefined
-        ? ''
-        : String(decrypted.data);
+    : isOutOfScope
+      ? 'out of scope'
+      : isDecryptError
+        ? 'decrypt error'
+        : decrypted.data === undefined
+          ? ''
+          : String(decrypted.data);
   return (
     <>
       <output aria-label={label}>{text}</output>
@@ -84,6 +87,11 @@ function ACPCounts() {
   const all = useCofheACPs();
   const received = useCofheACPs({ type: 'recipient' });
   return <output aria-label="acp counts">{`${all.length} stored, ${received.length} received`}</output>;
+}
+
+/** The enclosing scope on-chain status. */
+function ScopeStatus({ label }: { label: string }) {
+  return <output aria-label={label}>{useCofheACPScope()?.status ?? 'no scope'}</output>;
 }
 
 const shown = (label: string) => screen.getByRole('status', { name: label }).textContent;
@@ -300,5 +308,91 @@ describeOnAnvil('react hooks: <CofheACPScope> decrypts with a shared ACP (Anvil)
       .filter((q) => q.queryKey[2] != null && q.state.data !== undefined);
     expect(decrypted).toHaveLength(1);
     expect(decrypted[0].meta?.persist).toBe(false);
+  }, 180_000);
+  it('a revoked share turns the scope off; a SNAPSHOT share flags values it does not cover', async () => {
+    const publicClient = createPublicClient({ chain, transport: custom(transport()) });
+    const bobWallet = createWalletClient({ chain, transport: custom(transport()), account: BOB });
+    const aliceWallet = createWalletClient({ chain, transport: custom(transport()), account: ALICE });
+    const config = createCofheConfig({ supportedChains: [hardhatCofheChain], react: { autogenerateACPs: false } });
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
+    const store = async (value: bigint) => {
+      const hash = await bobWallet.writeContract({
+        address: SIMPLE_TEST,
+        abi: simpleTestAbi,
+        functionName: 'setValueTrivial',
+        args: [value],
+        account: BOB,
+        chain,
+      });
+      await publicClient.waitForTransactionReceipt({ hash });
+      return (await publicClient.readContract({
+        address: SIMPLE_TEST,
+        abi: simpleTestAbi,
+        functionName: 'getValueHash',
+      })) as `0x${string}`;
+    };
+    // The snapshot covers an OLD value; the read below returns the current one.
+    const oldHandle = await store(45n);
+    await store(46n);
+
+    const bobClient = createCofheClient(config);
+    await bobClient.connect(publicClient, bobWallet);
+    const snapshot = await bobClient.acp.createSharing({
+      issuer: BOB.address,
+      recipient: ALICE.address,
+      name: 'old value only',
+      handles: [oldHandle],
+    });
+
+    const aliceClient = createCofheClient(config);
+    await aliceClient.connect(publicClient, aliceWallet);
+    const narrow = await aliceClient.acp.importShared(bobClient.acp.export(snapshot), { activate: false });
+
+    // Created a second later so it gets its own revoker id: revoking it must not touch the snapshot.
+    await new Promise((resolve) => setTimeout(resolve, 1_100));
+    const everything = await bobClient.acp.createSharing({
+      issuer: BOB.address,
+      recipient: ALICE.address,
+      name: 'all',
+    });
+    const wide = await aliceClient.acp.importShared(bobClient.acp.export(everything), { activate: false });
+
+    render(
+      <CofheProvider
+        cofheClient={aliceClient}
+        queryClient={queryClient}
+        publicClient={publicClient}
+        walletClient={aliceWallet}
+      >
+        <CofheACPScope acp={narrow.hash}>
+          <Decrypt label="narrow" />
+        </CofheACPScope>
+        <CofheACPScope acp={wide.hash}>
+          <ScopeStatus label="wide status" />
+          <Decrypt label="wide" />
+        </CofheACPScope>
+      </CofheProvider>
+    );
+
+    // The current value is not in the snapshot: flagged, and never sent for decryption.
+    await waitFor(() => expect(shown('narrow')).toBe('out of scope'), { timeout: 90_000 });
+    await waitFor(() => expect(shown('wide')).toBe('46'), { timeout: 90_000 });
+    expect(shown('wide status')).toBe('valid');
+    const narrowDecrypts = queryClient
+      .getQueryCache()
+      .findAll({ queryKey: ['decryptCiphertext'] })
+      .filter((q) => q.queryKey[4] === narrow.hash && q.state.fetchStatus !== 'idle');
+    expect(narrowDecrypts).toHaveLength(0);
+
+    // Bob revokes the wide share. The next status check (here forced; otherwise on its interval or
+    // window focus) turns the scope off and drops what it decrypted.
+    const revokeTx = await bobClient.acp.revokeACP(everything);
+    await publicClient.waitForTransactionReceipt({ hash: revokeTx });
+    await queryClient.invalidateQueries({ queryKey: ['cofheACPStatus'] });
+
+    await waitFor(() => expect(shown('wide status')).toBe('revoked'), { timeout: 30_000 });
+    await waitFor(() => expect(shown('wide')).toBe('no valid acp'));
+    expect(shown('wide value')).toBe('');
   }, 180_000);
 });

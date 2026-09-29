@@ -54,6 +54,8 @@ type UseConfidentialTokenBalanceResult = {
   isDecryptError: boolean;
   /** A balance is shown but the read that produced it is currently failing (stale). */
   isValueStale: boolean;
+  /** The balance is outside the decrypt ACP SNAPSHOT share, so it is never decrypted. */
+  isOutOfScope: boolean;
 };
 
 /**
@@ -86,6 +88,7 @@ export function useCofheTokenDecryptedBalance(
     isDecryptError,
     isValueStale,
     isKnownZero,
+    isOutOfScope,
   } = useCofheReadContractAndDecrypt(
     {
       address: token?.address,
@@ -133,5 +136,6 @@ export function useCofheTokenDecryptedBalance(
     isReadError,
     isDecryptError,
     isValueStale,
+    isOutOfScope,
   };
 }

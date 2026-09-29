@@ -1,18 +1,45 @@
 import { createContext, useContext, useEffect, useMemo, useReducer, type ReactNode } from 'react';
 import type { Address } from 'viem';
-import { ACPUtils, type ACP } from '@cofhe/sdk/acps';
+import { ACPScope, ACPUtils, type ACP, type ACPAccessStatus } from '@cofhe/sdk/acps';
+import { useCofheContext, useInternalQuery } from '@/providers';
 import { useCofheACP, useCofheActiveACP } from './useCofheACPs';
+import { useCofheConnection } from './useCofheConnection';
 
 /** An ACP, or the hash of an ACP stored for the connected account. */
 export type CofheACPInput = ACP | string;
 
+/**
+ * Whether a chosen ACP can decrypt right now:
+ * - `checking`: signed and unexpired; its on-chain check (revocation) is in flight
+ * - `valid`: passes the on-chain check
+ * - `expired` / `revoked`: as the ACL reports it (expiry is also caught locally, when it happens)
+ * - `invalid`: not stored (unknown hash), unsigned, or its signatures fail on chain
+ * - `unverified`: the on-chain check failed (e.g. a network error); it is retried
+ */
+export type CofheACPStatus = 'checking' | 'valid' | 'expired' | 'revoked' | 'invalid' | 'unverified';
+
 export type CofheACPScopeValue = {
-  /** The scope's ACP; `undefined` when it was given as a hash that is not in the store. */
+  /** The scope ACP; `undefined` when it was given as a hash that is not in the store. */
   acp: ACP | undefined;
   /** The account whose data the ACP decrypts: its issuer. */
   issuer: Address | undefined;
-  /** The ACP is present, signed and not expired. Revocation is not checked here. */
+  /** `status === 'valid'`: the only state in which reads and decrypts in the scope run. */
   isValid: boolean;
+  status: CofheACPStatus;
+};
+
+/** How often a chosen ACP is re-checked on chain for revocation, besides on window focus. */
+const ACP_STATUS_RECHECK_MS = 60_000;
+
+const ON_CHAIN_STATUS: Record<ACPAccessStatus, CofheACPStatus> = {
+  valid: 'valid',
+  allowed: 'valid',
+  'out-of-scope': 'valid',
+  'issuer-not-allowed': 'valid',
+  expired: 'expired',
+  revoked: 'revoked',
+  'invalid-issuer-signature': 'invalid',
+  'invalid-recipient-signature': 'invalid',
 };
 
 const CofheACPScopeContext = createContext<CofheACPScopeValue | null>(null);
@@ -39,29 +66,74 @@ function useRerenderAtExpiry(acp: ACP | undefined): number {
   return tick;
 }
 
-function describeACP(acp: ACP | undefined): CofheACPScopeValue {
-  return { acp, issuer: acp?.issuer as Address | undefined, isValid: !!acp && ACPUtils.isValid(acp).valid };
+/**
+ * A chosen ACP status: local checks first (present, signed, unexpired), then the ACL on chain,
+ * re-checked every minute and on window focus so a revocation shows up while the view is open.
+ * On a chain other than the connected one the on-chain check is skipped (the client reads the
+ * connected chain), so revocation is not detected there.
+ */
+function useChosenACPStatus(acp: ACP | undefined, chainId?: number): CofheACPStatus {
+  const { client } = useCofheContext();
+  const connection = useCofheConnection();
+  const expiryTick = useRerenderAtExpiry(acp);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const locallyValid = useMemo(() => !!acp && ACPUtils.isValid(acp).valid, [acp, expiryTick]);
+  const onConnectedChain = chainId === undefined || chainId === connection.chainId;
+
+  const onChain = useInternalQuery({
+    queryKey: ['cofheACPStatus', acp?.hash],
+    queryFn: () => client.acp.checkAccess(acp as ACP),
+    enabled: locallyValid && connection.connected && onConnectedChain,
+    refetchInterval: ACP_STATUS_RECHECK_MS,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
+  });
+
+  if (!acp) return 'invalid';
+  if (!locallyValid) return ACPUtils.isExpired(acp) ? 'expired' : 'invalid';
+  if (!onConnectedChain) return 'valid';
+  // The latest check decides: after a failed re-check an earlier 'valid' is not trusted, since
+  // revocation is exactly what a re-check exists to catch.
+  if (onChain.errorUpdatedAt > onChain.dataUpdatedAt) return 'unverified';
+  if (onChain.data) return ON_CHAIN_STATUS[onChain.data];
+  return 'checking';
+}
+
+function describeACP(acp: ACP | undefined, status: CofheACPStatus): CofheACPScopeValue {
+  return { acp, issuer: acp?.issuer as Address | undefined, isValid: status === 'valid', status };
+}
+
+/**
+ * A SNAPSHOT (handle-scope) ACP that does not list `ctHash`: decrypting it can only fail, so it is
+ * never sent. A zero handle (a known zero) is never out of scope.
+ */
+export function isHandleOutOfScope(acp: ACP | undefined, ctHash: bigint | string | undefined): boolean {
+  if (!acp || acp.scope !== ACPScope.Handles || ctHash === undefined) return false;
+  const target = BigInt(ctHash);
+  if (target === 0n) return false;
+  return !acp.handles.some((handle) => BigInt(handle) === target);
 }
 
 /**
  * Decrypt with `acp` everywhere below: `useCofheReadContractAndDecrypt`, `useCofheReadContract(s)`
  * (ACP gating) and `useCofheTokenDecryptedBalance` use this ACP instead of the active one, and
- * `useCofheTokenDecryptedBalance` reads the issuer's balance unless given an account. The active ACP
- * is not changed, so the rest of the tree keeps decrypting the connected user's own data.
+ * `useCofheTokenDecryptedBalance` reads the issuer balance unless given an account. The active ACP
+ * is not changed, so the rest of the tree keeps decrypting the connected user own data.
  *
- * Typical use: a read-only view of data someone shared with the user, next to the user's own
+ * Typical use: a read-only view of data someone shared with the user, next to the user own
  * balances. Import the share with `client.acp.importShared(json, { activate: false })`, then wrap the
  * view in `<CofheACPScope acp={imported}>`.
  *
- * Nested scopes: the innermost wins. A hook's own `acp` option wins over any scope. A hash that is
- * not in the store, or an invalid (e.g. expired) ACP, disables the reads and decrypts in the scope
- * (`disabledDueToMissingValidACP`) instead of falling back to the active ACP.
+ * The ACP is checked on chain when the scope mounts, every minute and on window focus
+ * (`useCofheACPScope().status`). Until it is `valid`, and after it is revoked, expired, removed or
+ * unknown, the reads and decrypts in the scope are disabled (`disabledDueToMissingValidACP`)
+ * instead of falling back to the active ACP. Nested scopes: the innermost wins. A hook own `acp`
+ * option wins over any scope.
  */
 export function CofheACPScope({ acp, children }: { acp: CofheACPInput | undefined; children?: ReactNode }) {
   const resolved = useResolvedACP(acp);
-  const expiryTick = useRerenderAtExpiry(resolved);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const value = useMemo(() => describeACP(resolved), [resolved, expiryTick]);
+  const status = useChosenACPStatus(resolved);
+  const value = useMemo(() => describeACP(resolved, status), [resolved, status]);
   return <CofheACPScopeContext.Provider value={value}>{children}</CofheACPScopeContext.Provider>;
 }
 
@@ -72,30 +144,30 @@ export function useCofheACPScope(): CofheACPScopeValue | null {
 
 export type CofheEffectiveACP = CofheACPScopeValue & {
   /**
-   * The ACP was chosen explicitly (a hook's `acp` option or an enclosing scope), so decrypts pass it
+   * The ACP was chosen explicitly (a hook `acp` option or an enclosing scope), so decrypts pass it
    * with `.withACP(acp)` and cache under its hash. `false` means the active ACP.
    */
   scoped: boolean;
 };
 
 /**
- * The ACP a read or decrypt uses: the hook's `acp` option, else the enclosing `<CofheACPScope>`,
+ * The ACP a read or decrypt uses: the hook `acp` option, else the enclosing `<CofheACPScope>`,
  * else the active ACP on `chainId` (the connected chain by default).
  */
 export function useCofheEffectiveACP({ acp, chainId }: { acp?: CofheACPInput; chainId?: number }): CofheEffectiveACP {
   const scope = useCofheACPScope();
   const resolved = useResolvedACP(acp, chainId);
-  const expiryTick = useRerenderAtExpiry(resolved);
+  const optionStatus = useChosenACPStatus(acp !== undefined ? resolved : undefined, chainId);
   const active = useCofheActiveACP(chainId);
   return useMemo(() => {
-    if (acp !== undefined) return { ...describeACP(resolved), scoped: true };
+    if (acp !== undefined) return { ...describeACP(resolved, optionStatus), scoped: true };
     if (scope) return { ...scope, scoped: true };
-    return {
-      acp: active?.acp,
-      issuer: active?.acp.issuer as Address | undefined,
-      isValid: !!active?.isValid,
-      scoped: false,
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [acp, resolved, expiryTick, scope, active]);
+    const activeACP = active?.acp;
+    const status: CofheACPStatus = active?.isValid
+      ? 'valid'
+      : activeACP && ACPUtils.isExpired(activeACP)
+        ? 'expired'
+        : 'invalid';
+    return { ...describeACP(activeACP, status), scoped: false };
+  }, [acp, resolved, optionStatus, scope, active]);
 }
