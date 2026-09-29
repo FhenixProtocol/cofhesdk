@@ -104,9 +104,9 @@ export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<
       return builder.execute();
     },
     meta: {
-      // Persist only what the user own ACPs decrypt: plaintext decrypted with a shared ACP must not
-      // outlive the share, so it stays in memory.
-      persist: !scopedACP || scopedACP.type === 'self',
+      // Persist only what the user own ACP decrypts, whether chosen or active: plaintext decrypted
+      // with a shared ACP must not outlive the share, so it stays in memory.
+      persist: effectiveACP.acp?.type === 'self',
       kind: 'cofheDecrypt',
       ctHash: input?.ctHash?.toString(),
       chainId: context?.chainId ?? decryptChainId,

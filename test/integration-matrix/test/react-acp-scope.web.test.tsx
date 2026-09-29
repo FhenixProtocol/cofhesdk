@@ -250,4 +250,55 @@ describeOnAnvil('react hooks: <CofheACPScope> decrypts with a shared ACP (Anvil)
     await waitFor(() => expect(shown('expiring')).toBe('no valid acp'));
     expect(shown('expiring value')).toBe('');
   }, 180_000);
+
+  it('a shared ACP made active is not persisted either', async () => {
+    const publicClient = createPublicClient({ chain, transport: custom(transport()) });
+    const bobWallet = createWalletClient({ chain, transport: custom(transport()), account: BOB });
+    const aliceWallet = createWalletClient({ chain, transport: custom(transport()), account: ALICE });
+    const config = createCofheConfig({ supportedChains: [hardhatCofheChain], react: { autogenerateACPs: false } });
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
+    const hash = await bobWallet.writeContract({
+      address: SIMPLE_TEST,
+      abi: simpleTestAbi,
+      functionName: 'setValueTrivial',
+      args: [44n],
+      account: BOB,
+      chain,
+    });
+    await publicClient.waitForTransactionReceipt({ hash });
+
+    const bobClient = createCofheClient(config);
+    await bobClient.connect(publicClient, bobWallet);
+    const sharing = await bobClient.acp.createSharing({
+      issuer: BOB.address,
+      recipient: ALICE.address,
+      name: 'activated',
+    });
+
+    // The default import activates the share: every unscoped decrypt now uses it.
+    const aliceClient = createCofheClient(config);
+    await aliceClient.connect(publicClient, aliceWallet);
+    const shared = await aliceClient.acp.importShared(bobClient.acp.export(sharing));
+    expect(aliceClient.acp.getActiveACPHash()).toBe(shared.hash);
+
+    render(
+      <CofheProvider
+        cofheClient={aliceClient}
+        queryClient={queryClient}
+        publicClient={publicClient}
+        walletClient={aliceWallet}
+      >
+        <Decrypt label="active share" />
+      </CofheProvider>
+    );
+
+    await waitFor(() => expect(shown('active share')).toBe('44'), { timeout: 90_000 });
+    const decrypted = queryClient
+      .getQueryCache()
+      .findAll({ queryKey: ['decryptCiphertext'] })
+      .filter((q) => q.queryKey[2] != null && q.state.data !== undefined);
+    expect(decrypted).toHaveLength(1);
+    expect(decrypted[0].meta?.persist).toBe(false);
+  }, 180_000);
 });
