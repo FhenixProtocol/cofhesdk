@@ -82,6 +82,15 @@ describe('getACPAccessStatusOnChain', () => {
     expect(await getACPAccessStatusOnChain(acp, publicClient, 1n)).toBe('revoked');
   });
 
+  it('reads a revert reported only as text with the error selector', async () => {
+    const publicClient = client({
+      simulate: () => {
+        throw new Error('Execution reverted with reason: RPC eth_call failed: custom error 0xcbd3a966.');
+      },
+    });
+    expect(await getACPAccessStatusOnChain(acp, publicClient)).toBe('revoked');
+  });
+
   it('still throws what is not an ACL revert', async () => {
     const publicClient = client({
       simulate: () => {

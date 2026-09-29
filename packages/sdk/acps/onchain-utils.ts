@@ -196,7 +196,10 @@ function extractReturnData(err: unknown): `0x${string}` | undefined {
   const anyErr = err as any;
   const s = anyErr?.details ?? anyErr?.cause?.details ?? anyErr?.shortMessage ?? anyErr?.message ?? String(err);
 
-  return s.match(/return data:\s*(0x[a-fA-F0-9]+)/)?.[1] as `0x${string}` | undefined;
+  // Hardhat: "return data: 0x...". A node that reports only the selector in text (e.g. anvil through
+  // a transport that drops the structured error data): "custom error 0x...".
+  const match = s.match(/return data:\s*(0x[a-fA-F0-9]+)/) ?? s.match(/custom error (0x[a-fA-F0-9]{8,})/);
+  return match?.[1] as `0x${string}` | undefined;
 }
 
 const checkACPValidityAbi = [
