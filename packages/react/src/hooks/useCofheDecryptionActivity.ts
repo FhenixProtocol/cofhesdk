@@ -233,7 +233,7 @@ export function useCofheDecryptionActivity(options?: UseCofheDecryptionActivityO
     const seenPending = new Set<string>();
     for (const q of queries) {
       const k = q.queryKey;
-      // [prefix, chainId, ctHash, utype] — see constructCofheDecryptQueryKey.
+      // [prefix, chainId, ctHash, utype, acpHash] — see constructCofheDecryptQueryKey.
       if (!Array.isArray(k) || k[0] !== 'decryptCiphertext') continue;
       const ct = normalizeCt(k[2]);
       if (!ct || isZeroCt(ct)) continue;

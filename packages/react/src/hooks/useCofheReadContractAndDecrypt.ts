@@ -7,6 +7,7 @@ import { type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query
 import { type Abi, type Address, type ContractFunctionArgs, type ContractFunctionName } from 'viem';
 import { constructCofheDecryptQueryKey, useCofheDecrypt } from './useCofheDecrypt';
 import { useCofheChainId } from './useCofheConnection';
+import { useCofheEffectiveACP, type CofheACPInput } from './useCofheACPScope';
 import {
   useCofheReadContract,
   type CofheReadChainParams,
@@ -53,6 +54,9 @@ const onPoll = (context: DecryptPollCallbackContext) => {
  *
  * Chain and client: `chainId` / `publicClient` work exactly as on `useCofheReadContract`, and the
  * decryption follows the read's chain (it uses that chain's ACP).
+ *
+ * ACP: the read gates on, and the value decrypts with, `acp` if given, else the enclosing
+ * `<CofheACPScope>`, else the active ACP.
  */
 // TODO: useCofheReadContractAndDecrypt only works for a scenario when the contract function returns a signle plain encrypted value (i.e. not struct etc)
 export function useCofheReadContractAndDecrypt<
@@ -67,6 +71,11 @@ export function useCofheReadContractAndDecrypt<
     functionName?: TfunctionName;
     args?: ContractFunctionArgs<TAbi, 'pure' | 'view', TfunctionName>;
     requiresACP?: boolean;
+    /**
+     * Gate the read on, and decrypt with, this ACP (or the hash of a stored one) instead of the
+     * enclosing `<CofheACPScope>` or the active ACP. The active ACP is not changed.
+     */
+    acp?: CofheACPInput;
   } & CofheReadChainParams,
 
   {
@@ -103,6 +112,9 @@ export function useCofheReadContractAndDecrypt<
   // name the exact cache entry a superseded decrypt lives under.
   const connectedChainId = useCofheChainId();
   const decryptChainId = params.chainId ?? connectedChainId;
+  // Likewise the ACP the decrypt is keyed under: an explicitly chosen one, or none for the active ACP.
+  const decryptACP = useCofheEffectiveACP({ acp: params.acp, chainId: params.chainId });
+  const decryptACPHash = decryptACP.scoped ? decryptACP.acp?.hash : undefined;
 
   // The read and its decryption share one chain: the decrypt below uses the read's `chainId`.
   const encrypted = useCofheReadContract({ ...params, requiresACP }, readQueryOptions);
@@ -133,7 +145,9 @@ export function useCofheReadContractAndDecrypt<
   // Evict a superseded decrypt (a ctHash that is no longer the active input, e.g.
   // because the read now errors or produced a different handle) so it can't linger
   // in the cache as a phantom "fetched → …" entry disagreeing with the live read.
-  const prevRef = useRef<{ ctHash: string; utype: FheTypes; chainId: number | undefined } | undefined>(undefined);
+  const prevRef = useRef<
+    { ctHash: string; utype: FheTypes; chainId: number | undefined; acpHash: string | undefined } | undefined
+  >(undefined);
   useEffect(() => {
     const prev = prevRef.current;
     if (prev && prev.ctHash !== currentCtHash) {
@@ -141,9 +155,9 @@ export function useCofheReadContractAndDecrypt<
     }
     prevRef.current =
       currentCtHash !== undefined && currentUtype !== undefined
-        ? { ctHash: currentCtHash, utype: currentUtype, chainId: decryptChainId }
+        ? { ctHash: currentCtHash, utype: currentUtype, chainId: decryptChainId, acpHash: decryptACPHash }
         : undefined;
-  }, [currentCtHash, currentUtype, decryptChainId, queryClient]);
+  }, [currentCtHash, currentUtype, decryptChainId, decryptACPHash, queryClient]);
 
   const decrypted = useCofheDecrypt(
     {
@@ -154,6 +168,7 @@ export function useCofheReadContractAndDecrypt<
       // recognizable without a separate ctHash→address registry.
       context: { address, functionName },
       chainId: params.chainId,
+      acp: params.acp,
     },
     decryptingQueryOptions
   );

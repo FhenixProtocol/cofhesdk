@@ -103,15 +103,16 @@ export const useCofheAllACPs = (): ACP[] => {
   return connected ? allACPsWithHashes : [];
 };
 
-export const useCofheACP = (hash: string): ACP | undefined => {
-  const { account, chainId, connected } = useCofheConnection();
+/**
+ * A stored ACP of the connected account, by hash, on `chainId` — the connected chain by default.
+ */
+export const useCofheACP = (hash: string, chainId?: number): ACP | undefined => {
+  const connection = useCofheConnection();
+  const { account, connected } = connection;
+  const acpChainId = chainId ?? connection.chainId;
   const { state } = useCofheACPsStore();
-  return useMemo(() => {
-    if (!connected || !chainId || !account) return undefined;
-    const serializedACP = state.acps[chainId]?.[account]?.[hash];
-    if (!serializedACP) return undefined;
-    return ACPUtils.deserialize(serializedACP);
-  }, [connected, chainId, account, hash, state.acps]);
+  const serializedACP = connected && acpChainId && account ? state.acps[acpChainId]?.[account]?.[hash] : undefined;
+  return useMemo(() => (serializedACP ? ACPUtils.deserialize(serializedACP) : undefined), [serializedACP]);
 };
 
 type Callbacks = {

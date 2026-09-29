@@ -312,6 +312,16 @@ declare const exported: string;
 const recipientACP = await client.acp.importShared(exported, { activate: false });
 ```
 
+In React, wrap the view in `CofheACPScope` from `@cofhe/react`. Reads and decrypts inside it use that ACP instead of the active one, and `useCofheTokenDecryptedBalance` reads the issuer balance unless given an account. The rest of the tree keeps using the active ACP.
+
+```tsx
+<CofheACPScope acp={recipientACP}>
+  <SharedBalances />
+</CofheACPScope>
+```
+
+One hook can also take the ACP directly: `useCofheReadContractAndDecrypt({ address, abi, functionName, acp })`. A hook option wins over an enclosing scope, and the innermost scope wins over outer ones.
+
 :::::
 
 ## Sharing on-chain

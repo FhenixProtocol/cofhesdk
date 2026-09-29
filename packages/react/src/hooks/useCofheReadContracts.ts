@@ -1,6 +1,6 @@
 import { type UseQueryOptions } from '@tanstack/react-query';
 import type { Address, ContractFunctionArgs, ContractFunctionName, Narrow } from 'viem';
-import { useCofheActiveACP } from './useCofheACPs';
+import { useCofheEffectiveACP, type CofheACPInput } from './useCofheACPScope';
 import { useInternalQueries } from '../providers/index';
 import { type Abi, type CofheReturnType } from '@cofhe/abi';
 import {
@@ -177,12 +177,17 @@ export function useCofheReadContracts<
      * the reads are individual calls now.
      */
     multicallOptions?: { allowFailure?: boolean; [key: string]: unknown };
-    /** Gate every read on a valid active ACP, like `useCofheReadContract`. Defaults to `false`. */
+    /** Gate every read on a valid ACP (see `acp`), like `useCofheReadContract`. Defaults to `false`. */
     requiresACP?: boolean;
+    /**
+     * Gate on this ACP (or the hash of a stored one) instead of the enclosing `<CofheACPScope>` or
+     * the active ACP. The active ACP is not changed.
+     */
+    acp?: CofheACPInput;
   } & CofheReadChainParams,
   queryOptions?: UseCofheReadContractsQueryOptions
 ): UseCofheReadContractsResult<TContracts> {
-  const { contracts, multicallOptions, requiresACP = false } = params;
+  const { contracts, multicallOptions, requiresACP = false, acp } = params;
   const allowFailure = multicallOptions?.allowFailure ?? true;
   // The per-entry types live at the signature; the batch itself runs on the loose entry shape,
   // exactly as the singular hook's query builder does.
@@ -190,7 +195,7 @@ export function useCofheReadContracts<
 
   // The whole batch shares one chain and client — same semantics as the singular hook.
   const { publicClient, cofheChainId, disabledDueToWrongChain } = useCofheReadTarget(params);
-  const activeACP = useCofheActiveACP(cofheChainId);
+  const gateACP = useCofheEffectiveACP({ acp, chainId: cofheChainId });
 
   const results = useInternalQueries({
     queries: entries.map((contract) =>
@@ -201,7 +206,7 @@ export function useCofheReadContracts<
           abi: contract.abi,
           functionName: contract.functionName,
           requiresACP,
-          hasValidActiveACP: !!activeACP?.isValid,
+          hasValidActiveACP: gateACP.isValid,
           userEnabled: queryOptions?.enabled,
         }),
         cofheChainId,
@@ -212,7 +217,7 @@ export function useCofheReadContracts<
         // read + encrypted-return transformation) is identical to the singular hook.
         args: contract.args as never,
         requiresACP,
-        activeACPHash: activeACP?.acp.hash,
+        activeACPHash: gateACP.acp?.hash,
         publicClient,
         queryOptions: queryOptions as UseCofheReadContractQueryOptions<Abi, never>,
       })
@@ -243,7 +248,7 @@ export function useCofheReadContracts<
     // `combine` assembles the items on the loose shape; each `result` is what the singular query
     // for that entry decoded, which is exactly what `CofheReadContractsData` states per entry.
     data: results.data as CofheReadContractsData<Narrow<TContracts>> | undefined,
-    disabledDueToMissingValidACP: requiresACP && (!activeACP || !activeACP.isValid),
+    disabledDueToMissingValidACP: requiresACP && !gateACP.isValid,
     disabledDueToWrongChain,
   };
 }
