@@ -302,6 +302,16 @@ setActiveACPHash(chainId, account, recipientACP.hash);
 
 ::::
 
+To store the imported ACP without making it active, pass `activate: false`. Decrypts that use the active ACP keep using the current one, and the imported ACP is used only where you pass it, for example `.withACP(recipientACP)`. This fits an app that shows someone else's shared data in one view while the rest of the app keeps using the user's own ACP.
+
+```ts twoslash
+// @noErrors
+declare const client: import('@cofhe/sdk').CofheClient;
+declare const exported: string;
+// ---cut---
+const recipientACP = await client.acp.importShared(exported, { activate: false });
+```
+
 :::::
 
 ## Sharing on-chain
@@ -347,6 +357,7 @@ declare const client: import('@cofhe/sdk').CofheClient;
 const incoming = await client.acp.getIncomingShares();
 
 // fills in the recipient's sealing key, signs, stores and activates
+// (pass { activate: false } to only store it)
 const acp = await client.acp.importFromChain(incoming[0]);
 
 // optionally clean up the on-chain entry afterwards (or decline a share)
@@ -357,7 +368,7 @@ The registry lists only importable shares: expired shares and shares whose under
 
 ## Active ACP management
 
-The SDK tracks all stored ACPs and an **active ACP hash** per `chainId + account`. Creating or importing an ACP via `client.acp.*` automatically stores it and selects it as active.
+The SDK tracks all stored ACPs and an **active ACP hash** per `chainId + account`. Creating or importing an ACP via `client.acp.*` automatically stores it and selects it as active, except for sharing ACPs and imports made with `activate: false`, which are only stored.
 
 ### List stored ACPs
 

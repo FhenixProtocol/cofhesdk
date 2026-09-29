@@ -260,13 +260,11 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
       );
     },
 
-    importShared: async (
-      options: ImportSharedACPOptions | string,
-      clients?: { publicClient: PublicClient; walletClient: WalletClient }
-    ) => {
+    importShared: async (options: ImportSharedACPOptions | string, importOptions = {}) => {
       _requireConnected();
-      const { publicClient, walletClient } = clients ?? connectStore.getState();
-      return acps.importShared(options, publicClient!, walletClient!);
+      const { activate, ...clients } = importOptions;
+      const { publicClient, walletClient } = clients.publicClient ? clients : connectStore.getState();
+      return acps.importShared(options, publicClient!, walletClient!, { activate });
     },
 
     // Get or create methods (require connection)
@@ -333,10 +331,10 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
       return acps.getIncomingShares(publicClient!, sharingRegistry, account);
     },
 
-    importFromChain: async (share) => {
+    importFromChain: async (share, options) => {
       _requireConnected();
       const { publicClient, walletClient } = connectStore.getState();
-      return acps.importFromChain(share, publicClient!, walletClient!);
+      return acps.importFromChain(share, publicClient!, walletClient!, options);
     },
 
     dismissShare: async (shareId) => {

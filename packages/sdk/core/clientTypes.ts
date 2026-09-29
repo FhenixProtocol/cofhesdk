@@ -6,7 +6,7 @@ import { type DecryptForTxBuilderUnset } from './decrypt/decryptForTxBuilder.js'
 import { type EncryptInputsBuilderUnset } from './encrypt/encryptInputsBuilder.js';
 import { type ZkBuilderAndCrsGenerator, type ZkProveWorkerFunction } from './encrypt/zkPackProveVerify.js';
 import { type FheKeyDeserializer } from './fetchKeys.js';
-import { acps } from './acps.js';
+import { acps, type ImportActivationOptions } from './acps.js';
 import type { EncryptableItem, FheTypes, TfheInitializer } from './types.js';
 import type { ACPUtils } from 'acps/acp.js';
 import type {
@@ -74,6 +74,13 @@ export type CofheClientACPsClients = {
   walletClient: WalletClient;
 };
 
+/**
+ * Options for `importShared`. `activate: false` stores the imported acp without making it the active
+ * one (default `true`). Clients default to the connected ones; pass both to override.
+ */
+export type CofheClientImportSharedOptions = ImportActivationOptions &
+  (CofheClientACPsClients | { publicClient?: undefined; walletClient?: undefined });
+
 export type CofheClientACPs = {
   getSnapshot: typeof acps.getSnapshot;
   subscribe: typeof acps.subscribe;
@@ -81,7 +88,10 @@ export type CofheClientACPs = {
   // Creation methods (require connection, no params)
   createSelf: (options: CreateSelfACPOptions, clients?: CofheClientACPsClients) => Promise<SelfACP>;
   createSharing: (options: CreateSharingACPOptions, clients?: CofheClientACPsClients) => Promise<SharingACP>;
-  importShared: (options: ImportSharedACPOptions | string, clients?: CofheClientACPsClients) => Promise<RecipientACP>;
+  importShared: (
+    options: ImportSharedACPOptions | string,
+    importOptions?: CofheClientImportSharedOptions
+  ) => Promise<RecipientACP>;
 
   // Retrieval methods (chainId/account optional)
   getACP: (hash: string, chainId?: number, account?: string) => ACP | undefined;
@@ -107,8 +117,8 @@ export type CofheClientACPs = {
   shareOnChain: (acp: ACP) => Promise<{ txHash: `0x${string}`; shareId: `0x${string}` }>;
   /** Importable shares addressed to the connected account (unexpired, not revoked). */
   getIncomingShares: () => Promise<IncomingShare[]>;
-  /** Import a share read from the registry: sign as recipient, store and activate. */
-  importFromChain: (share: IncomingShare) => Promise<RecipientACP>;
+  /** Import a share read from the registry: sign as recipient, store and (unless `activate: false`) activate. */
+  importFromChain: (share: IncomingShare, options?: ImportActivationOptions) => Promise<RecipientACP>;
   /** Recipient-side: remove a share from the registry (after import, or to decline). */
   dismissShare: (shareId: `0x${string}`) => Promise<`0x${string}`>;
   /** Issuer-side: retract a pending share from the registry. */

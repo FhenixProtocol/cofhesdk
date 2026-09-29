@@ -51,9 +51,10 @@ const storeActiveACP = async (acp: ACP, publicClient: any, walletClient: any) =>
 };
 
 // Generic function to handle acp creation with error handling.
-// `activate` controls whether the new acp becomes the issuer's active acp — true for
-// self/imported acps (the connected user decrypts with them), false for sharing acps (those
-// are delegated to a recipient and are never the issuer's own active acp).
+// `activate` controls whether the new acp becomes the connected account's active acp — true for
+// self acps and, by default, imported acps (the connected user decrypts with them); false for
+// sharing acps (delegated to a recipient, never the issuer's own active acp) and for imports
+// made with `activate: false`.
 const createACPWithSign = async <T, TACP extends ACP>(
   options: T,
   publicClient: PublicClient,
@@ -96,12 +97,23 @@ const createSharing = async (
   return createACPWithSign(options, publicClient, walletClient, ACPUtils.createSharingAndSign, false);
 };
 
+/** Options for importing a shared acp. */
+export type ImportActivationOptions = {
+  /**
+   * Make the imported acp the active one. Defaults to `true`.
+   * With `false` the acp is only stored: decrypts that use the active acp keep using the current one,
+   * and the imported acp is used only where it is passed explicitly (e.g. `.withACP(acp)`).
+   */
+  activate?: boolean;
+};
+
 const importShared = async (
   options: ImportSharedACPOptions | string,
   publicClient: PublicClient,
-  walletClient: WalletClient
+  walletClient: WalletClient,
+  { activate = true }: ImportActivationOptions = {}
 ): Promise<RecipientACP> => {
-  return createACPWithSign(options, publicClient, walletClient, ACPUtils.importSharedAndSign);
+  return createACPWithSign(options, publicClient, walletClient, ACPUtils.importSharedAndSign, activate);
 };
 
 // ACP UTILS
@@ -546,16 +558,18 @@ const getIncomingShares = async (
 
 /**
  * Import a share read from the registry: fills the recipient's sealing key,
- * signs, stores and activates — the on-chain counterpart of importing an
- * exported JSON blob. The share stays on-chain until dismissed.
+ * signs, stores and (unless `activate: false`) activates — the on-chain
+ * counterpart of importing an exported JSON blob. The share stays on-chain
+ * until dismissed.
  */
 const importFromChain = async (
   share: IncomingShare,
   publicClient: PublicClient,
-  walletClient: WalletClient
+  walletClient: WalletClient,
+  importOptions: ImportActivationOptions = {}
 ): Promise<RecipientACP> => {
   const { shareId: _shareId, ...options } = share;
-  return importShared({ ...options, type: 'sharing' }, publicClient, walletClient);
+  return importShared({ ...options, type: 'sharing' }, publicClient, walletClient, importOptions);
 };
 
 /** Remove a share from the registry (issuer retracts / recipient dismisses). */
