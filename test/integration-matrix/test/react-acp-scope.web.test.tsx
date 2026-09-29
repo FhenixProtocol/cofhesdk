@@ -70,7 +70,12 @@ function Decrypt({ label, acp }: { label: string; acp?: CofheACPInput }) {
       : decrypted.data === undefined
         ? ''
         : String(decrypted.data);
-  return <output aria-label={label}>{text}</output>;
+  return (
+    <>
+      <output aria-label={label}>{text}</output>
+      <output aria-label={`${label} value`}>{decrypted.data === undefined ? '' : String(decrypted.data)}</output>
+    </>
+  );
 }
 
 const shown = (label: string) => screen.getByRole('status', { name: label }).textContent;
@@ -148,5 +153,90 @@ describeOnAnvil('react hooks: <CofheACPScope> decrypts with a shared ACP (Anvil)
     const keyedByShared = decrypts.filter((q) => q.queryKey[4] === shared.hash);
     expect(keyedByShared).toHaveLength(1);
     expect(keyedByShared[0].state.data).toBe(42n);
+  }, 180_000);
+
+  it('shared-ACP decrypts are never persisted and go away with the ACP', async () => {
+    const publicClient = createPublicClient({ chain, transport: custom(transport()) });
+    const bobWallet = createWalletClient({ chain, transport: custom(transport()), account: BOB });
+    const aliceWallet = createWalletClient({ chain, transport: custom(transport()), account: ALICE });
+    const config = createCofheConfig({ supportedChains: [hardhatCofheChain], react: { autogenerateACPs: false } });
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
+    const hash = await bobWallet.writeContract({
+      address: SIMPLE_TEST,
+      abi: simpleTestAbi,
+      functionName: 'setValueTrivial',
+      args: [43n],
+      account: BOB,
+      chain,
+    });
+    await publicClient.waitForTransactionReceipt({ hash });
+
+    // Two shares: one long-lived (removed by hand), one that expires in 20 seconds.
+    const bobClient = createCofheClient(config);
+    await bobClient.connect(publicClient, bobWallet);
+    const longLived = await bobClient.acp.createSharing({
+      issuer: BOB.address,
+      recipient: ALICE.address,
+      name: 'kept',
+    });
+    const shortLived = await bobClient.acp.createSharing({
+      issuer: BOB.address,
+      recipient: ALICE.address,
+      name: 'expiring',
+      expiration: Math.floor(Date.now() / 1000) + 20,
+    });
+
+    const aliceClient = createCofheClient(config);
+    await aliceClient.connect(publicClient, aliceWallet);
+    await aliceClient.acp.createSelf({ issuer: ALICE.address, name: 'Alice own' });
+    const removable = await aliceClient.acp.importShared(bobClient.acp.export(longLived), { activate: false });
+    const expiring = await aliceClient.acp.importShared(bobClient.acp.export(shortLived), { activate: false });
+
+    render(
+      <CofheProvider
+        cofheClient={aliceClient}
+        queryClient={queryClient}
+        publicClient={publicClient}
+        walletClient={aliceWallet}
+      >
+        <CofheACPScope acp={removable.hash}>
+          <Decrypt label="removable" />
+        </CofheACPScope>
+        <CofheACPScope acp={expiring.hash}>
+          <Decrypt label="expiring" />
+        </CofheACPScope>
+        <Decrypt label="own" />
+      </CofheProvider>
+    );
+
+    await waitFor(() => expect(shown('removable')).toBe('43'), { timeout: 90_000 });
+    await waitFor(() => expect(shown('expiring')).toBe('43'), { timeout: 90_000 });
+    await waitFor(() => expect(shown('own')).toBe('decrypt error'), { timeout: 90_000 });
+
+    const decryptsUnder = (acpHash: string | undefined) =>
+      queryClient
+        .getQueryCache()
+        .findAll({ queryKey: ['decryptCiphertext'] })
+        .filter((q) => q.queryKey[2] != null && q.queryKey[4] === acpHash);
+
+    // Plaintext decrypted with a shared ACP stays in memory only; the user own decrypts still persist.
+    expect(decryptsUnder(removable.hash)[0].meta?.persist).toBe(false);
+    expect(decryptsUnder(undefined)[0].meta?.persist).toBe(true);
+
+    // Nothing decrypted with an ACP may stay readable once the ACP is gone. (A still-mounted hook
+    // may re-register an empty, disabled query under the same key; it holds no value.)
+    const plaintextUnder = (acpHash: string) => decryptsUnder(acpHash).filter((q) => q.state.data !== undefined);
+
+    // Removing the ACP drops what it decrypted.
+    aliceClient.acp.removeACP(removable.hash);
+    await waitFor(() => expect(plaintextUnder(removable.hash)).toHaveLength(0), { timeout: 10_000 });
+    await waitFor(() => expect(shown('removable')).toBe('no valid acp'));
+    expect(shown('removable value')).toBe('');
+
+    // So does expiry, while the view stays mounted.
+    await waitFor(() => expect(plaintextUnder(expiring.hash)).toHaveLength(0), { timeout: 40_000 });
+    await waitFor(() => expect(shown('expiring')).toBe('no valid acp'));
+    expect(shown('expiring value')).toBe('');
   }, 180_000);
 });

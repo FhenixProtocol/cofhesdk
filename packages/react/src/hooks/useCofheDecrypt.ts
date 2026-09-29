@@ -1,4 +1,6 @@
-import { useCofheContext, useInternalQuery } from '@/providers';
+import { useEffect } from 'react';
+import { useCofheContext, useInternalQuery, useInternalQueryClient } from '@/providers';
+import { removeDecryptsOfACPs } from '@/providers/acpDecryptCache';
 import { useCofheEffectiveACP, type CofheACPInput } from './useCofheACPScope';
 import { useCofheChainId } from './useCofheConnection';
 import { CofheError, FheTypes, type DecryptPollCallbackFunction, type UnsealedItem } from '@cofhe/sdk';
@@ -74,6 +76,14 @@ export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<
   const effectiveACP = useCofheEffectiveACP({ acp, chainId });
   const scopedACP = effectiveACP.scoped ? effectiveACP.acp : undefined;
 
+  // A chosen ACP that is no longer valid (e.g. expired) takes its plaintext with it: the disabled
+  // query would otherwise keep serving the value decrypted while it was valid.
+  const queryClient = useInternalQueryClient();
+  const invalidScopedHash = scopedACP && !effectiveACP.isValid ? scopedACP.hash : undefined;
+  useEffect(() => {
+    if (invalidScopedHash) removeDecryptsOfACPs(queryClient, new Set([invalidScopedHash]));
+  }, [invalidScopedHash, queryClient]);
+
   const { enabled: userEnabled, meta: optionMeta, ...restQueryOptions } = queryOptions || {};
   const enabled = !!input && BigInt(input.ctHash) > 0n && !!client && effectiveACP.isValid && (userEnabled ?? true);
 
@@ -94,7 +104,9 @@ export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<
       return builder.execute();
     },
     meta: {
-      persist: true,
+      // Persist only what the user own ACPs decrypt: plaintext decrypted with a shared ACP must not
+      // outlive the share, so it stays in memory.
+      persist: !scopedACP || scopedACP.type === 'self',
       kind: 'cofheDecrypt',
       ctHash: input?.ctHash?.toString(),
       chainId: context?.chainId ?? decryptChainId,

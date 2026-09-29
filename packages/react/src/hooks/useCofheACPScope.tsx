@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useReducer, type ReactNode } from 'react';
 import type { Address } from 'viem';
 import { ACPUtils, type ACP } from '@cofhe/sdk/acps';
 import { useCofheACP, useCofheActiveACP } from './useCofheACPs';
@@ -22,6 +22,23 @@ function useResolvedACP(input: CofheACPInput | undefined, chainId?: number): ACP
   return typeof input === 'string' ? stored : input;
 }
 
+/**
+ * Re-render once `acp` has expired, so a validity computed at render catches the expiry while
+ * the view stays mounted. Returns a counter to add to the memo dependencies.
+ */
+function useRerenderAtExpiry(acp: ACP | undefined): number {
+  const [tick, bump] = useReducer((n: number) => n + 1, 0);
+  const expiration = acp?.expiration;
+  useEffect(() => {
+    if (expiration === undefined) return;
+    const ms = expiration * 1000 - Date.now() + 1000;
+    if (ms <= 0) return;
+    const id = setTimeout(bump, Math.min(ms, 2_147_483_647));
+    return () => clearTimeout(id);
+  }, [expiration]);
+  return tick;
+}
+
 function describeACP(acp: ACP | undefined): CofheACPScopeValue {
   return { acp, issuer: acp?.issuer as Address | undefined, isValid: !!acp && ACPUtils.isValid(acp).valid };
 }
@@ -42,7 +59,9 @@ function describeACP(acp: ACP | undefined): CofheACPScopeValue {
  */
 export function CofheACPScope({ acp, children }: { acp: CofheACPInput | undefined; children?: ReactNode }) {
   const resolved = useResolvedACP(acp);
-  const value = useMemo(() => describeACP(resolved), [resolved]);
+  const expiryTick = useRerenderAtExpiry(resolved);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const value = useMemo(() => describeACP(resolved), [resolved, expiryTick]);
   return <CofheACPScopeContext.Provider value={value}>{children}</CofheACPScopeContext.Provider>;
 }
 
@@ -66,6 +85,7 @@ export type CofheEffectiveACP = CofheACPScopeValue & {
 export function useCofheEffectiveACP({ acp, chainId }: { acp?: CofheACPInput; chainId?: number }): CofheEffectiveACP {
   const scope = useCofheACPScope();
   const resolved = useResolvedACP(acp, chainId);
+  const expiryTick = useRerenderAtExpiry(resolved);
   const active = useCofheActiveACP(chainId);
   return useMemo(() => {
     if (acp !== undefined) return { ...describeACP(resolved), scoped: true };
@@ -76,5 +96,6 @@ export function useCofheEffectiveACP({ acp, chainId }: { acp?: CofheACPInput; ch
       isValid: !!active?.isValid,
       scoped: false,
     };
-  }, [acp, resolved, scope, active]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [acp, resolved, expiryTick, scope, active]);
 }
