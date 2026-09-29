@@ -21,6 +21,7 @@ import {
   CofheACPScope,
   CofheProvider,
   createCofheConfig,
+  useCofheACPs,
   useCofheReadContractAndDecrypt,
   type CofheACPInput,
 } from '@cofhe/react';
@@ -78,6 +79,13 @@ function Decrypt({ label, acp }: { label: string; acp?: CofheACPInput }) {
   );
 }
 
+/** How many ACPs the connected account has stored, in all and received (type recipient). */
+function ACPCounts() {
+  const all = useCofheACPs();
+  const received = useCofheACPs({ type: 'recipient' });
+  return <output aria-label="acp counts">{`${all.length} stored, ${received.length} received`}</output>;
+}
+
 const shown = (label: string) => screen.getByRole('status', { name: label }).textContent;
 
 afterEach(() => acpStore.resetStore());
@@ -132,6 +140,7 @@ describeOnAnvil('react hooks: <CofheACPScope> decrypts with a shared ACP (Anvil)
           <Decrypt label="override" acp={own.hash} />
         </CofheACPScope>
         <Decrypt label="own" />
+        <ACPCounts />
         <CofheACPScope acp={{ ...shared, expiration: 1 }}>
           <Decrypt label="expired" />
         </CofheACPScope>
@@ -142,6 +151,8 @@ describeOnAnvil('react hooks: <CofheACPScope> decrypts with a shared ACP (Anvil)
     await waitFor(() => expect(shown('own')).toBe('decrypt error'), { timeout: 90_000 });
     await waitFor(() => expect(shown('override')).toBe('decrypt error'), { timeout: 90_000 });
     expect(shown('expired')).toBe('no valid acp');
+    // Alice stores her own ACP and the imported share.
+    expect(shown('acp counts')).toBe('2 stored, 1 received');
     expect(aliceClient.acp.getActiveACPHash()).toBe(own.hash);
 
     // One ctHash, decrypted under two ACPs: the scoped entry carries the shared ACP's hash, so it

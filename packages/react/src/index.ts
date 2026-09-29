@@ -8,6 +8,7 @@ export {
   getCofheTokenShieldCallArgs,
   getCofheTokenUnshieldCallArgs,
   useCofheActiveACP,
+  useCofheACPs,
   useCofheAllACPs,
   useCofheClient,
   useCofheConnection,

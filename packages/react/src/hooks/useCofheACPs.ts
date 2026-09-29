@@ -78,30 +78,30 @@ export const useCofheActiveACPHash = (): string | undefined => {
   return useMemo(() => activeACP?.acp.hash, [activeACP?.acp.hash]);
 };
 
-export const useCofheAllACPs = (): ACP[] => {
-  const { account, chainId, connected } = useCofheConnection();
-
+/**
+ * The connected account ACPs stored on `chainId` (the connected chain by default), optionally
+ * narrowed to one `type`, e.g. `useCofheACPs({ type: 'recipient' })` for the shares the user
+ * received. Empty while disconnected.
+ */
+export const useCofheACPs = ({ chainId, type }: { chainId?: number; type?: ACP['type'] } = {}): ACP[] => {
+  const connection = useCofheConnection();
+  const { account, connected } = connection;
+  const acpChainId = chainId ?? connection.chainId;
   const { state } = useCofheACPsStore();
+  const stored = connected && acpChainId && account ? state.acps[acpChainId]?.[account] : undefined;
 
-  const allACPs = chainId && account ? state.acps[chainId]?.[account] : undefined;
-
-  const allACPsWithHashes = useMemo(
-    () =>
-      allACPs
-        ? Object.keys(allACPs)
-            .filter((hash) => !!allACPs[hash])
-            .map((hash) => {
-              const serializedACP = allACPs[hash];
-              if (!serializedACP) throw new Error('ACP data missing');
-
-              return ACPUtils.deserialize(serializedACP);
-            })
-        : [],
-    [allACPs]
-  );
-
-  return connected ? allACPsWithHashes : [];
+  return useMemo(() => {
+    if (!stored) return [];
+    const acps = Object.values(stored).flatMap((serialized) => (serialized ? [ACPUtils.deserialize(serialized)] : []));
+    return type ? acps.filter((acp) => acp.type === type) : acps;
+  }, [stored, type]);
 };
+
+/**
+ * @deprecated Use `useCofheACPs()`: the same list, the connected account ACPs on the connected
+ * chain, with optional `chainId` and `type` filters.
+ */
+export const useCofheAllACPs = (): ACP[] => useCofheACPs();
 
 /**
  * A stored ACP of the connected account, by hash, on `chainId` — the connected chain by default.
