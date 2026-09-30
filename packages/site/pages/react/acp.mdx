@@ -112,6 +112,18 @@ function SharedVaultPosition() {
 }
 ```
 
+A value that is only a handle, not a contract read, e.g. a transfer amount listed in a SNAPSHOT share, decrypts with `useCofheDecrypt`; inside a scope it uses the scope ACP too:
+
+```tsx
+import { useCofheDecrypt } from '@cofhe/react';
+import { FheTypes } from '@cofhe/sdk';
+
+function SharedAmount({ handle }: { handle: `0x${string}` }) {
+  const { data } = useCofheDecrypt({ input: { ctHash: handle, utype: FheTypes.Uint64 } });
+  return <span>{data?.toString() ?? '…'}</span>;
+}
+```
+
 ### On-chain inbox
 
 Shares posted to the on-chain registry need no copy-paste. The recipient lists them, imports one (without activating it) and dismisses the registry entry; the issuer posts, watches the status and revokes:
