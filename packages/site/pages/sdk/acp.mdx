@@ -366,6 +366,8 @@ const acp = await client.acp.importFromChain(incoming[0]);
 await client.acp.dismissShare(incoming[0].shareId);
 ```
 
+An app that sends these writes through its own transaction path can use the same pieces from `@cofhe/sdk/acps`: `ACP_SHARE_REGISTRY_ABI`, `ACP_REVOKER_ABI`, `toChainShare(acp)` (the registry payload), `computeShareId(acp)` (the id the registry assigns) and `getAclServedAddresses(publicClient, chainId)` (the registry and default revoker the chain ACL serves).
+
 The registry lists only importable shares: expired shares and shares whose underlying acp was revoked are filtered out. Everything posted is cleartext by design (the same data as the exported JSON) — note that posting on-chain makes the issuer→recipient relationship public.
 
 ## Checking an ACP on-chain

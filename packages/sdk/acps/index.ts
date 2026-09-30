@@ -19,6 +19,17 @@ export type {
 // Main utilities
 export { ACPUtils } from './acp.js';
 
+// On-chain sharing: registry / revoker ABIs, the registry payload and share id of a sharing ACP
+export * from './registry.js';
+
+// Addresses the chain ACL serves (TaskManager -> acl() -> default revoker, share registry)
+export {
+  getAclAddress,
+  getAclServedAddresses,
+  clearAclServedAddresses,
+  type AclServedAddresses,
+} from './onchain-utils.js';
+
 // Validation utilities
 export {
   // Self ACP validators

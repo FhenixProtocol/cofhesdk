@@ -12,26 +12,16 @@ import {
   type SharingACP,
   type ACPHashFields,
   type ACPAccessStatus,
+  ACP_REVOKER_ABI,
+  ACP_SHARE_REGISTRY_ABI,
+  toChainShare,
+  computeShareId,
+  shareIdOfChainShare,
+  getAclServedAddresses,
+  clearAclServedAddresses,
 } from '@/acps';
 
-import {
-  type Hex,
-  type PublicClient,
-  type WalletClient,
-  encodeAbiParameters,
-  keccak256,
-  parseAbi,
-  zeroAddress,
-} from 'viem';
-
-import { TASK_MANAGER_ADDRESS } from './consts.js';
-
-// ACP default revoker (timestamp-based revocation) — interface shared by all revokers
-const ACP_VALIDATOR_ABI = parseAbi([
-  'function revokeSingle(uint256 id)',
-  'function revokeAllExisting()',
-  'function disabled(address issuer, uint256 id) view returns (bool)',
-]);
+import { type Hex, type PublicClient, type WalletClient, zeroAddress } from 'viem';
 
 // HELPERS
 
@@ -276,65 +266,6 @@ const applyACPDefaults = <
   return result;
 };
 
-// ACL-SERVED ADDRESSES (defaultRevokerContract / shareRegistry)
-
-const ACL_SERVED_ADDRESSES_ABI = parseAbi([
-  'function acl() view returns (address)',
-  'function defaultRevokerContract() view returns (address)',
-  'function shareRegistry() view returns (address)',
-]);
-
-export interface AclServedAddresses {
-  defaultRevoker?: Hex;
-  shareRegistry?: Hex;
-}
-
-const aclServedAddressesCache = new Map<number, AclServedAddresses>();
-
-/** Test hook: forget resolved addresses (e.g. between redeployments on one chainId). */
-const clearAclServedAddresses = () => aclServedAddressesCache.clear();
-
-/**
- * The ACP infrastructure addresses the chain's ACL serves (TaskManager -> acl()
- * -> getters). Zero addresses and pre-upgrade ACLs (getters absent -> revert)
- * resolve to `undefined` — callers fall back to `acp.*` config.
- *
- * Resolutions are cached per chainId. A failure to reach the TaskManager (network
- * error, no CoFHE deployment) is NOT cached, so a transient outage does not pin
- * an empty result for the whole session.
- */
-const getAclServedAddresses = async (publicClient: PublicClient, chainId: number): Promise<AclServedAddresses> => {
-  const cached = aclServedAddressesCache.get(chainId);
-  if (cached != null) return cached;
-
-  let aclAddress: Hex;
-  try {
-    aclAddress = await publicClient.readContract({
-      address: TASK_MANAGER_ADDRESS,
-      abi: ACL_SERVED_ADDRESSES_ABI,
-      functionName: 'acl',
-    });
-  } catch {
-    return {};
-  }
-
-  const [defaultRevoker, shareRegistry] = await Promise.all([
-    publicClient
-      .readContract({ address: aclAddress, abi: ACL_SERVED_ADDRESSES_ABI, functionName: 'defaultRevokerContract' })
-      .catch(() => undefined),
-    publicClient
-      .readContract({ address: aclAddress, abi: ACL_SERVED_ADDRESSES_ABI, functionName: 'shareRegistry' })
-      .catch(() => undefined),
-  ]);
-
-  const resolved: AclServedAddresses = {
-    defaultRevoker: defaultRevoker != null && defaultRevoker !== zeroAddress ? defaultRevoker : undefined,
-    shareRegistry: shareRegistry != null && shareRegistry !== zeroAddress ? shareRegistry : undefined,
-  };
-  aclServedAddressesCache.set(chainId, resolved);
-  return resolved;
-};
-
 /**
  * `applyACPDefaults` with the ACL consulted for the default revoker when
  * `acp.defaultRevoker` config does not name one for this chain — explicit
@@ -387,7 +318,7 @@ const revokeACP = async (acp: ACP, walletClient: WalletClient): Promise<Hex> => 
 
   return walletClient.writeContract({
     address: acp.revokerContract,
-    abi: ACP_VALIDATOR_ABI,
+    abi: ACP_REVOKER_ABI,
     functionName: 'revokeSingle',
     args: [BigInt(acp.revokerData)],
     account: walletClient.account,
@@ -423,7 +354,7 @@ const revokeAllACPs = async (
 
   return walletClient.writeContract({
     address: revoker,
-    abi: ACP_VALIDATOR_ABI,
+    abi: ACP_REVOKER_ABI,
     functionName: 'revokeAllExisting',
     args: [],
     account: walletClient.account,
@@ -453,63 +384,10 @@ const isACPRevoked = async (acp: ACP, publicClient: PublicClient): Promise<boole
   if (acp.revokerContract === zeroAddress || acp.revokerData === 0) return false;
   return publicClient.readContract({
     address: acp.revokerContract,
-    abi: ACP_VALIDATOR_ABI,
+    abi: ACP_REVOKER_ABI,
     functionName: 'disabled',
     args: [acp.issuer, BigInt(acp.revokerData)],
   });
-};
-
-// SHARE (on-chain, via the ACPShareRegistry)
-
-const ACP_SHARE_REGISTRY_ABI = parseAbi([
-  'struct ACP { address issuer; uint64 expiration; address recipient; uint256 revokerData; address revokerContract; uint8 scope; address[] contracts; bytes32[] handles; bytes32 sealingKey; bytes issuerSignature; bytes recipientSignature; }',
-  'function share(ACP calldata acp) external returns (bytes32)',
-  'function removeShare(bytes32 shareId) external',
-  'function sharesFor(address recipient) external view returns (ACP[] memory)',
-  'function getShare(bytes32 shareId) external view returns (ACP memory)',
-  'function isShareValid(bytes32 shareId) external view returns (bool)',
-]);
-
-const ACP_TUPLE = [
-  {
-    type: 'tuple',
-    components: [
-      { name: 'issuer', type: 'address' },
-      { name: 'expiration', type: 'uint64' },
-      { name: 'recipient', type: 'address' },
-      { name: 'revokerData', type: 'uint256' },
-      { name: 'revokerContract', type: 'address' },
-      { name: 'scope', type: 'uint8' },
-      { name: 'contracts', type: 'address[]' },
-      { name: 'handles', type: 'bytes32[]' },
-      { name: 'sealingKey', type: 'bytes32' },
-      { name: 'issuerSignature', type: 'bytes' },
-      { name: 'recipientSignature', type: 'bytes' },
-    ],
-  },
-] as const;
-
-const ZERO_BYTES32 = `0x${'0'.repeat(64)}` as Hex;
-
-/** The on-chain payload for a sharing ACP: recipient-side fields empty. */
-const toChainShare = (acp: ACP) => {
-  // Same public struct as the off-chain export flow (ACPUtils.getPublic), with
-  // the recipient-side fields blanked — the recipient supplies them at import —
-  // and uint fields widened for the ABI encoder.
-  const pub = ACPUtils.getPublic(acp, true);
-  return {
-    ...pub,
-    expiration: BigInt(pub.expiration),
-    revokerData: BigInt(pub.revokerData),
-    sealingKey: ZERO_BYTES32,
-    recipientSignature: '0x' as Hex,
-  };
-};
-
-/** Mirrors the registry's `keccak256(abi.encode(acp))` share id. */
-const computeShareId = (acp: ACP): Hex => {
-  const p = toChainShare(acp);
-  return keccak256(encodeAbiParameters(ACP_TUPLE, [p]));
 };
 
 /**
@@ -558,7 +436,7 @@ const getIncomingShares = async (
   });
 
   return raw.map((s) => ({
-    shareId: keccak256(encodeAbiParameters(ACP_TUPLE, [s])),
+    shareId: shareIdOfChainShare(s),
     issuer: s.issuer,
     expiration: Number(s.expiration),
     recipient: s.recipient,

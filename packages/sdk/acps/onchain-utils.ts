@@ -1,4 +1,4 @@
-import { type Hex, type PublicClient, decodeErrorResult, parseAbi } from 'viem';
+import { type Hex, type PublicClient, decodeErrorResult, parseAbi, zeroAddress } from 'viem';
 import type { ACPAccessStatus, EIP712Domain, ACPPublic } from './types';
 import { TASK_MANAGER_ADDRESS } from '../core/consts.js';
 
@@ -321,3 +321,65 @@ const acpAccessAbi = [
     stateMutability: 'view',
   },
 ] as const;
+
+// ACL-SERVED ADDRESSES (defaultRevokerContract / shareRegistry)
+
+const ACL_SERVED_ADDRESSES_ABI = parseAbi([
+  'function acl() view returns (address)',
+  'function defaultRevokerContract() view returns (address)',
+  'function shareRegistry() view returns (address)',
+]);
+
+export interface AclServedAddresses {
+  defaultRevoker?: Hex;
+  shareRegistry?: Hex;
+}
+
+const aclServedAddressesCache = new Map<number, AclServedAddresses>();
+
+/** Test hook: forget resolved addresses (e.g. between redeployments on one chainId). */
+export const clearAclServedAddresses = () => aclServedAddressesCache.clear();
+
+/**
+ * The ACP infrastructure addresses the chain's ACL serves (TaskManager -> acl()
+ * -> getters). Zero addresses and pre-upgrade ACLs (getters absent -> revert)
+ * resolve to `undefined` — callers fall back to `acp.*` config.
+ *
+ * Resolutions are cached per chainId. A failure to reach the TaskManager (network
+ * error, no CoFHE deployment) is NOT cached, so a transient outage does not pin
+ * an empty result for the whole session.
+ */
+export const getAclServedAddresses = async (
+  publicClient: PublicClient,
+  chainId: number
+): Promise<AclServedAddresses> => {
+  const cached = aclServedAddressesCache.get(chainId);
+  if (cached != null) return cached;
+
+  let aclAddress: Hex;
+  try {
+    aclAddress = await publicClient.readContract({
+      address: TASK_MANAGER_ADDRESS,
+      abi: ACL_SERVED_ADDRESSES_ABI,
+      functionName: 'acl',
+    });
+  } catch {
+    return {};
+  }
+
+  const [defaultRevoker, shareRegistry] = await Promise.all([
+    publicClient
+      .readContract({ address: aclAddress, abi: ACL_SERVED_ADDRESSES_ABI, functionName: 'defaultRevokerContract' })
+      .catch(() => undefined),
+    publicClient
+      .readContract({ address: aclAddress, abi: ACL_SERVED_ADDRESSES_ABI, functionName: 'shareRegistry' })
+      .catch(() => undefined),
+  ]);
+
+  const resolved: AclServedAddresses = {
+    defaultRevoker: defaultRevoker != null && defaultRevoker !== zeroAddress ? defaultRevoker : undefined,
+    shareRegistry: shareRegistry != null && shareRegistry !== zeroAddress ? shareRegistry : undefined,
+  };
+  aclServedAddressesCache.set(chainId, resolved);
+  return resolved;
+};
