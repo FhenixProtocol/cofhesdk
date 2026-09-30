@@ -36,17 +36,16 @@ function AccessPage({ exported, me }: { exported: string; me: Address }) {
 ### 1. Import without activating
 
 ```tsx
-import { useCofheClient } from '@cofhe/react';
+import { useCofheImportShared } from '@cofhe/react';
 
 function AcceptShare({ exported }: { exported: string }) {
-  const client = useCofheClient();
   // Stored, not activated: the user own ACP keeps serving the rest of the app.
-  const accept = () => client.acp.importShared(exported, { activate: false });
-  return <button onClick={accept}>Accept</button>;
+  const accept = useCofheImportShared({ activate: false });
+  return <button onClick={() => accept.mutate(exported)}>Accept</button>;
 }
 ```
 
-For a share from the registry, use `client.acp.importFromChain(share, { activate: false })`.
+The same hook imports a share found in the on-chain registry: pass the `IncomingShare` instead of the JSON. See [On-chain inbox](#on-chain-inbox) below.
 
 ### 2. Find it again later
 
@@ -112,6 +111,47 @@ function SharedVaultPosition() {
   return <p>{decrypted.data?.toString() ?? '…'}</p>;
 }
 ```
+
+### On-chain inbox
+
+Shares posted to the on-chain registry need no copy-paste. The recipient lists them, imports one (without activating it) and dismisses the registry entry; the issuer posts, watches the status and revokes:
+
+```tsx
+import { useCofheIncomingShares, useCofheImportShared, useCofheRemoveShare } from '@cofhe/react';
+
+function Inbox() {
+  const inbox = useCofheIncomingShares(); // polls every 15 s; shares already imported are left out
+  const accept = useCofheImportShared({ activate: false });
+  const dismiss = useCofheRemoveShare();
+  return (inbox.data ?? []).map((share) => (
+    <div key={share.shareId}>
+      From {share.issuer}
+      <button onClick={() => accept.mutate(share)}>Accept</button>
+      <button onClick={() => dismiss.mutate(share.shareId)}>Dismiss</button>
+    </div>
+  ));
+}
+```
+
+```tsx
+import { useCofheACPStatus, useCofheRevokeACP, useCofheShareOnChain } from '@cofhe/react';
+import type { ACP } from '@cofhe/sdk/acps';
+
+function GrantedShare({ acp }: { acp: ACP }) {
+  const post = useCofheShareOnChain();
+  const revoke = useCofheRevokeACP();
+  const { status } = useCofheACPStatus(acp); // valid, expired, revoked, ...; re-reads after revoke mines
+  return (
+    <div>
+      {acp.name}: {status}
+      <button onClick={() => post.mutate(acp)}>Send on-chain</button>
+      <button onClick={() => revoke.mutate(acp)}>Revoke</button>
+    </div>
+  );
+}
+```
+
+The write hooks resolve once the transaction is mined, so a read that follows sees the result.
 
 ### One value without a scope
 

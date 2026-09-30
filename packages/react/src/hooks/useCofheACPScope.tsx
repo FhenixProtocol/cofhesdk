@@ -30,6 +30,8 @@ export type CofheACPScopeValue = {
 
 /** How often a chosen ACP is re-checked on chain for revocation, besides on window focus. */
 const ACP_STATUS_RECHECK_MS = 60_000;
+/** Query key prefix of an ACP on-chain status; `[prefix, acp.hash]`. Invalidate it to force a re-check. */
+export const ACP_STATUS_QUERY_KEY = 'cofheACPStatus';
 
 const ON_CHAIN_STATUS: Record<ACPAccessStatus, CofheACPStatus> = {
   valid: 'valid',
@@ -81,7 +83,7 @@ function useChosenACPStatus(acp: ACP | undefined, chainId?: number): CofheACPSta
   const onConnectedChain = chainId === undefined || chainId === connection.chainId;
 
   const onChain = useInternalQuery({
-    queryKey: ['cofheACPStatus', acp?.hash],
+    queryKey: [ACP_STATUS_QUERY_KEY, acp?.hash],
     queryFn: () => client.acp.checkAccess(acp as ACP),
     enabled: locallyValid && connection.connected && onConnectedChain,
     refetchInterval: ACP_STATUS_RECHECK_MS,
@@ -140,6 +142,17 @@ export function CofheACPScope({ acp, children }: { acp: CofheACPInput | undefine
 /** The enclosing `<CofheACPScope>`, or `null` outside any scope. */
 export function useCofheACPScope(): CofheACPScopeValue | null {
   return useContext(CofheACPScopeContext);
+}
+
+/**
+ * The on-chain status of one ACP (or of a stored ACP given by hash), checked when mounted, every
+ * minute and on window focus; see `CofheACPStatus`. `status === 'revoked'` after
+ * `useCofheRevokeACP` mines. Independent of any scope.
+ */
+export function useCofheACPStatus(acp: CofheACPInput | undefined, chainId?: number): CofheACPScopeValue {
+  const resolved = useResolvedACP(acp, chainId);
+  const status = useChosenACPStatus(resolved, chainId);
+  return useMemo(() => describeACP(resolved, status), [resolved, status]);
 }
 
 export type CofheEffectiveACP = CofheACPScopeValue & {

@@ -66,10 +66,18 @@ export { useCofheReadContractAndDecrypt } from '@/hooks/useCofheReadContractAndD
 export {
   CofheACPScope,
   useCofheACPScope,
+  useCofheACPStatus,
   type CofheACPInput,
   type CofheACPScopeValue,
   type CofheACPStatus,
 } from '@/hooks/useCofheACPScope';
+export {
+  useCofheIncomingShares,
+  useCofheShareOnChain,
+  useCofheImportShared,
+  useCofheRemoveShare,
+  useCofheRevokeACP,
+} from '@/hooks/acps/useOnChainSharing';
 export {
   useCofheReadContract,
   constructCofheReadContractQueryForInvalidation,
