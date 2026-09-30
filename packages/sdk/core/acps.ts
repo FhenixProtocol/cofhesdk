@@ -436,6 +436,12 @@ const revokeAllACPs = async (
  * without a handle, and whether the ACP may read `handle` with one.
  */
 const checkAccess = async (acp: ACP, publicClient: PublicClient, handle?: bigint | Hex): Promise<ACPAccessStatus> => {
+  // The issuer half of a share carries no recipient signature (the recipient adds it on import), so
+  // the ACL check would always fail it. What can change for the issuer is expiry and revocation.
+  if (acp.type === 'sharing' && handle === undefined) {
+    if (ACPUtils.isExpired(acp)) return 'expired';
+    return (await isACPRevoked(acp, publicClient)) ? 'revoked' : 'valid';
+  }
   return ACPUtils.checkAccessOnChain(acp, publicClient, handle);
 };
 

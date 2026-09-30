@@ -152,6 +152,28 @@ describe('Core ACPs Tests', () => {
     });
   });
 
+  describe('checkAccess on the issuer copy of a share', () => {
+    it('is valid while unexpired and not revoked, without needing the recipient signature', async () => {
+      const sharing = await acps.createSharing(
+        { name: 'To Alice', issuer: bobAddress, recipient: aliceAddress },
+        publicClient,
+        bobWalletClient
+      );
+      expect(sharing.recipientSignature).toBe('0x');
+      // No revoker configured here, so nothing on chain can disable it: valid without any RPC.
+      expect(await acps.checkAccess(sharing, publicClient)).toBe('valid');
+    });
+
+    it('reports expiry locally', async () => {
+      const sharing = await acps.createSharing(
+        { name: 'Old', issuer: bobAddress, recipient: aliceAddress, expiration: 1 },
+        publicClient,
+        bobWalletClient
+      );
+      expect(await acps.checkAccess(sharing, publicClient)).toBe('expired');
+    });
+  });
+
   describe('Import without activation', () => {
     const ZERO_SHARE_ID = `0x${'0'.repeat(64)}` as const;
 

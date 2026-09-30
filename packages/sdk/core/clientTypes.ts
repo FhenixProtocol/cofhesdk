@@ -116,7 +116,8 @@ export type CofheClientACPs = {
   /**
    * The ACP on-chain status as a value instead of a revert. Without a handle: 'valid', or
    * 'expired' / 'revoked' / an invalid signature. With a handle, a valid ACP reports
-   * 'allowed', 'out-of-scope' or 'issuer-not-allowed'.
+   * 'allowed', 'out-of-scope' or 'issuer-not-allowed'. For the issuer copy of a share (type
+   * 'sharing', no recipient signature yet) the handle-less check covers expiry and revocation only.
    */
   checkAccess: (acp: ACP, handle?: bigint | `0x${string}`) => Promise<ACPAccessStatus>;
 

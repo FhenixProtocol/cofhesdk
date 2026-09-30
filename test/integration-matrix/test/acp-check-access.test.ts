@@ -59,8 +59,10 @@ describe.each(enabledChains)('[ACP CHECK ACCESS] $label', (chainConfig) => {
     expect(await acp.checkAccess(bobSelf, handleA)).toBe('allowed');
     expect(await acp.checkAccess(bobSelf, BigInt(handleA))).toBe('allowed');
 
-    // A SNAPSHOT share covering A only.
+    // A SNAPSHOT share covering A only. The issuer copy has no recipient signature; its status
+    // still answers: expiry and revocation.
     const sharing = await acp.createSharing({ issuer: bob, recipient: alice, name: 'A only', handles: [handleA] });
+    expect(await acp.checkAccess(sharing)).toBe('valid');
 
     await ctx.cofheClient.connect(ctx.publicClient, ctx.aliceWalletClient);
     try {
@@ -80,6 +82,8 @@ describe.each(enabledChains)('[ACP CHECK ACCESS] $label', (chainConfig) => {
         hash: revokeTx,
         confirmations: chainConfig.txConfirmationsRequired,
       });
+
+      expect(await acp.checkAccess(sharing)).toBe('revoked');
 
       await ctx.cofheClient.connect(ctx.publicClient, ctx.aliceWalletClient);
       expect(await acp.checkAccess(imported)).toBe('revoked');
