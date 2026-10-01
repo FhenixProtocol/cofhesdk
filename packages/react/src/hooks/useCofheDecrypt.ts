@@ -13,9 +13,9 @@ import type { CofheDecryptMeta } from '@/meta';
  * The cache key of one decrypt: a ciphertext handle decrypted on one chain, shaped like the read
  * key — `[prefix, chainId, ctHash, utype, acpHash]`. The chain is part of the key because it selects
  * the ACP and threshold network that answer — the same handle on two chains is two requests.
- * `acpHash` names an explicitly chosen ACP (a hook's `acp` option or a `<CofheACPScope>`) and is
- * `undefined` for the active ACP, so a scoped decrypt never answers an unscoped one: the same handle
- * may be decryptable with a shared ACP and not with the user's own.
+ * `acpHash` names the ACP that decrypts (a hook's `acp` option, a `<CofheACPScope>`, or the active
+ * ACP), so a value decrypted with one ACP never answers for another: the same handle may be
+ * decryptable with a shared ACP and not with the user's own, also when the active ACP changes.
  */
 export function constructCofheDecryptQueryKey(params: {
   ctHash: string | undefined;
@@ -76,13 +76,19 @@ export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<
   const effectiveACP = useCofheEffectiveACP({ acp, chainId });
   const scopedACP = effectiveACP.scoped ? effectiveACP.acp : undefined;
 
-  // A chosen ACP that is no longer valid (e.g. expired) takes its plaintext with it: the disabled
-  // query would otherwise keep serving the value decrypted while it was valid.
+  const decryptACP = effectiveACP.acp;
+
+  // An ACP that is no longer valid (e.g. expired) takes its plaintext with it: the disabled query
+  // would otherwise keep serving the value decrypted while it was valid. The user own active ACP
+  // keeps its values (they are the user own data, and persisted).
   const queryClient = useInternalQueryClient();
-  const invalidScopedHash = scopedACP && !effectiveACP.isValid ? scopedACP.hash : undefined;
+  const invalidHash =
+    decryptACP && !effectiveACP.isValid && (effectiveACP.scoped || decryptACP.type !== 'self')
+      ? decryptACP.hash
+      : undefined;
   useEffect(() => {
-    if (invalidScopedHash) removeDecryptsOfACPs(queryClient, new Set([invalidScopedHash]));
-  }, [invalidScopedHash, queryClient]);
+    if (invalidHash) removeDecryptsOfACPs(queryClient, new Set([invalidHash]));
+  }, [invalidHash, queryClient]);
 
   const { enabled: userEnabled, meta: optionMeta, ...restQueryOptions } = queryOptions || {};
   // A SNAPSHOT share that does not list this handle can only fail: never send it.
@@ -96,7 +102,7 @@ export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<
       ctHash: input?.ctHash.toString(),
       utype: input?.utype,
       chainId: decryptChainId,
-      acpHash: scopedACP?.hash,
+      acpHash: decryptACP?.hash,
     }),
     queryFn: async () => {
       assert(input, 'input is guaranteed to be defined by enabled condition');
@@ -109,7 +115,7 @@ export function useCofheDecrypt<U extends FheTypes, TSeletedData = UnsealedItem<
     meta: {
       // Persist only what the user own ACP decrypts, whether chosen or active: plaintext decrypted
       // with a shared ACP must not outlive the share, so it stays in memory.
-      persist: effectiveACP.acp?.type === 'self',
+      persist: decryptACP?.type === 'self',
       kind: 'cofheDecrypt',
       ctHash: input?.ctHash?.toString(),
       chainId: context?.chainId ?? decryptChainId,

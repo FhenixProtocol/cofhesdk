@@ -241,7 +241,7 @@ describeOnAnvil('react hooks: <CofheACPScope> decrypts with a shared ACP (Anvil)
 
     // Plaintext decrypted with a shared ACP stays in memory only; the user own decrypts still persist.
     expect(decryptsUnder(removable.hash)[0].meta?.persist).toBe(false);
-    expect(decryptsUnder(undefined)[0].meta?.persist).toBe(true);
+    expect(decryptsUnder(aliceClient.acp.getActiveACPHash())[0].meta?.persist).toBe(true);
 
     // Nothing decrypted with an ACP may stay readable once the ACP is gone. (A still-mounted hook
     // may re-register an empty, disabled query under the same key; it holds no value.)
@@ -308,6 +308,22 @@ describeOnAnvil('react hooks: <CofheACPScope> decrypts with a shared ACP (Anvil)
       .filter((q) => q.queryKey[2] != null && q.state.data !== undefined);
     expect(decrypted).toHaveLength(1);
     expect(decrypted[0].meta?.persist).toBe(false);
+    // Cached under the ACP that decrypted it, like a scoped decrypt.
+    expect(decrypted[0].queryKey[4]).toBe(shared.hash);
+
+    // Alice switches back to an ACP of her own: the value decrypted with the share is not served to
+    // it (her own ACP cannot read Bob value), and removing the share drops that value.
+    const own = await aliceClient.acp.createSelf({ issuer: ALICE.address, name: 'Alice own' });
+    expect(aliceClient.acp.getActiveACPHash()).toBe(own.hash);
+    await waitFor(() => expect(shown('active share')).toBe('decrypt error'), { timeout: 90_000 });
+
+    aliceClient.acp.removeACP(shared.hash);
+    const underShare = () =>
+      queryClient
+        .getQueryCache()
+        .findAll({ queryKey: ['decryptCiphertext'] })
+        .filter((q) => q.queryKey[4] === shared.hash && q.state.data !== undefined);
+    await waitFor(() => expect(underShare()).toHaveLength(0), { timeout: 10_000 });
   }, 180_000);
   it('a revoked share turns the scope off; a SNAPSHOT share flags values it does not cover', async () => {
     const publicClient = createPublicClient({ chain, transport: custom(transport()) });

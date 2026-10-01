@@ -118,9 +118,9 @@ export function useCofheReadContractAndDecrypt<
   // name the exact cache entry a superseded decrypt lives under.
   const connectedChainId = useCofheChainId();
   const decryptChainId = params.chainId ?? connectedChainId;
-  // Likewise the ACP the decrypt is keyed under: an explicitly chosen one, or none for the active ACP.
+  // Likewise the ACP the decrypt is keyed under: the chosen one, else the active one.
   const decryptACP = useCofheEffectiveACP({ acp: params.acp, chainId: params.chainId });
-  const decryptACPHash = decryptACP.scoped ? decryptACP.acp?.hash : undefined;
+  const decryptACPHash = decryptACP.acp?.hash;
 
   // The read and its decryption share one chain: the decrypt below uses the read's `chainId`.
   const encrypted = useCofheReadContract({ ...params, requiresACP }, readQueryOptions);

@@ -15,7 +15,7 @@ export function storedACPHashes(snapshot: ACPSnapshot): Set<string> {
 
 /**
  * Drop every decrypt cached under one of `acpHashes`: the ACP-hash segment of the decrypt key
- * (see `constructCofheDecryptQueryKey`), set for decrypts made with an explicitly chosen ACP.
+ * (see `constructCofheDecryptQueryKey`), the ACP each value was decrypted with.
  */
 export function removeDecryptsOfACPs(queryClient: QueryClient, acpHashes: ReadonlySet<string>): void {
   if (acpHashes.size === 0) return;
