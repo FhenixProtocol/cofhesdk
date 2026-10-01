@@ -222,10 +222,6 @@ export type SharedACP = Expand<
 >;
 
 /**
- * A share read back from the on-chain ACPShareRegistry: the posted payload
- * (SharedACP minus the client-side name/type) plus its registry id.
- */
-/**
  * An ACP on-chain status, as `client.acp.checkAccess` reports it instead of a revert.
  * Without a handle: 'valid' or the reason it is not. With a handle, a valid ACP reports
  * 'allowed', 'out-of-scope' (the ACP scope does not cover the handle) or
@@ -241,6 +237,10 @@ export type ACPAccessStatus =
   | 'invalid-issuer-signature'
   | 'invalid-recipient-signature';
 
+/**
+ * A share read back from the on-chain ACPShareRegistry: the posted payload
+ * (SharedACP minus the client-side name/type) plus its registry id.
+ */
 export type IncomingShare = Expand<Omit<SharedACP, 'name' | 'type'> & { shareId: Hex }>;
 
 /**
