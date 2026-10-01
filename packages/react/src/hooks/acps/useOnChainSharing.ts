@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useCallback } from 'react';
 import type { Hex } from 'viem';
 import type { ACP, ImportSharedACPOptions, IncomingShare, RecipientACP } from '@cofhe/sdk/acps';
 import { CofheError, CofheErrorCode } from '@cofhe/sdk';
@@ -38,7 +38,17 @@ export const useCofheIncomingShares = ({
   const chainId = useCofheChainId();
   const received = useCofheACPs({ type: 'recipient' });
 
-  const query = useInternalQuery<IncomingShare[]>({
+  // Leave out shares this account already imported. Filtering in `select` (rather than copying the
+  // result) keeps react-query's tracked properties: consumers re-render only on what they read.
+  const select = useCallback(
+    (shares: IncomingShare[]) =>
+      shares.filter(
+        (share) => !received.some((acp) => acp.issuerSignature.toLowerCase() === share.issuerSignature.toLowerCase())
+      ),
+    [received]
+  );
+
+  return useInternalQuery<IncomingShare[]>({
     queryKey: [INCOMING_SHARES_KEY, chainId, account],
     enabled: enabled && account != null && chainId != null,
     refetchInterval: refetchIntervalMs,
@@ -51,16 +61,8 @@ export const useCofheIncomingShares = ({
         throw e;
       }
     },
+    select,
   });
-
-  const data = useMemo(
-    () =>
-      query.data?.filter(
-        (share) => !received.some((acp) => acp.issuerSignature.toLowerCase() === share.issuerSignature.toLowerCase())
-      ),
-    [query.data, received]
-  );
-  return { ...query, data } as typeof query;
 };
 
 /** Issuer side: post a signed sharing ACP to the on-chain share registry. Resolves once mined. */
