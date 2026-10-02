@@ -279,3 +279,95 @@ describe('signature slot follows the encrypted run, not the parameter list', () 
     );
   });
 });
+
+// Struct-array inputs (`tuple[]` / `tuple[N]`) — e.g. a batch order submission taking
+// `Order[]`. The regression: the array itself was walked as one tuple, so the named-component
+// lookups found nothing. Extraction handed `undefined` to the encryptable transform instead of
+// the real values, and insertion consumed no hashes and collapsed the argument to `{}`.
+const structArrayArgs = [
+  [
+    { value: 1000n, encryptedInput: 300n },
+    { value: 2000n, encryptedInput: 400n },
+  ],
+] as const;
+
+describe('struct arrays', () => {
+  it('should extract an encrypted input from every element of a struct array', () => {
+    const extracted = extractEncryptableValues(TestABI, 'fnStructArrayContainsEncryptedInput', structArrayArgs);
+    expect(extracted).toEqual([Encryptable.uint32(300n), Encryptable.uint32(400n)]);
+  });
+
+  it('should extract nothing from an empty struct array', () => {
+    const extracted = extractEncryptableValues(TestABI, 'fnStructArrayContainsEncryptedInput', [[]]);
+    expect(extracted).toEqual([]);
+  });
+
+  it('should extract from a fixed-size struct array', () => {
+    const extracted = extractEncryptableValues(TestABI, 'fnStructArrayFixedContainsEncryptedInput', structArrayArgs);
+    expect(extracted).toEqual([Encryptable.uint32(300n), Encryptable.uint32(400n)]);
+  });
+
+  it('should reject a fixed-size struct array of the wrong length', () => {
+    // Cast past the arg type: it now pins `tuple[2]` to exactly two elements, so a short array
+    // is a compile error. The runtime guard still has to hold for callers without those types.
+    const short = [[{ value: 1000n, encryptedInput: 300n }]] as unknown as Parameters<
+      typeof extractEncryptableValues<typeof TestABI, 'fnStructArrayFixedContainsEncryptedInput'>
+    >[2];
+    expect(() => extractEncryptableValues(TestABI, 'fnStructArrayFixedContainsEncryptedInput', short)).toThrow(
+      'Array size mismatch: 2 !== 1'
+    );
+  });
+
+  it('should insert a hash into every element of a struct array', () => {
+    const inserted = insertEncryptedValues(TestABI, 'fnStructArrayContainsEncryptedInput', structArrayArgs, [
+      createHash(1n),
+      createHash(2n),
+      SIGNATURE,
+    ]);
+    expect(inserted).toEqual([
+      [
+        { value: 1000n, encryptedInput: createHash(1n) },
+        { value: 2000n, encryptedInput: createHash(2n) },
+      ],
+      SIGNATURE,
+    ]);
+  });
+
+  it('should insert into a fixed-size struct array', () => {
+    const inserted = insertEncryptedValues(TestABI, 'fnStructArrayFixedContainsEncryptedInput', structArrayArgs, [
+      createHash(1n),
+      createHash(2n),
+      SIGNATURE,
+    ]);
+    expect(inserted).toEqual([
+      [
+        { value: 1000n, encryptedInput: createHash(1n) },
+        { value: 2000n, encryptedInput: createHash(2n) },
+      ],
+      SIGNATURE,
+    ]);
+  });
+
+  it('should keep a struct array with no encrypted fields intact', () => {
+    const rows = [
+      [
+        { id: 1n, owner: '0xaaaa000000000000000000000000000000000001' },
+        { id: 2n, owner: '0xaaaa000000000000000000000000000000000002' },
+      ],
+    ] as const;
+    expect(extractEncryptableValues(TestABI, 'fnPlainStructArray', rows)).toEqual([]);
+    expect(insertEncryptedValues(TestABI, 'fnPlainStructArray', rows, [])).toEqual(rows);
+  });
+
+  it('should extract and insert struct-array hashes in the same order', () => {
+    const extracted = extractEncryptableValues(TestABI, 'fnStructArrayContainsEncryptedInput', structArrayArgs);
+    // The hash at index i must land on the element extraction took its plaintext from.
+    const hashes = extracted.map((_item, i) => createHash(BigInt(i + 1)));
+    const inserted = insertEncryptedValues(TestABI, 'fnStructArrayContainsEncryptedInput', structArrayArgs, [
+      ...hashes,
+      SIGNATURE,
+    ]);
+    const orders = (inserted as readonly unknown[])[0] as readonly { encryptedInput: string }[];
+    expect(orders.map((order) => order.encryptedInput)).toEqual(hashes);
+  });
+});
