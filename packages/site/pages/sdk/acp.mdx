@@ -380,14 +380,14 @@ event Shared(address indexed recipient, address indexed issuer, bytes32 indexed 
 
 `getIncomingShares` reads the heads with `sharesFor` (one call, filtered for expiry and revocation on-chain), then the events with one single-block `getLogs` per block, filtered by the share ids — a query any node answers, however old the block. Contracts keep `isShareValid(shareId)`; they cannot read a share's handles. Removing a share deletes its head; its event stays in its block, and readers no longer find it.
 
-Gas of `share(acp, metadata)`, measured on Arbitrum Sepolia (L2 execution gas; the L1 data part depends on the calldata, as before), against the previous registry that stored every field and one slot per ctHash:
+Gas of `share(acp, metadata)`, measured on Arbitrum Sepolia with ACPs as the SDK creates them (default revoker and creation timestamp set). L2 execution gas; the L1 data part depends on the calldata, as before. The previous registry stored every field and one slot per ctHash:
 
 | Share        | Previous registry | This registry | With labels            |
 | ------------ | ----------------- | ------------- | ---------------------- |
-| 1 ctHash     | 297k              | 146k          | 147k (36-byte blob)    |
-| 7 ctHashes   | 434k              | 151k          | 153k (122-byte blob)   |
-| 20 ctHashes  | 729k              | 161k          | 167k (288-byte blob)   |
-| 100 ctHashes | 2,545k            | 224k          | 251k (1,248-byte blob) |
+| 1 ctHash     | 317k              | 186k          | 187k (36-byte blob)    |
+| 7 ctHashes   | 453k              | 191k          | 194k (122-byte blob)   |
+| 20 ctHashes  | 749k              | 201k          | 207k (288-byte blob)   |
+| 100 ctHashes | 2,564k            | 265k          | 291k (1,248-byte blob) |
 
 A recipient's first share costs about 17k more (it starts their list).
 
