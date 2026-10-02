@@ -19,8 +19,12 @@ export type {
 // Main utilities
 export { ACPUtils } from './acp.js';
 
-// On-chain sharing: registry / revoker ABIs, the registry payload and share id of a sharing ACP
+// On-chain sharing: registry / revoker ABIs, the registry payload and share id of a sharing ACP,
+// and the read of posted shares from their Shared events
 export * from './registry.js';
+
+// Share metadata: labels saying where each handle of a SNAPSHOT share came from
+export * from './share-metadata/index.js';
 
 // Addresses the chain ACL serves (TaskManager -> acl() -> default revoker, share registry)
 export {

@@ -239,9 +239,11 @@ export type ACPAccessStatus =
 
 /**
  * A share read back from the on-chain ACPShareRegistry: the posted payload
- * (SharedACP minus the client-side name/type) plus its registry id.
+ * (SharedACP minus the client-side name/type), its registry id, and the
+ * metadata blob posted with it (`0x` when none) — for a SNAPSHOT share, the
+ * labels of its handles (`decodeShareMetadata` / `describeShareMetadata`).
  */
-export type IncomingShare = Expand<Omit<SharedACP, 'name' | 'type'> & { shareId: Hex }>;
+export type IncomingShare = Expand<Omit<SharedACP, 'name' | 'type'> & { shareId: Hex; metadata: Hex }>;
 
 /**
  * A type representing the acp fields that are used to generate the hash

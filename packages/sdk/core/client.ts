@@ -1,4 +1,5 @@
 import type { CreateSelfACPOptions, CreateSharingACPOptions, ImportSharedACPOptions } from '@/acps';
+import { decodeShareMetadata, verifyShareLabels } from '@/acps';
 
 import { createStore } from 'zustand/vanilla';
 import { type Hex, type PublicClient, type WalletClient } from 'viem';
@@ -320,12 +321,12 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
     },
 
     // On-chain sharing (require connection + config.acp.sharingRegistry)
-    shareOnChain: async (acp) => {
+    shareOnChain: async (acp, options) => {
       _requireConnected();
       const { publicClient, walletClient } = connectStore.getState();
       const chainId = await publicClient!.getChainId();
       const sharingRegistry = await _resolveSharingRegistry(publicClient!, chainId);
-      return acps.shareOnChain(acp, walletClient!, sharingRegistry);
+      return acps.shareOnChain(acp, walletClient!, sharingRegistry, options);
     },
 
     getIncomingShares: async () => {
@@ -335,6 +336,27 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
       const account = walletClient!.account!.address;
       const sharingRegistry = await _resolveSharingRegistry(publicClient!, chainId);
       return acps.getIncomingShares(publicClient!, sharingRegistry, account);
+    },
+
+    getShareFromChain: async (shareId) => {
+      _requireConnected();
+      const { publicClient } = connectStore.getState();
+      const chainId = await publicClient!.getChainId();
+      const sharingRegistry = await _resolveSharingRegistry(publicClient!, chainId);
+      return acps.getShareFromChain(publicClient!, sharingRegistry, shareId);
+    },
+
+    verifyShareLabels: async (share, options) => {
+      _requireConnected();
+      const { publicClient } = connectStore.getState();
+      if (share.metadata === '0x') return null;
+      return verifyShareLabels({
+        labels: decodeShareMetadata(share.metadata, share.handles),
+        handles: share.handles,
+        issuer: share.issuer,
+        publicClient: publicClient!,
+        verify: options?.verify,
+      });
     },
 
     importFromChain: async (share, options) => {
