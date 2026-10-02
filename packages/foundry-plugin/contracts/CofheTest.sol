@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.25;
 
 import { Test } from 'forge-std/Test.sol';
 import '@fhenixprotocol/cofhe-contracts/FHE.sol';
@@ -7,6 +7,7 @@ import { MockTaskManager } from '@cofhe/mock-contracts/contracts/MockTaskManager
 import { MockACL } from '@cofhe/mock-contracts/contracts/MockACL.sol';
 import { ACPTimestampRevoker } from '@cofhe/mock-contracts/contracts/ACPTimestampRevoker.sol';
 import { ACPShareRegistry } from '@cofhe/mock-contracts/contracts/ACPShareRegistry.sol';
+import { MockERC1967Proxy } from '@cofhe/mock-contracts/contracts/MockERC1967Proxy.sol';
 import { MockZkVerifier } from '@cofhe/mock-contracts/contracts/MockZkVerifier.sol';
 import { MockZkVerifierSigner } from './MockZkVerifierSigner.sol';
 import { MockThresholdNetwork } from '@cofhe/mock-contracts/contracts/MockThresholdNetwork.sol';
@@ -64,7 +65,16 @@ abstract contract CofheTest is Test {
     mockAcl.setDefaultRevokerContract(address(acpRevoker));
 
     // ACP: on-chain hand-off for sharing ACPs
-    acpShareRegistry = new ACPShareRegistry();
+    // the production contract (upgradeable): behind a proxy, initialized with this test as admin
+    ACPShareRegistry acpShareRegistryImpl = new ACPShareRegistry();
+    acpShareRegistry = ACPShareRegistry(
+      address(
+        new MockERC1967Proxy(
+          address(acpShareRegistryImpl),
+          abi.encodeCall(ACPShareRegistry.initialize, (address(this)))
+        )
+      )
+    );
     vm.label(address(acpShareRegistry), 'ACPShareRegistry');
     mockAcl.setShareRegistry(address(acpShareRegistry));
 

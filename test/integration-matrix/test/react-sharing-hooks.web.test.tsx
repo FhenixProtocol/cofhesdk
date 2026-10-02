@@ -11,10 +11,20 @@ import React, { useEffect, useState } from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, inject, it } from 'vitest';
 import { QueryClient } from '@tanstack/react-query';
-import { createPublicClient, createWalletClient, custom, defineChain, type Address, type Chain } from 'viem';
+import {
+  createPublicClient,
+  createWalletClient,
+  custom,
+  defineChain,
+  parseAbi,
+  toFunctionSelector,
+  type Address,
+  type Chain,
+  type Hex,
+} from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { hardhat as hardhatCofheChain } from '@cofhe/sdk/chains';
-import { acpStore, type ACP, type IncomingShare } from '@cofhe/sdk/acps';
+import { acpStore, type ACP, type IncomingShare, type ShareLabel } from '@cofhe/sdk/acps';
 import { createCofheClient } from '@cofhe/sdk/web';
 import {
   CofheProvider,
@@ -24,6 +34,7 @@ import {
   useCofheIncomingShares,
   useCofheRemoveShare,
   useCofheRevokeACP,
+  useCofheShareLabels,
   useCofheShareOnChain,
 } from '@cofhe/react';
 
@@ -95,6 +106,33 @@ function Recipient() {
       <button onClick={() => seen && remove.mutate(seen.shareId)}>dismiss</button>
       <output aria-label="dismissed">{remove.isSuccess ? 'yes' : remove.error ? remove.error.message : ''}</output>
     </>
+  );
+}
+
+const SIMPLE_TEST_ABI = parseAbi([
+  'function setValueTrivial(uint256 inValue)',
+  'function getValueHash() view returns (bytes32)',
+]);
+
+function LabellingIssuer({ acp, labels }: { acp: ACP; labels: ShareLabel[] }) {
+  const share = useCofheShareOnChain();
+  return (
+    <>
+      <button onClick={() => share.mutate({ acp, labels })}>share labelled</button>
+      <output aria-label="labelled share result">
+        {share.data?.shareId ?? (share.error ? share.error.message : '')}
+      </output>
+    </>
+  );
+}
+
+function LabelReader() {
+  const incoming = useCofheIncomingShares({ refetchIntervalMs: 1_000 });
+  const { labels } = useCofheShareLabels(incoming.data?.[0], { abis: { [SIMPLE_TEST]: SIMPLE_TEST_ABI } });
+  return (
+    <output aria-label="labels">
+      {labels?.map((l) => `${l.kind === 'stored' ? l.function?.name : l.kind}:${l.check}`).join(' ') ?? ''}
+    </output>
   );
 }
 
@@ -170,5 +208,81 @@ describeOnAnvil('react hooks: on-chain sharing (Anvil)', () => {
     click('revoke');
     await waitFor(() => expect(shown('revoke result')).toMatch(/^0x/), { timeout: 60_000 });
     await waitFor(() => expect(shown('issuer status')).toBe('revoked'), { timeout: 30_000 });
+  }, 180_000);
+
+  it('a labelled SNAPSHOT share: posted with its labels, described and verified by the recipient', async () => {
+    const publicClient = createPublicClient({ chain, transport: custom(transport()) });
+    const bobWallet = createWalletClient({ chain, transport: custom(transport()), account: BOB });
+    const aliceWallet = createWalletClient({ chain, transport: custom(transport()), account: ALICE });
+    const config = createCofheConfig({
+      supportedChains: [hardhatCofheChain],
+      react: { autogenerateACPs: false },
+      acp: { sharingRegistry: { 31337: SHARE_REGISTRY } },
+    });
+
+    // Bob stores a value; the label says it is what getValueHash() returned at that block.
+    const hash = await bobWallet.writeContract({
+      address: SIMPLE_TEST,
+      abi: SIMPLE_TEST_ABI,
+      functionName: 'setValueTrivial',
+      args: [7n],
+    });
+    const { blockNumber } = await publicClient.waitForTransactionReceipt({ hash });
+    const ctHash = await publicClient.readContract({
+      address: SIMPLE_TEST,
+      abi: SIMPLE_TEST_ABI,
+      functionName: 'getValueHash',
+      blockNumber,
+    });
+    const read: ShareLabel = {
+      kind: 'stored',
+      contract: SIMPLE_TEST,
+      selector: toFunctionSelector('getValueHash()'),
+      args: [],
+      returnWord: 0,
+      block: blockNumber,
+    };
+    // The second handle claims the same read, which did not return it: a lie the check catches.
+    const other: Hex = `0x${'0'.repeat(63)}1`;
+
+    const bobClient = createCofheClient(config);
+    await bobClient.connect(publicClient, bobWallet);
+    const sharing = await bobClient.acp.createSharing({
+      issuer: BOB.address,
+      recipient: ALICE.address,
+      name: 'labelled',
+      handles: [ctHash, other],
+    });
+    const aliceClient = createCofheClient(config);
+    await aliceClient.connect(publicClient, aliceWallet);
+
+    render(
+      <>
+        <CofheProvider
+          cofheClient={bobClient}
+          queryClient={new QueryClient()}
+          publicClient={publicClient}
+          walletClient={bobWallet}
+        >
+          <LabellingIssuer acp={sharing} labels={[read, read]} />
+        </CofheProvider>
+        <CofheProvider
+          cofheClient={aliceClient}
+          queryClient={new QueryClient()}
+          publicClient={publicClient}
+          walletClient={aliceWallet}
+        >
+          <LabelReader />
+        </CofheProvider>
+      </>
+    );
+
+    click('share labelled');
+    await waitFor(() => expect(shown('labelled share result')).toMatch(/^0x[0-9a-f]{64}$/), { timeout: 60_000 });
+    await waitFor(() => expect(shown('labels')).toBe('getValueHash:verified getValueHash:mismatch'), {
+      timeout: 30_000,
+    });
+
+    await aliceClient.acp.dismissShare(shown('labelled share result') as Hex);
   }, 180_000);
 });

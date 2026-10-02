@@ -190,7 +190,7 @@ describe('Core ACPs Tests', () => {
 
     const toIncomingShare = (sharing: SharingACP): IncomingShare => {
       const { sealingKey: _sealingKey, recipientSignature: _recipientSignature, ...pub } = ACPUtils.getPublic(sharing);
-      return { ...pub, shareId: ZERO_SHARE_ID };
+      return { ...pub, shareId: ZERO_SHARE_ID, metadata: '0x' };
     };
 
     it('importShared activates the imported acp by default', async () => {

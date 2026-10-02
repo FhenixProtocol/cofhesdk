@@ -18,7 +18,8 @@
     "contracts/**/*.sol",
     "foundry.toml",
     "remappings.txt",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "contracts/cofhe-contracts.json"
   ],
   "keywords": [
     "blockchain",
@@ -34,12 +35,13 @@
   ],
   "scripts": {
     "build": "node scripts/build.mjs",
-    "test": "forge build -q && forge test -vvv",
+    "test": "node scripts/cofhe-contracts.mjs --check && forge build -q && forge test -vvv",
     "test:coverage": "forge coverage",
     "anvil": "anvil --code-size-limit 100000",
     "lint": "echo 'No linting configured for Solidity'",
     "clean": "rm -rf out && rm -rf cache",
-    "dev": "anvil --code-size-limit 100000"
+    "dev": "anvil --code-size-limit 100000",
+    "update:cofhe-contracts": "node scripts/cofhe-contracts.mjs --update"
   },
   "dependencies": {
     "@fhenixprotocol/cofhe-contracts": "0.2.0",

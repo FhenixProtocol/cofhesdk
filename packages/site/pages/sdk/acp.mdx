@@ -366,9 +366,152 @@ const acp = await client.acp.importFromChain(incoming[0]);
 await client.acp.dismissShare(incoming[0].shareId);
 ```
 
-An app that sends these writes through its own transaction path can use the same pieces from `@cofhe/sdk/acps`: `ACP_SHARE_REGISTRY_ABI`, `ACP_REVOKER_ABI`, `toChainShare(acp)` (the registry payload), `computeShareId(acp)` (the id the registry assigns) and `getAclServedAddresses(publicClient, chainId)` (the registry and default revoker the chain ACL serves).
+An app that sends these writes through its own transaction path can use the same pieces from `@cofhe/sdk/acps`: `ACP_SHARE_REGISTRY_ABI`, `ACP_REVOKER_ABI`, `toChainShare(acp)` (the registry payload), `computeShareId(acp)` (the id the registry assigns), `readSharesFor` / `readShare` (shares read back from the registry) and `getAclServedAddresses(publicClient, chainId)` (the registry and default revoker the chain ACL serves).
 
 The registry lists only importable shares: expired shares and shares whose underlying acp was revoked are filtered out. Everything posted is cleartext by design (the same data as the exported JSON) — note that posting on-chain makes the issuer→recipient relationship public.
+
+### How the registry keeps a share
+
+The registry keeps in storage only what it checks itself — the share **head**: issuer, expiration, recipient, revoker, and the block of the share's `Shared` event. The full payload and its metadata travel in that event:
+
+```solidity
+event Shared(address indexed recipient, address indexed issuer, bytes32 indexed shareId, ACP acp, bytes metadata);
+```
+
+`getIncomingShares` reads the heads with `sharesFor` (one call, filtered for expiry and revocation on-chain), then the events with one single-block `getLogs` per block, filtered by the share ids — a query any node answers, however old the block. Contracts keep `isShareValid(shareId)`; they cannot read a share's handles. Removing a share deletes its head; its event stays in its block, and readers no longer find it.
+
+Gas of `share(acp, metadata)`, measured on Arbitrum Sepolia with ACPs as the SDK creates them (default revoker and creation timestamp set). L2 execution gas; the L1 data part depends on the calldata, as before. The previous registry stored every field and one slot per ctHash:
+
+| Share        | Previous registry | This registry | With labels            |
+| ------------ | ----------------- | ------------- | ---------------------- |
+| 1 ctHash     | 317k              | 186k          | 187k (36-byte blob)    |
+| 7 ctHashes   | 453k              | 191k          | 194k (122-byte blob)   |
+| 20 ctHashes  | 749k              | 201k          | 207k (288-byte blob)   |
+| 100 ctHashes | 2,564k            | 265k          | 291k (1,248-byte blob) |
+
+A recipient's first share costs about 17k more (it starts their list).
+
+## Labelling a SNAPSHOT share
+
+A SNAPSHOT share (`handles` scope) lists ctHashes only, so the recipient has no way to tell what each one is. The issuer knows it at the moment of sharing, and can post it with the share: one **label** per handle, saying where the value came from in terms the recipient can check against the chain.
+
+- **Stored value** — what a view function of a contract returned at a block, e.g. `confidentialBalanceOf(issuer)`.
+- **Event value** — a value carried by one log: its contract, block, transaction, log index and event selector, e.g. the amount of a `ConfidentialTransfer`.
+- **Unlabelled** — the issuer chose not to say.
+
+Labels are written once, with the share, and cannot be replaced. The format speaks of contracts, selectors and positions in the chain only; it knows nothing of tokens.
+
+### Posting labels
+
+```ts twoslash [client.acp]
+// @noErrors
+declare const client: import('@cofhe/sdk').CofheClient;
+declare const token: `0x${string}`;
+declare const balanceHandle: `0x${string}`;
+declare const transferLog: import('viem').Log; // from getLogs / getContractEvents
+declare const transferHandle: `0x${string}`;
+declare const block: bigint;
+// ---cut---
+import { confidentialBalanceLabel, eventLabelOfLog } from '@cofhe/sdk/acps';
+
+const sharingAcp = await client.acp.createSharing({
+  issuer: '0x…',
+  recipient: '0x…',
+  handles: [balanceHandle, transferHandle],
+});
+
+// one label per handle, in the same order
+await client.acp.shareOnChain(sharingAcp, {
+  labels: [confidentialBalanceLabel(token, block), eventLabelOfLog(transferLog)],
+});
+```
+
+`labels` is encoded with `encodeShareMetadata`; an app that encodes itself passes `metadata` (the blob) instead.
+
+### Reading, verifying and describing labels
+
+Each `IncomingShare` carries its `metadata` blob (`0x` when posted without labels). Labels are the issuer's **claim**; check them before relying on them:
+
+```ts twoslash [client.acp]
+// @noErrors
+declare const client: import('@cofhe/sdk').CofheClient;
+declare const token: `0x${string}`;
+declare const tokenAbi: import('viem').Abi;
+// ---cut---
+import { describeShareMetadata } from '@cofhe/sdk/acps';
+
+const [share] = await client.acp.getIncomingShares();
+
+// one item per handle: function / event names and params from the ABIs you pass
+const items = describeShareMetadata(share.metadata, share.handles, { [token]: tokenAbi }, { issuer: share.issuer });
+
+// one check per handle: 'verified' | 'mismatch' | 'unverifiable' | 'skipped'
+const checks = await client.acp.verifyShareLabels(share, { verify: 'all' });
+```
+
+| `verify`          | Checks                               | Requests                                                              |
+| ----------------- | ------------------------------------ | --------------------------------------------------------------------- |
+| `'all'` (default) | every label                          | one `getLogs` per contract and block, one `eth_call` per stored value |
+| `'events'`        | event values only                    | one `getLogs` per contract and block                                  |
+| `'none'`          | nothing; trust the labels as written | none                                                                  |
+
+- A **stored value** is checked by repeating the view call at the labelled block: the returned word must be the ctHash. Once no node keeps the state of that block, the check returns `unverifiable` (an archive node is needed for old blocks).
+- An **event value** is checked against the log at the labelled block and log index: it must come from the labelled contract and transaction, its topic0 must start with the labelled selector, and the ctHash must be one of its topics or data words. Free nodes answer single-block log queries for blocks years old.
+
+`describeShareMetadata` never fails over a missing ABI: an unknown contract or selector leaves the item in raw form (`function` / `event` is `null`). Event parameter values are not in the label; they arrive with the log.
+
+### Layout
+
+One blob per share, version `0x03`. Contracts, selectors and transactions are listed once; each entry points to them by position. Entries follow the order of the share's handles. Integers are big-endian; sizes in bytes.
+
+```text
+blob = version (1)
+     | contracts:     count (1), 20 bytes each
+     | selectors:     count (1), 4 bytes each      function selectors, and event selectors (first 4 bytes of topic0)
+     | transactions:  count (1), 6 bytes each      block (4), tx index (2)
+     | entries: one per handle, in the share's order
+
+stored value = 0x00 | contract (1) | selector (1) | block (4) | args                    8 bytes or more
+event value  = 0x01 | contract (1) | transaction (1) | log index (2) | selector (1)     6 bytes
+unlabelled   = 0xff                                                                     1 byte
+
+args     = 0x00                                 no arguments
+         | 0x01                                 one argument: the share issuer
+         | 0xff | return word (1) | count (1) | argument, count times
+argument = 0x00 | word (32)                     a literal ABI word
+         | 0x01                                 the share issuer
+```
+
+A real share on Arbitrum Sepolia — two balances and five transfer amounts from four transactions — is 122 bytes:
+
+```text
+03                                           version 3
+02                                           2 contracts
+   389be1eb842290f264a6851f49c0149b8035a052     [0] fUSD
+   06a52cf2e0ceafc7d1f522400500ca7f3df18754     [1] fUSDy
+02                                           2 selectors
+   344ff101                                     [0] confidentialBalanceOf(address)
+   67500e8d                                     [1] ConfidentialTransfer(address,address,bytes32)
+04                                           4 transactions
+   12ba9304 0005                                [0] block 314217220, tx 5
+   12ba9307 0008                                [1] block 314217223, tx 8
+   12ba9309 000a                                [2] block 314217225, tx 10
+   12ba9375 000c                                [3] block 314217333, tx 12
+
+00 00 00 12bb9d0f 01      stored value: fUSD, confidentialBalanceOf(issuer) at block 314285327
+00 01 00 12bb9d0f 01      stored value: fUSDy, confidentialBalanceOf(issuer) at block 314285327
+01 00 00 001e 01          event value: fUSD, transaction 0, log 30, ConfidentialTransfer
+01 00 01 0041 01          event value: fUSD, transaction 1, log 65, ConfidentialTransfer
+01 00 02 008a 01          event value: fUSD, transaction 2, log 138, ConfidentialTransfer
+01 00 03 006a 01          event value: fUSD, transaction 3, log 106, ConfidentialTransfer
+01 01 03 0073 01          event value: fUSDy, transaction 3, log 115, ConfidentialTransfer
+```
+
+The last two are the two values of one vault deposit and share its transaction. The fUSDy amount appears in two logs of that transaction (115 and 118); the label names the `ConfidentialTransfer`, and a check against log 118 fails on its selector.
+
+**Limits.** 255 contracts, selectors and transactions per share (one-byte counts and positions); blocks up to 4.29 billion; 65,535 transactions per block and logs per block; stored-value arguments are static 32-byte words only.
+
+**Disclosure.** A label names one log. Where a ctHash appears in several logs, the label points at the one the issuer chose; the recipient learns that log's other parameters too.
 
 ## Checking an ACP on-chain
 

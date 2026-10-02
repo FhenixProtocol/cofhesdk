@@ -99,6 +99,7 @@ export interface MockACLInterface extends Interface {
       | 'AllowedForDecryption'
       | 'DefaultRevokerContractUpdated'
       | 'EIP712DomainChanged'
+      | 'Initialized'
       | 'NewDelegation'
       | 'ShareRegistryUpdated'
   ): EventFragment;
@@ -190,6 +191,18 @@ export namespace EIP712DomainChangedEvent {
   export type InputTuple = [];
   export type OutputTuple = [];
   export interface OutputObject {}
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace InitializedEvent {
+  export type InputTuple = [version: BigNumberish];
+  export type OutputTuple = [version: bigint];
+  export interface OutputObject {
+    version: bigint;
+  }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
   export type Log = TypedEventLog<Event>;
@@ -445,6 +458,9 @@ export interface MockACL extends BaseContract {
     EIP712DomainChangedEvent.OutputObject
   >;
   getEvent(
+    key: 'Initialized'
+  ): TypedContractEvent<InitializedEvent.InputTuple, InitializedEvent.OutputTuple, InitializedEvent.OutputObject>;
+  getEvent(
     key: 'NewDelegation'
   ): TypedContractEvent<NewDelegationEvent.InputTuple, NewDelegationEvent.OutputTuple, NewDelegationEvent.OutputObject>;
   getEvent(
@@ -487,6 +503,17 @@ export interface MockACL extends BaseContract {
       EIP712DomainChangedEvent.InputTuple,
       EIP712DomainChangedEvent.OutputTuple,
       EIP712DomainChangedEvent.OutputObject
+    >;
+
+    'Initialized(uint64)': TypedContractEvent<
+      InitializedEvent.InputTuple,
+      InitializedEvent.OutputTuple,
+      InitializedEvent.OutputObject
+    >;
+    Initialized: TypedContractEvent<
+      InitializedEvent.InputTuple,
+      InitializedEvent.OutputTuple,
+      InitializedEvent.OutputObject
     >;
 
     'NewDelegation(address,address,address)': TypedContractEvent<

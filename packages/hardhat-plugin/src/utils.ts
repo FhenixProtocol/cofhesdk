@@ -12,7 +12,11 @@ import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 /// so that Hardhat can decode reverts and trace calls against these contracts.
 /// If the mock contract should be deployed to a fixed address, `hardhat_setCode` is used.
 /// Otherwise, ethers.js deploys it to a normal address.
-export const deployMockContractFromArtifact = async (hre: HardhatRuntimeEnvironment, artifact: MockArtifact) => {
+export const deployMockContractFromArtifact = async (
+  hre: HardhatRuntimeEnvironment,
+  artifact: MockArtifact,
+  constructorArgs: readonly unknown[] = []
+) => {
   const hardhatArtifact = await hre.artifacts.readArtifact(artifact.contractName);
 
   if (artifact.isFixed) {
@@ -22,7 +26,7 @@ export const deployMockContractFromArtifact = async (hre: HardhatRuntimeEnvironm
 
   const [signer] = await hre.ethers.getSigners();
   const factory = new hre.ethers.ContractFactory(hardhatArtifact.abi, hardhatArtifact.bytecode, signer);
-  const contract = await factory.deploy();
+  const contract = await factory.deploy(...constructorArgs);
   await contract.waitForDeployment();
   return contract as Contract;
 };

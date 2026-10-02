@@ -63,22 +63,155 @@ export type ACPStructOutput = [
   recipientSignature: string;
 };
 
+export declare namespace ACPShareRegistry {
+  export type ShareHeadStruct = {
+    issuer: AddressLike;
+    expiration: BigNumberish;
+    recipient: AddressLike;
+    blockNumber: BigNumberish;
+    revokerContract: AddressLike;
+    revokerData: BigNumberish;
+  };
+
+  export type ShareHeadStructOutput = [
+    issuer: string,
+    expiration: bigint,
+    recipient: string,
+    blockNumber: bigint,
+    revokerContract: string,
+    revokerData: bigint,
+  ] & {
+    issuer: string;
+    expiration: bigint;
+    recipient: string;
+    blockNumber: bigint;
+    revokerContract: string;
+    revokerData: bigint;
+  };
+}
+
 export interface ACPShareRegistryInterface extends Interface {
-  getFunction(nameOrSignature: 'getShare' | 'isShareValid' | 'removeShare' | 'share' | 'sharesFor'): FunctionFragment;
+  getFunction(
+    nameOrSignature:
+      | 'DEFAULT_ADMIN_ROLE'
+      | 'UPGRADER_ROLE'
+      | 'UPGRADE_INTERFACE_VERSION'
+      | 'getRoleAdmin'
+      | 'getShare'
+      | 'grantRole'
+      | 'hasRole'
+      | 'initialize'
+      | 'isShareValid'
+      | 'proxiableUUID'
+      | 'removeShare'
+      | 'renounceRole'
+      | 'revokeRole'
+      | 'share'
+      | 'sharesFor'
+      | 'supportsInterface'
+      | 'upgradeToAndCall'
+  ): FunctionFragment;
 
-  getEvent(nameOrSignatureOrTopic: 'ShareRemoved' | 'Shared'): EventFragment;
+  getEvent(
+    nameOrSignatureOrTopic:
+      | 'Initialized'
+      | 'RoleAdminChanged'
+      | 'RoleGranted'
+      | 'RoleRevoked'
+      | 'ShareRemoved'
+      | 'Shared'
+      | 'Upgraded'
+  ): EventFragment;
 
+  encodeFunctionData(functionFragment: 'DEFAULT_ADMIN_ROLE', values?: undefined): string;
+  encodeFunctionData(functionFragment: 'UPGRADER_ROLE', values?: undefined): string;
+  encodeFunctionData(functionFragment: 'UPGRADE_INTERFACE_VERSION', values?: undefined): string;
+  encodeFunctionData(functionFragment: 'getRoleAdmin', values: [BytesLike]): string;
   encodeFunctionData(functionFragment: 'getShare', values: [BytesLike]): string;
+  encodeFunctionData(functionFragment: 'grantRole', values: [BytesLike, AddressLike]): string;
+  encodeFunctionData(functionFragment: 'hasRole', values: [BytesLike, AddressLike]): string;
+  encodeFunctionData(functionFragment: 'initialize', values: [AddressLike]): string;
   encodeFunctionData(functionFragment: 'isShareValid', values: [BytesLike]): string;
+  encodeFunctionData(functionFragment: 'proxiableUUID', values?: undefined): string;
   encodeFunctionData(functionFragment: 'removeShare', values: [BytesLike]): string;
-  encodeFunctionData(functionFragment: 'share', values: [ACPStruct]): string;
+  encodeFunctionData(functionFragment: 'renounceRole', values: [BytesLike, AddressLike]): string;
+  encodeFunctionData(functionFragment: 'revokeRole', values: [BytesLike, AddressLike]): string;
+  encodeFunctionData(functionFragment: 'share', values: [ACPStruct, BytesLike]): string;
   encodeFunctionData(functionFragment: 'sharesFor', values: [AddressLike]): string;
+  encodeFunctionData(functionFragment: 'supportsInterface', values: [BytesLike]): string;
+  encodeFunctionData(functionFragment: 'upgradeToAndCall', values: [AddressLike, BytesLike]): string;
 
+  decodeFunctionResult(functionFragment: 'DEFAULT_ADMIN_ROLE', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'UPGRADER_ROLE', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'UPGRADE_INTERFACE_VERSION', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'getRoleAdmin', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'getShare', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'grantRole', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'hasRole', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'initialize', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'isShareValid', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'proxiableUUID', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'removeShare', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'renounceRole', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'revokeRole', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'share', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'sharesFor', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'supportsInterface', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'upgradeToAndCall', data: BytesLike): Result;
+}
+
+export namespace InitializedEvent {
+  export type InputTuple = [version: BigNumberish];
+  export type OutputTuple = [version: bigint];
+  export interface OutputObject {
+    version: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace RoleAdminChangedEvent {
+  export type InputTuple = [role: BytesLike, previousAdminRole: BytesLike, newAdminRole: BytesLike];
+  export type OutputTuple = [role: string, previousAdminRole: string, newAdminRole: string];
+  export interface OutputObject {
+    role: string;
+    previousAdminRole: string;
+    newAdminRole: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace RoleGrantedEvent {
+  export type InputTuple = [role: BytesLike, account: AddressLike, sender: AddressLike];
+  export type OutputTuple = [role: string, account: string, sender: string];
+  export interface OutputObject {
+    role: string;
+    account: string;
+    sender: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace RoleRevokedEvent {
+  export type InputTuple = [role: BytesLike, account: AddressLike, sender: AddressLike];
+  export type OutputTuple = [role: string, account: string, sender: string];
+  export interface OutputObject {
+    role: string;
+    account: string;
+    sender: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
 }
 
 export namespace ShareRemovedEvent {
@@ -96,12 +229,38 @@ export namespace ShareRemovedEvent {
 }
 
 export namespace SharedEvent {
-  export type InputTuple = [recipient: AddressLike, issuer: AddressLike, shareId: BytesLike];
-  export type OutputTuple = [recipient: string, issuer: string, shareId: string];
+  export type InputTuple = [
+    recipient: AddressLike,
+    issuer: AddressLike,
+    shareId: BytesLike,
+    acp: ACPStruct,
+    metadata: BytesLike,
+  ];
+  export type OutputTuple = [
+    recipient: string,
+    issuer: string,
+    shareId: string,
+    acp: ACPStructOutput,
+    metadata: string,
+  ];
   export interface OutputObject {
     recipient: string;
     issuer: string;
     shareId: string;
+    acp: ACPStructOutput;
+    metadata: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace UpgradedEvent {
+  export type InputTuple = [implementation: AddressLike];
+  export type OutputTuple = [implementation: string];
+  export interface OutputObject {
+    implementation: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -142,32 +301,163 @@ export interface ACPShareRegistry extends BaseContract {
   listeners(eventName?: string): Promise<Array<Listener>>;
   removeAllListeners<TCEvent extends TypedContractEvent>(event?: TCEvent): Promise<this>;
 
-  getShare: TypedContractMethod<[shareId: BytesLike], [ACPStructOutput], 'view'>;
+  DEFAULT_ADMIN_ROLE: TypedContractMethod<[], [string], 'view'>;
+
+  UPGRADER_ROLE: TypedContractMethod<[], [string], 'view'>;
+
+  UPGRADE_INTERFACE_VERSION: TypedContractMethod<[], [string], 'view'>;
+
+  getRoleAdmin: TypedContractMethod<[role: BytesLike], [string], 'view'>;
+
+  getShare: TypedContractMethod<[shareId: BytesLike], [ACPShareRegistry.ShareHeadStructOutput], 'view'>;
+
+  grantRole: TypedContractMethod<[role: BytesLike, account: AddressLike], [void], 'nonpayable'>;
+
+  hasRole: TypedContractMethod<[role: BytesLike, account: AddressLike], [boolean], 'view'>;
+
+  initialize: TypedContractMethod<[initialAdmin: AddressLike], [void], 'nonpayable'>;
 
   isShareValid: TypedContractMethod<[shareId: BytesLike], [boolean], 'view'>;
 
+  proxiableUUID: TypedContractMethod<[], [string], 'view'>;
+
   removeShare: TypedContractMethod<[shareId: BytesLike], [void], 'nonpayable'>;
 
-  share: TypedContractMethod<[acp: ACPStruct], [string], 'nonpayable'>;
+  renounceRole: TypedContractMethod<[role: BytesLike, callerConfirmation: AddressLike], [void], 'nonpayable'>;
 
-  sharesFor: TypedContractMethod<[recipient: AddressLike], [ACPStructOutput[]], 'view'>;
+  revokeRole: TypedContractMethod<[role: BytesLike, account: AddressLike], [void], 'nonpayable'>;
+
+  share: TypedContractMethod<[acp: ACPStruct, metadata: BytesLike], [string], 'nonpayable'>;
+
+  sharesFor: TypedContractMethod<
+    [recipient: AddressLike],
+    [
+      [string[], ACPShareRegistry.ShareHeadStructOutput[]] & {
+        shareIds: string[];
+        heads: ACPShareRegistry.ShareHeadStructOutput[];
+      },
+    ],
+    'view'
+  >;
+
+  supportsInterface: TypedContractMethod<[interfaceId: BytesLike], [boolean], 'view'>;
+
+  upgradeToAndCall: TypedContractMethod<[newImplementation: AddressLike, data: BytesLike], [void], 'payable'>;
 
   getFunction<T extends ContractMethod = ContractMethod>(key: string | FunctionFragment): T;
 
-  getFunction(nameOrSignature: 'getShare'): TypedContractMethod<[shareId: BytesLike], [ACPStructOutput], 'view'>;
+  getFunction(nameOrSignature: 'DEFAULT_ADMIN_ROLE'): TypedContractMethod<[], [string], 'view'>;
+  getFunction(nameOrSignature: 'UPGRADER_ROLE'): TypedContractMethod<[], [string], 'view'>;
+  getFunction(nameOrSignature: 'UPGRADE_INTERFACE_VERSION'): TypedContractMethod<[], [string], 'view'>;
+  getFunction(nameOrSignature: 'getRoleAdmin'): TypedContractMethod<[role: BytesLike], [string], 'view'>;
+  getFunction(
+    nameOrSignature: 'getShare'
+  ): TypedContractMethod<[shareId: BytesLike], [ACPShareRegistry.ShareHeadStructOutput], 'view'>;
+  getFunction(
+    nameOrSignature: 'grantRole'
+  ): TypedContractMethod<[role: BytesLike, account: AddressLike], [void], 'nonpayable'>;
+  getFunction(
+    nameOrSignature: 'hasRole'
+  ): TypedContractMethod<[role: BytesLike, account: AddressLike], [boolean], 'view'>;
+  getFunction(nameOrSignature: 'initialize'): TypedContractMethod<[initialAdmin: AddressLike], [void], 'nonpayable'>;
   getFunction(nameOrSignature: 'isShareValid'): TypedContractMethod<[shareId: BytesLike], [boolean], 'view'>;
+  getFunction(nameOrSignature: 'proxiableUUID'): TypedContractMethod<[], [string], 'view'>;
   getFunction(nameOrSignature: 'removeShare'): TypedContractMethod<[shareId: BytesLike], [void], 'nonpayable'>;
-  getFunction(nameOrSignature: 'share'): TypedContractMethod<[acp: ACPStruct], [string], 'nonpayable'>;
-  getFunction(nameOrSignature: 'sharesFor'): TypedContractMethod<[recipient: AddressLike], [ACPStructOutput[]], 'view'>;
+  getFunction(
+    nameOrSignature: 'renounceRole'
+  ): TypedContractMethod<[role: BytesLike, callerConfirmation: AddressLike], [void], 'nonpayable'>;
+  getFunction(
+    nameOrSignature: 'revokeRole'
+  ): TypedContractMethod<[role: BytesLike, account: AddressLike], [void], 'nonpayable'>;
+  getFunction(
+    nameOrSignature: 'share'
+  ): TypedContractMethod<[acp: ACPStruct, metadata: BytesLike], [string], 'nonpayable'>;
+  getFunction(nameOrSignature: 'sharesFor'): TypedContractMethod<
+    [recipient: AddressLike],
+    [
+      [string[], ACPShareRegistry.ShareHeadStructOutput[]] & {
+        shareIds: string[];
+        heads: ACPShareRegistry.ShareHeadStructOutput[];
+      },
+    ],
+    'view'
+  >;
+  getFunction(nameOrSignature: 'supportsInterface'): TypedContractMethod<[interfaceId: BytesLike], [boolean], 'view'>;
+  getFunction(
+    nameOrSignature: 'upgradeToAndCall'
+  ): TypedContractMethod<[newImplementation: AddressLike, data: BytesLike], [void], 'payable'>;
 
+  getEvent(
+    key: 'Initialized'
+  ): TypedContractEvent<InitializedEvent.InputTuple, InitializedEvent.OutputTuple, InitializedEvent.OutputObject>;
+  getEvent(
+    key: 'RoleAdminChanged'
+  ): TypedContractEvent<
+    RoleAdminChangedEvent.InputTuple,
+    RoleAdminChangedEvent.OutputTuple,
+    RoleAdminChangedEvent.OutputObject
+  >;
+  getEvent(
+    key: 'RoleGranted'
+  ): TypedContractEvent<RoleGrantedEvent.InputTuple, RoleGrantedEvent.OutputTuple, RoleGrantedEvent.OutputObject>;
+  getEvent(
+    key: 'RoleRevoked'
+  ): TypedContractEvent<RoleRevokedEvent.InputTuple, RoleRevokedEvent.OutputTuple, RoleRevokedEvent.OutputObject>;
   getEvent(
     key: 'ShareRemoved'
   ): TypedContractEvent<ShareRemovedEvent.InputTuple, ShareRemovedEvent.OutputTuple, ShareRemovedEvent.OutputObject>;
   getEvent(
     key: 'Shared'
   ): TypedContractEvent<SharedEvent.InputTuple, SharedEvent.OutputTuple, SharedEvent.OutputObject>;
+  getEvent(
+    key: 'Upgraded'
+  ): TypedContractEvent<UpgradedEvent.InputTuple, UpgradedEvent.OutputTuple, UpgradedEvent.OutputObject>;
 
   filters: {
+    'Initialized(uint64)': TypedContractEvent<
+      InitializedEvent.InputTuple,
+      InitializedEvent.OutputTuple,
+      InitializedEvent.OutputObject
+    >;
+    Initialized: TypedContractEvent<
+      InitializedEvent.InputTuple,
+      InitializedEvent.OutputTuple,
+      InitializedEvent.OutputObject
+    >;
+
+    'RoleAdminChanged(bytes32,bytes32,bytes32)': TypedContractEvent<
+      RoleAdminChangedEvent.InputTuple,
+      RoleAdminChangedEvent.OutputTuple,
+      RoleAdminChangedEvent.OutputObject
+    >;
+    RoleAdminChanged: TypedContractEvent<
+      RoleAdminChangedEvent.InputTuple,
+      RoleAdminChangedEvent.OutputTuple,
+      RoleAdminChangedEvent.OutputObject
+    >;
+
+    'RoleGranted(bytes32,address,address)': TypedContractEvent<
+      RoleGrantedEvent.InputTuple,
+      RoleGrantedEvent.OutputTuple,
+      RoleGrantedEvent.OutputObject
+    >;
+    RoleGranted: TypedContractEvent<
+      RoleGrantedEvent.InputTuple,
+      RoleGrantedEvent.OutputTuple,
+      RoleGrantedEvent.OutputObject
+    >;
+
+    'RoleRevoked(bytes32,address,address)': TypedContractEvent<
+      RoleRevokedEvent.InputTuple,
+      RoleRevokedEvent.OutputTuple,
+      RoleRevokedEvent.OutputObject
+    >;
+    RoleRevoked: TypedContractEvent<
+      RoleRevokedEvent.InputTuple,
+      RoleRevokedEvent.OutputTuple,
+      RoleRevokedEvent.OutputObject
+    >;
+
     'ShareRemoved(address,address,bytes32)': TypedContractEvent<
       ShareRemovedEvent.InputTuple,
       ShareRemovedEvent.OutputTuple,
@@ -179,11 +469,18 @@ export interface ACPShareRegistry extends BaseContract {
       ShareRemovedEvent.OutputObject
     >;
 
-    'Shared(address,address,bytes32)': TypedContractEvent<
+    'Shared(address,address,bytes32,tuple,bytes)': TypedContractEvent<
       SharedEvent.InputTuple,
       SharedEvent.OutputTuple,
       SharedEvent.OutputObject
     >;
     Shared: TypedContractEvent<SharedEvent.InputTuple, SharedEvent.OutputTuple, SharedEvent.OutputObject>;
+
+    'Upgraded(address)': TypedContractEvent<
+      UpgradedEvent.InputTuple,
+      UpgradedEvent.OutputTuple,
+      UpgradedEvent.OutputObject
+    >;
+    Upgraded: TypedContractEvent<UpgradedEvent.InputTuple, UpgradedEvent.OutputTuple, UpgradedEvent.OutputObject>;
   };
 }

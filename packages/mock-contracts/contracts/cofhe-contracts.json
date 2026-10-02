@@ -1,0 +1,10 @@
+{
+  "repo": "FhenixProtocol/cofhe-contracts",
+  "commit": "fdf3a4e0a61858e1aeb4e4e689a11329de9ea246",
+  "sourceDir": "contracts/internal/host-chain/contracts",
+  "files": {
+    "ACPShareRegistry.sol": "a3566edba332ab8a84f1fee5c633864424aa2ffa891f840c4f2c383428ce244a",
+    "ACPTimestampRevoker.sol": "be40add6302b68cff8c15fb5bcc54e7ef74db63df59cf350e8ccfbb06a7a74fc",
+    "Permissioned.sol": "34d8d2f4a41c9a5ffbd69e32e4e3d718a7d4fcde6289fbe132fa3c4a74de9c0d"
+  }
+}
