@@ -1,6 +1,6 @@
 import type { UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
 import type { Address } from 'viem';
-import { useCofhePublicClient } from './useCofheConnection';
+import { useCofheChainId, useCofhePublicClient } from './useCofheConnection';
 import { useInternalQuery } from '@/providers';
 import { ERC20_DECIMALS_ABI, ERC20_NAME_ABI, ERC20_SYMBOL_ABI } from '@/constants/erc20ABIs';
 
@@ -21,9 +21,10 @@ export function useCofheTokenMetadata(
   queryOptions?: Omit<UseQueryOptions<TokenMetadata, Error>, 'queryKey' | 'queryFn' | 'enabled'>
 ): UseQueryResult<TokenMetadata, Error> {
   const publicClient = useCofhePublicClient();
+  const chainId = useCofheChainId();
 
   return useInternalQuery({
-    queryKey: ['tokenMetadata', tokenAddress],
+    queryKey: ['tokenMetadata', chainId, tokenAddress],
     queryFn: async (): Promise<TokenMetadata> => {
       if (!publicClient) {
         throw new Error('PublicClient is required to fetch token metadata');
