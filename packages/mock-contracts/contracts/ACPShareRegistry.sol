@@ -12,7 +12,14 @@ import { ACP, IPermissionCustomIdValidator } from './Permissioned.sol';
  * are indexed globally per recipient — a share is addressed to a person, and any
  * cofhesdk-enabled app may surface it.
  *
- * The registry stores the payload verbatim and stays deliberately dumb:
+ * Pointer-based: the full ACP and an optional metadata blob travel in the `Shared`
+ * event; storage keeps only the share head — the fields this contract checks
+ * (issuer, recipient, expiration, revoker) and the block of that event — plus the
+ * recipient's set of share ids. A reader takes the head from `sharesFor` / `getShare`
+ * and fetches the event with a `getLogs` over that one block, filtered by the
+ * share id topic.
+ *
+ * The registry stays deliberately dumb:
  *
  *  - The posted ACP carries `sealingKey = 0` and `recipientSignature = ""` — the
  *    recipient supplies both at import, exactly as in the off-chain flow.
@@ -20,10 +27,13 @@ import { ACP, IPermissionCustomIdValidator } from './Permissioned.sol';
  *    before the recipient signs, and the SDK validates everything at import. The
  *    trust the registry adds is `msg.sender == acp.issuer` — a share listed under
  *    a recipient was genuinely posted by its claimed issuer.
+ *  - The metadata is opaque bytes, never interpreted here (the SDK defines the
+ *    format: labels saying where each ctHash of a SNAPSHOT share came from). It is
+ *    written once, with the share, and cannot be replaced.
  *  - `isShareValid` is the verification hook for other contracts: share exists,
  *    is unexpired, and is not revoked (per the share's own revoker contract).
  *
- * Nothing stored here is sensitive: every field is part of the cleartext share
+ * Nothing posted here is sensitive: every field is part of the cleartext share
  * payload by design. Posting on-chain does make the issuer→recipient sharing
  * relationship public. (A future variant may accept an encrypted payload as a
  * parallel entry type; this registry's cleartext entries would be unaffected.)
@@ -34,14 +44,30 @@ import { ACP, IPermissionCustomIdValidator } from './Permissioned.sol';
 contract ACPShareRegistry {
   using EnumerableSet for EnumerableSet.Bytes32Set;
 
+  /// @notice What storage keeps of a share: the fields `removeShare` and the validity
+  ///         check read, and where to find the rest.
+  struct ShareHead {
+    address issuer;
+    uint64 expiration;
+    address recipient;
+    /// @dev Block of the `Shared` event that carries the full ACP and the metadata
+    ///      (the L2 block on Arbitrum).
+    uint64 blockNumber;
+    address revokerContract;
+    uint256 revokerData;
+  }
+
   /// @notice recipient => ids of shares addressed to them
   mapping(address => EnumerableSet.Bytes32Set) private _shareIdsFor;
 
-  /// @notice share id => stored payload
-  mapping(bytes32 => ACP) private _shares;
+  /// @notice share id => stored head
+  mapping(bytes32 => ShareHead) private _heads;
 
-  event Shared(address indexed recipient, address indexed issuer, bytes32 shareId);
-  event ShareRemoved(address indexed recipient, address indexed issuer, bytes32 shareId);
+  /// @notice A share was posted. `acp` is the payload as posted; `metadata` is the opaque
+  ///         blob that came with it (empty when none). The share id is
+  ///         `keccak256(abi.encode(acp))`.
+  event Shared(address indexed recipient, address indexed issuer, bytes32 indexed shareId, ACP acp, bytes metadata);
+  event ShareRemoved(address indexed recipient, address indexed issuer, bytes32 indexed shareId);
 
   error NotIssuer();
   error NotIssuerOrRecipient();
@@ -52,9 +78,11 @@ contract ACPShareRegistry {
   error AlreadyShared();
   error UnknownShare();
 
-  /// @notice Post a sharing ACP for its recipient to pick up.
-  /// @dev The share id is the hash of the payload — reposting an identical share reverts.
-  function share(ACP calldata acp) external returns (bytes32 shareId) {
+  /// @notice Post a sharing ACP for its recipient to pick up, with an optional metadata
+  ///         blob (`""` for none).
+  /// @dev The share id is the hash of the payload — reposting an identical share reverts,
+  ///      whatever its metadata.
+  function share(ACP calldata acp, bytes calldata metadata) external returns (bytes32 shareId) {
     if (msg.sender != acp.issuer) revert NotIssuer();
     if (acp.recipient == address(0)) revert RecipientMissing();
     if (acp.sealingKey != bytes32(0)) revert SealingKeyMustBeEmpty();
@@ -64,74 +92,87 @@ contract ACPShareRegistry {
     shareId = keccak256(abi.encode(acp));
     // the id commits to the recipient, so a duplicate can only be in this set
     if (!_shareIdsFor[acp.recipient].add(shareId)) revert AlreadyShared();
-    _shares[shareId] = acp;
+    _heads[shareId] = ShareHead({
+      issuer: acp.issuer,
+      expiration: acp.expiration,
+      recipient: acp.recipient,
+      blockNumber: uint64(_blockNumber()),
+      revokerContract: acp.revokerContract,
+      revokerData: acp.revokerData
+    });
 
-    emit Shared(acp.recipient, acp.issuer, shareId);
+    emit Shared(acp.recipient, acp.issuer, shareId, acp, metadata);
   }
 
   /// @notice Remove a share. The issuer may retract it; the recipient may dismiss it
-  ///         (e.g. after importing, or to decline).
+  ///         (e.g. after importing, or to decline). The `Shared` event stays in its block;
+  ///         readers go by the head, which is gone.
   function removeShare(bytes32 shareId) external {
-    ACP storage acp = _shares[shareId];
-    if (acp.issuer == address(0)) revert UnknownShare();
-    if (msg.sender != acp.issuer && msg.sender != acp.recipient) revert NotIssuerOrRecipient();
+    ShareHead storage head = _heads[shareId];
+    if (head.issuer == address(0)) revert UnknownShare();
+    if (msg.sender != head.issuer && msg.sender != head.recipient) revert NotIssuerOrRecipient();
 
-    address recipient = acp.recipient;
-    address issuer = acp.issuer;
+    address recipient = head.recipient;
+    address issuer = head.issuer;
 
-    // the id set and the payload map stay in sync — mirror share()'s add() handling
+    // the id set and the head map stay in sync — mirror share()'s add() handling
     if (!_shareIdsFor[recipient].remove(shareId)) revert UnknownShare();
-    delete _shares[shareId];
+    delete _heads[shareId];
 
     emit ShareRemoved(recipient, issuer, shareId);
   }
 
-  /// @notice All importable shares addressed to `recipient`: unexpired and not revoked.
-  ///         Dead entries stay in storage until removed but are filtered here.
-  function sharesFor(address recipient) external view returns (ACP[] memory acps) {
+  /// @notice The importable shares addressed to `recipient` — unexpired and not revoked —
+  ///         as their ids and heads, index for index. Dead entries stay in storage until
+  ///         removed but are filtered here.
+  function sharesFor(address recipient) external view returns (bytes32[] memory shareIds, ShareHead[] memory heads) {
     EnumerableSet.Bytes32Set storage ids = _shareIdsFor[recipient];
     uint256 len = ids.length();
-    if (len == 0) return acps;
 
     // single pass: allocate for the maximum, fill with valid shares only
-    acps = new ACP[](len);
+    shareIds = new bytes32[](len);
+    heads = new ShareHead[](len);
     uint256 live = 0;
     for (uint256 i = 0; i < len; i++) {
-      ACP storage acp = _shares[ids.at(i)];
-      if (_isValid(acp)) {
-        acps[live] = acp;
+      bytes32 shareId = ids.at(i);
+      ShareHead storage head = _heads[shareId];
+      if (_isValid(head)) {
+        shareIds[live] = shareId;
+        heads[live] = head;
         live++;
       }
     }
 
-    // truncate the memory array's length to the live count (shrink-only)
+    // truncate the memory arrays' length to the live count (shrink-only)
     if (live < len) {
       assembly {
-        mstore(acps, live)
+        mstore(shareIds, live)
+        mstore(heads, live)
       }
     }
   }
 
-  /// @notice A single share by id (zeroed struct if unknown/removed).
-  function getShare(bytes32 shareId) external view returns (ACP memory) {
-    return _shares[shareId];
+  /// @notice The head of a single share (zeroed struct if unknown/removed).
+  function getShare(bytes32 shareId) external view returns (ShareHead memory) {
+    return _heads[shareId];
   }
 
   /// @notice Verification hook for contracts: the share exists, was posted by its
   ///         claimed issuer (guaranteed at posting), is unexpired, and is not
   ///         revoked per its own revoker contract.
   function isShareValid(bytes32 shareId) external view returns (bool) {
-    if (_shares[shareId].issuer == address(0)) return false;
-    return _isValid(_shares[shareId]);
+    ShareHead storage head = _heads[shareId];
+    if (head.issuer == address(0)) return false;
+    return _isValid(head);
   }
 
   /// @dev Unexpired and not revoked. The revoker call mirrors `withPermission`'s
   ///      revocation clause; a reverting revoker fails closed (share invalid).
-  function _isValid(ACP storage acp) private view returns (bool) {
-    if (acp.expiration < block.timestamp) return false;
+  function _isValid(ShareHead storage head) private view returns (bool) {
+    if (head.expiration < block.timestamp) return false;
 
-    if (acp.revokerData != 0 && acp.revokerContract != address(0)) {
-      try IPermissionCustomIdValidator(acp.revokerContract).disabled(acp.issuer, acp.revokerData) returns (
+    if (head.revokerData != 0 && head.revokerContract != address(0)) {
+      try IPermissionCustomIdValidator(head.revokerContract).disabled(head.issuer, head.revokerData) returns (
         bool disabled
       ) {
         if (disabled) return false;
@@ -141,5 +182,13 @@ contract ACPShareRegistry {
     }
 
     return true;
+  }
+
+  /// @dev The number a `getLogs` query takes for the current block. On Arbitrum `block.number`
+  ///      is an L1 block estimate and the L2 block comes from the ArbSys precompile; elsewhere
+  ///      nothing answers at that address and `block.number` is the block.
+  function _blockNumber() private view returns (uint256) {
+    (bool ok, bytes memory result) = address(100).staticcall(abi.encodeWithSignature('arbBlockNumber()'));
+    return ok && result.length == 32 ? abi.decode(result, (uint256)) : block.number;
   }
 }

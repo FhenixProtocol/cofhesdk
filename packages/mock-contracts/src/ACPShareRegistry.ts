@@ -19,7 +19,7 @@ export const ACPShareRegistryArtifact = {
         {
           name: '',
           type: 'tuple',
-          internalType: 'struct ACP',
+          internalType: 'struct ACPShareRegistry.ShareHead',
           components: [
             {
               name: 'issuer',
@@ -37,9 +37,9 @@ export const ACPShareRegistryArtifact = {
               internalType: 'address',
             },
             {
-              name: 'revokerData',
-              type: 'uint256',
-              internalType: 'uint256',
+              name: 'blockNumber',
+              type: 'uint64',
+              internalType: 'uint64',
             },
             {
               name: 'revokerContract',
@@ -47,34 +47,9 @@ export const ACPShareRegistryArtifact = {
               internalType: 'address',
             },
             {
-              name: 'scope',
-              type: 'uint8',
-              internalType: 'uint8',
-            },
-            {
-              name: 'contracts',
-              type: 'address[]',
-              internalType: 'address[]',
-            },
-            {
-              name: 'handles',
-              type: 'bytes32[]',
-              internalType: 'bytes32[]',
-            },
-            {
-              name: 'sealingKey',
-              type: 'bytes32',
-              internalType: 'bytes32',
-            },
-            {
-              name: 'issuerSignature',
-              type: 'bytes',
-              internalType: 'bytes',
-            },
-            {
-              name: 'recipientSignature',
-              type: 'bytes',
-              internalType: 'bytes',
+              name: 'revokerData',
+              type: 'uint256',
+              internalType: 'uint256',
             },
           ],
         },
@@ -179,6 +154,11 @@ export const ACPShareRegistryArtifact = {
             },
           ],
         },
+        {
+          name: 'metadata',
+          type: 'bytes',
+          internalType: 'bytes',
+        },
       ],
       outputs: [
         {
@@ -201,9 +181,102 @@ export const ACPShareRegistryArtifact = {
       ],
       outputs: [
         {
-          name: 'acps',
+          name: 'shareIds',
+          type: 'bytes32[]',
+          internalType: 'bytes32[]',
+        },
+        {
+          name: 'heads',
           type: 'tuple[]',
-          internalType: 'struct ACP[]',
+          internalType: 'struct ACPShareRegistry.ShareHead[]',
+          components: [
+            {
+              name: 'issuer',
+              type: 'address',
+              internalType: 'address',
+            },
+            {
+              name: 'expiration',
+              type: 'uint64',
+              internalType: 'uint64',
+            },
+            {
+              name: 'recipient',
+              type: 'address',
+              internalType: 'address',
+            },
+            {
+              name: 'blockNumber',
+              type: 'uint64',
+              internalType: 'uint64',
+            },
+            {
+              name: 'revokerContract',
+              type: 'address',
+              internalType: 'address',
+            },
+            {
+              name: 'revokerData',
+              type: 'uint256',
+              internalType: 'uint256',
+            },
+          ],
+        },
+      ],
+      stateMutability: 'view',
+    },
+    {
+      type: 'event',
+      name: 'ShareRemoved',
+      inputs: [
+        {
+          name: 'recipient',
+          type: 'address',
+          indexed: true,
+          internalType: 'address',
+        },
+        {
+          name: 'issuer',
+          type: 'address',
+          indexed: true,
+          internalType: 'address',
+        },
+        {
+          name: 'shareId',
+          type: 'bytes32',
+          indexed: true,
+          internalType: 'bytes32',
+        },
+      ],
+      anonymous: false,
+    },
+    {
+      type: 'event',
+      name: 'Shared',
+      inputs: [
+        {
+          name: 'recipient',
+          type: 'address',
+          indexed: true,
+          internalType: 'address',
+        },
+        {
+          name: 'issuer',
+          type: 'address',
+          indexed: true,
+          internalType: 'address',
+        },
+        {
+          name: 'shareId',
+          type: 'bytes32',
+          indexed: true,
+          internalType: 'bytes32',
+        },
+        {
+          name: 'acp',
+          type: 'tuple',
+          indexed: false,
+          internalType: 'struct ACP',
           components: [
             {
               name: 'issuer',
@@ -262,55 +335,11 @@ export const ACPShareRegistryArtifact = {
             },
           ],
         },
-      ],
-      stateMutability: 'view',
-    },
-    {
-      type: 'event',
-      name: 'ShareRemoved',
-      inputs: [
         {
-          name: 'recipient',
-          type: 'address',
-          indexed: true,
-          internalType: 'address',
-        },
-        {
-          name: 'issuer',
-          type: 'address',
-          indexed: true,
-          internalType: 'address',
-        },
-        {
-          name: 'shareId',
-          type: 'bytes32',
+          name: 'metadata',
+          type: 'bytes',
           indexed: false,
-          internalType: 'bytes32',
-        },
-      ],
-      anonymous: false,
-    },
-    {
-      type: 'event',
-      name: 'Shared',
-      inputs: [
-        {
-          name: 'recipient',
-          type: 'address',
-          indexed: true,
-          internalType: 'address',
-        },
-        {
-          name: 'issuer',
-          type: 'address',
-          indexed: true,
-          internalType: 'address',
-        },
-        {
-          name: 'shareId',
-          type: 'bytes32',
-          indexed: false,
-          internalType: 'bytes32',
+          internalType: 'bytes',
         },
       ],
       anonymous: false,

@@ -63,6 +63,33 @@ export type ACPStructOutput = [
   recipientSignature: string;
 };
 
+export declare namespace ACPShareRegistry {
+  export type ShareHeadStruct = {
+    issuer: AddressLike;
+    expiration: BigNumberish;
+    recipient: AddressLike;
+    blockNumber: BigNumberish;
+    revokerContract: AddressLike;
+    revokerData: BigNumberish;
+  };
+
+  export type ShareHeadStructOutput = [
+    issuer: string,
+    expiration: bigint,
+    recipient: string,
+    blockNumber: bigint,
+    revokerContract: string,
+    revokerData: bigint,
+  ] & {
+    issuer: string;
+    expiration: bigint;
+    recipient: string;
+    blockNumber: bigint;
+    revokerContract: string;
+    revokerData: bigint;
+  };
+}
+
 export interface ACPShareRegistryInterface extends Interface {
   getFunction(nameOrSignature: 'getShare' | 'isShareValid' | 'removeShare' | 'share' | 'sharesFor'): FunctionFragment;
 
@@ -71,7 +98,7 @@ export interface ACPShareRegistryInterface extends Interface {
   encodeFunctionData(functionFragment: 'getShare', values: [BytesLike]): string;
   encodeFunctionData(functionFragment: 'isShareValid', values: [BytesLike]): string;
   encodeFunctionData(functionFragment: 'removeShare', values: [BytesLike]): string;
-  encodeFunctionData(functionFragment: 'share', values: [ACPStruct]): string;
+  encodeFunctionData(functionFragment: 'share', values: [ACPStruct, BytesLike]): string;
   encodeFunctionData(functionFragment: 'sharesFor', values: [AddressLike]): string;
 
   decodeFunctionResult(functionFragment: 'getShare', data: BytesLike): Result;
@@ -96,12 +123,26 @@ export namespace ShareRemovedEvent {
 }
 
 export namespace SharedEvent {
-  export type InputTuple = [recipient: AddressLike, issuer: AddressLike, shareId: BytesLike];
-  export type OutputTuple = [recipient: string, issuer: string, shareId: string];
+  export type InputTuple = [
+    recipient: AddressLike,
+    issuer: AddressLike,
+    shareId: BytesLike,
+    acp: ACPStruct,
+    metadata: BytesLike,
+  ];
+  export type OutputTuple = [
+    recipient: string,
+    issuer: string,
+    shareId: string,
+    acp: ACPStructOutput,
+    metadata: string,
+  ];
   export interface OutputObject {
     recipient: string;
     issuer: string;
     shareId: string;
+    acp: ACPStructOutput;
+    metadata: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -142,23 +183,45 @@ export interface ACPShareRegistry extends BaseContract {
   listeners(eventName?: string): Promise<Array<Listener>>;
   removeAllListeners<TCEvent extends TypedContractEvent>(event?: TCEvent): Promise<this>;
 
-  getShare: TypedContractMethod<[shareId: BytesLike], [ACPStructOutput], 'view'>;
+  getShare: TypedContractMethod<[shareId: BytesLike], [ACPShareRegistry.ShareHeadStructOutput], 'view'>;
 
   isShareValid: TypedContractMethod<[shareId: BytesLike], [boolean], 'view'>;
 
   removeShare: TypedContractMethod<[shareId: BytesLike], [void], 'nonpayable'>;
 
-  share: TypedContractMethod<[acp: ACPStruct], [string], 'nonpayable'>;
+  share: TypedContractMethod<[acp: ACPStruct, metadata: BytesLike], [string], 'nonpayable'>;
 
-  sharesFor: TypedContractMethod<[recipient: AddressLike], [ACPStructOutput[]], 'view'>;
+  sharesFor: TypedContractMethod<
+    [recipient: AddressLike],
+    [
+      [string[], ACPShareRegistry.ShareHeadStructOutput[]] & {
+        shareIds: string[];
+        heads: ACPShareRegistry.ShareHeadStructOutput[];
+      },
+    ],
+    'view'
+  >;
 
   getFunction<T extends ContractMethod = ContractMethod>(key: string | FunctionFragment): T;
 
-  getFunction(nameOrSignature: 'getShare'): TypedContractMethod<[shareId: BytesLike], [ACPStructOutput], 'view'>;
+  getFunction(
+    nameOrSignature: 'getShare'
+  ): TypedContractMethod<[shareId: BytesLike], [ACPShareRegistry.ShareHeadStructOutput], 'view'>;
   getFunction(nameOrSignature: 'isShareValid'): TypedContractMethod<[shareId: BytesLike], [boolean], 'view'>;
   getFunction(nameOrSignature: 'removeShare'): TypedContractMethod<[shareId: BytesLike], [void], 'nonpayable'>;
-  getFunction(nameOrSignature: 'share'): TypedContractMethod<[acp: ACPStruct], [string], 'nonpayable'>;
-  getFunction(nameOrSignature: 'sharesFor'): TypedContractMethod<[recipient: AddressLike], [ACPStructOutput[]], 'view'>;
+  getFunction(
+    nameOrSignature: 'share'
+  ): TypedContractMethod<[acp: ACPStruct, metadata: BytesLike], [string], 'nonpayable'>;
+  getFunction(nameOrSignature: 'sharesFor'): TypedContractMethod<
+    [recipient: AddressLike],
+    [
+      [string[], ACPShareRegistry.ShareHeadStructOutput[]] & {
+        shareIds: string[];
+        heads: ACPShareRegistry.ShareHeadStructOutput[];
+      },
+    ],
+    'view'
+  >;
 
   getEvent(
     key: 'ShareRemoved'
@@ -179,7 +242,7 @@ export interface ACPShareRegistry extends BaseContract {
       ShareRemovedEvent.OutputObject
     >;
 
-    'Shared(address,address,bytes32)': TypedContractEvent<
+    'Shared(address,address,bytes32,tuple,bytes)': TypedContractEvent<
       SharedEvent.InputTuple,
       SharedEvent.OutputTuple,
       SharedEvent.OutputObject
