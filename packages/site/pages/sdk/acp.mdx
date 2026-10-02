@@ -380,6 +380,17 @@ event Shared(address indexed recipient, address indexed issuer, bytes32 indexed 
 
 `getIncomingShares` reads the heads with `sharesFor` (one call, filtered for expiry and revocation on-chain), then the events with one single-block `getLogs` per block, filtered by the share ids — a query any node answers, however old the block. Contracts keep `isShareValid(shareId)`; they cannot read a share's handles. Removing a share deletes its head; its event stays in its block, and readers no longer find it.
 
+Gas of `share(acp, metadata)`, measured on Arbitrum Sepolia (L2 execution gas; the L1 data part depends on the calldata, as before), against the previous registry that stored every field and one slot per ctHash:
+
+| Share        | Previous registry | This registry | With labels            |
+| ------------ | ----------------- | ------------- | ---------------------- |
+| 1 ctHash     | 297k              | 146k          | 147k (36-byte blob)    |
+| 7 ctHashes   | 434k              | 151k          | 153k (122-byte blob)   |
+| 20 ctHashes  | 729k              | 161k          | 167k (288-byte blob)   |
+| 100 ctHashes | 2,545k            | 224k          | 251k (1,248-byte blob) |
+
+A recipient's first share costs about 17k more (it starts their list).
+
 ## Labelling a SNAPSHOT share
 
 A SNAPSHOT share (`handles` scope) lists ctHashes only, so the recipient has no way to tell what each one is. The issuer knows it at the moment of sharing, and can post it with the share: one **label** per handle, saying where the value came from in terms the recipient can check against the chain.
