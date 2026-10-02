@@ -80,6 +80,11 @@ export {
   useCofheRevokeACP,
 } from '@/hooks/acps/useOnChainSharing';
 export {
+  useCofheShareLabels,
+  type CofheShareLabel,
+  type UseCofheShareLabelsResult,
+} from '@/hooks/acps/useCofheShareLabels';
+export {
   useCofheReadContract,
   constructCofheReadContractQueryForInvalidation,
   type UseCofheReadContractResult,
