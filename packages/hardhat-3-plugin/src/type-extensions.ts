@@ -3,6 +3,7 @@ import type { CofheClient, CofheConfig, CofheInputConfig } from '@cofhe/sdk';
 import type { DeployMocksArgs, LogMocksDeploy } from './deploy.js';
 import type { AdjustableGasReceipt, AdjustedGasBreakdown } from './gas.js';
 import type {
+  MockCoFHEAddressBookArtifact,
   MockTaskManagerArtifact,
   MockACLArtifact,
   MockZkVerifierArtifact,
@@ -64,6 +65,9 @@ export interface CofheConnection {
 
     /** Assert that a ciphertext hash represents the expected plaintext value. */
     expectPlaintext(ctHash: bigint | string, expectedValue: bigint): Promise<void>;
+
+    /** MockCoFHEAddressBook contract descriptor — spread into readContract / writeContract */
+    MockCoFHEAddressBook: { address: `0x${string}`; abi: typeof MockCoFHEAddressBookArtifact.abi };
 
     /** MockTaskManager contract descriptor — spread into readContract / writeContract */
     MockTaskManager: { address: `0x${string}`; abi: typeof MockTaskManagerArtifact.abi };

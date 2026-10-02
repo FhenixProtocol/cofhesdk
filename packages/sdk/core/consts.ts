@@ -1,5 +1,17 @@
-/** Main Task Manager contract address */
-export const TASK_MANAGER_ADDRESS = '0xeA30c4B8b44078Bbf8a6ef5b9f1eC1626C7848D9' as const;
+/**
+ * CoFHEAddressBook contract address - the same on every chain. Resolves `TASK_MANAGER_ID` to the
+ * chain's Task Manager. Keep in sync with `COFHE_ADDRESS_BOOK` in `@fhenixprotocol/cofhe-contracts/FHE.sol`.
+ */
+export const COFHE_ADDRESS_BOOK_ADDRESS = '0xC0F4e00E531a2B086492Ae3DCC1515038307196b' as const;
+
+/** Id of the Task Manager in the CoFHEAddressBook. Keep in sync with `TASK_MANAGER_ID` in FHE.sol */
+export const TASK_MANAGER_ID = 1n;
+
+/**
+ * Mock Task Manager contract address (used for testing). Registered in the mock CoFHEAddressBook;
+ * SDK reads still resolve the Task Manager through the book.
+ */
+export const MOCKS_TASK_MANAGER_ADDRESS = '0x0000000000000000000000000000000000005000' as const;
 
 /** Mock ZK Verifier contract address (used for testing) */
 export const MOCKS_ZK_VERIFIER_ADDRESS = '0x0000000000000000000000000000000000005001' as const;

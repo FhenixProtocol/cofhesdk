@@ -47,6 +47,7 @@ This plugin uses [@cofhe/mock-contracts](https://github.com/FhenixProtocol/cofhe
 
 The mock contracts include:
 
+- MockCoFHEAddressBook: Resolves the TaskManager for FHE.sol, deployed at FHE.sol's `COFHE_ADDRESS_BOOK`
 - MockTaskManager: Manages FHE operations and stores plaintext values
 - MockThresholdNetwork: Handles decryption requests
 - MockZkVerifier: Simulates verification of encrypted inputs

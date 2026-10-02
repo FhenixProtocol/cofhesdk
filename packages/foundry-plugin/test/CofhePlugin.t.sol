@@ -142,6 +142,7 @@ contract CofheTestUtilsTest is CofheTest {
   // --------------- deployMocks ---------------
 
   function testDeployMocks_contractsExist() public view {
+    assertTrue(mockAddressBook.exists());
     assertTrue(mockTaskManager.exists());
     assertTrue(mockAcl.exists());
     assertTrue(mockZkVerifier.exists());
@@ -149,6 +150,9 @@ contract CofheTestUtilsTest is CofheTest {
   }
 
   function testDeployMocks_contractsLinked() public view {
+    assertEq(address(mockAddressBook), COFHE_ADDRESS_BOOK);
+    assertEq(mockAddressBook.getTm(TASK_MANAGER_ID), address(mockTaskManager));
+    assertEq(mockAcl.getTaskManagerAddress(), address(mockTaskManager));
     assertEq(address(mockTaskManager.acl()), address(mockAcl));
     assertEq(address(mockThresholdNetwork.mockTaskManager()), address(mockTaskManager));
     assertEq(address(mockThresholdNetwork.mockAcl()), address(mockAcl));

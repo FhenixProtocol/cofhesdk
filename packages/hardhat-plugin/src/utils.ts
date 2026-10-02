@@ -1,4 +1,4 @@
-import { TASK_MANAGER_ADDRESS, MOCKS_ZK_VERIFIER_ADDRESS } from '@cofhe/sdk';
+import { MOCKS_TASK_MANAGER_ADDRESS, MOCKS_ZK_VERIFIER_ADDRESS } from '@cofhe/sdk';
 import { expect } from 'chai';
 import { Contract, ethers } from 'ethers';
 import { type HardhatEthersProvider } from '@nomicfoundation/hardhat-ethers/internal/hardhat-ethers-provider';
@@ -63,7 +63,7 @@ export const mock_getPlaintext = async (
 
   // Connect to MockTaskManager
   const taskManager = new ethers.Contract(
-    TASK_MANAGER_ADDRESS,
+    MOCKS_TASK_MANAGER_ADDRESS,
     ['function mockStorage(uint256) view returns (uint256)'],
     provider
   );
@@ -83,7 +83,7 @@ export const mock_getPlaintextExists = async (
 
   // Connect to MockTaskManager
   const taskManager = new ethers.Contract(
-    TASK_MANAGER_ADDRESS,
+    MOCKS_TASK_MANAGER_ADDRESS,
     ['function inMockStorage(uint256) view returns (bool)'],
     provider
   );

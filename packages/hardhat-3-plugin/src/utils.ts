@@ -1,5 +1,5 @@
 import type { PublicClient } from 'viem';
-import { TASK_MANAGER_ADDRESS, MOCKS_ZK_VERIFIER_ADDRESS } from '@cofhe/sdk';
+import { MOCKS_TASK_MANAGER_ADDRESS, MOCKS_ZK_VERIFIER_ADDRESS } from '@cofhe/sdk';
 import path from 'node:path';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
@@ -57,7 +57,7 @@ export async function mock_getPlaintext(
   }
 
   return publicClient.readContract({
-    address: TASK_MANAGER_ADDRESS,
+    address: MOCKS_TASK_MANAGER_ADDRESS,
     abi: [
       {
         name: 'mockStorage',
@@ -86,7 +86,7 @@ export async function mock_expectPlaintext(
   }
 
   const exists = (await publicClient.readContract({
-    address: TASK_MANAGER_ADDRESS,
+    address: MOCKS_TASK_MANAGER_ADDRESS,
     abi: [
       {
         name: 'inMockStorage',

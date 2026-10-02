@@ -32,9 +32,11 @@ import {
 import { hardhat } from '@cofhe/sdk/chains';
 import {
   MockThresholdNetworkArtifact,
+  MockCoFHEAddressBookArtifact,
   MockTaskManagerArtifact,
   MockZkVerifierArtifact,
   type MockACL,
+  type MockCoFHEAddressBook,
   type MockTaskManager,
   type MockThresholdNetwork,
   type MockZkVerifier,
@@ -438,6 +440,12 @@ declare module 'hardhat/types/runtime' {
         expectPlaintext: (ctHash: bigint | string, expectedValue: bigint) => Promise<void>;
 
         /**
+         * Get the MockCoFHEAddressBook contract (typed via typechain)
+         * @returns {Promise<MockCoFHEAddressBook>} The MockCoFHEAddressBook contract
+         */
+        getMockCoFHEAddressBook: () => Promise<MockCoFHEAddressBook>;
+
+        /**
          * Get the MockTaskManager contract (typed via typechain)
          * @returns {Promise<MockTaskManager>} The MockTaskManager contract
          */
@@ -560,6 +568,8 @@ extendEnvironment((hre) => {
         const [signer] = await hre.ethers.getSigners();
         return mock_expectPlaintext(signer.provider, ctHash, expectedValue);
       },
+      getMockCoFHEAddressBook: async () =>
+        getFixedMockContract(hre, MockCoFHEAddressBookArtifact) as unknown as Promise<MockCoFHEAddressBook>,
       getMockTaskManager: async () =>
         getFixedMockContract(hre, MockTaskManagerArtifact) as unknown as Promise<MockTaskManager>,
       getMockACL: async () => {

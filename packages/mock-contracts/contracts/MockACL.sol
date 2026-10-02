@@ -3,7 +3,6 @@ pragma solidity >=0.8.19 <0.9.0;
 
 import { Strings } from '@openzeppelin/contracts/utils/Strings.sol';
 import { MockPermissioned, ACP, SCOPE_GLOBAL, SCOPE_CONTRACT, SCOPE_HANDLES } from './Permissioned.sol';
-import { TASK_MANAGER_ADDRESS } from '@fhenixprotocol/cofhe-contracts/FHE.sol';
 
 /**
  * @title  ACL
@@ -32,6 +31,9 @@ contract MockACL is MockPermissioned {
   /// @param receiver Address the share would have been directed at.
   error NotShared(uint256 handle, address receiver);
 
+  /// @notice Returned when the TaskManager address being set is zero.
+  error InvalidTaskManagerAddress();
+
   /// @notice          Returned when a share is pending but was written by a different party.
   /// @param expected  Sharer the receiver named.
   /// @param actual    Sharer recorded in the slot.
@@ -53,6 +55,9 @@ contract MockACL is MockPermissioned {
   /// @notice Emitted when the share registry address is updated (zero = unset).
   event ShareRegistryUpdated(address oldAddress, address newAddress);
 
+  /// @notice Emitted when the TaskManager address is updated.
+  event TaskManagerUpdated(address oldAddress, address newAddress);
+
   /// @custom:storage-location erc7201:cofhe.storage.ACL
   struct ACLStorage {
     mapping(uint256 handle => bool isGlobal) globalHandles;
@@ -62,6 +67,7 @@ contract MockACL is MockPermissioned {
     /// @dev ACP infrastructure addresses served to SDKs (appended fields — do not reorder)
     address defaultRevokerContract;
     address shareRegistry;
+    address taskManager;
   }
 
   /// @notice Name of the contract.
@@ -75,9 +81,6 @@ contract MockACL is MockPermissioned {
 
   /// @notice Patch version of the contract.
   uint256 private constant PATCH_VERSION = 0;
-
-  /// @notice TaskManagerAddress address.
-  address public constant TASK_MANAGER_ADDRESS_ = TASK_MANAGER_ADDRESS;
 
   /// @dev keccak256(abi.encode(uint256(keccak256("cofhe.storage.ACL")) - 1)) & ~bytes32(uint256(0xff))
   bytes32 private constant ACL_SLOT =
@@ -103,7 +106,7 @@ contract MockACL is MockPermissioned {
    * @param requester     Address of the account giving the permissions.
    */
   function allow(uint256 handle, address account, address requester) public virtual {
-    if (msg.sender != TASK_MANAGER_ADDRESS_) {
+    if (msg.sender != _taskManager()) {
       revert DirectAllowForbidden(msg.sender);
     }
 
@@ -122,7 +125,7 @@ contract MockACL is MockPermissioned {
    * @param requester     Address of the account giving the permissions.
    */
   function allowGlobal(uint256 handle, address requester) public virtual {
-    if (msg.sender != TASK_MANAGER_ADDRESS_) {
+    if (msg.sender != _taskManager()) {
       revert DirectAllowForbidden(msg.sender);
     }
 
@@ -140,7 +143,7 @@ contract MockACL is MockPermissioned {
    * @param handlesList   List of handles.
    */
   function allowForDecryption(uint256[] memory handlesList, address requester) public virtual {
-    if (msg.sender != TASK_MANAGER_ADDRESS_) {
+    if (msg.sender != _taskManager()) {
       revert DirectAllowForbidden(msg.sender);
     }
 
@@ -167,11 +170,11 @@ contract MockACL is MockPermissioned {
    * @param requester     Address of the requester.
    */
   function allowTransient(uint256 handle, address account, address requester) public virtual {
-    if (msg.sender != TASK_MANAGER_ADDRESS_) {
+    if (msg.sender != _taskManager()) {
       revert DirectAllowForbidden(msg.sender);
     }
 
-    if (!isAllowed(handle, requester) && requester != TASK_MANAGER_ADDRESS_) {
+    if (!isAllowed(handle, requester) && requester != _taskManager()) {
       revert SenderNotAllowed(requester);
     }
 
@@ -217,14 +220,14 @@ contract MockACL is MockPermissioned {
    * @notice          Grants `receiver` transient access to `handle` and records `sharer` as the
    *                  party that handed it over, for the duration of this transaction.
    * @dev             The caller must be the Task Manager contract.
-   * @dev             Stricter than allowTransient: there is no TASK_MANAGER_ADDRESS bypass, since
+   * @dev             Stricter than allowTransient: there is no TaskManager bypass, since
    *                  nothing shares on the Task Manager's own behalf.
    * @param handle    Handle.
    * @param sharer    Address handing the handle over.
    * @param receiver  Address the handle is being handed to.
    */
   function shareCtHash(uint256 handle, address sharer, address receiver) public virtual {
-    if (msg.sender != TASK_MANAGER_ADDRESS_) {
+    if (msg.sender != _taskManager()) {
       revert DirectAllowForbidden(msg.sender);
     }
 
@@ -247,7 +250,7 @@ contract MockACL is MockPermissioned {
    * @param receiver        Address consuming the share.
    */
   function receiveCtHash(uint256 handle, address expectedSharer, address receiver) public virtual {
-    if (msg.sender != TASK_MANAGER_ADDRESS_) {
+    if (msg.sender != _taskManager()) {
       revert DirectAllowForbidden(msg.sender);
     }
 
@@ -270,7 +273,7 @@ contract MockACL is MockPermissioned {
    * @param delegateeContract Delegatee contract.
    */
   function delegateAccount(address delegatee, address delegateeContract) public virtual {
-    if (msg.sender != TASK_MANAGER_ADDRESS_) {
+    if (msg.sender != _taskManager()) {
       revert DirectAllowForbidden(msg.sender);
     }
     if (delegateeContract == msg.sender) {
@@ -328,7 +331,7 @@ contract MockACL is MockPermissioned {
    * @return taskManagerAddress  Address of the TaskManager.
    */
   function getTaskManagerAddress() public view virtual returns (address) {
-    return TASK_MANAGER_ADDRESS_;
+    return _taskManager();
   }
 
   /**
@@ -378,7 +381,7 @@ contract MockACL is MockPermissioned {
    *      Account Abstraction when bundling several UserOps calling the TaskManagerCoprocessor.
    */
   function cleanTransientStorage() external virtual {
-    if (msg.sender != TASK_MANAGER_ADDRESS_) {
+    if (msg.sender != _taskManager()) {
       revert DirectAllowForbidden(msg.sender);
     }
 
@@ -456,6 +459,21 @@ contract MockACL is MockPermissioned {
     ACLStorage storage $ = _getACLStorage();
     emit ShareRegistryUpdated($.shareRegistry, newAddress);
     $.shareRegistry = newAddress;
+  }
+
+  /// @notice Sets the TaskManager allowed to drive this ACL (unrestricted in the mock;
+  ///         the production setter is onlyRole(DEFAULT_ADMIN_ROLE)).
+  function setTaskManager(address newAddress) external {
+    if (newAddress == address(0)) {
+      revert InvalidTaskManagerAddress();
+    }
+    ACLStorage storage $ = _getACLStorage();
+    emit TaskManagerUpdated($.taskManager, newAddress);
+    $.taskManager = newAddress;
+  }
+
+  function _taskManager() private view returns (address) {
+    return _getACLStorage().taskManager;
   }
 
   /// @notice V3 (ACP) access check — the scope table.

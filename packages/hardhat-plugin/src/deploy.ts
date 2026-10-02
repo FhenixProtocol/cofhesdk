@@ -3,6 +3,7 @@ import chalk from 'chalk';
 import { Contract, Wallet } from 'ethers';
 
 import {
+  MockCoFHEAddressBookArtifact,
   MockTaskManagerArtifact,
   MockACLArtifact,
   ACPTimestampRevokerArtifact,
@@ -12,7 +13,7 @@ import {
 } from '@cofhe/mock-contracts';
 
 import {
-  TASK_MANAGER_ADDRESS,
+  TASK_MANAGER_ID,
   MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
   MOCKS_DECRYPT_RESULT_SIGNER_PRIVATE_KEY,
   MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY,
@@ -61,8 +62,14 @@ export const deployMocks = async (
   log('vv', chalk.bold('cofhe-hardhat-plugin :: deploy mocks'), 0);
 
   // Deploy mock contracts
+  const addressBook = await deployMockAddressBook(hre);
+  logDeployment('MockCoFHEAddressBook', await addressBook.getAddress());
+
   const taskManager = await deployMockTaskManager(hre);
   logDeployment('MockTaskManager', await taskManager.getAddress());
+
+  await registerTaskManager(addressBook, taskManager);
+  log('vv', 'TaskManager registered in CoFHEAddressBook', 2);
 
   const acl = await deployMockACL(hre);
   logDeployment('MockACL', await acl.getAddress());
@@ -80,7 +87,7 @@ export const deployMocks = async (
   log('vv', 'Share registry set in ACL', 2);
 
   await linkTaskManagerAndACL(taskManager, acl);
-  log('vv', 'ACL address set in TaskManager', 2);
+  log('vv', 'ACL address set in TaskManager, TaskManager address set in ACL', 2);
 
   await setVerifierSigner(taskManager);
   log('vv', 'Verifier signer set', 2);
@@ -97,7 +104,7 @@ export const deployMocks = async (
   const zkVerifier = await deployMockZkVerifier(hre);
   logDeployment('MockZkVerifier', await zkVerifier.getAddress());
 
-  const thresholdNetwork = await deployMockThresholdNetwork(hre, acl);
+  const thresholdNetwork = await deployMockThresholdNetwork(hre, taskManager, acl);
   logDeployment('MockThresholdNetwork', await thresholdNetwork.getAddress());
 
   log('v', chalk.bold('cofhe-hardhat-plugin :: mocks deployed'), 0);
@@ -117,6 +124,24 @@ export const deployMocks = async (
 
 const getIsHardhat = async (hre: HardhatRuntimeEnvironment) => {
   return hre.network.name === 'hardhat';
+};
+
+const deployMockAddressBook = async (hre: HardhatRuntimeEnvironment) => {
+  // Deploy MockCoFHEAddressBook to the address FHE.sol resolves the TaskManager through
+  const addressBook = await deployMockContractFromArtifact(hre, MockCoFHEAddressBookArtifact);
+
+  // Check if MockCoFHEAddressBook exists
+  const bookExists = await addressBook.exists();
+  if (!bookExists) {
+    throw new Error('MockCoFHEAddressBook does not exist');
+  }
+
+  return addressBook;
+};
+
+const registerTaskManager = async (addressBook: Contract, taskManager: Contract) => {
+  const setTmTx = await addressBook.setTm(TASK_MANAGER_ID, await taskManager.getAddress());
+  await setTmTx.wait();
 };
 
 const deployMockTaskManager = async (hre: HardhatRuntimeEnvironment) => {
@@ -167,6 +192,9 @@ const linkTaskManagerAndACL = async (taskManager: Contract, acl: Contract) => {
   const aclAddress = await acl.getAddress();
   const linkAclTx = await taskManager.setACLContract(aclAddress);
   await linkAclTx.wait();
+
+  const linkTaskManagerTx = await acl.setTaskManager(await taskManager.getAddress());
+  await linkTaskManagerTx.wait();
 };
 
 const setVerifierSigner = async (taskManager: Contract) => {
@@ -192,11 +220,11 @@ const deployMockZkVerifier = async (hre: HardhatRuntimeEnvironment) => {
   return zkVerifier;
 };
 
-const deployMockThresholdNetwork = async (hre: HardhatRuntimeEnvironment, acl: Contract) => {
+const deployMockThresholdNetwork = async (hre: HardhatRuntimeEnvironment, taskManager: Contract, acl: Contract) => {
   const thresholdNetwork = await deployMockContractFromArtifact(hre, MockThresholdNetworkArtifact);
 
   // Initialize MockThresholdNetwork
-  const initTx = await thresholdNetwork.initialize(TASK_MANAGER_ADDRESS, await acl.getAddress());
+  const initTx = await thresholdNetwork.initialize(await taskManager.getAddress(), await acl.getAddress());
   await initTx.wait();
 
   // Check if MockThresholdNetwork exists

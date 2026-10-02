@@ -103,7 +103,9 @@ export { zkProveWithWorker } from './encrypt/zkPackProveVerify.js';
 
 // Consts (contract addresses, serialized size limits)
 export {
-  TASK_MANAGER_ADDRESS,
+  COFHE_ADDRESS_BOOK_ADDRESS,
+  TASK_MANAGER_ID,
+  MOCKS_TASK_MANAGER_ADDRESS,
   MOCKS_ZK_VERIFIER_ADDRESS,
   MOCKS_ZK_VERIFIER_SIGNER_ADDRESS,
   MOCKS_ZK_VERIFIER_SIGNER_PRIVATE_KEY,
@@ -112,6 +114,9 @@ export {
   TFHE_RS_ZK_MAX_BITS,
   TFHE_RS_SAFE_SERIALIZATION_SIZE_LIMIT,
 } from './consts.js';
+
+// Task Manager resolution (CoFHEAddressBook)
+export { getTaskManagerAddress } from './taskManager.js';
 
 // Decrypt result verification
 export { verifyDecryptResult } from './decrypt/verifyDecryptResult.js';

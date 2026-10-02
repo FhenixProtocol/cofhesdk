@@ -7,7 +7,7 @@ import {
   parseAbi,
 } from 'viem';
 import type { EIP712Domain, ACPPublic } from './types';
-import { TASK_MANAGER_ADDRESS } from '../core/consts.js';
+import { getTaskManagerAddress } from '../core/taskManager.js';
 
 export const getAclAddress = async (publicClient: PublicClient): Promise<Hex> => {
   const ACL_IFACE = 'function acl() view returns (address)';
@@ -17,7 +17,7 @@ export const getAclAddress = async (publicClient: PublicClient): Promise<Hex> =>
 
   // Get the ACL address
   return (await publicClient.readContract({
-    address: TASK_MANAGER_ADDRESS as `0x${string}`,
+    address: await getTaskManagerAddress(publicClient),
     abi: aclAbi,
     functionName: 'acl',
   })) as `0x${string}`;

@@ -23,7 +23,7 @@ import {
   zeroAddress,
 } from 'viem';
 
-import { TASK_MANAGER_ADDRESS } from './consts.js';
+import { getTaskManagerAddress } from './taskManager.js';
 
 // ACP default revoker (timestamp-based revocation) — interface shared by all revokers
 const ACP_VALIDATOR_ABI = parseAbi([
@@ -282,8 +282,8 @@ const aclServedAddressesCache = new Map<number, AclServedAddresses>();
 const clearAclServedAddresses = () => aclServedAddressesCache.clear();
 
 /**
- * The ACP infrastructure addresses the chain's ACL serves (TaskManager -> acl()
- * -> getters). Zero addresses and pre-upgrade ACLs (getters absent -> revert)
+ * The ACP infrastructure addresses the chain's ACL serves (CoFHEAddressBook ->
+ * TaskManager -> acl() -> getters). Zero addresses and pre-upgrade ACLs (getters absent -> revert)
  * resolve to `undefined` — callers fall back to `acp.*` config.
  *
  * Resolutions are cached per chainId. A failure to reach the TaskManager (network
@@ -297,7 +297,7 @@ const getAclServedAddresses = async (publicClient: PublicClient, chainId: number
   let aclAddress: Hex;
   try {
     aclAddress = await publicClient.readContract({
-      address: TASK_MANAGER_ADDRESS,
+      address: await getTaskManagerAddress(publicClient, chainId),
       abi: ACL_SERVED_ADDRESSES_ABI,
       functionName: 'acl',
     });

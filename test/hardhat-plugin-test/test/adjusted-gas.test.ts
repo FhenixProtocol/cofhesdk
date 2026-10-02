@@ -75,13 +75,13 @@ describe('Adjusted Gas', () => {
 describe('Adjusted Gas — audit regressions', () => {
   it('Should clamp adjustedGasUsed at zero for pathological receipts', () => {
     // Synthetic receipt where reported mock gas exceeds (post-refund) gasUsed.
-    const { TASK_MANAGER_ADDRESS } = require('@cofhe/sdk');
+    const { MOCKS_TASK_MANAGER_ADDRESS } = require('@cofhe/sdk');
     const { MOCK_GAS_CONSUMED_TOPIC } = require('@cofhe/hardhat-plugin');
     const fakeReceipt = {
       gasUsed: 1_000n,
       logs: [
         {
-          address: TASK_MANAGER_ADDRESS,
+          address: MOCKS_TASK_MANAGER_ADDRESS,
           topics: [MOCK_GAS_CONSUMED_TOPIC],
           data: '0x' + 5_000n.toString(16).padStart(64, '0'),
         },
