@@ -241,7 +241,8 @@ const applyACPDefaults = <
 >(
   options: T,
   acpConfig: { defaultRevoker?: Record<number, Hex>; defaultContractScopes?: Record<number, Hex[]> } | undefined,
-  chainId: number
+  chainId: number,
+  revokerData = Math.round(Date.now() / 1000) - 60
 ): T => {
   const result = { ...options };
 
@@ -249,12 +250,9 @@ const applyACPDefaults = <
   const hasValidatorOptions = options.revokerData != null || options.revokerContract != null;
   if (defaultRevoker != null && !hasValidatorOptions) {
     result.revokerContract = defaultRevoker;
-    // Creation timestamp minus a clock-skew allowance: the revoker rejects
-    // future-dated ids (vs block.timestamp of the LAST block), so a local clock
-    // ahead of the chain — or a chain with sparse blocks — would otherwise make
-    // a fresh acp temporarily unusable. 60s of backdating costs nothing
-    // (revokeAllExisting at time T still kills this acp for any T >= id).
-    result.revokerData = Math.round(Date.now() / 1000) - 60;
+    // The chain-aware caller supplies the latest block timestamp. Keep the
+    // local-clock fallback for the pure helper's backwards-compatible API.
+    result.revokerData = revokerData;
   }
 
   const defaultContracts = acpConfig?.defaultContractScopes?.[chainId];
@@ -287,14 +285,41 @@ const applyACPDefaultsFromChain = async <
 ): Promise<T> => {
   const hasExplicitRevoker =
     acpConfig?.defaultRevoker?.[chainId] != null || options.revokerData != null || options.revokerContract != null;
-  if (hasExplicitRevoker) return applyACPDefaults(options, acpConfig, chainId);
+  if (hasExplicitRevoker) {
+    // Explicit revoker options are never overridden, so there is nothing to
+    // default and no reason to pay for the block read.
+    if (options.revokerData != null || options.revokerContract != null) {
+      return applyACPDefaults(options, acpConfig, chainId);
+    }
+    return applyACPDefaults(options, acpConfig, chainId, await getBlockRevokerData(publicClient));
+  }
 
   const served = await getAclServedAddresses(publicClient, chainId);
-  const effectiveConfig =
-    served.defaultRevoker != null
-      ? { ...acpConfig, defaultRevoker: { ...acpConfig?.defaultRevoker, [chainId]: served.defaultRevoker } }
-      : acpConfig;
-  return applyACPDefaults(options, effectiveConfig, chainId);
+  if (served.defaultRevoker == null) {
+    return applyACPDefaults(options, acpConfig, chainId);
+  }
+  const effectiveConfig = {
+    ...acpConfig,
+    defaultRevoker: { ...acpConfig?.defaultRevoker, [chainId]: served.defaultRevoker },
+  };
+  return applyACPDefaults(options, effectiveConfig, chainId, await getBlockRevokerData(publicClient));
+};
+
+/**
+ * The chain-aware revoker id source: the latest block timestamp, not the local
+ * clock. The revoker rejects future-dated ids against `block.timestamp` of the
+ * LAST block, so a local clock ahead of the chain (or a chain with sparse
+ * blocks) would otherwise make a freshly created acp temporarily unusable.
+ */
+const getBlockRevokerData = async (publicClient: PublicClient): Promise<number> => {
+  const block = await publicClient.getBlock();
+  const revokerData = Number(block.timestamp);
+  if (!Number.isSafeInteger(revokerData)) {
+    throw new Error(
+      `ACP revokerData cannot represent the chain block timestamp ${block.timestamp.toString()} as a safe integer`
+    );
+  }
+  return revokerData;
 };
 
 // REVOKE (on-chain, via the acp's revoker contract)
