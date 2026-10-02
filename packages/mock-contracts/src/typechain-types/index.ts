@@ -4,6 +4,7 @@
 export type { ACPShareRegistry } from './ACPShareRegistry';
 export type { ACPTimestampRevoker } from './ACPTimestampRevoker';
 export type { MockACL } from './MockACL';
+export type { MockERC1967Proxy } from './MockERC1967Proxy';
 export type { MockTaskManager } from './MockTaskManager';
 export type { MockThresholdNetwork } from './MockThresholdNetwork';
 export type { MockZkVerifier } from './MockZkVerifier';

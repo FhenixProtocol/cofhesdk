@@ -7,6 +7,7 @@ import {
   MockACLArtifact,
   ACPTimestampRevokerArtifact,
   ACPShareRegistryArtifact,
+  MockERC1967ProxyArtifact,
   MockZkVerifierArtifact,
   MockThresholdNetworkArtifact,
 } from '@cofhe/mock-contracts';
@@ -74,7 +75,14 @@ export const deployMocks = async (
   log('vv', 'Default revoker contract set in ACL', 2);
 
   // ACP: on-chain hand-off for sharing ACPs
-  const acpShareRegistry = await deployMockContractFromArtifact(hre, ACPShareRegistryArtifact);
+  // The production contract (upgradeable): behind a proxy, initialized with the deployer as admin
+  const acpShareRegistryImpl = await deployMockContractFromArtifact(hre, ACPShareRegistryArtifact);
+  const [registryAdmin] = await hre.ethers.getSigners();
+  const acpShareRegistryProxy = await deployMockContractFromArtifact(hre, MockERC1967ProxyArtifact, [
+    await acpShareRegistryImpl.getAddress(),
+    acpShareRegistryImpl.interface.encodeFunctionData('initialize', [registryAdmin.address]),
+  ]);
+  const acpShareRegistry = acpShareRegistryImpl.attach(await acpShareRegistryProxy.getAddress()) as Contract;
   logDeployment('ACPShareRegistry', await acpShareRegistry.getAddress());
   await (await acl.setShareRegistry(await acpShareRegistry.getAddress())).wait();
   log('vv', 'Share registry set in ACL', 2);

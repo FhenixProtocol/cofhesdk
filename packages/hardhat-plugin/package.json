@@ -54,13 +54,17 @@
     "@nomicfoundation/hardhat-ethers": "^3.0.0",
     "ethers": "^5.0.0 || ^6.0.0",
     "@fhenixprotocol/cofhe-contracts": ">=0.2.0",
-    "@openzeppelin/contracts": "^5.0.0"
+    "@openzeppelin/contracts": "^5.0.0",
+    "@openzeppelin/contracts-upgradeable": "^5.0.0"
   },
   "peerDependenciesMeta": {
     "@fhenixprotocol/cofhe-contracts": {
       "optional": false
     },
     "@openzeppelin/contracts": {
+      "optional": false
+    },
+    "@openzeppelin/contracts-upgradeable": {
       "optional": false
     }
   },

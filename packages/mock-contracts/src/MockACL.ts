@@ -670,6 +670,19 @@ export const MockACLArtifact = {
     },
     {
       type: 'event',
+      name: 'Initialized',
+      inputs: [
+        {
+          name: 'version',
+          type: 'uint64',
+          indexed: false,
+          internalType: 'uint64',
+        },
+      ],
+      anonymous: false,
+    },
+    {
+      type: 'event',
       name: 'NewDelegation',
       inputs: [
         {
@@ -730,7 +743,12 @@ export const MockACLArtifact = {
     },
     {
       type: 'error',
-      name: 'InvalidShortString',
+      name: 'InvalidInitialization',
+      inputs: [],
+    },
+    {
+      type: 'error',
+      name: 'NotInitializing',
       inputs: [],
     },
     {
@@ -782,17 +800,6 @@ export const MockACLArtifact = {
           name: 'sender',
           type: 'address',
           internalType: 'address',
-        },
-      ],
-    },
-    {
-      type: 'error',
-      name: 'StringTooLong',
-      inputs: [
-        {
-          name: 'str',
-          type: 'string',
-          internalType: 'string',
         },
       ],
     },

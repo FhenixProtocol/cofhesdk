@@ -5,6 +5,7 @@ import { parseAbi, toFunctionSelector } from 'viem';
 import { hardhat } from '@cofhe/sdk/chains';
 import { expect } from 'chai';
 import type { SharedSimpleTest } from '../typechain-types/contracts/SharedSimpleTest';
+import { deployShareRegistry } from './helpers/shareRegistry';
 
 /**
  * On-chain sharing, end to end through the SDK client:
@@ -20,7 +21,7 @@ describe('ACP on-chain sharing (SDK e2e)', () => {
     const [bob, alice] = await hre.ethers.getSigners();
 
     // Registry deployed like any mock; its address flows in via config
-    const registry = await (await hre.ethers.getContractFactory('ACPShareRegistry')).deploy();
+    const registry = await deployShareRegistry();
     await registry.waitForDeployment();
     const registryAddress = (await registry.getAddress()) as `0x${string}`;
 
@@ -77,7 +78,7 @@ describe('ACP on-chain sharing (SDK e2e)', () => {
 
   it('a SNAPSHOT share carries its labels: posted, read back, verified and described', async () => {
     const [bob, alice] = await hre.ethers.getSigners();
-    const registry = await (await hre.ethers.getContractFactory('ACPShareRegistry')).deploy();
+    const registry = await deployShareRegistry();
     await registry.waitForDeployment();
     const config = await hre.cofhe.createConfig({
       environment: 'hardhat',
@@ -140,7 +141,7 @@ describe('ACP on-chain sharing (SDK e2e)', () => {
   it('issuer can cancel a pending share before import', async () => {
     const [bob, alice] = await hre.ethers.getSigners();
 
-    const registry = await (await hre.ethers.getContractFactory('ACPShareRegistry')).deploy();
+    const registry = await deployShareRegistry();
     await registry.waitForDeployment();
 
     const config = await hre.cofhe.createConfig({
@@ -204,7 +205,7 @@ describe('ACP on-chain sharing (SDK e2e)', () => {
   it('shareOnChain rejects a self acp', async () => {
     const [bob] = await hre.ethers.getSigners();
 
-    const registry = await (await hre.ethers.getContractFactory('ACPShareRegistry')).deploy();
+    const registry = await deployShareRegistry();
     await registry.waitForDeployment();
 
     const config = await hre.cofhe.createConfig({
