@@ -4,9 +4,9 @@ import { verifyShareLabel, verifyShareLabels } from '../verify';
 import type { ShareLabel } from '../schema';
 import { BALANCE_OF, CONFIDENTIAL_TRANSFER, CONFIDENTIAL_TRANSFER_TOPIC0, FUSD, FUSDY, ISSUER } from './fixtures';
 
-const AMOUNT: Hex = '0x' + '11'.repeat(32);
-const BALANCE: Hex = '0x' + '22'.repeat(32);
-const OTHER: Hex = '0x' + '33'.repeat(32);
+const AMOUNT = `0x${'11'.repeat(32)}` as Hex;
+const BALANCE = `0x${'22'.repeat(32)}` as Hex;
+const OTHER = `0x${'33'.repeat(32)}` as Hex;
 const ALICE = padHex('0xa11ce', { size: 32 });
 
 const transferLog = (overrides: Partial<Log> = {}): Log =>
