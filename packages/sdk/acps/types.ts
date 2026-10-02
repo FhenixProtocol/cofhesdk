@@ -222,6 +222,22 @@ export type SharedACP = Expand<
 >;
 
 /**
+ * An ACP on-chain status, as `client.acp.checkAccess` reports it instead of a revert.
+ * Without a handle: 'valid' or the reason it is not. With a handle, a valid ACP reports
+ * 'allowed', 'out-of-scope' (the ACP scope does not cover the handle) or
+ * 'issuer-not-allowed' (the issuer itself may not read the handle, so no ACP of theirs can).
+ */
+export type ACPAccessStatus =
+  | 'valid'
+  | 'allowed'
+  | 'out-of-scope'
+  | 'issuer-not-allowed'
+  | 'expired'
+  | 'revoked'
+  | 'invalid-issuer-signature'
+  | 'invalid-recipient-signature';
+
+/**
  * A share read back from the on-chain ACPShareRegistry: the posted payload
  * (SharedACP minus the client-side name/type) plus its registry id.
  */

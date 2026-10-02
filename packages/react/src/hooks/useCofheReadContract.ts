@@ -9,7 +9,7 @@ import {
 } from 'viem';
 import { useMemo } from 'react';
 import { useCofheConnection, type useCofhePublicClient } from './useCofheConnection';
-import { useCofheActiveACP } from './useCofheACPs';
+import { useCofheEffectiveACP, type CofheACPInput } from './useCofheACPScope';
 import { assert } from 'ts-essentials';
 import { useInternalQuery } from '../providers/index';
 import { transformEncryptedReturnTypes, type Abi, type CofheReturnType, type ContractReturnType } from '@cofhe/abi';
@@ -339,13 +339,19 @@ export function useCofheReadContract<
     functionName?: TfunctionName;
     args?: ContractFunctionArgs<TAbi, 'pure' | 'view', TfunctionName>;
     requiresACP?: boolean;
+    /**
+     * Gate on this ACP (or the hash of a stored one) instead of the enclosing `<CofheACPScope>` or
+     * the active ACP. The active ACP is not changed.
+     */
+    acp?: CofheACPInput;
   } & CofheReadChainParams,
   queryOptions?: UseCofheReadContractQueryOptions<TAbi, TfunctionName>
 ): UseCofheReadContractResult<TAbi, TfunctionName> {
-  const { address, abi, functionName, args, requiresACP = true } = params;
+  const { address, abi, functionName, args, requiresACP = true, acp } = params;
 
   const { publicClient, cofheChainId, disabledDueToWrongChain } = useCofheReadTarget(params);
-  const activeACP = useCofheActiveACP(cofheChainId);
+  // The ACP the read gates on: the `acp` option, else the enclosing scope, else the active one.
+  const gateACP = useCofheEffectiveACP({ acp, chainId: cofheChainId });
 
   const enabled = getEnabledForCofheReadContract({
     publicClient,
@@ -353,7 +359,7 @@ export function useCofheReadContract<
     abi,
     functionName,
     requiresACP,
-    hasValidActiveACP: !!activeACP?.isValid,
+    hasValidActiveACP: gateACP.isValid,
     userEnabled: queryOptions?.enabled,
   });
 
@@ -366,7 +372,7 @@ export function useCofheReadContract<
       functionName,
       args: Array.isArray(args) ? args : undefined,
       requiresACP,
-      activeACPHash: activeACP?.acp.hash,
+      activeACPHash: gateACP.acp?.hash,
       publicClient,
       queryOptions,
     })
@@ -374,7 +380,7 @@ export function useCofheReadContract<
 
   return {
     ...result,
-    disabledDueToMissingValidACP: requiresACP && (!activeACP || !activeACP.isValid),
+    disabledDueToMissingValidACP: requiresACP && !gateACP.isValid,
     disabledDueToWrongChain,
   };
 }
