@@ -31,7 +31,7 @@ contract GasConsumer {
   function requestDecrypt() public {
     // createDecryptTask is a public task-manager entry point (not routed through the FHE
     // library in this version); called directly to exercise its mock-gas tracking.
-    MockTaskManager(TASK_MANAGER_ADDRESS).createDecryptTask(uint256(euint32.unwrap(counter)), address(this));
+    MockTaskManager(address(Common.tm())).createDecryptTask(uint256(euint32.unwrap(counter)), address(this));
   }
 }
 

@@ -7,6 +7,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 import type { ArtifactManager } from 'hardhat/types/artifacts';
 
 import {
+  MockCoFHEAddressBookArtifact,
   MockTaskManagerArtifact,
   MockACLArtifact,
   MockZkVerifierArtifact,
@@ -109,6 +110,10 @@ function createCofheConnection(
         await mock_expectPlaintext(publicClient, ctHash, expectedValue);
       },
 
+      MockCoFHEAddressBook: {
+        address: deployedMockContracts.MockCoFHEAddressBook,
+        abi: MockCoFHEAddressBookArtifact.abi,
+      },
       MockTaskManager: { address: deployedMockContracts.MockTaskManager, abi: MockTaskManagerArtifact.abi },
       MockACL: { address: deployedMockContracts.MockACL, abi: MockACLArtifact.abi },
       MockZkVerifier: { address: deployedMockContracts.MockZkVerifier, abi: MockZkVerifierArtifact.abi },

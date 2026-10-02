@@ -1,11 +1,44 @@
 import { execSync } from 'child_process';
 import * as fs from 'fs';
-import { TASK_MANAGER_ADDRESS, MOCKS_ZK_VERIFIER_ADDRESS, MOCKS_THRESHOLD_NETWORK_ADDRESS } from '@cofhe/sdk';
+import { createRequire } from 'module';
+import {
+  COFHE_ADDRESS_BOOK_ADDRESS,
+  TASK_MANAGER_ID,
+  MOCKS_TASK_MANAGER_ADDRESS,
+  MOCKS_ZK_VERIFIER_ADDRESS,
+  MOCKS_THRESHOLD_NETWORK_ADDRESS,
+} from '@cofhe/sdk';
+
+// The SDK resolves the Task Manager through the same book + id FHE.sol is compiled against.
+// Fail the build if the two drift apart.
+function assertSdkMatchesFheSol(): void {
+  const fheSolPath = createRequire(__filename).resolve('@fhenixprotocol/cofhe-contracts/FHE.sol');
+  const source = fs.readFileSync(fheSolPath, 'utf8');
+  const book = source.match(/address constant COFHE_ADDRESS_BOOK = (0x[0-9a-fA-F]{40});/)?.[1];
+  const id = source.match(/uint256 constant TASK_MANAGER_ID = (\d+);/)?.[1];
+
+  if (
+    book?.toLowerCase() !== COFHE_ADDRESS_BOOK_ADDRESS.toLowerCase() ||
+    id == null ||
+    BigInt(id) !== TASK_MANAGER_ID
+  ) {
+    throw new Error(
+      `@cofhe/sdk consts (COFHE_ADDRESS_BOOK_ADDRESS=${COFHE_ADDRESS_BOOK_ADDRESS}, TASK_MANAGER_ID=${TASK_MANAGER_ID}) ` +
+        `do not match ${fheSolPath} (COFHE_ADDRESS_BOOK=${book}, TASK_MANAGER_ID=${id})`
+    );
+  }
+}
+
+assertSdkMatchesFheSol();
 
 const contracts: Array<{ name: string; fixedAddress?: string }> = [
   {
+    name: 'MockCoFHEAddressBook',
+    fixedAddress: COFHE_ADDRESS_BOOK_ADDRESS,
+  },
+  {
     name: 'MockTaskManager',
-    fixedAddress: TASK_MANAGER_ADDRESS,
+    fixedAddress: MOCKS_TASK_MANAGER_ADDRESS,
   },
   {
     name: 'MockZkVerifier',

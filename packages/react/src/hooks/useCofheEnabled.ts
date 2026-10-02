@@ -1,4 +1,4 @@
-import { TASK_MANAGER_ADDRESS } from '@cofhe/sdk';
+import { useCofheTaskManagerAddress } from './useCofheTaskManagerAddress';
 import {
   useCofheReadContract,
   type UseCofheReadContractQueryOptions,
@@ -27,11 +27,14 @@ export type UseCofheEnabledResult = UseCofheReadContractResult<typeof TASK_MANAG
 
 /**
  * Reads `TaskManager.isEnabled()` to determine whether Cofhe is enabled on the connected chain.
+ * The Task Manager is resolved through the CoFHEAddressBook first; the read stays disabled until it is.
  */
 export function useCofheEnabled(options?: UseCofheEnabledOptions): UseCofheEnabledResult {
+  const { data: taskManagerAddress } = useCofheTaskManagerAddress();
+
   return useCofheReadContract(
     {
-      address: TASK_MANAGER_ADDRESS,
+      address: taskManagerAddress,
       abi: TASK_MANAGER_IS_ENABLED_ABI,
       functionName: 'isEnabled',
       requiresACP: false,

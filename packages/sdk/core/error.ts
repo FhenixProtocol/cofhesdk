@@ -43,6 +43,7 @@ export enum CofheErrorCode {
   PublicWalletGetChainIdFailed = 'PUBLIC_WALLET_GET_CHAIN_ID_FAILED',
   PublicWalletGetAddressesFailed = 'PUBLIC_WALLET_GET_ADDRESSES_FAILED',
   RehydrateKeysStoreFailed = 'REHYDRATE_KEYS_STORE_FAILED',
+  TaskManagerUnresolved = 'TASK_MANAGER_UNRESOLVED',
 
   // Threshold-network stable error codes (decrypt/sealoutput), see API-RESPONSES.md
   BadRequest = 'BAD_REQUEST',

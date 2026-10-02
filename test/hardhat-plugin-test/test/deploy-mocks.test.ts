@@ -1,6 +1,12 @@
 import hre from 'hardhat';
 import { expect } from 'chai';
-import { TASK_MANAGER_ADDRESS, MOCKS_ZK_VERIFIER_ADDRESS, MOCKS_THRESHOLD_NETWORK_ADDRESS } from '@cofhe/sdk';
+import {
+  COFHE_ADDRESS_BOOK_ADDRESS,
+  TASK_MANAGER_ID,
+  MOCKS_TASK_MANAGER_ADDRESS,
+  MOCKS_ZK_VERIFIER_ADDRESS,
+  MOCKS_THRESHOLD_NETWORK_ADDRESS,
+} from '@cofhe/sdk';
 
 describe('Deploy Mocks Task', () => {
   it('should deploy mock contracts', async () => {
@@ -8,7 +14,14 @@ describe('Deploy Mocks Task', () => {
 
     const taskManagerFromCofhesdk = await hre.cofhe.mocks.getMockTaskManager();
     expect(await taskManagerFromCofhesdk.exists()).to.be.true;
-    expect(await taskManagerFromCofhesdk.getAddress()).to.be.equal(TASK_MANAGER_ADDRESS);
+    expect(await taskManagerFromCofhesdk.getAddress()).to.be.equal(MOCKS_TASK_MANAGER_ADDRESS);
+
+    // ADDRESS BOOK
+
+    const addressBookFromCofhesdk = await hre.cofhe.mocks.getMockCoFHEAddressBook();
+    expect(await addressBookFromCofhesdk.exists()).to.be.true;
+    expect(await addressBookFromCofhesdk.getAddress()).to.be.equal(COFHE_ADDRESS_BOOK_ADDRESS);
+    expect(await addressBookFromCofhesdk.getTm(TASK_MANAGER_ID)).to.be.equal(MOCKS_TASK_MANAGER_ADDRESS);
 
     // ACL
 
@@ -20,6 +33,7 @@ describe('Deploy Mocks Task', () => {
 
     expect(await aclFromCofhesdk.exists()).to.be.true;
     expect(await aclFromCofhesdk.getAddress()).to.be.equal(await taskManagerFromCofhesdk.acl());
+    expect(await aclFromCofhesdk.getTaskManagerAddress()).to.be.equal(MOCKS_TASK_MANAGER_ADDRESS);
 
     // ACP infrastructure addresses served by the ACL
     expect(await aclFromCofhesdk.defaultRevokerContract()).to.not.equal(hre.ethers.ZeroAddress);

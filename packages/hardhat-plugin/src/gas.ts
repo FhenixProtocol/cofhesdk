@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import { ethers } from 'ethers';
-import { TASK_MANAGER_ADDRESS } from '@cofhe/sdk';
+import { MOCKS_TASK_MANAGER_ADDRESS } from '@cofhe/sdk';
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 
 /// Topic of MockCoFHE's `MockGasConsumed(uint256)` event, emitted once per block of
@@ -36,7 +36,10 @@ export const mock_getAdjustedGasBreakdown = (receipt: AdjustableGasReceipt): Adj
   let mockGasEvents = 0;
 
   for (const log of receipt.logs ?? []) {
-    if (log.address.toLowerCase() === TASK_MANAGER_ADDRESS.toLowerCase() && log.topics[0] === MOCK_GAS_CONSUMED_TOPIC) {
+    if (
+      log.address.toLowerCase() === MOCKS_TASK_MANAGER_ADDRESS.toLowerCase() &&
+      log.topics[0] === MOCK_GAS_CONSUMED_TOPIC
+    ) {
       mockGas += BigInt(log.data);
       mockGasEvents += 1;
     }
@@ -126,7 +129,7 @@ export const printMockGasSummary = async (hre: HardhatRuntimeEnvironment) => {
   let logs: Array<{ transactionHash: string; data: string }>;
   try {
     logs = await hre.network.provider.send('eth_getLogs', [
-      { fromBlock: '0x0', toBlock: 'latest', address: TASK_MANAGER_ADDRESS, topics: [MOCK_GAS_CONSUMED_TOPIC] },
+      { fromBlock: '0x0', toBlock: 'latest', address: MOCKS_TASK_MANAGER_ADDRESS, topics: [MOCK_GAS_CONSUMED_TOPIC] },
     ]);
   } catch {
     return;
