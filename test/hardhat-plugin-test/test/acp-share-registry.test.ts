@@ -11,6 +11,7 @@ import {
   signedSharingPermission,
   type ACP,
 } from './helpers/acp';
+import { deployShareRegistry } from './helpers/shareRegistry';
 
 /**
  * ACPShareRegistry — the on-chain hand-off for sharing ACPs.
@@ -57,7 +58,7 @@ describe('ACPShareRegistry', () => {
     [bob, alice, carol] = await hre.ethers.getSigners();
     acl = await (await hre.ethers.getContractFactory('MockACL')).deploy();
     await acl.waitForDeployment();
-    registry = await (await hre.ethers.getContractFactory('ACPShareRegistry')).deploy();
+    registry = await deployShareRegistry();
     await registry.waitForDeployment();
     revoker = await (await hre.ethers.getContractFactory('ACPTimestampRevoker')).deploy();
     await revoker.waitForDeployment();
