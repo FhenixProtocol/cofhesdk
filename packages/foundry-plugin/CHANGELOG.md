@@ -1,5 +1,13 @@
 # @cofhe/foundry-plugin
 
+## 0.8.0
+
+### Patch Changes
+
+- ccb7b68: Realistic gas reporting for mocks. Under Foundry, mock-only work is now excluded from gas metering by default (opt out with `mockTaskManager.setMockGasExcluded(false)`), so expect `forge snapshot` numbers to drop. Under Hardhat, mock transactions emit `MockGasConsumed` events (extra receipt logs), and the plugins add `getAdjustedGasUsed(receipt)` / `getAdjustedGasBreakdown(receipt)` plus an opt-in `cofhe.gasSummary` report.
+- Updated dependencies [ccb7b68]
+  - @cofhe/mock-contracts@0.8.0
+
 ## 0.7.1
 
 ### Patch Changes
