@@ -180,7 +180,7 @@ let keysStorage: KeysStorage;
 
 const insertMockKeys = (chainId: number, securityZone: number) => {
   keysStorage.setFheKey(chainId, securityZone, '0x1234567890');
-  keysStorage.setCrs(chainId, '0x1234567890');
+  keysStorage.setCrs(chainId, securityZone, '0x1234567890');
 };
 
 const mockTfhePublicKeyDeserializer: FheKeyDeserializer = (buff: string) => {
