@@ -129,6 +129,9 @@ const deployMockTaskManager = async (hre: HardhatRuntimeEnvironment) => {
   const initTx = await taskManager.initialize(signer.address);
   await initTx.wait();
 
+  const securityZonesTx = await taskManager.setSecurityZones(0, 1);
+  await securityZonesTx.wait();
+
   // Check if MockTaskManager exists
   const tmExists = await taskManager.exists();
   if (!tmExists) {
