@@ -47,6 +47,14 @@ describe('mapApiErrorCodeToCofheErrorCode', () => {
       CofheErrorCode.SealOutputFailed
     );
   });
+
+  it('falls back for a code that only exists on Object.prototype', () => {
+    for (const inherited of ['toString', 'constructor', 'valueOf', 'hasOwnProperty']) {
+      expect(mapApiErrorCodeToCofheErrorCode(inherited, CofheErrorCode.DecryptFailed)).toBe(
+        CofheErrorCode.DecryptFailed
+      );
+    }
+  });
 });
 
 describe('parseApiErrorResponseBody', () => {
