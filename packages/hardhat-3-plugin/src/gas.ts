@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import fs from 'node:fs';
 import path from 'node:path';
 import { parseAbiItem, toEventSelector, toFunctionSelector, toFunctionSignature, type PublicClient } from 'viem';
-import { TASK_MANAGER_ADDRESS } from '@cofhe/sdk';
+import { MOCKS_TASK_MANAGER_ADDRESS } from '@cofhe/sdk';
 import type { ArtifactManager } from 'hardhat/types/artifacts';
 
 /// Topic of MockCoFHE's `MockGasConsumed(uint256)` event, emitted once per block of
@@ -40,7 +40,7 @@ export const mock_getAdjustedGasBreakdown = (receipt: AdjustableGasReceipt): Adj
 
   for (const log of receipt.logs ?? []) {
     if (
-      log.address.toLowerCase() === TASK_MANAGER_ADDRESS.toLowerCase() &&
+      log.address.toLowerCase() === MOCKS_TASK_MANAGER_ADDRESS.toLowerCase() &&
       log.topics[0]?.toLowerCase() === MOCK_GAS_CONSUMED_TOPIC
     ) {
       mockGas += BigInt(log.data);
@@ -156,7 +156,7 @@ export const collectMockGasRows = async (
   let logs;
   try {
     logs = await publicClient.getLogs({
-      address: TASK_MANAGER_ADDRESS,
+      address: MOCKS_TASK_MANAGER_ADDRESS,
       event: MOCK_GAS_CONSUMED_EVENT,
       fromBlock,
       toBlock: 'latest',

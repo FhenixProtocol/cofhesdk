@@ -61,7 +61,7 @@ importers:
         version: 2.6.0
       viem:
         specifier: 2.38.6
-        version: 2.38.6(typescript@5.5.4)
+        version: 2.38.6(typescript@5.5.4)(zod@4.0.0)
       wagmi:
         specifier: 2.19.2
         version: 2.19.2(@tanstack/react-query@5.100.10)(@types/react@18.2.61)(react@18.3.1)(typescript@5.5.4)(viem@2.38.6)
@@ -164,8 +164,8 @@ importers:
         specifier: workspace:*
         version: link:../mock-contracts
       '@fhenixprotocol/cofhe-contracts':
-        specifier: 0.2.0
-        version: 0.2.0
+        specifier: 1.0.0
+        version: 1.0.0
       '@openzeppelin/contracts':
         specifier: 5.4.0
         version: 5.4.0
@@ -217,8 +217,8 @@ importers:
         specifier: workspace:*
         version: link:../sdk
       '@fhenixprotocol/cofhe-contracts':
-        specifier: '>=0.2.0'
-        version: 0.2.0
+        specifier: '>=1.0.0'
+        version: 1.0.0
       '@openzeppelin/contracts':
         specifier: ^5.0.0
         version: 5.4.0
@@ -236,7 +236,7 @@ importers:
         version: 3.3.2
       viem:
         specifier: 2.38.6
-        version: 2.38.6(typescript@5.5.4)
+        version: 2.38.6(typescript@5.5.4)(zod@4.0.0)
     devDependencies:
       '@cofhe/eslint-config':
         specifier: workspace:*
@@ -290,8 +290,8 @@ importers:
   packages/mock-contracts:
     dependencies:
       '@fhenixprotocol/cofhe-contracts':
-        specifier: 0.2.0
-        version: 0.2.0
+        specifier: 1.0.0
+        version: 1.0.0
       '@openzeppelin/contracts':
         specifier: 5.4.0
         version: 5.4.0
@@ -622,7 +622,7 @@ importers:
         version: 5.5.4
       viem:
         specifier: 2.38.6
-        version: 2.38.6(typescript@5.5.4)
+        version: 2.38.6(typescript@5.5.4)(zod@4.0.0)
 
   packages/tsconfig: {}
 
@@ -678,8 +678,8 @@ importers:
         specifier: workspace:*
         version: link:../setup
       '@fhenixprotocol/cofhe-contracts':
-        specifier: 0.2.0
-        version: 0.2.0
+        specifier: 1.0.0
+        version: 1.0.0
       '@nomicfoundation/hardhat-ethers':
         specifier: 3.1.0
         version: 3.1.0(ethers@6.15.0)(hardhat@2.26.3)
@@ -709,7 +709,7 @@ importers:
         version: 2.26.3(ts-node@10.9.2)(typescript@5.5.4)
       viem:
         specifier: 2.38.6
-        version: 2.38.6(typescript@5.5.4)
+        version: 2.38.6(typescript@5.5.4)(zod@4.0.0)
 
   test/integration-matrix:
     devDependencies:
@@ -763,7 +763,7 @@ importers:
         version: 5.5.4
       viem:
         specifier: 2.38.6
-        version: 2.38.6(typescript@5.5.4)
+        version: 2.38.6(typescript@5.5.4)(zod@4.0.0)
       vitest:
         specifier: 3.2.4
         version: 3.2.4(@types/node@20.19.15)(@vitest/browser@3.2.4)(happy-dom@15.11.7)
@@ -771,14 +771,14 @@ importers:
   test/setup:
     dependencies:
       '@fhenixprotocol/cofhe-contracts':
-        specifier: 0.2.0
-        version: 0.2.0
+        specifier: 1.0.0
+        version: 1.0.0
       '@openzeppelin/contracts':
         specifier: 5.4.0
         version: 5.4.0
       viem:
         specifier: 2.38.6
-        version: 2.38.6(typescript@5.5.4)
+        version: 2.38.6(typescript@5.5.4)(zod@4.0.0)
     devDependencies:
       '@types/node':
         specifier: 20.19.15
@@ -2607,8 +2607,8 @@ packages:
     engines: {node: '>=14'}
     dev: true
 
-  /@fhenixprotocol/cofhe-contracts@0.2.0:
-    resolution: {integrity: sha512-8VNnTSSG1xdZPFwQybBWX0xzOYIlL9v6QAFa35tER7ChaAJx9JUcNT2UqZQux84ZCplOkS4cCfUv/mtQ/6nEzg==}
+  /@fhenixprotocol/cofhe-contracts@1.0.0:
+    resolution: {integrity: sha512-ThkpKiGog+v0peA8U6R7Goow4Cvlp4pXlAeRZN8VCnE5+7C71ozZciybDLExRbdHo4sKo2B/UN554qBMHOLZdw==}
     requiresBuild: true
     dependencies:
       '@openzeppelin/contracts': 5.4.0
@@ -9616,7 +9616,6 @@ packages:
     dependencies:
       typescript: 5.5.4
       zod: 4.0.0
-    dev: false
 
   /abitype@1.1.0(typescript@5.5.4)(zod@4.1.12):
     resolution: {integrity: sha512-6Vh4HcRxNMLA0puzPjM5GBgT4aAcFGKZzSgAXvuZ27shJP6NEpielTuqbBmZILR5/xd0PizkBGy5hReKz9jl5A==}
@@ -20264,7 +20263,7 @@ packages:
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      abitype: 1.1.0(typescript@5.5.4)(zod@4.1.12)
+      abitype: 1.1.0(typescript@5.5.4)(zod@4.0.0)
       isows: 1.0.7(ws@8.18.3)
       ox: 0.9.6(typescript@5.5.4)(zod@4.0.0)
       typescript: 5.5.4
@@ -20340,7 +20339,6 @@ packages:
       - bufferutil
       - utf-8-validate
       - zod
-    dev: false
 
   /viem@2.38.6(typescript@5.5.4)(zod@4.1.12):
     resolution: {integrity: sha512-aqO6P52LPXRjdnP6rl5Buab65sYa4cZ6Cpn+k4OLOzVJhGIK8onTVoKMFMT04YjDfyDICa/DZyV9HmvLDgcjkw==}

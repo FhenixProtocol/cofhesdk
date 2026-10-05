@@ -13,6 +13,7 @@ export {
   useCofheClient,
   useCofheConnection,
   useCofheEnabled,
+  useCofheTaskManagerAddress,
   useCofheEncrypt,
   useCofhePublicClient,
   useCofheRemoveACP,
