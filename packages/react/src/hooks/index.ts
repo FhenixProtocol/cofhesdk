@@ -6,12 +6,16 @@ export { useCofheConnection, useCofhePublicClient, useCofheWalletClient } from '
 export { useCofheEnabled, type UseCofheEnabledOptions, type UseCofheEnabledResult } from './useCofheEnabled';
 export { useCofheTaskManagerAddress } from './useCofheTaskManagerAddress';
 export { useCofheEncrypt } from './useCofheEncrypt';
-export { useCofheActiveACP, useCofheAllACPs, useCofheRemoveACP, useCofheSelectACP } from './useCofheACPs';
+export { useCofheActiveACP, useCofheACPs, useCofheAllACPs, useCofheRemoveACP, useCofheSelectACP } from './useCofheACPs';
 export { useCofheReadContract, type UseCofheReadContractQueryOptions } from './useCofheReadContract';
 export {
   useCofheReadContracts,
   type CofheReadContractsContract,
   type CofheReadContractsItem,
+  type CofheReadContractsData,
+  type CofheReadContractsEntry,
+  type CofheReadContractsEntries,
+  type CofheReadContractsEntryResult,
   type UseCofheReadContractsResult,
   type UseCofheReadContractsQueryOptions,
 } from './useCofheReadContracts';

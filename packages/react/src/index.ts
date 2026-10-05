@@ -8,6 +8,7 @@ export {
   getCofheTokenShieldCallArgs,
   getCofheTokenUnshieldCallArgs,
   useCofheActiveACP,
+  useCofheACPs,
   useCofheAllACPs,
   useCofheClient,
   useCofheConnection,
@@ -63,6 +64,22 @@ export {
 
 export { useCofheEncryptAndWriteContract } from '@/hooks/useCofheEncryptAndWriteContract';
 export { useCofheReadContractAndDecrypt } from '@/hooks/useCofheReadContractAndDecrypt';
+export { useCofheDecrypt } from '@/hooks/useCofheDecrypt';
+export {
+  CofheACPScope,
+  useCofheACPScope,
+  useCofheACPStatus,
+  type CofheACPInput,
+  type CofheACPScopeValue,
+  type CofheACPStatus,
+} from '@/hooks/useCofheACPScope';
+export {
+  useCofheIncomingShares,
+  useCofheShareOnChain,
+  useCofheImportShared,
+  useCofheRemoveShare,
+  useCofheRevokeACP,
+} from '@/hooks/acps/useOnChainSharing';
 export {
   useCofheReadContract,
   constructCofheReadContractQueryForInvalidation,
@@ -73,6 +90,10 @@ export {
   useCofheReadContracts,
   type CofheReadContractsContract,
   type CofheReadContractsItem,
+  type CofheReadContractsData,
+  type CofheReadContractsEntry,
+  type CofheReadContractsEntries,
+  type CofheReadContractsEntryResult,
   type UseCofheReadContractsResult,
   type UseCofheReadContractsQueryOptions,
 } from '@/hooks/useCofheReadContracts';

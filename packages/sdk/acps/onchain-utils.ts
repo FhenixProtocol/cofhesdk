@@ -1,12 +1,5 @@
-import {
-  BaseError,
-  ContractFunctionRevertedError,
-  type Hex,
-  type PublicClient,
-  decodeErrorResult,
-  parseAbi,
-} from 'viem';
-import type { EIP712Domain, ACPPublic } from './types';
+import { type Hex, type PublicClient, decodeErrorResult, parseAbi, zeroAddress } from 'viem';
+import type { ACPAccessStatus, EIP712Domain, ACPPublic } from './types';
 import { getTaskManagerAddress } from '../core/taskManager.js';
 
 export const getAclAddress = async (publicClient: PublicClient): Promise<Hex> => {
@@ -59,6 +52,48 @@ export const getAclEIP712Domain = async (publicClient: PublicClient): Promise<EI
   };
 };
 
+const toACPTuple = (acp: ACPPublic) => ({
+  issuer: acp.issuer,
+  expiration: BigInt(acp.expiration),
+  recipient: acp.recipient,
+  revokerData: BigInt(acp.revokerData),
+  revokerContract: acp.revokerContract,
+  scope: acp.scope,
+  contracts: acp.contracts,
+  handles: acp.handles,
+  sealingKey: acp.sealingKey,
+  issuerSignature: acp.issuerSignature,
+  recipientSignature: acp.recipientSignature,
+});
+
+/**
+ * The custom error a reverted ACL call carries, however the node reports it: a viem revert, a
+ * Hardhat-style 'reverted with custom error' detail, or raw return data. `undefined` when the
+ * failure is not a contract revert (e.g. a network error).
+ */
+function revertErrorName(err: unknown, abi: readonly any[]): string | undefined {
+  // Viem revert. Matched by name, not `instanceof`: the public client may come from another copy of
+  // viem than this package (an app bringing its own), and then no class check ever matches.
+  const walk = (err as { walk?: (fn: (e: unknown) => boolean) => unknown } | null)?.walk;
+  if (typeof walk === 'function') {
+    const revertError = walk.call(err, (e) => (e as { name?: string })?.name === 'ContractFunctionRevertedError') as
+      | { data?: { errorName?: string } }
+      | null
+      | undefined;
+    if (revertError) return revertError.data?.errorName ?? '';
+  }
+
+  // Check details field for custom error names (e.g., from Hardhat test nodes)
+  const customErrorName = extractCustomErrorFromDetails(err, abi);
+  if (customErrorName) return customErrorName;
+
+  // Hardhat wrapped error will need to be unwrapped to get the return data
+  const hhDetailsData = extractReturnData(err);
+  if (hhDetailsData != null) return decodeErrorResult({ abi, data: hhDetailsData }).errorName;
+
+  return undefined;
+}
+
 export const checkACPValidityOnChain = async (acp: ACPPublic, publicClient: PublicClient): Promise<boolean> => {
   const aclAddress = await getAclAddress(publicClient);
 
@@ -68,51 +103,69 @@ export const checkACPValidityOnChain = async (acp: ACPPublic, publicClient: Publ
       address: aclAddress,
       abi: checkACPValidityAbi,
       functionName: 'checkPermissionValidity',
-      args: [
-        {
-          issuer: acp.issuer,
-          expiration: BigInt(acp.expiration),
-          recipient: acp.recipient,
-          revokerData: BigInt(acp.revokerData),
-          revokerContract: acp.revokerContract,
-          scope: acp.scope,
-          contracts: acp.contracts,
-          handles: acp.handles,
-          sealingKey: acp.sealingKey,
-          issuerSignature: acp.issuerSignature,
-          recipientSignature: acp.recipientSignature,
-        },
-      ],
+      args: [toACPTuple(acp)],
     });
     return true;
   } catch (err: any) {
-    // Viem default handling
-    if (err instanceof BaseError) {
-      const revertError = err.walk((err: any) => err instanceof ContractFunctionRevertedError);
-      if (revertError instanceof ContractFunctionRevertedError) {
-        const errorName = revertError.data?.errorName ?? '';
-        throw new Error(errorName);
-      }
-    }
-
-    // Check details field for custom error names (e.g., from Hardhat test nodes)
-    const customErrorName = extractCustomErrorFromDetails(err, checkACPValidityAbi);
-    if (customErrorName) {
-      throw new Error(customErrorName);
-    }
-
-    // Hardhat wrapped error will need to be unwrapped to get the return data
-    const hhDetailsData = extractReturnData(err);
-    if (hhDetailsData != null) {
-      const decoded = decodeErrorResult({
-        abi: checkACPValidityAbi,
-        data: hhDetailsData,
-      });
-
-      throw new Error(decoded.errorName);
-    }
-
+    const errorName = revertErrorName(err, checkACPValidityAbi);
+    if (errorName !== undefined) throw new Error(errorName);
     // Fallback throw the original error
+    throw err;
+  }
+};
+
+/** The ACL permission reverts, as statuses. */
+const PERMISSION_ERROR_STATUS: Record<string, ACPAccessStatus> = {
+  PermissionInvalid_Expired: 'expired',
+  PermissionInvalid_Disabled: 'revoked',
+  PermissionInvalid_IssuerSignature: 'invalid-issuer-signature',
+  PermissionInvalid_RecipientSignature: 'invalid-recipient-signature',
+};
+
+/**
+ * An ACP status on chain, read from the ACL: its validity (expiration, signatures, revocation)
+ * and, given a handle, whether the ACP may read it. The ACL reverts for an invalid ACP; those
+ * reverts come back as statuses. Anything else (e.g. a network error) still throws.
+ */
+export const getACPAccessStatusOnChain = async (
+  acp: ACPPublic,
+  publicClient: PublicClient,
+  handle?: bigint | Hex
+): Promise<ACPAccessStatus> => {
+  const aclAddress = await getAclAddress(publicClient);
+
+  try {
+    if (handle === undefined) {
+      await publicClient.simulateContract({
+        address: aclAddress,
+        abi: acpAccessAbi,
+        functionName: 'checkPermissionValidity',
+        args: [toACPTuple(acp)],
+      });
+      return 'valid';
+    }
+
+    const ctHash = BigInt(handle);
+    const allowed = await publicClient.readContract({
+      address: aclAddress,
+      abi: acpAccessAbi,
+      functionName: 'isAllowedWithPermission',
+      args: [toACPTuple(acp), ctHash],
+    });
+    if (allowed) return 'allowed';
+
+    // The ACL answers false both when the scope misses the handle and when the issuer itself may
+    // not read it; the issuer own allowance tells the two apart.
+    const issuerAllowed = await publicClient.readContract({
+      address: aclAddress,
+      abi: acpAccessAbi,
+      functionName: 'isAllowed',
+      args: [ctHash, acp.issuer],
+    });
+    return issuerAllowed ? 'out-of-scope' : 'issuer-not-allowed';
+  } catch (err) {
+    const status = PERMISSION_ERROR_STATUS[revertErrorName(err, acpAccessAbi) ?? ''];
+    if (status) return status;
     throw err;
   }
 };
@@ -143,7 +196,10 @@ function extractReturnData(err: unknown): `0x${string}` | undefined {
   const anyErr = err as any;
   const s = anyErr?.details ?? anyErr?.cause?.details ?? anyErr?.shortMessage ?? anyErr?.message ?? String(err);
 
-  return s.match(/return data:\s*(0x[a-fA-F0-9]+)/)?.[1] as `0x${string}` | undefined;
+  // Hardhat: "return data: 0x...". A node that reports only the selector in text (e.g. anvil through
+  // a transport that drops the structured error data): "custom error 0x...".
+  const match = s.match(/return data:\s*(0x[a-fA-F0-9]+)/) ?? s.match(/custom error (0x[a-fA-F0-9]{8,})/);
+  return match?.[1] as `0x${string}` | undefined;
 }
 
 const checkACPValidityAbi = [
@@ -244,3 +300,86 @@ const checkACPValidityAbi = [
     inputs: [],
   },
 ] as const;
+
+const acpAccessAbi = [
+  ...checkACPValidityAbi,
+  {
+    type: 'function',
+    name: 'isAllowedWithPermission',
+    inputs: [checkACPValidityAbi[0].inputs[0], { name: 'handle', type: 'uint256', internalType: 'uint256' }],
+    outputs: [{ name: '', type: 'bool', internalType: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'isAllowed',
+    inputs: [
+      { name: 'handle', type: 'uint256', internalType: 'uint256' },
+      { name: 'account', type: 'address', internalType: 'address' },
+    ],
+    outputs: [{ name: '', type: 'bool', internalType: 'bool' }],
+    stateMutability: 'view',
+  },
+] as const;
+
+// ACL-SERVED ADDRESSES (defaultRevokerContract / shareRegistry)
+
+const ACL_SERVED_ADDRESSES_ABI = parseAbi([
+  'function acl() view returns (address)',
+  'function defaultRevokerContract() view returns (address)',
+  'function shareRegistry() view returns (address)',
+]);
+
+export interface AclServedAddresses {
+  defaultRevoker?: Hex;
+  shareRegistry?: Hex;
+}
+
+const aclServedAddressesCache = new Map<number, AclServedAddresses>();
+
+/** Test hook: forget resolved addresses (e.g. between redeployments on one chainId). */
+export const clearAclServedAddresses = () => aclServedAddressesCache.clear();
+
+/**
+ * The ACP infrastructure addresses the chain's ACL serves (CoFHEAddressBook ->
+ * TaskManager -> acl() -> getters). Zero addresses and pre-upgrade ACLs (getters absent -> revert)
+ * resolve to `undefined` — callers fall back to `acp.*` config.
+ *
+ * Resolutions are cached per chainId. A failure to reach the TaskManager (network
+ * error, no CoFHE deployment) is NOT cached, so a transient outage does not pin
+ * an empty result for the whole session.
+ */
+export const getAclServedAddresses = async (
+  publicClient: PublicClient,
+  chainId: number
+): Promise<AclServedAddresses> => {
+  const cached = aclServedAddressesCache.get(chainId);
+  if (cached != null) return cached;
+
+  let aclAddress: Hex;
+  try {
+    aclAddress = await publicClient.readContract({
+      address: await getTaskManagerAddress(publicClient, chainId),
+      abi: ACL_SERVED_ADDRESSES_ABI,
+      functionName: 'acl',
+    });
+  } catch {
+    return {};
+  }
+
+  const [defaultRevoker, shareRegistry] = await Promise.all([
+    publicClient
+      .readContract({ address: aclAddress, abi: ACL_SERVED_ADDRESSES_ABI, functionName: 'defaultRevokerContract' })
+      .catch(() => undefined),
+    publicClient
+      .readContract({ address: aclAddress, abi: ACL_SERVED_ADDRESSES_ABI, functionName: 'shareRegistry' })
+      .catch(() => undefined),
+  ]);
+
+  const resolved: AclServedAddresses = {
+    defaultRevoker: defaultRevoker != null && defaultRevoker !== zeroAddress ? defaultRevoker : undefined,
+    shareRegistry: shareRegistry != null && shareRegistry !== zeroAddress ? shareRegistry : undefined,
+  };
+  aclServedAddressesCache.set(chainId, resolved);
+  return resolved;
+};

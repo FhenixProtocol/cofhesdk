@@ -37,6 +37,7 @@ type EncryptInputsBuilderParams<T extends EncryptableItem[]> = BaseBuilderParams
   zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator | undefined;
   initTfhe: TfheInitializer | undefined;
   zkProveWorkerFn: ZkProveWorkerFunction | undefined;
+  beforeMainThreadProve?: (() => Promise<void>) | undefined;
 
   keysStorage: KeysStorage | undefined;
 };
@@ -69,6 +70,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
   private zkBuilderAndCrsGenerator: ZkBuilderAndCrsGenerator;
   private initTfhe: TfheInitializer | undefined;
   private zkProveWorkerFn: ZkProveWorkerFunction | undefined;
+  private beforeMainThreadProve: (() => Promise<void>) | undefined;
 
   private keysStorage: KeysStorage | undefined;
 
@@ -142,6 +144,9 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
 
     // Optional zkProve worker function, will be used on web if useWorkers is true and worker function is provided
     this.zkProveWorkerFn = params.zkProveWorkerFn;
+
+    // Optional platform setup that only matters when this thread generates the proof
+    this.beforeMainThreadProve = params.beforeMainThreadProve;
 
     // Keys storage is used to store the FHE key and CRS
     this.keysStorage = params.keysStorage;
@@ -582,6 +587,7 @@ export class EncryptInputsBuilder<T extends EncryptableItem[]> extends BaseBuild
 
     if (proof == null) {
       // Use main thread directly (workers disabled or unavailable)
+      await this.beforeMainThreadProve?.();
       proof = await zkProve(zkBuilder, zkCrs, metadata);
       usedWorker = false;
     }

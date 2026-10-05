@@ -156,6 +156,10 @@ export default defineConfig({
             text: 'Sharing Encrypted Values',
             link: '/reference/sharing-encrypted-values',
           },
+          {
+            text: 'Faster Encryption',
+            link: '/reference/faster-encryption',
+          },
         ],
       },
     ],
@@ -166,6 +170,11 @@ export default defineConfig({
           text: 'Coming Soon',
           link: '/react',
         },
+        // The React docs stay out of the public site until finalized; /react/acp is reachable by link.
+        // {
+        //   text: 'ACPs',
+        //   link: '/react/acp',
+        // },
       ],
     },
   },

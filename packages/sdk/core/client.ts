@@ -156,6 +156,7 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
       zkBuilderAndCrsGenerator: opts.zkBuilderAndCrsGenerator,
       initTfhe: opts.initTfhe,
       zkProveWorkerFn: opts.zkProveWorkerFn,
+      beforeMainThreadProve: opts.beforeMainThreadProve,
 
       keysStorage,
 
@@ -259,13 +260,11 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
       );
     },
 
-    importShared: async (
-      options: ImportSharedACPOptions | string,
-      clients?: { publicClient: PublicClient; walletClient: WalletClient }
-    ) => {
+    importShared: async (options: ImportSharedACPOptions | string, importOptions = {}) => {
       _requireConnected();
-      const { publicClient, walletClient } = clients ?? connectStore.getState();
-      return acps.importShared(options, publicClient!, walletClient!);
+      const { activate, ...clients } = importOptions;
+      const { publicClient, walletClient } = clients.publicClient ? clients : connectStore.getState();
+      return acps.importShared(options, publicClient!, walletClient!, { activate });
     },
 
     // Get or create methods (require connection)
@@ -314,6 +313,12 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
       return acps.isACPRevoked(acp, publicClient!);
     },
 
+    checkAccess: async (acp, handle) => {
+      _requireConnected();
+      const { publicClient } = connectStore.getState();
+      return acps.checkAccess(acp, publicClient!, handle);
+    },
+
     // On-chain sharing (require connection + config.acp.sharingRegistry)
     shareOnChain: async (acp) => {
       _requireConnected();
@@ -332,10 +337,10 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
       return acps.getIncomingShares(publicClient!, sharingRegistry, account);
     },
 
-    importFromChain: async (share) => {
+    importFromChain: async (share, options) => {
       _requireConnected();
       const { publicClient, walletClient } = connectStore.getState();
-      return acps.importFromChain(share, publicClient!, walletClient!);
+      return acps.importFromChain(share, publicClient!, walletClient!, options);
     },
 
     dismissShare: async (shareId) => {
