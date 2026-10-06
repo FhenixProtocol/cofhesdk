@@ -12,6 +12,8 @@ import {
   removeACP,
   getActiveACPHash,
   setActiveACPHash,
+  clearStaleStore,
+  ACP_STORE_DEFAULTS,
   ACPUtils,
 } from '../index.js';
 
@@ -83,6 +85,75 @@ describe('Storage Tests', () => {
 
       const activeHash = getActiveACPHash(chainId, account);
       expect(activeHash).toBeUndefined();
+    });
+  });
+
+  describe('Stale Store Detection', () => {
+    // `typeof null` and `typeof []` are both 'object', so these shapes used to pass the
+    // structure guard and stay in the store; a `null` record then throws on `acps[chainId]`.
+    const seedRawState = (state: unknown) => {
+      acpStore.store.setState(state as never, true);
+    };
+
+    it('should clear the store when acps is null', () => {
+      seedRawState({ acps: null, activeACPHash: {} });
+
+      clearStaleStore();
+
+      expect(acpStore.store.getState()).toEqual(ACP_STORE_DEFAULTS);
+      expect(() => getACP(chainId, account, '0xdeadbeef')).not.toThrow();
+      expect(getACP(chainId, account, '0xdeadbeef')).toBeUndefined();
+    });
+
+    it('should clear the store when acps is an array', () => {
+      seedRawState({ acps: [], activeACPHash: {} });
+
+      clearStaleStore();
+
+      expect(acpStore.store.getState()).toEqual(ACP_STORE_DEFAULTS);
+      expect(() => getACP(chainId, account, '0xdeadbeef')).not.toThrow();
+      expect(getACP(chainId, account, '0xdeadbeef')).toBeUndefined();
+    });
+
+    it('should clear the store when activeACPHash is null', () => {
+      seedRawState({ acps: {}, activeACPHash: null });
+
+      clearStaleStore();
+
+      expect(acpStore.store.getState()).toEqual(ACP_STORE_DEFAULTS);
+      expect(() => getActiveACP(chainId, account)).not.toThrow();
+      expect(getActiveACP(chainId, account)).toBeUndefined();
+    });
+
+    it('should clear the store when activeACPHash is an array', () => {
+      seedRawState({ acps: {}, activeACPHash: [] });
+
+      clearStaleStore();
+
+      expect(acpStore.store.getState()).toEqual(ACP_STORE_DEFAULTS);
+    });
+
+    it('should let setACP recover a store whose acps is null', async () => {
+      const acp = await createMockACP();
+      seedRawState({ acps: null, activeACPHash: {} });
+
+      expect(() => setACP(chainId, account, acp)).not.toThrow();
+      expect(ACPUtils.serialize(getACP(chainId, account, acp.hash)!)).toEqual(ACPUtils.serialize(acp));
+    });
+
+    it('should leave a valid store untouched', async () => {
+      const acp = await createMockACP();
+      setACP(chainId, account, acp);
+      setActiveACPHash(chainId, account, acp.hash);
+
+      const before = acpStore.store.getState();
+
+      clearStaleStore();
+
+      // Same reference: a valid store must not be rewritten at all.
+      expect(acpStore.store.getState()).toBe(before);
+      expect(ACPUtils.serialize(getACP(chainId, account, acp.hash)!)).toEqual(ACPUtils.serialize(acp));
+      expect(getActiveACPHash(chainId, account)).toBe(acp.hash);
     });
   });
 });
