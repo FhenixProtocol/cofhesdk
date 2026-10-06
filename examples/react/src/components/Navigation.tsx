@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { useConnectors, type Connector } from 'wagmi';
+import { useAccount, useConnectors, type Connector } from 'wagmi';
 import { useConnectBrowserWallet } from '../utils/useConnectBrowserWallet';
 import { useIsUsingBrowserWallet } from '../utils/useIsUsingBrowserWallet';
 interface NavigationProps {
@@ -25,6 +25,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   const isUsingBrowserWallet = useIsUsingBrowserWallet();
   const { connectBrowserWallet, isConnecting } = useConnectBrowserWallet();
   const connectors = useConnectors();
+  const { connector: activeConnector } = useAccount();
 
   // Wallets discovered via EIP-6963, deduped by id (first wins). The generic `injected` entry is only
   // kept as a fallback when no wallet was discovered.
@@ -64,7 +65,7 @@ export const Navigation: React.FC<NavigationProps> = ({
                 🌐 Browser Wallet Connected
               </div>
               <div className={`text-xs ${isDarkMode ? 'text-green-300' : 'text-green-600'}`}>
-                Using MetaMask or injected wallet
+                Using {activeConnector?.name ?? 'browser wallet'}
               </div>
             </div>
           ) : (
