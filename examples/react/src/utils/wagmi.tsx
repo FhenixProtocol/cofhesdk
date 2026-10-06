@@ -32,8 +32,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <WagmiProvider
       config={config}
       // TMP/TODO: had to disable reconnectOnMount to fix the problem with failed reconnecting even on button click.
-      // possible cause: the way the example app works (i.e. prevent eager connect) -- we don't pass injected() connector into config.connectors, instead we pass it at the wagm connection time (on button click)
-      // probably that's why it fails to reconnect
+      // Root cause not confirmed. Note that the generic `injectedProvider` IS part of config.connectors, and
+      // EIP-6963 discovery is left at wagmi's default (enabled), so discovered wallets are appended to
+      // config.connectors at runtime. The connect UI lists them via useConnectors().
       reconnectOnMount={false}
     >
       <QueryClientProvider client={wagmiQueryClient}>{children}</QueryClientProvider>
