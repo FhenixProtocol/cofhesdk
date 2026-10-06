@@ -105,6 +105,18 @@ describe('ACPShareRegistry', () => {
     await expect(registry.connect(bob).share(p)).to.be.revertedWithCustomError(registry, 'SealingKeyMustBeEmpty');
   });
 
+  it('rejects a share carrying a recipient signature', async () => {
+    // Symmetric with the sealingKey check above: both fields are documented (contract header)
+    // as always empty at post time. Without this check, varying recipientSignature alone lets
+    // an issuer mint unlimited distinct shareIds for what is otherwise the same share, bypassing
+    // the AlreadyShared de-dup guarantee `share()`'s own NatSpec promises.
+    const p = await signedSharingPermission(acl, bob, alice.address, { recipientSignature: '0xaa' });
+    await expect(registry.connect(bob).share(p)).to.be.revertedWithCustomError(
+      registry,
+      'RecipientSignatureMustBeEmpty'
+    );
+  });
+
   it('rejects an unsigned share', async () => {
     const p = await signedSharingPermission(acl, bob, alice.address);
     p.issuerSignature = '0x';

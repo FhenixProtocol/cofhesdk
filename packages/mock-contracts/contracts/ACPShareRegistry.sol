@@ -47,6 +47,7 @@ contract ACPShareRegistry {
   error NotIssuerOrRecipient();
   error RecipientMissing();
   error SealingKeyMustBeEmpty();
+  error RecipientSignatureMustBeEmpty();
   error IssuerSignatureMissing();
   error ShareExpired();
   error AlreadyShared();
@@ -54,10 +55,15 @@ contract ACPShareRegistry {
 
   /// @notice Post a sharing ACP for its recipient to pick up.
   /// @dev The share id is the hash of the payload — reposting an identical share reverts.
+  ///      `sealingKey` and `recipientSignature` are both required empty (see contract header):
+  ///      enforcing both keeps the id collision-free for the `AlreadyShared` de-dup guarantee —
+  ///      otherwise callers could vary `recipientSignature` alone to post unlimited duplicate
+  ///      entries for the same logical share.
   function share(ACP calldata acp) external returns (bytes32 shareId) {
     if (msg.sender != acp.issuer) revert NotIssuer();
     if (acp.recipient == address(0)) revert RecipientMissing();
     if (acp.sealingKey != bytes32(0)) revert SealingKeyMustBeEmpty();
+    if (acp.recipientSignature.length != 0) revert RecipientSignatureMustBeEmpty();
     if (acp.issuerSignature.length == 0) revert IssuerSignatureMissing();
     if (acp.expiration < block.timestamp) revert ShareExpired();
 
