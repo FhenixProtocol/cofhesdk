@@ -46,7 +46,7 @@ export const GenerateSealingKey = (): SealingKeyPair => {
 export const seal = (value: bigint | number, publicKey: string): EthEncryptedData => {
   isString(publicKey);
   isBigIntOrNumber(value);
-  assertKeyLength(publicKey, 'Public');
+  assertSealingKey(publicKey, 'Public');
 
   // generate ephemeral keypair
   const ephemeralKeyPair = nacl.box.keyPair();
@@ -67,7 +67,7 @@ export const seal = (value: bigint | number, publicKey: string): EthEncryptedDat
  * The ephemeral public key travels inside the payload, so the private key alone suffices.
  */
 export const unsealWithPrivateKey = (privateKey: string, parsedData: EthEncryptedData): bigint => {
-  assertKeyLength(privateKey, 'Private');
+  assertSealingKey(privateKey, 'Private');
 
   const nonce = parsedData.nonce instanceof Uint8Array ? parsedData.nonce : new Uint8Array(parsedData.nonce);
   const ephemPublicKey =
@@ -82,9 +82,15 @@ export const unsealWithPrivateKey = (privateKey: string, parsedData: EthEncrypte
   return toBigInt(decryptedMessage);
 };
 
-const assertKeyLength = (key: string, kind: 'Private' | 'Public'): void => {
+const assertSealingKey = (key: string, kind: 'Private' | 'Public'): void => {
   const bare = key.startsWith('0x') ? key.slice(2) : key;
   if (bare.length !== KEY_HEX_LENGTH) {
     throw new Error(`${kind} key must be of length ${KEY_HEX_LENGTH}`);
+  }
+  // A correct-length key with non-hex characters would otherwise decode those characters to
+  // zero bytes. An entirely invalid public key becomes the all-zero key, a low-order point, so
+  // anything sealed to it could be opened without the matching private key.
+  if (!/^[0-9a-fA-F]+$/.test(bare)) {
+    throw new Error(`${kind} key must contain only hex characters`);
   }
 };
