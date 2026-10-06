@@ -353,6 +353,7 @@ run('forge build');
 
 const registry = readRegistry();
 let changed = false;
+let deploymentFailed = false;
 
 const targets = args.chains
   ? args.chains.map((id) => ALL_CHAINS.find((c) => c.id === id) || (() => { throw new Error(`Unknown chain ${id}`); })())
@@ -411,6 +412,7 @@ for (const contract of CONTRACTS) {
       changed = true;
     } catch (err) {
       console.error(`    FAILED: ${err.message}`);
+      deploymentFailed = true;
     }
   }
 }
@@ -418,8 +420,13 @@ for (const contract of CONTRACTS) {
 if (changed) {
   writeRegistry(registry);
   console.log(`\nRegistry updated: ${REGISTRY_PATH}`);
-} else {
+} else if (!deploymentFailed) {
   console.log('\nAll deployments up to date.');
+}
+
+if (deploymentFailed) {
+  console.error('\nOne or more deployments failed.');
+  process.exit(1);
 }
 
 // ── Primary test chain initialization ───────────────────────────────────────
