@@ -2,6 +2,9 @@ import React from 'react';
 import { FheTypesList } from '@cofhe/react';
 import { CofheEncryptInput } from '@cofhe/react/ui';
 
+/** Stand-in for the contract this example would hand the encrypted inputs to. */
+const EXAMPLE_CONSUMING_CONTRACT = '0xbeefbeefbeefbeefbeefbeefbeefbeefbeefbeef';
+
 export const CofheEncryptInputExample: React.FC = () => {
   return (
     <div className="space-y-8">
@@ -17,6 +20,7 @@ export const CofheEncryptInputExample: React.FC = () => {
           <h3 className="text-lg font-semibold mb-3">Basic Usage</h3>
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border mb-4">
             <CofheEncryptInput
+              consumingContract={EXAMPLE_CONSUMING_CONTRACT}
               testId="cofhe-encrypt-basic"
               placeholder="Enter a number to encrypt..."
               onTextChange={(value) => console.log('Text changed:', value)}
@@ -35,6 +39,7 @@ export const CofheEncryptInputExample: React.FC = () => {
           <h3 className="text-lg font-semibold mb-3">With Progress Bar</h3>
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border mb-4">
             <CofheEncryptInput
+              consumingContract={EXAMPLE_CONSUMING_CONTRACT}
               testId="cofhe-encrypt-progress"
               placeholder="Enter value to see progress..."
               showProgressBar={true}
@@ -53,6 +58,7 @@ export const CofheEncryptInputExample: React.FC = () => {
             <div>
               <label className="block text-sm font-medium mb-2">Large Size</label>
               <CofheEncryptInput
+                consumingContract={EXAMPLE_CONSUMING_CONTRACT}
                 testId="cofhe-encrypt-large"
                 placeholder="Large size example..."
                 size="lg"
@@ -63,6 +69,7 @@ export const CofheEncryptInputExample: React.FC = () => {
             <div>
               <label className="block text-sm font-medium mb-2">Small Size</label>
               <CofheEncryptInput
+                consumingContract={EXAMPLE_CONSUMING_CONTRACT}
                 testId="cofhe-encrypt-small"
                 placeholder="Small size example..."
                 size="sm"
