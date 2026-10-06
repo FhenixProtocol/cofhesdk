@@ -2,10 +2,6 @@
 '@cofhe/sdk': minor
 ---
 
-fix(sdk): cache the CRS per security zone
+The CRS is now cached per security zone. It was fetched per zone but cached under the chain id alone, so after encrypting on zone 0, encrypting on zone 1 reused zone 0's CRS and produced a proof the ZK verifier rejects.
 
-`fetchCrs` requested the CRS for a given `securityZone` but cached it under the chain id alone, while `fetchFhePublicKey` next to it keys by `(chainId, securityZone)`. After encrypting on one zone, `encryptInputs` on a different zone read the first zone's CRS back out of the store. It deserializes fine, so the stale CRS passed the validity check and was used to build the proof, which the ZK verifier then rejects.
-
-CoFHE serves a distinct CRS per zone: `POST /GetCrs` with `securityZone: 0` and `securityZone: 1` against `testnet-cofhe.fhenix.zone` returns two different 7,968,512-byte values.
-
-`KeysStore.crs` is now keyed by chain and zone like `KeysStore.fhe`, `getCrs(chainId, securityZone = 0)` takes the zone, and `setCrs(chainId, securityZone, crs)` matches `setFheKey`'s argument order. A `crs` persisted under the old shape holds a bare string per chain; those entries are dropped on rehydrate so the CRS is refetched per zone instead of being indexed as a string.
+**Breaking (`KeysStorage`):** `crs` is now keyed by chain and zone, like `fhe`. `getCrs(chainId, securityZone = 0)` takes the zone, and `setCrs(chainId, securityZone, crs)` matches `setFheKey`'s argument order. A CRS persisted in the old per-chain shape is dropped on rehydrate and refetched.
