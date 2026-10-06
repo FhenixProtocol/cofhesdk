@@ -18,6 +18,7 @@ module.exports = {
   },
   env: {
     browser: true,
+    es2021: true,
   },
   settings: {
     "import/resolver": {
@@ -41,5 +42,9 @@ module.exports = {
     // Enforce React Hooks best practices
     "react-hooks/rules-of-hooks": "error",
     "react-hooks/exhaustive-deps": "warn",
+    // Allow intentional `while (true)` polling loops that rely on an
+    // internal abort-signal check / break condition rather than a
+    // condition expression.
+    "no-constant-condition": ["warn", { checkLoops: false }],
   }
 };
