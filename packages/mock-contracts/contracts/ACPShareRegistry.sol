@@ -73,8 +73,9 @@ contract ACPShareRegistry is UUPSUpgradeable, AccessControlUpgradeable {
     bytes32 private constant ACP_SHARE_REGISTRY_SLOT =
         keccak256(abi.encode(uint256(keccak256("cofhe.storage.ACPShareRegistry.v2")) - 1)) & ~bytes32(uint256(0xff));
 
-    /// @notice The first version's storage, which kept every share whole. Read only by
-    ///         `migrateV1Shares`, which empties it; declared so the namespace stays reserved.
+    /// @notice The first version's storage, which kept every share whole. Abandoned by the
+    ///         in-place upgrade: nothing reads it, and its shares are not carried over. Declared
+    ///         only so the namespace stays reserved (the OpenZeppelin layout check requires it).
     /// @custom:storage-location erc7201:cofhe.storage.ACPShareRegistry
     struct ACPShareRegistryStorageV1 {
         /// @dev recipient => ids of shares addressed to them
@@ -83,18 +84,11 @@ contract ACPShareRegistry is UUPSUpgradeable, AccessControlUpgradeable {
         mapping(bytes32 => ACP) shares;
     }
 
-    /// @dev keccak256(abi.encode(uint256(keccak256("cofhe.storage.ACPShareRegistry")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant ACP_SHARE_REGISTRY_V1_SLOT =
-        keccak256(abi.encode(uint256(keccak256("cofhe.storage.ACPShareRegistry")) - 1)) & ~bytes32(uint256(0xff));
-
     /// @notice A share was posted. `acp` is the payload as posted; `metadata` is the opaque
     ///         blob that came with it (empty when none). The share id is
     ///         `keccak256(abi.encode(acp))`.
     event Shared(address indexed recipient, address indexed issuer, bytes32 indexed shareId, ACP acp, bytes metadata);
     event ShareRemoved(address indexed recipient, address indexed issuer, bytes32 indexed shareId);
-    /// @notice `migrateV1Shares` moved a recipient's first-version shares: `migrated` live ones
-    ///         re-posted (each with its own `Shared` event), `dropped` expired or revoked ones discarded.
-    event V1SharesMigrated(address indexed recipient, uint256 migrated, uint256 dropped);
 
     error NotIssuer();
     error NotIssuerOrRecipient();
@@ -104,7 +98,6 @@ contract ACPShareRegistry is UUPSUpgradeable, AccessControlUpgradeable {
     error ShareExpired();
     error AlreadyShared();
     error UnknownShare();
-    error NotAdminOrUpgrader();
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -132,74 +125,21 @@ contract ACPShareRegistry is UUPSUpgradeable, AccessControlUpgradeable {
         if (acp.issuerSignature.length == 0) revert IssuerSignatureMissing();
         if (acp.expiration < block.timestamp) revert ShareExpired();
 
+        ACPShareRegistryStorage storage $ = _getStorage();
+
         shareId = keccak256(abi.encode(acp));
         // the id commits to the recipient, so a duplicate can only be in this set
-        if (!_storeHead(shareId, acp.issuer, acp.expiration, acp.recipient, acp.revokerContract, acp.revokerData)) {
-            revert AlreadyShared();
-        }
+        if (!$.shareIdsFor[acp.recipient].add(shareId)) revert AlreadyShared();
+        $.heads[shareId] = ShareHead({
+            issuer: acp.issuer,
+            expiration: acp.expiration,
+            recipient: acp.recipient,
+            blockNumber: uint64(_blockNumber()),
+            revokerContract: acp.revokerContract,
+            revokerData: acp.revokerData
+        });
 
         emit Shared(acp.recipient, acp.issuer, shareId, acp, metadata);
-    }
-
-    /// @dev Adds the share to its recipient's set and stores its head, pointing at this block.
-    ///      False when the recipient already has a share with this id. The caller emits `Shared`
-    ///      (from calldata in `share`, which keeps the payload out of memory).
-    function _storeHead(
-        bytes32 shareId,
-        address issuer,
-        uint64 expiration,
-        address recipient,
-        address revokerContract,
-        uint256 revokerData
-    ) private returns (bool) {
-        ACPShareRegistryStorage storage $ = _getStorage();
-        if (!$.shareIdsFor[recipient].add(shareId)) return false;
-        $.heads[shareId] = ShareHead({
-            issuer: issuer,
-            expiration: expiration,
-            recipient: recipient,
-            blockNumber: uint64(_blockNumber()),
-            revokerContract: revokerContract,
-            revokerData: revokerData
-        });
-        return true;
-    }
-
-    /**
-     * @notice One-time move of first-version shares into this layout, a page of recipients at a
-     *         time (the first version kept no list of recipients; the upgrade task collects them
-     *         from its `Shared` events). Each live share is re-posted as if new: its `Shared` event
-     *         carries the full payload and empty metadata, and its head points at this block, so
-     *         readers cannot tell it from a share posted now. Expired and revoked shares are
-     *         dropped. Every share it reads is deleted from the first-version storage, so a repeated
-     *         call is a no-op. Run inside `upgradeToAndCall`, or after it, by the admin or upgrader.
-     */
-    function migrateV1Shares(address[] calldata recipients) external {
-        if (!hasRole(DEFAULT_ADMIN_ROLE, msg.sender) && !hasRole(UPGRADER_ROLE, msg.sender)) {
-            revert NotAdminOrUpgrader();
-        }
-        ACPShareRegistryStorageV1 storage v1 = _getStorageV1();
-        for (uint256 r = 0; r < recipients.length; r++) {
-            EnumerableSet.Bytes32Set storage ids = v1.shareIdsFor[recipients[r]];
-            uint256 migrated = 0;
-            uint256 dropped = 0;
-            while (ids.length() > 0) {
-                bytes32 shareId = ids.at(ids.length() - 1);
-                ACP memory acp = v1.shares[shareId];
-                ids.remove(shareId);
-                delete v1.shares[shareId];
-                if (
-                    _isValid(acp.issuer, acp.expiration, acp.revokerContract, acp.revokerData) &&
-                    _storeHead(shareId, acp.issuer, acp.expiration, acp.recipient, acp.revokerContract, acp.revokerData)
-                ) {
-                    emit Shared(acp.recipient, acp.issuer, shareId, acp, "");
-                    migrated++;
-                } else {
-                    dropped++;
-                }
-            }
-            if (migrated + dropped > 0) emit V1SharesMigrated(recipients[r], migrated, dropped);
-        }
     }
 
     /// @notice Remove a share. The issuer may retract it; the recipient may dismiss it
@@ -272,19 +212,12 @@ contract ACPShareRegistry is UUPSUpgradeable, AccessControlUpgradeable {
     /// @dev Unexpired and not revoked. The revoker call mirrors `withPermission`'s
     ///      revocation clause; a reverting revoker fails closed (share invalid).
     function _isValid(ShareHead storage head) private view returns (bool) {
-        return _isValid(head.issuer, head.expiration, head.revokerContract, head.revokerData);
-    }
+        if (head.expiration < block.timestamp) return false;
 
-    function _isValid(
-        address issuer,
-        uint64 expiration,
-        address revokerContract,
-        uint256 revokerData
-    ) private view returns (bool) {
-        if (expiration < block.timestamp) return false;
-
-        if (revokerData != 0 && revokerContract != address(0)) {
-            try IPermissionCustomIdValidator(revokerContract).disabled(issuer, revokerData) returns (bool disabled) {
+        if (head.revokerData != 0 && head.revokerContract != address(0)) {
+            try IPermissionCustomIdValidator(head.revokerContract).disabled(head.issuer, head.revokerData) returns (
+                bool disabled
+            ) {
                 if (disabled) return false;
             } catch {
                 return false;
@@ -314,16 +247,6 @@ contract ACPShareRegistry is UUPSUpgradeable, AccessControlUpgradeable {
      */
     function _getStorage() internal pure returns (ACPShareRegistryStorage storage $) {
         bytes32 slot = ACP_SHARE_REGISTRY_SLOT;
-        assembly {
-            $.slot := slot
-        }
-    }
-
-    /**
-     * @dev Returns the first version's storage location.
-     */
-    function _getStorageV1() private pure returns (ACPShareRegistryStorageV1 storage $) {
-        bytes32 slot = ACP_SHARE_REGISTRY_V1_SLOT;
         assembly {
             $.slot := slot
         }
