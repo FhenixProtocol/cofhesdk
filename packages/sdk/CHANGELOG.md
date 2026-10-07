@@ -1,5 +1,12 @@
 # @cofhe/sdk Changelog
 
+## 0.8.1
+
+### Patch Changes
+
+- a4374aa: The persisted ACP store is now reset when `acps` or `activeACPHash` was saved as `null` or an array. Previously a saved `null` passed the structure check and was rehydrated as-is, so reading or creating ACPs (`getACP`, `getACPs`, `setACP`, …) and the `@cofhe/react` ACP hooks threw a `TypeError` until the browser storage was cleared. The shape is now repaired on load as well as before each store access.
+- 73d5297: `seal` and `unsealWithPrivateKey` now throw when the sealing key contains non-hex characters. Previously a 64-character key with invalid characters passed the length check and those characters decoded to zero bytes, so `seal` silently encrypted to the wrong key (an entirely invalid key became the all-zero key, which offers no confidentiality), and `unsealWithPrivateKey` failed later with `Failed to decrypt message`.
+
 ## 0.8.0
 
 ### Minor Changes
