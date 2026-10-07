@@ -195,6 +195,19 @@ export const ACPShareRegistryArtifact = {
     },
     {
       type: 'function',
+      name: 'migrateV1Shares',
+      inputs: [
+        {
+          name: 'recipients',
+          type: 'address[]',
+          internalType: 'address[]',
+        },
+      ],
+      outputs: [],
+      stateMutability: 'nonpayable',
+    },
+    {
+      type: 'function',
       name: 'proxiableUUID',
       inputs: [],
       outputs: [
@@ -650,6 +663,31 @@ export const ACPShareRegistryArtifact = {
       anonymous: false,
     },
     {
+      type: 'event',
+      name: 'V1SharesMigrated',
+      inputs: [
+        {
+          name: 'recipient',
+          type: 'address',
+          indexed: true,
+          internalType: 'address',
+        },
+        {
+          name: 'migrated',
+          type: 'uint256',
+          indexed: false,
+          internalType: 'uint256',
+        },
+        {
+          name: 'dropped',
+          type: 'uint256',
+          indexed: false,
+          internalType: 'uint256',
+        },
+      ],
+      anonymous: false,
+    },
+    {
       type: 'error',
       name: 'AccessControlBadConfirmation',
       inputs: [],
@@ -715,6 +753,11 @@ export const ACPShareRegistryArtifact = {
     {
       type: 'error',
       name: 'IssuerSignatureMissing',
+      inputs: [],
+    },
+    {
+      type: 'error',
+      name: 'NotAdminOrUpgrader',
       inputs: [],
     },
     {

@@ -767,12 +767,12 @@ export const MockACLArtifact = {
     },
     {
       type: 'error',
-      name: 'NotInitializing',
+      name: 'InvalidTaskManagerAddress',
       inputs: [],
     },
     {
       type: 'error',
-      name: 'InvalidTaskManagerAddress',
+      name: 'NotInitializing',
       inputs: [],
     },
     {

@@ -102,6 +102,7 @@ export interface ACPShareRegistryInterface extends Interface {
       | 'hasRole'
       | 'initialize'
       | 'isShareValid'
+      | 'migrateV1Shares'
       | 'proxiableUUID'
       | 'removeShare'
       | 'renounceRole'
@@ -121,6 +122,7 @@ export interface ACPShareRegistryInterface extends Interface {
       | 'ShareRemoved'
       | 'Shared'
       | 'Upgraded'
+      | 'V1SharesMigrated'
   ): EventFragment;
 
   encodeFunctionData(functionFragment: 'DEFAULT_ADMIN_ROLE', values?: undefined): string;
@@ -132,6 +134,7 @@ export interface ACPShareRegistryInterface extends Interface {
   encodeFunctionData(functionFragment: 'hasRole', values: [BytesLike, AddressLike]): string;
   encodeFunctionData(functionFragment: 'initialize', values: [AddressLike]): string;
   encodeFunctionData(functionFragment: 'isShareValid', values: [BytesLike]): string;
+  encodeFunctionData(functionFragment: 'migrateV1Shares', values: [AddressLike[]]): string;
   encodeFunctionData(functionFragment: 'proxiableUUID', values?: undefined): string;
   encodeFunctionData(functionFragment: 'removeShare', values: [BytesLike]): string;
   encodeFunctionData(functionFragment: 'renounceRole', values: [BytesLike, AddressLike]): string;
@@ -150,6 +153,7 @@ export interface ACPShareRegistryInterface extends Interface {
   decodeFunctionResult(functionFragment: 'hasRole', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'initialize', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'isShareValid', data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: 'migrateV1Shares', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'proxiableUUID', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'removeShare', data: BytesLike): Result;
   decodeFunctionResult(functionFragment: 'renounceRole', data: BytesLike): Result;
@@ -268,6 +272,20 @@ export namespace UpgradedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
+export namespace V1SharesMigratedEvent {
+  export type InputTuple = [recipient: AddressLike, migrated: BigNumberish, dropped: BigNumberish];
+  export type OutputTuple = [recipient: string, migrated: bigint, dropped: bigint];
+  export interface OutputObject {
+    recipient: string;
+    migrated: bigint;
+    dropped: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
 export interface ACPShareRegistry extends BaseContract {
   connect(runner?: ContractRunner | null): ACPShareRegistry;
   waitForDeployment(): Promise<this>;
@@ -319,6 +337,8 @@ export interface ACPShareRegistry extends BaseContract {
 
   isShareValid: TypedContractMethod<[shareId: BytesLike], [boolean], 'view'>;
 
+  migrateV1Shares: TypedContractMethod<[recipients: AddressLike[]], [void], 'nonpayable'>;
+
   proxiableUUID: TypedContractMethod<[], [string], 'view'>;
 
   removeShare: TypedContractMethod<[shareId: BytesLike], [void], 'nonpayable'>;
@@ -361,6 +381,9 @@ export interface ACPShareRegistry extends BaseContract {
   ): TypedContractMethod<[role: BytesLike, account: AddressLike], [boolean], 'view'>;
   getFunction(nameOrSignature: 'initialize'): TypedContractMethod<[initialAdmin: AddressLike], [void], 'nonpayable'>;
   getFunction(nameOrSignature: 'isShareValid'): TypedContractMethod<[shareId: BytesLike], [boolean], 'view'>;
+  getFunction(
+    nameOrSignature: 'migrateV1Shares'
+  ): TypedContractMethod<[recipients: AddressLike[]], [void], 'nonpayable'>;
   getFunction(nameOrSignature: 'proxiableUUID'): TypedContractMethod<[], [string], 'view'>;
   getFunction(nameOrSignature: 'removeShare'): TypedContractMethod<[shareId: BytesLike], [void], 'nonpayable'>;
   getFunction(
@@ -412,6 +435,13 @@ export interface ACPShareRegistry extends BaseContract {
   getEvent(
     key: 'Upgraded'
   ): TypedContractEvent<UpgradedEvent.InputTuple, UpgradedEvent.OutputTuple, UpgradedEvent.OutputObject>;
+  getEvent(
+    key: 'V1SharesMigrated'
+  ): TypedContractEvent<
+    V1SharesMigratedEvent.InputTuple,
+    V1SharesMigratedEvent.OutputTuple,
+    V1SharesMigratedEvent.OutputObject
+  >;
 
   filters: {
     'Initialized(uint64)': TypedContractEvent<
@@ -482,5 +512,16 @@ export interface ACPShareRegistry extends BaseContract {
       UpgradedEvent.OutputObject
     >;
     Upgraded: TypedContractEvent<UpgradedEvent.InputTuple, UpgradedEvent.OutputTuple, UpgradedEvent.OutputObject>;
+
+    'V1SharesMigrated(address,uint256,uint256)': TypedContractEvent<
+      V1SharesMigratedEvent.InputTuple,
+      V1SharesMigratedEvent.OutputTuple,
+      V1SharesMigratedEvent.OutputObject
+    >;
+    V1SharesMigrated: TypedContractEvent<
+      V1SharesMigratedEvent.InputTuple,
+      V1SharesMigratedEvent.OutputTuple,
+      V1SharesMigratedEvent.OutputObject
+    >;
   };
 }
