@@ -2,9 +2,22 @@
 
 declare const BigInt: (value: string | number | bigint) => bigint;
 
+const HEX_BODY_REGEX = /^[0-9a-fA-F]*$/;
+
 export const fromHexString = (hexString: string): Uint8Array => {
-  const cleanString = hexString.length % 2 === 1 ? `0${hexString}` : hexString;
-  const arr = cleanString.replace(/^0x/, '').match(/.{1,2}/g);
+  // Strip `0x` before padding: padding first turns `0x123` into `00x123`, which no
+  // longer matches the prefix and decodes to garbage bytes.
+  const body = hexString.replace(/^0x/, '');
+
+  // `parseInt` maps a non-hex pair to NaN, which `Uint8Array` stores as 0. Without this check a
+  // malformed sealing key silently becomes zero bytes instead of failing.
+  if (!HEX_BODY_REGEX.test(body)) {
+    // The value is omitted on purpose: this helper also receives sealing private keys.
+    throw new Error('Invalid hex string: contains non-hexadecimal characters');
+  }
+
+  const padded = body.length % 2 === 1 ? `0${body}` : body;
+  const arr = padded.match(/.{1,2}/g);
   if (!arr) return new Uint8Array();
   return new Uint8Array(arr.map((byte) => parseInt(byte, 16)));
 };
