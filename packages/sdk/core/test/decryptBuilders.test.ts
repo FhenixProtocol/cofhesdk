@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { type PublicClient, type WalletClient, createPublicClient, createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { arbitrumSepolia } from 'viem/chains';
@@ -7,6 +7,8 @@ import { DecryptForViewBuilder } from '../decrypt/decryptForViewBuilder.js';
 import { createCofheConfigBase, type CofheConfig } from '../config.js';
 import { CofheErrorCode } from '../error.js';
 import { FheTypes } from '../types.js';
+import { permits } from '../permits.js';
+import { permitStore } from '@/permits';
 
 const TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 const account = privateKeyToAccount(TEST_PRIVATE_KEY);
@@ -414,5 +416,45 @@ describe('DecryptForViewBuilder', () => {
           })
       ).toThrow();
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Regression: an expired active permit must fail fast, not be shipped on-chain
+// (issue #272 – the getOrCreate* half was fixed in #273; this covers the
+//  decryptFor{Tx,View}.withPermit() execute() path, which validates via
+//  PermitUtils.validate() but had no test asserting the expired case.)
+// ---------------------------------------------------------------------------
+
+describe('execute – expired active permit (regression, issue #272)', () => {
+  beforeEach(() => {
+    permitStore.store.setState({ permits: {}, activePermitHash: {} });
+  });
+
+  afterEach(() => {
+    permitStore.store.setState({ permits: {}, activePermitHash: {} });
+  });
+
+  async function seedExpiredActivePermit() {
+    // createSelf persists the permit and makes it the active one for chainId + account.
+    const expiredPermit = await permits.createSelf(
+      { name: 'Expired Self Permit', issuer: account.address, expiration: Math.floor(Date.now() / 1000) - 3600 },
+      publicClient,
+      walletClient
+    );
+    // Sanity: it is the stored active permit and it is expired.
+    const active = await permits.getActivePermit(TEST_CHAIN_ID, account.address);
+    expect(active?.hash).toBe(expiredPermit.hash);
+    return expiredPermit;
+  }
+
+  it('decryptForTx.withPermit() rejects an expired active permit instead of shipping it', async () => {
+    await seedExpiredActivePermit();
+    await expect(createTxBuilder().withPermit().execute()).rejects.toThrow('Permit is expired');
+  });
+
+  it('decryptForView.withPermit() rejects an expired active permit instead of shipping it', async () => {
+    await seedExpiredActivePermit();
+    await expect(createViewBuilder(FheTypes.Uint32).withPermit().execute()).rejects.toThrow('Permit is expired');
   });
 });
