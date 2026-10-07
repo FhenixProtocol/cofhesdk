@@ -17,7 +17,7 @@ import { deployShareRegistry } from './helpers/shareRegistry';
  * ACPShareRegistry — the on-chain hand-off for sharing ACPs.
  *
  * The registry is a dumb, pointer-based store — the payload and its metadata travel in the
- * `Shared` event; storage keeps the head — with three guarantees:
+ * `Shared` event; storage keeps the header — with three guarantees:
  *  - a listed share was posted by its claimed issuer (msg.sender check),
  *  - `sharesFor` returns only importable shares (unexpired, not revoked),
  *  - `isShareValid` is the same check exposed as a hook for contracts.
@@ -71,19 +71,19 @@ describe('ACPShareRegistry', () => {
     const id = await shareIdOf(p);
     await expect(registry.connect(bob).share(p, '0x')).to.emit(registry, 'Shared');
 
-    // storage lists the head; the payload is in the event
-    const { shareIds, heads } = await registry.sharesFor(alice.address);
+    // storage lists the header; the payload is in the event
+    const { shareIds, headers } = await registry.sharesFor(alice.address);
     expect(shareIds).to.deep.equal([id]);
-    expect(heads[0].issuer).to.equal(bob.address);
-    expect(heads[0].recipient).to.equal(alice.address);
-    expect(heads[0].blockNumber).to.equal(BigInt(await hre.ethers.provider.getBlockNumber()));
+    expect(headers[0].issuer).to.equal(bob.address);
+    expect(headers[0].recipient).to.equal(alice.address);
+    expect(headers[0].blockNumber).to.equal(BigInt(await hre.ethers.provider.getBlockNumber()));
 
     // and by id
     expect((await registry.getShare(id)).issuer).to.equal(bob.address);
     expect(await registry.isShareValid(id)).to.equal(true);
   });
 
-  it('carries the full payload and the metadata in the Shared event of the block the head names', async () => {
+  it('carries the full payload and the metadata in the Shared event of the block the header names', async () => {
     const p = await signedSharingPermission(acl, bob, alice.address);
     const id = await shareIdOf(p);
     const metadata = '0x03' + 'ab'.repeat(40);
@@ -116,8 +116,8 @@ describe('ACPShareRegistry', () => {
     await registry.connect(bob).share(p1, '0x');
     await registry.connect(carol).share(p2, '0x');
 
-    const { heads } = await registry.sharesFor(alice.address);
-    expect([...heads].map((h: any) => h.issuer)).to.have.members([bob.address, carol.address]);
+    const { headers } = await registry.sharesFor(alice.address);
+    expect([...headers].map((h: any) => h.issuer)).to.have.members([bob.address, carol.address]);
   });
 
   it('rejects posting someone else’s share', async () => {

@@ -82,7 +82,7 @@ export const ACPShareRegistryArtifact = {
         {
           name: '',
           type: 'tuple',
-          internalType: 'struct ACPShareRegistry.ShareHead',
+          internalType: 'struct ACPShareRegistry.ShareHeader',
           components: [
             {
               name: 'issuer',
@@ -353,9 +353,9 @@ export const ACPShareRegistryArtifact = {
           internalType: 'bytes32[]',
         },
         {
-          name: 'heads',
+          name: 'headers',
           type: 'tuple[]',
-          internalType: 'struct ACPShareRegistry.ShareHead[]',
+          internalType: 'struct ACPShareRegistry.ShareHeader[]',
           components: [
             {
               name: 'issuer',

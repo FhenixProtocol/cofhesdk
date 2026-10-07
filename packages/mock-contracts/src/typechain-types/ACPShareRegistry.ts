@@ -64,7 +64,7 @@ export type ACPStructOutput = [
 };
 
 export declare namespace ACPShareRegistry {
-  export type ShareHeadStruct = {
+  export type ShareHeaderStruct = {
     issuer: AddressLike;
     expiration: BigNumberish;
     recipient: AddressLike;
@@ -73,7 +73,7 @@ export declare namespace ACPShareRegistry {
     revokerData: BigNumberish;
   };
 
-  export type ShareHeadStructOutput = [
+  export type ShareHeaderStructOutput = [
     issuer: string,
     expiration: bigint,
     recipient: string,
@@ -309,7 +309,7 @@ export interface ACPShareRegistry extends BaseContract {
 
   getRoleAdmin: TypedContractMethod<[role: BytesLike], [string], 'view'>;
 
-  getShare: TypedContractMethod<[shareId: BytesLike], [ACPShareRegistry.ShareHeadStructOutput], 'view'>;
+  getShare: TypedContractMethod<[shareId: BytesLike], [ACPShareRegistry.ShareHeaderStructOutput], 'view'>;
 
   grantRole: TypedContractMethod<[role: BytesLike, account: AddressLike], [void], 'nonpayable'>;
 
@@ -332,9 +332,9 @@ export interface ACPShareRegistry extends BaseContract {
   sharesFor: TypedContractMethod<
     [recipient: AddressLike],
     [
-      [string[], ACPShareRegistry.ShareHeadStructOutput[]] & {
+      [string[], ACPShareRegistry.ShareHeaderStructOutput[]] & {
         shareIds: string[];
-        heads: ACPShareRegistry.ShareHeadStructOutput[];
+        headers: ACPShareRegistry.ShareHeaderStructOutput[];
       },
     ],
     'view'
@@ -352,7 +352,7 @@ export interface ACPShareRegistry extends BaseContract {
   getFunction(nameOrSignature: 'getRoleAdmin'): TypedContractMethod<[role: BytesLike], [string], 'view'>;
   getFunction(
     nameOrSignature: 'getShare'
-  ): TypedContractMethod<[shareId: BytesLike], [ACPShareRegistry.ShareHeadStructOutput], 'view'>;
+  ): TypedContractMethod<[shareId: BytesLike], [ACPShareRegistry.ShareHeaderStructOutput], 'view'>;
   getFunction(
     nameOrSignature: 'grantRole'
   ): TypedContractMethod<[role: BytesLike, account: AddressLike], [void], 'nonpayable'>;
@@ -375,9 +375,9 @@ export interface ACPShareRegistry extends BaseContract {
   getFunction(nameOrSignature: 'sharesFor'): TypedContractMethod<
     [recipient: AddressLike],
     [
-      [string[], ACPShareRegistry.ShareHeadStructOutput[]] & {
+      [string[], ACPShareRegistry.ShareHeaderStructOutput[]] & {
         shareIds: string[];
-        heads: ACPShareRegistry.ShareHeadStructOutput[];
+        headers: ACPShareRegistry.ShareHeaderStructOutput[];
       },
     ],
     'view'

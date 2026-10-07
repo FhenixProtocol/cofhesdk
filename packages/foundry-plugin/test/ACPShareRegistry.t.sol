@@ -40,11 +40,11 @@ contract ACPShareRegistryTest is CofheTest {
     bytes32 shareId = acpShareRegistry.share(acp, hex'03');
 
     assertEq(shareId, keccak256(abi.encode(acp)));
-    (bytes32[] memory ids, ACPShareRegistry.ShareHead[] memory heads) = acpShareRegistry.sharesFor(RECIPIENT);
+    (bytes32[] memory ids, ACPShareRegistry.ShareHeader[] memory headers) = acpShareRegistry.sharesFor(RECIPIENT);
     assertEq(ids.length, 1);
     assertEq(ids[0], shareId);
-    assertEq(heads[0].issuer, ISSUER);
-    assertEq(heads[0].blockNumber, block.number);
+    assertEq(headers[0].issuer, ISSUER);
+    assertEq(headers[0].blockNumber, block.number);
     assertTrue(acpShareRegistry.isShareValid(shareId));
   }
 }

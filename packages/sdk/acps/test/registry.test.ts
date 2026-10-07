@@ -6,7 +6,7 @@ import {
   readSharesFor,
   shareIdOfChainShare,
   type ChainShare,
-  type ShareHead,
+  type ShareHeader,
 } from '../registry';
 
 const REGISTRY = '0x00000000000000000000000000000000000000e0';
@@ -28,7 +28,7 @@ const chainShare = (handle: number): ChainShare => ({
   recipientSignature: '0x',
 });
 
-const headAt = (blockNumber: bigint): ShareHead => ({
+const headerAt = (blockNumber: bigint): ShareHeader => ({
   issuer: ISSUER,
   expiration: 2_000_000_000n,
   recipient: RECIPIENT,
@@ -40,11 +40,11 @@ const headAt = (blockNumber: bigint): ShareHead => ({
 /** Three shares: two posted in block 10, one in block 20. */
 const shares = [chainShare(1), chainShare(2), chainShare(3)];
 const ids = shares.map(shareIdOfChainShare);
-const heads = [headAt(10n), headAt(10n), headAt(20n)];
+const headers = [headerAt(10n), headerAt(10n), headerAt(20n)];
 const metadata = ['0x03aa', '0x', '0x03bb'] as const;
 
 const clientWith = (
-  events = shares.map((acp, i) => ({ block: heads[i].blockNumber, acp, id: ids[i], metadata: metadata[i] }))
+  events = shares.map((acp, i) => ({ block: headers[i].blockNumber, acp, id: ids[i], metadata: metadata[i] }))
 ) => {
   const getContractEvents = vi.fn(async ({ fromBlock, args }: { fromBlock: bigint; args: { shareId: string[] } }) =>
     events
@@ -52,9 +52,9 @@ const clientWith = (
       .map((e) => ({ args: { shareId: e.id, acp: e.acp, metadata: e.metadata } }))
   );
   const readContract = vi.fn(async ({ functionName, args }: { functionName: string; args: [string] }) => {
-    if (functionName === 'sharesFor') return [ids, heads];
+    if (functionName === 'sharesFor') return [ids, headers];
     const i = ids.indexOf(args[0] as `0x${string}`);
-    return i === -1 ? { ...headAt(0n), issuer: ZERO } : heads[i];
+    return i === -1 ? { ...headerAt(0n), issuer: ZERO } : headers[i];
   });
   return { client: { getContractEvents, readContract } as unknown as PublicClient, getContractEvents };
 };
@@ -84,16 +84,16 @@ describe('registry reads', () => {
     expect(await readShare(client, REGISTRY, `0x${'f'.repeat(64)}`)).toBeNull();
   });
 
-  it('throws when the block the head names has no Shared event of the share', async () => {
+  it('throws when the block the header names has no Shared event of the share', async () => {
     const { client } = clientWith([]);
-    await expect(readPostedShares(client, REGISTRY, [{ shareId: ids[0], head: heads[0] }])).rejects.toThrow(
+    await expect(readPostedShares(client, REGISTRY, [{ shareId: ids[0], header: headers[0] }])).rejects.toThrow(
       'no Shared event in block 10'
     );
   });
 
   it('throws when an event payload does not hash to its share id', async () => {
     const { client } = clientWith([{ block: 10n, acp: shares[1], id: ids[0], metadata: '0x' }]);
-    await expect(readPostedShares(client, REGISTRY, [{ shareId: ids[0], head: heads[0] }])).rejects.toThrow(
+    await expect(readPostedShares(client, REGISTRY, [{ shareId: ids[0], header: headers[0] }])).rejects.toThrow(
       'does not hash to its id'
     );
   });

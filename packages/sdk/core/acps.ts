@@ -460,8 +460,8 @@ const toIncomingShare = ({ shareId, share: s, metadata }: PostedShare): Incoming
 });
 
 /**
- * All importable shares addressed to `recipient` (unexpired, not revoked): the heads from
- * `sharesFor`, then each share's `Shared` event from the block its head names (one
+ * All importable shares addressed to `recipient` (unexpired, not revoked): the headers from
+ * `sharesFor`, then each share's `Shared` event from the block its header names (one
  * single-block `getLogs` per block).
  */
 const getIncomingShares = async (publicClient: PublicClient, registry: Hex, recipient: Hex): Promise<IncomingShare[]> =>

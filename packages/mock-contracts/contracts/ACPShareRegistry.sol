@@ -15,9 +15,9 @@ import {ACP, IPermissionCustomIdValidator} from "./Permissioned.sol";
  * cofhesdk-enabled app may surface it.
  *
  * Pointer-based: the full ACP and an optional metadata blob travel in the `Shared`
- * event; storage keeps only the share head — the fields this contract checks
+ * event; storage keeps only the share header — the fields this contract checks
  * (issuer, recipient, expiration, revoker) and the block of that event — plus the
- * recipient's set of share ids. A reader takes the head from `sharesFor` / `getShare`
+ * recipient's set of share ids. A reader takes the header from `sharesFor` / `getShare`
  * and fetches the event with a `getLogs` over that one block, filtered by the
  * share id topic.
  *
@@ -50,7 +50,7 @@ contract ACPShareRegistry is UUPSUpgradeable, AccessControlUpgradeable {
     ///         check read, and where to find the rest.
     /// @dev Packed into four slots; the two revoker slots stay zero for a share without
     ///      a revoker.
-    struct ShareHead {
+    struct ShareHeader {
         address issuer;
         uint64 expiration;
         address recipient;
@@ -65,8 +65,8 @@ contract ACPShareRegistry is UUPSUpgradeable, AccessControlUpgradeable {
     struct ACPShareRegistryStorage {
         /// @dev recipient => ids of shares addressed to them
         mapping(address => EnumerableSet.Bytes32Set) shareIdsFor;
-        /// @dev share id => stored head
-        mapping(bytes32 => ShareHead) heads;
+        /// @dev share id => stored header
+        mapping(bytes32 => ShareHeader) headers;
     }
 
     /// @dev keccak256(abi.encode(uint256(keccak256("cofhe.storage.ACPShareRegistry.v2")) - 1)) & ~bytes32(uint256(0xff))
@@ -130,7 +130,7 @@ contract ACPShareRegistry is UUPSUpgradeable, AccessControlUpgradeable {
         shareId = keccak256(abi.encode(acp));
         // the id commits to the recipient, so a duplicate can only be in this set
         if (!$.shareIdsFor[acp.recipient].add(shareId)) revert AlreadyShared();
-        $.heads[shareId] = ShareHead({
+        $.headers[shareId] = ShareHeader({
             issuer: acp.issuer,
             expiration: acp.expiration,
             recipient: acp.recipient,
@@ -144,44 +144,44 @@ contract ACPShareRegistry is UUPSUpgradeable, AccessControlUpgradeable {
 
     /// @notice Remove a share. The issuer may retract it; the recipient may dismiss it
     ///         (e.g. after importing, or to decline). The `Shared` event stays in its block;
-    ///         readers go by the head, which is gone.
+    ///         readers go by the header, which is gone.
     function removeShare(bytes32 shareId) external {
         ACPShareRegistryStorage storage $ = _getStorage();
 
-        ShareHead storage head = $.heads[shareId];
-        if (head.issuer == address(0)) revert UnknownShare();
-        if (msg.sender != head.issuer && msg.sender != head.recipient) revert NotIssuerOrRecipient();
+        ShareHeader storage header = $.headers[shareId];
+        if (header.issuer == address(0)) revert UnknownShare();
+        if (msg.sender != header.issuer && msg.sender != header.recipient) revert NotIssuerOrRecipient();
 
-        address recipient = head.recipient;
-        address issuer = head.issuer;
+        address recipient = header.recipient;
+        address issuer = header.issuer;
 
-        // the id set and the head map stay in sync — mirror share()'s add() handling
+        // the id set and the header map stay in sync — mirror share()'s add() handling
         if (!$.shareIdsFor[recipient].remove(shareId)) revert UnknownShare();
-        delete $.heads[shareId];
+        delete $.headers[shareId];
 
         emit ShareRemoved(recipient, issuer, shareId);
     }
 
     /// @notice The importable shares addressed to `recipient` — unexpired and not revoked —
-    ///         as their ids and heads, index for index. Dead entries stay in storage until
+    ///         as their ids and headers, index for index. Dead entries stay in storage until
     ///         removed but are filtered here.
     function sharesFor(
         address recipient
-    ) external view returns (bytes32[] memory shareIds, ShareHead[] memory heads) {
+    ) external view returns (bytes32[] memory shareIds, ShareHeader[] memory headers) {
         ACPShareRegistryStorage storage $ = _getStorage();
         EnumerableSet.Bytes32Set storage ids = $.shareIdsFor[recipient];
         uint256 len = ids.length();
 
         // single pass: allocate for the maximum, fill with valid shares only
         shareIds = new bytes32[](len);
-        heads = new ShareHead[](len);
+        headers = new ShareHeader[](len);
         uint256 live = 0;
         for (uint256 i = 0; i < len; i++) {
             bytes32 shareId = ids.at(i);
-            ShareHead storage head = $.heads[shareId];
-            if (_isValid(head)) {
+            ShareHeader storage header = $.headers[shareId];
+            if (_isValid(header)) {
                 shareIds[live] = shareId;
-                heads[live] = head;
+                headers[live] = header;
                 live++;
             }
         }
@@ -190,32 +190,32 @@ contract ACPShareRegistry is UUPSUpgradeable, AccessControlUpgradeable {
         if (live < len) {
             assembly {
                 mstore(shareIds, live)
-                mstore(heads, live)
+                mstore(headers, live)
             }
         }
     }
 
-    /// @notice The head of a single share (zeroed struct if unknown/removed).
-    function getShare(bytes32 shareId) external view returns (ShareHead memory) {
-        return _getStorage().heads[shareId];
+    /// @notice The header of a single share (zeroed struct if unknown/removed).
+    function getShare(bytes32 shareId) external view returns (ShareHeader memory) {
+        return _getStorage().headers[shareId];
     }
 
     /// @notice Verification hook for contracts: the share exists, was posted by its
     ///         claimed issuer (guaranteed at posting), is unexpired, and is not
     ///         revoked per its own revoker contract.
     function isShareValid(bytes32 shareId) external view returns (bool) {
-        ShareHead storage head = _getStorage().heads[shareId];
-        if (head.issuer == address(0)) return false;
-        return _isValid(head);
+        ShareHeader storage header = _getStorage().headers[shareId];
+        if (header.issuer == address(0)) return false;
+        return _isValid(header);
     }
 
     /// @dev Unexpired and not revoked. The revoker call mirrors `withPermission`'s
     ///      revocation clause; a reverting revoker fails closed (share invalid).
-    function _isValid(ShareHead storage head) private view returns (bool) {
-        if (head.expiration < block.timestamp) return false;
+    function _isValid(ShareHeader storage header) private view returns (bool) {
+        if (header.expiration < block.timestamp) return false;
 
-        if (head.revokerData != 0 && head.revokerContract != address(0)) {
-            try IPermissionCustomIdValidator(head.revokerContract).disabled(head.issuer, head.revokerData) returns (
+        if (header.revokerData != 0 && header.revokerContract != address(0)) {
+            try IPermissionCustomIdValidator(header.revokerContract).disabled(header.issuer, header.revokerData) returns (
                 bool disabled
             ) {
                 if (disabled) return false;

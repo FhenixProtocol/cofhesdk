@@ -16,9 +16,9 @@ import type { ACP } from './types.js';
  * app can send these writes through its own transaction path and still agree with the registry
  * on ids.
  *
- * The registry is pointer-based: storage keeps a share head (issuer, expiration, recipient,
+ * The registry is pointer-based: storage keeps a share header (issuer, expiration, recipient,
  * revoker, and the block of its `Shared` event); the full payload and the metadata blob travel in
- * that event. A reader takes heads from `sharesFor` / `getShare` and fetches the events with one
+ * that event. A reader takes headers from `sharesFor` / `getShare` and fetches the events with one
  * single-block `getLogs` per block.
  */
 
@@ -33,11 +33,11 @@ export const ACP_REVOKER_ABI = parseAbi([
 
 export const ACP_SHARE_REGISTRY_ABI = parseAbi([
   'struct ACP { address issuer; uint64 expiration; address recipient; uint256 revokerData; address revokerContract; uint8 scope; address[] contracts; bytes32[] handles; bytes32 sealingKey; bytes issuerSignature; bytes recipientSignature; }',
-  'struct ShareHead { address issuer; uint64 expiration; address recipient; uint64 blockNumber; address revokerContract; uint256 revokerData; }',
+  'struct ShareHeader { address issuer; uint64 expiration; address recipient; uint64 blockNumber; address revokerContract; uint256 revokerData; }',
   'function share(ACP calldata acp, bytes calldata metadata) external returns (bytes32)',
   'function removeShare(bytes32 shareId) external',
-  'function sharesFor(address recipient) external view returns (bytes32[] shareIds, ShareHead[] heads)',
-  'function getShare(bytes32 shareId) external view returns (ShareHead memory)',
+  'function sharesFor(address recipient) external view returns (bytes32[] shareIds, ShareHeader[] headers)',
+  'function getShare(bytes32 shareId) external view returns (ShareHeader memory)',
   'function isShareValid(bytes32 shareId) external view returns (bool)',
   'event Shared(address indexed recipient, address indexed issuer, bytes32 indexed shareId, ACP acp, bytes metadata)',
   'event ShareRemoved(address indexed recipient, address indexed issuer, bytes32 indexed shareId)',
@@ -93,7 +93,7 @@ export const shareIdOfChainShare = (share: ChainShare): Hex =>
 export type ChainShare = AbiParameterToPrimitiveType<(typeof ACP_SHARE_TUPLE_ABI)[0]>;
 
 /** What the registry stores of a share: the fields it checks, and the block of its `Shared` event. */
-export type ShareHead = {
+export type ShareHeader = {
   issuer: Address;
   expiration: bigint;
   recipient: Address;
@@ -104,10 +104,10 @@ export type ShareHead = {
 };
 
 /** A share as posted: its payload and the metadata blob that came with it (`0x` when none). */
-export type PostedShare = { shareId: Hex; head: ShareHead; share: ChainShare; metadata: Hex };
+export type PostedShare = { shareId: Hex; header: ShareHeader; share: ChainShare; metadata: Hex };
 
 /**
- * Fetches the `Shared` events of shares from the blocks their heads name: one single-block
+ * Fetches the `Shared` events of shares from the blocks their headers name: one single-block
  * `getLogs` per distinct block, filtered by registry and share ids, so any node answers it. Returns
  * the shares in the order given. Throws when a block holds no `Shared` event of a share it should,
  * or an event's payload does not hash to its share id.
@@ -115,11 +115,11 @@ export type PostedShare = { shareId: Hex; head: ShareHead; share: ChainShare; me
 export const readPostedShares = async (
   publicClient: PublicClient,
   registry: Address,
-  heads: readonly { shareId: Hex; head: ShareHead }[]
+  headers: readonly { shareId: Hex; header: ShareHeader }[]
 ): Promise<PostedShare[]> => {
   const idsByBlock = new Map<bigint, Hex[]>();
-  for (const { shareId, head } of heads) {
-    idsByBlock.set(head.blockNumber, [...(idsByBlock.get(head.blockNumber) ?? []), shareId]);
+  for (const { shareId, header } of headers) {
+    idsByBlock.set(header.blockNumber, [...(idsByBlock.get(header.blockNumber) ?? []), shareId]);
   }
 
   const found = new Map<string, { share: ChainShare; metadata: Hex }>();
@@ -143,12 +143,12 @@ export const readPostedShares = async (
     })
   );
 
-  return heads.map(({ shareId, head }) => {
+  return headers.map(({ shareId, header }) => {
     const posted = found.get(shareId.toLowerCase());
     if (posted == null) {
-      throw new Error(`Share ${shareId}: no Shared event in block ${head.blockNumber}, where the registry points`);
+      throw new Error(`Share ${shareId}: no Shared event in block ${header.blockNumber}, where the registry points`);
     }
-    return { shareId, head, ...posted };
+    return { shareId, header, ...posted };
   });
 };
 
@@ -158,7 +158,7 @@ export const readSharesFor = async (
   registry: Address,
   recipient: Address
 ): Promise<PostedShare[]> => {
-  const [shareIds, heads] = await publicClient.readContract({
+  const [shareIds, headers] = await publicClient.readContract({
     address: registry,
     abi: ACP_SHARE_REGISTRY_ABI,
     functionName: 'sharesFor',
@@ -167,7 +167,7 @@ export const readSharesFor = async (
   return readPostedShares(
     publicClient,
     registry,
-    shareIds.map((shareId, i) => ({ shareId, head: heads[i] }))
+    shareIds.map((shareId, i) => ({ shareId, header: headers[i] }))
   );
 };
 
@@ -177,13 +177,13 @@ export const readShare = async (
   registry: Address,
   shareId: Hex
 ): Promise<PostedShare | null> => {
-  const head = await publicClient.readContract({
+  const header = await publicClient.readContract({
     address: registry,
     abi: ACP_SHARE_REGISTRY_ABI,
     functionName: 'getShare',
     args: [shareId],
   });
-  if (head.issuer === '0x0000000000000000000000000000000000000000') return null;
-  const [posted] = await readPostedShares(publicClient, registry, [{ shareId, head }]);
+  if (header.issuer === '0x0000000000000000000000000000000000000000') return null;
+  const [posted] = await readPostedShares(publicClient, registry, [{ shareId, header }]);
   return posted;
 };
