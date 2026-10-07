@@ -84,6 +84,15 @@ describe('registry reads', () => {
     expect(await readShare(client, REGISTRY, `0x${'f'.repeat(64)}`)).toBeNull();
   });
 
+  it('takes the last Shared event when a share was removed and posted again in the same block', async () => {
+    const { client } = clientWith([
+      { block: 10n, acp: shares[0], id: ids[0], metadata: '0x03aa' },
+      { block: 10n, acp: shares[0], id: ids[0], metadata: '0x03cc' },
+    ]);
+    const [posted] = await readPostedShares(client, REGISTRY, [{ shareId: ids[0], header: headers[0] }]);
+    expect(posted.metadata).toBe('0x03cc');
+  });
+
   it('throws when the block the header names has no Shared event of the share', async () => {
     const { client } = clientWith([]);
     await expect(readPostedShares(client, REGISTRY, [{ shareId: ids[0], header: headers[0] }])).rejects.toThrow(

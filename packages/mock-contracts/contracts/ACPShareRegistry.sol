@@ -19,7 +19,8 @@ import {ACP, IPermissionCustomIdValidator} from "./Permissioned.sol";
  * (issuer, recipient, expiration, revoker) and the block of that event — plus the
  * recipient's set of share ids. A reader takes the header from `sharesFor` / `getShare`
  * and fetches the event with a `getLogs` over that one block, filtered by the
- * share id topic.
+ * share id topic. If that block holds several `Shared` events for the share id (it
+ * was removed and posted again within the block), the last one is the share.
  *
  * The registry stays deliberately dumb:
  *
@@ -55,7 +56,8 @@ contract ACPShareRegistry is UUPSUpgradeable, AccessControlUpgradeable {
         uint64 expiration;
         address recipient;
         /// @dev Block of the `Shared` event that carries the full ACP and the metadata
-        ///      (the L2 block on Arbitrum).
+        ///      (the L2 block on Arbitrum). The last `Shared` event for the share id in that
+        ///      block, should it hold more than one.
         uint64 blockNumber;
         address revokerContract;
         uint256 revokerData;
@@ -86,7 +88,9 @@ contract ACPShareRegistry is UUPSUpgradeable, AccessControlUpgradeable {
 
     /// @notice A share was posted. `acp` is the payload as posted; `metadata` is the opaque
     ///         blob that came with it (empty when none). The share id is
-    ///         `keccak256(abi.encode(acp))`.
+    ///         `keccak256(abi.encode(acp))`. A share removed and posted again in the same block
+    ///         emits this twice there with the same id; the later one (higher log index) is
+    ///         the share, and only its `metadata` can differ.
     event Shared(address indexed recipient, address indexed issuer, bytes32 indexed shareId, ACP acp, bytes metadata);
     event ShareRemoved(address indexed recipient, address indexed issuer, bytes32 indexed shareId);
 

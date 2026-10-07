@@ -109,7 +109,7 @@ export type PostedShare = { shareId: Hex; header: ShareHeader; share: ChainShare
 /**
  * Fetches the `Shared` events of shares from the blocks their headers name: one single-block
  * `getLogs` per distinct block, filtered by registry and share ids, so any node answers it. Returns
- * the shares in the order given. Throws when a block holds no `Shared` event of a share it should,
+ * the shares in the order given; where a block holds several events for one share id, the last. Throws when a block holds no `Shared` event of a share it should,
  * or an event's payload does not hash to its share id.
  */
 export const readPostedShares = async (
@@ -134,6 +134,8 @@ export const readPostedShares = async (
         toBlock: block,
         strict: true,
       });
+      // Logs come in log-index order. A share removed and posted again within one block has two
+      // Shared events there; the later one is the share, so each log overwrites the previous.
       for (const { args } of logs) {
         if (shareIdOfChainShare(args.acp).toLowerCase() !== args.shareId.toLowerCase()) {
           throw new Error(`Share ${args.shareId}: the payload in its Shared event does not hash to its id`);
