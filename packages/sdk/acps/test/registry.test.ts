@@ -41,7 +41,7 @@ const headerAt = (blockNumber: bigint): ShareHeader => ({
 const shares = [chainShare(1), chainShare(2), chainShare(3)];
 const ids = shares.map(shareIdOfChainShare);
 const headers = [headerAt(10n), headerAt(10n), headerAt(20n)];
-const metadata = ['0x03aa', '0x', '0x03bb'] as const;
+const metadata: `0x${string}`[] = ['0x03aa', '0x', '0x03bb'];
 
 const clientWith = (
   events = shares.map((acp, i) => ({ block: headers[i].blockNumber, acp, id: ids[i], metadata: metadata[i] }))
