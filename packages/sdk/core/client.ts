@@ -349,7 +349,7 @@ export function createCofheClientBase<TConfig extends CofheConfig>(
     verifyShareLabels: async (share, options) => {
       _requireConnected();
       const { publicClient } = connectStore.getState();
-      if (share.metadata === '0x') return null;
+      if (share.metadata == null || share.metadata === '0x') return null;
       return verifyShareLabels({
         labels: decodeShareMetadata(share.metadata, share.handles),
         handles: share.handles,

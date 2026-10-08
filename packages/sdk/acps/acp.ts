@@ -27,6 +27,7 @@ import {
 import { SignatureUtils } from './signature.js';
 import { GenerateSealingKey, unsealWithPrivateKey } from './sealing.js';
 import { checkACPValidityOnChain, getACPAccessStatusOnChain, getAclEIP712Domain } from './onchain-utils.js';
+import { encodeShareMetadata } from './share-metadata/encode.js';
 
 /**
  * Main ACP utilities - functional approach for React compatibility
@@ -57,6 +58,10 @@ export const ACPUtils = {
    */
   createSharing: (options: CreateSharingACPOptions): SharingACP => {
     const validation = validateSharingACPOptions(options);
+    const { labels } = options;
+    if (labels != null && labels.length !== validation.handles.length) {
+      throw new Error(`Cannot label a share of ${validation.handles.length} handles with ${labels.length} labels`);
+    }
 
     // Always generate a new sealing key - users cannot provide their own
     const sealingPair = GenerateSealingKey();
@@ -64,6 +69,7 @@ export const ACPUtils = {
     const acp = {
       hash: ACPUtils.getHash(validation),
       ...validation,
+      ...(labels != null && { metadata: encodeShareMetadata(labels) }),
       sealingPrivateKey: sealingPair.privateKey,
       sealingKey: sealingPair.publicKey,
       _signedDomain: undefined,
@@ -218,6 +224,7 @@ export const ACPUtils = {
       recipientSignature: acp.recipientSignature,
       _signedDomain: acp._signedDomain,
       sealingPrivateKey: acp.sealingPrivateKey,
+      ...(acp.metadata != null && { metadata: acp.metadata }),
     };
   },
 
@@ -297,7 +304,7 @@ export const ACPUtils = {
   /**
    * Export acp data for sharing (strips the private component).
    * Fixed `SharedACP` shape — every field always present, aligned with
-   * `ACPPublic` and the on-chain sharing payload.
+   * `ACPPublic` and the on-chain sharing payload — plus `metadata` when the acp has labels.
    */
   export: (acp: ACP): string => {
     if (acp.type !== 'sharing') {
@@ -323,6 +330,7 @@ export const ACPUtils = {
       contracts: acp.contracts,
       handles: acp.handles,
       issuerSignature: acp.issuerSignature,
+      ...(acp.metadata != null && acp.metadata !== '0x' && { metadata: acp.metadata }),
     };
 
     return JSON.stringify(shared, undefined, 2);

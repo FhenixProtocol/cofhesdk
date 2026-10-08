@@ -1,9 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
   ACPUtils,
+  encodeShareMetadata,
   type CreateSelfACPOptions,
   type CreateSharingACPOptions,
   type ImportSharedACPOptions,
+  type ShareLabel,
 } from '../index.js';
 
 // ACP domain resolution requires an upgraded on-chain ACL (domain ("ACL","2") served by the ACL itself).
@@ -479,6 +481,74 @@ describe('ACPUtils Tests', () => {
       expect(parsed).not.toHaveProperty('sealingKey');
       expect(parsed).not.toHaveProperty('hash');
       expect(parsed).not.toHaveProperty('recipientSignature');
+    });
+  });
+
+  describe('share labels in exported JSON', () => {
+    const HANDLE = `0x${'ab'.repeat(32)}` as const;
+    const label: ShareLabel = {
+      kind: 'stored',
+      contract: '0x2222222222222222222222222222222222222222',
+      selector: '0x344ff101',
+      args: [{ type: 'issuer' }],
+      returnWord: 0,
+      block: 123n,
+    };
+    const signed = (acp: ReturnType<typeof ACPUtils.createSharing>) => ({
+      ...acp,
+      issuerSignature: `0x${'11'.repeat(65)}` as const,
+    });
+
+    it('createSharing keeps the labels on the acp as metadata', () => {
+      const acp = ACPUtils.createSharing({
+        issuer: bobAddress,
+        recipient: aliceAddress,
+        handles: [HANDLE],
+        labels: [label],
+      });
+      expect(acp.metadata).toBe(encodeShareMetadata([label]));
+      expect(ACPUtils.deserialize(ACPUtils.serialize(acp)).metadata).toBe(acp.metadata);
+    });
+
+    it('createSharing rejects a label count that does not match the handles', () => {
+      expect(() =>
+        ACPUtils.createSharing({
+          issuer: bobAddress,
+          recipient: aliceAddress,
+          handles: [HANDLE],
+          labels: [label, label],
+        })
+      ).toThrow('Cannot label a share of 1 handles with 2 labels');
+    });
+
+    it('export writes the metadata and importShared keeps it on the recipient acp', () => {
+      const sharing = signed(
+        ACPUtils.createSharing({ issuer: bobAddress, recipient: aliceAddress, handles: [HANDLE], labels: [label] })
+      );
+      const json = ACPUtils.export(sharing);
+      expect(JSON.parse(json).metadata).toBe(sharing.metadata);
+
+      const recipient = ACPUtils.importShared(json);
+      expect(recipient.metadata).toBe(sharing.metadata);
+      expect(recipient.hash).toBe(ACPUtils.importShared({ ...JSON.parse(json), metadata: undefined }).hash);
+    });
+
+    it('imports JSON without metadata, or with an empty one, as a share without labels', () => {
+      const sharing = signed(
+        ACPUtils.createSharing({ issuer: bobAddress, recipient: aliceAddress, handles: [HANDLE] })
+      );
+      const json = ACPUtils.export(sharing);
+      expect(JSON.parse(json)).not.toHaveProperty('metadata');
+
+      expect(ACPUtils.importShared(json).metadata).toBeUndefined();
+      expect(ACPUtils.importShared({ ...JSON.parse(json), metadata: '0x' }).metadata).toBeUndefined();
+    });
+
+    it('importShared rejects metadata that is not hex', () => {
+      const json = ACPUtils.export(
+        signed(ACPUtils.createSharing({ issuer: bobAddress, recipient: aliceAddress, handles: [HANDLE] }))
+      );
+      expect(() => ACPUtils.importShared({ ...JSON.parse(json), metadata: 'labels' })).toThrow(/metadata/);
     });
   });
 

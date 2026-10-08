@@ -138,6 +138,58 @@ describe('ACP on-chain sharing (SDK e2e)', () => {
     expect(await aliceClient.acp.verifyShareLabels(inbox[1])).to.equal(null);
   });
 
+  it('labels given at createSharing travel both ways: in the exported JSON and on-chain', async () => {
+    const [bob, alice] = await hre.ethers.getSigners();
+    const registry = await deployShareRegistry();
+    await registry.waitForDeployment();
+    const config = await hre.cofhe.createConfig({
+      environment: 'hardhat',
+      supportedChains: [hardhat],
+      acp: { sharingRegistry: { 31337: (await registry.getAddress()) as `0x${string}` } },
+    });
+    const bobClient = hre.cofhe.createClient(config);
+    await hre.cofhe.connectWithHardhatSigner(bobClient, bob);
+
+    const simpleTest = (await (await hre.ethers.getContractFactory('SharedSimpleTest')).deploy()) as SharedSimpleTest;
+    await simpleTest.waitForDeployment();
+    await simpleTest.connect(bob).setValueTrivial(42);
+    const ctHash = (await simpleTest.getValueHash()) as `0x${string}`;
+    const label: ShareLabel = {
+      kind: 'stored',
+      contract: (await simpleTest.getAddress()) as `0x${string}`,
+      selector: toFunctionSelector('getValueHash()'),
+      args: [],
+      returnWord: 0,
+      block: BigInt(await hre.ethers.provider.getBlockNumber()),
+    };
+    const metadata = encodeShareMetadata([label]);
+
+    const sharingACP = await bobClient.acp.createSharing({
+      issuer: bob.address,
+      recipient: alice.address,
+      name: 'Bob shares one labelled value with Alice',
+      handles: [ctHash],
+      labels: [label],
+    });
+    expect(sharingACP.metadata).to.equal(metadata);
+
+    const aliceClient = hre.cofhe.createClient(config);
+    await hre.cofhe.connectWithHardhatSigner(aliceClient, alice);
+
+    // exported JSON: the labels come along and stay on Alice's acp
+    const fromJson = await aliceClient.acp.importShared(bobClient.acp.export(sharingACP), { activate: false });
+    expect(fromJson.metadata).to.equal(metadata);
+    expect(await aliceClient.acp.verifyShareLabels(fromJson)).to.deep.equal(['verified']);
+
+    // on-chain: shareOnChain posts the labels the acp was created with
+    await bobClient.acp.shareOnChain(sharingACP);
+    const [incoming] = await aliceClient.acp.getIncomingShares();
+    expect(incoming.metadata).to.equal(metadata);
+    const fromChain = await aliceClient.acp.importFromChain(incoming, { activate: false });
+    expect(fromChain.metadata).to.equal(metadata);
+    expect(await aliceClient.acp.verifyShareLabels(fromChain)).to.deep.equal(['verified']);
+  });
+
   it('issuer can cancel a pending share before import', async () => {
     const [bob, alice] = await hre.ethers.getSigners();
 

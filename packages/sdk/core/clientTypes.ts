@@ -19,6 +19,7 @@ import type {
   RecipientACP,
   SelfACP,
   IncomingShare,
+  LabelledShare,
 } from 'acps/types.js';
 import type { ShareLabelCheck, ShareLabelVerifyMode } from 'acps/share-metadata/verify.js';
 
@@ -133,10 +134,12 @@ export type CofheClientACPs = {
   getShareFromChain: (shareId: `0x${string}`) => Promise<IncomingShare | null>;
   /**
    * Check a share's labels against the chain, index for index with its handles, as far as
-   * `verify` says (default 'all'). Null for a share posted without metadata. Throws on a malformed blob.
+   * `verify` says (default 'all'). Takes a share read from the registry or an acp imported from
+   * exported JSON (or the issuer's sharing acp). Null for a share without metadata. Throws on a
+   * malformed blob.
    */
   verifyShareLabels: (
-    share: IncomingShare,
+    share: LabelledShare,
     options?: { verify?: ShareLabelVerifyMode }
   ) => Promise<ShareLabelCheck[] | null>;
   /** Import a share read from the registry: sign as recipient, store and (unless `activate: false`) activate. */

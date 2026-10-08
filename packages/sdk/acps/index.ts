@@ -9,6 +9,7 @@ export type {
   ACPPublic,
   SharedACP,
   IncomingShare,
+  LabelledShare,
   EIP712Domain,
   EIP712Types,
   EIP712Message,

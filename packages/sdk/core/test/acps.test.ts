@@ -231,6 +231,25 @@ describe('Core ACPs Tests', () => {
       expect(acps.getActiveACPHash(chainId, aliceAddress)).toBe(imported.hash);
     });
 
+    it('importFromChain keeps the share metadata on the stored recipient acp', async () => {
+      const { sharing } = await setUp();
+      const imported = await acps.importFromChain(
+        { ...toIncomingShare(sharing), metadata: '0x03aa' },
+        publicClient,
+        aliceWalletClient
+      );
+
+      expect(imported.metadata).toBe('0x03aa');
+      expect(acps.getACPs(chainId, aliceAddress)?.[imported.hash]?.metadata).toBe('0x03aa');
+    });
+
+    it('importFromChain of a share without metadata leaves none on the acp', async () => {
+      const { sharing } = await setUp();
+      const imported = await acps.importFromChain(toIncomingShare(sharing), publicClient, aliceWalletClient);
+
+      expect(imported.metadata).toBeUndefined();
+    });
+
     it('importFromChain with activate: false stores the acp and keeps the active one', async () => {
       const { self, sharing } = await setUp();
       const imported = await acps.importFromChain(toIncomingShare(sharing), publicClient, aliceWalletClient, {

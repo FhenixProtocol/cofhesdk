@@ -418,19 +418,19 @@ const sharingAcp = await client.acp.createSharing({
   issuer: '0x…',
   recipient: '0x…',
   handles: [balanceHandle, transferHandle],
-});
-
-// one label per handle, in the same order
-await client.acp.shareOnChain(sharingAcp, {
+  // one label per handle, in the same order
   labels: [confidentialBalanceLabel(token, block), eventLabelOfLog(transferLog)],
 });
+
+await client.acp.shareOnChain(sharingAcp); // posts the labels with the share
+const exported = client.acp.export(sharingAcp); // or sends them in the JSON
 ```
 
-`labels` is encoded with `encodeShareMetadata`; an app that encodes itself passes `metadata` (the blob) instead.
+The labels stay on the sharing ACP as its `metadata` (encoded with `encodeShareMetadata`), so both routes carry them: `shareOnChain` posts them and `export()` writes them into the JSON. `shareOnChain(acp, { labels })` or `{ metadata }` (an already encoded blob) posts other labels instead.
 
 ### Reading, verifying and describing labels
 
-Each `IncomingShare` carries its `metadata` blob (`0x` when posted without labels). Labels are the issuer's **claim**; check them before relying on them:
+Each `IncomingShare` carries its `metadata` blob (`0x` when posted without labels), and the recipient ACP keeps it as `metadata` whichever way it was imported (`importFromChain` or `importShared` of exported JSON), so `verifyShareLabels`, `describeShareMetadata` and `useCofheShareLabels` take either. Labels are the issuer's **claim**; check them before relying on them:
 
 ```ts twoslash [client.acp]
 // @noErrors

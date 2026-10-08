@@ -397,13 +397,14 @@ const isACPRevoked = async (acp: ACP, publicClient: PublicClient): Promise<boole
 /**
  * What `shareOnChain` posts with a share: the labels of its handles (one per handle, in order;
  * encoded with `encodeShareMetadata`), or an already encoded metadata blob. Written once, with the
- * share; omit for none.
+ * share. Omitted, the labels the acp was created with are posted (`createSharing({ labels })`),
+ * or none.
  */
 export type ShareOnChainOptions = { labels?: readonly ShareLabel[]; metadata?: Hex };
 
 const metadataOf = (acp: ACP, { labels, metadata }: ShareOnChainOptions): Hex => {
   if (labels != null && metadata != null) throw new Error('Pass either labels or metadata, not both');
-  if (labels == null) return metadata ?? '0x';
+  if (labels == null) return metadata ?? acp.metadata ?? '0x';
   if (labels.length !== acp.handles.length) {
     throw new Error(`Cannot label a share of ${acp.handles.length} handles with ${labels.length} labels`);
   }
@@ -480,7 +481,8 @@ const getShareFromChain = async (
 /**
  * Import a share read from the registry: fills the recipient's sealing key,
  * signs, stores and (unless `activate: false`) activates — the on-chain
- * counterpart of importing an exported JSON blob. The share stays on-chain
+ * counterpart of importing an exported JSON blob. Its metadata is kept on the
+ * recipient acp, as with an import of exported JSON. The share stays on-chain
  * until dismissed.
  */
 const importFromChain = async (
@@ -489,7 +491,7 @@ const importFromChain = async (
   walletClient: WalletClient,
   importOptions: ImportActivationOptions = {}
 ): Promise<RecipientACP> => {
-  const { shareId: _shareId, metadata: _metadata, ...options } = share;
+  const { shareId: _shareId, ...options } = share;
   return importShared({ ...options, type: 'sharing' }, publicClient, walletClient, importOptions);
 };
 
